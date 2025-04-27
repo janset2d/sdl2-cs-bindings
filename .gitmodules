@@ -1,0 +1,3 @@
+[submodule "external/sdl2-cs"]
+	path = external/sdl2-cs
+	url = git@github.com:flibitijibibo/SDL2-CS.git
