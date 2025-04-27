@@ -2,17 +2,20 @@
   <PropertyGroup>
     <PackageId>Janset.SDL2.Core</PackageId>
     <Description>Core C# bindings for SDL2 (based on SDL-CS).</Description>
+    <Platforms>x64;x86</Platforms>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="../../external/sdl2-cs/src/SDL2.cs" Link="SDL2.cs"/>
+    <Compile Include="../../external/sdl2-cs/src/SDL2.cs" Link="SDL2.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="runtimes\linux-arm64\native\"/>
-    <Folder Include="runtimes\linux-x64\native\"/>
-    <Folder Include="runtimes\osx\native\"/>
-    <Folder Include="runtimes\win-arm64\native\"/>
-    <Folder Include="runtimes\win-x64\native\"/>
+    <Folder Include="runtimes\linux-x64\native\" />
+    <Folder Include="runtimes\win-arm64\native\" />
+    <Folder Include="runtimes\win-x64\native\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="runtimes\**" PackagePath="runtimes" Pack="true" />
   </ItemGroup>
 </Project>

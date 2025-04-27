@@ -13,14 +13,14 @@
     <Copyright>Copyright © Janset2D 2025</Copyright>
     <RepositoryUrl>https://github.com/janset2d/sdl2-cs-bindings</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageProjectUrl>https://github.com/janset2d/sdl2-cs-bindings</PackageProjectUrl>
-    <PackageIcon>assets/janset2d-sdl.png</PackageIcon>
+    <PackageIcon>janset2d-sdl-min.png</PackageIcon>
     <PackageTags>sdl2;native;bindings;graphics;audio;input;cross-platform</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <VersionPrefix>0.1.0</VersionPrefix>
     <VersionSuffix>preview</VersionSuffix>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- <GenerateDocumentationFile>true</GenerateDocumentationFile> -->
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <CheckEolTargetFramework>true</CheckEolTargetFramework>
     <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
@@ -61,7 +61,7 @@
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)LICENSE" Visible="False" Pack="true" PackagePath=""/>
     <None Include="$(MSBuildThisFileDirectory)README.md" Visible="False" Pack="true" PackagePath=""/>
-    <None Include="$(MSBuildThisFileDirectory)assets/janset2d-sdl.png" Visible="False" Pack="true" PackagePath=""/>
+    <None Include="$(MSBuildThisFileDirectory)assets/janset2d-sdl-min.png" Visible="False" Pack="true" PackagePath=""/>
   </ItemGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
