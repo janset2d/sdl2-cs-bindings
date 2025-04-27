@@ -18,7 +18,7 @@
     * Initialize with a `README.md`, `.gitignore` (standard .NET template), and an `MIT` license file (for your binding code).
 2.  **Add SDL-CS Submodule:**
     * Add the `SDL-CS/SDL2-CS` repository as a Git submodule in `external/SDL2-CS`.
-    * `git submodule add https://github.com/SDL-CS/SDL2-CS.git external/SDL2-CS`
+    * `git submodule add git@github.com:flibitijibibo/SDL2-CS.git external/SDL2-CS`
     * `git commit -m "Add SDL2-CS submodule"`
 3.  **Basic Folder Structure:**
     * Create top-level folders: `src/`, `build/`, `samples/`, `tests/`.
