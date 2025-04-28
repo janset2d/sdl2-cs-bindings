@@ -9,6 +9,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{3E7F1EF5-6
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SDL2.Core", "src\SDL2.Core\SDL2.Core.csproj", "{C8319C1E-4E33-4892-B435-D1B409DDC82E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SDL2.Core.Native", "src\SDL2.Core.Native\SDL2.Core.Native.csproj", "{EEC726DB-BE4C-4513-824C-710D64F3DD2D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -25,11 +27,20 @@ Global
 		{C8319C1E-4E33-4892-B435-D1B409DDC82E}.Release|x64.Build.0 = Release|x64
 		{C8319C1E-4E33-4892-B435-D1B409DDC82E}.Release|x86.ActiveCfg = Release|x86
 		{C8319C1E-4E33-4892-B435-D1B409DDC82E}.Release|x86.Build.0 = Release|x86
+		{EEC726DB-BE4C-4513-824C-710D64F3DD2D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{EEC726DB-BE4C-4513-824C-710D64F3DD2D}.Debug|x64.Build.0 = Debug|Any CPU
+		{EEC726DB-BE4C-4513-824C-710D64F3DD2D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{EEC726DB-BE4C-4513-824C-710D64F3DD2D}.Debug|x86.Build.0 = Debug|Any CPU
+		{EEC726DB-BE4C-4513-824C-710D64F3DD2D}.Release|x64.ActiveCfg = Release|Any CPU
+		{EEC726DB-BE4C-4513-824C-710D64F3DD2D}.Release|x64.Build.0 = Release|Any CPU
+		{EEC726DB-BE4C-4513-824C-710D64F3DD2D}.Release|x86.ActiveCfg = Release|Any CPU
+		{EEC726DB-BE4C-4513-824C-710D64F3DD2D}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{C8319C1E-4E33-4892-B435-D1B409DDC82E} = {A9C28D98-0F4A-4383-B008-BBA0F9540E43}
+		{EEC726DB-BE4C-4513-824C-710D64F3DD2D} = {A9C28D98-0F4A-4383-B008-BBA0F9540E43}
 	EndGlobalSection
 EndGlobal

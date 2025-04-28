@@ -6,16 +6,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="../../external/sdl2-cs/src/SDL2.cs" Link="SDL2.cs" />
+    <Compile Include="../../external/sdl2-cs/src/SDL2.cs" Link="SDL2.cs"/>
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="runtimes\linux-x64\native\" />
-    <Folder Include="runtimes\win-arm64\native\" />
-    <Folder Include="runtimes\win-x64\native\" />
+  <!-- Project reference for development -->
+  <ItemGroup Condition="'$(IsPacking)' != 'true'">
+    <ProjectReference Include="..\SDL2.Core.Native\SDL2.Core.Native.csproj"/>
   </ItemGroup>
 
-  <ItemGroup>
-    <Content Include="runtimes\**" PackagePath="runtimes" Pack="true" />
+  <!-- Package reference for NuGet packaging -->
+  <ItemGroup Condition="'$(IsPacking)' == 'true'">
+    <PackageReference Include="Janset.SDL2.Core.Native" Version="$(SDLCoreNativeVersion)"/>
   </ItemGroup>
 </Project>
