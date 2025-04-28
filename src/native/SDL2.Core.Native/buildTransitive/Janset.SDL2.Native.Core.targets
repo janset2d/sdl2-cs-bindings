@@ -1,0 +1,45 @@
+<Project>
+
+  <!--
+    This target copies the appropriate native SDL2.dll (x86 or x64)
+    to the output directory for .NET Framework builds.
+    Modern .NET runtimes load directly from the runtimes/ folder.
+  -->
+  <Target Name="_JansetCopySDL2NativeCoreToOutDir"
+          AfterTargets="Build"
+          Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'">
+
+    <PropertyGroup>
+      <_JansetSdl2NativeCoreRid Condition="'$(Platform)' == 'x86'">win-x86</_JansetSdl2NativeCoreRid>
+      <_JansetSdl2NativeCoreRid Condition="'$(Platform)' == 'x64'">win-x64</_JansetSdl2NativeCoreRid>
+      <_JansetSdl2NativeCoreRid Condition="'$(Platform)' == 'AnyCPU'">win-x64</_JansetSdl2NativeCoreRid> <!-- Default to x64 for AnyCPU -->
+    </PropertyGroup>
+
+    <!-- Ensure the RID was determined -->
+    <Error Condition="'$(_JansetSdl2NativeCoreRid)' == ''"
+           Text="Could not determine Runtime Identifier for platform '$(Platform)' to copy SDL2 native library." />
+
+    <ItemGroup>
+      <!-- Construct the path relative to this .targets file location -->
+      <_JansetSdl2NativeCoreFile Condition="Exists('$(MSBuildThisFileDirectory)..\..\runtimes\$(_JansetSdl2NativeCoreRid)\native\SDL2.dll')"
+                               Include="$(MSBuildThisFileDirectory)..\..\runtimes\$(_JansetSdl2NativeCoreRid)\native\SDL2.dll" />
+    </ItemGroup>
+
+    <Message Importance="high"
+             Condition="'@(_JansetSdl2NativeCoreFile)' != ''"
+             Text="Copying native SDL2 library for $(_JansetSdl2NativeCoreRid) to $(TargetDir)... (@(_JansetSdl2NativeCoreFile))" />
+
+    <Copy SourceFiles="@(_JansetSdl2NativeCoreFile)"
+          DestinationFolder="$(TargetDir)"
+          SkipUnchangedFiles="true" />
+
+    <!-- Optional: Add metadata to inform the linker for single-file/AOT scenarios (might need refinement) -->
+    <!--
+    <ItemGroup>
+      <NativeFileReference Include="$(TargetDir)SDL2.dll" />
+    </ItemGroup>
+    -->
+
+  </Target>
+
+</Project>

@@ -21,7 +21,6 @@
     <VersionPrefix>0.1.0</VersionPrefix>
     <VersionSuffix>preview</VersionSuffix>
     <!-- <GenerateDocumentationFile>true</GenerateDocumentationFile> -->
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <CheckEolTargetFramework>true</CheckEolTargetFramework>
     <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
 
@@ -63,10 +62,6 @@
     <None Include="$(MSBuildThisFileDirectory)README.md" Visible="False" Pack="true" PackagePath=""/>
     <None Include="$(MSBuildThisFileDirectory)assets/janset2d-sdl-min.png" Visible="False" Pack="true" PackagePath=""/>
   </ItemGroup>
-
-  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-  </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net462'">
     <DefineConstants>$(DefineConstants);NETFRAMEWORK</DefineConstants>

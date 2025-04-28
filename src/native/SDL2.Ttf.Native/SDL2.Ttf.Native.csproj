@@ -2,11 +2,5 @@
   <PropertyGroup>
     <PackageId>Janset.SDL2.Ttf.Native</PackageId>
     <Description>Native SDL_ttf libraries built via vcpkg</Description>
-    <Platforms>x64;x86</Platforms>
-    <TargetFrameworks>$(TargetFrameworks)</TargetFrameworks>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Content Include="runtimes\**" PackagePath="runtimes" Pack="true"/>
-  </ItemGroup>
 </Project>

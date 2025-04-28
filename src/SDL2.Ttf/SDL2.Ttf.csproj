@@ -2,7 +2,6 @@
   <PropertyGroup>
     <PackageId>Janset.SDL2.Ttf</PackageId>
     <Description>Ttf C# bindings for SDL_ttf (based on SDL-CS)</Description>
-    <Platforms>x64;x86</Platforms>
     <TargetFrameworks>$(TargetFrameworks)</TargetFrameworks>
   </PropertyGroup>
 
@@ -13,12 +12,12 @@
   <!-- Project reference for development -->
   <ItemGroup Condition="'$(IsPacking)' != 'true'">
     <ProjectReference Include="..\SDL2.Core\SDL2.Core.csproj"/>
-    <ProjectReference Include="..\SDL2.Ttf.Native\SDL2.Ttf.Native.csproj" />
+    <ProjectReference Include="..\native\SDL2.Ttf.Native\SDL2.Ttf.Native.csproj" />
   </ItemGroup>
 
   <!-- Package reference for NuGet packaging -->
   <ItemGroup Condition="'$(IsPacking)' == 'true'">
-    <PackageReference Include="Janset.SDL2.Core" Version="$(SDLCoreVersion)" PrivateAssets="native;build"/>
+    <PackageReference Include="Janset.SDL2.Core" Version="$(SDLCoreVersion)"/>
     <PackageReference Include="Janset.SDL2.Ttf.Native" Version="$(SDLTtfNativeVersion)"/>
   </ItemGroup>
 </Project>

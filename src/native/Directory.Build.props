@@ -1,0 +1,44 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- Use a minimal TFM just to satisfy MSBuild/SDK requirements -->
+    <!-- netstandard2.0 is often used for this purpose in source/content packages -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+
+    <!-- Common settings for content-only native packages -->
+    <NoBuild>true</NoBuild>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <!-- Silence "no lib assets" warning NU5128 -->
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+
+  </PropertyGroup>
+
+  <!-- Common native payload packaging -->
+  <!-- Assumes runtimes folder is directly inside each native project dir -->
+  <ItemGroup>
+    <Content Include="$(MSBuildProjectDirectory)\runtimes\**\*"
+             Pack="true"
+             PackagePath="runtimes\%(RecursiveDir)"/>
+  </ItemGroup>
+
+  <!-- Common packaging for build logic (.targets files) -->
+  <!-- Include both build/ and buildTransitive/ common patterns -->
+  <ItemGroup>
+    <Content Include="$(MSBuildProjectDirectory)\build\**\*.targets"
+             Pack="true"
+             PackagePath="build\" />
+    <Content Include="$(MSBuildProjectDirectory)\buildTransitive\**\*.targets"
+             Pack="true"
+             PackagePath="buildTransitive\" />
+  </ItemGroup>
+
+  <!-- Common packaging for licenses/notices -->
+  <!-- Assumes licenses folder is directly inside each native project dir -->
+  <ItemGroup>
+    <Content Include="$(MSBuildProjectDirectory)\licenses\**\*"
+             Pack="true"
+             PackagePath="licenses\" />
+  </ItemGroup>
+
+</Project>

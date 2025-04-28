@@ -2,7 +2,6 @@
   <PropertyGroup>
     <PackageId>Janset.SDL2.Core</PackageId>
     <Description>Core C# bindings for SDL2 (based on SDL-CS)</Description>
-    <Platforms>x64;x86</Platforms>
     <TargetFrameworks>$(TargetFrameworks)</TargetFrameworks>
   </PropertyGroup>
 
@@ -27,7 +26,7 @@
 
   <!-- Project reference for development -->
   <ItemGroup Condition="'$(IsPacking)' != 'true'">
-    <ProjectReference Include="..\SDL2.Core.Native\SDL2.Core.Native.csproj"/>
+    <ProjectReference Include="..\native\SDL2.Core.Native\SDL2.Core.Native.csproj"/>
   </ItemGroup>
 
   <!-- Package reference for NuGet packaging -->
