@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <PackageId>Janset.SDL2.Image</PackageId>
+    <Description>Image C# bindings for SDL_image (based on SDL-CS)</Description>
+    <Platforms>x64;x86</Platforms>
+    <TargetFrameworks>$(TargetFrameworks)</TargetFrameworks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../../external/sdl2-cs/src/SDL2_image.cs" Link="SDL2_image.cs"/>
+  </ItemGroup>
+
+  <!-- Project reference for development -->
+  <ItemGroup Condition="'$(IsPacking)' != 'true'">
+    <ProjectReference Include="..\SDL2.Core\SDL2.Core.csproj"/>
+    <ProjectReference Include="..\SDL2.Image.Native\SDL2.Image.Native.csproj" />
+  </ItemGroup>
+
+  <!-- Package reference for NuGet packaging -->
+  <ItemGroup Condition="'$(IsPacking)' == 'true'">
+    <PackageReference Include="Janset.SDL2.Core" Version="$(SDLCoreVersion)" PrivateAssets="native;build"/>
+    <PackageReference Include="Janset.SDL2.Image.Native" Version="$(SDLImageNativeVersion)"/>
+  </ItemGroup>
+</Project>

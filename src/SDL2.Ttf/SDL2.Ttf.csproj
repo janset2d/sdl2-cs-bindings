@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <PackageId>Janset.SDL2.Ttf</PackageId>
+    <Description>Ttf C# bindings for SDL_ttf (based on SDL-CS)</Description>
+    <Platforms>x64;x86</Platforms>
+    <TargetFrameworks>$(TargetFrameworks)</TargetFrameworks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../../external/sdl2-cs/src/SDL2_ttf.cs" Link="SDL2_ttf.cs"/>
+  </ItemGroup>
+
+  <!-- Project reference for development -->
+  <ItemGroup Condition="'$(IsPacking)' != 'true'">
+    <ProjectReference Include="..\SDL2.Core\SDL2.Core.csproj"/>
+    <ProjectReference Include="..\SDL2.Ttf.Native\SDL2.Ttf.Native.csproj" />
+  </ItemGroup>
+
+  <!-- Package reference for NuGet packaging -->
+  <ItemGroup Condition="'$(IsPacking)' == 'true'">
+    <PackageReference Include="Janset.SDL2.Core" Version="$(SDLCoreVersion)" PrivateAssets="native;build"/>
+    <PackageReference Include="Janset.SDL2.Ttf.Native" Version="$(SDLTtfNativeVersion)"/>
+  </ItemGroup>
+</Project>

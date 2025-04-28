@@ -1,12 +1,28 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <PackageId>Janset.SDL2.Core</PackageId>
-    <Description>Core C# bindings for SDL2 (based on SDL-CS).</Description>
+    <Description>Core C# bindings for SDL2 (based on SDL-CS)</Description>
     <Platforms>x64;x86</Platforms>
+    <TargetFrameworks>$(TargetFrameworks)</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Include="../../external/sdl2-cs/src/SDL2.cs" Link="SDL2.cs"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>SDL2.Image</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>SDL2.Gfx</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>SDL2.Mixer</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>SDL2.Ttf</_Parameter1>
+    </AssemblyAttribute>
   </ItemGroup>
 
   <!-- Project reference for development -->

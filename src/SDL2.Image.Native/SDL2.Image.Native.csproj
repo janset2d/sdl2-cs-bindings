@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <PackageId>Janset.SDL2.Core.Native</PackageId>
-    <Description>Native SDL2 libraries built via vcpkg</Description>
+    <PackageId>Janset.SDL2.Image.Native</PackageId>
+    <Description>Native SDL_image libraries built via vcpkg</Description>
     <Platforms>x64;x86</Platforms>
     <TargetFrameworks>$(TargetFrameworks)</TargetFrameworks>
   </PropertyGroup>
