@@ -2,8 +2,6 @@
   <Import Project="../../Directory.Build.props"/>
 
   <PropertyGroup>
-    <!-- Common settings for content-only native packages -->
-    <NoBuild>true</NoBuild>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <!-- Silence "no lib assets" warning NU5128 -->
@@ -25,7 +23,8 @@
   <ItemGroup>
     <Content Include="$(MSBuildProjectDirectory)\runtimes\**\*"
              Pack="true"
-             PackagePath="runtimes"/>
+             LinkBase="runtimes"
+             PackagePath="runtimes\%(Link)" />
   </ItemGroup>
 
   <!-- Common packaging for build logic (.targets files) -->

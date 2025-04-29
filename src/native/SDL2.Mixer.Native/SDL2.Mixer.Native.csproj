@@ -2,6 +2,5 @@
   <PropertyGroup>
     <PackageId>Janset.SDL2.Mixer.Native</PackageId>
     <Description>Native SDL_mixer libraries built via vcpkg</Description>
-    <Version>2.8.0</Version>
   </PropertyGroup>
 </Project>

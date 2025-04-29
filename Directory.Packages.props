@@ -14,14 +14,6 @@
     <!-- packages -->
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0"/>
 
-    <!-- Janset.SDL2.* Packages -->
-    <PackageVersion Include="Janset.SDL2.Core" Version="$(SDLBindingVersion)"/>
-    <PackageVersion Include="Janset.SDL2.Core.Native" Version="2.30.3"/>
-    <PackageVersion Include="Janset.SDL2.Image.Native" Version="2.8.2"/>
-    <PackageVersion Include="Janset.SDL2.Gfx.Native" Version="1.0.4"/>
-    <PackageVersion Include="Janset.SDL2.Mixer.Native" Version="2.8.0"/>
-    <PackageVersion Include="Janset.SDL2.Ttf.Native" Version="2.22.0"/>
-
     <!-- test packages -->
     <PackageVersion Include="Microsoft.TestPlatform.ObjectModel" Condition="'$(TargetFramework)' == 'net462'" Version="17.11.1"/>
   </ItemGroup>

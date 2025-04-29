@@ -9,14 +9,8 @@
     <Compile Include="../../external/sdl2-cs/src/SDL2_image.cs" Link="SDL2_image.cs"/>
   </ItemGroup>
 
-  <!-- Project reference for development -->
-  <ItemGroup Condition="'$(IsPacking)' != 'true'">
+  <ItemGroup>
     <ProjectReference Include="..\SDL2.Core\SDL2.Core.csproj"/>
-  </ItemGroup>
-
-  <!-- Package reference for NuGet packaging -->
-  <ItemGroup Condition="'$(IsPacking)' == 'true'">
-    <PackageReference Include="Janset.SDL2.Core"/>
-    <PackageReference Include="Janset.SDL2.Image.Native"/>
+    <ProjectReference Include="..\native\SDL2.Image.Native\SDL2.Image.Native.csproj"/>
   </ItemGroup>
 </Project>

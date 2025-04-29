@@ -10,6 +10,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\native\SDL2.Core.Native\SDL2.Core.Native.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
       <_Parameter1>SDL2.Image</_Parameter1>
     </AssemblyAttribute>
@@ -22,10 +26,5 @@
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
       <_Parameter1>SDL2.Ttf</_Parameter1>
     </AssemblyAttribute>
-  </ItemGroup>
-
-  <!-- Package reference for NuGet packaging -->
-  <ItemGroup Condition="'$(IsPacking)' == 'true'">
-    <PackageReference Include="Janset.SDL2.Core.Native"/>
   </ItemGroup>
 </Project>

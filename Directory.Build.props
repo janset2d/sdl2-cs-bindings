@@ -18,9 +18,6 @@
     <PackageIcon>janset2d-sdl-min.png</PackageIcon>
     <PackageTags>sdl2;native;bindings;graphics;audio;input;cross-platform</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <VersionPrefix>0.2.0</VersionPrefix>
-    <VersionSuffix>preview</VersionSuffix>
-    <!-- <GenerateDocumentationFile>true</GenerateDocumentationFile> -->
     <CheckEolTargetFramework>true</CheckEolTargetFramework>
     <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
 
@@ -45,11 +42,6 @@
     <NoError>$(NoError);CS1591;CS1573;CS1572;CS1574</NoError>
 
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-
-    <!-- Binding Package Version (Uses root prefix/suffix) -->
-    <SDLBindingVersion>$(VersionPrefix)</SDLBindingVersion>
-    <SDLBindingVersion Condition="'$(VersionSuffix)' != ''">$(VersionPrefix)-$(VersionSuffix)</SDLBindingVersion>
-
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(TargetFramework)' != 'net462' And '$(TargetFramework)' != 'netstandard2.0' ">

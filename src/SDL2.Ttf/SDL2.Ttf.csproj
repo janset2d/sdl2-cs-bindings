@@ -9,14 +9,8 @@
     <Compile Include="../../external/sdl2-cs/src/SDL2_ttf.cs" Link="SDL2_ttf.cs"/>
   </ItemGroup>
 
-  <!-- Project reference for development -->
-  <ItemGroup Condition="'$(IsPacking)' != 'true'">
+  <ItemGroup>
     <ProjectReference Include="..\SDL2.Core\SDL2.Core.csproj"/>
-  </ItemGroup>
-
-  <!-- Package reference for NuGet packaging -->
-  <ItemGroup Condition="'$(IsPacking)' == 'true'">
-    <PackageReference Include="Janset.SDL2.Core"/>
-    <PackageReference Include="Janset.SDL2.Ttf.Native"/>
+    <ProjectReference Include="..\native\SDL2.Ttf.Native\SDL2.Ttf.Native.csproj"/>
   </ItemGroup>
 </Project>
