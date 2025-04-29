@@ -2,5 +2,6 @@
   <PropertyGroup>
     <PackageId>Janset.SDL2.Core.Native</PackageId>
     <Description>Native SDL2 libraries built via vcpkg</Description>
+    <Version>2.30.3</Version>
   </PropertyGroup>
 </Project>

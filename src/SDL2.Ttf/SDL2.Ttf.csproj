@@ -12,12 +12,11 @@
   <!-- Project reference for development -->
   <ItemGroup Condition="'$(IsPacking)' != 'true'">
     <ProjectReference Include="..\SDL2.Core\SDL2.Core.csproj"/>
-    <ProjectReference Include="..\native\SDL2.Ttf.Native\SDL2.Ttf.Native.csproj" />
   </ItemGroup>
 
   <!-- Package reference for NuGet packaging -->
   <ItemGroup Condition="'$(IsPacking)' == 'true'">
-    <PackageReference Include="Janset.SDL2.Core" Version="$(SDLCoreVersion)"/>
-    <PackageReference Include="Janset.SDL2.Ttf.Native" Version="$(SDLTtfNativeVersion)"/>
+    <PackageReference Include="Janset.SDL2.Core"/>
+    <PackageReference Include="Janset.SDL2.Ttf.Native"/>
   </ItemGroup>
 </Project>

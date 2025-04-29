@@ -24,13 +24,8 @@
     </AssemblyAttribute>
   </ItemGroup>
 
-  <!-- Project reference for development -->
-  <ItemGroup Condition="'$(IsPacking)' != 'true'">
-    <ProjectReference Include="..\native\SDL2.Core.Native\SDL2.Core.Native.csproj"/>
-  </ItemGroup>
-
   <!-- Package reference for NuGet packaging -->
   <ItemGroup Condition="'$(IsPacking)' == 'true'">
-    <PackageReference Include="Janset.SDL2.Core.Native" Version="$(SDLCoreNativeVersion)"/>
+    <PackageReference Include="Janset.SDL2.Core.Native"/>
   </ItemGroup>
 </Project>

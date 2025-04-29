@@ -1,16 +1,22 @@
 <Project>
+  <Import Project="../../Directory.Build.props"/>
 
   <PropertyGroup>
-    <!-- Use a minimal TFM just to satisfy MSBuild/SDK requirements -->
-    <!-- netstandard2.0 is often used for this purpose in source/content packages -->
-    <TargetFramework>netstandard2.0</TargetFramework>
-
     <!-- Common settings for content-only native packages -->
     <NoBuild>true</NoBuild>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <!-- Silence "no lib assets" warning NU5128 -->
     <NoWarn>$(NoWarn);NU5128</NoWarn>
+
+    <EmbedUntrackedSources>false</EmbedUntrackedSources>
+    <IncludeSymbols>false</IncludeSymbols>
+    <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <IsAotCompatible>false</IsAotCompatible>
+    <IsTrimmable>false</IsTrimmable>
+    <EnableAOTAnalyzer>false</EnableAOTAnalyzer>
+    <PublishRepositoryUrl>false</PublishRepositoryUrl>
 
   </PropertyGroup>
 
@@ -19,7 +25,7 @@
   <ItemGroup>
     <Content Include="$(MSBuildProjectDirectory)\runtimes\**\*"
              Pack="true"
-             PackagePath="runtimes\%(RecursiveDir)"/>
+             PackagePath="runtimes"/>
   </ItemGroup>
 
   <!-- Common packaging for build logic (.targets files) -->
@@ -27,10 +33,10 @@
   <ItemGroup>
     <Content Include="$(MSBuildProjectDirectory)\build\**\*.targets"
              Pack="true"
-             PackagePath="build\" />
+             PackagePath="build\"/>
     <Content Include="$(MSBuildProjectDirectory)\buildTransitive\**\*.targets"
              Pack="true"
-             PackagePath="buildTransitive\" />
+             PackagePath="buildTransitive\"/>
   </ItemGroup>
 
   <!-- Common packaging for licenses/notices -->
@@ -38,7 +44,7 @@
   <ItemGroup>
     <Content Include="$(MSBuildProjectDirectory)\licenses\**\*"
              Pack="true"
-             PackagePath="licenses\" />
+             PackagePath="licenses\"/>
   </ItemGroup>
 
 </Project>

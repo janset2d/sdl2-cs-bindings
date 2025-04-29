@@ -12,12 +12,11 @@
   <!-- Project reference for development -->
   <ItemGroup Condition="'$(IsPacking)' != 'true'">
     <ProjectReference Include="..\SDL2.Core\SDL2.Core.csproj"/>
-    <ProjectReference Include="..\native\SDL2.Mixer.Native\SDL2.Mixer.Native.csproj" />
   </ItemGroup>
 
   <!-- Package reference for NuGet packaging -->
   <ItemGroup Condition="'$(IsPacking)' == 'true'">
-    <PackageReference Include="Janset.SDL2.Core" Version="$(SDLCoreVersion)"/>
-    <PackageReference Include="Janset.SDL2.Mixer.Native" Version="$(SDLMixerNativeVersion)"/>
+    <PackageReference Include="Janset.SDL2.Core"/>
+    <PackageReference Include="Janset.SDL2.Mixer.Native"/>
   </ItemGroup>
 </Project>
