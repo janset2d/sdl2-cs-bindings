@@ -13,6 +13,7 @@
 
     <!-- packages -->
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0"/>
+    <PackageVersion Include="Cake.Frosting" Version="5.0.0" />
 
     <!-- test packages -->
     <PackageVersion Include="Microsoft.TestPlatform.ObjectModel" Condition="'$(TargetFramework)' == 'net462'" Version="17.11.1"/>

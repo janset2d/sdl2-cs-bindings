@@ -87,11 +87,10 @@ binaries will be built via vcpkg. Provide native binary archives via GitHub Rele
 * **Phase 1b: `Janset.SDL2.Core` Package**
     1. **Create & Configure Project:** `src/SDL2.Core/SDL2.Core.csproj`. Set `<PackageId>`, `<Description>`, `<RootNamespace>`. Version defined in `Directory.Packages.props` via `$(SDLBindingVersion)`.
     2. **Link SDL-CS Files:** Link core `*.cs` files from submodule.
-    3. **Add Project Reference:** Add `<ProjectReference Include="..\native\SDL2.Core.Native\SDL2.Core.Native.csproj" PrivateAssets="All"/>`. `PrivateAssets="All"` prevents SDK pack from incorrectly bundling native assets or promoting transitive dependencies directly. Standard SDK pack automatically converts this to the correct `<PackageReference>` using the version from `Directory.Packages.props`.
-    4. **Include SDL2-CS License:** Create `src/SDL2.Core/licenses/`, copy SDL2-CS license, add `<ItemGroup>` to `.csproj` to include it (`<Content Include="licenses\..." Pack="true" PackagePath="licenses\" />`).
-    5. **Pack:** `dotnet pack`. Verify dependency in `.nuspec` points to the correct `Janset.SDL2.Core.Native` version from `Directory.Packages.props`.
-    6. **Testing:** Create `samples/CoreTest`. Add `Janset.SDL2.Core`. Test `SDL_Init/Quit`.
-    7. **Commit:** Commit working Core packages.
+    3. **Include SDL2-CS License:** Create `src/SDL2.Core/licenses/`, copy SDL2-CS license, add `<ItemGroup>` to `.csproj` to include it (`<Content Include="licenses\..." Pack="true" PackagePath="licenses\" />`).
+    4. **Pack:** `dotnet pack`. Verify dependency in `.nuspec` points to the correct `Janset.SDL2.Core.Native` version from `Directory.Packages.props`.
+    5. **Testing:** Create `samples/CoreTest`. Add `Janset.SDL2.Core`. Test `SDL_Init/Quit`.
+    6. **Commit:** Commit working Core packages.
 
 ---
 
