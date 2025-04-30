@@ -2,5 +2,6 @@
   <PropertyGroup>
     <PackageId>Janset.SDL2.Ttf.Native</PackageId>
     <Description>Native SDL_ttf libraries built via vcpkg</Description>
+
   </PropertyGroup>
 </Project>
