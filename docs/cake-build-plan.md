@@ -80,6 +80,7 @@ build/
 │   │   ├── IDependencyScanner.cs   # Interface for platform-specific scanners.
 │   │   ├── WindowsDumpbinScanner.cs # Implementation using DumpbinTool.
 │   │   └── LinuxLddScanner.cs      # Implementation using LddTool.
+│   │   └── MacOtoolScanner.cs      # Implementation using OtoolTool.
 │   ├── VcpkgHarvester/           # Core logic for extracting files/licenses from Vcpkg.
 │   │   └── VcpkgHarvester.cs     # Uses IDependencyScanner, PathService, VcpkgTool etc.
 │   └── VcpkgSupport/             # Helpers related to Vcpkg (optional grouping).
@@ -98,6 +99,10 @@ build/
 │   │   ├── VcpkgTool.cs
 │   │   ├── VcpkgSettings.cs      # Settings for bootstrap, install etc.
 │   │   └── VcpkgAliases.cs
+│   ├── Otool/                    # Wrapper for otool (macOS).
+│   │   ├── OtoolTool.cs
+│   │   ├── OtoolSettings.cs
+│   │   └── OtoolAliases.cs
 │
 ├── Properties/
 │   └── launchSettings.json       # For local debugging profiles (optional).
@@ -154,7 +159,8 @@ The implementation will follow these incremental phases:
     * Implement Tools/Dumpbin/ wrapper (DumpbinTool, alias).
     * Implement Modules/DependencyAnalysis/IDependencyScanner and WindowsDumpbinScanner.
     * Note: Future macOS implementation will likely use `otool -L`.
-    * Implement core Modules/VcpkgHarvester/VcpkgHarvester.cs logic (file finding, dependency walking via scanner, file copying, basic license copying for Windows). Include initial manual mapping for known dynamic dependencies (e.g., modplug -> libxmp).
+    * Implement core Modules/VcpkgHarvester/VcpkgHarvester.cs logic (file finding, dependency walking via scanner, file copying, basic license copying for Windows).
+      * Use `vcpkg x-package-info --x-json` early to resolve known feature-driven dynamic dependencies (e.g., libmodplug -> libxmp) instead of hardcoded mapping.
     * Create a granular Harvest task (e.g., Harvest-SDL2-win-x64) using the harvester.
     * **Output:** Generate a manifest file (artifacts/harvest-SDL2-win-x64.json) listing harvested files for decoupling.
 * **Phase 3: Cake Project \- Expansion & Refinement**
@@ -163,7 +169,10 @@ The implementation will follow these incremental phases:
     * Implement Modules/DependencyAnalysis/LinuxLddScanner (using a dedicated LddTool wrapper).
     * Refactor Harvest task(s) to be parameterized (accept library name, RID).
     * Implement Vcpkg package installation logic (using a dedicated VcpkgTool wrapper for operations like install, bootstrap).
-    * Implement TripletService (or similar) to generate Vcpkg triplet strings reliably (e.g., win-x64 -> x64-windows-dynamic, linux-x64 -> x64-linux-dynamic, osx-arm64 -> arm64-osx-dynamic). Document the RID <-> Triplet mapping.
+    * Implement Vcpkg configuration, including:
+      * Defining required features per library/RID (e.g., in `VcpkgSettings` or `vcpkg-features.json`) like `sdl2-mixer[opusfile,wavpack]:x64-windows-release`.
+      * Using `VcpkgTool` to pass these features during `vcpkg install`.
+    * Implement TripletService (or similar) to generate Vcpkg triplet strings reliably (e.g., win-x64 -> x64-windows-release, linux-x64 -> x64-linux-dynamic, osx-arm64 -> arm64-osx-dynamic). Document the RID <-> Triplet mapping.
     * **RID-Triplet Mapping:**
       | RID        | Vcpkg Triplet       |
       |------------|---------------------|
@@ -188,6 +197,7 @@ The implementation will follow these incremental phases:
     * Add steps to verify packages (dotnet nuget verify).
     * Implement **headless SDL console application(s)** that reference the locally packed NuGet(s) and test core functionalities (e.g., image loading, audio playback with various formats) to catch packaging/RID/dependency issues. Provide an option for windowed execution for manual debugging.
     * Note: These test apps will reside under `/smoke/` (e.g., `/smoke/SDLTest/`) and be excluded from packing via `<EnableDefaultItems>false</EnableDefaultItems>` or similar in their `.csproj`.
+    * Ensure tests cover specific features/dependencies: e.g., SDL_mixer (MOD, Opus, WavPack playback), SDL_image (PNG loading).
 * **Phase 5: GitHub Actions \- Build & Test Integration**
   * Goal: Automate the build process in CI.
   * Tasks:
@@ -195,9 +205,12 @@ The implementation will follow these incremental phases:
     * Integrate Vcpkg caching using actions/cache@v4 (caching buildtrees, packages, etc., keyed appropriately, e.g., "vcpkg-${{ hashFiles('vcpkg.json', '.git/modules/vcpkg/HEAD') }}-${{ matrix.triplet }}").
     * Add steps to execute the parameterized Cake build targets within the matrix jobs.
     * **Ensure Linux jobs run within an `ubuntu:18.04` Docker container** for glibc compatibility.
+    * Add steps to **run the headless smoke test application(s)** (from Phase 4.5) using the generated Linux artifacts within Docker containers for target distributions (e.g., `centos:7`, `debian:buster`, `ubuntu:20.04`) to validate runtime compatibility.
+    * Document the minimum required glibc version based on testing.
     * Ensure strategy.fail-fast: false is set and job failure reflects Cake task failure.
     * (Optional) Add a lightweight security/license scan step (e.g., using Syft) if desired.
     * Example: `syft packages dir:artifacts -o spdx-json` (potentially fail build on forbidden licenses).
+    * Add subsequent step to parse SPDX JSON (e.g., using `jq`) and enforce license policy (e.g., fail on GPL).
 * **Phase 6: GitHub Actions \- Release Workflow**
   * Goal: Automate tagging, NuGet publishing, and GitHub Releases.
   * Tasks:
