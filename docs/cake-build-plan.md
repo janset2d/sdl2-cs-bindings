@@ -117,7 +117,7 @@ The following policies have been agreed upon:
 
 1. **Versioning & Dependencies:** **Coupled Patch** strategy. Managed binding packages (Janset.SDL2.\*) get at least a patch bump when their corresponding native package (Janset.SDL2.Native.\*) updates. A single authoritative version.json file in the repo root will define native library versions and the shared bindingsPatch number. The managed binding .csproj files will use SDK-style \<ProjectReference\>s to the native projects, which dotnet pack converts to \<PackageReference\>s. The version will be injected via $(Version) (e.g., \<ProjectReference Include="..." Version="$(Version)" /\>), with a fallback mechanism (e.g., \<Version Condition="'$(Version)' \== ''"\>0.0.1-local\</Version\>) defined in the binding .csproj files for local development outside the Cake build.
 2. **Vcpkg Management:** Vcpkg will be managed as a **Git submodule**. The build will ensure it's initialized and updated. **GitHub Actions caching** (keyed on Vcpkg SHA, triplet, package list, caching buildtrees and packages) will be implemented to optimize build times.
-3. **Platform Support:** Initial RIDs: win-x64, win-x86, win-arm64, linux-x64. Architecture will be designed with **future macOS and ARM64 support** in mind.
+3. **Platform Support:** Initial RIDs: win-x64, win-x86, win-arm64, linux-x64, osx-arm64. Architecture will be designed with **future osx-x64 support** in mind.
 4. **Selective Build Trigger:** Support for **both manual** (\--library LibName) **and manifest-based** (version.json changes) triggers will be implemented.
 5. **License Compliance:** **Basic approach:** Copy Vcpkg copyright files into artifact licenses/ folders. SBOM generation is deferred.
 6. **Release Artifacts:**
@@ -125,7 +125,7 @@ The following policies have been agreed upon:
    * **GitHub Releases:** **Separate archives per library per RID** (e.g., Janset.SDL2.Native.Core-win-x64-vX.Y.Z.P.zip).
    * **Tagging:** **Per-Library Tags** (e.g., Janset.SDL2.Core-vX.Y.Z.P) will be used. Tags **without pre-release labels** (e.g., \-beta, \-preview) will trigger the release workflow.
 7. **Failure Policy (CI):** **Strict.** Failure of any requested component task (e.g., Harvest-SDL2\_image-win-x64) will cause that specific task and its corresponding CI matrix job to fail. The overall workflow run will be marked as failed if *any* job fails (strategy.fail-fast: false in matrix).
-8. **Native Overrides:** Support will be implemented via a flag (\--use-overrides). Overrides **take precedence** when the flag is active. For *local testing* of the override *logic* (before S3 integration is built), a canonical folder like repo-root/overrides/{rid}/ (added to .gitignore) can be used. Storage of override binaries for CI usage is planned for **AWS S3**, but the implementation of this feature (including S3 download logic, potentially tested with LocalStack) is **deferred** to a later phase.
+8. **Native Overrides:** Support will be implemented via a flag (\--use-overrides). Overrides **take precedence** when the flag is active. A configurable path (e.g., via `\--overridesPath /abs/path`) can override the default location (repo-root/overrides/{rid}); `PathService` will expose methods to resolve the correct path. For *local testing* of the override *logic* (before S3 integration is built), a canonical folder like repo-root/overrides/{rid}/ (added to .gitignore) can be used. Storage of override binaries for CI usage is planned for **AWS S3**, but the implementation of this feature (including S3 download logic, potentially tested with LocalStack) is **deferred** to a later phase.
 9. **Symbol Files:** **Publish symbols (**.snupkg**) for managed bindings**. Native symbol harvesting/publishing is **deferred** (low priority).
 10. **Testing:** Initial reliance on **manual integration testing**. A formal **unit test project (**build.Tests**)** for the Modules/ layer is planned for the future.
 11. **Code Formatting:** Code style for the build/ project will be enforced using standard .NET formatting tools (dotnet format) leveraging the existing .editorconfig, Directory.Build.props, and Directory.packages.props files.
@@ -153,6 +153,7 @@ The implementation will follow these incremental phases:
   * Tasks:
     * Implement Tools/Dumpbin/ wrapper (DumpbinTool, alias).
     * Implement Modules/DependencyAnalysis/IDependencyScanner and WindowsDumpbinScanner.
+    * Note: Future macOS implementation will likely use `otool -L`.
     * Implement core Modules/VcpkgHarvester/VcpkgHarvester.cs logic (file finding, dependency walking via scanner, file copying, basic license copying for Windows). Include initial manual mapping for known dynamic dependencies (e.g., modplug -> libxmp).
     * Create a granular Harvest task (e.g., Harvest-SDL2-win-x64) using the harvester.
     * **Output:** Generate a manifest file (artifacts/harvest-SDL2-win-x64.json) listing harvested files for decoupling.
@@ -162,7 +163,17 @@ The implementation will follow these incremental phases:
     * Implement Modules/DependencyAnalysis/LinuxLddScanner (using a dedicated LddTool wrapper).
     * Refactor Harvest task(s) to be parameterized (accept library name, RID).
     * Implement Vcpkg package installation logic (using a dedicated VcpkgTool wrapper for operations like install, bootstrap).
-    * Implement TripletService (or similar) to generate Vcpkg triplet strings reliably. Document the RID \<-\> Triplet mapping.
+    * Implement TripletService (or similar) to generate Vcpkg triplet strings reliably (e.g., win-x64 -> x64-windows-dynamic, linux-x64 -> x64-linux-dynamic, osx-arm64 -> arm64-osx-dynamic). Document the RID <-> Triplet mapping.
+    * **RID-Triplet Mapping:**
+      | RID        | Vcpkg Triplet       |
+      |------------|---------------------|
+      | win-x64    | x64-windows-release |
+      | win-x86    | x86-windows         |
+      | win-arm64  | arm64-windows       |
+      | linux-x64  | x64-linux-dynamic   |
+      | linux-arm64| arm64-linux-dynamic |
+      | osx-arm64  | arm64-osx-dynamic   |
+      | osx-x64    | x64-osx-dynamic     |
     * Implement version.json reading and Compute-Version task. Register VersionManifest via DI.
 * **Phase 4: Cake Project \- Packaging & Validation**
   * Goal: Create NuGet packages and perform sanity checks.
@@ -176,22 +187,26 @@ The implementation will follow these incremental phases:
     * Create a publish-local Cake target that pushes generated NuGet packages to a local NuGet feed, potentially run via a BaGet Docker container.
     * Add steps to verify packages (dotnet nuget verify).
     * Implement **headless SDL console application(s)** that reference the locally packed NuGet(s) and test core functionalities (e.g., image loading, audio playback with various formats) to catch packaging/RID/dependency issues. Provide an option for windowed execution for manual debugging.
+    * Note: These test apps will reside under `/smoke/` (e.g., `/smoke/SDLTest/`) and be excluded from packing via `<EnableDefaultItems>false</EnableDefaultItems>` or similar in their `.csproj`.
 * **Phase 5: GitHub Actions \- Build & Test Integration**
   * Goal: Automate the build process in CI.
   * Tasks:
     * Set up the full GitHub Actions matrix workflow.
     * Integrate Vcpkg caching using actions/cache@v4 (caching buildtrees, packages, etc., keyed appropriately, e.g., "vcpkg-${{ hashFiles('vcpkg.json', '.git/modules/vcpkg/HEAD') }}-${{ matrix.triplet }}").
     * Add steps to execute the parameterized Cake build targets within the matrix jobs.
+    * **Ensure Linux jobs run within an `ubuntu:18.04` Docker container** for glibc compatibility.
     * Ensure strategy.fail-fast: false is set and job failure reflects Cake task failure.
     * (Optional) Add a lightweight security/license scan step (e.g., using Syft) if desired.
+    * Example: `syft packages dir:artifacts -o spdx-json` (potentially fail build on forbidden licenses).
 * **Phase 6: GitHub Actions \- Release Workflow**
   * Goal: Automate tagging, NuGet publishing, and GitHub Releases.
   * Tasks:
     * Create a separate release workflow triggered by tags matching the per-library convention (Janset.\*-v\*) without pre-release labels.
     * Implement logic/script ("what changed?") to determine which libraries/versions were built successfully based on build artifacts or manifests (potentially reading version.json diff).
     * Add steps to create per-library Git tags based on computed versions.
-    * Add steps to push NuGet packages (dotnet nuget push), using NUGET\_API\_KEY from GitHub Secrets.
-    * Add steps to create/update GitHub Releases (using GH\_TOKEN from Secrets) and upload corresponding native binary archives.
+    * Add steps to push NuGet packages (dotnet nuget push), using `NUGET_API_KEY` from GitHub Secrets.
+    * Add steps to create/update GitHub Releases (using `GH_TOKEN` from Secrets) and upload corresponding native binary archives.
+    * Note: `NUGET_API_KEY` and `GH_TOKEN` should be configured as repository-level secrets to allow forks to run CI/release steps (without actual publishing).
 * **(Later Phases):**
   * Native override implementation (S3 download, potentially tested with LocalStack).
   * Comprehensive unit testing (build.Tests).
@@ -200,6 +215,7 @@ The implementation will follow these incremental phases:
   * Native symbol handling.
   * Code-signing/notarization (especially for Windows/macOS).
   * Robust Dynamic Dependency Handling: Replace/augment manual mapping in VcpkgHarvester by parsing Vcpkg package metadata (vcpkg x-package-info) to automatically identify runtime dependencies associated with installed features.
+  * **Contribution Guidelines:** Create a `CONTRIBUTING.md` document detailing development setup, PR process, versioning policy enforcement (e.g., `version.json` updates), and secret management for forks.
 
 ## **6\. Conclusion**
 
