@@ -1,0 +1,8 @@
+﻿{
+  "profiles": {
+    "Harvest": {
+      "commandName": "Project",
+      "commandLineArgs": "--target harvest-sdl-libs --vcpkg-dir E:\\repos\\os-github-repos\\vcpkg"
+    }
+  }
+}
