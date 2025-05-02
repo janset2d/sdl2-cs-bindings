@@ -8,7 +8,7 @@ public class WindowsDumpbinScanner : IDependencyScanner
     private readonly DumpbinTool _dumpbinTool;
 #pragma warning restore S4487
 
-    public WindowsDumpbinScanner(DumpbinTool dumpbinTool)
+    public WindowsDumpbinScanner(DumpbinDependentsTool dumpbinTool)
     {
         _dumpbinTool = dumpbinTool;
     }

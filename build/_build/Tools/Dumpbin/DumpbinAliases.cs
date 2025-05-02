@@ -4,13 +4,13 @@ namespace Build.Tools.Dumpbin;
 
 public static class DumpbinAliases
 {
-    public static IList<string>? DumpbinDependents(this ICakeContext context, DumpbinSettings settings)
+    public static IList<string>? DumpbinDependents(this ICakeContext context, DumpbinDependentsSettings settings)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(settings);
 
-        var tool = new DumpbinTool(context);
+        var tool = new DumpbinDependentsTool(context);
 
-        return tool.Dependents(settings);
+        return tool.RunDependents(settings);
     }
 }

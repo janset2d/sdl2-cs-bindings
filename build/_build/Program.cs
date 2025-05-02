@@ -14,6 +14,8 @@ using Cake.Core;
 using Cake.Core.IO;
 using Cake.Frosting;
 using Microsoft.Extensions.DependencyInjection;
+using Spectre.Console;
+using DumpbinSettings = Build.Context.Settings.DumpbinSettings;
 
 var root = new RootCommand("Cake build for janset2d/sdl2-cs-bindings");
 
@@ -37,6 +39,8 @@ root.AddOption(VcpkgOptions.LibraryOption);
 root.AddOption(VcpkgOptions.RidOption);
 root.AddOption(VcpkgOptions.UseOverridesOption);
 
+root.AddOption(DumpbinOptions.DllOption);
+
 root.Handler = CommandHandler.Create<InvocationContext, ParsedArguments>(RunCakeHostAsync);
 return await root.InvokeAsync(args);
 
@@ -54,6 +58,7 @@ static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArgumen
             services.AddSingleton(new VcpkgSettings(vcpkgPath, parsedArgs.Library.ToList()));
             services.AddSingleton(new RepositorySettings(repoRootPath));
             services.AddSingleton(new DotNetBuildSettings(configuration: parsedArgs.Config));
+            services.AddSingleton(new DumpbinSettings(parsedArgs.Dll.ToList()));
 
             services.AddSingleton<PathService>();
 
@@ -64,7 +69,7 @@ static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArgumen
 
                 return env.Platform.Family switch
                 {
-                    PlatformFamily.Windows => new WindowsDumpbinScanner(new DumpbinTool(ctx)),
+                    PlatformFamily.Windows => new WindowsDumpbinScanner(new DumpbinDependentsTool(ctx)),
                     PlatformFamily.Linux => new LinuxLddScanner(),
                     PlatformFamily.OSX => new MacOtoolScanner(),
                     _ => throw new NotSupportedException("Unsupported OS"),
@@ -78,7 +83,7 @@ static async Task<DirectoryPath> DetermineRepoRootAsync(DirectoryInfo? repoRootA
 {
     if (repoRootArg?.Exists == true)
     {
-        Console.WriteLine($"Using Repository Root from --repo-root argument: {repoRootArg.FullName}");
+        AnsiConsole.MarkupLine($"[green]Using Repository Root from --repo-root argument:[/] {repoRootArg.FullName}");
         return new DirectoryPath(repoRootArg.FullName);
     }
 
@@ -103,12 +108,12 @@ static async Task<DirectoryPath> DetermineRepoRootAsync(DirectoryInfo? repoRootA
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Warning: Failed to execute 'git rev-parse --show-toplevel'. Error: {ex.Message}");
+        AnsiConsole.MarkupLine($"[yellow]Warning:[/] Failed to execute 'git rev-parse --show-toplevel'. Error: {ex.Message}");
     }
 
     if (exitCode == 0 && !string.IsNullOrWhiteSpace(gitOutput) && Directory.Exists(gitOutput))
     {
-        Console.WriteLine($"Determined Repository Root via git: {gitOutput}");
+        AnsiConsole.MarkupLine($"[green]Determined Repository Root via git:[/] {gitOutput}");
         return new DirectoryPath(gitOutput);
     }
 
@@ -116,13 +121,13 @@ static async Task<DirectoryPath> DetermineRepoRootAsync(DirectoryInfo? repoRootA
     var fallbackPath = new DirectoryPath(AppContext.BaseDirectory).GetParent()?.GetParent()?.Collapse();
     if (fallbackPath != null)
     {
-        Console.WriteLine($"Warning: Could not determine repo root via git. Assuming relative path: {fallbackPath.FullPath}");
+        AnsiConsole.MarkupLine($"[yellow]Warning:[/] Could not determine repo root via git. Assuming relative path: {fallbackPath.FullPath}");
         return fallbackPath;
     }
 
     // Absolute fallback if path manipulation fails
     var absoluteFallback = new DirectoryPath(Environment.CurrentDirectory);
-    Console.WriteLine($"ERROR: Could not determine repo root via git or relative path. Using CWD: {absoluteFallback.FullPath}");
+    AnsiConsole.MarkupLine($"[red]ERROR:[/] Could not determine repo root via git or relative path. Using CWD: {absoluteFallback.FullPath}");
     return absoluteFallback;
 }
 
@@ -134,4 +139,5 @@ public record ParsedArguments(
     DirectoryInfo? VcpkgDir,
     IList<string> Rid,
     IList<string> Library,
-    bool UseOverrides);
+    bool UseOverrides,
+    IList<string> Dll);

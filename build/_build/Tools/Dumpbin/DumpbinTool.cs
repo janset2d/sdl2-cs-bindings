@@ -7,16 +7,10 @@ using Cake.Core.Tooling;
 
 namespace Build.Tools.Dumpbin;
 
-public class DumpbinTool : Tool<DumpbinSettings>
+public abstract class DumpbinTool(ICakeContext cakeContext)
+    : Tool<DumpbinSettings>(cakeContext.FileSystem, cakeContext.Environment, cakeContext.ProcessRunner, cakeContext.Tools)
 {
-    private readonly ICakeContext _cakeContext;
-    public const string DumpbinExecutableName = "dumpbin.exe";
-
-    public DumpbinTool(ICakeContext cakeContext)
-        : base(cakeContext.FileSystem, cakeContext.Environment, cakeContext.ProcessRunner, cakeContext.Tools)
-    {
-        _cakeContext = cakeContext;
-    }
+    private const string DumpbinExecutableName = "dumpbin.exe";
 
     protected override string GetToolName()
     {
@@ -30,21 +24,21 @@ public class DumpbinTool : Tool<DumpbinSettings>
 
     protected override IEnumerable<FilePath> GetAlternativeToolPaths(DumpbinSettings settings)
     {
-        var vsWhereLatest = _cakeContext.VSWhereLatest(new VSWhereLatestSettings()
+        var vsWhereLatest = cakeContext.VSWhereLatest(new VSWhereLatestSettings()
         {
             Requires = "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
             ReturnProperty = "installationPath",
         });
 
-        var msvcRoot = vsWhereLatest + _cakeContext.Directory(@"VC\Tools\MSVC");
+        var msvcRoot = vsWhereLatest.Combine("VC").Combine("Tools").Combine("MSVC");
 
-        if (!_cakeContext.DirectoryExists(msvcRoot))
+        if (!cakeContext.DirectoryExists(msvcRoot))
         {
             throw new DirectoryNotFoundException($"MSVC root directory not found: {msvcRoot}");
         }
 
         // Pick the highest-versioned folder (e.g. 14.43.34808)
-        var latestTools = new DirectoryInfo(msvcRoot)
+        var latestTools = new DirectoryInfo(msvcRoot.FullPath)
             .EnumerateDirectories()
             .OrderByDescending(d => d.Name, StringComparer.Ordinal)
             .FirstOrDefault();
@@ -55,42 +49,14 @@ public class DumpbinTool : Tool<DumpbinSettings>
         }
 
         // Host = x64, Target = x64  (adjust if you really need x86 or arm64)
+        var dumpbinDir = new DirectoryPath(latestTools.FullName).Combine("bin").Combine("Hostx64").Combine("x64");
+        var dumpbin = dumpbinDir.CombineWithFilePath(DumpbinExecutableName);
 
-        var dumpbinDir =
-            _cakeContext.Directory(latestTools.FullName) +
-            _cakeContext.Directory("bin") +
-            _cakeContext.Directory("Hostx64") +
-            _cakeContext.Directory("x64");
-
-        var dumpbin = dumpbinDir + _cakeContext.File(DumpbinExecutableName);
-
-        if (!_cakeContext.FileExists(dumpbin))
+        if (!cakeContext.FileExists(dumpbin))
         {
             throw new FileNotFoundException($"Dumpbin executable not found: {dumpbin}");
         }
 
         return [dumpbin];
-    }
-
-    public IList<string>? Dependents(DumpbinSettings settings)
-    {
-        ArgumentNullException.ThrowIfNull(settings);
-
-        var builder = new ProcessArgumentBuilder();
-
-        if (!string.IsNullOrWhiteSpace(settings.DllPath))
-        {
-            builder.Append("/dependents");
-            builder.AppendQuoted(settings.DllPath);
-        }
-
-        List<string>? dumpbinOut = null;
-        Run(settings, builder, new ProcessSettings { RedirectStandardOutput = true },
-            process =>
-            {
-                dumpbinOut = [.. process.GetStandardOutput()];
-            });
-
-        return dumpbinOut;
     }
 }

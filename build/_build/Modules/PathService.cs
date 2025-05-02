@@ -30,7 +30,7 @@ public sealed class PathService
         {
             // Default: Assume vcpkg is a submodule in the repo root
             _vcpkgRoot = _repoRoot.Combine("vcpkg");
-            log.Warning($"Vcpkg directory not specified via --vcpkg-dir. Assuming relative path: {_vcpkgRoot.FullPath}");
+            log.Warning($"Warning: Vcpkg directory not specified via --vcpkg-dir. Assuming relative path: {_vcpkgRoot.FullPath}");
         }
     }
 

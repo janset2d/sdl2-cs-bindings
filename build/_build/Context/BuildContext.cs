@@ -12,13 +12,15 @@ public sealed class BuildContext : FrostingContext
         PathService pathService,
         RepositorySettings repoSettings,
         DotNetBuildSettings dotNetBuildSettings,
-        VcpkgSettings vcpkgSettings)
+        VcpkgSettings vcpkgSettings,
+        DumpbinSettings dumpbinSettings)
         : base(context)
     {
         Paths = pathService;
         Repo = repoSettings;
         Settings = dotNetBuildSettings;
         Vcpkg = vcpkgSettings;
+        DumpbinSettings = dumpbinSettings;
     }
 
     public PathService Paths { get; }
@@ -28,4 +30,6 @@ public sealed class BuildContext : FrostingContext
     public DotNetBuildSettings Settings { get; }
 
     public VcpkgSettings Vcpkg { get; }
+
+    public DumpbinSettings DumpbinSettings { get; }
 }
