@@ -17,16 +17,16 @@ jobs:
         with:
           submodules: 'recursive'
 
-      - name: Setup .NET SDK
+      - name: Setup .NET SDK 8.0
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
-      - name: Setup .NET SDK
+      - name: Setup .NET SDK 9.0
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
 
       - name: Run Cake Build (Info Task)
-        run: dotnet run --project ./build --target Info --verbosity=diagnostic
+        run: ./build.sh --target Info --verbosity diagnostic
 
