@@ -1,13 +1,15 @@
 ﻿# pragma warning disable CA1031
 
+using System.ComponentModel;
+using System.Runtime.InteropServices;
+using Build.Context;
+using Cake.Common;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 using Cake.Frosting;
 using Spectre.Console;
-using System.ComponentModel;
-using System.Runtime.InteropServices;
-using Build;
-using Cake.Common;
+
+namespace Build.Tasks.Common;
 
 [TaskName("Info")]
 public sealed class InfoTask : AsyncFrostingTask<BuildContext>

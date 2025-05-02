@@ -5,14 +5,14 @@ using Cake.Core;
 using Cake.Core.IO;
 using Cake.Core.Tooling;
 
-namespace Build.Vcpkg.Windows;
+namespace Build.Tools.Dumpbin;
 
-public class DumpbinDependentsTool : Tool<DumpbinDependentsSettings>
+public class DumpbinTool : Tool<DumpbinSettings>
 {
     private readonly ICakeContext _cakeContext;
     public const string DumpbinExecutableName = "dumpbin.exe";
 
-    public DumpbinDependentsTool(ICakeContext cakeContext)
+    public DumpbinTool(ICakeContext cakeContext)
         : base(cakeContext.FileSystem, cakeContext.Environment, cakeContext.ProcessRunner, cakeContext.Tools)
     {
         _cakeContext = cakeContext;
@@ -28,7 +28,7 @@ public class DumpbinDependentsTool : Tool<DumpbinDependentsSettings>
         return [DumpbinExecutableName];
     }
 
-    protected override IEnumerable<FilePath> GetAlternativeToolPaths(DumpbinDependentsSettings settings)
+    protected override IEnumerable<FilePath> GetAlternativeToolPaths(DumpbinSettings settings)
     {
         var vsWhereLatest = _cakeContext.VSWhereLatest(new VSWhereLatestSettings()
         {
@@ -72,7 +72,7 @@ public class DumpbinDependentsTool : Tool<DumpbinDependentsSettings>
         return [dumpbin];
     }
 
-    public IList<string>? Dependents(DumpbinDependentsSettings settings)
+    public IList<string>? Dependents(DumpbinSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
 
@@ -92,28 +92,5 @@ public class DumpbinDependentsTool : Tool<DumpbinDependentsSettings>
             });
 
         return dumpbinOut;
-    }
-}
-
-public class DumpbinDependentsSettings : ToolSettings
-{
-    public DumpbinDependentsSettings(string dllPath)
-    {
-        DllPath = dllPath;
-    }
-
-    public string DllPath { get; set; }
-}
-
-public static class DumpbinAliases
-{
-    public static IList<string>? DumpbinDependents(this ICakeContext context, DumpbinDependentsSettings settings)
-    {
-        ArgumentNullException.ThrowIfNull(context);
-        ArgumentNullException.ThrowIfNull(settings);
-
-        var tool = new DumpbinDependentsTool(context);
-
-        return tool.Dependents(settings);
     }
 }

@@ -4,7 +4,7 @@ using Cake.Common.IO.Paths;
 using Cake.Core;
 using Cake.Frosting;
 
-namespace Build;
+namespace Build.Context;
 
 public sealed class BuildContext : FrostingContext
 {
