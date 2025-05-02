@@ -1,8 +1,20 @@
 ﻿{
   "profiles": {
-    "Harvest": {
+    "Help": {
       "commandName": "Project",
-      "commandLineArgs": "--target harvest-sdl-libs --vcpkg-dir E:\\repos\\os-github-repos\\vcpkg"
+      "commandLineArgs": "--help"
+    },
+    "Tree": {
+      "commandName": "Project",
+      "commandLineArgs": "--tree"
+    },
+    "Info": {
+      "commandName": "Project",
+      "commandLineArgs": "--target info --verbosity diagnostic"
+    },
+    "Vcpkg-Build": {
+      "commandName": "Project",
+      "commandLineArgs": "--target vcpkg-build --library SDL2 --library SDL2_image --rid win-x64 --rid linux-x64 --use-overrides --verbosity diagnostic"
     }
   }
 }

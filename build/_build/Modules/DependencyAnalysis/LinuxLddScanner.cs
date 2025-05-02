@@ -1,6 +1,5 @@
 ﻿namespace Build.Modules.DependencyAnalysis;
 
-public class LinuxLddScanner
+public class LinuxLddScanner : IDependencyScanner
 {
-    
 }

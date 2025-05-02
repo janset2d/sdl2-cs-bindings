@@ -1,21 +1,21 @@
 <Project>
   <ItemGroup>
     <!-- third-party analyzers -->
-    <PackageVersion Include="Meziantou.Analyzer" Version="2.0.189"/>
-    <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.3.4"/>
-    <PackageVersion Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="9.0.0"/>
-    <PackageVersion Include="Microsoft.VisualStudio.Threading.Analyzers" Version="17.13.61"/>
-    <PackageVersion Include="Roslynator.Analyzers" Version="4.13.1"/>
-    <PackageVersion Include="Roslynator.CodeAnalysis.Analyzers" Version="4.13.1"/>
-    <PackageVersion Include="Roslynator.Formatting.Analyzers" Version="4.13.1"/>
-    <PackageVersion Include="SecurityCodeScan.VS2019" Version="5.6.7"/>
-    <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.7.0.110445"/>
-
+    <PackageVersion Include="Meziantou.Analyzer" Version="2.0.189" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.3.4" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.VisualStudio.Threading.Analyzers" Version="17.13.61" />
+    <PackageVersion Include="Roslynator.Analyzers" Version="4.13.1" />
+    <PackageVersion Include="Roslynator.CodeAnalysis.Analyzers" Version="4.13.1" />
+    <PackageVersion Include="Roslynator.Formatting.Analyzers" Version="4.13.1" />
+    <PackageVersion Include="SecurityCodeScan.VS2019" Version="5.6.7" />
+    <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.7.0.110445" />
     <!-- packages -->
-    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0"/>
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
     <PackageVersion Include="Cake.Frosting" Version="5.0.0" />
-
+    <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+    <PackageVersion Include="System.CommandLine.NamingConventionBinder" Version="2.0.0-beta4.22272.1" />
     <!-- test packages -->
-    <PackageVersion Include="Microsoft.TestPlatform.ObjectModel" Condition="'$(TargetFramework)' == 'net462'" Version="17.11.1"/>
+    <PackageVersion Include="Microsoft.TestPlatform.ObjectModel" Condition="'$(TargetFramework)' == 'net462'" Version="17.11.1" />
   </ItemGroup>
 </Project>

@@ -1,6 +1,15 @@
-﻿namespace Build.Modules.DependencyAnalysis;
+﻿using Build.Tools.Dumpbin;
 
-public class WindowsDumpbinScanner
+namespace Build.Modules.DependencyAnalysis;
+
+public class WindowsDumpbinScanner : IDependencyScanner
 {
-    
+#pragma warning disable S4487
+    private readonly DumpbinTool _dumpbinTool;
+#pragma warning restore S4487
+
+    public WindowsDumpbinScanner(DumpbinTool dumpbinTool)
+    {
+        _dumpbinTool = dumpbinTool;
+    }
 }

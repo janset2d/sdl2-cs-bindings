@@ -1,6 +1,5 @@
-﻿using Cake.Common;
-using Cake.Common.IO;
-using Cake.Common.IO.Paths;
+﻿using Build.Context.Settings;
+using Build.Modules;
 using Cake.Core;
 using Cake.Frosting;
 
@@ -8,50 +7,25 @@ namespace Build.Context;
 
 public sealed class BuildContext : FrostingContext
 {
-    public bool Delay { get; set; }
-
-    public BuildContext(ICakeContext context)
+    public BuildContext(
+        ICakeContext context,
+        PathService pathService,
+        RepositorySettings repoSettings,
+        DotNetBuildSettings dotNetBuildSettings,
+        VcpkgSettings vcpkgSettings)
         : base(context)
     {
-        BuildConfiguration = context.Argument("config", "Release");
-
-        SolutionRootDir = context.Directory("../../");
-        SrcDir = SolutionRootDir + context.Directory("src");
-        TestsDir = SolutionRootDir + context.Directory("tests");
-        BuildDir = SolutionRootDir + context.Directory("build");
-
-        SlnFilePath = SolutionRootDir + context.File("LocalStack.sln");
-
-        var vcpkgArg = context.Argument("vcpkg-dir", default(string));
-
-        if (!string.IsNullOrWhiteSpace(vcpkgArg))
-        {
-            // check if relative path
-            VcPkgDir = context.Directory(vcpkgArg);
-        }
-
-        var sdlArtifactsDir = context.Argument("sdl-artifact-dir", default(string));
-
-        if (!string.IsNullOrWhiteSpace(sdlArtifactsDir))
-        {
-            // check if relative path
-            SdlArtifactsDir = context.Directory(sdlArtifactsDir);
-        }
+        Paths = pathService;
+        Repo = repoSettings;
+        Settings = dotNetBuildSettings;
+        Vcpkg = vcpkgSettings;
     }
 
-    public string BuildConfiguration { get; }
+    public PathService Paths { get; }
 
-    public ConvertableFilePath SlnFilePath { get; }
+    public RepositorySettings Repo { get; }
 
-    public ConvertableDirectoryPath SolutionRootDir { get; }
+    public DotNetBuildSettings Settings { get; }
 
-    public ConvertableDirectoryPath SrcDir { get; }
-
-    public ConvertableDirectoryPath TestsDir { get; }
-
-    public ConvertableDirectoryPath BuildDir { get; }
-
-    public ConvertableDirectoryPath? VcPkgDir { get; }
-
-    public ConvertableDirectoryPath? SdlArtifactsDir { get; }
+    public VcpkgSettings Vcpkg { get; }
 }

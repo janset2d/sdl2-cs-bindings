@@ -1,6 +1,137 @@
-using Build.Context;
-using Cake.Frosting;
+# pragma warning disable CA1031
 
-return new CakeHost()
-    .UseContext<BuildContext>() // Context can be added later
-    .Run(args);
+using System.CommandLine;
+using System.CommandLine.Invocation;
+using System.CommandLine.NamingConventionBinder;
+using System.Diagnostics;
+using Build.Context;
+using Build.Context.Options;
+using Build.Context.Settings;
+using Build.Modules;
+using Build.Modules.DependencyAnalysis;
+using Build.Tools.Dumpbin;
+using Cake.Core;
+using Cake.Core.IO;
+using Cake.Frosting;
+using Microsoft.Extensions.DependencyInjection;
+
+var root = new RootCommand("Cake build for janset2d/sdl2-cs-bindings");
+
+root.AddOption(CakeOptions.DescriptionOption);
+root.AddOption(CakeOptions.DryRunOption);
+root.AddOption(CakeOptions.ExclusiveOption);
+root.AddOption(CakeOptions.HelpOption);
+root.AddOption(CakeOptions.InfoOption);
+root.AddOption(CakeOptions.TargetOption);
+root.AddOption(CakeOptions.TreeOption);
+root.AddOption(CakeOptions.VerbosityOption);
+root.AddOption(CakeOptions.VersionOption);
+root.AddOption(CakeOptions.WorkingPathOption);
+
+root.AddOption(RepositoryOptions.RepoRooOption);
+
+root.AddOption(DotNetOptions.ConfigOption);
+
+root.AddOption(VcpkgOptions.VcpkgDirOption);
+root.AddOption(VcpkgOptions.LibraryOption);
+root.AddOption(VcpkgOptions.RidOption);
+root.AddOption(VcpkgOptions.UseOverridesOption);
+
+root.Handler = CommandHandler.Create<InvocationContext, ParsedArguments>(RunCakeHostAsync);
+return await root.InvokeAsync(args);
+
+static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArguments parsedArgs)
+{
+    var repoRootPath = await DetermineRepoRootAsync(parsedArgs.RepoRoot);
+    var cakeArgs = context.ParseResult.Tokens.Select(t => t.Value).ToArray();
+
+    return new CakeHost()
+        .UseContext<BuildContext>()
+        .ConfigureServices(services =>
+        {
+            var vcpkgPath = parsedArgs.VcpkgDir?.Exists == true ? new DirectoryPath(parsedArgs.VcpkgDir.FullName) : null;
+
+            services.AddSingleton(new VcpkgSettings(vcpkgPath, parsedArgs.Library.ToList()));
+            services.AddSingleton(new RepositorySettings(repoRootPath));
+            services.AddSingleton(new DotNetBuildSettings(configuration: parsedArgs.Config));
+
+            services.AddSingleton<PathService>();
+
+            services.AddSingleton<IDependencyScanner>(sp =>
+            {
+                var env = sp.GetRequiredService<ICakeEnvironment>();
+                var ctx = sp.GetRequiredService<ICakeContext>();
+
+                return env.Platform.Family switch
+                {
+                    PlatformFamily.Windows => new WindowsDumpbinScanner(new DumpbinTool(ctx)),
+                    PlatformFamily.Linux => new LinuxLddScanner(),
+                    PlatformFamily.OSX => new MacOtoolScanner(),
+                    _ => throw new NotSupportedException("Unsupported OS"),
+                };
+            });
+        })
+        .Run(cakeArgs);
+}
+
+static async Task<DirectoryPath> DetermineRepoRootAsync(DirectoryInfo? repoRootArg)
+{
+    if (repoRootArg?.Exists == true)
+    {
+        Console.WriteLine($"Using Repository Root from --repo-root argument: {repoRootArg.FullName}");
+        return new DirectoryPath(repoRootArg.FullName);
+    }
+
+    var gitOutput = string.Empty;
+    var exitCode = -1;
+    try
+    {
+        using var process = new Process();
+        process.StartInfo = new ProcessStartInfo
+        {
+            FileName = "git",
+            Arguments = "rev-parse --show-toplevel",
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WorkingDirectory = Environment.CurrentDirectory, // Use current dir for git command
+        };
+        process.Start();
+        gitOutput = (await process.StandardOutput.ReadToEndAsync()).Trim();
+        await process.WaitForExitAsync();
+        exitCode = process.ExitCode;
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Warning: Failed to execute 'git rev-parse --show-toplevel'. Error: {ex.Message}");
+    }
+
+    if (exitCode == 0 && !string.IsNullOrWhiteSpace(gitOutput) && Directory.Exists(gitOutput))
+    {
+        Console.WriteLine($"Determined Repository Root via git: {gitOutput}");
+        return new DirectoryPath(gitOutput);
+    }
+
+    // Fallback: Assume build project is 2 levels deep from repo root (e.g., repo/build/_build)
+    var fallbackPath = new DirectoryPath(AppContext.BaseDirectory).GetParent()?.GetParent()?.Collapse();
+    if (fallbackPath != null)
+    {
+        Console.WriteLine($"Warning: Could not determine repo root via git. Assuming relative path: {fallbackPath.FullPath}");
+        return fallbackPath;
+    }
+
+    // Absolute fallback if path manipulation fails
+    var absoluteFallback = new DirectoryPath(Environment.CurrentDirectory);
+    Console.WriteLine($"ERROR: Could not determine repo root via git or relative path. Using CWD: {absoluteFallback.FullPath}");
+    return absoluteFallback;
+}
+
+public record ParsedArguments(
+    string Target,
+    string Verbosity,
+    DirectoryInfo? RepoRoot,
+    string Config,
+    DirectoryInfo? VcpkgDir,
+    IList<string> Rid,
+    IList<string> Library,
+    bool UseOverrides);

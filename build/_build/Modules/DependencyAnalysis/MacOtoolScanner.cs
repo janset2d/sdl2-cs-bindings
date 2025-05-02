@@ -1,6 +1,5 @@
 ﻿namespace Build.Modules.DependencyAnalysis;
 
-public class MacOtoolScanner
+public class MacOtoolScanner : IDependencyScanner
 {
-    
 }
