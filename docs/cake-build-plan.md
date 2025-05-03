@@ -31,6 +31,39 @@ The build system will be implemented using Cake Frosting, following these archit
 * **Lean** BuildContext**:** The BuildContext will primarily hold configuration values (passed via DI) and provide access to the PathService and potentially intermediate build state (like harvested file lists). It avoids holding complex logic or numerous path properties directly.
 * **Path Management (**PathService**):** A dedicated PathService (injected into BuildContext) will handle all path construction logic, providing semantic methods (e.g., Paths.VcpkgInstallBin(triplet), Paths.ArtifactNative(lib, rid)). It will internally use Cake's path types (DirectoryPath, FilePath) and methods (Combine, CombineWithFilePath) for robustness and cross-platform compatibility. It will use git rev-parse \--show-toplevel via context.StartProcess to reliably locate the repository root for constructing paths relative to it (e.g., for the Vcpkg submodule).
 * **Domain Modules (**Modules/**):** Core logic like dependency scanning (IDependencyScanner with WindowsDumpbinScanner, LinuxLddScanner implementations) and artifact harvesting (VcpkgHarvester) will reside in this layer, free from Cake dependencies, enabling unit testing.
+
+### Dependency Resolution Strategy
+
+The system employs a hybrid, three-tier approach for discovering and resolving native dependencies:
+
+1. **Recursive Runtime Analysis (Primary Source)**
+   - Use platform-specific tools (dumpbin/ldd/otool) through IDependencyScanner implementations
+   - Recursively analyze each direct dependency to build a complete dependency tree
+   - Filter out system libraries that don't need to be distributed
+   - This captures what binaries actually need at runtime
+
+2. **Package Metadata Analysis (Supplementary)**
+   - Query vcpkg for package metadata using `x-package-info --x-json --x-installed`
+   - Use this comprehensive metadata to identify:
+     * All direct dependencies (including those from enabled features)
+     * Package version information (useful for versioning and auditing)
+     * Features enabled on the package
+     * Complete list of files owned by the package (for harvesting and validation)
+   - Recursively analyze these additional dependencies
+   - Cross-reference with runtime dependencies to ensure completeness
+
+3. **Manual Overrides (Safety Net)**
+   - Maintain a list of known edge cases (controlled via configuration)
+   - Apply these overrides when specific libraries are detected
+   - Enables handling of special cases that automated methods can miss
+
+4. **Final Merge Process**
+   - Combine dependencies from all three sources
+   - Eliminate duplicates
+   - Create a flattened dependency list for harvesting
+
+This comprehensive approach ensures all required dependencies are captured, even those that might be missed by any single method.
+
 * **Task Orchestration (**Tasks/**):** Tasks will be kept lean, primarily responsible for:
   * Defining dependencies (\[IsDependentOn\]).
   * Selecting and invoking appropriate domain modules based on context (e.g., platform, arguments).
@@ -233,4 +266,3 @@ The implementation will follow these incremental phases:
 ## **6\. Conclusion**
 
 This plan outlines a robust, maintainable, and scalable approach for the janset2d/sdl2-cs-bindings build system using Cake Frosting. By following the defined architecture, policies, and phased implementation, the project aims to achieve its goals efficiently while incorporating best practices for build automation and CI/CD. The next step is to begin implementation starting with Phase 0.5/Phase 1\.
-

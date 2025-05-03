@@ -1,6 +1,11 @@
-﻿namespace Build.Tasks.Common;
+﻿using Cake.Core;
+using Cake.Frosting;
 
-public class CleanTask
+namespace Build.Tasks.Common;
+
+public class CleanTask : FrostingContext
 {
-    
+    public CleanTask(ICakeContext context) : base(context)
+    {
+    }
 }

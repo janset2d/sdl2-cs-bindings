@@ -1,9 +1,9 @@
-namespace Build.Context.Settings;
+namespace Build.Context.Configs;
 
 /// <summary>
 /// Holds general build configuration settings.
 /// </summary>
-public class DotNetBuildSettings
+public class DotNetBuildConfiguration
 {
     /// <summary>
     /// Gets the target build configuration (e.g., "Release", "Debug").
@@ -12,7 +12,7 @@ public class DotNetBuildSettings
     public string Configuration { get; init; }
 
     // Constructor to allow setting properties via DI or initialization logic
-    public DotNetBuildSettings(string configuration)
+    public DotNetBuildConfiguration(string configuration)
     {
         Configuration = configuration;
     }

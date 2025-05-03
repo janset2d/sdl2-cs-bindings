@@ -33,6 +33,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{48B12DDA
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Build", "build\_build\Build.csproj", "{489AC60D-BC4D-4F0E-B590-060D10A196AF}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{CF74B8C4-9607-4806-9C87-2976BE91BB5A}"
+	ProjectSection(SolutionItems) = preProject
+		docs\cake-build-plan.md = docs\cake-build-plan.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

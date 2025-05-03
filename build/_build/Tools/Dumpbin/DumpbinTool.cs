@@ -48,7 +48,7 @@ public abstract class DumpbinTool(ICakeContext cakeContext)
             throw new DirectoryNotFoundException("No MSVC tools directory found.");
         }
 
-        // Host = x64, Target = x64  (adjust if you really need x86 or arm64)
+        // Host = x64, Target = x64 (adjust if you really need x86 or arm64)
         var dumpbinDir = new DirectoryPath(latestTools.FullName).Combine("bin").Combine("Hostx64").Combine("x64");
         var dumpbin = dumpbinDir.CombineWithFilePath(DumpbinExecutableName);
 

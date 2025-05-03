@@ -1,12 +1,12 @@
 using System.Collections.ObjectModel;
 
-namespace Build.Context.Settings;
+namespace Build.Context.Configs;
 
-public class DumpbinSettings
+public class DumpbinConfiguration
 {
     public IReadOnlyList<string> DllToDump { get; init; }
 
-    public DumpbinSettings(IReadOnlyList<string> dllToDump)
+    public DumpbinConfiguration(IReadOnlyList<string> dllToDump)
     {
         DllToDump = new ReadOnlyCollection<string>(dllToDump?.ToList() ?? []);
     }

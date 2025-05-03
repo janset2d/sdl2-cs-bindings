@@ -15,6 +15,10 @@
     "Vcpkg-Build": {
       "commandName": "Project",
       "commandLineArgs": "--target vcpkg-build --library SDL2 --library SDL2_image --rid win-x64 --rid linux-x64 --use-overrides --verbosity diagnostic"
+    },
+    "Dumpbin-Dependents": {
+      "commandName": "Project",
+      "commandLineArgs": "--target dumpbin-dependents  --dll E:\\repos\\os-github-repos\\vcpkg\\installed\\x64-windows-release\\bin\\SDL2_image.dll"
     }
   }
 }

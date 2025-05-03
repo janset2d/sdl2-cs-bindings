@@ -1,4 +1,4 @@
-﻿using Build.Context.Settings;
+﻿using Build.Context.Configs;
 using Build.Modules;
 using Cake.Core;
 using Cake.Frosting;
@@ -10,26 +10,26 @@ public sealed class BuildContext : FrostingContext
     public BuildContext(
         ICakeContext context,
         PathService pathService,
-        RepositorySettings repoSettings,
-        DotNetBuildSettings dotNetBuildSettings,
-        VcpkgSettings vcpkgSettings,
-        DumpbinSettings dumpbinSettings)
+        RepositoryConfiguration repoConfiguration,
+        DotNetBuildConfiguration dotNetBuildConfiguration,
+        VcpkgConfiguration vcpkgConfiguration,
+        DumpbinConfiguration dumpbinConfiguration)
         : base(context)
     {
         Paths = pathService;
-        Repo = repoSettings;
-        Settings = dotNetBuildSettings;
-        Vcpkg = vcpkgSettings;
-        DumpbinSettings = dumpbinSettings;
+        Repo = repoConfiguration;
+        DotNetConfiguration = dotNetBuildConfiguration;
+        Vcpkg = vcpkgConfiguration;
+        DumpbinConfiguration = dumpbinConfiguration;
     }
 
     public PathService Paths { get; }
 
-    public RepositorySettings Repo { get; }
+    public RepositoryConfiguration Repo { get; }
 
-    public DotNetBuildSettings Settings { get; }
+    public DotNetBuildConfiguration DotNetConfiguration { get; }
 
-    public VcpkgSettings Vcpkg { get; }
+    public VcpkgConfiguration Vcpkg { get; }
 
-    public DumpbinSettings DumpbinSettings { get; }
+    public DumpbinConfiguration DumpbinConfiguration { get; }
 }

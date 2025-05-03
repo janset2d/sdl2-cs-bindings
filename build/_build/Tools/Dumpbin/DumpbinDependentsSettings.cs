@@ -2,6 +2,7 @@
 
 namespace Build.Tools.Dumpbin;
 
+
 public class DumpbinSettings : ToolSettings
 {
 }
@@ -9,10 +10,10 @@ public class DumpbinSettings : ToolSettings
 
 public class DumpbinDependentsSettings : DumpbinSettings
 {
-    public DumpbinDependentsSettings(string dllPath)
+    public DumpbinDependentsSettings(string dependentsPath)
     {
-        DllPath = dllPath;
+        DependentsPath = dependentsPath;
     }
 
-    public string DllPath { get; set; }
+    public string DependentsPath { get; }
 }

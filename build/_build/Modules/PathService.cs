@@ -1,4 +1,4 @@
-﻿using Build.Context.Settings;
+﻿using Build.Context.Configs;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 
@@ -12,18 +12,18 @@ public sealed class PathService
     private readonly DirectoryPath _repoRoot;
     private readonly DirectoryPath _vcpkgRoot;
 
-    public PathService(RepositorySettings repoSettings, VcpkgSettings vcpkgSettings, ICakeLog log)
+    public PathService(RepositoryConfiguration repoConfiguration, VcpkgConfiguration vcpkgConfiguration, ICakeLog log)
     {
-        ArgumentNullException.ThrowIfNull(repoSettings);
-        ArgumentNullException.ThrowIfNull(vcpkgSettings);
+        ArgumentNullException.ThrowIfNull(repoConfiguration);
+        ArgumentNullException.ThrowIfNull(vcpkgConfiguration);
         ArgumentNullException.ThrowIfNull(log);
 
-        _repoRoot = repoSettings.RepoRoot;
+        _repoRoot = repoConfiguration.RepoRoot;
 
         // Determine Vcpkg Root Path
-        if (vcpkgSettings.VcpkgRootPath is not null)
+        if (vcpkgConfiguration.VcpkgRootPath is not null)
         {
-            _vcpkgRoot = vcpkgSettings.VcpkgRootPath;
+            _vcpkgRoot = vcpkgConfiguration.VcpkgRootPath;
             log.Information($"Using Vcpkg directory from settings/argument: {_vcpkgRoot.FullPath}");
         }
         else

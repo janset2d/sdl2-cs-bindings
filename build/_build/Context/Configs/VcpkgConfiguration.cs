@@ -1,12 +1,12 @@
 using System.Collections.ObjectModel;
 using Cake.Core.IO;
 
-namespace Build.Context.Settings;
+namespace Build.Context.Configs;
 
 /// <summary>
 /// Holds configuration settings specific to Vcpkg interactions.
 /// </summary>
-public class VcpkgSettings
+public class VcpkgConfiguration
 {
     /// <summary>
     /// Gets the path to the Vcpkg installation directory.
@@ -32,7 +32,7 @@ public class VcpkgSettings
     /// </summary>
     public IReadOnlyList<string> LibrariesToBuild { get; init; }
 
-    public VcpkgSettings(DirectoryPath? vcpkgRootPath, IReadOnlyList<string>? librariesToBuild)
+    public VcpkgConfiguration(DirectoryPath? vcpkgRootPath, IReadOnlyList<string>? librariesToBuild)
     {
         VcpkgRootPath = vcpkgRootPath;
         LibrariesToBuild = new ReadOnlyCollection<string>(librariesToBuild?.ToList() ?? []);

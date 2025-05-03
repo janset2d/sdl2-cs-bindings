@@ -5,8 +5,8 @@ using System.CommandLine.Invocation;
 using System.CommandLine.NamingConventionBinder;
 using System.Diagnostics;
 using Build.Context;
+using Build.Context.Configs;
 using Build.Context.Options;
-using Build.Context.Settings;
 using Build.Modules;
 using Build.Modules.DependencyAnalysis;
 using Build.Tools.Dumpbin;
@@ -15,7 +15,6 @@ using Cake.Core.IO;
 using Cake.Frosting;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
-using DumpbinSettings = Build.Context.Settings.DumpbinSettings;
 
 var root = new RootCommand("Cake build for janset2d/sdl2-cs-bindings");
 
@@ -55,10 +54,10 @@ static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArgumen
         {
             var vcpkgPath = parsedArgs.VcpkgDir?.Exists == true ? new DirectoryPath(parsedArgs.VcpkgDir.FullName) : null;
 
-            services.AddSingleton(new VcpkgSettings(vcpkgPath, parsedArgs.Library.ToList()));
-            services.AddSingleton(new RepositorySettings(repoRootPath));
-            services.AddSingleton(new DotNetBuildSettings(configuration: parsedArgs.Config));
-            services.AddSingleton(new DumpbinSettings(parsedArgs.Dll.ToList()));
+            services.AddSingleton(new VcpkgConfiguration(vcpkgPath, parsedArgs.Library.ToList()));
+            services.AddSingleton(new RepositoryConfiguration(repoRootPath));
+            services.AddSingleton(new DotNetBuildConfiguration(configuration: parsedArgs.Config));
+            services.AddSingleton(new DumpbinConfiguration(parsedArgs.Dll.ToList()));
 
             services.AddSingleton<PathService>();
 
