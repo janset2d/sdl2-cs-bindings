@@ -21,7 +21,7 @@ jobs:
             bootstrap_script: .\external\vcpkg\bootstrap-vcpkg.bat
             vcpkg_exe: .\external\vcpkg\vcpkg.exe
             build_script: .\build.ps1 # Assuming PowerShell script for Windows
-            shell: pwsh
+            shell: pwsh # Shell used by the runner for steps below
           - os: windows-latest
             triplet: x86-windows
             rid: win-x86
@@ -44,10 +44,14 @@ jobs:
             bootstrap_script: ./external/vcpkg/bootstrap-vcpkg.sh
             vcpkg_exe: ./external/vcpkg/vcpkg
             build_script: ./build.sh # Assuming Shell script for Linux
-            shell: bash
+            shell: bash # Shell used by the runner for steps below
           # Add other triplets like linux-arm64, osx-arm64 etc. later
 
     runs-on: ${{ matrix.os }} # Run on the OS defined in the matrix
+
+    defaults: # Set default shell for all run steps in this job
+      run:
+        shell: ${{ matrix.shell }}
 
     steps:
       - name: Checkout repository
@@ -82,19 +86,10 @@ jobs:
 
       - name: Bootstrap vcpkg
         run: ${{ matrix.bootstrap_script }}
-        shell: ${{ matrix.shell }}
 
       - name: Install dependencies using vcpkg (Manifest Mode)
         run: ${{ matrix.vcpkg_exe }} install --triplet ${{ matrix.triplet }}
-        shell: ${{ matrix.shell }}
 
       # Example step to run a simple Cake task (can be expanded later)
       - name: Run Cake Build (Info Task)
         run: ${{ matrix.build_script }} --target Info --verbosity diagnostic
-        shell: ${{ matrix.shell }}
-
-      # --- Add subsequent Cake tasks here ---
-      # e.g., Harvest, Pack, Test, etc. using matrix variables
-      # - name: Run Cake Build (Harvest Task for ${{ matrix.rid }})
-      #   run: ${{ matrix.build_script }} --target Harvest --rid ${{ matrix.rid }} --verbosity diagnostic
-      #   shell: ${{ matrix.shell }}
