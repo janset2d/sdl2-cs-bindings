@@ -1,3 +1,6 @@
 [submodule "external/sdl2-cs"]
 	path = external/sdl2-cs
 	url = git@github.com:flibitijibibo/SDL2-CS.git
+[submodule "external/vcpkg"]
+	path = external/vcpkg
+	url = git@github.com:microsoft/vcpkg.git

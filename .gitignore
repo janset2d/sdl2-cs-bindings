@@ -410,3 +410,6 @@ artifacts/**
 # local scripts
 upload-all-packages.ps1
 pack-projects.ps1
+
+# vcpkg installed binaries
+vcpkg_installed/

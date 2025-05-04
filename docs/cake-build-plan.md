@@ -23,14 +23,22 @@ The primary objectives for this build system are:
 
 The build system will be implemented using Cake Frosting, following these architectural principles:
 
-* **Project Structure:** A layered structure within the build/ directory:
-  * BuildContext/: Contains the lean BuildContext and a PathService for centralized, semantic path construction.
-  * Tasks/: Contains task definitions acting as "workflow glue," orchestrating calls to modules. Grouped logically (e.g., DotNet/, Vcpkg/, Packaging/).
-  * Modules/: Contains reusable, Cake-agnostic domain logic (e.g., dependency scanning, Vcpkg harvesting) as pure C\# classes/interfaces. Designed for testability.
-  * Tools/: Contains thin wrappers (Tool\<T\> derived classes and aliases) for external CLI tools like dumpbin.
-* **Lean** BuildContext**:** The BuildContext will primarily hold configuration values (passed via DI) and provide access to the PathService and potentially intermediate build state (like harvested file lists). It avoids holding complex logic or numerous path properties directly.
-* **Path Management (**PathService**):** A dedicated PathService (injected into BuildContext) will handle all path construction logic, providing semantic methods (e.g., Paths.VcpkgInstallBin(triplet), Paths.ArtifactNative(lib, rid)). It will internally use Cake's path types (DirectoryPath, FilePath) and methods (Combine, CombineWithFilePath) for robustness and cross-platform compatibility. It will use git rev-parse \--show-toplevel via context.StartProcess to reliably locate the repository root for constructing paths relative to it (e.g., for the Vcpkg submodule).
-* **Domain Modules (**Modules/**):** Core logic like dependency scanning (IDependencyScanner with WindowsDumpbinScanner, LinuxLddScanner implementations) and artifact harvesting (VcpkgHarvester) will reside in this layer, free from Cake dependencies, enabling unit testing.
+* **Project Structure:** A layered structure within the `build/_build` directory:
+    * `Context/`: Contains the lean `BuildContext`, configuration POCOs (`VcpkgSettings`, `VersionManifest`), and a `PathService`.
+    * `Tasks/`: Contains task definitions acting as "workflow glue," orchestrating calls to modules. Grouped logically (e.g., `DotNet/`, `Vcpkg/`, `Packaging/`).
+    * `Modules/`: Contains reusable, Cake-agnostic domain logic (e.g., dependency scanning, Vcpkg harvesting) as pure C# classes/interfaces. Designed for testability.
+    * `Tools/`: Contains thin wrappers (`Tool<T>` derived classes and aliases) for external CLI tools like `dumpbin`, `ldd`, `otool`, `vcpkg`.
+* **Lean BuildContext:** The `BuildContext` will primarily hold configuration values (passed via DI from parsed arguments and `config/versions.json`) and provide access to the `PathService` and potentially intermediate build state (like harvested file lists).
+* **Path Management (PathService):** A dedicated `PathService` (injected into `BuildContext`) will handle all path construction logic, providing semantic methods (e.g., `Paths.VcpkgInstalledBin(triplet)`, `Paths.ArtifactNative(lib, rid)`). It will internally use Cake's path types and methods. It will use `git rev-parse --show-toplevel` via `context.StartProcess` to reliably locate the repository root.
+* **Vcpkg Interaction (Manifest Mode):**
+    * A `vcpkg.json` file at the repository root will define dependencies, desired features (with platform qualifiers), and exact version overrides for the core SDL libraries. A `builtin-baseline` will manage transitive dependency versions.
+    * The `VcpkgInstallTask` in Cake will simply invoke `vcpkg install --triplet <triplet>`, relying on Vcpkg to read the root `vcpkg.json`.
+    * The `VcpkgTool` wrapper will ensure commands are run from the repository root.
+* **Domain Modules (Modules/):** Core logic like dependency scanning (`IDependencyScanner` with `WindowsDumpbinScanner`, `LinuxLddScanner`, `MacOtoolScanner` implementations) and artifact harvesting (`VcpkgHarvesterService`) will reside in this layer. The harvester will use tools like `vcpkg owns` or `vcpkg x-package-info` to identify package ownership for license gathering.
+* **Task Orchestration (Tasks/):** Tasks will be kept lean, orchestrating calls to modules and tools.
+* **Dependency Injection (DI):** Cake's `ConfigureServices` will be used to register configuration objects (`VcpkgSettings`, `VersionManifest` read from `config/versions.json`) and potentially core services (like `IDependencyScanner` implementations, `VcpkgHarvesterService`) as singletons.
+* **Argument Parsing:** `System.CommandLine` will be used in `Program.cs` to handle arguments (`--rid`, `--library`, `--use-overrides`). Parsed arguments will be captured in POCOs and registered via DI.
+* **Tool Wrappers (Tools/):** External tools (`dumpbin`, `ldd`, `otool`, `vcpkg`) will be wrapped using the `Tool<T>` pattern.
 
 ### Dependency Resolution Strategy
 
@@ -72,6 +80,7 @@ This comprehensive approach ensures all required dependencies are captured, even
 * **Dependency Injection (DI):** Cake's ConfigureServices will be used to register configuration objects (BuildSettings, VcpkgSettings, VersionManifest) and potentially core services (like IDependencyScanner implementations, VcpkgHarvester) as singletons. These will be injected into the BuildContext and potentially tasks.
 * **Argument Parsing:** System.CommandLine will be used in Program.cs to handle potentially complex arguments (selective library builds, RIDs, flags like \--use-overrides). Parsed arguments will be captured in POCOs (like BuildSettings) and registered via DI for use in BuildContext and tasks. Cake's context.Argument may be used for simpler, built-in parameters like \--target, \--verbosity.
 * **Tool Wrappers (**Tools/**):** External tools like dumpbin will be wrapped using the Tool\<T\> pattern, encapsulating tool path resolution (PATH \-\> Smart Fallback \-\> Override) and argument building logic. Specific aliases will provide a clean interface for tasks.
+
 
 ### Cake Frosting Project Structure (`build/`)
 
@@ -151,22 +160,25 @@ build/
 
 ## **4\. Key Policy Decisions**
 
-The following policies have been agreed upon:
+TThe following policies have been agreed upon:
 
-1. **Versioning & Dependencies:** **Coupled Patch** strategy. Managed binding packages (Janset.SDL2.\*) get at least a patch bump when their corresponding native package (Janset.SDL2.Native.\*) updates. A single authoritative version.json file in the repo root will define native library versions and the shared bindingsPatch number. The managed binding .csproj files will use SDK-style \<ProjectReference\>s to the native projects, which dotnet pack converts to \<PackageReference\>s. The version will be injected via $(Version) (e.g., \<ProjectReference Include="..." Version="$(Version)" /\>), with a fallback mechanism (e.g., \<Version Condition="'$(Version)' \== ''"\>0.0.1-local\</Version\>) defined in the binding .csproj files for local development outside the Cake build.
-2. **Vcpkg Management:** Vcpkg will be managed as a **Git submodule**. The build will ensure it's initialized and updated. **GitHub Actions caching** (keyed on Vcpkg SHA, triplet, package list, caching buildtrees and packages) will be implemented to optimize build times.
-3. **Platform Support:** Initial RIDs: win-x64, win-x86, win-arm64, linux-x64, osx-arm64. Architecture will be designed with **future osx-x64 support** in mind.
-4. **Selective Build Trigger:** Support for **both manual** (\--library LibName) **and manifest-based** (version.json changes) triggers will be implemented.
-5. **License Compliance:** **Basic approach:** Copy Vcpkg copyright files into artifact licenses/ folders. SBOM generation is deferred.
-6. **Release Artifacts:**
-   * **NuGet:** Separate native packages (Janset.SDL2.Native.\*) per library.
-   * **GitHub Releases:** **Separate archives per library per RID** (e.g., Janset.SDL2.Native.Core-win-x64-vX.Y.Z.P.zip).
-   * **Tagging:** **Per-Library Tags** (e.g., Janset.SDL2.Core-vX.Y.Z.P) will be used. Tags **without pre-release labels** (e.g., \-beta, \-preview) will trigger the release workflow.
-7. **Failure Policy (CI):** **Strict.** Failure of any requested component task (e.g., Harvest-SDL2\_image-win-x64) will cause that specific task and its corresponding CI matrix job to fail. The overall workflow run will be marked as failed if *any* job fails (strategy.fail-fast: false in matrix).
-8. **Native Overrides:** Support will be implemented via a flag (\--use-overrides). Overrides **take precedence** when the flag is active. A configurable path (e.g., via `\--overridesPath /abs/path`) can override the default location (repo-root/overrides/{rid}); `PathService` will expose methods to resolve the correct path. For *local testing* of the override *logic* (before S3 integration is built), a canonical folder like repo-root/overrides/{rid}/ (added to .gitignore) can be used. Storage of override binaries for CI usage is planned for **AWS S3**, but the implementation of this feature (including S3 download logic, potentially tested with LocalStack) is **deferred** to a later phase.
-9. **Symbol Files:** **Publish symbols (**.snupkg**) for managed bindings**. Native symbol harvesting/publishing is **deferred** (low priority).
-10. **Testing:** Initial reliance on **manual integration testing**. A formal **unit test project (**build.Tests**)** for the Modules/ layer is planned for the future.
-11. **Code Formatting:** Code style for the build/ project will be enforced using standard .NET formatting tools (dotnet format) leveraging the existing .editorconfig, Directory.Build.props, and Directory.packages.props files.
+1.  **Versioning & Dependencies:**
+    * **Native Version Control:** The **`vcpkg.json` manifest file (at repo root) is the source of truth for which native library versions Vcpkg installs**, using `overrides` (including port versions like `#11` if needed) and a `builtin-baseline`.
+    * **NuGet Package Versioning:** A separate **`config/versions.json` file defines the semantic versions used when packing the `Janset.SDL2.Native.*` NuGet packages.** The versions in `config/versions.json` **must be kept manually synchronized** with the corresponding `overrides` in `vcpkg.json`.
+    * **Managed Bindings:** Use a **Coupled Patch** strategy. Managed packages (`Janset.SDL2.*`) get at least a patch bump when their corresponding native package updates. The `bindingsPatch` number in `config/versions.json` can track this. Managed `.csproj` files use `<ProjectReference>` to native projects; `dotnet pack` converts these using the versions defined in `config/versions.json` (injected via `/p:Version=`).
+2.  **Vcpkg Management:** Vcpkg will be managed as a **Git submodule** (`external/vcpkg`). The build **does not** need a `SubmoduleInitTask`; CI (`actions/checkout@v4` with `submodules: recursive`) and local developers (`git submodule update --init --recursive`) are responsible for initialization. **GitHub Actions caching** will be implemented, keyed on the triplet, `vcpkg.json` hash, and Vcpkg ports hash.
+3.  **Platform Support:** Initial RIDs: `win-x64`, `win-x86`, `win-arm64`, `linux-x64`, `osx-arm64`. Architecture designed for future `osx-x64` support.
+4.  **Selective Build Trigger:** Vcpkg installs all dependencies from the manifest per triplet. Cake tasks for **harvesting and packaging** can be made selective using `--library LibName`.
+5.  **License Compliance:** **Basic approach:** The `HarvestTask` will use `vcpkg owns` or similar to identify the package owning each harvested binary, then copy the corresponding `copyright` file from the Vcpkg `share/` directory into the artifact's `licenses/` folder. SBOM generation is deferred.
+6.  **Release Artifacts:**
+    * **NuGet:** Separate native packages (`Janset.SDL2.Native.*`) per library.
+    * **GitHub Releases:** **Separate archives per library per RID** (e.g., `Janset.SDL2.Native.Core-win-x64-vX.Y.Z.P.zip`).
+    * **Tagging:** **Per-Library Tags** (e.g., `Janset.SDL2.Core-vX.Y.Z.P`) will be used. Tags **without pre-release labels** trigger the release workflow.
+7.  **Failure Policy (CI):** **Strict.** Failure of any requested component task (e.g., `Harvest-SDL2_image-win-x64`) will cause that specific task and its corresponding CI matrix job to fail. The overall workflow run will be marked as failed if *any* job fails (`strategy.fail-fast: false` in matrix).
+8.  **Native Overrides (External):** Support for using pre-built binaries instead of Vcpkg will be implemented via a flag (`--use-overrides`). Overrides **take precedence** when active. A configurable path (`--overridesPath`) can be used. Storage planned for **AWS S3**, but implementation is **deferred**.
+9.  **Symbol Files:** **Publish symbols (`.snupkg`) for managed bindings**. Native symbol handling is **deferred**.
+10. **Testing:** Initial reliance on **manual integration testing** and **headless smoke tests** (Phase 4.5). Formal unit testing (`build.Tests`) is planned for the future.
+11. **Code Formatting:** Enforced using `dotnet format` and existing configuration.
 
 ## **5\. Detailed Phased Implementation Plan**
 

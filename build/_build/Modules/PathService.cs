@@ -12,18 +12,18 @@ public sealed class PathService
     private readonly DirectoryPath _repoRoot;
     private readonly DirectoryPath _vcpkgRoot;
 
-    public PathService(RepositoryConfiguration repoConfiguration, VcpkgConfiguration vcpkgConfiguration, ICakeLog log)
+    public PathService(RepositoryConfiguration repoConfiguration, ParsedArguments parsedArguments, ICakeLog log)
     {
         ArgumentNullException.ThrowIfNull(repoConfiguration);
-        ArgumentNullException.ThrowIfNull(vcpkgConfiguration);
+        ArgumentNullException.ThrowIfNull(parsedArguments);
         ArgumentNullException.ThrowIfNull(log);
 
         _repoRoot = repoConfiguration.RepoRoot;
 
         // Determine Vcpkg Root Path
-        if (vcpkgConfiguration.VcpkgRootPath is not null)
+        if (parsedArguments.VcpkgDir?.Exists == true)
         {
-            _vcpkgRoot = vcpkgConfiguration.VcpkgRootPath;
+            _vcpkgRoot = new DirectoryPath(parsedArguments.VcpkgDir.FullName);
             log.Information($"Using Vcpkg directory from settings/argument: {_vcpkgRoot.FullPath}");
         }
         else

@@ -38,6 +38,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{CF74B8C4-9
 		docs\cake-build-plan.md = docs\cake-build-plan.md
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{B4EA2835-20D1-45D0-A082-3B4D233BE0A0}"
+	ProjectSection(SolutionItems) = preProject
+		scripts\package_sdl2_artifacts.ps1 = scripts\package_sdl2_artifacts.ps1
+		scripts\package_sdl2_artifacts.sh = scripts\package_sdl2_artifacts.sh
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

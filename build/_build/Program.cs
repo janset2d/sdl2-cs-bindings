@@ -11,6 +11,7 @@ using Build.Modules;
 using Build.Modules.DependencyAnalysis;
 using Build.Tools.Dumpbin;
 using Cake.Core;
+using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 using Cake.Frosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -52,14 +53,17 @@ static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArgumen
         .UseContext<BuildContext>()
         .ConfigureServices(services =>
         {
-            var vcpkgPath = parsedArgs.VcpkgDir?.Exists == true ? new DirectoryPath(parsedArgs.VcpkgDir.FullName) : null;
-
-            services.AddSingleton(new VcpkgConfiguration(vcpkgPath, parsedArgs.Library.ToList()));
+            services.AddSingleton(new VcpkgConfiguration([.. parsedArgs.Library]));
             services.AddSingleton(new RepositoryConfiguration(repoRootPath));
             services.AddSingleton(new DotNetBuildConfiguration(configuration: parsedArgs.Config));
-            services.AddSingleton(new DumpbinConfiguration(parsedArgs.Dll.ToList()));
+            services.AddSingleton(new DumpbinConfiguration([.. parsedArgs.Dll]));
 
-            services.AddSingleton<PathService>();
+            services.AddSingleton<PathService>(provider =>
+            {
+                var repositoryConfiguration = provider.GetRequiredService<RepositoryConfiguration>();
+                var cakeLogger = provider.GetRequiredService<ICakeLog>();
+                return new PathService(repositoryConfiguration, parsedArgs, cakeLogger);
+            });
 
             services.AddSingleton<IDependencyScanner>(sp =>
             {

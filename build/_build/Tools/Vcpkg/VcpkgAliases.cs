@@ -9,7 +9,7 @@ namespace Build.Tools.Vcpkg;
 /// Contains Cake aliases for running the 'vcpkg install' command.
 /// </summary>
 [CakeAliasCategory("Vcpkg")]
-public static class VcpkgInstallAliases
+public static class VcpkgAliases
 {
     /// <summary>
     /// Installs packages based on the vcpkg manifest file (vcpkg.json).

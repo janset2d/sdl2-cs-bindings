@@ -9,13 +9,6 @@ namespace Build.Context.Configs;
 public class VcpkgConfiguration
 {
     /// <summary>
-    /// Gets the path to the Vcpkg installation directory.
-    /// Populated from command-line argument (--vcpkg-dir) or determined dynamically.
-    /// Will be resolved by PathService if initially null.
-    /// </summary>
-    public DirectoryPath? VcpkgRootPath { get; init; }
-
-    /// <summary>
     /// Gets the mapping of features to enable per library per Vcpkg triplet.
     /// Example structure: { "sdl2-mixer": { "x64-windows-release": ["opusfile", "wavpack"] } }
     /// This will be populated later, possibly from a config file or arguments.
@@ -32,9 +25,8 @@ public class VcpkgConfiguration
     /// </summary>
     public IReadOnlyList<string> LibrariesToBuild { get; init; }
 
-    public VcpkgConfiguration(DirectoryPath? vcpkgRootPath, IReadOnlyList<string>? librariesToBuild)
+    public VcpkgConfiguration(IReadOnlyList<string>? librariesToBuild)
     {
-        VcpkgRootPath = vcpkgRootPath;
         LibrariesToBuild = new ReadOnlyCollection<string>(librariesToBuild?.ToList() ?? []);
     }
 }
