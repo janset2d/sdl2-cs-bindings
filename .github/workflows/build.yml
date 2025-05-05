@@ -84,6 +84,11 @@ jobs:
             vcpkg-${{ runner.os }}-${{ matrix.triplet }}-${{ hashFiles('vcpkg.json') }}-
             vcpkg-${{ runner.os }}-${{ matrix.triplet }}-
 
+      - name: Install prerequisites (Linux Container Only)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          apt-get update && apt-get install -y libltdl-dev
+
       - name: Bootstrap vcpkg
         run: ${{ matrix.bootstrap_script }}
 
