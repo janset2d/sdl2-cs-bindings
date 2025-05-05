@@ -1,14 +1,14 @@
 name: Prepare Native Assets
 
 on:
-  push:          { branches: [ master ] }
-  pull_request:  { branches: [ master ] }
+  push: { branches: [master] }
+  pull_request: { branches: [master] }
   workflow_dispatch:
 
 jobs:
-################################################################################
-#  WINDOWS BUILDS
-################################################################################
+  ################################################################################
+  #  WINDOWS BUILDS
+  ################################################################################
   windows:
     uses: ./.github/workflows/prepare-native-assets-windows.yml
     permissions:
@@ -32,9 +32,9 @@ jobs:
       vcpkg-cache-path: .vcpkg-cache
       vcpkg-feature-flags: binarycaching
 
-################################################################################
-#  LINUX BUILDS
-################################################################################
+  ################################################################################
+  #  LINUX BUILDS
+  ################################################################################
   linux:
     uses: ./.github/workflows/prepare-native-assets-linux.yml
     permissions:
@@ -42,21 +42,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        triplet: [x64-linux-dynamic]
+        triplet: [x64-linux-dynamic, arm64-linux-dynamic]
         include:
           - triplet: x64-linux-dynamic
             rid: linux-x64
-        # Example: Add ARM builds here later
-        # triplet: [x64-linux-dynamic, arm64-linux-dynamic]
-        # include:
-        #   - triplet: x64-linux-dynamic
-        #     rid: linux-x64
-        #   - triplet: arm64-linux-dynamic
-        #     rid: linux-arm64
+            runner: ubuntu-latest
+          - triplet: arm64-linux-dynamic
+            rid: linux-arm64
+            runner: ubuntu-22.04-arm
     with:
       # Pass matrix values to the reusable workflow inputs
       triplet: ${{ matrix.triplet }}
       rid: ${{ matrix.rid }}
+      runner: ${{ matrix.runner }}
       # Pass vcpkg config
       vcpkg-cache-path: .vcpkg-cache
       vcpkg-feature-flags: binarycaching

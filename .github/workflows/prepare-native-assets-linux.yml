@@ -15,11 +15,14 @@ on:
       vcpkg-feature-flags:
         required: true
         type: string
+      runner:
+        required: true
+        type: string
 
 jobs:
   native:
     name: Native Build Linux 20.04 (${{ inputs.triplet }})
-    runs-on: ubuntu-latest      # host runner
+    runs-on: ${{ inputs.runner }}
     container: ubuntu:20.04     # older glibc inside
     defaults: { run: { shell: bash } }
 
