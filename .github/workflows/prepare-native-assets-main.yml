@@ -49,7 +49,7 @@ jobs:
             runner: ubuntu-latest
           - triplet: arm64-linux-dynamic
             rid: linux-arm64
-            runner: ubuntu-22.04-arm
+            runner: ubuntu-latest-arm64
     with:
       # Pass matrix values to the reusable workflow inputs
       triplet: ${{ matrix.triplet }}
