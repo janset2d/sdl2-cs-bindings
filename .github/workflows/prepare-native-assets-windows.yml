@@ -21,16 +21,12 @@ jobs:
     name: Build Windows (${{ inputs.triplet }})
     runs-on: windows-latest
     defaults: { run: { shell: pwsh } }
+    env:
+      NUGET_PACKAGES: ${{ github.workspace }}\.nuget\packages
 
     steps:
       - uses: actions/checkout@v4
         with: { submodules: recursive, fetch-depth: 0 }
-
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: |
-            8.0.x
-            9.0.x
 
       - name: Run Vcpkg Setup Action
         uses: ./.github/actions/vcpkg-setup
@@ -40,5 +36,23 @@ jobs:
           vcpkg-cache-path: ${{ inputs.vcpkg-cache-path }}
           vcpkg-feature-flags: ${{ inputs.vcpkg-feature-flags }}
 
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}\.nuget\packages
+          key:  nuget-${{ runner.os }}-${{ hashFiles('.\build\_build\packages.lock.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Restore Cake host packages
+        run: dotnet restore .\build\_build\Build.csproj --use-lock-file
+
+      - name: Build Cake host
+        run: dotnet build .\build\_build\Build.csproj --configuration Release --no-restore
+
       - name: Run Cake Build (Info Task)
-        run: .\build.ps1 --target Info --verbosity diagnostic
+        run: .\build\_build\bin\Release\net9.0\Build.exe --target Info --verbosity diagnostic
