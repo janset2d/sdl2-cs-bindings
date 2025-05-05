@@ -1,0 +1,84 @@
+name: Prepare Native Assets for Linux
+
+on:
+  workflow_call:
+    inputs:
+      triplet:
+        required: true
+        type: string
+      rid:
+        required: true
+        type: string
+      vcpkg-cache-path:
+        required: true
+        type: string
+      vcpkg-feature-flags:
+        required: true
+        type: string
+
+jobs:
+  native:
+    name: Native Build Linux 20.04 (${{ inputs.triplet }})
+    runs-on: ubuntu-latest      # host runner
+    container: ubuntu:20.04     # older glibc inside
+    defaults: { run: { shell: bash } }
+
+    steps:
+      # — prerequisites just for the container —
+      - name: Install Build Prerequisites
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            git wget curl build-essential pkg-config tar unzip zip ca-certificates python3 \
+            python3-pip bison autoconf automake autoconf-archive libltdl-dev libtool
+          update-ca-certificates # Ensure certificates are updated
+          pip3 install jinja2 # Install jinja2 for meson builds (e.g., libsystemd)
+        env: { DEBIAN_FRONTEND: noninteractive }
+
+      # — checkout and vcpkg build —
+      - uses: actions/checkout@v4
+        with: { submodules: recursive, fetch-depth: 0 }
+
+      - name: Run Vcpkg Setup Action
+        uses: ./.github/actions/vcpkg-setup # Uses the composite action
+        with:
+          runner-os: ubuntu-latest
+          triplet: ${{ inputs.triplet }}
+          vcpkg-cache-path: ${{ inputs.vcpkg-cache-path }}
+          vcpkg-feature-flags: ${{ inputs.vcpkg-feature-flags }}
+
+      # — archive the *native* artefacts (whole folder) —
+      - name: Upload vcpkg_installed
+        uses: actions/upload-artifact@v4
+        with:
+          name: vcpkg-installed-${{ inputs.triplet }}
+          path: vcpkg_installed
+          retention-days: 1
+
+  managed:
+    name: Managed Build Linux (${{ inputs.triplet }})
+    needs: native # Run after native build completes
+    runs-on: ubuntu-latest
+    defaults: { run: { shell: bash } }
+
+    steps:
+      # — checkout repo (bind‑mount workspace) —
+      - uses: actions/checkout@v4
+        with: { submodules: recursive, fetch-depth: 0 }
+
+      # — pull back the native artefacts built in the container —
+      - name: Download vcpkg_installed
+        uses: actions/download-artifact@v4
+        with:
+          name: vcpkg-installed-${{ inputs.triplet }} # Use input triplet in name
+          path: vcpkg_installed         # same relative location as original
+
+      # — .NET SDKs —
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+
+      - name: Run Cake Build (Info Task)
+        run: ./build.sh --target Info --verbosity diagnostic

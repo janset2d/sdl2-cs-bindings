@@ -1,0 +1,44 @@
+name: Prepare Native Assets for Windows
+
+on:
+  workflow_call:
+    inputs:
+      triplet:
+        required: true
+        type: string
+      rid:
+        required: true
+        type: string
+      vcpkg-cache-path:
+        required: true
+        type: string
+      vcpkg-feature-flags:
+        required: true
+        type: string
+
+jobs:
+  build:
+    name: Build Windows (${{ inputs.triplet }})
+    runs-on: windows-latest
+    defaults: { run: { shell: pwsh } }
+
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive, fetch-depth: 0 }
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+
+      - name: Run Vcpkg Setup Action
+        uses: ./.github/actions/vcpkg-setup
+        with:
+          runner-os: windows-latest
+          triplet: ${{ inputs.triplet }}
+          vcpkg-cache-path: ${{ inputs.vcpkg-cache-path }}
+          vcpkg-feature-flags: ${{ inputs.vcpkg-feature-flags }}
+
+      - name: Run Cake Build (Info Task)
+        run: .\build.ps1 --target Info --verbosity diagnostic

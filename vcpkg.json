@@ -33,92 +33,12 @@
           "platform": "!windows"
         }
       ]
-    },
-    {
-      "name": "sdl2-image",
-      "features": [
-        "avif",
-        "libjpeg-turbo",
-        "libwebp",
-        "tiff"
-      ]
-    },
-    {
-      "name": "sdl2-mixer",
-      "features": [
-        "fluidsynth",
-        "libflac",
-        "libmodplug",
-        "mpg123",
-        "opusfile",
-        "timidity",
-        "wavpack"
-      ]
-    },
-    {
-      "name": "sdl2-mixer-ext",
-      "features": [
-        {
-          "name": "cmd",
-          "platform": "linux"
-        },
-        "ffmpeg",
-        "fluidsynth",
-        "libadlmidi",
-        "libflac",
-        "libgme",
-        "libmodplug",
-        "libopnmidi",
-        "libvorbis",
-        "libxmp",
-        "mpg123",
-        {
-          "name": "nativemidi",
-          "platform": "(windows & !uwp) | osx"
-        },
-        "opusfile",
-        "pxtone",
-        "timidity",
-        "wavpack"
-      ]
-    },
-    {
-      "name": "sdl2-ttf",
-      "features": [
-        "harfbuzz"
-      ]
-    },
-    "sdl2-gfx"
+    }
   ],
   "overrides": [
     {
       "name": "sdl2",
       "version": "2.32.4",
-      "port-version": 0
-    },
-    {
-      "name": "sdl2-gfx",
-      "version": "1.0.4",
-      "port-version": 11
-    },
-    {
-      "name": "sdl2-image",
-      "version": "2.8.8",
-      "port-version": 1
-    },
-    {
-      "name": "sdl2-mixer",
-      "version": "2.8.1",
-      "port-version": 1
-    },
-    {
-      "name": "sdl2-mixer-ext",
-      "version": "2.6.0",
-      "port-version": 1
-    },
-    {
-      "name": "sdl2-ttf",
-      "version": "2.24.0",
       "port-version": 0
     }
   ]

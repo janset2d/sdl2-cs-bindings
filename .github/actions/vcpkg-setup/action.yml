@@ -1,0 +1,91 @@
+name: "Vcpkg Setup"
+description: "Checks out code, sets up vcpkg cache, installs prerequisites, bootstraps vcpkg, and installs dependencies."
+
+inputs:
+  runner-os:
+    description: "The runner OS (e.g., windows-latest, ubuntu-latest)"
+    required: true
+  triplet:
+    description: "The vcpkg triplet to build for"
+    required: true
+  vcpkg-cache-path:
+    description: "Relative path for the vcpkg binary cache (e.g., .vcpkg-cache)"
+    required: true
+  vcpkg-feature-flags:
+    description: "Vcpkg feature flags to enable"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    # ──────────────────────────────────────────────────────────────────────────
+    # 1 ▸ grab the sub‑module commit so the cache busts when vcpkg updates
+    # ──────────────────────────────────────────────────────────────────────────
+    - name: Read vcpkg submodule commit
+      id: vcpkg_commit
+      shell: bash
+      run: echo "commit=$(git -C $GITHUB_WORKSPACE/external/vcpkg rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # 2 ▸ binary‑caching
+    # ──────────────────────────────────────────────────────────────────────────
+    - name: Cache vcpkg binary artifacts
+      id: cache-vcpkg
+      uses: actions/cache@v4
+      with:
+        path: ${{ github.workspace }}/${{ inputs.vcpkg-cache-path }}
+        key: vcpkg-bin-${{ inputs.runner-os }}-${{ inputs.triplet }}-${{ hashFiles('vcpkg.json') }}-${{ steps.vcpkg_commit.outputs.commit }}
+        restore-keys: |
+          vcpkg-bin-${{ inputs.runner-os }}-${{ inputs.triplet }}-${{ hashFiles('vcpkg.json') }}-
+          vcpkg-bin-${{ inputs.runner-os }}-${{ inputs.triplet }}-
+      env:
+        VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/${{ inputs.vcpkg-cache-path }}
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # 3 ▸ make sure the directory exists (only needed on a full cache miss)
+    # ──────────────────────────────────────────────────────────────────────────
+    - name: Ensure binary‑cache directory exists (Windows)
+      if: inputs.runner-os == 'windows-latest'
+      shell: pwsh
+      run: New-Item -ItemType Directory -Force -Path "$env:GITHUB_WORKSPACE\${{ inputs.vcpkg-cache-path }}" | Out-Null
+
+    - name: Ensure binary‑cache directory exists (Unix)
+      if: inputs.runner-os != 'windows-latest'
+      shell: bash
+      run: mkdir -p "$GITHUB_WORKSPACE/${{ inputs.vcpkg-cache-path }}"
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # 4 ▸ bootstrap vcpkg
+    # ──────────────────────────────────────────────────────────────────────────
+    - name: Bootstrap vcpkg (Windows)
+      if: inputs.runner-os == 'windows-latest'
+      shell: pwsh
+      run: |
+        & "$env:GITHUB_WORKSPACE\external\vcpkg\bootstrap-vcpkg.bat"
+
+    - name: Bootstrap vcpkg (Unix)
+      if: inputs.runner-os != 'windows-latest'
+      shell: bash
+      run: |
+        $GITHUB_WORKSPACE/external/vcpkg/bootstrap-vcpkg.sh
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # 5 ▸ install manifest dependencies
+    # ──────────────────────────────────────────────────────────────────────────
+    - name: Install dependencies using vcpkg (Windows)
+      if: inputs.runner-os == 'windows-latest'
+      shell: pwsh
+      run: |
+        & "$env:GITHUB_WORKSPACE\external\vcpkg\vcpkg.exe" install --triplet ${{ inputs.triplet }}
+      env:
+        VCPKG_FEATURE_FLAGS: ${{ inputs.vcpkg-feature-flags }}
+        VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/${{ inputs.vcpkg-cache-path }}
+
+    - name: Install dependencies using vcpkg (Unix)
+      if: inputs.runner-os != 'windows-latest'
+      shell: bash
+      run: |
+        $GITHUB_WORKSPACE/external/vcpkg/vcpkg install --triplet ${{ inputs.triplet }}
+      env:
+        VCPKG_FEATURE_FLAGS: ${{ inputs.vcpkg-feature-flags }}
+        VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/${{ inputs.vcpkg-cache-path }}
