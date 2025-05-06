@@ -47,14 +47,17 @@ jobs:
           - triplet: x64-linux-dynamic
             rid: linux-x64
             runner: ubuntu-latest
+            vcpkg_overlay_paths: '' # Explicitly empty for x64
           - triplet: arm64-linux-dynamic
             rid: linux-arm64
             runner: ubuntu-latest-arm64
+            vcpkg_overlay_paths: 'build/vcpkg/overlay-ports' # Overlay for arm64
     with:
       # Pass matrix values to the reusable workflow inputs
       triplet: ${{ matrix.triplet }}
       rid: ${{ matrix.rid }}
       runner: ${{ matrix.runner }}
+      vcpkg-overlay-paths: ${{ matrix.vcpkg_overlay_paths }} # Pass overlay path
       # Pass vcpkg config
       vcpkg-cache-path: .vcpkg-cache
       vcpkg-feature-flags: binarycaching

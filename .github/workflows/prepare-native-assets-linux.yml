@@ -15,6 +15,10 @@ on:
       vcpkg-feature-flags:
         required: true
         type: string
+      vcpkg-overlay-paths:
+        required: false
+        type: string
+        default: ''
       runner:
         required: true
         type: string
@@ -49,6 +53,7 @@ jobs:
           triplet: ${{ inputs.triplet }}
           vcpkg-cache-path: ${{ inputs.vcpkg-cache-path }}
           vcpkg-feature-flags: ${{ inputs.vcpkg-feature-flags }}
+          vcpkg-overlay-paths: ${{ inputs.vcpkg-overlay-paths }}
 
       # — archive the *native* artefacts (whole folder) —
       - name: Upload vcpkg_installed

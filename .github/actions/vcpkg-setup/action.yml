@@ -14,6 +14,10 @@ inputs:
   vcpkg-feature-flags:
     description: "Vcpkg feature flags to enable"
     required: true
+  vcpkg-overlay-paths:
+    description: "Space-separated list of overlay port directories relative to workspace root"
+    required: false
+    default: ''
 
 runs:
   using: "composite"
@@ -76,7 +80,16 @@ runs:
       if: inputs.runner-os == 'windows-latest'
       shell: pwsh
       run: |
-        & "$env:GITHUB_WORKSPACE\external\vcpkg\vcpkg.exe" install --triplet ${{ inputs.triplet }}
+        $overlayArgs = ""
+        if ("${{ inputs.vcpkg-overlay-paths }}") {
+          foreach ($path in "${{ inputs.vcpkg-overlay-paths }}".Split(' ')) {
+            if ($path) { # Check if path is not empty after split
+              $overlayArgs += " --overlay-ports=$($env:GITHUB_WORKSPACE)\$path"
+            }
+          }
+        }
+        Write-Host "Overlay Arguments: $overlayArgs"
+        & "$($env:GITHUB_WORKSPACE)\external\vcpkg\vcpkg.exe" install --triplet ${{ inputs.triplet }}$overlayArgs
       env:
         VCPKG_FEATURE_FLAGS: ${{ inputs.vcpkg-feature-flags }}
         VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/${{ inputs.vcpkg-cache-path }}
@@ -85,7 +98,14 @@ runs:
       if: inputs.runner-os != 'windows-latest'
       shell: bash
       run: |
-        $GITHUB_WORKSPACE/external/vcpkg/vcpkg install --triplet ${{ inputs.triplet }}
+        overlay_args=""
+        if [[ -n "${{ inputs.vcpkg-overlay-paths }}" ]]; then
+          for path in ${{ inputs.vcpkg-overlay-paths }}; do
+            overlay_args+=" --overlay-ports=$GITHUB_WORKSPACE/$path"
+          done
+        fi
+        echo "Overlay Arguments: $overlay_args"
+        $GITHUB_WORKSPACE/external/vcpkg/vcpkg install --triplet ${{ inputs.triplet }}$overlay_args
       env:
         VCPKG_FEATURE_FLAGS: ${{ inputs.vcpkg-feature-flags }}
         VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/${{ inputs.vcpkg-cache-path }}
