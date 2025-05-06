@@ -1,0 +1,80 @@
+# .github/workflows/prepare-native-assets-macos.yml
+name: Prepare Native Assets for macOS
+
+on:
+  workflow_call:
+    inputs:
+      triplet:
+        required: true
+        type: string
+      rid:
+        required: true
+        type: string
+      vcpkg-cache-path:
+        required: true
+        type: string
+      vcpkg-feature-flags:
+        required: true
+        type: string
+      runner: # Input for the specific macOS runner
+        required: true
+        type: string
+
+jobs:
+  build:
+    name: Build macOS (${{ inputs.triplet }} on ${{ inputs.runner }})
+    runs-on: ${{ inputs.runner }} # Use runner specified by the caller matrix
+    defaults: { run: { shell: bash } } # Default to bash on macOS
+
+    steps:
+      # — prerequisites for macOS —
+      # Note: Xcode Command Line Tools (includes Git, Clang) are usually pre-installed on GitHub runners.
+      # Homebrew is also typically available.
+      - name: Install Build Prerequisites (Homebrew)
+        run: |
+          brew update || true # Update brew, continue if update fails for some reason
+          brew install pkg-config autoconf automake libtool # Core autotools needed by some vcpkg ports
+          # brew install cmake # Usually not needed as vcpkg downloads its own CMake
+
+      # — checkout —
+      - uses: actions/checkout@v4
+        with: { submodules: recursive, fetch-depth: 0 }
+
+      # — .NET SDK —
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x # Only install .NET 9
+
+      # — vcpkg setup using composite action —
+      - name: Run Vcpkg Setup Action
+        uses: ./.github/actions/vcpkg-setup
+        with:
+          runner-os: ${{ inputs.runner }} # Pass the specific runner OS name
+          triplet: ${{ inputs.triplet }}
+          vcpkg-cache-path: ${{ inputs.vcpkg-cache-path }}
+          vcpkg-feature-flags: ${{ inputs.vcpkg-feature-flags }}
+
+      # — NuGet Cache (for Cake host) —
+      # Define path using bash variable expansion for consistency
+      - name: Set NuGet Cache Path Env
+        run: echo "NUGET_PACKAGES=$GITHUB_WORKSPACE/.nuget/packages" >> $GITHUB_ENV
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('./build/_build/packages.lock.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      # — Build and Run Cake —
+      - name: Restore Cake host packages
+        run: dotnet restore ./build/_build/Build.csproj --use-lock-file
+
+      - name: Build Cake host
+        run: dotnet build ./build/_build/Build.csproj --configuration Release --no-restore
+
+      # Note: The executable might not have .exe on Unix systems
+      - name: Run Cake Build (Info Task)
+        run: ./build/_build/bin/Release/net9.0/Build --target Info --verbosity diagnostic
+        # Example for later: run: ./build/_build/bin/Release/net9.0/Build --target Harvest --rid=${{ inputs.rid }} --verbosity diagnostic
