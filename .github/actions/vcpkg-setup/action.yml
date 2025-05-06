@@ -3,7 +3,7 @@ description: "Checks out code, sets up vcpkg cache, installs prerequisites, boot
 
 inputs:
   runner-os:
-    description: "The runner OS (e.g., windows-latest, ubuntu-latest)"
+    description: "The runner OS (e.g., windows-latest, ubuntu-24.04)"
     required: true
   cache-key-base:
     description: "The base cache key"

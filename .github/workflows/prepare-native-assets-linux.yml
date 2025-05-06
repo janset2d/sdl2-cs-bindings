@@ -65,7 +65,7 @@ jobs:
   managed:
     name: Managed Build Linux (${{ inputs.triplet }})
     needs: native # Run after native build completes
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner }}
     defaults: { run: { shell: bash } }
     env:
       NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
