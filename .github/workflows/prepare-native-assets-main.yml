@@ -20,14 +20,18 @@ jobs:
         include:
           - triplet: x64-windows-release
             rid: win-x64
+            runner: windows-latest
           - triplet: x86-windows
             rid: win-x86
+            runner: windows-latest
           - triplet: arm64-windows
             rid: win-arm64
+            runner: windows-latest
     with:
       # Pass matrix values to the reusable workflow inputs
       triplet: ${{ matrix.triplet }}
       rid: ${{ matrix.rid }}
+      runner: ${{ matrix.runner }} # Pass the selected runner
       # Pass vcpkg config
       vcpkg-cache-path: .vcpkg-cache
       vcpkg-feature-flags: binarycaching
@@ -47,17 +51,17 @@ jobs:
           - triplet: x64-linux-dynamic
             rid: linux-x64
             runner: ubuntu-latest
-            vcpkg_overlay_paths: '' # Explicitly empty for x64
+            container_image: ubuntu:20.04
           - triplet: arm64-linux-dynamic
             rid: linux-arm64
             runner: ubuntu-latest-arm64
-            vcpkg_overlay_paths: 'build/vcpkg/overlay-ports' # Overlay for arm64
+            container_image: ubuntu:22.04
     with:
       # Pass matrix values to the reusable workflow inputs
       triplet: ${{ matrix.triplet }}
       rid: ${{ matrix.rid }}
       runner: ${{ matrix.runner }}
-      vcpkg-overlay-paths: ${{ matrix.vcpkg_overlay_paths }} # Pass overlay path
+      container-image: ${{ matrix.container_image }}
       # Pass vcpkg config
       vcpkg-cache-path: .vcpkg-cache
       vcpkg-feature-flags: binarycaching

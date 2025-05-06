@@ -15,19 +15,18 @@ on:
       vcpkg-feature-flags:
         required: true
         type: string
-      vcpkg-overlay-paths:
-        required: false
-        type: string
-        default: ''
       runner:
+        required: true
+        type: string
+      container-image:
         required: true
         type: string
 
 jobs:
   native:
-    name: Native Build Linux 20.04 (${{ inputs.triplet }})
+    name: Native Build Linux (${{ inputs.container-image }} / ${{ inputs.triplet }})
     runs-on: ${{ inputs.runner }}
-    container: ubuntu:20.04     # older glibc inside
+    container: ${{ inputs.container-image }}
     defaults: { run: { shell: bash } }
 
     steps:
@@ -49,11 +48,11 @@ jobs:
       - name: Run Vcpkg Setup Action
         uses: ./.github/actions/vcpkg-setup # Uses the composite action
         with:
-          runner-os: ubuntu-latest
+          runner-os: ${{ inputs.runner }}
+          cache-key-base: ${{ inputs.container-image }}
           triplet: ${{ inputs.triplet }}
           vcpkg-cache-path: ${{ inputs.vcpkg-cache-path }}
           vcpkg-feature-flags: ${{ inputs.vcpkg-feature-flags }}
-          vcpkg-overlay-paths: ${{ inputs.vcpkg-overlay-paths }}
 
       # — archive the *native* artefacts (whole folder) —
       - name: Upload vcpkg_installed

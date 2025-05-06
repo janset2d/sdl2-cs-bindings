@@ -15,11 +15,14 @@ on:
       vcpkg-feature-flags:
         required: true
         type: string
+      runner:
+        required: true
+        type: string
 
 jobs:
   build:
     name: Build Windows (${{ inputs.triplet }})
-    runs-on: windows-latest
+    runs-on: ${{ inputs.runner }}
     defaults: { run: { shell: pwsh } }
     env:
       NUGET_PACKAGES: ${{ github.workspace }}\.nuget\packages
@@ -31,7 +34,8 @@ jobs:
       - name: Run Vcpkg Setup Action
         uses: ./.github/actions/vcpkg-setup
         with:
-          runner-os: windows-latest
+          runner-os: ${{ inputs.runner }}
+          cache-key-base: ${{ inputs.runner }}
           triplet: ${{ inputs.triplet }}
           vcpkg-cache-path: ${{ inputs.vcpkg-cache-path }}
           vcpkg-feature-flags: ${{ inputs.vcpkg-feature-flags }}

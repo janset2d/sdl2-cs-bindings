@@ -5,6 +5,9 @@ inputs:
   runner-os:
     description: "The runner OS (e.g., windows-latest, ubuntu-latest)"
     required: true
+  cache-key-base:
+    description: "The base cache key"
+    required: true
   triplet:
     description: "The vcpkg triplet to build for"
     required: true
@@ -14,10 +17,6 @@ inputs:
   vcpkg-feature-flags:
     description: "Vcpkg feature flags to enable"
     required: true
-  vcpkg-overlay-paths:
-    description: "Space-separated list of overlay port directories relative to workspace root"
-    required: false
-    default: ''
 
 runs:
   using: "composite"
@@ -38,10 +37,10 @@ runs:
       uses: actions/cache@v4
       with:
         path: ${{ github.workspace }}/${{ inputs.vcpkg-cache-path }}
-        key: vcpkg-bin-${{ inputs.runner-os }}-${{ inputs.triplet }}-${{ hashFiles('vcpkg.json') }}-${{ steps.vcpkg_commit.outputs.commit }}
+        key: vcpkg-bin-${{ inputs.cache-key-base }}-${{ inputs.triplet }}-${{ hashFiles('vcpkg.json') }}-${{ steps.vcpkg_commit.outputs.commit }}
         restore-keys: |
-          vcpkg-bin-${{ inputs.runner-os }}-${{ inputs.triplet }}-${{ hashFiles('vcpkg.json') }}-
-          vcpkg-bin-${{ inputs.runner-os }}-${{ inputs.triplet }}-
+          vcpkg-bin-${{ inputs.cache-key-base }}-${{ inputs.triplet }}-${{ hashFiles('vcpkg.json') }}-
+          vcpkg-bin-${{ inputs.cache-key-base }}-${{ inputs.triplet }}-
       env:
         VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/${{ inputs.vcpkg-cache-path }}
 
@@ -80,16 +79,7 @@ runs:
       if: inputs.runner-os == 'windows-latest'
       shell: pwsh
       run: |
-        $overlayArgs = ""
-        if ("${{ inputs.vcpkg-overlay-paths }}") {
-          foreach ($path in "${{ inputs.vcpkg-overlay-paths }}".Split(' ')) {
-            if ($path) { # Check if path is not empty after split
-              $overlayArgs += " --overlay-ports=$($env:GITHUB_WORKSPACE)\$path"
-            }
-          }
-        }
-        Write-Host "Overlay Arguments: $overlayArgs"
-        & "$($env:GITHUB_WORKSPACE)\external\vcpkg\vcpkg.exe" install --triplet ${{ inputs.triplet }}$overlayArgs
+        & "$env:GITHUB_WORKSPACE\external\vcpkg\vcpkg.exe" install --triplet ${{ inputs.triplet }}
       env:
         VCPKG_FEATURE_FLAGS: ${{ inputs.vcpkg-feature-flags }}
         VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/${{ inputs.vcpkg-cache-path }}
@@ -98,14 +88,7 @@ runs:
       if: inputs.runner-os != 'windows-latest'
       shell: bash
       run: |
-        overlay_args=""
-        if [[ -n "${{ inputs.vcpkg-overlay-paths }}" ]]; then
-          for path in ${{ inputs.vcpkg-overlay-paths }}; do
-            overlay_args+=" --overlay-ports=$GITHUB_WORKSPACE/$path"
-          done
-        fi
-        echo "Overlay Arguments: $overlay_args"
-        $GITHUB_WORKSPACE/external/vcpkg/vcpkg install --triplet ${{ inputs.triplet }}$overlay_args
+        $GITHUB_WORKSPACE/external/vcpkg/vcpkg install --triplet ${{ inputs.triplet }}
       env:
         VCPKG_FEATURE_FLAGS: ${{ inputs.vcpkg-feature-flags }}
         VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/${{ inputs.vcpkg-cache-path }}

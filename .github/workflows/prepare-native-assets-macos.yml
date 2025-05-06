@@ -50,6 +50,7 @@ jobs:
         uses: ./.github/actions/vcpkg-setup
         with:
           runner-os: ${{ inputs.runner }} # Pass the specific runner OS name
+          cache-key-base: ${{ inputs.runner }}
           triplet: ${{ inputs.triplet }}
           vcpkg-cache-path: ${{ inputs.vcpkg-cache-path }}
           vcpkg-feature-flags: ${{ inputs.vcpkg-feature-flags }}
