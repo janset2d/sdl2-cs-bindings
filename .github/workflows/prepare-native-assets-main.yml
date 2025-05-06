@@ -6,61 +6,61 @@ on:
   workflow_dispatch:
 
 jobs:
-  ################################################################################
+  ###############################################################################
   #  WINDOWS BUILDS
-  ################################################################################
-  # windows:
-  #   uses: ./.github/workflows/prepare-native-assets-windows.yml
-  #   permissions:
-  #     contents: read
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       triplet: [x64-windows-release, x86-windows, arm64-windows]
-  #       include:
-  #         - triplet: x64-windows-release
-  #           rid: win-x64
-  #         - triplet: x86-windows
-  #           rid: win-x86
-  #         - triplet: arm64-windows
-  #           rid: win-arm64
-  #   with:
-  #     # Pass matrix values to the reusable workflow inputs
-  #     triplet: ${{ matrix.triplet }}
-  #     rid: ${{ matrix.rid }}
-  #     # Pass vcpkg config
-  #     vcpkg-cache-path: .vcpkg-cache
-  #     vcpkg-feature-flags: binarycaching
+  ###############################################################################
+  windows:
+    uses: ./.github/workflows/prepare-native-assets-windows.yml
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        triplet: [x64-windows-release, x86-windows, arm64-windows]
+        include:
+          - triplet: x64-windows-release
+            rid: win-x64
+          - triplet: x86-windows
+            rid: win-x86
+          - triplet: arm64-windows
+            rid: win-arm64
+    with:
+      # Pass matrix values to the reusable workflow inputs
+      triplet: ${{ matrix.triplet }}
+      rid: ${{ matrix.rid }}
+      # Pass vcpkg config
+      vcpkg-cache-path: .vcpkg-cache
+      vcpkg-feature-flags: binarycaching
 
-  ################################################################################
+  ###############################################################################
   #  LINUX BUILDS
-  ################################################################################
-  # linux:
-  #   uses: ./.github/workflows/prepare-native-assets-linux.yml
-  #   permissions:
-  #     contents: read
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       triplet: [x64-linux-dynamic, arm64-linux-dynamic]
-  #       include:
-  #         - triplet: x64-linux-dynamic
-  #           rid: linux-x64
-  #           runner: ubuntu-latest
-  #         - triplet: arm64-linux-dynamic
-  #           rid: linux-arm64
-  #           runner: ubuntu-latest-arm64
-  #   with:
-  #     # Pass matrix values to the reusable workflow inputs
-  #     triplet: ${{ matrix.triplet }}
-  #     rid: ${{ matrix.rid }}
-  #     runner: ${{ matrix.runner }}
-  #     # Pass vcpkg config
-  #     vcpkg-cache-path: .vcpkg-cache
-  #     vcpkg-feature-flags: binarycaching
+  ###############################################################################
+  linux:
+    uses: ./.github/workflows/prepare-native-assets-linux.yml
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        triplet: [x64-linux-dynamic, arm64-linux-dynamic]
+        include:
+          - triplet: x64-linux-dynamic
+            rid: linux-x64
+            runner: ubuntu-latest
+          - triplet: arm64-linux-dynamic
+            rid: linux-arm64
+            runner: ubuntu-latest-arm64
+    with:
+      # Pass matrix values to the reusable workflow inputs
+      triplet: ${{ matrix.triplet }}
+      rid: ${{ matrix.rid }}
+      runner: ${{ matrix.runner }}
+      # Pass vcpkg config
+      vcpkg-cache-path: .vcpkg-cache
+      vcpkg-feature-flags: binarycaching
 
   ################################################################################
-  #  MACOS BUILDS (uses reusable workflow)
+  #  MACOS BUILDS
   ################################################################################
   macos:
     uses: ./.github/workflows/prepare-native-assets-macos.yml
@@ -69,15 +69,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Define macOS specific matrix
         triplet: [x64-osx-dynamic, arm64-osx-dynamic]
         include:
           - triplet: x64-osx-dynamic
             rid: osx-x64
-            runner: macos-13 # Use specific runner for x64
+            runner: macos-13
           - triplet: arm64-osx-dynamic
             rid: osx-arm64
-            runner: macos-latest # Use latest runner for arm64 (Apple Silicon)
+            runner: macos-latest
     with:
       # Pass matrix values to the reusable workflow inputs
       triplet: ${{ matrix.triplet }}
