@@ -88,7 +88,7 @@ public static class VcpkgAliases
     /// </code>
     /// </example>
     [CakeMethodAlias]
-    public static void VcpkgPackageInfo(this ICakeContext context, string package, VcpkgPackageInfoSettings? settings = null)
+    public static string? VcpkgPackageInfo(this ICakeContext context, string package, VcpkgPackageInfoSettings? settings = null)
     {
         ArgumentNullException.ThrowIfNull(context);
         if (string.IsNullOrWhiteSpace(package))
@@ -104,7 +104,7 @@ public static class VcpkgAliases
         }
 
         var tool = new VcpkgPackageInfoTool(context);
-        tool.GetPackageInfo(settings, package);
+        return tool.GetPackageInfo(settings, package);
     }
 
     private static void RunVcpkgInstallInternal(ICakeContext context, IReadOnlyList<string>? packages, VcpkgInstallSettings? settings)

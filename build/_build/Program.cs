@@ -35,6 +35,7 @@ root.AddOption(RepositoryOptions.RepoRooOption);
 root.AddOption(DotNetOptions.ConfigOption);
 
 root.AddOption(VcpkgOptions.VcpkgDirOption);
+root.AddOption(VcpkgOptions.VcpkgInstalledDirOption);
 root.AddOption(VcpkgOptions.LibraryOption);
 root.AddOption(VcpkgOptions.RidOption);
 root.AddOption(VcpkgOptions.UseOverridesOption);
@@ -53,7 +54,7 @@ static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArgumen
         .UseContext<BuildContext>()
         .ConfigureServices(services =>
         {
-            services.AddSingleton(new VcpkgConfiguration([.. parsedArgs.Library]));
+            services.AddSingleton(new VcpkgConfiguration([.. parsedArgs.Library], parsedArgs.Rid));
             services.AddSingleton(new RepositoryConfiguration(repoRootPath));
             services.AddSingleton(new DotNetBuildConfiguration(configuration: parsedArgs.Config));
             services.AddSingleton(new DumpbinConfiguration([.. parsedArgs.Dll]));
@@ -70,11 +71,12 @@ static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArgumen
                 var env = sp.GetRequiredService<ICakeEnvironment>();
                 var ctx = sp.GetRequiredService<ICakeContext>();
 
-                return env.Platform.Family switch
+                var rid = env.Platform.Rid();
+                return rid switch
                 {
-                    PlatformFamily.Windows => new WindowsDumpbinScanner(new DumpbinDependentsTool(ctx)),
-                    PlatformFamily.Linux => new LinuxLddScanner(),
-                    PlatformFamily.OSX => new MacOtoolScanner(),
+                    Rids.WinX64 or Rids.WinX86 or Rids.WinArm64 => new WindowsDumpbinScanner(new DumpbinDependentsTool(ctx)),
+                    Rids.LinuxX64 or Rids.LinuxArm64 => new LinuxLddScanner(),
+                    Rids.OsxX64 or Rids.OsxArm64 => new MacOtoolScanner(),
                     _ => throw new NotSupportedException("Unsupported OS"),
                 };
             });
@@ -135,12 +137,10 @@ static async Task<DirectoryPath> DetermineRepoRootAsync(DirectoryInfo? repoRootA
 }
 
 public record ParsedArguments(
-    string Target,
-    string Verbosity,
     DirectoryInfo? RepoRoot,
     string Config,
     DirectoryInfo? VcpkgDir,
-    IList<string> Rid,
+    DirectoryInfo? VcpkgInstalledDir,
+    string? Rid,
     IList<string> Library,
-    bool UseOverrides,
     IList<string> Dll);

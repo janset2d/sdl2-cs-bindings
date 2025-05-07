@@ -1,7 +1,9 @@
-﻿using Build.Tools.Vcpkg.Settings;
+﻿using System.Diagnostics.CodeAnalysis;
+using Build.Tools.Vcpkg.Settings;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
+using Spectre.Console;
 
 namespace Build.Tools.Vcpkg;
 
@@ -17,7 +19,7 @@ public sealed class VcpkgPackageInfoTool(ICakeContext cakeContext) : VcpkgTool<V
     /// </summary>
     /// <param name="settings">The settings.</param>
     /// <param name="package">Package name to get info for.</param>
-    public void GetPackageInfo(VcpkgPackageInfoSettings settings, string package)
+    public string? GetPackageInfo(VcpkgPackageInfoSettings settings, string package)
     {
         ArgumentNullException.ThrowIfNull(settings);
         if (string.IsNullOrWhiteSpace(package))
@@ -29,7 +31,23 @@ public sealed class VcpkgPackageInfoTool(ICakeContext cakeContext) : VcpkgTool<V
 
         _log.Verbose("Running vcpkg x-package-info with arguments: {0}", builder.RenderSafe());
 
-        Run(settings, builder);
+        List<string> packageInfoOutputLines = [];
+        List<string> packageInfoOutputLinesError = [];
+        var processSettings = new ProcessSettings { RedirectStandardOutput = true, RedirectStandardError = true, };
+        try
+        {
+            Run(settings, builder, processSettings, process =>
+            {
+                packageInfoOutputLinesError = [.. process.GetStandardError()];
+                packageInfoOutputLines = [.. process.GetStandardOutput()];
+            });
+        }
+        catch (CakeException) when (packageInfoOutputLinesError.Count == 0 && packageInfoOutputLines.Count > 0)
+        {
+            AnsiConsole.MarkupLine("[yellow]Warning:[/] Get the output from the command with exit code 1");
+        }
+
+        return packageInfoOutputLines.Count > 0 ? string.Join(Environment.NewLine, packageInfoOutputLines) : null;
     }
 
     /// <summary>

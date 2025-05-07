@@ -4,8 +4,12 @@
     <TargetFramework>net9.0</TargetFramework>
     <TargetFrameworks></TargetFrameworks>
     <RunWorkingDirectory>$(MSBuildProjectDirectory)</RunWorkingDirectory>
-    <NoWarn>$(NoWarn);CA1050;CA2007;CA1812;CA1515;MA0047;S3903</NoWarn>
-    <NoError>$(NoError);CA1050;CA2007;CA1812;CA1515;MA0047;S3903</NoError>
+    <NoWarn>$(NoWarn);CA1050;CA2007;CA1812;CA1515;MA0047;S3903;S2955</NoWarn>
+    <NoError>$(NoError);CA1050;CA2007;CA1812;CA1515;MA0047;S3903;S2955</NoError>
+
+    <IsAotCompatible>false</IsAotCompatible>
+    <IsTrimmable>false</IsTrimmable>
+    <EnableAOTAnalyzer>false</EnableAOTAnalyzer>
 
   </PropertyGroup>
   <ItemGroup>

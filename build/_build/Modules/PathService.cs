@@ -29,14 +29,16 @@ public sealed class PathService
         else
         {
             // Default: Assume vcpkg is a submodule in the repo root
-            _vcpkgRoot = _repoRoot.Combine("vcpkg");
+            _vcpkgRoot = _repoRoot.Combine("external").Combine("vcpkg");
             log.Warning($"Warning: Vcpkg directory not specified via --vcpkg-dir. Assuming relative path: {_vcpkgRoot.FullPath}");
         }
     }
 
     public DirectoryPath RepoRoot => _repoRoot;
 
-    public DirectoryPath BuildProjectDir => RepoRoot.Combine("build").Combine("_build");
+    public DirectoryPath BuildDir => RepoRoot.Combine("build");
+
+    public DirectoryPath BuildProjectDir => BuildDir.Combine("_build");
 
     public DirectoryPath ArtifactsDir => RepoRoot.Combine("artifacts");
 
@@ -47,7 +49,7 @@ public sealed class PathService
     public DirectoryPath GetVcpkgInstalledDir(string triplet)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(triplet);
-        return VcpkgRoot.Combine("installed").Combine(triplet);
+        return RepoRoot.Combine("vcpkg_installed").Combine(triplet);
     }
 
     public DirectoryPath GetVcpkgInstalledBinDir(string triplet)
@@ -100,5 +102,15 @@ public sealed class PathService
     public FilePath GetHarvestManifestFile(string libraryName, string rid)
     {
         return ArtifactsDir.CombineWithFilePath($"harvest-{libraryName}-{rid}.json");
+    }
+
+    public FilePath GetRuntimesFile()
+    {
+        return BuildDir.CombineWithFilePath("runtimes.json");
+    }
+
+    public FilePath GetVersionMappingFile()
+    {
+        return BuildDir.CombineWithFilePath("version-mapping.json");
     }
 }

@@ -11,6 +11,13 @@ public static class VcpkgOptions
         IsRequired = false,
     };
 
+    public static readonly Option<DirectoryInfo?> VcpkgInstalledDirOption = new(
+        aliases: ["--vcpkg-installed-dir"],
+        description: "Absolute path to the vcpkg_installed directory. If not specified, defaults to the current directory.")
+    {
+        IsRequired = false,
+    };
+
     public static readonly Option<List<string>> LibraryOption = new(
         "--library",
         "Specify specific libraries to build (e.g., --library SDL2 --library SDL2_image).")
@@ -18,11 +25,11 @@ public static class VcpkgOptions
         Arity = ArgumentArity.ZeroOrMore,
     };
 
-    public static readonly Option<List<string>> RidOption = new(
+    public static readonly Option<string> RidOption = new(
         "--rid",
-        "Specify target Runtime Identifiers (RIDs) for native builds (e.g., --rid win-x64 --rid linux-x64).")
+        "Specify target Runtime Identifiers (RID) for native builds (e.g., --rid win-x64 --rid linux-x64).")
     {
-        Arity = ArgumentArity.ZeroOrMore,
+        IsRequired = false,
     };
 
     public static readonly Option<bool> UseOverridesOption = new(

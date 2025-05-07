@@ -1,0 +1,11 @@
+{
+  "runtimes": [
+    { "rid": "win-x64", "triplet": "x64-windows-release", "runner": "windows-latest", "container_image": null },
+    { "rid": "win-arm64", "triplet": "arm64-windows", "runner": "windows-latest", "container_image": null },
+    { "rid": "win-x86", "triplet": "x86-windows", "runner": "windows-latest", "container_image": null },
+    { "rid": "linux-x64", "triplet": "x64-linux-dynamic", "runner": "ubuntu-24.04", "container_image": "ubuntu:20.04" },
+    { "rid": "linux-arm64", "triplet": "arm64-linux-dynamic", "runner": "ubuntu-latest-arm64", "container_image": "ubuntu:24.04" },
+    { "rid": "osx-x64", "triplet": "x64-osx-dynamic", "runner": "macos-13", "container_image": null },
+    { "rid": "osx-arm64", "triplet": "arm64-osx-dynamic", "runner": "macos-latest", "container_image": null }
+  ]
+}
