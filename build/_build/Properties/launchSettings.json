@@ -18,7 +18,7 @@
     },
     "Vcpkg-Harvest": {
       "commandName": "Project",
-      "commandLineArgs": "--target harvest --library SDL --library SDL_image --rid win-x64 --verbosity diagnostic"
+      "commandLineArgs": "--target harvest --library SDL --library SDL_image --rid win-x64"
     },
     "Dumpbin-Dependents": {
       "commandName": "Project",

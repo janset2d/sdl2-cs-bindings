@@ -64,9 +64,23 @@ public sealed class VcpkgPackageInfoTool(ICakeContext cakeContext) : VcpkgTool<V
 
         BuildCommonArguments(settings, builder);
 
-        if (settings.Installed) builder.Append("--x-installed");
-        if (settings.Transitive) builder.Append("--x-transitive");
-        if (settings.JsonOutput) builder.Append("--x-json"); // Add this (should be true by default)
+        if (settings.Installed)
+        {
+            builder.Append("--x-installed");
+        }
+
+
+        if (settings.Transitive)
+        {
+            builder.Append("--x-transitive");
+        }
+
+
+        if (settings.JsonOutput)
+        {
+            builder.Append("--x-json"); // Add this (should be true by default)
+        }
+
 
         return builder;
     }

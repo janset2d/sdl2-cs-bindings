@@ -46,25 +46,27 @@ public sealed class PathService
 
     public DirectoryPath VcpkgRoot => _vcpkgRoot;
 
-    public DirectoryPath GetVcpkgInstalledDir(string triplet)
+    public DirectoryPath GetVcpkgInstalledDir => RepoRoot.Combine("vcpkg_installed");
+
+    public DirectoryPath GetVcpkgInstalledTripletDir(string triplet)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(triplet);
-        return RepoRoot.Combine("vcpkg_installed").Combine(triplet);
+        return GetVcpkgInstalledDir.Combine(triplet);
     }
 
     public DirectoryPath GetVcpkgInstalledBinDir(string triplet)
     {
-        return GetVcpkgInstalledDir(triplet).Combine("bin");
+        return GetVcpkgInstalledTripletDir(triplet).Combine("bin");
     }
 
     public DirectoryPath GetVcpkgInstalledLibDir(string triplet)
     {
-        return GetVcpkgInstalledDir(triplet).Combine("lib");
+        return GetVcpkgInstalledTripletDir(triplet).Combine("lib");
     }
 
     public DirectoryPath GetVcpkgInstalledShareDir(string triplet)
     {
-        return GetVcpkgInstalledDir(triplet).Combine("share");
+        return GetVcpkgInstalledTripletDir(triplet).Combine("share");
     }
 
     public DirectoryPath GetVcpkgPackageShareDir(string triplet, string packageName)
@@ -109,8 +111,8 @@ public sealed class PathService
         return BuildDir.CombineWithFilePath("runtimes.json");
     }
 
-    public FilePath GetVersionMappingFile()
+    public FilePath GetManifestFile()
     {
-        return BuildDir.CombineWithFilePath("version-mapping.json");
+        return BuildDir.CombineWithFilePath("manifest.json");
     }
 }

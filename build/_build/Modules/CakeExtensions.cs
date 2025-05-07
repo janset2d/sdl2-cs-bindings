@@ -1,5 +1,4 @@
 ﻿using System.Runtime.InteropServices;
-using System.Text;
 using System.Text.Json;
 using Cake.Common.IO;
 using Cake.Core;
@@ -13,14 +12,14 @@ public static class CakeExtensions
     {
         ArgumentNullException.ThrowIfNull(platform);
 
-        string osPart = platform.Family switch
+        var osPart = platform.Family switch
         {
             PlatformFamily.Windows => "win",
             PlatformFamily.Linux => "linux",
             PlatformFamily.OSX => "osx",
             _ => throw new PlatformNotSupportedException("Cannot determine OS platform for RID."),
         };
-        string archPart = RuntimeInformation.OSArchitecture switch
+        var archPart = RuntimeInformation.OSArchitecture switch
         {
             Architecture.X64 => "x64",
             Architecture.Arm64 => "arm64",

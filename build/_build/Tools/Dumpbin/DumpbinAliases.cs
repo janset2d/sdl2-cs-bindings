@@ -26,13 +26,13 @@ public static class DumpbinAliases
     /// </code>
     /// </example>
     [CakeMethodAlias]
-    public static void DumpbinDependents(this ICakeContext context, DumpbinDependentsSettings settings) // Changed return type
+    public static string? DumpbinDependents(this ICakeContext context, DumpbinDependentsSettings settings)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(settings);
 
         var tool = new DumpbinDependentsTool(context);
 
-         tool.RunDependents(settings);
+        return tool.RunDependents(settings);
     }
 }

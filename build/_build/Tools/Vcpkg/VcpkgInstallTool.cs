@@ -41,6 +41,7 @@ public sealed class VcpkgInstallTool(ICakeContext cakeContext)
     /// <param name="settings">The settings.</param>
     /// <param name="packages">Optional list of packages for Classic mode.</param>
     /// <returns>A ProcessArgumentBuilder.</returns>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
     private ProcessArgumentBuilder BuildArguments(VcpkgInstallSettings settings, IEnumerable<string>? packages)
     {
         var builder = new ProcessArgumentBuilder();
@@ -60,28 +61,95 @@ public sealed class VcpkgInstallTool(ICakeContext cakeContext)
         }
 
         // Add install-specific arguments
-        if (settings.AllowUnsupported) builder.Append("--allow-unsupported");
-        if (settings.CleanAfterBuild) builder.Append("--clean-after-build");
-        if (settings.CleanBuildTreesAfterBuild) builder.Append("--clean-buildtrees-after-build");
-        if (settings.CleanDownloadsAfterBuild) builder.Append("--clean-downloads-after-build");
-        if (settings.CleanPackagesAfterBuild) builder.Append("--clean-packages-after-build");
-        if (settings.DryRun) builder.Append("--dry-run");
-        if (settings.Editable) builder.Append("--editable"); // Classic mode only
-        if (settings.EnforcePortChecks) builder.Append("--enforce-port-checks");
+        if (settings.AllowUnsupported)
+        {
+            builder.Append("--allow-unsupported");
+        }
+
+        if (settings.CleanAfterBuild)
+        {
+            builder.Append("--clean-after-build");
+        }
+
+        if (settings.CleanBuildTreesAfterBuild)
+        {
+            builder.Append("--clean-buildtrees-after-build");
+        }
+
+        if (settings.CleanDownloadsAfterBuild)
+        {
+            builder.Append("--clean-downloads-after-build");
+        }
+
+        if (settings.CleanPackagesAfterBuild)
+        {
+            builder.Append("--clean-packages-after-build");
+        }
+
+        if (settings.DryRun)
+        {
+            builder.Append("--dry-run");
+        }
+
+        if (settings.Editable)
+        {
+            builder.Append("--editable"); // Classic mode only
+        }
+
+        if (settings.EnforcePortChecks)
+        {
+            builder.Append("--enforce-port-checks");
+        }
+
         foreach (var feature in settings.Features) // Manifest mode only
         {
             builder.AppendSwitch("--x-feature", feature);
         }
 
-        if (settings.Head) builder.Append("--head"); // Classic mode only
-        if (settings.KeepGoing) builder.Append("--keep-going");
-        if (settings.NoDefaultFeatures) builder.Append("--x-no-default-features"); // Manifest mode only
-        if (settings.NoDownloads) builder.Append("--no-downloads");
-        if (settings.OnlyDownloads) builder.Append("--only-downloads");
-        if (settings.OnlyBinaryCaching) builder.Append("--only-binarycaching");
-        if (settings.Recurse) builder.Append("--recurse"); // Classic mode only
-        if (settings.WriteNuGetPackagesConfig) builder.Append("--x-write-nuget-packages-config");
-        if (settings.NoPrintUsage) builder.Append("--no-print-usage");
+        if (settings.Head)
+        {
+            builder.Append("--head"); // Classic mode only
+        }
+
+        if (settings.KeepGoing)
+        {
+            builder.Append("--keep-going");
+        }
+
+        if (settings.NoDefaultFeatures)
+        {
+            builder.Append("--x-no-default-features"); // Manifest mode only
+        }
+
+        if (settings.NoDownloads)
+        {
+            builder.Append("--no-downloads");
+        }
+
+        if (settings.OnlyDownloads)
+        {
+            builder.Append("--only-downloads");
+        }
+
+        if (settings.OnlyBinaryCaching)
+        {
+            builder.Append("--only-binarycaching");
+        }
+
+        if (settings.Recurse)
+        {
+            builder.Append("--recurse"); // Classic mode only
+        }
+
+        if (settings.WriteNuGetPackagesConfig)
+        {
+            builder.Append("--x-write-nuget-packages-config");
+        }
+
+        if (settings.NoPrintUsage)
+        {
+            builder.Append("--no-print-usage");
+        }
 
         return builder;
     }

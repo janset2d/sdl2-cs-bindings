@@ -9,8 +9,8 @@ public class DumpbinDependentsTool(ICakeContext cakeContext) : DumpbinTool(cakeC
     /// Runs dumpbin /dependents and returns the raw standard output lines.
     /// </summary>
     /// <param name="settings">The settings containing the DllPath.</param>
-    /// <returns>An IEnumerable containing the raw standard output lines, or null if execution failed to produce output.</returns>
-    public void RunDependents(DumpbinDependentsSettings settings) // Changed return type
+    /// <returns>A string containing the raw standard output lines, or null if execution failed to produce output.</returns>
+    public string? RunDependents(DumpbinDependentsSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
         if (string.IsNullOrWhiteSpace(settings.DependentsPath))
@@ -22,6 +22,16 @@ public class DumpbinDependentsTool(ICakeContext cakeContext) : DumpbinTool(cakeC
         builder.Append("/dependents");
         builder.AppendQuoted(settings.DependentsPath);
 
-        Run(settings, builder);
+        IEnumerable<string> output = [];
+
+        var processSettings = new ProcessSettings
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+
+        Run(settings, builder, processSettings, process => output = process.GetStandardOutput());
+
+        return output.Any() ? string.Join(Environment.NewLine, output) : null;
     }
 }

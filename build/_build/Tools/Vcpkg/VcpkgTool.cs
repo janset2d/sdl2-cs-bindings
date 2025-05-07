@@ -79,10 +79,25 @@ public abstract class VcpkgTool<TSettings> : Tool<TSettings> where TSettings : V
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(builder);
 
-        if (!string.IsNullOrWhiteSpace(settings.Triplet)) builder.AppendSwitch("--triplet", settings.Triplet);
-        if (!string.IsNullOrWhiteSpace(settings.HostTriplet)) builder.AppendSwitch("--host-triplet", settings.HostTriplet);
-        if (settings.DownloadsRoot != null) builder.AppendSwitch("--downloads-root", settings.DownloadsRoot.MakeAbsolute(_environment).FullPath);
-        if (settings.ClassicMode == true) builder.Append("--classic");
+        if (!string.IsNullOrWhiteSpace(settings.Triplet))
+        {
+            builder.AppendSwitch("--triplet", settings.Triplet);
+        }
+
+        if (!string.IsNullOrWhiteSpace(settings.HostTriplet))
+        {
+            builder.AppendSwitch("--host-triplet", settings.HostTriplet);
+        }
+
+        if (settings.DownloadsRoot != null)
+        {
+            builder.AppendSwitch("--downloads-root", settings.DownloadsRoot.MakeAbsolute(_environment).FullPath);
+        }
+
+        if (settings.ClassicMode == true)
+        {
+            builder.Append("--classic");
+        }
 
         foreach (var overlayPort in settings.OverlayPorts)
         {
@@ -100,11 +115,34 @@ public abstract class VcpkgTool<TSettings> : Tool<TSettings> where TSettings : V
             builder.AppendSwitch("--binarysource", binarySource);
         }
 
-        if (settings.FeatureFlags.Count > 0) builder.AppendSwitch("--feature-flags", string.Join(',', settings.FeatureFlags));
-        if (settings.BuildTreesRoot != null) builder.AppendSwitch("--x-buildtrees-root", settings.BuildTreesRoot.MakeAbsolute(_environment).FullPath);
-        if (settings.InstallRoot != null) builder.AppendSwitch("--x-install-root", settings.InstallRoot.MakeAbsolute(_environment).FullPath);
-        if (settings.ManifestRoot != null) builder.AppendSwitch("--x-manifest-root", settings.ManifestRoot.MakeAbsolute(_environment).FullPath);
-        if (settings.PackagesRoot != null) builder.AppendSwitch("--x-packages-root", settings.PackagesRoot.MakeAbsolute(_environment).FullPath);
-        if (!string.IsNullOrWhiteSpace(settings.AssetSources)) builder.AppendSwitch("--x-asset-sources", settings.AssetSources);
+        if (settings.FeatureFlags.Count > 0)
+        {
+            builder.AppendSwitch("--feature-flags", string.Join(',', settings.FeatureFlags));
+        }
+
+        if (settings.BuildTreesRoot != null)
+        {
+            builder.AppendSwitch("--x-buildtrees-root", settings.BuildTreesRoot.MakeAbsolute(_environment).FullPath);
+        }
+
+        if (settings.InstallRoot != null)
+        {
+            builder.AppendSwitch("--x-install-root", settings.InstallRoot.MakeAbsolute(_environment).FullPath);
+        }
+
+        if (settings.ManifestRoot != null)
+        {
+            builder.AppendSwitch("--x-manifest-root", settings.ManifestRoot.MakeAbsolute(_environment).FullPath);
+        }
+
+        if (settings.PackagesRoot != null)
+        {
+            builder.AppendSwitch("--x-packages-root", settings.PackagesRoot.MakeAbsolute(_environment).FullPath);
+        }
+
+        if (!string.IsNullOrWhiteSpace(settings.AssetSources))
+        {
+            builder.AppendSwitch("--x-asset-sources", settings.AssetSources);
+        }
     }
 }
