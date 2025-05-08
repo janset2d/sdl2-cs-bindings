@@ -9,8 +9,6 @@ using Build.Tools.Dumpbin;
 using Build.Tools.Vcpkg;
 using Build.Tools.Vcpkg.Settings;
 using Cake.Common.IO;
-using Cake.Core;
-using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 using Cake.Frosting;
 using Spectre.Console;
@@ -26,6 +24,10 @@ public class HarvestTask : AsyncFrostingTask<BuildContext>
         "kernel32.dll",
         "user32.dll",
         "gdi32.dll",
+        "winmm.dll",
+        "imm32.dll",
+        "version.dll",
+        "setupapi.dll",
         "winspool.dll",
         "comdlg32.dll",
         "advapi32.dll",
@@ -76,7 +78,7 @@ public class HarvestTask : AsyncFrostingTask<BuildContext>
             return;
         }
 
-        var mappingByName = manifestConfig.VersionMapping.ToDictionary(v => v.Name, v => v, StringComparer.OrdinalIgnoreCase);
+        var mappingByName = manifestConfig.LibraryManifests.ToDictionary(v => v.Name, v => v, StringComparer.OrdinalIgnoreCase);
         var knownLibs = libraries.Where(mappingByName.ContainsKey).ToList();
         var unknownLibs = libraries.Except(knownLibs, StringComparer.OrdinalIgnoreCase).ToList();
 
@@ -94,7 +96,6 @@ public class HarvestTask : AsyncFrostingTask<BuildContext>
         }
 
         var vcpkgInstalledDir = context.Paths.GetVcpkgInstalledDir;
-        // var vcpkgInstalledTripletDir = context.Paths.GetVcpkgInstalledTripletDir(runtimeInfo.Triplet);
         if (!context.DirectoryExists(vcpkgInstalledDir))
         {
             AnsiConsole.MarkupLine($"[red]ERROR:[/] Vcpkg installed directory does not exist: {vcpkgInstalledDir.FullPath}");
@@ -165,7 +166,7 @@ public class HarvestTask : AsyncFrostingTask<BuildContext>
                     {
                         CollectRuntimeDependencies(context, dllPath, versionInfo.CoreLib);
 
-                        CollectPackageMetadataDependencies(context, packageResult, runtimeInfo.Triplet, versionInfo.CoreLib);
+                        CollectPackageMetadataDependencies(context, packageResult, versionInfo.CoreLib);
                     });
 
                     DisplayCollectedDependencies(versionInfo);
@@ -173,9 +174,9 @@ public class HarvestTask : AsyncFrostingTask<BuildContext>
         }
     }
 
-    private void DisplayCollectedDependencies(VersionInfo versionInfo)
+    private void DisplayCollectedDependencies(LibraryManifest libraryManifest)
     {
-        AnsiConsole.MarkupLine($"[green]Dependencies for {versionInfo.Name}:[/]");
+        AnsiConsole.MarkupLine($"[green]Dependencies for {libraryManifest.Name}:[/]");
 
         var table = new Table();
         table.AddColumn("DLL");
@@ -184,10 +185,7 @@ public class HarvestTask : AsyncFrostingTask<BuildContext>
 
         foreach (var dep in _collectedDependencies)
         {
-            table.AddRow(
-                dep.Key,
-                dep.Value.Package ?? "Unknown",
-                string.Join(", ", dep.Value.Sources));
+            table.AddRow(dep.Key, dep.Value.Package, string.Join(", ", dep.Value.Sources));
         }
 
         AnsiConsole.Write(table);
@@ -211,7 +209,7 @@ public class HarvestTask : AsyncFrostingTask<BuildContext>
         return string.IsNullOrEmpty(licenseRelativePath) ? null : basePath.CombineWithFilePath(licenseRelativePath);
     }
 
-    private static string? GetLibNameForPlatform(VersionInfo versionInfo, string rid)
+    private static string? GetLibNameForPlatform(LibraryManifest libraryManifest, string rid)
     {
         string osFamily;
         if (rid.StartsWith("win-", StringComparison.OrdinalIgnoreCase))
@@ -231,7 +229,7 @@ public class HarvestTask : AsyncFrostingTask<BuildContext>
             return null;
         }
 
-        return versionInfo.LibNames
+        return libraryManifest.LibNames
             .FirstOrDefault(ln => string.Equals(ln.Os, osFamily, StringComparison.OrdinalIgnoreCase))
             ?.Name;
     }
@@ -239,12 +237,10 @@ public class HarvestTask : AsyncFrostingTask<BuildContext>
     private void CollectRuntimeDependencies(BuildContext context, FilePath dllPath, bool isCoreLib)
     {
         var dllName = dllPath.GetFilename().FullPath;
-        if (_processedDlls.Contains(dllName))
+        if (!_processedDlls.Add(dllName))
         {
             return;
         }
-
-        _processedDlls.Add(dllName);
 
         var dumpbinSettings = new DumpbinDependentsSettings(dllPath.FullPath)
         {
@@ -301,13 +297,13 @@ public class HarvestTask : AsyncFrostingTask<BuildContext>
                 };
 
                 // Recursively collect dependencies of this dependency
-                CollectRuntimeDependencies(context, depDllPath, false);
+                CollectRuntimeDependencies(context, depDllPath, isCoreLib: false);
             }
         }
     }
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
-    private void CollectPackageMetadataDependencies(BuildContext context, VcpkgInstalledResult packageResult, string triplet, bool isCoreLib)
+    private void CollectPackageMetadataDependencies(BuildContext context, VcpkgInstalledResult packageResult, bool isCoreLib)
     {
         foreach (var dependency in packageResult.Dependencies)
         {
@@ -320,13 +316,10 @@ public class HarvestTask : AsyncFrostingTask<BuildContext>
             // Extract the package name from "packagename:triplet"
             var packageName = dependency.Split(':')[0];
 
-            // Skip if we've already processed this package
-            if (_processedPackages.Contains(packageName))
+            if (!_processedPackages.Add(packageName))
             {
                 continue;
             }
-
-            _processedPackages.Add(packageName);
 
             // Get package info
             var depPackageInfo = context.VcpkgPackageInfo(
@@ -349,55 +342,53 @@ public class HarvestTask : AsyncFrostingTask<BuildContext>
             // Find DLLs owned by this package
             foreach (var owned in depResult.Owns)
             {
-                if (owned.Contains("/bin/", StringComparison.OrdinalIgnoreCase) &&
-                    owned.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+                if (!owned.Contains("/bin/", StringComparison.OrdinalIgnoreCase) || !owned.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
                 {
-                    var dllName = owned[(owned.LastIndexOf('/') + 1)..];
+                    continue;
+                }
 
-                    // Skip system DLLs
-                    if (IsSystemDll(dllName))
+                var dllName = owned[(owned.LastIndexOf('/') + 1)..];
+
+                if (IsSystemDll(dllName))
+                {
+                    continue;
+                }
+
+                // Skip SDL2.dll if we're processing a satellite library
+                if (!isCoreLib && dllName.Equals("SDL2.dll", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var vcpkgInstalledDir = context.Paths.GetVcpkgInstalledDir;
+                var depDllPath = vcpkgInstalledDir.CombineWithFilePath(owned);
+
+                if (!context.FileExists(depDllPath))
+                {
+                    AnsiConsole.MarkupLine($"[yellow]WARNING:[/] Dependency DLL {dllName} not found at {depDllPath}");
+                    continue;
+                }
+
+                // Add to our collection or update the sources
+                if (_collectedDependencies.TryGetValue(dllName, out var existing))
+                {
+                    existing.Sources.Add("metadata");
+                    _collectedDependencies[dllName] = existing with { Path = depDllPath.FullPath };
+                }
+                else
+                {
+                    _collectedDependencies[dllName] = new DependencyInfo
                     {
-                        continue;
-                    }
+                        Path = depDllPath.FullPath,
+                        Package = packageName,
+                    };
+                    _collectedDependencies[dllName].Sources.Add("metadata");
 
-                    // Skip SDL2.dll if we're processing a satellite library
-                    if (!isCoreLib && dllName.Equals("SDL2.dll", StringComparison.OrdinalIgnoreCase))
-                    {
-                        continue;
-                    }
-
-                    var vcpkgInstalledDir = context.Paths.GetVcpkgInstalledDir;
-                    var depDllPath = vcpkgInstalledDir.CombineWithFilePath(owned);
-
-                    if (!context.FileExists(depDllPath))
-                    {
-                        AnsiConsole.MarkupLine($"[yellow]WARNING:[/] Dependency DLL {dllName} not found at {depDllPath}");
-                        continue;
-                    }
-
-                    // Add to our collection or update the sources
-                    if (_collectedDependencies.TryGetValue(dllName, out var existing))
-                    {
-                        existing.Sources.Add("metadata");
-                        _collectedDependencies[dllName] = existing with { Path = depDllPath.FullPath };
-                    }
-                    else
-                    {
-                        _collectedDependencies[dllName] = new DependencyInfo
-                        {
-                            Path = depDllPath.FullPath,
-                            Package = packageName,
-                        };
-                        _collectedDependencies[dllName].Sources.Add("metadata");
-
-                        // Also run dumpbin on this DLL to catch any runtime dependencies
-                        CollectRuntimeDependencies(context, depDllPath, false);
-                    }
+                    CollectRuntimeDependencies(context, depDllPath, isCoreLib: false);
                 }
             }
 
-            // Recursively process this package's dependencies
-            CollectPackageMetadataDependencies(context, depResult, triplet, false);
+            CollectPackageMetadataDependencies(context, depResult, isCoreLib: false);
         }
     }
 
@@ -407,7 +398,7 @@ public class HarvestTask : AsyncFrostingTask<BuildContext>
         {
             if (systemDll.Contains('*', StringComparison.Ordinal))
             {
-                var pattern = "^" + Regex.Escape(systemDll).Replace("\\*", "[a-zA-Z0-9\\-_\\.]+", StringComparison.Ordinal) + "$";
+                var pattern = $"^{Regex.Escape(systemDll).Replace("\\*", @"[a-zA-Z0-9\-_\.]+", StringComparison.OrdinalIgnoreCase)}$";
                 if (Regex.IsMatch(dllName, pattern, RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100)))
                 {
                     return true;
@@ -449,7 +440,7 @@ public record RuntimeConfig
     [JsonPropertyName("runtimes")] public required IImmutableList<RuntimeInfo> Runtimes { get; init; }
 }
 
-public record VersionInfo
+public record LibraryManifest
 {
     [JsonPropertyName("name")] public required string Name { get; init; }
 
@@ -479,13 +470,14 @@ public record LibName
 
 public record ManifestConfig
 {
-    [JsonPropertyName("version_mapping")] public required IImmutableList<VersionInfo> VersionMapping { get; init; }
+    [JsonPropertyName("library_manifests")]
+    public required IImmutableList<LibraryManifest> LibraryManifests { get; init; }
 }
 
-// This is the root object
 public record VcpkgInstalledPackageOutput
 {
-    [JsonPropertyName("results")] public required ImmutableDictionary<string, VcpkgInstalledResult> Results { get; init; }
+    [JsonPropertyName("results")]
+    public required ImmutableDictionary<string, VcpkgInstalledResult> Results { get; init; }
 }
 
 public record VcpkgInstalledResult

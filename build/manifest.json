@@ -1,5 +1,5 @@
 {
-  "version_mapping": [
+  "library_manifests": [
     {
       "name": "SDL",
       "vcpkg_name": "sdl2",

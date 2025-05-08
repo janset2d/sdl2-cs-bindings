@@ -1,5 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using Build.Tools.Vcpkg.Settings;
+﻿using Build.Tools.Vcpkg.Settings;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
@@ -64,23 +63,9 @@ public sealed class VcpkgPackageInfoTool(ICakeContext cakeContext) : VcpkgTool<V
 
         BuildCommonArguments(settings, builder);
 
-        if (settings.Installed)
-        {
-            builder.Append("--x-installed");
-        }
-
-
-        if (settings.Transitive)
-        {
-            builder.Append("--x-transitive");
-        }
-
-
-        if (settings.JsonOutput)
-        {
-            builder.Append("--x-json"); // Add this (should be true by default)
-        }
-
+        if (settings.Installed) builder.Append("--x-installed");
+        if (settings.Transitive) builder.Append("--x-transitive");
+        if (settings.JsonOutput) builder.Append("--x-json"); // Add this (should be true by default)
 
         return builder;
     }
