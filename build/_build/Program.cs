@@ -1,4 +1,4 @@
-# pragma warning disable CA1031
+# pragma warning disable CA1031, MA0045
 
 using System.CommandLine;
 using System.CommandLine.Invocation;
@@ -6,6 +6,7 @@ using System.CommandLine.NamingConventionBinder;
 using System.Diagnostics;
 using Build.Context;
 using Build.Context.Configs;
+using Build.Context.Models;
 using Build.Context.Options;
 using Build.Modules;
 using Build.Modules.DependencyAnalysis;
@@ -66,10 +67,10 @@ static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArgumen
                 return new PathService(repositoryConfiguration, parsedArgs, cakeLogger);
             });
 
-            services.AddSingleton<IDependencyScanner>(sp =>
+            services.AddSingleton<IDependencyScanner>(provider =>
             {
-                var env = sp.GetRequiredService<ICakeEnvironment>();
-                var ctx = sp.GetRequiredService<ICakeContext>();
+                var env = provider.GetRequiredService<ICakeEnvironment>();
+                var ctx = provider.GetRequiredService<ICakeContext>();
 
                 var rid = env.Platform.Rid();
                 return rid switch
@@ -79,6 +80,39 @@ static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArgumen
                     Rids.OsxX64 or Rids.OsxArm64 => new MacOtoolScanner(),
                     _ => throw new NotSupportedException("Unsupported OS"),
                 };
+            });
+
+            services.AddSingleton<RuntimeConfig>(provider =>
+            {
+                var ctx = provider.GetRequiredService<ICakeContext>();
+                var pathService = provider.GetRequiredService<PathService>();
+
+                var runtimesFile = pathService.GetRuntimesFile();
+                var runtimeConfig = ctx.ToJson<RuntimeConfig>(runtimesFile);
+
+                return runtimeConfig;
+            });
+
+            services.AddSingleton<ManifestConfig>(provider =>
+            {
+                var ctx = provider.GetRequiredService<ICakeContext>();
+                var pathService = provider.GetRequiredService<PathService>();
+
+                var manifestFile = pathService.GetManifestFile();
+                var manifestConfig = ctx.ToJson<ManifestConfig>(manifestFile);
+
+                return manifestConfig;
+            });
+
+            services.AddSingleton<SystemArtefactsConfig>(provider =>
+            {
+                var ctx = provider.GetRequiredService<ICakeContext>();
+                var pathService = provider.GetRequiredService<PathService>();
+
+                var systemArtifactsFile = pathService.GetSystemArtifactsFile();
+                var systemArtefactsConfig = ctx.ToJson<SystemArtefactsConfig>(systemArtifactsFile);
+
+                return systemArtefactsConfig;
             });
         })
         .Run(cakeArgs);

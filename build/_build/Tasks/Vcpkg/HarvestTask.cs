@@ -1,54 +1,29 @@
 ﻿using System.Collections.Immutable;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Build.Context;
-using Build.Modules;
+using Build.Context.Models;
 using Build.Modules.DependencyAnalysis;
+using Build.Modules.DependencyAnalysis.Models;
+using Build.Modules.Vcpkg.Models;
 using Build.Tools.Dumpbin;
 using Build.Tools.Vcpkg;
 using Build.Tools.Vcpkg.Settings;
 using Cake.Common.IO;
+using Cake.Core;
 using Cake.Core.IO;
 using Cake.Frosting;
 using Spectre.Console;
+using Cake.Core.Diagnostics;
 
 namespace Build.Tasks.Vcpkg;
 
 [TaskName("Harvest")]
 public class HarvestTask : AsyncFrostingTask<BuildContext>
 {
-    // List of system DLLs to exclude
-    private static readonly HashSet<string> SystemDlls = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "kernel32.dll",
-        "user32.dll",
-        "gdi32.dll",
-        "winmm.dll",
-        "imm32.dll",
-        "version.dll",
-        "setupapi.dll",
-        "winspool.dll",
-        "comdlg32.dll",
-        "advapi32.dll",
-        "shell32.dll",
-        "ole32.dll",
-        "oleaut32.dll",
-        "uuid.dll",
-        "odbc32.dll",
-        "odbccp32.dll",
-        "comctl32.dll",
-        "ws2_32.dll",
-        "d3d9.dll",
-        "d3d11.dll",
-        "dxgi.dll",
-        "shlwapi.dll",
-        "crypt32.dll",
-        "msvcp140.dll",
-        "vcruntime140.dll",
-        "vcruntime140_1.dll",
-        "api-ms-win-*.dll",
-    };
+    private readonly RuntimeConfig _runtimeConfig;
+    private readonly ManifestConfig _manifestConfig;
+    private readonly SystemArtefactsConfig _systemArtefactsConfig;
 
     // Tracks what we've already processed to avoid duplicates and infinite recursion
     private readonly HashSet<string> _processedDlls = new(StringComparer.OrdinalIgnoreCase);
@@ -56,40 +31,50 @@ public class HarvestTask : AsyncFrostingTask<BuildContext>
 
     // Collect all dependencies here
     private readonly Dictionary<string, DependencyInfo> _collectedDependencies = new(StringComparer.OrdinalIgnoreCase);
+    private string? _coreLibPlatformName;
+
+    public HarvestTask(RuntimeConfig runtimeConfig, ManifestConfig manifestConfig, SystemArtefactsConfig systemArtefactsConfig)
+    {
+        _runtimeConfig = runtimeConfig;
+        _manifestConfig = manifestConfig;
+        _systemArtefactsConfig = systemArtefactsConfig;
+    }
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
     public override async Task RunAsync(BuildContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        var runtimesFile = context.Paths.GetRuntimesFile();
-        var manifestFile = context.Paths.GetManifestFile();
         var libraries = context.Vcpkg.Libraries;
         var rid = context.Vcpkg.Rid ?? context.Environment.Platform.Rid();
 
-        var runtimeConfig = await context.ToJsonAsync<RuntimeConfig>(runtimesFile);
-        var manifestConfig = await context.ToJsonAsync<ManifestConfig>(manifestFile);
+        var runtimeInfo = _runtimeConfig.Runtimes.SingleOrDefault(info => string.Equals(info.Rid, rid, StringComparison.Ordinal)) ?? throw new CakeException($"No runtime configuration found for RID: {rid}");
 
-        var runtimeInfo = runtimeConfig.Runtimes.SingleOrDefault(info => string.Equals(info.Rid, rid, StringComparison.Ordinal));
-        if (runtimeInfo == null)
+        // Determine and store the core library's platform-specific name
+        var coreLibManifest = _manifestConfig.LibraryManifests.FirstOrDefault(lm => lm.CoreLib);
+        if (coreLibManifest != null)
         {
-            AnsiConsole.MarkupLine($"[red]ERROR:[/] No runtime configuration found for RID: {rid}");
-            Environment.Exit(1);
-            return;
+            _coreLibPlatformName = GetLibNameForPlatform(coreLibManifest, rid);
+            if (string.IsNullOrEmpty(_coreLibPlatformName))
+            {
+                context.Log.Warning("Core library '{0}' defined in manifest but no platform-specific name found for RID '{1}'.", coreLibManifest.Name, rid);
+            }
+        }
+        else
+        {
+            context.Log.Warning("No core library (CoreLib = true) found in manifest. Special skipping logic for core library dependencies will not apply.");
         }
 
-        var mappingByName = manifestConfig.LibraryManifests.ToDictionary(v => v.Name, v => v, StringComparer.OrdinalIgnoreCase);
-        var knownLibs = libraries.Where(mappingByName.ContainsKey).ToList();
-        var unknownLibs = libraries.Except(knownLibs, StringComparer.OrdinalIgnoreCase).ToList();
+        var mappingByName = _manifestConfig.LibraryManifests.ToDictionary(v => v.Name, v => v, StringComparer.OrdinalIgnoreCase);
+        var knownManifests = libraries.Where(mappingByName.ContainsKey).ToList();
+        var unknownManifests = libraries.Except(knownManifests, StringComparer.OrdinalIgnoreCase).ToList();
 
-        if (unknownLibs.Count > 0)
+        if (unknownManifests.Count > 0)
         {
-            AnsiConsole.MarkupLine($"[red]ERROR:[/] Unmapped libraries detected: {string.Join(", ", unknownLibs)}");
-            Environment.Exit(1);
-            return;
+            throw new CakeException($"Unmapped libraries detected: {string.Join(", ", unknownManifests)}");
         }
 
-        if (knownLibs.Count == 0)
+        if (knownManifests.Count == 0)
         {
             AnsiConsole.MarkupLine($"[yellow]WARNING:[/] No libraries to process for RID: {rid}");
             return;
@@ -98,78 +83,75 @@ public class HarvestTask : AsyncFrostingTask<BuildContext>
         var vcpkgInstalledDir = context.Paths.GetVcpkgInstalledDir;
         if (!context.DirectoryExists(vcpkgInstalledDir))
         {
-            AnsiConsole.MarkupLine($"[red]ERROR:[/] Vcpkg installed directory does not exist: {vcpkgInstalledDir.FullPath}");
-            Environment.Exit(1);
-            return;
+            throw new CakeException($"Vcpkg installed directory does not exist: {vcpkgInstalledDir.FullPath}");
         }
 
         AnsiConsole.MarkupLine($"[cyan]Vcpkg Installed Directory:[/] {vcpkgInstalledDir.FullPath}");
 
-        var knownVersionInfos = knownLibs.ConvertAll(name => mappingByName[name]);
+        var knownLibraryManifests = knownManifests.ConvertAll(name => mappingByName[name]);
 
-        foreach (var versionInfo in knownVersionInfos)
+        foreach (var libraryManifest in knownLibraryManifests)
         {
             await AnsiConsole.Status()
-                .StartAsync($"Processing {versionInfo.Name}...", async ctx =>
+                .StartAsync($"Processing {libraryManifest.Name}...", async ctx =>
                 {
-                    var libNameForPlatform = GetLibNameForPlatform(versionInfo, rid);
+                    var libNameForPlatform = GetLibNameForPlatform(libraryManifest, rid);
                     if (string.IsNullOrEmpty(libNameForPlatform))
                     {
-                        AnsiConsole.MarkupLine($"[red]ERROR:[/] Could not find library name for {versionInfo.Name} on {rid}");
+                        context.Log.Error("Could not find library name for {0} on {1}", libraryManifest.Name, rid);
                         return;
                     }
-                    var packageKey = $"{versionInfo.VcpkgName}:{runtimeInfo.Triplet}";
+                    var packageKey = $"{libraryManifest.VcpkgName}:{runtimeInfo.Triplet}";
                     ctx.Status($"Getting package info for {packageKey}");
 
                     var vcpkgPackageInfo = context.VcpkgPackageInfo(packageKey, new VcpkgPackageInfoSettings { JsonOutput = true, Installed = true });
                     if (vcpkgPackageInfo == null)
                     {
-                        AnsiConsole.MarkupLine($"[red]ERROR:[/] Failed to get package info for {packageKey}");
+                        context.Log.Error("Failed to get package info for {0}", packageKey);
                         return;
                     }
 
                     var vcpkgInstalledPackageOutput = JsonSerializer.Deserialize<VcpkgInstalledPackageOutput>(vcpkgPackageInfo);
                     if (vcpkgInstalledPackageOutput == null)
                     {
-                        AnsiConsole.MarkupLine($"[red]ERROR:[/] Failed to deserialize package info for {versionInfo.VcpkgName}");
+                        context.Log.Error("Failed to deserialize package info for {0}", libraryManifest.VcpkgName);
                         return;
                     }
 
                     if (!vcpkgInstalledPackageOutput.Results.TryGetValue(packageKey, out var packageResult))
                     {
-                        AnsiConsole.MarkupLine($"[red]ERROR:[/] Package info does not contain {packageKey}");
+                        context.Log.Error("Package info does not contain {0}", packageKey);
                         return;
                     }
 
-                    ctx.Status($"Extracting DLL path for {versionInfo.Name}");
+                    ctx.Status($"Extracting DLL path for {libraryManifest.Name}");
 
                     var dllPath = GetDllPathFromOwns(packageResult.Owns, libNameForPlatform, vcpkgInstalledDir);
                     if (dllPath == null)
                     {
-                        AnsiConsole.MarkupLine($"[red]ERROR:[/] Could not find DLL path for {versionInfo.Name}");
+                        context.Log.Error("Could not find DLL path for {0}", libraryManifest.Name);
                         return;
                     }
 
                     _collectedDependencies[libNameForPlatform] = new DependencyInfo
                     {
                         Path = dllPath.FullPath,
-                        Package = versionInfo.VcpkgName,
+                        Package = libraryManifest.VcpkgName,
                     };
                     _collectedDependencies[libNameForPlatform].Sources.Add("primary");
 
                     var licensePath = GetLicensePathFromOwns(packageResult.Owns, vcpkgInstalledDir);
-                    AnsiConsole.MarkupLine(licensePath != null ? $"License file found: {licensePath}" : $"[yellow]WARNING:[/] No license file found for {versionInfo.Name}");
+                    AnsiConsole.MarkupLine(licensePath != null ? $"License file found: {licensePath}" : $"[yellow]WARNING:[/] No license file found for {libraryManifest.Name}");
 
-                    ctx.Status($"Collecting dependencies for {versionInfo.Name}");
+                    ctx.Status($"Collecting dependencies for {libraryManifest.Name}");
 
                     await Task.Run(() =>
                     {
-                        CollectRuntimeDependencies(context, dllPath, versionInfo.CoreLib);
-
-                        CollectPackageMetadataDependencies(context, packageResult, versionInfo.CoreLib);
+                        CollectRuntimeDependencies(context, dllPath, libraryManifest.CoreLib);
+                        CollectPackageMetadataDependencies(context, packageResult, libraryManifest.CoreLib);
                     });
 
-                    DisplayCollectedDependencies(versionInfo);
+                    DisplayCollectedDependencies(libraryManifest);
                 });
         }
     }
@@ -234,7 +216,7 @@ public class HarvestTask : AsyncFrostingTask<BuildContext>
             ?.Name;
     }
 
-    private void CollectRuntimeDependencies(BuildContext context, FilePath dllPath, bool isCoreLib)
+    private void CollectRuntimeDependencies(BuildContext context, FilePath dllPath, bool isProcessingCoreLib)
     {
         var dllName = dllPath.GetFilename().FullPath;
         if (!_processedDlls.Add(dllName))
@@ -254,7 +236,7 @@ public class HarvestTask : AsyncFrostingTask<BuildContext>
         var rawOutput = context.DumpbinDependents(dumpbinSettings);
         if (rawOutput == null)
         {
-            AnsiConsole.MarkupLine($"[yellow]WARNING:[/] No dumpbin output for {dllPath}");
+            context.Log.Warning("No dumpbin output for {0}", dllPath);
             return;
         }
 
@@ -267,9 +249,12 @@ public class HarvestTask : AsyncFrostingTask<BuildContext>
                 continue;
             }
 
-            // Skip SDL2.dll if we're processing a satellite library (and it's not explicitly a core lib)
-            if (!isCoreLib && depDllName.Equals("SDL2.dll", StringComparison.OrdinalIgnoreCase))
+            // Skip core lib if we're processing a satellite library
+            if (!string.IsNullOrEmpty(_coreLibPlatformName) &&
+                !isProcessingCoreLib &&
+                depDllName.Equals(_coreLibPlatformName, StringComparison.OrdinalIgnoreCase))
             {
+                context.Log.Verbose("Skipping runtime dependency collection for '{0}' as it is the core library and we are processing a satellite library.", depDllName);
                 continue;
             }
 
@@ -278,7 +263,7 @@ public class HarvestTask : AsyncFrostingTask<BuildContext>
 
             if (!context.FileExists(depDllPath))
             {
-                AnsiConsole.MarkupLine($"[yellow]WARNING:[/] Dependency {depDllName} not found at {depDllPath}");
+                context.Log.Warning("Dependency {0} not found at {1}", depDllName, depDllPath);
                 continue;
             }
 
@@ -297,13 +282,13 @@ public class HarvestTask : AsyncFrostingTask<BuildContext>
                 };
 
                 // Recursively collect dependencies of this dependency
-                CollectRuntimeDependencies(context, depDllPath, isCoreLib: false);
+                CollectRuntimeDependencies(context, depDllPath, isProcessingCoreLib: false);
             }
         }
     }
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
-    private void CollectPackageMetadataDependencies(BuildContext context, VcpkgInstalledResult packageResult, bool isCoreLib)
+    private void CollectPackageMetadataDependencies(BuildContext context, VcpkgInstalledResult packageResult, bool isProcessingCoreLib)
     {
         foreach (var dependency in packageResult.Dependencies)
         {
@@ -328,14 +313,14 @@ public class HarvestTask : AsyncFrostingTask<BuildContext>
 
             if (depPackageInfo == null)
             {
-                AnsiConsole.MarkupLine($"[yellow]WARNING:[/] Failed to get package info for dependency {dependency}");
+                context.Log.Warning("Failed to get package info for dependency {0}", dependency);
                 continue;
             }
 
             var depPackageOutput = JsonSerializer.Deserialize<VcpkgInstalledPackageOutput>(depPackageInfo);
             if (depPackageOutput == null || !depPackageOutput.Results.TryGetValue(dependency, out var depResult))
             {
-                AnsiConsole.MarkupLine($"[yellow]WARNING:[/] Failed to deserialize package info for dependency {dependency}");
+                context.Log.Warning("Failed to deserialize package info for dependency {0}", dependency);
                 continue;
             }
 
@@ -354,9 +339,12 @@ public class HarvestTask : AsyncFrostingTask<BuildContext>
                     continue;
                 }
 
-                // Skip SDL2.dll if we're processing a satellite library
-                if (!isCoreLib && dllName.Equals("SDL2.dll", StringComparison.OrdinalIgnoreCase))
+                // Skip core lib if we're processing a satellite library
+                if (!string.IsNullOrEmpty(_coreLibPlatformName) &&
+                    !isProcessingCoreLib &&
+                    dllName.Equals(_coreLibPlatformName, StringComparison.OrdinalIgnoreCase))
                 {
+                    context.Log.Verbose("Skipping metadata dependency collection for '{0}' as it is the core library and we are processing a satellite library.", dllName);
                     continue;
                 }
 
@@ -365,7 +353,7 @@ public class HarvestTask : AsyncFrostingTask<BuildContext>
 
                 if (!context.FileExists(depDllPath))
                 {
-                    AnsiConsole.MarkupLine($"[yellow]WARNING:[/] Dependency DLL {dllName} not found at {depDllPath}");
+                    context.Log.Warning("Dependency DLL {0} not found at {1}", dllName, depDllPath);
                     continue;
                 }
 
@@ -373,7 +361,29 @@ public class HarvestTask : AsyncFrostingTask<BuildContext>
                 if (_collectedDependencies.TryGetValue(dllName, out var existing))
                 {
                     existing.Sources.Add("metadata");
-                    _collectedDependencies[dllName] = existing with { Path = depDllPath.FullPath };
+                    string updatedPackageName = existing.Package;
+
+                    if (string.Equals(existing.Package, "Unknown", StringComparison.OrdinalIgnoreCase) || string.IsNullOrEmpty(existing.Package))
+                    {
+                        updatedPackageName = packageName; // Update if existing was "Unknown"
+                    }
+                    else if (!string.Equals(existing.Package, packageName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        // The DLL was already attributed to a different package by a previous metadata scan.
+                        // This might indicate the DLL is part of multiple vcpkg packages or a complex dependency.
+                        // For now, we'll log this and keep the first non-"Unknown" package attribution.
+                        context.Log.Verbose(
+                            "DLL '{0}' previously attributed to package '{1}'. " +
+                            "Current metadata scan for package '{2}' also claims ownership. " +
+                            "Keeping first attribution: '{1}'.",
+                            dllName, existing.Package, packageName);
+                    }
+
+                    _collectedDependencies[dllName] = existing with
+                    {
+                        Path = depDllPath.FullPath, // Ensure we use the path from the metadata scan
+                        Package = updatedPackageName
+                    };
                 }
                 else
                 {
@@ -384,17 +394,17 @@ public class HarvestTask : AsyncFrostingTask<BuildContext>
                     };
                     _collectedDependencies[dllName].Sources.Add("metadata");
 
-                    CollectRuntimeDependencies(context, depDllPath, isCoreLib: false);
+                    CollectRuntimeDependencies(context, depDllPath, isProcessingCoreLib: false);
                 }
             }
 
-            CollectPackageMetadataDependencies(context, depResult, isCoreLib: false);
+            CollectPackageMetadataDependencies(context, depResult, isProcessingCoreLib: false);
         }
     }
 
-    private static bool IsSystemDll(string dllName)
+    private bool IsSystemDll(string dllName)
     {
-        foreach (var systemDll in SystemDlls)
+        foreach (var systemDll in _systemArtefactsConfig.Windows.SystemDlls)
         {
             if (systemDll.Contains('*', StringComparison.Ordinal))
             {
@@ -412,89 +422,4 @@ public class HarvestTask : AsyncFrostingTask<BuildContext>
 
         return false;
     }
-}
-
-// Represents collected information about a dependency
-public record DependencyInfo
-{
-    public required string Path { get; init; }
-
-    public required string Package { get; init; }
-
-    public ISet<string> Sources { get; init; } = new HashSet<string>(StringComparer.Ordinal);
-}
-
-public record RuntimeInfo
-{
-    [JsonPropertyName("rid")] public required string Rid { get; init; }
-
-    [JsonPropertyName("triplet")] public required string Triplet { get; init; }
-
-    [JsonPropertyName("runner")] public required string Runner { get; init; }
-
-    [JsonPropertyName("container_image")] public string? ContainerImage { get; init; }
-}
-
-public record RuntimeConfig
-{
-    [JsonPropertyName("runtimes")] public required IImmutableList<RuntimeInfo> Runtimes { get; init; }
-}
-
-public record LibraryManifest
-{
-    [JsonPropertyName("name")] public required string Name { get; init; }
-
-    [JsonPropertyName("vcpkg_name")] public required string VcpkgName { get; init; }
-
-    [JsonPropertyName("vcpkg_version")] public required string VcpkgVersion { get; init; }
-
-    [JsonPropertyName("vcpkg_port_version")]
-    public required int VcpkgPortVersion { get; init; }
-
-    [JsonPropertyName("native_lib_name")] public required string NativeLibName { get; init; }
-
-    [JsonPropertyName("native_lib_version")]
-    public required string NativeLibVersion { get; init; }
-
-    [JsonPropertyName("core_lib")] public required bool CoreLib { get; init; }
-
-    [JsonPropertyName("lib_names")] public required IImmutableList<LibName> LibNames { get; init; }
-}
-
-public record LibName
-{
-    [JsonPropertyName("os")] public required string Os { get; init; }
-
-    [JsonPropertyName("name")] public required string Name { get; init; } = string.Empty;
-}
-
-public record ManifestConfig
-{
-    [JsonPropertyName("library_manifests")]
-    public required IImmutableList<LibraryManifest> LibraryManifests { get; init; }
-}
-
-public record VcpkgInstalledPackageOutput
-{
-    [JsonPropertyName("results")]
-    public required ImmutableDictionary<string, VcpkgInstalledResult> Results { get; init; }
-}
-
-public record VcpkgInstalledResult
-{
-    [JsonPropertyName("version-string")] public required string VersionString { get; init; }
-
-    [JsonPropertyName("port-version")] public required int PortVersion { get; init; }
-
-    [JsonPropertyName("triplet")] public required string Triplet { get; init; }
-
-    [JsonPropertyName("abi")] public string? Abi { get; init; }
-
-    [JsonPropertyName("dependencies")] public required IImmutableList<string> Dependencies { get; init; }
-
-    [JsonPropertyName("features")] public IImmutableList<string>? Features { get; init; }
-
-    [JsonPropertyName("usage")] public string? Usage { get; init; }
-
-    [JsonPropertyName("owns")] public required IImmutableList<string> Owns { get; init; }
 }

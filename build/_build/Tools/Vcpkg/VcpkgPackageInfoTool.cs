@@ -43,7 +43,7 @@ public sealed class VcpkgPackageInfoTool(ICakeContext cakeContext) : VcpkgTool<V
         }
         catch (CakeException) when (packageInfoOutputLinesError.Count == 0 && packageInfoOutputLines.Count > 0)
         {
-            AnsiConsole.MarkupLine("[yellow]Warning:[/] Get the output from the command with exit code 1");
+            _log.Verbose("Get the output from the command with exit code 1");
         }
 
         return packageInfoOutputLines.Count > 0 ? string.Join(Environment.NewLine, packageInfoOutputLines) : null;

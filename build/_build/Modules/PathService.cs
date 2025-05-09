@@ -115,4 +115,9 @@ public sealed class PathService
     {
         return BuildDir.CombineWithFilePath("manifest.json");
     }
+
+    public FilePath GetSystemArtifactsFile()
+    {
+        return BuildDir.CombineWithFilePath("system_artefacts.json");
+    }
 }

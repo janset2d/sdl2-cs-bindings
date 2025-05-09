@@ -1,0 +1,39 @@
+{
+  "windows": {
+    "system_dlls": [
+      "kernel32.dll",
+      "user32.dll",
+      "gdi32.dll",
+      "winmm.dll",
+      "imm32.dll",
+      "version.dll",
+      "setupapi.dll",
+      "winspool.dll",
+      "comdlg32.dll",
+      "advapi32.dll",
+      "shell32.dll",
+      "ole32.dll",
+      "oleaut32.dll",
+      "uuid.dll",
+      "odbc32.dll",
+      "odbccp32.dll",
+      "comctl32.dll",
+      "ws2_32.dll",
+      "d3d9.dll",
+      "d3d11.dll",
+      "dxgi.dll",
+      "shlwapi.dll",
+      "crypt32.dll",
+      "msvcp140.dll",
+      "vcruntime140.dll",
+      "vcruntime140_1.dll",
+      "api-ms-win-*.dll"
+    ]
+  },
+  "linux": {
+    "system_libraries": ["ld-linux-x86-64.so.2", "libc.so.6", "*.so"]
+  },
+  "osx": {
+    "system_libraries": ["/usr/lib/libSystem.B.dylib"]
+  }
+}
