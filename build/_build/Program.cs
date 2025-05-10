@@ -10,6 +10,7 @@ using Build.Context.Models;
 using Build.Context.Options;
 using Build.Modules;
 using Build.Modules.DependencyAnalysis;
+using Build.Modules.Vcpkg;
 using Build.Tools.Dumpbin;
 using Cake.Core;
 using Cake.Core.Diagnostics;
@@ -67,21 +68,6 @@ static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArgumen
                 return new PathService(repositoryConfiguration, parsedArgs, cakeLogger);
             });
 
-            services.AddSingleton<IDependencyScanner>(provider =>
-            {
-                var env = provider.GetRequiredService<ICakeEnvironment>();
-                var ctx = provider.GetRequiredService<ICakeContext>();
-
-                var rid = env.Platform.Rid();
-                return rid switch
-                {
-                    Rids.WinX64 or Rids.WinX86 or Rids.WinArm64 => new WindowsDumpbinScanner(new DumpbinDependentsTool(ctx)),
-                    Rids.LinuxX64 or Rids.LinuxArm64 => new LinuxLddScanner(),
-                    Rids.OsxX64 or Rids.OsxArm64 => new MacOtoolScanner(),
-                    _ => throw new NotSupportedException("Unsupported OS"),
-                };
-            });
-
             services.AddSingleton<RuntimeConfig>(provider =>
             {
                 var ctx = provider.GetRequiredService<ICakeContext>();
@@ -113,6 +99,27 @@ static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArgumen
                 var systemArtefactsConfig = ctx.ToJson<SystemArtefactsConfig>(systemArtifactsFile);
 
                 return systemArtefactsConfig;
+            });
+
+            // Register new services for Vcpkg Harvesting
+            services.AddSingleton<IPackageInfoProvider, VcpkgCliProvider>();
+            services.AddSingleton<VcpkgHarvesterService>();
+
+            // ADD new IRuntimeScanner registration with OS specifics
+            services.AddSingleton<IRuntimeScanner>(provider =>
+            {
+                var env = provider.GetRequiredService<ICakeEnvironment>();
+                var context = provider.GetRequiredService<ICakeContext>(); // WindowsDumpbinScanner needs ICakeContext
+                var log = provider.GetRequiredService<ICakeLog>(); // Linux/Mac scanners need ICakeLog
+
+                var currentRid = env.Platform.Rid();
+                return currentRid switch
+                {
+                    Rids.WinX64 or Rids.WinX86 or Rids.WinArm64 => new Build.Modules.DependencyAnalysis.WindowsDumpbinScanner(context),
+                    Rids.LinuxX64 or Rids.LinuxArm64 => new Build.Modules.DependencyAnalysis.LinuxLddScanner(log),
+                    Rids.OsxX64 or Rids.OsxArm64 => new Build.Modules.DependencyAnalysis.MacOtoolScanner(log),
+                    _ => throw new NotSupportedException($"Unsupported OS for IRuntimeScanner: {currentRid}"),
+                };
             });
         })
         .Run(cakeArgs);
