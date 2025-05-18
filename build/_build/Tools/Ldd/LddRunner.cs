@@ -1,7 +1,7 @@
-﻿using System.Text.RegularExpressions;
-using Cake.Core;
+﻿using Cake.Core;
 using Cake.Core.IO;
 using Cake.Core.Tooling;
+using Path = System.IO.Path;
 
 namespace Build.Tools.Ldd;
 
@@ -38,7 +38,7 @@ public sealed partial class LddRunner : Tool<LddSettings>
     /// Gets the possible names of the tool executable.
     /// </summary>
     /// <returns>The tool executable name.</returns>
-    protected override IEnumerable<string> GetToolExecutableNames() => new[] { "ldd" };
+    protected override IEnumerable<string> GetToolExecutableNames() => ["ldd"];
 
     /// <summary>
     /// Run ldd on the given file and return the output.
@@ -61,32 +61,68 @@ public sealed partial class LddRunner : Tool<LddSettings>
         Run(settings, args, new ProcessSettings
             {
                 RedirectStandardOutput = true,
-                RedirectStandardError = true
+                RedirectStandardError = true,
             },
             process => processOutput = string.Join(Environment.NewLine, process.GetStandardOutput()));
 
         return processOutput;
     }
 
-    /// <summary>
-    /// Run ldd on the given file and parse the results.
-    /// </summary>
-    /// <param name="settings">The settings.</param>
-    /// <returns>Dictionary of dependencies with their resolved paths.</returns>
     public IReadOnlyDictionary<string, string> GetDependenciesAsDictionary(LddSettings settings)
     {
         var output = GetDependencies(settings);
+        var dependencies = new Dictionary<string, string>(StringComparer.Ordinal);
 
-        // Typical ldd output lines look like:
-        // libssl.so.1.1 => /lib/x86_64-linux-gnu/libssl.so.1.1 (0x00007fa5a69bf000)
-        // or for not found libraries:
-        // libfoo.so => not found
-        var regex = CaptureLddOutput();
-        var matches = regex.Matches(output);
+        var lines = output.Split([Environment.NewLine], StringSplitOptions.RemoveEmptyEntries);
 
-        var dependencies = matches
-            .Where(match => match.Groups.Count >= 3 && !string.Equals(match.Groups[2].Value, "not found", StringComparison.Ordinal))
-            .ToDictionary(match => match.Groups[1].Value, match => match.Groups[2].Value, StringComparer.Ordinal);
+        foreach (var line in lines)
+        {
+            var trimmedLine = line.Trim();
+
+            // Skip empty lines
+            if (string.IsNullOrWhiteSpace(trimmedLine))
+            {
+                continue;
+            }
+
+            // Handle redirected libraries: "libname.so => /path/to/lib.so (0x...)"
+            if (trimmedLine.Contains(" => ", StringComparison.Ordinal))
+            {
+                var parts = trimmedLine.Split(" => ", 2);
+                if (parts.Length < 2)
+                {
+                    continue;
+                }
+
+                var libName = parts[0].Trim();
+                var remainingPart = parts[1].Trim();
+
+                // Handle "not found" case
+                if (remainingPart.Equals("not found", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                // Remove the address part "(0x...)" if present
+                var addressIndex = remainingPart.LastIndexOf(" (0x", StringComparison.Ordinal);
+                var libPath = addressIndex > 0
+                    ? remainingPart[..addressIndex].Trim()
+                    : remainingPart;
+
+                dependencies[libName] = libPath;
+                continue;
+            }
+
+            // Handle direct dependencies without redirection: "/lib64/ld-linux-x86-64.so.2 (0x...)"
+            var directAddressIndex = trimmedLine.LastIndexOf(" (0x", StringComparison.Ordinal);
+            if (directAddressIndex > 0)
+            {
+                var libPath = trimmedLine[..directAddressIndex].Trim();
+                var libName = Path.GetFileName(libPath);
+
+                dependencies[libName] = libPath;
+            }
+        }
 
         return dependencies;
     }
@@ -119,7 +155,4 @@ public sealed partial class LddRunner : Tool<LddSettings>
 
         return builder;
     }
-
-    [GeneratedRegex(@"^\s*([^\s]+)\s+=>\s+([^\s]+)", RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 1000)]
-    private static partial Regex CaptureLddOutput();
 }

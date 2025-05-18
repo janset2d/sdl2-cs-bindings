@@ -52,9 +52,14 @@ public class LddTask : AsyncFrostingTask<BuildContext>
         }
 
         var settings = new LddSettings(file);
-        var rawOutput = await Task.Run(() => context.Ldd(settings)).ConfigureAwait(false);
+        // var rawOutput = await Task.Run(() => context.Ldd(settings)).ConfigureAwait(false);
+        var readOnlyDictionary = await Task.Run(() => context.LddDependencies(settings)).ConfigureAwait(false);
 
+        foreach (var pair in readOnlyDictionary)
+        {
+            context.Information($"{pair.Key} => {pair.Value}");
+        }
 
-        context.Information(rawOutput);
+        // context.Information(rawOutput);
     }
 }

@@ -22,7 +22,7 @@
     },
     "Ldd-Dependents": {
       "commandName": "Project",
-      "commandLineArgs": "--target ldd-dependents  --dll E:\\repos\\os-github-repos\\vcpkg\\installed\\x64-windows-release\\bin\\SDL2_image.dll"
+      "commandLineArgs": "--target ldd-dependents  --dll /home/deniz/repos/sdl2-cs-bindings/vcpkg_installed/x64-linux-dynamic/lib/libSDL2_image.so"
     }
   }
 }
