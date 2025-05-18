@@ -19,6 +19,10 @@
     "Dumpbin-Dependents": {
       "commandName": "Project",
       "commandLineArgs": "--target dumpbin-dependents  --dll E:\\repos\\os-github-repos\\vcpkg\\installed\\x64-windows-release\\bin\\SDL2_image.dll"
+    },
+    "Ldd-Dependents": {
+      "commandName": "Project",
+      "commandLineArgs": "--target ldd-dependents  --dll E:\\repos\\os-github-repos\\vcpkg\\installed\\x64-windows-release\\bin\\SDL2_image.dll"
     }
   }
 }

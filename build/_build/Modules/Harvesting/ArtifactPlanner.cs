@@ -71,8 +71,8 @@ public sealed class ArtifactPlanner : IArtifactPlanner
     private NativeArtifact MakeArtifact(FilePath srcPath, string currentPackageName, string ownerPackageName, ArtifactOrigin origin, DirectoryPath root)
     {
         var dir = origin == ArtifactOrigin.License
-            ? root.Combine(currentPackageName).Combine(_profile.Rid).Combine("licenses").Combine(ownerPackageName)
-            : root.Combine(currentPackageName).Combine(_profile.Rid).Combine("native");
+            ? root.Combine(currentPackageName).Combine("licenses").Combine(ownerPackageName)
+            : root.Combine(currentPackageName).Combine("runtimes").Combine(_profile.Rid).Combine("native");
 
         var target = dir.CombineWithFilePath(srcPath.GetFilename());
 
