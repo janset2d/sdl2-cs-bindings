@@ -9,6 +9,15 @@ namespace Build.Tools.Vcpkg.Settings;
 /// </summary>
 public class VcpkgSettings : ToolSettings
 {
+    private readonly DirectoryPath _vcpkgRoot;
+
+    public VcpkgSettings(DirectoryPath vcpkgRoot)
+    {
+        _vcpkgRoot = vcpkgRoot;
+    }
+
+    public DirectoryPath VcpkgRoot => _vcpkgRoot;
+
     /// <summary>
     /// Gets or sets the target architecture triplet.
     /// Corresponds to the --triplet command line switch.

@@ -23,9 +23,12 @@ public static class VcpkgAliases
     /// </code>
     /// </example>
     [CakeMethodAlias]
-    public static void VcpkgInstall(this ICakeContext context, VcpkgInstallSettings? settings = null)
+    public static void VcpkgInstall(this ICakeContext context, VcpkgInstallSettings settings)
     {
-        RunVcpkgInstallInternal(context, null, settings);
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(settings);
+
+        RunVcpkgInstallInternal(context, packages: null, settings);
     }
 
     /// <summary>
@@ -41,9 +44,11 @@ public static class VcpkgAliases
     /// </code>
     /// </example>
     [CakeMethodAlias]
-    public static void VcpkgInstall(this ICakeContext context, IReadOnlyList<string> packages, VcpkgInstallSettings? settings = null)
+    public static void VcpkgInstall(this ICakeContext context, IReadOnlyList<string> packages, VcpkgInstallSettings settings)
     {
-        // Basic validation moved here
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(settings);
+
         if (!packages.Any())
         {
             throw new ArgumentNullException(nameof(packages), "At least one package must be specified for vcpkg install in Classic mode.");
@@ -65,8 +70,11 @@ public static class VcpkgAliases
     /// </code>
     /// </example>
     [CakeMethodAlias]
-    public static void VcpkgInstall(this ICakeContext context, string package, VcpkgInstallSettings? settings = null)
+    public static void VcpkgInstall(this ICakeContext context, string package, VcpkgInstallSettings settings)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(settings);
+
         if (string.IsNullOrWhiteSpace(package))
         {
             throw new ArgumentNullException(nameof(package));
@@ -88,15 +96,15 @@ public static class VcpkgAliases
     /// </code>
     /// </example>
     [CakeMethodAlias]
-    public static string? VcpkgPackageInfo(this ICakeContext context, string package, VcpkgPackageInfoSettings? settings = null)
+    public static string? VcpkgPackageInfo(this ICakeContext context, string package, VcpkgPackageInfoSettings settings)
     {
         ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(settings);
+
         if (string.IsNullOrWhiteSpace(package))
         {
             throw new ArgumentNullException(nameof(package));
         }
-
-        settings ??= new VcpkgPackageInfoSettings();
 
         if (!settings.JsonOutput)
         {
@@ -107,10 +115,10 @@ public static class VcpkgAliases
         return tool.GetPackageInfo(settings, package);
     }
 
-    private static void RunVcpkgInstallInternal(ICakeContext context, IReadOnlyList<string>? packages, VcpkgInstallSettings? settings)
+    private static void RunVcpkgInstallInternal(ICakeContext context, IReadOnlyList<string>? packages, VcpkgInstallSettings settings)
     {
         ArgumentNullException.ThrowIfNull(context);
-        settings ??= new VcpkgInstallSettings();
+        ArgumentNullException.ThrowIfNull(settings);
 
         var tool = new VcpkgInstallTool(context);
         tool.Install(settings, packages);

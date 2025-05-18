@@ -1,9 +1,10 @@
-﻿using System;
-using System.Linq;
-using System.Threading.Tasks;
+﻿#pragma warning disable CA1031
+
+using System.Collections.Immutable;
 using Build.Context;
 using Build.Context.Models;
-using Build.Modules.Vcpkg;
+using Build.Modules.Harvesting;
+using Build.Modules.Harvesting.Models;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Frosting;
@@ -14,12 +15,14 @@ namespace Build.Tasks.Vcpkg;
 [TaskName("Harvest")]
 public sealed class HarvestTask : AsyncFrostingTask<BuildContext>
 {
-    private readonly VcpkgHarvesterService _harvesterService;
+    private readonly BinaryClosureWalker _binaryClosureWalker;
+    private readonly ArtifactPlanner _artifactPlanner;
     private readonly ManifestConfig _manifestConfig;
 
-    public HarvestTask(VcpkgHarvesterService harvesterService, ManifestConfig manifestConfig)
+    public HarvestTask(BinaryClosureWalker binaryClosureWalker, ArtifactPlanner artifactPlanner, ManifestConfig manifestConfig)
     {
-        _harvesterService = harvesterService ?? throw new ArgumentNullException(nameof(harvesterService));
+        _binaryClosureWalker = binaryClosureWalker;
+        _artifactPlanner = artifactPlanner;
         _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
     }
 
@@ -27,8 +30,8 @@ public sealed class HarvestTask : AsyncFrostingTask<BuildContext>
     {
         ArgumentNullException.ThrowIfNull(context);
 
+        var outputBase = context.Paths.HarvestOutput;
         var librariesToProcess = context.Vcpkg.Libraries;
-        var rid = context.Vcpkg.Rid ?? context.Environment.Platform.Rid();
 
         if (!librariesToProcess.Any())
         {
@@ -36,60 +39,62 @@ public sealed class HarvestTask : AsyncFrostingTask<BuildContext>
             return;
         }
 
-        // Define a base output directory for harvested artifacts
-        // This path should ideally be managed by PathService or configurable
-        var harvestOutputBaseDirectory = context.Directory("build/_harvest_output");
-        context.EnsureDirectoryExists(harvestOutputBaseDirectory);
-
-        context.Log.Information("Harvesting for RID: {0}", rid);
-        context.Log.Information("Output directory: {0}", harvestOutputBaseDirectory.FullPath);
-
         var allSucceeded = true;
 
-        foreach (var libName in librariesToProcess)
+        foreach (var library in librariesToProcess)
         {
-            var libraryManifest = _manifestConfig.LibraryManifests.FirstOrDefault(m =>
-                string.Equals(m.Name, libName, StringComparison.OrdinalIgnoreCase));
+            var manifest = _manifestConfig.LibraryManifests.SingleOrDefault(m => string.Equals(m.Name, library, StringComparison.OrdinalIgnoreCase));
 
-            if (libraryManifest == null)
+            if (manifest == null)
             {
-                context.Log.Error("Library '{0}' not found in manifest. Skipping.", libName);
+                context.Log.Error("Library '{0}' not found in manifest. Skipping.", library);
                 allSucceeded = false;
                 continue;
             }
 
-            context.Log.Information("--- Starting harvest for: {0} ---", libraryManifest.Name);
-            var report = await _harvesterService.HarvestAsync(libraryManifest, rid, harvestOutputBaseDirectory, context.CancellationToken);
+            context.Log.Information("--- Starting harvest for: {0} ---", manifest.Name);
 
-            if (report != null)
+            try
             {
-                context.Log.Information("Harvest successful for '{0}': Copied {1} artifacts from {2} Vcpkg packages.",
-                    libraryManifest.Name, report.Artifacts.Count, report.ProcessedPackageNames.Count);
-                // TODO: Optionally display more details from the report, e.g., list of artifacts
-                // DisplayHarvestReportSummary(context, report, libraryManifest.Name);
+                var closure = await _binaryClosureWalker.BuildClosureAsync(manifest);
+                if (closure is null)
+                {
+                    return;
+                }
+
+                var plan = await _artifactPlanner.CreatePlanAsync(manifest, closure, outputBase);
+                //await _copier.CopyAsync(plan.Artifacts, ct);
+
+                var harvestReport = new HarvestReport(closure.PrimaryBinary, plan.Artifacts.ToImmutableHashSet(), closure.Packages.ToImmutableHashSet());
+
+                DisplayHarvestReportSummary(context, harvestReport, manifest.Name);
+
+                context.Log.Information("--- Finished harvest for: {0} ---", manifest.Name);
             }
-            else
+            catch (Exception ex)
             {
-                context.Log.Error("Harvest failed for '{0}'.", libraryManifest.Name);
+                context.Log.Error("Harvest failed for '{0}'. Exception Message: {1}", manifest.Name, ex.Message);
                 allSucceeded = false;
             }
-            context.Log.Information("--- Finished harvest for: {0} ---", libraryManifest.Name);
-        }
 
-        if (!allSucceeded)
-        {
-            throw new CakeException("One or more libraries failed to harvest. Check logs for details.");
+            if (!allSucceeded)
+            {
+                throw new CakeException("One or more libraries failed to harvest. Check logs for details.");
+            }
+
+            context.Log.Information("All specified libraries harvested successfully.");
         }
-        context.Log.Information("All specified libraries harvested successfully.");
     }
 
-    // Optional: A new helper to display summary or details from the HarvestReport
-    // private static void DisplayHarvestReportSummary(BuildContext context, HarvestReport report, string libraryName)
-    // {
-    //     AnsiConsole.MarkupLine($"[green]Summary for {libraryName}:[/]");
-    //     AnsiConsole.MarkupLine($"  Root Binary: {report.RootBinary.GetFilename().FullPath}");
-    //     AnsiConsole.MarkupLine($"  Total Artifacts: {report.Artifacts.Count}");
-    //     AnsiConsole.MarkupLine($"  Processed Vcpkg Packages: {report.ProcessedPackageNames.Count} ({string.Join(", ", report.ProcessedPackageNames)})");
-    //     // Could add a table for artifacts if desired, similar to old DisplayCollectedDependencies
-    // }
+    private static void DisplayHarvestReportSummary(BuildContext context, HarvestReport report, string libraryName)
+    {
+        context.Log.Information("Harvest successful for '{0}': Copied {1} artifacts from {2} Vcpkg packages.",
+            libraryName, report.Artifacts.Count, report.ProcessedPackageNames.Count);
+
+        AnsiConsole.MarkupLine($"[green]Summary for {libraryName}:[/]");
+        AnsiConsole.MarkupLine($"  Root Binary: {report.RootBinary.GetFilename().FullPath}");
+        AnsiConsole.MarkupLine($"  Total Artifacts: {report.Artifacts.Count}");
+        AnsiConsole.MarkupLine($"  Processed Vcpkg Packages: {report.ProcessedPackageNames.Count} ({string.Join(", ", report.ProcessedPackageNames)})");
+        // Could add a table for artifacts if desired, similar to old DisplayCollectedDependencies
+    }
 }

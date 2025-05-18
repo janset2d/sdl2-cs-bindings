@@ -1,10 +1,16 @@
-﻿namespace Build.Tools.Vcpkg.Settings;
+﻿using Cake.Core.IO;
+
+namespace Build.Tools.Vcpkg.Settings;
 
 /// <summary>
 /// Contains settings specific to the 'vcpkg install' command.
 /// </summary>
 public class VcpkgInstallSettings : VcpkgSettings
 {
+    public VcpkgInstallSettings(DirectoryPath vcpkgRoot) : base(vcpkgRoot)
+    {
+    }
+
     /// <summary>
     /// Gets or sets a value indicating whether to allow installation even if a port is unsupported.
     /// Corresponds to the --allow-unsupported flag.

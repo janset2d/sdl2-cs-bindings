@@ -2,7 +2,6 @@
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
-using Spectre.Console;
 
 namespace Build.Tools.Vcpkg;
 

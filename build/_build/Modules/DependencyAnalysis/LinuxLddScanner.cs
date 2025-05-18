@@ -1,12 +1,8 @@
-﻿namespace Build.Modules.DependencyAnalysis;
-
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using System.Collections.Immutable;
 using Cake.Core.IO;
-using Cake.Core.Diagnostics; // For ICakeLog if needed
-using Cake.Core; // For ICakeContext if needed, or for logging extensions
+using Cake.Core.Diagnostics;
+
+namespace Build.Modules.DependencyAnalysis;
 
 public class LinuxLddScanner : IRuntimeScanner
 {
@@ -14,13 +10,13 @@ public class LinuxLddScanner : IRuntimeScanner
 
     public LinuxLddScanner(ICakeLog log)
     {
-        _log = log ?? throw new System.ArgumentNullException(nameof(log));
+        _log = log ?? throw new ArgumentNullException(nameof(log));
     }
 
     public Task<IReadOnlySet<FilePath>> ScanAsync(FilePath binary, CancellationToken ct = default)
     {
         _log.Warning("LinuxLddScanner.ScanAsync is not fully implemented yet. Returning empty dependencies for {0}.", binary.GetFilename());
-        // TODO: Implement LDD parsing logic
+
         return Task.FromResult<IReadOnlySet<FilePath>>(ImmutableHashSet<FilePath>.Empty);
     }
 }

@@ -10,14 +10,17 @@ using Build.Context.Models;
 using Build.Context.Options;
 using Build.Modules;
 using Build.Modules.DependencyAnalysis;
+using Build.Modules.Harvesting;
+using Build.Modules.Harvesting.Contracts;
 using Build.Modules.Vcpkg;
-using Build.Tools.Dumpbin;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 using Cake.Frosting;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
+using IPackageInfoProvider = Build.Modules.Vcpkg.IPackageInfoProvider;
+using VcpkgHarvesterService = Build.Modules.Vcpkg.VcpkgHarvesterService;
 
 var root = new RootCommand("Cake build for janset2d/sdl2-cs-bindings");
 
@@ -47,7 +50,9 @@ root.AddOption(DumpbinOptions.DllOption);
 root.Handler = CommandHandler.Create<InvocationContext, ParsedArguments>(RunCakeHostAsync);
 return await root.InvokeAsync(args);
 
+#pragma warning disable MA0051
 static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArguments parsedArgs)
+#pragma warning restore MA0051
 {
     var repoRootPath = await DetermineRepoRootAsync(parsedArgs.RepoRoot);
     var cakeArgs = context.ParseResult.Tokens.Select(t => t.Value).ToArray();
@@ -103,24 +108,40 @@ static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArgumen
 
             // Register new services for Vcpkg Harvesting
             services.AddSingleton<IPackageInfoProvider, VcpkgCliProvider>();
-            services.AddSingleton<VcpkgHarvesterService>();
 
             // ADD new IRuntimeScanner registration with OS specifics
             services.AddSingleton<IRuntimeScanner>(provider =>
             {
                 var env = provider.GetRequiredService<ICakeEnvironment>();
-                var context = provider.GetRequiredService<ICakeContext>(); // WindowsDumpbinScanner needs ICakeContext
-                var log = provider.GetRequiredService<ICakeLog>(); // Linux/Mac scanners need ICakeLog
+                var context = provider.GetRequiredService<ICakeContext>();
+                var log = provider.GetRequiredService<ICakeLog>();
 
                 var currentRid = env.Platform.Rid();
                 return currentRid switch
                 {
-                    Rids.WinX64 or Rids.WinX86 or Rids.WinArm64 => new Build.Modules.DependencyAnalysis.WindowsDumpbinScanner(context),
-                    Rids.LinuxX64 or Rids.LinuxArm64 => new Build.Modules.DependencyAnalysis.LinuxLddScanner(log),
-                    Rids.OsxX64 or Rids.OsxArm64 => new Build.Modules.DependencyAnalysis.MacOtoolScanner(log),
+                    Rids.WinX64 or Rids.WinX86 or Rids.WinArm64 => new WindowsDumpbinScanner(context),
+                    Rids.LinuxX64 or Rids.LinuxArm64 => new LinuxLddScanner(log),
+                    Rids.OsxX64 or Rids.OsxArm64 => new MacOtoolScanner(log),
                     _ => throw new NotSupportedException($"Unsupported OS for IRuntimeScanner: {currentRid}"),
                 };
             });
+
+            services.AddSingleton<IRuntimeProfile>(sp =>
+            {
+                var rc = sp.GetRequiredService<RuntimeConfig>();
+                var sac = sp.GetRequiredService<SystemArtefactsConfig>();
+                var mc = sp.GetRequiredService<ManifestConfig>();
+                var rid = sp.GetRequiredService<ICakeEnvironment>().Platform.Rid();
+
+                var rInfo = rc.Runtimes.Single(r => string.Equals(r.Rid, rid, StringComparison.Ordinal));
+                var core = mc.LibraryManifests.Single(m => m.IsCoreLib);
+
+                return new RuntimeProfile(rInfo, sac, core);
+            });
+
+            services.AddSingleton<BinaryClosureWalker>();
+            services.AddSingleton<ArtifactPlanner>();
+            //services.AddSingleton<IFilesystemCopier, CakeFilesystemCopier>();
         })
         .Run(cakeArgs);
 }

@@ -2,8 +2,9 @@ namespace Build.Modules.Vcpkg;
 
 using System.Threading;
 using System.Threading.Tasks;
-using Build.Modules.Vcpkg.Models; // For PackageInfo
-using Cake.Core.IO; // For FilePath
+using Models; // For PackageInfo
+
+// For FilePath
 
 public interface IPackageInfoProvider
 {
@@ -15,5 +16,5 @@ public interface IPackageInfoProvider
     // For now, we can stub it or think about its best implementation.
     // Your friend's VcpkgHarvesterService implied its existence: `var pkgInfo = await _pkg.GetInfoAsync(bin, ct);`
     // Let's call it GetPackageInfoForFileAsync for clarity that it takes a FilePath.
-    Task<PackageInfo?> GetPackageInfoForFileAsync(FilePath installedFilePath, CancellationToken ct = default);
+    // Task<PackageInfo?> GetPackageInfoForFileAsync(FilePath installedFilePath, CancellationToken ct = default);
 }

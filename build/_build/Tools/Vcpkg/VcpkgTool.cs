@@ -1,10 +1,8 @@
-﻿using Build.Context;
-using Build.Tools.Vcpkg.Settings;
+﻿using Build.Tools.Vcpkg.Settings;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.IO;
 using Cake.Core.Tooling;
-using Cake.Frosting;
 
 namespace Build.Tools.Vcpkg;
 
@@ -53,18 +51,14 @@ public abstract class VcpkgTool<TSettings> : Tool<TSettings> where TSettings : V
     /// <returns>Enumeration of alternative paths.</returns>
     protected sealed override IEnumerable<FilePath> GetAlternativeToolPaths(TSettings settings)
     {
-        var frostingContext = _cakeContext as FrostingContext;
-        var buildContext = frostingContext as BuildContext ??
-                           throw new CakeException("Could not cast ICakeContext to Build.Context.BuildContext. Ensure the context is correctly configured.");
-        var vcpkgRootPath = buildContext.Paths.VcpkgRoot;
-
-        if (!_cakeContext.DirectoryExists(vcpkgRootPath))
+        var vcpkgRoot = settings.VcpkgRoot;
+        if (!_cakeContext.DirectoryExists(vcpkgRoot))
         {
             throw new CakeException(
-                $"Vcpkg root directory could not be determined or does not exist. Checked path: '{vcpkgRootPath.FullPath}'. Use --vcpkg-dir argument or ensure vcpkg submodule exists.");
+                $"Vcpkg root directory could not be determined or does not exist. Checked path: '{vcpkgRoot.FullPath}'. Use --vcpkg-dir argument or ensure vcpkg submodule exists.");
         }
 
-        var exePath = vcpkgRootPath.CombineWithFilePath(_environment.Platform.Family == PlatformFamily.Windows ? "vcpkg.exe" : "vcpkg");
+        var exePath = vcpkgRoot.CombineWithFilePath(_environment.Platform.Family == PlatformFamily.Windows ? "vcpkg.exe" : "vcpkg");
 
         return _fileSystem.Exist(exePath) ? [exePath] : base.GetAlternativeToolPaths(settings);
     }

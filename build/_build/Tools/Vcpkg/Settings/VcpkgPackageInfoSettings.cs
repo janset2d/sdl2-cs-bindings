@@ -1,10 +1,16 @@
-﻿namespace Build.Tools.Vcpkg.Settings;
+﻿using Cake.Core.IO;
+
+namespace Build.Tools.Vcpkg.Settings;
 
 /// <summary>
 /// Contains settings specific to the 'vcpkg x-package-info' command.
 /// </summary>
 public class VcpkgPackageInfoSettings : VcpkgSettings
 {
+    public VcpkgPackageInfoSettings(DirectoryPath vcpkgRoot) : base(vcpkgRoot)
+    {
+    }
+
     /// <summary>
     /// Gets or sets a value indicating whether to report installed packages rather than available ones. EXPERIMENTAL.
     /// Corresponds to the --x-installed flag.

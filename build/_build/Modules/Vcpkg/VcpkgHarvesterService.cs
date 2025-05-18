@@ -1,30 +1,22 @@
-﻿namespace Build.Modules.Vcpkg;
-
-using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Linq;
+﻿using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
-using Build.Context;
 using Build.Context.Models;
 using Build.Modules.DependencyAnalysis;
 using Build.Modules.Harvesting.Models;
 using Build.Modules.Vcpkg.Models;
-using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 
-public sealed class VcpkgHarvesterService // Not making it internal for now, can be adjusted
+namespace Build.Modules.Vcpkg;
+
+public sealed class VcpkgHarvesterService
 {
     private readonly IRuntimeScanner _runtimeScanner;
     private readonly IPackageInfoProvider _packageInfoProvider;
-    // private readonly IFilesystemCopier _copier; // To be added when file copying is implemented
     private readonly ICakeLog _log;
     private readonly SystemArtefactsConfig _systemArtefactsConfig;
     private readonly ManifestConfig _manifestConfig;
-    private readonly PathService _pathService;
     private readonly RuntimeConfig _runtimeConfig;
 
     public VcpkgHarvesterService(
@@ -33,7 +25,6 @@ public sealed class VcpkgHarvesterService // Not making it internal for now, can
         ICakeLog log,
         SystemArtefactsConfig systemArtefactsConfig,
         ManifestConfig manifestConfig,
-        PathService pathService,
         RuntimeConfig runtimeConfig)
     {
         _runtimeScanner = runtimeScanner ?? throw new ArgumentNullException(nameof(runtimeScanner));
@@ -41,10 +32,10 @@ public sealed class VcpkgHarvesterService // Not making it internal for now, can
         _log = log ?? throw new ArgumentNullException(nameof(log));
         _systemArtefactsConfig = systemArtefactsConfig ?? throw new ArgumentNullException(nameof(systemArtefactsConfig));
         _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
-        _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
         _runtimeConfig = runtimeConfig ?? throw new ArgumentNullException(nameof(runtimeConfig));
     }
 
+    [SuppressMessage("Design", "MA0051:Method is too long")]
     public async Task<HarvestReport?> HarvestAsync(
         LibraryManifest libraryToHarvest,
         string rid,
@@ -58,11 +49,11 @@ public sealed class VcpkgHarvesterService // Not making it internal for now, can
         _log.Information("Starting harvest for library '{0}' on RID '{1}'...", libraryToHarvest.Name, rid);
 
         var todoBins = new Queue<FilePath>();
-        var processedBins = new HashSet<FilePath>(PathEqualityComparer.Default); // Using the one from WindowsDumpbinScanner
+        var processedBins = new HashSet<FilePath>(); // Using the one from WindowsDumpbinScanner
         var processedPackageNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var collectedArtifacts = new HashSet<NativeArtifact>();
 
-        string? coreLibPlatformName = DetermineCoreLibPlatformName(rid);
+        var coreLibPlatformName = DetermineCoreLibPlatformName(rid);
 
         // 1. Get and process the primary binary for the libraryToHarvest
         var primaryBinaryPath = await GetPathForPrimaryBinaryAsync(libraryToHarvest, rid, ct);
@@ -72,18 +63,20 @@ public sealed class VcpkgHarvesterService // Not making it internal for now, can
             return null;
         }
 
-        var primaryPackageInfo = await _packageInfoProvider.GetPackageInfoForFileAsync(primaryBinaryPath, ct);
+        PackageInfo? primaryPackageInfo = null; // await _packageInfoProvider.GetPackageInfoForFileAsync(primaryBinaryPath, ct);
+#pragma warning disable CA1508
         if (primaryPackageInfo == null)
+#pragma warning restore CA1508
         {
             _log.Error("Could not get package info for primary binary '{0}' of library '{1}'. Aborting harvest for this library.", primaryBinaryPath, libraryToHarvest.Name);
             return null;
         }
 
         todoBins.Enqueue(primaryBinaryPath);
-        collectedArtifacts.Add(CreateNativeArtifact(primaryBinaryPath, primaryPackageInfo.PortName, ArtifactOrigin.Primary, rid, harvestOutputBaseDirectory));
+        collectedArtifacts.Add(CreateNativeArtifact(primaryBinaryPath, primaryPackageInfo.PackageName, ArtifactOrigin.Primary, rid, harvestOutputBaseDirectory));
         // Add all owned files of the primary package initially
         AddOwnedFilesAsArtifacts(primaryPackageInfo, collectedArtifacts, rid, harvestOutputBaseDirectory, isPrimaryPackage: true, primaryBinaryPath);
-        processedPackageNames.Add(primaryPackageInfo.PortName);
+        processedPackageNames.Add(primaryPackageInfo.PackageName);
 
         // Process declared dependencies of the primary package
         await ProcessDeclaredDependenciesAsync(primaryPackageInfo, todoBins, processedPackageNames, collectedArtifacts, rid, harvestOutputBaseDirectory, processedBins, ct);
@@ -106,7 +99,7 @@ public sealed class VcpkgHarvesterService // Not making it internal for now, can
             }
 
             // Special skip for core library when processing a satellite library's dependencies
-            if (!libraryToHarvest.CoreLib &&
+            if (!libraryToHarvest.IsCoreLib &&
                 !string.IsNullOrEmpty(coreLibPlatformName) &&
                 currentBin.GetFilename().FullPath.Equals(coreLibPlatformName, StringComparison.OrdinalIgnoreCase))
             {
@@ -119,12 +112,14 @@ public sealed class VcpkgHarvesterService // Not making it internal for now, can
             _log.Debug("Processing binary: {0}", currentBin.GetFilename());
 
             // Get package info for the current binary
-            var currentBinPackageInfo = await _packageInfoProvider.GetPackageInfoForFileAsync(currentBin, ct);
+            PackageInfo? currentBinPackageInfo = null; //await _packageInfoProvider.GetPackageInfoForFileAsync(currentBin, ct);
+#pragma warning disable CA1508
             if (currentBinPackageInfo != null)
+#pragma warning restore CA1508
             {
-                if (processedPackageNames.Add(currentBinPackageInfo.PortName))
+                if (processedPackageNames.Add(currentBinPackageInfo.PackageName))
                 {
-                    _log.Debug("New package discovered: {0}", currentBinPackageInfo.PortName);
+                    _log.Debug("New package discovered: {0}", currentBinPackageInfo.PackageName);
                     AddOwnedFilesAsArtifacts(currentBinPackageInfo, collectedArtifacts, rid, harvestOutputBaseDirectory, isPrimaryPackage: false, currentBin);
                     await ProcessDeclaredDependenciesAsync(currentBinPackageInfo, todoBins, processedPackageNames, collectedArtifacts, rid, harvestOutputBaseDirectory, processedBins, ct);
                 }
@@ -145,7 +140,7 @@ public sealed class VcpkgHarvesterService // Not making it internal for now, can
             var runtimeDeps = await _runtimeScanner.ScanAsync(currentBin, ct);
             foreach (var depPath in runtimeDeps)
             {
-                if (!processedBins.Contains(depPath) && !todoBins.Contains(depPath)) // Avoid re-queuing if already seen or to be seen
+                if (!processedBins.Contains(depPath) && !todoBins.Contains(depPath))
                 {
                     _log.Debug("Runtime dependency found: '{0}' for '{1}'. Enqueuing.", depPath.GetFilename(), currentBin.GetFilename());
                     todoBins.Enqueue(depPath);
@@ -227,7 +222,7 @@ public sealed class VcpkgHarvesterService // Not making it internal for now, can
                 _log.Verbose("Skipping non-binary/non-license owned file from metadata: {0}", ownedFile.GetFilename());
                 continue;
             }
-            collectedArtifacts.Add(CreateNativeArtifact(ownedFile, packageInfo.PortName, origin, rid, harvestOutputBaseDirectory));
+            collectedArtifacts.Add(CreateNativeArtifact(ownedFile, packageInfo.PackageName, origin, rid, harvestOutputBaseDirectory));
         }
     }
 
@@ -251,8 +246,8 @@ public sealed class VcpkgHarvesterService // Not making it internal for now, can
                 _log.Warning("Invalid declared dependency format: {0}", depPackageKey);
                 continue;
             }
-            string depPackageName = parts[0];
-            string depTriplet = parts[1]; // This should ideally match the current RID's triplet.
+            var depPackageName = parts[0];
+            var depTriplet = parts[1]; // This should ideally match the current RID's triplet.
                                          // Vcpkg manifest mode usually ensures compatible triplets for dependencies.
 
             if (processedPackageNames.Contains(depPackageName))
@@ -272,14 +267,12 @@ public sealed class VcpkgHarvesterService // Not making it internal for now, can
             AddOwnedFilesAsArtifacts(depPackageFullInfo, collectedArtifacts, rid, harvestOutputBaseDirectory, isPrimaryPackage: false, primaryOrCurrentBinPath: null);
             foreach(var ownedFile in depPackageFullInfo.OwnedFiles)
             {
-                if (ownedFile.GetExtension().Equals(".dll", StringComparison.OrdinalIgnoreCase) ||
-                    ownedFile.GetExtension().Equals(".so", StringComparison.OrdinalIgnoreCase) ||
-                    ownedFile.GetExtension().Equals(".dylib", StringComparison.OrdinalIgnoreCase))
+                if ((ownedFile.GetExtension().Equals(".dll", StringComparison.OrdinalIgnoreCase) ||
+                     ownedFile.GetExtension().Equals(".so", StringComparison.OrdinalIgnoreCase) ||
+                     ownedFile.GetExtension().Equals(".dylib", StringComparison.OrdinalIgnoreCase))
+                    && !processedBins.Contains(ownedFile) && !todoBins.Contains(ownedFile))
                 {
-                    if (!processedBins.Contains(ownedFile) && !todoBins.Contains(ownedFile))
-                    {
-                        todoBins.Enqueue(ownedFile);
-                    }
+                    todoBins.Enqueue(ownedFile);
                 }
             }
         }
@@ -287,7 +280,7 @@ public sealed class VcpkgHarvesterService // Not making it internal for now, can
 
     private string? DetermineCoreLibPlatformName(string rid)
     {
-        var coreLibManifest = _manifestConfig.LibraryManifests.FirstOrDefault(lm => lm.CoreLib);
+        var coreLibManifest = _manifestConfig.LibraryManifests.FirstOrDefault(lm => lm.IsCoreLib);
         if (coreLibManifest != null)
         {
             return GetLibNameForPlatform(coreLibManifest, rid);
@@ -350,17 +343,17 @@ public sealed class VcpkgHarvesterService // Not making it internal for now, can
     private bool IsSystemFile(FilePath filePath, string rid)
     {
         var fileName = filePath.GetFilename().FullPath;
-        ImmutableList<string> systemPatterns = ImmutableList<string>.Empty;
+        var systemPatterns = ImmutableList<string>.Empty;
 
-        if (rid.StartsWith("win-", StringComparison.OrdinalIgnoreCase) && _systemArtefactsConfig.Windows != null)
+        if (rid.StartsWith("win-", StringComparison.OrdinalIgnoreCase))
         {
             systemPatterns = _systemArtefactsConfig.Windows.SystemDlls;
         }
-        else if (rid.StartsWith("linux-", StringComparison.OrdinalIgnoreCase) && _systemArtefactsConfig.Linux != null)
+        else if (rid.StartsWith("linux-", StringComparison.OrdinalIgnoreCase))
         {
             systemPatterns = _systemArtefactsConfig.Linux.SystemLibraries;
         }
-        else if (rid.StartsWith("osx-", StringComparison.OrdinalIgnoreCase) && _systemArtefactsConfig.Osx != null)
+        else if (rid.StartsWith("osx-", StringComparison.OrdinalIgnoreCase))
         {
             systemPatterns = _systemArtefactsConfig.Osx.SystemLibraries;
         }
@@ -370,7 +363,7 @@ public sealed class VcpkgHarvesterService // Not making it internal for now, can
             if (systemPattern.Contains('*', StringComparison.Ordinal))
             {
                 var regexPattern = "^" + Regex.Escape(systemPattern).Replace("\\*", ".*", StringComparison.OrdinalIgnoreCase) + "$";
-                if (Regex.IsMatch(fileName, regexPattern, RegexOptions.IgnoreCase))
+                if (Regex.IsMatch(fileName, regexPattern, RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(1000)))
                 {
                     return true;
                 }

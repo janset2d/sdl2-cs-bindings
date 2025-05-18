@@ -7,13 +7,9 @@ public enum ArtifactOrigin
     Primary,
     Runtime,
     Metadata,
-    License
+    License,
 }
 
-public sealed record NativeArtifact(
-    string FileName,        // e.g., "SDL2.dll"
-    FilePath SourcePath,    // Full path in vcpkg_installed
-    FilePath TargetPath,    // Intended path in the output package/archive
-    string PackageName,     // Vcpkg package name (e.g., "sdl2")
-    ArtifactOrigin Origin
-);
+public sealed record NativeArtifact(string FileName, FilePath SourcePath, FilePath TargetPath, string PackageName, ArtifactOrigin Origin);
+
+public sealed record ArtifactPlan(IReadOnlySet<NativeArtifact> Artifacts);
