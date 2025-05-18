@@ -1,5 +1,6 @@
 ﻿using Build.Tools.Dumpbin;
 using System.Collections.Immutable;
+using Build.Modules.Contracts;
 using Cake.Core;
 using Cake.Core.IO;
 using Cake.Core.Diagnostics;

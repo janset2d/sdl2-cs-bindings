@@ -1,5 +1,5 @@
 ﻿using Build.Context;
-using Build.Modules.DependencyAnalysis;
+using Build.Tools.Dumpbin;
 using Cake.Common.Diagnostics;
 using Cake.Common.IO;
 using Cake.Frosting;
@@ -11,15 +11,27 @@ public class DependentsTask : AsyncFrostingTask<BuildContext>
 {
     public override async Task RunAsync(BuildContext context)
     {
-        var windowsDumpbinScanner = new WindowsDumpbinScanner(context);
+        ArgumentNullException.ThrowIfNull(context);
 
         var file = context.File(context.DumpbinConfiguration.DllToDump[0]);
 
-        var readOnlySet = await windowsDumpbinScanner.ScanAsync(file, CancellationToken.None);
-
-        foreach (var path in readOnlySet)
+        if (!context.FileExists(file))
         {
-            context.Information(path.FullPath);
+            context.Warning("File not found: {0}", file.Path);
         }
+
+        var dumpbinSettings = new DumpbinDependentsSettings(file)
+        {
+            ToolPath = context.Tools.Resolve("dumpbin.exe"),
+            SetupProcessSettings = settings =>
+            {
+                settings.RedirectStandardOutput = true;
+                settings.RedirectStandardError = true;
+            },
+        };
+
+        var rawOutput = await Task.Run(() => context.DumpbinDependents(dumpbinSettings) ?? string.Empty).ConfigureAwait(false);
+
+        context.Information(rawOutput);
     }
 }

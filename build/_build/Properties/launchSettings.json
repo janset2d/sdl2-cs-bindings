@@ -12,13 +12,9 @@
       "commandName": "Project",
       "commandLineArgs": "--target info --verbosity diagnostic"
     },
-    "Vcpkg-Build": {
-      "commandName": "Project",
-      "commandLineArgs": "--target vcpkg-build --library SDL --library SDL_image --rid win-x64 --rid linux-x64 --use-overrides --verbosity diagnostic"
-    },
     "Vcpkg-Harvest": {
       "commandName": "Project",
-      "commandLineArgs": "--target harvest --library SDL --library SDL_image --rid win-x64"
+      "commandLineArgs": "--target harvest --library SDL2 --library SDL2_image"
     },
     "Dumpbin-Dependents": {
       "commandName": "Project",

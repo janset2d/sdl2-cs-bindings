@@ -1,12 +1,11 @@
 ﻿using Build.Context.Models;
-using Build.Modules.Harvesting.Contracts;
+using Build.Modules.Contracts;
 using Build.Modules.Harvesting.Models;
-using Build.Modules.Vcpkg;
 using Cake.Core.IO;
 
 namespace Build.Modules.Harvesting;
 
-public sealed class ArtifactPlanner
+public sealed class ArtifactPlanner : IArtifactPlanner
 {
     private readonly IPackageInfoProvider _pkg;
     private readonly IRuntimeProfile _profile;
@@ -14,8 +13,10 @@ public sealed class ArtifactPlanner
 
     public ArtifactPlanner(IPackageInfoProvider pkg, IRuntimeProfile profile, ManifestConfig manifestConfig)
     {
-        _pkg = pkg;
-        _profile = profile;
+        ArgumentNullException.ThrowIfNull(manifestConfig);
+
+        _pkg = pkg ?? throw new ArgumentNullException(nameof(pkg));
+        _profile = profile ?? throw new ArgumentNullException(nameof(profile));
         _corePackageName = manifestConfig.LibraryManifests.Single(manifest => manifest.IsCoreLib).VcpkgName;
     }
 
@@ -29,6 +30,7 @@ public sealed class ArtifactPlanner
         var copiedPackages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         var isCore = current.IsCoreLib;
+        var currentPackageName = current.Name;
 
         foreach (var node in closure.Nodes)
         {
@@ -42,7 +44,8 @@ public sealed class ArtifactPlanner
                 ? ArtifactOrigin.Primary
                 : ArtifactOrigin.Runtime;
 
-            artifacts.Add(MakeArtifact(node.Path, node.OwnerPackage, origin, outRoot));
+            var nativeArtifact = MakeArtifact(node.Path, currentPackageName, node.OwnerPackage, origin, outRoot);
+            artifacts.Add(nativeArtifact);
             copiedPackages.Add(node.OwnerPackage);
         }
 
@@ -55,24 +58,25 @@ public sealed class ArtifactPlanner
                 continue;
             }
 
-            foreach (var lic in info.OwnedFiles.Where(IsLicense))
+            foreach (var licensePath in info.OwnedFiles.Where(IsLicense))
             {
-                artifacts.Add(MakeArtifact(lic, packageName, ArtifactOrigin.License, outRoot));
+                var licenseArtifact = MakeArtifact(licensePath, currentPackageName, packageName, ArtifactOrigin.License, outRoot);
+                artifacts.Add(licenseArtifact);
             }
         }
 
         return new ArtifactPlan(artifacts);
     }
 
-    private NativeArtifact MakeArtifact(FilePath srcPath, string package, ArtifactOrigin origin, DirectoryPath root)
+    private NativeArtifact MakeArtifact(FilePath srcPath, string currentPackageName, string ownerPackageName, ArtifactOrigin origin, DirectoryPath root)
     {
         var dir = origin == ArtifactOrigin.License
-            ? root.Combine(_profile.Rid).Combine("licenses").Combine(package)
-            : root.Combine(_profile.Rid).Combine("native");
+            ? root.Combine(currentPackageName).Combine(_profile.Rid).Combine("licenses").Combine(ownerPackageName)
+            : root.Combine(currentPackageName).Combine(_profile.Rid).Combine("native");
 
         var target = dir.CombineWithFilePath(srcPath.GetFilename());
 
-        return new NativeArtifact(srcPath.GetFilename().FullPath, srcPath, target, package, origin);
+        return new NativeArtifact(srcPath.GetFilename().FullPath, srcPath, target, ownerPackageName, origin);
     }
 
     private static bool IsLicense(FilePath f) =>

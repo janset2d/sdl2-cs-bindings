@@ -9,18 +9,15 @@ using Build.Context.Configs;
 using Build.Context.Models;
 using Build.Context.Options;
 using Build.Modules;
+using Build.Modules.Contracts;
 using Build.Modules.DependencyAnalysis;
 using Build.Modules.Harvesting;
-using Build.Modules.Harvesting.Contracts;
-using Build.Modules.Vcpkg;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 using Cake.Frosting;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
-using IPackageInfoProvider = Build.Modules.Vcpkg.IPackageInfoProvider;
-using VcpkgHarvesterService = Build.Modules.Vcpkg.VcpkgHarvesterService;
 
 var root = new RootCommand("Cake build for janset2d/sdl2-cs-bindings");
 
@@ -61,55 +58,36 @@ static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArgumen
         .UseContext<BuildContext>()
         .ConfigureServices(services =>
         {
-            services.AddSingleton(new VcpkgConfiguration([.. parsedArgs.Library], parsedArgs.Rid));
+            services.AddSingleton(new VcpkgConfiguration([.. parsedArgs.Library]));
             services.AddSingleton(new RepositoryConfiguration(repoRootPath));
             services.AddSingleton(new DotNetBuildConfiguration(configuration: parsedArgs.Config));
             services.AddSingleton(new DumpbinConfiguration([.. parsedArgs.Dll]));
 
-            services.AddSingleton<PathService>(provider =>
+            services.AddSingleton<IPathService>(provider =>
             {
                 var repositoryConfiguration = provider.GetRequiredService<RepositoryConfiguration>();
                 var cakeLogger = provider.GetRequiredService<ICakeLog>();
                 return new PathService(repositoryConfiguration, parsedArgs, cakeLogger);
             });
 
-            services.AddSingleton<RuntimeConfig>(provider =>
+            services.AddSingleton<IRuntimeProfile>(sp =>
             {
-                var ctx = provider.GetRequiredService<ICakeContext>();
-                var pathService = provider.GetRequiredService<PathService>();
+                var rc = sp.GetRequiredService<RuntimeConfig>();
+                var sac = sp.GetRequiredService<SystemArtefactsConfig>();
+                var mc = sp.GetRequiredService<ManifestConfig>();
+                var rid = sp.GetRequiredService<ICakeEnvironment>().Platform.Rid();
 
-                var runtimesFile = pathService.GetRuntimesFile();
-                var runtimeConfig = ctx.ToJson<RuntimeConfig>(runtimesFile);
+                var rInfo = rc.Runtimes.Single(r => string.Equals(r.Rid, rid, StringComparison.Ordinal));
+                var core = mc.LibraryManifests.Single(m => m.IsCoreLib);
 
-                return runtimeConfig;
+                return new RuntimeProfile(rInfo, sac, core);
             });
 
-            services.AddSingleton<ManifestConfig>(provider =>
-            {
-                var ctx = provider.GetRequiredService<ICakeContext>();
-                var pathService = provider.GetRequiredService<PathService>();
-
-                var manifestFile = pathService.GetManifestFile();
-                var manifestConfig = ctx.ToJson<ManifestConfig>(manifestFile);
-
-                return manifestConfig;
-            });
-
-            services.AddSingleton<SystemArtefactsConfig>(provider =>
-            {
-                var ctx = provider.GetRequiredService<ICakeContext>();
-                var pathService = provider.GetRequiredService<PathService>();
-
-                var systemArtifactsFile = pathService.GetSystemArtifactsFile();
-                var systemArtefactsConfig = ctx.ToJson<SystemArtefactsConfig>(systemArtifactsFile);
-
-                return systemArtefactsConfig;
-            });
-
-            // Register new services for Vcpkg Harvesting
             services.AddSingleton<IPackageInfoProvider, VcpkgCliProvider>();
+            services.AddSingleton<IBinaryClosureWalker, BinaryClosureWalker>();
+            services.AddSingleton<IArtifactPlanner, ArtifactPlanner>();
+            services.AddSingleton<IFilesystemCopier, CakeFilesystemCopier>();
 
-            // ADD new IRuntimeScanner registration with OS specifics
             services.AddSingleton<IRuntimeScanner>(provider =>
             {
                 var env = provider.GetRequiredService<ICakeEnvironment>();
@@ -126,22 +104,38 @@ static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArgumen
                 };
             });
 
-            services.AddSingleton<IRuntimeProfile>(sp =>
+            services.AddSingleton<RuntimeConfig>(provider =>
             {
-                var rc = sp.GetRequiredService<RuntimeConfig>();
-                var sac = sp.GetRequiredService<SystemArtefactsConfig>();
-                var mc = sp.GetRequiredService<ManifestConfig>();
-                var rid = sp.GetRequiredService<ICakeEnvironment>().Platform.Rid();
+                var ctx = provider.GetRequiredService<ICakeContext>();
+                var pathService = provider.GetRequiredService<IPathService>();
 
-                var rInfo = rc.Runtimes.Single(r => string.Equals(r.Rid, rid, StringComparison.Ordinal));
-                var core = mc.LibraryManifests.Single(m => m.IsCoreLib);
+                var runtimesFile = pathService.GetRuntimesFile();
+                var runtimeConfig = ctx.ToJson<RuntimeConfig>(runtimesFile);
 
-                return new RuntimeProfile(rInfo, sac, core);
+                return runtimeConfig;
             });
 
-            services.AddSingleton<BinaryClosureWalker>();
-            services.AddSingleton<ArtifactPlanner>();
-            //services.AddSingleton<IFilesystemCopier, CakeFilesystemCopier>();
+            services.AddSingleton<ManifestConfig>(provider =>
+            {
+                var ctx = provider.GetRequiredService<ICakeContext>();
+                var pathService = provider.GetRequiredService<IPathService>();
+
+                var manifestFile = pathService.GetManifestFile();
+                var manifestConfig = ctx.ToJson<ManifestConfig>(manifestFile);
+
+                return manifestConfig;
+            });
+
+            services.AddSingleton<SystemArtefactsConfig>(provider =>
+            {
+                var ctx = provider.GetRequiredService<ICakeContext>();
+                var pathService = provider.GetRequiredService<IPathService>();
+
+                var systemArtifactsFile = pathService.GetSystemArtifactsFile();
+                var systemArtefactsConfig = ctx.ToJson<SystemArtefactsConfig>(systemArtifactsFile);
+
+                return systemArtefactsConfig;
+            });
         })
         .Run(cakeArgs);
 }
@@ -203,6 +197,5 @@ public record ParsedArguments(
     string Config,
     DirectoryInfo? VcpkgDir,
     DirectoryInfo? VcpkgInstalledDir,
-    string? Rid,
     IList<string> Library,
     IList<string> Dll);

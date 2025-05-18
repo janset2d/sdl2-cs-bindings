@@ -1,9 +1,9 @@
 ﻿using System.Text.RegularExpressions;
 using Build.Context.Models;
-using Build.Modules.Harvesting.Contracts;
+using Build.Modules.Contracts;
 using Cake.Core.IO;
 
-namespace Build.Modules.Harvesting;
+namespace Build.Modules;
 
 public sealed class RuntimeProfile : IRuntimeProfile
 {

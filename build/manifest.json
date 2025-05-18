@@ -1,7 +1,7 @@
 {
   "library_manifests": [
     {
-      "name": "SDL",
+      "name": "SDL2",
       "vcpkg_name": "sdl2",
       "vcpkg_version": "2.26.5",
       "vcpkg_port_version": 1,
@@ -24,7 +24,7 @@
       ]
     },
     {
-      "name": "SDL_image",
+      "name": "SDL2_image",
       "vcpkg_name": "sdl2-image",
       "vcpkg_version": "2.8.8",
       "vcpkg_port_version": 1,
@@ -47,7 +47,7 @@
       ]
     },
     {
-      "name": "SDL_mixer",
+      "name": "SDL2_mixer",
       "vcpkg_name": "sdl2-mixer",
       "vcpkg_version": "2.8.1",
       "vcpkg_port_version": 1,
@@ -70,7 +70,7 @@
       ]
     },
     {
-      "name": "SDL_ttf",
+      "name": "SDL2_ttf",
       "vcpkg_name": "sdl2-ttf",
       "vcpkg_version": "2.24.0",
       "vcpkg_port_version": 0,
@@ -93,7 +93,7 @@
       ]
     },
     {
-      "name": "SDL_gfx",
+      "name": "SDL2_gfx",
       "vcpkg_name": "sdl2-gfx",
       "vcpkg_version": "1.0.4",
       "vcpkg_port_version": 11,

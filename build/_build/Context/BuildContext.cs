@@ -1,5 +1,5 @@
 ﻿using Build.Context.Configs;
-using Build.Modules;
+using Build.Modules.Contracts;
 using Cake.Core;
 using Cake.Frosting;
 
@@ -9,7 +9,7 @@ public sealed class BuildContext : FrostingContext
 {
     public BuildContext(
         ICakeContext context,
-        PathService pathService,
+        IPathService pathService,
         RepositoryConfiguration repoConfiguration,
         DotNetBuildConfiguration dotNetBuildConfiguration,
         VcpkgConfiguration vcpkgConfiguration,
@@ -23,7 +23,7 @@ public sealed class BuildContext : FrostingContext
         DumpbinConfiguration = dumpbinConfiguration;
     }
 
-    public PathService Paths { get; }
+    public IPathService Paths { get; }
 
     public RepositoryConfiguration Repo { get; }
 

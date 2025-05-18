@@ -36,6 +36,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{CF74B8C4-9607-4806-9C87-2976BE91BB5A}"
 	ProjectSection(SolutionItems) = preProject
 		docs\cake-build-plan.md = docs\cake-build-plan.md
+		docs\Cake Frosting Build Expertise_.md = docs\Cake Frosting Build Expertise_.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{B4EA2835-20D1-45D0-A082-3B4D233BE0A0}"

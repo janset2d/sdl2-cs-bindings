@@ -1,4 +1,5 @@
 ﻿using Build.Context.Configs;
+using Build.Modules.Contracts;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 
@@ -7,10 +8,11 @@ namespace Build.Modules;
 /// <summary>
 /// Provides centralized, semantic path construction.
 /// </summary>
-public sealed class PathService
+public sealed class PathService : IPathService
 {
     private readonly DirectoryPath _repoRoot;
     private readonly DirectoryPath _vcpkgRoot;
+    private readonly DirectoryPath _vcpkgInstalledDir;
 
     public PathService(RepositoryConfiguration repoConfiguration, ParsedArguments parsedArguments, ICakeLog log)
     {
@@ -32,6 +34,19 @@ public sealed class PathService
             _vcpkgRoot = _repoRoot.Combine("external").Combine("vcpkg");
             log.Warning($"Warning: Vcpkg directory not specified via --vcpkg-dir. Assuming relative path: {_vcpkgRoot.FullPath}");
         }
+
+        var vcpkgInstalledDirInfo = parsedArguments.VcpkgInstalledDir != null ? new DirectoryInfo(parsedArguments.VcpkgInstalledDir.FullName) : null;
+
+        if (vcpkgInstalledDirInfo?.Exists == true)
+        {
+            _vcpkgInstalledDir = new DirectoryPath(vcpkgInstalledDirInfo.FullName);
+            log.Information($"Using Vcpkg installed directory from settings/argument: {_vcpkgInstalledDir.FullPath}");
+        }
+        else
+        {
+            _vcpkgInstalledDir = _repoRoot.Combine("vcpkg_installed");
+            log.Warning($"Warning: Vcpkg installed directory not specified via --vcpkg-installed-dir. Assuming relative path: {_vcpkgInstalledDir.FullPath}");
+        }
     }
 
     public DirectoryPath RepoRoot => _repoRoot;
@@ -48,7 +63,7 @@ public sealed class PathService
 
     public DirectoryPath VcpkgRoot => _vcpkgRoot;
 
-    public DirectoryPath GetVcpkgInstalledDir => RepoRoot.Combine("vcpkg_installed");
+    public DirectoryPath GetVcpkgInstalledDir => _vcpkgInstalledDir;
 
     public DirectoryPath GetVcpkgInstalledTripletDir(string triplet)
     {

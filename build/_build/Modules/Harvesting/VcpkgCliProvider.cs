@@ -2,14 +2,15 @@
 
 using System.Collections.Immutable;
 using System.Text.Json;
-using Build.Modules.Vcpkg.Models;
+using Build.Modules.Contracts;
+using Build.Modules.Harvesting.Models;
 using Build.Tools.Vcpkg;
 using Build.Tools.Vcpkg.Settings;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 
-namespace Build.Modules.Vcpkg;
+namespace Build.Modules.Harvesting;
 
 public sealed class VcpkgCliProvider : IPackageInfoProvider
 {
@@ -18,8 +19,10 @@ public sealed class VcpkgCliProvider : IPackageInfoProvider
     private readonly DirectoryPath _vcpkgInstallDir;
     private readonly ICakeLog _log;
 
-    public VcpkgCliProvider(ICakeContext context, PathService pathService, ICakeLog log)
+    public VcpkgCliProvider(ICakeContext context, IPathService pathService, ICakeLog log)
     {
+        ArgumentNullException.ThrowIfNull(pathService);
+
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _vcpkgRoot = pathService.VcpkgRoot;
         _vcpkgInstallDir = pathService.GetVcpkgInstalledDir;

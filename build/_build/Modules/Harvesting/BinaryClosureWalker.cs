@@ -1,8 +1,6 @@
 ﻿using Build.Context.Models;
-using Build.Modules.DependencyAnalysis;
-using Build.Modules.Harvesting.Contracts;
+using Build.Modules.Contracts;
 using Build.Modules.Harvesting.Models;
-using Build.Modules.Vcpkg;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;
@@ -10,22 +8,13 @@ using Cake.Core.IO;
 
 namespace Build.Modules.Harvesting;
 
-public sealed class BinaryClosureWalker
+public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoProvider pkg, IRuntimeProfile profile, ICakeContext ctx) : IBinaryClosureWalker
 {
-    private readonly IRuntimeScanner _runtime;
-    private readonly IPackageInfoProvider _pkg;
-    private readonly IRuntimeProfile _profile;
-    private readonly ICakeContext _ctx;
-    private readonly ICakeLog _log;
-
-    public BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoProvider pkg, IRuntimeProfile profile, ICakeContext ctx)
-    {
-        _runtime = runtime;
-        _pkg = pkg;
-        _profile = profile;
-        _ctx = ctx;
-        _log = ctx.Log;
-    }
+    private readonly IRuntimeScanner _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
+    private readonly IPackageInfoProvider _pkg = pkg ?? throw new ArgumentNullException(nameof(pkg));
+    private readonly IRuntimeProfile _profile = profile ?? throw new ArgumentNullException(nameof(profile));
+    private readonly ICakeContext _ctx = ctx ?? throw new ArgumentNullException(nameof(ctx));
+    private readonly ICakeLog _log = ctx.Log;
 
 #pragma warning disable MA0051
     public async Task<BinaryClosure?> BuildClosureAsync(LibraryManifest manifest, CancellationToken ct = default)

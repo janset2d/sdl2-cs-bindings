@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using Build.Modules.Contracts;
 using Cake.Core.IO;
 using Cake.Core.Diagnostics;
 

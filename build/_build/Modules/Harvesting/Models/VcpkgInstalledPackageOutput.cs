@@ -1,7 +1,7 @@
 ﻿using System.Collections.Immutable;
 using System.Text.Json.Serialization;
 
-namespace Build.Modules.Vcpkg.Models;
+namespace Build.Modules.Harvesting.Models;
 
 public record VcpkgInstalledPackageOutput
 {
