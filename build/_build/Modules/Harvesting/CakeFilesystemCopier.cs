@@ -6,7 +6,6 @@ using Build.Modules.Harvesting.Results;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;
-using OneOf.Types;
 
 namespace Build.Modules.Harvesting;
 
@@ -40,6 +39,6 @@ public sealed class CakeFilesystemCopier(ICakeContext ctx) : IFilesystemCopier
             return new CopierError($"Error while copying artifacts: {ex.Message}", ex);
         }
 
-        return new Success();
+        return CopierResult.ToSuccess();
     }
 }

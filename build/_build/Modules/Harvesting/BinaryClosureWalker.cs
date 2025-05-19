@@ -21,10 +21,10 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
 
     public async Task<ClosureResult> BuildClosureAsync(LibraryManifest manifest, CancellationToken ct = default)
     {
-        ArgumentNullException.ThrowIfNull(manifest);
-
         try
         {
+            ArgumentNullException.ThrowIfNull(manifest);
+
             var rootPkgInfoResult = await _pkg.GetPackageInfoAsync(manifest.VcpkgName, _profile.Triplet, ct);
             if (rootPkgInfoResult.IsError())
             {

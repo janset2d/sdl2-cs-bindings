@@ -4,6 +4,7 @@
 // first Error (propagating it unchanged).  All awaits use ConfigureAwait(false)
 // to avoid capturing a synchronization context (satisfying VSTHRD003 analyzers).
 // ---------------------------------------------------------------
+
 #pragma warning disable VSTHRD003 // foreign-task awaits are intentional and safe here
 #pragma warning disable IDE0130 // Namespace "OneOf.Monads" does not match folder structure, expected "Build.Modules.Extensions"
 
@@ -162,6 +163,7 @@ public static class AsyncResultChainingExtensions
 
             return await onFailure(ctx, res.ErrorValue()).ConfigureAwait(false);
         }
+
         return ctx;
     }
 
@@ -272,5 +274,23 @@ public static class AsyncResultChainingExtensions
         var taskArray = tasks.Select(t => t(ctx)).ToArray();
         var winner = await await Task.WhenAny(taskArray).ConfigureAwait(false);
         return winner;
+    }
+
+    public static async Task<Result<TErr, TOut>> BindAsync<TErr, TIn, TOut>(
+        this Task<Result<TErr, TIn>> self,
+        Func<TIn, Task<Result<TErr, TOut>>> binder)
+    {
+        ArgumentNullException.ThrowIfNull(self);
+        ArgumentNullException.ThrowIfNull(binder);
+        var first = await self.ConfigureAwait(false);
+
+        // propagate error immediately
+        if (first.IsError())
+        {
+            return Result<TErr, TOut>.Error(first.ErrorValue());
+        }
+
+        // happy-path: await the next async step
+        return await binder(first.SuccessValue()).ConfigureAwait(false);
     }
 }

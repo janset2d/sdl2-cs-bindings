@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Build.Context.Models;
 using Build.Modules.Harvesting.Models;
+using Cake.Core;
 using Cake.Core.Diagnostics;
 using OneOf;
 using OneOf.Monads;
@@ -68,35 +69,14 @@ public static class ClosureResultExtensions
         return cr;
     }
 
-    public static bool LogError(this ClosureResult r, ICakeLog log, LibraryManifest manifest)
+    public static void ThrowIfError(this ClosureResult result, Action<HarvestingError> errorHandler)
     {
-        ArgumentNullException.ThrowIfNull(r);
-        ArgumentNullException.ThrowIfNull(log);
-        ArgumentNullException.ThrowIfNull(manifest);
+        ArgumentNullException.ThrowIfNull(result);
+        ArgumentNullException.ThrowIfNull(errorHandler);
 
-        if (!r.IsError())
+        if (result.IsError())
         {
-            return false;
+            errorHandler(result.AsT0.Value);
         }
-
-        var err = r.AsClosureError();
-
-        switch (err)
-        {
-            case ClosureNotFound:
-                log.Error("Library '{0}' not found in manifest. Skipping.", manifest.Name);
-                break;
-            default:
-                log.Warning("Binary closure could not be resolved for '{0}'. Skipping.", manifest.Name);
-                log.Verbose("Binary closure failed: {0}", err.Message);
-                if (err.Exception != null)
-                {
-                    log.Verbose("Details: {0}", err.Exception);
-                }
-
-                break;
-        }
-
-        return true;
     }
 }
