@@ -1,10 +1,11 @@
-﻿#pragma warning disable CA1031
+﻿#pragma warning disable CA1031, MA0051
 
 using System.Collections.Immutable;
 using Build.Context;
 using Build.Context.Models;
 using Build.Modules.Contracts;
 using Build.Modules.Harvesting.Models;
+using Build.Modules.Harvesting.Results;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;
@@ -53,8 +54,7 @@ public sealed class HarvestTask : AsyncFrostingTask<BuildContext>
 
         foreach (var library in librariesToProcess)
         {
-            var manifest = _manifestConfig.LibraryManifests
-                .SingleOrDefault(m => string.Equals(m.Name, library, StringComparison.OrdinalIgnoreCase));
+            var manifest = _manifestConfig.LibraryManifests.SingleOrDefault(m => string.Equals(m.Name, library, StringComparison.OrdinalIgnoreCase));
 
             if (manifest == null)
             {
@@ -67,19 +67,38 @@ public sealed class HarvestTask : AsyncFrostingTask<BuildContext>
 
             try
             {
-                var closure = await _binaryClosureWalker.BuildClosureAsync(manifest);
-                if (closure is null)
+                var closureResult = await _binaryClosureWalker.BuildClosureAsync(manifest);
+
+                if (closureResult.IsError())
                 {
-                    context.Log.Warning("Binary closure could not be resolved for '{0}'. Skipping.", manifest.Name);
+                    closureResult.LogError(context.Log, manifest);
                     allSucceeded = false;
                     continue;
                 }
 
+                var closure = closureResult.Closure;
+
                 var plan = await _artifactPlanner.CreatePlanAsync(manifest, closure, outputBase);
-                await _filesystemCopier.CopyAsync(plan.Artifacts);
 
-                var harvestReport = new HarvestReport(closure.PrimaryBinary, plan.Artifacts.ToImmutableHashSet(), closure.Packages.ToImmutableHashSet());
+                if (plan.IsError())
+                {
+                    context.Log.Error("Plan creation failed for '{0}'.", manifest.Name);
+                    allSucceeded = false;
+                    continue;
+                }
 
+                var artifacts = plan.ArtifactPlan.Artifacts;
+
+                var copierResult = await _filesystemCopier.CopyAsync(artifacts);
+
+                if (copierResult.IsError)
+                {
+                    context.Log.Error("Artifact copy failed for '{0}'.", manifest.Name);
+                    allSucceeded = false;
+                    continue;
+                }
+
+                var harvestReport = new HarvestReport(closure.PrimaryBinary, artifacts.ToImmutableHashSet(), closure.Packages.ToImmutableHashSet());
                 DisplayHarvestReportSummary(harvestReport, manifest.Name);
 
                 AnsiConsole.Write(new Rule($"[yellow]Finished Harvest: {manifest.Name}[/]").RuleStyle("grey"));
@@ -93,6 +112,9 @@ public sealed class HarvestTask : AsyncFrostingTask<BuildContext>
 
         if (!allSucceeded)
         {
+            context.Log.Verbose("Cleaning harvest output directory: {0}", outputBase);
+            context.CleanDirectory(outputBase);
+
             throw new CakeException("One or more libraries failed to harvest. Check logs for details.");
         }
 

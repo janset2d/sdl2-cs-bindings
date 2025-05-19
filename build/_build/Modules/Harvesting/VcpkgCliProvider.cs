@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using Build.Modules.Contracts;
 using Build.Modules.Harvesting.Models;
+using Build.Modules.Harvesting.Results;
 using Build.Tools.Vcpkg;
 using Build.Tools.Vcpkg.Settings;
 using Cake.Core;
@@ -29,46 +30,46 @@ public sealed class VcpkgCliProvider : IPackageInfoProvider
         _log = log ?? throw new ArgumentNullException(nameof(log));
     }
 
-    public async Task<PackageInfo?> GetPackageInfoAsync(string packageName, string triplet, CancellationToken ct = default)
+    public async Task<PackageInfoResult> GetPackageInfoAsync(string packageName, string triplet, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(packageName);
         ArgumentException.ThrowIfNullOrEmpty(triplet);
 
-        var packageKey = $"{packageName}:{triplet}";
-        var settings = new VcpkgPackageInfoSettings(_vcpkgRoot) { JsonOutput = true, Installed = true };
-
-        var vcpkgJsonOutput = await Task.Run(() => _context.VcpkgPackageInfo(packageKey, settings), ct).ConfigureAwait(false);
-
-        if (string.IsNullOrEmpty(vcpkgJsonOutput))
-        {
-            _log.Warning("Vcpkg x-package-info returned no output for {0}.", packageKey);
-            return null;
-        }
-
         try
         {
+            var packageKey = $"{packageName}:{triplet}";
+            var settings = new VcpkgPackageInfoSettings(_vcpkgRoot) { JsonOutput = true, Installed = true };
+
+            var vcpkgJsonOutput = await Task.Run(() => _context.VcpkgPackageInfo(packageKey, settings), ct).ConfigureAwait(false);
+
+            if (string.IsNullOrEmpty(vcpkgJsonOutput))
+            {
+                var message = $"Vcpkg x-package-info returned no output for {packageKey}.";
+                _log.Warning(message);
+                return new PackageInfoError(message);
+            }
+
             var vcpkgInstalledOutput = JsonSerializer.Deserialize<VcpkgInstalledPackageOutput>(vcpkgJsonOutput);
             if (vcpkgInstalledOutput == null || !vcpkgInstalledOutput.Results.TryGetValue(packageKey, out var packageResult))
             {
-                _log.Warning("Failed to deserialize or find package info for {0} in vcpkg output.", packageKey);
-                return null;
+                var message = $"Failed to deserialize or find package info for {packageKey} in vcpkg output.";
+                _log.Warning(message);
+                return new PackageInfoError(message);
             }
 
             var ownedFiles = packageResult.Owns
                 .Select(relativeChildPath => _vcpkgInstallDir.CombineWithFilePath(relativeChildPath))
                 .ToImmutableList();
 
-            return new PackageInfo(
-                PackageName: packageName,
-                Triplet: triplet,
-                OwnedFiles: ownedFiles,
-                DeclaredDependencies: packageResult.Dependencies
-            );
+            return new PackageInfo(PackageName: packageName, Triplet: triplet, OwnedFiles: ownedFiles, DeclaredDependencies: packageResult.Dependencies);
         }
-        catch (JsonException ex)
+        catch (OperationCanceledException)
         {
-            _log.Error("Failed to deserialize vcpkg x-package-info output for {0}. Json: {1}. Message {3}", packageKey, vcpkgJsonOutput, ex.Message);
-            return null;
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return new PackageInfoError($"Error building dependency closure: {ex.Message}", ex);
         }
     }
 }

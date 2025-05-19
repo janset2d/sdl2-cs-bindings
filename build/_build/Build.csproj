@@ -14,6 +14,9 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Cake.Frosting"/>
+    <PackageReference Include="OneOf" />
+    <PackageReference Include="OneOf.Monads" />
+    <PackageReference Include="OneOf.SourceGenerator" />
     <PackageReference Include="System.CommandLine"/>
     <PackageReference Include="System.CommandLine.NamingConventionBinder" />
   </ItemGroup>

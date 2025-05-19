@@ -1,6 +1,9 @@
-﻿using Build.Context.Models;
+﻿#pragma warning disable CA1031, MA0051
+
+using Build.Context.Models;
 using Build.Modules.Contracts;
 using Build.Modules.Harvesting.Models;
+using Build.Modules.Harvesting.Results;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;
@@ -16,97 +19,108 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
     private readonly ICakeContext _ctx = ctx ?? throw new ArgumentNullException(nameof(ctx));
     private readonly ICakeLog _log = ctx.Log;
 
-#pragma warning disable MA0051
-    public async Task<BinaryClosure?> BuildClosureAsync(LibraryManifest manifest, CancellationToken ct = default)
-#pragma warning restore MA0051
+    public async Task<ClosureResult> BuildClosureAsync(LibraryManifest manifest, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(manifest);
 
-        var rootInfo = await _pkg.GetPackageInfoAsync(manifest.VcpkgName, _profile.Triplet, ct);
-        if (rootInfo is null)
+        try
         {
-            _log.Error("vcpkg info for package {0} not found.", manifest.VcpkgName);
-            return null;
-        }
-
-        var libName = manifest.LibNames.First(x => x.Os.Equals(_profile.OsFamily, StringComparison.OrdinalIgnoreCase)).Name;
-        var primary = rootInfo.OwnedFiles.FirstOrDefault(f => f.GetFilename().FullPath.Equals(libName, StringComparison.OrdinalIgnoreCase));
-
-        if (primary is null || !_ctx.FileExists(primary))
-        {
-            throw new CakeException($"Primary binary '{libName}' not found for {manifest.VcpkgName}");
-        }
-
-        var pkgQueue = new Queue<(string OwnerPackage, string OriginPackage)>([(rootInfo.PackageName, rootInfo.PackageName)]);
-        var seenPkgs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var nodesDict = new Dictionary<FilePath, BinaryNode>();
-
-        while (pkgQueue.TryDequeue(out var package))
-        {
-            var ownerPackage = package.OwnerPackage;
-            var originPackage = package.OriginPackage;
-
-            if (!seenPkgs.Add(ownerPackage))
+            var rootPkgInfoResult = await _pkg.GetPackageInfoAsync(manifest.VcpkgName, _profile.Triplet, ct);
+            if (rootPkgInfoResult.IsError())
             {
-                continue;
+                return new ClosureNotFound($"vcpkg info for package {manifest.VcpkgName} not found.");
             }
 
-            ct.ThrowIfCancellationRequested();
+            var rootPkgInfo = rootPkgInfoResult.PackageInfo;
+            var libName = manifest.LibNames.First(x => x.Os.Equals(_profile.OsFamily, StringComparison.OrdinalIgnoreCase)).Name;
+            var primary = rootPkgInfo.OwnedFiles.FirstOrDefault(f => f.GetFilename().FullPath.Equals(libName, StringComparison.OrdinalIgnoreCase));
 
-            var info = await _pkg.GetPackageInfoAsync(ownerPackage, _profile.Triplet, ct);
-            if (info is null)
+            if (primary is null || !_ctx.FileExists(primary))
             {
-                continue;
+                return new ClosureError($"Primary binary '{libName}' not found for {manifest.VcpkgName}");
             }
 
-            var ownedBinaries = info.OwnedFiles.Where(IsBinary).ToList();
-            foreach (var bin in ownedBinaries)
-            {
-                nodesDict.TryAdd(bin, new BinaryNode(bin, ownerPackage, originPackage));
-            }
+            var pkgQueue = new Queue<(string OwnerPackage, string OriginPackage)>([(rootPkgInfo.PackageName, rootPkgInfo.PackageName)]);
+            var seenPkgs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var nodesDict = new Dictionary<FilePath, BinaryNode>();
 
-            originPackage = info.PackageName;
-
-            foreach (var depKey in info.DeclaredDependencies)
+            while (pkgQueue.TryDequeue(out var package))
             {
-                if (depKey.StartsWith("vcpkg-", StringComparison.OrdinalIgnoreCase))
+                var ownerPackage = package.OwnerPackage;
+                var originPackage = package.OriginPackage;
+
+                if (!seenPkgs.Add(ownerPackage))
                 {
                     continue;
                 }
 
-                var idx = depKey.IndexOf(':', StringComparison.OrdinalIgnoreCase);
-                if (idx <= 0)
+                ct.ThrowIfCancellationRequested();
+
+                var ownerPkgInfoResult = await _pkg.GetPackageInfoAsync(ownerPackage, _profile.Triplet, ct);
+                if (ownerPkgInfoResult.IsError())
                 {
+                    _log.Warning("Package info not found for dependency {0}, continuing.", ownerPackage);
                     continue;
                 }
 
-                pkgQueue.Enqueue((depKey[..idx], originPackage));
+                var ownerPkgInfo = ownerPkgInfoResult.PackageInfo;
+                var ownedBinaries = ownerPkgInfo.OwnedFiles.Where(IsBinary).ToList();
+                foreach (var bin in ownedBinaries)
+                {
+                    nodesDict.TryAdd(bin, new BinaryNode(bin, ownerPackage, originPackage));
+                }
+
+                originPackage = ownerPkgInfo.PackageName;
+
+                foreach (var depKey in ownerPkgInfo.DeclaredDependencies)
+                {
+                    if (depKey.StartsWith("vcpkg-", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    var idx = depKey.IndexOf(':', StringComparison.OrdinalIgnoreCase);
+                    if (idx <= 0)
+                    {
+                        continue;
+                    }
+
+                    pkgQueue.Enqueue((depKey[..idx], originPackage));
+                }
             }
-        }
 
-        var binQueue = new Queue<FilePath>(nodesDict.Keys);
+            var binQueue = new Queue<FilePath>(nodesDict.Keys);
 
-        while (binQueue.TryDequeue(out var bin))
-        {
-            ct.ThrowIfCancellationRequested();
-
-            var originPkg = nodesDict[bin].OriginPackage;
-            var deps = await _runtime.ScanAsync(bin, ct);
-
-            foreach (var dep in deps)
+            while (binQueue.TryDequeue(out var bin))
             {
-                if (_profile.IsSystemFile(dep) || nodesDict.ContainsKey(dep))
+                ct.ThrowIfCancellationRequested();
+
+                var originPkg = nodesDict[bin].OriginPackage;
+                var deps = await _runtime.ScanAsync(bin, ct);
+
+                foreach (var dep in deps)
                 {
-                    continue;
+                    if (_profile.IsSystemFile(dep) || nodesDict.ContainsKey(dep))
+                    {
+                        continue;
+                    }
+
+                    var owner = TryInferPackageNameFromPath(dep) ?? "Unknown";
+                    nodesDict[dep] = new BinaryNode(dep, owner, originPkg);
+                    binQueue.Enqueue(dep);
                 }
-
-                var owner = TryInferPackageNameFromPath(dep) ?? "Unknown";
-                nodesDict[dep] = new BinaryNode(dep, owner, originPkg);
-                binQueue.Enqueue(dep);
             }
-        }
 
-        return new BinaryClosure(primary, [.. nodesDict.Values], seenPkgs);
+            return new BinaryClosure(primary, [.. nodesDict.Values], seenPkgs);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return new ClosureError($"Error building dependency closure: {ex.Message}", ex);
+        }
     }
 
     // helper -------------------------------------------------------------------

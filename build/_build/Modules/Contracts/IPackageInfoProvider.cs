@@ -1,8 +1,8 @@
-using Build.Modules.Harvesting.Models;
+using Build.Modules.Harvesting.Results;
 
 namespace Build.Modules.Contracts;
 
 public interface IPackageInfoProvider
 {
-    Task<PackageInfo?> GetPackageInfoAsync(string packageName, string triplet, CancellationToken ct = default);
+    Task<PackageInfoResult> GetPackageInfoAsync(string packageName, string triplet, CancellationToken ct = default);
 }
