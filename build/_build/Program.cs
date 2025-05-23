@@ -1,4 +1,4 @@
-# pragma warning disable CA1031, MA0045
+# pragma warning disable CA1031, MA0045, MA0051
 
 using System.CommandLine;
 using System.CommandLine.Invocation;
@@ -47,9 +47,7 @@ root.AddOption(DumpbinOptions.DllOption);
 root.Handler = CommandHandler.Create<InvocationContext, ParsedArguments>(RunCakeHostAsync);
 return await root.InvokeAsync(args);
 
-#pragma warning disable MA0051
 static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArguments parsedArgs)
-#pragma warning restore MA0051
 {
     var repoRootPath = await DetermineRepoRootAsync(parsedArgs.RepoRoot);
     var cakeArgs = context.ParseResult.Tokens.Select(t => t.Value).ToArray();

@@ -30,6 +30,11 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "native", "native", "{DBDD4B41-8E5D-4054-9E86-774936387257}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{48B12DDA-EF6F-4EA0-AE3C-CB05AC322541}"
+	ProjectSection(SolutionItems) = preProject
+		build\manifest.json = build\manifest.json
+		build\runtimes.json = build\runtimes.json
+		build\system_artefacts.json = build\system_artefacts.json
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Build", "build\_build\Build.csproj", "{489AC60D-BC4D-4F0E-B590-060D10A196AF}"
 EndProject

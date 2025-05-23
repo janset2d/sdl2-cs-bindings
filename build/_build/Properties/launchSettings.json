@@ -14,7 +14,7 @@
     },
     "Vcpkg-Harvest": {
       "commandName": "Project",
-      "commandLineArgs": "--target harvest --library SDL2 --library SDL2_image"
+      "commandLineArgs": "--target harvest --library SDL2 --library SDL2_image --verbosity diagnostic"
     },
     "Dumpbin-Dependents": {
       "commandName": "Project",
