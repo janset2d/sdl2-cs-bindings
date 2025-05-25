@@ -208,50 +208,17 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
         }
     }
 
-    private string? TryInferPackageNameFromPath(FilePath p)
+    private static string? TryInferPackageNameFromPath(FilePath p)
     {
         // .../vcpkg_installed/<triplet>/(bin|lib|share)/<package>/...
         var segments = p.Segments;
         var vcpkgIndex = Array.FindIndex(segments, s => s.Equals("vcpkg_installed", StringComparison.OrdinalIgnoreCase));
         
-        if (vcpkgIndex < 0 || vcpkgIndex + 2 >= segments.Length)
+        if (vcpkgIndex < 0 || vcpkgIndex + 3 >= segments.Length)
             return null;
         
-        var subdirIndex = vcpkgIndex + 2; // bin, lib, or share
-        var subdir = segments[subdirIndex];
-        
-        // For lib directory on Unix, libraries are directly in lib/, infer from filename
-        if (subdir.Equals("lib", StringComparison.OrdinalIgnoreCase) && _profile.OsFamily != "Windows")
-        {
-            return InferPackageFromLibraryName(p.GetFilename().FullPath);
-        }
-        
-        // For bin/share, or Windows lib, use directory structure
-        return vcpkgIndex + 3 < segments.Length ? segments[vcpkgIndex + 3] : null;
-    }
-
-    private static string? InferPackageFromLibraryName(string filename)
-    {
-        // libSDL2-2.0.so.0.3200.4 -> sdl2
-        // libwebp.so.7.1.10 -> libwebp
-        // libSDL2_image-2.0.so.0.800.8 -> sdl2-image
-        
-        if (!filename.StartsWith("lib", StringComparison.OrdinalIgnoreCase))
-            return null;
-        
-        var nameWithoutLib = filename[3..]; // Remove "lib" prefix
-        var nameWithoutExt = nameWithoutLib.Split('.')[0]; // Remove version/extension
-        
-        // Handle special cases for SDL libraries
-        return nameWithoutExt.ToLowerInvariant() switch
-        {
-            "sdl2" or "sdl2-2" => "sdl2",
-            "sdl2_image" or "sdl2_image-2" => "sdl2-image",
-            "sdl2_mixer" or "sdl2_mixer-2" => "sdl2-mixer", 
-            "sdl2_ttf" or "sdl2_ttf-2" => "sdl2-ttf",
-            "sdl2_gfx" or "sdl2_gfx-1" => "sdl2-gfx",
-            _ => nameWithoutExt.ToLowerInvariant()
-        };
+        // Use directory structure when available (Windows bin/, or Unix with subdirectories)
+        return segments[vcpkgIndex + 3];
     }
 
     private bool IsBinary(FilePath f)

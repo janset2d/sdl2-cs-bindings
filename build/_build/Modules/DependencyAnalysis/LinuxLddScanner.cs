@@ -15,10 +15,10 @@ public sealed class LinuxLddScanner : IRuntimeScanner
     private readonly ICakeContext _context;
     private readonly ICakeLog _log;
 
-    public LinuxLddScanner(ICakeContext context, ICakeLog log)
+    public LinuxLddScanner(ICakeContext context)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
-        _log = log ?? throw new ArgumentNullException(nameof(log));
+        _log = context.Log;
     }
 
     public async Task<IReadOnlySet<FilePath>> ScanAsync(FilePath binary, CancellationToken ct = default)
@@ -34,14 +34,8 @@ public sealed class LinuxLddScanner : IRuntimeScanner
             
             foreach (var (libName, libPath) in dependencies)
             {
-                // Skip virtual DSOs and system paths
-                if (IsVirtualOrSystemLibrary(libName, libPath))
-                {
-                    _log.Verbose("Skipping system/virtual library: {0} => {1}", libName, libPath);
-                    continue;
-                }
-                
                 var filePath = new FilePath(libPath);
+                
                 if (_context.FileExists(filePath))
                 {
                     result.Add(filePath);
@@ -49,7 +43,7 @@ public sealed class LinuxLddScanner : IRuntimeScanner
                 }
                 else
                 {
-                    _log.Warning("Dependency {0} at {1} not found on filesystem", libName, libPath);
+                    _log.Verbose("Dependency {0} at {1} not found on filesystem", libName, libPath);
                 }
             }
 
@@ -77,16 +71,5 @@ public sealed class LinuxLddScanner : IRuntimeScanner
         }
     }
 
-    private static bool IsVirtualOrSystemLibrary(string libName, string libPath)
-    {
-        // Skip virtual DSOs
-        if (libName.Equals("linux-vdso.so.1", StringComparison.OrdinalIgnoreCase))
-            return true;
-        
-        // Skip system paths - libraries in standard system directories
-        return libPath.StartsWith("/lib/", StringComparison.OrdinalIgnoreCase) ||
-               libPath.StartsWith("/usr/lib/", StringComparison.OrdinalIgnoreCase) ||
-               libPath.StartsWith("/lib64/", StringComparison.OrdinalIgnoreCase) ||
-               libPath.StartsWith("/usr/lib64/", StringComparison.OrdinalIgnoreCase);
-    }
+
 }

@@ -32,20 +32,20 @@
   },
   "linux": {
     "system_libraries": [
-      "ld-linux-x86-64.so.2",
-      "ld-linux-aarch64.so.1",
-      "linux-vdso.so.1",
-      "libc.so.6",
-      "libm.so.6",
-      "libpthread.so.0",
-      "libdl.so.2",
-      "librt.so.1",
-      "libstdc++.so.6",
-      "libgcc_s.so.1",
+      "linux-vdso.so.*",
+      "ld-linux-aarch64.so",
+      "ld-linux-*.so.*",
+      "linux-vdso.so.*",
+      "libc.so.*",
+      "libm.so.*",
+      "libpthread.so.*",
+      "libdl.so.*",
+      "librt.so.*",
+      "libstdc++.so.*",
       "libgcc_s.so.*",
-      "libresolv.so.2",
+      "libresolv.so.*",
       "libnss_*.so.*",
-      "libutil.so.1"
+      "libutil.so.*"
     ]
   },
   "osx": {
