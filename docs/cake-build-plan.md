@@ -279,6 +279,404 @@ The implementation will follow these incremental phases:
   * Robust Dynamic Dependency Handling: Replace/augment manual mapping in VcpkgHarvester by parsing Vcpkg package metadata (vcpkg x-package-info) to automatically identify runtime dependencies associated with installed features.
   * **Contribution Guidelines:** Create a `CONTRIBUTING.md` document detailing development setup, PR process, versioning policy enforcement (e.g., `version.json` updates), and secret management for forks.
 
-## **6\. Conclusion**
+## **6\. Implementation Insights & Critical Knowledge Transfer**
 
-This plan outlines a robust, maintainable, and scalable approach for the janset2d/sdl2-cs-bindings build system using Cake Frosting. By following the defined architecture, policies, and phased implementation, the project aims to achieve its goals efficiently while incorporating best practices for build automation and CI/CD. The next step is to begin implementation starting with Phase 0.5/Phase 1\.
+### **6.1 Overview**
+
+This section documents critical insights, lessons learned, and architectural decisions discovered during the Linux implementation phase. It serves as a knowledge transfer guide for future developers, particularly those implementing macOS support or extending the system.
+
+### **6.2 Core Architecture Insights**
+
+#### **6.2.1 Scanner Responsibility Separation (CRITICAL)**
+
+**Key Learning**: The `IRuntimeScanner` implementations must be **pure dependency discoverers**, not decision makers.
+
+**What We Learned**:
+- Initially, `LinuxLddScanner` was filtering system libraries and virtual DSOs
+- This created **inconsistent behavior** between `WindowsDumpbinScanner` (no filtering) and `LinuxLddScanner` (heavy filtering)
+- **Correct Design**: All scanners return raw dependency lists; `BinaryClosureWalker` makes all filtering decisions via `RuntimeProfile.IsSystemFile()`
+
+**Implementation Pattern**:
+```csharp
+// ✅ CORRECT: Scanner returns everything it finds
+foreach (var (libName, libPath) in dependencies)
+{
+    var filePath = new FilePath(libPath);
+    if (_context.FileExists(filePath))
+    {
+        result.Add(filePath);  // Return ALL real dependencies
+    }
+}
+
+// ✅ CORRECT: BinaryClosureWalker filters using centralized logic
+foreach (var dep in deps)
+{
+    if (_profile.IsSystemFile(dep) || nodesDict.ContainsKey(dep))
+    {
+        continue;  // Centralized filtering
+    }
+    // Process dependency...
+}
+```
+
+**For macOS Implementation**: Follow this exact pattern. `MacOtoolScanner` should return all dependencies found by `otool -L`, and let `BinaryClosureWalker` handle system library filtering.
+
+#### **6.2.2 System Library Configuration Strategy**
+
+**Key Learning**: Use `system_artefacts.json` as the single source of truth for system library patterns.
+
+**Critical Patterns**:
+```json
+{
+  "linux": {
+    "system_libraries": [
+      "linux-vdso.so.*",        // Virtual DSO (Linux-specific)
+      "ld-linux-*.so.*",        // Dynamic linker (architecture-agnostic)
+      "libc.so.*",              // Core system libraries (version-agnostic)
+      "libm.so.*",
+      "libpthread.so.*"
+    ]
+  }
+}
+```
+
+**For macOS**: You'll need to add macOS system library patterns:
+```json
+{
+  "osx": {
+    "system_libraries": [
+      "/usr/lib/libSystem.B.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/System/Library/Frameworks/*.framework/*",
+      "/usr/lib/system/*"
+    ]
+  }
+}
+```
+
+**Pro Tip**: Use star patterns (`*`) instead of hardcoded versions. This makes the system resilient to OS updates.
+
+### **6.3 Platform-Specific Implementation Patterns**
+
+#### **6.3.1 Binary Discovery & Symlink Handling**
+
+**Critical Insight**: Unix systems (Linux/macOS) have fundamentally different binary organization than Windows.
+
+**Linux Symlink Chain Example**:
+```
+libSDL2.so → libSDL2-2.0.so → libSDL2-2.0.so.0 → libSDL2-2.0.so.0.3200.4 (real file)
+```
+
+**Key Implementation Points**:
+
+1. **Binary Detection Must Be Platform-Aware**:
+```csharp
+private bool IsBinary(FilePath f)
+{
+    var ext = f.GetExtension();
+    return _profile.OsFamily switch
+    {
+        "Windows" => string.Equals(ext, ".dll", StringComparison.OrdinalIgnoreCase),
+        "Linux" => string.Equals(ext, ".so", StringComparison.OrdinalIgnoreCase) || 
+                  f.GetFilename().FullPath.Contains(".so.", StringComparison.OrdinalIgnoreCase),
+        "OSX" => string.Equals(ext, ".dylib", StringComparison.OrdinalIgnoreCase),
+        _ => false
+    };
+}
+```
+
+2. **Primary Binary Resolution for Unix**:
+```csharp
+// Find the real file (not a symlink) in the chain
+private async Task<FilePath?> ResolveUnixPrimaryBinaryAsync(PackageInfo pkgInfo, string expectedName)
+{
+    // Look for all files matching the base name pattern
+    var baseNameWithoutExt = expectedName.Replace(".so", "", StringComparison.OrdinalIgnoreCase);
+    var candidates = pkgInfo.OwnedFiles
+        .Where(f => IsBinary(f) && 
+                   f.GetFilename().FullPath.StartsWith(baseNameWithoutExt, StringComparison.OrdinalIgnoreCase))
+        .ToList();
+    
+    // Find the real file (longest name is usually the versioned real file)
+    foreach (var candidate in candidates.OrderByDescending(f => f.GetFilename().FullPath.Length))
+    {
+        if (_ctx.FileExists(candidate) && !await IsSymlinkAsync(candidate))
+        {
+            return candidate;
+        }
+    }
+    return null;
+}
+```
+
+**For macOS**: Similar pattern, but `.dylib` files may have different versioning schemes. Research macOS dylib naming conventions.
+
+#### **6.3.2 Symlink-Aware File Copying (CRITICAL)**
+
+**Key Learning**: NuGet doesn't support symlinks, but Unix applications expect them. We must preserve symlinks during copying.
+
+**Implementation Strategy**:
+```csharp
+public async Task<CopyResult> CopyFileAsync(FilePath source, FilePath destination)
+{
+    if (_profile.OsFamily != "Windows")
+    {
+        // Check if source is a symlink
+        var sourceInfo = new FileInfo(source.FullPath);
+        if (sourceInfo.LinkTarget != null)
+        {
+            // Preserve symlink
+            var targetPath = Path.Combine(destination.GetDirectory().FullPath, source.GetFilename().FullPath);
+            File.CreateSymbolicLink(targetPath, sourceInfo.LinkTarget);
+            return CopyResult.Success();
+        }
+    }
+    
+    // Regular file copy for Windows or real files
+    _context.CopyFile(source, destination);
+    return CopyResult.Success();
+}
+```
+
+**For macOS**: Same approach should work. Test thoroughly with macOS dylib symlinks.
+
+### **6.4 Tool Integration Patterns**
+
+#### **6.4.1 Platform Tool Wrapper Design**
+
+**Pattern Established**:
+```csharp
+// Tool wrapper structure
+public sealed class LinuxLddScanner : IRuntimeScanner
+{
+    private readonly ICakeContext _context;
+    private readonly ICakeLog _log;
+
+    public LinuxLddScanner(ICakeContext context)  // Simple constructor
+    {
+        _context = context ?? throw new ArgumentNullException(nameof(context));
+        _log = context.Log;
+    }
+
+    public async Task<IReadOnlySet<FilePath>> ScanAsync(FilePath binary, CancellationToken ct = default)
+    {
+        // Use existing tool wrapper (LddRunner via aliases)
+        var settings = new LddSettings(binary);
+        var dependencies = await Task.Run(() => _context.LddDependencies(settings), ct);
+        
+        // Process results...
+    }
+}
+```
+
+**For macOS**: Create `MacOtoolScanner` following this exact pattern:
+```csharp
+public sealed class MacOtoolScanner : IRuntimeScanner
+{
+    private readonly ICakeContext _context;
+    private readonly ICakeLog _log;
+
+    public MacOtoolScanner(ICakeContext context)
+    {
+        _context = context ?? throw new ArgumentNullException(nameof(context));
+        _log = context.Log;
+    }
+
+    public async Task<IReadOnlySet<FilePath>> ScanAsync(FilePath binary, CancellationToken ct = default)
+    {
+        var settings = new OtoolSettings(binary);
+        var dependencies = await Task.Run(() => _context.OtoolDependencies(settings), ct);
+        // Process otool -L output...
+    }
+}
+```
+
+#### **6.4.2 DI Registration Pattern**
+
+**Established Pattern**:
+```csharp
+services.AddSingleton<IRuntimeScanner>(provider =>
+{
+    var env = provider.GetRequiredService<ICakeEnvironment>();
+    var context = provider.GetRequiredService<ICakeContext>();
+    var log = provider.GetRequiredService<ICakeLog>();
+
+    var currentRid = env.Platform.Rid();
+    return currentRid switch
+    {
+        Rids.WinX64 or Rids.WinX86 or Rids.WinArm64 => new WindowsDumpbinScanner(context),
+        Rids.LinuxX64 or Rids.LinuxArm64 => new LinuxLddScanner(context),
+        Rids.OsxX64 or Rids.OsxArm64 => new MacOtoolScanner(context),  // Add this
+        _ => throw new NotSupportedException($"Unsupported OS for IRuntimeScanner: {currentRid}"),
+    };
+});
+```
+
+### **6.5 Critical Implementation Details**
+
+#### **6.5.1 Package Inference Simplification**
+
+**Key Learning**: Avoid complex package name inference logic. Keep it simple.
+
+**What We Learned**:
+- Initially tried complex library name parsing with magic strings
+- **Better approach**: Use simple directory structure when available, fallback to "Unknown"
+
+```csharp
+private static string? TryInferPackageNameFromPath(FilePath p)
+{
+    // .../vcpkg_installed/<triplet>/(bin|lib|share)/<package>/...
+    var segments = p.Segments;
+    var vcpkgIndex = Array.FindIndex(segments, s => s.Equals("vcpkg_installed", StringComparison.OrdinalIgnoreCase));
+    
+    if (vcpkgIndex < 0 || vcpkgIndex + 3 >= segments.Length)
+        return null;
+    
+    // Use directory structure when available
+    return segments[vcpkgIndex + 3];
+}
+```
+
+**For macOS**: Same logic should work. Don't overcomplicate it.
+
+#### **6.5.2 Error Handling & Logging Strategy**
+
+**Pattern Established**:
+```csharp
+try
+{
+    // Main logic
+}
+catch (OperationCanceledException)
+{
+    throw;  // Always re-throw cancellation
+}
+catch (SpecificException ex)
+{
+    _log.Error("Specific error context: {0}", ex.Message);
+    return EmptyResult;  // Graceful degradation
+}
+```
+
+**Key Points**:
+- Always handle `OperationCanceledException` specially
+- Use specific exception types when possible
+- Provide meaningful error context in logs
+- Prefer graceful degradation over hard failures
+
+### **6.6 Testing & Validation Strategies**
+
+#### **6.6.1 Symlink Validation**
+
+**Critical Test**:
+```bash
+# After harvest, verify symlinks are preserved
+ls -la artifacts/harvest_output/SDL2_image/runtimes/linux-x64/native/libSDL2_image*
+
+# Should show:
+# lrwxrwxrwx ... libSDL2_image.so -> libSDL2_image-2.0.so.0
+# lrwxrwxrwx ... libSDL2_image-2.0.so -> libSDL2_image-2.0.so.0
+# -rwxrwxrwx ... libSDL2_image-2.0.so.0.800.8 (real file)
+```
+
+**For macOS**: Implement similar validation for `.dylib` symlinks.
+
+#### **6.6.2 Dependency Count Validation**
+
+**Key Insight**: After refactoring, dependency counts should increase because scanners now return everything.
+
+**Before refactor**: `LDD scan of libSDL2_image-2.0.so found 12 dependencies`
+**After refactor**: `LDD scan of libSDL2_image-2.0.so found 17 dependencies`
+
+This increase is **expected and correct** - the scanner now reports all dependencies, and `BinaryClosureWalker` filters appropriately.
+
+### **6.7 macOS-Specific Implementation Guidance**
+
+#### **6.7.1 Tool Requirements**
+
+**You'll need to implement**:
+1. `Tools/Otool/OtoolRunner.cs` - Wrapper for `otool -L`
+2. `Tools/Otool/OtoolSettings.cs` - Settings class
+3. `Tools/Otool/OtoolAliases.cs` - Cake aliases
+4. `Modules/DependencyAnalysis/MacOtoolScanner.cs` - Scanner implementation
+
+#### **6.7.2 Expected `otool -L` Output Format**
+
+```bash
+$ otool -L /path/to/library.dylib
+/path/to/library.dylib:
+    /usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1311.0.0)
+    /usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 905.6.0)
+    @rpath/libSDL2-2.0.0.dylib (compatibility version 1.0.0, current version 1.0.0)
+```
+
+**Key Points**:
+- Parse lines that start with whitespace
+- Handle `@rpath`, `@loader_path`, `@executable_path` prefixes
+- Extract actual file paths for dependency resolution
+
+#### **6.7.3 macOS System Library Patterns**
+
+**Research needed**:
+- System frameworks: `/System/Library/Frameworks/`
+- System libraries: `/usr/lib/`
+- Core libraries: `libSystem.B.dylib`, `libc++.1.dylib`
+
+#### **6.7.4 macOS Binary Naming Conventions**
+
+**Research needed**:
+- How are versioned dylibs named? (e.g., `libSDL2-2.0.0.dylib`)
+- What symlink patterns exist?
+- How does vcpkg organize macOS binaries?
+
+### **6.8 Performance & Optimization Notes**
+
+#### **6.8.1 Caching Opportunities**
+
+**Identified**:
+- `IsSymlinkAsync` calls could be cached per file
+- Package info queries could be memoized
+- Dependency scan results could be cached by binary hash
+
+#### **6.8.2 Parallel Processing Potential**
+
+**Current**: Sequential dependency scanning
+**Future**: Could parallelize scanning of independent binaries
+
+### **6.9 Known Issues & Workarounds**
+
+#### **6.9.1 Duplicate File Warnings**
+
+**Issue**: `IO error copying libavif.so: The file already exists`
+**Cause**: Both debug and release versions of libraries processed
+**Status**: Expected behavior, not a bug
+**Solution**: Implement smarter deduplication if needed
+
+#### **6.9.2 Missing Package Info**
+
+**Issue**: `Package info not found for dependency alsa, continuing.`
+**Cause**: Some system packages not installed via vcpkg
+**Status**: Expected for system dependencies
+**Solution**: Graceful degradation already implemented
+
+### **6.10 Future Enhancement Opportunities**
+
+1. **Archive Support**: Implement ZIP/TAR.GZ packaging for Linux symlinks
+2. **RPATH Manipulation**: Use `patchelf` to flatten dependency trees
+3. **Parallel Scanning**: Speed up dependency resolution
+4. **Smart Caching**: Cache expensive operations
+5. **Better Package Inference**: Use vcpkg metadata more effectively
+
+### **6.11 Critical Success Metrics**
+
+**For macOS implementation, ensure**:
+1. ✅ All dylib dependencies discovered correctly
+2. ✅ System libraries filtered appropriately  
+3. ✅ Symlinks preserved in output
+4. ✅ Primary binary resolution works for dylib chains
+5. ✅ Integration with existing `BinaryClosureWalker` seamless
+6. ✅ No regression in Windows/Linux functionality
+
+## **7\. Conclusion**
+
+This plan outlines a robust, maintainable, and scalable approach for the janset2d/sdl2-cs-bindings build system using Cake Frosting. By following the defined architecture, policies, and phased implementation, the project aims to achieve its goals efficiently while incorporating best practices for build automation and CI/CD. The implementation insights in Section 6 provide critical knowledge for extending the system to additional platforms and maintaining code quality. The next step is to begin implementation starting with Phase 0.5/Phase 1\.
