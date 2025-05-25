@@ -84,7 +84,12 @@ static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArgumen
             services.AddSingleton<IPackageInfoProvider, VcpkgCliProvider>();
             services.AddSingleton<IBinaryClosureWalker, BinaryClosureWalker>();
             services.AddSingleton<IArtifactPlanner, ArtifactPlanner>();
-            services.AddSingleton<IFilesystemCopier, CakeFilesystemCopier>();
+            services.AddSingleton<IFilesystemCopier>(provider =>
+            {
+                var context = provider.GetRequiredService<ICakeContext>();
+                var profile = provider.GetRequiredService<IRuntimeProfile>();
+                return new SymlinkAwareFilesystemCopier(context, profile);
+            });
 
             services.AddSingleton<IRuntimeScanner>(provider =>
             {
@@ -96,7 +101,7 @@ static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArgumen
                 return currentRid switch
                 {
                     Rids.WinX64 or Rids.WinX86 or Rids.WinArm64 => new WindowsDumpbinScanner(context),
-                    Rids.LinuxX64 or Rids.LinuxArm64 => new LinuxLddScanner(log),
+                    Rids.LinuxX64 or Rids.LinuxArm64 => new LinuxLddScanner(context, log),
                     Rids.OsxX64 or Rids.OsxArm64 => new MacOtoolScanner(log),
                     _ => throw new NotSupportedException($"Unsupported OS for IRuntimeScanner: {currentRid}"),
                 };
