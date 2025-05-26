@@ -109,8 +109,79 @@ public sealed class ArtifactPlanner : IArtifactPlanner
                 actions.Add(new ArchiveCreationAction(archiveFinalPath, vcpkgInstalledLibDir, itemsForUnixArchive, archiveName));
             }
 
-            _log.Information("Created deployment plan for {0} with {1} action(s).", currentLibraryName, actions.Count);
-            return new DeploymentPlan(actions);
+            // Create deployment statistics
+            var primaryFiles = new List<FileDeploymentInfo>();
+            var runtimeFiles = new List<FileDeploymentInfo>();
+            var licenseFiles = new List<FileDeploymentInfo>();
+            var deployedPackages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var filteredPackages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // Analyze what's being deployed
+            foreach (var action in actions)
+            {
+                switch (action)
+                {
+                    case FileCopyAction fileCopy:
+                        var location = DeploymentLocation.FileSystem;
+                        switch (fileCopy.Origin)
+                        {
+                            case ArtifactOrigin.Primary:
+                                primaryFiles.Add(new FileDeploymentInfo(fileCopy.SourcePath, fileCopy.PackageName, location));
+                                break;
+                            case ArtifactOrigin.Runtime:
+                                runtimeFiles.Add(new FileDeploymentInfo(fileCopy.SourcePath, fileCopy.PackageName, location));
+                                break;
+                            case ArtifactOrigin.License:
+                                licenseFiles.Add(new FileDeploymentInfo(fileCopy.SourcePath, fileCopy.PackageName, location));
+                                break;
+                        }
+                        deployedPackages.Add(fileCopy.PackageName);
+                        break;
+                    case ArchiveCreationAction archiveAction:
+                        foreach (var item in archiveAction.ItemsToArchive)
+                        {
+                            var archiveLocation = DeploymentLocation.Archive;
+                            switch (item.Origin)
+                            {
+                                case ArtifactOrigin.Primary:
+                                    primaryFiles.Add(new FileDeploymentInfo(item.SourcePath, item.PackageName, archiveLocation));
+                                    break;
+                                case ArtifactOrigin.Runtime:
+                                    runtimeFiles.Add(new FileDeploymentInfo(item.SourcePath, item.PackageName, archiveLocation));
+                                    break;
+                            }
+                            deployedPackages.Add(item.PackageName);
+                        }
+                        break;
+                }
+            }
+
+            // Identify filtered packages (packages in closure but not deployed)
+            foreach (var packageName in closure.Packages)
+            {
+                if (!deployedPackages.Contains(packageName))
+                {
+                    filteredPackages.Add(packageName);
+                }
+            }
+
+            var strategy = _environment.Platform.Family == PlatformFamily.Windows
+                ? DeploymentStrategy.DirectCopy
+                : DeploymentStrategy.Archive;
+
+            var statistics = new DeploymentStatistics(
+                currentLibraryName,
+                primaryFiles,
+                runtimeFiles,
+                licenseFiles,
+                deployedPackages,
+                filteredPackages,
+                strategy);
+
+            _log.Information("Created deployment plan for {0}: {1} primary, {2} runtime, {3} license files via {4}.",
+                currentLibraryName, primaryFiles.Count, runtimeFiles.Count, licenseFiles.Count, strategy);
+
+            return new DeploymentPlan(actions, statistics);
         }
         catch (OperationCanceledException)
         {

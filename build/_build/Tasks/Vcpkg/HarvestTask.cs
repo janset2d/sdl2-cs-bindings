@@ -8,6 +8,7 @@ using Build.Modules.Harvesting.Results;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;
+using Cake.Core.IO;
 using Cake.Frosting;
 using Spectre.Console;
 
@@ -61,99 +62,146 @@ public sealed class HarvestTask : AsyncFrostingTask<BuildContext>
             var copierResult = await _artifactDeployer.DeployArtifactsAsync(plannerResult.ArtifactPlan);
             copierResult.ThrowIfError(e => LogAndThrow("Artifact copying", e, context.Log, manifest.Name));
 
-            DisplayHarvestReportSummary(closureResult.Closure, plannerResult.ArtifactPlan, manifest.Name);
+            DisplayHarvestReportSummary(plannerResult.ArtifactPlan.Statistics);
             AnsiConsole.Write(new Rule($"[yellow]Finished Harvest: {manifest.Name}[/]").RuleStyle("grey"));
         }
 
         AnsiConsole.Write(new Rule("[green]Harvest completed successfully[/]").RuleStyle("grey"));
     }
 
-    private static void DisplayHarvestReportSummary(BinaryClosure binaryClosure, DeploymentPlan deploymentPlan, string libraryName)
+    private static void DisplayHarvestReportSummary(DeploymentStatistics stats)
     {
-        var primaryFiles = binaryClosure.PrimaryFiles;
-        var packagesInClosure = binaryClosure.Packages;
+        var deployedPackagesText = stats.DeployedPackages.Any()
+            ? string.Join(", ", stats.DeployedPackages.Order(StringComparer.Ordinal))
+            : "None";
 
-        var reportableArtifacts = new List<(string FileName, string PackageName, ArtifactOrigin Origin)>();
-        foreach (var action in deploymentPlan.Actions)
+        var filteredPackagesText = stats.FilteredPackages.Any()
+            ? string.Join(", ", stats.FilteredPackages.Order(StringComparer.Ordinal))
+            : "None";
+
+        var strategyText = stats.DeploymentStrategy switch
         {
-            switch (action)
-            {
-                case FileCopyAction copyAction:
-                    reportableArtifacts.Add((copyAction.SourcePath.GetFilename().FullPath, copyAction.PackageName, copyAction.Origin));
-                    break;
-                case ArchiveCreationAction archiveAction:
-                    reportableArtifacts.Add((archiveAction.ArchiveName, libraryName, ArtifactOrigin.Primary));
-                    reportableArtifacts.AddRange(archiveAction.ItemsToArchive.Select(item => (item.SourcePath.GetFilename().FullPath, item.PackageName, item.Origin)));
-                    break;
-            }
-        }
-
-        var primaryFilesText = primaryFiles.Any()
-            ? string.Join(", ", primaryFiles.Select(f => f.GetFilename().FullPath).Order(StringComparer.Ordinal))
-            : "N/A";
+            DeploymentStrategy.DirectCopy => "Direct copy: All files → filesystem",
+            DeploymentStrategy.Archive => "Mixed: Binaries → archive, licenses → filesystem",
+            _ => "Unknown"
+        };
 
         var grid = new Grid()
             .AddColumn()
             .AddColumn();
-        grid.AddRow("[bold]Primary Files[/]", $"[white]{primaryFilesText}[/]");
-        grid.AddRow("[bold]Total Actions[/]", $"[white]{deploymentPlan.Actions.Count}[/]");
-        grid.AddRow("[bold]Total Reported Artifacts[/]", $"[white]{reportableArtifacts.Count}[/]");
-        grid.AddRow("[bold]Vcpkg Packages in Closure[/]", $"[white]{packagesInClosure.Count}[/]");
 
-        var packageNamesText = packagesInClosure.Any() ? string.Join(", ", packagesInClosure.Order(StringComparer.Ordinal)) : "N/A";
-        grid.AddRow("[bold]Packages List[/]", $"[teal]{packageNamesText}[/]");
+        grid.AddRow("[bold]Library[/]", $"[white]{stats.LibraryName}[/]");
+        grid.AddRow("[bold]Deployment Strategy[/]", $"[cyan]{strategyText}[/]");
+        grid.AddRow("[bold]Primary Files[/]", $"[lime]{stats.PrimaryFiles.Count}[/]");
+        grid.AddRow("[bold]Runtime Dependencies[/]", $"[deepskyblue1]{stats.RuntimeFiles.Count}[/]");
+        grid.AddRow("[bold]License Files[/]", $"[grey54]{stats.LicenseFiles.Count}[/]");
+        grid.AddRow("[bold]Deployed Packages[/]", $"[white]{stats.DeployedPackages.Count}[/]");
+
+        if (stats.FilteredPackages.Any())
+        {
+            grid.AddRow("[bold]Filtered Packages[/]", $"[yellow]{stats.FilteredPackages.Count}[/] (excluded from deployment)");
+        }
 
         var infoPanel = new Panel(grid)
-            .Header($"[bold yellow]{libraryName} – Summary[/]", Justify.Left)
+            .Header($"[bold yellow]{stats.LibraryName} – Deployment Summary[/]", Justify.Left)
             .BorderColor(Color.Grey);
 
         AnsiConsole.Write(infoPanel);
 
-        const int maxRows = 40;
-        var artTable = new Table()
-            .RoundedBorder()
-            .BorderColor(Color.Grey)
-            .AddColumn("[bold]Origin[/]")
-            .AddColumn("[bold]Package[/]")
-            .AddColumn("[bold]File/Item[/]");
-
-        var orderedReportableArtifacts = reportableArtifacts
-            .OrderBy(a => a.Origin)
-            .ThenBy(a => a.FileName, StringComparer.Ordinal)
-            .ToList();
-
-        foreach (var (fileName, packageName, origin) in orderedReportableArtifacts.Take(maxRows))
+        // Show primary files detail
+        if (stats.PrimaryFiles.Any())
         {
-            var originColour = origin switch
+            var primaryTable = new Table()
+                .RoundedBorder()
+                .BorderColor(Color.Green)
+                .AddColumn("[bold]Primary Files[/]")
+                .AddColumn("[bold]Location[/]");
+
+            foreach (var fileInfo in stats.PrimaryFiles.OrderBy(f => f.FilePath.GetFilename().FullPath, StringComparer.Ordinal))
             {
-                ArtifactOrigin.Primary => "lime",
-                ArtifactOrigin.Runtime => "deepskyblue1",
-                ArtifactOrigin.Metadata => "orange1",
-                ArtifactOrigin.License => "grey54",
-                _ => "white",
-            };
+                var locationText = fileInfo.DeploymentLocation switch
+                {
+                    DeploymentLocation.FileSystem => "[white]Filesystem[/]",
+                    DeploymentLocation.Archive => "[cyan]Archive[/]",
+                    _ => "[grey]Unknown[/]"
+                };
 
-            artTable.AddRow(
-                $"[{originColour}]{origin}[/]",
-                $"[white]{packageName}[/]",
-                $"[grey]{fileName}[/]");
+                primaryTable.AddRow($"[lime]{fileInfo.FilePath.GetFilename().FullPath}[/]", locationText);
+            }
+
+            AnsiConsole.Write(primaryTable);
         }
 
-        if (orderedReportableArtifacts.Count > maxRows)
+                // Show package breakdown
+        var packageTable = new Table()
+            .RoundedBorder()
+            .BorderColor(Color.Blue)
+            .AddColumn("[bold]Package Type[/]")
+            .AddColumn("[bold]Packages[/]");
+
+        packageTable.AddRow("[deepskyblue1]Deployed[/]", $"[white]{deployedPackagesText}[/]");
+
+        if (stats.FilteredPackages.Any())
         {
-            artTable.AddEmptyRow();
-            artTable.AddRow(
-                "[italic grey]…[/]",
-                string.Empty,
-                $"[italic grey]{reportableArtifacts.Count - maxRows} more item(s) omitted[/]");
+            packageTable.AddRow("[yellow]Filtered[/]", $"[grey]{filteredPackagesText}[/]");
         }
 
-        var tablePanel = new Panel(artTable)
-            .Header($"[bold yellow]{libraryName} – Reported Items[/]", Justify.Left)
-            .BorderColor(Color.Grey);
+        AnsiConsole.Write(packageTable);
 
-        AnsiConsole.Write(tablePanel);
+        // Show detailed file listing if there are runtime dependencies or license files
+        if (stats.RuntimeFiles.Any() || stats.LicenseFiles.Any())
+        {
+            var detailTable = new Table()
+                .RoundedBorder()
+                .BorderColor(Color.Grey)
+                .AddColumn("[bold]Type[/]")
+                .AddColumn("[bold]File[/]")
+                .AddColumn("[bold]Package[/]")
+                .AddColumn("[bold]Location[/]");
+
+            // Add runtime files
+            foreach (var fileInfo in stats.RuntimeFiles.OrderBy(f => f.PackageName, StringComparer.Ordinal).ThenBy(f => f.FilePath.GetFilename().FullPath, StringComparer.Ordinal))
+            {
+                var locationText = fileInfo.DeploymentLocation switch
+                {
+                    DeploymentLocation.FileSystem => "[white]Filesystem[/]",
+                    DeploymentLocation.Archive => "[cyan]Archive[/]",
+                    _ => "[grey]Unknown[/]"
+                };
+
+                detailTable.AddRow(
+                    "[deepskyblue1]Runtime[/]",
+                    $"[white]{fileInfo.FilePath.GetFilename().FullPath}[/]",
+                    $"[grey]{fileInfo.PackageName}[/]",
+                    locationText);
+            }
+
+            // Add license files
+            foreach (var fileInfo in stats.LicenseFiles.OrderBy(f => f.PackageName, StringComparer.Ordinal).ThenBy(f => f.FilePath.GetFilename().FullPath, StringComparer.Ordinal))
+            {
+                var locationText = fileInfo.DeploymentLocation switch
+                {
+                    DeploymentLocation.FileSystem => "[white]Filesystem[/]",
+                    DeploymentLocation.Archive => "[cyan]Archive[/]",
+                    _ => "[grey]Unknown[/]"
+                };
+
+                detailTable.AddRow(
+                    "[grey54]License[/]",
+                    $"[white]{fileInfo.FilePath.GetFilename().FullPath}[/]",
+                    $"[grey]{fileInfo.PackageName}[/]",
+                    locationText);
+            }
+
+            var detailPanel = new Panel(detailTable)
+                .Header($"[bold yellow]{stats.LibraryName} – Detailed File List[/]", Justify.Left)
+                .BorderColor(Color.Grey);
+
+            AnsiConsole.Write(detailPanel);
+        }
     }
+
+
 
     private static void LogAndThrow(string phase, HarvestingError error, ICakeLog log, string libraryName)
     {
