@@ -51,6 +51,8 @@ public sealed class RuntimeProfile : IRuntimeProfile
 
     public bool IsSystemFile(FilePath path)
     {
+        ArgumentNullException.ThrowIfNull(path);
+
         var fileName = path.GetFilename().FullPath;
 
         return _systemRegexes.Any(rx => rx.IsMatch(fileName));

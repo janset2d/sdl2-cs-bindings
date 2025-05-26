@@ -39,9 +39,7 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
                 return new ClosureError($"No primary binaries found for {manifest.VcpkgName} on {_profile.PlatformFamily}");
             }
 
-            _log.Information("Found {0} primary file(s) for {1}: {2}",
-                primaryFiles.Count,
-                manifest.VcpkgName,
+            _log.Information("Found {0} primary file(s) for {1}: {2}", primaryFiles.Count, manifest.VcpkgName,
                 string.Join(", ", primaryFiles.Select(f => f.GetFilename().FullPath)));
 
             var pkgQueue = new Queue<(string OwnerPackage, string OriginPackage)>([(rootPkgInfo.PackageName, rootPkgInfo.PackageName)]);
@@ -194,7 +192,6 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
         return string.IsNullOrEmpty(suffix) || filename.EndsWith(suffix, StringComparison.OrdinalIgnoreCase);
     }
 
-
     private static string? TryInferPackageNameFromPath(FilePath p)
     {
         // .../vcpkg_installed/<triplet>/(bin|lib|share)/<package>/...
@@ -214,12 +211,13 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
         var ext = f.GetExtension();
         return _profile.PlatformFamily switch
         {
-            PlatformFamily.Windows => string.Equals(ext, ".dll", StringComparison.OrdinalIgnoreCase),
+            PlatformFamily.Windows => string.Equals(ext, ".dll", StringComparison.OrdinalIgnoreCase)
+                                      && string.Equals(f.GetDirectory().GetDirectoryName(), "bin", StringComparison.OrdinalIgnoreCase),
             PlatformFamily.Linux => (string.Equals(ext, ".so", StringComparison.OrdinalIgnoreCase)
-                                     || f.GetFilename().FullPath.Contains(".so.", StringComparison.OrdinalIgnoreCase))
+                                     || f.GetFilename().FullPath.Contains(".so.", StringComparison.Ordinal))
                                     && string.Equals(f.GetDirectory().GetDirectoryName(), "lib", StringComparison.Ordinal)
                                     && !string.Equals(f.GetDirectory().GetParent().GetDirectoryName(), "debug", StringComparison.Ordinal),
-            PlatformFamily.OSX => string.Equals(ext, ".dylib", StringComparison.OrdinalIgnoreCase),
+            PlatformFamily.OSX => string.Equals(ext, ".dylib", StringComparison.Ordinal),
             _ => false,
         };
     }

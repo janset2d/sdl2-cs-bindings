@@ -8,7 +8,6 @@ using Build.Modules.Harvesting.Results;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;
-using Cake.Core.IO;
 using Cake.Frosting;
 using Spectre.Console;
 
@@ -59,10 +58,10 @@ public sealed class HarvestTask : AsyncFrostingTask<BuildContext>
             var plannerResult = await _artifactPlanner.CreatePlanAsync(manifest, closureResult.Closure, outputBase);
             plannerResult.ThrowIfError(e => LogAndThrow("Artifact planning", e, context.Log, manifest.Name));
 
-            var copierResult = await _artifactDeployer.DeployArtifactsAsync(plannerResult.ArtifactPlan);
+            var copierResult = await _artifactDeployer.DeployArtifactsAsync(plannerResult.DeploymentPlan);
             copierResult.ThrowIfError(e => LogAndThrow("Artifact copying", e, context.Log, manifest.Name));
 
-            DisplayHarvestReportSummary(plannerResult.ArtifactPlan.Statistics);
+            DisplayHarvestReportSummary(plannerResult.DeploymentPlan.Statistics);
             AnsiConsole.Write(new Rule($"[yellow]Finished Harvest: {manifest.Name}[/]").RuleStyle("grey"));
         }
 
@@ -83,7 +82,7 @@ public sealed class HarvestTask : AsyncFrostingTask<BuildContext>
         {
             DeploymentStrategy.DirectCopy => "Direct copy: All files → filesystem",
             DeploymentStrategy.Archive => "Mixed: Binaries → archive, licenses → filesystem",
-            _ => "Unknown"
+            _ => "Unknown",
         };
 
         var grid = new Grid()
@@ -123,7 +122,7 @@ public sealed class HarvestTask : AsyncFrostingTask<BuildContext>
                 {
                     DeploymentLocation.FileSystem => "[white]Filesystem[/]",
                     DeploymentLocation.Archive => "[cyan]Archive[/]",
-                    _ => "[grey]Unknown[/]"
+                    _ => "[grey]Unknown[/]",
                 };
 
                 primaryTable.AddRow($"[lime]{fileInfo.FilePath.GetFilename().FullPath}[/]", locationText);
@@ -132,7 +131,7 @@ public sealed class HarvestTask : AsyncFrostingTask<BuildContext>
             AnsiConsole.Write(primaryTable);
         }
 
-                // Show package breakdown
+        // Show package breakdown
         var packageTable = new Table()
             .RoundedBorder()
             .BorderColor(Color.Blue)
@@ -149,7 +148,7 @@ public sealed class HarvestTask : AsyncFrostingTask<BuildContext>
         AnsiConsole.Write(packageTable);
 
         // Show detailed file listing if there are runtime dependencies or license files
-        if (stats.RuntimeFiles.Any() || stats.LicenseFiles.Any())
+        if (stats.RuntimeFiles.Any() || stats.PrimaryFiles.Any() || stats.LicenseFiles.Any())
         {
             var detailTable = new Table()
                 .RoundedBorder()
@@ -159,6 +158,23 @@ public sealed class HarvestTask : AsyncFrostingTask<BuildContext>
                 .AddColumn("[bold]Package[/]")
                 .AddColumn("[bold]Location[/]");
 
+            //Add primary files
+            foreach (var fileInfo in stats.PrimaryFiles.OrderBy(f => f.PackageName, StringComparer.Ordinal).ThenBy(f => f.FilePath.GetFilename().FullPath, StringComparer.Ordinal))
+            {
+                var locationText = fileInfo.DeploymentLocation switch
+                {
+                    DeploymentLocation.FileSystem => "[white]Filesystem[/]",
+                    DeploymentLocation.Archive => "[cyan]Archive[/]",
+                    _ => "[grey]Unknown[/]",
+                };
+
+                detailTable.AddRow(
+                    "[lime]Primary[/]",
+                    $"[white]{fileInfo.FilePath.GetFilename().FullPath}[/]",
+                    $"[grey]{fileInfo.PackageName}[/]",
+                    locationText);
+            }
+
             // Add runtime files
             foreach (var fileInfo in stats.RuntimeFiles.OrderBy(f => f.PackageName, StringComparer.Ordinal).ThenBy(f => f.FilePath.GetFilename().FullPath, StringComparer.Ordinal))
             {
@@ -166,7 +182,7 @@ public sealed class HarvestTask : AsyncFrostingTask<BuildContext>
                 {
                     DeploymentLocation.FileSystem => "[white]Filesystem[/]",
                     DeploymentLocation.Archive => "[cyan]Archive[/]",
-                    _ => "[grey]Unknown[/]"
+                    _ => "[grey]Unknown[/]",
                 };
 
                 detailTable.AddRow(
@@ -183,7 +199,7 @@ public sealed class HarvestTask : AsyncFrostingTask<BuildContext>
                 {
                     DeploymentLocation.FileSystem => "[white]Filesystem[/]",
                     DeploymentLocation.Archive => "[cyan]Archive[/]",
-                    _ => "[grey]Unknown[/]"
+                    _ => "[grey]Unknown[/]",
                 };
 
                 detailTable.AddRow(
@@ -200,8 +216,6 @@ public sealed class HarvestTask : AsyncFrostingTask<BuildContext>
             AnsiConsole.Write(detailPanel);
         }
     }
-
-
 
     private static void LogAndThrow(string phase, HarvestingError error, ICakeLog log, string libraryName)
     {

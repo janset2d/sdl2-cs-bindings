@@ -8,7 +8,6 @@ using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 using System.Diagnostics.CodeAnalysis;
-using PlatformFamily = Cake.Core.PlatformFamily;
 
 namespace Build.Modules.Harvesting;
 
@@ -28,7 +27,7 @@ public sealed class ArtifactPlanner : IArtifactPlanner
 
         _pkg = pkg ?? throw new ArgumentNullException(nameof(pkg));
         _profile = profile ?? throw new ArgumentNullException(nameof(profile));
-        _pathService = pathService ??  throw new ArgumentNullException(nameof(pathService));
+        _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
         _environment = context.Environment;
         _log = context.Log;
         _corePackageName = manifestConfig.LibraryManifests.Single(manifest => manifest.IsCoreLib).VcpkgName;
@@ -78,7 +77,6 @@ public sealed class ArtifactPlanner : IArtifactPlanner
                 copiedPackages.Add(ownerPackageName);
             }
 
-            // Process license files (always direct copy)
             foreach (var packageName in copiedPackages)
             {
                 ct.ThrowIfCancellationRequested();
@@ -122,41 +120,41 @@ public sealed class ArtifactPlanner : IArtifactPlanner
                 switch (action)
                 {
                     case FileCopyAction fileCopy:
-                        var location = DeploymentLocation.FileSystem;
                         switch (fileCopy.Origin)
                         {
                             case ArtifactOrigin.Primary:
-                                primaryFiles.Add(new FileDeploymentInfo(fileCopy.SourcePath, fileCopy.PackageName, location));
+                                primaryFiles.Add(new FileDeploymentInfo(fileCopy.SourcePath, fileCopy.PackageName, DeploymentLocation.FileSystem));
                                 break;
                             case ArtifactOrigin.Runtime:
-                                runtimeFiles.Add(new FileDeploymentInfo(fileCopy.SourcePath, fileCopy.PackageName, location));
+                                runtimeFiles.Add(new FileDeploymentInfo(fileCopy.SourcePath, fileCopy.PackageName, DeploymentLocation.FileSystem));
                                 break;
                             case ArtifactOrigin.License:
-                                licenseFiles.Add(new FileDeploymentInfo(fileCopy.SourcePath, fileCopy.PackageName, location));
+                                licenseFiles.Add(new FileDeploymentInfo(fileCopy.SourcePath, fileCopy.PackageName, DeploymentLocation.FileSystem));
                                 break;
                         }
+
                         deployedPackages.Add(fileCopy.PackageName);
                         break;
                     case ArchiveCreationAction archiveAction:
                         foreach (var item in archiveAction.ItemsToArchive)
                         {
-                            var archiveLocation = DeploymentLocation.Archive;
                             switch (item.Origin)
                             {
                                 case ArtifactOrigin.Primary:
-                                    primaryFiles.Add(new FileDeploymentInfo(item.SourcePath, item.PackageName, archiveLocation));
+                                    primaryFiles.Add(new FileDeploymentInfo(item.SourcePath, item.PackageName, DeploymentLocation.Archive));
                                     break;
                                 case ArtifactOrigin.Runtime:
-                                    runtimeFiles.Add(new FileDeploymentInfo(item.SourcePath, item.PackageName, archiveLocation));
+                                    runtimeFiles.Add(new FileDeploymentInfo(item.SourcePath, item.PackageName, DeploymentLocation.Archive));
                                     break;
                             }
+
                             deployedPackages.Add(item.PackageName);
                         }
+
                         break;
                 }
             }
 
-            // Identify filtered packages (packages in closure but not deployed)
             foreach (var packageName in closure.Packages)
             {
                 if (!deployedPackages.Contains(packageName))

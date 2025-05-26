@@ -42,7 +42,7 @@ public sealed class ArtifactPlannerResult(OneOf<Error<HarvestingError>, Success<
         return result.AsT1.Value;
     }
 
-    public DeploymentPlan ArtifactPlan => SuccessValue();
+    public DeploymentPlan DeploymentPlan => SuccessValue();
 
     public ArtifactPlannerError AsArtifactPlannerError() => (ArtifactPlannerError)AsT0.Value;
 }

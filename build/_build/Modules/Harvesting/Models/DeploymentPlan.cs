@@ -80,7 +80,17 @@ public enum DeploymentLocation
     /// <summary>File is copied directly to the filesystem.</summary>
     FileSystem,
     /// <summary>File is packaged into an archive.</summary>
-    Archive
+    Archive,
+}
+
+/// <summary>
+/// Specifies the origin of an artifact during the deployment process.
+/// </summary>
+public enum ArtifactOrigin
+{
+    Primary,
+    Runtime,
+    License,
 }
 
 /// <summary>
