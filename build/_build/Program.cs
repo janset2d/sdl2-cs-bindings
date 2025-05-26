@@ -181,7 +181,7 @@ static async Task<DirectoryPath> DetermineRepoRootAsync(DirectoryInfo? repoRootA
         return new DirectoryPath(gitOutput);
     }
 
-    // Fallback: Assume build project is 2 levels deep from repo root (e.g., repo/build/_build)
+    // Fallback: An assumed build project is 2 levels deep from the repo root (e.g., repo/build/_build)
     var fallbackPath = new DirectoryPath(AppContext.BaseDirectory).GetParent()?.GetParent()?.Collapse();
     if (fallbackPath != null)
     {

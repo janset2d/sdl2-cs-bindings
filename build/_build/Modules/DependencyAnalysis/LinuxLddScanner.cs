@@ -1,4 +1,4 @@
-﻿#pragma warning disable S2737
+﻿#pragma warning disable S2737, CA1031
 
 using System.Collections.Immutable;
 using Build.Modules.Contracts;
@@ -31,11 +31,11 @@ public sealed class LinuxLddScanner : IRuntimeScanner
             var dependencies = await Task.Run(() => _context.LddDependencies(settings), ct).ConfigureAwait(false);
 
             var result = new HashSet<FilePath>();
-            
+
             foreach (var (libName, libPath) in dependencies)
             {
                 var filePath = new FilePath(libPath);
-                
+
                 if (_context.FileExists(filePath))
                 {
                     result.Add(filePath);
@@ -54,22 +54,10 @@ public sealed class LinuxLddScanner : IRuntimeScanner
         {
             throw;
         }
-        catch (InvalidOperationException ex)
+        catch (Exception ex)
         {
             _log.Error("LDD scan failed for {0}: {1}", binary.GetFilename(), ex.Message);
             return ImmutableHashSet<FilePath>.Empty;
         }
-        catch (System.ComponentModel.Win32Exception ex)
-        {
-            _log.Error("LDD tool not found or failed for {0}: {1}", binary.GetFilename(), ex.Message);
-            return ImmutableHashSet<FilePath>.Empty;
-        }
-        catch (FileNotFoundException ex)
-        {
-            _log.Error("Binary file not found for LDD scan {0}: {1}", binary.GetFilename(), ex.Message);
-            return ImmutableHashSet<FilePath>.Empty;
-        }
     }
-
-
 }

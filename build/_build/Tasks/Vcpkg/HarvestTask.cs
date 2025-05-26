@@ -14,11 +14,7 @@ using Spectre.Console;
 namespace Build.Tasks.Vcpkg;
 
 [TaskName("Harvest")]
-public sealed class HarvestTask(
-    IBinaryClosureWalker binaryClosureWalker,
-    IArtifactPlanner artifactPlanner,
-    IFilesystemCopier filesystemCopier,
-    ManifestConfig manifestConfig)
+public sealed class HarvestTask(IBinaryClosureWalker binaryClosureWalker, IArtifactPlanner artifactPlanner, IFilesystemCopier filesystemCopier, ManifestConfig manifestConfig)
     : AsyncFrostingTask<BuildContext>
 {
     private readonly IBinaryClosureWalker _binaryClosureWalker = binaryClosureWalker ?? throw new ArgumentNullException(nameof(binaryClosureWalker));

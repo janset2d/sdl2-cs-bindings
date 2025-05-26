@@ -6,21 +6,15 @@ using Build.Modules.Harvesting.Results;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;
+using Cake.Core.IO;
 
 namespace Build.Modules.Harvesting;
 
-public sealed class SymlinkAwareFilesystemCopier : IFilesystemCopier
+public sealed class SymlinkAwareFilesystemCopier(ICakeContext ctx, IRuntimeProfile profile) : IFilesystemCopier
 {
-    private readonly ICakeContext _ctx;
-    private readonly IRuntimeProfile _profile;
-    private readonly ICakeLog _log;
-
-    public SymlinkAwareFilesystemCopier(ICakeContext ctx, IRuntimeProfile profile)
-    {
-        _ctx = ctx ?? throw new ArgumentNullException(nameof(ctx));
-        _profile = profile ?? throw new ArgumentNullException(nameof(profile));
-        _log = ctx.Log;
-    }
+    private readonly ICakeContext _ctx = ctx ?? throw new ArgumentNullException(nameof(ctx));
+    private readonly IRuntimeProfile _profile = profile ?? throw new ArgumentNullException(nameof(profile));
+    private readonly ICakeLog _log = ctx.Log;
 
     public async Task<CopierResult> CopyAsync(IEnumerable<NativeArtifact> artifacts, CancellationToken ct = default)
     {
@@ -34,7 +28,7 @@ public sealed class SymlinkAwareFilesystemCopier : IFilesystemCopier
 
                 _ctx.EnsureDirectoryExists(artifact.TargetPath.GetDirectory());
 
-                if (_profile.OsFamily == "Windows")
+                if (_profile.PlatformFamily == PlatformFamily.Windows)
                 {
                     // Windows: Simple file copy (no symlinks)
                     _ctx.CopyFile(artifact.SourcePath, artifact.TargetPath);
@@ -61,18 +55,17 @@ public sealed class SymlinkAwareFilesystemCopier : IFilesystemCopier
         }
     }
 
-    private async Task CopyWithSymlinksAsync(Cake.Core.IO.FilePath source, Cake.Core.IO.FilePath target, CancellationToken ct)
+    private async Task CopyWithSymlinksAsync(FilePath source, FilePath target, CancellationToken ct)
     {
         try
         {
             var sourceInfo = await Task.Run(() => new FileInfo(source.FullPath), ct);
-            
+
             if (sourceInfo.LinkTarget != null)
             {
                 // It's a symlink - recreate the symlink
                 File.CreateSymbolicLink(target.FullPath, sourceInfo.LinkTarget);
-                _log.Verbose("symlinked {0} → {1} (target: {2})", 
-                    source.GetFilename(), target.GetFilename(), sourceInfo.LinkTarget);
+                _log.Verbose("symlinked {0} → {1} (target: {2})", source.GetFilename(), target.GetFilename(), sourceInfo.LinkTarget);
             }
             else
             {
@@ -94,4 +87,4 @@ public sealed class SymlinkAwareFilesystemCopier : IFilesystemCopier
             _ctx.CopyFile(source, target);
         }
     }
-} 
+}

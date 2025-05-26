@@ -1,6 +1,7 @@
 ﻿using System.Text.RegularExpressions;
 using Build.Context.Models;
 using Build.Modules.Contracts;
+using Cake.Core;
 using Cake.Core.IO;
 
 namespace Build.Modules;
@@ -19,34 +20,34 @@ public sealed class RuntimeProfile : IRuntimeProfile
 
         if (Rid.StartsWith("win-", StringComparison.OrdinalIgnoreCase))
         {
-            OsFamily = "Windows";
+            PlatformFamily = PlatformFamily.Windows;
         }
         else if (Rid.StartsWith("osx-", StringComparison.OrdinalIgnoreCase))
         {
-            OsFamily = "OSX";
+            PlatformFamily = PlatformFamily.OSX;
         }
         else if (Rid.StartsWith("linux-", StringComparison.OrdinalIgnoreCase))
         {
-            OsFamily = "Linux";
+            PlatformFamily = PlatformFamily.Linux;
         }
         else
         {
             throw new InvalidOperationException($"Unsupported rid {Rid}");
         }
 
-        _systemPatterns = OsFamily switch
+        _systemPatterns = PlatformFamily switch
         {
-            "Windows" => artefacts.Windows.SystemDlls,
-            "Linux" => artefacts.Linux.SystemLibraries,
+            PlatformFamily.Windows => artefacts.Windows.SystemDlls,
+            PlatformFamily.Linux => artefacts.Linux.SystemLibraries,
             _ => artefacts.Osx.SystemLibraries,
         };
 
-        CoreLibName = coreLibManifest.LibNames.FirstOrDefault(x => x.Os.Equals(OsFamily, StringComparison.OrdinalIgnoreCase))?.Name;
+        CoreLibName = coreLibManifest.LibNames.FirstOrDefault(x => x.Os.Equals(PlatformFamily.ToString(), StringComparison.OrdinalIgnoreCase))?.Name;
     }
 
     public string Rid { get; }
     public string Triplet { get; }
-    public string OsFamily { get; }
+    public PlatformFamily PlatformFamily { get; }
     public string? CoreLibName { get; }
 
     public bool IsSystemFile(FilePath path)
@@ -59,12 +60,18 @@ public sealed class RuntimeProfile : IRuntimeProfile
         {
             if (!pat.Contains('*', StringComparison.Ordinal))
             {
-                if (name.Equals(pat, StringComparison.OrdinalIgnoreCase)) return true;
+                if (name.Equals(pat, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
             }
             else
             {
                 var rx = $"^{Regex.Escape(pat).Replace("\\*", ".*", StringComparison.Ordinal)}$";
-                if (Regex.IsMatch(name, rx, RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(1000))) return true;
+                if (Regex.IsMatch(name, rx, RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(1000)))
+                {
+                    return true;
+                }
             }
         }
 

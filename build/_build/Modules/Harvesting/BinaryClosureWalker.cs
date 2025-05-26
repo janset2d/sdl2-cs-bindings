@@ -32,8 +32,8 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
             }
 
             var rootPkgInfo = rootPkgInfoResult.PackageInfo;
-            var libName = manifest.LibNames.First(x => x.Os.Equals(_profile.OsFamily, StringComparison.OrdinalIgnoreCase)).Name;
-            var primary = await ResolvePrimaryBinaryAsync(rootPkgInfo, libName);
+            var libName = manifest.LibNames.First(x => x.Os.Equals(_profile.PlatformFamily.ToString(), StringComparison.OrdinalIgnoreCase)).Name;
+            var primary = ResolvePrimaryBinaryAsync(rootPkgInfo, libName);
 
             if (primary is null || !_ctx.FileExists(primary))
             {
@@ -41,7 +41,7 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
             }
 
             var pkgQueue = new Queue<(string OwnerPackage, string OriginPackage)>([(rootPkgInfo.PackageName, rootPkgInfo.PackageName)]);
-            var seenPkgs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var processedPackages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var nodesDict = new Dictionary<FilePath, BinaryNode>();
 
             while (pkgQueue.TryDequeue(out var package))
@@ -49,7 +49,7 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
                 var ownerPackage = package.OwnerPackage;
                 var originPackage = package.OriginPackage;
 
-                if (!seenPkgs.Add(ownerPackage))
+                if (!processedPackages.Add(ownerPackage))
                 {
                     continue;
                 }
@@ -111,7 +111,7 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
                 }
             }
 
-            return new BinaryClosure(primary, [.. nodesDict.Values], seenPkgs);
+            return new BinaryClosure(primary, [.. nodesDict.Values], processedPackages);
         }
         catch (OperationCanceledException)
         {
@@ -124,86 +124,83 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
     }
 
     // helper -------------------------------------------------------------------
-    private async Task<FilePath?> ResolvePrimaryBinaryAsync(PackageInfo pkgInfo, string expectedName)
+    private FilePath? ResolvePrimaryBinaryAsync(PackageInfo pkgInfo, string expectedName)
     {
-        // Try direct match first (Windows style or exact match)
-        var directMatch = pkgInfo.OwnedFiles.FirstOrDefault(f => 
-            f.GetFilename().FullPath.Equals(expectedName, StringComparison.OrdinalIgnoreCase));
-        
+        // Try a direct match first (Windows style or exact match)
+        var directMatch = pkgInfo.OwnedFiles.FirstOrDefault(f => f.GetFilename().FullPath.Equals(expectedName, StringComparison.OrdinalIgnoreCase));
+
         if (directMatch != null && _ctx.FileExists(directMatch))
         {
             _log.Verbose("Found primary binary via direct match: {0}", directMatch.FullPath);
             return directMatch;
         }
-        
+
         // For Unix: Find the real file in the symlink chain
-        if (_profile.OsFamily != "Windows")
+        if (_profile.PlatformFamily != PlatformFamily.Windows)
         {
-            var unixPrimary = await ResolveUnixPrimaryBinaryAsync(pkgInfo, expectedName);
+            var unixPrimary = ResolveUnixPrimaryBinary(pkgInfo, expectedName);
             if (unixPrimary != null)
             {
                 _log.Verbose("Found primary binary via Unix symlink resolution: {0}", unixPrimary.FullPath);
                 return unixPrimary;
             }
         }
-        
+
         _log.Warning("Could not resolve primary binary '{0}' for package", expectedName);
         return null;
     }
 
-    private async Task<FilePath?> ResolveUnixPrimaryBinaryAsync(PackageInfo pkgInfo, string expectedName)
+    private FilePath? ResolveUnixPrimaryBinary(PackageInfo pkgInfo, string expectedName)
     {
         // Find all potential symlink chain members
         // For libSDL2.so, look for libSDL2.so, libSDL2-2.0.so, libSDL2-2.0.so.0, etc.
         var baseNameWithoutExt = expectedName.Replace(".so", "", StringComparison.OrdinalIgnoreCase);
         var candidates = pkgInfo.OwnedFiles
-            .Where(f => IsBinary(f) && 
-                       f.GetFilename().FullPath.StartsWith(baseNameWithoutExt, StringComparison.OrdinalIgnoreCase))
+            .Where(f => IsBinary(f) && f.GetFilename().FullPath.StartsWith(baseNameWithoutExt, StringComparison.OrdinalIgnoreCase))
             .ToList();
-        
+
         _log.Verbose("Found {0} potential symlink candidates for {1}", candidates.Count, expectedName);
-        
+
         // Find the real file (not a symlink) - this is typically the most versioned one
         var existingCandidates = candidates
             .Where(c => _ctx.FileExists(c))
             .OrderByDescending(f => f.GetFilename().FullPath.Length);
-            
+
         foreach (var candidate in existingCandidates)
         {
-            var isSymlink = await IsSymlinkAsync(candidate);
-            if (!isSymlink)
+            var isSymlink = IsSymlink(candidate);
+            if (isSymlink)
             {
-                _log.Verbose("Found real file in symlink chain: {0}", candidate.FullPath);
-                return candidate;
+                continue;
             }
+
+            _log.Verbose("Found real file in symlink chain: {0}", candidate.FullPath);
+            return candidate;
         }
-        
+
         // Fallback: return the first existing candidate
         var fallback = candidates.FirstOrDefault(c => _ctx.FileExists(c));
         if (fallback != null)
         {
             _log.Verbose("Using fallback candidate: {0}", fallback.FullPath);
         }
-        
+
         return fallback;
     }
 
-    private static async Task<bool> IsSymlinkAsync(FilePath path)
+    private static bool IsSymlink(FilePath path)
     {
         try
         {
-            // Use FileInfo to detect symlinks
-            var fileInfo = await Task.Run(() => new FileInfo(path.FullPath));
+            var fileInfo = new FileInfo(path.FullPath);
             return fileInfo.Exists && fileInfo.LinkTarget != null;
         }
         catch (UnauthorizedAccessException)
         {
-            // If we can't access the file, assume it's not a symlink
             return false;
         }
         catch (IOException)
         {
-            // If there's an IO error, assume it's not a symlink
             return false;
         }
     }
@@ -213,10 +210,12 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
         // .../vcpkg_installed/<triplet>/(bin|lib|share)/<package>/...
         var segments = p.Segments;
         var vcpkgIndex = Array.FindIndex(segments, s => s.Equals("vcpkg_installed", StringComparison.OrdinalIgnoreCase));
-        
+
         if (vcpkgIndex < 0 || vcpkgIndex + 3 >= segments.Length)
+        {
             return null;
-        
+        }
+
         // Use directory structure when available (Windows bin/, or Unix with subdirectories)
         return segments[vcpkgIndex + 3];
     }
@@ -224,13 +223,12 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
     private bool IsBinary(FilePath f)
     {
         var ext = f.GetExtension();
-        return _profile.OsFamily switch
+        return _profile.PlatformFamily switch
         {
-            "Windows" => string.Equals(ext, ".dll", StringComparison.OrdinalIgnoreCase),
-            "Linux" => string.Equals(ext, ".so", StringComparison.OrdinalIgnoreCase) || 
-                      f.GetFilename().FullPath.Contains(".so.", StringComparison.OrdinalIgnoreCase),
-            "OSX" => string.Equals(ext, ".dylib", StringComparison.OrdinalIgnoreCase),
-            _ => false
+            PlatformFamily.Windows => string.Equals(ext, ".dll", StringComparison.OrdinalIgnoreCase),
+            PlatformFamily.Linux => string.Equals(ext, ".so", StringComparison.OrdinalIgnoreCase) || f.GetFilename().FullPath.Contains(".so.", StringComparison.OrdinalIgnoreCase),
+            PlatformFamily.OSX => string.Equals(ext, ".dylib", StringComparison.OrdinalIgnoreCase),
+            _ => false,
         };
     }
 }
