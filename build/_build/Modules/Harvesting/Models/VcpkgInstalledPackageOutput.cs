@@ -18,7 +18,7 @@ public record VcpkgInstalledResult
 
     [JsonPropertyName("abi")] public string? Abi { get; init; }
 
-    [JsonPropertyName("dependencies")] public required IImmutableList<string> Dependencies { get; init; }
+    [JsonPropertyName("dependencies")] public IImmutableList<string>? Dependencies { get; init; } = ImmutableList<string>.Empty;
 
     [JsonPropertyName("features")] public IImmutableList<string>? Features { get; init; }
 

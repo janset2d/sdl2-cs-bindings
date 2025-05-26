@@ -61,7 +61,7 @@ public sealed class VcpkgCliProvider : IPackageInfoProvider
                 .Select(relativeChildPath => _vcpkgInstallDir.CombineWithFilePath(relativeChildPath))
                 .ToImmutableList();
 
-            return new PackageInfo(PackageName: packageName, Triplet: triplet, OwnedFiles: ownedFiles, DeclaredDependencies: packageResult.Dependencies);
+            return new PackageInfo(PackageName: packageName, Triplet: triplet, OwnedFiles: ownedFiles, DeclaredDependencies: packageResult.Dependencies ?? []);
         }
         catch (OperationCanceledException)
         {

@@ -71,58 +71,94 @@ public sealed class SymlinkAwareFilesystemCopier(ICakeContext ctx, IRuntimeProfi
     private async Task<CopierResult> CreateUnixArchiveAsync(List<NativeArtifact> artifacts, CancellationToken ct)
     {
         var rid = _profile.Rid;
-        var archiveName = $"natives-{rid}.tar.gz";
-        var stagingDir = _ctx.Directory($"./staging/runtimes/{rid}/native");
-        var archivePath = stagingDir.Path.CombineWithFilePath(archiveName);
+        var archiveName = $"natives-{rid}.tar.gz"; // As per plan, consider 'payload.archive' or similar generic name if preferred
 
-        _log.Information("Creating Unix archive {0} with {1} artifacts", archiveName, artifacts.Count);
+        _log.Information("Preparing to create Unix archive {0} for RID {1}", archiveName, rid);
 
-        _ctx.EnsureDirectoryExists(stagingDir);
+        var runtimeOrPrimaryArtifacts = artifacts
+            .Where(artifact => artifact.Origin is ArtifactOrigin.Runtime or ArtifactOrigin.Primary)
+            .ToList();
 
-        // Create file list for tar
-        var fileListPath = await CreateFileListAsync(artifacts, ct);
+        if (runtimeOrPrimaryArtifacts.Count == 0)
+        {
+            _log.Information("No runtime or primary artifacts to archive for RID {0}", rid);
+            return CopierResult.ToSuccess();
+        }
+
+        // Determine the base directory for source files and the output directory for the archive.
+        // This assumes all runtime/primary artifacts for a given library share a common source parent dir (e.g., vcpkg_installed/.../bin)
+        // and a common target parent dir (e.g., HarvestOutput/.../runtimes/rid/native).
+        DirectoryPath baseDirForTar = runtimeOrPrimaryArtifacts[0].SourcePath.GetDirectory();
+        DirectoryPath archiveOutputDirectory = runtimeOrPrimaryArtifacts[0].TargetPath.GetDirectory();
+
+        _ctx.EnsureDirectoryExists(archiveOutputDirectory);
+        var archivePath = archiveOutputDirectory.CombineWithFilePath(archiveName);
+
+        _log.Debug("Base directory for tar sources: {0}", baseDirForTar.FullPath);
+        _log.Debug("Output path for tar archive: {0}", archivePath.FullPath);
+
+        // Create a temporary file listing relative paths for tar
+        var fileListPath = await CreateFileListAsync(runtimeOrPrimaryArtifacts, baseDirForTar, ct);
 
         try
         {
-            // Create tar.gz with symlink preservation (without path transformation for now)
-            var exitCode = _ctx.StartProcess("tar", new ProcessSettings
+            var processSettings = new ProcessSettings
             {
-                Arguments = $"-czf \"{archivePath.FullPath}\" -T \"{fileListPath.FullPath}\"",
-                WorkingDirectory = _ctx.Environment.WorkingDirectory
-            });
+                Arguments = new ProcessArgumentBuilder()
+                    .Append("-czf") // Create, gzip, use file
+                    .AppendQuoted(archivePath.FullPath) // Output archive file path
+                    .Append("-T") // Read file names from file
+                    .AppendQuoted(fileListPath.FullPath), // File containing list of input files (relative paths)
+                WorkingDirectory = baseDirForTar, // Run tar from the base directory of the source files
+            };
+
+            _log.Debug("Running tar process...");
+            _log.Verbose("  Command: tar");
+            _log.Verbose("  Arguments: {0}", processSettings.Arguments.Render());
+            _log.Verbose("  Working Directory: {0}", processSettings.WorkingDirectory.FullPath);
+
+            var exitCode = _ctx.StartProcess("tar", processSettings);
 
             if (exitCode != 0)
             {
-                return new CopierError($"tar command failed with exit code {exitCode}");
+                return new CopierError($"tar command failed with exit code {exitCode} while creating archive {archivePath.FullPath}.");
             }
 
-            _log.Information("Successfully created Unix archive: {0} ({1} artifacts)", archivePath.GetFilename(), artifacts.Count);
+            _log.Information("Successfully created Unix archive: {0} ({1} artifacts)", archivePath.GetFilename(), runtimeOrPrimaryArtifacts.Count);
             return CopierResult.ToSuccess();
         }
         catch (Exception ex)
         {
-            return new CopierError($"Failed to create tar archive: {ex.Message}", ex);
+            return new CopierError($"Failed to create tar archive {archivePath.FullPath}: {ex.Message}", ex);
         }
         finally
         {
             // Clean up temporary file list
             if (_ctx.FileExists(fileListPath))
             {
+                _log.Debug("Deleting temporary file list: {0}", fileListPath.FullPath);
                 _ctx.DeleteFile(fileListPath);
             }
         }
     }
 
-    private async Task<FilePath> CreateFileListAsync(List<NativeArtifact> artifacts, CancellationToken ct)
+    private async Task<FilePath> CreateFileListAsync(IReadOnlyList<NativeArtifact> artifactsToArchive, DirectoryPath baseDirForTar, CancellationToken ct)
     {
-        var tempDir = _ctx.Directory("./temp");
+        // Using a subdirectory in the build project's temp folder for more organization
+        var tempDir = _ctx.Directory(_ctx.Environment.WorkingDirectory.Combine(".cake/temp/filelists").FullPath);
         _ctx.EnsureDirectoryExists(tempDir);
 
-        var fileListPath = tempDir.Path.CombineWithFilePath($"native-files-{Guid.NewGuid():N}.txt");
-        var sourceFiles = artifacts.Select(a => a.SourcePath.FullPath);
+        var fileListPath = tempDir.Path.CombineWithFilePath($"archive-files-{Guid.NewGuid():N}.txt");
 
-        await File.WriteAllLinesAsync(fileListPath.FullPath, sourceFiles, ct);
-        _log.Verbose("Created file list: {0} ({1} files)", fileListPath.GetFilename(), artifacts.Count);
+        var relativePaths = artifactsToArchive
+            .Select(a => a.SourcePath.GetFilename().FullPath)
+            .ToList(); //ToList to count before writing if needed for logging, and for WriteAllLinesAsync
+
+        await File.WriteAllLinesAsync(fileListPath.FullPath, relativePaths, ct);
+        _log.Verbose("Created file list for tar: {0} ({1} files), paths relative to {2}",
+            fileListPath.GetFilename(),
+            relativePaths.Count,
+            baseDirForTar.FullPath);
 
         return fileListPath;
     }

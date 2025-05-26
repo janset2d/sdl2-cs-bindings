@@ -64,7 +64,7 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
                 }
 
                 var ownerPkgInfo = ownerPkgInfoResult.PackageInfo;
-                var ownedBinaries = ownerPkgInfo.OwnedFiles.Where(IsBinary).ToList();
+                var ownedBinaries = ownerPkgInfo.OwnedFiles.Where(path => IsBinary(path) && !_profile.IsSystemFile(path)).ToList();
                 foreach (var bin in ownedBinaries)
                 {
                     nodesDict.TryAdd(bin, new BinaryNode(bin, ownerPackage, originPackage));
@@ -226,7 +226,10 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
         return _profile.PlatformFamily switch
         {
             PlatformFamily.Windows => string.Equals(ext, ".dll", StringComparison.OrdinalIgnoreCase),
-            PlatformFamily.Linux => string.Equals(ext, ".so", StringComparison.OrdinalIgnoreCase) || f.GetFilename().FullPath.Contains(".so.", StringComparison.OrdinalIgnoreCase),
+            PlatformFamily.Linux => (string.Equals(ext, ".so", StringComparison.OrdinalIgnoreCase)
+                                     || f.GetFilename().FullPath.Contains(".so.", StringComparison.OrdinalIgnoreCase))
+                                    && string.Equals(f.GetDirectory().GetDirectoryName(), "lib", StringComparison.Ordinal)
+                                    && !string.Equals(f.GetDirectory().GetParent().GetDirectoryName(), "debug", StringComparison.Ordinal),
             PlatformFamily.OSX => string.Equals(ext, ".dylib", StringComparison.OrdinalIgnoreCase),
             _ => false,
         };
