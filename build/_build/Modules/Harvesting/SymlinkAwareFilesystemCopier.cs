@@ -4,6 +4,7 @@ using Build.Modules.Contracts;
 using Build.Modules.Harvesting.Models;
 using Build.Modules.Harvesting.Results;
 using Cake.Common.IO;
+using Cake.Common;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
@@ -22,28 +23,21 @@ public sealed class SymlinkAwareFilesystemCopier(ICakeContext ctx, IRuntimeProfi
 
         try
         {
-            foreach (var artifact in artifacts)
+            var artifactList = artifacts.ToList();
+            if (artifactList.Count == 0)
             {
-                ct.ThrowIfCancellationRequested();
-
-                _ctx.EnsureDirectoryExists(artifact.TargetPath.GetDirectory());
-
-                if (_profile.PlatformFamily == PlatformFamily.Windows)
-                {
-                    // Windows: Simple file copy (no symlinks)
-                    _ctx.CopyFile(artifact.SourcePath, artifact.TargetPath);
-                    _log.Verbose("copied {0} → {1}", artifact.SourcePath.GetFilename(), artifact.TargetPath);
-                }
-                else
-                {
-                    // Unix: Preserve symlinks
-                    await CopyWithSymlinksAsync(artifact.SourcePath, artifact.TargetPath, ct);
-                }
-
-                await Task.Yield();
+                _log.Information("No artifacts to copy");
+                return CopierResult.ToSuccess();
             }
 
-            return CopierResult.ToSuccess();
+            if (_profile.PlatformFamily == PlatformFamily.Windows)
+            {
+                return await CopyWindowsFilesAsync(artifactList, ct);
+            }
+            else
+            {
+                return await CreateUnixArchiveAsync(artifactList, ct);
+            }
         }
         catch (OperationCanceledException)
         {
@@ -51,40 +45,85 @@ public sealed class SymlinkAwareFilesystemCopier(ICakeContext ctx, IRuntimeProfi
         }
         catch (Exception ex)
         {
-            return new CopierError($"Error while copying artifacts: {ex.Message}", ex);
+            return new CopierError($"Error while processing artifacts: {ex.Message}", ex);
         }
     }
 
-    private async Task CopyWithSymlinksAsync(FilePath source, FilePath target, CancellationToken ct)
+    private async Task<CopierResult> CopyWindowsFilesAsync(List<NativeArtifact> artifacts, CancellationToken ct)
     {
+        _log.Information("Copying {0} Windows artifacts individually", artifacts.Count);
+
+        foreach (var artifact in artifacts)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            _ctx.EnsureDirectoryExists(artifact.TargetPath.GetDirectory());
+            _ctx.CopyFile(artifact.SourcePath, artifact.TargetPath);
+            _log.Verbose("copied {0} → {1}", artifact.SourcePath.GetFilename(), artifact.TargetPath);
+
+            await Task.Yield();
+        }
+
+        _log.Information("Successfully copied {0} Windows artifacts", artifacts.Count);
+        return CopierResult.ToSuccess();
+    }
+
+    private async Task<CopierResult> CreateUnixArchiveAsync(List<NativeArtifact> artifacts, CancellationToken ct)
+    {
+        var rid = _profile.Rid;
+        var archiveName = $"natives-{rid}.tar.gz";
+        var stagingDir = _ctx.Directory($"./staging/runtimes/{rid}/native");
+        var archivePath = stagingDir.Path.CombineWithFilePath(archiveName);
+
+        _log.Information("Creating Unix archive {0} with {1} artifacts", archiveName, artifacts.Count);
+
+        _ctx.EnsureDirectoryExists(stagingDir);
+
+        // Create file list for tar
+        var fileListPath = await CreateFileListAsync(artifacts, ct);
+
         try
         {
-            var sourceInfo = await Task.Run(() => new FileInfo(source.FullPath), ct);
+            // Create tar.gz with symlink preservation (without path transformation for now)
+            var exitCode = _ctx.StartProcess("tar", new ProcessSettings
+            {
+                Arguments = $"-czf \"{archivePath.FullPath}\" -T \"{fileListPath.FullPath}\"",
+                WorkingDirectory = _ctx.Environment.WorkingDirectory
+            });
 
-            if (sourceInfo.LinkTarget != null)
+            if (exitCode != 0)
             {
-                // It's a symlink - recreate the symlink
-                File.CreateSymbolicLink(target.FullPath, sourceInfo.LinkTarget);
-                _log.Verbose("symlinked {0} → {1} (target: {2})", source.GetFilename(), target.GetFilename(), sourceInfo.LinkTarget);
+                return new CopierError($"tar command failed with exit code {exitCode}");
             }
-            else
+
+            _log.Information("Successfully created Unix archive: {0} ({1} artifacts)", archivePath.GetFilename(), artifacts.Count);
+            return CopierResult.ToSuccess();
+        }
+        catch (Exception ex)
+        {
+            return new CopierError($"Failed to create tar archive: {ex.Message}", ex);
+        }
+        finally
+        {
+            // Clean up temporary file list
+            if (_ctx.FileExists(fileListPath))
             {
-                // It's a regular file - copy normally
-                _ctx.CopyFile(source, target);
-                _log.Verbose("copied {0} → {1}", source.GetFilename(), target.GetFilename());
+                _ctx.DeleteFile(fileListPath);
             }
         }
-        catch (UnauthorizedAccessException ex)
-        {
-            _log.Warning("Access denied copying {0}: {1}", source.GetFilename(), ex.Message);
-            // Fallback to regular copy
-            _ctx.CopyFile(source, target);
-        }
-        catch (IOException ex)
-        {
-            _log.Warning("IO error copying {0}: {1}", source.GetFilename(), ex.Message);
-            // Fallback to regular copy
-            _ctx.CopyFile(source, target);
-        }
+    }
+
+    private async Task<FilePath> CreateFileListAsync(List<NativeArtifact> artifacts, CancellationToken ct)
+    {
+        var tempDir = _ctx.Directory("./temp");
+        _ctx.EnsureDirectoryExists(tempDir);
+
+        var fileListPath = tempDir.Path.CombineWithFilePath($"native-files-{Guid.NewGuid():N}.txt");
+        var sourceFiles = artifacts.Select(a => a.SourcePath.FullPath);
+
+        await File.WriteAllLinesAsync(fileListPath.FullPath, sourceFiles, ct);
+        _log.Verbose("Created file list: {0} ({1} files)", fileListPath.GetFilename(), artifacts.Count);
+
+        return fileListPath;
     }
 }
