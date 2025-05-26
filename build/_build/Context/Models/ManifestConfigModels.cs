@@ -32,13 +32,15 @@ public record LibraryManifest
     [JsonPropertyName("core_lib")]
     public required bool IsCoreLib { get; init; }
 
-    [JsonPropertyName("lib_names")]
-    public required IImmutableList<LibName> LibNames { get; init; }
+    [JsonPropertyName("primary_binaries")]
+    public required IImmutableList<PrimaryBinary> PrimaryBinaries { get; init; }
 }
 
-public record LibName
+public record PrimaryBinary
 {
-    [JsonPropertyName("os")] public required string Os { get; init; }
+    [JsonPropertyName("os")]
+    public required string Os { get; init; }
 
-    [JsonPropertyName("name")] public required string Name { get; init; } = string.Empty;
+    [JsonPropertyName("patterns")]
+    public required IImmutableList<string> Patterns { get; init; }
 }

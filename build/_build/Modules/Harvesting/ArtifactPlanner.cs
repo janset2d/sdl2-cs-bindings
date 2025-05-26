@@ -63,7 +63,7 @@ public sealed class ArtifactPlanner : IArtifactPlanner
                     continue;
                 }
 
-                var origin = filePath == closure.PrimaryBinary ? ArtifactOrigin.Primary : ArtifactOrigin.Runtime;
+                var origin = closure.IsPrimaryFile(filePath) ? ArtifactOrigin.Primary : ArtifactOrigin.Runtime;
 
                 if (_environment.Platform.Family == PlatformFamily.Windows)
                 {

@@ -32,13 +32,17 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
             }
 
             var rootPkgInfo = rootPkgInfoResult.PackageInfo;
-            var libName = manifest.LibNames.First(x => x.Os.Equals(_profile.PlatformFamily.ToString(), StringComparison.OrdinalIgnoreCase)).Name;
-            var primary = ResolvePrimaryBinary(rootPkgInfo, libName);
+            var primaryFiles = ResolvePrimaryBinaries(rootPkgInfo, manifest);
 
-            if (primary is null || !_ctx.FileExists(primary))
+            if (primaryFiles.Count == 0)
             {
-                return new ClosureError($"Primary binary '{libName}' not found for {manifest.VcpkgName}");
+                return new ClosureError($"No primary binaries found for {manifest.VcpkgName} on {_profile.PlatformFamily}");
             }
+
+            _log.Information("Found {0} primary file(s) for {1}: {2}",
+                primaryFiles.Count,
+                manifest.VcpkgName,
+                string.Join(", ", primaryFiles.Select(f => f.GetFilename().FullPath)));
 
             var pkgQueue = new Queue<(string OwnerPackage, string OriginPackage)>([(rootPkgInfo.PackageName, rootPkgInfo.PackageName)]);
             var processedPackages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -111,7 +115,7 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
                 }
             }
 
-            return new BinaryClosure(primary, [.. nodesDict.Values], processedPackages);
+            return new BinaryClosure(primaryFiles, [.. nodesDict.Values], processedPackages);
         }
         catch (OperationCanceledException)
         {
@@ -123,85 +127,56 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
         }
     }
 
-    private FilePath? ResolvePrimaryBinary(PackageInfo pkgInfo, string expectedName)
+    private HashSet<FilePath> ResolvePrimaryBinaries(PackageInfo pkgInfo, LibraryManifest manifest)
     {
-        // Try a direct match first (Windows style or exact match)
-        var directMatch = pkgInfo.OwnedFiles.FirstOrDefault(f => f.GetFilename().FullPath.Equals(expectedName, StringComparison.OrdinalIgnoreCase));
+        var platformBinaries = manifest.PrimaryBinaries
+            .FirstOrDefault(pb => pb.Os.Equals(_profile.PlatformFamily.ToString(), StringComparison.OrdinalIgnoreCase));
 
-        if (directMatch != null && _ctx.FileExists(directMatch))
+        if (platformBinaries == null)
         {
-            _log.Verbose("Found primary binary via direct match: {0}", directMatch.FullPath);
-            return directMatch;
+            _log.Warning("No primary binary patterns defined for {0} on {1}", manifest.VcpkgName, _profile.PlatformFamily);
+            return new HashSet<FilePath>();
         }
 
-        // For Unix: Find the real file in the symlink chain
-        if (_profile.PlatformFamily != PlatformFamily.Windows)
+        var primaryFiles = new HashSet<FilePath>();
+
+        foreach (var pattern in platformBinaries.Patterns)
         {
-            var unixPrimary = ResolveUnixPrimaryBinary(pkgInfo, expectedName);
-            if (unixPrimary != null)
+            var matchingFiles = pkgInfo.OwnedFiles
+                .Where(f => IsBinary(f) && MatchesPattern(f.GetFilename().FullPath, pattern) && _ctx.FileExists(f));
+
+            foreach (var file in matchingFiles)
             {
-                _log.Verbose("Found primary binary via Unix symlink resolution: {0}", unixPrimary.FullPath);
-                return unixPrimary;
+                primaryFiles.Add(file);
+                _log.Verbose("Pattern '{0}' matched: {1}", pattern, file.GetFilename().FullPath);
             }
         }
 
-        _log.Warning("Could not resolve primary binary '{0}' for package", expectedName);
-        return null;
+        return primaryFiles;
     }
 
-    private FilePath? ResolveUnixPrimaryBinary(PackageInfo pkgInfo, string expectedName)
+    private static bool MatchesPattern(string filename, string pattern)
     {
-        // Find all potential symlink chain members
-        // For libSDL2.so, look for libSDL2.so, libSDL2-2.0.so, libSDL2-2.0.so.0, etc.
-        var baseNameWithoutExt = expectedName.Replace(".so", "", StringComparison.OrdinalIgnoreCase);
-        var candidates = pkgInfo.OwnedFiles
-            .Where(f => IsBinary(f) && f.GetFilename().FullPath.StartsWith(baseNameWithoutExt, StringComparison.OrdinalIgnoreCase))
-            .ToList();
-
-        _log.Verbose("Found {0} potential symlink candidates for {1}", candidates.Count, expectedName);
-
-        // Find the real file (not a symlink) - this is typically the most versioned one
-        var existingCandidates = candidates
-            .Where(c => _ctx.FileExists(c))
-            .OrderByDescending(f => f.GetFilename().FullPath.Length);
-
-        foreach (var candidate in existingCandidates)
+        // Simple glob matching for patterns like "libSDL2.so*" or "libSDL2*.dylib"
+        if (!pattern.Contains('*', StringComparison.Ordinal))
         {
-            var isSymlink = IsSymlink(candidate);
-            if (isSymlink)
-            {
-                continue;
-            }
-
-            _log.Verbose("Found real file in symlink chain: {0}", candidate.FullPath);
-            return candidate;
+            return string.Equals(filename, pattern, StringComparison.OrdinalIgnoreCase);
         }
 
-        // Fallback: return the first existing candidate
-        var fallback = candidates.FirstOrDefault(c => _ctx.FileExists(c));
-        if (fallback != null)
+        // Handle single wildcard patterns
+        var parts = pattern.Split('*');
+        if (parts.Length == 2)
         {
-            _log.Verbose("Using fallback candidate: {0}", fallback.FullPath);
+            var prefix = parts[0];
+            var suffix = parts[1];
+
+            return filename.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) &&
+                   filename.EndsWith(suffix, StringComparison.OrdinalIgnoreCase);
         }
 
-        return fallback;
-    }
-
-    private static bool IsSymlink(FilePath path)
-    {
-        try
-        {
-            var fileInfo = new FileInfo(path.FullPath);
-            return fileInfo.Exists && fileInfo.LinkTarget != null;
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return false;
-        }
-        catch (IOException)
-        {
-            return false;
-        }
+        // For more complex patterns, we could use a proper glob library
+        // For now, this handles our current use cases
+        return false;
     }
 
     private static string? TryInferPackageNameFromPath(FilePath p)

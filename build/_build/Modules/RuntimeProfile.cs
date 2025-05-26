@@ -46,7 +46,8 @@ public sealed class RuntimeProfile : IRuntimeProfile
 
         _systemRegexes = [.. rawPatterns.Select(BuildRegex)];
 
-        CoreLibName = coreLibManifest.LibNames.FirstOrDefault(x => x.Os.Equals(PlatformFamily.ToString(), StringComparison.OrdinalIgnoreCase))?.Name;
+        var platformBinaries = coreLibManifest.PrimaryBinaries.FirstOrDefault(x => x.Os.Equals(PlatformFamily.ToString(), StringComparison.OrdinalIgnoreCase));
+        CoreLibName = platformBinaries?.Patterns.Count > 0 ? platformBinaries.Patterns[0] : null;
     }
 
     public string Rid { get; }

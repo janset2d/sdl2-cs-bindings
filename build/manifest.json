@@ -8,18 +8,18 @@
       "native_lib_name": "SDL2.Core.Native",
       "native_lib_version": "2.26.5.0",
       "core_lib": true,
-      "lib_names": [
+      "primary_binaries": [
         {
           "os": "Windows",
-          "name": "SDL2.dll"
-        },
-        {
-          "os": "OSX",
-          "name": "libSDL2.dylib"
+          "patterns": ["SDL2.dll"]
         },
         {
           "os": "Linux",
-          "name": "libSDL2.so"
+          "patterns": ["libSDL2.so*"]
+        },
+        {
+          "os": "OSX",
+          "patterns": ["libSDL2*.dylib"]
         }
       ]
     },
@@ -31,18 +31,18 @@
       "native_lib_name": "SDL2.Image.Native",
       "native_lib_version": "2.8.8.0",
       "core_lib": false,
-      "lib_names": [
+      "primary_binaries": [
         {
           "os": "Windows",
-          "name": "SDL2_image.dll"
-        },
-        {
-          "os": "OSX",
-          "name": "libSDL2_image.dylib"
+          "patterns": ["SDL2_image.dll"]
         },
         {
           "os": "Linux",
-          "name": "libSDL2_image.so"
+          "patterns": ["libSDL2_image.so*"]
+        },
+        {
+          "os": "OSX",
+          "patterns": ["libSDL2_image*.dylib"]
         }
       ]
     },
@@ -54,18 +54,18 @@
       "native_lib_name": "SDL2.Mixer.Native",
       "native_lib_version": "2.8.1.0",
       "core_lib": false,
-      "lib_names": [
+      "primary_binaries": [
         {
           "os": "Windows",
-          "name": "SDL2_mixer.dll"
-        },
-        {
-          "os": "OSX",
-          "name": "libSDL2_mixer.dylib"
+          "patterns": ["SDL2_mixer.dll"]
         },
         {
           "os": "Linux",
-          "name": "libSDL2_mixer.so"
+          "patterns": ["libSDL2_mixer.so*"]
+        },
+        {
+          "os": "OSX",
+          "patterns": ["libSDL2_mixer*.dylib"]
         }
       ]
     },
@@ -77,18 +77,18 @@
       "native_lib_name": "SDL2.Ttf.Native",
       "native_lib_version": "2.24.0.0",
       "core_lib": false,
-      "lib_names": [
+      "primary_binaries": [
         {
           "os": "Windows",
-          "name": "SDL2_ttf.dll"
-        },
-        {
-          "os": "OSX",
-          "name": "libSDL2_ttf.dylib"
+          "patterns": ["SDL2_ttf.dll"]
         },
         {
           "os": "Linux",
-          "name": "libSDL2_ttf.so"
+          "patterns": ["libSDL2_ttf.so*"]
+        },
+        {
+          "os": "OSX",
+          "patterns": ["libSDL2_ttf*.dylib"]
         }
       ]
     },
@@ -100,18 +100,18 @@
       "native_lib_name": "SDL2.Gfx.Native",
       "native_lib_version": "1.0.4.0",
       "core_lib": false,
-      "lib_names": [
+      "primary_binaries": [
         {
           "os": "Windows",
-          "name": "SDL2_gfx.dll"
-        },
-        {
-          "os": "OSX",
-          "name": "libSDL2_gfx.dylib"
+          "patterns": ["SDL2_gfx.dll"]
         },
         {
           "os": "Linux",
-          "name": "libSDL2_gfx.so"
+          "patterns": ["libSDL2_gfx.so*"]
+        },
+        {
+          "os": "OSX",
+          "patterns": ["libSDL2_gfx*.dylib"]
         }
       ]
     }

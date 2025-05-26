@@ -70,7 +70,7 @@ public sealed class HarvestTask : AsyncFrostingTask<BuildContext>
 
     private static void DisplayHarvestReportSummary(BinaryClosure binaryClosure, DeploymentPlan deploymentPlan, string libraryName)
     {
-        var primaryBinary = binaryClosure.PrimaryBinary;
+        var primaryFiles = binaryClosure.PrimaryFiles;
         var packagesInClosure = binaryClosure.Packages;
 
         var reportableArtifacts = new List<(string FileName, string PackageName, ArtifactOrigin Origin)>();
@@ -88,10 +88,14 @@ public sealed class HarvestTask : AsyncFrostingTask<BuildContext>
             }
         }
 
+        var primaryFilesText = primaryFiles.Any()
+            ? string.Join(", ", primaryFiles.Select(f => f.GetFilename().FullPath).Order(StringComparer.Ordinal))
+            : "N/A";
+
         var grid = new Grid()
             .AddColumn()
             .AddColumn();
-        grid.AddRow("[bold]Root Binary[/]", $"[white]{primaryBinary.GetFilename().FullPath}[/]");
+        grid.AddRow("[bold]Primary Files[/]", $"[white]{primaryFilesText}[/]");
         grid.AddRow("[bold]Total Actions[/]", $"[white]{deploymentPlan.Actions.Count}[/]");
         grid.AddRow("[bold]Total Reported Artifacts[/]", $"[white]{reportableArtifacts.Count}[/]");
         grid.AddRow("[bold]Vcpkg Packages in Closure[/]", $"[white]{packagesInClosure.Count}[/]");
