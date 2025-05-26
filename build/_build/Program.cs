@@ -72,13 +72,11 @@ static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArgumen
             {
                 var rc = sp.GetRequiredService<RuntimeConfig>();
                 var sac = sp.GetRequiredService<SystemArtefactsConfig>();
-                var mc = sp.GetRequiredService<ManifestConfig>();
                 var rid = sp.GetRequiredService<ICakeEnvironment>().Platform.Rid();
 
                 var rInfo = rc.Runtimes.Single(r => string.Equals(r.Rid, rid, StringComparison.Ordinal));
-                var core = mc.LibraryManifests.Single(m => m.IsCoreLib);
 
-                return new RuntimeProfile(rInfo, sac, core);
+                return new RuntimeProfile(rInfo, sac);
             });
 
             services.AddSingleton<IPackageInfoProvider, VcpkgCliProvider>();

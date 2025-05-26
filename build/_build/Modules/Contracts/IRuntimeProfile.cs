@@ -11,7 +11,5 @@ public interface IRuntimeProfile
 
     PlatformFamily PlatformFamily { get; }
 
-    string? CoreLibName { get; }
-
     bool IsSystemFile(FilePath path);
 }

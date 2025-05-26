@@ -135,7 +135,7 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
         if (platformBinaries == null)
         {
             _log.Warning("No primary binary patterns defined for {0} on {1}", manifest.VcpkgName, _profile.PlatformFamily);
-            return new HashSet<FilePath>();
+            return [];
         }
 
         var primaryFiles = new HashSet<FilePath>();
@@ -144,7 +144,7 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
         {
             _log.Debug("Checking pattern '{0}' against {1} owned files", pattern, pkgInfo.OwnedFiles.Count);
 
-            var binaryFiles = pkgInfo.OwnedFiles.Where(f => IsBinary(f)).ToList();
+            var binaryFiles = pkgInfo.OwnedFiles.Where(IsBinary).ToList();
             _log.Debug("Found {0} binary files in package", binaryFiles.Count);
 
             var matchingFiles = binaryFiles
@@ -172,39 +172,27 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
 
     private static bool MatchesPattern(string filename, string pattern)
     {
-        // Simple glob matching for patterns like "libSDL2.so*" or "libSDL2*.dylib"
         if (!pattern.Contains('*', StringComparison.Ordinal))
         {
             return string.Equals(filename, pattern, StringComparison.OrdinalIgnoreCase);
         }
 
-        // Handle single wildcard patterns
         var parts = pattern.Split('*');
-        if (parts.Length == 2)
+        if (parts.Length != 2)
         {
-            var prefix = parts[0];
-            var suffix = parts[1];
-
-            // Check prefix match
-            if (!string.IsNullOrEmpty(prefix) && !filename.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-            {
-                return false;
-            }
-
-            // Check suffix match (only if suffix is not empty)
-            if (!string.IsNullOrEmpty(suffix) && !filename.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
-            {
-                return false;
-            }
-
-            return true;
+            return false;
         }
 
-        // For more complex patterns, we could use a proper glob library
-        // For now, this handles our current use cases
-        return false;
-    }
+        var prefix = parts[0];
+        var suffix = parts[1];
 
+        if (!string.IsNullOrEmpty(prefix) && !filename.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return string.IsNullOrEmpty(suffix) || filename.EndsWith(suffix, StringComparison.OrdinalIgnoreCase);
+    }
 
 
     private static string? TryInferPackageNameFromPath(FilePath p)
