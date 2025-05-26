@@ -15,7 +15,7 @@
         },
         {
           "os": "Linux",
-          "patterns": ["libSDL2.so*"]
+          "patterns": ["libSDL2*"]
         },
         {
           "os": "OSX",
@@ -38,7 +38,7 @@
         },
         {
           "os": "Linux",
-          "patterns": ["libSDL2_image.so*"]
+          "patterns": ["libSDL2_image*"]
         },
         {
           "os": "OSX",
@@ -61,7 +61,7 @@
         },
         {
           "os": "Linux",
-          "patterns": ["libSDL2_mixer.so*"]
+          "patterns": ["libSDL2_mixer*"]
         },
         {
           "os": "OSX",
@@ -84,7 +84,7 @@
         },
         {
           "os": "Linux",
-          "patterns": ["libSDL2_ttf.so*"]
+          "patterns": ["libSDL2_ttf*"]
         },
         {
           "os": "OSX",
@@ -107,7 +107,7 @@
         },
         {
           "os": "Linux",
-          "patterns": ["libSDL2_gfx.so*"]
+          "patterns": ["libSDL2_gfx*"]
         },
         {
           "os": "OSX",

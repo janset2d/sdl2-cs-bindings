@@ -142,13 +142,28 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
 
         foreach (var pattern in platformBinaries.Patterns)
         {
-            var matchingFiles = pkgInfo.OwnedFiles
-                .Where(f => IsBinary(f) && MatchesPattern(f.GetFilename().FullPath, pattern) && _ctx.FileExists(f));
+            _log.Debug("Checking pattern '{0}' against {1} owned files", pattern, pkgInfo.OwnedFiles.Count);
+
+            var binaryFiles = pkgInfo.OwnedFiles.Where(f => IsBinary(f)).ToList();
+            _log.Debug("Found {0} binary files in package", binaryFiles.Count);
+
+            var matchingFiles = binaryFiles
+                .Where(f => MatchesPattern(f.GetFilename().FullPath, pattern) && _ctx.FileExists(f))
+                .ToList();
+
+            _log.Debug("Pattern '{0}' matched {1} files", pattern, matchingFiles.Count);
 
             foreach (var file in matchingFiles)
             {
                 primaryFiles.Add(file);
-                _log.Verbose("Pattern '{0}' matched: {1}", pattern, file.GetFilename().FullPath);
+                _log.Information("Pattern '{0}' matched: {1}", pattern, file.GetFilename().FullPath);
+            }
+
+            if (matchingFiles.Count == 0)
+            {
+                _log.Warning("Pattern '{0}' matched no files. Available binary files: {1}",
+                    pattern,
+                    string.Join(", ", binaryFiles.Select(f => f.GetFilename().FullPath)));
             }
         }
 
@@ -170,14 +185,27 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
             var prefix = parts[0];
             var suffix = parts[1];
 
-            return filename.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) &&
-                   filename.EndsWith(suffix, StringComparison.OrdinalIgnoreCase);
+            // Check prefix match
+            if (!string.IsNullOrEmpty(prefix) && !filename.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            // Check suffix match (only if suffix is not empty)
+            if (!string.IsNullOrEmpty(suffix) && !filename.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            return true;
         }
 
         // For more complex patterns, we could use a proper glob library
         // For now, this handles our current use cases
         return false;
     }
+
+
 
     private static string? TryInferPackageNameFromPath(FilePath p)
     {
