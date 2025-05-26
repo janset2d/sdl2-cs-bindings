@@ -7,6 +7,8 @@ using Build.Modules.Harvesting.Results;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
+using System.Diagnostics.CodeAnalysis;
+using PlatformFamily = Cake.Core.PlatformFamily;
 
 namespace Build.Modules.Harvesting;
 
@@ -14,19 +16,25 @@ public sealed class ArtifactPlanner : IArtifactPlanner
 {
     private readonly IPackageInfoProvider _pkg;
     private readonly IRuntimeProfile _profile;
+    private readonly IPathService _pathService;
     private readonly ICakeLog _log;
     private readonly string _corePackageName;
+    private readonly ICakeEnvironment _environment;
 
-    public ArtifactPlanner(IPackageInfoProvider pkg, IRuntimeProfile profile, ICakeContext context, ManifestConfig manifestConfig)
+    public ArtifactPlanner(IPackageInfoProvider pkg, IRuntimeProfile profile, IPathService pathService, ICakeContext context, ManifestConfig manifestConfig)
     {
         ArgumentNullException.ThrowIfNull(manifestConfig);
+        ArgumentNullException.ThrowIfNull(context);
 
         _pkg = pkg ?? throw new ArgumentNullException(nameof(pkg));
         _profile = profile ?? throw new ArgumentNullException(nameof(profile));
-        _log = context?.Log ?? throw new ArgumentNullException(nameof(context));
+        _pathService = pathService ??  throw new ArgumentNullException(nameof(pathService));
+        _environment = context.Environment;
+        _log = context.Log;
         _corePackageName = manifestConfig.LibraryManifests.Single(manifest => manifest.IsCoreLib).VcpkgName;
     }
 
+    [SuppressMessage("Design", "MA0051:Method is too long")]
     public async Task<ArtifactPlannerResult> CreatePlanAsync(LibraryManifest current, BinaryClosure closure, DirectoryPath outRoot, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(current);
@@ -35,67 +43,87 @@ public sealed class ArtifactPlanner : IArtifactPlanner
 
         try
         {
-            var artifacts = new HashSet<NativeArtifact>();
+            var actions = new List<DeploymentAction>();
             var copiedPackages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var itemsForUnixArchive = new List<ArchivedItemDetails>();
 
             var isCore = current.IsCoreLib;
-            var currentPackageName = current.Name;
+            var currentLibraryName = current.Name;
 
-            foreach (var node in closure.Nodes)
+            var nativeOutput = outRoot.Combine(currentLibraryName).Combine("runtimes").Combine(_profile.Rid).Combine("native");
+            var licenseOutput = outRoot.Combine(currentLibraryName).Combine("licenses");
+
+            foreach (var (filePath, ownerPackageName, originPackage) in closure.Nodes)
             {
-                if (!isCore && (node.OriginPackage.Equals(_corePackageName, StringComparison.OrdinalIgnoreCase)
-                                || node.OwnerPackage.Equals(_corePackageName, StringComparison.OrdinalIgnoreCase)))
+                ct.ThrowIfCancellationRequested();
+
+                if (!isCore && (originPackage.Equals(_corePackageName, StringComparison.OrdinalIgnoreCase)
+                                || ownerPackageName.Equals(_corePackageName, StringComparison.OrdinalIgnoreCase)))
                 {
                     continue;
                 }
 
-                var origin = node.Path == closure.PrimaryBinary
-                    ? ArtifactOrigin.Primary
-                    : ArtifactOrigin.Runtime;
+                var origin = filePath == closure.PrimaryBinary ? ArtifactOrigin.Primary : ArtifactOrigin.Runtime;
 
-                var nativeArtifact = MakeArtifact(node.Path, currentPackageName, node.OwnerPackage, origin, outRoot);
-                artifacts.Add(nativeArtifact);
-                copiedPackages.Add(node.OwnerPackage);
+                if (_environment.Platform.Family == PlatformFamily.Windows)
+                {
+                    var targetPath = nativeOutput.CombineWithFilePath(filePath);
+                    actions.Add(new FileCopyAction(filePath, targetPath, ownerPackageName, origin));
+                }
+                else
+                {
+                    itemsForUnixArchive.Add(new ArchivedItemDetails(filePath, ownerPackageName, origin));
+                }
+
+                copiedPackages.Add(ownerPackageName);
             }
 
+            // Process license files (always direct copy)
             foreach (var packageName in copiedPackages)
             {
-                var info = await _pkg.GetPackageInfoAsync(packageName, _profile.Triplet, ct);
+                ct.ThrowIfCancellationRequested();
+                var infoResult = await _pkg.GetPackageInfoAsync(packageName, _profile.Triplet, ct);
 
-                if (info.IsError())
+                if (infoResult.IsError())
                 {
                     _log.Warning("Package info not found for dependency {0}, continuing.", packageName);
                     continue;
                 }
 
-                foreach (var licensePath in info.PackageInfo.OwnedFiles.Where(IsLicense))
+                foreach (var licensePath in infoResult.PackageInfo.OwnedFiles.Where(IsLicense))
                 {
-                    var licenseArtifact = MakeArtifact(licensePath, currentPackageName, packageName, ArtifactOrigin.License, outRoot);
-                    artifacts.Add(licenseArtifact);
+                    var licenseTargetPath = licenseOutput.Combine(packageName).CombineWithFilePath(licensePath.GetFilename().FullPath);
+                    actions.Add(new FileCopyAction(licensePath, licenseTargetPath, packageName, ArtifactOrigin.License));
                 }
             }
 
-            return new ArtifactPlan(artifacts);
+            if (_environment.Platform.Family != PlatformFamily.Windows && itemsForUnixArchive.Count != 0)
+            {
+                var archiveName = $"natives-{_profile.Rid}.tar.gz";
+                _log.Verbose("Archive target directory for {0}: {1}", currentLibraryName, nativeOutput.FullPath);
+
+                var archiveFinalPath = nativeOutput.CombineWithFilePath(archiveName);
+                var vcpkgInstalledLibDir = _pathService.GetVcpkgInstalledLibDir(_profile.Triplet);
+
+                _log.Debug("Base directory for tar archive: {0}", nativeOutput.FullPath);
+                actions.Add(new ArchiveCreationAction(archiveFinalPath, vcpkgInstalledLibDir, itemsForUnixArchive, archiveName));
+            }
+
+            _log.Information("Created deployment plan for {0} with {1} action(s).", currentLibraryName, actions.Count);
+            return new DeploymentPlan(actions);
         }
         catch (OperationCanceledException)
         {
+            _log.Warning("Artifact planning was canceled for {0}.", current.Name);
             throw;
         }
         catch (Exception ex)
         {
-            return new ArtifactPlannerError($"Error while planning artifacts: {ex.Message}", ex);
+            var message = $"Error while planning artifacts for {current.Name}: {ex.Message}";
+            _log.Error(message);
+
+            return new ArtifactPlannerError(message);
         }
-    }
-
-    private NativeArtifact MakeArtifact(FilePath srcPath, string currentPackageName, string ownerPackageName, ArtifactOrigin origin, DirectoryPath root)
-    {
-        var dir = origin == ArtifactOrigin.License
-            ? root.Combine(currentPackageName).Combine("licenses").Combine(ownerPackageName)
-            : root.Combine(currentPackageName).Combine("runtimes").Combine(_profile.Rid).Combine("native");
-
-        var target = dir.CombineWithFilePath(srcPath.GetFilename());
-
-        return new NativeArtifact(srcPath.GetFilename().FullPath, srcPath, target, ownerPackageName, origin);
     }
 
     private static bool IsLicense(FilePath f) =>

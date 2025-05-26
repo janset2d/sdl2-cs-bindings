@@ -33,7 +33,7 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
 
             var rootPkgInfo = rootPkgInfoResult.PackageInfo;
             var libName = manifest.LibNames.First(x => x.Os.Equals(_profile.PlatformFamily.ToString(), StringComparison.OrdinalIgnoreCase)).Name;
-            var primary = ResolvePrimaryBinaryAsync(rootPkgInfo, libName);
+            var primary = ResolvePrimaryBinary(rootPkgInfo, libName);
 
             if (primary is null || !_ctx.FileExists(primary))
             {
@@ -123,8 +123,7 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
         }
     }
 
-    // helper -------------------------------------------------------------------
-    private FilePath? ResolvePrimaryBinaryAsync(PackageInfo pkgInfo, string expectedName)
+    private FilePath? ResolvePrimaryBinary(PackageInfo pkgInfo, string expectedName)
     {
         // Try a direct match first (Windows style or exact match)
         var directMatch = pkgInfo.OwnedFiles.FirstOrDefault(f => f.GetFilename().FullPath.Equals(expectedName, StringComparison.OrdinalIgnoreCase));
@@ -216,7 +215,6 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
             return null;
         }
 
-        // Use directory structure when available (Windows bin/, or Unix with subdirectories)
         return segments[vcpkgIndex + 3];
     }
 

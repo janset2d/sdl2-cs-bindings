@@ -1,6 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using Cake.Core;
-using Cake.Core.Diagnostics;
 using OneOf;
 using OneOf.Monads;
 using OneOf.Types;

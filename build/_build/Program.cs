@@ -84,12 +84,7 @@ static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArgumen
             services.AddSingleton<IPackageInfoProvider, VcpkgCliProvider>();
             services.AddSingleton<IBinaryClosureWalker, BinaryClosureWalker>();
             services.AddSingleton<IArtifactPlanner, ArtifactPlanner>();
-            services.AddSingleton<IFilesystemCopier>(provider =>
-            {
-                var context = provider.GetRequiredService<ICakeContext>();
-                var profile = provider.GetRequiredService<IRuntimeProfile>();
-                return new SymlinkAwareFilesystemCopier(context, profile);
-            });
+            services.AddSingleton<IArtifactDeployer, ArtifactDeployer>();
 
             services.AddSingleton<IRuntimeScanner>(provider =>
             {

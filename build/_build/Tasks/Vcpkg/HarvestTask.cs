@@ -14,13 +14,20 @@ using Spectre.Console;
 namespace Build.Tasks.Vcpkg;
 
 [TaskName("Harvest")]
-public sealed class HarvestTask(IBinaryClosureWalker binaryClosureWalker, IArtifactPlanner artifactPlanner, IFilesystemCopier filesystemCopier, ManifestConfig manifestConfig)
-    : AsyncFrostingTask<BuildContext>
+public sealed class HarvestTask : AsyncFrostingTask<BuildContext>
 {
-    private readonly IBinaryClosureWalker _binaryClosureWalker = binaryClosureWalker ?? throw new ArgumentNullException(nameof(binaryClosureWalker));
-    private readonly IArtifactPlanner _artifactPlanner = artifactPlanner ?? throw new ArgumentNullException(nameof(artifactPlanner));
-    private readonly IFilesystemCopier _filesystemCopier = filesystemCopier ?? throw new ArgumentNullException(nameof(filesystemCopier));
-    private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
+    private readonly IBinaryClosureWalker _binaryClosureWalker;
+    private readonly IArtifactPlanner _artifactPlanner;
+    private readonly IArtifactDeployer _artifactDeployer;
+    private readonly ManifestConfig _manifestConfig;
+
+    public HarvestTask(IBinaryClosureWalker binaryClosureWalker, IArtifactPlanner artifactPlanner, IArtifactDeployer artifactDeployer, ManifestConfig manifestConfig)
+    {
+        _binaryClosureWalker = binaryClosureWalker ?? throw new ArgumentNullException(nameof(binaryClosureWalker));
+        _artifactPlanner = artifactPlanner ?? throw new ArgumentNullException(nameof(artifactPlanner));
+        _artifactDeployer = artifactDeployer ?? throw new ArgumentNullException(nameof(artifactDeployer));
+        _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
+    }
 
     public override async Task RunAsync(BuildContext context)
     {
@@ -51,7 +58,7 @@ public sealed class HarvestTask(IBinaryClosureWalker binaryClosureWalker, IArtif
             var plannerResult = await _artifactPlanner.CreatePlanAsync(manifest, closureResult.Closure, outputBase);
             plannerResult.ThrowIfError(e => LogAndThrow("Artifact planning", e, context.Log, manifest.Name));
 
-            var copierResult = await _filesystemCopier.CopyAsync(plannerResult.ArtifactPlan.Artifacts);
+            var copierResult = await _artifactDeployer.DeployArtifactsAsync(plannerResult.ArtifactPlan);
             copierResult.ThrowIfError(e => LogAndThrow("Artifact copying", e, context.Log, manifest.Name));
 
             DisplayHarvestReportSummary(closureResult.Closure, plannerResult.ArtifactPlan, manifest.Name);
@@ -61,21 +68,36 @@ public sealed class HarvestTask(IBinaryClosureWalker binaryClosureWalker, IArtif
         AnsiConsole.Write(new Rule("[green]Harvest completed successfully[/]").RuleStyle("grey"));
     }
 
-    private static void DisplayHarvestReportSummary(BinaryClosure binaryClosure, ArtifactPlan artifactPlan, string libraryName)
+    private static void DisplayHarvestReportSummary(BinaryClosure binaryClosure, DeploymentPlan deploymentPlan, string libraryName)
     {
         var primaryBinary = binaryClosure.PrimaryBinary;
-        var packages = binaryClosure.Packages;
-        var artifacts = artifactPlan.Artifacts;
+        var packagesInClosure = binaryClosure.Packages;
+
+        var reportableArtifacts = new List<(string FileName, string PackageName, ArtifactOrigin Origin)>();
+        foreach (var action in deploymentPlan.Actions)
+        {
+            switch (action)
+            {
+                case FileCopyAction copyAction:
+                    reportableArtifacts.Add((copyAction.SourcePath.GetFilename().FullPath, copyAction.PackageName, copyAction.Origin));
+                    break;
+                case ArchiveCreationAction archiveAction:
+                    reportableArtifacts.Add((archiveAction.ArchiveName, libraryName, ArtifactOrigin.Primary));
+                    reportableArtifacts.AddRange(archiveAction.ItemsToArchive.Select(item => (item.SourcePath.GetFilename().FullPath, item.PackageName, item.Origin)));
+                    break;
+            }
+        }
 
         var grid = new Grid()
             .AddColumn()
             .AddColumn();
         grid.AddRow("[bold]Root Binary[/]", $"[white]{primaryBinary.GetFilename().FullPath}[/]");
-        grid.AddRow("[bold]Total Artifacts[/]", $"[white]{artifacts.Count}[/]");
-        grid.AddRow("[bold]Vcpkg Packages[/]", $"[white]{packages.Count}[/]");
+        grid.AddRow("[bold]Total Actions[/]", $"[white]{deploymentPlan.Actions.Count}[/]");
+        grid.AddRow("[bold]Total Reported Artifacts[/]", $"[white]{reportableArtifacts.Count}[/]");
+        grid.AddRow("[bold]Vcpkg Packages in Closure[/]", $"[white]{packagesInClosure.Count}[/]");
 
-        var packageNames = string.Join(", ", packages.Order(StringComparer.Ordinal));
-        grid.AddRow("[bold]Packages List[/]", $"[teal]{packageNames}[/]");
+        var packageNamesText = packagesInClosure.Any() ? string.Join(", ", packagesInClosure.Order(StringComparer.Ordinal)) : "N/A";
+        grid.AddRow("[bold]Packages List[/]", $"[teal]{packageNamesText}[/]");
 
         var infoPanel = new Panel(grid)
             .Header($"[bold yellow]{libraryName} – Summary[/]", Justify.Left)
@@ -89,12 +111,16 @@ public sealed class HarvestTask(IBinaryClosureWalker binaryClosureWalker, IArtif
             .BorderColor(Color.Grey)
             .AddColumn("[bold]Origin[/]")
             .AddColumn("[bold]Package[/]")
-            .AddColumn("[bold]File[/]");
+            .AddColumn("[bold]File/Item[/]");
 
-        var orderedArtifacts = artifacts.OrderBy(a => a.Origin).ThenBy(a => a.FileName, StringComparer.Ordinal).ToList();
-        foreach (var art in orderedArtifacts.Take(maxRows))
+        var orderedReportableArtifacts = reportableArtifacts
+            .OrderBy(a => a.Origin)
+            .ThenBy(a => a.FileName, StringComparer.Ordinal)
+            .ToList();
+
+        foreach (var (fileName, packageName, origin) in orderedReportableArtifacts.Take(maxRows))
         {
-            var originColour = art.Origin switch
+            var originColour = origin switch
             {
                 ArtifactOrigin.Primary => "lime",
                 ArtifactOrigin.Runtime => "deepskyblue1",
@@ -104,22 +130,22 @@ public sealed class HarvestTask(IBinaryClosureWalker binaryClosureWalker, IArtif
             };
 
             artTable.AddRow(
-                $"[{originColour}]{art.Origin}[/]",
-                $"[white]{art.PackageName}[/]",
-                $"[grey]{art.FileName}[/]");
+                $"[{originColour}]{origin}[/]",
+                $"[white]{packageName}[/]",
+                $"[grey]{fileName}[/]");
         }
 
-        if (orderedArtifacts.Count > maxRows)
+        if (orderedReportableArtifacts.Count > maxRows)
         {
             artTable.AddEmptyRow();
             artTable.AddRow(
                 "[italic grey]…[/]",
                 string.Empty,
-                $"[italic grey]{artifacts.Count - maxRows} more artifact(s) omitted[/]");
+                $"[italic grey]{reportableArtifacts.Count - maxRows} more item(s) omitted[/]");
         }
 
         var tablePanel = new Panel(artTable)
-            .Header($"[bold yellow]{libraryName} – Artifacts[/]", Justify.Left)
+            .Header($"[bold yellow]{libraryName} – Reported Items[/]", Justify.Left)
             .BorderColor(Color.Grey);
 
         AnsiConsole.Write(tablePanel);
@@ -139,6 +165,6 @@ public sealed class HarvestTask(IBinaryClosureWalker binaryClosureWalker, IArtif
             log.Verbose("Details: {0}", error.Exception);
         }
 
-        throw new CakeException($"{phase} failed for '{libraryName}'. Use –verbosity=diagnostic for details.");
+        throw new CakeException($"{phase} failed for '{libraryName}'. Use –verbosity=diagnostic for details. Error: {error.Message}");
     }
 }
