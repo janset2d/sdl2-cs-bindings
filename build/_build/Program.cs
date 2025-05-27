@@ -50,7 +50,8 @@ return await root.InvokeAsync(args);
 static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArguments parsedArgs)
 {
     var repoRootPath = await DetermineRepoRootAsync(parsedArgs.RepoRoot);
-    var cakeArgs = context.ParseResult.Tokens.Select(t => t.Value).ToArray();
+    var initialCakeArgs = context.ParseResult.Tokens.Select(t => t.Value).ToArray();
+    var effectiveCakeArgs = GetEffectiveCakeArguments(initialCakeArgs, context);
 
     return new CakeHost()
         .UseContext<BuildContext>()
@@ -133,7 +134,7 @@ static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArgumen
                 return systemArtefactsConfig;
             });
         })
-        .Run(cakeArgs);
+        .Run(effectiveCakeArgs);
 }
 
 static async Task<DirectoryPath> DetermineRepoRootAsync(DirectoryInfo? repoRootArg)
@@ -187,6 +188,48 @@ static async Task<DirectoryPath> DetermineRepoRootAsync(DirectoryInfo? repoRootA
     AnsiConsole.MarkupLine($"[red]ERROR:[/] Could not determine repo root via git or relative path. Using CWD: {absoluteFallback.FullPath}");
     return absoluteFallback;
 }
+
+static string[] GetEffectiveCakeArguments(string[] originalArgs, InvocationContext invocationContext)
+{
+    var verbosityOption = CakeOptions.VerbosityOption;
+    var parseResult = invocationContext.ParseResult;
+    var explicitVerbosityWasSetAndBound = parseResult.FindResultFor(verbosityOption)?.GetValueOrDefault() != null;
+
+    var actionsRunnerDebugValue = Environment.GetEnvironmentVariable("ACTIONS_RUNNER_DEBUG");
+    var isGitHubDebugRun = string.Equals(actionsRunnerDebugValue, "true", StringComparison.OrdinalIgnoreCase);
+
+    if (!isGitHubDebugRun || explicitVerbosityWasSetAndBound)
+    {
+        return originalArgs;
+    }
+
+    var indicesToExclude = new HashSet<int>();
+    for (var i = 0; i < originalArgs.Length; i++)
+    {
+        if (originalArgs[i].Equals("--verbosity", StringComparison.OrdinalIgnoreCase))
+        {
+            indicesToExclude.Add(i);
+            if (i + 1 < originalArgs.Length && !originalArgs[i + 1].StartsWith('-'))
+            {
+                indicesToExclude.Add(i + 1);
+            }
+        }
+        else if (originalArgs[i].StartsWith("--verbosity=", StringComparison.OrdinalIgnoreCase))
+        {
+            indicesToExclude.Add(i);
+        }
+    }
+
+    var filteredArgs = originalArgs
+        .Where((_, index) => !indicesToExclude.Contains(index))
+        .Append("--verbosity")
+        .Append("diagnostic")
+        .ToArray();
+
+    AnsiConsole.MarkupLine("[yellow]ACTIONS_RUNNER_DEBUG=true detected (and no explicit verbosity set). Forcing Cake verbosity to Diagnostic.[/]");
+    return filteredArgs;
+}
+
 
 public record ParsedArguments(
     DirectoryInfo? RepoRoot,

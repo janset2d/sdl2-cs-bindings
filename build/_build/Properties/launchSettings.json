@@ -14,7 +14,10 @@
     },
     "Vcpkg-Harvest": {
       "commandName": "Project",
-      "commandLineArgs": "--target harvest --library SDL2 --library SDL2_image --verbosity normal"
+      "commandLineArgs": "--target harvest --library SDL2 --library SDL2_image --verbosity normal",
+      "environmentVariables": {
+        "ACTIONS_RUNNER_DEBUG": "false"
+      }
     },
     "Dumpbin-Dependents": {
       "commandName": "Project",

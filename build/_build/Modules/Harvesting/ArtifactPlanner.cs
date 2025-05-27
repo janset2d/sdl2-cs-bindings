@@ -66,7 +66,7 @@ public sealed class ArtifactPlanner : IArtifactPlanner
 
                 if (_environment.Platform.Family == PlatformFamily.Windows)
                 {
-                    var targetPath = nativeOutput.CombineWithFilePath(filePath);
+                    var targetPath = nativeOutput.CombineWithFilePath(filePath.GetFilename().FullPath);
                     actions.Add(new FileCopyAction(filePath, targetPath, ownerPackageName, origin));
                 }
                 else

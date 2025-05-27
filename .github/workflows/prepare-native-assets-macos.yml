@@ -77,5 +77,16 @@ jobs:
 
       # Note: The executable might not have .exe on Unix systems
       - name: Run Cake Build (Info Task)
-        run: ./build/_build/bin/Release/net9.0/Build --target Info --verbosity diagnostic
+        run: ./build/_build/bin/Release/net9.0/Build --target Info
         # Example for later: run: ./build/_build/bin/Release/net9.0/Build --target Harvest --rid=${{ inputs.rid }} --verbosity diagnostic
+
+      - name: Run Cake Build (Harvest Task)
+        run: ./build/_build/bin/Release/net9.0/Build --target Harvest --library SDL2 --library SDL2_image
+
+      - name: Upload Harvested Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: harvested-assets-macos-${{ inputs.rid }}
+          path: artifacts/harvest_output/
+          if-no-files-found: error # Fail the step if no files are found
+          retention-days: 7

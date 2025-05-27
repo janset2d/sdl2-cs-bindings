@@ -34,22 +34,42 @@ public sealed class HarvestTask : AsyncFrostingTask<BuildContext>
         ArgumentNullException.ThrowIfNull(context);
 
         var outputBase = context.Paths.HarvestOutput;
-        var librariesToProcess = context.Vcpkg.Libraries;
+        var specifiedLibraries = context.Vcpkg.Libraries;
+        var allManifestLibraries = _manifestConfig.LibraryManifests.ToList();
 
         context.Log.Verbose("Cleaning harvest output directory: {0}", outputBase);
         context.CleanDirectory(outputBase);
 
-        if (!librariesToProcess.Any())
+        List<LibraryManifest> librariesToHarvest;
+
+        if (specifiedLibraries.Any())
         {
-            context.Log.Warning("No libraries specified for harvest.");
+            context.Log.Information("Processing specified libraries for harvest: {0}", string.Join(", ", specifiedLibraries));
+            librariesToHarvest = [];
+            foreach (var specLibName in specifiedLibraries)
+            {
+                var manifest = allManifestLibraries.SingleOrDefault(m => string.Equals(m.Name, specLibName, StringComparison.OrdinalIgnoreCase));
+                if (manifest == null)
+                {
+                    throw new CakeException($"Specified library '{specLibName}' for harvest not found in manifest.");
+                }
+                librariesToHarvest.Add(manifest);
+            }
+        }
+        else
+        {
+            context.Log.Information("No specific libraries specified for harvest via --library. Processing all libraries from manifest.");
+            librariesToHarvest = allManifestLibraries;
+        }
+
+        if (librariesToHarvest.Count == 0)
+        {
+            context.Log.Warning("No libraries found to harvest (either specified or in manifest).");
             return;
         }
 
-        foreach (var library in librariesToProcess)
+        foreach (var manifest in librariesToHarvest)
         {
-            var manifest = _manifestConfig.LibraryManifests.SingleOrDefault(m => string.Equals(m.Name, library, StringComparison.OrdinalIgnoreCase))
-                           ?? throw new CakeException($"Library '{library}' not found in manifest.");
-
             AnsiConsole.Write(new Rule($"[yellow]Harvest: {manifest.Name}[/]").RuleStyle("grey"));
 
             var closureResult = await _binaryClosureWalker.BuildClosureAsync(manifest);
