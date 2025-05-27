@@ -416,3 +416,5 @@ vcpkg_installed/
 
 .vscode/
 build/_build/.cake/
+
+.DS_Store

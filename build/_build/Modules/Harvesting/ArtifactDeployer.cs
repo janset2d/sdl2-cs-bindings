@@ -23,11 +23,11 @@ public sealed class ArtifactDeployer(ICakeContext ctx) : IArtifactDeployer
 
         if (!plan.Actions.Any())
         {
-            _log.Information("No actions to execute in the deployment plan.");
+            _log.Verbose("No actions to execute in the deployment plan.");
             return CopierResult.ToSuccess();
         }
 
-        _log.Information("Executing deployment plan with {0} action(s)...", plan.Actions.Count);
+        _log.Verbose("Executing deployment plan with {0} action(s)...", plan.Actions.Count);
 
         foreach (var action in plan.Actions)
         {
@@ -61,13 +61,13 @@ public sealed class ArtifactDeployer(ICakeContext ctx) : IArtifactDeployer
             }
         }
 
-        _log.Information("Successfully executed deployment plan.");
+        _log.Verbose("Successfully executed deployment plan.");
         return CopierResult.ToSuccess();
     }
 
     private async Task ExecuteFileCopyActionAsync(FileCopyAction action)
     {
-        _log.Information("Copying file: {0} to {1} (Origin: {2}, Package: {3})",
+        _log.Verbose("Copying file: {0} to {1} (Origin: {2}, Package: {3})",
             action.SourcePath.GetFilename(),
             action.TargetPath,
             action.Origin,
@@ -79,11 +79,11 @@ public sealed class ArtifactDeployer(ICakeContext ctx) : IArtifactDeployer
 
     private async Task ExecuteArchiveCreationActionAsync(ArchiveCreationAction action, CancellationToken ct)
     {
-        _log.Information("Creating archive: {0} from {1} item(s) (Base: {2})", action.ArchivePath, action.ItemsToArchive.Count, action.BaseDirectory);
+        _log.Verbose("Creating archive: {0} from {1} item(s) (Base: {2})", action.ArchivePath, action.ItemsToArchive.Count, action.BaseDirectory);
 
         if (!action.ItemsToArchive.Any())
         {
-            _log.Information("No items to archive for {0}. Skipping.", action.ArchiveName);
+            _log.Verbose("No items to archive for {0}. Skipping.", action.ArchiveName);
             return;
         }
 
@@ -116,7 +116,7 @@ public sealed class ArtifactDeployer(ICakeContext ctx) : IArtifactDeployer
                 throw new CakeException(errorMessage);
             }
 
-            _log.Information("Successfully created archive: {0} ({1} items)", action.ArchiveName, action.ItemsToArchive.Count);
+            _log.Verbose("Successfully created archive: {0} ({1} items)", action.ArchiveName, action.ItemsToArchive.Count);
         }
         finally
         {

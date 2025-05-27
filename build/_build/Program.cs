@@ -89,14 +89,13 @@ static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArgumen
             {
                 var env = provider.GetRequiredService<ICakeEnvironment>();
                 var context = provider.GetRequiredService<ICakeContext>();
-                var log = provider.GetRequiredService<ICakeLog>();
 
                 var currentRid = env.Platform.Rid();
                 return currentRid switch
                 {
                     Rids.WinX64 or Rids.WinX86 or Rids.WinArm64 => new WindowsDumpbinScanner(context),
                     Rids.LinuxX64 or Rids.LinuxArm64 => new LinuxLddScanner(context),
-                    Rids.OsxX64 or Rids.OsxArm64 => new MacOtoolScanner(log),
+                    Rids.OsxX64 or Rids.OsxArm64 => new MacOtoolScanner(context),
                     _ => throw new NotSupportedException($"Unsupported OS for IRuntimeScanner: {currentRid}"),
                 };
             });

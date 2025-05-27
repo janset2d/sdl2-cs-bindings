@@ -32,6 +32,6 @@ public class DependentsTask : AsyncFrostingTask<BuildContext>
 
         var rawOutput = await Task.Run(() => context.DumpbinDependents(dumpbinSettings) ?? string.Empty).ConfigureAwait(false);
 
-        context.Information(rawOutput);
+        context.Verbose(rawOutput);
     }
 }

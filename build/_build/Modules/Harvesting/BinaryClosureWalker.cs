@@ -154,7 +154,7 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
             foreach (var file in matchingFiles)
             {
                 primaryFiles.Add(file);
-                _log.Information("Pattern '{0}' matched: {1}", pattern, file.GetFilename().FullPath);
+                _log.Debug("Pattern '{0}' matched: {1}", pattern, file.GetFilename().FullPath);
             }
 
             if (matchingFiles.Count == 0)
@@ -217,7 +217,9 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
                                      || f.GetFilename().FullPath.Contains(".so.", StringComparison.Ordinal))
                                     && string.Equals(f.GetDirectory().GetDirectoryName(), "lib", StringComparison.Ordinal)
                                     && !string.Equals(f.GetDirectory().GetParent().GetDirectoryName(), "debug", StringComparison.Ordinal),
-            PlatformFamily.OSX => string.Equals(ext, ".dylib", StringComparison.Ordinal),
+            PlatformFamily.OSX => string.Equals(ext, ".dylib", StringComparison.Ordinal)
+                                  && string.Equals(f.GetDirectory().GetDirectoryName(), "lib", StringComparison.Ordinal)
+                                  && !string.Equals(f.GetDirectory().GetParent().GetDirectoryName(), "debug", StringComparison.Ordinal),
             _ => false,
         };
     }

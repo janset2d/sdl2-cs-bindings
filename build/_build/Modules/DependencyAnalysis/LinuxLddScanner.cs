@@ -47,7 +47,7 @@ public sealed class LinuxLddScanner : IRuntimeScanner
                 }
             }
 
-            _log.Information("LDD scan of {0} found {1} dependencies", binary.GetFilename(), result.Count);
+            _log.Verbose("LDD scan of {0} found {1} dependencies", binary.GetFilename(), result.Count);
             return result.ToImmutableHashSet();
         }
         catch (OperationCanceledException)

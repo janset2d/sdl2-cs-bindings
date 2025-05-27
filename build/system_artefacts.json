@@ -62,7 +62,25 @@
   },
   "osx": {
     "system_libraries": [
-      "/usr/lib/libSystem.B.dylib"
+      "libSystem.B.dylib",
+      "libobjc.A.dylib",
+      "CoreVideo.framework",
+      "Cocoa.framework",
+      "IOKit.framework",
+      "ForceFeedback.framework",
+      "Carbon.framework",
+      "CoreAudio.framework",
+      "AudioToolbox.framework",
+      "AVFoundation.framework",
+      "Foundation.framework",
+      "GameController.framework",
+      "Metal.framework",
+      "QuartzCore.framework",
+      "CoreHaptics.framework",
+      "AppKit.framework",
+      "CoreFoundation.framework",
+      "CoreGraphics.framework",
+      "CoreServices.framework"
     ]
   }
 }

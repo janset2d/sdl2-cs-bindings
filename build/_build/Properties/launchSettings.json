@@ -14,7 +14,7 @@
     },
     "Vcpkg-Harvest": {
       "commandName": "Project",
-      "commandLineArgs": "--target harvest --library SDL2 --library SDL2_image --verbosity diagnostic"
+      "commandLineArgs": "--target harvest --library SDL2 --library SDL2_image --verbosity normal"
     },
     "Dumpbin-Dependents": {
       "commandName": "Project",
@@ -23,6 +23,10 @@
     "Ldd-Dependents": {
       "commandName": "Project",
       "commandLineArgs": "--target ldd-dependents  --dll /home/deniz/repos/sdl2-cs-bindings/vcpkg_installed/x64-linux-dynamic/lib/libSDL2_image.so"
+    },
+    "Otool-Analyze": {
+      "commandName": "Project",
+      "commandLineArgs": "--target otool-analyze  --dll /Users/armut/repos/sdl2-cs-bindings/vcpkg_installed/x64-osx-dynamic/lib/libSDL2_image.dylib"
     }
   }
 }
