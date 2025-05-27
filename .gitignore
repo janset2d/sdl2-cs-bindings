@@ -413,3 +413,6 @@ pack-projects.ps1
 
 # vcpkg installed binaries
 vcpkg_installed/
+
+.vscode/
+build/_build/.cake/

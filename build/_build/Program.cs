@@ -79,6 +79,7 @@ static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArgumen
                 return new RuntimeProfile(rInfo, sac);
             });
 
+
             services.AddSingleton<IPackageInfoProvider, VcpkgCliProvider>();
             services.AddSingleton<IBinaryClosureWalker, BinaryClosureWalker>();
             services.AddSingleton<IArtifactPlanner, ArtifactPlanner>();
