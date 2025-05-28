@@ -76,7 +76,7 @@ jobs:
         run: dotnet build ./build/_build/Build.csproj --configuration Release --no-restore
 
       - name: Run Cake Build (Harvest Task)
-        run: ./build/_build/bin/Release/net9.0/Build --target Harvest --library SDL2 --library SDL2_image --repo-root ${{ github.workspace }}
+        run: ./build/_build/bin/Release/net9.0/Build --target Harvest --library SDL2 --library SDL2_image --repo-root "$(pwd)"
 
       - name: Upload Harvested Artifacts
         uses: actions/upload-artifact@v4
