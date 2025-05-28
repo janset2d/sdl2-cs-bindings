@@ -46,7 +46,7 @@ jobs:
         with: { submodules: recursive, fetch-depth: 0 }
 
       - name: Configure Git Safe Directory
-        run: git config --global --add safe.directory ${{ github.workspace }}
+        run: git config --global --add safe.directory "$(pwd)"
 
       - uses: actions/setup-dotnet@v4
         with:
