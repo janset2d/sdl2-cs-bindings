@@ -24,7 +24,7 @@ on:
 
 jobs:
   native:
-    name: Build Linux (${{ inputs.triplet }} on ${{ inputs.runner }})
+    name: Build Linux (${{ inputs.triplet }} on ${{ inputs.container-image }})
     runs-on: ${{ inputs.runner }}
     container: ${{ inputs.container-image }}
     defaults: { run: { shell: bash } }

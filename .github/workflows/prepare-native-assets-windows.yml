@@ -21,7 +21,7 @@ on:
 
 jobs:
   build:
-    name: Build Windows (${{ inputs.triplet }})
+    name: Build Linux (${{ inputs.triplet }} on ${{ inputs.runner }})
     runs-on: ${{ inputs.runner }}
     defaults: { run: { shell: pwsh } }
     env:
