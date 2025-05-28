@@ -5,6 +5,7 @@ using Build.Context.Models;
 using Build.Modules.Contracts;
 using Build.Modules.Harvesting.Models;
 using Build.Modules.Harvesting.Results;
+using Build.Tasks.Common;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;
@@ -14,6 +15,7 @@ using Spectre.Console;
 namespace Build.Tasks.Vcpkg;
 
 [TaskName("Harvest")]
+[IsDependentOn(typeof(InfoTask))]
 public sealed class HarvestTask : AsyncFrostingTask<BuildContext>
 {
     private readonly IBinaryClosureWalker _binaryClosureWalker;
@@ -53,6 +55,7 @@ public sealed class HarvestTask : AsyncFrostingTask<BuildContext>
                 {
                     throw new CakeException($"Specified library '{specLibName}' for harvest not found in manifest.");
                 }
+
                 librariesToHarvest.Add(manifest);
             }
         }

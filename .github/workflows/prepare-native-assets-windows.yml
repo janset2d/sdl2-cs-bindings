@@ -58,9 +58,6 @@ jobs:
       - name: Build Cake host
         run: dotnet build .\build\_build\Build.csproj --configuration Release --no-restore
 
-      - name: Run Cake Build (Info Task)
-        run: .\build\_build\bin\Release\net9.0\Build.exe --target Info
-
       - name: Run Cake Build (Harvest Task)
         run: .\build\_build\bin\Release\net9.0\Build.exe --target Harvest --library SDL2 --library SDL2_image --rid ${{ inputs.rid }}
 
@@ -69,5 +66,5 @@ jobs:
         with:
           name: harvested-assets-windows-${{ inputs.rid }}
           path: artifacts/harvest_output/
-          if-no-files-found: error # Fail the step if no files are found
+          if-no-files-found: error
           retention-days: 7
