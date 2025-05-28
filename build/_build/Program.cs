@@ -1,4 +1,4 @@
-# pragma warning disable CA1031, MA0045, MA0051
+# pragma warning disable CA1031, MA0045, MA0051, CA1502
 
 using System.CommandLine;
 using System.CommandLine.Invocation;
@@ -51,7 +51,7 @@ static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArgumen
 {
     var repoRootPath = await DetermineRepoRootAsync(parsedArgs.RepoRoot);
     var initialCakeArgs = context.ParseResult.Tokens.Select(t => t.Value).ToArray();
-    var effectiveCakeArgs = GetEffectiveCakeArguments(initialCakeArgs, context);
+    var effectiveCakeArgs = GetEffectiveCakeArguments(initialCakeArgs, repoRootPath, context);
 
     return new CakeHost()
         .UseContext<BuildContext>()
@@ -195,46 +195,78 @@ static async Task<DirectoryPath> DetermineRepoRootAsync(DirectoryInfo? repoRootA
     return absoluteFallback;
 }
 
-static string[] GetEffectiveCakeArguments(string[] originalArgs, InvocationContext invocationContext)
+static string[] GetEffectiveCakeArguments(string[] originalArgs, DirectoryPath repoRoot, InvocationContext invocationContext)
 {
-    var verbosityOption = CakeOptions.VerbosityOption;
     var parseResult = invocationContext.ParseResult;
-    var explicitVerbosityWasSetAndBound = parseResult.FindResultFor(verbosityOption)?.GetValueOrDefault() != null;
+    var explicitVerbositySet = parseResult.FindResultFor(CakeOptions.VerbosityOption)?.GetValueOrDefault() != null;
+    var explicitWorkingPathSet = parseResult.FindResultFor(CakeOptions.WorkingPathOption)?.GetValueOrDefault() != null;
 
-    var actionsRunnerDebugValue = Environment.GetEnvironmentVariable("ACTIONS_RUNNER_DEBUG");
-    var isGitHubDebugRun = string.Equals(actionsRunnerDebugValue, "true", StringComparison.OrdinalIgnoreCase);
+    var isGitHubDebugRun = string.Equals(Environment.GetEnvironmentVariable("ACTIONS_RUNNER_DEBUG"), "true", StringComparison.OrdinalIgnoreCase);
 
-    if (!isGitHubDebugRun || explicitVerbosityWasSetAndBound)
+    var shouldInjectVerbosity = isGitHubDebugRun && !explicitVerbositySet;
+    var shouldInjectWorkingPath = !explicitWorkingPathSet;
+
+    // Early return if no modifications needed
+    if (!shouldInjectVerbosity && !shouldInjectWorkingPath)
     {
         return originalArgs;
     }
 
-    var indicesToExclude = new HashSet<int>();
+    // Mark indices to skip
+    var indicesToSkip = new HashSet<int>();
     for (var i = 0; i < originalArgs.Length; i++)
     {
-        if (originalArgs[i].Equals("--verbosity", StringComparison.OrdinalIgnoreCase))
+        var arg = originalArgs[i];
+
+        if ((!shouldInjectVerbosity || !IsVerbosityArg(arg)) && (!shouldInjectWorkingPath || !IsWorkingPathArg(arg)))
         {
-            indicesToExclude.Add(i);
-            if (i + 1 < originalArgs.Length && !originalArgs[i + 1].StartsWith('-'))
-            {
-                indicesToExclude.Add(i + 1);
-            }
+            continue;
         }
-        else if (originalArgs[i].StartsWith("--verbosity=", StringComparison.OrdinalIgnoreCase))
+
+        indicesToSkip.Add(i);
+        // Mark the next argument for skipping if it's a value (not a flag)
+        if (i + 1 < originalArgs.Length && !originalArgs[i + 1].StartsWith('-'))
         {
-            indicesToExclude.Add(i);
+            indicesToSkip.Add(i + 1);
         }
     }
 
-    var filteredArgs = originalArgs
-        .Where((_, index) => !indicesToExclude.Contains(index))
-        .Append("--verbosity")
-        .Append("diagnostic")
-        .ToArray();
+    var estimatedCapacity = originalArgs.Length - indicesToSkip.Count +
+                            (shouldInjectVerbosity ? 2 : 0) +
+                            (shouldInjectWorkingPath ? 2 : 0);
 
-    AnsiConsole.MarkupLine("[yellow]ACTIONS_RUNNER_DEBUG=true detected (and no explicit verbosity set). Forcing Cake verbosity to Diagnostic.[/]");
-    return filteredArgs;
+    var result = new List<string>(estimatedCapacity);
+    result.AddRange(originalArgs.Where((t, i) => !indicesToSkip.Contains(i)));
+
+    // Inject new arguments
+    if (shouldInjectVerbosity)
+    {
+        result.Add("--verbosity");
+        result.Add("diagnostic");
+        AnsiConsole.MarkupLine("[yellow]ACTIONS_RUNNER_DEBUG=true detected (and no explicit verbosity set). Forcing Cake verbosity to Diagnostic.[/]");
+    }
+
+    if (!shouldInjectWorkingPath)
+    {
+        return [.. result];
+    }
+
+    result.Add("--working");
+    result.Add(repoRoot.FullPath);
+    AnsiConsole.MarkupLine($"[yellow]No explicit working path set. Forcing Cake working path to {repoRoot.FullPath}.[/]");
+
+    return [.. result];
 }
+
+
+// Helper methods for cleaner arg checking
+static bool IsVerbosityArg(string arg) =>
+    string.Equals(arg, "--verbosity", StringComparison.OrdinalIgnoreCase) ||
+    string.Equals(arg, "-v", StringComparison.OrdinalIgnoreCase);
+
+static bool IsWorkingPathArg(string arg) =>
+    string.Equals(arg, "--working", StringComparison.OrdinalIgnoreCase) ||
+    string.Equals(arg, "-w", StringComparison.OrdinalIgnoreCase);
 
 
 public record ParsedArguments(

@@ -24,7 +24,7 @@ on:
 
 jobs:
   native:
-    name: Native and Managed Build Linux (${{ inputs.container-image }} / ${{ inputs.triplet }})
+    name: Build Linux (${{ inputs.triplet }} on ${{ inputs.runner }})
     runs-on: ${{ inputs.runner }}
     container: ${{ inputs.container-image }}
     defaults: { run: { shell: bash } }
@@ -76,7 +76,7 @@ jobs:
         run: dotnet build ./build/_build/Build.csproj --configuration Release --no-restore
 
       - name: Run Cake Build (Harvest Task)
-        run: ./build/_build/bin/Release/net9.0/Build --target Harvest --library SDL2 --library SDL2_image
+        run: ./build/_build/bin/Release/net9.0/Build --target Harvest --library SDL2 --library SDL2_image --repo-root ${{ github.workspace }}
 
       - name: Upload Harvested Artifacts
         uses: actions/upload-artifact@v4

@@ -40,9 +40,8 @@ public static class CakeOptions
         description: "Shows the task dependency tree.",
         getDefaultValue: () => false);
 
-    public static readonly Option<Verbosity> VerbosityOption = new(
+    public static readonly Option<Verbosity?> VerbosityOption = new(
         aliases: ["--verbosity", "-v"],
-        getDefaultValue: () => Verbosity.Minimal,
         description: "Specifies the amount of information to be displayed (quiet, minimal, normal, verbose, diagnostic)");
 
     public static readonly Option<bool> VersionOption = new(
