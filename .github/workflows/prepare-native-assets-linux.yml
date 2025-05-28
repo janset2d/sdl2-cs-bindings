@@ -24,13 +24,14 @@ on:
 
 jobs:
   native:
-    name: Native Build Linux (${{ inputs.container-image }} / ${{ inputs.triplet }})
+    name: Native and Managed Build Linux (${{ inputs.container-image }} / ${{ inputs.triplet }})
     runs-on: ${{ inputs.runner }}
     container: ${{ inputs.container-image }}
     defaults: { run: { shell: bash } }
+    env:
+      NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
 
     steps:
-      # — prerequisites just for the container —
       - name: Install Build Prerequisites
         run: |
           apt-get update
@@ -40,12 +41,15 @@ jobs:
           update-ca-certificates # Ensure certificates are updated
         env: { DEBIAN_FRONTEND: noninteractive }
 
-      # — checkout and vcpkg build —
       - uses: actions/checkout@v4
         with: { submodules: recursive, fetch-depth: 0 }
 
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
       - name: Run Vcpkg Setup Action
-        uses: ./.github/actions/vcpkg-setup # Uses the composite action
+        uses: ./.github/actions/vcpkg-setup
         with:
           runner-os: ${{ inputs.runner }}
           cache-key-base: ${{ inputs.container-image }}
@@ -53,44 +57,11 @@ jobs:
           vcpkg-cache-path: ${{ inputs.vcpkg-cache-path }}
           vcpkg-feature-flags: ${{ inputs.vcpkg-feature-flags }}
 
-      # — archive the *native* artefacts (whole folder) —
-      - name: Upload vcpkg_installed
-        uses: actions/upload-artifact@v4
-        with:
-          name: vcpkg-installed-${{ inputs.triplet }}
-          path: vcpkg_installed
-          retention-days: 1
-
-  managed:
-    name: Managed Build Linux (${{ inputs.triplet }})
-    needs: native # Run after native build completes
-    runs-on: ${{ inputs.runner }}
-    defaults: { run: { shell: bash } }
-    env:
-      NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
-
-    steps:
-      # — checkout repo (bind‑mount workspace) —
-      - uses: actions/checkout@v4
-        with: { submodules: recursive, fetch-depth: 0 }
-
-      # — pull back the native artefacts built in the container —
-      - name: Download vcpkg_installed
-        uses: actions/download-artifact@v4
-        with:
-          name: vcpkg-installed-${{ inputs.triplet }} # Use input triplet in name
-          path: vcpkg_installed         # same relative location as original
-
-      # — .NET SDKs —
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 9.0.x
-
       - name: Cache NuGet packages
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/.nuget/packages
-          key:  nuget-${{ runner.os }}-${{ hashFiles('./build/_build/packages.lock.json') }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('./build/_build/packages.lock.json') }}
 
       - name: Restore Cake host packages
         run: dotnet restore ./build/_build/Build.csproj --use-lock-file
@@ -109,5 +80,5 @@ jobs:
         with:
           name: harvested-assets-linux-${{ inputs.rid }}
           path: artifacts/harvest_output/
-          if-no-files-found: error # Fail the step if no files are found
+          if-no-files-found: error
           retention-days: 7

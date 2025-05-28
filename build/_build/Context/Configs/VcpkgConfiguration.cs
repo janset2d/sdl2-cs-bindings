@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using OneOf.Monads;
 
 namespace Build.Context.Configs;
 
@@ -13,8 +14,15 @@ public class VcpkgConfiguration
     /// </summary>
     public IReadOnlyList<string> Libraries { get; init; }
 
-    public VcpkgConfiguration(IReadOnlyList<string>? libraries)
+    /// <summary>
+    /// Gets the Runtime Identifier (RID) used to specify the target platform for package restoration in Vcpkg.
+    /// Provides an optional value that reflects the system's runtime characteristics.
+    /// </summary>
+    public Option<string> Rid { get; init; }
+
+    public VcpkgConfiguration(IReadOnlyList<string>? libraries,  string? rid)
     {
         Libraries = new ReadOnlyCollection<string>(libraries?.ToList() ?? []);
+        Rid = string.IsNullOrWhiteSpace(rid) ? Option<string>.None() : rid;
     }
 }

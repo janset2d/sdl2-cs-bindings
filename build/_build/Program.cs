@@ -57,7 +57,7 @@ static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArgumen
         .UseContext<BuildContext>()
         .ConfigureServices(services =>
         {
-            services.AddSingleton(new VcpkgConfiguration([.. parsedArgs.Library]));
+            services.AddSingleton(new VcpkgConfiguration([.. parsedArgs.Library], parsedArgs.Rid));
             services.AddSingleton(new RepositoryConfiguration(repoRootPath));
             services.AddSingleton(new DotNetBuildConfiguration(configuration: parsedArgs.Config));
             services.AddSingleton(new DumpbinConfiguration([.. parsedArgs.Dll]));
@@ -71,13 +71,19 @@ static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArgumen
 
             services.AddSingleton<IRuntimeProfile>(sp =>
             {
-                var rc = sp.GetRequiredService<RuntimeConfig>();
-                var sac = sp.GetRequiredService<SystemArtefactsConfig>();
-                var rid = sp.GetRequiredService<ICakeEnvironment>().Platform.Rid();
+                var runtimeConfig = sp.GetRequiredService<RuntimeConfig>();
+                var systemArtefactsConfig = sp.GetRequiredService<SystemArtefactsConfig>();
+                var vcpkgConfiguration = sp.GetRequiredService<VcpkgConfiguration>();
+                var cakeEnvironment = sp.GetRequiredService<ICakeEnvironment>();
 
-                var rInfo = rc.Runtimes.Single(r => string.Equals(r.Rid, rid, StringComparison.Ordinal));
+                var rid = vcpkgConfiguration.Rid
+                    .Match<string>(
+                        _ => cakeEnvironment.Platform.Rid(),
+                        configRid => configRid.Value);
 
-                return new RuntimeProfile(rInfo, sac);
+                var runtimeInfo = runtimeConfig.Runtimes.Single(r => string.Equals(r.Rid, rid, StringComparison.Ordinal));
+
+                return new RuntimeProfile(runtimeInfo, systemArtefactsConfig);
             });
 
 
@@ -237,4 +243,5 @@ public record ParsedArguments(
     DirectoryInfo? VcpkgDir,
     DirectoryInfo? VcpkgInstalledDir,
     IList<string> Library,
+    string Rid,
     IList<string> Dll);

@@ -3,6 +3,7 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Build.Context;
+using Build.Modules.Contracts;
 using Cake.Common;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
@@ -14,6 +15,13 @@ namespace Build.Tasks.Common;
 [TaskName("Info")]
 public sealed class InfoTask : AsyncFrostingTask<BuildContext>
 {
+    private readonly IRuntimeProfile _runtimeProfile;
+
+    public InfoTask(IRuntimeProfile runtimeProfile)
+    {
+        _runtimeProfile = runtimeProfile;
+    }
+
     public override async Task RunAsync(BuildContext context)
     {
         AnsiConsole.Write(new FigletText("Build Info").Color(Color.CornflowerBlue));
@@ -29,6 +37,8 @@ public sealed class InfoTask : AsyncFrostingTask<BuildContext>
         AddRow("OS Version", $"{Environment.OSVersion}");
         AddRow("OS Architecture", $"{RuntimeInformation.OSArchitecture}");
         AddRow("Is 64-bit OS", $"[{(context.Environment.Platform.Is64Bit ? "green" : "red")}]{context.Environment.Platform.Is64Bit}[/]");
+        AddRow("Rid", _runtimeProfile.Rid);
+        AddRow("Vcpkg Triplet", _runtimeProfile.Triplet);
         AddRow("Cake Version", $"{context.Environment.Runtime.CakeVersion}");
         AddRow(".NET Version", $"{RuntimeInformation.FrameworkDescription}");
         AddRow("Working Dir", $"{context.Environment.WorkingDirectory.FullPath}");
