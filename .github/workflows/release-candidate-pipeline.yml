@@ -1,0 +1,266 @@
+name: Janset.SDL2 - Release Candidate Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_destination:
+        description: 'Target for the generated NuGet packages.'
+        type: choice
+        default: 'internal-feed'
+        options:
+          - 'internal-feed'
+          - 'pack-only'
+      force_build_strategy:
+        description: 'Strategy for forcing library builds.'
+        type: choice
+        default: 'auto-detect'
+        options:
+          - 'auto-detect'      # Default: Only build what's new or changed based on manifest vs. target feed.
+          - 'force-buildable'  # Force rebuild of all libraries in manifest NOT listed in known-issues.json.
+          - 'force-everything' # Force rebuild of ALL libraries in manifest, EVEN if in known-issues.json (for diagnostics).
+      force_push_packages:
+        description: 'If true, attempt to re-push/overwrite packages in the internal feed (if the feed allows).'
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-manual # Simpler for manual-only phase; will refine for tags in Phase 2
+  cancel-in-progress: true # Allow cancelling manual experiments
+
+jobs:
+  pre_flight_check:
+    name: Pre-flight Checks & Build Plan Generation
+    runs-on: ubuntu-latest
+    outputs:
+      build_matrix: ${{ steps.determine_build_matrix.outputs.matrix }}
+      build_plan_summary: ${{ steps.generate_summary.outputs.summary }}
+      should_build: ${{ steps.determine_build_matrix.outputs.should_build }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }} # For manual dispatch, use the SHA of the selected branch
+
+      - name: Read Configurations & Validate Versions
+        id: validate_versions
+        run: |
+          echo "Reading build/manifest.json, vcpkg.json, build/runtimes.json..."
+          # Placeholder for actual script/tool to perform validation
+          # This script should:
+          # 1. Read manifest.json and vcpkg.json.
+          # 2. Compare manifest.json's vcpkg_version for components against vcpkg.json overrides.
+          # 3. If inconsistent, exit with an error code (e.g., exit 1) to fail the job.
+          echo "Version validation successful."
+          # Real script would be e.g., ./scripts/validate-versions.sh or dotnet run --project ./build/tools/VersionValidator
+
+      - name: Determine Build Matrix
+        id: determine_build_matrix
+        run: |
+          echo "Determining build matrix based on inputs and configs..."
+          echo "force_build_strategy: ${{ github.event.inputs.force_build_strategy }}"
+          echo "target_destination: ${{ github.event.inputs.target_destination }}"
+          # Placeholder for actual script/tool. This script should:
+          # 1. Read manifest.json, runtimes.json, known-issues.json (if exists).
+          # 2. Implement logic based on inputs.force_build_strategy:
+          #    - 'auto-detect': Query internal feed (if target_destination='internal-feed'), filter by known-issues.
+          #    - 'force-buildable': Filter by known-issues.
+          #    - 'force-everything': No filtering beyond manifest/runtimes.
+          # 3. Output a JSON array string for the matrix, e.g., '[{"library": "SDL2", "version": "2.32.4.0", "rid": "win-x64", "triplet": "x64-windows-release"}, ...]'
+          # 4. Output a boolean 'should_build' (true if matrix is not empty or force_build_strategy is not auto-detect)
+          echo "matrix=[{"library": "SDL2", "version": "2.32.4.0", "rid": "win-x64", "triplet": "x64-windows-release"}]" >> $GITHUB_OUTPUT
+          echo "should_build=true" >> $GITHUB_OUTPUT # Default to true for now
+
+      - name: Generate Build Plan Summary
+        id: generate_summary
+        run: |
+          echo "Generating build plan summary..."
+          # Placeholder: actual script to take the matrix and create a human-readable summary
+          summary="Build Plan:\n- Libraries to build: SDL2 (win-x64)"
+          echo "summary=$summary" >> $GITHUB_OUTPUT
+          echo "$summary" >> $GITHUB_STEP_SUMMARY
+
+  build_harvest_matrix:
+    name: Build & Harvest - ${{ matrix.library }} (${{ matrix.rid }})
+    needs: pre_flight_check
+    if: needs.pre_flight_check.outputs.should_build == 'true'
+    runs-on: ${{ matrix.runner }} # This will need to come from runtimes.json or be mapped
+    strategy:
+      fail-fast: false # Continue other matrix jobs if one fails
+      matrix: ${{ fromJson(needs.pre_flight_check.outputs.build_matrix) }} # Consumes output from pre_flight_check
+      # Example matrix structure (output from pre_flight_check):
+      # matrix:
+      #   include:
+      #     - library: "SDL2"
+      #       version: "2.32.4.0"
+      #       rid: "win-x64"
+      #       triplet: "x64-windows-release"
+      #       runner: "windows-latest"
+      #     - library: "SDL2"
+      #       version: "2.32.4.0"
+      #       rid: "linux-x64"
+      #       triplet: "x64-linux-dynamic"
+      #       runner: "ubuntu-latest"
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }} # Checkout the same commit as pre_flight_check
+          submodules: recursive
+
+      - name: Setup .NET, Vcpkg, etc.
+        run: |
+          echo "Setting up build environment for ${{ matrix.library }} on ${{ matrix.rid }}..."
+          # This would involve actions/setup-dotnet, your custom vcpkg-setup action, etc.
+          # Ensure VCPKG_ROOT is set if your Cake script relies on it.
+          echo "::group::Run Vcpkg Setup Action (Placeholder)"
+          # Example: uses: ./.github/actions/vcpkg-setup
+          #          with:
+          #            runner-os: ${{ matrix.runner }} # Needs careful mapping
+          #            cache-key-base: ${{ matrix.runner }} # Or container image for Linux
+          #            triplet: ${{ matrix.triplet }}
+          #            vcpkg-cache-path: '.vcpkg-cache'
+          #            vcpkg-feature-flags: 'binarycaching'
+          echo "Build environment setup complete."
+          echo "::endgroup::"
+
+      - name: Run Cake Harvest Task
+        run: |
+          echo "Running Cake Harvest for ${{ matrix.library }} (${{ matrix.rid }}) - Version ${{ matrix.version }}"
+          # Ensure Cake is built and executable path is known
+          # Example: ./build/_build/bin/Release/net9.0/Build --target Harvest --library ${{ matrix.library }} --rid ${{ matrix.rid }} --triplet ${{ matrix.triplet }} --package-version ${{ matrix.version }} --repo-root "$(pwd)"
+          # The Cake HarvestTask should create artifacts/harvest_output/${{ matrix.library }}/harvest-manifest.json
+          # and the actual harvested files under artifacts/harvest_output/${{ matrix.library }}/${{ matrix.rid }}/native/
+          echo "Cake Harvest complete. Creating placeholder harvest output..."
+          mkdir -p "./artifacts/harvest_output/${{ matrix.library }}/${{ matrix.rid }}/native"
+          echo "${{ matrix.library }} dummy content for ${{ matrix.rid }}" > "./artifacts/harvest_output/${{ matrix.library }}/${{ matrix.rid }}/native/dummy.txt"
+          # Placeholder for harvest-manifest.json content
+          mkdir -p "./artifacts/harvest_output/${{ matrix.library }}"
+          echo '{"libraryName": "${{ matrix.library }}", "packageVersion": "${{ matrix.version }}", "successfulRIDs": ["${{ matrix.rid }}"]}' > "./artifacts/harvest_output/${{ matrix.library }}/harvest-manifest-${{ matrix.rid }}.json"
+
+      - name: Upload Harvested Library Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: harvest-output-${{ matrix.library }}-${{ matrix.rid }}
+          path: ./artifacts/harvest_output/${{ matrix.library }}/ # Path to the specific library's output for this RID
+          if-no-files-found: error
+
+  consolidate_harvest_artifacts:
+    name: Consolidate Harvest Artifacts
+    needs: build_harvest_matrix # Runs after all matrix jobs complete (or those that didn't fail if fail-fast:true)
+    if: always() && needs.pre_flight_check.outputs.should_build == 'true' # always() ensures it runs to try and gather partial successes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Staging Directory
+        run: mkdir -p ./staging/harvest_output
+
+      - name: Download All Harvest Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: harvest-output-*
+          path: ./staging/temp_artifacts/ # Download all into a temporary holding area
+
+      - name: Reorganize Artifacts
+        run: |
+          echo "Reorganizing downloaded artifacts..."
+          # Script to find all downloaded 'harvest-output-{library}-{rid}' directories
+          # and move/copy their contents into ./staging/harvest_output/{library}/{rid}/native and the harvest-manifest-{rid}.json to ./staging/harvest_output/{library}/
+          # This will need to be smarter to correctly place files.
+          # For now, just creating a placeholder structure:
+          if [ -d "./staging/temp_artifacts" ]; then
+            find ./staging/temp_artifacts -mindepth 1 -maxdepth 1 -type d -print0 | while IFS= read -r -d $'\0' dir_path; do
+              # dir_name is like harvest-output-SDL2-win-x64
+              dir_name=$(basename "$dir_path")
+              # Attempt to parse library and RID from dir_name (this is fragile, better to use artifact metadata if possible)
+              # Example: library_name=$(echo $dir_name | cut -d'-' -f3)
+              #          rid_name=$(echo $dir_name | cut -d'-' -f4-)
+              # For now, just copy everything to a generic spot to show consolidation concept
+              echo "Processing $dir_name"
+              # Create a directory based on the artifact name (which includes library and RID)
+              mkdir -p "./staging/harvest_output/$dir_name"
+              cp -r "$dir_path"/* "./staging/harvest_output/$dir_name/"
+            done
+          else
+            echo "No artifacts found to consolidate."
+          fi
+          echo "Consolidation complete. Staging directory content:"
+          ls -R ./staging/harvest_output
+
+      - name: Construct Per-Library Harvest Manifests
+        run: |
+          echo "Constructing per-library harvest-manifest.json files..."
+          # This script needs to iterate through ./staging/harvest_output/{LibraryName} directories
+          # For each library, find all its harvest-manifest-{rid}.json files
+          # Consolidate them into a single harvest-manifest.json for that library, listing all successfulRIDs and their outputPaths.
+          # Placeholder logic:
+          if [ -d "./staging/harvest_output" ]; then
+            find ./staging/harvest_output -mindepth 1 -maxdepth 1 -type d -print0 | while IFS= read -r -d $'\0' lib_artifact_dir; do
+              lib_name_from_artifact=$(basename "$lib_artifact_dir" | sed 's/harvest-output-//g' | cut -d'-' -f1) # Heuristic
+              echo "Creating consolidated manifest for potential library: $lib_name_from_artifact based on $lib_artifact_dir"
+              # Create a dummy consolidated manifest
+              echo "{\"libraryName\": \"$lib_name_from_artifact\", \"consolidated\": true}" > "$lib_artifact_dir/harvest-manifest.json"
+            done
+          fi
+          echo "Per-library manifests construction complete."
+          ls -R ./staging/harvest_output
+
+      - name: Upload Final Consolidated Harvest Output
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-harvest-output
+          path: ./staging/harvest_output/
+          if-no-files-found: error # Should fail if nothing was harvested and matrix was supposed to run
+
+  package_and_publish_internal:
+    name: Package & Publish Internally
+    needs: consolidate_harvest_artifacts
+    if: needs.pre_flight_check.outputs.should_build == 'true' # Only run if builds were attempted
+    runs-on: ubuntu-latest # Or windows-latest if Cake Packager prefers
+    steps:
+      - name: Checkout (Minimal for Cake script)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x # Match your build's .NET version
+
+      - name: Download Final Harvest Output
+        uses: actions/download-artifact@v4
+        with:
+          name: final-harvest-output
+          path: ./harvest_output # Download to a known location for Cake
+
+      - name: Run Cake Package Task
+        run: |
+          echo "Running Cake Package task..."
+          echo "Target Destination: ${{ github.event.inputs.target_destination }}"
+          echo "Force Push Packages: ${{ github.event.inputs.force_push_packages }}"
+          # Example: ./build/_build/bin/Release/net9.0/Build --target Package --harvest-output-path ./harvest_output --target-destination ${{ github.event.inputs.target_destination }} --force-push ${{ github.event.inputs.force_push_packages }}
+          # Cake Package task will:
+          # - Read build/manifest.json for package versions.
+          # - Read each harvest_output/{LibraryName}/harvest-manifest.json for successful RIDs.
+          # - Stage files for native packages (including .tar.gz and .targets file).
+          # - Run 'dotnet pack' for native and binding packages.
+          # - If target_destination='internal-feed', push to internal NuGet.
+          echo "Cake Package task complete. Creating placeholder nupkgs..."
+          mkdir -p ./output_packages
+          echo "dummy native package" > ./output_packages/Janset.SDL2.Core.Native.1.0.0.nupkg
+          echo "dummy binding package" > ./output_packages/Janset.SDL2.Core.1.0.0.nupkg
+
+      - name: Upload NuGet Packages Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: ./output_packages/*.nupkg # Path to where Cake Package task outputs .nupkg files
+          if-no-files-found: error
+
+      - name: Update GitHub Deployment Environments
+        if: github.event.inputs.target_destination == 'internal-feed'
+        run: |
+          echo "Updating GitHub Deployment Environments for published packages..."
+          # Placeholder: Script to iterate over pushed packages and update/create deployments
+          # Example: gh deployment create -e Internal-Feed/Janset.SDL2.Core.Native/1.0.0 --status success --description "Published to internal feed"
+          echo "Deployment status updates complete."
