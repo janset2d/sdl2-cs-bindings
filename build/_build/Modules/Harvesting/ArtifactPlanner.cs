@@ -97,7 +97,7 @@ public sealed class ArtifactPlanner : IArtifactPlanner
 
             if (_environment.Platform.Family != PlatformFamily.Windows && itemsForUnixArchive.Count != 0)
             {
-                var archiveName = $"natives-{_profile.Rid}.tar.gz";
+                var archiveName = "native.tar.gz";
                 _log.Verbose("Archive target directory for {0}: {1}", currentLibraryName, nativeOutput.FullPath);
 
                 var archiveFinalPath = nativeOutput.CombineWithFilePath(archiveName);
