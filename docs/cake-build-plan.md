@@ -10,63 +10,66 @@ This document consolidates the discussions, architectural decisions, policy choi
 
 The primary objectives for this build system are:
 
-* **Modular NuGet Packages:** Produce two sets of packages under the Janset.SDL2.\* prefix:
-  * Managed C\# bindings (Janset.SDL2.Core, Janset.SDL2.Image, etc.) targeting net9.0, net8.0, netstandard2.0, net462.
-  * Native binaries (Janset.SDL2.Native.Core, Janset.SDL2.Native.Image, etc.) targeting multiple Runtime Identifiers (RIDs), initially win-x64, win-x86, win-arm64, linux-x64, with plans for macOS and ARM64 expansion.
-* **Vcpkg Sourcing:** Utilize Vcpkg (managed via Git submodule) to build and source the required native SDL libraries and their dependencies with specific features enabled per target platform/triplet.
-* **Native Harvesting & Packaging:** Automate the extraction of required binaries (DLLs/SOs, including symbolic links on Linux), transitive dependencies, and license files from the Vcpkg installation directory. Package these correctly into the Janset.SDL2.Native.\* NuGet packages.
-  * For Windows and macOS RIDs, this will utilize the standard `runtimes/{rid}/native` structure.
-  * For Linux RIDs, to ensure the integrity of the shared library ecosystem, the following approach (based on preserving symbolic links) will be used:
-    * Harvested libraries and their associated symbolic links will be packaged into an archive (e.g., a `.zip` file created with symlink preservation options, or a `.tar.gz` archive) within the NuGet package (e.g., located at `build/native/<linux-rid>/payload.archive`).
-    * An MSBuild `.targets` file, bundled within the NuGet package (e.g., `build/<PackageId>.targets`), will contain logic to extract this archive into the consuming project's build output directory (e.g., `$(OutDir)`) during the build process on Linux. This ensures that symbolic links are correctly restored in the environment where the application will run.
-* **Sanity Checking:** Implement checks to validate the harvested artifacts, potentially including checks for overlapping files with differing content across different packages.
-* **GitHub Releases:** Create and upload archives of the harvested native binaries for each target RID as assets attached to GitHub Releases. For Linux RIDs, these archives (e.g., `.tar.gz` or `.zip` created with symlink preservation flags like `zip -y`) must faithfully preserve the complete symbolic link structure of the shared libraries.
-* **Managed Bindings Pipeline:** Implement a separate but related pipeline to version, build, and pack the managed binding NuGet packages, ensuring they reference the correct versions of the corresponding native packages.
-* **Selective Builds:** Enable the build process (especially Vcpkg install and native harvesting) to be triggered for specific SDL libraries (e.g., only sdl2 and sdl2-image) based on manual input or automated detection (e.g., manifest changes).
-* **CI/CD Integration:** Fully integrate the build process with GitHub Actions, utilizing matrix strategies for multi-RID builds and automating testing, packaging, and release workflows. The detailed strategy for this integration is now documented in [CI/CD Packaging and Release Plan](./ci-cd-packaging-and-release-plan.md).
+- **Modular NuGet Packages:** Produce two sets of packages under the Janset.SDL2.\* prefix:
+  - Managed C\# bindings (Janset.SDL2.Core, Janset.SDL2.Image, etc.) targeting net9.0, net8.0, netstandard2.0, net462.
+  - Native binaries (Janset.SDL2.Native.Core, Janset.SDL2.Native.Image, etc.) targeting multiple Runtime Identifiers (RIDs), initially win-x64, win-x86, win-arm64, linux-x64, with plans for macOS and ARM64 expansion.
+- **Vcpkg Sourcing:** Utilize Vcpkg (managed via Git submodule) to build and source the required native SDL libraries and their dependencies with specific features enabled per target platform/triplet.
+- **Native Harvesting & Packaging:** Automate the extraction of required binaries (DLLs/SOs, including symbolic links on Linux), transitive dependencies, and license files from the Vcpkg installation directory. Package these correctly into the Janset.SDL2.Native.\* NuGet packages.
+  - For Windows and macOS RIDs, this will utilize the standard `runtimes/{rid}/native` structure.
+  - For Linux RIDs, to ensure the integrity of the shared library ecosystem, the following approach (based on preserving symbolic links) will be used:
+    - Harvested libraries and their associated symbolic links will be packaged into an archive (e.g., a `.zip` file created with symlink preservation options, or a `.tar.gz` archive) within the NuGet package (e.g., located at `build/native/<linux-rid>/payload.archive`).
+    - An MSBuild `.targets` file, bundled within the NuGet package (e.g., `build/<PackageId>.targets`), will contain logic to extract this archive into the consuming project's build output directory (e.g., `$(OutDir)`) during the build process on Linux. This ensures that symbolic links are correctly restored in the environment where the application will run.
+- **Sanity Checking:** Implement checks to validate the harvested artifacts, potentially including checks for overlapping files with differing content across different packages.
+- **GitHub Releases:** Create and upload archives of the harvested native binaries for each target RID as assets attached to GitHub Releases. For Linux RIDs, these archives (e.g., `.tar.gz` or `.zip` created with symlink preservation flags like `zip -y`) must faithfully preserve the complete symbolic link structure of the shared libraries.
+- **Managed Bindings Pipeline:** Implement a separate but related pipeline to version, build, and pack the managed binding NuGet packages, ensuring they reference the correct versions of the corresponding native packages.
+- **Selective Builds:** Enable the build process (especially Vcpkg install and native harvesting) to be triggered for specific SDL libraries (e.g., only sdl2 and sdl2-image) based on manual input or automated detection (e.g., manifest changes).
+- **CI/CD Integration:** Fully integrate the build process with GitHub Actions, utilizing matrix strategies for multi-RID builds and automating testing, packaging, and release workflows. The detailed strategy for this integration is now documented in [CI/CD Packaging and Release Plan](./ci-cd-packaging-and-release-plan.md).
 
 ## **3\. Core Architectural Decisions**
 
 The build system will be implemented using Cake Frosting, following these architectural principles:
 
-* **Project Structure:** A layered structure within the `build/_build` directory:
-    * `Context/`: Contains the lean `BuildContext`, configuration POCOs (`VcpkgSettings`, `VersionManifest`), and a `PathService`.
-    * `Tasks/`: Contains task definitions acting as "workflow glue," orchestrating calls to modules. Grouped logically (e.g., `DotNet/`, `Vcpkg/`, `Packaging/`).
-    * `Modules/`: Contains reusable, Cake-agnostic domain logic (e.g., dependency scanning, Vcpkg harvesting) as pure C# classes/interfaces. Designed for testability.
-    * `Tools/`: Contains thin wrappers (`Tool<T>` derived classes and aliases) for external CLI tools like `dumpbin`, `ldd`, `otool`, `vcpkg`.
-* **Lean BuildContext:** The `BuildContext` will primarily hold configuration values (passed via DI from parsed arguments and `config/versions.json`) and provide access to the `PathService` and potentially intermediate build state (like harvested file lists).
-* **Path Management (PathService):** A dedicated `PathService` (injected into `BuildContext`) will handle all path construction logic, providing semantic methods (e.g., `Paths.VcpkgInstalledBin(triplet)`, `Paths.ArtifactNative(lib, rid)`). It will internally use Cake's path types and methods. It will use `git rev-parse --show-toplevel` via `context.StartProcess` to reliably locate the repository root.
-* **Vcpkg Interaction (Manifest Mode):**
-    * A `vcpkg.json` file at the repository root will define dependencies, desired features (with platform qualifiers), and exact version overrides for the core SDL libraries. A `builtin-baseline` will manage transitive dependency versions.
-    * The `VcpkgInstallTask` in Cake will simply invoke `vcpkg install --triplet <triplet>`, relying on Vcpkg to read the root `vcpkg.json`.
-    * The `VcpkgTool` wrapper will ensure commands are run from the repository root.
-* **Domain Modules (Modules/):** Core logic like dependency scanning (`IDependencyScanner` with `WindowsDumpbinScanner`, `LinuxLddScanner`, `MacOtoolScanner` implementations) and artifact harvesting (`VcpkgHarvesterService`) will reside in this layer. The harvester will use tools like `vcpkg owns` or `vcpkg x-package-info` to identify package ownership for license gathering.
-* **Task Orchestration (Tasks/):** Tasks will be kept lean, orchestrating calls to modules and tools.
-* **Dependency Injection (DI):** Cake's `ConfigureServices` will be used to register configuration objects (`VcpkgSettings`, `VersionManifest` read from `config/versions.json`) and potentially core services (like `IDependencyScanner` implementations, `VcpkgHarvesterService`) as singletons.
-* **Argument Parsing:** `System.CommandLine` will be used in `Program.cs` to handle arguments (`--rid`, `--library`, `--use-overrides`). Parsed arguments will be captured in POCOs and registered via DI.
-* **Tool Wrappers (Tools/):** External tools (`dumpbin`, `ldd`, `otool`, `vcpkg`) will be wrapped using the `Tool<T>` pattern.
+- **Project Structure:** A layered structure within the `build/_build` directory:
+  - `Context/`: Contains the lean `BuildContext`, configuration POCOs (`VcpkgSettings`, `VersionManifest`), and a `PathService`.
+  - `Tasks/`: Contains task definitions acting as "workflow glue," orchestrating calls to modules. Grouped logically (e.g., `DotNet/`, `Vcpkg/`, `Packaging/`).
+  - `Modules/`: Contains reusable, Cake-agnostic domain logic (e.g., dependency scanning, Vcpkg harvesting) as pure C# classes/interfaces. Designed for testability.
+  - `Tools/`: Contains thin wrappers (`Tool<T>` derived classes and aliases) for external CLI tools like `dumpbin`, `ldd`, `otool`, `vcpkg`.
+- **Lean BuildContext:** The `BuildContext` will primarily hold configuration values (passed via DI from parsed arguments and `config/versions.json`) and provide access to the `PathService` and potentially intermediate build state (like harvested file lists).
+- **Path Management (PathService):** A dedicated `PathService` (injected into `BuildContext`) will handle all path construction logic, providing semantic methods (e.g., `Paths.VcpkgInstalledBin(triplet)`, `Paths.ArtifactNative(lib, rid)`). It will internally use Cake's path types and methods. It will use `git rev-parse --show-toplevel` via `context.StartProcess` to reliably locate the repository root.
+- **Vcpkg Interaction (Manifest Mode):**
+  - A `vcpkg.json` file at the repository root will define dependencies, desired features (with platform qualifiers), and exact version overrides for the core SDL libraries. A `builtin-baseline` will manage transitive dependency versions.
+  - The `VcpkgInstallTask` in Cake will simply invoke `vcpkg install --triplet <triplet>`, relying on Vcpkg to read the root `vcpkg.json`.
+  - The `VcpkgTool` wrapper will ensure commands are run from the repository root.
+- **Domain Modules (Modules/):** Core logic like dependency scanning (`IDependencyScanner` with `WindowsDumpbinScanner`, `LinuxLddScanner`, `MacOtoolScanner` implementations) and artifact harvesting (`VcpkgHarvesterService`) will reside in this layer. The harvester will use tools like `vcpkg owns` or `vcpkg x-package-info` to identify package ownership for license gathering.
+- **Task Orchestration (Tasks/):** Tasks will be kept lean, orchestrating calls to modules and tools.
+- **Dependency Injection (DI):** Cake's `ConfigureServices` will be used to register configuration objects (`VcpkgSettings`, `VersionManifest` read from `config/versions.json`) and potentially core services (like `IDependencyScanner` implementations, `VcpkgHarvesterService`) as singletons.
+- **Argument Parsing:** `System.CommandLine` will be used in `Program.cs` to handle arguments (`--rid`, `--library`, `--use-overrides`). Parsed arguments will be captured in POCOs and registered via DI.
+- **Tool Wrappers (Tools/):** External tools (`dumpbin`, `ldd`, `otool`, `vcpkg`) will be wrapped using the `Tool<T>` pattern.
 
 ### Dependency Resolution Strategy
 
 The system employs a hybrid, three-tier approach for discovering and resolving native dependencies:
 
 1. **Recursive Runtime Analysis (Primary Source)**
+
    - Use platform-specific tools (dumpbin/ldd/otool) through IDependencyScanner implementations
    - Recursively analyze each direct dependency to build a complete dependency tree
    - Filter out system libraries that don't need to be distributed
    - This captures what binaries actually need at runtime
 
 2. **Package Metadata Analysis (Supplementary)**
+
    - Query vcpkg for package metadata using `x-package-info --x-json --x-installed`
    - Use this comprehensive metadata to identify:
-     * All direct dependencies (including those from enabled features)
-     * Package version information (useful for versioning and auditing)
-     * Features enabled on the package
-     * Complete list of files owned by the package (for harvesting and validation)
+     - All direct dependencies (including those from enabled features)
+     - Package version information (useful for versioning and auditing)
+     - Features enabled on the package
+     - Complete list of files owned by the package (for harvesting and validation)
    - Recursively analyze these additional dependencies
    - Cross-reference with runtime dependencies to ensure completeness
 
 3. **Manual Overrides (Safety Net)**
+
    - Maintain a list of known edge cases (controlled via configuration)
    - Apply these overrides when specific libraries are detected
    - Enables handling of special cases that automated methods can miss
@@ -78,15 +81,14 @@ The system employs a hybrid, three-tier approach for discovering and resolving n
 
 This comprehensive approach ensures all required dependencies are captured, even those that might be missed by any single method.
 
-* **Task Orchestration (**Tasks/**):** Tasks will be kept lean, primarily responsible for:
-  * Defining dependencies (\[IsDependentOn\]).
-  * Selecting and invoking appropriate domain modules based on context (e.g., platform, arguments).
-  * Handling exceptions thrown by modules according to the defined failure policy.
-  * Logging progress and status using context.Log, context.Warning, context.Error.
-* **Dependency Injection (DI):** Cake's ConfigureServices will be used to register configuration objects (BuildSettings, VcpkgSettings, VersionManifest) and potentially core services (like IDependencyScanner implementations, VcpkgHarvester) as singletons. These will be injected into the BuildContext and potentially tasks.
-* **Argument Parsing:** System.CommandLine will be used in Program.cs to handle potentially complex arguments (selective library builds, RIDs, flags like \--use-overrides). Parsed arguments will be captured in POCOs (like BuildSettings) and registered via DI for use in BuildContext and tasks. Cake's context.Argument may be used for simpler, built-in parameters like \--target, \--verbosity.
-* **Tool Wrappers (**Tools/**):** External tools like dumpbin will be wrapped using the Tool\<T\> pattern, encapsulating tool path resolution (PATH \-\> Smart Fallback \-\> Override) and argument building logic. Specific aliases will provide a clean interface for tasks.
-
+- **Task Orchestration (**Tasks/**):** Tasks will be kept lean, primarily responsible for:
+  - Defining dependencies (\[IsDependentOn\]).
+  - Selecting and invoking appropriate domain modules based on context (e.g., platform, arguments).
+  - Handling exceptions thrown by modules according to the defined failure policy.
+  - Logging progress and status using context.Log, context.Warning, context.Error.
+- **Dependency Injection (DI):** Cake's ConfigureServices will be used to register configuration objects (BuildSettings, VcpkgSettings, VersionManifest) and potentially core services (like IDependencyScanner implementations, VcpkgHarvester) as singletons. These will be injected into the BuildContext and potentially tasks.
+- **Argument Parsing:** System.CommandLine will be used in Program.cs to handle potentially complex arguments (selective library builds, RIDs, flags like \--use-overrides). Parsed arguments will be captured in POCOs (like BuildSettings) and registered via DI for use in BuildContext and tasks. Cake's context.Argument may be used for simpler, built-in parameters like \--target, \--verbosity.
+- **Tool Wrappers (**Tools/**):** External tools like dumpbin will be wrapped using the Tool\<T\> pattern, encapsulating tool path resolution (PATH \-\> Smart Fallback \-\> Override) and argument building logic. Specific aliases will provide a clean interface for tasks.
 
 ### Cake Frosting Project Structure (`build/`)
 
@@ -160,9 +162,9 @@ build/
 
 ### Explanation of Top-Level Folders
 
-* **BuildContext:** Defines the state and configuration available to tasks, keeping the main BuildContext.cs lean by using helper services like PathService and injected configuration POCOs.
-* **Tasks:** Contains the workflow definitions. Each class typically represents one build step (e.g., cleaning, compiling, harvesting, packaging). Tasks orchestrate calls to Modules/ and Tools/.
-* **Modules:** Holds the core "business logic" of the build (e.g., how to analyze dependencies, how to gather files from Vcpkg). These classes should not depend on Cake APIs directly, making them unit
+- **BuildContext:** Defines the state and configuration available to tasks, keeping the main BuildContext.cs lean by using helper services like PathService and injected configuration POCOs.
+- **Tasks:** Contains the workflow definitions. Each class typically represents one build step (e.g., cleaning, compiling, harvesting, packaging). Tasks orchestrate calls to Modules/ and Tools/.
+- **Modules:** Holds the core "business logic" of the build (e.g., how to analyze dependencies, how to gather files from Vcpkg). These classes should not depend on Cake APIs directly, making them unit
 
 ## **4\. Key Policy Decisions**
 
@@ -171,18 +173,18 @@ build/
 The following policies have been agreed upon:
 
 1.  **Versioning & Dependencies:**
-    * **Native Version Control:** The **`vcpkg.json` manifest file (at repo root) is the source of truth for which native library versions Vcpkg installs**, using `overrides` and a `builtin-baseline`.
-    * **NuGet Package Versioning:** The **`build/manifest.json` file is the single source of truth for the semantic versions used when packing all `Janset.SDL2.*` NuGet packages (both native and bindings).** It also specifies the target version of the underlying native components (e.g., the Vcpkg version of SDL2 to be used for a given package version). This approach ensures clear control over package releases. Manual updates to `vcpkg.json` (for Vcpkg-built library versions) and `build/manifest.json` (for package versions and targeted Vcpkg component versions) are made in the same PR for consistency. For more details, see the [CI/CD Packaging and Release Plan](./ci-cd-packaging-and-release-plan.md).
-    * **Managed Bindings:** Use a **Coupled Patch** strategy. Managed packages (`Janset.SDL2.*`) get at least a patch bump when their corresponding native package updates. The `bindingsPatch` number in `build/manifest.json` can track this. Managed `.csproj` files use `<ProjectReference>` to native projects; `dotnet pack` converts these using the versions defined in `build/manifest.json` (injected via `/p:Version=`).
+    - **Native Version Control:** The **`vcpkg.json` manifest file (at repo root) is the source of truth for which native library versions Vcpkg installs**, using `overrides` and a `builtin-baseline`.
+    - **NuGet Package Versioning:** The **`build/manifest.json` file is the single source of truth for the semantic versions used when packing all `Janset.SDL2.*` NuGet packages (both native and bindings).** It also specifies the target version of the underlying native components (e.g., the Vcpkg version of SDL2 to be used for a given package version). This approach ensures clear control over package releases. Manual updates to `vcpkg.json` (for Vcpkg-built library versions) and `build/manifest.json` (for package versions and targeted Vcpkg component versions) are made in the same PR for consistency. For more details, see the [CI/CD Packaging and Release Plan](./ci-cd-packaging-and-release-plan.md).
+    - **Managed Bindings:** Use a **Coupled Patch** strategy. Managed packages (`Janset.SDL2.*`) get at least a patch bump when their corresponding native package updates. The `bindingsPatch` number in `build/manifest.json` can track this. Managed `.csproj` files use `<ProjectReference>` to native projects; `dotnet pack` converts these using the versions defined in `build/manifest.json` (injected via `/p:Version=`).
 2.  **Vcpkg Management:** Vcpkg will be managed as a **Git submodule** (`external/vcpkg`). The build **does not** need a `SubmoduleInitTask`; CI (`actions/checkout@v4` with `submodules: recursive`) and local developers (`git submodule update --init --recursive`) are responsible for initialization. **GitHub Actions caching** will be implemented, keyed on the triplet, `vcpkg.json` hash, and Vcpkg ports hash.
 3.  **Platform Support:** Initial RIDs: `win-x64`, `win-x86`, `win-arm64`, `linux-x64`, `osx-arm64`. Architecture designed for future `osx-x64` support.
 4.  **Selective Build Trigger:** Vcpkg installs all dependencies from the manifest per triplet. The CI/CD pipeline, specifically the `Release-Candidate-Pipeline` workflow, dynamically determines which libraries require building and packaging based on changes, `manifest.json` versions, and the status of packages in the target NuGet feed. See [CI/CD Packaging and Release Plan](./ci-cd-packaging-and-release-plan.md).
 5.  **License Compliance:** **Basic approach:** The `HarvestTask` will use `vcpkg owns` or similar to identify the package owning each harvested binary, then copy the corresponding `copyright` file from the Vcpkg `share/` directory into the artifact's `licenses/` folder. SBOM generation is deferred.
 6.  **Release Artifacts:**
-    * **NuGet:** Separate native packages (`Janset.SDL2.Native.*`) per library, and corresponding managed binding packages (`Janset.SDL2.*`).
-    * **GitHub Releases:** Native binary archives may still be attached to GitHub Releases, but the primary distribution for consumption is NuGet. The CI/CD pipeline detailed in [CI/CD Packaging and Release Plan](./ci-cd-packaging-and-release-plan.md) handles the creation and publishing of NuGet packages.
-    * **Tagging:** Tagging strategies will be used to trigger specific release candidate builds and promotions as defined in the [CI/CD Packaging and Release Plan](./ci-cd-packaging-and-release-plan.md).
-7.  **Failure Policy (CI):** **Strict.** Failure of any requested component task (e.g., `Harvest-SDL2_image-win-x64`) will cause that specific task and its corresponding CI matrix job to fail. The overall workflow run will be marked as failed if *any* job fails (`strategy.fail-fast: false` in matrix).
+    - **NuGet:** Separate native packages (`Janset.SDL2.Native.*`) per library, and corresponding managed binding packages (`Janset.SDL2.*`).
+    - **GitHub Releases:** Native binary archives may still be attached to GitHub Releases, but the primary distribution for consumption is NuGet. The CI/CD pipeline detailed in [CI/CD Packaging and Release Plan](./ci-cd-packaging-and-release-plan.md) handles the creation and publishing of NuGet packages.
+    - **Tagging:** Tagging strategies will be used to trigger specific release candidate builds and promotions as defined in the [CI/CD Packaging and Release Plan](./ci-cd-packaging-and-release-plan.md).
+7.  **Failure Policy (CI):** **Strict.** Failure of any requested component task (e.g., `Harvest-SDL2_image-win-x64`) will cause that specific task and its corresponding CI matrix job to fail. The overall workflow run will be marked as failed if _any_ job fails (`strategy.fail-fast: false` in matrix).
 8.  **Native Overrides (External):** Support for using pre-built binaries instead of Vcpkg will be implemented via a flag (`--use-overrides`). Overrides **take precedence** when active. A configurable path (`--overridesPath`) can be used. Storage planned for **AWS S3**, but implementation is **deferred**.
 9.  **Symbol Files:** **Publish symbols (`.snupkg`) for managed bindings**. Native symbol handling is **deferred**.
 10. **Testing:** Initial reliance on **manual integration testing** and **headless smoke tests** (Phase 4.5). Formal unit testing (`build.Tests`) is planned for the future.
@@ -194,40 +196,41 @@ The following policies have been agreed upon:
 
 The implementation will follow these incremental phases for the build system development:
 
-* **Phase 0.5: "Hello Cake" CI Smoke Test**
-* **Phase 1: Cake Project - Core Setup**
-* **Phase 2: Cake Project - Core Harvesting Logic (Single Target - Windows)**
-  * Goal: Prove end-to-end harvesting for one library on one platform.
-  * Tasks:
-    * Implement Tools/Dumpbin/ wrapper (DumpbinTool, alias).
-    * Implement Modules/DependencyAnalysis/IDependencyScanner and WindowsDumpbinScanner.
-    * Note: Future macOS implementation will likely use `otool -L`.
-    * Implement core Modules/VcpkgHarvester/VcpkgHarvester.cs logic (file finding, dependency walking via scanner, file copying, basic license copying for Windows).
-      * Use `vcpkg x-package-info --x-json` early to resolve known feature-driven dynamic dependencies (e.g., libmodplug -> libxmp) instead of hardcoded mapping.
-    * Create a granular Harvest task (e.g., Harvest-SDL2-win-x64) using the harvester.
-    * **Output:** Generate a manifest file (artifacts/harvest-SDL2-win-x64.json) listing harvested files for decoupling.
-  * > **Detailed Mechanics:** The detailed internal workings of the harvesting logic, including dependency scanning, artifact planning, and deployment strategies, are further elaborated in the **[Native Binary Harvesting Process](./harvesting-process.md)** document.
-* **Phase 3: Cake Project - Expansion & Refinement**
-* **Phase 4: Cake Project - Packaging & Validation (Initial Local Logic)**
-* **Phase 4.5: Local "Dry-Run" Publish & Smoke Test**
+- **Phase 0.5: "Hello Cake" CI Smoke Test**
+- **Phase 1: Cake Project - Core Setup**
+- **Phase 2: Cake Project - Core Harvesting Logic (Single Target - Windows)**
+  - Goal: Prove end-to-end harvesting for one library on one platform.
+  - Tasks:
+    - Implement Tools/Dumpbin/ wrapper (DumpbinTool, alias).
+    - Implement Modules/DependencyAnalysis/IDependencyScanner and WindowsDumpbinScanner.
+    - Note: Future macOS implementation will likely use `otool -L`.
+    - Implement core Modules/VcpkgHarvester/VcpkgHarvester.cs logic (file finding, dependency walking via scanner, file copying, basic license copying for Windows).
+      - Use `vcpkg x-package-info --x-json` early to resolve known feature-driven dynamic dependencies (e.g., libmodplug -> libxmp) instead of hardcoded mapping.
+    - Create a granular Harvest task (e.g., Harvest-SDL2-win-x64) using the harvester.
+    - **Output:** Generate a manifest file (artifacts/harvest-SDL2-win-x64.json) listing harvested files for decoupling.
+  - > **Detailed Mechanics:** The detailed internal workings of the harvesting logic, including dependency scanning, artifact planning, and deployment strategies, are further elaborated in the **[Native Binary Harvesting Process](./harvesting-process.md)** document.
+- **Phase 3: Cake Project - Expansion & Refinement**
+- **Phase 4: Cake Project - Packaging & Validation (Initial Local Logic)**
+- **Phase 4.5: Local "Dry-Run" Publish & Smoke Test**
 
-* **Phases 5 & 6 (Original Scope: CI/CD Integration, Release Workflow):**
-  * **Current Status:** The initial concepts for GitHub Actions integration and release workflows have been superseded by a more comprehensive, multi-workflow strategy detailed in the **[CI/CD Packaging and Release Plan](./ci-cd-packaging-and-release-plan.md)**.
-  * **Key Evolved Workflows (see new plan for details):**
-    *   `Release-Candidate-Pipeline.yml`: The core workflow for validating, building, harvesting, packaging, and publishing to an internal feed.
-    *   `PR-Version-Consistency-Check.yml`: A lightweight check for PRs to ensure version alignment.
-    *   `Promote-To-Public.yml`: A manual workflow for promoting packages from the internal feed to NuGet.org.
-  * **Details:** The new plan covers dynamic determination of what to build, robust version checking, staged releases (internal then public), manual overrides, and more advanced operational considerations.
+- **Phases 5 & 6 (Original Scope: CI/CD Integration, Release Workflow):**
 
-* **(Later Phases - Build System Specific):**
-  * Native override implementation (S3 download, potentially tested with LocalStack).
-  * Comprehensive unit testing (build.Tests).
-  * Automated bindingsPatch bumping.
-  * SBOM generation.
-  * Native symbol handling.
-  * Code-signing/notarization (especially for Windows/macOS).
-  * Robust Dynamic Dependency Handling: Replace/augment manual mapping in VcpkgHarvester by parsing Vcpkg package metadata (vcpkg x-package-info) to automatically identify runtime dependencies associated with installed features.
-  * **Contribution Guidelines:** Create a `CONTRIBUTING.md` document detailing development setup, PR process, versioning policy enforcement (e.g., `version.json` updates), and secret management for forks.
+  - **Current Status:** The initial concepts for GitHub Actions integration and release workflows have been superseded by a more comprehensive, multi-workflow strategy detailed in the **[CI/CD Packaging and Release Plan](./ci-cd-packaging-and-release-plan.md)**.
+  - **Key Evolved Workflows (see new plan for details):**
+    - `Release-Candidate-Pipeline.yml`: The core workflow for validating, building, harvesting, packaging, and publishing to an internal feed.
+    - `PR-Version-Consistency-Check.yml`: A lightweight check for PRs to ensure version alignment.
+    - `Promote-To-Public.yml`: A manual workflow for promoting packages from the internal feed to NuGet.org.
+  - **Details:** The new plan covers dynamic determination of what to build, robust version checking, staged releases (internal then public), manual overrides, and more advanced operational considerations.
+
+- **(Later Phases - Build System Specific):**
+  - Native override implementation (S3 download, potentially tested with LocalStack).
+  - Comprehensive unit testing (build.Tests).
+  - Automated bindingsPatch bumping.
+  - SBOM generation.
+  - Native symbol handling.
+  - Code-signing/notarization (especially for Windows/macOS).
+  - Robust Dynamic Dependency Handling: Replace/augment manual mapping in VcpkgHarvester by parsing Vcpkg package metadata (vcpkg x-package-info) to automatically identify runtime dependencies associated with installed features.
+  - **Contribution Guidelines:** Create a `CONTRIBUTING.md` document detailing development setup, PR process, versioning policy enforcement (e.g., `version.json` updates), and secret management for forks.
 
 ## **6\. Implementation Insights & Critical Knowledge Transfer**
 
@@ -242,11 +245,13 @@ This section documents critical insights, lessons learned, and architectural dec
 **Key Learning**: The `IRuntimeScanner` implementations must be **pure dependency discoverers**, not decision makers.
 
 **What We Learned**:
+
 - Initially, `LinuxLddScanner` was filtering system libraries and virtual DSOs
 - This created **inconsistent behavior** between `WindowsDumpbinScanner` (no filtering) and `LinuxLddScanner` (heavy filtering)
 - **Correct Design**: All scanners return raw dependency lists; `BinaryClosureWalker` makes all filtering decisions via `RuntimeProfile.IsSystemFile()`
 
 **Implementation Pattern**:
+
 ```csharp
 // ✅ CORRECT: Scanner returns everything it finds
 foreach (var (libName, libPath) in dependencies)
@@ -276,13 +281,14 @@ foreach (var dep in deps)
 **Key Learning**: Use `system_artefacts.json` as the single source of truth for system library patterns.
 
 **Critical Patterns**:
+
 ```json
 {
   "linux": {
     "system_libraries": [
-      "linux-vdso.so.*",        // Virtual DSO (Linux-specific)
-      "ld-linux-*.so.*",        // Dynamic linker (architecture-agnostic)
-      "libc.so.*",              // Core system libraries (version-agnostic)
+      "linux-vdso.so.*", // Virtual DSO (Linux-specific)
+      "ld-linux-*.so.*", // Dynamic linker (architecture-agnostic)
+      "libc.so.*", // Core system libraries (version-agnostic)
       "libm.so.*",
       "libpthread.so.*"
     ]
@@ -291,15 +297,11 @@ foreach (var dep in deps)
 ```
 
 **For macOS**: You'll need to add macOS system library patterns:
+
 ```json
 {
   "osx": {
-    "system_libraries": [
-      "/usr/lib/libSystem.B.dylib",
-      "/usr/lib/libc++.1.dylib",
-      "/System/Library/Frameworks/*.framework/*",
-      "/usr/lib/system/*"
-    ]
+    "system_libraries": ["/usr/lib/libSystem.B.dylib", "/usr/lib/libc++.1.dylib", "/System/Library/Frameworks/*.framework/*", "/usr/lib/system/*"]
   }
 }
 ```
@@ -313,6 +315,7 @@ foreach (var dep in deps)
 **Critical Insight**: Unix systems (Linux/macOS) have fundamentally different binary organization than Windows.
 
 **Linux Symlink Chain Example**:
+
 ```
 libSDL2.so → libSDL2-2.0.so → libSDL2-2.0.so.0 → libSDL2-2.0.so.0.3200.4 (real file)
 ```
@@ -320,6 +323,7 @@ libSDL2.so → libSDL2-2.0.so → libSDL2-2.0.so.0 → libSDL2-2.0.so.0.3200.4 (
 **Key Implementation Points**:
 
 1. **Binary Detection Must Be Platform-Aware**:
+
 ```csharp
 private bool IsBinary(FilePath f)
 {
@@ -336,6 +340,7 @@ private bool IsBinary(FilePath f)
 ```
 
 2. **Primary Binary Resolution for Unix**:
+
 ```csharp
 // Find the real file (not a symlink) in the chain
 private async Task<FilePath?> ResolveUnixPrimaryBinaryAsync(PackageInfo pkgInfo, string expectedName)
@@ -366,6 +371,7 @@ private async Task<FilePath?> ResolveUnixPrimaryBinaryAsync(PackageInfo pkgInfo,
 **Key Learning**: NuGet doesn't support symlinks, but Unix applications expect them. We must preserve symlinks during copying.
 
 **Implementation Strategy**:
+
 ```csharp
 public async Task<CopyResult> CopyFileAsync(FilePath source, FilePath destination)
 {
@@ -395,6 +401,7 @@ public async Task<CopyResult> CopyFileAsync(FilePath source, FilePath destinatio
 #### **6.4.1 Platform Tool Wrapper Design**
 
 **Pattern Established**:
+
 ```csharp
 // Tool wrapper structure
 public sealed class LinuxLddScanner : IRuntimeScanner
@@ -420,6 +427,7 @@ public sealed class LinuxLddScanner : IRuntimeScanner
 ```
 
 **For macOS**: Create `MacOtoolScanner` following this exact pattern:
+
 ```csharp
 public sealed class MacOtoolScanner : IRuntimeScanner
 {
@@ -444,6 +452,7 @@ public sealed class MacOtoolScanner : IRuntimeScanner
 #### **6.4.2 DI Registration Pattern**
 
 **Established Pattern**:
+
 ```csharp
 services.AddSingleton<IRuntimeScanner>(provider =>
 {
@@ -469,6 +478,7 @@ services.AddSingleton<IRuntimeScanner>(provider =>
 **Key Learning**: Avoid complex package name inference logic. Keep it simple.
 
 **What We Learned**:
+
 - Initially tried complex library name parsing with magic strings
 - **Better approach**: Use simple directory structure when available, fallback to "Unknown"
 
@@ -492,6 +502,7 @@ private static string? TryInferPackageNameFromPath(FilePath p)
 #### **6.5.2 Error Handling & Logging Strategy**
 
 **Pattern Established**:
+
 ```csharp
 try
 {
@@ -509,6 +520,7 @@ catch (SpecificException ex)
 ```
 
 **Key Points**:
+
 - Always handle `OperationCanceledException` specially
 - Use specific exception types when possible
 - Provide meaningful error context in logs
@@ -519,6 +531,7 @@ catch (SpecificException ex)
 #### **6.6.1 Symlink Validation**
 
 **Critical Test**:
+
 ```bash
 # After harvest, verify symlinks are preserved
 ls -la artifacts/harvest_output/SDL2_image/runtimes/linux-x64/native/libSDL2_image*
@@ -545,6 +558,7 @@ This increase is **expected and correct** - the scanner now reports all dependen
 #### **6.7.1 Tool Requirements**
 
 **You'll need to implement**:
+
 1. `Tools/Otool/OtoolRunner.cs` - Wrapper for `otool -L`
 2. `Tools/Otool/OtoolSettings.cs` - Settings class
 3. `Tools/Otool/OtoolAliases.cs` - Cake aliases
@@ -561,6 +575,7 @@ $ otool -L /path/to/library.dylib
 ```
 
 **Key Points**:
+
 - Parse lines that start with whitespace
 - Handle `@rpath`, `@loader_path`, `@executable_path` prefixes
 - Extract actual file paths for dependency resolution
@@ -568,6 +583,7 @@ $ otool -L /path/to/library.dylib
 #### **6.7.3 macOS System Library Patterns**
 
 **Research needed**:
+
 - System frameworks: `/System/Library/Frameworks/`
 - System libraries: `/usr/lib/`
 - Core libraries: `libSystem.B.dylib`, `libc++.1.dylib`
@@ -575,6 +591,7 @@ $ otool -L /path/to/library.dylib
 #### **6.7.4 macOS Binary Naming Conventions**
 
 **Research needed**:
+
 - How are versioned dylibs named? (e.g., `libSDL2-2.0.0.dylib`)
 - What symlink patterns exist?
 - How does vcpkg organize macOS binaries?
@@ -584,6 +601,7 @@ $ otool -L /path/to/library.dylib
 #### **6.8.1 Caching Opportunities**
 
 **Identified**:
+
 - `IsSymlinkAsync` calls could be cached per file
 - Package info queries could be memoized
 - Dependency scan results could be cached by binary hash
@@ -620,6 +638,7 @@ $ otool -L /path/to/library.dylib
 ### **6.11 Critical Success Metrics**
 
 **For macOS implementation, ensure**:
+
 1. ✅ All dylib dependencies discovered correctly
 2. ✅ System libraries filtered appropriately
 3. ✅ Symlinks preserved in output

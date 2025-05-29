@@ -1,8 +1,8 @@
 # **Architectural Review: Core Harvesting Components**
 
-**Document Version**: 1.0  
-**Review Date**: December 2024  
-**Reviewer**: Software Architecture Analysis  
+**Document Version**: 1.0
+**Review Date**: December 2024
+**Reviewer**: Software Architecture Analysis
 **Focus**: BinaryClosureWalker, ArtifactPlanner, ArtifactDeployer, RuntimeProfile, Results Pattern
 
 ---
@@ -12,6 +12,7 @@
 This review analyzes the core harvesting components against fundamental software architecture principles. While the codebase demonstrates strong technical implementation and modern patterns, several architectural concerns emerge around **separation of concerns**, **single responsibility**, and **dependency management**. The OneOf/Results pattern implementation shows promise but suffers from **over-engineering** and **inconsistent abstractions**.
 
 **Key Findings**:
+
 - ✅ **Strong**: Dependency injection, async patterns, platform abstraction
 - ⚠️ **Concerns**: Mixed responsibilities, tight coupling, complex result types
 - ❌ **Issues**: Inconsistent error handling, over-abstracted results pattern
@@ -23,38 +24,41 @@ This review analyzes the core harvesting components against fundamental software
 ### **1.1 BinaryClosureWalker - Mixed Responsibilities**
 
 **Current Implementation Issues**:
+
 ```csharp
 public sealed class BinaryClosureWalker : IBinaryClosureWalker
 {
     // ❌ VIOLATION: Multiple responsibilities in one class
-    
+
     // 1. Package metadata querying
     var rootPkgInfoResult = await _pkg.GetPackageInfoAsync(manifest.VcpkgName, _profile.Triplet, ct);
-    
+
     // 2. Primary binary resolution with pattern matching
     var primaryFiles = ResolvePrimaryBinaries(rootPkgInfo, manifest);
-    
+
     // 3. Package dependency walking
     while (pkgQueue.TryDequeue(out var package)) { ... }
-    
+
     // 4. Binary dependency scanning
     while (binQueue.TryDequeue(out var bin)) { ... }
-    
+
     // 5. Package name inference from file paths
     var owner = TryInferPackageNameFromPath(dep) ?? "Unknown";
-    
+
     // 6. Platform-specific binary detection
     private bool IsBinary(FilePath f) { ... }
 }
 ```
 
 **Architectural Problems**:
+
 - ❌ **God Class**: Handles 6 distinct responsibilities
 - ❌ **Mixed Abstraction Levels**: Low-level file operations mixed with high-level orchestration
 - ❌ **Hard to Test**: Complex dependencies make unit testing difficult
 - ❌ **Difficult to Extend**: Adding new dependency sources requires modifying core logic
 
 **Recommended Refactoring**:
+
 ```csharp
 // 1. Extract Primary Binary Resolver
 public interface IPrimaryBinaryResolver
@@ -80,13 +84,13 @@ public sealed class BinaryClosureOrchestrator : IBinaryClosureWalker
     private readonly IPrimaryBinaryResolver _primaryResolver;
     private readonly IPackageDependencyWalker _packageWalker;
     private readonly IBinaryDependencyScanner _binaryScanner;
-    
+
     public async Task<ClosureResult> BuildClosureAsync(LibraryManifest manifest, CancellationToken ct = default)
     {
         var primaryFiles = await _primaryResolver.ResolveAsync(packageInfo, manifest, ct);
         var packageDeps = await _packageWalker.WalkDependenciesAsync(manifest.VcpkgName, triplet, ct);
         var binaryNodes = await _binaryScanner.ScanBinaryDependenciesAsync(primaryFiles, ct);
-        
+
         return new BinaryClosure(primaryFiles, binaryNodes.Values, packageDeps);
     }
 }
@@ -95,13 +99,14 @@ public sealed class BinaryClosureOrchestrator : IBinaryClosureWalker
 ### **1.2 RuntimeProfile - Misplaced Responsibilities**
 
 **Current Issues**:
+
 ```csharp
 public sealed class RuntimeProfile : IRuntimeProfile
 {
     // ✅ CORRECT: Platform detection and configuration
     public string Rid { get; }
     public PlatformFamily PlatformFamily { get; }
-    
+
     // ❌ VIOLATION: File system operations don't belong here
     public bool IsSystemFile(FilePath path)
     {
@@ -112,11 +117,13 @@ public sealed class RuntimeProfile : IRuntimeProfile
 ```
 
 **Architectural Problems**:
+
 - ❌ **Wrong Abstraction Level**: File operations in a "profile" class
 - ❌ **Naming Confusion**: "Profile" suggests configuration, not behavior
 - ❌ **Single Responsibility Violation**: Platform info + file filtering
 
 **Recommended Refactoring**:
+
 ```csharp
 // 1. Pure Platform Information
 public sealed class PlatformInfo : IPlatformInfo
@@ -131,7 +138,7 @@ public sealed class SystemFileFilter : ISystemFileFilter
 {
     private readonly IReadOnlyList<Regex> _systemPatterns;
     private readonly IPlatformInfo _platform;
-    
+
     public bool IsSystemFile(FilePath path)
     {
         var fileName = path.GetFilename().FullPath;
@@ -147,7 +154,7 @@ public sealed class RuntimeContext : IRuntimeContext
         Platform = platform;
         SystemFilter = systemFilter;
     }
-    
+
     public IPlatformInfo Platform { get; }
     public ISystemFileFilter SystemFilter { get; }
 }
@@ -156,6 +163,7 @@ public sealed class RuntimeContext : IRuntimeContext
 ### **1.3 ArtifactPlanner - Reasonable Separation**
 
 **Current Implementation**:
+
 ```csharp
 public sealed class ArtifactPlanner : IArtifactPlanner
 {
@@ -165,13 +173,13 @@ public sealed class ArtifactPlanner : IArtifactPlanner
         // ✅ GOOD: Clear workflow steps
         var actions = new List<DeploymentAction>();
         var itemsForUnixArchive = new List<ArchivedItemDetails>();
-        
+
         // Process binary files
         foreach (var (filePath, ownerPackageName, originPackage) in closure.Nodes) { ... }
-        
+
         // Process license files
         foreach (var packageName in copiedPackages) { ... }
-        
+
         // Create platform-specific actions
         if (_environment.Platform.Family != PlatformFamily.Windows && itemsForUnixArchive.Count != 0) { ... }
     }
@@ -179,11 +187,13 @@ public sealed class ArtifactPlanner : IArtifactPlanner
 ```
 
 **Strengths**:
+
 - ✅ **Clear Single Responsibility**: Planning deployment actions
 - ✅ **Good Abstraction Level**: Works with domain concepts
 - ✅ **Reasonable Dependencies**: Only what's needed for planning
 
 **Minor Improvements**:
+
 ```csharp
 // Extract platform strategy selection
 public interface IDeploymentStrategySelector
@@ -200,6 +210,7 @@ public interface IDeploymentStrategySelector
 ### **2.1 Violations Identified**
 
 **BinaryClosureWalker Violations**:
+
 ```csharp
 // ❌ VIOLATION 1: Pattern matching logic
 private static bool MatchesPattern(string filename, string pattern) { ... }
@@ -215,6 +226,7 @@ public async Task<ClosureResult> BuildClosureAsync(...) { ... }
 ```
 
 **ArtifactPlanner Minor Violations**:
+
 ```csharp
 // ⚠️ MINOR: License file detection could be extracted
 private static bool IsLicense(FilePath f) =>
@@ -225,6 +237,7 @@ private static bool IsLicense(FilePath f) =>
 ### **2.2 Recommended Extractions**
 
 **File Classification Service**:
+
 ```csharp
 public interface IFileClassifier
 {
@@ -236,7 +249,7 @@ public interface IFileClassifier
 public sealed class FileClassifier : IFileClassifier
 {
     private readonly ISystemFileFilter _systemFilter;
-    
+
     public bool IsBinary(FilePath file, PlatformFamily platform)
     {
         var ext = file.GetExtension();
@@ -255,6 +268,7 @@ public sealed class FileClassifier : IFileClassifier
 ```
 
 **Pattern Matching Service**:
+
 ```csharp
 public interface IPatternMatcher
 {
@@ -270,20 +284,23 @@ public interface IPatternMatcher
 ### **3.1 Current Dependency Patterns**
 
 **BinaryClosureWalker Dependencies**:
+
 ```csharp
 public sealed class BinaryClosureWalker(
     IRuntimeScanner runtime,           // ✅ GOOD: Interface dependency
-    IPackageInfoProvider pkg,          // ✅ GOOD: Interface dependency  
+    IPackageInfoProvider pkg,          // ✅ GOOD: Interface dependency
     IRuntimeProfile profile,           // ⚠️ CONCERN: Mixed responsibilities
     ICakeContext ctx)                  // ❌ PROBLEM: Framework dependency
 ```
 
 **Issues Identified**:
+
 - ❌ **Framework Coupling**: Direct dependency on `ICakeContext`
 - ❌ **God Interface**: `IRuntimeProfile` does too much
 - ❌ **Missing Abstractions**: File system operations not abstracted
 
 **Recommended Improvements**:
+
 ```csharp
 public sealed class BinaryClosureOrchestrator(
     IPrimaryBinaryResolver primaryResolver,     // ✅ FOCUSED: Single responsibility
@@ -297,6 +314,7 @@ public sealed class BinaryClosureOrchestrator(
 ### **3.2 Dependency Inversion Violations**
 
 **Current Violations**:
+
 ```csharp
 // ❌ VIOLATION: Concrete dependency on Cake framework
 public BinaryClosureWalker(..., ICakeContext ctx)
@@ -309,6 +327,7 @@ if (_ctx.FileExists(f)) { ... }  // ❌ Framework coupling
 ```
 
 **Recommended Abstractions**:
+
 ```csharp
 public interface IFileSystem
 {
@@ -320,7 +339,7 @@ public interface IFileSystem
 public sealed class CakeFileSystemAdapter : IFileSystem
 {
     private readonly ICakeContext _context;
-    
+
     public bool FileExists(FilePath path) => _context.FileExists(path);
     // ... other implementations
 }
@@ -333,18 +352,19 @@ public sealed class CakeFileSystemAdapter : IFileSystem
 ### **4.1 Current Implementation Issues**
 
 **Over-Engineering Problems**:
+
 ```csharp
 // ❌ PROBLEM 1: Excessive boilerplate for simple error handling
-public sealed class ClosureResult(OneOf<Error<HarvestingError>, Success<BinaryClosure>> result) 
+public sealed class ClosureResult(OneOf<Error<HarvestingError>, Success<BinaryClosure>> result)
     : Result<HarvestingError, BinaryClosure>(result)
 {
     // 20+ lines of conversion methods that add no value
     public static implicit operator ClosureResult(HarvestingError error) => new(new Error<HarvestingError>(error));
     public static implicit operator ClosureResult(BinaryClosure closure) => new(new Success<BinaryClosure>(closure));
-    
+
     public static explicit operator HarvestingError(ClosureResult _) { ... }
     public static explicit operator BinaryClosure(ClosureResult _) { ... }
-    
+
     // Multiple redundant factory methods
     public static ClosureResult FromHarvestingError(HarvestingError error) => error;
     public static ClosureResult FromBinaryClosure(BinaryClosure closure) => closure;
@@ -353,6 +373,7 @@ public sealed class ClosureResult(OneOf<Error<HarvestingError>, Success<BinaryCl
 ```
 
 **Inconsistency Issues**:
+
 ```csharp
 // ❌ PROBLEM 2: Inconsistent error types
 public sealed class ClosureResult : Result<HarvestingError, BinaryClosure>      // Uses HarvestingError
@@ -364,6 +385,7 @@ public sealed class ArtifactPlannerResult : Result<HarvestingError, DeploymentPl
 ```
 
 **Complexity Without Benefit**:
+
 ```csharp
 // ❌ PROBLEM 4: Complex extension methods that duplicate base functionality
 public static void ThrowIfError(this ClosureResult result, Action<HarvestingError> errorHandler)
@@ -404,6 +426,7 @@ public partial class ArtifactPlannerResult : ResultBase<HarvestingError, Deploym
 ```
 
 **Benefits of Source Generator Approach**:
+
 - ✅ **Eliminates Over-Engineering**: 25+ lines → 1 line declaration
 - ✅ **Maintains Domain Types**: `ClosureResult`, `PackageInfoResult` remain distinct
 - ✅ **Consistent API**: All result types get identical interface
@@ -411,6 +434,7 @@ public partial class ArtifactPlannerResult : ResultBase<HarvestingError, Deploym
 - ✅ **Monadic Composition**: Clean async pipelines with domain-specific types
 
 **Usage Example**:
+
 ```csharp
 // ✅ CLEAN: Monadic pipeline with domain-specific types
 public async Task<DeploymentResult> ProcessLibraryAsync(LibraryManifest manifest)
@@ -425,6 +449,7 @@ public async Task<DeploymentResult> ProcessLibraryAsync(LibraryManifest manifest
 **Alternative Options** (if source generator is not feasible):
 
 **Option 1: Direct OneOf.Monads Usage**:
+
 ```csharp
 // ✅ SIMPLE: Use OneOf.Monads Result<TError, TSuccess> directly
 public interface IBinaryClosureWalker
@@ -434,18 +459,19 @@ public interface IBinaryClosureWalker
 ```
 
 **Option 2: Minimal Custom Wrapper**:
+
 ```csharp
 // ✅ MINIMAL: Simple wrapper without excessive conversions
 public readonly struct ClosureResult
 {
     private readonly Result<HarvestingError, BinaryClosure> _result;
-    
+
     private ClosureResult(Result<HarvestingError, BinaryClosure> result) => _result = result;
-    
+
     public static ClosureResult Success(BinaryClosure closure) => new(Result<HarvestingError, BinaryClosure>.Success(closure));
     public static ClosureResult Failure(HarvestingError error) => new(Result<HarvestingError, BinaryClosure>.Failure(error));
-    
-    public T Match<T>(Func<HarvestingError, T> onError, Func<BinaryClosure, T> onSuccess) 
+
+    public T Match<T>(Func<HarvestingError, T> onError, Func<BinaryClosure, T> onSuccess)
         => _result.Match(onError, onSuccess);
 }
 ```
@@ -453,6 +479,7 @@ public readonly struct ClosureResult
 ### **4.3 Error Hierarchy Issues**
 
 **Current Problems**:
+
 ```csharp
 // ❌ PROBLEM: Inconsistent error inheritance
 public abstract class HarvestingError { ... }           // Not an Exception
@@ -461,29 +488,30 @@ public class ClosureError : HarvestingError { ... }     // Inherits from Harvest
 ```
 
 **Recommended Consistency**:
+
 ```csharp
 // ✅ CONSISTENT: All errors inherit from common base Exception
 public abstract class HarvestingException : Exception
 {
-    protected HarvestingException(string message, Exception? innerException = null) 
+    protected HarvestingException(string message, Exception? innerException = null)
         : base(message, innerException) { }
 }
 
 public sealed class ClosureException : HarvestingException
 {
-    public ClosureException(string message, Exception? innerException = null) 
+    public ClosureException(string message, Exception? innerException = null)
         : base(message, innerException) { }
 }
 
 public sealed class PackageInfoException : HarvestingException
 {
-    public PackageInfoException(string message, Exception? innerException = null) 
+    public PackageInfoException(string message, Exception? innerException = null)
         : base(message, innerException) { }
 }
 
 public sealed class DeploymentException : HarvestingException
 {
-    public DeploymentException(string message, Exception? innerException = null) 
+    public DeploymentException(string message, Exception? innerException = null)
         : base(message, innerException) { }
 }
 ```
@@ -495,6 +523,7 @@ public sealed class DeploymentException : HarvestingException
 ### **5.1 Code Complexity Issues**
 
 **BinaryClosureWalker Complexity**:
+
 ```csharp
 // ❌ HIGH COMPLEXITY: 225 lines, multiple responsibilities
 public async Task<ClosureResult> BuildClosureAsync(LibraryManifest manifest, CancellationToken ct = default)
@@ -504,7 +533,7 @@ public async Task<ClosureResult> BuildClosureAsync(LibraryManifest manifest, Can
         // 80+ lines of complex logic mixing different concerns
         var rootPkgInfoResult = await _pkg.GetPackageInfoAsync(manifest.VcpkgName, _profile.Triplet, ct);
         // ... package walking logic
-        // ... binary scanning logic  
+        // ... binary scanning logic
         // ... file system operations
         // ... pattern matching
         return new BinaryClosure(primaryFiles, [.. nodesDict.Values], processedPackages);
@@ -515,6 +544,7 @@ public async Task<ClosureResult> BuildClosureAsync(LibraryManifest manifest, Can
 ```
 
 **Maintainability Problems**:
+
 - ❌ **High Cyclomatic Complexity**: Multiple nested loops and conditions
 - ❌ **Long Method**: 80+ lines in single method
 - ❌ **Mixed Abstraction Levels**: High-level orchestration mixed with low-level operations
@@ -523,6 +553,7 @@ public async Task<ClosureResult> BuildClosureAsync(LibraryManifest manifest, Can
 ### **5.2 Recommended Decomposition**
 
 **Step-by-Step Refactoring**:
+
 ```csharp
 public sealed class BinaryClosureOrchestrator : IBinaryClosureWalker
 {
@@ -535,17 +566,17 @@ public sealed class BinaryClosureOrchestrator : IBinaryClosureWalker
             var primaryFiles = await ResolvePrimaryBinariesAsync(packageInfo, manifest, ct);
             var packageDependencies = await WalkPackageDependenciesAsync(packageInfo, ct);
             var binaryNodes = await ScanBinaryDependenciesAsync(primaryFiles, packageDependencies, ct);
-            
+
             return Result.Success(new BinaryClosure(primaryFiles, binaryNodes, packageDependencies));
         }
         catch (OperationCanceledException) { throw; }
-        catch (Exception ex) 
-        { 
+        catch (Exception ex)
+        {
             _logger.LogError(ex, "Failed to build closure for {Library}", manifest.Name);
             return Result.Failure(new ClosureError($"Failed to build closure for {manifest.Name}: {ex.Message}", ex));
         }
     }
-    
+
     // ✅ FOCUSED: Each method has single responsibility
     private async Task<PackageInfo> GetRootPackageInfoAsync(LibraryManifest manifest, CancellationToken ct) { ... }
     private async Task<IReadOnlySet<FilePath>> ResolvePrimaryBinariesAsync(PackageInfo packageInfo, LibraryManifest manifest, CancellationToken ct) { ... }
@@ -561,6 +592,7 @@ public sealed class BinaryClosureOrchestrator : IBinaryClosureWalker
 ### **6.1 Current Extensibility Limitations**
 
 **Hard-Coded Platform Logic**:
+
 ```csharp
 // ❌ LIMITATION: Hard to add new platforms
 private bool IsBinary(FilePath f)
@@ -577,6 +609,7 @@ private bool IsBinary(FilePath f)
 ```
 
 **Hard-Coded Deployment Strategies**:
+
 ```csharp
 // ❌ LIMITATION: Hard to add new deployment strategies
 if (_environment.Platform.Family == PlatformFamily.Windows)
@@ -592,6 +625,7 @@ else
 ### **6.2 Recommended Extensibility Improvements**
 
 **Strategy Pattern for Platform Handling**:
+
 ```csharp
 public interface IPlatformStrategy
 {
@@ -602,9 +636,9 @@ public interface IPlatformStrategy
 
 public sealed class WindowsPlatformStrategy : IPlatformStrategy
 {
-    public bool IsBinary(FilePath file) => 
+    public bool IsBinary(FilePath file) =>
         string.Equals(file.GetExtension(), ".dll", StringComparison.OrdinalIgnoreCase);
-    
+
     public bool SupportsSymlinks => false;
     public DeploymentStrategy PreferredDeploymentStrategy => DeploymentStrategy.DirectCopy;
 }
@@ -617,15 +651,16 @@ public sealed class PlatformStrategyFactory : IPlatformStrategyFactory
         [PlatformFamily.Linux] = new LinuxPlatformStrategy(),
         [PlatformFamily.OSX] = new MacOSPlatformStrategy(),
     };
-    
-    public IPlatformStrategy GetStrategy(PlatformFamily platform) => 
-        _strategies.TryGetValue(platform, out var strategy) 
-            ? strategy 
+
+    public IPlatformStrategy GetStrategy(PlatformFamily platform) =>
+        _strategies.TryGetValue(platform, out var strategy)
+            ? strategy
             : throw new NotSupportedException($"Platform {platform} not supported");
 }
 ```
 
 **Plugin Architecture for Dependency Sources**:
+
 ```csharp
 public interface IDependencySource
 {
@@ -638,7 +673,7 @@ public sealed class RuntimeScannerDependencySource : IDependencySource
 {
     public string Name => "RuntimeScanner";
     public int Priority => 100;  // High priority
-    
+
     public async Task<IEnumerable<FilePath>> DiscoverDependenciesAsync(FilePath binary, CancellationToken ct)
     {
         var deps = await _runtimeScanner.ScanAsync(binary, ct);
@@ -650,7 +685,7 @@ public sealed class PackageMetadataDependencySource : IDependencySource
 {
     public string Name => "PackageMetadata";
     public int Priority => 50;   // Lower priority
-    
+
     public async Task<IEnumerable<FilePath>> DiscoverDependenciesAsync(FilePath binary, CancellationToken ct)
     {
         // Use package metadata to discover dependencies
@@ -666,6 +701,7 @@ public sealed class PackageMetadataDependencySource : IDependencySource
 ### **7.1 Current Error Handling Issues**
 
 **Broad Exception Catching**:
+
 ```csharp
 // ❌ PROBLEM: Catches all exceptions, masking specific issues
 catch (Exception ex)
@@ -675,6 +711,7 @@ catch (Exception ex)
 ```
 
 **No Retry Logic**:
+
 ```csharp
 // ❌ PROBLEM: No resilience for transient failures
 var rootPkgInfoResult = await _pkg.GetPackageInfoAsync(manifest.VcpkgName, _profile.Triplet, ct);
@@ -682,6 +719,7 @@ var rootPkgInfoResult = await _pkg.GetPackageInfoAsync(manifest.VcpkgName, _prof
 ```
 
 **No Partial Success Handling**:
+
 ```csharp
 // ❌ PROBLEM: All-or-nothing approach
 if (primaryFiles.Count == 0)
@@ -694,6 +732,7 @@ if (primaryFiles.Count == 0)
 ### **7.2 Recommended Resilience Improvements**
 
 **Specific Exception Handling**:
+
 ```csharp
 public async Task<Result<ClosureError, BinaryClosure>> BuildClosureAsync(LibraryManifest manifest, CancellationToken ct = default)
 {
@@ -726,27 +765,28 @@ public async Task<Result<ClosureError, BinaryClosure>> BuildClosureAsync(Library
 ```
 
 **Retry with Exponential Backoff**:
+
 ```csharp
 public sealed class ResilientPackageInfoProvider : IPackageInfoProvider
 {
     private readonly IPackageInfoProvider _inner;
     private readonly IRetryPolicy _retryPolicy;
-    
+
     public async Task<Result<PackageInfoError, PackageInfo>> GetPackageInfoAsync(string packageName, string triplet, CancellationToken ct = default)
     {
         return await _retryPolicy.ExecuteAsync(async () =>
         {
             var result = await _inner.GetPackageInfoAsync(packageName, triplet, ct);
-            
+
             if (result.IsError && IsTransientError(result.Error))
             {
                 throw new TransientException(result.Error.Message);
             }
-            
+
             return result;
         }, ct);
     }
-    
+
     private static bool IsTransientError(PackageInfoError error) =>
         error.Message.Contains("network", StringComparison.OrdinalIgnoreCase) ||
         error.Message.Contains("timeout", StringComparison.OrdinalIgnoreCase) ||
@@ -755,6 +795,7 @@ public sealed class ResilientPackageInfoProvider : IPackageInfoProvider
 ```
 
 **Partial Success Support**:
+
 ```csharp
 public sealed class PartialBinaryClosure
 {
@@ -769,12 +810,12 @@ public sealed class PartialBinaryClosure
         FailedNodes = failedNodes;
         Packages = packages;
     }
-    
+
     public IReadOnlySet<FilePath> PrimaryFiles { get; }
     public IReadOnlyList<BinaryNode> ResolvedNodes { get; }
     public IReadOnlyList<BinaryNode> FailedNodes { get; }
     public IReadOnlySet<string> Packages { get; }
-    
+
     public bool IsComplete => FailedNodes.Count == 0;
     public bool IsPartial => FailedNodes.Count > 0 && ResolvedNodes.Count > 0;
     public bool IsEmpty => ResolvedNodes.Count == 0;
@@ -788,16 +829,19 @@ public sealed class PartialBinaryClosure
 ### **8.1 Phase 1: Extract Core Services (Week 1-2)**
 
 1. **Extract File Classification Service**
+
    ```csharp
    IFileClassifier, IPatternMatcher, ISystemFileFilter
    ```
 
 2. **Extract Platform Strategy**
+
    ```csharp
    IPlatformStrategy, IPlatformStrategyFactory
    ```
 
 3. **Simplify RuntimeProfile**
+
    ```csharp
    IPlatformInfo (data only), IRuntimeContext (composition)
    ```
@@ -805,21 +849,25 @@ public sealed class PartialBinaryClosure
 ### **8.2 Phase 2: Decompose BinaryClosureWalker (Week 3-4)**
 
 1. **Extract Primary Binary Resolver**
+
    ```csharp
    IPrimaryBinaryResolver
    ```
 
 2. **Extract Package Dependency Walker**
+
    ```csharp
    IPackageDependencyWalker
    ```
 
 3. **Extract Binary Dependency Scanner**
+
    ```csharp
    IBinaryDependencyScanner
    ```
 
 4. **Create Orchestrator**
+
    ```csharp
    BinaryClosureOrchestrator (simplified coordination)
    ```
@@ -827,21 +875,25 @@ public sealed class PartialBinaryClosure
 ### **8.3 Phase 3: Implement Source Generator for Results Pattern (Week 5)**
 
 1. **Create Source Generator Project**
+
    - `[GenerateResult]` attribute definition
    - Generator implementation following OneOf pattern
    - Support for configurable generation options
 
 2. **Implement ResultBase<TError, TSuccess>**
+
    ```csharp
    public abstract class ResultBase<TError, TSuccess>
    ```
 
 3. **Convert Existing Result Types**
+
    - Replace manual implementations with `[GenerateResult]` declarations
    - Verify generated code matches expected API
    - Update consuming code to use generated methods
 
 4. **Unify Error Hierarchy**
+
    ```csharp
    HarvestingException base class for all error types
    ```
@@ -859,27 +911,31 @@ public sealed class PartialBinaryClosure
 The core harvesting components demonstrate **strong technical implementation** but suffer from **architectural debt** that impacts maintainability and extensibility. The primary issues are:
 
 **Critical Issues**:
+
 1. ❌ **BinaryClosureWalker God Class** - Multiple responsibilities in single class
-2. ❌ **RuntimeProfile Misplaced Logic** - File operations in configuration class  
+2. ❌ **RuntimeProfile Misplaced Logic** - File operations in configuration class
 3. ❌ **Over-Engineered Results Pattern** - Excessive boilerplate without benefit
 4. ❌ **Framework Coupling** - Direct dependencies on Cake framework
 
 **Recommended Priority**:
+
 1. **High**: Implement Source Generator for Results Pattern (immediate complexity reduction)
 2. **High**: Extract services from BinaryClosureWalker (maintainability)
 3. **Medium**: Fix RuntimeProfile responsibilities (clean architecture)
 4. **Medium**: Add resilience patterns (robustness)
 
 **Note**: The source generator approach for the Results pattern is now the **highest priority** since it will:
+
 - ✅ **Immediately eliminate** 25+ lines of boilerplate per result type
 - ✅ **Provide more functionality** than current manual implementation
 - ✅ **Enable clean monadic composition** for the refactored components
 - ✅ **Set foundation** for other architectural improvements
 
 **Expected Benefits**:
+
 - ✅ **Improved Testability** - Smaller, focused components
 - ✅ **Enhanced Maintainability** - Clear responsibilities
 - ✅ **Better Extensibility** - Plugin architecture for new platforms
 - ✅ **Increased Robustness** - Proper error handling and retry logic
 
-The refactoring plan provides a **pragmatic approach** to address these issues incrementally while maintaining system functionality. 
+The refactoring plan provides a **pragmatic approach** to address these issues incrementally while maintaining system functionality.

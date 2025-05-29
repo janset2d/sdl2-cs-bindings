@@ -1,8 +1,8 @@
 # **Architectural Review: SDL2 C# Bindings Build System**
 
-**Document Version**: 1.0  
-**Review Date**: December 2024  
-**Reviewer**: Software Architecture Analysis  
+**Document Version**: 1.0
+**Review Date**: December 2024
+**Reviewer**: Software Architecture Analysis
 **Scope**: Complete build system architecture, from configuration to CI/CD deployment
 
 ---
@@ -20,6 +20,7 @@ The SDL2 C# bindings build system represents a sophisticated, modern approach to
 ### **1.1 Modern .NET Design Patterns**
 
 **Dependency Injection Excellence**
+
 ```csharp
 // Clean service registration with platform-aware factories
 services.AddSingleton<IRuntimeScanner>(provider =>
@@ -36,6 +37,7 @@ services.AddSingleton<IRuntimeScanner>(provider =>
 ```
 
 **Strengths**:
+
 - ✅ **Interface-based design** enables testability and platform abstraction
 - ✅ **Factory pattern** for platform-specific service creation
 - ✅ **Immutable configuration objects** prevent runtime state corruption
@@ -44,6 +46,7 @@ services.AddSingleton<IRuntimeScanner>(provider =>
 ### **1.2 Configuration Management Excellence**
 
 **JSON-Driven Configuration**
+
 ```json
 // manifest.json - Library definitions
 {
@@ -62,6 +65,7 @@ services.AddSingleton<IRuntimeScanner>(provider =>
 ```
 
 **Strengths**:
+
 - ✅ **Separation of concerns** between code and configuration
 - ✅ **Type-safe deserialization** with strong C# models
 - ✅ **Platform-specific patterns** enable flexible binary matching
@@ -70,6 +74,7 @@ services.AddSingleton<IRuntimeScanner>(provider =>
 ### **1.3 Cross-Platform Abstraction**
 
 **Runtime Profile System**
+
 ```csharp
 public sealed class RuntimeProfile : IRuntimeProfile
 {
@@ -82,6 +87,7 @@ public sealed class RuntimeProfile : IRuntimeProfile
 ```
 
 **Strengths**:
+
 - ✅ **Centralized platform logic** via `RuntimeProfile`
 - ✅ **Pattern-based system file filtering** with regex compilation
 - ✅ **Platform family abstraction** (Windows/Linux/OSX)
@@ -90,6 +96,7 @@ public sealed class RuntimeProfile : IRuntimeProfile
 ### **1.4 Sophisticated Dependency Resolution**
 
 **Hybrid Analysis Strategy**
+
 ```csharp
 // 1. Package metadata analysis (vcpkg x-package-info)
 var rootPkgInfoResult = await _pkg.GetPackageInfoAsync(manifest.VcpkgName, _profile.Triplet, ct);
@@ -102,7 +109,7 @@ foreach (var dep in deps)
 {
     if (_profile.IsSystemFile(dep) || nodesDict.ContainsKey(dep))
         continue;
-    
+
     var owner = TryInferPackageNameFromPath(dep) ?? "Unknown";
     nodesDict[dep] = new BinaryNode(dep, owner, originPkg);
     binQueue.Enqueue(dep);
@@ -110,6 +117,7 @@ foreach (var dep in deps)
 ```
 
 **Strengths**:
+
 - ✅ **Multi-source dependency discovery** combines metadata and runtime analysis
 - ✅ **Recursive closure building** ensures complete dependency graphs
 - ✅ **Intelligent filtering** prevents system library inclusion
@@ -118,6 +126,7 @@ foreach (var dep in deps)
 ### **1.5 Platform-Specific Deployment Strategies**
 
 **Windows vs Unix Approach**
+
 ```csharp
 // Windows: Direct file copy
 if (_environment.Platform.Family == PlatformFamily.Windows)
@@ -133,6 +142,7 @@ else
 ```
 
 **Strengths**:
+
 - ✅ **Platform-appropriate strategies** (direct copy vs archive)
 - ✅ **Symlink preservation** for Unix systems via tar archives
 - ✅ **NuGet compatibility** while maintaining Unix semantics
@@ -141,6 +151,7 @@ else
 ### **1.6 Rich Developer Experience**
 
 **Spectre.Console Integration**
+
 ```csharp
 var grid = new Grid()
     .AddColumn()
@@ -152,6 +163,7 @@ grid.AddRow("[bold]Runtime Dependencies[/]", $"[deepskyblue1]{stats.RuntimeFiles
 ```
 
 **Strengths**:
+
 - ✅ **Rich console output** with color coding and tables
 - ✅ **Detailed progress reporting** for long-running operations
 - ✅ **Actionable error messages** with verbosity guidance
@@ -164,39 +176,49 @@ grid.AddRow("[bold]Runtime Dependencies[/]", $"[deepskyblue1]{stats.RuntimeFiles
 ### **2.1 Incomplete macOS Implementation**
 
 **Current State**
-```csharp
-public class MacOtoolScanner : IRuntimeScanner
-{
-    public Task<IReadOnlySet<FilePath>> ScanAsync(FilePath binary, CancellationToken ct = default)
-    {
-        _log.Warning("MacOtoolScanner.ScanAsync is not fully implemented yet...");
-        return Task.FromResult<IReadOnlySet<FilePath>>(ImmutableHashSet<FilePath>.Empty);
-    }
-}
-```
 
-**Impact**:
-- ❌ **Broken macOS support** - critical for cross-platform library
-- ❌ **CI pipeline gaps** - macOS workflows exist but don't harvest
-- ❌ **Incomplete dependency analysis** for Apple Silicon and Intel Macs
-- ❌ **Missing dylib symlink handling**
+> **Update Note:** The original review identified incomplete macOS support as a critical weakness. Significant progress has been made, and core macOS harvesting capabilities are now implemented. This section reflects the _updated_ status.
 
-**Risk Level**: **CRITICAL** - Blocks production use on macOS
+**Previously:** The `MacOtoolScanner` was a placeholder, `OtoolRunner` was not implemented, and macOS-specific system artifact patterns were missing. This effectively meant macOS builds would not correctly harvest native dependencies.
+
+**Current Implemented macOS Support:**
+
+- **`MacOtoolScanner.cs`:** Implemented to use `otool -L` for dependency discovery on macOS. Includes logic to parse `otool` output and resolve paths, including those with `@rpath/`, `@loader_path/`, and `@executable_path/` prefixes relative to the binary being scanned.
+- **`OtoolRunner.cs` & `OtoolAliases.cs`:** The necessary tool wrapper and Cake aliases for `otool` have been created to support the scanner.
+- **`RuntimeProfile.cs`:** Updated to include `PlatformFamily.OSX` and correctly loads system library exclusion patterns for macOS from `system_artefacts.json`.
+- **`system_artefacts.json`:** Populated with common macOS system library and framework patterns (e.g., `libSystem.B.dylib`, `/System/Library/Frameworks/*.framework/*`).
+- **`ArtifactPlanner.cs` & `ArtifactDeployer.cs`:** The existing logic for Unix-like systems (archiving native binaries into `native.tar.gz` to preserve symlinks) is now leveraged for macOS builds, ensuring `.dylib` symlinks are handled correctly for packaging.
+- **CI Workflow (`prepare-native-assets-macos.yml`):** GitHub Actions workflow for macOS builds is in place, capable of running the harvest process for macOS RIDs (e.g., `osx-x64`, `osx-arm64`).
+
+**Impact (Original Issue Mitigated):**
+
+- ✅ **Core macOS Harvesting Functionality:** The system can now scan macOS binaries, identify their dependencies, filter system libraries, and package them (including symlinks) into `tar.gz` archives.
+- ✅ **CI Pipeline Capability:** macOS portions of the CI pipeline can execute the harvesting logic.
+
+**Remaining Considerations/Potential Minor Gaps (Post-Implementation):**
+
+- **Exhaustive Testing:** While core functionality is present, comprehensive testing across various macOS versions and with a wide range of complex libraries is ongoing to ensure robustness of `@rpath` and other path resolutions.
+- **`@executable_path` in complex scenarios:** Deeper validation of `@executable_path` resolution, especially for binaries not in the main bundle, might be needed depending on specific library structures encountered.
+- **Universal Binaries:** Current scanning likely processes the architecture slice corresponding to the build agent. Handling or explicitly documenting behavior with Universal Binaries (if they are a direct input to scanning, which is uncommon for Vcpkg outputs) might be a future consideration.
+
+**Risk Level (Updated):** **LOW to MEDIUM** (Reduced from CRITICAL. Medium relates to the need for ongoing comprehensive testing and potential edge cases in complex dylib scenarios rather than a fundamental lack of implementation).
 
 ### **2.2 Configuration Synchronization Issues**
 
 **Version Mismatch Example**
+
 ```json
 // manifest.json
 "vcpkg_version": "2.26.5"
 
-// vcpkg.json  
+// vcpkg.json
 "overrides": [
   { "name": "sdl2", "version": "2.32.4" }
 ]
 ```
 
 **Impact**:
+
 - ❌ **Manual synchronization required** between multiple configuration files
 - ❌ **Potential version drift** leading to build inconsistencies
 - ❌ **No validation** to catch mismatches early
@@ -207,6 +229,7 @@ public class MacOtoolScanner : IRuntimeScanner
 ### **2.3 Limited Error Recovery**
 
 **Current Error Handling**
+
 ```csharp
 catch (Exception ex)
 {
@@ -215,6 +238,7 @@ catch (Exception ex)
 ```
 
 **Weaknesses**:
+
 - ❌ **Broad exception catching** masks specific failure modes
 - ❌ **Limited retry mechanisms** for transient failures
 - ❌ **No graceful degradation** for partial dependency resolution
@@ -225,6 +249,7 @@ catch (Exception ex)
 ### **2.4 Performance Bottlenecks**
 
 **Sequential Processing**
+
 ```csharp
 // No parallelization in dependency scanning
 while (binQueue.TryDequeue(out var bin))
@@ -235,6 +260,7 @@ while (binQueue.TryDequeue(out var bin))
 ```
 
 **Issues**:
+
 - ❌ **Sequential binary scanning** limits throughput
 - ❌ **No caching** of expensive operations (package info queries)
 - ❌ **Repeated file system operations** without optimization
@@ -245,12 +271,14 @@ while (binQueue.TryDequeue(out var bin))
 ### **2.5 Testing Coverage Gaps**
 
 **Current State**
+
 ```csharp
 // No unit tests found for core harvesting logic
 // Reliance on manual integration testing
 ```
 
 **Missing Coverage**:
+
 - ❌ **No unit tests** for dependency resolution algorithms
 - ❌ **No mocking** of external tool dependencies
 - ❌ **No regression tests** for platform-specific behavior
@@ -264,69 +292,62 @@ while (binQueue.TryDequeue(out var bin))
 
 ### **3.1 Complete macOS Implementation (Priority: CRITICAL)**
 
-**Immediate Actions**:
+> **Update Note:** This section's recommendations have been largely addressed. The status below reflects the implementation progress.
 
-1. **Implement MacOtoolScanner**
-```csharp
-public sealed class MacOtoolScanner : IRuntimeScanner
-{
+**Original Actions & Current Status:**
+
+1. **Implement `MacOtoolScanner`**
+
+    - **Status: COMPLETED.** `MacOtoolScanner.cs` now correctly uses `otool -L` and includes logic for path resolution.
+
+    ```csharp
+    // Example snippet from the implemented MacOtoolScanner
     public async Task<IReadOnlySet<FilePath>> ScanAsync(FilePath binary, CancellationToken ct = default)
     {
         var settings = new OtoolSettings(binary);
-        var dependencies = await Task.Run(() => _context.OtoolDependencies(settings), ct);
-        
-        var result = new HashSet<FilePath>();
-        foreach (var (libName, libPath) in dependencies)
-        {
-            // Handle @rpath, @loader_path, @executable_path resolution
-            var resolvedPath = ResolveRpathDependency(libPath, binary);
-            if (_context.FileExists(resolvedPath))
-            {
-                result.Add(resolvedPath);
-            }
-        }
-        return result.ToImmutableHashSet();
+        var dependencies = await Task.Run(() => _context.OtoolDependencies(settings), ct).ConfigureAwait(false);
+        // ... parsing and path resolution logic ...
     }
-}
-```
+    ```
 
-2. **Create OtoolTool Infrastructure**
-```csharp
-public sealed class OtoolRunner : Tool<OtoolSettings>
-{
-    public IReadOnlyDictionary<string, string> GetDependenciesAsDictionary(OtoolSettings settings)
-    {
-        // Parse otool -L output format:
-        // /usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1311.0.0)
-        // @rpath/libSDL2-2.0.0.dylib (compatibility version 1.0.0, current version 1.0.0)
-    }
-}
-```
+2. **Create `OtoolTool` Infrastructure**
+
+    - **Status: COMPLETED.** `OtoolRunner.cs`, `OtoolSettings.cs`, and `OtoolAliases.cs` have been implemented to support `otool` execution via Cake.
 
 3. **Update System Artifacts Configuration**
-```json
-{
-  "osx": {
-    "system_libraries": [
-      "/usr/lib/libSystem.B.dylib",
-      "/usr/lib/libc++.1.dylib",
-      "/System/Library/Frameworks/*.framework/*",
-      "/usr/lib/system/*"
-    ]
-  }
-}
-```
+    - **Status: COMPLETED.** `system_artefacts.json` now contains an `osx` section with appropriate system library and framework patterns.
+
+    ```json
+    // Snippet from system_artefacts.json
+    {
+      "osx": {
+        "system_libraries": [
+          "libSystem.B.dylib",
+          "/usr/lib/libc++.1.dylib",
+          "/System/Library/Frameworks/*.framework/*",
+          "/usr/lib/system/*"
+          // ... other patterns ...
+        ]
+      }
+    }
+    ```
+
+**Further Actions (Post-Initial Implementation):**
+
+- Conduct thorough integration testing on various macOS versions (Intel, Apple Silicon) with diverse SDL2 satellite libraries to validate the robustness of the `otool` parsing and path resolution, especially for `@rpath` and `@loader_path`.
+- Refine macOS system library patterns in `system_artefacts.json` as needed based on testing and feedback.
 
 ### **3.2 Configuration Validation & Synchronization**
 
 **Implement Configuration Validator**
+
 ```csharp
 public sealed class ConfigurationValidator
 {
     public ValidationResult ValidateConsistency(ManifestConfig manifest, VcpkgManifest vcpkg)
     {
         var errors = new List<string>();
-        
+
         foreach (var lib in manifest.LibraryManifests)
         {
             var vcpkgOverride = vcpkg.Overrides.FirstOrDefault(o => o.Name == lib.VcpkgName);
@@ -335,13 +356,14 @@ public sealed class ConfigurationValidator
                 errors.Add($"Version mismatch for {lib.Name}: manifest={lib.VcpkgVersion}, vcpkg={vcpkgOverride.Version}");
             }
         }
-        
+
         return errors.Any() ? ValidationResult.Failed(errors) : ValidationResult.Success();
     }
 }
 ```
 
 **Add Validation Task**
+
 ```csharp
 [TaskName("Validate-Config")]
 public sealed class ValidateConfigTask : FrostingTask<BuildContext>
@@ -350,7 +372,7 @@ public sealed class ValidateConfigTask : FrostingTask<BuildContext>
     {
         var validator = new ConfigurationValidator();
         var result = validator.ValidateConsistency(context.ManifestConfig, context.VcpkgManifest);
-        
+
         if (!result.IsValid)
         {
             foreach (var error in result.Errors)
@@ -366,12 +388,13 @@ public sealed class ValidateConfigTask : FrostingTask<BuildContext>
 ### **3.3 Enhanced Error Handling & Resilience**
 
 **Implement Retry Policies**
+
 ```csharp
 public sealed class ResilientPackageInfoProvider : IPackageInfoProvider
 {
     private readonly IPackageInfoProvider _inner;
     private readonly RetryPolicy _retryPolicy;
-    
+
     public async Task<PackageInfoResult> GetPackageInfoAsync(string packageName, string triplet, CancellationToken ct = default)
     {
         return await _retryPolicy.ExecuteAsync(async () =>
@@ -388,6 +411,7 @@ public sealed class ResilientPackageInfoProvider : IPackageInfoProvider
 ```
 
 **Graceful Degradation for Dependency Resolution**
+
 ```csharp
 public sealed class FaultTolerantBinaryClosureWalker : IBinaryClosureWalker
 {
@@ -395,7 +419,7 @@ public sealed class FaultTolerantBinaryClosureWalker : IBinaryClosureWalker
     {
         var partialResults = new List<BinaryNode>();
         var failures = new List<string>();
-        
+
         try
         {
             // Attempt full resolution
@@ -414,6 +438,7 @@ public sealed class FaultTolerantBinaryClosureWalker : IBinaryClosureWalker
 ### **3.4 Performance Optimizations**
 
 **Parallel Dependency Scanning**
+
 ```csharp
 public async Task<ClosureResult> BuildClosureAsync(LibraryManifest manifest, CancellationToken ct = default)
 {
@@ -431,35 +456,36 @@ public async Task<ClosureResult> BuildClosureAsync(LibraryManifest manifest, Can
             semaphore.Release();
         }
     });
-    
+
     var results = await Task.WhenAll(tasks);
     // Merge results...
 }
 ```
 
 **Caching Layer**
+
 ```csharp
 public sealed class CachedPackageInfoProvider : IPackageInfoProvider
 {
     private readonly IMemoryCache _cache;
     private readonly IPackageInfoProvider _inner;
-    
+
     public async Task<PackageInfoResult> GetPackageInfoAsync(string packageName, string triplet, CancellationToken ct = default)
     {
         var cacheKey = $"{packageName}:{triplet}";
-        
+
         if (_cache.TryGetValue(cacheKey, out PackageInfoResult cached))
         {
             return cached;
         }
-        
+
         var result = await _inner.GetPackageInfoAsync(packageName, triplet, ct);
-        
+
         if (result.IsSuccess())
         {
             _cache.Set(cacheKey, result, TimeSpan.FromMinutes(30));
         }
-        
+
         return result;
     }
 }
@@ -468,6 +494,7 @@ public sealed class CachedPackageInfoProvider : IPackageInfoProvider
 ### **3.5 Comprehensive Testing Strategy**
 
 **Unit Testing Framework**
+
 ```csharp
 public class BinaryClosureWalkerTests
 {
@@ -478,18 +505,18 @@ public class BinaryClosureWalkerTests
         var mockScanner = new Mock<IRuntimeScanner>();
         var mockPackageProvider = new Mock<IPackageInfoProvider>();
         var mockProfile = new Mock<IRuntimeProfile>();
-        
+
         mockPackageProvider
             .Setup(p => p.GetPackageInfoAsync("sdl2", "x64-windows-release", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new PackageInfo("sdl2", "x64-windows-release", 
-                [new FilePath("bin/SDL2.dll")], 
+            .ReturnsAsync(new PackageInfo("sdl2", "x64-windows-release",
+                [new FilePath("bin/SDL2.dll")],
                 ["vcpkg-cmake"]));
-        
+
         var walker = new BinaryClosureWalker(mockScanner.Object, mockPackageProvider.Object, mockProfile.Object, Mock.Of<ICakeContext>());
-        
+
         // Act
         var result = await walker.BuildClosureAsync(CreateTestManifest());
-        
+
         // Assert
         Assert.True(result.IsSuccess());
         Assert.Contains(result.Closure.PrimaryFiles, f => f.GetFilename().FullPath == "SDL2.dll");
@@ -498,6 +525,7 @@ public class BinaryClosureWalkerTests
 ```
 
 **Integration Testing**
+
 ```csharp
 public class HarvestIntegrationTests : IClassFixture<VcpkgTestFixture>
 {
@@ -509,9 +537,9 @@ public class HarvestIntegrationTests : IClassFixture<VcpkgTestFixture>
         // Test against real vcpkg installation
         var context = CreateTestContext(rid);
         var task = new HarvestTask(_walker, _planner, _deployer, _manifest);
-        
+
         await task.RunAsync(context);
-        
+
         // Verify artifacts exist and are valid
         var artifactPath = context.Paths.HarvestOutput.Combine(library);
         Assert.True(context.DirectoryExists(artifactPath));
@@ -522,6 +550,7 @@ public class HarvestIntegrationTests : IClassFixture<VcpkgTestFixture>
 ### **3.6 Enhanced Monitoring & Observability**
 
 **Structured Logging**
+
 ```csharp
 public sealed class StructuredBinaryClosureWalker : IBinaryClosureWalker
 {
@@ -530,21 +559,21 @@ public sealed class StructuredBinaryClosureWalker : IBinaryClosureWalker
         using var activity = _activitySource.StartActivity("BuildClosure");
         activity?.SetTag("library", manifest.Name);
         activity?.SetTag("triplet", _profile.Triplet);
-        
+
         var stopwatch = Stopwatch.StartNew();
-        
+
         try
         {
             var result = await _inner.BuildClosureAsync(manifest, ct);
-            
+
             _logger.LogInformation("Dependency closure built for {Library} in {Duration}ms. Found {PrimaryCount} primary files, {TotalCount} total dependencies",
                 manifest.Name, stopwatch.ElapsedMilliseconds, result.Closure.PrimaryFiles.Count, result.Closure.Nodes.Count);
-            
+
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to build dependency closure for {Library} after {Duration}ms", 
+            _logger.LogError(ex, "Failed to build dependency closure for {Library} after {Duration}ms",
                 manifest.Name, stopwatch.ElapsedMilliseconds);
             throw;
         }
@@ -553,15 +582,16 @@ public sealed class StructuredBinaryClosureWalker : IBinaryClosureWalker
 ```
 
 **Metrics Collection**
+
 ```csharp
 public sealed class MetricsCollectingHarvestTask : AsyncFrostingTask<BuildContext>
 {
     private readonly IMetrics _metrics;
-    
+
     public override async Task RunAsync(BuildContext context)
     {
         var timer = _metrics.Measure.Timer.Time("harvest.duration");
-        
+
         try
         {
             await _inner.RunAsync(context);
@@ -580,6 +610,17 @@ public sealed class MetricsCollectingHarvestTask : AsyncFrostingTask<BuildContex
 }
 ```
 
+### **3.7 Detailed Internal Component Review & Refactoring Opportunities**
+
+> A separate, in-depth review focusing on the internal design and code quality of the core harvesting components (like `BinaryClosureWalker`, `RuntimeProfile`, and the `OneOf/Results` pattern implementation) has also been conducted. This review identifies opportunities for improvements based on SOLID principles, aiming to enhance long-term maintainability, testability, and extensibility.
+>
+> Key themes from this detailed review include:
+> * Opportunities for better adherence to the Single Responsibility Principle, particularly in the `BinaryClosureWalker`.
+> * Suggested refinements to the `OneOf/Results` pattern to reduce boilerplate code and improve consistency.
+> * Recommendations for further abstraction of framework dependencies (e.g., `ICakeContext`) to improve decoupling and testability.
+>
+> These internal design refinements are valuable for the long-term health of the codebase but can be addressed iteratively as the system evolves or as specific pain points arise. For the complete analysis and specific refactoring suggestions, please see the **[Architectural Review: Core Harvesting Components](./architectural-review-core-components.md)** document.
+
 ---
 
 ## **4. Strategic Recommendations**
@@ -587,11 +628,13 @@ public sealed class MetricsCollectingHarvestTask : AsyncFrostingTask<BuildContex
 ### **4.1 Short-Term (Next 2-4 weeks)**
 
 1. **Complete macOS Implementation**
+
    - Implement `MacOtoolScanner` with full `otool -L` parsing
    - Add macOS system library patterns to configuration
    - Test dylib symlink handling in archive creation
 
 2. **Add Configuration Validation**
+
    - Create validation task to catch version mismatches
    - Integrate validation into CI pipeline
    - Document configuration synchronization requirements
@@ -604,11 +647,13 @@ public sealed class MetricsCollectingHarvestTask : AsyncFrostingTask<BuildContex
 ### **4.2 Medium-Term (Next 1-2 months)**
 
 1. **Implement Comprehensive Testing**
+
    - Unit tests for all core harvesting logic
    - Integration tests with real vcpkg installations
    - Performance benchmarks for large dependency trees
 
 2. **Performance Optimizations**
+
    - Parallel dependency scanning implementation
    - Caching layer for expensive operations
    - Optimize file system operations
@@ -621,11 +666,13 @@ public sealed class MetricsCollectingHarvestTask : AsyncFrostingTask<BuildContex
 ### **4.3 Long-Term (Next 3-6 months)**
 
 1. **Advanced Features**
+
    - SBOM (Software Bill of Materials) generation
    - Digital signature verification for binaries
    - Advanced dependency conflict resolution
 
 2. **Developer Experience**
+
    - Interactive configuration wizard
    - Real-time dependency visualization
    - Automated configuration synchronization
@@ -641,20 +688,20 @@ public sealed class MetricsCollectingHarvestTask : AsyncFrostingTask<BuildContex
 
 ### **5.1 Technical Risks**
 
-| Risk | Probability | Impact | Mitigation |
-|------|-------------|---------|------------|
-| macOS Implementation Delays | High | Critical | Prioritize completion, allocate dedicated resources |
-| Configuration Drift | Medium | High | Implement validation, automate synchronization |
-| Performance Degradation | Low | Medium | Implement monitoring, optimize proactively |
-| Dependency Resolution Failures | Medium | High | Add retry logic, improve error handling |
+| Risk                           | Probability | Impact | Mitigation                                                                                                                                    |
+| ------------------------------ | ----------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| macOS Implementation Delays    | Low         | Medium | **(Update)** Core functionality implemented. Mitigation shifts to comprehensive testing and addressing edge cases found in diverse libraries. |
+| Configuration Drift            | Medium      | High   | Implement validation, automate synchronization                                                                                                |
+| Performance Degradation        | Low         | Medium | Implement monitoring, optimize proactively                                                                                                    |
+| Dependency Resolution Failures | Medium      | High   | Add retry logic, improve error handling                                                                                                       |
 
 ### **5.2 Operational Risks**
 
-| Risk | Probability | Impact | Mitigation |
-|------|-------------|---------|------------|
-| CI Pipeline Failures | Medium | High | Enhance error recovery, add monitoring |
-| Vcpkg Version Incompatibilities | Low | High | Pin versions, test upgrades thoroughly |
-| Platform-Specific Bugs | Medium | Medium | Increase test coverage, add integration tests |
+| Risk                            | Probability | Impact | Mitigation                                    |
+| ------------------------------- | ----------- | ------ | --------------------------------------------- |
+| CI Pipeline Failures            | Medium      | High   | Enhance error recovery, add monitoring        |
+| Vcpkg Version Incompatibilities | Low         | High   | Pin versions, test upgrades thoroughly        |
+| Platform-Specific Bugs          | Medium      | Medium | Increase test coverage, add integration tests |
 
 ---
 
@@ -665,6 +712,7 @@ The SDL2 C# bindings build system demonstrates exceptional architectural design 
 However, the **incomplete macOS implementation represents a critical blocker** for production use. The **configuration synchronization issues** and **limited testing coverage** pose significant risks to reliability and maintainability.
 
 **Recommended Priority Order**:
+
 1. **Complete macOS implementation** (Critical - blocks production)
 2. **Add configuration validation** (High - prevents build failures)
 3. **Implement comprehensive testing** (High - enables confident changes)
@@ -673,4 +721,4 @@ However, the **incomplete macOS implementation represents a critical blocker** f
 
 With these improvements, the build system will provide a robust, production-ready foundation for cross-platform SDL2 C# binding distribution.
 
-**Overall Recommendation**: **Proceed with implementation** after addressing critical macOS gaps and adding essential validation/testing infrastructure. 
+**Overall Recommendation**: **Proceed with implementation** after addressing critical macOS gaps and adding essential validation/testing infrastructure.
