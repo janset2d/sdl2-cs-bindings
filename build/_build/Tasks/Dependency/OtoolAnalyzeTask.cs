@@ -148,7 +148,7 @@ public class OtoolAnalyzeTask : AsyncFrostingTask<BuildContext>
                     "Framework" => "blue",
                     "RPath" => "yellow",
                     "User" => "white",
-                    _ => "grey"
+                    _ => "grey",
                 };
 
                 var systemColor = isSystemLibrary ? "green" : "red";

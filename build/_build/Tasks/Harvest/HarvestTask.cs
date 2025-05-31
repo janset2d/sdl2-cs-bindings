@@ -2,6 +2,7 @@
 
 using Build.Context;
 using Build.Context.Models;
+using Build.Models;
 using Build.Modules.Contracts;
 using Build.Modules.Harvesting.Models;
 using Build.Modules.Harvesting.Results;
@@ -9,27 +10,33 @@ using Build.Tasks.Common;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;
+using Cake.Core.IO;
 using Cake.Frosting;
 using Spectre.Console;
+using System.Text.Json;
 
-namespace Build.Tasks.Vcpkg;
+namespace Build.Tasks.Harvest;
 
 [TaskName("Harvest")]
 [IsDependentOn(typeof(InfoTask))]
-public sealed class HarvestTask : AsyncFrostingTask<BuildContext>
+public sealed class HarvestTask(
+    IBinaryClosureWalker binaryClosureWalker,
+    IArtifactPlanner artifactPlanner,
+    IArtifactDeployer artifactDeployer,
+    IRuntimeProfile runtimeProfile,
+    ManifestConfig manifestConfig) : AsyncFrostingTask<BuildContext>
 {
-    private readonly IBinaryClosureWalker _binaryClosureWalker;
-    private readonly IArtifactPlanner _artifactPlanner;
-    private readonly IArtifactDeployer _artifactDeployer;
-    private readonly ManifestConfig _manifestConfig;
+    private readonly IBinaryClosureWalker _binaryClosureWalker = binaryClosureWalker ?? throw new ArgumentNullException(nameof(binaryClosureWalker));
+    private readonly IArtifactPlanner _artifactPlanner = artifactPlanner ?? throw new ArgumentNullException(nameof(artifactPlanner));
+    private readonly IArtifactDeployer _artifactDeployer = artifactDeployer ?? throw new ArgumentNullException(nameof(artifactDeployer));
+    private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
+    private readonly IRuntimeProfile _runtimeProfile = runtimeProfile ?? throw new ArgumentNullException(nameof(runtimeProfile));
 
-    public HarvestTask(IBinaryClosureWalker binaryClosureWalker, IArtifactPlanner artifactPlanner, IArtifactDeployer artifactDeployer, ManifestConfig manifestConfig)
+    private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        _binaryClosureWalker = binaryClosureWalker ?? throw new ArgumentNullException(nameof(binaryClosureWalker));
-        _artifactPlanner = artifactPlanner ?? throw new ArgumentNullException(nameof(artifactPlanner));
-        _artifactDeployer = artifactDeployer ?? throw new ArgumentNullException(nameof(artifactDeployer));
-        _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
-    }
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+    };
 
     public override async Task RunAsync(BuildContext context)
     {
@@ -50,11 +57,8 @@ public sealed class HarvestTask : AsyncFrostingTask<BuildContext>
             librariesToHarvest = [];
             foreach (var specLibName in specifiedLibraries)
             {
-                var manifest = allManifestLibraries.SingleOrDefault(m => string.Equals(m.Name, specLibName, StringComparison.OrdinalIgnoreCase));
-                if (manifest == null)
-                {
-                    throw new CakeException($"Specified library '{specLibName}' for harvest not found in manifest.");
-                }
+                var manifest = allManifestLibraries.SingleOrDefault(m => string.Equals(m.Name, specLibName, StringComparison.OrdinalIgnoreCase))
+                    ?? throw new CakeException($"Specified library '{specLibName}' for harvest not found in manifest.");
 
                 librariesToHarvest.Add(manifest);
             }
@@ -75,17 +79,38 @@ public sealed class HarvestTask : AsyncFrostingTask<BuildContext>
         {
             AnsiConsole.Write(new Rule($"[yellow]Harvest: {manifest.Name}[/]").RuleStyle("grey"));
 
-            var closureResult = await _binaryClosureWalker.BuildClosureAsync(manifest);
-            closureResult.ThrowIfError(e => LogAndThrow("Binary closure", e, context.Log, manifest.Name));
+            try
+            {
+                var closureResult = await _binaryClosureWalker.BuildClosureAsync(manifest);
+                closureResult.ThrowIfError(e => LogAndThrow("Binary closure", e, context.Log, manifest.Name));
 
-            var plannerResult = await _artifactPlanner.CreatePlanAsync(manifest, closureResult.Closure, outputBase);
-            plannerResult.ThrowIfError(e => LogAndThrow("Artifact planning", e, context.Log, manifest.Name));
+                var plannerResult = await _artifactPlanner.CreatePlanAsync(manifest, closureResult.Closure, outputBase);
+                plannerResult.ThrowIfError(e => LogAndThrow("Artifact planning", e, context.Log, manifest.Name));
 
-            var copierResult = await _artifactDeployer.DeployArtifactsAsync(plannerResult.DeploymentPlan);
-            copierResult.ThrowIfError(e => LogAndThrow("Artifact copying", e, context.Log, manifest.Name));
+                var copierResult = await _artifactDeployer.DeployArtifactsAsync(plannerResult.DeploymentPlan);
+                copierResult.ThrowIfError(e => LogAndThrow("Artifact copying", e, context.Log, manifest.Name));
 
-            DisplayHarvestReportSummary(plannerResult.DeploymentPlan.Statistics);
-            AnsiConsole.Write(new Rule($"[yellow]Finished Harvest: {manifest.Name}[/]").RuleStyle("grey"));
+                // Generate per-RID status file for later consolidation
+                await GenerateRidStatusFileAsync(context, manifest, plannerResult.DeploymentPlan.Statistics, outputBase);
+
+                DisplayHarvestReportSummary(plannerResult.DeploymentPlan.Statistics);
+                AnsiConsole.Write(new Rule($"[green]Finished Harvest: {manifest.Name}[/]").RuleStyle("grey"));
+            }
+            catch (CakeException)
+            {
+                // CakeException was already logged by LogAndThrow, just generate error status
+                await GenerateErrorRidStatusFileAsync(context, manifest, outputBase, $"Harvest failed for {manifest.Name}");
+                AnsiConsole.Write(new Rule($"[red]Failed Harvest: {manifest.Name}[/]").RuleStyle("grey"));
+                throw; // Re-throw to maintain existing error behavior
+            }
+            catch (Exception ex)
+            {
+                context.Log.Error("Unexpected error during harvest of {0}: {1}", manifest.Name, ex.Message);
+                context.Log.Verbose("Harvest error details: {0}", ex);
+                await GenerateErrorRidStatusFileAsync(context, manifest, outputBase, ex.Message);
+                AnsiConsole.Write(new Rule($"[red]Failed Harvest: {manifest.Name}[/]").RuleStyle("grey"));
+                throw; // Re-throw to maintain existing error behavior
+            }
         }
 
         AnsiConsole.Write(new Rule("[green]Harvest completed successfully[/]").RuleStyle("grey"));
@@ -255,5 +280,100 @@ public sealed class HarvestTask : AsyncFrostingTask<BuildContext>
         }
 
         throw new CakeException($"{phase} failed for '{libraryName}'. Use –verbosity=diagnostic for details. Error: {error.Message}");
+    }
+
+    /// <summary>
+    /// Generates a RID-specific status file for later consolidation into the harvest manifest.
+    /// This allows CI matrix jobs to run per library+RID while still generating a complete
+    /// library-wide harvest manifest in a subsequent consolidation step.
+    /// </summary>
+    private async Task GenerateRidStatusFileAsync(BuildContext context, LibraryManifest manifest, DeploymentStatistics statistics, DirectoryPath outputBase)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(manifest);
+        ArgumentNullException.ThrowIfNull(statistics);
+        ArgumentNullException.ThrowIfNull(outputBase);
+
+        try
+        {
+            var ridStatusDir = outputBase.Combine(manifest.Name).Combine("rid-status");
+            context.EnsureDirectoryExists(ridStatusDir);
+
+            var ridStatus = new RidHarvestStatus
+            {
+                LibraryName = manifest.Name,
+                Rid = _runtimeProfile.Rid,
+                Triplet = _runtimeProfile.Triplet,
+                Success = true,
+                ErrorMessage = null,
+                Timestamp = DateTimeOffset.UtcNow,
+                Statistics = new HarvestStatistics
+                {
+                    PrimaryFilesCount = statistics.PrimaryFiles.Count,
+                    RuntimeFilesCount = statistics.RuntimeFiles.Count,
+                    LicenseFilesCount = statistics.LicenseFiles.Count,
+                    DeployedPackagesCount = statistics.DeployedPackages.Count,
+                    FilteredPackagesCount = statistics.FilteredPackages.Count,
+                    DeploymentStrategy = statistics.DeploymentStrategy.ToString()
+                },
+            };
+
+            var statusFileName = $"{_runtimeProfile.Rid}.json";
+            var statusFilePath = ridStatusDir.CombineWithFilePath(statusFileName);
+
+            var jsonContent = JsonSerializer.Serialize(ridStatus, JsonOptions);
+            await File.WriteAllTextAsync(statusFilePath.FullPath, jsonContent);
+
+            context.Log.Information("Generated RID status file: {0}", statusFilePath);
+        }
+        catch (Exception ex)
+        {
+            context.Log.Warning("Failed to generate RID status file for {0}/{1}: {2}", manifest.Name, _runtimeProfile.Rid, ex.Message);
+            context.Log.Verbose("RID status file generation error details: {0}", ex);
+
+            // Generate an error status file so consolidation knows this RID failed
+            await GenerateErrorRidStatusFileAsync(context, manifest, outputBase, ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Generates an error RID status file when harvest fails for a specific RID.
+    /// </summary>
+    private async Task GenerateErrorRidStatusFileAsync(BuildContext context, LibraryManifest manifest, DirectoryPath outputBase, string errorMessage)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(manifest);
+        ArgumentNullException.ThrowIfNull(outputBase);
+        ArgumentException.ThrowIfNullOrEmpty(errorMessage);
+
+        try
+        {
+            var ridStatusDir = outputBase.Combine(manifest.Name).Combine("rid-status");
+            context.EnsureDirectoryExists(ridStatusDir);
+
+            var ridStatus = new RidHarvestStatus
+            {
+                LibraryName = manifest.Name,
+                Rid = _runtimeProfile.Rid,
+                Triplet = _runtimeProfile.Triplet,
+                Success = false,
+                ErrorMessage = errorMessage,
+                Timestamp = DateTimeOffset.UtcNow,
+                Statistics = null,
+            };
+
+            var statusFileName = $"{_runtimeProfile.Rid}.json";
+            var statusFilePath = ridStatusDir.CombineWithFilePath(statusFileName);
+
+            var jsonContent = JsonSerializer.Serialize(ridStatus, JsonOptions);
+            await File.WriteAllTextAsync(statusFilePath.FullPath, jsonContent);
+
+            context.Log.Information("Generated error RID status file: {0}", statusFilePath);
+        }
+        catch (Exception ex)
+        {
+            context.Log.Error("Failed to generate error RID status file for {0}/{1}: {2}", manifest.Name, _runtimeProfile.Rid, ex.Message);
+            context.Log.Verbose("Error RID status file generation error details: {0}", ex);
+        }
     }
 }

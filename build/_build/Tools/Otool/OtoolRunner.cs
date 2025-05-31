@@ -68,7 +68,7 @@ public sealed partial class OtoolRunner : Tool<OtoolSettings>
         var dependencySettings = new OtoolSettings(settings.FilePath)
         {
             ShowLibraries = true,
-            Verbose = settings.Verbose
+            Verbose = settings.Verbose,
         };
 
         var rawOutput = GetOutput(dependencySettings);
