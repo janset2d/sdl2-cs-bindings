@@ -1,116 +1,168 @@
-# Janset.SDL2 - Modular C# Bindings for SDL2 & Friends
+# Janset.SDL2 / Janset.SDL3 — Modular C# Bindings with Native Libraries
 
-**Modern, modular, and robust C# bindings for SDL2 and its satellite libraries (SDL_image, SDL_ttf, SDL_mixer, SDL2_gfx).**
+**Modern, modular C# bindings for SDL2 and SDL3, bundled with cross-platform native libraries built from source via vcpkg.**
 
-This project provides comprehensive C# bindings, heavily based on the excellent [SDL-CS](https://github.com/flibitijibibo/SDL2-CS) project, and bundles pre-compiled native libraries built consistently via [Vcpkg](https://github.com/microsoft/vcpkg). Our goal is to offer an easy-to-use, flexible, and reliable way for .NET developers to integrate SDL2 functionalities into their cross-platform applications.
+This project provides comprehensive C# bindings for SDL2 (and upcoming SDL3) along with their satellite libraries (SDL_image, SDL_mixer, SDL_ttf, SDL_gfx, SDL_net), distributed as NuGet packages with pre-compiled native binaries for Windows, Linux, and macOS.
 
-[![Build Status](https://github.com/janset/sdl2-cs-bindings/actions/workflows/release-candidate-pipeline.yml/badge.svg?branch=master)](https://github.com/janset/sdl2-cs-bindings/actions/workflows/release-candidate-pipeline.yml) <!-- Replace with your actual workflow badge once active -->
-[![NuGet (Core)](https://img.shields.io/nuget/v/Janset.SDL2.Core.svg)](https://www.nuget.org/packages/Janset.SDL2.Core/) <!-- Example, update once published -->
-[![NuGet (Native Core)](https://img.shields.io/nuget/v/Janset.SDL2.Core.Native.svg)](https://www.nuget.org/packages/Janset.SDL2.Core.Native/) <!-- Example, update once published -->
+[![Build Status](https://github.com/janset2d/sdl2-cs-bindings/actions/workflows/release-candidate-pipeline.yml/badge.svg?branch=master)](https://github.com/janset2d/sdl2-cs-bindings/actions/workflows/release-candidate-pipeline.yml)
 
-## 🌱 Motivation & Vision
+## Why This Project?
 
-The primary motivation behind Janset.SDL2 was to create a robust set of SDL2 bindings to serve as the foundation for **Janset2D**, a new cross-platform 2D game framework (named after my daughter, Janset). While these bindings are integral to Janset2D (which will also be open-sourced soon), they are designed to be a standalone, contribution that can benefit any .NET developer looking to leverage the power of SDL2.
+The .NET SDL ecosystem has a gap. Existing binding projects provide C# P/Invoke declarations but expect you to source native libraries yourself. This project is different:
 
-## ✨ Key Features
+1. **C# Bindings** — Currently based on [SDL2-CS](https://github.com/flibitijibibo/SDL2-CS), with auto-generated bindings planned
+2. **Native libraries built from source** — Reproducible builds via [vcpkg](https://github.com/microsoft/vcpkg) with explicit feature flags
+3. **Cross-platform NuGet packages** — Proper `runtimes/{rid}/native/` layout for 7+ platforms
+4. **Symlink preservation** — tar.gz archives for Linux/macOS with MSBuild extraction targets
 
-* **Comprehensive Bindings:** Covers SDL2, SDL_image, SDL_mixer, SDL_ttf, and SDL2_gfx.
-* **Modular Design:**
-  * Separate NuGet packages for each library (e.g., `Janset.SDL2.Core`, `Janset.SDL2.Image`).
-  * Separate native library packages (e.g., `Janset.SDL2.Core.Native`, `Janset.SDL2.Image.Native`).
-  * Include only what you need, keeping your application lean.
-* **Cross-Platform Native Binaries:**
-  * Pre-compiled native libraries for:
-    * Windows (x64, x86, ARM64)
-    * Linux (x64, ARM64)
-    * macOS (x64, ARM64 - Apple Silicon)
-  * Built reliably using **Vcpkg** with a defined set of features (see `vcpkg.json`).
-* **Automatic Native Library Handling:**
-  * Native packages correctly place binaries in `runtimes/{rid}/native/`.
-  * For Linux and macOS, symbolic links are preserved within a `native.tar.gz` archive, which is automatically extracted at build time by the consuming project via included MSBuild targets. This ensures correct behavior of shared libraries on these platforms.
-* **Modern .NET:** Targets a wide range of .NET runtimes (details TBD upon first release).
-* **Actively Developed:** With a focus on robust CI/CD for reliable packaging and releases.
+**No other project in the ecosystem does all four.**
 
-## 🚀 Project Status
+## Packages
 
-**Actively Under Development.**
+### SDL2 (Available Now)
 
-* Core bindings are functional.
-* Cross-platform native library harvesting (including Windows, Linux, and macOS) is implemented.
-* A comprehensive CI/CD pipeline for automated testing, packaging, and internal releases is currently being finalized.
-* The first official pre-release packages are expected soon.
+| Package | Description | Status |
+| --- | --- | --- |
+| `Janset.SDL2.Core` | Core SDL2 bindings (windowing, input, events, rendering) | Functional |
+| `Janset.SDL2.Image` | SDL2_image bindings (JPEG, PNG, WebP, AVIF, TIFF) | Functional |
+| `Janset.SDL2.Mixer` | SDL2_mixer bindings (MP3, FLAC, OGG, Opus, MOD, MIDI) | In Progress |
+| `Janset.SDL2.Ttf` | SDL2_ttf bindings (TrueType + Harfbuzz text shaping) | In Progress |
+| `Janset.SDL2.Gfx` | SDL2_gfx bindings (primitives, rotozoom) | Functional |
+| `Janset.SDL2.Net` | SDL2_net bindings (TCP/UDP networking) | Planned |
+| `Janset.SDL2` | Meta-package (pulls everything) | Planned |
 
-We are excited to make these bindings available to the .NET community and welcome feedback!
+### SDL3 (Planned)
 
-## 📦 Getting Started (Intended Usage)
+| Package | Description | Status |
+| --- | --- | --- |
+| `Janset.SDL3.Core` | SDL3 bindings (GPU API, new audio, camera, dialogs) | Planned |
+| `Janset.SDL3.Image` | SDL3_image bindings | Planned |
+| `Janset.SDL3.Mixer` | SDL3_mixer bindings | Planned |
+| `Janset.SDL3.Ttf` | SDL3_ttf bindings (+ SVG/emoji support) | Planned |
+| `Janset.SDL3` | Meta-package | Planned |
 
-Once packages are published, you'll typically add them to your .NET project like so:
+## Platform Support
+
+Native binaries are built for all major desktop platforms:
+
+| Platform | Architectures | Status |
+| --- | --- | --- |
+| Windows | x64, x86, ARM64 | Building |
+| Linux | x64, ARM64 | Building |
+| macOS | x64 (Intel), ARM64 (Apple Silicon) | Building |
+
+All native libraries are compiled from source using vcpkg with the following features enabled:
+
+- **SDL2**: Vulkan, X11, Wayland, ALSA, D-Bus, IBus, libsamplerate
+- **SDL2_image**: AVIF, JPEG (turbo), WebP, TIFF, PNG
+- **SDL2_mixer**: MP3 (mpg123), FLAC, Opus, WavPack, MOD (libmodplug), MIDI (FluidSynth)
+- **SDL2_ttf**: FreeType, Harfbuzz (advanced text shaping)
+
+## Getting Started
+
+Once packages are published:
 
 ```bash
-# For the core SDL2 bindings
+# Everything at once
+dotnet add package Janset.SDL2
+
+# Or pick what you need
 dotnet add package Janset.SDL2.Core
-
-# For the corresponding native SDL2 libraries
-dotnet add package Janset.SDL2.Core.Native
+dotnet add package Janset.SDL2.Image
 ```
 
-Similarly for other libraries:
+The native packages are pulled in transitively — you never need to reference `.Native` packages directly.
+
+**Target Frameworks**: net9.0, net8.0, netstandard2.0, net462
+
+## Project Status
+
+**Actively under development.** Resuming after a hiatus — core infrastructure is solid, now completing the packaging pipeline.
+
+| Area | Status |
+| --- | --- |
+| C# bindings (5 SDL2 libraries) | Done |
+| Cake Frosting build system | Done |
+| Native binary harvesting pipeline | Done |
+| Cross-platform CI workflows | Done |
+| NuGet package creation | In Progress |
+| Release pipeline automation | In Progress |
+| SDL2_net support | Planned |
+| Binding auto-generation (CppAst) | Planned |
+| SDL3 support | Planned |
+| Tests and samples | Planned |
+
+See [docs/plan.md](docs/plan.md) for detailed status and roadmap.
+
+## Building from Source
 
 ```bash
-dotnet add package Janset.SDL2.Image
-dotnet add package Janset.SDL2.Image.Native
+# Clone with submodules (vcpkg + SDL2-CS)
+git clone --recursive https://github.com/janset2d/sdl2-cs-bindings.git
+cd sdl2-cs-bindings
 
-dotnet add package Janset.SDL2.Mixer
-dotnet add package Janset.SDL2.Mixer.Native
-# ...and so on for TTF and Gfx.
+# Build managed projects (no native binaries needed)
+dotnet build Janset.SDL2.sln
+
+# To build native libraries locally:
+# 1. Bootstrap vcpkg
+./external/vcpkg/bootstrap-vcpkg.sh  # or .bat on Windows
+
+# 2. Install native dependencies for your platform
+./external/vcpkg/vcpkg install --triplet x64-linux-dynamic
+
+# 3. Run the harvest pipeline
+cd build/_build
+dotnet run -- --target Harvest --library SDL2 --library SDL2_image --rid linux-x64
 ```
 
-The native packages will automatically ensure the correct native binaries are copied to your build output for the target runtime.
+For detailed build instructions, see [docs/playbook/local-development.md](docs/playbook/local-development.md).
 
-## 🛠️ Building from Source (For Contributors / Advanced Users)
+## Documentation
 
-If you wish to build the libraries yourself:
+| Document | Purpose |
+| --- | --- |
+| [docs/onboarding.md](docs/onboarding.md) | Project overview, decisions, repo layout |
+| [docs/plan.md](docs/plan.md) | Current status and roadmap |
+| [docs/playbook/](docs/playbook/) | How-to recipes (local dev, adding libraries, vcpkg updates) |
+| [docs/knowledge-base/](docs/knowledge-base/) | Deep technical references (harvesting, CI/CD, Cake architecture) |
+| [docs/research/](docs/research/) | Design rationale (packaging patterns, autogen approaches, SDL3 analysis) |
+| [docs/phases/](docs/phases/) | Phase-by-phase execution details |
 
-1. Clone this repository: `git clone https://github.com/janset/sdl2-cs-bindings.git --recursive` (ensure submodules are initialized for Vcpkg).
-2. Ensure you have the [.NET SDK (currently 9.0.x)](https://dotnet.microsoft.com/download) installed.
-3. Vcpkg will be bootstrapped by the build process.
-4. For detailed build, harvesting, and packaging instructions, please refer to our documentation:
-    * **[Foundational Project & Build Plan](./docs/cake-build-plan.md):** The original blueprint detailing project goals, the Cake-based build system architecture, native dependency strategies, and initial phased feature implementation.
-    * **[Native Binary Harvesting Process](./docs/harvesting-process.md):** Deep dive into how native libraries are collected.
-    * **[CI/CD Packaging and Release Plan](./docs/ci-cd-packaging-and-release-plan.md):** Detailed plan for our automated build, packaging, and release workflows.
+## Architecture
 
-## 🗺️ Roadmap (High-Level)
+```text
+User's .csproj
+  └── references Janset.SDL2.Core (managed bindings)
+        └── depends on Janset.SDL2.Core.Native (native binaries)
+              └── runtimes/win-x64/native/SDL2.dll
+              └── runtimes/linux-x64/native/libSDL2-2.0.so.0
+              └── runtimes/osx-arm64/native/libSDL2.dylib
+```
 
-* **H2 2025:** <!-- Adjusted quarter based on typical development pace -->
-  * Finalize and stabilize Phase 1 of the `Release-Candidate-Pipeline` (automated internal packaging).
-  * Publish initial pre-release versions of all packages to an internal feed for testing.
-  * Publish first official public pre-release/release to NuGet.org.
-* **Future:**
-  * Implement Phase 2 & 3 enhancements for the CI/CD pipeline (tag-based automation, public promotion workflow, maintenance checks).
-  * Comprehensive smoke tests and example projects.
-  * Ongoing updates to SDL library versions.
-  * Community feedback incorporation.
+Native libraries are built via a Cake Frosting pipeline that:
 
-## 📚 Documentation
+1. Compiles SDL2 from source using vcpkg
+2. Walks the binary dependency closure (dumpbin/ldd/otool)
+3. Filters out OS-provided libraries
+4. Packages binaries into NuGet-compatible `runtimes/{rid}/native/` layout
+5. Preserves Linux/macOS symlinks via tar.gz archives
 
-For more in-depth information, please explore the `docs/` directory:
+## Motivation
 
-* **[CI/CD Packaging and Release Plan](./docs/ci-cd-packaging-and-release-plan.md):** The primary document detailing our automated build, packaging, and release strategy.
-* **[Native Binary Harvesting Process](./docs/harvesting-process.md):** Explains the mechanics of how native SDL2 libraries and their dependencies are collected.
-* **[Foundational Project & Build Plan](./docs/cake-build-plan.md):** The original blueprint detailing project goals, the Cake-based build system architecture, native dependency strategies, and initial phased feature implementation.
-* **[Architectural Review](./docs/architectural-review.md):** Provides an overview of the system's architecture, strengths, and areas for improvement (including macOS support status).
-* **[Architectural Review: Core Harvesting Components](./docs/architectural-review-core-components.md):** A detailed look at the internal design of the harvesting logic and potential refactorings in the future.
+This project is the foundation for **Janset2D**, a cross-platform 2D game framework (named after my daughter, Janset). While these bindings are integral to Janset2D (which will be open-sourced separately), they are designed as a standalone, community-facing contribution.
 
-## 🙏 Acknowledgements
+## Acknowledgements
 
-* This project is heavily based on and inspired by [SDL-CS](https://github.com/flibitijibibo/SDL2-CS) by Ethan Lee.
-* Native libraries are built using [Vcpkg](https://github.com/microsoft/vcpkg).
-* Build automation powered by [Cake Frosting](https://cakebuild.net/).
+- C# bindings based on [SDL2-CS](https://github.com/flibitijibibo/SDL2-CS) by Ethan Lee
+- Native libraries built using [vcpkg](https://github.com/microsoft/vcpkg) by Microsoft
+- Build automation powered by [Cake Frosting](https://cakebuild.net/)
+- Inspired by the packaging patterns of [SkiaSharp](https://github.com/mono/SkiaSharp) and [LibGit2Sharp](https://github.com/libgit2/libgit2sharp)
 
-## 🤝 Contributing
+## Contributing
 
-(Contributions will be welcome once the initial release and CI/CD pipeline are stabilized. A `CONTRIBUTING.md` will be added at that time.)
+Contributions will be welcome once the initial release and CI/CD pipeline are stabilized. A `CONTRIBUTING.md` will be added at that time.
 
-## 📜 License
+## License
 
-This project is licensed under the **MIT License**. See the [LICENSE](./LICENSE) file for details. <!-- Assuming zlib, please confirm and add LICENSE file -->
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.

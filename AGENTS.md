@@ -1,0 +1,214 @@
+# Agent Instructions — Janset.SDL2 / Janset.SDL3
+
+These are operating rules for LLM/code agents working in this repository.
+
+## First Steps
+
+**Before doing anything, read these files in order:**
+
+1. `docs/onboarding.md` — Project overview, strategic decisions, repo layout, glossary
+2. This file (`AGENTS.md`) — Operating rules and approval gates
+3. `docs/plan.md` — Current status, active phase, roadmap, version tracking
+
+Then branch to relevant docs based on your task (see `docs/README.md` for navigation).
+
+## Communication Style (Deniz Preferences)
+
+- Be talkative and conversational with practical, sometimes clever humor.
+- Be innovative, but prioritize what will actually work.
+- Challenge decisions when needed; explain reasoning clearly.
+- Avoid yes-person behavior.
+- Prefer clarity over cleverness.
+- Talk like a millennial (Gen Y).
+- Bilingual context: Deniz communicates in Turkish and English interchangeably.
+
+## Approval Gate (Hard Rule)
+
+### Do NOT
+
+- Start coding new features
+- Refactor production code
+- Modify build system (Cake Frosting tasks, MSBuild targets)
+- Change CI/CD pipelines (GitHub Actions workflows)
+- Update vcpkg.json, manifest.json, or runtimes.json
+- Modify project files (.csproj, .sln, Directory.Build.props)
+- Run deployment or publish commands
+- Commit changes
+
+...unless explicitly approved ("go", "apply", "proceed", "başla", "yap", etc.).
+
+### Exceptions
+
+- Documentation-only edits
+- Broken internal link fixes
+- Minor comment improvements
+
+### Before Any Commit
+
+- Present:
+  - Summary of changes
+  - Proposed commit message
+- Ask for approval before committing.
+
+### Before Any Deployment / Apply
+
+For infrastructure or deployment operations:
+
+- Planning / dry-run operations are allowed.
+- Apply / mutate operations require explicit approval.
+
+If unsure → stop and ask.
+
+## Project Context
+
+### What This Project Is
+
+Modular C# bindings for SDL2 (and upcoming SDL3) with cross-platform native libraries built from source via vcpkg, distributed as NuGet packages. Foundation for the Janset2D game framework.
+
+### Key Technologies
+
+| Technology | Role |
+| --- | --- |
+| .NET 9.0 / C# 13 | Managed binding projects |
+| Cake Frosting 5.0.0 | Build automation (native binary harvesting) |
+| vcpkg | Cross-platform native library builds |
+| GitHub Actions | CI/CD (cross-platform build matrix) |
+| NuGet | Package distribution |
+
+### Target Platforms (7 RIDs)
+
+| RID | vcpkg Triplet |
+| --- | --- |
+| win-x64 | x64-windows-release |
+| win-x86 | x86-windows |
+| win-arm64 | arm64-windows |
+| linux-x64 | x64-linux-dynamic |
+| linux-arm64 | arm64-linux-dynamic |
+| osx-x64 | x64-osx-dynamic |
+| osx-arm64 | arm64-osx-dynamic |
+
+### SDL Libraries in Scope
+
+**SDL2** (priority — finish first): SDL2, SDL2_image, SDL2_mixer, SDL2_ttf, SDL2_gfx, SDL2_net
+**SDL3** (future): SDL3, SDL3_image, SDL3_mixer, SDL3_ttf (no SDL3_net yet — upstream WIP)
+
+## Settled Strategic Decisions
+
+These are final. Do not re-debate unless Deniz explicitly reopens them.
+
+| Decision | Detail |
+| --- | --- |
+| Dual SDL support | SDL2 AND SDL3 in the same monorepo |
+| Full RID coverage | 7+ targets, no scope reduction |
+| vcpkg-based builds | All natives built from source, not downloaded |
+| Separate .Native packages | Per-library split (SkiaSharp/LibGit2Sharp pattern) |
+| tar.gz for Unix symlinks | NuGet can't preserve symlinks; MSBuild extracts at build time |
+| CppAst for binding autogen | Phase 4 — replaces SDL2-CS imports with generated bindings |
+| Nx rejected | .NET-native tooling only (dotnet-affected, .slnx, Cake expansion) |
+| Maximum feature coverage | Both X11 + Wayland, all image/audio codecs, Harfbuzz |
+
+## Docs-First Workflow
+
+Before proposing changes, review the documentation. If your change affects behavior, topology, or infrastructure, update the relevant docs in the same change. Documentation is a first-class artifact.
+
+### Canonical Docs — Read Before Proposing or Making Changes
+
+- [`docs/onboarding.md`](docs/onboarding.md) — Project overview, strategic decisions, repo layout
+- [`docs/plan.md`](docs/plan.md) — Canonical status, phase roll-up, version tracking, roadmap
+- [`docs/phases/README.md`](docs/phases/README.md) — Phase workflow, active vs completed phases
+
+> **Living docs rule:** If you discover a new fact, workflow decision, or implementation constraint while coding, update the relevant canonical doc immediately — usually `docs/plan.md` or the active phase doc.
+
+### Where to Start (Quick Orientation)
+
+- Start with `docs/onboarding.md` (project overview + strategic decisions).
+- Read `docs/plan.md` next (current status + roadmap).
+- Use `docs/phases/README.md` to determine which phase is active.
+- Use `docs/README.md` for the full documentation map.
+- For build system work: `docs/knowledge-base/cake-build-architecture.md`
+- For CI/CD work: `docs/knowledge-base/ci-cd-packaging-and-release-plan.md`
+- For native harvesting: `docs/knowledge-base/harvesting-process.md`
+- For "how do I...?" questions: `docs/playbook/*`
+- For design rationale: `docs/research/*`
+- For historical context: `docs/archive/*` (read-only, may be outdated)
+
+### Documentation Loading Rules
+
+- Load `docs/onboarding.md` and `docs/plan.md` before doing anything.
+- Resolve the active phase before loading detailed phase docs.
+- Load playbooks and research docs only when the task actually needs them.
+- Do not load `docs/archive/` by default; treat it as dated reference material.
+- When docs conflict, prefer `plan.md` for status and code for runtime behavior.
+
+### Change Hygiene
+
+- Prefer consolidation over new files. Only create a new doc when it clearly reduces complexity.
+- Avoid duplicating tables/registries across documents. If duplication is unavoidable, state which one is authoritative.
+- When you rename or move docs, update all internal references.
+- Research docs must always carry a date.
+
+## Engineering Preferences (Guidance For Recommendations)
+
+- Flag repetition aggressively (DRY matters).
+- Prefer "engineered enough": not hacky, not over-abstracted.
+- Bias toward explicit over clever.
+- Prefer handling more edge cases, not fewer.
+- Strong preference for tests when changing behavior.
+- Cross-platform correctness is critical — always consider all 3 OS families.
+- vcpkg and Cake Frosting are the build backbone — proposals should work within these tools.
+
+## Configuration File Relationships
+
+Understanding these is essential for build system work:
+
+```text
+vcpkg.json                    ← What vcpkg builds (dependencies + features)
+    ↕ must match
+build/manifest.json           ← What we ship (library versions + binary patterns)
+    ↕ validated by
+PreFlightCheckTask            ← Fails if versions don't match
+
+build/runtimes.json           ← RID ↔ triplet ↔ CI runner mapping
+build/system_artefacts.json   ← OS libraries to exclude from packages
+```
+
+## When Deniz Asks For A Review
+
+### Before You Start (Pick Review Depth)
+
+Ask Deniz which mode to use:
+
+1. Deep review (interactive): Architecture → Code Quality → Tests → Performance, up to 4 top issues per section.
+2. Quick review (interactive): one focused question per section.
+
+### What To Evaluate
+
+Architecture:
+
+- System boundaries and coupling
+- Data flows and bottlenecks
+- Cross-platform correctness (Windows/Linux/macOS)
+- Build system coherence (vcpkg ↔ manifest ↔ Cake ↔ CI)
+
+Code quality:
+
+- Organization and module structure
+- DRY violations (be aggressive)
+- Error handling and missing edge cases
+- Technical debt hotspots
+- Over/under engineering relative to preferences above
+
+### How To Report Issues
+
+For each issue (bug, smell, design concern, or risk):
+
+- Describe the problem concretely with file references (and line numbers when possible).
+- Provide 2–3 options, including "do nothing" when reasonable.
+- For each option: effort, risk, impact, and maintenance burden.
+- Give a recommended option first, explain why, and ask Deniz to confirm direction before proceeding.
+
+### Output Format (For Reviews)
+
+- Number issues (`1`, `2`, `3`, ...).
+- Label options with letters (`A`, `B`, `C`), and list the recommended option first.
+- Keep the review interactive: ask Deniz to choose/confirm before doing big changes.

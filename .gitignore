@@ -418,3 +418,4 @@ vcpkg_installed/
 build/_build/.cake/
 
 .DS_Store
+.claude/

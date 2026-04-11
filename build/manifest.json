@@ -3,10 +3,10 @@
     {
       "name": "SDL2",
       "vcpkg_name": "sdl2",
-      "vcpkg_version": "2.26.5",
-      "vcpkg_port_version": 1,
+      "vcpkg_version": "2.32.4",
+      "vcpkg_port_version": 0,
       "native_lib_name": "SDL2.Core.Native",
-      "native_lib_version": "2.26.5.0",
+      "native_lib_version": "2.32.4.0",
       "core_lib": true,
       "primary_binaries": [
         {
