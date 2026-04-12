@@ -129,6 +129,7 @@ See [phases/README.md](phases/README.md) for the full phase breakdown.
 - [ ] Create sample projects
 - [ ] Publish first pre-release to NuGet.org
 - [ ] Evaluate NoDependencies native package variant for minimal Linux environments (#80)
+- [ ] Research and POC linux-musl-x64/arm64 native asset coverage (#82)
 
 ### Q4 2026
 
@@ -189,6 +190,7 @@ Primary docs: [phases/phase-3-sdl2-complete.md](phases/phase-3-sdl2-complete.md)
 | `#63 Publish the first SDL2 prerelease packages and release metadata` | `type:enhancement`, `area:packaging`, `area:release` |
 | `#64 Document Linux runtime compatibility and minimum glibc support` | `type:documentation`, `area:release`, `area:testing`, `platform:linux` |
 | `#80 Evaluate NoDependencies native package variant for minimal Linux environments` | `type:research`, `area:packaging`, `area:native`, `platform:linux` |
+| `#82 Add linux-musl-x64 and linux-musl-arm64 native asset coverage` | `type:research`, `area:native`, `area:ci-cd`, `platform:linux` |
 
 ### Backlog - Hardening
 
