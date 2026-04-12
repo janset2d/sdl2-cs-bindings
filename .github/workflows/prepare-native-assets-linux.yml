@@ -67,13 +67,13 @@ jobs:
           fi
         env: { DEBIAN_FRONTEND: noninteractive }
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with: { submodules: recursive, fetch-depth: 0 }
 
       - name: Configure Git Safe Directory
         run: git config --global --add safe.directory "$(pwd)"
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 9.0.x
 
@@ -87,7 +87,7 @@ jobs:
           vcpkg-feature-flags: ${{ inputs.vcpkg-feature-flags }}
 
       - name: Cache NuGet packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ github.workspace }}/.nuget/packages
           key: nuget-${{ inputs.container-image }}-${{ hashFiles('./build/_build/packages.lock.json') }}
@@ -107,7 +107,7 @@ jobs:
           --rid ${{ inputs.rid }} --repo-root "$(pwd)"
 
       - name: Upload Harvested Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: harvested-assets-linux-${{ inputs.rid }}
           path: artifacts/harvest_output/

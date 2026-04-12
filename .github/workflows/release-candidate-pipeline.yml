@@ -37,7 +37,7 @@ jobs:
       should_build: ${{ steps.determine_build_matrix.outputs.should_build }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.sha }} # For manual dispatch, use the SHA of the selected branch
 
@@ -103,7 +103,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.sha }} # Checkout the same commit as pre_flight_check
           submodules: recursive
@@ -139,7 +139,7 @@ jobs:
           echo '{"libraryName": "${{ matrix.library }}", "packageVersion": "${{ matrix.version }}", "successfulRIDs": ["${{ matrix.rid }}"]}' > "./artifacts/harvest_output/${{ matrix.library }}/harvest-manifest-${{ matrix.rid }}.json"
 
       - name: Upload Harvested Library Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: harvest-output-${{ matrix.library }}-${{ matrix.rid }}
           path: ./artifacts/harvest_output/${{ matrix.library }}/ # Path to the specific library's output for this RID
@@ -155,7 +155,7 @@ jobs:
         run: mkdir -p ./staging/harvest_output
 
       - name: Download All Harvest Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: harvest-output-*
           path: ./staging/temp_artifacts/ # Download all into a temporary holding area
@@ -205,7 +205,7 @@ jobs:
           ls -R ./staging/harvest_output
 
       - name: Upload Final Consolidated Harvest Output
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: final-harvest-output
           path: ./staging/harvest_output/
@@ -218,17 +218,17 @@ jobs:
     runs-on: ubuntu-latest # Or windows-latest if Cake Packager prefers
     steps:
       - name: Checkout (Minimal for Cake script)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.sha }}
 
       - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 9.0.x # Match your build's .NET version
 
       - name: Download Final Harvest Output
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: final-harvest-output
           path: ./harvest_output # Download to a known location for Cake
@@ -251,7 +251,7 @@ jobs:
           echo "dummy binding package" > ./output_packages/Janset.SDL2.Core.1.0.0.nupkg
 
       - name: Upload NuGet Packages Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nuget-packages
           path: ./output_packages/*.nupkg # Path to where Cake Package task outputs .nupkg files

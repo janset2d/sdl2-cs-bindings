@@ -34,7 +34,7 @@ runs:
     # ──────────────────────────────────────────────────────────────────────────
     - name: Cache vcpkg binary artifacts
       id: cache-vcpkg
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ${{ github.workspace }}/${{ inputs.vcpkg-cache-path }}
         key: vcpkg-bin-${{ inputs.cache-key-base }}-${{ inputs.triplet }}-${{ hashFiles('vcpkg.json') }}-${{ steps.vcpkg_commit.outputs.commit }}
