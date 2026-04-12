@@ -18,7 +18,7 @@ See [phases/README.md](phases/README.md) for the full phase breakdown.
 ## Phase Roll-Up
 
 | Phase | Name | Status | Summary |
-|-------|------|--------|---------|
+| --- | --- | --- | --- |
 | 1 | SDL2 Core Bindings + Harvesting | **DONE** | C# bindings for 5 libraries, Cake Frosting build system, native binary harvesting pipeline, cross-platform CI workflows |
 | 2 | CI/CD & Packaging | **IN PROGRESS** | Complete vcpkg.json for all libraries, NuGet package creation, release pipeline, local dev playbook |
 | 3 | SDL2 Complete | PLANNED | All 6 satellites (+ SDL2_net), all 7 RIDs fully populated, tests, samples, NuGet publish |
@@ -30,7 +30,7 @@ See [phases/README.md](phases/README.md) for the full phase breakdown.
 ### Bindings (C#)
 
 | Library | Package ID | Source | Compiles | Targets |
-|---------|-----------|--------|----------|---------|
+| --- | --- | --- | --- | --- |
 | SDL2 | `Janset.SDL2.Core` | `external/sdl2-cs/src/SDL2.cs` (8,966 lines) | Yes | net9.0, net8.0, netstandard2.0, net462 |
 | SDL2_image | `Janset.SDL2.Image` | `external/sdl2-cs/src/SDL2_image.cs` (316 lines) | Yes | Same |
 | SDL2_mixer | `Janset.SDL2.Mixer` | `external/sdl2-cs/src/SDL2_mixer.cs` (665 lines) | Yes | Same |
@@ -41,7 +41,7 @@ See [phases/README.md](phases/README.md) for the full phase breakdown.
 ### Native Library Build (vcpkg)
 
 | Library | In vcpkg.json | Features Configured | Harvest Tested |
-|---------|:------------:|-------------------|:--------------:|
+| --- | :---: | --- | :---: |
 | SDL2 | Yes | vulkan, alsa, dbus, ibus, samplerate, wayland, x11 | Yes |
 | SDL2_image | Yes | avif, libjpeg-turbo, libwebp, tiff | Yes |
 | SDL2_mixer | **No** | Needs: mpg123, libflac, opusfile, libmodplug, wavpack, fluidsynth | No |
@@ -52,11 +52,11 @@ See [phases/README.md](phases/README.md) for the full phase breakdown.
 ### CI/CD
 
 | Component | Status | Notes |
-|-----------|--------|-------|
+| --- | --- | --- |
 | `prepare-native-assets-main.yml` | Working | Manual trigger, calls 3 platform workflows |
-| `prepare-native-assets-windows.yml` | Working | Matrix: x64, x86, arm64 |
-| `prepare-native-assets-linux.yml` | Working | Matrix: x64 (ubuntu:20.04), arm64 (ubuntu:24.04) |
-| `prepare-native-assets-macos.yml` | Working | Matrix: x64 (macos-13), arm64 (macos-latest) |
+| `prepare-native-assets-windows.yml` | Working | Matrix: x64, x86, arm64; currently harvests `SDL2` + `SDL2_image` |
+| `prepare-native-assets-linux.yml` | Working | Matrix: x64 (ubuntu:20.04), arm64 (ubuntu:24.04); currently harvests `SDL2` + `SDL2_image` |
+| `prepare-native-assets-macos.yml` | Working | Matrix: x64 (macos-13), arm64 (macos-latest); currently harvests `SDL2` + `SDL2_image` |
 | `release-candidate-pipeline.yml` | **Stub** | Placeholder logic, not functional |
 | Pre-flight version check | Working | Validates manifest.json ↔ vcpkg.json consistency |
 | Cake Harvest task | Working | Per-RID binary collection + status files |
@@ -67,12 +67,12 @@ See [phases/README.md](phases/README.md) for the full phase breakdown.
 ### Build System
 
 | Component | Status |
-|-----------|--------|
+| --- | --- |
 | Cake Frosting host | Working (.NET 9.0, Cake.Frosting 5.0.0) |
 | DI-based service architecture | Working (IPathService, IRuntimeProfile, etc.) |
 | BinaryClosureWalker (Windows/dumpbin) | Working |
 | BinaryClosureWalker (Linux/ldd) | Working |
-| BinaryClosureWalker (macOS/otool) | Working |
+| BinaryClosureWalker (macOS/otool) | Working (core implementation complete; further edge-case validation still valuable) |
 | ArtifactPlanner + ArtifactDeployer | Working |
 | Per-RID status file generation | Working |
 | Consolidation to harvest-manifest.json | Working |
@@ -82,7 +82,7 @@ See [phases/README.md](phases/README.md) for the full phase breakdown.
 ### Current Versions (vcpkg baseline: `41c447cc...`)
 
 | Library | Our Version | vcpkg Latest | Upstream Latest | Action Needed |
-|---------|------------|-------------|----------------|---------------|
+| --- | --- | --- | --- | --- |
 | SDL2 | 2.32.4 | **2.32.10** | 2.32.10 | Update vcpkg baseline |
 | SDL2_image | 2.8.8 | 2.8.8#1 | **2.8.10** | Minor — upstream ahead of vcpkg |
 | SDL2_mixer | 2.8.1 | 2.8.1#1 | 2.8.1 | Current |
@@ -93,7 +93,7 @@ See [phases/README.md](phases/README.md) for the full phase breakdown.
 ### SDL3 Availability (for Phase 5 planning)
 
 | Library | vcpkg Version | Status |
-|---------|--------------|--------|
+| --- | --- | --- |
 | SDL3 | 3.4.4 | Stable, full feature set |
 | SDL3_image | 3.4.2 | Stable |
 | SDL3_mixer | 3.2.0#1 | Stable |
@@ -104,15 +104,17 @@ See [phases/README.md](phases/README.md) for the full phase breakdown.
 ## Roadmap
 
 ### Q2 2026 (Current)
+
 - [ ] Resume development, understand status quo
 - [ ] Reorganize documentation
 - [ ] Rewrite AGENTS.md for this repo
 - [ ] Complete vcpkg.json (add mixer, ttf, gfx, net with features)
 - [ ] Update vcpkg baseline to get SDL2 2.32.10
 - [ ] Clean up native binaries from git history
-- [ ] Establish local development playbook
+- [ ] Correct and validate local development playbook
 
 ### Q3 2026
+
 - [ ] Complete Cake PackageTask (harvest → .nupkg)
 - [ ] Implement release-candidate-pipeline.yml end-to-end
 - [ ] Add SDL2_net bindings + native project
@@ -122,12 +124,14 @@ See [phases/README.md](phases/README.md) for the full phase breakdown.
 - [ ] Publish first pre-release to NuGet.org
 
 ### Q4 2026
+
 - [ ] Implement CppAst-based binding auto-generation
 - [ ] Replace SDL2-CS imports with auto-generated bindings
 - [ ] Add SDL3 bindings + native packages to monorepo
 - [ ] Publish SDL3 pre-release packages
 
 ### 2027
+
 - [ ] Stabilize SDL2 + SDL3 packages (v1.0)
 - [ ] Community feedback incorporation
 - [ ] Begin Janset2D development on top of these bindings
@@ -138,7 +142,9 @@ See [phases/README.md](phases/README.md) for the full phase breakdown.
 2. **vcpkg.json incomplete**: Only SDL2 and SDL2_image declared. Mixer, TTF, Gfx, Net missing.
 3. **Release pipeline is a stub**: `release-candidate-pipeline.yml` has placeholder logic.
 4. **No tests**: The only test project (`test/Sandboc/`) is a development utility, not a test suite.
-5. **No local dev playbook**: No documentation on how to set up the project for local development without running CI.
+5. **Local dev playbook needs correction**: A playbook exists, but parts of it were inaccurate and not yet validated end-to-end.
+6. **Partial CI plumbing exists in code only**: `PathService` exposes harvest-staging helpers and the build host exposes `--use-overrides`, but neither is integrated into the active task/workflow path.
+7. **Distributed CI output flow is not wired yet**: current harvest output is still local-first. The release pipeline will need a real staging-vs-consolidated path split so matrix jobs can upload per-RID artifacts before consolidation.
 
 ## Cross-Reference
 
@@ -146,4 +152,4 @@ See [phases/README.md](phases/README.md) for the full phase breakdown.
 - **Technical deep-dives**: [knowledge-base/](knowledge-base/)
 - **Design rationale & research**: [research/](research/)
 - **How-to recipes**: [playbook/](playbook/)
-- **Historical docs**: [archive/](archive/) (read-only reference, may be outdated)
+- **Deep general references**: [reference/](reference/)

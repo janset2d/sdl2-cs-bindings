@@ -4,7 +4,7 @@
 
 The native binary harvesting process is a critical part of the `sdl2-cs-bindings` build system. Its primary purpose is to automatically identify, collect, and package all necessary native binaries (e.g., `.dll`, `.so`, `.dylib` files for SDL2 and its satellite libraries), their transitive dependencies, and associated license files from a Vcpkg-managed installation.
 
-The overall goal is to produce clean, self-contained artifacts for each supported library and Runtime Identifier (RID). These artifacts are then used to create NuGet packages (e.g., `Janset.SDL2.Native.Core`) and are uploaded as assets to GitHub Releases. This ensures that consuming applications have all required native components to run correctly on different platforms.
+The overall goal is to produce clean, self-contained artifacts for each supported library and Runtime Identifier (RID). These artifacts are then used to create NuGet packages (e.g., `Janset.SDL2.Core.Native`) and are uploaded as assets to GitHub Releases. This ensures that consuming applications have all required native components to run correctly on different platforms.
 
 ## 2. Orchestration: The `HarvestTask`
 
@@ -199,4 +199,4 @@ artifacts/harvest_output/
   - For **Windows RIDs**, this directory contains all the harvested `.dll` files directly.
   - For **Linux and macOS RIDs**, this directory contains a single `native.tar.gz` archive. This archive is specifically created to work around NuGet's lack of symlink support and is intended to be bundled into the resulting NuGet package. An accompanying MSBuild `.targets` file in the NuGet package (located in the package's `build/` directory) will handle its extraction during the consumer's build process.
 
-This structured output is then ready to be consumed by subsequent packaging tasks to create the `Janset.SDL2.Native.*` NuGet packages.
+This structured output is then ready to be consumed by subsequent packaging tasks to create the `Janset.SDL2.*.Native` NuGet packages.

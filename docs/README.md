@@ -5,23 +5,26 @@
 ## Loading Rules
 
 ### For LLM/Code Agents
+
 1. Load `onboarding.md` and `AGENTS.md` (repo root) before doing anything else.
 2. Load `plan.md` to understand current status and active phase.
 3. Load `phases/README.md` to know which phase is active.
 4. Then load docs relevant to your specific task (see table below).
-5. Do **not** load `archive/` by default — treat it as dated reference material.
+5. Load `reference/` only when you need broader tool/framework context beyond repo-specific docs.
 
 ### For Human Contributors
+
 1. Start with [onboarding.md](onboarding.md) for project overview.
 2. Check [plan.md](plan.md) for current status and roadmap.
 3. Use [playbook/](playbook/) for "how do I...?" questions.
+4. Use [reference/](reference/) only when you need deeper general background that is useful but not canonical repo behavior.
 
 ## Document Index
 
 ### Core (Always-Current)
 
 | Document | Purpose | When to Read |
-|----------|---------|-------------|
+| --- | --- | --- |
 | [onboarding.md](onboarding.md) | Project overview, strategic decisions, repo layout | First visit, new contributor onboarding |
 | [plan.md](plan.md) | Canonical status, phase roll-up, version tracking, roadmap | Before any work session |
 | [phases/README.md](phases/README.md) | Phase workflow, active vs completed phases | When you need to know what's in scope |
@@ -29,7 +32,7 @@
 ### Phases (Execution Details)
 
 | Document | Phase | Status |
-|----------|-------|--------|
+| --- | --- | --- |
 | [phase-1-sdl2-bindings.md](phases/phase-1-sdl2-bindings.md) | SDL2 Core Bindings + Harvesting | DONE |
 | [phase-2-cicd-packaging.md](phases/phase-2-cicd-packaging.md) | CI/CD & Packaging | IN PROGRESS |
 | [phase-3-sdl2-complete.md](phases/phase-3-sdl2-complete.md) | SDL2 Complete (all libs, all RIDs, tests, samples) | PLANNED |
@@ -39,7 +42,7 @@
 ### Research (Dated Findings — Verify Before Acting)
 
 | Document | Topic | Date |
-|----------|-------|------|
+| --- | --- | --- |
 | [native-packaging-patterns.md](research/native-packaging-patterns.md) | SkiaSharp/LibGit2Sharp/SQLitePCLRaw NuGet patterns | 2026-04-11 |
 | [binding-autogen-approaches.md](research/binding-autogen-approaches.md) | CppAst vs ClangSharp vs c2ffi comparison | 2026-04-11 |
 | [sdl3-ecosystem-analysis.md](research/sdl3-ecosystem-analysis.md) | SDL3 status, vcpkg support, C# binding ecosystem | 2026-04-11 |
@@ -48,40 +51,50 @@
 ### Playbook (How-To Recipes)
 
 | Document | Question It Answers |
-|----------|-------------------|
+| --- | --- |
 | [local-development.md](playbook/local-development.md) | How do I set up and build locally? |
 | [adding-new-library.md](playbook/adding-new-library.md) | How do I add a new SDL satellite library? |
 | [vcpkg-update.md](playbook/vcpkg-update.md) | How do I update vcpkg baseline and library versions? |
 | [ci-troubleshooting.md](playbook/ci-troubleshooting.md) | How do I debug CI failures? |
+| [cake-frosting-patterns.md](playbook/cake-frosting-patterns.md) | What Cake Frosting patterns should I follow in this repo? |
+| [cake-frosting-host-organization.md](playbook/cake-frosting-host-organization.md) | How should I structure and scale the Cake build host? |
 
 ### Knowledge Base (Deep Technical References)
 
 | Document | Topic |
-|----------|-------|
+| --- | --- |
 | [harvesting-process.md](knowledge-base/harvesting-process.md) | Native binary harvesting pipeline (how it works end-to-end) |
 | [ci-cd-packaging-and-release-plan.md](knowledge-base/ci-cd-packaging-and-release-plan.md) | CI/CD pipeline design and packaging strategy |
 | [cake-build-architecture.md](knowledge-base/cake-build-architecture.md) | Cake Frosting build system structure and patterns |
+| [design-decisions-and-tradeoffs.md](knowledge-base/design-decisions-and-tradeoffs.md) | Preserved architecture review findings, tradeoffs, and refactor pressure points |
 
-### Archive (Historical — Read-Only)
+### Parking Lot (Intentionally Preserved Futures)
 
-| Document | Why Archived |
-|----------|-------------|
-| [cake-build-plan.md](archive/cake-build-plan.md) | Original blueprint; superseded by knowledge-base docs |
-| [architectural-review.md](archive/architectural-review.md) | Point-in-time review (May 2025) |
-| [architectural-review-core-components.md](archive/architectural-review-core-components.md) | Deep component analysis (May 2025) |
-| [source-generator-design.md](archive/source-generator-design.md) | OneOf/Results generator — parked, may revisit |
-| [source-generator-implementation-summary.md](archive/source-generator-implementation-summary.md) | Implementation report for above |
-| [Cake Frosting Build Expertise_.md](archive/Cake%20Frosting%20Build%20Expertise_.md) | Educational reference (69KB) |
-| [ai-reviews/](archive/ai-reviews/) | 5 AI code reviews from Jan 2026 session |
+| Document | Purpose |
+| --- | --- |
+| [parking-lot.md](parking-lot.md) | Deferred ideas, partially implemented threads, and hardening backlog that should not be lost during archive cleanup |
+
+### Reference (Deep On-Demand)
+
+| Document | Purpose |
+| --- | --- |
+| [cake-frosting-build-expertise.md](reference/cake-frosting-build-expertise.md) | Long-form Cake Frosting reference for deeper general context when trimmed playbooks are not enough |
+
+### Legacy Status
+
+Legacy archive content was retired on 2026-04-12 after migration review.
+Useful material was either folded into current docs, promoted into [reference/](reference/), or intentionally discarded as obsolete.
+If older historical detail is ever needed again, use git history rather than expecting a standing docs archive.
 
 ## Conflict Resolution
 
 When docs disagree with each other:
+
 1. **Code wins over docs** for runtime behavior questions.
 2. **`plan.md` wins** for current status and phase information.
 3. **`onboarding.md` wins** for strategic decisions.
-4. **Knowledge-base docs win over archive docs** for technical details.
-5. **Archive docs are read-only** — do not update them, create new docs instead.
+4. **Knowledge-base and playbook docs win over reference docs** for repo-specific technical details.
+5. **Reference docs provide broader context** — useful, but not canonical repo behavior.
 
 ## Change Hygiene
 
@@ -90,3 +103,4 @@ When docs disagree with each other:
 - If you move or rename a doc, update all references.
 - Never duplicate tables/registries — state which copy is authoritative.
 - Research docs should always carry a date.
+- Do not leave active ideas only in retired notes or one-off references; move them into current docs or [parking-lot.md](parking-lot.md).

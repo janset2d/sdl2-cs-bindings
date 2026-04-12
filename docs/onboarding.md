@@ -14,6 +14,7 @@ This is the foundation layer for **Janset2D**, a cross-platform 2D game framewor
 The .NET SDL ecosystem has a gap: existing binding projects (SDL2-CS, ppy/SDL3-CS, Alimer.Bindings.SDL, etc.) provide C# P/Invoke declarations but **none of them ship cross-platform native binaries built from source via a reproducible pipeline**. Users are expected to source their own native SDL2/SDL3 libraries.
 
 Janset.SDL2/SDL3 fills this gap by:
+
 1. Providing C# bindings (currently based on [SDL2-CS](https://github.com/flibitijibibo/SDL2-CS), with plans for auto-generated bindings)
 2. Building native libraries from source using **vcpkg** across 7+ Runtime Identifiers (RIDs)
 3. Packaging everything into modular NuGet packages with proper `runtimes/{rid}/native/` layout
@@ -24,6 +25,7 @@ Janset.SDL2/SDL3 fills this gap by:
 ## Who Maintains This?
 
 **Deniz Irgin** (@denizirgin) — senior .NET developer based in Istanbul. Communication preferences:
+
 - Conversational, practical humor
 - Prefers comprehensive solutions over quick hacks
 - Expects challenge and reasoning, not yes-person behavior
@@ -34,7 +36,7 @@ Janset.SDL2/SDL3 fills this gap by:
 These are settled decisions. Do not re-debate them unless new evidence surfaces.
 
 | Decision | Detail | Rationale |
-|----------|--------|-----------|
+| --- | --- | --- |
 | **Dual SDL support** | SDL2 AND SDL3 in the same monorepo | Community service; SDL2 is priority (finish first), SDL3 follows |
 | **Full RID coverage** | 7+ targets including win-x86, linux-arm64, macOS | Maximum platform coverage is a project differentiator |
 | **vcpkg-based builds** | All native binaries built from source via vcpkg | Reproducibility, version pinning, feature flag control |
@@ -49,7 +51,7 @@ These are settled decisions. Do not re-debate them unless new evidence surfaces.
 ### SDL2 (Priority — Finish First)
 
 | Library | vcpkg Port | Bindings | Native Build | Status |
-|---------|-----------|----------|-------------|--------|
+| --- | --- | --- | --- | --- |
 | SDL2 | `sdl2` (2.32.4, latest: 2.32.10) | SDL2-CS import | Cake Harvest | Functional |
 | SDL2_image | `sdl2-image` (2.8.8) | SDL2-CS import | Cake Harvest | Functional |
 | SDL2_mixer | `sdl2-mixer` (2.8.1) | SDL2-CS import | vcpkg.json missing | Incomplete |
@@ -60,7 +62,7 @@ These are settled decisions. Do not re-debate them unless new evidence surfaces.
 ### SDL3 (Future — After SDL2 Complete)
 
 | Library | vcpkg Port | Bindings Source | Status |
-|---------|-----------|----------------|--------|
+| --- | --- | --- | --- |
 | SDL3 | `sdl3` (3.4.4) | flibitijibibo/SDL3-CS or auto-gen | Not started |
 | SDL3_image | `sdl3-image` (3.4.2) | Auto-gen planned | Not started |
 | SDL3_mixer | `sdl3-mixer` (3.2.0) | Auto-gen planned | Not started |
@@ -69,7 +71,7 @@ These are settled decisions. Do not re-debate them unless new evidence surfaces.
 
 ## Repository Layout
 
-```
+```text
 janset2d/sdl2-cs-bindings/
 ├── AGENTS.md                  ← LLM/agent operating rules
 ├── README.md                  ← Public-facing project overview
@@ -132,14 +134,14 @@ janset2d/sdl2-cs-bindings/
     ├── research/              ← Dated research, design rationale, comparisons
     ├── playbook/              ← "How do I...?" recipes
     ├── knowledge-base/        ← Deep technical references
-    └── archive/               ← Historical docs (read-only reference)
+    └── reference/             ← Deep on-demand general references
 ```
 
 ## Build System Overview
 
 ### How Native Libraries Get Built
 
-```
+```text
 vcpkg.json (dependency + feature declarations)
     ↓
 vcpkg install --triplet {triplet}  (via CI or local)
@@ -162,7 +164,7 @@ harvest-manifest.json + harvest-summary.json
 ### Key Configuration Files
 
 | File | Purpose | Authoritative For |
-|------|---------|-------------------|
+| --- | --- | --- |
 | `build/manifest.json` | Library definitions (name, version, binary patterns) | What libraries we ship and their versions |
 | `build/runtimes.json` | RID ↔ vcpkg triplet ↔ CI runner mapping | Platform targeting |
 | `build/system_artefacts.json` | OS library exclusion list | What NOT to bundle |
@@ -172,7 +174,7 @@ harvest-manifest.json + harvest-summary.json
 ### Target Platforms
 
 | RID | vcpkg Triplet | CI Runner | Container |
-|-----|--------------|-----------|-----------|
+| --- | --- | --- | --- |
 | win-x64 | x64-windows-release | windows-latest | — |
 | win-x86 | x86-windows | windows-latest | — |
 | win-arm64 | arm64-windows | windows-latest | — |
@@ -183,7 +185,7 @@ harvest-manifest.json + harvest-summary.json
 
 ## NuGet Package Topology
 
-```
+```text
 Janset.SDL2                              ← Meta-package (pulls everything)
 ├── Janset.SDL2.Core                     ← Managed bindings
 │   └── Janset.SDL2.Core.Native          ← Native SDL2 binaries (all RIDs)
@@ -230,11 +232,11 @@ Users reference `Janset.SDL2.Core` (or the meta-package `Janset.SDL2`). The `.Na
 3. **`docs/plan.md`** — current status, active phase, roadmap
 4. **`docs/phases/README.md`** — which phases are active vs completed vs future
 5. Then branch to the relevant area:
-   - Doing build/CI work? → `docs/knowledge-base/harvesting-process.md`, `docs/knowledge-base/ci-cd-packaging-and-release-plan.md`
-   - Adding a new library? → `docs/playbook/adding-new-library.md`
-   - Understanding architecture decisions? → `docs/research/*`
-   - Local development? → `docs/playbook/local-development.md`
-   - Historical context? → `docs/archive/*`
+   Build/CI work → `docs/knowledge-base/harvesting-process.md`, `docs/knowledge-base/ci-cd-packaging-and-release-plan.md`
+   Adding a new library → `docs/playbook/adding-new-library.md`
+   Understanding architecture decisions → `docs/research/*`
+   Local development → `docs/playbook/local-development.md`
+   Broader framework/tooling context → `docs/reference/*`
 
 ## Non-Goals
 
@@ -246,7 +248,7 @@ Users reference `Janset.SDL2.Core` (or the meta-package `Janset.SDL2`). The `.Na
 ## Glossary
 
 | Term | Meaning |
-|------|---------|
+| --- | --- |
 | **RID** | Runtime Identifier — .NET's platform descriptor (e.g., `win-x64`, `linux-arm64`) |
 | **Triplet** | vcpkg's platform descriptor (e.g., `x64-windows-release`, `arm64-linux-dynamic`) |
 | **Harvest** | The process of collecting compiled native binaries + their transitive dependencies from vcpkg output |

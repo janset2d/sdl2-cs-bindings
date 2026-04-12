@@ -194,7 +194,7 @@ Cake excels at orchestrating external command-line tools, abstracting away the c
 - **Tool Resolution and Reproducibility:** Cake includes logic to locate required tools like MSBuild, often searching standard installation paths associated with Visual Studio or.NET SDKs.20 However, build environments can be complex, containing multiple versions of these tools. Relying solely on automatic discovery can introduce variability, potentially causing a build to use a different MSBuild version on the CI server than on a local machine.28 This undermines build reproducibility, a key goal of build automation.1 To ensure consistency, explicitly configuring the path to the desired executable using the ToolPath property or the WithToolPath extension method on the relevant settings object (e.g., MSBuildSettings) is a best practice.28 This removes ambiguity and guarantees the same tool version is used across different environments.
 - **Handling Arguments and Output:** Aliases typically provide properties within their settings objects to pass common command-line arguments. For less common arguments or custom tools, aliases like StartProcess might be used, potentially requiring manual argument construction using ProcessArgumentBuilder.26 Aliases also manage capturing standard output/error and handling tool exit codes, often providing options to ignore errors or customize behavior.13 Custom command-line arguments passed to the Frosting application itself (not recognized by Cake) are available via context.Arguments for use within task logic.8
 
-**Table 3.1: Common Tool Aliases in Cake Frosting**
+#### Table 3.1: Common Tool Aliases in Cake Frosting
 
 | Tool Category     | Example Alias (context.\<Alias\>) | Settings Class             | Provided By       | Description                                                             |
 | :---------------- | :-------------------------------- | :------------------------- | :---------------- | :---------------------------------------------------------------------- |
@@ -216,7 +216,7 @@ Cake excels at orchestrating external command-line tools, abstracting away the c
 | Docker            | DockerPush                        | DockerImagePushSettings    | Cake.Docker Addin | Pushes a Docker image using docker push.                                |
 | Process Execution | StartProcess                      | ProcessSettings            | Cake.Common       | Starts an arbitrary external process.                                   |
 
-_(Note: This table lists common examples. Many more aliases exist within Cake.Common and various community Addins. Refer to official documentation and Addin pages for complete lists.)_
+Note: This table lists common examples. Many more aliases exist within Cake.Common and various community Addins. Refer to official documentation and Addin pages for complete lists.
 
 ### **3.3. File System Operations**
 
@@ -447,7 +447,7 @@ Cake Frosting represents a mature and powerful evolution in.NET build automation
 | **Code Reuse**                | Excellent (Standard.NET Libraries, NuGet)   | Moderate (\#load directive, file copying)           |
 | **Learning Curve (C\# Devs)** | Low (Familiar C\#)                          | Moderate (Requires learning DSL nuances)            |
 
-_2_
+Reference marker: 2
 
 ### **8.2. Common Command-Line Switches for Frosting**
 
@@ -464,7 +464,7 @@ _2_
 | \-h, \--help                | Prints help information.                                                           |
 | _(Custom Arguments)_        | Any unrecognized switches (e.g., \--myArg="value") are passed to the BuildContext. |
 
-_8_
+Reference marker: 8
 
 ### **8.3. Further Resources**
 

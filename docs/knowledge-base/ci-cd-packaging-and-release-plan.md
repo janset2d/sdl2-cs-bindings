@@ -2,7 +2,7 @@
 
 ## 1. Overview and Goals
 
-- **What:** This document defines the comprehensive CI/CD pipeline for building, harvesting, packaging, and releasing the `Janset.SDL2.*` native and binding libraries for the `sdl2-cs-bindings` project. It builds upon the foundational Cake Frosting project structure and build logic initially outlined in the [Cake Frosting Build Plan](./cake-build-plan.md).
+- **What:** This document defines the comprehensive CI/CD pipeline for building, harvesting, packaging, and releasing the `Janset.SDL2.*` native and binding libraries for the `sdl2-cs-bindings` project. It builds upon the earlier Cake build planning work that has since been folded into the current documentation set.
 - **Why:** To establish a reliable, controlled, transparent, and maintainable process for generating internal release candidates, promoting vetted packages to public NuGet feeds, managing versions consistently, and ensuring the quality and integrity of all distributed artifacts.
 - **Key Objectives:**
   - **Internal Staging:** Implement a robust internal staging mechanism for all generated NuGet packages, allowing for testing and validation before any public release.
@@ -11,6 +11,22 @@
   - **Optimized Builds:** Implement logic to only build and package libraries and RIDs that are new, have changed, or are explicitly forced, thus saving CI resources.
   - **Operational Robustness:** Design the pipeline to be resilient against common failure modes, with clear error reporting and recovery strategies.
   - **Visibility & Traceability:** Provide clear insight into the build, packaging, and release process through build fingerprints, logs, and status reporting (e.g., via GitHub Deployment Environments).
+
+## 1.1 Reality Labels
+
+This document intentionally mixes current implementation details and future CI/CD design. Read the labels literally:
+
+- **Implemented today**: Exists in the repo and is wired into the current build flow.
+- **Partially implemented**: Exists in code or workflow files, but is not fully wired or production-ready.
+- **Planned / not present in repo**: Intentionally preserved design that does not yet exist as a working file or task.
+
+Current repo reality on 2026-04-11:
+
+- The `prepare-native-assets-*` workflows are the working cross-platform harvest path. They are manual and currently hardcode `SDL2` + `SDL2_image`.
+- `release-candidate-pipeline.yml` exists, but it is still a placeholder workflow with dummy steps and artifacts.
+- `PreFlightCheckTask`, `HarvestTask`, and `ConsolidateHarvestTask` are implemented in the Cake build host.
+- `build/known-issues.json`, `PackageTask`, `PR-Version-Consistency-Check.yml`, and `Promote-To-Public.yml` are planned, not present as working repo artifacts.
+- `PathService` contains harvest-staging helpers for distributed CI, but the active tasks and workflows still emit to `artifacts/harvest_output/`.
 
 ## 2. Guiding Principles & Core Tenets
 
@@ -31,6 +47,7 @@ The pipeline relies on several key configuration files and generates specific ar
 
   - **Role:** The primary driver for packaging. Defines each `Janset.SDL2.*` library (both native and binding), its target NuGet package version, the corresponding `vcpkg_name` of the native component, and the target `vcpkg_version` of that native component.
   - **Structure Example Snippet:**
+
     ```json
     {
       "name": "SDL2", // Corresponds to Cake --library argument
@@ -42,6 +59,7 @@ The pipeline relies on several key configuration files and generates specific ar
       "primary_binaries": [...]
     }
     ```
+
   - Used by the `pre_flight_check` job to validate against `vcpkg.json` and by the `PackageTask` in Cake to determine the version for `dotnet pack`.
 
 - **`vcpkg.json`:**
@@ -52,11 +70,12 @@ The pipeline relies on several key configuration files and generates specific ar
 - **`build/runtimes.json`:** Defines supported RIDs and their mapping to Vcpkg triplets and CI runner configurations.
 - **`build/system_artefacts.json`:** Lists OS-specific system library patterns to be excluded during harvesting.
 
-- **`build/known-issues.json`:**
+- **`build/known-issues.json` (Planned / not present in repo):**
 
   - **Role:** A manually curated file listing specific `library/version/RID` combinations that are known to be problematic (e.g., due to an upstream bug or a temporary build environment issue).
   - **Purpose:** Allows the CI pipeline to gracefully skip these known-failing builds, saving resources and reducing noise, until the underlying issue is resolved.
   - **Structure Example:**
+
     ```json
     {
       "sdl2-image": {
@@ -110,6 +129,8 @@ The pipeline relies on several key configuration files and generates specific ar
 ## 4. Core CI/CD Workflows
 
 ### A. `Release-Candidate-Pipeline.yml` (The "Mega Workflow")
+
+**Status**: Partially implemented. The file exists in `.github/workflows/`, but the current workflow body is still placeholder logic and does not execute the end-to-end design described below.
 
 - **What:** The primary workflow responsible for validating the configuration, building native assets via Vcpkg, harvesting these assets, packaging them into `.nupkg` files, and publishing them to an internal NuGet feed (or staging them locally).
 - **Why:** This consolidated workflow (as opposed to multiple smaller, chained workflows) aims for better visibility into the end-to-end process, easier debugging, and more robust control over the release candidate generation.
@@ -231,6 +252,8 @@ The pipeline relies on several key configuration files and generates specific ar
 
 ### B. `PR-Version-Consistency-Check.yml`
 
+**Status**: Planned / not present in repo.
+
 - **What:** A lightweight, non-blocking CI check that runs on Pull Requests to provide early feedback on version alignment between `manifest.json` and `vcpkg.json`.
 - **Why:** Helps developers catch inconsistencies before they attempt to trigger the main release candidate pipeline.
 - **Filename:** `.github/workflows/pr-version-consistency-check.yml`
@@ -245,6 +268,8 @@ The pipeline relies on several key configuration files and generates specific ar
         4. The job itself should always succeed, allowing the PR to proceed, but the warnings will be visible.
 
 ### C. `Promote-To-Public.yml` (Targeted for Phase 3)
+
+**Status**: Planned / not present in repo.
 
 - **What:** A manually triggered workflow to promote vetted NuGet packages from the internal feed to the public NuGet.org.
 - **Why:** Ensures that public releases are a deliberate, audited, and controlled process.
@@ -298,8 +323,11 @@ The rollout of this comprehensive CI/CD pipeline will occur in distinct phases:
 
 - **`HarvestTask` (Cake - ✅ FUNCTIONAL):**
 
+  - **Implemented today**
+
   - **Current Status:** ✅ **IMPLEMENTED** - The `HarvestTask` is functional for individual RID harvesting and generates per-RID status files.
-  - Inputs: Library name, RID, triplet, target package version (from main `manifest.json`).
+  - Inputs today: Library name(s) and an optional RID. The triplet is derived from `runtimes.json` via the resolved RID.
+  - Planned future inputs in CI design: explicit triplet/package-version orchestration from the release workflow.
   - Responsibilities:
     - Runs Vcpkg install for the given triplet (if not already done by CI setup).
     - Performs the actual binary harvesting logic (dependency walking, license gathering, symlink-preserving `tar.gz` creation for Linux/macOS).
@@ -307,6 +335,8 @@ The rollout of this comprehensive CI/CD pipeline will occur in distinct phases:
     - **Current Implementation:** Creates individual RID status files that are later consolidated by `ConsolidateHarvestTask`.
 
 - **`ConsolidateHarvestTask` (Cake - ✅ COMPLETED):**
+
+  - **Implemented today**
 
   - **Current Status:** ✅ **FULLY IMPLEMENTED AND TESTED** - Successfully consolidates per-RID harvest status files into unified manifests.
   - Inputs: Processes all libraries found in the harvest output directory.
@@ -317,13 +347,10 @@ The rollout of this comprehensive CI/CD pipeline will occur in distinct phases:
     - Generates comprehensive metadata suitable for downstream packaging tasks.
   - **Tested Results:** Successfully processes SDL2 (success), SDL2_image (success), and SDL2_mixer (failure due to missing vcpkg package).
 
-- **`PackageTask` (Cake - ⚠️ NEEDS UPDATES FOR CI):**
-  - **Current Status:** ⚠️ **NEEDS MODIFICATION** - Existing PackageTask needs updates to consume the new harvest manifest format.
-  - Required Changes for Current Implementation:
-    1. Update to read the new `harvest-manifest.json` format generated by `ConsolidateHarvestTask`.
-    2. Process the consolidated RID information from the actual JSON structure.
-    3. Handle the new file organization under `artifacts/harvest_output/{LibraryName}/`.
-  - Future Responsibilities:
+- **`PackageTask` (Cake - Planned / not present in repo):**
+  - **Current Status:** ⚠️ **NOT IMPLEMENTED** - No `PackageTask` exists in the current build host.
+  - This section describes the planned task contract, not an existing implementation.
+  - Expected Responsibilities:
     1. Reads `build/manifest.json` to get the `native_lib_version` (for native package) and `binding_version` (for binding package, if applicable).
     2. Reads the `harvest_output/{LibraryName}/harvest-manifest.json` to identify successfully harvested RIDs and their output paths.
     3. **For Native Package (e.g., `Janset.SDL2.Core.Native`):**

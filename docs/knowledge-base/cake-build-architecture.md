@@ -6,9 +6,17 @@
 
 The build system is a .NET 9.0 console application using **Cake Frosting v5.0.0**. It orchestrates the native binary harvesting pipeline — collecting compiled SDL2/SDL3 libraries and their transitive dependencies from vcpkg output and organizing them for NuGet packaging.
 
+## Current Implementation Notes
+
+- Active harvest logic lives under `Tasks/Harvest/`. `Tasks/Vcpkg/` currently contains empty legacy placeholder files.
+- `PreFlightCheckTask` is implemented in the build host, but the release-candidate workflow does not invoke it yet.
+- `PathService` already exposes `harvest-staging` helpers for future distributed CI, but current tasks and workflows still write to `artifacts/harvest_output/`.
+- The build host exposes a `--use-overrides` CLI option, but override-based native sourcing is not wired into the current task pipeline.
+- The build host still uses hand-written `OneOf` result wrappers. Source-generator-based cleanup remains a parked follow-up, not active build-system behavior.
+
 ## Architecture
 
-```
+```text
 build/_build/
 ├── Program.cs              ← Entry point: DI configuration, repo root detection
 ├── Context/                ← Build context (state shared across tasks)
@@ -32,7 +40,7 @@ build/_build/
 All services are registered via dependency injection in `Program.cs`:
 
 | Service Interface | Implementation | Purpose |
-|------------------|---------------|---------|
+| --- | --- | --- |
 | `IPathService` | `PathService` | Resolves paths to manifest.json, runtimes.json, output dirs |
 | `IRuntimeProfile` | `RuntimeProfile` | Maps RID ↔ vcpkg triplet, detects current platform |
 | `IPackageInfoProvider` | `VcpkgCliProvider` | Queries vcpkg for installed package metadata |
@@ -67,6 +75,7 @@ Source of truth for what libraries the project ships.
 ```
 
 Key fields:
+
 - `name`: Library identifier used in Cake task arguments (`--library SDL2`)
 - `vcpkg_name`: Port name in vcpkg (`sdl2`)
 - `primary_binaries`: Glob patterns to identify the main library binary (vs transitive deps)
@@ -111,12 +120,13 @@ Whitelist of system-provided libraries that must NOT be bundled:
 The core task that collects native binaries for a specific library and RID.
 
 **Arguments**:
+
 - `--library`: Library name(s) from manifest.json (e.g., `SDL2`, `SDL2_image`)
 - `--rid`: Runtime identifier (e.g., `win-x64`, `linux-x64`)
 
 **Pipeline per library**:
 
-```
+```text
 1. Load manifest.json entry for library
 2. Resolve vcpkg install path for triplet
 3. Find primary binary using manifest patterns
@@ -134,7 +144,10 @@ The core task that collects native binaries for a specific library and RID.
    └── Generate per-RID status JSON
 ```
 
-**Output**: `artifacts/harvest_output/{Library}/rid-status/{rid}.json`
+**Output**:
+
+- Status JSON: `artifacts/harvest_output/{Library}/rid-status/{rid}.json`
+- Native payload: `artifacts/harvest_output/{Library}/runtimes/{rid}/native/`
 
 ### ConsolidateHarvestTask
 
@@ -148,6 +161,7 @@ Merges per-RID status files into library-wide manifests.
 Validates configuration consistency before builds.
 
 **Checks**:
+
 - manifest.json library versions match vcpkg.json override versions
 - Port versions match
 - All required fields present
@@ -158,7 +172,7 @@ The most complex part of the build system. Each platform uses different tools:
 
 ### Windows (dumpbin)
 
-```
+```text
 dumpbin /dependents SDL2.dll
 → Lists: SDL2.dll depends on kernel32.dll, user32.dll, vcruntime140.dll, ...
 → Filter system_artefacts.json
@@ -167,7 +181,7 @@ dumpbin /dependents SDL2.dll
 
 ### Linux (ldd)
 
-```
+```text
 ldd libSDL2-2.0.so.0
 → Lists: libSDL2-2.0.so.0 => /usr/lib/x86_64-linux-gnu/libSDL2-2.0.so.0
 → Filter system_artefacts.json
@@ -177,7 +191,7 @@ ldd libSDL2-2.0.so.0
 
 ### macOS (otool)
 
-```
+```text
 otool -L libSDL2.dylib
 → Lists: @rpath/libSDL2.dylib, /usr/lib/libSystem.B.dylib, ...
 → Filter system_artefacts.json and framework references
@@ -187,7 +201,7 @@ otool -L libSDL2.dylib
 
 ## Output Structure
 
-```
+```text
 artifacts/
 ├── harvest_output/
 │   ├── SDL2/
@@ -223,4 +237,6 @@ artifacts/
 
 ## Historical Note
 
-The original build plan is archived at [archive/cake-build-plan.md](../archive/cake-build-plan.md). It contains the initial design decisions and phased implementation plan. The current implementation closely follows that plan for the harvesting pipeline, but CI/CD and packaging details have evolved.
+The original build plan has been retired after migration into the current docs set. The current implementation still follows that earlier harvest-pipeline direction, but CI/CD and packaging details have evolved and should now be read from the active docs instead.
+
+For repo-specific tradeoffs and architecture-review carry-over, see [design-decisions-and-tradeoffs.md](design-decisions-and-tradeoffs.md). For general Cake Frosting working patterns trimmed from the deep reference, see [cake-frosting-patterns.md](../playbook/cake-frosting-patterns.md), [cake-frosting-host-organization.md](../playbook/cake-frosting-host-organization.md), and [cake-frosting-build-expertise.md](../reference/cake-frosting-build-expertise.md).

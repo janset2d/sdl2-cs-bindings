@@ -88,6 +88,7 @@ SDL3 is **not backwards compatible** with SDL2. Key changes:
 ### Key Observation
 
 **None of these projects build natives from source via vcpkg.** They either:
+
 - Commit pre-built binaries from SDL release tarballs
 - Build via CMake in CI
 - Don't ship natives at all (BYO)
@@ -97,6 +98,7 @@ This means our value proposition (vcpkg-built, reproducible, feature-flagged nat
 ## SDL2-compat
 
 `sdl2-compat` provides SDL2 API compatibility on top of SDL3. However:
+
 - Not in vcpkg (PR #44023 was closed due to header conflicts)
 - Intended for existing SDL2 applications, not for binding projects
 - We don't need it — we'll have separate SDL2 and SDL3 bindings

@@ -79,6 +79,7 @@ Update each library's override to the desired version:
 ### Step 6: Update manifest.json
 
 Keep `build/manifest.json` in sync with vcpkg.json:
+
 - Update `vcpkg_version` fields
 - Update `vcpkg_port_version` fields
 - Update `native_lib_version` fields
@@ -109,6 +110,7 @@ git commit -m "chore: update vcpkg baseline to $(cd external/vcpkg && git rev-pa
 ### "Version not found" after baseline update
 
 The version you specified in overrides might not exist at the new baseline. Check:
+
 ```bash
 ./external/vcpkg/vcpkg x-history sdl2
 ```
@@ -116,6 +118,7 @@ The version you specified in overrides might not exist at the new baseline. Chec
 ### Build fails after update
 
 New library versions may introduce new dependencies or change behavior:
+
 1. Check the vcpkg port's changelog: `external/vcpkg/ports/sdl2/portfile.cmake`
 2. Run harvest with diagnostic verbosity: `--verbosity Diagnostic`
 3. Compare `system_artefacts.json` — new system dependencies may need whitelisting

@@ -5,7 +5,7 @@
 ## Phase Status Overview
 
 | Phase | Name | Status | Document |
-|-------|------|--------|----------|
+| --- | --- | --- | --- |
 | 1 | SDL2 Core Bindings + Harvesting | **DONE** | [phase-1-sdl2-bindings.md](phase-1-sdl2-bindings.md) |
 | 2 | CI/CD & Packaging | **IN PROGRESS** | [phase-2-cicd-packaging.md](phase-2-cicd-packaging.md) |
 | 3 | SDL2 Complete | PLANNED | [phase-3-sdl2-complete.md](phase-3-sdl2-complete.md) |
@@ -17,16 +17,17 @@
 **Phase 2: CI/CD & Packaging** — Resumed 2026-04-11 after ~10 month hiatus.
 
 Priority items for Phase 2:
+
 1. Complete `vcpkg.json` (add all missing satellite libraries with feature flags)
 2. Update vcpkg baseline (SDL2 2.32.4 → 2.32.10)
 3. Implement Cake PackageTask (harvest output → .nupkg)
 4. Make release-candidate-pipeline.yml functional
 5. Clean up native binaries from git
-6. Establish local development playbook
+6. Correct and validate the local development playbook
 
 ## Phase Lifecycle
 
-```
+```text
 PLANNED → IN PROGRESS → DONE
                 ↓
           (can pause → resume)

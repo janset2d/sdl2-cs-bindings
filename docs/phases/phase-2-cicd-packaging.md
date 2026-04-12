@@ -11,11 +11,11 @@ Complete the end-to-end pipeline from source code to publishable NuGet packages.
 
 ### 2.1 Complete vcpkg.json
 
-**Priority: HIGH — Blocks everything else for Mixer/TTF/Net**
+#### Priority: HIGH — Blocks everything else for Mixer/TTF/Net
 
 Current state: Only `sdl2` and `sdl2-image` are declared. Need to add:
 
-```
+```text
 sdl2-mixer   → features: mpg123, libflac, opusfile, libmodplug, wavpack, fluidsynth
 sdl2-ttf     → features: harfbuzz
 sdl2-gfx     → (no features)
@@ -26,12 +26,13 @@ Also update vcpkg overrides for each library to pin versions matching `manifest.
 
 ### 2.2 Update vcpkg Baseline
 
-**Priority: HIGH — SDL2 is 3 patches behind**
+#### Priority: HIGH — SDL2 is 3 patches behind
 
 Current baseline: `41c447cc...` (SDL2 2.32.4)
 Target: Latest baseline (SDL2 2.32.10)
 
 Steps:
+
 1. Update `external/vcpkg` submodule to latest
 2. Update `vcpkg.json` `builtin-baseline` to new commit hash
 3. Update `manifest.json` versions to match
@@ -41,11 +42,12 @@ See [playbook/vcpkg-update.md](../playbook/vcpkg-update.md) for step-by-step rec
 
 ### 2.3 Implement Cake PackageTask
 
-**Priority: HIGH — Core missing piece**
+#### Priority: HIGH — Core missing piece
 
 The harvest pipeline produces organized artifacts in `artifacts/harvest_output/`. What's missing is the step that turns these into `.nupkg` files.
 
 Requirements:
+
 - Read `harvest-manifest.json` to know which RIDs succeeded
 - Copy harvested binaries into the correct `src/native/{Library}.Native/runtimes/{rid}/native/` layout
 - Run `dotnet pack` on each `.Native` project
@@ -54,28 +56,40 @@ Requirements:
 
 ### 2.4 Make Release Candidate Pipeline Functional
 
-**Priority: MEDIUM — Can use manual workflow initially**
+#### Priority: MEDIUM — Can use manual workflow initially
 
 Current `release-candidate-pipeline.yml` is a stub. Need to implement:
+
 1. Pre-flight check job (version validation) — ✅ Already works
 2. Build matrix job (call platform workflows + harvest) — Partially done
 3. Consolidate harvest artifacts job — Needs implementation
 4. Package and publish job — Needs PackageTask first
 
+Critical architectural note:
+
+- current harvest output is still organized for local-first execution
+- the future release pipeline cannot assume Windows, Linux, and macOS runners share a filesystem
+- `PathService` already exposes harvest-staging helpers, but `HarvestTask`, `ConsolidateHarvestTask`, and workflow YAML still need to adopt a real staging-to-consolidated flow
+- treat this as a release-pipeline prerequisite, not a cosmetic cleanup
+
 ### 2.5 Clean Up Native Binaries from Git
 
-**Priority: MEDIUM — Affects repo performance**
+#### Priority: MEDIUM — Affects repo performance
 
 ~50+ binary files are tracked in git under `src/native/*/runtimes/`. These were committed for testing but should be:
+
 1. Added to `.gitignore`
 2. Removed from tracking (`git rm --cached`)
 3. Optionally cleaned from history (BFG or `git filter-repo`)
 
-### 2.6 Local Development Playbook
+### 2.6 Local Development Playbook Validation
 
-**Priority: MEDIUM — Needed for contributors**
+#### Priority: MEDIUM — Needed for contributors
+
+Current state: A playbook exists, but it drifted from the actual harvest output structure and needs validation against the current build host and workflows.
 
 Document how to:
+
 - Set up the project from scratch (clone, submodule init, .NET SDK, vcpkg bootstrap)
 - Build managed bindings without native binaries
 - Build native binaries locally for your platform
@@ -87,7 +101,7 @@ See [playbook/local-development.md](../playbook/local-development.md).
 
 ### 2.7 SDL2_net Binding Project
 
-**Priority: LOW — Can be added quickly once vcpkg.json is complete**
+#### Priority: LOW — Can be added quickly once vcpkg.json is complete
 
 - Add `external/sdl2-cs` doesn't include SDL2_net bindings (it's not part of flibitijibibo's project)
 - Need to either find a community binding or write one (SDL2_net API is small)
@@ -102,7 +116,7 @@ See [playbook/local-development.md](../playbook/local-development.md).
 - [ ] At least one full pipeline run: vcpkg build → harvest → consolidate → package
 - [ ] Native binaries removed from git tracking
 - [ ] `.gitignore` rules prevent re-committing binaries
-- [ ] Local development playbook written and tested
+- [ ] Local development playbook corrected, validated, and tested
 - [ ] SDL2_net binding project created (even if native packaging is Phase 3)
 
 ## Dependencies
@@ -113,7 +127,7 @@ See [playbook/local-development.md](../playbook/local-development.md).
 ## Risks
 
 | Risk | Impact | Mitigation |
-|------|--------|-----------|
+| --- | --- | --- |
 | vcpkg baseline update breaks builds | HIGH | Test one triplet first, then matrix |
 | SDL2_net has no C# bindings in SDL2-CS | LOW | API is small (~20 functions), can write manually or find community binding |
 | PackageTask complexity | MEDIUM | Start with single-library manual test, then automate |

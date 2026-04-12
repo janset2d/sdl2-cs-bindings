@@ -12,6 +12,7 @@ prepare-native-assets-main.yml  (orchestrator, manual trigger)
 ```
 
 Each platform workflow:
+
 1. Checkout repo + submodules
 2. Run `vcpkg-setup` composite action (bootstrap, cache, install)
 3. Setup .NET SDK
@@ -26,6 +27,7 @@ Each platform workflow:
 **Symptoms**: `vcpkg install` exits non-zero, build logs show compilation errors
 
 **Diagnosis**:
+
 1. Check which triplet failed (the workflow logs the triplet)
 2. Look for the specific port that failed in the vcpkg build log
 3. Common causes:
@@ -34,6 +36,7 @@ Each platform workflow:
    - Triplet-specific build incompatibilities
 
 **Fixes**:
+
 - **Linux missing deps**: Check the `apt-get install` step in `prepare-native-assets-linux.yml`. SDL2 requires X11, Wayland, ALSA, and other dev packages. If vcpkg adds new features, new deps may be needed.
 - **Cache corruption**: Delete the GitHub Actions cache for the affected triplet and re-run.
 - **vcpkg port bug**: Check [vcpkg issues](https://github.com/microsoft/vcpkg/issues) for known problems with the specific port version.
@@ -43,11 +46,13 @@ Each platform workflow:
 **Symptoms**: Build takes 15-30 minutes instead of 2-3 minutes
 
 **Diagnosis**: Check the `vcpkg-setup` action's cache restore step. The cache key is:
+
 ```
 vcpkg-bin-{os}-{triplet}-{vcpkg.json hash}-{vcpkg submodule commit}
 ```
 
 If any of these change, the cache misses. This is expected after:
+
 - vcpkg baseline updates
 - vcpkg.json changes (new features, new dependencies)
 - vcpkg submodule updates
@@ -59,6 +64,7 @@ If any of these change, the cache misses. This is expected after:
 **Symptoms**: `dotnet build` or `dotnet run` in `build/_build/` fails
 
 **Diagnosis**: Check the error message. Common causes:
+
 - .NET SDK version mismatch (check `global.json`)
 - NuGet package restore failure (network issues or feed problems)
 - Code compilation errors (if build code was changed)
@@ -70,6 +76,7 @@ If any of these change, the cache misses. This is expected after:
 **Symptoms**: Harvest completes but RID status shows no binaries collected
 
 **Diagnosis**:
+
 1. Check that vcpkg actually built the library (look for installed files in vcpkg output)
 2. Check the binary patterns in `manifest.json` — do they match actual filenames?
 3. Check the system_artefacts.json whitelist — is the library being excluded?
@@ -82,6 +89,7 @@ If any of these change, the cache misses. This is expected after:
 **Symptoms**: Build succeeds but artifact upload step fails
 
 **Diagnosis**: Check GitHub Actions storage limits and artifact naming. Common issues:
+
 - Artifact name conflicts between matrix jobs
 - Total artifact size exceeding limits
 - Path too long (Windows-specific)
@@ -93,6 +101,7 @@ If any of these change, the cache misses. This is expected after:
 **Symptoms**: Failures specific to Linux workflows
 
 **Common issues**:
+
 - **Git safe directory**: The container's workspace may not be in git's safe directory list. The workflow should run `git config --global --add safe.directory $(pwd)`.
 - **Missing locales**: Some tools need UTF-8 locale. Set `LANG=C.UTF-8` or install `locales` package.
 - **ARM64 emulation**: `ubuntu-24.04-arm` runners are real ARM64 hardware, not emulated. If the runner is unavailable, the job queues indefinitely.
@@ -102,6 +111,7 @@ If any of these change, the cache misses. This is expected after:
 **Symptoms**: Failures only on macOS workflows
 
 **Common issues**:
+
 - **Xcode version**: Different macOS runner images have different Xcode versions. Check `macos-13` vs `macos-latest` default Xcode.
 - **Homebrew packages**: If `autoconf`/`automake`/`libtool` are needed, ensure they're installed in the workflow.
 - **Universal binaries**: `otool` may show different results for x86_64 vs arm64 slices in universal binaries.
@@ -129,6 +139,7 @@ dotnet run -- --target Harvest --library SDL2 --rid {your-rid} --verbosity Diagn
 ### Check vcpkg Build Logs
 
 vcpkg build logs are in:
+
 ```
 external/vcpkg/buildtrees/{port-name}/build-{triplet}-out.log
 external/vcpkg/buildtrees/{port-name}/build-{triplet}-err.log
@@ -137,6 +148,7 @@ external/vcpkg/buildtrees/{port-name}/build-{triplet}-err.log
 ### Pre-flight Check
 
 Before debugging complex issues, run the pre-flight check:
+
 ```bash
 cd build/_build
 dotnet run -- --target PreFlightCheck

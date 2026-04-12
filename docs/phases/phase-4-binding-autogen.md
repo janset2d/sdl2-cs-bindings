@@ -75,6 +75,7 @@ src/SDL2.Core/Generated/  (or src/SDL3.Core/Generated/)
 ### 4.4 SDL3 Preparation
 
 The same generator should handle SDL3 headers with minimal configuration changes:
+
 - Different header include paths
 - Different library name for `DllImport` (`SDL3` vs `SDL2`)
 - Different type mappings (SDL3 changed bool semantics, removed SDL_RWops, etc.)

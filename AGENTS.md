@@ -130,14 +130,13 @@ Before proposing changes, review the documentation. If your change affects behav
 - For native harvesting: `docs/knowledge-base/harvesting-process.md`
 - For "how do I...?" questions: `docs/playbook/*`
 - For design rationale: `docs/research/*`
-- For historical context: `docs/archive/*` (read-only, may be outdated)
+- For broader tool/framework context: `docs/reference/*`
 
 ### Documentation Loading Rules
 
 - Load `docs/onboarding.md` and `docs/plan.md` before doing anything.
 - Resolve the active phase before loading detailed phase docs.
-- Load playbooks and research docs only when the task actually needs them.
-- Do not load `docs/archive/` by default; treat it as dated reference material.
+- Load playbooks, research docs, and reference docs only when the task actually needs them.
 - When docs conflict, prefer `plan.md` for status and code for runtime behavior.
 
 ### Change Hygiene
