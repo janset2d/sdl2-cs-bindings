@@ -106,18 +106,18 @@ See [phases/README.md](phases/README.md) for the full phase breakdown.
 
 ### Q2 2026 (Current)
 
-- [ ] Resume development, understand status quo
-- [ ] Reorganize documentation
-- [ ] Rewrite AGENTS.md for this repo
+- [x] Resume development, understand status quo
+- [x] Reorganize documentation
+- [x] Rewrite AGENTS.md for this repo
 - [x] Realign GitHub issues, labels, and milestones to the canonical roadmap
-- [ ] Validate and stabilize full vcpkg.json coverage (all six SDL2 libraries are now declared in the working tree)
-- [ ] Validate the bumped vcpkg baseline (0b88aacd... / SDL2 2.32.10) across matrix runs
-- [ ] Document and approve shared native dependency policy (zlib and other duplicate basenames) before CI/package coding
-- [ ] Update prepare-native-assets workflows for full SDL2 satellite harvest parity and explicit `--rid` wiring on all platforms
+- [x] Validate and stabilize full vcpkg.json coverage (#52)
+- [x] Validate the bumped vcpkg baseline — SDL2 2.32.10, all 7 RIDs green (#53)
+- [x] Update prepare-native-assets workflows for full SDL2 satellite harvest parity (#76)
+- [ ] Document and approve shared native dependency policy (#75)
 - [ ] Add a Windows local prerequisites guide (VS tooling ecosystem + dumpbin/vswhere troubleshooting)
-- [ ] Clean up native binaries from git history
-- [ ] Correct and validate local development playbook
-- [ ] Create custom Docker build image for Linux x64 to replace inline tool installs (#79)
+- [ ] Clean up native binaries from git history (#56)
+- [ ] Correct and validate local development playbook (#57)
+- [ ] Create custom Docker build image for Linux x64 (#79)
 
 ### Q3 2026
 
@@ -167,15 +167,13 @@ Primary docs: [phases/phase-2-cicd-packaging.md](phases/phase-2-cicd-packaging.m
 
 | Issue | Labels |
 | --- | --- |
-| `#52 Complete vcpkg.json coverage for the remaining SDL2 libraries` | `type:enhancement`, `area:vcpkg`, `area:native` |
-| `#53 Update the vcpkg baseline to SDL2 2.32.10 and validate one RID` | `type:enhancement`, `area:vcpkg` |
 | `#54 Implement PackageTask for native and managed package creation` | `type:enhancement`, `area:build-system`, `area:packaging` |
 | `#55 Implement distributed harvest staging for the release-candidate pipeline` | `type:enhancement`, `area:build-system`, `area:ci-cd` |
 | `#56 Clean native binaries from git and harden ignore rules` | `type:cleanup`, `area:docs`, `area:native` |
 | `#57 Validate and correct the local development playbook` | `type:documentation`, `area:build-system`, `area:docs` |
 | `#75 Define shared native dependency collision policy before packaging changes` | `type:research`, `area:native`, `area:packaging`, `area:ci-cd`, `area:testing` |
-| `#76 Validate and harden expanded Harvest commands across platform workflows` | `type:hardening`, `area:ci-cd`, `area:build-system`, `platform:windows`, `platform:linux`, `platform:macos` |
 | `#79 Create custom Docker build image for Linux x64` | `type:enhancement`, `area:ci-cd`, `platform:linux` |
+| `#81 Add drift-prevention guardrail for harvest library lists` | `type:hardening`, `area:ci-cd`, `area:build-system` |
 
 ### Phase 3 - SDL2 Complete
 
