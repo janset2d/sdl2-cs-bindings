@@ -80,7 +80,7 @@ jobs:
         include:
           - triplet: x64-osx-dynamic
             rid: osx-x64
-            runner: macos-13
+            runner: macos-15-intel
           - triplet: arm64-osx-dynamic
             rid: osx-arm64
             runner: macos-latest

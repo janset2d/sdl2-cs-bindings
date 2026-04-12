@@ -4,11 +4,11 @@
 
 ## Workflow Overview
 
-```
+```text
 prepare-native-assets-main.yml  (orchestrator, manual trigger)
 ├── prepare-native-assets-windows.yml   (x64, x86, arm64)
 ├── prepare-native-assets-linux.yml     (x64 in ubuntu:20.04, arm64 in ubuntu:24.04)
-└── prepare-native-assets-macos.yml     (x64 on macos-13, arm64 on macos-latest)
+└── prepare-native-assets-macos.yml     (x64 on macos-15-intel, arm64 on macos-latest)
 ```
 
 Each platform workflow:
@@ -47,7 +47,7 @@ Each platform workflow:
 
 **Diagnosis**: Check the `vcpkg-setup` action's cache restore step. The cache key is:
 
-```
+```text
 vcpkg-bin-{os}-{triplet}-{vcpkg.json hash}-{vcpkg submodule commit}
 ```
 
@@ -106,13 +106,31 @@ If any of these change, the cache misses. This is expected after:
 - **Missing locales**: Some tools need UTF-8 locale. Set `LANG=C.UTF-8` or install `locales` package.
 - **ARM64 emulation**: `ubuntu-24.04-arm` runners are real ARM64 hardware, not emulated. If the runner is unavailable, the job queues indefinitely.
 
+### autoconf version too old (ubuntu:20.04)
+
+**Symptoms**: gperf (or other autotools-based ports) fail with `Autoconf version 2.70 or higher is required` during `autoreconf`.
+
+**Root cause**: ubuntu:20.04 ships autoconf 2.69. Newer vcpkg baselines pull in ports (e.g. gperf 3.3 via harfbuzz) that require autoconf >= 2.70.
+
+**Fix**: The Linux workflow installs autoconf 2.72 from source after the apt packages. This is a build-time tool only — it does not affect the shipped binaries or glibc target. See #77 and upstream microsoft/vcpkg#48169.
+
+### mpg123 arm64 build failure (NEON64 + fixed-point math)
+
+**Symptoms**: mpg123 fails on arm64-linux with `#error "Bad decoder choice together with fixed point math!"`.
+
+**Root cause**: The upstream vcpkg port's FPU detection incorrectly reports no FPU on arm64 Linux containers, enabling `REAL_IS_FIXED` which conflicts with `OPT_NEON64`.
+
+**Fix**: A vcpkg overlay port at `vcpkg-overlay-ports/mpg123/` patches the FPU detection to force `HAVE_FPU=1` on arm64 Linux. The `vcpkg-setup` action passes `--overlay-ports` to vcpkg automatically. Remove this overlay when upstream fixes land. See #78 and upstream microsoft/vcpkg#40709.
+
+**Maintenance**: This overlay requires re-validation on every vcpkg baseline bump. The dependency chain is `sdl2-mixer` → `mpg123`. See `vcpkg-overlay-ports/README.md` for the full maintenance protocol.
+
 ### macOS-Specific Issues
 
 **Symptoms**: Failures only on macOS workflows
 
 **Common issues**:
 
-- **Xcode version**: Different macOS runner images have different Xcode versions. Check `macos-13` vs `macos-latest` default Xcode.
+- **Xcode version**: Different macOS runner images have different Xcode versions. Check `macos-15-intel` vs `macos-latest` default Xcode.
 - **Homebrew packages**: If `autoconf`/`automake`/`libtool` are needed, ensure they're installed in the workflow.
 - **Universal binaries**: `otool` may show different results for x86_64 vs arm64 slices in universal binaries.
 
@@ -140,7 +158,7 @@ dotnet run -- --target Harvest --library SDL2 --rid {your-rid} --verbosity Diagn
 
 vcpkg build logs are in:
 
-```
+```text
 external/vcpkg/buildtrees/{port-name}/build-{triplet}-out.log
 external/vcpkg/buildtrees/{port-name}/build-{triplet}-err.log
 ```

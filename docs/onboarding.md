@@ -180,7 +180,7 @@ harvest-manifest.json + harvest-summary.json
 | win-arm64 | arm64-windows | windows-latest | — |
 | linux-x64 | x64-linux-dynamic | ubuntu-24.04 | ubuntu:20.04 |
 | linux-arm64 | arm64-linux-dynamic | ubuntu-24.04-arm | ubuntu:24.04 |
-| osx-x64 | x64-osx-dynamic | macos-13 | — |
+| osx-x64 | x64-osx-dynamic | macos-15-intel | — |
 | osx-arm64 | arm64-osx-dynamic | macos-latest | — |
 
 ## NuGet Package Topology

@@ -79,7 +79,10 @@ runs:
       if: inputs.runner-os == 'windows-latest'
       shell: pwsh
       run: |
-        & "$env:GITHUB_WORKSPACE\external\vcpkg\vcpkg.exe" install --triplet ${{ inputs.triplet }}
+        $overlayArgs = @()
+        $overlayPath = "$env:GITHUB_WORKSPACE\vcpkg-overlay-ports"
+        if (Test-Path $overlayPath) { $overlayArgs += "--overlay-ports=$overlayPath" }
+        & "$env:GITHUB_WORKSPACE\external\vcpkg\vcpkg.exe" install --triplet ${{ inputs.triplet }} @overlayArgs
       env:
         VCPKG_FEATURE_FLAGS: ${{ inputs.vcpkg-feature-flags }}
         VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/${{ inputs.vcpkg-cache-path }}
@@ -88,7 +91,11 @@ runs:
       if: inputs.runner-os != 'windows-latest'
       shell: bash
       run: |
-        $GITHUB_WORKSPACE/external/vcpkg/vcpkg install --triplet ${{ inputs.triplet }}
+        OVERLAY_ARGS=""
+        if [ -d "$GITHUB_WORKSPACE/vcpkg-overlay-ports" ]; then
+          OVERLAY_ARGS="--overlay-ports=$GITHUB_WORKSPACE/vcpkg-overlay-ports"
+        fi
+        $GITHUB_WORKSPACE/external/vcpkg/vcpkg install --triplet ${{ inputs.triplet }} $OVERLAY_ARGS
       env:
         VCPKG_FEATURE_FLAGS: ${{ inputs.vcpkg-feature-flags }}
         VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/${{ inputs.vcpkg-cache-path }}

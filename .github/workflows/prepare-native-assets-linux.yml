@@ -50,6 +50,21 @@ jobs:
 
           apt-get install -y $(apt-cache search '^libicu[0-9]+$' | head -1 | cut -d' ' -f1)
           update-ca-certificates
+
+          # gperf 3.3 (transitive dep via harfbuzz) requires autoconf >= 2.70.
+          # ubuntu:20.04 ships 2.69 — install 2.72 from source. refs #77
+          SYSTEM_AUTOCONF_VER=$(autoconf --version 2>/dev/null | head -1 | grep -oP '\d+\.\d+' || echo "0.0")
+          if [ "$(printf '%s\n' "2.70" "$SYSTEM_AUTOCONF_VER" | sort -V | head -1)" != "2.70" ]; then
+            echo "::group::Installing autoconf 2.72 from source (system has $SYSTEM_AUTOCONF_VER)"
+            AUTOCONF_SHA256="ba885c1319578d6c94d46e9b0dceb4014caafe2490e437a0dbca3f270a223f5a"
+            curl -fsSL -o /tmp/autoconf-2.72.tar.gz https://ftp.gnu.org/gnu/autoconf/autoconf-2.72.tar.gz
+            echo "$AUTOCONF_SHA256  /tmp/autoconf-2.72.tar.gz" | sha256sum -c -
+            tar xz -C /tmp -f /tmp/autoconf-2.72.tar.gz
+            cd /tmp/autoconf-2.72 && ./configure --prefix=/usr && make -j"$(nproc)" && make install
+            cd "$GITHUB_WORKSPACE"
+            echo "autoconf version now: $(autoconf --version | head -1)"
+            echo "::endgroup::"
+          fi
         env: { DEBIAN_FRONTEND: noninteractive }
 
       - uses: actions/checkout@v4

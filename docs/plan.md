@@ -56,7 +56,7 @@ See [phases/README.md](phases/README.md) for the full phase breakdown.
 | `prepare-native-assets-main.yml` | Working | Manual trigger, calls 3 platform workflows |
 | `prepare-native-assets-windows.yml` | Working | Matrix: x64, x86, arm64; command set now includes all SDL2 satellites with explicit `--rid` (validation pending) |
 | `prepare-native-assets-linux.yml` | Working | Matrix: x64 (ubuntu:20.04), arm64 (ubuntu:24.04); command set now includes all SDL2 satellites with explicit `--rid` (validation pending) |
-| `prepare-native-assets-macos.yml` | Working | Matrix: x64 (macos-13), arm64 (macos-latest); command set now includes all SDL2 satellites with explicit `--rid` (validation pending) |
+| `prepare-native-assets-macos.yml` | Working | Matrix: x64 (macos-15-intel), arm64 (macos-latest); command set now includes all SDL2 satellites with explicit `--rid` (validation pending) |
 | `release-candidate-pipeline.yml` | **Stub** | Placeholder logic, not functional |
 | Pre-flight version check | Working | Validates manifest.json ↔ vcpkg.json consistency |
 | Cake Harvest task | Working | Per-RID binary collection + status files |

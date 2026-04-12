@@ -61,7 +61,7 @@ Four GitHub Actions workflows were created and tested:
 1. **`prepare-native-assets-main.yml`** — Orchestrator workflow (manual trigger)
 2. **`prepare-native-assets-windows.yml`** — Reusable workflow for Windows (x64, x86, arm64)
 3. **`prepare-native-assets-linux.yml`** — Reusable workflow for Linux in containers (x64: ubuntu:20.04, arm64: ubuntu:24.04)
-4. **`prepare-native-assets-macos.yml`** — Reusable workflow for macOS (x64: macos-13, arm64: macos-latest)
+4. **`prepare-native-assets-macos.yml`** — Reusable workflow for macOS (x64: macos-15-intel, arm64: macos-latest)
 
 A reusable composite action `vcpkg-setup` handles vcpkg bootstrap, binary caching, and dependency installation.
 
