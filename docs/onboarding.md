@@ -54,10 +54,10 @@ These are settled decisions. Do not re-debate them unless new evidence surfaces.
 | --- | --- | --- | --- | --- |
 | SDL2 | `sdl2` (2.32.4, latest: 2.32.10) | SDL2-CS import | Cake Harvest | Functional |
 | SDL2_image | `sdl2-image` (2.8.8) | SDL2-CS import | Cake Harvest | Functional |
-| SDL2_mixer | `sdl2-mixer` (2.8.1) | SDL2-CS import | vcpkg.json missing | Incomplete |
-| SDL2_ttf | `sdl2-ttf` (2.24.0) | SDL2-CS import | vcpkg.json missing | Placeholder |
-| SDL2_gfx | `sdl2-gfx` (1.0.4) | SDL2-CS import | Cake Harvest | Functional |
-| SDL2_net | `sdl2-net` (2.2.0) | Not yet added | Not yet added | Not started |
+| SDL2_mixer | `sdl2-mixer` (2.8.1) | SDL2-CS import | Declared in vcpkg + Cake Harvest | In validation |
+| SDL2_ttf | `sdl2-ttf` (2.24.0) | SDL2-CS import | Declared in vcpkg + Cake Harvest | In validation |
+| SDL2_gfx | `sdl2-gfx` (1.0.4) | SDL2-CS import | Declared in vcpkg + Cake Harvest | In validation |
+| SDL2_net | `sdl2-net` (2.2.0) | Not yet added | Declared in vcpkg/manifest + Harvest path wired | Partial (managed binding pending) |
 
 ### SDL3 (Future — After SDL2 Complete)
 
@@ -203,18 +203,18 @@ Janset.SDL2                              ← Meta-package (pulls everything)
 
 Users reference `Janset.SDL2.Core` (or the meta-package `Janset.SDL2`). The `.Native` dependency is pulled in transitively — users never reference it directly.
 
-## What Works Today (as of 2026-04-11)
+## What Works Today (as of 2026-04-12)
 
 - C# bindings for all 5 SDL2 libraries compile and target net9.0/net8.0/netstandard2.0/net462
 - Cake Frosting Harvest pipeline: binary closure walking, dependency scanning, per-RID status files, consolidation
 - GitHub Actions: Cross-platform native builds for Windows/Linux/macOS (manual trigger)
-- vcpkg: SDL2 + SDL2_image with full feature flags (Vulkan, X11, Wayland, ALSA, D-Bus, all image codecs)
+- vcpkg: all SDL2 native ports (`sdl2`, `sdl2-image`, `sdl2-mixer`, `sdl2-ttf`, `sdl2-gfx`, `sdl2-net`) declared in working-tree config
 - Native packaging: `runtimes/{rid}/native/` structure for win-x64, win-arm64, linux-x64 (partial for other RIDs)
 - `buildTransitive` MSBuild targets for .NET Framework compatibility
 
 ## What Doesn't Work Yet
 
-- vcpkg.json missing: SDL2_mixer, SDL2_ttf, SDL2_gfx, SDL2_net dependencies
+- vcpkg/manifest/workflow expansion needs full cross-platform matrix validation
 - SDL2.Ttf.Native: Placeholder only (no binaries)
 - SDL2.Mixer.Native: Only win-x64 has full codec dependencies
 - Release Candidate Pipeline: Largely stub/placeholder

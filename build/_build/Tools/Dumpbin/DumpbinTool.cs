@@ -11,6 +11,7 @@ public abstract class DumpbinTool(ICakeContext cakeContext)
     : Tool<DumpbinSettings>(cakeContext.FileSystem, cakeContext.Environment, cakeContext.ProcessRunner, cakeContext.Tools)
 {
     private const string DumpbinExecutableName = "dumpbin.exe";
+    private const string VsToolsRequirement = "Microsoft.VisualStudio.Component.VC.Tools.x86.x64";
 
     protected override string GetToolName()
     {
@@ -24,11 +25,23 @@ public abstract class DumpbinTool(ICakeContext cakeContext)
 
     protected override IEnumerable<FilePath> GetAlternativeToolPaths(DumpbinSettings settings)
     {
+        var developerPromptDumpbin = TryResolveFromDeveloperPrompt();
+        if (developerPromptDumpbin is not null)
+        {
+            return [developerPromptDumpbin];
+        }
+
         var vsWhereLatest = cakeContext.VSWhereLatest(new VSWhereLatestSettings()
         {
-            Requires = "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
+            Requires = VsToolsRequirement,
             ReturnProperty = "installationPath",
         });
+
+        if (vsWhereLatest is null || string.IsNullOrWhiteSpace(vsWhereLatest.FullPath))
+        {
+            throw new FileNotFoundException(
+                "Dumpbin could not be resolved. Ensure Visual Studio Build Tools with C++ tools is installed, run from a Developer PowerShell/Command Prompt, or add dumpbin.exe to PATH.");
+        }
 
         var msvcRoot = vsWhereLatest.Combine("VC").Combine("Tools").Combine("MSVC");
 
@@ -48,15 +61,38 @@ public abstract class DumpbinTool(ICakeContext cakeContext)
             throw new DirectoryNotFoundException("No MSVC tools directory found.");
         }
 
-        // Host = x64, Target = x64 (adjust if you really need x86 or arm64)
-        var dumpbinDir = new DirectoryPath(latestTools.FullName).Combine("bin").Combine("Hostx64").Combine("x64");
-        var dumpbin = dumpbinDir.CombineWithFilePath(DumpbinExecutableName);
-
-        if (!cakeContext.FileExists(dumpbin))
+        var dumpbin = GetDumpbinCandidates(new DirectoryPath(latestTools.FullName)).FirstOrDefault(cakeContext.FileExists);
+        if (dumpbin is null)
         {
-            throw new FileNotFoundException($"Dumpbin executable not found: {dumpbin}");
+            throw new FileNotFoundException($"Dumpbin executable not found under MSVC tools directory: {latestTools.FullName}");
         }
 
         return [dumpbin];
+    }
+
+    private FilePath? TryResolveFromDeveloperPrompt()
+    {
+        var vcToolsInstallDir = cakeContext.Environment.GetEnvironmentVariable("VCToolsInstallDir");
+        if (string.IsNullOrWhiteSpace(vcToolsInstallDir))
+        {
+            return null;
+        }
+
+        var vcToolsDir = new DirectoryPath(vcToolsInstallDir);
+        if (!cakeContext.DirectoryExists(vcToolsDir))
+        {
+            return null;
+        }
+
+        return GetDumpbinCandidates(vcToolsDir).FirstOrDefault(cakeContext.FileExists);
+    }
+
+    private static IEnumerable<FilePath> GetDumpbinCandidates(DirectoryPath vcToolsDir)
+    {
+        var binDir = vcToolsDir.Combine("bin");
+        yield return binDir.Combine("Hostx64").Combine("x64").CombineWithFilePath(DumpbinExecutableName);
+        yield return binDir.Combine("Hostx64").Combine("x86").CombineWithFilePath(DumpbinExecutableName);
+        yield return binDir.Combine("Hostx86").Combine("x64").CombineWithFilePath(DumpbinExecutableName);
+        yield return binDir.Combine("Hostx86").Combine("x86").CombineWithFilePath(DumpbinExecutableName);
     }
 }

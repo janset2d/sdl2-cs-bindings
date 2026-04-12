@@ -179,6 +179,12 @@ dumpbin /dependents SDL2.dll
 → Recursively scan remaining dependencies
 ```
 
+Resolution note (current implementation):
+
+- `DumpbinTool` first checks `VCToolsInstallDir` (Developer PowerShell/Developer Command Prompt scenario)
+- then falls back to `vswhere` with `Microsoft.VisualStudio.Component.VC.Tools.x86.x64`
+- then probes MSVC Host/Target bin combinations for `dumpbin.exe`
+
 ### Linux (ldd)
 
 ```text

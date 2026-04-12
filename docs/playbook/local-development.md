@@ -14,7 +14,7 @@
 
 | Platform | Additional Requirements |
 | --- | --- |
-| Windows | Visual Studio Build Tools (for `dumpbin.exe`), or Windows SDK |
+| Windows | Visual Studio Build Tools 2022 with C++ tools (`Microsoft.VisualStudio.Component.VC.Tools.x86.x64`); Developer PowerShell/Developer Command Prompt recommended |
 | Linux | `build-essential`, `cmake`, `pkg-config`, `ldd`, plus SDL2 dev dependencies (see CI workflow for full list) |
 | macOS | Xcode Command Line Tools, `autoconf`, `automake`, `libtool` (via Homebrew) |
 
@@ -45,7 +45,7 @@ For local testing with native binaries, you have two options:
 3. Extract and merge the artifact so the harvested library directories land under `artifacts/harvest_output/`.
 4. Copy the harvested native payload from `artifacts/harvest_output/{Library}/runtimes/{rid}/native/` into the matching `src/native/{Library}.Native/runtimes/{rid}/native/` directory.
 
-Current limitation: the `prepare-native-assets-*` workflows are currently wired for `SDL2` and `SDL2_image`. Other libraries still need local harvesting or future CI work.
+Current status: the `prepare-native-assets-*` workflows now target the full SDL2 satellite set with explicit RID. Expanded matrix validation is still pending.
 
 #### Option B: Install SDL2 system-wide
 
@@ -99,13 +99,13 @@ dotnet build
 ```bash
 # From build/_build directory
 # Windows:
-dotnet run -- --target Harvest --library SDL2 --library SDL2_image --rid win-x64
+dotnet run -- --target Harvest --library SDL2 --library SDL2_image --library SDL2_mixer --library SDL2_ttf --library SDL2_gfx --library SDL2_net --rid win-x64
 
 # Linux:
-dotnet run -- --target Harvest --library SDL2 --library SDL2_image --rid linux-x64
+dotnet run -- --target Harvest --library SDL2 --library SDL2_image --library SDL2_mixer --library SDL2_ttf --library SDL2_gfx --library SDL2_net --rid linux-x64
 
 # macOS:
-dotnet run -- --target Harvest --library SDL2 --library SDL2_image --rid osx-arm64
+dotnet run -- --target Harvest --library SDL2 --library SDL2_image --library SDL2_mixer --library SDL2_ttf --library SDL2_gfx --library SDL2_net --rid osx-arm64
 ```
 
 Harvest writes two kinds of output:
@@ -156,7 +156,7 @@ cd build/_build
 dotnet run -- --showtree
 
 # Run a specific task
-dotnet run -- --target InfoTask          # Show environment info
+dotnet run -- --target Info              # Show environment info
 dotnet run -- --target PreFlightCheck    # Validate version consistency
 dotnet run -- --target Harvest --library SDL2 --rid win-x64
 dotnet run -- --target ConsolidateHarvest
@@ -218,6 +218,15 @@ Native binaries are not in the runtime path. Either:
 - Install SDL2 system-wide (see Quick Start above)
 - Copy binaries to your project's output directory
 - Download CI artifacts
+
+### "dumpbin.exe not found" on Windows
+
+The build host's Windows dependency scanner expects Visual Studio C++ tooling.
+
+- Install Visual Studio Build Tools 2022 with `Microsoft.VisualStudio.Component.VC.Tools.x86.x64`
+- Prefer running local checks from Developer PowerShell (this sets `VCToolsInstallDir`)
+- If needed, verify `VCToolsInstallDir` and confirm `dumpbin.exe` exists under `%VCToolsInstallDir%\bin\Hostx64\x64`
+- If `vswhere.exe` is missing, install/repair Visual Studio Installer components before retrying
 
 ### vcpkg install fails
 

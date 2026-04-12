@@ -3,10 +3,10 @@
     {
       "name": "SDL2",
       "vcpkg_name": "sdl2",
-      "vcpkg_version": "2.32.4",
+      "vcpkg_version": "2.32.10",
       "vcpkg_port_version": 0,
       "native_lib_name": "SDL2.Core.Native",
-      "native_lib_version": "2.32.4.0",
+      "native_lib_version": "2.32.10.0",
       "core_lib": true,
       "primary_binaries": [
         {
@@ -27,7 +27,7 @@
       "name": "SDL2_image",
       "vcpkg_name": "sdl2-image",
       "vcpkg_version": "2.8.8",
-      "vcpkg_port_version": 1,
+      "vcpkg_port_version": 2,
       "native_lib_name": "SDL2.Image.Native",
       "native_lib_version": "2.8.8.0",
       "core_lib": false,
@@ -50,7 +50,7 @@
       "name": "SDL2_mixer",
       "vcpkg_name": "sdl2-mixer",
       "vcpkg_version": "2.8.1",
-      "vcpkg_port_version": 1,
+      "vcpkg_port_version": 2,
       "native_lib_name": "SDL2.Mixer.Native",
       "native_lib_version": "2.8.1.0",
       "core_lib": false,
@@ -112,6 +112,29 @@
         {
           "os": "OSX",
           "patterns": ["libSDL2_gfx*.dylib"]
+        }
+      ]
+    },
+    {
+      "name": "SDL2_net",
+      "vcpkg_name": "sdl2-net",
+      "vcpkg_version": "2.2.0",
+      "vcpkg_port_version": 3,
+      "native_lib_name": "SDL2.Net.Native",
+      "native_lib_version": "2.2.0.0",
+      "core_lib": false,
+      "primary_binaries": [
+        {
+          "os": "Windows",
+          "patterns": ["SDL2_net.dll"]
+        },
+        {
+          "os": "Linux",
+          "patterns": ["libSDL2_net*"]
+        },
+        {
+          "os": "OSX",
+          "patterns": ["libSDL2_net*.dylib"]
         }
       ]
     }

@@ -19,6 +19,7 @@
       "comdlg32.dll",
       "comctl32.dll",
       "ws2_32.dll",
+      "iphlpapi.dll",
       "crypt32.dll",
       "d3d9.dll",
       "d3d11.dll",

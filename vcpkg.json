@@ -1,7 +1,7 @@
 {
   "name": "sdl2-cs-bindings-dependencies",
   "version-string": "1.0.0",
-  "builtin-baseline": "41c447cc210dc39aa85d4a5f58b4a1b9e573b3dc",
+  "builtin-baseline": "0b88aacde46a853151730fbe7d0b7ee45f4b6864",
   "dependencies": [
     {
       "name": "sdl2",
@@ -37,18 +37,52 @@
     {
       "name": "sdl2-image",
       "features": ["avif", "libjpeg-turbo", "libwebp", "tiff"]
+    },
+    {
+      "name": "sdl2-mixer",
+      "features": ["fluidsynth", "libflac", "libmodplug", "mpg123", "opusfile", "wavpack"]
+    },
+    {
+      "name": "sdl2-ttf",
+      "features": ["harfbuzz"]
+    },
+    {
+      "name": "sdl2-gfx"
+    },
+    {
+      "name": "sdl2-net"
     }
   ],
   "overrides": [
     {
       "name": "sdl2",
-      "version": "2.32.4",
+      "version": "2.32.10",
       "port-version": 0
     },
     {
       "name": "sdl2-image",
       "version": "2.8.8",
-      "port-version": 1
+      "port-version": 2
+    },
+    {
+      "name": "sdl2-mixer",
+      "version": "2.8.1",
+      "port-version": 2
+    },
+    {
+      "name": "sdl2-ttf",
+      "version": "2.24.0",
+      "port-version": 0
+    },
+    {
+      "name": "sdl2-gfx",
+      "version": "1.0.4",
+      "port-version": 11
+    },
+    {
+      "name": "sdl2-net",
+      "version": "2.2.0",
+      "port-version": 3
     }
   ]
 }

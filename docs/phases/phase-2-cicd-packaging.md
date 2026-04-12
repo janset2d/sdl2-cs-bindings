@@ -11,32 +11,27 @@ Complete the end-to-end pipeline from source code to publishable NuGet packages.
 
 ### 2.1 Complete vcpkg.json
 
-#### Priority: HIGH — Blocks everything else for Mixer/TTF/Net
+#### Priority: HIGH — Coverage declared, now needs validation
 
-Current state: Only `sdl2` and `sdl2-image` are declared. Need to add:
+Current working-tree state: all six SDL2 libraries are declared in `vcpkg.json` with overrides aligned to `manifest.json`.
 
-```text
-sdl2-mixer   → features: mpg123, libflac, opusfile, libmodplug, wavpack, fluidsynth
-sdl2-ttf     → features: harfbuzz
-sdl2-gfx     → (no features)
-sdl2-net     → (no features)
-```
+Remaining validation work:
 
-Also update vcpkg overrides for each library to pin versions matching `manifest.json`.
+1. Verify `PreFlightCheck` passes on clean environments
+2. Validate at least one full matrix run with the expanded library set
+3. Confirm no regression in dependency closure and packaging inputs
 
 ### 2.2 Update vcpkg Baseline
 
-#### Priority: HIGH — SDL2 is 3 patches behind
+#### Priority: HIGH — Bump applied, cross-platform validation pending
 
-Current baseline: `41c447cc...` (SDL2 2.32.4)
-Target: Latest baseline (SDL2 2.32.10)
+Current working-tree baseline: `0b88aacd...` (SDL2 2.32.10).
 
-Steps:
+Validation steps:
 
-1. Update `external/vcpkg` submodule to latest
-2. Update `vcpkg.json` `builtin-baseline` to new commit hash
-3. Update `manifest.json` versions to match
-4. Run harvest on at least one RID to verify nothing broke
+1. Verify `manifest.json` and `vcpkg.json` stay version-consistent under `PreFlightCheck`
+2. Run Harvest for all libraries on at least one RID per OS family
+3. Confirm no new closure or deployment regressions
 
 See [playbook/vcpkg-update.md](../playbook/vcpkg-update.md) for step-by-step recipe.
 
@@ -60,10 +55,17 @@ Requirements:
 
 Current `release-candidate-pipeline.yml` is a stub. Need to implement:
 
-1. Pre-flight check job (version validation) — ✅ Already works
+1. Pre-flight check integration in release-candidate workflow (Cake `PreFlightCheck` exists, workflow wiring still placeholder)
 2. Build matrix job (call platform workflows + harvest) — Partially done
 3. Consolidate harvest artifacts job — Needs implementation
 4. Package and publish job — Needs PackageTask first
+
+Workflow command baseline (updated 2026-04-12):
+
+- `prepare-native-assets-windows.yml`, `prepare-native-assets-linux.yml`, and `prepare-native-assets-macos.yml` now use the same full SDL2 satellite harvest list (`SDL2`, `SDL2_image`, `SDL2_mixer`, `SDL2_ttf`, `SDL2_gfx`, `SDL2_net`)
+- all three platform workflows now pass explicit `--rid`
+- Windows system-DLL exclusion list now includes `iphlpapi.dll` to avoid false unresolved dependency noise for `SDL2_net`
+- remaining work is CI matrix validation for this expanded command set
 
 Critical architectural note:
 
@@ -108,6 +110,50 @@ See [playbook/local-development.md](../playbook/local-development.md).
 - Create `src/SDL2.Net/` and `src/native/SDL2.Net.Native/`
 - Add to solution and manifest.json
 
+### 2.8 Shared Native Dependency Policy (Pre-Coding Deep Dive)
+
+#### Priority: HIGH — Must be documented before workflow coding
+
+Problem statement:
+
+- multiple satellite native packages can carry the same dependency basename (example: `zlib1.dll` in both Image and Mixer on Windows)
+- when consumers reference multiple satellites, output flattening can leave a single winner for same-name binaries
+- Linux/macOS symlink preservation (`native.tar.gz`) solves SONAME-chain integrity, but does not by itself define cross-package version/collision policy
+
+Required deliverables before implementation changes:
+
+1. Per-RID duplicate basename inventory across all satellite native payloads
+2. Hash equality report for duplicates (initial focus: zlib family)
+3. Decision record: how to handle same-name duplicates
+4. CI guardrail design (fail build when duplicate basenames have non-identical hashes for same RID)
+5. Migration notes for moving to a shared dependency strategy if needed later
+
+Acceptance gate:
+
+- do not modify packaging/CI behavior for this topic until this deep-dive note is reviewed and approved
+
+### 2.9 Platform Workflow Harvest Parity
+
+#### Priority: HIGH — Required for reliable matrix behavior
+
+Target behavior:
+
+- all platform workflows pass explicit `--rid ${{ inputs.rid }}` to Harvest
+- all platform workflows harvest the same SDL2 satellite set (SDL2, SDL2_image, SDL2_mixer, SDL2_ttf, SDL2_gfx, SDL2_net)
+- command shape and inputs are consistent across Windows/Linux/macOS for easier auditing and troubleshooting
+
+### 2.10 Windows Local Tooling Prerequisites Guide
+
+#### Priority: MEDIUM — Documentation TODO before wider contributor rollout
+
+Add a dedicated local-development guideline for Windows native/dependency tooling:
+
+1. Required Visual Studio Build Tools component set (C++ toolchain requirement)
+2. Recommended shell context (Developer PowerShell/Developer Command Prompt)
+3. `dumpbin` discovery behavior and fallback order used by the build host
+4. Troubleshooting for missing `dumpbin.exe` and `vswhere.exe`
+5. Quick verification checklist contributors can run locally
+
 ## Exit Criteria
 
 - [ ] `vcpkg.json` declares all 6 SDL2 libraries with appropriate features
@@ -118,6 +164,9 @@ See [playbook/local-development.md](../playbook/local-development.md).
 - [ ] `.gitignore` rules prevent re-committing binaries
 - [ ] Local development playbook corrected, validated, and tested
 - [ ] SDL2_net binding project created (even if native packaging is Phase 3)
+- [ ] Shared native dependency deep-dive documented and approved before related CI/package code changes
+- [ ] Platform workflows use explicit RID and full satellite harvest parity across Windows/Linux/macOS
+- [ ] Windows local tooling prerequisites guide is documented and linked from the playbook
 
 ## Dependencies
 

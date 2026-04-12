@@ -44,19 +44,19 @@ See [phases/README.md](phases/README.md) for the full phase breakdown.
 | --- | :---: | --- | :---: |
 | SDL2 | Yes | vulkan, alsa, dbus, ibus, samplerate, wayland, x11 | Yes |
 | SDL2_image | Yes | avif, libjpeg-turbo, libwebp, tiff | Yes |
-| SDL2_mixer | **No** | Needs: mpg123, libflac, opusfile, libmodplug, wavpack, fluidsynth | No |
-| SDL2_ttf | **No** | Needs: harfbuzz | No |
-| SDL2_gfx | **No** | No features (simple library) | Yes (but not via vcpkg.json) |
-| SDL2_net | **No** | No features | No |
+| SDL2_mixer | Yes | fluidsynth, libflac, libmodplug, mpg123, opusfile, wavpack | Yes (win-x64 validation; matrix pending) |
+| SDL2_ttf | Yes | harfbuzz | Yes (win-x64 validation; matrix pending) |
+| SDL2_gfx | Yes | No features (simple library) | Yes (win-x64 validation; matrix pending) |
+| SDL2_net | Yes | No features | Yes (win-x64 validation; matrix pending) |
 
 ### CI/CD
 
 | Component | Status | Notes |
 | --- | --- | --- |
 | `prepare-native-assets-main.yml` | Working | Manual trigger, calls 3 platform workflows |
-| `prepare-native-assets-windows.yml` | Working | Matrix: x64, x86, arm64; currently harvests `SDL2` + `SDL2_image` |
-| `prepare-native-assets-linux.yml` | Working | Matrix: x64 (ubuntu:20.04), arm64 (ubuntu:24.04); currently harvests `SDL2` + `SDL2_image` |
-| `prepare-native-assets-macos.yml` | Working | Matrix: x64 (macos-13), arm64 (macos-latest); currently harvests `SDL2` + `SDL2_image` |
+| `prepare-native-assets-windows.yml` | Working | Matrix: x64, x86, arm64; command set now includes all SDL2 satellites with explicit `--rid` (validation pending) |
+| `prepare-native-assets-linux.yml` | Working | Matrix: x64 (ubuntu:20.04), arm64 (ubuntu:24.04); command set now includes all SDL2 satellites with explicit `--rid` (validation pending) |
+| `prepare-native-assets-macos.yml` | Working | Matrix: x64 (macos-13), arm64 (macos-latest); command set now includes all SDL2 satellites with explicit `--rid` (validation pending) |
 | `release-candidate-pipeline.yml` | **Stub** | Placeholder logic, not functional |
 | Pre-flight version check | Working | Validates manifest.json ↔ vcpkg.json consistency |
 | Cake Harvest task | Working | Per-RID binary collection + status files |
@@ -71,6 +71,7 @@ See [phases/README.md](phases/README.md) for the full phase breakdown.
 | Cake Frosting host | Working (.NET 9.0, Cake.Frosting 5.0.0) |
 | DI-based service architecture | Working (IPathService, IRuntimeProfile, etc.) |
 | BinaryClosureWalker (Windows/dumpbin) | Working |
+| Dumpbin tool discovery (Windows) | Working (checks `VCToolsInstallDir` first, then `vswhere` + MSVC candidate probing) |
 | BinaryClosureWalker (Linux/ldd) | Working |
 | BinaryClosureWalker (macOS/otool) | Working (core implementation complete; further edge-case validation still valuable) |
 | ArtifactPlanner + ArtifactDeployer | Working |
@@ -79,7 +80,7 @@ See [phases/README.md](phases/README.md) for the full phase breakdown.
 
 ## Version Tracking
 
-### Current Versions (vcpkg baseline: `41c447cc...`)
+### Current Versions (vcpkg baseline in working tree: `0b88aacd...`)
 
 | Library | Our Version | vcpkg Latest | Upstream Latest | Action Needed |
 | --- | --- | --- | --- | --- |
@@ -109,8 +110,11 @@ See [phases/README.md](phases/README.md) for the full phase breakdown.
 - [ ] Reorganize documentation
 - [ ] Rewrite AGENTS.md for this repo
 - [x] Realign GitHub issues, labels, and milestones to the canonical roadmap
-- [ ] Complete vcpkg.json (add mixer, ttf, gfx, net with features)
-- [ ] Update vcpkg baseline to get SDL2 2.32.10
+- [ ] Validate and stabilize full vcpkg.json coverage (all six SDL2 libraries are now declared in the working tree)
+- [ ] Validate the bumped vcpkg baseline (0b88aacd... / SDL2 2.32.10) across matrix runs
+- [ ] Document and approve shared native dependency policy (zlib and other duplicate basenames) before CI/package coding
+- [ ] Update prepare-native-assets workflows for full SDL2 satellite harvest parity and explicit `--rid` wiring on all platforms
+- [ ] Add a Windows local prerequisites guide (VS tooling ecosystem + dumpbin/vswhere troubleshooting)
 - [ ] Clean up native binaries from git history
 - [ ] Correct and validate local development playbook
 
@@ -167,6 +171,8 @@ Primary docs: [phases/phase-2-cicd-packaging.md](phases/phase-2-cicd-packaging.m
 | `#55 Implement distributed harvest staging for the release-candidate pipeline` | `type:enhancement`, `area:build-system`, `area:ci-cd` |
 | `#56 Clean native binaries from git and harden ignore rules` | `type:cleanup`, `area:docs`, `area:native` |
 | `#57 Validate and correct the local development playbook` | `type:documentation`, `area:build-system`, `area:docs` |
+| `#75 Define shared native dependency collision policy before packaging changes` | `type:research`, `area:native`, `area:packaging`, `area:ci-cd`, `area:testing` |
+| `#76 Validate and harden expanded Harvest commands across platform workflows` | `type:hardening`, `area:ci-cd`, `area:build-system`, `platform:windows`, `platform:linux`, `platform:macos` |
 
 ### Phase 3 - SDL2 Complete
 
@@ -221,12 +227,15 @@ Primary docs: [phases/phase-5-sdl3-support.md](phases/phase-5-sdl3-support.md), 
 ## Known Issues
 
 1. **Native binaries committed to git**: Some test binaries were committed to `src/native/*/runtimes/`. Need cleanup + .gitignore rules.
-2. **vcpkg.json incomplete**: Only SDL2 and SDL2_image declared. Mixer, TTF, Gfx, Net missing.
+2. **vcpkg/manifest updates need full validation**: full SDL2 coverage and baseline bump are in the working tree, but matrix-level validation is still pending.
 3. **Release pipeline is a stub**: `release-candidate-pipeline.yml` has placeholder logic.
 4. **No tests**: The only test project (`test/Sandboc/`) is a development utility, not a test suite.
 5. **Local dev playbook needs correction**: A playbook exists, but parts of it were inaccurate and not yet validated end-to-end.
 6. **Partial CI plumbing exists in code only**: `PathService` exposes harvest-staging helpers and the build host exposes `--use-overrides`, but neither is integrated into the active task/workflow path.
 7. **Distributed CI output flow is not wired yet**: current harvest output is still local-first. The release pipeline will need a real staging-vs-consolidated path split so matrix jobs can upload per-RID artifacts before consolidation.
+8. **Expanded workflow command set needs matrix validation**: Windows/Linux/macOS workflows now use full satellite harvest commands with explicit RID, but cross-platform matrix stability for this expanded set is not yet validated end-to-end.
+9. **Shared native dependency collision policy not formalized**: duplicate basenames across satellite native packages (for example zlib-family binaries) need a documented pre-coding decision and CI guardrail strategy.
+10. **Windows local tooling guidance is not explicit enough**: contributors need a dedicated prerequisites guide for VS C++ tooling, Developer PowerShell usage, and dumpbin/vswhere troubleshooting.
 
 ## Cross-Reference
 
