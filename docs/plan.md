@@ -2,7 +2,7 @@
 
 > **This is the canonical status document.** When code and docs disagree, verify against the code. When phases and this file disagree, this file wins.
 
-**Last updated**: 2026-04-11
+**Last updated**: 2026-04-12
 **Maintainer**: Deniz Irgin (@denizirgin)
 
 ## Mission
@@ -108,6 +108,7 @@ See [phases/README.md](phases/README.md) for the full phase breakdown.
 - [ ] Resume development, understand status quo
 - [ ] Reorganize documentation
 - [ ] Rewrite AGENTS.md for this repo
+- [x] Realign GitHub issues, labels, and milestones to the canonical roadmap
 - [ ] Complete vcpkg.json (add mixer, ttf, gfx, net with features)
 - [ ] Update vcpkg baseline to get SDL2 2.32.10
 - [ ] Clean up native binaries from git history
@@ -135,6 +136,87 @@ See [phases/README.md](phases/README.md) for the full phase breakdown.
 - [ ] Stabilize SDL2 + SDL3 packages (v1.0)
 - [ ] Community feedback incorporation
 - [ ] Begin Janset2D development on top of these bindings
+
+## Roadmap Tracking Policy
+
+- GitHub issues are part of the execution model, not optional bookkeeping.
+- Work that meaningfully advances the roadmap should be represented in issues with current labels, milestones, and doc references.
+- The canonical issue table below is the docs-facing source for current open roadmap issues; GitHub tracker changes should be managed against this table, not a separate tracker-definition script.
+- Issue taxonomy should mirror the active canonical phase model, not retired planning structures.
+- The active label families are `type:*` for work kind, `area:*` for repo scope, and optional `platform:*` labels when the work is OS-specific.
+- Retired label families such as `phase:*`, `component:*`, `topic:*`, `meta:*`, and `process:*` should not be reused.
+- Issue bodies should describe current reality, intended outcome, dependencies, and exit criteria.
+- PRs are not mandatory for this repo, but commits should reference issues when practical so work can still be traced without a PR layer.
+- If an item is deliberately deferred, keep it visible through backlog issues and the parking-lot docs instead of letting it disappear into commit history.
+
+## Canonical Issue Table
+
+This table is the human-readable roadmap map for the current open issue tracker. If the table and GitHub drift, update both in the same change.
+
+Tracker cleanup note: issue `#51` completed the one-time tracker realignment. The rows below cover the active open roadmap issues.
+
+### Phase 2 - CI/CD & Packaging
+
+Primary docs: [phases/phase-2-cicd-packaging.md](phases/phase-2-cicd-packaging.md), [knowledge-base/ci-cd-packaging-and-release-plan.md](knowledge-base/ci-cd-packaging-and-release-plan.md), [knowledge-base/cake-build-architecture.md](knowledge-base/cake-build-architecture.md), [playbook/local-development.md](playbook/local-development.md)
+
+| Issue | Labels |
+| --- | --- |
+| `#52 Complete vcpkg.json coverage for the remaining SDL2 libraries` | `type:enhancement`, `area:vcpkg`, `area:native` |
+| `#53 Update the vcpkg baseline to SDL2 2.32.10 and validate one RID` | `type:enhancement`, `area:vcpkg` |
+| `#54 Implement PackageTask for native and managed package creation` | `type:enhancement`, `area:build-system`, `area:packaging` |
+| `#55 Implement distributed harvest staging for the release-candidate pipeline` | `type:enhancement`, `area:build-system`, `area:ci-cd` |
+| `#56 Clean native binaries from git and harden ignore rules` | `type:cleanup`, `area:docs`, `area:native` |
+| `#57 Validate and correct the local development playbook` | `type:documentation`, `area:build-system`, `area:docs` |
+
+### Phase 3 - SDL2 Complete
+
+Primary docs: [phases/phase-3-sdl2-complete.md](phases/phase-3-sdl2-complete.md), [playbook/adding-new-library.md](playbook/adding-new-library.md), [playbook/local-development.md](playbook/local-development.md)
+
+| Issue | Labels |
+| --- | --- |
+| `#58 Add SDL2_net binding and native package skeleton` | `type:enhancement`, `area:bindings`, `area:native` |
+| `#59 Create the SDL2 smoke test suite and CI coverage` | `type:enhancement`, `area:ci-cd`, `area:testing` |
+| `#60 Create sample projects under samples/` | `type:enhancement`, `area:docs`, `area:samples` |
+| `#61 Add the Janset.SDL2 meta-package` | `type:enhancement`, `area:bindings`, `area:packaging` |
+| `#62 Write CONTRIBUTING.md and contributor workflow guidance` | `type:documentation`, `area:docs` |
+| `#63 Publish the first SDL2 prerelease packages and release metadata` | `type:enhancement`, `area:packaging`, `area:release` |
+| `#64 Document Linux runtime compatibility and minimum glibc support` | `type:documentation`, `area:release`, `area:testing`, `platform:linux` |
+
+### Backlog - Hardening
+
+Primary docs: [plan.md](plan.md), [knowledge-base/ci-cd-packaging-and-release-plan.md](knowledge-base/ci-cd-packaging-and-release-plan.md), [knowledge-base/cake-build-architecture.md](knowledge-base/cake-build-architecture.md)
+
+| Issue | Labels |
+| --- | --- |
+| `#65 Harden package validation and local feed workflows` | `type:hardening`, `area:build-system`, `area:packaging`, `area:testing` |
+| `#66 Harden supply-chain and release integrity workflows` | `type:hardening`, `area:release`, `area:testing` |
+| `#68 Add unit tests for the build host` | `type:hardening`, `area:build-system`, `area:testing` |
+
+### Backlog - Parking Lot
+
+Primary docs: [parking-lot.md](parking-lot.md), [knowledge-base/cake-build-architecture.md](knowledge-base/cake-build-architecture.md)
+
+| Issue | Labels |
+| --- | --- |
+| `#67 Implement external native override support` | `type:enhancement`, `area:build-system`, `area:native` |
+
+### Phase 4 - Binding Auto-Generation
+
+Primary docs: [phases/phase-4-binding-autogen.md](phases/phase-4-binding-autogen.md), [research/binding-autogen-approaches.md](research/binding-autogen-approaches.md)
+
+| Issue | Labels |
+| --- | --- |
+| `#69 Implement the CppAst binding generator` | `type:enhancement`, `area:bindings`, `area:build-system` |
+| `#70 Migrate SDL2 bindings from imported SDL2-CS files to generated code` | `type:enhancement`, `area:bindings` |
+
+### Phase 5 - SDL3 Support
+
+Primary docs: [phases/phase-5-sdl3-support.md](phases/phase-5-sdl3-support.md), [research/sdl3-ecosystem-analysis.md](research/sdl3-ecosystem-analysis.md)
+
+| Issue | Labels |
+| --- | --- |
+| `#71 Add SDL3 bindings and native packages to the monorepo` | `type:enhancement`, `area:bindings`, `area:native` |
+| `#72 Extend CI and packaging flow for SDL3 prereleases` | `type:enhancement`, `area:ci-cd`, `area:packaging`, `area:release` |
 
 ## Known Issues
 

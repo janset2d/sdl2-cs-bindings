@@ -146,6 +146,18 @@ Before proposing changes, review the documentation. If your change affects behav
 - When you rename or move docs, update all internal references.
 - Research docs must always carry a date.
 
+## Issue Management
+
+Issue tracking is part of the software delivery lifecycle in this repo.
+
+- Roadmap-worthy work should exist in GitHub issues, not only in chat, docs, or commit history.
+- Issues should use the current roadmap model from `docs/plan.md` and `docs/phases/README.md`, not retired planning terminology.
+- Issue bodies should capture current reality, why the work matters, links to canonical docs, and concrete exit criteria.
+- If scope changes, update the issue instead of letting the tracker drift away from the docs.
+- PRs are optional in this repo. Direct commits are acceptable when appropriate.
+- When possible, map commits back to issues with references such as `refs #123` or `closes #123`.
+- If work is intentionally deferred, park it explicitly in canonical docs or backlog issues instead of leaving it implied.
+
 ## Engineering Preferences (Guidance For Recommendations)
 
 - Flag repetition aggressively (DRY matters).

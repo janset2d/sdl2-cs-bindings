@@ -225,6 +225,19 @@ Users reference `Janset.SDL2.Core` (or the meta-package `Janset.SDL2`). The `.Na
 - Binding autogeneration: Not yet started
 - SDL3 support: Not yet started
 
+## Work Tracking Model
+
+This repo treats docs, issues, and commits as one delivery system:
+
+- Canonical docs define current reality and roadmap direction.
+- GitHub issues should represent concrete deliverables, cleanup threads, or deferred work that still matters.
+- Issues should link back to the relevant canonical docs and use current milestone and label metadata.
+- The canonical label model is `type:*` plus `area:*`, with optional `platform:*` labels for OS-specific work.
+- Retired label families such as `phase:*`, `component:*`, `topic:*`, `meta:*`, and `process:*` are historical only and should not be used for new work.
+- PRs are optional; direct commits are fine when the work does not need a PR workflow.
+- When possible, commits should reference the issue they belong to so the implementation trail is easy to reconstruct.
+- If something is worth remembering but not worth doing now, keep it in a backlog issue or the parking-lot docs instead of leaving it only in chat history.
+
 ## Reading Order for LLM Agents
 
 1. **This file** (`docs/onboarding.md`) — you are here
