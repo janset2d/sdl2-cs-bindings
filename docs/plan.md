@@ -117,6 +117,7 @@ See [phases/README.md](phases/README.md) for the full phase breakdown.
 - [ ] Add a Windows local prerequisites guide (VS tooling ecosystem + dumpbin/vswhere troubleshooting)
 - [ ] Clean up native binaries from git history
 - [ ] Correct and validate local development playbook
+- [ ] Create custom Docker build image for Linux x64 to replace inline tool installs (#79)
 
 ### Q3 2026
 
@@ -127,6 +128,7 @@ See [phases/README.md](phases/README.md) for the full phase breakdown.
 - [ ] Create smoke tests (basic SDL_Init → SDL_Quit per library)
 - [ ] Create sample projects
 - [ ] Publish first pre-release to NuGet.org
+- [ ] Evaluate NoDependencies native package variant for minimal Linux environments (#80)
 
 ### Q4 2026
 
@@ -173,6 +175,7 @@ Primary docs: [phases/phase-2-cicd-packaging.md](phases/phase-2-cicd-packaging.m
 | `#57 Validate and correct the local development playbook` | `type:documentation`, `area:build-system`, `area:docs` |
 | `#75 Define shared native dependency collision policy before packaging changes` | `type:research`, `area:native`, `area:packaging`, `area:ci-cd`, `area:testing` |
 | `#76 Validate and harden expanded Harvest commands across platform workflows` | `type:hardening`, `area:ci-cd`, `area:build-system`, `platform:windows`, `platform:linux`, `platform:macos` |
+| `#79 Create custom Docker build image for Linux x64` | `type:enhancement`, `area:ci-cd`, `platform:linux` |
 
 ### Phase 3 - SDL2 Complete
 
@@ -187,6 +190,7 @@ Primary docs: [phases/phase-3-sdl2-complete.md](phases/phase-3-sdl2-complete.md)
 | `#62 Write CONTRIBUTING.md and contributor workflow guidance` | `type:documentation`, `area:docs` |
 | `#63 Publish the first SDL2 prerelease packages and release metadata` | `type:enhancement`, `area:packaging`, `area:release` |
 | `#64 Document Linux runtime compatibility and minimum glibc support` | `type:documentation`, `area:release`, `area:testing`, `platform:linux` |
+| `#80 Evaluate NoDependencies native package variant for minimal Linux environments` | `type:research`, `area:packaging`, `area:native`, `platform:linux` |
 
 ### Backlog - Hardening
 
