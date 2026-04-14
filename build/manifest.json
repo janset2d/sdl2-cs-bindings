@@ -1,4 +1,8 @@
 {
+  "packaging_config": {
+    "validation_mode": "strict",
+    "core_library": "sdl2"
+  },
   "library_manifests": [
     {
       "name": "SDL2",

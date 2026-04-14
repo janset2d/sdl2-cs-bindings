@@ -40,7 +40,7 @@
     },
     {
       "name": "sdl2-mixer",
-      "features": ["fluidsynth", "libflac", "libmodplug", "mpg123", "opusfile", "wavpack"]
+      "features": ["libmodplug", "opusfile", "timidity", "wavpack"]
     },
     {
       "name": "sdl2-ttf",

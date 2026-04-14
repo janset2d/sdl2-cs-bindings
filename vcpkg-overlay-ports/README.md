@@ -1,12 +1,36 @@
 # vcpkg Overlay Ports
 
-This directory contains local overrides for vcpkg ports that have upstream bugs affecting our build matrix. Overlays are vcpkg's official mechanism for patching ports without forking the vcpkg repo.
+This directory contains local overrides for vcpkg ports that have upstream bugs or design mismatches affecting our build matrix or packaging strategy. Overlays are vcpkg's official mechanism for patching ports without forking the vcpkg repo.
 
 **How it works:** The `vcpkg-setup` GitHub Action conditionally passes `--overlay-ports` pointing to this directory (only if the directory exists). When vcpkg encounters a port name that exists here, it uses our version instead of the upstream port.
 
 ## Active Overlays
 
-### mpg123
+### sdl2-mixer
+
+- **Why:** The stock vcpkg portfile disables SDL2_mixer's bundled codec alternatives (minimp3, drflac, native-midi) and couples format support to external LGPL libraries. Our LGPL-free strategy needs the bundled alternatives enabled.
+- **Tracking issue:** #84
+- **Based on upstream version:** 2.8.1#2 (vcpkg baseline `0b88aacd`)
+- **Changes from upstream:**
+  - **vcpkg.json:** Removed LGPL features (`mpg123`, `fluidsynth`, `libflac`). Removed `libxmp` dependency from `libmodplug` feature. Added `timidity` to available features.
+  - **portfile.cmake:** Force-enabled `SDL2MIXER_MP3=ON` and `SDL2MIXER_FLAC=ON` (bundled minimp3/drflac handle these). Set `SDL2MIXER_FLAC_DRFLAC=ON` (was hardcoded OFF). Set `SDL2MIXER_MIDI_NATIVE=ON` (was hardcoded OFF). Disabled LGPL backends: `SDL2MIXER_MP3_MPG123=OFF`, `SDL2MIXER_MIDI_FLUIDSYNTH=OFF`, `SDL2MIXER_MOD_XMP=OFF`.
+- **Format coverage with this overlay:**
+
+  | Format | Backend | Source | License |
+  | --- | --- | --- | --- |
+  | MP3 | minimp3 (bundled) | `src/codecs/minimp3/` | CC0 Public Domain |
+  | FLAC | drflac (bundled) | `src/codecs/dr_libs/` | Unlicense/MIT-0 |
+  | OGG Vorbis | libvorbis (vcpkg) | External (core dep) | BSD-3-Clause |
+  | Opus | opusfile (vcpkg) | External (feature) | BSD-3-Clause |
+  | WavPack | wavpack (vcpkg) | External (feature) | BSD-3-Clause |
+  | WAV | built-in | SDL2_mixer core | Zlib |
+  | MOD/Tracker | libmodplug (vcpkg) | External (feature) | Public Domain |
+  | MIDI | Timidity (bundled) | `src/codecs/timidity/` | Artistic License 1.0 |
+  | MIDI | Native MIDI | `src/codecs/native_midi/` | Zlib (Win: winmm, Mac: AudioToolbox) |
+
+- **Runtime note:** Timidity MIDI requires `timidity.cfg` + GUS patch files at runtime. Without them, MIDI via Timidity produces silence. Native MIDI on Windows/macOS works without additional files.
+
+### mpg123 (DEPRECATED — pending removal)
 
 - **Why:** arm64 Linux FPU detection bug — container environments incorrectly report no FPU, causing `REAL_IS_FIXED` + `OPT_NEON64` compile conflict.
 - **Upstream issue:** microsoft/vcpkg#40709
@@ -14,6 +38,7 @@ This directory contains local overrides for vcpkg ports that have upstream bugs 
 - **Dependency chain:** `sdl2-mixer` (feature: mpg123) → `mpg123`
 - **Based on upstream version:** 1.33.4 (vcpkg baseline `0b88aacd`)
 - **Files changed from upstream:** Only `have-fpu.diff` (FPU detection patch). All other files (`vcpkg.json`, `portfile.cmake`, `pkgconfig.diff`) are identical copies of the upstream port.
+- **Deprecation note:** The `mpg123` feature has been removed from our sdl2-mixer overlay (LGPL-free transition, #84). This overlay port is no longer needed for our build. It will be removed once confirmed that no other port depends on mpg123 in our dependency graph.
 
 ## How Patches Work in vcpkg
 
