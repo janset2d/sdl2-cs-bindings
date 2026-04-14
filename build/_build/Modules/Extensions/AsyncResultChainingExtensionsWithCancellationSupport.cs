@@ -240,8 +240,8 @@ public static class AsyncResultChainingExtensionsWithCancellationSupport
         }
 
         var ctx = first.SuccessValue();
-        var results = new List<Result<TError, TSuccess>>();
-        await Task.WhenAll(tasks.Select(async t => results.Add(await t(ctx, ct).ConfigureAwait(false)))).ConfigureAwait(false);
-        return merge(ctx, ct, results);
+        var resultTasks = tasks.Select(t => t(ctx, ct)).ToArray();
+        var results = await Task.WhenAll(resultTasks).ConfigureAwait(false);
+        return merge(ctx, ct, [.. results]);
     }
 }

@@ -157,7 +157,7 @@ public class HarvestTaskTests
         profile.Rid.Returns("win-x64");
         profile.Triplet.Returns("x64-windows-hybrid");
         profile.PlatformFamily.Returns(PlatformFamily.Windows);
-        profile.IsSystemFile(Arg.Any<FilePath>()).Returns(false);
+        profile.IsSystemFile(Arg.Any<FilePath>()).Returns(returnThis: false);
         return profile;
     }
 

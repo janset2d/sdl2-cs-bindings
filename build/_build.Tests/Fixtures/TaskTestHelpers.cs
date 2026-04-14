@@ -28,7 +28,7 @@ public static class TaskTestHelpers
             pathService,
             new RepositoryConfiguration(new DirectoryPath(IOPath.GetPathRoot(IOPath.GetTempPath()) ?? "C:/")),
             new DotNetBuildConfiguration("Release"),
-            new VcpkgConfiguration(libraries ?? [], null),
+            new VcpkgConfiguration(libraries ?? [], rid: null),
             new DumpbinConfiguration([]));
     }
 
@@ -50,7 +50,7 @@ public static class TaskTestHelpers
             pathService,
             new RepositoryConfiguration(repoRootPath),
             new DotNetBuildConfiguration("Release"),
-            new VcpkgConfiguration(libraries ?? [], null),
+            new VcpkgConfiguration(libraries ?? [], rid: null),
             new DumpbinConfiguration([]));
     }
 

@@ -14,6 +14,7 @@ Post-baseline review findings for `build/_build.Tests`:
 - Current baseline after third hardening slice: 129/129 passing.
 - Current baseline after fourth hardening slice: 139/139 passing.
 - Current baseline after fifth hardening slice: 150/150 passing.
+- Current baseline after sixth hardening slice: 164/164 passing.
 - Initial coverage baseline from `artifacts/test-results/build-tests/coverage.cobertura.xml`:
   - Line coverage: 13.76%
   - Branch coverage: 12.76%
@@ -21,27 +22,31 @@ Post-baseline review findings for `build/_build.Tests`:
   - Line coverage: 17.05%
   - Branch coverage: 15.18%
 - Current coverage after second hardening slice:
-    - Line coverage: 23.07%
-    - Branch coverage: 17.99%
+  - Line coverage: 23.07%
+  - Branch coverage: 17.99%
 - Current coverage after third hardening slice:
-    - Line coverage: 26.23%
-    - Branch coverage: 20.50%
+  - Line coverage: 26.23%
+  - Branch coverage: 20.50%
 - Current coverage after fourth hardening slice:
-    - Line coverage: 48.17%
-    - Branch coverage: 37.19%
+  - Line coverage: 48.17%
+  - Branch coverage: 37.19%
 - Current coverage after fifth hardening slice:
-    - Line coverage: 48.17%
-    - Branch coverage: 37.19%
-- Critical gap: several refactor-sensitive paths are still under-tested:
-    - `Program.cs` composition root / CLI path
-    - Async result chaining extensions
+  - Line coverage: 48.17%
+  - Branch coverage: 37.19%
+- Current coverage after sixth hardening slice:
+  - Line coverage: 54.69%
+  - Branch coverage: 44.12%
+- Critical gap status update:
+  - `Program.cs` composition root / CLI path coverage added.
+  - Async result chaining extension coverage added.
+  - Remaining refactor-sensitive focus: integration/task-flow coverage and CI no-regression ratchet.
 - Test architecture concern (initially observed): one test file mirrored production logic instead of validating production behavior.
   - `ConsolidateHarvestTests` no longer mirrors consolidation logic and now validates `ConsolidateHarvestTask` behavior with real RID status inputs.
 - Test topology progress:
-    - Core realignment is in place with tests organized under `Unit/Modules`, `Unit/Tasks`, `Unit/Context`, and `Characterization/ConfigContract`.
-    - Runtime boundary tests are now present under `Unit/Modules/DependencyAnalysis` and `Unit/Modules/Harvesting` (`VcpkgCliProvider`).
-    - Tool wrapper tests are now present under `Unit/Tools` (`Dumpbin`, `Ldd`, `Otool`, `Vcpkg`).
-    - Remaining topology work is focused on explicit `Integration` buckets.
+  - Core realignment is in place with tests organized under `Unit/Modules`, `Unit/Tasks`, `Unit/Context`, and `Characterization/ConfigContract`.
+  - Runtime boundary tests are now present under `Unit/Modules/DependencyAnalysis` and `Unit/Modules/Harvesting` (`VcpkgCliProvider`).
+  - Tool wrapper tests are now present under `Unit/Tools` (`Dumpbin`, `Ldd`, `Otool`, `Vcpkg`).
+  - Remaining topology work is focused on explicit `Integration` buckets.
 
 ## Coverage in TUnit + Microsoft.Testing.Platform
 
@@ -359,9 +364,9 @@ These are the core business logic. Use NSubstitute for `IRuntimeScanner`, `IPack
 | `CreatePlanAsync_Should_Include_License_Files_From_Share_Dir` | License discovery |
 | `CreatePlanAsync_Should_Calculate_Correct_Statistics` | Statistics accuracy |
 
-### Future batch: Composition Root + Async Extensions
+### Completed batch: Composition Root + Async Extensions
 
-Focus remaining refactor-sensitive gaps in `Program.cs` argument/config composition and async extension behavior/error paths.
+Status: ✅ Added targeted tests for `Program.cs` argument/working-path/verbosity helper behavior and async extension short-circuit/cancellation paths.
 
 ### Future batch: ArtifactDeployer with FakeFileSystem
 
