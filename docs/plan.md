@@ -2,7 +2,7 @@
 
 > **This is the canonical status document.** When code and docs disagree, verify against the code. When phases and this file disagree, this file wins.
 
-**Last updated**: 2026-04-12
+**Last updated**: 2026-04-14
 **Maintainer**: Deniz Irgin (@denizirgin)
 
 ## Mission
@@ -13,14 +13,34 @@ Provide the .NET ecosystem with production-quality, modular SDL2 and SDL3 bindin
 
 **Phase 2: CI/CD & Packaging** (IN PROGRESS — resumed after ~10 month hiatus)
 
+Phase 2 is now divided into two stages:
+
+- **Phase 2a — Hybrid Packaging Foundation Spike** (ACTIVE): Prove the hybrid static + dynamic core packaging model end-to-end on win-x64 with SDL2.Core + SDL2.Image. Establish package-consumer smoke test spine, Cake strategy awareness, and local feed validation.
+- **Phase 2b — Full Hybrid Pipeline** (NEXT): Generalize to all 7 RIDs, all 6 satellites, full PackageTask, CI guardrails, symbol visibility on Linux/macOS, release pipeline.
+
 See [phases/README.md](phases/README.md) for the full phase breakdown.
+
+## Strategic Decisions — April 2026
+
+These decisions were made during the packaging strategy research cycle (April 2026) and are now locked. Supporting research is in [research/](research/).
+
+| Decision | Detail | Rationale |
+| --- | --- | --- |
+| **Hybrid Static + Dynamic Core** | Transitive deps statically baked into satellite DLLs; SDL2 core stays dynamic; no separate transitive DLLs shipped | Industry standard (SkiaSharp, Magick.NET, ppy/SDL3-CS, LibGit2Sharp — 7/7 surveyed projects use this pattern). Eliminates the DLL collision class (#75). |
+| **Custom vcpkg overlay triplets** | Per-RID hybrid triplets: default `VCPKG_LIBRARY_LINKAGE=static`, per-port override for SDL family to `dynamic` | Keeps all version management in vcpkg.json. No VENDORED builds, no wrapper DLLs. |
+| **LGPL-free codec stack** | Drop mpg123, libxmp, fluidsynth from SDL2_mixer. Use bundled permissive alternatives (minimp3, drflac, stb_vorbis, libmodplug, Timidity/Native MIDI). | Eliminates all LGPL exposure. Mixer.Extras.Native package concept is dead. 100% permissive stack across all satellites. |
+| **Pure Dynamic rejected** | The ~26-package Common.\* topology has zero precedent in the .NET ecosystem | High maintenance, NuGet graph complexity, no collision safety on Windows. |
+| **Execution model: three modes** | Source Mode (fast inner loop), Package Validation Mode (local feed consumer test), Release Mode (published packages) | Avoids forcing one build mode to solve all problems. See [research/execution-model-strategy-2026-04-13.md](research/execution-model-strategy-2026-04-13.md). |
+| **Cake build host: strategy-driven evolution** | Four-interface split: IPackagingStrategy, INativeAcquisitionStrategy, IDependencyPolicyValidator, IPayloadLayoutPolicy | Keeps stable spine (scanners, closure, manifests), adds policy variation. Existing tools (dumpbin/ldd/otool) repurposed as guardrails. |
+| **TUnit for build host tests** | Cake Frosting build host gets unit tests using TUnit framework | Fills the zero-test-coverage gap before any refactoring. |
 
 ## Phase Roll-Up
 
 | Phase | Name | Status | Summary |
 | --- | --- | --- | --- |
 | 1 | SDL2 Core Bindings + Harvesting | **DONE** | C# bindings for 5 libraries, Cake Frosting build system, native binary harvesting pipeline, cross-platform CI workflows |
-| 2 | CI/CD & Packaging | **IN PROGRESS** | Complete vcpkg.json for all libraries, NuGet package creation, release pipeline, local dev playbook |
+| 2a | Hybrid Packaging Foundation Spike | **ACTIVE** | Prove hybrid model on win-x64 (SDL2.Core + SDL2.Image), package-consumer smoke test, Cake strategy seam, local feed validation |
+| 2b | Full Hybrid Pipeline | NEXT | All 7 RIDs, all 6 satellites, full PackageTask, CI guardrails, symbol visibility, release pipeline |
 | 3 | SDL2 Complete | PLANNED | All 6 satellites (+ SDL2_net), all 7 RIDs fully populated, tests, samples, NuGet publish |
 | 4 | Binding Auto-Generation | PLANNED | CppAst-based generator, replace SDL2-CS imports with auto-generated bindings |
 | 5 | SDL3 Support | PLANNED | SDL3 bindings + native packages in same monorepo, shared build infrastructure |
@@ -104,7 +124,9 @@ See [phases/README.md](phases/README.md) for the full phase breakdown.
 
 ## Roadmap
 
-### Q2 2026 (Current)
+### Q2 2026 (Current) — Phase 2a: Foundation Spike
+
+**Completed (infrastructure baseline):**
 
 - [x] Resume development, understand status quo
 - [x] Reorganize documentation
@@ -113,25 +135,45 @@ See [phases/README.md](phases/README.md) for the full phase breakdown.
 - [x] Validate and stabilize full vcpkg.json coverage (#52)
 - [x] Validate the bumped vcpkg baseline — SDL2 2.32.10, all 7 RIDs green (#53)
 - [x] Update prepare-native-assets workflows for full SDL2 satellite harvest parity (#76)
-- [ ] Document and approve shared native dependency policy (#75)
+- [x] Lock packaging strategy direction: Hybrid Static + Dynamic Core (#75)
+- [x] Lock LGPL-free decision: drop mpg123, libxmp, fluidsynth; use bundled permissive alternatives
+
+**Active — Hybrid Packaging Foundation Spike:**
+
+- [ ] Create custom vcpkg overlay triplet for win-x64 (`x64-windows-hybrid`) (#83)
+- [ ] Validate hybrid build: `vcpkg install sdl2 sdl2-image --triplet x64-windows-hybrid` produces single SDL2_image.dll with transitive deps baked in, no zlib1.dll or libpng16.dll (#83)
+- [ ] Update vcpkg.json: remove LGPL features (mpg123, fluidsynth) from sdl2-mixer (#84)
+- [ ] Introduce Cake build host strategy awareness: IPackagingStrategy, IDependencyPolicyValidator, INativeAcquisitionStrategy, IPayloadLayoutPolicy (#85)
+- [ ] Repurpose BinaryClosureWalker + runtime scanners as guardrails: transitive dep leak in hybrid mode = build failure (#85)
+- [ ] Implement minimal PackageTask for win-x64 (SDL2.Core + SDL2.Image → .nupkg → local folder feed) (#83)
+- [ ] Create package-consumer smoke test project: PackageReference → local feed restore → SDL_Init + IMG_Load("test.png") (#83)
+- [ ] Add TUnit test project for Cake build host (#85)
+- [ ] Update runtimes.json with hybrid triplet, manifest.json with validation_mode (#83)
+
+**Deferred to Phase 2b / Q3:**
+
 - [ ] Add a Windows local prerequisites guide (VS tooling ecosystem + dumpbin/vswhere troubleshooting)
 - [ ] Clean up native binaries from git history (#56)
 - [ ] Correct and validate local development playbook (#57)
 - [ ] Create custom Docker build image for Linux x64 (#79)
 
-### Q3 2026
+### Q3 2026 — Phase 2b: Full Hybrid Pipeline
 
-- [ ] Complete Cake PackageTask (harvest → .nupkg)
+- [ ] Create hybrid overlay triplets for all 7 RIDs (win-x86, win-arm64, linux-x64, linux-arm64, osx-x64, osx-arm64)
+- [ ] Add symbol visibility guardrails for Linux/macOS (triplet `-fvisibility=hidden` + CI `nm` validation)
+- [ ] Update runtimes.json with all hybrid triplet mappings
+- [ ] Generalize PackageTask to all 6 satellites × 7 RIDs
+- [ ] Generalize Cake strategy services beyond spike scope
+- [ ] Implement full package-consumer smoke test matrix (win-x64, linux-x64, osx-arm64 minimum)
 - [ ] Implement release-candidate-pipeline.yml end-to-end
 - [ ] Add SDL2_net bindings + native project
-- [ ] Populate all 7 RIDs for all 6 libraries
-- [ ] Create smoke tests (basic SDL_Init → SDL_Quit per library)
+- [ ] Validate SDL2_mixer LGPL-free build across all RIDs
 - [ ] Create sample projects
 - [ ] Publish first pre-release to NuGet.org
 - [ ] Evaluate NoDependencies native package variant for minimal Linux environments (#80)
 - [ ] Research and POC linux-musl-x64/arm64 native asset coverage (#82)
 
-### Q4 2026
+### Q4 2026 — Phases 3–4
 
 - [ ] Implement CppAst-based binding auto-generation
 - [ ] Replace SDL2-CS imports with auto-generated bindings
@@ -162,7 +204,18 @@ This table is the human-readable roadmap map for the current open issue tracker.
 
 Tracker cleanup note: issue `#51` completed the one-time tracker realignment. The rows below cover the active open roadmap issues.
 
-### Phase 2 - CI/CD & Packaging
+### Phase 2a - Hybrid Packaging Foundation Spike (ACTIVE)
+
+Primary docs: [phases/phase-2-cicd-packaging.md](phases/phase-2-cicd-packaging.md), [research/packaging-strategy-hybrid-static-2026-04-13.md](research/packaging-strategy-hybrid-static-2026-04-13.md), [research/license-inventory-2026-04-13.md](research/license-inventory-2026-04-13.md), [research/execution-model-strategy-2026-04-13.md](research/execution-model-strategy-2026-04-13.md)
+
+| Issue | Labels |
+| --- | --- |
+| `#75 Implement hybrid static packaging foundation (was: collision policy)` | `type:enhancement`, `area:native`, `area:packaging`, `area:build-system`, `area:testing` |
+| `#83 Hybrid Packaging Foundation Spike — win-x64, SDL2.Core + SDL2.Image` | `type:enhancement`, `area:native`, `area:packaging`, `area:build-system` |
+| `#84 Transition to LGPL-free SDL2_mixer codec stack` | `type:enhancement`, `area:native`, `area:packaging` |
+| `#85 Introduce packaging strategy awareness in Cake build host` | `type:enhancement`, `area:build-system`, `area:testing` |
+
+### Phase 2b - Full Hybrid Pipeline
 
 Primary docs: [phases/phase-2-cicd-packaging.md](phases/phase-2-cicd-packaging.md), [knowledge-base/ci-cd-packaging-and-release-plan.md](knowledge-base/ci-cd-packaging-and-release-plan.md), [knowledge-base/cake-build-architecture.md](knowledge-base/cake-build-architecture.md), [playbook/local-development.md](playbook/local-development.md)
 
@@ -172,7 +225,6 @@ Primary docs: [phases/phase-2-cicd-packaging.md](phases/phase-2-cicd-packaging.m
 | `#55 Implement distributed harvest staging for the release-candidate pipeline` | `type:enhancement`, `area:build-system`, `area:ci-cd` |
 | `#56 Clean native binaries from git and harden ignore rules` | `type:cleanup`, `area:docs`, `area:native` |
 | `#57 Validate and correct the local development playbook` | `type:documentation`, `area:build-system`, `area:docs` |
-| `#75 Define shared native dependency collision policy before packaging changes` | `type:research`, `area:native`, `area:packaging`, `area:ci-cd`, `area:testing` |
 | `#79 Create custom Docker build image for Linux x64` | `type:enhancement`, `area:ci-cd`, `platform:linux` |
 | `#81 Add drift-prevention guardrail for harvest library lists` | `type:hardening`, `area:ci-cd`, `area:build-system` |
 
@@ -231,15 +283,15 @@ Primary docs: [phases/phase-5-sdl3-support.md](phases/phase-5-sdl3-support.md), 
 ## Known Issues
 
 1. **Native binaries committed to git**: Some test binaries were committed to `src/native/*/runtimes/`. Need cleanup + .gitignore rules.
-2. **vcpkg/manifest updates need full validation**: full SDL2 coverage and baseline bump are in the working tree, but matrix-level validation is still pending.
-3. **Release pipeline is a stub**: `release-candidate-pipeline.yml` has placeholder logic.
-4. **No tests**: The only test project (`test/Sandboc/`) is a development utility, not a test suite.
-5. **Local dev playbook needs correction**: A playbook exists, but parts of it were inaccurate and not yet validated end-to-end.
-6. **Partial CI plumbing exists in code only**: `PathService` exposes harvest-staging helpers and the build host exposes `--use-overrides`, but neither is integrated into the active task/workflow path.
-7. **Distributed CI output flow is not wired yet**: current harvest output is still local-first. The release pipeline will need a real staging-vs-consolidated path split so matrix jobs can upload per-RID artifacts before consolidation.
-8. **Expanded workflow command set needs matrix validation**: Windows/Linux/macOS workflows now use full satellite harvest commands with explicit RID, but cross-platform matrix stability for this expanded set is not yet validated end-to-end.
-9. **Shared native dependency collision policy not formalized**: duplicate basenames across satellite native packages (for example zlib-family binaries) need a documented pre-coding decision and CI guardrail strategy.
-10. **Windows local tooling guidance is not explicit enough**: contributors need a dedicated prerequisites guide for VS C++ tooling, Developer PowerShell usage, and dumpbin/vswhere troubleshooting.
+2. **Release pipeline is a stub**: `release-candidate-pipeline.yml` has placeholder logic.
+3. **No tests**: The only test project (`test/Sandboc/`) is a development utility, not a test suite. Build host has zero unit test coverage.
+4. **Local dev playbook needs correction**: A playbook exists, but parts of it were inaccurate and not yet validated end-to-end.
+5. **`--use-overrides` is parsed but not wired**: Legacy flag, to be reframed as `--native-source overrides` during Cake strategy refactor.
+6. **Distributed CI output flow is not wired yet**: current harvest output is still local-first. The release pipeline will need a real staging-vs-consolidated path split so matrix jobs can upload per-RID artifacts before consolidation.
+7. **Hybrid triplets not yet created**: Custom overlay triplets for the hybrid static model are designed but not yet implemented. Spike will prove the model on win-x64.
+8. **Symbol visibility unaddressed on Linux/macOS**: vcpkg does not set `-fvisibility=hidden` by default. Windows is safe (PE export-opt-in). Linux/macOS need custom triplet flags or linker version scripts. Deferred to Phase 2b.
+9. **Windows local tooling guidance is not explicit enough**: contributors need a dedicated prerequisites guide for VS C++ tooling, Developer PowerShell usage, and dumpbin/vswhere troubleshooting.
+10. **vcpkg.json still lists LGPL features**: `mpg123` and `fluidsynth` features remain in sdl2-mixer declaration until #84 is implemented.
 
 ## Cross-Reference
 
