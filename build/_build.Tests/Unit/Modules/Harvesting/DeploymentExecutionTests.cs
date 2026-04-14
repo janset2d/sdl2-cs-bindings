@@ -1,6 +1,5 @@
 using Build.Modules.Harvesting;
 using Build.Modules.Harvesting.Models;
-using Build.Modules.Harvesting.Results;
 using Cake.Core;
 using Cake.Core.IO;
 using Cake.Testing;

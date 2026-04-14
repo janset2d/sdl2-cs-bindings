@@ -164,13 +164,19 @@ Current state:
 - Coverage baseline is low for refactor-sensitive orchestration/runtime-boundary paths.
 - Test topology is partially mixed and does not yet fully mirror `build/_build` production boundaries.
 
+Recent progress (2026-04-14):
+
+- Runtime scanner boundary tests were added for Windows (`dumpbin`), Linux (`ldd`), and macOS (`otool`) scanner implementations.
+- `VcpkgCliProvider` now has explicit success + error-path whitebox tests (empty output, missing package key, malformed JSON).
+- Tool-wrapper tests were added for `DumpbinDependentsTool`, `LddRunner`, `OtoolRunner`, and `VcpkgPackageInfoTool` (argument construction + parser behavior).
+
 Required deliverables:
 
 1. Reorganize test hierarchy to mirror `Modules`, `Tasks`, and `Tools` boundaries.
 2. Remove test-side mirrored production logic patterns (validate actual SUT behavior instead).
 3. Add blackbox task-flow tests for `HarvestTask`, `ConsolidateHarvestTask`, and `PreFlightCheckTask`.
-4. Add whitebox boundary tests for runtime scanners and vcpkg provider error paths.
-5. Add tool-wrapper tests (argument construction and parsing behavior) using Cake test fixtures.
+4. Add whitebox boundary tests for runtime scanners and vcpkg provider error paths. ✅
+5. Add tool-wrapper tests (argument construction and parsing behavior) using Cake test fixtures. ✅
 6. Document deterministic coverage execution for TUnit + Microsoft.Testing.Platform and standardize artifact output location.
 7. Introduce a no-regression coverage gate with branch coverage tracking.
 

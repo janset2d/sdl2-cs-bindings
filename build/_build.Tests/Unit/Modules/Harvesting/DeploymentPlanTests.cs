@@ -1,12 +1,9 @@
 using System.Collections.Immutable;
-using Build.Context.Models;
 using Build.Modules.Contracts;
 using Build.Modules.Harvesting;
 using Build.Modules.Harvesting.Models;
-using Build.Modules.Harvesting.Results;
 using Build.Tests.Fixtures;
 using Cake.Core;
-using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 using Cake.Testing;
 using NSubstitute;

@@ -1,14 +1,5 @@
-using System.Diagnostics;
-using Build.Context;
-using Build.Context.Configs;
-using Build.Modules.Contracts;
+using Build.Tests.Fixtures;
 using Build.Tasks.Preflight;
-using Cake.Core;
-using Cake.Core.Configuration;
-using Cake.Core.IO;
-using Cake.Core.Tooling;
-using Cake.Testing;
-using NSubstitute;
 using IOPath = System.IO.Path;
 
 namespace Build.Tests.Unit.Tasks.Preflight;
@@ -24,14 +15,14 @@ public class PreFlightCheckTaskRunTests
             await WriteManifestJsonAsync(repoRoot, "2.32.10", 0);
             await WriteVcpkgJsonAsync(repoRoot, "2.32.10", 0);
 
-            var context = CreateBuildContext(repoRoot);
+            var context = TaskTestHelpers.CreateBuildContextForRepoRoot(repoRoot);
             var task = new PreFlightCheckTask();
 
             task.Run(context);
         }
         finally
         {
-            DeleteDirectoryQuietly(repoRoot);
+            TaskTestHelpers.DeleteDirectoryQuietly(repoRoot);
         }
     }
 
@@ -44,14 +35,14 @@ public class PreFlightCheckTaskRunTests
             await WriteManifestJsonAsync(repoRoot, "2.32.10", 0);
             await WriteVcpkgJsonAsync(repoRoot, "2.31.0", 0);
 
-            var context = CreateBuildContext(repoRoot);
+            var context = TaskTestHelpers.CreateBuildContextForRepoRoot(repoRoot);
             var task = new PreFlightCheckTask();
 
             await Assert.That(() => task.Run(context)).Throws<InvalidOperationException>();
         }
         finally
         {
-            DeleteDirectoryQuietly(repoRoot);
+            TaskTestHelpers.DeleteDirectoryQuietly(repoRoot);
         }
     }
 
@@ -64,46 +55,15 @@ public class PreFlightCheckTaskRunTests
             await WriteManifestJsonAsync(repoRoot, "2.32.10", 0);
             await File.WriteAllTextAsync(IOPath.Combine(repoRoot, "vcpkg.json"), "{\"dependencies\":[\"sdl2\"]}");
 
-            var context = CreateBuildContext(repoRoot);
+            var context = TaskTestHelpers.CreateBuildContextForRepoRoot(repoRoot);
             var task = new PreFlightCheckTask();
 
             task.Run(context);
         }
         finally
         {
-            DeleteDirectoryQuietly(repoRoot);
+            TaskTestHelpers.DeleteDirectoryQuietly(repoRoot);
         }
-    }
-
-    private static BuildContext CreateBuildContext(string repoRoot)
-    {
-        var environment = FakeEnvironment.CreateWindowsEnvironment();
-        var fileSystem = new FileSystem();
-        var globber = new Globber(fileSystem, environment);
-
-        var cakeContext = Substitute.For<ICakeContext>();
-        cakeContext.Log.Returns(new FakeLog());
-        cakeContext.Environment.Returns(environment);
-        cakeContext.FileSystem.Returns(fileSystem);
-        cakeContext.Globber.Returns(globber);
-        cakeContext.Arguments.Returns(Substitute.For<ICakeArguments>());
-        cakeContext.Configuration.Returns(Substitute.For<ICakeConfiguration>());
-        cakeContext.Data.Returns(Substitute.For<ICakeDataResolver>());
-        cakeContext.ProcessRunner.Returns(Substitute.For<IProcessRunner>());
-        cakeContext.Registry.Returns(Substitute.For<IRegistry>());
-        cakeContext.Tools.Returns(Substitute.For<IToolLocator>());
-
-        var pathService = Substitute.For<IPathService>();
-        pathService.RepoRoot.Returns(new DirectoryPath(repoRoot));
-        pathService.GetManifestFile().Returns(new FilePath(IOPath.Combine(repoRoot, "build", "manifest.json")));
-
-        return new BuildContext(
-            cakeContext,
-            pathService,
-            new RepositoryConfiguration(new DirectoryPath(repoRoot)),
-            new DotNetBuildConfiguration("Release"),
-            new VcpkgConfiguration([], null),
-            new DumpbinConfiguration([]));
     }
 
     private static async Task WriteManifestJsonAsync(string repoRoot, string version, int portVersion)
@@ -160,22 +120,4 @@ public class PreFlightCheckTaskRunTests
         return path;
     }
 
-    private static void DeleteDirectoryQuietly(string path)
-    {
-        try
-        {
-            if (Directory.Exists(path))
-            {
-                Directory.Delete(path, recursive: true);
-            }
-        }
-        catch (IOException)
-        {
-            Debug.WriteLine($"Unable to delete test directory: {path}");
-        }
-        catch (UnauthorizedAccessException)
-        {
-            Debug.WriteLine($"Unauthorized while deleting test directory: {path}");
-        }
-    }
 }

@@ -1,18 +1,13 @@
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Text.Json;
-using Build.Context;
-using Build.Context.Configs;
 using Build.Context.Models;
 using Build.Models;
 using Build.Modules.Contracts;
 using Build.Modules.Harvesting.Models;
 using Build.Modules.Harvesting.Results;
+using Build.Tests.Fixtures;
 using Cake.Core;
-using Cake.Core.Configuration;
 using Cake.Core.IO;
-using Cake.Core.Tooling;
-using Cake.Testing;
 using NSubstitute;
 using IOPath = System.IO.Path;
 
@@ -43,7 +38,7 @@ public class HarvestTaskTests
 
             var runtimeProfile = CreateRuntimeProfile();
             var task = new Build.Tasks.Harvest.HarvestTask(mockWalker, mockPlanner, mockDeployer, runtimeProfile, manifestConfig);
-            var context = CreateBuildContext(new DirectoryPath(harvestRoot), []);
+            var context = TaskTestHelpers.CreateBuildContext(new DirectoryPath(harvestRoot), []);
 
             await task.RunAsync(context);
 
@@ -62,7 +57,7 @@ public class HarvestTaskTests
         }
         finally
         {
-            DeleteDirectoryQuietly(harvestRoot);
+            TaskTestHelpers.DeleteDirectoryQuietly(harvestRoot);
         }
     }
 
@@ -84,7 +79,7 @@ public class HarvestTaskTests
 
             var runtimeProfile = CreateRuntimeProfile();
             var task = new Build.Tasks.Harvest.HarvestTask(mockWalker, mockPlanner, mockDeployer, runtimeProfile, manifestConfig);
-            var context = CreateBuildContext(new DirectoryPath(harvestRoot), []);
+            var context = TaskTestHelpers.CreateBuildContext(new DirectoryPath(harvestRoot), []);
 
             var thrown = false;
             try
@@ -112,7 +107,7 @@ public class HarvestTaskTests
         }
         finally
         {
-            DeleteDirectoryQuietly(harvestRoot);
+            TaskTestHelpers.DeleteDirectoryQuietly(harvestRoot);
         }
     }
 
@@ -140,7 +135,7 @@ public class HarvestTaskTests
 
             var runtimeProfile = CreateRuntimeProfile();
             var task = new Build.Tasks.Harvest.HarvestTask(mockWalker, mockPlanner, mockDeployer, runtimeProfile, manifestConfig);
-            var context = CreateBuildContext(new DirectoryPath(harvestRoot), ["SDL2_image"]);
+            var context = TaskTestHelpers.CreateBuildContext(new DirectoryPath(harvestRoot), ["SDL2_image"]);
 
             await task.RunAsync(context);
 
@@ -152,38 +147,8 @@ public class HarvestTaskTests
         }
         finally
         {
-            DeleteDirectoryQuietly(harvestRoot);
+            TaskTestHelpers.DeleteDirectoryQuietly(harvestRoot);
         }
-    }
-
-    private static BuildContext CreateBuildContext(DirectoryPath harvestOutput, IReadOnlyList<string> libraries)
-    {
-        var environment = FakeEnvironment.CreateWindowsEnvironment();
-        var fileSystem = new FileSystem();
-        var globber = new Globber(fileSystem, environment);
-
-        var cakeContext = Substitute.For<ICakeContext>();
-        cakeContext.Log.Returns(new FakeLog());
-        cakeContext.Environment.Returns(environment);
-        cakeContext.FileSystem.Returns(fileSystem);
-        cakeContext.Globber.Returns(globber);
-        cakeContext.Arguments.Returns(Substitute.For<ICakeArguments>());
-        cakeContext.Configuration.Returns(Substitute.For<ICakeConfiguration>());
-        cakeContext.Data.Returns(Substitute.For<ICakeDataResolver>());
-        cakeContext.ProcessRunner.Returns(Substitute.For<IProcessRunner>());
-        cakeContext.Registry.Returns(Substitute.For<IRegistry>());
-        cakeContext.Tools.Returns(Substitute.For<IToolLocator>());
-
-        var pathService = Substitute.For<IPathService>();
-        pathService.HarvestOutput.Returns(harvestOutput);
-
-        return new BuildContext(
-            cakeContext,
-            pathService,
-            new RepositoryConfiguration(new DirectoryPath(IOPath.GetPathRoot(IOPath.GetTempPath()) ?? "C:/")),
-            new DotNetBuildConfiguration("Release"),
-            new VcpkgConfiguration(libraries, null),
-            new DumpbinConfiguration([]));
     }
 
     private static IRuntimeProfile CreateRuntimeProfile()
@@ -256,22 +221,4 @@ public class HarvestTaskTests
         return path;
     }
 
-    private static void DeleteDirectoryQuietly(string path)
-    {
-        try
-        {
-            if (Directory.Exists(path))
-            {
-                Directory.Delete(path, recursive: true);
-            }
-        }
-        catch (IOException)
-        {
-            Debug.WriteLine($"Unable to delete test directory: {path}");
-        }
-        catch (UnauthorizedAccessException)
-        {
-            Debug.WriteLine($"Unauthorized while deleting test directory: {path}");
-        }
-    }
 }

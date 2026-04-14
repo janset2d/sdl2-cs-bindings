@@ -10,8 +10,7 @@ public class SemanticVersionParsingTests
     [Arguments("2.8.8", 2, 8, 8)]
     [Arguments("0.1.0", 0, 1, 0)]
     [Arguments("10.20.30", 10, 20, 30)]
-    public async Task ParseSemanticVersion_Should_Extract_Major_Minor_Patch(
-        string version, int expectedMajor, int expectedMinor, int expectedPatch)
+    public async Task ParseSemanticVersion_Should_Extract_Major_Minor_Patch(string version, int expectedMajor, int expectedMinor, int expectedPatch)
     {
         var (major, minor, patch) = PreFlightCheckTask.ParseSemanticVersion(version);
         await Assert.That(major).IsEqualTo(expectedMajor);

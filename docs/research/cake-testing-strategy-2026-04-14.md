@@ -12,6 +12,8 @@ Post-baseline review findings for `build/_build.Tests`:
 - Current baseline after first hardening slice: 123/123 passing.
 - Current baseline after second hardening slice: 126/126 passing.
 - Current baseline after third hardening slice: 129/129 passing.
+- Current baseline after fourth hardening slice: 139/139 passing.
+- Current baseline after fifth hardening slice: 150/150 passing.
 - Initial coverage baseline from `artifacts/test-results/build-tests/coverage.cobertura.xml`:
   - Line coverage: 13.76%
   - Branch coverage: 12.76%
@@ -24,16 +26,22 @@ Post-baseline review findings for `build/_build.Tests`:
 - Current coverage after third hardening slice:
     - Line coverage: 26.23%
     - Branch coverage: 20.50%
+- Current coverage after fourth hardening slice:
+    - Line coverage: 48.17%
+    - Branch coverage: 37.19%
+- Current coverage after fifth hardening slice:
+    - Line coverage: 48.17%
+    - Branch coverage: 37.19%
 - Critical gap: several refactor-sensitive paths are still under-tested:
-  - `Program.cs` composition root / CLI path
-  - Runtime scanners (`WindowsDumpbinScanner`, `LinuxLddScanner`, `MacOtoolScanner`)
-  - `VcpkgCliProvider`
-  - Async result chaining extensions
+    - `Program.cs` composition root / CLI path
+    - Async result chaining extensions
 - Test architecture concern (initially observed): one test file mirrored production logic instead of validating production behavior.
   - `ConsolidateHarvestTests` no longer mirrors consolidation logic and now validates `ConsolidateHarvestTask` behavior with real RID status inputs.
 - Test topology progress:
     - Core realignment is in place with tests organized under `Unit/Modules`, `Unit/Tasks`, `Unit/Context`, and `Characterization/ConfigContract`.
-    - Remaining topology work is focused on explicit `Tools` and `Integration` buckets.
+    - Runtime boundary tests are now present under `Unit/Modules/DependencyAnalysis` and `Unit/Modules/Harvesting` (`VcpkgCliProvider`).
+    - Tool wrapper tests are now present under `Unit/Tools` (`Dumpbin`, `Ldd`, `Otool`, `Vcpkg`).
+    - Remaining topology work is focused on explicit `Integration` buckets.
 
 ## Coverage in TUnit + Microsoft.Testing.Platform
 
@@ -329,7 +337,7 @@ Pure functions and config parsing are in place, plus first-pass closure/planner/
 
 - Replace test-side mirrored logic in consolidation tests with real SUT behavior assertions.
 - Add missing blackbox tests for task orchestration and side effects.
-- Add scanner/provider/tool-wrapper tests for currently untested runtime boundaries.
+- Add scanner/provider/tool-wrapper tests for currently untested runtime boundaries. ✅
 
 ### Next batch: BinaryClosureWalker + ArtifactPlanner (~15-20 tests)
 
@@ -351,9 +359,9 @@ These are the core business logic. Use NSubstitute for `IRuntimeScanner`, `IPack
 | `CreatePlanAsync_Should_Include_License_Files_From_Share_Dir` | License discovery |
 | `CreatePlanAsync_Should_Calculate_Correct_Statistics` | Statistics accuracy |
 
-### Future batch: Tool wrapper tests with ToolFixture
+### Future batch: Composition Root + Async Extensions
 
-For dumpbin/ldd/otool/vcpkg argument validation. Lower priority than core service tests.
+Focus remaining refactor-sensitive gaps in `Program.cs` argument/config composition and async extension behavior/error paths.
 
 ### Future batch: ArtifactDeployer with FakeFileSystem
 
@@ -378,6 +386,8 @@ File copy and tar operations. Requires `TestCakeContext` infrastructure.
 1. Add scanner parsing suites using canned outputs (`dumpbin`, `ldd`, `otool`).
 2. Add `VcpkgCliProvider` tests for success, malformed JSON, and error paths.
 3. Add tool-wrapper argument tests using `ToolFixture`.
+
+Status: ✅ Completed for scanner/provider/tool-wrapper coverage baseline.
 
 ### Phase D — Flakiness and Determinism Hardening
 
