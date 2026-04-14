@@ -1,0 +1,4 @@
+# vcpkg patch files must always use LF line endings.
+# git apply on Linux rejects CRLF patches as "corrupt patch".
+*.patch eol=lf
+*.diff eol=lf
