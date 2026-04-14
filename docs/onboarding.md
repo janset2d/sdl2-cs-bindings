@@ -253,6 +253,8 @@ This repo treats docs, issues, and commits as one delivery system:
    Local development → `docs/playbook/local-development.md`
    **Overlay triplets & ports (CRITICAL for build system work)** → `docs/playbook/overlay-management.md`
    Symbol visibility & cross-platform safety → `docs/research/symbol-visibility-analysis-2026-04-14.md`
+   **Cake build host strategy refactor (NEXT WORK ITEM)** → `docs/research/cake-strategy-implementation-brief-2026-04-14.md`
+   Native smoke test (C++ runtime validation) → `test/native-smoke/README.md`
    Broader framework/tooling context → `docs/reference/*`
 
 ## Non-Goals

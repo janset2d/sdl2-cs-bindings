@@ -130,8 +130,11 @@ Before proposing changes, review the documentation. If your change affects behav
 - Use `docs/phases/README.md` to determine which phase is active.
 - Use `docs/README.md` for the full documentation map.
 - For build system work: `docs/knowledge-base/cake-build-architecture.md`
+- **For Cake strategy refactor (NEXT WORK ITEM):** `docs/research/cake-strategy-implementation-brief-2026-04-14.md`
 - For CI/CD work: `docs/knowledge-base/ci-cd-packaging-and-release-plan.md`
 - For native harvesting: `docs/knowledge-base/harvesting-process.md`
+- For overlay triplets & ports: `docs/playbook/overlay-management.md`
+- For native smoke test (C++ validation): `test/native-smoke/README.md`
 - For "how do I...?" questions: `docs/playbook/*`
 - For design rationale: `docs/research/*`
 - For broader tool/framework context: `docs/reference/*`

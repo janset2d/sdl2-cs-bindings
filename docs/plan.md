@@ -149,9 +149,12 @@ These decisions were made during the packaging strategy research cycle (April 20
 - [x] Symbol visibility validation: zlib/libpng = 0 leaks on all platforms, FreeType/WebP cosmetic leaks accepted
 - [x] Cross-platform line ending normalization (.gitattributes eol=lf)
 
-**Active — Runtime Validation & Packaging:**
+**Completed — Runtime Validation (3-platform):**
 
-- [ ] Create C++ native validation sandbox: headless smoke test for all 6 satellites × format coverage (IMG_Load, Mix_LoadMUS, TTF_OpenFont, etc.) across 3 platforms — CMake/vcpkg, IDE-debuggable (Rider/VS)
+- [x] Create C++ native validation sandbox: headless + interactive smoke test, 6 satellites × codec coverage, 13/13 PASS on win-x64, linux-x64, osx-x64. CMake/vcpkg, IDE-debuggable (CLion/VS/VS Code)
+
+**Active — Packaging Infrastructure:**
+
 - [ ] Introduce Cake build host strategy awareness: IPackagingStrategy, IDependencyPolicyValidator, INativeAcquisitionStrategy, IPayloadLayoutPolicy (#85)
 - [ ] Repurpose BinaryClosureWalker + runtime scanners as guardrails: transitive dep leak in hybrid mode = build failure (#85)
 - [ ] Implement minimal PackageTask for win-x64 (SDL2.Core + SDL2.Image → .nupkg → local folder feed) (#83)
