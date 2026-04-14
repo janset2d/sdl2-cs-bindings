@@ -1,4 +1,6 @@
-# vcpkg patch files must always use LF line endings.
-# git apply on Linux rejects CRLF patches as "corrupt patch".
+# Force LF line endings for all text files
+* text=auto eol=lf
+
+# Explicitly ensure patch/diff files are always LF
 *.patch eol=lf
 *.diff eol=lf
