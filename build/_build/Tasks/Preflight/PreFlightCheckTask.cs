@@ -180,7 +180,7 @@ public sealed class PreFlightCheckTask : FrostingTask<BuildContext>
     /// Parses a semantic version string to extract Major.Minor.Patch components.
     /// Ignores build metadata and pre-release suffixes.
     /// </summary>
-    private static (int Major, int Minor, int Patch) ParseSemanticVersion(string version)
+    internal static (int Major, int Minor, int Patch) ParseSemanticVersion(string version)
     {
         // Remove any build metadata (+something) or pre-release (-something)
         var cleanVersion = version.Split(['+', '-'], 2)[0];

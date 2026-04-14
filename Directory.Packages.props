@@ -19,6 +19,8 @@
     <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
     <PackageVersion Include="System.CommandLine.NamingConventionBinder" Version="2.0.0-beta4.22272.1" />
     <!-- test packages -->
+    <PackageVersion Include="TUnit" Version="1.33.0" />
+    <PackageVersion Include="NSubstitute" Version="5.3.0" />
     <PackageVersion Include="Microsoft.TestPlatform.ObjectModel" Condition="'$(TargetFramework)' == 'net462'" Version="17.11.1" />
   </ItemGroup>
 </Project>

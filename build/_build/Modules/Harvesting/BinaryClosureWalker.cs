@@ -168,7 +168,7 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
         return primaryFiles;
     }
 
-    private static bool MatchesPattern(string filename, string pattern)
+    internal static bool MatchesPattern(string filename, string pattern)
     {
         if (!pattern.Contains('*', StringComparison.Ordinal))
         {

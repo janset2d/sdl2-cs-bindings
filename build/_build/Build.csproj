@@ -10,8 +10,11 @@
     <IsAotCompatible>false</IsAotCompatible>
     <IsTrimmable>false</IsTrimmable>
     <EnableAOTAnalyzer>false</EnableAOTAnalyzer>
-
   </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Build.Tests" />
+  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Cake.Frosting"/>
     <PackageReference Include="OneOf" />
