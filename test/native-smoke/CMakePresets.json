@@ -1,0 +1,108 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "vcpkg-base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/../../external/vcpkg/scripts/buildsystems/vcpkg.cmake",
+        "VCPKG_MANIFEST_MODE": "OFF",
+        "VCPKG_INSTALLED_DIR": "${sourceDir}/../../vcpkg_installed",
+        "VCPKG_OVERLAY_TRIPLETS": "${sourceDir}/../../vcpkg-overlay-triplets"
+      }
+    },
+
+    {
+      "name": "win-x64-base",
+      "hidden": true,
+      "inherits": "vcpkg-base",
+      "generator": "Ninja",
+      "cacheVariables": { "VCPKG_TARGET_TRIPLET": "x64-windows-hybrid" },
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+    },
+    {
+      "name": "win-x64",
+      "inherits": "win-x64-base",
+      "displayName": "Windows x64 (Release)",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+    },
+    {
+      "name": "win-x64-debug",
+      "inherits": "win-x64-base",
+      "displayName": "Windows x64 (Debug)",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" }
+    },
+    {
+      "name": "win-x64-interactive",
+      "inherits": "win-x64-base",
+      "displayName": "Windows x64 (Interactive)",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug", "SMOKE_INTERACTIVE": "ON" }
+    },
+
+    {
+      "name": "linux-x64-base",
+      "hidden": true,
+      "inherits": "vcpkg-base",
+      "generator": "Ninja",
+      "cacheVariables": { "VCPKG_TARGET_TRIPLET": "x64-linux-hybrid" },
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" }
+    },
+    {
+      "name": "linux-x64",
+      "inherits": "linux-x64-base",
+      "displayName": "Linux x64 (Release)",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+    },
+    {
+      "name": "linux-x64-debug",
+      "inherits": "linux-x64-base",
+      "displayName": "Linux x64 (Debug)",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" }
+    },
+    {
+      "name": "linux-x64-interactive",
+      "inherits": "linux-x64-base",
+      "displayName": "Linux x64 (Interactive)",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug", "SMOKE_INTERACTIVE": "ON" }
+    },
+
+    {
+      "name": "osx-x64-base",
+      "hidden": true,
+      "inherits": "vcpkg-base",
+      "generator": "Ninja",
+      "cacheVariables": { "VCPKG_TARGET_TRIPLET": "x64-osx-hybrid" },
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin" }
+    },
+    {
+      "name": "osx-x64",
+      "inherits": "osx-x64-base",
+      "displayName": "macOS x64 (Release)",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+    },
+    {
+      "name": "osx-x64-debug",
+      "inherits": "osx-x64-base",
+      "displayName": "macOS x64 (Debug)",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" }
+    },
+    {
+      "name": "osx-x64-interactive",
+      "inherits": "osx-x64-base",
+      "displayName": "macOS x64 (Interactive)",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug", "SMOKE_INTERACTIVE": "ON" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "win-x64",              "configurePreset": "win-x64" },
+    { "name": "win-x64-debug",        "configurePreset": "win-x64-debug" },
+    { "name": "win-x64-interactive",   "configurePreset": "win-x64-interactive" },
+    { "name": "linux-x64",            "configurePreset": "linux-x64" },
+    { "name": "linux-x64-debug",      "configurePreset": "linux-x64-debug" },
+    { "name": "linux-x64-interactive", "configurePreset": "linux-x64-interactive" },
+    { "name": "osx-x64",              "configurePreset": "osx-x64" },
+    { "name": "osx-x64-debug",        "configurePreset": "osx-x64-debug" },
+    { "name": "osx-x64-interactive",   "configurePreset": "osx-x64-interactive" }
+  ]
+}

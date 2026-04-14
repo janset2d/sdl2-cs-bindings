@@ -140,17 +140,23 @@ These decisions were made during the packaging strategy research cycle (April 20
 - [x] Lock packaging strategy direction: Hybrid Static + Dynamic Core (#75)
 - [x] Lock LGPL-free decision: drop mpg123, libxmp, fluidsynth; use bundled permissive alternatives
 
-**Active — Hybrid Packaging Foundation Spike:**
+**Completed — Hybrid Build Proof (3-platform):**
 
-- [ ] Create custom vcpkg overlay triplet for win-x64 (`x64-windows-hybrid`) (#83)
-- [ ] Validate hybrid build: `vcpkg install sdl2 sdl2-image --triplet x64-windows-hybrid` produces single SDL2_image.dll with transitive deps baked in, no zlib1.dll or libpng16.dll (#83)
-- [ ] Update vcpkg.json: remove LGPL features (mpg123, fluidsynth) from sdl2-mixer (#84)
+- [x] Create custom vcpkg overlay triplets for win-x64, linux-x64, osx-x64 (#75, closed)
+- [x] Validate hybrid build: 6/6 satellites × 3 platforms, zero transitive DLLs/SOs/dylibs (#75, closed)
+- [x] Update vcpkg.json: remove LGPL features, create sdl2-mixer overlay port with bundled alternatives (#84, closed)
+- [x] Update runtimes.json with hybrid triplets, manifest.json with validation_mode
+- [x] Symbol visibility validation: zlib/libpng = 0 leaks on all platforms, FreeType/WebP cosmetic leaks accepted
+- [x] Cross-platform line ending normalization (.gitattributes eol=lf)
+
+**Active — Runtime Validation & Packaging:**
+
+- [ ] Create C++ native validation sandbox: headless smoke test for all 6 satellites × format coverage (IMG_Load, Mix_LoadMUS, TTF_OpenFont, etc.) across 3 platforms — CMake/vcpkg, IDE-debuggable (Rider/VS)
 - [ ] Introduce Cake build host strategy awareness: IPackagingStrategy, IDependencyPolicyValidator, INativeAcquisitionStrategy, IPayloadLayoutPolicy (#85)
 - [ ] Repurpose BinaryClosureWalker + runtime scanners as guardrails: transitive dep leak in hybrid mode = build failure (#85)
 - [ ] Implement minimal PackageTask for win-x64 (SDL2.Core + SDL2.Image → .nupkg → local folder feed) (#83)
 - [ ] Create package-consumer smoke test project: PackageReference → local feed restore → SDL_Init + IMG_Load("test.png") (#83)
 - [ ] Add TUnit test project for Cake build host (#85)
-- [ ] Update runtimes.json with hybrid triplet, manifest.json with validation_mode (#83)
 
 **Deferred to Phase 2b / Q3:**
 
@@ -161,12 +167,11 @@ These decisions were made during the packaging strategy research cycle (April 20
 
 ### Q3 2026 — Phase 2b: Full Hybrid Pipeline
 
-- [ ] Create hybrid overlay triplets for all 7 RIDs (win-x86, win-arm64, linux-x64, linux-arm64, osx-x64, osx-arm64)
-- [ ] Add Linux version scripts for symbol visibility (`.map` files per satellite, `local: *;`)
+- [ ] Create hybrid overlay triplets for remaining 4 RIDs (win-x86, win-arm64, linux-arm64, osx-arm64)
 - [ ] Update runtimes.json with all hybrid triplet mappings
 - [ ] Generalize PackageTask to all 6 satellites × 7 RIDs
 - [ ] Generalize Cake strategy services beyond spike scope
-- [ ] Create C++ native smoke test project (CMake/vcpkg, IDE-debuggable) for format coverage testing (MP3/FLAC/MOD/MIDI/OGG/Opus/WAV) — research needed on Rider/VS/CLion integration
+- [ ] Add Linux version scripts for symbol visibility (`.map` files per satellite) — lower priority
 - [ ] Implement full package-consumer smoke test matrix (win-x64, linux-x64, osx-arm64 minimum)
 - [ ] Implement release-candidate-pipeline.yml end-to-end
 - [ ] Add SDL2_net bindings + native project
