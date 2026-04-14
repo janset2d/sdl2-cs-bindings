@@ -35,7 +35,8 @@
 
 ### Harvest Staging Path Model For Distributed CI
 
-- Status: `partially-implemented`
+- Status: `partially-implemented` — CI matrix shape now locked
+- **Direction reference:** CI matrix is one job per RID (build axis), with per-library harvesting inside each job. Matrix generated dynamically from `manifest.json`. See [`knowledge-base/release-lifecycle-direction.md`](../knowledge-base/release-lifecycle-direction.md) §5. Staging path implementation is a Phase 2 adaptation task.
 - Why it matters: local harvest consolidation works, but distributed CI needs staging paths separate from final consolidated output.
 - Current repo evidence:
   - `PathService` exposes `harvest-staging` helpers
@@ -85,7 +86,8 @@
 
 ### Internal Feed, Pack-Only, And Public Promotion Flow
 
-- Status: `planned`
+- Status: `planned` — direction now locked
+- **Direction reference:** Three-stage release promotion (local → internal → public) is defined in [`knowledge-base/release-lifecycle-direction.md`](../knowledge-base/release-lifecycle-direction.md) §6. Internal feed acts as staging for both pre-release and stable candidates. Implementation remains planned.
 - Preserve with this thread:
   - `internal-feed` vs `pack-only`
   - manual public promotion workflow

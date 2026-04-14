@@ -269,10 +269,18 @@ This repo treats docs, issues, and commits as one delivery system:
 | Term | Meaning |
 | --- | --- |
 | **RID** | Runtime Identifier — .NET's platform descriptor (e.g., `win-x64`, `linux-arm64`) |
-| **Triplet** | vcpkg's platform descriptor (e.g., `x64-windows-release`, `arm64-linux-dynamic`) |
+| **Triplet** | vcpkg's platform descriptor (e.g., `x64-windows-hybrid`, `arm64-linux-dynamic`). Encodes the packaging strategy in the name. |
 | **Harvest** | The process of collecting compiled native binaries + their transitive dependencies from vcpkg output |
 | **Binary Closure Walk** | Recursively scanning a binary's dependencies (dumpbin on Windows, ldd on Linux, otool on macOS) |
 | **Satellite Library** | SDL companion libraries: SDL_image, SDL_mixer, SDL_ttf, SDL_gfx, SDL_net |
+| **Package Family** | A release unit: one managed bindings package + its .Native package, always versioned and released together (e.g., core family = `Janset.SDL2.Core` + `Janset.SDL2.Core.Native`) |
+| **Core Family** | The SDL2 package family. All satellite families depend on it. Released first when multiple families release together. |
+| **Satellite Family** | Any non-core package family (image, mixer, ttf, gfx, net). Depends on core family, but versioned independently. |
+| **Family Version** | The single shared version number for both packages within a family. Derived from a family tag (e.g., `core-1.0.0`). |
+| **Targeted Release** | Release of specific families without touching others. The default release mode. |
+| **Full-Train Release** | Coordinated release of all families together, triggered by cross-cutting changes. |
 | **SONAME** | Shared Object Name — the versioned name Linux shared libraries link against (e.g., `libSDL2-2.0.so.0`) |
 | **buildTransitive** | NuGet targets that apply to consuming projects (not just direct references) |
 | **Cake Frosting** | C#-based build automation framework (strongly-typed, DI-enabled alternative to MSBuild scripts) |
+
+> For the full release lifecycle glossary, see [knowledge-base/release-lifecycle-direction.md](knowledge-base/release-lifecycle-direction.md).

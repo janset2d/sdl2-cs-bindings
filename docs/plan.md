@@ -39,6 +39,13 @@ These decisions were made during the packaging strategy research cycle (April 20
 | **Test naming convention** | `<MethodName>_Should_<Verb>_<When/If/Given>` with underscores between words, not in method name | Consistent, readable, project-wide standard. |
 | **Remove external/sdl2-cs dependency** | The flibitijibibo/SDL2-CS git submodule will be removed. Current bindings are transitional — not trusted for production testing or long-term use. | SDL2-CS is unmaintained import-style bindings. Phase 4 CppAst generator replaces them entirely. |
 | **C++ native smoke test project** | Cross-platform CMake/vcpkg C++ project for directly testing hybrid-built native libraries without P/Invoke layer. IDE-debuggable (Rider/VS/CLion). | Needed for format coverage testing (MP3/FLAC/MOD/MIDI), hybrid bake validation, and diagnosing native vs. P/Invoke issues. Research needed on best IDE integration approach. |
+| **Package family as release unit** | Managed + .Native always share the same version (family version) and release together. Families version independently from each other. | Eliminates version matrix between managed and native. SkiaSharp/Magick.NET/Avalonia pattern. See [knowledge-base/release-lifecycle-direction.md](knowledge-base/release-lifecycle-direction.md). |
+| **Tag-derived family versioning** | Family version derived from git tags with family-specific prefixes (`core-1.0.0`, `image-1.0.3`). No manual version edits in project files. | Zero-config, tag-based, monorepo-native versioning. Current tooling candidate: MinVer. |
+| **Hybrid release governance** | Targeted release per-family by default. Forced full-train release on cross-cutting changes (vcpkg baseline, triplet/strategy, shared toolchain, validation guardrails). | Fast iteration for isolated changes, coherence guarantee for infrastructure changes. |
+| **Dependency contracts: exact within, minimum across** | Within-family: managed depends on native at exact pin (`=`). Cross-family: satellite depends on core at minimum (`>=`). | Exact pin prevents untested combinations within a family. Minimum allows independent satellite releases. |
+| **CI matrix: 7 RID jobs, not library×RID** | One job per RID. vcpkg installs all libraries per-triplet, Cake harvests per-library within the job. Matrix generated dynamically from manifest.json. | vcpkg manifest mode is all-or-nothing. Dynamic matrix eliminates YAML↔manifest drift. |
+| **Three-stage release promotion** | Local folder feed → internal feed (GitHub Packages) → public NuGet.org. Each stage is a deliberate, gated step. | Prevents accidental public releases. Matches ci-cd-packaging-and-release-plan.md design. |
+| **Cake as single orchestration surface** | Change detection (dotnet-affected), versioning (NuGet.Versioning), harvesting, packaging, validation — all through Cake. CI workflows are execution triggers, not logic containers. | Centralized policy authority. CI YAML stays thin. |
 
 ## Phase Roll-Up
 
@@ -174,8 +181,12 @@ These decisions were made during the packaging strategy research cycle (April 20
 > **Remaining:** Program.cs DI wiring, HarvestTask validation invocation, PreFlightCheck coherence invocation, HarvestPipeline extraction.
 > **Next:** Wire DI → integrate validator into harvest flow → PreFlight coherence → pipeline extraction.
 
-- [ ] Implement minimal PackageTask for win-x64 (SDL2.Core + SDL2.Image → .nupkg → local folder feed) (#83)
-- [ ] Create package-consumer smoke test project: PackageReference → local feed restore → SDL_Init + IMG_Load("test.png") (#83)
+**Release Lifecycle Adaptation** (see [phases/phase-2-adaptation-plan.md](phases/phase-2-adaptation-plan.md)):
+
+- [ ] Stream A: manifest.json `package_families` schema, MinVer integration, NuGet.Versioning in Cake
+- [ ] Stream C: PreFlightCheck as CI gate, dynamic matrix generation from manifest, CI workflow migration
+- [ ] Stream D: PackageTask with family version (#54, #83), package-consumer smoke test, local folder feed
+- [ ] Stream E: dotnet-affected change detection in Cake
 
 **Deferred to Phase 2b / Q3:**
 
@@ -315,10 +326,11 @@ Primary docs: [phases/phase-5-sdl3-support.md](phases/phase-5-sdl3-support.md), 
 4. **Local dev playbook needs correction**: A playbook exists, but parts of it were inaccurate and not yet validated end-to-end.
 5. **`--use-overrides` is parsed but not wired**: Legacy flag, to be reframed as `--native-source overrides` during Cake strategy refactor.
 6. **Distributed CI output flow is not wired yet**: current harvest output is still local-first. The release pipeline will need a real staging-vs-consolidated path split so matrix jobs can upload per-RID artifacts before consolidation.
-7. **Hybrid triplets not yet created**: Custom overlay triplets for the hybrid static model are designed but not yet implemented. Spike will prove the model on win-x64.
-8. **Symbol visibility unaddressed on Linux/macOS**: vcpkg does not set `-fvisibility=hidden` by default. Windows is safe (PE export-opt-in). Linux/macOS need custom triplet flags or linker version scripts. Deferred to Phase 2b.
+7. **Hybrid triplets created for 3 primary RIDs**: `x64-windows-hybrid`, `x64-linux-hybrid`, `x64-osx-hybrid` overlay triplets exist in `vcpkg-overlay-triplets/`. Remaining 4 pure-dynamic RIDs (win-x86, win-arm64, linux-arm64, osx-arm64) use stock triplets. Deferred to Phase 2b.
+8. **Symbol visibility analyzed, hardening deferred**: Symbol visibility analysis complete (`docs/research/symbol-visibility-analysis-2026-04-14.md`). zlib/libpng = 0 leaks on all platforms. FreeType/WebP have cosmetic leaks, accepted. Further hardening (version scripts, `-fvisibility=hidden`) deferred to Phase 2b.
 9. **Windows local tooling guidance is not explicit enough**: contributors need a dedicated prerequisites guide for VS C++ tooling, Developer PowerShell usage, and dumpbin/vswhere troubleshooting.
 10. **Build-host test topology drift**: test folders are not yet fully aligned to `_build` production boundaries (`Modules`/`Tasks`/`Tools`), which raises maintenance cost and weakens whitebox/blackbox separation.
+11. **Release lifecycle direction locked, not yet implemented**: Package family model, tag-derived versioning, hybrid release governance, dynamic CI matrix, three-stage promotion — all locked in `docs/knowledge-base/release-lifecycle-direction.md`. Implementation (MinVer integration, family tags, manifest schema evolution, PackageTask version model) is Phase 2 adaptation scope.
 
 ## Cross-Reference
 

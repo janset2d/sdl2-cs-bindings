@@ -7,6 +7,8 @@
 
 Complete the end-to-end pipeline from source code to publishable NuGet packages. Make the project buildable and testable by contributors.
 
+> **Release lifecycle direction:** The policy framework for versioning, release governance, dependency contracts, CI matrix shape, and promotion path is locked in [`knowledge-base/release-lifecycle-direction.md`](../knowledge-base/release-lifecycle-direction.md). The multi-stream implementation plan is in [`phases/phase-2-adaptation-plan.md`](phase-2-adaptation-plan.md). Key concepts: package families, family tags, targeted/full-train releases, within-family exact pin, cross-family minimum constraint.
+
 ## Scope
 
 ### 2.1 Complete vcpkg.json

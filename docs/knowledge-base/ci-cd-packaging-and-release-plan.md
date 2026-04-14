@@ -1,5 +1,7 @@
 # CI/CD Packaging and Release Plan
 
+> **Policy reference:** Release lifecycle policy (package families, versioning model, release governance, dependency contracts, CI matrix shape, promotion path) is defined in [`release-lifecycle-direction.md`](release-lifecycle-direction.md). This document describes the **pipeline implementation** that enforces those policies.
+
 ## 1. Overview and Goals
 
 - **What:** This document defines the comprehensive CI/CD pipeline for building, harvesting, packaging, and releasing the `Janset.SDL2.*` native and binding libraries for the `sdl2-cs-bindings` project. It builds upon the earlier Cake build planning work that has since been folded into the current documentation set.
@@ -7,7 +9,7 @@
 - **Key Objectives:**
   - **Internal Staging:** Implement a robust internal staging mechanism for all generated NuGet packages, allowing for testing and validation before any public release.
   - **Deliberate Public Promotion:** Ensure that publishing packages to public feeds (like NuGet.org) is always a conscious, manually triggered, and audited step.
-  - **Clear Version Management:** Establish `build/manifest.json` as the single source of truth for package versions and the target versions of underlying native components.
+  - **Clear Version Management:** Package versions are derived from family tags per the release lifecycle direction. `build/manifest.json` remains the single source of truth for native component target versions (vcpkg versions) and RID/triplet/strategy mappings.
   - **Optimized Builds:** Implement logic to only build and package libraries and RIDs that are new, have changed, or are explicitly forced, thus saving CI resources.
   - **Operational Robustness:** Design the pipeline to be resilient against common failure modes, with clear error reporting and recovery strategies.
   - **Visibility & Traceability:** Provide clear insight into the build, packaging, and release process through build fingerprints, logs, and status reporting (e.g., via GitHub Deployment Environments).
@@ -27,7 +29,9 @@ Current repo reality on 2026-04-11:
 - `PreFlightCheckTask`, `HarvestTask`, and `ConsolidateHarvestTask` are implemented in the Cake build host.
 - `build/known-issues.json`, `PackageTask`, `PR-Version-Consistency-Check.yml`, and `Promote-To-Public.yml` are planned, not present as working repo artifacts.
 - `PathService` contains harvest-staging helpers for distributed CI, but the active tasks and workflows still emit to `artifacts/harvest_output/`.
-- Shared native dependency collision policy (same-name binaries across satellites, such as zlib family) is now a required pre-coding deep-dive item before CI/package behavior changes.
+- Shared native dependency collision policy is resolved: Hybrid Static model eliminates transitive DLL collisions by static-baking deps into satellites.
+- Config merge complete: `runtimes.json` and `system_artefacts.json` are now merged into `manifest.json` schema v2.
+- Release lifecycle direction is locked: package families, tag-derived versioning, hybrid governance, dependency contracts, CI matrix shape, promotion path. See [`release-lifecycle-direction.md`](release-lifecycle-direction.md).
 
 ## 2. Guiding Principles & Core Tenets
 
@@ -53,9 +57,9 @@ The pipeline relies on several key configuration files and generates specific ar
     {
       "name": "SDL2", // Corresponds to Cake --library argument
       "vcpkg_name": "sdl2",
-      "vcpkg_version": "2.32.4", // Expected version from vcpkg.json
+      "vcpkg_version": "2.32.10", // Expected version from vcpkg.json
       "native_lib_name": "Janset.SDL2.Core.Native",
-      "native_lib_version": "2.32.4.0", // NuGet package version
+      "native_lib_version": "2.32.10.0", // NuGet package version (will be replaced by family version from tag)
       "core_lib": true,
       "primary_binaries": [...]
     }
@@ -68,8 +72,8 @@ The pipeline relies on several key configuration files and generates specific ar
   - **Role:** Defines the exact versions of native libraries (e.g., SDL2, SDL2_image) that Vcpkg will build, primarily through its `overrides` section.
   - It is manually kept in sync with the `vcpkg_version` fields in `build/manifest.json` for consistency.
 
-- **`build/runtimes.json`:** Defines supported RIDs and their mapping to Vcpkg triplets and CI runner configurations.
-- **`build/system_artefacts.json`:** Lists OS-specific system library patterns to be excluded during harvesting.
+- **`build/manifest.json` `runtimes` section** (formerly `build/runtimes.json`): Defines supported RIDs and their mapping to vcpkg triplets, strategies, and CI runner configurations. Merged into manifest.json schema v2.
+- **`build/manifest.json` `system_exclusions` section** (formerly `build/system_artefacts.json`): Lists OS-specific system library patterns to be excluded during harvesting. Merged into manifest.json schema v2.
 
 - **`build/known-issues.json` (Planned / not present in repo):**
 
@@ -103,7 +107,7 @@ The pipeline relies on several key configuration files and generates specific ar
         {
           "library_name": "SDL2",
           "rid": "win-x64",
-          "triplet": "x64-windows-release",
+          "triplet": "x64-windows-hybrid",
           "success": true,
           "error_message": null,
           "timestamp": "2025-05-31T21:55:43.3376331+00:00",
@@ -187,7 +191,7 @@ The pipeline relies on several key configuration files and generates specific ar
                 - If `auto-detect`: Query `inputs.target_destination` (internal NuGet feed via an API call - _add caching for this query in Phase 2_) to identify library/versions already published. Exclude these. Also, exclude combinations found in `known-issues.json`.
                 - If `force-buildable`: Exclude combinations found in `known-issues.json`.
                 - If `force-everything`: Include all combinations (no filtering beyond what's in manifest/runtimes).
-              - The final output is a matrix (e.g., JSON array of objects: `[{library: "SDL2", version: "2.32.4.0", rid: "win-x64", triplet: "x64-windows-release"}, ...]`).
+              - The final output is a matrix (e.g., JSON array of objects: `[{rid: "win-x64", triplet: "x64-windows-hybrid", strategy: "hybrid-static", runner: "windows-latest"}, ...]`). Per the release lifecycle direction, the matrix is RID-based (build axis), not library×RID.
           5. **Generate Summary:** Create a human-readable summary of the build plan (libraries, RIDs, total count) and set it as an output for GitHub Step Summary.
           6. If the generated build matrix is empty and `inputs.force_build_strategy` was `auto-detect`, the job can complete successfully, indicating nothing needs to be built. Subsequent jobs should handle this gracefully (e.g., using `if: needs.pre_flight_check.outputs.build_matrix != '[]'`).
 
@@ -235,7 +239,7 @@ The pipeline relies on several key configuration files and generates specific ar
         4. **Iterate & Package:** For each library defined in `build/manifest.json` that was intended for build (can cross-reference with `pre_flight_check` output or by presence in downloaded `final-harvest-output`):
             - Run Cake `Package` task:
               - Pass path to the library's harvested files within `final-harvest-output`.
-              - Task reads `build/manifest.json` for `native_lib_version` and `binding_version`.
+              - Task determines the family version from the family tag (see release-lifecycle-direction.md §3).
               - Task reads the library-specific `final-harvest-output/{LibraryName}/harvest-manifest.json` to confirm successful RIDs.
               - Stages files correctly for `dotnet pack` (including `native.tar.gz` and `.targets` file for `buildTransitive/` in native packages).
               - Calls `dotnet pack` for the native package.
@@ -352,16 +356,16 @@ The rollout of this comprehensive CI/CD pipeline will occur in distinct phases:
   - **Current Status:** ⚠️ **NOT IMPLEMENTED** - No `PackageTask` exists in the current build host.
   - This section describes the planned task contract, not an existing implementation.
   - Expected Responsibilities:
-    1. Reads `build/manifest.json` to get the `native_lib_version` (for native package) and `binding_version` (for binding package, if applicable).
+    1. Determines the **family version** for the target package family. Per the release lifecycle direction, the family version is derived from the family tag (e.g., `core-1.2.0` → version `1.2.0`). Both managed and native packages within a family share the same version. See [`release-lifecycle-direction.md`](release-lifecycle-direction.md) §3.
     2. Reads the `harvest_output/{LibraryName}/harvest-manifest.json` to identify successfully harvested RIDs and their output paths.
     3. **For Native Package (e.g., `Janset.SDL2.Core.Native`):**
         - Creates a temporary staging directory.
         - For each successful RID in `harvest-manifest.json`:
           - Copies/links the native content (e.g., `win-x64/native/*.dll` or `linux-x64/native/native.tar.gz`) into `staging/runtimes/{rid}/native/`.
         - Copies the `buildTransitive/{PackageId}.targets` file (for tar.gz extraction) into `staging/buildTransitive/`.
-        - Calls `dotnet pack {PathToNativeLib.csproj} --output {OutputNupkgDir} /p:Version={native_lib_version_from_manifest} /p:PackageBasePath={pathToStagingDir}` (or uses other MSBuild properties to include content correctly).
+        - Calls `dotnet pack` with the family version.
     4. **For Binding Package (e.g., `Janset.SDL2.Core`):**
-        - Calls `dotnet pack {PathToBindingLib.csproj} --output {OutputNupkgDir} /p:Version={binding_version_from_manifest}`. NuGet handles the `ProjectReference` to the native package, expecting the native package to be findable (either from a feed or a local path if versions align).
+        - Calls `dotnet pack` with the same family version. The managed package declares a within-family exact pin (`=`) dependency on its native package at the family version.
 
 This detailed plan should provide a strong foundation.
 
