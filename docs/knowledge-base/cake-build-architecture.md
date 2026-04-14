@@ -48,8 +48,8 @@ All services are registered via dependency injection in `Program.cs`:
 | `IArtifactPlanner` | `ArtifactPlanner` | Determines which binaries to include and how to deploy them |
 | `IArtifactDeployer` | `ArtifactDeployer` | Copies binaries to output, creates tar.gz for Unix |
 | `IRuntimeScanner` | Platform-specific | dumpbin (Windows), ldd (Linux), otool (macOS) |
-| `IPackagingStrategy` | `HybridStaticStrategy` / `PureDynamicStrategy` | **(Planned)** Packaging model, core library identification |
-| `IDependencyPolicyValidator` | `HybridStaticValidator` / `PureDynamicValidator` | **(Planned)** Validates closure against strategy (leak detection) |
+| `IPackagingStrategy` | `HybridStaticStrategy` / `PureDynamicStrategy` | Packaging model, core library identification — **implemented, not yet wired into DI** |
+| `IDependencyPolicyValidator` | `HybridStaticValidator` | Validates closure against strategy (leak detection) — **implemented, not yet wired into DI** |
 | `INativeAcquisitionStrategy` | `VcpkgBuildProvider` | **(Planned)** Where native binaries come from |
 
 ## Configuration Files

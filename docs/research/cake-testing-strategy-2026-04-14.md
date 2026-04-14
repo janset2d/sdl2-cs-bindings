@@ -36,10 +36,12 @@ Post-baseline review findings for `build/_build.Tests`:
 - Current coverage after sixth hardening slice:
   - Line coverage: 54.69%
   - Branch coverage: 44.12%
+- Current baseline after strategy TDD slice: 189/189 passing.
 - Critical gap status update:
   - `Program.cs` composition root / CLI path coverage added.
   - Async result chaining extension coverage added.
-  - Remaining refactor-sensitive focus: integration/task-flow coverage and CI no-regression ratchet.
+  - Strategy layer TDD complete: 21+ tests for validator, resolver, strategy implementations.
+  - Remaining: DI wiring integration, HarvestPipeline extraction, coverage ratchet CI gate (#86).
 - Test architecture concern (initially observed): one test file mirrored production logic instead of validating production behavior.
   - `ConsolidateHarvestTests` no longer mirrors consolidation logic and now validates `ConsolidateHarvestTask` behavior with real RID status inputs.
 - Test topology progress:
