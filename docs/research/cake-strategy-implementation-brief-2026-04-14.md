@@ -1,9 +1,20 @@
 # Cake Build Host Strategy Implementation Brief
 
 **Date:** 2026-04-14
-**Status:** Implementation design — ready for coding
+**Status:** Implementation design — revised after alignment discussion
 **Issue:** [#85](https://github.com/janset2d/sdl2-cs-bindings/issues/85)
-**Related:** [execution-model-strategy-2026-04-13.md](execution-model-strategy-2026-04-13.md), [knowledge-base/cake-build-architecture.md](../knowledge-base/cake-build-architecture.md)
+**Related:** [execution-model-strategy-2026-04-13.md](execution-model-strategy-2026-04-13.md), [knowledge-base/cake-build-architecture.md](../knowledge-base/cake-build-architecture.md), [tunit-testing-framework-2026-04-14.md](tunit-testing-framework-2026-04-14.md)
+
+## Revision Summary (from original brief)
+
+| Original | Revised | Rationale |
+| --- | --- | --- |
+| 3 separate config files | Single `manifest.json` (schema v2) | Single source of truth, atomic updates, no cross-file drift |
+| `--strategy` CLI flag | Triplet = strategy (no flag) | Triplet already determines vcpkg build; separate flag = two-headed authority |
+| Strategy inferred from triplet substring only | Explicit `"strategy"` field in runtimes section, validated against triplet | Formal mapping, CI-readable, PreFlightCheck coherence validation |
+| `expected_transitive_deps` in manifest | Dropped — validator uses BinaryClosureWalker output | vcpkg metadata + runtime scan = ground truth; manual lists can't be maintained across versions |
+| `hybrid_transitive_deps_baked_in` in manifest | Dropped — informational only, no validation use | Same reason; if needed, derive from vcpkg at build time |
+| Implementation-first | Test-first: characterization tests → config merge → TDD strategy code | Zero test coverage today; refactoring without tests = risk |
 
 ## Goal
 
@@ -36,10 +47,10 @@ Singletons:
     ├── LinuxLddScanner (Linux)
     └── MacOtoolScanner (macOS)
 
-Config models (from JSON):
-├── RuntimeConfig ← build/runtimes.json
-├── ManifestConfig ← build/manifest.json
-└── SystemArtefactsConfig ← build/system_artefacts.json
+Config models (from JSON — currently 3 files, merging to 1):
+├── RuntimeConfig ← build/runtimes.json → build/manifest.json runtimes section
+├── ManifestConfig ← build/manifest.json → build/manifest.json library_manifests section
+└── SystemArtefactsConfig ← build/system_artefacts.json → build/manifest.json system_exclusions section
 ```
 
 ### Task Graph
@@ -56,14 +67,13 @@ ConsolidateHarvestTask [depends: HarvestTask] ← merges per-RID results
 LddTask, OtoolAnalyzeTask, DependentsTask ← diagnostic tools (not in main pipeline)
 ```
 
-### Key Files to Understand
+### Key Files — Stability Assessment
 
 | File | Role | Changes needed? |
 | --- | --- | --- |
-| `Program.cs` | CLI args + DI wiring | **Yes** — add `--strategy`, `--native-source`, `--validation-mode` args; register new services |
+| `Program.cs` | CLI args + DI wiring | **Yes** — register new services, load merged manifest |
 | `Context/BuildContext.cs` | Cake context, holds DI services | **Yes** — add strategy + validation references |
-| `Context/Configs/VcpkgConfiguration.cs` | Holds `--library`, `--rid` | **Maybe** — add strategy field |
-| `Modules/PathService.cs` | All path construction | **No** — stable, reuse as-is |
+| `Modules/PathService.cs` | All path construction | **Minor** — 3 file methods → 1 (`GetManifestFile()` stays, others removed) |
 | `Modules/RuntimeProfile.cs` | RID↔triplet resolution, system file filtering | **No** — stable, reuse as-is |
 | `Modules/Harvesting/BinaryClosureWalker.cs` | Two-stage graph walk (vcpkg metadata + binary scan) | **No** — stable, output feeds into new validator |
 | `Modules/Harvesting/ArtifactPlanner.cs` | Plans deployment (copy/archive) per platform | **Minor** — may need strategy-aware filtering |
@@ -73,6 +83,7 @@ LddTask, OtoolAnalyzeTask, DependentsTask ← diagnostic tools (not in main pipe
 | `Modules/DependencyAnalysis/MacOtoolScanner.cs` | otool -L parser | **No** — same |
 | `Tasks/Harvest/HarvestTask.cs` | Orchestrates harvest pipeline | **Yes** — thin out, delegate to pipeline service |
 | `Tasks/Harvest/ConsolidateHarvestTask.cs` | Merges RID results | **No** — stable |
+| `Tasks/Preflight/PreFlightCheckTask.cs` | Version consistency validation | **Yes** — add triplet↔strategy coherence check |
 
 ### Result Monad Pattern
 
@@ -86,9 +97,205 @@ CopierResult = OneOf<CopierError, Success>
 
 New services should follow this same pattern.
 
+## Config Merge: manifest.json Schema v2
+
+### Before (3 files)
+
+```
+build/manifest.json          ← library definitions
+build/runtimes.json          ← RID→triplet→runner mapping
+build/system_artefacts.json  ← OS library exclusion lists
+```
+
+### After (1 file)
+
+```
+build/manifest.json          ← everything
+```
+
+### Merged Schema
+
+```json
+{
+  "schema_version": "2.0",
+
+  "packaging_config": {
+    "validation_mode": "strict",
+    "core_library": "sdl2"
+  },
+
+  "runtimes": [
+    {
+      "rid": "win-x64",
+      "triplet": "x64-windows-hybrid",
+      "strategy": "hybrid-static",
+      "runner": "windows-latest",
+      "container_image": null
+    },
+    {
+      "rid": "win-arm64",
+      "triplet": "arm64-windows",
+      "strategy": "pure-dynamic",
+      "runner": "windows-latest",
+      "container_image": null
+    },
+    {
+      "rid": "win-x86",
+      "triplet": "x86-windows",
+      "strategy": "pure-dynamic",
+      "runner": "windows-latest",
+      "container_image": null
+    },
+    {
+      "rid": "linux-x64",
+      "triplet": "x64-linux-hybrid",
+      "strategy": "hybrid-static",
+      "runner": "ubuntu-24.04",
+      "container_image": "ubuntu:20.04"
+    },
+    {
+      "rid": "linux-arm64",
+      "triplet": "arm64-linux-dynamic",
+      "strategy": "pure-dynamic",
+      "runner": "ubuntu-latest-arm64",
+      "container_image": "ubuntu:24.04"
+    },
+    {
+      "rid": "osx-x64",
+      "triplet": "x64-osx-hybrid",
+      "strategy": "hybrid-static",
+      "runner": "macos-15-intel",
+      "container_image": null
+    },
+    {
+      "rid": "osx-arm64",
+      "triplet": "arm64-osx-dynamic",
+      "strategy": "pure-dynamic",
+      "runner": "macos-latest",
+      "container_image": null
+    }
+  ],
+
+  "system_exclusions": {
+    "windows": {
+      "system_dlls": [
+        "kernel32.dll", "kernelbase.dll", "ntdll.dll", "user32.dll",
+        "gdi32.dll", "winmm.dll", "imm32.dll", "advapi32.dll",
+        "shell32.dll", "shlwapi.dll", "ole32.dll", "oleaut32.dll",
+        "version.dll", "setupapi.dll", "winspool.dll", "comdlg32.dll",
+        "comctl32.dll", "ws2_32.dll", "iphlpapi.dll", "crypt32.dll",
+        "d3d9.dll", "d3d11.dll", "dxgi.dll", "ucrtbase.dll",
+        "msvcp*.dll", "vcruntime*.dll", "api-ms-win-*.dll"
+      ]
+    },
+    "linux": {
+      "system_libraries": [
+        "linux-vdso.so*", "ld-linux-*.so*", "libc.so*", "libm.so*",
+        "libpthread.so*", "libdl.so*", "librt.so*", "libutil.so*",
+        "libresolv.so*", "libnss_*.so*", "libstdc++.so*", "libgcc_s.so*",
+        "libsystemd.so*", "libdbus-*.so*", "libexpat.so*", "libasound.so*",
+        "libatopology.so*", "libcap.so*", "libpsx.so*", "liblzma.so*",
+        "liblz4.so*", "libzstd.so*", "libblkid.so*", "libmount.so*",
+        "libcrypt.so*", "libxcrypt.so*", "libowcrypt.so*"
+      ]
+    },
+    "osx": {
+      "system_libraries": [
+        "libSystem.B.dylib", "libobjc.A.dylib",
+        "CoreVideo.framework", "Cocoa.framework", "IOKit.framework",
+        "ForceFeedback.framework", "Carbon.framework", "CoreAudio.framework",
+        "AudioToolbox.framework", "AVFoundation.framework", "Foundation.framework",
+        "GameController.framework", "Metal.framework", "QuartzCore.framework",
+        "CoreHaptics.framework", "AppKit.framework", "CoreFoundation.framework",
+        "CoreGraphics.framework", "CoreServices.framework"
+      ]
+    }
+  },
+
+  "library_manifests": [
+    {
+      "name": "SDL2",
+      "vcpkg_name": "sdl2",
+      "vcpkg_version": "2.32.10",
+      "vcpkg_port_version": 0,
+      "native_lib_name": "SDL2.Core.Native",
+      "native_lib_version": "2.32.10.0",
+      "core_lib": true,
+      "primary_binaries": [
+        { "os": "Windows", "patterns": ["SDL2.dll"] },
+        { "os": "Linux", "patterns": ["libSDL2*"] },
+        { "os": "OSX", "patterns": ["libSDL2*.dylib"] }
+      ]
+    }
+  ]
+}
+```
+
+**Key design points:**
+
+- `schema_version` enables future breaking changes
+- `runtimes[].strategy` is the formal triplet→strategy mapping — triplet is the authority, strategy is the validated declaration
+- `system_exclusions` replaces the standalone `system_artefacts.json`
+- `library_manifests` unchanged from current manifest.json
+- `packaging_config` unchanged
+
+### Migration Impact
+
+| Component | Change | Complexity |
+| --- | --- | --- |
+| `PathService` | Remove `GetRuntimesFile()`, `GetSystemArtifactsFile()` | Trivial |
+| `IPathService` | Same method removals | Trivial |
+| `Program.cs` DI | 3 JSON loads → 1 load, extract 3 typed configs | Low |
+| Model files | 3 files → 1 combined `BuildManifestModels.cs` | Low |
+| Consumer code | Zero changes — same typed DI injections | None |
+| CI workflows | No changes (they don't read these files directly yet) | None |
+
+## Triplet = Strategy
+
+### Design
+
+The triplet name encodes the packaging strategy. No `--strategy` CLI argument exists.
+
+**Authority chain:** triplet → strategy. The `runtimes[].strategy` field in manifest.json is a formal declaration, not a separate authority. If triplet and strategy field are inconsistent, `PreFlightCheckTask` fails the build.
+
+**Convention:**
+
+- Triplet contains `-hybrid` → `PackagingModel.HybridStatic`
+- Otherwise → `PackagingModel.PureDynamic`
+
+### Strategy Resolution
+
+```csharp
+// Single resolution point — reads from manifest runtimes section
+public static PackagingModel ResolveStrategy(RuntimeInfo runtime)
+{
+    var expectedFromTriplet = runtime.Triplet.Contains("-hybrid", StringComparison.OrdinalIgnoreCase)
+        ? PackagingModel.HybridStatic
+        : PackagingModel.PureDynamic;
+
+    var declared = runtime.Strategy switch
+    {
+        "hybrid-static" => PackagingModel.HybridStatic,
+        "pure-dynamic" => PackagingModel.PureDynamic,
+        _ => throw new InvalidOperationException($"Unknown strategy '{runtime.Strategy}' for RID {runtime.Rid}")
+    };
+
+    if (expectedFromTriplet != declared)
+        throw new InvalidOperationException(
+            $"Triplet '{runtime.Triplet}' implies {expectedFromTriplet} but manifest declares {declared} for RID {runtime.Rid}. " +
+            $"Fix the strategy field in manifest.json or use the correct triplet.");
+
+    return declared;
+}
+```
+
+### PreFlightCheckTask Enhancement
+
+In addition to existing version consistency checks, PreFlightCheck gains triplet↔strategy coherence validation for all runtimes in the manifest.
+
 ## Proposed Architecture
 
-### Four New Interfaces
+### Three New Interfaces (Reduced from Four)
 
 ```csharp
 // 1. What packaging model are we targeting?
@@ -96,7 +303,6 @@ public interface IPackagingStrategy
 {
     PackagingModel Model { get; } // PureDynamic | HybridStatic
     bool IsCoreLibrary(string vcpkgName);
-    IReadOnlySet<string> GetExpectedDynamicDeps(string libraryName);
 }
 
 // 2. Does the output match the strategy?
@@ -111,14 +317,9 @@ public interface INativeAcquisitionStrategy
     NativeSource Source { get; } // VcpkgBuild | Overrides | CiArtifact
     string GetBinaryDirectory(string triplet);
 }
-
-// 4. How do binaries go into the package?
-public interface IPayloadLayoutPolicy
-{
-    DeploymentStrategy GetStrategy(string rid); // DirectCopy | Archive
-    string GetOutputPath(string libraryName, string rid);
-}
 ```
+
+**Note:** `IPayloadLayoutPolicy` is deferred. Current `ArtifactPlanner` already handles Windows direct-copy vs Unix archive. Policy extraction can happen when PackageTask is implemented.
 
 ### Enums
 
@@ -128,130 +329,82 @@ public enum NativeSource { VcpkgBuild, Overrides, CiArtifact }
 public enum ValidationMode { Off, Warn, Strict }
 ```
 
-### Implementations
+### Validator — Uses BinaryClosureWalker Output, No Manual Lists
+
+The key insight: in hybrid-static mode, `BinaryClosureWalker` already reveals the ground truth. If zlib was successfully baked into SDL2_image.dll, then `dumpbin /dependents` won't show `zlib1.dll`. If bake failed, zlib appears in the closure.
 
 ```csharp
-// --- Strategy ---
-public class HybridStaticStrategy : IPackagingStrategy
-{
-    // Core library (sdl2) is the only allowed external dynamic dep
-    // All other transitive deps must be absent from closure
-    public PackagingModel Model => PackagingModel.HybridStatic;
-    public bool IsCoreLibrary(string vcpkgName) => vcpkgName == _coreLibName;
-    public IReadOnlySet<string> GetExpectedDynamicDeps(string libraryName)
-        => libraryName == _coreLibName
-            ? new HashSet<string>() // core has no SDL deps
-            : new HashSet<string> { _coreLibName }; // satellites depend only on core
-}
-
-public class PureDynamicStrategy : IPackagingStrategy
-{
-    // All transitive deps expected as separate files (legacy behavior)
-    public PackagingModel Model => PackagingModel.PureDynamic;
-    public IReadOnlySet<string> GetExpectedDynamicDeps(string libraryName)
-        => /* all transitive deps from closure */;
-}
-
-// --- Validator ---
 public class HybridStaticValidator : IDependencyPolicyValidator
 {
-    // Uses BinaryClosure output from BinaryClosureWalker
-    // For non-core libraries: any dependency that is NOT:
-    //   - a system artifact (RuntimeProfile.IsSystemFile)
-    //   - the core SDL2 library
-    // → is a POLICY VIOLATION (transitive dep leaked)
+    private readonly IRuntimeProfile _profile;
+    private readonly IPackagingStrategy _strategy;
+    private readonly ValidationMode _mode;
+
     public ValidationResult Validate(BinaryClosure closure, LibraryManifest manifest)
     {
-        if (manifest.CoreLib) return ValidationResult.Pass();
+        // Core libraries have no policy constraints
+        if (manifest.IsCoreLib) return ValidationResult.Pass();
 
+        // For satellite libraries in hybrid mode:
+        // Every non-system, non-core binary in the closure = transitive dep leak
         var violations = closure.Nodes
-            .Where(n => n.OwnerPackage != "sdl2"
-                     && !_runtimeProfile.IsSystemFile(n.Path))
+            .Where(node =>
+                !_profile.IsSystemFile(node.Path)
+                && !_strategy.IsCoreLibrary(node.OwnerPackage)
+                && !closure.IsPrimaryFile(node.Path))
             .ToList();
 
-        return violations.Any()
-            ? ValidationResult.Fail(violations, _validationMode)
-            : ValidationResult.Pass();
+        if (violations.Count == 0) return ValidationResult.Pass();
+
+        return _mode switch
+        {
+            ValidationMode.Strict => ValidationResult.Fail(violations),
+            ValidationMode.Warn => ValidationResult.Warn(violations),
+            ValidationMode.Off => ValidationResult.Pass(),
+            _ => throw new ArgumentOutOfRangeException()
+        };
     }
 }
 ```
 
-### Strategy Resolution — Fallback Chain + Coherence Check
+**Data sources — zero manual maintenance:**
 
-Strategy is determined by a fallback chain. The first non-null source wins:
-
-```text
-1. CLI flag:        --strategy hybrid-static       (explicit override, highest priority)
-2. Triplet name:    "x64-windows-hybrid" → infer HybridStatic
-                    "x64-linux-dynamic"  → infer PureDynamic
-3. Config default:  manifest.json packaging_config  (if it ever gets a strategy field)
-4. Hardcoded:       HybridStatic                    (project default going forward)
-```
-
-**Triplet inference rule:** If the resolved triplet name contains `-hybrid`, strategy = `HybridStatic`. Otherwise, `PureDynamic`. This keeps runtimes.json as the single source of truth — the triplet encodes the strategy.
-
-**Coherence check (mandatory):** After strategy resolution, validate that the triplet and strategy are compatible. If they conflict, fail early with a clear error:
-
-```csharp
-// In Program.cs or a dedicated StrategyResolver service
-if (strategy == PackagingModel.HybridStatic && !triplet.Contains("hybrid"))
-    throw new InvalidOperationException(
-        $"Strategy is HybridStatic but triplet '{triplet}' is not a hybrid triplet. " +
-        $"Use a hybrid triplet (e.g., x64-windows-hybrid) or set --strategy pure-dynamic.");
-
-if (strategy == PackagingModel.PureDynamic && triplet.Contains("hybrid"))
-    throw new InvalidOperationException(
-        $"Strategy is PureDynamic but triplet '{triplet}' is a hybrid triplet. " +
-        $"Use a stock triplet (e.g., x64-windows-release) or set --strategy hybrid-static.");
-```
-
-This prevents silent misconfiguration — you can't accidentally validate a hybrid build with pure-dynamic rules or vice versa.
+- "Is system file?" → `IRuntimeProfile.IsSystemFile()` ← reads `system_exclusions` from manifest
+- "Is core library?" → `IPackagingStrategy.IsCoreLibrary()` ← reads `packaging_config.core_library` from manifest
+- "Is primary file?" → `BinaryClosure.IsPrimaryFile()` ← resolved from `library_manifests[].primary_binaries` patterns
+- Everything else in the closure = violation
 
 ### DI Registration (Program.cs changes)
 
 ```csharp
-// New CLI args
-// --strategy {pure-dynamic|hybrid-static}  (default: hybrid-static)
-// --native-source {vcpkg-build|overrides|ci-artifact}  (default: vcpkg-build)
-// --validation-mode {off|warn|strict}  (default: from manifest.json)
-// --use-overrides  (deprecated alias for --native-source overrides)
-
-// New registrations
+// Strategy resolved from manifest runtimes section — no CLI arg
 services.AddSingleton<IPackagingStrategy>(sp =>
-    strategy == PackagingModel.HybridStatic
-        ? new HybridStaticStrategy(manifestConfig)
-        : new PureDynamicStrategy(manifestConfig));
+{
+    var runtimeProfile = sp.GetRequiredService<IRuntimeProfile>();
+    var manifest = sp.GetRequiredService<ManifestConfig>();
+    // Strategy is resolved from triplet + validated against manifest declaration
+    return runtimeProfile.Strategy == PackagingModel.HybridStatic
+        ? new HybridStaticStrategy(manifest)
+        : new PureDynamicStrategy(manifest);
+});
 
 services.AddSingleton<IDependencyPolicyValidator>(sp =>
-    strategy == PackagingModel.HybridStatic
-        ? new HybridStaticValidator(sp.GetRequiredService<IRuntimeProfile>(), validationMode)
-        : new PureDynamicValidator());
+{
+    var strategy = sp.GetRequiredService<IPackagingStrategy>();
+    var profile = sp.GetRequiredService<IRuntimeProfile>();
+    var manifest = sp.GetRequiredService<ManifestConfig>();
+    var mode = manifest.PackagingConfig.ParseValidationMode();
 
-services.AddSingleton<INativeAcquisitionStrategy>(sp =>
-    nativeSource switch {
-        NativeSource.VcpkgBuild => new VcpkgBuildProvider(sp.GetRequiredService<IPathService>()),
-        NativeSource.Overrides => new OverrideDirProvider(overridePath),
-        NativeSource.CiArtifact => new CiArtifactProvider(artifactPath),
-        _ => throw new ArgumentException()
-    });
-
-services.AddSingleton<IPayloadLayoutPolicy, DefaultPayloadLayoutPolicy>();
+    return strategy.Model == PackagingModel.HybridStatic
+        ? new HybridStaticValidator(profile, strategy, mode)
+        : new PureDynamicValidator();
+});
 ```
 
 ### HarvestTask Refactor
 
 ```csharp
-// BEFORE (current): 200+ lines, all logic inline
-[TaskName("Harvest")]
-public class HarvestTask : AsyncFrostingTask<BuildContext>
-{
-    public override async Task RunAsync(BuildContext ctx)
-    {
-        // ... inline closure walk, plan, deploy, status file generation
-    }
-}
-
-// AFTER: thin orchestrator, ~30 lines
+// AFTER: thin orchestrator
 [TaskName("Harvest")]
 public class HarvestTask : AsyncFrostingTask<BuildContext>
 {
@@ -261,9 +414,9 @@ public class HarvestTask : AsyncFrostingTask<BuildContext>
 
     public override async Task RunAsync(BuildContext ctx)
     {
-        foreach (var library in ctx.Vcpkg.Libraries)
+        foreach (var library in ctx.ResolveLibrariesToHarvest())
         {
-            await _pipeline.RunAsync(library, ctx.Vcpkg.Rid);
+            await _pipeline.RunAsync(library, ctx);
         }
     }
 }
@@ -275,104 +428,166 @@ public class HarvestPipeline : IHarvestPipeline
     private readonly IDependencyPolicyValidator _validator;
     private readonly IArtifactPlanner _planner;
     private readonly IArtifactDeployer _deployer;
-    private readonly IPackagingStrategy _strategy;
 
-    public async Task RunAsync(string library, string rid)
+    public async Task RunAsync(LibraryManifest manifest, BuildContext ctx)
     {
-        // 1. Walk closure
-        var closure = await _closureWalker.BuildClosureAsync(library, rid);
+        // 1. Walk closure (unchanged — BinaryClosureWalker is stable)
+        var closureResult = await _closureWalker.BuildClosureAsync(manifest);
+        closureResult.ThrowIfError(...);
 
-        // 2. Validate against strategy
-        var validation = _validator.Validate(closure, manifest);
+        // 2. Validate against strategy (NEW — the guardrail)
+        var validation = _validator.Validate(closureResult.Closure, manifest);
         validation.ThrowIfStrictFail();
 
-        // 3. Plan deployment
-        var plan = await _planner.CreatePlanAsync(manifest, closure, outputRoot);
+        // 3. Plan deployment (unchanged — ArtifactPlanner is stable)
+        var planResult = await _planner.CreatePlanAsync(manifest, closureResult.Closure, outputBase);
+        planResult.ThrowIfError(...);
 
-        // 4. Deploy
-        await _deployer.DeployArtifactsAsync(plan);
+        // 4. Deploy (unchanged — ArtifactDeployer is stable)
+        await _deployer.DeployArtifactsAsync(planResult.DeploymentPlan);
 
-        // 5. Status file
-        await GenerateStatusFileAsync(library, rid, validation);
+        // 5. Status file (moved from HarvestTask inline code)
+        await GenerateStatusFileAsync(manifest, validation);
     }
 }
 ```
 
-### Config Changes
+## File Organization
 
-**manifest.json** — already updated with `packaging_config`:
-
-```json
-{
-  "packaging_config": {
-    "validation_mode": "strict",
-    "core_library": "sdl2"
-  },
-  "library_manifests": [...]
-}
-```
-
-**runtimes.json** — already updated with hybrid triplets. No further changes.
-
-### File Organization
-
-New files to create:
+### New Files to Create
 
 ```
 build/_build/
 ├── Context/
-│   ├── Configs/
-│   │   └── PackagingConfiguration.cs       ← NEW: strategy, validation mode, native source
+│   ├── Models/
+│   │   └── BuildManifestModels.cs      ← NEW: merged config models (replaces 3 model files)
 ├── Modules/
 │   ├── Strategy/
-│   │   ├── IPackagingStrategy.cs            ← NEW
-│   │   ├── HybridStaticStrategy.cs          ← NEW
-│   │   ├── PureDynamicStrategy.cs           ← NEW
-│   │   ├── IDependencyPolicyValidator.cs    ← NEW
-│   │   ├── HybridStaticValidator.cs         ← NEW
-│   │   ├── PureDynamicValidator.cs          ← NEW
-│   │   ├── INativeAcquisitionStrategy.cs    ← NEW
-│   │   ├── VcpkgBuildProvider.cs            ← NEW
-│   │   ├── IPayloadLayoutPolicy.cs          ← NEW
-│   │   └── DefaultPayloadLayoutPolicy.cs    ← NEW
+│   │   ├── IPackagingStrategy.cs        ← NEW
+│   │   ├── HybridStaticStrategy.cs      ← NEW
+│   │   ├── PureDynamicStrategy.cs       ← NEW
+│   │   ├── IDependencyPolicyValidator.cs ← NEW
+│   │   ├── HybridStaticValidator.cs     ← NEW
+│   │   ├── PureDynamicValidator.cs      ← NEW (passthrough — allows all deps)
+│   │   ├── ValidationResult.cs          ← NEW
+│   │   └── StrategyResolver.cs          ← NEW (triplet↔strategy coherence)
 │   ├── Pipeline/
-│   │   ├── IHarvestPipeline.cs              ← NEW
-│   │   └── HarvestPipeline.cs               ← NEW
-│   ├── Harvesting/
-│   │   ├── BinaryClosureWalker.cs           ← UNCHANGED
-│   │   ├── ArtifactPlanner.cs               ← MINOR CHANGES
-│   │   └── ArtifactDeployer.cs              ← UNCHANGED
+│   │   ├── IHarvestPipeline.cs          ← NEW
+│   │   └── HarvestPipeline.cs           ← NEW (extracted from HarvestTask)
 
-build/_build.Tests/                           ← NEW: TUnit test project
+build/_build.Tests/                       ← NEW: TUnit test project
 ├── _build.Tests.csproj
-├── Strategy/
-│   ├── HybridStaticValidatorTests.cs
-│   └── StrategySelectionTests.cs
-├── Config/
-│   └── PackagingConfigParsingTests.cs
-└── Pipeline/
-    └── HarvestPipelineTests.cs
+├── Fixtures/
+│   ├── ManifestFixture.cs
+│   ├── RuntimeProfileFixture.cs
+│   └── BinaryClosureBuilder.cs
+├── Unit/
+│   ├── RuntimeProfile/
+│   │   └── IsSystemFileTests.cs
+│   ├── PathService/
+│   │   └── PathConstructionTests.cs
+│   ├── PreFlight/
+│   │   └── SemanticVersionParsingTests.cs
+│   ├── BinaryClosureWalker/
+│   │   └── PatternMatchingTests.cs
+│   ├── Config/
+│   │   └── ManifestDeserializationTests.cs
+│   └── Strategy/
+│       ├── HybridStaticValidatorTests.cs
+│       └── StrategyResolutionTests.cs
+└── Integration/
+    └── Pipeline/
+        └── HarvestPipelineTests.cs
+```
+
+### Files to Remove After Migration
+
+```
+build/runtimes.json          ← content moved to manifest.json
+build/system_artefacts.json  ← content moved to manifest.json
 ```
 
 ## Implementation Order
 
-1. **Create TUnit test project first** (`build/_build.Tests/`) — write tests for validator logic before writing the validator
-2. **Add enums + config parsing** (PackagingModel, NativeSource, ValidationMode, PackagingConfiguration)
-3. **Implement IPackagingStrategy** (HybridStatic + PureDynamic — simple, stateless)
-4. **Implement IDependencyPolicyValidator** (HybridStaticValidator — uses existing BinaryClosure output)
-5. **Wire into DI** (Program.cs: new CLI args + service registrations)
-6. **Extract HarvestPipeline** from HarvestTask (move logic, keep task thin)
-7. **Add validation step** to HarvestPipeline (between closure walk and artifact planning)
-8. **Test on win-x64** — hybrid build + harvest should pass with strict validation
-9. **INativeAcquisitionStrategy + IPayloadLayoutPolicy** — can be minimal stubs initially, full implementation later
+### Phase 0: Documentation (CURRENT)
 
-## Key Architectural Insight: Scanner Repurposing
+Update all canonical docs to reflect alignment decisions before any code changes.
 
-The existing runtime scanners (`WindowsDumpbinScanner`, `LinuxLddScanner`, `MacOtoolScanner`) were built for **dependency discovery** — "what does this DLL depend on?" In the new architecture, they gain a second role: **packaging guardrails**.
+### Phase 1: Characterization Tests
 
-**Current role (preserved):** `BinaryClosureWalker` calls scanners to discover transitive deps → feeds into `ArtifactPlanner` for deployment.
+Cover the status quo with tests BEFORE any refactoring. Zero production code changes.
 
-**New role (added):** `HybridStaticValidator` consumes the same `BinaryClosure` output. For hybrid-static builds, the closure of a satellite library should be **near-empty** — only SDL2 core + system libs. If the scanner finds `libz.so.1` in SDL2_image's dependency list, that means the static bake failed and zlib leaked as a separate shared library. The validator catches this and fails the build (in `Strict` mode).
+1. Create TUnit test project (`build/_build.Tests/`)
+2. Add `"test": { "runner": "Microsoft.Testing.Platform" }` to global.json
+3. Add TUnit + NSubstitute to Directory.Packages.props
+4. Write ~20 characterization tests for existing pure functions:
+   - `RuntimeProfile.IsSystemFile()` — 3 platforms × system/non-system files
+   - `PreFlightCheckTask.ParseSemanticVersion()` — standard, pre-release, invalid
+   - `BinaryClosureWalker.MatchesPattern()` — exact, wildcard, case-insensitive (needs InternalsVisibleTo or extraction)
+   - Config deserialization — parse real manifest.json, runtimes.json, system_artefacts.json
+   - `PathService` path construction — harvest dirs, vcpkg dirs
+5. Verify all tests pass against current code
+
+### Phase 2: Config Merge
+
+Merge 3 config files → 1 manifest.json. Characterization tests provide safety net.
+
+1. Create merged manifest.json (schema v2)
+2. Create combined `BuildManifestModels.cs`
+3. Update `PathService` (remove 2 methods)
+4. Update `Program.cs` DI (1 load → extract 3 typed configs)
+5. Delete old files (runtimes.json, system_artefacts.json, old model files)
+6. Verify all characterization tests still pass
+7. Update config deserialization tests for new schema
+
+### Phase 3: TDD Strategy + Validator
+
+Write tests FIRST, then implement to make them pass.
+
+1. Write `HybridStaticValidatorTests` (~8 tests):
+   - Core library → always passes
+   - Satellite with only core dep → passes
+   - Satellite with transitive dep leak → fails (strict), warns (warn), passes (off)
+   - System files filtered correctly
+2. Write `StrategyResolutionTests` (~5 tests):
+   - Triplet with `-hybrid` → HybridStatic
+   - Triplet without `-hybrid` → PureDynamic
+   - Triplet↔strategy field mismatch → throws
+3. Implement `IPackagingStrategy`, `IDependencyPolicyValidator`, `StrategyResolver`
+4. Wire into DI in `Program.cs`
+5. Enhance `PreFlightCheckTask` with coherence check
+6. Verify all tests pass
+
+### Phase 4: Pipeline Extraction
+
+Extract orchestration from HarvestTask into HarvestPipeline service.
+
+1. Write `HarvestPipelineTests` (~4 tests):
+   - Full flow deploys successfully
+   - Validation failure in strict mode → throws
+   - Validation failure in warn mode → continues
+2. Create `IHarvestPipeline` + `HarvestPipeline`
+3. Thin out `HarvestTask` to delegate to pipeline
+4. Add validation step between closure walk and artifact planning
+5. Verify all tests pass
+6. Run real harvest on win-x64 and compare output before/after
+
+### Phase 5: CI Updates (Phase 2b scope)
+
+Deferred to Phase 2b — not part of the foundation spike.
+
+1. Add `--overlay-triplets` to vcpkg-setup action
+2. Update prepare-native-assets workflows to use hybrid triplets
+3. Implement dynamic matrix generation from manifest.json
+4. Update local development playbook
+
+## Scanner Repurposing — Key Architectural Insight
+
+The existing runtime scanners (`WindowsDumpbinScanner`, `LinuxLddScanner`, `MacOtoolScanner`) were built for **dependency discovery**. In the new architecture, they gain a second role: **packaging guardrails**.
+
+**Current role (preserved):** `BinaryClosureWalker` calls scanners to discover transitive deps → feeds into `ArtifactPlanner`.
+
+**New role (added):** `HybridStaticValidator` consumes the same `BinaryClosure` output. For hybrid builds, the closure of a satellite should be near-empty — only SDL2 core + system libs. If the scanner finds `zlib1.dll` in SDL2_image's closure, that means the static bake failed and zlib leaked. The validator catches this.
 
 ```text
 Scanner output (same data, two consumers):
@@ -380,42 +595,45 @@ Scanner output (same data, two consumers):
 BinaryClosureWalker
     → BinaryClosure { Nodes: [...], PrimaryFiles: [...] }
         ├── ArtifactPlanner (existing)  → "what to copy/package"
-        └── HybridStaticValidator (NEW) → "did anything leak that shouldn't?"
+        └── HybridStaticValidator (NEW) → "did anything leak?"
 ```
 
-This means **zero changes to the scanner code itself**. The scanners produce the same output as before. The new validator is a pure consumer of that output — it just asks a different question about the same data.
-
-The `BinaryClosure.Nodes` list already contains `OwnerPackage` and `OriginPackage` per binary, which gives the validator everything it needs to distinguish "this is SDL2 core (expected)" from "this is zlib (unexpected leak)".
-
-Validation commands for manual checking are documented in [playbook/overlay-management.md](../playbook/overlay-management.md) (Hybrid Build Sanity Checks section).
+**Zero changes to scanner code.** The scanners produce the same output as before. The validator is a pure consumer.
 
 ## What NOT to Change
 
-- **PathService** — all path logic stays. Don't refactor.
-- **BinaryClosureWalker** — the two-stage graph walk is solid. Don't touch the algorithm. Just consume its output.
-- **RuntimeScanners** (dumpbin/ldd/otool) — these parse tool output. Stable, well-tested by usage. Don't modify.
-- **RuntimeProfile** — RID/triplet resolution + system file regex matching. Stable.
-- **ConsolidateHarvestTask** — just reads status files and merges. Stable.
-- **OneOf result monad pattern** — follow existing conventions.
-- **Spectre.Console output** — keep rich console tables/panels for user feedback.
+- **PathService path construction logic** — stable, well-covered by tests
+- **BinaryClosureWalker algorithm** — two-stage graph walk is solid
+- **Runtime scanners** (dumpbin/ldd/otool output parsers) — stable
+- **RuntimeProfile** — RID/triplet resolution + system file regex
+- **ConsolidateHarvestTask** — reads status files and merges
+- **ArtifactDeployer** — file copy and tar.gz creation
+- **OneOf result monad pattern** — follow existing conventions
+- **Spectre.Console output** — keep rich console reporting
 
 ## Testing Strategy
 
-**TUnit test project** (`build/_build.Tests/`):
+See [tunit-testing-framework-2026-04-14.md](tunit-testing-framework-2026-04-14.md) for full TUnit adoption plan.
 
-| Test | What it validates |
-| --- | --- |
-| `HybridStaticValidator_RejectsTransitiveDep` | Given a closure with zlib1.dll → validation fails |
-| `HybridStaticValidator_AcceptsCoreDep` | Given a closure with only SDL2.dll → validation passes |
-| `HybridStaticValidator_AcceptsSystemDeps` | Given system DLLs (kernel32, libc) → validation passes |
-| `HybridStaticValidator_WarnMode_DoesNotThrow` | With ValidationMode.Warn → logs but doesn't throw |
-| `StrategySelection_DefaultIsHybrid` | No `--strategy` flag → HybridStaticStrategy selected |
-| `StrategySelection_CliOverride` | `--strategy pure-dynamic` → PureDynamicStrategy |
-| `ConfigParsing_ReadsValidationMode` | manifest.json `packaging_config.validation_mode` parsed correctly |
-| `ConfigParsing_CliOverridesConfig` | `--validation-mode warn` overrides manifest.json `strict` |
+**Test naming convention:** `<MethodName>_Should_<Verb>_<When/If/Given>`
+
+**Approach:** Characterize status quo → TDD new code → integration tests.
+
+**Cake-specific testing:** File system operations go through `ICakeContext`. Unit tests mock Cake interfaces where needed (NSubstitute). A separate research pass on Cake unit testing best practices (including `System.IO.Abstractions` / TestableIO compatibility) will be done during Phase 1 when concrete testing questions arise.
 
 ## Risk Notes
 
-1. **HarvestTask refactor is the riskiest change** — it's the main workhorse. Extract to pipeline service incrementally, not big-bang. Run existing harvest output comparison before/after.
-2. **BinaryClosureWalker OriginPackage filtering** — ArtifactPlanner already filters core-originated deps for non-core libraries. The new validator should use the same logic, not reinvent it.
-3. **System.CommandLine breaking changes** — the project uses `2.0.0-beta4` which is old. New args should follow existing patterns in Program.cs, not introduce new System.CommandLine patterns.
+1. **HarvestTask refactor is the riskiest change** — extract to pipeline service incrementally. Run harvest output comparison before/after.
+2. **Config merge is low risk** — consumers don't change, only the loading path.
+3. **System.CommandLine is old** (`2.0.0-beta4`) — no new CLI args needed for strategy (triplet = strategy), so no System.CommandLine changes required.
+4. **BinaryClosureWalker OriginPackage filtering** — ArtifactPlanner already filters core-originated deps. Validator should reuse the same logic.
+
+## CI/CD Integration (Phase 2b)
+
+These are documented here for completeness but deferred to Phase 2b:
+
+- **Dynamic matrix from manifest.json** — GitHub Actions `fromJson()` replaces hardcoded YAML matrices
+- **vcpkg-setup action** — needs `--overlay-triplets=./vcpkg-overlay-triplets` flag
+- **Workflow triplet updates** — switch from stock triplets to hybrid triplets defined in manifest
+- **Validation mode in CI** — `packaging_config.validation_mode: "strict"` enforced in CI, `"warn"` available for local dev
+- **Distributed CI consolidation** — separate staging paths per RID for multi-runner artifact aggregation

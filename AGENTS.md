@@ -110,6 +110,24 @@ These are final. Do not re-debate unless Deniz explicitly reopens them.
 | LGPL-free codec stack | Drop mpg123/libxmp/fluidsynth; use bundled minimp3/drflac/libmodplug/Timidity/Native MIDI |
 | external/sdl2-cs removal | Transitional, not trusted — CppAst generator (Phase 4) replaces it |
 | C++ native smoke test | CMake/vcpkg IDE-debuggable project for testing hybrid natives directly (Phase 2b) |
+| Triplet = strategy | No `--strategy` CLI flag; triplet name encodes the strategy; manifest `runtimes[].strategy` is the formal mapping |
+| Config merge | 3 config files (manifest.json, runtimes.json, system_artefacts.json) → single manifest.json (schema v2) |
+| Validator uses vcpkg metadata | No manually maintained expected-deps lists; BinaryClosureWalker output = ground truth |
+| TUnit for testing | TUnit 1.33.0 + Microsoft.Testing.Platform; test-first approach; characterization tests before refactoring |
+
+## Test Naming Convention
+
+**Pattern:** `<MethodName>_Should_<Do/Have/Return/Throw/etc.>_<optional When/If/Given etc.>`
+
+- Method name is PascalCase, no underscores within it
+- Every other word segment separated by underscores
+- `Should` is always present
+
+**Examples:**
+
+- `IsSystemFile_Should_Return_True_When_Windows_System_Dll`
+- `ParseSemanticVersion_Should_Throw_ArgumentException_When_Invalid_Format`
+- `Validate_Should_Reject_Transitive_Dep_Leak_In_Hybrid_Mode`
 
 ## Docs-First Workflow
 
@@ -182,13 +200,16 @@ Understanding these is essential for build system work:
 ```text
 vcpkg.json                    ← What vcpkg builds (dependencies + features)
     ↕ must match
-build/manifest.json           ← What we ship (library versions + binary patterns)
+build/manifest.json           ← Single source of truth (schema v2):
+    ├── packaging_config      ← validation mode, core library
+    ├── runtimes[]            ← RID ↔ triplet ↔ strategy ↔ CI runner
+    ├── system_exclusions     ← OS libraries to exclude from packages
+    └── library_manifests[]   ← library versions, binary patterns
     ↕ validated by
-PreFlightCheckTask            ← Fails if versions don't match
-
-build/runtimes.json           ← RID ↔ triplet ↔ CI runner mapping
-build/system_artefacts.json   ← OS libraries to exclude from packages
+PreFlightCheckTask            ← Fails if versions or triplet↔strategy don't match
 ```
+
+> **Note:** `runtimes.json` and `system_artefacts.json` are being merged into `manifest.json` (schema v2). If you still see separate files, the merge is in progress.
 
 ## Agent Guidance: dotnet-skills
 

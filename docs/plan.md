@@ -31,8 +31,12 @@ These decisions were made during the packaging strategy research cycle (April 20
 | **LGPL-free codec stack** | Drop mpg123, libxmp, fluidsynth from SDL2_mixer. Use bundled permissive alternatives (minimp3, drflac, stb_vorbis, libmodplug, Timidity/Native MIDI). | Eliminates all LGPL exposure. Mixer.Extras.Native package concept is dead. 100% permissive stack across all satellites. |
 | **Pure Dynamic rejected** | The ~26-package Common.\* topology has zero precedent in the .NET ecosystem | High maintenance, NuGet graph complexity, no collision safety on Windows. |
 | **Execution model: three modes** | Source Mode (fast inner loop), Package Validation Mode (local feed consumer test), Release Mode (published packages) | Avoids forcing one build mode to solve all problems. See [research/execution-model-strategy-2026-04-13.md](research/execution-model-strategy-2026-04-13.md). |
-| **Cake build host: strategy-driven evolution** | Four-interface split: IPackagingStrategy, INativeAcquisitionStrategy, IDependencyPolicyValidator, IPayloadLayoutPolicy | Keeps stable spine (scanners, closure, manifests), adds policy variation. Existing tools (dumpbin/ldd/otool) repurposed as guardrails. |
-| **TUnit for build host tests** | Cake Frosting build host gets unit tests using TUnit framework | Fills the zero-test-coverage gap before any refactoring. |
+| **Cake build host: strategy-driven evolution** | Three-interface split: IPackagingStrategy, INativeAcquisitionStrategy, IDependencyPolicyValidator. IPayloadLayoutPolicy deferred. | Keeps stable spine (scanners, closure, manifests), adds policy variation. Existing tools (dumpbin/ldd/otool) repurposed as guardrails. |
+| **Triplet = strategy** | No `--strategy` CLI flag. Triplet name encodes the strategy. Manifest `runtimes[].strategy` field is the formal mapping, validated against triplet by PreFlightCheck. | Single authority, no two-headed configuration. |
+| **Config merge to single manifest.json** | `runtimes.json` and `system_artefacts.json` merge into `manifest.json` (schema v2). Single source of truth for all build configuration. | Eliminates cross-file drift, atomic updates, CI reads one file. |
+| **Validator uses vcpkg metadata** | HybridStaticValidator consumes BinaryClosureWalker output. No manually maintained expected-deps lists. | Transitive dep info changes per version; vcpkg metadata + runtime scan = ground truth. |
+| **TUnit for build host tests** | TUnit 1.33.0, Microsoft.Testing.Platform runner, NSubstitute for mocking. Test-first approach: characterization tests before refactoring. | Fills the zero-test-coverage gap before any refactoring. See [research/tunit-testing-framework-2026-04-14.md](research/tunit-testing-framework-2026-04-14.md). |
+| **Test naming convention** | `<MethodName>_Should_<Verb>_<When/If/Given>` with underscores between words, not in method name | Consistent, readable, project-wide standard. |
 | **Remove external/sdl2-cs dependency** | The flibitijibibo/SDL2-CS git submodule will be removed. Current bindings are transitional — not trusted for production testing or long-term use. | SDL2-CS is unmaintained import-style bindings. Phase 4 CppAst generator replaces them entirely. |
 | **C++ native smoke test project** | Cross-platform CMake/vcpkg C++ project for directly testing hybrid-built native libraries without P/Invoke layer. IDE-debuggable (Rider/VS/CLion). | Needed for format coverage testing (MP3/FLAC/MOD/MIDI), hybrid bake validation, and diagnosing native vs. P/Invoke issues. Research needed on best IDE integration approach. |
 
@@ -153,13 +157,16 @@ These decisions were made during the packaging strategy research cycle (April 20
 
 - [x] Create C++ native validation sandbox: headless + interactive smoke test, 6 satellites × codec coverage, 13/13 PASS on win-x64, linux-x64, osx-x64. CMake/vcpkg, IDE-debuggable (CLion/VS/VS Code)
 
-**Active — Packaging Infrastructure:**
+**Active — Packaging Infrastructure (test-first, docs-first):**
 
-- [ ] Introduce Cake build host strategy awareness: IPackagingStrategy, IDependencyPolicyValidator, INativeAcquisitionStrategy, IPayloadLayoutPolicy (#85)
+- [ ] Update canonical docs for config merge, triplet=strategy, TUnit adoption decisions (#85)
+- [ ] Create TUnit test project for Cake build host with characterization tests on current code (#85)
+- [ ] Merge 3 config files into single manifest.json (schema v2) — runtimes + system_exclusions + library_manifests (#85)
+- [ ] Introduce Cake build host strategy awareness: IPackagingStrategy, IDependencyPolicyValidator, INativeAcquisitionStrategy (#85)
 - [ ] Repurpose BinaryClosureWalker + runtime scanners as guardrails: transitive dep leak in hybrid mode = build failure (#85)
+- [ ] Extract HarvestPipeline service from HarvestTask (#85)
 - [ ] Implement minimal PackageTask for win-x64 (SDL2.Core + SDL2.Image → .nupkg → local folder feed) (#83)
 - [ ] Create package-consumer smoke test project: PackageReference → local feed restore → SDL_Init + IMG_Load("test.png") (#83)
-- [ ] Add TUnit test project for Cake build host (#85)
 
 **Deferred to Phase 2b / Q3:**
 
@@ -171,7 +178,7 @@ These decisions were made during the packaging strategy research cycle (April 20
 ### Q3 2026 — Phase 2b: Full Hybrid Pipeline
 
 - [ ] Create hybrid overlay triplets for remaining 4 RIDs (win-x86, win-arm64, linux-arm64, osx-arm64)
-- [ ] Update runtimes.json with all hybrid triplet mappings
+- [ ] Update manifest.json runtimes section with all hybrid triplet mappings
 - [ ] Generalize PackageTask to all 6 satellites × 7 RIDs
 - [ ] Generalize Cake strategy services beyond spike scope
 - [ ] Add Linux version scripts for symbol visibility (`.map` files per satellite) — lower priority

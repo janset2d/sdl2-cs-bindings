@@ -41,28 +41,45 @@ All services are registered via dependency injection in `Program.cs`:
 
 | Service Interface | Implementation | Purpose |
 | --- | --- | --- |
-| `IPathService` | `PathService` | Resolves paths to manifest.json, runtimes.json, output dirs |
+| `IPathService` | `PathService` | Resolves paths to manifest.json, output dirs |
 | `IRuntimeProfile` | `RuntimeProfile` | Maps RID ↔ vcpkg triplet, detects current platform |
 | `IPackageInfoProvider` | `VcpkgCliProvider` | Queries vcpkg for installed package metadata |
-| `IBinaryClosureWalker` | Platform-specific | dumpbin (Windows), ldd (Linux), otool (macOS) |
+| `IBinaryClosureWalker` | `BinaryClosureWalker` | Two-stage graph walk: vcpkg metadata + runtime scan (dumpbin/ldd/otool) |
 | `IArtifactPlanner` | `ArtifactPlanner` | Determines which binaries to include and how to deploy them |
 | `IArtifactDeployer` | `ArtifactDeployer` | Copies binaries to output, creates tar.gz for Unix |
+| `IRuntimeScanner` | Platform-specific | dumpbin (Windows), ldd (Linux), otool (macOS) |
+| `IPackagingStrategy` | `HybridStaticStrategy` / `PureDynamicStrategy` | **(Planned)** Packaging model, core library identification |
+| `IDependencyPolicyValidator` | `HybridStaticValidator` / `PureDynamicValidator` | **(Planned)** Validates closure against strategy (leak detection) |
+| `INativeAcquisitionStrategy` | `VcpkgBuildProvider` | **(Planned)** Where native binaries come from |
 
 ## Configuration Files
 
-### manifest.json — Library Definitions
+### manifest.json — Single Source of Truth (Schema v2)
 
-Source of truth for what libraries the project ships.
+All build configuration lives in a single file. Previously split across `manifest.json`, `runtimes.json`, and `system_artefacts.json` — now merged.
 
 ```json
 {
+  "schema_version": "2.0",
+  "packaging_config": {
+    "validation_mode": "strict",
+    "core_library": "sdl2"
+  },
+  "runtimes": [
+    { "rid": "win-x64", "triplet": "x64-windows-hybrid", "strategy": "hybrid-static", "runner": "windows-latest", "container_image": null }
+  ],
+  "system_exclusions": {
+    "windows": { "system_dlls": ["kernel32.dll", "user32.dll", "..."] },
+    "linux": { "system_libraries": ["libc.so*", "libstdc++.so*", "..."] },
+    "osx": { "system_libraries": ["libSystem.B.dylib", "Cocoa.framework", "..."] }
+  },
   "library_manifests": [
     {
       "name": "SDL2",
       "vcpkg_name": "sdl2",
-      "vcpkg_version": "2.32.4",
+      "vcpkg_version": "2.32.10",
       "native_lib_name": "SDL2.Core.Native",
-      "native_lib_version": "2.32.4.0",
+      "native_lib_version": "2.32.10.0",
       "core_lib": true,
       "primary_binaries": [
         { "os": "Windows", "patterns": ["SDL2.dll"] },
@@ -74,44 +91,15 @@ Source of truth for what libraries the project ships.
 }
 ```
 
-Key fields:
+Key sections:
 
-- `name`: Library identifier used in Cake task arguments (`--library SDL2`)
-- `vcpkg_name`: Port name in vcpkg (`sdl2`)
-- `primary_binaries`: Glob patterns to identify the main library binary (vs transitive deps)
+- `packaging_config`: Validation mode and core library identification
+- `runtimes[]`: RID ↔ triplet ↔ strategy ↔ CI runner mapping. Triplet = strategy authority; the `strategy` field is a formal declaration validated by PreFlightCheck
+- `system_exclusions`: OS-level libraries that must NOT be bundled (used by `RuntimeProfile.IsSystemFile()`)
+- `library_manifests[]`: Library definitions with vcpkg name/version and binary patterns
 - `core_lib`: If true, this library's binary appears in other packages too (SDL2.dll in Image, Mixer, etc.)
 
-### runtimes.json — Platform Mapping
-
-Maps .NET RIDs to vcpkg triplets and CI infrastructure:
-
-```json
-{
-  "runtimes": {
-    "win-x64": {
-      "triplet": "x64-windows-release",
-      "runner": "windows-latest"
-    },
-    "linux-x64": {
-      "triplet": "x64-linux-dynamic",
-      "runner": "ubuntu-24.04",
-      "container": "ubuntu:20.04"
-    }
-  }
-}
-```
-
-### system_artefacts.json — OS Library Exclusion
-
-Whitelist of system-provided libraries that must NOT be bundled:
-
-```json
-{
-  "Windows": ["kernel32.dll", "user32.dll", "d3d9.dll", ...],
-  "Linux": ["libc.so*", "libstdc++.so*", "libsystemd.so*", ...],
-  "OSX": ["Cocoa.framework", "CoreAudio.framework", "Metal.framework", ...]
-}
-```
+For the full merged schema, see [research/cake-strategy-implementation-brief-2026-04-14.md](../research/cake-strategy-implementation-brief-2026-04-14.md).
 
 ## Task Pipeline
 

@@ -167,23 +167,23 @@ harvest-manifest.json + harvest-summary.json
 
 | File | Purpose | Authoritative For |
 | --- | --- | --- |
-| `build/manifest.json` | Library definitions (name, version, binary patterns) | What libraries we ship and their versions |
-| `build/runtimes.json` | RID ↔ vcpkg triplet ↔ CI runner mapping | Platform targeting |
-| `build/system_artefacts.json` | OS library exclusion list | What NOT to bundle |
+| `build/manifest.json` | Single source of truth (schema v2): library definitions, runtimes, system exclusions, packaging config | What we ship, platform targeting, OS exclusions, strategy mapping |
 | `vcpkg.json` | vcpkg dependency declarations + feature flags | What gets compiled by vcpkg |
 | `Directory.Build.props` | Target frameworks, analyzers, packaging metadata | .NET project-wide settings |
 
+> **Note:** `manifest.json` merges what were previously 3 separate files (`manifest.json`, `runtimes.json`, `system_artefacts.json`). If you see the separate files, the merge is in progress.
+
 ### Target Platforms
 
-| RID | vcpkg Triplet | CI Runner | Container |
-| --- | --- | --- | --- |
-| win-x64 | x64-windows-release | windows-latest | — |
-| win-x86 | x86-windows | windows-latest | — |
-| win-arm64 | arm64-windows | windows-latest | — |
-| linux-x64 | x64-linux-dynamic | ubuntu-24.04 | ubuntu:20.04 |
-| linux-arm64 | arm64-linux-dynamic | ubuntu-24.04-arm | ubuntu:24.04 |
-| osx-x64 | x64-osx-dynamic | macos-15-intel | — |
-| osx-arm64 | arm64-osx-dynamic | macos-latest | — |
+| RID | vcpkg Triplet | Strategy | CI Runner | Container |
+| --- | --- | --- | --- | --- |
+| win-x64 | x64-windows-hybrid | hybrid-static | windows-latest | — |
+| win-x86 | x86-windows | pure-dynamic | windows-latest | — |
+| win-arm64 | arm64-windows | pure-dynamic | windows-latest | — |
+| linux-x64 | x64-linux-hybrid | hybrid-static | ubuntu-24.04 | ubuntu:20.04 |
+| linux-arm64 | arm64-linux-dynamic | pure-dynamic | ubuntu-24.04-arm | ubuntu:24.04 |
+| osx-x64 | x64-osx-hybrid | hybrid-static | macos-15-intel | — |
+| osx-arm64 | arm64-osx-dynamic | pure-dynamic | macos-latest | — |
 
 ## NuGet Package Topology
 

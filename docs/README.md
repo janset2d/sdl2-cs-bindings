@@ -47,6 +47,7 @@
 | [binding-autogen-approaches.md](research/binding-autogen-approaches.md) | CppAst vs ClangSharp vs c2ffi comparison | 2026-04-11 |
 | [sdl3-ecosystem-analysis.md](research/sdl3-ecosystem-analysis.md) | SDL3 status, vcpkg support, C# binding ecosystem | 2026-04-11 |
 | [symlink-handling.md](research/symlink-handling.md) | NuGet symlink problem, tar.gz rationale | 2026-04-11 |
+| [tunit-testing-framework-2026-04-14.md](research/tunit-testing-framework-2026-04-14.md) | TUnit adoption plan, patterns, naming convention, project setup | 2026-04-14 |
 
 ### Playbook (How-To Recipes)
 
