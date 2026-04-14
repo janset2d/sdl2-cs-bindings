@@ -33,6 +33,8 @@ These decisions were made during the packaging strategy research cycle (April 20
 | **Execution model: three modes** | Source Mode (fast inner loop), Package Validation Mode (local feed consumer test), Release Mode (published packages) | Avoids forcing one build mode to solve all problems. See [research/execution-model-strategy-2026-04-13.md](research/execution-model-strategy-2026-04-13.md). |
 | **Cake build host: strategy-driven evolution** | Four-interface split: IPackagingStrategy, INativeAcquisitionStrategy, IDependencyPolicyValidator, IPayloadLayoutPolicy | Keeps stable spine (scanners, closure, manifests), adds policy variation. Existing tools (dumpbin/ldd/otool) repurposed as guardrails. |
 | **TUnit for build host tests** | Cake Frosting build host gets unit tests using TUnit framework | Fills the zero-test-coverage gap before any refactoring. |
+| **Remove external/sdl2-cs dependency** | The flibitijibibo/SDL2-CS git submodule will be removed. Current bindings are transitional — not trusted for production testing or long-term use. | SDL2-CS is unmaintained import-style bindings. Phase 4 CppAst generator replaces them entirely. |
+| **C++ native smoke test project** | Cross-platform CMake/vcpkg C++ project for directly testing hybrid-built native libraries without P/Invoke layer. IDE-debuggable (Rider/VS/CLion). | Needed for format coverage testing (MP3/FLAC/MOD/MIDI), hybrid bake validation, and diagnosing native vs. P/Invoke issues. Research needed on best IDE integration approach. |
 
 ## Phase Roll-Up
 
@@ -160,10 +162,11 @@ These decisions were made during the packaging strategy research cycle (April 20
 ### Q3 2026 — Phase 2b: Full Hybrid Pipeline
 
 - [ ] Create hybrid overlay triplets for all 7 RIDs (win-x86, win-arm64, linux-x64, linux-arm64, osx-x64, osx-arm64)
-- [ ] Add symbol visibility guardrails for Linux/macOS (triplet `-fvisibility=hidden` + CI `nm` validation)
+- [ ] Add Linux version scripts for symbol visibility (`.map` files per satellite, `local: *;`)
 - [ ] Update runtimes.json with all hybrid triplet mappings
 - [ ] Generalize PackageTask to all 6 satellites × 7 RIDs
 - [ ] Generalize Cake strategy services beyond spike scope
+- [ ] Create C++ native smoke test project (CMake/vcpkg, IDE-debuggable) for format coverage testing (MP3/FLAC/MOD/MIDI/OGG/Opus/WAV) — research needed on Rider/VS/CLion integration
 - [ ] Implement full package-consumer smoke test matrix (win-x64, linux-x64, osx-arm64 minimum)
 - [ ] Implement release-candidate-pipeline.yml end-to-end
 - [ ] Add SDL2_net bindings + native project

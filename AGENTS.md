@@ -106,6 +106,10 @@ These are final. Do not re-debate unless Deniz explicitly reopens them.
 | CppAst for binding autogen | Phase 4 — replaces SDL2-CS imports with generated bindings |
 | Nx rejected | .NET-native tooling only (dotnet-affected, .slnx, Cake expansion) |
 | Maximum feature coverage | Both X11 + Wayland, all image/audio codecs, Harfbuzz |
+| Hybrid Static + Dynamic Core | Transitive deps static-baked into satellites; SDL2 core dynamic; custom vcpkg overlay triplets |
+| LGPL-free codec stack | Drop mpg123/libxmp/fluidsynth; use bundled minimp3/drflac/libmodplug/Timidity/Native MIDI |
+| external/sdl2-cs removal | Transitional, not trusted — CppAst generator (Phase 4) replaces it |
+| C++ native smoke test | CMake/vcpkg IDE-debuggable project for testing hybrid natives directly (Phase 2b) |
 
 ## Docs-First Workflow
 

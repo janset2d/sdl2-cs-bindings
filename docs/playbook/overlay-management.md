@@ -112,15 +112,19 @@ The `vcpkg-setup` composite action already passes `--overlay-ports` conditionall
 ## Procedure: Adding a New Overlay Port
 
 1. Copy the **entire** upstream port directory:
+
    ```bash
    cp -r external/vcpkg/ports/<port-name>/ vcpkg-overlay-ports/<port-name>/
    ```
+
 2. Make your changes to `portfile.cmake` and/or `vcpkg.json`
 3. **Document every change** with comments in the modified files
 4. Verify unchanged files match upstream:
+
    ```bash
    diff vcpkg-overlay-ports/<port>/<file> external/vcpkg/ports/<port>/<file>
    ```
+
 5. Test: `vcpkg install --overlay-ports=./vcpkg-overlay-ports`
 6. Update `vcpkg-overlay-ports/README.md` with: why, tracking issue, changes from upstream
 7. Update this playbook's Active Overlays Registry table
@@ -211,32 +215,142 @@ Use this checklist when reviewing overlay-related changes:
 - [ ] Version fields in overlay vcpkg.json match `build/manifest.json` and root `vcpkg.json` overrides
 ```
 
+## Symbol Visibility
+
+Full analysis: [research/symbol-visibility-analysis-2026-04-14.md](../research/symbol-visibility-analysis-2026-04-14.md)
+
+### The Short Version
+
+When transitive deps (zlib, FreeType, libwebp) are statically baked into satellite shared libraries, their symbols can "leak" as exports. Some libraries (FreeType, libwebp, opusfile) use `__attribute__((visibility("default")))` in their headers, which overrides our `-fvisibility=hidden` compiler flag.
+
+**Whether this matters depends on the platform:**
+
+| Platform | Symbol conflict risk | Why | Action |
+| --- | --- | --- | --- |
+| **Windows** | None | PE DLL isolation — only `__declspec(dllexport)` symbols export | None needed |
+| **macOS** | None | Two-level namespaces — each dylib resolves its own symbols | None needed (cosmetic leaks OK) |
+| **Linux** | Low (theoretical) | ELF flat global scope — first loaded symbol wins | Version scripts (Phase 2b) |
+
+**SDL3 solves this upstream** with version scripts + macOS export lists. SDL2 does not. When we migrate to SDL3 (Phase 5), visibility comes free.
+
+### Phase 2b Fix: Linux Version Scripts
+
+One `.map` file per satellite, ~8 lines each:
+
+```text
+# vcpkg-overlay-triplets/version-scripts/libSDL2_image.map
+libSDL2_image {
+    global: IMG_*;
+    local: *;
+};
+```
+
+Applied via `VCPKG_LINKER_FLAGS="-Wl,--version-script=<path>"` scoped per-port in the Linux triplet. This is the same approach SkiaSharp uses.
+
+## Hybrid Build Sanity Checks — Per Platform
+
+Run these checks after every hybrid build to verify the model is working correctly. **All three checks must pass.**
+
+### Check 1: No Transitive DLL/SO/DYLIB Leakage
+
+The `bin/` or `lib/` directory must contain ONLY SDL family shared libraries. No `zlib1.dll`, `libpng16.so`, `libfreetype.dylib`, etc.
+
+**Windows:**
+
+```powershell
+# List bin/ — should show only SDL2*.dll
+dir vcpkg_installed\x64-windows-hybrid\bin\*.dll
+# Expected: SDL2.dll, SDL2_image.dll, SDL2_mixer.dll, SDL2_ttf.dll, SDL2_gfx.dll, SDL2_net.dll
+# FAIL if: zlib1.dll, libpng16.dll, jpeg62.dll, ogg.dll, etc.
+```
+
+**Linux:**
+
+```bash
+# List .so files — should show only libSDL2*.so*
+ls vcpkg_installed/x64-linux-hybrid/lib/libSDL2*.so*
+# Expected: libSDL2-2.0.so.*, libSDL2_image-2.0.so.*, etc.
+# FAIL if: libz.so*, libpng16.so*, libfreetype.so*, etc.
+```
+
+**macOS:**
+
+```bash
+# List .dylib files — should show only libSDL2*.dylib
+ls vcpkg_installed/x64-osx-hybrid/lib/libSDL2*.dylib
+# Expected: libSDL2-2.0.*.dylib, libSDL2_image-2.0.*.dylib, etc.
+# FAIL if: libz.*.dylib, libpng16.*.dylib, etc.
+```
+
+### Check 2: Dynamic Dependencies are Minimal
+
+Each satellite should depend ONLY on SDL2 core + OS system libraries. No transitive native libs.
+
+**Windows:**
+
+```powershell
+dumpbin /dependents vcpkg_installed\x64-windows-hybrid\bin\SDL2_image.dll
+# Expected: SDL2.dll, KERNEL32.dll, VCRUNTIME*.dll, api-ms-win-crt-*.dll
+# FAIL if: zlib1.dll, libpng16.dll, jpeg62.dll
+```
+
+**Linux:**
+
+```bash
+ldd vcpkg_installed/x64-linux-hybrid/lib/libSDL2_image.so
+# Expected: libSDL2-2.0.so.0, libc.so.6, libm.so.6, libdl.so.2, ld-linux-x86-64.so.2
+# FAIL if: libz.so.1, libpng16.so.16, libjpeg.so.62
+```
+
+**macOS:**
+
+```bash
+otool -L vcpkg_installed/x64-osx-hybrid/lib/libSDL2_image.dylib
+# Expected: @rpath/libSDL2-2.0.*.dylib, /usr/lib/libSystem.B.dylib
+# FAIL if: @rpath/libz.*.dylib, @rpath/libpng16.*.dylib
+```
+
+### Check 3: Symbol Visibility (Informational on macOS, Critical on Linux after Phase 2b)
+
+**Windows:** Skip — PE is inherently safe.
+
+**macOS (informational — leaks are harmless due to two-level namespaces):**
+
+```bash
+nm -gU libSDL2_image-*.dylib | grep -c deflate     # zlib: expect 0
+nm -gU libSDL2_image-*.dylib | grep -c png_read     # libpng: expect 0
+nm -gU libSDL2_ttf-*.dylib | grep -c FT_            # FreeType: expect >0 (known, harmless)
+```
+
+**Linux (critical after version scripts are added in Phase 2b):**
+
+```bash
+nm -D libSDL2_image.so | grep -c deflate            # expect 0 after version scripts
+nm -D libSDL2_ttf.so | grep ' T ' | grep -v 'TTF_' | wc -l  # non-API exports: expect 0
+```
+
 ## Platform-Specific Notes
 
 ### Windows
 
-- **Symbol visibility:** Not a concern. PE format is export-opt-in. Static deps baked into DLL do not leak symbols.
+- **Symbol visibility:** Not a concern. PE format is export-opt-in.
 - **MIDI:** Native MIDI via `winmm.dll` (Windows Multimedia API). Works on every Windows install. No config needed.
 
 ### Linux
 
-- **Symbol visibility:** Critical. Add `-fvisibility=hidden` to triplet `VCPKG_C_FLAGS` and `VCPKG_CXX_FLAGS`. Validate with `nm -D libSDL2_image.so | grep deflate` — should return 0 results.
-- **MIDI:** No OS-level MIDI synth. Timidity bundled in SDL2_mixer but requires **runtime config files**:
-  - `timidity.cfg` — instrument mapping config
-  - GUS patch files — actual instrument sound samples
-  - Typically installed via `apt install timidity-daemon` or `freepats` package
-  - **Without these files, `Mix_LoadMUS("file.mid")` returns NULL or produces silence — no crash.**
-  - For game framework consumers: document that Linux MIDI requires user-side setup, or recommend MP3/OGG for music instead.
-- **SONAME/symlink chains:** Satellite `.so` files still have versioned symlinks (e.g., `libSDL2_image-2.0.so.0 → libSDL2_image-2.0.so.0.800.8`). tar.gz packaging preserves these.
-- **`-fPIC`:** Required for static libs that get linked into shared objects. vcpkg's Linux toolchain adds this by default.
+- **Symbol visibility:** `-fvisibility=hidden` in triplet handles most symbols. Libraries with explicit `visibility("default")` annotations (FreeType, libwebp, opusfile) still leak until version scripts are added (Phase 2b). See [symbol-visibility-analysis-2026-04-14.md](../research/symbol-visibility-analysis-2026-04-14.md).
+- **MIDI:** No OS-level MIDI synth. Two options:
+  - **Timidity** (bundled in SDL2_mixer, Artistic License): requires `timidity.cfg` + GUS patch files at runtime. Install via `apt install timidity-daemon` or `freepats`. Without these, MIDI returns NULL/silence — no crash.
+  - **Recommendation for consumers:** Use MP3/OGG for music on Linux. MIDI is niche and requires user-side setup.
+- **SONAME/symlink chains:** Satellite `.so` files have versioned symlinks (e.g., `libSDL2_image-2.0.so.0 → libSDL2_image-2.0.so.0.800.8`). tar.gz packaging preserves these.
+- **`-fPIC`:** Required for static libs linked into shared objects. vcpkg's Linux toolchain adds this by default.
 
 ### macOS
 
-- **Symbol visibility:** Same concern as Linux. Add `-fvisibility=hidden` to triplet. Validate with `nm -gU libSDL2_image.dylib | grep deflate`.
+- **Symbol visibility:** `-fvisibility=hidden` in triplet + macOS two-level namespaces = **safe**. Cosmetic symbol leaks (FT_*, WebP*, op_*) exist but are harmless. No action needed.
 - **MIDI:** Native MIDI via AudioToolbox framework. Works on every macOS install. No config needed.
 - **Universal binaries:** Not used currently (we build per-arch). Future consideration for `osx` universal RID.
 - **`@rpath` / `@loader_path`:** vcpkg handles install name fixup. Satellite `.dylib` files reference `@rpath/libSDL2-2.0.0.dylib` for the core dependency.
-- **Minimum deployment target:** Stock triplet doesn't set `CMAKE_OSX_DEPLOYMENT_TARGET`. Consider adding if compatibility issues arise.
 
 ## FAQ
 

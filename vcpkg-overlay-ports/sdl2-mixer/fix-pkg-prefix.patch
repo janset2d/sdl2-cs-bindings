@@ -4,7 +4,7 @@ index dc37b28..d139596 100644
 +++ b/CMakeLists.txt
 @@ -907,7 +907,7 @@ if(SDL2MIXER_INSTALL)
      endif()
-
+ 
      ##### export files #####
 -    if(WIN32 AND NOT MINGW)
 +    if(0)

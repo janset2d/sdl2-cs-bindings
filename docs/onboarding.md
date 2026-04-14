@@ -45,6 +45,8 @@ These are settled decisions. Do not re-debate them unless new evidence surfaces.
 | **Binding autogeneration** | CppAst-based generator (Alimer approach) planned | Manual bindings don't scale for SDL2+SDL3 dual support |
 | **Nx rejected** | .NET-native tooling instead (dotnet-affected, .slnx, Cake) | Nx .NET plugin is experimental; adds Node.js dependency for no gain |
 | **Maximum feature coverage** | Both X11 + Wayland, all image codecs, all audio codecs, Harfbuzz | Game framework needs broad backend support |
+| **external/sdl2-cs removal** | flibitijibibo/SDL2-CS submodule is transitional — will be removed when CppAst generator (Phase 4) produces bindings. Not trusted for production testing. | Unmaintained import-style bindings; don't scale for SDL2+SDL3 |
+| **C++ native smoke test** | CMake/vcpkg C++ project for testing hybrid-built natives directly, IDE-debuggable (Phase 2b) | Needed for format coverage testing without P/Invoke layer dependency |
 
 ## Satellite Library Coverage
 
@@ -249,6 +251,8 @@ This repo treats docs, issues, and commits as one delivery system:
    Adding a new library → `docs/playbook/adding-new-library.md`
    Understanding architecture decisions → `docs/research/*`
    Local development → `docs/playbook/local-development.md`
+   **Overlay triplets & ports (CRITICAL for build system work)** → `docs/playbook/overlay-management.md`
+   Symbol visibility & cross-platform safety → `docs/research/symbol-visibility-analysis-2026-04-14.md`
    Broader framework/tooling context → `docs/reference/*`
 
 ## Non-Goals
