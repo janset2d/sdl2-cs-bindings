@@ -20,5 +20,6 @@
   <ItemGroup>
     <PackageReference Include="TUnit" />
     <PackageReference Include="NSubstitute" />
+    <PackageReference Include="Cake.Testing" />
   </ItemGroup>
 </Project>

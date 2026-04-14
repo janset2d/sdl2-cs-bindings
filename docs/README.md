@@ -48,6 +48,7 @@
 | [sdl3-ecosystem-analysis.md](research/sdl3-ecosystem-analysis.md) | SDL3 status, vcpkg support, C# binding ecosystem | 2026-04-11 |
 | [symlink-handling.md](research/symlink-handling.md) | NuGet symlink problem, tar.gz rationale | 2026-04-11 |
 | [tunit-testing-framework-2026-04-14.md](research/tunit-testing-framework-2026-04-14.md) | TUnit adoption plan, patterns, naming convention, project setup | 2026-04-14 |
+| [cake-testing-strategy-2026-04-14.md](research/cake-testing-strategy-2026-04-14.md) | Cake.Testing package, ICakeContext mocking, test layers, coverage plan | 2026-04-14 |
 
 ### Playbook (How-To Recipes)
 
