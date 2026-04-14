@@ -1,7 +1,7 @@
 using Build.Tests.Fixtures;
 using Cake.Core;
 
-namespace Build.Tests.Unit.RuntimeProfile;
+namespace Build.Tests.Unit.Modules.RuntimeProfile;
 
 public class PlatformDetectionTests
 {
@@ -20,7 +20,7 @@ public class PlatformDetectionTests
             var r when r.StartsWith("win-", StringComparison.Ordinal) => RuntimeProfileFixture.CreateWindows(rid: r),
             var r when r.StartsWith("linux-", StringComparison.Ordinal) => RuntimeProfileFixture.CreateLinux(rid: r),
             var r when r.StartsWith("osx-", StringComparison.Ordinal) => RuntimeProfileFixture.CreateMacOS(rid: r),
-            _ => throw new ArgumentException($"Unexpected RID: {rid}", nameof(rid))
+            _ => throw new ArgumentException($"Unexpected RID: {rid}", nameof(rid)),
         };
 
         await Assert.That(profile.PlatformFamily).IsEqualTo(expected);
@@ -35,18 +35,18 @@ public class PlatformDetectionTests
     }
 
     [Test]
-    public void RuntimeProfile_Should_Throw_When_Rid_Is_Unsupported()
+    public async Task RuntimeProfile_Should_Throw_When_Rid_Is_Unsupported()
     {
         var runtimeInfo = new Build.Context.Models.RuntimeInfo
         {
             Rid = "freebsd-x64",
             Triplet = "x64-freebsd",
-            Runner = "freebsd-latest"
+            Runner = "freebsd-latest",
         };
 
-        Assert.Throws<InvalidOperationException>(() =>
+        await Assert.That(() =>
         {
             _ = new Build.Modules.RuntimeProfile(runtimeInfo, RuntimeProfileFixture.SystemArtefacts);
-        });
+        }).Throws<InvalidOperationException>();
     }
 }

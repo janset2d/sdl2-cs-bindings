@@ -1,6 +1,6 @@
 using Build.Modules.Harvesting;
 
-namespace Build.Tests.Unit.BinaryClosureWalker;
+namespace Build.Tests.Unit.Modules.Harvesting;
 
 public class PatternMatchingTests
 {
@@ -10,7 +10,7 @@ public class PatternMatchingTests
     [Arguments("zlib1.dll", "zlib1.dll", true)]
     public async Task MatchesPattern_Should_Match_Exact_File_Names(string fileName, string pattern, bool expected)
     {
-        var result = Build.Modules.Harvesting.BinaryClosureWalker.MatchesPattern(fileName, pattern);
+        var result = BinaryClosureWalker.MatchesPattern(fileName, pattern);
         await Assert.That(result).IsEqualTo(expected);
     }
 
@@ -20,7 +20,7 @@ public class PatternMatchingTests
     [Arguments("libSDL2.dylib", "libSDL2.so", false)]
     public async Task MatchesPattern_Should_Reject_Non_Matching_Names(string fileName, string pattern, bool expected)
     {
-        var result = Build.Modules.Harvesting.BinaryClosureWalker.MatchesPattern(fileName, pattern);
+        var result = BinaryClosureWalker.MatchesPattern(fileName, pattern);
         await Assert.That(result).IsEqualTo(expected);
     }
 
@@ -31,7 +31,7 @@ public class PatternMatchingTests
     [Arguments("libSDL2_image-2.0.so.0", "libSDL2_image*", true)]
     public async Task MatchesPattern_Should_Match_Prefix_Wildcard(string fileName, string pattern, bool expected)
     {
-        var result = Build.Modules.Harvesting.BinaryClosureWalker.MatchesPattern(fileName, pattern);
+        var result = BinaryClosureWalker.MatchesPattern(fileName, pattern);
         await Assert.That(result).IsEqualTo(expected);
     }
 
@@ -42,7 +42,7 @@ public class PatternMatchingTests
     [Arguments("libSDL2.so", "libSDL2*.dylib", false)]
     public async Task MatchesPattern_Should_Match_Prefix_And_Suffix_Wildcard(string fileName, string pattern, bool expected)
     {
-        var result = Build.Modules.Harvesting.BinaryClosureWalker.MatchesPattern(fileName, pattern);
+        var result = BinaryClosureWalker.MatchesPattern(fileName, pattern);
         await Assert.That(result).IsEqualTo(expected);
     }
 
@@ -52,7 +52,7 @@ public class PatternMatchingTests
     [Arguments("libSDL2.DYLIB", "libSDL2*.dylib", true)]
     public async Task MatchesPattern_Should_Be_Case_Insensitive(string fileName, string pattern, bool expected)
     {
-        var result = Build.Modules.Harvesting.BinaryClosureWalker.MatchesPattern(fileName, pattern);
+        var result = BinaryClosureWalker.MatchesPattern(fileName, pattern);
         await Assert.That(result).IsEqualTo(expected);
     }
 }

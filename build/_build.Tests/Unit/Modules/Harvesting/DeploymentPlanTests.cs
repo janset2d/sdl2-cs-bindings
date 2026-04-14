@@ -11,7 +11,7 @@ using Cake.Core.IO;
 using Cake.Testing;
 using NSubstitute;
 
-namespace Build.Tests.Unit.ArtifactPlanner;
+namespace Build.Tests.Unit.Modules.Harvesting;
 
 public class DeploymentPlanTests
 {
@@ -41,7 +41,7 @@ public class DeploymentPlanTests
 
         var ctx = CreateWindowsCakeContext();
         var manifestConfig = ManifestFixture.CreateTestManifestConfig();
-        var planner = new Build.Modules.Harvesting.ArtifactPlanner(_mockPkg, _windowsProfile, _mockPathService, ctx, manifestConfig);
+        var planner = new ArtifactPlanner(_mockPkg, _windowsProfile, _mockPathService, ctx, manifestConfig);
 
         SetupEmptyLicenseResponse();
 
@@ -65,7 +65,7 @@ public class DeploymentPlanTests
 
         var ctx = CreateLinuxCakeContext();
         var manifestConfig = ManifestFixture.CreateTestManifestConfig();
-        var planner = new Build.Modules.Harvesting.ArtifactPlanner(_mockPkg, _linuxProfile, _mockPathService, ctx, manifestConfig);
+        var planner = new ArtifactPlanner(_mockPkg, _linuxProfile, _mockPathService, ctx, manifestConfig);
 
         SetupEmptyLicenseResponse();
 
@@ -93,7 +93,7 @@ public class DeploymentPlanTests
 
         var ctx = CreateWindowsCakeContext();
         var manifestConfig = ManifestFixture.CreateTestManifestConfig();
-        var planner = new Build.Modules.Harvesting.ArtifactPlanner(_mockPkg, _windowsProfile, _mockPathService, ctx, manifestConfig);
+        var planner = new ArtifactPlanner(_mockPkg, _windowsProfile, _mockPathService, ctx, manifestConfig);
 
         SetupEmptyLicenseResponse();
 
@@ -123,7 +123,7 @@ public class DeploymentPlanTests
 
         var ctx = CreateWindowsCakeContext();
         var manifestConfig = ManifestFixture.CreateTestManifestConfig();
-        var planner = new Build.Modules.Harvesting.ArtifactPlanner(_mockPkg, _windowsProfile, _mockPathService, ctx, manifestConfig);
+        var planner = new ArtifactPlanner(_mockPkg, _windowsProfile, _mockPathService, ctx, manifestConfig);
 
         SetupEmptyLicenseResponse();
 
@@ -152,7 +152,7 @@ public class DeploymentPlanTests
 
         var ctx = CreateWindowsCakeContext();
         var manifestConfig = ManifestFixture.CreateTestManifestConfig();
-        var planner = new Build.Modules.Harvesting.ArtifactPlanner(_mockPkg, _windowsProfile, _mockPathService, ctx, manifestConfig);
+        var planner = new ArtifactPlanner(_mockPkg, _windowsProfile, _mockPathService, ctx, manifestConfig);
 
         SetupEmptyLicenseResponse();
 
@@ -179,7 +179,7 @@ public class DeploymentPlanTests
 
         var ctx = CreateWindowsCakeContext();
         var manifestConfig = ManifestFixture.CreateTestManifestConfig();
-        var planner = new Build.Modules.Harvesting.ArtifactPlanner(_mockPkg, _windowsProfile, _mockPathService, ctx, manifestConfig);
+        var planner = new ArtifactPlanner(_mockPkg, _windowsProfile, _mockPathService, ctx, manifestConfig);
 
         // Package has a copyright file
         _mockPkg.GetPackageInfoAsync("sdl2-image", "x64-windows-hybrid", Arg.Any<CancellationToken>())

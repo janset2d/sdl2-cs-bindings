@@ -86,7 +86,6 @@ static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArgumen
                 return new RuntimeProfile(runtimeInfo, systemArtefactsConfig);
             });
 
-
             services.AddSingleton<IPackageInfoProvider, VcpkgCliProvider>();
             services.AddSingleton<IBinaryClosureWalker, BinaryClosureWalker>();
             services.AddSingleton<IArtifactPlanner, ArtifactPlanner>();
@@ -107,37 +106,37 @@ static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArgumen
                 };
             });
 
-            services.AddSingleton<RuntimeConfig>(provider =>
-            {
-                var ctx = provider.GetRequiredService<ICakeContext>();
-                var pathService = provider.GetRequiredService<IPathService>();
-
-                var runtimesFile = pathService.GetRuntimesFile();
-                var runtimeConfig = ctx.ToJson<RuntimeConfig>(runtimesFile);
-
-                return runtimeConfig;
-            });
-
+            // Single manifest.json load — schema v2 merges runtimes + system_exclusions + library_manifests
             services.AddSingleton<ManifestConfig>(provider =>
             {
                 var ctx = provider.GetRequiredService<ICakeContext>();
                 var pathService = provider.GetRequiredService<IPathService>();
 
                 var manifestFile = pathService.GetManifestFile();
-                var manifestConfig = ctx.ToJson<ManifestConfig>(manifestFile);
+                var manifest = ctx.ToJson<ManifestConfig>(manifestFile);
 
-                return manifestConfig;
+                if (!string.Equals(manifest.SchemaVersion, "2.0", StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        $"Unsupported manifest schema version '{manifest.SchemaVersion ?? "<null>"}'. Expected '2.0'. " +
+                        "Legacy runtimes.json/system_artefacts.json fallback has been removed.");
+                }
+
+                return manifest;
+            });
+
+            services.AddSingleton<RuntimeConfig>(provider =>
+            {
+                var manifest = provider.GetRequiredService<ManifestConfig>();
+
+                return manifest.Runtimes is not { Count: > 0 } ? throw new InvalidOperationException("manifest.json schema v2 requires a non-empty runtimes section.") : new RuntimeConfig { Runtimes = manifest.Runtimes };
             });
 
             services.AddSingleton<SystemArtefactsConfig>(provider =>
             {
-                var ctx = provider.GetRequiredService<ICakeContext>();
-                var pathService = provider.GetRequiredService<IPathService>();
+                var manifest = provider.GetRequiredService<ManifestConfig>();
 
-                var systemArtifactsFile = pathService.GetSystemArtifactsFile();
-                var systemArtefactsConfig = ctx.ToJson<SystemArtefactsConfig>(systemArtifactsFile);
-
-                return systemArtefactsConfig;
+                return manifest.SystemExclusions ?? throw new InvalidOperationException("manifest.json schema v2 requires the system_exclusions section.");
             });
         })
         .Run(effectiveCakeArgs);
@@ -258,7 +257,6 @@ static string[] GetEffectiveCakeArguments(string[] originalArgs, DirectoryPath r
     return [.. result];
 }
 
-
 // Helper methods for cleaner arg checking
 static bool IsVerbosityArg(string arg) =>
     string.Equals(arg, "--verbosity", StringComparison.OrdinalIgnoreCase) ||
@@ -267,7 +265,6 @@ static bool IsVerbosityArg(string arg) =>
 static bool IsWorkingPathArg(string arg) =>
     string.Equals(arg, "--working", StringComparison.OrdinalIgnoreCase) ||
     string.Equals(arg, "-w", StringComparison.OrdinalIgnoreCase);
-
 
 public record ParsedArguments(
     DirectoryInfo? RepoRoot,

@@ -1,7 +1,7 @@
 using Build.Tests.Fixtures;
 using Cake.Core.IO;
 
-namespace Build.Tests.Unit.RuntimeProfile;
+namespace Build.Tests.Unit.Modules.RuntimeProfile;
 
 public class IsSystemFileTests
 {

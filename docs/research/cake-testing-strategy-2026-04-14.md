@@ -1,8 +1,99 @@
 # Cake Frosting Testing Strategy — Research & Approach
 
 **Date:** 2026-04-14
-**Status:** Research complete — ready for implementation
+**Status:** Active implementation guide — updated with critical review findings and execution plan
 **Related:** [#85](https://github.com/janset2d/sdl2-cs-bindings/issues/85), [tunit-testing-framework-2026-04-14.md](tunit-testing-framework-2026-04-14.md)
+
+## Critical Review Update (2026-04-14)
+
+Post-baseline review findings for `build/_build.Tests`:
+
+- Initial baseline: 120/120 passing.
+- Current baseline after first hardening slice: 123/123 passing.
+- Current baseline after second hardening slice: 126/126 passing.
+- Current baseline after third hardening slice: 129/129 passing.
+- Initial coverage baseline from `artifacts/test-results/build-tests/coverage.cobertura.xml`:
+  - Line coverage: 13.76%
+  - Branch coverage: 12.76%
+- Current coverage after first hardening slice:
+  - Line coverage: 17.05%
+  - Branch coverage: 15.18%
+- Current coverage after second hardening slice:
+    - Line coverage: 23.07%
+    - Branch coverage: 17.99%
+- Current coverage after third hardening slice:
+    - Line coverage: 26.23%
+    - Branch coverage: 20.50%
+- Critical gap: several refactor-sensitive paths are still under-tested:
+  - `Program.cs` composition root / CLI path
+  - Runtime scanners (`WindowsDumpbinScanner`, `LinuxLddScanner`, `MacOtoolScanner`)
+  - `VcpkgCliProvider`
+  - Async result chaining extensions
+- Test architecture concern (initially observed): one test file mirrored production logic instead of validating production behavior.
+  - `ConsolidateHarvestTests` no longer mirrors consolidation logic and now validates `ConsolidateHarvestTask` behavior with real RID status inputs.
+- Test topology progress:
+    - Core realignment is in place with tests organized under `Unit/Modules`, `Unit/Tasks`, `Unit/Context`, and `Characterization/ConfigContract`.
+    - Remaining topology work is focused on explicit `Tools` and `Integration` buckets.
+
+## Coverage in TUnit + Microsoft.Testing.Platform
+
+### Why prior coverage attempts looked inconsistent
+
+In this stack (`TUnit` + `Microsoft.Testing.Platform`), the most reliable coverage path is the test-application extension options (`--coverage`) instead of relying on VSTest-style collector habits.
+
+### Recommended command (deterministic output path)
+
+```powershell
+dotnet test build/_build.Tests/Build.Tests.csproj -- \
+    --results-directory "E:/repos/my-projects/janset2d/sdl2-cs-bindings/artifacts/test-results/build-tests" \
+    --coverage \
+    --coverage-output-format cobertura \
+    --coverage-output "coverage.cobertura.xml"
+```
+
+### Notes
+
+- If `--results-directory` is relative, output is resolved relative to the test app working location. Use an absolute path for deterministic CI/local behavior.
+- Discover currently available extension options with:
+
+```powershell
+dotnet test build/_build.Tests/Build.Tests.csproj -- --help
+```
+
+## Target Test Topology (Mirror `build/_build` boundaries)
+
+Current test structure is mostly unit-centric and partially mixed by concern. For refactor safety, reorganize to mirror production boundaries:
+
+```text
+build/_build.Tests/
+├── Fixtures/
+├── Unit/
+│   ├── Modules/
+│   │   ├── Harvesting/
+│   │   ├── DependencyAnalysis/
+│   │   └── Extensions/
+│   ├── Tasks/
+│   │   ├── Harvest/
+│   │   ├── Preflight/
+│   │   └── Dependency/
+│   ├── Tools/
+│   │   ├── Dumpbin/
+│   │   ├── Ldd/
+│   │   ├── Otool/
+│   │   └── Vcpkg/
+│   └── Context/
+├── Integration/
+│   ├── Pipeline/
+│   └── TaskFlows/
+└── Characterization/
+        └── ConfigContract/
+```
+
+Intent:
+
+- `Unit/*`: whitebox confidence at class/method behavior.
+- `Integration/*`: blackbox confidence for orchestrated flows and side effects.
+- `Characterization/*`: real-config stability tests for refactor guardrails.
 
 ## Key Finding: Cake.Testing Package
 
@@ -45,9 +136,9 @@ public async Task DumpbinDependents_Should_Pass_Correct_Arguments()
 {
     var fixture = new DumpbinFixture();
     fixture.Settings.DependentsPath = new FilePath("SDL2.dll");
-    
+
     var result = fixture.Run();
-    
+
     await Assert.That(result.Args).Contains("/dependents");
     await Assert.That(result.Args).Contains("SDL2.dll");
 }
@@ -77,6 +168,7 @@ This pattern is ideal for our **dumpbin, ldd, otool, and vcpkg tool wrappers**.
 **How to test:** Two approaches:
 
 **Option A — Mock the tool layer:**
+
 ```csharp
 // NSubstitute mock of ICakeContext with canned process output
 var ctx = Substitute.For<ICakeContext>();
@@ -229,9 +321,15 @@ public sealed class TestCakeContext : ICakeContext
 
 ## Recommended Test Plan — Phase 1 Completion
 
-### Already done (90 tests)
+### Already done (120 tests baseline)
 
-Pure functions and config parsing — no Cake infrastructure needed.
+Pure functions and config parsing are in place, plus first-pass closure/planner/deployer coverage.
+
+### Critical gap from review (must fix before large refactor)
+
+- Replace test-side mirrored logic in consolidation tests with real SUT behavior assertions.
+- Add missing blackbox tests for task orchestration and side effects.
+- Add scanner/provider/tool-wrapper tests for currently untested runtime boundaries.
 
 ### Next batch: BinaryClosureWalker + ArtifactPlanner (~15-20 tests)
 
@@ -260,6 +358,48 @@ For dumpbin/ldd/otool/vcpkg argument validation. Lower priority than core servic
 ### Future batch: ArtifactDeployer with FakeFileSystem
 
 File copy and tar operations. Requires `TestCakeContext` infrastructure.
+
+## Refactor-Readiness Execution Plan (Whitebox + Blackbox)
+
+### Phase A — Architecture Cleanup (test structure and anti-pattern removal)
+
+1. Realign test folders to mirror `build/_build` boundaries.
+2. Move real-file manifest contract checks into `Characterization` scope.
+3. Rewrite consolidation tests to validate `ConsolidateHarvestTask` outputs, not copied logic.
+
+### Phase B — Blackbox Task Coverage
+
+1. Add `HarvestTask` flow tests (success/failure/status-file behavior).
+2. Add `ConsolidateHarvestTask` flow tests from real `rid-status/*.json` inputs.
+3. Add `PreFlightCheckTask.Run` integration-style behavior tests (pass/fail/log).
+
+### Phase C — Whitebox Runtime Boundary Coverage
+
+1. Add scanner parsing suites using canned outputs (`dumpbin`, `ldd`, `otool`).
+2. Add `VcpkgCliProvider` tests for success, malformed JSON, and error paths.
+3. Add tool-wrapper argument tests using `ToolFixture`.
+
+### Phase D — Flakiness and Determinism Hardening
+
+1. Ensure no hidden shared mutable state in fixtures.
+2. Isolate filesystem/process dependencies via fakes in unit tests.
+3. Keep time/random/temp-path dependencies out of assertions unless explicitly controlled.
+
+### Phase E — Coverage Ratchet and Enforcement
+
+1. Store deterministic Cobertura output under `artifacts/test-results/build-tests/`.
+2. Add no-regression rule first, then raise thresholds incrementally.
+3. Use branch coverage as first-class signal (not line-only).
+
+## Quality Gates for Refactor Start
+
+Before major refactor implementation starts:
+
+1. No mirrored production logic in tests.
+2. Blackbox task-level flow coverage exists for Harvest/Consolidate/PreFlight.
+3. Scanner/provider/tool-wrapper boundaries have at least baseline coverage.
+4. Coverage command is deterministic and documented.
+5. Coverage ratchet policy is defined and enforceable.
 
 ## Package to Add
 

@@ -5,8 +5,29 @@ namespace Build.Context.Models;
 
 public record ManifestConfig
 {
+    [JsonPropertyName("schema_version")]
+    public string? SchemaVersion { get; init; }
+
+    [JsonPropertyName("packaging_config")]
+    public PackagingConfig? PackagingConfig { get; init; }
+
+    [JsonPropertyName("runtimes")]
+    public IImmutableList<RuntimeInfo>? Runtimes { get; init; }
+
+    [JsonPropertyName("system_exclusions")]
+    public SystemArtefactsConfig? SystemExclusions { get; init; }
+
     [JsonPropertyName("library_manifests")]
     public required IImmutableList<LibraryManifest> LibraryManifests { get; init; }
+}
+
+public record PackagingConfig
+{
+    [JsonPropertyName("validation_mode")]
+    public string? ValidationMode { get; init; }
+
+    [JsonPropertyName("core_library")]
+    public string? CoreLibrary { get; init; }
 }
 
 public record LibraryManifest

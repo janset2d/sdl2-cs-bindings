@@ -6,7 +6,7 @@ namespace Build.Tests.Fixtures;
 
 public static class RuntimeProfileFixture
 {
-    private static readonly Lazy<SystemArtefactsConfig> CachedArtefacts = new(LoadSystemArtefactsFromJson);
+    private static readonly Lazy<SystemArtefactsConfig> CachedArtefacts = new(LoadSystemExclusionsFromManifest);
 
     public static RuntimeProfile CreateWindows(string rid = "win-x64", string triplet = "x64-windows-hybrid")
     {
@@ -28,11 +28,14 @@ public static class RuntimeProfileFixture
 
     public static SystemArtefactsConfig SystemArtefacts => CachedArtefacts.Value;
 
-    private static SystemArtefactsConfig LoadSystemArtefactsFromJson()
+    private static SystemArtefactsConfig LoadSystemExclusionsFromManifest()
     {
-        var path = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "system_artefacts.json");
-        using var stream = File.OpenRead(path);
-        return JsonSerializer.Deserialize<SystemArtefactsConfig>(stream)
-            ?? throw new InvalidOperationException("Failed to deserialize system_artefacts.json");
+        var manifestPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "manifest.json");
+        using var stream = File.OpenRead(manifestPath);
+        var manifest = JsonSerializer.Deserialize<ManifestConfig>(stream)
+            ?? throw new InvalidOperationException("Failed to deserialize manifest.json");
+
+        return manifest.SystemExclusions
+            ?? throw new InvalidOperationException("manifest.json has no system_exclusions section");
     }
 }

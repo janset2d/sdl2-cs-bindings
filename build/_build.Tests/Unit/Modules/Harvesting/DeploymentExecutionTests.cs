@@ -6,7 +6,7 @@ using Cake.Core.IO;
 using Cake.Testing;
 using NSubstitute;
 
-namespace Build.Tests.Unit.ArtifactDeployer;
+namespace Build.Tests.Unit.Modules.Harvesting;
 
 public class DeploymentExecutionTests
 {
@@ -28,10 +28,9 @@ public class DeploymentExecutionTests
     [Test]
     public async Task DeployArtifactsAsync_Should_Return_Success_When_No_Actions()
     {
-        var deployer = new Build.Modules.Harvesting.ArtifactDeployer(_ctx);
+        var deployer = new ArtifactDeployer(_ctx);
 
-        var emptyStats = new DeploymentStatistics(
-            "SDL2_image", [], [], [], new HashSet<string>(StringComparer.OrdinalIgnoreCase), new HashSet<string>(StringComparer.OrdinalIgnoreCase), DeploymentStrategy.DirectCopy);
+        var emptyStats = CreateStatistics("SDL2_image");
         var plan = new DeploymentPlan([], emptyStats);
 
         var result = await deployer.DeployArtifactsAsync(plan);
@@ -49,16 +48,16 @@ public class DeploymentExecutionTests
 
         var actions = new List<DeploymentAction>
         {
-            new FileCopyAction(sourcePath, targetPath, "sdl2-image", ArtifactOrigin.Primary)
+            new FileCopyAction(sourcePath, targetPath, "sdl2-image", ArtifactOrigin.Primary),
         };
 
-        var stats = new DeploymentStatistics(
+        var stats = CreateStatistics(
             "SDL2_image",
-            [new FileDeploymentInfo(sourcePath, "sdl2-image", DeploymentLocation.FileSystem)],
-            [], [], new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "sdl2-image" }, new HashSet<string>(StringComparer.OrdinalIgnoreCase), DeploymentStrategy.DirectCopy);
+            primaryFiles: [new FileDeploymentInfo(sourcePath, "sdl2-image", DeploymentLocation.FileSystem)],
+            deployedPackages: new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "sdl2-image" });
         var plan = new DeploymentPlan(actions, stats);
 
-        var deployer = new Build.Modules.Harvesting.ArtifactDeployer(_ctx);
+        var deployer = new ArtifactDeployer(_ctx);
         var result = await deployer.DeployArtifactsAsync(plan);
 
         await Assert.That(result.IsSuccess()).IsTrue();
@@ -75,15 +74,16 @@ public class DeploymentExecutionTests
 
         var actions = new List<DeploymentAction>
         {
-            new FileCopyAction(sourcePath, targetPath, "sdl2", ArtifactOrigin.Primary)
+            new FileCopyAction(sourcePath, targetPath, "sdl2", ArtifactOrigin.Primary),
         };
 
-        var stats = new DeploymentStatistics(
-            "SDL2", [new FileDeploymentInfo(sourcePath, "sdl2", DeploymentLocation.FileSystem)],
-            [], [], new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "sdl2" }, new HashSet<string>(StringComparer.OrdinalIgnoreCase), DeploymentStrategy.DirectCopy);
+        var stats = CreateStatistics(
+            "SDL2",
+            primaryFiles: [new FileDeploymentInfo(sourcePath, "sdl2", DeploymentLocation.FileSystem)],
+            deployedPackages: new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "sdl2" });
         var plan = new DeploymentPlan(actions, stats);
 
-        var deployer = new Build.Modules.Harvesting.ArtifactDeployer(_ctx);
+        var deployer = new ArtifactDeployer(_ctx);
         var result = await deployer.DeployArtifactsAsync(plan);
 
         await Assert.That(result.IsSuccess()).IsTrue();
@@ -105,17 +105,17 @@ public class DeploymentExecutionTests
         var actions = new List<DeploymentAction>
         {
             new FileCopyAction(source1, target1, "sdl2-image", ArtifactOrigin.Primary),
-            new FileCopyAction(source2, target2, "zlib", ArtifactOrigin.Runtime)
+            new FileCopyAction(source2, target2, "zlib", ArtifactOrigin.Runtime),
         };
 
-        var stats = new DeploymentStatistics(
+        var stats = CreateStatistics(
             "SDL2_image",
-            [new FileDeploymentInfo(source1, "sdl2-image", DeploymentLocation.FileSystem)],
-            [new FileDeploymentInfo(source2, "zlib", DeploymentLocation.FileSystem)],
-            [], new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "sdl2-image", "zlib" }, new HashSet<string>(StringComparer.OrdinalIgnoreCase), DeploymentStrategy.DirectCopy);
+            primaryFiles: [new FileDeploymentInfo(source1, "sdl2-image", DeploymentLocation.FileSystem)],
+            runtimeFiles: [new FileDeploymentInfo(source2, "zlib", DeploymentLocation.FileSystem)],
+            deployedPackages: new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "sdl2-image", "zlib" });
         var plan = new DeploymentPlan(actions, stats);
 
-        var deployer = new Build.Modules.Harvesting.ArtifactDeployer(_ctx);
+        var deployer = new ArtifactDeployer(_ctx);
         var result = await deployer.DeployArtifactsAsync(plan);
 
         await Assert.That(result.IsSuccess()).IsTrue();
@@ -137,22 +137,40 @@ public class DeploymentExecutionTests
         var actions = new List<DeploymentAction>
         {
             new FileCopyAction(sourceBinary, targetBinary, "sdl2-image", ArtifactOrigin.Primary),
-            new FileCopyAction(sourceLicense, targetLicense, "sdl2-image", ArtifactOrigin.License)
+            new FileCopyAction(sourceLicense, targetLicense, "sdl2-image", ArtifactOrigin.License),
         };
 
-        var stats = new DeploymentStatistics(
+        var stats = CreateStatistics(
             "SDL2_image",
-            [new FileDeploymentInfo(sourceBinary, "sdl2-image", DeploymentLocation.FileSystem)],
-            [],
-            [new FileDeploymentInfo(sourceLicense, "sdl2-image", DeploymentLocation.FileSystem)],
-            new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "sdl2-image" }, new HashSet<string>(StringComparer.OrdinalIgnoreCase), DeploymentStrategy.DirectCopy);
+            primaryFiles: [new FileDeploymentInfo(sourceBinary, "sdl2-image", DeploymentLocation.FileSystem)],
+            licenseFiles: [new FileDeploymentInfo(sourceLicense, "sdl2-image", DeploymentLocation.FileSystem)],
+            deployedPackages: new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "sdl2-image" });
         var plan = new DeploymentPlan(actions, stats);
 
-        var deployer = new Build.Modules.Harvesting.ArtifactDeployer(_ctx);
+        var deployer = new ArtifactDeployer(_ctx);
         var result = await deployer.DeployArtifactsAsync(plan);
 
         await Assert.That(result.IsSuccess()).IsTrue();
         await Assert.That(_fakeFs.Exist(targetBinary)).IsTrue();
         await Assert.That(_fakeFs.Exist(targetLicense)).IsTrue();
+    }
+
+    private static DeploymentStatistics CreateStatistics(
+        string libraryName,
+        IReadOnlyList<FileDeploymentInfo>? primaryFiles = null,
+        IReadOnlyList<FileDeploymentInfo>? runtimeFiles = null,
+        IReadOnlyList<FileDeploymentInfo>? licenseFiles = null,
+        IReadOnlySet<string>? deployedPackages = null,
+        IReadOnlySet<string>? filteredPackages = null,
+        DeploymentStrategy deploymentStrategy = DeploymentStrategy.DirectCopy)
+    {
+        return new DeploymentStatistics(
+            libraryName,
+            primaryFiles ?? [],
+            runtimeFiles ?? [],
+            licenseFiles ?? [],
+            deployedPackages ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+            filteredPackages ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+            deploymentStrategy);
     }
 }

@@ -1,8 +1,109 @@
 {
+  "schema_version": "2.0",
+
   "packaging_config": {
     "validation_mode": "strict",
     "core_library": "sdl2"
   },
+
+  "runtimes": [
+    { "rid": "win-x64", "triplet": "x64-windows-hybrid", "strategy": "hybrid-static", "runner": "windows-latest", "container_image": null },
+    { "rid": "win-arm64", "triplet": "arm64-windows", "strategy": "pure-dynamic", "runner": "windows-latest", "container_image": null },
+    { "rid": "win-x86", "triplet": "x86-windows", "strategy": "pure-dynamic", "runner": "windows-latest", "container_image": null },
+    { "rid": "linux-x64", "triplet": "x64-linux-hybrid", "strategy": "hybrid-static", "runner": "ubuntu-24.04", "container_image": "ubuntu:20.04" },
+    { "rid": "linux-arm64", "triplet": "arm64-linux-dynamic", "strategy": "pure-dynamic", "runner": "ubuntu-latest-arm64", "container_image": "ubuntu:24.04" },
+    { "rid": "osx-x64", "triplet": "x64-osx-hybrid", "strategy": "hybrid-static", "runner": "macos-15-intel", "container_image": null },
+    { "rid": "osx-arm64", "triplet": "arm64-osx-dynamic", "strategy": "pure-dynamic", "runner": "macos-latest", "container_image": null }
+  ],
+
+  "system_exclusions": {
+    "windows": {
+      "system_dlls": [
+        "kernel32.dll",
+        "kernelbase.dll",
+        "ntdll.dll",
+        "user32.dll",
+        "gdi32.dll",
+        "winmm.dll",
+        "imm32.dll",
+        "advapi32.dll",
+        "shell32.dll",
+        "shlwapi.dll",
+        "ole32.dll",
+        "oleaut32.dll",
+        "version.dll",
+        "setupapi.dll",
+        "winspool.dll",
+        "comdlg32.dll",
+        "comctl32.dll",
+        "ws2_32.dll",
+        "iphlpapi.dll",
+        "crypt32.dll",
+        "d3d9.dll",
+        "d3d11.dll",
+        "dxgi.dll",
+        "ucrtbase.dll",
+        "msvcp*.dll",
+        "vcruntime*.dll",
+        "api-ms-win-*.dll"
+      ]
+    },
+    "linux": {
+      "system_libraries": [
+        "linux-vdso.so*",
+        "ld-linux-*.so*",
+        "libc.so*",
+        "libm.so*",
+        "libpthread.so*",
+        "libdl.so*",
+        "librt.so*",
+        "libutil.so*",
+        "libresolv.so*",
+        "libnss_*.so*",
+        "libstdc++.so*",
+        "libgcc_s.so*",
+        "libsystemd.so*",
+        "libdbus-*.so*",
+        "libexpat.so*",
+        "libasound.so*",
+        "libatopology.so*",
+        "libcap.so*",
+        "libpsx.so*",
+        "liblzma.so*",
+        "liblz4.so*",
+        "libzstd.so*",
+        "libblkid.so*",
+        "libmount.so*",
+        "libcrypt.so*",
+        "libxcrypt.so*",
+        "libowcrypt.so*"
+      ]
+    },
+    "osx": {
+      "system_libraries": [
+        "libSystem.B.dylib",
+        "libobjc.A.dylib",
+        "CoreVideo.framework",
+        "Cocoa.framework",
+        "IOKit.framework",
+        "ForceFeedback.framework",
+        "Carbon.framework",
+        "CoreAudio.framework",
+        "AudioToolbox.framework",
+        "AVFoundation.framework",
+        "Foundation.framework",
+        "GameController.framework",
+        "Metal.framework",
+        "QuartzCore.framework",
+        "CoreHaptics.framework",
+        "AppKit.framework",
+        "CoreFoundation.framework",
+        "CoreGraphics.framework",
+        "CoreServices.framework"
+      ]
+    }
+  },
+
   "library_manifests": [
     {
       "name": "SDL2",
@@ -13,18 +114,9 @@
       "native_lib_version": "2.32.10.0",
       "core_lib": true,
       "primary_binaries": [
-        {
-          "os": "Windows",
-          "patterns": ["SDL2.dll"]
-        },
-        {
-          "os": "Linux",
-          "patterns": ["libSDL2*"]
-        },
-        {
-          "os": "OSX",
-          "patterns": ["libSDL2*.dylib"]
-        }
+        { "os": "Windows", "patterns": ["SDL2.dll"] },
+        { "os": "Linux", "patterns": ["libSDL2*"] },
+        { "os": "OSX", "patterns": ["libSDL2*.dylib"] }
       ]
     },
     {
@@ -36,18 +128,9 @@
       "native_lib_version": "2.8.8.0",
       "core_lib": false,
       "primary_binaries": [
-        {
-          "os": "Windows",
-          "patterns": ["SDL2_image.dll"]
-        },
-        {
-          "os": "Linux",
-          "patterns": ["libSDL2_image*"]
-        },
-        {
-          "os": "OSX",
-          "patterns": ["libSDL2_image*.dylib"]
-        }
+        { "os": "Windows", "patterns": ["SDL2_image.dll"] },
+        { "os": "Linux", "patterns": ["libSDL2_image*"] },
+        { "os": "OSX", "patterns": ["libSDL2_image*.dylib"] }
       ]
     },
     {
@@ -59,18 +142,9 @@
       "native_lib_version": "2.8.1.0",
       "core_lib": false,
       "primary_binaries": [
-        {
-          "os": "Windows",
-          "patterns": ["SDL2_mixer.dll"]
-        },
-        {
-          "os": "Linux",
-          "patterns": ["libSDL2_mixer*"]
-        },
-        {
-          "os": "OSX",
-          "patterns": ["libSDL2_mixer*.dylib"]
-        }
+        { "os": "Windows", "patterns": ["SDL2_mixer.dll"] },
+        { "os": "Linux", "patterns": ["libSDL2_mixer*"] },
+        { "os": "OSX", "patterns": ["libSDL2_mixer*.dylib"] }
       ]
     },
     {
@@ -82,18 +156,9 @@
       "native_lib_version": "2.24.0.0",
       "core_lib": false,
       "primary_binaries": [
-        {
-          "os": "Windows",
-          "patterns": ["SDL2_ttf.dll"]
-        },
-        {
-          "os": "Linux",
-          "patterns": ["libSDL2_ttf*"]
-        },
-        {
-          "os": "OSX",
-          "patterns": ["libSDL2_ttf*.dylib"]
-        }
+        { "os": "Windows", "patterns": ["SDL2_ttf.dll"] },
+        { "os": "Linux", "patterns": ["libSDL2_ttf*"] },
+        { "os": "OSX", "patterns": ["libSDL2_ttf*.dylib"] }
       ]
     },
     {
@@ -105,18 +170,9 @@
       "native_lib_version": "1.0.4.0",
       "core_lib": false,
       "primary_binaries": [
-        {
-          "os": "Windows",
-          "patterns": ["SDL2_gfx.dll"]
-        },
-        {
-          "os": "Linux",
-          "patterns": ["libSDL2_gfx*"]
-        },
-        {
-          "os": "OSX",
-          "patterns": ["libSDL2_gfx*.dylib"]
-        }
+        { "os": "Windows", "patterns": ["SDL2_gfx.dll"] },
+        { "os": "Linux", "patterns": ["libSDL2_gfx*"] },
+        { "os": "OSX", "patterns": ["libSDL2_gfx*.dylib"] }
       ]
     },
     {
@@ -128,18 +184,9 @@
       "native_lib_version": "2.2.0.0",
       "core_lib": false,
       "primary_binaries": [
-        {
-          "os": "Windows",
-          "patterns": ["SDL2_net.dll"]
-        },
-        {
-          "os": "Linux",
-          "patterns": ["libSDL2_net*"]
-        },
-        {
-          "os": "OSX",
-          "patterns": ["libSDL2_net*.dylib"]
-        }
+        { "os": "Windows", "patterns": ["SDL2_net.dll"] },
+        { "os": "Linux", "patterns": ["libSDL2_net*"] },
+        { "os": "OSX", "patterns": ["libSDL2_net*.dylib"] }
       ]
     }
   ]

@@ -160,11 +160,13 @@ These decisions were made during the packaging strategy research cycle (April 20
 **Active — Packaging Infrastructure (test-first, docs-first):**
 
 - [ ] Update canonical docs for config merge, triplet=strategy, TUnit adoption decisions (#85)
-- [ ] Create TUnit test project for Cake build host with characterization tests on current code (#85)
+- [x] Create TUnit test project for Cake build host with characterization tests on current code (#85) — baseline established (129 tests passing)
 - [ ] Merge 3 config files into single manifest.json (schema v2) — runtimes + system_exclusions + library_manifests (#85)
 - [ ] Introduce Cake build host strategy awareness: IPackagingStrategy, IDependencyPolicyValidator, INativeAcquisitionStrategy (#85)
 - [ ] Repurpose BinaryClosureWalker + runtime scanners as guardrails: transitive dep leak in hybrid mode = build failure (#85)
 - [ ] Extract HarvestPipeline service from HarvestTask (#85)
+- [ ] Harden build host testing architecture for refactor readiness: mirror `_build` boundaries, remove mirrored test logic, add missing task/scanner/provider/tool coverage (#85)
+- [ ] Establish deterministic build-host coverage workflow and ratchet policy (`dotnet test ... -- --coverage`) with no-regression gate and branch tracking (#85)
 - [ ] Implement minimal PackageTask for win-x64 (SDL2.Core + SDL2.Image → .nupkg → local folder feed) (#83)
 - [ ] Create package-consumer smoke test project: PackageReference → local feed restore → SDL_Init + IMG_Load("test.png") (#83)
 
@@ -302,14 +304,14 @@ Primary docs: [phases/phase-5-sdl3-support.md](phases/phase-5-sdl3-support.md), 
 
 1. **Native binaries committed to git**: Some test binaries were committed to `src/native/*/runtimes/`. Need cleanup + .gitignore rules.
 2. **Release pipeline is a stub**: `release-candidate-pipeline.yml` has placeholder logic.
-3. **No tests**: The only test project (`test/Sandboc/`) is a development utility, not a test suite. Build host has zero unit test coverage.
+3. **Build host tests exist, but depth is uneven**: `build/_build.Tests` has a healthy baseline count, but refactor-sensitive orchestration/scanner/provider areas remain under-covered and coverage percentages are still low relative to refactor risk.
 4. **Local dev playbook needs correction**: A playbook exists, but parts of it were inaccurate and not yet validated end-to-end.
 5. **`--use-overrides` is parsed but not wired**: Legacy flag, to be reframed as `--native-source overrides` during Cake strategy refactor.
 6. **Distributed CI output flow is not wired yet**: current harvest output is still local-first. The release pipeline will need a real staging-vs-consolidated path split so matrix jobs can upload per-RID artifacts before consolidation.
 7. **Hybrid triplets not yet created**: Custom overlay triplets for the hybrid static model are designed but not yet implemented. Spike will prove the model on win-x64.
 8. **Symbol visibility unaddressed on Linux/macOS**: vcpkg does not set `-fvisibility=hidden` by default. Windows is safe (PE export-opt-in). Linux/macOS need custom triplet flags or linker version scripts. Deferred to Phase 2b.
 9. **Windows local tooling guidance is not explicit enough**: contributors need a dedicated prerequisites guide for VS C++ tooling, Developer PowerShell usage, and dumpbin/vswhere troubleshooting.
-10. **vcpkg.json still lists LGPL features**: `mpg123` and `fluidsynth` features remain in sdl2-mixer declaration until #84 is implemented.
+10. **Build-host test topology drift**: test folders are not yet fully aligned to `_build` production boundaries (`Modules`/`Tasks`/`Tools`), which raises maintenance cost and weakens whitebox/blackbox separation.
 
 ## Cross-Reference
 

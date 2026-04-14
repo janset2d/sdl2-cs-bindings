@@ -420,6 +420,36 @@ The `ManifestFixture` (session-scoped, reads real config) and `RuntimeProfileFix
 | `IDisposable` for teardown | `[After(Test)]` method |
 | `IAsyncLifetime` | `IAsyncInitializer` + `IAsyncDisposable` |
 
+## Coverage with TUnit + Microsoft.Testing.Platform
+
+### Preferred command for this repository
+
+Use test-application options (`--coverage`) with an explicit absolute results directory:
+
+```powershell
+dotnet test build/_build.Tests/Build.Tests.csproj -- \
+    --results-directory "E:/repos/my-projects/janset2d/sdl2-cs-bindings/artifacts/test-results/build-tests" \
+    --coverage \
+    --coverage-output-format cobertura \
+    --coverage-output "coverage.cobertura.xml"
+```
+
+Expected output:
+
+- `artifacts/test-results/build-tests/coverage.cobertura.xml`
+- test report/log files in the same directory
+
+### Troubleshooting notes
+
+- If `--results-directory` is relative, output path may resolve under the test project folder. Prefer absolute paths for deterministic CI/local behavior.
+- Validate available extension options with:
+
+```powershell
+dotnet test build/_build.Tests/Build.Tests.csproj -- --help
+```
+
+- Keep the MTP/TUnit coverage path as the canonical workflow for this repository to avoid confusion across runners.
+
 ## References
 
 - [TUnit Documentation](https://tunit.dev/docs/intro)

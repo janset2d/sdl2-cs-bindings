@@ -123,18 +123,8 @@ public sealed class PathService : IPathService
         return ArtifactsDir.CombineWithFilePath($"harvest-{libraryName}-{rid}.json");
     }
 
-    public FilePath GetRuntimesFile()
-    {
-        return BuildDir.CombineWithFilePath("runtimes.json");
-    }
-
     public FilePath GetManifestFile()
     {
         return BuildDir.CombineWithFilePath("manifest.json");
-    }
-
-    public FilePath GetSystemArtifactsFile()
-    {
-        return BuildDir.CombineWithFilePath("system_artefacts.json");
     }
 }

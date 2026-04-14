@@ -1,6 +1,6 @@
 using Build.Tasks.Preflight;
 
-namespace Build.Tests.Unit.PreFlight;
+namespace Build.Tests.Unit.Tasks.Preflight;
 
 public class SemanticVersionParsingTests
 {
@@ -20,32 +20,28 @@ public class SemanticVersionParsingTests
     }
 
     [Test]
-    [Arguments("2.32.10-alpha")]
-    [Arguments("1.0.0-rc1")]
-    [Arguments("2.8.8-beta.2")]
-    public async Task ParseSemanticVersion_Should_Ignore_PreRelease_Suffix(string version)
+    [Arguments("2.32.10-alpha", 2, 32, 10)]
+    [Arguments("1.0.0-rc1", 1, 0, 0)]
+    [Arguments("2.8.8-beta.2", 2, 8, 8)]
+    public async Task ParseSemanticVersion_Should_Ignore_PreRelease_Suffix(string version, int expectedMajor, int expectedMinor, int expectedPatch)
     {
         var (major, minor, patch) = PreFlightCheckTask.ParseSemanticVersion(version);
-        var cleanVersion = version.Split(['-'], 2)[0];
-        var parts = cleanVersion.Split('.');
 
-        await Assert.That(major).IsEqualTo(int.Parse(parts[0], System.Globalization.CultureInfo.InvariantCulture));
-        await Assert.That(minor).IsEqualTo(int.Parse(parts[1], System.Globalization.CultureInfo.InvariantCulture));
-        await Assert.That(patch).IsEqualTo(int.Parse(parts[2], System.Globalization.CultureInfo.InvariantCulture));
+        await Assert.That(major).IsEqualTo(expectedMajor);
+        await Assert.That(minor).IsEqualTo(expectedMinor);
+        await Assert.That(patch).IsEqualTo(expectedPatch);
     }
 
     [Test]
-    [Arguments("2.32.10+build.123")]
-    [Arguments("1.0.0+20260414")]
-    public async Task ParseSemanticVersion_Should_Ignore_Build_Metadata(string version)
+    [Arguments("2.32.10+build.123", 2, 32, 10)]
+    [Arguments("1.0.0+20260414", 1, 0, 0)]
+    public async Task ParseSemanticVersion_Should_Ignore_Build_Metadata(string version, int expectedMajor, int expectedMinor, int expectedPatch)
     {
         var (major, minor, patch) = PreFlightCheckTask.ParseSemanticVersion(version);
-        var cleanVersion = version.Split(['+'], 2)[0];
-        var parts = cleanVersion.Split('.');
 
-        await Assert.That(major).IsEqualTo(int.Parse(parts[0], System.Globalization.CultureInfo.InvariantCulture));
-        await Assert.That(minor).IsEqualTo(int.Parse(parts[1], System.Globalization.CultureInfo.InvariantCulture));
-        await Assert.That(patch).IsEqualTo(int.Parse(parts[2], System.Globalization.CultureInfo.InvariantCulture));
+        await Assert.That(major).IsEqualTo(expectedMajor);
+        await Assert.That(minor).IsEqualTo(expectedMinor);
+        await Assert.That(patch).IsEqualTo(expectedPatch);
     }
 
     [Test]

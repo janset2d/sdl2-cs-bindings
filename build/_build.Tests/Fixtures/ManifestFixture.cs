@@ -42,8 +42,8 @@ public static class ManifestFixture
         [
             new PrimaryBinary { Os = "Windows", Patterns = ["SDL2.dll"] },
             new PrimaryBinary { Os = "Linux", Patterns = ["libSDL2*"] },
-            new PrimaryBinary { Os = "OSX", Patterns = ["libSDL2*.dylib"] }
-        ]
+            new PrimaryBinary { Os = "OSX", Patterns = ["libSDL2*.dylib"] },
+        ],
     };
 
     /// <summary>
@@ -64,8 +64,8 @@ public static class ManifestFixture
         [
             new PrimaryBinary { Os = "Windows", Patterns = ["SDL2_image.dll"] },
             new PrimaryBinary { Os = "Linux", Patterns = ["libSDL2_image*"] },
-            new PrimaryBinary { Os = "OSX", Patterns = ["libSDL2_image*.dylib"] }
-        ]
+            new PrimaryBinary { Os = "OSX", Patterns = ["libSDL2_image*.dylib"] },
+        ],
     };
 
     /// <summary>
@@ -75,7 +75,7 @@ public static class ManifestFixture
     {
         LibraryManifests = ImmutableList.Create(
             CreateTestCoreLibrary(),
-            CreateTestSatelliteLibrary())
+            CreateTestSatelliteLibrary()),
     };
 
     private static ManifestConfig LoadManifestFromJson()

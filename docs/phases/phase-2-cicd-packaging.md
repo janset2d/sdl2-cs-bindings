@@ -154,6 +154,26 @@ Add a dedicated local-development guideline for Windows native/dependency toolin
 4. Troubleshooting for missing `dumpbin.exe` and `vswhere.exe`
 5. Quick verification checklist contributors can run locally
 
+### 2.11 Build Host Test Hardening (Whitebox + Blackbox)
+
+#### Priority: HIGH — Required before large refactor work
+
+Current state:
+
+- Build host test project exists and runs reliably.
+- Coverage baseline is low for refactor-sensitive orchestration/runtime-boundary paths.
+- Test topology is partially mixed and does not yet fully mirror `build/_build` production boundaries.
+
+Required deliverables:
+
+1. Reorganize test hierarchy to mirror `Modules`, `Tasks`, and `Tools` boundaries.
+2. Remove test-side mirrored production logic patterns (validate actual SUT behavior instead).
+3. Add blackbox task-flow tests for `HarvestTask`, `ConsolidateHarvestTask`, and `PreFlightCheckTask`.
+4. Add whitebox boundary tests for runtime scanners and vcpkg provider error paths.
+5. Add tool-wrapper tests (argument construction and parsing behavior) using Cake test fixtures.
+6. Document deterministic coverage execution for TUnit + Microsoft.Testing.Platform and standardize artifact output location.
+7. Introduce a no-regression coverage gate with branch coverage tracking.
+
 ## Exit Criteria
 
 - [ ] `vcpkg.json` declares all 6 SDL2 libraries with appropriate features
@@ -167,6 +187,10 @@ Add a dedicated local-development guideline for Windows native/dependency toolin
 - [ ] Shared native dependency deep-dive documented and approved before related CI/package code changes
 - [ ] Platform workflows use explicit RID and full satellite harvest parity across Windows/Linux/macOS
 - [ ] Windows local tooling prerequisites guide is documented and linked from the playbook
+- [ ] Build-host tests are organized by production boundaries (`Modules`/`Tasks`/`Tools`) with explicit `Integration` and `Characterization` scopes
+- [ ] No mirrored production logic remains in build-host tests; orchestration behavior is validated against real task outputs
+- [ ] Deterministic coverage command and output path for TUnit/MTP are documented and reproducible
+- [ ] Coverage gate policy is active with branch coverage tracked and no-regression enforced
 
 ## Dependencies
 

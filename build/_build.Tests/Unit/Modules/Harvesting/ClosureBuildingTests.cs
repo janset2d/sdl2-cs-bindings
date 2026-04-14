@@ -12,7 +12,7 @@ using Cake.Core.IO;
 using Cake.Testing;
 using NSubstitute;
 
-namespace Build.Tests.Unit.BinaryClosureWalker;
+namespace Build.Tests.Unit.Modules.Harvesting;
 
 public class ClosureBuildingTests
 {
@@ -51,7 +51,7 @@ public class ClosureBuildingTests
         _mockScanner.ScanAsync(Arg.Any<FilePath>(), Arg.Any<CancellationToken>())
             .Returns(ImmutableHashSet<FilePath>.Empty);
 
-        var walker = new Build.Modules.Harvesting.BinaryClosureWalker(_mockScanner, _mockPkg, _profile, _mockCtx);
+        var walker = new BinaryClosureWalker(_mockScanner, _mockPkg, _profile, _mockCtx);
         var result = await walker.BuildClosureAsync(manifest);
 
         await Assert.That(result.IsSuccess()).IsTrue();
@@ -76,7 +76,7 @@ public class ClosureBuildingTests
         _mockScanner.ScanAsync(Arg.Any<FilePath>(), Arg.Any<CancellationToken>())
             .Returns(ImmutableHashSet<FilePath>.Empty);
 
-        var walker = new Build.Modules.Harvesting.BinaryClosureWalker(_mockScanner, _mockPkg, _profile, _mockCtx);
+        var walker = new BinaryClosureWalker(_mockScanner, _mockPkg, _profile, _mockCtx);
         var result = await walker.BuildClosureAsync(manifest);
 
         await Assert.That(result.IsSuccess()).IsTrue();
@@ -101,7 +101,7 @@ public class ClosureBuildingTests
         _mockScanner.ScanAsync(Arg.Any<FilePath>(), Arg.Any<CancellationToken>())
             .Returns(ImmutableHashSet<FilePath>.Empty);
 
-        var walker = new Build.Modules.Harvesting.BinaryClosureWalker(_mockScanner, _mockPkg, _profile, _mockCtx);
+        var walker = new BinaryClosureWalker(_mockScanner, _mockPkg, _profile, _mockCtx);
         var result = await walker.BuildClosureAsync(manifest);
 
         await Assert.That(result.IsSuccess()).IsTrue();
@@ -122,13 +122,13 @@ public class ClosureBuildingTests
         var scanResult = new HashSet<FilePath>
         {
             new("C:/Windows/System32/kernel32.dll"),
-            new("C:/Windows/System32/user32.dll")
+            new("C:/Windows/System32/user32.dll"),
         }.ToImmutableHashSet();
 
         _mockScanner.ScanAsync(Arg.Any<FilePath>(), Arg.Any<CancellationToken>())
             .Returns(scanResult);
 
-        var walker = new Build.Modules.Harvesting.BinaryClosureWalker(_mockScanner, _mockPkg, _profile, _mockCtx);
+        var walker = new BinaryClosureWalker(_mockScanner, _mockPkg, _profile, _mockCtx);
         var result = await walker.BuildClosureAsync(manifest);
 
         await Assert.That(result.IsSuccess()).IsTrue();
@@ -147,7 +147,7 @@ public class ClosureBuildingTests
         _mockPkg.GetPackageInfoAsync("sdl2-image", "x64-windows-hybrid", Arg.Any<CancellationToken>())
             .Returns(new PackageInfoError("Package not found"));
 
-        var walker = new Build.Modules.Harvesting.BinaryClosureWalker(_mockScanner, _mockPkg, _profile, _mockCtx);
+        var walker = new BinaryClosureWalker(_mockScanner, _mockPkg, _profile, _mockCtx);
         var result = await walker.BuildClosureAsync(manifest);
 
         await Assert.That(result.IsError()).IsTrue();
@@ -168,7 +168,7 @@ public class ClosureBuildingTests
         _mockScanner.ScanAsync(Arg.Any<FilePath>(), Arg.Any<CancellationToken>())
             .Returns(scanResult);
 
-        var walker = new Build.Modules.Harvesting.BinaryClosureWalker(_mockScanner, _mockPkg, _profile, _mockCtx);
+        var walker = new BinaryClosureWalker(_mockScanner, _mockPkg, _profile, _mockCtx);
         var result = await walker.BuildClosureAsync(manifest);
 
         await Assert.That(result.IsSuccess()).IsTrue();

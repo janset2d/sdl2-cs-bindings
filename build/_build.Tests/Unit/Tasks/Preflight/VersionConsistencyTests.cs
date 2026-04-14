@@ -1,21 +1,21 @@
 using System.Collections.Immutable;
 using Build.Tasks.Preflight;
 
-namespace Build.Tests.Unit.PreFlight;
+namespace Build.Tests.Unit.Tasks.Preflight;
 
 public class VersionConsistencyTests
 {
     [Test]
     public async Task VcpkgOverride_Should_Deserialize_With_PortVersion()
     {
-        var json = """
-        {
-            "overrides": [
-                { "name": "sdl2", "version": "2.32.10", "port-version": 0 },
-                { "name": "sdl2-image", "version": "2.8.8", "port-version": 2 }
-            ]
-        }
-        """;
+        const string json = """
+                            {
+                                "overrides": [
+                                    { "name": "sdl2", "version": "2.32.10", "port-version": 0 },
+                                    { "name": "sdl2-image", "version": "2.8.8", "port-version": 2 }
+                                ]
+                            }
+                            """;
 
         var manifest = System.Text.Json.JsonSerializer.Deserialize<VcpkgManifest>(json);
 
@@ -31,13 +31,13 @@ public class VersionConsistencyTests
     [Test]
     public async Task VcpkgOverride_Should_Default_PortVersion_To_Null_When_Missing()
     {
-        var json = """
-        {
-            "overrides": [
-                { "name": "sdl2-gfx", "version": "1.0.4" }
-            ]
-        }
-        """;
+        const string json = """
+                            {
+                                "overrides": [
+                                    { "name": "sdl2-gfx", "version": "1.0.4" }
+                                ]
+                            }
+                            """;
 
         var manifest = System.Text.Json.JsonSerializer.Deserialize<VcpkgManifest>(json);
 
@@ -48,11 +48,11 @@ public class VersionConsistencyTests
     [Test]
     public async Task VcpkgManifest_Should_Handle_No_Overrides()
     {
-        var json = """
-        {
-            "dependencies": ["sdl2"]
-        }
-        """;
+        const string json = """
+                            {
+                                "dependencies": ["sdl2"]
+                            }
+                            """;
 
         var manifest = System.Text.Json.JsonSerializer.Deserialize<VcpkgManifest>(json);
 

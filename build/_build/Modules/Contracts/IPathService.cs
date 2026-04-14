@@ -22,7 +22,5 @@ public interface IPathService
     DirectoryPath GetHarvestStageNativeDir(string libraryName, string rid);
     DirectoryPath GetHarvestStageLicensesDir(string libraryName, string rid);
     FilePath GetHarvestManifestFile(string libraryName, string rid);
-    FilePath GetRuntimesFile();
     FilePath GetManifestFile();
-    FilePath GetSystemArtifactsFile();
 }

@@ -4,11 +4,11 @@ using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 using NSubstitute;
 
-namespace Build.Tests.Unit.PathService;
+namespace Build.Tests.Unit.Context;
 
 public class PathConstructionTests
 {
-    private static Modules.PathService CreatePathService(string repoRoot = "/repo")
+    private static PathService CreatePathService(string repoRoot = "/repo")
     {
         var repoConfig = new RepositoryConfiguration(new DirectoryPath(repoRoot));
         var parsedArgs = new ParsedArguments(
@@ -20,7 +20,7 @@ public class PathConstructionTests
             Rid: "",
             Dll: []);
         var log = Substitute.For<ICakeLog>();
-        return new Modules.PathService(repoConfig, parsedArgs, log);
+        return new PathService(repoConfig, parsedArgs, log);
     }
 
     [Test]
