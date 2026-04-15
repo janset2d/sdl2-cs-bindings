@@ -26,6 +26,7 @@ build/_build/
 │   ├── Common/             ← InfoTask (environment info display)
 │   ├── Harvest/            ← HarvestTask, ConsolidateHarvestTask
 │   ├── Preflight/          ← PreFlightCheckTask (partial gate: version + strategy coherence)
+│   ├── Coverage/           ← CoverageCheckTask (ratchet policy against coverage-baseline.json)
 └── Tools/                  ← Utility services
     ├── BinaryClosureWalker ← Platform-specific dependency scanning
     ├── ArtifactPlanner     ← Plans which files to deploy
@@ -49,6 +50,8 @@ All services are registered via dependency injection in `Program.cs`:
 | `IRuntimeScanner` | Platform-specific | dumpbin (Windows), ldd (Linux), otool (macOS) |
 | `IPackagingStrategy` | `HybridStaticStrategy` / `PureDynamicStrategy` | Packaging model and core-library interpretation, resolved per runtime strategy in DI |
 | `IDependencyPolicyValidator` | `HybridStaticValidator` / `PureDynamicValidator` | Strategy-aware closure validation (hybrid leak enforcement, pure-dynamic pass-through) |
+| `ICoberturaReader` | `CoberturaReader` | Parses cobertura XML (MTP `--coverage --coverage-output-format cobertura`) into aggregate `CoverageMetrics` |
+| `ICoverageBaselineReader` | `CoverageBaselineReader` | Loads `build/coverage-baseline.json` into `CoverageBaseline` (line / branch floor + optional metadata) |
 | `INativeAcquisitionStrategy` | `VcpkgBuildProvider` | **(Planned)** Where native binaries come from |
 
 ## Configuration Files

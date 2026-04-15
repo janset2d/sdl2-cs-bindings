@@ -169,19 +169,19 @@ These decisions were made during the packaging strategy research cycle (April 20
 **Active — Packaging Infrastructure (test-first, docs-first):**
 
 - [x] Update canonical docs for config merge, triplet=strategy, TUnit adoption decisions (#85)
-- [x] Create TUnit test project for Cake build host with characterization tests on current code (#85) — 196 tests passing, 55% line, 44% branch
+- [x] Create TUnit test project for Cake build host with characterization tests on current code (#85) — 235 tests passing, 62.62% line, 50.96% branch (post-ratchet landing)
 - [x] Merge 3 config files into single manifest.json (schema v2) — runtimes + system_exclusions + library_manifests (#85)
 - [x] Introduce Cake build host strategy awareness: IPackagingStrategy, IDependencyPolicyValidator — contracts + implementations + runtime wiring landed (DI + Harvest validation + PreFlight coherence) (#85)
 - [x] Wire strategy layer into runtime: Program.cs DI registration, HarvestTask validation step, PreFlightCheck coherence (#85)
 - [x] Repurpose BinaryClosureWalker + runtime scanners as guardrails: transitive dep leak in hybrid mode = build failure (#85)
 - [ ] Extract HarvestPipeline service from HarvestTask (#85)
-- [x] Harden build host testing architecture for refactor readiness: all layers covered (196 tests, 55% line, 44% branch) (#85)
-- [ ] Establish coverage ratchet policy and CI gate: no-regression baseline, `dotnet test --coverage`, branch tracking (#86)
+- [x] Harden build host testing architecture for refactor readiness: all layers covered (235 tests, 62.62% line, 50.96% branch — updated after #86 ratchet landing) (#85)
+- [x] Establish coverage ratchet policy: static floor in `build/coverage-baseline.json` (60.0% line / 49.0% branch, measured 62.62% / 50.96%), Cake `Coverage-Check` task enforces the floor via cobertura parse (#86). CI gate wiring deferred to Stream C PreflightGate.
 
 > **#85 Handoff (2026-04-14, updated 2026-04-15)**
-> **Landed:** Strategy primitives (IPackagingStrategy, IDependencyPolicyValidator, StrategyResolver), OneOf result pattern (ValidationResult/ValidationError/ValidationSuccess), config merge (schema v2), runtime wiring (Program.cs DI + HarvestTask validation invocation + PreFlightCheck coherence invocation), composition-root DI resolution tests via `ConfigureBuildServices` seam (Hybrid + PureDynamic), 196 passing tests, concurrency fix in async extensions.
+> **Landed:** Strategy primitives (IPackagingStrategy, IDependencyPolicyValidator, StrategyResolver), OneOf result pattern (ValidationResult/ValidationError/ValidationSuccess), config merge (schema v2), runtime wiring (Program.cs DI + HarvestTask validation invocation + PreFlightCheck coherence invocation), composition-root DI resolution tests via `ConfigureBuildServices` seam (Hybrid + PureDynamic), concurrency fix in async extensions. Coverage ratchet (#86) landed on top: 235 passing tests (+39 from ratchet — 11 CoberturaReader + 10 CoverageBaselineReader + 8 Validator + 6 CoverageCheckTask), 62.62% line / 50.96% branch, static floor at 60.0% / 49.0% via `Coverage-Check` Cake target (Cake-native file I/O via `IFileSystem`, reader unit tests use `FakeFileSystem`, direct `required`+`JsonPropertyName` deserialization — no DTO layer).
 > **Remaining:** HarvestPipeline extraction only.
-> **Next:** Keep extraction as a follow-up issue and continue with coverage ratchet policy (#86).
+> **Next:** HarvestPipeline extraction as a follow-up issue, then Stream C (PreFlightGate expansion + dynamic matrix + CI artifact-flow) gated on PA-1 (matrix strategy alignment) and PA-2 (hybrid overlay triplet expansion).
 
 **Release Lifecycle Adaptation** (see [phases/phase-2-adaptation-plan.md](phases/phase-2-adaptation-plan.md)):
 
@@ -189,6 +189,8 @@ These decisions were made during the packaging strategy research cycle (April 20
 - [ ] Stream A0: Exact pin spike — Image-family acceptance target, TUnit nuspec assertion (blocks Stream D; blocks A-risky)
 - [ ] Stream A-risky: MinVer project rollout (held until A0 resolves PD-2)
 - [x] Stream B: Strategy wiring (#85 closure) — DI + HarvestTask validator + PreFlight strategy coherence; HarvestPipeline extraction **split to a separate follow-up issue**
+- [ ] **PA-1: Matrix strategy review** — alignment on RID-only vs `strategy × RID` vs parity-job before Stream C CI workflow migration (see [phases/phase-2-adaptation-plan.md](phases/phase-2-adaptation-plan.md#open-alignment-items-pre-stream-c))
+- [ ] **PA-2: Hybrid overlay triplet expansion** — add overlay triplets for remaining 4 RIDs (`x86-windows-hybrid`, `arm64-windows-hybrid`, `arm64-linux-hybrid`, `arm64-osx-hybrid`); Stream C prerequisite (see [phases/phase-2-adaptation-plan.md](phases/phase-2-adaptation-plan.md#open-alignment-items-pre-stream-c))
 - [ ] Stream C: PreFlightCheck as CI gate, dynamic matrix generation from manifest, CI workflow migration
 - [ ] Stream D-local: PackageTask with family version (#54, #83), package-consumer smoke test, local folder feed
 - [ ] Stream D-ci: CI package-publish job + smoke gate + internal feed push
@@ -205,8 +207,6 @@ These decisions were made during the packaging strategy research cycle (April 20
 
 ### Q3 2026 — Phase 2b: Full Hybrid Pipeline
 
-- [ ] Create hybrid overlay triplets for remaining 4 RIDs (win-x86, win-arm64, linux-arm64, osx-arm64)
-- [ ] Update manifest.json runtimes section with all hybrid triplet mappings
 - [ ] Generalize PackageTask to all 6 satellites × 7 RIDs
 - [ ] Generalize Cake strategy services beyond spike scope
 - [ ] Add Linux version scripts for symbol visibility (`.map` files per satellite) — lower priority
@@ -334,7 +334,7 @@ Primary docs: [phases/phase-5-sdl3-support.md](phases/phase-5-sdl3-support.md), 
 4. **Local dev playbook needs correction**: A playbook exists, but parts of it were inaccurate and not yet validated end-to-end.
 5. **Native source-mode selector is not implemented yet**: active build-host flow assumes vcpkg-built natives; multi-source acquisition remains deferred to the strategy-refactor backlog.
 6. **Distributed CI output flow is not wired yet**: current harvest output is still local-first. The release pipeline will need a real staging-vs-consolidated path split so matrix jobs can upload per-RID artifacts before consolidation.
-7. **Hybrid triplets created for 3 primary RIDs**: `x64-windows-hybrid`, `x64-linux-hybrid`, `x64-osx-hybrid` overlay triplets exist in `vcpkg-overlay-triplets/`. Remaining 4 pure-dynamic RIDs (win-x86, win-arm64, linux-arm64, osx-arm64) use stock triplets. Deferred to Phase 2b.
+7. **Hybrid triplets created for 3 primary RIDs**: `x64-windows-hybrid`, `x64-linux-hybrid`, `x64-osx-hybrid` overlay triplets exist in `vcpkg-overlay-triplets/`. Remaining 4 pure-dynamic RIDs (win-x86, win-arm64, linux-arm64, osx-arm64) use stock triplets. **Pulled into Phase 2a as a Stream C prerequisite** — tracked as PA-2 in [phases/phase-2-adaptation-plan.md](phases/phase-2-adaptation-plan.md#open-alignment-items-pre-stream-c). Without hybrid expansion, the dynamic CI matrix exercises the hybrid validator only in 3/7 jobs.
 8. **Symbol visibility analyzed, hardening deferred**: Symbol visibility analysis complete (`docs/research/symbol-visibility-analysis-2026-04-14.md`). zlib/libpng = 0 leaks on all platforms. FreeType/WebP have cosmetic leaks, accepted. Further hardening (version scripts, `-fvisibility=hidden`) deferred to Phase 2b.
 9. **Windows local tooling guidance is not explicit enough**: contributors need a dedicated prerequisites guide for VS C++ tooling, Developer PowerShell usage, and dumpbin/vswhere troubleshooting.
 10. **Build-host test topology drift**: test folders are not yet fully aligned to `_build` production boundaries (`Modules`/`Tasks`/`Tools`), which raises maintenance cost and weakens whitebox/blackbox separation.

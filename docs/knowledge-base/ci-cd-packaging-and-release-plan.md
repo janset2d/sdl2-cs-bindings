@@ -26,7 +26,7 @@ Current repo reality on 2026-04-11:
 
 - The `prepare-native-assets-*` workflows are the working cross-platform harvest path and now use explicit `--rid` plus the full SDL2 satellite harvest list (`SDL2`, `SDL2_image`, `SDL2_mixer`, `SDL2_ttf`, `SDL2_gfx`, `SDL2_net`); matrix-level validation for the expanded set is still pending.
 - `release-candidate-pipeline.yml` exists, but it is still a placeholder workflow with dummy steps and artifacts.
-- `PreFlightCheckTask`, `HarvestTask`, and `ConsolidateHarvestTask` are implemented in the Cake build host.
+- `PreFlightCheckTask`, `HarvestTask`, `ConsolidateHarvestTask`, and `CoverageCheckTask` are implemented in the Cake build host. `CoverageCheckTask` (ratchet gate) runs locally via `dotnet cake --target=Coverage-Check` against `build/coverage-baseline.json`; wiring it into a CI PreflightGate job alongside `PreFlightCheckTask` and the unit-test step is part of Stream C (see [`phase-2-adaptation-plan.md`](../phases/phase-2-adaptation-plan.md#stream-c-ci-modernization-after-stream-a)).
 - `build/known-issues.json`, `PackageTask`, `PR-Version-Consistency-Check.yml`, and `Promote-To-Public.yml` are planned, not present as working repo artifacts.
 - `PathService` contains harvest-staging helpers for distributed CI, but the active tasks and workflows still emit to `artifacts/harvest_output/`.
 - Shared native dependency collision policy is resolved: Hybrid Static model eliminates transitive DLL collisions by static-baking deps into satellites.

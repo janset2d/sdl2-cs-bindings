@@ -44,6 +44,7 @@ public static class TaskTestHelpers
         var pathService = Substitute.For<IPathService>();
         pathService.RepoRoot.Returns(repoRootPath);
         pathService.GetManifestFile().Returns(repoRootPath.Combine("build").CombineWithFilePath("manifest.json"));
+        pathService.GetCoverageBaselineFile().Returns(repoRootPath.Combine("build").CombineWithFilePath("coverage-baseline.json"));
 
         return new BuildContext(
             cakeContext,

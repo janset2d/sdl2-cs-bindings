@@ -20,7 +20,8 @@ This is a multi-session project. The plan designs the full picture, identifies t
 - Managed packages already reference their native counterparts (ProjectReference)
 - Native packages are payload-only (no compiled assemblies, pack runtimes + .targets)
 - Manifest v2.1 schema with runtimes, library_manifests, system_exclusions, package_families
-- Strategy layer implemented + wired (Program.cs DI + HarvestTask validation + PreFlight coherence), 196 tests passing (#85)
+- Strategy layer implemented + wired (Program.cs DI + HarvestTask validation + PreFlight coherence), 235 tests passing (post coverage-ratchet landing) (#85)
+- Coverage ratchet infrastructure landed (#86): `ICoberturaReader` + `ICoverageBaselineReader` + `CoverageThresholdValidator` + `CoverageCheckTask`, OneOf result monad, Cake-native `IFileSystem` I/O, `build/coverage-baseline.json` floor (60.0% line / 49.0% branch vs measured 62.62% / 50.96%). Runs locally via `dotnet cake --target=Coverage-Check`; CI gate wiring deferred to Stream C PreflightGate.
 - NuGet.Versioning is available in Cake build host
 - release-candidate-pipeline has `fromJson()` pattern prototyped (but with wrong matrix shape)
 
@@ -337,6 +338,31 @@ Stream F covers the source-graph side of local development: how contributors acq
 2. **NuGet.Versioning for SemVer** — use the NuGet package for SemVer parsing/comparison within Cake
 3. **Cake as single orchestration surface** — all processes through Cake, CI workflows are triggers only
 4. **PreFlightCheck is the gate** — must validate everything before any CI resources are spent
+
+## Open Alignment Items (pre-Stream C)
+
+These items must be aligned on before Stream C (CI modernization) starts. They do not block the current coverage ratchet (#86) or the HarvestPipeline extraction follow-up. They do gate Stream C's CI workflow migration and dynamic matrix rollout.
+
+| # | Item | Status | Exit Criterion | Gates |
+| --- | --- | --- | --- | --- |
+| PA-1 | Matrix strategy review — RID-only vs `strategy × RID` vs parity-job | Open — alignment discussion pending. Current locked decision in [release-lifecycle-direction.md §5](../knowledge-base/release-lifecycle-direction.md#5-ci-matrix-model) is RID-only (7 jobs). | Explicit decision recorded: keep current (and close PA-1) or amend `release-lifecycle-direction.md §5` with the chosen variant. | Stream C `GenerateMatrixTask` shape; Stream C CI workflow migration. |
+| PA-2 | Hybrid overlay triplet expansion to remaining 4 RIDs | Open — 3/7 RIDs covered today (`x64-windows-hybrid`, `x64-linux-hybrid`, `x64-osx-hybrid`). 4 remaining use stock triplets. Pulled into Phase 2a scope from [plan.md Known Issue #7](../plan.md#known-issues). | Overlay triplet files exist for `x86-windows-hybrid`, `arm64-windows-hybrid`, `arm64-linux-hybrid`, `arm64-osx-hybrid`. `manifest.runtimes[].triplet` + `runtimes[].strategy` updated per the intended strategy allocation. PreFlightCheck strategy coherence green across all 7 RIDs. | Stream C dynamic matrix — without this, hybrid validator is exercised in only 3/7 jobs, diluting the value of 7-job coverage. |
+
+### PA-1 discussion boundary
+
+Three arketypes on the table. This list is the agreed scope of discussion, not a resolution — closure is required before Stream C CI workflow migration starts, not mid-migration:
+
+- **A — Keep RID-only.** After PA-2 lands, hybrid validator runs on 7/7 RIDs if the strategy allocation declares all 7 as hybrid. Pure-dynamic validator (pass-through today) runs only where manifest strategy is declared pure-dynamic. No additional CI cost.
+- **B — Add parity axis.** Same RID runs both hybrid and pure-dynamic builds in parallel, catching cross-strategy regressions at the cost of doubled CI time per parity-covered RID.
+- **C — Cross-strategy validation job.** A dedicated job re-validates a hybrid artifact under pure-dynamic expectations (or vice versa). Cheaper than B but introduces a new artifact contract.
+
+### PA-2 scope
+
+- Author overlay triplet files in `vcpkg-overlay-triplets/`: `x86-windows-hybrid`, `arm64-windows-hybrid`, `arm64-linux-hybrid`, `arm64-osx-hybrid`.
+- Review `vcpkg-overlay-ports/` for per-architecture per-port overrides (e.g., SDL2_mixer codec bundling). Arch-specific adjustments may or may not be needed; review before authoring overlays.
+- Update `manifest.json` `runtimes[].triplet` for the 4 RIDs from stock to the new hybrid overlay. The associated `strategy` field moves to `HybridStatic` where the target is to bring the RID under hybrid validation. Whether any of the 4 intentionally stays pure-dynamic (e.g., arm64 cross-compile constraints) is a strategy allocation choice made during this work — PA-2 delivers the mechanism; strategy allocation is a sub-decision captured alongside the overlay files.
+- Re-run `PreFlightCheckTask`; strategy coherence must be green across all 7 RIDs under the new allocation.
+- On close: update [plan.md Known Issue #7](../plan.md#known-issues) to reflect completion and remove the Phase 2b deferral note.
 
 ## Pending Decisions
 

@@ -10,6 +10,7 @@ using Build.Context.Models;
 using Build.Context.Options;
 using Build.Modules;
 using Build.Modules.Contracts;
+using Build.Modules.Coverage;
 using Build.Modules.DependencyAnalysis;
 using Build.Modules.Harvesting;
 using Build.Modules.Strategy;
@@ -98,6 +99,8 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton<IBinaryClosureWalker, BinaryClosureWalker>();
     services.AddSingleton<IArtifactPlanner, ArtifactPlanner>();
     services.AddSingleton<IArtifactDeployer, ArtifactDeployer>();
+    services.AddSingleton<ICoberturaReader, CoberturaReader>();
+    services.AddSingleton<ICoverageBaselineReader, CoverageBaselineReader>();
 
     services.AddSingleton<IPackagingStrategy>(provider =>
     {

@@ -23,4 +23,5 @@ public interface IPathService
     DirectoryPath GetHarvestStageLicensesDir(string libraryName, string rid);
     FilePath GetHarvestManifestFile(string libraryName, string rid);
     FilePath GetManifestFile();
+    FilePath GetCoverageBaselineFile();
 }
