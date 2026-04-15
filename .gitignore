@@ -414,6 +414,10 @@ pack-projects.ps1
 # vcpkg installed binaries
 vcpkg_installed/
 
+# Native payloads committed to src/native/<Lib>/runtimes/ are build artifacts,
+# produced by Cake harvest. Do not commit. See Known Issues #1 in docs/plan.md.
+src/native/*/runtimes/
+
 .vscode/
 build/_build/.cake/
 

@@ -208,6 +208,33 @@ The matrix is generated dynamically from `manifest.json` runtimes section. No ha
 
 ---
 
+## 7. Two Version Planes
+
+Two distinct "version" concepts coexist in this repository. They are orthogonal, and confusing them leads to policy drift.
+
+### Upstream Library Version Plane
+
+The version of the native library being shipped — SDL2 2.32.10, SDL2_image 2.8.8, and so on. Tracked in `manifest.json` under `library_manifests[].vcpkg_version` (with an associated `vcpkg_port_version` for port revisions). Must match the version installed by vcpkg for the corresponding triplet. `PreFlightCheckTask` enforces this match.
+
+### Family Version Plane
+
+The version of a Janset.SDL2 package family — `Janset.SDL2.Core` + `Janset.SDL2.Core.Native` at version `1.2.0`, for example. Derived at pack time from git family tags (e.g., `core-1.2.0`) via MinVer. Increments independently of the upstream library version.
+
+### Coherence Is Cross-Validation, Not Semantic Implication
+
+PreFlightCheck today enforces **structural coherence** between the two planes — `manifest.json library_manifests[].vcpkg_version` must agree with `vcpkg.json` for each triplet. PreFlightCheck does **not** today enforce semantic coherence rules such as "if the upstream library major version bumped, the family major version must also bump." Such a rule may be adopted later, but this document does not commit to it. Any future adoption must be landed as an explicit amendment here.
+
+### Example
+
+| Plane | Value | Source of truth |
+| --- | --- | --- |
+| Upstream library version | SDL2 2.32.10 | `manifest.json` + `vcpkg.json` |
+| Family version (core) | Janset.SDL2.Core 1.2.0 | git tag `core-1.2.0` → MinVer |
+
+Both are valid simultaneously. Upstream is 2.x, family is 1.x. Neither implies anything about the other beyond the structural coherence check above.
+
+---
+
 ## Tradeoffs Explicitly Accepted
 
 1. **Family-lock means no managed-only release.** If only binding code changed but native binaries are identical, the native package still re-releases at the new family version with unchanged binaries. This is the SkiaSharp/Avalonia tradeoff: simplicity over flexibility.
