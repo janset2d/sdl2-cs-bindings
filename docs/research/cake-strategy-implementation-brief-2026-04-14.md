@@ -26,7 +26,7 @@ Evolve the Cake Frosting build host from a harvest-only pipeline into a strategy
 
 [build/_build/Program.cs](../../build/_build/Program.cs) — System.CommandLine CLI parsing + Cake Frosting DI bootstrap.
 
-**CLI args parsed:** `--target`, `--repo-root`, `--vcpkg-dir`, `--vcpkg-installed-dir`, `--library`, `--rid`, `--use-overrides`, `--config`, `--dll`
+**CLI args parsed:** `--target`, `--repo-root`, `--vcpkg-dir`, `--vcpkg-installed-dir`, `--library`, `--rid`, `--config`, `--dll`
 
 ### DI Container (Program.cs ConfigureServices)
 

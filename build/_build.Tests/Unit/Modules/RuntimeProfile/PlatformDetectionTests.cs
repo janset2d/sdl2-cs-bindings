@@ -41,6 +41,7 @@ public class PlatformDetectionTests
         {
             Rid = "freebsd-x64",
             Triplet = "x64-freebsd",
+            Strategy = "pure-dynamic",
             Runner = "freebsd-latest",
         };
 

@@ -7,7 +7,7 @@ using IOPath = System.IO.Path;
 
 namespace Build.Tests.Unit.Tasks.Harvest;
 
-public class ConsolidateHarvestTests
+public class ConsolidateHarvestTests : TempDirectoryTestBase
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -121,112 +121,94 @@ public class ConsolidateHarvestTests
     public async Task RunAsync_Should_Generate_Harvest_Manifest_And_Summary_From_Rid_Status_Files()
     {
         var harvestRoot = CreateTempHarvestOutputRoot();
-        try
-        {
-            await WriteRidStatusFileAsync(
-                harvestRoot,
-                "SDL2",
-                "win-x64.json",
-                CreateSuccessStatus("SDL2", "win-x64", "x64-windows-hybrid"));
 
-            await WriteRidStatusFileAsync(
-                harvestRoot,
-                "SDL2",
-                "linux-x64.json",
-                CreateFailedStatus("SDL2", "linux-x64", "x64-linux-hybrid", "ldd failed"));
+        await WriteRidStatusFileAsync(
+            harvestRoot,
+            "SDL2",
+            "win-x64.json",
+            CreateSuccessStatus("SDL2", "win-x64", "x64-windows-hybrid"));
 
-            var task = new ConsolidateHarvestTask();
-            var context = TaskTestHelpers.CreateBuildContext(new DirectoryPath(harvestRoot));
+        await WriteRidStatusFileAsync(
+            harvestRoot,
+            "SDL2",
+            "linux-x64.json",
+            CreateFailedStatus("SDL2", "linux-x64", "x64-linux-hybrid", "ldd failed"));
 
-            await task.RunAsync(context);
+        var task = new ConsolidateHarvestTask();
+        var context = TaskTestHelpers.CreateBuildContext(new DirectoryPath(harvestRoot));
 
-            var manifestPath = IOPath.Combine(harvestRoot, "SDL2", "harvest-manifest.json");
-            var summaryPath = IOPath.Combine(harvestRoot, "SDL2", "harvest-summary.json");
+        await task.RunAsync(context);
 
-            await Assert.That(File.Exists(manifestPath)).IsTrue();
-            await Assert.That(File.Exists(summaryPath)).IsTrue();
+        var manifestPath = IOPath.Combine(harvestRoot, "SDL2", "harvest-manifest.json");
+        var summaryPath = IOPath.Combine(harvestRoot, "SDL2", "harvest-summary.json");
 
-            var manifestJson = await File.ReadAllTextAsync(manifestPath);
-            var manifest = JsonSerializer.Deserialize<HarvestManifest>(manifestJson, JsonOptions);
+        await Assert.That(File.Exists(manifestPath)).IsTrue();
+        await Assert.That(File.Exists(summaryPath)).IsTrue();
 
-            await Assert.That(manifest).IsNotNull();
-            await Assert.That(manifest!.LibraryName).IsEqualTo("SDL2");
-            await Assert.That(manifest.Rids.Count).IsEqualTo(2);
-            await Assert.That(manifest.Summary.TotalRids).IsEqualTo(2);
-            await Assert.That(manifest.Summary.SuccessfulRids).IsEqualTo(1);
-            await Assert.That(manifest.Summary.FailedRids).IsEqualTo(1);
-            await Assert.That(manifest.Summary.SuccessRate).IsEqualTo(0.5);
-        }
-        finally
-        {
-            TaskTestHelpers.DeleteDirectoryQuietly(harvestRoot);
-        }
+        var manifestJson = await File.ReadAllTextAsync(manifestPath);
+        var manifest = JsonSerializer.Deserialize<HarvestManifest>(manifestJson, JsonOptions);
+
+        await Assert.That(manifest).IsNotNull();
+        await Assert.That(manifest!.LibraryName).IsEqualTo("SDL2");
+        await Assert.That(manifest.Rids.Count).IsEqualTo(2);
+        await Assert.That(manifest.Summary.TotalRids).IsEqualTo(2);
+        await Assert.That(manifest.Summary.SuccessfulRids).IsEqualTo(1);
+        await Assert.That(manifest.Summary.FailedRids).IsEqualTo(1);
+        await Assert.That(manifest.Summary.SuccessRate).IsEqualTo(0.5);
     }
 
     [Test]
     public async Task RunAsync_Should_Ignore_Invalid_Rid_Status_Files_When_At_Least_One_Valid_File_Exists()
     {
         var harvestRoot = CreateTempHarvestOutputRoot();
-        try
-        {
-            await WriteRidStatusFileAsync(
-                harvestRoot,
-                "SDL2_image",
-                "win-x64.json",
-                CreateSuccessStatus("SDL2_image", "win-x64", "x64-windows-hybrid"));
 
-            var ridStatusDir = IOPath.Combine(harvestRoot, "SDL2_image", "rid-status");
-            await File.WriteAllTextAsync(IOPath.Combine(ridStatusDir, "corrupt.json"), "{ this is not valid json");
+        await WriteRidStatusFileAsync(
+            harvestRoot,
+            "SDL2_image",
+            "win-x64.json",
+            CreateSuccessStatus("SDL2_image", "win-x64", "x64-windows-hybrid"));
 
-            var task = new ConsolidateHarvestTask();
-            var context = TaskTestHelpers.CreateBuildContext(new DirectoryPath(harvestRoot));
+        var ridStatusDir = IOPath.Combine(harvestRoot, "SDL2_image", "rid-status");
+        await File.WriteAllTextAsync(IOPath.Combine(ridStatusDir, "corrupt.json"), "{ this is not valid json");
 
-            await task.RunAsync(context);
+        var task = new ConsolidateHarvestTask();
+        var context = TaskTestHelpers.CreateBuildContext(new DirectoryPath(harvestRoot));
 
-            var manifestPath = IOPath.Combine(harvestRoot, "SDL2_image", "harvest-manifest.json");
-            await Assert.That(File.Exists(manifestPath)).IsTrue();
+        await task.RunAsync(context);
 
-            var manifestJson = await File.ReadAllTextAsync(manifestPath);
-            var manifest = JsonSerializer.Deserialize<HarvestManifest>(manifestJson, JsonOptions);
+        var manifestPath = IOPath.Combine(harvestRoot, "SDL2_image", "harvest-manifest.json");
+        await Assert.That(File.Exists(manifestPath)).IsTrue();
 
-            await Assert.That(manifest).IsNotNull();
-            await Assert.That(manifest!.Rids.Count).IsEqualTo(1);
-            await Assert.That(manifest.Summary.TotalRids).IsEqualTo(1);
-            await Assert.That(manifest.Summary.SuccessRate).IsEqualTo(1.0);
-        }
-        finally
-        {
-            TaskTestHelpers.DeleteDirectoryQuietly(harvestRoot);
-        }
+        var manifestJson = await File.ReadAllTextAsync(manifestPath);
+        var manifest = JsonSerializer.Deserialize<HarvestManifest>(manifestJson, JsonOptions);
+
+        await Assert.That(manifest).IsNotNull();
+        await Assert.That(manifest!.Rids.Count).IsEqualTo(1);
+        await Assert.That(manifest.Summary.TotalRids).IsEqualTo(1);
+        await Assert.That(manifest.Summary.SuccessRate).IsEqualTo(1.0);
     }
 
     [Test]
     public async Task RunAsync_Should_Not_Generate_Manifest_When_All_Rid_Status_Files_Are_Invalid()
     {
         var harvestRoot = CreateTempHarvestOutputRoot();
-        try
-        {
-            var ridStatusDir = IOPath.Combine(harvestRoot, "SDL2_mixer", "rid-status");
-            Directory.CreateDirectory(ridStatusDir);
 
-            await File.WriteAllTextAsync(IOPath.Combine(ridStatusDir, "one.json"), "{ invalid");
-            await File.WriteAllTextAsync(IOPath.Combine(ridStatusDir, "two.json"), "also invalid");
+        var ridStatusDir = IOPath.Combine(harvestRoot, "SDL2_mixer", "rid-status");
+        Directory.CreateDirectory(ridStatusDir);
 
-            var task = new ConsolidateHarvestTask();
-            var context = TaskTestHelpers.CreateBuildContext(new DirectoryPath(harvestRoot));
+        await File.WriteAllTextAsync(IOPath.Combine(ridStatusDir, "one.json"), "{ invalid");
+        await File.WriteAllTextAsync(IOPath.Combine(ridStatusDir, "two.json"), "also invalid");
 
-            await task.RunAsync(context);
+        var task = new ConsolidateHarvestTask();
+        var context = TaskTestHelpers.CreateBuildContext(new DirectoryPath(harvestRoot));
 
-            var manifestPath = IOPath.Combine(harvestRoot, "SDL2_mixer", "harvest-manifest.json");
-            var summaryPath = IOPath.Combine(harvestRoot, "SDL2_mixer", "harvest-summary.json");
+        await task.RunAsync(context);
 
-            await Assert.That(File.Exists(manifestPath)).IsFalse();
-            await Assert.That(File.Exists(summaryPath)).IsFalse();
-        }
-        finally
-        {
-            TaskTestHelpers.DeleteDirectoryQuietly(harvestRoot);
-        }
+        var manifestPath = IOPath.Combine(harvestRoot, "SDL2_mixer", "harvest-manifest.json");
+        var summaryPath = IOPath.Combine(harvestRoot, "SDL2_mixer", "harvest-summary.json");
+
+        await Assert.That(File.Exists(manifestPath)).IsFalse();
+        await Assert.That(File.Exists(summaryPath)).IsFalse();
     }
 
     private static RidHarvestStatus CreateSuccessStatus(string library, string rid, string triplet) => new()
@@ -259,36 +241,28 @@ public class ConsolidateHarvestTests
         Statistics = null,
     };
 
-    private static async Task<HarvestManifest> RunConsolidationForStatusesAsync(string libraryName, params RidHarvestStatus[] statuses)
+    private async Task<HarvestManifest> RunConsolidationForStatusesAsync(string libraryName, params RidHarvestStatus[] statuses)
     {
         var harvestRoot = CreateTempHarvestOutputRoot();
-        try
-        {
-            foreach (var status in statuses)
-            {
-                await WriteRidStatusFileAsync(harvestRoot, libraryName, $"{status.Rid}.json", status);
-            }
 
-            var task = new ConsolidateHarvestTask();
-            var context = TaskTestHelpers.CreateBuildContext(new DirectoryPath(harvestRoot));
-            await task.RunAsync(context);
-
-            var manifestPath = IOPath.Combine(harvestRoot, libraryName, "harvest-manifest.json");
-            var manifestJson = await File.ReadAllTextAsync(manifestPath);
-            return JsonSerializer.Deserialize<HarvestManifest>(manifestJson, JsonOptions)
-                ?? throw new InvalidOperationException("Failed to deserialize generated harvest manifest.");
-        }
-        finally
+        foreach (var status in statuses)
         {
-            TaskTestHelpers.DeleteDirectoryQuietly(harvestRoot);
+            await WriteRidStatusFileAsync(harvestRoot, libraryName, $"{status.Rid}.json", status);
         }
+
+        var task = new ConsolidateHarvestTask();
+        var context = TaskTestHelpers.CreateBuildContext(new DirectoryPath(harvestRoot));
+        await task.RunAsync(context);
+
+        var manifestPath = IOPath.Combine(harvestRoot, libraryName, "harvest-manifest.json");
+        var manifestJson = await File.ReadAllTextAsync(manifestPath);
+        return JsonSerializer.Deserialize<HarvestManifest>(manifestJson, JsonOptions)
+            ?? throw new InvalidOperationException("Failed to deserialize generated harvest manifest.");
     }
 
-    private static string CreateTempHarvestOutputRoot()
+    private string CreateTempHarvestOutputRoot()
     {
-        var path = IOPath.Combine(IOPath.GetTempPath(), "sdl2-bindings-tests", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(path);
-        return path;
+        return CreateTrackedTempDirectory("consolidate-harvest");
     }
 
     private static async Task WriteRidStatusFileAsync(string harvestRoot, string libraryName, string fileName, RidHarvestStatus ridStatus)

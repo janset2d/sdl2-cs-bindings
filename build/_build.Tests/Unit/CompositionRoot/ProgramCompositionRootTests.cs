@@ -3,7 +3,17 @@ using System.CommandLine.Invocation;
 using System.Reflection;
 using Build.Context;
 using Build.Context.Options;
+using Build.Modules.Contracts;
+using Build.Modules.Strategy;
+using Build.Modules.Strategy.Models;
+using Cake.Core;
+using Cake.Core.Configuration;
+using Cake.Core.Diagnostics;
 using Cake.Core.IO;
+using Cake.Core.Tooling;
+using Cake.Testing;
+using Microsoft.Extensions.DependencyInjection;
+using NSubstitute;
 
 namespace Build.Tests.Unit.CompositionRoot;
 
@@ -132,6 +142,74 @@ public sealed class ProgramCompositionRootTests
         }
     }
 
+    [Test]
+    public async Task ConfigureBuildServices_Should_Resolve_Hybrid_Strategy_And_Validator()
+    {
+        var method = GetProgramHelper(
+            "g__ConfigureBuildServices",
+            typeof(IServiceCollection),
+            typeof(ParsedArguments),
+            typeof(DirectoryPath));
+
+        var repoRoot = CreateTempRepoRoot();
+        try
+        {
+            await WriteManifestJsonAsync(repoRoot, "hybrid-static", "x64-windows-hybrid");
+
+            var services = CreateServiceCollectionForCompositionRoot();
+            var parsedArguments = CreateParsedArguments(repoRoot, "win-x64");
+
+            method.Invoke(null, [services, parsedArguments, new DirectoryPath(repoRoot)]);
+
+            using var provider = services.BuildServiceProvider();
+
+            var strategy = provider.GetRequiredService<IPackagingStrategy>();
+            var validator = provider.GetRequiredService<IDependencyPolicyValidator>();
+
+            await Assert.That(strategy.Model).IsEqualTo(PackagingModel.HybridStatic);
+            await Assert.That(strategy.GetType()).IsEqualTo(typeof(HybridStaticStrategy));
+            await Assert.That(validator.GetType()).IsEqualTo(typeof(HybridStaticValidator));
+        }
+        finally
+        {
+            DeleteDirectoryQuietly(repoRoot);
+        }
+    }
+
+    [Test]
+    public async Task ConfigureBuildServices_Should_Resolve_PureDynamic_Strategy_And_Validator()
+    {
+        var method = GetProgramHelper(
+            "g__ConfigureBuildServices",
+            typeof(IServiceCollection),
+            typeof(ParsedArguments),
+            typeof(DirectoryPath));
+
+        var repoRoot = CreateTempRepoRoot();
+        try
+        {
+            await WriteManifestJsonAsync(repoRoot, "pure-dynamic", "x64-windows");
+
+            var services = CreateServiceCollectionForCompositionRoot();
+            var parsedArguments = CreateParsedArguments(repoRoot, "win-x64");
+
+            method.Invoke(null, [services, parsedArguments, new DirectoryPath(repoRoot)]);
+
+            using var provider = services.BuildServiceProvider();
+
+            var strategy = provider.GetRequiredService<IPackagingStrategy>();
+            var validator = provider.GetRequiredService<IDependencyPolicyValidator>();
+
+            await Assert.That(strategy.Model).IsEqualTo(PackagingModel.PureDynamic);
+            await Assert.That(strategy.GetType()).IsEqualTo(typeof(PureDynamicStrategy));
+            await Assert.That(validator.GetType()).IsEqualTo(typeof(PureDynamicValidator));
+        }
+        finally
+        {
+            DeleteDirectoryQuietly(repoRoot);
+        }
+    }
+
     private static MethodInfo GetProgramHelper(string methodNameFragment, params Type[] parameterTypes)
     {
         var method = ProgramType
@@ -195,4 +273,143 @@ public sealed class ProgramCompositionRootTests
         root.AddOption(CakeOptions.WorkingPathOption);
         return root;
     }
+
+        private static ServiceCollection CreateServiceCollectionForCompositionRoot()
+        {
+                var services = new ServiceCollection();
+                var environment = FakeEnvironment.CreateWindowsEnvironment();
+                var fileSystem = new FileSystem();
+                var context = CreateCakeContext(environment, fileSystem);
+
+                services.AddSingleton<ICakeEnvironment>(environment);
+                services.AddSingleton<ICakeContext>(context);
+                services.AddSingleton<ICakeLog>(new FakeLog());
+
+                return services;
+        }
+
+        private static ICakeContext CreateCakeContext(ICakeEnvironment environment, IFileSystem fileSystem)
+        {
+                var globber = new Globber(fileSystem, environment);
+
+                var cakeContext = Substitute.For<ICakeContext>();
+                cakeContext.Log.Returns(new FakeLog());
+                cakeContext.Environment.Returns(environment);
+                cakeContext.FileSystem.Returns(fileSystem);
+                cakeContext.Globber.Returns(globber);
+                cakeContext.Arguments.Returns(Substitute.For<ICakeArguments>());
+                cakeContext.Configuration.Returns(Substitute.For<ICakeConfiguration>());
+                cakeContext.Data.Returns(Substitute.For<ICakeDataResolver>());
+                cakeContext.ProcessRunner.Returns(Substitute.For<IProcessRunner>());
+                cakeContext.Registry.Returns(Substitute.For<IRegistry>());
+                cakeContext.Tools.Returns(Substitute.For<IToolLocator>());
+
+                return cakeContext;
+        }
+
+        private static ParsedArguments CreateParsedArguments(string repoRoot, string rid)
+        {
+                return new ParsedArguments(
+                        RepoRoot: new DirectoryInfo(repoRoot),
+                        Config: "Release",
+                        VcpkgDir: null,
+                        VcpkgInstalledDir: null,
+                        Library: [],
+                        Rid: rid,
+                        Dll: []);
+        }
+
+        private static async Task WriteManifestJsonAsync(string repoRoot, string strategy, string triplet)
+        {
+                var buildDir = System.IO.Path.Combine(repoRoot, "build");
+                Directory.CreateDirectory(buildDir);
+
+                var manifestJson = $$"""
+                {
+                    "schema_version": "2.1",
+                    "packaging_config": {
+                        "validation_mode": "strict",
+                        "core_library": "sdl2"
+                    },
+                    "runtimes": [
+                        {
+                            "rid": "win-x64",
+                            "triplet": "{{triplet}}",
+                            "strategy": "{{strategy}}",
+                            "runner": "windows-latest",
+                            "container_image": null
+                        }
+                    ],
+                    "package_families": [
+                        {
+                            "name": "core",
+                            "tag_prefix": "core",
+                            "managed_project": "src/SDL2.Core/SDL2.Core.csproj",
+                            "native_project": "src/native/SDL2.Core.Native/SDL2.Core.Native.csproj",
+                            "library_ref": "SDL2",
+                            "depends_on": [],
+                            "change_paths": [
+                                "src/SDL2.Core/**"
+                            ]
+                        }
+                    ],
+                    "system_exclusions": {
+                        "windows": {
+                            "system_dlls": ["kernel32.dll"]
+                        },
+                        "linux": {
+                            "system_libraries": ["libc.so*"]
+                        },
+                        "osx": {
+                            "system_libraries": ["libSystem.B.dylib"]
+                        }
+                    },
+                    "library_manifests": [
+                        {
+                            "name": "SDL2",
+                            "vcpkg_name": "sdl2",
+                            "vcpkg_version": "2.32.10",
+                            "vcpkg_port_version": 0,
+                            "native_lib_name": "SDL2.Core.Native",
+                            "native_lib_version": "2.32.10.0",
+                            "core_lib": true,
+                            "primary_binaries": [
+                                {
+                                    "os": "Windows",
+                                    "patterns": ["SDL2.dll"]
+                                }
+                            ]
+                        }
+                    ]
+                }
+                """;
+
+                await File.WriteAllTextAsync(System.IO.Path.Combine(buildDir, "manifest.json"), manifestJson);
+        }
+
+        private static string CreateTempRepoRoot()
+        {
+                var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "build-program-tests", Guid.NewGuid().ToString("N"));
+                Directory.CreateDirectory(path);
+                return path;
+        }
+
+        private static void DeleteDirectoryQuietly(string path)
+        {
+                try
+                {
+                        if (Directory.Exists(path))
+                        {
+                                Directory.Delete(path, recursive: true);
+                        }
+                }
+                catch (IOException)
+                {
+                        // Best effort cleanup for temp test directories.
+                }
+                catch (UnauthorizedAccessException)
+                {
+                        // Best effort cleanup for temp test directories.
+                }
+        }
 }

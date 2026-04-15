@@ -1,7 +1,7 @@
 # Phase 2 Adaptation Plan — Release Lifecycle Implementation
 
 **Date:** 2026-04-15
-**Status:** Approved — implementation not yet started
+**Status:** Approved — implementation in progress (Streams A-safe and B landed)
 **Prerequisite:** [Release Lifecycle Direction](../knowledge-base/release-lifecycle-direction.md) (locked)
 **Issue context:** #54, #55, #63, #83, #85
 
@@ -19,23 +19,21 @@ This is a multi-session project. The plan designs the full picture, identifies t
 - `Directory.Build.props` has CPM enabled, Source Link, symbol packages
 - Managed packages already reference their native counterparts (ProjectReference)
 - Native packages are payload-only (no compiled assemblies, pack runtimes + .targets)
-- Manifest v2 schema with runtimes, library_manifests, system_exclusions
-- Strategy layer implemented + tested (189 tests) but not wired (#85)
+- Manifest v2.1 schema with runtimes, library_manifests, system_exclusions, package_families
+- Strategy layer implemented + wired (Program.cs DI + HarvestTask validation + PreFlight coherence), 196 tests passing (#85)
+- NuGet.Versioning is available in Cake build host
 - release-candidate-pipeline has `fromJson()` pattern prototyped (but with wrong matrix shape)
 
 **What's missing:**
 
-- `package_families` in manifest.json
 - MinVer integration
-- NuGet.Versioning in Cake
 - dotnet-affected in Cake
 - Family-aware Cake tasks (matrix generation, PackageTask)
 - Dynamic CI matrix from manifest
-- #85 strategy wiring completion
 
 ## Holistic Design — How Everything Fits Together
 
-```
+```text
 manifest.json (schema v2.1)
   ├── runtimes[]               → CI matrix generation (build axis)
   ├── library_manifests[]      → Cake harvest + validate
@@ -172,7 +170,7 @@ Research and prove a mechanism to produce `.nupkg` files with both within-family
 
 **No dependency on A0 or A. Can run in parallel.**
 
-B-done = the live pipeline respects the already-landed strategy layer. The 189 existing tests must stay green throughout; broad test rewrites are a smell (seam is in the wrong place).
+B-done = the live pipeline respects the already-landed strategy layer. The 196 existing tests must stay green throughout; broad test rewrites are a smell (seam is in the wrong place).
 
 **B closure criteria (all three must land to close #85):**
 
@@ -205,7 +203,7 @@ Design reference: `docs/research/cake-strategy-implementation-brief-2026-04-14.m
 
 3. **CI pipeline shape**
 
-   ```
+   ```text
    PreFlightCheck (gate)
      → unit tests pass
      → manifest consistency validated

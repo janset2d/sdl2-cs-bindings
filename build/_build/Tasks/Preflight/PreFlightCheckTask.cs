@@ -11,6 +11,7 @@ using System.Runtime.InteropServices;
 using System.Text.Json.Serialization;
 using Build.Context;
 using Build.Context.Models;
+using Build.Modules.Strategy;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 using Cake.Frosting;
@@ -18,22 +19,26 @@ using Cake.Frosting;
 namespace Build.Tasks.Preflight;
 
 /// <summary>
-/// Pre-flight validation task that checks version consistency between manifest.json and vcpkg.json.
+/// Pre-flight validation task that checks version consistency between manifest.json and vcpkg.json,
+/// and validates strategy coherence for runtime entries in manifest.json.
 /// This task ensures that the intended native library versions in manifest.json match
 /// the actual vcpkg overrides before starting any build operations.
 /// </summary>
 [TaskName("PreFlightCheck")]
-[TaskDescription("Validates version consistency between manifest.json and vcpkg.json files")]
+[TaskDescription("Validates manifest-vcpkg version consistency and runtime strategy coherence (partial gate)")]
 public sealed class PreFlightCheckTask : FrostingTask<BuildContext>
 {
     public override void Run(BuildContext context)
     {
         context.Log.Information("🔍 Running pre-flight checks...");
+        context.Log.Information("ℹ️ Scope: version consistency + runtime strategy coherence.");
+        context.Log.Information("ℹ️ Deferred to Stream C: package-family integrity, dynamic matrix, and CI artifact-flow gates.");
 
-        ValidateVersionConsistency(context);
+        var manifest = ValidateVersionConsistency(context);
+        ValidateStrategyCoherence(context, manifest);
     }
 
-    private static void ValidateVersionConsistency(BuildContext context)
+    private static ManifestConfig ValidateVersionConsistency(BuildContext context)
     {
         var manifestPath = context.Paths.GetManifestFile();
         var vcpkgManifestPath = context.Paths.RepoRoot.CombineWithFilePath("vcpkg.json");
@@ -49,6 +54,8 @@ public sealed class PreFlightCheckTask : FrostingTask<BuildContext>
 
         // Validate consistency
         ValidateLibraryVersions(context, manifest, vcpkgManifest);
+
+        return manifest;
     }
 
     private static ManifestConfig LoadManifestFile(BuildContext context, FilePath manifestPath)
@@ -61,7 +68,9 @@ public sealed class PreFlightCheckTask : FrostingTask<BuildContext>
         {
             throw new InvalidOperationException($"❌ Failed to load manifest.json: {ex.Message}", ex);
         }
-    }    private static VcpkgManifest LoadVcpkgManifestFile(BuildContext context, FilePath vcpkgManifestPath)
+    }
+
+    private static VcpkgManifest LoadVcpkgManifestFile(BuildContext context, FilePath vcpkgManifestPath)
     {
         try
         {
@@ -83,13 +92,53 @@ public sealed class PreFlightCheckTask : FrostingTask<BuildContext>
 
         // Report final results
         ReportValidationResults(context, validationResults);
-    }    private static Dictionary<string, VcpkgOverride> CreateVcpkgOverrideLookup(VcpkgManifest vcpkgManifest)
+    }
+
+    private static Dictionary<string, VcpkgOverride> CreateVcpkgOverrideLookup(VcpkgManifest vcpkgManifest)
     {
         if (vcpkgManifest.Overrides == null)
         {
             return new Dictionary<string, VcpkgOverride>(StringComparer.Ordinal);
         }
+
         return vcpkgManifest.Overrides.ToDictionary(o => o.Name, o => o, StringComparer.Ordinal);
+    }
+
+    private static void ValidateStrategyCoherence(BuildContext context, ManifestConfig manifest)
+    {
+        if (manifest.Runtimes.Count == 0)
+        {
+            throw new InvalidOperationException(
+                "manifest.json requires a non-empty runtimes section for strategy coherence validation.");
+        }
+
+        var results = ValidateEachRuntime(context, manifest.Runtimes);
+        ReportStrategyValidationResults(context, results);
+    }
+
+    private static StrategyValidationResults ValidateEachRuntime(BuildContext context, IImmutableList<RuntimeInfo> runtimes)
+    {
+        var hasErrors = false;
+        var checkedRuntimes = 0;
+
+        foreach (var runtime in runtimes)
+        {
+            checkedRuntimes++;
+            context.Log.Information("🔄 Checking strategy coherence for RID {0} ({1})...", runtime.Rid, runtime.Triplet);
+
+            try
+            {
+                var model = StrategyResolver.Resolve(runtime);
+                context.Log.Information("  ✅ Strategy coherence confirmed: {0}", model);
+            }
+            catch (InvalidOperationException ex)
+            {
+                hasErrors = true;
+                context.Log.Error("  ❌ Strategy coherence mismatch for RID {0}: {1}", runtime.Rid, ex.Message);
+            }
+        }
+
+        return new StrategyValidationResults(hasErrors, checkedRuntimes);
     }
 
     private static ValidationResults ValidateEachLibrary(BuildContext context, ManifestConfig manifest, Dictionary<string, VcpkgOverride> vcpkgOverrides)
@@ -176,6 +225,19 @@ public sealed class PreFlightCheckTask : FrostingTask<BuildContext>
         context.Log.Information("   manifest.json and vcpkg.json are properly aligned");
     }
 
+    private static void ReportStrategyValidationResults(BuildContext context, StrategyValidationResults results)
+    {
+        context.Log.Information("");
+        if (results.HasErrors)
+        {
+            context.Log.Error("❌ Pre-flight check FAILED - Found strategy coherence mismatches");
+            context.Log.Error("   Fix runtimes[].strategy and runtimes[].triplet alignment in manifest.json");
+            throw new InvalidOperationException("Strategy coherence validation failed");
+        }
+
+        context.Log.Information("✅ Strategy coherence check PASSED - All {0} runtimes are coherent", results.CheckedRuntimes);
+    }
+
     /// <summary>
     /// Parses a semantic version string to extract Major.Minor.Patch components.
     /// Ignores build metadata and pre-release suffixes.
@@ -199,6 +261,9 @@ public sealed class PreFlightCheckTask : FrostingTask<BuildContext>
 
     [StructLayout(LayoutKind.Auto)]
     private readonly record struct ValidationResults(bool HasErrors, int CheckedLibraries);
+
+    [StructLayout(LayoutKind.Auto)]
+    private readonly record struct StrategyValidationResults(bool HasErrors, int CheckedRuntimes);
 }
 
 /// <summary>

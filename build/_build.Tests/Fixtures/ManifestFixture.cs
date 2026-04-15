@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Text.Json;
 using Build.Context.Models;
+using Build.Modules.Strategy.Models;
 
 namespace Build.Tests.Fixtures;
 
@@ -73,6 +74,52 @@ public static class ManifestFixture
     /// </summary>
     public static ManifestConfig CreateTestManifestConfig() => new()
     {
+        SchemaVersion = "2.1",
+        PackagingConfig = new PackagingConfig
+        {
+            ValidationMode = ValidationMode.Strict,
+            CoreLibrary = "sdl2",
+        },
+        Runtimes =
+        [
+            new RuntimeInfo
+            {
+                Rid = "win-x64",
+                Triplet = "x64-windows-hybrid",
+                Strategy = "hybrid-static",
+                Runner = "windows-latest",
+                ContainerImage = null,
+            },
+        ],
+        PackageFamilies =
+        [
+            new PackageFamilyConfig
+            {
+                Name = "core",
+                TagPrefix = "core",
+                ManagedProject = "src/SDL2.Core/SDL2.Core.csproj",
+                NativeProject = "src/native/SDL2.Core.Native/SDL2.Core.Native.csproj",
+                LibraryRef = "SDL2",
+                DependsOn = [],
+                ChangePaths = ["src/SDL2.Core/**", "src/native/SDL2.Core.Native/**"],
+            },
+            new PackageFamilyConfig
+            {
+                Name = "image",
+                TagPrefix = "image",
+                ManagedProject = "src/SDL2.Image/SDL2.Image.csproj",
+                NativeProject = "src/native/SDL2.Image.Native/SDL2.Image.Native.csproj",
+                LibraryRef = "SDL2_image",
+                DependsOn = ["core"],
+                ChangePaths = ["src/SDL2.Image/**", "src/native/SDL2.Image.Native/**"],
+            },
+        ],
+        SystemExclusions = new SystemArtefactsConfig
+        {
+            Windows = new WindowsSystemArtefacts(),
+            Linux = new LinuxSystemArtefacts(),
+            Osx = new OsxSystemArtefacts(),
+        },
         LibraryManifests = ImmutableList.Create(
             CreateTestCoreLibrary(),
             CreateTestSatelliteLibrary()),

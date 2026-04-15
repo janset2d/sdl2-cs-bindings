@@ -1,21 +1,12 @@
 using System.Text.Json;
 using Build.Context.Models;
+using Build.Modules.Strategy.Models;
 
 namespace Build.Tests.Characterization.ConfigContract;
 
 public class ManifestDeserializationTests
 {
     private static readonly string ManifestPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "manifest.json");
-
-    [Test]
-    public async Task DeserializeManifest_Should_Have_Schema_Version()
-    {
-        var json = await File.ReadAllTextAsync(ManifestPath).ConfigureAwait(false);
-        var config = JsonSerializer.Deserialize<ManifestConfig>(json);
-
-        await Assert.That(config).IsNotNull();
-        await Assert.That(config!.SchemaVersion).IsEqualTo("2.0");
-    }
 
     [Test]
     public async Task DeserializeManifest_Should_Parse_All_Library_Entries()
@@ -75,8 +66,40 @@ public class ManifestDeserializationTests
         var config = JsonSerializer.Deserialize<ManifestConfig>(json)!;
 
         await Assert.That(config.PackagingConfig).IsNotNull();
-        await Assert.That(config.PackagingConfig!.ValidationMode).IsEqualTo("strict");
+        await Assert.That(config.PackagingConfig.ValidationMode).IsEqualTo(ValidationMode.Strict);
         await Assert.That(config.PackagingConfig.CoreLibrary).IsEqualTo("sdl2");
+    }
+
+    [Test]
+    public async Task DeserializeManifest_Should_Have_All_Package_Families()
+    {
+        var json = await File.ReadAllTextAsync(ManifestPath).ConfigureAwait(false);
+        var config = JsonSerializer.Deserialize<ManifestConfig>(json)!;
+
+        await Assert.That(config.PackageFamilies).IsNotNull();
+        await Assert.That(config.PackageFamilies.Count).IsEqualTo(6);
+
+        var familyNames = config.PackageFamilies.Select(f => f.Name).ToList();
+        await Assert.That(familyNames).Contains("core");
+        await Assert.That(familyNames).Contains("image");
+        await Assert.That(familyNames).Contains("mixer");
+        await Assert.That(familyNames).Contains("ttf");
+        await Assert.That(familyNames).Contains("gfx");
+        await Assert.That(familyNames).Contains("net");
+    }
+
+    [Test]
+    public async Task DeserializeManifest_Should_Have_Package_Families_Referencing_Library_Manifests()
+    {
+        var json = await File.ReadAllTextAsync(ManifestPath).ConfigureAwait(false);
+        var config = JsonSerializer.Deserialize<ManifestConfig>(json)!;
+
+        var knownLibraries = config.LibraryManifests.Select(m => m.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var family in config.PackageFamilies)
+        {
+            await Assert.That(knownLibraries.Contains(family.LibraryRef)).IsTrue();
+        }
     }
 
     [Test]

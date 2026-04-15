@@ -6,6 +6,7 @@ using Build.Models;
 using Build.Modules.Contracts;
 using Build.Modules.Harvesting.Models;
 using Build.Modules.Harvesting.Results;
+using Build.Modules.Strategy.Results;
 using Build.Tasks.Common;
 using Cake.Common.IO;
 using Cake.Core;
@@ -23,12 +24,14 @@ public sealed class HarvestTask(
     IBinaryClosureWalker binaryClosureWalker,
     IArtifactPlanner artifactPlanner,
     IArtifactDeployer artifactDeployer,
+    IDependencyPolicyValidator dependencyPolicyValidator,
     IRuntimeProfile runtimeProfile,
     ManifestConfig manifestConfig) : AsyncFrostingTask<BuildContext>
 {
     private readonly IBinaryClosureWalker _binaryClosureWalker = binaryClosureWalker ?? throw new ArgumentNullException(nameof(binaryClosureWalker));
     private readonly IArtifactPlanner _artifactPlanner = artifactPlanner ?? throw new ArgumentNullException(nameof(artifactPlanner));
     private readonly IArtifactDeployer _artifactDeployer = artifactDeployer ?? throw new ArgumentNullException(nameof(artifactDeployer));
+    private readonly IDependencyPolicyValidator _dependencyPolicyValidator = dependencyPolicyValidator ?? throw new ArgumentNullException(nameof(dependencyPolicyValidator));
     private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
     private readonly IRuntimeProfile _runtimeProfile = runtimeProfile ?? throw new ArgumentNullException(nameof(runtimeProfile));
 
@@ -83,6 +86,14 @@ public sealed class HarvestTask(
             {
                 var closureResult = await _binaryClosureWalker.BuildClosureAsync(manifest);
                 closureResult.ThrowIfError(e => LogAndThrow("Binary closure", e, context.Log, manifest.Name));
+
+                var validationResult = _dependencyPolicyValidator.Validate(closureResult.Closure, manifest);
+                validationResult.ThrowIfError(e => LogAndThrowValidation(e, context.Log, manifest.Name));
+
+                if (validationResult.ValidationSuccess.HasWarnings)
+                {
+                    LogValidationWarnings(context.Log, manifest.Name, validationResult.ValidationSuccess.Warnings);
+                }
 
                 var plannerResult = await _artifactPlanner.CreatePlanAsync(manifest, closureResult.Closure, outputBase);
                 plannerResult.ThrowIfError(e => LogAndThrow("Artifact planning", e, context.Log, manifest.Name));
@@ -280,6 +291,49 @@ public sealed class HarvestTask(
         }
 
         throw new CakeException($"{phase} failed for '{libraryName}'. Use –verbosity=diagnostic for details. Error: {error.Message}");
+    }
+
+    private static void LogAndThrowValidation(ValidationError error, ICakeLog log, string libraryName)
+    {
+        ArgumentNullException.ThrowIfNull(error);
+        ArgumentNullException.ThrowIfNull(log);
+        ArgumentException.ThrowIfNullOrEmpty(libraryName);
+
+        log.Error("Dependency policy validation failed for '{0}': {1}", libraryName, error.Message);
+
+        foreach (var violation in error.Violations)
+        {
+            log.Error(
+                "  - {0} (owner: {1}, origin: {2})",
+                violation.Path.GetFilename().FullPath,
+                violation.OwnerPackage,
+                violation.OriginPackage);
+        }
+
+        throw new CakeException(
+            $"Dependency policy validation failed for '{libraryName}'. " +
+            $"Use –verbosity=diagnostic for details. Error: {error.Message}");
+    }
+
+    private static void LogValidationWarnings(ICakeLog log, string libraryName, IReadOnlyList<BinaryNode> warnings)
+    {
+        ArgumentNullException.ThrowIfNull(log);
+        ArgumentException.ThrowIfNullOrEmpty(libraryName);
+        ArgumentNullException.ThrowIfNull(warnings);
+
+        log.Warning(
+            "Dependency policy validation produced {0} warning(s) for '{1}' (non-blocking).",
+            warnings.Count,
+            libraryName);
+
+        foreach (var warning in warnings)
+        {
+            log.Warning(
+                "  - {0} (owner: {1}, origin: {2})",
+                warning.Path.GetFilename().FullPath,
+                warning.OwnerPackage,
+                warning.OriginPackage);
+        }
     }
 
     /// <summary>

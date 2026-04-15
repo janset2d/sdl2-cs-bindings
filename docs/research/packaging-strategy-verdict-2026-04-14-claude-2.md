@@ -356,9 +356,9 @@ I walked through the whole `build/_build/` tree. Summary impression: **this code
 | `PackageTask` | Already missing under the old plan — generates .nupkg from harvest output with package metadata, license bundling, buildTransitive props | ~300-500 lines |
 | `ISymbolVisibilityValidator` (deferred) | Enforces no-leak discipline via dumpbin/nm/objdump | ~200 lines + per-platform tool glue |
 
-### 9.4 The `--use-overrides` parked feature and asset sources
+### 9.4 Native asset source is a separate axis from packaging strategy
 
-The existing `--use-overrides` CLI flag is defined in `VcpkgOptions` but unused in the actual task graph. The execution-model strategy doc's native asset source model (`vcpkg-build`, `overrides`, `harvest-output`, `ci-artifact`) explains the right home for this: it's not a top-level strategy dimension, it's a parameter to the build host that says "where are the binaries coming from for this run?" The parked feature should be unparked as part of the Source Mode workstream.
+The execution-model strategy doc's native asset source model (`vcpkg-build`, `overrides`, `harvest-output`, `ci-artifact`) explains the right home for this concern: it's not a top-level strategy dimension, it's a parameter to the build host that says "where are the binaries coming from for this run?" Source-mode work should keep this axis explicit.
 
 ### 9.5 Critical gotcha: zero Cake host test coverage
 
@@ -406,7 +406,7 @@ It's not enough to describe this in a playbook. The build host needs to understa
 - What **packaging strategy** applies to each library (core / satellite / extras)
 - What **asset source** is in use for this run (vcpkg-build / overrides / harvest-output / ci-artifact)
 
-These should be first-class fields in the manifest and CLI, not implicit assumptions. The current `--use-overrides` boolean is the degenerate form of this; replace it with an enum-valued `--native-source` option.
+These should be first-class fields in the manifest and CLI, not implicit assumptions. A boolean native-source switch is the degenerate form of this; use an enum-valued `--native-source` option instead.
 
 ### 12.2 Package-consumer smoke test is the real integration truth
 

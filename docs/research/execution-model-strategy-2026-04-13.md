@@ -268,9 +268,9 @@ The native asset source answers:
 
 - where are the binaries coming from for this run?
 
-## 6.4 Why `use-overrides` is not the center of the model
+## 6.4 Why native-source toggles are not the center of the model
 
-The old `--use-overrides` idea is still useful, but it should not become the conceptual center.
+A single boolean native-source toggle can be useful, but it should not become the conceptual center.
 
 It is better treated as:
 

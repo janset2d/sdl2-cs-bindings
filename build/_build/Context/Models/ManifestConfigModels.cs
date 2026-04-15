@@ -1,21 +1,25 @@
 ﻿using System.Collections.Immutable;
 using System.Text.Json.Serialization;
+using Build.Modules.Strategy.Models;
 
 namespace Build.Context.Models;
 
 public record ManifestConfig
 {
     [JsonPropertyName("schema_version")]
-    public string? SchemaVersion { get; init; }
+    public required string SchemaVersion { get; init; }
 
     [JsonPropertyName("packaging_config")]
-    public PackagingConfig? PackagingConfig { get; init; }
+    public required PackagingConfig PackagingConfig { get; init; }
 
     [JsonPropertyName("runtimes")]
-    public IImmutableList<RuntimeInfo>? Runtimes { get; init; }
+    public required IImmutableList<RuntimeInfo> Runtimes { get; init; }
+
+    [JsonPropertyName("package_families")]
+    public required IImmutableList<PackageFamilyConfig> PackageFamilies { get; init; }
 
     [JsonPropertyName("system_exclusions")]
-    public SystemArtefactsConfig? SystemExclusions { get; init; }
+    public required SystemArtefactsConfig SystemExclusions { get; init; }
 
     [JsonPropertyName("library_manifests")]
     public required IImmutableList<LibraryManifest> LibraryManifests { get; init; }
@@ -24,10 +28,35 @@ public record ManifestConfig
 public record PackagingConfig
 {
     [JsonPropertyName("validation_mode")]
-    public string? ValidationMode { get; init; }
+    [JsonConverter(typeof(JsonStringEnumConverter<ValidationMode>))]
+    public required ValidationMode ValidationMode { get; init; }
 
     [JsonPropertyName("core_library")]
-    public string? CoreLibrary { get; init; }
+    public required string CoreLibrary { get; init; }
+}
+
+public record PackageFamilyConfig
+{
+    [JsonPropertyName("name")]
+    public required string Name { get; init; }
+
+    [JsonPropertyName("tag_prefix")]
+    public required string TagPrefix { get; init; }
+
+    [JsonPropertyName("managed_project")]
+    public string? ManagedProject { get; init; }
+
+    [JsonPropertyName("native_project")]
+    public string? NativeProject { get; init; }
+
+    [JsonPropertyName("library_ref")]
+    public required string LibraryRef { get; init; }
+
+    [JsonPropertyName("depends_on")]
+    public required IImmutableList<string> DependsOn { get; init; }
+
+    [JsonPropertyName("change_paths")]
+    public required IImmutableList<string> ChangePaths { get; init; }
 }
 
 public record LibraryManifest

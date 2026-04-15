@@ -157,7 +157,7 @@ dotnet run -- --showtree
 
 # Run a specific task
 dotnet run -- --target Info              # Show environment info
-dotnet run -- --target PreFlightCheck    # Validate version consistency
+dotnet run -- --target PreFlightCheck    # Partial gate: version + runtime strategy coherence
 dotnet run -- --target Harvest --library SDL2 --rid win-x64
 dotnet run -- --target ConsolidateHarvest
 
@@ -189,9 +189,12 @@ git commit -m "chore: update SDL2-CS submodule"
 
 ### Testing a Change
 
-Until we have proper tests, the quickest way to verify changes:
+Fast verification loop:
 
 ```bash
+# Build-host test suite (TUnit)
+dotnet test build/_build.Tests/Build.Tests.csproj -c Release
+
 # Build everything
 dotnet build Janset.SDL2.sln
 

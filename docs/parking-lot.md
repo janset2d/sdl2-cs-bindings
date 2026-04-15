@@ -20,19 +20,6 @@
 
 ## Partially Implemented In Code
 
-### External Native Overrides
-
-- Status: `partially-implemented`
-- Why it matters: supports consuming prebuilt native binaries instead of building via vcpkg.
-- Current repo evidence:
-  - The build host exposes `--use-overrides`.
-  - The rest of the task pipeline does not yet consume that option.
-- Preserve with this thread:
-  - explicit override precedence rules
-  - potential `--overridesPath` support
-  - external storage ideas such as S3
-  - LocalStack-backed testing if cloud-backed overrides are implemented
-
 ### Harvest Staging Path Model For Distributed CI
 
 - Status: `partially-implemented` — CI matrix shape now locked

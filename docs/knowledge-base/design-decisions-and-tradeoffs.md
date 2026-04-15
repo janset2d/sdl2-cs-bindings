@@ -65,7 +65,7 @@ The bad middle state is to keep growing manual wrappers while also keeping half-
 The repo already contains design intent that is not yet a working workflow capability:
 
 - `PathService` harvest-staging helpers
-- `--use-overrides` on the build host
+- native-source acquisition switches kept out of the active CLI surface
 
 These are useful signals for future design, but current docs should always label them as partial or planned, not active capabilities.
 

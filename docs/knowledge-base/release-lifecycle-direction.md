@@ -125,7 +125,7 @@ Family versions are fully independent. Core might be at `2.0.0` while Image is a
 
 ### Within a Family
 
-```
+```text
 Janset.SDL2.Image (managed, v1.0.3)
   └── depends on: Janset.SDL2.Image.Native (= 1.0.3)
 ```
@@ -134,7 +134,7 @@ Exact pin. No flexibility. These two packages are a unit.
 
 ### Across Families
 
-```
+```text
 Janset.SDL2.Image (managed, v1.0.3)
   ├── depends on: Janset.SDL2.Image.Native (= 1.0.3)      ← within-family
   └── depends on: Janset.SDL2.Core (>= 1.2.0)              ← cross-family
@@ -144,7 +144,7 @@ Minimum version. Image 1.0.3 was tested with Core 1.2.0, but Core 1.3.0 is also 
 
 ### The Meta-Package
 
-```
+```text
 Janset.SDL2 (meta-package, v1.0.0)
   ├── Janset.SDL2.Core (= 1.2.0)
   ├── Janset.SDL2.Image (= 1.0.3)
@@ -162,7 +162,7 @@ The meta-package pins a **deterministic known-good combination** using exact ver
 
 ### Build Matrix Shape
 
-```
+```text
 7 RID jobs (build axis)
   Each job:
     1. vcpkg install for this triplet (all libraries, all-or-nothing)
@@ -222,7 +222,7 @@ The version of a Janset.SDL2 package family — `Janset.SDL2.Core` + `Janset.SDL
 
 ### Coherence Is Cross-Validation, Not Semantic Implication
 
-PreFlightCheck today enforces **structural coherence** between the two planes — `manifest.json library_manifests[].vcpkg_version` must agree with `vcpkg.json` for each triplet. PreFlightCheck does **not** today enforce semantic coherence rules such as "if the upstream library major version bumped, the family major version must also bump." Such a rule may be adopted later, but this document does not commit to it. Any future adoption must be landed as an explicit amendment here.
+PreFlightCheck today enforces **structural coherence** between the two planes — `manifest.json library_manifests[].vcpkg_version` must agree with `vcpkg.json` for each triplet, and `manifest.json runtimes[].strategy` must be coherent with the declared triplet mapping. PreFlightCheck does **not** today enforce semantic coherence rules such as "if the upstream library major version bumped, the family major version must also bump." Such a rule may be adopted later, but this document does not commit to it. Any future adoption must be landed as an explicit amendment here.
 
 ### Example
 

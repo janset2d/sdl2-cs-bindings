@@ -1,4 +1,4 @@
-# pragma warning disable CA1031, MA0045, MA0051, CA1502
+# pragma warning disable CA1031, MA0045, MA0051, CA1502, CA1505
 
 using System.CommandLine;
 using System.CommandLine.Invocation;
@@ -12,6 +12,8 @@ using Build.Modules;
 using Build.Modules.Contracts;
 using Build.Modules.DependencyAnalysis;
 using Build.Modules.Harvesting;
+using Build.Modules.Strategy;
+using Build.Modules.Strategy.Models;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
@@ -40,7 +42,6 @@ root.AddOption(VcpkgOptions.VcpkgDirOption);
 root.AddOption(VcpkgOptions.VcpkgInstalledDirOption);
 root.AddOption(VcpkgOptions.LibraryOption);
 root.AddOption(VcpkgOptions.RidOption);
-root.AddOption(VcpkgOptions.UseOverridesOption);
 
 root.AddOption(DumpbinOptions.DllOption);
 
@@ -55,91 +56,127 @@ static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArgumen
 
     return new CakeHost()
         .UseContext<BuildContext>()
-        .ConfigureServices(services =>
-        {
-            services.AddSingleton(new VcpkgConfiguration([.. parsedArgs.Library], parsedArgs.Rid));
-            services.AddSingleton(new RepositoryConfiguration(repoRootPath));
-            services.AddSingleton(new DotNetBuildConfiguration(configuration: parsedArgs.Config));
-            services.AddSingleton(new DumpbinConfiguration([.. parsedArgs.Dll]));
-
-            services.AddSingleton<IPathService>(provider =>
-            {
-                var repositoryConfiguration = provider.GetRequiredService<RepositoryConfiguration>();
-                var cakeLogger = provider.GetRequiredService<ICakeLog>();
-                return new PathService(repositoryConfiguration, parsedArgs, cakeLogger);
-            });
-
-            services.AddSingleton<IRuntimeProfile>(sp =>
-            {
-                var runtimeConfig = sp.GetRequiredService<RuntimeConfig>();
-                var systemArtefactsConfig = sp.GetRequiredService<SystemArtefactsConfig>();
-                var vcpkgConfiguration = sp.GetRequiredService<VcpkgConfiguration>();
-                var cakeEnvironment = sp.GetRequiredService<ICakeEnvironment>();
-
-                var rid = vcpkgConfiguration.Rid
-                    .Match<string>(
-                        _ => cakeEnvironment.Platform.Rid(),
-                        configRid => configRid.Value);
-
-                var runtimeInfo = runtimeConfig.Runtimes.Single(r => string.Equals(r.Rid, rid, StringComparison.Ordinal));
-
-                return new RuntimeProfile(runtimeInfo, systemArtefactsConfig);
-            });
-
-            services.AddSingleton<IPackageInfoProvider, VcpkgCliProvider>();
-            services.AddSingleton<IBinaryClosureWalker, BinaryClosureWalker>();
-            services.AddSingleton<IArtifactPlanner, ArtifactPlanner>();
-            services.AddSingleton<IArtifactDeployer, ArtifactDeployer>();
-
-            services.AddSingleton<IRuntimeScanner>(provider =>
-            {
-                var env = provider.GetRequiredService<ICakeEnvironment>();
-                var context = provider.GetRequiredService<ICakeContext>();
-
-                var currentRid = env.Platform.Rid();
-                return currentRid switch
-                {
-                    Rids.WinX64 or Rids.WinX86 or Rids.WinArm64 => new WindowsDumpbinScanner(context),
-                    Rids.LinuxX64 or Rids.LinuxArm64 => new LinuxLddScanner(context),
-                    Rids.OsxX64 or Rids.OsxArm64 => new MacOtoolScanner(context),
-                    _ => throw new NotSupportedException($"Unsupported OS for IRuntimeScanner: {currentRid}"),
-                };
-            });
-
-            // Single manifest.json load — schema v2 merges runtimes + system_exclusions + library_manifests
-            services.AddSingleton<ManifestConfig>(provider =>
-            {
-                var ctx = provider.GetRequiredService<ICakeContext>();
-                var pathService = provider.GetRequiredService<IPathService>();
-
-                var manifestFile = pathService.GetManifestFile();
-                var manifest = ctx.ToJson<ManifestConfig>(manifestFile);
-
-                if (!string.Equals(manifest.SchemaVersion, "2.0", StringComparison.Ordinal))
-                {
-                    throw new InvalidOperationException(
-                        $"Unsupported manifest schema version '{manifest.SchemaVersion ?? "<null>"}'. Expected '2.0'. " +
-                        "Legacy runtimes.json/system_artefacts.json fallback has been removed.");
-                }
-
-                return manifest;
-            });
-
-            services.AddSingleton<RuntimeConfig>(provider =>
-            {
-                var manifest = provider.GetRequiredService<ManifestConfig>();
-
-                return manifest.Runtimes is not { Count: > 0 } ? throw new InvalidOperationException("manifest.json schema v2 requires a non-empty runtimes section.") : new RuntimeConfig { Runtimes = manifest.Runtimes };
-            });
-
-            services.AddSingleton<SystemArtefactsConfig>(provider =>
-            {
-                var manifest = provider.GetRequiredService<ManifestConfig>();
-
-                return manifest.SystemExclusions ?? throw new InvalidOperationException("manifest.json schema v2 requires the system_exclusions section.");
-            });
-        })
+        .ConfigureServices(services => ConfigureBuildServices(services, parsedArgs, repoRootPath))
         .Run(effectiveCakeArgs);
+}
+
+static void ConfigureBuildServices(IServiceCollection services, ParsedArguments parsedArgs, DirectoryPath repoRootPath)
+{
+    ArgumentNullException.ThrowIfNull(services);
+    ArgumentNullException.ThrowIfNull(parsedArgs);
+
+    services.AddSingleton(new VcpkgConfiguration([.. parsedArgs.Library], parsedArgs.Rid));
+    services.AddSingleton(new RepositoryConfiguration(repoRootPath));
+    services.AddSingleton(new DotNetBuildConfiguration(configuration: parsedArgs.Config));
+    services.AddSingleton(new DumpbinConfiguration([.. parsedArgs.Dll]));
+
+    services.AddSingleton<IPathService>(provider =>
+    {
+        var repositoryConfiguration = provider.GetRequiredService<RepositoryConfiguration>();
+        var cakeLogger = provider.GetRequiredService<ICakeLog>();
+        return new PathService(repositoryConfiguration, parsedArgs, cakeLogger);
+    });
+
+    services.AddSingleton<IRuntimeProfile>(sp =>
+    {
+        var runtimeConfig = sp.GetRequiredService<RuntimeConfig>();
+        var systemArtefactsConfig = sp.GetRequiredService<SystemArtefactsConfig>();
+        var vcpkgConfiguration = sp.GetRequiredService<VcpkgConfiguration>();
+        var cakeEnvironment = sp.GetRequiredService<ICakeEnvironment>();
+
+        var rid = vcpkgConfiguration.Rid
+            .Match<string>(
+                _ => cakeEnvironment.Platform.Rid(),
+                configRid => configRid.Value);
+
+        var runtimeInfo = runtimeConfig.Runtimes.Single(r => string.Equals(r.Rid, rid, StringComparison.Ordinal));
+
+        return new RuntimeProfile(runtimeInfo, systemArtefactsConfig);
+    });
+
+    services.AddSingleton<IPackageInfoProvider, VcpkgCliProvider>();
+    services.AddSingleton<IBinaryClosureWalker, BinaryClosureWalker>();
+    services.AddSingleton<IArtifactPlanner, ArtifactPlanner>();
+    services.AddSingleton<IArtifactDeployer, ArtifactDeployer>();
+
+    services.AddSingleton<IPackagingStrategy>(provider =>
+    {
+        var manifest = provider.GetRequiredService<ManifestConfig>();
+        var runtimeConfig = provider.GetRequiredService<RuntimeConfig>();
+        var runtimeProfile = provider.GetRequiredService<IRuntimeProfile>();
+
+        var coreLibraryName = manifest.PackagingConfig.CoreLibrary;
+
+        var runtime = runtimeConfig.Runtimes.SingleOrDefault(r => string.Equals(r.Rid, runtimeProfile.Rid, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException(
+                $"RID '{runtimeProfile.Rid}' was not found in manifest runtimes during strategy resolution.");
+
+        var model = StrategyResolver.Resolve(runtime);
+
+        return model switch
+        {
+            PackagingModel.HybridStatic => new HybridStaticStrategy(coreLibraryName),
+            PackagingModel.PureDynamic => new PureDynamicStrategy(coreLibraryName),
+            _ => throw new InvalidOperationException($"Unsupported packaging model '{model}'."),
+        };
+    });
+
+    services.AddSingleton<IDependencyPolicyValidator>(provider =>
+    {
+        var manifest = provider.GetRequiredService<ManifestConfig>();
+        var runtimeProfile = provider.GetRequiredService<IRuntimeProfile>();
+        var packagingStrategy = provider.GetRequiredService<IPackagingStrategy>();
+
+        var validationMode = manifest.PackagingConfig.ValidationMode;
+
+        return packagingStrategy.Model switch
+        {
+            PackagingModel.HybridStatic => new HybridStaticValidator(runtimeProfile, packagingStrategy, validationMode),
+            PackagingModel.PureDynamic => new PureDynamicValidator(validationMode),
+            _ => throw new InvalidOperationException($"Unsupported packaging model '{packagingStrategy.Model}'."),
+        };
+    });
+
+    services.AddSingleton<IRuntimeScanner>(provider =>
+    {
+        var env = provider.GetRequiredService<ICakeEnvironment>();
+        var context = provider.GetRequiredService<ICakeContext>();
+
+        var currentRid = env.Platform.Rid();
+        return currentRid switch
+        {
+            Rids.WinX64 or Rids.WinX86 or Rids.WinArm64 => new WindowsDumpbinScanner(context),
+            Rids.LinuxX64 or Rids.LinuxArm64 => new LinuxLddScanner(context),
+            Rids.OsxX64 or Rids.OsxArm64 => new MacOtoolScanner(context),
+            _ => throw new NotSupportedException($"Unsupported OS for IRuntimeScanner: {currentRid}"),
+        };
+    });
+
+    // Single manifest.json load - schema v2.1 merges runtimes + system_exclusions + library_manifests + package_families
+    services.AddSingleton<ManifestConfig>(provider =>
+    {
+        var ctx = provider.GetRequiredService<ICakeContext>();
+        var pathService = provider.GetRequiredService<IPathService>();
+
+        var manifestFile = pathService.GetManifestFile();
+        return ctx.ToJson<ManifestConfig>(manifestFile);
+    });
+
+    services.AddSingleton<RuntimeConfig>(provider =>
+    {
+        var manifest = provider.GetRequiredService<ManifestConfig>();
+
+        return manifest.Runtimes.Count == 0
+            ? throw new InvalidOperationException("manifest.json requires a non-empty runtimes section.")
+            : new RuntimeConfig { Runtimes = manifest.Runtimes };
+    });
+
+    services.AddSingleton<SystemArtefactsConfig>(provider =>
+    {
+        var manifest = provider.GetRequiredService<ManifestConfig>();
+
+        return manifest.SystemExclusions;
+    });
 }
 
 static async Task<DirectoryPath> DetermineRepoRootAsync(DirectoryInfo? repoRootArg)

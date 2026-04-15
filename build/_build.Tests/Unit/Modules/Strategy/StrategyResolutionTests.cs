@@ -75,13 +75,13 @@ public sealed class StrategyResolutionTests
     }
 
     [Test]
-    public async Task ResolveStrategy_Should_Throw_When_Strategy_Field_Is_Null()
+    public async Task ResolveStrategy_Should_Throw_When_Strategy_Field_Is_Empty()
     {
         var runtime = new RuntimeInfo
         {
             Rid = "win-x64",
             Triplet = "x64-windows-hybrid",
-            Strategy = null,
+            Strategy = string.Empty,
             Runner = "windows-latest",
         };
 

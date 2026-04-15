@@ -169,26 +169,26 @@ These decisions were made during the packaging strategy research cycle (April 20
 **Active — Packaging Infrastructure (test-first, docs-first):**
 
 - [x] Update canonical docs for config merge, triplet=strategy, TUnit adoption decisions (#85)
-- [x] Create TUnit test project for Cake build host with characterization tests on current code (#85) — 189 tests passing, 55% line, 44% branch
+- [x] Create TUnit test project for Cake build host with characterization tests on current code (#85) — 196 tests passing, 55% line, 44% branch
 - [x] Merge 3 config files into single manifest.json (schema v2) — runtimes + system_exclusions + library_manifests (#85)
-- [x] Introduce Cake build host strategy awareness: IPackagingStrategy, IDependencyPolicyValidator — contracts + implementations landed, not yet wired into DI/pipeline (#85)
-- [ ] Wire strategy layer into runtime: Program.cs DI registration, HarvestTask validation step, PreFlightCheck coherence (#85)
-- [ ] Repurpose BinaryClosureWalker + runtime scanners as guardrails: transitive dep leak in hybrid mode = build failure (#85)
+- [x] Introduce Cake build host strategy awareness: IPackagingStrategy, IDependencyPolicyValidator — contracts + implementations + runtime wiring landed (DI + Harvest validation + PreFlight coherence) (#85)
+- [x] Wire strategy layer into runtime: Program.cs DI registration, HarvestTask validation step, PreFlightCheck coherence (#85)
+- [x] Repurpose BinaryClosureWalker + runtime scanners as guardrails: transitive dep leak in hybrid mode = build failure (#85)
 - [ ] Extract HarvestPipeline service from HarvestTask (#85)
-- [x] Harden build host testing architecture for refactor readiness: all layers covered (189 tests, 55% line, 44% branch) (#85)
+- [x] Harden build host testing architecture for refactor readiness: all layers covered (196 tests, 55% line, 44% branch) (#85)
 - [ ] Establish coverage ratchet policy and CI gate: no-regression baseline, `dotnet test --coverage`, branch tracking (#86)
 
-> **#85 Handoff (2026-04-14)**
-> **Landed:** Strategy primitives (IPackagingStrategy, IDependencyPolicyValidator, StrategyResolver), OneOf result pattern (ValidationResult/ValidationError/ValidationSuccess), config merge (schema v2), 189 tests, concurrency fix in async extensions.
-> **Remaining:** Program.cs DI wiring, HarvestTask validation invocation, PreFlightCheck coherence invocation, HarvestPipeline extraction.
-> **Next:** Wire DI → integrate validator into harvest flow → PreFlight coherence → pipeline extraction.
+> **#85 Handoff (2026-04-14, updated 2026-04-15)**
+> **Landed:** Strategy primitives (IPackagingStrategy, IDependencyPolicyValidator, StrategyResolver), OneOf result pattern (ValidationResult/ValidationError/ValidationSuccess), config merge (schema v2), runtime wiring (Program.cs DI + HarvestTask validation invocation + PreFlightCheck coherence invocation), composition-root DI resolution tests via `ConfigureBuildServices` seam (Hybrid + PureDynamic), 196 passing tests, concurrency fix in async extensions.
+> **Remaining:** HarvestPipeline extraction only.
+> **Next:** Keep extraction as a follow-up issue and continue with coverage ratchet policy (#86).
 
 **Release Lifecycle Adaptation** (see [phases/phase-2-adaptation-plan.md](phases/phase-2-adaptation-plan.md)):
 
-- [ ] Stream A-safe: manifest.json `package_families` schema + NuGet.Versioning in Cake (start here; parallel with A0 and B)
+- [x] Stream A-safe: manifest.json `package_families` schema + NuGet.Versioning in Cake (manifest schema v2.1 + build host package reference landed)
 - [ ] Stream A0: Exact pin spike — Image-family acceptance target, TUnit nuspec assertion (blocks Stream D; blocks A-risky)
 - [ ] Stream A-risky: MinVer project rollout (held until A0 resolves PD-2)
-- [ ] Stream B: Strategy wiring (#85 closure) — DI + HarvestTask validator + PreFlight strategy coherence; HarvestPipeline extraction **split to a separate follow-up issue**
+- [x] Stream B: Strategy wiring (#85 closure) — DI + HarvestTask validator + PreFlight strategy coherence; HarvestPipeline extraction **split to a separate follow-up issue**
 - [ ] Stream C: PreFlightCheck as CI gate, dynamic matrix generation from manifest, CI workflow migration
 - [ ] Stream D-local: PackageTask with family version (#54, #83), package-consumer smoke test, local folder feed
 - [ ] Stream D-ci: CI package-publish job + smoke gate + internal feed push
@@ -330,9 +330,9 @@ Primary docs: [phases/phase-5-sdl3-support.md](phases/phase-5-sdl3-support.md), 
 
 1. **Native binaries in git history (working-tree cleaned 2026-04-15)**: Stale payloads under `src/native/<Lib>/runtimes/` have been removed from tracking (74 files across 5 `.Native` packages) and `.gitignore` rule `src/native/*/runtimes/` added. **Pending:** history rewrite via `git-filter-repo` to drop ~30 MB of those stale payloads from past commits, followed by `git push --force-with-lease` on `master` and `nugetizer`. Local clones on WSL/Mac will need fresh `git clone` (or `git fetch origin && git reset --hard origin/<branch>`). 5 issues (#52, #53, #76, #77, #78) reference 4 repo commit SHAs that will be rewritten — post-rewrite remap via `.git/filter-repo/commit-map` is optional cleanup.
 2. **Release pipeline is a stub**: `release-candidate-pipeline.yml` has placeholder logic.
-3. **Strategy layer landed but not wired**: `IPackagingStrategy`, `IDependencyPolicyValidator`, `StrategyResolver` are implemented and tested (189 tests) but not yet registered in DI or invoked from HarvestTask/PreFlightCheck.
+3. **HarvestPipeline extraction still pending after strategy wiring**: `IPackagingStrategy`, `IDependencyPolicyValidator`, `StrategyResolver` are now wired into Program.cs DI and invoked from HarvestTask/PreFlightCheck (196 tests passing). Remaining follow-up is extracting orchestration into a dedicated HarvestPipeline service.
 4. **Local dev playbook needs correction**: A playbook exists, but parts of it were inaccurate and not yet validated end-to-end.
-5. **`--use-overrides` is parsed but not wired**: Legacy flag, to be reframed as `--native-source overrides` during Cake strategy refactor.
+5. **Native source-mode selector is not implemented yet**: active build-host flow assumes vcpkg-built natives; multi-source acquisition remains deferred to the strategy-refactor backlog.
 6. **Distributed CI output flow is not wired yet**: current harvest output is still local-first. The release pipeline will need a real staging-vs-consolidated path split so matrix jobs can upload per-RID artifacts before consolidation.
 7. **Hybrid triplets created for 3 primary RIDs**: `x64-windows-hybrid`, `x64-linux-hybrid`, `x64-osx-hybrid` overlay triplets exist in `vcpkg-overlay-triplets/`. Remaining 4 pure-dynamic RIDs (win-x86, win-arm64, linux-arm64, osx-arm64) use stock triplets. Deferred to Phase 2b.
 8. **Symbol visibility analyzed, hardening deferred**: Symbol visibility analysis complete (`docs/research/symbol-visibility-analysis-2026-04-14.md`). zlib/libpng = 0 leaks on all platforms. FreeType/WebP have cosmetic leaks, accepted. Further hardening (version scripts, `-fvisibility=hidden`) deferred to Phase 2b.

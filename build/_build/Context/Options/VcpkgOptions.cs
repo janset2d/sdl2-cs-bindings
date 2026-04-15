@@ -31,8 +31,4 @@ public static class VcpkgOptions
     {
         IsRequired = false,
     };
-
-    public static readonly Option<bool> UseOverridesOption = new(
-        "--use-overrides",
-        "Use native binaries from the overrides directory instead of Vcpkg.");
 }

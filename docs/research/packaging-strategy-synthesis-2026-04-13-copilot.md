@@ -143,7 +143,7 @@ Relevant evidence:
 
 Important nuance:
 
-- `--use-overrides` exists in [../../../build/_build/Context/Options/VcpkgOptions.cs](../../../build/_build/Context/Options/VcpkgOptions.cs).
+- native-source selection flags are intentionally not on the active CLI surface.
 - harvest staging helpers exist in [../../../build/_build/Modules/PathService.cs](../../../build/_build/Modules/PathService.cs).
 - those hooks suggest an intended evolution path, but they are not yet the operational center of the pipeline.
 

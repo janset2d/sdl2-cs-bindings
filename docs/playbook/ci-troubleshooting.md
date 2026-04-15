@@ -173,3 +173,4 @@ dotnet run -- --target PreFlightCheck
 ```
 
 This validates that `manifest.json` and `vcpkg.json` are consistent.
+It also validates runtime strategy coherence (`runtimes[].strategy` vs triplet-derived model).

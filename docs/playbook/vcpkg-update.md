@@ -87,7 +87,7 @@ Keep `build/manifest.json` in sync with vcpkg.json:
 ### Step 7: Validate
 
 ```bash
-# Run pre-flight check (validates manifest.json ↔ vcpkg.json consistency)
+# Run pre-flight check (validates manifest.json ↔ vcpkg.json consistency + runtime strategy coherence)
 cd build/_build
 dotnet run -- --target PreFlightCheck
 

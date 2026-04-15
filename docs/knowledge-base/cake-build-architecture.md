@@ -8,10 +8,10 @@ The build system is a .NET 9.0 console application using **Cake Frosting v5.0.0*
 
 ## Current Implementation Notes
 
-- Active harvest logic lives under `Tasks/Harvest/`. `Tasks/Vcpkg/` currently contains empty legacy placeholder files.
+- Active harvest logic lives under `Tasks/Harvest/`.
 - `PreFlightCheckTask` is implemented in the build host, but the release-candidate workflow does not invoke it yet.
 - `PathService` already exposes `harvest-staging` helpers for future distributed CI, but current tasks and workflows still write to `artifacts/harvest_output/`.
-- The build host exposes a `--use-overrides` CLI option, but override-based native sourcing is not wired into the current task pipeline.
+- Native-source acquisition mode selection is intentionally deferred from the active CLI surface.
 - The build host still uses hand-written `OneOf` result wrappers. Source-generator-based cleanup remains a parked follow-up, not active build-system behavior.
 
 ## Architecture
@@ -25,8 +25,7 @@ build/_build/
 ├── Tasks/
 │   ├── Common/             ← InfoTask (environment info display)
 │   ├── Harvest/            ← HarvestTask, ConsolidateHarvestTask
-│   ├── Preflight/          ← PreFlightCheckTask (version validation)
-│   └── Vcpkg/              ← Stubs (empty, not used)
+│   ├── Preflight/          ← PreFlightCheckTask (partial gate: version + strategy coherence)
 └── Tools/                  ← Utility services
     ├── BinaryClosureWalker ← Platform-specific dependency scanning
     ├── ArtifactPlanner     ← Plans which files to deploy
@@ -48,25 +47,28 @@ All services are registered via dependency injection in `Program.cs`:
 | `IArtifactPlanner` | `ArtifactPlanner` | Determines which binaries to include and how to deploy them |
 | `IArtifactDeployer` | `ArtifactDeployer` | Copies binaries to output, creates tar.gz for Unix |
 | `IRuntimeScanner` | Platform-specific | dumpbin (Windows), ldd (Linux), otool (macOS) |
-| `IPackagingStrategy` | `HybridStaticStrategy` / `PureDynamicStrategy` | Packaging model, core library identification — **implemented, not yet wired into DI** |
-| `IDependencyPolicyValidator` | `HybridStaticValidator` | Validates closure against strategy (leak detection) — **implemented, not yet wired into DI** |
+| `IPackagingStrategy` | `HybridStaticStrategy` / `PureDynamicStrategy` | Packaging model and core-library interpretation, resolved per runtime strategy in DI |
+| `IDependencyPolicyValidator` | `HybridStaticValidator` / `PureDynamicValidator` | Strategy-aware closure validation (hybrid leak enforcement, pure-dynamic pass-through) |
 | `INativeAcquisitionStrategy` | `VcpkgBuildProvider` | **(Planned)** Where native binaries come from |
 
 ## Configuration Files
 
-### manifest.json — Single Source of Truth (Schema v2)
+### manifest.json — Single Source of Truth (Schema v2.1)
 
 All build configuration lives in a single file. Previously split across `manifest.json`, `runtimes.json`, and `system_artefacts.json` — now merged.
 
 ```json
 {
-  "schema_version": "2.0",
+  "schema_version": "2.1",
   "packaging_config": {
     "validation_mode": "strict",
     "core_library": "sdl2"
   },
   "runtimes": [
     { "rid": "win-x64", "triplet": "x64-windows-hybrid", "strategy": "hybrid-static", "runner": "windows-latest", "container_image": null }
+  ],
+  "package_families": [
+    { "name": "core", "library_ref": "SDL2", "depends_on": [], "change_paths": ["src/SDL2.Core/**"] }
   ],
   "system_exclusions": {
     "windows": { "system_dlls": ["kernel32.dll", "user32.dll", "..."] },
@@ -95,6 +97,7 @@ Key sections:
 
 - `packaging_config`: Validation mode and core library identification
 - `runtimes[]`: RID ↔ triplet ↔ strategy ↔ CI runner mapping. Triplet = strategy authority; the `strategy` field is a formal declaration validated by PreFlightCheck
+- `package_families[]`: family metadata for packaging/release orchestration
 - `system_exclusions`: OS-level libraries that must NOT be bundled (used by `RuntimeProfile.IsSystemFile()`)
 - `library_manifests[]`: Library definitions with vcpkg name/version and binary patterns
 - `core_lib`: If true, this library's binary appears in other packages too (SDL2.dll in Image, Mixer, etc.)
@@ -146,13 +149,15 @@ Merges per-RID status files into library-wide manifests.
 
 ### PreFlightCheckTask
 
-Validates configuration consistency before builds.
+Validates configuration consistency before builds (partial gate).
 
 **Checks**:
 
 - manifest.json library versions match vcpkg.json override versions
 - Port versions match
-- All required fields present
+- Runtime strategy coherence (`runtimes[].strategy` vs triplet-derived model)
+
+**Out of scope (deferred to Stream C):** package-family integrity, dynamic CI matrix gating, and CI artifact-flow checks.
 
 ## Binary Closure Walking
 

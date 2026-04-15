@@ -17,6 +17,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Cake.Frosting"/>
+    <PackageReference Include="NuGet.Versioning" />
     <PackageReference Include="OneOf" />
     <PackageReference Include="OneOf.Monads" />
     <PackageReference Include="OneOf.SourceGenerator" />
