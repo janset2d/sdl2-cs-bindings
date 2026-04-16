@@ -1,7 +1,6 @@
 using Build.Modules.Contracts;
 using Build.Modules.Strategy;
 using Build.Modules.Strategy.Models;
-using Build.Modules.Strategy.Results;
 using Build.Tests.Fixtures;
 using Cake.Core.IO;
 using NSubstitute;

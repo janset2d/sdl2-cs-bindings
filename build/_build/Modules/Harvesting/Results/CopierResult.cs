@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using OneOf;
 using OneOf.Monads;
 using OneOf.Types;
@@ -44,31 +43,6 @@ public sealed class CopierResult(OneOf<Error<HarvestingError>, Success<Unit>> re
     public static CopierResult ToSuccess() => Unit.Value;
 
     public CopierError AsCopierError() => (CopierError)AsT0.Value;
-}
-
-public static class CopierResultExtensions
-{
-    public static Result<HarvestingError, Unit> ToResult(this CopierResult self) => self;
-
-    [SuppressMessage("Usage", "VSTHRD003:Avoid awaiting foreign Tasks")]
-    public static async Task<Result<HarvestingError, Unit>> ToResult(this Task<CopierResult> self)
-    {
-        ArgumentNullException.ThrowIfNull(self);
-
-        var cr = await self.ConfigureAwait(false);
-        return cr;
-    }
-
-    public static void OnError(this CopierResult result, Action<HarvestingError> errorHandler)
-    {
-        ArgumentNullException.ThrowIfNull(result);
-        ArgumentNullException.ThrowIfNull(errorHandler);
-
-        if (result.IsError())
-        {
-            errorHandler(result.AsT0.Value);
-        }
-    }
 }
 
 public readonly struct Unit

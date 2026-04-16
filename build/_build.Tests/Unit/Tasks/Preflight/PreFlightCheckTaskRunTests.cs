@@ -1,4 +1,7 @@
+using Build.Context;
 using Build.Context.Models;
+using Build.Modules.Preflight;
+using Build.Modules.Strategy;
 using Build.Tasks.Preflight;
 using Build.Tests.Fixtures;
 
@@ -9,23 +12,25 @@ public class PreFlightCheckTaskRunTests
     [Test]
     public void Run_Should_Pass_When_Manifest_And_Vcpkg_Versions_Are_Aligned()
     {
+        var manifestConfig = CreateManifestConfig("2.32.10", 0);
         var context = new FakeRepoBuilder(FakeRepoPlatform.Windows)
-            .WithManifest(CreateManifestConfig("2.32.10", 0))
+            .WithManifest(manifestConfig)
             .WithVcpkgJson(CreateVcpkgManifest("2.32.10", 0))
             .BuildContext();
 
-        new PreFlightCheckTask().Run(context);
+        CreateTask(manifestConfig, context).Run(context);
     }
 
     [Test]
     public async Task Run_Should_Throw_When_Override_Version_Does_Not_Match_Manifest()
     {
+        var manifestConfig = CreateManifestConfig("2.32.10", 0);
         var context = new FakeRepoBuilder(FakeRepoPlatform.Windows)
-            .WithManifest(CreateManifestConfig("2.32.10", 0))
+            .WithManifest(manifestConfig)
             .WithVcpkgJson(CreateVcpkgManifest("2.31.0", 0))
             .BuildContext();
 
-        var task = new PreFlightCheckTask();
+        var task = CreateTask(manifestConfig, context);
 
         await Assert.That(() => task.Run(context)).Throws<InvalidOperationException>();
     }
@@ -33,16 +38,17 @@ public class PreFlightCheckTaskRunTests
     [Test]
     public async Task Run_Should_Throw_When_Runtime_Strategy_And_Triplet_Are_Incoherent()
     {
+        var manifestConfig = CreateManifestConfig(
+            "2.32.10",
+            0,
+            strategy: "pure-dynamic",
+            triplet: "x64-windows-hybrid");
         var context = new FakeRepoBuilder(FakeRepoPlatform.Windows)
-            .WithManifest(CreateManifestConfig(
-                "2.32.10",
-                0,
-                strategy: "pure-dynamic",
-                triplet: "x64-windows-hybrid"))
+            .WithManifest(manifestConfig)
             .WithVcpkgJson(CreateVcpkgManifest("2.32.10", 0))
             .BuildContext();
 
-        var task = new PreFlightCheckTask();
+        var task = CreateTask(manifestConfig, context);
 
         await Assert.That(() => task.Run(context)).Throws<InvalidOperationException>();
     }
@@ -50,12 +56,27 @@ public class PreFlightCheckTaskRunTests
     [Test]
     public void Run_Should_Allow_Libraries_Without_Vcpkg_Overrides()
     {
+        var manifestConfig = CreateManifestConfig("2.32.10", 0);
         var context = new FakeRepoBuilder(FakeRepoPlatform.Windows)
-            .WithManifest(CreateManifestConfig("2.32.10", 0))
+            .WithManifest(manifestConfig)
             .WithTextFile("vcpkg.json", "{\"dependencies\":[\"sdl2\"]}")
             .BuildContext();
 
-        new PreFlightCheckTask().Run(context);
+        CreateTask(manifestConfig, context).Run(context);
+    }
+
+    [Test]
+    public async Task Run_Should_Throw_When_Manifest_Version_Is_Not_A_Valid_Semantic_Version()
+    {
+        var manifestConfig = CreateManifestConfig("2.32", 0);
+        var context = new FakeRepoBuilder(FakeRepoPlatform.Windows)
+            .WithManifest(manifestConfig)
+            .WithVcpkgJson(CreateVcpkgManifest("2.32.10", 0))
+            .BuildContext();
+
+        var task = CreateTask(manifestConfig, context);
+
+        await Assert.That(() => task.Run(context)).Throws<InvalidOperationException>();
     }
 
     private static ManifestConfig CreateManifestConfig(
@@ -105,5 +126,14 @@ public class PreFlightCheckTaskRunTests
                 },
             ],
         };
+    }
+
+    private static PreFlightCheckTask CreateTask(ManifestConfig manifestConfig, BuildContext context)
+    {
+        return new PreFlightCheckTask(
+            manifestConfig,
+            new VersionConsistencyValidator(),
+            new StrategyCoherenceValidator(new StrategyResolver()),
+            new PreflightReporter(context));
     }
 }

@@ -98,9 +98,7 @@ janset2d/sdl2-cs-bindings/
 │       └── SDL2.Gfx.Native/
 │
 ├── build/
-│   ├── manifest.json          ← Source of truth: library names, versions, binary patterns
-│   ├── runtimes.json          ← RID → vcpkg triplet → CI runner mapping
-│   ├── system_artefacts.json  ← OS library exclusion whitelist
+│   ├── manifest.json          ← Single source of truth: packaging config, runtimes, system exclusions, library manifests
 │   └── _build/                ← Cake Frosting build system
 │       ├── Program.cs         ← Entry point + DI configuration
 │       ├── Context/           ← Build context and state
@@ -205,10 +203,13 @@ Janset.SDL2                              ← Meta-package (pulls everything)
 
 Users reference `Janset.SDL2.Core` (or the meta-package `Janset.SDL2`). The `.Native` dependency is pulled in transitively — users never reference it directly.
 
-## What Works Today (as of 2026-04-12)
+## What Works Today (as of 2026-04-16)
 
 - C# bindings for all 5 SDL2 libraries compile and target net9.0/net8.0/netstandard2.0/net462
 - Cake Frosting Harvest pipeline: binary closure walking, dependency scanning, per-RID status files, consolidation
+- Cake Frosting build host test suite: 241 TUnit tests covering modules, tasks, composition-root seams, and build-host result/error helpers
+- PreFlight validation: manifest.json ↔ vcpkg.json consistency plus runtime strategy coherence
+- Coverage ratchet gate: `Coverage-Check` task enforces the current static floor from `build/coverage-baseline.json`
 - GitHub Actions: Cross-platform native builds for Windows/Linux/macOS (manual trigger)
 - vcpkg: all SDL2 native ports (`sdl2`, `sdl2-image`, `sdl2-mixer`, `sdl2-ttf`, `sdl2-gfx`, `sdl2-net`) declared in working-tree config
 - Native packaging: `runtimes/{rid}/native/` structure for win-x64, win-arm64, linux-x64 (partial for other RIDs)
@@ -222,7 +223,7 @@ Users reference `Janset.SDL2.Core` (or the meta-package `Janset.SDL2`). The `.Na
 - Release Candidate Pipeline: Largely stub/placeholder
 - Cake PackageTask: Not implemented (harvest → NuGet .nupkg step missing)
 - NuGet publishing: Neither internal nor public feed configured
-- Tests: Only a Sandboc sandbox exists, no real test suite
+- Broader product/runtime smoke tests and sample coverage are still missing; the build-host suite exists, but package-consumer and end-to-end validation work remains ahead
 - Samples: Empty directory
 - Binding autogeneration: Not yet started
 - SDL3 support: Not yet started

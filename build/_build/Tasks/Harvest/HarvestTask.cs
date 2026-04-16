@@ -1,10 +1,9 @@
-﻿#pragma warning disable CA1031, MA0051
-
-using Build.Context;
+﻿using Build.Context;
 using Build.Context.Models;
 using Build.Modules.Contracts;
 using Build.Modules.Harvesting.Models;
 using Build.Modules.Harvesting.Results;
+using Build.Modules.Results;
 using Build.Modules.Strategy.Results;
 using Build.Tasks.Common;
 using Cake.Common.IO;
@@ -45,31 +44,11 @@ public sealed class HarvestTask(
         ArgumentNullException.ThrowIfNull(context);
 
         var outputBase = context.Paths.HarvestOutput;
-        var specifiedLibraries = context.Vcpkg.Libraries;
-        var allManifestLibraries = _manifestConfig.LibraryManifests.ToList();
 
         context.Log.Verbose("Cleaning harvest output directory: {0}", outputBase);
         context.CleanDirectory(outputBase);
 
-        List<LibraryManifest> librariesToHarvest;
-
-        if (specifiedLibraries.Any())
-        {
-            context.Log.Information("Processing specified libraries for harvest: {0}", string.Join(", ", specifiedLibraries));
-            librariesToHarvest = [];
-            foreach (var specLibName in specifiedLibraries)
-            {
-                var manifest = allManifestLibraries.SingleOrDefault(m => string.Equals(m.Name, specLibName, StringComparison.OrdinalIgnoreCase))
-                    ?? throw new CakeException($"Specified library '{specLibName}' for harvest not found in manifest.");
-
-                librariesToHarvest.Add(manifest);
-            }
-        }
-        else
-        {
-            context.Log.Information("No specific libraries specified for harvest via --library. Processing all libraries from manifest.");
-            librariesToHarvest = allManifestLibraries;
-        }
+        var librariesToHarvest = ResolveLibrariesToHarvest(context);
 
         if (librariesToHarvest.Count == 0)
         {
@@ -79,76 +58,114 @@ public sealed class HarvestTask(
 
         foreach (var manifest in librariesToHarvest)
         {
-            AnsiConsole.Write(new Rule($"[yellow]Harvest: {manifest.Name}[/]").RuleStyle("grey"));
-
-            try
-            {
-                var closureResult = await _binaryClosureWalker.BuildClosureAsync(manifest);
-                closureResult.OnError(e => LogAndThrow("Binary closure", e, context.Log, manifest.Name));
-
-                var validationResult = _dependencyPolicyValidator.Validate(closureResult.Closure, manifest);
-                validationResult.OnError(e => LogAndThrowValidation(e, context.Log, manifest.Name));
-
-                if (validationResult.ValidationSuccess.HasWarnings)
-                {
-                    LogValidationWarnings(context.Log, manifest.Name, validationResult.ValidationSuccess.Warnings);
-                }
-
-                var plannerResult = await _artifactPlanner.CreatePlanAsync(manifest, closureResult.Closure, outputBase);
-                plannerResult.OnError(e => LogAndThrow("Artifact planning", e, context.Log, manifest.Name));
-
-                var copierResult = await _artifactDeployer.DeployArtifactsAsync(plannerResult.DeploymentPlan);
-                copierResult.OnError(e => LogAndThrow("Artifact copying", e, context.Log, manifest.Name));
-
-                // Generate per-RID status file for later consolidation
-                await GenerateRidStatusFileAsync(context, manifest, plannerResult.DeploymentPlan.Statistics, outputBase);
-
-                DisplayHarvestReportSummary(plannerResult.DeploymentPlan.Statistics);
-                AnsiConsole.Write(new Rule($"[green]Finished Harvest: {manifest.Name}[/]").RuleStyle("grey"));
-            }
-            catch (CakeException)
-            {
-                // CakeException was already logged by LogAndThrow, just generate error status
-                await GenerateErrorRidStatusFileAsync(context, manifest, outputBase, $"Harvest failed for {manifest.Name}");
-                AnsiConsole.Write(new Rule($"[red]Failed Harvest: {manifest.Name}[/]").RuleStyle("grey"));
-                throw; // Re-throw to maintain existing error behavior
-            }
-            catch (Exception ex)
-            {
-                context.Log.Error("Unexpected error during harvest of {0}: {1}", manifest.Name, ex.Message);
-                context.Log.Verbose("Harvest error details: {0}", ex);
-                await GenerateErrorRidStatusFileAsync(context, manifest, outputBase, ex.Message);
-                AnsiConsole.Write(new Rule($"[red]Failed Harvest: {manifest.Name}[/]").RuleStyle("grey"));
-                throw; // Re-throw to maintain existing error behavior
-            }
+            await ProcessLibraryAsync(context, manifest, outputBase);
         }
 
         AnsiConsole.Write(new Rule("[green]Harvest completed successfully[/]").RuleStyle("grey"));
     }
 
+    private List<LibraryManifest> ResolveLibrariesToHarvest(BuildContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        var specifiedLibraries = context.Vcpkg.Libraries;
+        var allManifestLibraries = _manifestConfig.LibraryManifests.ToList();
+
+        if (!specifiedLibraries.Any())
+        {
+            context.Log.Information("No specific libraries specified for harvest via --library. Processing all libraries from manifest.");
+            return allManifestLibraries;
+        }
+
+        context.Log.Information("Processing specified libraries for harvest: {0}", string.Join(", ", specifiedLibraries));
+
+        var librariesToHarvest = new List<LibraryManifest>(specifiedLibraries.Count);
+        foreach (var specLibName in specifiedLibraries)
+        {
+            var manifest = allManifestLibraries.SingleOrDefault(m => string.Equals(m.Name, specLibName, StringComparison.OrdinalIgnoreCase))
+                ?? throw new CakeException($"Specified library '{specLibName}' for harvest not found in manifest.");
+
+            librariesToHarvest.Add(manifest);
+        }
+
+        return librariesToHarvest;
+    }
+
+    private async Task ProcessLibraryAsync(BuildContext context, LibraryManifest manifest, DirectoryPath outputBase)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(manifest);
+        ArgumentNullException.ThrowIfNull(outputBase);
+
+        AnsiConsole.Write(new Rule($"[yellow]Harvest: {manifest.Name}[/]").RuleStyle("grey"));
+
+        try
+        {
+            var statistics = await ExecuteHarvestPipelineAsync(context, manifest, outputBase);
+            DisplayHarvestReportSummary(statistics);
+            AnsiConsole.Write(new Rule($"[green]Finished Harvest: {manifest.Name}[/]").RuleStyle("grey"));
+        }
+        catch (OperationCanceledException)
+        {
+            context.Log.Warning("Harvest canceled for '{0}'.", manifest.Name);
+            AnsiConsole.Write(new Rule($"[yellow]Canceled Harvest: {manifest.Name}[/]").RuleStyle("grey"));
+            throw;
+        }
+        catch (CakeException)
+        {
+            await HandleKnownHarvestFailureAsync(context, manifest, outputBase, $"Harvest failed for {manifest.Name}");
+            throw;
+        }
+        catch (Exception ex) when (IsOperationalHarvestException(ex))
+        {
+            await HandleOperationalHarvestFailureAsync(context, manifest, outputBase, ex);
+            throw;
+        }
+    }
+
+    private async Task<DeploymentStatistics> ExecuteHarvestPipelineAsync(BuildContext context, LibraryManifest manifest, DirectoryPath outputBase)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(manifest);
+        ArgumentNullException.ThrowIfNull(outputBase);
+
+        var closureResult = await _binaryClosureWalker.BuildClosureAsync(manifest);
+        closureResult.OnError(e => LogAndThrow("Binary closure", e, context.Log, manifest.Name));
+
+        var validationResult = _dependencyPolicyValidator.Validate(closureResult.Closure, manifest);
+        validationResult.OnError(e => LogAndThrowValidation(e, context.Log, manifest.Name));
+
+        if (validationResult.ValidationSuccess.HasWarnings)
+        {
+            LogValidationWarnings(context.Log, manifest.Name, validationResult.ValidationSuccess.Warnings);
+        }
+
+        var plannerResult = await _artifactPlanner.CreatePlanAsync(manifest, closureResult.Closure, outputBase);
+        plannerResult.OnError(e => LogAndThrow("Artifact planning", e, context.Log, manifest.Name));
+
+        var copierResult = await _artifactDeployer.DeployArtifactsAsync(plannerResult.DeploymentPlan);
+        copierResult.OnError(e => LogAndThrow("Artifact copying", e, context.Log, manifest.Name));
+
+        await GenerateRidStatusFileAsync(context, manifest, plannerResult.DeploymentPlan.Statistics, outputBase);
+        return plannerResult.DeploymentPlan.Statistics;
+    }
+
     private static void DisplayHarvestReportSummary(DeploymentStatistics stats)
     {
-        var deployedPackagesText = stats.DeployedPackages.Any()
-            ? string.Join(", ", stats.DeployedPackages.Order(StringComparer.Ordinal))
-            : "None";
+        DisplaySummaryPanel(stats);
+        DisplayPrimaryFilesTable(stats);
+        DisplayPackageBreakdown(stats);
+        DisplayDetailPanel(stats);
+    }
 
-        var filteredPackagesText = stats.FilteredPackages.Any()
-            ? string.Join(", ", stats.FilteredPackages.Order(StringComparer.Ordinal))
-            : "None";
-
-        var strategyText = stats.DeploymentStrategy switch
-        {
-            DeploymentStrategy.DirectCopy => "Direct copy: All files → filesystem",
-            DeploymentStrategy.Archive => "Mixed: Binaries → archive, licenses → filesystem",
-            _ => "Unknown",
-        };
-
+    private static void DisplaySummaryPanel(DeploymentStatistics stats)
+    {
         var grid = new Grid()
             .AddColumn()
             .AddColumn();
 
         grid.AddRow("[bold]Library[/]", $"[white]{stats.LibraryName}[/]");
-        grid.AddRow("[bold]Deployment Strategy[/]", $"[cyan]{strategyText}[/]");
+        grid.AddRow("[bold]Deployment Strategy[/]", $"[cyan]{DescribeDeploymentStrategy(stats.DeploymentStrategy)}[/]");
         grid.AddRow("[bold]Primary Files[/]", $"[lime]{stats.PrimaryFiles.Count}[/]");
         grid.AddRow("[bold]Runtime Dependencies[/]", $"[deepskyblue1]{stats.RuntimeFiles.Count}[/]");
         grid.AddRow("[bold]License Files[/]", $"[grey54]{stats.LicenseFiles.Count}[/]");
@@ -164,115 +181,115 @@ public sealed class HarvestTask(
             .BorderColor(Color.Grey);
 
         AnsiConsole.Write(infoPanel);
+    }
 
-        // Show primary files detail
-        if (stats.PrimaryFiles.Any())
+    private static void DisplayPrimaryFilesTable(DeploymentStatistics stats)
+    {
+        if (!stats.PrimaryFiles.Any())
         {
-            var primaryTable = new Table()
-                .RoundedBorder()
-                .BorderColor(Color.Green)
-                .AddColumn("[bold]Primary Files[/]")
-                .AddColumn("[bold]Location[/]");
-
-            foreach (var fileInfo in stats.PrimaryFiles.OrderBy(f => f.FilePath.GetFilename().FullPath, StringComparer.Ordinal))
-            {
-                var locationText = fileInfo.DeploymentLocation switch
-                {
-                    DeploymentLocation.FileSystem => "[white]Filesystem[/]",
-                    DeploymentLocation.Archive => "[cyan]Archive[/]",
-                    _ => "[grey]Unknown[/]",
-                };
-
-                primaryTable.AddRow($"[lime]{fileInfo.FilePath.GetFilename().FullPath}[/]", locationText);
-            }
-
-            AnsiConsole.Write(primaryTable);
+            return;
         }
 
-        // Show package breakdown
+        var primaryTable = new Table()
+            .RoundedBorder()
+            .BorderColor(Color.Green)
+            .AddColumn("[bold]Primary Files[/]")
+            .AddColumn("[bold]Location[/]");
+
+        foreach (var fileInfo in stats.PrimaryFiles.OrderBy(f => f.FilePath.GetFilename().FullPath, StringComparer.Ordinal))
+        {
+            primaryTable.AddRow($"[lime]{fileInfo.FilePath.GetFilename().FullPath}[/]", ToLocationText(fileInfo.DeploymentLocation));
+        }
+
+        AnsiConsole.Write(primaryTable);
+    }
+
+    private static void DisplayPackageBreakdown(DeploymentStatistics stats)
+    {
         var packageTable = new Table()
             .RoundedBorder()
             .BorderColor(Color.Blue)
             .AddColumn("[bold]Package Type[/]")
             .AddColumn("[bold]Packages[/]");
 
-        packageTable.AddRow("[deepskyblue1]Deployed[/]", $"[white]{deployedPackagesText}[/]");
+        packageTable.AddRow("[deepskyblue1]Deployed[/]", $"[white]{FormatPackages(stats.DeployedPackages)}[/]");
 
         if (stats.FilteredPackages.Any())
         {
-            packageTable.AddRow("[yellow]Filtered[/]", $"[grey]{filteredPackagesText}[/]");
+            packageTable.AddRow("[yellow]Filtered[/]", $"[grey]{FormatPackages(stats.FilteredPackages)}[/]");
         }
 
         AnsiConsole.Write(packageTable);
+    }
 
-        // Show detailed file listing if there are runtime dependencies or license files
-        if (stats.RuntimeFiles.Any() || stats.PrimaryFiles.Any() || stats.LicenseFiles.Any())
+    private static void DisplayDetailPanel(DeploymentStatistics stats)
+    {
+        if (!stats.RuntimeFiles.Any() && !stats.PrimaryFiles.Any() && !stats.LicenseFiles.Any())
         {
-            var detailTable = new Table()
-                .RoundedBorder()
-                .BorderColor(Color.Grey)
-                .AddColumn("[bold]Type[/]")
-                .AddColumn("[bold]File[/]")
-                .AddColumn("[bold]Package[/]")
-                .AddColumn("[bold]Location[/]");
-
-            //Add primary files
-            foreach (var fileInfo in stats.PrimaryFiles.OrderBy(f => f.PackageName, StringComparer.Ordinal).ThenBy(f => f.FilePath.GetFilename().FullPath, StringComparer.Ordinal))
-            {
-                var locationText = fileInfo.DeploymentLocation switch
-                {
-                    DeploymentLocation.FileSystem => "[white]Filesystem[/]",
-                    DeploymentLocation.Archive => "[cyan]Archive[/]",
-                    _ => "[grey]Unknown[/]",
-                };
-
-                detailTable.AddRow(
-                    "[lime]Primary[/]",
-                    $"[white]{fileInfo.FilePath.GetFilename().FullPath}[/]",
-                    $"[grey]{fileInfo.PackageName}[/]",
-                    locationText);
-            }
-
-            // Add runtime files
-            foreach (var fileInfo in stats.RuntimeFiles.OrderBy(f => f.PackageName, StringComparer.Ordinal).ThenBy(f => f.FilePath.GetFilename().FullPath, StringComparer.Ordinal))
-            {
-                var locationText = fileInfo.DeploymentLocation switch
-                {
-                    DeploymentLocation.FileSystem => "[white]Filesystem[/]",
-                    DeploymentLocation.Archive => "[cyan]Archive[/]",
-                    _ => "[grey]Unknown[/]",
-                };
-
-                detailTable.AddRow(
-                    "[deepskyblue1]Runtime[/]",
-                    $"[white]{fileInfo.FilePath.GetFilename().FullPath}[/]",
-                    $"[grey]{fileInfo.PackageName}[/]",
-                    locationText);
-            }
-
-            // Add license files
-            foreach (var fileInfo in stats.LicenseFiles.OrderBy(f => f.PackageName, StringComparer.Ordinal).ThenBy(f => f.FilePath.GetFilename().FullPath, StringComparer.Ordinal))
-            {
-                var locationText = fileInfo.DeploymentLocation switch
-                {
-                    DeploymentLocation.FileSystem => "[white]Filesystem[/]",
-                    DeploymentLocation.Archive => "[cyan]Archive[/]",
-                    _ => "[grey]Unknown[/]",
-                };
-
-                detailTable.AddRow(
-                    "[grey54]License[/]",
-                    $"[white]{fileInfo.FilePath.GetFilename().FullPath}[/]",
-                    $"[grey]{fileInfo.PackageName}[/]",
-                    locationText);
-            }
-
-            var detailPanel = new Panel(detailTable)
-                .Header($"[bold yellow]{stats.LibraryName} – Detailed File List[/]", Justify.Left)
-                .BorderColor(Color.Grey);
-
-            AnsiConsole.Write(detailPanel);
+            return;
         }
+
+        var detailTable = new Table()
+            .RoundedBorder()
+            .BorderColor(Color.Grey)
+            .AddColumn("[bold]Type[/]")
+            .AddColumn("[bold]File[/]")
+            .AddColumn("[bold]Package[/]")
+            .AddColumn("[bold]Location[/]");
+
+        AddDetailRows(detailTable, "[lime]Primary[/]", stats.PrimaryFiles);
+        AddDetailRows(detailTable, "[deepskyblue1]Runtime[/]", stats.RuntimeFiles);
+        AddDetailRows(detailTable, "[grey54]License[/]", stats.LicenseFiles);
+
+        var detailPanel = new Panel(detailTable)
+            .Header($"[bold yellow]{stats.LibraryName} – Detailed File List[/]", Justify.Left)
+            .BorderColor(Color.Grey);
+
+        AnsiConsole.Write(detailPanel);
+    }
+
+    private static void AddDetailRows(Table detailTable, string typeLabel, IReadOnlyList<FileDeploymentInfo> files)
+    {
+        ArgumentNullException.ThrowIfNull(detailTable);
+        ArgumentNullException.ThrowIfNull(files);
+        ArgumentException.ThrowIfNullOrEmpty(typeLabel);
+
+        foreach (var fileInfo in files.OrderBy(f => f.PackageName, StringComparer.Ordinal).ThenBy(f => f.FilePath.GetFilename().FullPath, StringComparer.Ordinal))
+        {
+            detailTable.AddRow(
+                typeLabel,
+                $"[white]{fileInfo.FilePath.GetFilename().FullPath}[/]",
+                $"[grey]{fileInfo.PackageName}[/]",
+                ToLocationText(fileInfo.DeploymentLocation));
+        }
+    }
+
+    private static string DescribeDeploymentStrategy(DeploymentStrategy strategy)
+    {
+        return strategy switch
+        {
+            DeploymentStrategy.DirectCopy => "Direct copy: All files → filesystem",
+            DeploymentStrategy.Archive => "Mixed: Binaries → archive, licenses → filesystem",
+            _ => "Unknown",
+        };
+    }
+
+    private static string FormatPackages(IEnumerable<string> packages)
+    {
+        ArgumentNullException.ThrowIfNull(packages);
+
+        var orderedPackages = packages.Order(StringComparer.Ordinal).ToList();
+        return orderedPackages.Count == 0 ? "None" : string.Join(", ", orderedPackages);
+    }
+
+    private static string ToLocationText(DeploymentLocation deploymentLocation)
+    {
+        return deploymentLocation switch
+        {
+            DeploymentLocation.FileSystem => "[white]Filesystem[/]",
+            DeploymentLocation.Archive => "[cyan]Archive[/]",
+            _ => "[grey]Unknown[/]",
+        };
     }
 
     private static void LogAndThrow(string phase, HarvestingError error, ICakeLog log, string libraryName)
@@ -335,6 +352,31 @@ public sealed class HarvestTask(
         }
     }
 
+    private async Task HandleKnownHarvestFailureAsync(BuildContext context, LibraryManifest manifest, DirectoryPath outputBase, string errorMessage)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(manifest);
+        ArgumentNullException.ThrowIfNull(outputBase);
+        ArgumentException.ThrowIfNullOrEmpty(errorMessage);
+
+        await GenerateErrorRidStatusFileAsync(context, manifest, outputBase, errorMessage);
+        AnsiConsole.Write(new Rule($"[red]Failed Harvest: {manifest.Name}[/]").RuleStyle("grey"));
+    }
+
+    private async Task HandleOperationalHarvestFailureAsync(BuildContext context, LibraryManifest manifest, DirectoryPath outputBase, Exception ex)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(manifest);
+        ArgumentNullException.ThrowIfNull(outputBase);
+        ArgumentNullException.ThrowIfNull(ex);
+
+        context.Log.Error("Unexpected operational error during harvest of {0}: {1}", manifest.Name, ex.Message);
+        context.Log.Verbose("Harvest error details: {0}", ex);
+
+        await GenerateErrorRidStatusFileAsync(context, manifest, outputBase, ex.Message);
+        AnsiConsole.Write(new Rule($"[red]Failed Harvest: {manifest.Name}[/]").RuleStyle("grey"));
+    }
+
     /// <summary>
     /// Generates a RID-specific status file for later consolidation into the harvest manifest.
     /// This allows CI matrix jobs to run per library+RID while still generating a complete
@@ -379,10 +421,9 @@ public sealed class HarvestTask(
 
             context.Log.Information("Generated RID status file: {0}", statusFilePath);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (IsOperationalHarvestException(ex))
         {
-            context.Log.Warning("Failed to generate RID status file for {0}/{1}: {2}", manifest.Name, _runtimeProfile.Rid, ex.Message);
-            context.Log.Verbose("RID status file generation error details: {0}", ex);
+            LogRidStatusGenerationFailure(context, manifest, ex);
 
             // Generate an error status file so consolidation knows this RID failed
             await GenerateErrorRidStatusFileAsync(context, manifest, outputBase, ex.Message);
@@ -423,10 +464,36 @@ public sealed class HarvestTask(
 
             context.Log.Information("Generated error RID status file: {0}", statusFilePath);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (IsOperationalHarvestException(ex))
         {
-            context.Log.Error("Failed to generate error RID status file for {0}/{1}: {2}", manifest.Name, _runtimeProfile.Rid, ex.Message);
-            context.Log.Verbose("Error RID status file generation error details: {0}", ex);
+            LogErrorRidStatusGenerationFailure(context, manifest, ex);
         }
+    }
+
+    private static bool IsOperationalHarvestException(Exception ex)
+    {
+        ArgumentNullException.ThrowIfNull(ex);
+
+        return ex is IOException or UnauthorizedAccessException or InvalidOperationException or NotSupportedException or JsonException;
+    }
+
+    private void LogRidStatusGenerationFailure(BuildContext context, LibraryManifest manifest, Exception ex)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(manifest);
+        ArgumentNullException.ThrowIfNull(ex);
+
+        context.Log.Warning("Failed to generate RID status file for {0}/{1}: {2}", manifest.Name, _runtimeProfile.Rid, ex.Message);
+        context.Log.Verbose("RID status file generation error details: {0}", ex);
+    }
+
+    private void LogErrorRidStatusGenerationFailure(BuildContext context, LibraryManifest manifest, Exception ex)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(manifest);
+        ArgumentNullException.ThrowIfNull(ex);
+
+        context.Log.Error("Failed to generate error RID status file for {0}/{1}: {2}", manifest.Name, _runtimeProfile.Rid, ex.Message);
+        context.Log.Verbose("Error RID status file generation error details: {0}", ex);
     }
 }

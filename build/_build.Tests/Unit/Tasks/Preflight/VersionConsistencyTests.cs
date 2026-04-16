@@ -1,4 +1,4 @@
-using Build.Tasks.Preflight;
+using Build.Context.Models;
 using Build.Tests.Fixtures;
 
 namespace Build.Tests.Unit.Tasks.Preflight;

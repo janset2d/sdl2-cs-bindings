@@ -25,27 +25,22 @@ The entire harvesting process is orchestrated by the `HarvestTask.cs`, a Cake Fr
 
 3. **Completion**: Reports overall success or failure.
 
+In the current build host, Harvesting is also the reference structural pattern for new modules: `HarvestTask` owns task-only orchestration and `BuildContext`, while `BinaryClosureWalker`, `ArtifactPlanner`, and `ArtifactDeployer` own service logic behind explicit contracts and typed domain results.
+
 ## 3. Core Configuration Files
 
-The harvesting process is heavily driven by a set of JSON configuration files:
+The harvesting process is now driven primarily by a single JSON configuration source:
 
 - **`build/manifest.json`**:
 
   - Defines each library to be processed (e.g., "SDL2", "SDL2_image", "SDL2_mixer").
   - Specifies the corresponding `vcpkg_name` and version information.
   - Declares one library as the `core_lib` (typically "SDL2"). This is used by the `ArtifactPlanner` to avoid packaging core library files with add-on libraries.
-  - Crucially, contains `primary_binaries` patterns for each operating system (`Windows`, `Linux`, `OSX`). These patterns (e.g., `SDL2.dll`, `libSDL2*`, `libSDL2*.dylib`) are used to identify the main distributable files for each library.
+  - Contains the runtime matrix (`rid`, `triplet`, `strategy`, runner/container metadata).
+  - Contains system exclusion data used by `RuntimeProfile` to filter OS-provided libraries that must not be packaged.
+  - Contains `primary_binaries` patterns for each operating system (`Windows`, `Linux`, `OSX`). These patterns (e.g., `SDL2.dll`, `libSDL2*`, `libSDL2*.dylib`) are used to identify the main distributable files for each library.
 
-- **`build/runtimes.json`**:
-
-  - Lists all supported Runtime Identifiers (RIDs) like `win-x64`, `linux-arm64`, `osx-x64`.
-  - Maps each RID to its corresponding Vcpkg `triplet` (e.g., `x64-windows-release`, `arm64-linux-dynamic`).
-  - Contains information about CI runners and container images for each RID.
-
-- **`build/system_artefacts.json`**:
-  - Defines patterns for system-level libraries and DLLs for each platform (`windows`, `linux`, `osx`).
-  - Examples: `kernel32.dll`, `libc.so*`, `libSystem.B.dylib`.
-  - These files are common OS components and should _not_ be packaged with the application. The `RuntimeProfile` uses these patterns to filter them out.
+Legacy notes and older research may still mention `build/runtimes.json` and `build/system_artefacts.json`. Those files are historical shapes; `build/manifest.json` is now the authoritative source of truth.
 
 ## 4. Key Services and Components
 

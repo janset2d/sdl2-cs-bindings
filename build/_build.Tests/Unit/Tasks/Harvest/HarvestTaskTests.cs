@@ -65,7 +65,7 @@ public class HarvestTaskTests
 
         var mockWalker = Substitute.For<IBinaryClosureWalker>();
         mockWalker.BuildClosureAsync(Arg.Any<LibraryManifest>(), Arg.Any<CancellationToken>())
-            .Returns(new ClosureError("dependency scan failed"));
+            .Returns(new ClosureBuildError("dependency scan failed"));
 
         var mockPlanner = Substitute.For<IArtifactPlanner>();
         var mockDeployer = Substitute.For<IArtifactDeployer>();
@@ -97,6 +97,63 @@ public class HarvestTaskTests
         await Assert.That(status!.Success).IsFalse();
         await Assert.That(status.ErrorMessage).IsEqualTo("Harvest failed for SDL2");
         await Assert.That(status.Statistics).IsNull();
+    }
+
+    [Test]
+    public async Task RunAsync_Should_Generate_Error_Rid_Status_File_When_Operational_Exception_Occurs()
+    {
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
+
+        var library = CreateLibraryManifest("SDL2", "sdl2", isCore: true);
+        var manifestConfig = CreateManifestConfig([library]);
+
+        var mockWalker = Substitute.For<IBinaryClosureWalker>();
+        mockWalker.BuildClosureAsync(Arg.Any<LibraryManifest>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromException<ClosureResult>(new InvalidOperationException("planner inputs were inconsistent")));
+
+        var mockPlanner = Substitute.For<IArtifactPlanner>();
+        var mockDeployer = Substitute.For<IArtifactDeployer>();
+        var mockValidator = CreatePassingValidator();
+
+        var runtimeProfile = CreateRuntimeProfile();
+        var task = new Build.Tasks.Harvest.HarvestTask(mockWalker, mockPlanner, mockDeployer, mockValidator, runtimeProfile, manifestConfig);
+
+        await Assert.That(() => task.RunAsync(repo.BuildContext)).Throws<InvalidOperationException>();
+
+        const string statusFilePath = "artifacts/harvest_output/SDL2/rid-status/win-x64.json";
+        await Assert.That(repo.Exists(statusFilePath)).IsTrue();
+
+        var statusJson = await repo.ReadAllTextAsync(statusFilePath);
+        var status = JsonSerializer.Deserialize<RidHarvestStatus>(statusJson);
+
+        await Assert.That(status).IsNotNull();
+        await Assert.That(status!.Success).IsFalse();
+        await Assert.That(status.ErrorMessage).IsEqualTo("planner inputs were inconsistent");
+    }
+
+    [Test]
+    public async Task RunAsync_Should_Propagate_Cancellation_Without_Generating_Error_Rid_Status_File()
+    {
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
+
+        var library = CreateLibraryManifest("SDL2", "sdl2", isCore: true);
+        var manifestConfig = CreateManifestConfig([library]);
+
+        var mockWalker = Substitute.For<IBinaryClosureWalker>();
+        mockWalker.BuildClosureAsync(Arg.Any<LibraryManifest>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromException<ClosureResult>(new OperationCanceledException("harvest canceled")));
+
+        var mockPlanner = Substitute.For<IArtifactPlanner>();
+        var mockDeployer = Substitute.For<IArtifactDeployer>();
+        var mockValidator = CreatePassingValidator();
+
+        var runtimeProfile = CreateRuntimeProfile();
+        var task = new Build.Tasks.Harvest.HarvestTask(mockWalker, mockPlanner, mockDeployer, mockValidator, runtimeProfile, manifestConfig);
+
+        await Assert.That(() => task.RunAsync(repo.BuildContext)).Throws<OperationCanceledException>();
+
+        const string statusFilePath = "artifacts/harvest_output/SDL2/rid-status/win-x64.json";
+        await Assert.That(repo.Exists(statusFilePath)).IsFalse();
     }
 
     [Test]

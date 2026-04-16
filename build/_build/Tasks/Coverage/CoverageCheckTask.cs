@@ -9,6 +9,7 @@ using Build.Modules.Contracts;
 using Build.Modules.Coverage;
 using Build.Modules.Coverage.Models;
 using Build.Modules.Coverage.Results;
+using Build.Modules.Results;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;

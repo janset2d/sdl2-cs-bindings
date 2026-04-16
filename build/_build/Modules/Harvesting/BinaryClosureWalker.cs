@@ -36,7 +36,7 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
 
             if (primaryFiles.Count == 0)
             {
-                return new ClosureError($"No primary binaries found for {manifest.VcpkgName} on {_profile.PlatformFamily}");
+                return new ClosureNotFound($"No primary binaries found for {manifest.VcpkgName} on {_profile.PlatformFamily}");
             }
 
             _log.Information("Found {0} primary file(s) for {1}: {2}", primaryFiles.Count, manifest.VcpkgName,
@@ -121,7 +121,7 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
         }
         catch (Exception ex)
         {
-            return new ClosureError($"Error building dependency closure: {ex.Message}", ex);
+            return new ClosureBuildError($"Error building dependency closure: {ex.Message}", ex);
         }
     }
 

@@ -70,7 +70,7 @@ Modular C# bindings for SDL2 (and upcoming SDL3) with cross-platform native libr
 | Technology | Role |
 | --- | --- |
 | .NET 9.0 / C# 13 | Managed binding projects |
-| Cake Frosting 5.0.0 | Build automation (native binary harvesting) |
+| Cake Frosting 6.1.0 | Build automation (native binary harvesting) |
 | vcpkg | Cross-platform native library builds |
 | GitHub Actions | CI/CD (cross-platform build matrix) |
 | NuGet | Package distribution |
@@ -79,12 +79,12 @@ Modular C# bindings for SDL2 (and upcoming SDL3) with cross-platform native libr
 
 | RID | vcpkg Triplet |
 | --- | --- |
-| win-x64 | x64-windows-release |
+| win-x64 | x64-windows-hybrid |
 | win-x86 | x86-windows |
 | win-arm64 | arm64-windows |
-| linux-x64 | x64-linux-dynamic |
+| linux-x64 | x64-linux-hybrid |
 | linux-arm64 | arm64-linux-dynamic |
-| osx-x64 | x64-osx-dynamic |
+| osx-x64 | x64-osx-hybrid |
 | osx-arm64 | arm64-osx-dynamic |
 
 ### SDL Libraries in Scope
@@ -193,6 +193,18 @@ Issue tracking is part of the software delivery lifecycle in this repo.
 - Cross-platform correctness is critical — always consider all 3 OS families.
 - vcpkg and Cake Frosting are the build backbone — proposals should work within these tools.
 
+## Build-Host Reference Pattern
+
+For build-host refactors and new build-host services, treat the Harvesting module as the current structural reference standard.
+
+- Keep `BuildContext` at the task boundary. Task classes own orchestration, task-only policy, and user-facing failure behavior.
+- Prefer narrow service contracts over passing `BuildContext` or broad config bags into module internals.
+- If a service genuinely needs Cake capabilities (`ICakeContext`, `ICakeLog`, `ICakeEnvironment`, `IFileSystem`), inject them into the service that uses them rather than plumbing them through every public method.
+- Prefer typed result/error boundaries for service-level operational failures; let the task translate them into logging, `CakeException`, RID-status persistence, or cancellation semantics.
+- Prefer explicit domain models such as `BinaryClosure`, `DeploymentPlan`, and `DeploymentStatistics` over ad hoc tuples or raw path collections.
+- Test shape should mirror production boundaries: whitebox service tests plus thinner task behavior guards.
+- When in doubt, compare the shape of Harvesting before inventing a new build-host pattern.
+
 ## Configuration File Relationships
 
 Understanding these is essential for build system work:
@@ -209,7 +221,7 @@ build/manifest.json           ← Single source of truth (schema v2):
 PreFlightCheckTask            ← Fails if versions or triplet↔strategy don't match
 ```
 
-> **Note:** `runtimes.json` and `system_artefacts.json` are being merged into `manifest.json` (schema v2). If you still see separate files, the merge is in progress.
+> **Note:** `manifest.json` is the authoritative source. Legacy `runtimes.json` and `system_artefacts.json` files may still exist in history or older notes, but they are no longer the source of truth.
 
 ## Agent Guidance: dotnet-skills
 

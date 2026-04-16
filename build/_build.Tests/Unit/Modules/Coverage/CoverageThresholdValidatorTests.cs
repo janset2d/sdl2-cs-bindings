@@ -1,7 +1,6 @@
 using Build.Modules.Coverage;
 using Build.Modules.Coverage.Models;
 using Build.Modules.Coverage.Results;
-using OneOf.Monads;
 
 namespace Build.Tests.Unit.Modules.Coverage;
 

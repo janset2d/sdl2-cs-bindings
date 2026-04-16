@@ -48,6 +48,17 @@
   - before/after examples from the archived design should be kept as evaluation material, not treated as already-proven outcome
   - simplification options if source generation is not worth the complexity
   - async chaining helpers and cancellation-aware variants already present in the build host
+  - make an explicit style choice between named success accessors (`ValidationSuccess`, `CheckSuccess`, `Closure`, `DeploymentPlan`) and the generic `SuccessValue()` API so new code does not keep mixing both idioms
+  - audit wrapper-local `FromXxx` and `ToXxx` conversion helpers before adding more result families; trim dead ceremony before introducing any heavier abstraction
+
+### PreFlight Validator Growth Guardrails
+
+- Status: `hardening-backlog`
+- Why it matters: `PreFlightCheckTask` is back to being a thin orchestrator, but the validator layer can bloat again if Stream C folds package-family or CI-flow policy into the same classes without discipline.
+- Preserve with this thread:
+  - keep follow-through narrow unless the rule surface actually grows
+  - prefer splitting loader/parser concerns from rule evaluation only when the added behavior justifies the extra seams
+  - avoid reintroducing `BuildContext` leakage or task-level policy into validator internals
 
 ### Harvesting Component Refactors
 
@@ -109,6 +120,15 @@
   - retry policies for transient failures
   - graceful degradation for partial dependency resolution
   - clearer error recovery paths
+  - explicit rules for when lower-level harvest or preflight operations should convert failures into typed domain errors versus surfacing them as hard failures
+
+### Logging And Coverage Metadata Hygiene
+
+- Status: `hardening-backlog`
+- Preserve with this thread:
+  - keep human-readable numeric and date logging culture-invariant anywhere the build host prints metrics or timestamps
+  - if invariant-format logging appears in multiple tasks, factor a tiny helper instead of repeating ad hoc `string.Create(CultureInfo.InvariantCulture, ...)` shapes
+  - decide whether `measured_*` fields in `build/coverage-baseline.json` are intentional snapshots or metadata that should be auto-rewritten by a dedicated ratchet-raise flow
 
 ### Performance And Caching
 

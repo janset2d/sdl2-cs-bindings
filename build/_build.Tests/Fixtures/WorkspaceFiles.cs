@@ -1,4 +1,3 @@
-using System.IO;
 using Cake.Core.IO;
 
 namespace Build.Tests.Fixtures;

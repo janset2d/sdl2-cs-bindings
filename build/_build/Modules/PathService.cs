@@ -128,6 +128,11 @@ public sealed class PathService : IPathService
         return BuildDir.CombineWithFilePath("manifest.json");
     }
 
+    public FilePath GetVcpkgManifestFile()
+    {
+        return RepoRoot.CombineWithFilePath("vcpkg.json");
+    }
+
     public FilePath GetCoverageBaselineFile()
     {
         return BuildDir.CombineWithFilePath("coverage-baseline.json");

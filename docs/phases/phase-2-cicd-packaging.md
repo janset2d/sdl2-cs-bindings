@@ -162,15 +162,17 @@ Add a dedicated local-development guideline for Windows native/dependency toolin
 
 Current state:
 
-- Build host test project exists and runs reliably.
-- Coverage baseline is low for refactor-sensitive orchestration/runtime-boundary paths.
-- Test topology is partially mixed and does not yet fully mirror `build/_build` production boundaries.
+- Build-host TUnit suite exists and runs reliably (`241` tests passing at session wrap-up).
+- Fake-filesystem task fixtures, Cake-native I/O helpers, and composition-root seams are in place, so large build-host refactors no longer depend on real-disk tests.
+- Coverage ratchet policy is active through Cake `Coverage-Check`; the remaining test work is structural cleanup and a thinner explicit blackbox layer above existing task behavior tests.
 
-Recent progress (2026-04-14):
+Recent progress (2026-04-16):
 
 - Runtime scanner boundary tests were added for Windows (`dumpbin`), Linux (`ldd`), and macOS (`otool`) scanner implementations.
 - `VcpkgCliProvider` now has explicit success + error-path whitebox tests (empty output, missing package key, malformed JSON).
 - Tool-wrapper tests were added for `DumpbinDependentsTool`, `LddRunner`, `OtoolRunner`, and `VcpkgPackageInfoTool` (argument construction + parser behavior).
+- HarvestTask and PreFlight follow-up refactors landed on top of that suite without breaking the build-host floor, which is exactly why the test investment now counts as foundational rather than aspirational.
+- Harvesting is now treated as the repo's current build-host reference pattern; newer build-host seams are expected to align to its task/service/result boundary discipline unless there is a concrete reason not to.
 
 Required deliverables:
 
@@ -179,8 +181,8 @@ Required deliverables:
 3. Add blackbox task-flow tests for `HarvestTask`, `ConsolidateHarvestTask`, and `PreFlightCheckTask`.
 4. Add whitebox boundary tests for runtime scanners and vcpkg provider error paths. ✅
 5. Add tool-wrapper tests (argument construction and parsing behavior) using Cake test fixtures. ✅
-6. Document deterministic coverage execution for TUnit + Microsoft.Testing.Platform and standardize artifact output location.
-7. Introduce a no-regression coverage gate with branch coverage tracking.
+6. Document deterministic coverage execution for TUnit + Microsoft.Testing.Platform and standardize artifact output location. ✅
+7. Introduce a no-regression coverage gate with branch coverage tracking. ✅
 
 ## Exit Criteria
 

@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Build.Modules.Harvesting.Models;
 using Build.Modules.Strategy.Models;
 using OneOf;
@@ -70,33 +69,5 @@ public sealed class ValidationResult(OneOf<Error<ValidationError>, Success<Valid
     {
         var msg = message ?? $"Dependency policy validation failed: {violations.Count} violation(s) detected.";
         return new ValidationError(msg, violations);
-    }
-}
-
-public static class ValidationResultExtensions
-{
-    public static Result<ValidationError, ValidationSuccess> ToResult(this ValidationResult self) => self;
-
-    [SuppressMessage("Usage", "VSTHRD003:Avoid awaiting foreign Tasks")]
-    public static async Task<Result<ValidationError, ValidationSuccess>> ToResult(this Task<ValidationResult> self)
-    {
-        ArgumentNullException.ThrowIfNull(self);
-        var cr = await self.ConfigureAwait(false);
-        return cr;
-    }
-
-    /// <summary>
-    /// Invokes <paramref name="errorHandler"/> when the result represents an error.
-    /// The handler decides whether to log, throw, or recover.
-    /// </summary>
-    public static void OnError(this ValidationResult result, Action<ValidationError> errorHandler)
-    {
-        ArgumentNullException.ThrowIfNull(result);
-        ArgumentNullException.ThrowIfNull(errorHandler);
-
-        if (result.IsError())
-        {
-            errorHandler(result.ValidationError);
-        }
     }
 }

@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Build.Modules.Harvesting.Models;
 using OneOf;
 using OneOf.Monads;
@@ -51,29 +50,4 @@ public sealed class ClosureResult(OneOf<Error<HarvestingError>, Success<BinaryCl
 
     public BinaryClosure Closure => SuccessValue();
     public ClosureError AsClosureError() => (ClosureError)AsT0.Value;
-}
-
-public static class ClosureResultExtensions
-{
-    public static Result<HarvestingError, BinaryClosure> ToResult(this ClosureResult self) => self;
-
-    [SuppressMessage("Usage", "VSTHRD003:Avoid awaiting foreign Tasks")]
-    public static async Task<Result<HarvestingError, BinaryClosure>> ToResult(this Task<ClosureResult> self)
-    {
-        ArgumentNullException.ThrowIfNull(self);
-
-        var cr = await self.ConfigureAwait(false);
-        return cr;
-    }
-
-    public static void OnError(this ClosureResult result, Action<HarvestingError> errorHandler)
-    {
-        ArgumentNullException.ThrowIfNull(result);
-        ArgumentNullException.ThrowIfNull(errorHandler);
-
-        if (result.IsError())
-        {
-            errorHandler(result.AsT0.Value);
-        }
-    }
 }

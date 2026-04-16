@@ -13,7 +13,7 @@ public sealed class StrategyResolutionTests
     [Arguments("arm64-windows", "pure-dynamic", PackagingModel.PureDynamic)]
     [Arguments("arm64-linux-dynamic", "pure-dynamic", PackagingModel.PureDynamic)]
     [Arguments("arm64-osx-dynamic", "pure-dynamic", PackagingModel.PureDynamic)]
-    public async Task ResolveStrategy_Should_Return_Correct_Model_When_Triplet_And_Field_Are_Aligned(
+    public async Task Resolve_Should_Return_Correct_Model_When_Triplet_And_Field_Are_Aligned(
         string triplet, string strategyField, PackagingModel expected)
     {
         var runtime = new RuntimeInfo
@@ -24,13 +24,14 @@ public sealed class StrategyResolutionTests
             Runner = "test-runner",
         };
 
-        var result = StrategyResolver.Resolve(runtime);
+        var result = CreateResolver().Resolve(runtime);
 
-        await Assert.That(result).IsEqualTo(expected);
+        await Assert.That(result.IsSuccess()).IsTrue();
+        await Assert.That(result.ResolvedModel).IsEqualTo(expected);
     }
 
     [Test]
-    public async Task ResolveStrategy_Should_Throw_When_Hybrid_Triplet_Has_PureDynamic_Strategy()
+    public async Task Resolve_Should_Return_Error_When_Hybrid_Triplet_Has_PureDynamic_Strategy()
     {
         var runtime = new RuntimeInfo
         {
@@ -40,12 +41,14 @@ public sealed class StrategyResolutionTests
             Runner = "windows-latest",
         };
 
-        await Assert.That(() => StrategyResolver.Resolve(runtime))
-            .Throws<InvalidOperationException>();
+        var result = CreateResolver().Resolve(runtime);
+
+        await Assert.That(result.IsError()).IsTrue();
+        await Assert.That(result.ResolutionError.Message).Contains("implies");
     }
 
     [Test]
-    public async Task ResolveStrategy_Should_Throw_When_NonHybrid_Triplet_Has_HybridStatic_Strategy()
+    public async Task Resolve_Should_Return_Error_When_NonHybrid_Triplet_Has_HybridStatic_Strategy()
     {
         var runtime = new RuntimeInfo
         {
@@ -55,12 +58,14 @@ public sealed class StrategyResolutionTests
             Runner = "windows-latest",
         };
 
-        await Assert.That(() => StrategyResolver.Resolve(runtime))
-            .Throws<InvalidOperationException>();
+        var result = CreateResolver().Resolve(runtime);
+
+        await Assert.That(result.IsError()).IsTrue();
+        await Assert.That(result.ResolutionError.Message).Contains("Stock triplets can only be used with 'pure-dynamic' strategy.");
     }
 
     [Test]
-    public async Task ResolveStrategy_Should_Throw_When_Strategy_Field_Is_Unknown()
+    public async Task Resolve_Should_Return_Error_When_Strategy_Field_Is_Unknown()
     {
         var runtime = new RuntimeInfo
         {
@@ -70,12 +75,14 @@ public sealed class StrategyResolutionTests
             Runner = "windows-latest",
         };
 
-        await Assert.That(() => StrategyResolver.Resolve(runtime))
-            .Throws<InvalidOperationException>();
+        var result = CreateResolver().Resolve(runtime);
+
+        await Assert.That(result.IsError()).IsTrue();
+        await Assert.That(result.ResolutionError.Message).Contains("Unknown strategy");
     }
 
     [Test]
-    public async Task ResolveStrategy_Should_Throw_When_Strategy_Field_Is_Empty()
+    public async Task Resolve_Should_Return_Error_When_Strategy_Field_Is_Empty()
     {
         var runtime = new RuntimeInfo
         {
@@ -85,14 +92,16 @@ public sealed class StrategyResolutionTests
             Runner = "windows-latest",
         };
 
-        await Assert.That(() => StrategyResolver.Resolve(runtime))
-            .Throws<InvalidOperationException>();
+        var result = CreateResolver().Resolve(runtime);
+
+        await Assert.That(result.IsError()).IsTrue();
+        await Assert.That(result.ResolutionError.Message).Contains("has no strategy field");
     }
 
     [Test]
     [Arguments("arm64-windows", "pure-dynamic")]
     [Arguments("x86-windows", "pure-dynamic")]
-    public async Task ResolveStrategy_Should_Accept_Stock_Triplets_With_PureDynamic(string triplet, string strategyField)
+    public async Task Resolve_Should_Accept_Stock_Triplets_With_PureDynamic(string triplet, string strategyField)
     {
         var runtime = new RuntimeInfo
         {
@@ -102,13 +111,14 @@ public sealed class StrategyResolutionTests
             Runner = "test-runner",
         };
 
-        var result = StrategyResolver.Resolve(runtime);
+        var result = CreateResolver().Resolve(runtime);
 
-        await Assert.That(result).IsEqualTo(PackagingModel.PureDynamic);
+        await Assert.That(result.IsSuccess()).IsTrue();
+        await Assert.That(result.ResolvedModel).IsEqualTo(PackagingModel.PureDynamic);
     }
 
     [Test]
-    public async Task ResolveStrategy_Should_Throw_When_Stock_Triplet_Has_HybridStatic_Strategy()
+    public async Task Resolve_Should_Return_Error_When_Stock_Triplet_Has_HybridStatic_Strategy()
     {
         var runtime = new RuntimeInfo
         {
@@ -118,7 +128,14 @@ public sealed class StrategyResolutionTests
             Runner = "windows-latest",
         };
 
-        await Assert.That(() => StrategyResolver.Resolve(runtime))
-            .Throws<InvalidOperationException>();
+        var result = CreateResolver().Resolve(runtime);
+
+        await Assert.That(result.IsError()).IsTrue();
+        await Assert.That(result.ResolutionError.Message).Contains("Stock triplets can only be used with 'pure-dynamic' strategy.");
+    }
+
+    private static StrategyResolver CreateResolver()
+    {
+        return new StrategyResolver();
     }
 }

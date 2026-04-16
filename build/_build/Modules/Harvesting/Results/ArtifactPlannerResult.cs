@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Build.Modules.Harvesting.Models;
 using OneOf;
 using OneOf.Monads;
@@ -45,29 +44,4 @@ public sealed class ArtifactPlannerResult(OneOf<Error<HarvestingError>, Success<
     public DeploymentPlan DeploymentPlan => SuccessValue();
 
     public ArtifactPlannerError AsArtifactPlannerError() => (ArtifactPlannerError)AsT0.Value;
-}
-
-public static class ArtifactPlannerResultExtensions
-{
-    public static Result<HarvestingError, DeploymentPlan> ToResult(this ArtifactPlannerResult self) => self;
-
-    [SuppressMessage("Usage", "VSTHRD003:Avoid awaiting foreign Tasks")]
-    public static async Task<Result<HarvestingError, DeploymentPlan>> ToResult(this Task<ArtifactPlannerResult> self)
-    {
-        ArgumentNullException.ThrowIfNull(self);
-
-        var cr = await self.ConfigureAwait(false);
-        return cr;
-    }
-
-    public static void OnError(this ArtifactPlannerResult result, Action<HarvestingError> errorHandler)
-    {
-        ArgumentNullException.ThrowIfNull(result);
-        ArgumentNullException.ThrowIfNull(errorHandler);
-
-        if (result.IsError())
-        {
-            errorHandler(result.AsT0.Value);
-        }
-    }
 }

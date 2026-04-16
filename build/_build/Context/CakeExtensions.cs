@@ -1,5 +1,4 @@
 ﻿using System.Runtime.InteropServices;
-using System.IO;
 using System.Text.Json;
 using Cake.Common.IO;
 using Cake.Core;

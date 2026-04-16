@@ -13,6 +13,7 @@ using Build.Modules.Contracts;
 using Build.Modules.Coverage;
 using Build.Modules.DependencyAnalysis;
 using Build.Modules.Harvesting;
+using Build.Modules.Preflight;
 using Build.Modules.Strategy;
 using Build.Modules.Strategy.Models;
 using Cake.Core;
@@ -101,12 +102,17 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton<IArtifactDeployer, ArtifactDeployer>();
     services.AddSingleton<ICoberturaReader, CoberturaReader>();
     services.AddSingleton<ICoverageBaselineReader, CoverageBaselineReader>();
+    services.AddSingleton<IVersionConsistencyValidator, VersionConsistencyValidator>();
+    services.AddSingleton<IStrategyResolver, StrategyResolver>();
+    services.AddSingleton<IStrategyCoherenceValidator, StrategyCoherenceValidator>();
+    services.AddSingleton<IPreflightReporter, PreflightReporter>();
 
     services.AddSingleton<IPackagingStrategy>(provider =>
     {
         var manifest = provider.GetRequiredService<ManifestConfig>();
         var runtimeConfig = provider.GetRequiredService<RuntimeConfig>();
         var runtimeProfile = provider.GetRequiredService<IRuntimeProfile>();
+        var strategyResolver = provider.GetRequiredService<IStrategyResolver>();
 
         var coreLibraryName = manifest.PackagingConfig.CoreLibrary;
 
@@ -114,7 +120,13 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
             ?? throw new InvalidOperationException(
                 $"RID '{runtimeProfile.Rid}' was not found in manifest runtimes during strategy resolution.");
 
-        var model = StrategyResolver.Resolve(runtime);
+        var resolution = strategyResolver.Resolve(runtime);
+        if (resolution.IsError())
+        {
+            throw new InvalidOperationException(resolution.ResolutionError.Message, resolution.ResolutionError.Exception);
+        }
+
+        var model = resolution.ResolvedModel;
 
         return model switch
         {

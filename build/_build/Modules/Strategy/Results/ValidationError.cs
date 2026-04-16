@@ -31,3 +31,11 @@ public sealed class ValidationError : StrategyError
         Violations = [.. violations]; // Defensive copy
     }
 }
+
+public sealed class StrategyResolutionError : StrategyError
+{
+    public StrategyResolutionError(string message, Exception? exception = null)
+        : base(message, exception)
+    {
+    }
+}

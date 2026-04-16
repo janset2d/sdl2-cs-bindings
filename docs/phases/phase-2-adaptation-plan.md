@@ -1,9 +1,9 @@
 # Phase 2 Adaptation Plan — Release Lifecycle Implementation
 
 **Date:** 2026-04-15
-**Status:** Approved — implementation in progress (Streams A-safe and B landed)
+**Status:** Approved — implementation in progress (Streams A-safe and B landed; #85 closed, #87 follow-up open)
 **Prerequisite:** [Release Lifecycle Direction](../knowledge-base/release-lifecycle-direction.md) (locked)
-**Issue context:** #54, #55, #63, #83, #85
+**Issue context:** #54, #55, #63, #83, #85, #87
 
 ## Context
 
@@ -20,7 +20,7 @@ This is a multi-session project. The plan designs the full picture, identifies t
 - Managed packages already reference their native counterparts (ProjectReference)
 - Native packages are payload-only (no compiled assemblies, pack runtimes + .targets)
 - Manifest v2.1 schema with runtimes, library_manifests, system_exclusions, package_families
-- Strategy layer implemented + wired (Program.cs DI + HarvestTask validation + PreFlight coherence), 235 tests passing (post coverage-ratchet landing) (#85)
+- Strategy layer implemented + wired (Program.cs DI + HarvestTask validation + PreFlight coherence), with subsequent PreFlight cleanup aligned closer to Harvesting-style service boundaries; 241 tests currently passing (#85)
 - Coverage ratchet infrastructure landed (#86): `ICoberturaReader` + `ICoverageBaselineReader` + `CoverageThresholdValidator` + `CoverageCheckTask`, OneOf result monad, Cake-native `IFileSystem` I/O, `build/coverage-baseline.json` floor (60.0% line / 49.0% branch vs measured 62.62% / 50.96%). Runs locally via `dotnet cake --target=Coverage-Check`; CI gate wiring deferred to Stream C PreflightGate.
 - NuGet.Versioning is available in Cake build host
 - release-candidate-pipeline has `fromJson()` pattern prototyped (but with wrong matrix shape)
@@ -179,7 +179,7 @@ B-done = the live pipeline respects the already-landed strategy layer. The 196 e
 2. HarvestTask validation step (call validator after closure walk)
 3. PreFlightCheck strategy coherence (call StrategyResolver for all runtimes). **If B touches PreFlightCheck code, leave a clean version-resolution seam so Amendment 1 (Stream C) can plug in without a second invasive rewrite.** PreFlight version resolution itself is still Stream C's work; B just makes it easy to add.
 
-**HarvestPipeline extraction is explicitly OUT of #85 closure.** Track as a separate follow-up issue. This prevents the "98% done forever" trap. Extraction is cleanliness work; it is not the same as landing the policy seam into runtime behavior.
+**HarvestPipeline extraction is explicitly OUT of #85 closure.** It is tracked separately in #87. This prevents the "98% done forever" trap. Extraction is cleanliness work; it is not the same as landing the policy seam into runtime behavior.
 
 Design reference: `docs/research/cake-strategy-implementation-brief-2026-04-14.md`.
 

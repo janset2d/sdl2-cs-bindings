@@ -9,13 +9,10 @@ using Build.Modules.Strategy;
 using Build.Modules.Strategy.Models;
 using Build.Tests.Fixtures;
 using Cake.Core;
-using Cake.Core.Configuration;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
-using Cake.Core.Tooling;
 using Cake.Testing;
 using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
 
 namespace Build.Tests.Unit.CompositionRoot;
 
@@ -154,10 +151,12 @@ public sealed class ProgramCompositionRootTests
         using var provider = services.BuildServiceProvider();
 
         var strategy = provider.GetRequiredService<IPackagingStrategy>();
+        var strategyResolver = provider.GetRequiredService<IStrategyResolver>();
         var validator = provider.GetRequiredService<IDependencyPolicyValidator>();
 
         await Assert.That(strategy.Model).IsEqualTo(PackagingModel.HybridStatic);
         await Assert.That(strategy.GetType()).IsEqualTo(typeof(HybridStaticStrategy));
+        await Assert.That(strategyResolver.GetType()).IsEqualTo(typeof(StrategyResolver));
         await Assert.That(validator.GetType()).IsEqualTo(typeof(HybridStaticValidator));
     }
 
@@ -182,10 +181,12 @@ public sealed class ProgramCompositionRootTests
         using var provider = services.BuildServiceProvider();
 
         var strategy = provider.GetRequiredService<IPackagingStrategy>();
+        var strategyResolver = provider.GetRequiredService<IStrategyResolver>();
         var validator = provider.GetRequiredService<IDependencyPolicyValidator>();
 
         await Assert.That(strategy.Model).IsEqualTo(PackagingModel.PureDynamic);
         await Assert.That(strategy.GetType()).IsEqualTo(typeof(PureDynamicStrategy));
+        await Assert.That(strategyResolver.GetType()).IsEqualTo(typeof(StrategyResolver));
         await Assert.That(validator.GetType()).IsEqualTo(typeof(PureDynamicValidator));
     }
 

@@ -1,5 +1,7 @@
 using Build.Context.Models;
+using Build.Modules.Contracts;
 using Build.Modules.Strategy.Models;
+using Build.Modules.Strategy.Results;
 
 namespace Build.Modules.Strategy;
 
@@ -12,7 +14,7 @@ namespace Build.Modules.Strategy;
 /// must be <c>pure-dynamic</c>. Triplets matching neither known pattern are rejected.
 /// </para>
 /// </summary>
-public static class StrategyResolver
+public sealed class StrategyResolver : IStrategyResolver
 {
     /// <summary>
     /// Resolves the packaging model from a runtime entry, validating strategy↔triplet coherence.
@@ -22,25 +24,31 @@ public static class StrategyResolver
     /// <exception cref="InvalidOperationException">
     /// Thrown when the strategy field is missing, unknown, or inconsistent with the triplet name.
     /// </exception>
-    public static PackagingModel Resolve(RuntimeInfo runtime)
+    public StrategyResolutionResult Resolve(RuntimeInfo runtime)
     {
         ArgumentNullException.ThrowIfNull(runtime);
 
         if (string.IsNullOrEmpty(runtime.Strategy))
         {
-            throw new InvalidOperationException(
+            return new StrategyResolutionError(
                 $"Runtime '{runtime.Rid}' has no strategy field. " +
                 "manifest.json schema v2 requires an explicit strategy per runtime entry.");
         }
 
-        var declared = runtime.Strategy switch
+        PackagingModel declaredModel;
+        switch (runtime.Strategy)
         {
-            "hybrid-static" => PackagingModel.HybridStatic,
-            "pure-dynamic" => PackagingModel.PureDynamic,
-            _ => throw new InvalidOperationException(
-                $"Unknown strategy '{runtime.Strategy}' for RID {runtime.Rid}. " +
-                "Valid values: 'hybrid-static', 'pure-dynamic'."),
-        };
+            case "hybrid-static":
+                declaredModel = PackagingModel.HybridStatic;
+                break;
+            case "pure-dynamic":
+                declaredModel = PackagingModel.PureDynamic;
+                break;
+            default:
+                return new StrategyResolutionError(
+                    $"Unknown strategy '{runtime.Strategy}' for RID {runtime.Rid}. " +
+                    "Valid values: 'hybrid-static', 'pure-dynamic'.");
+        }
 
         // Coherence check: triplet must match a known pattern
         var triplet = runtime.Triplet;
@@ -51,28 +59,28 @@ public static class StrategyResolver
         {
             // Stock triplets (e.g., arm64-windows, x86-windows) are treated as pure-dynamic
             // but only if the declared strategy agrees
-            if (declared != PackagingModel.PureDynamic)
+            if (declaredModel != PackagingModel.PureDynamic)
             {
-                throw new InvalidOperationException(
+                return new StrategyResolutionError(
                     $"Triplet '{triplet}' has no recognized strategy suffix (-hybrid or -dynamic) " +
                     $"but manifest declares '{runtime.Strategy}' for RID {runtime.Rid}. " +
                     "Stock triplets can only be used with 'pure-dynamic' strategy.");
             }
 
-            return declared;
+            return declaredModel;
         }
 
         var expectedFromTriplet = isHybridTriplet
             ? PackagingModel.HybridStatic
             : PackagingModel.PureDynamic;
 
-        if (expectedFromTriplet != declared)
+        if (expectedFromTriplet != declaredModel)
         {
-            throw new InvalidOperationException(
+            return new StrategyResolutionError(
                 $"Triplet '{triplet}' implies {expectedFromTriplet} but manifest declares '{runtime.Strategy}' for RID {runtime.Rid}. " +
                 "Fix the strategy field in manifest.json or use the correct triplet.");
         }
 
-        return declared;
+        return declaredModel;
     }
 }
