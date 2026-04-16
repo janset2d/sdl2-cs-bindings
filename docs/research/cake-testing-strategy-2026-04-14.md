@@ -112,7 +112,7 @@ Intent:
 
 ## Key Finding: Cake.Testing Package
 
-Cake provides an official `Cake.Testing` NuGet package (v5.0.0, compatible with our Cake.Frosting 5.0.0 / Cake.Core 5.0.0). This package provides fake implementations of core Cake infrastructure:
+Cake provides an official `Cake.Testing` NuGet package (v6.1.0, compatible with our Cake.Frosting 6.1.0 / Cake.Core 6.1.0). This package provides fake implementations of core Cake infrastructure:
 
 | Fake | Replaces | Purpose |
 | --- | --- | --- |

@@ -103,7 +103,7 @@ These decisions were made during the packaging strategy research cycle (April 20
 
 | Component | Status |
 | --- | --- |
-| Cake Frosting host | Working (.NET 9.0, Cake.Frosting 5.0.0) |
+| Cake Frosting host | Working (.NET 9.0, Cake.Frosting 6.1.0) |
 | DI-based service architecture | Working (IPathService, IRuntimeProfile, etc.) |
 | BinaryClosureWalker (Windows/dumpbin) | Working |
 | Dumpbin tool discovery (Windows) | Working (checks `VCToolsInstallDir` first, then `vswhere` + MSVC candidate probing) |
