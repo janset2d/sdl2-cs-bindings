@@ -1,4 +1,5 @@
 using Build.Modules.Coverage.Models;
+using Build.Modules.Results;
 
 namespace Build.Modules.Coverage.Results;
 
@@ -6,19 +7,12 @@ namespace Build.Modules.Coverage.Results;
 /// Base class for coverage ratchet errors. Mirrors the <c>StrategyError</c> / <c>HarvestingError</c>
 /// hierarchy used elsewhere in the build host.
 /// </summary>
-public abstract class CoverageError
+public abstract class CoverageError : BuildError
 {
     protected CoverageError(string message, Exception? exception = null)
+        : base(message, exception)
     {
-        Message = message;
-        Exception = exception;
     }
-
-    /// <summary>Human-readable error description.</summary>
-    public string Message { get; }
-
-    /// <summary>Optional underlying exception.</summary>
-    public Exception? Exception { get; }
 }
 
 /// <summary>

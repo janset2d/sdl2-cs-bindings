@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Build.Models;
+namespace Build.Modules.Harvesting.Models;
 
 /// <summary>
 /// Represents the status of a harvest operation for a specific library and RID combination.

@@ -46,6 +46,22 @@
 
 **Opportunity.** Either accept them as ephemeral snapshots, or add a dedicated ratchet-raise flow that recomputes and rewrites them automatically.
 
+### 6. Build-host blackbox task E2E layer should be planned explicitly
+
+**What.** The build-host test suite is now much healthier at the whitebox/unit level, but we still need a thin blackbox layer above it that locks task input/output behavior even when task internals are heavily refactored.
+
+**Impact.** Without a small blackbox envelope, large refactors in `PreFlightCheckTask`, `HarvestTask`, or `ConsolidateHarvestTask` can keep unit tests green while still changing observable task behavior, emitted files, exit/failure semantics, or log/report shape in ways we did not intend.
+
+**Opportunity.** Plan a dedicated blackbox task-flow layer for the build host. Scope it around stable behavior contracts rather than internals: given repo-shaped inputs, did the task succeed/fail, emit the expected output artifacts/status files, and preserve the intended error contract? This should sit above the hermetic unit tests, not replace them.
+
+### 7. Typed result wrappers still have enough repetition to justify a small shared layer
+
+**What.** A shared base error type now covers the common `Message` + optional `Exception` shape, but the typed result wrappers still repeat a recognizable pattern of conversions, `ToResult`, and named success properties.
+
+**Impact.** The current design is readable, but the repeated wrapper boilerplate still makes each new result family more expensive than it should be.
+
+**Opportunity.** If this keeps growing, introduce a light shared result-wrapper helper or generation pattern. Keep it small and domain-friendly; do not collapse everything into a mega-generic abstraction.
+
 ## Cake 6.1 Follow-Through Map
 
 1. **Landed.** Package pins and the core build-host docs are on Cake 6.1.x. Keep version sweeps cheap whenever those docs are touched again.

@@ -1,23 +1,17 @@
 using Build.Modules.Harvesting.Models;
+using Build.Modules.Results;
 
 namespace Build.Modules.Strategy.Results;
 
 /// <summary>
 /// Base class for packaging strategy validation errors.
 /// </summary>
-public abstract class StrategyError
+public abstract class StrategyError : BuildError
 {
     protected StrategyError(string message, Exception? exception = null)
+        : base(message, exception)
     {
-        Message = message;
-        Exception = exception;
     }
-
-    /// <summary>Human-readable error description.</summary>
-    public string Message { get; }
-
-    /// <summary>Optional underlying exception.</summary>
-    public Exception? Exception { get; }
 }
 
 /// <summary>

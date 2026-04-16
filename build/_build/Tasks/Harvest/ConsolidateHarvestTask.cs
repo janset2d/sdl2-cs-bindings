@@ -1,7 +1,7 @@
 #pragma warning disable CA1031
 
 using Build.Context;
-using Build.Models;
+using Build.Modules.Harvesting.Models;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;

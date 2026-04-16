@@ -1,14 +1,11 @@
-﻿namespace Build.Modules.Harvesting.Results;
+﻿using Build.Modules.Results;
 
-public abstract class HarvestingError
+namespace Build.Modules.Harvesting.Results;
+
+public abstract class HarvestingError : BuildError
 {
     protected HarvestingError(string message, Exception? exception = null)
+        : base(message, exception)
     {
-        Message = message;
-        Exception = exception;
     }
-
-    public string Message { get; }
-
-    public Exception? Exception { get; }
 }

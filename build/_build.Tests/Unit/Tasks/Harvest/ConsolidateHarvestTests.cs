@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Build.Models;
+using Build.Modules.Harvesting.Models;
 using Build.Tests.Fixtures;
 using Build.Tasks.Harvest;
 
