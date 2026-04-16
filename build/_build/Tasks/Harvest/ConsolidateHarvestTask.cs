@@ -82,7 +82,7 @@ public sealed class ConsolidateHarvestTask : AsyncFrostingTask<BuildContext>
             {
                 try
                 {
-                    var jsonContent = await File.ReadAllTextAsync(statusFile.FullPath);
+                    var jsonContent = await context.ReadAllTextAsync(statusFile);
                     var ridStatus = JsonSerializer.Deserialize<RidHarvestStatus>(jsonContent, JsonOptions);
 
                     if (ridStatus != null)
@@ -109,14 +109,14 @@ public sealed class ConsolidateHarvestTask : AsyncFrostingTask<BuildContext>
             // Write harvest manifest
             var manifestPath = libraryDir.CombineWithFilePath("harvest-manifest.json");
             var manifestJson = JsonSerializer.Serialize(manifest, JsonOptions);
-            await File.WriteAllTextAsync(manifestPath.FullPath, manifestJson);
+            await context.WriteAllTextAsync(manifestPath, manifestJson);
 
             context.Log.Information("Generated harvest manifest for {0}: {1}", libraryName, manifestPath);
 
             // Generate separate summary file
             var summaryPath = libraryDir.CombineWithFilePath("harvest-summary.json");
             var summaryJson = JsonSerializer.Serialize(manifest.Summary, JsonOptions);
-            await File.WriteAllTextAsync(summaryPath.FullPath, summaryJson);
+            await context.WriteAllTextAsync(summaryPath, summaryJson);
 
             context.Log.Information("Generated harvest summary for {0}: {1}", libraryName, summaryPath);
         }

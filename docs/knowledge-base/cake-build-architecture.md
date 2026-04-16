@@ -150,6 +150,60 @@ Merges per-RID status files into library-wide manifests.
 **Input**: All `{rid}.json` files from `artifacts/harvest_output/{Library}/rid-status/`
 **Output**: `harvest-manifest.json` + `harvest-summary.json`
 
+## Writing Build-Host Tests
+
+### Hermetic Task Tests: `FakeRepoBuilder`
+
+Task-level tests in `build/_build.Tests/` should model repo state through the Cake-native fake filesystem, not temp directories or `System.IO.File.*` calls.
+
+Canonical entry point: `build/_build.Tests/Fixtures/FakeRepoBuilder.cs`
+
+What it provides:
+
+- Fake repo root + `FakeFileSystem` + `FakeEnvironment`
+- Real `PathService` topology over fake paths, so tests exercise the same semantic path model as production code
+- Fluent writers for common repo artifacts: `manifest.json`, `vcpkg.json`, coverage baseline, cobertura report, harvest RID status files
+- Async read helpers on the returned handles for output assertions (`ReadAllTextAsync`)
+- Optional `VcpkgInstalledFake` layout builder for future tests that need a fake `vcpkg_installed/<triplet>/...` tree
+
+Pattern:
+
+```csharp
+var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
+  .WithManifest(manifest)
+  .WithVcpkgJson(vcpkgManifest)
+  .BuildContextWithHandles();
+
+var task = new PreFlightCheckTask();
+task.Run(repo.BuildContext);
+
+await Assert.That(repo.Exists("artifacts/harvest_output/SDL2/rid-status/win-x64.json")).IsTrue();
+```
+
+### Real-Repo Characterization Tests: `WorkspaceFiles`
+
+Characterization tests that intentionally inspect committed repo files (`build/manifest.json`, `vcpkg.json`) should still avoid `System.IO.File.*` and `System.IO.Directory.*` directly.
+
+Canonical entry point: `build/_build.Tests/Fixtures/WorkspaceFiles.cs`
+
+Use it to:
+
+- Resolve the workspace repo root from `AppContext.BaseDirectory`
+- Read committed files through Cake's physical `FileSystem`
+- Keep the "real repo contract" intent while preserving the build host's Cake-native I/O discipline
+
+### Production I/O Rule For Testability
+
+If a build-host task or helper must read or write repo files that task tests need to fake, route that I/O through Cake abstractions.
+
+Current canonical helpers live in `build/_build/Context/CakeExtensions.cs`:
+
+- `ToJson<TModel>()` / `ToJsonAsync<TModel>()`
+- `ReadAllTextAsync()`
+- `WriteAllTextAsync()`
+
+If new production code reaches for `System.IO.File.*` directly, it will likely bypass `FakeFileSystem` and force tests back onto real disk. That is considered regression territory for the build-host test infra.
+
 ### PreFlightCheckTask
 
 Validates configuration consistency before builds (partial gate).

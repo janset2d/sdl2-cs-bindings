@@ -7,7 +7,6 @@ using Cake.Common.Diagnostics;
 using Cake.Core;
 using Cake.Core.IO;
 using Cake.Core.Tooling;
-using Path = System.IO.Path;
 
 namespace Build.Tools.Otool;
 
@@ -203,12 +202,14 @@ public sealed partial class OtoolRunner : Tool<OtoolSettings>
 
         if (!fullPath.Contains(".framework/", StringComparison.Ordinal))
         {
-            return Path.GetFileName(fullPath);
+            return new FilePath(fullPath).GetFilename().FullPath;
         }
 
         var frameworkMatch = FrameworkNameExtractor().Match(fullPath);
 
-        return frameworkMatch.Success ? frameworkMatch.Groups["framework"].Value : Path.GetFileName(fullPath);
+        return frameworkMatch.Success
+            ? frameworkMatch.Groups["framework"].Value
+            : new FilePath(fullPath).GetFilename().FullPath;
     }
 
     private sealed record DependencyInfo(string FullPath);

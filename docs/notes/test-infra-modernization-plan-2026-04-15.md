@@ -20,6 +20,14 @@ The coverage-ratchet session added `CoverageCheckTaskRunTests` that replicates t
 
 ## Scope
 
+### Execution amendment (2026-04-15, same day)
+
+Approved during execution:
+
+- First pass widened from a strict pilot to a bigger initial wave: `PreFlightCheckTaskRunTests` + `CoverageCheckTaskRunTests` together, followed by the harvest/consolidation/composition-root task tier in the same session when practical.
+- The cleanup target widened from "task-level run tests only" to a repo-wide build-test rule: `build/_build.Tests/` should not use `System.IO.File.*`, `System.IO.Directory.*`, or temp-directory scaffolding directly. Even characterization tests that intentionally inspect the real repo should do so through Cake's `FileSystem`, not raw `System.IO` static APIs.
+- `FakeRepoBuilder` is a reusable test-infra primitive, not a one-off helper for this session. Async read helpers are part of the intended shape so future tests can assert on generated outputs without falling back to ad-hoc utilities.
+
 ### In scope — migrate to `FakeFileSystem`
 
 | Test class | Tests | Disk payload today |

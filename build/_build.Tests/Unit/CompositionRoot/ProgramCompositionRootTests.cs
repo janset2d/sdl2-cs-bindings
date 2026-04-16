@@ -2,10 +2,12 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Reflection;
 using Build.Context;
+using Build.Context.Models;
 using Build.Context.Options;
 using Build.Modules.Contracts;
 using Build.Modules.Strategy;
 using Build.Modules.Strategy.Models;
+using Build.Tests.Fixtures;
 using Cake.Core;
 using Cake.Core.Configuration;
 using Cake.Core.Diagnostics;
@@ -123,23 +125,12 @@ public sealed class ProgramCompositionRootTests
     public async Task DetermineRepoRootAsync_Should_Use_RepoRoot_Argument_When_Path_Exists()
     {
         var method = GetProgramHelper("g__DetermineRepoRootAsync", typeof(DirectoryInfo));
-        var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "build-program-tests", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(path);
+        var repoRoot = WorkspaceFiles.RepoRoot;
 
-        try
-        {
-            var task = (Task<DirectoryPath>)method.Invoke(null, [new DirectoryInfo(path)])!;
-            var result = await task;
+        var task = (Task<DirectoryPath>)method.Invoke(null, [new DirectoryInfo(repoRoot.FullPath)])!;
+        var result = await task;
 
-            await Assert.That(result.FullPath).IsEqualTo(new DirectoryPath(path).FullPath);
-        }
-        finally
-        {
-            if (Directory.Exists(path))
-            {
-                Directory.Delete(path, recursive: true);
-            }
-        }
+        await Assert.That(result.FullPath).IsEqualTo(repoRoot.FullPath);
     }
 
     [Test]
@@ -151,29 +142,23 @@ public sealed class ProgramCompositionRootTests
             typeof(ParsedArguments),
             typeof(DirectoryPath));
 
-        var repoRoot = CreateTempRepoRoot();
-        try
-        {
-            await WriteManifestJsonAsync(repoRoot, "hybrid-static", "x64-windows-hybrid");
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
+            .WithManifest(CreateCompositionRootManifest("hybrid-static", "x64-windows-hybrid"))
+            .BuildContextWithHandles();
 
-            var services = CreateServiceCollectionForCompositionRoot();
-            var parsedArguments = CreateParsedArguments(repoRoot, "win-x64");
+        var services = CreateServiceCollectionForCompositionRoot(repo);
+        var parsedArguments = CreateParsedArguments(repo.RepoRoot.FullPath, "win-x64");
 
-            method.Invoke(null, [services, parsedArguments, new DirectoryPath(repoRoot)]);
+        method.Invoke(null, [services, parsedArguments, repo.RepoRoot]);
 
-            using var provider = services.BuildServiceProvider();
+        using var provider = services.BuildServiceProvider();
 
-            var strategy = provider.GetRequiredService<IPackagingStrategy>();
-            var validator = provider.GetRequiredService<IDependencyPolicyValidator>();
+        var strategy = provider.GetRequiredService<IPackagingStrategy>();
+        var validator = provider.GetRequiredService<IDependencyPolicyValidator>();
 
-            await Assert.That(strategy.Model).IsEqualTo(PackagingModel.HybridStatic);
-            await Assert.That(strategy.GetType()).IsEqualTo(typeof(HybridStaticStrategy));
-            await Assert.That(validator.GetType()).IsEqualTo(typeof(HybridStaticValidator));
-        }
-        finally
-        {
-            DeleteDirectoryQuietly(repoRoot);
-        }
+        await Assert.That(strategy.Model).IsEqualTo(PackagingModel.HybridStatic);
+        await Assert.That(strategy.GetType()).IsEqualTo(typeof(HybridStaticStrategy));
+        await Assert.That(validator.GetType()).IsEqualTo(typeof(HybridStaticValidator));
     }
 
     [Test]
@@ -185,29 +170,23 @@ public sealed class ProgramCompositionRootTests
             typeof(ParsedArguments),
             typeof(DirectoryPath));
 
-        var repoRoot = CreateTempRepoRoot();
-        try
-        {
-            await WriteManifestJsonAsync(repoRoot, "pure-dynamic", "x64-windows");
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
+            .WithManifest(CreateCompositionRootManifest("pure-dynamic", "x64-windows"))
+            .BuildContextWithHandles();
 
-            var services = CreateServiceCollectionForCompositionRoot();
-            var parsedArguments = CreateParsedArguments(repoRoot, "win-x64");
+        var services = CreateServiceCollectionForCompositionRoot(repo);
+        var parsedArguments = CreateParsedArguments(repo.RepoRoot.FullPath, "win-x64");
 
-            method.Invoke(null, [services, parsedArguments, new DirectoryPath(repoRoot)]);
+        method.Invoke(null, [services, parsedArguments, repo.RepoRoot]);
 
-            using var provider = services.BuildServiceProvider();
+        using var provider = services.BuildServiceProvider();
 
-            var strategy = provider.GetRequiredService<IPackagingStrategy>();
-            var validator = provider.GetRequiredService<IDependencyPolicyValidator>();
+        var strategy = provider.GetRequiredService<IPackagingStrategy>();
+        var validator = provider.GetRequiredService<IDependencyPolicyValidator>();
 
-            await Assert.That(strategy.Model).IsEqualTo(PackagingModel.PureDynamic);
-            await Assert.That(strategy.GetType()).IsEqualTo(typeof(PureDynamicStrategy));
-            await Assert.That(validator.GetType()).IsEqualTo(typeof(PureDynamicValidator));
-        }
-        finally
-        {
-            DeleteDirectoryQuietly(repoRoot);
-        }
+        await Assert.That(strategy.Model).IsEqualTo(PackagingModel.PureDynamic);
+        await Assert.That(strategy.GetType()).IsEqualTo(typeof(PureDynamicStrategy));
+        await Assert.That(validator.GetType()).IsEqualTo(typeof(PureDynamicValidator));
     }
 
     private static MethodInfo GetProgramHelper(string methodNameFragment, params Type[] parameterTypes)
@@ -274,37 +253,14 @@ public sealed class ProgramCompositionRootTests
         return root;
     }
 
-        private static ServiceCollection CreateServiceCollectionForCompositionRoot()
+        private static ServiceCollection CreateServiceCollectionForCompositionRoot(FakeRepoHandles repo)
         {
                 var services = new ServiceCollection();
-                var environment = FakeEnvironment.CreateWindowsEnvironment();
-                var fileSystem = new FileSystem();
-                var context = CreateCakeContext(environment, fileSystem);
-
-                services.AddSingleton<ICakeEnvironment>(environment);
-                services.AddSingleton<ICakeContext>(context);
+            services.AddSingleton<ICakeEnvironment>(repo.Environment);
+            services.AddSingleton<ICakeContext>(repo.CakeContext);
                 services.AddSingleton<ICakeLog>(new FakeLog());
 
                 return services;
-        }
-
-        private static ICakeContext CreateCakeContext(ICakeEnvironment environment, IFileSystem fileSystem)
-        {
-                var globber = new Globber(fileSystem, environment);
-
-                var cakeContext = Substitute.For<ICakeContext>();
-                cakeContext.Log.Returns(new FakeLog());
-                cakeContext.Environment.Returns(environment);
-                cakeContext.FileSystem.Returns(fileSystem);
-                cakeContext.Globber.Returns(globber);
-                cakeContext.Arguments.Returns(Substitute.For<ICakeArguments>());
-                cakeContext.Configuration.Returns(Substitute.For<ICakeConfiguration>());
-                cakeContext.Data.Returns(Substitute.For<ICakeDataResolver>());
-                cakeContext.ProcessRunner.Returns(Substitute.For<IProcessRunner>());
-                cakeContext.Registry.Returns(Substitute.For<IRegistry>());
-                cakeContext.Tools.Returns(Substitute.For<IToolLocator>());
-
-                return cakeContext;
         }
 
         private static ParsedArguments CreateParsedArguments(string repoRoot, string rid)
@@ -319,97 +275,25 @@ public sealed class ProgramCompositionRootTests
                         Dll: []);
         }
 
-        private static async Task WriteManifestJsonAsync(string repoRoot, string strategy, string triplet)
+        private static ManifestConfig CreateCompositionRootManifest(string strategy, string triplet)
         {
-                var buildDir = System.IO.Path.Combine(repoRoot, "build");
-                Directory.CreateDirectory(buildDir);
+                var manifest = ManifestFixture.CreateTestManifestConfig();
 
-                var manifestJson = $$"""
+                return manifest with
                 {
-                    "schema_version": "2.1",
-                    "packaging_config": {
-                        "validation_mode": "strict",
-                        "core_library": "sdl2"
-                    },
-                    "runtimes": [
-                        {
-                            "rid": "win-x64",
-                            "triplet": "{{triplet}}",
-                            "strategy": "{{strategy}}",
-                            "runner": "windows-latest",
-                            "container_image": null
-                        }
-                    ],
-                    "package_families": [
-                        {
-                            "name": "core",
-                            "tag_prefix": "core",
-                            "managed_project": "src/SDL2.Core/SDL2.Core.csproj",
-                            "native_project": "src/native/SDL2.Core.Native/SDL2.Core.Native.csproj",
-                            "library_ref": "SDL2",
-                            "depends_on": [],
-                            "change_paths": [
-                                "src/SDL2.Core/**"
-                            ]
-                        }
-                    ],
-                    "system_exclusions": {
-                        "windows": {
-                            "system_dlls": ["kernel32.dll"]
-                        },
-                        "linux": {
-                            "system_libraries": ["libc.so*"]
-                        },
-                        "osx": {
-                            "system_libraries": ["libSystem.B.dylib"]
-                        }
-                    },
-                    "library_manifests": [
-                        {
-                            "name": "SDL2",
-                            "vcpkg_name": "sdl2",
-                            "vcpkg_version": "2.32.10",
-                            "vcpkg_port_version": 0,
-                            "native_lib_name": "SDL2.Core.Native",
-                            "native_lib_version": "2.32.10.0",
-                            "core_lib": true,
-                            "primary_binaries": [
+                        Runtimes =
+                        [
+                                new RuntimeInfo
                                 {
-                                    "os": "Windows",
-                                    "patterns": ["SDL2.dll"]
-                                }
-                            ]
-                        }
-                    ]
-                }
-                """;
-
-                await File.WriteAllTextAsync(System.IO.Path.Combine(buildDir, "manifest.json"), manifestJson);
-        }
-
-        private static string CreateTempRepoRoot()
-        {
-                var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "build-program-tests", Guid.NewGuid().ToString("N"));
-                Directory.CreateDirectory(path);
-                return path;
-        }
-
-        private static void DeleteDirectoryQuietly(string path)
-        {
-                try
-                {
-                        if (Directory.Exists(path))
-                        {
-                                Directory.Delete(path, recursive: true);
-                        }
-                }
-                catch (IOException)
-                {
-                        // Best effort cleanup for temp test directories.
-                }
-                catch (UnauthorizedAccessException)
-                {
-                        // Best effort cleanup for temp test directories.
-                }
+                                        Rid = "win-x64",
+                                        Triplet = triplet,
+                                        Strategy = strategy,
+                                        Runner = "windows-latest",
+                                        ContainerImage = null,
+                                },
+                        ],
+                        PackageFamilies = [manifest.PackageFamilies.Single(family => string.Equals(family.Name, "core", StringComparison.OrdinalIgnoreCase))],
+                        LibraryManifests = [ManifestFixture.CreateTestCoreLibrary()],
+                };
         }
 }

@@ -376,7 +376,7 @@ public sealed class HarvestTask(
             var statusFilePath = ridStatusDir.CombineWithFilePath(statusFileName);
 
             var jsonContent = JsonSerializer.Serialize(ridStatus, JsonOptions);
-            await File.WriteAllTextAsync(statusFilePath.FullPath, jsonContent);
+            await context.WriteAllTextAsync(statusFilePath, jsonContent);
 
             context.Log.Information("Generated RID status file: {0}", statusFilePath);
         }
@@ -420,7 +420,7 @@ public sealed class HarvestTask(
             var statusFilePath = ridStatusDir.CombineWithFilePath(statusFileName);
 
             var jsonContent = JsonSerializer.Serialize(ridStatus, JsonOptions);
-            await File.WriteAllTextAsync(statusFilePath.FullPath, jsonContent);
+            await context.WriteAllTextAsync(statusFilePath, jsonContent);
 
             context.Log.Information("Generated error RID status file: {0}", statusFilePath);
         }

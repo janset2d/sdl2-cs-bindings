@@ -67,9 +67,13 @@ public class MacOtoolScanner : IRuntimeScanner
     {
         // Handle different path types:
         // Absolute paths: return as-is if they exist
-        if (System.IO.Path.IsPathRooted(libPath) && !libPath.StartsWith('@'))
+        if (!libPath.StartsWith('@'))
         {
-            return new FilePath(libPath);
+            var absolutePath = new FilePath(libPath);
+            if (!absolutePath.IsRelative)
+            {
+                return absolutePath;
+            }
         }
 
         // @rpath: Try to resolve relative to binary's directory

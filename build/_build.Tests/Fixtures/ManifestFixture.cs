@@ -127,9 +127,8 @@ public static class ManifestFixture
 
     private static ManifestConfig LoadManifestFromJson()
     {
-        var path = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "manifest.json");
-        using var stream = File.OpenRead(path);
-        return JsonSerializer.Deserialize<ManifestConfig>(stream)
+        var json = WorkspaceFiles.ReadAllText(WorkspaceFiles.ManifestPath);
+        return JsonSerializer.Deserialize<ManifestConfig>(json)
             ?? throw new InvalidOperationException("Failed to deserialize manifest.json");
     }
 }

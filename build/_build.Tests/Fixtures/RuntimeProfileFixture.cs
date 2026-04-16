@@ -30,9 +30,8 @@ public static class RuntimeProfileFixture
 
     private static SystemArtefactsConfig LoadSystemExclusionsFromManifest()
     {
-        var manifestPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "manifest.json");
-        using var stream = File.OpenRead(manifestPath);
-        var manifest = JsonSerializer.Deserialize<ManifestConfig>(stream)
+        var manifestJson = WorkspaceFiles.ReadAllText(WorkspaceFiles.ManifestPath);
+        var manifest = JsonSerializer.Deserialize<ManifestConfig>(manifestJson)
             ?? throw new InvalidOperationException("Failed to deserialize manifest.json");
 
         return manifest.SystemExclusions;

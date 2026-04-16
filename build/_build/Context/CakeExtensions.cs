@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using System.IO;
 using System.Text.Json;
 using Cake.Common.IO;
 using Cake.Core;
@@ -49,7 +50,8 @@ public static class CakeExtensions
         TModel? model;
         try
         {
-            using var stream = File.OpenRead(filePath.FullPath);
+            var file = cakeContext.FileSystem.GetFile(filePath);
+            using var stream = file.OpenRead();
 
             if (stream.Length == 0)
             {
@@ -93,7 +95,8 @@ public static class CakeExtensions
         TModel? model;
         try
         {
-            await using var stream = File.OpenRead(filePath.FullPath);
+            var file = cakeContext.FileSystem.GetFile(filePath);
+            await using var stream = file.OpenRead();
 
             if (stream.Length == 0)
             {
@@ -117,5 +120,35 @@ public static class CakeExtensions
         }
 
         return model;
+    }
+
+    public static async Task<string> ReadAllTextAsync(this ICakeContext cakeContext, FilePath filePath)
+    {
+        ArgumentNullException.ThrowIfNull(cakeContext);
+        ArgumentNullException.ThrowIfNull(filePath);
+
+        if (!cakeContext.FileExists(filePath))
+        {
+            throw new CakeException($"File not found at: {filePath.FullPath}");
+        }
+
+        var file = cakeContext.FileSystem.GetFile(filePath);
+        using var stream = file.OpenRead();
+        using var reader = new StreamReader(stream);
+        return await reader.ReadToEndAsync();
+    }
+
+    public static async Task WriteAllTextAsync(this ICakeContext cakeContext, FilePath filePath, string content)
+    {
+        ArgumentNullException.ThrowIfNull(cakeContext);
+        ArgumentNullException.ThrowIfNull(filePath);
+        ArgumentNullException.ThrowIfNull(content);
+
+        cakeContext.EnsureDirectoryExists(filePath.GetDirectory());
+
+        var file = cakeContext.FileSystem.GetFile(filePath);
+        await using var stream = file.Open(FileMode.Create, FileAccess.Write, FileShare.None);
+        await using var writer = new StreamWriter(stream);
+        await writer.WriteAsync(content);
     }
 }

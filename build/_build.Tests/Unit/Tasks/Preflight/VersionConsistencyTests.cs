@@ -1,4 +1,5 @@
 using Build.Tasks.Preflight;
+using Build.Tests.Fixtures;
 
 namespace Build.Tests.Unit.Tasks.Preflight;
 
@@ -62,14 +63,13 @@ public class VersionConsistencyTests
     [Test]
     public async Task RealVcpkgJson_Should_Deserialize_Successfully()
     {
-        var vcpkgPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "vcpkg.json");
-        if (!File.Exists(vcpkgPath))
+        if (!WorkspaceFiles.Exists(WorkspaceFiles.VcpkgManifestPath))
         {
             // Skip if vcpkg.json not available (CI without full checkout)
             return;
         }
 
-        var json = await File.ReadAllTextAsync(vcpkgPath).ConfigureAwait(false);
+        var json = await WorkspaceFiles.ReadAllTextAsync(WorkspaceFiles.VcpkgManifestPath).ConfigureAwait(false);
         var manifest = System.Text.Json.JsonSerializer.Deserialize<VcpkgManifest>(json);
 
         await Assert.That(manifest).IsNotNull();

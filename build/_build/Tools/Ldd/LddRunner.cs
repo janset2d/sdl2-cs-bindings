@@ -1,7 +1,6 @@
 ﻿using Cake.Core;
 using Cake.Core.IO;
 using Cake.Core.Tooling;
-using Path = System.IO.Path;
 
 namespace Build.Tools.Ldd;
 
@@ -118,7 +117,7 @@ public sealed partial class LddRunner : Tool<LddSettings>
             if (directAddressIndex > 0)
             {
                 var libPath = trimmedLine[..directAddressIndex].Trim();
-                var libName = Path.GetFileName(libPath);
+                var libName = new FilePath(libPath).GetFilename().FullPath;
 
                 dependencies[libName] = libPath;
             }

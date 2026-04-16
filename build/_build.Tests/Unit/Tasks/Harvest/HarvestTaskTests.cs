@@ -11,16 +11,15 @@ using Build.Tests.Fixtures;
 using Cake.Core;
 using Cake.Core.IO;
 using NSubstitute;
-using IOPath = System.IO.Path;
 
 namespace Build.Tests.Unit.Tasks.Harvest;
 
-public class HarvestTaskTests : TempDirectoryTestBase
+public class HarvestTaskTests
 {
     [Test]
     public async Task RunAsync_Should_Generate_Success_Rid_Status_File_When_Harvest_Completes()
     {
-        var harvestRoot = CreateTempHarvestOutputRoot();
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
 
         var library = CreateLibraryManifest("SDL2", "sdl2", isCore: true);
         var manifestConfig = CreateManifestConfig([library]);
@@ -40,14 +39,13 @@ public class HarvestTaskTests : TempDirectoryTestBase
         var mockValidator = CreatePassingValidator();
         var runtimeProfile = CreateRuntimeProfile();
         var task = new Build.Tasks.Harvest.HarvestTask(mockWalker, mockPlanner, mockDeployer, mockValidator, runtimeProfile, manifestConfig);
-        var context = TaskTestHelpers.CreateBuildContext(new DirectoryPath(harvestRoot), []);
 
-        await task.RunAsync(context);
+    await task.RunAsync(repo.BuildContext);
 
-        var statusFilePath = IOPath.Combine(harvestRoot, "SDL2", "rid-status", "win-x64.json");
-        await Assert.That(File.Exists(statusFilePath)).IsTrue();
+    const string statusFilePath = "artifacts/harvest_output/SDL2/rid-status/win-x64.json";
+    await Assert.That(repo.Exists(statusFilePath)).IsTrue();
 
-        var statusJson = await File.ReadAllTextAsync(statusFilePath);
+    var statusJson = await repo.ReadAllTextAsync(statusFilePath);
         var status = JsonSerializer.Deserialize<RidHarvestStatus>(statusJson);
 
         await Assert.That(status).IsNotNull();
@@ -61,7 +59,7 @@ public class HarvestTaskTests : TempDirectoryTestBase
     [Test]
     public async Task RunAsync_Should_Generate_Error_Rid_Status_File_When_Closure_Fails()
     {
-        var harvestRoot = CreateTempHarvestOutputRoot();
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
 
         var library = CreateLibraryManifest("SDL2", "sdl2", isCore: true);
         var manifestConfig = CreateManifestConfig([library]);
@@ -76,12 +74,11 @@ public class HarvestTaskTests : TempDirectoryTestBase
 
         var runtimeProfile = CreateRuntimeProfile();
         var task = new Build.Tasks.Harvest.HarvestTask(mockWalker, mockPlanner, mockDeployer, mockValidator, runtimeProfile, manifestConfig);
-        var context = TaskTestHelpers.CreateBuildContext(new DirectoryPath(harvestRoot), []);
 
         var thrown = false;
         try
         {
-            await task.RunAsync(context);
+            await task.RunAsync(repo.BuildContext);
         }
         catch (CakeException ex)
         {
@@ -91,10 +88,10 @@ public class HarvestTaskTests : TempDirectoryTestBase
 
         await Assert.That(thrown).IsTrue();
 
-        var statusFilePath = IOPath.Combine(harvestRoot, "SDL2", "rid-status", "win-x64.json");
-        await Assert.That(File.Exists(statusFilePath)).IsTrue();
+    const string statusFilePath = "artifacts/harvest_output/SDL2/rid-status/win-x64.json";
+    await Assert.That(repo.Exists(statusFilePath)).IsTrue();
 
-        var statusJson = await File.ReadAllTextAsync(statusFilePath);
+    var statusJson = await repo.ReadAllTextAsync(statusFilePath);
         var status = JsonSerializer.Deserialize<RidHarvestStatus>(statusJson);
 
         await Assert.That(status).IsNotNull();
@@ -106,7 +103,9 @@ public class HarvestTaskTests : TempDirectoryTestBase
     [Test]
     public async Task RunAsync_Should_Harvest_Only_Specified_Libraries_From_Vcpkg_Options()
     {
-        var harvestRoot = CreateTempHarvestOutputRoot();
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
+            .WithLibraries("SDL2_image")
+            .BuildContextWithHandles();
 
         var core = CreateLibraryManifest("SDL2", "sdl2", isCore: true);
         var satellite = CreateLibraryManifest("SDL2_image", "sdl2-image", isCore: false);
@@ -127,21 +126,20 @@ public class HarvestTaskTests : TempDirectoryTestBase
         var mockValidator = CreatePassingValidator();
         var runtimeProfile = CreateRuntimeProfile();
         var task = new Build.Tasks.Harvest.HarvestTask(mockWalker, mockPlanner, mockDeployer, mockValidator, runtimeProfile, manifestConfig);
-        var context = TaskTestHelpers.CreateBuildContext(new DirectoryPath(harvestRoot), ["SDL2_image"]);
 
-        await task.RunAsync(context);
+        await task.RunAsync(repo.BuildContext);
 
-        var selectedStatus = IOPath.Combine(harvestRoot, "SDL2_image", "rid-status", "win-x64.json");
-        var nonSelectedStatus = IOPath.Combine(harvestRoot, "SDL2", "rid-status", "win-x64.json");
+        const string selectedStatus = "artifacts/harvest_output/SDL2_image/rid-status/win-x64.json";
+        const string nonSelectedStatus = "artifacts/harvest_output/SDL2/rid-status/win-x64.json";
 
-        await Assert.That(File.Exists(selectedStatus)).IsTrue();
-        await Assert.That(File.Exists(nonSelectedStatus)).IsFalse();
+        await Assert.That(repo.Exists(selectedStatus)).IsTrue();
+        await Assert.That(repo.Exists(nonSelectedStatus)).IsFalse();
     }
 
     [Test]
     public async Task RunAsync_Should_Throw_When_Dependency_Policy_Validation_Fails()
     {
-        var harvestRoot = CreateTempHarvestOutputRoot();
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
 
         var library = CreateLibraryManifest("SDL2_image", "sdl2-image", isCore: false);
         var manifestConfig = CreateManifestConfig([library]);
@@ -161,9 +159,8 @@ public class HarvestTaskTests : TempDirectoryTestBase
 
         var runtimeProfile = CreateRuntimeProfile();
         var task = new Build.Tasks.Harvest.HarvestTask(mockWalker, mockPlanner, mockDeployer, mockValidator, runtimeProfile, manifestConfig);
-        var context = TaskTestHelpers.CreateBuildContext(new DirectoryPath(harvestRoot), []);
 
-        await Assert.That(() => task.RunAsync(context)).Throws<CakeException>();
+        await Assert.That(() => task.RunAsync(repo.BuildContext)).Throws<CakeException>();
     }
 
     private static IRuntimeProfile CreateRuntimeProfile()
@@ -263,11 +260,6 @@ public class HarvestTaskTests : TempDirectoryTestBase
 
         var plan = new DeploymentPlan([], stats);
         return plan;
-    }
-
-    private string CreateTempHarvestOutputRoot()
-    {
-        return CreateTrackedTempDirectory("harvest-task");
     }
 
     private static IDependencyPolicyValidator CreatePassingValidator()

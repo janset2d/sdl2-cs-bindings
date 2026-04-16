@@ -1,17 +1,16 @@
 using System.Text.Json;
 using Build.Context.Models;
 using Build.Modules.Strategy.Models;
+using Build.Tests.Fixtures;
 
 namespace Build.Tests.Characterization.ConfigContract;
 
 public class ManifestDeserializationTests
 {
-    private static readonly string ManifestPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "manifest.json");
-
     [Test]
     public async Task DeserializeManifest_Should_Parse_All_Library_Entries()
     {
-        var json = await File.ReadAllTextAsync(ManifestPath).ConfigureAwait(false);
+        var json = await WorkspaceFiles.ReadAllTextAsync(WorkspaceFiles.ManifestPath).ConfigureAwait(false);
         var config = JsonSerializer.Deserialize<ManifestConfig>(json);
 
         await Assert.That(config).IsNotNull();
@@ -21,7 +20,7 @@ public class ManifestDeserializationTests
     [Test]
     public async Task DeserializeManifest_Should_Have_Exactly_One_Core_Library()
     {
-        var json = await File.ReadAllTextAsync(ManifestPath).ConfigureAwait(false);
+        var json = await WorkspaceFiles.ReadAllTextAsync(WorkspaceFiles.ManifestPath).ConfigureAwait(false);
         var config = JsonSerializer.Deserialize<ManifestConfig>(json)!;
 
         var coreLibs = config.LibraryManifests.Where(m => m.IsCoreLib).ToList();
@@ -32,7 +31,7 @@ public class ManifestDeserializationTests
     [Test]
     public async Task DeserializeManifest_Should_Have_Valid_Versions_For_All_Libraries()
     {
-        var json = await File.ReadAllTextAsync(ManifestPath).ConfigureAwait(false);
+        var json = await WorkspaceFiles.ReadAllTextAsync(WorkspaceFiles.ManifestPath).ConfigureAwait(false);
         var config = JsonSerializer.Deserialize<ManifestConfig>(json)!;
 
         foreach (var lib in config.LibraryManifests)
@@ -47,7 +46,7 @@ public class ManifestDeserializationTests
     [Test]
     public async Task DeserializeManifest_Should_Have_Platform_Binaries_For_All_Three_OS()
     {
-        var json = await File.ReadAllTextAsync(ManifestPath).ConfigureAwait(false);
+        var json = await WorkspaceFiles.ReadAllTextAsync(WorkspaceFiles.ManifestPath).ConfigureAwait(false);
         var config = JsonSerializer.Deserialize<ManifestConfig>(json)!;
 
         foreach (var lib in config.LibraryManifests)
@@ -62,7 +61,7 @@ public class ManifestDeserializationTests
     [Test]
     public async Task DeserializeManifest_Should_Have_PackagingConfig()
     {
-        var json = await File.ReadAllTextAsync(ManifestPath).ConfigureAwait(false);
+        var json = await WorkspaceFiles.ReadAllTextAsync(WorkspaceFiles.ManifestPath).ConfigureAwait(false);
         var config = JsonSerializer.Deserialize<ManifestConfig>(json)!;
 
         await Assert.That(config.PackagingConfig).IsNotNull();
@@ -73,7 +72,7 @@ public class ManifestDeserializationTests
     [Test]
     public async Task DeserializeManifest_Should_Have_All_Package_Families()
     {
-        var json = await File.ReadAllTextAsync(ManifestPath).ConfigureAwait(false);
+        var json = await WorkspaceFiles.ReadAllTextAsync(WorkspaceFiles.ManifestPath).ConfigureAwait(false);
         var config = JsonSerializer.Deserialize<ManifestConfig>(json)!;
 
         await Assert.That(config.PackageFamilies).IsNotNull();
@@ -91,7 +90,7 @@ public class ManifestDeserializationTests
     [Test]
     public async Task DeserializeManifest_Should_Have_Package_Families_Referencing_Library_Manifests()
     {
-        var json = await File.ReadAllTextAsync(ManifestPath).ConfigureAwait(false);
+        var json = await WorkspaceFiles.ReadAllTextAsync(WorkspaceFiles.ManifestPath).ConfigureAwait(false);
         var config = JsonSerializer.Deserialize<ManifestConfig>(json)!;
 
         var knownLibraries = config.LibraryManifests.Select(m => m.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -105,7 +104,7 @@ public class ManifestDeserializationTests
     [Test]
     public async Task DeserializeManifest_Should_Have_Inline_Runtimes()
     {
-        var json = await File.ReadAllTextAsync(ManifestPath).ConfigureAwait(false);
+        var json = await WorkspaceFiles.ReadAllTextAsync(WorkspaceFiles.ManifestPath).ConfigureAwait(false);
         var config = JsonSerializer.Deserialize<ManifestConfig>(json)!;
 
         await Assert.That(config.Runtimes).IsNotNull();
@@ -122,7 +121,7 @@ public class ManifestDeserializationTests
     [Test]
     public async Task DeserializeManifest_Should_Have_Strategy_Per_Runtime()
     {
-        var json = await File.ReadAllTextAsync(ManifestPath).ConfigureAwait(false);
+        var json = await WorkspaceFiles.ReadAllTextAsync(WorkspaceFiles.ManifestPath).ConfigureAwait(false);
         var config = JsonSerializer.Deserialize<ManifestConfig>(json)!;
 
         foreach (var runtime in config.Runtimes!)
@@ -135,7 +134,7 @@ public class ManifestDeserializationTests
     [Test]
     public async Task DeserializeManifest_Should_Have_Inline_SystemExclusions()
     {
-        var json = await File.ReadAllTextAsync(ManifestPath).ConfigureAwait(false);
+        var json = await WorkspaceFiles.ReadAllTextAsync(WorkspaceFiles.ManifestPath).ConfigureAwait(false);
         var config = JsonSerializer.Deserialize<ManifestConfig>(json)!;
 
         await Assert.That(config.SystemExclusions).IsNotNull();
@@ -147,7 +146,7 @@ public class ManifestDeserializationTests
     [Test]
     public async Task DeserializeManifest_Should_Have_Hybrid_Triplets_Matching_Strategy()
     {
-        var json = await File.ReadAllTextAsync(ManifestPath).ConfigureAwait(false);
+        var json = await WorkspaceFiles.ReadAllTextAsync(WorkspaceFiles.ManifestPath).ConfigureAwait(false);
         var config = JsonSerializer.Deserialize<ManifestConfig>(json)!;
 
         foreach (var runtime in config.Runtimes!)
