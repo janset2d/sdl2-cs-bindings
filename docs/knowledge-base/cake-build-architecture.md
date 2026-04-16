@@ -11,7 +11,8 @@ The build system is a .NET 9.0 console application using **Cake Frosting v6.1.0*
 - Active harvest logic lives under `Tasks/Harvest/`.
 - Harvesting is the current build-host reference standard for task/service boundaries: tasks keep `BuildContext`, services take explicit inputs, and Cake capabilities are injected where they are actually used.
 - `PreFlightCheckTask` is implemented in the build host, but the release-candidate workflow does not invoke it yet.
-- `PreFlightCheckTask` has since been aligned closer to the Harvesting pattern: DI-loaded `ManifestConfig`, explicit validators, shared `VcpkgManifest` ownership, `IStrategyResolver`, and a reporter that owns Cake context instead of taking `ICakeLog` through every public method.
+- `PreFlightCheckTask` has since been aligned closer to the Harvesting pattern: DI-loaded `ManifestConfig`, explicit validators, typed validator results, `IVcpkgManifestReader`, `IStrategyResolver`, and a reporter that owns Cake context instead of taking `ICakeLog` through every public method.
+- `CoverageCheckTask` keeps path resolution and task-level failure policy, but the pass/fail decision now lives behind an injectable `ICoverageThresholdValidator` instead of a static helper call.
 - `PathService` already exposes `harvest-staging` helpers for future distributed CI, but current tasks and workflows still write to `artifacts/harvest_output/`.
 - Native-source acquisition mode selection is intentionally deferred from the active CLI surface.
 - The build host still uses hand-written `OneOf` result wrappers. Source-generator-based cleanup remains a parked follow-up, not active build-system behavior.
@@ -54,6 +55,8 @@ All services are registered via dependency injection in `Program.cs`:
 | `IDependencyPolicyValidator` | `HybridStaticValidator` / `PureDynamicValidator` | Strategy-aware closure validation (hybrid leak enforcement, pure-dynamic pass-through) |
 | `ICoberturaReader` | `CoberturaReader` | Parses cobertura XML (MTP `--coverage --coverage-output-format cobertura`) into aggregate `CoverageMetrics` |
 | `ICoverageBaselineReader` | `CoverageBaselineReader` | Loads `build/coverage-baseline.json` into `CoverageBaseline` (line / branch floor + optional metadata) |
+| `ICoverageThresholdValidator` | `CoverageThresholdValidator` | Applies the ratchet rule to parsed metrics and returns a typed coverage result |
+| `IVcpkgManifestReader` | `VcpkgManifestReader` | Loads `vcpkg.json` into `VcpkgManifest` for PreFlight and future build-host consumers |
 | `INativeAcquisitionStrategy` | `VcpkgBuildProvider` | **(Planned)** Where native binaries come from |
 
 ## Reference Pattern: Harvesting First
@@ -67,6 +70,12 @@ When a build-host refactor needs precedent, compare the shape of the Harvesting 
 - Tests mirror this split: whitebox module tests for the services, task tests for behavior and output contracts.
 
 This is a reference pattern, not a claim that every line in Harvesting is perfect. The point is to copy the boundary discipline before copying any implementation detail.
+
+Recent alignment examples:
+
+- Coverage keeps file-path resolution in the task, parsing in readers, and the threshold rule in an injectable validator. The module stays intentionally small without letting the task own the core policy decision.
+- PreFlight now uses typed validator result boundaries and a dedicated `IVcpkgManifestReader`, while the task retains user-facing reporting and Cake-facing failure policy.
+- “Golden standard” in this repo means: copy Harvesting's architecture shape first, not its exact implementation details.
 
 ## Configuration Files
 

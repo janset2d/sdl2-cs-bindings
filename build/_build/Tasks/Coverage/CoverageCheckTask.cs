@@ -31,13 +31,17 @@ namespace Build.Tasks.Coverage;
 /// </remarks>
 [TaskName("Coverage-Check")]
 [TaskDescription("Validates test coverage against the baseline floor in build/coverage-baseline.json (ratchet policy)")]
-public sealed class CoverageCheckTask(ICoberturaReader coberturaReader, ICoverageBaselineReader coverageBaselineReader) : FrostingTask<BuildContext>
+public sealed class CoverageCheckTask(
+    ICoberturaReader coberturaReader,
+    ICoverageBaselineReader coverageBaselineReader,
+    ICoverageThresholdValidator coverageThresholdValidator) : FrostingTask<BuildContext>
 {
     internal const string CoverageFileArgument = "coverage-file";
     internal const string DefaultCoverageRelativePath = "artifacts/test-results/build-tests/coverage.cobertura.xml";
 
     private readonly ICoberturaReader _coberturaReader = coberturaReader ?? throw new ArgumentNullException(nameof(coberturaReader));
     private readonly ICoverageBaselineReader _coverageBaselineReader = coverageBaselineReader ?? throw new ArgumentNullException(nameof(coverageBaselineReader));
+    private readonly ICoverageThresholdValidator _coverageThresholdValidator = coverageThresholdValidator ?? throw new ArgumentNullException(nameof(coverageThresholdValidator));
 
     public override void Run(BuildContext context)
     {
@@ -68,7 +72,7 @@ public sealed class CoverageCheckTask(ICoberturaReader coberturaReader, ICoverag
 
         var metrics = _coberturaReader.ParseFile(coveragePath);
         var baseline = _coverageBaselineReader.ParseFile(baselinePath);
-        var result = CoverageThresholdValidator.Validate(metrics, baseline);
+        var result = _coverageThresholdValidator.Validate(metrics, baseline);
 
         result.OnError(error => LogFailureAndThrow(error, context.Log));
 

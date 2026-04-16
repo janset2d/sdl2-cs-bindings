@@ -153,11 +153,19 @@ public sealed class ProgramCompositionRootTests
         var strategy = provider.GetRequiredService<IPackagingStrategy>();
         var strategyResolver = provider.GetRequiredService<IStrategyResolver>();
         var validator = provider.GetRequiredService<IDependencyPolicyValidator>();
+        var coverageThresholdValidator = provider.GetRequiredService<ICoverageThresholdValidator>();
+        var vcpkgManifestReader = provider.GetRequiredService<IVcpkgManifestReader>();
+        var versionConsistencyValidator = provider.GetRequiredService<IVersionConsistencyValidator>();
+        var strategyCoherenceValidator = provider.GetRequiredService<IStrategyCoherenceValidator>();
 
         await Assert.That(strategy.Model).IsEqualTo(PackagingModel.HybridStatic);
         await Assert.That(strategy.GetType()).IsEqualTo(typeof(HybridStaticStrategy));
         await Assert.That(strategyResolver.GetType()).IsEqualTo(typeof(StrategyResolver));
         await Assert.That(validator.GetType()).IsEqualTo(typeof(HybridStaticValidator));
+        await Assert.That(coverageThresholdValidator.GetType()).IsEqualTo(typeof(Build.Modules.Coverage.CoverageThresholdValidator));
+        await Assert.That(vcpkgManifestReader.GetType()).IsEqualTo(typeof(Build.Modules.Preflight.VcpkgManifestReader));
+        await Assert.That(versionConsistencyValidator.GetType()).IsEqualTo(typeof(Build.Modules.Preflight.VersionConsistencyValidator));
+        await Assert.That(strategyCoherenceValidator.GetType()).IsEqualTo(typeof(Build.Modules.Preflight.StrategyCoherenceValidator));
     }
 
     [Test]
@@ -183,11 +191,15 @@ public sealed class ProgramCompositionRootTests
         var strategy = provider.GetRequiredService<IPackagingStrategy>();
         var strategyResolver = provider.GetRequiredService<IStrategyResolver>();
         var validator = provider.GetRequiredService<IDependencyPolicyValidator>();
+        var coverageThresholdValidator = provider.GetRequiredService<ICoverageThresholdValidator>();
+        var vcpkgManifestReader = provider.GetRequiredService<IVcpkgManifestReader>();
 
         await Assert.That(strategy.Model).IsEqualTo(PackagingModel.PureDynamic);
         await Assert.That(strategy.GetType()).IsEqualTo(typeof(PureDynamicStrategy));
         await Assert.That(strategyResolver.GetType()).IsEqualTo(typeof(StrategyResolver));
         await Assert.That(validator.GetType()).IsEqualTo(typeof(PureDynamicValidator));
+        await Assert.That(coverageThresholdValidator.GetType()).IsEqualTo(typeof(Build.Modules.Coverage.CoverageThresholdValidator));
+        await Assert.That(vcpkgManifestReader.GetType()).IsEqualTo(typeof(Build.Modules.Preflight.VcpkgManifestReader));
     }
 
     private static MethodInfo GetProgramHelper(string methodNameFragment, params Type[] parameterTypes)
@@ -259,6 +271,7 @@ public sealed class ProgramCompositionRootTests
                 var services = new ServiceCollection();
             services.AddSingleton<ICakeEnvironment>(repo.Environment);
             services.AddSingleton<ICakeContext>(repo.CakeContext);
+                services.AddSingleton<IFileSystem>(repo.FileSystem);
                 services.AddSingleton<ICakeLog>(new FakeLog());
 
                 return services;

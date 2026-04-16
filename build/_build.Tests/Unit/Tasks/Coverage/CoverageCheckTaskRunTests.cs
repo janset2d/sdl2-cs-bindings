@@ -87,7 +87,10 @@ public class CoverageCheckTaskRunTests
 
     private static CoverageCheckTask CreateTask(IFileSystem fileSystem)
     {
-        return new CoverageCheckTask(new CoberturaReader(fileSystem), new CoverageBaselineReader(fileSystem));
+        return new CoverageCheckTask(
+            new CoberturaReader(fileSystem),
+            new CoverageBaselineReader(fileSystem),
+            new CoverageThresholdValidator());
     }
 
     private static CoverageBaseline CreateCoverageBaseline(double lineMin, double branchMin)

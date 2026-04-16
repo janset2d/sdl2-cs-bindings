@@ -2,13 +2,14 @@ using System.Globalization;
 using Build.Context.Models;
 using Build.Modules.Contracts;
 using Build.Modules.Preflight.Models;
+using Build.Modules.Preflight.Results;
 using Cake.Core.IO;
 
 namespace Build.Modules.Preflight;
 
 public sealed class VersionConsistencyValidator : IVersionConsistencyValidator
 {
-    public VersionConsistencyValidation Validate(ManifestConfig manifest, VcpkgManifest vcpkgManifest, FilePath manifestPath, FilePath vcpkgManifestPath)
+    public VersionConsistencyResult Validate(ManifestConfig manifest, VcpkgManifest vcpkgManifest, FilePath manifestPath, FilePath vcpkgManifestPath)
     {
         ArgumentNullException.ThrowIfNull(manifest);
         ArgumentNullException.ThrowIfNull(vcpkgManifest);
@@ -21,7 +22,11 @@ public sealed class VersionConsistencyValidator : IVersionConsistencyValidator
             .Select(library => ValidateLibrary(library, vcpkgOverrides))
             .ToList();
 
-        return new VersionConsistencyValidation(manifestPath, vcpkgManifestPath, checks);
+        var validation = new VersionConsistencyValidation(manifestPath, vcpkgManifestPath, checks);
+
+        return validation.HasErrors
+            ? VersionConsistencyResult.Fail(validation)
+            : VersionConsistencyResult.Pass(validation);
     }
 
     internal static (int Major, int Minor, int Patch) ParseSemanticVersion(string version)

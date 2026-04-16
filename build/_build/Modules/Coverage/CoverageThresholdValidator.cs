@@ -1,4 +1,5 @@
 using System.Globalization;
+using Build.Modules.Contracts;
 using Build.Modules.Coverage.Models;
 using Build.Modules.Coverage.Results;
 
@@ -10,9 +11,9 @@ namespace Build.Modules.Coverage;
 /// (0..100) while cobertura metrics are at ratio scale (0..1) — the comparison happens on
 /// percentages via <see cref="CoverageMetrics.LinePercent"/> and <see cref="CoverageMetrics.BranchPercent"/>.
 /// </summary>
-internal static class CoverageThresholdValidator
+public sealed class CoverageThresholdValidator : ICoverageThresholdValidator
 {
-    public static CoverageCheckResult Validate(CoverageMetrics metrics, CoverageBaseline baseline)
+    public CoverageCheckResult Validate(CoverageMetrics metrics, CoverageBaseline baseline)
     {
         ArgumentNullException.ThrowIfNull(metrics);
         ArgumentNullException.ThrowIfNull(baseline);

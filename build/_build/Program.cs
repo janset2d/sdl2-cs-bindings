@@ -102,6 +102,8 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton<IArtifactDeployer, ArtifactDeployer>();
     services.AddSingleton<ICoberturaReader, CoberturaReader>();
     services.AddSingleton<ICoverageBaselineReader, CoverageBaselineReader>();
+    services.AddSingleton<ICoverageThresholdValidator, CoverageThresholdValidator>();
+    services.AddSingleton<IVcpkgManifestReader, VcpkgManifestReader>();
     services.AddSingleton<IVersionConsistencyValidator, VersionConsistencyValidator>();
     services.AddSingleton<IStrategyResolver, StrategyResolver>();
     services.AddSingleton<IStrategyCoherenceValidator, StrategyCoherenceValidator>();

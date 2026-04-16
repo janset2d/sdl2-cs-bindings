@@ -4,6 +4,7 @@ using Build.Modules.Preflight;
 using Build.Modules.Strategy;
 using Build.Tasks.Preflight;
 using Build.Tests.Fixtures;
+using Cake.Core;
 
 namespace Build.Tests.Unit.Tasks.Preflight;
 
@@ -13,10 +14,12 @@ public class PreFlightCheckTaskRunTests
     public void Run_Should_Pass_When_Manifest_And_Vcpkg_Versions_Are_Aligned()
     {
         var manifestConfig = CreateManifestConfig("2.32.10", 0);
-        var context = new FakeRepoBuilder(FakeRepoPlatform.Windows)
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
             .WithManifest(manifestConfig)
             .WithVcpkgJson(CreateVcpkgManifest("2.32.10", 0))
-            .BuildContext();
+            .BuildContextWithHandles();
+
+        var context = repo.BuildContext;
 
         CreateTask(manifestConfig, context).Run(context);
     }
@@ -25,14 +28,16 @@ public class PreFlightCheckTaskRunTests
     public async Task Run_Should_Throw_When_Override_Version_Does_Not_Match_Manifest()
     {
         var manifestConfig = CreateManifestConfig("2.32.10", 0);
-        var context = new FakeRepoBuilder(FakeRepoPlatform.Windows)
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
             .WithManifest(manifestConfig)
             .WithVcpkgJson(CreateVcpkgManifest("2.31.0", 0))
-            .BuildContext();
+            .BuildContextWithHandles();
+
+        var context = repo.BuildContext;
 
         var task = CreateTask(manifestConfig, context);
 
-        await Assert.That(() => task.Run(context)).Throws<InvalidOperationException>();
+        await Assert.That(() => task.Run(context)).Throws<CakeException>();
     }
 
     [Test]
@@ -43,24 +48,28 @@ public class PreFlightCheckTaskRunTests
             0,
             strategy: "pure-dynamic",
             triplet: "x64-windows-hybrid");
-        var context = new FakeRepoBuilder(FakeRepoPlatform.Windows)
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
             .WithManifest(manifestConfig)
             .WithVcpkgJson(CreateVcpkgManifest("2.32.10", 0))
-            .BuildContext();
+            .BuildContextWithHandles();
+
+        var context = repo.BuildContext;
 
         var task = CreateTask(manifestConfig, context);
 
-        await Assert.That(() => task.Run(context)).Throws<InvalidOperationException>();
+        await Assert.That(() => task.Run(context)).Throws<CakeException>();
     }
 
     [Test]
     public void Run_Should_Allow_Libraries_Without_Vcpkg_Overrides()
     {
         var manifestConfig = CreateManifestConfig("2.32.10", 0);
-        var context = new FakeRepoBuilder(FakeRepoPlatform.Windows)
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
             .WithManifest(manifestConfig)
             .WithTextFile("vcpkg.json", "{\"dependencies\":[\"sdl2\"]}")
-            .BuildContext();
+            .BuildContextWithHandles();
+
+        var context = repo.BuildContext;
 
         CreateTask(manifestConfig, context).Run(context);
     }
@@ -69,14 +78,16 @@ public class PreFlightCheckTaskRunTests
     public async Task Run_Should_Throw_When_Manifest_Version_Is_Not_A_Valid_Semantic_Version()
     {
         var manifestConfig = CreateManifestConfig("2.32", 0);
-        var context = new FakeRepoBuilder(FakeRepoPlatform.Windows)
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
             .WithManifest(manifestConfig)
             .WithVcpkgJson(CreateVcpkgManifest("2.32.10", 0))
-            .BuildContext();
+            .BuildContextWithHandles();
+
+        var context = repo.BuildContext;
 
         var task = CreateTask(manifestConfig, context);
 
-        await Assert.That(() => task.Run(context)).Throws<InvalidOperationException>();
+        await Assert.That(() => task.Run(context)).Throws<CakeException>();
     }
 
     private static ManifestConfig CreateManifestConfig(
@@ -132,6 +143,7 @@ public class PreFlightCheckTaskRunTests
     {
         return new PreFlightCheckTask(
             manifestConfig,
+            new VcpkgManifestReader(context.FileSystem),
             new VersionConsistencyValidator(),
             new StrategyCoherenceValidator(new StrategyResolver()),
             new PreflightReporter(context));

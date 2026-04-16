@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Build.Context.Models;
 using Build.Modules.Contracts;
 using Build.Modules.Preflight.Models;
+using Build.Modules.Preflight.Results;
 using Build.Modules.Strategy.Results;
 
 namespace Build.Modules.Preflight;
@@ -10,7 +11,7 @@ public sealed class StrategyCoherenceValidator(IStrategyResolver strategyResolve
 {
     private readonly IStrategyResolver _strategyResolver = strategyResolver ?? throw new ArgumentNullException(nameof(strategyResolver));
 
-    public StrategyCoherenceValidation Validate(IImmutableList<RuntimeInfo> runtimes)
+    public StrategyCoherenceResult Validate(IImmutableList<RuntimeInfo> runtimes)
     {
         ArgumentNullException.ThrowIfNull(runtimes);
 
@@ -28,7 +29,11 @@ public sealed class StrategyCoherenceValidator(IStrategyResolver strategyResolve
             checks.Add(ToRuntimeStrategyCheck(runtime, resolution));
         }
 
-        return new StrategyCoherenceValidation(checks);
+        var validation = new StrategyCoherenceValidation(checks);
+
+        return validation.HasErrors
+            ? StrategyCoherenceResult.Fail(validation)
+            : StrategyCoherenceResult.Pass(validation);
     }
 
     private static RuntimeStrategyCheck ToRuntimeStrategyCheck(RuntimeInfo runtime, StrategyResolutionResult resolution)
