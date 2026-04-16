@@ -2,8 +2,8 @@
 
 > How to verify that the Cake build host, harvest pipeline, and native libraries work correctly across all 3 local platforms after a refactor or significant change.
 
-**Last validated:** 2026-04-16 (post-refactor: strategy wiring, config merge, PreFlight/Coverage alignment)
-**Result:** 7 active checkpoints × 3 platforms = 21/21 green (Windows, WSL/Linux, macOS Intel)
+**Last validated:** 2026-04-16 (Windows-only after A-risky landing: MinVer + exact-pin csproj + family rename to `sdl<major>-<role>` + PreFlight `CsprojPackContractValidator`)
+**Result:** Windows checkpoints A-D green (256/256 tests, build clean, task tree intact, PreFlight 6 families × 10 csprojs all green). E/F/G unchanged scope (harvest pipeline not touched by A-risky); WSL + macOS validation deferred — recommend re-running full 3-platform matrix when next stream lands changes that affect runtime behavior.
 
 ## When to Run This
 
@@ -24,10 +24,10 @@ These are validated today and should pass on all 3 platforms.
 
 | # | Checkpoint | Stream | What It Proves | Expected Output |
 | --- | --- | --- | --- | --- |
-| A | Build-host unit tests | Baseline | Refactored code logic is correct | 247 passed, 0 failed (count grows with coverage) |
+| A | Build-host unit tests | Baseline | Refactored code logic is correct | 256 passed, 0 failed (count grows with coverage; 247 → 256 after A-risky added 9 `CsprojPackContractValidator` tests) |
 | B | Cake restore + build (Release) | Baseline | Build host compiles clean on all platforms | 0 warnings, 0 errors |
 | C | Cake `--tree` | Baseline | Task dependency graph is intact | ConsolidateHarvest→Harvest→Info chain visible |
-| D | PreFlightCheck | Baseline | manifest.json ↔ vcpkg.json consistency + strategy coherence | 6/6 versions, 7/7 strategies |
+| D | PreFlightCheck | Baseline + A-risky | manifest.json ↔ vcpkg.json consistency + strategy coherence + csproj pack contract (G1-G8 + G17-G18) | 6/6 versions, 7/7 strategies, 6/6 families × 10/10 csprojs all green |
 | E | Harvest (6 satellites) | Baseline | Binary closure walk + deployment works per-platform | 6/6 succeeded, rid-status JSON generated |
 | F | ConsolidateHarvest | Baseline | Per-RID merge produces manifest + summary | harvest-manifest.json + harvest-summary.json per library |
 | G | Native smoke (C++) | Baseline | Hybrid-built natives load and initialize at runtime | 13/13 PASS, all codecs functional |
@@ -148,6 +148,7 @@ CI workflows use the Release binary directly. Local smoke should match:
 ```
 
 **What to look for:**
+
 - Each library shows "1 primary, 0 runtime" (hybrid-static: all transitive deps baked in)
 - Windows: DirectCopy deployment
 - Linux/macOS: Archive deployment (tar.gz preserving symlinks)

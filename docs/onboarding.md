@@ -274,10 +274,11 @@ This repo treats docs, issues, and commits as one delivery system:
 | **Harvest** | The process of collecting compiled native binaries + their transitive dependencies from vcpkg output |
 | **Binary Closure Walk** | Recursively scanning a binary's dependencies (dumpbin on Windows, ldd on Linux, otool on macOS) |
 | **Satellite Library** | SDL companion libraries: SDL_image, SDL_mixer, SDL_ttf, SDL_gfx, SDL_net |
-| **Package Family** | A release unit: one managed bindings package + its .Native package, always versioned and released together (e.g., core family = `Janset.SDL2.Core` + `Janset.SDL2.Core.Native`) |
-| **Core Family** | The SDL2 package family. All satellite families depend on it. Released first when multiple families release together. |
-| **Satellite Family** | Any non-core package family (image, mixer, ttf, gfx, net). Depends on core family, but versioned independently. |
-| **Family Version** | The single shared version number for both packages within a family. Derived from a family tag (e.g., `core-1.0.0`). |
+| **Package Family** | A release unit: one managed bindings package + its .Native package, always versioned and released together (e.g., `sdl2-core` family = `Janset.SDL2.Core` + `Janset.SDL2.Core.Native`) |
+| **Family Identifier** | Canonical `sdl<major>-<role>` string used in manifest.json, `<MinVerTagPrefix>`, and git tags. Examples: `sdl2-core`, `sdl2-image`, `sdl3-core` (future). Mandatory `sdl<major>-` prefix mirrors `Janset.SDL2.*` PackageId convention and disambiguates SDL2 from SDL3. |
+| **Core Family** | The SDL family's core package family — `sdl2-core` for SDL2, `sdl3-core` (future) for SDL3. All satellite families in the same SDL major-version line depend on it. Released first when multiple families release together. |
+| **Satellite Family** | Any non-core package family within an SDL major-version line: `sdl2-image`, `sdl2-mixer`, `sdl2-ttf`, `sdl2-gfx`, `sdl2-net`. Depends on the core family of the same line, but versioned independently. |
+| **Family Version** | The single shared version number for both packages within a family. Derived from a family tag (e.g., `sdl2-core-1.0.0`). |
 | **Targeted Release** | Release of specific families without touching others. The default release mode. |
 | **Full-Train Release** | Coordinated release of all families together, triggered by cross-cutting changes. |
 | **SONAME** | Shared Object Name — the versioned name Linux shared libraries link against (e.g., `libSDL2-2.0.so.0`) |

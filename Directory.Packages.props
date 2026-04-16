@@ -12,6 +12,7 @@
     <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.7.0.110445" />
     <!-- packages -->
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
+    <PackageVersion Include="MinVer" Version="7.0.0" />
     <PackageVersion Include="Cake.Frosting" Version="6.1.0" />
     <PackageVersion Include="NuGet.Versioning" Version="7.3.0" />
     <PackageVersion Include="OneOf" Version="3.0.271" />

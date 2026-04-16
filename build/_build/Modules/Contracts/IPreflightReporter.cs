@@ -9,4 +9,6 @@ public interface IPreflightReporter
     void ReportVersionConsistency(VersionConsistencyValidation validation);
 
     void ReportStrategyCoherence(StrategyCoherenceValidation validation);
+
+    void ReportCsprojPackContract(CsprojPackContractValidation validation);
 }

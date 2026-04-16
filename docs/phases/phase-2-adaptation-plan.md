@@ -161,39 +161,67 @@ Research and prove a mechanism to produce `.nupkg` files with both within-family
    - File: `Directory.Packages.props` — add centralized version
    - No Cake task yet — just the library available for later use
 
-### Stream A-risky: MinVer + Exact-Pin csproj Rollout + Structural Lock (unblocked by A0)
+### Stream A-risky: MinVer + Exact-Pin csproj Rollout + Structural Lock (LANDED 2026-04-16)
 
-**Previously blocked by A0 (PD-2). Now unblocked — A0 mechanism proven 2026-04-16.**
+**Previously blocked by A0 (PD-2). Unblocked + landed in a single coordinated pass on 2026-04-16.**
+
+**Delivered:**
+
+- MinVer 7.0.0 wired through `src/Directory.Build.props` (chains to root, scopes to `src/`) + `Directory.Packages.props` central package version. Native csprojs inherit transparently via `src/native/Directory.Build.props` import chain.
+- All 10 csprojs (5 managed + 5 native) carry canonical `<MinVerTagPrefix>sdl2-{role}-</MinVerTagPrefix>` per the `sdl<major>-<role>` family identifier convention adopted in the same change ([release-lifecycle-direction.md §1](../knowledge-base/release-lifecycle-direction.md)).
+- All 5 managed satellite csprojs apply Mechanism 3 from A0: `PrivateAssets="all"` on Native ProjectReference + bracket-notation `<PackageVersion>` + `<PackageReference>` + canonical `Sdl<Major><Role>FamilyVersion` property defaulting to `$(Version)` with `0.0.0-restore` restore-safe sentinel fallback.
+- `src/Directory.Build.targets` MSBuild guard target `_GuardAgainstShippingRestoreSentinel` blocks pack of any `Janset.SDL2.*` managed package when family-version property is still the sentinel. Bypass `-p:AllowSentinelExactPin=true` for deliberate sentinel inspection. Pack invocations from production Cake orchestration (Stream D-local) supply the family version explicitly.
+- PreFlight `CsprojPackContractValidator` checks guardrails G1-G8 + G17-G18 (see [release-guardrails.md](../knowledge-base/release-guardrails.md)) across every managed + native csproj declared in `manifest.json package_families[]`. 9 TUnit tests cover happy path + per-invariant violation. Wired into `PreFlightCheckTask` as the third validation step (after version consistency + strategy coherence). DI registration in `Program.cs`.
+- Build-host test suite: 256/256 green (was 247, +9 new validator tests).
+- PreFlight live run: 6 families × 10 csprojs × 8 invariants all green.
+- PD-1 resolved empirically (MinVer + `<IncludeBuildOutput>false</IncludeBuildOutput>` interact cleanly).
+- PD-9 opened to track ecosystem evolution around within-family exact-pin auto-derivation.
+- Family identifier rename `core/image/...` → `sdl2-core/sdl2-image/...` propagated through manifest, csproj properties, MinVerTagPrefix, test fixtures, and 6 canonical docs.
+
+**Production-time version flow constraint discovered:** standalone `dotnet pack` cannot auto-derive within-family exact pin from MinVer due to MSBuild static-eval timing. Documented in [`research/exact-pin-spike-and-nugetizer-eval-2026-04-16.md` Part 3](../research/exact-pin-spike-and-nugetizer-eval-2026-04-16.md#part-3-production-time-version-flow-constraint-empirical-finding-2026-04-16). Production path is Cake-driven two-step orchestration (Stream D-local). Industry survey confirms this is the frontier — no major .NET multi-package monorepo solves it.
+
+---
+
+#### Original A-risky Plan (preserved for traceability)
 
 This stream applies three coordinated changes to `src/` csproj files in a single pass, because all three touch the same files and are interdependent:
 
 1. **MinVer integration**
    - File: `Directory.Packages.props` — add MinVer package version
-   - File: `Directory.Build.props` — add conditional MinVer reference (only for `src/` projects, not `build/_build`)
-   - Each managed csproj: add `<MinVerTagPrefix>core-</MinVerTagPrefix>` etc.
+   - File: `src/Directory.Build.props` — chain through to root + add MinVer `PackageReference` scoped to `src/` only (not `build/_build`)
+   - File: `src/native/Directory.Build.props` — already imports `../Directory.Build.props` so natives inherit MinVer transparently
+   - Each managed and native csproj: add `<MinVerTagPrefix>sdl2-{role}-</MinVerTagPrefix>` (e.g., `sdl2-core-`, `sdl2-image-`). Family identifier convention is `sdl<major>-<role>` per [knowledge-base/release-lifecycle-direction.md §1](../knowledge-base/release-lifecycle-direction.md#1-ubiquitous-language).
    - Native csproj: ALSO needs MinVer (same family version) — subject to PD-1 (`<IncludeBuildOutput>false</IncludeBuildOutput>` interaction)
    - Test: `dotnet build` should give `0.0.0-alpha.0.N` versions (no tags exist yet)
 
 2. **Exact-pin csproj shape rollout (Mechanism 3 from A0)**
    Apply the proven A0 mechanism to every managed satellite csproj. Per managed package:
    - Add `PrivateAssets="all"` to the existing Native `ProjectReference`
-   - Add `<PackageVersion Include="Janset.SDL2.{Family}.Native" Version="[$({Family}FamilyVersion)]" />` (bracket notation, family version variable)
-   - Add `<PackageReference Include="Janset.SDL2.{Family}.Native" />`
+   - Add `<PackageVersion Include="Janset.SDL2.{Role}.Native" Version="[$(Sdl2{Role}FamilyVersion)]" />` (bracket notation, canonical `Sdl<Major><Role>FamilyVersion` property)
+   - Add `<PackageReference Include="Janset.SDL2.{Role}.Native" />`
    - Core family: same pattern but no cross-family `ProjectReference`
-   - The family version property defaults in each csproj (e.g., `<ImageFamilyVersion Condition="...">$(Version)</ImageFamilyVersion>`) and is overridden by Cake at pack time
-   - **Validation:** `dotnet pack -p:PackageVersion=0.0.1-test -p:{Family}FamilyVersion=0.0.1-test` on each managed csproj, inspect nuspec: Native dep must be `[0.0.1-test]`, Core dep must be `0.0.1-test`
+   - The family version property defaults in each csproj to `$(Version)` (MinVer-set) with a restore-safe `0.0.0-restore` sentinel fallback. [`src/Directory.Build.targets`](../../src/Directory.Build.targets) rewrites `PackageVersion`'s `Version` metadata to `[$(Version)]` `BeforeTargets="GenerateNuspec"` so the nuspec carries the correct family version, never the sentinel.
+   - **Validation:** `dotnet pack -p:Version=0.0.1-test` on each managed csproj, inspect nuspec: Native dep must be `[0.0.1-test]`, Core dep must be `0.0.1-test`
    - See [`research/exact-pin-spike-and-nugetizer-eval-2026-04-16.md`](../research/exact-pin-spike-and-nugetizer-eval-2026-04-16.md) for mechanism details and empirical proof
 
 3. **Structural lock: PreFlight csproj pack contract validator**
-   Add a new validator to PreFlightCheckTask that verifies the exact-pin csproj shape has not drifted. This is the permanent regression guard for Mechanism 3. Runs locally via `dotnet cake --target=PreFlightCheck` immediately; CI wiring comes with Stream C.
+   Add a new validator to PreFlightCheckTask that verifies the exact-pin csproj shape and family-identifier coherence have not drifted. This is the permanent regression guard for Mechanism 3 + the canonical `sdl<major>-<role>` naming convention. Runs locally via `dotnet cake --target=PreFlightCheck` immediately; CI wiring comes with Stream C.
    - Reads `manifest.json` `package_families[]` to discover managed + native project pairs
-   - For each managed satellite csproj:
-     - Asserts: Native `ProjectReference` exists with `PrivateAssets="all"` metadata
-     - Asserts: Matching `PackageReference` to the Native PackageId exists
-     - Asserts: Matching `PackageVersion` item uses bracket notation (`[...]`)
-   - For each core managed csproj: same checks (minus cross-family ProjectReference)
-   - On failure: PreFlight fails with clear message identifying which csproj and which invariant broke
+   - For each managed satellite csproj, asserts (guardrails G1–G8 from [`knowledge-base/release-guardrails.md`](../knowledge-base/release-guardrails.md)):
+     - Native `ProjectReference` exists with `PrivateAssets="all"` metadata (G1)
+     - Matching `PackageReference` to the Native PackageId exists (G2)
+     - Matching `PackageVersion` item uses bracket notation (`[...]`) (G3)
+     - csproj `<MinVerTagPrefix>` equals `package_families[].tag_prefix + "-"` (G4)
+     - Family-version property name matches canonical `Sdl<Major><Role>FamilyVersion` (G5)
+     - csproj `<PackageId>` equals `Janset.SDL<Major>.<Role>` (G6)
+     - Native `ProjectReference` path resolves to `package_families[].native_project` (G7)
+     - Family-version property defaults to `$(Version)` with `0.0.0-restore` sentinel fallback (G8)
+   - For each core managed csproj: same checks (minus cross-family ProjectReference; G6 with role = "Core")
+   - For each native csproj: assert `<MinVerTagPrefix>` equals `package_families[].tag_prefix + "-"` and `<PackageId>` equals `Janset.SDL<Major>.<Role>.Native`
+   - For `package_families[].depends_on` and `package_families[].library_ref` cross-section references: assert they exist (G17, G18)
+   - On failure: PreFlight fails with clear message identifying which csproj, which invariant broke, and which canonical doc rule it violates
    - **Why PreFlight and not a unit test:** this is a structural config check (like version consistency and strategy coherence), not a code behavior test. PreFlight is the established home for "is the repo shape valid before we build?"
+   - **Defense-in-depth note:** these guardrails are the FIRST layer. The MSBuild guard target (G9) catches sentinel leakage at build time. The post-pack nuspec assertion (G20–G27, Stream D-local) catches any drift in the produced nupkg itself. See [`knowledge-base/release-guardrails.md`](../knowledge-base/release-guardrails.md) for the full multi-layer design.
 
 **Why these three go together:** MinVer adds `<MinVerTagPrefix>` to each csproj. Mechanism 3 adds `PrivateAssets` + `PackageReference` + `PackageVersion` to each managed csproj. Both touch the same ItemGroups and PropertyGroups. Doing them separately means two passes over the same files with merge risk. The structural lock follows immediately because the invariants it guards are created in the same change — there is no window where the shape exists but the guard does not.
 
@@ -412,9 +440,12 @@ Three arketypes on the table. This list is the agreed scope of discussion, not a
 
 | # | Decision | Owner | Status | Exit Criterion | Blocks |
 | --- | --- | --- | --- | --- | --- |
-| PD-1 | MinVer for native payload-only csproj: does `<IncludeBuildOutput>false</IncludeBuildOutput>` prevent MinVer from setting `Version`? | Stream A-risky implementer | Open | `dotnet build` on native csproj produces versioned assembly metadata or pack output with correct version | Stream A-risky, Stream D-local |
+| PD-1 | MinVer for native payload-only csproj: does `<IncludeBuildOutput>false</IncludeBuildOutput>` prevent MinVer from setting `Version`? | Stream A-risky implementer | **Resolved 2026-04-16** — MinVer 7.0.0 sets `$(Version)` correctly on native csprojs even with `<IncludeBuildOutput>false</IncludeBuildOutput>`. Empirically verified: `dotnet pack src/native/SDL2.Image.Native/SDL2.Image.Native.csproj` produces `Janset.SDL2.Image.Native.0.0.0-alpha.0.117.nupkg` with correct nuspec `<version>` (no tag → MinVer fallback). MinVer hooks `BeforeTargets="GenerateNuspec"` so the version is set in time for pack regardless of build output suppression. See empirical evidence in PD-1 probe artifacts and [`research/exact-pin-spike-and-nugetizer-eval-2026-04-16.md` Part 3](../research/exact-pin-spike-and-nugetizer-eval-2026-04-16.md#part-3-production-time-version-flow-constraint-empirical-finding-2026-04-16). | Resolved. | No longer blocking — A-risky and D-local unblocked |
 | PD-2 | Exact pin mechanism: which approach produces both within-family `[x.y.z]` and cross-family minimum range in the same `.nupkg`? | Stream A0 spike | **Resolved 2026-04-16** — `PrivateAssets="all"` on Native ProjectReference + explicit `PackageReference` with bracket notation. Empirically verified on .NET SDK 9.0.309 across 4 TFMs with parameterized versions. LibGit2Sharp production precedent. First automated guard lands in A-risky (PreFlight csproj structural validator); second guard lands in D-local (post-pack nuspec assertion). See [`exact-pin-spike-and-nugetizer-eval-2026-04-16.md`](../research/exact-pin-spike-and-nugetizer-eval-2026-04-16.md) | Resolved. Mechanism proven and documented. Automated regression guards land in A-risky and D-local. | No longer blocking — A-risky and D-local unblocked |
 | PD-3 | dotnet-affected: NuGet library or CLI wrapper? | Stream E 2a feasibility spike | Open — 2a feasibility only, full decision in 2b | ADR-style note committing to one path | Stream E full implementation (2b) |
 | PD-4 | Source Mode native payload visibility mechanism | Stream F implementer | **Mechanism locked 2026-04-15** — verified on Windows (worktree), Linux (WSL Ubuntu, 2-level chain), and macOS (SSH Intel Mac, Darwin 24.6, 3-level dylib chain). End-to-end validation with real SDL2 natives pending Stream F execution. See [`source-mode-native-visibility-2026-04-15.md`](../research/source-mode-native-visibility-2026-04-15.md) | Locked: platform-branched — Windows `<Content>` + `CopyToOutputDirectory`, Linux/macOS `<Target>` + `<Exec cp -a>` (preserves symlink chains at 1× size). Opt-in `Directory.Build.targets` at solution root, flag via `test/Directory.Build.props` (Phase 2a preset), staging at `artifacts/native-staging/<rid>/native/`. Tar.gz is NOT used in Source Mode (only shipping graph) | — (informs Stream F shape) |
 | PD-5 | Non-host RID local acquisition path | Stream F extension | **Direction locked 2026-04-15** via two-source framework in [`source-mode-native-visibility-2026-04-15.md`](../research/source-mode-native-visibility-2026-04-15.md) §7.2 (`--source=remote --url=<url>`). Concrete mechanism (URL convention, producer workflow, artifact granularity, auth, caching) still open — 2b scope | Producer workflow chosen, URL/artifact convention defined, auth story settled, end-to-end validated by downloading real natives + extracting to staging on a non-host RID | `--source=remote` full implementation (2b) |
 | PD-6 | `.NET Framework` (`net462`) source-mode visibility: how do `net462` in-tree tests see natives in Source Mode? | Future implementer | Open — **must resolve before any `net462` in-tree test is added** | Mechanism documented and tested; analogous to today's `buildTransitive` .NET Framework copy hook but activated by `$(JansetSdl2SourceMode)` | Any future `net462` in-tree test project |
+| PD-7 | Full-train release orchestration mechanism: how does a coordinated multi-family release get invoked, ordered, surfaced, and recovered? | Stream D-ci research session | Open — placeholder doc published 2026-04-16 with scope + candidate paths (manual multi-tag / meta-tag + `release-set.json` / pack-time override / hybrid) + industry precedents to survey. Interim operational mechanism = Path A (manual multi-tag push). See [`research/full-train-release-orchestration-2026-04-16.md`](../research/full-train-release-orchestration-2026-04-16.md) | Path chosen with rationale; all six research questions answered (mechanism, release ordering, GitHub Release UX, notes aggregation, failure recovery, industry precedents surveyed); decision checked against criteria; `full-train-release.md` playbook drafted | Stream D-ci CI release pipeline (cannot land full-train automation without this) |
+| PD-8 | Release recovery + manual escape hatch: how does an operator manually publish individual families and full trains when CI is broken or unavailable? | Stream D-local + D-ci research session | Open — placeholder doc published 2026-04-16 with scope, two escape-hatch categories (individual + full-train), seven research questions (Cake helper surface, API key provisioning, smoke-test-as-manual-gate, partial-train recovery, tag hygiene, auditability, industry precedents). Interim mechanism: operators replicate CI step-for-step by hand using documented `dotnet restore` + `dotnet pack --no-restore` + `dotnet nuget push` sequence. See [`research/release-recovery-and-manual-escape-hatch-2026-04-16.md`](../research/release-recovery-and-manual-escape-hatch-2026-04-16.md) | All seven questions answered; `playbook/release-recovery.md` exists with operator-executable step lists; Cake `Pack-Family` / `Smoke-Family` / `Push-Family` helpers implemented (or explicitly deferred); API key provisioning policy documented; industry precedent survey complete | Stream D-local Cake helper exposure, Stream D-ci CI publish pipeline (manual flow must mirror CI flow step-for-step) |
+| PD-9 | Within-family exact-pin auto-derivation from MinVer for standalone `dotnet pack`: can the bracket-notation `PackageVersion` capture MinVer's resolved `$(Version)` without an explicit Cake-driven two-step orchestration? | Future SDK / NuGet evolution | **Frontier confirmed 2026-04-16** — no major .NET multi-package monorepo solves this (LibGit2Sharp hardcodes literal, SkiaSharp uses minimum range, Avalonia uses minimum range, Magick.NET hardcodes, SDL3-CS bundles). MSBuild item static-evaluation timing locks `PackageVersion.Version` metadata before MinVer's targets fire; restore-time hook chicken-and-egg with MinVer package targets loading. Standalone `dotnet pack` produces sentinel `[0.0.0-restore]`, blocked by `_GuardAgainstShippingRestoreSentinel` MSBuild guard. **Production path** = Cake-driven two-step orchestration (Stream D-local). See [`research/exact-pin-spike-and-nugetizer-eval-2026-04-16.md` Part 3](../research/exact-pin-spike-and-nugetizer-eval-2026-04-16.md#part-3-production-time-version-flow-constraint-empirical-finding-2026-04-16). | Either MSBuild / NuGet / MinVer evolves to expose a restore-time hook that runs after package targets load but before item static-eval lock-in, OR a community pattern emerges (e.g., NuGetizer adopts a solution). At that point we re-evaluate whether the MSBuild guard + Cake orchestration can be simplified. | Not blocking — current approach (Cake two-step + MSBuild guard) works. This PD tracks "watch for ecosystem evolution," not active work. |

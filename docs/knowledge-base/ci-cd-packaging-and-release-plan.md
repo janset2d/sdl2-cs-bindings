@@ -356,7 +356,7 @@ The rollout of this comprehensive CI/CD pipeline will occur in distinct phases:
   - **Current Status:** ⚠️ **NOT IMPLEMENTED** - No `PackageTask` exists in the current build host.
   - This section describes the planned task contract, not an existing implementation.
   - Expected Responsibilities:
-    1. Determines the **family version** for the target package family. Per the release lifecycle direction, the family version is derived from the family tag (e.g., `core-1.2.0` → version `1.2.0`). Both managed and native packages within a family share the same version. See [`release-lifecycle-direction.md`](release-lifecycle-direction.md) §3.
+    1. Determines the **family version** for the target package family. Per the release lifecycle direction, the family version is derived from the family tag (e.g., `sdl2-core-1.2.0` → version `1.2.0`). Both managed and native packages within a family share the same version. Family identifier convention is `sdl<major>-<role>` (canonical, see [`release-lifecycle-direction.md`](release-lifecycle-direction.md) §1). See [`release-lifecycle-direction.md`](release-lifecycle-direction.md) §3.
     2. Reads the `harvest_output/{LibraryName}/harvest-manifest.json` to identify successfully harvested RIDs and their output paths.
     3. **For Native Package (e.g., `Janset.SDL2.Core.Native`):**
         - Creates a temporary staging directory.

@@ -3,6 +3,9 @@
     <PackageId>Janset.SDL2.Core</PackageId>
     <Description>Core C# bindings for SDL2 (based on SDL-CS)</Description>
     <TargetFrameworks>$(TargetFrameworks)</TargetFrameworks>
+    <MinVerTagPrefix>sdl2-core-</MinVerTagPrefix>
+    <Sdl2CoreFamilyVersion Condition="'$(Version)' != '' and '$(Sdl2CoreFamilyVersion)' == ''">$(Version)</Sdl2CoreFamilyVersion>
+    <Sdl2CoreFamilyVersion Condition="'$(Sdl2CoreFamilyVersion)' == ''">0.0.0-restore</Sdl2CoreFamilyVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -10,7 +13,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\native\SDL2.Core.Native\SDL2.Core.Native.csproj"/>
+    <ProjectReference Include="..\native\SDL2.Core.Native\SDL2.Core.Native.csproj" PrivateAssets="all"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageVersion Include="Janset.SDL2.Core.Native" Version="[$(Sdl2CoreFamilyVersion)]"/>
+    <PackageReference Include="Janset.SDL2.Core.Native"/>
   </ItemGroup>
 
   <ItemGroup>

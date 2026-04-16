@@ -107,6 +107,7 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton<IVersionConsistencyValidator, VersionConsistencyValidator>();
     services.AddSingleton<IStrategyResolver, StrategyResolver>();
     services.AddSingleton<IStrategyCoherenceValidator, StrategyCoherenceValidator>();
+    services.AddSingleton<ICsprojPackContractValidator, CsprojPackContractValidator>();
     services.AddSingleton<IPreflightReporter, PreflightReporter>();
 
     services.AddSingleton<IPackagingStrategy>(provider =>

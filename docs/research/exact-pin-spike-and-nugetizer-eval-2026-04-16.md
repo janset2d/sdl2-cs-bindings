@@ -57,8 +57,11 @@ Two standard MSBuild/NuGet features combine to solve the problem:
 
 <ItemGroup>
   <!-- Native: exact pin dependency injected into pack output -->
-  <!-- Version follows family version variable; in production, from MinVer / CLI -->
-  <PackageVersion Include="Janset.SDL2.Image.Native" Version="[$(ImageFamilyVersion)]" />
+  <!-- Version follows family version variable; in production, from MinVer / CLI. -->
+  <!-- Property name follows canonical naming: Sdl<Major><Role>FamilyVersion -->
+  <!-- (see release-lifecycle-direction.md §1). Spike used "ImageFamilyVersion" -->
+  <!-- before the convention was canonicalized; the mechanism is name-agnostic. -->
+  <PackageVersion Include="Janset.SDL2.Image.Native" Version="[$(Sdl2ImageFamilyVersion)]" />
   <PackageReference Include="Janset.SDL2.Image.Native" />
 </ItemGroup>
 ```
@@ -108,11 +111,12 @@ Core family needs the same 3 lines (minus the cross-family ProjectReference to C
 
 ### Version Injection Strategy
 
-The `$(ImageFamilyVersion)` property (or `$(CoreFamilyVersion)`, etc.) controls the exact pin version. In production:
+The `$(Sdl2ImageFamilyVersion)` property (or `$(Sdl2CoreFamilyVersion)`, etc.) controls the exact pin version. Property naming follows the canonical `Sdl<Major><Role>FamilyVersion` convention from [release-lifecycle-direction.md §1](../knowledge-base/release-lifecycle-direction.md). In production:
 
-- **MinVer** sets the family version from git tags (Stream A-risky)
-- **CLI override** via `dotnet pack -p:ImageFamilyVersion=x.y.z` for explicit control
+- **MinVer** sets the family version from git tags (Stream A-risky); the property defaults to `$(Version)`
+- **CLI override** via `dotnet pack -p:Sdl2ImageFamilyVersion=x.y.z` for explicit control
 - **Cake orchestration** passes the resolved family version to both restore and pack
+- **Restore-time fallback:** at restore time MinVer has not yet set `$(Version)`, so the property resolves to `0.0.0-restore` (a parseable sentinel that lets restore succeed). [`src/Directory.Build.targets`](../../src/Directory.Build.targets) rewrites the `PackageVersion` `Version` metadata to `[$(Version)]` `BeforeTargets="GenerateNuspec"` so the produced nuspec carries the correct family version, never the sentinel
 
 The `CoreMinVersion` property (cross-family minimum) is a separate concern. For the default ProjectReference behavior, the version emitted is whatever the referenced project resolves to at pack time. If finer control is needed (e.g., pinning the floor at `1.2.0` even when Core is at `1.5.0`), that is a Stream D-local concern, not A0.
 
@@ -192,6 +196,124 @@ The `CoreMinVersion` property (cross-family minimum) is a separate concern. For 
 
 ---
 
+## Part 3: Production-Time Version Flow Constraint (Empirical Finding, 2026-04-16)
+
+### Context
+
+Part 1 proved the csproj SHAPE for within-family exact pin works. The spike used hardcoded literal versions or `-p:CLI` overrides for testing. During A-risky implementation we hit a deeper constraint when trying to chain MinVer's auto-derived `$(Version)` into the bracket-notation `PackageVersion` for the developer-convenience case (`dotnet pack` without explicit version flags).
+
+### The Static-Eval Timing Constraint
+
+`<PackageVersion Include="..." Version="[$(Sdl<Major><Role>FamilyVersion)]"/>` resolves the `$(Sdl<Major><Role>FamilyVersion)` substitution at MSBuild **static evaluation** time — when the project file is loaded, BEFORE any target runs.
+
+MinVer sets `$(Version)` at TARGET time (via `BeforeTargets="GenerateNuspec;GetPackageVersion;..."`). By the time MinVer fires, the `PackageVersion` item's `Version` metadata is already locked.
+
+Worse: NuGet's restore phase writes the resolved version range into `project.assets.json` from this statically-captured value. By pack time, the pack target reads from `project.assets.json`, so even a target that updates `PackageVersion` items at `BeforeTargets="GenerateNuspec"` is **too late** — `assets.json` already has the wrong value baked in.
+
+### Why the Restore-Time Hook Doesn't Save Us
+
+You might think `BeforeTargets="_GenerateRestoreSpecs"` with `DependsOnTargets="MinVer"` would fix this — fire MinVer early, update `PackageVersion`, then let restore proceed. We tried this. It fails:
+
+```text
+error MSB4057: The target "MinVer" does not exist in the project.
+```
+
+**Chicken-and-egg:** MinVer's targets file lives inside its own NuGet package. NuGet restores the package, then loads its targets. At the very first restore (or after a clean), MinVer's targets aren't available yet, so `DependsOnTargets="MinVer"` fails. By the second build, MinVer's targets exist, but `assets.json` was already written.
+
+### Empirical Probe Results (2026-04-16, this repo)
+
+| Invocation | Restore behavior | Pack behavior | Verdict |
+| --- | --- | --- | --- |
+| Hardcoded `Version="[1.3.0-test]"` literal in csproj | `assets.json` captures `[1.3.0-test]` | nuspec emits `[1.3.0-test]` | **PASS — proves shape is sound** |
+| `dotnet pack` (no flags) | `assets.json` captures `[0.0.0-restore]` (sentinel) | Guard target hard-fails | **PASS — guard catches sentinel** |
+| `dotnet pack -p:Version=X -p:MinVerSkip=true` (single invocation) | `assets.json` captures `[0.0.0-restore]` (CLI doesn't reach restore-phase static eval) | NU5016 empty range | **FAIL — properties don't reach restore** |
+| `dotnet pack -p:MinVerVersionOverride=X` (single invocation) | Same as above | NU5016 empty range | **FAIL** |
+| `dotnet pack -p:Sdl2ImageFamilyVersion=X -p:Version=X -p:MinVerSkip=true` (single) | Same — restore step doesn't honor CLI properties on bracket-notation items | NU5016 | **FAIL** |
+| Explicit two-step: `dotnet restore -p:Sdl2ImageFamilyVersion=X -p:Version=X -p:MinVerSkip=true` then `dotnet pack --no-restore -p:...` (same flags) | `assets.json` captures `[X]` correctly | Pack emits `[X]` for managed nuspec, but ProjectReference sub-build of native csproj fails (-p: doesn't reliably propagate to sub-builds) | **PARTIAL — managed correct, native version mismatch** |
+| Hardcoded literal in csproj `+ -p:Version=X -p:MinVerSkip=true` | `assets.json` captures `[X]` literal | nuspec emits `[X]` correctly across all 4 TFM groups | **PASS — confirms literal works in CLI flow** |
+
+### Frontier Confirmation
+
+Independent industry survey (separate explore-agent investigation, 2026-04-16):
+
+| Project | Within-family pin approach |
+| --- | --- |
+| **LibGit2Sharp** | Hardcoded literal `Version="[2.0.323]"` in csproj. Manually updated per release. Doesn't auto-derive from MinVer. |
+| **SkiaSharp** | Minimum range (`>=`), no exact pin. Different policy choice. |
+| **Avalonia** | Minimum range, CPM. No exact pin. |
+| **Magick.NET** | Hardcoded version, doesn't use MinVer. |
+| **SDL3-CS (ppy)** | Bundles natives in main package, no separate native package, no pinning needed. |
+
+**No major .NET multi-package monorepo solves auto-derived within-family exact pin from MinVer for standalone `dotnet pack`.** We are at the frontier. The solution space is narrow:
+
+- **A:** Accept the constraint, document, use Cake orchestration for production. (Chosen.)
+- **B:** Hardcode literal versions per release, manually edited. (LibGit2Sharp pattern. Loses MinVer benefit.)
+- **C:** Drop exact pin, use minimum range. (SkiaSharp pattern. Loses within-family safety.)
+- **D:** Post-pack nuspec patching (open `.nupkg`, rewrite XML, re-zip). (Hacky, fragile.)
+- **E:** Switch to NuGetizer with manual `PackageFile` items. (Same constraint, different surface.)
+
+### Chosen Approach: Cake Two-Step Orchestration
+
+Production path is Cake-driven (Stream D-local `PackageTask`). Cake:
+
+1. Determines the family version (from MinVer-derived git tag, or from `release-set.json` lookup).
+2. Pre-builds the Native csproj with explicit properties:
+   ```bash
+   dotnet build src/native/SDL2.<Role>.Native/SDL2.<Role>.Native.csproj \
+     -p:Configuration=Release \
+     -p:Version=X.Y.Z \
+     -p:Sdl2<Role>FamilyVersion=X.Y.Z \
+     -p:MinVerSkip=true
+   ```
+3. Restores the managed csproj with the same properties:
+   ```bash
+   dotnet restore src/SDL2.<Role>/SDL2.<Role>.csproj \
+     -p:Version=X.Y.Z \
+     -p:Sdl2<Role>FamilyVersion=X.Y.Z \
+     -p:MinVerSkip=true
+   ```
+4. Packs the managed csproj with `--no-restore` and the same properties:
+   ```bash
+   dotnet pack --no-restore src/SDL2.<Role>/SDL2.<Role>.csproj \
+     -c Release \
+     -p:Version=X.Y.Z \
+     -p:Sdl2<Role>FamilyVersion=X.Y.Z \
+     -p:MinVerSkip=true \
+     -o artifacts/packages/
+   ```
+
+The pre-built native ensures the ProjectReference sub-build resolution finds a Native binary at the correct version. The two-step restore + pack ensures `project.assets.json` captures the correct bracket-notation value before pack reads from it.
+
+### Standalone `dotnet pack` Without Cake — Wrong-on-Purpose
+
+A developer who runs `dotnet pack` directly on a managed csproj without explicit properties triggers the MSBuild guard target in [src/Directory.Build.targets](../../src/Directory.Build.targets) (`_GuardAgainstShippingRestoreSentinel`). The guard hard-fails the pack with a banner-level error message naming the missing properties and pointing at this doc.
+
+For deliberate sentinel inspection (e.g., A-risky validation, structural smoke tests), the operator opts in via `-p:AllowSentinelExactPin=true`. The bypass is loud, single-purpose, and never the production path.
+
+### Implications for Stream D-local
+
+`PackageTask` design must:
+
+- Pre-build native csprojs as a separate step.
+- Issue restore + pack as separate `dotnet` invocations with the full property set.
+- Pass `-p:MinVerSkip=true` even when MinVer would have produced the same value, so version flow is deterministic and auditable.
+- Validate produced nuspecs post-pack (guardrails G20–G27 in [release-guardrails.md](../knowledge-base/release-guardrails.md)) — defense-in-depth beyond the structural + MSBuild guards.
+
+### Implications for Manual Escape Hatch (PD-8)
+
+The same two-step orchestration must be reproducible by a human operator without Cake. The escape-hatch playbook ([release-recovery-and-manual-escape-hatch-2026-04-16.md](release-recovery-and-manual-escape-hatch-2026-04-16.md)) reproduces these steps verbatim. Cake `Pack-Family` helper (Stream D-local) wraps them so the operator types one command instead of remembering all the flags.
+
+### What's NOT Affected
+
+- **csproj structural shape:** correct. `PrivateAssets="all"` + bracket-notation `PackageVersion` is the right pattern.
+- **PD-2 resolution:** still resolved. The mechanism produces correct nuspecs; the constraint is on HOW you invoke pack, not WHETHER the mechanism works.
+- **A0 spike conclusions:** intact. The spike's parametrized test passed because it used CLI overrides, which is exactly what Cake will do in production.
+- **Within-family exact pin policy:** unchanged. Still locked, still enforced, still the right policy.
+
+What changed is our understanding of what "auto-derive from MinVer for standalone `dotnet pack`" can deliver: nothing, due to MSBuild static-eval timing. We accept this, guard against it leaking, and orchestrate via Cake.
+
+---
+
 ## Sources
 
 - [NuGet Package Versioning](https://learn.microsoft.com/en-us/nuget/concepts/package-versioning) — version range notation reference
@@ -199,7 +321,10 @@ The `CoreMinVersion` property (cross-family minimum) is a separate concern. For 
 - [NuGet/Home#5525](https://github.com/NuGet/Home/issues/5525) — request for exact version on ProjectReference (closed as duplicate)
 - [NuGet/Home#5556](https://github.com/NuGet/Home/issues/5556) — request for upper-limit version on ProjectReference (open since 2017)
 - [NuGet/NuGet.Client PR#3097](https://github.com/NuGet/NuGet.Client/pull/3097) — VersionRange support for project references (merged Feb 2020)
-- [LibGit2Sharp on NuGet.org](https://www.nuget.org/packages/LibGit2Sharp/) — production exact pin precedent
+- [LibGit2Sharp on NuGet.org](https://www.nuget.org/packages/LibGit2Sharp/) — production exact pin precedent (hardcoded literal)
 - [SkiaSharp on NuGet.org](https://www.nuget.org/packages/SkiaSharp/) — alternative approach (minimum range for native assets)
 - [devlooped/nugetizer](https://github.com/devlooped/nugetizer) — NuGetizer project repository
 - [NuGetizer 3000 spec](https://github.com/NuGet/Home/wiki/NuGetizer-3000) — original NuGet team proposal
+- [MinVer Changelog](https://github.com/adamralph/minver/blob/main/CHANGELOG.md) — release notes through v7.0.0
+- [`src/Directory.Build.targets`](../../src/Directory.Build.targets) — current `_GuardAgainstShippingRestoreSentinel` MSBuild guard
+- [`release-guardrails.md`](../knowledge-base/release-guardrails.md) — full guardrail roadmap including post-pack assertions (G20–G27)

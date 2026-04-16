@@ -18,8 +18,8 @@
 
   "package_families": [
     {
-      "name": "core",
-      "tag_prefix": "core",
+      "name": "sdl2-core",
+      "tag_prefix": "sdl2-core",
       "managed_project": "src/SDL2.Core/SDL2.Core.csproj",
       "native_project": "src/native/SDL2.Core.Native/SDL2.Core.Native.csproj",
       "library_ref": "SDL2",
@@ -30,60 +30,60 @@
       ]
     },
     {
-      "name": "image",
-      "tag_prefix": "image",
+      "name": "sdl2-image",
+      "tag_prefix": "sdl2-image",
       "managed_project": "src/SDL2.Image/SDL2.Image.csproj",
       "native_project": "src/native/SDL2.Image.Native/SDL2.Image.Native.csproj",
       "library_ref": "SDL2_image",
-      "depends_on": ["core"],
+      "depends_on": ["sdl2-core"],
       "change_paths": [
         "src/SDL2.Image/**",
         "src/native/SDL2.Image.Native/**"
       ]
     },
     {
-      "name": "mixer",
-      "tag_prefix": "mixer",
+      "name": "sdl2-mixer",
+      "tag_prefix": "sdl2-mixer",
       "managed_project": "src/SDL2.Mixer/SDL2.Mixer.csproj",
       "native_project": "src/native/SDL2.Mixer.Native/SDL2.Mixer.Native.csproj",
       "library_ref": "SDL2_mixer",
-      "depends_on": ["core"],
+      "depends_on": ["sdl2-core"],
       "change_paths": [
         "src/SDL2.Mixer/**",
         "src/native/SDL2.Mixer.Native/**"
       ]
     },
     {
-      "name": "ttf",
-      "tag_prefix": "ttf",
+      "name": "sdl2-ttf",
+      "tag_prefix": "sdl2-ttf",
       "managed_project": "src/SDL2.Ttf/SDL2.Ttf.csproj",
       "native_project": "src/native/SDL2.Ttf.Native/SDL2.Ttf.Native.csproj",
       "library_ref": "SDL2_ttf",
-      "depends_on": ["core"],
+      "depends_on": ["sdl2-core"],
       "change_paths": [
         "src/SDL2.Ttf/**",
         "src/native/SDL2.Ttf.Native/**"
       ]
     },
     {
-      "name": "gfx",
-      "tag_prefix": "gfx",
+      "name": "sdl2-gfx",
+      "tag_prefix": "sdl2-gfx",
       "managed_project": "src/SDL2.Gfx/SDL2.Gfx.csproj",
       "native_project": "src/native/SDL2.Gfx.Native/SDL2.Gfx.Native.csproj",
       "library_ref": "SDL2_gfx",
-      "depends_on": ["core"],
+      "depends_on": ["sdl2-core"],
       "change_paths": [
         "src/SDL2.Gfx/**",
         "src/native/SDL2.Gfx.Native/**"
       ]
     },
     {
-      "name": "net",
-      "tag_prefix": "net",
+      "name": "sdl2-net",
+      "tag_prefix": "sdl2-net",
       "managed_project": null,
       "native_project": null,
       "library_ref": "SDL2_net",
-      "depends_on": ["core"],
+      "depends_on": ["sdl2-core"],
       "change_paths": [
         "src/SDL2.Net/**",
         "src/native/SDL2.Net.Native/**"

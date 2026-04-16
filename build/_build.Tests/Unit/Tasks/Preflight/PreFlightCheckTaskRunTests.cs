@@ -111,7 +111,11 @@ public class PreFlightCheckTaskRunTests
                     ContainerImage = null,
                 },
             ],
-            PackageFamilies = [manifest.PackageFamilies.Single(family => string.Equals(family.Name, "core", StringComparison.OrdinalIgnoreCase))],
+            PackageFamilies = [manifest.PackageFamilies.Single(family => string.Equals(family.Name, "sdl2-core", StringComparison.OrdinalIgnoreCase)) with
+            {
+                ManagedProject = null,
+                NativeProject = null,
+            }],
             LibraryManifests =
             [
                 ManifestFixture.CreateTestCoreLibrary() with
@@ -146,6 +150,7 @@ public class PreFlightCheckTaskRunTests
             new VcpkgManifestReader(context.FileSystem),
             new VersionConsistencyValidator(),
             new StrategyCoherenceValidator(new StrategyResolver()),
+            new CsprojPackContractValidator(context.FileSystem),
             new PreflightReporter(context));
     }
 }

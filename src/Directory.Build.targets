@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <!--
+    Within-family exact-pin nuspec dependencies require external Version provisioning.
+
+    The csproj shape declares:
+      <PackageVersion Include="Janset.SDL2.{Role}.Native" Version="[$(Sdl<Major><Role>FamilyVersion)]" />
+    where the family-version property defaults to $(Version), with a parseable
+    "0.0.0-restore" sentinel as restore-safe fallback.
+
+    MSBuild captures item metadata at static-evaluation time — BEFORE any target
+    runs. MinVer sets $(Version) at target time. The two timings cannot be reconciled
+    via a target that updates the PackageVersion item, because by GenerateNuspec the
+    package dependency version is already resolved from project.assets.json (captured
+    at restore time, BEFORE MinVer's targets are loaded by the package's own restore).
+
+    Frontier confirmation (2026-04-16): no major .NET multi-package monorepo
+    auto-derives within-family exact pin from MinVer for standalone `dotnet pack`.
+    LibGit2Sharp hardcodes the literal version. SkiaSharp uses minimum range, not
+    exact pin. SDL3-CS bundles natives. Avalonia uses minimum range with CPM. We are
+    not implementing a half-broken hack; we accept the constraint and document it.
+
+    Production path (Cake, Stream D-local):
+      Cake determines the family version (MinVer-derived from git tag, or release-set
+      lookup) and orchestrates pack via two MSBuild invocations: an explicit restore
+      with the family version + `Version` + `MinVerSkip=true` properties, then a pack
+      with the no-restore flag passing the same properties. Cake also pre-builds the
+      .Native csproj with the same properties so the ProjectReference sub-build
+      resolves to the matching version. The two-step ensures restore and pack see
+      consistent values, restore writes [X.Y.Z] into project.assets.json, and pack
+      emits the correct exact pin in the nuspec.
+
+    Direct `dotnet pack` (developer convenience):
+      Without explicit version properties, $(Version) is empty at static evaluation,
+      Sdl<Major><Role>FamilyVersion falls through to "0.0.0-restore" (sentinel),
+      and the nuspec emits "[0.0.0-restore]" as the within-family exact pin. This
+      is wrong-on-purpose and SHOULD NEVER SHIP. The structural validator (PreFlight,
+      A-risky step 3) checks csproj shape; the post-pack nuspec assertion (Stream
+      D-local) catches the sentinel before publish.
+
+    The guard target below escalates to a hard error during pack of a Janset.SDL2.*
+    managed package when no version was provided externally. Native csprojs are
+    payload-only and exempt (they ship just fine with MinVer's auto-derived version).
+  -->
+  <Target Name="_GuardAgainstShippingRestoreSentinel"
+          BeforeTargets="GenerateNuspec"
+          Condition="'$(IsPackable)' != 'false' and '$(PackageId.StartsWith(`Janset.SDL2.`))' == 'true' and '$(PackageId.EndsWith(`.Native`))' != 'true'">
+    <Error Text="A-risky guard: Janset.SDL2.* managed pack invoked without explicit family version. Direct 'dotnet pack' would emit [0.0.0-restore] as the within-family exact pin — wrong-on-purpose sentinel. Run via Cake (Stream D-local), or pass -p:Sdl{Major}{Role}FamilyVersion=X.Y.Z -p:Version=X.Y.Z -p:MinVerSkip=true (and use a separate 'dotnet restore' step with the same properties). PackageId=$(PackageId), Version=$(Version), Sdl2CoreFamilyVersion=$(Sdl2CoreFamilyVersion), Sdl2ImageFamilyVersion=$(Sdl2ImageFamilyVersion), Sdl2MixerFamilyVersion=$(Sdl2MixerFamilyVersion), Sdl2TtfFamilyVersion=$(Sdl2TtfFamilyVersion), Sdl2GfxFamilyVersion=$(Sdl2GfxFamilyVersion). To bypass this guard for a deliberate sentinel pack (rare), pass -p:AllowSentinelExactPin=true."
+           Condition="'$(AllowSentinelExactPin)' != 'true' and (
+                      '$(Sdl2CoreFamilyVersion)'  == '0.0.0-restore' or
+                      '$(Sdl2ImageFamilyVersion)' == '0.0.0-restore' or
+                      '$(Sdl2MixerFamilyVersion)' == '0.0.0-restore' or
+                      '$(Sdl2TtfFamilyVersion)'   == '0.0.0-restore' or
+                      '$(Sdl2GfxFamilyVersion)'   == '0.0.0-restore')"/>
+  </Target>
+</Project>

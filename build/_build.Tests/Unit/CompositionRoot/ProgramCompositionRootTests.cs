@@ -306,7 +306,7 @@ public sealed class ProgramCompositionRootTests
                                         ContainerImage = null,
                                 },
                         ],
-                        PackageFamilies = [manifest.PackageFamilies.Single(family => string.Equals(family.Name, "core", StringComparison.OrdinalIgnoreCase))],
+                        PackageFamilies = [manifest.PackageFamilies.Single(family => string.Equals(family.Name, "sdl2-core", StringComparison.OrdinalIgnoreCase))],
                         LibraryManifests = [ManifestFixture.CreateTestCoreLibrary()],
                 };
         }

@@ -3,6 +3,9 @@
     <PackageId>Janset.SDL2.Gfx</PackageId>
     <Description>Gfx C# bindings for SDL_gfx (based on SDL-CS)</Description>
     <TargetFrameworks>$(TargetFrameworks)</TargetFrameworks>
+    <MinVerTagPrefix>sdl2-gfx-</MinVerTagPrefix>
+    <Sdl2GfxFamilyVersion Condition="'$(Version)' != '' and '$(Sdl2GfxFamilyVersion)' == ''">$(Version)</Sdl2GfxFamilyVersion>
+    <Sdl2GfxFamilyVersion Condition="'$(Sdl2GfxFamilyVersion)' == ''">0.0.0-restore</Sdl2GfxFamilyVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -11,6 +14,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SDL2.Core\SDL2.Core.csproj"/>
-    <ProjectReference Include="..\native\SDL2.Gfx.Native\SDL2.Gfx.Native.csproj"/>
+    <ProjectReference Include="..\native\SDL2.Gfx.Native\SDL2.Gfx.Native.csproj" PrivateAssets="all"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageVersion Include="Janset.SDL2.Gfx.Native" Version="[$(Sdl2GfxFamilyVersion)]"/>
+    <PackageReference Include="Janset.SDL2.Gfx.Native"/>
   </ItemGroup>
 </Project>

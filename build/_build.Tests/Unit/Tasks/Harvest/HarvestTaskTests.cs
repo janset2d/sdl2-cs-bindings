@@ -254,8 +254,8 @@ public class HarvestTaskTests
             [
                 new PackageFamilyConfig
                 {
-                    Name = "core",
-                    TagPrefix = "core",
+                    Name = "sdl2-core",
+                    TagPrefix = "sdl2-core",
                     ManagedProject = "src/SDL2.Core/SDL2.Core.csproj",
                     NativeProject = "src/native/SDL2.Core.Native/SDL2.Core.Native.csproj",
                     LibraryRef = "SDL2",

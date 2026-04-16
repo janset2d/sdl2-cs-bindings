@@ -79,12 +79,12 @@ public class ManifestDeserializationTests
         await Assert.That(config.PackageFamilies.Count).IsEqualTo(6);
 
         var familyNames = config.PackageFamilies.Select(f => f.Name).ToList();
-        await Assert.That(familyNames).Contains("core");
-        await Assert.That(familyNames).Contains("image");
-        await Assert.That(familyNames).Contains("mixer");
-        await Assert.That(familyNames).Contains("ttf");
-        await Assert.That(familyNames).Contains("gfx");
-        await Assert.That(familyNames).Contains("net");
+        await Assert.That(familyNames).Contains("sdl2-core");
+        await Assert.That(familyNames).Contains("sdl2-image");
+        await Assert.That(familyNames).Contains("sdl2-mixer");
+        await Assert.That(familyNames).Contains("sdl2-ttf");
+        await Assert.That(familyNames).Contains("sdl2-gfx");
+        await Assert.That(familyNames).Contains("sdl2-net");
     }
 
     [Test]

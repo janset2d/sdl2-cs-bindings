@@ -14,8 +14,8 @@ public sealed class PreflightReporter(ICakeContext cakeContext) : IPreflightRepo
     public void ReportRunStart()
     {
         Log.Information("🔍 Running pre-flight checks...");
-        Log.Information("ℹ️ Scope: version consistency + runtime strategy coherence.");
-        Log.Information("ℹ️ Deferred to Stream C: package-family integrity, dynamic matrix, and CI artifact-flow gates.");
+        Log.Information("ℹ️ Scope: version consistency + runtime strategy coherence + csproj pack contract.");
+        Log.Information("ℹ️ Deferred to Stream C: dynamic matrix and CI artifact-flow gates.");
     }
 
     public void ReportVersionConsistency(VersionConsistencyValidation validation)
@@ -97,5 +97,43 @@ public sealed class PreflightReporter(ICakeContext cakeContext) : IPreflightRepo
         }
 
         Log.Information("✅ Strategy coherence check PASSED - All {0} runtimes are coherent", validation.CheckedRuntimes);
+    }
+
+    public void ReportCsprojPackContract(CsprojPackContractValidation validation)
+    {
+        ArgumentNullException.ThrowIfNull(validation);
+
+        Log.Information("");
+        Log.Information("🔍 Csproj pack contract — checking {0} families across {1} csproj(s)...", validation.CheckedFamilies, validation.CheckedCsprojs);
+
+        var checksByCsproj = validation.Checks
+            .GroupBy(c => string.IsNullOrEmpty(c.CsprojRelativePath) ? c.FamilyIdentifier : c.CsprojRelativePath, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var group in checksByCsproj)
+        {
+            var allValid = group.All(c => c.IsValid);
+            var symbol = allValid ? "✅" : "❌";
+            Log.Information("  {0} {1}", symbol, group.Key);
+
+            foreach (var check in group.Where(c => !c.IsValid))
+            {
+                Log.Error("       [{0}] {1}", check.Kind, check.ErrorMessage);
+                Log.Verbose("       expected: {0}", check.ExpectedValue ?? "<n/a>");
+                Log.Verbose("       actual:   {0}", check.ActualValue ?? "<n/a>");
+            }
+        }
+
+        Log.Information("");
+        if (validation.HasErrors)
+        {
+            var failedCount = validation.Checks.Count(c => !c.IsValid);
+            Log.Error("❌ Pre-flight check FAILED - {0} csproj pack contract violation(s) detected", failedCount);
+            Log.Error("   Refer to docs/knowledge-base/release-guardrails.md (G1-G8, G17, G18) for the canonical rules");
+            Log.Error("   Refer to docs/knowledge-base/release-lifecycle-direction.md §1 for family identifier conventions");
+            return;
+        }
+
+        Log.Information("✅ Csproj pack contract check PASSED - all {0} families conform to canonical shape", validation.CheckedFamilies);
     }
 }

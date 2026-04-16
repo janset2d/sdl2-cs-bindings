@@ -28,6 +28,7 @@ public sealed class PreFlightCheckTask : FrostingTask<BuildContext>
     private readonly IVcpkgManifestReader _vcpkgManifestReader;
     private readonly IVersionConsistencyValidator _versionConsistencyValidator;
     private readonly IStrategyCoherenceValidator _strategyCoherenceValidator;
+    private readonly ICsprojPackContractValidator _csprojPackContractValidator;
     private readonly IPreflightReporter _preflightReporter;
 
     public PreFlightCheckTask(
@@ -35,12 +36,14 @@ public sealed class PreFlightCheckTask : FrostingTask<BuildContext>
         IVcpkgManifestReader vcpkgManifestReader,
         IVersionConsistencyValidator versionConsistencyValidator,
         IStrategyCoherenceValidator strategyCoherenceValidator,
+        ICsprojPackContractValidator csprojPackContractValidator,
         IPreflightReporter preflightReporter)
     {
         _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
         _vcpkgManifestReader = vcpkgManifestReader ?? throw new ArgumentNullException(nameof(vcpkgManifestReader));
         _versionConsistencyValidator = versionConsistencyValidator ?? throw new ArgumentNullException(nameof(versionConsistencyValidator));
         _strategyCoherenceValidator = strategyCoherenceValidator ?? throw new ArgumentNullException(nameof(strategyCoherenceValidator));
+        _csprojPackContractValidator = csprojPackContractValidator ?? throw new ArgumentNullException(nameof(csprojPackContractValidator));
         _preflightReporter = preflightReporter ?? throw new ArgumentNullException(nameof(preflightReporter));
     }
 
@@ -63,6 +66,11 @@ public sealed class PreFlightCheckTask : FrostingTask<BuildContext>
         _preflightReporter.ReportStrategyCoherence(strategyCoherenceValidation.Validation);
 
         strategyCoherenceValidation.OnError(error => ThrowPreflightFailure(context.Log, "Strategy coherence", error));
+
+        var csprojPackContractValidation = _csprojPackContractValidator.Validate(_manifestConfig, context.Paths.RepoRoot);
+        _preflightReporter.ReportCsprojPackContract(csprojPackContractValidation.Validation);
+
+        csprojPackContractValidation.OnError(error => ThrowPreflightFailure(context.Log, "Csproj pack contract", error));
     }
 
     private static void ThrowPreflightFailure(ICakeLog log, string phase, PreflightError error)

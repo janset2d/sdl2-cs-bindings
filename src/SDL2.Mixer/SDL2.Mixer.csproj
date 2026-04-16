@@ -3,6 +3,9 @@
     <PackageId>Janset.SDL2.Mixer</PackageId>
     <Description>Mixer C# bindings for SDL_mixer (based on SDL-CS)</Description>
     <TargetFrameworks>$(TargetFrameworks)</TargetFrameworks>
+    <MinVerTagPrefix>sdl2-mixer-</MinVerTagPrefix>
+    <Sdl2MixerFamilyVersion Condition="'$(Version)' != '' and '$(Sdl2MixerFamilyVersion)' == ''">$(Version)</Sdl2MixerFamilyVersion>
+    <Sdl2MixerFamilyVersion Condition="'$(Sdl2MixerFamilyVersion)' == ''">0.0.0-restore</Sdl2MixerFamilyVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -11,6 +14,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SDL2.Core\SDL2.Core.csproj"/>
-    <ProjectReference Include="..\native\SDL2.Mixer.Native\SDL2.Mixer.Native.csproj"/>
+    <ProjectReference Include="..\native\SDL2.Mixer.Native\SDL2.Mixer.Native.csproj" PrivateAssets="all"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageVersion Include="Janset.SDL2.Mixer.Native" Version="[$(Sdl2MixerFamilyVersion)]"/>
+    <PackageReference Include="Janset.SDL2.Mixer.Native"/>
   </ItemGroup>
 </Project>

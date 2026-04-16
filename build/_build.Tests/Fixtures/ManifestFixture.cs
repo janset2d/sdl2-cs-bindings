@@ -95,8 +95,8 @@ public static class ManifestFixture
         [
             new PackageFamilyConfig
             {
-                Name = "core",
-                TagPrefix = "core",
+                Name = "sdl2-core",
+                TagPrefix = "sdl2-core",
                 ManagedProject = "src/SDL2.Core/SDL2.Core.csproj",
                 NativeProject = "src/native/SDL2.Core.Native/SDL2.Core.Native.csproj",
                 LibraryRef = "SDL2",
@@ -105,12 +105,12 @@ public static class ManifestFixture
             },
             new PackageFamilyConfig
             {
-                Name = "image",
-                TagPrefix = "image",
+                Name = "sdl2-image",
+                TagPrefix = "sdl2-image",
                 ManagedProject = "src/SDL2.Image/SDL2.Image.csproj",
                 NativeProject = "src/native/SDL2.Image.Native/SDL2.Image.Native.csproj",
                 LibraryRef = "SDL2_image",
-                DependsOn = ["core"],
+                DependsOn = ["sdl2-core"],
                 ChangePaths = ["src/SDL2.Image/**", "src/native/SDL2.Image.Native/**"],
             },
         ],
