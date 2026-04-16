@@ -2,8 +2,8 @@
 
 > How to verify that the Cake build host, harvest pipeline, and native libraries work correctly across all 3 local platforms after a refactor or significant change.
 
-**Last validated:** 2026-04-16 (Windows-only after A-risky landing: MinVer + exact-pin csproj + family rename to `sdl<major>-<role>` + PreFlight `CsprojPackContractValidator`)
-**Result:** Windows checkpoints A-D green (256/256 tests, build clean, task tree intact, PreFlight 6 families × 10 csprojs all green). E/F/G unchanged scope (harvest pipeline not touched by A-risky); WSL + macOS validation deferred — recommend re-running full 3-platform matrix when next stream lands changes that affect runtime behavior.
+**Last validated:** 2026-04-16 (post-A-risky: MinVer + exact-pin csproj + family rename to `sdl<major>-<role>` + PreFlight `CsprojPackContractValidator`)
+**Result:** Checkpoints A-D green on all 3 platforms (Windows local, WSL Linux, macOS Intel SSH). 256/256 build-host tests, 0 warnings / 0 errors on Release build, PreFlight 6 families × 10 csprojs × 8 invariants all green per platform. E/F/G unchanged scope (harvest pipeline not touched by A-risky) — re-run when Stream D-local or later lands runtime-affecting changes.
 
 ## When to Run This
 
