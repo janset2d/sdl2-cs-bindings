@@ -128,15 +128,22 @@ If smoke test fails, publish is blocked. This is an explicit `needs:` dependency
 
 ## Implementation Streams
 
-### Stream A0: Exact Pin Spike (BLOCKING)
+### Stream A0: Exact Pin Spike — CLOSED (mechanism proven 2026-04-16)
 
-**Must complete before Stream D. Can run in parallel with Stream A-safe (manifest + NuGet.Versioning) and Stream B. Stream A-risky (MinVer project rollout) waits until A0 resolves.**
+**Blocked Stream D and A-risky. Both are now unblocked.**
 
-Research and prove a mechanism to produce `.nupkg` files with both within-family exact pin AND cross-family minimum range dependencies, in the same package. See Amendment 2 above for acceptance target (Image family) and success criteria (automated TUnit assertion on nuspec).
+Research and prove a mechanism to produce `.nupkg` files with both within-family exact pin AND cross-family minimum range dependencies, in the same package. See Amendment 2 above for acceptance target (Image family) and success criteria.
 
-**Sync checkpoint:** A0 findings may affect csproj structure (e.g., requiring ProjectReference → PackageReference switch during pack). MinVer rollout (Stream A-risky) must be reconciled with A0's chosen csproj shape before it starts.
+**Mechanism (proven 2026-04-16):** `PrivateAssets="all"` on the Native `ProjectReference` (suppresses it from pack output) + explicit `PackageReference` with bracket notation `[$(FamilyVersion)]` (injects exact pin into nuspec). Core `ProjectReference` remains default (emits `>=` minimum range). Empirically verified: 5 test scenarios on .NET SDK 9.0.309, 4 TFMs, parameterized versions. LibGit2Sharp production precedent. See [`research/exact-pin-spike-and-nugetizer-eval-2026-04-16.md`](../research/exact-pin-spike-and-nugetizer-eval-2026-04-16.md).
 
-**Exit:** Documented mechanism + working Image-family `.nupkg` + TUnit test asserting both dependency ranges are in the correct format (PD-2 resolved).
+**Sync checkpoint:** A0's chosen shape adds `PrivateAssets="all"` on existing Native ProjectReference + a new `PackageReference`/`PackageVersion` pair. This is additive — no ProjectReference removal. MinVer rollout (Stream A-risky) is compatible: MinVer sets `$(Version)` at build time, and the family version property feeds into `[$(FamilyVersion)]` at pack time.
+
+**Regression guard placement:** The A0 acceptance criterion originally specified a TUnit test inside Build.Tests. After review, the regression guards land in their permanent homes instead of a throwaway spike test:
+
+- **A-risky (first automated guard):** PreFlight csproj structural validator — checks that every managed satellite's Native ProjectReference has `PrivateAssets="all"` and a matching bracket-notation `PackageReference`/`PackageVersion` exists. Lands in the same change that applies Mechanism 3 to real csproj files — no window where the shape exists without a guard.
+- **D-local (second automated guard, defense-in-depth):** post-pack nuspec assertion inside PackageTask — opens the produced `.nupkg`, parses the nuspec, asserts within-family `[x.y.z]` and cross-family `x.y.z` ranges per TFM group. Catches actual pack output regression.
+
+**Exit:** Documented mechanism + empirical proof artifacts (preserved at `artifacts/temp/a0-mechanism3/`) + PD-2 resolved + research note published. Spike is closed; automated guards land with A-risky (immediate next work) and D-local (downstream).
 
 ### Stream A-safe: Manifest Schema + Versioning Library (low-churn)
 
@@ -154,16 +161,41 @@ Research and prove a mechanism to produce `.nupkg` files with both within-family
    - File: `Directory.Packages.props` — add centralized version
    - No Cake task yet — just the library available for later use
 
-### Stream A-risky: MinVer Project Rollout (held until A0 resolves)
+### Stream A-risky: MinVer + Exact-Pin csproj Rollout + Structural Lock (unblocked by A0)
 
-**Blocked by A0 (PD-2). Must not start until the exact pin mechanism is chosen, because A0 may reshape csproj topology.**
+**Previously blocked by A0 (PD-2). Now unblocked — A0 mechanism proven 2026-04-16.**
+
+This stream applies three coordinated changes to `src/` csproj files in a single pass, because all three touch the same files and are interdependent:
 
 1. **MinVer integration**
    - File: `Directory.Packages.props` — add MinVer package version
    - File: `Directory.Build.props` — add conditional MinVer reference (only for `src/` projects, not `build/_build`)
-   - Each csproj: add `<MinVerTagPrefix>core-</MinVerTagPrefix>` etc.
+   - Each managed csproj: add `<MinVerTagPrefix>core-</MinVerTagPrefix>` etc.
    - Native csproj: ALSO needs MinVer (same family version) — subject to PD-1 (`<IncludeBuildOutput>false</IncludeBuildOutput>` interaction)
    - Test: `dotnet build` should give `0.0.0-alpha.0.N` versions (no tags exist yet)
+
+2. **Exact-pin csproj shape rollout (Mechanism 3 from A0)**
+   Apply the proven A0 mechanism to every managed satellite csproj. Per managed package:
+   - Add `PrivateAssets="all"` to the existing Native `ProjectReference`
+   - Add `<PackageVersion Include="Janset.SDL2.{Family}.Native" Version="[$({Family}FamilyVersion)]" />` (bracket notation, family version variable)
+   - Add `<PackageReference Include="Janset.SDL2.{Family}.Native" />`
+   - Core family: same pattern but no cross-family `ProjectReference`
+   - The family version property defaults in each csproj (e.g., `<ImageFamilyVersion Condition="...">$(Version)</ImageFamilyVersion>`) and is overridden by Cake at pack time
+   - **Validation:** `dotnet pack -p:PackageVersion=0.0.1-test -p:{Family}FamilyVersion=0.0.1-test` on each managed csproj, inspect nuspec: Native dep must be `[0.0.1-test]`, Core dep must be `0.0.1-test`
+   - See [`research/exact-pin-spike-and-nugetizer-eval-2026-04-16.md`](../research/exact-pin-spike-and-nugetizer-eval-2026-04-16.md) for mechanism details and empirical proof
+
+3. **Structural lock: PreFlight csproj pack contract validator**
+   Add a new validator to PreFlightCheckTask that verifies the exact-pin csproj shape has not drifted. This is the permanent regression guard for Mechanism 3. Runs locally via `dotnet cake --target=PreFlightCheck` immediately; CI wiring comes with Stream C.
+   - Reads `manifest.json` `package_families[]` to discover managed + native project pairs
+   - For each managed satellite csproj:
+     - Asserts: Native `ProjectReference` exists with `PrivateAssets="all"` metadata
+     - Asserts: Matching `PackageReference` to the Native PackageId exists
+     - Asserts: Matching `PackageVersion` item uses bracket notation (`[...]`)
+   - For each core managed csproj: same checks (minus cross-family ProjectReference)
+   - On failure: PreFlight fails with clear message identifying which csproj and which invariant broke
+   - **Why PreFlight and not a unit test:** this is a structural config check (like version consistency and strategy coherence), not a code behavior test. PreFlight is the established home for "is the repo shape valid before we build?"
+
+**Why these three go together:** MinVer adds `<MinVerTagPrefix>` to each csproj. Mechanism 3 adds `PrivateAssets` + `PackageReference` + `PackageVersion` to each managed csproj. Both touch the same ItemGroups and PropertyGroups. Doing them separately means two passes over the same files with merge risk. The structural lock follows immediately because the invariants it guards are created in the same change — there is no window where the shape exists but the guard does not.
 
 **Note:** PreFlightCheckTask's version resolution (Amendment 1) does **not** depend on MinVer rollout. PreFlight reads git tags directly using NuGet.Versioning (delivered by A-safe). A-risky is strictly about project/pack-time versioning for `src/` csprojs.
 
@@ -189,44 +221,49 @@ Design reference: `docs/research/cake-strategy-implementation-brief-2026-04-14.m
 
 **Local validation:** Run the cross-platform smoke matrix after landing CI workflow changes. See [playbook/cross-platform-smoke-validation.md](../playbook/cross-platform-smoke-validation.md).
 
-**Key principle: PreFlightCheck is the gate.** Before ANY matrix job runs, PreFlightCheck must validate everything: manifest consistency, triplet↔strategy coherence, family version resolution, package_families integrity, and Cake unit tests. If PreFlight fails, no CI resources are spent on builds.
+**Key principle: the preflight-gate job is the single checkpoint before CI resources are spent.** It validates three concerns in sequence: structural integrity (PreFlightCheck), code quality (unit tests + coverage ratchet), and — once landed — packaging contract shape. If any concern fails, no matrix jobs spawn.
 
 1. **Expand PreFlightCheckTask as the CI gate**
    - Runs BEFORE matrix generation
    - Validates: manifest.json schema integrity, vcpkg.json↔manifest version consistency, triplet↔strategy coherence (#85), package_families↔library_manifests cross-reference
+   - **csproj pack contract validation (from A0):** for every managed satellite package, verify that the Native ProjectReference carries `PrivateAssets="all"` and a matching bracket-notation `PackageReference`/`PackageVersion` pair exists. Catches accidental removal of the exact-pin shape before pack runs.
    - **Trigger-aware version resolution** (Amendment 1): tag push → resolve from tag, fail if missing. Main push / manual → prerelease fallback allowed, info log.
-   - Runs: `dotnet test build/_build.Tests/` — Cake unit tests must pass before any build
    - On failure: entire pipeline stops, no matrix jobs spawn
 
-2. **Cake GenerateMatrixTask**
+2. **Code quality gate (same preflight-gate job, after PreFlightCheck)**
+   - Runs: `dotnet test build/_build.Tests/` — Cake unit tests must pass before any build
+   - Runs: `dotnet cake --target=Coverage-Check` — coverage ratchet against `build/coverage-baseline.json`. Already implemented (#86), currently local-only. Stream C wires it into CI.
+   - On failure: entire pipeline stops, no matrix jobs spawn
+
+3. **Cake GenerateMatrixTask**
    - New task: reads `manifest.json` runtimes, outputs GHA-compatible JSON
    - Runs AFTER PreFlightCheck passes
    - Groups by OS family (windows/linux/macos) for reusable workflow routing
    - Output: three JSON matrices (one per OS family)
 
-3. **CI pipeline shape**
+4. **CI pipeline shape**
 
    ```text
-   PreFlightCheck (gate)
-     → unit tests pass
-     → manifest consistency validated
-     → family versions resolved
-     ↓ (only if gate passes)
+   preflight-gate job:
+     PreFlightCheck        → structural integrity (manifest, strategy, csproj pack shape)
+     dotnet test           → unit tests
+     Coverage-Check        → coverage ratchet
+     ↓ (only if all pass)
    GenerateMatrix
      → dynamic JSON from manifest
      ↓
    Build/Harvest (7 RID jobs from matrix)
      ↓
-   Consolidate → Package → Publish
+   Consolidate → Package (+ post-pack nuspec assertion) → Smoke Test → Publish
    ```
 
-4. **Pure-dynamic first validation**
+5. **Pure-dynamic first validation**
    - Run GenerateMatrixTask with current manifest
    - Validate that the dynamic matrix produces the same 7 RID jobs as the hardcoded YAML
    - Don't update workflows yet — just prove the matrix generation works
 
-5. **CI workflow migration** (after validation)
-   - Add `preflight-gate` job that runs Cake PreFlightCheckTask + unit tests
+6. **CI workflow migration** (after validation)
+   - Add `preflight-gate` job that runs Cake PreFlightCheckTask + unit tests + Coverage-Check
    - Add `generate-matrix` job that runs Cake GenerateMatrixTask (needs: preflight-gate)
    - Replace hardcoded matrix with `fromJson()`
    - Keep reusable workflows (windows/linux/macos) — they handle OS-specific setup
@@ -247,8 +284,9 @@ Design reference: `docs/research/cake-strategy-implementation-brief-2026-04-14.m
    - Reads harvest-manifest.json for successful RIDs
    - Stages native content into `runtimes/{rid}/native/` layout
    - Runs `dotnet pack` for both managed and native at family version
-   - **Applies exact pin mechanism** from A0 spike for within-family dependencies (`[x.y.z]` NuGet range)
-   - **Post-pack assertion:** parse produced `.nuspec`, verify within-family dep uses exact range
+   - Passes family version to both restore and pack (`-p:ImageFamilyVersion=x.y.z` etc.) — version mismatch between restore and pack causes NuGet `NU5016`, which is a safety net
+   - **Applies exact pin mechanism** from A0 spike: csproj shape uses `PrivateAssets="all"` on Native ProjectReference + explicit `PackageReference Version="[$(FamilyVersion)]"`. See [`research/exact-pin-spike-and-nugetizer-eval-2026-04-16.md`](../research/exact-pin-spike-and-nugetizer-eval-2026-04-16.md)
+   - **Post-pack nuspec assertion (A0 regression guard):** opens each produced `.nupkg`, parses the embedded `.nuspec`, asserts that within-family Native dependency uses exact range `[x.y.z]` and cross-family Core dependency uses minimum range `x.y.z`, across all TFM dependency groups. This is the permanent home of the A0 acceptance criterion — defense-in-depth beyond Stream C's csproj structural check
    - Outputs to `artifacts/packages/`
 
 2. **Package-consumer smoke test** — #83
@@ -375,7 +413,7 @@ Three arketypes on the table. This list is the agreed scope of discussion, not a
 | # | Decision | Owner | Status | Exit Criterion | Blocks |
 | --- | --- | --- | --- | --- | --- |
 | PD-1 | MinVer for native payload-only csproj: does `<IncludeBuildOutput>false</IncludeBuildOutput>` prevent MinVer from setting `Version`? | Stream A-risky implementer | Open | `dotnet build` on native csproj produces versioned assembly metadata or pack output with correct version | Stream A-risky, Stream D-local |
-| PD-2 | Exact pin mechanism: which approach produces both within-family `[x.y.z]` and cross-family minimum range in the same `.nupkg`? | Stream A0 spike | Open | TUnit test on Image-family `.nupkg` asserts both dependency ranges are in the correct format | Stream D-local, Stream D-ci, Stream A-risky start |
+| PD-2 | Exact pin mechanism: which approach produces both within-family `[x.y.z]` and cross-family minimum range in the same `.nupkg`? | Stream A0 spike | **Resolved 2026-04-16** — `PrivateAssets="all"` on Native ProjectReference + explicit `PackageReference` with bracket notation. Empirically verified on .NET SDK 9.0.309 across 4 TFMs with parameterized versions. LibGit2Sharp production precedent. First automated guard lands in A-risky (PreFlight csproj structural validator); second guard lands in D-local (post-pack nuspec assertion). See [`exact-pin-spike-and-nugetizer-eval-2026-04-16.md`](../research/exact-pin-spike-and-nugetizer-eval-2026-04-16.md) | Resolved. Mechanism proven and documented. Automated regression guards land in A-risky and D-local. | No longer blocking — A-risky and D-local unblocked |
 | PD-3 | dotnet-affected: NuGet library or CLI wrapper? | Stream E 2a feasibility spike | Open — 2a feasibility only, full decision in 2b | ADR-style note committing to one path | Stream E full implementation (2b) |
 | PD-4 | Source Mode native payload visibility mechanism | Stream F implementer | **Mechanism locked 2026-04-15** — verified on Windows (worktree), Linux (WSL Ubuntu, 2-level chain), and macOS (SSH Intel Mac, Darwin 24.6, 3-level dylib chain). End-to-end validation with real SDL2 natives pending Stream F execution. See [`source-mode-native-visibility-2026-04-15.md`](../research/source-mode-native-visibility-2026-04-15.md) | Locked: platform-branched — Windows `<Content>` + `CopyToOutputDirectory`, Linux/macOS `<Target>` + `<Exec cp -a>` (preserves symlink chains at 1× size). Opt-in `Directory.Build.targets` at solution root, flag via `test/Directory.Build.props` (Phase 2a preset), staging at `artifacts/native-staging/<rid>/native/`. Tar.gz is NOT used in Source Mode (only shipping graph) | — (informs Stream F shape) |
 | PD-5 | Non-host RID local acquisition path | Stream F extension | **Direction locked 2026-04-15** via two-source framework in [`source-mode-native-visibility-2026-04-15.md`](../research/source-mode-native-visibility-2026-04-15.md) §7.2 (`--source=remote --url=<url>`). Concrete mechanism (URL convention, producer workflow, artifact granularity, auth, caching) still open — 2b scope | Producer workflow chosen, URL/artifact convention defined, auth story settled, end-to-end validated by downloading real natives + extracting to staging on a non-host RID | `--source=remote` full implementation (2b) |
