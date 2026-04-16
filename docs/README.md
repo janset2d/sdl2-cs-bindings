@@ -61,6 +61,7 @@
 | [ci-troubleshooting.md](playbook/ci-troubleshooting.md) | How do I debug CI failures? |
 | [cake-frosting-patterns.md](playbook/cake-frosting-patterns.md) | What Cake Frosting patterns should I follow in this repo? |
 | [cake-frosting-host-organization.md](playbook/cake-frosting-host-organization.md) | How should I structure and scale the Cake build host? |
+| [cross-platform-smoke-validation.md](playbook/cross-platform-smoke-validation.md) | How do I verify cross-platform correctness after a refactor? |
 
 ### Knowledge Base (Deep Technical References)
 

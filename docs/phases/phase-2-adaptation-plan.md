@@ -187,6 +187,8 @@ Design reference: `docs/research/cake-strategy-implementation-brief-2026-04-14.m
 
 **Depends on Stream A (manifest schema for matrix generation).**
 
+**Local validation:** Run the cross-platform smoke matrix after landing CI workflow changes. See [playbook/cross-platform-smoke-validation.md](../playbook/cross-platform-smoke-validation.md).
+
 **Key principle: PreFlightCheck is the gate.** Before ANY matrix job runs, PreFlightCheck must validate everything: manifest consistency, triplet↔strategy coherence, family version resolution, package_families integrity, and Cake unit tests. If PreFlight fails, no CI resources are spent on builds.
 
 1. **Expand PreFlightCheckTask as the CI gate**
@@ -230,6 +232,8 @@ Design reference: `docs/research/cake-strategy-implementation-brief-2026-04-14.m
    - Keep reusable workflows (windows/linux/macos) — they handle OS-specific setup
 
 ### Stream D-local: PackageTask + Local Validation (after A-safe + A-risky + A0 + B)
+
+**Local validation:** Harvest + ConsolidateHarvest checkpoints from the smoke matrix must pass on all 3 platforms before PackageTask consumes their output. See [playbook/cross-platform-smoke-validation.md](../playbook/cross-platform-smoke-validation.md).
 
 **Depends on:**
 
@@ -293,6 +297,8 @@ Design reference: `docs/research/cake-strategy-implementation-brief-2026-04-14.m
 ### Stream F: Local-Dev Native Acquisition + Source Mode Payload Visibility
 
 **Source-truth counterpart to Stream D-local. Independent of A0 and B. Depends on Stream A-safe (manifest schema for library identities).**
+
+**Local validation:** Source Mode visibility must be verified on all 3 platforms (Windows, WSL/Linux, macOS). The cross-platform smoke matrix ([playbook/cross-platform-smoke-validation.md](../playbook/cross-platform-smoke-validation.md)) provides the baseline environment setup and known gotchas for each platform.
 
 Stream F covers the source-graph side of local development: how contributors acquire native payloads locally and how those payloads become visible to test, sandbox, and sample csprojs that reach `.Native` via `ProjectReference`.
 

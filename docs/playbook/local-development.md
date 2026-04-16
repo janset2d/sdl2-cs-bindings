@@ -153,7 +153,7 @@ The build system lives in `build/_build/` and is a regular .NET console applicat
 ```bash
 # Show available tasks
 cd build/_build
-dotnet run -- --showtree
+dotnet run -- --tree
 
 # Run a specific task
 dotnet run -- --target Info              # Show environment info
@@ -171,6 +171,7 @@ dotnet run -- --target Harvest --verbosity Diagnostic
 | --- | --- | --- |
 | `VCPKG_ROOT` | vcpkg installation path | `external/vcpkg/` |
 | `VCPKG_DEFAULT_TRIPLET` | Default build triplet | Auto-detected from OS |
+| `DOTNET_ROOT` | .NET runtime root (required on WSL/macOS when dotnet is not in standard system paths) | Not set (see [cross-platform smoke validation](cross-platform-smoke-validation.md#per-platform-environment-setup)) |
 | `DOTNET_CLI_TELEMETRY_OPTOUT` | Disable .NET telemetry | Not set |
 
 ## Common Tasks
@@ -242,3 +243,7 @@ The build host's Windows dependency scanner expects Visual Studio C++ tooling.
 - Ensure .NET 9.0 SDK is installed: `dotnet --version`
 - Try cleaning: `cd build/_build && dotnet clean && dotnet build`
 - Check `--verbosity Diagnostic` output for details
+
+## Cross-Platform Validation
+
+After significant build-host changes, run the full smoke matrix across Windows, WSL/Linux, and macOS to verify cross-platform correctness. See [cross-platform-smoke-validation.md](cross-platform-smoke-validation.md) for the complete matrix definition, per-platform environment setup, and command reference.
