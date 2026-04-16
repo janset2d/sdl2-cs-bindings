@@ -60,7 +60,7 @@ public static class ArtifactPlannerResultExtensions
         return cr;
     }
 
-    public static void ThrowIfError(this ArtifactPlannerResult result, Action<HarvestingError> errorHandler)
+    public static void OnError(this ArtifactPlannerResult result, Action<HarvestingError> errorHandler)
     {
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(errorHandler);
@@ -69,5 +69,10 @@ public static class ArtifactPlannerResultExtensions
         {
             errorHandler(result.AsT0.Value);
         }
+    }
+
+    public static void ThrowIfError(this ArtifactPlannerResult result, Action<HarvestingError> errorHandler)
+    {
+        result.OnError(errorHandler);
     }
 }

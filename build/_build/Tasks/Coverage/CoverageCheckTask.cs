@@ -69,7 +69,7 @@ public sealed class CoverageCheckTask(ICoberturaReader coberturaReader, ICoverag
         var baseline = _coverageBaselineReader.ParseFile(baselinePath);
         var result = CoverageThresholdValidator.Validate(metrics, baseline);
 
-        result.ThrowIfError(error => LogFailureAndThrow(error, context.Log));
+        result.OnError(error => LogFailureAndThrow(error, context.Log));
 
         LogSuccessReport(context.Log, result.CheckSuccess);
     }

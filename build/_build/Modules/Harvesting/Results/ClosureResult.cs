@@ -66,7 +66,7 @@ public static class ClosureResultExtensions
         return cr;
     }
 
-    public static void ThrowIfError(this ClosureResult result, Action<HarvestingError> errorHandler)
+    public static void OnError(this ClosureResult result, Action<HarvestingError> errorHandler)
     {
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(errorHandler);
@@ -75,5 +75,10 @@ public static class ClosureResultExtensions
         {
             errorHandler(result.AsT0.Value);
         }
+    }
+
+    public static void ThrowIfError(this ClosureResult result, Action<HarvestingError> errorHandler)
+    {
+        result.OnError(errorHandler);
     }
 }

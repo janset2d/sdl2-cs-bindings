@@ -85,10 +85,10 @@ public sealed class HarvestTask(
             try
             {
                 var closureResult = await _binaryClosureWalker.BuildClosureAsync(manifest);
-                closureResult.ThrowIfError(e => LogAndThrow("Binary closure", e, context.Log, manifest.Name));
+                closureResult.OnError(e => LogAndThrow("Binary closure", e, context.Log, manifest.Name));
 
                 var validationResult = _dependencyPolicyValidator.Validate(closureResult.Closure, manifest);
-                validationResult.ThrowIfError(e => LogAndThrowValidation(e, context.Log, manifest.Name));
+                validationResult.OnError(e => LogAndThrowValidation(e, context.Log, manifest.Name));
 
                 if (validationResult.ValidationSuccess.HasWarnings)
                 {
@@ -96,10 +96,10 @@ public sealed class HarvestTask(
                 }
 
                 var plannerResult = await _artifactPlanner.CreatePlanAsync(manifest, closureResult.Closure, outputBase);
-                plannerResult.ThrowIfError(e => LogAndThrow("Artifact planning", e, context.Log, manifest.Name));
+                plannerResult.OnError(e => LogAndThrow("Artifact planning", e, context.Log, manifest.Name));
 
                 var copierResult = await _artifactDeployer.DeployArtifactsAsync(plannerResult.DeploymentPlan);
-                copierResult.ThrowIfError(e => LogAndThrow("Artifact copying", e, context.Log, manifest.Name));
+                copierResult.OnError(e => LogAndThrow("Artifact copying", e, context.Log, manifest.Name));
 
                 // Generate per-RID status file for later consolidation
                 await GenerateRidStatusFileAsync(context, manifest, plannerResult.DeploymentPlan.Statistics, outputBase);

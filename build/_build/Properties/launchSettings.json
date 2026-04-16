@@ -12,12 +12,28 @@
       "commandName": "Project",
       "commandLineArgs": "--target info --verbosity diagnostic"
     },
+    "Preflight": {
+      "commandName": "Project",
+      "commandLineArgs": "--target PreFlightCheck --verbosity normal"
+    },
+    "Coverage-Check": {
+      "commandName": "Project",
+      "commandLineArgs": "--target Coverage-Check --verbosity normal"
+    },
     "Vcpkg-Harvest": {
       "commandName": "Project",
       "commandLineArgs": "--target harvest --library SDL2 --library SDL2_image --verbosity normal",
       "environmentVariables": {
         "ACTIONS_RUNNER_DEBUG": "false"
       }
+    },
+    "Harvest-win-x64": {
+      "commandName": "Project",
+      "commandLineArgs": "--target harvest --library SDL2 --rid win-x64 --verbosity normal"
+    },
+    "Consolidate": {
+      "commandName": "Project",
+      "commandLineArgs": "--target consolidate --verbosity normal"
     },
     "Dumpbin-Dependents": {
       "commandName": "Project",

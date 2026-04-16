@@ -86,9 +86,10 @@ public static class ValidationResultExtensions
     }
 
     /// <summary>
-    /// Throws if the result is an error. Calls <paramref name="errorHandler"/> with the error before throwing.
+    /// Invokes <paramref name="errorHandler"/> when the result represents an error.
+    /// The handler decides whether to log, throw, or recover.
     /// </summary>
-    public static void ThrowIfError(this ValidationResult result, Action<ValidationError> errorHandler)
+    public static void OnError(this ValidationResult result, Action<ValidationError> errorHandler)
     {
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(errorHandler);
@@ -97,5 +98,10 @@ public static class ValidationResultExtensions
         {
             errorHandler(result.ValidationError);
         }
+    }
+
+    public static void ThrowIfError(this ValidationResult result, Action<ValidationError> errorHandler)
+    {
+        result.OnError(errorHandler);
     }
 }

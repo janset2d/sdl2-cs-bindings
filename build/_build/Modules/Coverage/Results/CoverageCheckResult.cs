@@ -67,11 +67,9 @@ public static class CoverageCheckResultExtensions
 
     /// <summary>
     /// Invokes <paramref name="errorHandler"/> if the result represents an error.
-    /// The handler is expected to log/throw as appropriate — this method does not throw on its own,
-    /// matching the pattern established by <c>ValidationResult.ThrowIfError</c> and
-    /// <c>ClosureResult.ThrowIfError</c>.
+    /// The handler is expected to log, throw, or recover as appropriate.
     /// </summary>
-    public static void ThrowIfError(this CoverageCheckResult result, Action<CoverageError> errorHandler)
+    public static void OnError(this CoverageCheckResult result, Action<CoverageError> errorHandler)
     {
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(errorHandler);
@@ -80,5 +78,10 @@ public static class CoverageCheckResultExtensions
         {
             errorHandler(result.CoverageError);
         }
+    }
+
+    public static void ThrowIfError(this CoverageCheckResult result, Action<CoverageError> errorHandler)
+    {
+        result.OnError(errorHandler);
     }
 }

@@ -59,7 +59,7 @@ public static class CopierResultExtensions
         return cr;
     }
 
-    public static void ThrowIfError(this CopierResult result, Action<HarvestingError> errorHandler)
+    public static void OnError(this CopierResult result, Action<HarvestingError> errorHandler)
     {
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(errorHandler);
@@ -68,6 +68,11 @@ public static class CopierResultExtensions
         {
             errorHandler(result.AsT0.Value);
         }
+    }
+
+    public static void ThrowIfError(this CopierResult result, Action<HarvestingError> errorHandler)
+    {
+        result.OnError(errorHandler);
     }
 }
 
