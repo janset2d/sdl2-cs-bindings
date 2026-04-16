@@ -79,9 +79,4 @@ public static class CoverageCheckResultExtensions
             errorHandler(result.CoverageError);
         }
     }
-
-    public static void ThrowIfError(this CoverageCheckResult result, Action<CoverageError> errorHandler)
-    {
-        result.OnError(errorHandler);
-    }
 }

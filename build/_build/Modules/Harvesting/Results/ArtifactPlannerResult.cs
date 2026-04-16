@@ -70,9 +70,4 @@ public static class ArtifactPlannerResultExtensions
             errorHandler(result.AsT0.Value);
         }
     }
-
-    public static void ThrowIfError(this ArtifactPlannerResult result, Action<HarvestingError> errorHandler)
-    {
-        result.OnError(errorHandler);
-    }
 }

@@ -99,9 +99,4 @@ public static class ValidationResultExtensions
             errorHandler(result.ValidationError);
         }
     }
-
-    public static void ThrowIfError(this ValidationResult result, Action<ValidationError> errorHandler)
-    {
-        result.OnError(errorHandler);
-    }
 }

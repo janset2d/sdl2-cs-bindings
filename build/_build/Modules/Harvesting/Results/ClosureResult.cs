@@ -76,9 +76,4 @@ public static class ClosureResultExtensions
             errorHandler(result.AsT0.Value);
         }
     }
-
-    public static void ThrowIfError(this ClosureResult result, Action<HarvestingError> errorHandler)
-    {
-        result.OnError(errorHandler);
-    }
 }

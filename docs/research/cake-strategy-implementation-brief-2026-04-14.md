@@ -433,7 +433,7 @@ public class HarvestPipeline : IHarvestPipeline
     {
         // 1. Walk closure (unchanged — BinaryClosureWalker is stable)
         var closureResult = await _closureWalker.BuildClosureAsync(manifest);
-        closureResult.ThrowIfError(...);
+        closureResult.OnError(...);
 
         // 2. Validate against strategy (NEW — the guardrail)
         var validation = _validator.Validate(closureResult.Closure, manifest);
@@ -441,7 +441,7 @@ public class HarvestPipeline : IHarvestPipeline
 
         // 3. Plan deployment (unchanged — ArtifactPlanner is stable)
         var planResult = await _planner.CreatePlanAsync(manifest, closureResult.Closure, outputBase);
-        planResult.ThrowIfError(...);
+        planResult.OnError(...);
 
         // 4. Deploy (unchanged — ArtifactDeployer is stable)
         await _deployer.DeployArtifactsAsync(planResult.DeploymentPlan);

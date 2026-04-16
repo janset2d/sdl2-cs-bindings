@@ -1,5 +1,3 @@
-#pragma warning disable MA0045
-
 using System.Text.Json;
 using Build.Modules.Contracts;
 using Build.Modules.Coverage.Models;
@@ -24,16 +22,9 @@ public sealed class CoverageBaselineReader(IFileSystem fileSystem) : ICoverageBa
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(jsonContent);
 
-        try
-        {
-            var baseline = JsonSerializer.Deserialize<CoverageBaseline>(jsonContent);
-            return baseline
-                ?? throw new ArgumentException("Coverage baseline JSON deserialized to null.", nameof(jsonContent));
-        }
-        catch (JsonException ex)
-        {
-            throw new ArgumentException($"Invalid coverage baseline JSON: {ex.Message}", nameof(jsonContent), ex);
-        }
+        return DeserializeBaseline(
+            () => JsonSerializer.Deserialize<CoverageBaseline>(jsonContent),
+            nameof(jsonContent));
     }
 
     public CoverageBaseline ParseFile(FilePath path)
@@ -42,9 +33,25 @@ public sealed class CoverageBaselineReader(IFileSystem fileSystem) : ICoverageBa
 
         var file = _fileSystem.GetFile(path);
         using var stream = file.OpenRead();
-        using var reader = new StreamReader(stream);
-        var json = reader.ReadToEnd();
+        using var buffer = new MemoryStream();
+        stream.CopyTo(buffer);
 
-        return Parse(json);
+        return DeserializeBaseline(
+            () => JsonSerializer.Deserialize<CoverageBaseline>(buffer.ToArray()),
+            nameof(path));
+    }
+
+    private static CoverageBaseline DeserializeBaseline(Func<CoverageBaseline?> deserialize, string parameterName)
+    {
+        try
+        {
+            var baseline = deserialize();
+            return baseline
+                ?? throw new ArgumentException("Coverage baseline JSON deserialized to null.", parameterName);
+        }
+        catch (JsonException ex)
+        {
+            throw new ArgumentException($"Invalid coverage baseline JSON: {ex.Message}", parameterName, ex);
+        }
     }
 }
