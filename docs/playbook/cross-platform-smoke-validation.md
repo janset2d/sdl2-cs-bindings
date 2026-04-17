@@ -2,8 +2,8 @@
 
 > How to verify that the Cake build host, harvest pipeline, and native libraries work correctly across all 3 local platforms after a refactor or significant change.
 
-**Last validated:** 2026-04-16 at A-risky closure. **Note (2026-04-17):** A-risky's exact-pin csproj shape (Mechanism 3) was retired by S1 adoption. The smoke validation procedures described below are unaffected — they exercise the harvest + pack + consumer path, not the dependency-shape invariants. Current baseline post-S1: MinVer + family rename + PreFlight `CsprojPackContractValidator` (post-S1 subset: G4 MinVerTagPrefix, G6 PackageId, G7 native project path, G17/G18 cross-section). Re-validation should happen after Phase 3 code changes (csproj cleanup + validator simplification + PackageTaskRunner collapse) land. See [phase-2-adaptation-plan.md "S1 Adoption Record"](../phases/phase-2-adaptation-plan.md).
-**Result (at 2026-04-16 validation):** Checkpoints A-D green on all 3 platforms (Windows local, WSL Linux, macOS Intel SSH). 256/256 build-host tests, 0 warnings / 0 errors on Release build, PreFlight 6 families × 10 csprojs × 8 invariants all green per platform. E/F/G unchanged scope (harvest pipeline not touched by A-risky) — re-run when Stream D-local or later lands runtime-affecting changes.
+**Last validated:** 2026-04-17 post-S1 (Stream D-local + buildTransitive contract + G47/G48 post-pack guardrails landed and 3-platform re-verified).
+**Result (2026-04-17):** Checkpoints **A, D, E, F, J, K** green on all three platforms for the Phase 2a proof slice (`sdl2-core` + `sdl2-image`) on the three hybrid-static RIDs (`win-x64`, `linux-x64`, `osx-x64`). 273/273 build-host tests, 0 warnings / 0 errors on Release build, PreFlight 6 families × 10 csprojs × post-S1 invariant subset all green per platform. Consumer-smoke (K) covers net9.0 + net8.0 runtime on all three hosts plus net462 on Windows and macOS (Homebrew Mono); net462 on Linux is intentionally skipped because Mono 6.12 cannot host the TUnit + Microsoft Testing Platform discovery path. **Scope note:** J and K exercise only the three hybrid-static RIDs today. The four pure-dynamic RIDs in `manifest.json` (`win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64`) have no overlay hybrid triplet and are not covered by this validation — that work is Phase 2b and blocks on PA-1 (matrix strategy review) and PA-2 (hybrid overlay triplet expansion).
 
 ## When to Run This
 
@@ -24,13 +24,17 @@ These are validated today and should pass on all 3 platforms.
 
 | # | Checkpoint | Stream | What It Proves | Expected Output |
 | --- | --- | --- | --- | --- |
-| A | Build-host unit tests | Baseline | Refactored code logic is correct | 256 passed, 0 failed (count grows with coverage; 247 → 256 after A-risky added 9 `CsprojPackContractValidator` tests) |
-| B | Cake restore + build (Release) | Baseline | Build host compiles clean on all platforms | 0 warnings, 0 errors |
-| C | Cake `--tree` | Baseline | Task dependency graph is intact | ConsolidateHarvest→Harvest→Info chain visible |
-| D | PreFlightCheck | Baseline + A-risky | manifest.json ↔ vcpkg.json consistency + strategy coherence + csproj pack contract (G1-G8 + G17-G18) | 6/6 versions, 7/7 strategies, 6/6 families × 10/10 csprojs all green |
-| E | Harvest (6 satellites) | Baseline | Binary closure walk + deployment works per-platform | 6/6 succeeded, rid-status JSON generated |
-| F | ConsolidateHarvest | Baseline | Per-RID merge produces manifest + summary | harvest-manifest.json + harvest-summary.json per library |
-| G | Native smoke (C++) | Baseline | Hybrid-built natives load and initialize at runtime | 13/13 PASS, all codecs functional |
+| A | Build-host unit tests | Baseline | Refactored code logic is correct | 273 passed, 0 failed (247 → 256 A-risky → 270 S1 → 273 post-S1 buildTransitive G47/G48 tests) |
+| B | Cake restore + build (Release) | Baseline | Build host compiles clean on all platforms | 0 warnings, 0 errors (usually implied by A — tests build the same assemblies) |
+| C | Cake `--tree` | Baseline | Task dependency graph is intact | `PostFlight → PackageConsumerSmoke → Package → PreFlightCheck`; `ConsolidateHarvest → Harvest → Info` |
+| D | PreFlightCheck | Baseline + A-risky + S1 | manifest.json ↔ vcpkg.json consistency + strategy coherence + post-S1 csproj pack contract (G4/G6/G7/G17/G18) | 6/6 versions, 7/7 strategies, 6/6 families × 10/10 csprojs all green |
+| E | Harvest (scoped to slice under test) | Baseline | Binary closure walk + deployment works per-platform | per-library `1 primary, 0 runtime, DirectCopy/Archive` green, rid-status JSON generated |
+| F | ConsolidateHarvest | Baseline | Per-RID merge produces manifest + summary | `harvest-manifest.json` + `harvest-summary.json` per library |
+| G | Native smoke (C++) | Baseline | Hybrid-built natives load and initialize at runtime | `13/13 PASS, all codecs functional` |
+| J | PackageTask | D-local (post-S1) | Family-aware pack produces valid `.nupkg` per library (managed + native + .snupkg) + post-pack validator suite (G21–G23, G25–G27, G47, G48) passes on every produced package | 3 `.nupkg` files per family at `--family-version`; post-pack validator 0 violations |
+| K | PackageConsumerSmoke | D-local (post-S1) | `PackageReference` restore from local feed + consumer-side `buildTransitive` target fires + `SDL_Init` / `IMG_Load` succeeds from extracted native payload + Unix symlink chain preserved | per-TFM TUnit pass (4 tests × {net9.0, net8.0, net462}, net462 skipped on Linux); Unix-only symlink assertion passes; netstandard2.0 compile-sanity passes |
+
+**Scope caveat for J and K (2026-04-17):** Active for the **three hybrid-static RIDs** (`win-x64`, `linux-x64`, `osx-x64`) and the **Phase 2a proof slice** (`sdl2-core` + `sdl2-image`). Pure-dynamic RIDs (`win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64`) have no overlay hybrid triplet yet (PA-2) and are not exercised end-to-end — their behavior on the pack / consumer path is therefore declarative only (PreFlight coherence), not behavioral. Expanding J/K beyond the hybrid-static slice is Phase 2b work.
 
 ### Planned Checkpoints
 
@@ -40,9 +44,8 @@ These will be added as their parent streams land. Add the command reference and 
 | --- | --- | --- | --- | --- |
 | H | GenerateMatrixTask | C | Dynamic CI matrix produces correct 7-RID JSON from manifest | Task implemented + validated against hardcoded YAML |
 | I | PreFlightCheck as gate (expanded) | C | Version resolution, package-family integrity, unit tests as gate | Stream C PreFlight expansion landed |
-| J | PackageTask | D-local | Family-aware pack produces valid .nupkg per library | Task implemented and locally validated on the Phase 2a `sdl2-core` + `sdl2-image` win-x64 slice; promote to active after 3-platform validation |
-| K | Package-consumer smoke | D-local | PackageReference restore + native binary load + SDL_Init from .nupkg | Dedicated consumer project + Cake smoke target exist and pass on the Phase 2a win-x64 slice; promote to active after 3-platform validation |
 | L | Source-Mode-Prepare | F | `--source=local` stages natives correctly per-platform | Task implemented + Directory.Build.targets wired |
+| M | J/K extended to pure-dynamic RIDs | 2b (PA-2) | PackageTask + PackageConsumerSmoke green for the four remaining RIDs once hybrid overlay triplets (`x86-windows-hybrid`, `arm64-windows-hybrid`, `arm64-linux-hybrid`, `arm64-osx-hybrid`) exist OR a chosen pure-dynamic behavioral contract is defined | PA-1 decision landed + PA-2 overlay triplets merged + at least one pure-dynamic RID harvested and consumer-smoked on its native runner |
 
 **Exit criteria:** All **active** checkpoints green on all 3 platforms. Any failure must be classified as environment issue vs code regression before proceeding. When promoting a planned checkpoint to active, update this table and add its command reference below.
 
@@ -192,6 +195,52 @@ cmake --build build/osx-x64
 
 **What to look for:** `Passed: 13, Failed: 0, Result: ALL PASS`
 
+### J. Package (family-aware pack + post-pack validator)
+
+`Package` packs one or more families at a single `--family-version`. Requires Harvest + ConsolidateHarvest to have produced `harvest-manifest.json` for each library in scope first; the task fails fast if the harvest output is missing or empty.
+
+```bash
+# Single-family:
+dotnet run --project build/_build/Build.csproj -- \
+  --target Package --family sdl2-core \
+  --family-version 1.3.0-smoke.1
+
+# Multi-family (topological order respected, one --family-version applies to all):
+dotnet run --project build/_build/Build.csproj -- \
+  --target Package --family sdl2-core --family sdl2-image \
+  --family-version 1.3.0-smoke.1
+
+# Linux / macOS: add --repo-root "$(pwd)" as in the other targets.
+```
+
+**What to look for:**
+
+- Three `.nupkg` files per family in `artifacts/packages/`: `Janset.SDL2.<Role>.<version>.nupkg` (managed), `Janset.SDL2.<Role>.<version>.snupkg` (symbols), `Janset.SDL2.<Role>.Native.<version>.nupkg` (native).
+- Cake log emits `Packed family '<family>': <native.nupkg>, <managed.nupkg>, <symbols.snupkg>` once per family.
+- Post-pack validator runs silently on success; any G21–G23, G25–G27, G47, or G48 violation is logged with its guardrail prefix and fails the task.
+- Native nupkg layout check (optional, but useful after any `src/native/Directory.Build.props` change): `unzip -l artifacts/packages/Janset.SDL2.Core.Native.<version>.nupkg` should show `buildTransitive/Janset.SDL2.Core.Native.targets`, `buildTransitive/Janset.SDL2.Native.Common.targets`, and per-RID payload as either `runtimes/<rid>/native/*.dll` (Windows) or `runtimes/<rid>/native/Janset.SDL2.Core.Native.tar.gz` (Unix).
+
+### K. PackageConsumerSmoke (consumer restore + runtime SDL_Init)
+
+`PackageConsumerSmoke` runs the per-TFM TUnit smoke against the local feed produced by `Package`, plus a netstandard2.0 compile-sanity pass. The full `PostFlight` target chains PreFlight → Package → PackageConsumerSmoke in one invocation, which is the normal way to exercise J + K together:
+
+```bash
+# Windows:
+dotnet run --project build/_build/Build.csproj -- \
+  --target PostFlight --family sdl2-core --family sdl2-image \
+  --family-version 1.3.0-smoke.1
+
+# Linux / macOS: add --repo-root "$(pwd)".
+```
+
+**What to look for:**
+
+- `Running dotnet compile-sanity netstandard2.0 consumer` passes first (compile-only sanity against the Compile.NetStandard consumer).
+- One `Running dotnet test package-smoke (<tfm>)` line per executable TFM resolved from `PackageConsumer.Smoke.csproj`'s inherited `$(ExecutableTargetFrameworks)` — typically `net9.0`, `net8.0`, `net462`.
+- `Failed: 0` for each TFM. Expected per-TFM passing tests on the hybrid-static slice: `Native_Core_Asset_Lands_In_Output`, `Native_Image_Asset_Lands_In_Output`, `SDL_Init_Cycle_Succeeds`, `Linked_Versions_Report_Expected_Majors`, plus `Native_Symlink_Chain_Preserved_On_Unix` on Linux/macOS for net6+ TFMs only (guarded with `#if NET6_0_OR_GREATER`).
+- net462 on Linux is **skipped** with a `Skipping package-smoke for TFM 'net462'` warning — Mono 6.12 cannot host the TUnit + Microsoft Testing Platform discovery stack, so runtime coverage there is intentionally absent. macOS Homebrew Mono is not skipped.
+- If the task fails with `Access to the path 'Microsoft.Testing.Platform.dll' is denied` on Windows, see the "Lingering dotnet processes mitigation" subsection below — this is a pre-existing testhost-lock flake, not a regression in J or K.
+
 ## Output Artifacts to Verify
 
 | Artifact | Location | What to Check |
@@ -201,6 +250,9 @@ cmake --build build/osx-x64
 | Native payload (Unix) | `artifacts/harvest_output/{Library}/runtimes/{rid}/native/native.tar.gz` | Archive present, symlinks preserved |
 | Harvest manifest | `artifacts/harvest_output/{Library}/harvest-manifest.json` | Generated after consolidation |
 | Harvest summary | `artifacts/harvest_output/{Library}/harvest-summary.json` | Human-readable summary present |
+| Managed package | `artifacts/packages/Janset.SDL2.{Role}.{version}.nupkg` | Produced by `Package`; nuspec has bare-min-range dependency on `Janset.SDL2.{Role}.Native` and `include="All"` on the within-family native dep |
+| Managed symbols | `artifacts/packages/Janset.SDL2.{Role}.{version}.snupkg` | Produced by `Package`; contains `.nuspec` + `.pdb` entries |
+| Native package | `artifacts/packages/Janset.SDL2.{Role}.Native.{version}.nupkg` | Produced by `Package`; ships `buildTransitive/Janset.SDL2.{Role}.Native.targets` (thin wrapper) + `buildTransitive/Janset.SDL2.Native.Common.targets` (shared extractor) plus per-RID payload (DLLs on Windows, `$(PackageId).tar.gz` on Unix) |
 
 ## Known Gotchas
 

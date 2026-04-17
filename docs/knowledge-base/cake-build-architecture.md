@@ -16,6 +16,19 @@ The build system is a .NET 9.0 console application using **Cake Frosting v6.1.0*
 - `PathService` already exposes `harvest-staging` helpers for future distributed CI, but current tasks and workflows still write to `artifacts/harvest_output/`.
 - Native-source acquisition mode selection is intentionally deferred from the active CLI surface.
 - The build host still uses hand-written `OneOf` result wrappers. Source-generator-based cleanup remains a parked follow-up, not active build-system behavior.
+- **Packaging module (Stream D-local, S1 shape, 2026-04-17)** lives under `Tasks/Packaging/` + `Modules/Packaging/`. It follows the Harvesting reference pattern: thin task (`PackageTask`, `PackageConsumerSmokeTask`, `PostFlightTask`) + narrow services (`PackageTaskRunner`, `DotNetPackInvoker`, `PackageFamilySelector`, `PackageVersionResolver`, `ProjectMetadataReader`, `PackageOutputValidator`, `PackageConsumerSmokeRunner`) + typed Results with the full `OneOf.Monads` surface (implicit/explicit operators + `From*`/`To*` factories). Every service returns a typed `Result<PackagingError, T>` instead of throwing. `PackageOutputValidator` accumulates all guardrail observations (G21–G23, G25–G27, G47, G48) into a single `PackageValidation` aggregate so operators see the complete failure set, not first-throw-wins. 3-platform validated for the `sdl2-core` + `sdl2-image` slice on `win-x64` / `linux-x64` / `osx-x64`; pure-dynamic RIDs unexercised by design (see [phase-2-adaptation-plan.md "Strategy State Audit"](../phases/phase-2-adaptation-plan.md)).
+
+## Strategy Layer Reality Check (2026-04-17)
+
+The strategy seam landed with Stream B (#85 closed) and the #85 handoff note in [plan.md](../plan.md) describes it as "strategy primitives + runtime wiring landed." That is technically correct but easy to misread. Before assuming the strategy layer does anything more than it does, read [`phases/phase-2-adaptation-plan.md` "Strategy State Audit"](../phases/phase-2-adaptation-plan.md) for the brief-vs-code delta. Quick summary:
+
+- `IPackagingStrategy` is a one-method lookup helper (`IsCoreLibrary`), not a dispatcher. The Packaging module does not consume it.
+- `IDependencyPolicyValidator` has one real implementation (`HybridStaticValidator`) and one intentional pass-through (`PureDynamicValidator` — by design per [`research/cake-strategy-implementation-brief-2026-04-14.md`](../research/cake-strategy-implementation-brief-2026-04-14.md)).
+- `INativeAcquisitionStrategy` was designed in the brief but never implemented; its role may have been implicitly subsumed by Source Mode (Stream F).
+- `IPayloadLayoutPolicy` was deferred in the brief "until PackageTask lands"; PackageTask landed, the policy extraction did not follow.
+- The scanner-as-validator repurposing (dumpbin / ldd / otool outputs consumed by `HybridStaticValidator` as a second consumer with zero scanner changes) **is fully landed as designed** — this is the one architectural move from the brief that is realized end to end.
+
+Behavioral dispatch between `hybrid-static` and `pure-dynamic` in the current code is limited to: (1) which `IDependencyPolicyValidator` instance DI resolves at harvest time; (2) `PreFlightCheckTask`'s declarative triplet↔strategy coherence. Everything downstream (pack, smoke, validator, deployer) is strategy-agnostic.
 
 ## Architecture
 

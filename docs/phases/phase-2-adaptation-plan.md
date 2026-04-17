@@ -60,6 +60,54 @@ After Stream A-risky landed (2026-04-16) and D-local integration started, produc
 - Family-aware Cake tasks (matrix generation, PackageTask)
 - Dynamic CI matrix from manifest
 
+## Strategy State Audit (2026-04-17)
+
+This section exists because the wiring-landed narrative around the Cake strategy layer (Stream B / #85) is easy to read as "the strategy pattern actively dispatches per-RID behavior." That would be misleading today. What follows is an honest snapshot of the brief design vs what actually lives in the code.
+
+### Source of truth for the design
+
+[`docs/research/cake-strategy-implementation-brief-2026-04-14.md`](../research/cake-strategy-implementation-brief-2026-04-14.md) — specifically the "Three New Interfaces (Reduced from Four)" section and the "Scanner Repurposing" paragraphs. Everything below is measured against that brief.
+
+### Interface-level landing map
+
+| Brief element | Design intent | Code status (2026-04-17) | Honest label |
+| --- | --- | --- | --- |
+| `IPackagingStrategy` | Named accessor: `Model` + `IsCoreLibrary(string vcpkgName)` | [`build/_build/Modules/Contracts/IPackagingStrategy.cs`](../../build/_build/Modules/Contracts/IPackagingStrategy.cs) + 2 × ~22-line implementations in `Modules/Strategy/{HybridStatic,PureDynamic}Strategy.cs`. `IsCoreLibrary` is a string-compare helper. Consumed in exactly one site (`HybridStaticValidator.Validate`). Packaging module does not consume it. | **Landed as designed** — the brief never asked for dispatcher logic here; it is a manifest-backed name lookup. |
+| `IDependencyPolicyValidator` | Strategy-aware harvest-closure policy | `HybridStaticValidator` has real behavioral logic (transitive-dep leak detection via scanner output). `PureDynamicValidator` is a one-line pass-through (`return ValidationResult.Pass(_mode);`). Both wired via DI per-RID in `Program.cs`. `HarvestTask.ExecuteHarvestPipelineAsync` invokes the resolved validator. | **Landed as designed** — brief explicitly specified `PureDynamicValidator.cs ← NEW (passthrough — allows all deps)`. Pass-through is intentional legacy-compat, not a stub to fill in. |
+| `INativeAcquisitionStrategy` | `NativeSource` enum (VcpkgBuild / Overrides / CiArtifact) + `GetBinaryDirectory(triplet)` | **Not implemented.** Zero matches for the symbol in `build/_build/`. | **Design not landed.** Source Mode (Stream F, `--source=local\|remote`) covers an adjacent problem space along a different axis and may implicitly subsume this interface's role; the relationship has never been documented. Re-decide before Stream F implementation closes. |
+| `IPayloadLayoutPolicy` | Windows direct-copy vs Unix archive (deferred in the brief) | **Still deferred.** Brief said "Policy extraction can happen when PackageTask is implemented." PackageTask is implemented. The policy extraction did not follow. Packaging module hard-codes the layout today. | **Still deferred — triggering condition met but not acted on.** Either extract now, or promote the "deferred" status to "rejected" with rationale. |
+| Scanner → validator repurposing | Scanners keep their original role and gain a second consumer (`HybridStaticValidator`) | `Modules/DependencyAnalysis/{WindowsDumpbinScanner,LinuxLddScanner,MacOtoolScanner}.cs` unchanged from their pre-strategy form. `BinaryClosureWalker` calls them; `HybridStaticValidator` reads the resulting `BinaryClosure` as a second consumer with zero scanner code changes. | **Landed as designed** — the specific architectural move the brief called out ("repurposed as guardrail input") is fully realized for the hybrid path. |
+
+### What the strategy layer actually differentiates today
+
+Exactly two things vary between `hybrid-static` and `pure-dynamic` in the current code:
+
+1. **Harvest-closure validation.** Hybrid RIDs run `HybridStaticValidator` and fail on transitive-dep leak. Pure-dynamic RIDs run `PureDynamicValidator`, which always returns `Pass`.
+2. **Declarative coherence.** `PreFlightCheckTask`'s `StrategyCoherenceValidator` asserts `manifest.runtimes[].triplet` and `manifest.runtimes[].strategy` agree (string-level check) for all 7 RIDs.
+
+Everything else — `Package`, `PackageConsumerSmoke`, `PostFlight`, `DotNetPackInvoker`, `PackageOutputValidator`, `ArtifactPlanner`, `ArtifactDeployer`, the `buildTransitive/Janset.SDL2.Native.Common.targets` consumer-side logic — is strategy-agnostic. Pack output shape for a hybrid RID and a pure-dynamic RID is byte-identical (modulo the payload content that flowed through the RID-specific harvest, which is a payload concern, not a shape concern).
+
+### What the playbook 3-platform validation actually exercised
+
+The 2026-04-17 PostFlight sweep (`win-x64`, `linux-x64`, `osx-x64`) ran **only the hybrid-static path** end to end. The four pure-dynamic RIDs in `manifest.runtimes[]` (`win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64`) have never been:
+
+- Harvested on a matching runner since S1 landed;
+- Packed via `Package` under post-S1 guardrails (G21, G23, G47, G48 etc.);
+- Consumer-smoked under `PackageConsumerSmoke`.
+
+PreFlight coherence green for 7/7 RIDs is declarative only; it does not imply behavioral validation.
+
+### Gaps worth naming so no one re-discovers them under deadline pressure
+
+1. **Pure-dynamic path has no behavioral closure check.** Today that is fine because no pure-dynamic RID is release-scoped. Before the first release that includes a pure-dynamic RID, decide whether `PureDynamicValidator` should gain an actual behavioral contract (e.g., "closure must contain SDL core + primary; transitive OS-provided libraries are permitted but satellite-embedded codec DLLs are not") or whether PA-2 retires pure-dynamic entirely (overlay hybrid triplets for the remaining 4 RIDs).
+2. **Packaging module does not consume `IPackagingStrategy`.** If pack-time behavior ever needs to vary by strategy (e.g., "pure-dynamic nupkgs ship differently-shaped runtimes/ subtrees"), the seam needs to be added — it is not present today.
+3. **`INativeAcquisitionStrategy` is a design ghost.** Either document that Source Mode subsumed it and retire the interface from the plan, or implement it before Stream F locks in without it.
+4. **`IPayloadLayoutPolicy` deferral is stale.** The trigger condition ("when PackageTask is implemented") fired three weeks ago. The deferral deserves an up-or-down decision now that Packaging is real.
+
+### Operational rule for future work
+
+When someone says "strategy layer handles X" in a review or a PR description, treat that as a claim to verify against the code, not a given. The brief-vs-code delta above is the current reality. Update this section when any gap closes or any gap is explicitly accepted as permanent.
+
 ## Holistic Design — How Everything Fits Together
 
 ```text
