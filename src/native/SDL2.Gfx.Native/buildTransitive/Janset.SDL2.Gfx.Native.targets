@@ -1,15 +1,19 @@
 ﻿<Project>
   <!--
-    Thin wrapper: set the concrete PackageId and delegate to the shared common.targets
-    that ships alongside this file in buildTransitive/.
+    Thin wrapper: contribute this package to @(_JansetSdlNativePayload) with its
+    PackageRoot metadata, then import the shared common.targets that ships alongside
+    this file in buildTransitive/.
 
-    All real logic (Unix tar extraction, .NETFramework AnyCPU copy, RID resolution) lives
-    in Janset.SDL2.Native.Common.targets. Keep this file a one-line Import to guarantee
-    every satellite stays structurally identical.
+    All real logic (Unix tar extraction, .NETFramework AnyCPU copy, RID resolution)
+    lives in Janset.SDL2.Native.Common.targets. Using items instead of properties lets
+    multiple .Native packages extract their payloads independently — see the block
+    comment in common.targets for why.
   -->
-  <PropertyGroup>
-    <_JansetSdlNativePackageId>Janset.SDL2.Gfx.Native</_JansetSdlNativePackageId>
-  </PropertyGroup>
+  <ItemGroup>
+    <_JansetSdlNativePayload Include="Janset.SDL2.Gfx.Native">
+      <PackageRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../'))</PackageRoot>
+    </_JansetSdlNativePayload>
+  </ItemGroup>
 
   <Import Project="$(MSBuildThisFileDirectory)Janset.SDL2.Native.Common.targets" />
 </Project>
