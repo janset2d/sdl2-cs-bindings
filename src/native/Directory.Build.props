@@ -33,25 +33,32 @@
     docs/phases/phase-2-adaptation-plan.md "Stream F mandatory control" for the
     assumption this design makes about Stream F's acquisition model.
   -->
+  <!--
+    Cross-platform path hygiene: use forward slashes in PackagePath and avoid trailing
+    separators. On Linux/macOS, a trailing '\' in PackagePath is treated literally, then '\'
+    is converted to '/', producing double-slash paths (e.g. 'buildTransitive//file.targets').
+    NuGet's NU5129 canonical-targets check then fails because the expected
+    'buildTransitive/$(PackageId).targets' path is never matched.
+  -->
   <ItemGroup Condition="'$(NativePayloadSource)' != ''">
-    <Content Include="$(NativePayloadSource)\runtimes\**\*"
+    <Content Include="$(NativePayloadSource)/runtimes/**/*"
              Pack="true"
              LinkBase="runtimes"
-             PackagePath="runtimes\%(Link)" />
-    <Content Include="$(NativePayloadSource)\licenses\**\*"
+             PackagePath="runtimes/%(Link)" />
+    <Content Include="$(NativePayloadSource)/licenses/**/*"
              Pack="true"
-             PackagePath="licenses\" />
+             PackagePath="licenses" />
   </ItemGroup>
 
   <!-- build/ and buildTransitive/ targets are source-controlled inside each .Native
        project directory; they are NOT harvest payload and stay co-located with the csproj. -->
   <ItemGroup>
-    <Content Include="$(MSBuildProjectDirectory)\build\**\*.targets"
+    <Content Include="$(MSBuildProjectDirectory)/build/**/*.targets"
              Pack="true"
-             PackagePath="build\"/>
-    <Content Include="$(MSBuildProjectDirectory)\buildTransitive\**\*.targets"
+             PackagePath="build"/>
+    <Content Include="$(MSBuildProjectDirectory)/buildTransitive/**/*.targets"
              Pack="true"
-             PackagePath="buildTransitive\"/>
+             PackagePath="buildTransitive"/>
   </ItemGroup>
 
 </Project>
