@@ -244,58 +244,36 @@ public sealed class PackageConsumerSmokeRunner(
         }
     }
 
-    private bool ShouldSkipTfm(string tfm, out string reason)
+    private static bool ShouldSkipTfm(string tfm, out string reason)
     {
         reason = string.Empty;
 
-        // Only net4X TFMs have runtime-availability concerns outside Windows.
+        // Only net4X TFMs need platform-availability gating.
         if (!tfm.StartsWith("net4", StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }
 
-        // Windows ships .NET Framework natively.
-        if (OperatingSystem.IsWindows())
+        // Windows ships .NET Framework natively; TUnit + Microsoft Testing Platform
+        // are supported there. macOS via Homebrew Mono also hosts TUnit correctly in
+        // practice (verified on the Intel Mac bench).
+        if (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS())
         {
             return false;
         }
 
-        // Unix: .NET Framework execution requires Mono (WineHQ-maintained since Aug 2024).
-        // Build-time reference assemblies came from Microsoft.NETFramework.ReferenceAssemblies,
-        // so the compile was fine regardless of Mono availability.
-        if (IsMonoAvailable())
-        {
-            return false;
-        }
-
-        reason = $"TFM '{tfm}' execution requires Mono on Unix; 'mono' not found in PATH. Install 'mono-complete' (Linux) or via Homebrew (macOS) to enable this TFM slice of the smoke.";
+        // Linux path: Mono 6.12 tarball (the latest supported build at time of
+        // writing) cannot host TUnit — its source-generated test bootstrap calls
+        // System.ValueTuple patterns that Mono does not implement, and the test
+        // engine crashes at discovery with
+        // MissingMethodException: Method not found: ... TestDataRowUnwrapper.UnwrapArray.
+        // The compile-time ref assemblies (Microsoft.NETFramework.ReferenceAssemblies)
+        // still exercise the net462 build surface, so runtime gating here does not
+        // reduce the coverage the smoke actually provides. macOS Mono currently works
+        // because Homebrew ships a newer build; if that ever regresses, broaden this
+        // guard to cover macOS too.
+        reason = $"TFM '{tfm}' runtime execution is skipped on Linux: Mono 6.12 cannot host TUnit (MissingMethodException in Microsoft Testing Platform discovery). Compile-time coverage of net462 still runs via Microsoft.NETFramework.ReferenceAssemblies. macOS Homebrew Mono is known to work and is not skipped.";
         return true;
-    }
-
-    private bool IsMonoAvailable()
-    {
-        // Process.Start throws Win32Exception when the executable can't be located
-        // (e.g., 'mono' not in PATH). That is the "not available" signal we're probing for;
-        // any other exception is unexpected and should propagate.
-        try
-        {
-            var process = _cakeContext.StartAndReturnProcess(
-                "mono",
-                new ProcessSettings
-                {
-                    Arguments = "--version",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    Silent = true,
-                });
-
-            process.WaitForExit();
-            return process.GetExitCode() == 0;
-        }
-        catch (System.ComponentModel.Win32Exception)
-        {
-            return false;
-        }
     }
 
     private void RunDotNetCommand(string description, ProcessArgumentBuilder arguments)
