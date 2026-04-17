@@ -70,6 +70,62 @@ public sealed class PackageSmokeTests
         }
     }
 
+    /// <summary>
+    /// Linux / macOS: the harvest pipeline ships symlink chains (e.g.
+    /// <c>libSDL2.so → libSDL2-2.0.so.0 → libSDL2-2.0.so.0.&lt;patch&gt;</c>) via
+    /// native.tar.gz because NuGet cannot represent symlinks directly (see
+    /// docs/knowledge-base/harvesting-process.md §5, NuGet/Home#12136). The
+    /// consumer-side extraction target in <c>buildTransitive/Janset.SDL2.Native.Common.targets</c>
+    /// uses shell <c>tar -xzf</c>, which preserves symlinks on POSIX by default.
+    ///
+    /// Asserting the short-name loader alias (libSDL2.so / libSDL2.dylib) exists AND is
+    /// a symlink pins the whole chain: if the archive extracted as plain files (or the
+    /// target did not fire at all) the alias would either be missing or be a regular
+    /// file with identical content to the real library — both scenarios would break
+    /// dlopen's SONAME-based resolution on Linux and leave the test red.
+    ///
+    /// Windows has no equivalent expectation — the payload ships as plain *.dll files
+    /// through the standard runtimes/&lt;rid&gt;/native/ auto-copy, so the test short-circuits
+    /// to success.
+    /// </summary>
+#if NET6_0_OR_GREATER
+    [Test]
+    [Category("PackageSmoke")]
+    public async Task Native_Symlink_Chain_Preserved_On_Unix()
+    {
+        if (IsWindowsPlatform())
+        {
+            return;
+        }
+
+        var baseDirectory = AppContext.BaseDirectory;
+        var aliasName = IsMacOsPlatform() ? "libSDL2.dylib" : "libSDL2.so";
+        var candidates = Directory
+            .EnumerateFiles(baseDirectory, aliasName, SearchOption.AllDirectories)
+            .ToList();
+
+        await Assert.That(candidates.Count > 0).IsTrue();
+
+        var aliasPath = candidates[0];
+        var info = new FileInfo(aliasPath);
+
+        // If the alias is a regular file (not a symlink), the archive was extracted
+        // without symlink preservation — the whole point of native.tar.gz is lost.
+        // File.ResolveLinkTarget returns non-null only for actual symlinks; both
+        // relative and absolute targets are accepted.
+        var linkTarget = info.ResolveLinkTarget(returnFinalTarget: false);
+        await Assert.That(linkTarget).IsNotNull();
+
+        // Walk to the final file. Must be a regular file, non-zero length, co-located
+        // with the alias (or a compatible SONAME file in the same directory) — this
+        // pins the extraction actually populated the real binary, not just the chain.
+        var finalTarget = info.ResolveLinkTarget(returnFinalTarget: true);
+        await Assert.That(finalTarget).IsNotNull();
+        await Assert.That(finalTarget!.Exists).IsTrue();
+        await Assert.That(((FileInfo)finalTarget).Length > 0).IsTrue();
+    }
+#endif
+
     private static string[] EnumerateOutputFileNames()
     {
         var baseDirectory = AppContext.BaseDirectory;

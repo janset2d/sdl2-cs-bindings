@@ -26,6 +26,8 @@ namespace Build.Modules.Packaging;
 ///   <item><description>G25 — managed symbol package (.snupkg) is present and valid.</description></item>
 ///   <item><description>G26 — nuspec <c>&lt;repository&gt;</c> commit matches expected SHA.</description></item>
 ///   <item><description>G27 — nuspec metadata (id, authors, license, icon) matches project metadata.</description></item>
+///   <item><description>G47 — native package ships the consumer-side buildTransitive contract (thin wrapper + shared common.targets).</description></item>
+///   <item><description>G48 — every <c>runtimes/&lt;rid&gt;/native/</c> subtree in the native package has the correct payload shape (DLLs on Windows, <c>$(PackageId).tar.gz</c> on Unix).</description></item>
 /// </list>
 ///
 /// Every guardrail is evaluated and added to the returned <see cref="PackageValidation"/>.
@@ -93,6 +95,7 @@ public sealed class PackageOutputValidator(IFileSystem fileSystem) : IPackageOut
         }
 
         await EvaluateManagedSymbolsAsync(checks, family, artifacts.ManagedSymbolsPackage);
+        await EvaluateNativePackageLayoutAsync(checks, family, artifacts.NativePackage);
 
         var validation = new PackageValidation(checks);
 
@@ -725,6 +728,165 @@ public sealed class PackageOutputValidator(IFileSystem fileSystem) : IPackageOut
             ErrorMessage: valid
                 ? null
                 : $"G25: managed symbol package '{symbolsPackagePath.GetFilename().FullPath}' is invalid. Required entries: .nuspec and at least one .pdb."));
+    }
+
+    /// <summary>
+    /// G28 + G29 — native package layout checks. Opens the native .nupkg once and
+    /// inspects entries for the buildTransitive contract (G28) and the per-RID payload
+    /// shape (G29). Both concerns live on the native package only.
+    /// </summary>
+    private async Task EvaluateNativePackageLayoutAsync(
+        List<PackageValidationCheck> checks,
+        PackageFamilyConfig family,
+        FilePath nativePackagePath)
+    {
+        var file = _fileSystem.GetFile(nativePackagePath);
+        if (!file.Exists)
+        {
+            // Prior NuspecLoad check already recorded this; do not double-report.
+            return;
+        }
+
+        HashSet<string> entries;
+        try
+        {
+            await using var stream = file.OpenRead();
+            using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
+            entries = archive.Entries
+                .Select(entry => entry.FullName.Replace('\\', '/'))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
+        catch (Exception ex) when (ex is IOException or InvalidDataException)
+        {
+            // NuspecLoad will have recorded the read failure already.
+            return;
+        }
+
+        EvaluateBuildTransitiveContract(checks, family, nativePackagePath, entries);
+        EvaluateNativePayloadShapePerRid(checks, family, nativePackagePath, entries);
+    }
+
+    private static void EvaluateBuildTransitiveContract(
+        List<PackageValidationCheck> checks,
+        PackageFamilyConfig family,
+        FilePath nativePackagePath,
+        HashSet<string> entries)
+    {
+        var nativePackageId = FamilyIdentifierConventions.NativePackageId(family.Name);
+        var wrapperPath = $"buildTransitive/{nativePackageId}.targets";
+        var sharedPath = "buildTransitive/Janset.SDL2.Native.Common.targets";
+
+        var hasWrapper = entries.Contains(wrapperPath);
+        var hasShared = entries.Contains(sharedPath);
+
+        var missing = new List<string>();
+        if (!hasWrapper)
+        {
+            missing.Add(wrapperPath);
+        }
+        if (!hasShared)
+        {
+            missing.Add(sharedPath);
+        }
+
+        var valid = missing.Count == 0;
+        checks.Add(new PackageValidationCheck(
+            FamilyIdentifier: family.Name,
+            PackagePath: nativePackagePath,
+            Kind: PackageValidationCheckKind.BuildTransitiveContractPresent,
+            IsValid: valid,
+            ExpectedValue: $"{wrapperPath} + {sharedPath}",
+            ActualValue: valid ? "present" : $"missing: {string.Join(", ", missing)}",
+            ErrorMessage: valid
+                ? null
+                : $"G47: native package '{nativePackagePath.GetFilename().FullPath}' is missing required buildTransitive entry/entries: {string.Join(", ", missing)}. Consumers on Linux/macOS will not extract native.tar.gz; .NETFramework AnyCPU consumers will not receive the per-RID DLL copy."));
+    }
+
+    private static void EvaluateNativePayloadShapePerRid(
+        List<PackageValidationCheck> checks,
+        PackageFamilyConfig family,
+        FilePath nativePackagePath,
+        HashSet<string> entries)
+    {
+        // Discover the RID subtrees actually shipped under runtimes/<rid>/native/.
+        // Using ordinal comparison is correct here — NuGet paths are always lowercase-invariant
+        // and forward-slashed after the Replace we applied during hydration.
+        var ridRoots = entries
+            .Where(entry => entry.StartsWith("runtimes/", StringComparison.Ordinal))
+            .Select(entry => entry[("runtimes/".Length)..])
+            .Where(entry => entry.Contains("/native/", StringComparison.Ordinal))
+            .Select(entry => entry[..entry.IndexOf("/native/", StringComparison.Ordinal)])
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (ridRoots.Count == 0)
+        {
+            checks.Add(new PackageValidationCheck(
+                FamilyIdentifier: family.Name,
+                PackagePath: nativePackagePath,
+                Kind: PackageValidationCheckKind.NativePayloadShapePerRid,
+                IsValid: false,
+                ExpectedValue: ">=1 runtimes/<rid>/native/ subtree",
+                ActualValue: "none",
+                ErrorMessage: $"G48: native package '{nativePackagePath.GetFilename().FullPath}' ships no runtimes/<rid>/native/ subtree. Consumer restore will have nothing to resolve."));
+            return;
+        }
+
+        var nativePackageId = FamilyIdentifierConventions.NativePackageId(family.Name);
+        var expectedTarballName = $"{nativePackageId}.tar.gz";
+
+        foreach (var rid in ridRoots.OrderBy(rid => rid, StringComparer.OrdinalIgnoreCase))
+        {
+            var ridPrefix = $"runtimes/{rid}/native/";
+            var payloadEntries = entries
+                .Where(entry => entry.StartsWith(ridPrefix, StringComparison.OrdinalIgnoreCase))
+                .Select(entry => entry[ridPrefix.Length..])
+                .Where(entry => !string.IsNullOrWhiteSpace(entry) && !entry.Contains('/', StringComparison.Ordinal))
+                .ToList();
+
+            var dlls = payloadEntries
+                .Where(entry => entry.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            var tarballs = payloadEntries
+                .Where(entry => entry.EndsWith(".tar.gz", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            var isWindowsRid = rid.StartsWith("win-", StringComparison.OrdinalIgnoreCase);
+
+            if (isWindowsRid)
+            {
+                // Windows RIDs: expect at least one DLL, no tarballs.
+                var windowsValid = dlls.Count > 0 && tarballs.Count == 0;
+                checks.Add(new PackageValidationCheck(
+                    FamilyIdentifier: family.Name,
+                    PackagePath: nativePackagePath,
+                    Kind: PackageValidationCheckKind.NativePayloadShapePerRid,
+                    IsValid: windowsValid,
+                    ExpectedValue: $">=1 *.dll, 0 *.tar.gz (rid={rid})",
+                    ActualValue: $"dlls={dlls.Count}, tarballs={tarballs.Count} (rid={rid})",
+                    ErrorMessage: windowsValid
+                        ? null
+                        : $"G48: native package '{nativePackagePath.GetFilename().FullPath}' runtimes/{rid}/native/ layout is invalid. Expected one or more *.dll files, found dlls={dlls.Count} tarballs={tarballs.Count}."));
+                continue;
+            }
+
+            // Unix RIDs (linux-*, osx-*): expect exactly one {PackageId}.tar.gz archive.
+            // Filename must match $(PackageId).tar.gz so siblings do not collide when the
+            // SDK flattens runtimes/<rid>/native/ into $(OutDir) on the consumer side.
+            var unixValid = tarballs.Count == 1 &&
+                            string.Equals(tarballs[0], expectedTarballName, StringComparison.Ordinal);
+            var actualLabel = tarballs.Count == 0 ? "<no tarball>" : string.Join(", ", tarballs);
+            var errorActualLabel = tarballs.Count == 0 ? "<none>" : string.Join(", ", tarballs);
+            checks.Add(new PackageValidationCheck(
+                FamilyIdentifier: family.Name,
+                PackagePath: nativePackagePath,
+                Kind: PackageValidationCheckKind.NativePayloadShapePerRid,
+                IsValid: unixValid,
+                ExpectedValue: $"exactly 1 '{expectedTarballName}' (rid={rid})",
+                ActualValue: actualLabel,
+                ErrorMessage: unixValid
+                    ? null
+                    : $"G48: native package '{nativePackagePath.GetFilename().FullPath}' runtimes/{rid}/native/ must contain exactly one '{expectedTarballName}'. Actual: {errorActualLabel}. Rename drift would cause consumer-side collision with sibling satellites."));
+        }
     }
 
     private static string? TryGetChildValue(XElement parent, string localName, out bool missing)

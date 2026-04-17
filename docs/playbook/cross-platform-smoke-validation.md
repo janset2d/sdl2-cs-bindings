@@ -213,6 +213,27 @@ cmake --build build/osx-x64
 | Linux Harvest is ~20× slower | WSL/Linux | ldd scanning is inherently slower than dumpbin | Expected behavior, not a regression |
 | `vswhere.exe not found` warning | Windows | Git Bash doesn't load VS environment | Cosmetic — build.bat handles it via VsDevCmd.bat fallback |
 | macOS SDK version mismatch | macOS | Multiple SDKs installed (8/9/10) | global.json pins to 9.0.x — verify with `dotnet --version` from repo root |
+| Lingering `dotnet` processes after `PostFlight` / `PackageConsumerSmoke` | All | MSBuild worker nodes (`/nodemode:1 /nodeReuse:true`), VBCSCompiler (Roslyn), and testhost (Microsoft Testing Platform) stay alive ~10 min for reuse. On Windows they hold file handles on `Microsoft.Testing.Platform.dll` and break the next run's `bin/` cleanup. On macOS / Linux the same processes accumulate RAM (~100 MB each). | Automatic mitigation + manual fallback documented below under [Lingering dotnet processes mitigation](#lingering-dotnet-processes-mitigation). |
+
+### Lingering dotnet processes mitigation
+
+`PackageConsumerSmokeRunner` already runs `dotnet build-server shutdown` on entry and passes `--disable-build-servers -p:UseSharedCompilation=false -nodeReuse:false` to every `dotnet build/test` invocation. That keeps the normal case clean: new runs do not spawn detachable MSBuild / Roslyn / Razor server children.
+
+**Side-effect warning — `dotnet build-server shutdown` is scoped per-user, not per-project.** It also terminates CLI build servers owned by any other concurrent shell running `dotnet build` / `dotnet watch` / `dotnet test` (those processes re-spawn their servers on the next build; work is not lost, but there is a small warm-cache hit). The command does NOT touch Visual Studio, Rider, or VS Code / C# DevKit language-service MSBuild nodes — those run under different hosts and use separate IPC channels. If you are mid-way through a long parallel CLI build in another terminal, defer the `PostFlight` run until it finishes.
+
+**Manual fallback — if something still wedges** (usually a prior run that was killed mid-flight and left `testhost.exe` holding `Microsoft.Testing.Platform.dll`):
+
+```powershell
+# Kill all CLI-launched build servers (same action the runner performs):
+dotnet build-server shutdown
+
+# Kill dotnet processes older than MSBuild's 10-minute reuse timeout (PowerShell):
+Get-Process dotnet | Where-Object { ((Get-Date) - $_.StartTime).TotalMinutes -gt 15 } | Stop-Process -Force
+```
+
+On macOS / Linux the equivalent is `pkill -f /nodemode:1` for MSBuild worker nodes, or use the same `dotnet build-server shutdown` which is cross-platform.
+
+**Tree-scoped kill (experiment).** A more precise fix — killing only the processes spawned by the runner itself via `Process.Kill(entireProcessTree: true)` — is tracked as a roadmap experiment (GitHub issue, labels `area:build-system`, `type:experiment`). That refactor would eliminate the side-effect warning above but requires giving up Cake's `IProcess` abstraction for the smoke runner's `dotnet` invocations; deferred until the side-effect actually bites someone's parallel workflow.
 
 ## Failure Triage
 

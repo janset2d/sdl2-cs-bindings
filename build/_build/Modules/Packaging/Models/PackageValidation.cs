@@ -24,6 +24,24 @@ public enum PackageValidationCheckKind
     /// <summary>G25 — managed symbol (.snupkg) package produced with valid contents.</summary>
     ManagedSymbolsPackageValid,
 
+    /// <summary>
+    /// G47 — native package ships the consumer-side buildTransitive contract:
+    /// the per-package thin wrapper <c>buildTransitive/&lt;PackageId&gt;.targets</c>
+    /// and the shared extraction logic <c>buildTransitive/Janset.SDL2.Native.Common.targets</c>.
+    /// Missing either entry leaves Linux/macOS consumers with no tar extraction step and
+    /// .NETFramework AnyCPU consumers with no DLL copy step — symptoms observed pre-G47:
+    /// <see cref="System.DllNotFoundException"/> at first P/Invoke.
+    /// </summary>
+    BuildTransitiveContractPresent,
+
+    /// <summary>
+    /// G48 — for every RID subtree under <c>runtimes/&lt;rid&gt;/native/</c>, the native
+    /// package ships either per-RID DLLs (Windows) or exactly one
+    /// <c>&lt;PackageId&gt;.tar.gz</c> (Unix). Catches pack-time filename drift that would
+    /// collide with sibling satellites' archives on the consumer side.
+    /// </summary>
+    NativePayloadShapePerRid,
+
     /// <summary>Foundational load error — nuspec missing / unreadable / malformed.</summary>
     NuspecLoad,
 

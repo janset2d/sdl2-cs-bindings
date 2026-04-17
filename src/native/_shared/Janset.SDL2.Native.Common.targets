@@ -1,0 +1,160 @@
+﻿<Project>
+  <!--
+    Shared consumer-side logic for every Janset.SDL2.*.Native package.
+
+    This file is packed by src/native/Directory.Build.props into every
+    Janset.SDL2.*.Native.nupkg at path 'buildTransitive/Janset.SDL2.Native.Common.targets'.
+    Each per-family wrapper ('buildTransitive/$(PackageId).targets' in each .nupkg) sets
+    $(_JansetSdlNativePackageId) and then <Import />s this file. Keeping the logic in one
+    place means a cross-platform fix (tar extract, symlink preservation, Framework AnyCPU
+    copy) lands once for all five satellites.
+
+    Consumer paths supported:
+      - .NETCoreApp / .NETStandard on Windows: the .NET SDK auto-copies
+        runtimes/<rid>/native/*.dll into $(OutDir) when a RID is known. No extra work.
+      - .NETCoreApp / .NETStandard on Linux and macOS: the harvest pipeline emits a
+        native.tar.gz per library (the only way NuGet can ship symlink chains like
+        libSDL2.so -> libSDL2-2.0.so.0 -> libSDL2-2.0.so.0.xx.y). Pack renames it to
+        $(PackageId).tar.gz to avoid filename collisions when multiple .Native packages
+        land in the same output folder. This file locates that archive and extracts it
+        with shell `tar -xzf`, which preserves symlinks on POSIX by default, then removes
+        the staged archive. Documented in docs/knowledge-base/harvesting-process.md §5.
+      - .NETFramework on Windows AnyCPU: the SDK does not honour runtimes/ for AnyCPU
+        projects, so we copy the per-RID *.dll files explicitly into $(TargetDir).
+        Matches the historical pre-S1 behaviour that shipped with this repo's .Native
+        packages for net462 consumers.
+
+    Intentionally NOT supported by this file:
+      - .NETFramework + runtime tar extraction (Mono on Linux/macOS). Rare path; if it
+        becomes load-bearing, add a second target keyed on $(OS) != 'Windows_NT' AND
+        $(TargetFrameworkIdentifier) == '.NETFramework'.
+      - pack-time asset selection (that is the Packaging module's responsibility, not
+        a consumer-side .targets file).
+  -->
+
+  <!-- Guard: each wrapper must declare the concrete PackageId before importing. -->
+  <Target Name="_JansetSdlNativeGuardCallerContract" BeforeTargets="Build"
+          Condition="'$(_JansetSdlNativePackageId)' == ''">
+    <Error Text="Janset.SDL2.Native.Common.targets was imported without a concrete \$(_JansetSdlNativePackageId). Each per-package wrapper in buildTransitive/ must set this property before Import. MSBuildThisFileFullPath=$(MSBuildThisFileFullPath)" />
+  </Target>
+
+  <PropertyGroup>
+    <!--
+      Package root: the common.targets file sits at '<PackageRoot>/buildTransitive/Janset.SDL2.Native.Common.targets'.
+      $(MSBuildThisFileDirectory) ends with a trailing separator, so stepping up one
+      level gives the package root containing runtimes/, lib/, buildTransitive/, etc.
+    -->
+    <_JansetSdlNativePackageRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../'))</_JansetSdlNativePackageRoot>
+
+    <!--
+      RID resolution priority:
+        1. $(RuntimeIdentifier) — set by explicit `-r <rid>`, by <RuntimeIdentifier> in csproj,
+           or by the SDK when $(PlatformTarget) is set on .NETFramework.
+        2. Probe $([System.Runtime.InteropServices.RuntimeInformation]::...) at build time
+           to derive OS+arch for the current machine (framework-dependent consumers).
+    -->
+    <_JansetSdlNativeEffectiveRid Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</_JansetSdlNativeEffectiveRid>
+    <_JansetSdlNativeEffectiveRid Condition="'$(_JansetSdlNativeEffectiveRid)' == '' and $([MSBuild]::IsOSPlatform('Linux')) and $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()) == 'X64'">linux-x64</_JansetSdlNativeEffectiveRid>
+    <_JansetSdlNativeEffectiveRid Condition="'$(_JansetSdlNativeEffectiveRid)' == '' and $([MSBuild]::IsOSPlatform('Linux')) and $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()) == 'Arm64'">linux-arm64</_JansetSdlNativeEffectiveRid>
+    <_JansetSdlNativeEffectiveRid Condition="'$(_JansetSdlNativeEffectiveRid)' == '' and $([MSBuild]::IsOSPlatform('OSX')) and $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()) == 'X64'">osx-x64</_JansetSdlNativeEffectiveRid>
+    <_JansetSdlNativeEffectiveRid Condition="'$(_JansetSdlNativeEffectiveRid)' == '' and $([MSBuild]::IsOSPlatform('OSX')) and $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()) == 'Arm64'">osx-arm64</_JansetSdlNativeEffectiveRid>
+
+    <!-- .NETFramework on Windows: use Platform (x86/x64/ARM64/AnyCPU). -->
+    <_JansetSdlNativeEffectiveRid Condition="'$(_JansetSdlNativeEffectiveRid)' == '' and '$(TargetFrameworkIdentifier)' == '.NETFramework' and '$(Platform)' == 'x86'">win-x86</_JansetSdlNativeEffectiveRid>
+    <_JansetSdlNativeEffectiveRid Condition="'$(_JansetSdlNativeEffectiveRid)' == '' and '$(TargetFrameworkIdentifier)' == '.NETFramework' and '$(Platform)' == 'ARM64'">win-arm64</_JansetSdlNativeEffectiveRid>
+    <_JansetSdlNativeEffectiveRid Condition="'$(_JansetSdlNativeEffectiveRid)' == '' and '$(TargetFrameworkIdentifier)' == '.NETFramework'">win-x64</_JansetSdlNativeEffectiveRid>
+
+    <!-- Absolute paths to per-RID payload; relative forms would drift with build sessions. -->
+    <_JansetSdlNativeRuntimeDir>$([System.IO.Path]::GetFullPath('$(_JansetSdlNativePackageRoot)runtimes/$(_JansetSdlNativeEffectiveRid)/native'))</_JansetSdlNativeRuntimeDir>
+    <_JansetSdlNativeTarballPath>$(_JansetSdlNativeRuntimeDir)/$(_JansetSdlNativePackageId).tar.gz</_JansetSdlNativeTarballPath>
+
+    <!--
+      Unix = anywhere except Windows. $(OS) is set by MSBuild to 'Windows_NT' on Windows
+      and 'Unix' on every POSIX host (Linux + macOS). Using $(OS) here rather than
+      IsOSPlatform keeps the condition evaluable during both Build and Publish phases.
+    -->
+    <_JansetSdlNativeIsUnixExtractCandidate Condition="'$(OS)' != 'Windows_NT' and ('$(_JansetSdlNativeEffectiveRid.StartsWith(`linux-`))' == 'true' or '$(_JansetSdlNativeEffectiveRid.StartsWith(`osx-`))' == 'true')">true</_JansetSdlNativeIsUnixExtractCandidate>
+  </PropertyGroup>
+
+  <!--
+    Unix build: extract the tarball into $(OutDir) after the SDK's standard copy pass.
+
+    Why this shape:
+      - tar on POSIX preserves symlinks by default; -f just names the archive, -z gunzips
+        inline, -x extracts. No extra flags needed for symlink preservation.
+      - $(OutDir) is the correct sink regardless of <UseAppHost>, <OutputType>, and
+        whether the consumer runs `dotnet run` or a published binary — $(OutDir) is
+        populated by CopyFilesToOutputDirectory, which both paths depend on.
+      - The archive itself may land in $(OutDir) because the SDK flattens
+        runtimes/<rid>/native/* when a RID is known (see 'dotnet/sdk' flattening note in
+        learn.microsoft.com/en-us/nuget/create-packages/native-files-in-net-packages).
+        We delete the staged archive after extract so the output folder does not ship
+        a .tar.gz next to the extracted .so / .dylib files.
+  -->
+  <Target Name="_JansetSdlNativeExtractTarballToOutDir"
+          AfterTargets="CopyFilesToOutputDirectory"
+          Condition="'$(_JansetSdlNativeIsUnixExtractCandidate)' == 'true'">
+
+    <Message Importance="normal"
+             Condition="Exists('$(_JansetSdlNativeTarballPath)')"
+             Text="[$(_JansetSdlNativePackageId)] extracting $(_JansetSdlNativeEffectiveRid) payload from '$(_JansetSdlNativeTarballPath)' into '$(OutDir)'." />
+
+    <Warning Code="JANSET_SDL_EXTRACT_MISSING"
+             Condition="!Exists('$(_JansetSdlNativeTarballPath)')"
+             Text="[$(_JansetSdlNativePackageId)] expected $(_JansetSdlNativeEffectiveRid) tarball at '$(_JansetSdlNativeTarballPath)' but it was not found. Consumer output will be missing native payload — P/Invoke will fail at runtime." />
+
+    <Exec Command="tar -xzf &quot;$(_JansetSdlNativeTarballPath)&quot; -C &quot;$(OutDir.TrimEnd('/').TrimEnd('\\'))&quot;"
+          Condition="Exists('$(_JansetSdlNativeTarballPath)')" />
+
+    <!--
+      The SDK's flat auto-copy may have dropped the .tar.gz into $(OutDir). Remove it so
+      we do not ship the archive next to the extracted files. Safe even when the SDK did
+      not copy (Delete Condition="Exists" style).
+    -->
+    <Delete Files="$(OutDir)$(_JansetSdlNativePackageId).tar.gz"
+            Condition="Exists('$(OutDir)$(_JansetSdlNativePackageId).tar.gz')" />
+  </Target>
+
+  <!--
+    Unix publish: same extraction, but into $(PublishDir). Needed for `dotnet publish`,
+    `dotnet publish -r <rid>`, and self-contained scenarios where $(PublishDir) != $(OutDir).
+  -->
+  <Target Name="_JansetSdlNativeExtractTarballToPublishDir"
+          AfterTargets="CopyFilesToPublishDirectory"
+          Condition="'$(_JansetSdlNativeIsUnixExtractCandidate)' == 'true'">
+
+    <Exec Command="tar -xzf &quot;$(_JansetSdlNativeTarballPath)&quot; -C &quot;$(PublishDir.TrimEnd('/').TrimEnd('\\'))&quot;"
+          Condition="Exists('$(_JansetSdlNativeTarballPath)')" />
+
+    <Delete Files="$(PublishDir)$(_JansetSdlNativePackageId).tar.gz"
+            Condition="Exists('$(PublishDir)$(_JansetSdlNativePackageId).tar.gz')" />
+  </Target>
+
+  <!--
+    .NETFramework on Windows: explicit DLL copy.
+
+    SDK-style .NETFramework projects only honour runtimes/<rid>/native/ when a
+    <RuntimeIdentifier> or non-AnyCPU <PlatformTarget> is set. AnyCPU — the default for
+    new .NETFramework SDK-style projects — leaves the runtimes/ directory untouched, so
+    we ship the Windows DLLs via a plain MSBuild <Copy>. $(TargetDir) (not $(OutDir))
+    matches the historical pre-S1 contract and is what downstream .NETFramework tooling
+    (e.g. NUnit console, ClickOnce publish) expects.
+  -->
+  <Target Name="_JansetSdlNativeCopyDllsForFrameworkWindows"
+          AfterTargets="Build"
+          Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework' and '$(OS)' == 'Windows_NT' and '$(_JansetSdlNativeEffectiveRid.StartsWith(`win-`))' == 'true'">
+
+    <ItemGroup>
+      <_JansetSdlNativeDllForCopy Include="$(_JansetSdlNativeRuntimeDir)/*.dll" />
+    </ItemGroup>
+
+    <Message Importance="normal"
+             Condition="'@(_JansetSdlNativeDllForCopy)' != ''"
+             Text="[$(_JansetSdlNativePackageId)] copying $(_JansetSdlNativeEffectiveRid) DLLs to '$(TargetDir)' for .NETFramework AnyCPU consumer." />
+
+    <Copy SourceFiles="@(_JansetSdlNativeDllForCopy)"
+          DestinationFolder="$(TargetDir)"
+          SkipUnchangedFiles="true"
+          Condition="'@(_JansetSdlNativeDllForCopy)' != ''" />
+  </Target>
+</Project>

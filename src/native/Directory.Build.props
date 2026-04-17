@@ -41,17 +41,53 @@
     'buildTransitive/$(PackageId).targets' path is never matched.
   -->
   <ItemGroup Condition="'$(NativePayloadSource)' != ''">
-    <Content Include="$(NativePayloadSource)/runtimes/**/*"
+    <!--
+      Windows payload: individual *.dll files flow through the standard runtimes/ layout.
+      Each .Native family's harvest output is already de-duplicated at plan time
+      (ArtifactPlanner core_lib filtering), so there are no cross-package DLL collisions
+      that would require per-package renaming.
+    -->
+    <Content Include="$(NativePayloadSource)/runtimes/**/*.dll"
              Pack="true"
              LinkBase="runtimes"
              PackagePath="runtimes/%(Link)" />
+
+    <!--
+      Unix payload: the harvest pipeline packages each library's .so/.dylib set (plus
+      symlink chains) into a single native.tar.gz under runtimes/<rid>/native/. That
+      filename would collide across sibling .Native packages because the .NET SDK
+      flattens runtimes/<rid>/native/ into $(OutDir) and a later 'native.tar.gz' copy
+      would overwrite earlier ones.
+
+      We rename during pack to $(PackageId).tar.gz so each satellite ships a
+      distinct-name archive (e.g. Janset.SDL2.Core.Native.tar.gz,
+      Janset.SDL2.Image.Native.tar.gz). Consumer-side extraction is driven by the
+      per-package wrapper in buildTransitive/ and the shared
+      _shared/Janset.SDL2.Native.Common.targets.
+    -->
+    <_JansetSdlNativeTarball Include="$(NativePayloadSource)/runtimes/**/native.tar.gz" />
+    <None Include="@(_JansetSdlNativeTarball)"
+          Pack="true"
+          PackagePath="runtimes/%(RecursiveDir)$(PackageId).tar.gz" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(NativePayloadSource)' != ''">
     <Content Include="$(NativePayloadSource)/licenses/**/*"
              Pack="true"
              PackagePath="licenses" />
   </ItemGroup>
 
-  <!-- build/ and buildTransitive/ targets are source-controlled inside each .Native
-       project directory; they are NOT harvest payload and stay co-located with the csproj. -->
+  <!--
+    Source-controlled build hooks:
+
+    - buildTransitive/$(PackageId).targets (thin wrapper): lives in each per-satellite
+      csproj directory, sets $(_JansetSdlNativePackageId) and imports the shared
+      common.targets.
+    - _shared/Janset.SDL2.Native.Common.targets (single source of truth): packed into
+      every .Native nupkg at 'buildTransitive/Janset.SDL2.Native.Common.targets'. Holds
+      the Unix tar extraction + .NETFramework AnyCPU copy logic documented in
+      docs/knowledge-base/harvesting-process.md §5.
+  -->
   <ItemGroup>
     <Content Include="$(MSBuildProjectDirectory)/build/**/*.targets"
              Pack="true"
@@ -59,6 +95,9 @@
     <Content Include="$(MSBuildProjectDirectory)/buildTransitive/**/*.targets"
              Pack="true"
              PackagePath="buildTransitive"/>
+    <Content Include="$(MSBuildThisFileDirectory)_shared/Janset.SDL2.Native.Common.targets"
+             Pack="true"
+             PackagePath="buildTransitive/Janset.SDL2.Native.Common.targets" />
   </ItemGroup>
 
 </Project>

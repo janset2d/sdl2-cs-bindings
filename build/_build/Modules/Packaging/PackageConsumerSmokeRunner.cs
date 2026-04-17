@@ -41,6 +41,14 @@ public sealed class PackageConsumerSmokeRunner(
         var version = ResolveVersion();
         EnsurePackageArtifactsExist(version);
 
+        // Kill any lingering build-server processes (VBCSCompiler, MSBuild worker nodes with
+        // /nodeReuse:true, Razor) from prior invocations before we try to delete bin/obj —
+        // those servers hold file handles on compiled assemblies and block Directory.Delete
+        // with Access Denied on Windows. Linux/macOS show the same lingering /nodemode:1
+        // dotnet processes but usually don't lock filesystem paths; shutdown still keeps
+        // memory usage in check. See Known Gotchas in cross-platform-smoke-validation.md.
+        ShutdownDotNetBuildServers();
+
         var smokeProject = _pathService.RepoRoot.CombineWithFilePath(new FilePath(SmokeProjectRelativePath));
         var compileSanityProject = _pathService.RepoRoot.CombineWithFilePath(new FilePath(CompileSanityProjectRelativePath));
 
@@ -142,7 +150,11 @@ public sealed class PackageConsumerSmokeRunner(
             .Append("build")
             .AppendQuoted(projectPath.FullPath)
             .Append("-c")
-            .Append(_dotNetBuildConfiguration.Configuration)
+            .Append(_dotNetBuildConfiguration.Configuration);
+
+        AppendBuildServerSuppressionFlags(arguments);
+
+        arguments
             .Append($"-p:JansetSdl2CorePackageVersion={version}")
             .Append($"-p:JansetSdl2ImagePackageVersion={version}")
             .AppendQuoted($"-p:LocalPackageFeed={_pathService.PackagesOutput.FullPath}")
@@ -161,13 +173,75 @@ public sealed class PackageConsumerSmokeRunner(
             .Append("-f")
             .Append(tfm)
             .Append("-r")
-            .Append(_runtimeProfile.Rid)
+            .Append(_runtimeProfile.Rid);
+
+        AppendBuildServerSuppressionFlags(arguments);
+
+        arguments
             .Append($"-p:JansetSdl2CorePackageVersion={version}")
             .Append($"-p:JansetSdl2ImagePackageVersion={version}")
             .AppendQuoted($"-p:LocalPackageFeed={_pathService.PackagesOutput.FullPath}")
             .AppendQuoted($"-p:RestorePackagesPath={packagesCache.FullPath}");
 
         RunDotNetCommand($"test package-smoke ({tfm})", arguments);
+    }
+
+    /// <summary>
+    /// Append the trio of flags that keep a single <c>dotnet build/test</c> invocation from
+    /// spawning long-lived build-server children:
+    /// <list type="bullet">
+    ///   <item><description><c>--disable-build-servers</c> — tells the dotnet CLI not to spawn Roslyn / Razor / MSBuild servers, and to shut down any it did end up spawning once the invocation returns.</description></item>
+    ///   <item><description><c>-p:UseSharedCompilation=false</c> — defensive for SDKs where the CLI flag is ignored; disables Roslyn VBCSCompiler reuse inside MSBuild.</description></item>
+    ///   <item><description><c>-nodeReuse:false</c> — MSBuild's own worker-node reuse flag; otherwise MSBuild keeps a <c>/nodemode:1 /nodeReuse:true</c> process alive ~10 minutes for fast subsequent builds.</description></item>
+    /// </list>
+    /// Without these, a single PostFlight run on macOS leaves 6–8 dotnet processes
+    /// holding ~1 GB of RAM until they time out. On Windows, the same processes hold
+    /// file handles on <c>Microsoft.Testing.Platform.dll</c> under the smoke project's
+    /// <c>bin/</c> and make the next run's <c>DeleteDirectoryIfExists</c> fail with
+    /// <c>UnauthorizedAccessException</c>.
+    /// </summary>
+    private static void AppendBuildServerSuppressionFlags(ProcessArgumentBuilder arguments)
+    {
+        arguments
+            .Append("--disable-build-servers")
+            .Append("-p:UseSharedCompilation=false")
+            .Append("-nodeReuse:false");
+    }
+
+    /// <summary>
+    /// Best-effort <c>dotnet build-server shutdown</c>. Any server that is alive from a
+    /// prior build / test run receives a friendly shutdown signal via its named
+    /// pipe (Windows) or unix domain socket (Linux/macOS). Failures here are logged at
+    /// verbose level and do not abort the run — the subsequent
+    /// <see cref="AppendBuildServerSuppressionFlags"/> flags remain the primary defence.
+    /// </summary>
+    private void ShutdownDotNetBuildServers()
+    {
+        var arguments = new ProcessArgumentBuilder()
+            .Append("build-server")
+            .Append("shutdown");
+
+        var process = _cakeContext.StartAndReturnProcess(
+            "dotnet",
+            new ProcessSettings
+            {
+                Arguments = arguments,
+                WorkingDirectory = _pathService.RepoRoot,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                Silent = true,
+            });
+
+        process.WaitForExit();
+        var exitCode = process.GetExitCode();
+        if (exitCode != 0)
+        {
+            _log.Verbose("dotnet build-server shutdown returned exit code {0} (best-effort; run continues).", exitCode);
+        }
+        else
+        {
+            _log.Verbose("dotnet build-server shutdown completed.");
+        }
     }
 
     private bool ShouldSkipTfm(string tfm, out string reason)

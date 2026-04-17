@@ -8,7 +8,7 @@
     every satellite stays structurally identical.
   -->
   <PropertyGroup>
-    <_JansetSdlNativePackageId>Janset.SDL2.Core.Native</_JansetSdlNativePackageId>
+    <_JansetSdlNativePackageId>Janset.SDL2.Ttf.Native</_JansetSdlNativePackageId>
   </PropertyGroup>
 
   <Import Project="$(MSBuildThisFileDirectory)Janset.SDL2.Native.Common.targets" />

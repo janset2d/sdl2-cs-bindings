@@ -79,6 +79,8 @@ G25 is intentionally scoped to the managed package's `.snupkg`. Payload-only `.N
 | G25 | Managed symbol package (.snupkg) is present and valid | Active (D-local, 2026-04-16) | Cake `PackageTask` post-pack assertion |
 | G26 | Nuspec `<repository>` element points at expected commit SHA | Active (D-local, 2026-04-16) | Cake `PackageTask` post-pack assertion |
 | G27 | Nuspec metadata fields (id, authors, license, icon) match expected values | Active (D-local, 2026-04-16) | Cake `PackageTask` post-pack assertion |
+| G47 | Native package ships the consumer-side buildTransitive contract — both `buildTransitive/$(PackageId).targets` (thin wrapper) and `buildTransitive/Janset.SDL2.Native.Common.targets` (shared extraction + .NETFramework AnyCPU copy). Missing either entry leaves Linux/macOS consumers without the `tar -xzf` extraction step (DllNotFoundException at first P/Invoke) and .NETFramework AnyCPU consumers without the per-RID DLL copy. | Active (D-local, 2026-04-17) | Cake `PackageTask` post-pack assertion |
+| G48 | For every `runtimes/<rid>/native/` subtree in the native `.nupkg`: Windows RIDs ship one or more `*.dll` files with no tarball; Unix RIDs ship exactly one `$(PackageId).tar.gz` (the per-package rename that prevents filename collision with sibling `.Native` packages when the .NET SDK flattens the RID subtree into the consumer's `$(OutDir)`). | Active (D-local, 2026-04-17) | Cake `PackageTask` post-pack assertion |
 
 ### 2.6 CI Pipeline (Stream C + D-ci scope)
 

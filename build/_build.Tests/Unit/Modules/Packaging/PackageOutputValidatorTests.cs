@@ -197,6 +197,51 @@ public sealed class PackageOutputValidatorTests
     }
 
     [Test]
+    public async Task Validate_Should_Fail_When_Native_Package_Missing_BuildTransitive_Wrapper()
+    {
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
+        var family = GetFamily("sdl2-image");
+        var artifacts = CreateArtifacts(repo, family, "1.2.3", nativeIncludeBuildTransitiveWrapper: false);
+        var validator = new PackageOutputValidator(repo.FileSystem);
+
+        var result = await validator.ValidateAsync(family, artifacts, "1.2.3", ExpectedCommit, DefaultMetadata());
+
+        await Assert.That(result.IsError()).IsTrue();
+        await Assert.That(result.Validation.Checks.Any(check => check.Kind == PackageValidationCheckKind.BuildTransitiveContractPresent && check.IsError)).IsTrue();
+    }
+
+    [Test]
+    public async Task Validate_Should_Fail_When_Native_Package_Missing_Shared_Common_Targets()
+    {
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
+        var family = GetFamily("sdl2-image");
+        var artifacts = CreateArtifacts(repo, family, "1.2.3", nativeIncludeSharedCommonTargets: false);
+        var validator = new PackageOutputValidator(repo.FileSystem);
+
+        var result = await validator.ValidateAsync(family, artifacts, "1.2.3", ExpectedCommit, DefaultMetadata());
+
+        await Assert.That(result.IsError()).IsTrue();
+        await Assert.That(result.Validation.Checks.Any(check => check.Kind == PackageValidationCheckKind.BuildTransitiveContractPresent && check.IsError)).IsTrue();
+    }
+
+    [Test]
+    public async Task Validate_Should_Fail_When_Native_Package_Linux_Tarball_Has_Wrong_Name()
+    {
+        // G29: an archive named native.tar.gz (the pre-S1 shape) would collide with
+        // sibling .Native packages on the consumer side. Validator must catch any drift
+        // away from $(PackageId).tar.gz naming.
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
+        var family = GetFamily("sdl2-image");
+        var artifacts = CreateArtifacts(repo, family, "1.2.3", nativeLinuxTarballFileName: "native.tar.gz");
+        var validator = new PackageOutputValidator(repo.FileSystem);
+
+        var result = await validator.ValidateAsync(family, artifacts, "1.2.3", ExpectedCommit, DefaultMetadata());
+
+        await Assert.That(result.IsError()).IsTrue();
+        await Assert.That(result.Validation.Checks.Any(check => check.Kind == PackageValidationCheckKind.NativePayloadShapePerRid && check.IsError)).IsTrue();
+    }
+
+    [Test]
     public async Task Validate_Should_Fail_When_Project_Metadata_License_Is_Empty()
     {
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
@@ -244,7 +289,10 @@ public sealed class PackageOutputValidatorTests
         string? nativePackageVersion = null,
         string? commit = null,
         string? authors = null,
-        bool includeSymbols = true)
+        bool includeSymbols = true,
+        bool nativeIncludeBuildTransitiveWrapper = true,
+        bool nativeIncludeSharedCommonTargets = true,
+        string? nativeLinuxTarballFileName = null)
     {
         var managedPackageId = FamilyIdentifierConventions.ManagedPackageId(family.Name);
         var nativePackageId = FamilyIdentifierConventions.NativePackageId(family.Name);
@@ -269,14 +317,30 @@ public sealed class PackageOutputValidatorTests
                 commit ?? ExpectedCommit,
                 authors ?? ExpectedAuthors)));
 
-        WriteZip(
-            repo,
-            nativePackagePath,
+        var nativeEntries = new List<(string EntryName, string Content)>
+        {
             ("package.nuspec", CreateNativeNuspec(
                 family,
                 nativePackageVersion ?? version,
                 commit ?? ExpectedCommit,
-                authors ?? ExpectedAuthors)));
+                authors ?? ExpectedAuthors)),
+            ($"runtimes/linux-x64/native/{nativeLinuxTarballFileName ?? $"{nativePackageId}.tar.gz"}", "linux-tarball"),
+            ($"runtimes/osx-x64/native/{nativePackageId}.tar.gz", "osx-tarball"),
+        };
+
+        if (nativeIncludeBuildTransitiveWrapper)
+        {
+            nativeEntries.Add(($"buildTransitive/{nativePackageId}.targets", "<Project />"));
+        }
+
+        if (nativeIncludeSharedCommonTargets)
+        {
+            nativeEntries.Add(("buildTransitive/Janset.SDL2.Native.Common.targets", "<Project />"));
+        }
+
+        nativeEntries.Add(("runtimes/win-x64/native/SDL2.dll", "win-x64-dll"));
+
+        WriteZip(repo, nativePackagePath, nativeEntries.ToArray());
 
         if (includeSymbols)
         {
