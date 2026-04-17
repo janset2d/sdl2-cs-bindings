@@ -1,9 +1,13 @@
 # Research: Full-Train Release Orchestration
 
 **Date:** 2026-04-16
-**Status:** Roadmap placeholder — research pending
+**Status:** Roadmap placeholder — research pending. **Amended 2026-04-17:** within-family dependency contract changed from exact pin to minimum range (S1 adoption). PD-7 scope (release-set mechanism, ordering, GitHub UX, failure recovery, release-notes aggregation) is unaffected; only background references to exact-pin csproj shape are now historical. See "S1 addendum" below.
 **Context:** Stream D-ci blocker. PD-7 open. See [phase-2-adaptation-plan.md](../phases/phase-2-adaptation-plan.md) Pending Decisions.
 **Prerequisite reading:** [release-lifecycle-direction.md](../knowledge-base/release-lifecycle-direction.md)
+
+---
+
+> **S1 addendum (2026-04-17).** References in this doc to "within-family exact pin `[x.y.z]`", `PrivateAssets="all"` on Native `ProjectReference`, and "exact pin precedent" (LibGit2Sharp comparison) are **historical** and describe the pre-S1 contract. S1 adoption retired the within-family exact-pin requirement; within-family is now minimum range (`>=`), matching cross-family. PD-11 in the adaptation plan records the S1 decision. **PD-7 scope is unaffected** — full-train orchestration is about the release-set mechanism (meta-tag + `release-set.json` workflow vs manual multi-tag vs pack-time override), not about the within-family dependency semantics of any individual family. Reading this doc in 2026-04-17+: mentally substitute "SkiaSharp-style minimum range" wherever the doc says "within-family exact pin"; the orchestration questions are orthogonal.
 
 ---
 
@@ -59,7 +63,7 @@ The research must operate **within** these locked decisions from [release-lifecy
 | Full-train triggered by specific change categories (vcpkg baseline, triplet/strategy, shared toolchain, milestone) | §1 Full-Train Trigger |
 | Release ordering: core first, satellites after | §1 Release Ordering |
 | Release promotion: local → internal → public, never skip stages | §6 Release Promotion |
-| Within-family: exact pin `[x.y.z]`. Cross-family: minimum `>= x.y.z` | §4 Dependency Contract Model |
+| Historical pre-S1 within-family: exact pin `[x.y.z]`. Cross-family: minimum `>= x.y.z` | §4 Dependency Contract Model |
 | Tag-derived versioning via MinVer (no manual csproj edits) | §3 Versioning Model |
 
 **None of these are on the table for this research.** The research picks a mechanism that honors them.
@@ -226,7 +230,7 @@ Projects to survey:
 | **ASP.NET Core** (dotnet/aspnetcore) | Coordinated release of 50+ packages, patch pipeline, servicing branches |
 | **ppy/osu-framework** | Independent bindings repo, SDL3-adjacent, active release cadence |
 | **SkiaSharp** (mono/SkiaSharp) | Our closest architectural analogue (binding + native + hybrid) — but single-version model, not family-versioned |
-| **LibGit2Sharp** | Native binaries + managed package, exact pin precedent |
+| **LibGit2Sharp** | Native binaries + managed package, historical exact pin precedent |
 | **Lerna / Changesets** (JS ecosystem) | Monorepo multi-package publishing, independent versioning patterns |
 | **Nx release** (nx-monorepo) | .NET-rejected but worth understanding the pattern |
 | **release-please** (googleapis/release-please) | GitHub-native release automation with conventional commits |
@@ -275,7 +279,7 @@ This research is **purely about the orchestration layer** that turns "we want to
 | `PrivateAssets="all"` on Native `ProjectReference` | None | None | None |
 | PreFlight csproj structural validator | None | None | None |
 
-A-risky bakes in the csproj shape required for exact-pin. Full-train research decides CI workflow + `release-set.json` schema + GitHub Release UX. Orthogonal file sets, orthogonal concerns.
+Historical pre-S1 note: A-risky bakes in the csproj shape required for exact-pin. Full-train research decides CI workflow + `release-set.json` schema + GitHub Release UX. Orthogonal file sets, orthogonal concerns.
 
 Research can proceed in parallel with or after A-risky without rework risk on either side.
 
@@ -288,7 +292,7 @@ When this research is picked up as its own session, the suggested structure:
 3. **Recommendation** (~15%) — one path chosen + rationale; handle each question in §4.
 4. **Implementation sketch** (~10%) — rough Cake task + GHA workflow shape + `release-set.json` schema if Path B wins. Not full implementation — just enough for Stream D-ci estimation.
 
-Output: this doc rewritten from placeholder to completed research note, following the exact structure of [exact-pin-spike-and-nugetizer-eval-2026-04-16.md](exact-pin-spike-and-nugetizer-eval-2026-04-16.md) (empirical evidence + proof + decision).
+Output: this doc rewritten from placeholder to completed research note, following the exact structure of the SUPERSEDED historical note [exact-pin-spike-and-nugetizer-eval-2026-04-16.md](exact-pin-spike-and-nugetizer-eval-2026-04-16.md) (empirical evidence + proof + decision).
 
 ## 9. Exit Criteria (for PD-7)
 
@@ -313,7 +317,7 @@ Until then, full-train releases follow **Path A (manual multi-tag push)** as the
 
 - [release-lifecycle-direction.md](../knowledge-base/release-lifecycle-direction.md) — canonical policy
 - [phase-2-adaptation-plan.md](../phases/phase-2-adaptation-plan.md) — implementation streams + pending decisions
-- [exact-pin-spike-and-nugetizer-eval-2026-04-16.md](exact-pin-spike-and-nugetizer-eval-2026-04-16.md) — sibling research note (precedent for structure)
+- [exact-pin-spike-and-nugetizer-eval-2026-04-16.md](exact-pin-spike-and-nugetizer-eval-2026-04-16.md) — SUPERSEDED historical sibling research note (precedent for structure)
 - MinVer docs: [adamralph/minver](https://github.com/adamralph/minver)
 - GitHub Actions workflow matrix reference
 - NuGet feed push API reference

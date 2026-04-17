@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!--
+      TUnit test project. Microsoft Testing Platform produces an apphost per TFM,
+      so OutputType=Exe is correct. Multi-TFM coverage from centralized
+      $(ExecutableTargetFrameworks) — see root Directory.Build.props.
+    -->
+    <TargetFrameworks>$(ExecutableTargetFrameworks)</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+
+    <!-- Consumer version inputs; Cake PostFlight passes these per-invocation. -->
+    <JansetSdl2CorePackageVersion Condition="'$(JansetSdl2CorePackageVersion)' == ''">0.0.0-package-consumer</JansetSdl2CorePackageVersion>
+    <JansetSdl2ImagePackageVersion Condition="'$(JansetSdl2ImagePackageVersion)' == ''">0.0.0-package-consumer</JansetSdl2ImagePackageVersion>
+
+    <!-- Local folder feed (4 levels up to repo root). -->
+    <LocalPackageFeed Condition="'$(LocalPackageFeed)' == ''">$(MSBuildThisFileDirectory)..\..\..\..\artifacts\packages</LocalPackageFeed>
+    <RestoreAdditionalProjectSources>$(RestoreAdditionalProjectSources);$(LocalPackageFeed)</RestoreAdditionalProjectSources>
+
+    <!-- Same analyzer relaxation posture as Build.Tests (test-shaped code). -->
+    <NoWarn>$(NoWarn);CA1050;CA1515;CA1707;CA1806;CA2007;MA0045;MA0047;MA0051;S4144;S2699</NoWarn>
+    <NoError>$(NoError);CA1050;CA1515;CA1707;CA1806;CA2007;MA0045;MA0047;MA0051;S4144;S2699</NoError>
+
+    <IsAotCompatible>false</IsAotCompatible>
+    <IsTrimmable>false</IsTrimmable>
+    <EnableAOTAnalyzer>false</EnableAOTAnalyzer>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Consume packages from the local feed. VersionOverride is the CPM-idiomatic way
+      (vs project-local <PackageVersion> which is a gray-area pattern).
+    -->
+    <PackageReference Include="Janset.SDL2.Core" VersionOverride="$(JansetSdl2CorePackageVersion)" />
+    <PackageReference Include="Janset.SDL2.Image" VersionOverride="$(JansetSdl2ImagePackageVersion)" />
+    <PackageReference Include="TUnit" />
+
+    <!-- PolySharp: source-only polyfills for modern C# attributes (ModuleInitializerAttribute,
+         IsExternalInit, etc.) on downlevel TFMs. Required for TUnit's source-generated bootstrap
+         to compile on net462 — TUnit itself targets netstandard2.0+net8.0+net9.0+net10.0 and
+         does not ship polyfills for older runtime metadata types. -->
+    <PackageReference Include="PolySharp" PrivateAssets="all" IncludeAssets="runtime;build;native;contentfiles;analyzers;buildtransitive" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net462'">
+    <PackageReference Include="System.Memory" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
+  </ItemGroup>
+
+  <Target Name="_GuardPackageConsumerInputs" BeforeTargets="Restore;Build">
+    <Error Text="PackageConsumer.Smoke requires -p:JansetSdl2CorePackageVersion=[semver]. Run via Cake PostFlight." Condition="'$(JansetSdl2CorePackageVersion)' == '0.0.0-package-consumer'" />
+    <Error Text="PackageConsumer.Smoke requires -p:JansetSdl2ImagePackageVersion=[semver]. Run via Cake PostFlight." Condition="'$(JansetSdl2ImagePackageVersion)' == '0.0.0-package-consumer'" />
+  </Target>
+</Project>

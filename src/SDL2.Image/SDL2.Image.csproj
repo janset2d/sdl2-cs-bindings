@@ -1,11 +1,9 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <PackageId>Janset.SDL2.Image</PackageId>
     <Description>Image C# bindings for SDL_image (based on SDL-CS)</Description>
     <TargetFrameworks>$(TargetFrameworks)</TargetFrameworks>
     <MinVerTagPrefix>sdl2-image-</MinVerTagPrefix>
-    <Sdl2ImageFamilyVersion Condition="'$(Version)' != '' and '$(Sdl2ImageFamilyVersion)' == ''">$(Version)</Sdl2ImageFamilyVersion>
-    <Sdl2ImageFamilyVersion Condition="'$(Sdl2ImageFamilyVersion)' == ''">0.0.0-restore</Sdl2ImageFamilyVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,11 +12,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SDL2.Core\SDL2.Core.csproj"/>
-    <ProjectReference Include="..\native\SDL2.Image.Native\SDL2.Image.Native.csproj" PrivateAssets="all"/>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageVersion Include="Janset.SDL2.Image.Native" Version="[$(Sdl2ImageFamilyVersion)]"/>
-    <PackageReference Include="Janset.SDL2.Image.Native"/>
+    <ProjectReference Include="..\native\SDL2.Image.Native\SDL2.Image.Native.csproj"
+                      IncludeAssets="all"
+                      PrivateAssets="none"/>
   </ItemGroup>
 </Project>

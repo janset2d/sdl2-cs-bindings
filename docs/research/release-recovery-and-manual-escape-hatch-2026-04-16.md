@@ -1,9 +1,13 @@
 # Research: Release Recovery + Manual Escape Hatch
 
 **Date:** 2026-04-16
-**Status:** Roadmap placeholder — research pending
+**Status:** Roadmap placeholder — research pending. **Amended 2026-04-17:** within-family dependency contract changed from exact pin to minimum range (S1 adoption). Core PD-8 scope (manual operator flow, audit trail, partial-train recovery) is unaffected; only the specific property flags the manual flow must pass are simpler post-S1. See "S1 addendum" below.
 **Context:** Stream D-ci sibling of PD-7. PD-8 open. See [phase-2-adaptation-plan.md](../phases/phase-2-adaptation-plan.md) Pending Decisions.
 **Prerequisite reading:** [release-lifecycle-direction.md](../knowledge-base/release-lifecycle-direction.md), [full-train-release-orchestration-2026-04-16.md](full-train-release-orchestration-2026-04-16.md)
+
+---
+
+> **S1 addendum (2026-04-17).** This research note was drafted when within-family dependencies were expected to be exact-pinned (`[x.y.z]`) via Mechanism 3. S1 adoption retired that requirement; within-family is now minimum range (`>=`), matching cross-family. References in this doc to "within-family exact pin" / `[x.y.z]` / sentinel `0.0.0-restore` / `AllowSentinelExactPin=true` are **historical** and should be read as describing the pre-S1 contract. The manual escape hatch still mirrors the CI flow step-for-step, but the property set passed to each `dotnet pack` invocation is simpler: `-p:Version=X -p:NativePayloadSource=<root>` per pack, no per-family version property or sentinel-related flags. PD-11 in the adaptation plan records the S1 decision. Core PD-8 scope (seven research questions around Cake helpers, API key provisioning, audit trail, partial-train recovery) is unaffected by S1 — it's about operator workflow, not dependency semantics.
 
 ---
 
@@ -28,7 +32,7 @@ The escape hatch must operate within these locked decisions:
 
 | Constraint | Source |
 | --- | --- |
-| Within-family exact pin `[x.y.z]`, cross-family minimum range `>= x.y.z` | release-lifecycle-direction.md §4 |
+| Historical pre-S1 within-family exact pin `[x.y.z]`, cross-family minimum range `>= x.y.z` | release-lifecycle-direction.md §4 |
 | Family tag is the source of truth for versioning | release-lifecycle-direction.md §1, §3 |
 | Core releases first, satellites after | release-lifecycle-direction.md §1 (Release Ordering) |
 | All public releases pass through internal feed first | release-lifecycle-direction.md §6 |
@@ -54,7 +58,7 @@ Operator publishes a single family (managed + native pair) without going through
 5. Only if smoke passes, operator pushes to public NuGet.org: `dotnet nuget push ... --source nuget.org --api-key <key>`.
 6. Operator pushes the family tag to remote: `git push origin sdl2-image-1.3.0`.
 
-**Key principle:** the manual flow mirrors the CI flow step-for-step. Same restore + pack + smoke + publish sequence. Same exact-pin properties. Same internal-feed-then-public promotion. The difference is who runs each step (human vs workflow).
+**Key principle:** the manual flow mirrors the CI flow step-for-step. Same restore + pack + smoke + publish sequence. Same historical exact-pin properties in the pre-S1 version of this flow. Same internal-feed-then-public promotion. The difference is who runs each step (human vs workflow).
 
 **Cake helper for this:** ideally Cake exposes a `Pack-Family` target so the operator runs `dotnet cake --target=Pack-Family --family=sdl2-image --version=1.3.0` instead of remembering all the property flags. This is a Stream D-local deliverable — not strictly required for the escape hatch to exist, but reduces "human typing the wrong flag" risk.
 
@@ -160,12 +164,12 @@ When the research lands a recommended manual escape hatch, evaluate against:
 Out of scope for this research:
 
 - Replacing the CI flow with manual escape (CI is the primary path, manual is fallback only).
-- Bypassing the dependency contract (within-family exact pin, cross-family minimum, internal-then-public promotion stay locked).
+- Bypassing the historical pre-S1 dependency contract (within-family exact pin, cross-family minimum, internal-then-public promotion stay locked).
 - Designing a "permanent manual mode" — manual is recovery, not steady state.
 
 ## 7. Relationship to A-risky and Stream D-local
 
-A-risky landed the csproj shape and the MSBuild guard target (blocks shipping `0.0.0-restore` sentinel). The escape hatch can already be exercised TODAY for individual families using the manual `dotnet build` + `dotnet restore` + `dotnet pack` + `dotnet nuget push` sequence. What's missing:
+Historical pre-S1 note: A-risky landed the csproj shape and the MSBuild guard target (blocks shipping `0.0.0-restore` sentinel). The escape hatch can already be exercised TODAY for individual families using the manual `dotnet build` + `dotnet restore` + `dotnet pack` + `dotnet nuget push` sequence. What's missing:
 
 - Cake `Pack-Family` / `Smoke-Family` / `Push-Family` helpers (Stream D-local deliverables).
 - API key provisioning policy.
@@ -193,4 +197,4 @@ Until then, manual escape hatch follows the unspoken contract in §3.1 and §3.2
 - [release-lifecycle-direction.md](../knowledge-base/release-lifecycle-direction.md) — canonical policy
 - [full-train-release-orchestration-2026-04-16.md](full-train-release-orchestration-2026-04-16.md) — sibling research, Path A discusses manual multi-tag push
 - [phase-2-adaptation-plan.md](../phases/phase-2-adaptation-plan.md) — Stream D-local + D-ci scope
-- [exact-pin-spike-and-nugetizer-eval-2026-04-16.md](exact-pin-spike-and-nugetizer-eval-2026-04-16.md) — production-time version flow constraint that the manual escape hatch must respect
+- [exact-pin-spike-and-nugetizer-eval-2026-04-16.md](exact-pin-spike-and-nugetizer-eval-2026-04-16.md) — SUPERSEDED historical research note for the production-time version flow constraint that the manual escape hatch originally had to respect

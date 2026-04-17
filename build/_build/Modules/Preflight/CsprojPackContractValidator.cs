@@ -11,13 +11,15 @@ namespace Build.Modules.Preflight;
 /// <summary>
 /// Validates that every managed and native csproj referenced by <c>manifest.json package_families[]</c>
 /// conforms to the canonical pack contract documented in
-/// <c>docs/knowledge-base/release-guardrails.md</c> guardrails G1-G8 + G17-G18.
+/// <c>docs/knowledge-base/release-guardrails.md</c> guardrails G4, G6, G7, G17, G18.
 /// </summary>
 /// <remarks>
-/// This validator is the FIRST defense-in-depth layer for the within-family exact-pin mechanism
-/// proven by the A0 spike (see <c>docs/research/exact-pin-spike-and-nugetizer-eval-2026-04-16.md</c>).
-/// The MSBuild guard target in <c>src/Directory.Build.targets</c> is the second layer (build-time).
-/// The post-pack nuspec assertion (Stream D-local) is the third layer.
+/// Post-S1 scope (2026-04-17): guardrails G1 (PrivateAssets="all"), G2 (paired PackageReference),
+/// G3 (bracket-notation PackageVersion), G5 (family-version property name convention), and G8
+/// (sentinel fallback) were retired when within-family exact-pin was replaced with SkiaSharp-style
+/// minimum range. This validator retains the structural checks that remain relevant post-S1:
+/// canonical PackageId naming (G6), MinVerTagPrefix alignment with manifest (G4), Native
+/// ProjectReference path correctness (G7), and manifest cross-section references (G17, G18).
 ///
 /// The validator parses each csproj as XML (no MSBuild evaluation) so it can run inside PreFlight
 /// without invoking the SDK. This deliberately makes it a structural check — it cannot evaluate
@@ -25,8 +27,6 @@ namespace Build.Modules.Preflight;
 /// </remarks>
 public sealed class CsprojPackContractValidator(IFileSystem fileSystem) : ICsprojPackContractValidator
 {
-    private const string SentinelVersion = "0.0.0-restore";
-
     private readonly IFileSystem _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
 
     public CsprojPackContractResult Validate(ManifestConfig manifest, DirectoryPath repoRoot)
@@ -75,21 +75,9 @@ public sealed class CsprojPackContractValidator(IFileSystem fileSystem) : ICspro
             return;
         }
 
-        var expectedNativePackageId = FamilyIdentifierConventions.NativePackageId(family.Name);
-
         checks.Add(CheckManagedPackageId(family, relativePath, root));
         checks.Add(CheckMinVerTagPrefix(family, relativePath, root));
-        var (familyVersionDeclarations, declaredCheck) = CheckFamilyVersionDeclared(family, relativePath, root);
-        checks.Add(declaredCheck);
-        checks.Add(CheckFamilyVersionSentinelFallback(family, relativePath, familyVersionDeclarations));
-        var (nativeProjectReferences, pathCheck) = CheckNativeProjectReferencePath(family, repoRoot, relativePath, root);
-        checks.Add(pathCheck);
-        if (nativeProjectReferences.Count == 1)
-        {
-            checks.Add(CheckPrivateAssetsAll(family, relativePath, nativeProjectReferences[0]));
-        }
-        checks.Add(CheckNativePackageReference(family, relativePath, root, expectedNativePackageId));
-        checks.Add(CheckNativePackageVersionBracket(family, relativePath, root, expectedNativePackageId));
+        checks.Add(CheckNativeProjectReferencePath(family, repoRoot, relativePath, root));
     }
 
     private void ValidateNativeCsproj(PackageFamilyConfig family, DirectoryPath repoRoot, List<CsprojPackContractCheck> checks)
@@ -111,7 +99,7 @@ public sealed class CsprojPackContractValidator(IFileSystem fileSystem) : ICspro
             IsValid: string.Equals(actualPackageId, expectedNativePackageId, StringComparison.Ordinal),
             ExpectedValue: expectedNativePackageId,
             ActualValue: actualPackageId,
-            ErrorMessage: actualPackageId == expectedNativePackageId
+            ErrorMessage: string.Equals(actualPackageId, expectedNativePackageId, StringComparison.Ordinal)
                 ? null
                 : $"Native csproj <PackageId> must equal '{expectedNativePackageId}' (canonical Janset.SDL<Major>.<Role>.Native). Actual: '{actualPackageId ?? "<missing>"}'."));
 
@@ -124,7 +112,7 @@ public sealed class CsprojPackContractValidator(IFileSystem fileSystem) : ICspro
             IsValid: string.Equals(actualMinVerTagPrefix, expectedMinVerTagPrefix, StringComparison.Ordinal),
             ExpectedValue: expectedMinVerTagPrefix,
             ActualValue: actualMinVerTagPrefix,
-            ErrorMessage: actualMinVerTagPrefix == expectedMinVerTagPrefix
+            ErrorMessage: string.Equals(actualMinVerTagPrefix, expectedMinVerTagPrefix, StringComparison.Ordinal)
                 ? null
                 : $"Native csproj <MinVerTagPrefix> must equal '{expectedMinVerTagPrefix}' (manifest tag_prefix + '-'). Actual: '{actualMinVerTagPrefix ?? "<missing>"}'."));
     }
@@ -185,7 +173,7 @@ public sealed class CsprojPackContractValidator(IFileSystem fileSystem) : ICspro
             IsValid: string.Equals(actual, expected, StringComparison.Ordinal),
             ExpectedValue: expected,
             ActualValue: actual,
-            ErrorMessage: actual == expected
+            ErrorMessage: string.Equals(actual, expected, StringComparison.Ordinal)
                 ? null
                 : $"Managed csproj <PackageId> must equal '{expected}' (canonical Janset.SDL<Major>.<Role>). Actual: '{actual ?? "<missing>"}'.");
     }
@@ -201,53 +189,13 @@ public sealed class CsprojPackContractValidator(IFileSystem fileSystem) : ICspro
             IsValid: string.Equals(actual, expected, StringComparison.Ordinal),
             ExpectedValue: expected,
             ActualValue: actual,
-            ErrorMessage: actual == expected
+            ErrorMessage: string.Equals(actual, expected
+                , StringComparison.Ordinal)
                 ? null
                 : $"Managed csproj <MinVerTagPrefix> must equal '{expected}' (manifest tag_prefix + '-'). Actual: '{actual ?? "<missing>"}'.");
     }
 
-    private static (List<XElement> Declarations, CsprojPackContractCheck Check) CheckFamilyVersionDeclared(PackageFamilyConfig family, string relativePath, XElement root)
-    {
-        var familyVersionPropertyName = FamilyIdentifierConventions.FamilyVersionPropertyName(family.Name);
-        var declarations = root
-            .Descendants("PropertyGroup")
-            .SelectMany(pg => pg.Elements(familyVersionPropertyName))
-            .ToList();
-        var check = new CsprojPackContractCheck(
-            family.Name,
-            relativePath,
-            CsprojPackContractCheckKind.FamilyVersionPropertyDeclared,
-            IsValid: declarations.Count > 0,
-            ExpectedValue: $"<{familyVersionPropertyName}>...",
-            ActualValue: declarations.Count > 0 ? $"{declarations.Count} declaration(s)" : "<missing>",
-            ErrorMessage: declarations.Count > 0
-                ? null
-                : $"Managed csproj must declare <{familyVersionPropertyName}> property (canonical Sdl<Major><Role>FamilyVersion).");
-        return (declarations, check);
-    }
-
-    private static CsprojPackContractCheck CheckFamilyVersionSentinelFallback(PackageFamilyConfig family, string relativePath, IReadOnlyList<XElement> declarations)
-    {
-        var familyVersionPropertyName = FamilyIdentifierConventions.FamilyVersionPropertyName(family.Name);
-        var hasVersionChain = declarations.Any(d =>
-            (d.Value?.Contains("$(Version)", StringComparison.Ordinal) ?? false) &&
-            (d.Attribute("Condition")?.Value.Contains("$(Version)", StringComparison.Ordinal) ?? false));
-        var hasSentinel = declarations.Any(d =>
-            string.Equals(d.Value, SentinelVersion, StringComparison.Ordinal));
-        var ok = hasVersionChain && hasSentinel;
-        return new CsprojPackContractCheck(
-            family.Name,
-            relativePath,
-            CsprojPackContractCheckKind.FamilyVersionPropertyHasSentinelFallback,
-            IsValid: ok,
-            ExpectedValue: $"$(Version) chain + '{SentinelVersion}' sentinel fallback",
-            ActualValue: $"hasVersionChain={hasVersionChain}, hasSentinel={hasSentinel}",
-            ErrorMessage: ok
-                ? null
-                : $"<{familyVersionPropertyName}> must have a $(Version)-chain conditional declaration AND a '{SentinelVersion}' sentinel fallback declaration.");
-    }
-
-    private static (List<XElement> References, CsprojPackContractCheck Check) CheckNativeProjectReferencePath(PackageFamilyConfig family, DirectoryPath repoRoot, string relativePath, XElement root)
+    private static CsprojPackContractCheck CheckNativeProjectReferencePath(PackageFamilyConfig family, DirectoryPath repoRoot, string relativePath, XElement root)
     {
         var managedFullPath = repoRoot.CombineWithFilePath(relativePath);
         var managedDir = managedFullPath.GetDirectory();
@@ -264,7 +212,7 @@ public sealed class CsprojPackContractValidator(IFileSystem fileSystem) : ICspro
             .ToList();
 
         var expectedRelative = managedDir.GetRelativePath(repoRoot.CombineWithFilePath(family.NativeProject!)).FullPath;
-        var check = new CsprojPackContractCheck(
+        return new CsprojPackContractCheck(
             family.Name,
             relativePath,
             CsprojPackContractCheckKind.NativeProjectReferencePathMatchesManifest,
@@ -274,69 +222,6 @@ public sealed class CsprojPackContractValidator(IFileSystem fileSystem) : ICspro
             ErrorMessage: matching.Count == 1
                 ? null
                 : $"Expected exactly one Native <ProjectReference> resolving to '{family.NativeProject}'. Found {matching.Count}.");
-        return (matching, check);
-    }
-
-    private static CsprojPackContractCheck CheckPrivateAssetsAll(PackageFamilyConfig family, string relativePath, XElement nativeReference)
-    {
-        var asAttribute = nativeReference.Attribute("PrivateAssets")?.Value;
-        var asElement = nativeReference.Element("PrivateAssets")?.Value;
-        var actual = asAttribute ?? asElement;
-        var ok = string.Equals(actual, "all", StringComparison.OrdinalIgnoreCase);
-        return new CsprojPackContractCheck(
-            family.Name,
-            relativePath,
-            CsprojPackContractCheckKind.NativeProjectReferenceHasPrivateAssetsAll,
-            IsValid: ok,
-            ExpectedValue: @"PrivateAssets=""all""",
-            ActualValue: actual ?? "<missing>",
-            ErrorMessage: ok
-                ? null
-                : $"Native <ProjectReference> must carry PrivateAssets=\"all\" to suppress the dep from pack output. Actual: '{actual ?? "<missing>"}'.");
-    }
-
-    private static CsprojPackContractCheck CheckNativePackageReference(PackageFamilyConfig family, string relativePath, XElement root, string expectedNativePackageId)
-    {
-        var matches = root
-            .Descendants("PackageReference")
-            .Where(pr => string.Equals(pr.Attribute("Include")?.Value, expectedNativePackageId, StringComparison.Ordinal))
-            .ToList();
-        return new CsprojPackContractCheck(
-            family.Name,
-            relativePath,
-            CsprojPackContractCheckKind.NativePackageReferenceExists,
-            IsValid: matches.Count == 1,
-            ExpectedValue: $"<PackageReference Include=\"{expectedNativePackageId}\" />",
-            ActualValue: matches.Count.ToString(CultureInfo.InvariantCulture) + " match(es)",
-            ErrorMessage: matches.Count == 1
-                ? null
-                : $"Expected exactly one <PackageReference Include=\"{expectedNativePackageId}\" />. Found {matches.Count}.");
-    }
-
-    private static CsprojPackContractCheck CheckNativePackageVersionBracket(PackageFamilyConfig family, string relativePath, XElement root, string expectedNativePackageId)
-    {
-        var matches = root
-            .Descendants("PackageVersion")
-            .Where(pv => string.Equals(pv.Attribute("Include")?.Value, expectedNativePackageId, StringComparison.Ordinal))
-            .ToList();
-        var version = matches.Count == 1 ? matches[0].Attribute("Version")?.Value : null;
-        var bracketOk = matches.Count == 1
-            && version is { Length: > 0 }
-            && version.StartsWith('[')
-            && version.EndsWith(']');
-        var actual = matches.Count == 1
-            ? version ?? "<no Version attr>"
-            : $"{matches.Count} match(es)";
-        return new CsprojPackContractCheck(
-            family.Name,
-            relativePath,
-            CsprojPackContractCheckKind.NativePackageVersionUsesBracketNotation,
-            IsValid: bracketOk,
-            ExpectedValue: $"<PackageVersion Include=\"{expectedNativePackageId}\" Version=\"[...]\" />",
-            ActualValue: actual,
-            ErrorMessage: bracketOk
-                ? null
-                : $"Expected exactly one <PackageVersion Include=\"{expectedNativePackageId}\" /> with Version using bracket notation [...]. Actual: '{actual}'.");
     }
 
     private static void ValidateDependsOn(PackageFamilyConfig family, HashSet<string> familyIdentifiers, List<CsprojPackContractCheck> checks)

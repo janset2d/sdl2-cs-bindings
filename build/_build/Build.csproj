@@ -1,7 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net9.0</TargetFramework>
+    <!-- Cake host is single-TFM; tracks $(LatestDotNet) from root Directory.Build.props. -->
+    <TargetFramework>$(LatestDotNet)</TargetFramework>
     <TargetFrameworks></TargetFrameworks>
     <RunWorkingDirectory>$(MSBuildProjectDirectory)</RunWorkingDirectory>
     <NoWarn>$(NoWarn);CA1050;CA2007;CA1812;CA1515;MA0047;S3903;S2955</NoWarn>
@@ -16,12 +17,13 @@
     <InternalsVisibleTo Include="Build.Tests" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Cake.Frosting"/>
+    <PackageReference Include="Cake.Frosting" />
+    <PackageReference Include="NuGet.Frameworks" />
     <PackageReference Include="NuGet.Versioning" />
     <PackageReference Include="OneOf" />
     <PackageReference Include="OneOf.Monads" />
     <PackageReference Include="OneOf.SourceGenerator" />
-    <PackageReference Include="System.CommandLine"/>
+    <PackageReference Include="System.CommandLine" />
     <PackageReference Include="System.CommandLine.NamingConventionBinder" />
   </ItemGroup>
 

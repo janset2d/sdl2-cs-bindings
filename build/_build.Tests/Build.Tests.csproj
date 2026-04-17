@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <!-- Build host tests are single-TFM; track $(LatestDotNet) from root Directory.Build.props. -->
+    <TargetFramework>$(LatestDotNet)</TargetFramework>
     <TargetFrameworks></TargetFrameworks>
     <OutputType>Exe</OutputType>
     <IsTestProject>true</IsTestProject>

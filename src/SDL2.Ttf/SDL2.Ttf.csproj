@@ -4,8 +4,6 @@
     <Description>Ttf C# bindings for SDL_ttf (based on SDL-CS)</Description>
     <TargetFrameworks>$(TargetFrameworks)</TargetFrameworks>
     <MinVerTagPrefix>sdl2-ttf-</MinVerTagPrefix>
-    <Sdl2TtfFamilyVersion Condition="'$(Version)' != '' and '$(Sdl2TtfFamilyVersion)' == ''">$(Version)</Sdl2TtfFamilyVersion>
-    <Sdl2TtfFamilyVersion Condition="'$(Sdl2TtfFamilyVersion)' == ''">0.0.0-restore</Sdl2TtfFamilyVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,11 +12,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SDL2.Core\SDL2.Core.csproj"/>
-    <ProjectReference Include="..\native\SDL2.Ttf.Native\SDL2.Ttf.Native.csproj" PrivateAssets="all"/>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageVersion Include="Janset.SDL2.Ttf.Native" Version="[$(Sdl2TtfFamilyVersion)]"/>
-    <PackageReference Include="Janset.SDL2.Ttf.Native"/>
+    <ProjectReference Include="..\native\SDL2.Ttf.Native\SDL2.Ttf.Native.csproj"
+                      IncludeAssets="all"
+                      PrivateAssets="none"/>
   </ItemGroup>
 </Project>

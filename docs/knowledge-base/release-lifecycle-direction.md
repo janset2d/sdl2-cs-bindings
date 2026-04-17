@@ -2,7 +2,7 @@
 
 > **Status:** Canonical — locked policy decisions. Tool-specific implementation choices (marked as *current tooling* notes) are non-normative and may evolve without changing the policy.
 >
-> **Last updated:** 2026-04-15
+> **Last updated:** 2026-04-17 (S1 adoption — within-family exact-pin retired in favor of SkiaSharp-style minimum range; see §4 Drift Protection Model and Tradeoff 5)
 >
 > **Research basis:** Four independent research efforts converged on these conclusions:
 >
@@ -33,8 +33,6 @@ These terms are used consistently across all documentation, issues, code, and co
 **Family Identifier** — The canonical lowercase string that names a family across `manifest.json`, csproj `<MinVerTagPrefix>`, and git tags. Format: `sdl<major>-<role>`. Examples: `sdl2-core`, `sdl2-image`, `sdl2-mixer`, `sdl2-ttf`, `sdl2-gfx`, `sdl2-net`. Future SDL3 families parallel this convention: `sdl3-core`, `sdl3-image`, etc.
 
 > The explicit `sdl<major>-` prefix is mandatory. It mirrors the `Janset.SDL2.*` PackageId convention, eliminates ambiguity once SDL3 families are introduced, and uses a product identifier (`sdl2`/`sdl3`) that cannot be confused with SemVer numbers.
-
-**MSBuild Family Version Property** — Each managed satellite csproj declares an MSBuild property named `Sdl<Major><Role>FamilyVersion` that holds the family version at pack time. PascalCase mirror of the family identifier. Examples: `Sdl2CoreFamilyVersion`, `Sdl2ImageFamilyVersion`, `Sdl2MixerFamilyVersion`, `Sdl2TtfFamilyVersion`, `Sdl2GfxFamilyVersion`. The property defaults to `$(Version)` (which MinVer sets from the family tag) and may be overridden by Cake at pack time via CLI.
 
 **Core Family** — The SDL family's core package family (`sdl2-core` for SDL2, `sdl3-core` for SDL3). All satellite families in the same SDL major-version line depend on it. When a release set includes both core and satellite families, core releases first (see Release Ordering).
 
@@ -72,9 +70,9 @@ Each stage is a separate, conscious step. Packages never skip stages on the CI/p
 
 ### Dependency Contracts
 
-**Within-Family Constraint** — The NuGet dependency between a managed package and its own native package within the same family. This is an **exact version pin** (`=`). Both packages are tested together at the same version, and no other combination is supported.
+**Within-Family Constraint** — The NuGet dependency between a managed package and its own native package within the same family. This is a **minimum version constraint** (`>=`), matching the cross-family convention. Both packages share a version and always ship together (see §2 Release Governance), so in practice a consumer resolves the exact same version. Using minimum range instead of exact pin under S1 aligns with the industry standard for native-bundled .NET libraries (SkiaSharp, Avalonia, OpenTelemetry). Drift protection between managed and native is enforced at orchestration time, not at consumer-side resolution (see §4 Drift Protection Model).
 
-> Example: `Janset.SDL2.Core 1.2.0` depends on `Janset.SDL2.Core.Native (= 1.2.0)`.
+> Example: `Janset.SDL2.Core 1.2.0` depends on `Janset.SDL2.Core.Native (>= 1.2.0)`.
 
 **Cross-Family Constraint** — The NuGet dependency from a satellite family's managed package to the core family's managed package. This is a **minimum version constraint** (`>=`). A satellite can release independently as long as the core version on the feed is at least the declared minimum.
 
@@ -137,20 +135,32 @@ Family versions are fully independent. Core might be at `2.0.0` while Image is a
 
 ```text
 Janset.SDL2.Image (managed, v1.0.3)
-  └── depends on: Janset.SDL2.Image.Native (= 1.0.3)
+  └── depends on: Janset.SDL2.Image.Native (>= 1.0.3)
 ```
 
-Exact pin. No flexibility. These two packages are a unit.
+Minimum range. The two packages share a version and always release together (§2), so consumers in practice resolve the exact same version within a family. The contract is consumer-side flexible, orchestration-side strict — drift protection lives in §4 Drift Protection Model, not in the consumer-side dependency expression.
 
 ### Across Families
 
 ```text
 Janset.SDL2.Image (managed, v1.0.3)
-  ├── depends on: Janset.SDL2.Image.Native (= 1.0.3)      ← within-family
+  ├── depends on: Janset.SDL2.Image.Native (>= 1.0.3)     ← within-family
   └── depends on: Janset.SDL2.Core (>= 1.2.0)              ← cross-family
 ```
 
-Minimum version. Image 1.0.3 was tested with Core 1.2.0, but Core 1.3.0 is also acceptable (new features, no breaking changes).
+Minimum version on both axes. Image 1.0.3 was tested with Core 1.2.0, but Core 1.3.0 is also acceptable (new features, no breaking changes).
+
+### Drift Protection Model
+
+Within-family consistency is guaranteed at **orchestration time**, not at consumer-side resolution time. Three mechanisms combine to make mismatched within-family distribution practically impossible:
+
+1. **Cake `PackageTask` is atomic per family.** Both managed and native nupkg for a family are emitted from a single task invocation at the same `--family-version`. There is no code path where one package is emitted at version `X` and its sibling at version `Y`.
+2. **Post-pack validator** (Stream D-local) asserts that both emitted `.nupkg` files declare the same `<version>` element and that the managed nuspec contains the expected `>=` dependency on the native. Runs before any artifact leaves the build host.
+3. **Release train ordering** (§2) ensures that whenever both members of a family reach the internal feed, they do so as a coherent set within the same release wave.
+
+Consumer-side, the `>=` contract means a consumer who manually pulled mismatched family members would succeed (within SemVer compatibility) — matching industry expectations and the SkiaSharp precedent. Mismatched distribution is prevented at release time, not at consumer-side resolution.
+
+> **Why not consumer-side exact pin?** It was investigated (2026-04-16 A0 spike) and empirically proven feasible with `PrivateAssets="all"` + bracket-notation CPM + `PackageReference`. The mechanism was retired on 2026-04-17 because it hit upstream NuGet limitations around MSBuild global-property propagation through `_GetProjectVersion` sub-evaluations (see [NuGet/Home#11617](https://github.com/NuGet/Home/issues/11617), open since 2022; [NuGet/Home#5556](https://github.com/NuGet/Home/issues/5556), open since 2017). Rather than carry a local workaround, the project adopted the industry-standard minimum-range contract. The guarantee that was surrendered (consumer-side exact pin) was already belt-and-suspenders against a scenario Cake orchestration prevents by construction.
 
 ### The Meta-Package
 
@@ -254,3 +264,5 @@ Both are valid simultaneously. Upstream is 2.x, family is 1.x. Neither implies a
 3. **One job per RID, not per library×RID.** Per-library parallelism within a RID job is sacrificed for vcpkg cache efficiency. Sequential per-library harvest within a job is fast enough (harvest is I/O, not compute).
 
 4. **Tag-derived versions over manual versions.** Family tags are the version source. This means version numbers are never manually edited in project files. The tradeoff: version bumps require git tag discipline, not file edits. Build system orchestration ensures this is reliable. (*Current tooling consideration: MinVer with `<MinVerTagPrefix>` per family.*)
+
+5. **Minimum range within family, drift-prevented at orchestration time.** Within-family and cross-family dependency contracts both use `>=`, matching SkiaSharp / Avalonia / OpenTelemetry conventions. Within-family exact pin was investigated pre-S1 (2026-04-16 A0 spike) and proven mechanically feasible, but the approach depended on MSBuild global-property propagation through NuGet's pack-time `_GetProjectVersion` sub-evaluation — which `NuGet.Build.Tasks.Pack.targets` implements with `Properties=` (globals-replace) rather than `AdditionalProperties=` (globals-extend). That behavior has been unchanged for 8+ years and is unchanged in .NET 10 SDK; no merged or in-flight fix exists upstream. Rather than carry a local workaround, drift protection moved to the orchestration layer (§4 Drift Protection Model). The theoretical consumer-side exact-pin guarantee is traded for operational simplicity that every major .NET native-bundled library has already accepted.

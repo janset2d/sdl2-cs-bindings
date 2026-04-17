@@ -18,17 +18,33 @@
 
   </PropertyGroup>
 
-  <!-- Common native payload packaging -->
-  <!-- Assumes runtimes folder is directly inside each native project dir -->
-  <ItemGroup>
-    <Content Include="$(MSBuildProjectDirectory)\runtimes\**\*"
+  <!--
+    Native payload (runtimes/<rid>/native/* and licenses/**) comes from an external
+    staging directory passed via $(NativePayloadSource). No fallback to the source
+    tree — packing a .Native project without $(NativePayloadSource) is blocked by
+    the _GuardAgainstEmptyNativePayload target in src/Directory.Build.targets (G46).
+
+    Cake orchestration (Stream D-local) sets $(NativePayloadSource) to the harvest
+    output root for the family's library_ref (e.g., artifacts/harvest_output/SDL2).
+    That root must contain a runtimes/<rid>/native/ subtree and a licenses/ subtree.
+
+    Source Mode (Stream F, not yet implemented) will need to produce the same layout
+    under its own staging root and pass the same property. See
+    docs/phases/phase-2-adaptation-plan.md "Stream F mandatory control" for the
+    assumption this design makes about Stream F's acquisition model.
+  -->
+  <ItemGroup Condition="'$(NativePayloadSource)' != ''">
+    <Content Include="$(NativePayloadSource)\runtimes\**\*"
              Pack="true"
              LinkBase="runtimes"
              PackagePath="runtimes\%(Link)" />
+    <Content Include="$(NativePayloadSource)\licenses\**\*"
+             Pack="true"
+             PackagePath="licenses\" />
   </ItemGroup>
 
-  <!-- Common packaging for build logic (.targets files) -->
-  <!-- Include both build/ and buildTransitive/ common patterns -->
+  <!-- build/ and buildTransitive/ targets are source-controlled inside each .Native
+       project directory; they are NOT harvest payload and stay co-located with the csproj. -->
   <ItemGroup>
     <Content Include="$(MSBuildProjectDirectory)\build\**\*.targets"
              Pack="true"
@@ -36,14 +52,6 @@
     <Content Include="$(MSBuildProjectDirectory)\buildTransitive\**\*.targets"
              Pack="true"
              PackagePath="buildTransitive\"/>
-  </ItemGroup>
-
-  <!-- Common packaging for licenses/notices -->
-  <!-- Assumes licenses folder is directly inside each native project dir -->
-  <ItemGroup>
-    <Content Include="$(MSBuildProjectDirectory)\licenses\**\*"
-             Pack="true"
-             PackagePath="licenses\"/>
   </ItemGroup>
 
 </Project>

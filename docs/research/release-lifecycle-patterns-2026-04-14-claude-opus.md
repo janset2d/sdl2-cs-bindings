@@ -2,7 +2,7 @@
 
 **Date:** 2026-04-14
 **Author:** Claude Opus (research agent synthesis)
-**Status:** Research — pending alignment decisions
+**Status:** Research — pending alignment decisions. **Note (2026-04-17):** post-dated by S1 adoption. The LibGit2Sharp exact-pin pattern described in this doc's industry survey (e.g., "Managed depends on its own Native with exact pin (`=`)", "completely different version schemes but exact-pinned: managed depends on `NativeBinaries (= 2.0.323)`") is **no longer the chosen pattern for Janset.SDL2**. S1 adoption (2026-04-17) aligned with the SkiaSharp `>=` pattern instead. The survey data remains accurate; the subsequent design inference has changed. See [phase-2-adaptation-plan.md "S1 Adoption Record"](../phases/phase-2-adaptation-plan.md).
 **Issue context:** #85 (strategy awareness), #83 (packaging spike), #54 (PackageTask)
 
 ## Purpose
@@ -16,7 +16,7 @@ Comprehensive survey of how .NET monorepos with inter-dependent packages (especi
 | Azure SDK for .NET | 200+ | No | 100+ | Fully independent per-package |
 | SkiaSharp | 49 (incl. 9 NativeAssets) | Yes | 5-10 | All-at-once locked |
 | ppy/SDL3-CS | 4 | Yes (committed to git) | 3-5 | All-at-once locked, calendar version |
-| LibGit2Sharp | 2 | Yes | 2-3 | Independent versions, exact pin |
+| LibGit2Sharp | 2 | Yes | 2-3 | Independent versions, historical exact pin |
 | Magick.NET | 13 | Yes | 1-2 | Matrix split (quantum×arch), locked |
 | Microsoft.Data.SqlClient | 3 | Yes (Windows SNI only) | 5+ | Independent versions, `>=` |
 | NSec/libsodium | 2 | Yes (upstream-owned) | 1-2 | Independent, bounded range |
@@ -78,7 +78,7 @@ Comprehensive survey of how .NET monorepos with inter-dependent packages (especi
 **How it works:**
 
 - Two packages: `LibGit2Sharp` (managed, v0.31.0) + `LibGit2Sharp.NativeBinaries` (native, v2.0.323)
-- Completely different version schemes but exact-pinned: managed depends on `NativeBinaries (= 2.0.323)`
+- Historical comparison: completely different version schemes but exact-pinned; managed depends on `NativeBinaries (= 2.0.323)`
 - Native and managed in separate repositories
 - Native released first when libgit2 upstream changes, managed released independently
 
@@ -149,7 +149,7 @@ Used by: Magick.NET (quantum depth × architecture = 12 packages)
 
 | Pattern | Example | When To Use |
 |---|---|---|
-| **Exact pin** `=` | `LibGit2Sharp.NativeBinaries (= 2.0.323)` | Managed + native tightly coupled, tested together |
+| **Historical exact pin** `=` | `LibGit2Sharp.NativeBinaries (= 2.0.323)` | Managed + native tightly coupled, tested together |
 | **Minimum** `>=` | `SkiaSharp.NativeAssets.Win32 (>= 3.119.2)` | Forward-compatible native API |
 | **Bounded range** `>= && <` | `libsodium (>= 1.0.18 && < 1.0.19)` | Patch-safe but ABI-break-aware |
 
@@ -239,7 +239,7 @@ Simple but coarse-grained. Does not understand transitive MSBuild dependencies.
 
 - Each SDL2 library is a "family": managed + native packages, always same version
 - Families version independently: Core at v1.2.0, Image at v1.0.3
-- Managed depends on its own Native with exact pin (`=`)
+- Historical pre-S1 pattern: managed depends on its own Native with exact pin (`=`)
 - Satellites depend on Core with minimum constraint (`>=`)
 
 ### Native topology: Fat package (all RIDs in one nupkg)
@@ -292,7 +292,7 @@ Tag push (e.g., core-1.2.0)
 ## Open Questions for Alignment
 
 1. **Family versioning tool**: MinVer + tag prefix vs manual `<Version>` in csproj?
-2. **Native constraint type**: Exact pin (`=`) vs minimum (`>=`) between managed and its own native?
+2. **Historical alignment question**: Exact pin (`=`) vs minimum (`>=`) between managed and its own native?
 3. **manifest.json evolution**: Add `package_families` section (v2.1) vs full library-centric rewrite (v3.0)?
 4. **Dev feed**: GitHub Packages vs Feedz.io vs local folder (for now)?
 5. **CI migration order**: Pure-dynamic first (validate existing pipeline) → hybrid overlay → release pipeline?

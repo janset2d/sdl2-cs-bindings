@@ -1,7 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project>
+  <!--
+    Centralized TFM policy (single source of truth; bump $(LatestDotNet) on new LTS).
+
+    - $(LibraryTargetFrameworks): compile-only for libraries. UNCONDITIONAL across all OS —
+      net462 builds on Linux via Microsoft.NETFramework.ReferenceAssemblies (auto-pulled by
+      SDK 3.0+). Mono NOT required for compile.
+    - $(ExecutableTargetFrameworks): runtime-concrete TFMs. Used by smoke tests / sandbox /
+      samples. Runtime availability (Mono/Wine on Unix for net462) is a CI/Cake-level concern,
+      not a TFM-selection concern — the orchestrator probes and skips, not the csproj.
+    - Default $(TargetFrameworks) = $(LibraryTargetFrameworks). Projects override when they
+      want executable or single-TFM semantics.
+  -->
   <PropertyGroup>
-    <TargetFrameworks>net9.0;net8.0;netstandard2.0;net462</TargetFrameworks>
+    <LatestDotNet>net9.0</LatestDotNet>
+    <LibraryTargetFrameworks>$(LatestDotNet);net8.0;netstandard2.0;net462</LibraryTargetFrameworks>
+    <ExecutableTargetFrameworks>$(LatestDotNet);net8.0;net462</ExecutableTargetFrameworks>
+    <TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
+  </PropertyGroup>
+
+  <PropertyGroup>
     <LangVersion>13.0</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>

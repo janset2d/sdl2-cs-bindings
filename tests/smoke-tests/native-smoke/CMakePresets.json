@@ -6,10 +6,10 @@
       "hidden": true,
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
-        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/../../external/vcpkg/scripts/buildsystems/vcpkg.cmake",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/../../../external/vcpkg/scripts/buildsystems/vcpkg.cmake",
         "VCPKG_MANIFEST_MODE": "OFF",
-        "VCPKG_INSTALLED_DIR": "${sourceDir}/../../vcpkg_installed",
-        "VCPKG_OVERLAY_TRIPLETS": "${sourceDir}/../../vcpkg-overlay-triplets"
+        "VCPKG_INSTALLED_DIR": "${sourceDir}/../../../vcpkg_installed",
+        "VCPKG_OVERLAY_TRIPLETS": "${sourceDir}/../../../vcpkg-overlay-triplets"
       }
     },
 

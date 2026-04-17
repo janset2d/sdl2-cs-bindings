@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!--
+      netstandard2.0 is a contract, not a runtime — it can't host a TUnit test run.
+      This project provides compile-only sanity: if a netstandard2.0 consumer can
+      reference Janset.SDL2.Core + Janset.SDL2.Image and build successfully, the
+      netstandard2.0 slice of our library graph is validated. Runtime-side loader
+      behaviour is exercised by the concrete-runtime TFMs in PackageConsumer.Smoke.
+    -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks></TargetFrameworks>
+    <OutputType>Library</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>false</IsTestProject>
+
+    <JansetSdl2CorePackageVersion Condition="'$(JansetSdl2CorePackageVersion)' == ''">0.0.0-package-consumer</JansetSdl2CorePackageVersion>
+    <JansetSdl2ImagePackageVersion Condition="'$(JansetSdl2ImagePackageVersion)' == ''">0.0.0-package-consumer</JansetSdl2ImagePackageVersion>
+
+    <LocalPackageFeed Condition="'$(LocalPackageFeed)' == ''">$(MSBuildThisFileDirectory)..\..\..\..\artifacts\packages</LocalPackageFeed>
+    <RestoreAdditionalProjectSources>$(RestoreAdditionalProjectSources);$(LocalPackageFeed)</RestoreAdditionalProjectSources>
+
+    <!-- Same analyzer posture as Build.Tests: probe file is intentionally minimal. -->
+    <NoWarn>$(NoWarn);CA1050;CA1515;CA1707;CA1806;CA2007;MA0045;MA0047;MA0051;S4144;S2699</NoWarn>
+    <NoError>$(NoError);CA1050;CA1515;CA1707;CA1806;CA2007;MA0045;MA0047;MA0051;S4144;S2699</NoError>
+
+    <IsAotCompatible>false</IsAotCompatible>
+    <IsTrimmable>false</IsTrimmable>
+    <EnableAOTAnalyzer>false</EnableAOTAnalyzer>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Janset.SDL2.Core" VersionOverride="$(JansetSdl2CorePackageVersion)" />
+    <PackageReference Include="Janset.SDL2.Image" VersionOverride="$(JansetSdl2ImagePackageVersion)" />
+  </ItemGroup>
+
+  <Target Name="_GuardCompileSanityInputs" BeforeTargets="Restore;Build">
+    <Error Text="Compile.NetStandard requires -p:JansetSdl2CorePackageVersion=[semver]. Run via Cake PostFlight."
+           Condition="'$(JansetSdl2CorePackageVersion)' == '0.0.0-package-consumer'" />
+    <Error Text="Compile.NetStandard requires -p:JansetSdl2ImagePackageVersion=[semver]. Run via Cake PostFlight."
+           Condition="'$(JansetSdl2ImagePackageVersion)' == '0.0.0-package-consumer'" />
+  </Target>
+</Project>

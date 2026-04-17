@@ -51,7 +51,7 @@ All platforms need the vcpkg hybrid build completed first — the `vcpkg_install
 Open **"Developer PowerShell for VS"** from Start menu (this loads MSVC environment), then:
 
 ```powershell
-cd test\native-smoke
+cd tests\smoke-tests\native-smoke
 cmake --preset win-x64
 cmake --build build\win-x64
 .\build\win-x64\native-smoke.exe
@@ -60,7 +60,7 @@ cmake --build build\win-x64
 ### Windows — Developer Command Prompt
 
 ```cmd
-cd test\native-smoke
+cd tests\smoke-tests\native-smoke
 cmake --preset win-x64
 cmake --build build\win-x64
 build\win-x64\native-smoke.exe
@@ -79,7 +79,7 @@ cmd.exe //c build.bat
 ### Linux
 
 ```bash
-cd test/native-smoke
+cd tests/smoke-tests/native-smoke
 cmake --preset linux-x64
 cmake --build build/linux-x64
 ./build/linux-x64/native-smoke
@@ -88,7 +88,7 @@ cmake --build build/linux-x64
 ### macOS
 
 ```bash
-cd test/native-smoke
+cd tests/smoke-tests/native-smoke
 cmake --preset osx-x64
 cmake --build build/osx-x64
 ./build/osx-x64/native-smoke
@@ -118,7 +118,7 @@ Interactive mode runs all headless tests first (13 tests), then additionally:
 
 ### Visual Studio 2022/2025
 
-1. File → Open → Folder → select `test/native-smoke/`
+1. File → Open → Folder → select `tests/smoke-tests/native-smoke/`
 2. VS auto-detects `CMakePresets.json` and shows presets in toolbar dropdown
 3. Select preset (e.g., "Windows x64 (Hybrid)" or "Windows x64 (Interactive)")
 4. Build: Ctrl+Shift+B
@@ -126,7 +126,7 @@ Interactive mode runs all headless tests first (13 tests), then additionally:
 
 ### VS Code + CMake Tools
 
-1. Open `test/native-smoke/` folder in VS Code
+1. Open `tests/smoke-tests/native-smoke/` folder in VS Code
 2. Install the **"CMake Tools"** extension (ms-vscode.cmake-tools)
 3. CMakePresets.json auto-detected — select configure preset from status bar
 4. Build: Ctrl+Shift+B or CMake sidebar
@@ -138,7 +138,7 @@ CLion has native CMake support and reads CMakePresets.json directly. Setup requi
 
 **First-time setup (Windows):**
 
-1. Open `test/native-smoke/` folder in CLion
+1. Open `tests/smoke-tests/native-smoke/` folder in CLion
 2. Settings → Build, Execution, Deployment → **Toolchains**:
    - **Make "Visual Studio" the default toolchain** (move it above MinGW)
    - CLion bundles MinGW which uses GCC — our vcpkg libraries are MSVC-compiled, ABI incompatible with MinGW
@@ -151,7 +151,7 @@ CLion has native CMake support and reads CMakePresets.json directly. Setup requi
 
 **First-time setup (Linux/macOS):**
 
-1. Open `test/native-smoke/` folder in CLion
+1. Open `tests/smoke-tests/native-smoke/` folder in CLion
 2. Toolchains: default system toolchain (GCC/Clang) works out of the box
 3. CMake: select the appropriate preset (e.g., "Linux x64 (Hybrid)")
 

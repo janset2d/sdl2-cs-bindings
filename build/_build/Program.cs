@@ -13,6 +13,7 @@ using Build.Modules.Contracts;
 using Build.Modules.Coverage;
 using Build.Modules.DependencyAnalysis;
 using Build.Modules.Harvesting;
+using Build.Modules.Packaging;
 using Build.Modules.Preflight;
 using Build.Modules.Strategy;
 using Build.Modules.Strategy.Models;
@@ -44,6 +45,8 @@ root.AddOption(VcpkgOptions.VcpkgDirOption);
 root.AddOption(VcpkgOptions.VcpkgInstalledDirOption);
 root.AddOption(VcpkgOptions.LibraryOption);
 root.AddOption(VcpkgOptions.RidOption);
+root.AddOption(PackageOptions.FamilyOption);
+root.AddOption(PackageOptions.FamilyVersionOption);
 
 root.AddOption(DumpbinOptions.DllOption);
 
@@ -70,6 +73,7 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton(new VcpkgConfiguration([.. parsedArgs.Library], parsedArgs.Rid));
     services.AddSingleton(new RepositoryConfiguration(repoRootPath));
     services.AddSingleton(new DotNetBuildConfiguration(configuration: parsedArgs.Config));
+    services.AddSingleton(new PackageBuildConfiguration([.. parsedArgs.Family], parsedArgs.FamilyVersion));
     services.AddSingleton(new DumpbinConfiguration([.. parsedArgs.Dll]));
 
     services.AddSingleton<IPathService>(provider =>
@@ -109,6 +113,13 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton<IStrategyCoherenceValidator, StrategyCoherenceValidator>();
     services.AddSingleton<ICsprojPackContractValidator, CsprojPackContractValidator>();
     services.AddSingleton<IPreflightReporter, PreflightReporter>();
+    services.AddSingleton<IPackageOutputValidator, PackageOutputValidator>();
+    services.AddSingleton<IProjectMetadataReader, ProjectMetadataReader>();
+    services.AddSingleton<IPackageFamilySelector, PackageFamilySelector>();
+    services.AddSingleton<IPackageVersionResolver, PackageVersionResolver>();
+    services.AddSingleton<IDotNetPackInvoker, DotNetPackInvoker>();
+    services.AddSingleton<IPackageTaskRunner, PackageTaskRunner>();
+    services.AddSingleton<IPackageConsumerSmokeRunner, PackageConsumerSmokeRunner>();
 
     services.AddSingleton<IPackagingStrategy>(provider =>
     {
@@ -327,5 +338,7 @@ public record ParsedArguments(
     DirectoryInfo? VcpkgDir,
     DirectoryInfo? VcpkgInstalledDir,
     IList<string> Library,
+    IList<string> Family,
+    string? FamilyVersion,
     string Rid,
     IList<string> Dll);

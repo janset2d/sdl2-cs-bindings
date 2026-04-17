@@ -2,8 +2,8 @@
 
 > How to verify that the Cake build host, harvest pipeline, and native libraries work correctly across all 3 local platforms after a refactor or significant change.
 
-**Last validated:** 2026-04-16 (post-A-risky: MinVer + exact-pin csproj + family rename to `sdl<major>-<role>` + PreFlight `CsprojPackContractValidator`)
-**Result:** Checkpoints A-D green on all 3 platforms (Windows local, WSL Linux, macOS Intel SSH). 256/256 build-host tests, 0 warnings / 0 errors on Release build, PreFlight 6 families × 10 csprojs × 8 invariants all green per platform. E/F/G unchanged scope (harvest pipeline not touched by A-risky) — re-run when Stream D-local or later lands runtime-affecting changes.
+**Last validated:** 2026-04-16 at A-risky closure. **Note (2026-04-17):** A-risky's exact-pin csproj shape (Mechanism 3) was retired by S1 adoption. The smoke validation procedures described below are unaffected — they exercise the harvest + pack + consumer path, not the dependency-shape invariants. Current baseline post-S1: MinVer + family rename + PreFlight `CsprojPackContractValidator` (post-S1 subset: G4 MinVerTagPrefix, G6 PackageId, G7 native project path, G17/G18 cross-section). Re-validation should happen after Phase 3 code changes (csproj cleanup + validator simplification + PackageTaskRunner collapse) land. See [phase-2-adaptation-plan.md "S1 Adoption Record"](../phases/phase-2-adaptation-plan.md).
+**Result (at 2026-04-16 validation):** Checkpoints A-D green on all 3 platforms (Windows local, WSL Linux, macOS Intel SSH). 256/256 build-host tests, 0 warnings / 0 errors on Release build, PreFlight 6 families × 10 csprojs × 8 invariants all green per platform. E/F/G unchanged scope (harvest pipeline not touched by A-risky) — re-run when Stream D-local or later lands runtime-affecting changes.
 
 ## When to Run This
 
@@ -40,8 +40,8 @@ These will be added as their parent streams land. Add the command reference and 
 | --- | --- | --- | --- | --- |
 | H | GenerateMatrixTask | C | Dynamic CI matrix produces correct 7-RID JSON from manifest | Task implemented + validated against hardcoded YAML |
 | I | PreFlightCheck as gate (expanded) | C | Version resolution, package-family integrity, unit tests as gate | Stream C PreFlight expansion landed |
-| J | PackageTask | D-local | Family-aware pack produces valid .nupkg per library | A0 spike resolved + PackageTask implemented |
-| K | Package-consumer smoke | D-local | PackageReference restore + native binary load + SDL_Init from .nupkg | Consumer test project exists |
+| J | PackageTask | D-local | Family-aware pack produces valid .nupkg per library | Task implemented and locally validated on the Phase 2a `sdl2-core` + `sdl2-image` win-x64 slice; promote to active after 3-platform validation |
+| K | Package-consumer smoke | D-local | PackageReference restore + native binary load + SDL_Init from .nupkg | Dedicated consumer project + Cake smoke target exist and pass on the Phase 2a win-x64 slice; promote to active after 3-platform validation |
 | L | Source-Mode-Prepare | F | `--source=local` stages natives correctly per-platform | Task implemented + Directory.Build.targets wired |
 
 **Exit criteria:** All **active** checkpoints green on all 3 platforms. Any failure must be classified as environment issue vs code regression before proceeding. When promoting a planned checkpoint to active, update this table and add its command reference below.
@@ -171,20 +171,20 @@ CI workflows use the Release binary directly. Local smoke should match:
 
 ### G. Native Smoke Test
 
-See [test/native-smoke/README.md](../../test/native-smoke/README.md) for full details. Quick reference:
+See [tests/smoke-tests/native-smoke/README.md](../../tests/smoke-tests/native-smoke/README.md) for full details. Quick reference:
 
 ```bash
-# Windows (from test/native-smoke/):
+# Windows (from tests/smoke-tests/native-smoke/):
 cmd.exe //c ".\build.bat"
 
 # Linux:
-cd test/native-smoke
+cd tests/smoke-tests/native-smoke
 cmake --preset linux-x64
 cmake --build build/linux-x64
 ./build/linux-x64/native-smoke
 
 # macOS:
-cd test/native-smoke
+cd tests/smoke-tests/native-smoke
 cmake --preset osx-x64
 cmake --build build/osx-x64
 ./build/osx-x64/native-smoke
@@ -246,3 +246,25 @@ This local smoke matrix validates the **same command surface** that CI workflows
 - CI will gain PreFlightCheck as a gate (Stream C); local smoke already runs it manually
 
 If local smoke passes but CI fails, the issue is almost certainly in CI environment setup, not in the build host code.
+
+## Consumer Invocation Contract (Checkpoint K)
+
+`PackageConsumerSmoke` invokes the consumer project with an explicit `-r <rid>` on `restore`, `build`, and `run`. That is a deliberate choice and the contract it validates is narrower than "what an arbitrary external consumer sees."
+
+What `-r <rid>` exercises today:
+
+- Runtime-specific restore resolves the `.Native` package's `runtimes/{rid}/native/` subtree
+- SDK-level file copy places the native binaries directly under `bin/Release/net9.0/<rid>/`
+- `dotnet run --no-build --no-restore -r <rid>` executes the pre-built binary with runtime assets already present in the output folder
+- P/Invoke loader succeeds because the DLL is sitting next to the managed assembly
+
+What `-r <rid>` does NOT exercise:
+
+- The default framework-dependent consumer path (no `<RuntimeIdentifier>` set), where runtime asset resolution goes through MSBuild's `runtimetargets` evaluation and the host runtime's native library resolver (not the build-time file copy)
+- Multi-RID publish scenarios (`dotnet publish -r linux-x64 --self-contained`)
+- Consumer projects that set `<RuntimeIdentifiers>` (plural) for multi-target output
+- Any form of NuGet client version drift (restore works with modern SDK; older NuGet clients might not honour the runtime subtree layout identically)
+
+**Consequence for D-local:** checkpoint K today proves "runtime assets LAND in bin/ via build-time file copy on win-x64." It does NOT prove "runtime assets LOAD via the default framework-dependent consumer flow across RIDs." Both are legitimate Package Validation Mode truths per [`research/execution-model-strategy-2026-04-13.md §7.2`](../research/execution-model-strategy-2026-04-13.md) but they exercise different subsystems.
+
+**When to revisit:** before K is promoted to active on all three platforms, decide whether the smoke should also run a second invocation **without** `-r <rid>` to cover the framework-dependent resolver path. The decision lives in [`phases/phase-2-adaptation-plan.md`](../phases/phase-2-adaptation-plan.md) Pending Decisions (PD-10).

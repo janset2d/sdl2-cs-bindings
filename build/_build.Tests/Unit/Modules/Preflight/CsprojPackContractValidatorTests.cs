@@ -1,22 +1,23 @@
 using System.Collections.Immutable;
-using System.Linq;
 using Build.Context.Models;
 using Build.Modules.Preflight;
 using Build.Modules.Preflight.Models;
 using Build.Modules.Preflight.Results;
 using Build.Tests.Fixtures;
 using Cake.Core.IO;
-using Cake.Testing;
 
 namespace Build.Tests.Unit.Modules.Preflight;
 
+/// <summary>
+/// Post-S1 scope: G1/G2/G3/G5/G8 retired. Validator enforces G4, G6, G7, G17, G18 only.
+/// </summary>
 public sealed class CsprojPackContractValidatorTests
 {
     [Test]
     public async Task Validate_Should_Return_Success_When_All_Csprojs_Conform()
     {
         var (validator, repoRoot, manifest) = ArrangeWithFamily(
-            ManagedCsproj("sdl2-image", "Janset.SDL2.Image", "sdl2-image-", FamilyVersionShape.Canonical, includeNativeRef: true),
+            ManagedCsproj("Janset.SDL2.Image", "sdl2-image-"),
             NativeCsproj("Janset.SDL2.Image.Native", "sdl2-image-"));
 
         var result = validator.Validate(manifest, repoRoot);
@@ -26,83 +27,19 @@ public sealed class CsprojPackContractValidatorTests
     }
 
     [Test]
-    public async Task Validate_Should_Fail_When_Native_ProjectReference_Missing_PrivateAssets_All()
-    {
-        var managedCsproj = """
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <PackageId>Janset.SDL2.Image</PackageId>
-                <MinVerTagPrefix>sdl2-image-</MinVerTagPrefix>
-                <Sdl2ImageFamilyVersion Condition="'$(Version)' != '' and '$(Sdl2ImageFamilyVersion)' == ''">$(Version)</Sdl2ImageFamilyVersion>
-                <Sdl2ImageFamilyVersion Condition="'$(Sdl2ImageFamilyVersion)' == ''">0.0.0-restore</Sdl2ImageFamilyVersion>
-              </PropertyGroup>
-              <ItemGroup>
-                <ProjectReference Include="..\native\SDL2.Image.Native\SDL2.Image.Native.csproj" />
-              </ItemGroup>
-              <ItemGroup>
-                <PackageVersion Include="Janset.SDL2.Image.Native" Version="[$(Sdl2ImageFamilyVersion)]" />
-                <PackageReference Include="Janset.SDL2.Image.Native" />
-              </ItemGroup>
-            </Project>
-            """;
-        var (validator, repoRoot, manifest) = ArrangeWithFamily(
-            (Path: "src/SDL2.Image/SDL2.Image.csproj", Content: managedCsproj),
-            NativeCsproj("Janset.SDL2.Image.Native", "sdl2-image-"));
-
-        var result = validator.Validate(manifest, repoRoot);
-
-        await AssertFails(result, CsprojPackContractCheckKind.NativeProjectReferenceHasPrivateAssetsAll);
-    }
-
-    [Test]
-    public async Task Validate_Should_Fail_When_PackageVersion_Missing_Bracket_Notation()
-    {
-        var managedCsproj = """
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <PackageId>Janset.SDL2.Image</PackageId>
-                <MinVerTagPrefix>sdl2-image-</MinVerTagPrefix>
-                <Sdl2ImageFamilyVersion Condition="'$(Version)' != '' and '$(Sdl2ImageFamilyVersion)' == ''">$(Version)</Sdl2ImageFamilyVersion>
-                <Sdl2ImageFamilyVersion Condition="'$(Sdl2ImageFamilyVersion)' == ''">0.0.0-restore</Sdl2ImageFamilyVersion>
-              </PropertyGroup>
-              <ItemGroup>
-                <ProjectReference Include="..\native\SDL2.Image.Native\SDL2.Image.Native.csproj" PrivateAssets="all" />
-              </ItemGroup>
-              <ItemGroup>
-                <PackageVersion Include="Janset.SDL2.Image.Native" Version="$(Sdl2ImageFamilyVersion)" />
-                <PackageReference Include="Janset.SDL2.Image.Native" />
-              </ItemGroup>
-            </Project>
-            """;
-        var (validator, repoRoot, manifest) = ArrangeWithFamily(
-            (Path: "src/SDL2.Image/SDL2.Image.csproj", Content: managedCsproj),
-            NativeCsproj("Janset.SDL2.Image.Native", "sdl2-image-"));
-
-        var result = validator.Validate(manifest, repoRoot);
-
-        await AssertFails(result, CsprojPackContractCheckKind.NativePackageVersionUsesBracketNotation);
-    }
-
-    [Test]
     public async Task Validate_Should_Fail_When_MinVerTagPrefix_Drifts_From_Manifest()
     {
-        var managedCsproj = """
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <PackageId>Janset.SDL2.Image</PackageId>
-                <MinVerTagPrefix>image-</MinVerTagPrefix>
-                <Sdl2ImageFamilyVersion Condition="'$(Version)' != '' and '$(Sdl2ImageFamilyVersion)' == ''">$(Version)</Sdl2ImageFamilyVersion>
-                <Sdl2ImageFamilyVersion Condition="'$(Sdl2ImageFamilyVersion)' == ''">0.0.0-restore</Sdl2ImageFamilyVersion>
-              </PropertyGroup>
-              <ItemGroup>
-                <ProjectReference Include="..\native\SDL2.Image.Native\SDL2.Image.Native.csproj" PrivateAssets="all" />
-              </ItemGroup>
-              <ItemGroup>
-                <PackageVersion Include="Janset.SDL2.Image.Native" Version="[$(Sdl2ImageFamilyVersion)]" />
-                <PackageReference Include="Janset.SDL2.Image.Native" />
-              </ItemGroup>
-            </Project>
-            """;
+        const string managedCsproj = """
+                                     <Project Sdk="Microsoft.NET.Sdk">
+                                       <PropertyGroup>
+                                         <PackageId>Janset.SDL2.Image</PackageId>
+                                         <MinVerTagPrefix>image-</MinVerTagPrefix>
+                                       </PropertyGroup>
+                                       <ItemGroup>
+                                         <ProjectReference Include="..\native\SDL2.Image.Native\SDL2.Image.Native.csproj" />
+                                       </ItemGroup>
+                                     </Project>
+                                     """;
         var (validator, repoRoot, manifest) = ArrangeWithFamily(
             (Path: "src/SDL2.Image/SDL2.Image.csproj", Content: managedCsproj),
             NativeCsproj("Janset.SDL2.Image.Native", "sdl2-image-"));
@@ -113,25 +50,19 @@ public sealed class CsprojPackContractValidatorTests
     }
 
     [Test]
-    public async Task Validate_Should_Fail_When_PackageId_Drifts_From_Canonical_Convention()
+    public async Task Validate_Should_Fail_When_Managed_PackageId_Drifts_From_Canonical_Convention()
     {
-        var managedCsproj = """
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <PackageId>Janset.SDL2.WrongName</PackageId>
-                <MinVerTagPrefix>sdl2-image-</MinVerTagPrefix>
-                <Sdl2ImageFamilyVersion Condition="'$(Version)' != '' and '$(Sdl2ImageFamilyVersion)' == ''">$(Version)</Sdl2ImageFamilyVersion>
-                <Sdl2ImageFamilyVersion Condition="'$(Sdl2ImageFamilyVersion)' == ''">0.0.0-restore</Sdl2ImageFamilyVersion>
-              </PropertyGroup>
-              <ItemGroup>
-                <ProjectReference Include="..\native\SDL2.Image.Native\SDL2.Image.Native.csproj" PrivateAssets="all" />
-              </ItemGroup>
-              <ItemGroup>
-                <PackageVersion Include="Janset.SDL2.Image.Native" Version="[$(Sdl2ImageFamilyVersion)]" />
-                <PackageReference Include="Janset.SDL2.Image.Native" />
-              </ItemGroup>
-            </Project>
-            """;
+        const string managedCsproj = """
+                                     <Project Sdk="Microsoft.NET.Sdk">
+                                       <PropertyGroup>
+                                         <PackageId>Janset.SDL2.WrongName</PackageId>
+                                         <MinVerTagPrefix>sdl2-image-</MinVerTagPrefix>
+                                       </PropertyGroup>
+                                       <ItemGroup>
+                                         <ProjectReference Include="..\native\SDL2.Image.Native\SDL2.Image.Native.csproj" />
+                                       </ItemGroup>
+                                     </Project>
+                                     """;
         var (validator, repoRoot, manifest) = ArrangeWithFamily(
             (Path: "src/SDL2.Image/SDL2.Image.csproj", Content: managedCsproj),
             NativeCsproj("Janset.SDL2.Image.Native", "sdl2-image-"));
@@ -142,31 +73,46 @@ public sealed class CsprojPackContractValidatorTests
     }
 
     [Test]
-    public async Task Validate_Should_Fail_When_Family_Version_Property_Missing_Sentinel_Fallback()
+    public async Task Validate_Should_Fail_When_Native_ProjectReference_Path_Does_Not_Match_Manifest()
     {
-        var managedCsproj = """
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <PackageId>Janset.SDL2.Image</PackageId>
-                <MinVerTagPrefix>sdl2-image-</MinVerTagPrefix>
-                <Sdl2ImageFamilyVersion>$(Version)</Sdl2ImageFamilyVersion>
-              </PropertyGroup>
-              <ItemGroup>
-                <ProjectReference Include="..\native\SDL2.Image.Native\SDL2.Image.Native.csproj" PrivateAssets="all" />
-              </ItemGroup>
-              <ItemGroup>
-                <PackageVersion Include="Janset.SDL2.Image.Native" Version="[$(Sdl2ImageFamilyVersion)]" />
-                <PackageReference Include="Janset.SDL2.Image.Native" />
-              </ItemGroup>
-            </Project>
-            """;
+        const string managedCsproj = """
+                                     <Project Sdk="Microsoft.NET.Sdk">
+                                       <PropertyGroup>
+                                         <PackageId>Janset.SDL2.Image</PackageId>
+                                         <MinVerTagPrefix>sdl2-image-</MinVerTagPrefix>
+                                       </PropertyGroup>
+                                       <ItemGroup>
+                                         <ProjectReference Include="..\native\SDL2.Unrelated.Native\SDL2.Unrelated.Native.csproj" />
+                                       </ItemGroup>
+                                     </Project>
+                                     """;
         var (validator, repoRoot, manifest) = ArrangeWithFamily(
             (Path: "src/SDL2.Image/SDL2.Image.csproj", Content: managedCsproj),
             NativeCsproj("Janset.SDL2.Image.Native", "sdl2-image-"));
 
         var result = validator.Validate(manifest, repoRoot);
 
-        await AssertFails(result, CsprojPackContractCheckKind.FamilyVersionPropertyHasSentinelFallback);
+        await AssertFails(result, CsprojPackContractCheckKind.NativeProjectReferencePathMatchesManifest);
+    }
+
+    [Test]
+    public async Task Validate_Should_Fail_When_Native_PackageId_Drifts_From_Canonical_Convention()
+    {
+        const string nativeCsproj = """
+                                    <Project Sdk="Microsoft.NET.Sdk">
+                                      <PropertyGroup>
+                                        <PackageId>Janset.SDL2.Image.WrongNative</PackageId>
+                                        <MinVerTagPrefix>sdl2-image-</MinVerTagPrefix>
+                                      </PropertyGroup>
+                                    </Project>
+                                    """;
+        var (validator, repoRoot, manifest) = ArrangeWithFamily(
+            ManagedCsproj("Janset.SDL2.Image", "sdl2-image-"),
+            (Path: "src/native/SDL2.Image.Native/SDL2.Image.Native.csproj", Content: nativeCsproj));
+
+        var result = validator.Validate(manifest, repoRoot);
+
+        await AssertFails(result, CsprojPackContractCheckKind.PackageIdMatchesCanonicalConvention);
     }
 
     [Test]
@@ -229,13 +175,6 @@ public sealed class CsprojPackContractValidatorTests
         await AssertFails(result, CsprojPackContractCheckKind.LibraryRefReferencesExistingLibrary);
     }
 
-    private enum FamilyVersionShape
-    {
-        Canonical,
-        MissingSentinel,
-        Missing,
-    }
-
     private static (CsprojPackContractValidator Validator, DirectoryPath RepoRoot, ManifestConfig Manifest) ArrangeWithFamily(
         (string Path, string Content) managed,
         (string Path, string Content) native)
@@ -274,40 +213,19 @@ public sealed class CsprojPackContractValidatorTests
         return (validator, handles.RepoRoot, manifest);
     }
 
-    private static (string Path, string Content) ManagedCsproj(string family, string packageId, string tagPrefix, FamilyVersionShape shape, bool includeNativeRef)
+    private static (string Path, string Content) ManagedCsproj(string packageId, string tagPrefix)
     {
-        var familyVersionProperty = FamilyIdentifierConventions.FamilyVersionPropertyName(family);
-        var nativePackageId = FamilyIdentifierConventions.NativePackageId(family);
-        var familyVersionXml = shape switch
-        {
-            FamilyVersionShape.Canonical =>
-                $"<{familyVersionProperty} Condition=\"'$(Version)' != '' and '$({familyVersionProperty})' == ''\">$(Version)</{familyVersionProperty}>\n    " +
-                $"<{familyVersionProperty} Condition=\"'$({familyVersionProperty})' == ''\">0.0.0-restore</{familyVersionProperty}>",
-            FamilyVersionShape.MissingSentinel =>
-                $"<{familyVersionProperty}>$(Version)</{familyVersionProperty}>",
-            _ => string.Empty,
-        };
-
-        var nativeRef = includeNativeRef
-            ? @"<ProjectReference Include=""..\native\SDL2.Image.Native\SDL2.Image.Native.csproj"" PrivateAssets=""all"" />"
-            : string.Empty;
-
         var content = $"""
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <PackageId>{packageId}</PackageId>
-                <MinVerTagPrefix>{tagPrefix}</MinVerTagPrefix>
-                {familyVersionXml}
-              </PropertyGroup>
-              <ItemGroup>
-                {nativeRef}
-              </ItemGroup>
-              <ItemGroup>
-                <PackageVersion Include="{nativePackageId}" Version="[$({familyVersionProperty})]" />
-                <PackageReference Include="{nativePackageId}" />
-              </ItemGroup>
-            </Project>
-            """;
+                       <Project Sdk="Microsoft.NET.Sdk">
+                         <PropertyGroup>
+                           <PackageId>{packageId}</PackageId>
+                           <MinVerTagPrefix>{tagPrefix}</MinVerTagPrefix>
+                         </PropertyGroup>
+                         <ItemGroup>
+                           <ProjectReference Include="..\native\SDL2.Image.Native\SDL2.Image.Native.csproj" />
+                         </ItemGroup>
+                       </Project>
+                       """;
 
         return (Path: "src/SDL2.Image/SDL2.Image.csproj", Content: content);
     }
@@ -315,13 +233,13 @@ public sealed class CsprojPackContractValidatorTests
     private static (string Path, string Content) NativeCsproj(string packageId, string tagPrefix)
     {
         var content = $"""
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <PackageId>{packageId}</PackageId>
-                <MinVerTagPrefix>{tagPrefix}</MinVerTagPrefix>
-              </PropertyGroup>
-            </Project>
-            """;
+                       <Project Sdk="Microsoft.NET.Sdk">
+                         <PropertyGroup>
+                           <PackageId>{packageId}</PackageId>
+                           <MinVerTagPrefix>{tagPrefix}</MinVerTagPrefix>
+                         </PropertyGroup>
+                       </Project>
+                       """;
         return (Path: "src/native/SDL2.Image.Native/SDL2.Image.Native.csproj", Content: content);
     }
 

@@ -9,6 +9,7 @@ public interface IPathService
     DirectoryPath BuildProjectDir { get; }
     DirectoryPath ArtifactsDir { get; }
     DirectoryPath HarvestOutput { get; }
+    DirectoryPath PackagesOutput { get; }
     DirectoryPath SrcDir { get; }
     DirectoryPath VcpkgRoot { get; }
     DirectoryPath GetVcpkgInstalledDir { get; }

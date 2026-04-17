@@ -365,7 +365,7 @@ The rollout of this comprehensive CI/CD pipeline will occur in distinct phases:
         - Copies the `buildTransitive/{PackageId}.targets` file (for tar.gz extraction) into `staging/buildTransitive/`.
         - Calls `dotnet pack` with the family version.
     4. **For Binding Package (e.g., `Janset.SDL2.Core`):**
-        - Calls `dotnet pack` with the same family version. The managed package declares a within-family exact pin (`=`) dependency on its native package at the family version.
+        - Calls `dotnet pack` with the same family version. The managed package declares a within-family minimum range (`>=`) dependency on its native package at the family version, matching SkiaSharp convention (post-S1 2026-04-17 — see [release-lifecycle-direction.md §4 Drift Protection Model](release-lifecycle-direction.md)). Drift protection is enforced at orchestration time: managed and native are packed atomically with identical `--family-version` in the same Cake invocation, and G23 post-pack validator asserts the emitted `<version>` elements match.
 
 This detailed plan should provide a strong foundation.
 

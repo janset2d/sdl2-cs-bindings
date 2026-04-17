@@ -7,7 +7,7 @@
 
 Complete the end-to-end pipeline from source code to publishable NuGet packages. Make the project buildable and testable by contributors.
 
-> **Release lifecycle direction:** The policy framework for versioning, release governance, dependency contracts, CI matrix shape, and promotion path is locked in [`knowledge-base/release-lifecycle-direction.md`](../knowledge-base/release-lifecycle-direction.md). The multi-stream implementation plan is in [`phases/phase-2-adaptation-plan.md`](phase-2-adaptation-plan.md). Key concepts: package families, family tags, targeted/full-train releases, within-family exact pin, cross-family minimum constraint.
+> **Release lifecycle direction:** The policy framework for versioning, release governance, dependency contracts, CI matrix shape, and promotion path is locked in [`knowledge-base/release-lifecycle-direction.md`](../knowledge-base/release-lifecycle-direction.md). The multi-stream implementation plan is in [`phases/phase-2-adaptation-plan.md`](phase-2-adaptation-plan.md). Key concepts: package families, family tags, targeted/full-train releases, SkiaSharp-style minimum range dependency contract (both within-family and cross-family). Within-family drift protection lives at orchestration time (Cake atomic `PackageTask` + G23 post-pack version-match). Historical note: within-family exact pin was specified in the pre-S1 plan and retired on 2026-04-17; see [`phase-2-adaptation-plan.md` "S1 Adoption Record"](phase-2-adaptation-plan.md).
 
 ## Scope
 

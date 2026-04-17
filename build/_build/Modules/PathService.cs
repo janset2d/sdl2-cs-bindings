@@ -59,6 +59,8 @@ public sealed class PathService : IPathService
 
     public DirectoryPath HarvestOutput => ArtifactsDir.Combine("harvest_output");
 
+    public DirectoryPath PackagesOutput => ArtifactsDir.Combine("packages");
+
     public DirectoryPath SrcDir => RepoRoot.Combine("src");
 
     public DirectoryPath VcpkgRoot => _vcpkgRoot;

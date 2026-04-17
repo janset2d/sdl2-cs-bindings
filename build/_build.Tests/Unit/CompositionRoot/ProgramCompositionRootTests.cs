@@ -5,6 +5,7 @@ using Build.Context;
 using Build.Context.Models;
 using Build.Context.Options;
 using Build.Modules.Contracts;
+using Build.Modules.Packaging;
 using Build.Modules.Strategy;
 using Build.Modules.Strategy.Models;
 using Build.Tests.Fixtures;
@@ -157,6 +158,13 @@ public sealed class ProgramCompositionRootTests
         var vcpkgManifestReader = provider.GetRequiredService<IVcpkgManifestReader>();
         var versionConsistencyValidator = provider.GetRequiredService<IVersionConsistencyValidator>();
         var strategyCoherenceValidator = provider.GetRequiredService<IStrategyCoherenceValidator>();
+        var packageOutputValidator = provider.GetRequiredService<IPackageOutputValidator>();
+        var projectMetadataReader = provider.GetRequiredService<IProjectMetadataReader>();
+        var packageFamilySelector = provider.GetRequiredService<IPackageFamilySelector>();
+        var packageVersionResolver = provider.GetRequiredService<IPackageVersionResolver>();
+        var dotNetPackInvoker = provider.GetRequiredService<IDotNetPackInvoker>();
+        var packageTaskRunner = provider.GetRequiredService<IPackageTaskRunner>();
+        var packageConsumerSmokeRunner = provider.GetRequiredService<IPackageConsumerSmokeRunner>();
 
         await Assert.That(strategy.Model).IsEqualTo(PackagingModel.HybridStatic);
         await Assert.That(strategy.GetType()).IsEqualTo(typeof(HybridStaticStrategy));
@@ -166,6 +174,13 @@ public sealed class ProgramCompositionRootTests
         await Assert.That(vcpkgManifestReader.GetType()).IsEqualTo(typeof(Build.Modules.Preflight.VcpkgManifestReader));
         await Assert.That(versionConsistencyValidator.GetType()).IsEqualTo(typeof(Build.Modules.Preflight.VersionConsistencyValidator));
         await Assert.That(strategyCoherenceValidator.GetType()).IsEqualTo(typeof(Build.Modules.Preflight.StrategyCoherenceValidator));
+        await Assert.That(packageOutputValidator.GetType()).IsEqualTo(typeof(PackageOutputValidator));
+        await Assert.That(projectMetadataReader.GetType()).IsEqualTo(typeof(ProjectMetadataReader));
+        await Assert.That(packageFamilySelector.GetType()).IsEqualTo(typeof(PackageFamilySelector));
+        await Assert.That(packageVersionResolver.GetType()).IsEqualTo(typeof(PackageVersionResolver));
+        await Assert.That(dotNetPackInvoker.GetType()).IsEqualTo(typeof(DotNetPackInvoker));
+        await Assert.That(packageTaskRunner.GetType()).IsEqualTo(typeof(PackageTaskRunner));
+        await Assert.That(packageConsumerSmokeRunner.GetType()).IsEqualTo(typeof(PackageConsumerSmokeRunner));
     }
 
     [Test]
@@ -193,6 +208,13 @@ public sealed class ProgramCompositionRootTests
         var validator = provider.GetRequiredService<IDependencyPolicyValidator>();
         var coverageThresholdValidator = provider.GetRequiredService<ICoverageThresholdValidator>();
         var vcpkgManifestReader = provider.GetRequiredService<IVcpkgManifestReader>();
+        var packageOutputValidator = provider.GetRequiredService<IPackageOutputValidator>();
+        var projectMetadataReader = provider.GetRequiredService<IProjectMetadataReader>();
+        var packageFamilySelector = provider.GetRequiredService<IPackageFamilySelector>();
+        var packageVersionResolver = provider.GetRequiredService<IPackageVersionResolver>();
+        var dotNetPackInvoker = provider.GetRequiredService<IDotNetPackInvoker>();
+        var packageTaskRunner = provider.GetRequiredService<IPackageTaskRunner>();
+        var packageConsumerSmokeRunner = provider.GetRequiredService<IPackageConsumerSmokeRunner>();
 
         await Assert.That(strategy.Model).IsEqualTo(PackagingModel.PureDynamic);
         await Assert.That(strategy.GetType()).IsEqualTo(typeof(PureDynamicStrategy));
@@ -200,6 +222,13 @@ public sealed class ProgramCompositionRootTests
         await Assert.That(validator.GetType()).IsEqualTo(typeof(PureDynamicValidator));
         await Assert.That(coverageThresholdValidator.GetType()).IsEqualTo(typeof(Build.Modules.Coverage.CoverageThresholdValidator));
         await Assert.That(vcpkgManifestReader.GetType()).IsEqualTo(typeof(Build.Modules.Preflight.VcpkgManifestReader));
+        await Assert.That(packageOutputValidator.GetType()).IsEqualTo(typeof(PackageOutputValidator));
+        await Assert.That(projectMetadataReader.GetType()).IsEqualTo(typeof(ProjectMetadataReader));
+        await Assert.That(packageFamilySelector.GetType()).IsEqualTo(typeof(PackageFamilySelector));
+        await Assert.That(packageVersionResolver.GetType()).IsEqualTo(typeof(PackageVersionResolver));
+        await Assert.That(dotNetPackInvoker.GetType()).IsEqualTo(typeof(DotNetPackInvoker));
+        await Assert.That(packageTaskRunner.GetType()).IsEqualTo(typeof(PackageTaskRunner));
+        await Assert.That(packageConsumerSmokeRunner.GetType()).IsEqualTo(typeof(PackageConsumerSmokeRunner));
     }
 
     private static MethodInfo GetProgramHelper(string methodNameFragment, params Type[] parameterTypes)
@@ -285,6 +314,8 @@ public sealed class ProgramCompositionRootTests
                         VcpkgDir: null,
                         VcpkgInstalledDir: null,
                         Library: [],
+                    Family: [],
+                    FamilyVersion: null,
                         Rid: rid,
                         Dll: []);
         }

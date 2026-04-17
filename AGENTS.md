@@ -152,7 +152,7 @@ Before proposing changes, review the documentation. If your change affects behav
 - For CI/CD work: `docs/knowledge-base/ci-cd-packaging-and-release-plan.md`
 - For native harvesting: `docs/knowledge-base/harvesting-process.md`
 - For overlay triplets & ports: `docs/playbook/overlay-management.md`
-- For native smoke test (C++ validation): `test/native-smoke/README.md`
+- For native smoke test (C++ validation): `tests/smoke-tests/native-smoke/README.md`
 - For "how do I...?" questions: `docs/playbook/*`
 - For design rationale: `docs/research/*`
 - For broader tool/framework context: `docs/reference/*`

@@ -2,7 +2,7 @@
 
 - Date: 2026-04-14
 - Author: GitHub Copilot (GPT-5.3-Codex)
-- Status: Research snapshot (no implementation changes)
+- Status: Research snapshot (no implementation changes). **Note (2026-04-17):** post-dated by S1 adoption. Industry-comparison references to "LibGit2Sharp exact-pin vs SkiaSharp `>=` vs NSec bounded-range" (item 6 in this doc) now read differently: Janset.SDL2 aligned with the SkiaSharp `>=` pattern on 2026-04-17, not the LibGit2Sharp exact-pin pattern. See [phase-2-adaptation-plan.md "S1 Adoption Record"](../phases/phase-2-adaptation-plan.md).
 - Scope: Determine whether release strategy has already been debated in repository docs and GitHub issues, and identify likely change targets for post-QA updates.
 
 ## Purpose
@@ -200,7 +200,7 @@ These topics were **not previously discussed** in any repo document or issue:
 3. **dotnet-affected for change detection** — mentioned in onboarding.md as "Nx rejected, dotnet-affected instead" but never detailed or designed.
 4. **Fat native package decision** — `native-packaging-patterns.md` recommended "keep per-library split" but never explicitly addressed all-RIDs-in-one-nupkg vs per-OS split. New research confirms fat package is correct for our size.
 5. **Family-locked version coupling** — managed + native always same version within family, but families independent. Not previously formalized.
-6. **Concrete endüstri comparison matrix** — LibGit2Sharp exact-pin vs SkiaSharp `>=` vs NSec bounded-range. Previously only topology was compared, not version constraint patterns.
+6. **Historical concrete endüstri comparison matrix** — LibGit2Sharp exact-pin vs SkiaSharp `>=` vs NSec bounded-range. Previously only topology was compared, not version constraint patterns.
 7. **Pure-dynamic first CI migration strategy** — never discussed. All prior CI docs assume the target strategy directly.
 
 ### D. Documents That Should NOT Change

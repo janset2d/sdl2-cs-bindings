@@ -15,7 +15,6 @@ namespace Build.Modules.Preflight;
 /// <item>Managed PackageId: <c>Janset.SDL{Major}.{Role}</c> (e.g. <c>Janset.SDL2.Core</c>)</item>
 /// <item>Native PackageId: <c>Janset.SDL{Major}.{Role}.Native</c> (e.g. <c>Janset.SDL2.Core.Native</c>)</item>
 /// <item>MinVerTagPrefix: <c>{family}-</c> (e.g. <c>sdl2-core-</c>)</item>
-/// <item>MSBuild family-version property: <c>Sdl{Major}{Role}FamilyVersion</c> (e.g. <c>Sdl2CoreFamilyVersion</c>)</item>
 /// </list>
 /// </remarks>
 public static class FamilyIdentifierConventions
@@ -42,17 +41,13 @@ public static class FamilyIdentifierConventions
 
         if (!sdlPart.StartsWith("sdl", StringComparison.OrdinalIgnoreCase) || sdlPart.Length <= 3)
         {
-            throw new ArgumentException(
-                $"Family identifier prefix must be 'sdl<major>'. Got: '{sdlPart}'.",
-                nameof(familyIdentifier));
+            throw new ArgumentException($"Family identifier prefix must be 'sdl<major>'. Got: '{sdlPart}'.", nameof(familyIdentifier));
         }
 
         var majorPart = sdlPart[3..];
         if (!majorPart.All(char.IsDigit))
         {
-            throw new ArgumentException(
-                $"Family identifier SDL major must be all digits. Got: '{majorPart}'.",
-                nameof(familyIdentifier));
+            throw new ArgumentException($"Family identifier SDL major must be all digits. Got: '{majorPart}'.", nameof(familyIdentifier));
         }
 
         return (majorPart, ToPascalCase(role));
@@ -64,9 +59,7 @@ public static class FamilyIdentifierConventions
     public static string ManagedPackageId(string familyIdentifier)
     {
         var (sdlMajor, role) = Parse(familyIdentifier);
-        return string.Create(
-            CultureInfo.InvariantCulture,
-            $"Janset.SDL{sdlMajor}.{role}");
+        return string.Create(CultureInfo.InvariantCulture, $"Janset.SDL{sdlMajor}.{role}");
     }
 
     /// <summary>
@@ -75,9 +68,7 @@ public static class FamilyIdentifierConventions
     public static string NativePackageId(string familyIdentifier)
     {
         var (sdlMajor, role) = Parse(familyIdentifier);
-        return string.Create(
-            CultureInfo.InvariantCulture,
-            $"Janset.SDL{sdlMajor}.{role}.Native");
+        return string.Create(CultureInfo.InvariantCulture, $"Janset.SDL{sdlMajor}.{role}.Native");
     }
 
     /// <summary>
@@ -88,17 +79,6 @@ public static class FamilyIdentifierConventions
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(manifestTagPrefix);
         return manifestTagPrefix + "-";
-    }
-
-    /// <summary>
-    /// Returns the canonical MSBuild family-version property name for a family identifier.
-    /// </summary>
-    public static string FamilyVersionPropertyName(string familyIdentifier)
-    {
-        var (sdlMajor, role) = Parse(familyIdentifier);
-        return string.Create(
-            CultureInfo.InvariantCulture,
-            $"Sdl{sdlMajor}{role}FamilyVersion");
     }
 
     private static string ToPascalCase(string value)

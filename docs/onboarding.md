@@ -123,7 +123,12 @@ janset2d/sdl2-cs-bindings/
 │
 ├── artifacts/                 ← Build output (gitignored)
 ├── samples/                   ← Example projects (empty — to be created)
-├── test/                      ← Test projects (only Sandboc sandbox exists)
+├── tests/                     ← Test projects
+│   ├── Build.Tests/           ← Cake build-host unit tests (TUnit, white-box)
+│   ├── Sandbox/               ← Throwaway exploration sandbox (ignore in review)
+│   └── smoke-tests/           ← Post-pipeline integrity checks — see tests/smoke-tests/README.md
+│       ├── native-smoke/      ← C++/CMake runtime test for hybrid-built natives
+│       └── package-smoke/     ← .NET consumer smoke (PackageReference → SDL_Init)
 ├── scripts/                   ← Packaging scripts (PowerShell/Bash)
 │
 └── docs/                      ← You are here
@@ -255,7 +260,7 @@ This repo treats docs, issues, and commits as one delivery system:
    **Overlay triplets & ports (CRITICAL for build system work)** → `docs/playbook/overlay-management.md`
    Symbol visibility & cross-platform safety → `docs/research/symbol-visibility-analysis-2026-04-14.md`
    **Cake build host strategy refactor (NEXT WORK ITEM)** → `docs/research/cake-strategy-implementation-brief-2026-04-14.md`
-   Native smoke test (C++ runtime validation) → `test/native-smoke/README.md`
+   Native smoke test (C++ runtime validation) → `tests/smoke-tests/native-smoke/README.md`
    Broader framework/tooling context → `docs/reference/*`
 
 ## Non-Goals

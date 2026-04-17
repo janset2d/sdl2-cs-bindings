@@ -7,23 +7,8 @@ public enum CsprojPackContractCheckKind
     /// <summary>G7 — Native ProjectReference path resolves to manifest's native_project.</summary>
     NativeProjectReferencePathMatchesManifest,
 
-    /// <summary>G1 — Native ProjectReference carries PrivateAssets="all".</summary>
-    NativeProjectReferenceHasPrivateAssetsAll,
-
-    /// <summary>G2 — Matching PackageReference to the Native PackageId exists.</summary>
-    NativePackageReferenceExists,
-
-    /// <summary>G3 — Matching PackageVersion uses bracket notation [...].</summary>
-    NativePackageVersionUsesBracketNotation,
-
     /// <summary>G4 — csproj MinVerTagPrefix equals manifest's tag_prefix + "-".</summary>
     MinVerTagPrefixMatchesManifest,
-
-    /// <summary>G5 — csproj declares the canonical Sdl{Major}{Role}FamilyVersion property.</summary>
-    FamilyVersionPropertyDeclared,
-
-    /// <summary>G8 — Family-version property uses canonical $(Version) chain with 0.0.0-restore sentinel fallback.</summary>
-    FamilyVersionPropertyHasSentinelFallback,
 
     /// <summary>G6 — csproj PackageId matches canonical Janset.SDL{Major}.{Role}[.Native] convention.</summary>
     PackageIdMatchesCanonicalConvention,

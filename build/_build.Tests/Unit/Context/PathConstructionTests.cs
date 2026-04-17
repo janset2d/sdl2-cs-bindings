@@ -17,6 +17,8 @@ public class PathConstructionTests
             VcpkgDir: null,
             VcpkgInstalledDir: null,
             Library: [],
+            Family: [],
+            FamilyVersion: null,
             Rid: "",
             Dll: []);
         var log = Substitute.For<ICakeLog>();
@@ -49,6 +51,13 @@ public class PathConstructionTests
     {
         var svc = CreatePathService("/repo");
         await Assert.That(svc.HarvestOutput.FullPath).IsEqualTo("/repo/artifacts/harvest_output");
+    }
+
+    [Test]
+    public async Task PackagesOutput_Should_Be_Under_Artifacts()
+    {
+        var svc = CreatePathService("/repo");
+        await Assert.That(svc.PackagesOutput.FullPath).IsEqualTo("/repo/artifacts/packages");
     }
 
     [Test]
