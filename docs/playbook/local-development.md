@@ -1,6 +1,27 @@
 # Playbook: Local Development Setup
 
 > How to clone, build, and develop Janset.SDL2 on your local machine.
+>
+> **Status 2026-04-18 (ADR-001 transition).** Local development is converging on the `SetupLocalDev` Cake task (package-first consumer contract per [ADR-001](../decisions/2026-04-18-versioning-d3seg.md) §2.8). Until `SetupLocalDev` lands (Wave V5), the manual vcpkg + Harvest + Package flow below remains the working recipe. Once `SetupLocalDev` ships, the "Quick Start (recommended)" section will replace most of this document; the manual steps stay as fallback for debugging.
+
+## Quick Start (recommended, lands in V5)
+
+After `SetupLocalDev` ships, the fresh-clone flow becomes a single command:
+
+```bash
+# Clone with submodules
+git clone --recursive https://github.com/janset2d/sdl2-cs-bindings.git
+cd sdl2-cs-bindings
+
+# One-shot: vcpkg bootstrap + install (host triplet) + Harvest + Consolidate + Package + write local override
+dotnet run --project build/_build -- --target SetupLocalDev --source=local
+```
+
+Result: `artifacts/packages/` populated with D-3seg-versioned prerelease nupkgs (e.g. `Janset.SDL2.Core 2.32.0-local.<timestamp>`), and `build/msbuild/Janset.Smoke.local.props` written (gitignored) with the matching `LocalPackageFeed` + per-family version properties. Opening any smoke / sample csproj in Rider / VS / VS Code then restores + builds directly from the local feed.
+
+`--source=remote` (Phase 2b) will fetch prebuilt nupkgs from the internal feed into a local cache and write the same override file — consumer contract is identical across the two source modes.
+
+**Until V5 ships**, follow the manual "Full Build" sequence below.
 
 ## Prerequisites
 
@@ -73,17 +94,20 @@ external/vcpkg/bootstrap-vcpkg.bat
 
 ### Step 2: Install Native Dependencies via vcpkg
 
+Use the hybrid-static overlay triplet for your platform (all 7 RIDs now ship under hybrid-static per PA-2, 2026-04-18):
+
 ```bash
-# Install for your platform's triplet
 # Windows x64:
-./external/vcpkg/vcpkg install --triplet x64-windows-release
+./external/vcpkg/vcpkg install --triplet x64-windows-hybrid --overlay-triplets=vcpkg-overlay-triplets
 
 # Linux x64:
-./external/vcpkg/vcpkg install --triplet x64-linux-dynamic
+./external/vcpkg/vcpkg install --triplet x64-linux-hybrid --overlay-triplets=vcpkg-overlay-triplets
 
 # macOS arm64 (Apple Silicon):
-./external/vcpkg/vcpkg install --triplet arm64-osx-dynamic
+./external/vcpkg/vcpkg install --triplet arm64-osx-hybrid --overlay-triplets=vcpkg-overlay-triplets
 ```
+
+> **Retired triplets (pre-2026-04-14):** `x64-windows-release`, `x64-linux-dynamic`, `arm64-osx-dynamic`, etc. Do not use — the hybrid overlay triplets replace them. See [overlay-management.md](overlay-management.md) and [vcpkg-update.md](vcpkg-update.md).
 
 This compiles SDL2 and its dependencies from source. First run takes 15-30 minutes; subsequent runs use binary caching.
 
@@ -119,17 +143,19 @@ If you also want the consolidated `harvest-manifest.json` and `harvest-summary.j
 dotnet run -- --target ConsolidateHarvest
 ```
 
-### Step 5: Copy to Native Projects (Manual)
+### Step 5: Pack Families (or let `Package` task handle it)
 
-Until the PackageTask is implemented, copy harvested binaries manually:
+With Harvest + ConsolidateHarvest green, produce the per-family nupkgs via the Cake `Package` task. Version string MUST follow [D-3seg](../decisions/2026-04-18-versioning-d3seg.md) (`<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>` with prerelease suffix for local iterations):
 
 ```bash
-# Windows example: copy loose DLL payload
-Copy-Item artifacts/harvest_output/SDL2/runtimes/win-x64/native/* src/native/SDL2.Core.Native/runtimes/win-x64/native/ -Recurse -Force
-
-# Linux/macOS example: copy the harvested native payload (typically native.tar.gz on Unix)
-cp -R artifacts/harvest_output/SDL2/runtimes/linux-x64/native/* src/native/SDL2.Core.Native/runtimes/linux-x64/native/
+dotnet run --project build/_build -- --target Package \
+  --family sdl2-core --family sdl2-image --family sdl2-mixer --family sdl2-ttf --family sdl2-gfx \
+  --family-version 2.32.0-local.1
 ```
+
+The `--family-version` flag is a **bootstrap override** accepted by `PackageVersionResolver` — it bypasses MinVer when no git tag exists locally. For a stable release you would instead tag the commit (`git tag sdl2-core-2.32.0`) and let MinVer resolve the version from the tag.
+
+> **Manual per-satellite copy is retired.** The pre-2026-04-18 "copy `artifacts/harvest_output/.../runtimes/<rid>/native/*` into `src/native/<Lib>.Native/runtimes/<rid>/native/`" step no longer applies — the native csproj packs from `$(NativePayloadSource)` (handed in by Cake, `artifacts/harvest_output/<Lib>/` root), never from the `src/` tree. Guardrail G46 hard-fails direct `dotnet pack` of a `.Native` csproj without `$(NativePayloadSource)`.
 
 ## Project Structure for Development
 
@@ -205,13 +231,16 @@ dotnet build src/SDL2.Core/SDL2.Core.csproj
 
 ### Creating a Local NuGet Package (Manual)
 
-```bash
-# Pack a specific project
-dotnet pack src/SDL2.Core/SDL2.Core.csproj -o ./artifacts/packages/
+**Prefer the Cake `Package` task** (see Step 5 in the Full Build flow above) — it handles version injection, `$(NativePayloadSource)` staging, and post-pack validation (G21–G27, G46–G48, G51–G57) in one invocation. Direct `dotnet pack` on the native csproj will hard-fail G46 (empty native payload guard).
 
-# Pack with version
-dotnet pack src/SDL2.Core/SDL2.Core.csproj -o ./artifacts/packages/ /p:PackageVersion=2.32.4-local.1
+Direct `dotnet pack` on a managed csproj (e.g. for a quick isolated pack test) is allowed but requires a D-3seg-shaped version. Example:
+
+```bash
+# D-3seg-shaped version: <UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>[-suffix]
+dotnet pack src/SDL2.Core/SDL2.Core.csproj -o ./artifacts/packages/ -p:PackageVersion=2.32.0-local.1
 ```
+
+> Versions like `0.1.0-local.1` or `1.0.0-local.1` violate D-3seg (UpstreamMajor.UpstreamMinor not anchored to SDL2 2.32.x). G54 will reject them at PreFlight. See [ADR-001 §2.1](../decisions/2026-04-18-versioning-d3seg.md).
 
 ## Troubleshooting
 

@@ -2,9 +2,11 @@
 
 > **Status:** Canonical — this doc is the single map of every guardrail the project commits to land. Every entry has an owning stream and a current implementation status. When a guardrail moves from "planned" to "active," update its row here in the same change.
 >
-> **Last updated:** 2026-04-17 (S1 adoption — 9 exact-pin-related guardrails retired; G23 reframed; G11 marked REVISIT. See [phase-2-adaptation-plan.md "S1 Adoption Record"](../phases/phase-2-adaptation-plan.md).)
+> **Last updated:** 2026-04-18 (ADR-001 D-3seg adoption — G54–G57 added: UpstreamMajor.UpstreamMinor coherence, native metadata file, satellite cross-family upper bound, README mapping table. See [ADR-001](../decisions/2026-04-18-versioning-d3seg.md). Prior: 2026-04-17 S1 adoption — 9 exact-pin-related guardrails retired; G23 reframed; G11 marked REVISIT.)
 >
 > **Why a dedicated roadmap:** Defense-in-depth is a hard requirement for this project. A single missed inconsistency between manifest, csproj, vcpkg, family tag, and produced nupkg can ship a broken package family. Guardrails are scattered across multiple subsystems (PreFlight, MSBuild, Cake, CI workflows, post-pack assertions, feed checks). This doc enumerates them all, deduplicates, and maps each to its owning stream so nothing is forgotten in the gap between A-risky and the public release of v1.0.
+>
+> **ADR-001 adoption note (2026-04-18):** D-3seg versioning (`<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>`) locked. New guardrails: **G54** (PreFlight — family tag UpstreamMajor.UpstreamMinor ≡ `manifest.json library_manifests[].vcpkg_version` Major.Minor), **G55** (post-pack — `janset-native-metadata.json` packed into every `.Native` nupkg + schema valid + content matches vcpkg-resolved upstream), **G56** (post-pack — satellite cross-family dep declares upper bound `< (UpstreamMajor + 1).0.0`), **G57** (post-pack — README mapping table block between `<!-- JANSET:MAPPING-TABLE-START -->` / `<!-- JANSET:MAPPING-TABLE-END -->` markers matches manifest). **Strict release-must-bump-patch enforcement (API-diff / hash-based)** is explicitly deferred to Phase 2b; Phase 2a scope is overwrite-attempt guard only. See [ADR-001 §2.9 and §7.5](../decisions/2026-04-18-versioning-d3seg.md).
 >
 > **S1 adoption note (2026-04-17):** Within-family exact-pin requirement retired in favor of SkiaSharp-style minimum range (`>=`). Guardrails **G1, G2, G3, G5, G8, G9, G10, G20, G24 removed** from active scope (exact-pin-specific). **G23 reframed** as the primary within-family coherence check (was derivative of G20). **G11 marked REVISIT** (NuGet built-in NU5016; relevance under minimum-range contract uncertain). **G4, G6, G7, G17, G18, G21, G22, G25–G27, G46** retained. Drift protection moves from consumer-side nuspec invariant to orchestration-time invariant (Cake atomic pack + post-pack version-match). See [release-lifecycle-direction.md §4 Drift Protection Model](release-lifecycle-direction.md) and [phase-2-adaptation-plan.md "S1 Adoption Record"](../phases/phase-2-adaptation-plan.md).
 
@@ -64,6 +66,7 @@ Already-active guardrails from Stream B. Listed for completeness.
 | G19 | Hybrid-static strategy: zero transitive dep leaks in harvest output | Active (B) | `HybridStaticValidator` |
 | G49 | Core-library identity coherence: `library_manifests[core_lib=true].vcpkg_name` equals `packaging_config.core_library` (case-insensitive); exactly one `core_lib=true` entry declared | Active (2026-04-18) | `CoreLibraryIdentityValidator` |
 | G50 | Harvest must produce ≥1 primary binary per library+RID: post-deployment assertion in `HarvestTask` fails fast if `DeploymentStatistics.PrimaryFiles.Count == 0`, even when closure walker and planner returned success-shaped results. Defends against silent feature-flag degradation / partial vcpkg install shapes that pass upstream guards. | Active (2026-04-18) | `HarvestTask` post-deploy assertion |
+| G54 | **Family tag UpstreamMajor.UpstreamMinor ↔ manifest coherence (D-3seg anchor).** The family tag's first two SemVer segments MUST equal `manifest.json library_manifests[].vcpkg_version`'s first two segments for that family. Example: tag `sdl2-core-2.32.0` at a commit where `manifest.json` declares SDL2 at `2.32.10` → G54 passes (both anchor to `2.32`). A tag `sdl2-core-2.31.0` at the same commit fails. Enforces the §7 Cross-Referenced Version Planes coupling defined in [release-lifecycle-direction.md](release-lifecycle-direction.md). | Planned (V4 per ADR-001 §7.5) | `UpstreamVersionAlignmentValidator` (PreFlight) |
 
 ### 2.5 Post-Pack nuspec Assertion (Stream D-local scope — post-S1 subset)
 
@@ -86,6 +89,9 @@ G25 is intentionally scoped to the managed package's `.snupkg`. Payload-only `.N
 | G51 | Native `.nupkg` ships at least one entry under `licenses/`. Defence-in-depth pair with the H1 invalidation + receipt gate: if Harvest invalidation is bypassed or `PackageTaskRunner`'s `ConsolidationState` gate is regressed, this post-pack check still refuses a nupkg that carries native assets without third-party license attribution. Compliance surface — a nupkg missing license attribution is a release-blocking defect. | Active (H1, 2026-04-18) | Cake `PackageTask` post-pack assertion (`PackageOutputValidator.EvaluateLicensePayloadPresence`) |
 | G52 | Package pre-pack payload gate checks `runtimes/` AND `licenses/_consolidated/` specifically, not the top-level `licenses/` parent. Pre-H1 completion the gate only asserted `licenses/**/*` was non-empty — a receipt claiming consolidation plus per-RID evidence under `licenses/<rid>/` passed the gate while the pack-time include pattern (`licenses/_consolidated/**/*` in `src/native/Directory.Build.props`) would ship an empty license payload. The tightened gate closes that pre-pack window alongside the post-pack G51. | Active (H1, 2026-04-18) | Cake `PackageTask` pre-pack assertion (`PackageTaskRunner.EnsureHarvestOutputReadyAsync` via `PayloadDirectories`) |
 | G53 | ConsolidateHarvest staged-replace invariant — Phase 1 writes to `_consolidated.tmp/` + `harvest-manifest.tmp.json` + `harvest-summary.tmp.json`; Phase 2 deletes the old artifacts and moves tmp → final. If Phase 1 fails the old valid state survives completely (next Consolidate retry replaces it). Per-library exceptions are aggregated and the task fails fatally — pre-H1-completion behavior logged "completed successfully" on per-library failure which hid compliance regressions. Malformed or unreadable `rid-status/*.json` input is also fatal, never warning-only skip, because silently dropping a RID can shrink the consolidated license set and create a false-green compliance result. Staged replace is not strictly atomic (`IFile.Move` / `IDirectory.Move` have no overwrite overload, so the swap is delete-then-move with a microsecond-scale window); cleanup after a crash in that window is handled by the next Harvest invalidation. | Active (H1, 2026-04-18) | Cake `ConsolidateHarvestTask` + `HarvestTask.InvalidateCrossRidReceipts` tmp orphan cleanup |
+| G55 | **Native package ships `janset-native-metadata.json` at root.** Every `.Native` nupkg contains a machine-readable metadata JSON with schema: `{ janset_family_version, family_identifier, upstream_library, upstream_version, vcpkg_port_version, triplet_set, build_commit }`. Post-pack validator opens the nupkg, asserts the file exists + parses as valid JSON + schema-matches + `upstream_version` equals the vcpkg-resolved version for the primary triplet + `build_commit` equals the HEAD SHA at pack time. Complements version-string D-3seg by carrying the exact upstream patch + port_version that the shortened version string drops. Enables downstream tooling (release notes generation, mapping-table diffing, CI audit) without having to reverse-engineer from file hashes. | Planned (V4 per ADR-001 §7.5) | `NativePackageMetadataValidator` (post-pack) |
+| G56 | **Satellite cross-family dep upper bound declared.** Every satellite `.nuspec` cross-family dependency on Core (e.g., `Janset.SDL2.Image → Janset.SDL2.Core`) declares both lower bound (`>= x.y.z`) AND upper bound (`< (UpstreamMajor + 1).0.0`). Parses the exact range expression — not just "dependency present." Prevents accidental consumer-side resolution across SDL upstream majors (defence even though `sdl2-*` / `sdl3-*` family identifiers already split the package IDs). | Planned (V4 per ADR-001 §7.5) | `SatelliteUpperBoundValidator` (post-pack) |
+| G57 | **README mapping table current.** `README.md` mapping block delimited by `<!-- JANSET:MAPPING-TABLE-START -->` / `<!-- JANSET:MAPPING-TABLE-END -->` markers matches the current `manifest.json library_manifests[]` set byte-equivalent to the Cake-generator output. Detects stale mapping tables that would mis-inform consumers about which upstream version a family version corresponds to. Cake-generated at pack time; validator asserts currency. | Planned (V4 per ADR-001 §7.5) | `ReadmeMappingTableValidator` (post-pack) |
 
 ### 2.6 CI Pipeline (Stream C + D-ci scope)
 
@@ -128,18 +134,21 @@ When PD-8 lands, the manual operator flow needs its own guardrails.
 
 ## 3. Stream Mapping (At-a-Glance)
 
-Counts reflect post-S1 (2026-04-17) scope. 9 guardrails retired by S1 (G1/G2/G3/G5/G8/G9/G10/G20/G24). Historical pre-S1 cumulative was 43; post-S1 is 34.
+Counts reflect post-ADR-001 (2026-04-18) scope. S1 (2026-04-17) retired 9 exact-pin-related guardrails; H1 (2026-04-18) added G49–G53; ADR-001 (2026-04-18) added G54–G57. Historical pre-S1 cumulative was 43; post-S1 was 34; post-H1 was 39; post-ADR-001 is 43.
 
-| Stream | Guardrails delivered (post-S1) | Cumulative active |
+| Stream | Guardrails delivered | Cumulative active |
 | --- | --- | --- |
 | B (closed) | G14, G15, G16, G19, G36 (local) | 5 |
 | A-risky (partially reverted 2026-04-17) | G4, G6, G7 (PreFlight csproj — post-S1 subset), G17, G18 (cross-section) | 10 |
 | C (CI modernization) | G36 (CI gate wiring — same guardrail as B-local; count unchanged) | 10 |
 | D-local (post-S1) | G21, G22, G23 (post-pack assertions — minimum range + version match), G25, G26, G27 (symbols, repo, metadata), G46 (MSBuild payload guard) | 17 |
-| D-ci | G28–G35 (CI publish pipeline) | 25 |
-| PD-7 (full-train) | G37–G42 (release-set validation) | 31 |
-| PD-8 (manual escape) | G43–G45 (manual operator validation) | 34 |
+| H1 (license integrity, 2026-04-18) | G49, G50 (identity + harvest post-deploy), G51, G52, G53 (license payload + pack gate + staged replace) | 22 |
+| ADR-001 D-3seg (2026-04-18) | G54 (upstream Major.Minor coherence), G55 (native metadata file), G56 (satellite upper bound), G57 (README mapping table) | 26 |
+| D-ci | G28–G35 (CI publish pipeline) | 34 |
+| PD-7 (full-train) | G37–G42 (release-set validation) | 40 |
+| PD-8 (manual escape) | G43–G45 (manual operator validation) | 43 |
 | — | G11, G12, G13 are NuGet/build-host built-ins (not delivered by any stream; G11 marked REVISIT) | — |
+| — | G47, G48 (native package buildTransitive + per-RID payload shape) landed with post-S1 buildTransitive contract; already counted within D-local post-S1 | — |
 
 ## 4. Failure Mode Catalog
 
@@ -171,6 +180,10 @@ For each known failure mode, list the guardrails that catch it. If no guardrail 
 | Managed symbol package missing | G25 | No |
 | Build artifact contains wrong commit SHA | G26 | No |
 | Direct `dotnet pack` of a `.Native` csproj without Cake ships empty runtimes/licenses payload | G46 | No |
+| Family tag's Major.Minor drifts from upstream vcpkg_version Major.Minor (operator tags `sdl2-core-2.31.0` while manifest says SDL2 2.32.10) | G54 | No (after V4) |
+| Native nupkg ships without machine-readable upstream-version metadata — exact SDL patch + port_version becomes invisible to downstream tooling | G55 | No (after V4) |
+| Satellite nuspec missing cross-family upper bound; hypothetical `Janset.SDL2.Core 3.x` could resolve against `Janset.SDL2.Image 2.8.x` | G56 | No (after V4) |
+| README mapping table drifts from manifest (consumer reads wrong "which SDL version does this family wrap?" answer) | G57 | No (after V4) |
 
 **Retired failure modes (S1 2026-04-17):** "Operator removes PrivateAssets=all" (no longer a mechanism), "Operator adds new satellite without bracket-notation PackageVersion" (no longer required), "Standalone dotnet pack ships 0.0.0-restore sentinel" (sentinel removed), "Renaming family in manifest without updating csproj property names" (`Sdl<Role>FamilyVersion` property no longer required). These failure modes cannot occur under the S1 shape.
 
@@ -198,8 +211,9 @@ When a new failure mode emerges:
 
 ## 7. Cross-References
 
+- [ADR-001: D-3seg Versioning, Package-First Local Dev, Artifact Source Profile Abstraction](../decisions/2026-04-18-versioning-d3seg.md) — authoritative decision record that added G54–G57
 - [release-lifecycle-direction.md](release-lifecycle-direction.md) — canonical policy that the guardrails enforce
-- [phase-2-adaptation-plan.md](../phases/phase-2-adaptation-plan.md) — stream-by-stream implementation roadmap; see "S1 Adoption Record" for the 2026-04-17 amendments
+- [phase-2-adaptation-plan.md](../phases/phase-2-adaptation-plan.md) — stream-by-stream implementation roadmap; see "S1 Adoption Record" for the 2026-04-17 amendments; PD-12 for ADR-001 D-3seg adoption
 - [exact-pin-spike-and-nugetizer-eval-2026-04-16.md](../research/exact-pin-spike-and-nugetizer-eval-2026-04-16.md) — **SUPERSEDED 2026-04-17.** Within-family exact-pin mechanism research. Kept as history; no longer binding. The production-time version flow constraint documented there is what motivated S1 adoption.
 - [nu5016-cake-restore-investigation-2026-04-17.md](../../artifacts/temp/nu5016-cake-restore-investigation-2026-04-17.md) — investigation artifact: traced NU5016 root cause to `NuGet.Build.Tasks.Pack.targets:335` globals-replace; resolution via S1 adoption
 - [full-train-release-orchestration-2026-04-16.md](../research/full-train-release-orchestration-2026-04-16.md) — PD-7 scope

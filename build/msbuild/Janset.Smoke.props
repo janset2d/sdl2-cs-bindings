@@ -51,6 +51,31 @@
   </PropertyGroup>
 
   <!--
+    Smoke family-list contract. A smoke csproj declares which SDL generation +
+    which family roles it wants to validate by setting EXACTLY ONE of:
+
+      <JansetSmokeSdl2Families>Core;Image;Mixer;Ttf;Gfx</JansetSmokeSdl2Families>
+      <JansetSmokeSdl3Families>Core;Image</JansetSmokeSdl3Families>
+
+    Janset.Smoke.targets expands the list into exact-pinned PackageReference
+    entries. Bracket notation "[x]" pins the orchestrator-supplied version exactly —
+    the smoke harness validates THE package set the orchestrator produced, not any
+    compatible sibling that happens to be in the feed.
+
+    Mutual-exclusion guard (JNSMK008) rejects csprojs that set both generations;
+    require-one guard (JNSMK009) rejects csprojs that set neither. Both fire in
+    Janset.Smoke.targets before Restore/Build.
+
+    This property lives in props (with default empty) so every consumer csproj
+    can override via its body; the ItemGroup expansion must live in .targets so
+    evaluation sees the consumer's override, not the empty default.
+  -->
+  <PropertyGroup>
+    <JansetSmokeSdl2Families Condition="'$(JansetSmokeSdl2Families)' == ''"></JansetSmokeSdl2Families>
+    <JansetSmokeSdl3Families Condition="'$(JansetSmokeSdl3Families)' == ''"></JansetSmokeSdl3Families>
+  </PropertyGroup>
+
+  <!--
     Analyzer posture for smoke / probe code: same relaxations used by Build.Tests because
     smoke projects are test-shaped (they intentionally contain probe-style no-op code,
     test assertions that look unused to analyzers, etc.).

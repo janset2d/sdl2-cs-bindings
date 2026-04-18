@@ -12,11 +12,82 @@
     See also: docs/playbook/cross-platform-smoke-validation.md (Authoring new smoke
     projects) for the full consumer contract.
   -->
+
+  <!--
+    Family-list expansion. Normalize the consumer-supplied list with semicolon wrappers
+    so Contains(';Name;') matches any position (start / middle / end / sole element).
+    Empty when the consumer did not declare a generation — JNSMK009 fires on that.
+  -->
+  <PropertyGroup>
+    <_JansetSmokeSdl2FamilySet Condition="'$(JansetSmokeSdl2Families)' != ''">;$(JansetSmokeSdl2Families);</_JansetSmokeSdl2FamilySet>
+    <_JansetSmokeSdl3FamilySet Condition="'$(JansetSmokeSdl3Families)' != ''">;$(JansetSmokeSdl3Families);</_JansetSmokeSdl3FamilySet>
+  </PropertyGroup>
+
+  <!-- SDL2 family auto-references. Exact-pin brackets = orchestrator-owned version. -->
+  <ItemGroup Condition="$(_JansetSmokeSdl2FamilySet.Contains(';Core;'))">
+    <PackageReference Include="Janset.SDL2.Core" VersionOverride="[$(JansetSdl2CorePackageVersion)]" />
+  </ItemGroup>
+  <ItemGroup Condition="$(_JansetSmokeSdl2FamilySet.Contains(';Image;'))">
+    <PackageReference Include="Janset.SDL2.Image" VersionOverride="[$(JansetSdl2ImagePackageVersion)]" />
+  </ItemGroup>
+  <ItemGroup Condition="$(_JansetSmokeSdl2FamilySet.Contains(';Mixer;'))">
+    <PackageReference Include="Janset.SDL2.Mixer" VersionOverride="[$(JansetSdl2MixerPackageVersion)]" />
+  </ItemGroup>
+  <ItemGroup Condition="$(_JansetSmokeSdl2FamilySet.Contains(';Ttf;'))">
+    <PackageReference Include="Janset.SDL2.Ttf" VersionOverride="[$(JansetSdl2TtfPackageVersion)]" />
+  </ItemGroup>
+  <ItemGroup Condition="$(_JansetSmokeSdl2FamilySet.Contains(';Gfx;'))">
+    <PackageReference Include="Janset.SDL2.Gfx" VersionOverride="[$(JansetSdl2GfxPackageVersion)]" />
+  </ItemGroup>
+  <ItemGroup Condition="$(_JansetSmokeSdl2FamilySet.Contains(';Net;'))">
+    <PackageReference Include="Janset.SDL2.Net" VersionOverride="[$(JansetSdl2NetPackageVersion)]" />
+  </ItemGroup>
+
+  <!-- SDL3 family auto-references (mirror of SDL2; active once SDL3 packages ship). -->
+  <ItemGroup Condition="$(_JansetSmokeSdl3FamilySet.Contains(';Core;'))">
+    <PackageReference Include="Janset.SDL3.Core" VersionOverride="[$(JansetSdl3CorePackageVersion)]" />
+  </ItemGroup>
+  <ItemGroup Condition="$(_JansetSmokeSdl3FamilySet.Contains(';Image;'))">
+    <PackageReference Include="Janset.SDL3.Image" VersionOverride="[$(JansetSdl3ImagePackageVersion)]" />
+  </ItemGroup>
+  <ItemGroup Condition="$(_JansetSmokeSdl3FamilySet.Contains(';Mixer;'))">
+    <PackageReference Include="Janset.SDL3.Mixer" VersionOverride="[$(JansetSdl3MixerPackageVersion)]" />
+  </ItemGroup>
+  <ItemGroup Condition="$(_JansetSmokeSdl3FamilySet.Contains(';Ttf;'))">
+    <PackageReference Include="Janset.SDL3.Ttf" VersionOverride="[$(JansetSdl3TtfPackageVersion)]" />
+  </ItemGroup>
+  <ItemGroup Condition="$(_JansetSmokeSdl3FamilySet.Contains(';Gfx;'))">
+    <PackageReference Include="Janset.SDL3.Gfx" VersionOverride="[$(JansetSdl3GfxPackageVersion)]" />
+  </ItemGroup>
+  <ItemGroup Condition="$(_JansetSmokeSdl3FamilySet.Contains(';Net;'))">
+    <PackageReference Include="Janset.SDL3.Net" VersionOverride="[$(JansetSdl3NetPackageVersion)]" />
+  </ItemGroup>
+
   <Target Name="_GuardSmokeLocalFeed" BeforeTargets="Restore;Build">
     <Error
       Code="JNSMK001"
       Text="Smoke projects require -p:LocalPackageFeed=[absolute path] supplied by the Cake orchestrator (PackageConsumerSmokeRunner). Invoke via Cake PostFlight / PackageConsumerSmoke; do not run dotnet build/test directly against a smoke csproj."
       Condition="'$(LocalPackageFeed)' == ''" />
+  </Target>
+
+  <Target Name="_GuardSmokeGenerationChoice"
+          BeforeTargets="Restore;Build"
+          DependsOnTargets="_GuardSmokeLocalFeed">
+    <!--
+      Exactly one SDL generation must be selected. SDL2 and SDL3 have distinct managed
+      wrappers and distinct native packages; mixing them in the same smoke csproj would
+      pull two parallel native payloads and invite symbol-collision triage — always a
+      consumer-authoring mistake, not a real use case.
+    -->
+    <Error
+      Code="JNSMK008"
+      Text="Smoke project declared both JansetSmokeSdl2Families ('$(JansetSmokeSdl2Families)') and JansetSmokeSdl3Families ('$(JansetSmokeSdl3Families)'). These are mutually exclusive — a smoke csproj validates exactly one SDL generation. Remove one of the two declarations."
+      Condition="'$(JansetSmokeSdl2Families)' != '' and '$(JansetSmokeSdl3Families)' != ''" />
+
+    <Error
+      Code="JNSMK009"
+      Text="Smoke project declared neither JansetSmokeSdl2Families nor JansetSmokeSdl3Families. A smoke csproj must select exactly one SDL generation via one of those property lists (e.g. '&lt;JansetSmokeSdl2Families&gt;Core;Image;Mixer;Ttf;Gfx&lt;/JansetSmokeSdl2Families&gt;'). See docs/playbook/cross-platform-smoke-validation.md §'Authoring New Smoke Projects'."
+      Condition="'$(JansetSmokeSdl2Families)' == '' and '$(JansetSmokeSdl3Families)' == ''" />
   </Target>
 
   <Target Name="_GuardSmokeVersionInputs"

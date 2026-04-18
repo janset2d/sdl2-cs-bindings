@@ -78,6 +78,29 @@
 | --- | --- |
 | [parking-lot.md](parking-lot.md) | Deferred ideas, partially implemented threads, and hardening backlog that should not be lost during archive cleanup |
 
+### Reviews (Dated Assessments)
+
+> **Policy (2026-04-18).** External code reviews are stored as dated, authored snapshots. They reflect the reviewer's read at one point in time and are NOT canonical status — [`plan.md`](plan.md), the active phase doc, and the ADR directory under [`decisions/`](decisions/) remain the sources of truth. When a review's findings are addressed, the resolution is tracked in the consolidated index under [`reviews/`](reviews/); reviews older than ~3 months may be moved to an `archive/` subfolder if no longer actionable. The consolidated index (first row below) is the recommended entry point for human or agent readers landing here.
+
+| Document | Scope | Date |
+| --- | --- | --- |
+| **[2026-04-18-consolidated-review-index.md](reviews/2026-04-18-consolidated-review-index.md)** | **Entry point.** Consolidates and de-duplicates the seven 2026-04-18 reviews, records spot-verification state per finding, and maps each item to a severity + status column updated as waves complete | 2026-04-18 |
+| [2026-04-18-build-tests-deep-dive-codex.md](reviews/2026-04-18-build-tests-deep-dive-codex.md) | Companion wide-lens deep-dive on `build/_build.Tests`: fixtures, composition-root coupling, task-layer platform bias | 2026-04-18 |
+| [2026-04-18-build-tests-review.md](reviews/2026-04-18-build-tests-review.md) | Deep-dive review of the `build/_build.Tests` suite: fixtures, assertion quality, and packaging-path coverage gaps | 2026-04-18 |
+| [2026-04-18-general-deep-dive-review-claude-opus.md](reviews/2026-04-18-general-deep-dive-review-claude-opus.md) | Full-repo deep-dive (Claude Opus 4.7) — packaging guardrails, CI drift, doc-vs-code coherence | 2026-04-18 |
+| [2026-04-18-general-deep-dive-review-codex.md](reviews/2026-04-18-general-deep-dive-review-codex.md) | Session-baseline general review covering solution entrypoints, smoke build contracts, and contributor docs drift | 2026-04-18 |
+| [2026-04-18-general-deep-dive-review.md](reviews/2026-04-18-general-deep-dive-review.md) | Repository-wide multi-round deep-dive covering build-host reliability, packaging guardrails, and docs/code drift | 2026-04-18 |
+| [2026-04-18-packaging-consumer-review.md](reviews/2026-04-18-packaging-consumer-review.md) | Deep-dive review of Phase 2 packaging, consumer delivery, and native `buildTransitive` behavior | 2026-04-18 |
+| [2026-04-18-smoke-orchestration-review.md](reviews/2026-04-18-smoke-orchestration-review.md) | Deep-dive review of smoke orchestration: guard targets, runner inputs, and restore determinism gaps | 2026-04-18 |
+
+### Decisions (Architecture Decision Records)
+
+| Document | Decision | Date | Status |
+| --- | --- | --- | --- |
+| [2026-04-18-versioning-d3seg.md](decisions/2026-04-18-versioning-d3seg.md) | ADR-001 — D-3seg versioning, package-first local dev, artifact source profile abstraction | 2026-04-18 | Accepted |
+
+New ADRs land under [`decisions/`](decisions/) with a dated filename (`YYYY-MM-DD-<slug>.md`) and carry an embedded Impact Checklist that tracks implementation completion.
+
 ### Reference (Deep On-Demand)
 
 | Document | Purpose |

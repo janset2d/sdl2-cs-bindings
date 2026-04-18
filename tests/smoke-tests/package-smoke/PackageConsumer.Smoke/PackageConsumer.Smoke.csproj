@@ -15,18 +15,17 @@
     <OutputType>Exe</OutputType>
     <IsTestProject>true</IsTestProject>
     <IsPackable>false</IsPackable>
+
+    <!--
+      Smoke family declaration. Janset.Smoke.targets expands this list into exact-pinned
+      PackageReference entries. See build/msbuild/Janset.Smoke.{props,targets} for the
+      contract, and docs/playbook/cross-platform-smoke-validation.md §'Authoring New
+      Smoke Projects' for authoring guidance.
+    -->
+    <JansetSmokeSdl2Families>Core;Image;Mixer;Ttf;Gfx</JansetSmokeSdl2Families>
   </PropertyGroup>
 
   <ItemGroup>
-    <!--
-      Consume packages from the local feed. VersionOverride drives per-family version
-      properties declared in Janset.Smoke.props; Cake injects the real values at runtime.
-    -->
-    <PackageReference Include="Janset.SDL2.Core" VersionOverride="$(JansetSdl2CorePackageVersion)" />
-    <PackageReference Include="Janset.SDL2.Image" VersionOverride="$(JansetSdl2ImagePackageVersion)" />
-    <PackageReference Include="Janset.SDL2.Mixer" VersionOverride="$(JansetSdl2MixerPackageVersion)" />
-    <PackageReference Include="Janset.SDL2.Ttf" VersionOverride="$(JansetSdl2TtfPackageVersion)" />
-    <PackageReference Include="Janset.SDL2.Gfx" VersionOverride="$(JansetSdl2GfxPackageVersion)" />
     <PackageReference Include="TUnit" />
 
     <!-- PolySharp: source-only polyfills for modern C# attributes (ModuleInitializerAttribute,

@@ -140,8 +140,8 @@ All build configuration lives in a single file. Previously split across `manifes
       "name": "SDL2",
       "vcpkg_name": "sdl2",
       "vcpkg_version": "2.32.10",
+      "vcpkg_port_version": 0,
       "native_lib_name": "SDL2.Core.Native",
-      "native_lib_version": "2.32.10.0",
       "core_lib": true,
       "primary_binaries": [
         { "os": "Windows", "patterns": ["SDL2.dll"] },
@@ -152,6 +152,8 @@ All build configuration lives in a single file. Previously split across `manifes
   ]
 }
 ```
+
+> **Schema change 2026-04-18 (ADR-001):** the `native_lib_version` field was removed from `library_manifests[]`. Under D-3seg, family version is git-tag-derived (MinVer), not manifest-declared. Exact upstream patch + port_version are recorded in the packed `janset-native-metadata.json` (G55) and README mapping table (G57). See [ADR-001 §2.5](../decisions/2026-04-18-versioning-d3seg.md).
 
 Key sections:
 

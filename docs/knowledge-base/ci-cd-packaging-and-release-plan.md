@@ -57,15 +57,17 @@ The pipeline relies on several key configuration files and generates specific ar
     {
       "name": "SDL2", // Corresponds to Cake --library argument
       "vcpkg_name": "sdl2",
-      "vcpkg_version": "2.32.10", // Expected version from vcpkg.json
+      "vcpkg_version": "2.32.10", // Expected version from vcpkg.json — anchors family Major.Minor via G54 (ADR-001)
+      "vcpkg_port_version": 0,    // Recorded in janset-native-metadata.json at pack time (G55)
       "native_lib_name": "Janset.SDL2.Core.Native",
-      "native_lib_version": "2.32.10.0", // NuGet package version (will be replaced by family version from tag)
       "core_lib": true,
       "primary_binaries": [...]
     }
     ```
 
-  - Used by the `pre_flight_check` job to validate against `vcpkg.json` and by the `PackageTask` in Cake to determine the version for `dotnet pack`.
+    > **Schema change 2026-04-18 (ADR-001):** the `native_lib_version` field was removed from `library_manifests[]`. Under D-3seg, family version derives from the git tag (MinVer), not from a pre-declared manifest field. The exact upstream patch version and port_version are recorded in the packed `janset-native-metadata.json` per-`.Native` nupkg (G55) and in the README mapping table (G57). See [ADR-001 §2.5](../decisions/2026-04-18-versioning-d3seg.md).
+
+  - Used by the `pre_flight_check` job to validate against `vcpkg.json` (G14, G15, G54) and by the `PackageTask` in Cake to drive per-family pack invocations (version comes from the operator-supplied `--family-version` which MinVer resolves from the git tag).
 
 - **`vcpkg.json`:**
 

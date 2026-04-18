@@ -1,13 +1,23 @@
 # Phase 2: CI/CD & Packaging
 
-**Status**: IN PROGRESS (resumed 2026-04-11 after ~10 month hiatus)
+**Status**: IN PROGRESS (resumed 2026-04-11 after ~10 month hiatus). **Amended 2026-04-18 (ADR-001).**
 **Started**: May 2025 (initial CI work) → Paused June 2025 → Resumed April 2026
 
 ## Objective
 
 Complete the end-to-end pipeline from source code to publishable NuGet packages. Make the project buildable and testable by contributors.
 
-> **Release lifecycle direction:** The policy framework for versioning, release governance, dependency contracts, CI matrix shape, and promotion path is locked in [`knowledge-base/release-lifecycle-direction.md`](../knowledge-base/release-lifecycle-direction.md). The multi-stream implementation plan is in [`phases/phase-2-adaptation-plan.md`](phase-2-adaptation-plan.md). Key concepts: package families, family tags, targeted/full-train releases, SkiaSharp-style minimum range dependency contract (both within-family and cross-family). Within-family drift protection lives at orchestration time (Cake atomic `PackageTask` + G23 post-pack version-match). Historical note: within-family exact pin was specified in the pre-S1 plan and retired on 2026-04-17; see [`phase-2-adaptation-plan.md` "S1 Adoption Record"](phase-2-adaptation-plan.md).
+> **Release lifecycle direction:** The policy framework for versioning, release governance, dependency contracts, CI matrix shape, and promotion path is locked in [`knowledge-base/release-lifecycle-direction.md`](../knowledge-base/release-lifecycle-direction.md). The multi-stream implementation plan is in [`phases/phase-2-adaptation-plan.md`](phase-2-adaptation-plan.md). Key concepts: package families, family tags, targeted/full-train releases, **D-3seg family versioning** (`<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>` per [ADR-001](../decisions/2026-04-18-versioning-d3seg.md)), SkiaSharp-style minimum range dependency contract (within-family; cross-family ranged `>= x.y.z, < (UpstreamMajor+1).0.0` per ADR-001 §2.4). Within-family drift protection lives at orchestration time (Cake atomic `PackageTask` + G23 post-pack version-match).
+>
+> **Historical:** within-family exact pin specified in the pre-S1 plan was retired on 2026-04-17 (see [`phase-2-adaptation-plan.md` "S1 Adoption Record"](phase-2-adaptation-plan.md)). Three-mode execution (Source / Package Validation / Release) was collapsed to two feed-prep sources (Local / Remote) by ADR-001 on 2026-04-18; consumer contract is always PackageReference. Source Mode mechanism retired; package-first consumer contract is the one canonical path.
+>
+> **Stale section flags (2026-04-18).** Several sections below describe work that has since landed:
+>
+> - **§2.3 "Implement Cake PackageTask"** — LANDED (post-S1 2026-04-17). Cake `Package` task is functional, validated on 3 platforms for the Phase 2a proof slice. Remaining package-work is Phase 2b 7-RID coverage + remote profile + patch-bump strict enforcement.
+> - **§2.4 "Make Release Candidate Pipeline Functional"** — Still open (release-candidate-pipeline.yml is a stub, tracked as H7 in the [consolidated review index](../reviews/2026-04-18-consolidated-review-index.md)). Unblocks Stream D-ci.
+> - **§2.2 "Complete vcpkg.json"** — Coverage validated; PA-2 landed all 7 RIDs on hybrid-static overlay triplets on 2026-04-18.
+>
+> Read §2 as historical scope. Current active work is tracked in [`phase-2-adaptation-plan.md`](phase-2-adaptation-plan.md) stream sections + the ADR-001 Impact Checklist.
 
 ## Scope
 

@@ -80,9 +80,20 @@ Update each library's override to the desired version:
 
 Keep `build/manifest.json` in sync with vcpkg.json:
 
-- Update `vcpkg_version` fields
-- Update `vcpkg_port_version` fields
-- Update `native_lib_version` fields
+- Update `vcpkg_version` fields (authoritative upstream version; also drives family version Major.Minor via G54 — see [ADR-001 §2.1](../decisions/2026-04-18-versioning-d3seg.md))
+- Update `vcpkg_port_version` fields (recorded in `janset-native-metadata.json` at pack time — G55)
+
+> **Removed 2026-04-18 (ADR-001):** `native_lib_version` field was removed from `manifest.json` schema. Under D-3seg, family version is derived from the git tag (MinVer), and the exact upstream patch version lives in `janset-native-metadata.json` per-package (G55) + README mapping table (G57). There is no pre-declared `native_lib_version` to update.
+
+### Step 6a: Update README mapping table
+
+Run the Cake mapping-table regeneration so the `<!-- JANSET:MAPPING-TABLE-START -->` / `<!-- JANSET:MAPPING-TABLE-END -->` block in `README.md` reflects the new upstream version(s):
+
+```bash
+dotnet run --project build/_build -- --target UpdateMappingTable
+```
+
+> The validator (G57) asserts the table is current at post-pack time; staleness is a hard fail. Regenerating after `vcpkg.json` / `manifest.json` edits keeps the next release green.
 
 ### Step 7: Validate
 

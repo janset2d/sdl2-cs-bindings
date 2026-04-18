@@ -73,10 +73,27 @@
     <_JansetSdlEffectiveRid Condition="'$(_JansetSdlEffectiveRid)' == '' and $([MSBuild]::IsOSPlatform('OSX')) and $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()) == 'X64'">osx-x64</_JansetSdlEffectiveRid>
     <_JansetSdlEffectiveRid Condition="'$(_JansetSdlEffectiveRid)' == '' and $([MSBuild]::IsOSPlatform('OSX')) and $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()) == 'Arm64'">osx-arm64</_JansetSdlEffectiveRid>
 
-    <!-- .NETFramework on Windows: use Platform (x86/x64/ARM64/AnyCPU). -->
-    <_JansetSdlEffectiveRid Condition="'$(_JansetSdlEffectiveRid)' == '' and '$(TargetFrameworkIdentifier)' == '.NETFramework' and '$(Platform)' == 'x86'">win-x86</_JansetSdlEffectiveRid>
-    <_JansetSdlEffectiveRid Condition="'$(_JansetSdlEffectiveRid)' == '' and '$(TargetFrameworkIdentifier)' == '.NETFramework' and '$(Platform)' == 'ARM64'">win-arm64</_JansetSdlEffectiveRid>
-    <_JansetSdlEffectiveRid Condition="'$(_JansetSdlEffectiveRid)' == '' and '$(TargetFrameworkIdentifier)' == '.NETFramework'">win-x64</_JansetSdlEffectiveRid>
+    <!--
+      .NETFramework on Windows: arch resolution when <RuntimeIdentifier> is unset.
+      Priority:
+        1. Explicit <Platform> (x86 / ARM64).
+        2. OSArchitecture fallback — AnyCPU consumer runs at OS arch, not MSBuild
+           process arch, so OSArchitecture is the correct inference surface (not
+           ProcessArchitecture used by the .NETCoreApp Linux/macOS branches above).
+           This mirrors the pattern used by Directory.Build.props $(BuildArch) at the
+           repo level, inlined here because Common.targets ships into consumer
+           packages without our repo-level helpers.
+        3. If neither path resolves a RID, _JansetSdlNativeErrorOnUnresolvedFrameworkRid
+           fails the build loudly. Silently picking win-x64 was the pre-fix behaviour
+           and shipped DllNotFoundException to x86 / arm64 / Prefer32Bit consumers.
+      All branches gated on $(OS) == 'Windows_NT' so .NETFramework on Mono / Linux
+      falls through to the Linux/macOS ProcessArchitecture branches above instead.
+    -->
+    <_JansetSdlEffectiveRid Condition="'$(_JansetSdlEffectiveRid)' == '' and '$(TargetFrameworkIdentifier)' == '.NETFramework' and '$(OS)' == 'Windows_NT' and '$(Platform)' == 'x86'">win-x86</_JansetSdlEffectiveRid>
+    <_JansetSdlEffectiveRid Condition="'$(_JansetSdlEffectiveRid)' == '' and '$(TargetFrameworkIdentifier)' == '.NETFramework' and '$(OS)' == 'Windows_NT' and '$(Platform)' == 'ARM64'">win-arm64</_JansetSdlEffectiveRid>
+    <_JansetSdlEffectiveRid Condition="'$(_JansetSdlEffectiveRid)' == '' and '$(TargetFrameworkIdentifier)' == '.NETFramework' and '$(OS)' == 'Windows_NT' and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()) == 'X64'">win-x64</_JansetSdlEffectiveRid>
+    <_JansetSdlEffectiveRid Condition="'$(_JansetSdlEffectiveRid)' == '' and '$(TargetFrameworkIdentifier)' == '.NETFramework' and '$(OS)' == 'Windows_NT' and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()) == 'Arm64'">win-arm64</_JansetSdlEffectiveRid>
+    <_JansetSdlEffectiveRid Condition="'$(_JansetSdlEffectiveRid)' == '' and '$(TargetFrameworkIdentifier)' == '.NETFramework' and '$(OS)' == 'Windows_NT' and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()) == 'X86'">win-x86</_JansetSdlEffectiveRid>
 
     <!--
       Unix = anywhere except Windows. $(OS) is set by MSBuild to 'Windows_NT' on Windows
@@ -151,6 +168,37 @@
 
     <Delete Files="$(PublishDir)%(_JansetSdlNativePayload.Identity).tar.gz"
             Condition="Exists('$(PublishDir)%(_JansetSdlNativePayload.Identity).tar.gz')" />
+  </Target>
+
+  <!--
+    AnyCPU-arch-inference warning. Fires when the consumer did not set <RuntimeIdentifier>
+    or <Platform>, so the RID came from the OSArchitecture fallback above. The assumption
+    (OS arch == runtime arch) breaks for Prefer32Bit=true, explicit 32-bit-required EXEs,
+    or arm64 Windows running x64 binaries under emulation. We cannot detect those cases
+    at MSBuild eval time, so we emit a visible Warning instead of silently shipping the
+    wrong native DLL set.
+  -->
+  <Target Name="_JansetSdlNativeWarnAnyCpuArchAssumption"
+          BeforeTargets="Build"
+          Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework' and '$(OS)' == 'Windows_NT' and '$(RuntimeIdentifier)' == '' and ('$(Platform)' == '' or '$(Platform)' == 'AnyCPU') and '$(_JansetSdlEffectiveRid.StartsWith(`win-`))' == 'true' and '@(_JansetSdlNativePayload)' != ''">
+    <Warning
+      Code="JANSET_SDL_ANYCPU_ARCH_ASSUMPTION"
+      Text="AnyCPU .NETFramework consumer detected; selected native RID '$(_JansetSdlEffectiveRid)' from OSArchitecture '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString())'. If the deployed process will run under a different architecture (Prefer32Bit=true, 32BIT_REQUIRED manifest, or x64 under arm64 emulation), set &lt;RuntimeIdentifier&gt; (e.g. win-x64) or &lt;Platform&gt; (e.g. x64) explicitly in the csproj to avoid DllNotFoundException at runtime." />
+  </Target>
+
+  <!--
+    Fail-fast when .NETFramework-on-Windows cannot resolve a RID. Reached when Platform
+    is not x86/ARM64 and OSArchitecture is neither X64/Arm64/X86 (exotic / future Windows
+    arch). Silently copying nothing would ship DllNotFoundException to the consumer at
+    runtime; emitting a clear Error with the detected OSArchitecture value + remediation
+    guidance is strictly better.
+  -->
+  <Target Name="_JansetSdlNativeErrorOnUnresolvedFrameworkRid"
+          BeforeTargets="Build"
+          Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework' and '$(OS)' == 'Windows_NT' and '$(_JansetSdlEffectiveRid)' == '' and '@(_JansetSdlNativePayload)' != ''">
+    <Error
+      Code="JANSET_SDL_NATIVE_RID_UNRESOLVED"
+      Text="Unable to resolve native RID for .NETFramework consumer on Windows. &lt;RuntimeIdentifier&gt; is unset, &lt;Platform&gt; is '$(Platform)', OSArchitecture is '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString())' (expected X64, Arm64, or X86). Set &lt;RuntimeIdentifier&gt; (e.g. win-x64) or &lt;Platform&gt; (e.g. x64) explicitly in the csproj." />
   </Target>
 
   <!--

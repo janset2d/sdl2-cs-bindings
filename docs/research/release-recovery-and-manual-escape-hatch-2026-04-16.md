@@ -1,9 +1,19 @@
 # Research: Release Recovery + Manual Escape Hatch
 
 **Date:** 2026-04-16
-**Status:** Roadmap placeholder — research pending. **Amended 2026-04-17:** within-family dependency contract changed from exact pin to minimum range (S1 adoption). Core PD-8 scope (manual operator flow, audit trail, partial-train recovery) is unaffected; only the specific property flags the manual flow must pass are simpler post-S1. See "S1 addendum" below.
+**Status:** Roadmap placeholder — research pending. **Amended 2026-04-18 (ADR-001):** family versioning adopted D-3seg shape + Cake `IArtifactSourceResolver` abstraction. See "ADR-001 addendum" below. **Prior amendment 2026-04-17 (S1):** within-family dependency contract changed from exact pin to minimum range. See "S1 addendum" below.
 **Context:** Stream D-ci sibling of PD-7. PD-8 open. See [phase-2-adaptation-plan.md](../phases/phase-2-adaptation-plan.md) Pending Decisions.
-**Prerequisite reading:** [release-lifecycle-direction.md](../knowledge-base/release-lifecycle-direction.md), [full-train-release-orchestration-2026-04-16.md](full-train-release-orchestration-2026-04-16.md)
+**Prerequisite reading:** [release-lifecycle-direction.md](../knowledge-base/release-lifecycle-direction.md), [ADR-001: D-3seg Versioning](../decisions/2026-04-18-versioning-d3seg.md), [full-train-release-orchestration-2026-04-16.md](full-train-release-orchestration-2026-04-16.md)
+
+---
+
+> **ADR-001 addendum (2026-04-18).** Two changes touch PD-8's design space:
+>
+> 1. **D-3seg versioning.** Family versions are now `<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>` (e.g. `sdl2-core-2.32.0`). Example version strings in this doc (`sdl2-image-1.3.0`, `sdl2-core-2.0.0`, etc.) are illustrative — mentally substitute the D-3seg shape. Manual escape-hatch Cake helpers (`Pack-Family`, `Push-Family`) must accept + validate the D-3seg-shaped `--version` input and enforce G54 (UpstreamMajor.Minor ↔ manifest coherence) + G55/G56/G57 (post-pack metadata, satellite upper bound, README mapping table) at pack time — same gates that the CI flow runs.
+>
+> 2. **Artifact Source Profile abstraction.** Stream D-local now exposes `IArtifactSourceResolver` + `ArtifactProfile { Local, RemoteInternal, ReleasePublic }` (ADR-001 §2.7). The manual escape hatch fits naturally as a `--profile=ReleasePublic` invocation with an explicit operator-supplied API key + target feed. The interface is locked in Phase 2a; `ReleasePublic` concrete impl is a PD-8 deliverable. No separate "manual vs automated" abstraction layer — same resolver contract, different origin (CI workflow vs operator CLI).
+>
+> **PD-8 scope is otherwise unchanged.** The seven research questions (Cake helpers, API key provisioning, smoke-test-as-manual-gate, partial-train recovery, tag hygiene, auditability, industry precedents) remain open. PD-12 in the adaptation plan records the ADR-001 decision.
 
 ---
 

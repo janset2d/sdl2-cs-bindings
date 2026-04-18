@@ -1,12 +1,14 @@
 # Research: Full-Train Release Orchestration
 
 **Date:** 2026-04-16
-**Status:** Roadmap placeholder — research pending. **Amended 2026-04-17:** within-family dependency contract changed from exact pin to minimum range (S1 adoption). PD-7 scope (release-set mechanism, ordering, GitHub UX, failure recovery, release-notes aggregation) is unaffected; only background references to exact-pin csproj shape are now historical. See "S1 addendum" below.
+**Status:** Roadmap placeholder — research pending. **Amended 2026-04-18 (ADR-001):** family versioning adopted D-3seg shape (`<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>`). See "ADR-001 addendum" below. **Prior amendment 2026-04-17 (S1):** within-family dependency contract changed from exact pin to minimum range. See "S1 addendum" below.
 **Context:** Stream D-ci blocker. PD-7 open. See [phase-2-adaptation-plan.md](../phases/phase-2-adaptation-plan.md) Pending Decisions.
-**Prerequisite reading:** [release-lifecycle-direction.md](../knowledge-base/release-lifecycle-direction.md)
+**Prerequisite reading:** [release-lifecycle-direction.md](../knowledge-base/release-lifecycle-direction.md), [ADR-001: D-3seg Versioning](../decisions/2026-04-18-versioning-d3seg.md)
 
 ---
 
+> **ADR-001 addendum (2026-04-18).** Family version shape is now D-3seg (`<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>`), e.g. `sdl2-core-2.32.0`, `sdl2-image-2.8.0`, `sdl2-gfx-1.0.0`. All version strings in this doc that show `2.0.0`, `1.3.0`, `1.2.0`, etc. for family tags are **illustrative placeholders** — read them as examples of "some coherent release set," not as recommended numerical choices. **PD-7 scope remains unchanged** — full-train orchestration is about the release-set mechanism (meta-tag + `release-set.json` workflow vs manual multi-tag vs pack-time override), GitHub UX, notes aggregation, and failure recovery. The D-3seg shape informs two sub-items previously marked OPEN: (1) the meta-package's own versioning scheme — still OPEN, now scoped to "independent SemVer or date-versioned" as the two candidates since D-3seg does not give meta-package a single upstream to anchor to; and (2) `release-set.json` family-version fields must themselves follow D-3seg per-family (G54 UpstreamMajor.Minor coherence enforced whether the train is meta-tag orchestrated or manual multi-tag). PD-12 in the adaptation plan records the ADR-001 decision.
+>
 > **S1 addendum (2026-04-17).** References in this doc to "within-family exact pin `[x.y.z]`", `PrivateAssets="all"` on Native `ProjectReference`, and "exact pin precedent" (LibGit2Sharp comparison) are **historical** and describe the pre-S1 contract. S1 adoption retired the within-family exact-pin requirement; within-family is now minimum range (`>=`), matching cross-family. PD-11 in the adaptation plan records the S1 decision. **PD-7 scope is unaffected** — full-train orchestration is about the release-set mechanism (meta-tag + `release-set.json` workflow vs manual multi-tag vs pack-time override), not about the within-family dependency semantics of any individual family. Reading this doc in 2026-04-17+: mentally substitute "SkiaSharp-style minimum range" wherever the doc says "within-family exact pin"; the orchestration questions are orthogonal.
 
 ---

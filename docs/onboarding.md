@@ -124,11 +124,13 @@ janset2d/sdl2-cs-bindings/
 ├── artifacts/                 ← Build output (gitignored)
 ├── samples/                   ← Example projects (empty — to be created)
 ├── tests/                     ← Test projects
-│   ├── Build.Tests/           ← Cake build-host unit tests (TUnit, white-box)
 │   ├── Sandbox/               ← Throwaway exploration sandbox (ignore in review)
 │   └── smoke-tests/           ← Post-pipeline integrity checks — see tests/smoke-tests/README.md
 │       ├── native-smoke/      ← C++/CMake runtime test for hybrid-built natives
 │       └── package-smoke/     ← .NET consumer smoke (PackageReference → SDL_Init)
+├── build/
+│   ├── _build/                ← Cake Frosting build host (production code)
+│   └── _build.Tests/          ← Cake build-host unit tests (TUnit, white-box)
 ├── scripts/                   ← Packaging scripts (PowerShell/Bash)
 │
 └── docs/                      ← You are here
@@ -212,7 +214,7 @@ Users reference `Janset.SDL2.Core` (or the meta-package `Janset.SDL2`). The `.Na
 
 - C# bindings for all 5 SDL2 libraries compile and target net9.0/net8.0/netstandard2.0/net462
 - Cake Frosting Harvest pipeline: binary closure walking, dependency scanning, per-RID status files, consolidation
-- Cake Frosting build host test suite: 241 TUnit tests covering modules, tasks, composition-root seams, and build-host result/error helpers
+- Cake Frosting build host test suite: 324 TUnit tests (as of 2026-04-18) covering modules, tasks, composition-root seams, and build-host result/error helpers. Run via `dotnet test build/_build.Tests/Build.Tests.csproj -c Release`.
 - PreFlight validation: manifest.json ↔ vcpkg.json consistency plus runtime strategy coherence
 - Coverage ratchet gate: `Coverage-Check` task enforces the current static floor from `build/coverage-baseline.json`
 - GitHub Actions: Cross-platform native builds for Windows/Linux/macOS (manual trigger)
@@ -283,7 +285,7 @@ This repo treats docs, issues, and commits as one delivery system:
 | **Family Identifier** | Canonical `sdl<major>-<role>` string used in manifest.json, `<MinVerTagPrefix>`, and git tags. Examples: `sdl2-core`, `sdl2-image`, `sdl3-core` (future). Mandatory `sdl<major>-` prefix mirrors `Janset.SDL2.*` PackageId convention and disambiguates SDL2 from SDL3. |
 | **Core Family** | The SDL family's core package family — `sdl2-core` for SDL2, `sdl3-core` (future) for SDL3. All satellite families in the same SDL major-version line depend on it. Released first when multiple families release together. |
 | **Satellite Family** | Any non-core package family within an SDL major-version line: `sdl2-image`, `sdl2-mixer`, `sdl2-ttf`, `sdl2-gfx`, `sdl2-net`. Depends on the core family of the same line, but versioned independently. |
-| **Family Version** | The single shared version number for both packages within a family. Derived from a family tag (e.g., `sdl2-core-1.0.0`). |
+| **Family Version** | The single shared version number for both packages within a family. Shape = `<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>` (D-3seg, see [ADR-001](decisions/2026-04-18-versioning-d3seg.md)). Derived from a family tag, e.g., `sdl2-core-2.32.0`. UpstreamMajor.Minor anchored to `manifest.json library_manifests[].vcpkg_version` (enforced by G54); FamilyPatch is the repo's own release-iteration counter. |
 | **Targeted Release** | Release of specific families without touching others. The default release mode. |
 | **Full-Train Release** | Coordinated release of all families together, triggered by cross-cutting changes. |
 | **SONAME** | Shared Object Name — the versioned name Linux shared libraries link against (e.g., `libSDL2-2.0.so.0`) |

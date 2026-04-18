@@ -46,7 +46,6 @@ Add a new entry to `library_manifests`:
   "vcpkg_version": "2.2.0",
   "vcpkg_port_version": 3,
   "native_lib_name": "SDL2.Net.Native",
-  "native_lib_version": "2.2.0.0",
   "core_lib": false,
   "primary_binaries": [
     {
@@ -63,6 +62,14 @@ Add a new entry to `library_manifests`:
     }
   ]
 }
+```
+
+> **Note 2026-04-18 (ADR-001):** Earlier iterations of this schema declared a `native_lib_version` field on each library. It has been removed under D-3seg. Family version is now derived from the git tag at release time (`sdl2-net-2.2.0` → MinVer → `Janset.SDL2.Net.*` packages at `2.2.0`), and the exact upstream version + port_version are recorded in `janset-native-metadata.json` per `.Native` nupkg at pack time (G55) + in the README mapping table (G57). Do not re-add a `native_lib_version` field.
+
+Also update the Cake-generated README mapping table after manifest changes:
+
+```bash
+dotnet run --project build/_build -- --target UpdateMappingTable
 ```
 
 ## Step 3: Create Binding Project

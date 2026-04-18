@@ -16,13 +16,11 @@
     <OutputType>Library</OutputType>
     <IsPackable>false</IsPackable>
     <IsTestProject>false</IsTestProject>
-  </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Janset.SDL2.Core" VersionOverride="$(JansetSdl2CorePackageVersion)" />
-    <PackageReference Include="Janset.SDL2.Image" VersionOverride="$(JansetSdl2ImagePackageVersion)" />
-    <PackageReference Include="Janset.SDL2.Mixer" VersionOverride="$(JansetSdl2MixerPackageVersion)" />
-    <PackageReference Include="Janset.SDL2.Ttf" VersionOverride="$(JansetSdl2TtfPackageVersion)" />
-    <PackageReference Include="Janset.SDL2.Gfx" VersionOverride="$(JansetSdl2GfxPackageVersion)" />
-  </ItemGroup>
+    <!--
+      Smoke family declaration. Mirrors PackageConsumer.Smoke's family list so both probes
+      validate the same package set. See build/msbuild/Janset.Smoke.{props,targets}.
+    -->
+    <JansetSmokeSdl2Families>Core;Image;Mixer;Ttf;Gfx</JansetSmokeSdl2Families>
+  </PropertyGroup>
 </Project>

@@ -219,7 +219,6 @@ build/manifest.json          ← everything
       "vcpkg_version": "2.32.10",
       "vcpkg_port_version": 0,
       "native_lib_name": "SDL2.Core.Native",
-      "native_lib_version": "2.32.10.0",
       "core_lib": true,
       "primary_binaries": [
         { "os": "Windows", "patterns": ["SDL2.dll"] },
@@ -230,6 +229,8 @@ build/manifest.json          ← everything
   ]
 }
 ```
+
+> **Schema note 2026-04-18 (ADR-001):** `native_lib_version` field removed from `library_manifests[]` schema. Family version is now git-tag-derived (MinVer) per D-3seg. See [ADR-001 §2.5](../decisions/2026-04-18-versioning-d3seg.md).
 
 **Key design points:**
 

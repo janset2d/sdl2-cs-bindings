@@ -2,8 +2,30 @@
 
 **Date:** 2026-04-13
 **Author:** Shared draft
-**Status:** Working strategy document
+**Status:** Working strategy document — **AMENDED 2026-04-18 by ADR-001** (three-mode execution framing retired; see amendment block below)
 **Scope:** local development model, transition from waterfall to controlled parallelism, build-host evolution, monorepo source-vs-package modes, native asset acquisition strategy, validation/testing workflow
+
+---
+
+## ADR-001 Amendment (2026-04-18) — Three modes → two feed-prep sources
+
+[ADR-001: D-3seg Versioning, Package-First Local Dev, Artifact Source Profile Abstraction](../decisions/2026-04-18-versioning-d3seg.md) supersedes the three-mode framing (Source Mode / Package Validation Mode / Release Mode) used throughout the rest of this document.
+
+Under ADR-001:
+
+- **All consumer-facing validation paths use packages.** There is a single consumer contract: `PackageReference` against a local folder feed, handled by `buildTransitive/Janset.SDL2.Native.Common.targets` for per-platform payload extraction.
+- **Source Mode is retired.** The ProjectReference-chain + MSBuild Content-injection mechanism designed in §6 of this document (and elaborated in [`source-mode-native-visibility-2026-04-15.md`](source-mode-native-visibility-2026-04-15.md), now DEPRECATED) no longer exists as a supported mainline flow. The fast-loop binding-debug use case, if ever needed, is handled via an explicit opt-in throwaway harness outside the smoke system.
+- **Execution is framed in terms of feed-prep source, not consumer mode.** Two sources: `Local` (repo pack produces the feed) and `RemoteInternal` (internal-feed download populates the local cache); `ReleasePublic` is a promotion destination, not a consumer mode. Cake abstraction: `IArtifactSourceResolver` + `ArtifactProfile` enum (ADR-001 §2.7).
+- **Source graph and shipping graph distinction collapses on the consumer side.** They remain distinct on the pack-time producer side (Cake still stages via `$(NativePayloadSource)` for pack input), but consumers uniformly see the shipping graph.
+
+When reading the rest of this document:
+
+- Wherever "Source Mode" appears as a consumer model, read it as historical context. The current repo has no Source Mode consumers.
+- Wherever "Package Validation Mode" appears, read it as "the (now unified) package-first consumer contract."
+- Wherever "Release Mode" appears, it still describes the release promotion flow (local → internal → public), unchanged in direction.
+- §9 "source graph vs shipping graph are explicitly separate realities" is historical framing; under ADR-001 they share the consumer-side contract.
+
+This document is kept for its research value (controlled parallelism analysis, monorepo trade-offs, validation-layer thinking) but the execution-mode decisions in §6 and §9 are SUPERSEDED. For current execution model, see [ADR-001 §2.6–§2.8](../decisions/2026-04-18-versioning-d3seg.md).
 
 ---
 
