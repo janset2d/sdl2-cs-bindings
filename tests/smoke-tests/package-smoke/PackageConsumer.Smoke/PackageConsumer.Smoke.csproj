@@ -1,4 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Consumer-side TUnit smoke. Feeds + versions + guards come from
+    build/msbuild/Janset.Smoke.{props,targets} via tests/smoke-tests/Directory.Build.{props,targets}.
+    Cake's PackageConsumerSmokeRunner injects -p:LocalPackageFeed=... and
+    -p:JansetSdl2<Role>PackageVersion=<semver> per referenced family.
+  -->
   <PropertyGroup>
     <!--
       TUnit test project. Microsoft Testing Platform produces an apphost per TFM,
@@ -9,31 +15,18 @@
     <OutputType>Exe</OutputType>
     <IsTestProject>true</IsTestProject>
     <IsPackable>false</IsPackable>
-
-    <!-- Consumer version inputs; Cake PostFlight passes these per-invocation. -->
-    <JansetSdl2CorePackageVersion Condition="'$(JansetSdl2CorePackageVersion)' == ''">0.0.0-package-consumer</JansetSdl2CorePackageVersion>
-    <JansetSdl2ImagePackageVersion Condition="'$(JansetSdl2ImagePackageVersion)' == ''">0.0.0-package-consumer</JansetSdl2ImagePackageVersion>
-
-    <!-- Local folder feed (4 levels up to repo root). -->
-    <LocalPackageFeed Condition="'$(LocalPackageFeed)' == ''">$(MSBuildThisFileDirectory)..\..\..\..\artifacts\packages</LocalPackageFeed>
-    <RestoreAdditionalProjectSources>$(RestoreAdditionalProjectSources);$(LocalPackageFeed)</RestoreAdditionalProjectSources>
-
-    <!-- Same analyzer relaxation posture as Build.Tests (test-shaped code). -->
-    <NoWarn>$(NoWarn);CA1050;CA1515;CA1707;CA1806;CA2007;MA0045;MA0047;MA0051;S4144;S2699</NoWarn>
-    <NoError>$(NoError);CA1050;CA1515;CA1707;CA1806;CA2007;MA0045;MA0047;MA0051;S4144;S2699</NoError>
-
-    <IsAotCompatible>false</IsAotCompatible>
-    <IsTrimmable>false</IsTrimmable>
-    <EnableAOTAnalyzer>false</EnableAOTAnalyzer>
   </PropertyGroup>
 
   <ItemGroup>
     <!--
-      Consume packages from the local feed. VersionOverride is the CPM-idiomatic way
-      (vs project-local <PackageVersion> which is a gray-area pattern).
+      Consume packages from the local feed. VersionOverride drives per-family version
+      properties declared in Janset.Smoke.props; Cake injects the real values at runtime.
     -->
     <PackageReference Include="Janset.SDL2.Core" VersionOverride="$(JansetSdl2CorePackageVersion)" />
     <PackageReference Include="Janset.SDL2.Image" VersionOverride="$(JansetSdl2ImagePackageVersion)" />
+    <PackageReference Include="Janset.SDL2.Mixer" VersionOverride="$(JansetSdl2MixerPackageVersion)" />
+    <PackageReference Include="Janset.SDL2.Ttf" VersionOverride="$(JansetSdl2TtfPackageVersion)" />
+    <PackageReference Include="Janset.SDL2.Gfx" VersionOverride="$(JansetSdl2GfxPackageVersion)" />
     <PackageReference Include="TUnit" />
 
     <!-- PolySharp: source-only polyfills for modern C# attributes (ModuleInitializerAttribute,
@@ -48,8 +41,9 @@
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
   </ItemGroup>
 
-  <Target Name="_GuardPackageConsumerInputs" BeforeTargets="Restore;Build">
-    <Error Text="PackageConsumer.Smoke requires -p:JansetSdl2CorePackageVersion=[semver]. Run via Cake PostFlight." Condition="'$(JansetSdl2CorePackageVersion)' == '0.0.0-package-consumer'" />
-    <Error Text="PackageConsumer.Smoke requires -p:JansetSdl2ImagePackageVersion=[semver]. Run via Cake PostFlight." Condition="'$(JansetSdl2ImagePackageVersion)' == '0.0.0-package-consumer'" />
-  </Target>
+  <ItemGroup>
+    <None Include="..\..\..\..\assets\janset2d-sdl-min.png"
+          Link="TestAssets\janset2d-sdl-min.png"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

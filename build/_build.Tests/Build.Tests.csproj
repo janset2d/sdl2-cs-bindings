@@ -23,4 +23,9 @@
     <PackageReference Include="NSubstitute" />
     <PackageReference Include="Cake.Testing" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- Canonical fixture data shipped alongside tests. Loaded by ManifestConfigSeeder.FromDefaultFixture(). -->
+    <None Update="Fixtures\Data\**\*.*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

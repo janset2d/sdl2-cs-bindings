@@ -139,4 +139,81 @@ public sealed class PathService : IPathService
     {
         return BuildDir.CombineWithFilePath("coverage-baseline.json");
     }
+
+    public DirectoryPath GetHarvestLibraryDir(string libraryName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(libraryName);
+        return HarvestOutput.Combine(libraryName);
+    }
+
+    public DirectoryPath GetHarvestLibraryRuntimesDir(string libraryName)
+    {
+        return GetHarvestLibraryDir(libraryName).Combine("runtimes");
+    }
+
+    public DirectoryPath GetHarvestLibraryRidRuntimesDir(string libraryName, string rid)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(rid);
+        return GetHarvestLibraryRuntimesDir(libraryName).Combine(rid);
+    }
+
+    public DirectoryPath GetHarvestLibraryLicensesDir(string libraryName)
+    {
+        return GetHarvestLibraryDir(libraryName).Combine("licenses");
+    }
+
+    public DirectoryPath GetHarvestLibraryRidLicensesDir(string libraryName, string rid)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(rid);
+        return GetHarvestLibraryLicensesDir(libraryName).Combine(rid);
+    }
+
+    public DirectoryPath GetHarvestLibraryConsolidatedLicensesDir(string libraryName)
+    {
+        return GetHarvestLibraryLicensesDir(libraryName).Combine("_consolidated");
+    }
+
+    public DirectoryPath GetHarvestLibraryConsolidatedLicensesTempDir(string libraryName)
+    {
+        return GetHarvestLibraryLicensesDir(libraryName).Combine("_consolidated.tmp");
+    }
+
+    public DirectoryPath GetHarvestLibraryRidStatusDir(string libraryName)
+    {
+        return GetHarvestLibraryDir(libraryName).Combine("rid-status");
+    }
+
+    public FilePath GetHarvestLibraryRidStatusFile(string libraryName, string rid)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(rid);
+        return GetHarvestLibraryRidStatusDir(libraryName).CombineWithFilePath($"{rid}.json");
+    }
+
+    public FilePath GetHarvestLibraryManifestFile(string libraryName)
+    {
+        return GetHarvestLibraryDir(libraryName).CombineWithFilePath("harvest-manifest.json");
+    }
+
+    public FilePath GetHarvestLibraryManifestTempFile(string libraryName)
+    {
+        return GetHarvestLibraryDir(libraryName).CombineWithFilePath("harvest-manifest.tmp.json");
+    }
+
+    public FilePath GetHarvestLibrarySummaryFile(string libraryName)
+    {
+        return GetHarvestLibraryDir(libraryName).CombineWithFilePath("harvest-summary.json");
+    }
+
+    public FilePath GetHarvestLibrarySummaryTempFile(string libraryName)
+    {
+        return GetHarvestLibraryDir(libraryName).CombineWithFilePath("harvest-summary.tmp.json");
+    }
+
+    public DirectoryPath SmokeTestsRoot => RepoRoot.Combine("tests").Combine("smoke-tests");
+
+    public FilePath PackageConsumerSmokeProject =>
+        SmokeTestsRoot.Combine("package-smoke").Combine("PackageConsumer.Smoke").CombineWithFilePath("PackageConsumer.Smoke.csproj");
+
+    public FilePath CompileSanityProject =>
+        SmokeTestsRoot.Combine("package-smoke").Combine("Compile.NetStandard").CombineWithFilePath("Compile.NetStandard.csproj");
 }

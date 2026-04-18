@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <!--
+    Shared smoke / consumer-project scaffolding for local-feed driven package consumption.
+    Imported by tests/smoke-tests/Directory.Build.props and (in the future) by
+    examples/Directory.Build.props, sandbox/Directory.Build.props, and any other consumer
+    project that consumes produced .nupkg files via a local folder feed.
+
+    Contract:
+    - $(LocalPackageFeed): absolute path to the folder feed containing produced .nupkg
+      files. Required — guarded by the _GuardSmokeLocalFeed target in Janset.Smoke.targets.
+      Cake's PackageConsumerSmokeRunner passes it via -p:LocalPackageFeed=...
+    - Per-family version properties: JansetSdl<Major><Role>PackageVersion. Default to the
+      $(JansetSmokeVersionSentinel) value so the guard catches missing inputs before
+      `dotnet restore` attempts to resolve an unbound version against the feed.
+    - SDL3 placeholders declared but inactive — makes the SDL3 roll-out a one-line csproj
+      change once SDL3 packages ship, rather than a sweep across every smoke project.
+
+    Authoring contract for new smoke / example / sandbox consumers:
+    1. Declare PackageReference Include="Janset.SDL<Major>.<Role>" VersionOverride="$(JansetSdl<Major><Role>PackageVersion)"
+       for every family the consumer uses.
+    2. Cake runner injects -p:JansetSdl<Major><Role>PackageVersion=<semver> per-referenced
+       family, plus -p:LocalPackageFeed=<absolute path to artifacts/packages>.
+    3. _GuardSmokeLocalFeed + _GuardSmokeVersionInputs fail fast if either is missing.
+  -->
+  <PropertyGroup>
+    <!-- LocalPackageFeed is required; guard enforces it in Janset.Smoke.targets. -->
+    <LocalPackageFeed Condition="'$(LocalPackageFeed)' == ''"></LocalPackageFeed>
+    <RestoreAdditionalProjectSources Condition="'$(LocalPackageFeed)' != ''">$(RestoreAdditionalProjectSources);$(LocalPackageFeed)</RestoreAdditionalProjectSources>
+
+    <!-- Sentinel used by Janset.Smoke.targets to detect unbound version inputs. -->
+    <JansetSmokeVersionSentinel>0.0.0-smoke-sentinel</JansetSmokeVersionSentinel>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- SDL2 family version properties. -->
+    <JansetSdl2CorePackageVersion Condition="'$(JansetSdl2CorePackageVersion)' == ''">$(JansetSmokeVersionSentinel)</JansetSdl2CorePackageVersion>
+    <JansetSdl2ImagePackageVersion Condition="'$(JansetSdl2ImagePackageVersion)' == ''">$(JansetSmokeVersionSentinel)</JansetSdl2ImagePackageVersion>
+    <JansetSdl2MixerPackageVersion Condition="'$(JansetSdl2MixerPackageVersion)' == ''">$(JansetSmokeVersionSentinel)</JansetSdl2MixerPackageVersion>
+    <JansetSdl2TtfPackageVersion Condition="'$(JansetSdl2TtfPackageVersion)' == ''">$(JansetSmokeVersionSentinel)</JansetSdl2TtfPackageVersion>
+    <JansetSdl2GfxPackageVersion Condition="'$(JansetSdl2GfxPackageVersion)' == ''">$(JansetSmokeVersionSentinel)</JansetSdl2GfxPackageVersion>
+    <JansetSdl2NetPackageVersion Condition="'$(JansetSdl2NetPackageVersion)' == ''">$(JansetSmokeVersionSentinel)</JansetSdl2NetPackageVersion>
+
+    <!-- SDL3 family placeholders (no packages ship yet; declared so consumers can opt in without editing this file). -->
+    <JansetSdl3CorePackageVersion Condition="'$(JansetSdl3CorePackageVersion)' == ''">$(JansetSmokeVersionSentinel)</JansetSdl3CorePackageVersion>
+    <JansetSdl3ImagePackageVersion Condition="'$(JansetSdl3ImagePackageVersion)' == ''">$(JansetSmokeVersionSentinel)</JansetSdl3ImagePackageVersion>
+    <JansetSdl3MixerPackageVersion Condition="'$(JansetSdl3MixerPackageVersion)' == ''">$(JansetSmokeVersionSentinel)</JansetSdl3MixerPackageVersion>
+    <JansetSdl3TtfPackageVersion Condition="'$(JansetSdl3TtfPackageVersion)' == ''">$(JansetSmokeVersionSentinel)</JansetSdl3TtfPackageVersion>
+    <JansetSdl3GfxPackageVersion Condition="'$(JansetSdl3GfxPackageVersion)' == ''">$(JansetSmokeVersionSentinel)</JansetSdl3GfxPackageVersion>
+    <JansetSdl3NetPackageVersion Condition="'$(JansetSdl3NetPackageVersion)' == ''">$(JansetSmokeVersionSentinel)</JansetSdl3NetPackageVersion>
+  </PropertyGroup>
+
+  <!--
+    Analyzer posture for smoke / probe code: same relaxations used by Build.Tests because
+    smoke projects are test-shaped (they intentionally contain probe-style no-op code,
+    test assertions that look unused to analyzers, etc.).
+  -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CA1050;CA1515;CA1707;CA1806;CA2007;MA0045;MA0047;MA0051;S4144;S2699</NoWarn>
+    <NoError>$(NoError);CA1050;CA1515;CA1707;CA1806;CA2007;MA0045;MA0047;MA0051;S4144;S2699</NoError>
+
+    <IsAotCompatible>false</IsAotCompatible>
+    <IsTrimmable>false</IsTrimmable>
+    <EnableAOTAnalyzer>false</EnableAOTAnalyzer>
+  </PropertyGroup>
+</Project>

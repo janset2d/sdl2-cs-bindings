@@ -161,7 +161,7 @@ Cake Frosting ConsolidateHarvestTask  (merge per-RID results)
     ↓
 harvest-manifest.json + harvest-summary.json
     ↓
-[PLANNED] Cake PackageTask → NuGet .nupkg files
+Cake PackageTask → NuGet .nupkg files (Phase 2a proof slice landed; broader matrix validation still pending)
     ↓
 [PLANNED] Publish to NuGet feed
 ```
@@ -174,19 +174,19 @@ harvest-manifest.json + harvest-summary.json
 | `vcpkg.json` | vcpkg dependency declarations + feature flags | What gets compiled by vcpkg |
 | `Directory.Build.props` | Target frameworks, analyzers, packaging metadata | .NET project-wide settings |
 
-> **Note:** `manifest.json` merges what were previously 3 separate files (`manifest.json`, `runtimes.json`, `system_artefacts.json`). If you see the separate files, the merge is in progress.
+> **Note:** `build/manifest.json` is the canonical merged configuration file. Legacy references to separate `runtimes.json` / `system_artefacts.json` files should be treated as stale historical context unless a doc explicitly says otherwise.
 
 ### Target Platforms
 
 | RID | vcpkg Triplet | Strategy | CI Runner | Container |
 | --- | --- | --- | --- | --- |
 | win-x64 | x64-windows-hybrid | hybrid-static | windows-latest | — |
-| win-x86 | x86-windows | pure-dynamic | windows-latest | — |
-| win-arm64 | arm64-windows | pure-dynamic | windows-latest | — |
+| win-x86 | x86-windows-hybrid | hybrid-static | windows-latest | — |
+| win-arm64 | arm64-windows-hybrid | hybrid-static | windows-latest | — |
 | linux-x64 | x64-linux-hybrid | hybrid-static | ubuntu-24.04 | ubuntu:20.04 |
-| linux-arm64 | arm64-linux-dynamic | pure-dynamic | ubuntu-24.04-arm | ubuntu:24.04 |
+| linux-arm64 | arm64-linux-hybrid | hybrid-static | ubuntu-24.04-arm | ubuntu:24.04 |
 | osx-x64 | x64-osx-hybrid | hybrid-static | macos-15-intel | — |
-| osx-arm64 | arm64-osx-dynamic | pure-dynamic | macos-latest | — |
+| osx-arm64 | arm64-osx-hybrid | hybrid-static | macos-latest | — |
 
 ## NuGet Package Topology
 
@@ -217,7 +217,7 @@ Users reference `Janset.SDL2.Core` (or the meta-package `Janset.SDL2`). The `.Na
 - Coverage ratchet gate: `Coverage-Check` task enforces the current static floor from `build/coverage-baseline.json`
 - GitHub Actions: Cross-platform native builds for Windows/Linux/macOS (manual trigger)
 - vcpkg: all SDL2 native ports (`sdl2`, `sdl2-image`, `sdl2-mixer`, `sdl2-ttf`, `sdl2-gfx`, `sdl2-net`) declared in working-tree config
-- Native packaging: `runtimes/{rid}/native/` structure for win-x64, win-arm64, linux-x64 (partial for other RIDs)
+- Native packaging: `PackageTask` + `PackageConsumerSmoke` are validated on the original proof slice (`win-x64`, `linux-x64`, `osx-x64`); the remaining four runtime rows now map to hybrid triplets but still need end-to-end package/smoke validation
 - `buildTransitive` MSBuild targets for .NET Framework compatibility
 
 ## What Doesn't Work Yet
@@ -226,7 +226,7 @@ Users reference `Janset.SDL2.Core` (or the meta-package `Janset.SDL2`). The `.Na
 - SDL2.Ttf.Native: Placeholder only (no binaries)
 - SDL2.Mixer.Native: Only win-x64 has full codec dependencies
 - Release Candidate Pipeline: Largely stub/placeholder
-- Cake PackageTask: Not implemented (harvest → NuGet .nupkg step missing)
+- Cake PackageTask: Landed for the Phase 2a proof slice; broader 7-RID package/smoke coverage is still pending
 - NuGet publishing: Neither internal nor public feed configured
 - Broader product/runtime smoke tests and sample coverage are still missing; the build-host suite exists, but package-consumer and end-to-end validation work remains ahead
 - Samples: Empty directory

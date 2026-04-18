@@ -1,0 +1,76 @@
+{
+  "schema_version": "2.1",
+
+  "packaging_config": {
+    "validation_mode": "Strict",
+    "core_library": "sdl2"
+  },
+
+  "runtimes": [
+    {
+      "rid": "win-x64",
+      "triplet": "x64-windows-hybrid",
+      "strategy": "hybrid-static",
+      "runner": "windows-latest",
+      "container_image": null
+    }
+  ],
+
+  "package_families": [
+    {
+      "name": "sdl2-core",
+      "tag_prefix": "sdl2-core",
+      "managed_project": "src/SDL2.Core/SDL2.Core.csproj",
+      "native_project": "src/native/SDL2.Core.Native/SDL2.Core.Native.csproj",
+      "library_ref": "SDL2",
+      "depends_on": [],
+      "change_paths": ["src/SDL2.Core/**", "src/native/SDL2.Core.Native/**"]
+    },
+    {
+      "name": "sdl2-image",
+      "tag_prefix": "sdl2-image",
+      "managed_project": "src/SDL2.Image/SDL2.Image.csproj",
+      "native_project": "src/native/SDL2.Image.Native/SDL2.Image.Native.csproj",
+      "library_ref": "SDL2_image",
+      "depends_on": ["sdl2-core"],
+      "change_paths": ["src/SDL2.Image/**", "src/native/SDL2.Image.Native/**"]
+    }
+  ],
+
+  "system_exclusions": {
+    "windows": { "system_dlls": ["kernel32.dll"] },
+    "linux": { "system_libraries": ["libc.so*"] },
+    "osx": { "system_libraries": ["libSystem.B.dylib"] }
+  },
+
+  "library_manifests": [
+    {
+      "name": "SDL2",
+      "vcpkg_name": "sdl2",
+      "vcpkg_version": "2.32.10",
+      "vcpkg_port_version": 0,
+      "native_lib_name": "SDL2.Core.Native",
+      "native_lib_version": "2.32.10.0",
+      "core_lib": true,
+      "primary_binaries": [
+        { "os": "Windows", "patterns": ["SDL2.dll"] },
+        { "os": "Linux", "patterns": ["libSDL2*"] },
+        { "os": "OSX", "patterns": ["libSDL2*.dylib"] }
+      ]
+    },
+    {
+      "name": "SDL2_image",
+      "vcpkg_name": "sdl2-image",
+      "vcpkg_version": "2.8.8",
+      "vcpkg_port_version": 2,
+      "native_lib_name": "SDL2.Image.Native",
+      "native_lib_version": "2.8.8.0",
+      "core_lib": false,
+      "primary_binaries": [
+        { "os": "Windows", "patterns": ["SDL2_image.dll"] },
+        { "os": "Linux", "patterns": ["libSDL2_image*"] },
+        { "os": "OSX", "patterns": ["libSDL2_image*.dylib"] }
+      ]
+    }
+  ]
+}

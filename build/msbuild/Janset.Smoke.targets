@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <!--
+    Guards for smoke / consumer projects. Fires before Restore and Build to catch unbound
+    version inputs and missing local-feed configuration before `dotnet` actually tries to
+    resolve them against real NuGet sources.
+
+    Depends on properties declared in Janset.Smoke.props. Each version-property guard is
+    conditional on the consumer actually referencing the corresponding package — a project
+    that only references Janset.SDL2.Core should not need a version for sdl2-image.
+
+    See also: docs/playbook/cross-platform-smoke-validation.md (Authoring new smoke
+    projects) for the full consumer contract.
+  -->
+  <Target Name="_GuardSmokeLocalFeed" BeforeTargets="Restore;Build">
+    <Error
+      Code="JNSMK001"
+      Text="Smoke projects require -p:LocalPackageFeed=[absolute path] supplied by the Cake orchestrator (PackageConsumerSmokeRunner). Invoke via Cake PostFlight / PackageConsumerSmoke; do not run dotnet build/test directly against a smoke csproj."
+      Condition="'$(LocalPackageFeed)' == ''" />
+  </Target>
+
+  <Target Name="_GuardSmokeVersionInputs"
+          BeforeTargets="Restore;Build"
+          DependsOnTargets="_GuardSmokeLocalFeed">
+    <!--
+      SDL2 family guards: each fires only if the consumer has declared a PackageReference
+      to the corresponding Janset.SDL2.<Role> package AND the version property is still the
+      sentinel (i.e., Cake never injected a real version). Iterating PackageReference items
+      keeps the check scoped to what the consumer actually uses.
+    -->
+    <Error
+      Code="JNSMK002"
+      Text="Smoke project references Janset.SDL2.Core but -p:JansetSdl2CorePackageVersion was not supplied (still at sentinel '$(JansetSmokeVersionSentinel)')."
+      Condition="'$(JansetSdl2CorePackageVersion)' == '$(JansetSmokeVersionSentinel)' And @(PackageReference-&gt;WithMetadataValue('Identity','Janset.SDL2.Core')-&gt;Count()) != 0" />
+
+    <Error
+      Code="JNSMK003"
+      Text="Smoke project references Janset.SDL2.Image but -p:JansetSdl2ImagePackageVersion was not supplied (still at sentinel '$(JansetSmokeVersionSentinel)')."
+      Condition="'$(JansetSdl2ImagePackageVersion)' == '$(JansetSmokeVersionSentinel)' And @(PackageReference-&gt;WithMetadataValue('Identity','Janset.SDL2.Image')-&gt;Count()) != 0" />
+
+    <Error
+      Code="JNSMK004"
+      Text="Smoke project references Janset.SDL2.Mixer but -p:JansetSdl2MixerPackageVersion was not supplied (still at sentinel '$(JansetSmokeVersionSentinel)')."
+      Condition="'$(JansetSdl2MixerPackageVersion)' == '$(JansetSmokeVersionSentinel)' And @(PackageReference-&gt;WithMetadataValue('Identity','Janset.SDL2.Mixer')-&gt;Count()) != 0" />
+
+    <Error
+      Code="JNSMK005"
+      Text="Smoke project references Janset.SDL2.Ttf but -p:JansetSdl2TtfPackageVersion was not supplied (still at sentinel '$(JansetSmokeVersionSentinel)')."
+      Condition="'$(JansetSdl2TtfPackageVersion)' == '$(JansetSmokeVersionSentinel)' And @(PackageReference-&gt;WithMetadataValue('Identity','Janset.SDL2.Ttf')-&gt;Count()) != 0" />
+
+    <Error
+      Code="JNSMK006"
+      Text="Smoke project references Janset.SDL2.Gfx but -p:JansetSdl2GfxPackageVersion was not supplied (still at sentinel '$(JansetSmokeVersionSentinel)')."
+      Condition="'$(JansetSdl2GfxPackageVersion)' == '$(JansetSmokeVersionSentinel)' And @(PackageReference-&gt;WithMetadataValue('Identity','Janset.SDL2.Gfx')-&gt;Count()) != 0" />
+
+    <Error
+      Code="JNSMK007"
+      Text="Smoke project references Janset.SDL2.Net but -p:JansetSdl2NetPackageVersion was not supplied (still at sentinel '$(JansetSmokeVersionSentinel)')."
+      Condition="'$(JansetSdl2NetPackageVersion)' == '$(JansetSmokeVersionSentinel)' And @(PackageReference-&gt;WithMetadataValue('Identity','Janset.SDL2.Net')-&gt;Count()) != 0" />
+
+    <!--
+      SDL3 family guards — complete parity with SDL2 JNSMK002-007 so the first time
+      an SDL3 PackageReference lands in a smoke csproj, the guard layer is already
+      covering it. Missing even one guard here would silently accept a sentinel version
+      for the corresponding package until the underlying restore failure surfaces.
+    -->
+    <Error
+      Code="JNSMK101"
+      Text="Smoke project references Janset.SDL3.Core but -p:JansetSdl3CorePackageVersion was not supplied (still at sentinel '$(JansetSmokeVersionSentinel)')."
+      Condition="'$(JansetSdl3CorePackageVersion)' == '$(JansetSmokeVersionSentinel)' And @(PackageReference-&gt;WithMetadataValue('Identity','Janset.SDL3.Core')-&gt;Count()) != 0" />
+
+    <Error
+      Code="JNSMK102"
+      Text="Smoke project references Janset.SDL3.Image but -p:JansetSdl3ImagePackageVersion was not supplied (still at sentinel '$(JansetSmokeVersionSentinel)')."
+      Condition="'$(JansetSdl3ImagePackageVersion)' == '$(JansetSmokeVersionSentinel)' And @(PackageReference-&gt;WithMetadataValue('Identity','Janset.SDL3.Image')-&gt;Count()) != 0" />
+
+    <Error
+      Code="JNSMK103"
+      Text="Smoke project references Janset.SDL3.Mixer but -p:JansetSdl3MixerPackageVersion was not supplied (still at sentinel '$(JansetSmokeVersionSentinel)')."
+      Condition="'$(JansetSdl3MixerPackageVersion)' == '$(JansetSmokeVersionSentinel)' And @(PackageReference-&gt;WithMetadataValue('Identity','Janset.SDL3.Mixer')-&gt;Count()) != 0" />
+
+    <Error
+      Code="JNSMK104"
+      Text="Smoke project references Janset.SDL3.Ttf but -p:JansetSdl3TtfPackageVersion was not supplied (still at sentinel '$(JansetSmokeVersionSentinel)')."
+      Condition="'$(JansetSdl3TtfPackageVersion)' == '$(JansetSmokeVersionSentinel)' And @(PackageReference-&gt;WithMetadataValue('Identity','Janset.SDL3.Ttf')-&gt;Count()) != 0" />
+
+    <Error
+      Code="JNSMK105"
+      Text="Smoke project references Janset.SDL3.Gfx but -p:JansetSdl3GfxPackageVersion was not supplied (still at sentinel '$(JansetSmokeVersionSentinel)')."
+      Condition="'$(JansetSdl3GfxPackageVersion)' == '$(JansetSmokeVersionSentinel)' And @(PackageReference-&gt;WithMetadataValue('Identity','Janset.SDL3.Gfx')-&gt;Count()) != 0" />
+
+    <Error
+      Code="JNSMK106"
+      Text="Smoke project references Janset.SDL3.Net but -p:JansetSdl3NetPackageVersion was not supplied (still at sentinel '$(JansetSmokeVersionSentinel)')."
+      Condition="'$(JansetSdl3NetPackageVersion)' == '$(JansetSmokeVersionSentinel)' And @(PackageReference-&gt;WithMetadataValue('Identity','Janset.SDL3.Net')-&gt;Count()) != 0" />
+  </Target>
+</Project>

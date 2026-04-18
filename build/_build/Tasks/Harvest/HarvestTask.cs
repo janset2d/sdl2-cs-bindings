@@ -1,6 +1,7 @@
 ﻿using Build.Context;
 using Build.Context.Models;
 using Build.Modules.Contracts;
+using Build.Modules.Harvesting;
 using Build.Modules.Harvesting.Models;
 using Build.Modules.Harvesting.Results;
 using Build.Modules.Results;
@@ -33,20 +34,14 @@ public sealed class HarvestTask(
     private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
     private readonly IRuntimeProfile _runtimeProfile = runtimeProfile ?? throw new ArgumentNullException(nameof(runtimeProfile));
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        WriteIndented = true,
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-    };
+    private static JsonSerializerOptions JsonOptions => HarvestJsonContract.Options;
 
     public override async Task RunAsync(BuildContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
         var outputBase = context.Paths.HarvestOutput;
-
-        context.Log.Verbose("Cleaning harvest output directory: {0}", outputBase);
-        context.CleanDirectory(outputBase);
+        context.EnsureDirectoryExists(outputBase);
 
         var librariesToHarvest = ResolveLibrariesToHarvest(context);
 
@@ -98,6 +93,7 @@ public sealed class HarvestTask(
         ArgumentNullException.ThrowIfNull(outputBase);
 
         AnsiConsole.Write(new Rule($"[yellow]Harvest: {manifest.Name}[/]").RuleStyle("grey"));
+        PrepareLibraryOutputForCurrentRid(context, manifest, outputBase);
 
         try
         {
@@ -120,6 +116,112 @@ public sealed class HarvestTask(
         {
             await HandleOperationalHarvestFailureAsync(context, manifest, outputBase, ex);
             throw;
+        }
+    }
+
+    private void PrepareLibraryOutputForCurrentRid(BuildContext context, LibraryManifest manifest, DirectoryPath outputBase)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(manifest);
+        ArgumentNullException.ThrowIfNull(outputBase);
+
+        // outputBase remains in the signature for parity with the historical call site,
+        // but all path construction now goes through IPathService so the layout is governed
+        // in one place. PathService roots under context.Paths.HarvestOutput — same dir.
+        CleanCurrentRidPayload(context, manifest);
+        InvalidateCrossRidReceipts(context, manifest);
+    }
+
+    private void CleanCurrentRidPayload(BuildContext context, LibraryManifest manifest)
+    {
+        var paths = context.Paths;
+        var currentRidRuntimeRoot = paths.GetHarvestLibraryRidRuntimesDir(manifest.Name, _runtimeProfile.Rid);
+        var currentRidStatusFile = paths.GetHarvestLibraryRidStatusFile(manifest.Name, _runtimeProfile.Rid);
+        // Post-H1 (2026-04-18): license cleanup is RID-scoped to match the RID-scoped deployment
+        // layout written by ArtifactPlanner. Sibling RIDs keep their license evidence intact;
+        // cross-RID consolidation belongs to ConsolidateHarvestTask, not Harvest's per-RID run.
+        var currentRidLicenseRoot = paths.GetHarvestLibraryRidLicensesDir(manifest.Name, _runtimeProfile.Rid);
+
+        if (context.DirectoryExists(currentRidRuntimeRoot))
+        {
+            context.Log.Verbose("Cleaning existing harvest payload for {0}/{1}: {2}", manifest.Name, _runtimeProfile.Rid, currentRidRuntimeRoot);
+            context.DeleteDirectory(currentRidRuntimeRoot, new DeleteDirectorySettings { Recursive = true, Force = true });
+        }
+
+        if (context.FileExists(currentRidStatusFile))
+        {
+            context.Log.Verbose("Deleting existing harvest RID status for {0}/{1}: {2}", manifest.Name, _runtimeProfile.Rid, currentRidStatusFile);
+            context.DeleteFile(currentRidStatusFile);
+        }
+
+        if (context.DirectoryExists(currentRidLicenseRoot))
+        {
+            context.Log.Verbose("Refreshing harvest license payload for {0}/{1}: {2}", manifest.Name, _runtimeProfile.Rid, currentRidLicenseRoot);
+            context.DeleteDirectory(currentRidLicenseRoot, new DeleteDirectorySettings { Recursive = true, Force = true });
+        }
+    }
+
+    /// <summary>
+    /// H1 invalidation: any Harvest re-run can change the successful-RID set OR the per-RID
+    /// license evidence, so the cross-RID receipts produced by ConsolidateHarvestTask
+    /// (licenses/_consolidated/, harvest-manifest.json, harvest-summary.json) are always
+    /// stale after Harvest touches this library. Deleting them here turns the implicit
+    /// dependency into an explicit invalidation — Package's gate will fail until
+    /// ConsolidateHarvest regenerates the receipts. Skipping this would let a stale
+    /// receipt authorize a pack against empty licenses/_consolidated/, silently dropping
+    /// attribution.
+    /// <para>
+    /// Also cleans up the *.tmp/ and *.tmp.json artifacts that ConsolidateHarvestTask uses
+    /// for its staged-replace swap. If Consolidate crashed mid-flight on a previous run,
+    /// those orphans survive into the next cycle; cleaning them here prevents accumulated
+    /// noise + guarantees Consolidate starts from a clean slate for the staged-replace
+    /// pattern to work correctly.
+    /// </para>
+    /// </summary>
+    private static void InvalidateCrossRidReceipts(BuildContext context, LibraryManifest manifest)
+    {
+        var paths = context.Paths;
+
+        var consolidatedLicenseRoot = paths.GetHarvestLibraryConsolidatedLicensesDir(manifest.Name);
+        if (context.DirectoryExists(consolidatedLicenseRoot))
+        {
+            context.Log.Verbose("Invalidating consolidated license payload for {0}: {1}", manifest.Name, consolidatedLicenseRoot);
+            context.DeleteDirectory(consolidatedLicenseRoot, new DeleteDirectorySettings { Recursive = true, Force = true });
+        }
+
+        var consolidatedTempRoot = paths.GetHarvestLibraryConsolidatedLicensesTempDir(manifest.Name);
+        if (context.DirectoryExists(consolidatedTempRoot))
+        {
+            context.Log.Verbose("Cleaning orphan consolidated-tmp for {0}: {1}", manifest.Name, consolidatedTempRoot);
+            context.DeleteDirectory(consolidatedTempRoot, new DeleteDirectorySettings { Recursive = true, Force = true });
+        }
+
+        var harvestManifestFile = paths.GetHarvestLibraryManifestFile(manifest.Name);
+        if (context.FileExists(harvestManifestFile))
+        {
+            context.Log.Verbose("Invalidating stale harvest manifest for {0}: {1}", manifest.Name, harvestManifestFile);
+            context.DeleteFile(harvestManifestFile);
+        }
+
+        var harvestManifestTempFile = paths.GetHarvestLibraryManifestTempFile(manifest.Name);
+        if (context.FileExists(harvestManifestTempFile))
+        {
+            context.Log.Verbose("Cleaning orphan harvest-manifest-tmp for {0}: {1}", manifest.Name, harvestManifestTempFile);
+            context.DeleteFile(harvestManifestTempFile);
+        }
+
+        var harvestSummaryFile = paths.GetHarvestLibrarySummaryFile(manifest.Name);
+        if (context.FileExists(harvestSummaryFile))
+        {
+            context.Log.Verbose("Invalidating stale harvest summary for {0}: {1}", manifest.Name, harvestSummaryFile);
+            context.DeleteFile(harvestSummaryFile);
+        }
+
+        var harvestSummaryTempFile = paths.GetHarvestLibrarySummaryTempFile(manifest.Name);
+        if (context.FileExists(harvestSummaryTempFile))
+        {
+            context.Log.Verbose("Cleaning orphan harvest-summary-tmp for {0}: {1}", manifest.Name, harvestSummaryTempFile);
+            context.DeleteFile(harvestSummaryTempFile);
         }
     }
 
@@ -146,8 +248,26 @@ public sealed class HarvestTask(
         var copierResult = await _artifactDeployer.DeployArtifactsAsync(plannerResult.DeploymentPlan);
         copierResult.OnError(e => LogAndThrow("Artifact copying", e, context.Log, manifest.Name));
 
-        await GenerateRidStatusFileAsync(context, manifest, plannerResult.DeploymentPlan.Statistics, outputBase);
-        return plannerResult.DeploymentPlan.Statistics;
+        var statistics = plannerResult.DeploymentPlan.Statistics;
+
+        // G1 post-harvest invariant: a successful harvest must have produced at least one
+        // primary binary. Defence-in-depth for the case where the walker and planner each
+        // returned OK-shaped results but the resolved primary set ended up empty (silent
+        // feature-flag degradation, partial vcpkg install, etc.). BinaryClosureWalker is
+        // the primary guard, but this post-check ensures no downstream consumer ingests a
+        // rid-status=true with zero primaries.
+        if (statistics.PrimaryFiles.Count == 0)
+        {
+            var message =
+                $"Harvest produced zero primary binaries for '{manifest.Name}' on {_runtimeProfile.Rid} " +
+                $"(triplet '{_runtimeProfile.Triplet}'). Closure walker and planner returned success but " +
+                "no primary files were deployed. Inspect vcpkg install output and manifest primary_binaries patterns.";
+            context.Log.Error(message);
+            throw new CakeException(message);
+        }
+
+        await GenerateRidStatusFileAsync(context, manifest, statistics, outputBase);
+        return statistics;
     }
 
     private static void DisplayHarvestReportSummary(DeploymentStatistics stats)
@@ -391,7 +511,7 @@ public sealed class HarvestTask(
 
         try
         {
-            var ridStatusDir = outputBase.Combine(manifest.Name).Combine("rid-status");
+            var ridStatusDir = context.Paths.GetHarvestLibraryRidStatusDir(manifest.Name);
             context.EnsureDirectoryExists(ridStatusDir);
 
             var ridStatus = new RidHarvestStatus
@@ -413,8 +533,7 @@ public sealed class HarvestTask(
                 },
             };
 
-            var statusFileName = $"{_runtimeProfile.Rid}.json";
-            var statusFilePath = ridStatusDir.CombineWithFilePath(statusFileName);
+            var statusFilePath = context.Paths.GetHarvestLibraryRidStatusFile(manifest.Name, _runtimeProfile.Rid);
 
             var jsonContent = JsonSerializer.Serialize(ridStatus, JsonOptions);
             await context.WriteAllTextAsync(statusFilePath, jsonContent);
@@ -442,7 +561,7 @@ public sealed class HarvestTask(
 
         try
         {
-            var ridStatusDir = outputBase.Combine(manifest.Name).Combine("rid-status");
+            var ridStatusDir = context.Paths.GetHarvestLibraryRidStatusDir(manifest.Name);
             context.EnsureDirectoryExists(ridStatusDir);
 
             var ridStatus = new RidHarvestStatus
@@ -456,8 +575,7 @@ public sealed class HarvestTask(
                 Statistics = null,
             };
 
-            var statusFileName = $"{_runtimeProfile.Rid}.json";
-            var statusFilePath = ridStatusDir.CombineWithFilePath(statusFileName);
+            var statusFilePath = context.Paths.GetHarvestLibraryRidStatusFile(manifest.Name, _runtimeProfile.Rid);
 
             var jsonContent = JsonSerializer.Serialize(ridStatus, JsonOptions);
             await context.WriteAllTextAsync(statusFilePath, jsonContent);

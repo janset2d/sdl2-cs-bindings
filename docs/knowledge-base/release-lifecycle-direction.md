@@ -2,7 +2,7 @@
 
 > **Status:** Canonical — locked policy decisions. Tool-specific implementation choices (marked as *current tooling* notes) are non-normative and may evolve without changing the policy.
 >
-> **Last updated:** 2026-04-17 (S1 adoption — within-family exact-pin retired in favor of SkiaSharp-style minimum range; see §4 Drift Protection Model and Tradeoff 5)
+> **Last updated:** 2026-04-18 (PA-1 closure + PA-2 mechanism landing; see §4 validation state and §5 CI matrix model)
 >
 > **Research basis:** Four independent research efforts converged on these conclusions:
 >
@@ -158,7 +158,7 @@ Within-family consistency is guaranteed at **orchestration time**, not at consum
 2. **Post-pack validator** (Stream D-local) asserts that both emitted `.nupkg` files declare the same `<version>` element and that the managed nuspec contains the expected `>=` dependency on the native. Runs before any artifact leaves the build host. **State 2026-04-17:** Validator is `PackageOutputValidator` in `Modules/Packaging/`, returns a Result-pattern `PackageValidationResult` that accumulates every guardrail observation (G21 minimum-range, G22 per-TFM consistency, G23 within-family version match, G25 symbol package validity, G26 repository commit, G27 canonical metadata, G47 `buildTransitive/` contract presence, G48 per-RID native payload shape) into a single `PackageValidation` aggregate — operators see the full failure set on a failed pack, not first-throw-wins.
 3. **Release train ordering** (§2) ensures that whenever both members of a family reach the internal feed, they do so as a coherent set within the same release wave.
 
-**Validation state as of 2026-04-17:** D-local has been 3-platform validated end to end for the Phase 2a proof slice (`sdl2-core` + `sdl2-image`) on the three hybrid-static RIDs (`win-x64`, `linux-x64`, `osx-x64`). See [`playbook/cross-platform-smoke-validation.md`](../playbook/cross-platform-smoke-validation.md) for the exact checkpoint results and command reproducibility. Pure-dynamic RIDs (`win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64`) are declaratively coherent per PreFlight but have not been packed or consumer-smoked under the post-S1 guardrail set — that work is Phase 2b and blocks on PA-2 (hybrid overlay triplet expansion) or an explicit decision to keep pure-dynamic as a fallback with real behavioral validation. See [phases/phase-2-adaptation-plan.md "Strategy State Audit"](../phases/phase-2-adaptation-plan.md) for the interface-level gap analysis.
+**Validation state as of 2026-04-18:** D-local has been 3-platform validated end to end for the Phase 2a proof slice (`sdl2-core` + `sdl2-image`) on the three original hybrid-static RIDs (`win-x64`, `linux-x64`, `osx-x64`). PA-2 landed the missing four overlay triplets on 2026-04-18 and moved all 7 manifest runtime rows to `hybrid-static`, so the config is now coherent for a 7/7 hybrid allocation. That does **not** mean the four newly-covered rows (`win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64`) have been packed or consumer-smoked under the post-S1 guardrail set yet — that behavioral coverage remains Phase 2b work. See [`playbook/cross-platform-smoke-validation.md`](../playbook/cross-platform-smoke-validation.md) for the exact checkpoint results and command reproducibility, and see [phases/phase-2-adaptation-plan.md "Strategy State Audit"](../phases/phase-2-adaptation-plan.md) for the interface-level gap analysis.
 
 Consumer-side, the `>=` contract means a consumer who manually pulled mismatched family members would succeed (within SemVer compatibility) — matching industry expectations and the SkiaSharp precedent. Mismatched distribution is prevented at release time, not at consumer-side resolution.
 
@@ -194,6 +194,8 @@ The meta-package pins a **deterministic known-good combination** using exact ver
 ```
 
 The matrix is **not** library × RID (that would be 42 jobs duplicating vcpkg installs). It is RID-only, with per-library work inside each job.
+
+PA-1 closed on 2026-04-18: Stream C keeps the RID-only model. `strategy` remains metadata on each runtime row in `manifest.json`; it is not promoted to a separate matrix axis. Supporting analysis: [`ci-matrix-strategy-review-2026-04-17.md`](../research/ci-matrix-strategy-review-2026-04-17.md).
 
 ### Matrix Generation
 

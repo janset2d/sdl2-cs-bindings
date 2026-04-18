@@ -71,10 +71,18 @@
           PackagePath="runtimes/%(RecursiveDir)$(PackageId).tar.gz" />
   </ItemGroup>
 
+  <!--
+    Licenses: consumed from the consolidated output produced by ConsolidateHarvestTask
+    (licenses/_consolidated/{package}/{file}). Per-RID evidence lives at
+    licenses/{rid}/{package}/{file} but is raw input; the nupkg ships the deduplicated
+    union. LinkBase + %(Link) strips the _consolidated/ segment from the pack path so
+    consumers see a flat licenses/{package}/{file} layout.
+  -->
   <ItemGroup Condition="'$(NativePayloadSource)' != ''">
-    <Content Include="$(NativePayloadSource)/licenses/**/*"
+    <Content Include="$(NativePayloadSource)/licenses/_consolidated/**/*"
              Pack="true"
-             PackagePath="licenses" />
+             LinkBase="licenses/_consolidated"
+             PackagePath="licenses/%(Link)" />
   </ItemGroup>
 
   <!--

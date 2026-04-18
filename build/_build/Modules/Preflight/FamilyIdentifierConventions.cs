@@ -81,6 +81,22 @@ public static class FamilyIdentifierConventions
         return manifestTagPrefix + "-";
     }
 
+    /// <summary>
+    /// Returns the canonical MSBuild property name carrying the consumer-side version of a
+    /// family's managed package. Consumed by the shared smoke-test MSBuild props + the
+    /// <c>PackageConsumerSmokeRunner</c> when injecting <c>-p:...=&lt;version&gt;</c> into
+    /// dotnet invocations.
+    /// </summary>
+    /// <remarks>
+    /// Convention: <c>Janset.SDL&lt;Major&gt;.&lt;Role&gt;</c> → <c>JansetSdl&lt;Major&gt;&lt;Role&gt;PackageVersion</c>.
+    /// Example: <c>sdl2-core</c> → <c>JansetSdl2CorePackageVersion</c>.
+    /// </remarks>
+    public static string VersionPropertyName(string familyIdentifier)
+    {
+        var (sdlMajor, role) = Parse(familyIdentifier);
+        return string.Create(CultureInfo.InvariantCulture, $"JansetSdl{sdlMajor}{role}PackageVersion");
+    }
+
     private static string ToPascalCase(string value)
     {
         if (string.IsNullOrEmpty(value))

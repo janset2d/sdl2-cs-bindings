@@ -6,6 +6,7 @@ using Build.Modules;
 using Build.Modules.Coverage.Models;
 using Build.Modules.Contracts;
 using Build.Modules.Harvesting.Models;
+using Build.Tests.Fixtures.Seeders;
 using Cake.Core;
 using Cake.Core.Configuration;
 using Cake.Core.IO;
@@ -145,6 +146,18 @@ public sealed class FakeRepoBuilder
         ArgumentNullException.ThrowIfNull(content);
 
         WriteTextFile(ResolveFile(path), content);
+        return this;
+    }
+
+    /// <summary>
+    /// Applies a composable <see cref="IFixtureSeeder"/> onto this builder. Seeders are
+    /// production-shaped fixture helpers living under <c>Fixtures/Seeders/</c>. Chain multiple
+    /// seeders for multi-RID / multi-library fixtures without duplicating shape across tests.
+    /// </summary>
+    public FakeRepoBuilder Seed(IFixtureSeeder seeder)
+    {
+        ArgumentNullException.ThrowIfNull(seeder);
+        seeder.Apply(this);
         return this;
     }
 

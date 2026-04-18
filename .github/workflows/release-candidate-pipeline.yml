@@ -60,14 +60,14 @@ jobs:
           echo "force_build_strategy: ${{ github.event.inputs.force_build_strategy }}"
           echo "target_destination: ${{ github.event.inputs.target_destination }}"
           # Placeholder for actual script/tool. This script should:
-          # 1. Read manifest.json, runtimes.json, known-issues.json (if exists).
+          # 1. Read manifest.json (including runtime rows) and known-issues.json (if exists).
           # 2. Implement logic based on inputs.force_build_strategy:
           #    - 'auto-detect': Query internal feed (if target_destination='internal-feed'), filter by known-issues.
           #    - 'force-buildable': Filter by known-issues.
-          #    - 'force-everything': No filtering beyond manifest/runtimes.
-          # 3. Output a JSON array string for the matrix, e.g., '[{"library": "SDL2", "version": "2.32.4.0", "rid": "win-x64", "triplet": "x64-windows-release"}, ...]'
+          #    - 'force-everything': No filtering beyond manifest runtime rows.
+          # 3. Output a JSON array string for the matrix, e.g., '[{"library": "SDL2", "version": "2.32.4.0", "rid": "win-x64", "triplet": "x64-windows-hybrid"}, ...]'
           # 4. Output a boolean 'should_build' (true if matrix is not empty or force_build_strategy is not auto-detect)
-          echo "matrix=[{"library": "SDL2", "version": "2.32.4.0", "rid": "win-x64", "triplet": "x64-windows-release"}]" >> $GITHUB_OUTPUT
+          echo "matrix=[{"library": "SDL2", "version": "2.32.4.0", "rid": "win-x64", "triplet": "x64-windows-hybrid"}]" >> $GITHUB_OUTPUT
           echo "should_build=true" >> $GITHUB_OUTPUT # Default to true for now
 
       - name: Generate Build Plan Summary
@@ -83,7 +83,7 @@ jobs:
     name: Build & Harvest - ${{ matrix.library }} (${{ matrix.rid }})
     needs: pre_flight_check
     if: needs.pre_flight_check.outputs.should_build == 'true'
-    runs-on: ${{ matrix.runner }} # This will need to come from runtimes.json or be mapped
+    runs-on: ${{ matrix.runner }} # This will need to come from manifest.json or be mapped
     strategy:
       fail-fast: false # Continue other matrix jobs if one fails
       matrix: ${{ fromJson(needs.pre_flight_check.outputs.build_matrix) }} # Consumes output from pre_flight_check
@@ -93,12 +93,12 @@ jobs:
       #     - library: "SDL2"
       #       version: "2.32.4.0"
       #       rid: "win-x64"
-      #       triplet: "x64-windows-release"
+      #       triplet: "x64-windows-hybrid"
       #       runner: "windows-latest"
       #     - library: "SDL2"
       #       version: "2.32.4.0"
       #       rid: "linux-x64"
-      #       triplet: "x64-linux-dynamic"
+      #       triplet: "x64-linux-hybrid"
       #       runner: "ubuntu-latest"
 
     steps:
@@ -147,7 +147,7 @@ jobs:
 
   consolidate_harvest_artifacts:
     name: Consolidate Harvest Artifacts
-    needs: build_harvest_matrix # Runs after all matrix jobs complete (or those that didn't fail if fail-fast:true)
+    needs: [pre_flight_check, build_harvest_matrix] # Runs after pre-flight and all matrix jobs complete (or those that didn't fail if fail-fast:true)
     if: always() && needs.pre_flight_check.outputs.should_build == 'true' # always() ensures it runs to try and gather partial successes
     runs-on: ubuntu-latest
     steps:
@@ -213,7 +213,7 @@ jobs:
 
   package_and_publish_internal:
     name: Package & Publish Internally
-    needs: consolidate_harvest_artifacts
+    needs: [pre_flight_check, consolidate_harvest_artifacts]
     if: needs.pre_flight_check.outputs.should_build == 'true' # Only run if builds were attempted
     runs-on: ubuntu-latest # Or windows-latest if Cake Packager prefers
     steps:

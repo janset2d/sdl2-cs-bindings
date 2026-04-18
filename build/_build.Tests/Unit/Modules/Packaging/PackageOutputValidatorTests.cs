@@ -225,6 +225,24 @@ public sealed class PackageOutputValidatorTests
     }
 
     [Test]
+    public async Task Validate_Should_Fail_When_Native_Package_Has_No_License_Payload()
+    {
+        // G51: native package must ship at least one entry under licenses/. Last line of
+        // defence against the H1 failure mode — if upstream invalidation + gate are
+        // bypassed, this post-pack check catches a nupkg shipped without third-party
+        // attribution.
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
+        var family = GetFamily("sdl2-image");
+        var artifacts = CreateArtifacts(repo, family, "1.2.3", nativeIncludeLicensePayload: false);
+        var validator = new PackageOutputValidator(repo.FileSystem);
+
+        var result = await validator.ValidateAsync(family, artifacts, "1.2.3", ExpectedCommit, DefaultMetadata());
+
+        await Assert.That(result.IsError()).IsTrue();
+        await Assert.That(result.Validation.Checks.Any(check => check.Kind == PackageValidationCheckKind.LicensePayloadPresent && check.IsError)).IsTrue();
+    }
+
+    [Test]
     public async Task Validate_Should_Fail_When_Native_Package_Linux_Tarball_Has_Wrong_Name()
     {
         // G29: an archive named native.tar.gz (the pre-S1 shape) would collide with
@@ -292,6 +310,7 @@ public sealed class PackageOutputValidatorTests
         bool includeSymbols = true,
         bool nativeIncludeBuildTransitiveWrapper = true,
         bool nativeIncludeSharedCommonTargets = true,
+        bool nativeIncludeLicensePayload = true,
         string? nativeLinuxTarballFileName = null)
     {
         var managedPackageId = FamilyIdentifierConventions.ManagedPackageId(family.Name);
@@ -336,6 +355,13 @@ public sealed class PackageOutputValidatorTests
         if (nativeIncludeSharedCommonTargets)
         {
             nativeEntries.Add(("buildTransitive/Janset.SDL2.Native.Common.targets", "<Project />"));
+        }
+
+        if (nativeIncludeLicensePayload)
+        {
+            // G51: native package ships at least one third-party license entry. Default on
+            // so existing "happy-path" tests stay green; negative tests opt out explicitly.
+            nativeEntries.Add(("licenses/sdl2/copyright", "SDL2 zlib license text"));
         }
 
         nativeEntries.Add(("runtimes/win-x64/native/SDL2.dll", "win-x64-dll"));

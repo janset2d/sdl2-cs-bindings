@@ -111,6 +111,7 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton<IVersionConsistencyValidator, VersionConsistencyValidator>();
     services.AddSingleton<IStrategyResolver, StrategyResolver>();
     services.AddSingleton<IStrategyCoherenceValidator, StrategyCoherenceValidator>();
+    services.AddSingleton<ICoreLibraryIdentityValidator, CoreLibraryIdentityValidator>();
     services.AddSingleton<ICsprojPackContractValidator, CsprojPackContractValidator>();
     services.AddSingleton<IPreflightReporter, PreflightReporter>();
     services.AddSingleton<IPackageOutputValidator, PackageOutputValidator>();
@@ -128,7 +129,9 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
         var runtimeProfile = provider.GetRequiredService<IRuntimeProfile>();
         var strategyResolver = provider.GetRequiredService<IStrategyResolver>();
 
-        var coreLibraryName = manifest.PackagingConfig.CoreLibrary;
+        // Consume the single source of truth for core-library identity; G49 PreFlight
+        // enforces that manifest.CoreLibrary.VcpkgName agrees with PackagingConfig.CoreLibrary.
+        var coreLibraryName = manifest.CoreLibrary.VcpkgName;
 
         var runtime = runtimeConfig.Runtimes.SingleOrDefault(r => string.Equals(r.Rid, runtimeProfile.Rid, StringComparison.Ordinal))
             ?? throw new InvalidOperationException(

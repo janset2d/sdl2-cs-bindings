@@ -19,8 +19,10 @@
 #include <SDL2_gfxPrimitives.h>
 #include <SDL_image.h>
 #include <SDL_mixer.h>
-#include <SDL_net.h>
 #include <SDL_ttf.h>
+#ifdef SMOKE_INCLUDE_NET
+#include <SDL_net.h>
+#endif
 
 #include <stdio.h>
 #include <string.h>
@@ -47,8 +49,100 @@ static void test_fail(const char *name, const char *reason)
 #define CHECK(name, cond) \
     do { if (cond) test_ok(name); else test_fail(name, SDL_GetError()); } while(0)
 
+#define CHECK_REASON(name, cond, reason) \
+    do { if (cond) test_ok(name); else test_fail(name, reason); } while(0)
+
 #define CHECK_FLAG(name, result, flag) \
     do { if ((result) & (flag)) test_ok(name); else test_fail(name, SDL_GetError()); } while(0)
+
+static int contains_ignore_case(const char *text, const char *needle)
+{
+    size_t index = 0;
+    size_t needle_length = 0;
+
+    if (text == NULL || needle == NULL)
+    {
+        return 0;
+    }
+
+    needle_length = strlen(needle);
+    if (needle_length == 0)
+    {
+        return 1;
+    }
+
+    for (; text[index] != '\0'; index++)
+    {
+        size_t offset = 0;
+        while (offset < needle_length && text[index + offset] != '\0')
+        {
+            char left = text[index + offset];
+            char right = needle[offset];
+
+            if (left >= 'A' && left <= 'Z')
+            {
+                left = (char)(left - 'A' + 'a');
+            }
+
+            if (right >= 'A' && right <= 'Z')
+            {
+                right = (char)(right - 'A' + 'a');
+            }
+
+            if (left != right)
+            {
+                break;
+            }
+
+            offset++;
+        }
+
+        if (offset == needle_length)
+        {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+static int has_music_decoder(const char *expected_fragment)
+{
+    int decoder_index = 0;
+    int decoder_count = Mix_GetNumMusicDecoders();
+
+    for (decoder_index = 0; decoder_index < decoder_count; decoder_index++)
+    {
+        const char *decoder_name = Mix_GetMusicDecoder(decoder_index);
+        if (contains_ignore_case(decoder_name, expected_fragment))
+        {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+static SDL_Surface *load_png_fixture_surface(void)
+{
+    SDL_Surface *surface = NULL;
+    char *base_path = SDL_GetBasePath();
+
+    if (base_path != NULL)
+    {
+        char fixture_path[1024];
+        SDL_snprintf(fixture_path, sizeof(fixture_path), "%sjanset2d-sdl-min.png", base_path);
+        surface = IMG_Load(fixture_path);
+        SDL_free(base_path);
+
+        if (surface != NULL)
+        {
+            return surface;
+        }
+    }
+
+    return IMG_Load("janset2d-sdl-min.png");
+}
 
 /* ------------------------------------------------------------------ */
 /* SDL2 Core                                                           */
@@ -63,8 +157,8 @@ static void test_sdl2_core(void)
     SDL_SetHint(SDL_HINT_AUDIODRIVER, "dummy");
 #endif
 
-    int rc = SDL_Init(SDL_INIT_AUDIO | SDL_INIT_TIMER);
-    CHECK("SDL_Init(AUDIO|TIMER)", rc == 0);
+    int rc = SDL_Init(SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_VIDEO);
+    CHECK("SDL_Init(AUDIO|TIMER|VIDEO)", rc == 0);
 
     SDL_version ver;
     SDL_GetVersion(&ver);
@@ -90,28 +184,92 @@ static void test_sdl2_image(void)
 
     const SDL_version *img_ver = IMG_Linked_Version();
     printf("  SDL_image version: %d.%d.%d\n", img_ver->major, img_ver->minor, img_ver->patch);
+
+    {
+        SDL_Surface *png_surface = load_png_fixture_surface();
+        CHECK("IMG_Load PNG fixture", png_surface != NULL);
+        if (png_surface != NULL)
+        {
+            SDL_FreeSurface(png_surface);
+        }
+    }
 }
 
 /* ------------------------------------------------------------------ */
 /* SDL2_mixer — codec bitmask validation                               */
 /* ------------------------------------------------------------------ */
 
+static int dummy_audio_driver_present(void)
+{
+    int driver_count = SDL_GetNumAudioDrivers();
+    int index = 0;
+    for (index = 0; index < driver_count; index++)
+    {
+        const char *name = SDL_GetAudioDriver(index);
+        if (name != NULL && SDL_strcasecmp(name, "dummy") == 0)
+        {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 static void test_sdl2_mixer(void)
 {
     printf("\n=== SDL2_mixer ===\n");
 
-    int flags = MIX_INIT_OGG | MIX_INIT_OPUS | MIX_INIT_MP3 | MIX_INIT_MOD;
+    int flags = MIX_INIT_FLAC | MIX_INIT_MOD | MIX_INIT_MP3 | MIX_INIT_OGG | MIX_INIT_MID | MIX_INIT_OPUS | MIX_INIT_WAVPACK;
     int result = Mix_Init(flags);
 
+    CHECK_FLAG("Mix_Init: FLAC",       result, MIX_INIT_FLAC);
     CHECK_FLAG("Mix_Init: OGG Vorbis", result, MIX_INIT_OGG);
     CHECK_FLAG("Mix_Init: Opus",       result, MIX_INIT_OPUS);
     CHECK_FLAG("Mix_Init: MP3",        result, MIX_INIT_MP3);
     CHECK_FLAG("Mix_Init: MOD",        result, MIX_INIT_MOD);
+    CHECK_FLAG("Mix_Init: MIDI",       result, MIX_INIT_MID);
+    CHECK_FLAG("Mix_Init: WavPack",    result, MIX_INIT_WAVPACK);
 
-    /* FLAC and MIDI don't have Init flags — they're tested via Mix_LoadMUS at runtime */
+    /* Mix_OpenAudio in headless mode relies on SDL's dummy audio driver.
+       Some minimal Linux containers build SDL2 without any audio backend, in which case
+       dummy is not registered and Mix_OpenAudio fails with an opaque
+       "No such audio device" error. Assert the driver is present explicitly so the
+       failure mode is diagnosable when it happens on a new triplet. */
+    CHECK_REASON("SDL audio dummy driver registered",
+                 dummy_audio_driver_present(),
+                 "SDL2 was built without the dummy audio backend; Mix_OpenAudio will fail on this RID.");
+
+    {
+        int audio_rc = Mix_OpenAudio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, MIX_DEFAULT_CHANNELS, 1024);
+        CHECK("Mix_OpenAudio", audio_rc == 0);
+    }
 
     const SDL_version *mix_ver = Mix_Linked_Version();
     printf("  SDL_mixer version: %d.%d.%d\n", mix_ver->major, mix_ver->minor, mix_ver->patch);
+
+    {
+        int decoder_index = 0;
+        int decoder_count = Mix_GetNumMusicDecoders();
+
+        printf("  Music decoders (%d):", decoder_count);
+        for (decoder_index = 0; decoder_index < decoder_count; decoder_index++)
+        {
+            const char *decoder_name = Mix_GetMusicDecoder(decoder_index);
+            printf(" %s", decoder_name != NULL ? decoder_name : "<null>");
+        }
+        printf("\n");
+
+        CHECK_REASON("Mix music decoders discovered", decoder_count > 0, "No SDL_mixer music decoders reported");
+        CHECK_REASON("Mix decoder: OGG", has_music_decoder("OGG"), "OGG decoder missing");
+        CHECK_REASON("Mix decoder: Opus", has_music_decoder("OPUS"), "Opus decoder missing");
+        CHECK_REASON("Mix decoder: MP3", has_music_decoder("MP3"), "MP3 decoder missing");
+        CHECK_REASON("Mix decoder: MOD", has_music_decoder("MOD"), "MOD decoder missing");
+        CHECK_REASON("Mix decoder: FLAC", has_music_decoder("FLAC"), "FLAC decoder missing");
+        CHECK_REASON("Mix decoder: MIDI", has_music_decoder("MIDI") || has_music_decoder("MID"), "MIDI decoder missing");
+        CHECK_REASON("Mix decoder: WavPack", has_music_decoder("WAVPACK"), "WavPack decoder missing");
+    }
+
+    Mix_CloseAudio();
 }
 
 /* ------------------------------------------------------------------ */
@@ -137,15 +295,40 @@ static void test_sdl2_gfx(void)
 {
     printf("\n=== SDL2_gfx ===\n");
 
-    /* SDL2_gfx has no init function or version query.
-       Verify we can link to it by confirming the symbol exists. */
-    test_ok("SDL2_gfx linked (primitives available)");
+    SDL_Window *window = SDL_CreateWindow(
+        "native-smoke-gfx",
+        SDL_WINDOWPOS_UNDEFINED,
+        SDL_WINDOWPOS_UNDEFINED,
+        64,
+        64,
+        SDL_WINDOW_HIDDEN);
+    CHECK("SDL_CreateWindow (gfx headless)", window != NULL);
+
+    if (window == NULL)
+    {
+        return;
+    }
+
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
+    CHECK("SDL_CreateRenderer (gfx headless)", renderer != NULL);
+
+    if (renderer != NULL)
+    {
+        int draw_result = filledCircleRGBA(renderer, 32, 32, 12, 255, 255, 255, 255);
+        CHECK("SDL2_gfx filledCircleRGBA", draw_result == 0);
+        SDL_RenderPresent(renderer);
+        SDL_DestroyRenderer(renderer);
+    }
+
+    SDL_DestroyWindow(window);
 }
 
 /* ------------------------------------------------------------------ */
-/* SDL2_net                                                            */
+/* SDL2_net (optional; gated on SMOKE_INCLUDE_NET so flaky upstream ports
+ * on a given triplet do not block the rest of the native smoke harness)   */
 /* ------------------------------------------------------------------ */
 
+#ifdef SMOKE_INCLUDE_NET
 static void test_sdl2_net(void)
 {
     printf("\n=== SDL2_net ===\n");
@@ -156,6 +339,7 @@ static void test_sdl2_net(void)
     const SDL_version *net_ver = SDLNet_Linked_Version();
     printf("  SDL_net version: %d.%d.%d\n", net_ver->major, net_ver->minor, net_ver->patch);
 }
+#endif
 
 /* ------------------------------------------------------------------ */
 /* Interactive mode — visual/audio test                                */
@@ -217,20 +401,24 @@ int main(int argc, char *argv[])
 #endif
     );
 
-    /* Core + all 5 satellites */
+    /* Core + all satellites (net optional per SMOKE_INCLUDE_NET). */
     test_sdl2_core();
     test_sdl2_image();
     test_sdl2_mixer();
     test_sdl2_ttf();
     test_sdl2_gfx();
+#ifdef SMOKE_INCLUDE_NET
     test_sdl2_net();
+#endif
 
 #ifdef SMOKE_INTERACTIVE
     test_interactive();
 #endif
 
     /* Cleanup */
+#ifdef SMOKE_INCLUDE_NET
     SDLNet_Quit();
+#endif
     TTF_Quit();
     Mix_Quit();
     IMG_Quit();

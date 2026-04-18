@@ -2,11 +2,13 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using Build.Context.Models;
 using Build.Modules.Contracts;
+using Build.Modules.Harvesting;
 using Build.Modules.Harvesting.Models;
 using Build.Modules.Harvesting.Results;
 using Build.Modules.Strategy.Models;
 using Build.Modules.Strategy.Results;
 using Build.Tests.Fixtures;
+using Build.Tests.Fixtures.Seeders;
 using Cake.Core;
 using Cake.Core.IO;
 using NSubstitute;
@@ -15,43 +17,38 @@ namespace Build.Tests.Unit.Tasks.Harvest;
 
 public class HarvestTaskTests
 {
+    private const string CoreLibrary = "SDL2";
+    private const string SatelliteLibrary = "SDL2_image";
+    private const string WindowsTriplet = "x64-windows-hybrid";
+    private const string WindowsRid = "win-x64";
+    private const string LinuxRid = "linux-x64";
+
     [Test]
     public async Task RunAsync_Should_Generate_Success_Rid_Status_File_When_Harvest_Completes()
     {
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
 
-        var library = CreateLibraryManifest("SDL2", "sdl2", isCore: true);
+        var library = ManifestFixture.CreateTestCoreLibrary();
         var manifestConfig = CreateManifestConfig([library]);
 
-        var mockWalker = Substitute.For<IBinaryClosureWalker>();
-        mockWalker.BuildClosureAsync(Arg.Any<LibraryManifest>(), Arg.Any<CancellationToken>())
-            .Returns(CreateClosureResult());
+        var task = CreateHarvestTask(
+            manifestConfig,
+            closure: ClosureWithSinglePrimary(CoreLibrary),
+            plannerResult: PlannerResultWithSinglePrimary(CoreLibrary));
 
-        var mockPlanner = Substitute.For<IArtifactPlanner>();
-        mockPlanner.CreatePlanAsync(Arg.Any<LibraryManifest>(), Arg.Any<BinaryClosure>(), Arg.Any<DirectoryPath>(), Arg.Any<CancellationToken>())
-            .Returns(CreatePlannerResult("SDL2"));
+        await task.RunAsync(repo.BuildContext);
 
-        var mockDeployer = Substitute.For<IArtifactDeployer>();
-        mockDeployer.DeployArtifactsAsync(Arg.Any<DeploymentPlan>(), Arg.Any<CancellationToken>())
-            .Returns(CopierResult.ToSuccess());
+        var statusFilePath = RidStatusPath(CoreLibrary, WindowsRid);
+        await Assert.That(repo.Exists(statusFilePath)).IsTrue();
 
-        var mockValidator = CreatePassingValidator();
-        var runtimeProfile = CreateRuntimeProfile();
-        var task = new Build.Tasks.Harvest.HarvestTask(mockWalker, mockPlanner, mockDeployer, mockValidator, runtimeProfile, manifestConfig);
-
-    await task.RunAsync(repo.BuildContext);
-
-    const string statusFilePath = "artifacts/harvest_output/SDL2/rid-status/win-x64.json";
-    await Assert.That(repo.Exists(statusFilePath)).IsTrue();
-
-    var statusJson = await repo.ReadAllTextAsync(statusFilePath);
-        var status = JsonSerializer.Deserialize<RidHarvestStatus>(statusJson);
+        var status = await DeserializeStatusAsync(repo, statusFilePath);
 
         await Assert.That(status).IsNotNull();
-        await Assert.That(status!.LibraryName).IsEqualTo("SDL2");
+        await Assert.That(status!.LibraryName).IsEqualTo(CoreLibrary);
         await Assert.That(status.Success).IsTrue();
         await Assert.That(status.ErrorMessage).IsNull();
         await Assert.That(status.Statistics).IsNotNull();
+        await Assert.That(status.Statistics!.PrimaryFilesCount).IsEqualTo(1);
         await Assert.That(status.Statistics!.DeploymentStrategy).IsEqualTo("DirectCopy");
     }
 
@@ -60,7 +57,7 @@ public class HarvestTaskTests
     {
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
 
-        var library = CreateLibraryManifest("SDL2", "sdl2", isCore: true);
+        var library = ManifestFixture.CreateTestCoreLibrary();
         var manifestConfig = CreateManifestConfig([library]);
 
         var mockWalker = Substitute.For<IBinaryClosureWalker>();
@@ -70,9 +67,10 @@ public class HarvestTaskTests
         var mockPlanner = Substitute.For<IArtifactPlanner>();
         var mockDeployer = Substitute.For<IArtifactDeployer>();
         var mockValidator = CreatePassingValidator();
+        var runtimeProfile = CreateWindowsRuntimeProfile();
 
-        var runtimeProfile = CreateRuntimeProfile();
-        var task = new Build.Tasks.Harvest.HarvestTask(mockWalker, mockPlanner, mockDeployer, mockValidator, runtimeProfile, manifestConfig);
+        var task = new Build.Tasks.Harvest.HarvestTask(
+            mockWalker, mockPlanner, mockDeployer, mockValidator, runtimeProfile, manifestConfig);
 
         var thrown = false;
         try
@@ -87,11 +85,10 @@ public class HarvestTaskTests
 
         await Assert.That(thrown).IsTrue();
 
-    const string statusFilePath = "artifacts/harvest_output/SDL2/rid-status/win-x64.json";
-    await Assert.That(repo.Exists(statusFilePath)).IsTrue();
+        var statusFilePath = RidStatusPath(CoreLibrary, WindowsRid);
+        await Assert.That(repo.Exists(statusFilePath)).IsTrue();
 
-    var statusJson = await repo.ReadAllTextAsync(statusFilePath);
-        var status = JsonSerializer.Deserialize<RidHarvestStatus>(statusJson);
+        var status = await DeserializeStatusAsync(repo, statusFilePath);
 
         await Assert.That(status).IsNotNull();
         await Assert.That(status!.Success).IsFalse();
@@ -104,7 +101,7 @@ public class HarvestTaskTests
     {
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
 
-        var library = CreateLibraryManifest("SDL2", "sdl2", isCore: true);
+        var library = ManifestFixture.CreateTestCoreLibrary();
         var manifestConfig = CreateManifestConfig([library]);
 
         var mockWalker = Substitute.For<IBinaryClosureWalker>();
@@ -114,17 +111,17 @@ public class HarvestTaskTests
         var mockPlanner = Substitute.For<IArtifactPlanner>();
         var mockDeployer = Substitute.For<IArtifactDeployer>();
         var mockValidator = CreatePassingValidator();
+        var runtimeProfile = CreateWindowsRuntimeProfile();
 
-        var runtimeProfile = CreateRuntimeProfile();
-        var task = new Build.Tasks.Harvest.HarvestTask(mockWalker, mockPlanner, mockDeployer, mockValidator, runtimeProfile, manifestConfig);
+        var task = new Build.Tasks.Harvest.HarvestTask(
+            mockWalker, mockPlanner, mockDeployer, mockValidator, runtimeProfile, manifestConfig);
 
         await Assert.That(() => task.RunAsync(repo.BuildContext)).Throws<InvalidOperationException>();
 
-        const string statusFilePath = "artifacts/harvest_output/SDL2/rid-status/win-x64.json";
+        var statusFilePath = RidStatusPath(CoreLibrary, WindowsRid);
         await Assert.That(repo.Exists(statusFilePath)).IsTrue();
 
-        var statusJson = await repo.ReadAllTextAsync(statusFilePath);
-        var status = JsonSerializer.Deserialize<RidHarvestStatus>(statusJson);
+        var status = await DeserializeStatusAsync(repo, statusFilePath);
 
         await Assert.That(status).IsNotNull();
         await Assert.That(status!.Success).IsFalse();
@@ -136,7 +133,7 @@ public class HarvestTaskTests
     {
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
 
-        var library = CreateLibraryManifest("SDL2", "sdl2", isCore: true);
+        var library = ManifestFixture.CreateTestCoreLibrary();
         var manifestConfig = CreateManifestConfig([library]);
 
         var mockWalker = Substitute.For<IBinaryClosureWalker>();
@@ -146,13 +143,14 @@ public class HarvestTaskTests
         var mockPlanner = Substitute.For<IArtifactPlanner>();
         var mockDeployer = Substitute.For<IArtifactDeployer>();
         var mockValidator = CreatePassingValidator();
+        var runtimeProfile = CreateWindowsRuntimeProfile();
 
-        var runtimeProfile = CreateRuntimeProfile();
-        var task = new Build.Tasks.Harvest.HarvestTask(mockWalker, mockPlanner, mockDeployer, mockValidator, runtimeProfile, manifestConfig);
+        var task = new Build.Tasks.Harvest.HarvestTask(
+            mockWalker, mockPlanner, mockDeployer, mockValidator, runtimeProfile, manifestConfig);
 
         await Assert.That(() => task.RunAsync(repo.BuildContext)).Throws<OperationCanceledException>();
 
-        const string statusFilePath = "artifacts/harvest_output/SDL2/rid-status/win-x64.json";
+        var statusFilePath = RidStatusPath(CoreLibrary, WindowsRid);
         await Assert.That(repo.Exists(statusFilePath)).IsFalse();
     }
 
@@ -160,36 +158,76 @@ public class HarvestTaskTests
     public async Task RunAsync_Should_Harvest_Only_Specified_Libraries_From_Vcpkg_Options()
     {
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
-            .WithLibraries("SDL2_image")
+            .WithLibraries(SatelliteLibrary)
             .BuildContextWithHandles();
 
-        var core = CreateLibraryManifest("SDL2", "sdl2", isCore: true);
-        var satellite = CreateLibraryManifest("SDL2_image", "sdl2-image", isCore: false);
+        var core = ManifestFixture.CreateTestCoreLibrary();
+        var satellite = ManifestFixture.CreateTestSatelliteLibrary();
         var manifestConfig = CreateManifestConfig([core, satellite]);
 
-        var mockWalker = Substitute.For<IBinaryClosureWalker>();
-        mockWalker.BuildClosureAsync(Arg.Any<LibraryManifest>(), Arg.Any<CancellationToken>())
-            .Returns(CreateClosureResult());
-
-        var mockPlanner = Substitute.For<IArtifactPlanner>();
-        mockPlanner.CreatePlanAsync(Arg.Any<LibraryManifest>(), Arg.Any<BinaryClosure>(), Arg.Any<DirectoryPath>(), Arg.Any<CancellationToken>())
-            .Returns(CreatePlannerResult("SDL2_image"));
-
-        var mockDeployer = Substitute.For<IArtifactDeployer>();
-        mockDeployer.DeployArtifactsAsync(Arg.Any<DeploymentPlan>(), Arg.Any<CancellationToken>())
-            .Returns(CopierResult.ToSuccess());
-
-        var mockValidator = CreatePassingValidator();
-        var runtimeProfile = CreateRuntimeProfile();
-        var task = new Build.Tasks.Harvest.HarvestTask(mockWalker, mockPlanner, mockDeployer, mockValidator, runtimeProfile, manifestConfig);
+        var task = CreateHarvestTask(
+            manifestConfig,
+            closure: ClosureWithSinglePrimary(SatelliteLibrary),
+            plannerResult: PlannerResultWithSinglePrimary(SatelliteLibrary));
 
         await task.RunAsync(repo.BuildContext);
 
-        const string selectedStatus = "artifacts/harvest_output/SDL2_image/rid-status/win-x64.json";
-        const string nonSelectedStatus = "artifacts/harvest_output/SDL2/rid-status/win-x64.json";
+        var selectedStatus = RidStatusPath(SatelliteLibrary, WindowsRid);
+        var nonSelectedStatus = RidStatusPath(CoreLibrary, WindowsRid);
 
         await Assert.That(repo.Exists(selectedStatus)).IsTrue();
         await Assert.That(repo.Exists(nonSelectedStatus)).IsFalse();
+    }
+
+    [Test]
+    public async Task RunAsync_Should_Preserve_Other_Rids_While_Cleaning_Current_Rid_Output()
+    {
+        // Post-H1 invariant: Harvest cleans only the current-RID slice of runtimes/,
+        // rid-status/, and licenses/; sibling RIDs retain their evidence intact.
+        // Consolidated licenses are invalidated because any RID re-run changes the union.
+        var previousLinuxStatus = HarvestStatusSeeder.Success(CoreLibrary, LinuxRid, "x64-linux-hybrid");
+        var previousWindowsStatus = HarvestStatusSeeder.Failure(CoreLibrary, WindowsRid, WindowsTriplet, "previous run failed");
+
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
+            .WithTextFile($"artifacts/harvest_output/{CoreLibrary}/runtimes/{LinuxRid}/native/libSDL2.so", "keep")
+            .WithTextFile($"artifacts/harvest_output/{CoreLibrary}/runtimes/{WindowsRid}/native/stale.dll", "stale")
+            .WithTextFile($"artifacts/harvest_output/{CoreLibrary}/licenses/{LinuxRid}/zlib/copyright", "linux-license")
+            .WithTextFile($"artifacts/harvest_output/{CoreLibrary}/licenses/{WindowsRid}/zlib/copyright", "stale-windows-license")
+            .WithTextFile($"artifacts/harvest_output/{CoreLibrary}/licenses/_consolidated/zlib/copyright", "stale-consolidated")
+            .Seed(previousLinuxStatus)
+            .Seed(previousWindowsStatus)
+            .BuildContextWithHandles();
+
+        var library = ManifestFixture.CreateTestCoreLibrary();
+        var manifestConfig = CreateManifestConfig([library]);
+
+        var task = CreateHarvestTask(
+            manifestConfig,
+            closure: ClosureWithSinglePrimary(CoreLibrary),
+            plannerResult: PlannerResultWithSinglePrimary(CoreLibrary));
+
+        await task.RunAsync(repo.BuildContext);
+
+        // Sibling RID's native + license payload preserved.
+        await Assert.That(repo.Exists($"artifacts/harvest_output/{CoreLibrary}/runtimes/{LinuxRid}/native/libSDL2.so")).IsTrue();
+        await Assert.That(repo.Exists($"artifacts/harvest_output/{CoreLibrary}/licenses/{LinuxRid}/zlib/copyright")).IsTrue();
+
+        // Current RID's stale native + license evidence cleaned.
+        await Assert.That(repo.Exists($"artifacts/harvest_output/{CoreLibrary}/runtimes/{WindowsRid}/native/stale.dll")).IsFalse();
+        await Assert.That(repo.Exists($"artifacts/harvest_output/{CoreLibrary}/licenses/{WindowsRid}/zlib/copyright")).IsFalse();
+
+        // Consolidated output invalidated — Consolidate regenerates it from surviving RIDs.
+        await Assert.That(repo.Exists($"artifacts/harvest_output/{CoreLibrary}/licenses/_consolidated/zlib/copyright")).IsFalse();
+
+        // Both RID status files remain (sibling from previous run, current from the fresh write).
+        await Assert.That(repo.Exists(RidStatusPath(CoreLibrary, LinuxRid))).IsTrue();
+        await Assert.That(repo.Exists(RidStatusPath(CoreLibrary, WindowsRid))).IsTrue();
+
+        // Sibling RID status must remain valid real JSON after the current-RID cleanup pass.
+        var preservedLinuxStatus = await DeserializeStatusAsync(repo, RidStatusPath(CoreLibrary, LinuxRid));
+        await Assert.That(preservedLinuxStatus).IsNotNull();
+        await Assert.That(preservedLinuxStatus!.Success).IsTrue();
+        await Assert.That(preservedLinuxStatus.Rid).IsEqualTo(LinuxRid);
     }
 
     [Test]
@@ -197,12 +235,12 @@ public class HarvestTaskTests
     {
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
 
-        var library = CreateLibraryManifest("SDL2_image", "sdl2-image", isCore: false);
+        var library = ManifestFixture.CreateTestSatelliteLibrary();
         var manifestConfig = CreateManifestConfig([library]);
 
         var mockWalker = Substitute.For<IBinaryClosureWalker>();
         mockWalker.BuildClosureAsync(Arg.Any<LibraryManifest>(), Arg.Any<CancellationToken>())
-            .Returns(CreateClosureResult());
+            .Returns(ClosureWithSinglePrimary(SatelliteLibrary));
 
         var mockPlanner = Substitute.For<IArtifactPlanner>();
         var mockDeployer = Substitute.For<IArtifactDeployer>();
@@ -213,104 +251,174 @@ public class HarvestTaskTests
             [new BinaryNode(new FilePath("C:/vcpkg/bin/zlib1.dll"), "zlib", "sdl2-image")],
             "dependency leak detected"));
 
-        var runtimeProfile = CreateRuntimeProfile();
-        var task = new Build.Tasks.Harvest.HarvestTask(mockWalker, mockPlanner, mockDeployer, mockValidator, runtimeProfile, manifestConfig);
+        var runtimeProfile = CreateWindowsRuntimeProfile();
+        var task = new Build.Tasks.Harvest.HarvestTask(
+            mockWalker, mockPlanner, mockDeployer, mockValidator, runtimeProfile, manifestConfig);
 
         await Assert.That(() => task.RunAsync(repo.BuildContext)).Throws<CakeException>();
     }
 
-    private static IRuntimeProfile CreateRuntimeProfile()
+    [Test]
+    public async Task RunAsync_Should_Clean_Orphan_Consolidate_Temp_Artifacts_On_Rid_Rerun()
     {
-        var profile = Substitute.For<IRuntimeProfile>();
-        profile.Rid.Returns("win-x64");
-        profile.Triplet.Returns("x64-windows-hybrid");
-        profile.PlatformFamily.Returns(PlatformFamily.Windows);
-        profile.IsSystemFile(Arg.Any<FilePath>()).Returns(returnThis: false);
-        return profile;
+        // H1 completion: the staged-replace pattern in ConsolidateHarvestTask writes to
+        // .tmp siblings before swapping into place. If Consolidate crashed mid-flight on
+        // a previous run, those .tmp artifacts survive — the next Harvest invalidation
+        // must sweep them so Consolidate can start fresh without conflicting with stale
+        // tmp state.
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
+            .WithTextFile($"artifacts/harvest_output/{CoreLibrary}/licenses/_consolidated.tmp/zlib/copyright", "orphan-tmp-license")
+            .WithTextFile($"artifacts/harvest_output/{CoreLibrary}/harvest-manifest.tmp.json", "{\"partial\":true}")
+            .WithTextFile($"artifacts/harvest_output/{CoreLibrary}/harvest-summary.tmp.json", "{\"partial\":true}")
+            .BuildContextWithHandles();
+
+        var library = ManifestFixture.CreateTestCoreLibrary();
+        var manifestConfig = CreateManifestConfig([library]);
+
+        var task = CreateHarvestTask(
+            manifestConfig,
+            closure: ClosureWithSinglePrimary(CoreLibrary),
+            plannerResult: PlannerResultWithSinglePrimary(CoreLibrary));
+
+        await task.RunAsync(repo.BuildContext);
+
+        await Assert.That(repo.Exists($"artifacts/harvest_output/{CoreLibrary}/licenses/_consolidated.tmp/zlib/copyright")).IsFalse();
+        await Assert.That(repo.Exists($"artifacts/harvest_output/{CoreLibrary}/harvest-manifest.tmp.json")).IsFalse();
+        await Assert.That(repo.Exists($"artifacts/harvest_output/{CoreLibrary}/harvest-summary.tmp.json")).IsFalse();
     }
 
-    private static ManifestConfig CreateManifestConfig(IReadOnlyList<LibraryManifest> libraries)
+    [Test]
+    public async Task RunAsync_Should_Invalidate_Cross_Rid_Consolidate_Receipts_On_Rid_Rerun()
     {
-        return new ManifestConfig
+        // H1 invariant: HarvestTask deletes harvest-manifest.json + harvest-summary.json on
+        // every RID run. PackageTaskRunner's gate fails when harvest-manifest is missing, so
+        // this invalidation forces a Consolidate re-run before Pack can proceed. Without this,
+        // a Harvest run against stale _consolidated/ would let Pack silently ship a nupkg
+        // with no third-party license entries.
+        const string manifestPath = "artifacts/harvest_output/SDL2/harvest-manifest.json";
+        const string summaryPath = "artifacts/harvest_output/SDL2/harvest-summary.json";
+
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
+            .WithTextFile(manifestPath, "{\"library_name\":\"SDL2\",\"stale\":true}")
+            .WithTextFile(summaryPath, "{\"stale\":true}")
+            .WithTextFile("artifacts/harvest_output/SDL2/licenses/_consolidated/zlib/copyright", "stale-consolidated")
+            .BuildContextWithHandles();
+
+        var library = ManifestFixture.CreateTestCoreLibrary();
+        var manifestConfig = CreateManifestConfig([library]);
+
+        var task = CreateHarvestTask(
+            manifestConfig,
+            closure: ClosureWithSinglePrimary(CoreLibrary),
+            plannerResult: PlannerResultWithSinglePrimary(CoreLibrary));
+
+        await task.RunAsync(repo.BuildContext);
+
+        // Both cross-RID receipts were invalidated; any subsequent Pack invocation requires
+        // ConsolidateHarvest to regenerate them.
+        await Assert.That(repo.Exists(manifestPath)).IsFalse();
+        await Assert.That(repo.Exists(summaryPath)).IsFalse();
+
+        // The consolidated license tree is also invalidated (existing cleanup).
+        await Assert.That(repo.Exists("artifacts/harvest_output/SDL2/licenses/_consolidated/zlib/copyright")).IsFalse();
+    }
+
+    [Test]
+    public async Task RunAsync_Should_Throw_When_Planner_Produces_Zero_Primary_Files()
+    {
+        // G1 post-harvest invariant: even when the walker and the planner each return a
+        // success-shaped result, the task must fail if the deployment produced zero primary
+        // binaries. Defends against silent feature-flag degradation / partial vcpkg installs
+        // that happen to pass the upstream guards.
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
+
+        var library = ManifestFixture.CreateTestCoreLibrary();
+        var manifestConfig = CreateManifestConfig([library]);
+
+        var task = CreateHarvestTask(
+            manifestConfig,
+            closure: ClosureWithSinglePrimary(CoreLibrary),
+            plannerResult: PlannerResultWithEmptyStatistics(CoreLibrary));
+
+        var exception = await Assert.That(() => task.RunAsync(repo.BuildContext)).Throws<CakeException>();
+
+        await Assert.That(exception!.Message).Contains("zero primary binaries");
+        await Assert.That(exception.Message).Contains(CoreLibrary);
+
+        // The error path writes a failure rid-status, never a success one.
+        var statusFilePath = RidStatusPath(CoreLibrary, WindowsRid);
+        await Assert.That(repo.Exists(statusFilePath)).IsTrue();
+        var status = await DeserializeStatusAsync(repo, statusFilePath);
+        await Assert.That(status!.Success).IsFalse();
+    }
+
+    private static Build.Tasks.Harvest.HarvestTask CreateHarvestTask(
+        ManifestConfig manifestConfig,
+        BinaryClosure closure,
+        ArtifactPlannerResult plannerResult)
+    {
+        var mockWalker = Substitute.For<IBinaryClosureWalker>();
+        mockWalker.BuildClosureAsync(Arg.Any<LibraryManifest>(), Arg.Any<CancellationToken>())
+            .Returns(ClosureResult.FromBinaryClosure(closure));
+
+        var mockPlanner = Substitute.For<IArtifactPlanner>();
+        mockPlanner.CreatePlanAsync(Arg.Any<LibraryManifest>(), Arg.Any<BinaryClosure>(), Arg.Any<DirectoryPath>(), Arg.Any<CancellationToken>())
+            .Returns(plannerResult);
+
+        var mockDeployer = Substitute.For<IArtifactDeployer>();
+        mockDeployer.DeployArtifactsAsync(Arg.Any<DeploymentPlan>(), Arg.Any<CancellationToken>())
+            .Returns(CopierResult.ToSuccess());
+
+        var mockValidator = CreatePassingValidator();
+        var runtimeProfile = CreateWindowsRuntimeProfile();
+
+        return new Build.Tasks.Harvest.HarvestTask(
+            mockWalker, mockPlanner, mockDeployer, mockValidator, runtimeProfile, manifestConfig);
+    }
+
+    private static BinaryClosure ClosureWithSinglePrimary(string libraryName)
+    {
+        // Shaped like a real hybrid-static harvest closure: exactly one primary binary,
+        // no runtime deps in the node set (transitive deps are statically baked), and the
+        // owning vcpkg package recorded in the Packages set.
+        var primaryPath = new FilePath($"C:/vcpkg/installed/{WindowsTriplet}/bin/{libraryName}.dll");
+        var primarySet = ImmutableHashSet.Create(primaryPath);
+        var packages = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            SchemaVersion = "2.1",
-            PackagingConfig = new PackagingConfig
-            {
-                ValidationMode = ValidationMode.Strict,
-                CoreLibrary = "sdl2",
-            },
-            Runtimes =
-            [
-                new RuntimeInfo
-                {
-                    Rid = "win-x64",
-                    Triplet = "x64-windows-hybrid",
-                    Strategy = "hybrid-static",
-                    Runner = "windows-latest",
-                    ContainerImage = null,
-                },
-            ],
-            PackageFamilies =
-            [
-                new PackageFamilyConfig
-                {
-                    Name = "sdl2-core",
-                    TagPrefix = "sdl2-core",
-                    ManagedProject = "src/SDL2.Core/SDL2.Core.csproj",
-                    NativeProject = "src/native/SDL2.Core.Native/SDL2.Core.Native.csproj",
-                    LibraryRef = "SDL2",
-                    DependsOn = [],
-                    ChangePaths = ["src/SDL2.Core/**", "src/native/SDL2.Core.Native/**"],
-                },
-            ],
-            SystemExclusions = new SystemArtefactsConfig
-            {
-                Windows = new WindowsSystemArtefacts(),
-                Linux = new LinuxSystemArtefacts(),
-                Osx = new OsxSystemArtefacts(),
-            },
-            LibraryManifests = libraries.ToImmutableList(),
+            libraryName.ToLowerInvariant(),
         };
+
+        return new BinaryClosure(primarySet, [], packages);
     }
 
-    private static LibraryManifest CreateLibraryManifest(string name, string vcpkgName, bool isCore)
+    private static ArtifactPlannerResult PlannerResultWithSinglePrimary(string libraryName)
     {
-        return new LibraryManifest
-        {
-            Name = name,
-            VcpkgName = vcpkgName,
-            VcpkgVersion = "1.0.0",
-            VcpkgPortVersion = 0,
-            NativeLibName = $"{name}.Native",
-            NativeLibVersion = "1.0.0.0",
-            IsCoreLib = isCore,
-            PrimaryBinaries =
-            [
-                new PrimaryBinary { Os = "Windows", Patterns = ImmutableList.Create("*.dll") },
-                new PrimaryBinary { Os = "Linux", Patterns = ImmutableList.Create("*.so") },
-                new PrimaryBinary { Os = "OSX", Patterns = ImmutableList.Create("*.dylib") },
-            ],
-        };
-    }
+        var primaryFile = new FileDeploymentInfo(
+            new FilePath($"C:/vcpkg/installed/{WindowsTriplet}/bin/{libraryName}.dll"),
+            libraryName.ToLowerInvariant(),
+            DeploymentLocation.FileSystem);
 
-    private static ClosureResult CreateClosureResult()
-    {
-        var closure = new BinaryClosure(
-            ImmutableHashSet<FilePath>.Empty,
+        var stats = new DeploymentStatistics(
+            libraryName,
+            [primaryFile],
             [],
-            new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+            [],
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase) { libraryName.ToLowerInvariant() },
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+            DeploymentStrategy.DirectCopy);
 
-        return closure;
+        var plan = new DeploymentPlan([], stats);
+        return plan;
     }
 
-    private static ArtifactPlannerResult CreatePlannerResult(string libraryName)
+    private static ArtifactPlannerResult PlannerResultWithEmptyStatistics(string libraryName)
     {
         var stats = new DeploymentStatistics(
             libraryName,
             [],
             [],
             [],
-            new HashSet<string>(StringComparer.OrdinalIgnoreCase) { libraryName.ToLowerInvariant() },
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase),
             new HashSet<string>(StringComparer.OrdinalIgnoreCase),
             DeploymentStrategy.DirectCopy);
 
@@ -326,4 +434,33 @@ public class HarvestTaskTests
         return validator;
     }
 
+    private static IRuntimeProfile CreateWindowsRuntimeProfile()
+    {
+        var profile = Substitute.For<IRuntimeProfile>();
+        profile.Rid.Returns(WindowsRid);
+        profile.Triplet.Returns(WindowsTriplet);
+        profile.PlatformFamily.Returns(PlatformFamily.Windows);
+        profile.IsSystemFile(Arg.Any<FilePath>()).Returns(returnThis: false);
+        return profile;
+    }
+
+    private static ManifestConfig CreateManifestConfig(IReadOnlyList<LibraryManifest> libraries)
+    {
+        var baseline = ManifestFixture.CreateTestManifestConfig();
+        return baseline with
+        {
+            LibraryManifests = libraries.ToImmutableList(),
+        };
+    }
+
+    private static string RidStatusPath(string libraryName, string rid)
+    {
+        return $"artifacts/harvest_output/{libraryName}/rid-status/{rid}.json";
+    }
+
+    private static async Task<RidHarvestStatus?> DeserializeStatusAsync(FakeRepoHandles repo, string relativePath)
+    {
+        var json = await repo.ReadAllTextAsync(relativePath);
+        return JsonSerializer.Deserialize<RidHarvestStatus>(json, HarvestJsonContract.Options);
+    }
 }

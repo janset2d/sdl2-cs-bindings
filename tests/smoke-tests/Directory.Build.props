@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <!--
+    Smoke-test hierarchy root. Every csproj under tests/smoke-tests/ inherits:
+      1. Root repo Directory.Build.props (TFM policy, analyzer posture, CPM, etc.)
+      2. Janset.Smoke.props (LocalPackageFeed, version properties, smoke analyzer relaxations)
+
+    New smoke / example projects drop a csproj in here and get both layers for free.
+  -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+  <Import Project="$(MSBuildThisFileDirectory)../../build/msbuild/Janset.Smoke.props" />
+</Project>

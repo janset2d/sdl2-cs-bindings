@@ -1,6 +1,6 @@
 # Playbook: vcpkg Overlay Port & Triplet Management
 
-**Last updated:** 2026-04-14
+**Last updated:** 2026-04-18
 
 This playbook covers the complete lifecycle of custom vcpkg overlay ports and overlay triplets in this project.
 
@@ -25,8 +25,12 @@ Location: `vcpkg-overlay-ports/`
 | Triplet | RID | Base | Key Change |
 | --- | --- | --- | --- |
 | `x64-windows-hybrid` | win-x64 | `x64-windows-release` | Default static, SDL family dynamic |
+| `x86-windows-hybrid` | win-x86 | `x86-windows` | Default static, SDL family dynamic |
+| `arm64-windows-hybrid` | win-arm64 | `arm64-windows` | Default static, SDL family dynamic |
 | `x64-linux-hybrid` | linux-x64 | `x64-linux-dynamic` | Default static, SDL family dynamic, `-fvisibility=hidden` |
+| `arm64-linux-hybrid` | linux-arm64 | `arm64-linux-dynamic` | Default static, SDL family dynamic, `-fvisibility=hidden` |
 | `x64-osx-hybrid` | osx-x64 | `x64-osx-dynamic` | Default static, SDL family dynamic, `-fvisibility=hidden` |
+| `arm64-osx-hybrid` | osx-arm64 | `arm64-osx-dynamic` | Default static, SDL family dynamic, `-fvisibility=hidden` |
 
 ### Ports
 
@@ -69,7 +73,7 @@ This ensures that when zlib's `deflate` is statically linked into `libSDL2_image
 
 An overlay port is a copy of the upstream port with targeted modifications. It contains:
 
-```
+```text
 vcpkg-overlay-ports/sdl2-mixer/
 ├── vcpkg.json        ← Modified: LGPL features removed, libxmp dep removed
 ├── portfile.cmake    ← Modified: bundled alternatives enabled, LGPL backends disabled
@@ -93,7 +97,21 @@ vcpkg-overlay-ports/sdl2-mixer/
 
 ### CI (GitHub Actions)
 
-The `vcpkg-setup` composite action already passes `--overlay-ports` conditionally. `--overlay-triplets` needs to be added (Phase 2b CI update).
+The `vcpkg-setup` composite action now passes both `--overlay-triplets` and `--overlay-ports` conditionally. Manual and workflow examples should treat both overlays as part of the standard vcpkg invocation surface.
+
+### vcpkg Binary Cache (`.vcpkg-cache/`)
+
+CI caches vcpkg's binary artifacts at `$GITHUB_WORKSPACE/.vcpkg-cache/` via `actions/cache@v5`, configured in [`.github/actions/vcpkg-setup/action.yml`](../../.github/actions/vcpkg-setup/action.yml). The repository `.gitignore` excludes that path so the directory is invisible to regular commits.
+
+Key ingredients (as of 2026-04-18):
+
+- **Path:** `${{ github.workspace }}/${{ inputs.vcpkg-cache-path }}` (input default: `.vcpkg-cache`).
+- **Key:** `vcpkg-bin-<cache-key-base>-<triplet>-<hash(vcpkg.json, vcpkg-overlay-triplets/**, vcpkg-overlay-ports/**)>-<vcpkg-submodule-commit>`. The overlay-triplet and overlay-port trees participate in the hash so tweaking a hybrid triplet or a port feature flag busts the Actions cache without waiting for vcpkg's internal ABI layer to detect the change.
+- **Restore keys:** hierarchical — most specific first (triplet + overlay hash), then less specific (triplet only) so tweaks to `vcpkg.json` can still pull a partial warm cache.
+
+**Local dev.** Regular `./external/vcpkg/vcpkg install ...` invocations use the OS-default vcpkg binary cache (`%LOCALAPPDATA%\vcpkg\archives` on Windows, `~/.cache/vcpkg/archives` on Unix), not the repo-local path. Only set `VCPKG_DEFAULT_BINARY_CACHE=<repo>/.vcpkg-cache` locally if you explicitly want to reproduce CI's cache contents (e.g. when debugging a CI miss). The `.gitignore` entry is defensive — if you enable the repo-local cache path locally, it won't get accidentally committed.
+
+**Drift rule.** If CI's cache path ever moves off `$GITHUB_WORKSPACE/.vcpkg-cache/` (for example to `~/.cache/vcpkg` for portability), update the `.gitignore` entry + this section simultaneously so the documentation is not silently stale.
 
 ## Procedure: Adding a New Overlay Triplet
 
@@ -107,7 +125,7 @@ The `vcpkg-setup` composite action already passes `--overlay-ports` conditionall
 8. Verify: `bin/` contains only SDL DLLs, no transitive dep DLLs
 9. Update this playbook's Active Overlays Registry table
 10. Update `vcpkg-overlay-triplets/README.md`
-11. Update `build/runtimes.json` with the new triplet name
+11. Update `build/manifest.json` runtime rows with the new triplet name and strategy allocation
 
 ## Procedure: Adding a New Overlay Port
 
@@ -211,7 +229,7 @@ Use this checklist when reviewing overlay-related changes:
 - [ ] `vcpkg-overlay-ports/README.md` updated
 - [ ] `vcpkg-overlay-triplets/README.md` updated (if triplet changed)
 - [ ] This playbook's Active Overlays Registry updated
-- [ ] `build/runtimes.json` triplet names correct
+- [ ] `build/manifest.json` runtime rows point at the intended triplet names and strategies
 - [ ] Version fields in overlay vcpkg.json match `build/manifest.json` and root `vcpkg.json` overrides
 ```
 

@@ -18,10 +18,7 @@ namespace Build.Modules.Strategy;
 /// Any other binary in the closure is a transitive dependency leak — the static bake failed.
 /// </para>
 /// </summary>
-public sealed class HybridStaticValidator(
-    IRuntimeProfile profile,
-    IPackagingStrategy strategy,
-    ValidationMode mode) : IDependencyPolicyValidator
+public sealed class HybridStaticValidator(IRuntimeProfile profile, IPackagingStrategy strategy, ValidationMode mode) : IDependencyPolicyValidator
 {
     private readonly IRuntimeProfile _profile = profile ?? throw new ArgumentNullException(nameof(profile));
     private readonly IPackagingStrategy _strategy = strategy ?? throw new ArgumentNullException(nameof(strategy));

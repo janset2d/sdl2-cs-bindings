@@ -99,6 +99,41 @@ public sealed class PreflightReporter(ICakeContext cakeContext) : IPreflightRepo
         Log.Information("✅ Strategy coherence check PASSED - All {0} runtimes are coherent", validation.CheckedRuntimes);
     }
 
+    public void ReportCoreLibraryIdentity(CoreLibraryIdentityValidation validation)
+    {
+        ArgumentNullException.ThrowIfNull(validation);
+
+        var check = validation.Check;
+        Log.Information("🔄 Checking core library identity coherence...");
+
+        switch (check.Status)
+        {
+            case CoreLibraryIdentityCheckStatus.Match:
+                Log.Information("  ✅ Core library identity confirmed: '{0}' (library_manifests + packaging_config aligned)", check.ManifestCoreVcpkgName);
+                break;
+            case CoreLibraryIdentityCheckStatus.InvalidCoreLibraryManifestCount:
+                Log.Error("  ❌ library_manifests[core_lib=true] count is {0} (expected exactly 1)", check.CoreLibraryManifestCount);
+                break;
+            case CoreLibraryIdentityCheckStatus.PackagingConfigCoreLibraryMismatch:
+                Log.Error("  ❌ Core library identity drift:");
+                Log.Error("     library_manifests[core_lib=true].vcpkg_name: {0}", check.ManifestCoreVcpkgName ?? "<null>");
+                Log.Error("     packaging_config.core_library:                {0}", check.PackagingConfigCoreLibrary);
+                break;
+            default:
+                throw new InvalidOperationException($"Unsupported core library identity check status '{check.Status}'.");
+        }
+
+        Log.Information("");
+        if (validation.HasErrors)
+        {
+            Log.Error("❌ Pre-flight check FAILED - Core library identity drift detected (G49)");
+            Log.Error("   Align library_manifests[core_lib=true].vcpkg_name with packaging_config.core_library in manifest.json");
+            return;
+        }
+
+        Log.Information("✅ Core library identity check PASSED - manifest declares a single coherent core library");
+    }
+
     public void ReportCsprojPackContract(CsprojPackContractValidation validation)
     {
         ArgumentNullException.ThrowIfNull(validation);

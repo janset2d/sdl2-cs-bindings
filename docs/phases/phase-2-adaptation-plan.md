@@ -1,6 +1,6 @@
 # Phase 2 Adaptation Plan — Release Lifecycle Implementation
 
-**Date:** 2026-04-15 (last amended: 2026-04-17 — S1 adoption)
+**Date:** 2026-04-15 (last amended: 2026-04-18 — PA-1 closure + PA-2 mechanism landing)
 **Status:** Approved — implementation in progress. Streams A-safe and B landed (#85 closed, #87 follow-up open). **Stream A0 RETIRED and Stream A-risky partially reverted on 2026-04-17 per S1 adoption — see "S1 Adoption Record" section below.**
 **Prerequisite:** [Release Lifecycle Direction](../knowledge-base/release-lifecycle-direction.md) (locked; amended 2026-04-17 for S1)
 **Issue context:** #54, #55, #63, #83, #85, #87
@@ -89,17 +89,17 @@ Everything else — `Package`, `PackageConsumerSmoke`, `PostFlight`, `DotNetPack
 
 ### What the playbook 3-platform validation actually exercised
 
-The 2026-04-17 PostFlight sweep (`win-x64`, `linux-x64`, `osx-x64`) ran **only the hybrid-static path** end to end. The four pure-dynamic RIDs in `manifest.runtimes[]` (`win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64`) have never been:
+The 2026-04-17 PostFlight sweep (`win-x64`, `linux-x64`, `osx-x64`) ran **only the original hybrid-static proof slice** end to end. The four additional runtime rows that moved onto hybrid overlay triplets during PA-2 on 2026-04-18 (`win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64`) have still never been:
 
-- Harvested on a matching runner since S1 landed;
+- Harvested on a matching runner under the new overlay triplet allocation;
 - Packed via `Package` under post-S1 guardrails (G21, G23, G47, G48 etc.);
 - Consumer-smoked under `PackageConsumerSmoke`.
 
-PreFlight coherence green for 7/7 RIDs is declarative only; it does not imply behavioral validation.
+PreFlight coherence green for 7/7 RIDs is declarative only; it does not imply behavioral validation for the four newly-covered rows.
 
 ### Gaps worth naming so no one re-discovers them under deadline pressure
 
-1. **Pure-dynamic path has no behavioral closure check.** Today that is fine because no pure-dynamic RID is release-scoped. Before the first release that includes a pure-dynamic RID, decide whether `PureDynamicValidator` should gain an actual behavioral contract (e.g., "closure must contain SDL core + primary; transitive OS-provided libraries are permitted but satellite-embedded codec DLLs are not") or whether PA-2 retires pure-dynamic entirely (overlay hybrid triplets for the remaining 4 RIDs).
+1. **Pure-dynamic path has no behavioral closure check.** After PA-2 landed on 2026-04-18, no live `manifest.runtimes[]` row uses `pure-dynamic`, so this is currently a dormant fallback path rather than an active release path. Before any future release reintroduces a pure-dynamic RID, decide whether `PureDynamicValidator` should gain an actual behavioral contract (e.g., "closure must contain SDL core + primary; transitive OS-provided libraries are permitted but satellite-embedded codec DLLs are not") or whether the project permanently retires pure-dynamic.
 2. **Packaging module does not consume `IPackagingStrategy`.** If pack-time behavior ever needs to vary by strategy (e.g., "pure-dynamic nupkgs ship differently-shaped runtimes/ subtrees"), the seam needs to be added — it is not present today.
 3. **`INativeAcquisitionStrategy` is a design ghost.** Either document that Source Mode subsumed it and retire the interface from the plan, or implement it before Stream F locks in without it.
 4. **`IPayloadLayoutPolicy` deferral is stale.** The trigger condition ("when PackageTask is implemented") fired three weeks ago. The deferral deserves an up-or-down decision now that Packaging is real.
@@ -166,9 +166,7 @@ PreFlight always resolves a version and passes it downstream — the difference 
 **Decision gate:** Before PackageTask or any publish flow is implemented, this must be resolved:
 
 - **Historical acceptance target (SUPERSEDED): Image family (satellite), not Core.** Core-only is a useful calibration probe but cannot de-risk the full packaging model. The real risk was producing both a within-family exact pin AND a cross-family minimum range **in the same package**. Only a satellite package exercised both constraints simultaneously.
-- **Success criteria:** A reproducible mechanism exists to produce `Janset.SDL2.Image.nupkg` where:
-   - `Janset.SDL2.Image.Native` dependency is emitted as `[1.0.3]` (within-family exact pin in NuGet range notation; historical exact-pin target, SUPERSEDED)
-  - `Janset.SDL2.Core` dependency is emitted as a minimum range (e.g., `1.2.0`, meaning `>=` in NuGet semantics — **not** bracketed)
+- **Success criteria:** A reproducible mechanism exists to produce `Janset.SDL2.Image.nupkg` where the `Janset.SDL2.Image.Native` dependency is emitted as `[1.0.3]` (within-family exact pin in NuGet range notation; historical exact-pin target, SUPERSEDED) and the `Janset.SDL2.Core` dependency is emitted as a minimum range (e.g., `1.2.0`, meaning `>=` in NuGet semantics — **not** bracketed).
 - **Acceptance test (automated):** A TUnit test opens the produced `.nupkg`, parses the `.nuspec`, and asserts both dependency ranges are correct. Manual eyeballing does not count as "done." The test must survive as a regression guard beyond the spike.
 - **Where this lives:** Stream A0 spike (blocking, before Stream D).
 
@@ -527,18 +525,18 @@ Stream F covers the source-graph side of local development: how contributors acq
 3. **Cake as single orchestration surface** — all processes through Cake, CI workflows are triggers only
 4. **PreFlightCheck is the gate** — must validate everything before any CI resources are spent
 
-## Open Alignment Items (pre-Stream C)
+## Alignment Items (pre-Stream C)
 
-These items must be aligned on before Stream C (CI modernization) starts. They do not block the current coverage ratchet (#86) or the HarvestPipeline extraction follow-up. They do gate Stream C's CI workflow migration and dynamic matrix rollout.
+These items gate Stream C (CI modernization). PA-1 and PA-2 are now resolved at the mechanism/policy level; the remaining work is execution of Stream C itself plus broader end-to-end validation on the newly-covered rows.
 
 | # | Item | Status | Exit Criterion | Gates |
 | --- | --- | --- | --- | --- |
-| PA-1 | Matrix strategy review — RID-only vs `strategy × RID` vs parity-job | Open — alignment discussion pending. Current locked decision in [release-lifecycle-direction.md §5](../knowledge-base/release-lifecycle-direction.md#5-ci-matrix-model) is RID-only (7 jobs). | Explicit decision recorded: keep current (and close PA-1) or amend `release-lifecycle-direction.md §5` with the chosen variant. | Stream C `GenerateMatrixTask` shape; Stream C CI workflow migration. |
-| PA-2 | Hybrid overlay triplet expansion to remaining 4 RIDs | Open — 3/7 RIDs covered today (`x64-windows-hybrid`, `x64-linux-hybrid`, `x64-osx-hybrid`). 4 remaining use stock triplets. Pulled into Phase 2a scope from [plan.md Known Issue #7](../plan.md#known-issues). | Overlay triplet files exist for `x86-windows-hybrid`, `arm64-windows-hybrid`, `arm64-linux-hybrid`, `arm64-osx-hybrid`. `manifest.runtimes[].triplet` + `runtimes[].strategy` updated per the intended strategy allocation. PreFlightCheck strategy coherence green across all 7 RIDs. | Stream C dynamic matrix — without this, hybrid validator is exercised in only 3/7 jobs, diluting the value of 7-job coverage. |
+| PA-1 | Matrix strategy review — RID-only vs `strategy × RID` vs parity-job | Resolved 2026-04-18 — keep the locked [release-lifecycle-direction.md §5](../knowledge-base/release-lifecycle-direction.md#5-ci-matrix-model) RID-only shape (7 jobs). `strategy` remains runtime-row metadata, not a top-level CI matrix axis. Supporting analysis: [ci-matrix-strategy-review-2026-04-17.md](../research/ci-matrix-strategy-review-2026-04-17.md). | Decision recorded canonically in the release-lifecycle doc and plan. | Stream C `GenerateMatrixTask` shape; Stream C CI workflow migration now has a fixed matrix contract. |
+| PA-2 | Hybrid overlay triplet expansion to remaining 4 RIDs | Resolved 2026-04-18 — overlay triplet files now exist for `x86-windows-hybrid`, `arm64-windows-hybrid`, `arm64-linux-hybrid`, `arm64-osx-hybrid`; all 7 `manifest.runtimes[]` rows now map to `hybrid-static`; CI's shared vcpkg setup action and manual orchestrator workflow both use hybrid triplets. | Mechanism landed. Remaining follow-up is behavioral validation on the four newly-covered rows, not configuration wiring. | Stream C dynamic matrix can now target a 7/7 hybrid allocation without stock-triplet exceptions. |
 
 ### PA-1 discussion boundary
 
-Three arketypes on the table. This list is the agreed scope of discussion, not a resolution — closure is required before Stream C CI workflow migration starts, not mid-migration:
+Three archetypes were on the table. PA-1 resolved in favor of A on 2026-04-18; the list remains as decision context so future reviews do not re-open the debate from scratch:
 
 - **A — Keep RID-only.** After PA-2 lands, hybrid validator runs on 7/7 RIDs if the strategy allocation declares all 7 as hybrid. Pure-dynamic validator (pass-through today) runs only where manifest strategy is declared pure-dynamic. No additional CI cost.
 - **B — Add parity axis.** Same RID runs both hybrid and pure-dynamic builds in parallel, catching cross-strategy regressions at the cost of doubled CI time per parity-covered RID.
@@ -548,9 +546,9 @@ Three arketypes on the table. This list is the agreed scope of discussion, not a
 
 - Author overlay triplet files in `vcpkg-overlay-triplets/`: `x86-windows-hybrid`, `arm64-windows-hybrid`, `arm64-linux-hybrid`, `arm64-osx-hybrid`.
 - Review `vcpkg-overlay-ports/` for per-architecture per-port overrides (e.g., SDL2_mixer codec bundling). Arch-specific adjustments may or may not be needed; review before authoring overlays.
-- Update `manifest.json` `runtimes[].triplet` for the 4 RIDs from stock to the new hybrid overlay. The associated `strategy` field moves to `HybridStatic` where the target is to bring the RID under hybrid validation. Whether any of the 4 intentionally stays pure-dynamic (e.g., arm64 cross-compile constraints) is a strategy allocation choice made during this work — PA-2 delivers the mechanism; strategy allocation is a sub-decision captured alongside the overlay files.
+- Update `manifest.json` `runtimes[].triplet` for the 4 RIDs from stock to the new hybrid overlay. The associated `strategy` field moves to `hybrid-static` where the target is to bring the RID under hybrid validation.
 - Re-run `PreFlightCheckTask`; strategy coherence must be green across all 7 RIDs under the new allocation.
-- On close: update [plan.md Known Issue #7](../plan.md#known-issues) to reflect completion and remove the Phase 2b deferral note.
+- On close: update canonical docs so they stop describing the remaining four rows as stock-triplet / pure-dynamic holdouts.
 
 ## Pending Decisions
 

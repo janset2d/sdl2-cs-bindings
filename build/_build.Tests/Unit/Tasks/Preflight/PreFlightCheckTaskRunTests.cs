@@ -90,6 +90,29 @@ public class PreFlightCheckTaskRunTests
         await Assert.That(() => task.Run(context)).Throws<CakeException>();
     }
 
+    [Test]
+    public async Task Run_Should_Throw_When_Core_Library_Identity_Drifts_Between_Manifest_Fields()
+    {
+        var baseline = CreateManifestConfig("2.32.10", 0);
+        var manifestConfig = baseline with
+        {
+            PackagingConfig = baseline.PackagingConfig with { CoreLibrary = "sdl3" },
+        };
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
+            .WithManifest(manifestConfig)
+            .WithVcpkgJson(CreateVcpkgManifest("2.32.10", 0))
+            .BuildContextWithHandles();
+
+        var context = repo.BuildContext;
+
+        var task = CreateTask(manifestConfig, context);
+
+        var exception = await Assert.That(() => task.Run(context)).Throws<CakeException>();
+        await Assert.That(exception!.Message).Contains("core library identity");
+        await Assert.That(exception.Message).Contains("sdl2");
+        await Assert.That(exception.Message).Contains("sdl3");
+    }
+
     private static ManifestConfig CreateManifestConfig(
         string version,
         int portVersion,
@@ -150,6 +173,7 @@ public class PreFlightCheckTaskRunTests
             new VcpkgManifestReader(context.FileSystem),
             new VersionConsistencyValidator(),
             new StrategyCoherenceValidator(new StrategyResolver()),
+            new CoreLibraryIdentityValidator(),
             new CsprojPackContractValidator(context.FileSystem),
             new PreflightReporter(context));
     }

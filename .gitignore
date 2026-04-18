@@ -413,6 +413,10 @@ pack-projects.ps1
 
 # vcpkg installed binaries
 vcpkg_installed/
+# vcpkg binary cache used by CI (see .github/actions/vcpkg-setup/action.yml and
+# docs/playbook/overlay-management.md "vcpkg Binary Cache"). Local dev uses the OS
+# default; this entry only bites if you opt in via VCPKG_DEFAULT_BINARY_CACHE.
+.vcpkg-cache/
 
 # Native payloads committed to src/native/<Lib>/runtimes/ are build artifacts,
 # produced by Cake harvest. Do not commit. See Known Issues #1 in docs/plan.md.

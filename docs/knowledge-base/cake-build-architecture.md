@@ -16,7 +16,7 @@ The build system is a .NET 9.0 console application using **Cake Frosting v6.1.0*
 - `PathService` already exposes `harvest-staging` helpers for future distributed CI, but current tasks and workflows still write to `artifacts/harvest_output/`.
 - Native-source acquisition mode selection is intentionally deferred from the active CLI surface.
 - The build host still uses hand-written `OneOf` result wrappers. Source-generator-based cleanup remains a parked follow-up, not active build-system behavior.
-- **Packaging module (Stream D-local, S1 shape, 2026-04-17)** lives under `Tasks/Packaging/` + `Modules/Packaging/`. It follows the Harvesting reference pattern: thin task (`PackageTask`, `PackageConsumerSmokeTask`, `PostFlightTask`) + narrow services (`PackageTaskRunner`, `DotNetPackInvoker`, `PackageFamilySelector`, `PackageVersionResolver`, `ProjectMetadataReader`, `PackageOutputValidator`, `PackageConsumerSmokeRunner`) + typed Results with the full `OneOf.Monads` surface (implicit/explicit operators + `From*`/`To*` factories). Every service returns a typed `Result<PackagingError, T>` instead of throwing. `PackageOutputValidator` accumulates all guardrail observations (G21–G23, G25–G27, G47, G48) into a single `PackageValidation` aggregate so operators see the complete failure set, not first-throw-wins. 3-platform validated for the `sdl2-core` + `sdl2-image` slice on `win-x64` / `linux-x64` / `osx-x64`; pure-dynamic RIDs unexercised by design (see [phase-2-adaptation-plan.md "Strategy State Audit"](../phases/phase-2-adaptation-plan.md)).
+- **Packaging module (Stream D-local, S1 shape, 2026-04-17)** lives under `Tasks/Packaging/` + `Modules/Packaging/`. It follows the Harvesting reference pattern: thin task (`PackageTask`, `PackageConsumerSmokeTask`, `PostFlightTask`) + narrow services (`PackageTaskRunner`, `DotNetPackInvoker`, `PackageFamilySelector`, `PackageVersionResolver`, `ProjectMetadataReader`, `PackageOutputValidator`, `PackageConsumerSmokeRunner`) + typed Results with the full `OneOf.Monads` surface (implicit/explicit operators + `From*`/`To*` factories). Every service returns a typed `Result<PackagingError, T>` instead of throwing. `PackageOutputValidator` accumulates all guardrail observations (G21–G23, G25–G27, G47, G48) into a single `PackageValidation` aggregate so operators see the complete failure set, not first-throw-wins. 3-platform validated for the `sdl2-core` + `sdl2-image` slice on `win-x64` / `linux-x64` / `osx-x64`; PA-2 later moved all 7 manifest runtime rows onto hybrid triplets, but the four newly-covered rows (`win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64`) remain unexercised on the pack / consumer path (see [phase-2-adaptation-plan.md "Strategy State Audit"](../phases/phase-2-adaptation-plan.md)).
 
 ## Strategy Layer Reality Check (2026-04-17)
 
@@ -28,7 +28,28 @@ The strategy seam landed with Stream B (#85 closed) and the #85 handoff note in 
 - `IPayloadLayoutPolicy` was deferred in the brief "until PackageTask lands"; PackageTask landed, the policy extraction did not follow.
 - The scanner-as-validator repurposing (dumpbin / ldd / otool outputs consumed by `HybridStaticValidator` as a second consumer with zero scanner changes) **is fully landed as designed** — this is the one architectural move from the brief that is realized end to end.
 
-Behavioral dispatch between `hybrid-static` and `pure-dynamic` in the current code is limited to: (1) which `IDependencyPolicyValidator` instance DI resolves at harvest time; (2) `PreFlightCheckTask`'s declarative triplet↔strategy coherence. Everything downstream (pack, smoke, validator, deployer) is strategy-agnostic.
+Behavioral dispatch between `hybrid-static` and `pure-dynamic` in the current code is limited to: (1) which `IDependencyPolicyValidator` instance DI resolves at harvest time; (2) `PreFlightCheckTask`'s declarative triplet↔strategy coherence. Everything downstream (pack, smoke, validator, deployer) is strategy-agnostic. After PA-2 (2026-04-18), no live `manifest.runtimes[]` row currently uses `pure-dynamic`, but the fallback code path still exists.
+
+## SDL2-CS Submodule Boundary (Transitional)
+
+`external/sdl2-cs` is a git submodule pointing at a fork-compatible commit of `flibitijibibo/SDL2-CS`. It is **transitional and untrusted long-term** — the project will retire it in favour of an AST-driven binding generator (tracked under [`docs/plan.md` Phase 3 / 4 roadmap](../plan.md)). Until that retirement happens, two rules apply:
+
+1. **Never patch the submodule working tree.** Even if an upstream wrapper bug bites a smoke test, the correct response is to write repo-local code (in the smoke test, in a wrapper, in a helper) that avoids the broken surface — not to carry local edits inside `external/sdl2-cs/`. Submodule patches rot under every upstream bump and blur the ownership boundary.
+2. **Document broken upstream wrappers here, cross-reference from code.** When a smoke test scopes around a specific upstream defect, it should cite this section so future contributors don't re-discover the defect under deadline pressure.
+
+### Known upstream defects (as of 2026-04-18)
+
+Confirmed by direct inspection of the submodule worktree:
+
+- `external/sdl2-cs/src/SDL2_mixer.cs:148` declares `[DllImport(nativeLibName, EntryPoint = "MIX_Linked_Version", ...)]`. The actual SDL2_mixer native export is `Mix_Linked_Version` (lowercase `ix`, matching every other `Mix_*` symbol). Calling the wrapper throws `EntryPointNotFoundException` against a correctly-built `SDL2_mixer.dll` / `libSDL2_mixer.so`.
+- `external/sdl2-cs/src/SDL2_ttf.cs:77` declares `[DllImport(nativeLibName, EntryPoint = "TTF_LinkedVersion", ...)]` — missing the underscore between `Linked` and `Version`. The actual native export is `TTF_Linked_Version` per the SDL2_ttf header. Same `EntryPointNotFoundException` at call time.
+
+Neither defect is tracked upstream at `flibitijibibo/SDL2-CS` (searched 2026-04-18). Two possible paths — both deferred by project decision:
+
+- File a PR upstream. Low-risk community contribution; retired naturally when the AST generator replaces SDL2-CS.
+- Wait for the AST generator to retire the whole submodule. Preferred per `docs/plan.md` roadmap direction.
+
+**Repo-local impact:** [`tests/smoke-tests/package-smoke/PackageConsumer.Smoke/PackageSmokeTests.cs`](../../tests/smoke-tests/package-smoke/PackageConsumer.Smoke/PackageSmokeTests.cs) `Core_And_Image_Linked_Versions_Report_Expected_Majors` intentionally asserts only the wrapper methods that call correctly-named native symbols (`SDL.SDL_GetVersion`, `SDL_image.IMG_Linked_Version`). Mixer and TTF linked-version coverage is intentionally absent at the managed layer; the native-smoke (C) harness exercises the correct `Mix_Linked_Version` / `TTF_Linked_Version` symbols directly.
 
 ## Architecture
 

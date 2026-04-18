@@ -37,9 +37,15 @@ runs:
       uses: actions/cache@v5
       with:
         path: ${{ github.workspace }}/${{ inputs.vcpkg-cache-path }}
-        key: vcpkg-bin-${{ inputs.cache-key-base }}-${{ inputs.triplet }}-${{ hashFiles('vcpkg.json') }}-${{ steps.vcpkg_commit.outputs.commit }}
+        # Key includes vcpkg.json AND the full overlay-triplets + overlay-ports trees so
+        # edits to triplet regex / port feature flags bust the GitHub Actions cache as
+        # well as vcpkg's internal ABI hash. Without hashing overlays here, a hybrid
+        # triplet tweak could restore a stale cache blob that happens to match the
+        # unchanged vcpkg.json key, producing cold-build misses only when vcpkg's own
+        # ABI layer rejects the stored artifacts.
+        key: vcpkg-bin-${{ inputs.cache-key-base }}-${{ inputs.triplet }}-${{ hashFiles('vcpkg.json', 'vcpkg-overlay-triplets/**', 'vcpkg-overlay-ports/**') }}-${{ steps.vcpkg_commit.outputs.commit }}
         restore-keys: |
-          vcpkg-bin-${{ inputs.cache-key-base }}-${{ inputs.triplet }}-${{ hashFiles('vcpkg.json') }}-
+          vcpkg-bin-${{ inputs.cache-key-base }}-${{ inputs.triplet }}-${{ hashFiles('vcpkg.json', 'vcpkg-overlay-triplets/**', 'vcpkg-overlay-ports/**') }}-
           vcpkg-bin-${{ inputs.cache-key-base }}-${{ inputs.triplet }}-
       env:
         VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/${{ inputs.vcpkg-cache-path }}
@@ -80,8 +86,10 @@ runs:
       shell: pwsh
       run: |
         $overlayArgs = @()
-        $overlayPath = "$env:GITHUB_WORKSPACE\vcpkg-overlay-ports"
-        if (Test-Path $overlayPath) { $overlayArgs += "--overlay-ports=$overlayPath" }
+        $overlayTripletsPath = "$env:GITHUB_WORKSPACE\vcpkg-overlay-triplets"
+        if (Test-Path $overlayTripletsPath) { $overlayArgs += "--overlay-triplets=$overlayTripletsPath" }
+        $overlayPortsPath = "$env:GITHUB_WORKSPACE\vcpkg-overlay-ports"
+        if (Test-Path $overlayPortsPath) { $overlayArgs += "--overlay-ports=$overlayPortsPath" }
         & "$env:GITHUB_WORKSPACE\external\vcpkg\vcpkg.exe" install --triplet ${{ inputs.triplet }} @overlayArgs
       env:
         VCPKG_FEATURE_FLAGS: ${{ inputs.vcpkg-feature-flags }}
@@ -91,11 +99,14 @@ runs:
       if: inputs.runner-os != 'windows-latest'
       shell: bash
       run: |
-        OVERLAY_ARGS=""
-        if [ -d "$GITHUB_WORKSPACE/vcpkg-overlay-ports" ]; then
-          OVERLAY_ARGS="--overlay-ports=$GITHUB_WORKSPACE/vcpkg-overlay-ports"
+        OVERLAY_ARGS=()
+        if [ -d "$GITHUB_WORKSPACE/vcpkg-overlay-triplets" ]; then
+          OVERLAY_ARGS+=("--overlay-triplets=$GITHUB_WORKSPACE/vcpkg-overlay-triplets")
         fi
-        $GITHUB_WORKSPACE/external/vcpkg/vcpkg install --triplet ${{ inputs.triplet }} $OVERLAY_ARGS
+        if [ -d "$GITHUB_WORKSPACE/vcpkg-overlay-ports" ]; then
+          OVERLAY_ARGS+=("--overlay-ports=$GITHUB_WORKSPACE/vcpkg-overlay-ports")
+        fi
+        $GITHUB_WORKSPACE/external/vcpkg/vcpkg install --triplet ${{ inputs.triplet }} "${OVERLAY_ARGS[@]}"
       env:
         VCPKG_FEATURE_FLAGS: ${{ inputs.vcpkg-feature-flags }}
         VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/${{ inputs.vcpkg-cache-path }}

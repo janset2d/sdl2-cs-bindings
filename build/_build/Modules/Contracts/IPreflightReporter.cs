@@ -10,5 +10,7 @@ public interface IPreflightReporter
 
     void ReportStrategyCoherence(StrategyCoherenceValidation validation);
 
+    void ReportCoreLibraryIdentity(CoreLibraryIdentityValidation validation);
+
     void ReportCsprojPackContract(CsprojPackContractValidation validation);
 }

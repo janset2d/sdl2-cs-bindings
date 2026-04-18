@@ -16,15 +16,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        triplet: [x64-windows-release, x86-windows, arm64-windows]
+        triplet: [x64-windows-hybrid, x86-windows-hybrid, arm64-windows-hybrid]
         include:
-          - triplet: x64-windows-release
+          - triplet: x64-windows-hybrid
             rid: win-x64
             runner: windows-latest
-          - triplet: x86-windows
+          - triplet: x86-windows-hybrid
             rid: win-x86
             runner: windows-latest
-          - triplet: arm64-windows
+          - triplet: arm64-windows-hybrid
             rid: win-arm64
             runner: windows-latest
     with:
@@ -46,13 +46,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        triplet: [x64-linux-dynamic, arm64-linux-dynamic]
+        triplet: [x64-linux-hybrid, arm64-linux-hybrid]
         include:
-          - triplet: x64-linux-dynamic
+          - triplet: x64-linux-hybrid
             rid: linux-x64
             runner: ubuntu-24.04
             container_image: ubuntu:20.04
-          - triplet: arm64-linux-dynamic
+          - triplet: arm64-linux-hybrid
             rid: linux-arm64
             runner: ubuntu-24.04-arm
             container_image: ubuntu:24.04
@@ -76,12 +76,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        triplet: [x64-osx-dynamic, arm64-osx-dynamic]
+        triplet: [x64-osx-hybrid, arm64-osx-hybrid]
         include:
-          - triplet: x64-osx-dynamic
+          - triplet: x64-osx-hybrid
             rid: osx-x64
             runner: macos-15-intel
-          - triplet: arm64-osx-dynamic
+          - triplet: arm64-osx-hybrid
             rid: osx-arm64
             runner: macos-latest
     with:

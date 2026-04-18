@@ -2,6 +2,15 @@ cmake_minimum_required(VERSION 3.20)
 project(native-smoke LANGUAGES C)
 
 # ---------------------------------------------------------------------------
+# Build options
+# ---------------------------------------------------------------------------
+option(SMOKE_INTERACTIVE "Enable interactive mode (real display + audio)" OFF)
+# sdl2-net is in native scope today but remains a managed-package placeholder.
+# Give CI / contributors a safe off-switch for triplets where the upstream vcpkg
+# port is flaky so a net-only failure does not block the rest of the native smoke.
+option(SMOKE_INCLUDE_NET "Include SDL2_net in the native smoke harness" ON)
+
+# ---------------------------------------------------------------------------
 # SDL2 core + all satellites via vcpkg
 # ---------------------------------------------------------------------------
 find_package(SDL2       CONFIG REQUIRED)
@@ -9,12 +18,9 @@ find_package(SDL2_image CONFIG REQUIRED)
 find_package(SDL2_mixer CONFIG REQUIRED)
 find_package(SDL2_ttf   CONFIG REQUIRED)
 find_package(sdl2-gfx   CONFIG REQUIRED)
-find_package(SDL2_net   CONFIG REQUIRED)
-
-# ---------------------------------------------------------------------------
-# Build options
-# ---------------------------------------------------------------------------
-option(SMOKE_INTERACTIVE "Enable interactive mode (real display + audio)" OFF)
+if(SMOKE_INCLUDE_NET)
+    find_package(SDL2_net CONFIG REQUIRED)
+endif()
 
 # ---------------------------------------------------------------------------
 # Executable
@@ -28,12 +34,19 @@ target_link_libraries(native-smoke PRIVATE
     SDL2_mixer::SDL2_mixer
     SDL2_ttf::SDL2_ttf
     SDL2::SDL2_gfx
-    SDL2_net::SDL2_net
 )
+
+if(SMOKE_INCLUDE_NET)
+    target_link_libraries(native-smoke PRIVATE SDL2_net::SDL2_net)
+    target_compile_definitions(native-smoke PRIVATE SMOKE_INCLUDE_NET=1)
+endif()
 
 if(SMOKE_INTERACTIVE)
     target_compile_definitions(native-smoke PRIVATE SMOKE_INTERACTIVE=1)
 endif()
+
+set(SMOKE_PNG_ASSET "${CMAKE_CURRENT_SOURCE_DIR}/../../../assets/janset2d-sdl-min.png")
+configure_file("${SMOKE_PNG_ASSET}" "${CMAKE_CURRENT_BINARY_DIR}/janset2d-sdl-min.png" COPYONLY)
 
 # ---------------------------------------------------------------------------
 # Copy SDL2 DLLs next to the executable (Windows only)

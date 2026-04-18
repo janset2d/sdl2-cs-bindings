@@ -764,6 +764,36 @@ public sealed class PackageOutputValidator(IFileSystem fileSystem) : IPackageOut
 
         EvaluateBuildTransitiveContract(checks, family, nativePackagePath, entries);
         EvaluateNativePayloadShapePerRid(checks, family, nativePackagePath, entries);
+        EvaluateLicensePayloadPresence(checks, family, nativePackagePath, entries);
+    }
+
+    /// <summary>
+    /// G51 — the native package must ship at least one entry under <c>licenses/</c>.
+    /// Last line of defence against the H1 failure mode: a Harvest run invalidates the
+    /// consolidated license tree, the operator skips ConsolidateHarvest, the pack gate
+    /// somehow passes anyway (future regression or CI-side bypass), and Pack produces a
+    /// nupkg with native assets but zero third-party attribution. The upstream layers
+    /// (Harvest invalidation + PackageTaskRunner receipt gate) should catch this first;
+    /// G51 catches it if they don't.
+    /// </summary>
+    private static void EvaluateLicensePayloadPresence(
+        List<PackageValidationCheck> checks,
+        PackageFamilyConfig family,
+        FilePath nativePackagePath,
+        HashSet<string> entries)
+    {
+        var hasLicenseEntry = entries.Any(entry => entry.StartsWith("licenses/", StringComparison.OrdinalIgnoreCase));
+
+        checks.Add(new PackageValidationCheck(
+            FamilyIdentifier: family.Name,
+            PackagePath: nativePackagePath,
+            Kind: PackageValidationCheckKind.LicensePayloadPresent,
+            IsValid: hasLicenseEntry,
+            ExpectedValue: "at least one entry under licenses/",
+            ActualValue: hasLicenseEntry ? "present" : "absent",
+            ErrorMessage: hasLicenseEntry
+                ? null
+                : $"G51: native package '{nativePackagePath.GetFilename().FullPath}' contains no entries under 'licenses/'. Third-party license attribution missing — consumer-side compliance surface is broken. Ensure Harvest + ConsolidateHarvest populated licenses/_consolidated/ before Package."));
     }
 
     private static void EvaluateBuildTransitiveContract(

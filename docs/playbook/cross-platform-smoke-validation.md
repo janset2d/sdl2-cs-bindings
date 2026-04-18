@@ -1,9 +1,14 @@
 # Playbook: Cross-Platform Smoke Validation
 
-> How to verify that the Cake build host, harvest pipeline, and native libraries work correctly across all 3 local platforms after a refactor or significant change.
+> How to verify that the Cake build host, harvest pipeline, native libraries, and package-consumer path work correctly across the supported local hosts after a refactor or significant change.
 
-**Last validated:** 2026-04-17 post-S1 (Stream D-local + buildTransitive contract + G47/G48 post-pack guardrails landed and 3-platform re-verified).
-**Result (2026-04-17):** Checkpoints **A, D, E, F, J, K** green on all three platforms for the Phase 2a proof slice (`sdl2-core` + `sdl2-image`) on the three hybrid-static RIDs (`win-x64`, `linux-x64`, `osx-x64`). 273/273 build-host tests, 0 warnings / 0 errors on Release build, PreFlight 6 families × 10 csprojs × post-S1 invariant subset all green per platform. Consumer-smoke (K) covers net9.0 + net8.0 runtime on all three hosts plus net462 on Windows and macOS (Homebrew Mono); net462 on Linux is intentionally skipped because Mono 6.12 cannot host the TUnit + Microsoft Testing Platform discovery path. **Scope note:** J and K exercise only the three hybrid-static RIDs today. The four pure-dynamic RIDs in `manifest.json` (`win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64`) have no overlay hybrid triplet and are not covered by this validation — that work is Phase 2b and blocks on PA-1 (matrix strategy review) and PA-2 (hybrid overlay triplet expansion).
+**Last validated:** 2026-04-17 post-smoke-expansion.
+**Result (2026-04-17):** Two validation layers are currently true at the same time:
+
+- The historical Phase 2a proof slice remains green on the three original hybrid-static hosts for `sdl2-core` + `sdl2-image` (`win-x64`, `linux-x64`, `osx-x64`).
+- The newer expanded Windows-host slice is now green end to end for `sdl2-core`, `sdl2-image`, `sdl2-mixer`, `sdl2-ttf`, and `sdl2-gfx` on `win-x64`: native-smoke passes with the widened codec/render coverage (`28 passed, 0 failed`), Harvest reports `1 primary / 0 runtime` for every SDL2 satellite, dumpbin confirms the harvested satellites depend only on `SDL2.dll` plus CRT/system DLLs, and PostFlight is green for `net9.0`, `net8.0`, and `net462` against a local package family version (`1.3.0-validation.win64.1` during the latest run).
+
+**Scope note:** PA-2 moved the remaining four rows (`win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64`) onto hybrid overlay triplets, but those rows are still not validated end to end here. The expanded package-consumer smoke scope is code-complete, but only the Windows `win-x64` host slice has been re-verified with that wider family set so far.
 
 ## When to Run This
 
@@ -30,11 +35,11 @@ These are validated today and should pass on all 3 platforms.
 | D | PreFlightCheck | Baseline + A-risky + S1 | manifest.json ↔ vcpkg.json consistency + strategy coherence + post-S1 csproj pack contract (G4/G6/G7/G17/G18) | 6/6 versions, 7/7 strategies, 6/6 families × 10/10 csprojs all green |
 | E | Harvest (scoped to slice under test) | Baseline | Binary closure walk + deployment works per-platform | per-library `1 primary, 0 runtime, DirectCopy/Archive` green, rid-status JSON generated |
 | F | ConsolidateHarvest | Baseline | Per-RID merge produces manifest + summary | `harvest-manifest.json` + `harvest-summary.json` per library |
-| G | Native smoke (C++) | Baseline | Hybrid-built natives load and initialize at runtime | `13/13 PASS, all codecs functional` |
+| G | Native smoke (C++) | Baseline | Hybrid-built natives load and initialize at runtime | Current expanded Windows harness: `28 passed, 0 failed, Result: ALL PASS` |
 | J | PackageTask | D-local (post-S1) | Family-aware pack produces valid `.nupkg` per library (managed + native + .snupkg) + post-pack validator suite (G21–G23, G25–G27, G47, G48) passes on every produced package | 3 `.nupkg` files per family at `--family-version`; post-pack validator 0 violations |
-| K | PackageConsumerSmoke | D-local (post-S1) | `PackageReference` restore from local feed + consumer-side `buildTransitive` target fires + `SDL_Init` / `IMG_Load` succeeds from extracted native payload + Unix symlink chain preserved | per-TFM TUnit pass (4 tests × {net9.0, net8.0, net462}, net462 skipped on Linux); Unix-only symlink assertion passes; netstandard2.0 compile-sanity passes |
+| K | PackageConsumerSmoke | D-local (post-S1, expanded on Windows) | `PackageReference` restore from local feed + consumer-side `buildTransitive` target fires + runtime smoke succeeds for the concrete package-consumer set (`sdl2-core`, `sdl2-image`, `sdl2-mixer`, `sdl2-ttf`, `sdl2-gfx`) + Unix symlink chain preserved | per-TFM TUnit pass; current Windows host expectation is 12 passing tests on `net9.0`/`net8.0` and 11 passing tests on `net462`; netstandard2.0 compile-sanity passes |
 
-**Scope caveat for J and K (2026-04-17):** Active for the **three hybrid-static RIDs** (`win-x64`, `linux-x64`, `osx-x64`) and the **Phase 2a proof slice** (`sdl2-core` + `sdl2-image`). Pure-dynamic RIDs (`win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64`) have no overlay hybrid triplet yet (PA-2) and are not exercised end-to-end — their behavior on the pack / consumer path is therefore declarative only (PreFlight coherence), not behavioral. Expanding J/K beyond the hybrid-static slice is Phase 2b work.
+**Scope caveat for J and K (2026-04-17):** The current code path for `PackageConsumerSmoke` requires the concrete five-family smoke scope (`sdl2-core`, `sdl2-image`, `sdl2-mixer`, `sdl2-ttf`, `sdl2-gfx`). That widened scope is re-validated on `win-x64`. Linux and macOS still retain the older proof-slice evidence for `sdl2-core` + `sdl2-image`; rerunning the expanded scope there is still Phase 2b work, as is end-to-end validation for the newly hybridized rows (`win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64`).
 
 ### Planned Checkpoints
 
@@ -45,7 +50,7 @@ These will be added as their parent streams land. Add the command reference and 
 | H | GenerateMatrixTask | C | Dynamic CI matrix produces correct 7-RID JSON from manifest | Task implemented + validated against hardcoded YAML |
 | I | PreFlightCheck as gate (expanded) | C | Version resolution, package-family integrity, unit tests as gate | Stream C PreFlight expansion landed |
 | L | Source-Mode-Prepare | F | `--source=local` stages natives correctly per-platform | Task implemented + Directory.Build.targets wired |
-| M | J/K extended to pure-dynamic RIDs | 2b (PA-2) | PackageTask + PackageConsumerSmoke green for the four remaining RIDs once hybrid overlay triplets (`x86-windows-hybrid`, `arm64-windows-hybrid`, `arm64-linux-hybrid`, `arm64-osx-hybrid`) exist OR a chosen pure-dynamic behavioral contract is defined | PA-1 decision landed + PA-2 overlay triplets merged + at least one pure-dynamic RID harvested and consumer-smoked on its native runner |
+| M | J/K extended to remaining 4 hybrid-static RIDs | 2b | PackageTask + PackageConsumerSmoke green for `win-arm64`, `win-x86`, `linux-arm64`, and `osx-arm64` now that the overlay triplets (`x86-windows-hybrid`, `arm64-windows-hybrid`, `arm64-linux-hybrid`, `arm64-osx-hybrid`) exist | PA-1 decision landed + PA-2 overlay triplets merged + at least one newly-covered RID harvested and consumer-smoked on its native runner |
 
 **Exit criteria:** All **active** checkpoints green on all 3 platforms. Any failure must be classified as environment issue vs code regression before proceeding. When promoting a planned checkpoint to active, update this table and add its command reference below.
 
@@ -94,6 +99,14 @@ export DOTNET_ROOT=/usr/local/share/dotnet
 ## Command Reference
 
 All commands assume you are at the repo root. The environment exports from the section above are assumed to be active on WSL and macOS.
+
+### Local Multi-RID Sequencing Caveat
+
+The repo-local `vcpkg_installed/` tree does **not** behave like a permanent multi-triplet cache in this workflow. In local manifest mode, the most recently installed triplet is the one you should assume is present under `vcpkg_installed/`.
+
+- Do not assume `x64-windows-hybrid`, `x86-windows-hybrid`, and `arm64-windows-hybrid` will all remain materialized side by side after repeated local `vcpkg install --triplet ...` runs.
+- For real local validation of more than one RID, use a staged loop: `install triplet -> native-smoke / dumpbin -> Harvest -> next triplet install -> Harvest -> ConsolidateHarvest -> Package/PostFlight`.
+- CI is unaffected because each RID job installs exactly one triplet in isolation.
 
 ### A. Build-Host Unit Tests
 
@@ -195,6 +208,8 @@ cmake --build build/osx-x64
 
 **What to look for:** `Passed: 13, Failed: 0, Result: ALL PASS`
 
+**Expanded Windows note:** older logs and docs may still mention `13/13`. The current widened Windows harness now covers PNG/JPEG/WebP/TIFF/AVIF loading, FLAC/MIDI/WavPack/Opus/OGG/MP3/MOD decoder discovery, `TTF_Init`, `SDL2_gfx` drawing, and `SDLNet_Init`, so the expected success shape on the expanded harness is `28 passed, 0 failed`.
+
 ### J. Package (family-aware pack + post-pack validator)
 
 `Package` packs one or more families at a single `--family-version`. Requires Harvest + ConsolidateHarvest to have produced `harvest-manifest.json` for each library in scope first; the task fails fast if the harvest output is missing or empty.
@@ -237,7 +252,7 @@ dotnet run --project build/_build/Build.csproj -- \
 
 - `Running dotnet compile-sanity netstandard2.0 consumer` passes first (compile-only sanity against the Compile.NetStandard consumer).
 - One `Running dotnet test package-smoke (<tfm>)` line per executable TFM resolved from `PackageConsumer.Smoke.csproj`'s inherited `$(ExecutableTargetFrameworks)` — typically `net9.0`, `net8.0`, `net462`.
-- `Failed: 0` for each TFM. Expected per-TFM passing tests on the hybrid-static slice: `Native_Core_Asset_Lands_In_Output`, `Native_Image_Asset_Lands_In_Output`, `SDL_Init_Cycle_Succeeds`, `Linked_Versions_Report_Expected_Majors`, plus `Native_Symlink_Chain_Preserved_On_Unix` on Linux/macOS for net6+ TFMs only (guarded with `#if NET6_0_OR_GREATER`).
+- `Failed: 0` for each TFM. On the current expanded Windows scope, passing tests include native asset landing for `core/image/mixer/ttf/gfx`, `SDL_Init_Cycle_Succeeds`, PNG fixture load, mixer decoder-surface validation, `TTF_Init`, a headless `SDL2_gfx` render path, and linked-version major checks. The Unix symlink assertion still applies on modern Unix TFMs only (`#if NET6_0_OR_GREATER`).
 - net462 on Linux is **skipped** with a `Skipping package-smoke for TFM 'net462'` warning — Mono 6.12 cannot host the TUnit + Microsoft Testing Platform discovery stack, so runtime coverage there is intentionally absent. macOS Homebrew Mono is not skipped.
 - If the task fails with `Access to the path 'Microsoft.Testing.Platform.dll' is denied` on Windows, see the "Lingering dotnet processes mitigation" subsection below — this is a pre-existing testhost-lock flake, not a regression in J or K.
 
@@ -269,7 +284,13 @@ dotnet run --project build/_build/Build.csproj -- \
 
 ### Lingering dotnet processes mitigation
 
-`PackageConsumerSmokeRunner` already runs `dotnet build-server shutdown` on entry and passes `--disable-build-servers -p:UseSharedCompilation=false -nodeReuse:false` to every `dotnet build/test` invocation. That keeps the normal case clean: new runs do not spawn detachable MSBuild / Roslyn / Razor server children.
+`PackageConsumerSmokeRunner` runs `dotnet build-server shutdown` on entry, again before each executable TFM slice, and passes `--disable-build-servers -p:UseSharedCompilation=false -nodeReuse:false` to every `dotnet build/test` invocation. That keeps the normal case clean: new runs do not spawn detachable MSBuild / Roslyn / Razor server children and the later `net462` slice is less likely to inherit bad state from earlier `net8.0` / `net9.0` runs.
+
+**Shutdown call count per PostFlight run.** One shutdown fires on entry; one fires before **each** executable TFM slice. Concrete totals:
+
+- Windows default (net9.0 + net8.0 + net462): **4 shutdowns** per PostFlight invocation.
+- Linux default (net9.0 + net8.0; net462 skipped for Mono/TUnit incompatibility): **3 shutdowns**.
+- macOS default (net9.0 + net8.0 + net462 via Homebrew Mono): **4 shutdowns**.
 
 **Side-effect warning — `dotnet build-server shutdown` is scoped per-user, not per-project.** It also terminates CLI build servers owned by any other concurrent shell running `dotnet build` / `dotnet watch` / `dotnet test` (those processes re-spawn their servers on the next build; work is not lost, but there is a small warm-cache hit). The command does NOT touch Visual Studio, Rider, or VS Code / C# DevKit language-service MSBuild nodes — those run under different hosts and use separate IPC channels. If you are mid-way through a long parallel CLI build in another terminal, defer the `PostFlight` run until it finishes.
 
@@ -320,6 +341,60 @@ This local smoke matrix validates the **same command surface** that CI workflows
 
 If local smoke passes but CI fails, the issue is almost certainly in CI environment setup, not in the build host code.
 
+## Authoring New Smoke / Example Consumer Projects
+
+Smoke, example, and sandbox consumer projects that exercise the local-feed `.nupkg` surface share a single MSBuild foundation. New consumers inherit feeds, version-property conventions, and guard logic by dropping into the existing hierarchy — no ad-hoc `LocalPackageFeed` / version-property plumbing per project.
+
+### Layout
+
+```text
+build/msbuild/
+  Janset.Smoke.props      ← Shared properties (LocalPackageFeed, per-family version properties, SDL3 placeholders, smoke analyzer posture)
+  Janset.Smoke.targets    ← Shared guard targets (JNSMK001: LocalPackageFeed required; JNSMK002+: per-family version input required when referenced)
+
+tests/smoke-tests/
+  Directory.Build.props   ← Imports root Directory.Build.props + Janset.Smoke.props
+  Directory.Build.targets ← Imports root Directory.Build.targets + Janset.Smoke.targets
+  package-smoke/
+    PackageConsumer.Smoke/   ← TUnit runtime smoke (executable TFMs)
+    Compile.NetStandard/     ← netstandard2.0 compile-only sanity
+```
+
+The same pattern can extend to `examples/Directory.Build.props` and `sandbox/Directory.Build.props` once those trees grow consumer projects.
+
+### Authoring Contract
+
+Per consumer csproj:
+
+- Inherit the hierarchy by living under `tests/smoke-tests/**` (or a sibling tree that imports the same shared props/targets).
+- Reference every managed package you consume using the shared version property, e.g.:
+
+    ```xml
+    <PackageReference Include="Janset.SDL2.Core" VersionOverride="$(JansetSdl2CorePackageVersion)" />
+    <PackageReference Include="Janset.SDL2.Image" VersionOverride="$(JansetSdl2ImagePackageVersion)" />
+    ```
+
+- Do **not** redeclare `LocalPackageFeed`, `RestoreAdditionalProjectSources`, version defaults, or guard targets — all of these live in the shared files.
+
+Naming convention (authoritative in `FamilyIdentifierConventions`):
+
+- `sdl<major>-<role>` family identifier → `Janset.SDL<Major>.<Role>` managed package + `Janset.SDL<Major>.<Role>.Native` native package + `JansetSdl<Major><Role>PackageVersion` version property.
+- Example: `sdl2-mixer` → `Janset.SDL2.Mixer` / `Janset.SDL2.Mixer.Native` / `JansetSdl2MixerPackageVersion`.
+
+### SDL3 Drop-in Readiness
+
+`Janset.Smoke.props` already declares `JansetSdl3CorePackageVersion`, `JansetSdl3ImagePackageVersion`, etc. (all defaulted to the sentinel). When SDL3 ships, authoring an SDL3 consumer is a single-csproj change: add `<PackageReference Include="Janset.SDL3.Core" VersionOverride="$(JansetSdl3CorePackageVersion)" />` and the existing guard (`JNSMK101`) picks up missing version input without editing the shared files.
+
+### Invocation Contract (via Cake)
+
+Consumer csprojs require orchestrator-supplied inputs — direct `dotnet build`/`dotnet test` invocations deliberately fail at `JNSMK001` so contributors can't accidentally bypass the guard. The runner (`PackageConsumerSmokeRunner`) derives its smoke scope from `manifest.json` package_families (filtered by `managed_project` + `native_project` non-null) and injects `-p:LocalPackageFeed=<absolute path>` plus one `-p:JansetSdl<Major><Role>PackageVersion=<semver>` per concrete family into every `dotnet build/test` call.
+
+That means:
+
+- Adding a new concrete family to `manifest.json` (non-null `managed_project` + `native_project`) automatically expands the smoke scope — no runner edit.
+- Graduating a placeholder family (e.g., `sdl2-net` today) requires only filling in the two `*_project` fields; the smoke runner picks it up and the shared props already declare the version property.
+- Adding a new smoke consumer csproj under `tests/smoke-tests/**` only requires declaring the desired `PackageReference`s; feed and versions are inherited.
+
 ## Consumer Invocation Contract (Checkpoint K)
 
 `PackageConsumerSmoke` invokes the consumer project with an explicit `-r <rid>` on `restore`, `build`, and `run`. That is a deliberate choice and the contract it validates is narrower than "what an arbitrary external consumer sees."
@@ -341,3 +416,42 @@ What `-r <rid>` does NOT exercise:
 **Consequence for D-local:** checkpoint K today proves "runtime assets LAND in bin/ via build-time file copy on win-x64." It does NOT prove "runtime assets LOAD via the default framework-dependent consumer flow across RIDs." Both are legitimate Package Validation Mode truths per [`research/execution-model-strategy-2026-04-13.md §7.2`](../research/execution-model-strategy-2026-04-13.md) but they exercise different subsystems.
 
 **When to revisit:** before K is promoted to active on all three platforms, decide whether the smoke should also run a second invocation **without** `-r <rid>` to cover the framework-dependent resolver path. The decision lives in [`phases/phase-2-adaptation-plan.md`](../phases/phase-2-adaptation-plan.md) Pending Decisions (PD-10).
+
+## PA-2 Per-Triplet Witness Invocations
+
+PA-2 moved four previously-stock runtime rows onto hybrid overlay triplets (2026-04-18). The mechanism landed, but no behavioral evidence exists yet on the new triplets. Before Stream C consumes them as peers of the validated x64 row, we need at least one end-to-end PostFlight run per new row on its native runner.
+
+Each invocation packs the concrete five-family smoke scope, exercises harvest → consolidate → pack → consumer-smoke, and records pass/fail against this playbook. Record the result in the "Last validated" header at the top of this document as each triplet passes; any failure triage into (a) upstream vcpkg port issue, (b) overlay-triplet tuning needed, or (c) vcpkg feature-flag degradation — file a `docs/research/` note before re-attempting.
+
+Trigger each run via workflow-dispatch on the matching GitHub runner:
+
+| # | RID | Triplet | Runner (workflow dispatch) | Notes |
+| --- | --- | --- | --- | --- |
+| 1 | `win-x86` | `x86-windows-hybrid` | `windows-latest` (cross-arch from x64 host) | 32-bit MSVC calling conventions; first hybrid-static zlib/libpng/libjpeg-turbo bake on x86. |
+| 2 | `win-arm64` | `arm64-windows-hybrid` | `windows-latest` (cross-arch from x64 host) | Watch for vcpkg port gaps on windows-arm64 — particularly `timidity` and `wavpack` — that can silently degrade the SDL2_mixer codec set. |
+| 3 | `linux-arm64` | `arm64-linux-hybrid` | `ubuntu-24.04-arm` (native arm64) | Community triplet base + `ubuntu:24.04` container; newer glibc vs x64's `ubuntu:20.04`. Watch for `-fvisibility=hidden` interactions with freetype / libwebp symbol versioning. |
+| 4 | `osx-arm64` | `arm64-osx-hybrid` | `macos-latest` (Apple Silicon) | First arm64-osx run through the hybrid bake. Watch for MachO layout / `VCPKG_OSX_ARCHITECTURES=arm64` / dyld cache surprises. |
+
+Per-RID command (adapt the runner via workflow input; body identical):
+
+```bash
+# Harvest + ConsolidateHarvest + Package + PackageConsumerSmoke for the full
+# concrete family scope on the target runner. Replace <rid> with the RID from
+# the table above. --family-version can be any unused suffix (e.g., 'pa2-witness.1').
+dotnet run --project build/_build/Build.csproj -- \
+  --target PostFlight \
+  --family sdl2-core --family sdl2-image \
+  --family sdl2-mixer --family sdl2-ttf --family sdl2-gfx \
+  --family-version 1.3.0-pa2-witness.<rid>.1 \
+  --rid <rid>
+```
+
+**Acceptance per witness:**
+
+- PreFlight: 6/6 versions, 7/7 strategy coherence, G49 core-identity, csproj contract all green.
+- Harvest: each selected library reports `primary=1, runtime=0` and emits `rid-status/<rid>.json` with `success=true`.
+- Consolidate: `harvest-manifest.json` + `harvest-summary.json` + `licenses/_consolidated/` produced.
+- Package: `Janset.SDL2.<Role>.nupkg`, `.snupkg`, and `.Native.<version>.nupkg` produced per family with post-pack validator (G21–G23, G25–G27, G46, G47, G48) = 0 violations.
+- PackageConsumerSmoke: netstandard2.0 compile-sanity pass + per-TFM TUnit pass for executable TFMs (net9.0 / net8.0 on every runner; net462 on Windows + macOS; net462 skipped on Linux).
+
+Any failure that isn't an obvious environment issue triggers a research note at `docs/research/pa2-witness-<rid>-<date>.md` before re-attempting. Do not paper over behavioral failures with workarounds in the overlay files — file the research note first, diagnose root cause, then either fix or retreat.

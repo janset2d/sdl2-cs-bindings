@@ -1,5 +1,7 @@
 using Build.Context.Configs;
+using Build.Context.Models;
 using Build.Modules.Contracts;
+using Build.Modules.Preflight;
 using Cake.Common;
 using Cake.Common.IO;
 using Cake.Core;
@@ -13,33 +15,52 @@ public sealed class PackageConsumerSmokeRunner(
     ICakeLog log,
     IPathService pathService,
     IRuntimeProfile runtimeProfile,
+    ManifestConfig manifestConfig,
     DotNetBuildConfiguration dotNetBuildConfiguration,
     PackageBuildConfiguration packageBuildConfiguration,
     IPackageVersionResolver packageVersionResolver,
     IProjectMetadataReader projectMetadataReader) : IPackageConsumerSmokeRunner
 {
-    private const string CoreFamily = "sdl2-core";
-    private const string ImageFamily = "sdl2-image";
-    private const string SmokeProjectRelativePath = "tests/smoke-tests/package-smoke/PackageConsumer.Smoke/PackageConsumer.Smoke.csproj";
-    private const string CompileSanityProjectRelativePath = "tests/smoke-tests/package-smoke/Compile.NetStandard/Compile.NetStandard.csproj";
-
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
     private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
     private readonly IRuntimeProfile _runtimeProfile = runtimeProfile ?? throw new ArgumentNullException(nameof(runtimeProfile));
+    private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
     private readonly DotNetBuildConfiguration _dotNetBuildConfiguration = dotNetBuildConfiguration ?? throw new ArgumentNullException(nameof(dotNetBuildConfiguration));
     private readonly PackageBuildConfiguration _packageBuildConfiguration = packageBuildConfiguration ?? throw new ArgumentNullException(nameof(packageBuildConfiguration));
     private readonly IPackageVersionResolver _packageVersionResolver = packageVersionResolver ?? throw new ArgumentNullException(nameof(packageVersionResolver));
     private readonly IProjectMetadataReader _projectMetadataReader = projectMetadataReader ?? throw new ArgumentNullException(nameof(projectMetadataReader));
 
+    /// <summary>
+    /// Concrete family descriptor for smoke: derived from <c>manifest.json</c> package_families
+    /// filtered by presence of managed + native project (same <c>HasConcreteProjects</c> rule
+    /// used by <c>PackageFamilySelector</c>). Naming conventions come from
+    /// <see cref="FamilyIdentifierConventions"/> so the runner, the shared smoke MSBuild
+    /// props, and the csproj PackageReference entries stay aligned via a single convention.
+    /// </summary>
+    private sealed record SmokePackage(string FamilyName, string ManagedPackageId, string NativePackageId, string VersionPropertyName)
+    {
+        public static SmokePackage FromFamily(PackageFamilyConfig family)
+        {
+            ArgumentNullException.ThrowIfNull(family);
+            return new SmokePackage(
+                FamilyName: family.Name,
+                ManagedPackageId: FamilyIdentifierConventions.ManagedPackageId(family.Name),
+                NativePackageId: FamilyIdentifierConventions.NativePackageId(family.Name),
+                VersionPropertyName: FamilyIdentifierConventions.VersionPropertyName(family.Name));
+        }
+    }
+
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        EnsureSelectionSupportsCurrentSmokeScope();
+        var smokePackages = ResolveSmokePackages();
+        EnsureSelectionSupportsCurrentSmokeScope(smokePackages);
+        await EnsureSmokeCsprojsMatchManifestScopeAsync(smokePackages, cancellationToken);
 
         var version = ResolveVersion();
-        EnsurePackageArtifactsExist(version);
+        EnsurePackageArtifactsExist(smokePackages, version);
 
         // Kill any lingering build-server processes (VBCSCompiler, MSBuild worker nodes with
         // /nodeReuse:true, Razor) from prior invocations before we try to delete bin/obj —
@@ -49,8 +70,8 @@ public sealed class PackageConsumerSmokeRunner(
         // memory usage in check. See Known Gotchas in cross-platform-smoke-validation.md.
         ShutdownDotNetBuildServers();
 
-        var smokeProject = _pathService.RepoRoot.CombineWithFilePath(new FilePath(SmokeProjectRelativePath));
-        var compileSanityProject = _pathService.RepoRoot.CombineWithFilePath(new FilePath(CompileSanityProjectRelativePath));
+        var smokeProject = _pathService.PackageConsumerSmokeProject;
+        var compileSanityProject = _pathService.CompileSanityProject;
 
         var workingRoot = _pathService.ArtifactsDir.Combine("package-consumer-smoke");
         var packagesCache = workingRoot.Combine("packages-cache");
@@ -68,7 +89,7 @@ public sealed class PackageConsumerSmokeRunner(
         // 1. Compile-only sanity for the netstandard2.0 consumer slice.
         //    netstandard2.0 is a contract, not a runtime — if this library compiles
         //    against our package, the netstandard2.0 consumer surface is validated.
-        RunCompileSanity(compileSanityProject, version, packagesCache);
+        RunCompileSanity(compileSanityProject, smokePackages, version, packagesCache);
 
         // 2. Per-TFM TUnit smoke for executable TFMs. TFM list comes from MSBuild
         //    evaluation of the smoke csproj (inherits $(ExecutableTargetFrameworks)
@@ -92,11 +113,109 @@ public sealed class PackageConsumerSmokeRunner(
                 continue;
             }
 
-            RunSmokeForTfm(smokeProject, version, packagesCache, tfm);
+            // TUnit + Microsoft Testing Platform on Windows can leave enough CLI-side
+            // state behind after one TFM run that the next TFM, especially net4x,
+            // intermittently fails despite passing when invoked in isolation.
+            // Reset build servers between TFMs to keep the multi-target sequence stable.
+            ShutdownDotNetBuildServers();
+
+            RunSmokeForTfm(smokeProject, smokePackages, version, packagesCache, tfm);
         }
     }
 
-    private void EnsureSelectionSupportsCurrentSmokeScope()
+    /// <summary>
+    /// Resolve the concrete smoke scope from <c>manifest.json</c>: every family that
+    /// declares both managed_project and native_project (i.e., packs a real nupkg today).
+    /// Families still in placeholder state (e.g., <c>sdl2-net</c> as of 2026-04-18) are
+    /// excluded automatically without a hardcoded list here.
+    /// </summary>
+    private List<SmokePackage> ResolveSmokePackages()
+    {
+        var concreteFamilies = _manifestConfig.PackageFamilies
+            .Where(HasConcreteProjects)
+            .OrderBy(family => family.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (concreteFamilies.Count == 0)
+        {
+            throw new CakeException(
+                "PackageConsumerSmoke cannot run: manifest.json declares no package families with both managed_project and native_project. Smoke requires at least one concrete family.");
+        }
+
+        return concreteFamilies.Select(SmokePackage.FromFamily).ToList();
+    }
+
+    private static bool HasConcreteProjects(PackageFamilyConfig family)
+    {
+        return !string.IsNullOrWhiteSpace(family.ManagedProject) && !string.IsNullOrWhiteSpace(family.NativeProject);
+    }
+
+    /// <summary>
+    /// Guards against scope drift between the manifest-derived smoke scope (see
+    /// <see cref="ResolveSmokePackages"/>) and the consumer csprojs that actually carry
+    /// the PackageReference entries. If a family graduates to concrete in the manifest,
+    /// the runner auto-expands its scope — this check ensures the consumer csprojs were
+    /// updated to match, so the smoke surface actually exercises the new package rather
+    /// than silently passing while referencing only the old set.
+    /// <para>
+    /// Fires before any dotnet invocation so the drift surfaces as an actionable error,
+    /// not as a green-but-meaningless smoke result.
+    /// </para>
+    /// </summary>
+    private async Task EnsureSmokeCsprojsMatchManifestScopeAsync(IReadOnlyList<SmokePackage> smokePackages, CancellationToken cancellationToken)
+    {
+        var expectedManagedPackageIds = smokePackages
+            .Select(package => package.ManagedPackageId)
+            .ToList();
+
+        var consumerProjects = new (FilePath ProjectPath, string Description)[]
+        {
+            (_pathService.PackageConsumerSmokeProject, "PackageConsumer.Smoke"),
+            (_pathService.CompileSanityProject, "Compile.NetStandard"),
+        };
+
+        foreach (var (projectPath, description) in consumerProjects)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var file = _cakeContext.FileSystem.GetFile(projectPath);
+            if (!file.Exists)
+            {
+                throw new CakeException(
+                    $"PackageConsumerSmoke cannot find smoke csproj '{projectPath.FullPath}' ({description}).");
+            }
+
+            string csprojXml;
+            await using (var stream = file.OpenRead())
+            using (var reader = new StreamReader(stream))
+            {
+                csprojXml = await reader.ReadToEndAsync(cancellationToken);
+            }
+
+            var comparison = SmokeScopeComparator.Compare(csprojXml, expectedManagedPackageIds);
+            if (comparison.IsMatch)
+            {
+                continue;
+            }
+
+            var details = new List<string>();
+            if (comparison.Missing.Count > 0)
+            {
+                details.Add($"missing PackageReference(s): {string.Join(", ", comparison.Missing)}");
+            }
+
+            if (comparison.Unexpected.Count > 0)
+            {
+                details.Add($"unexpected Janset.SDL.* PackageReference(s) (not concrete in manifest): {string.Join(", ", comparison.Unexpected)}");
+            }
+
+            throw new CakeException(
+                $"PackageConsumerSmoke scope drift in '{description}' ({projectPath.FullPath}): {string.Join("; ", details)}. " +
+                "Update the csproj PackageReferences to match the concrete manifest family set (package_families[] with both managed_project and native_project non-null), or graduate / retire the corresponding family in manifest.json.");
+        }
+    }
+
+    private void EnsureSelectionSupportsCurrentSmokeScope(IReadOnlyList<SmokePackage> smokePackages)
     {
         if (_packageBuildConfiguration.Families.Count == 0)
         {
@@ -104,10 +223,15 @@ public sealed class PackageConsumerSmokeRunner(
         }
 
         var selectedFamilies = _packageBuildConfiguration.Families.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        if (!selectedFamilies.Contains(CoreFamily) || !selectedFamilies.Contains(ImageFamily))
+        var missingFamilies = smokePackages
+            .Where(package => !selectedFamilies.Contains(package.FamilyName))
+            .Select(package => package.FamilyName)
+            .ToList();
+
+        if (missingFamilies.Count != 0)
         {
             throw new CakeException(
-                "PackageConsumerSmoke currently validates the Phase 2a integration pair 'sdl2-core' + 'sdl2-image'. Run with no --family filter, or include both families explicitly.");
+                $"PackageConsumerSmoke currently validates the concrete package-consumer set {DescribeSmokeScope(smokePackages)}. Run with no --family filter, or include the full smoke scope explicitly. Missing: {string.Join(", ", missingFamilies)}. Placeholder families (managed_project or native_project null) are automatically excluded.");
         }
     }
 
@@ -126,12 +250,13 @@ public sealed class PackageConsumerSmokeRunner(
         return result.PackageVersion.Value;
     }
 
-    private void EnsurePackageArtifactsExist(string version)
+    private void EnsurePackageArtifactsExist(IReadOnlyList<SmokePackage> smokePackages, string version)
     {
-        EnsurePackageExists("Janset.SDL2.Core", version);
-        EnsurePackageExists("Janset.SDL2.Core.Native", version);
-        EnsurePackageExists("Janset.SDL2.Image", version);
-        EnsurePackageExists("Janset.SDL2.Image.Native", version);
+        foreach (var smokePackage in smokePackages)
+        {
+            EnsurePackageExists(smokePackage.ManagedPackageId, version);
+            EnsurePackageExists(smokePackage.NativePackageId, version);
+        }
     }
 
     private void EnsurePackageExists(string packageId, string version)
@@ -144,7 +269,7 @@ public sealed class PackageConsumerSmokeRunner(
         }
     }
 
-    private void RunCompileSanity(FilePath projectPath, string version, DirectoryPath packagesCache)
+    private void RunCompileSanity(FilePath projectPath, IReadOnlyList<SmokePackage> smokePackages, string version, DirectoryPath packagesCache)
     {
         var arguments = new ProcessArgumentBuilder()
             .Append("build")
@@ -153,17 +278,13 @@ public sealed class PackageConsumerSmokeRunner(
             .Append(_dotNetBuildConfiguration.Configuration);
 
         AppendBuildServerSuppressionFlags(arguments);
-
-        arguments
-            .Append($"-p:JansetSdl2CorePackageVersion={version}")
-            .Append($"-p:JansetSdl2ImagePackageVersion={version}")
-            .AppendQuoted($"-p:LocalPackageFeed={_pathService.PackagesOutput.FullPath}")
-            .AppendQuoted($"-p:RestorePackagesPath={packagesCache.FullPath}");
+        AppendFeedArguments(arguments, packagesCache);
+        AppendSmokePackageVersionProperties(arguments, smokePackages, version);
 
         RunDotNetCommand("compile-sanity netstandard2.0 consumer", arguments);
     }
 
-    private void RunSmokeForTfm(FilePath projectPath, string version, DirectoryPath packagesCache, string tfm)
+    private void RunSmokeForTfm(FilePath projectPath, IReadOnlyList<SmokePackage> smokePackages, string version, DirectoryPath packagesCache, string tfm)
     {
         var arguments = new ProcessArgumentBuilder()
             .Append("test")
@@ -176,14 +297,37 @@ public sealed class PackageConsumerSmokeRunner(
             .Append(_runtimeProfile.Rid);
 
         AppendBuildServerSuppressionFlags(arguments);
-
-        arguments
-            .Append($"-p:JansetSdl2CorePackageVersion={version}")
-            .Append($"-p:JansetSdl2ImagePackageVersion={version}")
-            .AppendQuoted($"-p:LocalPackageFeed={_pathService.PackagesOutput.FullPath}")
-            .AppendQuoted($"-p:RestorePackagesPath={packagesCache.FullPath}");
+        AppendFeedArguments(arguments, packagesCache);
+        AppendSmokePackageVersionProperties(arguments, smokePackages, version);
 
         RunDotNetCommand($"test package-smoke ({tfm})", arguments);
+    }
+
+    private void AppendFeedArguments(ProcessArgumentBuilder arguments, DirectoryPath packagesCache)
+    {
+        ArgumentNullException.ThrowIfNull(arguments);
+        ArgumentNullException.ThrowIfNull(packagesCache);
+
+        arguments
+            .AppendQuoted($"-p:LocalPackageFeed={_pathService.PackagesOutput.FullPath}")
+            .AppendQuoted($"-p:RestorePackagesPath={packagesCache.FullPath}");
+    }
+
+    private static void AppendSmokePackageVersionProperties(ProcessArgumentBuilder arguments, IReadOnlyList<SmokePackage> smokePackages, string version)
+    {
+        ArgumentNullException.ThrowIfNull(arguments);
+        ArgumentNullException.ThrowIfNull(smokePackages);
+        ArgumentException.ThrowIfNullOrEmpty(version);
+
+        foreach (var smokePackage in smokePackages)
+        {
+            arguments.Append($"-p:{smokePackage.VersionPropertyName}={version}");
+        }
+    }
+
+    private static string DescribeSmokeScope(IReadOnlyList<SmokePackage> smokePackages)
+    {
+        return string.Join(", ", smokePackages.Select(package => $"'{package.FamilyName}'"));
     }
 
     /// <summary>
@@ -214,6 +358,13 @@ public sealed class PackageConsumerSmokeRunner(
     /// pipe (Windows) or unix domain socket (Linux/macOS). Failures here are logged at
     /// verbose level and do not abort the run — the subsequent
     /// <see cref="AppendBuildServerSuppressionFlags"/> flags remain the primary defence.
+    /// <para>
+    /// Side-effect note: the shutdown is per-user, not per-process-tree, so any other
+    /// concurrent CLI build on the same machine will re-warm its cache on the next invocation.
+    /// See <c>docs/playbook/cross-platform-smoke-validation.md</c> "Lingering dotnet
+    /// processes mitigation" — this call fires once on entry and once before each
+    /// executable TFM slice (typical total on Windows: 4 shutdowns per PostFlight run).
+    /// </para>
     /// </summary>
     private void ShutdownDotNetBuildServers()
     {

@@ -31,18 +31,45 @@ This eliminates the DLL collision problem documented in [#75](https://github.com
 - **RID:** `win-x64`
 - **Tracking issue:** [#83](https://github.com/janset2d/sdl2-cs-bindings/issues/83)
 
-## Planned Triplets (Phase 2b)
+### x86-windows-hybrid
 
-| Triplet | RID | Base |
-| --- | --- | --- |
-| `x86-windows-hybrid` | win-x86 | `x86-windows` |
-| `arm64-windows-hybrid` | win-arm64 | `arm64-windows` |
-| `x64-linux-hybrid` | linux-x64 | `x64-linux-dynamic` + `-fvisibility=hidden` |
-| `arm64-linux-hybrid` | linux-arm64 | `arm64-linux-dynamic` + `-fvisibility=hidden` + `-fPIC` |
-| `x64-osx-hybrid` | osx-x64 | `x64-osx-dynamic` + `-fvisibility=hidden` |
-| `arm64-osx-hybrid` | osx-arm64 | `arm64-osx-dynamic` + `-fvisibility=hidden` |
+- **Base:** `x86-windows` (stock vcpkg triplet)
+- **Difference:** `VCPKG_LIBRARY_LINKAGE=static` as default, SDL family overridden to `dynamic`
+- **RID:** `win-x86`
 
-Linux/macOS triplets will add `-fvisibility=hidden` to `VCPKG_C_FLAGS` and `VCPKG_CXX_FLAGS` to prevent transitive symbol leakage. Windows does not need this — PE format is export-opt-in by default.
+### arm64-windows-hybrid
+
+- **Base:** `arm64-windows` (stock vcpkg triplet)
+- **Difference:** `VCPKG_LIBRARY_LINKAGE=static` as default, SDL family overridden to `dynamic`
+- **RID:** `win-arm64`
+
+### x64-linux-hybrid
+
+- **Base:** `x64-linux-dynamic` (community triplet)
+- **Difference:** `VCPKG_LIBRARY_LINKAGE=static` as default, SDL family overridden to `dynamic`, `-fvisibility=hidden`
+- **RID:** `linux-x64`
+
+### arm64-linux-hybrid
+
+- **Base:** `arm64-linux-dynamic` (community triplet)
+- **Difference:** `VCPKG_LIBRARY_LINKAGE=static` as default, SDL family overridden to `dynamic`, `-fvisibility=hidden`
+- **RID:** `linux-arm64`
+
+### x64-osx-hybrid
+
+- **Base:** `x64-osx-dynamic` (community triplet)
+- **Difference:** `VCPKG_LIBRARY_LINKAGE=static` as default, SDL family overridden to `dynamic`, `-fvisibility=hidden`
+- **RID:** `osx-x64`
+
+### arm64-osx-hybrid
+
+- **Base:** `arm64-osx-dynamic` (community triplet)
+- **Difference:** `VCPKG_LIBRARY_LINKAGE=static` as default, SDL family overridden to `dynamic`, `-fvisibility=hidden`
+- **RID:** `osx-arm64`
+
+Linux/macOS triplets add `-fvisibility=hidden` to `VCPKG_C_FLAGS` and `VCPKG_CXX_FLAGS` to prevent transitive symbol leakage. Windows does not need this - PE format is export-opt-in by default.
+
+As of 2026-04-18, all 7 runtime rows in `build/manifest.json` point at these hybrid triplets. Behavioral validation is still deepest on the original proof slice (`win-x64`, `linux-x64`, `osx-x64`); the four newly-covered rows still need end-to-end package/smoke coverage in Phase 2b.
 
 ## Maintenance Rules
 
