@@ -30,6 +30,15 @@ This directory contains local overrides for vcpkg ports that have upstream bugs 
 
 - **Runtime note:** Timidity MIDI requires `timidity.cfg` + GUS patch files at runtime. Without them, MIDI via Timidity produces silence. Native MIDI on Windows/macOS works without additional files.
 
+### sdl2-gfx
+
+- **Why:** SDL2_gfx's public headers only define `__declspec(dllexport)` on MSVC and fall back to bare `extern` on every other compiler. Combined with our hybrid overlay triplets' `-fvisibility=hidden` (set in `vcpkg-overlay-triplets/_hybrid-common.cmake` for both Linux and Darwin), every SDL2_gfx public API symbol is emitted as hidden on `libSDL2_gfx*.so` / `*.dylib`. This breaks the C++ native-smoke link step (`filledCircleRGBA` unresolved) and, more importantly, breaks C# P/Invoke at runtime on Unix — `dlsym` cannot resolve hidden symbols.
+- **Upstream issue:** None. SDL2_gfx 1.0.4 shipped in 2018 and has had no releases since; upstream is effectively abandoned.
+- **Based on upstream version:** 1.0.4#11 (vcpkg baseline `0b88aacd`)
+- **Files changed from upstream:** Only `003-fix-unix-visibility.patch` (new) and `portfile.cmake` (adds the new patch to the `PATCHES` list + Janset overlay comment header). All other files (`vcpkg.json`, `CMakeLists.txt`, `001-lrint-arm64.patch`, `002-use-the-lrintf-intrinsic.patch`) are byte-identical copies of the upstream port.
+- **What the patch does:** Adds a single `#elif defined(__GNUC__) && __GNUC__ >= 4` branch to each of the four public headers (`SDL2_gfxPrimitives.h`, `SDL2_framerate.h`, `SDL2_rotozoom.h`, `SDL2_imageFilter.h`) so the `SDL2_<MODULE>_SCOPE` macro resolves to `extern __attribute__((visibility("default")))` on GCC/Clang. The MSVC branch and the final `#ifndef ... extern` fallback are untouched, so Windows behavior is unchanged and older compilers still get the bare `extern` path. 8 insertions total across 4 files.
+- **Why the patch rather than a per-port triplet exception:** Disabling `-fvisibility=hidden` for sdl2-gfx at the triplet level would also expose every transitive statically-linked symbol on the dynamic satellite's export table, which is the exact failure mode the hybrid strategy's visibility rule is designed to prevent (see `vcpkg-overlay-triplets/_hybrid-common.cmake:17`). The patch is port-local, annotates only the real public API, and matches how the rest of the SDL family handles exports (SDL_image/mixer/ttf/net all use SDL's own `DECLSPEC` which already emits `visibility("default")` on GCC/Clang).
+
 ### mpg123 (DEPRECATED — pending removal)
 
 - **Why:** arm64 Linux FPU detection bug — container environments incorrectly report no FPU, causing `REAL_IS_FIXED` + `OPT_NEON64` compile conflict.

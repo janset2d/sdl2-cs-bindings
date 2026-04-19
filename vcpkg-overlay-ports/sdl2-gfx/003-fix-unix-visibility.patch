@@ -1,0 +1,52 @@
+diff --git a/SDL2_framerate.h b/SDL2_framerate.h
+index cd5f9b3..362f07b 100644
+--- a/SDL2_framerate.h
++++ b/SDL2_framerate.h
+@@ -77,6 +77,8 @@ extern "C" {
+ #      define SDL2_FRAMERATE_SCOPE __declspec(dllimport)
+ #    endif
+ #  endif
++#elif defined(__GNUC__) && __GNUC__ >= 4
++#  define SDL2_FRAMERATE_SCOPE extern __attribute__((visibility("default")))
+ #endif
+ #ifndef SDL2_FRAMERATE_SCOPE
+ #  define SDL2_FRAMERATE_SCOPE extern
+diff --git a/SDL2_gfxPrimitives.h b/SDL2_gfxPrimitives.h
+index 3a85cfd..848a942 100644
+--- a/SDL2_gfxPrimitives.h
++++ b/SDL2_gfxPrimitives.h
+@@ -59,6 +59,8 @@ extern "C" {
+ #      define SDL2_GFXPRIMITIVES_SCOPE __declspec(dllimport)
+ #    endif
+ #  endif
++#elif defined(__GNUC__) && __GNUC__ >= 4
++#  define SDL2_GFXPRIMITIVES_SCOPE extern __attribute__((visibility("default")))
+ #endif
+ #ifndef SDL2_GFXPRIMITIVES_SCOPE
+ #  define SDL2_GFXPRIMITIVES_SCOPE extern
+diff --git a/SDL2_imageFilter.h b/SDL2_imageFilter.h
+index 8ea6404..5a105c4 100644
+--- a/SDL2_imageFilter.h
++++ b/SDL2_imageFilter.h
+@@ -45,6 +45,8 @@ extern "C" {
+ #      define SDL2_IMAGEFILTER_SCOPE __declspec(dllimport)
+ #    endif
+ #  endif
++#elif defined(__GNUC__) && __GNUC__ >= 4
++#  define SDL2_IMAGEFILTER_SCOPE extern __attribute__((visibility("default")))
+ #endif
+ #ifndef SDL2_IMAGEFILTER_SCOPE
+ #  define SDL2_IMAGEFILTER_SCOPE extern
+diff --git a/SDL2_rotozoom.h b/SDL2_rotozoom.h
+index d9fa577..b901936 100644
+--- a/SDL2_rotozoom.h
++++ b/SDL2_rotozoom.h
+@@ -65,6 +65,8 @@ extern "C" {
+ #      define SDL2_ROTOZOOM_SCOPE __declspec(dllimport)
+ #    endif
+ #  endif
++#elif defined(__GNUC__) && __GNUC__ >= 4
++#  define SDL2_ROTOZOOM_SCOPE extern __attribute__((visibility("default")))
+ #endif
+ #ifndef SDL2_ROTOZOOM_SCOPE
+ #  define SDL2_ROTOZOOM_SCOPE extern
