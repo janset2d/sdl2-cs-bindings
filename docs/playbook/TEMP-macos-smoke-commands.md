@@ -152,7 +152,7 @@ ls -1 artifacts/packages | tee "$LOG_DIR/52-packages.log"
 
 ## 8. Managed Consumer Validation
 
-macOS note: unlike Linux, `net462` package smoke is expected to run here because the repo docs treat Homebrew Mono as a valid runtime host for the macOS slice.
+macOS note: `net462` package smoke only runs if a `mono` binary is present in `$PATH` — macOS has no built-in .NET Framework runtime. Install classic Mono via `brew install mono` or the [mono-project.com MDK pkg](https://www.mono-project.com/download/stable/) to enable the runtime slice. Without Mono the per-TFM runner auto-skips net462 with a `Skipping package-smoke for TFM 'net462'` warning (same mechanism as the Linux skip), so this block is safe to run either way — it will just report one fewer TFM covered.
 
 ```bash
 dotnet build Janset.SDL2.sln -c Release | tee "$LOG_DIR/60-solution-build.log"

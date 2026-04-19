@@ -92,6 +92,8 @@ export DOTNET_ROOT="$HOME/.dotnet"
 
 Consider adding these exports to `~/.bashrc` or `~/.profile` to avoid repeating them.
 
+**native-smoke MIDI decoder prereq:** SDL_mixer's bundled internal Timidity only registers the `MIDI` decoder when it finds a cfg file at init. On Debian/Ubuntu install the `timidity` apt package (`sudo apt install -y timidity`) — that drops the config at `/etc/timidity/timidity.cfg` plus GUS patches. The native-smoke binary sets `TIMIDITY_CFG` to that Debian path on `__linux__` (see `tests/smoke-tests/native-smoke/main.c`'s `ensure_linux_timidity_cfg`) so no host-side symlink with sudo is required. Without the package installed, `Mix decoder: MIDI` will report "decoder missing" — a clear signal rather than a silent skip.
+
 ### macOS (SSH)
 
 Non-interactive SSH shells don't source `~/.zprofile` or `~/.zshrc`, so tools installed via Homebrew and the .NET SDK are invisible:
@@ -363,7 +365,10 @@ dotnet run --project build/_build/Build.csproj -- \
 - `Running dotnet compile-sanity netstandard2.0 consumer` passes first (compile-only sanity against the Compile.NetStandard consumer).
 - One `Running dotnet test package-smoke (<tfm>)` line per executable TFM resolved from `PackageConsumer.Smoke.csproj`'s inherited `$(ExecutableTargetFrameworks)` — typically `net9.0`, `net8.0`, `net462`.
 - `Failed: 0` for each TFM. On the current expanded Windows scope, passing tests include native asset landing for `core/image/mixer/ttf/gfx`, `SDL_Init_Cycle_Succeeds`, PNG fixture load, mixer decoder-surface validation, `TTF_Init`, a headless `SDL2_gfx` render path, and linked-version major checks. The Unix symlink assertion still applies on modern Unix TFMs only (`#if NET6_0_OR_GREATER`).
-- net462 on Linux is **skipped** with a `Skipping package-smoke for TFM 'net462'` warning — Mono 6.12 cannot host the TUnit + Microsoft Testing Platform discovery stack, so runtime coverage there is intentionally absent. macOS Homebrew Mono is not skipped.
+- net462 runtime coverage depends on the host's Mono availability:
+  - **Windows**: always runs — .NET Framework ships natively, no Mono required.
+  - **Linux**: always skipped with `Skipping package-smoke for TFM 'net462'` — Mono 6.12 cannot host the TUnit + Microsoft Testing Platform discovery stack (MissingMethodException at test discovery).
+  - **macOS**: skipped unless a `mono` binary is discoverable on `$PATH`. macOS has **no built-in .NET Framework runtime**, and recent GitHub runner images regressed: `macos-14` shipped Mono 6.12 but `macos-15` (the current `macos-latest` default) removed it. To enable net462 runtime coverage locally or in CI, install classic Mono via `brew install mono` or the [mono-project.com MDK pkg](https://www.mono-project.com/download/stable/). Compile-time coverage of net462 runs regardless via `Microsoft.NETFramework.ReferenceAssemblies`; only the runtime TUnit slice is gated on Mono.
 - If the task fails with `Access to the path 'Microsoft.Testing.Platform.dll' is denied` on Windows, see the "Lingering dotnet processes mitigation" subsection below — this is a pre-existing testhost-lock flake, not a regression in J or K.
 
 ## Output Artifacts to Verify
@@ -400,7 +405,7 @@ dotnet run --project build/_build/Build.csproj -- \
 
 - Windows default (net9.0 + net8.0 + net462): **4 shutdowns** per PostFlight invocation.
 - Linux default (net9.0 + net8.0; net462 skipped for Mono/TUnit incompatibility): **3 shutdowns**.
-- macOS default (net9.0 + net8.0 + net462 via Homebrew Mono): **4 shutdowns**.
+- macOS with `mono` on `$PATH` (net9.0 + net8.0 + net462): **4 shutdowns**. macOS without Mono (net9.0 + net8.0; net462 auto-skipped): **3 shutdowns**.
 
 **Side-effect warning — `dotnet build-server shutdown` is scoped per-user, not per-project.** It also terminates CLI build servers owned by any other concurrent shell running `dotnet build` / `dotnet watch` / `dotnet test` (those processes re-spawn their servers on the next build; work is not lost, but there is a small warm-cache hit). The command does NOT touch Visual Studio, Rider, or VS Code / C# DevKit language-service MSBuild nodes — those run under different hosts and use separate IPC channels. If you are mid-way through a long parallel CLI build in another terminal, defer the `PostFlight` run until it finishes.
 
@@ -597,6 +602,6 @@ dotnet run --project build/_build/Build.csproj -- \
 - Harvest: each selected library reports `primary=1, runtime=0` and emits `rid-status/<rid>.json` with `success=true`.
 - Consolidate: `harvest-manifest.json` + `harvest-summary.json` + `licenses/_consolidated/` produced.
 - Package: `Janset.SDL2.<Role>.nupkg`, `.snupkg`, and `.Native.<version>.nupkg` produced per family with post-pack validator (G21–G23, G25–G27, G46, G47, G48) = 0 violations.
-- PackageConsumerSmoke: netstandard2.0 compile-sanity pass + per-TFM TUnit pass for executable TFMs (net9.0 / net8.0 on every runner; net462 on Windows + macOS; net462 skipped on Linux).
+- PackageConsumerSmoke: netstandard2.0 compile-sanity pass + per-TFM TUnit pass for executable TFMs (net9.0 / net8.0 on every runner; net462 on Windows always, on macOS only when `mono` is on `$PATH` — else auto-skipped; always skipped on Linux). See [Consumer Invocation Contract](#consumer-invocation-contract-checkpoint-k) for the per-TFM matrix rationale.
 
 Any failure that isn't an obvious environment issue triggers a research note at `docs/research/pa2-witness-<rid>-<date>.md` before re-attempting. Do not paper over behavioral failures with workarounds in the overlay files — file the research note first, diagnose root cause, then either fix or retreat.

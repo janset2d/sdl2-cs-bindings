@@ -48,6 +48,15 @@ jobs:
           libwayland-dev libxkbcommon-dev wayland-protocols libegl1-mesa-dev libdrm-dev \
           libvulkan-dev libasound2-dev
 
+          # native-smoke runtime prereqs: SDL_mixer's bundled internal Timidity only
+          # registers the MIDI decoder when a cfg file is found at init. The `timidity`
+          # apt package provides /etc/timidity/timidity.cfg + GUS patches; the
+          # native-smoke binary then bridges to that path via TIMIDITY_CFG. Keep this
+          # step in place even though this workflow currently runs Harvest only — when
+          # native-smoke is wired into CI on Linux this prereq must already be present
+          # for Mix decoder: MIDI to pass. See docs/playbook/cross-platform-smoke-validation.md.
+          apt-get install -y --no-install-recommends timidity
+
           apt-get install -y $(apt-cache search '^libicu[0-9]+$' | head -1 | cut -d' ' -f1)
           update-ca-certificates
 

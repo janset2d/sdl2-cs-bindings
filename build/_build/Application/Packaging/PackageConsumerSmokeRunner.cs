@@ -399,7 +399,7 @@ public sealed class PackageConsumerSmokeRunner(
         }
     }
 
-    private static bool ShouldSkipTfm(string tfm, out string reason)
+    private bool ShouldSkipTfm(string tfm, out string reason)
     {
         reason = string.Empty;
 
@@ -410,11 +410,30 @@ public sealed class PackageConsumerSmokeRunner(
         }
 
         // Windows ships .NET Framework natively; TUnit + Microsoft Testing Platform
-        // are supported there. macOS via Homebrew Mono also hosts TUnit correctly in
-        // practice (verified on the Intel Mac bench).
-        if (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS())
+        // run without any extra runtime installation.
+        if (OperatingSystem.IsWindows())
         {
             return false;
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            // macOS has no built-in .NET Framework runtime — net462 binaries need
+            // classic Mono in PATH (brew install mono / mono-project.com MDK pkg).
+            // This also covers the GitHub runner-image regression: macos-14 shipped
+            // Mono 6.12, macos-15 (the current macos-latest default) removed it.
+            // Detect the mono binary at runtime rather than assuming it; hosts
+            // without Mono get a clean skip + reason instead of an MTP
+            // "Runner 'mono' not found" stack trace mid-test-run.
+            if (IsMonoAvailableOnPath())
+            {
+                return false;
+            }
+
+            reason = $"TFM '{tfm}' runtime execution is skipped on macOS: `mono` binary not found in $PATH. " +
+                     "Install classic Mono to enable net462 runtime coverage (see https://www.mono-project.com/download/stable/ or `brew install mono`). " +
+                     "Compile-time coverage of net462 still runs via Microsoft.NETFramework.ReferenceAssemblies.";
+            return true;
         }
 
         // Linux path: Mono 6.12 tarball (the latest supported build at time of
@@ -424,11 +443,59 @@ public sealed class PackageConsumerSmokeRunner(
         // MissingMethodException: Method not found: ... TestDataRowUnwrapper.UnwrapArray.
         // The compile-time ref assemblies (Microsoft.NETFramework.ReferenceAssemblies)
         // still exercise the net462 build surface, so runtime gating here does not
-        // reduce the coverage the smoke actually provides. macOS Mono currently works
-        // because Homebrew ships a newer build; if that ever regresses, broaden this
-        // guard to cover macOS too.
-        reason = $"TFM '{tfm}' runtime execution is skipped on Linux: Mono 6.12 cannot host TUnit (MissingMethodException in Microsoft Testing Platform discovery). Compile-time coverage of net462 still runs via Microsoft.NETFramework.ReferenceAssemblies. macOS Homebrew Mono is known to work and is not skipped.";
+        // reduce the coverage the smoke actually provides.
+        reason = $"TFM '{tfm}' runtime execution is skipped on Linux: Mono 6.12 cannot host TUnit (MissingMethodException in Microsoft Testing Platform discovery). Compile-time coverage of net462 still runs via Microsoft.NETFramework.ReferenceAssemblies.";
         return true;
+    }
+
+    /// <summary>
+    /// Probe <c>$PATH</c> for a <c>mono</c> executable using Cake's own environment and
+    /// filesystem abstractions — no <c>System.IO</c> calls in the build host by contract.
+    /// Used by <see cref="ShouldSkipTfm"/> to decide whether net462 runtime execution can
+    /// proceed on non-Windows hosts. File-existence check matches what
+    /// <c>Microsoft.Testing.Platform.MSBuild.targets</c> does when it resolves the runner
+    /// ("Full path tool calculation" step); when that resolution fails mid-run it surfaces
+    /// as an opaque MSBuild error, so detecting the gap up-front keeps the smoke output
+    /// readable.
+    /// </summary>
+    private bool IsMonoAvailableOnPath()
+    {
+        var pathEnv = _cakeContext.EnvironmentVariable("PATH");
+        if (string.IsNullOrEmpty(pathEnv))
+        {
+            return false;
+        }
+
+        // PATH separator is ':' on Unix and ';' on Windows. ShouldSkipTfm already
+        // returns false for Windows so in practice this probe only runs on Unix,
+        // but branch on the actual host for correctness if the method is ever reused.
+        var separator = OperatingSystem.IsWindows() ? ';' : ':';
+
+        foreach (var dir in pathEnv.Split(separator))
+        {
+            if (string.IsNullOrEmpty(dir))
+            {
+                continue;
+            }
+
+            FilePath candidate;
+            try
+            {
+                candidate = new DirectoryPath(dir).CombineWithFilePath("mono");
+            }
+            catch (ArgumentException)
+            {
+                // Malformed PATH entry — ignore and keep probing the rest.
+                continue;
+            }
+
+            if (_cakeContext.FileExists(candidate))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void RunDotNetCommand(string description, ProcessArgumentBuilder arguments)
