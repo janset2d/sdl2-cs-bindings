@@ -4,7 +4,7 @@ using Cake.Core.Diagnostics;
 
 namespace Build.Application.Preflight;
 
-public sealed class PreflightReporter(ICakeContext cakeContext) : IPreflightReporter
+public sealed class PreflightReporter(ICakeContext cakeContext)
 {
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
 

@@ -5,9 +5,13 @@ using System.CommandLine.Invocation;
 using System.CommandLine.NamingConventionBinder;
 using System.Diagnostics;
 using Build;
+using Build.Application.Common;
+using Build.Application.Coverage;
+using Build.Application.DependencyAnalysis;
 using Build.Application.Harvesting;
 using Build.Application.Packaging;
 using Build.Application.Preflight;
+using Build.Application.Vcpkg;
 using Build.Context;
 using Build.Context.Configs;
 using Build.Context.Models;
@@ -25,6 +29,8 @@ using Build.Infrastructure.DotNet;
 using Build.Infrastructure.Paths;
 using Build.Infrastructure.Tools.Vcpkg;
 using Build.Infrastructure.Vcpkg;
+using Build.Tasks.Dependency;
+using Build.Tasks.Harvest;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
@@ -116,20 +122,27 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     });
 
     services.AddSingleton<IPackageInfoProvider, VcpkgCliProvider>();
+    services.AddSingleton<InfoTaskRunner>();
     services.AddSingleton<IBinaryClosureWalker, BinaryClosureWalker>();
     services.AddSingleton<IArtifactPlanner, ArtifactPlanner>();
     services.AddSingleton<IArtifactDeployer, ArtifactDeployer>();
+    services.AddSingleton<HarvestTaskRunner>();
+    services.AddSingleton<ConsolidateHarvestTaskRunner>();
+    services.AddSingleton<OtoolAnalyzeTaskRunner>();
     services.AddSingleton<ICoberturaReader, CoberturaReader>();
     services.AddSingleton<ICoverageBaselineReader, CoverageBaselineReader>();
     services.AddSingleton<ICoverageThresholdValidator, CoverageThresholdValidator>();
+    services.AddSingleton<CoverageCheckTaskRunner>();
     services.AddSingleton<IVcpkgManifestReader, VcpkgManifestReader>();
+    services.AddSingleton<EnsureVcpkgDependenciesTaskRunner>();
     services.AddSingleton<IVersionConsistencyValidator, VersionConsistencyValidator>();
     services.AddSingleton<IStrategyResolver, StrategyResolver>();
     services.AddSingleton<IStrategyCoherenceValidator, StrategyCoherenceValidator>();
     services.AddSingleton<ICoreLibraryIdentityValidator, CoreLibraryIdentityValidator>();
     services.AddSingleton<IUpstreamVersionAlignmentValidator, UpstreamVersionAlignmentValidator>();
     services.AddSingleton<ICsprojPackContractValidator, CsprojPackContractValidator>();
-    services.AddSingleton<IPreflightReporter, PreflightReporter>();
+    services.AddSingleton<PreflightReporter>();
+    services.AddSingleton<PreflightTaskRunner>();
     services.AddSingleton<NativePackageMetadataValidator>();
     services.AddSingleton<ReadmeMappingTableValidator>();
     services.AddSingleton<IPackageOutputValidator, PackageOutputValidator>();
@@ -143,66 +156,17 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton<IPackageConsumerSmokeRunner, PackageConsumerSmokeRunner>();
     services.AddSingleton<VcpkgBootstrapTool>();
     services.AddSingleton<LocalArtifactSourceResolver>();
-    services.AddSingleton<RemoteInternalArtifactSourceResolver>();
-    services.AddSingleton<ReleasePublicArtifactSourceResolver>();
+    services.AddSingleton<ArtifactSourceResolverFactory>();
     services.AddSingleton<IArtifactSourceResolver>(provider =>
-    {
-        return source.ToLowerInvariant() switch
-        {
-            "local" => provider.GetRequiredService<LocalArtifactSourceResolver>(),
-            "remote" or "remote-internal" => provider.GetRequiredService<RemoteInternalArtifactSourceResolver>(),
-            "release" or "release-public" => provider.GetRequiredService<ReleasePublicArtifactSourceResolver>(),
-            _ => throw new InvalidOperationException(
-                $"Unsupported --source value '{source}'. Allowed values: local, remote, release."),
-        };
-    });
+        provider.GetRequiredService<ArtifactSourceResolverFactory>().Create(source));
 
+    services.AddSingleton<PackagingStrategyFactory>();
     services.AddSingleton<IPackagingStrategy>(provider =>
-    {
-        var manifest = provider.GetRequiredService<ManifestConfig>();
-        var runtimeConfig = provider.GetRequiredService<RuntimeConfig>();
-        var runtimeProfile = provider.GetRequiredService<IRuntimeProfile>();
-        var strategyResolver = provider.GetRequiredService<IStrategyResolver>();
+        provider.GetRequiredService<PackagingStrategyFactory>().Create());
 
-        // Consume the single source of truth for core-library identity; G49 PreFlight
-        // enforces that manifest.CoreLibrary.VcpkgName agrees with PackagingConfig.CoreLibrary.
-        var coreLibraryName = manifest.CoreLibrary.VcpkgName;
-
-        var runtime = runtimeConfig.Runtimes.SingleOrDefault(r => string.Equals(r.Rid, runtimeProfile.Rid, StringComparison.Ordinal))
-            ?? throw new InvalidOperationException(
-                $"RID '{runtimeProfile.Rid}' was not found in manifest runtimes during strategy resolution.");
-
-        var resolution = strategyResolver.Resolve(runtime);
-        if (resolution.IsError())
-        {
-            throw new InvalidOperationException(resolution.ResolutionError.Message, resolution.ResolutionError.Exception);
-        }
-
-        var model = resolution.ResolvedModel;
-
-        return model switch
-        {
-            PackagingModel.HybridStatic => new HybridStaticStrategy(coreLibraryName),
-            PackagingModel.PureDynamic => new PureDynamicStrategy(coreLibraryName),
-            _ => throw new InvalidOperationException($"Unsupported packaging model '{model}'."),
-        };
-    });
-
+    services.AddSingleton<DependencyPolicyValidatorFactory>();
     services.AddSingleton<IDependencyPolicyValidator>(provider =>
-    {
-        var manifest = provider.GetRequiredService<ManifestConfig>();
-        var runtimeProfile = provider.GetRequiredService<IRuntimeProfile>();
-        var packagingStrategy = provider.GetRequiredService<IPackagingStrategy>();
-
-        var validationMode = manifest.PackagingConfig.ValidationMode;
-
-        return packagingStrategy.Model switch
-        {
-            PackagingModel.HybridStatic => new HybridStaticValidator(runtimeProfile, packagingStrategy, validationMode),
-            PackagingModel.PureDynamic => new PureDynamicValidator(validationMode),
-            _ => throw new InvalidOperationException($"Unsupported packaging model '{packagingStrategy.Model}'."),
-        };
-    });
+        provider.GetRequiredService<DependencyPolicyValidatorFactory>().Create());
 
     services.AddSingleton<IRuntimeScanner>(provider =>
     {

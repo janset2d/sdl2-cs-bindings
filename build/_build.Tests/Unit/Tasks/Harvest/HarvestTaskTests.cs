@@ -8,6 +8,7 @@ using Build.Domain.Harvesting.Results;
 using Build.Domain.Runtime;
 using Build.Domain.Strategy;
 using Build.Domain.Strategy.Results;
+using Build.Tasks.Harvest;
 using Build.Tests.Fixtures;
 using Build.Tests.Fixtures.Seeders;
 using Cake.Core;
@@ -71,7 +72,13 @@ public class HarvestTaskTests
         var runtimeProfile = CreateWindowsRuntimeProfile();
 
         var task = new Build.Tasks.Harvest.HarvestTask(
-            mockWalker, mockPlanner, mockDeployer, mockValidator, runtimeProfile, manifestConfig);
+            new HarvestTaskRunner(
+                mockWalker,
+                mockPlanner,
+                mockDeployer,
+                mockValidator,
+                runtimeProfile,
+                manifestConfig));
 
         var thrown = false;
         try
@@ -115,7 +122,13 @@ public class HarvestTaskTests
         var runtimeProfile = CreateWindowsRuntimeProfile();
 
         var task = new Build.Tasks.Harvest.HarvestTask(
-            mockWalker, mockPlanner, mockDeployer, mockValidator, runtimeProfile, manifestConfig);
+            new HarvestTaskRunner(
+                mockWalker,
+                mockPlanner,
+                mockDeployer,
+                mockValidator,
+                runtimeProfile,
+                manifestConfig));
 
         await Assert.That(() => task.RunAsync(repo.BuildContext)).Throws<InvalidOperationException>();
 
@@ -147,7 +160,13 @@ public class HarvestTaskTests
         var runtimeProfile = CreateWindowsRuntimeProfile();
 
         var task = new Build.Tasks.Harvest.HarvestTask(
-            mockWalker, mockPlanner, mockDeployer, mockValidator, runtimeProfile, manifestConfig);
+            new HarvestTaskRunner(
+                mockWalker,
+                mockPlanner,
+                mockDeployer,
+                mockValidator,
+                runtimeProfile,
+                manifestConfig));
 
         await Assert.That(() => task.RunAsync(repo.BuildContext)).Throws<OperationCanceledException>();
 
@@ -254,7 +273,13 @@ public class HarvestTaskTests
 
         var runtimeProfile = CreateWindowsRuntimeProfile();
         var task = new Build.Tasks.Harvest.HarvestTask(
-            mockWalker, mockPlanner, mockDeployer, mockValidator, runtimeProfile, manifestConfig);
+            new HarvestTaskRunner(
+                mockWalker,
+                mockPlanner,
+                mockDeployer,
+                mockValidator,
+                runtimeProfile,
+                manifestConfig));
 
         await Assert.That(() => task.RunAsync(repo.BuildContext)).Throws<CakeException>();
     }
@@ -374,7 +399,13 @@ public class HarvestTaskTests
         var runtimeProfile = CreateWindowsRuntimeProfile();
 
         return new Build.Tasks.Harvest.HarvestTask(
-            mockWalker, mockPlanner, mockDeployer, mockValidator, runtimeProfile, manifestConfig);
+            new HarvestTaskRunner(
+                mockWalker,
+                mockPlanner,
+                mockDeployer,
+                mockValidator,
+                runtimeProfile,
+                manifestConfig));
     }
 
     private static BinaryClosure ClosureWithSinglePrimary(string libraryName)

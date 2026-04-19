@@ -7,6 +7,7 @@ using Build.Context.Models;
 using Build.Context.Options;
 using Build.Domain.Coverage;
 using Build.Domain.Packaging;
+using Build.Domain.Packaging.Models;
 using Build.Domain.Preflight;
 using Build.Domain.Strategy;
 using Build.Domain.Strategy.Models;
@@ -256,7 +257,8 @@ public sealed class ProgramCompositionRootTests
         using var provider = services.BuildServiceProvider();
         var resolver = provider.GetRequiredService<IArtifactSourceResolver>();
 
-        await Assert.That(resolver.GetType()).IsEqualTo(typeof(RemoteInternalArtifactSourceResolver));
+        await Assert.That(resolver.GetType()).IsEqualTo(typeof(UnsupportedArtifactSourceResolver));
+        await Assert.That(resolver.Profile).IsEqualTo(ArtifactProfile.RemoteInternal);
     }
 
     [Test]
@@ -280,7 +282,8 @@ public sealed class ProgramCompositionRootTests
         using var provider = services.BuildServiceProvider();
         var resolver = provider.GetRequiredService<IArtifactSourceResolver>();
 
-        await Assert.That(resolver.GetType()).IsEqualTo(typeof(ReleasePublicArtifactSourceResolver));
+        await Assert.That(resolver.GetType()).IsEqualTo(typeof(UnsupportedArtifactSourceResolver));
+        await Assert.That(resolver.Profile).IsEqualTo(ArtifactProfile.ReleasePublic);
     }
 
     [Test]

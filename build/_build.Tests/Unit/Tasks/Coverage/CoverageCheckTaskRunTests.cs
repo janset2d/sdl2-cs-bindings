@@ -1,3 +1,4 @@
+using Build.Application.Coverage;
 using Build.Domain.Coverage;
 using Build.Domain.Coverage.Models;
 using Build.Infrastructure.Coverage;
@@ -88,10 +89,12 @@ public class CoverageCheckTaskRunTests
 
     private static CoverageCheckTask CreateTask(IFileSystem fileSystem)
     {
-        return new CoverageCheckTask(
+        var runner = new CoverageCheckTaskRunner(
             new CoberturaReader(fileSystem),
             new CoverageBaselineReader(fileSystem),
             new CoverageThresholdValidator());
+
+        return new CoverageCheckTask(runner);
     }
 
     private static CoverageBaseline CreateCoverageBaseline(double lineMin, double branchMin)

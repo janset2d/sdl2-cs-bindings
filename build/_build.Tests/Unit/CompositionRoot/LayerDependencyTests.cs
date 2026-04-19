@@ -11,13 +11,11 @@ namespace Build.Tests.Unit.CompositionRoot;
 /// <list type="number">
 ///   <item><description>Domain has no outward dependencies on Application or Tasks.</description></item>
 ///   <item><description>Infrastructure does not reach into Application or Tasks.</description></item>
-///   <item><description>Tasks do not reach Domain or Infrastructure directly (only via Application / Modules.Contracts transitional namespace).</description></item>
+///   <item><description>Tasks reach behavior through Application; only DTO/result types and Cake tool wrappers may cross in from Domain/Infrastructure.</description></item>
 /// </list>
 /// <para>
-/// Transitional namespace <c>Build.Modules.*</c> is intentionally excluded from violation lists —
-/// Wave 4 (per ADR-002 §6.4) retires it; Wave 1 freezes the direction of travel, not the
-/// final shape. Cake framework and NuGet.Versioning references are permitted from any layer
-/// (framework glue) — only cross-layer Build.* references are asserted.
+/// Cake framework and NuGet.Versioning references are permitted from any layer (framework glue)
+/// — only cross-layer Build.* references are asserted.
 /// </para>
 /// </summary>
 public sealed class LayerDependencyTests
@@ -54,34 +52,26 @@ public sealed class LayerDependencyTests
     }
 
     [Test]
-    public async Task Tasks_Should_Not_Hold_Concrete_Domain_Or_Infrastructure_Services()
+    public async Task Tasks_Should_Not_Reference_Domain_Or_Infrastructure_Services_Outside_Dtos_And_Tools()
     {
-        // Tasks may reference:
-        //   (a) Domain / Infrastructure DTOs under `.Models.` or `.Results.` sub-namespaces
-        //       (value objects flow through task output — Spectre rendering, JSON, etc.)
-        //   (b) Domain / Infrastructure INTERFACES (dependency-inversion is the idiomatic way
-        //       for a Cake task to consume orchestrator-less behaviors — validators, readers,
-        //       scanners — without an Application façade around every single call site).
-        // What Tasks must NOT hold is a Domain / Infrastructure **concrete class** at layer
-        // root — those are implementations that should be instantiated by the composition root
-        // and reached only via interfaces. See ADR-002 §2.8 and §6.6.
+        // Target shape:
+        //   (a) behavior flows through Application services
+        //   (b) Domain / Infrastructure DTOs under `.Models.` or `.Results.` may cross the
+        //       boundary because they are the task's data currency.
+        // What Tasks must NOT hold is a Domain / Infrastructure service seam, concrete or
+        // interface. Application runners/factories own that orchestration boundary.
         var violations = FindViolations(
             sourcePrefix: TasksPrefix,
             forbiddenPrefixes: [DomainPrefix, InfrastructurePrefix],
-            isAllowedReference: IsDomainOrInfrastructureDtoOrInterface);
+            isAllowedReference: IsDomainOrInfrastructureDtoOrTool);
 
         await Assert.That(violations)
             .IsEmpty()
             .Because(FormatViolations(violations));
     }
 
-    private static bool IsDomainOrInfrastructureDtoOrInterface(Type referenced)
+    private static bool IsDomainOrInfrastructureDtoOrTool(Type referenced)
     {
-        if (referenced.IsInterface)
-        {
-            return true;
-        }
-
         var ns = referenced.Namespace ?? string.Empty;
 
         // Cake Tool wrappers live under Build.Infrastructure.Tools.* and follow the

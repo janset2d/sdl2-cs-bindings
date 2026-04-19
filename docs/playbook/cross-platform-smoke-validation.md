@@ -19,6 +19,14 @@
 - Before declaring a multi-session refactor "done"
 - When a new stream (C, D, F) lands changes that touch cross-platform behavior
 
+## Recommended Big-Smoke Rules
+
+- Treat `artifacts/` as a **single-run disposable workspace** for this playbook. If you want a trustworthy answer to "everything still works", start from an empty artifact tree instead of reusing old `harvest_output/`, `packages/`, or consumer-smoke caches.
+- Do **not** define success as "every Cake target was invoked once." Some targets are lifecycle gates (`PreFlightCheck`, `EnsureVcpkgDependencies`, `Harvest`, `ConsolidateHarvest`, `Package`, `PackageConsumerSmoke`, `PostFlight`), some are diagnostics (`Dumpbin-Dependents`, `Ldd-Dependents`, `Otool-Analyze`), and some are local-only safeguards (`Coverage-Check`). The big smoke should exercise the lifecycle gates on every platform and the diagnostics where they add evidence.
+- `SetupLocalDev --source=local` is a useful **developer-convenience umbrella** because it prepares the local feed after `EnsureVcpkgDependencies -> Harvest -> ConsolidateHarvest`, but it does **not** replace an explicit `PreFlightCheck` gate in this playbook. Keep PreFlight as a standalone fail-fast step.
+- Use a **fresh version suffix per run** and never mix package families from multiple smoke attempts in `artifacts/packages/`. Even with orchestrator-supplied version properties, a dirty local feed is how you accidentally end up debugging ghosts.
+- Record results per platform as a bundle: command log, harvested dependency inspection, native-smoke output, and final package-consumer result. If one platform goes red, you want evidence, not vibes.
+
 ## Smoke Matrix
 
 This matrix is a living validation surface that grows as new Cake tasks and streams land. Each checkpoint has a stream origin so you know when it was introduced and whether it applies to the current codebase.
@@ -29,10 +37,11 @@ These are validated today and should pass on all 3 platforms.
 
 | # | Checkpoint | Stream | What It Proves | Expected Output |
 | --- | --- | --- | --- | --- |
-| A | Build-host unit tests | Baseline | Refactored code logic is correct | 273 passed, 0 failed (247 → 256 A-risky → 270 S1 → 273 post-S1 buildTransitive G47/G48 tests) |
+| A | Build-host unit tests | Baseline | Refactored code logic is correct | 337 passed, 0 failed on the current branch (2026-04-19 local validation) |
 | B | Cake restore + build (Release) | Baseline | Build host compiles clean on all platforms | 0 warnings, 0 errors (usually implied by A — tests build the same assemblies) |
 | C | Cake `--tree` | Baseline | Task dependency graph is intact | `PostFlight → PackageConsumerSmoke → Package → PreFlightCheck`; `ConsolidateHarvest → Harvest → Info` |
 | D | PreFlightCheck | Baseline + A-risky + S1 | manifest.json ↔ vcpkg.json consistency + strategy coherence + post-S1 csproj pack contract (G4/G6/G7/G17/G18) | 6/6 versions, 7/7 strategies, 6/6 families × 10/10 csprojs all green |
+| D1 | EnsureVcpkgDependencies | Baseline | vcpkg bootstrap scripts + manifest install work for the current triplet, with overlay triplets/ports applied | bootstrap only when needed, install exits 0, triplet/overlay paths logged |
 | E | Harvest (scoped to slice under test) | Baseline | Binary closure walk + deployment works per-platform | per-library `1 primary, 0 runtime, DirectCopy/Archive` green, rid-status JSON generated |
 | F | ConsolidateHarvest | Baseline | Per-RID merge produces manifest + summary | `harvest-manifest.json` + `harvest-summary.json` per library |
 | G | Native smoke (C++) | Baseline | Hybrid-built natives load and initialize at runtime | Current expanded Windows harness: `28 passed, 0 failed, Result: ALL PASS` |
@@ -108,6 +117,41 @@ The repo-local `vcpkg_installed/` tree does **not** behave like a permanent mult
 - For real local validation of more than one RID, use a staged loop: `install triplet -> native-smoke / dumpbin -> Harvest -> next triplet install -> Harvest -> ConsolidateHarvest -> Package/PostFlight`.
 - CI is unaffected because each RID job installs exactly one triplet in isolation.
 
+### Clean-Slate Artifact Rule
+
+For a real "is everything still OK?" answer, wipe the generated artifacts before each platform run. Reusing `artifacts/packages/` or stale `harvest-manifest.json` files is how you get a fake green.
+
+Suggested wipe scope:
+
+- `artifacts/harvest_output/`
+- `artifacts/packages/`
+- `artifacts/package-consumer-smoke/`
+- `artifacts/test-results/smoke/` (or whatever run-log folder you use)
+- `tests/smoke-tests/native-smoke/build/` for the current platform preset
+
+Example cleanup commands:
+
+```powershell
+# Windows
+Remove-Item .\artifacts\harvest_output -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item .\artifacts\packages -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item .\artifacts\package-consumer-smoke -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item .\artifacts\test-results\smoke -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item .\tests\smoke-tests\native-smoke\build\win-x64 -Recurse -Force -ErrorAction SilentlyContinue
+```
+
+```bash
+# Linux / macOS
+rm -rf artifacts/harvest_output
+rm -rf artifacts/packages
+rm -rf artifacts/package-consumer-smoke
+rm -rf artifacts/test-results/smoke
+rm -rf tests/smoke-tests/native-smoke/build/linux-x64
+rm -rf tests/smoke-tests/native-smoke/build/osx-x64
+```
+
+If you need the previous run for comparison, archive it somewhere outside `artifacts/` first.
+
 ### A. Build-Host Unit Tests
 
 ```bash
@@ -138,6 +182,27 @@ dotnet run --project build/_build/Build.csproj -- --target PreFlightCheck --rid 
 # Linux / macOS (explicit repo-root recommended):
 dotnet run --project build/_build/Build.csproj -- --target PreFlightCheck --rid linux-x64 --repo-root "$(pwd)"
 ```
+
+### D1. EnsureVcpkgDependencies
+
+This is the explicit bootstrap + install gate. `Harvest` depends on it already, but a big smoke should call it out as its own checkpoint so bootstrap/install failures are not confused with harvest regressions.
+
+```bash
+# Windows:
+dotnet run --project build/_build/Build.csproj -- --target EnsureVcpkgDependencies --rid win-x64
+
+# Linux:
+dotnet run --project build/_build/Build.csproj -- --target EnsureVcpkgDependencies --rid linux-x64 --repo-root "$(pwd)"
+
+# macOS:
+dotnet run --project build/_build/Build.csproj -- --target EnsureVcpkgDependencies --rid osx-x64 --repo-root "$(pwd)"
+```
+
+**What to look for:**
+
+- missing `vcpkg` gets bootstrapped successfully
+- install uses the expected triplet plus overlay triplets/ports
+- command exits 0 before you spend time debugging higher-level Cake stages
 
 ### E. Harvest (Full Satellite Set)
 
@@ -184,6 +249,49 @@ CI workflows use the Release binary directly. Local smoke should match:
 ```
 
 **What to look for:** `harvest-manifest.json` + `harvest-summary.json` generated under each library in `artifacts/harvest_output/`.
+
+### F1. Harvested Artifact Dependency Inspection
+
+`Harvest` already consumes dumpbin / ldd / otool through the runtime scanners, but the big smoke should still do a **manual artifact-side spot check** on the harvested payload. This is the easiest way to prove that the thing we are about to pack is actually the thing we think we built.
+
+Use at least one representative binary per satellite (`SDL2`, `SDL2_image`, `SDL2_mixer`, `SDL2_ttf`, `SDL2_gfx`, and when ready `SDL2_net`). On Windows inspect the harvested DLL directly. On Linux/macOS extract the harvested `native.tar.gz` to a temp folder first, then run `ldd` / `otool -L` on the extracted shared library.
+
+```powershell
+# Windows example: inspect harvested SDL2_image.dll
+dumpbin /dependents .\artifacts\harvest_output\SDL2_image\runtimes\win-x64\native\SDL2_image.dll
+
+# Optional Cake diagnostic wrapper (pass --dll explicitly)
+dotnet run --project .\build\_build\Build.csproj -- --target Dumpbin-Dependents --dll .\artifacts\harvest_output\SDL2_image\runtimes\win-x64\native\SDL2_image.dll
+```
+
+```bash
+# Linux example: extract harvested archive, then inspect libSDL2_image*.so
+rm -rf artifacts/temp/ldd/linux-x64
+mkdir -p artifacts/temp/ldd/linux-x64
+tar -xzf artifacts/harvest_output/SDL2_image/runtimes/linux-x64/native/native.tar.gz -C artifacts/temp/ldd/linux-x64
+ldd "$(find artifacts/temp/ldd/linux-x64 -name 'libSDL2_image*.so*' | head -n 1)"
+
+# Optional Cake diagnostic wrapper (pass --dll explicitly)
+dotnet run --project build/_build/Build.csproj -- --target Ldd-Dependents --dll "$(find artifacts/temp/ldd/linux-x64 -name 'libSDL2_image*.so*' | head -n 1)" --rid linux-x64 --repo-root "$(pwd)"
+```
+
+```bash
+# macOS example: extract harvested archive, then inspect libSDL2_image*.dylib
+rm -rf artifacts/temp/otool/osx-x64
+mkdir -p artifacts/temp/otool/osx-x64
+tar -xzf artifacts/harvest_output/SDL2_image/runtimes/osx-x64/native/native.tar.gz -C artifacts/temp/otool/osx-x64
+otool -L "$(find artifacts/temp/otool/osx-x64 -name 'libSDL2_image*.dylib' | head -n 1)"
+
+# Optional Cake diagnostic wrapper (Otool can analyze one or more --dll values)
+dotnet run --project build/_build/Build.csproj -- --target Otool-Analyze --dll "$(find artifacts/temp/otool/osx-x64 -name 'libSDL2_image*.dylib' | head -n 1)" --rid osx-x64 --repo-root "$(pwd)"
+```
+
+**What to look for:**
+
+- Windows satellites depend on `SDL2.dll` plus CRT / system DLLs, not codec/transitive DLLs like `zlib1.dll`, `libpng16.dll`, `jpeg62.dll`, `libwebp.dll`, `freetype.dll`, `ogg.dll`, `vorbis*.dll`, etc.
+- Linux/macOS satellites depend on the SDL2 core shared library and OS/system libraries/frameworks, not unexpected third-party shared objects that should have been baked in.
+- The manual inspection agrees with what Harvest reported (`1 primary, 0 runtime`). If the scanner says green but raw tool output shows leaked deps, trust the raw tool and investigate.
+- For `Dumpbin-Dependents` and `Ldd-Dependents`, pass `--dll` explicitly. Their current help text is looser than their real behavior.
 
 ### G. Native Smoke Test
 

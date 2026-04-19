@@ -1,17 +1,19 @@
 using Build.Context;
 using Build.Domain.Packaging.Models;
 using Build.Domain.Paths;
-using Build.Infrastructure.Paths;
 using Cake.Core;
 using Cake.Core.IO;
 
 namespace Build.Application.Packaging;
 
-public abstract class StubArtifactSourceResolverBase(IPathService pathService) : IArtifactSourceResolver
+public sealed class UnsupportedArtifactSourceResolver(
+    IPathService pathService,
+    ArtifactProfile profile,
+    string sourceArgumentLabel) : IArtifactSourceResolver
 {
     private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
 
-    public abstract ArtifactProfile Profile { get; }
+    public ArtifactProfile Profile { get; } = profile;
 
     public DirectoryPath LocalFeedPath => _pathService.PackagesOutput;
 
@@ -19,21 +21,19 @@ public abstract class StubArtifactSourceResolverBase(IPathService pathService) :
     {
         ArgumentNullException.ThrowIfNull(context);
         cancellationToken.ThrowIfCancellationRequested();
-        throw BuildNotImplemented("prepare local feed");
+        throw BuildNotImplemented("prepare local feed", sourceArgumentLabel);
     }
 
     public Task WriteConsumerOverrideAsync(BuildContext context, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(context);
         cancellationToken.ThrowIfCancellationRequested();
-        throw BuildNotImplemented("write smoke local override");
+        throw BuildNotImplemented("write smoke local override", sourceArgumentLabel);
     }
 
-    protected abstract string SourceArgumentLabel { get; }
-
-    private CakeException BuildNotImplemented(string operation)
+    private CakeException BuildNotImplemented(string operation, string source)
     {
         return new CakeException(
-            $"SetupLocalDev --source={SourceArgumentLabel} is accepted but not implemented in Phase 2a. Cannot {operation}; {Profile} artifact acquisition lands in Phase 2b.");
+            $"SetupLocalDev --source={source} is accepted but not implemented in Phase 2a. Cannot {operation}; {Profile} artifact acquisition lands in Phase 2b.");
     }
 }

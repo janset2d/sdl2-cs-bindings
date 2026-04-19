@@ -1,3 +1,4 @@
+using Build.Context.Models;
 using Build.Domain.Runtime;
 using Build.Tests.Fixtures;
 using Cake.Core;
@@ -38,7 +39,7 @@ public class PlatformDetectionTests
     [Test]
     public async Task RuntimeProfile_Should_Throw_When_Rid_Is_Unsupported()
     {
-        var runtimeInfo = new Build.Context.Models.RuntimeInfo
+        var runtimeInfo = new RuntimeInfo
         {
             Rid = "freebsd-x64",
             Triplet = "x64-freebsd",

@@ -204,13 +204,13 @@ The Cake build host is DDD-layered per [ADR-002](../docs/decisions/2026-04-19-dd
 | Domain | `Domain/<Module>/` | Models, value objects, domain services, result types, domain-level abstractions (e.g. `IPathService`). No outward dependencies. |
 | Infrastructure | `Infrastructure/<Module>/` | Adapters for external systems: filesystem, process, Cake Tool wrappers. Implement Domain abstractions. |
 
-Layer discipline is enforced by `build/_build.Tests/Unit/CompositionRoot/LayerDependencyTests.cs` (three invariants: Domain no outward deps; Infrastructure no Application; Tasks hold interfaces + DTOs only, never concrete Domain/Infrastructure services).
+Layer discipline is enforced by `build/_build.Tests/Unit/CompositionRoot/LayerDependencyTests.cs` (three invariants: Domain no outward deps; Infrastructure no Application; target shape is Tasks -> Application plus DTO/results, with a temporary catchnet allowance for Task-held Domain/Infrastructure interfaces while Harvest/PreFlight debt is being reduced).
 
 Reference patterns for new build-host work:
 
 - **Task layer shape:** `PackageTask` is the golden thin adapter — inject a single `IPackageTaskRunner` from Application, delegate `RunAsync`. Fat tasks that still hold orchestration inline (`HarvestTask`, `ConsolidateHarvestTask`) are tracked for the Wave 6 runner extraction (see ADR-002 §6.6).
-- **Keep `BuildContext` at the task boundary.** Tasks own orchestration, user-facing policy, and failure rendering.
-- **Interface discipline** (three criteria): keep an interface only if (1) multiple implementations exist, (2) tests mock it, or (3) it formalizes an independent axis of change. Otherwise use `internal sealed class` and register concrete in Program.cs.
+- **Keep `BuildContext` at the task boundary.** Tasks own orchestration, user-facing policy, and failure rendering, but the preferred behavior surface is still Application. The current architecture test temporarily tolerates Task -> Domain/Infrastructure interfaces for legacy fat-task holdovers; do not copy that shape into new work.
+- **Interface discipline:** keep an interface only if (1) multiple implementations exist today or (2) it formalizes an independent axis of change. Test mocks are supporting evidence, not a standalone reason to create or retain a seam. Otherwise use `internal sealed class` and register concrete in Program.cs.
 - **Cake dependencies flow inward across layers, not outward.** Infrastructure may take `ICakeContext`/`IFileSystem`/`IPathService`; Domain may take `IFileSystem` and `IPathService` for file contract validation but not `ICakeContext`; Application may take any Cake type; Tasks sit on top.
 - **Result / error boundaries stay typed.** Services return `OneOf`-shaped results; tasks translate them into logging, `CakeException`, RID-status persistence, or cancellation semantics.
 - **Test folders mirror production.** `Unit/Domain/Packaging/PackageVersionResolverTests.cs` asserts the contract of `Domain/Packaging/PackageVersionResolver.cs`. Integration tests (when added) live under `Integration/<Scenario>/` and are not mirrored.

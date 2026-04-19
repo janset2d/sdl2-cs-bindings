@@ -173,7 +173,7 @@ public class PreFlightCheckTaskRunTests
     {
         var packageBuildConfiguration = new PackageBuildConfiguration(["sdl2-core"], null);
 
-        return new PreFlightCheckTask(
+        var runner = new PreflightTaskRunner(
             manifestConfig,
             packageBuildConfiguration,
             new VcpkgManifestReader(context.FileSystem),
@@ -183,5 +183,7 @@ public class PreFlightCheckTaskRunTests
             new UpstreamVersionAlignmentValidator(),
             new CsprojPackContractValidator(context.FileSystem),
             new PreflightReporter(context));
+
+        return new PreFlightCheckTask(runner);
     }
 }

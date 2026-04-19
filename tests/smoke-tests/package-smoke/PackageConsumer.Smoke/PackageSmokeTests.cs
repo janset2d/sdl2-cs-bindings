@@ -14,6 +14,7 @@ namespace PackageConsumer.Smoke;
 /// Runs per TFM via TUnit + Microsoft Testing Platform. Invoke via Cake PostFlight
 /// (per-TFM <c>dotnet test --filter Category=PackageSmoke -f &lt;tfm&gt;</c>), not directly.
 /// </summary>
+[NotInParallel]
 public sealed class PackageSmokeTests
 {
     private const SDL_mixer.MIX_InitFlags MixInitWavPack = (SDL_mixer.MIX_InitFlags)0x00000080;
