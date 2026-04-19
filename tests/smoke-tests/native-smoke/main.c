@@ -25,7 +25,6 @@
 #endif
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 /* ------------------------------------------------------------------ */
@@ -386,54 +385,12 @@ static void test_interactive(void)
 #endif
 
 /* ------------------------------------------------------------------ */
-/* Linux MIDI bridge                                                   */
-/* ------------------------------------------------------------------ */
-
-/* SDL_mixer's bundled internal Timidity (enabled via SDL2MIXER_MIDI_TIMIDITY in
- * our overlay port) searches for a config file at init time and only registers
- * the MIDI decoder if one is found. On Debian/Ubuntu the `timidity` apt package
- * installs the config at /etc/timidity/timidity.cfg, but SDL_mixer's default
- * probe path is /etc/timidity.cfg — so apt-install alone does not register the
- * MIDI decoder, and Mix decoder: MIDI reports "decoder missing" even though
- * every prereq is technically present.
- *
- * Bridge the gap by setting TIMIDITY_CFG to the Debian path when (a) the caller
- * has not already set it explicitly, and (b) the Debian cfg actually exists.
- * If timidity was not installed the env var stays unset and the test reports a
- * clear "decoder missing" failure — no silent fallback that masks the gap.
- *
- * Scope is Linux only: macOS has native MIDI via CoreAudio and Windows has
- * winmm, neither of which depends on this path. */
-static void ensure_linux_timidity_cfg(void)
-{
-#ifdef __linux__
-    const char *existing = getenv("TIMIDITY_CFG");
-    if (existing != NULL && existing[0] != '\0')
-    {
-        return;
-    }
-
-    const char *debian_cfg = "/etc/timidity/timidity.cfg";
-    FILE *probe = fopen(debian_cfg, "rb");
-    if (probe == NULL)
-    {
-        return;
-    }
-    fclose(probe);
-
-    setenv("TIMIDITY_CFG", debian_cfg, 0);
-#endif
-}
-
-/* ------------------------------------------------------------------ */
 /* Main                                                                */
 /* ------------------------------------------------------------------ */
 
 int main(int argc, char *argv[])
 {
     (void)argc; (void)argv;
-
-    ensure_linux_timidity_cfg();
 
     printf("Janset.SDL2 Native Smoke Test\n");
     printf("Mode: %s\n",

@@ -92,7 +92,7 @@ export DOTNET_ROOT="$HOME/.dotnet"
 
 Consider adding these exports to `~/.bashrc` or `~/.profile` to avoid repeating them.
 
-**native-smoke MIDI decoder prereq:** SDL_mixer's bundled internal Timidity only registers the `MIDI` decoder when it finds a cfg file at init. On Debian/Ubuntu install the `timidity` apt package (`sudo apt install -y timidity`) — that drops the config at `/etc/timidity/timidity.cfg` plus GUS patches. The native-smoke binary sets `TIMIDITY_CFG` to that Debian path on `__linux__` (see `tests/smoke-tests/native-smoke/main.c`'s `ensure_linux_timidity_cfg`) so no host-side symlink with sudo is required. Without the package installed, `Mix decoder: MIDI` will report "decoder missing" — a clear signal rather than a silent skip.
+**native-smoke MIDI decoder prereq:** SDL_mixer's bundled internal Timidity only supports **GUS `.pat` patches** (not SF2) and only registers the `MIDI` decoder when it finds a GUS-format config at init. On Debian/Ubuntu install `freepats` (`sudo apt install -y freepats`) — that drops GUS patches + `/etc/timidity/freepats.cfg`, which SDL_mixer's bundled Timidity auto-searches via its `TIMIDITY_CFG_FREEPATS` fallback path. The alternative `timidity` apt package installs `/etc/timidity/timidity.cfg` pointing at FluidR3_GM.sf2 (a `%font` SF2 directive) — bundled Timidity does NOT parse SF2 binaries, so `timidity` alone does not register the decoder. Without `freepats` installed, `Mix decoder: MIDI` will report "decoder missing" — a clear signal rather than a silent skip. This is also an **end-user concern**: Janset ships the bundled Timidity code (Artistic License) but does not ship GUS patches (GPL); consumers on Linux who want MIDI install their own patches the same way.
 
 ### macOS (SSH)
 
