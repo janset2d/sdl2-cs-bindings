@@ -47,13 +47,49 @@ public static class SmokeScopeComparator
     private static HashSet<string> ParseJansetPackageReferences(string csprojXml)
     {
         var doc = XDocument.Parse(csprojXml);
+        var identities = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        return doc.Descendants()
-            .Where(element => element.Name.LocalName.Equals("PackageReference", StringComparison.OrdinalIgnoreCase))
-            .Select(element => element.Attribute("Include")?.Value)
-            .Where(identity => !string.IsNullOrWhiteSpace(identity) && identity!.StartsWith(JansetPackagePrefix, StringComparison.OrdinalIgnoreCase))
-            .Select(identity => identity!)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        // Path 1 (legacy / explicit): literal <PackageReference Include="Janset.SDL2.Core"/>
+        // entries in the csproj. Supported for backwards compatibility + for consumers
+        // that do not use the shared smoke family-list convention.
+        foreach (var element in doc.Descendants()
+            .Where(e => e.Name.LocalName.Equals("PackageReference", StringComparison.OrdinalIgnoreCase)))
+        {
+            var identity = element.Attribute("Include")?.Value;
+            if (!string.IsNullOrWhiteSpace(identity) && identity.StartsWith(JansetPackagePrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                identities.Add(identity);
+            }
+        }
+
+        // Path 2 (post-S1 canonical pattern): <JansetSmokeSdl{2,3}Families>Core;Image;…</…>
+        // property. build/msbuild/Janset.Smoke.targets auto-expands the semicolon-
+        // separated role list into Janset.SDL<N>.<Role> PackageReference items at
+        // MSBuild eval time. Raw XML parsing cannot see that expansion, so we replicate
+        // the role → package-id mapping here. Keeps drift detection accurate under the
+        // authoring convention documented in docs/playbook/cross-platform-smoke-validation.md
+        // §"Authoring New Smoke / Example Consumer Projects".
+        ExpandFamilyListProperty(doc, "JansetSmokeSdl2Families", generation: "2", identities);
+        ExpandFamilyListProperty(doc, "JansetSmokeSdl3Families", generation: "3", identities);
+
+        return identities;
+    }
+
+    private static void ExpandFamilyListProperty(XDocument doc, string propertyName, string generation, HashSet<string> identities)
+    {
+        var propertyElement = doc.Descendants()
+            .FirstOrDefault(e => e.Name.LocalName.Equals(propertyName, StringComparison.OrdinalIgnoreCase));
+
+        if (propertyElement is null || string.IsNullOrWhiteSpace(propertyElement.Value))
+        {
+            return;
+        }
+
+        var roles = propertyElement.Value.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        foreach (var role in roles)
+        {
+            identities.Add($"Janset.SDL{generation}.{role}");
+        }
     }
 }
 

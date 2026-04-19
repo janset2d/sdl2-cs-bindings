@@ -81,7 +81,7 @@ MinVer is a **tag reader**, not a version inventor. Its sole function in this pr
 
 - Release builds (CI): the operator (human or workflow) creates the family tag at the release commit (`sdl2-core-2.32.0`) and pushes; CI checks out the tag, MinVer reads it, pack uses `$(Version) = 2.32.0`.
 - Untagged commits: MinVer produces a deterministic prerelease fallback, e.g. `2.32.0-alpha.0.N`. Never `0.0.0-*` unless no predecessor tag exists anywhere in history.
-- Cake `PackageTaskRunner.PackageVersionResolver` accepts an explicit `--family-version=<semver>` CLI flag which, when supplied, bypasses MinVer for that pack invocation. This is used by `SetupLocalDev` (which generates `2.32.0-local.<timestamp>` without needing a tag) and by PD-8 manual escape-hatch flows. It is **not** a primary mechanism; the tag is the source of truth for stable releases.
+- Cake `PackageTaskRunner.PackageVersionResolver` accepts an explicit `--family-version=<semver>` CLI flag which, when supplied, bypasses MinVer for that pack invocation. Used today only by PD-8 manual escape-hatch flows. It is **not** a primary mechanism; the tag is the source of truth for stable releases. **Note (2026-04-19, PD-13):** `SetupLocalDev` was refactored (pre-ADR-001 canon) to auto-generate per-family versions directly from `manifest.json library_manifests[].vcpkg_version` + local timestamp without consulting the flag, and `PackageConsumerSmoke` was reconciled to trust `Janset.Smoke.local.props` as the version source of truth for smoke testing. The flag's surviving legitimate surface has narrowed to the PD-8 escape path; retirement is tracked as [PD-13](../phases/phase-2-adaptation-plan.md#pending-decisions).
 
 ### 2.4 Dependency contracts
 

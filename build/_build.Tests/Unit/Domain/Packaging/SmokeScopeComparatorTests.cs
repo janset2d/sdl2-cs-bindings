@@ -118,6 +118,76 @@ public class SmokeScopeComparatorTests
         await Assert.That(result.Missing).IsEquivalentTo(["Janset.SDL2.Core", "Janset.SDL2.Image"]);
     }
 
+    [Test]
+    public async Task Compare_Expands_JansetSmokeSdl2Families_Property_Into_Per_Role_Package_Ids()
+    {
+        // Post-S1 canonical authoring pattern: the csproj declares a family role list
+        // and lets build/msbuild/Janset.Smoke.targets auto-expand it into PackageReference
+        // items at MSBuild eval time. Literal-only parsing cannot see that expansion;
+        // the comparator must reproduce the role → Janset.SDL<N>.<Role> mapping to keep
+        // drift detection accurate under this authoring style.
+        const string csproj = """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net9.0</TargetFramework>
+                <JansetSmokeSdl2Families>Core;Image;Mixer;Ttf;Gfx</JansetSmokeSdl2Families>
+              </PropertyGroup>
+            </Project>
+            """;
+
+        var result = SmokeScopeComparator.Compare(
+            csproj,
+            ["Janset.SDL2.Core", "Janset.SDL2.Image", "Janset.SDL2.Mixer", "Janset.SDL2.Ttf", "Janset.SDL2.Gfx"]);
+
+        await Assert.That(result.IsMatch).IsTrue();
+    }
+
+    [Test]
+    public async Task Compare_Merges_Literal_PackageReferences_With_Family_List_Property_Expansion()
+    {
+        // Hybrid authoring: some consumers mix a family-list declaration with extra
+        // explicit PackageReference entries (e.g., a preview/beta family not yet in
+        // the shared role-list contract). Both sources feed the same identity set.
+        const string csproj = """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net9.0</TargetFramework>
+                <JansetSmokeSdl2Families>Core;Image</JansetSmokeSdl2Families>
+              </PropertyGroup>
+              <ItemGroup>
+                <PackageReference Include="Janset.SDL2.Net" VersionOverride="1.0.0" />
+              </ItemGroup>
+            </Project>
+            """;
+
+        var result = SmokeScopeComparator.Compare(
+            csproj,
+            ["Janset.SDL2.Core", "Janset.SDL2.Image", "Janset.SDL2.Net"]);
+
+        await Assert.That(result.IsMatch).IsTrue();
+    }
+
+    [Test]
+    public async Task Compare_Expands_JansetSmokeSdl3Families_When_SDL3_Consumer_Authoring_Lands()
+    {
+        // SDL3 drop-in: shared Janset.Smoke.props already declares JansetSdl3<Role>PackageVersion
+        // sentinels and Janset.Smoke.targets handles the parallel expansion. Scope comparator
+        // needs to recognize the SDL3 property so SDL3 smoke csprojs can be authored with the
+        // same zero-boilerplate pattern once SDL3 packages ship.
+        const string csproj = """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net9.0</TargetFramework>
+                <JansetSmokeSdl3Families>Core;Image</JansetSmokeSdl3Families>
+              </PropertyGroup>
+            </Project>
+            """;
+
+        var result = SmokeScopeComparator.Compare(csproj, ["Janset.SDL3.Core", "Janset.SDL3.Image"]);
+
+        await Assert.That(result.IsMatch).IsTrue();
+    }
+
     private static string Csproj(params string[] packageReferenceIdentities)
     {
         var references = string.Join(
