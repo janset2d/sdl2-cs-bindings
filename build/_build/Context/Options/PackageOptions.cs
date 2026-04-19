@@ -14,4 +14,12 @@ public static class PackageOptions
     public static readonly Option<string?> FamilyVersionOption = new(
         "--family-version",
         "Explicit SemVer used for the selected package family or families during local packaging.");
+
+    public static readonly Option<string> SourceOption = new(
+        aliases: ["--source"],
+        getDefaultValue: () => "local",
+        description: "Artifact source profile for local setup (local|remote|release).")
+    {
+        IsRequired = false,
+    };
 }

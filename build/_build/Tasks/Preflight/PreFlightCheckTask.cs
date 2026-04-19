@@ -3,11 +3,14 @@
  * SPDX-License-Identifier: MIT
  */
 
+using Build.Application.Preflight;
 using Build.Context;
+using Build.Context.Configs;
 using Build.Context.Models;
-using Build.Modules.Contracts;
-using Build.Modules.Preflight.Results;
-using Build.Modules.Results;
+using Build.Domain.Preflight;
+using Build.Domain.Preflight.Results;
+using Build.Domain.Results;
+using Build.Infrastructure.Vcpkg;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Frosting;
@@ -25,27 +28,33 @@ namespace Build.Tasks.Preflight;
 public sealed class PreFlightCheckTask : FrostingTask<BuildContext>
 {
     private readonly ManifestConfig _manifestConfig;
+    private readonly PackageBuildConfiguration _packageBuildConfiguration;
     private readonly IVcpkgManifestReader _vcpkgManifestReader;
     private readonly IVersionConsistencyValidator _versionConsistencyValidator;
     private readonly IStrategyCoherenceValidator _strategyCoherenceValidator;
     private readonly ICoreLibraryIdentityValidator _coreLibraryIdentityValidator;
+    private readonly IUpstreamVersionAlignmentValidator _upstreamVersionAlignmentValidator;
     private readonly ICsprojPackContractValidator _csprojPackContractValidator;
     private readonly IPreflightReporter _preflightReporter;
 
     public PreFlightCheckTask(
         ManifestConfig manifestConfig,
+        PackageBuildConfiguration packageBuildConfiguration,
         IVcpkgManifestReader vcpkgManifestReader,
         IVersionConsistencyValidator versionConsistencyValidator,
         IStrategyCoherenceValidator strategyCoherenceValidator,
         ICoreLibraryIdentityValidator coreLibraryIdentityValidator,
+        IUpstreamVersionAlignmentValidator upstreamVersionAlignmentValidator,
         ICsprojPackContractValidator csprojPackContractValidator,
         IPreflightReporter preflightReporter)
     {
         _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
+        _packageBuildConfiguration = packageBuildConfiguration ?? throw new ArgumentNullException(nameof(packageBuildConfiguration));
         _vcpkgManifestReader = vcpkgManifestReader ?? throw new ArgumentNullException(nameof(vcpkgManifestReader));
         _versionConsistencyValidator = versionConsistencyValidator ?? throw new ArgumentNullException(nameof(versionConsistencyValidator));
         _strategyCoherenceValidator = strategyCoherenceValidator ?? throw new ArgumentNullException(nameof(strategyCoherenceValidator));
         _coreLibraryIdentityValidator = coreLibraryIdentityValidator ?? throw new ArgumentNullException(nameof(coreLibraryIdentityValidator));
+        _upstreamVersionAlignmentValidator = upstreamVersionAlignmentValidator ?? throw new ArgumentNullException(nameof(upstreamVersionAlignmentValidator));
         _csprojPackContractValidator = csprojPackContractValidator ?? throw new ArgumentNullException(nameof(csprojPackContractValidator));
         _preflightReporter = preflightReporter ?? throw new ArgumentNullException(nameof(preflightReporter));
     }
@@ -74,6 +83,11 @@ public sealed class PreFlightCheckTask : FrostingTask<BuildContext>
         _preflightReporter.ReportCoreLibraryIdentity(coreLibraryIdentityValidation.Validation);
 
         coreLibraryIdentityValidation.OnError(error => ThrowPreflightFailure(context.Log, "Core library identity", error));
+
+        var upstreamVersionAlignmentValidation = _upstreamVersionAlignmentValidator.Validate(_manifestConfig, _packageBuildConfiguration);
+        _preflightReporter.ReportUpstreamVersionAlignment(upstreamVersionAlignmentValidation.Validation);
+
+        upstreamVersionAlignmentValidation.OnError(error => ThrowPreflightFailure(context.Log, "Upstream version alignment", error));
 
         var csprojPackContractValidation = _csprojPackContractValidator.Validate(_manifestConfig, context.Paths.RepoRoot);
         _preflightReporter.ReportCsprojPackContract(csprojPackContractValidation.Validation);

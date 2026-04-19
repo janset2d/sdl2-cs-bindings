@@ -1,6 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Text.Json.Serialization;
-using Build.Modules.Strategy.Models;
+using Build.Domain.Strategy.Models;
 
 namespace Build.Context.Models;
 
@@ -102,9 +102,6 @@ public record LibraryManifest
 
     [JsonPropertyName("native_lib_name")]
     public required string NativeLibName { get; init; }
-
-    [JsonPropertyName("native_lib_version")]
-    public required string NativeLibVersion { get; init; }
 
     [JsonPropertyName("core_lib")]
     public required bool IsCoreLib { get; init; }

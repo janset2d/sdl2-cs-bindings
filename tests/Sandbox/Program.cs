@@ -1,82 +1,76 @@
-﻿using System.Diagnostics;
+using static SDL2.SDL;
 
-class Program
+namespace Sandbox;
+
+/// <summary>
+/// Minimal Janset.SDL2 sandbox: opens a 640x480 window, pumps events, exits on
+/// quit or the Escape key. Intended as a scratchpad for interactive experiments
+/// against the locally packed <c>Janset.SDL2.*</c> feed — not a test, not shipped.
+/// </summary>
+internal static class Program
 {
-    static void Main(string[] args)
+    private const string WindowTitle = "Janset.SDL2 Sandbox";
+    private const int WindowWidth = 640;
+    private const int WindowHeight = 480;
+
+    public static int Main()
     {
+        if (SDL_Init(SDL_INIT_VIDEO) < 0)
+        {
+            Console.WriteLine("SDL_Init failed: " + SDL_GetError());
+            return 1;
+        }
+
+        var window = SDL_CreateWindow(
+            WindowTitle,
+            SDL_WINDOWPOS_CENTERED,
+            SDL_WINDOWPOS_CENTERED,
+            WindowWidth,
+            WindowHeight,
+            SDL_WindowFlags.SDL_WINDOW_SHOWN);
+
+        if (window == IntPtr.Zero)
+        {
+            Console.WriteLine("SDL_CreateWindow failed: " + SDL_GetError());
+            SDL_Quit();
+            return 1;
+        }
+
         try
         {
-            // Path to vswhere.exe (standard location in Visual Studio installations)
-            string vswherePath = @"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe";
-            if (!File.Exists(vswherePath))
-            {
-                throw new FileNotFoundException("vswhere.exe not found at the expected location.", vswherePath);
-            }
-
-            // Step 1: Get Visual Studio installation path using vswhere.exe
-            var vswhereStartInfo = new ProcessStartInfo
-            {
-                FileName = vswherePath,
-                Arguments = "-latest -property installationPath",
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            string installationPath;
-            using (Process vswhereProcess = Process.Start(vswhereStartInfo))
-            {
-                installationPath = vswhereProcess.StandardOutput.ReadToEnd().Trim();
-                vswhereProcess.WaitForExit();
-
-                if (vswhereProcess.ExitCode != 0 || string.IsNullOrEmpty(installationPath))
-                {
-                    throw new Exception("Failed to retrieve Visual Studio installation path using vswhere.exe.");
-                }
-            }
-
-            // Step 2: Construct path to vcvarsall.bat
-            string vcvarsallPath = Path.Combine(installationPath, @"VC\Auxiliary\Build\vcvarsall.bat");
-            if (!File.Exists(vcvarsallPath))
-            {
-                throw new FileNotFoundException("vcvarsall.bat not found in the Visual Studio installation.", vcvarsallPath);
-            }
-
-            // Step 3: Run dumpbin.exe with arguments
-            string dumpbinArgs = "/DEPENDENTS somefile.dll"; // Replace with your actual arguments
-            string command = $"/c \"call \\\"{vcvarsallPath}\\\" x64 && dumpbin.exe {dumpbinArgs}\"";
-
-            var dumpbinStartInfo = new ProcessStartInfo
-            {
-                FileName = "cmd.exe",
-                Arguments = command,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            using (Process dumpbinProcess = Process.Start(dumpbinStartInfo))
-            {
-                string output = dumpbinProcess.StandardOutput.ReadToEnd();
-                string error = dumpbinProcess.StandardError.ReadToEnd();
-                dumpbinProcess.WaitForExit();
-
-                if (dumpbinProcess.ExitCode != 0)
-                {
-                    Console.WriteLine("Error running dumpbin.exe:");
-                    Console.WriteLine(error);
-                }
-                else
-                {
-                    Console.WriteLine("dumpbin.exe output:");
-                    Console.WriteLine(output);
-                }
-            }
+            Console.WriteLine("Sandbox window open. Close the window or press Escape to exit.");
+            RunEventLoop();
+            return 0;
         }
-        catch (Exception ex)
+        finally
         {
-            Console.WriteLine($"An error occurred: {ex.Message}");
+            SDL_DestroyWindow(window);
+            SDL_Quit();
+        }
+    }
+
+    private static void RunEventLoop()
+    {
+        var running = true;
+        while (running)
+        {
+            while (SDL_PollEvent(out var sdlEvent) != 0)
+            {
+                if (sdlEvent.type == SDL_EventType.SDL_QUIT)
+                {
+                    running = false;
+                    break;
+                }
+
+                if (sdlEvent.type == SDL_EventType.SDL_KEYDOWN &&
+                    sdlEvent.key.keysym.sym == SDL_Keycode.SDLK_ESCAPE)
+                {
+                    running = false;
+                    break;
+                }
+            }
+
+            SDL_Delay(16);
         }
     }
 }

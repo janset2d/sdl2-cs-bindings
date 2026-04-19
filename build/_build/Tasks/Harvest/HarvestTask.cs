@@ -1,12 +1,6 @@
 ﻿using Build.Context;
 using Build.Context.Models;
-using Build.Modules.Contracts;
-using Build.Modules.Harvesting;
-using Build.Modules.Harvesting.Models;
-using Build.Modules.Harvesting.Results;
-using Build.Modules.Results;
-using Build.Modules.Strategy.Results;
-using Build.Tasks.Common;
+using Build.Tasks.Vcpkg;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;
@@ -14,11 +8,19 @@ using Cake.Core.IO;
 using Cake.Frosting;
 using Spectre.Console;
 using System.Text.Json;
+using Build.Application.Harvesting;
+using Build.Domain.Harvesting;
+using Build.Domain.Harvesting.Models;
+using Build.Domain.Harvesting.Results;
+using Build.Domain.Results;
+using Build.Domain.Runtime;
+using Build.Domain.Strategy;
+using Build.Domain.Strategy.Results;
 
 namespace Build.Tasks.Harvest;
 
 [TaskName("Harvest")]
-[IsDependentOn(typeof(InfoTask))]
+[IsDependentOn(typeof(EnsureVcpkgDependenciesTask))]
 public sealed class HarvestTask(
     IBinaryClosureWalker binaryClosureWalker,
     IArtifactPlanner artifactPlanner,

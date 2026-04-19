@@ -99,13 +99,31 @@ janset2d/sdl2-cs-bindings/
 │
 ├── build/
 │   ├── manifest.json          ← Single source of truth: packaging config, runtimes, system exclusions, library manifests
-│   └── _build/                ← Cake Frosting build system
-│       ├── Program.cs         ← Entry point + DI configuration
-│       ├── Context/           ← Build context and state
-│       ├── Models/            ← Data models (DeploymentPlan, RuntimeProfile, etc.)
-│       ├── Modules/           ← DI modules (harvesting, packaging services)
-│       ├── Tasks/             ← Build tasks (Harvest, Consolidate, Preflight, etc.)
-│       └── Tools/             ← Utility services (BinaryClosureWalker, ArtifactDeployer)
+│   └── _build/                ← Cake Frosting build system (DDD-layered per ADR-002)
+│       ├── Program.cs         ← Entry point + DI composition root
+│       ├── Context/           ← BuildContext binding (Cake task boundary)
+│       ├── Tasks/             ← Presentation: Cake Frosting task classes (Harvest, Package, PreFlight, etc.)
+│       ├── Application/       ← Use-case orchestrators (TaskRunners, Resolvers, SmokeRunner)
+│       │   ├── Packaging/     ← PackageTaskRunner, SmokeRunner, ArtifactSourceResolvers
+│       │   ├── Harvesting/    ← ArtifactPlanner, ArtifactDeployer, BinaryClosureWalker
+│       │   └── Preflight/     ← PreflightReporter
+│       ├── Domain/            ← Models, value objects, domain services, result types
+│       │   ├── Packaging/     ← PackageVersion, NativePackageMetadata, PackageOutputValidator, etc.
+│       │   ├── Harvesting/    ← PackageInfo, DeploymentPlan, BinaryClosure, HarvestJsonContract
+│       │   ├── Preflight/     ← FamilyIdentifierConventions + guardrail validators (G21–G27, G54, G56)
+│       │   ├── Coverage/      ← CoverageThresholdValidator + metrics/baseline models
+│       │   ├── Strategy/      ← HybridStatic/PureDynamic strategies + validators + resolver
+│       │   ├── Runtime/       ← RuntimeProfile (RID + triplet + platform detection)
+│       │   ├── Paths/         ← IPathService (abstraction; implementation in Infrastructure)
+│       │   └── Results/       ← BuildError, BuildResultExtensions, AsyncResultChaining helpers
+│       └── Infrastructure/    ← External-system adapters: filesystem, process, CLI
+│           ├── Paths/         ← PathService implementation
+│           ├── Json/          ← (placeholder — JSON helpers currently live on CakeExtensions)
+│           ├── DotNet/        ← DotNetPackInvoker, ProjectMetadataReader (wrap dotnet CLI / MSBuild)
+│           ├── Vcpkg/         ← VcpkgCliProvider, VcpkgManifestReader (consume manifest + vcpkg CLI)
+│           ├── Coverage/      ← CoberturaReader, CoverageBaselineReader (XML/JSON readers)
+│           ├── DependencyAnalysis/ ← Windows/Linux/macOS binary scanners (dumpbin/ldd/otool)
+│           └── Tools/         ← Cake-native Tool<T>/Aliases/Settings wrappers (Vcpkg, Dumpbin, Ldd, Otool)
 │
 ├── external/
 │   ├── sdl2-cs/               ← Git submodule: flibitijibibo/SDL2-CS (binding source)

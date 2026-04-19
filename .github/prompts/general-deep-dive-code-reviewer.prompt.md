@@ -146,12 +146,14 @@ Before forming opinions, ground yourself in the repository’s current reality.
 
 ### Repo-specific canonical context (default starting points)
 Read these when they materially help interpret the review scope:
-- [AGENTS.md](../AGENTS.md)
-- [docs/onboarding.md](../docs/onboarding.md)
-- [docs/plan.md](../docs/plan.md)
+- [AGENTS.md](../AGENTS.md) — contributor on-ramp, Build-Host Reference Pattern (DDD four-layer map)
+- [docs/onboarding.md](../docs/onboarding.md) — strategic decisions, repo layout (DDD-layered tree under `build/_build/`)
+- [docs/plan.md](../docs/plan.md) — current status and roadmap
 
 High-value repo docs for relevant review scopes:
-- [docs/knowledge-base/cake-build-architecture.md](../docs/knowledge-base/cake-build-architecture.md)
+- [docs/decisions/2026-04-18-versioning-d3seg.md](../docs/decisions/2026-04-18-versioning-d3seg.md) — ADR-001: D-3seg versioning, package-first consumer contract, artifact source profiles (external contracts)
+- [docs/decisions/2026-04-19-ddd-layering-build-host.md](../docs/decisions/2026-04-19-ddd-layering-build-host.md) — ADR-002: DDD layering for build host, interface discipline (three criteria), LayerDependencyTests catchnet, Wave 6 fat-task runner deferred
+- [docs/knowledge-base/cake-build-architecture.md](../docs/knowledge-base/cake-build-architecture.md) — Cake Frosting reference (carries ADR-002 layering banner; legacy `Modules/*` / `Tools/*` paths inside the body are historical and should be read through the DDD lens)
 - [docs/knowledge-base/release-guardrails.md](../docs/knowledge-base/release-guardrails.md)
 - [docs/knowledge-base/harvesting-process.md](../docs/knowledge-base/harvesting-process.md)
 - [docs/phases/phase-2-adaptation-plan.md](../docs/phases/phase-2-adaptation-plan.md)
@@ -159,6 +161,16 @@ High-value repo docs for relevant review scopes:
 - [docs/playbook/overlay-management.md](../docs/playbook/overlay-management.md)
 
 Do not read these mechanically. Read them because they help interpret the code under review.
+
+### Build-host layer map (must reconcile with code before reviewing)
+`build/_build/` is DDD-layered per ADR-002. Validate this tree against reality before leaning on any repo hypothesis:
+
+- `Tasks/` — Cake-native presentation (flat by convention; adapter pattern where possible, see `PackageTask`)
+- `Application/<Module>/` — use-case orchestrators (`PackageTaskRunner`, `LocalArtifactSourceResolver`, `ArtifactPlanner`, `PreflightReporter`)
+- `Domain/<Module>/` — models, value objects, domain services, result types, domain-level abstractions (`IPathService` lives here; implementation in Infrastructure)
+- `Infrastructure/<Module>/` — adapters (`PathService`, `VcpkgCliProvider`, `DotNetPackInvoker`, `CoberturaReader`, `Infrastructure/Tools/{Vcpkg,Dumpbin,Ldd,Otool}/` Cake `Tool<T>` + `Aliases` + `Settings` wrappers)
+
+Architecture-level dependency direction is enforced by `build/_build.Tests/Unit/CompositionRoot/LayerDependencyTests.cs` — three invariants: Domain no outward deps; Infrastructure no Application/Tasks; Tasks hold only interfaces + `.Models.*`/`.Results.*` DTOs + `Infrastructure.Tools.*` concretes (Cake convention). A review that proposes cross-layer shortcuts must explain how the catchnet stays green.
 
 ---
 
@@ -192,15 +204,18 @@ Do not load performance-oriented or framework-specific skills unless the scope j
 
 These are useful orientation hints. They are **not verdicts** and **must not override current evidence**.
 
-1. Harvesting may be the current structural reference standard for build-host modules.
-2. `BuildContext` may belong at the task boundary unless there is a proven reason otherwise.
-3. `build/manifest.json` may be the main configuration source of truth for runtime/family/build metadata.
-4. The strategy layer may be narrower than the docs suggest; verify actual runtime dispatch rather than trusting prose.
-5. Result-style boundaries using `OneOf` or monadic wrappers may be part of the house style, but that does not prove the error model is coherent.
-6. Cross-platform correctness may matter more than a single `win-x64` success path.
-7. `external/sdl2-cs` may be transitional; repo-local logic should not automatically normalize patching the submodule worktree.
-8. Docs are first-class artifacts, but runtime code wins when behavior and prose diverge.
-9. Reusing existing infrastructure is generally preferred over introducing new helper layers that solve the same problem differently.
+1. The Cake build host is DDD-layered under ADR-002 (`Tasks/`, `Application/`, `Domain/`, `Infrastructure/`). `Modules/` and `Tools/` folders are retired. If a code path still references `Build.Modules.*` or `Build.Tools.*` namespaces in production (not just in superseded docs/memory), that is drift — flag it.
+2. Packaging (`PackageTask` → `IPackageTaskRunner`) is the thin-adapter golden reference for new Task/orchestrator work; Harvesting is NOT the shape to copy from for new tasks — `HarvestTask` and `ConsolidateHarvestTask` still orchestrate inline and are tracked for Wave 6 runner extraction (ADR-002 §6.6). If a review proposes "follow Harvesting," verify which shape the reviewer means.
+3. Interface discipline follows three criteria (ADR-002 §2.3): multiple impls, tests mock it, or independent axis of change. Before proposing "remove this single-impl interface," grep `Substitute.For<IX>` across the test project — criterion 2 most often silently saves an interface.
+4. `BuildContext` still belongs at the task boundary unless there is a proven reason otherwise.
+5. `build/manifest.json` remains the main configuration source of truth for runtime/family/build metadata (ADR-001 package-first consumer contract).
+6. The strategy layer may be narrower than the docs suggest; verify actual runtime dispatch rather than trusting prose.
+7. Result-style boundaries using `OneOf` or monadic wrappers are part of the house style, but that does not prove the error model is coherent.
+8. Cross-platform correctness may matter more than a single `win-x64` success path. The full-solution `dotnet build` at the repo root exercises Sandbox (SDL2), `PackageConsumer.Smoke`, and `Compile.NetStandard` in addition to the Cake build host — narrow `build/_build.Tests`-only builds miss pre-existing analyzer debt in other projects.
+9. `external/sdl2-cs` may be transitional; repo-local logic should not automatically normalize patching the submodule worktree.
+10. Docs are first-class artifacts, but runtime code wins when behavior and prose diverge. `docs/knowledge-base/cake-build-architecture.md` carries an ADR-002 banner but historical body paragraphs still reference `Modules/*` paths — treat those as examples of drift to call out, not as authority.
+11. Reusing existing infrastructure is preferred over introducing new helper layers. `IPathService` (abstraction in Domain, implementation in Infrastructure) is the locked path-resolution pattern. `build/msbuild/Janset.Smoke.{props,targets}` is the local-dev consumer-feed infrastructure; Sandbox-style csprojs import it directly rather than wiring a parallel `Directory.Build.*` tree.
+12. `LayerDependencyTests` (`build/_build.Tests/Unit/CompositionRoot/`) is the drift catchnet — running the test suite before a review gives free evidence about architectural violations the review would otherwise have to derive manually.
 
 If you discover that any of the above are stale, incomplete, or contradicted by current code/docs, say so explicitly.
 
@@ -267,9 +282,10 @@ Do not recommend feature churn merely because the code could look more modern.
 ### 8.7 Cake Nativeness And Build-Host Fit
 When the scope involves Cake/build-host code, look for:
 - Whether the code feels Cake-native rather than generic app code pasted into Cake
-- Whether modules reuse existing build infrastructure correctly
+- Whether modules reuse existing build infrastructure correctly — especially `IPathService` (Domain abstraction, Infrastructure impl), the `build/msbuild/Janset.Smoke.*` local-dev scaffolding, and the `Infrastructure/Tools/*` Cake `Tool<T>` / `Aliases` / `Settings` triad convention
 - Whether logic that belongs in shared build infrastructure is being reimplemented ad hoc
-- Whether boundaries match the current build-host/module pattern the repo actually uses
+- Whether boundaries match the DDD layer contract the repo actually uses (see §5 build-host layer map)
+- Whether Cake's built-in aliases (`DotNetPack`, `MSBuild`, `CleanDirectory`, etc. on `ICakeContext`) are consumed directly vs. re-wrapped; re-wrapping is only justified for CLIs Cake does not natively expose (vcpkg, dumpbin, ldd, otool)
 
 ### 8.8 Architecture And Infrastructure Reuse
 Look for:
@@ -277,11 +293,14 @@ Look for:
 - Best practices in one module that could benefit other modules
 - New abstractions that duplicate existing infrastructure instead of extending it
 - Modules that merely coexist rather than compose
+- DDD layer violations the architecture test would surface. Before proposing a cross-layer shortcut, run `dotnet test build/_build.Tests --filter "FullyQualifiedName~LayerDependency"` and read the diff; the catchnet is cheap to consult and authoritative about what the codebase considers "allowed"
 
 Guardrails:
 - Do **not** recommend extraction merely because two pieces of code look similar.
 - Recommend extraction only when the pattern appears in multiple places, has stable semantics, and the extraction would reduce net complexity.
 - When recommending extraction to shared infrastructure, sketch the **minimal** proposed API surface (interface, helper contract, or boundary) only for the most important such findings, to prove the abstraction is viable.
+- Respect the interface three-criteria rule (§2.3 ADR-002): do not recommend adding an interface "for testability" unless tests actually mock it, or multiple implementations exist, or the seam represents an independent axis of change statable in one sentence.
+- Cake Tool wrappers (`Tool<TSettings>` subclasses) under `Infrastructure/Tools/` are concrete-by-convention — not every concrete class deserves an interface.
 
 ### 8.9 Reliability, Exceptions, Logging, And Result Discipline
 Look for:
@@ -302,13 +321,16 @@ Rules of thumb:
 
 Use these when relevant to the touched area:
 
-1. Does the reviewed code match the current build-host/reference shape the repo actually uses, or has it drifted?
-2. Does it reuse existing infrastructure, or solve a similar problem differently for convenience?
-3. Does it preserve cross-platform correctness, or only prove the happy path on one host?
-4. Does it improve the system, or just add another layer around existing behavior?
-5. Are there patterns here that should move into shared infrastructure instead of being repeated?
-6. Are docs, logs, tests, and code using the same vocabulary for the same concept?
-7. Are there comments, docstrings, or ADR-ish explanations that now misrepresent the live system?
+1. Does the reviewed code match the current DDD layer map (Tasks/Application/Domain/Infrastructure) or has it drifted? Does `LayerDependencyTests` still pass?
+2. Does the reviewed code match the thin-adapter Task shape (`PackageTask` golden) or is it the fat-task shape (`HarvestTask`/`ConsolidateHarvestTask` Wave 6 debt)?
+3. Does it reuse existing infrastructure (`IPathService`, `build/msbuild/Janset.Smoke.*`, `Infrastructure/Tools/*`) or solve a similar problem differently for convenience?
+4. Does it preserve cross-platform correctness, or only prove the happy path on one host?
+5. Does it improve the system, or just add another layer around existing behavior?
+6. Are there patterns here that should move into shared infrastructure instead of being repeated?
+7. Are docs, logs, tests, and code using the same vocabulary for the same concept?
+8. Are there comments, docstrings, or ADR-ish explanations that now misrepresent the live system? In particular, does any code comment or XML doc still reference `Build.Modules.*` / `Build.Tools.*` namespaces that have retired?
+9. For any proposed new interface: does it satisfy at least one of the three criteria (multiple impls / test mocks / independent axis of change)? If not, should it be a concrete `internal sealed class`?
+10. For any Task-layer change: does the Task still inject only Application services, Domain/Infrastructure interfaces, DTOs, or `Infrastructure.Tools.*` wrappers — no concrete Domain/Infrastructure services?
 
 ---
 

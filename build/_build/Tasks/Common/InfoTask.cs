@@ -3,7 +3,7 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Build.Context;
-using Build.Modules.Contracts;
+using Build.Domain.Runtime;
 using Cake.Common;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;

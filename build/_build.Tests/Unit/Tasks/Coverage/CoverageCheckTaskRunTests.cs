@@ -1,5 +1,6 @@
-using Build.Modules.Coverage;
-using Build.Modules.Coverage.Models;
+using Build.Domain.Coverage;
+using Build.Domain.Coverage.Models;
+using Build.Infrastructure.Coverage;
 using Build.Tasks.Coverage;
 using Build.Tests.Fixtures;
 using Cake.Core;

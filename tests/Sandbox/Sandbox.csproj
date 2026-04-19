@@ -1,6 +1,32 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Janset.SDL2 developer sandbox. Pulls the shared smoke/consumer scaffolding from
+    build/msbuild/Janset.Smoke.{props,targets} so that JansetSmokeSdl2Families below
+    expands into local-feed PackageReference entries via Janset.Smoke.local.props
+    (written by `SetupLocalDev` with source=local).
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)../../build/msbuild/Janset.Smoke.props" />
 
   <PropertyGroup>
-    <TargetFrameworks>$(TargetFrameworks)</TargetFrameworks>
+    <TargetFrameworks>$(ExecutableTargetFrameworks)</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+
+    <!--
+      Only Core is declared — enough to open a window and pump events.
+      Add Image / Mixer / Ttf / Gfx to the list when the sandbox needs them.
+    -->
+    <JansetSmokeSdl2Families>Core</JansetSmokeSdl2Families>
+
+    <!-- Scratch tooling: string-literals in Console.WriteLine do not need resource lookup. -->
+    <NoWarn>$(NoWarn);CA1303</NoWarn>
+    <NoError>$(NoError);CA1303</NoError>
   </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net462'">
+    <PackageReference Include="System.Memory" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
+  </ItemGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)../../build/msbuild/Janset.Smoke.targets" />
 </Project>

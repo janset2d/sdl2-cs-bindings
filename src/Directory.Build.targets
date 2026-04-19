@@ -16,4 +16,16 @@
     <Error Text="G46: Janset.SDL2.*.Native pack invoked without the NativePayloadSource property. The native csproj is configured to pack runtimes/ and licenses/ from an externally-staged directory only — a direct 'dotnet pack' without this property would ship an empty payload. Run via Cake PackageTask, or pass -p:NativePayloadSource=&lt;path-to-harvest-output-root&gt; pointing at a directory that contains runtimes/&lt;rid&gt;/native/ and licenses/ subtrees. PackageId=$(PackageId). To bypass for a deliberate empty pack (rare), pass -p:AllowEmptyNativePayload=true."
            Condition="'$(AllowEmptyNativePayload)' != 'true' and '$(NativePayloadSource)' == ''"/>
   </Target>
+
+  <!--
+    G55: Native package must ship machine-readable root metadata.
+    PackageTask generates $(NativePayloadSource)/janset-native-metadata.json before pack.
+    This target ensures the file is present and included at nupkg root.
+  -->
+  <Target Name="_PackNativeMetadataFile"
+          BeforeTargets="GenerateNuspec"
+      Condition="'$(IsPackable)' != 'false' and '$(NativePayloadSource)' != ''">
+    <Error Text="G55: missing native metadata file '$(NativePayloadSource)/janset-native-metadata.json'. PackageTask must generate this file before pack for PackageId=$(PackageId)."
+           Condition="'$(AllowEmptyNativePayload)' != 'true' and !Exists('$(NativePayloadSource)/janset-native-metadata.json')"/>
+  </Target>
 </Project>

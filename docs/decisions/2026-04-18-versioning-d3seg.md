@@ -365,33 +365,33 @@ Tracks the implementation work required by this ADR. Each item updates as waves 
 
 ### 7.4 Manifest + model cleanup (Wave V4)
 
-- [ ] Final repo-wide grep for `native_lib_version` / `NativeLibVersion` consumption — confirm orphan before removal
-- [ ] `build/manifest.json` — remove `native_lib_version` from 6 library entries
-- [ ] `build/_build.Tests/Fixtures/Data/manifest.fixture.json` — same
-- [ ] `build/_build/Context/Models/ManifestConfigModels.cs` — remove `NativeLibVersion` property
-- [ ] `build/_build.Tests/Fixtures/ManifestFixture.cs` — remove fixture seeding
-- [ ] `build/_build.Tests/Fixtures/Seeders/ManifestConfigSeeder.cs` — check + clean any reference
+- [x] Final repo-wide grep for `native_lib_version` / `NativeLibVersion` consumption (source/build-host scope; generated test-output artifacts excluded) — orphan confirmed before removal — **DONE 2026-04-19**
+- [x] `build/manifest.json` — remove `native_lib_version` from 6 library entries — **DONE 2026-04-19**
+- [x] `build/_build.Tests/Fixtures/Data/manifest.fixture.json` — same — **DONE 2026-04-19**
+- [x] `build/_build/Context/Models/ManifestConfigModels.cs` — remove `NativeLibVersion` property — **DONE 2026-04-19**
+- [x] `build/_build.Tests/Fixtures/ManifestFixture.cs` — remove fixture seeding — **DONE 2026-04-19**
+- [x] `build/_build.Tests/Fixtures/Seeders/ManifestConfigSeeder.cs` — checked; no remaining `NativeLibVersion` reference — **DONE 2026-04-19**
 
 ### 7.5 New validators + metadata (Wave V4, merged with cleanup)
 
-- [ ] `UpstreamVersionAlignmentValidator` (G54) + contract + Result + tests
-- [ ] `NativePackageMetadataValidator` (G55) + contract + Result + tests
-- [ ] `SatelliteUpperBoundValidator` (G56) + contract + Result + tests
-- [ ] `ReadmeMappingTableValidator` (G57) + contract + Result + tests
-- [ ] Native metadata file generator (pack-time, in `.targets` file, not `.props`)
-- [ ] README mapping table generator + HTML comment markers
-- [ ] `PackageOutputValidator` — wire G54–G57 into the existing result-accumulation pattern
-- [ ] Build.Tests green post-edit
+- [x] `UpstreamVersionAlignmentValidator` (G54) + contract + Result + tests — **DONE 2026-04-19**
+- [x] `NativePackageMetadataValidator` (G55) + validator + PackageOutputValidator integration tests — **DONE 2026-04-19**
+- [x] `SatelliteUpperBoundValidator` (G56) + validator + PackageOutputValidator integration tests — **DONE 2026-04-19**
+- [x] `ReadmeMappingTableValidator` (G57) + validator + PackageOutputValidator integration tests — **DONE 2026-04-19**
+- [x] Native metadata file generator (pack-time include enforced from `.targets`) — **DONE 2026-04-19**
+- [x] README mapping table generator + HTML comment markers — **DONE 2026-04-19**
+- [x] `PackageOutputValidator` — G55–G57 wired into the existing result-accumulation pattern (G54 wired in PreFlight pipeline) — **DONE 2026-04-19**
+- [x] Build.Tests green post-edit — **DONE 2026-04-19**
 
 ### 7.6 Profile abstraction + SetupLocalDev (Wave V5)
 
-- [ ] `IArtifactSourceResolver` interface + `ArtifactProfile` enum + `IArtifactSourceResolver` infrastructure
-- [ ] `LocalArtifactSourceResolver` concrete
-- [ ] `RemoteArtifactSourceResolver` stub (contract-only)
-- [ ] `ReleaseArtifactSourceResolver` stub (contract-only)
-- [ ] `SetupLocalDev` Cake task — `--source=local` fully wired, `--source=remote` accepted but stubbed
-- [ ] `Janset.Smoke.local.props` conditional import in `Janset.Smoke.props`
-- [ ] `.gitignore` — `build/msbuild/Janset.Smoke.local.props`
+- [x] `IArtifactSourceResolver` interface + `ArtifactProfile` enum + `IArtifactSourceResolver` infrastructure — **DONE 2026-04-19**
+- [x] `LocalArtifactSourceResolver` concrete — **DONE 2026-04-19**
+- [x] `RemoteArtifactSourceResolver` stub (contract-only) — **DONE 2026-04-19**
+- [x] `ReleaseArtifactSourceResolver` stub (contract-only) — **DONE 2026-04-19**
+- [x] `SetupLocalDev` Cake task — `--source=local` fully wired, `--source=remote` accepted but stubbed — **DONE 2026-04-19**
+- [x] `Janset.Smoke.local.props` conditional import in `Janset.Smoke.props` — **DONE 2026-04-19**
+- [x] `.gitignore` — `build/msbuild/Janset.Smoke.local.props` — **DONE 2026-04-19**
 - [ ] IDE open test: smoke csproj restores + builds in IDE after `SetupLocalDev` runs
 - [ ] Source Mode mechanism removal — any landed code retires
 

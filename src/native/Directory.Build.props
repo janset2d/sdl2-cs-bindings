@@ -85,6 +85,12 @@
              PackagePath="licenses/%(Link)" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(NativePayloadSource)' != '' and Exists('$(NativePayloadSource)/janset-native-metadata.json')">
+    <None Include="$(NativePayloadSource)/janset-native-metadata.json"
+          Pack="true"
+          PackagePath="janset-native-metadata.json" />
+  </ItemGroup>
+
   <!--
     Source-controlled build hooks:
 

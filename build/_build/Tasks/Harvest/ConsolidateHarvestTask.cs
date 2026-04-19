@@ -1,8 +1,6 @@
 #pragma warning disable CA1031
 
 using Build.Context;
-using Build.Modules.Harvesting;
-using Build.Modules.Harvesting.Models;
 using Cake.Common.IO;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
@@ -10,6 +8,8 @@ using Cake.Frosting;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Build.Domain.Harvesting;
+using Build.Domain.Harvesting.Models;
 
 namespace Build.Tasks.Harvest;
 

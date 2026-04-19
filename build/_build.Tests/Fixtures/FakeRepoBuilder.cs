@@ -2,10 +2,10 @@ using System.Text.Json;
 using Build.Context;
 using Build.Context.Configs;
 using Build.Context.Models;
-using Build.Modules;
-using Build.Modules.Coverage.Models;
-using Build.Modules.Contracts;
-using Build.Modules.Harvesting.Models;
+using Build.Domain.Coverage.Models;
+using Build.Domain.Harvesting.Models;
+using Build.Domain.Paths;
+using Build.Infrastructure.Paths;
 using Build.Tests.Fixtures.Seeders;
 using Cake.Core;
 using Cake.Core.Configuration;
@@ -200,6 +200,7 @@ public sealed class FakeRepoBuilder
             Library: _libraries.ToList(),
             Family: [],
             FamilyVersion: null,
+            Source: "local",
             Rid: _rid ?? string.Empty,
             Dll: []);
 

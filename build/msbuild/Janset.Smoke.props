@@ -76,6 +76,18 @@
   </PropertyGroup>
 
   <!--
+    SetupLocalDev local override: if present, injects LocalPackageFeed and per-family
+    version properties so smoke projects restore/build in IDE without runner-supplied
+    command-line properties.
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)Janset.Smoke.local.props"
+          Condition="Exists('$(MSBuildThisFileDirectory)Janset.Smoke.local.props')" />
+
+  <PropertyGroup Condition="'$(LocalPackageFeed)' != ''">
+    <RestoreAdditionalProjectSources>$(RestoreAdditionalProjectSources);$(LocalPackageFeed)</RestoreAdditionalProjectSources>
+  </PropertyGroup>
+
+  <!--
     Analyzer posture for smoke / probe code: same relaxations used by Build.Tests because
     smoke projects are test-shaped (they intentionally contain probe-style no-op code,
     test assertions that look unused to analyzers, etc.).

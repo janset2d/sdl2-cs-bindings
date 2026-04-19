@@ -1,5 +1,5 @@
+using Build.Application.Packaging;
 using Build.Context;
-using Build.Modules.Contracts;
 using Build.Tasks.Preflight;
 using Cake.Frosting;
 

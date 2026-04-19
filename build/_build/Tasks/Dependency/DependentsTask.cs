@@ -1,5 +1,5 @@
 ﻿using Build.Context;
-using Build.Tools.Dumpbin;
+using Build.Infrastructure.Tools.Dumpbin;
 using Cake.Common.Diagnostics;
 using Cake.Common.IO;
 using Cake.Frosting;

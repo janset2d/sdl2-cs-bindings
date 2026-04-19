@@ -1,7 +1,10 @@
+using Build.Application.Preflight;
 using Build.Context;
+using Build.Context.Configs;
 using Build.Context.Models;
-using Build.Modules.Preflight;
-using Build.Modules.Strategy;
+using Build.Domain.Preflight;
+using Build.Domain.Strategy;
+using Build.Infrastructure.Vcpkg;
 using Build.Tasks.Preflight;
 using Build.Tests.Fixtures;
 using Cake.Core;
@@ -168,12 +171,16 @@ public class PreFlightCheckTaskRunTests
 
     private static PreFlightCheckTask CreateTask(ManifestConfig manifestConfig, BuildContext context)
     {
+        var packageBuildConfiguration = new PackageBuildConfiguration(["sdl2-core"], null);
+
         return new PreFlightCheckTask(
             manifestConfig,
+            packageBuildConfiguration,
             new VcpkgManifestReader(context.FileSystem),
             new VersionConsistencyValidator(),
             new StrategyCoherenceValidator(new StrategyResolver()),
             new CoreLibraryIdentityValidator(),
+            new UpstreamVersionAlignmentValidator(),
             new CsprojPackContractValidator(context.FileSystem),
             new PreflightReporter(context));
     }

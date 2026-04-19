@@ -1,6 +1,8 @@
 # Knowledge Base: Cake Frosting Build Architecture
 
 > Deep technical reference for the Cake Frosting build system in `build/_build/`.
+>
+> **Layering update (2026-04-19):** The build host is now DDD-layered per [ADR-002](../decisions/2026-04-19-ddd-layering-build-host.md). The historical `Modules/` + `Tools/` directory layout described below has been superseded by `Application/<Module>/` + `Domain/<Module>/` + `Infrastructure/<Module>/` with `Tasks/` retained as the Cake-native presentation layer and `Infrastructure/Tools/` hosting Cake `Tool<T>` / `Aliases` / `Settings` wrappers. Interface discipline is formalized (three criteria) and enforced by `LayerDependencyTests`. Where this document still refers to `Modules/*` paths for legacy examples, the mental mapping is: "Models and domain services → `Domain/<Module>/`, use-case orchestrators → `Application/<Module>/`, external-system adapters → `Infrastructure/<Module>/`." Contributor on-ramp: [AGENTS.md § Build-Host Reference Pattern](../../AGENTS.md) + [docs/onboarding.md repo tree](../onboarding.md).
 
 ## Overview
 

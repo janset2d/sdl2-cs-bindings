@@ -101,15 +101,27 @@ See [docs/plan.md](docs/plan.md) for detailed status and roadmap.
 git clone --recursive https://github.com/janset2d/sdl2-cs-bindings.git
 cd sdl2-cs-bindings
 
-# Build managed projects (no native binaries needed)
-dotnet build Janset.SDL2.sln
+# Canonical local setup (V5): prepare local feed + smoke override in one step
+dotnet run --project build/_build -- --target SetupLocalDev --source=local
+
+# Build managed bindings directly (fast managed-only path)
+dotnet build src/SDL2.Core/SDL2.Core.csproj
+dotnet build src/SDL2.Image/SDL2.Image.csproj
+
+# Optional: build-host regression suite
+dotnet test build/_build.Tests/Build.Tests.csproj -c Release --nologo
+
+# Note: the root solution intentionally keeps smoke projects.
+# If build/msbuild/Janset.Smoke.local.props is missing or stale,
+# solution-level build can fail on smoke package restore:
+# dotnet build Janset.SDL2.sln
 
 # To build native libraries locally:
 # 1. Bootstrap vcpkg
 ./external/vcpkg/bootstrap-vcpkg.sh  # or .bat on Windows
 
 # 2. Install native dependencies for your platform
-./external/vcpkg/vcpkg install --triplet x64-linux-dynamic
+./external/vcpkg/vcpkg install --triplet x64-linux-hybrid --overlay-triplets=vcpkg-overlay-triplets
 
 # 3. Run the harvest pipeline
 cd build/_build
@@ -166,3 +178,16 @@ Contributions will be welcome once the initial release and CI/CD pipeline are st
 ## License
 
 This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
+
+## Version Mapping
+
+<!-- JANSET:MAPPING-TABLE-START -->
+| Family | Version | Upstream | vcpkg Port |
+| --- | --- | --- | --- |
+| Janset.SDL2.Core | 2.32.0 | SDL 2.32.10 | 0 |
+| Janset.SDL2.Image | 2.8.0 | SDL2_image 2.8.8 | 2 |
+| Janset.SDL2.Mixer | 2.8.0 | SDL2_mixer 2.8.1 | 2 |
+| Janset.SDL2.Ttf | 2.24.0 | SDL2_ttf 2.24.0 | 0 |
+| Janset.SDL2.Gfx | 1.0.0 | SDL2_gfx 1.0.4 | 11 |
+| Janset.SDL2.Net | 2.2.0 | SDL2_net 2.2.0 | 3 |
+<!-- JANSET:MAPPING-TABLE-END -->

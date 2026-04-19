@@ -1,5 +1,6 @@
 ﻿using Build.Context.Configs;
-using Build.Modules.Contracts;
+using Build.Domain.Paths;
+using Build.Infrastructure.Paths;
 using Cake.Core;
 using Cake.Frosting;
 

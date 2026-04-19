@@ -195,15 +195,26 @@ Issue tracking is part of the software delivery lifecycle in this repo.
 
 ## Build-Host Reference Pattern
 
-For build-host refactors and new build-host services, treat the Harvesting module as the current structural reference standard.
+The Cake build host is DDD-layered per [ADR-002](../docs/decisions/2026-04-19-ddd-layering-build-host.md). Four top-level layers under `build/_build/` plus a Cake-native `Tasks/` exception:
 
-- Keep `BuildContext` at the task boundary. Task classes own orchestration, task-only policy, and user-facing failure behavior.
-- Prefer narrow service contracts over passing `BuildContext` or broad config bags into module internals.
-- If a service genuinely needs Cake capabilities (`ICakeContext`, `ICakeLog`, `ICakeEnvironment`, `IFileSystem`), inject them into the service that uses them rather than plumbing them through every public method.
-- Prefer typed result/error boundaries for service-level operational failures; let the task translate them into logging, `CakeException`, RID-status persistence, or cancellation semantics.
-- Prefer explicit domain models such as `BinaryClosure`, `DeploymentPlan`, and `DeploymentStatistics` over ad hoc tuples or raw path collections.
-- Test shape should mirror production boundaries: whitebox service tests plus thinner task behavior guards.
-- When in doubt, compare the shape of Harvesting before inventing a new build-host pattern.
+| Layer | Folder | Role |
+|---|---|---|
+| Presentation | `Tasks/` | Cake Frosting task classes. Own dependency mapping + user-facing failure rendering. |
+| Application | `Application/<Module>/` | Use-case orchestrators (TaskRunners, Resolvers, SmokeRunner). Coordinate Domain + Infrastructure. |
+| Domain | `Domain/<Module>/` | Models, value objects, domain services, result types, domain-level abstractions (e.g. `IPathService`). No outward dependencies. |
+| Infrastructure | `Infrastructure/<Module>/` | Adapters for external systems: filesystem, process, Cake Tool wrappers. Implement Domain abstractions. |
+
+Layer discipline is enforced by `build/_build.Tests/Unit/CompositionRoot/LayerDependencyTests.cs` (three invariants: Domain no outward deps; Infrastructure no Application; Tasks hold interfaces + DTOs only, never concrete Domain/Infrastructure services).
+
+Reference patterns for new build-host work:
+
+- **Task layer shape:** `PackageTask` is the golden thin adapter — inject a single `IPackageTaskRunner` from Application, delegate `RunAsync`. Fat tasks that still hold orchestration inline (`HarvestTask`, `ConsolidateHarvestTask`) are tracked for the Wave 6 runner extraction (see ADR-002 §6.6).
+- **Keep `BuildContext` at the task boundary.** Tasks own orchestration, user-facing policy, and failure rendering.
+- **Interface discipline** (three criteria): keep an interface only if (1) multiple implementations exist, (2) tests mock it, or (3) it formalizes an independent axis of change. Otherwise use `internal sealed class` and register concrete in Program.cs.
+- **Cake dependencies flow inward across layers, not outward.** Infrastructure may take `ICakeContext`/`IFileSystem`/`IPathService`; Domain may take `IFileSystem` and `IPathService` for file contract validation but not `ICakeContext`; Application may take any Cake type; Tasks sit on top.
+- **Result / error boundaries stay typed.** Services return `OneOf`-shaped results; tasks translate them into logging, `CakeException`, RID-status persistence, or cancellation semantics.
+- **Test folders mirror production.** `Unit/Domain/Packaging/PackageVersionResolverTests.cs` asserts the contract of `Domain/Packaging/PackageVersionResolver.cs`. Integration tests (when added) live under `Integration/<Scenario>/` and are not mirrored.
+- **When in doubt, compare the shape of Packaging (Wave 1 golden) before inventing a new build-host pattern.**
 
 ## Configuration File Relationships
 

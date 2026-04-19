@@ -1,13 +1,17 @@
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Reflection;
+using Build.Application.Packaging;
 using Build.Context;
 using Build.Context.Models;
 using Build.Context.Options;
-using Build.Modules.Contracts;
-using Build.Modules.Packaging;
-using Build.Modules.Strategy;
-using Build.Modules.Strategy.Models;
+using Build.Domain.Coverage;
+using Build.Domain.Packaging;
+using Build.Domain.Preflight;
+using Build.Domain.Strategy;
+using Build.Domain.Strategy.Models;
+using Build.Infrastructure.DotNet;
+using Build.Infrastructure.Vcpkg;
 using Build.Tests.Fixtures;
 using Cake.Core;
 using Cake.Core.Diagnostics;
@@ -170,10 +174,10 @@ public sealed class ProgramCompositionRootTests
         await Assert.That(strategy.GetType()).IsEqualTo(typeof(HybridStaticStrategy));
         await Assert.That(strategyResolver.GetType()).IsEqualTo(typeof(StrategyResolver));
         await Assert.That(validator.GetType()).IsEqualTo(typeof(HybridStaticValidator));
-        await Assert.That(coverageThresholdValidator.GetType()).IsEqualTo(typeof(Build.Modules.Coverage.CoverageThresholdValidator));
-        await Assert.That(vcpkgManifestReader.GetType()).IsEqualTo(typeof(Build.Modules.Preflight.VcpkgManifestReader));
-        await Assert.That(versionConsistencyValidator.GetType()).IsEqualTo(typeof(Build.Modules.Preflight.VersionConsistencyValidator));
-        await Assert.That(strategyCoherenceValidator.GetType()).IsEqualTo(typeof(Build.Modules.Preflight.StrategyCoherenceValidator));
+        await Assert.That(coverageThresholdValidator.GetType()).IsEqualTo(typeof(CoverageThresholdValidator));
+        await Assert.That(vcpkgManifestReader.GetType()).IsEqualTo(typeof(VcpkgManifestReader));
+        await Assert.That(versionConsistencyValidator.GetType()).IsEqualTo(typeof(VersionConsistencyValidator));
+        await Assert.That(strategyCoherenceValidator.GetType()).IsEqualTo(typeof(StrategyCoherenceValidator));
         await Assert.That(packageOutputValidator.GetType()).IsEqualTo(typeof(PackageOutputValidator));
         await Assert.That(projectMetadataReader.GetType()).IsEqualTo(typeof(ProjectMetadataReader));
         await Assert.That(packageFamilySelector.GetType()).IsEqualTo(typeof(PackageFamilySelector));
@@ -220,8 +224,8 @@ public sealed class ProgramCompositionRootTests
         await Assert.That(strategy.GetType()).IsEqualTo(typeof(PureDynamicStrategy));
         await Assert.That(strategyResolver.GetType()).IsEqualTo(typeof(StrategyResolver));
         await Assert.That(validator.GetType()).IsEqualTo(typeof(PureDynamicValidator));
-        await Assert.That(coverageThresholdValidator.GetType()).IsEqualTo(typeof(Build.Modules.Coverage.CoverageThresholdValidator));
-        await Assert.That(vcpkgManifestReader.GetType()).IsEqualTo(typeof(Build.Modules.Preflight.VcpkgManifestReader));
+        await Assert.That(coverageThresholdValidator.GetType()).IsEqualTo(typeof(CoverageThresholdValidator));
+        await Assert.That(vcpkgManifestReader.GetType()).IsEqualTo(typeof(VcpkgManifestReader));
         await Assert.That(packageOutputValidator.GetType()).IsEqualTo(typeof(PackageOutputValidator));
         await Assert.That(projectMetadataReader.GetType()).IsEqualTo(typeof(ProjectMetadataReader));
         await Assert.That(packageFamilySelector.GetType()).IsEqualTo(typeof(PackageFamilySelector));
@@ -229,6 +233,77 @@ public sealed class ProgramCompositionRootTests
         await Assert.That(dotNetPackInvoker.GetType()).IsEqualTo(typeof(DotNetPackInvoker));
         await Assert.That(packageTaskRunner.GetType()).IsEqualTo(typeof(PackageTaskRunner));
         await Assert.That(packageConsumerSmokeRunner.GetType()).IsEqualTo(typeof(PackageConsumerSmokeRunner));
+    }
+
+    [Test]
+    public async Task ConfigureBuildServices_Should_Resolve_Remote_Source_Resolver()
+    {
+        var method = GetProgramHelper(
+            "g__ConfigureBuildServices",
+            typeof(IServiceCollection),
+            typeof(ParsedArguments),
+            typeof(DirectoryPath));
+
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
+            .WithManifest(CreateCompositionRootManifest("hybrid-static", "x64-windows-hybrid"))
+            .BuildContextWithHandles();
+
+        var services = CreateServiceCollectionForCompositionRoot(repo);
+        var parsedArguments = CreateParsedArguments(repo.RepoRoot.FullPath, "win-x64", "remote");
+
+        method.Invoke(null, [services, parsedArguments, repo.RepoRoot]);
+
+        using var provider = services.BuildServiceProvider();
+        var resolver = provider.GetRequiredService<IArtifactSourceResolver>();
+
+        await Assert.That(resolver.GetType()).IsEqualTo(typeof(RemoteInternalArtifactSourceResolver));
+    }
+
+    [Test]
+    public async Task ConfigureBuildServices_Should_Resolve_Release_Source_Resolver()
+    {
+        var method = GetProgramHelper(
+            "g__ConfigureBuildServices",
+            typeof(IServiceCollection),
+            typeof(ParsedArguments),
+            typeof(DirectoryPath));
+
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
+            .WithManifest(CreateCompositionRootManifest("hybrid-static", "x64-windows-hybrid"))
+            .BuildContextWithHandles();
+
+        var services = CreateServiceCollectionForCompositionRoot(repo);
+        var parsedArguments = CreateParsedArguments(repo.RepoRoot.FullPath, "win-x64", "release");
+
+        method.Invoke(null, [services, parsedArguments, repo.RepoRoot]);
+
+        using var provider = services.BuildServiceProvider();
+        var resolver = provider.GetRequiredService<IArtifactSourceResolver>();
+
+        await Assert.That(resolver.GetType()).IsEqualTo(typeof(ReleasePublicArtifactSourceResolver));
+    }
+
+    [Test]
+    public async Task ConfigureBuildServices_Should_Throw_When_Source_Is_Whitespace()
+    {
+        var method = GetProgramHelper(
+            "g__ConfigureBuildServices",
+            typeof(IServiceCollection),
+            typeof(ParsedArguments),
+            typeof(DirectoryPath));
+
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
+            .WithManifest(CreateCompositionRootManifest("hybrid-static", "x64-windows-hybrid"))
+            .BuildContextWithHandles();
+
+        var services = CreateServiceCollectionForCompositionRoot(repo);
+        var parsedArguments = CreateParsedArguments(repo.RepoRoot.FullPath, "win-x64", "   ");
+
+        var thrown = await Assert.That(() => method.Invoke(null, [services, parsedArguments, repo.RepoRoot]))
+            .Throws<TargetInvocationException>();
+
+        await Assert.That(thrown!.InnerException).IsNotNull();
+        await Assert.That(thrown.InnerException!.Message).Contains("--source cannot be empty");
     }
 
     private static MethodInfo GetProgramHelper(string methodNameFragment, params Type[] parameterTypes)
@@ -295,50 +370,51 @@ public sealed class ProgramCompositionRootTests
         return root;
     }
 
-        private static ServiceCollection CreateServiceCollectionForCompositionRoot(FakeRepoHandles repo)
+    private static ServiceCollection CreateServiceCollectionForCompositionRoot(FakeRepoHandles repo)
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<ICakeEnvironment>(repo.Environment);
+        services.AddSingleton<ICakeContext>(repo.CakeContext);
+        services.AddSingleton<IFileSystem>(repo.FileSystem);
+        services.AddSingleton<ICakeLog>(new FakeLog());
+
+        return services;
+    }
+
+    private static ParsedArguments CreateParsedArguments(string repoRoot, string rid, string source = "local")
+    {
+        return new ParsedArguments(
+            RepoRoot: new DirectoryInfo(repoRoot),
+            Config: "Release",
+            VcpkgDir: null,
+            VcpkgInstalledDir: null,
+            Library: [],
+            Family: [],
+            FamilyVersion: null,
+            Source: source,
+            Rid: rid,
+            Dll: []);
+    }
+
+    private static ManifestConfig CreateCompositionRootManifest(string strategy, string triplet)
+    {
+        var manifest = ManifestFixture.CreateTestManifestConfig();
+
+        return manifest with
         {
-                var services = new ServiceCollection();
-            services.AddSingleton<ICakeEnvironment>(repo.Environment);
-            services.AddSingleton<ICakeContext>(repo.CakeContext);
-                services.AddSingleton<IFileSystem>(repo.FileSystem);
-                services.AddSingleton<ICakeLog>(new FakeLog());
-
-                return services;
-        }
-
-        private static ParsedArguments CreateParsedArguments(string repoRoot, string rid)
-        {
-                return new ParsedArguments(
-                        RepoRoot: new DirectoryInfo(repoRoot),
-                        Config: "Release",
-                        VcpkgDir: null,
-                        VcpkgInstalledDir: null,
-                        Library: [],
-                    Family: [],
-                    FamilyVersion: null,
-                        Rid: rid,
-                        Dll: []);
-        }
-
-        private static ManifestConfig CreateCompositionRootManifest(string strategy, string triplet)
-        {
-                var manifest = ManifestFixture.CreateTestManifestConfig();
-
-                return manifest with
+            Runtimes =
+            [
+                new RuntimeInfo
                 {
-                        Runtimes =
-                        [
-                                new RuntimeInfo
-                                {
-                                        Rid = "win-x64",
-                                        Triplet = triplet,
-                                        Strategy = strategy,
-                                        Runner = "windows-latest",
-                                        ContainerImage = null,
-                                },
-                        ],
-                        PackageFamilies = [manifest.PackageFamilies.Single(family => string.Equals(family.Name, "sdl2-core", StringComparison.OrdinalIgnoreCase))],
-                        LibraryManifests = [ManifestFixture.CreateTestCoreLibrary()],
-                };
-        }
+                    Rid = "win-x64",
+                    Triplet = triplet,
+                    Strategy = strategy,
+                    Runner = "windows-latest",
+                    ContainerImage = null,
+                },
+            ],
+            PackageFamilies = [manifest.PackageFamilies.Single(family => string.Equals(family.Name, "sdl2-core", StringComparison.OrdinalIgnoreCase))],
+            LibraryManifests = [ManifestFixture.CreateTestCoreLibrary()],
+        };
+    }
 }

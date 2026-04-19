@@ -1,4 +1,4 @@
-using Build.Modules.Preflight;
+using Build.Domain.Preflight;
 
 namespace Build.Tests.Unit.Tasks.Preflight;
 

@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using System.Text.Json;
 using Build.Context.Models;
-using Build.Modules.Strategy.Models;
+using Build.Domain.Strategy.Models;
 
 namespace Build.Tests.Fixtures;
 
@@ -37,7 +37,6 @@ public static class ManifestFixture
         VcpkgVersion = "2.32.10",
         VcpkgPortVersion = 0,
         NativeLibName = "SDL2.Core.Native",
-        NativeLibVersion = "2.32.10.0",
         IsCoreLib = true,
         PrimaryBinaries =
         [
@@ -59,7 +58,6 @@ public static class ManifestFixture
         VcpkgVersion = "2.8.8",
         VcpkgPortVersion = 2,
         NativeLibName = "SDL2.Image.Native",
-        NativeLibVersion = "2.8.8.0",
         IsCoreLib = false,
         PrimaryBinaries =
         [

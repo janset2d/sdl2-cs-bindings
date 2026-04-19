@@ -1,4 +1,4 @@
-using Build.Modules.Harvesting.Models;
+using Build.Domain.Harvesting.Models;
 using Cake.Core.IO;
 
 namespace Build.Tests.Fixtures;

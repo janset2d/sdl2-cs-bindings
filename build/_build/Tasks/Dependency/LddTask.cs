@@ -1,5 +1,5 @@
 using Build.Context;
-using Build.Tools.Ldd;
+using Build.Infrastructure.Tools.Ldd;
 using Cake.Common.Diagnostics;
 using Cake.Common.IO;
 using Cake.Frosting;

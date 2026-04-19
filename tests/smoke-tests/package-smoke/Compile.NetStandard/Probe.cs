@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using SDL2;
 
 namespace Compile.NetStandard;
@@ -13,8 +14,13 @@ internal static class Probe
     /// <summary>
     /// Forces the compiler to resolve each wrapper type through its netstandard2.0
     /// surface. No runtime semantics — <c>typeof</c> is a compile-time operator and
-    /// the field is intentionally unused.
+    /// the field is intentionally unused. The field exists solely so the type
+    /// references remain in the compiled metadata.
     /// </summary>
+    [SuppressMessage("Sonar", "S1144:Unused private types or members should be removed",
+        Justification = "Compile-time probe: the field materializes typeof references to assert netstandard2.0 surface visibility. Removing it defeats the purpose of the project.")]
+    [SuppressMessage("Performance", "CA1823:Unused fields",
+        Justification = "Compile-time probe: the field materializes typeof references to assert netstandard2.0 surface visibility. Removing it defeats the purpose of the project.")]
     private static readonly Type[] _surface =
     [
         typeof(SDL.SDL_version),

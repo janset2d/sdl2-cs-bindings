@@ -1,7 +1,7 @@
 #pragma warning disable S2737, CA1031
 
 using Build.Context;
-using Build.Tools.Otool;
+using Build.Infrastructure.Tools.Otool;
 using Cake.Common.Diagnostics;
 using Cake.Common.IO;
 using Cake.Core.IO;

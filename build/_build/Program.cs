@@ -4,19 +4,27 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.CommandLine.NamingConventionBinder;
 using System.Diagnostics;
+using Build;
+using Build.Application.Harvesting;
+using Build.Application.Packaging;
+using Build.Application.Preflight;
 using Build.Context;
 using Build.Context.Configs;
 using Build.Context.Models;
 using Build.Context.Options;
-using Build.Modules;
-using Build.Modules.Contracts;
-using Build.Modules.Coverage;
-using Build.Modules.DependencyAnalysis;
-using Build.Modules.Harvesting;
-using Build.Modules.Packaging;
-using Build.Modules.Preflight;
-using Build.Modules.Strategy;
-using Build.Modules.Strategy.Models;
+using Build.Domain.Coverage;
+using Build.Domain.Packaging;
+using Build.Domain.Paths;
+using Build.Domain.Preflight;
+using Build.Domain.Runtime;
+using Build.Domain.Strategy;
+using Build.Domain.Strategy.Models;
+using Build.Infrastructure.Coverage;
+using Build.Infrastructure.DependencyAnalysis;
+using Build.Infrastructure.DotNet;
+using Build.Infrastructure.Paths;
+using Build.Infrastructure.Tools.Vcpkg;
+using Build.Infrastructure.Vcpkg;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
@@ -47,6 +55,7 @@ root.AddOption(VcpkgOptions.LibraryOption);
 root.AddOption(VcpkgOptions.RidOption);
 root.AddOption(PackageOptions.FamilyOption);
 root.AddOption(PackageOptions.FamilyVersionOption);
+root.AddOption(PackageOptions.SourceOption);
 
 root.AddOption(DumpbinOptions.DllOption);
 
@@ -75,6 +84,12 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton(new DotNetBuildConfiguration(configuration: parsedArgs.Config));
     services.AddSingleton(new PackageBuildConfiguration([.. parsedArgs.Family], parsedArgs.FamilyVersion));
     services.AddSingleton(new DumpbinConfiguration([.. parsedArgs.Dll]));
+
+    var source = parsedArgs.Source?.Trim();
+    if (string.IsNullOrWhiteSpace(source))
+    {
+        throw new InvalidOperationException("--source cannot be empty. Allowed values: local, remote, release.");
+    }
 
     services.AddSingleton<IPathService>(provider =>
     {
@@ -112,15 +127,35 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton<IStrategyResolver, StrategyResolver>();
     services.AddSingleton<IStrategyCoherenceValidator, StrategyCoherenceValidator>();
     services.AddSingleton<ICoreLibraryIdentityValidator, CoreLibraryIdentityValidator>();
+    services.AddSingleton<IUpstreamVersionAlignmentValidator, UpstreamVersionAlignmentValidator>();
     services.AddSingleton<ICsprojPackContractValidator, CsprojPackContractValidator>();
     services.AddSingleton<IPreflightReporter, PreflightReporter>();
+    services.AddSingleton<NativePackageMetadataValidator>();
+    services.AddSingleton<ReadmeMappingTableValidator>();
     services.AddSingleton<IPackageOutputValidator, PackageOutputValidator>();
     services.AddSingleton<IProjectMetadataReader, ProjectMetadataReader>();
     services.AddSingleton<IPackageFamilySelector, PackageFamilySelector>();
     services.AddSingleton<IPackageVersionResolver, PackageVersionResolver>();
     services.AddSingleton<IDotNetPackInvoker, DotNetPackInvoker>();
+    services.AddSingleton<INativePackageMetadataGenerator, NativePackageMetadataGenerator>();
+    services.AddSingleton<IReadmeMappingTableGenerator, ReadmeMappingTableGenerator>();
     services.AddSingleton<IPackageTaskRunner, PackageTaskRunner>();
     services.AddSingleton<IPackageConsumerSmokeRunner, PackageConsumerSmokeRunner>();
+    services.AddSingleton<VcpkgBootstrapTool>();
+    services.AddSingleton<LocalArtifactSourceResolver>();
+    services.AddSingleton<RemoteInternalArtifactSourceResolver>();
+    services.AddSingleton<ReleasePublicArtifactSourceResolver>();
+    services.AddSingleton<IArtifactSourceResolver>(provider =>
+    {
+        return source.ToLowerInvariant() switch
+        {
+            "local" => provider.GetRequiredService<LocalArtifactSourceResolver>(),
+            "remote" or "remote-internal" => provider.GetRequiredService<RemoteInternalArtifactSourceResolver>(),
+            "release" or "release-public" => provider.GetRequiredService<ReleasePublicArtifactSourceResolver>(),
+            _ => throw new InvalidOperationException(
+                $"Unsupported --source value '{source}'. Allowed values: local, remote, release."),
+        };
+    });
 
     services.AddSingleton<IPackagingStrategy>(provider =>
     {
@@ -335,13 +370,17 @@ static bool IsWorkingPathArg(string arg) =>
     string.Equals(arg, "--working", StringComparison.OrdinalIgnoreCase) ||
     string.Equals(arg, "-w", StringComparison.OrdinalIgnoreCase);
 
-public record ParsedArguments(
-    DirectoryInfo? RepoRoot,
-    string Config,
-    DirectoryInfo? VcpkgDir,
-    DirectoryInfo? VcpkgInstalledDir,
-    IList<string> Library,
-    IList<string> Family,
-    string? FamilyVersion,
-    string Rid,
-    IList<string> Dll);
+namespace Build
+{
+    public record ParsedArguments(
+        DirectoryInfo? RepoRoot,
+        string Config,
+        DirectoryInfo? VcpkgDir,
+        DirectoryInfo? VcpkgInstalledDir,
+        IList<string> Library,
+        IList<string> Family,
+        string? FamilyVersion,
+        string Source,
+        string Rid,
+        IList<string> Dll);
+}

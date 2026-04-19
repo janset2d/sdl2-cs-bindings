@@ -2,11 +2,11 @@
 
 > How to clone, build, and develop Janset.SDL2 on your local machine.
 >
-> **Status 2026-04-18 (ADR-001 transition).** Local development is converging on the `SetupLocalDev` Cake task (package-first consumer contract per [ADR-001](../decisions/2026-04-18-versioning-d3seg.md) §2.8). Until `SetupLocalDev` lands (Wave V5), the manual vcpkg + Harvest + Package flow below remains the working recipe. Once `SetupLocalDev` ships, the "Quick Start (recommended)" section will replace most of this document; the manual steps stay as fallback for debugging.
+> **Status 2026-04-19 (ADR-001 transition).** `SetupLocalDev --source=local` is now the canonical fresh-clone path (package-first consumer contract per [ADR-001](../decisions/2026-04-18-versioning-d3seg.md) §2.8). `--source=remote` / `--source=release` are accepted profile stubs for Phase 2b. The manual vcpkg + Harvest + Package flow below stays as a fallback/debug route.
 
-## Quick Start (recommended, lands in V5)
+## Quick Start (recommended)
 
-After `SetupLocalDev` ships, the fresh-clone flow becomes a single command:
+The fresh-clone flow is a single command:
 
 ```bash
 # Clone with submodules
@@ -19,9 +19,9 @@ dotnet run --project build/_build -- --target SetupLocalDev --source=local
 
 Result: `artifacts/packages/` populated with D-3seg-versioned prerelease nupkgs (e.g. `Janset.SDL2.Core 2.32.0-local.<timestamp>`), and `build/msbuild/Janset.Smoke.local.props` written (gitignored) with the matching `LocalPackageFeed` + per-family version properties. Opening any smoke / sample csproj in Rider / VS / VS Code then restores + builds directly from the local feed.
 
-`--source=remote` (Phase 2b) will fetch prebuilt nupkgs from the internal feed into a local cache and write the same override file — consumer contract is identical across the two source modes.
+`--source=remote` / `--source=release` are accepted now but intentionally fail with a "not implemented in Phase 2a" error until feed-download profile work lands.
 
-**Until V5 ships**, follow the manual "Full Build" sequence below.
+If you need to debug the internals manually, follow the "Full Build" fallback sequence below.
 
 ## Prerequisites
 
@@ -48,12 +48,17 @@ If you just want to work on C# bindings without building native libraries:
 git clone --recursive https://github.com/janset2d/sdl2-cs-bindings.git
 cd sdl2-cs-bindings
 
-# Restore and build managed projects
-dotnet restore Janset.SDL2.sln
-dotnet build Janset.SDL2.sln
+# Build managed binding projects directly
+dotnet build src/SDL2.Core/SDL2.Core.csproj
+dotnet build src/SDL2.Image/SDL2.Image.csproj
+dotnet build src/SDL2.Mixer/SDL2.Mixer.csproj
+dotnet build src/SDL2.Ttf/SDL2.Ttf.csproj
+dotnet build src/SDL2.Gfx/SDL2.Gfx.csproj
 ```
 
-This builds all C# binding projects. Native packages will be empty (no binary files), but the managed code compiles fine.
+This builds the C# binding projects without requiring local package-feed injection.
+
+Important: smoke projects remain in `Janset.SDL2.sln` by design (package-first consumer contract). If `build/msbuild/Janset.Smoke.local.props` does not exist yet (or is stale), `dotnet restore/build Janset.SDL2.sln` can fail on smoke package restore (`NU1101`). Re-run `SetupLocalDev --source=local` to regenerate the local override.
 
 ### Getting Native Binaries Without Building
 

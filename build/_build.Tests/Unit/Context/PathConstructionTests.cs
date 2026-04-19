@@ -1,5 +1,5 @@
 using Build.Context.Configs;
-using Build.Modules;
+using Build.Infrastructure.Paths;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 using NSubstitute;
@@ -19,6 +19,7 @@ public class PathConstructionTests
             Library: [],
             Family: [],
             FamilyVersion: null,
+            Source: "local",
             Rid: "",
             Dll: []);
         var log = Substitute.For<ICakeLog>();
@@ -58,6 +59,28 @@ public class PathConstructionTests
     {
         var svc = CreatePathService("/repo");
         await Assert.That(svc.PackagesOutput.FullPath).IsEqualTo("/repo/artifacts/packages");
+    }
+
+    [Test]
+    public async Task BuildProjectFile_Should_Point_To_BuildHost_Csproj()
+    {
+        var svc = CreatePathService("/repo");
+        await Assert.That(svc.BuildProjectFile.FullPath).IsEqualTo("/repo/build/_build/Build.csproj");
+    }
+
+    [Test]
+    public async Task GetSmokeLocalPropsFile_Should_Point_To_Build_Msbuild_Override()
+    {
+        var svc = CreatePathService("/repo");
+        await Assert.That(svc.GetSmokeLocalPropsFile().FullPath).IsEqualTo("/repo/build/msbuild/Janset.Smoke.local.props");
+    }
+
+    [Test]
+    public async Task GetPackageOutputFile_Should_Compose_Id_And_Version()
+    {
+        var svc = CreatePathService("/repo");
+        var packageFile = svc.GetPackageOutputFile("Janset.SDL2.Core", "2.32.0-local.1");
+        await Assert.That(packageFile.FullPath).IsEqualTo("/repo/artifacts/packages/Janset.SDL2.Core.2.32.0-local.1.nupkg");
     }
 
     [Test]

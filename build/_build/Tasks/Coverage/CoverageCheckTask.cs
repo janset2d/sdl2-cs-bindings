@@ -5,11 +5,11 @@
 
 using System.Globalization;
 using Build.Context;
-using Build.Modules.Contracts;
-using Build.Modules.Coverage;
-using Build.Modules.Coverage.Models;
-using Build.Modules.Coverage.Results;
-using Build.Modules.Results;
+using Build.Domain.Coverage;
+using Build.Domain.Coverage.Models;
+using Build.Domain.Coverage.Results;
+using Build.Domain.Results;
+using Build.Infrastructure.Coverage;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;
