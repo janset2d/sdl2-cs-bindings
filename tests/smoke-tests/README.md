@@ -26,7 +26,7 @@ Subfolders follow the kebab-case `<subject>-smoke/` pattern:
 - `native-smoke/` — "smoke of the natives"
 - `package-smoke/` — "smoke of the packaged consumer path"
 
-Future siblings (e.g., `cli-smoke/`, `source-mode-smoke/`) should stick to this pattern — same form, same narrative: **this folder smokes X**.
+Future siblings (e.g., `cli-smoke/`, `sample-smoke/`) should stick to this pattern — same form, same narrative: **this folder smokes X**.
 
 ## Orchestration
 
@@ -46,11 +46,13 @@ dotnet run --project build/_build/Build.csproj -- --target PostFlight --family s
 
 Native-smoke's C++ runs today via its own `build.bat` / `cmake --build` flow — see [`native-smoke/README.md`](native-smoke/README.md). Weaving it into Cake `PostFlight` is [docs/plan.md](../../docs/plan.md) 2b work.
 
+For IDE or direct-CLI validation, run `SetupLocalDev --source=local` once first. It writes `build/msbuild/Janset.Smoke.local.props`, after which `PackageConsumer.Smoke.csproj` restores and builds directly without runner-injected package properties.
+
 ## What This Section Is NOT
 
 - **Not unit tests.** Those live in `build/_build.Tests/` and exercise the Cake build host in isolation (fake file systems, synthetic manifests, composition-root wiring).
 - **Not samples.** Samples (future `samples/` tree) are consumer-facing documentation. Smoke tests are **internal integrity gates** that may or may not have pedagogical value.
-- **Not Source Mode tests.** `JansetSdl2SourceMode=true` projects will live separately (Stream F scope, not yet implemented). Source Mode validates the source graph; smoke-tests validates the shipping graph. Different realities per [`docs/research/execution-model-strategy-2026-04-13.md §9`](../../docs/research/execution-model-strategy-2026-04-13.md).
+- **Not a separate source-graph validation lane.** ADR-001 retired Source Mode as a supported consumer contract. Smoke tests validate the canonical package-first path; if a throwaway binding-debug harness is ever needed later, it lives outside this directory.
 
 ## Relationship to Cross-Platform Smoke Validation Matrix
 

@@ -18,7 +18,7 @@
 ## Relationship to Other Documents
 
 - **Packaging topology** (hybrid static, per-library .Native split): locked in `docs/plan.md` Strategic Decisions. This document does not revisit that.
-- **Execution model** (Source Mode / Package Validation Mode / Release Mode): established in `docs/research/execution-model-strategy-2026-04-13.md`. This document extends it with release governance, it does not replace it.
+- **Execution model** (ADR-001 two-source feed preparation): consumer contract is always `PackageReference`; only feed preparation varies (`Local` / `Remote`). The historical three-mode framing lives in `docs/research/execution-model-strategy-2026-04-13.md`, amended by ADR-001. This document extends the current model with release governance, it does not replace it.
 - **CI/CD pipeline architecture**: designed in `docs/knowledge-base/ci-cd-packaging-and-release-plan.md`. That document describes pipeline implementation. This document describes the policy it must enforce.
 - **Implementation plan**: `docs/phases/phase-2-adaptation-plan.md` describes how these policy decisions are applied to manifest.json, Cake, csproj, CI, and local dev — the multi-stream implementation roadmap.
 
@@ -253,7 +253,7 @@ The matrix is generated dynamically from `manifest.json` runtimes section. No ha
 ### Stage 1: Local Folder Feed
 
 - Produced by the build system's package task locally.
-- Used for Source Mode and Package Validation Mode development.
+- Used for `SetupLocalDev`-driven local package validation, IDE-ready smoke restore/build, and other local package-consumer development.
 - No external infrastructure required.
 
 ### Stage 2: Internal Feed (Staging)

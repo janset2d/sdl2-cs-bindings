@@ -26,7 +26,7 @@ The strategy seam landed with Stream B (#85 closed) and the #85 handoff note in 
 
 - `IPackagingStrategy` is a one-method lookup helper (`IsCoreLibrary`), not a dispatcher. The Packaging module does not consume it.
 - `IDependencyPolicyValidator` has one real implementation (`HybridStaticValidator`) and one intentional pass-through (`PureDynamicValidator` — by design per [`research/cake-strategy-implementation-brief-2026-04-14.md`](../research/cake-strategy-implementation-brief-2026-04-14.md)).
-- `INativeAcquisitionStrategy` was designed in the brief but never implemented; its role may have been implicitly subsumed by Source Mode (Stream F).
+- `INativeAcquisitionStrategy` was designed in the brief but never implemented; ADR-001's Artifact Source Profile abstraction (`SetupLocalDev --source=local|remote`) now covers that problem space from the feed-preparation side.
 - `IPayloadLayoutPolicy` was deferred in the brief "until PackageTask lands"; PackageTask landed, the policy extraction did not follow.
 - The scanner-as-validator repurposing (dumpbin / ldd / otool outputs consumed by `HybridStaticValidator` as a second consumer with zero scanner changes) **is fully landed as designed** — this is the one architectural move from the brief that is realized end to end.
 

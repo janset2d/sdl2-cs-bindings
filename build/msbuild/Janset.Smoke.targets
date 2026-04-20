@@ -66,7 +66,7 @@
   <Target Name="_GuardSmokeLocalFeed" BeforeTargets="Restore;Build">
     <Error
       Code="JNSMK001"
-      Text="Smoke projects require -p:LocalPackageFeed=[absolute path] supplied by the Cake orchestrator (PackageConsumerSmokeRunner). Invoke via Cake PostFlight / PackageConsumerSmoke; do not run dotnet build/test directly against a smoke csproj."
+      Text="Smoke projects require LocalPackageFeed. Either run SetupLocalDev --source=local first (which writes build/msbuild/Janset.Smoke.local.props for IDE/direct build), or invoke via Cake PostFlight / PackageConsumerSmoke so the runner injects the feed path explicitly."
       Condition="'$(LocalPackageFeed)' == ''" />
   </Target>
 

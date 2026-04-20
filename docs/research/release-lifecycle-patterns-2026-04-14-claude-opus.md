@@ -2,7 +2,7 @@
 
 **Date:** 2026-04-14
 **Author:** Claude Opus (research agent synthesis)
-**Status:** Research — pending alignment decisions. **Note (2026-04-17):** post-dated by S1 adoption. The LibGit2Sharp exact-pin pattern described in this doc's industry survey (e.g., "Managed depends on its own Native with exact pin (`=`)", "completely different version schemes but exact-pinned: managed depends on `NativeBinaries (= 2.0.323)`") is **no longer the chosen pattern for Janset.SDL2**. S1 adoption (2026-04-17) aligned with the SkiaSharp `>=` pattern instead. The survey data remains accurate; the subsequent design inference has changed. See [phase-2-adaptation-plan.md "S1 Adoption Record"](../phases/phase-2-adaptation-plan.md).
+**Status:** Research — pending alignment decisions. **Note (2026-04-17):** post-dated by S1 adoption. The LibGit2Sharp exact-pin pattern described in this doc's industry survey (e.g., "Managed depends on its own Native with exact pin (`=`)", "completely different version schemes but exact-pinned: managed depends on `NativeBinaries (= 2.0.323)`") is **no longer the chosen pattern for Janset.SDL2**. S1 adoption (2026-04-17) aligned with the SkiaSharp `>=` pattern instead. The survey data remains accurate; the subsequent design inference has changed. See [phase-2-adaptation-plan.md "S1 Adoption Record"](../phases/phase-2-adaptation-plan.md). **Note (2026-04-18):** [ADR-001](../decisions/2026-04-18-versioning-d3seg.md) later locked D-3seg family versioning (`<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>`) and the package-first consumer contract, so treat any pre-ADR version-shape or Source Mode implications here as historical context only.
 **Issue context:** #85 (strategy awareness), #83 (packaging spike), #54 (PackageTask)
 
 ## Purpose

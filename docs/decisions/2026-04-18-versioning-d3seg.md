@@ -358,10 +358,10 @@ Tracks the implementation work required by this ADR. Each item updates as waves 
 
 ### 7.3 Historical markers (Wave V6)
 
-- [ ] `docs/research/exact-pin-spike-and-nugetizer-eval-2026-04-16.md` — add ADR pointer to SUPERSEDED header
-- [ ] `docs/research/release-lifecycle-patterns-2026-04-14-claude-opus.md` — "D-3seg adopted 2026-04-18" marker
-- [ ] `docs/research/release-lifecycle-strategy-research-2026-04-14-gpt-codex.md` — same
-- [ ] `docs/research/release-strategy-history-audit-2026-04-14-gpt-codex.md` — same; `binding_version` question closed
+- [x] `docs/research/exact-pin-spike-and-nugetizer-eval-2026-04-16.md` — add ADR pointer to SUPERSEDED header — **DONE 2026-04-20**
+- [x] `docs/research/release-lifecycle-patterns-2026-04-14-claude-opus.md` — "D-3seg adopted 2026-04-18" marker — **DONE 2026-04-20**
+- [x] `docs/research/release-lifecycle-strategy-research-2026-04-14-gpt-codex.md` — same — **DONE 2026-04-20**
+- [x] `docs/research/release-strategy-history-audit-2026-04-14-gpt-codex.md` — same; `binding_version` question closed — **DONE 2026-04-20**
 
 ### 7.4 Manifest + model cleanup (Wave V4)
 
@@ -392,14 +392,14 @@ Tracks the implementation work required by this ADR. Each item updates as waves 
 - [x] `SetupLocalDev` Cake task — `--source=local` fully wired, `--source=remote` accepted but stubbed — **DONE 2026-04-19**
 - [x] `Janset.Smoke.local.props` conditional import in `Janset.Smoke.props` — **DONE 2026-04-19**
 - [x] `.gitignore` — `build/msbuild/Janset.Smoke.local.props` — **DONE 2026-04-19**
-- [ ] IDE open test: smoke csproj restores + builds in IDE after `SetupLocalDev` runs
-- [ ] Source Mode mechanism removal — any landed code retires
+- [x] IDE open test: smoke csproj restores + builds in IDE after `SetupLocalDev` runs — **DONE 2026-04-20** (`SetupLocalDev --source=local` on `win-x64` + direct `dotnet build` of `PackageConsumer.Smoke.csproj`)
+- [x] Source Mode mechanism removal — any landed code retires — **DONE 2026-04-20** (active docs/playbooks/smoke messaging aligned to ADR-001 package-first contract; historical research docs remain explicitly deprecated)
 
 ### 7.7 Memory sidecar (Wave V6)
 
-- [ ] Update `packaging_strategy_decisions.md` memory
-- [ ] Retire `release_lifecycle_direction_2026_04_15.md` memory (rename or supersede)
-- [ ] Create `versioning_d3seg_2026_04_18.md` memory
+- [x] Update `packaging_strategy_decisions.md` memory — **DONE 2026-04-20** (repo memory file created with ADR-001 package-first / artifact-source summary)
+- [x] Retire `release_lifecycle_direction_2026_04_15.md` memory (rename or supersede) — **DONE 2026-04-20** (no pre-existing repo memory file by that name; superseded state captured in new D-3seg sidecar)
+- [x] Create `versioning_d3seg_2026_04_18.md` memory — **DONE 2026-04-20**
 
 ---
 

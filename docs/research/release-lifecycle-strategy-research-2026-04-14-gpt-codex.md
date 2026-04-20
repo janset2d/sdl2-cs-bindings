@@ -5,6 +5,7 @@
 - Status: Independent research synthesis
 - Scope: Release lifecycle governance for an inter-dependent .NET native-library monorepo
 - Repository: janset2d/sdl2-cs-bindings
+- Note (2026-04-18): [ADR-001](../decisions/2026-04-18-versioning-d3seg.md) adopted D-3seg family versioning, package-first local development, and the Artifact Source Profile abstraction. Any pre-ADR references in this document to separate Source Mode behavior or alternative version shapes should be read as historical analysis, not current repo policy.
 
 ## Why This Exists
 

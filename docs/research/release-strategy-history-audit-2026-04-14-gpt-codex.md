@@ -2,7 +2,7 @@
 
 - Date: 2026-04-14
 - Author: GitHub Copilot (GPT-5.3-Codex)
-- Status: Research snapshot (no implementation changes). **Note (2026-04-17):** post-dated by S1 adoption. Industry-comparison references to "LibGit2Sharp exact-pin vs SkiaSharp `>=` vs NSec bounded-range" (item 6 in this doc) now read differently: Janset.SDL2 aligned with the SkiaSharp `>=` pattern on 2026-04-17, not the LibGit2Sharp exact-pin pattern. See [phase-2-adaptation-plan.md "S1 Adoption Record"](../phases/phase-2-adaptation-plan.md).
+- Status: Research snapshot (no implementation changes). **Note (2026-04-17):** post-dated by S1 adoption. Industry-comparison references to "LibGit2Sharp exact-pin vs SkiaSharp `>=` vs NSec bounded-range" (item 6 in this doc) now read differently: Janset.SDL2 aligned with the SkiaSharp `>=` pattern on 2026-04-17, not the LibGit2Sharp exact-pin pattern. See [phase-2-adaptation-plan.md "S1 Adoption Record"](../phases/phase-2-adaptation-plan.md). **Note (2026-04-18):** [ADR-001](../decisions/2026-04-18-versioning-d3seg.md) then locked D-3seg family versioning and package-first local development; the earlier `binding_version` ambiguity is closed in favor of family-version identity plus explicit upstream metadata / README mapping.
 - Scope: Determine whether release strategy has already been debated in repository docs and GitHub issues, and identify likely change targets for post-QA updates.
 
 ## Purpose

@@ -49,7 +49,7 @@
 | [symlink-handling.md](research/symlink-handling.md) | NuGet symlink problem, tar.gz rationale | 2026-04-11 |
 | [tunit-testing-framework-2026-04-14.md](research/tunit-testing-framework-2026-04-14.md) | TUnit adoption plan, patterns, naming convention, project setup | 2026-04-14 |
 | [cake-testing-strategy-2026-04-14.md](research/cake-testing-strategy-2026-04-14.md) | Cake.Testing package, ICakeContext mocking, test layers, coverage plan | 2026-04-14 |
-| [source-mode-native-visibility-2026-04-15.md](research/source-mode-native-visibility-2026-04-15.md) | Source Mode native payload visibility mechanism (platform-branched `Directory.Build.targets` + Cake two-source framework); PD-4 resolved, PD-5 direction locked | 2026-04-15 |
+| [source-mode-native-visibility-2026-04-15.md](research/source-mode-native-visibility-2026-04-15.md) | Deprecated historical Source Mode research note; symlink-preservation findings retained as reference for future remote-feed tar-extract caching under ADR-001 | 2026-04-15 |
 
 ### Playbook (How-To Recipes)
 

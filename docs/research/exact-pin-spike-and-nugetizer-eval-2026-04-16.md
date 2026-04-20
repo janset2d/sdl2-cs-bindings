@@ -2,6 +2,7 @@
 
 **Date:** 2026-04-16
 **Status:** **SUPERSEDED 2026-04-17 (S1 adoption).** Mechanism proven on 2026-04-16 and PD-2 was marked resolved at the time; retired on 2026-04-17 when production orchestration integration hit upstream NuGet limitations. This document is preserved as historical record of the investigation. It is no longer binding policy.
+**Note (2026-04-18):** [ADR-001](../decisions/2026-04-18-versioning-d3seg.md) locked the successor policy: D-3seg family versioning, package-first local development, and metadata-based upstream patch disclosure rather than within-family exact pin.
 **Context:** Stream A0 (originally: blocks D-local, blocks A-risky). Amendment 2 of [phase-2-adaptation-plan.md](../phases/phase-2-adaptation-plan.md) (which specified the A0 requirement) was itself SUPERSEDED by S1.
 
 ---

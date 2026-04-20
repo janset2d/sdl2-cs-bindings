@@ -9,7 +9,8 @@
     Contract:
     - $(LocalPackageFeed): absolute path to the folder feed containing produced .nupkg
       files. Required — guarded by the _GuardSmokeLocalFeed target in Janset.Smoke.targets.
-      Cake's PackageConsumerSmokeRunner passes it via -p:LocalPackageFeed=...
+      Provided either by SetupLocalDev's generated Janset.Smoke.local.props or by
+      Cake's PackageConsumerSmokeRunner via -p:LocalPackageFeed=...
     - Per-family version properties: JansetSdl<Major><Role>PackageVersion. Default to the
       $(JansetSmokeVersionSentinel) value so the guard catches missing inputs before
       `dotnet restore` attempts to resolve an unbound version against the feed.
@@ -19,8 +20,9 @@
     Authoring contract for new smoke / example / sandbox consumers:
     1. Declare PackageReference Include="Janset.SDL<Major>.<Role>" VersionOverride="$(JansetSdl<Major><Role>PackageVersion)"
        for every family the consumer uses.
-    2. Cake runner injects -p:JansetSdl<Major><Role>PackageVersion=<semver> per-referenced
-       family, plus -p:LocalPackageFeed=<absolute path to artifacts/packages>.
+     2. SetupLocalDev's local override or the Cake runner supplies
+       JansetSdl<Major><Role>PackageVersion=<semver> per referenced family plus
+       LocalPackageFeed=<absolute path to artifacts/packages>.
     3. _GuardSmokeLocalFeed + _GuardSmokeVersionInputs fail fast if either is missing.
   -->
   <PropertyGroup>
