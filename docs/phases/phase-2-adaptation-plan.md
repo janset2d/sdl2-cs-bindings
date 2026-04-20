@@ -50,7 +50,7 @@ After Stream A-risky landed (2026-04-16) and D-local integration started, produc
 - Managed packages already reference their native counterparts (ProjectReference)
 - Native packages are payload-only (no compiled assemblies, pack runtimes + .targets)
 - Manifest v2.1 schema with runtimes, library_manifests, system_exclusions, package_families
-- Strategy layer implemented + wired (Program.cs DI + HarvestTask validation + PreFlight coherence), with subsequent PreFlight cleanup aligned closer to Harvesting-style service boundaries; 241 tests currently passing (#85)
+- Strategy layer implemented + wired (Program.cs DI + HarvestTask validation + PreFlight coherence), with subsequent PreFlight cleanup aligned closer to Harvesting-style service boundaries; 340 tests currently passing (#85; measured 2026-04-20)
 - Coverage ratchet infrastructure landed (#86): `ICoberturaReader` + `ICoverageBaselineReader` + `CoverageThresholdValidator` + `CoverageCheckTask`, OneOf result monad, Cake-native `IFileSystem` I/O, `build/coverage-baseline.json` floor (60.0% line / 49.0% branch vs measured 62.62% / 50.96%). Runs locally via `dotnet cake --target=Coverage-Check`; CI gate wiring deferred to Stream C PreflightGate.
 - NuGet.Versioning is available in Cake build host
 - release-candidate-pipeline has `fromJson()` pattern prototyped (but with wrong matrix shape)

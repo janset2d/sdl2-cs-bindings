@@ -54,7 +54,7 @@ These are settled decisions. Do not re-debate them unless new evidence surfaces.
 
 | Library | vcpkg Port | Bindings | Native Build | Status |
 | --- | --- | --- | --- | --- |
-| SDL2 | `sdl2` (2.32.4, latest: 2.32.10) | SDL2-CS import | Cake Harvest | Functional |
+| SDL2 | `sdl2` (2.32.10) | SDL2-CS import | Cake Harvest | Functional |
 | SDL2_image | `sdl2-image` (2.8.8) | SDL2-CS import | Cake Harvest | Functional |
 | SDL2_mixer | `sdl2-mixer` (2.8.1) | SDL2-CS import | Declared in vcpkg + Cake Harvest | In validation |
 | SDL2_ttf | `sdl2-ttf` (2.24.0) | SDL2-CS import | Declared in vcpkg + Cake Harvest | In validation |

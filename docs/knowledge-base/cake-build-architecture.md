@@ -55,24 +55,48 @@ Neither defect is tracked upstream at `flibitijibibo/SDL2-CS` (searched 2026-04-
 
 ## Architecture
 
+The build host follows ADR-002 DDD layering (`Tasks/Application/Domain/Infrastructure`).
+
 ```text
 build/_build/
-├── Program.cs              ← Entry point: DI configuration, repo root detection
-├── Context/                ← Build context (state shared across tasks)
-├── Models/                 ← Data models (DeploymentPlan, RuntimeProfile, etc.)
-├── Modules/                ← DI modules (service registration)
-├── Tasks/
-│   ├── Common/             ← InfoTask (environment info display)
+├── Program.cs              ← Entry point: CLI parsing, DI composition root, repo-root detection
+├── Context/                ← BuildContext (Cake task boundary state)
+├── Tasks/                  ← Presentation: Cake Frosting task classes
+│   ├── Common/             ← InfoTask
+│   ├── Coverage/           ← CoverageCheckTask
+│   ├── Dependency/         ← Dumpbin / Ldd / Otool diagnostic wrappers
 │   ├── Harvest/            ← HarvestTask, ConsolidateHarvestTask
-│   ├── Preflight/          ← PreFlightCheckTask (partial gate: version + strategy coherence)
-│   ├── Coverage/           ← CoverageCheckTask (ratchet policy against coverage-baseline.json)
-└── Tools/                  ← Utility services
-    ├── BinaryClosureWalker ← Platform-specific dependency scanning
-    ├── ArtifactPlanner     ← Plans which files to deploy
-    ├── ArtifactDeployer    ← Copies/archives files to output
-    ├── PathService         ← Path resolution for configs and output
-    └── RuntimeProfile      ← RID/triplet/platform abstraction
+│   ├── Packaging/          ← PackageTask, PackageConsumerSmokeTask, SetupLocalDevTask
+│   ├── PostFlight/         ← PostFlightTask (PreFlight → Package → Smoke chain)
+│   ├── Preflight/          ← PreFlightCheckTask
+│   └── Vcpkg/              ← EnsureVcpkgDependenciesTask
+├── Application/            ← Use-case orchestrators (TaskRunners, Resolvers, SmokeRunner)
+│   ├── Common/             ← InfoTaskRunner
+│   ├── Coverage/           ← CoverageCheckTaskRunner
+│   ├── DependencyAnalysis/ ← OtoolAnalyzeTaskRunner
+│   ├── Harvesting/         ← HarvestTaskRunner, ConsolidateHarvestTaskRunner, ArtifactPlanner, ArtifactDeployer, BinaryClosureWalker
+│   ├── Packaging/          ← PackageTaskRunner, PackageConsumerSmokeRunner, LocalArtifactSourceResolver, resolver/strategy/validator factories
+│   ├── Preflight/          ← PreflightTaskRunner, PreflightReporter
+│   └── Vcpkg/              ← EnsureVcpkgDependenciesTaskRunner
+├── Domain/                 ← Models, value objects, result types, domain services (no outward deps)
+│   ├── Coverage/           ← CoverageThresholdValidator, metrics, baseline
+│   ├── Harvesting/         ← PackageInfo, DeploymentPlan, BinaryClosure, HarvestJsonContract
+│   ├── Packaging/          ← PackageOutputValidator, NativePackageMetadata, version/family resolvers, SmokeScopeComparator, SatelliteUpperBoundValidator
+│   ├── Paths/              ← IPathService abstraction
+│   ├── Preflight/          ← FamilyIdentifierConventions + guardrail validators (G4/G6/G7/G17/G18/G49/G54)
+│   ├── Results/            ← BuildError, BuildResultExtensions, AsyncResultChaining helpers
+│   ├── Runtime/            ← RuntimeProfile (RID + triplet + platform detection)
+│   └── Strategy/           ← HybridStatic / PureDynamic strategies + validators + StrategyResolver
+└── Infrastructure/         ← External-system adapters
+    ├── Coverage/           ← CoberturaReader, CoverageBaselineReader
+    ├── DependencyAnalysis/ ← WindowsDumpbinScanner, LinuxLddScanner, MacOtoolScanner
+    ├── DotNet/             ← DotNetPackInvoker, ProjectMetadataReader
+    ├── Paths/              ← PathService implementation
+    ├── Tools/              ← Cake-native Tool<T> / Aliases / Settings wrappers (Vcpkg, Dumpbin, Ldd, Otool)
+    └── Vcpkg/              ← VcpkgCliProvider, VcpkgManifestReader
 ```
+
+Layer discipline (Tasks → Application → Domain, Infrastructure → Domain; Domain has no outward deps) is asserted by `build/_build.Tests/Unit/CompositionRoot/LayerDependencyTests.cs`. See [ADR-002](../decisions/2026-04-19-ddd-layering-build-host.md) for rationale and the temporary catchnet allowance for fat-task holdovers (HarvestTask, PreFlight) being reduced under Wave 6.
 
 ## Service Architecture (DI)
 
@@ -93,7 +117,7 @@ All services are registered via dependency injection in `Program.cs`:
 | `ICoverageBaselineReader` | `CoverageBaselineReader` | Loads `build/coverage-baseline.json` into `CoverageBaseline` (line / branch floor + optional metadata) |
 | `ICoverageThresholdValidator` | `CoverageThresholdValidator` | Applies the ratchet rule to parsed metrics and returns a typed coverage result |
 | `IVcpkgManifestReader` | `VcpkgManifestReader` | Loads `vcpkg.json` into `VcpkgManifest` for PreFlight and future build-host consumers |
-| `INativeAcquisitionStrategy` | `VcpkgBuildProvider` | **(Planned)** Where native binaries come from |
+| `IArtifactSourceResolver` | `LocalArtifactSourceResolver` (RemoteInternal / ReleasePublic stubbed) | Feed-prep profile selection per ADR-001 §2.7. Subsumes the retired `INativeAcquisitionStrategy` design from the strategy brief — feed-prep abstraction replaces native-acquisition abstraction. |
 
 ## Reference Pattern: Harvesting First
 

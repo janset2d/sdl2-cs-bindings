@@ -119,7 +119,7 @@ These decisions were made during the packaging strategy research cycle (April 20
 
 | Library | Our Version | vcpkg Latest | Upstream Latest | Action Needed |
 | --- | --- | --- | --- | --- |
-| SDL2 | 2.32.4 | **2.32.10** | 2.32.10 | Update vcpkg baseline |
+| SDL2 | 2.32.10 | 2.32.10 | 2.32.10 | Current |
 | SDL2_image | 2.8.8 | 2.8.8#1 | **2.8.10** | Minor — upstream ahead of vcpkg |
 | SDL2_mixer | 2.8.1 | 2.8.1#1 | 2.8.1 | Current |
 | SDL2_ttf | 2.24.0 | 2.24.0 | 2.24.0 | Current |
@@ -328,7 +328,7 @@ Primary docs: [phases/phase-5-sdl3-support.md](phases/phase-5-sdl3-support.md), 
 
 1. **Native binaries in git history (working-tree cleaned 2026-04-15)**: Stale payloads under `src/native/<Lib>/runtimes/` have been removed from tracking (74 files across 5 `.Native` packages) and `.gitignore` rule `src/native/*/runtimes/` added. **Pending:** history rewrite via `git-filter-repo` to drop ~30 MB of those stale payloads from past commits, followed by `git push --force-with-lease` on `master` and `nugetizer`. Local clones on WSL/Mac will need fresh `git clone` (or `git fetch origin && git reset --hard origin/<branch>`). 5 issues (#52, #53, #76, #77, #78) reference 4 repo commit SHAs that will be rewritten — post-rewrite remap via `.git/filter-repo/commit-map` is optional cleanup.
 2. **Release pipeline is a stub**: `release-candidate-pipeline.yml` has placeholder logic.
-3. **HarvestPipeline extraction still pending after strategy wiring**: `IPackagingStrategy`, `IDependencyPolicyValidator`, and `StrategyResolver` are now wired into Program.cs DI and invoked from HarvestTask/PreFlightCheck. PreFlight follow-up cleanup also landed, and the build-host suite is 273 tests green. Remaining orchestration cleanup is tracked in #87.
+3. **HarvestPipeline extraction still pending after strategy wiring**: `IPackagingStrategy`, `IDependencyPolicyValidator`, and `StrategyResolver` are now wired into Program.cs DI and invoked from HarvestTask/PreFlightCheck. PreFlight follow-up cleanup also landed, and the build-host suite is 340 tests green (measured 2026-04-20). Remaining orchestration cleanup is tracked in #87.
 4. **Local dev playbook needs correction**: A playbook exists, but parts of it were inaccurate and not yet validated end-to-end.
 5. **Remote artifact-source selector is not implemented yet**: active build-host flow supports `SetupLocalDev --source=local`; `RemoteInternal` / `ReleasePublic` acquisition remains stubbed for Phase 2b.
 6. **Distributed CI output flow is not wired yet**: current harvest output is still local-first. The release pipeline will need a real staging-vs-consolidated path split so matrix jobs can upload per-RID artifacts before consolidation.

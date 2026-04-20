@@ -50,8 +50,8 @@ The `HarvestTask` relies on several specialized services to perform its work:
 
 - **Purpose**: Provides context about the current platform and helps in filtering system-specific files.
 - **Functionality**:
-  - Determines the `PlatformFamily` (Windows, Linux, or OSX) based on the current RID (obtained from `BuildContext`, which gets it from `runtimes.json` via command-line arguments or inferred environment).
-  - Loads the appropriate list of system library exclusion patterns from `system_artefacts.json` for the current platform.
+  - Determines the `PlatformFamily` (Windows, Linux, or OSX) from the current RID (taken from the `--rid` CLI argument or inferred from the process environment; the matching runtime row is then resolved against `manifest.json runtimes[]`).
+  - Loads the appropriate list of system library exclusion patterns from `manifest.json system_exclusions` for the current platform.
   - Provides the `IsSystemFile(FilePath path)` method, which checks if a given file path matches any of the system library patterns. This is used extensively by the `BinaryClosureWalker` to exclude OS-provided files.
 
 ### 4.2. `IPackageInfoProvider` (Implemented by `VcpkgCliProvider`)
