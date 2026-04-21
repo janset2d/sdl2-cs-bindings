@@ -110,11 +110,18 @@ public sealed class NativeSmokeTaskRunner(
 
     private void RunCmakeBuild(string preset)
     {
-        _log.Information("NativeSmoke build: cmake --build --preset {0}", preset);
+        // Cake.CMake's CMakeBuildRunner emits `cmake --build <BinaryPath>` unconditionally
+        // (BinaryPath is required and validated). Targeting the preset's configured binary
+        // directory directly is equivalent to `cmake --build --preset <preset>` once configure
+        // has already populated the cache (which RunCmakeConfigure guarantees). CMakePresets
+        // v3 uses `binaryDir: "${sourceDir}/build/${presetName}"`, which matches
+        // GetNativeSmokeBuildPresetDir().
+        var binaryPath = _pathService.GetNativeSmokeBuildPresetDir(preset);
+        _log.Information("NativeSmoke build: cmake --build {0}", binaryPath.FullPath);
 
         var buildSettings = new CMakeBuildSettings
         {
-            Options = ["--preset", preset],
+            BinaryPath = binaryPath,
         };
 
         _cakeContext.CMakeBuild(buildSettings);
