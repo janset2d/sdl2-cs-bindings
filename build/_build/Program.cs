@@ -12,6 +12,7 @@ using Build.Application.Harvesting;
 using Build.Application.Packaging;
 using Build.Application.Preflight;
 using Build.Application.Vcpkg;
+using Build.Application.Versioning;
 using Build.Context;
 using Build.Context.Configs;
 using Build.Context.Models;
@@ -36,6 +37,7 @@ using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 using Cake.Frosting;
 using Microsoft.Extensions.DependencyInjection;
+using NuGet.Versioning;
 using Spectre.Console;
 
 var root = new RootCommand("Cake build for janset2d/sdl2-cs-bindings");
@@ -149,6 +151,20 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton<IProjectMetadataReader, ProjectMetadataReader>();
     services.AddSingleton<IPackageFamilySelector, PackageFamilySelector>();
     services.AddSingleton<IPackageVersionResolver, PackageVersionResolver>();
+
+    // ADR-003 provider seam (Slice A). ExplicitVersionProvider is the sole provider stage tasks
+    // see; it holds the operator-supplied mapping and validates each entry against manifest.json
+    // via G54. Slice A keeps the factory empty-backed (no --explicit-version CLI option yet); any
+    // resolve attempt fails fast with a clear migration hint. Slice B1 wires the mapping from
+    // the new PackageBuildConfiguration.ExplicitVersions field; ManifestVersionProvider /
+    // GitTagVersionProvider land in B1 / C and reach the CLI only via the ResolveVersions target.
+    services.AddSingleton<IPackageVersionProvider>(provider =>
+    {
+        var manifest = provider.GetRequiredService<ManifestConfig>();
+        var upstreamVersionAlignmentValidator = provider.GetRequiredService<IUpstreamVersionAlignmentValidator>();
+        var emptyMapping = new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase);
+        return new ExplicitVersionProvider(manifest, upstreamVersionAlignmentValidator, emptyMapping);
+    });
     services.AddSingleton<IDotNetPackInvoker, DotNetPackInvoker>();
     services.AddSingleton<INativePackageMetadataGenerator, NativePackageMetadataGenerator>();
     services.AddSingleton<IReadmeMappingTableGenerator, ReadmeMappingTableGenerator>();

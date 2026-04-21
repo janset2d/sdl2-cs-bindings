@@ -1,0 +1,58 @@
+# Janset.SDL2 / Janset.SDL3 release pipeline.
+#
+# Skeleton introduced during ADR-003 Slice A. Trigger shape + single stub job land first;
+# real jobs grow slice-by-slice alongside the Cake refactor:
+#
+#   Slice B1: resolve-versions + preflight jobs become real (manifest source; --explicit-version
+#             pipe from resolve-versions output).
+#   Slice D:  generate-matrix, harvest (RID matrix), native-smoke (3-RID matrix this pass),
+#             consolidate-harvest jobs become real.
+#   Slice C:  pack and consumer-smoke (RID matrix re-entry) jobs become real.
+#   Slice E:  publish-staging + publish-public stub jobs added; full playbook mirror validated.
+#
+# All jobs invoke build-host Cake targets. Per ADR-003 §3.1 the build host resolves versions
+# and owns policy; CI supplies trigger context only. Any `run:` block that grows beyond a
+# single Cake invocation or artifact up/download is a review flag.
+#
+# See docs/phases/phase-2-release-cycle-orchestration-implementation-plan.md for the full plan.
+# Cross-reference: docs/decisions/2026-04-20-release-lifecycle-orchestration.md §3.4.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'sdl2-*-*.*.*'    # targeted family release (e.g., sdl2-core-2.32.0)
+      - 'sdl3-*-*.*.*'    # targeted family release, SDL3 line (future)
+      - 'train-*'         # full-train coordinated release (Phase 2b; mechanism deferred)
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Version source: manifest-derived | explicit'
+        type: choice
+        required: true
+        default: manifest-derived
+        options:
+          - manifest-derived
+          - explicit
+      explicit-versions:
+        description: 'For mode=explicit: sdl2-core=2.32.0,sdl2-image=2.8.0,... (repeated --explicit-version shape)'
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  resolve-versions-stub:
+    # Slice A placeholder. Slice B1 fills this with a real build-host invocation:
+    #   cake --target=ResolveVersions --source=<source> --suffix=ci.<run-id> [--scope=...]
+    # emitting the flat JSON map {"family-id": "semver-string", ...} consumed downstream via
+    # `needs: resolve-versions.outputs.versions-json`.
+    name: Resolve Versions (stub)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Placeholder
+        run: |
+          echo "ADR-003 release pipeline skeleton. Real resolve-versions lands in Slice B1."
+          echo "Trigger ref: ${{ github.ref }}"
+          echo "Event: ${{ github.event_name }}"
