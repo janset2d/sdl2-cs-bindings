@@ -481,6 +481,44 @@ dotnet run --project build/_build/Build.csproj -- \
 | `vswhere.exe not found` warning | Windows | Git Bash doesn't load VS environment | Cosmetic — build.bat handles it via VsDevCmd.bat fallback |
 | macOS SDK version mismatch | macOS | Multiple SDKs installed (8/9/10) | global.json pins to 9.0.x — verify with `dotnet --version` from repo root |
 | Lingering `dotnet` processes after `PostFlight` / `PackageConsumerSmoke` | All | MSBuild worker nodes (`/nodemode:1 /nodeReuse:true`), VBCSCompiler (Roslyn), and testhost (Microsoft Testing Platform) stay alive ~10 min for reuse. On Windows they hold file handles on `Microsoft.Testing.Platform.dll` and break the next run's `bin/` cleanup. On macOS / Linux the same processes accumulate RAM (~100 MB each). | Automatic mitigation + manual fallback documented below under [Lingering dotnet processes mitigation](#lingering-dotnet-processes-mitigation). |
+| `$PWD` points at `/mnt/...` or the Windows path inside a WSL invocation (or at the SSH client's working directory on a macOS SSH invocation) despite a successful `cd` | WSL invoked via Windows `wsl -c '...'`, macOS invoked via non-interactive `ssh <host> '...'` | WSLENV + non-interactive SSH env inheritance: the caller shell's `PWD` leaks into the child shell, and some `bash` command-substitution paths (`$(pwd)`, subshells) read the stale value before `cd` has re-exported it. The runbook's documented `--repo-root "$PWD"` shape assumes an **interactive** WSL terminal / SSH session where POSIX `cd` updates `$PWD` reliably. | Only affects cross-shell harnesses (Windows bash → `wsl -c`, remote tooling → `ssh … '…'`). Human operators running the runbook inside an interactive WSL terminal or an interactive SSH session do not see this. If you do hit it, bind an absolute path first (`REPO=/home/deniz/repos/sdl2-cs-bindings` on Linux or `REPO=/Users/armut/repos/sdl2-cs-bindings` on macOS), then pass `--repo-root "$REPO"` everywhere the runbook says `--repo-root "$PWD"`. See [PWD env leakage in non-interactive cross-shell invocations](#pwd-env-leakage-in-non-interactive-cross-shell-invocations) below. |
+
+### PWD env leakage in non-interactive cross-shell invocations
+
+Not a code regression. Documented here so anyone driving the witness runbook from a scripted cross-shell harness knows the failure mode at sight.
+
+**Symptom.** A command that resolved `--repo-root "$PWD"` (or any shell variable that chases `PWD`) picks up a path from the **caller** shell rather than the WSL / macOS shell we `cd`'d into. On WSL, the leaked path is typically `/mnt/<drive>/<project-path>` — the WSLENV mapping of the Windows caller's `PWD`. On macOS SSH, it is whatever the SSH client exported as `PWD` before invocation. Cake then resolves `Paths.RepoRoot` against that wrong directory, which cascades into every subsequent path the build host touches (artifacts root, harvest output, native-smoke build dirs, …).
+
+**Root cause.** Non-interactive shells inherit environment variables from the caller via WSLENV (`wsl -c '...'` from Windows) or standard SSH env forwarding (`ssh <host> '...'`). `bash`'s `cd` builtin does update `$PWD` in the current shell after the `cd`, but some command-substitution forms (`$(pwd)`, subshells that fork before the next statement, `bash -c '…'` chains) re-read the stale inherited `$PWD` before it is overwritten. The `pwd` builtin and `realpath .` hit the kernel's CWD instead, so those report the correct path — which is what makes the divergence confusing (`$PWD` and `$(pwd)` disagree). The failure does not reproduce in an interactive WSL terminal or an interactive SSH shell because those shells start a fresh login env without inheriting Windows' `PWD`.
+
+**When the runbook's `--repo-root "$PWD"` is safe.**
+
+- Interactive WSL terminal opened inside the clone.
+- Interactive SSH session to the macOS host followed by `cd` into the clone.
+- Any bash invocation where the caller shell has already `cd`'d into the clone and stays within the same process group.
+
+**When to replace `"$PWD"` with an absolute `REPO` binding.**
+
+- Driving the runbook from a Windows harness via `wsl -c '<script>'` or `wsl -d <distro> -- bash -c '<script>'`.
+- Driving the runbook from a remote orchestrator via `ssh <host> '<script>'`.
+- Any CI context where the script might be invoked by a non-interactive parent that already exported `PWD`.
+
+**Pattern.** Prepend the per-host absolute path and use it consistently:
+
+```bash
+# WSL (Linux)
+REPO=/home/deniz/repos/sdl2-cs-bindings
+
+# macOS Intel (SSH)
+REPO=/Users/armut/repos/sdl2-cs-bindings
+
+cd "$REPO" || exit 1
+# …
+dotnet run --project "$REPO/build/_build/Build.csproj" -c Release -- \
+  --target PreFlightCheck --rid <rid> --repo-root "$REPO"
+```
+
+No build-host code change is required; this is purely an operator / harness input-hygiene note. Cake's `DetermineRepoRootAsync` already honors `--repo-root` as an absolute override and will use whichever path the caller supplies.
 
 ### Lingering dotnet processes mitigation
 
