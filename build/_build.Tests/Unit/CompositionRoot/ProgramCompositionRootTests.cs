@@ -10,9 +10,11 @@ using Build.Domain.Coverage;
 using Build.Domain.Packaging;
 using Build.Domain.Packaging.Models;
 using Build.Domain.Preflight;
+using Build.Domain.Runtime;
 using Build.Domain.Strategy;
 using Build.Domain.Strategy.Models;
 using Build.Infrastructure.DotNet;
+using Build.Infrastructure.Tools.Msvc;
 using Build.Infrastructure.Vcpkg;
 using Build.Tests.Fixtures;
 using Cake.Core;
@@ -170,6 +172,7 @@ public sealed class ProgramCompositionRootTests
         var dotNetPackInvoker = provider.GetRequiredService<IDotNetPackInvoker>();
         var packageTaskRunner = provider.GetRequiredService<IPackageTaskRunner>();
         var packageConsumerSmokeRunner = provider.GetRequiredService<IPackageConsumerSmokeRunner>();
+        var msvcDevEnvironment = provider.GetRequiredService<IMsvcDevEnvironment>();
 
         await Assert.That(strategy.Model).IsEqualTo(PackagingModel.HybridStatic);
         await Assert.That(strategy.GetType()).IsEqualTo(typeof(HybridStaticStrategy));
@@ -185,6 +188,7 @@ public sealed class ProgramCompositionRootTests
         await Assert.That(dotNetPackInvoker.GetType()).IsEqualTo(typeof(DotNetPackInvoker));
         await Assert.That(packageTaskRunner.GetType()).IsEqualTo(typeof(PackageTaskRunner));
         await Assert.That(packageConsumerSmokeRunner.GetType()).IsEqualTo(typeof(PackageConsumerSmokeRunner));
+        await Assert.That(msvcDevEnvironment.GetType()).IsEqualTo(typeof(MsvcDevEnvironment));
     }
 
     [Test]

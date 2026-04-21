@@ -4,9 +4,18 @@
 > `linux-x64`, Intel macOS over SSH for `osx-x64`). Platform differences are
 > parameterised via `$PLATFORM` / `$RID` / `$PRESET` env vars declared in §1.
 >
+> **Prefer `tests/scripts/smoke-witness.cs` when possible.** Since Slice BA
+> (2026-04-21) a single-file .NET 10 app collapses §1–§8 below into one
+> command (`./smoke-witness.cs local` for the SetupLocalDev + consumer smoke
+> path, `./smoke-witness.cs ci-sim` for the mini CI replay). Spectre UI +
+> auto log-tee into `.logs/witness/<platform>-<mode>-<runId>/`. This runbook
+> remains authoritative for **manual deep-dive witnessing** — skipping
+> stages, first-time host bring-up where you want explicit per-command
+> feedback, triaging a specific Cake target in isolation.
+>
 > This is the **companion** to [`cross-platform-smoke-validation.md`](cross-platform-smoke-validation.md) — that file is the reference playbook (how to
-> verify, A–K matrix, scope rationale); this file is the concrete witness
-> script (copy-paste commands, tee logs, send them back).
+> verify, A–K matrix, scope rationale); this file is the concrete manual
+> witness script (copy-paste commands, tee logs, send them back).
 >
 > Supersedes `TEMP-wsl-smoke-commands.md` + `TEMP-macos-smoke-commands.md`
 > (retired 2026-04-21 during Slice DA Cake-first alignment).
@@ -147,7 +156,7 @@ dotnet build build/_build/Build.csproj --configuration Release --no-restore \
   | tee "$LOG_DIR/13-build-host-release.log"
 ```
 
-Expected test count: 398/398 green (as of Slice B2 close, 2026-04-21 —
+Expected test count: 400/400 green (as of Slice CA close, 2026-04-21 —
 update as new slices land).
 
 ## 4. Cake pipeline — PreFlight → EnsureVcpkg → Harvest → NativeSmoke → Consolidate

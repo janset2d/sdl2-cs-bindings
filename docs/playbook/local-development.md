@@ -35,7 +35,7 @@ If you need to debug the internals manually, follow the "Full Build" fallback se
 
 | Platform | Additional Requirements |
 | --- | --- |
-| Windows | Visual Studio Build Tools 2022 with C++ tools (`Microsoft.VisualStudio.Component.VC.Tools.x86.x64`); Developer PowerShell/Developer Command Prompt recommended |
+| Windows | Visual Studio Build Tools 2022 with C++ tools (`Microsoft.VisualStudio.Component.VC.Tools.x86.x64`). Since Slice CA (2026-04-21) the Cake host self-sources the MSVC environment via `IMsvcDevEnvironment` (VSWhere + `vcvarsall.bat`); plain PowerShell is sufficient. Developer PowerShell is still fine — the resolver's fast-path skips the extra `cmd /c` spawn when `VCToolsInstallDir` is already set. |
 | Linux | `build-essential`, `cmake`, `pkg-config`, `ldd`, plus SDL2 dev dependencies (see CI workflow for full list) |
 | macOS | Xcode Command Line Tools, `autoconf`, `automake`, `libtool` (via Homebrew) |
 
@@ -262,7 +262,7 @@ Native binaries are not in the runtime path. Either:
 The build host's Windows dependency scanner expects Visual Studio C++ tooling.
 
 - Install Visual Studio Build Tools 2022 with `Microsoft.VisualStudio.Component.VC.Tools.x86.x64`
-- Prefer running local checks from Developer PowerShell (this sets `VCToolsInstallDir`)
+- Plain PowerShell is fine post-Slice-CA — `DumpbinTool` + `IMsvcDevEnvironment` locate `dumpbin.exe` + source `vcvarsall.bat` via VSWhere automatically. Developer PowerShell is still supported (resolver's `VCToolsInstallDir` fast path).
 - If needed, verify `VCToolsInstallDir` and confirm `dumpbin.exe` exists under `%VCToolsInstallDir%\bin\Hostx64\x64`
 - If `vswhere.exe` is missing, install/repair Visual Studio Installer components before retrying
 

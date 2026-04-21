@@ -50,7 +50,7 @@ These are validated today and should pass on all 3 platforms.
 
 | # | Checkpoint | Stream | What It Proves | Expected Output |
 | --- | --- | --- | --- | --- |
-| A | Build-host unit tests (**bootstrap exception**) | Baseline | Refactored code logic is correct | 398 passed, 0 failed on `feat/adr003-impl` at Slice B2 close (2026-04-21) |
+| A | Build-host unit tests (**bootstrap exception**) | Baseline | Refactored code logic is correct | 400 passed, 0 failed on `feat/adr003-impl` at Slice CA close (2026-04-21) |
 | B | Cake restore + build (Release) (**bootstrap exception**) | Baseline | Build host compiles clean on all platforms | 0 warnings, 0 errors (usually implied by A — tests build the same assemblies) |
 | C | Cake `--tree` | Baseline | Task dependency graph is flat (Slice B2) | every stage task standalone — `CleanArtifacts`, `CompileSolution`, `ConsolidateHarvest`, `EnsureVcpkgDependencies`, `GenerateMatrix`, `Harvest`, `Info`, `Inspect-HarvestedDependencies`, `NativeSmoke`, `Package`, `PackageConsumerSmoke`, `PreFlightCheck`, `ResolveVersions`, `SetupLocalDev` + diagnostic targets. No `PostFlight`. |
 | D | PreFlightCheck | Baseline + A-risky + S1 | manifest.json ↔ vcpkg.json consistency + strategy coherence + post-S1 csproj pack contract (G4/G6/G7/G17/G18) | 6/6 versions, 7/7 strategies, 6/6 families × 10/10 csprojs all green |
@@ -93,7 +93,7 @@ Keep all 3 repos on the same commit before running the matrix. Verify with `git 
 
 ### Windows
 
-No special setup. Developer PowerShell recommended for native-smoke (provides MSVC environment), but Cake commands work from any terminal.
+No special setup. Since Slice CA (2026-04-21) the Cake host self-sources the MSVC environment via `IMsvcDevEnvironment` (VSWhere → `vcvarsall.bat <host-arch>` → env-delta merge) whenever `NativeSmoke` runs, so **plain PowerShell is enough** — Developer PowerShell for VS 2022 is no longer required. Prereq: Visual Studio Build Tools 2022+ with the *Desktop development with C++* workload installed (the `Microsoft.VisualStudio.Component.VC.Tools.x86.x64` component VSWhere keys on).
 
 ### WSL / Linux
 

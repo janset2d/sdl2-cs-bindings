@@ -31,6 +31,7 @@ using Build.Infrastructure.Coverage;
 using Build.Infrastructure.DependencyAnalysis;
 using Build.Infrastructure.DotNet;
 using Build.Infrastructure.Paths;
+using Build.Infrastructure.Tools.Msvc;
 using Build.Infrastructure.Tools.Vcpkg;
 using Build.Infrastructure.Vcpkg;
 using Build.Tasks.Dependency;
@@ -180,6 +181,7 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton<IPackageTaskRunner, PackageTaskRunner>();
     services.AddSingleton<IPackageConsumerSmokeRunner, PackageConsumerSmokeRunner>();
     services.AddSingleton<VcpkgBootstrapTool>();
+    services.AddSingleton<IMsvcDevEnvironment, MsvcDevEnvironment>();
     services.AddSingleton<LocalArtifactSourceResolver>();
     services.AddSingleton<ArtifactSourceResolverFactory>();
     services.AddSingleton<IArtifactSourceResolver>(provider =>

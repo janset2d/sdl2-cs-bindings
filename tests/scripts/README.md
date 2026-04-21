@@ -52,18 +52,19 @@ resolves the repo root internally.
   into the summary panel.
 - **vcpkg prerequisites** — the same set the main build needs (`EnsureVcpkgDependencies`
   is invoked as a stage). See [`docs/playbook/cross-platform-smoke-validation.md`][playbook].
-- **CMake + C/C++ toolchain** (MSVC Developer shell on Windows / gcc / clang
-  on Unix) — only when `ci-sim` reaches `NativeSmoke`. `local` mode skips
-  `NativeSmoke` entirely (by design — ADR-003 §6.4 amendment: `SetupLocalDev`
-  no longer composes `NativeSmoke`).
-
-  **Windows note:** run `ci-sim` from a **Developer PowerShell for VS 2022** (or
-  any shell where `vcvarsall.bat x64` has been sourced) — otherwise `cl.exe`
-  is not on `PATH`, CMake cannot resolve `CMAKE_C_COMPILER`, and `NativeSmoke`
-  halts the run. That failure is mini-CI-sim correctly surfacing a real env
-  gap (CI's `vcpkg-setup` composite resolves it; your local shell does not),
-  not a script bug. For fast iteration without a Developer shell, run
-  `./smoke-witness.cs local`.
+- **CMake + C/C++ toolchain** — only when `ci-sim` reaches `NativeSmoke`.
+  `local` mode skips `NativeSmoke` entirely (by design — ADR-003 §6.4
+  amendment: `SetupLocalDev` no longer composes `NativeSmoke`).
+  - **Windows:** plain PowerShell works. The Cake host self-sources the MSVC
+    environment via VSWhere + `vcvarsall.bat` (see `IMsvcDevEnvironment` in
+    `build/_build/Infrastructure/Tools/Msvc/`, Slice CA). You need Visual
+    Studio Build Tools 2022+ with the *Desktop development with C++* workload
+    installed, but you do **not** need a Developer PowerShell for VS 2022;
+    a regular shell is enough.
+  - **Unix:** gcc / clang expected on `$PATH` via the usual package managers
+    (`apt install build-essential`, `brew install cmake ninja`, …). The
+    `IMsvcDevEnvironment` resolver is Windows-only and short-circuited at the
+    `NativeSmokeTaskRunner` call site.
 
 ### Why `ci-sim` skips `PackageConsumerSmoke`
 

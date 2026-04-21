@@ -363,7 +363,7 @@ public sealed class PackageConsumerSmokeRunner(
         AppendFeedArguments(arguments, packagesCache);
         AppendSmokePackageVersionProperties(arguments, smokePackages, explicitVersions);
 
-        RunDotNetCommand("compile-sanity netstandard2.0 consumer", arguments);
+        RunDotNetCommand("compile-sanity netstandard2.0 consumer", arguments, echoStdout: true);
     }
 
     private void RunSmokeForTfm(FilePath projectPath, IReadOnlyList<SmokePackage> smokePackages, IReadOnlyDictionary<string, NuGetVersion>? explicitVersions, DirectoryPath packagesCache, string tfm)
@@ -382,7 +382,7 @@ public sealed class PackageConsumerSmokeRunner(
         AppendFeedArguments(arguments, packagesCache);
         AppendSmokePackageVersionProperties(arguments, smokePackages, explicitVersions);
 
-        RunDotNetCommand($"test package-smoke ({tfm})", arguments);
+        RunDotNetCommand($"test package-smoke ({tfm})", arguments, echoStdout: true);
     }
 
     private void AppendFeedArguments(ProcessArgumentBuilder arguments, DirectoryPath packagesCache)
@@ -595,7 +595,16 @@ public sealed class PackageConsumerSmokeRunner(
         return false;
     }
 
-    private void RunDotNetCommand(string description, ProcessArgumentBuilder arguments)
+    /// <summary>
+    /// Spawns <c>dotnet</c> with the supplied arguments, captures stdout/stderr, and
+    /// echoes them at a caller-chosen verbosity. Test invocations set
+    /// <paramref name="echoStdout"/> to <see langword="true"/> so TUnit's per-TFM pass/fail
+    /// summary surfaces at the normal Cake log level; build-server-shutdown and similar
+    /// chatty-but-uninteresting commands leave it <see langword="false"/> to keep the
+    /// smoke log readable. Failure always surfaces the combined output in the thrown
+    /// <see cref="CakeException"/>.
+    /// </summary>
+    private void RunDotNetCommand(string description, ProcessArgumentBuilder arguments, bool echoStdout = false)
     {
         _log.Information("Running dotnet {0}", description);
         _log.Verbose("  dotnet {0}", arguments.Render());
@@ -616,14 +625,17 @@ public sealed class PackageConsumerSmokeRunner(
         var standardOutput = process.GetStandardOutput()?.ToList() ?? [];
         var standardError = process.GetStandardError()?.ToList() ?? [];
 
+        var stdoutLevel = echoStdout ? LogLevel.Information : LogLevel.Verbose;
+        var stderrLevel = echoStdout ? LogLevel.Warning : LogLevel.Verbose;
+
         foreach (var line in standardOutput)
         {
-            _log.Verbose("  [stdout] {0}", line);
+            _log.Write(Verbosity.Normal, stdoutLevel, "  [stdout] {0}", line);
         }
 
         foreach (var line in standardError)
         {
-            _log.Verbose("  [stderr] {0}", line);
+            _log.Write(Verbosity.Normal, stderrLevel, "  [stderr] {0}", line);
         }
 
         var exitCode = process.GetExitCode();

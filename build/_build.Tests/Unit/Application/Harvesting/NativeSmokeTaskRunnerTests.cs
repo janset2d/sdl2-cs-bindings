@@ -27,7 +27,12 @@ public sealed class NativeSmokeTaskRunnerTests
 
         var profile = CreateRuntimeProfile("linux-x64", PlatformFamily.Linux);
         var runner = new NativeSmokeTaskRunner(
-            repo.CakeContext, new FakeLog(), repo.Paths, profile, ManifestFixture.CreateTestManifestConfig());
+            repo.CakeContext,
+            new FakeLog(),
+            repo.Paths,
+            profile,
+            ManifestFixture.CreateTestManifestConfig(),
+            Substitute.For<IMsvcDevEnvironment>());
 
         var ex = await Assert.That(() => runner.RunAsync(repo.BuildContext)).Throws<CakeException>();
         await Assert.That(ex!.Message).Contains("is missing for library 'SDL2'");
@@ -47,7 +52,12 @@ public sealed class NativeSmokeTaskRunnerTests
 
         var profile = CreateRuntimeProfile("linux-x64", PlatformFamily.Linux);
         var runner = new NativeSmokeTaskRunner(
-            repo.CakeContext, new FakeLog(), repo.Paths, profile, ManifestFixture.CreateTestManifestConfig());
+            repo.CakeContext,
+            new FakeLog(),
+            repo.Paths,
+            profile,
+            ManifestFixture.CreateTestManifestConfig(),
+            Substitute.For<IMsvcDevEnvironment>());
 
         var ex = await Assert.That(() => runner.RunAsync(repo.BuildContext)).Throws<CakeException>();
         await Assert.That(ex!.Message).Contains("--target Harvest --rid linux-x64");
@@ -63,7 +73,12 @@ public sealed class NativeSmokeTaskRunnerTests
 
         var profile = CreateRuntimeProfile("linux-x64", PlatformFamily.Linux);
         var runner = new NativeSmokeTaskRunner(
-            repo.CakeContext, new FakeLog(), repo.Paths, profile, ManifestFixture.CreateTestManifestConfig());
+            repo.CakeContext,
+            new FakeLog(),
+            repo.Paths,
+            profile,
+            ManifestFixture.CreateTestManifestConfig(),
+            Substitute.For<IMsvcDevEnvironment>());
 
         var ex = await Assert.That(() => runner.RunAsync(repo.BuildContext)).Throws<CakeException>();
         await Assert.That(ex!.Message).Contains("SDL2_ghost");
@@ -85,7 +100,12 @@ public sealed class NativeSmokeTaskRunnerTests
 
         var profile = CreateRuntimeProfile("win-arm64", PlatformFamily.Windows);
         var runner = new NativeSmokeTaskRunner(
-            repo.CakeContext, new FakeLog(), repo.Paths, profile, ManifestFixture.CreateTestManifestConfig());
+            repo.CakeContext,
+            new FakeLog(),
+            repo.Paths,
+            profile,
+            ManifestFixture.CreateTestManifestConfig(),
+            Substitute.For<IMsvcDevEnvironment>());
 
         var ex = await Assert.That(() => runner.RunAsync(repo.BuildContext)).Throws<CakeException>();
         await Assert.That(ex!.Message).Contains("missing for library 'SDL2'");

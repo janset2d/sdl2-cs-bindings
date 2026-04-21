@@ -8,6 +8,7 @@ using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
+using Cake.Core.Tooling;
 
 namespace Build.Application.Harvesting;
 
@@ -19,15 +20,17 @@ public sealed class NativeSmokeTaskRunner(
     ICakeLog log,
     IPathService pathService,
     IRuntimeProfile runtimeProfile,
-    ManifestConfig manifestConfig)
+    ManifestConfig manifestConfig,
+    IMsvcDevEnvironment msvcDevEnvironment)
 {
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
     private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
     private readonly IRuntimeProfile _runtimeProfile = runtimeProfile ?? throw new ArgumentNullException(nameof(runtimeProfile));
     private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
+    private readonly IMsvcDevEnvironment _msvcDevEnvironment = msvcDevEnvironment ?? throw new ArgumentNullException(nameof(msvcDevEnvironment));
 
-    public Task RunAsync(BuildContext context)
+    public async Task RunAsync(BuildContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
@@ -37,12 +40,11 @@ public sealed class NativeSmokeTaskRunner(
         EnsureHarvestPayloadReady(context, libraries);
 
         var preset = _runtimeProfile.Rid;
-        RunCmakeConfigure(preset);
-        RunCmakeBuild(preset);
+        await RunCmakeConfigureAsync(preset);
+        await RunCmakeBuildAsync(preset);
         RunNativeSmokeBinary(preset);
 
         _log.Information("NativeSmoke completed successfully for RID '{0}'.", _runtimeProfile.Rid);
-        return Task.CompletedTask;
     }
 
     private void EnsureNativeSmokeInputsReady()
@@ -124,7 +126,7 @@ public sealed class NativeSmokeTaskRunner(
         }
     }
 
-    private void RunCmakeConfigure(string preset)
+    private async Task RunCmakeConfigureAsync(string preset)
     {
         _log.Information("NativeSmoke configure: cmake --preset {0}", preset);
 
@@ -134,16 +136,17 @@ public sealed class NativeSmokeTaskRunner(
             Options = ["--preset", preset],
         };
 
+        await ApplyMsvcEnvironmentAsync(settings);
         _cakeContext.CMake(settings);
     }
 
-    private void RunCmakeBuild(string preset)
+    private async Task RunCmakeBuildAsync(string preset)
     {
         // Cake.CMake's CMakeBuildRunner emits `cmake --build <BinaryPath>` unconditionally
         // (BinaryPath is required and validated). Targeting the preset's configured binary
         // directory directly is equivalent to `cmake --build --preset <preset>` once configure
-        // has already populated the cache (which RunCmakeConfigure guarantees). CMakePresets
-        // v3 uses `binaryDir: "${sourceDir}/build/${presetName}"`, which matches
+        // has already populated the cache (which RunCmakeConfigureAsync guarantees).
+        // CMakePresets v3 uses `binaryDir: "${sourceDir}/build/${presetName}"`, which matches
         // GetNativeSmokeBuildPresetDir().
         var binaryPath = _pathService.GetNativeSmokeBuildPresetDir(preset);
         _log.Information("NativeSmoke build: cmake --build {0}", binaryPath.FullPath);
@@ -153,7 +156,47 @@ public sealed class NativeSmokeTaskRunner(
             BinaryPath = binaryPath,
         };
 
+        await ApplyMsvcEnvironmentAsync(buildSettings);
         _cakeContext.CMakeBuild(buildSettings);
+    }
+
+    /// <summary>
+    /// Merges the <see cref="IMsvcDevEnvironment"/> delta into a Cake
+    /// <see cref="ToolSettings.EnvironmentVariables"/> dictionary so the Ninja + <c>cl.exe</c>
+    /// child process inherits a live MSVC toolchain without the operator having to spawn
+    /// Cake from a Developer PowerShell. Two early returns surface the no-op cases
+    /// explicitly:
+    /// <list type="bullet">
+    ///   <item><description>Non-Windows host — gcc / clang are expected on <c>$PATH</c>,
+    ///     MSVC injection is irrelevant. Caller-side gate keeps the resolver's
+    ///     Windows-only contract (see <see cref="IMsvcDevEnvironment"/> docs).</description></item>
+    ///   <item><description>Windows host with MSVC already sourced in the parent
+    ///     shell (<c>VCToolsInstallDir</c> set). Resolver returns an empty delta;
+    ///     nothing to merge.</description></item>
+    /// </list>
+    /// Initialises <see cref="ToolSettings.EnvironmentVariables"/> on demand —
+    /// Cake defaults it to <see langword="null"/>.
+    /// </summary>
+    private async Task ApplyMsvcEnvironmentAsync(ToolSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var delta = await _msvcDevEnvironment.ResolveAsync();
+        if (delta.Count == 0)
+        {
+            return;
+        }
+
+        settings.EnvironmentVariables ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var entry in delta)
+        {
+            settings.EnvironmentVariables[entry.Key] = entry.Value;
+        }
     }
 
     private void RunNativeSmokeBinary(string preset)
