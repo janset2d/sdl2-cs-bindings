@@ -156,6 +156,7 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton<ICoreLibraryIdentityValidator, CoreLibraryIdentityValidator>();
     services.AddSingleton<IUpstreamVersionAlignmentValidator, UpstreamVersionAlignmentValidator>();
     services.AddSingleton<ICsprojPackContractValidator, CsprojPackContractValidator>();
+    services.AddSingleton<IG58CrossFamilyDepResolvabilityValidator, G58CrossFamilyDepResolvabilityValidator>();
     services.AddSingleton<PreflightReporter>();
     services.AddSingleton<PreflightTaskRunner>();
     services.AddSingleton<NativePackageMetadataValidator>();

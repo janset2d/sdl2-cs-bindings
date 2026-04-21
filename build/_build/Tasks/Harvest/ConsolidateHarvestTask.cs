@@ -1,5 +1,6 @@
 using Build.Application.Harvesting;
 using Build.Context;
+using Build.Domain.Harvesting.Models;
 using Cake.Frosting;
 
 namespace Build.Tasks.Harvest;
@@ -12,6 +13,7 @@ public sealed class ConsolidateHarvestTask(ConsolidateHarvestTaskRunner consolid
     public override Task RunAsync(BuildContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        return _consolidateHarvestTaskRunner.RunAsync(context);
+
+        return _consolidateHarvestTaskRunner.RunAsync(context, new ConsolidateHarvestRequest());
     }
 }

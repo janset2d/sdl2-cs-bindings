@@ -1,6 +1,7 @@
 using Build.Application.Packaging;
 using Build.Context;
 using Build.Context.Configs;
+using Build.Domain.Packaging.Models;
 using Cake.Core.Diagnostics;
 using Cake.Frosting;
 
@@ -26,7 +27,7 @@ public sealed class PackageTask(
     /// <para>
     /// Local-dev packs route through <c>SetupLocalDev --source=local</c>, which resolves a
     /// local-suffixed mapping via <c>ManifestVersionProvider</c> and calls the runner directly
-    /// with a populated <see cref="PackageBuildConfiguration"/>. Direct <c>--target Package</c>
+    /// with a populated <see cref="PackRequest"/>. Direct <c>--target Package</c>
     /// without any <c>--explicit-version</c> is a misuse that the skip surfaces visibly in the
     /// Cake log rather than failing opaquely.
     /// </para>
@@ -47,6 +48,8 @@ public sealed class PackageTask(
     public override Task RunAsync(BuildContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        return _packageTaskRunner.RunAsync();
+
+        var request = new PackRequest(_packageBuildConfiguration.ExplicitVersions);
+        return _packageTaskRunner.RunAsync(context, request);
     }
 }

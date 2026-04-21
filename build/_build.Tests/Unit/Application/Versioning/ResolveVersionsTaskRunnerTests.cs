@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Build.Application.Versioning;
 using Build.Context.Configs;
+using Build.Domain.Preflight;
 using Build.Tests.Fixtures;
 using Cake.Core;
 
@@ -25,7 +26,7 @@ public sealed class ResolveVersionsTaskRunnerTests
             suffix: "test.smoke",
             scope: []);
 
-        var runner = new ResolveVersionsTaskRunner(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, versioning);
+        var runner = new ResolveVersionsTaskRunner(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, versioning, new UpstreamVersionAlignmentValidator());
 
         await runner.RunAsync();
 
@@ -59,7 +60,7 @@ public sealed class ResolveVersionsTaskRunnerTests
             suffix: "ci.12345",
             scope: ["sdl2-core"]);
 
-        var runner = new ResolveVersionsTaskRunner(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, versioning);
+        var runner = new ResolveVersionsTaskRunner(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, versioning, new UpstreamVersionAlignmentValidator());
 
         await runner.RunAsync();
 
@@ -90,7 +91,7 @@ public sealed class ResolveVersionsTaskRunnerTests
             suffix: "test",
             scope: []);
 
-        var runner = new ResolveVersionsTaskRunner(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, versioning);
+        var runner = new ResolveVersionsTaskRunner(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, versioning, new UpstreamVersionAlignmentValidator());
 
         var exception = await Assert.ThrowsAsync<CakeException>(() => runner.RunAsync());
         await Assert.That(exception!.Message).Contains("--version-source");
@@ -107,15 +108,18 @@ public sealed class ResolveVersionsTaskRunnerTests
             suffix: null,
             scope: []);
 
-        var runner = new ResolveVersionsTaskRunner(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, versioning);
+        var runner = new ResolveVersionsTaskRunner(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, versioning, new UpstreamVersionAlignmentValidator());
 
         var exception = await Assert.ThrowsAsync<CakeException>(() => runner.RunAsync());
         await Assert.That(exception!.Message).Contains("--suffix");
     }
 
     [Test]
-    public async Task RunAsync_Should_Throw_For_GitTag_Source_In_Slice_B1()
+    public async Task RunAsync_Should_Throw_When_GitTag_Source_Has_No_Scope()
     {
+        // Post-C.5: git-tag source requires exactly one --scope <family> entry. Empty scope
+        // is the classic "forgot the family argument" misuse; it must fail loud before we
+        // reach the GitTagVersionProvider construction.
         var manifest = ManifestFixture.CreateTestManifestConfig();
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).WithManifest(manifest).BuildContextWithHandles();
 
@@ -124,10 +128,29 @@ public sealed class ResolveVersionsTaskRunnerTests
             suffix: null,
             scope: []);
 
-        var runner = new ResolveVersionsTaskRunner(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, versioning);
+        var runner = new ResolveVersionsTaskRunner(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, versioning, new UpstreamVersionAlignmentValidator());
 
         var exception = await Assert.ThrowsAsync<CakeException>(() => runner.RunAsync());
-        await Assert.That(exception!.Message).Contains("Slice C");
+        await Assert.That(exception!.Message).Contains("exactly one --scope");
+    }
+
+    [Test]
+    public async Task RunAsync_Should_Throw_When_GitTag_Source_Has_Multiple_Scope_Entries()
+    {
+        // Targeted release is single-family by construction. Multi-family requests must
+        // go through --version-source=meta-tag (GitTagScope.Train), not git-tag.
+        var manifest = ManifestFixture.CreateTestManifestConfig();
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).WithManifest(manifest).BuildContextWithHandles();
+
+        var versioning = new VersioningConfiguration(
+            versionSource: "git-tag",
+            suffix: null,
+            scope: ["sdl2-core", "sdl2-image"]);
+
+        var runner = new ResolveVersionsTaskRunner(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, versioning, new UpstreamVersionAlignmentValidator());
+
+        var exception = await Assert.ThrowsAsync<CakeException>(() => runner.RunAsync());
+        await Assert.That(exception!.Message).Contains("meta-tag");
     }
 
     [Test]
@@ -141,7 +164,7 @@ public sealed class ResolveVersionsTaskRunnerTests
             suffix: null,
             scope: []);
 
-        var runner = new ResolveVersionsTaskRunner(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, versioning);
+        var runner = new ResolveVersionsTaskRunner(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, versioning, new UpstreamVersionAlignmentValidator());
 
         var exception = await Assert.ThrowsAsync<CakeException>(() => runner.RunAsync());
         await Assert.That(exception!.Message).Contains("nonsense");

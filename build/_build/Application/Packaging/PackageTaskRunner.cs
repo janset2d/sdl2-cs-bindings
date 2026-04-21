@@ -18,53 +18,97 @@ using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
+using Cake.Git;
 using NuGet.Versioning;
 
 namespace Build.Application.Packaging;
 
-public sealed class PackageTaskRunner(
-    ICakeContext cakeContext,
-    ICakeLog log,
-    IPathService pathService,
-    ManifestConfig manifestConfig,
-    DotNetBuildConfiguration dotNetBuildConfiguration,
-    PackageBuildConfiguration packageBuildConfiguration,
-    IDotNetPackInvoker dotNetPackInvoker,
-    INativePackageMetadataGenerator nativePackageMetadataGenerator,
-    IReadmeMappingTableGenerator readmeMappingTableGenerator,
-    IProjectMetadataReader projectMetadataReader,
-    IPackageOutputValidator packageOutputValidator) : IPackageTaskRunner
+public sealed class PackageTaskRunner : IPackageTaskRunner
 {
+    private readonly ICakeContext _cakeContext;
+    private readonly ICakeLog _log;
+    private readonly IPathService _pathService;
+    private readonly ManifestConfig _manifestConfig;
+    private readonly DotNetBuildConfiguration _dotNetBuildConfiguration;
+    private readonly IDotNetPackInvoker _dotNetPackInvoker;
+    private readonly INativePackageMetadataGenerator _nativePackageMetadataGenerator;
+    private readonly IReadmeMappingTableGenerator _readmeMappingTableGenerator;
+    private readonly IProjectMetadataReader _projectMetadataReader;
+    private readonly IPackageOutputValidator _packageOutputValidator;
+    private readonly IG58CrossFamilyDepResolvabilityValidator _g58CrossFamilyDepResolvabilityValidator;
 
-    private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
-    private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
-    private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
-    private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
-    private readonly DotNetBuildConfiguration _dotNetBuildConfiguration = dotNetBuildConfiguration ?? throw new ArgumentNullException(nameof(dotNetBuildConfiguration));
-    private readonly PackageBuildConfiguration _packageBuildConfiguration = packageBuildConfiguration ?? throw new ArgumentNullException(nameof(packageBuildConfiguration));
-    private readonly IDotNetPackInvoker _dotNetPackInvoker = dotNetPackInvoker ?? throw new ArgumentNullException(nameof(dotNetPackInvoker));
-    private readonly INativePackageMetadataGenerator _nativePackageMetadataGenerator = nativePackageMetadataGenerator ?? throw new ArgumentNullException(nameof(nativePackageMetadataGenerator));
-    private readonly IReadmeMappingTableGenerator _readmeMappingTableGenerator = readmeMappingTableGenerator ?? throw new ArgumentNullException(nameof(readmeMappingTableGenerator));
-    private readonly IProjectMetadataReader _projectMetadataReader = projectMetadataReader ?? throw new ArgumentNullException(nameof(projectMetadataReader));
-    private readonly IPackageOutputValidator _packageOutputValidator = packageOutputValidator ?? throw new ArgumentNullException(nameof(packageOutputValidator));
+    /// <summary>
+    /// HEAD SHA resolver. Default implementation delegates to Cake.Frosting.Git's
+    /// <c>GitLogTip</c> alias (LibGit2Sharp-backed, in-process, no subprocess spawn).
+    /// The delegate is exposed as a test-only optional ctor hook because Cake.Git bypasses
+    /// <c>ICakeContext.FileSystem</c> and hits <c>System.IO</c> directly via LibGit2Sharp's
+    /// native binary — which means unit tests using <c>FakeFileSystem</c> cannot be served
+    /// by the default resolver. Tests inject a stub lambda; production uses the default.
+    /// The end-to-end witness (smoke-witness.cs) exercises the default resolver against a
+    /// real repo, so default behaviour stays covered without an explicit integration test.
+    /// </summary>
+    private readonly Func<string> _resolveHeadCommitSha;
 
-    public async Task RunAsync(CancellationToken cancellationToken = default)
+    public PackageTaskRunner(
+        ICakeContext cakeContext,
+        ICakeLog log,
+        IPathService pathService,
+        ManifestConfig manifestConfig,
+        DotNetBuildConfiguration dotNetBuildConfiguration,
+        IDotNetPackInvoker dotNetPackInvoker,
+        INativePackageMetadataGenerator nativePackageMetadataGenerator,
+        IReadmeMappingTableGenerator readmeMappingTableGenerator,
+        IProjectMetadataReader projectMetadataReader,
+        IPackageOutputValidator packageOutputValidator,
+        IG58CrossFamilyDepResolvabilityValidator g58CrossFamilyDepResolvabilityValidator,
+        Func<ICakeContext, DirectoryPath, string>? resolveHeadCommitSha = null)
     {
-        await RunAsync(_packageBuildConfiguration, cancellationToken);
+        _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
+        _log = log ?? throw new ArgumentNullException(nameof(log));
+        _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
+        _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
+        _dotNetBuildConfiguration = dotNetBuildConfiguration ?? throw new ArgumentNullException(nameof(dotNetBuildConfiguration));
+        _dotNetPackInvoker = dotNetPackInvoker ?? throw new ArgumentNullException(nameof(dotNetPackInvoker));
+        _nativePackageMetadataGenerator = nativePackageMetadataGenerator ?? throw new ArgumentNullException(nameof(nativePackageMetadataGenerator));
+        _readmeMappingTableGenerator = readmeMappingTableGenerator ?? throw new ArgumentNullException(nameof(readmeMappingTableGenerator));
+        _projectMetadataReader = projectMetadataReader ?? throw new ArgumentNullException(nameof(projectMetadataReader));
+        _packageOutputValidator = packageOutputValidator ?? throw new ArgumentNullException(nameof(packageOutputValidator));
+        _g58CrossFamilyDepResolvabilityValidator = g58CrossFamilyDepResolvabilityValidator ?? throw new ArgumentNullException(nameof(g58CrossFamilyDepResolvabilityValidator));
+
+        var resolver = resolveHeadCommitSha ?? DefaultResolveHeadCommitSha;
+        _resolveHeadCommitSha = () => resolver(_cakeContext, _pathService.RepoRoot);
     }
 
-    public async Task RunAsync(PackageBuildConfiguration packageBuildConfiguration, CancellationToken cancellationToken = default)
+    public async Task RunAsync(BuildContext context, PackRequest request, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(packageBuildConfiguration);
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var explicitVersions = packageBuildConfiguration.ExplicitVersions;
+        var explicitVersions = request.Versions;
         if (explicitVersions.Count == 0)
         {
             throw new CakeException(
                 "Package task requires at least one --explicit-version family=semver entry. " +
                 "Stage targets consume the resolved version mapping directly; scope and version " +
                 "are carried by the same mapping (ADR-003 §2.2 'scope = versions.keys').");
+        }
+
+        // G58 pre-pack gate (ADR-003 §4 Pack-stage ownership). PreFlight also runs the
+        // same scope-contains check as a mirror (Deniz Q2 decision, 2026-04-21) — defense-in-
+        // depth for operators who skip PreFlight and jump straight to --target=Package.
+        var g58Validation = _g58CrossFamilyDepResolvabilityValidator.Validate(explicitVersions, _manifestConfig);
+        if (g58Validation.HasErrors)
+        {
+            foreach (var errorCheck in g58Validation.Checks.Where(check => check.IsError))
+            {
+                _log.Error("G58 {0} → {1}: {2}", errorCheck.DependentFamily, errorCheck.DependencyFamily, errorCheck.ErrorMessage);
+            }
+
+            throw new CakeException(
+                "Package task refused to proceed: G58 cross-family dependency resolvability detected " +
+                $"{g58Validation.Checks.Count(check => check.IsError)} unresolved dependency/dependencies. " +
+                "Either include the missing families in --explicit-version, or (post-C feed-probe wiring) pass --feed <URL> to enable target-feed resolution.");
         }
 
         var families = ResolveSelectedFamilies(explicitVersions);
@@ -497,30 +541,18 @@ public sealed class PackageTaskRunner(
         return _pathService.RepoRoot.CombineWithFilePath(new FilePath(relativePath));
     }
 
-    private string ResolveHeadCommitSha()
+    private string ResolveHeadCommitSha() => _resolveHeadCommitSha();
+
+    private static string DefaultResolveHeadCommitSha(ICakeContext context, DirectoryPath repoRoot)
     {
-        var process = _cakeContext.StartAndReturnProcess(
-            "git",
-            new ProcessSettings
-            {
-                Arguments = "rev-parse HEAD",
-                WorkingDirectory = _pathService.RepoRoot,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                Silent = true,
-            });
-
-        process.WaitForExit();
-        var exitCode = process.GetExitCode();
-        var output = process.GetStandardOutput()?.ToList() ?? [];
-        var error = process.GetStandardError()?.ToList() ?? [];
-
-        if (exitCode == 0 && output.Count != 0)
+        var tip = context.GitLogTip(repoRoot);
+        if (tip is null || string.IsNullOrWhiteSpace(tip.Sha))
         {
-            return output[0].Trim();
+            throw new CakeException(
+                $"Package task could not resolve git HEAD commit SHA via Cake.Frosting.Git GitLogTip at '{repoRoot.FullPath}'. " +
+                "Ensure the repo root is a valid git checkout.");
         }
 
-        var combined = string.Join(Environment.NewLine, output.Concat(error));
-        throw new CakeException($"Package task could not resolve git HEAD commit SHA. git rev-parse HEAD failed.{Environment.NewLine}{combined}");
+        return tip.Sha;
     }
 }

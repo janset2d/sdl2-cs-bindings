@@ -16,9 +16,11 @@ public sealed class ConsolidateHarvestTaskRunner
 {
     private readonly JsonSerializerOptions _jsonOptions = HarvestJsonContract.Options;
 
-    public async Task RunAsync(BuildContext context)
+    public async Task RunAsync(BuildContext context, ConsolidateHarvestRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
 
         var harvestOutputBase = context.Paths.HarvestOutput;
         _ = _jsonOptions;

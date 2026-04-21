@@ -5,6 +5,7 @@ using Build.Context.Models;
 using Build.Domain.Coverage.Models;
 using Build.Domain.Harvesting.Models;
 using Build.Domain.Paths;
+using Build.Domain.Runtime;
 using Build.Infrastructure.Paths;
 using Build.Tests.Fixtures.Seeders;
 using Cake.Core;
@@ -13,6 +14,7 @@ using Cake.Core.IO;
 using Cake.Core.Tooling;
 using Cake.Testing;
 using NSubstitute;
+
 
 namespace Build.Tests.Fixtures;
 
@@ -171,10 +173,12 @@ public sealed class FakeRepoBuilder
         var arguments = CreateArguments();
         var cakeContext = CreateCakeContext(arguments);
         var pathService = CreatePathService();
+        var runtimeProfile = CreateRuntimeProfileStub();
 
         var context = new BuildContext(
             cakeContext,
             pathService,
+            runtimeProfile,
             new RepositoryConfiguration(_repoRoot),
             new DotNetBuildConfiguration(_config),
             new VcpkgConfiguration(_libraries, _rid),
@@ -188,6 +192,21 @@ public sealed class FakeRepoBuilder
             FileSystem = _fileSystem,
             Environment = _environment,
         };
+    }
+
+    /// <summary>
+    /// Minimal IRuntimeProfile stub covering the fields task classes read via
+    /// <c>BuildContext.Runtime</c>. Defaults to the fixture's RID (if supplied) and a
+    /// synthetic triplet. Tests that need richer profile behaviour still create their own
+    /// NSubstitute-backed profile and inject it at the runner level.
+    /// </summary>
+    private IRuntimeProfile CreateRuntimeProfileStub()
+    {
+        var profile = Substitute.For<IRuntimeProfile>();
+        profile.Rid.Returns(_rid ?? "win-x64");
+        profile.Triplet.Returns("x64-windows-hybrid");
+        profile.PlatformFamily.Returns(PlatformFamily.Windows);
+        return profile;
     }
 
     private PathService CreatePathService()

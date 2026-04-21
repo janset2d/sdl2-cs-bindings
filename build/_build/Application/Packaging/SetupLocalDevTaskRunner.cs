@@ -4,9 +4,11 @@ using Build.Application.Preflight;
 using Build.Application.Vcpkg;
 using Build.Application.Versioning;
 using Build.Context;
-using Build.Context.Configs;
 using Build.Context.Models;
+using Build.Domain.Harvesting.Models;
 using Build.Domain.Packaging.Models;
+using Build.Domain.Preflight.Models;
+using Build.Domain.Runtime;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using NuGet.Versioning;
@@ -33,6 +35,7 @@ namespace Build.Application.Packaging;
 public sealed class SetupLocalDevTaskRunner(
     ICakeLog log,
     ManifestConfig manifestConfig,
+    IRuntimeProfile runtimeProfile,
     IArtifactSourceResolver artifactSourceResolver,
     PreflightTaskRunner preflightTaskRunner,
     EnsureVcpkgDependenciesTaskRunner ensureVcpkgDependenciesTaskRunner,
@@ -45,6 +48,7 @@ public sealed class SetupLocalDevTaskRunner(
 
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
     private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
+    private readonly IRuntimeProfile _runtimeProfile = runtimeProfile ?? throw new ArgumentNullException(nameof(runtimeProfile));
     private readonly IArtifactSourceResolver _artifactSourceResolver = artifactSourceResolver ?? throw new ArgumentNullException(nameof(artifactSourceResolver));
     private readonly PreflightTaskRunner _preflightTaskRunner = preflightTaskRunner ?? throw new ArgumentNullException(nameof(preflightTaskRunner));
     private readonly EnsureVcpkgDependenciesTaskRunner _ensureVcpkgDependenciesTaskRunner = ensureVcpkgDependenciesTaskRunner ?? throw new ArgumentNullException(nameof(ensureVcpkgDependenciesTaskRunner));
@@ -69,13 +73,13 @@ public sealed class SetupLocalDevTaskRunner(
         }
 
         var mapping = await ResolveLocalMappingAsync(cancellationToken);
-        var packageBuildConfiguration = new PackageBuildConfiguration(mapping);
+        var harvestLibraries = context.Vcpkg.Libraries.ToList();
 
-        _preflightTaskRunner.Run(context, packageBuildConfiguration);
+        await _preflightTaskRunner.RunAsync(context, new PreflightRequest(mapping), cancellationToken);
         _ensureVcpkgDependenciesTaskRunner.Run(context);
-        await _harvestTaskRunner.RunAsync(context);
-        await _consolidateHarvestTaskRunner.RunAsync(context);
-        await _packageTaskRunner.RunAsync(packageBuildConfiguration, cancellationToken);
+        await _harvestTaskRunner.RunAsync(context, new HarvestRequest(_runtimeProfile.Rid, harvestLibraries), cancellationToken);
+        await _consolidateHarvestTaskRunner.RunAsync(context, new ConsolidateHarvestRequest(), cancellationToken);
+        await _packageTaskRunner.RunAsync(context, new PackRequest(mapping), cancellationToken);
 
         await _artifactSourceResolver.PrepareFeedAsync(context, mapping, cancellationToken);
         await _artifactSourceResolver.WriteConsumerOverrideAsync(context, mapping, cancellationToken);

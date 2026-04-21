@@ -289,9 +289,9 @@ public sealed class PathService : IPathService
         return RepoRoot.CombineWithFilePath("README.md");
     }
 
-    public FilePath GetSmokeLocalPropsFile()
+    public FilePath GetLocalPropsFile()
     {
-        return BuildDir.Combine("msbuild").CombineWithFilePath("Janset.Smoke.local.props");
+        return BuildDir.Combine("msbuild").CombineWithFilePath("Janset.Local.props");
     }
 
     public FilePath GetResolveVersionsOutputFile()

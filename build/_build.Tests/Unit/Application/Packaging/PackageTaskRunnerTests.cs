@@ -8,6 +8,7 @@ using Build.Domain.Packaging.Models;
 using Build.Domain.Packaging.Results;
 using Build.Infrastructure.DotNet;
 using Build.Tests.Fixtures;
+using Cake.Core;
 using Cake.Core.IO;
 using Cake.Testing;
 using NSubstitute;
@@ -22,6 +23,13 @@ namespace Build.Tests.Unit.Application.Packaging;
 /// </summary>
 public sealed class PackageTaskRunnerTests
 {
+    // Stub SHA for test-time delegate override: matches the legacy FakeProcess stdout the
+    // pre-C.3 subprocess mock produced. Cake.Frosting.Git bypasses FakeFileSystem, so unit
+    // tests inject this constant via the resolveHeadCommitSha delegate instead.
+    private const string StubHeadSha = "0123456789abcdef0123456789abcdef01234567";
+
+    private static string StubResolveHeadCommitSha(ICakeContext _, DirectoryPath __) => StubHeadSha;
+
     [Test]
     public async Task RunAsync_Should_Pack_Native_Then_Managed_For_Each_Selected_Family()
     {
@@ -93,14 +101,15 @@ public sealed class PackageTaskRunnerTests
             repo.Paths,
             manifest,
             new DotNetBuildConfiguration("Release"),
-            new PackageBuildConfiguration(new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase) { ["sdl2-core"] = NuGetVersion.Parse("1.2.3") }),
             dotNetPackInvoker,
             nativePackageMetadataGenerator,
             readmeMappingTableGenerator,
             projectMetadataReader,
-            packageOutputValidator);
+            packageOutputValidator,
+            new G58CrossFamilyDepResolvabilityValidator(),
+            resolveHeadCommitSha: StubResolveHeadCommitSha);
 
-        await runner.RunAsync();
+        await runner.RunAsync(repo.BuildContext, CreateSdl2CorePackRequest());
 
         // Step 1: Pack native — standard `dotnet pack`, native csproj receives $(NativePayloadSource).
         dotNetPackInvoker.Received(1).Pack(
@@ -144,7 +153,7 @@ public sealed class PackageTaskRunnerTests
 
         var runner = BuildRunnerWithMinimalMocks(repo, manifest);
 
-        var thrown = await Assert.That(() => runner.RunAsync()).Throws<Cake.Core.CakeException>();
+        var thrown = await Assert.That(() => runner.RunAsync(repo.BuildContext, CreateSdl2CorePackRequest())).Throws<Cake.Core.CakeException>();
         await Assert.That(thrown!.Message).Contains("lacks a consolidation receipt");
     }
 
@@ -175,7 +184,7 @@ public sealed class PackageTaskRunnerTests
 
         var runner = BuildRunnerWithMinimalMocks(repo, manifest);
 
-        var thrown = await Assert.That(() => runner.RunAsync()).Throws<Cake.Core.CakeException>();
+        var thrown = await Assert.That(() => runner.RunAsync(repo.BuildContext, CreateSdl2CorePackRequest())).Throws<Cake.Core.CakeException>();
         await Assert.That(thrown!.Message).Contains("zero license entries");
     }
 
@@ -187,22 +196,29 @@ public sealed class PackageTaskRunnerTests
             .WithManifest(manifest)
             .BuildContextWithHandles();
 
-        var runner = BuildRunnerWithMinimalMocks(
-            repo,
-            manifest,
-            new PackageBuildConfiguration(new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase)
-            {
-                ["ghost-family"] = NuGetVersion.Parse("1.2.3"),
-            }));
+        var runner = BuildRunnerWithMinimalMocks(repo, manifest);
+        var ghostRequest = new PackRequest(new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["ghost-family"] = NuGetVersion.Parse("1.2.3"),
+        });
 
-        var thrown = await Assert.That(() => runner.RunAsync()).Throws<Cake.Core.CakeException>();
-        await Assert.That(thrown!.Message).Contains("unknown family 'ghost-family'");
+        var thrown = await Assert.That(() => runner.RunAsync(repo.BuildContext, ghostRequest)).Throws<Cake.Core.CakeException>();
+        // Post-C.7: G58 catches the ghost-family mapping before PackageTaskRunner's own
+        // ResolveSelectedFamilies reaches it (manifest coherence is a G58 responsibility).
+        await Assert.That(thrown!.Message).Contains("G58");
+    }
+
+    private static PackRequest CreateSdl2CorePackRequest()
+    {
+        return new PackRequest(new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["sdl2-core"] = NuGetVersion.Parse("1.2.3"),
+        });
     }
 
     private static PackageTaskRunner BuildRunnerWithMinimalMocks(
         FakeRepoHandles repo,
-        ManifestConfig manifest,
-        PackageBuildConfiguration? packageBuildConfiguration = null)
+        ManifestConfig manifest)
     {
         var processRunner = Substitute.For<IProcessRunner>();
         using var process = new FakeProcess();
@@ -249,12 +265,13 @@ public sealed class PackageTaskRunnerTests
             repo.Paths,
             manifest,
             new DotNetBuildConfiguration("Release"),
-            packageBuildConfiguration ?? new PackageBuildConfiguration(new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase) { ["sdl2-core"] = NuGetVersion.Parse("1.2.3") }),
             dotNetPackInvoker,
             nativePackageMetadataGenerator,
             readmeMappingTableGenerator,
             projectMetadataReader,
-            packageOutputValidator);
+            packageOutputValidator,
+            new G58CrossFamilyDepResolvabilityValidator(),
+            resolveHeadCommitSha: StubResolveHeadCommitSha);
     }
 
     [Test]
@@ -278,7 +295,7 @@ public sealed class PackageTaskRunnerTests
 
         var runner = BuildRunnerWithMinimalMocks(repo, manifest);
 
-        var thrown = await Assert.That(() => runner.RunAsync()).Throws<Cake.Core.CakeException>();
+        var thrown = await Assert.That(() => runner.RunAsync(repo.BuildContext, CreateSdl2CorePackRequest())).Throws<Cake.Core.CakeException>();
         await Assert.That(thrown!.Message).Contains("licenses/_consolidated");
     }
 

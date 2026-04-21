@@ -3,6 +3,8 @@ using Build.Context;
 using Build.Context.Configs;
 using Build.Context.Models;
 using Build.Domain.Paths;
+using Build.Domain.Preflight;
+using Build.Domain.Versioning;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using NuGet.Versioning;
@@ -15,11 +17,17 @@ namespace Build.Application.Versioning;
 /// build host resolves the mapping and writes it to disk as the canonical flat JSON shape for
 /// downstream consumers (CI <c>needs:</c> outputs, local inspection).
 /// <para>
-/// Slice B1 implements the <c>manifest</c> source only. <c>git-tag</c> and <c>meta-tag</c>
-/// sources land in Slice C with <c>GitTagVersionProvider</c>. <c>explicit</c> source is a
-/// convenience pass-through for the operator's <c>--explicit-version</c> entries; it lands in
-/// Slice B1's <c>PackageBuildConfiguration</c> reshape when <c>ExplicitVersions</c> becomes
-/// the single source for stage-level version input.
+/// Sources supported post-Slice-C:
+/// <list type="bullet">
+///   <item><c>manifest</c> — <see cref="ManifestVersionProvider"/> (B1).</item>
+///   <item><c>git-tag</c> — <see cref="GitTagVersionProvider"/> with
+///     <see cref="GitTagScope.Targeted"/> (one family). Requires <c>--scope</c>.</item>
+///   <item><c>meta-tag</c> — <see cref="GitTagVersionProvider"/> with
+///     <see cref="GitTagScope.Train"/> (multi-family at HEAD). <c>--scope</c> optional
+///     as a filter; empty means all concrete families.</item>
+/// </list>
+/// <c>explicit</c> stays a CLI-direct path — stage tasks read <c>--explicit-version</c>
+/// via <see cref="ExplicitVersionProvider"/> without going through ResolveVersions.
 /// </para>
 /// </summary>
 public sealed class ResolveVersionsTaskRunner(
@@ -27,13 +35,15 @@ public sealed class ResolveVersionsTaskRunner(
     ICakeLog log,
     IPathService pathService,
     ManifestConfig manifestConfig,
-    VersioningConfiguration versioningConfiguration)
+    VersioningConfiguration versioningConfiguration,
+    IUpstreamVersionAlignmentValidator upstreamVersionAlignmentValidator)
 {
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
     private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
     private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
     private readonly VersioningConfiguration _versioningConfiguration = versioningConfiguration ?? throw new ArgumentNullException(nameof(versioningConfiguration));
+    private readonly IUpstreamVersionAlignmentValidator _upstreamVersionAlignmentValidator = upstreamVersionAlignmentValidator ?? throw new ArgumentNullException(nameof(upstreamVersionAlignmentValidator));
 
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
@@ -43,8 +53,8 @@ public sealed class ResolveVersionsTaskRunner(
         if (string.IsNullOrWhiteSpace(source))
         {
             throw new CakeException(
-                "ResolveVersions requires --version-source. Allowed values: manifest | explicit | git-tag | meta-tag. " +
-                "Slice B1 implements 'manifest'; other sources land in later slices.");
+                "ResolveVersions requires --version-source. Allowed values: manifest | git-tag | meta-tag. " +
+                "For operator-supplied mappings, pass --explicit-version directly on stage targets.");
         }
 
         var scope = BuildScope(_versioningConfiguration.Scope);
@@ -52,21 +62,21 @@ public sealed class ResolveVersionsTaskRunner(
         var mapping = source.ToLowerInvariant() switch
         {
             "manifest" => await ResolveFromManifestAsync(scope, cancellationToken),
+            "git-tag" => await ResolveFromGitTagAsync(scope, cancellationToken),
+            "meta-tag" => await ResolveFromMetaTagAsync(scope, cancellationToken),
             "explicit" => throw new CakeException(
-                "ResolveVersions --version-source=explicit is scheduled for Slice B1 closure, once " +
-                "PackageBuildConfiguration.ExplicitVersions lands. For now, stage targets accept " +
-                "--explicit-version directly without going through ResolveVersions."),
-            "git-tag" or "meta-tag" => throw new CakeException(
-                $"ResolveVersions --version-source={source} lands in Slice C (GitTagVersionProvider)."),
+                "ResolveVersions --version-source=explicit is not supported. Stage targets consume " +
+                "--explicit-version directly; ResolveVersions exists to emit a mapping that CI downstream " +
+                "jobs feed back in via --explicit-version."),
             _ => throw new CakeException(
-                $"ResolveVersions --version-source='{source}' is not recognized. Allowed values: manifest | explicit | git-tag | meta-tag."),
+                $"ResolveVersions --version-source='{source}' is not recognized. Allowed values: manifest | git-tag | meta-tag."),
         };
 
         await WriteMappingAsync(mapping, cancellationToken);
     }
 
     private async Task<IReadOnlyDictionary<string, NuGetVersion>> ResolveFromManifestAsync(
-        IReadOnlySet<string> scope,
+        HashSet<string> scope,
         CancellationToken cancellationToken)
     {
         var suffix = _versioningConfiguration.Suffix;
@@ -78,6 +88,43 @@ public sealed class ResolveVersionsTaskRunner(
         }
 
         var provider = new ManifestVersionProvider(_manifestConfig, suffix);
+        return await provider.ResolveAsync(scope, cancellationToken);
+    }
+
+    private async Task<IReadOnlyDictionary<string, NuGetVersion>> ResolveFromGitTagAsync(
+        HashSet<string> scope,
+        CancellationToken cancellationToken)
+    {
+        if (scope.Count != 1)
+        {
+            throw new CakeException(
+                "ResolveVersions --version-source=git-tag requires exactly one --scope <family>. " +
+                "Targeted release is single-family by construction; for multi-family coordinated " +
+                "releases use --version-source=meta-tag.");
+        }
+
+        var familyId = scope.First();
+        var provider = new GitTagVersionProvider(
+            _manifestConfig,
+            _upstreamVersionAlignmentValidator,
+            _cakeContext,
+            _pathService.RepoRoot,
+            new GitTagScope.Targeted(familyId));
+
+        return await provider.ResolveAsync(scope, cancellationToken);
+    }
+
+    private async Task<IReadOnlyDictionary<string, NuGetVersion>> ResolveFromMetaTagAsync(
+        HashSet<string> scope,
+        CancellationToken cancellationToken)
+    {
+        var provider = new GitTagVersionProvider(
+            _manifestConfig,
+            _upstreamVersionAlignmentValidator,
+            _cakeContext,
+            _pathService.RepoRoot,
+            new GitTagScope.Train());
+
         return await provider.ResolveAsync(scope, cancellationToken);
     }
 

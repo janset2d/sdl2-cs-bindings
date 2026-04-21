@@ -1,5 +1,6 @@
 ﻿using Build.Context.Configs;
 using Build.Domain.Paths;
+using Build.Domain.Runtime;
 using Build.Infrastructure.Paths;
 using Cake.Core;
 using Cake.Frosting;
@@ -11,6 +12,7 @@ public sealed class BuildContext : FrostingContext
     public BuildContext(
         ICakeContext context,
         IPathService pathService,
+        IRuntimeProfile runtimeProfile,
         RepositoryConfiguration repoConfiguration,
         DotNetBuildConfiguration dotNetBuildConfiguration,
         VcpkgConfiguration vcpkgConfiguration,
@@ -18,6 +20,7 @@ public sealed class BuildContext : FrostingContext
         : base(context)
     {
         Paths = pathService;
+        Runtime = runtimeProfile;
         Repo = repoConfiguration;
         DotNetConfiguration = dotNetBuildConfiguration;
         Vcpkg = vcpkgConfiguration;
@@ -25,6 +28,8 @@ public sealed class BuildContext : FrostingContext
     }
 
     public IPathService Paths { get; }
+
+    public IRuntimeProfile Runtime { get; }
 
     public RepositoryConfiguration Repo { get; }
 

@@ -85,10 +85,13 @@ public class PathConstructionTests
     }
 
     [Test]
-    public async Task GetSmokeLocalPropsFile_Should_Point_To_Build_Msbuild_Override()
+    public async Task GetLocalPropsFile_Should_Point_To_Build_Msbuild_Override()
     {
+        // Slice C.8a: renamed from Janset.Smoke.local.props to Janset.Local.props; broadened
+        // from smoke-specific to repo-wide local-feed override (future samples / AST tests
+        // ride the same artefact).
         var svc = CreatePathService("/repo");
-        await Assert.That(svc.GetSmokeLocalPropsFile().FullPath).IsEqualTo("/repo/build/msbuild/Janset.Smoke.local.props");
+        await Assert.That(svc.GetLocalPropsFile().FullPath).IsEqualTo("/repo/build/msbuild/Janset.Local.props");
     }
 
     [Test]

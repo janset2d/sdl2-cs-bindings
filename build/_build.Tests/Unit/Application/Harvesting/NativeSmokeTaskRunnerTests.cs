@@ -1,4 +1,5 @@
 using Build.Application.Harvesting;
+using Build.Domain.Harvesting.Models;
 using Build.Domain.Runtime;
 using Build.Tests.Fixtures;
 using Cake.Core;
@@ -34,7 +35,7 @@ public sealed class NativeSmokeTaskRunnerTests
             ManifestFixture.CreateTestManifestConfig(),
             Substitute.For<IMsvcDevEnvironment>());
 
-        var ex = await Assert.That(() => runner.RunAsync(repo.BuildContext)).Throws<CakeException>();
+        var ex = await Assert.That(() => runner.RunAsync(repo.BuildContext, new NativeSmokeRequest("linux-x64"))).Throws<CakeException>();
         await Assert.That(ex!.Message).Contains("is missing for library 'SDL2'");
         await Assert.That(ex.Message).Contains("--target Harvest --rid linux-x64");
     }
@@ -59,7 +60,7 @@ public sealed class NativeSmokeTaskRunnerTests
             ManifestFixture.CreateTestManifestConfig(),
             Substitute.For<IMsvcDevEnvironment>());
 
-        var ex = await Assert.That(() => runner.RunAsync(repo.BuildContext)).Throws<CakeException>();
+        var ex = await Assert.That(() => runner.RunAsync(repo.BuildContext, new NativeSmokeRequest("linux-x64"))).Throws<CakeException>();
         await Assert.That(ex!.Message).Contains("--target Harvest --rid linux-x64");
     }
 
@@ -80,7 +81,7 @@ public sealed class NativeSmokeTaskRunnerTests
             ManifestFixture.CreateTestManifestConfig(),
             Substitute.For<IMsvcDevEnvironment>());
 
-        var ex = await Assert.That(() => runner.RunAsync(repo.BuildContext)).Throws<CakeException>();
+        var ex = await Assert.That(() => runner.RunAsync(repo.BuildContext, new NativeSmokeRequest("linux-x64"))).Throws<CakeException>();
         await Assert.That(ex!.Message).Contains("SDL2_ghost");
         await Assert.That(ex.Message).Contains("--library");
     }
@@ -107,7 +108,7 @@ public sealed class NativeSmokeTaskRunnerTests
             ManifestFixture.CreateTestManifestConfig(),
             Substitute.For<IMsvcDevEnvironment>());
 
-        var ex = await Assert.That(() => runner.RunAsync(repo.BuildContext)).Throws<CakeException>();
+        var ex = await Assert.That(() => runner.RunAsync(repo.BuildContext, new NativeSmokeRequest("win-arm64"))).Throws<CakeException>();
         await Assert.That(ex!.Message).Contains("missing for library 'SDL2'");
         // The error must NOT be the legacy "NativeSmoke supports only …" cap wording.
         await Assert.That(ex.Message).DoesNotContain("supports only");

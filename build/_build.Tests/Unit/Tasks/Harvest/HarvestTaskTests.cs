@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Text.Json;
 using Build.Application.Harvesting;
+using Build.Context.Configs;
 using Build.Context.Models;
 using Build.Domain.Harvesting;
 using Build.Domain.Harvesting.Models;
@@ -81,7 +82,8 @@ public class HarvestTaskTests
                 mockDeployer,
                 mockValidator,
                 runtimeProfile,
-                manifestConfig));
+                manifestConfig),
+            new VcpkgConfiguration([], null));
 
         var thrown = false;
         try
@@ -132,7 +134,8 @@ public class HarvestTaskTests
                 mockDeployer,
                 mockValidator,
                 runtimeProfile,
-                manifestConfig));
+                manifestConfig),
+            new VcpkgConfiguration([], null));
 
         await Assert.That(() => task.RunAsync(repo.BuildContext)).Throws<InvalidOperationException>();
 
@@ -171,7 +174,8 @@ public class HarvestTaskTests
                 mockDeployer,
                 mockValidator,
                 runtimeProfile,
-                manifestConfig));
+                manifestConfig),
+            new VcpkgConfiguration([], null));
 
         await Assert.That(() => task.RunAsync(repo.BuildContext)).Throws<OperationCanceledException>();
 
@@ -194,7 +198,8 @@ public class HarvestTaskTests
         var task = CreateHarvestTask(
             manifestConfig,
             closure: ClosureWithSinglePrimary(SatelliteLibrary),
-            plannerResult: PlannerResultWithSinglePrimary(SatelliteLibrary));
+            plannerResult: PlannerResultWithSinglePrimary(SatelliteLibrary),
+            vcpkgConfiguration: repo.BuildContext.Vcpkg);
 
         await task.RunAsync(repo.BuildContext);
 
@@ -287,7 +292,8 @@ public class HarvestTaskTests
                 mockDeployer,
                 mockValidator,
                 runtimeProfile,
-                manifestConfig));
+                manifestConfig),
+            new VcpkgConfiguration([], null));
 
         await Assert.That(() => task.RunAsync(repo.BuildContext)).Throws<CakeException>();
     }
@@ -392,7 +398,8 @@ public class HarvestTaskTests
     private static Build.Tasks.Harvest.HarvestTask CreateHarvestTask(
         ManifestConfig manifestConfig,
         BinaryClosure closure,
-        ArtifactPlannerResult plannerResult)
+        ArtifactPlannerResult plannerResult,
+        VcpkgConfiguration? vcpkgConfiguration = null)
     {
         var mockWalker = Substitute.For<IBinaryClosureWalker>();
         mockWalker.BuildClosureAsync(Arg.Any<LibraryManifest>(), Arg.Any<CancellationToken>())
@@ -416,7 +423,8 @@ public class HarvestTaskTests
                 mockDeployer,
                 mockValidator,
                 runtimeProfile,
-                manifestConfig));
+                manifestConfig),
+            vcpkgConfiguration ?? new VcpkgConfiguration([], null));
     }
 
     private static BinaryClosure ClosureWithSinglePrimary(string libraryName)

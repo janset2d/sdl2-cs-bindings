@@ -10,6 +10,7 @@ using Build.Context.Configs;
 using Build.Context.Models;
 using Build.Domain.Harvesting.Models;
 using Build.Domain.Harvesting.Results;
+using Build.Domain.Packaging;
 using Build.Domain.Packaging.Models;
 using Build.Domain.Preflight;
 using Build.Domain.Preflight.Models;
@@ -84,7 +85,7 @@ public sealed class SetupLocalDevTaskRunnerTests
             Arg.Any<CancellationToken>());
 
         await packageTaskRunner.DidNotReceiveWithAnyArgs()
-            .RunAsync(Arg.Any<PackageBuildConfiguration>(), Arg.Any<CancellationToken>());
+            .RunAsync(Arg.Any<BuildContext>(), Arg.Any<PackRequest>(), Arg.Any<CancellationToken>());
     }
 
     [Test]
@@ -118,7 +119,7 @@ public sealed class SetupLocalDevTaskRunnerTests
             .Returns(Task.CompletedTask);
 
         var packageTaskRunner = Substitute.For<IPackageTaskRunner>();
-        packageTaskRunner.RunAsync(Arg.Any<PackageBuildConfiguration>(), Arg.Any<CancellationToken>())
+        packageTaskRunner.RunAsync(Arg.Any<BuildContext>(), Arg.Any<PackRequest>(), Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
 
         var runner = BuildRunner(repo, manifest, resolver, packageTaskRunner);
@@ -127,7 +128,8 @@ public sealed class SetupLocalDevTaskRunnerTests
 
         // Pack received a non-empty mapping whose scope == concrete families in manifest.
         await packageTaskRunner.Received(1).RunAsync(
-            Arg.Is<PackageBuildConfiguration>(config => config.ExplicitVersions.Count == concreteFamilies.Count),
+            Arg.Any<BuildContext>(),
+            Arg.Is<PackRequest>(request => request.Versions.Count == concreteFamilies.Count),
             Arg.Any<CancellationToken>());
 
         // Resolver received the same mapping the Pack stage consumed — ADR-003 §2.4
@@ -160,10 +162,10 @@ public sealed class SetupLocalDevTaskRunnerTests
             NuGetVersion.TryParse(library.VcpkgVersion, out var upstream);
 
             var expectedPrefix = $"{upstream!.Major}.{upstream.Minor}.0-local.";
-            var passedMapping = packageTaskRunner.ReceivedCalls()
-                .Select(call => call.GetArguments().OfType<PackageBuildConfiguration>().FirstOrDefault())
-                .First(config => config is not null)!;
-            var version = passedMapping.ExplicitVersions[family.Name].ToNormalizedString();
+            var passedRequest = packageTaskRunner.ReceivedCalls()
+                .Select(call => call.GetArguments().OfType<PackRequest>().FirstOrDefault())
+                .First(request => request is not null)!;
+            var version = passedRequest.Versions[family.Name].ToNormalizedString();
             await Assert.That(version).StartsWith(expectedPrefix);
             observedTokens.Add(version[expectedPrefix.Length..]);
         }
@@ -192,6 +194,7 @@ public sealed class SetupLocalDevTaskRunnerTests
         return new SetupLocalDevTaskRunner(
             repo.CakeContext.Log,
             manifest,
+            runtimeProfile,
             resolver,
             preflightTaskRunner,
             ensureVcpkgDependenciesTaskRunner,
@@ -236,13 +239,13 @@ public sealed class SetupLocalDevTaskRunnerTests
 
         return new PreflightTaskRunner(
             manifest,
-            new PackageBuildConfiguration(new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase)),
             vcpkgManifestReader,
             versionConsistencyValidator,
             strategyCoherenceValidator,
             coreLibraryIdentityValidator,
             upstreamVersionAlignmentValidator,
             csprojPackContractValidator,
+            new G58CrossFamilyDepResolvabilityValidator(),
             new PreflightReporter(repo.CakeContext));
     }
 

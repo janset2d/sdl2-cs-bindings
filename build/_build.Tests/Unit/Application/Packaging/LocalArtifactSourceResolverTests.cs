@@ -15,7 +15,10 @@ namespace Build.Tests.Unit.Application.Packaging;
 /// <summary>
 /// Post-B2 resolver narrowing: <see cref="LocalArtifactSourceResolver"/> only verifies the
 /// packaged feed exists for the supplied version mapping and stamps
-/// <c>Janset.Smoke.local.props</c>. The <c>Preflight/EnsureVcpkg/Harvest/Consolidate/Pack</c>
+/// <c>Janset.Local.props</c> (renamed from <c>Janset.Smoke.local.props</c> in Slice C.8a;
+/// broadened to a repo-wide local-feed override consumed by every IDE direct-restore
+/// consumer — smoke, samples, AST tests — without the Cake runner ever reading it).
+/// The <c>Preflight/EnsureVcpkg/Harvest/Consolidate/Pack</c>
 /// composition lives in <see cref="SetupLocalDevTaskRunner"/> and is covered by its own
 /// tests; this fixture no longer stands up runner chains.
 /// </summary>
@@ -159,7 +162,7 @@ public sealed class LocalArtifactSourceResolverTests
         await resolver.PrepareFeedAsync(repo.BuildContext, versions);
         await resolver.WriteConsumerOverrideAsync(repo.BuildContext, versions);
 
-        var propsPath = repo.Paths.GetSmokeLocalPropsFile();
+        var propsPath = repo.Paths.GetLocalPropsFile();
         var file = repo.FileSystem.GetFile(propsPath);
         await Assert.That(file.Exists).IsTrue();
 

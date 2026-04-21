@@ -1,5 +1,6 @@
 using Build.Context;
 using Build.Context.Models;
+using Build.Domain.Harvesting.Models;
 using Build.Domain.Paths;
 using Build.Domain.Runtime;
 using Build.Infrastructure.Tools.NativeSmoke;
@@ -30,21 +31,25 @@ public sealed class NativeSmokeTaskRunner(
     private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
     private readonly IMsvcDevEnvironment _msvcDevEnvironment = msvcDevEnvironment ?? throw new ArgumentNullException(nameof(msvcDevEnvironment));
 
-    public async Task RunAsync(BuildContext context)
+    public async Task RunAsync(BuildContext context, NativeSmokeRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
 
         EnsureNativeSmokeInputsReady();
 
         var libraries = ResolveLibrariesToValidate(context);
         EnsureHarvestPayloadReady(context, libraries);
 
-        var preset = _runtimeProfile.Rid;
+        var preset = request.Rid;
         await RunCmakeConfigureAsync(preset);
+        cancellationToken.ThrowIfCancellationRequested();
         await RunCmakeBuildAsync(preset);
+        cancellationToken.ThrowIfCancellationRequested();
         RunNativeSmokeBinary(preset);
 
-        _log.Information("NativeSmoke completed successfully for RID '{0}'.", _runtimeProfile.Rid);
+        _log.Information("NativeSmoke completed successfully for RID '{0}'.", request.Rid);
     }
 
     private void EnsureNativeSmokeInputsReady()

@@ -1,5 +1,6 @@
 using Build.Application.Harvesting;
 using Build.Context;
+using Build.Domain.Harvesting.Models;
 using Cake.Frosting;
 
 namespace Build.Tasks.Harvest;
@@ -13,6 +14,8 @@ public sealed class NativeSmokeTask(NativeSmokeTaskRunner nativeSmokeTaskRunner)
     public override Task RunAsync(BuildContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        return _nativeSmokeTaskRunner.RunAsync(context);
+
+        var request = new NativeSmokeRequest(context.Runtime.Rid);
+        return _nativeSmokeTaskRunner.RunAsync(context, request);
     }
 }

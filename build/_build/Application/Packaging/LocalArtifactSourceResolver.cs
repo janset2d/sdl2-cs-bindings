@@ -24,6 +24,14 @@ namespace Build.Application.Packaging;
 /// feed is missing nupkgs for a mapped family, it fails fast with a remediation hint
 /// pointing operators at SetupLocalDev.
 /// </summary>
+/// <summary>
+/// Resolves the local <see cref="ArtifactProfile.Local"/> feed. Post-<c>SetupLocalDev</c>
+/// pack output populates <c>artifacts/packages/</c>; this resolver verifies each family's
+/// nupkg + stamps <c>build/msbuild/Janset.Local.props</c> (renamed from
+/// <c>Janset.Smoke.local.props</c> in Slice C.8a, broadened from smoke-only to repo-wide
+/// local-feed override) so IDE direct-restore paths for smoke / samples / AST tests resolve
+/// the packed set without a Cake invocation.
+/// </summary>
 public sealed class LocalArtifactSourceResolver(
     ICakeContext cakeContext,
     ICakeLog log,
@@ -99,14 +107,14 @@ public sealed class LocalArtifactSourceResolver(
                 "Run PrepareFeedAsync first (or supply a non-empty mapping from the composing runner).");
         }
 
-        var propsFile = _pathService.GetSmokeLocalPropsFile();
+        var propsFile = _pathService.GetLocalPropsFile();
         var directory = propsFile.GetDirectory();
         _cakeContext.EnsureDirectoryExists(directory);
 
-        var xml = BuildSmokeLocalPropsContent(LocalFeedPath, versions);
+        var xml = BuildLocalPropsContent(LocalFeedPath, versions);
         await _cakeContext.WriteAllTextAsync(propsFile, xml);
 
-        _log.Information("LocalArtifactSourceResolver wrote local smoke override: {0}", propsFile.FullPath);
+        _log.Information("LocalArtifactSourceResolver wrote local override: {0}", propsFile.FullPath);
         _log.Information("LocalArtifactSourceResolver local feed path: {0}", LocalFeedPath.FullPath);
     }
 
@@ -141,7 +149,7 @@ public sealed class LocalArtifactSourceResolver(
             "Re-run 'SetupLocalDev --source=local --rid <rid>' so the Pack stage regenerates the feed.");
     }
 
-    private static string BuildSmokeLocalPropsContent(
+    private static string BuildLocalPropsContent(
         DirectoryPath localFeedPath,
         IReadOnlyDictionary<string, NuGetVersion> familyVersions)
     {
