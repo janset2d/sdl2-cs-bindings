@@ -24,20 +24,7 @@ public sealed class ConsolidateHarvestTaskRunner
         _ = _jsonOptions;
         context.Log.Information("Consolidating harvest RID status files from: {0}", harvestOutputBase);
 
-        if (!context.DirectoryExists(harvestOutputBase))
-        {
-            context.Log.Warning("Harvest output directory does not exist: {0}", harvestOutputBase);
-            return;
-        }
-
-        // Get all library directories using glob pattern
-        var libraryDirs = context.GetDirectories($"{harvestOutputBase}/*");
-
-        if (libraryDirs.Count == 0)
-        {
-            context.Log.Warning("No library directories found in harvest output");
-            return;
-        }
+        var libraryDirs = EnsureConsolidationInputsReady(context, harvestOutputBase);
 
         // Aggregate failures across libraries so operators see every problem in one run
         // instead of fixing one and re-running to find the next. Task fails fatally at the
@@ -63,6 +50,26 @@ public sealed class ConsolidateHarvestTaskRunner
         }
 
         context.Log.Information("Harvest consolidation completed successfully");
+    }
+
+    private static List<DirectoryPath> EnsureConsolidationInputsReady(BuildContext context, DirectoryPath harvestOutputBase)
+    {
+        if (!context.DirectoryExists(harvestOutputBase))
+        {
+            throw new Cake.Core.CakeException(
+                $"ConsolidateHarvest precondition failed: harvest output root '{harvestOutputBase.FullPath}' is missing. " +
+                "Run '--target Harvest' first, or fetch the per-RID harvest artifacts into this path when consolidating in a multi-runner CI pipeline.");
+        }
+
+        var libraryDirs = context.GetDirectories($"{harvestOutputBase}/*");
+        if (libraryDirs.Count == 0)
+        {
+            throw new Cake.Core.CakeException(
+                $"ConsolidateHarvest precondition failed: '{harvestOutputBase.FullPath}' contains no library directories. " +
+                "Run '--target Harvest' first, or fetch the per-RID harvest artifacts into this path when consolidating in a multi-runner CI pipeline.");
+        }
+
+        return libraryDirs.ToList();
     }
 
     private static async Task<string?> TryConsolidateLibraryAsync(BuildContext context, string libraryName)

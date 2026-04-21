@@ -161,7 +161,6 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton<ReadmeMappingTableValidator>();
     services.AddSingleton<IPackageOutputValidator, PackageOutputValidator>();
     services.AddSingleton<IProjectMetadataReader, ProjectMetadataReader>();
-    services.AddSingleton<IPackageFamilySelector, PackageFamilySelector>();
     // ADR-003 provider seam. ExplicitVersionProvider is the sole provider stage tasks see; it
     // holds the operator-supplied mapping (parsed from repeated --explicit-version CLI entries
     // into PackageBuildConfiguration.ExplicitVersions) and validates each entry against
@@ -185,6 +184,7 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton<ArtifactSourceResolverFactory>();
     services.AddSingleton<IArtifactSourceResolver>(provider =>
         provider.GetRequiredService<ArtifactSourceResolverFactory>().Create(source));
+    services.AddSingleton<SetupLocalDevTaskRunner>();
 
     services.AddSingleton<PackagingStrategyFactory>();
     services.AddSingleton<IPackagingStrategy>(provider =>

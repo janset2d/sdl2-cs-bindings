@@ -37,7 +37,7 @@ public sealed class PackageConsumerSmokeRunner(
     /// <summary>
     /// Concrete family descriptor for smoke: derived from <c>manifest.json</c> package_families
     /// filtered by presence of managed + native project (same <c>HasConcreteProjects</c> rule
-    /// used by <c>PackageFamilySelector</c>). Naming conventions come from
+    /// pack flow uses when it resolves the explicit version mapping). Naming conventions come from
     /// <see cref="FamilyIdentifierConventions"/> so the runner, the shared smoke MSBuild
     /// props, and the csproj PackageReference entries stay aligned via a single convention.
     /// </summary>
@@ -57,6 +57,8 @@ public sealed class PackageConsumerSmokeRunner(
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        EnsureSmokeStageInputsReady();
 
         var smokePackages = ResolveSmokePackages();
         EnsureSelectionSupportsCurrentSmokeScope(smokePackages);
@@ -122,6 +124,30 @@ public sealed class PackageConsumerSmokeRunner(
             ShutdownDotNetBuildServers();
 
             RunSmokeForTfm(smokeProject, smokePackages, explicitVersions, packagesCache, tfm);
+        }
+    }
+
+    private void EnsureSmokeStageInputsReady()
+    {
+        if (!_cakeContext.FileExists(_pathService.PackageConsumerSmokeProject))
+        {
+            throw new CakeException(
+                $"PackageConsumerSmoke precondition failed: smoke project '{_pathService.PackageConsumerSmokeProject.FullPath}' is missing. " +
+                "Sync the repository checkout before running the consumer smoke stage.");
+        }
+
+        if (!_cakeContext.FileExists(_pathService.CompileSanityProject))
+        {
+            throw new CakeException(
+                $"PackageConsumerSmoke precondition failed: compile-sanity project '{_pathService.CompileSanityProject.FullPath}' is missing. " +
+                "Sync the repository checkout before running the consumer smoke stage.");
+        }
+
+        if (!_cakeContext.DirectoryExists(_pathService.PackagesOutput))
+        {
+            throw new CakeException(
+                $"PackageConsumerSmoke precondition failed: local feed directory '{_pathService.PackagesOutput.FullPath}' is missing. " +
+                "Run 'SetupLocalDev --source=local --rid <rid>' or '--target Package --explicit-version <family>=<semver>' first.");
         }
     }
 
@@ -413,7 +439,7 @@ public sealed class PackageConsumerSmokeRunner(
     ///   <item><description><c>-p:UseSharedCompilation=false</c> — defensive for SDKs where the CLI flag is ignored; disables Roslyn VBCSCompiler reuse inside MSBuild.</description></item>
     ///   <item><description><c>-nodeReuse:false</c> — MSBuild's own worker-node reuse flag; otherwise MSBuild keeps a <c>/nodemode:1 /nodeReuse:true</c> process alive ~10 minutes for fast subsequent builds.</description></item>
     /// </list>
-    /// Without these, a single PostFlight run on macOS leaves 6–8 dotnet processes
+    /// Without these, a single PackageConsumerSmoke run on macOS leaves 6–8 dotnet processes
     /// holding ~1 GB of RAM until they time out. On Windows, the same processes hold
     /// file handles on <c>Microsoft.Testing.Platform.dll</c> under the smoke project's
     /// <c>bin/</c> and make the next run's <c>DeleteDirectoryIfExists</c> fail with
@@ -438,7 +464,7 @@ public sealed class PackageConsumerSmokeRunner(
     /// concurrent CLI build on the same machine will re-warm its cache on the next invocation.
     /// See <c>docs/playbook/cross-platform-smoke-validation.md</c> "Lingering dotnet
     /// processes mitigation" — this call fires once on entry and once before each
-    /// executable TFM slice (typical total on Windows: 4 shutdowns per PostFlight run).
+    /// executable TFM slice (typical total on Windows: 4 shutdowns per PackageConsumerSmoke run).
     /// </para>
     /// </summary>
     private void ShutdownDotNetBuildServers()

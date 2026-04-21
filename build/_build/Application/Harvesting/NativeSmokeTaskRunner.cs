@@ -31,6 +31,8 @@ public sealed class NativeSmokeTaskRunner(
     {
         ArgumentNullException.ThrowIfNull(context);
 
+        EnsureNativeSmokeInputsReady();
+
         var libraries = ResolveLibrariesToValidate(context);
         EnsureHarvestPayloadReady(context, libraries);
 
@@ -41,6 +43,33 @@ public sealed class NativeSmokeTaskRunner(
 
         _log.Information("NativeSmoke completed successfully for RID '{0}'.", _runtimeProfile.Rid);
         return Task.CompletedTask;
+    }
+
+    private void EnsureNativeSmokeInputsReady()
+    {
+        var projectDir = _pathService.NativeSmokeProjectDir;
+        if (!_cakeContext.DirectoryExists(projectDir))
+        {
+            throw new CakeException(
+                $"NativeSmoke precondition failed: project directory '{projectDir.FullPath}' is missing. " +
+                "Sync the repository checkout before running the native smoke stage.");
+        }
+
+        var cmakeListsFile = projectDir.CombineWithFilePath("CMakeLists.txt");
+        if (!_cakeContext.FileExists(cmakeListsFile))
+        {
+            throw new CakeException(
+                $"NativeSmoke precondition failed: '{cmakeListsFile.FullPath}' is missing. " +
+                "Sync the repository checkout before running the native smoke stage.");
+        }
+
+        var cmakePresetsFile = projectDir.CombineWithFilePath("CMakePresets.json");
+        if (!_cakeContext.FileExists(cmakePresetsFile))
+        {
+            throw new CakeException(
+                $"NativeSmoke precondition failed: '{cmakePresetsFile.FullPath}' is missing. " +
+                "Sync the repository checkout before running the native smoke stage.");
+        }
     }
 
     private List<LibraryManifest> ResolveLibrariesToValidate(BuildContext context)

@@ -29,7 +29,6 @@ public sealed class PackageTaskRunner(
     ManifestConfig manifestConfig,
     DotNetBuildConfiguration dotNetBuildConfiguration,
     PackageBuildConfiguration packageBuildConfiguration,
-    IPackageFamilySelector packageFamilySelector,
     IDotNetPackInvoker dotNetPackInvoker,
     INativePackageMetadataGenerator nativePackageMetadataGenerator,
     IReadmeMappingTableGenerator readmeMappingTableGenerator,
@@ -43,7 +42,6 @@ public sealed class PackageTaskRunner(
     private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
     private readonly DotNetBuildConfiguration _dotNetBuildConfiguration = dotNetBuildConfiguration ?? throw new ArgumentNullException(nameof(dotNetBuildConfiguration));
     private readonly PackageBuildConfiguration _packageBuildConfiguration = packageBuildConfiguration ?? throw new ArgumentNullException(nameof(packageBuildConfiguration));
-    private readonly IPackageFamilySelector _packageFamilySelector = packageFamilySelector ?? throw new ArgumentNullException(nameof(packageFamilySelector));
     private readonly IDotNetPackInvoker _dotNetPackInvoker = dotNetPackInvoker ?? throw new ArgumentNullException(nameof(dotNetPackInvoker));
     private readonly INativePackageMetadataGenerator _nativePackageMetadataGenerator = nativePackageMetadataGenerator ?? throw new ArgumentNullException(nameof(nativePackageMetadataGenerator));
     private readonly IReadmeMappingTableGenerator _readmeMappingTableGenerator = readmeMappingTableGenerator ?? throw new ArgumentNullException(nameof(readmeMappingTableGenerator));
@@ -69,13 +67,7 @@ public sealed class PackageTaskRunner(
                 "are carried by the same mapping (ADR-003 §2.2 'scope = versions.keys').");
         }
 
-        var selectionResult = _packageFamilySelector.Select([.. explicitVersions.Keys]);
-        if (selectionResult.IsError())
-        {
-            throw new CakeException(selectionResult.PackageFamilySelectionError.Message);
-        }
-
-        var families = selectionResult.Selection.Families;
+        var families = ResolveSelectedFamilies(explicitVersions);
         var expectedCommitSha = ResolveHeadCommitSha();
 
         // G57 generator: keep README mapping block aligned with manifest before pack validation.
@@ -89,6 +81,38 @@ public sealed class PackageTaskRunner(
             var familyVersion = explicitVersions[family.Name].ToNormalizedString();
             await PackFamilyAsync(family, familyVersion, expectedCommitSha, cancellationToken);
         }
+    }
+
+    private IReadOnlyList<PackageFamilyConfig> ResolveSelectedFamilies(IReadOnlyDictionary<string, NuGetVersion> explicitVersions)
+    {
+        var selectedFamilies = new List<PackageFamilyConfig>(explicitVersions.Count);
+
+        foreach (var requestedFamily in explicitVersions.Keys)
+        {
+            var family = _manifestConfig.PackageFamilies.SingleOrDefault(candidate =>
+                string.Equals(candidate.Name, requestedFamily, StringComparison.OrdinalIgnoreCase));
+
+            if (family is null)
+            {
+                throw new CakeException(
+                    $"Package task received unknown family '{requestedFamily}'. Add it to build/manifest.json package_families[] or fix the CLI value.");
+            }
+
+            if (string.IsNullOrWhiteSpace(family.ManagedProject) || string.IsNullOrWhiteSpace(family.NativeProject))
+            {
+                throw new CakeException(
+                    $"Package task cannot pack family '{family.Name}' yet because manifest.json does not declare both managed_project and native_project. This usually means the family is still a placeholder.");
+            }
+
+            selectedFamilies.Add(family);
+        }
+
+        if (!FamilyTopologyHelpers.TryOrderByDependencies(selectedFamilies, out var orderedFamilies, out var errorMessage))
+        {
+            throw new CakeException(errorMessage);
+        }
+
+        return orderedFamilies;
     }
 
     private async Task PackFamilyAsync(PackageFamilyConfig family, string version, string expectedCommitSha, CancellationToken cancellationToken)

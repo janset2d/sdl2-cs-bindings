@@ -5,7 +5,6 @@ using Cake.Frosting;
 namespace Build.Tasks.Harvest;
 
 [TaskName("ConsolidateHarvest")]
-[IsDependentOn(typeof(NativeSmokeTask))]
 public sealed class ConsolidateHarvestTask(ConsolidateHarvestTaskRunner consolidateHarvestTaskRunner) : AsyncFrostingTask<BuildContext>
 {
     private readonly ConsolidateHarvestTaskRunner _consolidateHarvestTaskRunner = consolidateHarvestTaskRunner ?? throw new ArgumentNullException(nameof(consolidateHarvestTaskRunner));

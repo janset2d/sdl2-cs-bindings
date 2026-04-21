@@ -37,6 +37,8 @@ public sealed class HarvestTaskRunner(
     {
         ArgumentNullException.ThrowIfNull(context);
 
+        EnsureHarvestInputsReady(context);
+
         var outputBase = context.Paths.HarvestOutput;
         context.EnsureDirectoryExists(outputBase);
 
@@ -54,6 +56,17 @@ public sealed class HarvestTaskRunner(
         }
 
         AnsiConsole.Write(new Rule("[green]Harvest completed successfully[/]").RuleStyle("grey"));
+    }
+
+    private void EnsureHarvestInputsReady(BuildContext context)
+    {
+        var tripletDir = context.Paths.GetVcpkgInstalledTripletDir(_runtimeProfile.Triplet);
+        if (!context.DirectoryExists(tripletDir))
+        {
+            throw new CakeException(
+                $"Harvest precondition failed: vcpkg triplet directory '{tripletDir.FullPath}' is missing for triplet '{_runtimeProfile.Triplet}'. " +
+                $"Run '--target EnsureVcpkgDependencies --rid {_runtimeProfile.Rid}' first.");
+        }
     }
 
     private List<LibraryManifest> ResolveLibrariesToHarvest(BuildContext context)

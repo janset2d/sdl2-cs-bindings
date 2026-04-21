@@ -47,10 +47,6 @@ public sealed class PackageTaskRunnerTests
         processRunner.Start(Arg.Any<FilePath>(), Arg.Any<ProcessSettings>()).Returns(process);
         repo.CakeContext.ProcessRunner.Returns(processRunner);
 
-        var packageFamilySelector = Substitute.For<IPackageFamilySelector>();
-        packageFamilySelector.Select(Arg.Any<IReadOnlyList<string>>())
-            .Returns(new PackageFamilySelection([family]));
-
 
         var dotNetPackInvoker = Substitute.For<IDotNetPackInvoker>();
         dotNetPackInvoker.Pack(
@@ -98,7 +94,6 @@ public sealed class PackageTaskRunnerTests
             manifest,
             new DotNetBuildConfiguration("Release"),
             new PackageBuildConfiguration(new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase) { ["sdl2-core"] = NuGetVersion.Parse("1.2.3") }),
-            packageFamilySelector,
             dotNetPackInvoker,
             nativePackageMetadataGenerator,
             readmeMappingTableGenerator,
@@ -184,10 +179,31 @@ public sealed class PackageTaskRunnerTests
         await Assert.That(thrown!.Message).Contains("zero license entries");
     }
 
-    private static PackageTaskRunner BuildRunnerWithMinimalMocks(FakeRepoHandles repo, ManifestConfig manifest)
+    [Test]
+    public async Task RunAsync_Should_Throw_When_Selected_Family_Is_Unknown()
     {
-        var family = manifest.PackageFamilies.Single(static packageFamily => packageFamily.Name == "sdl2-core");
+        var manifest = ManifestFixture.CreateTestManifestConfig();
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
+            .WithManifest(manifest)
+            .BuildContextWithHandles();
 
+        var runner = BuildRunnerWithMinimalMocks(
+            repo,
+            manifest,
+            new PackageBuildConfiguration(new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["ghost-family"] = NuGetVersion.Parse("1.2.3"),
+            }));
+
+        var thrown = await Assert.That(() => runner.RunAsync()).Throws<Cake.Core.CakeException>();
+        await Assert.That(thrown!.Message).Contains("unknown family 'ghost-family'");
+    }
+
+    private static PackageTaskRunner BuildRunnerWithMinimalMocks(
+        FakeRepoHandles repo,
+        ManifestConfig manifest,
+        PackageBuildConfiguration? packageBuildConfiguration = null)
+    {
         var processRunner = Substitute.For<IProcessRunner>();
         using var process = new FakeProcess();
         process.SetExitCode(0);
@@ -195,10 +211,6 @@ public sealed class PackageTaskRunnerTests
         process.SetStandardError([]);
         processRunner.Start(Arg.Any<FilePath>(), Arg.Any<ProcessSettings>()).Returns(process);
         repo.CakeContext.ProcessRunner.Returns(processRunner);
-
-        var packageFamilySelector = Substitute.For<IPackageFamilySelector>();
-        packageFamilySelector.Select(Arg.Any<IReadOnlyList<string>>())
-            .Returns(new PackageFamilySelection([family]));
 
 
         var dotNetPackInvoker = Substitute.For<IDotNetPackInvoker>();
@@ -237,8 +249,7 @@ public sealed class PackageTaskRunnerTests
             repo.Paths,
             manifest,
             new DotNetBuildConfiguration("Release"),
-            new PackageBuildConfiguration(new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase) { ["sdl2-core"] = NuGetVersion.Parse("1.2.3") }),
-            packageFamilySelector,
+            packageBuildConfiguration ?? new PackageBuildConfiguration(new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase) { ["sdl2-core"] = NuGetVersion.Parse("1.2.3") }),
             dotNetPackInvoker,
             nativePackageMetadataGenerator,
             readmeMappingTableGenerator,

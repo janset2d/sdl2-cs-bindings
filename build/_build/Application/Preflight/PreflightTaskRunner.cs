@@ -5,8 +5,10 @@ using Build.Domain.Preflight;
 using Build.Domain.Preflight.Results;
 using Build.Domain.Results;
 using Build.Infrastructure.Vcpkg;
+using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;
+using Cake.Core.IO;
 
 namespace Build.Application.Preflight;
 
@@ -33,12 +35,20 @@ public sealed class PreflightTaskRunner(
 
     public void Run(BuildContext context)
     {
-        ArgumentNullException.ThrowIfNull(context);
+        Run(context, _packageBuildConfiguration);
+    }
 
-        _preflightReporter.ReportRunStart();
+    public void Run(BuildContext context, PackageBuildConfiguration packageBuildConfiguration)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(packageBuildConfiguration);
 
         var manifestPath = context.Paths.GetManifestFile();
         var vcpkgManifestPath = context.Paths.GetVcpkgManifestFile();
+        EnsurePreflightInputsReady(context, manifestPath, vcpkgManifestPath);
+
+        _preflightReporter.ReportRunStart();
+
         var vcpkgManifest = _vcpkgManifestReader.ParseFile(vcpkgManifestPath);
 
         var versionConsistencyValidation = _versionConsistencyValidator.Validate(_manifestConfig, vcpkgManifest, manifestPath, vcpkgManifestPath);
@@ -53,13 +63,30 @@ public sealed class PreflightTaskRunner(
         _preflightReporter.ReportCoreLibraryIdentity(coreLibraryIdentityValidation.Validation);
         coreLibraryIdentityValidation.OnError(error => ThrowPreflightFailure(context.Log, "Core library identity", error));
 
-        var upstreamVersionAlignmentValidation = _upstreamVersionAlignmentValidator.Validate(_manifestConfig, _packageBuildConfiguration.ExplicitVersions);
+        var upstreamVersionAlignmentValidation = _upstreamVersionAlignmentValidator.Validate(_manifestConfig, packageBuildConfiguration.ExplicitVersions);
         _preflightReporter.ReportUpstreamVersionAlignment(upstreamVersionAlignmentValidation.Validation);
         upstreamVersionAlignmentValidation.OnError(error => ThrowPreflightFailure(context.Log, "Upstream version alignment", error));
 
         var csprojPackContractValidation = _csprojPackContractValidator.Validate(_manifestConfig, context.Paths.RepoRoot);
         _preflightReporter.ReportCsprojPackContract(csprojPackContractValidation.Validation);
         csprojPackContractValidation.OnError(error => ThrowPreflightFailure(context.Log, "Csproj pack contract", error));
+    }
+
+    private static void EnsurePreflightInputsReady(BuildContext context, FilePath manifestPath, FilePath vcpkgManifestPath)
+    {
+        if (!context.FileExists(manifestPath))
+        {
+            throw new CakeException(
+                $"PreFlightCheck precondition failed: manifest file '{manifestPath.FullPath}' is missing. " +
+                "Run from the repository root or pass --repo-root to point Cake at a valid checkout.");
+        }
+
+        if (!context.FileExists(vcpkgManifestPath))
+        {
+            throw new CakeException(
+                $"PreFlightCheck precondition failed: vcpkg manifest '{vcpkgManifestPath.FullPath}' is missing. " +
+                "Run from the repository root or pass --repo-root to point Cake at a valid checkout.");
+        }
     }
 
     private static void ThrowPreflightFailure(ICakeLog log, string phase, PreflightError error)

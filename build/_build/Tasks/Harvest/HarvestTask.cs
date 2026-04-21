@@ -1,12 +1,10 @@
 ﻿using Build.Application.Harvesting;
 using Build.Context;
-using Build.Tasks.Vcpkg;
 using Cake.Frosting;
 
 namespace Build.Tasks.Harvest;
 
 [TaskName("Harvest")]
-[IsDependentOn(typeof(EnsureVcpkgDependenciesTask))]
 public sealed class HarvestTask(HarvestTaskRunner harvestTaskRunner) : AsyncFrostingTask<BuildContext>
 {
     private readonly HarvestTaskRunner _harvestTaskRunner = harvestTaskRunner ?? throw new ArgumentNullException(nameof(harvestTaskRunner));

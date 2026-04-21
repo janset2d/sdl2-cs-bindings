@@ -147,8 +147,8 @@ dotnet build build/_build/Build.csproj --configuration Release --no-restore \
   | tee "$LOG_DIR/13-build-host-release.log"
 ```
 
-Expected test count: 390/390 green (as of Slice D WIP `1ef3a82` — update
-as new slices land).
+Expected test count: 398/398 green (as of Slice B2 close, 2026-04-21 —
+update as new slices land).
 
 ## 4. Cake pipeline — PreFlight → EnsureVcpkg → Harvest → NativeSmoke → Consolidate
 
@@ -229,12 +229,15 @@ ls -1 artifacts/packages | tee "$LOG_DIR/42-packages.log"
 
 **What to look for:**
 
-- `SetupLocalDev`: composes PreFlight → Harvest → NativeSmoke → Consolidate →
-  Package internally via the `LocalArtifactSourceResolver`, writes per-family
-  D-3seg versions (`sdl2-core 2.32.0-local.<ts>`, `sdl2-gfx 1.0.0-local.<ts>`,
-  `sdl2-image/mixer 2.8.0-local.<ts>`, `sdl2-ttf 2.24.0-local.<ts>`), produces
-  15 nupkgs in `artifacts/packages/`, and writes
-  `build/msbuild/Janset.Smoke.local.props` referencing them.
+- `SetupLocalDev`: composes PreFlight → EnsureVcpkgDependencies → Harvest →
+  ConsolidateHarvest → Package internally via
+  `Application/Packaging/SetupLocalDevTaskRunner` (post-B2 split;
+  `LocalArtifactSourceResolver` narrows to verify-feed + stamp-props). `NativeSmoke`
+  is deliberately NOT in this chain — step §4 covered it separately. Writes
+  per-family D-3seg versions (`sdl2-core 2.32.0-local.<ts>`,
+  `sdl2-gfx 1.0.0-local.<ts>`, `sdl2-image/mixer 2.8.0-local.<ts>`,
+  `sdl2-ttf 2.24.0-local.<ts>`), produces 15 nupkgs in `artifacts/packages/`,
+  and writes `build/msbuild/Janset.Smoke.local.props` referencing them.
 - `PackageConsumerSmoke`: internally loops executable TFMs resolved from
   `PackageConsumer.Smoke.csproj`'s `$(ExecutableTargetFrameworks)`. Per-platform
   net462 policy:

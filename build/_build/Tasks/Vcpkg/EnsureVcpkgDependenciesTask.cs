@@ -1,13 +1,11 @@
 using Build.Application.Vcpkg;
 using Build.Context;
-using Build.Tasks.Common;
 using Cake.Frosting;
 
 namespace Build.Tasks.Vcpkg;
 
 [TaskName("EnsureVcpkgDependencies")]
 [TaskDescription("Bootstraps vcpkg if needed and installs manifest dependencies for current runtime triplet")]
-[IsDependentOn(typeof(InfoTask))]
 public sealed class EnsureVcpkgDependenciesTask(
     EnsureVcpkgDependenciesTaskRunner ensureVcpkgDependenciesTaskRunner) : FrostingTask<BuildContext>
 {

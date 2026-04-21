@@ -166,7 +166,6 @@ public sealed class ProgramCompositionRootTests
         var strategyCoherenceValidator = provider.GetRequiredService<IStrategyCoherenceValidator>();
         var packageOutputValidator = provider.GetRequiredService<IPackageOutputValidator>();
         var projectMetadataReader = provider.GetRequiredService<IProjectMetadataReader>();
-        var packageFamilySelector = provider.GetRequiredService<IPackageFamilySelector>();
         var packageVersionProvider = provider.GetRequiredService<IPackageVersionProvider>();
         var dotNetPackInvoker = provider.GetRequiredService<IDotNetPackInvoker>();
         var packageTaskRunner = provider.GetRequiredService<IPackageTaskRunner>();
@@ -182,7 +181,6 @@ public sealed class ProgramCompositionRootTests
         await Assert.That(strategyCoherenceValidator.GetType()).IsEqualTo(typeof(StrategyCoherenceValidator));
         await Assert.That(packageOutputValidator.GetType()).IsEqualTo(typeof(PackageOutputValidator));
         await Assert.That(projectMetadataReader.GetType()).IsEqualTo(typeof(ProjectMetadataReader));
-        await Assert.That(packageFamilySelector.GetType()).IsEqualTo(typeof(PackageFamilySelector));
         await Assert.That(packageVersionProvider.GetType()).IsEqualTo(typeof(ExplicitVersionProvider));
         await Assert.That(dotNetPackInvoker.GetType()).IsEqualTo(typeof(DotNetPackInvoker));
         await Assert.That(packageTaskRunner.GetType()).IsEqualTo(typeof(PackageTaskRunner));
@@ -216,7 +214,6 @@ public sealed class ProgramCompositionRootTests
         var vcpkgManifestReader = provider.GetRequiredService<IVcpkgManifestReader>();
         var packageOutputValidator = provider.GetRequiredService<IPackageOutputValidator>();
         var projectMetadataReader = provider.GetRequiredService<IProjectMetadataReader>();
-        var packageFamilySelector = provider.GetRequiredService<IPackageFamilySelector>();
         var packageVersionProvider = provider.GetRequiredService<IPackageVersionProvider>();
         var dotNetPackInvoker = provider.GetRequiredService<IDotNetPackInvoker>();
         var packageTaskRunner = provider.GetRequiredService<IPackageTaskRunner>();
@@ -230,7 +227,6 @@ public sealed class ProgramCompositionRootTests
         await Assert.That(vcpkgManifestReader.GetType()).IsEqualTo(typeof(VcpkgManifestReader));
         await Assert.That(packageOutputValidator.GetType()).IsEqualTo(typeof(PackageOutputValidator));
         await Assert.That(projectMetadataReader.GetType()).IsEqualTo(typeof(ProjectMetadataReader));
-        await Assert.That(packageFamilySelector.GetType()).IsEqualTo(typeof(PackageFamilySelector));
         await Assert.That(packageVersionProvider.GetType()).IsEqualTo(typeof(ExplicitVersionProvider));
         await Assert.That(dotNetPackInvoker.GetType()).IsEqualTo(typeof(DotNetPackInvoker));
         await Assert.That(packageTaskRunner.GetType()).IsEqualTo(typeof(PackageTaskRunner));

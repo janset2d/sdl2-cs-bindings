@@ -20,7 +20,7 @@ public sealed class NativeSmokeTaskRunnerTests
     [Test]
     public async Task RunAsync_Should_Throw_When_Harvest_Output_Missing_For_Specified_Library()
     {
-        var repo = new FakeRepoBuilder(FakeRepoPlatform.Unix, repoRoot: "/repo")
+        var repo = WithNativeSmokeProjectFiles(new FakeRepoBuilder(FakeRepoPlatform.Unix, repoRoot: "/repo"))
             .WithRid("linux-x64")
             .WithLibraries("SDL2")
             .BuildContextWithHandles();
@@ -39,7 +39,7 @@ public sealed class NativeSmokeTaskRunnerTests
     {
         // Seed a sibling subdir only; the expected runtimes/<rid>/native/ tree never gets created,
         // so the precondition surfaces as "missing" with the Harvest remediation hint.
-        var repo = new FakeRepoBuilder(FakeRepoPlatform.Unix, repoRoot: "/repo")
+        var repo = WithNativeSmokeProjectFiles(new FakeRepoBuilder(FakeRepoPlatform.Unix, repoRoot: "/repo"))
             .WithRid("linux-x64")
             .WithLibraries("SDL2")
             .WithTextFile("artifacts/harvest_output/SDL2/runtimes/linux-x64/other/other-file.txt", "sibling")
@@ -56,7 +56,7 @@ public sealed class NativeSmokeTaskRunnerTests
     [Test]
     public async Task RunAsync_Should_Reject_Specified_Library_Not_Present_In_Manifest()
     {
-        var repo = new FakeRepoBuilder(FakeRepoPlatform.Unix, repoRoot: "/repo")
+        var repo = WithNativeSmokeProjectFiles(new FakeRepoBuilder(FakeRepoPlatform.Unix, repoRoot: "/repo"))
             .WithRid("linux-x64")
             .WithLibraries("SDL2_ghost")
             .BuildContextWithHandles();
@@ -78,7 +78,7 @@ public sealed class NativeSmokeTaskRunnerTests
         // CMake preset resolution arbitrates (out of scope for strategy A). Here we simply assert
         // that a PA-2 RID gets past RID inspection and fails later at the harvest-output
         // precondition (proving no cap rejection earlier).
-        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows, repoRoot: "C:/repo")
+        var repo = WithNativeSmokeProjectFiles(new FakeRepoBuilder(FakeRepoPlatform.Windows, repoRoot: "C:/repo"))
             .WithRid("win-arm64")
             .WithLibraries("SDL2")
             .BuildContextWithHandles();
@@ -99,5 +99,12 @@ public sealed class NativeSmokeTaskRunnerTests
         profile.Rid.Returns(rid);
         profile.PlatformFamily.Returns(platform);
         return profile;
+    }
+
+    private static FakeRepoBuilder WithNativeSmokeProjectFiles(FakeRepoBuilder builder)
+    {
+        return builder
+            .WithTextFile("tests/smoke-tests/native-smoke/CMakeLists.txt", "cmake_minimum_required(VERSION 3.20)")
+            .WithTextFile("tests/smoke-tests/native-smoke/CMakePresets.json", "{}");
     }
 }

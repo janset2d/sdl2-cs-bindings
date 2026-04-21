@@ -1,7 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.Xml.Linq;
-using Build.Application.Versioning;
 using Build.Context;
 using Build.Context.Configs;
 using Build.Context.Models;
@@ -13,106 +11,121 @@ using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
+using NuGet.Versioning;
 
 namespace Build.Application.Packaging;
 
+/// <summary>
+/// Resolves the local Artifact Source Profile (ADR-001 §2.7) against the on-disk package
+/// feed produced upstream by <see cref="SetupLocalDevTaskRunner"/>. Responsibility is
+/// narrow by design: verify the expected managed/native nupkgs exist and stamp
+/// <c>Janset.Smoke.local.props</c> with the resolved version mapping. The resolver is
+/// <b>not</b> a pipeline orchestrator — it does not run Preflight/Harvest/Pack. If the
+/// feed is missing nupkgs for a mapped family, it fails fast with a remediation hint
+/// pointing operators at SetupLocalDev.
+/// </summary>
 public sealed class LocalArtifactSourceResolver(
     ICakeContext cakeContext,
     ICakeLog log,
     IPathService pathService,
-    ManifestConfig manifestConfig,
-    IPackageTaskRunner packageTaskRunner) : IArtifactSourceResolver
+    ManifestConfig manifestConfig) : IArtifactSourceResolver
 {
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
     private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
     private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
-    private readonly IPackageTaskRunner _packageTaskRunner = packageTaskRunner ?? throw new ArgumentNullException(nameof(packageTaskRunner));
-
-    private Dictionary<string, string>? _resolvedVersionProperties;
 
     public ArtifactProfile Profile => ArtifactProfile.Local;
 
     public DirectoryPath LocalFeedPath => _pathService.PackagesOutput;
 
     [SuppressMessage("Major Code Smell", "S3267:Loops should be simplified with LINQ expressions",
-        Justification = "The per-family loop carries multiple side effects (cancellation check, EnsurePackageExists for managed + native, props dictionary population). Replacing with LINQ would obscure the sequence + force a tuple-aggregation pattern for the dictionary build; keeping the imperative shape is clearer.")]
-    public async Task PrepareFeedAsync(BuildContext context, CancellationToken cancellationToken = default)
+        Justification = "The per-family loop carries side effects (cancellation, EnsurePackageExists for managed + native). Forcing LINQ would hide the sequence without shrinking the code.")]
+    public Task PrepareFeedAsync(
+        BuildContext context,
+        IReadOnlyDictionary<string, NuGetVersion> versions,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(versions);
         cancellationToken.ThrowIfCancellationRequested();
 
-        // SetupLocalDev local profile runs prerequisite pipeline before this resolver:
-        // EnsureVcpkgDependencies -> Harvest -> ConsolidateHarvest.
-        // Resolver resolves the per-family version mapping once through ManifestVersionProvider
-        // (ADR-003 §2.4 resolve-once invariant), packs all families in a single Pack invocation,
-        // then stamps local.props with the resolved versions.
-        _cakeContext.EnsureDirectoryExists(_pathService.PackagesOutput);
+        if (versions.Count == 0)
+        {
+            throw new CakeException(
+                "LocalArtifactSourceResolver.PrepareFeedAsync was invoked with an empty version mapping. " +
+                "The caller (SetupLocalDevTaskRunner in normal flows) must resolve a mapping before handing off.");
+        }
 
-        var concreteFamilies = ResolveConcreteFamilies();
-        var timestampToken = DateTimeOffset.UtcNow.ToString("yyyyMMddTHHmmss", CultureInfo.InvariantCulture);
-        var suffix = string.Create(CultureInfo.InvariantCulture, $"local.{timestampToken}");
+        if (!_cakeContext.DirectoryExists(_pathService.PackagesOutput))
+        {
+            throw new CakeException(
+                $"LocalArtifactSourceResolver cannot resolve the local feed because '{_pathService.PackagesOutput.FullPath}' does not exist. " +
+                "Run 'SetupLocalDev --source=local --rid <rid>' so the Pack stage can materialise the feed before resolution.");
+        }
 
-        var manifestVersionProvider = new ManifestVersionProvider(_manifestConfig, suffix);
-        var scope = concreteFamilies
-            .Select(family => family.Name)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var mapping = await manifestVersionProvider.ResolveAsync(scope, cancellationToken);
-
-        await _packageTaskRunner.RunAsync(new PackageBuildConfiguration(mapping), cancellationToken);
-
-        var resolvedVersionProperties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var family in concreteFamilies)
+        foreach (var (familyName, nuGetVersion) in versions)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var version = mapping[family.Name].ToNormalizedString();
+            EnsureFamilyIsConcrete(familyName);
 
-            EnsurePackageExists(FamilyIdentifierConventions.ManagedPackageId(family.Name), version);
-            EnsurePackageExists(FamilyIdentifierConventions.NativePackageId(family.Name), version);
-
-            resolvedVersionProperties[FamilyIdentifierConventions.VersionPropertyName(family.Name)] = version;
+            var version = nuGetVersion.ToNormalizedString();
+            EnsurePackageExists(FamilyIdentifierConventions.ManagedPackageId(familyName), version);
+            EnsurePackageExists(FamilyIdentifierConventions.NativePackageId(familyName), version);
         }
 
-        _resolvedVersionProperties = resolvedVersionProperties;
+        _log.Information(
+            "LocalArtifactSourceResolver verified {0} family/families against local feed '{1}'.",
+            versions.Count,
+            _pathService.PackagesOutput.FullPath);
+
+        return Task.CompletedTask;
     }
 
-    public async Task WriteConsumerOverrideAsync(BuildContext context, CancellationToken cancellationToken = default)
+    public async Task WriteConsumerOverrideAsync(
+        BuildContext context,
+        IReadOnlyDictionary<string, NuGetVersion> versions,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(versions);
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (_resolvedVersionProperties is null || _resolvedVersionProperties.Count == 0)
+        if (versions.Count == 0)
         {
             throw new CakeException(
-                "SetupLocalDev cannot write Janset.Smoke.local.props because no family versions were prepared. Run PrepareFeedAsync first.");
+                "LocalArtifactSourceResolver.WriteConsumerOverrideAsync was invoked with an empty version mapping. " +
+                "Run PrepareFeedAsync first (or supply a non-empty mapping from the composing runner).");
         }
 
         var propsFile = _pathService.GetSmokeLocalPropsFile();
         var directory = propsFile.GetDirectory();
         _cakeContext.EnsureDirectoryExists(directory);
 
-        var xml = BuildSmokeLocalPropsContent(LocalFeedPath, _resolvedVersionProperties);
+        var xml = BuildSmokeLocalPropsContent(LocalFeedPath, versions);
         await _cakeContext.WriteAllTextAsync(propsFile, xml);
 
-        _log.Information("SetupLocalDev wrote local smoke override: {0}", propsFile.FullPath);
-        _log.Information("SetupLocalDev local feed path: {0}", LocalFeedPath.FullPath);
+        _log.Information("LocalArtifactSourceResolver wrote local smoke override: {0}", propsFile.FullPath);
+        _log.Information("LocalArtifactSourceResolver local feed path: {0}", LocalFeedPath.FullPath);
     }
 
-    private List<PackageFamilyConfig> ResolveConcreteFamilies()
+    private void EnsureFamilyIsConcrete(string familyName)
     {
-        var concreteFamilies = _manifestConfig.PackageFamilies
-            .Where(family => !string.IsNullOrWhiteSpace(family.ManagedProject) && !string.IsNullOrWhiteSpace(family.NativeProject))
-            .OrderBy(family => family.Name, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        var family = _manifestConfig.PackageFamilies.SingleOrDefault(candidate =>
+            string.Equals(candidate.Name, familyName, StringComparison.OrdinalIgnoreCase));
 
-        if (concreteFamilies.Count == 0)
+        if (family is null)
         {
             throw new CakeException(
-                "SetupLocalDev could not find any concrete package family (managed_project + native_project) in manifest package_families[].");
+                $"LocalArtifactSourceResolver received unknown family '{familyName}'. Add it to build/manifest.json package_families[] or fix the caller's mapping.");
         }
 
-        return concreteFamilies;
+        if (string.IsNullOrWhiteSpace(family.ManagedProject) || string.IsNullOrWhiteSpace(family.NativeProject))
+        {
+            throw new CakeException(
+                $"LocalArtifactSourceResolver cannot resolve family '{family.Name}' because manifest.json does not declare both managed_project and native_project.");
+        }
     }
 
     private void EnsurePackageExists(string packageId, string version)
@@ -124,17 +137,21 @@ public sealed class LocalArtifactSourceResolver(
         }
 
         throw new CakeException(
-            $"SetupLocalDev expected package '{packagePath.GetFilename().FullPath}' in local feed '{_pathService.PackagesOutput.FullPath}', but it was not found.");
+            $"LocalArtifactSourceResolver expected package '{packagePath.GetFilename().FullPath}' in local feed '{_pathService.PackagesOutput.FullPath}', but it was not found. " +
+            "Re-run 'SetupLocalDev --source=local --rid <rid>' so the Pack stage regenerates the feed.");
     }
 
-    private static string BuildSmokeLocalPropsContent(DirectoryPath localFeedPath, IReadOnlyDictionary<string, string> familyVersionProperties)
+    private static string BuildSmokeLocalPropsContent(
+        DirectoryPath localFeedPath,
+        IReadOnlyDictionary<string, NuGetVersion> familyVersions)
     {
         var propertyGroup = new XElement("PropertyGroup",
             new XElement("LocalPackageFeed", localFeedPath.FullPath));
 
-        foreach (var pair in familyVersionProperties.OrderBy(p => p.Key, StringComparer.OrdinalIgnoreCase))
+        foreach (var pair in familyVersions.OrderBy(p => p.Key, StringComparer.OrdinalIgnoreCase))
         {
-            propertyGroup.Add(new XElement(pair.Key, pair.Value));
+            var propertyName = FamilyIdentifierConventions.VersionPropertyName(pair.Key);
+            propertyGroup.Add(new XElement(propertyName, pair.Value.ToNormalizedString()));
         }
 
         var document = new XDocument(

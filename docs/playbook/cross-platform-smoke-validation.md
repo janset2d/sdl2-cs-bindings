@@ -50,9 +50,9 @@ These are validated today and should pass on all 3 platforms.
 
 | # | Checkpoint | Stream | What It Proves | Expected Output |
 | --- | --- | --- | --- | --- |
-| A | Build-host unit tests (**bootstrap exception**) | Baseline | Refactored code logic is correct | 390 passed, 0 failed on `feat/adr003-impl` at Slice D WIP (2026-04-21) |
+| A | Build-host unit tests (**bootstrap exception**) | Baseline | Refactored code logic is correct | 398 passed, 0 failed on `feat/adr003-impl` at Slice B2 close (2026-04-21) |
 | B | Cake restore + build (Release) (**bootstrap exception**) | Baseline | Build host compiles clean on all platforms | 0 warnings, 0 errors (usually implied by A — tests build the same assemblies) |
-| C | Cake `--tree` | Baseline | Task dependency graph is intact | `PostFlight → PackageConsumerSmoke → Package → PreFlightCheck`; `SetupLocalDev → ConsolidateHarvest → NativeSmoke → Harvest → EnsureVcpkgDependencies → Info` |
+| C | Cake `--tree` | Baseline | Task dependency graph is flat (Slice B2) | every stage task standalone — `CleanArtifacts`, `CompileSolution`, `ConsolidateHarvest`, `EnsureVcpkgDependencies`, `GenerateMatrix`, `Harvest`, `Info`, `Inspect-HarvestedDependencies`, `NativeSmoke`, `Package`, `PackageConsumerSmoke`, `PreFlightCheck`, `ResolveVersions`, `SetupLocalDev` + diagnostic targets. No `PostFlight`. |
 | D | PreFlightCheck | Baseline + A-risky + S1 | manifest.json ↔ vcpkg.json consistency + strategy coherence + post-S1 csproj pack contract (G4/G6/G7/G17/G18) | 6/6 versions, 7/7 strategies, 6/6 families × 10/10 csprojs all green |
 | D1 | EnsureVcpkgDependencies | Baseline | vcpkg bootstrap scripts + manifest install work for the current triplet, with overlay triplets/ports applied | bootstrap only when needed, install exits 0, triplet/overlay paths logged |
 | E | Harvest | Baseline | Binary closure walk + deployment works per-platform; default scope is the full manifest library set | per-library `1 primary, 0 runtime, DirectCopy/Archive` green, rid-status JSON generated |
@@ -414,17 +414,26 @@ dotnet run --project build/_build/Build.csproj -- \
 
 **Flow 1 (primary for big smoke) — `SetupLocalDev`:**
 
-`SetupLocalDev --source=local` composes PreFlight → Harvest → NativeSmoke → ConsolidateHarvest → Package + writes `build/msbuild/Janset.Smoke.local.props` in a single invocation with per-family D-3seg versions auto-derived from the manifest. Pair it with a direct `PackageConsumerSmoke` invocation afterwards for end-to-end witness:
+`SetupLocalDev --source=local` composes PreFlight → EnsureVcpkgDependencies → Harvest → ConsolidateHarvest → Package + writes `build/msbuild/Janset.Smoke.local.props` in a single invocation with per-family D-3seg versions auto-derived from the manifest. The composition lives in `Application/Packaging/SetupLocalDevTaskRunner`; `LocalArtifactSourceResolver` only verifies the produced feed and stamps the `.local.props` override. `NativeSmoke` is **not** part of this chain (Slice B2 amendment — CMake + platform C/C++ toolchain prereq is orthogonal to feed materialisation; native smoke runs as its own standalone target or via the CI harvest matrix). `--rid` is optional when targeting the host RID; pass it only for cross-build targets (e.g., `win-x86` on a `win-x64` host). Pair this invocation with a direct `PackageConsumerSmoke` afterwards for end-to-end witness:
 
 ```bash
-# Windows:
+# Windows (host RID default — win-x64 here):
 dotnet run --project build/_build/Build.csproj -- \
-  --target SetupLocalDev --source=local --rid win-x64
+  --target SetupLocalDev --source=local
 
 dotnet run --project build/_build/Build.csproj -- \
-  --target PackageConsumerSmoke --rid win-x64
+  --target PackageConsumerSmoke
 
-# Linux / macOS: add --repo-root "$(pwd)" to both.
+# Cross-build (Windows host targeting win-x86 or win-arm64):
+dotnet run --project build/_build/Build.csproj -- \
+  --target SetupLocalDev --source=local --rid win-x86
+
+# Linux / macOS: add --repo-root "$(pwd)" to both. If you need a non-host RID,
+# add --rid <rid> as well.
+
+# Optional sibling — verify native payloads load at OS level:
+dotnet run --project build/_build/Build.csproj -- \
+  --target NativeSmoke
 ```
 
 **Flow 2 (targeted, version-pinned) — explicit `Package` + `PackageConsumerSmoke`:**
@@ -444,7 +453,7 @@ dotnet run --project build/_build/Build.csproj -- \
 # Linux / macOS: add --repo-root "$(pwd)" to both.
 ```
 
-> The legacy `--target PostFlight --family ... --family-version ...` single-invocation umbrella still exists in the task graph as `PostFlight → PackageConsumerSmoke → Package → PreFlightCheck`, but the `--family` / `--family-version` CLI flags it previously required were retired in Slice B1. PostFlight itself is slated for retirement in Slice B2 (umbrella semantics absorbed into the `LocalArtifactSourceResolver` composition path). For now, prefer the two Cake-first flows above.
+> `PostFlight` retired in Slice B2 (2026-04-21). Its umbrella semantics are absorbed into `SetupLocalDevTaskRunner` (Flow 1) + standalone `Package` + `PackageConsumerSmoke` targets (Flow 2) after graph flattening. `--family` / `--family-version` retired in Slice B1 — use repeated `--explicit-version <family>=<semver>` entries instead.
 
 **What to look for:**
 
@@ -525,13 +534,13 @@ No build-host code change is required; this is purely an operator / harness inpu
 
 `PackageConsumerSmokeRunner` runs `dotnet build-server shutdown` on entry, again before each executable TFM slice, and passes `--disable-build-servers -p:UseSharedCompilation=false -nodeReuse:false` to every `dotnet build/test` invocation. That keeps the normal case clean: new runs do not spawn detachable MSBuild / Roslyn / Razor server children and the later `net462` slice is less likely to inherit bad state from earlier `net8.0` / `net9.0` runs.
 
-**Shutdown call count per PostFlight run.** One shutdown fires on entry; one fires before **each** executable TFM slice. Concrete totals:
+**Shutdown call count per PackageConsumerSmoke run.** One shutdown fires on entry; one fires before **each** executable TFM slice. Concrete totals:
 
-- Windows default (net9.0 + net8.0 + net462): **4 shutdowns** per PostFlight invocation.
+- Windows default (net9.0 + net8.0 + net462): **4 shutdowns** per PackageConsumerSmoke invocation.
 - Linux default (net9.0 + net8.0; net462 skipped for Mono/TUnit incompatibility): **3 shutdowns**.
 - macOS with `mono` on `$PATH` (net9.0 + net8.0 + net462): **4 shutdowns**. macOS without Mono (net9.0 + net8.0; net462 auto-skipped): **3 shutdowns**.
 
-**Side-effect warning — `dotnet build-server shutdown` is scoped per-user, not per-project.** It also terminates CLI build servers owned by any other concurrent shell running `dotnet build` / `dotnet watch` / `dotnet test` (those processes re-spawn their servers on the next build; work is not lost, but there is a small warm-cache hit). The command does NOT touch Visual Studio, Rider, or VS Code / C# DevKit language-service MSBuild nodes — those run under different hosts and use separate IPC channels. If you are mid-way through a long parallel CLI build in another terminal, defer the `PostFlight` run until it finishes.
+**Side-effect warning — `dotnet build-server shutdown` is scoped per-user, not per-project.** It also terminates CLI build servers owned by any other concurrent shell running `dotnet build` / `dotnet watch` / `dotnet test` (those processes re-spawn their servers on the next build; work is not lost, but there is a small warm-cache hit). The command does NOT touch Visual Studio, Rider, or VS Code / C# DevKit language-service MSBuild nodes — those run under different hosts and use separate IPC channels. If you are mid-way through a long parallel CLI build in another terminal, defer the `PackageConsumerSmoke` run until it finishes.
 
 **Manual fallback — if something still wedges** (usually a prior run that was killed mid-flight and left `testhost.exe` holding `Microsoft.Testing.Platform.dll`):
 
@@ -755,7 +764,7 @@ dotnet run --project build/_build/Build.csproj -c Release -- \
   --target PackageConsumerSmoke --rid <rid>
 ```
 
-> **NativeSmoke on PA-2 RIDs.** `tests/smoke-tests/native-smoke/CMakePresets.json` currently ships presets only for `win-x64` / `linux-x64` / `osx-x64`. A PA-2 witness against `win-arm64` / `win-x86` / `linux-arm64` / `osx-arm64` will reach NativeSmoke in the `SetupLocalDev` composition and fail at `cmake --preset <rid>` — that's the expected Phase 2b witness signal, not a regression. The Cake host does not hard-code a RID allow-list; the preset file is the source of truth.
+> **NativeSmoke on PA-2 RIDs.** `tests/smoke-tests/native-smoke/CMakePresets.json` currently ships presets only for `win-x64` / `linux-x64` / `osx-x64`. Post-Slice-B2, `NativeSmoke` is no longer part of the `SetupLocalDev` chain — invoke it explicitly alongside the PA-2 witness sequence (`--target NativeSmoke --rid <pa2-rid>`). That run will fail at `cmake --preset <rid>` — that's the expected Phase 2b witness signal, not a regression. The Cake host does not hard-code a RID allow-list; the preset file is the source of truth.
 
 **Acceptance per witness:**
 
