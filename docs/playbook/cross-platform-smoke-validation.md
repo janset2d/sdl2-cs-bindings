@@ -2,11 +2,12 @@
 
 > How to verify that the Cake build host, harvest pipeline, native libraries, and package-consumer path work correctly across the supported local hosts after a refactor or significant change.
 
-**Last validated:** 2026-04-17 post-smoke-expansion (win-x64); Slice DA Cake-first alignment landed 2026-04-21 pre-witness.
-**Result (2026-04-17):** Two validation layers are currently true at the same time:
+**Last validated:** 2026-04-21 post-Slice-D Unix witnesses (WSL linux-x64 + macOS Intel osx-x64); 2026-04-17 win-x64 expanded-smoke pass still valid.
+**Result (2026-04-21, Slice D closure D.16):** Three validation layers are now true at the same time:
 
-- The historical Phase 2a proof slice remains green on the three original hybrid-static hosts for `sdl2-core` + `sdl2-image` (`win-x64`, `linux-x64`, `osx-x64`).
-- The newer expanded Windows-host slice is now green end to end for `sdl2-core`, `sdl2-image`, `sdl2-mixer`, `sdl2-ttf`, and `sdl2-gfx` on `win-x64`: native-smoke passes with the widened codec/render coverage (`28 passed, 0 failed`), Harvest reports `1 primary / 0 runtime` for every SDL2 satellite, dumpbin confirms the harvested satellites depend only on `SDL2.dll` plus CRT/system DLLs, and `SetupLocalDev --source=local --rid win-x64` produced 15 nupkgs at per-family D-3seg versions with `Janset.Smoke.local.props` written (B1 closure 2026-04-21).
+- **Unix (linux-x64 + osx-x64, Slice D witness, 2026-04-21):** full Cake pipeline end-to-end green on both platforms against `unix-smoke-runbook.md`. `CleanArtifacts` + Bootstrap (390/390 tests) + PreFlightCheck + EnsureVcpkg + Harvest (6 SDL2 libraries) + `NativeSmoke` (29/29 test cases incl. PNG/JPEG/WebP/TIFF/AVIF + FLAC/MIDI/WavPack/Opus/OGG/MP3/MOD + `TTF_Init` + `SDL2_gfx` render + `SDLNet_Init`) + ConsolidateHarvest + `Inspect-HarvestedDependencies` + `SetupLocalDev` (per-family D-3seg packages + `Janset.Smoke.local.props`) + `PackageConsumerSmoke` (net9.0 + net8.0 + compile-sanity netstandard2.0; net462 auto-skip per platform Mono policy). macOS `otool -L` dep-graph proof: SDL2_image / SDL2_ttf / SDL2_gfx / SDL2_net satellites expose exactly three direct `LC_LOAD_DYLIB` entries (libSDL2 + self + libSystem) — zero leaked codec / font libraries, confirming vcpkg hybrid-static bake-in end-to-end on macOS.
+- **Windows (2026-04-17 + 2026-04-21 Slice B1 closure):** expanded Windows-host slice green end to end on `win-x64`: native-smoke `28 passed, 0 failed`, Harvest `1 primary / 0 runtime` for every SDL2 satellite, dumpbin shows satellites depend only on `SDL2.dll` + CRT / system DLLs, and `SetupLocalDev --source=local --rid win-x64` produced 15 nupkgs at per-family D-3seg versions with `Janset.Smoke.local.props` written.
+- **Historical Phase 2a proof slice** remains green on the three original hybrid-static hosts for `sdl2-core` + `sdl2-image`.
 
 **Cake-first invocation contract (Slice DA, 2026-04-21).** Every checkpoint below invokes a Cake target directly. Pre-Slice-D raw shell blocks (`rm -rf artifacts/…`, `tar -xzf native.tar.gz`, `cmake --preset <rid>`, manual per-TFM `dotnet test`) have dedicated Cake targets after Slice D:
 
