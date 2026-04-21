@@ -61,9 +61,12 @@ root.AddOption(VcpkgOptions.VcpkgDirOption);
 root.AddOption(VcpkgOptions.VcpkgInstalledDirOption);
 root.AddOption(VcpkgOptions.LibraryOption);
 root.AddOption(VcpkgOptions.RidOption);
-root.AddOption(PackageOptions.FamilyOption);
-root.AddOption(PackageOptions.FamilyVersionOption);
 root.AddOption(PackageOptions.SourceOption);
+
+root.AddOption(VersioningOptions.VersionSourceOption);
+root.AddOption(VersioningOptions.VersionSuffixOption);
+root.AddOption(VersioningOptions.VersionScopeOption);
+root.AddOption(VersioningOptions.ExplicitVersionOption);
 
 root.AddOption(DumpbinOptions.DllOption);
 
@@ -90,7 +93,8 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton(new VcpkgConfiguration([.. parsedArgs.Library], parsedArgs.Rid));
     services.AddSingleton(new RepositoryConfiguration(repoRootPath));
     services.AddSingleton(new DotNetBuildConfiguration(configuration: parsedArgs.Config));
-    services.AddSingleton(new PackageBuildConfiguration([.. parsedArgs.Family], parsedArgs.FamilyVersion));
+    services.AddSingleton(new PackageBuildConfiguration(ExplicitVersionParser.ParseCliEntries(parsedArgs.ExplicitVersion)));
+    services.AddSingleton(new VersioningConfiguration(parsedArgs.VersionSource, parsedArgs.Suffix, [.. parsedArgs.Scope]));
     services.AddSingleton(new DumpbinConfiguration([.. parsedArgs.Dll]));
 
     var source = parsedArgs.Source?.Trim();
@@ -150,21 +154,19 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton<IPackageOutputValidator, PackageOutputValidator>();
     services.AddSingleton<IProjectMetadataReader, ProjectMetadataReader>();
     services.AddSingleton<IPackageFamilySelector, PackageFamilySelector>();
-    services.AddSingleton<IPackageVersionResolver, PackageVersionResolver>();
-
-    // ADR-003 provider seam (Slice A). ExplicitVersionProvider is the sole provider stage tasks
-    // see; it holds the operator-supplied mapping and validates each entry against manifest.json
-    // via G54. Slice A keeps the factory empty-backed (no --explicit-version CLI option yet); any
-    // resolve attempt fails fast with a clear migration hint. Slice B1 wires the mapping from
-    // the new PackageBuildConfiguration.ExplicitVersions field; ManifestVersionProvider /
-    // GitTagVersionProvider land in B1 / C and reach the CLI only via the ResolveVersions target.
+    // ADR-003 provider seam. ExplicitVersionProvider is the sole provider stage tasks see; it
+    // holds the operator-supplied mapping (parsed from repeated --explicit-version CLI entries
+    // into PackageBuildConfiguration.ExplicitVersions) and validates each entry against
+    // manifest.json via G54. ManifestVersionProvider / GitTagVersionProvider reach the CLI
+    // only via the ResolveVersions target, not stage tasks (ADR-003 §3.1).
     services.AddSingleton<IPackageVersionProvider>(provider =>
     {
         var manifest = provider.GetRequiredService<ManifestConfig>();
         var upstreamVersionAlignmentValidator = provider.GetRequiredService<IUpstreamVersionAlignmentValidator>();
-        var emptyMapping = new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase);
-        return new ExplicitVersionProvider(manifest, upstreamVersionAlignmentValidator, emptyMapping);
+        var packageBuildConfig = provider.GetRequiredService<PackageBuildConfiguration>();
+        return new ExplicitVersionProvider(manifest, upstreamVersionAlignmentValidator, packageBuildConfig.ExplicitVersions);
     });
+    services.AddSingleton<ResolveVersionsTaskRunner>();
     services.AddSingleton<IDotNetPackInvoker, DotNetPackInvoker>();
     services.AddSingleton<INativePackageMetadataGenerator, NativePackageMetadataGenerator>();
     services.AddSingleton<IReadmeMappingTableGenerator, ReadmeMappingTableGenerator>();
@@ -358,9 +360,11 @@ namespace Build
         DirectoryInfo? VcpkgDir,
         DirectoryInfo? VcpkgInstalledDir,
         IList<string> Library,
-        IList<string> Family,
-        string? FamilyVersion,
         string Source,
         string Rid,
-        IList<string> Dll);
+        IList<string> Dll,
+        string? VersionSource,
+        string? Suffix,
+        IList<string> Scope,
+        IList<string> ExplicitVersion);
 }

@@ -1,11 +1,18 @@
+using NuGet.Versioning;
+
 namespace Build.Context.Configs;
 
 /// <summary>
-/// Holds package-task selection and version inputs.
+/// Post-ADR-003 stage-level version input: operator-supplied mapping of family identifier
+/// to NuGet SemVer. Replaces the pre-B1 scalar <c>(Families, FamilyVersion)</c> pair. Scope
+/// is implicit in the mapping's key set per ADR-003 §2.2 ("scope = versions.keys") — separate
+/// <c>--family</c> input is retired. Populated in <c>Program.cs</c> from repeated
+/// <c>--explicit-version</c> CLI entries; consumed by <c>PackageTaskRunner</c>,
+/// <c>PackageConsumerSmokeRunner</c>, <c>PreflightTaskRunner</c>, and the
+/// <c>IPackageVersionProvider</c> DI factory.
 /// </summary>
-public sealed class PackageBuildConfiguration(IReadOnlyList<string> families, string? familyVersion)
+public sealed class PackageBuildConfiguration(IReadOnlyDictionary<string, NuGetVersion> explicitVersions)
 {
-    public IReadOnlyList<string> Families { get; } = families ?? throw new ArgumentNullException(nameof(families));
-
-    public string? FamilyVersion { get; } = familyVersion;
+    public IReadOnlyDictionary<string, NuGetVersion> ExplicitVersions { get; } =
+        explicitVersions ?? throw new ArgumentNullException(nameof(explicitVersions));
 }

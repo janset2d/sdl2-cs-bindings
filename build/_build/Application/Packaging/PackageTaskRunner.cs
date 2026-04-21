@@ -30,7 +30,6 @@ public sealed class PackageTaskRunner(
     DotNetBuildConfiguration dotNetBuildConfiguration,
     PackageBuildConfiguration packageBuildConfiguration,
     IPackageFamilySelector packageFamilySelector,
-    IPackageVersionResolver packageVersionResolver,
     IDotNetPackInvoker dotNetPackInvoker,
     INativePackageMetadataGenerator nativePackageMetadataGenerator,
     IReadmeMappingTableGenerator readmeMappingTableGenerator,
@@ -45,7 +44,6 @@ public sealed class PackageTaskRunner(
     private readonly DotNetBuildConfiguration _dotNetBuildConfiguration = dotNetBuildConfiguration ?? throw new ArgumentNullException(nameof(dotNetBuildConfiguration));
     private readonly PackageBuildConfiguration _packageBuildConfiguration = packageBuildConfiguration ?? throw new ArgumentNullException(nameof(packageBuildConfiguration));
     private readonly IPackageFamilySelector _packageFamilySelector = packageFamilySelector ?? throw new ArgumentNullException(nameof(packageFamilySelector));
-    private readonly IPackageVersionResolver _packageVersionResolver = packageVersionResolver ?? throw new ArgumentNullException(nameof(packageVersionResolver));
     private readonly IDotNetPackInvoker _dotNetPackInvoker = dotNetPackInvoker ?? throw new ArgumentNullException(nameof(dotNetPackInvoker));
     private readonly INativePackageMetadataGenerator _nativePackageMetadataGenerator = nativePackageMetadataGenerator ?? throw new ArgumentNullException(nameof(nativePackageMetadataGenerator));
     private readonly IReadmeMappingTableGenerator _readmeMappingTableGenerator = readmeMappingTableGenerator ?? throw new ArgumentNullException(nameof(readmeMappingTableGenerator));
@@ -62,19 +60,21 @@ public sealed class PackageTaskRunner(
         ArgumentNullException.ThrowIfNull(packageBuildConfiguration);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var versionResult = _packageVersionResolver.Resolve(packageBuildConfiguration.FamilyVersion);
-        if (versionResult.IsError())
+        var explicitVersions = packageBuildConfiguration.ExplicitVersions;
+        if (explicitVersions.Count == 0)
         {
-            throw new CakeException(versionResult.PackageVersionResolutionError.Message);
+            throw new CakeException(
+                "Package task requires at least one --explicit-version family=semver entry. " +
+                "Stage targets consume the resolved version mapping directly; scope and version " +
+                "are carried by the same mapping (ADR-003 §2.2 'scope = versions.keys').");
         }
 
-        var selectionResult = _packageFamilySelector.Select(packageBuildConfiguration.Families);
+        var selectionResult = _packageFamilySelector.Select([.. explicitVersions.Keys]);
         if (selectionResult.IsError())
         {
             throw new CakeException(selectionResult.PackageFamilySelectionError.Message);
         }
 
-        var version = versionResult.PackageVersion.Value;
         var families = selectionResult.Selection.Families;
         var expectedCommitSha = ResolveHeadCommitSha();
 
@@ -86,7 +86,8 @@ public sealed class PackageTaskRunner(
         foreach (var family in families)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            await PackFamilyAsync(family, version, expectedCommitSha, cancellationToken);
+            var familyVersion = explicitVersions[family.Name].ToNormalizedString();
+            await PackFamilyAsync(family, familyVersion, expectedCommitSha, cancellationToken);
         }
     }
 

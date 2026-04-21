@@ -46,14 +46,17 @@ public sealed class LocalArtifactSourceResolverTests
             .RunAsync(Arg.Any<PackageBuildConfiguration>(), Arg.Any<CancellationToken>())
             .Returns(callInfo =>
             {
+                // Post-B1.7 resolver: single multi-family pack call with the full ManifestVersionProvider
+                // mapping. Mock seeds a nupkg per mapping entry so the resolver's EnsurePackageExists
+                // post-assertion is satisfied.
                 var packageConfiguration = callInfo.ArgAt<PackageBuildConfiguration>(0);
-                var familyName = packageConfiguration.Families.Single();
-                var version = packageConfiguration.FamilyVersion ?? throw new InvalidOperationException("Expected family version.");
-
-                var family = concreteFamilies.Single(candidate => string.Equals(candidate.Name, familyName, StringComparison.OrdinalIgnoreCase));
-
-                SeedPackage(repo, FamilyIdentifierConventions.ManagedPackageId(family.Name), version);
-                SeedPackage(repo, FamilyIdentifierConventions.NativePackageId(family.Name), version);
+                foreach (var (familyName, familyVersion) in packageConfiguration.ExplicitVersions)
+                {
+                    var version = familyVersion.ToNormalizedString();
+                    var family = concreteFamilies.Single(candidate => string.Equals(candidate.Name, familyName, StringComparison.OrdinalIgnoreCase));
+                    SeedPackage(repo, FamilyIdentifierConventions.ManagedPackageId(family.Name), version);
+                    SeedPackage(repo, FamilyIdentifierConventions.NativePackageId(family.Name), version);
+                }
 
                 return Task.CompletedTask;
             });
@@ -63,8 +66,13 @@ public sealed class LocalArtifactSourceResolverTests
         await resolver.PrepareFeedAsync(repo.BuildContext);
         await resolver.WriteConsumerOverrideAsync(repo.BuildContext);
 
-        await packageTaskRunner.Received(concreteFamilies.Count)
-            .RunAsync(Arg.Any<PackageBuildConfiguration>(), Arg.Any<CancellationToken>());
+        // Resolver now packs all families in one invocation (ADR-003 §2.4 resolve-once + single
+        // Pack call). Pre-B1.7 the test asserted `.Received(concreteFamilies.Count)`; post-B1.7
+        // it's a single call carrying the full mapping.
+        await packageTaskRunner.Received(1)
+            .RunAsync(
+                Arg.Is<PackageBuildConfiguration>(config => config.ExplicitVersions.Count == concreteFamilies.Count),
+                Arg.Any<CancellationToken>());
 
         var propsPath = repo.Paths.GetSmokeLocalPropsFile();
         var file = repo.FileSystem.GetFile(propsPath);

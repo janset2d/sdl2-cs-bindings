@@ -1,5 +1,7 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Xml.Linq;
+using Build.Application.Versioning;
 using Build.Context;
 using Build.Context.Configs;
 using Build.Context.Models;
@@ -11,7 +13,6 @@ using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
-using NuGet.Versioning;
 
 namespace Build.Application.Packaging;
 
@@ -34,6 +35,8 @@ public sealed class LocalArtifactSourceResolver(
 
     public DirectoryPath LocalFeedPath => _pathService.PackagesOutput;
 
+    [SuppressMessage("Major Code Smell", "S3267:Loops should be simplified with LINQ expressions",
+        Justification = "The per-family loop carries multiple side effects (cancellation check, EnsurePackageExists for managed + native, props dictionary population). Replacing with LINQ would obscure the sequence + force a tuple-aggregation pattern for the dictionary build; keeping the imperative shape is clearer.")]
     public async Task PrepareFeedAsync(BuildContext context, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -41,28 +44,32 @@ public sealed class LocalArtifactSourceResolver(
 
         // SetupLocalDev local profile runs prerequisite pipeline before this resolver:
         // EnsureVcpkgDependencies -> Harvest -> ConsolidateHarvest.
-        // Resolver then runs the versioned family packaging loop only.
+        // Resolver resolves the per-family version mapping once through ManifestVersionProvider
+        // (ADR-003 §2.4 resolve-once invariant), packs all families in a single Pack invocation,
+        // then stamps local.props with the resolved versions.
         _cakeContext.EnsureDirectoryExists(_pathService.PackagesOutput);
 
         var concreteFamilies = ResolveConcreteFamilies();
         var timestampToken = DateTimeOffset.UtcNow.ToString("yyyyMMddTHHmmss", CultureInfo.InvariantCulture);
+        var suffix = string.Create(CultureInfo.InvariantCulture, $"local.{timestampToken}");
+
+        var manifestVersionProvider = new ManifestVersionProvider(_manifestConfig, suffix);
+        var scope = concreteFamilies
+            .Select(family => family.Name)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var mapping = await manifestVersionProvider.ResolveAsync(scope, cancellationToken);
+
+        await _packageTaskRunner.RunAsync(new PackageBuildConfiguration(mapping), cancellationToken);
 
         var resolvedVersionProperties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var family in concreteFamilies)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var version = BuildLocalVersion(family, timestampToken);
+            var version = mapping[family.Name].ToNormalizedString();
 
-            await _packageTaskRunner.RunAsync(
-                new PackageBuildConfiguration([family.Name], version),
-                cancellationToken);
-
-            var managedPackageId = FamilyIdentifierConventions.ManagedPackageId(family.Name);
-            var nativePackageId = FamilyIdentifierConventions.NativePackageId(family.Name);
-
-            EnsurePackageExists(managedPackageId, version);
-            EnsurePackageExists(nativePackageId, version);
+            EnsurePackageExists(FamilyIdentifierConventions.ManagedPackageId(family.Name), version);
+            EnsurePackageExists(FamilyIdentifierConventions.NativePackageId(family.Name), version);
 
             resolvedVersionProperties[FamilyIdentifierConventions.VersionPropertyName(family.Name)] = version;
         }
@@ -106,26 +113,6 @@ public sealed class LocalArtifactSourceResolver(
         }
 
         return concreteFamilies;
-    }
-
-    private string BuildLocalVersion(PackageFamilyConfig family, string timestampToken)
-    {
-        var library = _manifestConfig.LibraryManifests.SingleOrDefault(candidate =>
-            string.Equals(candidate.Name, family.LibraryRef, StringComparison.OrdinalIgnoreCase));
-
-        if (library is null)
-        {
-            throw new CakeException(
-                $"SetupLocalDev cannot derive local family version for '{family.Name}' because library_ref '{family.LibraryRef}' was not found in manifest library_manifests[].");
-        }
-
-        if (!NuGetVersion.TryParse(library.VcpkgVersion, out var upstreamVersion))
-        {
-            throw new CakeException(
-                $"SetupLocalDev cannot derive local family version for '{family.Name}' because upstream vcpkg_version '{library.VcpkgVersion}' is invalid.");
-        }
-
-        return $"{upstreamVersion.Major}.{upstreamVersion.Minor}.0-local.{timestampToken}";
     }
 
     private void EnsurePackageExists(string packageId, string version)

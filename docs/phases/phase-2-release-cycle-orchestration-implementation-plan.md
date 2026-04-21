@@ -1,9 +1,9 @@
 # Phase 2 — ADR-003 Release Lifecycle Orchestration: Implementation Plan
 
-**Date:** 2026-04-21 (v2 — post-review decisions locked; pre-implementation).
-**Status:** PLAN-LOCKED — pending slice A kickoff; no production code changed yet.
+**Date:** 2026-04-21 (v2.2 — Slices A + B1 committed; Slice D is next; master merge deferred to end-of-pass).
+**Status:** IN PROGRESS — Slices A + B1 landed on `feat/adr003-impl` (uncommitted intermediate sub-steps ran through 355/355 tests; end-of-B1 end-to-end `SetupLocalDev` green in 47s). Slice D (NativeSmoke extraction + Cake-native polish) queued next.
 **Owner:** Deniz İrgin (@denizirgin).
-**Authorship:** Drafted during plan-first session 2026-04-21; revised after three-reviewer critical pass on the same day.
+**Authorship:** Drafted during plan-first session 2026-04-21; revised after three-reviewer critical pass; updated as slices land.
 
 **Prerequisites (read these first):**
 
@@ -40,13 +40,37 @@ It does **not** re-derive:
 
 - **ADRs locked.** ADR-001 (v1), ADR-002 (v1), ADR-003 (v1.5 draft, direction-selected for PD-7 / PD-8 / PD-13).
 - **Canonical doc sweep complete** as of 2026-04-21 (per `plan.md` and `phase-2-adaptation-plan.md`).
-- **Build-host baseline:** 340/340 tests green at HEAD — confirmed 2026-04-21 via `dotnet test build/_build.Tests -c Release` (TUnit 1.33.0, .NET 9.0.12, win-x64).
-- **No production code has been changed** for ADR-003 implementation. Stage tasks still carry the pre-ADR-003 `[IsDependentOn(...)]` chain; `IPackageVersionResolver` still holds; `--family-version` + `--family` still active; `NativeSmoke` does not yet exist as a Cake target; `release.yml` does not yet exist.
+- **Build-host baseline pre-slice-A:** 340/340 tests green (TUnit 1.33.0, .NET 9.0.12, win-x64, Release). **Post-Slice-A + Slice B1 in-flight: 356/356 tests** (+16 new tests across the provider seam + ManifestVersionProvider + ResolveVersionsTaskRunner).
 - **Northstar decisions locked** (2026-04-21):
   - **Slice order:** A → B1 → D → B2 → C → E (six waves; B split into B1 contract migration and B2 graph rewrite).
   - **NativeSmoke scope this pass:** three RIDs only (`win-x64`, `linux-x64`, `osx-x64`). Remaining four RIDs (`win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64`) deferred to Phase 2b PA-2 witness work running in GitHub Actions (native arm64 / 32-bit hosts not available locally).
   - **Commit policy:** private `feat/adr003-impl` branch; one local commit per slice; end-of-pass **merge commit** (not squash) to master, preserving per-slice bisectability.
 - **This plan is the bridge from ADR prose to code.**
+
+### 2.1 Progress log (`feat/adr003-impl`)
+
+| Slice | Status | Commit | Landed |
+| --- | --- | --- | --- |
+| (pre-slice-A chore) | **DONE** | `282b707` | ADR-003 implementation plan + review prompts |
+| **Slice A** — IPackageVersionProvider seam + ExplicitVersionProvider + Cake.CMake spike | **DONE** | `36b1cd5` | Provider seam (+ 5 unit tests); Cake.CMake 1.4.0 binding spike **PASS** (Slice D will use the addin directly, no repo-local CMakeTool fallback needed); `.github/workflows/release.yml` skeleton with trigger stanzas + stub `resolve-versions-stub` job. |
+| **Slice B1** — Mapping contract migration (graph intact) | **DONE** | *filled at commit time* | All 11 sub-steps + opportunistic Cake-native JSON migration + end-to-end `SetupLocalDev --source=local --rid win-x64` green in 47s (15 nupkgs at per-family D-3seg versions). Graph intact (chain-based); B2 flattens. |
+| **Slice D**, **Slice B2**, **Slice C**, **Slice E** | not started | — | — |
+
+**Slice B1 sub-progress (worktree-level; one commit at close per plan §9):**
+
+- [x] B1.1 — `ManifestVersionProvider` + 5 unit tests. Derives `<UpstreamMajor>.<UpstreamMinor>.0-<suffix>` per family from manifest upstream versions; scope filter; invalid-suffix / missing-family / malformed-upstream-version guards.
+- [x] B1.2 — `ResolveVersionsTask` + `ResolveVersionsTaskRunner` (manifest source live; explicit / git-tag / meta-tag sources throw explicit "later-slice" messages) + `VersioningOptions` (`--version-source`, `--suffix`, `--scope`, `--explicit-version`) + `VersioningConfiguration` + `IPathService.GetResolveVersionsOutputFile()` + `ParsedArguments` extension + DI wire-up + 6 unit tests. End-to-end Windows smoke: `--target ResolveVersions --version-source=manifest --suffix=test.smoke` writes canonical 6-family flat JSON at `artifacts/resolve-versions/versions.json`.
+- [x] Cake-native JSON extension migration (opportunistic; ADR-003 §3.4 "Cake-native, repo-native"). Added `WriteJsonAsync<T>(FilePath, model, options?)` + `SerializeJson<T>(model, options?)` + `DefaultJsonOptions` to `CakeExtensions`. Migrated **all 5** pre-existing `JsonSerializer.Serialize + WriteAllTextAsync` call sites (`NativePackageMetadataGenerator`, `HarvestTaskRunner` ×2, `ConsolidateHarvestTaskRunner` ×2, plus the one in `ResolveVersionsTaskRunner`). Every public `CakeExtensions` member now carries XML doc. Zero raw `JsonSerializer.Serialize` calls outside `CakeExtensions` implementation itself. Deserialize migration remains open — see §11.
+- [ ] B1.3 — Rewrite `UpstreamVersionAlignmentValidator` to accept the mapping directly (collapses the `requestedFamilies.Count == 1` strict-minor special case).
+- [ ] B1.4 — Reshape `PackageBuildConfiguration`: retire `Families` + `FamilyVersion`; add `ExplicitVersions: IReadOnlyDictionary<string, NuGetVersion>`. Cascade into `PackageTaskRunner`, `PackageFamilySelector`, `PackageConsumerSmokeRunner`, `LocalArtifactSourceResolver`, `PreflightTaskRunner`, and their test fixtures.
+- [ ] B1.5 — Remove `--family` + `--family-version` CLI options. Parser rejects legacy flags with a migration-hint error.
+- [ ] B1.6 — Retire `IPackageVersionResolver` + `PackageVersionResolver` + related result types (`PackageVersionResolutionResult`, `PackageVersionResolutionError`, `PackageVersion` wrapper).
+- [ ] B1.7 — Rewire `LocalArtifactSourceResolver.PrepareFeedAsync` to consume `ManifestVersionProvider` (replaces today's inline manifest + timestamp version derivation).
+- [ ] B1.8 — DI registration cleanup: `IPackageVersionProvider` factory reads `PackageBuildConfiguration.ExplicitVersions`; remove `IPackageVersionResolver` registration.
+- [ ] B1.9 — `release.yml` grows real `resolve-versions` + `preflight` jobs consuming `--target ResolveVersions --version-source=manifest --suffix=ci.<run-id>` output via `needs:`.
+- [x] B1.10 — Full test fixture rewire across `PackageBuildConfiguration`-touching tests (Program composition-root, PackageTaskRunner, PreflightTaskRunner, PackageConsumerSmokeRunner, LocalArtifactSourceResolver, UpstreamVersionAlignmentValidator, ExplicitVersionProvider, FakeRepoBuilder, PathConstructionTests).
+- [x] B1.10-deserialize — Final Cake-native JSON cleanup. `CakeExtensions.DeserializeJson<T>(string, options?)` + `DeserializeJson<T>(ReadOnlySpan<byte>, options?)` static helpers landed with source-gen-compatible `JsonSerializerOptions` passthrough. 7 call sites migrated (`NativePackageMetadataValidator`, `ConsolidateHarvestTaskRunner`, `VcpkgManifestReader` ×2, `VcpkgCliProvider`, `CoverageBaselineReader` ×2). Zero raw `JsonSerializer` calls outside `CakeExtensions` implementation.
+- [x] B1.11 — Slice B1 worktree health check green + committed as single atomic slice commit.
 
 ---
 
@@ -496,7 +520,7 @@ One local commit on `feat/adr003-impl` per slice close. End-of-pass `git merge -
 - `CleanArtifacts` → `SetupLocalDev --source=local --rid win-x64` green on Windows (NativeSmoke now runs inside the old chain between Harvest and Consolidate).
 - Standalone `--target NativeSmoke --rid win-x64` invocation green against pre-existing harvest output.
 - `Inspect-HarvestedDependencies --rid win-x64` produces expected per-library dep dump matching WSL-playbook §5 bash output.
-- **Linux witness** (F-XPLAT mitigation): on WSL, `--target NativeSmoke --rid linux-x64` + `--target Inspect-HarvestedDependencies --rid linux-x64` green against a fresh local harvest run (`--target CleanArtifacts` → `--target SetupLocalDev --source=local --rid linux-x64`). ~15 minutes; de-risks slice B2 and E by catching Cake.CMake / SharpCompress / tar extraction platform issues early.
+- **Linux witness — early, before diagnostics** (F-XPLAT mitigation; Deniz direction 2026-04-21): on WSL, run `--target NativeSmoke --rid linux-x64` immediately after `NativeSmokeTaskRunner` + CMake tooling lands — before `Inspect-HarvestedDependencies` / `CleanArtifacts` / `CompileSolution` diagnostic tasks + `ConsolidateHarvestTask` default-ctor cleanup. If Cake.CMake binding / `NativeSmokeRunnerTool` process invocation breaks on Linux, we catch it with the smallest-possible set of moving parts. Then add the diagnostic utility tasks. Then re-run the full witness (`--target CleanArtifacts` → `--target NativeSmoke --rid linux-x64` → `--target Inspect-HarvestedDependencies --rid linux-x64`) as the slice close check. Two passes but each cheap (~5-10 minutes each); first-pass signal is maximum about the platform-sensitive infrastructure itself.
 
 **Close slice D with one commit on `feat/adr003-impl`:** `slice D: NativeSmoke task + Cake-native polish + Linux witness`.
 
@@ -828,6 +852,14 @@ Tracked as-of-plan-lock state; updated as slices land.
 - **`PackageConsumerSmoke` post-smoke assertions placement:** decided during slice C; default recommendation is inside the runner.
 - **Full-train meta-tag format:** Phase 2b Stream D-ci. Not this pass.
 - **`GenerateMatrixTask` slice placement (D vs B2):** decided at slice D open. Both are valid; D likely since the task is self-contained and emits JSON without graph-order implications.
+- **`PackageFamilySelector` inlining into `PackageTaskRunner`** *(opened Slice B1 closure, 2026-04-21)*. Post-B1 the selector's role narrows to "concrete-filter + topological-sort" with scope already arriving via the mapping's keys. Repository survey shows `IPackageFamilySelector` has exactly one production consumer (`PackageTaskRunner`) + one docstring reference (`PackageConsumerSmokeRunner`, stylistic). Deniz direction: inline into `PackageTaskRunner` if the selector is not required for any later slice (D / B2 / C). Check at Slice B2 open (after graph flatten, when the resolver composition is the only remaining selector caller) or Slice D open if a new consumer surfaces. Retire target: the interface + impl + `PackageFamilySelectionResult` + `PackageFamilySelectionError` + `PackageFamilySelection` model. Criterion-2 check: concrete filter is a one-liner; topological sort is a stable helper that can move into `PackageTaskRunner` privately or into `Domain/Packaging/FamilyTopologyHelpers.cs` as a static.
+- **`JsonSerializer.Deserialize` migration to Cake-native surface** *(opened Slice B1, 2026-04-21; scheduled as the final Slice B1 sub-step per Deniz direction)*. Parallel to the Serialize migration that landed opportunistically during B1.2. Seven remaining call sites use raw `JsonSerializer.Deserialize`:
+  - `NativePackageMetadataValidator` line 171 — ZIP-entry string → model (validator-time; no `ICakeContext` in ctor today).
+  - `ConsolidateHarvestTaskRunner` line 209 — file-content string → model (has `ICakeContext` via `BuildContext` parameter).
+  - `VcpkgManifestReader` lines 16, 30 — Infrastructure reader; ctor takes `IFileSystem` only.
+  - `VcpkgCliProvider` line 53 — Infrastructure adapter; stdout string → model.
+  - `CoverageBaselineReader` lines 25, 39 — Infrastructure reader; ctor takes `IFileSystem` only.
+  **Direction (locked at B1.3 kickoff, per Deniz):** helpers live on `CakeExtensions` (same home as `WriteJsonAsync` / `SerializeJson`); System.Text.Json source-generation compatibility must stay open for a future AOT-friendly pass (caller-supplied `JsonSerializerOptions.TypeInfoResolver = JsonContext.Default` must continue to work — no hard-coded reflection paths). Two shapes needed: `DeserializeJson<T>(string, options?)` and `DeserializeJson<T>(ReadOnlySpan<byte>, options?)`. Packaging: plain static helpers on `CakeExtensions` (not `ICakeContext` extensions) so Infrastructure readers (`VcpkgManifestReader`, `CoverageBaselineReader`) consume them without acquiring `ICakeContext` (DI bloat avoided). Land as the final Slice B1 sub-step, just before B1.11 health check.
 
 ### Previously open, now closed
 
@@ -843,6 +875,7 @@ Tracked as-of-plan-lock state; updated as slices land.
 - **F7 (Cake.CMake spike):** closed — slice A scope.
 - **F2 (LayerDependencyTests tightening):** closed — no tightening; `.Models.`/`.Results.`/`Tools.*` is canonical per ADR-002 §2.8 invariant #3.
 - **F3 (ConsolidateHarvestTaskRunner DI claim):** closed — factually wrong in first draft; corrected in §4.2 to "vestigial default-ctor fallback."
+- **G54 double-call (ExplicitVersionProvider + PreflightTaskRunner both invoke the same validator):** closed 2026-04-21 — locked as **defense-in-depth**. The same `IUpstreamVersionAlignmentValidator` implementation is called at provider-entry (reject bad operator input before the mapping ever reaches a stage) and at PreFlight stage-entry (gate the whole pipeline). ADR-003 §4 "every guardrail belongs to exactly one stage" is about fail semantics — PreFlight is the stage that fails the pipeline on G54 violation; provider-entry is early-fail-with-helpful-error, not a separate guardrail. One implementation, two call sites.
 
 ---
 
@@ -882,3 +915,5 @@ On end-of-pass merge to master, any drift between code and canonical docs is clo
 | --- | --- | --- |
 | 2026-04-21 | Initial authoring (v1) during plan-first session. Captured research trail, principle set, slice plan, test methodology, and open question residue. | Deniz İrgin + session collaboration |
 | 2026-04-21 | v2 — post three-reviewer critical pass. Split slice B into B1/B2 and reordered slices to A → B1 → D → B2 → C → E. Corrected `ConsolidateHarvestTaskRunner` DI factual error (is registered; fallback is vestigial). Pinned `ResolveVersions` JSON shape + `--explicit-version` repeated-option syntax. Moved Cake.CMake binding spike from slice D to slice A. Added Linux witness at slice D close. Locked NativeSmoke scope at 3 RIDs this pass (4 PA-2 rows Phase 2b). Corrected LayerDependencyTests DTO-exception framing (canonical permanent per ADR-002 §2.8, not transitional). Expanded retire inventory with PostFlight reference sweep + G54 validator rewrite. Expanded add inventory with `GenerateMatrix`, `Publish` stubs, `UpstreamVersionAlignmentValidator` rewrite. Locked commit policy: private `feat/adr003-impl` + end-of-pass merge-commit to master (not squash). Confirmed 340/340 baseline. | Deniz İrgin + session collaboration |
+| 2026-04-21 | v2.1 — progress-tracking update as Slice A committed (`36b1cd5`) and Slice B1 work-in-progress. Added §2.1 Progress log with per-slice status + Slice B1 sub-progress checklist. Captured the opportunistic Cake-native JSON extension migration that landed during B1.2 (`WriteJsonAsync` + `SerializeJson` + `DefaultJsonOptions` on `CakeExtensions`; 5 pre-existing `JsonSerializer.Serialize` call sites migrated; XML docs added to every public `CakeExtensions` member). Added `JsonSerializer.Deserialize` migration as a new open question in §11 with 7 call sites enumerated and decision framing (recommended path: static helpers on `CakeExtensions` alongside extension methods). No slice-order or scope changes; test count 340 → 356 in-flight. | Deniz İrgin + session collaboration |
+| 2026-04-21 | v2.2 — Slice B1 closure. All 11 B1 sub-steps landed in worktree (ManifestVersionProvider, ResolveVersionsTask + runner, UpstreamVersionAlignmentValidator rewrite, PackageBuildConfiguration reshape, legacy CLI retire, IPackageVersionResolver retire, LocalArtifactSourceResolver rewire to ManifestVersionProvider, DI update, release.yml real jobs, Cake-native JSON end-to-end including Deserialize). End-to-end `SetupLocalDev --source=local --rid win-x64` validated on Windows: 47s total, 15 nupkgs at per-family D-3seg versions (sdl2-core 2.32.0-local, sdl2-gfx 1.0.0-local, sdl2-image/mixer 2.8.0-local, sdl2-ttf 2.24.0-local), `Janset.Smoke.local.props` written correctly. Test count 340 → 355. G54 double-call closed as defense-in-depth. `PackageFamilySelector` inlining logged as open cleanup item (single production consumer; retire candidate post-graph-flatten). §6.3 Slice D updated: WSL witness runs early (after `NativeSmokeTaskRunner` + CMake tooling, before diagnostic utility tasks) per Deniz direction — maximizes platform-drift signal isolation. | Deniz İrgin + session collaboration |

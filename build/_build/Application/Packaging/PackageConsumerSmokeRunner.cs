@@ -11,6 +11,7 @@ using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
+using NuGet.Versioning;
 
 namespace Build.Application.Packaging;
 
@@ -22,7 +23,6 @@ public sealed class PackageConsumerSmokeRunner(
     ManifestConfig manifestConfig,
     DotNetBuildConfiguration dotNetBuildConfiguration,
     PackageBuildConfiguration packageBuildConfiguration,
-    IPackageVersionResolver packageVersionResolver,
     IProjectMetadataReader projectMetadataReader) : IPackageConsumerSmokeRunner
 {
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
@@ -32,7 +32,6 @@ public sealed class PackageConsumerSmokeRunner(
     private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
     private readonly DotNetBuildConfiguration _dotNetBuildConfiguration = dotNetBuildConfiguration ?? throw new ArgumentNullException(nameof(dotNetBuildConfiguration));
     private readonly PackageBuildConfiguration _packageBuildConfiguration = packageBuildConfiguration ?? throw new ArgumentNullException(nameof(packageBuildConfiguration));
-    private readonly IPackageVersionResolver _packageVersionResolver = packageVersionResolver ?? throw new ArgumentNullException(nameof(packageVersionResolver));
     private readonly IProjectMetadataReader _projectMetadataReader = projectMetadataReader ?? throw new ArgumentNullException(nameof(projectMetadataReader));
 
     /// <summary>
@@ -63,7 +62,7 @@ public sealed class PackageConsumerSmokeRunner(
         EnsureSelectionSupportsCurrentSmokeScope(smokePackages);
         await EnsureSmokeCsprojsMatchManifestScopeAsync(smokePackages, cancellationToken);
 
-        var version = ResolveSmokeVersionAndEnsureFeed(smokePackages);
+        var explicitVersions = ResolveSmokeVersionMappingAndEnsureFeed(smokePackages);
 
         // Kill any lingering build-server processes (VBCSCompiler, MSBuild worker nodes with
         // /nodeReuse:true, Razor) from prior invocations before we try to delete bin/obj —
@@ -92,7 +91,7 @@ public sealed class PackageConsumerSmokeRunner(
         // 1. Compile-only sanity for the netstandard2.0 consumer slice.
         //    netstandard2.0 is a contract, not a runtime — if this library compiles
         //    against our package, the netstandard2.0 consumer surface is validated.
-        RunCompileSanity(compileSanityProject, smokePackages, version, packagesCache);
+        RunCompileSanity(compileSanityProject, smokePackages, explicitVersions, packagesCache);
 
         // 2. Per-TFM TUnit smoke for executable TFMs. TFM list comes from MSBuild
         //    evaluation of the smoke csproj (inherits $(ExecutableTargetFrameworks)
@@ -122,7 +121,7 @@ public sealed class PackageConsumerSmokeRunner(
             // Reset build servers between TFMs to keep the multi-target sequence stable.
             ShutdownDotNetBuildServers();
 
-            RunSmokeForTfm(smokeProject, smokePackages, version, packagesCache, tfm);
+            RunSmokeForTfm(smokeProject, smokePackages, explicitVersions, packagesCache, tfm);
         }
     }
 
@@ -220,79 +219,57 @@ public sealed class PackageConsumerSmokeRunner(
 
     private void EnsureSelectionSupportsCurrentSmokeScope(IReadOnlyList<SmokePackage> smokePackages)
     {
-        if (_packageBuildConfiguration.Families.Count == 0)
+        var explicitVersions = _packageBuildConfiguration.ExplicitVersions;
+        if (explicitVersions.Count == 0)
         {
             return;
         }
 
-        var selectedFamilies = _packageBuildConfiguration.Families.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var missingFamilies = smokePackages
-            .Where(package => !selectedFamilies.Contains(package.FamilyName))
+            .Where(package => !explicitVersions.ContainsKey(package.FamilyName))
             .Select(package => package.FamilyName)
             .ToList();
 
         if (missingFamilies.Count != 0)
         {
             throw new CakeException(
-                $"PackageConsumerSmoke currently validates the concrete package-consumer set {DescribeSmokeScope(smokePackages)}. Run with no --family filter, or include the full smoke scope explicitly. Missing: {string.Join(", ", missingFamilies)}. Placeholder families (managed_project or native_project null) are automatically excluded.");
+                $"PackageConsumerSmoke currently validates the concrete package-consumer set {DescribeSmokeScope(smokePackages)}. Run without --explicit-version to use the SetupLocalDev-written local.props default, or include the full smoke scope in --explicit-version. Missing: {string.Join(", ", missingFamilies)}. Placeholder families (managed_project or native_project null) are automatically excluded.");
         }
     }
 
     /// <summary>
-    /// Resolves the smoke version and verifies the feed is ready, handling the two valid
-    /// version sources:
+    /// Resolves the smoke version mapping and verifies the feed is ready. Two valid paths:
     /// <list type="number">
-    ///   <item><description><c>--family-version</c> explicit (PD-8 manual-escape-hatch):
-    ///     pack-existence asserted at exact version, value returned for per-family
-    ///     <c>-p:</c> overrides.</description></item>
-    ///   <item><description>No flag (default, post-ADR-001 local-dev path): trust
+    ///   <item><description>Operator-supplied <c>--explicit-version family=semver</c> entries
+    ///     (PD-8 manual-escape-hatch). Exact per-family pack-existence asserted; mapping
+    ///     returned for per-family <c>-p:</c> overrides.</description></item>
+    ///   <item><description>Empty mapping (default, post-ADR-001 local-dev path): trust
     ///     SetupLocalDev's <c>Janset.Smoke.local.props</c> as the version source of truth.
     ///     The smoke csproj auto-imports it via <c>tests/smoke-tests/Directory.Build.props</c>;
     ///     shared <c>Janset.Smoke.targets</c> expands exact-pin bracket-notation
     ///     <c>PackageReference</c> entries from the per-family version properties. Runner
     ///     only verifies the feed has at least one packed nupkg per concrete family —
-    ///     MSBuild + smoke guards (JNSMK001..007) handle the rest at build time.
-    ///     </description></item>
+    ///     MSBuild + smoke guards (JNSMK001..007) handle the rest at build time.</description></item>
     /// </list>
-    /// See phase-2-adaptation-plan.md PD-13 for the retirement-review tracking of the
-    /// <c>--family-version</c> flag itself.
     /// </summary>
-    private string? ResolveSmokeVersionAndEnsureFeed(IReadOnlyList<SmokePackage> smokePackages)
+    private IReadOnlyDictionary<string, NuGetVersion>? ResolveSmokeVersionMappingAndEnsureFeed(IReadOnlyList<SmokePackage> smokePackages)
     {
-        var version = ResolveOptionalVersion();
-        if (version is not null)
+        var explicitVersions = _packageBuildConfiguration.ExplicitVersions;
+        if (explicitVersions.Count > 0)
         {
-            EnsurePackageArtifactsExist(smokePackages, version);
-        }
-        else
-        {
-            EnsureLocalPropsFlowIsReady(smokePackages);
+            EnsurePackageArtifactsExist(smokePackages, explicitVersions);
+            return explicitVersions;
         }
 
-        return version;
+        EnsureLocalPropsFlowIsReady(smokePackages);
+        return null;
     }
 
-    private string? ResolveOptionalVersion()
-    {
-        if (string.IsNullOrWhiteSpace(_packageBuildConfiguration.FamilyVersion))
-        {
-            return null;
-        }
-
-        var result = _packageVersionResolver.Resolve(_packageBuildConfiguration.FamilyVersion);
-        if (result.IsError())
-        {
-            throw new CakeException(
-                $"PackageConsumerSmoke received an invalid --family-version. {result.PackageVersionResolutionError.Message}");
-        }
-
-        return result.PackageVersion.Value;
-    }
-
-    private void EnsurePackageArtifactsExist(IReadOnlyList<SmokePackage> smokePackages, string version)
+    private void EnsurePackageArtifactsExist(IReadOnlyList<SmokePackage> smokePackages, IReadOnlyDictionary<string, NuGetVersion> explicitVersions)
     {
         foreach (var smokePackage in smokePackages)
         {
+            var version = explicitVersions[smokePackage.FamilyName].ToNormalizedString();
             EnsurePackageExists(smokePackage.ManagedPackageId, version);
             EnsurePackageExists(smokePackage.NativePackageId, version);
         }
@@ -304,7 +281,7 @@ public sealed class PackageConsumerSmokeRunner(
         if (!_cakeContext.FileExists(packagePath))
         {
             throw new CakeException(
-                $"PackageConsumerSmoke expected local feed package '{packagePath.GetFilename().FullPath}' in '{_pathService.PackagesOutput.FullPath}', but it was not found. Run Package first or use a matching --family-version.");
+                $"PackageConsumerSmoke expected local feed package '{packagePath.GetFilename().FullPath}' in '{_pathService.PackagesOutput.FullPath}', but it was not found. Run Package first or use a matching --explicit-version entry.");
         }
     }
 
@@ -326,7 +303,7 @@ public sealed class PackageConsumerSmokeRunner(
             throw new CakeException(
                 $"PackageConsumerSmoke expected SetupLocalDev's version-override file at '{localPropsFile.FullPath}' but it is missing. " +
                 "Run `SetupLocalDev --source=local --rid <rid>` first to pack the concrete family set and write the override, " +
-                "or supply an explicit `--family-version=<semver>` for the PD-8 manual-escape-hatch path.");
+                "or supply explicit `--explicit-version family=semver` entries for the PD-8 manual-escape-hatch path.");
         }
 
         foreach (var smokePackage in smokePackages)
@@ -344,11 +321,11 @@ public sealed class PackageConsumerSmokeRunner(
         {
             throw new CakeException(
                 $"PackageConsumerSmoke expected at least one '{packageId}.*.nupkg' in '{_pathService.PackagesOutput.FullPath}'. " +
-                "Run `SetupLocalDev --source=local --rid <rid>` to populate the local feed, or supply `--family-version` pointing at a pre-packed feed (PD-8).");
+                "Run `SetupLocalDev --source=local --rid <rid>` to populate the local feed, or supply `--explicit-version family=semver` entries pointing at a pre-packed feed (PD-8).");
         }
     }
 
-    private void RunCompileSanity(FilePath projectPath, IReadOnlyList<SmokePackage> smokePackages, string? version, DirectoryPath packagesCache)
+    private void RunCompileSanity(FilePath projectPath, IReadOnlyList<SmokePackage> smokePackages, IReadOnlyDictionary<string, NuGetVersion>? explicitVersions, DirectoryPath packagesCache)
     {
         var arguments = new ProcessArgumentBuilder()
             .Append("build")
@@ -358,12 +335,12 @@ public sealed class PackageConsumerSmokeRunner(
 
         AppendBuildServerSuppressionFlags(arguments);
         AppendFeedArguments(arguments, packagesCache);
-        AppendSmokePackageVersionProperties(arguments, smokePackages, version);
+        AppendSmokePackageVersionProperties(arguments, smokePackages, explicitVersions);
 
         RunDotNetCommand("compile-sanity netstandard2.0 consumer", arguments);
     }
 
-    private void RunSmokeForTfm(FilePath projectPath, IReadOnlyList<SmokePackage> smokePackages, string? version, DirectoryPath packagesCache, string tfm)
+    private void RunSmokeForTfm(FilePath projectPath, IReadOnlyList<SmokePackage> smokePackages, IReadOnlyDictionary<string, NuGetVersion>? explicitVersions, DirectoryPath packagesCache, string tfm)
     {
         var arguments = new ProcessArgumentBuilder()
             .Append("test")
@@ -377,7 +354,7 @@ public sealed class PackageConsumerSmokeRunner(
 
         AppendBuildServerSuppressionFlags(arguments);
         AppendFeedArguments(arguments, packagesCache);
-        AppendSmokePackageVersionProperties(arguments, smokePackages, version);
+        AppendSmokePackageVersionProperties(arguments, smokePackages, explicitVersions);
 
         RunDotNetCommand($"test package-smoke ({tfm})", arguments);
     }
@@ -393,27 +370,33 @@ public sealed class PackageConsumerSmokeRunner(
     }
 
     /// <summary>
-    /// When the operator supplied an explicit <c>--family-version</c> (PD-8 path), forward
-    /// it as per-family <c>-p:Janset&lt;Generation&gt;&lt;Role&gt;PackageVersion=&lt;version&gt;</c>
-    /// overrides so the same single value is pinned across every family in the smoke scope.
-    /// When the flag is absent (default local-dev path), the smoke csproj's auto-import of
+    /// When the operator supplied <c>--explicit-version family=semver</c> entries (PD-8 path
+    /// or CI mapping handoff), forward each entry as a per-family
+    /// <c>-p:Janset&lt;Generation&gt;&lt;Role&gt;PackageVersion=&lt;version&gt;</c> override
+    /// so the consumer csproj restores the exact-matching nupkg set. When the mapping is null
+    /// (default local-dev path), the smoke csproj's auto-import of
     /// <c>Janset.Smoke.local.props</c> provides per-family version properties — runner stays
-    /// silent here so it does not override the local.props values with a single shared
-    /// version (which would violate D-3seg G54 across families anyway).
+    /// silent here so it does not override the local.props values.
     /// </summary>
-    private static void AppendSmokePackageVersionProperties(ProcessArgumentBuilder arguments, IReadOnlyList<SmokePackage> smokePackages, string? version)
+    private static void AppendSmokePackageVersionProperties(
+        ProcessArgumentBuilder arguments,
+        IReadOnlyList<SmokePackage> smokePackages,
+        IReadOnlyDictionary<string, NuGetVersion>? explicitVersions)
     {
         ArgumentNullException.ThrowIfNull(arguments);
         ArgumentNullException.ThrowIfNull(smokePackages);
 
-        if (string.IsNullOrEmpty(version))
+        if (explicitVersions is null || explicitVersions.Count == 0)
         {
             return;
         }
 
         foreach (var smokePackage in smokePackages)
         {
-            arguments.Append($"-p:{smokePackage.VersionPropertyName}={version}");
+            if (explicitVersions.TryGetValue(smokePackage.FamilyName, out var version))
+            {
+                arguments.Append($"-p:{smokePackage.VersionPropertyName}={version.ToNormalizedString()}");
+            }
         }
     }
 

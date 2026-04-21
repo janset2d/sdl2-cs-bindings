@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Build.Context;
 using Build.Context.Models;
 using Cake.Core.IO;
 
@@ -13,7 +14,7 @@ public sealed class VcpkgManifestReader(IFileSystem fileSystem) : IVcpkgManifest
         ArgumentException.ThrowIfNullOrWhiteSpace(jsonContent);
 
         return DeserializeManifest(
-            () => JsonSerializer.Deserialize<VcpkgManifest>(jsonContent),
+            () => CakeExtensions.DeserializeJson<VcpkgManifest>(jsonContent),
             nameof(jsonContent));
     }
 
@@ -27,7 +28,7 @@ public sealed class VcpkgManifestReader(IFileSystem fileSystem) : IVcpkgManifest
         stream.CopyTo(buffer);
 
         return DeserializeManifest(
-            () => JsonSerializer.Deserialize<VcpkgManifest>(buffer.ToArray()),
+            () => CakeExtensions.DeserializeJson<VcpkgManifest>(buffer.ToArray()),
             nameof(path));
     }
 

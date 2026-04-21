@@ -97,6 +97,14 @@ public interface IPathService
     FilePath GetSmokeLocalPropsFile();
 
     /// <summary>
+    /// artifacts/resolve-versions/versions.json — flat {family-id: semver-string} JSON mapping
+    /// emitted by the <c>ResolveVersions</c> task. CI downstream jobs consume this file via
+    /// <c>needs:</c> outputs; local operators can inspect it for debugging. Shape pinned per
+    /// ADR-003 §3.1 + plan §5.3 (the canonical CLI / JSON / provider contract).
+    /// </summary>
+    FilePath GetResolveVersionsOutputFile();
+
+    /// <summary>
     /// Root for the smoke / example consumer surface. Individual smoke projects live under
     /// a family-scoped subdirectory (<c>package-smoke/</c> today, <c>examples/</c> future).
     /// </summary>

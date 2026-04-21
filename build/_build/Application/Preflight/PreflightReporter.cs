@@ -142,34 +142,20 @@ public sealed class PreflightReporter(ICakeContext cakeContext)
 
         foreach (var check in validation.Checks)
         {
-            switch (check.Status)
+            if (check.Status == UpstreamVersionAlignmentCheckStatus.Match)
             {
-                case UpstreamVersionAlignmentCheckStatus.Match:
-                    Log.Information(
-                        "  ✅ {0}: family version '{1}' aligns with upstream '{2}'.",
-                        check.FamilyIdentifier,
-                        check.FamilyVersion,
-                        check.UpstreamVersion);
-                    break;
-
-                case UpstreamVersionAlignmentCheckStatus.SkippedNoFamilyVersion:
-                    Log.Information(
-                        "  ℹ️  {0}: skipped (no --family-version supplied).",
-                        check.FamilyIdentifier);
-                    break;
-
-                case UpstreamVersionAlignmentCheckStatus.SkippedMinorAlignmentForMultiFamilyPack:
-                    Log.Information(
-                        "  ℹ️  {0}: major aligned for multi-family pack; strict minor alignment deferred until per-family version override support.",
-                        check.FamilyIdentifier);
-                    break;
-
-                default:
-                    Log.Error(
-                        "  ❌ {0}: {1}",
-                        check.FamilyIdentifier,
-                        check.ErrorMessage ?? "unknown upstream alignment failure");
-                    break;
+                Log.Information(
+                    "  ✅ {0}: family version '{1}' aligns with upstream '{2}'.",
+                    check.FamilyIdentifier,
+                    check.FamilyVersion,
+                    check.UpstreamVersion);
+            }
+            else
+            {
+                Log.Error(
+                    "  ❌ {0}: {1}",
+                    check.FamilyIdentifier,
+                    check.ErrorMessage ?? "unknown upstream alignment failure");
             }
         }
 

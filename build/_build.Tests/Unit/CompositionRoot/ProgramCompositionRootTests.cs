@@ -2,6 +2,7 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Reflection;
 using Build.Application.Packaging;
+using Build.Application.Versioning;
 using Build.Context;
 using Build.Context.Models;
 using Build.Context.Options;
@@ -166,7 +167,7 @@ public sealed class ProgramCompositionRootTests
         var packageOutputValidator = provider.GetRequiredService<IPackageOutputValidator>();
         var projectMetadataReader = provider.GetRequiredService<IProjectMetadataReader>();
         var packageFamilySelector = provider.GetRequiredService<IPackageFamilySelector>();
-        var packageVersionResolver = provider.GetRequiredService<IPackageVersionResolver>();
+        var packageVersionProvider = provider.GetRequiredService<IPackageVersionProvider>();
         var dotNetPackInvoker = provider.GetRequiredService<IDotNetPackInvoker>();
         var packageTaskRunner = provider.GetRequiredService<IPackageTaskRunner>();
         var packageConsumerSmokeRunner = provider.GetRequiredService<IPackageConsumerSmokeRunner>();
@@ -182,7 +183,7 @@ public sealed class ProgramCompositionRootTests
         await Assert.That(packageOutputValidator.GetType()).IsEqualTo(typeof(PackageOutputValidator));
         await Assert.That(projectMetadataReader.GetType()).IsEqualTo(typeof(ProjectMetadataReader));
         await Assert.That(packageFamilySelector.GetType()).IsEqualTo(typeof(PackageFamilySelector));
-        await Assert.That(packageVersionResolver.GetType()).IsEqualTo(typeof(PackageVersionResolver));
+        await Assert.That(packageVersionProvider.GetType()).IsEqualTo(typeof(ExplicitVersionProvider));
         await Assert.That(dotNetPackInvoker.GetType()).IsEqualTo(typeof(DotNetPackInvoker));
         await Assert.That(packageTaskRunner.GetType()).IsEqualTo(typeof(PackageTaskRunner));
         await Assert.That(packageConsumerSmokeRunner.GetType()).IsEqualTo(typeof(PackageConsumerSmokeRunner));
@@ -216,7 +217,7 @@ public sealed class ProgramCompositionRootTests
         var packageOutputValidator = provider.GetRequiredService<IPackageOutputValidator>();
         var projectMetadataReader = provider.GetRequiredService<IProjectMetadataReader>();
         var packageFamilySelector = provider.GetRequiredService<IPackageFamilySelector>();
-        var packageVersionResolver = provider.GetRequiredService<IPackageVersionResolver>();
+        var packageVersionProvider = provider.GetRequiredService<IPackageVersionProvider>();
         var dotNetPackInvoker = provider.GetRequiredService<IDotNetPackInvoker>();
         var packageTaskRunner = provider.GetRequiredService<IPackageTaskRunner>();
         var packageConsumerSmokeRunner = provider.GetRequiredService<IPackageConsumerSmokeRunner>();
@@ -230,7 +231,7 @@ public sealed class ProgramCompositionRootTests
         await Assert.That(packageOutputValidator.GetType()).IsEqualTo(typeof(PackageOutputValidator));
         await Assert.That(projectMetadataReader.GetType()).IsEqualTo(typeof(ProjectMetadataReader));
         await Assert.That(packageFamilySelector.GetType()).IsEqualTo(typeof(PackageFamilySelector));
-        await Assert.That(packageVersionResolver.GetType()).IsEqualTo(typeof(PackageVersionResolver));
+        await Assert.That(packageVersionProvider.GetType()).IsEqualTo(typeof(ExplicitVersionProvider));
         await Assert.That(dotNetPackInvoker.GetType()).IsEqualTo(typeof(DotNetPackInvoker));
         await Assert.That(packageTaskRunner.GetType()).IsEqualTo(typeof(PackageTaskRunner));
         await Assert.That(packageConsumerSmokeRunner.GetType()).IsEqualTo(typeof(PackageConsumerSmokeRunner));
@@ -392,11 +393,13 @@ public sealed class ProgramCompositionRootTests
             VcpkgDir: null,
             VcpkgInstalledDir: null,
             Library: [],
-            Family: [],
-            FamilyVersion: null,
             Source: source,
             Rid: rid,
-            Dll: []);
+            Dll: [],
+            VersionSource: null,
+            Suffix: null,
+            Scope: [],
+            ExplicitVersion: []);
     }
 
     private static ManifestConfig CreateCompositionRootManifest(string strategy, string triplet)

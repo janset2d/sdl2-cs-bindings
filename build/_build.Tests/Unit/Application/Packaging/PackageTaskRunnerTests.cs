@@ -11,6 +11,7 @@ using Build.Tests.Fixtures;
 using Cake.Core.IO;
 using Cake.Testing;
 using NSubstitute;
+using NuGet.Versioning;
 
 namespace Build.Tests.Unit.Application.Packaging;
 
@@ -50,8 +51,6 @@ public sealed class PackageTaskRunnerTests
         packageFamilySelector.Select(Arg.Any<IReadOnlyList<string>>())
             .Returns(new PackageFamilySelection([family]));
 
-        var packageVersionResolver = Substitute.For<IPackageVersionResolver>();
-        packageVersionResolver.Resolve(Arg.Any<string?>()).Returns(new PackageVersion("1.2.3"));
 
         var dotNetPackInvoker = Substitute.For<IDotNetPackInvoker>();
         dotNetPackInvoker.Pack(
@@ -98,9 +97,8 @@ public sealed class PackageTaskRunnerTests
             repo.Paths,
             manifest,
             new DotNetBuildConfiguration("Release"),
-            new PackageBuildConfiguration(["sdl2-core"], "1.2.3"),
+            new PackageBuildConfiguration(new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase) { ["sdl2-core"] = NuGetVersion.Parse("1.2.3") }),
             packageFamilySelector,
-            packageVersionResolver,
             dotNetPackInvoker,
             nativePackageMetadataGenerator,
             readmeMappingTableGenerator,
@@ -202,8 +200,6 @@ public sealed class PackageTaskRunnerTests
         packageFamilySelector.Select(Arg.Any<IReadOnlyList<string>>())
             .Returns(new PackageFamilySelection([family]));
 
-        var packageVersionResolver = Substitute.For<IPackageVersionResolver>();
-        packageVersionResolver.Resolve(Arg.Any<string?>()).Returns(new PackageVersion("1.2.3"));
 
         var dotNetPackInvoker = Substitute.For<IDotNetPackInvoker>();
         dotNetPackInvoker.Pack(Arg.Any<FilePath>(), Arg.Any<DotNetPackInvocation>(), Arg.Any<bool>(), Arg.Any<bool>())
@@ -241,9 +237,8 @@ public sealed class PackageTaskRunnerTests
             repo.Paths,
             manifest,
             new DotNetBuildConfiguration("Release"),
-            new PackageBuildConfiguration(["sdl2-core"], "1.2.3"),
+            new PackageBuildConfiguration(new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase) { ["sdl2-core"] = NuGetVersion.Parse("1.2.3") }),
             packageFamilySelector,
-            packageVersionResolver,
             dotNetPackInvoker,
             nativePackageMetadataGenerator,
             readmeMappingTableGenerator,

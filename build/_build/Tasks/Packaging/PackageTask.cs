@@ -20,30 +20,30 @@ public sealed class PackageTask(
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
 
     /// <summary>
-    /// Pack is only meaningful when an explicit <c>--family-version</c> is supplied (PostFlight
-    /// release chain or PD-8 manual-escape-hatch path). When the flag is absent, this task is
-    /// auto-skipped — the common local-dev case runs <c>SetupLocalDev</c> beforehand (which
-    /// produces the feed + <c>Janset.Smoke.local.props</c> on its own code path), then calls
-    /// <c>PackageConsumerSmoke</c> directly. With ConsumerSmoke still declaring a transitive
-    /// dependency on this task, the skip here is what lets the standalone smoke invocation
-    /// reach its runner without triggering a duplicate pack.
-    ///
-    /// Silent skip trade-off: a user invoking <c>--target Package</c> directly without
-    /// <c>--family-version</c> sees the task skipped rather than an explicit error. This is
-    /// acceptable because the guidance path for local packs is <c>SetupLocalDev --source=local</c>;
-    /// release-path <c>PostFlight</c> always provides the flag and never hits this skip.
-    /// See phase-2-adaptation-plan.md PD-13 for the broader flag-retirement review.
+    /// Pack is only meaningful when the operator (or a CI <c>resolve-versions</c> job output)
+    /// supplies at least one <c>--explicit-version family=semver</c> entry. When the mapping
+    /// is empty, this task is auto-skipped so standalone <c>PackageConsumerSmoke</c> invocations
+    /// that transit Package via the legacy <c>[IsDependentOn]</c> chain can reach their runner
+    /// without triggering a duplicate pack. The graph-flattening in Slice B2 retires that
+    /// transit dependency; the skip here preserves B1-era behaviour until then.
+    /// <para>
+    /// Local-dev packs route through <c>SetupLocalDev --source=local</c>, which resolves a
+    /// local-suffixed mapping via <c>ManifestVersionProvider</c> and calls the runner directly
+    /// with a populated <see cref="PackageBuildConfiguration"/> (never hitting this task).
+    /// Direct <c>--target Package</c> without any <c>--explicit-version</c> is a misuse that
+    /// the skip surfaces visibly in the Cake log rather than failing opaquely.
+    /// </para>
     /// </summary>
     public override bool ShouldRun(BuildContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        if (!string.IsNullOrWhiteSpace(_packageBuildConfiguration.FamilyVersion))
+        if (_packageBuildConfiguration.ExplicitVersions.Count > 0)
         {
             return true;
         }
 
-        _log.Information("Package task skipped: no --family-version supplied. Local-dev packs route through SetupLocalDev; PostFlight release chain always supplies the flag.");
+        _log.Information("Package task skipped: no --explicit-version mapping supplied. Local-dev packs route through SetupLocalDev; CI resolves versions via the ResolveVersions target and passes them through --explicit-version.");
         return false;
     }
 

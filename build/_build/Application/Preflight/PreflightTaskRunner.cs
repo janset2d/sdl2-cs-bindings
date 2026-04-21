@@ -53,7 +53,7 @@ public sealed class PreflightTaskRunner(
         _preflightReporter.ReportCoreLibraryIdentity(coreLibraryIdentityValidation.Validation);
         coreLibraryIdentityValidation.OnError(error => ThrowPreflightFailure(context.Log, "Core library identity", error));
 
-        var upstreamVersionAlignmentValidation = _upstreamVersionAlignmentValidator.Validate(_manifestConfig, _packageBuildConfiguration);
+        var upstreamVersionAlignmentValidation = _upstreamVersionAlignmentValidator.Validate(_manifestConfig, _packageBuildConfiguration.ExplicitVersions);
         _preflightReporter.ReportUpstreamVersionAlignment(upstreamVersionAlignmentValidation.Validation);
         upstreamVersionAlignmentValidation.OnError(error => ThrowPreflightFailure(context.Log, "Upstream version alignment", error));
 

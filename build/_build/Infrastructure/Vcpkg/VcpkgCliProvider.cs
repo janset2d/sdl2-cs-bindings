@@ -1,7 +1,7 @@
 #pragma warning disable CA1031
 
 using System.Collections.Immutable;
-using System.Text.Json;
+using Build.Context;
 using Build.Domain.Harvesting.Models;
 using Build.Domain.Harvesting.Results;
 using Build.Domain.Paths;
@@ -50,7 +50,7 @@ public sealed class VcpkgCliProvider : IPackageInfoProvider
                 return new PackageInfoError(message);
             }
 
-            var vcpkgInstalledOutput = JsonSerializer.Deserialize<VcpkgInstalledPackageOutput>(vcpkgJsonOutput);
+            var vcpkgInstalledOutput = CakeExtensions.DeserializeJson<VcpkgInstalledPackageOutput>(vcpkgJsonOutput);
             if (vcpkgInstalledOutput == null || !vcpkgInstalledOutput.Results.TryGetValue(packageKey, out var packageResult))
             {
                 var message = $"Failed to deserialize or find package info for {packageKey} in vcpkg output.";

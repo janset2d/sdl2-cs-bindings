@@ -198,11 +198,13 @@ public sealed class FakeRepoBuilder
             VcpkgDir: null,
             VcpkgInstalledDir: null,
             Library: _libraries.ToList(),
-            Family: [],
-            FamilyVersion: null,
             Source: "local",
             Rid: _rid ?? string.Empty,
-            Dll: []);
+            Dll: [],
+            VersionSource: null,
+            Suffix: null,
+            Scope: [],
+            ExplicitVersion: []);
 
         return new PathService(new RepositoryConfiguration(_repoRoot), parsedArguments, new FakeLog());
     }

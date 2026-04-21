@@ -17,11 +17,13 @@ public class PathConstructionTests
             VcpkgDir: null,
             VcpkgInstalledDir: null,
             Library: [],
-            Family: [],
-            FamilyVersion: null,
             Source: "local",
             Rid: "",
-            Dll: []);
+            Dll: [],
+            VersionSource: null,
+            Suffix: null,
+            Scope: [],
+            ExplicitVersion: []);
         var log = Substitute.For<ICakeLog>();
         return new PathService(repoConfig, parsedArgs, log);
     }

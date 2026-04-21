@@ -1,18 +1,18 @@
 # Janset.SDL2 / Janset.SDL3 release pipeline.
 #
-# Skeleton introduced during ADR-003 Slice A. Trigger shape + single stub job land first;
-# real jobs grow slice-by-slice alongside the Cake refactor:
+# Grows slice-by-slice alongside the ADR-003 Cake refactor:
 #
-#   Slice B1: resolve-versions + preflight jobs become real (manifest source; --explicit-version
-#             pipe from resolve-versions output).
-#   Slice D:  generate-matrix, harvest (RID matrix), native-smoke (3-RID matrix this pass),
-#             consolidate-harvest jobs become real.
-#   Slice C:  pack and consumer-smoke (RID matrix re-entry) jobs become real.
-#   Slice E:  publish-staging + publish-public stub jobs added; full playbook mirror validated.
+#   Slice A (landed): trigger stanzas + stub resolve-versions-stub job.
+#   Slice B1 (current): resolve-versions + preflight jobs run real Cake targets.
+#                       Pack / NativeSmoke / ConsumerSmoke / Publish still pending.
+#   Slice D:  generate-matrix + harvest + native-smoke + consolidate-harvest jobs.
+#   Slice C:  pack + consumer-smoke (RID matrix re-entry) jobs.
+#   Slice E:  publish-staging + publish-public stub jobs; playbook mirror validated.
 #
-# All jobs invoke build-host Cake targets. Per ADR-003 §3.1 the build host resolves versions
-# and owns policy; CI supplies trigger context only. Any `run:` block that grows beyond a
-# single Cake invocation or artifact up/download is a review flag.
+# Every `run:` block invokes a build-host Cake target (or minimal wiring logic — artifact
+# download, JSON → --explicit-version expansion). Per ADR-003 §3.1 the build host owns policy;
+# CI supplies trigger context + job graph only. Any `run:` block that grows beyond a single
+# Cake invocation + artifact up/download + CLI-arg wiring is a review flag.
 #
 # See docs/phases/phase-2-release-cycle-orchestration-implementation-plan.md for the full plan.
 # Cross-reference: docs/decisions/2026-04-20-release-lifecycle-orchestration.md §3.4.
@@ -43,16 +43,59 @@ permissions:
   contents: read
 
 jobs:
-  resolve-versions-stub:
-    # Slice A placeholder. Slice B1 fills this with a real build-host invocation:
-    #   cake --target=ResolveVersions --source=<source> --suffix=ci.<run-id> [--scope=...]
-    # emitting the flat JSON map {"family-id": "semver-string", ...} consumed downstream via
-    # `needs: resolve-versions.outputs.versions-json`.
-    name: Resolve Versions (stub)
+  resolve-versions:
+    # Slice B1: manifest source live; git-tag / meta-tag sources land in Slice C.
+    # Emits artifacts/resolve-versions/versions.json in the canonical flat shape:
+    #   { "sdl2-core": "2.32.0-ci.<run-id>.<run-attempt>", ... }
+    # Uploaded as a workflow artifact so downstream jobs consume via actions/download-artifact.
+    name: Resolve Versions
     runs-on: ubuntu-latest
     steps:
-      - name: Placeholder
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Resolve manifest versions
+        run: >
+          dotnet run --project build/_build/Build.csproj -c Release --
+          --target ResolveVersions
+          --version-source=manifest
+          --suffix=ci.${{ github.run_id }}.${{ github.run_attempt }}
+      - name: Upload versions.json
+        uses: actions/upload-artifact@v4
+        with:
+          name: resolve-versions-output
+          path: artifacts/resolve-versions/versions.json
+          retention-days: 7
+
+  preflight:
+    # Slice B1: PreFlight consumes the resolved mapping via --explicit-version per ADR-003
+    # §2.3 (version-aware by contract). The JSON → CLI expansion is minimal wiring, not
+    # policy; every validated rule lives inside the Cake PreFlightCheck target.
+    name: PreFlight
+    needs: resolve-versions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Download versions.json
+        uses: actions/download-artifact@v4
+        with:
+          name: resolve-versions-output
+          path: artifacts/resolve-versions
+      - name: Run PreFlightCheck
         run: |
-          echo "ADR-003 release pipeline skeleton. Real resolve-versions lands in Slice B1."
-          echo "Trigger ref: ${{ github.ref }}"
-          echo "Event: ${{ github.event_name }}"
+          # Expand versions.json → repeated --explicit-version args; keep wiring minimal.
+          mapfile -t args < <(
+            jq -r 'to_entries[] | "--explicit-version\n\(.key)=\(.value)"' \
+              artifacts/resolve-versions/versions.json
+          )
+          dotnet run --project build/_build/Build.csproj -c Release -- \
+            --target PreFlightCheck \
+            "${args[@]}"

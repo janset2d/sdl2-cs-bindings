@@ -532,8 +532,7 @@ public sealed class HarvestTaskRunner(
 
             var statusFilePath = context.Paths.GetHarvestLibraryRidStatusFile(manifest.Name, _runtimeProfile.Rid);
 
-            var jsonContent = JsonSerializer.Serialize(ridStatus, JsonOptions);
-            await context.WriteAllTextAsync(statusFilePath, jsonContent);
+            await context.WriteJsonAsync(statusFilePath, ridStatus, JsonOptions);
 
             context.Log.Information("Generated RID status file: {0}", statusFilePath);
         }
@@ -574,8 +573,7 @@ public sealed class HarvestTaskRunner(
 
             var statusFilePath = context.Paths.GetHarvestLibraryRidStatusFile(manifest.Name, _runtimeProfile.Rid);
 
-            var jsonContent = JsonSerializer.Serialize(ridStatus, JsonOptions);
-            await context.WriteAllTextAsync(statusFilePath, jsonContent);
+            await context.WriteJsonAsync(statusFilePath, ridStatus, JsonOptions);
 
             context.Log.Information("Generated error RID status file: {0}", statusFilePath);
         }

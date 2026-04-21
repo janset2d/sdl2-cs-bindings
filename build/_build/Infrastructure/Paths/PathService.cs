@@ -245,6 +245,11 @@ public sealed class PathService : IPathService
         return BuildDir.Combine("msbuild").CombineWithFilePath("Janset.Smoke.local.props");
     }
 
+    public FilePath GetResolveVersionsOutputFile()
+    {
+        return ArtifactsDir.Combine("resolve-versions").CombineWithFilePath("versions.json");
+    }
+
     public DirectoryPath SmokeTestsRoot => RepoRoot.Combine("tests").Combine("smoke-tests");
 
     public FilePath PackageConsumerSmokeProject =>

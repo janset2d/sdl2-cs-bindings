@@ -1,4 +1,3 @@
-using Build.Context.Configs;
 using Build.Context.Models;
 using Build.Domain.Preflight;
 using Cake.Core;
@@ -8,16 +7,10 @@ namespace Build.Application.Versioning;
 
 /// <summary>
 /// <see cref="IPackageVersionProvider"/> backed by an operator-supplied mapping. This is the
-/// sole provider that stage tasks see (PreFlight / Pack / PackageConsumerSmoke). Every entry
-/// is validated against <see cref="ManifestConfig"/> via
-/// <see cref="IUpstreamVersionAlignmentValidator"/> (G54) before the mapping is returned, so
-/// an invalid operator input fails fast at provider entry rather than downstream.
-/// <para>
-/// Slice A note: the G54 validator currently accepts a scalar
-/// <see cref="PackageBuildConfiguration"/> (Families + FamilyVersion) and is invoked per
-/// mapping entry with a synthetic single-family config. Slice B1 rewrites the validator to
-/// accept the mapping directly; this per-entry loop collapses at that point.
-/// </para>
+/// sole provider that stage tasks see (PreFlight / Pack / PackageConsumerSmoke). The full
+/// filtered mapping is validated against <see cref="ManifestConfig"/> via
+/// <see cref="IUpstreamVersionAlignmentValidator"/> (G54) before it is returned, so an invalid
+/// operator input fails fast at provider entry rather than at a downstream stage.
 /// </summary>
 public sealed class ExplicitVersionProvider(
     ManifestConfig manifestConfig,
@@ -61,13 +54,17 @@ public sealed class ExplicitVersionProvider(
             ? _operatorSuppliedMapping
             : BuildFilteredMapping(_operatorSuppliedMapping, requestedScope);
 
-        var validationErrors = CollectUpstreamAlignmentErrors(filteredMapping);
-        if (validationErrors.Count > 0)
+        var validationResult = _upstreamVersionAlignmentValidator.Validate(_manifestConfig, filteredMapping);
+        if (validationResult.IsError())
         {
+            var errors = validationResult.Validation.Checks
+                .Where(check => check.IsError && !string.IsNullOrWhiteSpace(check.ErrorMessage))
+                .Select(check => check.ErrorMessage!);
+
             throw new CakeException(
                 "ExplicitVersionProvider G54 (upstream version alignment) rejected one or more entries:" +
                 Environment.NewLine +
-                "  - " + string.Join(Environment.NewLine + "  - ", validationErrors));
+                "  - " + string.Join(Environment.NewLine + "  - ", errors));
         }
 
         return Task.FromResult<IReadOnlyDictionary<string, NuGetVersion>>(filteredMapping);
@@ -110,27 +107,4 @@ public sealed class ExplicitVersionProvider(
         return filtered;
     }
 
-    private List<string> CollectUpstreamAlignmentErrors(IReadOnlyDictionary<string, NuGetVersion> mapping)
-    {
-        var errors = new List<string>();
-        foreach (var (family, version) in mapping)
-        {
-            // The current G54 validator accepts a scalar PackageBuildConfiguration; per-entry
-            // invocation with a synthetic single-family config is the Slice A shape. Slice B1
-            // rewrites the validator to accept the mapping directly and this loop collapses.
-            var syntheticConfig = new PackageBuildConfiguration([family], version.ToNormalizedString());
-            var result = _upstreamVersionAlignmentValidator.Validate(_manifestConfig, syntheticConfig);
-
-            if (!result.IsError())
-            {
-                continue;
-            }
-
-            errors.AddRange(result.Validation.Checks
-                .Where(check => !string.IsNullOrWhiteSpace(check.ErrorMessage))
-                .Select(check => check.ErrorMessage!));
-        }
-
-        return errors;
-    }
 }

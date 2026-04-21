@@ -8,6 +8,7 @@ using Build.Infrastructure.Vcpkg;
 using Build.Tasks.Preflight;
 using Build.Tests.Fixtures;
 using Cake.Core;
+using NuGet.Versioning;
 
 namespace Build.Tests.Unit.Tasks.Preflight;
 
@@ -171,7 +172,7 @@ public class PreFlightCheckTaskRunTests
 
     private static PreFlightCheckTask CreateTask(ManifestConfig manifestConfig, BuildContext context)
     {
-        var packageBuildConfiguration = new PackageBuildConfiguration(["sdl2-core"], null);
+        var packageBuildConfiguration = new PackageBuildConfiguration(new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase));
 
         var runner = new PreflightTaskRunner(
             manifestConfig,

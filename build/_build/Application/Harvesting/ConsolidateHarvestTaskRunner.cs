@@ -206,7 +206,7 @@ public sealed class ConsolidateHarvestTaskRunner
             try
             {
                 var jsonContent = await context.ReadAllTextAsync(statusFile);
-                var ridStatus = JsonSerializer.Deserialize<RidHarvestStatus>(jsonContent, HarvestJsonContract.Options);
+                var ridStatus = CakeExtensions.DeserializeJson<RidHarvestStatus>(jsonContent, HarvestJsonContract.Options);
                 if (ridStatus != null)
                 {
                     ridStatuses.Add(ridStatus);
@@ -243,13 +243,11 @@ public sealed class ConsolidateHarvestTaskRunner
         var paths = context.Paths;
 
         var manifestTempPath = paths.GetHarvestLibraryManifestTempFile(libraryName);
-        var manifestJson = JsonSerializer.Serialize(manifest, HarvestJsonContract.Options);
-        await context.WriteAllTextAsync(manifestTempPath, manifestJson);
+        await context.WriteJsonAsync(manifestTempPath, manifest, HarvestJsonContract.Options);
         context.Log.Verbose("Wrote harvest manifest (tmp) for {0}: {1}", libraryName, manifestTempPath);
 
         var summaryTempPath = paths.GetHarvestLibrarySummaryTempFile(libraryName);
-        var summaryJson = JsonSerializer.Serialize(manifest.Summary, HarvestJsonContract.Options);
-        await context.WriteAllTextAsync(summaryTempPath, summaryJson);
+        await context.WriteJsonAsync(summaryTempPath, manifest.Summary, HarvestJsonContract.Options);
         context.Log.Verbose("Wrote harvest summary (tmp) for {0}: {1}", libraryName, summaryTempPath);
     }
 

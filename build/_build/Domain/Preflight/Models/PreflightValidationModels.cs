@@ -81,19 +81,7 @@ public enum UpstreamVersionAlignmentCheckStatus
     /// <summary>Family version major/minor is aligned to manifest upstream major/minor.</summary>
     Match,
 
-    /// <summary>No --family-version was supplied; check is informational and skipped.</summary>
-    SkippedNoFamilyVersion,
-
-    /// <summary>
-    /// A single --family-version was supplied for multiple families; strict minor alignment is
-    /// deferred until per-family overrides are introduced.
-    /// </summary>
-    SkippedMinorAlignmentForMultiFamilyPack,
-
-    /// <summary>--family-version could not be parsed as NuGet SemVer.</summary>
-    InvalidFamilyVersion,
-
-    /// <summary>Family identifier requested by --family is not present in manifest package_families.</summary>
+    /// <summary>Family identifier in the mapping is not present in manifest package_families.</summary>
     FamilyNotFound,
 
     /// <summary>Family library_ref does not resolve to a manifest library_manifests entry.</summary>
@@ -102,24 +90,19 @@ public enum UpstreamVersionAlignmentCheckStatus
     /// <summary>Manifest vcpkg_version is not parseable semantic version.</summary>
     InvalidUpstreamVersion,
 
-    /// <summary>Family version major/minor does not match upstream major/minor (or major-only in multi-family mode).</summary>
+    /// <summary>Family version major/minor does not match upstream major/minor.</summary>
     VersionMismatch,
 }
 
 public sealed record UpstreamVersionAlignmentCheck(
     string FamilyIdentifier,
     string? LibraryRef,
-    string? FamilyVersion,
+    string FamilyVersion,
     string? UpstreamVersion,
     UpstreamVersionAlignmentCheckStatus Status,
     string? ErrorMessage)
 {
-    public bool IsError => Status is
-        UpstreamVersionAlignmentCheckStatus.InvalidFamilyVersion or
-        UpstreamVersionAlignmentCheckStatus.FamilyNotFound or
-        UpstreamVersionAlignmentCheckStatus.LibraryRefNotFound or
-        UpstreamVersionAlignmentCheckStatus.InvalidUpstreamVersion or
-        UpstreamVersionAlignmentCheckStatus.VersionMismatch;
+    public bool IsError => Status is not UpstreamVersionAlignmentCheckStatus.Match;
 }
 
 public sealed record UpstreamVersionAlignmentValidation(IReadOnlyList<UpstreamVersionAlignmentCheck> Checks)
