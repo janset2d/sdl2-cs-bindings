@@ -18,19 +18,123 @@ The build system is a .NET 9.0 console application using **Cake Frosting v6.1.0*
 - `PathService` already exposes `harvest-staging` helpers for future distributed CI, but current tasks and workflows still write to `artifacts/harvest_output/`.
 - Native-source acquisition mode selection is intentionally deferred from the active CLI surface.
 - The build host still uses hand-written `OneOf` result wrappers. Source-generator-based cleanup remains a parked follow-up, not active build-system behavior.
-- **Packaging flow (Stream D-local, S1 shape, 2026-04-17)** spans `Tasks/Packaging/`, `Application/Packaging/`, `Domain/Packaging/`, and `Infrastructure/DotNet/`. It follows the Harvesting reference pattern: thin tasks (`PackageTask`, `PackageConsumerSmokeTask`, `PostFlightTask`) + narrow services (`PackageTaskRunner`, `DotNetPackInvoker`, `PackageFamilySelector`, `PackageVersionResolver`, `ProjectMetadataReader`, `PackageOutputValidator`, `PackageConsumerSmokeRunner`) + typed Results with the full `OneOf.Monads` surface (implicit/explicit operators + `From*`/`To*` factories). Every service returns a typed `Result<PackagingError, T>` instead of throwing. `PackageOutputValidator` accumulates all guardrail observations (G21–G23, G25–G27, G47, G48) into a single `PackageValidation` aggregate so operators see the complete failure set, not first-throw-wins. 3-platform validated for the `sdl2-core` + `sdl2-image` slice on `win-x64` / `linux-x64` / `osx-x64`; PA-2 later moved all 7 manifest runtime rows onto hybrid triplets, but the four newly-covered rows (`win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64`) remain unexercised on the pack / consumer path (see [phase-2-adaptation-plan.md "Strategy State Audit"](../phases/phase-2-adaptation-plan.md)).
+- **Packaging flow (Stream D-local, S1 shape, 2026-04-17)** spans `Tasks/Packaging/`, `Application/Packaging/`, `Domain/Packaging/`, and `Infrastructure/DotNet/`. It follows the Harvesting reference pattern: thin tasks (`PackageTask`, `PackageConsumerSmokeTask`, `PostFlightTask`) + narrow services (`PackageTaskRunner`, `DotNetPackInvoker`, `PackageFamilySelector`, `PackageVersionResolver`, `ProjectMetadataReader`, `PackageOutputValidator`, `PackageConsumerSmokeRunner`) + typed Results with the full `OneOf.Monads` surface (implicit/explicit operators + `From*`/`To*` factories). Every service returns a typed `Result<PackagingError, T>` instead of throwing. `PackageOutputValidator` accumulates all guardrail observations (G21–G23, G25–G27, G47, G48) into a single `PackageValidation` aggregate so operators see the complete failure set, not first-throw-wins. 3-platform validated for the `sdl2-core` + `sdl2-image` slice on `win-x64` / `linux-x64` / `osx-x64`; PA-2 later moved all 7 manifest runtime rows onto hybrid triplets, but the four newly-covered rows (`win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64`) remain unexercised on the pack / consumer path (see [phase-2-adaptation-plan.md "Strategy & Tool Landing State"](../phases/phase-2-adaptation-plan.md#strategy--tool-landing-state)).
 
-## Strategy Layer Reality Check (2026-04-17)
+## Strategy Layer Reality Check
 
-The strategy seam landed with Stream B (#85 closed) and the #85 handoff note in [plan.md](../plan.md) describes it as "strategy primitives + runtime wiring landed." That is technically correct but easy to misread. Before assuming the strategy layer does anything more than it does, read [`phases/phase-2-adaptation-plan.md` "Strategy State Audit"](../phases/phase-2-adaptation-plan.md) for the brief-vs-code delta. Quick summary:
+The strategy seam landed with Stream B (#85 closed) and the #85 handoff note in [plan.md](../plan.md) describes it as "strategy primitives + runtime wiring landed." That is technically correct but easy to misread. Before assuming the strategy layer does anything more than it does, read [`phases/phase-2-adaptation-plan.md` "Strategy & Tool Landing State"](../phases/phase-2-adaptation-plan.md#strategy--tool-landing-state) for the interface-level landing state. Quick summary:
 
 - `IPackagingStrategy` is a one-method lookup helper (`IsCoreLibrary`), not a dispatcher. The Packaging module does not consume it.
 - `IDependencyPolicyValidator` has one real implementation (`HybridStaticValidator`) and one intentional pass-through (`PureDynamicValidator` — by design per [`research/cake-strategy-implementation-brief-2026-04-14.md`](../research/cake-strategy-implementation-brief-2026-04-14.md)).
 - `INativeAcquisitionStrategy` was designed in the brief but never implemented; ADR-001's Artifact Source Profile abstraction (`SetupLocalDev --source=local|remote`) now covers that problem space from the feed-preparation side.
 - `IPayloadLayoutPolicy` was deferred in the brief "until PackageTask lands"; PackageTask landed, the policy extraction did not follow.
-- The scanner-as-validator repurposing (dumpbin / ldd / otool outputs consumed by `HybridStaticValidator` as a second consumer with zero scanner changes) **is fully landed as designed** — this is the one architectural move from the brief that is realized end to end.
 
 Behavioral dispatch between `hybrid-static` and `pure-dynamic` in the current code is limited to: (1) which `IDependencyPolicyValidator` instance DI resolves at harvest time; (2) `PreFlightCheckTask`'s declarative triplet↔strategy coherence. Everything downstream (pack, smoke, validator, deployer) is strategy-agnostic. After PA-2 (2026-04-18), no live `manifest.runtimes[]` row currently uses `pure-dynamic`, but the fallback code path still exists.
+
+## Scanner Repurposing + Strategy-Aware Guardrails
+
+The existing runtime scanners (`WindowsDumpbinScanner`, `LinuxLddScanner`, `MacOtoolScanner`) were built for a single purpose — **binary dependency discovery** consumed by `BinaryClosureWalker` during harvest. Post-strategy wiring they gained a second role as **packaging guardrail input** with zero scanner-code changes. This "same scanner, second consumer" move is the thesis of [`research/cake-strategy-implementation-brief-2026-04-14.md`](../research/cake-strategy-implementation-brief-2026-04-14.md) §"Scanner Repurposing" and is fully realized end to end.
+
+### Before (pure-dynamic era)
+
+```text
+Scanner (dumpbin/ldd/otool)
+    └─> BinaryClosure
+            └─> ArtifactPlanner → ArtifactDeployer
+```
+
+One producer, one consumer. The scanner output described "what this binary depends on at runtime"; nothing validated whether the closure should be acceptable.
+
+### After (hybrid-static era)
+
+```text
+Scanner (dumpbin/ldd/otool)
+    └─> BinaryClosure ─┬─> ArtifactPlanner → ArtifactDeployer          (original role, preserved)
+                       └─> HybridStaticValidator → G19 leak detection   (new second consumer)
+```
+
+`HybridStaticValidator` (`build/_build/Domain/Strategy/HybridStaticValidator.cs`) consumes the same `BinaryClosure`, filters nodes by the `IRuntimeProfile.IsSystemFile` + `IPackagingStrategy.IsCoreLibrary` + `closure.IsPrimaryFile` rules, and fails on any remaining node — that is a transitive dependency leak (the static bake missed a library). Runs per-RID during `HarvestTask`.
+
+### Complementary harvest-shape assertion
+
+Strategy-agnostic but same "post-deployment sanity check" discipline: `HarvestTask` asserts `DeploymentStatistics.PrimaryFiles.Count >= 1` after the deployer runs. If the closure walker and planner returned success shapes but zero primary binaries landed, the task fails loud. This catches silent feature-flag degradation / partial vcpkg install shapes that the closure walker's success code wouldn't otherwise surface. Tracked as **G50** in `release-guardrails.md`.
+
+### Why this matters architecturally
+
+The strategy pattern did not require rewriting the scanners. The scanners expose `BinaryClosure` as domain data; the strategy layer attached a new rule engine to that data. This is the "open-closed" move — adding behavior via new consumers of stable producers rather than by modifying producers. When reviewing code that claims "strategy-aware" behavior, verify the mechanism fits this shape: is the new behavior a rule engine attached to existing domain data, or is it a fork inside the producer? If the latter, that's a smell; the former is the pattern.
+
+### Guardrail anchors
+
+- **G19** — Hybrid-static strategy: zero transitive dep leaks in harvest output. Owned by `HybridStaticValidator`. Fires per-RID during Harvest stage.
+- **G50** — Harvest must produce ≥1 primary binary per library+RID. Owned by `HarvestTask` post-deploy assertion. Strategy-agnostic.
+- **G16** — Runtime strategy coherence: `manifest.runtimes[].strategy` agrees with the declared triplet. Owned by `StrategyCoherenceValidator`. Fires during PreFlight.
+
+Under ADR-003 §4 stage-owned validation model, G19 and G50 are Harvest-stage guardrails; G16 is a PreFlight-stage guardrail.
+
+## Pipeline Stage Architecture (ADR-003)
+
+[ADR-003](../decisions/2026-04-20-release-lifecycle-orchestration.md) formalizes the release pipeline as a sequence of stage-owned targets, each with an explicit input shape and an owned set of validators. **This section describes the target shape; the implementation is pseudocode at ADR level and lands in the post-sweep Cake refactor pass.**
+
+### Stage sequence
+
+```text
+Resolve versions (single-runner, pre-pipeline) ─ build-host entrypoint
+      ↓
+PreFlight (single-runner, fail-fast) ─────────── structural + version-aware validation
+      ↓
+Harvest (N-RID matrix) ─────────────────────────── per-RID binary closure + hybrid leak guardrails
+      ↓
+NativeSmoke (N-RID matrix) ─────────────────────── per-RID native binaries load / init
+      ↓
+ConsolidateHarvest (single-runner) ─────────────── aggregation across RID statuses
+      ↓
+Pack (single-runner) ───────────────────────────── nupkg emission + post-pack guardrails
+      ↓
+ConsumerSmoke (N-RID matrix RE-ENTRY) ──────────── per-RID managed/runtime restore + init
+      ↓
+PublishStaging → PublishPublic (single-runner each)
+```
+
+### Per-stage request shapes (ADR-003 §3.2, implementation pending)
+
+Each stage owns its own request record; there is no monolithic `PipelineRequest`. Shape examples (subject to impl-pass revision):
+
+- `PreflightRequest` — manifest + resolved version mapping (always resolved; see §2.3 of ADR-003)
+- `HarvestRequest` — rid + library set + vcpkg config
+- `NativeSmokeRequest` — rid + harvest output location
+- `ConsolidateHarvestRequest` — successful rid list + output root
+- `PackRequest` — resolved version mapping + consolidated harvest + packages dir
+- `PackageConsumerSmokeRequest` — rid + resolved version mapping + feed location
+- `PublishRequest` — packages + feed target + auth
+
+### Version source providers (ADR-003 §3.1, implementation pending)
+
+Version resolution is abstracted behind `IPackageVersionProvider` with three implementations:
+
+- `ManifestVersionProvider` — reads `manifest.json library_manifests[].vcpkg_version` per family + injected suffix (used by local-dev + CI workflow_dispatch `mode=manifest-derived`)
+- `GitTagVersionProvider` — reads `sdl<major>-<role>-<semver>` family tags at the invocation commit; supports single-family (targeted release) and multi-family (full-train meta-tag) modes
+- `ExplicitVersionProvider` — operator-supplied per-family mapping (CI workflow_dispatch `mode=explicit` or PD-8 manual escape)
+
+Providers are **service-only, not Cake CLI targets**. Resolution happens exactly once per invocation; the mapping is immutable downstream (see ADR-003 §2.4). Caveat: the invariant scopes to CI job-chain runs and composite Cake targets; operator-driven ad-hoc target sequencing is each-invocation-resolves-independently.
+
+### Stage-owned validation
+
+Each guardrail belongs to exactly one stage; there is no monolithic "PostFlight" validator suite. Canonical mapping:
+
+- **PreFlight:** G14/G15 (version consistency), G16 (strategy coherence), G4/G6/G7/G17/G18 (csproj pack contract), G49 (core library identity), G54 (upstream major.minor alignment).
+- **Harvest:** G19 (hybrid leak), G50 (primary ≥ 1).
+- **NativeSmoke:** native binaries load + initialize at OS level (C/C++ harness today; ADR-003 extracts as its own stage).
+- **Pack:** G21–G23, G25–G27, G46 (empty-payload guard), G47 (`buildTransitive/` contract), G48 (per-RID native payload shape), G55 (native metadata file), G56 (satellite cross-family upper bound), G57 (README mapping table), G58 (cross-family dep resolvability — planned, placement in Pack per ADR-003 §8 Open Question 1).
+- **ConsumerSmoke:** restore + runtime TUnit per-TFM pass.
+- **Publish:** feed auth + deduplication.
+
+See [release-guardrails.md](release-guardrails.md) for the full guardrail registry.
+
+### SetupLocalDev composition (ADR-003 §3.3 Option A)
+
+Post-sweep target retains its current Option A shape: `SetupLocalDevTask` is a thin Cake task over `IArtifactSourceResolver` (the public profile boundary). For the `Local` profile, `LocalArtifactSourceResolver.PrepareFeedAsync` may internally compose version providers + pack loops + stage-runner calls needed to materialize the feed, but that composition stays private to the resolver implementation. Internal composition goes through Application-layer runners injected via DI, not nested Cake target invocations. `RemoteInternal` / `ReleasePublic` profiles retain the same public seam even if their internal mechanisms differ.
+
+See [ADR-001 §2.7–§2.8](../decisions/2026-04-18-versioning-d3seg.md) for the resolver contract and [ADR-003 §3.3](../decisions/2026-04-20-release-lifecycle-orchestration.md) for the Option A selection rationale.
 
 ## SDL2-CS Submodule Boundary (Transitional)
 
@@ -375,10 +479,11 @@ artifacts/
 
 ### Adding a New Platform
 
-1. Update `runtimes.json` with new RID → triplet mapping
-2. Ensure `IBinaryClosureWalker` handles the new platform's dependency scanning tool
-3. Update `system_artefacts.json` with the platform's system libraries
-4. Add CI workflow for the new platform
+1. Update `manifest.json` (schema v2.1): add a new `runtimes[]` entry with RID → triplet → strategy → runner → container_image mapping.
+2. Ensure `IRuntimeScanner` / `BinaryClosureWalker` handles the new platform's dependency scanning tool (extend the DI-time RID switch in `Program.cs` if a new OS family appears).
+3. Update `manifest.json system_exclusions[]` with the platform's system libraries.
+4. Author a matching vcpkg overlay triplet under `vcpkg-overlay-triplets/` if the platform is a new hybrid-static target.
+5. Add CI workflow (or expand dynamic matrix — see ADR-003 §3.4) for the new platform.
 
 ## Historical Note
 

@@ -10,6 +10,8 @@
 
 **Scope note:** PA-2 moved the remaining four rows (`win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64`) onto hybrid overlay triplets, but those rows are still not validated end to end here. The expanded package-consumer smoke scope is code-complete, but only the Windows `win-x64` host slice has been re-verified with that wider family set so far.
 
+**ADR-003 direction note (2026-04-20 draft):** Under [ADR-003 §3.4 + §3.5](../decisions/2026-04-20-release-lifecycle-orchestration.md), package-consumer smoke becomes a **per-RID matrix re-entry** stage in CI — the same 7-RID matrix that ran Harvest/NativeSmoke runs again after Pack, with each runner restoring and exercising the produced nupkgs on its own platform. This is the **first cross-RID managed/runtime truth stage**: per-RID consumer paths (Windows P/Invoke lookup, macOS dyld two-level namespace, arm64 runtime resolver behaviour) regress independently; only per-RID execution catches them. The current local playbook exercises a **single host RID per platform** (not a matrix re-entry); promotion to full 7-RID coverage lands with the CI/CD rewrite pass after ADR-003 Cake refactor. PD-10 (consumer smoke `-r <rid>` vs default resolver path) resolves during this promotion. See also the **Consumer Invocation Contract** section below.
+
 ## When to Run This
 
 - After any build-host refactor (Cake tasks, DI wiring, service boundaries)
@@ -468,6 +470,23 @@ This local smoke matrix validates the **same command surface** that CI workflows
 
 If local smoke passes but CI fails, the issue is almost certainly in CI environment setup, not in the build host code.
 
+### Stage-Owned Validation Mapping (ADR-003 alignment)
+
+Under [ADR-003 §3.5 + §4](../decisions/2026-04-20-release-lifecycle-orchestration.md), every validation belongs to exactly one pipeline stage. The manual A–K checkpoint walk-through in this playbook maps onto those stages as follows:
+
+| ADR-003 stage | Playbook checkpoints | Stage-owned guardrails exercised |
+| --- | --- | --- |
+| **PreFlight** | D (PreFlightCheck) | G4, G6, G7, G14, G15, G16, G17, G18, G49, G54 |
+| **EnsureVcpkgDependencies** (supporting, not release-path) | D1 | — (vcpkg install preflight) |
+| **Harvest** (per-RID matrix target) | E (Harvest scoped to slice under test) | G19 (hybrid leak), G50 (primary ≥ 1) |
+| **ConsolidateHarvest** (aggregation) | F | G53 (staged-replace invariant) |
+| **NativeSmoke** (per-RID) | G (C/C++ native-smoke harness) | — (no G-series yet; extracted stage per ADR-003) |
+| **Pack** (single-runner) | J (Package) | G13, G21, G22, G23, G25, G26, G27, G46, G47, G48, G51, G52, G55, G56, G57, G58 |
+| **PackageConsumerSmoke** (per-RID matrix **re-entry** under ADR-003) | K (PackageConsumerSmoke) | — (TUnit behavioral smoke; PD-10 scope) |
+| **Coverage** (ratchet gate, CI pre-matrix) | A + B + Coverage-Check | G36 |
+
+The playbook checkpoints are **local-host substitutes** for the CI stage sequence. When the ADR-003 `release.yml` lands, the per-stage CI jobs invoke the same Cake target surface this playbook exercises manually. The key promotion is checkpoint K: today it runs on a single host RID; under ADR-003 the CI matrix re-enters K on all 7 RIDs, which catches the per-RID consumer paths (Windows P/Invoke search order, macOS dyld two-level namespace, arm64 runtime resolver) that a single-host smoke cannot.
+
 ## Authoring New Smoke / Example Consumer Projects
 
 Smoke, example, and sandbox consumer projects that exercise the local-feed `.nupkg` surface share a single MSBuild foundation. New consumers inherit feeds, version-property conventions, and guard logic by dropping into the existing hierarchy — no ad-hoc `LocalPackageFeed` / version-property plumbing per project.
@@ -569,7 +588,9 @@ What `-r <rid>` does NOT exercise:
 
 ## PA-2 Per-Triplet Witness Invocations
 
-PA-2 moved four previously-stock runtime rows onto hybrid overlay triplets (2026-04-18). The mechanism landed, but no behavioral evidence exists yet on the new triplets. Before Stream C consumes them as peers of the validated x64 row, we need at least one end-to-end PostFlight run per new row on its native runner.
+PA-2 moved four previously-stock runtime rows onto hybrid overlay triplets (2026-04-18). The mechanism landed, but no behavioral evidence exists yet on the new triplets. Before Stream C consumes them as peers of the validated x64 row, we need at least one end-to-end run per new row on its native runner.
+
+**ADR-003 direction note (2026-04-20 draft):** Under the post-ADR-003 CI rewrite, PA-2 witness runs flow through the new `release.yml` on `workflow_dispatch` with `mode=manifest-derived` and a `pa2.<run-id>` suffix. The command shape below (`PostFlight --family ... --family-version ...`) will migrate to the post-refactor CLI (explicit-version provider + per-stage targets) during the Cake refactor pass. Until then, this section remains the operational recipe for manually reproducing a witness run locally or via the existing `prepare-native-assets-*.yml` workflows.
 
 Each invocation packs the concrete five-family smoke scope, exercises harvest → consolidate → pack → consumer-smoke, and records pass/fail against this playbook. Record the result in the "Last validated" header at the top of this document as each triplet passes; any failure triage into (a) upstream vcpkg port issue, (b) overlay-triplet tuning needed, or (c) vcpkg feature-flag degradation — file a `docs/research/` note before re-attempting.
 

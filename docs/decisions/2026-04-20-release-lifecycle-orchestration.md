@@ -21,6 +21,15 @@ This distinction matters because:
 - Do not expect the pseudocode to be implemented verbatim — if the semantics are preserved, the shape is free to evolve.
 - The Cake deep dive (actual input/output shapes for Layer 2 targets, DI composition, test coverage needs) is a separate work item that will concretize this ADR.
 
+## Design Principle — Vision First
+
+This ADR is **not** a preserve-the-current-composition document. It exists to select the correct ownership graph, orchestration boundary, and contract model first; refactoring cost is secondary.
+
+- Existing Cake tasks, services, seams, and helpers are reusable **lego pieces**, not fixed architectural truth.
+- Reuse is preferred when it strengthens the chosen model, but current placement is not binding.
+- If a component sits behind the wrong boundary, in the wrong task, or in the wrong orchestration layer, it may be **retained, relocated, narrowed, split, or retired**.
+- Lower churn is desirable, but only after the target architecture is coherent. A cheaper wrong boundary is still the wrong boundary.
+
 ---
 
 ## 1. Context — Where we are and why this ADR exists
@@ -69,7 +78,7 @@ And five release scenarios, each selecting one of those three paths with its own
 
 ### 2.1 Three axes
 
-```
+```text
 RID               <- CI/CD matrix axis; library-agnostic; outermost umbrella
  |
  +- Family        <- deploy unit (managed + native pair, per ADR-001 "family as release unit")
@@ -118,7 +127,9 @@ This invariant means:
 - Version resolution happens **exactly once per invocation**, before any stage executes.
 - Every downstream stage receives the same mapping instance (or wire-equal JSON copy across job boundaries).
 
-The resolution step can physically live either as a dedicated CI `resolve-versions` job that invokes the build host, or as the first step inside a local composite target (for example, `SetupLocalDev` calling a provider from DI before invoking pipeline stages). Placement and CLI surface name are implementation details; the invariant — resolve once, distribute immutably, consume everywhere — is the contract.
+The resolution step can physically live either as a dedicated CI `resolve-versions` job that invokes the build host, or as the first step inside a local composite target (for example, `SetupLocalDev` invoking the selected artifact-source resolver, which then performs profile-owned resolution/orchestration). Placement and CLI surface name are implementation details; the invariant — resolve once, distribute immutably, consume everywhere — is the contract.
+
+This invariant applies to **CI job-chain runs** and **composite Cake targets**. Operator-driven ad-hoc sequencing of standalone targets is outside its scope: each such target invocation is its own invocation and may resolve independently. In that mode, each invocation accepts its inputs independently; cross-invocation consistency is the operator's responsibility, supplemented (not replaced) by stage-level validators such as G54.
 
 ### 2.5 `depends_on` does not auto-expand scope
 
@@ -180,7 +191,9 @@ public sealed class ExplicitVersionProvider : IPackageVersionProvider
 }
 ```
 
-**Important:** Providers are **not Cake CLI targets**. They live as services in the DI container. `SetupLocalDev` (and any future CI-facing composite target that needs the same wiring) takes them via DI.
+**Important:** Providers are **not Cake CLI targets**. They live as services in the DI container. Public orchestration surfaces may consume them internally, but `SetupLocalDev` does **not** expose raw provider composition as its public boundary.
+
+The tag-based provider shape above is also **illustrative, not binding**. The implementation may keep one `GitTagVersionProvider` with a scope parameter or split targeted/full-train tag resolution behind a shared helper. ADR-003 locks the capability and ownership boundary, not the final class decomposition.
 
 **Ownership invariant — build host resolves, CI consumes.** Version resolution logic lives in the build host; it is not reimplemented in CI workflow scripts. A CI workflow invokes a build-host entrypoint (the exact target name is pinned at implementation time) and consumes the resolved mapping. Workflow-native provider logic — parsing tags in YAML/bash, reading manifest fragments from action steps, re-implementing G54 checks in workflow code — is **not** an accepted path. It would violate [`plan.md` §Strategic Decisions April 2026](../plan.md) ("Cake as single orchestration surface"). The exact CLI surface shape for version resolution is open for the implementation pass; the ownership boundary is not.
 
@@ -226,7 +239,7 @@ record PublishRequest(
 
 Cake target surface (hypothetical CLI):
 
-```
+```text
 --target=PreFlight              --versions sdl2-core=2.32.0,...
 --target=Harvest                --rid <rid> --library ...
 --target=NativeSmoke            --rid <rid>
@@ -239,35 +252,25 @@ Cake target surface (hypothetical CLI):
 
 ### 3.3 Layer 3 — Convenience Target (Cake, composition)
 
-`SetupLocalDev` is a composite target for local-dev ergonomics. It composes the `Local` Artifact Source Profile (ADR-001 §2.7) with the Cake pipeline and writes `Janset.Smoke.local.props`.
+`SetupLocalDev` is a convenience target for local-dev ergonomics. This ADR explicitly selects **Option A (resolver-centric composition)**: the public orchestration boundary for profile-specific feed preparation remains ADR-001's `IArtifactSourceResolver`, and `SetupLocalDev` stays a thin entry point over that seam.
 
 ```csharp
-// Pseudocode (deliberately flattened — see note after the block):
-class SetupLocalDevTaskRunner(
-    ManifestVersionProvider provider,  // flattened; real wiring goes through IArtifactSourceResolver
-    PreflightTaskRunner preflight,
-    HarvestTaskRunner harvest,
-    NativeSmokeTaskRunner nativeSmoke,
-    ConsolidateHarvestTaskRunner consolidate,
-    PackTaskRunner pack,
-    PackageConsumerSmokeTaskRunner smoke,
-    LocalPropsWriter localProps)
+// Pseudocode — Option A (resolver-centric public boundary):
+class SetupLocalDevTask(
+    IArtifactSourceResolver artifactSourceResolver,
+    ICakeLog log)
 {
-    public async Task RunAsync(Rid rid, IReadOnlySet<FamilyId> scope, CancellationToken ct)
+    public async Task RunAsync(BuildContext context, CancellationToken ct)
     {
-        var versions = await provider.ResolveAsync(scope, ct);
-        await preflight.RunAsync(new(manifestPath, versions), ct);
-        await harvest.RunAsync(new(rid, scope.ToLibraryIds(), vcpkgConfig), ct);
-        await nativeSmoke.RunAsync(new(rid, harvestOutput), ct);
-        await consolidate.RunAsync(new([rid], rootOutput), ct);
-        await pack.RunAsync(new(versions, consolidatedHarvest, packagesDir), ct);
-        await smoke.RunAsync(new(rid, versions, packagesDir), ct);
-        await localProps.WriteAsync(versions, packagesDir, ct);
+        log.Information("SetupLocalDev started with source profile '{0}'.", artifactSourceResolver.Profile);
+
+        await artifactSourceResolver.PrepareFeedAsync(context, ct);
+        await artifactSourceResolver.WriteConsumerOverrideAsync(context, ct);
     }
 }
 ```
 
-> **Pseudocode note.** The sketch above inlines `ManifestVersionProvider` for readability. In the real implementation the `Local` Artifact Source Profile's `IArtifactSourceResolver` (ADR-001 §2.7) owns provider selection and the feed-location contract; `SetupLocalDevTaskRunner` consumes the resolver's output, not a raw provider reference. Exact wiring lands at the Cake deep dive.
+> **Option A note.** `SetupLocalDev` is **not** a second first-class orchestration surface beside `IArtifactSourceResolver`. The resolver seam remains the public profile boundary. For the `Local` profile, `PrepareFeedAsync` may internally compose version providers, pack loops, and any stage-runner calls needed to materialize the feed, but that composition stays private to the resolver implementation. Internal composition goes through Application-layer runners injected via DI, not nested Cake target invocations. Remote/Internal/Public profiles retain the same public seam even if their internal mechanisms differ.
 
 **Critical:** CI/CD does **not** call this target. CI invokes the build host's version-resolution entrypoint in its own `resolve-versions` job, then calls the pipeline stage targets with the resolved mapping. `SetupLocalDev`'s `Janset.Smoke.local.props` side effect is meaningless for CI.
 
@@ -376,7 +379,7 @@ jobs:
 
 ### 3.5 Lifecycle diagram
 
-```
+```text
                   +------------------------+
                   |  resolve-versions job  |     <- invokes build-host entrypoint;
                   |  (CI supplies trigger  |     resolution + validation live in
@@ -455,7 +458,7 @@ The build-host test suite (`dotnet test build/_build.Tests/...`) and `Coverage-C
 
 ## 5. Retain / Refactor / Retire / New
 
-We are not rewriting from scratch. The table below is **hypothetical** — the actual classification is revised against real code state during the implementation pass.
+This is not a greenfield rewrite mandate, but neither is it a preserve-the-current-shape exercise. Existing pieces are candidates for reuse, relocation, narrowing, splitting, or retirement if that better matches the chosen ownership model. The table below is **hypothetical** — the actual classification is revised against real code state during the implementation pass.
 
 | Status | Component | Note |
 | --- | --- | --- |
@@ -471,7 +474,7 @@ We are not rewriting from scratch. The table below is **hypothetical** — the a
 | **Refactor** | `HarvestTask` | NativeSmoke is extracted; Harvest focuses on asset gathering |
 | **Refactor** | `PackageTask` | Input is a per-family version mapping (replacing the single `--family-version`); G58 added |
 | **Refactor** | `PackageConsumerSmokeTask` | Becomes stateless-callable for matrix re-entry (input: RID + feed + versions) |
-| **Refactor** | `SetupLocalDev` | Takes the Option A shape (composition + local.props write) |
+| **Refactor** | `SetupLocalDev` | Explicitly settles on Option A: thin task over resolver-centric profile orchestration; resolver internals may still be reworked |
 | **Retire** | `--family-version` CLI flag (single-valued, G54-incompatible with multi-family) | Replaced by `--explicit-version key=value,...` (ExplicitVersionProvider input). PD-13 closes. |
 | **Retire** | Monolithic "PostFlight" naming | Each stage owns its validation. Fate of the `PostFlight` target itself — remove entirely, or keep as a local-dev convenience wrapper of `PreFlight → Harvest → Pack → Smoke` — is decided at impl. |
 | **New** | `IPackageVersionProvider` + 3 impls | Service-only, not a Cake target |
@@ -531,7 +534,8 @@ These questions do not block this ADR but must be resolved during the implementa
 
 5. **`GitTagVersionProvider` single vs multi-family.**
    - Single family (targeted release) vs multi-family (full-train).
-   - Modelled as one provider with a `GitTagScope.Single(FamilyId) | GitTagScope.Multi(IReadOnlySet<FamilyId>)` parameter, or as two providers. **Proposed:** one provider with a scope parameter — the behaviour delta is small.
+   - Modelled as one provider with a `GitTagScope.Single(FamilyId) | GitTagScope.Multi(IReadOnlySet<FamilyId>)` parameter, or as two providers over a shared helper.
+   - **Implementation-time choice:** ADR-003 does not lock this decomposition now. Choose the variant that minimizes internal branching and yields the clearer test and code boundary shape during the Cake deep dive.
 
 6. **Location / naming of the matrix-generation task.**
    - Planned under Stream C as `GenerateMatrixTask`. ADR-003 does not redefine it, only acknowledges its existence. Shape firms up at impl.
@@ -628,15 +632,33 @@ Consumer smoke runs only on the Pack runner (Linux, 1 RID) to save CI cost.
 
 After this ADR locks, the following sequence — each step is a separate commit group, independently revertable:
 
-```
-1. Canonical doc sweep (ADR-003 baseline, 1 session)
- - release-lifecycle-direction.md: CI matrix model + release governance update
- - phase-2-adaptation-plan.md: Stream C/D/E reshape; PD-7/8/13 wording aligned to "Direction selected" plus formal-closure criteria
- - cake-build-architecture.md: pipeline stages + target surface
- - release-guardrails.md: stage-owned guardrail table; G58 (+ optional G59 cycle) added
- - cross-platform-smoke-validation.md: consumer smoke matrix re-entry;
-   per-stage checkpoint layout
- - plan.md: strategic decisions + roadmap + known issues refresh
+```text
+1. Canonical doc sweep (ADR-003 baseline) — ACTIVE 2026-04-21
+ - phases/README.md: refresh + planned phase retention test invariant — DONE
+ - phase-2-cicd-packaging.md: retire-to-stub — DONE
+ - phase-3-sdl2-complete.md: retire-to-stub — DONE
+ - phase-2-adaptation-plan.md: rewrite (historical body archived at
+   docs/_archive/phase-2-adaptation-plan-2026-04-15.md); PD-7/8/13 "Direction
+   selected" + formal closure criteria; new PD-16 (shared native dep duplicate
+   policy, dormant under hybrid-static, absorbed from retired phase-2-cicd §2.8) — DONE
+ - phase-5-sdl3-support.md: minor drift fix (runtimes.json → manifest.json
+   schema v2.1) — DONE
+ - release-lifecycle-direction.md: narrow to policy-only; orchestration
+   material devolved to this ADR; --family-version / PD-13 / provider
+   ownership collapsed to pointer — DONE
+ - cake-build-architecture.md: pipeline stages + target surface + version
+   provider architecture section; scanner repurposing expanded into own
+   subsection — DONE
+ - release-guardrails.md: stage-owned guardrail table (§2.0 added);
+   G58 added in Pack stage (ADR-003 §8 Q1 placement) — DONE
+ - ci-cd-packaging-and-release-plan.md: ADR-003 direction note; release.yml
+   supersession flagged for §4.A — DONE
+ - cross-platform-smoke-validation.md: consumer smoke matrix re-entry note;
+   per-stage checkpoint mapping; PA-2 witness note for new pipeline — DONE
+ - plan.md: strategic decisions + roadmap + known issues refresh; ADR-003
+   row added to Strategic Decisions table — DONE
+ - docs/README.md: retired phase docs + archive pointer — DONE
+ - docs/_archive/ directory + archive convention README — DONE
 
 2. Cake refactor (2-3 sessions, iterative)
  - IPackageVersionProvider interface + ManifestVersionProvider impl
@@ -701,3 +723,5 @@ Each step references this ADR. Places where implementation drifts from the ADR a
 | 2026-04-20 | v1.1 (draft, boundary-tightening pass) | Revision following peer-review notes and session discussion: (a) §2.1 "policy-thick" framing added with thin-CI / thick-build-host ownership table; (b) §2.3 PreFlight declared version-aware by contract; (c) §2.4 new — invocation scope + immutable resolved-mapping invariant; (d) §2.5 new — `depends_on` is ordering and consistency metadata, never automatic scope expansion; (e) §2.6 new — terminology guard separating release orchestration from runtime packaging strategy; (f) §3.1 ownership invariant locks version resolution to build host; workflow-native provider alternative rejected; (g) §3.2 `PreflightRequest.Versions` made non-nullable; (h) §3.3 SetupLocalDev explicitly composes the `Local` Artifact Source Profile from ADR-001 §2.7–§2.8 (does not bypass `IArtifactSourceResolver`); (i) §3.4 `release.yml` removes the `rids` trigger-level input — matrix is always full `manifest.runtimes[]` for the canonical release workflow; RID subsets reserved for local / debug flows; (j) §3.5 stage semantics normative paragraph added; (k) §6 PD closures softened from "Closed" to "Direction selected" with explicit formal-closure criteria. |
 | 2026-04-20 | v1.2 (draft, alignment pass) | Second-round peer review of v1.1 caught residual CI-native-resolver wording drift that contradicted the §3.1 ownership invariant. Realignment: (a) §3.3 SetupLocalDev pseudocode flagged as a deliberately flattened sketch — actual wiring goes through the ADR-001 `IArtifactSourceResolver` seam, with a prose note beneath the code block; (b) §3.4 `resolve-versions` job comments rewritten to "CI supplies trigger context; the build host resolves and validates"; (c) §3.5 lifecycle diagram label corrected from "workflow-native provider" to "invokes build-host entrypoint"; (d) §8 open question 7 reframed from a workflow-native-vs-Cake-target dichotomy to an entrypoint CLI-surface-shape question only (ownership is already locked); (e) §6 PD-8 example dropped the redundant `--family` argument — scope is carried by the `--explicit-version` key set per §2.2. |
 | 2026-04-20 | v1.3 (draft, consistency pass) | Follow-up cleanup after the final review: (a) §3.2 CLI sketch now makes `PreFlight` version input mandatory, matching the non-nullable request contract; (b) §3.4 adds the missing `generate-matrix` job and completes the job-output wiring in the workflow skeleton; (c) §3.5 lifecycle diagram removes stale `G58?` ambiguity from PreFlight and aligns Publish wording with transfer-side checks only; (d) §12 implementation outline no longer implies PD-7/8/13 are formally closed during the doc-sweep step. |
+| 2026-04-20 | v1.4 (draft, vision-first + ownership pass) | Revision following direction-first review: (a) new Vision-First principle states that current build-host composition is reusable input, not binding architecture; (b) §2.4 now scopes the immutable-within-invocation invariant to CI job-chain runs and composite Cake targets, explicitly excluding ad-hoc standalone target sequencing; (c) §3.1 clarifies that raw providers are internal building blocks, not SetupLocalDev's public boundary, and softens GitTag provider decomposition from prescription to implementation-time choice; (d) §3.3 explicitly selects Option A — `IArtifactSourceResolver` remains the public profile-orchestration seam and `SetupLocalDev` stays a thin task over it; (e) §5 now frames retain/refactor decisions as ownership-driven rather than status-quo preserving. |
+| 2026-04-21 | v1.5 (draft, post-sweep cross-doc cleanup) | Canonical doc sweep executed against ADR-003 baseline. §8 Open Question 5 markdown indent fixed; §3.3 Option A note extended with "Internal composition goes through Application-layer runners injected via DI, not nested Cake target invocations" clarification; §2.4 scope clause last sentence softened ("cross-invocation consistency is the operator's responsibility, supplemented (not replaced) by stage-level validators such as G54"); §12 implementation outline updated with sweep-step completion markers and retire-to-stub / archive additions that were not in the original v1.1–v1.4 drafts. No decision-level changes; all edits are polish + status tracking. Sweep scope executed: 14-step pass across `phases/README.md`, `phase-2-cicd-packaging.md` (retire-to-stub), `phase-3-sdl2-complete.md` (retire-to-stub), `phase-2-adaptation-plan.md` (rewrite + archive), `phase-5-sdl3-support.md` (minor drift), `release-lifecycle-direction.md` (narrow), `cake-build-architecture.md`, `release-guardrails.md`, `ci-cd-packaging-and-release-plan.md`, `cross-platform-smoke-validation.md`, `plan.md`, this ADR (cross-doc cleanup), `docs/README.md`. New `docs/_archive/` directory introduced with convention README. |

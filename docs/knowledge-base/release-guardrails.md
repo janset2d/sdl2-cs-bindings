@@ -2,13 +2,15 @@
 
 > **Status:** Canonical — this doc is the single map of every guardrail the project commits to land. Every entry has an owning stream and a current implementation status. When a guardrail moves from "planned" to "active," update its row here in the same change.
 >
-> **Last updated:** 2026-04-19 (Wave V4 landed — G54–G57 implemented and active: UpstreamMajor.UpstreamMinor coherence, native metadata file, satellite cross-family upper bound, README mapping table. See [ADR-001](../decisions/2026-04-18-versioning-d3seg.md). Prior: 2026-04-18 ADR-001 adoption, 2026-04-17 S1 adoption.)
+> **Last updated:** 2026-04-21 (ADR-003 adoption — stage-owned validation framing added as §2.0; **G58** added for cross-family dependency resolvability (Pack stage, planned impl). Prior: 2026-04-19 Wave V4 G54–G57; 2026-04-18 ADR-001 adoption; 2026-04-17 S1 adoption.)
 >
 > **Why a dedicated roadmap:** Defense-in-depth is a hard requirement for this project. A single missed inconsistency between manifest, csproj, vcpkg, family tag, and produced nupkg can ship a broken package family. Guardrails are scattered across multiple subsystems (PreFlight, MSBuild, Cake, CI workflows, post-pack assertions, feed checks). This doc enumerates them all, deduplicates, and maps each to its owning stream so nothing is forgotten in the gap between A-risky and the public release of v1.0.
 >
 > **ADR-001 adoption note (2026-04-18):** D-3seg versioning (`<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>`) locked. New guardrails: **G54** (PreFlight — family tag UpstreamMajor.UpstreamMinor ≡ `manifest.json library_manifests[].vcpkg_version` Major.Minor), **G55** (post-pack — `janset-native-metadata.json` packed into every `.Native` nupkg + schema valid + content matches vcpkg-resolved upstream), **G56** (post-pack — satellite cross-family dep declares upper bound `< (UpstreamMajor + 1).0.0`), **G57** (post-pack — README mapping table block between `<!-- JANSET:MAPPING-TABLE-START -->` / `<!-- JANSET:MAPPING-TABLE-END -->` markers matches manifest). Wave V4 implementation landed on 2026-04-19 and promoted all four to Active. **Strict release-must-bump-patch enforcement (API-diff / hash-based)** is explicitly deferred to Phase 2b; Phase 2a scope is overwrite-attempt guard only. See [ADR-001 §2.9 and §7.5](../decisions/2026-04-18-versioning-d3seg.md).
 >
-> **S1 adoption note (2026-04-17):** Within-family exact-pin requirement retired in favor of SkiaSharp-style minimum range (`>=`). Guardrails **G1, G2, G3, G5, G8, G9, G10, G20, G24 removed** from active scope (exact-pin-specific). **G23 reframed** as the primary within-family coherence check (was derivative of G20). **G11 marked REVISIT** (NuGet built-in NU5016; relevance under minimum-range contract uncertain). **G4, G6, G7, G17, G18, G21, G22, G25–G27, G46** retained. Drift protection moves from consumer-side nuspec invariant to orchestration-time invariant (Cake atomic pack + post-pack version-match). See [release-lifecycle-direction.md §4 Drift Protection Model](release-lifecycle-direction.md) and [phase-2-adaptation-plan.md "S1 Adoption Record"](../phases/phase-2-adaptation-plan.md).
+> **S1 adoption note (2026-04-17):** Within-family exact-pin requirement retired in favor of SkiaSharp-style minimum range (`>=`). Guardrails **G1, G2, G3, G5, G8, G9, G10, G20, G24 removed** from active scope (exact-pin-specific). **G23 reframed** as the primary within-family coherence check (was derivative of G20). **G11 marked REVISIT** (NuGet built-in NU5016; relevance under minimum-range contract uncertain). **G4, G6, G7, G17, G18, G21, G22, G25–G27, G46** retained. Drift protection moves from consumer-side nuspec invariant to orchestration-time invariant (Cake atomic pack + post-pack version-match). Historical rationale preserved in the [archived adaptation plan](../_archive/phase-2-adaptation-plan-2026-04-15.md) "S1 Adoption Record" section; see [release-lifecycle-direction.md §4 Drift Protection Model](release-lifecycle-direction.md) for the policy record.
+>
+> **ADR-003 adoption note (2026-04-20 draft / 2026-04-21 narrowed):** Orchestration architecture locks stage-owned validation — every guardrail belongs to exactly one pipeline stage; there is no monolithic "PostFlight" validator suite. The existing §2.1–§2.8 subsections organize guardrails by **subsystem** (structural / MSBuild / NuGet / manifest / post-pack / CI / train / manual); the new **§2.0 Stage-Owned Validation Mapping** organizes the same set by ADR-003 **pipeline stage** (PreFlight / Harvest / NativeSmoke / Pack / ConsumerSmoke / Publish / Full-Train / Manual Escape). Both views reference the same guardrails; use whichever lens fits the reading task. **G58** (cross-family dep resolvability) added at Pack stage per ADR-003 §8 Open Question 1.
 
 ## 1. Guardrail Philosophy
 
@@ -19,6 +21,24 @@
 5. **Mirror the failure to its source.** Error messages name the file, line, property, and the canonical rule that was violated, so the operator can fix without re-reading the code.
 
 ## 2. Guardrail Inventory
+
+### 2.0 Stage-Owned Validation Mapping (ADR-003 lens)
+
+Per [ADR-003 §4](../decisions/2026-04-20-release-lifecycle-orchestration.md), every guardrail belongs to exactly one pipeline stage. This view organizes the same guardrail set listed in §2.1–§2.8 by the stage that owns enforcement.
+
+| Stage | Runs | Guardrails | Coverage |
+| --- | --- | --- | --- |
+| **PreFlight** | Single-runner, fail-fast before matrix work | G4, G6, G7, G14, G15, G16, G17, G18, G49, G54 | Structural csproj contract + manifest↔vcpkg coherence + strategy coherence + core identity + upstream major.minor alignment |
+| **Harvest** | Per-RID matrix | G19, G50 | Hybrid-static transitive leak detection + primary binary ≥ 1 post-deploy assertion |
+| **NativeSmoke** | Per-RID matrix (extracted from Harvest per ADR-003 §3.2) | — | C/C++ harness (`tests/smoke-tests/native-smoke/`) today; no G-series numbering yet. Proves native binaries load + initialize at OS level. |
+| **Pack** | Single-runner after Consolidate | G13 (NuGet built-in schema), G21, G22, G23, G25, G26, G27, G46 (MSBuild pre-pack guard), G47, G48, G51, G52, G53, G55, G56, G57, G58 | nupkg emission + post-pack shape (minimum-range + version-match + TFM consistency + symbols + metadata + `buildTransitive/` contract + per-RID payload shape + license payload + staged-replace invariants + native metadata file + cross-family upper bound + README mapping + cross-family dep resolvability) |
+| **ConsumerSmoke** | Per-RID matrix **re-entry** (ADR-003 §3.4) | — | Restore + runtime TUnit pass per TFM; no G-series numbering (behavioral smoke, not a structural guardrail). |
+| **Publish** | Single-runner per feed tier | G31, G32, G33, G34, G35 | Monotonicity + no-existing-version + smoke-gate + stage-ordering + cross-family resolvability at feed scope |
+| **Full-Train (PD-7 scope)** | Meta-tag trigger | G37, G38, G39, G40, G41, G42 | `release-set.json` schema + family existence + SemVer + no-dup + ordering + partial-train handling |
+| **Manual Escape (PD-8 scope)** | Operator-driven | G43, G44, G45 | Version↔tag drift + explicit feed source + audit trail |
+| **Coverage gate** | CI pre-matrix | G36 | Coverage ratchet floor |
+
+The subsystem view (§2.1–§2.8) remains authoritative for each guardrail's owner (validator class, task, MSBuild target, CI workflow step). This stage view is a routing map; it references the same guardrails, not duplicates.
 
 ### 2.1 csproj Structural (PreFlight, A-risky scope — post-S1 subset)
 
@@ -92,6 +112,7 @@ G25 is intentionally scoped to the managed package's `.snupkg`. Payload-only `.N
 | G55 | **Native package ships `janset-native-metadata.json` at root.** Every `.Native` nupkg contains a machine-readable metadata JSON with schema: `{ janset_family_version, family_identifier, upstream_library, upstream_version, vcpkg_port_version, triplet_set, build_commit }`. Post-pack validator opens the nupkg, asserts the file exists + parses as valid JSON + schema-matches + `upstream_version` equals the vcpkg-resolved version for the primary triplet + `build_commit` equals the HEAD SHA at pack time. Complements version-string D-3seg by carrying the exact upstream patch + port_version that the shortened version string drops. Enables downstream tooling (release notes generation, mapping-table diffing, CI audit) without having to reverse-engineer from file hashes. | Active (V4, 2026-04-19) | `NativePackageMetadataValidator` (post-pack) |
 | G56 | **Satellite cross-family dep upper bound declared.** Every satellite `.nuspec` cross-family dependency on Core (e.g., `Janset.SDL2.Image → Janset.SDL2.Core`) declares both lower bound (`>= x.y.z`) AND upper bound (`< (UpstreamMajor + 1).0.0`). Parses the exact range expression — not just "dependency present." Prevents accidental consumer-side resolution across SDL upstream majors (defence even though `sdl2-*` / `sdl3-*` family identifiers already split the package IDs). | Active (V4, 2026-04-19) | `SatelliteUpperBoundValidator` (post-pack) |
 | G57 | **README mapping table current.** `README.md` mapping block delimited by `<!-- JANSET:MAPPING-TABLE-START -->` / `<!-- JANSET:MAPPING-TABLE-END -->` markers matches the current `manifest.json library_manifests[]` set byte-equivalent to the Cake-generator output. Detects stale mapping tables that would mis-inform consumers about which upstream version a family version corresponds to. Cake-generated at pack time; validator asserts currency. | Active (V4, 2026-04-19) | `ReadmeMappingTableValidator` (post-pack) |
+| G58 | **Cross-family dependency resolvability (Pack stage, ADR-003 §8 Open Question 1).** If the invocation scope contains a satellite family, the satellite's cross-family dependency on Core must either have the Core version present in the same invocation scope (same pack run) OR the declared minimum Core version must already be available on the target feed. **Scope-contains check runs always**; **feed probe runs only when a feed URL is configured**. Placed in Pack stage per ADR-003 §8 Open Question 1 ("feed probe there avoids introducing auth dependency earlier"). Complements G56 (upper bound declared in nuspec) + G35 (Publish-stage cross-family monotonicity) — G58 is the release-time consistency check that prevents emitting a satellite nupkg whose minimum Core bound could never resolve. | Planned (ADR-003 impl pass) | Cake `PackageTask` post-pack assertion (scope-contains); optional feed probe behind `--feed=<url>` |
 
 ### 2.6 CI Pipeline (Stream C + D-ci scope)
 
@@ -134,7 +155,7 @@ When PD-8 lands, the manual operator flow needs its own guardrails.
 
 ## 3. Stream Mapping (At-a-Glance)
 
-Counts reflect post-ADR-001 (2026-04-18) scope. S1 (2026-04-17) retired 9 exact-pin-related guardrails; H1 (2026-04-18) added G49–G53; ADR-001 (2026-04-18) added G54–G57. Historical pre-S1 cumulative was 43; post-S1 was 34; post-H1 was 39; post-ADR-001 is 43.
+Counts reflect post-ADR-003 (2026-04-20) scope. S1 (2026-04-17) retired 9 exact-pin-related guardrails; H1 (2026-04-18) added G49–G53; ADR-001 (2026-04-18) added G54–G57; ADR-003 (2026-04-20) added G58. Historical pre-S1 cumulative was 43; post-S1 was 34; post-H1 was 39; post-ADR-001 was 43; post-ADR-003 is **44**.
 
 | Stream | Guardrails delivered | Cumulative active |
 | --- | --- | --- |
@@ -144,9 +165,10 @@ Counts reflect post-ADR-001 (2026-04-18) scope. S1 (2026-04-17) retired 9 exact-
 | D-local (post-S1) | G21, G22, G23 (post-pack assertions — minimum range + version match), G25, G26, G27 (symbols, repo, metadata), G46 (MSBuild payload guard) | 17 |
 | H1 (license integrity, 2026-04-18) | G49, G50 (identity + harvest post-deploy), G51, G52, G53 (license payload + pack gate + staged replace) | 22 |
 | ADR-001 D-3seg (2026-04-18) | G54 (upstream Major.Minor coherence), G55 (native metadata file), G56 (satellite upper bound), G57 (README mapping table) | 26 |
-| D-ci | G28–G35 (CI publish pipeline) | 34 |
-| PD-7 (full-train) | G37–G42 (release-set validation) | 40 |
-| PD-8 (manual escape) | G43–G45 (manual operator validation) | 43 |
+| ADR-003 orchestration (2026-04-20) | G58 (cross-family dep resolvability at Pack stage) | 27 |
+| D-ci | G28–G35 (CI publish pipeline) | 35 |
+| PD-7 (full-train) | G37–G42 (release-set validation) | 41 |
+| PD-8 (manual escape) | G43–G45 (manual operator validation) | 44 |
 | — | G11, G12, G13 are NuGet/build-host built-ins (not delivered by any stream; G11 marked REVISIT) | — |
 | — | G47, G48 (native package buildTransitive + per-RID payload shape) landed with post-S1 buildTransitive contract; already counted within D-local post-S1 | — |
 
@@ -184,6 +206,7 @@ For each known failure mode, list the guardrails that catch it. If no guardrail 
 | Native nupkg ships without machine-readable upstream-version metadata — exact SDL patch + port_version becomes invisible to downstream tooling | G55 | No |
 | Satellite nuspec missing cross-family upper bound; hypothetical `Janset.SDL2.Core 3.x` could resolve against `Janset.SDL2.Image 2.8.x` | G56 | No |
 | README mapping table drifts from manifest (consumer reads wrong "which SDL version does this family wrap?" answer) | G57 | No |
+| Satellite pack invocation emits nuspec declaring `>= Core x.y.z` while no such Core version exists in the current scope AND none is available on the target feed (consumer-side restore would fail with "unable to find package") | G58 | No (after ADR-003 impl pass) |
 
 **Retired failure modes (S1 2026-04-17):** "Operator removes PrivateAssets=all" (no longer a mechanism), "Operator adds new satellite without bracket-notation PackageVersion" (no longer required), "Standalone dotnet pack ships 0.0.0-restore sentinel" (sentinel removed), "Renaming family in manifest without updating csproj property names" (`Sdl<Role>FamilyVersion` property no longer required). These failure modes cannot occur under the S1 shape.
 
@@ -212,8 +235,9 @@ When a new failure mode emerges:
 ## 7. Cross-References
 
 - [ADR-001: D-3seg Versioning, Package-First Local Dev, Artifact Source Profile Abstraction](../decisions/2026-04-18-versioning-d3seg.md) — authoritative decision record that added G54–G57
+- [ADR-003: Release Lifecycle Orchestration + Version Source Providers](../decisions/2026-04-20-release-lifecycle-orchestration.md) — authoritative decision record that added G58 and locked the stage-owned validation model shown in §2.0
 - [release-lifecycle-direction.md](release-lifecycle-direction.md) — canonical policy that the guardrails enforce
-- [phase-2-adaptation-plan.md](../phases/phase-2-adaptation-plan.md) — stream-by-stream implementation roadmap; see "S1 Adoption Record" for the 2026-04-17 amendments; PD-12 for ADR-001 D-3seg adoption
+- [phase-2-adaptation-plan.md](../phases/phase-2-adaptation-plan.md) — current active execution ledger (post-ADR-003 rewrite); historical S1/ADR-001 rollout narrative preserved in the [archive](../_archive/phase-2-adaptation-plan-2026-04-15.md)
 - [exact-pin-spike-and-nugetizer-eval-2026-04-16.md](../research/exact-pin-spike-and-nugetizer-eval-2026-04-16.md) — **SUPERSEDED 2026-04-17.** Within-family exact-pin mechanism research. Kept as history; no longer binding. The production-time version flow constraint documented there is what motivated S1 adoption.
 - [nu5016-cake-restore-investigation-2026-04-17.md](../../artifacts/temp/nu5016-cake-restore-investigation-2026-04-17.md) — investigation artifact: traced NU5016 root cause to `NuGet.Build.Tasks.Pack.targets:335` globals-replace; resolution via S1 adoption
 - [full-train-release-orchestration-2026-04-16.md](../research/full-train-release-orchestration-2026-04-16.md) — PD-7 scope

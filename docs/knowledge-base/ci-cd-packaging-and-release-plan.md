@@ -1,6 +1,8 @@
 # CI/CD Packaging and Release Plan
 
-> **Policy reference:** Release lifecycle policy (package families, versioning model, release governance, dependency contracts, CI matrix shape, promotion path) is defined in [`release-lifecycle-direction.md`](release-lifecycle-direction.md). This document describes the **pipeline implementation** that enforces those policies.
+> **Policy reference:** Release lifecycle policy (package families, versioning model, release governance, dependency contracts, CI matrix shape, promotion path) is defined in [`release-lifecycle-direction.md`](release-lifecycle-direction.md). **Orchestration architecture** (version-source providers, pipeline stage ownership, stage-owned validation, consumer smoke matrix re-entry) is defined in [ADR-003](../decisions/2026-04-20-release-lifecycle-orchestration.md). This document describes the **pipeline implementation** that enforces both sets of decisions.
+>
+> **ADR-003 direction note (2026-04-20 draft):** the `Release-Candidate-Pipeline.yml` "mega workflow" design described in §4.A is superseded in shape by ADR-003 §3.4's `release.yml` model — dynamic matrix from `manifest.runtimes[]`, consumer smoke matrix re-entry, `resolve-versions` job invoking the build-host version-source entrypoint, stage-owned validation. The implementation outline in §5 remains useful for Phase 1/2 engineering sequencing; the final workflow file shape lands during the ADR-003 Cake refactor + CI/CD rewrite pass. Where §4.A and ADR-003 §3.4 diverge (matrix shape, job graph, trigger surface), ADR-003 wins.
 
 ## 1. Overview and Goals
 
@@ -22,7 +24,7 @@ This document intentionally mixes current implementation details and future CI/C
 - **Partially implemented**: Exists in code or workflow files, but is not fully wired or production-ready.
 - **Planned / not present in repo**: Intentionally preserved design that does not yet exist as a working file or task.
 
-Current repo reality on 2026-04-11:
+Current repo reality on 2026-04-21 (post-ADR-003 draft):
 
 - The `prepare-native-assets-*` workflows are the working cross-platform harvest path and now use explicit `--rid` plus the full SDL2 satellite harvest list (`SDL2`, `SDL2_image`, `SDL2_mixer`, `SDL2_ttf`, `SDL2_gfx`, `SDL2_net`); matrix-level validation for the expanded set is still pending.
 - `release-candidate-pipeline.yml` exists, but it is still a placeholder workflow with dummy steps and artifacts.
@@ -32,6 +34,9 @@ Current repo reality on 2026-04-11:
 - Shared native dependency collision policy is resolved: Hybrid Static model eliminates transitive DLL collisions by static-baking deps into satellites.
 - Config merge complete: `runtimes.json` and `system_artefacts.json` are now merged into `manifest.json` schema v2.
 - Release lifecycle direction is locked: package families, tag-derived versioning, hybrid governance, dependency contracts, CI matrix shape, promotion path. See [`release-lifecycle-direction.md`](release-lifecycle-direction.md).
+- Orchestration architecture is draft-locked in [ADR-003](../decisions/2026-04-20-release-lifecycle-orchestration.md) (v1.4, 2026-04-20): three version-source providers (`ManifestVersionProvider` / `GitTagVersionProvider` / `ExplicitVersionProvider`), stage-owned validation, consumer smoke matrix re-entry, Option A resolver-centric `SetupLocalDev`. ADR-003 is **pseudocode** — implementation lands during the Cake refactor + CI/CD rewrite pass.
+- PA-2 landed 2026-04-18: all 7 `manifest.runtimes[]` rows now map to hybrid overlay triplets; behavioral pack + consumer-smoke validation on the four newly-covered rows (`win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64`) is still pending via the new `release.yml` pipeline.
+- `SetupLocalDev --source=local` operational on Windows host (packages local feed + writes `build/msbuild/Janset.Smoke.local.props`). `--source=remote` stubbed (`UnsupportedArtifactSourceResolver`); concrete implementation is Phase 2b Stream D-ci / PD-5.
 
 ## 2. Guiding Principles & Core Tenets
 
@@ -139,6 +144,17 @@ The pipeline relies on several key configuration files and generates specific ar
 
 **Status**: Partially implemented. The file exists in `.github/workflows/`, but the current workflow body is still placeholder logic and does not execute the end-to-end design described below.
 
+> **ADR-003 supersession note (2026-04-20 draft).** The workflow-shape sections that follow (§4.A inputs, concurrency, `pre_flight_check`, `build_harvest_matrix`, `consolidate_harvest_artifacts`, `package_libraries`, `publish_to_internal_feed`) describe the pre-ADR-003 "mega workflow" design. Under [ADR-003 §3.4](../decisions/2026-04-20-release-lifecycle-orchestration.md), the canonical release workflow becomes `release.yml` with this shape:
+>
+> - **Triggers:** tag push (`sdl2-*-*.*.*` for targeted; `train-*` for full-train) + `workflow_dispatch` (with `mode=manifest-derived|explicit` and optional `versions` for explicit mode).
+> - **`resolve-versions` job** invokes a build-host entrypoint (Cake target TBD during impl); CI supplies only trigger context, the build host resolves and validates (G54 coherence).
+> - **`generate-matrix` job** emits dynamic matrix from `manifest.runtimes[]` — no hardcoded YAML matrix.
+> - **Matrix shape is always the full `manifest.runtimes[]`** for release workflows — no RID subset input (RID-subset reserved for non-promotable debug workflows).
+> - **`preflight`** (single-runner, fail-fast, version-aware by contract) → **`harvest`** (per-RID matrix, strategy-aware guardrails) → **`pack`** (single-runner, post-pack G21-G58) → **`consumer-smoke`** (per-RID matrix **re-entry** — same matrix, runs on the produced nupkgs) → **`publish-staging`** → **`publish-public`**.
+> - Force-push/replay semantics remain useful (`force_build_strategy`, `force_push_packages`) but migrate onto the `workflow_dispatch` input surface described in ADR-003 rather than the pre-ADR-003 mega-workflow input list.
+>
+> Read §4.A as the legacy design that ADR-003 narrows. The implementation outline in §5 (Phase 1/2/3 sequencing) remains useful for engineering ordering but the final workflow file names and job graph come from ADR-003 §3.4.
+
 - **What:** The primary workflow responsible for validating the configuration, building native assets via Vcpkg, harvesting these assets, packaging them into `.nupkg` files, and publishing them to an internal NuGet feed (or staging them locally).
 - **Why:** This consolidated workflow (as opposed to multiple smaller, chained workflows) aims for better visibility into the end-to-end process, easier debugging, and more robust control over the release candidate generation.
 - **Filename:** `.github/workflows/release-candidate-pipeline.yml`
@@ -185,7 +201,7 @@ The pipeline relies on several key configuration files and generates specific ar
         - `outputs`: `build_matrix` (JSON string), `build_plan_summary` (string).
         - **Steps:**
           1. `actions/checkout@v4`: With `ref: ${{ github.event_name == 'push' && github.ref || github.sha }}`.
-          2. **Read Configurations:** Load `build/manifest.json`, `vcpkg.json`, `build/runtimes.json`, and `build/known-issues.json` (if it exists).
+          2. **Read Configurations:** Load `build/manifest.json` (schema v2.1 — includes `runtimes[]`, `library_manifests[]`, `system_exclusions`, `package_families[]`), `vcpkg.json`, and `build/known-issues.json` (if it exists). The legacy split `runtimes.json` / `system_artefacts.json` files were merged into `manifest.json` schema v2.
           3. **Validate Versions:** For each library in `manifest.json`, compare its declared `vcpkg_version` against the version specified for the corresponding component in `vcpkg.json` (under `overrides`). If they do not match, **fail the workflow**.
           4. **Determine Build Matrix:**
               - Start with all libraries defined in `manifest.json` and all RIDs from `runtimes.json`.

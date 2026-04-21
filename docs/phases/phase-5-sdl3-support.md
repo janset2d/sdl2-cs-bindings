@@ -64,8 +64,7 @@ src/
 
 The Cake Frosting build system should be parameterized to handle both SDL2 and SDL3:
 
-- `manifest.json`: Add SDL3 library definitions
-- `runtimes.json`: Same RIDs apply (vcpkg triplets are library-agnostic)
+- `manifest.json` (schema v2.1, single source of truth): Add SDL3 `library_manifests[]`, `package_families[]`, and — if SDL3 ever requires different runtime coverage than SDL2 — additional `runtimes[]` entries. Today's 7 RIDs apply unchanged (vcpkg triplets are library-agnostic).
 - `vcpkg.json`: Add SDL3 dependencies (possibly separate `vcpkg-sdl3.json` or a merged file)
 - HarvestTask: Should already work — just different library names and patterns
 - CI workflows: Extend matrix or add parallel SDL3 workflows

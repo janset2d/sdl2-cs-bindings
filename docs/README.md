@@ -34,10 +34,16 @@
 | Document | Phase | Status |
 | --- | --- | --- |
 | [phase-1-sdl2-bindings.md](phases/phase-1-sdl2-bindings.md) | SDL2 Core Bindings + Harvesting | DONE |
-| [phase-2-cicd-packaging.md](phases/phase-2-cicd-packaging.md) | CI/CD & Packaging | IN PROGRESS |
-| [phase-3-sdl2-complete.md](phases/phase-3-sdl2-complete.md) | SDL2 Complete (all libs, all RIDs, tests, samples) | PLANNED |
-| [phase-4-binding-autogen.md](phases/phase-4-binding-autogen.md) | Binding Auto-Generation | PLANNED |
-| [phase-5-sdl3-support.md](phases/phase-5-sdl3-support.md) | SDL3 Support | PLANNED |
+| [phase-2-adaptation-plan.md](phases/phase-2-adaptation-plan.md) | CI/CD & Packaging (active execution ledger) | IN PROGRESS |
+| [phase-4-binding-autogen.md](phases/phase-4-binding-autogen.md) | Binding Auto-Generation | PLANNED (design brief) |
+| [phase-5-sdl3-support.md](phases/phase-5-sdl3-support.md) | SDL3 Support | PLANNED (design brief) |
+
+> **Retired phase documents** (redirect stubs kept for backlink integrity — not canonical navigation targets):
+>
+> - `phases/phase-2-cicd-packaging.md` — superseded by `phases/phase-2-adaptation-plan.md` and `plan.md` roadmap (retired 2026-04-21; redirects).
+> - `phases/phase-3-sdl2-complete.md` — superseded by `plan.md` roadmap (retired 2026-04-21; sample projects spec absorbed into [issue #60](https://github.com/janset2d/sdl2-cs-bindings/issues/60)).
+>
+> See [phases/README.md](phases/README.md) for the Planned Phase Doc Retention Test that governs when a phase doc earns its place vs retires to stub.
 
 ### Research (Dated Findings — Verify Before Acting)
 
@@ -98,8 +104,18 @@
 | Document | Decision | Date | Status |
 | --- | --- | --- | --- |
 | [2026-04-18-versioning-d3seg.md](decisions/2026-04-18-versioning-d3seg.md) | ADR-001 — D-3seg versioning, package-first local dev, artifact source profile abstraction | 2026-04-18 | Accepted |
+| [2026-04-19-ddd-layering-build-host.md](decisions/2026-04-19-ddd-layering-build-host.md) | ADR-002 — DDD layering for the Cake build host (Tasks / Application / Domain / Infrastructure) | 2026-04-19 | Accepted |
+| [2026-04-20-release-lifecycle-orchestration.md](decisions/2026-04-20-release-lifecycle-orchestration.md) | ADR-003 — Release lifecycle orchestration + version source providers (Manifest / GitTag / Explicit) | 2026-04-20 | Draft (v1.5 post-sweep) |
 
 New ADRs land under [`decisions/`](decisions/) with a dated filename (`YYYY-MM-DD-<slug>.md`) and carry an embedded Impact Checklist that tracks implementation completion.
+
+### Archive (Historical Snapshots)
+
+Pre-rewrite bodies of canonical documents are preserved under [`_archive/`](_archive/) when a rewrite substantially changes the shape but historical rationale has no other canonical home. See [`_archive/README.md`](_archive/README.md) for the convention.
+
+| Document | Original | Archived on | Reason |
+| --- | --- | --- | --- |
+| [_archive/phase-2-adaptation-plan-2026-04-15.md](_archive/phase-2-adaptation-plan-2026-04-15.md) | `phases/phase-2-adaptation-plan.md` | 2026-04-21 | Pre-ADR-003 amendment archaeology (S1 Adoption Record, retired Stream A0, A-risky historical record, ADR-001 addendum, Strategy State Audit, closed PDs). Rewrite retains only current execution state + open PDs. |
 
 ### Reference (Deep On-Demand)
 
