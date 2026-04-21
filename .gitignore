@@ -431,5 +431,11 @@ build/_build/.cake/
 # committed; long-lived work lives under build/_build or docs/.
 /temp/
 
+# Local witness-script run logs (tests/scripts/smoke-witness.cs). Kept outside
+# artifacts/ so Cake's CleanArtifacts target does not wipe them mid-run; each
+# run creates a timestamped subdir and clears any pre-existing directory of
+# the same name for a clean slate.
+/.logs/
+
 .DS_Store
 .claude/
