@@ -22,7 +22,6 @@ public class DependentsTask : AsyncFrostingTask<BuildContext>
 
         var dumpbinSettings = new DumpbinDependentsSettings(file)
         {
-            ToolPath = context.Tools.Resolve("dumpbin.exe"),
             SetupProcessSettings = settings =>
             {
                 settings.RedirectStandardOutput = true;

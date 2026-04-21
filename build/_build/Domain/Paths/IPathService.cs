@@ -11,6 +11,8 @@ public interface IPathService
     DirectoryPath ArtifactsDir { get; }
     DirectoryPath HarvestOutput { get; }
     DirectoryPath PackagesOutput { get; }
+    DirectoryPath PackageConsumerSmokeOutput { get; }
+    DirectoryPath SmokeTestResultsOutput { get; }
     FilePath GetPackageOutputFile(string packageId, string version);
     DirectoryPath SrcDir { get; }
     DirectoryPath VcpkgRoot { get; }
@@ -34,6 +36,57 @@ public interface IPathService
     FilePath GetManifestFile();
     FilePath GetVcpkgManifestFile();
     FilePath GetCoverageBaselineFile();
+    FilePath SolutionFile { get; }
+
+    /// <summary>
+    /// tests/smoke-tests/native-smoke
+    /// </summary>
+    DirectoryPath NativeSmokeProjectDir { get; }
+
+    /// <summary>
+    /// tests/smoke-tests/native-smoke/build
+    /// </summary>
+    DirectoryPath NativeSmokeBuildRoot { get; }
+
+    /// <summary>
+    /// tests/smoke-tests/native-smoke/build/{preset}
+    /// </summary>
+    DirectoryPath GetNativeSmokeBuildPresetDir(string preset);
+
+    /// <summary>
+    /// tests/smoke-tests/native-smoke/build/{preset}/native-smoke(.exe)
+    /// </summary>
+    FilePath GetNativeSmokeExecutableFile(string preset);
+
+    /// <summary>
+    /// artifacts/temp/inspect
+    /// </summary>
+    DirectoryPath InspectOutputRoot { get; }
+
+    /// <summary>
+    /// artifacts/temp/inspect/{rid}
+    /// </summary>
+    DirectoryPath GetInspectOutputRidDir(string rid);
+
+    /// <summary>
+    /// artifacts/temp/inspect/{rid}/{library}
+    /// </summary>
+    DirectoryPath GetInspectOutputLibraryDir(string rid, string libraryName);
+
+    /// <summary>
+    /// artifacts/matrix/
+    /// </summary>
+    DirectoryPath MatrixOutputRoot { get; }
+
+    /// <summary>
+    /// artifacts/matrix/runtimes.json
+    /// </summary>
+    FilePath GetMatrixOutputFile();
+
+    /// <summary>
+    /// artifacts/harvest-staging/ — ephemeral per-RID pack staging root cleaned by CleanArtifacts.
+    /// </summary>
+    DirectoryPath HarvestStagingRoot { get; }
 
     // Per-library harvest output surface. Single source of truth for every per-library
     // path under artifacts/harvest_output/{library}/. Tasks that read or write these

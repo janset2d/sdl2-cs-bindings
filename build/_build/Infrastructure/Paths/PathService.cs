@@ -63,6 +63,10 @@ public sealed class PathService : IPathService
 
     public DirectoryPath PackagesOutput => ArtifactsDir.Combine("packages");
 
+    public DirectoryPath PackageConsumerSmokeOutput => ArtifactsDir.Combine("package-consumer-smoke");
+
+    public DirectoryPath SmokeTestResultsOutput => ArtifactsDir.Combine("test-results").Combine("smoke");
+
     public FilePath GetPackageOutputFile(string packageId, string version)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(packageId);
@@ -160,6 +164,51 @@ public sealed class PathService : IPathService
     {
         return BuildDir.CombineWithFilePath("coverage-baseline.json");
     }
+
+    public FilePath SolutionFile => RepoRoot.CombineWithFilePath("Janset.SDL2.sln");
+
+    public DirectoryPath NativeSmokeProjectDir =>
+        RepoRoot.Combine("tests").Combine("smoke-tests").Combine("native-smoke");
+
+    public DirectoryPath NativeSmokeBuildRoot => NativeSmokeProjectDir.Combine("build");
+
+    public DirectoryPath GetNativeSmokeBuildPresetDir(string preset)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(preset);
+        return NativeSmokeBuildRoot.Combine(preset);
+    }
+
+    public FilePath GetNativeSmokeExecutableFile(string preset)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(preset);
+        var executableName = preset.StartsWith("win-", StringComparison.OrdinalIgnoreCase)
+            ? "native-smoke.exe"
+            : "native-smoke";
+        return GetNativeSmokeBuildPresetDir(preset).CombineWithFilePath(executableName);
+    }
+
+    public DirectoryPath InspectOutputRoot => ArtifactsDir.Combine("temp").Combine("inspect");
+
+    public DirectoryPath GetInspectOutputRidDir(string rid)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(rid);
+        return InspectOutputRoot.Combine(rid);
+    }
+
+    public DirectoryPath GetInspectOutputLibraryDir(string rid, string libraryName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(libraryName);
+        return GetInspectOutputRidDir(rid).Combine(libraryName);
+    }
+
+    public DirectoryPath MatrixOutputRoot => ArtifactsDir.Combine("matrix");
+
+    public FilePath GetMatrixOutputFile()
+    {
+        return MatrixOutputRoot.CombineWithFilePath("runtimes.json");
+    }
+
+    public DirectoryPath HarvestStagingRoot => ArtifactsDir.Combine("harvest-staging");
 
     public DirectoryPath GetHarvestLibraryDir(string libraryName)
     {

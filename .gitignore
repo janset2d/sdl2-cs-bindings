@@ -426,5 +426,10 @@ build/msbuild/Janset.Smoke.local.props
 .vscode/
 build/_build/.cake/
 
+# Repo-root scratch for API reflection spikes, CMake target inspection,
+# and other throwaway probes created during build-host development. Not
+# committed; long-lived work lives under build/_build or docs/.
+/temp/
+
 .DS_Store
 .claude/

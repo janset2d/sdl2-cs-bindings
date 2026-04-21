@@ -3,16 +3,73 @@
 # Grows slice-by-slice alongside the ADR-003 Cake refactor:
 #
 #   Slice A (landed): trigger stanzas + stub resolve-versions-stub job.
-#   Slice B1 (current): resolve-versions + preflight jobs run real Cake targets.
-#                       Pack / NativeSmoke / ConsumerSmoke / Publish still pending.
-#   Slice D:  generate-matrix + harvest + native-smoke + consolidate-harvest jobs.
+#   Slice B1 (landed): resolve-versions + preflight jobs run real Cake targets.
+#   Slice D (current): generate-matrix job real; harvest / native-smoke /
+#                      consolidate-harvest jobs first-draft (see WIP banner below).
 #   Slice C:  pack + consumer-smoke (RID matrix re-entry) jobs.
-#   Slice E:  publish-staging + publish-public stub jobs; playbook mirror validated.
+#   Slice E:  (a) absorb prepare-native-assets-*.yml into matrix-driven jobs below;
+#             (b) custom Ubuntu container image hosted on GHCR, built by a dedicated
+#                 companion workflow, replaces the in-job apt-install + autoconf
+#                 source-build preamble;
+#             (c) publish-staging + publish-public stub jobs;
+#             (d) playbook mirror validated.
 #
 # Every `run:` block invokes a build-host Cake target (or minimal wiring logic — artifact
 # download, JSON → --explicit-version expansion). Per ADR-003 §3.1 the build host owns policy;
 # CI supplies trigger context + job graph only. Any `run:` block that grows beyond a single
 # Cake invocation + artifact up/download + CLI-arg wiring is a review flag.
+#
+# NORTH-STAR REFERENCE (Slice D → Slice E CI absorption).
+# ----------------------------------------------------------------------------
+# The working CI harvest path today is the `prepare-native-assets-*.yml` reusable
+# workflow family, invoked by `prepare-native-assets-main.yml` on workflow_dispatch.
+# That family carries the full battle-tested prereq + cache + submodule discipline
+# this release.yml must absorb before going live on tag pushes:
+#
+#   (i)   Linux container apt prereqs (build-essential, SDL2 video/audio backends,
+#         freepats for Timidity MIDI, autoconf 2.72 source build on ubuntu:20.04 —
+#         see prepare-native-assets-linux.yml steps). `freepats` is *required* for
+#         NativeSmoke "Mix decoder: MIDI" to pass — see the inline comment in
+#         prepare-native-assets-linux.yml and docs/playbook/cross-platform-smoke-validation.md.
+#   (ii)  vcpkg-setup composite action (.github/actions/vcpkg-setup) — submodule
+#         commit + overlay triplet/port hash keying, bootstrap, binary cache.
+#   (iii) actions/checkout with submodules: recursive + fetch-depth: 0 for the
+#         vcpkg submodule + git-tag / MinVer provenance.
+#   (iv)  workspace-local NuGet cache (NUGET_PACKAGES env + actions/cache).
+#   (v)   Cake host compiled once (dotnet build) and invoked many times via the
+#         built `Build` executable — NOT `dotnet run` per target.
+#   (vi)  --repo-root "$(pwd)" on Unix; shell defaults per platform (bash vs pwsh).
+#   (vii) Artifact name convention harvested-assets-{os}-{rid} (prepare-*'s shape).
+#
+# The Slice D first-draft harvest / native-smoke / consolidate-harvest job bodies
+# below are intentionally minimal: they exercise the Cake target shape + matrix
+# wiring + artifact-upload contract, but they do NOT yet carry points (i)–(vii).
+# Until Slice E absorbs the prepare-* family into these matrix-driven jobs, the
+# operator-facing CI harvest path remains `prepare-native-assets-main.yml`
+# (workflow_dispatch). Release-tag pushes (`sdl2-*-*.*.*`, `sdl3-*-*.*.*`,
+# `train-*`) also remain gated behind Slice E closure — no tag should be pushed
+# until this file's job bodies reach prepare-*-parity.
+#
+# Slice E scope items (tracked in docs/phases/phase-2-release-cycle-orchestration-implementation-plan.md §6.6):
+#   E1. Rewrite harvest / native-smoke / consolidate-harvest jobs here to dispatch
+#       per-platform reusable workflows (prepare-native-assets-windows/linux/macos.yml,
+#       possibly renamed) via `uses:` + matrix-derived inputs from generate-matrix.
+#       The reusable workflows keep the vcpkg-setup composite + NuGet cache + Cake
+#       compile-once discipline; release.yml stays the thin dispatcher.
+#   E2. Move the Linux apt-prereq preamble (and the autoconf-2.72 source build) out
+#       of the workflow file entirely: bake them into a pinned custom Ubuntu image
+#       hosted on ghcr.io/janset2d/sdl2-bindings-linux-builder:<tag>. Image built
+#       by a dedicated `build-linux-container.yml` workflow (cadence: manual
+#       dispatch + scheduled rebuild; multi-arch for linux-x64 + linux-arm64).
+#       Container version pinned in manifest.runtimes[].container_image so a
+#       single manifest edit drives both the image reference and the matrix shape.
+#   E3. Retire prepare-native-assets-*.yml (or narrow them to a callable harvest-only
+#       shape that release.yml delegates to).
+#
+# Until E1-E3 land, DO NOT push a release tag — CI will fail on the first Linux
+# matrix entry because the apt prereqs + vcpkg cache + submodule recursion are
+# absent from the job bodies below.
+# ----------------------------------------------------------------------------
 #
 # See docs/phases/phase-2-release-cycle-orchestration-implementation-plan.md for the full plan.
 # Cross-reference: docs/decisions/2026-04-20-release-lifecycle-orchestration.md §3.4.
@@ -99,3 +156,135 @@ jobs:
           dotnet run --project build/_build/Build.csproj -c Release -- \
             --target PreFlightCheck \
             "${args[@]}"
+
+  generate-matrix:
+    # Slice D: emits the full 7-RID matrix (one entry per manifest.runtimes[]) via
+    # GenerateMatrixTask. The harvest + native-smoke jobs both read the same matrix — per ADR-003
+    # §3.4 and the 2026-04-21 symmetric pivot the job graph does NOT subset native-smoke.
+    # Any RID that fails at `cmake --preset <rid>` inside native-smoke is the PA-2 witness signal,
+    # not a code-level cap; the preset file grows in Phase 2b.
+    name: Generate Matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Emit matrix JSON
+        run: >
+          dotnet run --project build/_build/Build.csproj -c Release --
+          --target GenerateMatrix
+      - name: Expose matrix as job output
+        id: matrix
+        run: |
+          # GitHub Actions matrix expansion reads the include[] array verbatim.
+          matrix_json=$(jq -c . artifacts/matrix/runtimes.json)
+          echo "matrix=${matrix_json}" >> "$GITHUB_OUTPUT"
+      - name: Upload matrix artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: generate-matrix-output
+          path: artifacts/matrix/runtimes.json
+          retention-days: 7
+
+  harvest:
+    # FIRST-DRAFT — Slice E absorbs prepare-native-assets-{windows,linux,macos}.yml
+    # into this job. Today's body misses apt prereqs, vcpkg-setup composite, submodule
+    # recursion, NuGet cache, Cake-compile-once. See the NORTH-STAR REFERENCE block at
+    # the top of this file + plan §6.6 E1-E3.
+    name: Harvest (${{ matrix.rid }})
+    needs: [preflight, generate-matrix]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
+    runs-on: ${{ matrix.runner }}
+    container: ${{ matrix.container_image }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Run Harvest
+        run: >
+          dotnet run --project build/_build/Build.csproj -c Release --
+          --target Harvest
+          --rid ${{ matrix.rid }}
+      - name: Upload harvest output
+        uses: actions/upload-artifact@v4
+        with:
+          name: harvest-output-${{ matrix.rid }}
+          path: artifacts/harvest_output
+          retention-days: 7
+
+  native-smoke:
+    # FIRST-DRAFT (see NORTH-STAR REFERENCE + plan §6.6 E1-E3 for absorption scope).
+    #
+    # Symmetric 7-RID matrix per ADR-003 §3.4 + the 2026-04-21 direction. The four PA-2 RIDs
+    # (win-arm64, win-x86, linux-arm64, osx-arm64) will fail at `cmake --preset <rid>` until
+    # tests/smoke-tests/native-smoke/CMakePresets.json grows in Phase 2b — that expected-failure
+    # surface IS the PA-2 witness signal, NOT a code-level cap. See plan §11 Q9 + §6.3.
+    name: NativeSmoke (${{ matrix.rid }})
+    needs: [harvest, generate-matrix]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
+    runs-on: ${{ matrix.runner }}
+    container: ${{ matrix.container_image }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Download harvest output for this RID
+        uses: actions/download-artifact@v4
+        with:
+          name: harvest-output-${{ matrix.rid }}
+          path: artifacts/harvest_output
+      - name: Run NativeSmoke
+        run: >
+          dotnet run --project build/_build/Build.csproj -c Release --
+          --target NativeSmoke
+          --rid ${{ matrix.rid }}
+
+  consolidate-harvest:
+    # FIRST-DRAFT (see NORTH-STAR REFERENCE + plan §6.6 E1-E3 for absorption scope).
+    # Slice E aligns the download-artifact pattern with the prepare-*'s
+    # `harvested-assets-{os}-{rid}` naming convention — today's `harvest-output-{rid}`
+    # shape is a placeholder.
+    #
+    # Aggregation runner per ADR-003 §3.5 — downloads every RID's harvest output, then invokes
+    # ConsolidateHarvest once to union license evidence + produce the cross-RID manifests.
+    name: ConsolidateHarvest
+    needs: [harvest]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Download every RID's harvest output
+        uses: actions/download-artifact@v4
+        with:
+          pattern: harvest-output-*
+          path: artifacts/harvest_output
+          merge-multiple: true
+      - name: Run ConsolidateHarvest
+        run: >
+          dotnet run --project build/_build/Build.csproj -c Release --
+          --target ConsolidateHarvest
+      - name: Upload consolidated harvest
+        uses: actions/upload-artifact@v4
+        with:
+          name: consolidated-harvest-output
+          path: artifacts/harvest_output
+          retention-days: 7
