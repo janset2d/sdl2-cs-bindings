@@ -118,7 +118,7 @@ RUN git config --system --add safe.directory '*'
 # as self-documentation in the GHCR build log: operators can `docker pull`
 # the tag and read the expected GCC / glibc / CMake baseline from here.
 # ---------------------------------------------------------------------------
-RUN echo "=== debian base ===" \
+RUN echo "=== base ===" \
  && cat /etc/os-release \
  && echo "=== glibc ===" \
  && ldd --version | head -1 \
@@ -130,7 +130,7 @@ RUN echo "=== debian base ===" \
  && ninja --version \
  && autoconf --version | head -1 \
  && automake --version | head -1 \
- && libtool --version | head -1 \
+ && libtoolize --version | head -1 \
  && pkg-config --version \
  && echo "=== scripting / vcs ===" \
  && python3 --version \

@@ -59,7 +59,7 @@ jobs:
             runner: ubuntu-24.04-arm
             platform: linux/arm64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: false
 
@@ -75,11 +75,24 @@ jobs:
 
       - name: Build & push by digest
         id: build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./docker
           file: ./docker/linux-builder.Dockerfile
           platforms: ${{ matrix.platform }}
+          # SLSA provenance + SBOM attestations are disabled intentionally:
+          # with attestation on, each arch pushes 2 manifests (runtime +
+          # attestation) and the multi-arch image index references both.
+          # The attestation manifests are tagless and look like "untagged
+          # versions" to GHCR retention tooling, which then prunes them as
+          # noise — breaking multi-arch pull because a runtime manifest
+          # gets swept up in the same sweep. Attestations buy little for an
+          # internal CI toolchain image (Dockerfile is public in-repo, image
+          # is rebuild-from-source on every workflow run). Re-enable only if
+          # the image is promoted to a public consumer-facing surface and
+          # retention is reworked to ignore attestation manifests.
+          provenance: false
+          sbom: false
           # push-by-digest outputs a content-addressed digest per arch; merge
           # job stitches the two digests into a single multi-arch manifest.
           outputs: >-
@@ -95,7 +108,7 @@ jobs:
 
       - name: Upload digest artifact
         if: ${{ inputs.push != false || github.event_name == 'schedule' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: digest-${{ matrix.arch }}
           path: /tmp/digests/${{ matrix.arch }}
@@ -109,7 +122,7 @@ jobs:
     if: ${{ inputs.push != false || github.event_name == 'schedule' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: /tmp/digests
           pattern: digest-*
@@ -155,19 +168,31 @@ jobs:
           IMMUTABLE_TAG: ${{ steps.tags.outputs.immutable }}
 
   retention:
-    name: Prune old image versions
+    name: Prune untagged image versions
     needs: merge
     # Only run after a successful push; dry-run and schedule-dry-run both skip.
     if: ${{ inputs.push != false || github.event_name == 'schedule' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Delete stale versions (keep last 2 sha-tagged + focal-latest)
+      - name: Delete untagged package versions
         uses: actions/delete-package-versions@v5
         with:
           package-name: sdl2-bindings-linux-builder
           package-type: container
-          # Keep the three most recent versions overall; the focal-latest
-          # pointer retags onto the newest digest each run, so the effective
-          # retention is: newest (=latest + newest sha tag) + previous sha tag.
-          min-versions-to-keep: 3
-          delete-only-untagged-versions: false
+          # Retention policy rewritten after 2026-04-22 incident: the previous
+          # `delete-only-untagged-versions: false` + `min-versions-to-keep: 3`
+          # shape swept an amd64 runtime manifest that GHCR reported as
+          # "untagged version" (it was a member of the multi-arch image
+          # index, not a standalone-tagged item). `docker pull` then 404'd
+          # looking for that manifest digest.
+          #
+          # New shape: `delete-only-untagged-versions: true` constrains deletes
+          # to genuinely orphaned versions, never touching anything reachable
+          # via a tag pointer (focal-latest or focal-<date>-<sha>). With
+          # provenance/sbom attestation disabled in the build step above, a
+          # successful multi-arch push produces 1 tagged manifest-list pointing
+          # to 2 runtime manifests (both referenced, never pruned). Stale
+          # manifests from abandoned builds (e.g. arm64 pushed but amd64
+          # failed) accumulate as untagged versions and this step cleans them.
+          min-versions-to-keep: 5
+          delete-only-untagged-versions: true

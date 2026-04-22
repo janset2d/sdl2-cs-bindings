@@ -138,14 +138,14 @@ jobs:
     name: Build Cake Host
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: false
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
       - name: Cache NuGet packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.nuget/packages
           key: nuget-cake-host-${{ hashFiles('build/_build/Build.csproj', 'Directory.Packages.props', 'build/_build/packages.lock.json') }}
@@ -161,7 +161,7 @@ jobs:
           -p:UseAppHost=false
           --output ./out/cake-host
       - name: Upload cake-host artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cake-host
           path: ./out/cake-host
@@ -177,13 +177,13 @@ jobs:
     needs: [build-cake-host]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: cake-host
           path: ./cake-host
@@ -194,7 +194,7 @@ jobs:
           --version-source=manifest
           --suffix=ci.${{ github.run_id }}.${{ github.run_attempt }}
       - name: Upload versions.json
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: resolve-versions-output
           path: artifacts/resolve-versions/versions.json
@@ -208,18 +208,18 @@ jobs:
     needs: [build-cake-host, resolve-versions]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: cake-host
           path: ./cake-host
       - name: Download versions.json
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: resolve-versions-output
           path: artifacts/resolve-versions
@@ -246,13 +246,13 @@ jobs:
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: cake-host
           path: ./cake-host
@@ -267,7 +267,7 @@ jobs:
           matrix_json=$(jq -c . artifacts/matrix/runtimes.json)
           echo "matrix=${matrix_json}" >> "$GITHUB_OUTPUT"
       - name: Upload matrix artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: generate-matrix-output
           path: artifacts/matrix/runtimes.json
@@ -286,13 +286,13 @@ jobs:
     runs-on: ${{ matrix.runner }}
     container: ${{ matrix.container_image }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: cake-host
           path: ./cake-host
@@ -302,7 +302,7 @@ jobs:
           --target Harvest
           --rid ${{ matrix.rid }}
       - name: Upload harvest output
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: harvest-output-${{ matrix.rid }}
           path: artifacts/harvest_output
@@ -323,18 +323,18 @@ jobs:
     runs-on: ${{ matrix.runner }}
     container: ${{ matrix.container_image }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: cake-host
           path: ./cake-host
       - name: Download harvest output for this RID
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: harvest-output-${{ matrix.rid }}
           path: artifacts/harvest_output
@@ -356,18 +356,18 @@ jobs:
     needs: [build-cake-host, harvest]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: cake-host
           path: ./cake-host
       - name: Download every RID's harvest output
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: harvest-output-*
           path: artifacts/harvest_output
@@ -377,7 +377,7 @@ jobs:
           dotnet ./cake-host/Build.dll
           --target ConsolidateHarvest
       - name: Upload consolidated harvest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: consolidated-harvest-output
           path: artifacts/harvest_output
@@ -391,23 +391,23 @@ jobs:
     needs: [build-cake-host, consolidate-harvest, resolve-versions]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: cake-host
           path: ./cake-host
       - name: Download consolidated harvest
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: consolidated-harvest-output
           path: artifacts/harvest_output
       - name: Download versions.json
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: resolve-versions-output
           path: artifacts/resolve-versions
@@ -422,7 +422,7 @@ jobs:
             --target Package \
             "${args[@]}"
       - name: Upload nupkg artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nupkg-output
           path: artifacts/packages/
@@ -444,23 +444,23 @@ jobs:
     runs-on: ${{ matrix.runner }}
     container: ${{ matrix.container_image }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: cake-host
           path: ./cake-host
       - name: Download nupkg artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: nupkg-output
           path: artifacts/packages
       - name: Download versions.json
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: resolve-versions-output
           path: artifacts/resolve-versions
