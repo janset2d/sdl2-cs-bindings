@@ -1,7 +1,7 @@
 # Build the Janset SDL2 Linux builder image and push to GHCR.
 #
 # Produces one multi-arch manifest list (amd64 + arm64) from two native runners
-# — ubuntu-latest for amd64, ubuntu-latest-arm64 for arm64 — merged via
+# — ubuntu-latest for amd64, ubuntu-24.04-arm for arm64 — merged via
 # `docker buildx imagetools create`. SkiaSharp-style single-tag multi-arch
 # output (one image points at two platform manifests via an OCI image index).
 #
@@ -56,7 +56,7 @@ jobs:
             runner: ubuntu-latest
             platform: linux/amd64
           - arch: arm64
-            runner: ubuntu-latest-arm64
+            runner: ubuntu-24.04-arm
             platform: linux/arm64
     steps:
       - uses: actions/checkout@v4

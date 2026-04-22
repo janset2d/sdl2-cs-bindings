@@ -157,7 +157,7 @@ build/manifest.json          ← everything
       "rid": "linux-arm64",
       "triplet": "arm64-linux-dynamic",
       "strategy": "pure-dynamic",
-      "runner": "ubuntu-latest-arm64",
+      "runner": "ubuntu-24.04-arm",
       "container_image": "ubuntu:24.04"
     },
     {

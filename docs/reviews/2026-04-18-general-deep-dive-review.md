@@ -108,7 +108,7 @@ Highest-priority fixes are repo-root fallback hardening and strict unix payload 
 - **Location:** [build/manifest.json](../../build/manifest.json#L14), [.github/workflows/prepare-native-assets-main.yml](../../.github/workflows/prepare-native-assets-main.yml#L57), [docs/onboarding.md](../onboarding.md#L173), [docs/plan.md](../plan.md#L196)
 - **Evidence type:** Observed in code and docs
 - **Confidence:** High
-- **The reality:** `build/manifest.json` declares `linux-arm64` runner as `ubuntu-latest-arm64`, while the orchestrator workflow hard-codes `ubuntu-24.04-arm` in its matrix include block.
+- **The reality:** `build/manifest.json` declares `linux-arm64` runner as `ubuntu-24.04-arm`, while the orchestrator workflow hard-codes `ubuntu-24.04-arm` in its matrix include block.
 - **Why it matters:** this directly violates the documented “manifest as single source of truth” contract and increases drift risk while Stream C dynamic matrix migration is still pending.
 - **Recommended fix:** either (A) align hard-coded workflow values to manifest immediately and add a lightweight CI guard that diffs workflow matrix runners against manifest runtime rows, or (B) prioritize Stream C extraction so matrix values are generated directly from manifest.
 - **Tradeoff:** A is fast and incremental; B removes the class of drift entirely but is larger scope.
@@ -368,7 +368,7 @@ Highest-priority fixes are repo-root fallback hardening and strict unix payload 
 - **Location:** [build/manifest.json](../../build/manifest.json#L14), [.github/workflows/prepare-native-assets-main.yml](../../.github/workflows/prepare-native-assets-main.yml#L57), [docs/onboarding.md](../onboarding.md#L187)
 - **Evidence type:** Observed in code and docs
 - **Confidence:** High
-- **The reality:** `manifest.json` runtime row uses `ubuntu-latest-arm64` while orchestrator workflow and onboarding table still use `ubuntu-24.04-arm`.
+- **The reality:** `manifest.json` runtime row uses `ubuntu-24.04-arm` while orchestrator workflow and onboarding table still use `ubuntu-24.04-arm`.
 - **Why it matters:** this preserves a known authority split in operational targeting. Any automation that assumes manifest authority can diverge from actual workflow execution.
 - **Recommended fix:** choose one authoritative runner label for linux-arm64 and align manifest + orchestrator + onboarding in one change.
 - **Tradeoff:** none beyond synchronized docs/workflow update.
