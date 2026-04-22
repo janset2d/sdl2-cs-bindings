@@ -151,6 +151,9 @@ _TeamCity*
 coverage*.json
 coverage*.xml
 coverage*.info
+# Ratchet baseline is tracked — it is NOT coverlet output, it is the gate
+# thresholds Coverage-Check reads at CI time. Must survive the coverlet glob.
+!build/coverage-baseline.json
 
 # Visual Studio code coverage results
 *.coverage

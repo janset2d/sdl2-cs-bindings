@@ -164,6 +164,18 @@ jobs:
         with:
           global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
+      - name: Enable TUnit HTML report auto-upload
+        # TUnit generates `TestResults/{Assembly}-{os}-{tfm}-report.html` by
+        # default and uploads it as a workflow artifact IF these two GitHub
+        # Actions runtime env vars are exposed. Option A from
+        # https://tunit.dev/docs/guides/html-report/#enabling-automatic-artifact-upload
+        # — removes the need for a manual actions/upload-artifact step for the
+        # report. Matrix jobs auto-deduplicate via the OS/TFM in the filename.
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env['ACTIONS_RUNTIME_TOKEN']);
+            core.exportVariable('ACTIONS_RESULTS_URL', process.env['ACTIONS_RESULTS_URL']);
       - name: Restore Build.Tests (transitive covers Build.csproj)
         # Targeted to the test project — NOT a solution-wide restore. `build/build.sln`
         # currently carries only Build + Build.Tests but future additions (extra test
@@ -198,15 +210,9 @@ jobs:
           path: ./out/cake-host
           if-no-files-found: error
           retention-days: 1
-      - name: Upload test-results artifact (TUnit HTML reports)
-        # `if: always()` so reports survive test failures / Coverage-Check gate.
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: test-results
-          path: build/_build.Tests/bin/Release/net9.0/TestResults/
-          if-no-files-found: warn
-          retention-days: 7
+      # TUnit HTML report uploads itself via ACTIONS_RUNTIME_TOKEN exported above;
+      # we only need to surface the cobertura coverage xml manually since the
+      # Coverage-Check gate consumes it and a human reader may want the raw data.
       - name: Upload coverage artifact (cobertura xml)
         if: always()
         uses: actions/upload-artifact@v7
@@ -533,6 +539,17 @@ jobs:
           global-json-file: global.json
       - uses: ./.github/actions/platform-build-prereqs
       - uses: ./.github/actions/nuget-cache
+      - name: Enable TUnit HTML report auto-upload
+        # Matrix-aware TUnit auto-upload: `Assembly-{os}-{tfm}-report.html`
+        # filename keeps per-RID reports distinct in the workflow artifact UI.
+        # The env vars flow through Cake → `dotnet test` (PackageConsumerSmoke)
+        # via inheritance. See
+        # https://tunit.dev/docs/guides/html-report/#enabling-automatic-artifact-upload
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env['ACTIONS_RUNTIME_TOKEN']);
+            core.exportVariable('ACTIONS_RESULTS_URL', process.env['ACTIONS_RESULTS_URL']);
       - uses: actions/download-artifact@v8
         with:
           name: cake-host

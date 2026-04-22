@@ -1,0 +1,8 @@
+{
+  "line_coverage_min": 65.0,
+  "branch_coverage_min": 58.0,
+  "reviewed_at": "2026-04-22",
+  "measured_line": 66.37,
+  "measured_branch": 59.43,
+  "notes": "Ratchet baseline for Cake build-host test coverage. Floors are set below the measured snapshot by a small buffer so ordinary churn does not trip the gate; raise only when a confirmed coverage increase lands, never lower to paper over a regression. Coverage report location: artifacts/test-results/build-tests/coverage.cobertura.xml (override via --coverage-file=<path> Cake argument)."
+}
