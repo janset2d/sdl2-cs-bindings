@@ -1,0 +1,56 @@
+name: "NuGet Cache"
+description: >
+  Cross-platform workspace-local NuGet cache shared across every .NET job in
+  the pipeline. Sets NUGET_PACKAGES to a workspace-relative path (OS-aware
+  separators) and wires actions/cache so Windows / Linux / macOS runners all
+  read from the same key family. Cache hit pays off because .nupkg content is
+  platform-agnostic — RID-specific native payloads ship inside the package
+  itself, and NuGet restore on any OS extracts the same layout.
+
+runs:
+  using: "composite"
+  steps:
+    # ──────────────────────────────────────────────────────────────────────────
+    # Export NUGET_PACKAGES into GITHUB_ENV so every subsequent step in the
+    # job inherits it. Path shape is workspace-relative + OS-native separator
+    # so dotnet / NuGet CLI get what they expect on each platform.
+    # ──────────────────────────────────────────────────────────────────────────
+    - name: Export NUGET_PACKAGES env (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
+      run: echo "NUGET_PACKAGES=${GITHUB_WORKSPACE}/.nuget/packages" >> "$GITHUB_ENV"
+
+    - name: Export NUGET_PACKAGES env (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $path = "$env:GITHUB_WORKSPACE\.nuget\packages"
+        "NUGET_PACKAGES=$path" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Cache key is platform-agnostic by design: .nupkg restores to the same
+    # on-disk shape regardless of runner OS. Key components:
+    #   - **/packages.lock.json   — deterministic restore graph
+    #   - **/Directory.Packages.props — CPM version overrides
+    #   - **/*.csproj             — PackageReference surface
+    # Falls back through restore-keys so new keys inherit from prior runs.
+    # Separate cache blocks per OS keep the path separator literal; actions/cache
+    # normalizes most cases but we stay explicit for debuggability.
+    # ──────────────────────────────────────────────────────────────────────────
+    - name: Restore NuGet cache (Unix)
+      if: runner.os != 'Windows'
+      uses: actions/cache@v5
+      with:
+        path: ${{ github.workspace }}/.nuget/packages
+        key: nuget-${{ hashFiles('**/packages.lock.json', '**/Directory.Packages.props', '**/*.csproj') }}
+        restore-keys: |
+          nuget-
+
+    - name: Restore NuGet cache (Windows)
+      if: runner.os == 'Windows'
+      uses: actions/cache@v5
+      with:
+        path: ${{ github.workspace }}\.nuget\packages
+        key: nuget-${{ hashFiles('**/packages.lock.json', '**/Directory.Packages.props', '**/*.csproj') }}
+        restore-keys: |
+          nuget-

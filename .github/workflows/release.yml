@@ -8,25 +8,33 @@
 #                     consolidate-harvest jobs first-draft (see WIP banner below).
 #   Slice C (landed): pack + consumer-smoke (RID matrix re-entry) jobs +
 #                     publish-staging / publish-public stubs (gated).
-#   Slice E (in progress):
-#     E1a (landed WIP): build-cake-host job publishes the Cake host once as an
+#   Slice E pass-1 (merged to master 2026-04-22 at bfc6713):
+#     E1a (landed): build-cake-host job publishes the Cake host once as an
 #           FDD artifact (runtimes/*/native/ bundled, -p:UseAppHost=false for
 #           cross-OS `dotnet Build.dll` invocation). Consumer jobs download the
 #           artifact and skip dotnet restore/build entirely.
-#     E1b (landed WIP): every consumer job rewired to `dotnet ./cake-host/Build.dll`.
-#     E1c: absorb prepare-native-assets-*.yml into matrix-driven jobs below
-#           (reusable workflow dispatch via uses: + matrix-derived inputs).
-#     E1d: lock-file discipline (RestorePackagesWithLockFile + --locked-mode).
-#     E2:  custom Ubuntu container image hosted on GHCR, built by a dedicated
-#           companion workflow, replaces the in-job apt-install + autoconf
-#           source-build preamble.
-#     E3:  retire prepare-native-assets-*.yml (or narrow to callable-from-release.yml).
-#     E4:  Publish{Staging,Public}Task stubs — task + runner present, body throws
-#           NotImplementedException with Phase-2b message; release.yml jobs already
-#           gated `if: false`.
-#     E5:  final `run:`-step review; every step invokes a Cake target.
-#     E6:  broader canonical-doc sweep deferred from Slice DA; Q17 addressing.
-#     E7:  three-platform witness per cross-platform-smoke-validation.md A-K.
+#     E1b (landed): every consumer job rewired to `dotnet ./cake-host/Build.dll`.
+#     E2 (landed): custom Ubuntu container image hosted on GHCR, built by a
+#           dedicated companion workflow, replaces the in-job apt-install +
+#           autoconf source-build preamble. focal-latest multi-arch manifest
+#           list (amd64 + arm64); manifest.runtimes[].container_image points at it.
+#   Slice E follow-up pass (master post-merge, 2026-04-22+, see plan §2.2):
+#     P1 (landed): nuget-cache + platform-build-prereqs composite actions +
+#           Build.Tests.csproj added to build/build.sln.
+#     P2 (landed): build-cake-host → "Build + Test Cake Host" (solution-wide
+#           restore → dotnet test with MTP coverage → publish → Coverage-Check
+#           gate → upload cake-host + test-results artifacts).
+#     P3 (landed): harvest + native-smoke job bodies gain platform-build-prereqs
+#           + vcpkg-setup + nuget-cache composites (E1c core absorption).
+#     P4 (landed): pack + consumer-smoke + consolidate-harvest + resolve-versions
+#           + preflight + generate-matrix gain nuget-cache; consumer-smoke also
+#           gains platform-build-prereqs (E1c tail).
+#     P5: lock-file discipline (RestorePackagesWithLockFile + --locked-mode).
+#     P6: PublishTask stubs (throws NotImplementedException; Phase-2b real impl).
+#     P7: three-platform witness per cross-platform-smoke-validation.md A-K.
+#     P8: retire prepare-native-assets-*.yml + release-candidate-pipeline.yml +
+#           broader canonical-doc sweep + §11 Q17 delegate-hook ADR resolution.
+#           Pass closure.
 #
 # Every `run:` block invokes a build-host Cake target (or minimal wiring logic — artifact
 # download, JSON → --explicit-version expansion). Per ADR-003 §3.1 the build host owns policy;
@@ -115,27 +123,38 @@ permissions:
 
 jobs:
   build-cake-host:
-    # Slice E E1a: publish the Cake build-host once per pipeline run and distribute
-    # the output as a workflow artifact. Downstream jobs skip `dotnet restore/build`
-    # entirely and invoke `dotnet ./cake-host/Build.dll --target X`.
+    # Slice E E1a + follow-up pass P2 (2026-04-22): build + test + publish the
+    # Cake host once per pipeline run and distribute the output as a workflow
+    # artifact. Downstream jobs skip `dotnet restore/build/test` entirely and
+    # invoke `dotnet ./cake-host/Build.dll --target X`.
     #
     # Shape: framework-dependent deployment (FDD) with `-p:UseAppHost=false` — no
     # platform-specific launcher is emitted, so the single artifact runs on every
-    # consumer job (Windows / Linux / macOS) through the `dotnet` host installed by
-    # `actions/setup-dotnet`. `dotnet publish` bundles `runtimes/*/native/` for
+    # consumer job (Windows / Linux / macOS) through the `dotnet` host installed
+    # by `actions/setup-dotnet`. `dotnet publish` bundles `runtimes/*/native/` for
     # every RID surfaced by the NuGet graph (notably LibGit2Sharp's per-OS
     # `git2-*.{so,dylib,dll}` via Cake.Frosting.Git), so the runtime dispatcher
     # picks the right native on each consumer OS.
     #
+    # Tests + Coverage-Check run as part of this job so regression coverage for
+    # the Cake host is CI-backed (not local-host-only). Coverage extension is
+    # TUnit + Microsoft.Testing.Platform's built-in `--coverage` output; the
+    # cobertura xml lands at `artifacts/test-results/build-tests/coverage.cobertura.xml`
+    # where `CoverageCheckTaskRunner.DefaultCoverageRelativePath` expects it.
+    #
+    # Job ID (`build-cake-host`) is intentionally unchanged from pass-1 so every
+    # consumer job's `needs: [build-cake-host, ...]` clause stays intact.
+    #
     # vcpkg submodule is deliberately skipped here — Cake host compiles against
     # Vcpkg config only (`context.Vcpkg.*`) and never links against vcpkg-produced
-    # binaries at build time; submodule recursion happens on jobs that actually
-    # run Harvest / NativeSmoke.
+    # binaries at build / test time; submodule recursion happens on jobs that
+    # actually run Harvest / NativeSmoke.
     #
-    # Retention is run-scoped (1 day): determinism > cross-run reuse. Each pipeline
-    # run re-builds the Cake host; content-addressed caching would save ~30s per
-    # run at the cost of debug-time confusion about which commit's host ran.
-    name: Build Cake Host
+    # Retention is run-scoped (1 day): determinism > cross-run reuse. Each
+    # pipeline run re-builds the Cake host; content-addressed caching would save
+    # ~30s per run at the cost of debug-time confusion about which commit's host
+    # ran.
+    name: Build + Test Cake Host
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -144,22 +163,34 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
-      - name: Cache NuGet packages
-        uses: actions/cache@v5
-        with:
-          path: ~/.nuget/packages
-          key: nuget-cake-host-${{ hashFiles('build/_build/Build.csproj', 'Directory.Packages.props', 'build/_build/packages.lock.json') }}
-          restore-keys: |
-            nuget-cake-host-
-      - name: Restore Cake host packages
-        run: dotnet restore ./build/_build/Build.csproj
+      - uses: ./.github/actions/nuget-cache
+      - name: Restore Build.Tests (transitive covers Build.csproj)
+        # Targeted to the test project — NOT a solution-wide restore. `build/build.sln`
+        # currently carries only Build + Build.Tests but future additions (extra test
+        # projects, samples) would pull in work we don't want here. Build.Tests
+        # ProjectReference'es Build.csproj so its restore graph covers the Cake host.
+        run: dotnet restore build/_build.Tests/Build.Tests.csproj
+      - name: Test Cake host (with coverage)
+        # TUnit + MTP `--coverage` cobertura output path must be absolute; with a
+        # relative path MTP writes under the test executable's bin dir instead of
+        # the repo-root-relative path CoverageCheckTaskRunner expects.
+        run: >
+          dotnet test build/_build.Tests/Build.Tests.csproj
+          --configuration Release
+          --no-restore
+          --
+          --coverage
+          --coverage-output-format cobertura
+          --coverage-output ${{ github.workspace }}/artifacts/test-results/build-tests/coverage.cobertura.xml
       - name: Publish Cake host (FDD, cross-OS)
         run: >
-          dotnet publish ./build/_build/Build.csproj
+          dotnet publish build/_build/Build.csproj
           --configuration Release
           --no-restore
           -p:UseAppHost=false
           --output ./out/cake-host
+      - name: Coverage-Check (ratchet against build/coverage-baseline.json)
+        run: dotnet ./out/cake-host/Build.dll --target Coverage-Check
       - name: Upload cake-host artifact
         uses: actions/upload-artifact@v7
         with:
@@ -167,6 +198,23 @@ jobs:
           path: ./out/cake-host
           if-no-files-found: error
           retention-days: 1
+      - name: Upload test-results artifact (TUnit HTML reports)
+        # `if: always()` so reports survive test failures / Coverage-Check gate.
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results
+          path: build/_build.Tests/bin/Release/net9.0/TestResults/
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Upload coverage artifact (cobertura xml)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage
+          path: artifacts/test-results/build-tests/coverage.cobertura.xml
+          if-no-files-found: warn
+          retention-days: 7
 
   resolve-versions:
     # Slice B1: manifest source live; git-tag / meta-tag sources land in Slice C.
@@ -183,6 +231,7 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
+      - uses: ./.github/actions/nuget-cache
       - uses: actions/download-artifact@v8
         with:
           name: cake-host
@@ -214,6 +263,7 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
+      - uses: ./.github/actions/nuget-cache
       - uses: actions/download-artifact@v8
         with:
           name: cake-host
@@ -252,6 +302,7 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
+      - uses: ./.github/actions/nuget-cache
       - uses: actions/download-artifact@v8
         with:
           name: cake-host
@@ -289,9 +340,19 @@ jobs:
       - uses: actions/checkout@v6
         with:
           submodules: recursive
+          fetch-depth: 0
       - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
+      - uses: ./.github/actions/platform-build-prereqs
+      - uses: ./.github/actions/vcpkg-setup
+        with:
+          runner-os: ${{ matrix.runner }}
+          cache-key-base: ${{ matrix.runner }}
+          triplet: ${{ matrix.triplet }}
+          vcpkg-cache-path: .vcpkg-cache
+          vcpkg-feature-flags: binarycaching
+      - uses: ./.github/actions/nuget-cache
       - uses: actions/download-artifact@v8
         with:
           name: cake-host
@@ -326,9 +387,19 @@ jobs:
       - uses: actions/checkout@v6
         with:
           submodules: recursive
+          fetch-depth: 0
       - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
+      - uses: ./.github/actions/platform-build-prereqs
+      - uses: ./.github/actions/vcpkg-setup
+        with:
+          runner-os: ${{ matrix.runner }}
+          cache-key-base: ${{ matrix.runner }}
+          triplet: ${{ matrix.triplet }}
+          vcpkg-cache-path: .vcpkg-cache
+          vcpkg-feature-flags: binarycaching
+      - uses: ./.github/actions/nuget-cache
       - uses: actions/download-artifact@v8
         with:
           name: cake-host
@@ -362,6 +433,7 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
+      - uses: ./.github/actions/nuget-cache
       - uses: actions/download-artifact@v8
         with:
           name: cake-host
@@ -397,6 +469,7 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
+      - uses: ./.github/actions/nuget-cache
       - uses: actions/download-artifact@v8
         with:
           name: cake-host
@@ -450,6 +523,8 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
+      - uses: ./.github/actions/platform-build-prereqs
+      - uses: ./.github/actions/nuget-cache
       - uses: actions/download-artifact@v8
         with:
           name: cake-host
