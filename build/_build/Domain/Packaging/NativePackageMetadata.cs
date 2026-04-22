@@ -50,11 +50,6 @@ public sealed class NativePackageMetadataGenerator(
     IPathService pathService,
     ICakeContext cakeContext) : INativePackageMetadataGenerator
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        WriteIndented = true,
-    };
-
     private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
     private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
@@ -97,8 +92,7 @@ public sealed class NativePackageMetadataGenerator(
         };
 
         var targetPath = _pathService.GetHarvestLibraryNativeMetadataFile(family.LibraryRef);
-        var json = JsonSerializer.Serialize(metadata, JsonOptions);
-        await _cakeContext.WriteAllTextAsync(targetPath, json);
+        await _cakeContext.WriteJsonAsync(targetPath, metadata);
 
         // Enforce the same JSON file contract used across build-host modules.
         _ = await _cakeContext.ToJsonAsync<NativePackageMetadata>(targetPath);
@@ -175,7 +169,7 @@ public sealed class NativePackageMetadataValidator(IFileSystem fileSystem)
         NativePackageMetadata? metadata;
         try
         {
-            metadata = JsonSerializer.Deserialize<NativePackageMetadata>(metadataContent);
+            metadata = CakeExtensions.DeserializeJson<NativePackageMetadata>(metadataContent);
         }
         catch (JsonException ex)
         {

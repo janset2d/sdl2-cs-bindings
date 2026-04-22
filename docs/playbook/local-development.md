@@ -17,7 +17,7 @@ cd sdl2-cs-bindings
 dotnet run --project build/_build -- --target SetupLocalDev --source=local
 ```
 
-Result: `artifacts/packages/` populated with D-3seg-versioned prerelease nupkgs (e.g. `Janset.SDL2.Core 2.32.0-local.<timestamp>`), and `build/msbuild/Janset.Smoke.local.props` written (gitignored) with the matching `LocalPackageFeed` + per-family version properties. Opening any smoke / sample csproj in Rider / VS / VS Code then restores + builds directly from the local feed.
+Result: `artifacts/packages/` populated with D-3seg-versioned prerelease nupkgs (e.g. `Janset.SDL2.Core 2.32.0-local.<timestamp>`), and `build/msbuild/Janset.Local.props` written (gitignored) with the matching `LocalPackageFeed` + per-family version properties. Opening any smoke / sample csproj in Rider / VS / VS Code then restores + builds directly from the local feed.
 
 `--source=remote` / `--source=release` are accepted now but intentionally fail with a "not implemented in Phase 2a" error until feed-download profile work lands.
 
@@ -35,7 +35,7 @@ If you need to debug the internals manually, follow the "Full Build" fallback se
 
 | Platform | Additional Requirements |
 | --- | --- |
-| Windows | Visual Studio Build Tools 2022 with C++ tools (`Microsoft.VisualStudio.Component.VC.Tools.x86.x64`); Developer PowerShell/Developer Command Prompt recommended |
+| Windows | Visual Studio Build Tools 2022 with C++ tools (`Microsoft.VisualStudio.Component.VC.Tools.x86.x64`). Since Slice CA (2026-04-21) the Cake host self-sources the MSVC environment via `IMsvcDevEnvironment` (VSWhere + `vcvarsall.bat`); plain PowerShell is sufficient. Developer PowerShell is still fine — the resolver's fast-path skips the extra `cmd /c` spawn when `VCToolsInstallDir` is already set. |
 | Linux | `build-essential`, `cmake`, `pkg-config`, `ldd`, plus SDL2 dev dependencies (see CI workflow for full list) |
 | macOS | Xcode Command Line Tools, `autoconf`, `automake`, `libtool` (via Homebrew) |
 
@@ -58,7 +58,7 @@ dotnet build src/SDL2.Gfx/SDL2.Gfx.csproj
 
 This builds the C# binding projects without requiring local package-feed injection.
 
-Important: smoke projects remain in `Janset.SDL2.sln` by design (package-first consumer contract). If `build/msbuild/Janset.Smoke.local.props` does not exist yet (or is stale), `dotnet restore/build Janset.SDL2.sln` can fail on smoke package restore (`NU1101`). Re-run `SetupLocalDev --source=local` to regenerate the local override.
+Important: smoke projects remain in `Janset.SDL2.sln` by design (package-first consumer contract). If `build/msbuild/Janset.Local.props` does not exist yet (or is stale), `dotnet restore/build Janset.SDL2.sln` can fail on smoke package restore (`NU1101`). Re-run `SetupLocalDev --source=local` to regenerate the local override.
 
 ### Getting Native Binaries Without Building
 
@@ -262,7 +262,7 @@ Native binaries are not in the runtime path. Either:
 The build host's Windows dependency scanner expects Visual Studio C++ tooling.
 
 - Install Visual Studio Build Tools 2022 with `Microsoft.VisualStudio.Component.VC.Tools.x86.x64`
-- Prefer running local checks from Developer PowerShell (this sets `VCToolsInstallDir`)
+- Plain PowerShell is fine post-Slice-CA — `DumpbinTool` + `IMsvcDevEnvironment` locate `dumpbin.exe` + source `vcvarsall.bat` via VSWhere automatically. Developer PowerShell is still supported (resolver's `VCToolsInstallDir` fast path).
 - If needed, verify `VCToolsInstallDir` and confirm `dumpbin.exe` exists under `%VCToolsInstallDir%\bin\Hostx64\x64`
 - If `vswhere.exe` is missing, install/repair Visual Studio Installer components before retrying
 

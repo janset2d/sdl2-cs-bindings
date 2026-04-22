@@ -17,11 +17,13 @@ public class PathConstructionTests
             VcpkgDir: null,
             VcpkgInstalledDir: null,
             Library: [],
-            Family: [],
-            FamilyVersion: null,
             Source: "local",
             Rid: "",
-            Dll: []);
+            Dll: [],
+            VersionSource: null,
+            Suffix: null,
+            Scope: [],
+            ExplicitVersion: []);
         var log = Substitute.For<ICakeLog>();
         return new PathService(repoConfig, parsedArgs, log);
     }
@@ -62,6 +64,20 @@ public class PathConstructionTests
     }
 
     [Test]
+    public async Task PackageConsumerSmokeOutput_Should_Be_Under_Artifacts()
+    {
+        var svc = CreatePathService("/repo");
+        await Assert.That(svc.PackageConsumerSmokeOutput.FullPath).IsEqualTo("/repo/artifacts/package-consumer-smoke");
+    }
+
+    [Test]
+    public async Task SmokeTestResultsOutput_Should_Be_Under_Artifacts_TestResults()
+    {
+        var svc = CreatePathService("/repo");
+        await Assert.That(svc.SmokeTestResultsOutput.FullPath).IsEqualTo("/repo/artifacts/test-results/smoke");
+    }
+
+    [Test]
     public async Task BuildProjectFile_Should_Point_To_BuildHost_Csproj()
     {
         var svc = CreatePathService("/repo");
@@ -69,10 +85,65 @@ public class PathConstructionTests
     }
 
     [Test]
-    public async Task GetSmokeLocalPropsFile_Should_Point_To_Build_Msbuild_Override()
+    public async Task GetLocalPropsFile_Should_Point_To_Build_Msbuild_Override()
+    {
+        // Slice C.8a: renamed from Janset.Smoke.local.props to Janset.Local.props; broadened
+        // from smoke-specific to repo-wide local-feed override (future samples / AST tests
+        // ride the same artefact).
+        var svc = CreatePathService("/repo");
+        await Assert.That(svc.GetLocalPropsFile().FullPath).IsEqualTo("/repo/build/msbuild/Janset.Local.props");
+    }
+
+    [Test]
+    public async Task SolutionFile_Should_Point_To_Repo_Solution()
     {
         var svc = CreatePathService("/repo");
-        await Assert.That(svc.GetSmokeLocalPropsFile().FullPath).IsEqualTo("/repo/build/msbuild/Janset.Smoke.local.props");
+        await Assert.That(svc.SolutionFile.FullPath).IsEqualTo("/repo/Janset.SDL2.sln");
+    }
+
+    [Test]
+    public async Task NativeSmokeProjectDir_Should_Point_To_NativeSmoke_Root()
+    {
+        var svc = CreatePathService("/repo");
+        await Assert.That(svc.NativeSmokeProjectDir.FullPath).IsEqualTo("/repo/tests/smoke-tests/native-smoke");
+    }
+
+    [Test]
+    public async Task GetNativeSmokeBuildPresetDir_Should_Compose_From_Preset()
+    {
+        var svc = CreatePathService("/repo");
+        await Assert.That(svc.GetNativeSmokeBuildPresetDir("win-x64").FullPath).IsEqualTo("/repo/tests/smoke-tests/native-smoke/build/win-x64");
+    }
+
+    [Test]
+    public async Task GetNativeSmokeExecutableFile_Should_Use_Windows_Extension_For_Win_Presets()
+    {
+        var svc = CreatePathService("/repo");
+        await Assert.That(svc.GetNativeSmokeExecutableFile("win-x64").FullPath)
+            .IsEqualTo("/repo/tests/smoke-tests/native-smoke/build/win-x64/native-smoke.exe");
+    }
+
+    [Test]
+    public async Task GetNativeSmokeExecutableFile_Should_Use_Unix_Name_For_NonWindows_Presets()
+    {
+        var svc = CreatePathService("/repo");
+        await Assert.That(svc.GetNativeSmokeExecutableFile("linux-x64").FullPath)
+            .IsEqualTo("/repo/tests/smoke-tests/native-smoke/build/linux-x64/native-smoke");
+    }
+
+    [Test]
+    public async Task GetInspectOutputLibraryDir_Should_Compose_Rid_And_Library()
+    {
+        var svc = CreatePathService("/repo");
+        await Assert.That(svc.GetInspectOutputLibraryDir("linux-x64", "SDL2_image").FullPath)
+            .IsEqualTo("/repo/artifacts/temp/inspect/linux-x64/SDL2_image");
+    }
+
+    [Test]
+    public async Task GetMatrixOutputFile_Should_Point_To_Artifacts_Matrix_File()
+    {
+        var svc = CreatePathService("/repo");
+        await Assert.That(svc.GetMatrixOutputFile().FullPath).IsEqualTo("/repo/artifacts/matrix/runtimes.json");
     }
 
     [Test]

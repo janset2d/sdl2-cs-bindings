@@ -421,10 +421,21 @@ vcpkg_installed/
 # Native payloads committed to src/native/<Lib>/runtimes/ are build artifacts,
 # produced by Cake harvest. Do not commit. See Known Issues #1 in docs/plan.md.
 src/native/*/runtimes/
-build/msbuild/Janset.Smoke.local.props
+build/msbuild/Janset.Local.props
 
 .vscode/
 build/_build/.cake/
+
+# Repo-root scratch for API reflection spikes, CMake target inspection,
+# and other throwaway probes created during build-host development. Not
+# committed; long-lived work lives under build/_build or docs/.
+/temp/
+
+# Local witness-script run logs (tests/scripts/smoke-witness.cs). Kept outside
+# artifacts/ so Cake's CleanArtifacts target does not wipe them mid-run; each
+# run creates a timestamped subdir and clears any pre-existing directory of
+# the same name for a clean slate.
+/.logs/
 
 .DS_Store
 .claude/

@@ -1,3 +1,4 @@
+using Build.Domain.Packaging.Models;
 using Build.Domain.Preflight.Models;
 using Cake.Core;
 using Cake.Core.Diagnostics;
@@ -142,34 +143,20 @@ public sealed class PreflightReporter(ICakeContext cakeContext)
 
         foreach (var check in validation.Checks)
         {
-            switch (check.Status)
+            if (check.Status == UpstreamVersionAlignmentCheckStatus.Match)
             {
-                case UpstreamVersionAlignmentCheckStatus.Match:
-                    Log.Information(
-                        "  ✅ {0}: family version '{1}' aligns with upstream '{2}'.",
-                        check.FamilyIdentifier,
-                        check.FamilyVersion,
-                        check.UpstreamVersion);
-                    break;
-
-                case UpstreamVersionAlignmentCheckStatus.SkippedNoFamilyVersion:
-                    Log.Information(
-                        "  ℹ️  {0}: skipped (no --family-version supplied).",
-                        check.FamilyIdentifier);
-                    break;
-
-                case UpstreamVersionAlignmentCheckStatus.SkippedMinorAlignmentForMultiFamilyPack:
-                    Log.Information(
-                        "  ℹ️  {0}: major aligned for multi-family pack; strict minor alignment deferred until per-family version override support.",
-                        check.FamilyIdentifier);
-                    break;
-
-                default:
-                    Log.Error(
-                        "  ❌ {0}: {1}",
-                        check.FamilyIdentifier,
-                        check.ErrorMessage ?? "unknown upstream alignment failure");
-                    break;
+                Log.Information(
+                    "  ✅ {0}: family version '{1}' aligns with upstream '{2}'.",
+                    check.FamilyIdentifier,
+                    check.FamilyVersion,
+                    check.UpstreamVersion);
+            }
+            else
+            {
+                Log.Error(
+                    "  ❌ {0}: {1}",
+                    check.FamilyIdentifier,
+                    check.ErrorMessage ?? "unknown upstream alignment failure");
             }
         }
 
@@ -220,5 +207,53 @@ public sealed class PreflightReporter(ICakeContext cakeContext)
         }
 
         Log.Information("✅ Csproj pack contract check PASSED - all {0} families conform to canonical shape", validation.CheckedFamilies);
+    }
+
+    public void ReportG58CrossFamilyResolvability(G58CrossFamilyValidation validation)
+    {
+        ArgumentNullException.ThrowIfNull(validation);
+
+        Log.Information("");
+        Log.Information("🔄 Checking cross-family dependency resolvability (G58)...");
+
+        if (validation.Checks.Count == 0)
+        {
+            Log.Information("  ℹ️ No cross-family dependencies in scope — no G58 checks to run.");
+            Log.Information("");
+            Log.Information("✅ G58 cross-family dependency resolvability PASSED - no dependencies to resolve");
+            return;
+        }
+
+        foreach (var check in validation.Checks)
+        {
+            if (check.IsError)
+            {
+                Log.Error(
+                    "  ❌ {0} → {1}: {2}",
+                    check.DependentFamily,
+                    check.DependencyFamily,
+                    check.ErrorMessage ?? "unknown G58 failure");
+            }
+            else
+            {
+                Log.Information(
+                    "  ✅ {0} → {1} ({2}, lower bound {3}).",
+                    check.DependentFamily,
+                    check.DependencyFamily,
+                    check.Status,
+                    check.ExpectedMinVersion);
+            }
+        }
+
+        Log.Information("");
+        if (validation.HasErrors)
+        {
+            var failedCount = validation.Checks.Count(check => check.IsError);
+            Log.Error("❌ Pre-flight check FAILED - {0} G58 cross-family resolvability violation(s) detected", failedCount);
+            Log.Error("   Either include the dependency family in --explicit-version / --scope, or wait for the Pack-stage feed-probe surface (post-C wiring).");
+            return;
+        }
+
+        Log.Information("✅ G58 cross-family dependency resolvability PASSED - {0} dependency/dependencies all resolvable within scope", validation.Checks.Count);
     }
 }

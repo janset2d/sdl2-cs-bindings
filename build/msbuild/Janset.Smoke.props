@@ -9,8 +9,9 @@
     Contract:
     - $(LocalPackageFeed): absolute path to the folder feed containing produced .nupkg
       files. Required — guarded by the _GuardSmokeLocalFeed target in Janset.Smoke.targets.
-      Provided either by SetupLocalDev's generated Janset.Smoke.local.props or by
-      Cake's PackageConsumerSmokeRunner via -p:LocalPackageFeed=...
+      Provided either by SetupLocalDev's generated Janset.Local.props (renamed from
+      Janset.Smoke.local.props in Slice C.8a; broadened from smoke-only to repo-wide local
+      feed override) or by Cake's PackageConsumerSmokeRunner via -p:LocalPackageFeed=...
     - Per-family version properties: JansetSdl<Major><Role>PackageVersion. Default to the
       $(JansetSmokeVersionSentinel) value so the guard catches missing inputs before
       `dotnet restore` attempts to resolve an unbound version against the feed.
@@ -79,11 +80,14 @@
 
   <!--
     SetupLocalDev local override: if present, injects LocalPackageFeed and per-family
-    version properties so smoke projects restore/build in IDE without runner-supplied
-    command-line properties.
+    version properties so smoke / sample / AST-test / sandbox projects restore in IDE
+    without a Cake-side explicit-version invocation. Runner-driven paths
+    (Cake PackageConsumerSmokeRunner) thread versions via -p: overrides directly and
+    ignore this file — Cake's strict explicit-version contract stays the single source
+    of truth for stage-runner invocations (ADR-003 §3.2 / Slice C.8).
   -->
-  <Import Project="$(MSBuildThisFileDirectory)Janset.Smoke.local.props"
-          Condition="Exists('$(MSBuildThisFileDirectory)Janset.Smoke.local.props')" />
+  <Import Project="$(MSBuildThisFileDirectory)Janset.Local.props"
+          Condition="Exists('$(MSBuildThisFileDirectory)Janset.Local.props')" />
 
   <PropertyGroup Condition="'$(LocalPackageFeed)' != ''">
     <RestoreAdditionalProjectSources>$(RestoreAdditionalProjectSources);$(LocalPackageFeed)</RestoreAdditionalProjectSources>

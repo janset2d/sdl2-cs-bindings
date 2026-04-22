@@ -1,6 +1,8 @@
 using System.Collections.Immutable;
+using System.IO;
 using System.Text.Json;
 using Build.Application.Harvesting;
+using Build.Context.Configs;
 using Build.Context.Models;
 using Build.Domain.Harvesting;
 using Build.Domain.Harvesting.Models;
@@ -29,6 +31,7 @@ public class HarvestTaskTests
     public async Task RunAsync_Should_Generate_Success_Rid_Status_File_When_Harvest_Completes()
     {
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
+        SeedVcpkgTripletLayout(repo);
 
         var library = ManifestFixture.CreateTestCoreLibrary();
         var manifestConfig = CreateManifestConfig([library]);
@@ -58,6 +61,7 @@ public class HarvestTaskTests
     public async Task RunAsync_Should_Generate_Error_Rid_Status_File_When_Closure_Fails()
     {
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
+        SeedVcpkgTripletLayout(repo);
 
         var library = ManifestFixture.CreateTestCoreLibrary();
         var manifestConfig = CreateManifestConfig([library]);
@@ -78,7 +82,8 @@ public class HarvestTaskTests
                 mockDeployer,
                 mockValidator,
                 runtimeProfile,
-                manifestConfig));
+                manifestConfig),
+            new VcpkgConfiguration([], null));
 
         var thrown = false;
         try
@@ -108,6 +113,7 @@ public class HarvestTaskTests
     public async Task RunAsync_Should_Generate_Error_Rid_Status_File_When_Operational_Exception_Occurs()
     {
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
+        SeedVcpkgTripletLayout(repo);
 
         var library = ManifestFixture.CreateTestCoreLibrary();
         var manifestConfig = CreateManifestConfig([library]);
@@ -128,7 +134,8 @@ public class HarvestTaskTests
                 mockDeployer,
                 mockValidator,
                 runtimeProfile,
-                manifestConfig));
+                manifestConfig),
+            new VcpkgConfiguration([], null));
 
         await Assert.That(() => task.RunAsync(repo.BuildContext)).Throws<InvalidOperationException>();
 
@@ -146,6 +153,7 @@ public class HarvestTaskTests
     public async Task RunAsync_Should_Propagate_Cancellation_Without_Generating_Error_Rid_Status_File()
     {
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
+        SeedVcpkgTripletLayout(repo);
 
         var library = ManifestFixture.CreateTestCoreLibrary();
         var manifestConfig = CreateManifestConfig([library]);
@@ -166,7 +174,8 @@ public class HarvestTaskTests
                 mockDeployer,
                 mockValidator,
                 runtimeProfile,
-                manifestConfig));
+                manifestConfig),
+            new VcpkgConfiguration([], null));
 
         await Assert.That(() => task.RunAsync(repo.BuildContext)).Throws<OperationCanceledException>();
 
@@ -180,6 +189,7 @@ public class HarvestTaskTests
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
             .WithLibraries(SatelliteLibrary)
             .BuildContextWithHandles();
+        SeedVcpkgTripletLayout(repo);
 
         var core = ManifestFixture.CreateTestCoreLibrary();
         var satellite = ManifestFixture.CreateTestSatelliteLibrary();
@@ -188,7 +198,8 @@ public class HarvestTaskTests
         var task = CreateHarvestTask(
             manifestConfig,
             closure: ClosureWithSinglePrimary(SatelliteLibrary),
-            plannerResult: PlannerResultWithSinglePrimary(SatelliteLibrary));
+            plannerResult: PlannerResultWithSinglePrimary(SatelliteLibrary),
+            vcpkgConfiguration: repo.BuildContext.Vcpkg);
 
         await task.RunAsync(repo.BuildContext);
 
@@ -217,6 +228,7 @@ public class HarvestTaskTests
             .Seed(previousLinuxStatus)
             .Seed(previousWindowsStatus)
             .BuildContextWithHandles();
+        SeedVcpkgTripletLayout(repo);
 
         var library = ManifestFixture.CreateTestCoreLibrary();
         var manifestConfig = CreateManifestConfig([library]);
@@ -254,6 +266,7 @@ public class HarvestTaskTests
     public async Task RunAsync_Should_Throw_When_Dependency_Policy_Validation_Fails()
     {
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
+        SeedVcpkgTripletLayout(repo);
 
         var library = ManifestFixture.CreateTestSatelliteLibrary();
         var manifestConfig = CreateManifestConfig([library]);
@@ -279,7 +292,8 @@ public class HarvestTaskTests
                 mockDeployer,
                 mockValidator,
                 runtimeProfile,
-                manifestConfig));
+                manifestConfig),
+            new VcpkgConfiguration([], null));
 
         await Assert.That(() => task.RunAsync(repo.BuildContext)).Throws<CakeException>();
     }
@@ -297,6 +311,7 @@ public class HarvestTaskTests
             .WithTextFile($"artifacts/harvest_output/{CoreLibrary}/harvest-manifest.tmp.json", "{\"partial\":true}")
             .WithTextFile($"artifacts/harvest_output/{CoreLibrary}/harvest-summary.tmp.json", "{\"partial\":true}")
             .BuildContextWithHandles();
+        SeedVcpkgTripletLayout(repo);
 
         var library = ManifestFixture.CreateTestCoreLibrary();
         var manifestConfig = CreateManifestConfig([library]);
@@ -329,6 +344,7 @@ public class HarvestTaskTests
             .WithTextFile(summaryPath, "{\"stale\":true}")
             .WithTextFile("artifacts/harvest_output/SDL2/licenses/_consolidated/zlib/copyright", "stale-consolidated")
             .BuildContextWithHandles();
+        SeedVcpkgTripletLayout(repo);
 
         var library = ManifestFixture.CreateTestCoreLibrary();
         var manifestConfig = CreateManifestConfig([library]);
@@ -357,6 +373,7 @@ public class HarvestTaskTests
         // binaries. Defends against silent feature-flag degradation / partial vcpkg installs
         // that happen to pass the upstream guards.
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
+        SeedVcpkgTripletLayout(repo);
 
         var library = ManifestFixture.CreateTestCoreLibrary();
         var manifestConfig = CreateManifestConfig([library]);
@@ -381,7 +398,8 @@ public class HarvestTaskTests
     private static Build.Tasks.Harvest.HarvestTask CreateHarvestTask(
         ManifestConfig manifestConfig,
         BinaryClosure closure,
-        ArtifactPlannerResult plannerResult)
+        ArtifactPlannerResult plannerResult,
+        VcpkgConfiguration? vcpkgConfiguration = null)
     {
         var mockWalker = Substitute.For<IBinaryClosureWalker>();
         mockWalker.BuildClosureAsync(Arg.Any<LibraryManifest>(), Arg.Any<CancellationToken>())
@@ -405,7 +423,8 @@ public class HarvestTaskTests
                 mockDeployer,
                 mockValidator,
                 runtimeProfile,
-                manifestConfig));
+                manifestConfig),
+            vcpkgConfiguration ?? new VcpkgConfiguration([], null));
     }
 
     private static BinaryClosure ClosureWithSinglePrimary(string libraryName)
@@ -494,5 +513,24 @@ public class HarvestTaskTests
     {
         var json = await repo.ReadAllTextAsync(relativePath);
         return JsonSerializer.Deserialize<RidHarvestStatus>(json, HarvestJsonContract.Options);
+    }
+
+    private static void SeedVcpkgTripletLayout(FakeRepoHandles repo)
+    {
+        WriteTextFile(repo, repo.ResolveFile($"vcpkg_installed/{WindowsTriplet}/bin/SDL2.dll"), "payload");
+    }
+
+    private static void WriteTextFile(FakeRepoHandles repo, FilePath path, string content)
+    {
+        var directory = repo.FileSystem.GetDirectory(path.GetDirectory());
+        if (!directory.Exists)
+        {
+            directory.Create();
+        }
+
+        var file = repo.FileSystem.GetFile(path);
+        using var stream = file.Open(FileMode.Create, FileAccess.Write, FileShare.None);
+        using var writer = new StreamWriter(stream);
+        writer.Write(content);
     }
 }

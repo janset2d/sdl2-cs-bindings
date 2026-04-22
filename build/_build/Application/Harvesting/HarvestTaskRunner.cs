@@ -33,14 +33,18 @@ public sealed class HarvestTaskRunner(
 
     private static JsonSerializerOptions JsonOptions => HarvestJsonContract.Options;
 
-    public async Task RunAsync(BuildContext context)
+    public async Task RunAsync(BuildContext context, HarvestRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        EnsureHarvestInputsReady(context);
 
         var outputBase = context.Paths.HarvestOutput;
         context.EnsureDirectoryExists(outputBase);
 
-        var librariesToHarvest = ResolveLibrariesToHarvest(context);
+        var librariesToHarvest = ResolveLibrariesToHarvest(context, request.Libraries);
 
         if (librariesToHarvest.Count == 0)
         {
@@ -50,29 +54,41 @@ public sealed class HarvestTaskRunner(
 
         foreach (var manifest in librariesToHarvest)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             await ProcessLibraryAsync(context, manifest, outputBase);
         }
 
         AnsiConsole.Write(new Rule("[green]Harvest completed successfully[/]").RuleStyle("grey"));
     }
 
-    private List<LibraryManifest> ResolveLibrariesToHarvest(BuildContext context)
+    private void EnsureHarvestInputsReady(BuildContext context)
+    {
+        var tripletDir = context.Paths.GetVcpkgInstalledTripletDir(_runtimeProfile.Triplet);
+        if (!context.DirectoryExists(tripletDir))
+        {
+            throw new CakeException(
+                $"Harvest precondition failed: vcpkg triplet directory '{tripletDir.FullPath}' is missing for triplet '{_runtimeProfile.Triplet}'. " +
+                $"Run '--target EnsureVcpkgDependencies --rid {_runtimeProfile.Rid}' first.");
+        }
+    }
+
+    private List<LibraryManifest> ResolveLibrariesToHarvest(BuildContext context, IReadOnlyList<string> requestedLibraries)
     {
         ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(requestedLibraries);
 
-        var specifiedLibraries = context.Vcpkg.Libraries;
         var allManifestLibraries = _manifestConfig.LibraryManifests.ToList();
 
-        if (!specifiedLibraries.Any())
+        if (requestedLibraries.Count == 0)
         {
-            context.Log.Information("No specific libraries specified for harvest via --library. Processing all libraries from manifest.");
+            context.Log.Information("No specific libraries specified for harvest. Processing all libraries from manifest.");
             return allManifestLibraries;
         }
 
-        context.Log.Information("Processing specified libraries for harvest: {0}", string.Join(", ", specifiedLibraries));
+        context.Log.Information("Processing specified libraries for harvest: {0}", string.Join(", ", requestedLibraries));
 
-        var librariesToHarvest = new List<LibraryManifest>(specifiedLibraries.Count);
-        foreach (var specLibName in specifiedLibraries)
+        var librariesToHarvest = new List<LibraryManifest>(requestedLibraries.Count);
+        foreach (var specLibName in requestedLibraries)
         {
             var manifest = allManifestLibraries.SingleOrDefault(m => string.Equals(m.Name, specLibName, StringComparison.OrdinalIgnoreCase))
                 ?? throw new CakeException($"Specified library '{specLibName}' for harvest not found in manifest.");
@@ -532,8 +548,7 @@ public sealed class HarvestTaskRunner(
 
             var statusFilePath = context.Paths.GetHarvestLibraryRidStatusFile(manifest.Name, _runtimeProfile.Rid);
 
-            var jsonContent = JsonSerializer.Serialize(ridStatus, JsonOptions);
-            await context.WriteAllTextAsync(statusFilePath, jsonContent);
+            await context.WriteJsonAsync(statusFilePath, ridStatus, JsonOptions);
 
             context.Log.Information("Generated RID status file: {0}", statusFilePath);
         }
@@ -574,8 +589,7 @@ public sealed class HarvestTaskRunner(
 
             var statusFilePath = context.Paths.GetHarvestLibraryRidStatusFile(manifest.Name, _runtimeProfile.Rid);
 
-            var jsonContent = JsonSerializer.Serialize(ridStatus, JsonOptions);
-            await context.WriteAllTextAsync(statusFilePath, jsonContent);
+            await context.WriteJsonAsync(statusFilePath, ridStatus, JsonOptions);
 
             context.Log.Information("Generated error RID status file: {0}", statusFilePath);
         }

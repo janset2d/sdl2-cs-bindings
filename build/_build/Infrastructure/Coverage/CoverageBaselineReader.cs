@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Build.Context;
 using Build.Domain.Coverage.Models;
 using Cake.Core.IO;
 
@@ -22,7 +23,7 @@ public sealed class CoverageBaselineReader(IFileSystem fileSystem) : ICoverageBa
         ArgumentException.ThrowIfNullOrWhiteSpace(jsonContent);
 
         return DeserializeBaseline(
-            () => JsonSerializer.Deserialize<CoverageBaseline>(jsonContent),
+            () => CakeExtensions.DeserializeJson<CoverageBaseline>(jsonContent),
             nameof(jsonContent));
     }
 
@@ -36,7 +37,7 @@ public sealed class CoverageBaselineReader(IFileSystem fileSystem) : ICoverageBa
         stream.CopyTo(buffer);
 
         return DeserializeBaseline(
-            () => JsonSerializer.Deserialize<CoverageBaseline>(buffer.ToArray()),
+            () => CakeExtensions.DeserializeJson<CoverageBaseline>(buffer.ToArray()),
             nameof(path));
     }
 

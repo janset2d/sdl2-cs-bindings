@@ -1,9 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
+using Build.Context;
 using Build.Context.Configs;
 using Build.Context.Models;
 using Build.Domain.Packaging;
+using Build.Domain.Packaging.Models;
 using Build.Domain.Paths;
 using Build.Domain.Preflight;
-using Build.Domain.Runtime;
 using Build.Infrastructure.DotNet;
 using Build.Infrastructure.Paths;
 using Cake.Common;
@@ -11,6 +13,7 @@ using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
+using NuGet.Versioning;
 
 namespace Build.Application.Packaging;
 
@@ -18,27 +21,21 @@ public sealed class PackageConsumerSmokeRunner(
     ICakeContext cakeContext,
     ICakeLog log,
     IPathService pathService,
-    IRuntimeProfile runtimeProfile,
     ManifestConfig manifestConfig,
     DotNetBuildConfiguration dotNetBuildConfiguration,
-    PackageBuildConfiguration packageBuildConfiguration,
-    IPackageVersionResolver packageVersionResolver,
     IProjectMetadataReader projectMetadataReader) : IPackageConsumerSmokeRunner
 {
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
     private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
-    private readonly IRuntimeProfile _runtimeProfile = runtimeProfile ?? throw new ArgumentNullException(nameof(runtimeProfile));
     private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
     private readonly DotNetBuildConfiguration _dotNetBuildConfiguration = dotNetBuildConfiguration ?? throw new ArgumentNullException(nameof(dotNetBuildConfiguration));
-    private readonly PackageBuildConfiguration _packageBuildConfiguration = packageBuildConfiguration ?? throw new ArgumentNullException(nameof(packageBuildConfiguration));
-    private readonly IPackageVersionResolver _packageVersionResolver = packageVersionResolver ?? throw new ArgumentNullException(nameof(packageVersionResolver));
     private readonly IProjectMetadataReader _projectMetadataReader = projectMetadataReader ?? throw new ArgumentNullException(nameof(projectMetadataReader));
 
     /// <summary>
     /// Concrete family descriptor for smoke: derived from <c>manifest.json</c> package_families
     /// filtered by presence of managed + native project (same <c>HasConcreteProjects</c> rule
-    /// used by <c>PackageFamilySelector</c>). Naming conventions come from
+    /// pack flow uses when it resolves the explicit version mapping). Naming conventions come from
     /// <see cref="FamilyIdentifierConventions"/> so the runner, the shared smoke MSBuild
     /// props, and the csproj PackageReference entries stay aligned via a single convention.
     /// </summary>
@@ -55,15 +52,37 @@ public sealed class PackageConsumerSmokeRunner(
         }
     }
 
-    public async Task RunAsync(CancellationToken cancellationToken = default)
+    [SuppressMessage("Design", "MA0051:Method is too long",
+        Justification = "Linear orchestration: guards + feed resolve + compile-sanity + per-TFM smoke. Splitting hurts traceability of the operator-visible pass/fail sequence.")]
+    public async Task RunAsync(BuildContext context, PackageConsumerSmokeRequest request, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
 
+        // Slice C.8 (Deniz Q5a decision, 2026-04-21): --explicit-version is mandatory on
+        // the runner. The old "empty mapping → trust Janset.Smoke.local.props" fallback was
+        // retired; the runner now has a single canonical input shape (RID + Versions + FeedPath
+        // via the request record). Janset.Local.props (renamed from Janset.Smoke.local.props
+        // in C.8a) still lives as a dev-ergonomics artifact for IDE direct-restore paths, but
+        // it is NOT consumed here — avoids drift risk between props-based and -p:-based
+        // version injection.
+        if (request.Versions.Count == 0)
+        {
+            throw new CakeException(
+                "PackageConsumerSmoke requires a non-empty version mapping on the request. " +
+                "Invoke the target with repeated --explicit-version family=semver entries " +
+                "(or rely on PackageConsumerSmokeTask.ShouldRun to skip silently when the " +
+                "operator did not supply any).");
+        }
+
+        EnsureSmokeStageInputsReady(request.FeedPath);
+
         var smokePackages = ResolveSmokePackages();
-        EnsureSelectionSupportsCurrentSmokeScope(smokePackages);
+        EnsureSelectionSupportsCurrentSmokeScope(smokePackages, request.Versions);
         await EnsureSmokeCsprojsMatchManifestScopeAsync(smokePackages, cancellationToken);
 
-        var version = ResolveSmokeVersionAndEnsureFeed(smokePackages);
+        var explicitVersions = ResolveSmokeVersionMappingAndEnsureFeed(smokePackages, request.Versions, request.FeedPath);
 
         // Kill any lingering build-server processes (VBCSCompiler, MSBuild worker nodes with
         // /nodeReuse:true, Razor) from prior invocations before we try to delete bin/obj —
@@ -92,7 +111,7 @@ public sealed class PackageConsumerSmokeRunner(
         // 1. Compile-only sanity for the netstandard2.0 consumer slice.
         //    netstandard2.0 is a contract, not a runtime — if this library compiles
         //    against our package, the netstandard2.0 consumer surface is validated.
-        RunCompileSanity(compileSanityProject, smokePackages, version, packagesCache);
+        RunCompileSanity(compileSanityProject, smokePackages, explicitVersions, packagesCache, request.FeedPath);
 
         // 2. Per-TFM TUnit smoke for executable TFMs. TFM list comes from MSBuild
         //    evaluation of the smoke csproj (inherits $(ExecutableTargetFrameworks)
@@ -122,7 +141,31 @@ public sealed class PackageConsumerSmokeRunner(
             // Reset build servers between TFMs to keep the multi-target sequence stable.
             ShutdownDotNetBuildServers();
 
-            RunSmokeForTfm(smokeProject, smokePackages, version, packagesCache, tfm);
+            RunSmokeForTfm(smokeProject, smokePackages, explicitVersions, packagesCache, request.FeedPath, request.Rid, tfm);
+        }
+    }
+
+    private void EnsureSmokeStageInputsReady(DirectoryPath feedPath)
+    {
+        if (!_cakeContext.FileExists(_pathService.PackageConsumerSmokeProject))
+        {
+            throw new CakeException(
+                $"PackageConsumerSmoke precondition failed: smoke project '{_pathService.PackageConsumerSmokeProject.FullPath}' is missing. " +
+                "Sync the repository checkout before running the consumer smoke stage.");
+        }
+
+        if (!_cakeContext.FileExists(_pathService.CompileSanityProject))
+        {
+            throw new CakeException(
+                $"PackageConsumerSmoke precondition failed: compile-sanity project '{_pathService.CompileSanityProject.FullPath}' is missing. " +
+                "Sync the repository checkout before running the consumer smoke stage.");
+        }
+
+        if (!_cakeContext.DirectoryExists(feedPath))
+        {
+            throw new CakeException(
+                $"PackageConsumerSmoke precondition failed: local feed directory '{feedPath.FullPath}' is missing. " +
+                "Run 'SetupLocalDev --source=local --rid <rid>' or '--target Package --explicit-version <family>=<semver>' first.");
         }
     }
 
@@ -218,137 +261,62 @@ public sealed class PackageConsumerSmokeRunner(
         }
     }
 
-    private void EnsureSelectionSupportsCurrentSmokeScope(IReadOnlyList<SmokePackage> smokePackages)
+    private static void EnsureSelectionSupportsCurrentSmokeScope(IReadOnlyList<SmokePackage> smokePackages, IReadOnlyDictionary<string, NuGetVersion> explicitVersions)
     {
-        if (_packageBuildConfiguration.Families.Count == 0)
+        if (explicitVersions.Count == 0)
         {
             return;
         }
 
-        var selectedFamilies = _packageBuildConfiguration.Families.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var missingFamilies = smokePackages
-            .Where(package => !selectedFamilies.Contains(package.FamilyName))
+            .Where(package => !explicitVersions.ContainsKey(package.FamilyName))
             .Select(package => package.FamilyName)
             .ToList();
 
         if (missingFamilies.Count != 0)
         {
             throw new CakeException(
-                $"PackageConsumerSmoke currently validates the concrete package-consumer set {DescribeSmokeScope(smokePackages)}. Run with no --family filter, or include the full smoke scope explicitly. Missing: {string.Join(", ", missingFamilies)}. Placeholder families (managed_project or native_project null) are automatically excluded.");
+                $"PackageConsumerSmoke currently validates the concrete package-consumer set {DescribeSmokeScope(smokePackages)}. Run without --explicit-version to use the SetupLocalDev-written local.props default, or include the full smoke scope in --explicit-version. Missing: {string.Join(", ", missingFamilies)}. Placeholder families (managed_project or native_project null) are automatically excluded.");
         }
     }
 
     /// <summary>
-    /// Resolves the smoke version and verifies the feed is ready, handling the two valid
-    /// version sources:
-    /// <list type="number">
-    ///   <item><description><c>--family-version</c> explicit (PD-8 manual-escape-hatch):
-    ///     pack-existence asserted at exact version, value returned for per-family
-    ///     <c>-p:</c> overrides.</description></item>
-    ///   <item><description>No flag (default, post-ADR-001 local-dev path): trust
-    ///     SetupLocalDev's <c>Janset.Smoke.local.props</c> as the version source of truth.
-    ///     The smoke csproj auto-imports it via <c>tests/smoke-tests/Directory.Build.props</c>;
-    ///     shared <c>Janset.Smoke.targets</c> expands exact-pin bracket-notation
-    ///     <c>PackageReference</c> entries from the per-family version properties. Runner
-    ///     only verifies the feed has at least one packed nupkg per concrete family —
-    ///     MSBuild + smoke guards (JNSMK001..007) handle the rest at build time.
-    ///     </description></item>
-    /// </list>
-    /// See phase-2-adaptation-plan.md PD-13 for the retirement-review tracking of the
-    /// <c>--family-version</c> flag itself.
+    /// Resolves the smoke version mapping and verifies the feed is ready. Post-C.8 the runner
+    /// only accepts a non-empty <c>--explicit-version</c> mapping; the legacy empty-mapping →
+    /// props-fallback path retired when Deniz Q5a direction landed (2026-04-21).
+    /// Per-family pack-existence is asserted at this gate so a missing nupkg surfaces with
+    /// the SetupLocalDev remediation hint rather than opaquely inside <c>dotnet restore</c>.
     /// </summary>
-    private string? ResolveSmokeVersionAndEnsureFeed(IReadOnlyList<SmokePackage> smokePackages)
+    private IReadOnlyDictionary<string, NuGetVersion> ResolveSmokeVersionMappingAndEnsureFeed(
+        IReadOnlyList<SmokePackage> smokePackages,
+        IReadOnlyDictionary<string, NuGetVersion> explicitVersions,
+        DirectoryPath feedPath)
     {
-        var version = ResolveOptionalVersion();
-        if (version is not null)
-        {
-            EnsurePackageArtifactsExist(smokePackages, version);
-        }
-        else
-        {
-            EnsureLocalPropsFlowIsReady(smokePackages);
-        }
-
-        return version;
+        EnsurePackageArtifactsExist(smokePackages, explicitVersions, feedPath);
+        return explicitVersions;
     }
 
-    private string? ResolveOptionalVersion()
-    {
-        if (string.IsNullOrWhiteSpace(_packageBuildConfiguration.FamilyVersion))
-        {
-            return null;
-        }
-
-        var result = _packageVersionResolver.Resolve(_packageBuildConfiguration.FamilyVersion);
-        if (result.IsError())
-        {
-            throw new CakeException(
-                $"PackageConsumerSmoke received an invalid --family-version. {result.PackageVersionResolutionError.Message}");
-        }
-
-        return result.PackageVersion.Value;
-    }
-
-    private void EnsurePackageArtifactsExist(IReadOnlyList<SmokePackage> smokePackages, string version)
+    private void EnsurePackageArtifactsExist(IReadOnlyList<SmokePackage> smokePackages, IReadOnlyDictionary<string, NuGetVersion> explicitVersions, DirectoryPath feedPath)
     {
         foreach (var smokePackage in smokePackages)
         {
-            EnsurePackageExists(smokePackage.ManagedPackageId, version);
-            EnsurePackageExists(smokePackage.NativePackageId, version);
+            var version = explicitVersions[smokePackage.FamilyName].ToNormalizedString();
+            EnsurePackageExists(smokePackage.ManagedPackageId, version, feedPath);
+            EnsurePackageExists(smokePackage.NativePackageId, version, feedPath);
         }
     }
 
-    private void EnsurePackageExists(string packageId, string version)
+    private void EnsurePackageExists(string packageId, string version, DirectoryPath feedPath)
     {
-        var packagePath = _pathService.PackagesOutput.CombineWithFilePath($"{packageId}.{version}.nupkg");
+        var packagePath = feedPath.CombineWithFilePath($"{packageId}.{version}.nupkg");
         if (!_cakeContext.FileExists(packagePath))
         {
             throw new CakeException(
-                $"PackageConsumerSmoke expected local feed package '{packagePath.GetFilename().FullPath}' in '{_pathService.PackagesOutput.FullPath}', but it was not found. Run Package first or use a matching --family-version.");
+                $"PackageConsumerSmoke expected local feed package '{packagePath.GetFilename().FullPath}' in '{feedPath.FullPath}', but it was not found. Run Package first or use a matching --explicit-version entry.");
         }
     }
 
-    /// <summary>
-    /// Default local-dev smoke path: verify that <see cref="IPathService.GetSmokeLocalPropsFile"/>
-    /// exists (SetupLocalDev wrote it) and that the artifact feed contains at least one
-    /// <c>{packageId}.*.nupkg</c> per concrete family. We deliberately do not re-implement
-    /// per-family version validation here — the shared smoke MSBuild (Janset.Smoke.props +
-    /// Janset.Smoke.targets) fires JNSMK001..007 guards at build time if the local.props
-    /// values are missing or still carrying the sentinel, so errors surface loud and close
-    /// to the operator. Runner's job is just to catch the "you forgot to run SetupLocalDev"
-    /// case cleanly, before the smoke cycle spins up.
-    /// </summary>
-    private void EnsureLocalPropsFlowIsReady(IReadOnlyList<SmokePackage> smokePackages)
-    {
-        var localPropsFile = _pathService.GetSmokeLocalPropsFile();
-        if (!_cakeContext.FileExists(localPropsFile))
-        {
-            throw new CakeException(
-                $"PackageConsumerSmoke expected SetupLocalDev's version-override file at '{localPropsFile.FullPath}' but it is missing. " +
-                "Run `SetupLocalDev --source=local --rid <rid>` first to pack the concrete family set and write the override, " +
-                "or supply an explicit `--family-version=<semver>` for the PD-8 manual-escape-hatch path.");
-        }
-
-        foreach (var smokePackage in smokePackages)
-        {
-            EnsureFeedHasAtLeastOnePackageFor(smokePackage.ManagedPackageId);
-            EnsureFeedHasAtLeastOnePackageFor(smokePackage.NativePackageId);
-        }
-    }
-
-    private void EnsureFeedHasAtLeastOnePackageFor(string packageId)
-    {
-        var pattern = _pathService.PackagesOutput.CombineWithFilePath($"{packageId}.*.nupkg").FullPath;
-        var matches = _cakeContext.GetFiles(pattern);
-        if (matches.Count == 0)
-        {
-            throw new CakeException(
-                $"PackageConsumerSmoke expected at least one '{packageId}.*.nupkg' in '{_pathService.PackagesOutput.FullPath}'. " +
-                "Run `SetupLocalDev --source=local --rid <rid>` to populate the local feed, or supply `--family-version` pointing at a pre-packed feed (PD-8).");
-        }
-    }
-
-    private void RunCompileSanity(FilePath projectPath, IReadOnlyList<SmokePackage> smokePackages, string? version, DirectoryPath packagesCache)
+    private void RunCompileSanity(FilePath projectPath, IReadOnlyList<SmokePackage> smokePackages, IReadOnlyDictionary<string, NuGetVersion> explicitVersions, DirectoryPath packagesCache, DirectoryPath feedPath)
     {
         var arguments = new ProcessArgumentBuilder()
             .Append("build")
@@ -357,13 +325,13 @@ public sealed class PackageConsumerSmokeRunner(
             .Append(_dotNetBuildConfiguration.Configuration);
 
         AppendBuildServerSuppressionFlags(arguments);
-        AppendFeedArguments(arguments, packagesCache);
-        AppendSmokePackageVersionProperties(arguments, smokePackages, version);
+        AppendFeedArguments(arguments, packagesCache, feedPath);
+        AppendSmokePackageVersionProperties(arguments, smokePackages, explicitVersions);
 
-        RunDotNetCommand("compile-sanity netstandard2.0 consumer", arguments);
+        RunDotNetCommand("compile-sanity netstandard2.0 consumer", arguments, echoStdout: true);
     }
 
-    private void RunSmokeForTfm(FilePath projectPath, IReadOnlyList<SmokePackage> smokePackages, string? version, DirectoryPath packagesCache, string tfm)
+    private void RunSmokeForTfm(FilePath projectPath, IReadOnlyList<SmokePackage> smokePackages, IReadOnlyDictionary<string, NuGetVersion> explicitVersions, DirectoryPath packagesCache, DirectoryPath feedPath, string rid, string tfm)
     {
         var arguments = new ProcessArgumentBuilder()
             .Append("test")
@@ -373,47 +341,48 @@ public sealed class PackageConsumerSmokeRunner(
             .Append("-f")
             .Append(tfm)
             .Append("-r")
-            .Append(_runtimeProfile.Rid);
+            .Append(rid);
 
         AppendBuildServerSuppressionFlags(arguments);
-        AppendFeedArguments(arguments, packagesCache);
-        AppendSmokePackageVersionProperties(arguments, smokePackages, version);
+        AppendFeedArguments(arguments, packagesCache, feedPath);
+        AppendSmokePackageVersionProperties(arguments, smokePackages, explicitVersions);
 
-        RunDotNetCommand($"test package-smoke ({tfm})", arguments);
+        RunDotNetCommand($"test package-smoke ({tfm})", arguments, echoStdout: true);
     }
 
-    private void AppendFeedArguments(ProcessArgumentBuilder arguments, DirectoryPath packagesCache)
+    private static void AppendFeedArguments(ProcessArgumentBuilder arguments, DirectoryPath packagesCache, DirectoryPath feedPath)
     {
         ArgumentNullException.ThrowIfNull(arguments);
         ArgumentNullException.ThrowIfNull(packagesCache);
+        ArgumentNullException.ThrowIfNull(feedPath);
 
         arguments
-            .AppendQuoted($"-p:LocalPackageFeed={_pathService.PackagesOutput.FullPath}")
+            .AppendQuoted($"-p:LocalPackageFeed={feedPath.FullPath}")
             .AppendQuoted($"-p:RestorePackagesPath={packagesCache.FullPath}");
     }
 
     /// <summary>
-    /// When the operator supplied an explicit <c>--family-version</c> (PD-8 path), forward
-    /// it as per-family <c>-p:Janset&lt;Generation&gt;&lt;Role&gt;PackageVersion=&lt;version&gt;</c>
-    /// overrides so the same single value is pinned across every family in the smoke scope.
-    /// When the flag is absent (default local-dev path), the smoke csproj's auto-import of
-    /// <c>Janset.Smoke.local.props</c> provides per-family version properties — runner stays
-    /// silent here so it does not override the local.props values with a single shared
-    /// version (which would violate D-3seg G54 across families anyway).
+    /// Forward each <c>--explicit-version family=semver</c> entry as a per-family
+    /// <c>-p:Janset&lt;Generation&gt;&lt;Role&gt;PackageVersion=&lt;version&gt;</c> override
+    /// so the consumer csproj restores the exact-matching nupkg set. Mapping is mandatory
+    /// post-C.8 (<see cref="PackageConsumerSmokeRequest"/> guarantees non-empty by runner
+    /// entry-point guard).
     /// </summary>
-    private static void AppendSmokePackageVersionProperties(ProcessArgumentBuilder arguments, IReadOnlyList<SmokePackage> smokePackages, string? version)
+    private static void AppendSmokePackageVersionProperties(
+        ProcessArgumentBuilder arguments,
+        IReadOnlyList<SmokePackage> smokePackages,
+        IReadOnlyDictionary<string, NuGetVersion> explicitVersions)
     {
         ArgumentNullException.ThrowIfNull(arguments);
         ArgumentNullException.ThrowIfNull(smokePackages);
-
-        if (string.IsNullOrEmpty(version))
-        {
-            return;
-        }
+        ArgumentNullException.ThrowIfNull(explicitVersions);
 
         foreach (var smokePackage in smokePackages)
         {
-            arguments.Append($"-p:{smokePackage.VersionPropertyName}={version}");
+            if (explicitVersions.TryGetValue(smokePackage.FamilyName, out var version))
+            {
+                arguments.Append($"-p:{smokePackage.VersionPropertyName}={version.ToNormalizedString()}");
+            }
         }
     }
 
@@ -430,7 +399,7 @@ public sealed class PackageConsumerSmokeRunner(
     ///   <item><description><c>-p:UseSharedCompilation=false</c> — defensive for SDKs where the CLI flag is ignored; disables Roslyn VBCSCompiler reuse inside MSBuild.</description></item>
     ///   <item><description><c>-nodeReuse:false</c> — MSBuild's own worker-node reuse flag; otherwise MSBuild keeps a <c>/nodemode:1 /nodeReuse:true</c> process alive ~10 minutes for fast subsequent builds.</description></item>
     /// </list>
-    /// Without these, a single PostFlight run on macOS leaves 6–8 dotnet processes
+    /// Without these, a single PackageConsumerSmoke run on macOS leaves 6–8 dotnet processes
     /// holding ~1 GB of RAM until they time out. On Windows, the same processes hold
     /// file handles on <c>Microsoft.Testing.Platform.dll</c> under the smoke project's
     /// <c>bin/</c> and make the next run's <c>DeleteDirectoryIfExists</c> fail with
@@ -455,7 +424,7 @@ public sealed class PackageConsumerSmokeRunner(
     /// concurrent CLI build on the same machine will re-warm its cache on the next invocation.
     /// See <c>docs/playbook/cross-platform-smoke-validation.md</c> "Lingering dotnet
     /// processes mitigation" — this call fires once on entry and once before each
-    /// executable TFM slice (typical total on Windows: 4 shutdowns per PostFlight run).
+    /// executable TFM slice (typical total on Windows: 4 shutdowns per PackageConsumerSmoke run).
     /// </para>
     /// </summary>
     private void ShutdownDotNetBuildServers()
@@ -586,7 +555,16 @@ public sealed class PackageConsumerSmokeRunner(
         return false;
     }
 
-    private void RunDotNetCommand(string description, ProcessArgumentBuilder arguments)
+    /// <summary>
+    /// Spawns <c>dotnet</c> with the supplied arguments, captures stdout/stderr, and
+    /// echoes them at a caller-chosen verbosity. Test invocations set
+    /// <paramref name="echoStdout"/> to <see langword="true"/> so TUnit's per-TFM pass/fail
+    /// summary surfaces at the normal Cake log level; build-server-shutdown and similar
+    /// chatty-but-uninteresting commands leave it <see langword="false"/> to keep the
+    /// smoke log readable. Failure always surfaces the combined output in the thrown
+    /// <see cref="CakeException"/>.
+    /// </summary>
+    private void RunDotNetCommand(string description, ProcessArgumentBuilder arguments, bool echoStdout = false)
     {
         _log.Information("Running dotnet {0}", description);
         _log.Verbose("  dotnet {0}", arguments.Render());
@@ -607,14 +585,17 @@ public sealed class PackageConsumerSmokeRunner(
         var standardOutput = process.GetStandardOutput()?.ToList() ?? [];
         var standardError = process.GetStandardError()?.ToList() ?? [];
 
+        var stdoutLevel = echoStdout ? LogLevel.Information : LogLevel.Verbose;
+        var stderrLevel = echoStdout ? LogLevel.Warning : LogLevel.Verbose;
+
         foreach (var line in standardOutput)
         {
-            _log.Verbose("  [stdout] {0}", line);
+            _log.Write(Verbosity.Normal, stdoutLevel, "  [stdout] {0}", line);
         }
 
         foreach (var line in standardError)
         {
-            _log.Verbose("  [stderr] {0}", line);
+            _log.Write(Verbosity.Normal, stderrLevel, "  [stderr] {0}", line);
         }
 
         var exitCode = process.GetExitCode();

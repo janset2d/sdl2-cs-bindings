@@ -16,28 +16,17 @@ public sealed class ConsolidateHarvestTaskRunner
 {
     private readonly JsonSerializerOptions _jsonOptions = HarvestJsonContract.Options;
 
-    public async Task RunAsync(BuildContext context)
+    public async Task RunAsync(BuildContext context, ConsolidateHarvestRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
 
         var harvestOutputBase = context.Paths.HarvestOutput;
         _ = _jsonOptions;
         context.Log.Information("Consolidating harvest RID status files from: {0}", harvestOutputBase);
 
-        if (!context.DirectoryExists(harvestOutputBase))
-        {
-            context.Log.Warning("Harvest output directory does not exist: {0}", harvestOutputBase);
-            return;
-        }
-
-        // Get all library directories using glob pattern
-        var libraryDirs = context.GetDirectories($"{harvestOutputBase}/*");
-
-        if (libraryDirs.Count == 0)
-        {
-            context.Log.Warning("No library directories found in harvest output");
-            return;
-        }
+        var libraryDirs = EnsureConsolidationInputsReady(context, harvestOutputBase);
 
         // Aggregate failures across libraries so operators see every problem in one run
         // instead of fixing one and re-running to find the next. Task fails fatally at the
@@ -63,6 +52,26 @@ public sealed class ConsolidateHarvestTaskRunner
         }
 
         context.Log.Information("Harvest consolidation completed successfully");
+    }
+
+    private static List<DirectoryPath> EnsureConsolidationInputsReady(BuildContext context, DirectoryPath harvestOutputBase)
+    {
+        if (!context.DirectoryExists(harvestOutputBase))
+        {
+            throw new Cake.Core.CakeException(
+                $"ConsolidateHarvest precondition failed: harvest output root '{harvestOutputBase.FullPath}' is missing. " +
+                "Run '--target Harvest' first, or fetch the per-RID harvest artifacts into this path when consolidating in a multi-runner CI pipeline.");
+        }
+
+        var libraryDirs = context.GetDirectories($"{harvestOutputBase}/*");
+        if (libraryDirs.Count == 0)
+        {
+            throw new Cake.Core.CakeException(
+                $"ConsolidateHarvest precondition failed: '{harvestOutputBase.FullPath}' contains no library directories. " +
+                "Run '--target Harvest' first, or fetch the per-RID harvest artifacts into this path when consolidating in a multi-runner CI pipeline.");
+        }
+
+        return libraryDirs.ToList();
     }
 
     private static async Task<string?> TryConsolidateLibraryAsync(BuildContext context, string libraryName)
@@ -206,7 +215,7 @@ public sealed class ConsolidateHarvestTaskRunner
             try
             {
                 var jsonContent = await context.ReadAllTextAsync(statusFile);
-                var ridStatus = JsonSerializer.Deserialize<RidHarvestStatus>(jsonContent, HarvestJsonContract.Options);
+                var ridStatus = CakeExtensions.DeserializeJson<RidHarvestStatus>(jsonContent, HarvestJsonContract.Options);
                 if (ridStatus != null)
                 {
                     ridStatuses.Add(ridStatus);
@@ -243,13 +252,11 @@ public sealed class ConsolidateHarvestTaskRunner
         var paths = context.Paths;
 
         var manifestTempPath = paths.GetHarvestLibraryManifestTempFile(libraryName);
-        var manifestJson = JsonSerializer.Serialize(manifest, HarvestJsonContract.Options);
-        await context.WriteAllTextAsync(manifestTempPath, manifestJson);
+        await context.WriteJsonAsync(manifestTempPath, manifest, HarvestJsonContract.Options);
         context.Log.Verbose("Wrote harvest manifest (tmp) for {0}: {1}", libraryName, manifestTempPath);
 
         var summaryTempPath = paths.GetHarvestLibrarySummaryTempFile(libraryName);
-        var summaryJson = JsonSerializer.Serialize(manifest.Summary, HarvestJsonContract.Options);
-        await context.WriteAllTextAsync(summaryTempPath, summaryJson);
+        await context.WriteJsonAsync(summaryTempPath, manifest.Summary, HarvestJsonContract.Options);
         context.Log.Verbose("Wrote harvest summary (tmp) for {0}: {1}", libraryName, summaryTempPath);
     }
 

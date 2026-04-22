@@ -1,35 +1,135 @@
+using System.IO;
 using System.Xml.Linq;
 using Build.Application.Packaging;
+using Build.Context;
 using Build.Context.Configs;
 using Build.Context.Models;
 using Build.Domain.Preflight;
 using Build.Tests.Fixtures;
 using Cake.Core;
 using Cake.Core.IO;
-using NSubstitute;
 using NuGet.Versioning;
 
 namespace Build.Tests.Unit.Application.Packaging;
 
+/// <summary>
+/// Post-B2 resolver narrowing: <see cref="LocalArtifactSourceResolver"/> only verifies the
+/// packaged feed exists for the supplied version mapping and stamps
+/// <c>Janset.Local.props</c> (renamed from <c>Janset.Smoke.local.props</c> in Slice C.8a;
+/// broadened to a repo-wide local-feed override consumed by every IDE direct-restore
+/// consumer — smoke, samples, AST tests — without the Cake runner ever reading it).
+/// The <c>Preflight/EnsureVcpkg/Harvest/Consolidate/Pack</c>
+/// composition lives in <see cref="SetupLocalDevTaskRunner"/> and is covered by its own
+/// tests; this fixture no longer stands up runner chains.
+/// </summary>
 public sealed class LocalArtifactSourceResolverTests
 {
     [Test]
-    public async Task WriteConsumerOverrideAsync_Should_Throw_When_PrepareFeed_Not_Run()
+    public async Task PrepareFeedAsync_Should_Throw_When_Versions_Mapping_Is_Empty()
     {
         var manifest = ManifestFixture.CreateTestManifestConfig();
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
             .WithManifest(manifest)
             .BuildContextWithHandles();
 
-        var packageTaskRunner = Substitute.For<IPackageTaskRunner>();
-        var resolver = CreateResolver(repo, manifest, packageTaskRunner);
+        var resolver = new LocalArtifactSourceResolver(
+            repo.CakeContext,
+            repo.CakeContext.Log,
+            repo.Paths,
+            manifest);
 
-        var exception = await Assert.That(() => resolver.WriteConsumerOverrideAsync(repo.BuildContext)).Throws<CakeException>();
-        await Assert.That(exception!.Message).Contains("Run PrepareFeedAsync first");
+        var thrown = await Assert.That(() =>
+                resolver.PrepareFeedAsync(repo.BuildContext, new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase)))
+            .Throws<CakeException>();
+
+        await Assert.That(thrown!.Message).Contains("empty version mapping");
     }
 
     [Test]
-    public async Task PrepareFeedAsync_Should_Pack_Concrete_Families_And_Write_Local_Props()
+    public async Task PrepareFeedAsync_Should_Throw_When_Feed_Directory_Is_Missing()
+    {
+        var manifest = ManifestFixture.CreateTestManifestConfig();
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
+            .WithManifest(manifest)
+            .BuildContextWithHandles();
+
+        var resolver = new LocalArtifactSourceResolver(
+            repo.CakeContext,
+            repo.CakeContext.Log,
+            repo.Paths,
+            manifest);
+
+        var versions = new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["sdl2-core"] = NuGetVersion.Parse("2.32.0-local.20260421T000000"),
+        };
+
+        var thrown = await Assert.That(() => resolver.PrepareFeedAsync(repo.BuildContext, versions))
+            .Throws<CakeException>();
+
+        await Assert.That(thrown!.Message).Contains("does not exist");
+        await Assert.That(thrown.Message).Contains("SetupLocalDev --source=local");
+    }
+
+    [Test]
+    public async Task PrepareFeedAsync_Should_Throw_When_Family_Is_Unknown()
+    {
+        var manifest = ManifestFixture.CreateTestManifestConfig();
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
+            .WithManifest(manifest)
+            .BuildContextWithHandles();
+
+        // Seed the feed directory so the empty-feed precondition does not swallow the
+        // unknown-family check.
+        SeedEmptyFeed(repo);
+
+        var resolver = new LocalArtifactSourceResolver(
+            repo.CakeContext,
+            repo.CakeContext.Log,
+            repo.Paths,
+            manifest);
+
+        var versions = new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["ghost-family"] = NuGetVersion.Parse("1.0.0"),
+        };
+
+        var thrown = await Assert.That(() => resolver.PrepareFeedAsync(repo.BuildContext, versions))
+            .Throws<CakeException>();
+
+        await Assert.That(thrown!.Message).Contains("unknown family 'ghost-family'");
+    }
+
+    [Test]
+    public async Task PrepareFeedAsync_Should_Throw_When_Managed_Nupkg_Is_Missing()
+    {
+        var manifest = ManifestFixture.CreateTestManifestConfig();
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
+            .WithManifest(manifest)
+            .BuildContextWithHandles();
+
+        SeedEmptyFeed(repo);
+
+        var resolver = new LocalArtifactSourceResolver(
+            repo.CakeContext,
+            repo.CakeContext.Log,
+            repo.Paths,
+            manifest);
+
+        var versions = new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["sdl2-core"] = NuGetVersion.Parse("2.32.0-local.20260421T000000"),
+        };
+
+        var thrown = await Assert.That(() => resolver.PrepareFeedAsync(repo.BuildContext, versions))
+            .Throws<CakeException>();
+
+        await Assert.That(thrown!.Message).Contains("expected package");
+        await Assert.That(thrown.Message).Contains("was not found");
+    }
+
+    [Test]
+    public async Task PrepareFeedAsync_And_WriteConsumerOverrideAsync_Should_Succeed_When_All_Packages_Exist()
     {
         var manifest = ManifestFixture.CreateTestManifestConfig();
         var concreteFamilies = manifest.PackageFamilies
@@ -41,32 +141,28 @@ public sealed class LocalArtifactSourceResolverTests
             .WithManifest(manifest)
             .BuildContextWithHandles();
 
-        var packageTaskRunner = Substitute.For<IPackageTaskRunner>();
-        packageTaskRunner
-            .RunAsync(Arg.Any<PackageBuildConfiguration>(), Arg.Any<CancellationToken>())
-            .Returns(callInfo =>
-            {
-                var packageConfiguration = callInfo.ArgAt<PackageBuildConfiguration>(0);
-                var familyName = packageConfiguration.Families.Single();
-                var version = packageConfiguration.FamilyVersion ?? throw new InvalidOperationException("Expected family version.");
+        var versions = concreteFamilies.ToDictionary(
+            family => family.Name,
+            family => NuGetVersion.Parse($"{FakeUpstreamMajor(manifest, family.LibraryRef)}.{FakeUpstreamMinor(manifest, family.LibraryRef)}.0-local.20260421T000000"),
+            StringComparer.OrdinalIgnoreCase);
 
-                var family = concreteFamilies.Single(candidate => string.Equals(candidate.Name, familyName, StringComparison.OrdinalIgnoreCase));
+        foreach (var family in concreteFamilies)
+        {
+            var version = versions[family.Name].ToNormalizedString();
+            SeedPackage(repo, FamilyIdentifierConventions.ManagedPackageId(family.Name), version);
+            SeedPackage(repo, FamilyIdentifierConventions.NativePackageId(family.Name), version);
+        }
 
-                SeedPackage(repo, FamilyIdentifierConventions.ManagedPackageId(family.Name), version);
-                SeedPackage(repo, FamilyIdentifierConventions.NativePackageId(family.Name), version);
+        var resolver = new LocalArtifactSourceResolver(
+            repo.CakeContext,
+            repo.CakeContext.Log,
+            repo.Paths,
+            manifest);
 
-                return Task.CompletedTask;
-            });
+        await resolver.PrepareFeedAsync(repo.BuildContext, versions);
+        await resolver.WriteConsumerOverrideAsync(repo.BuildContext, versions);
 
-        var resolver = CreateResolver(repo, manifest, packageTaskRunner);
-
-        await resolver.PrepareFeedAsync(repo.BuildContext);
-        await resolver.WriteConsumerOverrideAsync(repo.BuildContext);
-
-        await packageTaskRunner.Received(concreteFamilies.Count)
-            .RunAsync(Arg.Any<PackageBuildConfiguration>(), Arg.Any<CancellationToken>());
-
-        var propsPath = repo.Paths.GetSmokeLocalPropsFile();
+        var propsPath = repo.Paths.GetLocalPropsFile();
         var file = repo.FileSystem.GetFile(propsPath);
         await Assert.That(file.Exists).IsTrue();
 
@@ -78,55 +174,45 @@ public sealed class LocalArtifactSourceResolverTests
         }
 
         var document = XDocument.Parse(xml);
-
         var propertyGroup = document.Root?.Element("PropertyGroup");
         await Assert.That(propertyGroup).IsNotNull();
 
         var localFeed = propertyGroup!.Element("LocalPackageFeed")?.Value;
         await Assert.That(localFeed).IsEqualTo(repo.Paths.PackagesOutput.FullPath);
 
-        var observedTokens = new HashSet<string>(StringComparer.Ordinal);
-
         foreach (var family in concreteFamilies)
         {
             var propertyName = FamilyIdentifierConventions.VersionPropertyName(family.Name);
             var propertyValue = propertyGroup.Element(propertyName)?.Value;
-
-            await Assert.That(propertyValue).IsNotNull();
-            await Assert.That(propertyValue!).Contains("-local.");
-
-            var library = manifest.LibraryManifests.Single(candidate => string.Equals(candidate.Name, family.LibraryRef, StringComparison.OrdinalIgnoreCase));
-            var upstreamParsed = NuGetVersion.TryParse(library.VcpkgVersion, out var upstreamVersion);
-            await Assert.That(upstreamParsed).IsTrue();
-
-            var expectedPrefix = $"{upstreamVersion!.Major}.{upstreamVersion.Minor}.0-local.";
-            await Assert.That(propertyValue).StartsWith(expectedPrefix);
-
-            var token = propertyValue[expectedPrefix.Length..];
-            observedTokens.Add(token);
+            await Assert.That(propertyValue).IsEqualTo(versions[family.Name].ToNormalizedString());
         }
-
-        await Assert.That(observedTokens.Count).IsEqualTo(1);
     }
 
-    private static LocalArtifactSourceResolver CreateResolver(
-        FakeRepoHandles repo,
-        ManifestConfig manifest,
-        IPackageTaskRunner packageTaskRunner)
+    private static int FakeUpstreamMajor(ManifestConfig manifest, string libraryRef)
     {
-        return new LocalArtifactSourceResolver(
-            repo.CakeContext,
-            repo.CakeContext.Log,
-            repo.Paths,
-            manifest,
-            packageTaskRunner);
+        var library = manifest.LibraryManifests.Single(candidate =>
+            string.Equals(candidate.Name, libraryRef, StringComparison.OrdinalIgnoreCase));
+        return NuGetVersion.Parse(library.VcpkgVersion).Major;
+    }
+
+    private static int FakeUpstreamMinor(ManifestConfig manifest, string libraryRef)
+    {
+        var library = manifest.LibraryManifests.Single(candidate =>
+            string.Equals(candidate.Name, libraryRef, StringComparison.OrdinalIgnoreCase));
+        return NuGetVersion.Parse(library.VcpkgVersion).Minor;
+    }
+
+    private static void SeedEmptyFeed(FakeRepoHandles repo)
+    {
+        var feedDir = repo.FileSystem.GetDirectory(repo.Paths.PackagesOutput);
+        if (!feedDir.Exists)
+        {
+            feedDir.Create();
+        }
     }
 
     private static void SeedPackage(FakeRepoHandles repo, string packageId, string version)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(packageId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(version);
-
         var packagePath = repo.Paths.GetPackageOutputFile(packageId, version);
         var directory = repo.FileSystem.GetDirectory(packagePath.GetDirectory());
         if (!directory.Exists)

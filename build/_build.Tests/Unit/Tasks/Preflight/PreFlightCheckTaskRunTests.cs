@@ -2,19 +2,21 @@ using Build.Application.Preflight;
 using Build.Context;
 using Build.Context.Configs;
 using Build.Context.Models;
+using Build.Domain.Packaging;
 using Build.Domain.Preflight;
 using Build.Domain.Strategy;
 using Build.Infrastructure.Vcpkg;
 using Build.Tasks.Preflight;
 using Build.Tests.Fixtures;
 using Cake.Core;
+using NuGet.Versioning;
 
 namespace Build.Tests.Unit.Tasks.Preflight;
 
 public class PreFlightCheckTaskRunTests
 {
     [Test]
-    public void Run_Should_Pass_When_Manifest_And_Vcpkg_Versions_Are_Aligned()
+    public async Task RunAsync_Should_Pass_When_Manifest_And_Vcpkg_Versions_Are_Aligned()
     {
         var manifestConfig = CreateManifestConfig("2.32.10", 0);
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
@@ -24,11 +26,11 @@ public class PreFlightCheckTaskRunTests
 
         var context = repo.BuildContext;
 
-        CreateTask(manifestConfig, context).Run(context);
+        await CreateTask(manifestConfig, context).RunAsync(context);
     }
 
     [Test]
-    public async Task Run_Should_Throw_When_Override_Version_Does_Not_Match_Manifest()
+    public async Task RunAsync_Should_Throw_When_Override_Version_Does_Not_Match_Manifest()
     {
         var manifestConfig = CreateManifestConfig("2.32.10", 0);
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
@@ -40,11 +42,11 @@ public class PreFlightCheckTaskRunTests
 
         var task = CreateTask(manifestConfig, context);
 
-        await Assert.That(() => task.Run(context)).Throws<CakeException>();
+        await Assert.That(() => task.RunAsync(context)).Throws<CakeException>();
     }
 
     [Test]
-    public async Task Run_Should_Throw_When_Runtime_Strategy_And_Triplet_Are_Incoherent()
+    public async Task RunAsync_Should_Throw_When_Runtime_Strategy_And_Triplet_Are_Incoherent()
     {
         var manifestConfig = CreateManifestConfig(
             "2.32.10",
@@ -60,11 +62,11 @@ public class PreFlightCheckTaskRunTests
 
         var task = CreateTask(manifestConfig, context);
 
-        await Assert.That(() => task.Run(context)).Throws<CakeException>();
+        await Assert.That(() => task.RunAsync(context)).Throws<CakeException>();
     }
 
     [Test]
-    public void Run_Should_Allow_Libraries_Without_Vcpkg_Overrides()
+    public async Task RunAsync_Should_Allow_Libraries_Without_Vcpkg_Overrides()
     {
         var manifestConfig = CreateManifestConfig("2.32.10", 0);
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
@@ -74,11 +76,11 @@ public class PreFlightCheckTaskRunTests
 
         var context = repo.BuildContext;
 
-        CreateTask(manifestConfig, context).Run(context);
+        await CreateTask(manifestConfig, context).RunAsync(context);
     }
 
     [Test]
-    public async Task Run_Should_Throw_When_Manifest_Version_Is_Not_A_Valid_Semantic_Version()
+    public async Task RunAsync_Should_Throw_When_Manifest_Version_Is_Not_A_Valid_Semantic_Version()
     {
         var manifestConfig = CreateManifestConfig("2.32", 0);
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
@@ -90,11 +92,11 @@ public class PreFlightCheckTaskRunTests
 
         var task = CreateTask(manifestConfig, context);
 
-        await Assert.That(() => task.Run(context)).Throws<CakeException>();
+        await Assert.That(() => task.RunAsync(context)).Throws<CakeException>();
     }
 
     [Test]
-    public async Task Run_Should_Throw_When_Core_Library_Identity_Drifts_Between_Manifest_Fields()
+    public async Task RunAsync_Should_Throw_When_Core_Library_Identity_Drifts_Between_Manifest_Fields()
     {
         var baseline = CreateManifestConfig("2.32.10", 0);
         var manifestConfig = baseline with
@@ -110,7 +112,7 @@ public class PreFlightCheckTaskRunTests
 
         var task = CreateTask(manifestConfig, context);
 
-        var exception = await Assert.That(() => task.Run(context)).Throws<CakeException>();
+        var exception = await Assert.That(() => task.RunAsync(context)).Throws<CakeException>();
         await Assert.That(exception!.Message).Contains("core library identity");
         await Assert.That(exception.Message).Contains("sdl2");
         await Assert.That(exception.Message).Contains("sdl3");
@@ -171,19 +173,19 @@ public class PreFlightCheckTaskRunTests
 
     private static PreFlightCheckTask CreateTask(ManifestConfig manifestConfig, BuildContext context)
     {
-        var packageBuildConfiguration = new PackageBuildConfiguration(["sdl2-core"], null);
+        var packageBuildConfiguration = new PackageBuildConfiguration(new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase));
 
         var runner = new PreflightTaskRunner(
             manifestConfig,
-            packageBuildConfiguration,
             new VcpkgManifestReader(context.FileSystem),
             new VersionConsistencyValidator(),
             new StrategyCoherenceValidator(new StrategyResolver()),
             new CoreLibraryIdentityValidator(),
             new UpstreamVersionAlignmentValidator(),
             new CsprojPackContractValidator(context.FileSystem),
+            new G58CrossFamilyDepResolvabilityValidator(),
             new PreflightReporter(context));
 
-        return new PreFlightCheckTask(runner);
+        return new PreFlightCheckTask(runner, packageBuildConfiguration);
     }
 }

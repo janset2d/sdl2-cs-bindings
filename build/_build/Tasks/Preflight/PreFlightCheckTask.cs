@@ -5,6 +5,8 @@
 
 using Build.Application.Preflight;
 using Build.Context;
+using Build.Context.Configs;
+using Build.Domain.Preflight.Models;
 using Cake.Frosting;
 
 namespace Build.Tasks.Preflight;
@@ -17,19 +19,18 @@ namespace Build.Tasks.Preflight;
 /// </summary>
 [TaskName("PreFlightCheck")]
 [TaskDescription("Validates manifest-vcpkg version consistency and runtime strategy coherence (partial gate)")]
-public sealed class PreFlightCheckTask : FrostingTask<BuildContext>
+public sealed class PreFlightCheckTask(
+    PreflightTaskRunner preflightTaskRunner,
+    PackageBuildConfiguration packageBuildConfiguration) : AsyncFrostingTask<BuildContext>
 {
-    private readonly PreflightTaskRunner _preflightTaskRunner;
+    private readonly PreflightTaskRunner _preflightTaskRunner = preflightTaskRunner ?? throw new ArgumentNullException(nameof(preflightTaskRunner));
+    private readonly PackageBuildConfiguration _packageBuildConfiguration = packageBuildConfiguration ?? throw new ArgumentNullException(nameof(packageBuildConfiguration));
 
-    public PreFlightCheckTask(PreflightTaskRunner preflightTaskRunner)
-    {
-        _preflightTaskRunner = preflightTaskRunner ?? throw new ArgumentNullException(nameof(preflightTaskRunner));
-    }
-
-    public override void Run(BuildContext context)
+    public override Task RunAsync(BuildContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        _preflightTaskRunner.Run(context);
+        var request = new PreflightRequest(_packageBuildConfiguration.ExplicitVersions);
+        return _preflightTaskRunner.RunAsync(context, request);
     }
 }

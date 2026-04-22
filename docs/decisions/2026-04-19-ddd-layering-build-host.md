@@ -426,7 +426,7 @@ Original analysis flagged `LocalArtifactSourceResolver` injecting `IPackageTaskR
 - [ ] Wipe artifact feed.
 - [ ] Run `SetupLocalDev --source=local` end-to-end.
 - [ ] Verify one representative smoke csproj restores and builds against the generated feed.
-- [ ] Confirm `build/msbuild/Janset.Smoke.local.props` was written with expected properties.
+- [ ] Confirm `build/msbuild/Janset.Local.props` was written with expected properties.
 
 **Validation gate:**
 

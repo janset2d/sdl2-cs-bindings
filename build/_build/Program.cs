@@ -8,10 +8,14 @@ using Build;
 using Build.Application.Common;
 using Build.Application.Coverage;
 using Build.Application.DependencyAnalysis;
+using Build.Application.Ci;
+using Build.Application.Diagnostics;
 using Build.Application.Harvesting;
+using Build.Application.Maintenance;
 using Build.Application.Packaging;
 using Build.Application.Preflight;
 using Build.Application.Vcpkg;
+using Build.Application.Versioning;
 using Build.Context;
 using Build.Context.Configs;
 using Build.Context.Models;
@@ -27,6 +31,7 @@ using Build.Infrastructure.Coverage;
 using Build.Infrastructure.DependencyAnalysis;
 using Build.Infrastructure.DotNet;
 using Build.Infrastructure.Paths;
+using Build.Infrastructure.Tools.Msvc;
 using Build.Infrastructure.Tools.Vcpkg;
 using Build.Infrastructure.Vcpkg;
 using Build.Tasks.Dependency;
@@ -36,6 +41,7 @@ using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 using Cake.Frosting;
 using Microsoft.Extensions.DependencyInjection;
+using NuGet.Versioning;
 using Spectre.Console;
 
 var root = new RootCommand("Cake build for janset2d/sdl2-cs-bindings");
@@ -59,9 +65,12 @@ root.AddOption(VcpkgOptions.VcpkgDirOption);
 root.AddOption(VcpkgOptions.VcpkgInstalledDirOption);
 root.AddOption(VcpkgOptions.LibraryOption);
 root.AddOption(VcpkgOptions.RidOption);
-root.AddOption(PackageOptions.FamilyOption);
-root.AddOption(PackageOptions.FamilyVersionOption);
 root.AddOption(PackageOptions.SourceOption);
+
+root.AddOption(VersioningOptions.VersionSourceOption);
+root.AddOption(VersioningOptions.VersionSuffixOption);
+root.AddOption(VersioningOptions.VersionScopeOption);
+root.AddOption(VersioningOptions.ExplicitVersionOption);
 
 root.AddOption(DumpbinOptions.DllOption);
 
@@ -88,7 +97,8 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton(new VcpkgConfiguration([.. parsedArgs.Library], parsedArgs.Rid));
     services.AddSingleton(new RepositoryConfiguration(repoRootPath));
     services.AddSingleton(new DotNetBuildConfiguration(configuration: parsedArgs.Config));
-    services.AddSingleton(new PackageBuildConfiguration([.. parsedArgs.Family], parsedArgs.FamilyVersion));
+    services.AddSingleton(new PackageBuildConfiguration(ExplicitVersionParser.ParseCliEntries(parsedArgs.ExplicitVersion)));
+    services.AddSingleton(new VersioningConfiguration(parsedArgs.VersionSource, parsedArgs.Suffix, [.. parsedArgs.Scope]));
     services.AddSingleton(new DumpbinConfiguration([.. parsedArgs.Dll]));
 
     var source = parsedArgs.Source?.Trim();
@@ -127,7 +137,12 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton<IArtifactPlanner, ArtifactPlanner>();
     services.AddSingleton<IArtifactDeployer, ArtifactDeployer>();
     services.AddSingleton<HarvestTaskRunner>();
+    services.AddSingleton<NativeSmokeTaskRunner>();
     services.AddSingleton<ConsolidateHarvestTaskRunner>();
+    services.AddSingleton<CleanArtifactsTaskRunner>();
+    services.AddSingleton<CompileSolutionTaskRunner>();
+    services.AddSingleton<InspectHarvestedDependenciesTaskRunner>();
+    services.AddSingleton<GenerateMatrixTaskRunner>();
     services.AddSingleton<OtoolAnalyzeTaskRunner>();
     services.AddSingleton<ICoberturaReader, CoberturaReader>();
     services.AddSingleton<ICoverageBaselineReader, CoverageBaselineReader>();
@@ -141,24 +156,38 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton<ICoreLibraryIdentityValidator, CoreLibraryIdentityValidator>();
     services.AddSingleton<IUpstreamVersionAlignmentValidator, UpstreamVersionAlignmentValidator>();
     services.AddSingleton<ICsprojPackContractValidator, CsprojPackContractValidator>();
+    services.AddSingleton<IG58CrossFamilyDepResolvabilityValidator, G58CrossFamilyDepResolvabilityValidator>();
     services.AddSingleton<PreflightReporter>();
     services.AddSingleton<PreflightTaskRunner>();
     services.AddSingleton<NativePackageMetadataValidator>();
     services.AddSingleton<ReadmeMappingTableValidator>();
     services.AddSingleton<IPackageOutputValidator, PackageOutputValidator>();
     services.AddSingleton<IProjectMetadataReader, ProjectMetadataReader>();
-    services.AddSingleton<IPackageFamilySelector, PackageFamilySelector>();
-    services.AddSingleton<IPackageVersionResolver, PackageVersionResolver>();
+    // ADR-003 provider seam. ExplicitVersionProvider is the sole provider stage tasks see; it
+    // holds the operator-supplied mapping (parsed from repeated --explicit-version CLI entries
+    // into PackageBuildConfiguration.ExplicitVersions) and validates each entry against
+    // manifest.json via G54. ManifestVersionProvider / GitTagVersionProvider reach the CLI
+    // only via the ResolveVersions target, not stage tasks (ADR-003 §3.1).
+    services.AddSingleton<IPackageVersionProvider>(provider =>
+    {
+        var manifest = provider.GetRequiredService<ManifestConfig>();
+        var upstreamVersionAlignmentValidator = provider.GetRequiredService<IUpstreamVersionAlignmentValidator>();
+        var packageBuildConfig = provider.GetRequiredService<PackageBuildConfiguration>();
+        return new ExplicitVersionProvider(manifest, upstreamVersionAlignmentValidator, packageBuildConfig.ExplicitVersions);
+    });
+    services.AddSingleton<ResolveVersionsTaskRunner>();
     services.AddSingleton<IDotNetPackInvoker, DotNetPackInvoker>();
     services.AddSingleton<INativePackageMetadataGenerator, NativePackageMetadataGenerator>();
     services.AddSingleton<IReadmeMappingTableGenerator, ReadmeMappingTableGenerator>();
     services.AddSingleton<IPackageTaskRunner, PackageTaskRunner>();
     services.AddSingleton<IPackageConsumerSmokeRunner, PackageConsumerSmokeRunner>();
     services.AddSingleton<VcpkgBootstrapTool>();
+    services.AddSingleton<IMsvcDevEnvironment, MsvcDevEnvironment>();
     services.AddSingleton<LocalArtifactSourceResolver>();
     services.AddSingleton<ArtifactSourceResolverFactory>();
     services.AddSingleton<IArtifactSourceResolver>(provider =>
         provider.GetRequiredService<ArtifactSourceResolverFactory>().Create(source));
+    services.AddSingleton<SetupLocalDevTaskRunner>();
 
     services.AddSingleton<PackagingStrategyFactory>();
     services.AddSingleton<IPackagingStrategy>(provider =>
@@ -342,9 +371,11 @@ namespace Build
         DirectoryInfo? VcpkgDir,
         DirectoryInfo? VcpkgInstalledDir,
         IList<string> Library,
-        IList<string> Family,
-        string? FamilyVersion,
         string Source,
         string Rid,
-        IList<string> Dll);
+        IList<string> Dll,
+        string? VersionSource,
+        string? Suffix,
+        IList<string> Scope,
+        IList<string> ExplicitVersion);
 }

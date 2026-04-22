@@ -17,7 +17,9 @@
     <InternalsVisibleTo Include="Build.Tests" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Cake.CMake" />
     <PackageReference Include="Cake.Frosting" />
+    <PackageReference Include="Cake.Frosting.Git" />
     <PackageReference Include="NuGet.Frameworks" />
     <PackageReference Include="NuGet.Versioning" />
     <PackageReference Include="OneOf" />

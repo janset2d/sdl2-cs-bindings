@@ -2,11 +2,22 @@
 
 > How to verify that the Cake build host, harvest pipeline, native libraries, and package-consumer path work correctly across the supported local hosts after a refactor or significant change.
 
-**Last validated:** 2026-04-17 post-smoke-expansion.
-**Result (2026-04-17):** Two validation layers are currently true at the same time:
+**Last validated:** 2026-04-21 post-Slice-D Unix witnesses (WSL linux-x64 + macOS Intel osx-x64); 2026-04-17 win-x64 expanded-smoke pass still valid.
+**Result (2026-04-21, Slice D closure D.16):** Three validation layers are now true at the same time:
 
-- The historical Phase 2a proof slice remains green on the three original hybrid-static hosts for `sdl2-core` + `sdl2-image` (`win-x64`, `linux-x64`, `osx-x64`).
-- The newer expanded Windows-host slice is now green end to end for `sdl2-core`, `sdl2-image`, `sdl2-mixer`, `sdl2-ttf`, and `sdl2-gfx` on `win-x64`: native-smoke passes with the widened codec/render coverage (`28 passed, 0 failed`), Harvest reports `1 primary / 0 runtime` for every SDL2 satellite, dumpbin confirms the harvested satellites depend only on `SDL2.dll` plus CRT/system DLLs, and PostFlight is green for `net9.0`, `net8.0`, and `net462` against a local package family version (`1.3.0-validation.win64.1` during the latest run).
+- **Unix (linux-x64 + osx-x64, Slice D witness, 2026-04-21):** full Cake pipeline end-to-end green on both platforms against `unix-smoke-runbook.md`. `CleanArtifacts` + Bootstrap (390/390 tests) + PreFlightCheck + EnsureVcpkg + Harvest (6 SDL2 libraries) + `NativeSmoke` (29/29 test cases incl. PNG/JPEG/WebP/TIFF/AVIF + FLAC/MIDI/WavPack/Opus/OGG/MP3/MOD + `TTF_Init` + `SDL2_gfx` render + `SDLNet_Init`) + ConsolidateHarvest + `Inspect-HarvestedDependencies` + `SetupLocalDev` (per-family D-3seg packages + `Janset.Local.props`) + `PackageConsumerSmoke` (net9.0 + net8.0 + compile-sanity netstandard2.0; net462 auto-skip per platform Mono policy). macOS `otool -L` dep-graph proof: SDL2_image / SDL2_ttf / SDL2_gfx / SDL2_net satellites expose exactly three direct `LC_LOAD_DYLIB` entries (libSDL2 + self + libSystem) — zero leaked codec / font libraries, confirming vcpkg hybrid-static bake-in end-to-end on macOS.
+- **Windows (2026-04-17 + 2026-04-21 Slice B1 closure):** expanded Windows-host slice green end to end on `win-x64`: native-smoke `28 passed, 0 failed`, Harvest `1 primary / 0 runtime` for every SDL2 satellite, dumpbin shows satellites depend only on `SDL2.dll` + CRT / system DLLs, and `SetupLocalDev --source=local --rid win-x64` produced 15 nupkgs at per-family D-3seg versions with `Janset.Local.props` written.
+- **Historical Phase 2a proof slice** remains green on the three original hybrid-static hosts for `sdl2-core` + `sdl2-image`.
+
+**Cake-first invocation contract (Slice DA, 2026-04-21).** Every checkpoint below invokes a Cake target directly. Pre-Slice-D raw shell blocks (`rm -rf artifacts/…`, `tar -xzf native.tar.gz`, `cmake --preset <rid>`, manual per-TFM `dotnet test`) have dedicated Cake targets after Slice D:
+
+- Artifact wipe → `--target CleanArtifacts`
+- Tarball extraction + ldd/otool/dumpbin → `--target Inspect-HarvestedDependencies --rid <rid>`
+- CMake configure + build + native-smoke invocation → `--target NativeSmoke --rid <rid>`
+- Per-TFM consumer smoke loop → `--target PackageConsumerSmoke --rid <rid>`
+- Full local-dev feed bootstrap (pack + local.props) → `--target SetupLocalDev --source=local --rid <rid>`
+
+The only allowed non-Cake invocations in the big-smoke flow are checkpoints A and B (build-host unit tests + Cake-host csproj build). Cake cannot compile or test itself — that bootstrap exception is explicit. See `unix-smoke-runbook.md` for the concrete per-platform witness script.
 
 **Scope note:** PA-2 moved the remaining four rows (`win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64`) onto hybrid overlay triplets, but those rows are still not validated end to end here. The expanded package-consumer smoke scope is code-complete, but only the Windows `win-x64` host slice has been re-verified with that wider family set so far.
 
@@ -24,8 +35,8 @@
 ## Recommended Big-Smoke Rules
 
 - Treat `artifacts/` as a **single-run disposable workspace** for this playbook. If you want a trustworthy answer to "everything still works", start from an empty artifact tree instead of reusing old `harvest_output/`, `packages/`, or consumer-smoke caches.
-- Do **not** define success as "every Cake target was invoked once." Some targets are lifecycle gates (`PreFlightCheck`, `EnsureVcpkgDependencies`, `Harvest`, `ConsolidateHarvest`, `Package`, `PackageConsumerSmoke`, `PostFlight`), some are diagnostics (`Dumpbin-Dependents`, `Ldd-Dependents`, `Otool-Analyze`), and some are local-only safeguards (`Coverage-Check`). The big smoke should exercise the lifecycle gates on every platform and the diagnostics where they add evidence.
-- `SetupLocalDev --source=local` is a useful **developer-convenience umbrella** because it prepares the local feed after `EnsureVcpkgDependencies -> Harvest -> ConsolidateHarvest`, but it does **not** replace an explicit `PreFlightCheck` gate in this playbook. Keep PreFlight as a standalone fail-fast step.
+- Do **not** define success as "every Cake target was invoked once." Some targets are lifecycle gates (`PreFlightCheck`, `EnsureVcpkgDependencies`, `Harvest`, `NativeSmoke`, `ConsolidateHarvest`, `Package`, `PackageConsumerSmoke`, `PostFlight`, `SetupLocalDev`), some are diagnostics (`Inspect-HarvestedDependencies`, `Dumpbin-Dependents`, `Ldd-Dependents`, `Otool-Analyze`), some are utility (`CleanArtifacts`, `CompileSolution`, `GenerateMatrix`), and some are local-only safeguards (`Coverage-Check`). The big smoke should exercise the lifecycle gates on every platform and the diagnostics where they add evidence.
+- `SetupLocalDev --source=local` is a useful **developer-convenience umbrella** because it prepares the local feed after `EnsureVcpkgDependencies -> Harvest -> NativeSmoke -> ConsolidateHarvest`, but it does **not** replace an explicit `PreFlightCheck` gate in this playbook. Keep PreFlight as a standalone fail-fast step.
 - Use a **fresh version suffix per run** and never mix package families from multiple smoke attempts in `artifacts/packages/`. Even with orchestrator-supplied version properties, a dirty local feed is how you accidentally end up debugging ghosts.
 - Record results per platform as a bundle: command log, harvested dependency inspection, native-smoke output, and final package-consumer result. If one platform goes red, you want evidence, not vibes.
 
@@ -39,15 +50,16 @@ These are validated today and should pass on all 3 platforms.
 
 | # | Checkpoint | Stream | What It Proves | Expected Output |
 | --- | --- | --- | --- | --- |
-| A | Build-host unit tests | Baseline | Refactored code logic is correct | 337 passed, 0 failed on the current branch (2026-04-19 local validation) |
-| B | Cake restore + build (Release) | Baseline | Build host compiles clean on all platforms | 0 warnings, 0 errors (usually implied by A — tests build the same assemblies) |
-| C | Cake `--tree` | Baseline | Task dependency graph is intact | `PostFlight → PackageConsumerSmoke → Package → PreFlightCheck`; `ConsolidateHarvest → Harvest → Info` |
+| A | Build-host unit tests (**bootstrap exception**) | Baseline | Refactored code logic is correct | 426 passed, 0 failed on `feat/adr003-impl` at Slice C closure (2026-04-22) |
+| B | Cake restore + build (Release) (**bootstrap exception**) | Baseline | Build host compiles clean on all platforms | 0 warnings, 0 errors (usually implied by A — tests build the same assemblies) |
+| C | Cake `--tree` | Baseline | Task dependency graph is flat (Slice B2) | every stage task standalone — `CleanArtifacts`, `CompileSolution`, `ConsolidateHarvest`, `EnsureVcpkgDependencies`, `GenerateMatrix`, `Harvest`, `Info`, `Inspect-HarvestedDependencies`, `NativeSmoke`, `Package`, `PackageConsumerSmoke`, `PreFlightCheck`, `ResolveVersions`, `SetupLocalDev` + diagnostic targets. No `PostFlight`. |
 | D | PreFlightCheck | Baseline + A-risky + S1 | manifest.json ↔ vcpkg.json consistency + strategy coherence + post-S1 csproj pack contract (G4/G6/G7/G17/G18) | 6/6 versions, 7/7 strategies, 6/6 families × 10/10 csprojs all green |
 | D1 | EnsureVcpkgDependencies | Baseline | vcpkg bootstrap scripts + manifest install work for the current triplet, with overlay triplets/ports applied | bootstrap only when needed, install exits 0, triplet/overlay paths logged |
-| E | Harvest (scoped to slice under test) | Baseline | Binary closure walk + deployment works per-platform | per-library `1 primary, 0 runtime, DirectCopy/Archive` green, rid-status JSON generated |
+| E | Harvest | Baseline | Binary closure walk + deployment works per-platform; default scope is the full manifest library set | per-library `1 primary, 0 runtime, DirectCopy/Archive` green, rid-status JSON generated |
 | F | ConsolidateHarvest | Baseline | Per-RID merge produces manifest + summary | `harvest-manifest.json` + `harvest-summary.json` per library |
-| G | Native smoke (C++) | Baseline | Hybrid-built natives load and initialize at runtime | Current expanded Windows harness: `28 passed, 0 failed, Result: ALL PASS` |
-| J | PackageTask | D-local (post-S1) | Family-aware pack produces valid `.nupkg` per library (managed + native + .snupkg) + post-pack validator suite (G21–G23, G25–G27, G47, G48) passes on every produced package | 3 `.nupkg` files per family at `--family-version`; post-pack validator 0 violations |
+| F1 | Inspect-HarvestedDependencies | **D** | Platform-aware artifact-side spot-check: Unix RIDs extract `native.tar.gz` via the repo-local tar wrapper into `artifacts/temp/inspect/<rid>/<lib>/` preserving SONAME symlinks, Windows RIDs read `runtimes/<rid>/native/` directly, then invokes the platform scanner (Dumpbin/Ldd/Otool) on each library's primary binary | per-library `Primary binary resolved` line + dep scanner output; no stray third-party codec DLLs / `.so` / `.dylib` entries beyond the SDL core shared library + OS/system libs |
+| G | NativeSmoke (C/C++ harness via Cake) | **D** | Hybrid-built natives load and initialize at runtime; Cake target wraps CMake configure/build + native-smoke executable invocation via Cake.CMake + `NativeSmokeRunnerTool` | `28 passed, 0 failed, Result: ALL PASS` on the current expanded harness |
+| J | Package (family-aware pack + post-pack validator) | D-local (post-S1), flag-updated B1 | Per-family pack produces valid `.nupkg` per library (managed + native + .snupkg) + post-pack validator suite (G21–G23, G25–G27, G47, G48) passes on every produced package | 3 `.nupkg` files per family at the `--explicit-version` mapping; post-pack validator 0 violations |
 | K | PackageConsumerSmoke | D-local (post-S1, expanded on Windows) | `PackageReference` restore from local feed + consumer-side `buildTransitive` target fires + runtime smoke succeeds for the concrete package-consumer set (`sdl2-core`, `sdl2-image`, `sdl2-mixer`, `sdl2-ttf`, `sdl2-gfx`) + Unix symlink chain preserved | per-TFM TUnit pass; current Windows host expectation is 12 passing tests on `net9.0`/`net8.0` and 11 passing tests on `net462`; netstandard2.0 compile-sanity passes |
 
 **Scope caveat for J and K (2026-04-17):** The current code path for `PackageConsumerSmoke` requires the concrete five-family smoke scope (`sdl2-core`, `sdl2-image`, `sdl2-mixer`, `sdl2-ttf`, `sdl2-gfx`). That widened scope is re-validated on `win-x64`. Linux and macOS still retain the older proof-slice evidence for `sdl2-core` + `sdl2-image`; rerunning the expanded scope there is still Phase 2b work, as is end-to-end validation for the newly hybridized rows (`win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64`).
@@ -58,10 +70,12 @@ These will be added as their parent streams land. Add the command reference and 
 
 | # | Checkpoint | Stream | What It Will Prove | Promotion Criteria |
 | --- | --- | --- | --- | --- |
-| H | GenerateMatrixTask | C | Dynamic CI matrix produces correct 7-RID JSON from manifest | Task implemented + validated against hardcoded YAML |
-| I | PreFlightCheck as gate (expanded) | C | Version resolution, package-family integrity, unit tests as gate | Stream C PreFlight expansion landed |
-| L | `SetupLocalDev --source=remote` | F | Remote artifact-source feed prep populates the local cache and writes `Janset.Smoke.local.props` correctly | `RemoteArtifactSourceResolver` implemented + authenticated feed download validated |
+| I | PreFlightCheck as a CI gate | B1 (**landed**) | Version resolution, package-family integrity, unit tests as gate — present in `release.yml` as a first-class job since Slice B1 | Already active in CI; covered locally by checkpoint D |
+| L | `SetupLocalDev --source=remote` | F | Remote artifact-source feed prep populates the local cache and writes `Janset.Local.props` correctly | `RemoteArtifactSourceResolver` implemented + authenticated feed download validated |
 | M | J/K extended to remaining 4 hybrid-static RIDs | 2b | PackageTask + PackageConsumerSmoke green for `win-arm64`, `win-x86`, `linux-arm64`, and `osx-arm64` now that the overlay triplets (`x86-windows-hybrid`, `arm64-windows-hybrid`, `arm64-linux-hybrid`, `arm64-osx-hybrid`) exist | PA-1 decision landed + PA-2 overlay triplets merged + at least one newly-covered RID harvested and consumer-smoked on its native runner |
+| N | CleanArtifacts | **D** (landed) | Every ephemeral artifact subtree wipes cleanly without side-effects on `vcpkg_installed/` | `dotnet run --project build/_build/Build.csproj -- --target CleanArtifacts` exits 0 with no prior run's files remaining under the eight configured roots |
+| O | GenerateMatrix | **D** (landed) | `artifacts/matrix/runtimes.json` in GitHub-Actions `include[]` shape, symmetric 7-RID from `manifest.runtimes[]` | `--target GenerateMatrix` emits the JSON; the `include` array cardinality equals `manifest.runtimes[]` length (currently 7) |
+| P | CompileSolution | **D** (landed) | Thin `DotNetBuild` wrapper on `Janset.SDL2.sln` with the active BuildContext configuration | `dotnet run --project build/_build/Build.csproj -- --target CompileSolution` completes with 0 errors (implied by A/B on most flows; kept for explicit solution-build witness) |
 
 **Exit criteria:** All **active** checkpoints green on all 3 platforms. Any failure must be classified as environment issue vs code regression before proceeding. When promoting a planned checkpoint to active, update this table and add its command reference below.
 
@@ -79,7 +93,7 @@ Keep all 3 repos on the same commit before running the matrix. Verify with `git 
 
 ### Windows
 
-No special setup. Developer PowerShell recommended for native-smoke (provides MSVC environment), but Cake commands work from any terminal.
+No special setup. Since Slice CA (2026-04-21) the Cake host self-sources the MSVC environment via `IMsvcDevEnvironment` (VSWhere → `vcvarsall.bat <host-arch>` → env-delta merge) whenever `NativeSmoke` runs, so **plain PowerShell is enough** — Developer PowerShell for VS 2022 is no longer required. Prereq: Visual Studio Build Tools 2022+ with the *Desktop development with C++* workload installed (the `Microsoft.VisualStudio.Component.VC.Tools.x86.x64` component VSWhere keys on).
 
 ### WSL / Linux
 
@@ -118,22 +132,34 @@ All commands assume you are at the repo root. The environment exports from the s
 The repo-local `vcpkg_installed/` tree does **not** behave like a permanent multi-triplet cache in this workflow. In local manifest mode, the most recently installed triplet is the one you should assume is present under `vcpkg_installed/`.
 
 - Do not assume `x64-windows-hybrid`, `x86-windows-hybrid`, and `arm64-windows-hybrid` will all remain materialized side by side after repeated local `vcpkg install --triplet ...` runs.
-- For real local validation of more than one RID, use a staged loop: `install triplet -> native-smoke / dumpbin -> Harvest -> next triplet install -> Harvest -> ConsolidateHarvest -> Package/PostFlight`.
+- For real local validation of more than one RID, use a staged loop driven by Cake targets per RID: `CleanArtifacts` → `SetupLocalDev --source=local --rid <rid-A>` → `Inspect-HarvestedDependencies --rid <rid-A>` → `CleanArtifacts` → `SetupLocalDev --source=local --rid <rid-B>` → `Inspect-HarvestedDependencies --rid <rid-B>`. `SetupLocalDev` internally composes PreFlight → EnsureVcpkg → Harvest → NativeSmoke → ConsolidateHarvest → Package for the target RID in one invocation; a fresh `CleanArtifacts` between RIDs prevents cross-RID state leakage.
 - CI is unaffected because each RID job installs exactly one triplet in isolation.
 
 ### Clean-Slate Artifact Rule
 
 For a real "is everything still OK?" answer, wipe the generated artifacts before each platform run. Reusing `artifacts/packages/` or stale `harvest-manifest.json` files is how you get a fake green.
 
-Suggested wipe scope:
+**Primary path (Cake-first)** — one command, all platforms:
+
+```bash
+# All platforms (bash / pwsh alike accept this shape):
+dotnet run --project build/_build/Build.csproj -c Release -- --target CleanArtifacts
+```
+
+`CleanArtifacts` wipes:
 
 - `artifacts/harvest_output/`
 - `artifacts/packages/`
 - `artifacts/package-consumer-smoke/`
-- `artifacts/test-results/smoke/` (or whatever run-log folder you use)
-- `tests/smoke-tests/native-smoke/build/` for the current platform preset
+- `artifacts/test-results/smoke/`
+- `artifacts/harvest-staging/`
+- `artifacts/temp/inspect/`
+- `artifacts/matrix/`
+- `tests/smoke-tests/native-smoke/build/` (all presets)
 
-Example cleanup commands:
+`vcpkg_installed/` is **intentionally preserved** — cold-rebuild cost is too high to discard on every smoke run.
+
+**Raw shell fallback (debug-only)** — use this when CleanArtifacts is itself the suspected regression, or when you want to wipe only a subset:
 
 ```powershell
 # Windows
@@ -146,23 +172,24 @@ Remove-Item .\tests\smoke-tests\native-smoke\build\win-x64 -Recurse -Force -Erro
 
 ```bash
 # Linux / macOS
-rm -rf artifacts/harvest_output
-rm -rf artifacts/packages
-rm -rf artifacts/package-consumer-smoke
-rm -rf artifacts/test-results/smoke
-rm -rf tests/smoke-tests/native-smoke/build/linux-x64
-rm -rf tests/smoke-tests/native-smoke/build/osx-x64
+rm -rf artifacts/harvest_output artifacts/packages artifacts/package-consumer-smoke
+rm -rf artifacts/test-results/smoke artifacts/harvest-staging artifacts/temp/inspect artifacts/matrix
+rm -rf tests/smoke-tests/native-smoke/build
 ```
 
 If you need the previous run for comparison, archive it somewhere outside `artifacts/` first.
 
-### A. Build-Host Unit Tests
+### A. Build-Host Unit Tests (pre-Cake bootstrap exception)
+
+The Cake host cannot run its own unit tests from inside Cake — that's a chicken-and-egg loop. `dotnet test` against `build/_build.Tests/Build.Tests.csproj` is a bootstrap-only invocation. Every other smoke step below invokes a Cake target.
 
 ```bash
 dotnet test build/_build.Tests/Build.Tests.csproj --no-restore
 ```
 
-### B. Cake Restore + Build (Release)
+### B. Cake Restore + Build (Release) (pre-Cake bootstrap exception)
+
+Same rationale as A — Cake cannot compile its own csproj. After B, every subsequent step invokes a Cake target (either via `dotnet run --project build/_build/Build.csproj -- --target <X>` or the compiled `./build/_build/bin/Release/net9.0/Build[.exe]` entrypoint).
 
 ```bash
 dotnet restore build/_build/Build.csproj --use-lock-file
@@ -256,37 +283,49 @@ CI workflows use the Release binary directly. Local smoke should match:
 
 ### F1. Harvested Artifact Dependency Inspection
 
-`Harvest` already consumes dumpbin / ldd / otool through the runtime scanners, but the big smoke should still do a **manual artifact-side spot check** on the harvested payload. This is the easiest way to prove that the thing we are about to pack is actually the thing we think we built.
+`Harvest` already consumes dumpbin / ldd / otool through the runtime scanners, but the big smoke should still do an artifact-side spot check on the harvested payload — the easiest way to prove that the thing we are about to pack is actually the thing we think we built. Slice D added a dedicated Cake target that runs the full scan end-to-end per RID.
 
-Use at least one representative binary per satellite (`SDL2`, `SDL2_image`, `SDL2_mixer`, `SDL2_ttf`, `SDL2_gfx`, and when ready `SDL2_net`). On Windows inspect the harvested DLL directly. On Linux/macOS extract the harvested `native.tar.gz` to a temp folder first, then run `ldd` / `otool -L` on the extracted shared library.
+**Primary path (Cake-first):**
+
+```bash
+# Windows / Linux / macOS — platform is resolved from the --rid value.
+dotnet run --project build/_build/Build.csproj -c Release -- \
+  --target Inspect-HarvestedDependencies --rid <rid> --repo-root "$(pwd)"
+```
+
+`Inspect-HarvestedDependencies` per-library:
+
+- **Unix RIDs (`linux-*`, `osx-*`)**: extracts `artifacts/harvest_output/<lib>/runtimes/<rid>/native/native.tar.gz` via the repo-local `Infrastructure/Tools/Tar/` wrapper (preserves SONAME symlinks / permissions / xattrs natively — matches what MSBuild does consumer-side) into `artifacts/temp/inspect/<rid>/<lib>/`, then invokes the platform scanner alias (`Ldd-Dependents` / `Otool-Analyze`) on the resolved primary binary.
+- **Windows RIDs (`win-*`)**: reads `artifacts/harvest_output/<lib>/runtimes/<rid>/native/` directly (no extraction needed — Windows ships primaries uncompressed), then invokes `Dumpbin-Dependents`.
+- Primary binary is resolved via `LibraryManifest.PrimaryBinaries[<os>].Patterns` glob match (shortest-path tie-break). If the pattern does not match anything under the inspected directory, the task fails fast with the pattern list in the error message.
+
+**Raw shell fallback (advanced-debug only)** — use this if `Inspect-HarvestedDependencies` is itself the suspected regression, or when you need to run a scanner against a file the runner does not resolve to:
 
 ```powershell
-# Windows example: inspect harvested SDL2_image.dll
+# Windows — inspect any DLL directly
 dumpbin /dependents .\artifacts\harvest_output\SDL2_image\runtimes\win-x64\native\SDL2_image.dll
 
-# Optional Cake diagnostic wrapper (pass --dll explicitly)
+# Optional direct Cake alias wrapper
 dotnet run --project .\build\_build\Build.csproj -- --target Dumpbin-Dependents --dll .\artifacts\harvest_output\SDL2_image\runtimes\win-x64\native\SDL2_image.dll
 ```
 
 ```bash
-# Linux example: extract harvested archive, then inspect libSDL2_image*.so
-rm -rf artifacts/temp/ldd/linux-x64
-mkdir -p artifacts/temp/ldd/linux-x64
+# Linux — manual tar + ldd against a specific library
+rm -rf artifacts/temp/ldd/linux-x64 && mkdir -p artifacts/temp/ldd/linux-x64
 tar -xzf artifacts/harvest_output/SDL2_image/runtimes/linux-x64/native/native.tar.gz -C artifacts/temp/ldd/linux-x64
 ldd "$(find artifacts/temp/ldd/linux-x64 -name 'libSDL2_image*.so*' | head -n 1)"
 
-# Optional Cake diagnostic wrapper (pass --dll explicitly)
+# Optional direct Cake alias wrapper
 dotnet run --project build/_build/Build.csproj -- --target Ldd-Dependents --dll "$(find artifacts/temp/ldd/linux-x64 -name 'libSDL2_image*.so*' | head -n 1)" --rid linux-x64 --repo-root "$(pwd)"
 ```
 
 ```bash
-# macOS example: extract harvested archive, then inspect libSDL2_image*.dylib
-rm -rf artifacts/temp/otool/osx-x64
-mkdir -p artifacts/temp/otool/osx-x64
+# macOS — manual tar + otool against a specific library
+rm -rf artifacts/temp/otool/osx-x64 && mkdir -p artifacts/temp/otool/osx-x64
 tar -xzf artifacts/harvest_output/SDL2_image/runtimes/osx-x64/native/native.tar.gz -C artifacts/temp/otool/osx-x64
 otool -L "$(find artifacts/temp/otool/osx-x64 -name 'libSDL2_image*.dylib' | head -n 1)"
 
-# Optional Cake diagnostic wrapper (Otool can analyze one or more --dll values)
+# Optional direct Cake alias wrapper
 dotnet run --project build/_build/Build.csproj -- --target Otool-Analyze --dll "$(find artifacts/temp/otool/osx-x64 -name 'libSDL2_image*.dylib' | head -n 1)" --rid osx-x64 --repo-root "$(pwd)"
 ```
 
@@ -294,12 +333,24 @@ dotnet run --project build/_build/Build.csproj -- --target Otool-Analyze --dll "
 
 - Windows satellites depend on `SDL2.dll` plus CRT / system DLLs, not codec/transitive DLLs like `zlib1.dll`, `libpng16.dll`, `jpeg62.dll`, `libwebp.dll`, `freetype.dll`, `ogg.dll`, `vorbis*.dll`, etc.
 - Linux/macOS satellites depend on the SDL2 core shared library and OS/system libraries/frameworks, not unexpected third-party shared objects that should have been baked in.
-- The manual inspection agrees with what Harvest reported (`1 primary, 0 runtime`). If the scanner says green but raw tool output shows leaked deps, trust the raw tool and investigate.
-- For `Dumpbin-Dependents` and `Ldd-Dependents`, pass `--dll` explicitly. Their current help text is looser than their real behavior.
+- The Inspect scan agrees with what Harvest reported (`1 primary, 0 runtime`). If Inspect says green but the raw shell fallback shows leaked deps, trust the raw tool and file a scanner-regression note (this gap is exactly why the raw fallback exists).
+- For the direct `Dumpbin-Dependents` and `Ldd-Dependents` aliases, pass `--dll` explicitly. Their help text is looser than their actual behavior.
 
-### G. Native Smoke Test
+### G. NativeSmoke (C/C++ harness via Cake)
 
-See [tests/smoke-tests/native-smoke/README.md](../../tests/smoke-tests/native-smoke/README.md) for full details. Quick reference:
+Slice D added a dedicated Cake target that wraps CMake configure + build + native-smoke executable invocation. See [tests/smoke-tests/native-smoke/README.md](../../tests/smoke-tests/native-smoke/README.md) for the underlying harness details.
+
+**Primary path (Cake-first):**
+
+```bash
+# Windows / Linux / macOS — preset is resolved from --rid.
+dotnet run --project build/_build/Build.csproj -c Release -- \
+  --target NativeSmoke --rid <rid> --repo-root "$(pwd)"
+```
+
+The runner: preconditions the harvest output exists for the target RID → `cmake --preset <rid>` via Cake.CMake → `cmake --build --preset <rid>` → invokes the built `native-smoke[.exe]` via the `NativeSmokeRunnerTool` wrapper → captures stdout/stderr/exit-code into the Cake log. Non-zero exit fails the task.
+
+**Raw shell fallback (advanced-debug only)** — use when NativeSmoke itself is the suspected regression:
 
 ```bash
 # Windows (from tests/smoke-tests/native-smoke/):
@@ -318,29 +369,37 @@ cmake --build build/osx-x64
 ./build/osx-x64/native-smoke
 ```
 
-**What to look for:** `Passed: 13, Failed: 0, Result: ALL PASS`
+**What to look for:** `Passed: 28, Failed: 0, Result: ALL PASS` on the expanded harness (covers PNG/JPEG/WebP/TIFF/AVIF loading, FLAC/MIDI/WavPack/Opus/OGG/MP3/MOD decoder discovery, `TTF_Init`, `SDL2_gfx` drawing, `SDLNet_Init`). Older logs may still mention `13/13` — outdated.
 
-**Expanded Windows note:** older logs and docs may still mention `13/13`. The current widened Windows harness now covers PNG/JPEG/WebP/TIFF/AVIF loading, FLAC/MIDI/WavPack/Opus/OGG/MP3/MOD decoder discovery, `TTF_Init`, `SDL2_gfx` drawing, and `SDLNet_Init`, so the expected success shape on the expanded harness is `28 passed, 0 failed`.
+**PA-2 RID expectation (Phase 2b).** The four PA-2 RIDs (`win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64`) currently have no `CMakePresets.json` entries, so `NativeSmoke --rid <pa2-rid>` fails at `cmake --preset <rid>` until Phase 2b grows the preset file. That expected-failure surface IS the PA-2 witness signal; the runner does not hard-code a RID allow-list (ADR-003 direction, 2026-04-21).
 
 ### J. Package (family-aware pack + post-pack validator)
 
-`Package` packs one or more families at a single `--family-version`. Requires Harvest + ConsolidateHarvest to have produced `harvest-manifest.json` for each library in scope first; the task fails fast if the harvest output is missing or empty.
+`Package` packs one or more families at an operator-supplied version mapping (`--explicit-version <family>=<semver>`, repeatable). Slice B1 retired the legacy `--family` / `--family-version` flags in favor of the per-family explicit-version mapping that honors D-3seg upstream lines per-family (ADR-001).
+
+`Package` requires Harvest + NativeSmoke + ConsolidateHarvest to have produced `harvest-manifest.json` for each library in scope first; the task fails fast if the harvest output is missing or empty.
+
+**Primary path (Cake-first, per-family D-3seg versions):**
 
 ```bash
-# Single-family:
+# Single-family (Core, UpstreamMajor.Minor = 2.32):
 dotnet run --project build/_build/Build.csproj -- \
-  --target Package --family sdl2-core \
-  --family-version 2.32.0-smoke.1
+  --target Package \
+  --explicit-version sdl2-core=2.32.0-smoke.1
 
-# Multi-family (topological order respected, one --family-version applies to all):
+# Multi-family with per-family D-3seg upstream lines (topological order respected):
 dotnet run --project build/_build/Build.csproj -- \
-  --target Package --family sdl2-core --family sdl2-image \
-  --family-version 2.32.0-smoke.1
+  --target Package \
+  --explicit-version sdl2-core=2.32.0-smoke.1 \
+  --explicit-version sdl2-image=2.8.0-smoke.1 \
+  --explicit-version sdl2-mixer=2.8.0-smoke.1 \
+  --explicit-version sdl2-ttf=2.24.0-smoke.1 \
+  --explicit-version sdl2-gfx=1.0.0-smoke.1
 
 # Linux / macOS: add --repo-root "$(pwd)" as in the other targets.
 ```
 
-> **D-3seg caveat (2026-04-18).** The single-`--family-version` flag is a pre-D-3seg orchestration pattern that applies the same version string to every family in the pack invocation. Under [ADR-001](../decisions/2026-04-18-versioning-d3seg.md), each family's version should anchor its own upstream Major.Minor (Core = `2.32.x`, Image = `2.8.x`, Gfx = `1.0.x`). G54 will reject a `sdl2-image` pack whose `--family-version` starts with `2.32.` because SDL2_image upstream is `2.8.x`. Today the playbook's multi-family example works only when every family happens to share an UpstreamMajor.UpstreamMinor line (currently only `sdl2-core`), OR when bootstrapping with `SetupLocalDev` (V5), which auto-generates per-family versions. Proper per-family `--family-version` override is tracked as a V5 `PackageTaskRunner` refinement.
+> **Natural local-dev alternative.** For a full local feed bootstrap, prefer `--target SetupLocalDev --source=local --rid <rid>` (see §K). `SetupLocalDev` internally derives per-family D-3seg versions with a `local.<unix-timestamp>` suffix via `ManifestVersionProvider` and composes PreFlight → Harvest → NativeSmoke → ConsolidateHarvest → Package in one invocation — no `--explicit-version` required. Use explicit `Package` with `--explicit-version` only when you need a specific version string (e.g., for PA-2 witness records, for repro of a specific reported-failure CI run, or for exercising the pack surface in isolation).
 
 **What to look for:**
 
@@ -351,16 +410,50 @@ dotnet run --project build/_build/Build.csproj -- \
 
 ### K. PackageConsumerSmoke (consumer restore + runtime SDL_Init)
 
-`PackageConsumerSmoke` runs the per-TFM TUnit smoke against the local feed produced by `Package`, plus a netstandard2.0 compile-sanity pass. The full `PostFlight` target chains PreFlight → Package → PackageConsumerSmoke in one invocation, which is the normal way to exercise J + K together:
+`PackageConsumerSmoke` runs the per-TFM TUnit smoke against the local feed produced by `Package` (or by `SetupLocalDev`), plus a netstandard2.0 compile-sanity pass. Two Cake-first flows exist; pick based on what you want to exercise.
+
+**Flow 1 (primary for big smoke) — `SetupLocalDev`:**
+
+`SetupLocalDev --source=local` composes PreFlight → EnsureVcpkgDependencies → Harvest → ConsolidateHarvest → Package + writes `build/msbuild/Janset.Local.props` in a single invocation with per-family D-3seg versions auto-derived from the manifest. The composition lives in `Application/Packaging/SetupLocalDevTaskRunner`; `LocalArtifactSourceResolver` only verifies the produced feed and stamps the `.local.props` override. `NativeSmoke` is **not** part of this chain (Slice B2 amendment — CMake + platform C/C++ toolchain prereq is orthogonal to feed materialisation; native smoke runs as its own standalone target or via the CI harvest matrix). `--rid` is optional when targeting the host RID; pass it only for cross-build targets (e.g., `win-x86` on a `win-x64` host). Pair this invocation with a direct `PackageConsumerSmoke` afterwards for end-to-end witness:
+
+```bash
+# Windows (host RID default — win-x64 here):
+dotnet run --project build/_build/Build.csproj -- \
+  --target SetupLocalDev --source=local
+
+dotnet run --project build/_build/Build.csproj -- \
+  --target PackageConsumerSmoke
+
+# Cross-build (Windows host targeting win-x86 or win-arm64):
+dotnet run --project build/_build/Build.csproj -- \
+  --target SetupLocalDev --source=local --rid win-x86
+
+# Linux / macOS: add --repo-root "$(pwd)" to both. If you need a non-host RID,
+# add --rid <rid> as well.
+
+# Optional sibling — verify native payloads load at OS level:
+dotnet run --project build/_build/Build.csproj -- \
+  --target NativeSmoke
+```
+
+**Flow 2 (targeted, version-pinned) — explicit `Package` + `PackageConsumerSmoke`:**
+
+Use when you need a specific version mapping (PA-2 witness, CI-run repro, pack-surface-only exercise):
 
 ```bash
 # Windows:
 dotnet run --project build/_build/Build.csproj -- \
-  --target PostFlight --family sdl2-core --family sdl2-image \
-  --family-version 2.32.0-smoke.1
+  --target Package \
+  --explicit-version sdl2-core=2.32.0-smoke.1 \
+  --explicit-version sdl2-image=2.8.0-smoke.1
 
-# Linux / macOS: add --repo-root "$(pwd)".
+dotnet run --project build/_build/Build.csproj -- \
+  --target PackageConsumerSmoke --rid win-x64
+
+# Linux / macOS: add --repo-root "$(pwd)" to both.
 ```
+
+> `PostFlight` retired in Slice B2 (2026-04-21). Its umbrella semantics are absorbed into `SetupLocalDevTaskRunner` (Flow 1) + standalone `Package` + `PackageConsumerSmoke` targets (Flow 2) after graph flattening. `--family` / `--family-version` retired in Slice B1 — use repeated `--explicit-version <family>=<semver>` entries instead.
 
 **What to look for:**
 
@@ -398,18 +491,56 @@ dotnet run --project build/_build/Build.csproj -- \
 | `vswhere.exe not found` warning | Windows | Git Bash doesn't load VS environment | Cosmetic — build.bat handles it via VsDevCmd.bat fallback |
 | macOS SDK version mismatch | macOS | Multiple SDKs installed (8/9/10) | global.json pins to 9.0.x — verify with `dotnet --version` from repo root |
 | Lingering `dotnet` processes after `PostFlight` / `PackageConsumerSmoke` | All | MSBuild worker nodes (`/nodemode:1 /nodeReuse:true`), VBCSCompiler (Roslyn), and testhost (Microsoft Testing Platform) stay alive ~10 min for reuse. On Windows they hold file handles on `Microsoft.Testing.Platform.dll` and break the next run's `bin/` cleanup. On macOS / Linux the same processes accumulate RAM (~100 MB each). | Automatic mitigation + manual fallback documented below under [Lingering dotnet processes mitigation](#lingering-dotnet-processes-mitigation). |
+| `$PWD` points at `/mnt/...` or the Windows path inside a WSL invocation (or at the SSH client's working directory on a macOS SSH invocation) despite a successful `cd` | WSL invoked via Windows `wsl -c '...'`, macOS invoked via non-interactive `ssh <host> '...'` | WSLENV + non-interactive SSH env inheritance: the caller shell's `PWD` leaks into the child shell, and some `bash` command-substitution paths (`$(pwd)`, subshells) read the stale value before `cd` has re-exported it. The runbook's documented `--repo-root "$PWD"` shape assumes an **interactive** WSL terminal / SSH session where POSIX `cd` updates `$PWD` reliably. | Only affects cross-shell harnesses (Windows bash → `wsl -c`, remote tooling → `ssh … '…'`). Human operators running the runbook inside an interactive WSL terminal or an interactive SSH session do not see this. If you do hit it, bind an absolute path first (`REPO=/home/deniz/repos/sdl2-cs-bindings` on Linux or `REPO=/Users/armut/repos/sdl2-cs-bindings` on macOS), then pass `--repo-root "$REPO"` everywhere the runbook says `--repo-root "$PWD"`. See [PWD env leakage in non-interactive cross-shell invocations](#pwd-env-leakage-in-non-interactive-cross-shell-invocations) below. |
+
+### PWD env leakage in non-interactive cross-shell invocations
+
+Not a code regression. Documented here so anyone driving the witness runbook from a scripted cross-shell harness knows the failure mode at sight.
+
+**Symptom.** A command that resolved `--repo-root "$PWD"` (or any shell variable that chases `PWD`) picks up a path from the **caller** shell rather than the WSL / macOS shell we `cd`'d into. On WSL, the leaked path is typically `/mnt/<drive>/<project-path>` — the WSLENV mapping of the Windows caller's `PWD`. On macOS SSH, it is whatever the SSH client exported as `PWD` before invocation. Cake then resolves `Paths.RepoRoot` against that wrong directory, which cascades into every subsequent path the build host touches (artifacts root, harvest output, native-smoke build dirs, …).
+
+**Root cause.** Non-interactive shells inherit environment variables from the caller via WSLENV (`wsl -c '...'` from Windows) or standard SSH env forwarding (`ssh <host> '...'`). `bash`'s `cd` builtin does update `$PWD` in the current shell after the `cd`, but some command-substitution forms (`$(pwd)`, subshells that fork before the next statement, `bash -c '…'` chains) re-read the stale inherited `$PWD` before it is overwritten. The `pwd` builtin and `realpath .` hit the kernel's CWD instead, so those report the correct path — which is what makes the divergence confusing (`$PWD` and `$(pwd)` disagree). The failure does not reproduce in an interactive WSL terminal or an interactive SSH shell because those shells start a fresh login env without inheriting Windows' `PWD`.
+
+**When the runbook's `--repo-root "$PWD"` is safe.**
+
+- Interactive WSL terminal opened inside the clone.
+- Interactive SSH session to the macOS host followed by `cd` into the clone.
+- Any bash invocation where the caller shell has already `cd`'d into the clone and stays within the same process group.
+
+**When to replace `"$PWD"` with an absolute `REPO` binding.**
+
+- Driving the runbook from a Windows harness via `wsl -c '<script>'` or `wsl -d <distro> -- bash -c '<script>'`.
+- Driving the runbook from a remote orchestrator via `ssh <host> '<script>'`.
+- Any CI context where the script might be invoked by a non-interactive parent that already exported `PWD`.
+
+**Pattern.** Prepend the per-host absolute path and use it consistently:
+
+```bash
+# WSL (Linux)
+REPO=/home/deniz/repos/sdl2-cs-bindings
+
+# macOS Intel (SSH)
+REPO=/Users/armut/repos/sdl2-cs-bindings
+
+cd "$REPO" || exit 1
+# …
+dotnet run --project "$REPO/build/_build/Build.csproj" -c Release -- \
+  --target PreFlightCheck --rid <rid> --repo-root "$REPO"
+```
+
+No build-host code change is required; this is purely an operator / harness input-hygiene note. Cake's `DetermineRepoRootAsync` already honors `--repo-root` as an absolute override and will use whichever path the caller supplies.
 
 ### Lingering dotnet processes mitigation
 
 `PackageConsumerSmokeRunner` runs `dotnet build-server shutdown` on entry, again before each executable TFM slice, and passes `--disable-build-servers -p:UseSharedCompilation=false -nodeReuse:false` to every `dotnet build/test` invocation. That keeps the normal case clean: new runs do not spawn detachable MSBuild / Roslyn / Razor server children and the later `net462` slice is less likely to inherit bad state from earlier `net8.0` / `net9.0` runs.
 
-**Shutdown call count per PostFlight run.** One shutdown fires on entry; one fires before **each** executable TFM slice. Concrete totals:
+**Shutdown call count per PackageConsumerSmoke run.** One shutdown fires on entry; one fires before **each** executable TFM slice. Concrete totals:
 
-- Windows default (net9.0 + net8.0 + net462): **4 shutdowns** per PostFlight invocation.
+- Windows default (net9.0 + net8.0 + net462): **4 shutdowns** per PackageConsumerSmoke invocation.
 - Linux default (net9.0 + net8.0; net462 skipped for Mono/TUnit incompatibility): **3 shutdowns**.
 - macOS with `mono` on `$PATH` (net9.0 + net8.0 + net462): **4 shutdowns**. macOS without Mono (net9.0 + net8.0; net462 auto-skipped): **3 shutdowns**.
 
-**Side-effect warning — `dotnet build-server shutdown` is scoped per-user, not per-project.** It also terminates CLI build servers owned by any other concurrent shell running `dotnet build` / `dotnet watch` / `dotnet test` (those processes re-spawn their servers on the next build; work is not lost, but there is a small warm-cache hit). The command does NOT touch Visual Studio, Rider, or VS Code / C# DevKit language-service MSBuild nodes — those run under different hosts and use separate IPC channels. If you are mid-way through a long parallel CLI build in another terminal, defer the `PostFlight` run until it finishes.
+**Side-effect warning — `dotnet build-server shutdown` is scoped per-user, not per-project.** It also terminates CLI build servers owned by any other concurrent shell running `dotnet build` / `dotnet watch` / `dotnet test` (those processes re-spawn their servers on the next build; work is not lost, but there is a small warm-cache hit). The command does NOT touch Visual Studio, Rider, or VS Code / C# DevKit language-service MSBuild nodes — those run under different hosts and use separate IPC channels. If you are mid-way through a long parallel CLI build in another terminal, defer the `PackageConsumerSmoke` run until it finishes.
 
 **Manual fallback — if something still wedges** (usually a prior run that was killed mid-flight and left `testhost.exe` holding `Microsoft.Testing.Platform.dll`):
 
@@ -453,22 +584,23 @@ Under [ADR-001](../decisions/2026-04-18-versioning-d3seg.md), the local dev flow
 
 | Flow | Feed source | Consumer contract | Driver |
 | --- | --- | --- | --- |
-| `SetupLocalDev --source=local` (Phase 2a, lands V5) | Repo pack → `artifacts/packages` | PackageReference + exact-pinned smoke override | `build/msbuild/Janset.Smoke.local.props` generated by task |
+| `SetupLocalDev --source=local` (Phase 2a, lands V5) | Repo pack → `artifacts/packages` | PackageReference + exact-pinned smoke override | `build/msbuild/Janset.Local.props` generated by task |
 | `SetupLocalDev --source=remote` (Phase 2b) | Internal feed download → local cache | Same | Same override file, written from remote-fetched versions |
 | This smoke matrix (manual A–K walkthrough) | Whatever the operator staged | Same | CLI `-p:` flags or local.props |
 
-Once `SetupLocalDev` ships, IDE-opened smoke csprojs restore without Cake in the loop (the `Janset.Smoke.local.props` conditional import picks up the per-developer feed + version values). See [local-development.md](local-development.md) for the full Quick Start flow.
+Once `SetupLocalDev` ships, IDE-opened smoke csprojs restore without Cake in the loop (the `Janset.Local.props` conditional import picks up the per-developer feed + version values). See [local-development.md](local-development.md) for the full Quick Start flow.
 
 ## Relationship to CI
 
 This local smoke matrix validates the **same command surface** that CI workflows use. The key differences:
 
-- CI sets up its own environment (PATH, SDK, vcpkg bootstrap) per job
-- CI uses matrix jobs across RIDs; local smoke runs one RID per platform
-- CI uploads artifacts; local smoke checks artifacts exist locally
-- CI will gain PreFlightCheck as a gate (Stream C); local smoke already runs it manually
+- CI sets up its own environment (PATH, SDK, vcpkg bootstrap) per job.
+- CI uses matrix jobs across RIDs; local smoke runs one RID per platform.
+- CI uploads artifacts; local smoke checks artifacts exist locally.
+- `PreFlightCheck` has been a first-class CI gate in `release.yml` since Slice B1 (`resolve-versions → preflight` job chain); local smoke runs it as checkpoint D.
+- `GenerateMatrix`, `Harvest` (7-RID matrix), `NativeSmoke` (7-RID matrix, first-draft pending Slice E absorption of `prepare-native-assets-*.yml`), and `ConsolidateHarvest` (aggregation) landed in `release.yml` first-draft form during Slice D. Slice E absorbs the full prepare-native-assets discipline (apt prereqs, vcpkg-setup composite, submodule recursion, NuGet cache, Cake compile-once, custom GHCR Ubuntu builder container). See plan §6.6 E1–E3.
 
-If local smoke passes but CI fails, the issue is almost certainly in CI environment setup, not in the build host code.
+If local smoke passes but CI fails, the issue is almost certainly in CI environment setup (or an unabsorbed Slice-E gap), not in the build host code.
 
 ### Stage-Owned Validation Mapping (ADR-003 alignment)
 
@@ -478,12 +610,13 @@ Under [ADR-003 §3.5 + §4](../decisions/2026-04-20-release-lifecycle-orchestrat
 | --- | --- | --- |
 | **PreFlight** | D (PreFlightCheck) | G4, G6, G7, G14, G15, G16, G17, G18, G49, G54 |
 | **EnsureVcpkgDependencies** (supporting, not release-path) | D1 | — (vcpkg install preflight) |
-| **Harvest** (per-RID matrix target) | E (Harvest scoped to slice under test) | G19 (hybrid leak), G50 (primary ≥ 1) |
+| **Harvest** (per-RID matrix target) | E (Harvest full manifest scope) | G19 (hybrid leak), G50 (primary ≥ 1) |
 | **ConsolidateHarvest** (aggregation) | F | G53 (staged-replace invariant) |
-| **NativeSmoke** (per-RID) | G (C/C++ native-smoke harness) | — (no G-series yet; extracted stage per ADR-003) |
+| **NativeSmoke** (per-RID) — extracted stage, Cake target landed Slice D via Cake.CMake + `NativeSmokeRunnerTool` | G (NativeSmoke Cake target wraps C/C++ harness) | — (no G-series yet; runtime fail on `Passed:/Failed:/Result:` output + non-zero exit code is the fail surface) |
 | **Pack** (single-runner) | J (Package) | G13, G21, G22, G23, G25, G26, G27, G46, G47, G48, G51, G52, G55, G56, G57, G58 |
 | **PackageConsumerSmoke** (per-RID matrix **re-entry** under ADR-003) | K (PackageConsumerSmoke) | — (TUnit behavioral smoke; PD-10 scope) |
 | **Coverage** (ratchet gate, CI pre-matrix) | A + B + Coverage-Check | G36 |
+| **Diagnostics (Slice D additions, off release-path)** | F1 (Inspect-HarvestedDependencies), N (CleanArtifacts), O (GenerateMatrix), P (CompileSolution) | — (operator / CI-plumbing surface; no guardrails) |
 
 The playbook checkpoints are **local-host substitutes** for the CI stage sequence. When the ADR-003 `release.yml` lands, the per-stage CI jobs invoke the same Cake target surface this playbook exercises manually. The key promotion is checkpoint K: today it runs on a single host RID; under ADR-003 the CI matrix re-enters K on all 7 RIDs, which catches the per-RID consumer paths (Windows P/Invoke search order, macOS dyld two-level namespace, arm64 runtime resolver) that a single-host smoke cannot.
 
@@ -590,7 +723,7 @@ What `-r <rid>` does NOT exercise:
 
 PA-2 moved four previously-stock runtime rows onto hybrid overlay triplets (2026-04-18). The mechanism landed, but no behavioral evidence exists yet on the new triplets. Before Stream C consumes them as peers of the validated x64 row, we need at least one end-to-end run per new row on its native runner.
 
-**ADR-003 direction note (2026-04-20 draft):** Under the post-ADR-003 CI rewrite, PA-2 witness runs flow through the new `release.yml` on `workflow_dispatch` with `mode=manifest-derived` and a `pa2.<run-id>` suffix. The command shape below (`PostFlight --family ... --family-version ...`) will migrate to the post-refactor CLI (explicit-version provider + per-stage targets) during the Cake refactor pass. Until then, this section remains the operational recipe for manually reproducing a witness run locally or via the existing `prepare-native-assets-*.yml` workflows.
+**ADR-003 + Slice B1/D CLI migration note (2026-04-21).** The legacy `--family` / `--family-version` flags on `PostFlight` / `Package` retired in Slice B1. PA-2 witness invocations now run through the post-B1 CLI: either the `SetupLocalDev` umbrella (for full local-feed + consumer-smoke end-to-end) or an explicit `Package` → `PackageConsumerSmoke` pair with `--explicit-version <family>=<semver>` per family. Under the post-ADR-003 CI rewrite (landing Slice E per §6.6), PA-2 witness runs flow through the new `release.yml` on `workflow_dispatch` with `mode=manifest-derived` and a `pa2.<run-id>` suffix that `ManifestVersionProvider` materialises automatically.
 
 Each invocation packs the concrete five-family smoke scope, exercises harvest → consolidate → pack → consumer-smoke, and records pass/fail against this playbook. Record the result in the "Last validated" header at the top of this document as each triplet passes; any failure triage into (a) upstream vcpkg port issue, (b) overlay-triplet tuning needed, or (c) vcpkg feature-flag degradation — file a `docs/research/` note before re-attempting.
 
@@ -603,19 +736,35 @@ Trigger each run via workflow-dispatch on the matching GitHub runner:
 | 3 | `linux-arm64` | `arm64-linux-hybrid` | `ubuntu-24.04-arm` (native arm64) | Community triplet base + `ubuntu:24.04` container; newer glibc vs x64's `ubuntu:20.04`. Watch for `-fvisibility=hidden` interactions with freetype / libwebp symbol versioning. |
 | 4 | `osx-arm64` | `arm64-osx-hybrid` | `macos-latest` (Apple Silicon) | First arm64-osx run through the hybrid bake. Watch for MachO layout / `VCPKG_OSX_ARCHITECTURES=arm64` / dyld cache surprises. |
 
-Per-RID command (adapt the runner via workflow input; body identical):
+Per-RID command (adapt the runner via workflow input; body identical).
+
+**Primary path — `SetupLocalDev` umbrella** (recommended for PA-2 witness: auto-derives per-family D-3seg versions with the operator-supplied suffix, runs the full pipeline, writes `Janset.Local.props`, then `PackageConsumerSmoke` covers consumer restore + runtime):
 
 ```bash
-# Harvest + ConsolidateHarvest + Package + PackageConsumerSmoke for the full
-# concrete family scope on the target runner. Replace <rid> with the RID from
-# the table above. --family-version can be any unused suffix (e.g., 'pa2-witness.1').
-dotnet run --project build/_build/Build.csproj -- \
-  --target PostFlight \
-  --family sdl2-core --family sdl2-image \
-  --family sdl2-mixer --family sdl2-ttf --family sdl2-gfx \
-  --family-version 2.32.0-pa2-witness.<rid>.1 \
-  --rid <rid>
+# Replace <rid> with the PA-2 RID from the table above.
+dotnet run --project build/_build/Build.csproj -c Release -- \
+  --target SetupLocalDev --source=local --rid <rid> --suffix=pa2-witness.1
+
+dotnet run --project build/_build/Build.csproj -c Release -- \
+  --target PackageConsumerSmoke --rid <rid>
 ```
+
+**Alternative — explicit per-family version mapping** (use only if you need exact pinning for a specific version string):
+
+```bash
+dotnet run --project build/_build/Build.csproj -c Release -- \
+  --target Package --rid <rid> \
+  --explicit-version sdl2-core=2.32.0-pa2-witness.<rid>.1 \
+  --explicit-version sdl2-image=2.8.0-pa2-witness.<rid>.1 \
+  --explicit-version sdl2-mixer=2.8.0-pa2-witness.<rid>.1 \
+  --explicit-version sdl2-ttf=2.24.0-pa2-witness.<rid>.1 \
+  --explicit-version sdl2-gfx=1.0.0-pa2-witness.<rid>.1
+
+dotnet run --project build/_build/Build.csproj -c Release -- \
+  --target PackageConsumerSmoke --rid <rid>
+```
+
+> **NativeSmoke on PA-2 RIDs.** `tests/smoke-tests/native-smoke/CMakePresets.json` currently ships presets only for `win-x64` / `linux-x64` / `osx-x64`. Post-Slice-B2, `NativeSmoke` is no longer part of the `SetupLocalDev` chain — invoke it explicitly alongside the PA-2 witness sequence (`--target NativeSmoke --rid <pa2-rid>`). That run will fail at `cmake --preset <rid>` — that's the expected Phase 2b witness signal, not a regression. The Cake host does not hard-code a RID allow-list; the preset file is the source of truth.
 
 **Acceptance per witness:**
 
