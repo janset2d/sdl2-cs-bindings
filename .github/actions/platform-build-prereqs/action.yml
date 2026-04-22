@@ -15,13 +15,25 @@ runs:
     # `pkg-config autoconf automake libtool` cover every vcpkg port's
     # autotools expectation. cmake comes from vcpkg's own bundled download
     # on macOS so is deliberately not installed here.
+    #
+    # GitHub macOS runner images ship most of these formulas preinstalled;
+    # idempotent per-formula check avoids the "already installed" noise that
+    # `brew install` emits as a step-level warning. If a formula IS missing
+    # (runner image drift), we install it cleanly.
     # ──────────────────────────────────────────────────────────────────────────
     - name: Homebrew prereqs (macOS)
       if: runner.os == 'macOS'
       shell: bash
       run: |
-        brew update || true  # best-effort; brew outages shouldn't fail the job
-        brew install pkg-config autoconf automake libtool
+        brew update --quiet || true  # best-effort; brew outages shouldn't fail the job
+        for formula in pkg-config autoconf automake libtool; do
+          if brew list --formula "$formula" >/dev/null 2>&1; then
+            echo "✓ $formula already installed"
+          else
+            echo "→ installing $formula"
+            brew install --formula "$formula"
+          fi
+        done
 
     # Linux: no-op. docker/linux-builder.Dockerfile bakes every apt package
     # (build-essential + SDL2 backends + freepats + libicu + autoconf-2.72 +

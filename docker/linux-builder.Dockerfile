@@ -125,7 +125,14 @@ RUN apt-get update \
 # C runtime, not C++, so this is transparent for downstream `.NET` users.
 #
 # update-alternatives wires gcc-11/g++-11 as the default `gcc`/`g++`/`cc`/`c++`
-# so vcpkg ports that hard-code `/usr/bin/cc` pick the new compiler.
+# + gcov/gcov-11 for coverage tooling symmetry. Three separate `--install`
+# invocations because on Ubuntu 20.04 `cc` and `c++` are independent master
+# alternatives (not slaves of `gcc`/`g++`) — trying to register them via
+# `--slave` fails with "alternative cc can't be slave of gcc: it is a
+# master alternative". `gcov` IS a legitimate slave of `gcc` so it stays
+# in the first `--install` block alongside `g++`.
+# CC / CXX env set below is belt-and-suspenders for CMake / autotools
+# ports that read the env directly instead of traversing the symlink.
 # ---------------------------------------------------------------------------
 RUN apt-get update \
  && apt-get install -y --no-install-recommends software-properties-common \
@@ -134,11 +141,19 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends gcc-11 g++-11 \
  && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 110 \
       --slave /usr/bin/g++ g++ /usr/bin/g++-11 \
-      --slave /usr/bin/cc cc /usr/bin/gcc-11 \
-      --slave /usr/bin/c++ c++ /usr/bin/g++-11 \
+      --slave /usr/bin/gcov gcov /usr/bin/gcov-11 \
+ && update-alternatives --install /usr/bin/cc cc /usr/bin/gcc-11 110 \
+ && update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-11 110 \
  && apt-get purge -y software-properties-common \
  && apt-get autoremove -y \
  && rm -rf /var/lib/apt/lists/*
+
+# Belt-and-suspenders: export CC / CXX so CMake and autotools pick GCC 11
+# directly, independent of /usr/bin/cc symlink resolution. vcpkg's
+# `vcpkg_execute_build_process` honours these env vars, so even if a port
+# bypasses update-alternatives it still gets the right compiler.
+ENV CC=/usr/bin/gcc-11 \
+    CXX=/usr/bin/g++-11
 
 # ---------------------------------------------------------------------------
 # Addition (3) — image-level safe.directory config. Replaces prepare-*'s
