@@ -27,12 +27,16 @@
 # lockstep — drift between the two surfaces is exactly what this image
 # exists to eliminate.
 #
-# Two additions over the prepare-* preamble, each intentional:
+# Three additions over the prepare-* preamble, each intentional:
 #   (1) cmake + ninja-build — native-smoke CI needs them; prepare-* today runs
 #       Harvest only so those tools aren't installed there. When Slice E E1c
 #       points `manifest.runtimes[].container_image` at this image, NativeSmoke
 #       jobs in release.yml pick them up from the image.
-#   (2) `git config --system --add safe.directory '*'` — replaces per-job
+#   (2) GCC 11 toolchain from `ubuntu-toolchain-r/test` PPA — focal's default
+#       GCC 9.4 is too old for current vcpkg ports (libyuv arm64 `i8mm`,
+#       libwebp x64 `_mm256_cvtsi256_si32` inlining bug fixed in GCC 11.1).
+#       glibc stays at focal 2.31 — compiler upgrade, libc untouched.
+#   (3) `git config --system --add safe.directory '*'` — replaces per-job
 #       `git config --global --add safe.directory "$(pwd)"` (prepare-* line 87).
 #       Image-level config means Cake.Frosting.Git works under `container:`
 #       without a per-job boilerplate step.
@@ -105,7 +109,39 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 # ---------------------------------------------------------------------------
-# Addition (2) — image-level safe.directory config. Replaces prepare-*'s
+# Addition (2) — GCC 11 toolchain from `ubuntu-toolchain-r/test` PPA.
+#
+# Focal ships GCC 9.4 which fails two concrete vcpkg builds in this pipeline:
+#   - linux-arm64: libyuv fails with
+#       `invalid feature modifier 'i8mm' in '-march=armv8.2-a+dotprod+i8mm'`
+#     — the ARMv8.6-A `i8mm` (Int8 Matrix Multiply) extension landed in GCC 11.
+#   - linux-x64: libwebp AVX2 path fails linking with
+#       `undefined reference to '_mm256_cvtsi256_si32'`
+#     — GCC bug #98495 (inlining of that intrinsic) was fixed in GCC 11.1.
+#
+# GCC 11 upgrade does NOT touch glibc — the libc runtime stays at focal's
+# glibc 2.31, so our consumer-side ABI floor is preserved. `libstdc++` does
+# bump (to libstdc++-11's ABI tag), but consumer packages link against the
+# C runtime, not C++, so this is transparent for downstream `.NET` users.
+#
+# update-alternatives wires gcc-11/g++-11 as the default `gcc`/`g++`/`cc`/`c++`
+# so vcpkg ports that hard-code `/usr/bin/cc` pick the new compiler.
+# ---------------------------------------------------------------------------
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends software-properties-common \
+ && add-apt-repository -y ppa:ubuntu-toolchain-r/test \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends gcc-11 g++-11 \
+ && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 110 \
+      --slave /usr/bin/g++ g++ /usr/bin/g++-11 \
+      --slave /usr/bin/cc cc /usr/bin/gcc-11 \
+      --slave /usr/bin/c++ c++ /usr/bin/g++-11 \
+ && apt-get purge -y software-properties-common \
+ && apt-get autoremove -y \
+ && rm -rf /var/lib/apt/lists/*
+
+# ---------------------------------------------------------------------------
+# Addition (3) — image-level safe.directory config. Replaces prepare-*'s
 # per-job `git config --global --add safe.directory "$(pwd)"` step.
 # ---------------------------------------------------------------------------
 RUN git config --system --add safe.directory '*'
