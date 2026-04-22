@@ -223,7 +223,8 @@ public sealed class FakeRepoBuilder
             VersionSource: null,
             Suffix: null,
             Scope: [],
-            ExplicitVersion: []);
+            ExplicitVersion: [],
+            VersionsFile: null);
 
         return new PathService(new RepositoryConfiguration(_repoRoot), parsedArguments, new FakeLog());
     }

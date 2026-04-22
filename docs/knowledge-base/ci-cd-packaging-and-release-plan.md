@@ -197,7 +197,7 @@ The pipeline relies on several key configuration files and generates specific ar
       - **What:** Validates configurations, determines the build plan (which libraries/RIDs to process), and provides an early summary.
       - **Why:** Prevents wasted CI resources on invalid configurations and gives quick feedback before long-running builds.
       - **How:**
-        - `runs-on: ubuntu-latest`
+        - `runs-on: ubuntu-24.04`
         - `outputs`: `build_matrix` (JSON string), `build_plan_summary` (string).
         - **Steps:**
           1. `actions/checkout@v4`: With `ref: ${{ github.event_name == 'push' && github.ref || github.sha }}`.
@@ -283,7 +283,7 @@ The pipeline relies on several key configuration files and generates specific ar
 - **Trigger:** `on: pull_request` (targeting branches like `master`, `develop`).
 - **Job:**
   1. **`check_versions` Job:**
-      - `runs-on: ubuntu-latest`
+      - `runs-on: ubuntu-24.04`
       - **Steps:**
         1. `actions/checkout@v4`.
         2. Script (bash or C# tool) to parse `build/manifest.json` (specifically `vcpkg_version` fields) and `vcpkg.json` (specifically `overrides` versions).

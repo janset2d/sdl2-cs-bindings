@@ -56,6 +56,7 @@
 | [tunit-testing-framework-2026-04-14.md](research/tunit-testing-framework-2026-04-14.md) | TUnit adoption plan, patterns, naming convention, project setup | 2026-04-14 |
 | [cake-testing-strategy-2026-04-14.md](research/cake-testing-strategy-2026-04-14.md) | Cake.Testing package, ICakeContext mocking, test layers, coverage plan | 2026-04-14 |
 | [source-mode-native-visibility-2026-04-15.md](research/source-mode-native-visibility-2026-04-15.md) | Deprecated historical Source Mode research note; symlink-preservation findings retained as reference for future remote-feed tar-extract caching under ADR-001 | 2026-04-15 |
+| [unix-native-identity-strategy-2026-04-22.md](research/unix-native-identity-strategy-2026-04-22.md) | Detailed analysis of single-file Unix `.so` / `.dylib` goals in the SDL2 family: triplets vs overlay ports, maintainability vs reliability tradeoffs, validation requirements, and SDL3 implications | 2026-04-22 |
 
 ### Playbook (How-To Recipes)
 

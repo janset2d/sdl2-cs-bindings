@@ -42,4 +42,14 @@ public static class VersioningOptions
     {
         Arity = ArgumentArity.ZeroOrMore,
     };
+
+    /// <summary>
+    /// Path to a JSON file containing a flat <c>{ "family": "semver", ... }</c> mapping.
+    /// Entries are merged with <see cref="ExplicitVersionOption"/> CLI entries; overlap is
+    /// rejected as ambiguous per ADR-003 §2.4 resolve-once invariant. Typical CI usage:
+    /// <c>--versions-file artifacts/resolve-versions/versions.json</c>.
+    /// </summary>
+    public static readonly Option<string?> VersionsFileOption = new(
+        aliases: ["--versions-file"],
+        description: "Path to a JSON file with a flat { family: semver } mapping. Merged with --explicit-version entries; overlap is rejected.");
 }

@@ -71,6 +71,7 @@ root.AddOption(VersioningOptions.VersionSourceOption);
 root.AddOption(VersioningOptions.VersionSuffixOption);
 root.AddOption(VersioningOptions.VersionScopeOption);
 root.AddOption(VersioningOptions.ExplicitVersionOption);
+root.AddOption(VersioningOptions.VersionsFileOption);
 
 root.AddOption(DumpbinOptions.DllOption);
 
@@ -97,7 +98,31 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton(new VcpkgConfiguration([.. parsedArgs.Library], parsedArgs.Rid));
     services.AddSingleton(new RepositoryConfiguration(repoRootPath));
     services.AddSingleton(new DotNetBuildConfiguration(configuration: parsedArgs.Config));
-    services.AddSingleton(new PackageBuildConfiguration(ExplicitVersionParser.ParseCliEntries(parsedArgs.ExplicitVersion)));
+
+    // ADR-003 §2.4: mutually exclusive — either --versions-file (CI path: immutable JSON
+    // artifact from resolve-versions) or --explicit-version (operator/local path: repeated
+    // CLI args). Never both. Factory defers file I/O to ICakeContext.ToJson<T>() so the read
+    // flows through Cake's IFileSystem (testable via FakeFileSystem).
+    var hasVersionsFile = !string.IsNullOrWhiteSpace(parsedArgs.VersionsFile);
+    var hasExplicitVersion = parsedArgs.ExplicitVersion.Any(e => !string.IsNullOrWhiteSpace(e));
+    if (hasVersionsFile && hasExplicitVersion)
+    {
+        throw new InvalidOperationException(
+            "--versions-file and --explicit-version are mutually exclusive (ADR-003 §2.4). Use one or the other.");
+    }
+
+    services.AddSingleton<PackageBuildConfiguration>(provider =>
+    {
+        if (hasVersionsFile)
+        {
+            var ctx = provider.GetRequiredService<ICakeContext>();
+            var dict = ctx.ToJson<Dictionary<string, string>>(new FilePath(parsedArgs.VersionsFile!));
+            var entries = dict.Select(kvp => $"{kvp.Key}={kvp.Value}");
+            return new PackageBuildConfiguration(ExplicitVersionParser.ParseCliEntries(entries));
+        }
+
+        return new PackageBuildConfiguration(ExplicitVersionParser.ParseCliEntries(parsedArgs.ExplicitVersion));
+    });
     services.AddSingleton(new VersioningConfiguration(parsedArgs.VersionSource, parsedArgs.Suffix, [.. parsedArgs.Scope]));
     services.AddSingleton(new DumpbinConfiguration([.. parsedArgs.Dll]));
 
@@ -377,5 +402,6 @@ namespace Build
         string? VersionSource,
         string? Suffix,
         IList<string> Scope,
-        IList<string> ExplicitVersion);
+        IList<string> ExplicitVersion,
+        string? VersionsFile);
 }

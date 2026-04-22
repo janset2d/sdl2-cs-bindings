@@ -30,7 +30,7 @@ concurrency:
 jobs:
   pre_flight_check:
     name: Pre-flight Checks & Build Plan Generation
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       build_matrix: ${{ steps.determine_build_matrix.outputs.matrix }}
       build_plan_summary: ${{ steps.generate_summary.outputs.summary }}
@@ -99,7 +99,7 @@ jobs:
       #       version: "2.32.4.0"
       #       rid: "linux-x64"
       #       triplet: "x64-linux-hybrid"
-      #       runner: "ubuntu-latest"
+      #       runner: "ubuntu-24.04"
 
     steps:
       - name: Checkout Repository
@@ -149,7 +149,7 @@ jobs:
     name: Consolidate Harvest Artifacts
     needs: [pre_flight_check, build_harvest_matrix] # Runs after pre-flight and all matrix jobs complete (or those that didn't fail if fail-fast:true)
     if: always() && needs.pre_flight_check.outputs.should_build == 'true' # always() ensures it runs to try and gather partial successes
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Create Staging Directory
         run: mkdir -p ./staging/harvest_output
@@ -215,7 +215,7 @@ jobs:
     name: Package & Publish Internally
     needs: [pre_flight_check, consolidate_harvest_artifacts]
     if: needs.pre_flight_check.outputs.should_build == 'true' # Only run if builds were attempted
-    runs-on: ubuntu-latest # Or windows-latest if Cake Packager prefers
+    runs-on: ubuntu-24.04 # Or windows-latest if Cake Packager prefers
     steps:
       - name: Checkout (Minimal for Cake script)
         uses: actions/checkout@v6

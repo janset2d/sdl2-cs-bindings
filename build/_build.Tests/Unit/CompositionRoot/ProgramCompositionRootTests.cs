@@ -399,7 +399,8 @@ public sealed class ProgramCompositionRootTests
             VersionSource: null,
             Suffix: null,
             Scope: [],
-            ExplicitVersion: []);
+            ExplicitVersion: [],
+            VersionsFile: null);
     }
 
     private static ManifestConfig CreateCompositionRootManifest(string strategy, string triplet)

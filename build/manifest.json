@@ -7,13 +7,13 @@
   },
 
   "runtimes": [
-    { "rid": "win-x64", "triplet": "x64-windows-hybrid", "strategy": "hybrid-static", "runner": "windows-latest", "container_image": null },
-    { "rid": "win-arm64", "triplet": "arm64-windows-hybrid", "strategy": "hybrid-static", "runner": "windows-latest", "container_image": null },
-    { "rid": "win-x86", "triplet": "x86-windows-hybrid", "strategy": "hybrid-static", "runner": "windows-latest", "container_image": null },
+    { "rid": "win-x64", "triplet": "x64-windows-hybrid", "strategy": "hybrid-static", "runner": "windows-2025", "container_image": null },
+    { "rid": "win-arm64", "triplet": "arm64-windows-hybrid", "strategy": "hybrid-static", "runner": "windows-11-arm", "container_image": null },
+    { "rid": "win-x86", "triplet": "x86-windows-hybrid", "strategy": "hybrid-static", "runner": "windows-2025", "container_image": null },
     { "rid": "linux-x64", "triplet": "x64-linux-hybrid", "strategy": "hybrid-static", "runner": "ubuntu-24.04", "container_image": "ghcr.io/janset2d/sdl2-bindings-linux-builder:focal-latest" },
     { "rid": "linux-arm64", "triplet": "arm64-linux-hybrid", "strategy": "hybrid-static", "runner": "ubuntu-24.04-arm", "container_image": "ghcr.io/janset2d/sdl2-bindings-linux-builder:focal-latest" },
     { "rid": "osx-x64", "triplet": "x64-osx-hybrid", "strategy": "hybrid-static", "runner": "macos-15-intel", "container_image": null },
-    { "rid": "osx-arm64", "triplet": "arm64-osx-hybrid", "strategy": "hybrid-static", "runner": "macos-latest", "container_image": null }
+    { "rid": "osx-arm64", "triplet": "arm64-osx-hybrid", "strategy": "hybrid-static", "runner": "macos-26", "container_image": null }
   ],
 
   "package_families": [

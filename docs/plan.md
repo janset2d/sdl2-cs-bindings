@@ -216,6 +216,7 @@ ADR-003 locked the post-sweep direction (three `IPackageVersionProvider` impls, 
 - [ ] Clean up native binaries from git history (#56)
 - [ ] Correct and validate local development playbook (#57)
 - [ ] Create custom Docker build image for Linux x64 (#79)
+- [ ] **CMakePresets developer-experience refactor** — drop `*-interactive` preset variants from `tests/smoke-tests/native-smoke/CMakePresets.json` (14 presets instead of 21), add `CMakeUserPresets.json.example` template + `tests/smoke-tests/native-smoke/README.md` (CLion / VS / CLI usage), gitignore `CMakeUserPresets.json`. Direction-selected during Slice E follow-up pass P3; lands in P8 doc sweep or a standalone post-pass commit. See [phase-2-release-cycle-orchestration-implementation-plan.md §11 Q18](phases/phase-2-release-cycle-orchestration-implementation-plan.md) for the research trail + sources (martin-fieber, Matt Gibson, official cmake-presets(7), VS + CLion docs).
 
 ### Q3 2026 — Phase 2b: Full Hybrid Pipeline + ADR-003 Finish
 

@@ -23,7 +23,8 @@ public class PathConstructionTests
             VersionSource: null,
             Suffix: null,
             Scope: [],
-            ExplicitVersion: []);
+            ExplicitVersion: [],
+            VersionsFile: null);
         var log = Substitute.For<ICakeLog>();
         return new PathService(repoConfig, parsedArgs, log);
     }

@@ -104,21 +104,15 @@ static async Task RunLocalAsync(WitnessContext ctx, List<StepResult> results)
     await StepAsync(ctx, results, "CleanArtifacts", ["--target", "CleanArtifacts"]);
     await StepAsync(ctx, results, "SetupLocalDev", ["--target", "SetupLocalDev", "--source=local"]);
 
-    // SetupLocalDev now emits artifacts/resolve-versions/versions.json (C.11a).
-    // Read it, filter to concrete families, and thread --explicit-version into ConsumerSmoke.
-    var allVersions = await ParseResolvedVersionsAsync(ctx.RepoRoot);
-    var concreteFamilies = await LoadConcreteFamiliesAsync(ctx.RepoRoot);
-    var versions = allVersions
-        .Where(kvp => concreteFamilies.Contains(kvp.Key))
-        .ToDictionary(kvp => kvp.Key, kvp => kvp.Value, StringComparer.OrdinalIgnoreCase);
+    // SetupLocalDev emits artifacts/resolve-versions/versions.json (C.11a).
+    // Cake's --versions-file reads the JSON directly — no client-side family
+    // filtering needed; PackageConsumerSmokeRunner already filters to concrete
+    // families (managed_project + native_project != null).
+    var versionsFile = Path.Combine(ctx.RepoRoot, "artifacts", "resolve-versions", "versions.json");
+    await PrintResolvedVersionsFromFileAsync(versionsFile);
 
-    PrintResolvedMapping(versions);
-
-    var versionArgs = versions
-        .SelectMany(kvp => new[] { "--explicit-version", $"{kvp.Key}={kvp.Value}" })
-        .ToArray();
-
-    await StepAsync(ctx, results, "PackageConsumerSmoke", ["--target", "PackageConsumerSmoke", "--rid", ctx.HostRid, .. versionArgs]);
+    await StepAsync(ctx, results, "PackageConsumerSmoke",
+        ["--target", "PackageConsumerSmoke", "--rid", ctx.HostRid, "--versions-file", versionsFile]);
 }
 
 static async Task RunCiSimAsync(WitnessContext ctx, List<StepResult> results)
@@ -139,31 +133,19 @@ static async Task RunCiSimAsync(WitnessContext ctx, List<StepResult> results)
             $"--suffix={suffix}",
         ]);
 
-    var allVersions = await ParseResolvedVersionsAsync(ctx.RepoRoot);
-    var concreteFamilies = await LoadConcreteFamiliesAsync(ctx.RepoRoot);
+    // Cake's --versions-file reads the JSON directly — concrete-family filtering
+    // lives inside each Cake runner (PackageTaskRunner, PreflightTaskRunner,
+    // PackageConsumerSmokeRunner), not in the CI/witness wiring layer.
+    var versionsFile = Path.Combine(ctx.RepoRoot, "artifacts", "resolve-versions", "versions.json");
+    await PrintResolvedVersionsFromFileAsync(versionsFile);
 
-    // Downstream stages (Preflight's upstream-alignment validator, Package's
-    // family selector) reject families without both managed_project + native_project
-    // per manifest. ResolveVersions emits every family (including placeholders like
-    // sdl2-net); mirror SetupLocalDevTaskRunner's concrete-family filter so the
-    // mini CI replay drives the same set CI's release.yml pack job would.
-    var versions = allVersions
-        .Where(kvp => concreteFamilies.Contains(kvp.Key))
-        .ToDictionary(kvp => kvp.Key, kvp => kvp.Value, StringComparer.OrdinalIgnoreCase);
-
-    PrintResolvedMapping(versions);
-
-    var versionArgs = versions
-        .SelectMany(kvp => new[] { "--explicit-version", $"{kvp.Key}={kvp.Value}" })
-        .ToArray();
-
-    await StepAsync(ctx, results, "PreFlightCheck", ["--target", "PreFlightCheck", .. versionArgs]);
+    await StepAsync(ctx, results, "PreFlightCheck", ["--target", "PreFlightCheck", "--versions-file", versionsFile]);
     await StepAsync(ctx, results, "EnsureVcpkgDependencies", ["--target", "EnsureVcpkgDependencies", "--rid", ctx.HostRid]);
     await StepAsync(ctx, results, "Harvest", ["--target", "Harvest", "--rid", ctx.HostRid]);
     await StepAsync(ctx, results, "NativeSmoke", ["--target", "NativeSmoke", "--rid", ctx.HostRid]);
     await StepAsync(ctx, results, "ConsolidateHarvest", ["--target", "ConsolidateHarvest"]);
-    await StepAsync(ctx, results, "Package", ["--target", "Package", .. versionArgs]);
-    await StepAsync(ctx, results, "PackageConsumerSmoke", ["--target", "PackageConsumerSmoke", "--rid", ctx.HostRid, .. versionArgs]);
+    await StepAsync(ctx, results, "Package", ["--target", "Package", "--versions-file", versionsFile]);
+    await StepAsync(ctx, results, "PackageConsumerSmoke", ["--target", "PackageConsumerSmoke", "--rid", ctx.HostRid, "--versions-file", versionsFile]);
 }
 
 static async Task StepAsync(WitnessContext ctx, List<StepResult> results, string label, string[] cakeArgs)
@@ -285,92 +267,23 @@ static async Task<int> InvokeProcessAsync(string fileName, IEnumerable<string> a
     return process.ExitCode;
 }
 
-static async Task<Dictionary<string, string>> ParseResolvedVersionsAsync(string repoRoot)
+static async Task PrintResolvedVersionsFromFileAsync(string versionsFilePath)
 {
-    var jsonPath = Path.Combine(repoRoot, "artifacts", "resolve-versions", "versions.json");
-    if (!File.Exists(jsonPath))
+    if (!File.Exists(versionsFilePath))
     {
-        throw new InvalidOperationException(
-            $"ResolveVersions completed but '{jsonPath}' is missing. Inspect the ResolveVersions log for the emitted path.");
+        AnsiConsole.MarkupLine($"[yellow]versions.json not found at '{Markup.Escape(versionsFilePath)}' — Cake will surface the error.[/]");
+        return;
     }
 
-    await using var stream = File.OpenRead(jsonPath);
-    using var document = await JsonDocument.ParseAsync(stream);
-    var root = document.RootElement;
-
-    // Flat family -> version dict emitted by ResolveVersionsTaskRunner:
-    // { "sdl2-core": "2.32.0-local.<ts>", "sdl2-gfx": "...", ... }
-    if (root.ValueKind != JsonValueKind.Object)
+    var json = await File.ReadAllTextAsync(versionsFilePath);
+    using var doc = JsonDocument.Parse(json);
+    AnsiConsole.MarkupLine($"[grey]Resolved mapping (--versions-file {Markup.Escape(Path.GetFileName(versionsFilePath))}):[/]");
+    foreach (var prop in doc.RootElement.EnumerateObject().OrderBy(static p => p.Name, StringComparer.OrdinalIgnoreCase))
     {
-        throw new InvalidOperationException(
-            $"ResolveVersions JSON at '{jsonPath}' is not a JSON object ({root.ValueKind}).");
+        AnsiConsole.MarkupLine($"  [cyan]{Markup.Escape(prop.Name)}[/]=[yellow]{Markup.Escape(prop.Value.GetString() ?? "(null)")}[/]");
     }
 
-    var mapping = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-    foreach (var entry in root.EnumerateObject())
-    {
-        var value = entry.Value.GetString()
-            ?? throw new InvalidOperationException($"ResolveVersions JSON carries a null version for family '{entry.Name}'.");
-        mapping[entry.Name] = value;
-    }
-
-    if (mapping.Count == 0)
-    {
-        throw new InvalidOperationException($"ResolveVersions JSON at '{jsonPath}' carries an empty mapping.");
-    }
-
-    return mapping;
-}
-
-static async Task<HashSet<string>> LoadConcreteFamiliesAsync(string repoRoot)
-{
-    var manifestPath = Path.Combine(repoRoot, "build", "manifest.json");
-    if (!File.Exists(manifestPath))
-    {
-        throw new InvalidOperationException(
-            $"Cannot filter concrete families: manifest '{manifestPath}' is missing.");
-    }
-
-    await using var stream = File.OpenRead(manifestPath);
-    using var document = await JsonDocument.ParseAsync(stream);
-    var root = document.RootElement;
-
-    if (!root.TryGetProperty("package_families", out var families) || families.ValueKind != JsonValueKind.Array)
-    {
-        throw new InvalidOperationException(
-            $"Manifest '{manifestPath}' does not expose a 'package_families' array.");
-    }
-
-    var concrete = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-    foreach (var family in families.EnumerateArray())
-    {
-        if (!family.TryGetProperty("name", out var nameElement))
-        {
-            continue;
-        }
-
-        var name = nameElement.GetString();
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            continue;
-        }
-
-        var managed = family.TryGetProperty("managed_project", out var m) ? m.GetString() : null;
-        var native = family.TryGetProperty("native_project", out var n) ? n.GetString() : null;
-
-        if (!string.IsNullOrWhiteSpace(managed) && !string.IsNullOrWhiteSpace(native))
-        {
-            concrete.Add(name);
-        }
-    }
-
-    if (concrete.Count == 0)
-    {
-        throw new InvalidOperationException(
-            $"Manifest '{manifestPath}' carries no concrete package families (managed_project + native_project both set).");
-    }
-
-    return concrete;
+    AnsiConsole.WriteLine();
 }
 
 static void PrintHeader(WitnessContext ctx)
@@ -388,17 +301,6 @@ static void PrintHeader(WitnessContext ctx)
     table.AddRow("[grey]Run ID[/]", $"[cyan]{Markup.Escape(ctx.RunId)}[/]");
     table.AddRow("[grey]Verbose[/]", ctx.Verbose ? "[yellow]on (--verbose)[/]" : "[grey]off[/]");
     AnsiConsole.Write(table);
-    AnsiConsole.WriteLine();
-}
-
-static void PrintResolvedMapping(Dictionary<string, string> versions)
-{
-    AnsiConsole.MarkupLine("[grey]Resolved mapping (post-ResolveVersions JSON):[/]");
-    foreach (var (family, version) in versions.OrderBy(static p => p.Key, StringComparer.OrdinalIgnoreCase))
-    {
-        AnsiConsole.MarkupLine($"  [cyan]{Markup.Escape(family)}[/]=[yellow]{Markup.Escape(version)}[/]");
-    }
-
     AnsiConsole.WriteLine();
 }
 

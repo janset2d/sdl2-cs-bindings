@@ -311,7 +311,7 @@ jobs:
     #     at the meta-tag commit, returns a topologically ordered multi-family mapping.
     #   workflow_dispatch (manifest-derived): build host reads manifest + applies suffix=ci.<run-id>.
     #   workflow_dispatch (explicit): build host validates operator-supplied versions input.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       versions-json: ${{ steps.resolve.outputs.versions }}
       families: ${{ steps.resolve.outputs.families }}
@@ -320,7 +320,7 @@ jobs:
         run: cake <build-host-version-resolution-entrypoint>
 
   generate-matrix:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
@@ -329,7 +329,7 @@ jobs:
 
   preflight:
     needs: resolve-versions
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - cake --target=PreFlight --versions ${{ fromJson(needs.resolve-versions.outputs.versions-json) }}
       - cake --target=Coverage-Check
@@ -347,7 +347,7 @@ jobs:
 
   pack:
     needs: [harvest, resolve-versions]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - download all harvest artifacts
       - cake --target=ConsolidateHarvest
@@ -367,7 +367,7 @@ jobs:
   publish-staging:
     needs: consumer-smoke
     if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - cake --target=PublishStaging --feed $GH_PACKAGES
 ```
