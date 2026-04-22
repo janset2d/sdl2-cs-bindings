@@ -169,7 +169,7 @@ jobs:
         # currently carries only Build + Build.Tests but future additions (extra test
         # projects, samples) would pull in work we don't want here. Build.Tests
         # ProjectReference'es Build.csproj so its restore graph covers the Cake host.
-        run: dotnet restore build/_build.Tests/Build.Tests.csproj
+        run: dotnet restore Janset.SDL2.sln
       - name: Test Cake host (with coverage)
         # TUnit + MTP `--coverage` cobertura output path must be absolute; with a
         # relative path MTP writes under the test executable's bin dir instead of
@@ -348,7 +348,11 @@ jobs:
       - uses: ./.github/actions/vcpkg-setup
         with:
           runner-os: ${{ matrix.runner }}
-          cache-key-base: ${{ matrix.runner }}
+          # cache-key-base: container image tag when the job runs inside a container
+          # (Linux RIDs), else the host runner identifier (Windows / macOS RIDs).
+          # matrix.runner alone would be misleading for container-based jobs —
+          # ubuntu-24.04 host tells us nothing about the focal toolchain inside.
+          cache-key-base: ${{ matrix.container_image || matrix.runner }}
           triplet: ${{ matrix.triplet }}
           vcpkg-cache-path: .vcpkg-cache
           vcpkg-feature-flags: binarycaching
@@ -395,7 +399,11 @@ jobs:
       - uses: ./.github/actions/vcpkg-setup
         with:
           runner-os: ${{ matrix.runner }}
-          cache-key-base: ${{ matrix.runner }}
+          # cache-key-base: container image tag when the job runs inside a container
+          # (Linux RIDs), else the host runner identifier (Windows / macOS RIDs).
+          # matrix.runner alone would be misleading for container-based jobs —
+          # ubuntu-24.04 host tells us nothing about the focal toolchain inside.
+          cache-key-base: ${{ matrix.container_image || matrix.runner }}
           triplet: ${{ matrix.triplet }}
           vcpkg-cache-path: .vcpkg-cache
           vcpkg-feature-flags: binarycaching
