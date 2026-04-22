@@ -1,0 +1,6 @@
+# Build context is `./docker/` — only the Dockerfile itself is needed.
+# Allow only the Dockerfile in; ignore everything else that might land here
+# (editor scratch, tarballs copied for local experiments, etc.).
+*
+!linux-builder.Dockerfile
+!.dockerignore

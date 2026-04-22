@@ -1,0 +1,173 @@
+# Build the Janset SDL2 Linux builder image and push to GHCR.
+#
+# Produces one multi-arch manifest list (amd64 + arm64) from two native runners
+# — ubuntu-latest for amd64, ubuntu-latest-arm64 for arm64 — merged via
+# `docker buildx imagetools create`. SkiaSharp-style single-tag multi-arch
+# output (one image points at two platform manifests via an OCI image index).
+#
+# Two tags are published per run:
+#   - `buster-<yyyymmdd>-<short-sha>`  (immutable, audit trail)
+#   - `buster-latest`                  (mutable pointer; manifest.json uses this)
+#
+# Trigger surface:
+#   - workflow_dispatch (manual) with optional `push: false` for dry-run builds
+#     that exercise the Dockerfile without touching GHCR.
+#   - schedule monthly (first of every month, 03:00 UTC) — apt index refresh
+#     captures upstream security-patch drift without requiring manual ops.
+#
+# Retention: after a successful merge, `actions/delete-package-versions` keeps
+# the two most recent sha-tagged versions + the `buster-latest` pointer. Older
+# sha-tagged versions are pruned to stay inside GHCR's per-package storage
+# budget; the `buster-latest` pointer itself is never deleted (it retags onto
+# the newest digest each run via `imagetools create`).
+#
+# Reference: docs/phases/phase-2-release-cycle-orchestration-implementation-plan.md §6.6 E2 + §11 Q16.
+
+name: Build Linux Container
+
+on:
+  workflow_dispatch:
+    inputs:
+      push:
+        description: "Push to GHCR (false = dry-run build only, no registry write)"
+        type: boolean
+        required: true
+        default: true
+  schedule:
+    - cron: '0 3 1 * *'  # 03:00 UTC, 1st of every month
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/sdl2-bindings-linux-builder
+
+jobs:
+  build:
+    name: Build (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+            platform: linux/amd64
+          - arch: arm64
+            runner: ubuntu-latest-arm64
+            platform: linux/arm64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: ${{ inputs.push != false || github.event_name == 'schedule' }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push by digest
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./docker
+          file: ./docker/linux-builder.Dockerfile
+          platforms: ${{ matrix.platform }}
+          # push-by-digest outputs a content-addressed digest per arch; merge
+          # job stitches the two digests into a single multi-arch manifest.
+          outputs: >-
+            type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=${{ inputs.push != false || github.event_name == 'schedule' }}
+
+      - name: Export digest to artifact
+        if: ${{ inputs.push != false || github.event_name == 'schedule' }}
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          echo "${digest}" > "/tmp/digests/${{ matrix.arch }}"
+          echo "Exported digest for ${{ matrix.arch }}: ${digest}"
+
+      - name: Upload digest artifact
+        if: ${{ inputs.push != false || github.event_name == 'schedule' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ matrix.arch }}
+          path: /tmp/digests/${{ matrix.arch }}
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    name: Merge multi-arch manifest
+    needs: build
+    # Skip the merge on dry-run builds — nothing was pushed, nothing to merge.
+    if: ${{ inputs.push != false || github.event_name == 'schedule' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digest-*
+          merge-multiple: true
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute tags
+        id: tags
+        run: |
+          DATE="$(date -u +%Y%m%d)"
+          SHA="${GITHUB_SHA::7}"
+          echo "immutable=buster-${DATE}-${SHA}" >> "$GITHUB_OUTPUT"
+          echo "latest=buster-latest" >> "$GITHUB_OUTPUT"
+
+      - name: Create multi-arch manifest (amd64 + arm64)
+        run: |
+          set -euxo pipefail
+          cd /tmp/digests
+          IMG="${REGISTRY}/${IMAGE_NAME}"
+          AMD64_DIGEST="$(cat amd64)"
+          ARM64_DIGEST="$(cat arm64)"
+          docker buildx imagetools create \
+            --tag "${IMG}:${IMMUTABLE_TAG}" \
+            --tag "${IMG}:${LATEST_TAG}" \
+            "${IMG}@${AMD64_DIGEST}" \
+            "${IMG}@${ARM64_DIGEST}"
+        env:
+          IMMUTABLE_TAG: ${{ steps.tags.outputs.immutable }}
+          LATEST_TAG: ${{ steps.tags.outputs.latest }}
+
+      - name: Inspect published manifest
+        run: |
+          docker buildx imagetools inspect "${REGISTRY}/${IMAGE_NAME}:${IMMUTABLE_TAG}"
+        env:
+          IMMUTABLE_TAG: ${{ steps.tags.outputs.immutable }}
+
+  retention:
+    name: Prune old image versions
+    needs: merge
+    # Only run after a successful push; dry-run and schedule-dry-run both skip.
+    if: ${{ inputs.push != false || github.event_name == 'schedule' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete stale versions (keep last 2 sha-tagged + buster-latest)
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: sdl2-bindings-linux-builder
+          package-type: container
+          # Keep the three most recent versions overall; the buster-latest
+          # pointer retags onto the newest digest each run, so the effective
+          # retention is: newest (=latest + newest sha tag) + previous sha tag.
+          min-versions-to-keep: 3
+          delete-only-untagged-versions: false

@@ -8,12 +8,25 @@
 #                     consolidate-harvest jobs first-draft (see WIP banner below).
 #   Slice C (landed): pack + consumer-smoke (RID matrix re-entry) jobs +
 #                     publish-staging / publish-public stubs (gated).
-#   Slice E:  (a) absorb prepare-native-assets-*.yml into matrix-driven jobs below;
-#             (b) custom Ubuntu container image hosted on GHCR, built by a dedicated
-#                 companion workflow, replaces the in-job apt-install + autoconf
-#                 source-build preamble;
-#             (c) publish-staging + publish-public stub jobs;
-#             (d) playbook mirror validated.
+#   Slice E (in progress):
+#     E1a (landed WIP): build-cake-host job publishes the Cake host once as an
+#           FDD artifact (runtimes/*/native/ bundled, -p:UseAppHost=false for
+#           cross-OS `dotnet Build.dll` invocation). Consumer jobs download the
+#           artifact and skip dotnet restore/build entirely.
+#     E1b (landed WIP): every consumer job rewired to `dotnet ./cake-host/Build.dll`.
+#     E1c: absorb prepare-native-assets-*.yml into matrix-driven jobs below
+#           (reusable workflow dispatch via uses: + matrix-derived inputs).
+#     E1d: lock-file discipline (RestorePackagesWithLockFile + --locked-mode).
+#     E2:  custom Ubuntu container image hosted on GHCR, built by a dedicated
+#           companion workflow, replaces the in-job apt-install + autoconf
+#           source-build preamble.
+#     E3:  retire prepare-native-assets-*.yml (or narrow to callable-from-release.yml).
+#     E4:  Publish{Staging,Public}Task stubs — task + runner present, body throws
+#           NotImplementedException with Phase-2b message; release.yml jobs already
+#           gated `if: false`.
+#     E5:  final `run:`-step review; every step invokes a Cake target.
+#     E6:  broader canonical-doc sweep deferred from Slice DA; Q17 addressing.
+#     E7:  three-platform witness per cross-platform-smoke-validation.md A-K.
 #
 # Every `run:` block invokes a build-host Cake target (or minimal wiring logic — artifact
 # download, JSON → --explicit-version expansion). Per ADR-003 §3.1 the build host owns policy;
@@ -101,12 +114,67 @@ permissions:
   contents: read
 
 jobs:
+  build-cake-host:
+    # Slice E E1a: publish the Cake build-host once per pipeline run and distribute
+    # the output as a workflow artifact. Downstream jobs skip `dotnet restore/build`
+    # entirely and invoke `dotnet ./cake-host/Build.dll --target X`.
+    #
+    # Shape: framework-dependent deployment (FDD) with `-p:UseAppHost=false` — no
+    # platform-specific launcher is emitted, so the single artifact runs on every
+    # consumer job (Windows / Linux / macOS) through the `dotnet` host installed by
+    # `actions/setup-dotnet`. `dotnet publish` bundles `runtimes/*/native/` for
+    # every RID surfaced by the NuGet graph (notably LibGit2Sharp's per-OS
+    # `git2-*.{so,dylib,dll}` via Cake.Frosting.Git), so the runtime dispatcher
+    # picks the right native on each consumer OS.
+    #
+    # vcpkg submodule is deliberately skipped here — Cake host compiles against
+    # Vcpkg config only (`context.Vcpkg.*`) and never links against vcpkg-produced
+    # binaries at build time; submodule recursion happens on jobs that actually
+    # run Harvest / NativeSmoke.
+    #
+    # Retention is run-scoped (1 day): determinism > cross-run reuse. Each pipeline
+    # run re-builds the Cake host; content-addressed caching would save ~30s per
+    # run at the cost of debug-time confusion about which commit's host ran.
+    name: Build Cake Host
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-cake-host-${{ hashFiles('build/_build/Build.csproj', 'Directory.Packages.props', 'build/_build/packages.lock.json') }}
+          restore-keys: |
+            nuget-cake-host-
+      - name: Restore Cake host packages
+        run: dotnet restore ./build/_build/Build.csproj
+      - name: Publish Cake host (FDD, cross-OS)
+        run: >
+          dotnet publish ./build/_build/Build.csproj
+          --configuration Release
+          --no-restore
+          -p:UseAppHost=false
+          --output ./out/cake-host
+      - name: Upload cake-host artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cake-host
+          path: ./out/cake-host
+          if-no-files-found: error
+          retention-days: 1
+
   resolve-versions:
     # Slice B1: manifest source live; git-tag / meta-tag sources land in Slice C.
     # Emits artifacts/resolve-versions/versions.json in the canonical flat shape:
     #   { "sdl2-core": "2.32.0-ci.<run-id>.<run-attempt>", ... }
     # Uploaded as a workflow artifact so downstream jobs consume via actions/download-artifact.
     name: Resolve Versions
+    needs: [build-cake-host]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -115,9 +183,13 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
+      - uses: actions/download-artifact@v4
+        with:
+          name: cake-host
+          path: ./cake-host
       - name: Resolve manifest versions
         run: >
-          dotnet run --project build/_build/Build.csproj -c Release --
+          dotnet ./cake-host/Build.dll
           --target ResolveVersions
           --version-source=manifest
           --suffix=ci.${{ github.run_id }}.${{ github.run_attempt }}
@@ -133,7 +205,7 @@ jobs:
     # §2.3 (version-aware by contract). The JSON → CLI expansion is minimal wiring, not
     # policy; every validated rule lives inside the Cake PreFlightCheck target.
     name: PreFlight
-    needs: resolve-versions
+    needs: [build-cake-host, resolve-versions]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -142,6 +214,10 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
+      - uses: actions/download-artifact@v4
+        with:
+          name: cake-host
+          path: ./cake-host
       - name: Download versions.json
         uses: actions/download-artifact@v4
         with:
@@ -154,7 +230,7 @@ jobs:
             jq -r 'to_entries[] | "--explicit-version\n\(.key)=\(.value)"' \
               artifacts/resolve-versions/versions.json
           )
-          dotnet run --project build/_build/Build.csproj -c Release -- \
+          dotnet ./cake-host/Build.dll \
             --target PreFlightCheck \
             "${args[@]}"
 
@@ -165,6 +241,7 @@ jobs:
     # Any RID that fails at `cmake --preset <rid>` inside native-smoke is the PA-2 witness signal,
     # not a code-level cap; the preset file grows in Phase 2b.
     name: Generate Matrix
+    needs: [build-cake-host]
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
@@ -175,9 +252,13 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
+      - uses: actions/download-artifact@v4
+        with:
+          name: cake-host
+          path: ./cake-host
       - name: Emit matrix JSON
         run: >
-          dotnet run --project build/_build/Build.csproj -c Release --
+          dotnet ./cake-host/Build.dll
           --target GenerateMatrix
       - name: Expose matrix as job output
         id: matrix
@@ -198,7 +279,7 @@ jobs:
     # recursion, NuGet cache, Cake-compile-once. See the NORTH-STAR REFERENCE block at
     # the top of this file + plan §6.6 E1-E3.
     name: Harvest (${{ matrix.rid }})
-    needs: [preflight, generate-matrix]
+    needs: [build-cake-host, preflight, generate-matrix]
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
@@ -211,9 +292,13 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
+      - uses: actions/download-artifact@v4
+        with:
+          name: cake-host
+          path: ./cake-host
       - name: Run Harvest
         run: >
-          dotnet run --project build/_build/Build.csproj -c Release --
+          dotnet ./cake-host/Build.dll
           --target Harvest
           --rid ${{ matrix.rid }}
       - name: Upload harvest output
@@ -231,7 +316,7 @@ jobs:
     # tests/smoke-tests/native-smoke/CMakePresets.json grows in Phase 2b — that expected-failure
     # surface IS the PA-2 witness signal, NOT a code-level cap. See plan §11 Q9 + §6.3.
     name: NativeSmoke (${{ matrix.rid }})
-    needs: [harvest, generate-matrix]
+    needs: [build-cake-host, harvest, generate-matrix]
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
@@ -244,6 +329,10 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
+      - uses: actions/download-artifact@v4
+        with:
+          name: cake-host
+          path: ./cake-host
       - name: Download harvest output for this RID
         uses: actions/download-artifact@v4
         with:
@@ -251,7 +340,7 @@ jobs:
           path: artifacts/harvest_output
       - name: Run NativeSmoke
         run: >
-          dotnet run --project build/_build/Build.csproj -c Release --
+          dotnet ./cake-host/Build.dll
           --target NativeSmoke
           --rid ${{ matrix.rid }}
 
@@ -264,7 +353,7 @@ jobs:
     # Aggregation runner per ADR-003 §3.5 — downloads every RID's harvest output, then invokes
     # ConsolidateHarvest once to union license evidence + produce the cross-RID manifests.
     name: ConsolidateHarvest
-    needs: [harvest]
+    needs: [build-cake-host, harvest]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -273,6 +362,10 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
+      - uses: actions/download-artifact@v4
+        with:
+          name: cake-host
+          path: ./cake-host
       - name: Download every RID's harvest output
         uses: actions/download-artifact@v4
         with:
@@ -281,7 +374,7 @@ jobs:
           merge-multiple: true
       - name: Run ConsolidateHarvest
         run: >
-          dotnet run --project build/_build/Build.csproj -c Release --
+          dotnet ./cake-host/Build.dll
           --target ConsolidateHarvest
       - name: Upload consolidated harvest
         uses: actions/upload-artifact@v4
@@ -295,7 +388,7 @@ jobs:
     # versions, then invokes Package with --explicit-version per-family. The output
     # nupkgs feed the consumer-smoke matrix and (future Slice E) publish jobs.
     name: Pack
-    needs: [consolidate-harvest, resolve-versions]
+    needs: [build-cake-host, consolidate-harvest, resolve-versions]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -304,6 +397,10 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
+      - uses: actions/download-artifact@v4
+        with:
+          name: cake-host
+          path: ./cake-host
       - name: Download consolidated harvest
         uses: actions/download-artifact@v4
         with:
@@ -321,7 +418,7 @@ jobs:
             jq -r 'to_entries[] | "--explicit-version\n\(.key)=\(.value)"' \
               artifacts/resolve-versions/versions.json
           )
-          dotnet run --project build/_build/Build.csproj -c Release -- \
+          dotnet ./cake-host/Build.dll \
             --target Package \
             "${args[@]}"
       - name: Upload nupkg artifacts
@@ -340,7 +437,7 @@ jobs:
     # Missing apt prereqs / vcpkg-setup / NuGet cache on Linux/macOS entries — same caveat
     # as the harvest / native-smoke jobs above. Fully functional only after Slice E.
     name: ConsumerSmoke (${{ matrix.rid }})
-    needs: [pack, generate-matrix, resolve-versions]
+    needs: [build-cake-host, pack, generate-matrix, resolve-versions]
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
@@ -353,6 +450,10 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
+      - uses: actions/download-artifact@v4
+        with:
+          name: cake-host
+          path: ./cake-host
       - name: Download nupkg artifacts
         uses: actions/download-artifact@v4
         with:
@@ -371,7 +472,7 @@ jobs:
             jq -r 'to_entries[] | "--explicit-version\n\(.key)=\(.value)"' \
               artifacts/resolve-versions/versions.json
           )
-          dotnet run --project build/_build/Build.csproj -c Release -- \
+          dotnet ./cake-host/Build.dll \
             --target PackageConsumerSmoke \
             --rid ${{ matrix.rid }} \
             "${args[@]}"
