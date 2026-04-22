@@ -6,8 +6,8 @@
 # output (one image points at two platform manifests via an OCI image index).
 #
 # Two tags are published per run:
-#   - `buster-<yyyymmdd>-<short-sha>`  (immutable, audit trail)
-#   - `buster-latest`                  (mutable pointer; manifest.json uses this)
+#   - `focal-<yyyymmdd>-<short-sha>`  (immutable, audit trail)
+#   - `focal-latest`                  (mutable pointer; manifest.json uses this)
 #
 # Trigger surface:
 #   - workflow_dispatch (manual) with optional `push: false` for dry-run builds
@@ -16,9 +16,9 @@
 #     captures upstream security-patch drift without requiring manual ops.
 #
 # Retention: after a successful merge, `actions/delete-package-versions` keeps
-# the two most recent sha-tagged versions + the `buster-latest` pointer. Older
+# the two most recent sha-tagged versions + the `focal-latest` pointer. Older
 # sha-tagged versions are pruned to stay inside GHCR's per-package storage
-# budget; the `buster-latest` pointer itself is never deleted (it retags onto
+# budget; the `focal-latest` pointer itself is never deleted (it retags onto
 # the newest digest each run via `imagetools create`).
 #
 # Reference: docs/phases/phase-2-release-cycle-orchestration-implementation-plan.md §6.6 E2 + §11 Q16.
@@ -129,8 +129,8 @@ jobs:
         run: |
           DATE="$(date -u +%Y%m%d)"
           SHA="${GITHUB_SHA::7}"
-          echo "immutable=buster-${DATE}-${SHA}" >> "$GITHUB_OUTPUT"
-          echo "latest=buster-latest" >> "$GITHUB_OUTPUT"
+          echo "immutable=focal-${DATE}-${SHA}" >> "$GITHUB_OUTPUT"
+          echo "latest=focal-latest" >> "$GITHUB_OUTPUT"
 
       - name: Create multi-arch manifest (amd64 + arm64)
         run: |
@@ -161,12 +161,12 @@ jobs:
     if: ${{ inputs.push != false || github.event_name == 'schedule' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Delete stale versions (keep last 2 sha-tagged + buster-latest)
+      - name: Delete stale versions (keep last 2 sha-tagged + focal-latest)
         uses: actions/delete-package-versions@v5
         with:
           package-name: sdl2-bindings-linux-builder
           package-type: container
-          # Keep the three most recent versions overall; the buster-latest
+          # Keep the three most recent versions overall; the focal-latest
           # pointer retags onto the newest digest each run, so the effective
           # retention is: newest (=latest + newest sha tag) + previous sha tag.
           min-versions-to-keep: 3

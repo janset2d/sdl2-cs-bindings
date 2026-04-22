@@ -2,21 +2,30 @@
 #
 # Janset SDL2 bindings — Linux builder image.
 #
-# Base: debian:buster (Debian 10). glibc 2.28, matches SkiaSharp's production
-# cross-platform native build target + the manylinux_2_28 ecosystem baseline.
-# Consumers on Ubuntu 18.04+ / Debian 10+ / RHEL 8+ / AlmaLinux 8+ can dlopen
-# our `.so` binaries. Slice E E2, per Deniz direction 2026-04-22: one image,
-# multi-arch manifest list (amd64 + arm64 merged), built by
+# Base: ubuntu:20.04 (focal). glibc 2.31. Originally planned as debian:buster
+# (glibc 2.28, SkiaSharp pattern) to maximize consumer reach; buster went EoL
+# 2022-Aug and was moved to archive.debian.org in 2024-03, so `apt-get update`
+# started returning 404s on Release files and `apt-get upgrade -y` became a
+# no-op (no upstream security patches). Switched to ubuntu:20.04 focal on
+# 2026-04-22: standard LTS support through 2030 (Pro ESM 2035), active apt
+# mirrors, glibc 2.31 — same baseline as Ubuntu 20.04 / Debian 11 bullseye,
+# which covers the bulk of the modern Linux ecosystem. The marginal consumer
+# reach delta (RHEL 8 / AlmaLinux 8 / Debian 10 users on glibc 2.28) is
+# accepted in exchange for live security patches on monthly rebuild.
+#
+# Slice E E2, per Deniz direction 2026-04-22: one image, multi-arch manifest
+# list (amd64 + arm64 merged), built by
 # `.github/workflows/build-linux-container.yml`, pushed to
-# `ghcr.io/janset2d/sdl2-bindings-linux-builder:buster-<yyyymmdd>-<sha>` and
-# pointed at by `:buster-latest`.
+# `ghcr.io/janset2d/sdl2-bindings-linux-builder:focal-<yyyymmdd>-<sha>` and
+# pointed at by `:focal-latest`.
 #
 # The apt preamble is a verbatim port of
 # `.github/workflows/prepare-native-assets-linux.yml:37-80`. That preamble
-# survived several rounds of trial-and-error and is the canonical working set
-# for vcpkg hybrid-static SDL2 + smoke runtime. Do NOT edit package lists or
-# flags without updating the prepare-* workflow in lockstep — drift between
-# the two surfaces is exactly what this image exists to eliminate.
+# survived several rounds of trial-and-error ON ubuntu:20.04 and is the
+# canonical working set for vcpkg hybrid-static SDL2 + smoke runtime. Do NOT
+# edit package lists or flags without updating the prepare-* workflow in
+# lockstep — drift between the two surfaces is exactly what this image
+# exists to eliminate.
 #
 # Two additions over the prepare-* preamble, each intentional:
 #   (1) cmake + ninja-build — native-smoke CI needs them; prepare-* today runs
@@ -31,10 +40,10 @@
 # .NET SDK deliberately NOT baked in — `actions/setup-dotnet` handles runtime
 # version pinning per-job (symmetric with Windows / macOS runners).
 
-FROM debian:buster
+FROM ubuntu:20.04
 
 LABEL org.opencontainers.image.source="https://github.com/janset2d/sdl2-cs-bindings"
-LABEL org.opencontainers.image.description="Janset SDL2 bindings Linux builder (debian:buster base, glibc 2.28)"
+LABEL org.opencontainers.image.description="Janset SDL2 bindings Linux builder (ubuntu:20.04 base, glibc 2.31)"
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.vendor="Janset2D"
 
@@ -48,9 +57,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 #
 # `apt-get upgrade -y` is an image-only addition (not in prepare-*): the
 # monthly rebuild cron absorbs upstream security patches without changing
-# the buster suite's glibc major (2.28.X → 2.28.Y patch bumps only; minor
-# versions never leave the release suite per Debian policy). Same reason we
-# stick with buster as base — consumer-side glibc 2.28 floor stays stable.
+# focal's glibc major (2.31.X → 2.31.Y patch bumps only; minor versions
+# never leave the release suite per Ubuntu LTS policy). Same reason we
+# stay on focal as base — consumer-side glibc 2.31 floor stays stable.
 # The toolchain smoke check at the bottom of this file logs the resolved
 # glibc version on every build so drift is visible in the image build log.
 # ---------------------------------------------------------------------------
@@ -72,9 +81,9 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 # autoconf 2.72 source build — gperf 3.3 (transitive dep via harfbuzz) requires
-# autoconf >= 2.70. debian:buster ships 2.69 (same as ubuntu:20.04 in the
-# prepare-* workflow). if-check preserved from the workflow so if a future
-# base bump lands autoconf >= 2.70 the source build becomes a no-op.
+# autoconf >= 2.70. ubuntu:20.04 ships 2.69 (same as prepare-*'s in-workflow
+# preamble). if-check preserved from the workflow so if a future base bump
+# lands autoconf >= 2.70 the source build becomes a no-op.
 RUN SYSTEM_AUTOCONF_VER=$(autoconf --version 2>/dev/null | head -1 | grep -oP '\d+\.\d+' || echo "0.0") \
  && if [ "$(printf '%s\n' "2.70" "$SYSTEM_AUTOCONF_VER" | sort -V | head -1)" != "2.70" ]; then \
       AUTOCONF_SHA256="afb181a76e1ee72832f6581c0eddf8df032b83e2e0239ef79ebedc4467d92d6e"; \
