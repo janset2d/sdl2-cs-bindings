@@ -493,6 +493,12 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
+          # Smoke project targets $(ExecutableTargetFrameworks) = net9.0;net8.0;net462.
+          # global.json only installs .NET 9 SDK — we need .NET 8 runtime/SDK for
+          # the net8.0 TFM. net462 is handled natively on Windows, skipped on Linux,
+          # probed-for-Mono on macOS (see PackageConsumerSmokeRunner.ShouldSkipTfm).
+          dotnet-version: |
+            8.0.x
       - uses: ./.github/actions/platform-build-prereqs
       - uses: ./.github/actions/nuget-cache
       - name: Enable TUnit HTML report auto-upload
