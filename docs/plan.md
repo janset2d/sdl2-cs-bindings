@@ -40,7 +40,7 @@ These decisions were made during the packaging strategy research cycle (April 20
 | **Remove external/sdl2-cs dependency** | The flibitijibibo/SDL2-CS git submodule will be removed. Current bindings are transitional — not trusted for production testing or long-term use. | SDL2-CS is unmaintained import-style bindings. Phase 4 CppAst generator replaces them entirely. |
 | **C++ native smoke test project** | Cross-platform CMake/vcpkg C++ project for directly testing hybrid-built native libraries without P/Invoke layer. IDE-debuggable (Rider/VS/CLion). | Needed for format coverage testing (MP3/FLAC/MOD/MIDI), hybrid bake validation, and diagnosing native vs. P/Invoke issues. Research needed on best IDE integration approach. |
 | **Package family as release unit** | Managed + .Native always share the same version (family version) and release together. Families version independently from each other. | Eliminates version matrix between managed and native. SkiaSharp/Magick.NET/Avalonia pattern. See [knowledge-base/release-lifecycle-direction.md](knowledge-base/release-lifecycle-direction.md). |
-| **Tag-derived family versioning (D-3seg, ADR-001 2026-04-18)** | Family version = `<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>`. UpstreamMajor.UpstreamMinor anchored to `manifest.json library_manifests[].vcpkg_version` (G54 enforces). FamilyPatch is the repo's own release-iteration counter within a given Major.Minor line. Git tags with family-specific prefixes drive MinVer: `sdl2-core-2.32.0`, `sdl2-image-2.8.0`, `sdl2-mixer-2.8.0`, `sdl2-ttf-2.24.0`, `sdl2-gfx-1.0.0`, `sdl2-net-2.2.0`. No build segment. No manual version edits in project files. Family identifier convention: `sdl<major>-<role>`. See [ADR-001](decisions/2026-04-18-versioning-d3seg.md) and [knowledge-base/release-lifecycle-direction.md §3](knowledge-base/release-lifecycle-direction.md). | Truth in labeling (consumer reads `Janset.SDL2.Core 2.32.0` and knows SDL2 2.32 minor line without README). vcpkg patch/port_version bumps roll into FamilyPatch on the maintainer's release cadence — not mandatory on every upstream touch. MinVer stays 3-part SemVer native. Exact upstream patch preserved in `janset-native-metadata.json` (G55) + README mapping table (G57). |
+| **Tag-derived family versioning (D-3seg, ADR-001 2026-04-18)** | Family version = `<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>`. UpstreamMajor.UpstreamMinor anchored to `manifest.json library_manifests[].vcpkg_version` (G54 enforces). FamilyPatch is the repo's own release-iteration counter within a given Major.Minor line. Git tags with family-specific prefixes drive MinVer: `sdl2-core-2.32.0`, `sdl2-image-2.8.0`, `sdl2-mixer-2.8.0`, `sdl2-ttf-2.24.0`, `sdl2-gfx-1.0.0` (+ `sdl2-net-2.2.0` when Phase 3 lands). No build segment. No manual version edits in project files. Family identifier convention: `sdl<major>-<role>`. See [ADR-001](decisions/2026-04-18-versioning-d3seg.md) and [knowledge-base/release-lifecycle-direction.md §3](knowledge-base/release-lifecycle-direction.md). | Truth in labeling (consumer reads `Janset.SDL2.Core 2.32.0` and knows SDL2 2.32 minor line without README). vcpkg patch/port_version bumps roll into FamilyPatch on the maintainer's release cadence — not mandatory on every upstream touch. MinVer stays 3-part SemVer native. Exact upstream patch preserved in `janset-native-metadata.json` (G55) + README mapping table (G57). |
 | **Hybrid release governance** | Targeted release per-family by default. Forced full-train release on cross-cutting changes (vcpkg baseline, triplet/strategy, shared toolchain, validation guardrails). | Fast iteration for isolated changes, coherence guarantee for infrastructure changes. |
 | **Dependency contracts: minimum range everywhere (SkiaSharp pattern, revised S1 2026-04-17)** | Within-family AND cross-family: minimum version constraint (`>=`). Drift protection is orchestration-time (Cake `PackageTask` packs both family members at identical `--family-version` in one invocation; post-pack validator G23 asserts the emitted `<version>` elements match byte-for-byte). Previous design (exact pin within family via Mechanism 3) was proven mechanically but retired because it depended on MSBuild global-property propagation through NuGet's pack-time sub-eval, which `NuGet.Build.Tasks.Pack.targets` replaces rather than extends — unchanged for 8+ years, no upstream fix in .NET 10. See [knowledge-base/release-lifecycle-direction.md §4 Drift Protection Model](knowledge-base/release-lifecycle-direction.md) and [phases/phase-2-adaptation-plan.md "S1 Adoption Record"](phases/phase-2-adaptation-plan.md). | Industry-standard SkiaSharp / Avalonia / OpenTelemetry convention. Orchestration-time drift protection is sufficient because Cake owns both pack invocations per family; consumer-side exact pin was belt-and-suspenders against a scenario prevented by construction. |
 | **CI matrix: 7 RID jobs, not library×RID** | One job per RID. vcpkg installs all libraries per-triplet, Cake harvests per-library within the job. Matrix generated dynamically from manifest.json. | vcpkg manifest mode is all-or-nothing. Dynamic matrix eliminates YAML↔manifest drift. |
@@ -73,7 +73,7 @@ These decisions were made during the packaging strategy research cycle (April 20
 | SDL2_mixer | `Janset.SDL2.Mixer` | `external/sdl2-cs/src/SDL2_mixer.cs` (665 lines) | Yes | Same |
 | SDL2_ttf | `Janset.SDL2.Ttf` | `external/sdl2-cs/src/SDL2_ttf.cs` (768 lines) | Yes | Same |
 | SDL2_gfx | `Janset.SDL2.Gfx` | `external/sdl2-cs/src/SDL2_gfx.cs` (390 lines) | Yes | Same |
-| SDL2_net | — | Not yet added | — | — |
+| SDL2_net | — | Not yet added (Phase 3 — #58) | — | — |
 
 ### Native Library Build (vcpkg)
 
@@ -84,7 +84,7 @@ These decisions were made during the packaging strategy research cycle (April 20
 | SDL2_mixer | Yes | libmodplug, opusfile, timidity, wavpack | Yes (win-x64 validation; matrix pending) |
 | SDL2_ttf | Yes | harfbuzz | Yes (win-x64 validation; matrix pending) |
 | SDL2_gfx | Yes | No features (simple library) | Yes (win-x64 validation; matrix pending) |
-| SDL2_net | Yes | No features | Yes (win-x64 validation; matrix pending) |
+| SDL2_net | Yes | No features | Not yet (placeholder removed from manifest.json — re-add with full csproj + .Native structure in Phase 3, #58) |
 
 ### CI/CD
 
@@ -228,7 +228,7 @@ ADR-003 locked the post-sweep direction (three `IPackageVersionProvider` impls, 
 - [ ] Implement PD-7 full-train orchestration: meta-tag + manifest-driven topological ordering + `release-set.json` handling + partial-train recovery
 - [ ] Implement PD-8 manual escape hatch: operator-driven pack/push via `ExplicitVersionProvider`; `playbook/release-recovery.md` drafted; Cake `Pack-Family` / `Smoke-Family` / `Push-Family` helpers
 - [ ] Add Linux version scripts for symbol visibility (`.map` files per satellite) — lower priority
-- [ ] Add SDL2_net bindings + native project (#58)
+- [ ] Add SDL2_net bindings + native project (#58) — requires: managed csproj, .Native csproj, overlay port (if needed), manifest.json re-entry (package_families + library_manifests), vcpkg feature config, harvest validation
 - [ ] Validate SDL2_mixer LGPL-free build across all RIDs
 - [ ] Create sample projects (#60 — spec absorbed from retired phase-3-sdl2-complete.md §3.3)
 - [ ] Publish first pre-release to NuGet.org (#63)
@@ -296,7 +296,7 @@ Primary docs: this doc (`plan.md` Q3/Q4 2026 roadmap sections), [playbook/adding
 
 | Issue | Labels |
 | --- | --- |
-| `#58 Add SDL2_net binding and native package skeleton` | `type:enhancement`, `area:bindings`, `area:native` |
+| `#58 Add SDL2_net binding and native package skeleton` | `type:enhancement`, `area:bindings`, `area:native` | Note: placeholder removed from manifest.json 2026-04-22; re-add with full structure when implementing |
 | `#59 Create the SDL2 smoke test suite and CI coverage` | `type:enhancement`, `area:ci-cd`, `area:testing` |
 | `#60 Create sample projects under samples/` | `type:enhancement`, `area:docs`, `area:samples` |
 | `#61 Add the Janset.SDL2 meta-package` | `type:enhancement`, `area:bindings`, `area:packaging` |

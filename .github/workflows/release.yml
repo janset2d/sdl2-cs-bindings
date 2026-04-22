@@ -362,6 +362,11 @@ jobs:
         with:
           name: cake-host
           path: ./cake-host
+      - name: Cake Info
+        run: >
+          dotnet ./cake-host/Build.dll
+          --target Info
+          --rid ${{ matrix.rid }}
       - name: Run Harvest
         run: >
           dotnet ./cake-host/Build.dll
@@ -505,6 +510,11 @@ jobs:
         with:
           name: cake-host
           path: ./cake-host
+      - name: Cake Info
+        run: >
+          dotnet ./cake-host/Build.dll
+          --target Info
+          --rid ${{ matrix.rid }}
       - name: Download nupkg artifacts
         uses: actions/download-artifact@v8
         with:

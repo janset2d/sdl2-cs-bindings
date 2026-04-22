@@ -14,7 +14,7 @@ public class ManifestDeserializationTests
         var config = JsonSerializer.Deserialize<ManifestConfig>(json);
 
         await Assert.That(config).IsNotNull();
-        await Assert.That(config!.LibraryManifests.Count).IsGreaterThanOrEqualTo(6);
+        await Assert.That(config!.LibraryManifests.Count).IsGreaterThanOrEqualTo(5);
     }
 
     [Test]
@@ -76,7 +76,7 @@ public class ManifestDeserializationTests
         var config = JsonSerializer.Deserialize<ManifestConfig>(json)!;
 
         await Assert.That(config.PackageFamilies).IsNotNull();
-        await Assert.That(config.PackageFamilies.Count).IsEqualTo(6);
+        await Assert.That(config.PackageFamilies.Count).IsEqualTo(5);
 
         var familyNames = config.PackageFamilies.Select(f => f.Name).ToList();
         await Assert.That(familyNames).Contains("sdl2-core");
@@ -84,7 +84,6 @@ public class ManifestDeserializationTests
         await Assert.That(familyNames).Contains("sdl2-mixer");
         await Assert.That(familyNames).Contains("sdl2-ttf");
         await Assert.That(familyNames).Contains("sdl2-gfx");
-        await Assert.That(familyNames).Contains("sdl2-net");
     }
 
     [Test]

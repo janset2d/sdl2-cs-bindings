@@ -76,18 +76,6 @@
         "src/SDL2.Gfx/**",
         "src/native/SDL2.Gfx.Native/**"
       ]
-    },
-    {
-      "name": "sdl2-net",
-      "tag_prefix": "sdl2-net",
-      "managed_project": null,
-      "native_project": null,
-      "library_ref": "SDL2_net",
-      "depends_on": ["sdl2-core"],
-      "change_paths": [
-        "src/SDL2.Net/**",
-        "src/native/SDL2.Net.Native/**"
-      ]
     }
   ],
 
@@ -243,19 +231,6 @@
         { "os": "Windows", "patterns": ["SDL2_gfx.dll"] },
         { "os": "Linux", "patterns": ["libSDL2_gfx*"] },
         { "os": "OSX", "patterns": ["libSDL2_gfx*.dylib"] }
-      ]
-    },
-    {
-      "name": "SDL2_net",
-      "vcpkg_name": "sdl2-net",
-      "vcpkg_version": "2.2.0",
-      "vcpkg_port_version": 3,
-      "native_lib_name": "SDL2.Net.Native",
-      "core_lib": false,
-      "primary_binaries": [
-        { "os": "Windows", "patterns": ["SDL2_net.dll"] },
-        { "os": "Linux", "patterns": ["libSDL2_net*"] },
-        { "os": "OSX", "patterns": ["libSDL2_net*.dylib"] }
       ]
     }
   ]
