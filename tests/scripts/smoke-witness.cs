@@ -2,8 +2,8 @@
 #:property TargetFramework=net10.0
 #:property TargetFrameworks=
 #:property PublishAot=false
-#:property NoError=$(NoError);CA1502;CA1505
-#:property NoWarn=$(NoWarn);CA1502;CA1505
+#:property NoError=$(NoError);CA1502;CA1505;CA1031;CA1515;CA2007
+#:property NoWarn=$(NoWarn);CA1502;CA1505;CA1031;CA1515;CA2007
 #:package Spectre.Console
 
 using System.Diagnostics;
