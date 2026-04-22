@@ -7,6 +7,7 @@ using Build.Context;
 using Build.Context.Models;
 using Build.Domain.Harvesting.Models;
 using Build.Domain.Packaging.Models;
+using Build.Domain.Paths;
 using Build.Domain.Preflight.Models;
 using Build.Domain.Runtime;
 using Cake.Core;
@@ -33,7 +34,9 @@ namespace Build.Application.Packaging;
 /// harvest matrix.
 /// </remarks>
 public sealed class SetupLocalDevTaskRunner(
+    ICakeContext cakeContext,
     ICakeLog log,
+    IPathService pathService,
     ManifestConfig manifestConfig,
     IRuntimeProfile runtimeProfile,
     IArtifactSourceResolver artifactSourceResolver,
@@ -46,7 +49,9 @@ public sealed class SetupLocalDevTaskRunner(
     private static readonly IReadOnlyDictionary<string, NuGetVersion> EmptyVersions =
         new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase);
 
+    private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
+    private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
     private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
     private readonly IRuntimeProfile _runtimeProfile = runtimeProfile ?? throw new ArgumentNullException(nameof(runtimeProfile));
     private readonly IArtifactSourceResolver _artifactSourceResolver = artifactSourceResolver ?? throw new ArgumentNullException(nameof(artifactSourceResolver));
@@ -74,6 +79,10 @@ public sealed class SetupLocalDevTaskRunner(
 
         var mapping = await ResolveLocalMappingAsync(cancellationToken);
         var harvestLibraries = context.Vcpkg.Libraries.ToList();
+
+        // Emit the same versions.json shape that ResolveVersionsTaskRunner writes in CI
+        // so that smoke-witness and PackageConsumerSmoke can read versions after SetupLocalDev.
+        await WriteVersionsJsonAsync(mapping);
 
         await _preflightTaskRunner.RunAsync(context, new PreflightRequest(mapping), cancellationToken);
         _ensureVcpkgDependenciesTaskRunner.Run(context);
@@ -108,5 +117,22 @@ public sealed class SetupLocalDevTaskRunner(
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         return await provider.ResolveAsync(scope, cancellationToken);
+    }
+
+    private async Task WriteVersionsJsonAsync(IReadOnlyDictionary<string, NuGetVersion> mapping)
+    {
+        var serializable = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (family, version) in mapping)
+        {
+            serializable[family] = version.ToNormalizedString();
+        }
+
+        var outputFile = _pathService.GetResolveVersionsOutputFile();
+        await _cakeContext.WriteJsonAsync(outputFile, serializable);
+
+        _log.Information(
+            "SetupLocalDev wrote {0} family/version entries to {1}.",
+            serializable.Count,
+            outputFile.FullPath);
     }
 }

@@ -16,15 +16,6 @@ using NuGet.Versioning;
 namespace Build.Application.Packaging;
 
 /// <summary>
-/// Resolves the local Artifact Source Profile (ADR-001 §2.7) against the on-disk package
-/// feed produced upstream by <see cref="SetupLocalDevTaskRunner"/>. Responsibility is
-/// narrow by design: verify the expected managed/native nupkgs exist and stamp
-/// <c>Janset.Smoke.local.props</c> with the resolved version mapping. The resolver is
-/// <b>not</b> a pipeline orchestrator — it does not run Preflight/Harvest/Pack. If the
-/// feed is missing nupkgs for a mapped family, it fails fast with a remediation hint
-/// pointing operators at SetupLocalDev.
-/// </summary>
-/// <summary>
 /// Resolves the local <see cref="ArtifactProfile.Local"/> feed. Post-<c>SetupLocalDev</c>
 /// pack output populates <c>artifacts/packages/</c>; this resolver verifies each family's
 /// nupkg + stamps <c>build/msbuild/Janset.Local.props</c> (renamed from

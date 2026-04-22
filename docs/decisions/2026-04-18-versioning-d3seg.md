@@ -81,7 +81,7 @@ MinVer is a **tag reader**, not a version inventor. Its sole function in this pr
 
 - Release builds (CI): the operator (human or workflow) creates the family tag at the release commit (`sdl2-core-2.32.0`) and pushes; CI checks out the tag, MinVer reads it, pack uses `$(Version) = 2.32.0`.
 - Untagged commits: MinVer produces a deterministic prerelease fallback, e.g. `2.32.0-alpha.0.N`. Never `0.0.0-*` unless no predecessor tag exists anywhere in history.
-- Cake `PackageTaskRunner.PackageVersionResolver` accepts an explicit `--family-version=<semver>` CLI flag which, when supplied, bypasses MinVer for that pack invocation. Used today only by PD-8 manual escape-hatch flows. It is **not** a primary mechanism; the tag is the source of truth for stable releases. **Note (2026-04-19, PD-13):** `SetupLocalDev` was refactored (pre-ADR-001 canon) to auto-generate per-family versions directly from `manifest.json library_manifests[].vcpkg_version` + local timestamp without consulting the flag, and `PackageConsumerSmoke` was reconciled to trust `Janset.Smoke.local.props` as the version source of truth for smoke testing. The flag's surviving legitimate surface has narrowed to the PD-8 escape path; retirement is tracked as [PD-13](../phases/phase-2-adaptation-plan.md#pending-decisions).
+- Cake `PackageTaskRunner.PackageVersionResolver` accepts an explicit `--family-version=<semver>` CLI flag which, when supplied, bypasses MinVer for that pack invocation. Used today only by PD-8 manual escape-hatch flows. It is **not** a primary mechanism; the tag is the source of truth for stable releases. **Note (2026-04-19, PD-13):** `SetupLocalDev` was refactored (pre-ADR-001 canon) to auto-generate per-family versions directly from `manifest.json library_manifests[].vcpkg_version` + local timestamp without consulting the flag, and `PackageConsumerSmoke` was reconciled to trust `Janset.Local.props` (renamed from `Janset.Smoke.local.props` in C.8a) as the version source of truth for smoke testing. The flag's surviving legitimate surface has narrowed to the PD-8 escape path; PD-13 is **closed (2026-04-22)** — runner-strict `--explicit-version` replaces props-based version sourcing; see ADR-003 §6.
 
 ### 2.4 Dependency contracts
 
@@ -180,7 +180,7 @@ public interface IArtifactSourceResolver
     ArtifactProfile Profile { get; }
     Task PrepareFeedAsync(CancellationToken ct);
     DirectoryPath LocalFeedPath { get; }
-    Task WriteConsumerOverrideAsync(CancellationToken ct); // writes Janset.Smoke.local.props
+    Task WriteConsumerOverrideAsync(CancellationToken ct); // writes Janset.Local.props
 }
 ```
 
@@ -202,16 +202,16 @@ The task:
    - `sdl2-core-2.32.0-local.<YYYYMMDDTHHMMSS>`
    - `sdl2-image-2.8.0-local.<YYYYMMDDTHHMMSS>`
    - (one timestamp shared across families for a given `SetupLocalDev` invocation)
-4. Writes `build/msbuild/Janset.Smoke.local.props` (gitignored) with:
+4. Writes `build/msbuild/Janset.Local.props` (gitignored) with:
    - `<LocalPackageFeed>` pointing to `artifacts/packages`.
    - Per-family `<JansetSdl<N><Role>PackageVersion>` set to the freshly-packed versions.
-5. Reports: "IDE'de smoke csproj aç, restore çalışır. Family versions written to `Janset.Smoke.local.props`."
+5. Reports: "IDE'de smoke csproj aç, restore çalışır. Family versions written to `Janset.Local.props`."
 
-`Janset.Smoke.local.props` is consumed by a conditional `<Import>` at the tail of `build/msbuild/Janset.Smoke.props`:
+`Janset.Local.props` is consumed by a conditional `<Import>` at the tail of `build/msbuild/Janset.Smoke.props`:
 
 ```xml
-<Import Project="$(MSBuildThisFileDirectory)Janset.Smoke.local.props"
-        Condition="Exists('$(MSBuildThisFileDirectory)Janset.Smoke.local.props')" />
+<Import Project="$(MSBuildThisFileDirectory)Janset.Local.props"
+        Condition="Exists('$(MSBuildThisFileDirectory)Janset.Local.props')" />
 ```
 
 The `--source=remote` variant skips steps 1–3 and instead pulls prebuilt nupkgs from an internal feed into a local cache; the override-file write (step 4) and IDE readiness (step 5) are identical. This is the Phase 2b deliverable whose interface contract is locked in this ADR.
@@ -390,8 +390,8 @@ Tracks the implementation work required by this ADR. Each item updates as waves 
 - [x] `RemoteArtifactSourceResolver` stub (contract-only) — **DONE 2026-04-19**
 - [x] `ReleaseArtifactSourceResolver` stub (contract-only) — **DONE 2026-04-19**
 - [x] `SetupLocalDev` Cake task — `--source=local` fully wired, `--source=remote` accepted but stubbed — **DONE 2026-04-19**
-- [x] `Janset.Smoke.local.props` conditional import in `Janset.Smoke.props` — **DONE 2026-04-19**
-- [x] `.gitignore` — `build/msbuild/Janset.Smoke.local.props` — **DONE 2026-04-19**
+- [x] `Janset.Local.props` conditional import in `Janset.Smoke.props` — **DONE 2026-04-19** (renamed from `Janset.Smoke.local.props` in C.8a)
+- [x] `.gitignore` — `build/msbuild/Janset.Local.props` — **DONE 2026-04-19** (entry updated in C.8a)
 - [x] IDE open test: smoke csproj restores + builds in IDE after `SetupLocalDev` runs — **DONE 2026-04-20** (`SetupLocalDev --source=local` on `win-x64` + direct `dotnet build` of `PackageConsumer.Smoke.csproj`)
 - [x] Source Mode mechanism removal — any landed code retires — **DONE 2026-04-20** (active docs/playbooks/smoke messaging aligned to ADR-001 package-first contract; historical research docs remain explicitly deprecated)
 

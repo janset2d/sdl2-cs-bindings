@@ -36,7 +36,7 @@ Current repo reality on 2026-04-21 (post-ADR-003 draft):
 - Release lifecycle direction is locked: package families, tag-derived versioning, hybrid governance, dependency contracts, CI matrix shape, promotion path. See [`release-lifecycle-direction.md`](release-lifecycle-direction.md).
 - Orchestration architecture is draft-locked in [ADR-003](../decisions/2026-04-20-release-lifecycle-orchestration.md) (v1.4, 2026-04-20): three version-source providers (`ManifestVersionProvider` / `GitTagVersionProvider` / `ExplicitVersionProvider`), stage-owned validation, consumer smoke matrix re-entry, Option A resolver-centric `SetupLocalDev`. ADR-003 is **pseudocode** — implementation lands during the Cake refactor + CI/CD rewrite pass.
 - PA-2 landed 2026-04-18: all 7 `manifest.runtimes[]` rows now map to hybrid overlay triplets; behavioral pack + consumer-smoke validation on the four newly-covered rows (`win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64`) is still pending via the new `release.yml` pipeline.
-- `SetupLocalDev --source=local` operational on Windows host (packages local feed + writes `build/msbuild/Janset.Smoke.local.props`). `--source=remote` stubbed (`UnsupportedArtifactSourceResolver`); concrete implementation is Phase 2b Stream D-ci / PD-5.
+- `SetupLocalDev --source=local` operational on Windows host (packages local feed + writes `build/msbuild/Janset.Local.props`). `--source=remote` stubbed (`UnsupportedArtifactSourceResolver`); concrete implementation is Phase 2b Stream D-ci / PD-5.
 
 ## 2. Guiding Principles & Core Tenets
 

@@ -4,9 +4,10 @@
 #
 #   Slice A (landed): trigger stanzas + stub resolve-versions-stub job.
 #   Slice B1 (landed): resolve-versions + preflight jobs run real Cake targets.
-#   Slice D (current): generate-matrix job real; harvest / native-smoke /
-#                      consolidate-harvest jobs first-draft (see WIP banner below).
-#   Slice C:  pack + consumer-smoke (RID matrix re-entry) jobs.
+#   Slice D (landed): generate-matrix job real; harvest / native-smoke /
+#                     consolidate-harvest jobs first-draft (see WIP banner below).
+#   Slice C (landed): pack + consumer-smoke (RID matrix re-entry) jobs +
+#                     publish-staging / publish-public stubs (gated).
 #   Slice E:  (a) absorb prepare-native-assets-*.yml into matrix-driven jobs below;
 #             (b) custom Ubuntu container image hosted on GHCR, built by a dedicated
 #                 companion workflow, replaces the in-job apt-install + autoconf
@@ -288,3 +289,108 @@ jobs:
           name: consolidated-harvest-output
           path: artifacts/harvest_output
           retention-days: 7
+
+  pack:
+    # Slice C: single-runner packing — downloads the consolidated harvest + resolved
+    # versions, then invokes Package with --explicit-version per-family. The output
+    # nupkgs feed the consumer-smoke matrix and (future Slice E) publish jobs.
+    name: Pack
+    needs: [consolidate-harvest, resolve-versions]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Download consolidated harvest
+        uses: actions/download-artifact@v4
+        with:
+          name: consolidated-harvest-output
+          path: artifacts/harvest_output
+      - name: Download versions.json
+        uses: actions/download-artifact@v4
+        with:
+          name: resolve-versions-output
+          path: artifacts/resolve-versions
+      - name: Run Package
+        run: |
+          # Expand versions.json → repeated --explicit-version args; keep wiring minimal.
+          mapfile -t args < <(
+            jq -r 'to_entries[] | "--explicit-version\n\(.key)=\(.value)"' \
+              artifacts/resolve-versions/versions.json
+          )
+          dotnet run --project build/_build/Build.csproj -c Release -- \
+            --target Package \
+            "${args[@]}"
+      - name: Upload nupkg artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nupkg-output
+          path: artifacts/packages/
+          retention-days: 7
+
+  consumer-smoke:
+    # Slice C: 7-RID matrix re-entry — each runner downloads the packed nupkgs + resolved
+    # versions, then invokes PackageConsumerSmoke with --explicit-version + --rid per ADR-003
+    # §2.3. The consumer-smoke matrix is symmetric with harvest (same generate-matrix output).
+    #
+    # FIRST-DRAFT (see NORTH-STAR REFERENCE + plan §6.6 E1-E3 for absorption scope).
+    # Missing apt prereqs / vcpkg-setup / NuGet cache on Linux/macOS entries — same caveat
+    # as the harvest / native-smoke jobs above. Fully functional only after Slice E.
+    name: ConsumerSmoke (${{ matrix.rid }})
+    needs: [pack, generate-matrix, resolve-versions]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
+    runs-on: ${{ matrix.runner }}
+    container: ${{ matrix.container_image }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Download nupkg artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: nupkg-output
+          path: artifacts/packages
+      - name: Download versions.json
+        uses: actions/download-artifact@v4
+        with:
+          name: resolve-versions-output
+          path: artifacts/resolve-versions
+      - name: Run PackageConsumerSmoke
+        shell: bash  # mapfile is bash built-in; Git Bash pre-installed on windows-latest
+        run: |
+          # Expand versions.json → repeated --explicit-version args; keep wiring minimal.
+          mapfile -t args < <(
+            jq -r 'to_entries[] | "--explicit-version\n\(.key)=\(.value)"' \
+              artifacts/resolve-versions/versions.json
+          )
+          dotnet run --project build/_build/Build.csproj -c Release -- \
+            --target PackageConsumerSmoke \
+            --rid ${{ matrix.rid }} \
+            "${args[@]}"
+
+  # ---------------------------------------------------------------------------
+  # Publish stubs — Slice E wires real bodies; gated behind Phase 2b.
+  # ---------------------------------------------------------------------------
+  publish-staging:
+    name: Publish (Staging)
+    needs: [consumer-smoke]
+    if: false  # Gated — Slice E + Phase 2b
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Phase 2b — publish-staging not yet implemented."
+
+  publish-public:
+    name: Publish (Public)
+    needs: [publish-staging]
+    if: false  # Gated — Slice E + Phase 2b
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Phase 2b — publish-public not yet implemented."

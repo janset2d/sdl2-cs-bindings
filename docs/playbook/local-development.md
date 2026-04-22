@@ -17,7 +17,7 @@ cd sdl2-cs-bindings
 dotnet run --project build/_build -- --target SetupLocalDev --source=local
 ```
 
-Result: `artifacts/packages/` populated with D-3seg-versioned prerelease nupkgs (e.g. `Janset.SDL2.Core 2.32.0-local.<timestamp>`), and `build/msbuild/Janset.Smoke.local.props` written (gitignored) with the matching `LocalPackageFeed` + per-family version properties. Opening any smoke / sample csproj in Rider / VS / VS Code then restores + builds directly from the local feed.
+Result: `artifacts/packages/` populated with D-3seg-versioned prerelease nupkgs (e.g. `Janset.SDL2.Core 2.32.0-local.<timestamp>`), and `build/msbuild/Janset.Local.props` written (gitignored) with the matching `LocalPackageFeed` + per-family version properties. Opening any smoke / sample csproj in Rider / VS / VS Code then restores + builds directly from the local feed.
 
 `--source=remote` / `--source=release` are accepted now but intentionally fail with a "not implemented in Phase 2a" error until feed-download profile work lands.
 
@@ -58,7 +58,7 @@ dotnet build src/SDL2.Gfx/SDL2.Gfx.csproj
 
 This builds the C# binding projects without requiring local package-feed injection.
 
-Important: smoke projects remain in `Janset.SDL2.sln` by design (package-first consumer contract). If `build/msbuild/Janset.Smoke.local.props` does not exist yet (or is stale), `dotnet restore/build Janset.SDL2.sln` can fail on smoke package restore (`NU1101`). Re-run `SetupLocalDev --source=local` to regenerate the local override.
+Important: smoke projects remain in `Janset.SDL2.sln` by design (package-first consumer contract). If `build/msbuild/Janset.Local.props` does not exist yet (or is stale), `dotnet restore/build Janset.SDL2.sln` can fail on smoke package restore (`NU1101`). Re-run `SetupLocalDev --source=local` to regenerate the local override.
 
 ### Getting Native Binaries Without Building
 

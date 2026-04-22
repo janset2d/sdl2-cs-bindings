@@ -5,8 +5,8 @@
 **Last validated:** 2026-04-21 post-Slice-D Unix witnesses (WSL linux-x64 + macOS Intel osx-x64); 2026-04-17 win-x64 expanded-smoke pass still valid.
 **Result (2026-04-21, Slice D closure D.16):** Three validation layers are now true at the same time:
 
-- **Unix (linux-x64 + osx-x64, Slice D witness, 2026-04-21):** full Cake pipeline end-to-end green on both platforms against `unix-smoke-runbook.md`. `CleanArtifacts` + Bootstrap (390/390 tests) + PreFlightCheck + EnsureVcpkg + Harvest (6 SDL2 libraries) + `NativeSmoke` (29/29 test cases incl. PNG/JPEG/WebP/TIFF/AVIF + FLAC/MIDI/WavPack/Opus/OGG/MP3/MOD + `TTF_Init` + `SDL2_gfx` render + `SDLNet_Init`) + ConsolidateHarvest + `Inspect-HarvestedDependencies` + `SetupLocalDev` (per-family D-3seg packages + `Janset.Smoke.local.props`) + `PackageConsumerSmoke` (net9.0 + net8.0 + compile-sanity netstandard2.0; net462 auto-skip per platform Mono policy). macOS `otool -L` dep-graph proof: SDL2_image / SDL2_ttf / SDL2_gfx / SDL2_net satellites expose exactly three direct `LC_LOAD_DYLIB` entries (libSDL2 + self + libSystem) — zero leaked codec / font libraries, confirming vcpkg hybrid-static bake-in end-to-end on macOS.
-- **Windows (2026-04-17 + 2026-04-21 Slice B1 closure):** expanded Windows-host slice green end to end on `win-x64`: native-smoke `28 passed, 0 failed`, Harvest `1 primary / 0 runtime` for every SDL2 satellite, dumpbin shows satellites depend only on `SDL2.dll` + CRT / system DLLs, and `SetupLocalDev --source=local --rid win-x64` produced 15 nupkgs at per-family D-3seg versions with `Janset.Smoke.local.props` written.
+- **Unix (linux-x64 + osx-x64, Slice D witness, 2026-04-21):** full Cake pipeline end-to-end green on both platforms against `unix-smoke-runbook.md`. `CleanArtifacts` + Bootstrap (390/390 tests) + PreFlightCheck + EnsureVcpkg + Harvest (6 SDL2 libraries) + `NativeSmoke` (29/29 test cases incl. PNG/JPEG/WebP/TIFF/AVIF + FLAC/MIDI/WavPack/Opus/OGG/MP3/MOD + `TTF_Init` + `SDL2_gfx` render + `SDLNet_Init`) + ConsolidateHarvest + `Inspect-HarvestedDependencies` + `SetupLocalDev` (per-family D-3seg packages + `Janset.Local.props`) + `PackageConsumerSmoke` (net9.0 + net8.0 + compile-sanity netstandard2.0; net462 auto-skip per platform Mono policy). macOS `otool -L` dep-graph proof: SDL2_image / SDL2_ttf / SDL2_gfx / SDL2_net satellites expose exactly three direct `LC_LOAD_DYLIB` entries (libSDL2 + self + libSystem) — zero leaked codec / font libraries, confirming vcpkg hybrid-static bake-in end-to-end on macOS.
+- **Windows (2026-04-17 + 2026-04-21 Slice B1 closure):** expanded Windows-host slice green end to end on `win-x64`: native-smoke `28 passed, 0 failed`, Harvest `1 primary / 0 runtime` for every SDL2 satellite, dumpbin shows satellites depend only on `SDL2.dll` + CRT / system DLLs, and `SetupLocalDev --source=local --rid win-x64` produced 15 nupkgs at per-family D-3seg versions with `Janset.Local.props` written.
 - **Historical Phase 2a proof slice** remains green on the three original hybrid-static hosts for `sdl2-core` + `sdl2-image`.
 
 **Cake-first invocation contract (Slice DA, 2026-04-21).** Every checkpoint below invokes a Cake target directly. Pre-Slice-D raw shell blocks (`rm -rf artifacts/…`, `tar -xzf native.tar.gz`, `cmake --preset <rid>`, manual per-TFM `dotnet test`) have dedicated Cake targets after Slice D:
@@ -50,7 +50,7 @@ These are validated today and should pass on all 3 platforms.
 
 | # | Checkpoint | Stream | What It Proves | Expected Output |
 | --- | --- | --- | --- | --- |
-| A | Build-host unit tests (**bootstrap exception**) | Baseline | Refactored code logic is correct | 400 passed, 0 failed on `feat/adr003-impl` at Slice CA close (2026-04-21) |
+| A | Build-host unit tests (**bootstrap exception**) | Baseline | Refactored code logic is correct | 426 passed, 0 failed on `feat/adr003-impl` at Slice C closure (2026-04-22) |
 | B | Cake restore + build (Release) (**bootstrap exception**) | Baseline | Build host compiles clean on all platforms | 0 warnings, 0 errors (usually implied by A — tests build the same assemblies) |
 | C | Cake `--tree` | Baseline | Task dependency graph is flat (Slice B2) | every stage task standalone — `CleanArtifacts`, `CompileSolution`, `ConsolidateHarvest`, `EnsureVcpkgDependencies`, `GenerateMatrix`, `Harvest`, `Info`, `Inspect-HarvestedDependencies`, `NativeSmoke`, `Package`, `PackageConsumerSmoke`, `PreFlightCheck`, `ResolveVersions`, `SetupLocalDev` + diagnostic targets. No `PostFlight`. |
 | D | PreFlightCheck | Baseline + A-risky + S1 | manifest.json ↔ vcpkg.json consistency + strategy coherence + post-S1 csproj pack contract (G4/G6/G7/G17/G18) | 6/6 versions, 7/7 strategies, 6/6 families × 10/10 csprojs all green |
@@ -71,7 +71,7 @@ These will be added as their parent streams land. Add the command reference and 
 | # | Checkpoint | Stream | What It Will Prove | Promotion Criteria |
 | --- | --- | --- | --- | --- |
 | I | PreFlightCheck as a CI gate | B1 (**landed**) | Version resolution, package-family integrity, unit tests as gate — present in `release.yml` as a first-class job since Slice B1 | Already active in CI; covered locally by checkpoint D |
-| L | `SetupLocalDev --source=remote` | F | Remote artifact-source feed prep populates the local cache and writes `Janset.Smoke.local.props` correctly | `RemoteArtifactSourceResolver` implemented + authenticated feed download validated |
+| L | `SetupLocalDev --source=remote` | F | Remote artifact-source feed prep populates the local cache and writes `Janset.Local.props` correctly | `RemoteArtifactSourceResolver` implemented + authenticated feed download validated |
 | M | J/K extended to remaining 4 hybrid-static RIDs | 2b | PackageTask + PackageConsumerSmoke green for `win-arm64`, `win-x86`, `linux-arm64`, and `osx-arm64` now that the overlay triplets (`x86-windows-hybrid`, `arm64-windows-hybrid`, `arm64-linux-hybrid`, `arm64-osx-hybrid`) exist | PA-1 decision landed + PA-2 overlay triplets merged + at least one newly-covered RID harvested and consumer-smoked on its native runner |
 | N | CleanArtifacts | **D** (landed) | Every ephemeral artifact subtree wipes cleanly without side-effects on `vcpkg_installed/` | `dotnet run --project build/_build/Build.csproj -- --target CleanArtifacts` exits 0 with no prior run's files remaining under the eight configured roots |
 | O | GenerateMatrix | **D** (landed) | `artifacts/matrix/runtimes.json` in GitHub-Actions `include[]` shape, symmetric 7-RID from `manifest.runtimes[]` | `--target GenerateMatrix` emits the JSON; the `include` array cardinality equals `manifest.runtimes[]` length (currently 7) |
@@ -414,7 +414,7 @@ dotnet run --project build/_build/Build.csproj -- \
 
 **Flow 1 (primary for big smoke) — `SetupLocalDev`:**
 
-`SetupLocalDev --source=local` composes PreFlight → EnsureVcpkgDependencies → Harvest → ConsolidateHarvest → Package + writes `build/msbuild/Janset.Smoke.local.props` in a single invocation with per-family D-3seg versions auto-derived from the manifest. The composition lives in `Application/Packaging/SetupLocalDevTaskRunner`; `LocalArtifactSourceResolver` only verifies the produced feed and stamps the `.local.props` override. `NativeSmoke` is **not** part of this chain (Slice B2 amendment — CMake + platform C/C++ toolchain prereq is orthogonal to feed materialisation; native smoke runs as its own standalone target or via the CI harvest matrix). `--rid` is optional when targeting the host RID; pass it only for cross-build targets (e.g., `win-x86` on a `win-x64` host). Pair this invocation with a direct `PackageConsumerSmoke` afterwards for end-to-end witness:
+`SetupLocalDev --source=local` composes PreFlight → EnsureVcpkgDependencies → Harvest → ConsolidateHarvest → Package + writes `build/msbuild/Janset.Local.props` in a single invocation with per-family D-3seg versions auto-derived from the manifest. The composition lives in `Application/Packaging/SetupLocalDevTaskRunner`; `LocalArtifactSourceResolver` only verifies the produced feed and stamps the `.local.props` override. `NativeSmoke` is **not** part of this chain (Slice B2 amendment — CMake + platform C/C++ toolchain prereq is orthogonal to feed materialisation; native smoke runs as its own standalone target or via the CI harvest matrix). `--rid` is optional when targeting the host RID; pass it only for cross-build targets (e.g., `win-x86` on a `win-x64` host). Pair this invocation with a direct `PackageConsumerSmoke` afterwards for end-to-end witness:
 
 ```bash
 # Windows (host RID default — win-x64 here):
@@ -584,11 +584,11 @@ Under [ADR-001](../decisions/2026-04-18-versioning-d3seg.md), the local dev flow
 
 | Flow | Feed source | Consumer contract | Driver |
 | --- | --- | --- | --- |
-| `SetupLocalDev --source=local` (Phase 2a, lands V5) | Repo pack → `artifacts/packages` | PackageReference + exact-pinned smoke override | `build/msbuild/Janset.Smoke.local.props` generated by task |
+| `SetupLocalDev --source=local` (Phase 2a, lands V5) | Repo pack → `artifacts/packages` | PackageReference + exact-pinned smoke override | `build/msbuild/Janset.Local.props` generated by task |
 | `SetupLocalDev --source=remote` (Phase 2b) | Internal feed download → local cache | Same | Same override file, written from remote-fetched versions |
 | This smoke matrix (manual A–K walkthrough) | Whatever the operator staged | Same | CLI `-p:` flags or local.props |
 
-Once `SetupLocalDev` ships, IDE-opened smoke csprojs restore without Cake in the loop (the `Janset.Smoke.local.props` conditional import picks up the per-developer feed + version values). See [local-development.md](local-development.md) for the full Quick Start flow.
+Once `SetupLocalDev` ships, IDE-opened smoke csprojs restore without Cake in the loop (the `Janset.Local.props` conditional import picks up the per-developer feed + version values). See [local-development.md](local-development.md) for the full Quick Start flow.
 
 ## Relationship to CI
 
@@ -738,7 +738,7 @@ Trigger each run via workflow-dispatch on the matching GitHub runner:
 
 Per-RID command (adapt the runner via workflow input; body identical).
 
-**Primary path — `SetupLocalDev` umbrella** (recommended for PA-2 witness: auto-derives per-family D-3seg versions with the operator-supplied suffix, runs the full pipeline, writes `Janset.Smoke.local.props`, then `PackageConsumerSmoke` covers consumer restore + runtime):
+**Primary path — `SetupLocalDev` umbrella** (recommended for PA-2 witness: auto-derives per-family D-3seg versions with the operator-supplied suffix, runs the full pipeline, writes `Janset.Local.props`, then `PackageConsumerSmoke` covers consumer restore + runtime):
 
 ```bash
 # Replace <rid> with the PA-2 RID from the table above.

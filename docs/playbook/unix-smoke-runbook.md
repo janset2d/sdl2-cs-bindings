@@ -228,7 +228,7 @@ dotnet run --project build/_build/Build.csproj -c Release -- \
   --target SetupLocalDev --source=local --rid "$RID" --repo-root "$PWD" \
   | tee "$LOG_DIR/40-setup-local-dev.log"
 
-cat build/msbuild/Janset.Smoke.local.props | tee "$LOG_DIR/41-smoke-local-props.log"
+cat build/msbuild/Janset.Local.props | tee "$LOG_DIR/41-smoke-local-props.log"
 ls -1 artifacts/packages | tee "$LOG_DIR/42-packages.log"
 
 ./build/_build/bin/Release/net9.0/Build \
@@ -246,7 +246,7 @@ ls -1 artifacts/packages | tee "$LOG_DIR/42-packages.log"
   per-family D-3seg versions (`sdl2-core 2.32.0-local.<ts>`,
   `sdl2-gfx 1.0.0-local.<ts>`, `sdl2-image/mixer 2.8.0-local.<ts>`,
   `sdl2-ttf 2.24.0-local.<ts>`), produces 15 nupkgs in `artifacts/packages/`,
-  and writes `build/msbuild/Janset.Smoke.local.props` referencing them.
+  and writes `build/msbuild/Janset.Local.props` referencing them.
 - `PackageConsumerSmoke`: internally loops executable TFMs resolved from
   `PackageConsumer.Smoke.csproj`'s `$(ExecutableTargetFrameworks)`. Per-platform
   net462 policy:

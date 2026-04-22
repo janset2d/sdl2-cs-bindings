@@ -112,7 +112,7 @@ dotnet build src/SDL2.Image/SDL2.Image.csproj
 dotnet test build/_build.Tests/Build.Tests.csproj -c Release --nologo
 
 # Note: the root solution intentionally keeps smoke projects.
-# If build/msbuild/Janset.Smoke.local.props is missing or stale,
+# If build/msbuild/Janset.Local.props is missing or stale,
 # solution-level build can fail on smoke package restore:
 # dotnet build Janset.SDL2.sln
 

@@ -66,21 +66,19 @@ resolves the repo root internally.
     `IMsvcDevEnvironment` resolver is Windows-only and short-circuited at the
     `NativeSmokeTaskRunner` call site.
 
-### Why `ci-sim` skips `PackageConsumerSmoke`
+### How `ci-sim` threads versions into `PackageConsumerSmoke`
 
-`PackageConsumerSmoke` today reads `build/msbuild/Janset.Smoke.local.props`
-via MSBuild. That file is stamped **only** by `SetupLocalDev` through
-`IArtifactSourceResolver.WriteConsumerOverrideAsync`. Running consumer smoke
-after a standalone `Package` rolls `JNSMK001` ("Smoke projects require
-LocalPackageFeed") because the props stub is missing.
+Post-Slice-C, `PackageConsumerSmoke` takes its feed path and version mapping
+from the stage request record — `--explicit-version family=semver` (repeated
+per family) plus the default `artifacts/packages/` feed path. `ci-sim` reads
+`artifacts/resolve-versions/versions.json` emitted by `ResolveVersions`,
+filters to concrete families (those with both `managed_project` and
+`native_project` in `build/manifest.json`), and passes `--explicit-version`
+into the `PackageConsumerSmoke` step. No `Janset.Local.props` injection, no
+local-dev-only helpers — the step is a faithful CI job simulation.
 
-Mini CI simulation refuses to inject local-dev-only helpers (stamping props
-inside the script would make it a non-simulation). Per ADR-003 §6.5 / Slice C:
-`PackageConsumerSmokeRequest(Rid, Versions, FeedPath)` will parameterise the
-runner so `--feed-path` + `--explicit-version` carry the same contract the
-props stub carries today — the natural CI flow then works end-to-end without
-props. Until Slice C lands, run `./smoke-witness.cs local` for smoke
-coverage.
+`PackageConsumerSmoke` auto-skips with a log hint when no `--explicit-version`
+mapping is supplied (mirrors `PackageTask.ShouldRun` — same rationale).
 
 ### Design notes
 

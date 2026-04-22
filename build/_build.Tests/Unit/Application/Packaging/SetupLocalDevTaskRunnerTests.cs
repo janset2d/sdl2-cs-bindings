@@ -173,6 +173,108 @@ public sealed class SetupLocalDevTaskRunnerTests
         await Assert.That(observedTokens.Count).IsEqualTo(1);
     }
 
+    [Test]
+    public async Task RunAsync_Should_Write_VersionsJson_When_Profile_Is_Local()
+    {
+        var manifest = ManifestFixture.CreateTestManifestConfig();
+        var concreteFamilies = manifest.PackageFamilies
+            .Where(family => !string.IsNullOrWhiteSpace(family.ManagedProject) && !string.IsNullOrWhiteSpace(family.NativeProject))
+            .ToList();
+
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
+            .WithManifest(manifest)
+            .WithVcpkgJson(CreateVcpkgManifest())
+            .WithRid(Rid)
+            .WithLibraries("SDL2")
+            .BuildContextWithHandles();
+
+        var resolver = Substitute.For<IArtifactSourceResolver>();
+        resolver.Profile.Returns(ArtifactProfile.Local);
+        resolver.LocalFeedPath.Returns(repo.Paths.PackagesOutput);
+        resolver.PrepareFeedAsync(
+                Arg.Any<BuildContext>(),
+                Arg.Any<IReadOnlyDictionary<string, NuGetVersion>>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        resolver.WriteConsumerOverrideAsync(
+                Arg.Any<BuildContext>(),
+                Arg.Any<IReadOnlyDictionary<string, NuGetVersion>>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+
+        var packageTaskRunner = Substitute.For<IPackageTaskRunner>();
+        packageTaskRunner.RunAsync(Arg.Any<BuildContext>(), Arg.Any<PackRequest>(), Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+
+        var runner = BuildRunner(repo, manifest, resolver, packageTaskRunner);
+
+        await runner.RunAsync(repo.BuildContext);
+
+        // SetupLocalDev (C.11a) emits versions.json at the same path ResolveVersionsTaskRunner uses.
+        var versionsJsonPath = repo.Paths.GetResolveVersionsOutputFile();
+        var versionsFile = repo.FileSystem.GetFile(versionsJsonPath);
+        await Assert.That(versionsFile.Exists).IsTrue();
+
+        // Read and validate the shape: flat sorted dict { "sdl2-core": "<version>", ... }
+        using var stream = versionsFile.Open(FileMode.Open, FileAccess.Read, FileShare.Read);
+        using var reader = new StreamReader(stream);
+        var json = await reader.ReadToEndAsync();
+        var doc = System.Text.Json.JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        await Assert.That(root.ValueKind).IsEqualTo(System.Text.Json.JsonValueKind.Object);
+
+        var familyNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var property in root.EnumerateObject())
+        {
+            familyNames.Add(property.Name);
+            await Assert.That(property.Value.GetString()).IsNotNull();
+        }
+
+        // The emitted mapping covers exactly the concrete families in manifest.
+        await Assert.That(familyNames.Count).IsEqualTo(concreteFamilies.Count);
+        foreach (var family in concreteFamilies)
+        {
+            await Assert.That(familyNames.Contains(family.Name)).IsTrue();
+        }
+    }
+
+    [Test]
+    public async Task RunAsync_Should_Not_Write_VersionsJson_When_Profile_Is_RemoteInternal()
+    {
+        var manifest = ManifestFixture.CreateTestManifestConfig();
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
+            .WithManifest(manifest)
+            .WithVcpkgJson(CreateVcpkgManifest())
+            .WithRid(Rid)
+            .WithLibraries("SDL2")
+            .BuildContextWithHandles();
+
+        var resolver = Substitute.For<IArtifactSourceResolver>();
+        resolver.Profile.Returns(ArtifactProfile.RemoteInternal);
+        resolver.LocalFeedPath.Returns(repo.Paths.PackagesOutput);
+        resolver.PrepareFeedAsync(
+                Arg.Any<BuildContext>(),
+                Arg.Any<IReadOnlyDictionary<string, NuGetVersion>>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        resolver.WriteConsumerOverrideAsync(
+                Arg.Any<BuildContext>(),
+                Arg.Any<IReadOnlyDictionary<string, NuGetVersion>>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+
+        var packageTaskRunner = Substitute.For<IPackageTaskRunner>();
+        var runner = BuildRunner(repo, manifest, resolver, packageTaskRunner);
+
+        await runner.RunAsync(repo.BuildContext);
+
+        // Non-local profiles skip the pipeline entirely — no versions.json should be written.
+        var versionsJsonPath = repo.Paths.GetResolveVersionsOutputFile();
+        var versionsFile = repo.FileSystem.GetFile(versionsJsonPath);
+        await Assert.That(versionsFile.Exists).IsFalse();
+    }
+
     private static SetupLocalDevTaskRunner BuildRunner(
         FakeRepoHandles repo,
         ManifestConfig manifest,
@@ -192,7 +294,9 @@ public sealed class SetupLocalDevTaskRunnerTests
         var consolidateHarvestTaskRunner = new ConsolidateHarvestTaskRunner();
 
         return new SetupLocalDevTaskRunner(
+            repo.CakeContext,
             repo.CakeContext.Log,
+            repo.Paths,
             manifest,
             runtimeProfile,
             resolver,

@@ -14,13 +14,13 @@ using System.Text.Json;
 using Build.Scripts.SmokeWitness;
 using Spectre.Console;
 
-var mode = ParseMode(args);
+var (mode, verbose) = ParseArgs(args);
 if (mode is null)
 {
     return 2;
 }
 
-var context = await InitializeContextAsync(mode.Value);
+var context = await InitializeContextAsync(mode.Value, verbose);
 PrintHeader(context);
 
 var results = new List<StepResult>();
@@ -50,26 +50,32 @@ PrintSummary(results, totalStopwatch.Elapsed, context.LogDir);
 
 return results.Exists(static r => !r.Succeeded) ? 1 : 0;
 
-static SmokeMode? ParseMode(string[] args)
+static (SmokeMode? Mode, bool Verbose) ParseArgs(string[] args)
 {
-    var raw = args.Length > 0 ? args[0].Trim().ToLowerInvariant() : "local";
-    return raw switch
+    var verbose = args.Any(a => a is "--verbose" or "-v");
+
+    // First non-flag positional arg is the mode; default to "local".
+    var modeArg = args.FirstOrDefault(a => !a.StartsWith('-')) ?? "local";
+    var mode = modeArg.Trim().ToLowerInvariant() switch
     {
-        "local" => SmokeMode.Local,
-        "ci-sim" => SmokeMode.CiSim,
-        _ => PrintUnknownMode(raw),
+        "local" => (SmokeMode?)SmokeMode.Local,
+        "ci-sim" => (SmokeMode?)SmokeMode.CiSim,
+        var raw => PrintUnknownMode(raw),
     };
+
+    return (mode, verbose);
 
     static SmokeMode? PrintUnknownMode(string raw)
     {
         AnsiConsole.MarkupLine($"[red]Unknown mode '{Markup.Escape(raw)}'. Expected 'local' or 'ci-sim'.[/]");
-        AnsiConsole.MarkupLine("  [grey]local[/]  → CleanArtifacts → SetupLocalDev → PackageConsumerSmoke (default; fast dev iterate)");
-        AnsiConsole.MarkupLine("  [grey]ci-sim[/] → mini CI replay: every stage invoked standalone with ResolveVersions mapping");
+        AnsiConsole.MarkupLine("  [grey]local[/]    → CleanArtifacts → SetupLocalDev → PackageConsumerSmoke (default; fast dev iterate)");
+        AnsiConsole.MarkupLine("  [grey]ci-sim[/]   → mini CI replay: every stage invoked standalone with ResolveVersions mapping + ConsumerSmoke");
+        AnsiConsole.MarkupLine("  [grey]-v/--verbose[/] → tee each step's stdout/stderr to the console (default: off; output always written to log files)");
         return null;
     }
 }
 
-static async Task<WitnessContext> InitializeContextAsync(SmokeMode mode)
+static async Task<WitnessContext> InitializeContextAsync(SmokeMode mode, bool verbose)
 {
     var repoRoot = await FindRepoRootAsync();
     var runId = DateTimeOffset.UtcNow.ToString("yyyyMMddTHHmmssZ", CultureInfo.InvariantCulture);
@@ -90,14 +96,29 @@ static async Task<WitnessContext> InitializeContextAsync(SmokeMode mode)
 
     var hostRid = ResolveHostRid();
     var headSha = await TryGetHeadShaAsync(repoRoot);
-    return new WitnessContext(mode, repoRoot, logDir, hostRid, platform, runId, headSha);
+    return new WitnessContext(mode, repoRoot, logDir, hostRid, platform, runId, headSha, verbose);
 }
 
 static async Task RunLocalAsync(WitnessContext ctx, List<StepResult> results)
 {
     await StepAsync(ctx, results, "CleanArtifacts", ["--target", "CleanArtifacts"]);
     await StepAsync(ctx, results, "SetupLocalDev", ["--target", "SetupLocalDev", "--source=local"]);
-    await StepAsync(ctx, results, "PackageConsumerSmoke", ["--target", "PackageConsumerSmoke"]);
+
+    // SetupLocalDev now emits artifacts/resolve-versions/versions.json (C.11a).
+    // Read it, filter to concrete families, and thread --explicit-version into ConsumerSmoke.
+    var allVersions = await ParseResolvedVersionsAsync(ctx.RepoRoot);
+    var concreteFamilies = await LoadConcreteFamiliesAsync(ctx.RepoRoot);
+    var versions = allVersions
+        .Where(kvp => concreteFamilies.Contains(kvp.Key))
+        .ToDictionary(kvp => kvp.Key, kvp => kvp.Value, StringComparer.OrdinalIgnoreCase);
+
+    PrintResolvedMapping(versions);
+
+    var versionArgs = versions
+        .SelectMany(kvp => new[] { "--explicit-version", $"{kvp.Key}={kvp.Value}" })
+        .ToArray();
+
+    await StepAsync(ctx, results, "PackageConsumerSmoke", ["--target", "PackageConsumerSmoke", "--rid", ctx.HostRid, .. versionArgs]);
 }
 
 static async Task RunCiSimAsync(WitnessContext ctx, List<StepResult> results)
@@ -142,8 +163,7 @@ static async Task RunCiSimAsync(WitnessContext ctx, List<StepResult> results)
     await StepAsync(ctx, results, "NativeSmoke", ["--target", "NativeSmoke", "--rid", ctx.HostRid]);
     await StepAsync(ctx, results, "ConsolidateHarvest", ["--target", "ConsolidateHarvest"]);
     await StepAsync(ctx, results, "Package", ["--target", "Package", .. versionArgs]);
-
-    PrintConsumerSmokeSkipNote();
+    await StepAsync(ctx, results, "PackageConsumerSmoke", ["--target", "PackageConsumerSmoke", "--rid", ctx.HostRid, .. versionArgs]);
 }
 
 static async Task StepAsync(WitnessContext ctx, List<StepResult> results, string label, string[] cakeArgs)
@@ -165,7 +185,7 @@ static async Task StepAsync(WitnessContext ctx, List<StepResult> results, string
 
     var logPath = Path.Combine(ctx.LogDir, $"{stepNumber:00}-{SanitizeForFile(label)}.log");
     var stopwatch = Stopwatch.StartNew();
-    var exitCode = await InvokeProcessAsync("dotnet", fullArgs, ctx.RepoRoot, logPath);
+    var exitCode = await InvokeProcessAsync("dotnet", fullArgs, ctx.RepoRoot, logPath, ctx.Verbose);
     stopwatch.Stop();
 
     var result = new StepResult(label, exitCode, stopwatch.Elapsed, logPath);
@@ -182,7 +202,7 @@ static async Task StepAsync(WitnessContext ctx, List<StepResult> results, string
     AnsiConsole.WriteLine();
 }
 
-static async Task<int> InvokeProcessAsync(string fileName, IEnumerable<string> arguments, string workingDirectory, string logPath)
+static async Task<int> InvokeProcessAsync(string fileName, IEnumerable<string> arguments, string workingDirectory, string logPath, bool verbose = false)
 {
     var argumentList = arguments as IList<string> ?? arguments.ToList();
 
@@ -199,37 +219,64 @@ static async Task<int> InvokeProcessAsync(string fileName, IEnumerable<string> a
     };
 
     foreach (var arg in argumentList)
-    {
         startInfo.ArgumentList.Add(arg);
-    }
-
-    var header = new StringBuilder();
-    header.Append("$ ").Append(fileName).Append(' ').AppendJoin(' ', argumentList).AppendLine();
-    header.Append("# cwd=").AppendLine(workingDirectory);
-    header.Append("# started=").AppendLine(DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture));
-    header.AppendLine();
 
     using var process = new Process { StartInfo = startInfo };
     process.Start();
 
-    var stdoutTask = process.StandardOutput.ReadToEndAsync();
-    var stderrTask = process.StandardError.ReadToEndAsync();
+    if (!verbose)
+    {
+        // Silent: drain streams to prevent deadlock, no console output, no log file.
+        var outTask = process.StandardOutput.ReadToEndAsync();
+        var errTask = process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+        await Task.WhenAll(outTask, errTask);
+        return process.ExitCode;
+    }
 
+    // Verbose: stream each line live to console + capture for log.
+    // Use Console.Out directly — Cake's ANSI sequences would be misinterpreted by Spectre.
+    var stdoutSb = new StringBuilder();
+    var stderrSb = new StringBuilder();
+    var stdoutDone = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var stderrDone = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    process.OutputDataReceived += (_, e) =>
+    {
+        if (e.Data is null) { stdoutDone.TrySetResult(); return; }
+        stdoutSb.AppendLine(e.Data);
+        Console.Out.WriteLine(e.Data);
+    };
+
+    process.ErrorDataReceived += (_, e) =>
+    {
+        if (e.Data is null) { stderrDone.TrySetResult(); return; }
+        stderrSb.AppendLine(e.Data);
+        Console.Error.WriteLine(e.Data);
+    };
+
+    process.BeginOutputReadLine();
+    process.BeginErrorReadLine();
     await process.WaitForExitAsync();
-    var stdout = await stdoutTask;
-    var stderr = await stderrTask;
+    await Task.WhenAll(stdoutDone.Task, stderrDone.Task);
+
+    var stdout = stdoutSb.ToString();
+    var stderr = stderrSb.ToString();
+
+    var header = new StringBuilder();
+    header.Append("$ ").Append(fileName).Append(' ').AppendJoin(' ', argumentList).AppendLine();
+    header.Append("# cwd=").AppendLine(workingDirectory);
+    header.AppendLine();
 
     var body = new StringBuilder(header.Length + stdout.Length + stderr.Length + 128);
     body.Append(header);
     body.Append(stdout);
-
     if (stderr.Length > 0)
     {
         body.AppendLine();
         body.AppendLine("# ---- stderr ----");
         body.Append(stderr);
     }
-
     body.AppendLine();
     body.Append("# exit=").Append(process.ExitCode)
         .Append(' ').Append("finished=").AppendLine(DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture));
@@ -339,6 +386,7 @@ static void PrintHeader(WitnessContext ctx)
     table.AddRow("[grey]HEAD[/]", $"[cyan]{Markup.Escape(ctx.HeadSha ?? "unknown")}[/]");
     table.AddRow("[grey]Logs[/]", $"[cyan]{Markup.Escape(ctx.LogDir)}[/]");
     table.AddRow("[grey]Run ID[/]", $"[cyan]{Markup.Escape(ctx.RunId)}[/]");
+    table.AddRow("[grey]Verbose[/]", ctx.Verbose ? "[yellow]on (--verbose)[/]" : "[grey]off[/]");
     AnsiConsole.Write(table);
     AnsiConsole.WriteLine();
 }
@@ -351,17 +399,6 @@ static void PrintResolvedMapping(Dictionary<string, string> versions)
         AnsiConsole.MarkupLine($"  [cyan]{Markup.Escape(family)}[/]=[yellow]{Markup.Escape(version)}[/]");
     }
 
-    AnsiConsole.WriteLine();
-}
-
-static void PrintConsumerSmokeSkipNote()
-{
-    AnsiConsole.Write(new Rule("[yellow]PackageConsumerSmoke (skipped — Slice C)[/]").RuleStyle("grey").LeftJustified());
-    AnsiConsole.MarkupLine(
-        "[yellow]Skipped in ci-sim mode.[/] The smoke runner currently reads `Janset.Smoke.local.props` via MSBuild; that file is stamped only by `SetupLocalDev`. Mini CI simulation refuses to inject local-dev-only helpers (staying faithful to the flat graph).");
-    AnsiConsole.MarkupLine(
-        "[grey]Post-Slice-C:[/] `PackageConsumerSmokeRequest(RID, Versions, FeedPath)` carries the mapping + feed path explicitly — no props needed — and this step flips from skip → run.");
-    AnsiConsole.MarkupLine("[grey]For smoke coverage today:[/] run [cyan]./smoke-witness.cs local[/].");
     AnsiConsole.WriteLine();
 }
 
@@ -537,7 +574,8 @@ namespace Build.Scripts.SmokeWitness
         string HostRid,
         string Platform,
         string RunId,
-        string? HeadSha);
+        string? HeadSha,
+        bool Verbose);
 
     internal sealed record StepResult(string Label, int ExitCode, TimeSpan Duration, string LogPath)
     {
