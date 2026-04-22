@@ -44,11 +44,14 @@ public interface IMsvcDevEnvironment
     /// <summary>
     /// Returns the environment-variable delta to merge into child processes that
     /// invoke MSVC-dependent tooling (CMake Ninja + <c>cl.exe</c>, <c>msbuild.exe</c>
-    /// command-line, etc.). Thread-safe; resolution runs at most once per process
-    /// lifetime and is cached thereafter.
+    /// command-line, etc.) for the requested <paramref name="targetArch"/>. The
+    /// resolver shells out to <c>vcvarsall.bat &lt;host_target&gt;</c>, so x64 and
+    /// cross-compile x86 / arm64 each get their own env layer. Thread-safe;
+    /// resolution runs at most once per (target, process-lifetime) pair and is
+    /// cached thereafter (per-arch cache so a RID matrix doesn't conflate layers).
     /// </summary>
     /// <exception cref="PlatformNotSupportedException">Thrown when invoked on a
     /// non-Windows host. The caller must gate on
     /// <see cref="OperatingSystem.IsWindows"/>.</exception>
-    Task<IReadOnlyDictionary<string, string>> ResolveAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<string, string>> ResolveAsync(MsvcTargetArch targetArch, CancellationToken cancellationToken = default);
 }

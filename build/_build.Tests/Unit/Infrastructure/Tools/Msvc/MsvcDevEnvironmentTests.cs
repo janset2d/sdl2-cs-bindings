@@ -30,7 +30,7 @@ public sealed class MsvcDevEnvironmentTests
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Unix).BuildContextWithHandles();
         var resolver = new MsvcDevEnvironment(repo.CakeContext, Substitute.For<ICakeLog>());
 
-        var thrown = await Assert.That(async () => await resolver.ResolveAsync()).Throws<PlatformNotSupportedException>();
+        var thrown = await Assert.That(async () => await resolver.ResolveAsync(MsvcTargetArch.X64)).Throws<PlatformNotSupportedException>();
         await Assert.That(thrown!.Message).Contains("Windows-only");
         await Assert.That(thrown.Message).Contains("OperatingSystem.IsWindows");
     }

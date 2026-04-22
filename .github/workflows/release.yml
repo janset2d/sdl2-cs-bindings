@@ -500,10 +500,21 @@ jobs:
           path: artifacts/resolve-versions
       - name: Run Package
         run: |
-          # Expand versions.json → repeated --explicit-version args; keep wiring minimal.
+          # Expand versions.json → repeated --explicit-version args, filtered to
+          # concrete families only. Placeholder families (e.g. sdl2-net with
+          # null managed_project/native_project) live in versions.json for
+          # future wiring but PackageTaskRunner strictly rejects them —
+          # smoke-witness.cs ci-sim applies the same filter client-side.
+          concrete=$(jq -r '.package_families[]
+            | select(.managed_project != null and .native_project != null)
+            | .name' build/manifest.json | paste -sd, -)
           mapfile -t args < <(
-            jq -r 'to_entries[] | "--explicit-version\n\(.key)=\(.value)"' \
-              artifacts/resolve-versions/versions.json
+            jq -r --arg allow "$concrete" '
+              ($allow | split(",")) as $list
+              | to_entries[]
+              | select(.key as $k | $list | index($k))
+              | "--explicit-version\n\(.key)=\(.value)"
+            ' artifacts/resolve-versions/versions.json
           )
           dotnet ./cake-host/Build.dll \
             --target Package \
@@ -567,10 +578,19 @@ jobs:
       - name: Run PackageConsumerSmoke
         shell: bash  # mapfile is bash built-in; Git Bash pre-installed on windows-latest
         run: |
-          # Expand versions.json → repeated --explicit-version args; keep wiring minimal.
+          # Same concrete-family filter as the Pack job — ConsumerSmoke also
+          # strict-rejects placeholder families (sdl2-net etc.) because it
+          # can't restore a nupkg that was never produced.
+          concrete=$(jq -r '.package_families[]
+            | select(.managed_project != null and .native_project != null)
+            | .name' build/manifest.json | paste -sd, -)
           mapfile -t args < <(
-            jq -r 'to_entries[] | "--explicit-version\n\(.key)=\(.value)"' \
-              artifacts/resolve-versions/versions.json
+            jq -r --arg allow "$concrete" '
+              ($allow | split(",")) as $list
+              | to_entries[]
+              | select(.key as $k | $list | index($k))
+              | "--explicit-version\n\(.key)=\(.value)"
+            ' artifacts/resolve-versions/versions.json
           )
           dotnet ./cake-host/Build.dll \
             --target PackageConsumerSmoke \

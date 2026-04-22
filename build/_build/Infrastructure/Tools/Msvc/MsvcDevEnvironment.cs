@@ -1,5 +1,5 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Text;
 using Build.Domain.Runtime;
 using Cake.Common.Tools.VSWhere;
@@ -14,7 +14,9 @@ namespace Build.Infrastructure.Tools.Msvc;
 /// Default <see cref="IMsvcDevEnvironment"/> implementation. Mirrors the self-resolution
 /// pattern that <c>DumpbinTool</c> uses for the <c>dumpbin.exe</c> path, extended to
 /// cover the full MSVC toolchain environment that <c>cl.exe</c> + Ninja need. Resolves
-/// at most once per session (cached <see cref="Task{TResult}"/> behind a <see cref="Lazy{T}"/>).
+/// at most once per (target-arch, session) pair (cache keyed on
+/// <see cref="MsvcTargetArch"/> so the RID matrix can invoke across x64 / x86 / arm64
+/// without them clobbering each other's delta).
 /// </summary>
 public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
 {
@@ -27,7 +29,7 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
 
     private readonly ICakeContext _cakeContext;
     private readonly ICakeLog _log;
-    private IReadOnlyDictionary<string, string>? _cached;
+    private readonly ConcurrentDictionary<MsvcTargetArch, IReadOnlyDictionary<string, string>> _cache = new();
 
     public MsvcDevEnvironment(ICakeContext cakeContext, ICakeLog log)
     {
@@ -35,7 +37,9 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
         _log = log ?? throw new ArgumentNullException(nameof(log));
     }
 
-    public async Task<IReadOnlyDictionary<string, string>> ResolveAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyDictionary<string, string>> ResolveAsync(
+        MsvcTargetArch targetArch,
+        CancellationToken cancellationToken = default)
     {
         if (!OperatingSystem.IsWindows())
         {
@@ -44,34 +48,38 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
                 "before invoking the resolver; non-Windows hosts rely on gcc / clang already present on PATH.");
         }
 
-        // Cache is set once per session. Reference-type writes are atomic in .NET, and the
-        // Cake host is single-threaded in practice — a pathological concurrent invocation
-        // would at worst cause two resolver runs, the later write winning. No lock needed;
-        // the no-lock shape also avoids the VSTHRD011 deadlock risk around `Lazy<Task<T>>`.
-        var snapshot = _cached;
-        if (snapshot is not null)
+        if (_cache.TryGetValue(targetArch, out var cached))
         {
-            return snapshot;
+            return cached;
         }
 
-        snapshot = await ResolveCoreAsync(cancellationToken);
-        _cached = snapshot;
-        return snapshot;
+        var result = await ResolveCoreAsync(targetArch, cancellationToken);
+        // ConcurrentDictionary handles the race; a pathological concurrent invocation would
+        // at worst cause two resolver runs with the later write winning — same outcome.
+        _cache[targetArch] = result;
+        return result;
     }
 
-    private async Task<IReadOnlyDictionary<string, string>> ResolveCoreAsync(CancellationToken cancellationToken)
+    private async Task<IReadOnlyDictionary<string, string>> ResolveCoreAsync(
+        MsvcTargetArch targetArch,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         // Fast path: the caller's shell (Developer PowerShell, CI workflow that already
         // sourced vcvars, etc.) has MSVC live. VCToolsInstallDir is the canonical marker.
+        // NOTE: the parent shell was sourced for SOME target arch, which we can't
+        // introspect. Contract: if you source the parent shell, source it for the arch
+        // that matches the RID you intend to build. CI paths never source the parent
+        // shell so this fast-path short-circuits only on operator workstations.
         var vcToolsInstallDir = Environment.GetEnvironmentVariable(VcToolsInstallDirEnvVar);
         if (!string.IsNullOrWhiteSpace(vcToolsInstallDir))
         {
             _log.Verbose(
-                "MsvcDevEnvironment: parent shell already has MSVC sourced ({0}={1}); no override needed.",
+                "MsvcDevEnvironment: parent shell already has MSVC sourced ({0}={1}); no override needed for target '{2}'.",
                 VcToolsInstallDirEnvVar,
-                vcToolsInstallDir);
+                vcToolsInstallDir,
+                targetArch);
             return Empty;
         }
 
@@ -96,29 +104,24 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
                 "Reinstall the VC Tools workload or run Cake from a Developer PowerShell.");
         }
 
-        var arch = ResolveHostArchitectureArg();
-        _log.Information("MsvcDevEnvironment: sourcing MSVC environment via '{0}' {1}", vcvarsBat.FullPath, arch);
+        var vcvarsArg = targetArch.ToVcvarsArg();
+        _log.Information(
+            "MsvcDevEnvironment: sourcing MSVC environment for target '{0}' via '{1}' {2}",
+            targetArch,
+            vcvarsBat.FullPath,
+            vcvarsArg);
 
-        var delta = await CaptureEnvironmentDeltaAsync(vcvarsBat, arch, cancellationToken);
-        _log.Information("MsvcDevEnvironment: captured {0} env var(s) to merge into MSVC-dependent child processes.", delta.Count);
+        var delta = await CaptureEnvironmentDeltaAsync(vcvarsBat, vcvarsArg, cancellationToken);
+        _log.Information(
+            "MsvcDevEnvironment: captured {0} env var(s) to merge into MSVC-dependent child processes for target '{1}'.",
+            delta.Count,
+            targetArch);
         return delta;
-    }
-
-    private static string ResolveHostArchitectureArg()
-    {
-        return RuntimeInformation.OSArchitecture switch
-        {
-            Architecture.X64 => "x64",
-            Architecture.X86 => "x86",
-            Architecture.Arm64 => "arm64",
-            var other => throw new PlatformNotSupportedException(
-                $"MsvcDevEnvironment: unsupported host architecture '{other}' for vcvarsall.bat. Supported host arches: x64, x86, arm64."),
-        };
     }
 
     private static async Task<Dictionary<string, string>> CaptureEnvironmentDeltaAsync(
         FilePath vcvarsBat,
-        string arch,
+        string vcvarsArg,
         CancellationToken cancellationToken)
     {
         // Shell out to cmd.exe so vcvarsall.bat can set env vars in its own shell scope,
@@ -130,7 +133,7 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
         // trick — see the cmd.exe /s flag docs). `/s` tells cmd to preserve the outer
         // quotes rather than strip them.
         var commandLine = new StringBuilder();
-        commandLine.Append("/s /c \"\"").Append(vcvarsBat.FullPath).Append("\" ").Append(arch)
+        commandLine.Append("/s /c \"\"").Append(vcvarsBat.FullPath).Append("\" ").Append(vcvarsArg)
             .Append(" >nul && set\"");
 
         using var process = new Process
@@ -159,7 +162,7 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
         if (process.ExitCode != 0)
         {
             throw new CakeException(
-                $"MsvcDevEnvironment: 'cmd /c vcvarsall.bat {arch}' exited with code {process.ExitCode}. " +
+                $"MsvcDevEnvironment: 'cmd /c vcvarsall.bat {vcvarsArg}' exited with code {process.ExitCode}. " +
                 $"stderr: {stderr.Trim()}");
         }
 

@@ -103,8 +103,22 @@ RUN SYSTEM_AUTOCONF_VER=$(autoconf --version 2>/dev/null | head -1 | grep -oP '\
 # Addition (1) — native-smoke toolchain (cmake + ninja-build). Not in
 # prepare-native-assets-linux.yml because that workflow runs Harvest only.
 # Slice E E1c release.yml native-smoke job needs these at container entry.
+#
+# CMake comes from the official Kitware APT repository, NOT focal's main
+# (which ships 3.16.3). tests/smoke-tests/native-smoke/CMakePresets.json
+# is schema v3, which requires CMake 3.21+; 3.16.3 silently fails `cmake
+# --preset <rid>` by treating the preset name as a positional source
+# directory, producing "source directory does not exist" instead of a
+# proper preset-not-found error. Kitware repo pulls 3.27+ which handles
+# v3 presets cleanly. ninja-build still from focal universe.
 # ---------------------------------------------------------------------------
 RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates gpg wget \
+ && wget -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc \
+      | gpg --dearmor -o /etc/apt/trusted.gpg.d/kitware.gpg \
+ && echo "deb https://apt.kitware.com/ubuntu/ focal main" \
+      > /etc/apt/sources.list.d/kitware.list \
+ && apt-get update \
  && apt-get install -y --no-install-recommends cmake ninja-build \
  && rm -rf /var/lib/apt/lists/*
 

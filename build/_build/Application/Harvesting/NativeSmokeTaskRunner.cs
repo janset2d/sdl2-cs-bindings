@@ -141,7 +141,7 @@ public sealed class NativeSmokeTaskRunner(
             Options = ["--preset", preset],
         };
 
-        await ApplyMsvcEnvironmentAsync(settings);
+        await ApplyMsvcEnvironmentAsync(settings, preset);
         _cakeContext.CMake(settings);
     }
 
@@ -161,16 +161,20 @@ public sealed class NativeSmokeTaskRunner(
             BinaryPath = binaryPath,
         };
 
-        await ApplyMsvcEnvironmentAsync(buildSettings);
+        await ApplyMsvcEnvironmentAsync(buildSettings, preset);
         _cakeContext.CMakeBuild(buildSettings);
     }
 
     /// <summary>
     /// Merges the <see cref="IMsvcDevEnvironment"/> delta into a Cake
     /// <see cref="ToolSettings.EnvironmentVariables"/> dictionary so the Ninja + <c>cl.exe</c>
-    /// child process inherits a live MSVC toolchain without the operator having to spawn
-    /// Cake from a Developer PowerShell. Two early returns surface the no-op cases
-    /// explicitly:
+    /// child process inherits a live MSVC toolchain for the <paramref name="rid"/>'s
+    /// target architecture, without the operator having to spawn Cake from a
+    /// Developer PowerShell. <paramref name="rid"/> maps to
+    /// <see cref="MsvcTargetArch"/> via <see cref="MsvcTargetArchExtensions.FromRid"/>
+    /// — unknown / non-Windows RIDs fail fast with
+    /// <see cref="PlatformNotSupportedException"/>. Two early returns surface the
+    /// no-op cases explicitly:
     /// <list type="bullet">
     ///   <item><description>Non-Windows host — gcc / clang are expected on <c>$PATH</c>,
     ///     MSVC injection is irrelevant. Caller-side gate keeps the resolver's
@@ -182,7 +186,7 @@ public sealed class NativeSmokeTaskRunner(
     /// Initialises <see cref="ToolSettings.EnvironmentVariables"/> on demand —
     /// Cake defaults it to <see langword="null"/>.
     /// </summary>
-    private async Task ApplyMsvcEnvironmentAsync(ToolSettings settings)
+    private async Task ApplyMsvcEnvironmentAsync(ToolSettings settings, string rid)
     {
         ArgumentNullException.ThrowIfNull(settings);
 
@@ -191,7 +195,8 @@ public sealed class NativeSmokeTaskRunner(
             return;
         }
 
-        var delta = await _msvcDevEnvironment.ResolveAsync();
+        var targetArch = MsvcTargetArchExtensions.FromRid(rid);
+        var delta = await _msvcDevEnvironment.ResolveAsync(targetArch);
         if (delta.Count == 0)
         {
             return;
