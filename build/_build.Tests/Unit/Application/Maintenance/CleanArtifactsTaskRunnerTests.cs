@@ -17,6 +17,7 @@ public sealed class CleanArtifactsTaskRunnerTests
             .WithTextFile("artifacts/temp/inspect/linux-x64/SDL2/libSDL2-2.0.so", "inspect")
             .WithTextFile("artifacts/matrix/runtimes.json", "{\"all\":[]}")
             .WithTextFile("tests/smoke-tests/native-smoke/build/win-x64/native-smoke.exe", "exe")
+            .WithTextFile("artifacts/resolve-versions/versions.json", "{\"sdl2-core\":\"2.32.0-local.1\"}")
             .BuildContextWithHandles();
 
         var runner = new CleanArtifactsTaskRunner(repo.CakeContext, new Cake.Testing.FakeLog(), repo.Paths);
@@ -31,6 +32,7 @@ public sealed class CleanArtifactsTaskRunnerTests
         await Assert.That(repo.Exists("artifacts/temp/inspect/linux-x64/SDL2/libSDL2-2.0.so")).IsFalse();
         await Assert.That(repo.Exists("artifacts/matrix/runtimes.json")).IsFalse();
         await Assert.That(repo.Exists("tests/smoke-tests/native-smoke/build/win-x64/native-smoke.exe")).IsFalse();
+        await Assert.That(repo.Exists("artifacts/resolve-versions/versions.json")).IsFalse();
     }
 
     [Test]

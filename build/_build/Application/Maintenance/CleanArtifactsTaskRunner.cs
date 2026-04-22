@@ -50,5 +50,6 @@ public sealed class CleanArtifactsTaskRunner(
         yield return _pathService.InspectOutputRoot;
         yield return _pathService.MatrixOutputRoot;
         yield return _pathService.NativeSmokeBuildRoot;
+        yield return _pathService.ResolveVersionsOutputDirectory;
     }
 }
