@@ -349,11 +349,10 @@ jobs:
       - uses: ./.github/actions/platform-build-prereqs
       - uses: ./.github/actions/vcpkg-setup
         with:
-          # Host-only jobs key by runner label. Containerised jobs additionally pass the
-          # declared image ref so vcpkg-setup can resolve focal-latest → manifest-list
-          # digest inline, without a dedicated pre-matrix helper job.
-          cache-key-base: ${{ matrix.runner }}
-          container-image: ${{ matrix.container_image }}
+          # Single execution-surface identity: host jobs use the runner label, container
+          # jobs use the declared image ref. vcpkg-setup decides whether to resolve the
+          # value to an immutable digest by probing the current job-container environment.
+          platform-identity: ${{ matrix.container_image || matrix.runner }}
           triplet: ${{ matrix.triplet }}
           vcpkg-cache-path: .vcpkg-cache
           vcpkg-feature-flags: binarycaching

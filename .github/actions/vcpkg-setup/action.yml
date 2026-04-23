@@ -2,12 +2,12 @@ name: "Vcpkg Setup"
 description: "Checks out code, sets up vcpkg cache, installs prerequisites, bootstraps vcpkg, and installs dependencies."
 
 inputs:
-  container-image:
-    description: "Optional declared job-container image ref. When set, the action resolves it to an immutable cache identity."
-    required: false
-  cache-key-base:
-    description: "The base cache key"
+  platform-identity:
+    description: "Execution-surface identity for the cache key: runner label on host jobs, container image ref on container jobs."
     required: true
+  cache-key-suffix:
+    description: "Optional suffix appended after platform identity, for one-off cache busts."
+    required: false
   triplet:
     description: "The vcpkg triplet to build for"
     required: true
@@ -22,28 +22,47 @@ runs:
   using: "composite"
   steps:
     # ──────────────────────────────────────────────────────────────────────────
-    # 0 ▸ derive an immutable cache identity from the declared job container
-    #     image when the caller runs inside GHCR-backed Linux containers.
-    #     We resolve from the declared image ref, not from "what container am I
-    #     in right now?" introspection: GitHub's `job.container` context exposes
-    #     id/network but not image/digest, and job containers do not reliably
-    #     have Docker daemon access.
+    # 0 ▸ detect whether the current script step is running inside a job
+    #     container. Primary signal: job.container.id (GitHub context). Fallback:
+    #     /.dockerenv or /run/.containerenv for shell-level portability.
+    # ──────────────────────────────────────────────────────────────────────────
+    - name: Detect job container
+      if: runner.os != 'Windows'
+      id: container_probe
+      shell: bash
+      env:
+        JOB_CONTAINER_ID: ${{ job.container.id }}
+      run: |
+        set -euo pipefail
+
+        if [[ -n "${JOB_CONTAINER_ID:-}" ]] || [[ -f "/.dockerenv" ]] || [[ -f "/run/.containerenv" ]]; then
+          echo "in-container=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "in-container=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # 1 ▸ derive an immutable cache identity from the declared job container
+    #     image when the caller is running inside a GHCR-backed job container.
+    #     Host jobs skip this step and use the raw runner label as-is.
     # ──────────────────────────────────────────────────────────────────────────
     - name: Resolve immutable container cache identity (GHCR)
-      if: runner.os != 'Windows' && inputs.container-image != ''
+      if: runner.os != 'Windows' && steps.container_probe.outputs.in-container == 'true' && inputs.platform-identity != ''
       id: container_identity
       shell: bash
       env:
-        CONTAINER_IMAGE: ${{ inputs.container-image }}
+        PLATFORM_IDENTITY: ${{ inputs.platform-identity }}
+        CACHE_KEY_SUFFIX: ${{ inputs.cache-key-suffix }}
         GHCR_ACTOR: ${{ github.actor }}
         GHCR_TOKEN: ${{ github.token }}
       run: |
         set -euo pipefail
 
-        image="$CONTAINER_IMAGE"
+        image="$PLATFORM_IDENTITY"
+        suffix="${CACHE_KEY_SUFFIX:-}"
 
         if [[ "$image" == *@sha256:* ]]; then
-          echo "cache-key-base=$image" >> "$GITHUB_OUTPUT"
+          echo "platform-identity=${image}${suffix}" >> "$GITHUB_OUTPUT"
           exit 0
         fi
 
@@ -55,7 +74,7 @@ runs:
             ;;
           *)
             echo "Container image '$image' is not a GHCR tag. Falling back to the raw image ref for cache identity."
-            echo "cache-key-base=$image" >> "$GITHUB_OUTPUT"
+            echo "platform-identity=${image}${suffix}" >> "$GITHUB_OUTPUT"
             exit 0
             ;;
         esac
@@ -85,12 +104,12 @@ runs:
           exit 1
         fi
 
-        identity="ghcr.io/${repository}@${digest}"
+        identity="ghcr.io/${repository}@${digest}${suffix}"
         echo "Resolved immutable cache identity: $identity"
-        echo "cache-key-base=$identity" >> "$GITHUB_OUTPUT"
+        echo "platform-identity=$identity" >> "$GITHUB_OUTPUT"
 
     # ──────────────────────────────────────────────────────────────────────────
-    # 1 ▸ grab the sub‐module commit so the cache busts when vcpkg updates
+    # 2 ▸ grab the sub‐module commit so the cache busts when vcpkg updates
     # ──────────────────────────────────────────────────────────────────────────
     - name: Read vcpkg submodule commit
       id: vcpkg_commit
@@ -98,7 +117,7 @@ runs:
       run: echo "commit=$(git -C $GITHUB_WORKSPACE/external/vcpkg rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
     # ──────────────────────────────────────────────────────────────────────────
-    # 2 ▸ binary‑caching
+    # 3 ▸ binary‐caching
     # ──────────────────────────────────────────────────────────────────────────
     - name: Cache vcpkg binary artifacts
       id: cache-vcpkg
@@ -111,14 +130,14 @@ runs:
         # triplet tweak could restore a stale cache blob that happens to match the
         # unchanged vcpkg.json key, producing cold-build misses only when vcpkg's own
         # ABI layer rejects the stored artifacts.
-        key: vcpkg-bin-${{ steps.container_identity.outputs.cache-key-base || inputs.cache-key-base }}-${{ inputs.triplet }}-${{ hashFiles('vcpkg.json', 'vcpkg-overlay-triplets/**', 'vcpkg-overlay-ports/**') }}-${{ steps.vcpkg_commit.outputs.commit }}
+        key: vcpkg-bin-${{ steps.container_identity.outputs.platform-identity || format('{0}{1}', inputs.platform-identity, inputs.cache-key-suffix || '') }}-${{ inputs.triplet }}-${{ hashFiles('vcpkg.json', 'vcpkg-overlay-triplets/**', 'vcpkg-overlay-ports/**') }}-${{ steps.vcpkg_commit.outputs.commit }}
         restore-keys: |
-          vcpkg-bin-${{ steps.container_identity.outputs.cache-key-base || inputs.cache-key-base }}-${{ inputs.triplet }}-${{ hashFiles('vcpkg.json', 'vcpkg-overlay-triplets/**', 'vcpkg-overlay-ports/**') }}-
+          vcpkg-bin-${{ steps.container_identity.outputs.platform-identity || format('{0}{1}', inputs.platform-identity, inputs.cache-key-suffix || '') }}-${{ inputs.triplet }}-${{ hashFiles('vcpkg.json', 'vcpkg-overlay-triplets/**', 'vcpkg-overlay-ports/**') }}-
       env:
         VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/${{ inputs.vcpkg-cache-path }}
 
     # ──────────────────────────────────────────────────────────────────────────
-    # 3 ▸ make sure the directory exists (only needed on a full cache miss)
+    # 4 ▸ make sure the directory exists (only needed on a full cache miss)
     # ──────────────────────────────────────────────────────────────────────────
     - name: Ensure binary‑cache directory exists (Windows)
       if: runner.os == 'Windows'
@@ -131,7 +150,7 @@ runs:
       run: mkdir -p "$GITHUB_WORKSPACE/${{ inputs.vcpkg-cache-path }}"
 
     # ──────────────────────────────────────────────────────────────────────────
-    # 4 ▸ bootstrap vcpkg
+    # 5 ▸ bootstrap vcpkg
     # ──────────────────────────────────────────────────────────────────────────
     - name: Bootstrap vcpkg (Windows)
       if: runner.os == 'Windows'
@@ -146,7 +165,7 @@ runs:
         $GITHUB_WORKSPACE/external/vcpkg/bootstrap-vcpkg.sh
 
     # ──────────────────────────────────────────────────────────────────────────
-    # 5 ▸ install manifest dependencies
+    # 6 ▸ install manifest dependencies
     # ──────────────────────────────────────────────────────────────────────────
     - name: Install dependencies using vcpkg (Windows)
       if: runner.os == 'Windows'

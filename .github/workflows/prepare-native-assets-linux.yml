@@ -93,7 +93,8 @@ jobs:
       - name: Run Vcpkg Setup Action
         uses: ./.github/actions/vcpkg-setup
         with:
-          cache-key-base: ${{ inputs.container-image }}-rebuild-with-full-deps
+          platform-identity: ${{ inputs.container-image }}
+          cache-key-suffix: -rebuild-with-full-deps
           triplet: ${{ inputs.triplet }}
           vcpkg-cache-path: ${{ inputs.vcpkg-cache-path }}
           vcpkg-feature-flags: ${{ inputs.vcpkg-feature-flags }}

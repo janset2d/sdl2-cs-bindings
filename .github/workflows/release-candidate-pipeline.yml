@@ -116,8 +116,7 @@ jobs:
           echo "::group::Run Vcpkg Setup Action (Placeholder)"
           # Example: uses: ./.github/actions/vcpkg-setup
           #          with:
-          #            container-image: ${{ matrix.container_image }} # Optional when the job runs in a GHCR-backed container
-          #            cache-key-base: ${{ matrix.runner }} # Or container image for Linux
+          #            platform-identity: ${{ matrix.container_image || matrix.runner }}
           #            triplet: ${{ matrix.triplet }}
           #            vcpkg-cache-path: '.vcpkg-cache'
           #            vcpkg-feature-flags: 'binarycaching'
