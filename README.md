@@ -189,5 +189,4 @@ This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) f
 | Janset.SDL2.Mixer | 2.8.0 | SDL2_mixer 2.8.1 | 2 |
 | Janset.SDL2.Ttf | 2.24.0 | SDL2_ttf 2.24.0 | 0 |
 | Janset.SDL2.Gfx | 1.0.0 | SDL2_gfx 1.0.4 | 11 |
-| Janset.SDL2.Net | 2.2.0 | SDL2_net 2.2.0 | 3 |
 <!-- JANSET:MAPPING-TABLE-END -->

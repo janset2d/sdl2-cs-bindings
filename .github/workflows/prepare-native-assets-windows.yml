@@ -34,7 +34,6 @@ jobs:
       - name: Run Vcpkg Setup Action
         uses: ./.github/actions/vcpkg-setup
         with:
-          runner-os: ${{ inputs.runner }}
           cache-key-base: ${{ inputs.runner }}
           triplet: ${{ inputs.triplet }}
           vcpkg-cache-path: ${{ inputs.vcpkg-cache-path }}

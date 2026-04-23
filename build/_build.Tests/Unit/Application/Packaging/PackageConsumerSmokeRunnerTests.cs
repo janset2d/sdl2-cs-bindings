@@ -2,6 +2,7 @@ using Build.Application.Packaging;
 using Build.Context.Configs;
 using Build.Domain.Packaging.Models;
 using Build.Domain.Paths;
+using Build.Domain.Runtime;
 using Build.Infrastructure.DotNet;
 using Build.Tests.Fixtures;
 using Cake.Core;
@@ -54,8 +55,9 @@ public sealed class PackageConsumerSmokeRunnerTests
         var manifestConfig = Fixtures.ManifestFixture.CreateTestManifestConfig();
         var dotNetConfig = new DotNetBuildConfiguration("Release");
         var projectMetadataReader = Substitute.For<IProjectMetadataReader>();
+        var dotNetRuntimeEnvironment = Substitute.For<IDotNetRuntimeEnvironment>();
 
         return new PackageConsumerSmokeRunner(
-            cakeContext, log, pathService, manifestConfig, dotNetConfig, projectMetadataReader);
+            cakeContext, log, pathService, manifestConfig, dotNetConfig, projectMetadataReader, dotNetRuntimeEnvironment);
     }
 }

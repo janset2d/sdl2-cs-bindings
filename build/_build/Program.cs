@@ -202,6 +202,7 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     });
     services.AddSingleton<ResolveVersionsTaskRunner>();
     services.AddSingleton<IDotNetPackInvoker, DotNetPackInvoker>();
+    services.AddSingleton<IDotNetRuntimeEnvironment, DotNetRuntimeEnvironment>();
     services.AddSingleton<INativePackageMetadataGenerator, NativePackageMetadataGenerator>();
     services.AddSingleton<IReadmeMappingTableGenerator, ReadmeMappingTableGenerator>();
     services.AddSingleton<IPackageTaskRunner, PackageTaskRunner>();

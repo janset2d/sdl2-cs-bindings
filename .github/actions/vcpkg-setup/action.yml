@@ -2,9 +2,9 @@ name: "Vcpkg Setup"
 description: "Checks out code, sets up vcpkg cache, installs prerequisites, bootstraps vcpkg, and installs dependencies."
 
 inputs:
-  runner-os:
-    description: "The runner OS (e.g., windows-latest, ubuntu-24.04)"
-    required: true
+  container-image:
+    description: "Optional declared job-container image ref. When set, the action resolves it to an immutable cache identity."
+    required: false
   cache-key-base:
     description: "The base cache key"
     required: true
@@ -22,7 +22,75 @@ runs:
   using: "composite"
   steps:
     # ──────────────────────────────────────────────────────────────────────────
-    # 1 ▸ grab the sub‑module commit so the cache busts when vcpkg updates
+    # 0 ▸ derive an immutable cache identity from the declared job container
+    #     image when the caller runs inside GHCR-backed Linux containers.
+    #     We resolve from the declared image ref, not from "what container am I
+    #     in right now?" introspection: GitHub's `job.container` context exposes
+    #     id/network but not image/digest, and job containers do not reliably
+    #     have Docker daemon access.
+    # ──────────────────────────────────────────────────────────────────────────
+    - name: Resolve immutable container cache identity (GHCR)
+      if: runner.os != 'Windows' && inputs.container-image != ''
+      id: container_identity
+      shell: bash
+      env:
+        CONTAINER_IMAGE: ${{ inputs.container-image }}
+        GHCR_ACTOR: ${{ github.actor }}
+        GHCR_TOKEN: ${{ github.token }}
+      run: |
+        set -euo pipefail
+
+        image="$CONTAINER_IMAGE"
+
+        if [[ "$image" == *@sha256:* ]]; then
+          echo "cache-key-base=$image" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        case "$image" in
+          ghcr.io/*:*)
+            repo_and_tag="${image#ghcr.io/}"
+            repository="${repo_and_tag%:*}"
+            reference="${repo_and_tag##*:}"
+            ;;
+          *)
+            echo "Container image '$image' is not a GHCR tag. Falling back to the raw image ref for cache identity."
+            echo "cache-key-base=$image" >> "$GITHUB_OUTPUT"
+            exit 0
+            ;;
+        esac
+
+        auth_args=()
+        if [[ -n "${GHCR_ACTOR:-}" && -n "${GHCR_TOKEN:-}" ]]; then
+          auth_args=(-u "${GHCR_ACTOR}:${GHCR_TOKEN}")
+        fi
+
+        token_response="$(curl -fsSL "${auth_args[@]}" "https://ghcr.io/token?service=ghcr.io&scope=repository:${repository}:pull")"
+        token="$(printf '%s' "$token_response" | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')"
+
+        if [[ -z "$token" ]]; then
+          echo "Failed to resolve GHCR bearer token for $repository" >&2
+          exit 1
+        fi
+
+        headers="$(curl -fsSI \
+          -H "Authorization: Bearer $token" \
+          -H "Accept: application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json" \
+          "https://ghcr.io/v2/${repository}/manifests/${reference}")"
+
+        digest="$(printf '%s\n' "$headers" | tr -d '\r' | awk -F': ' 'tolower($1) == "docker-content-digest" { print $2 }')"
+        if [[ -z "$digest" ]]; then
+          echo "Failed to resolve container digest for $image" >&2
+          printf '%s\n' "$headers" >&2
+          exit 1
+        fi
+
+        identity="ghcr.io/${repository}@${digest}"
+        echo "Resolved immutable cache identity: $identity"
+        echo "cache-key-base=$identity" >> "$GITHUB_OUTPUT"
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # 1 ▸ grab the sub‐module commit so the cache busts when vcpkg updates
     # ──────────────────────────────────────────────────────────────────────────
     - name: Read vcpkg submodule commit
       id: vcpkg_commit
@@ -43,10 +111,9 @@ runs:
         # triplet tweak could restore a stale cache blob that happens to match the
         # unchanged vcpkg.json key, producing cold-build misses only when vcpkg's own
         # ABI layer rejects the stored artifacts.
-        key: vcpkg-bin-${{ inputs.cache-key-base }}-${{ inputs.triplet }}-${{ hashFiles('vcpkg.json', 'vcpkg-overlay-triplets/**', 'vcpkg-overlay-ports/**') }}-${{ steps.vcpkg_commit.outputs.commit }}
+        key: vcpkg-bin-${{ steps.container_identity.outputs.cache-key-base || inputs.cache-key-base }}-${{ inputs.triplet }}-${{ hashFiles('vcpkg.json', 'vcpkg-overlay-triplets/**', 'vcpkg-overlay-ports/**') }}-${{ steps.vcpkg_commit.outputs.commit }}
         restore-keys: |
-          vcpkg-bin-${{ inputs.cache-key-base }}-${{ inputs.triplet }}-${{ hashFiles('vcpkg.json', 'vcpkg-overlay-triplets/**', 'vcpkg-overlay-ports/**') }}-
-          vcpkg-bin-${{ inputs.cache-key-base }}-${{ inputs.triplet }}-
+          vcpkg-bin-${{ steps.container_identity.outputs.cache-key-base || inputs.cache-key-base }}-${{ inputs.triplet }}-${{ hashFiles('vcpkg.json', 'vcpkg-overlay-triplets/**', 'vcpkg-overlay-ports/**') }}-
       env:
         VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/${{ inputs.vcpkg-cache-path }}
 
@@ -54,12 +121,12 @@ runs:
     # 3 ▸ make sure the directory exists (only needed on a full cache miss)
     # ──────────────────────────────────────────────────────────────────────────
     - name: Ensure binary‑cache directory exists (Windows)
-      if: inputs.runner-os == 'windows-latest'
+      if: runner.os == 'Windows'
       shell: pwsh
       run: New-Item -ItemType Directory -Force -Path "$env:GITHUB_WORKSPACE\${{ inputs.vcpkg-cache-path }}" | Out-Null
 
     - name: Ensure binary‑cache directory exists (Unix)
-      if: inputs.runner-os != 'windows-latest'
+      if: runner.os != 'Windows'
       shell: bash
       run: mkdir -p "$GITHUB_WORKSPACE/${{ inputs.vcpkg-cache-path }}"
 
@@ -67,13 +134,13 @@ runs:
     # 4 ▸ bootstrap vcpkg
     # ──────────────────────────────────────────────────────────────────────────
     - name: Bootstrap vcpkg (Windows)
-      if: inputs.runner-os == 'windows-latest'
+      if: runner.os == 'Windows'
       shell: pwsh
       run: |
         & "$env:GITHUB_WORKSPACE\external\vcpkg\bootstrap-vcpkg.bat"
 
     - name: Bootstrap vcpkg (Unix)
-      if: inputs.runner-os != 'windows-latest'
+      if: runner.os != 'Windows'
       shell: bash
       run: |
         $GITHUB_WORKSPACE/external/vcpkg/bootstrap-vcpkg.sh
@@ -82,7 +149,7 @@ runs:
     # 5 ▸ install manifest dependencies
     # ──────────────────────────────────────────────────────────────────────────
     - name: Install dependencies using vcpkg (Windows)
-      if: inputs.runner-os == 'windows-latest'
+      if: runner.os == 'Windows'
       shell: pwsh
       run: |
         $overlayArgs = @()
@@ -96,7 +163,7 @@ runs:
         VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/${{ inputs.vcpkg-cache-path }}
 
     - name: Install dependencies using vcpkg (Unix)
-      if: inputs.runner-os != 'windows-latest'
+      if: runner.os != 'Windows'
       shell: bash
       run: |
         OVERLAY_ARGS=()

@@ -6,6 +6,7 @@ using Build.Domain.Packaging;
 using Build.Domain.Packaging.Models;
 using Build.Domain.Paths;
 using Build.Domain.Preflight;
+using Build.Domain.Runtime;
 using Build.Infrastructure.DotNet;
 using Build.Infrastructure.Paths;
 using Cake.Common;
@@ -23,7 +24,8 @@ public sealed class PackageConsumerSmokeRunner(
     IPathService pathService,
     ManifestConfig manifestConfig,
     DotNetBuildConfiguration dotNetBuildConfiguration,
-    IProjectMetadataReader projectMetadataReader) : IPackageConsumerSmokeRunner
+    IProjectMetadataReader projectMetadataReader,
+    IDotNetRuntimeEnvironment dotNetRuntimeEnvironment) : IPackageConsumerSmokeRunner
 {
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
@@ -31,6 +33,7 @@ public sealed class PackageConsumerSmokeRunner(
     private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
     private readonly DotNetBuildConfiguration _dotNetBuildConfiguration = dotNetBuildConfiguration ?? throw new ArgumentNullException(nameof(dotNetBuildConfiguration));
     private readonly IProjectMetadataReader _projectMetadataReader = projectMetadataReader ?? throw new ArgumentNullException(nameof(projectMetadataReader));
+    private readonly IDotNetRuntimeEnvironment _dotNetRuntimeEnvironment = dotNetRuntimeEnvironment ?? throw new ArgumentNullException(nameof(dotNetRuntimeEnvironment));
 
     /// <summary>
     /// Concrete family descriptor for smoke: derived from <c>manifest.json</c> package_families
@@ -108,11 +111,9 @@ public sealed class PackageConsumerSmokeRunner(
         _cakeContext.EnsureDirectoryExists(workingRoot);
         _cakeContext.EnsureDirectoryExists(packagesCache);
 
-        // 1. Compile-only sanity for the netstandard2.0 consumer slice.
-        //    netstandard2.0 is a contract, not a runtime — if this library compiles
-        //    against our package, the netstandard2.0 consumer surface is validated.
-        RunCompileSanity(compileSanityProject, smokePackages, explicitVersions, packagesCache, request.FeedPath);
-
+        // 1. Resolve executable TFMs up-front. The same list drives both per-TFM smoke and
+        //    any RID-specific child-runtime bootstrap (today: x86 hostfxr/runtime injection
+        //    for win-x86 apphosts on Windows CI).
         // 2. Per-TFM TUnit smoke for executable TFMs. TFM list comes from MSBuild
         //    evaluation of the smoke csproj (inherits $(ExecutableTargetFrameworks)
         //    from root Directory.Build.props), so adding a new TFM at root
@@ -124,6 +125,16 @@ public sealed class PackageConsumerSmokeRunner(
             _log.Error("PackageConsumerSmoke could not resolve TFMs for '{0}': {1}", smokeProject.FullPath, error.Message);
             throw new CakeException($"PackageConsumerSmoke could not resolve TFMs for '{smokeProject.FullPath}'. Error: {error.Message}");
         }
+
+        // 1b. Compile-only sanity for the netstandard2.0 consumer slice.
+        //     netstandard2.0 is a contract, not a runtime — if this library compiles
+        //     against our package, the netstandard2.0 consumer surface is validated.
+        RunCompileSanity(compileSanityProject, smokePackages, explicitVersions, packagesCache, request.FeedPath);
+
+        var runtimeEnvironmentDelta = await _dotNetRuntimeEnvironment.ResolveAsync(
+            request.Rid,
+            metadataResult.ProjectMetadata.TargetFrameworks,
+            cancellationToken);
 
         foreach (var tfm in metadataResult.ProjectMetadata.TargetFrameworks)
         {
@@ -141,7 +152,15 @@ public sealed class PackageConsumerSmokeRunner(
             // Reset build servers between TFMs to keep the multi-target sequence stable.
             ShutdownDotNetBuildServers();
 
-            RunSmokeForTfm(smokeProject, smokePackages, explicitVersions, packagesCache, request.FeedPath, request.Rid, tfm);
+            RunSmokeForTfm(
+                smokeProject,
+                smokePackages,
+                explicitVersions,
+                packagesCache,
+                request.FeedPath,
+                request.Rid,
+                tfm,
+                runtimeEnvironmentDelta);
         }
     }
 
@@ -331,7 +350,15 @@ public sealed class PackageConsumerSmokeRunner(
         RunDotNetCommand("compile-sanity netstandard2.0 consumer", arguments, echoStdout: true);
     }
 
-    private void RunSmokeForTfm(FilePath projectPath, IReadOnlyList<SmokePackage> smokePackages, IReadOnlyDictionary<string, NuGetVersion> explicitVersions, DirectoryPath packagesCache, DirectoryPath feedPath, string rid, string tfm)
+    private void RunSmokeForTfm(
+        FilePath projectPath,
+        IReadOnlyList<SmokePackage> smokePackages,
+        IReadOnlyDictionary<string, NuGetVersion> explicitVersions,
+        DirectoryPath packagesCache,
+        DirectoryPath feedPath,
+        string rid,
+        string tfm,
+        IReadOnlyDictionary<string, string> dotNetRuntimeEnvironment)
     {
         var arguments = new ProcessArgumentBuilder()
             .Append("test")
@@ -347,7 +374,11 @@ public sealed class PackageConsumerSmokeRunner(
         AppendFeedArguments(arguments, packagesCache, feedPath);
         AppendSmokePackageVersionProperties(arguments, smokePackages, explicitVersions);
 
-        RunDotNetCommand($"test package-smoke ({tfm})", arguments, echoStdout: true);
+        RunDotNetCommand(
+            $"test package-smoke ({tfm})",
+            arguments,
+            echoStdout: true,
+            environmentVariables: dotNetRuntimeEnvironment);
     }
 
     private static void AppendFeedArguments(ProcessArgumentBuilder arguments, DirectoryPath packagesCache, DirectoryPath feedPath)
@@ -564,7 +595,11 @@ public sealed class PackageConsumerSmokeRunner(
     /// smoke log readable. Failure always surfaces the combined output in the thrown
     /// <see cref="CakeException"/>.
     /// </summary>
-    private void RunDotNetCommand(string description, ProcessArgumentBuilder arguments, bool echoStdout = false)
+    private void RunDotNetCommand(
+        string description,
+        ProcessArgumentBuilder arguments,
+        bool echoStdout = false,
+        IReadOnlyDictionary<string, string>? environmentVariables = null)
     {
         _log.Information("Running dotnet {0}", description);
         _log.Verbose("  dotnet {0}", arguments.Render());
@@ -574,6 +609,9 @@ public sealed class PackageConsumerSmokeRunner(
             new ProcessSettings
             {
                 Arguments = arguments,
+                EnvironmentVariables = environmentVariables is null || environmentVariables.Count == 0
+                    ? null
+                    : new Dictionary<string, string>(environmentVariables, StringComparer.OrdinalIgnoreCase),
                 WorkingDirectory = _pathService.RepoRoot,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,

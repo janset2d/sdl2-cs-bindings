@@ -170,6 +170,7 @@ public sealed class ProgramCompositionRootTests
         var projectMetadataReader = provider.GetRequiredService<IProjectMetadataReader>();
         var packageVersionProvider = provider.GetRequiredService<IPackageVersionProvider>();
         var dotNetPackInvoker = provider.GetRequiredService<IDotNetPackInvoker>();
+        var dotNetRuntimeEnvironment = provider.GetRequiredService<IDotNetRuntimeEnvironment>();
         var packageTaskRunner = provider.GetRequiredService<IPackageTaskRunner>();
         var packageConsumerSmokeRunner = provider.GetRequiredService<IPackageConsumerSmokeRunner>();
         var msvcDevEnvironment = provider.GetRequiredService<IMsvcDevEnvironment>();
@@ -186,6 +187,7 @@ public sealed class ProgramCompositionRootTests
         await Assert.That(projectMetadataReader.GetType()).IsEqualTo(typeof(ProjectMetadataReader));
         await Assert.That(packageVersionProvider.GetType()).IsEqualTo(typeof(ExplicitVersionProvider));
         await Assert.That(dotNetPackInvoker.GetType()).IsEqualTo(typeof(DotNetPackInvoker));
+        await Assert.That(dotNetRuntimeEnvironment.GetType()).IsEqualTo(typeof(DotNetRuntimeEnvironment));
         await Assert.That(packageTaskRunner.GetType()).IsEqualTo(typeof(PackageTaskRunner));
         await Assert.That(packageConsumerSmokeRunner.GetType()).IsEqualTo(typeof(PackageConsumerSmokeRunner));
         await Assert.That(msvcDevEnvironment.GetType()).IsEqualTo(typeof(MsvcDevEnvironment));

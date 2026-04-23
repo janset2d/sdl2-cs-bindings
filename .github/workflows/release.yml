@@ -121,6 +121,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 jobs:
   build-cake-host:
@@ -348,12 +349,11 @@ jobs:
       - uses: ./.github/actions/platform-build-prereqs
       - uses: ./.github/actions/vcpkg-setup
         with:
-          runner-os: ${{ matrix.runner }}
-          # cache-key-base: container image tag when the job runs inside a container
-          # (Linux RIDs), else the host runner identifier (Windows / macOS RIDs).
-          # matrix.runner alone would be misleading for container-based jobs —
-          # ubuntu-24.04 host tells us nothing about the focal toolchain inside.
-          cache-key-base: ${{ matrix.container_image || matrix.runner }}
+          # Host-only jobs key by runner label. Containerised jobs additionally pass the
+          # declared image ref so vcpkg-setup can resolve focal-latest → manifest-list
+          # digest inline, without a dedicated pre-matrix helper job.
+          cache-key-base: ${{ matrix.runner }}
+          container-image: ${{ matrix.container_image }}
           triplet: ${{ matrix.triplet }}
           vcpkg-cache-path: .vcpkg-cache
           vcpkg-feature-flags: binarycaching
@@ -497,6 +497,8 @@ jobs:
           # global.json only installs .NET 9 SDK — we need .NET 8 runtime/SDK for
           # the net8.0 TFM. net462 is handled natively on Windows, skipped on Linux,
           # probed-for-Mono on macOS (see PackageConsumerSmokeRunner.ShouldSkipTfm).
+          # win-x86's extra x86 runtime bootstrap is owned by Cake
+          # (Infrastructure/DotNet/DotNetRuntimeEnvironment), not inline YAML.
           dotnet-version: |
             8.0.x
       - uses: ./.github/actions/platform-build-prereqs
