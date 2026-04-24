@@ -29,6 +29,20 @@
 #     P4 (landed): pack + consumer-smoke + consolidate-harvest + resolve-versions
 #           + preflight + generate-matrix gain nuget-cache; consumer-smoke also
 #           gains platform-build-prereqs (E1c tail).
+#     P4e (landed): hygiene audit — drop nuget-cache from FDD-only jobs
+#           (resolve-versions, preflight, generate-matrix, harvest,
+#           consolidate-harvest). Cake.Frosting addins are compile-time bundled
+#           into the published FDD, so those jobs do zero runtime NuGet work.
+#           Drop platform-build-prereqs from consumer-smoke — brew autotools
+#           are vcpkg port build-time deps, not consumer-side. nuget-cache
+#           kept on build-cake-host (Build.Tests restore), pack (dotnet pack
+#           internal restore), consumer-smoke (dotnet test internal restore).
+#           platform-build-prereqs kept on harvest (macOS vcpkg ports need it).
+#           setup-dotnet kept everywhere: non-negotiable on container jobs
+#           (custom focal image has no .NET baked in by design), and on host
+#           runners it pins to global.json (9.0.200) against rollForward drift
+#           between pre-installed 9.0.x patches (ubuntu picks 9.0.312, windows-
+#           11-arm 9.0.303 — setup-dotnet neutralises that).
 #     P5: lock-file discipline (RestorePackagesWithLockFile + --locked-mode).
 #     P6: PublishTask stubs (throws NotImplementedException; Phase-2b real impl).
 #     P7: three-platform witness per cross-platform-smoke-validation.md A-K.
@@ -239,7 +253,6 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
-      - uses: ./.github/actions/nuget-cache
       - uses: actions/download-artifact@v8
         with:
           name: cake-host
@@ -271,7 +284,6 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
-      - uses: ./.github/actions/nuget-cache
       - uses: actions/download-artifact@v8
         with:
           name: cake-host
@@ -304,7 +316,6 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
-      - uses: ./.github/actions/nuget-cache
       - uses: actions/download-artifact@v8
         with:
           name: cake-host
@@ -356,7 +367,6 @@ jobs:
           triplet: ${{ matrix.triplet }}
           vcpkg-cache-path: .vcpkg-cache
           vcpkg-feature-flags: binarycaching
-      - uses: ./.github/actions/nuget-cache
       - uses: actions/download-artifact@v8
         with:
           name: cake-host
@@ -407,7 +417,6 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
-      - uses: ./.github/actions/nuget-cache
       - uses: actions/download-artifact@v8
         with:
           name: cake-host
@@ -500,7 +509,6 @@ jobs:
           # (Infrastructure/DotNet/DotNetRuntimeEnvironment), not inline YAML.
           dotnet-version: |
             8.0.x
-      - uses: ./.github/actions/platform-build-prereqs
       - uses: ./.github/actions/nuget-cache
       - name: Enable TUnit HTML report auto-upload
         # Matrix-aware TUnit auto-upload: `Assembly-{os}-{tfm}-report.html`
