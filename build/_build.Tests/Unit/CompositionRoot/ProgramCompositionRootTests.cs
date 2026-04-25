@@ -2,6 +2,7 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Reflection;
 using Build.Application.Packaging;
+using Build.Application.Publishing;
 using Build.Application.Versioning;
 using Build.Context;
 using Build.Context.Models;
@@ -173,6 +174,7 @@ public sealed class ProgramCompositionRootTests
         var dotNetRuntimeEnvironment = provider.GetRequiredService<IDotNetRuntimeEnvironment>();
         var packageTaskRunner = provider.GetRequiredService<IPackageTaskRunner>();
         var packageConsumerSmokeRunner = provider.GetRequiredService<IPackageConsumerSmokeRunner>();
+        var publishTaskRunner = provider.GetRequiredService<PublishTaskRunner>();
         var msvcDevEnvironment = provider.GetRequiredService<IMsvcDevEnvironment>();
 
         await Assert.That(strategy.Model).IsEqualTo(PackagingModel.HybridStatic);
@@ -190,6 +192,7 @@ public sealed class ProgramCompositionRootTests
         await Assert.That(dotNetRuntimeEnvironment.GetType()).IsEqualTo(typeof(DotNetRuntimeEnvironment));
         await Assert.That(packageTaskRunner.GetType()).IsEqualTo(typeof(PackageTaskRunner));
         await Assert.That(packageConsumerSmokeRunner.GetType()).IsEqualTo(typeof(PackageConsumerSmokeRunner));
+        await Assert.That(publishTaskRunner.GetType()).IsEqualTo(typeof(PublishTaskRunner));
         await Assert.That(msvcDevEnvironment.GetType()).IsEqualTo(typeof(MsvcDevEnvironment));
     }
 

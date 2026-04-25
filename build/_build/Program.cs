@@ -14,6 +14,7 @@ using Build.Application.Harvesting;
 using Build.Application.Maintenance;
 using Build.Application.Packaging;
 using Build.Application.Preflight;
+using Build.Application.Publishing;
 using Build.Application.Vcpkg;
 using Build.Application.Versioning;
 using Build.Context;
@@ -207,6 +208,7 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton<IReadmeMappingTableGenerator, ReadmeMappingTableGenerator>();
     services.AddSingleton<IPackageTaskRunner, PackageTaskRunner>();
     services.AddSingleton<IPackageConsumerSmokeRunner, PackageConsumerSmokeRunner>();
+    services.AddSingleton<PublishTaskRunner>();
     services.AddSingleton<VcpkgBootstrapTool>();
     services.AddSingleton<IMsvcDevEnvironment, MsvcDevEnvironment>();
     services.AddSingleton<LocalArtifactSourceResolver>();
