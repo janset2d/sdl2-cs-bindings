@@ -442,3 +442,9 @@ build/_build/.cake/
 
 .DS_Store
 .claude/
+
+# CMake user-local presets (developer-specific overrides for native-smoke).
+# CMakePresets.json ships canonical Release/Debug variants per RID; per-developer
+# feature toggles (interactive run loop, IDE-specific cache vars) ride
+# CMakeUserPresets.json. The .example template stays VCS-tracked.
+tests/smoke-tests/native-smoke/CMakeUserPresets.json

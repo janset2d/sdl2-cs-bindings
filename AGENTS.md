@@ -30,7 +30,7 @@ Then branch to relevant docs based on your task (see `docs/README.md` for naviga
 - Refactor production code
 - Modify build system (Cake Frosting tasks, MSBuild targets)
 - Change CI/CD pipelines (GitHub Actions workflows)
-- Update vcpkg.json, manifest.json, or runtimes.json
+- Update vcpkg.json or manifest.json (legacy `runtimes.json` / `system_artefacts.json` retired — merged into manifest.json schema v2.1)
 - Modify project files (.csproj, .sln, Directory.Build.props)
 - Run deployment or publish commands
 - Commit changes
@@ -77,15 +77,17 @@ Modular C# bindings for SDL2 (and upcoming SDL3) with cross-platform native libr
 
 ### Target Platforms (7 RIDs)
 
+All 7 runtime rows ship under `hybrid-static` per PA-2 (2026-04-18). Authoritative source: `build/manifest.json runtimes[]`.
+
 | RID | vcpkg Triplet |
 | --- | --- |
 | win-x64 | x64-windows-hybrid |
-| win-x86 | x86-windows |
-| win-arm64 | arm64-windows |
+| win-x86 | x86-windows-hybrid |
+| win-arm64 | arm64-windows-hybrid |
 | linux-x64 | x64-linux-hybrid |
-| linux-arm64 | arm64-linux-dynamic |
+| linux-arm64 | arm64-linux-hybrid |
 | osx-x64 | x64-osx-hybrid |
-| osx-arm64 | arm64-osx-dynamic |
+| osx-arm64 | arm64-osx-hybrid |
 
 ### SDL Libraries in Scope
 
@@ -111,7 +113,7 @@ These are final. Do not re-debate unless Deniz explicitly reopens them.
 | external/sdl2-cs removal | Transitional, not trusted — CppAst generator (Phase 4) replaces it |
 | C++ native smoke test | CMake/vcpkg IDE-debuggable project for testing hybrid natives directly (Phase 2b) |
 | Triplet = strategy | No `--strategy` CLI flag; triplet name encodes the strategy; manifest `runtimes[].strategy` is the formal mapping |
-| Config merge | 3 config files (manifest.json, runtimes.json, system_artefacts.json) → single manifest.json (schema v2) |
+| Config merge | 3 config files (manifest.json, runtimes.json, system_artefacts.json) → single manifest.json (schema v2.1, package_families[] added) |
 | Validator uses vcpkg metadata | No manually maintained expected-deps lists; BinaryClosureWalker output = ground truth |
 | TUnit for testing | TUnit 1.33.0 + Microsoft.Testing.Platform; test-first approach; characterization tests before refactoring |
 
@@ -148,8 +150,8 @@ Before proposing changes, review the documentation. If your change affects behav
 - Use `docs/phases/README.md` to determine which phase is active.
 - Use `docs/README.md` for the full documentation map.
 - For build system work: `docs/knowledge-base/cake-build-architecture.md`
-- **For Cake strategy refactor (NEXT WORK ITEM):** `docs/research/cake-strategy-implementation-brief-2026-04-14.md`
-- For CI/CD work: `docs/knowledge-base/ci-cd-packaging-and-release-plan.md`
+- For CI/CD work: `docs/knowledge-base/ci-cd-packaging-and-release-plan.md` (live-state pointer + canonical-content-locations index; pre-Slice-E design preserved at `docs/_archive/`)
+- For ADR-003 release lifecycle orchestration (provider/scope/version axes, stage-owned validation, matrix re-entry): `docs/decisions/2026-04-20-release-lifecycle-orchestration.md`
 - For native harvesting: `docs/knowledge-base/harvesting-process.md`
 - For overlay triplets & ports: `docs/playbook/overlay-management.md`
 - For native smoke test (C++ validation): `tests/smoke-tests/native-smoke/README.md`
@@ -198,18 +200,18 @@ Issue tracking is part of the software delivery lifecycle in this repo.
 The Cake build host is DDD-layered per [ADR-002](../docs/decisions/2026-04-19-ddd-layering-build-host.md). Four top-level layers under `build/_build/` plus a Cake-native `Tasks/` exception:
 
 | Layer | Folder | Role |
-|---|---|---|
+| --- | --- | --- |
 | Presentation | `Tasks/` | Cake Frosting task classes. Own dependency mapping + user-facing failure rendering. |
 | Application | `Application/<Module>/` | Use-case orchestrators (TaskRunners, Resolvers, SmokeRunner). Coordinate Domain + Infrastructure. |
 | Domain | `Domain/<Module>/` | Models, value objects, domain services, result types, domain-level abstractions (e.g. `IPathService`). No outward dependencies. |
 | Infrastructure | `Infrastructure/<Module>/` | Adapters for external systems: filesystem, process, Cake Tool wrappers. Implement Domain abstractions. |
 
-Layer discipline is enforced by `build/_build.Tests/Unit/CompositionRoot/LayerDependencyTests.cs` (three invariants: Domain no outward deps; Infrastructure no Application; target shape is Tasks -> Application plus DTO/results, with a temporary catchnet allowance for Task-held Domain/Infrastructure interfaces while Harvest/PreFlight debt is being reduced).
+Layer discipline is enforced by `build/_build.Tests/Unit/CompositionRoot/LayerDependencyTests.cs` (three invariants: Domain no outward deps; Infrastructure no Application; target shape is Tasks -> Application plus DTO/results).
 
 Reference patterns for new build-host work:
 
-- **Task layer shape:** `PackageTask` is the golden thin adapter — inject a single `IPackageTaskRunner` from Application, delegate `RunAsync`. Fat tasks that still hold orchestration inline (`HarvestTask`, `ConsolidateHarvestTask`) are tracked for the Wave 6 runner extraction (see ADR-002 §6.6).
-- **Keep `BuildContext` at the task boundary.** Tasks own orchestration, user-facing policy, and failure rendering, but the preferred behavior surface is still Application. The current architecture test temporarily tolerates Task -> Domain/Infrastructure interfaces for legacy fat-task holdovers; do not copy that shape into new work.
+- **Task layer shape:** thin adapter — inject a single TaskRunner from Application + read-only configs from Context, delegate `RunAsync`. `PackageTask` is the golden example; `HarvestTask`, `ConsolidateHarvestTask`, `NativeSmokeTask`, `PackageConsumerSmokeTask`, `PublishStagingTask`, `PublishPublicTask` all follow the same shape post-Slice-D refactor (Wave 6 runner extraction landed). Fat-task layout retired.
+- **Keep `BuildContext` at the task boundary.** Tasks own orchestration, user-facing policy, and failure rendering, but the preferred behavior surface is the Application-layer runner.
 - **Interface discipline:** keep an interface only if (1) multiple implementations exist today or (2) it formalizes an independent axis of change. Test mocks are supporting evidence, not a standalone reason to create or retain a seam. Otherwise use `internal sealed class` and register concrete in Program.cs.
 - **Cake dependencies flow inward across layers, not outward.** Infrastructure may take `ICakeContext`/`IFileSystem`/`IPathService`; Domain may take `IFileSystem` and `IPathService` for file contract validation but not `ICakeContext`; Application may take any Cake type; Tasks sit on top.
 - **Result / error boundaries stay typed.** Services return `OneOf`-shaped results; tasks translate them into logging, `CakeException`, RID-status persistence, or cancellation semantics.
@@ -223,13 +225,14 @@ Understanding these is essential for build system work:
 ```text
 vcpkg.json                    ← What vcpkg builds (dependencies + features)
     ↕ must match
-build/manifest.json           ← Single source of truth (schema v2):
+build/manifest.json           ← Single source of truth (schema v2.1):
     ├── packaging_config      ← validation mode, core library
-    ├── runtimes[]            ← RID ↔ triplet ↔ strategy ↔ CI runner
+    ├── runtimes[]            ← RID ↔ triplet ↔ strategy ↔ CI runner ↔ container image
+    ├── package_families[]    ← family identity (managed_project, native_project, library_ref, depends_on, change_paths)
     ├── system_exclusions     ← OS libraries to exclude from packages
     └── library_manifests[]   ← library versions, binary patterns
     ↕ validated by
-PreFlightCheckTask            ← Fails if versions or triplet↔strategy don't match
+PreFlightCheckTask            ← Fails if versions / triplet↔strategy / family scope inconsistent (G14, G15, G16, G49, G54, G58)
 ```
 
 > **Note:** `manifest.json` is the authoritative source. Legacy `runtimes.json` and `system_artefacts.json` files may still exist in history or older notes, but they are no longer the source of truth.

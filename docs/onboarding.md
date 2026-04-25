@@ -131,13 +131,12 @@ janset2d/sdl2-cs-bindings/
 │
 ├── .github/
 │   ├── actions/
-│   │   └── vcpkg-setup/       ← Reusable composite action for vcpkg bootstrap + caching
+│   │   ├── vcpkg-setup/                    ← vcpkg submodule + container digest cache identity + bootstrap + install
+│   │   ├── nuget-cache/                    ← cross-OS workspace NuGet cache keyed on lock files + CPM + csproj hash
+│   │   └── platform-build-prereqs/         ← macOS brew autotools (idempotent); Linux/Windows no-ops
 │   └── workflows/
-│       ├── prepare-native-assets-main.yml     ← Orchestrator (calls platform workflows)
-│       ├── prepare-native-assets-windows.yml  ← Windows matrix: x64, x86, arm64
-│       ├── prepare-native-assets-linux.yml    ← Linux matrix: x64, arm64 (containers)
-│       ├── prepare-native-assets-macos.yml    ← macOS matrix: x64, arm64
-│       └── release-candidate-pipeline.yml     ← End-to-end release (STUB/INCOMPLETE)
+│       ├── release.yml                     ← End-to-end release pipeline (10-job topology, tag-push + workflow_dispatch triggers)
+│       └── build-linux-container.yml       ← Multi-arch GHCR builder image (focal-<yyyymmdd>-<sha> + focal-latest tags)
 │
 ├── artifacts/                 ← Build output (gitignored)
 ├── samples/                   ← Example projects (empty — to be created)
@@ -181,9 +180,11 @@ Cake Frosting ConsolidateHarvestTask  (merge per-RID results)
     ↓
 harvest-manifest.json + harvest-summary.json
     ↓
-Cake PackageTask → NuGet .nupkg files (Phase 2a proof slice landed; broader matrix validation still pending)
+Cake PackageTask → NuGet .nupkg files (full 7-RID matrix green via release.yml)
     ↓
-[PLANNED] Publish to NuGet feed
+PackageConsumerSmoke (matrix re-entry, per-TFM TUnit) → validates the produced nupkgs end-to-end
+    ↓
+[Phase 2b] PublishStaging / PublishPublic → real feed transfer (Cake stubs landed P6; release.yml jobs gated `if: false` until impl)
 ```
 
 ### Key Configuration Files
@@ -198,15 +199,17 @@ Cake PackageTask → NuGet .nupkg files (Phase 2a proof slice landed; broader ma
 
 ### Target Platforms
 
+RID and runner mappings are sourced from `manifest.runtimes[]` (single source of truth). Current state (2026-04-25):
+
 | RID | vcpkg Triplet | Strategy | CI Runner | Container |
 | --- | --- | --- | --- | --- |
-| win-x64 | x64-windows-hybrid | hybrid-static | windows-latest | — |
-| win-x86 | x86-windows-hybrid | hybrid-static | windows-latest | — |
-| win-arm64 | arm64-windows-hybrid | hybrid-static | windows-latest | — |
-| linux-x64 | x64-linux-hybrid | hybrid-static | ubuntu-24.04 | ubuntu:20.04 |
-| linux-arm64 | arm64-linux-hybrid | hybrid-static | ubuntu-24.04-arm | ubuntu:24.04 |
+| win-x64 | x64-windows-hybrid | hybrid-static | windows-2025 | — |
+| win-x86 | x86-windows-hybrid | hybrid-static | windows-2025 | — |
+| win-arm64 | arm64-windows-hybrid | hybrid-static | windows-11-arm | — |
+| linux-x64 | x64-linux-hybrid | hybrid-static | ubuntu-24.04 | ghcr.io/janset2d/sdl2-bindings-linux-builder:focal-latest |
+| linux-arm64 | arm64-linux-hybrid | hybrid-static | ubuntu-24.04-arm | ghcr.io/janset2d/sdl2-bindings-linux-builder:focal-latest |
 | osx-x64 | x64-osx-hybrid | hybrid-static | macos-15-intel | — |
-| osx-arm64 | arm64-osx-hybrid | hybrid-static | macos-latest | — |
+| osx-arm64 | arm64-osx-hybrid | hybrid-static | macos-26 | — |
 
 ## NuGet Package Topology
 
@@ -222,36 +225,37 @@ Janset.SDL2                              ← Meta-package (pulls everything)
 │   └── Janset.SDL2.Ttf.Native
 ├── Janset.SDL2.Gfx
 │   └── Janset.SDL2.Gfx.Native
-└── Janset.SDL2.Net                      ← To be created
+└── Janset.SDL2.Net                      ← Phase 3 (to be created — see #58; manifest entry retired 2026-04-22 awaiting binding + native csproj skeleton)
     └── Janset.SDL2.Net.Native
 ```
 
 Users reference `Janset.SDL2.Core` (or the meta-package `Janset.SDL2`). The `.Native` dependency is pulled in transitively — users never reference it directly.
 
-## What Works Today (as of 2026-04-16)
+## What Works Today (as of 2026-04-25, master `d190b5b`)
 
-- C# bindings for all 5 SDL2 libraries compile and target net9.0/net8.0/netstandard2.0/net462
-- Cake Frosting Harvest pipeline: binary closure walking, dependency scanning, per-RID status files, consolidation
-- Cake Frosting build host test suite: 324 TUnit tests (as of 2026-04-18) covering modules, tasks, composition-root seams, and build-host result/error helpers. Run via `dotnet test build/_build.Tests/Build.Tests.csproj -c Release`.
-- PreFlight validation: manifest.json ↔ vcpkg.json consistency plus runtime strategy coherence
-- Coverage ratchet gate: `Coverage-Check` task enforces the current static floor from `build/coverage-baseline.json`
-- GitHub Actions: Cross-platform native builds for Windows/Linux/macOS (manual trigger)
-- vcpkg: all SDL2 native ports (`sdl2`, `sdl2-image`, `sdl2-mixer`, `sdl2-ttf`, `sdl2-gfx`, `sdl2-net`) declared in working-tree config
-- Native packaging: `PackageTask` + `PackageConsumerSmoke` are validated on the original proof slice (`win-x64`, `linux-x64`, `osx-x64`); the remaining four runtime rows now map to hybrid triplets but still need end-to-end package/smoke validation
-- `buildTransitive` MSBuild targets for .NET Framework compatibility
+- **C# bindings**: all 5 SDL2 libraries (`Core`/`Image`/`Mixer`/`Ttf`/`Gfx`) compile against `net9.0`/`net8.0`/`netstandard2.0`/`net462`.
+- **Cake Frosting build host**: 20 lifecycle + diagnostic targets (Info, CleanArtifacts, CompileSolution, GenerateMatrix, ResolveVersions, PreFlightCheck, EnsureVcpkgDependencies, Harvest, NativeSmoke, ConsolidateHarvest, Inspect-HarvestedDependencies, Package, PackageConsumerSmoke, SetupLocalDev, Coverage-Check, PublishStaging, PublishPublic, plus dependency-analysis aliases). DDD-layered per ADR-002 (Tasks/Application/Domain/Infrastructure + LayerDependencyTests catchnet).
+- **Build-host test suite**: 460 TUnit tests covering Domain, Application, Infrastructure, Tasks, Context, CompositionRoot. Run via `dotnet test build/_build.Tests/Build.Tests.csproj -c Release`. Coverage ratchet gate `Coverage-Check` enforces the floor in `build/coverage-baseline.json`.
+- **Version-source providers** (ADR-003): `ManifestVersionProvider` (manifest-derived), `GitTagVersionProvider` (tag-driven targeted/full-train), `ExplicitVersionProvider` (operator override) — `ResolveVersions` Cake target emits canonical `versions.json` consumed by every downstream stage via `--versions-file`.
+- **CI pipeline** (`release.yml`, 10 jobs): tag-push + `workflow_dispatch` triggers; dynamic 7-RID matrix from `manifest.runtimes[]`; consumer smoke matrix re-entry; Cake host built once + distributed as FDD artifact; GHCR-hosted Linux builder image.
+- **Cross-platform validation**: A-K checkpoints green on Windows + WSL Linux at master `d190b5b` (P7 witness 2026-04-25); all 7 RIDs green via CI run 24932894291 (Pack ✓, ConsumerSmoke ✓ across `win-{x64,x86,arm64}`/`linux-{x64,arm64}`/`osx-{x64,arm64}`).
+- **PreFlight validation**: manifest.json ↔ vcpkg.json consistency, strategy coherence, csproj pack contract (G4/G6/G7/G17/G18), G54 upstream version alignment, G58 cross-family dependency resolvability (defense-in-depth in PreFlight + Pack).
+- **Lock-file discipline** (P5): `<RestorePackagesWithLockFile>true</...>` on `build/_build` + `build/_build.Tests` + 10 `src/**` csprojs; strict mode (`<RestoreLockedMode Condition="'$(GITHUB_ACTIONS)'='true'"/>`) only on the build host; `src/` lenient mode absorbs SDK-implicit-package drift (ILLink.Tasks per runtime patch, NETFramework.ReferenceAssemblies per host OS).
+- **Native packaging**: `PackageTask` + `PackageConsumerSmoke` produce + validate 5 family × 3 nupkg per release (managed + native + snupkg) at D-3seg-shaped versions (per family `<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>`); `buildTransitive/Janset.SDL2.Native.Common.targets` handles consumer-side native-asset placement (Unix tar.gz extraction + .NETFramework AnyCPU DLL copy).
+- **vcpkg native ports** for SDL2 + 4 satellites (`sdl2`, `sdl2-image`, `sdl2-mixer`, `sdl2-ttf`, `sdl2-gfx`) all declared in `vcpkg.json` + custom hybrid overlay triplets at `vcpkg-overlay-triplets/`.
+- **NativeSmoke**: 29-test C/C++ harness (CMake/vcpkg) validates hybrid-built natives at OS level (PNG/JPEG/WebP/TIFF/AVIF loading, FLAC/MIDI/WavPack/Opus/OGG/MP3/MOD decoder discovery, TTF_Init, SDL2_gfx draw); IDE-debuggable via `CMakePresets.json` (Release/Debug × 7 RIDs) + `CMakeUserPresets.json.example` for interactive variants.
 
 ## What Doesn't Work Yet
 
-- vcpkg/manifest/workflow expansion needs full cross-platform matrix validation
-- SDL2.Ttf.Native: Placeholder only (no binaries)
-- SDL2.Mixer.Native: Only win-x64 has full codec dependencies
-- Release Candidate Pipeline: Largely stub/placeholder
-- Cake PackageTask: Landed for the Phase 2a proof slice; broader 7-RID package/smoke coverage is still pending
-- NuGet publishing: Neither internal nor public feed configured
-- Broader product/runtime smoke tests and sample coverage are still missing; the build-host suite exists, but package-consumer and end-to-end validation work remains ahead
-- Samples: Empty directory
-- Binding autogeneration: Not yet started
-- SDL3 support: Not yet started
+- **NuGet publishing**: `PublishStaging` / `PublishPublic` Cake targets are scaffolded stubs (P6 — throws `NotImplementedException` with Phase-2b pointer); `release.yml` jobs gated `if: false`. Real implementation arrives with Phase 2b's first prerelease publication wave.
+- **PA-2 behavioral validation**: the four newly-hybridized runtime rows (`win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64`) packed + consumer-smoked end-to-end via Slice E follow-up CI runs, but a formal PA-2 witness pass per the playbook remains Phase 2b work.
+- **`SDL2.Mixer.Native`**: full codec dependencies in the hybrid bake validated on `win-x64`; per-RID codec parity audit pending.
+- **`SDL2.Ttf.Native`**: harvest + pack pipeline live, but per-RID font-rendering smoke beyond `TTF_Init` is still pending.
+- **`SDL2.Net` family**: manifest entry retired 2026-04-22 (`bc652d1`); will re-land with the full skeleton (binding csproj + native csproj + overlay port + manifest entries + harvest validation) per [#58](https://github.com/janset2d/sdl2-cs-bindings/issues/58).
+- **`RemoteArtifactSourceResolver`** (PD-5): `SetupLocalDev --source=remote` accepted but stubbed (`UnsupportedArtifactSourceResolver`); remote-internal feed download is Phase 2b.
+- **Samples**: `samples/` directory empty; targeted to land alongside the first prerelease publication ([#60](https://github.com/janset2d/sdl2-cs-bindings/issues/60)).
+- **Binding autogeneration**: CppAst-based generator (Phase 4) is the long-term plan to replace the `external/sdl2-cs/` submodule import. Not yet started.
+- **SDL3 support**: scoped for after SDL2 line is fully shipped.
 
 ## Work Tracking Model
 

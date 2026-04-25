@@ -48,7 +48,13 @@ Do this once per session before anything else. The non-interactive SSH shell
 ```bash
 cd /path/to/sdl2-cs-bindings
 
-export PATH="$HOME/.dotnet:$PATH"
+# Linux-only PATH (NOT $HOME/.dotnet:$PATH) — drops the inherited Windows
+# /mnt/c/Program Files/dotnet entry. Without this override, child `dotnet pack`
+# inside Cake's IDotNetPackInvoker resolves through naked PATH lookup and
+# picks Windows dotnet, then runs Windows MSBuild against Linux paths and
+# fails with MSB1001. See cross-platform-smoke-validation.md §"WSL / Linux"
+# for the full rationale.
+export PATH="$HOME/.dotnet:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 export DOTNET_ROOT="$HOME/.dotnet"
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 
@@ -56,8 +62,9 @@ git pull --ff-only
 git log --oneline -1
 ```
 
-Expected HEAD: `<sha>` (tell the requester the current `feat/adr003-impl` tip
-before running).
+Expected HEAD: `<sha>` (tell the requester the current master tip before
+running; pass-1 of the ADR-003 feat branch merged 2026-04-22 at `bfc6713` and
+all subsequent work lands master-direct).
 
 ### macOS Intel (SSH)
 

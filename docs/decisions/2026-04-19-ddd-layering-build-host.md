@@ -102,6 +102,31 @@ Counter-examples under this rule typically include small packaging / preflight h
 
 The `Modules/Contracts/` directory retires in Wave 4. Surviving interfaces live in the layer that owns them (typically Application, occasionally Domain for domain-service seams, Infrastructure for adapter contracts).
 
+#### 2.3.1 Test hooks for non-mockable third-party boundaries (amendment, 2026-04-25)
+
+Some third-party Cake addins bypass `ICakeContext.FileSystem` entirely — Cake.Frosting.Git is the canonical example: its aliases reach LibGit2Sharp's native binary, which calls `System.IO.Directory.Exists` directly and ignores `FakeFileSystem`-backed test fixtures. Wrapping these surfaces behind a one-call interface (e.g., `IGitCommandRunner` for a single `GitLogTip` invocation) fails §2.3 criterion 1 (no second implementation today) and criterion 2 (no independent axis of change — the seam exists only to substitute a non-mockable native call).
+
+A constrained alternative is permitted: an **optional ctor-injected delegate parameter** with a default that wraps the production alias. Example shape:
+
+```csharp
+public sealed class PackageTaskRunner(
+    /* ...other deps... */,
+    Func<ICakeContext, DirectoryPath, string>? resolveHeadCommitSha = null)
+{
+    private readonly Func<ICakeContext, DirectoryPath, string> _resolveHeadCommitSha
+        = resolveHeadCommitSha ?? DefaultResolveHeadCommitSha;
+}
+```
+
+Permitted under the following invariants:
+
+1. **Default delegate exercises the production path** unconditionally — no mode flag, no env-var sniff. Production callers never pass the parameter.
+2. **Optional parameter only.** The seam stays invisible to consumers who do not need substitution; it does not enter the public contract.
+3. **Bounded to the call site.** The pattern does not propagate beyond the specific non-mockable surface — sibling code uses interfaces (criteria 1/2) or fixture-backed integration tests (e.g., `Repository.Init()` in `Path.GetTempPath()` for a real ephemeral git repo) when the third-party surface admits them.
+4. **Documented in the runner.** A comment at the delegate parameter site explains why the standard interface route is unavailable and points at the third-party constraint (e.g., "Cake.Frosting.Git / LibGit2Sharp bypasses ICakeContext.FileSystem; see ADR-002 §2.3.1").
+
+Counter-rule: if a second non-mockable boundary surfaces and the delegate-hook pattern starts looking like a habit (≥3 callsites, or the helpers cluster around a recognizable seam), promote to a real interface or a `Build.Tests/Fixtures/` extension that handles the substitute fully on the test side. The delegate-hook pattern is a contained workaround, not a precedent.
+
 ### 2.4 Folder shape — concrete example (Packaging, Wave 1 target)
 
 ```

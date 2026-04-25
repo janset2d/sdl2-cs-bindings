@@ -1,176 +1,198 @@
 # Playbook: CI/CD Troubleshooting
 
-> Common CI failures and how to diagnose them.
+> Common CI failures on `release.yml` + `build-linux-container.yml` and how to diagnose them. Pre-Slice-E-follow-up-pass version (covering the retired `prepare-native-assets-*.yml` family) is preserved at [`docs/_archive/ci-troubleshooting-2026-04-25.md`](../_archive/ci-troubleshooting-2026-04-25.md) — kept readable for archaeological "why does the overlay port for mpg123 exist?" type questions.
 
-## Workflow Overview
+## Workflow Overview (post-Slice-E-follow-up-pass)
+
+Two workflow files cover the build + release pipeline:
 
 ```text
-prepare-native-assets-main.yml  (orchestrator, manual trigger)
-├── prepare-native-assets-windows.yml   (x64, x86, arm64)
-├── prepare-native-assets-linux.yml     (x64 in ubuntu:20.04, arm64 in ubuntu:24.04)
-└── prepare-native-assets-macos.yml     (x64 on macos-15-intel, arm64 on macos-latest)
+release.yml                          (10-job pipeline; tag-push + workflow_dispatch triggers)
+├── build-cake-host                  (single-runner FDD publish; Coverage-Check ratchet gate)
+├── resolve-versions                 (ADR-003 version-source provider entrypoint)
+├── preflight                        (single-runner fail-fast; G54 + G58 + structural validators)
+├── generate-matrix                  (dynamic 7-RID matrix from manifest.runtimes[])
+├── harvest (matrix, 7 RIDs)         (per-RID vcpkg-setup + harvest + native-smoke inline)
+├── consolidate-harvest              (aggregation; merges per-RID status JSON)
+├── pack                             (per-family pack + post-pack G21–G58 validators)
+├── consumer-smoke (matrix, 7 RIDs)  (matrix re-entry; per-TFM TUnit smoke + restore)
+├── publish-staging                  (gated `if: false`; Phase-2b stub)
+└── publish-public                   (gated `if: false`; Phase-2b stub)
+
+build-linux-container.yml            (multi-arch GHCR builder image; workflow_dispatch + monthly cron)
+├── build (matrix: amd64, arm64)     (per-arch native build via docker/build-push-action; push-by-digest)
+├── merge                            (docker buildx imagetools create → focal-<yyyymmdd>-<sha> + focal-latest)
+└── retention                        (delete-only-untagged-versions; keeps 5 most recent)
 ```
 
-Each platform workflow:
+Composite actions live under `.github/actions/`:
 
-1. Checkout repo + submodules
-2. Run `vcpkg-setup` composite action (bootstrap, cache, install)
-3. Setup .NET SDK
-4. Build Cake Frosting host
-5. Run Harvest task
-6. Upload artifacts
+- **`vcpkg-setup`**: container digest resolution (mutable tag → immutable digest for cache-key) + bootstrap + install.
+- **`nuget-cache`**: cross-OS workspace `NUGET_PACKAGES` + `actions/cache@v5` keyed on `hashFiles('**/packages.lock.json', '**/Directory.Packages.props', '**/*.csproj')`.
+- **`platform-build-prereqs`**: macOS brew per-formula idempotent install; Linux + Windows no-ops (Linux baked into builder image, Windows self-sourced via `IMsvcDevEnvironment`).
 
 ## Common Failures
 
-### vcpkg Install Fails
+### `cake-host` artifact download fails
 
-**Symptoms**: `vcpkg install` exits non-zero, build logs show compilation errors
+**Symptoms**: Consumer job step "Download cake-host artifact" fails with "artifact not found".
 
-**Diagnosis**:
-
-1. Check which triplet failed (the workflow logs the triplet)
-2. Look for the specific port that failed in the vcpkg build log
-3. Common causes:
-   - Missing system dependencies (especially on Linux containers)
-   - Network issues downloading sources
-   - Triplet-specific build incompatibilities
+**Diagnosis**: `build-cake-host` job either failed or published the artifact under a different name. Check the upstream job's "Upload cake-host artifact" step.
 
 **Fixes**:
 
-- **Linux missing deps**: Check the `apt-get install` step in `prepare-native-assets-linux.yml`. SDL2 requires X11, Wayland, ALSA, and other dev packages. If vcpkg adds new features, new deps may be needed.
-- **Cache corruption**: Delete the GitHub Actions cache for the affected triplet and re-run.
-- **vcpkg port bug**: Check [vcpkg issues](https://github.com/microsoft/vcpkg/issues) for known problems with the specific port version.
+- If `build-cake-host` failed: fix that job first (most common upstream causes are `Coverage-Check` ratchet + `Build.Tests` test failure).
+- Run-scoped retention: `cake-host` is uploaded with `retention-days: 1`. If you re-run a downstream job in isolation after >24h, the artifact is gone. Solution: re-run the entire workflow (or `build-cake-host` first), then the dependent job.
 
-### vcpkg Cache Miss
+### `Coverage-Check` ratchet gate fails
 
-**Symptoms**: Build takes 15-30 minutes instead of 2-3 minutes
+**Symptoms**: `build-cake-host` job's "Coverage-Check" step exits non-zero with `coverage X.Y% < floor Z.W%`.
 
-**Diagnosis**: Check the `vcpkg-setup` action's cache restore step. The cache key is:
+**Diagnosis**: Either coverage genuinely regressed below the baseline floor, or the `coverage.cobertura.xml` path mismatched.
 
-```text
-vcpkg-bin-{os}-{triplet}-{vcpkg.json hash}-{vcpkg submodule commit}
-```
+**Fixes**:
 
-If any of these change, the cache misses. This is expected after:
+- Genuine regression: add tests, or (carefully) adjust the floor in `build/coverage-baseline.json` if the new code surface justifies a temporary dip — explain in the commit body.
+- Path mismatch: the `dotnet test --coverage --coverage-output` step writes to `${{ github.workspace }}/artifacts/test-results/build-tests/coverage.cobertura.xml` (absolute path). The `CoverageCheckTaskRunner.DefaultCoverageRelativePath` resolves the same location relative to repo root. If the `.cobertura.xml` doesn't appear, check the test step output for `Microsoft.Testing.Platform` errors.
 
-- vcpkg baseline updates
-- vcpkg.json changes (new features, new dependencies)
-- vcpkg submodule updates
+### vcpkg install fails (port-specific)
 
-**Fix**: First run after a change will be slow. Subsequent runs will use the new cache.
-
-### Cake Build Fails
-
-**Symptoms**: `dotnet build` or `dotnet run` in `build/_build/` fails
-
-**Diagnosis**: Check the error message. Common causes:
-
-- .NET SDK version mismatch (check `global.json`)
-- NuGet package restore failure (network issues or feed problems)
-- Code compilation errors (if build code was changed)
-
-**Fix**: Ensure CI uses the correct .NET SDK version from `global.json`.
-
-### Harvest Produces Empty Results
-
-**Symptoms**: Harvest completes but RID status shows no binaries collected
+**Symptoms**: `vcpkg-setup` step's `vcpkg install` exits non-zero; build log shows compilation errors for a specific port.
 
 **Diagnosis**:
 
-1. Check that vcpkg actually built the library (look for installed files in vcpkg output)
-2. Check the binary patterns in `manifest.json` — do they match actual filenames?
-3. Check the system_artefacts.json whitelist — is the library being excluded?
-4. Run with `--verbosity Diagnostic` to see detailed scanning output
+1. Note which **triplet** failed (logged at the top of `vcpkg-setup` Install step).
+2. Identify the **port** that failed (look for `Building <port>:<triplet>` followed by errors).
+3. Cross-check the vcpkg cache key — was it a fresh build (cold cache) or restored?
 
-**Fix**: Usually a pattern mismatch in `manifest.json` or a new system library that needs whitelisting.
+**Known port-specific issues**:
 
-### Artifact Upload Fails
 
-**Symptoms**: Build succeeds but artifact upload step fails
+- **autoconf < 2.70 on focal/Ubuntu 20.04**: gperf 3.3 (transitive via harfbuzz) requires autoconf ≥ 2.70. The Linux builder image (`docker/linux-builder.Dockerfile`) builds autoconf 2.72 from source on top of focal's apt 2.69 to satisfy this. If a vcpkg port introduces a new autoconf-dependent transitive, autoconf 2.72 should still cover it; if a port requires autoconf > 2.72 in the future, bump the Dockerfile source-build URL and SHA256 pin in lockstep. See [#77](https://github.com/janset2d/sdl2-cs-bindings/issues/77).
+- **mpg123 arm64 NEON64 + fixed-point math conflict**: vcpkg's upstream `mpg123` port FPU detection incorrectly reports `HAVE_FPU=0` on arm64 Linux containers, enabling `REAL_IS_FIXED` which conflicts with `OPT_NEON64`. Workaround: a vcpkg overlay port at [`vcpkg-overlay-ports/mpg123/`](../../vcpkg-overlay-ports/) patches the FPU detection to force `HAVE_FPU=1` on arm64 Linux. The `vcpkg-setup` composite passes `--overlay-ports` automatically. **Re-validate on every vcpkg baseline bump**; remove when upstream fixes land. See [#78](https://github.com/janset2d/sdl2-cs-bindings/issues/78) + [microsoft/vcpkg#40709](https://github.com/microsoft/vcpkg/issues/40709). Maintenance protocol: [`vcpkg-overlay-ports/README.md`](../../vcpkg-overlay-ports/).
+- **Linux missing dev headers**: builder image bakes the canonical SDL2 dependency set (X11 + Wayland + ALSA + freepats for MIDI + libicu + autotools). If a vcpkg feature flag introduces a new system dep, update [`docker/linux-builder.Dockerfile`](../../docker/linux-builder.Dockerfile) and re-run `build-linux-container.yml` to publish a new `focal-<yyyymmdd>-<sha>` tag. The mutable `focal-latest` pointer retags onto the new digest after `imagetools create` runs.
 
-**Diagnosis**: Check GitHub Actions storage limits and artifact naming. Common issues:
+**General fixes**:
 
-- Artifact name conflicts between matrix jobs
-- Total artifact size exceeding limits
-- Path too long (Windows-specific)
+- **Cache corruption**: GHCR + `actions/cache` invalidation differ. For `actions/cache` (vcpkg binary cache), delete the cache entry from the workflow's Caches UI and re-run. For GHCR (builder image), rebuild via `build-linux-container.yml` — the `focal-latest` pointer retags once the new image is pushed.
+- **Upstream vcpkg port bug**: cross-reference [microsoft/vcpkg issues](https://github.com/microsoft/vcpkg/issues) for known port-version-specific problems. If an overlay port fixes it locally, follow the mpg123 pattern (patch + re-validate on baseline bumps).
 
-**Fix**: Ensure each matrix job produces uniquely-named artifacts.
+### vcpkg cache miss (full cold rebuild)
 
-### Linux Container Issues
+**Symptoms**: A vcpkg-using job (`harvest` matrix entry) takes 15-30 minutes instead of the warm-cache 2-5 minutes.
 
-**Symptoms**: Failures specific to Linux workflows
+**Diagnosis**: Check the `vcpkg-setup` step's "Restore NuGet cache (Unix)" / "(Windows)" log line — `Cache hit for: <key>` vs `Cache restored from key:` (restore-key fallback) vs no-hit cold build.
 
-**Common issues**:
+The cache key shape (`.github/actions/vcpkg-setup/action.yml`):
 
-- **Git safe directory**: The container's workspace may not be in git's safe directory list. The workflow should run `git config --global --add safe.directory $(pwd)`.
-- **Missing locales**: Some tools need UTF-8 locale. Set `LANG=C.UTF-8` or install `locales` package.
-- **ARM64 emulation**: `ubuntu-24.04-arm` runners are real ARM64 hardware, not emulated. If the runner is unavailable, the job queues indefinitely.
+```text
+vcpkg-bin-{platform-identity}-{triplet}-{hashFiles(vcpkg.json, vcpkg-overlay-triplets/**, vcpkg-overlay-ports/**)}-{vcpkg-submodule-commit}
+```
 
-### autoconf version too old (ubuntu:20.04)
+Where `{platform-identity}` is:
+- **Host jobs** (Windows, macOS): the runner label as-is (e.g., `windows-2025`, `macos-15-intel`).
+- **Container jobs** (Linux): the GHCR image's per-platform child manifest digest, resolved inline by `vcpkg-setup` from the mutable `:focal-latest` tag (matched via `runner.os` + `runner.arch`).
 
-**Symptoms**: gperf (or other autotools-based ports) fail with `Autoconf version 2.70 or higher is required` during `autoreconf`.
+Triggers for cache miss (legitimate cold rebuild expected):
+- Vcpkg baseline / submodule commit bump.
+- `vcpkg.json` change (new feature flag, new dependency, version override).
+- Overlay triplet / port edit.
+- GHCR builder image refresh (new digest behind `focal-latest`).
+- Runner image label change (operator updated `manifest.runtimes[].runner`).
 
-**Root cause**: ubuntu:20.04 ships autoconf 2.69. Newer vcpkg baselines pull in ports (e.g. gperf 3.3 via harfbuzz) that require autoconf >= 2.70.
+**Fix**: First run after a legitimate change is slow; subsequent runs hit the new key.
 
-**Fix**: The Linux workflow installs autoconf 2.72 from source after the apt packages. This is a build-time tool only — it does not affect the shipped binaries or glibc target. See #77 and upstream microsoft/vcpkg#48169.
+### `RestoreLockedMode` strict-mode failure (NU1004 / NU1005 / NU1009)
 
-### mpg123 arm64 build failure (NEON64 + fixed-point math)
+**Symptoms**: `build-cake-host` job's `dotnet test build/_build.Tests/Build.Tests.csproj` fails with `NU1004: The package references have changed` or `NU1009: implicitly referenced packages` during restore.
 
-**Symptoms**: mpg123 fails on arm64-linux with `#error "Bad decoder choice together with fixed point math!"`.
+**Diagnosis**: P5 (Slice E follow-up) introduced strict lock-file mode on the build-host csprojs only. Strict mode is gated on `$(GITHUB_ACTIONS)='true'` in `build/_build/Build.csproj` + `build/_build.Tests/Build.Tests.csproj`. `src/**` csprojs use lenient mode (lock files committed for diff visibility, but drift regenerates rather than fails) precisely because SDK-implicit packages (`Microsoft.NET.ILLink.Tasks` per .NET runtime patch, `Microsoft.NETFramework.ReferenceAssemblies` per host OS) drift past the local SDK on every monthly Microsoft cadence.
 
-**Root cause**: The upstream vcpkg port's FPU detection incorrectly reports no FPU on arm64 Linux containers, enabling `REAL_IS_FIXED` which conflicts with `OPT_NEON64`.
+**Fixes**:
 
-**Fix**: A vcpkg overlay port at `vcpkg-overlay-ports/mpg123/` patches the FPU detection to force `HAVE_FPU=1` on arm64 Linux. The `vcpkg-setup` action passes `--overlay-ports` to vcpkg automatically. Remove this overlay when upstream fixes land. See #78 and upstream microsoft/vcpkg#40709.
+- **Build-host strict failure**: legitimate lock-file drift on bounded package surface. Run `dotnet restore build/_build.Tests/Build.Tests.csproj --force-evaluate` locally, commit the regenerated `packages.lock.json` files. Build-host package surface is `Cake.Frosting + OneOf + NuGet.Versioning + ...` — none patch-driven, so genuine drift is rare and usually intentional (CPM bump).
+- **NEVER copy strict mode to `src/`**: a previous attempt failed with NU1004 + NU1009 chains because Linux SDK auto-implicit-defines `Microsoft.NETFramework.ReferenceAssemblies` for every csproj at root level CPM. Lenient mode in `src/Directory.Build.props` is the correct discipline. See [memory: Lock-File Strict-Mode Scope Discipline](../../) for the full rationale.
 
-**Maintenance**: This overlay requires re-validation on every vcpkg baseline bump. The dependency chain is `sdl2-mixer` → `mpg123`. See `vcpkg-overlay-ports/README.md` for the full maintenance protocol.
+### `consumer-smoke` matrix entry fails on net4x runtime
 
-### macOS-Specific Issues
+**Symptoms**: `consumer-smoke (win-x86)` or similar net4x-targeting matrix entry fails with `Failed to resolve apphost` / `BadImageFormatException` / `DllNotFoundException`.
 
-**Symptoms**: Failures only on macOS workflows
+**Diagnosis**: net4x AnyCPU + native-package presence triggers SDK auto-x86 RuntimeIdentifier inference, which is indistinguishable from user-explicit `-r win-x86`. Cake's `IPackageConsumerSmokeRunner.AppendNet4xPlatformArgument` forwards `-p:Platform=<arch>` for net4* TFMs alongside `-r <rid>` so the consumer-side `_JansetSdlNativeCopyDllsForFrameworkWindows` target reads `Platform`/`Prefer32Bit`/`OSArchitecture` (deliberately ignoring `RuntimeIdentifier`).
 
-**Common issues**:
+**Fixes**:
 
-- **Xcode version**: Different macOS runner images have different Xcode versions. Check `macos-15-intel` vs `macos-latest` default Xcode.
-- **Homebrew packages**: If `autoconf`/`automake`/`libtool` are needed, ensure they're installed in the workflow.
-- **Universal binaries**: `otool` may show different results for x86_64 vs arm64 slices in universal binaries.
+- If smoke is genuinely failing (regression): trace via the consumer-side targets in [`src/native/_shared/Janset.SDL2.Native.Common.targets`](../../src/native/_shared/Janset.SDL2.Native.Common.targets) (in-file comments are the canonical reference for net4x copy contract).
+- For end-user-side failures see the [Consumer Guideline section in cross-platform-smoke-validation.md](cross-platform-smoke-validation.md#netframework-anycpu-consumer-guideline).
+
+### `consumer-smoke` matrix entry fails on `dotnet pack` PATH (WSL / Linux)
+
+**Symptoms**: Local witness on WSL hits `MSB1001: Unknown switch` during `dotnet pack` of `src/native/SDL2.*.Native/`. Doesn't reproduce on Windows, doesn't reproduce in CI Linux runners (only WSL).
+
+**Diagnosis**: WSL inherits Windows PATH (`appendWindowsPath=true` default), `/mnt/c/Program Files/dotnet/dotnet` ends up ahead of `/home/$USER/.dotnet/dotnet`. Cake host starts on Linux dotnet (full-path resolution) but child `dotnet pack` resolves through naked PATH lookup → picks Windows dotnet → MSBuild Windows can't parse `/home/...` Linux paths.
+
+**Fix**: Set Linux-only PATH explicitly before any J/K checkpoint invocation. See [cross-platform-smoke-validation.md §"WSL / Linux"](cross-platform-smoke-validation.md#wsl--linux). CI Linux is unaffected — `/mnt/c/...` doesn't exist there, only Linux paths in PATH.
+
+### Builder image `focal-latest` 404 / multi-arch missing manifest
+
+**Symptoms**: `harvest` Linux matrix entry fails at `actions/checkout@v6` with `Error response from daemon: pull access denied` or `manifest unknown`. Or `docker pull` of `focal-latest` returns only one arch (e.g., amd64 missing or arm64 missing).
+
+**Diagnosis**: Two known causes:
+- **Untagged version pruned by retention**: the `retention` job's `actions/delete-package-versions` previously had `delete-only-untagged-versions: false`, which swept platform-specific runtime manifests that GHCR reported as "untagged" (they were members of the multi-arch image index, not standalone-tagged). Post-2026-04-22 fix: `delete-only-untagged-versions: true` constrains deletes to genuinely-orphaned versions.
+- **SBOM/provenance attestation noise**: `docker/build-push-action@v6` with attestations enabled produces 2 manifests per arch (runtime + attestation). Tagless attestation manifests look like "untagged versions" to retention tooling. Workflow disables them: `provenance: false` + `sbom: false`.
+
+**Fixes**:
+
+- Re-run `build-linux-container.yml` with `workflow_dispatch` to rebuild + re-merge the multi-arch image. The `focal-latest` pointer retags onto the new digest via `imagetools create`.
+- If the retention configuration was reverted, check `delete-only-untagged-versions: true` is still set.
+- For deeper investigation: `docker buildx imagetools inspect ghcr.io/janset2d/sdl2-bindings-linux-builder:focal-latest` shows the current manifest list and per-arch digests.
+
+### `harvest` produces empty results / NativeSmoke MIDI decoder missing on Linux
+
+**Symptoms**: `harvest` matrix entry runs but RID status JSON shows `primary_files_count: 0` for a library, or `NativeSmoke` reports `Mix decoder: MIDI` as "decoder missing" on Linux.
+
+**Diagnosis**:
+
+1. **Empty harvest**: check `manifest.json` `library_manifests[].primary_binaries[].patterns` — do they match actual filenames in `vcpkg_installed/<triplet>/`? Run `--target Inspect-HarvestedDependencies --rid <rid>` locally to see scanner output. Most common cause: a vcpkg port renames a binary across baseline bumps.
+2. **MIDI decoder missing on Linux**: SDL_mixer's bundled internal Timidity only supports GUS `.pat` patches and only registers the `MIDI` decoder when it finds a GUS-format config at init. The Linux builder image installs `freepats` exactly for this reason (drops GUS patches at `/usr/share/midi/freepats/` + `/etc/timidity/freepats.cfg`). If the `freepats` apt install ever drops out of `docker/linux-builder.Dockerfile`, MIDI decoder discovery silently fails.
+
+**Fixes**:
+
+- Empty harvest from pattern mismatch: update `manifest.json` `primary_binaries[].patterns` to match the new vcpkg output filename.
+- Empty harvest from new system dep: add the dep to `manifest.json` `system_exclusions.<os>` (whitelist) so the scanner doesn't try to bundle it.
+- MIDI decoder missing: re-check `freepats` in [`docker/linux-builder.Dockerfile`](../../docker/linux-builder.Dockerfile); rebuild the builder image if it dropped out.
+
+### macOS-specific issues
+
+**Common surfaces**:
+
+- **Xcode version drift**: `macos-15-intel` (osx-x64 runner) vs `macos-26` (osx-arm64 runner — current `macos-latest`) ship different Xcode versions. CMake / clang behavior can diverge on toolchain features.
+- **Mono availability for net462**: net462 runtime smoke on macOS depends on a `mono` binary in `$PATH`. `macos-14` shipped Mono 6.12 preinstalled; `macos-15` removed it. Cake's `IPackageConsumerSmokeRunner.IsMonoAvailableOnPath()` probes for this and gates net462 runtime execution accordingly. To enable net462 runtime coverage: install `brew install mono` or the [mono-project.com MDK pkg](https://www.mono-project.com/download/stable/) on the runner. Compile-time net462 coverage runs unconditionally (via `Microsoft.NETFramework.ReferenceAssemblies` SDK-implicit ref).
+- **Homebrew formula drift**: `platform-build-prereqs` composite is idempotent per-formula (`brew list --formula <name>` check before install) but assumes `pkg-config + autoconf + automake + libtool` are install-targets. New vcpkg formulas added at port build-time would surface as install-failures here; bump the composite formula list in lockstep with vcpkg port additions.
+- **otool universal binary slices**: `otool -L` on a universal `.dylib` shows different `LC_LOAD_DYLIB` per arch. The harvest scanner (`MacOtoolScanner`) handles this; if you're running `otool` manually for debugging, pick the arch slice explicitly via `lipo -extract <arch>` first.
 
 ## Debugging Tips
 
-### Re-run with Debug Logging
+### Re-run with debug logging
 
-```yaml
-# Add to workflow env
-env:
-  ACTIONS_STEP_DEBUG: true
-```
+GitHub Actions UI: re-run with the "Enable debug logging" checkbox. Or set `ACTIONS_RUNNER_DEBUG: true` in workflow `env:` for persistent debug output. The Cake host honours `ACTIONS_RUNNER_DEBUG` and forces `--verbosity diagnostic` automatically (see `Program.cs` `GetEffectiveCakeArguments`).
 
-Or re-run with "Enable debug logging" checkbox in GitHub Actions UI.
+### Run locally to reproduce
 
-### Run Locally to Reproduce
+For a CI matrix entry that reproduces locally (host-RID matches the failing matrix RID), follow [cross-platform-smoke-validation.md](cross-platform-smoke-validation.md) A-K checkpoint sequence. The Cake target invocation contract is identical between CI and local (CI just adds artifact upload/download wrapping).
 
-```bash
-# Match the CI environment as closely as possible
-cd build/_build
-dotnet run -- --target Harvest --library SDL2 --rid {your-rid} --verbosity Diagnostic
-```
+For non-host RIDs (e.g., reproducing a `linux-arm64` failure on a Windows dev box) the only path is `workflow_dispatch` on `release.yml` with the matrix narrowed via `manifest.runtimes[]` edit — there is no local cross-RID emulation flow today.
 
-### Check vcpkg Build Logs
+### Check vcpkg build logs
 
-vcpkg build logs are in:
+vcpkg per-port build logs land at:
 
 ```text
-external/vcpkg/buildtrees/{port-name}/build-{triplet}-out.log
-external/vcpkg/buildtrees/{port-name}/build-{triplet}-err.log
+external/vcpkg/buildtrees/<port-name>/build-<triplet>-out.log
+external/vcpkg/buildtrees/<port-name>/build-<triplet>-err.log
 ```
 
-### Pre-flight Check
+In CI, these aren't uploaded as artifacts by default. If a port build is consistently failing in CI but not locally, add an artifact upload step to `release.yml` `harvest` job conditional on failure (`if: failure()`) for the buildtrees subtree.
 
-Before debugging complex issues, run the pre-flight check:
+### Pre-flight check (local)
 
-```bash
-cd build/_build
-dotnet run -- --target PreFlightCheck
-```
-
-This validates that `manifest.json` and `vcpkg.json` are consistent.
-It also validates runtime strategy coherence (`runtimes[].strategy` vs triplet-derived model).
+Before a CI dispatch, run `--target PreFlightCheck --rid <rid>` locally to validate `manifest.json` ↔ `vcpkg.json` consistency + strategy coherence + per-csproj pack contract (G4/G6/G7/G17/G18) + G54 upstream version alignment + G58 cross-family resolvability.

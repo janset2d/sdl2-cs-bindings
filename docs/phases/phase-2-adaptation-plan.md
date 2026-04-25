@@ -32,7 +32,7 @@ Historical amendment layers (S1 adoption, retired streams A0 / A-risky partial r
 
 **Not yet green (Slice E follow-up pass scope + Phase 2b tail):**
 
-- Broader canonical-doc sweep tail (AGENTS.md / onboarding.md / knowledge-base surface drift cleanup + §11 Q17 ADR-002 §2.3 delegate-hook stance resolution).
+- ~~Broader canonical-doc sweep tail (AGENTS.md / onboarding.md / knowledge-base surface drift cleanup + §11 Q17 ADR-002 §2.3 delegate-hook stance resolution).~~ **Closed 2026-04-25 in Slice E follow-up pass P8.** ADR-002 §2.3.1 amendment formalizes the delegate-hook pattern for non-mockable third-party boundaries; cross-platform-smoke-validation.md gains WSL Linux-only PATH note (P7) + .NETFramework AnyCPU consumer guideline (P8.2); §11 Q17 + Q18 closed in `phase-2-release-cycle-orchestration-implementation-plan.md`. Residual broader-doc surface (AGENTS.md / onboarding.md drift) deferred to Phase 2b — out of Slice E follow-up scope.
 - Slice E follow-up pass: E1c prepare-*.yml absorption into `release.yml` matrix jobs via composite actions, E1d lock-file discipline, E3 prepare-*.yml retirement, E4 `PublishTask` stubs, E5 lint, E6 doc sweep tail, E7 three-platform CI witness per `cross-platform-smoke-validation.md` A-K checkpoints.
 - GHCR image first push (operator manual gate: `workflow_dispatch` on `build-linux-container`, then `manifest.runtimes[].container_image` pointer update).
 - PA-2 behavioral witness runs on `win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64` via the new pipeline (blocked on Slice E follow-up closure + GHCR image push).

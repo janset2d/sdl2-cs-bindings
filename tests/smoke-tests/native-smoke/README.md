@@ -15,10 +15,12 @@ Cross-platform C/CMake project that validates SDL2 hybrid-static native librarie
 
 ## Two Modes
 
-| Mode | Preset suffix | Tests | What it does | Use case |
-| --- | --- | --- | --- | --- |
-| **Headless** | (none) | 13 | Dummy audio/video drivers, no display needed | CI, automated validation |
-| **Interactive** | `-interactive` | 16 | Real display + audio, opens a window, renders SDL2_gfx circle | Local debugging, F5 in IDE |
+| Mode | Source | Preset name | Tests | What it does | Use case |
+| --- | --- | --- | --- | --- | --- |
+| **Headless** | `CMakePresets.json` (VCS-tracked) | `<rid>` (Release), `<rid>-debug` (Debug) | 13 | Dummy audio/video drivers, no display needed | CI, automated validation |
+| **Interactive** | `CMakeUserPresets.json` (developer-local; opt-in via `CMakeUserPresets.json.example` template) | `<rid>-interactive` | 16 | Real display + audio, opens a window, renders SDL2_gfx circle | Local debugging, F5 in IDE |
+
+The interactive variant moved out of `CMakePresets.json` (P8 closure, 2026-04-25) into a developer-local opt-in pattern aligned with the official [`cmake-presets(7)` recommendation](https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html#user-presets) — VCS-tracked presets carry only the canonical Release/Debug axis; per-developer feature toggles like `SMOKE_INTERACTIVE` ride `CMakeUserPresets.json` (gitignored). See **[Interactive Mode](#interactive-mode)** below for opt-in steps.
 
 ## Prerequisites
 
@@ -96,15 +98,32 @@ cmake --build build/osx-x64
 
 ## Interactive Mode
 
-Use the `*-interactive` presets to open a real window and test rendering:
+Interactive presets are developer-local — opt in by copying the template into a real `CMakeUserPresets.json` (gitignored, auto-detected by CMake / CLion / VS 2022 17.5+ alongside `CMakePresets.json`):
 
 ```bash
-# Configure + build
+# From tests/smoke-tests/native-smoke/
+cp CMakeUserPresets.json.example CMakeUserPresets.json
+```
+
+The template ships interactive variants for every supported RID (`win-{x64,x86,arm64}-interactive`, `linux-{x64,arm64}-interactive`, `osx-{x64,arm64}-interactive`); each inherits its `<rid>-debug` parent and adds `SMOKE_INTERACTIVE=ON`. Once `CMakeUserPresets.json` exists, the IDE preset drop-down shows the interactive variants alongside the canonical Release/Debug pair without further configuration.
+
+Configure + build + run:
+
+```bash
+# Configure + build (Windows x64 example)
 cmake --preset win-x64-interactive
 cmake --build build/win-x64-interactive
 
 # Run — opens a window with SDL2_gfx circle + text, auto-closes after 3s
 .\build\win-x64-interactive\native-smoke.exe
+```
+
+CLI alternative without the UserPresets file (one-off, no IDE wiring):
+
+```bash
+cmake --preset win-x64-debug -DSMOKE_INTERACTIVE=ON
+cmake --build build/win-x64-debug
+.\build\win-x64-debug\native-smoke.exe
 ```
 
 Interactive mode runs all headless tests first (13 tests), then additionally:

@@ -66,12 +66,12 @@ For local testing with native binaries, you have two options:
 
 #### Option A: Download CI artifacts
 
-1. Go to GitHub Actions → `prepare-native-assets-main` workflow
-2. Download the artifact for your platform. Current artifact names follow `harvested-assets-{platform}-{rid}` (for example: `harvested-assets-windows-win-x64`).
-3. Extract and merge the artifact so the harvested library directories land under `artifacts/harvest_output/`.
-4. Copy the harvested native payload from `artifacts/harvest_output/{Library}/runtimes/{rid}/native/` into the matching `src/native/{Library}.Native/runtimes/{rid}/native/` directory.
+1. Go to GitHub Actions → `Release` workflow → trigger via `workflow_dispatch` (or use a previously-completed run on a tag push).
+2. Download the per-RID `harvest-output-<rid>` artifact for your platform (for example: `harvest-output-win-x64`). Each carries `artifacts/harvest_output/<Library>/` for every library that ran on that RID.
+3. Extract under your local `artifacts/harvest_output/` so the per-library subtrees land at the expected path.
+4. The packed `.nupkg` files are also available as the `nupkg-output` artifact from the same run; you can drop them into a local feed and consume via `Janset.Local.props` instead of harvesting + packing locally.
 
-Current status: the `prepare-native-assets-*` workflows now target the full SDL2 satellite set with explicit RID. Expanded matrix validation is still pending.
+The retired `prepare-native-assets-*.yml` family was deleted 2026-04-25 (P8.1) — its harvest discipline lives inside `release.yml`'s `harvest` matrix job now. See [ci-cd-packaging-and-release-plan.md](../knowledge-base/ci-cd-packaging-and-release-plan.md) for the live job topology.
 
 #### Option B: Install SDL2 system-wide
 
@@ -126,16 +126,18 @@ dotnet build
 ### Step 4: Run Harvest
 
 ```bash
-# From build/_build directory
+# From repo root
 # Windows:
-dotnet run -- --target Harvest --library SDL2 --library SDL2_image --library SDL2_mixer --library SDL2_ttf --library SDL2_gfx --library SDL2_net --rid win-x64
+dotnet run --project build/_build -- --target Harvest --library SDL2 --library SDL2_image --library SDL2_mixer --library SDL2_ttf --library SDL2_gfx --rid win-x64
 
 # Linux:
-dotnet run -- --target Harvest --library SDL2 --library SDL2_image --library SDL2_mixer --library SDL2_ttf --library SDL2_gfx --library SDL2_net --rid linux-x64
+dotnet run --project build/_build -- --target Harvest --library SDL2 --library SDL2_image --library SDL2_mixer --library SDL2_ttf --library SDL2_gfx --rid linux-x64
 
 # macOS:
-dotnet run -- --target Harvest --library SDL2 --library SDL2_image --library SDL2_mixer --library SDL2_ttf --library SDL2_gfx --library SDL2_net --rid osx-arm64
+dotnet run --project build/_build -- --target Harvest --library SDL2 --library SDL2_image --library SDL2_mixer --library SDL2_ttf --library SDL2_gfx --rid osx-arm64
 ```
+
+> SDL2_net was removed from `manifest.json` 2026-04-22 (commit `bc652d1`) — re-add when the binding + native csproj skeleton lands per [#58](https://github.com/janset2d/sdl2-cs-bindings/issues/58). Until then, `--library SDL2_net` fails with `library not found in manifest`.
 
 Harvest writes two kinds of output:
 
@@ -154,11 +156,14 @@ With Harvest + ConsolidateHarvest green, produce the per-family nupkgs via the C
 
 ```bash
 dotnet run --project build/_build -- --target Package \
-  --family sdl2-core --family sdl2-image --family sdl2-mixer --family sdl2-ttf --family sdl2-gfx \
-  --family-version 2.32.0-local.1
+  --explicit-version sdl2-core=2.32.0-local.1 \
+  --explicit-version sdl2-image=2.8.0-local.1 \
+  --explicit-version sdl2-mixer=2.8.0-local.1 \
+  --explicit-version sdl2-ttf=2.24.0-local.1 \
+  --explicit-version sdl2-gfx=1.0.0-local.1
 ```
 
-The `--family-version` flag is a **bootstrap override** accepted by `PackageVersionResolver` — it bypasses MinVer when no git tag exists locally. For a stable release you would instead tag the commit (`git tag sdl2-core-2.32.0`) and let MinVer resolve the version from the tag.
+Each `--explicit-version <family>=<semver>` entry must follow D-3seg (`<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>` per family — anchored to the family's `library_manifests[].vcpkg_version` via G54). The `--family` / `--family-version` legacy flags retired in Slice B1 (PD-13 closure 2026-04-22); CLI surface is now provider-strict via `ExplicitVersionProvider`. For a stable release you would tag the commit (`git tag sdl2-core-2.32.0`) and let `GitTagVersionProvider` resolve the mapping from the tag — see [ADR-003 §3.1](../decisions/2026-04-20-release-lifecycle-orchestration.md) for the version-source provider architecture.
 
 > **Manual per-satellite copy is retired.** The pre-2026-04-18 "copy `artifacts/harvest_output/.../runtimes/<rid>/native/*` into `src/native/<Lib>.Native/runtimes/<rid>/native/`" step no longer applies — the native csproj packs from `$(NativePayloadSource)` (handed in by Cake, `artifacts/harvest_output/<Lib>/` root), never from the `src/` tree. Guardrail G46 hard-fails direct `dotnet pack` of a `.Native` csproj without `$(NativePayloadSource)`.
 

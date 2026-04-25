@@ -4,7 +4,7 @@
 
 This project provides comprehensive C# bindings for SDL2 (and upcoming SDL3) along with their satellite libraries (SDL_image, SDL_mixer, SDL_ttf, SDL_gfx, SDL_net), distributed as NuGet packages with pre-compiled native binaries for Windows, Linux, and macOS.
 
-[![Build Status](https://github.com/janset2d/sdl2-cs-bindings/actions/workflows/release-candidate-pipeline.yml/badge.svg?branch=master)](https://github.com/janset2d/sdl2-cs-bindings/actions/workflows/release-candidate-pipeline.yml)
+[![Release](https://github.com/janset2d/sdl2-cs-bindings/actions/workflows/release.yml/badge.svg?branch=master)](https://github.com/janset2d/sdl2-cs-bindings/actions/workflows/release.yml)
 
 ## Why This Project?
 
@@ -47,16 +47,19 @@ Native binaries are built for all major desktop platforms:
 
 | Platform | Architectures | Status |
 | --- | --- | --- |
-| Windows | x64, x86, ARM64 | Building |
-| Linux | x64, ARM64 | Building |
-| macOS | x64 (Intel), ARM64 (Apple Silicon) | Building |
+| Windows | x64, x86, ARM64 | Functional (7-RID green via `release.yml`) |
+| Linux | x64, ARM64 | Functional (GHCR-hosted `linux-builder:focal-latest` image) |
+| macOS | x64 (Intel), ARM64 (Apple Silicon) | Functional |
 
-All native libraries are compiled from source using vcpkg with the following features enabled:
+All native libraries are compiled from source using vcpkg via custom `*-hybrid` overlay triplets — transitive deps are statically baked into satellite shared libs while the SDL2 core stays dynamic (single source-of-truth instance across the package set). Active feature set:
 
 - **SDL2**: Vulkan, X11, Wayland, ALSA, D-Bus, IBus, libsamplerate
-- **SDL2_image**: AVIF, JPEG (turbo), WebP, TIFF, PNG
-- **SDL2_mixer**: MP3 (mpg123), FLAC, Opus, WavPack, MOD (libmodplug), MIDI (FluidSynth)
+- **SDL2_image**: AVIF, JPEG (libjpeg-turbo), WebP, TIFF, PNG
+- **SDL2_mixer**: MP3 (minimp3 — LGPL-free), FLAC (drflac), Opus, WavPack, OGG Vorbis, MOD (libmodplug), MIDI (bundled Timidity + freepats on Linux/CI)
 - **SDL2_ttf**: FreeType, Harfbuzz (advanced text shaping)
+- **SDL2_gfx**: primitives, rotozoom
+
+LGPL-licensed codecs (mpg123, libxmp, FluidSynth) are deliberately not in the active feature set per the project's LGPL-free codec policy — see [`AGENTS.md` Settled Strategic Decisions](AGENTS.md).
 
 ## Getting Started
 
@@ -82,15 +85,17 @@ The native packages are pulled in transitively — you never need to reference `
 | Area | Status |
 | --- | --- |
 | C# bindings (5 SDL2 libraries) | Done |
-| Cake Frosting build system | Done |
-| Native binary harvesting pipeline | Done |
-| Cross-platform CI workflows | Done |
-| NuGet package creation | In Progress |
-| Release pipeline automation | In Progress |
-| SDL2_net support | Planned |
-| Binding auto-generation (CppAst) | Planned |
-| SDL3 support | Planned |
-| Tests and samples | Planned |
+| Cake Frosting build host (DDD-layered, ADR-002) | Done |
+| Native binary harvesting pipeline (7-RID hybrid-static) | Done |
+| Cross-platform CI workflow (`release.yml`, 10 jobs) | Done |
+| NuGet package creation (5 family × 3 nupkg) | Done |
+| Build-host test suite (TUnit) | Done — 460/460 |
+| Cross-platform smoke validation (A-K checkpoints) | Done — Windows + WSL Linux local, 7 RIDs CI |
+| Release pipeline publish stubs (PublishStaging / PublishPublic) | Phase 2b — Cake stubs landed, real feed transfer pending |
+| SDL2_net support | Phase 3 — manifest entry retired pending binding skeleton (#58) |
+| Binding auto-generation (CppAst) | Phase 4 |
+| SDL3 support | Phase 5 |
+| Samples | Phase 3 (#60) |
 
 See [docs/plan.md](docs/plan.md) for detailed status and roadmap.
 
