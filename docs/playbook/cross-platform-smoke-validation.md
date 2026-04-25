@@ -728,6 +728,51 @@ What `-r <rid>` does NOT exercise:
 
 **When to revisit:** before K is promoted to active on all three platforms, decide whether the smoke should also run a second invocation **without** `-r <rid>` to cover the framework-dependent resolver path. The decision lives in [`phases/phase-2-adaptation-plan.md`](../phases/phase-2-adaptation-plan.md) Pending Decisions (PD-10).
 
+## .NETFramework AnyCPU Consumer Guideline
+
+`Janset.SDL2.*.Native` packages support .NETFramework SDK-style consumers (net4x TFMs) on Windows via the `_JansetSdlNativeCopyDllsForFrameworkWindows` target. **Canonical reference for native asset placement contract: [`src/native/_shared/Janset.SDL2.Native.Common.targets`](../../src/native/_shared/Janset.SDL2.Native.Common.targets) — the in-file comment block carries the layout + arch resolution rationale; documentation here is a pointer, not a separate source of truth.**
+
+### Default behavior (zero csproj configuration)
+
+For modern SDK-style net4x projects with default `Prefer32Bit=false`, the apphost runs at host OSArchitecture (typically x64). The consumer-side `.targets` resolves the copy RID from `Platform` / `Prefer32Bit` / `OSArchitecture` (deliberately NOT from `RuntimeIdentifier` — SDK auto-x86 inference for AnyCPU + native package presence makes that signal indistinguishable from user-explicit `-r win-x86`):
+
+| Consumer state | Selected native RID |
+| --- | --- |
+| `Platform=x64` / `x86` / `ARM64` | `win-x64` / `win-x86` / `win-arm64` (Priority 1) |
+| `AnyCPU` + `Prefer32Bit=true` | `win-x86` (Priority 2 — 32-bit-required intent honoured) |
+| `AnyCPU` + `Prefer32Bit` unset/false | host `OSArchitecture` (Priority 3 — canonical AnyCPU-runs-at-host-arch; overrides SDK auto-x86 inference) |
+
+The `JANSET_SDL_ANYCPU_ARCH_ASSUMPTION` warning fires on the Priority-3 fallback, advising consumers to set `<RuntimeIdentifier>` or `<Platform>` explicitly when the deployed process arch differs from host (e.g., `Prefer32Bit=true` builds, `32BIT_REQUIRED` EXEs, x64 binaries on arm64 Windows under emulation).
+
+### Opt-in to win-x86 native shipping
+
+For AnyCPU consumers that genuinely need 32-bit native shipping while running on an x64 host, set one of:
+
+```xml
+<!-- Option A: Prefer32Bit (standard .NETFramework AnyCPU 32-bit-pref) -->
+<PropertyGroup>
+  <Prefer32Bit>true</Prefer32Bit>
+</PropertyGroup>
+
+<!-- Option B: Explicit Platform target -->
+<PropertyGroup>
+  <PlatformTarget>x86</PlatformTarget>
+</PropertyGroup>
+
+<!-- Option C: Explicit RuntimeIdentifier (still respected as Priority 1 input via $(Platform) mapping) -->
+<PropertyGroup>
+  <RuntimeIdentifier>win-x86</RuntimeIdentifier>
+</PropertyGroup>
+```
+
+### Why RuntimeIdentifier alone is unreliable
+
+When SDK-style net4x detects a `.Native` package's per-RID payload, it auto-sets `PlatformTarget=x86` + `RuntimeIdentifier=win-x86` regardless of the actual deployment target — and user-explicit `-r win-x86` produces the **identical** MSBuild property state. Because the two scenarios are indistinguishable, the consumer-side copy target ignores `RuntimeIdentifier` and reads the orthogonal `Platform` / `Prefer32Bit` / `OSArchitecture` surface instead.
+
+### Smoke runner alignment
+
+`PackageConsumerSmokeRunner.AppendNet4xPlatformArgument` ([`build/_build/Application/Packaging/PackageConsumerSmokeRunner.cs`](../../build/_build/Application/Packaging/PackageConsumerSmokeRunner.cs)) forwards `-p:Platform=<arch>` alongside `-r <rid>` for any `net4*` TFM (`win-x64 → x64`, `win-x86 → x86`, `win-arm64 → ARM64`), so the smoke runner's explicit RID intent maps to Priority 1 with no ambiguity. No-op for non-`net4*` TFMs and non-Windows RIDs.
+
 ## PA-2 Per-Triplet Witness Invocations
 
 PA-2 moved four previously-stock runtime rows onto hybrid overlay triplets (2026-04-18). The mechanism landed, but no behavioral evidence exists yet on the new triplets. Before Stream C consumes them as peers of the validated x64 row, we need at least one end-to-end run per new row on its native runner.
