@@ -439,7 +439,7 @@ The most complex part of the build system. Each platform uses different tools:
 ```text
 dumpbin /dependents SDL2.dll
 → Lists: SDL2.dll depends on kernel32.dll, user32.dll, vcruntime140.dll, ...
-→ Filter system_artefacts.json
+→ Filter `build/manifest.json` system exclusions
 → Recursively scan remaining dependencies
 ```
 
@@ -454,7 +454,7 @@ Resolution note (current implementation):
 ```text
 ldd libSDL2-2.0.so.0
 → Lists: libSDL2-2.0.so.0 => /usr/lib/x86_64-linux-gnu/libSDL2-2.0.so.0
-→ Filter system_artefacts.json
+→ Filter `build/manifest.json` system exclusions
 → Handle symlink chains (libSDL2.so → libSDL2-2.0.so.0 → libSDL2-2.0.so.0.3200.4)
 → Recursively scan remaining dependencies
 ```
@@ -464,7 +464,7 @@ ldd libSDL2-2.0.so.0
 ```text
 otool -L libSDL2.dylib
 → Lists: @rpath/libSDL2.dylib, /usr/lib/libSystem.B.dylib, ...
-→ Filter system_artefacts.json and framework references
+→ Filter `build/manifest.json` system exclusions and framework references
 → Handle @rpath, @loader_path references
 → Recursively scan remaining dependencies
 ```

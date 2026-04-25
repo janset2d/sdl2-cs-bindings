@@ -11,7 +11,7 @@ This document records the tradeoffs that matter when touching `build/_build/`.
 ## Strengths Worth Preserving
 
 - **DI-first composition**: platform-specific scanners and services are selected centrally instead of being hard-coded inside tasks.
-- **Configuration-driven behavior**: `manifest.json`, `runtimes.json`, and `system_artefacts.json` keep packaging policy out of the task bodies.
+- **Configuration-driven behavior**: `build/manifest.json` now carries runtimes, system exclusions, and packaging policy so task bodies stay policy-light. The earlier `runtimes.json` / `system_artefacts.json` split is historical only.
 - **Hybrid dependency discovery**: the system combines vcpkg package metadata with runtime binary scanning instead of trusting either source alone.
 - **Platform-correct deployment**: Windows uses loose-file deployment while Linux/macOS preserve symlink structure via `tar.gz`.
 - **Useful diagnostics**: per-RID status JSON, consolidation artifacts, and rich console output make harvest failures debuggable.

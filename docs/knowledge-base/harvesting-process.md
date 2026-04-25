@@ -163,7 +163,7 @@ The harvesting process adapts to different operating systems and build tooling (
     2. **NuGet Package Content**: This `native.tar.gz` file is placed within the `runtimes/{rid}/native/` directory of the NuGet package.
     3. **Extraction via MSBuild Targets**: A custom MSBuild `.targets` file is included in the `build/` folder of the NuGet package. This targets file contains logic that hooks into the consuming project's build process. When the project is built on a Linux or macOS system, the targets file executes commands (e.g., `tar -xzf`) to extract the `native.tar.gz` archive into the build output directory (e.g., `$(OutDir)`), thereby restoring the symlinks in the location where the application expects to find them.
   - **Windows**: DLLs are typically self-contained, and their deployment does not usually involve symlinks in the same way as Linux/macOS shared libraries. Therefore, for Windows, direct file copying of DLLs into the `runtimes/{rid}/native/` structure within the NuGet package is sufficient.
-- **System Library Identification**: The patterns in `system_artefacts.json` are tailored for each OS to correctly identify and exclude common system libraries that should not be redistributed.
+- **System Library Identification**: The `system_exclusions` entries in `build/manifest.json` are tailored per OS to identify and exclude common system libraries that should not be redistributed.
 - **Primary Binary Patterns**: The `primary_binaries` patterns in `manifest.json` are defined per-OS to match platform-specific naming conventions (e.g., `SDL2.dll` vs. `libSDL2*`).
 
 ## 6. Harvesting Output Structure

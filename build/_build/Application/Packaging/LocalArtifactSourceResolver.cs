@@ -16,12 +16,10 @@ using NuGet.Versioning;
 namespace Build.Application.Packaging;
 
 /// <summary>
-/// Resolves the local <see cref="ArtifactProfile.Local"/> feed. Post-<c>SetupLocalDev</c>
-/// pack output populates <c>artifacts/packages/</c>; this resolver verifies each family's
-/// nupkg + stamps <c>build/msbuild/Janset.Local.props</c> (renamed from
-/// <c>Janset.Smoke.local.props</c> in Slice C.8a, broadened from smoke-only to repo-wide
-/// local-feed override) so IDE direct-restore paths for smoke / samples / AST tests resolve
-/// the packed set without a Cake invocation.
+/// Resolves the local <see cref="ArtifactProfile.Local"/> feed.
+/// After <c>SetupLocalDev</c> writes packages to <c>artifacts/packages/</c>, this resolver
+/// verifies each family's nupkg and stamps <c>build/msbuild/Janset.Local.props</c> so IDE
+/// direct-restore paths can consume the packed set without a Cake invocation.
 /// </summary>
 public sealed class LocalArtifactSourceResolver(
     ICakeContext cakeContext,

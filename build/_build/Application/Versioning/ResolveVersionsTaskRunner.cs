@@ -12,22 +12,14 @@ using NuGet.Versioning;
 namespace Build.Application.Versioning;
 
 /// <summary>
-/// Runner for the ADR-003 <c>ResolveVersions</c> target. The build-host version-resolution
-/// entrypoint per ADR-003 §3.1 ownership invariant — CI supplies trigger context only, the
-/// build host resolves the mapping and writes it to disk as the canonical flat JSON shape for
-/// downstream consumers (CI <c>needs:</c> outputs, local inspection).
+/// Runner for the <c>ResolveVersions</c> target.
+/// It resolves a single family/version mapping inside the build host, writes that
+/// mapping to disk as flat JSON, and lets downstream jobs consume the same file
+/// instead of re-resolving versions independently.
 /// <para>
-/// Sources supported post-Slice-C:
-/// <list type="bullet">
-///   <item><c>manifest</c> — <see cref="ManifestVersionProvider"/> (B1).</item>
-///   <item><c>git-tag</c> — <see cref="GitTagVersionProvider"/> with
-///     <see cref="GitTagScope.Targeted"/> (one family). Requires <c>--scope</c>.</item>
-///   <item><c>meta-tag</c> — <see cref="GitTagVersionProvider"/> with
-///     <see cref="GitTagScope.Train"/> (multi-family at HEAD). <c>--scope</c> optional
-///     as a filter; empty means all concrete families.</item>
-/// </list>
-/// <c>explicit</c> stays a CLI-direct path — stage tasks read <c>--explicit-version</c>
-/// via <see cref="ExplicitVersionProvider"/> without going through ResolveVersions.
+/// Supported sources are <c>manifest</c>, <c>git-tag</c>, and <c>meta-tag</c>.
+/// <c>--explicit-version</c> remains a direct stage-target input and does not flow
+/// through this runner.
 /// </para>
 /// </summary>
 public sealed class ResolveVersionsTaskRunner(
@@ -130,9 +122,9 @@ public sealed class ResolveVersionsTaskRunner(
 
     private async Task WriteMappingAsync(IReadOnlyDictionary<string, NuGetVersion> mapping, CancellationToken cancellationToken)
     {
-        // Canonical flat shape (ADR-003 §3.1, plan §5.3): {family-id: semver-string}.
-        // Sorted by family identifier for deterministic output; NuGet-normalized version
-        // strings so downstream consumers can round-trip via NuGetVersion.Parse.
+        // Flat JSON shape: {family-id: semver-string}. Sort keys for deterministic output
+        // and write NuGet-normalized version strings so downstream consumers can round-trip
+        // through NuGetVersion.Parse.
         var serializable = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var (family, version) in mapping)
         {

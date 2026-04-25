@@ -132,7 +132,7 @@ New library versions may introduce new dependencies or change behavior:
 
 1. Check the vcpkg port's changelog: `external/vcpkg/ports/sdl2/portfile.cmake`
 2. Run harvest with diagnostic verbosity: `--verbosity Diagnostic`
-3. Compare `system_artefacts.json` — new system dependencies may need whitelisting
+3. Compare `build/manifest.json` `system_exclusions` — new system dependencies may need updated exclusion rules
 
 ### Pre-flight check fails
 

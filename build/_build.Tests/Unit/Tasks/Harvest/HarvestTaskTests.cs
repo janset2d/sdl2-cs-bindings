@@ -213,8 +213,8 @@ public class HarvestTaskTests
     [Test]
     public async Task RunAsync_Should_Preserve_Other_Rids_While_Cleaning_Current_Rid_Output()
     {
-        // Post-H1 invariant: Harvest cleans only the current-RID slice of runtimes/,
-        // rid-status/, and licenses/; sibling RIDs retain their evidence intact.
+        // Harvest cleans only the current RID's runtimes/, rid-status/, and licenses/
+        // entries; sibling RIDs retain their evidence intact.
         // Consolidated licenses are invalidated because any RID re-run changes the union.
         var previousLinuxStatus = HarvestStatusSeeder.Success(CoreLibrary, LinuxRid, "x64-linux-hybrid");
         var previousWindowsStatus = HarvestStatusSeeder.Failure(CoreLibrary, WindowsRid, WindowsTriplet, "previous run failed");

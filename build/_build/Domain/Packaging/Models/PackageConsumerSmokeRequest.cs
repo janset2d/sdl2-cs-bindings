@@ -4,11 +4,9 @@ using NuGet.Versioning;
 namespace Build.Domain.Packaging.Models;
 
 /// <summary>
-/// ADR-003 §3.2 per-stage request driving the stateless <c>PackageConsumerSmokeRunner</c>.
-/// Carries everything the runner needs to execute a single matrix entry (RID + resolved
-/// version mapping + feed directory). The runner reads no DI-scoped version state; this
-/// shape is what enables the ADR-003 §3.4 consumer-smoke matrix re-entry — each RID runner
-/// invokes the same target with its per-RID request and the same mapping.
+/// Request for the stateless <c>PackageConsumerSmokeRunner</c>.
+/// Carries everything the runner needs to execute a single matrix entry: RID, resolved
+/// version mapping, and feed directory.
 /// </summary>
 /// <param name="Rid">Target RID the smoke csproj restores + runs against (e.g.,
 /// <c>win-x64</c>). Drives <c>dotnet test -r &lt;rid&gt;</c>.</param>

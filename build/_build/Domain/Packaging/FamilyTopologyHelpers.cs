@@ -4,11 +4,9 @@ namespace Build.Domain.Packaging;
 
 /// <summary>
 /// Topologically orders a selected set of <see cref="PackageFamilyConfig"/> entries by
-/// their <c>depends_on</c> relations so consumers (Pack, SetupLocalDev) invoke families
-/// in dependency-safe order. Consistent with ADR-003 §2.5 ("<c>depends_on</c> does not
-/// auto-expand scope"): deps pointing outside the selected set are ignored rather than
-/// pulled in. Cycle detection surfaces an actionable error message instead of looping
-/// silently.
+/// their <c>depends_on</c> relations so consumers invoke families in dependency-safe order.
+/// Dependencies outside the selected set are ignored rather than pulled in automatically,
+/// and cycles surface an actionable error instead of looping silently.
 /// </summary>
 public static class FamilyTopologyHelpers
 {
@@ -23,9 +21,8 @@ public static class FamilyTopologyHelpers
             .Select(family => family.Name)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        // Per-family in-degree counts only deps inside the selected set; out-of-scope
-        // dependencies are ignored per ADR-003 §2.5. A satellite family can therefore
-        // ship without packing its core in the same invocation.
+        // Count only dependencies inside the selected set. Out-of-scope dependencies do not
+        // expand the selection automatically.
         var remainingInDegree = selected.ToDictionary(
             family => family.Name,
             family => family.DependsOn.Count(dep => selectedNames.Contains(dep)),

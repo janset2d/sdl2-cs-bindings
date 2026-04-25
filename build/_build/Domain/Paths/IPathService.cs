@@ -100,7 +100,7 @@ public interface IPathService
     /// <summary>artifacts/harvest_output/{libraryName}/runtimes/</summary>
     DirectoryPath GetHarvestLibraryRuntimesDir(string libraryName);
 
-    /// <summary>artifacts/harvest_output/{libraryName}/runtimes/{rid}/ — the per-RID slice Harvest cleans on re-run.</summary>
+    /// <summary>artifacts/harvest_output/{libraryName}/runtimes/{rid}/ — the per-RID directory Harvest cleans on re-run.</summary>
     DirectoryPath GetHarvestLibraryRidRuntimesDir(string libraryName, string rid);
 
     /// <summary>artifacts/harvest_output/{libraryName}/licenses/ — parent of per-RID evidence AND the consolidated subtree.</summary>
@@ -149,13 +149,11 @@ public interface IPathService
     /// <c>SetupLocalDev --source=local</c>. Stamped with <c>LocalPackageFeed</c> + per-family
     /// <c>JansetSdl&lt;Major&gt;&lt;Role&gt;PackageVersion</c> properties so that IDE
     /// direct-restore paths (Rider/VS opening smoke / sample / AST-test csprojs) resolve the
-    /// packed nupkg set without requiring a Cake invocation. Renamed from
-    /// <c>Janset.Smoke.local.props</c> in Slice C.8a; broadened from smoke-only to repo-wide
-    /// local-feed override (future samples / AST tests / sandboxes ride the same mechanism).
+    /// packed nupkg set without requiring a Cake invocation.
     /// <para>
     /// Cake runners do <b>not</b> consume this file — they thread versions via
-    /// <c>--explicit-version</c> on the stage request record (ADR-003 §3.2). The props file
-    /// is pure IDE-ergonomics artefact.
+    /// <c>--explicit-version</c> on the stage request record. The props file is a
+    /// pure IDE-ergonomics artifact.
     /// </para>
     /// </summary>
     FilePath GetLocalPropsFile();
@@ -170,8 +168,7 @@ public interface IPathService
     /// <summary>
     /// artifacts/resolve-versions/versions.json — flat {family-id: semver-string} JSON mapping
     /// emitted by the <c>ResolveVersions</c> task. CI downstream jobs consume this file via
-    /// <c>needs:</c> outputs; local operators can inspect it for debugging. Shape pinned per
-    /// ADR-003 §3.1 + plan §5.3 (the canonical CLI / JSON / provider contract).
+    /// <c>needs:</c> outputs; local operators can inspect it for debugging.
     /// </summary>
     FilePath GetResolveVersionsOutputFile();
 

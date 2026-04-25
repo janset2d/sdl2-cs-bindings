@@ -10,11 +10,9 @@ using NSubstitute;
 namespace Build.Tests.Unit.Application.Harvesting;
 
 /// <summary>
-/// Strategy A coverage (fake-filesystem precondition paths only) per the Slice D plan:
-/// we do NOT mock Cake.CMake or the native-smoke process invocation here. Those are
-/// validated end-to-end by the Linux witness. These tests guard the runner's input handling
-/// — library resolution + harvest-output preconditions — which is where the fail-fast
-/// operator UX lives.
+/// Covers the fake-filesystem precondition paths for <see cref="NativeSmokeTaskRunner"/>.
+/// These tests intentionally stop at input handling and harvest-output preconditions;
+/// they do not mock CMake or the native-smoke process itself.
 /// </summary>
 public sealed class NativeSmokeTaskRunnerTests
 {

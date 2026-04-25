@@ -2,7 +2,7 @@
 
 > **This is the canonical status document.** When code and docs disagree, verify against the code. When phases and this file disagree, this file wins.
 
-**Last updated**: 2026-04-23 (ADR-003 implementation pass closed to master at `bfc6713`; Slice E CI infrastructure absorption follow-up pass open, with win-x86 runtime bootstrap + vcpkg cache-identity fixes now in the working tree)
+**Last updated**: 2026-04-25 (Slice E follow-up pass closed on master at `d190b5b`; `release.yml` and `build-linux-container.yml` are now the live CI surface, with publish still gated behind Phase 2b stubs)
 **Maintainer**: Deniz Irgin (@denizirgin)
 
 ## Mission
@@ -11,7 +11,7 @@ Provide the .NET ecosystem with production-quality, modular SDL2 and SDL3 bindin
 
 ## Current Phase
 
-**Phase 2: CI/CD & Packaging** (IN PROGRESS — resumed after ~10 month hiatus; currently in the ADR-003 orchestration rewrite pass)
+**Phase 2: CI/CD & Packaging** (IN PROGRESS — resumed after ~10 month hiatus; ADR-003 rewrite landed, current work is the Phase 2b tail: PA-2 witness runs, remote artifact-source completion, and first prerelease publication path)
 
 Phase 2 is now divided into two stages:
 
@@ -90,16 +90,10 @@ These decisions were made during the packaging strategy research cycle (April 20
 
 | Component | Status | Notes |
 | --- | --- | --- |
-| `prepare-native-assets-main.yml` | Working | Manual trigger, calls 3 platform workflows |
-| `prepare-native-assets-windows.yml` | Working | Matrix: x64, x86, arm64; command set now includes all SDL2 satellites with explicit `--rid` (validation pending) |
-| `prepare-native-assets-linux.yml` | Working | Matrix: x64 (ubuntu:20.04), arm64 (ubuntu:24.04); command set now includes all SDL2 satellites with explicit `--rid` (validation pending) |
-| `prepare-native-assets-macos.yml` | Working | Matrix: x64 (macos-15-intel), arm64 (macos-latest); command set now includes all SDL2 satellites with explicit `--rid` (validation pending) |
-| `release-candidate-pipeline.yml` | **Stub** | Placeholder logic, not functional |
-| Pre-flight version check | Working | Validates manifest.json ↔ vcpkg.json consistency |
-| Cake Harvest task | Working | Per-RID binary collection + status files |
-| Cake Consolidate task | Working | Merges per-RID results into manifest |
-| Cake Package task | Working (proof slice) | Landed for the Phase 2a proof slice; broader 7-RID matrix coverage remains 2b |
-| NuGet publish | **Missing** | Neither internal nor public |
+| `release.yml` | Working | Live 10-job pipeline covering build-host test/publish, version resolution, PreFlight, dynamic matrix generation, harvest/native-smoke, consolidation, pack, consumer-smoke, and gated publish stages. Canonical job-by-job detail lives in `docs/knowledge-base/ci-cd-packaging-and-release-plan.md`. |
+| `build-linux-container.yml` | Working | Builds and publishes the multi-arch GHCR Linux builder image (`focal-latest` plus immutable dated tags) consumed by the Linux runtime rows in `build/manifest.json`. |
+| Publish path | Scaffolded stubs | `publish-staging` / `publish-public` Cake targets and workflow jobs exist, but remain gated `if: false` until Phase 2b feed-transfer logic lands. |
+| PA-2 witness | Pending | Explicit end-to-end witness runs are still required for `win-arm64`, `win-x86`, `linux-arm64`, and `osx-arm64` on the live pipeline. |
 
 ### Build System
 
@@ -220,10 +214,9 @@ ADR-003 locked the post-sweep direction (three `IPackageVersionProvider` impls, 
 
 ### Q3 2026 — Phase 2b: Full Hybrid Pipeline + ADR-003 Finish
 
-- [ ] Complete ADR-003 implementation if not finished in Q2: Cake refactor + CI/CD workflow rewrite + PA-2 behavioral validation on 4 newly-hybridized rows
+- [ ] Execute PA-2 behavioral validation on the 4 newly-hybridized rows via the live `release.yml` pipeline
 - [ ] Generalize Cake `Pack` stage to all 6 satellites × 7 RIDs under the new pipeline
-- [ ] Implement full package-consumer smoke test matrix re-entry on CI (7 RIDs, not local-host approximation)
-- [ ] Implement `release.yml` end-to-end per ADR-003 §3.4 (replacing / superseding `release-candidate-pipeline.yml` stub)
+- [ ] Harden evidence collection and operator playbooks around the existing 7-RID consumer-smoke matrix re-entry
 - [ ] Implement `RemoteArtifactSourceResolver` concrete (PD-5): internal feed URL convention, auth pattern, cache strategy, `SetupLocalDev --source=remote` operational on all 3 host platforms
 - [ ] Implement PD-7 full-train orchestration: meta-tag + manifest-driven topological ordering + `release-set.json` handling + partial-train recovery
 - [ ] Implement PD-8 manual escape hatch: operator-driven pack/push via `ExplicitVersionProvider`; `playbook/release-recovery.md` drafted; Cake `Pack-Family` / `Smoke-Family` / `Push-Family` helpers
@@ -296,7 +289,7 @@ Primary docs: this doc (`plan.md` Q3/Q4 2026 roadmap sections), [playbook/adding
 
 | Issue | Labels |
 | --- | --- |
-| `#58 Add SDL2_net binding and native package skeleton` | `type:enhancement`, `area:bindings`, `area:native` | Note: placeholder removed from manifest.json 2026-04-22; re-add with full structure when implementing |
+| `#58 Add SDL2_net binding and native package skeleton` (manifest placeholder removed 2026-04-22; re-add with full structure when implementing) | `type:enhancement`, `area:bindings`, `area:native` |
 | `#59 Create the SDL2 smoke test suite and CI coverage` | `type:enhancement`, `area:ci-cd`, `area:testing` |
 | `#60 Create sample projects under samples/` | `type:enhancement`, `area:docs`, `area:samples` |
 | `#61 Add the Janset.SDL2 meta-package` | `type:enhancement`, `area:bindings`, `area:packaging` |
@@ -341,10 +334,10 @@ Primary docs: [phases/phase-5-sdl3-support.md](phases/phase-5-sdl3-support.md), 
 | `#71 Add SDL3 bindings and native packages to the monorepo` | `type:enhancement`, `area:bindings`, `area:native` |
 | `#72 Extend CI and packaging flow for SDL3 prereleases` | `type:enhancement`, `area:ci-cd`, `area:packaging`, `area:release` |
 
-## Known Issues
+## Known Issues And Status Notes
 
 1. **Native binaries in git history (working-tree cleaned 2026-04-15)**: Stale payloads under `src/native/<Lib>/runtimes/` have been removed from tracking (74 files across 5 `.Native` packages) and `.gitignore` rule `src/native/*/runtimes/` added. **Pending:** history rewrite via `git-filter-repo` to drop ~30 MB of those stale payloads from past commits, followed by `git push --force-with-lease` on `master` and `nugetizer`. Local clones on WSL/Mac will need fresh `git clone` (or `git fetch origin && git reset --hard origin/<branch>`). 5 issues (#52, #53, #76, #77, #78) reference 4 repo commit SHAs that will be rewritten — post-rewrite remap via `.git/filter-repo/commit-map` is optional cleanup.
-2. **Release pipeline is a stub**: `release-candidate-pipeline.yml` has placeholder logic.
+2. **Release publication path is still stubbed**: `publish-staging` / `publish-public` are present in Cake and `release.yml`, but remain gated and throw `NotImplementedException` until Phase 2b feed-transfer work lands.
 3. **HarvestPipeline extraction still pending after strategy wiring**: `IPackagingStrategy`, `IDependencyPolicyValidator`, and `StrategyResolver` are now wired into Program.cs DI and invoked from HarvestTask/PreFlightCheck. PreFlight follow-up cleanup also landed, and the build-host suite is 340 tests green (measured 2026-04-20). Remaining orchestration cleanup is tracked in #87.
 4. **Local dev playbook needs correction**: A playbook exists, but parts of it were inaccurate and not yet validated end-to-end.
 5. **Remote artifact-source selector is not implemented yet**: active build-host flow supports `SetupLocalDev --source=local`; `RemoteInternal` / `ReleasePublic` acquisition remains stubbed for Phase 2b.
@@ -361,8 +354,8 @@ Primary docs: [phases/phase-5-sdl3-support.md](phases/phase-5-sdl3-support.md), 
 16. **SDL2-CS submodule is transitional; two upstream wrapper defects pending generator-side retirement (logged 2026-04-18)**: `external/sdl2-cs` points at `flibitijibibo/SDL2-CS` and is retired long-term by the AST-driven binding generator planned for a later phase. Two confirmed-but-untracked upstream defects today: `src/SDL2_mixer.cs:148` declares `EntryPoint = "MIX_Linked_Version"` (wrong caps — native symbol is `Mix_Linked_Version`), and `src/SDL2_ttf.cs:77` declares `EntryPoint = "TTF_LinkedVersion"` (missing underscore — native symbol is `TTF_Linked_Version`). Both wrappers throw `EntryPointNotFoundException` when called. Repo-local impact contained: `PackageConsumer.Smoke/PackageSmokeTests.cs` asserts only the wrapper methods whose EntryPoint strings match native exports, and the native-smoke (C) harness exercises `Mix_Linked_Version` / `TTF_Linked_Version` directly. **Boundary rule**: do NOT patch the submodule worktree — fix the repo-local call site or wait for generator retirement. Canonical doc: [`docs/knowledge-base/cake-build-architecture.md` "SDL2-CS Submodule Boundary (Transitional)"](knowledge-base/cake-build-architecture.md). Optional future move: file the two defects upstream as a low-cost community PR before the AST generator retires the whole submodule; deferred until someone has cycles.
 17. **Harvest license layout moved to per-RID + `_consolidated/` (2026-04-18; H1 closure)**: Prior harvest output wrote licenses flat at `licenses/{package}/{file}` — library-scoped, so sequential multi-RID runs on the same checkout overwrote earlier RIDs' license attribution (cross-platform feature deltas mean RID-specific transitive deps legitimately differ). Post-H1 layout: `licenses/{rid}/{package}/{file}` is raw per-RID evidence (written by ArtifactPlanner, cleaned per-RID by HarvestTask); `licenses/_consolidated/{package}/{file}` is the deduplicated union produced by ConsolidateHarvestTask and consumed by `src/native/Directory.Build.props` at pack time. Divergent license content across RIDs (same package+filename, different text) is emitted as per-RID suffixed variants (`copyright.win-x64`, `copyright.linux-x64`) and flagged with a warning so no attribution is silently chosen as the winner. Tests: 4 new consolidation cases in `ConsolidateHarvestTests` (union, dedup, divergence, no-success-rid skip). Full behavioral validation across a real multi-runner matrix pending Stream D-ci.
 18. **G49 core-library identity guardrail landed (2026-04-18)**: Two manifest.json fields carry the "which vcpkg package is the core library" answer — `library_manifests[].core_lib=true` and `packaging_config.core_library` — and used to be read by two separate code paths (ArtifactPlanner + HybridStaticStrategy DI factory). Post-A1: ManifestConfig exposes a single `CoreLibrary` computed property (materializes the `IsCoreLib=true` library manifest; throws only on structural errors — zero or multiple cores); runtime consumers read via that property. PreFlight gains G49 (`CoreLibraryIdentityValidator`) which asserts the two manifest fields agree, failing the operator cleanly instead of letting a silent drift propagate.
-19. **ADR-003 orchestration implementation landed on master 2026-04-22 (`bfc6713`)**: Pass-1 closed at Slice A → C core surface + Slice E infrastructure partial. Three `IPackageVersionProvider` impls (Manifest / GitTag / Explicit), per-stage request records across all seven stages, stage-owned validation (PreFlight / Harvest / NativeSmoke / Pack / ConsumerSmoke), consumer smoke matrix re-entry wired in `release.yml`, Option A resolver-centric `SetupLocalDev`, `--family-version` retired under PD-13 closure, G58 Pack-stage gate + PreFlight mirror live. Three-platform smoke witness (Windows + WSL + macOS Intel) green on `./tests/scripts/smoke-witness.cs local` + `ci-sim`. Canonical ADR: [`docs/decisions/2026-04-20-release-lifecycle-orchestration.md`](decisions/2026-04-20-release-lifecycle-orchestration.md). **Slice E follow-up pass** open from `bfc6713` baseline; scope: E1c prepare-*.yml absorption + composite actions, E1d lock-file discipline, E3 prepare-*.yml retirement, E4 PublishTask stubs, E5 lint, E6 broader doc sweep + §11 Q17 resolution, E7 three-platform witness per A-K. PA-2 behavioral validation on `win-arm64` / `win-x86` / `linux-arm64` / `osx-arm64` remains Phase 2b (post Slice E follow-up).
-20. **Slice E infrastructure landed but GHCR image not yet pushed (manual gate, 2026-04-22)**: `d9b3217` added the Cake-host-build-once pattern (`build-cake-host` job in `release.yml` publishes FDD via `dotnet publish -c Release -p:UseAppHost=false`, uploads `cake-host` artifact, every consumer does `dotnet ./cake-host/Build.dll` instead of per-job restore+build) and the multi-arch GHCR image infrastructure (`docker/linux-builder.Dockerfile` ubuntu:20.04 focal base = glibc 2.31 = Ubuntu LTS through 2030 — originally planned as debian:buster/glibc-2.28 per SkiaSharp/manylinux_2_28 baseline, corrected to focal on 2026-04-22 after buster EoL archive-move broke apt-update; focal matches prepare-native-assets-linux.yml's existing base exactly + `.github/workflows/build-linux-container.yml` native matrix amd64+arm64 build with imagetools merge, monthly cron, retention). **Image not yet built or pushed to GHCR** — next operator action: run `workflow_dispatch` on `build-linux-container` (optionally `push: false` dry-run first), then a subsequent commit updates `manifest.runtimes[].container_image` from `ubuntu:20.04` / `ubuntu:24.04` to `ghcr.io/janset2d/sdl2-bindings-linux-builder:focal-latest`. See `docs/phases/phase-2-release-cycle-orchestration-implementation-plan.md` §6.6 E2 + §11 Q16 for image rationale, apt preamble provenance (verbatim port of `prepare-native-assets-linux.yml:37-80`), tag scheme, rebuild cadence, retention policy.
+19. **ADR-003 orchestration implementation is landed end to end (2026-04-25 status)**: the Slice E follow-up pass closed on master `d190b5b`, so the live surface is now `release.yml` + `build-linux-container.yml`, not the retired `prepare-native-assets-*` / `release-candidate-pipeline.yml` family. Three `IPackageVersionProvider` impls (Manifest / GitTag / Explicit), per-stage request records across all seven stages, stage-owned validation (PreFlight / Harvest / NativeSmoke / Pack / ConsumerSmoke), consumer-smoke matrix re-entry, Option A resolver-centric `SetupLocalDev`, PD-13 closure, G58 Pack-stage gate + PreFlight mirror, publish stubs, and the three-platform witness trail are all in place. Remaining Phase 2b tail: PA-2 witness on the four newly-hybridized rows, remote artifact-source completion, and real publish-stage implementation.
+20. **Slice E infrastructure + GHCR builder image are live (2026-04-25)**: the Cake-host-build-once pattern is active in `release.yml`, Linux jobs consume the multi-arch GHCR image published by `build-linux-container.yml`, and `build/manifest.json` points Linux runtime rows at `ghcr.io/janset2d/sdl2-bindings-linux-builder:focal-latest`. The open work has moved from image bring-up to operational hardening and publication flow.
 21. **Slice E follow-up pass closed two operational gaps in the working tree (2026-04-23)**: `PackageConsumerSmoke` no longer relies on inline workflow PowerShell to make `win-x86` pass — new `IDotNetRuntimeEnvironment` / `DotNetRuntimeEnvironment` resolves required x86 runtime channels from executable TFMs, installs them via the official `dotnet-install.ps1` into a temp cache, and injects only `DOTNET_ROOT_X86` + `DOTNET_ROOT(x86)` into child `dotnet test` invocations so the parent Cake host stays on x64. Separately, `vcpkg-setup` now resolves `container_image` tags such as `ghcr.io/...:focal-latest` to immutable per-platform child manifest digests inline for cache keys (matched via `runner.os` + `runner.arch`, with top-level digest fallback) while the actual job still runs on the mutable tag; platform branching now keys on `runner.os` instead of string-comparing runner labels like `windows-latest`.
 22. **Build-host test suite: 460 tests green (measured 2026-04-23)**. Trajectory across the pass: 340 (slice-A baseline) → 355 (B1) → 390 (D pre-witness) → 398 (B2) → 400 (CA) → 418 (C partial) → 426 (C closure) → 460 (Slice E follow-up runtime/cache hardening). Coverage ratchet policy active via `Coverage-Check` Cake task against `build/coverage-baseline.json`; CI gate wiring still deferred to Stream C PreflightGate.
 

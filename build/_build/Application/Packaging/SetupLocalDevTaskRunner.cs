@@ -22,8 +22,7 @@ namespace Build.Application.Packaging;
 /// runs <c>Preflight</c> → <c>EnsureVcpkg</c> → <c>Harvest</c> → <c>ConsolidateHarvest</c>
 /// → <c>Pack</c>, and hands the resolved mapping to <see cref="IArtifactSourceResolver"/>
 /// for verify + consumer-override stamping. Non-local profiles delegate straight to the
-/// resolver (currently <see cref="UnsupportedArtifactSourceResolver"/> until
-/// <c>RemoteInternal</c> / <c>ReleasePublic</c> acquisition lands in Phase 2b).
+/// resolver, which currently reports those profiles as unsupported.
 /// </summary>
 /// <remarks>
 /// Native C++ smoke validation is deliberately <b>not</b> part of this composition — it
@@ -70,8 +69,8 @@ public sealed class SetupLocalDevTaskRunner(
 
         if (_artifactSourceResolver.Profile != ArtifactProfile.Local)
         {
-            // Non-local profiles route to the resolver directly; UnsupportedArtifactSourceResolver
-            // surfaces the Phase 2b not-implemented error until remote/release acquisition lands.
+            // Non-local profiles route to the resolver directly; the resolver owns the
+            // profile-specific error surface.
             await _artifactSourceResolver.PrepareFeedAsync(context, EmptyVersions, cancellationToken);
             await _artifactSourceResolver.WriteConsumerOverrideAsync(context, EmptyVersions, cancellationToken);
             return;

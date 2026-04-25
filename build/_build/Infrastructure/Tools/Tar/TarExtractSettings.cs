@@ -10,8 +10,7 @@ namespace Build.Infrastructure.Tools.Tar;
 /// The wrapper exists for <c>Inspect-HarvestedDependencies</c> to preserve the exact semantics
 /// MSBuild production extraction relies on (Unix symlinks, file modes, xattrs). A NuGet library
 /// alternative (SharpCompress) was evaluated and rejected because its default symbolic-link
-/// handler silently discards SONAME symlinks — see docs/phases/phase-2-release-cycle-orchestration-implementation-plan.md
-/// §11 Q9 (re-closed 2026-04-21).
+/// handling discarded SONAME symlinks during extraction.
 /// </remarks>
 public sealed class TarExtractSettings : ToolSettings
 {

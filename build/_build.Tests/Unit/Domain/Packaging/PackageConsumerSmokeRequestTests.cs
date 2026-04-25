@@ -5,9 +5,8 @@ using NuGet.Versioning;
 namespace Build.Tests.Unit.Domain.Packaging;
 
 /// <summary>
-/// Shape sanity for the ADR-003 §3.2 <see cref="PackageConsumerSmokeRequest"/> record. This
-/// is the stateless shape that enables the ADR-003 §3.4 consumer-smoke matrix re-entry —
-/// each RID runner constructs one request per matrix entry.
+/// Shape sanity for the <see cref="PackageConsumerSmokeRequest"/> record.
+/// Each RID runner constructs one request per matrix entry.
 /// </summary>
 public sealed class PackageConsumerSmokeRequestTests
 {

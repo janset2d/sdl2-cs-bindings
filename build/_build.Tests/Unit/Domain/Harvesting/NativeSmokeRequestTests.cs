@@ -3,9 +3,8 @@ using Build.Domain.Harvesting.Models;
 namespace Build.Tests.Unit.Domain.Harvesting;
 
 /// <summary>
-/// Shape sanity for the ADR-003 §3.2 <see cref="NativeSmokeRequest"/> record. NativeSmoke
-/// is the per-RID native payload validation stage extracted from Harvest in Slice D — the
-/// request surfaces the only caller-controlled axis (RID).
+/// Shape sanity for the <see cref="NativeSmokeRequest"/> record.
+/// The request carries the caller-controlled RID only.
 /// </summary>
 public sealed class NativeSmokeRequestTests
 {

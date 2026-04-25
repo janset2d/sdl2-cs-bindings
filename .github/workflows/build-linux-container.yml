@@ -21,8 +21,6 @@
 # budget; the `focal-latest` pointer itself is never deleted (it retags onto
 # the newest digest each run via `imagetools create`).
 #
-# Reference: docs/phases/phase-2-release-cycle-orchestration-implementation-plan.md §6.6 E2 + §11 Q16.
-
 name: Build Linux Container
 
 on:

@@ -4,8 +4,8 @@ using NuGet.Versioning;
 namespace Build.Tests.Unit.Domain.Preflight;
 
 /// <summary>
-/// Shape sanity for the ADR-003 §3.2 <see cref="PreflightRequest"/> record. PreFlight is
-/// version-aware by contract (ADR-003 §2.3) — every invocation carries the resolved mapping.
+/// Shape sanity for the <see cref="PreflightRequest"/> record.
+/// PreFlight always receives the resolved version mapping.
 /// </summary>
 public sealed class PreflightRequestTests
 {

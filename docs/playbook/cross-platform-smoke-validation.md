@@ -56,7 +56,7 @@ These are validated today and should pass on all 3 platforms.
 | E | Harvest | Baseline | Binary closure walk + deployment works per-platform; default scope is the full manifest library set | per-library `1 primary, 0 runtime, DirectCopy/Archive` green, rid-status JSON generated |
 | F | ConsolidateHarvest | Baseline | Per-RID merge produces manifest + summary | `harvest-manifest.json` + `harvest-summary.json` per library |
 | F1 | Inspect-HarvestedDependencies | **D** | Platform-aware artifact-side spot-check: Unix RIDs extract `native.tar.gz` via the repo-local tar wrapper into `artifacts/temp/inspect/<rid>/<lib>/` preserving SONAME symlinks, Windows RIDs read `runtimes/<rid>/native/` directly, then invokes the platform scanner (Dumpbin/Ldd/Otool) on each library's primary binary | per-library `Primary binary resolved` line + dep scanner output; no stray third-party codec DLLs / `.so` / `.dylib` entries beyond the SDL core shared library + OS/system libs |
-| G | NativeSmoke (C/C++ harness via Cake) | **D** | Hybrid-built natives load and initialize at runtime; Cake target wraps CMake configure/build + native-smoke executable invocation via Cake.CMake + `NativeSmokeRunnerTool` | `28 passed, 0 failed, Result: ALL PASS` on the current expanded harness |
+| G | NativeSmoke (C/C++ harness via Cake) | **D** | Hybrid-built natives load and initialize at runtime; Cake target wraps CMake configure/build + native-smoke executable invocation via Cake.CMake + `NativeSmokeRunnerTool` | `29 passed, 0 failed, Result: ALL PASS` on the current expanded harness |
 | J | Package (family-aware pack + post-pack validator) | D-local (post-S1), flag-updated B1 | Per-family pack produces valid `.nupkg` per library (managed + native + .snupkg) + post-pack validator suite (G21–G23, G25–G27, G47, G48) passes on every produced package | 3 `.nupkg` files per family at the `--explicit-version` mapping; post-pack validator 0 violations |
 | K | PackageConsumerSmoke | D-local (post-S1, expanded on Windows) | `PackageReference` restore from local feed + consumer-side `buildTransitive` target fires + runtime smoke succeeds for the concrete package-consumer set (`sdl2-core`, `sdl2-image`, `sdl2-mixer`, `sdl2-ttf`, `sdl2-gfx`) + Unix symlink chain preserved | per-TFM TUnit pass; current Windows host expectation is 12 passing tests on `net9.0`/`net8.0` and 11 passing tests on `net462`; netstandard2.0 compile-sanity passes |
 
@@ -376,7 +376,7 @@ cmake --build build/osx-x64
 ./build/osx-x64/native-smoke
 ```
 
-**What to look for:** `Passed: 28, Failed: 0, Result: ALL PASS` on the expanded harness (covers PNG/JPEG/WebP/TIFF/AVIF loading, FLAC/MIDI/WavPack/Opus/OGG/MP3/MOD decoder discovery, `TTF_Init`, `SDL2_gfx` drawing, `SDLNet_Init`). Older logs may still mention `13/13` — outdated.
+**What to look for:** `Passed: 29, Failed: 0, Result: ALL PASS` on the expanded harness (covers PNG/JPEG/WebP/TIFF/AVIF loading, FLAC/MIDI/WavPack/Opus/OGG/MP3/MOD decoder discovery, SDL dummy-audio registration + `Mix_OpenAudio`, `TTF_Init`, `SDL2_gfx` drawing, `SDLNet_Init`). Older logs may still mention `13/13` — outdated.
 
 **PA-2 RID expectation (Phase 2b).** The four PA-2 RIDs (`win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64`) currently have no `CMakePresets.json` entries, so `NativeSmoke --rid <pa2-rid>` fails at `cmake --preset <rid>` until Phase 2b grows the preset file. That expected-failure surface IS the PA-2 witness signal; the runner does not hard-code a RID allow-list (ADR-003 direction, 2026-04-21).
 

@@ -10,11 +10,10 @@ using NSubstitute;
 namespace Build.Tests.Integration.Versioning;
 
 /// <summary>
-/// Integration tests for <see cref="GitTagVersionProvider"/>. Run against ephemeral
-/// real-filesystem git repos (see <see cref="TempGitRepo"/>) because Cake.Frosting.Git
-/// bypasses <c>ICakeContext.FileSystem</c> and uses LibGit2Sharp's native binary directly.
-/// See plan §11 Q17 for the rationale behind the integration-style coverage (vs the
-/// test-delegate hook used in <c>PackageTaskRunner</c>).
+/// Integration tests for <see cref="GitTagVersionProvider"/>.
+/// These tests run against ephemeral real-filesystem git repos because
+/// Cake.Frosting.Git bypasses <c>ICakeContext.FileSystem</c> and uses LibGit2Sharp
+/// directly.
 /// </summary>
 public sealed class GitTagVersionProviderTests
 {

@@ -43,6 +43,6 @@ public sealed class UnsupportedArtifactSourceResolver(
     private CakeException BuildNotImplemented(string operation, string source)
     {
         return new CakeException(
-            $"SetupLocalDev --source={source} is accepted but not implemented in Phase 2a. Cannot {operation}; {Profile} artifact acquisition lands in Phase 2b.");
+            $"SetupLocalDev --source={source} is accepted but not implemented. Cannot {operation}; {Profile} artifact acquisition has not been wired yet.");
     }
 }

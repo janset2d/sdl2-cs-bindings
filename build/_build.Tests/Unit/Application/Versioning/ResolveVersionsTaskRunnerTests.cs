@@ -8,10 +8,9 @@ using Cake.Core;
 namespace Build.Tests.Unit.Application.Versioning;
 
 /// <summary>
-/// <see cref="ResolveVersionsTaskRunner"/> is the build-host CI entrypoint for ADR-003
-/// version resolution. Slice B1 implements manifest source only; other sources error with
-/// clear "lands in later slice" messages. Tests exercise the dispatch surface + the manifest
-/// happy path; file-write assertion uses the FakeRepoBuilder in-memory filesystem.
+/// Tests for <see cref="ResolveVersionsTaskRunner"/>.
+/// These cases exercise manifest-based resolution and verify that the runner writes the
+/// expected flat JSON mapping through the FakeRepoBuilder-backed filesystem.
 /// </summary>
 public sealed class ResolveVersionsTaskRunnerTests
 {

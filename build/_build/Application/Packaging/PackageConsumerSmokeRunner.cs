@@ -63,13 +63,8 @@ public sealed class PackageConsumerSmokeRunner(
         ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
 
-        // Slice C.8 (Deniz Q5a decision, 2026-04-21): --explicit-version is mandatory on
-        // the runner. The old "empty mapping → trust Janset.Smoke.local.props" fallback was
-        // retired; the runner now has a single canonical input shape (RID + Versions + FeedPath
-        // via the request record). Janset.Local.props (renamed from Janset.Smoke.local.props
-        // in C.8a) still lives as a dev-ergonomics artifact for IDE direct-restore paths, but
-        // it is NOT consumed here — avoids drift risk between props-based and -p:-based
-        // version injection.
+        // Require versions on the request itself. This runner does not fall back to
+        // Janset.Local.props, which keeps package version injection on a single path.
         if (request.Versions.Count == 0)
         {
             throw new CakeException(

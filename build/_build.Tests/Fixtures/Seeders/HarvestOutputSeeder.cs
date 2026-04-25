@@ -6,9 +6,9 @@ using Build.Domain.Harvesting.Models;
 namespace Build.Tests.Fixtures.Seeders;
 
 /// <summary>
-/// Writes a coherent per-library / per-RID harvest output slice under
+/// Writes a coherent per-library / per-RID harvest output subset under
 /// <c>artifacts/harvest_output/{library}/</c>. A single seeder instance describes one
-/// (library, rid) pair — compose multiple seeders to materialize multi-RID or multi-library
+/// (library, rid) pair; compose multiple seeders to materialize multi-RID or multi-library
 /// fixtures.
 /// <para>
 /// Produces:

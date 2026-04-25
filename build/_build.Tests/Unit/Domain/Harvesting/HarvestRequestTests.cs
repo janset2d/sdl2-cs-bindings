@@ -3,9 +3,8 @@ using Build.Domain.Harvesting.Models;
 namespace Build.Tests.Unit.Domain.Harvesting;
 
 /// <summary>
-/// Shape sanity for the ADR-003 §3.2 <see cref="HarvestRequest"/> record. Harvest is
-/// version-blind per ADR-003 §3.5 — the request carries only the per-RID axis and the
-/// library filter.
+/// Shape sanity for the <see cref="HarvestRequest"/> record.
+/// Harvest is version-blind, so the request carries only the per-RID axis and library filter.
 /// </summary>
 public sealed class HarvestRequestTests
 {

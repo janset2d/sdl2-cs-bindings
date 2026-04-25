@@ -73,8 +73,8 @@ public sealed class SetupLocalDevTaskRunnerTests
 
         await runner.RunAsync(repo.BuildContext);
 
-        // Non-local profile skips the pipeline composition entirely; the resolver is the
-        // single point where profile-specific feed acquisition would land in Phase 2b.
+        // Non-local profiles skip the local pipeline composition entirely; the resolver owns
+        // the profile-specific feed-acquisition behavior.
         await resolver.Received(1).PrepareFeedAsync(
             Arg.Any<BuildContext>(),
             Arg.Is<IReadOnlyDictionary<string, NuGetVersion>>(versions => versions.Count == 0),
@@ -132,8 +132,7 @@ public sealed class SetupLocalDevTaskRunnerTests
             Arg.Is<PackRequest>(request => request.Versions.Count == concreteFamilies.Count),
             Arg.Any<CancellationToken>());
 
-        // Resolver received the same mapping the Pack stage consumed — ADR-003 §2.4
-        // resolve-once + distribute-immutably invariant.
+        // Resolver received the same mapping the Pack stage consumed.
         await resolver.Received(1).PrepareFeedAsync(
             Arg.Any<BuildContext>(),
             Arg.Is<IReadOnlyDictionary<string, NuGetVersion>>(versions =>

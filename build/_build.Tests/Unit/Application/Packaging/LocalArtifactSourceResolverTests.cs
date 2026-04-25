@@ -13,14 +13,10 @@ using NuGet.Versioning;
 namespace Build.Tests.Unit.Application.Packaging;
 
 /// <summary>
-/// Post-B2 resolver narrowing: <see cref="LocalArtifactSourceResolver"/> only verifies the
-/// packaged feed exists for the supplied version mapping and stamps
-/// <c>Janset.Local.props</c> (renamed from <c>Janset.Smoke.local.props</c> in Slice C.8a;
-/// broadened to a repo-wide local-feed override consumed by every IDE direct-restore
-/// consumer — smoke, samples, AST tests — without the Cake runner ever reading it).
-/// The <c>Preflight/EnsureVcpkg/Harvest/Consolidate/Pack</c>
-/// composition lives in <see cref="SetupLocalDevTaskRunner"/> and is covered by its own
-/// tests; this fixture no longer stands up runner chains.
+/// Tests for <see cref="LocalArtifactSourceResolver"/>.
+/// This resolver verifies the packaged feed for a supplied version mapping and stamps
+/// <c>Janset.Local.props</c> for IDE direct-restore consumers. Pipeline composition stays
+/// with <see cref="SetupLocalDevTaskRunner"/> and is covered separately.
 /// </summary>
 public sealed class LocalArtifactSourceResolverTests
 {

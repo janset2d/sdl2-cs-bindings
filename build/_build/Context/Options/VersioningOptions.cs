@@ -3,27 +3,24 @@ using System.CommandLine;
 namespace Build.Context.Options;
 
 /// <summary>
-/// ADR-003 version-axis CLI options. Four options land in Slice B1:
+/// Version-resolution CLI options.
 /// <list type="bullet">
-///   <item><see cref="VersionSourceOption"/> (<c>--version-source</c>) — selects the provider
-///     path for the <c>ResolveVersions</c> target (<c>manifest</c>, <c>explicit</c>,
-///     <c>git-tag</c>, <c>meta-tag</c>). Stage tasks never accept <c>--version-source</c>;
-///     they consume <see cref="ExplicitVersionOption"/> directly.</item>
-///   <item><see cref="VersionSuffixOption"/> (<c>--suffix</c>) — prerelease suffix appended by
-///     <c>ManifestVersionProvider</c> (<c>--version-source=manifest</c>), e.g.
-///     <c>local.&lt;timestamp&gt;</c> or <c>ci.&lt;run-id&gt;</c>.</item>
-///   <item><see cref="VersionScopeOption"/> (<c>--scope</c>) — repeated family filter for
-///     <c>ResolveVersions</c>; empty = all families.</item>
-///   <item><see cref="ExplicitVersionOption"/> (<c>--explicit-version</c>) — repeated
-///     <c>family=semver</c> mapping entries. Stage tasks' sole version input. Also consumed by
-///     <c>ResolveVersions --version-source=explicit</c>.</item>
+///   <item><see cref="VersionSourceOption"/> (<c>--version-source</c>) selects the provider
+///     path for the <c>ResolveVersions</c> target (<c>manifest</c>, <c>git-tag</c>,
+///     <c>meta-tag</c>).</item>
+///   <item><see cref="VersionSuffixOption"/> (<c>--suffix</c>) supplies the prerelease suffix
+///     appended by <c>ManifestVersionProvider</c>.</item>
+///   <item><see cref="VersionScopeOption"/> (<c>--scope</c>) filters families for
+///     <c>ResolveVersions</c>; empty means all families.</item>
+///   <item><see cref="ExplicitVersionOption"/> (<c>--explicit-version</c>) carries repeated
+///     <c>family=semver</c> entries for stage-target execution.</item>
 /// </list>
 /// </summary>
 public static class VersioningOptions
 {
     public static readonly Option<string?> VersionSourceOption = new(
         aliases: ["--version-source"],
-        description: "Version source for the ResolveVersions target (manifest | explicit | git-tag | meta-tag). Required for ResolveVersions.");
+        description: "Version source for the ResolveVersions target (manifest | git-tag | meta-tag). Required for ResolveVersions.");
 
     public static readonly Option<string?> VersionSuffixOption = new(
         aliases: ["--suffix"],
@@ -46,7 +43,7 @@ public static class VersioningOptions
     /// <summary>
     /// Path to a JSON file containing a flat <c>{ "family": "semver", ... }</c> mapping.
     /// Entries are merged with <see cref="ExplicitVersionOption"/> CLI entries; overlap is
-    /// rejected as ambiguous per ADR-003 §2.4 resolve-once invariant. Typical CI usage:
+    /// rejected as ambiguous. Typical CI usage:
     /// <c>--versions-file artifacts/resolve-versions/versions.json</c>.
     /// </summary>
     public static readonly Option<string?> VersionsFileOption = new(

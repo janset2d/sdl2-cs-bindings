@@ -90,13 +90,11 @@ public sealed class PackageTaskRunner : IPackageTaskRunner
         {
             throw new CakeException(
                 "Package task requires at least one --explicit-version family=semver entry. " +
-                "Stage targets consume the resolved version mapping directly; scope and version " +
-                "are carried by the same mapping (ADR-003 §2.2 'scope = versions.keys').");
+                "Stage targets consume the resolved version mapping directly, and the mapping " +
+                "also defines package scope.");
         }
 
-        // G58 pre-pack gate (ADR-003 §4 Pack-stage ownership). PreFlight also runs the
-        // same scope-contains check as a mirror (Deniz Q2 decision, 2026-04-21) — defense-in-
-        // depth for operators who skip PreFlight and jump straight to --target=Package.
+        // G58 runs again here as a pack-stage guard, even if the caller skipped PreFlight.
         var g58Validation = _g58CrossFamilyDepResolvabilityValidator.Validate(explicitVersions, _manifestConfig);
         if (g58Validation.HasErrors)
         {

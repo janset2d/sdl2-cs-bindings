@@ -5,9 +5,9 @@ using Build.Domain.Packaging;
 namespace Build.Tests.Unit.Domain.Packaging;
 
 /// <summary>
-/// Post-B2 extraction of the topological sort previously inlined in
-/// <c>PackageTaskRunner</c>. Covers the ADR-003 §2.5 invariant ("depends_on is not
-/// automatic scope expansion") plus cycle detection + deterministic tie-breaking.
+/// Tests for <see cref="FamilyTopologyHelpers"/>.
+/// These cases cover dependency ordering, cycle detection, and the rule that
+/// <c>depends_on</c> does not automatically expand the selected scope.
 /// </summary>
 public sealed class FamilyTopologyHelpersTests
 {
@@ -48,8 +48,8 @@ public sealed class FamilyTopologyHelpersTests
     [Test]
     public async Task TryOrderByDependencies_Should_Ignore_Dependencies_Outside_Selected_Scope()
     {
-        // ADR-003 §2.5: depends_on does NOT auto-expand scope. A satellite selected alone
-        // may ship without its core packing in the same invocation.
+        // depends_on does not auto-expand scope. A satellite selected alone may ship
+        // without packing its core in the same invocation.
         var selected = new[]
         {
             CreateFamily("sdl2-image", dependsOn: ["sdl2-core"]),

@@ -12,7 +12,7 @@ Orchestrates the post-B2 flat Cake graph into two reproducible witness flows.
 | Mode | What it runs | Intent |
 | --- | --- | --- |
 | `local` (default) | `CleanArtifacts` → `SetupLocalDev` → `PackageConsumerSmoke` | Fast dev iterate. Validates the `SetupLocalDev` composition + end-to-end consumer smoke. |
-| `ci-sim` | `CleanArtifacts` → `ResolveVersions` → `PreFlightCheck` → `EnsureVcpkgDependencies` → `Harvest` → `NativeSmoke` → `ConsolidateHarvest` → `Package` | Mini CI/CD replay. Every stage invoked standalone with the `ResolveVersions`-emitted mapping, mirroring `release.yml`. Proves the flat graph works when each stage is independently reachable. `PackageConsumerSmoke` is deliberately skipped — see note below. |
+| `ci-sim` | `CleanArtifacts` → `ResolveVersions` → `PreFlightCheck` → `EnsureVcpkgDependencies` → `Harvest` → `NativeSmoke` → `ConsolidateHarvest` → `Package` → `PackageConsumerSmoke` | Mini CI/CD replay. Every stage invoked standalone with the `ResolveVersions`-emitted mapping, mirroring `release.yml`, then closes the loop with the same consumer smoke gate the pipeline uses after packaging. |
 
 Logs land under `.logs/witness/<platform>-<mode>-<runId>/NN-<step>.log` (gitignored,
 outside `artifacts/` so Cake's `CleanArtifacts` target cannot wipe them mid-run).

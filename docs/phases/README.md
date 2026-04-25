@@ -19,16 +19,15 @@
 
 ## Active Phase
 
-**Phase 2: CI/CD & Packaging** — resumed 2026-04-11 after ~10 month hiatus; currently in the ADR-003 orchestration rewrite pass.
+**Phase 2: CI/CD & Packaging** — resumed 2026-04-11 after ~10 month hiatus; ADR-003 implementation is landed and the remaining work is the Phase 2b tail.
 
 Post-[ADR-003](../decisions/2026-04-20-release-lifecycle-orchestration.md) priority items for Phase 2:
 
-1. **Canonical documentation sweep** — align all canonical docs with ADR-003 baseline (vision-first, stage-owned validation, version-source providers, consumer smoke matrix re-entry). *(Active)*
-2. **Cake refactor** — introduce `IPackageVersionProvider` + 3 impls (Manifest / GitTag / Explicit); extract `NativeSmokeTask` from Harvest; adopt per-stage request records; retire `--family-version` in favor of `--explicit-version`.
-3. **CI/CD workflow rewrite** — new `release.yml` with dynamic matrix from `manifest.runtimes[]` + consumer smoke matrix re-entry; deprecate or reuse existing `prepare-native-assets-*.yml` in harvest-only shape.
-4. **PA-2 behavioral validation** — end-to-end pack + consumer-smoke witness runs on the four newly-hybridized RIDs (`win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64`) via the new pipeline.
-5. **G58 cross-family dependency resolvability** — implement scope-contains check + optional feed probe in Pack stage.
-6. **Remote artifact source profile** — implement `RemoteArtifactSourceResolver` so `SetupLocalDev --source=remote` becomes operational (Phase 2b, Stream D-ci).
+1. **Canonical documentation sweep tail** — remove remaining drift on legacy and historical surfaces while keeping live docs pointed at the canonical plan, adaptation ledger, and CI knowledge-base. *(Active)*
+2. **PA-2 behavioral validation** — end-to-end pack + consumer-smoke witness runs on the four newly-hybridized RIDs (`win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64`) via the live `release.yml` pipeline.
+3. **Remote artifact source profile** — implement `RemoteArtifactSourceResolver` so `SetupLocalDev --source=remote` becomes operational (Phase 2b, Stream D-ci).
+4. **Publish path implementation** — replace the gated `publish-staging` / `publish-public` stubs with real staging/public feed transfer.
+5. **Release recovery and train orchestration** — close the remaining operator-flow decisions around full-train release and manual escape hatches (PD-7 / PD-8).
 
 Historical Phase 2a scope items (vcpkg.json coverage, vcpkg baseline, Cake `PackageTask`, packaging strategy) already landed; see [plan.md](../plan.md) "What Works Today" and Strategic Decisions April 2026 for the current factual state. For the detailed stream-level ledger, see [phase-2-adaptation-plan.md](phase-2-adaptation-plan.md).
 

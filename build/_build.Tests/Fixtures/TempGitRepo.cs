@@ -6,13 +6,12 @@ namespace Build.Tests.Fixtures;
 
 /// <summary>
 /// Ephemeral LibGit2Sharp-backed git repository rooted under <see cref="Path.GetTempPath"/>.
-/// Used by integration tests for <c>GitTagVersionProvider</c> (plan §11 Q17) that cannot
-/// ride <c>FakeFileSystem</c> — Cake.Frosting.Git bypasses <c>ICakeContext.FileSystem</c>
-/// and operates on real disk via LibGit2Sharp's native binary.
+/// Used by integration tests for <c>GitTagVersionProvider</c> because Cake.Frosting.Git
+/// bypasses <c>ICakeContext.FileSystem</c> and operates on real disk via LibGit2Sharp.
 /// <para>
-/// Provides the minimum surface needed by the Slice C provider tests: Init + commit a
-/// synthetic file + apply an annotated tag at HEAD. Teardown deletes the temp directory
-/// tree, including the <c>.git</c> folder.
+/// Provides the minimum surface needed by the git-tag tests: initialize a repository,
+/// commit synthetic files, and apply tags at HEAD or a specific commit. Teardown deletes
+/// the temp directory tree, including the <c>.git</c> folder.
 /// </para>
 /// </summary>
 public sealed class TempGitRepo : IDisposable

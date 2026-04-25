@@ -4,8 +4,8 @@ using NuGet.Versioning;
 namespace Build.Tests.Unit.Domain.Packaging;
 
 /// <summary>
-/// Shape sanity for the ADR-003 §3.2 <see cref="PackRequest"/> record. The mapping's key set
-/// IS the pack scope (ADR-003 §2.2 "scope = versions.keys").
+/// Shape sanity for the <see cref="PackRequest"/> record.
+/// The mapping's key set is the pack scope.
 /// </summary>
 public sealed class PackRequestTests
 {

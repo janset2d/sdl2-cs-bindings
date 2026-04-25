@@ -9,10 +9,9 @@ using NuGet.Versioning;
 namespace Build.Tests.Unit.Tasks.Packaging;
 
 /// <summary>
-/// Tests for <see cref="PackageConsumerSmokeTask"/> ShouldRun gate + RunAsync delegation.
-/// The task is the thin Cake adapter; the runner (<see cref="IPackageConsumerSmokeRunner"/>)
-/// owns policy. These tests verify the task-layer auto-skip behavior per ADR-003 §3.2
-/// (C.8 strict: empty mapping → skip) and the request-construction → runner delegation.
+/// Tests for <see cref="PackageConsumerSmokeTask"/> ShouldRun gating and RunAsync delegation.
+/// The task is a thin Cake adapter; the runner owns policy. These tests cover the
+/// task-layer skip behavior for an empty version mapping and the request handoff.
 /// </summary>
 public sealed class PackageConsumerSmokeTaskTests
 {

@@ -4,10 +4,9 @@ using Build.Domain.Packaging.Models;
 namespace Build.Application.Packaging;
 
 /// <summary>
-/// Pack-stage runner contract. Single method, single shape — the request record carries
-/// the resolved per-family version mapping (ADR-003 §3.2). Both <c>PackageTask</c> and
-/// <c>SetupLocalDevTaskRunner</c> construct the request explicitly; neither path reads
-/// mapping state from DI.
+/// Pack-stage runner contract.
+/// The request carries the resolved per-family version mapping explicitly; neither
+/// <c>PackageTask</c> nor <c>SetupLocalDevTaskRunner</c> reads version state from DI.
 /// </summary>
 public interface IPackageTaskRunner
 {

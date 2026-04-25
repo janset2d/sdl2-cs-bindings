@@ -11,19 +11,15 @@ namespace Build.Application.Versioning;
 
 /// <summary>
 /// <see cref="IPackageVersionProvider"/> that derives per-family versions from git tags
-/// pointing at HEAD (ADR-003 §3.1 Mode A single-family and Mode B multi-family / meta-tag).
-/// Tag format per ADR-001 §3: <c>{manifest.package_families[].tag_prefix}-{semver}</c>
-/// (e.g., <c>sdl2-image-2.8.0</c>). Backed by Cake.Frosting.Git aliases (LibGit2Sharp);
-/// runs only on x64 hosts where the provider is invoked (resolve-versions CI runner +
-/// local dev).
+/// pointing at HEAD.
+/// Tag format: <c>{manifest.package_families[].tag_prefix}-{semver}</c>
+/// (for example, <c>sdl2-image-2.8.0</c>). Backed by Cake.Frosting.Git aliases
+/// over LibGit2Sharp.
 /// </summary>
 /// <remarks>
-/// Per plan §11 Q17, this provider does <b>not</b> take a test-delegate hook for the
-/// underlying git aliases. Cake.Frosting.Git bypasses <c>ICakeContext.FileSystem</c>, so
-/// unit tests built on <c>FakeFileSystem</c> cannot exercise the provider. The provider is
-/// covered by integration tests that spin up an ephemeral <c>Repository.Init</c>-backed
-/// git directory in <c>Path.GetTempPath()</c> (see
-/// <c>build/_build.Tests/Unit/Application/Versioning/GitTagVersionProviderTests.cs</c>).
+/// Cake.Frosting.Git bypasses <c>ICakeContext.FileSystem</c>, so fake-filesystem unit tests
+/// cannot exercise this provider. Coverage therefore lives in integration tests that create
+/// an ephemeral LibGit2Sharp repository on disk.
 /// </remarks>
 public sealed class GitTagVersionProvider(
     ManifestConfig manifestConfig,

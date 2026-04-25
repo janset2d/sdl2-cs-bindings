@@ -100,16 +100,15 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton(new RepositoryConfiguration(repoRootPath));
     services.AddSingleton(new DotNetBuildConfiguration(configuration: parsedArgs.Config));
 
-    // ADR-003 §2.4: mutually exclusive — either --versions-file (CI path: immutable JSON
-    // artifact from resolve-versions) or --explicit-version (operator/local path: repeated
-    // CLI args). Never both. Factory defers file I/O to ICakeContext.ToJson<T>() so the read
-    // flows through Cake's IFileSystem (testable via FakeFileSystem).
+    // Mutually exclusive inputs: either --versions-file for a precomputed mapping or
+    // --explicit-version for repeated CLI entries. Never both. File I/O is deferred to
+    // ICakeContext.ToJson<T>() so the read flows through Cake's IFileSystem.
     var hasVersionsFile = !string.IsNullOrWhiteSpace(parsedArgs.VersionsFile);
     var hasExplicitVersion = parsedArgs.ExplicitVersion.Any(e => !string.IsNullOrWhiteSpace(e));
     if (hasVersionsFile && hasExplicitVersion)
     {
         throw new InvalidOperationException(
-            "--versions-file and --explicit-version are mutually exclusive (ADR-003 §2.4). Use one or the other.");
+            "--versions-file and --explicit-version are mutually exclusive. Use one or the other.");
     }
 
     services.AddSingleton<PackageBuildConfiguration>(provider =>
@@ -189,11 +188,9 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton<ReadmeMappingTableValidator>();
     services.AddSingleton<IPackageOutputValidator, PackageOutputValidator>();
     services.AddSingleton<IProjectMetadataReader, ProjectMetadataReader>();
-    // ADR-003 provider seam. ExplicitVersionProvider is the sole provider stage tasks see; it
-    // holds the operator-supplied mapping (parsed from repeated --explicit-version CLI entries
-    // into PackageBuildConfiguration.ExplicitVersions) and validates each entry against
-    // manifest.json via G54. ManifestVersionProvider / GitTagVersionProvider reach the CLI
-    // only via the ResolveVersions target, not stage tasks (ADR-003 §3.1).
+    // Stage tasks consume operator-supplied explicit versions only. Manifest- and git-tag-
+    // based resolution flow through the ResolveVersions target, which writes a versions file
+    // that downstream jobs feed back in as explicit versions.
     services.AddSingleton<IPackageVersionProvider>(provider =>
     {
         var manifest = provider.GetRequiredService<ManifestConfig>();

@@ -3,10 +3,8 @@ using Cake.Core.IO;
 namespace Build.Domain.Publishing.Models;
 
 /// <summary>
-/// ADR-003 §3.2 per-stage request placeholder for the <c>Publish</c> stage. The stage itself
-/// is not implemented in this pass — <c>PublishTask</c> and <c>PublishTaskRunner</c> land as
-/// stubs in Slice E. The record shape is locked in Slice C so that Phase 2b Stream D-ci can
-/// consume the contract without retroactive record-shape churn.
+/// Request model for the <c>Publish</c> stage.
+/// The record is stable even though publish execution is still stubbed.
 /// </summary>
 /// <param name="PackagesDir">Directory containing the <c>.nupkg</c> + <c>.snupkg</c> set to
 /// push.</param>

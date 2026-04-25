@@ -19,8 +19,8 @@ namespace Build.Application.Versioning;
 /// workflow semantics; it only stamps the given suffix onto the upstream prefix.
 /// </para>
 /// <para>
-/// This provider is never reachable from a stage task's CLI; per ADR-003 §3.1 stage tasks
-/// consume only the <see cref="ExplicitVersionProvider"/> output. <c>ManifestVersionProvider</c>
+/// Stage tasks do not instantiate this provider directly; they consume explicit versions.
+/// <c>ManifestVersionProvider</c>
 /// is instantiated inside <c>LocalArtifactSourceResolver.PrepareFeedAsync</c> (local-dev
 /// suffix) and inside the <c>ResolveVersions</c> task runner (CI manifest-derived mode),
 /// where the resolved mapping is then either handed to stage runners in-process or

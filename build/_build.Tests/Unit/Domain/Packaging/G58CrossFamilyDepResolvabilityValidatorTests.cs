@@ -7,8 +7,8 @@ using NuGet.Versioning;
 namespace Build.Tests.Unit.Domain.Packaging;
 
 /// <summary>
-/// G58 scope-contains coverage. Feed-probe path is Phase 2b future work and not exercised
-/// here (see <c>G58CrossFamilyCheckStatus.OnFeed</c> / <c>FeedProbeFailed</c> reserved states).
+/// Coverage for the scope-contains path of G58.
+/// These tests do not exercise the optional external-feed probe states.
 /// </summary>
 public sealed class G58CrossFamilyDepResolvabilityValidatorTests
 {

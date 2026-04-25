@@ -8,14 +8,12 @@ using Cake.Frosting;
 namespace Build.Tasks.Publishing;
 
 /// <summary>
-/// ADR-003 §3.2 staging publish stage. Phase-2b stub — delegates to
-/// <see cref="PublishTaskRunner"/> which throws <see cref="NotImplementedException"/>.
-/// The CI <c>publish-staging</c> job in <c>release.yml</c> is gated <c>if: false</c>
-/// until Phase 2b lands the real feed transfer logic; this task exists so the
-/// <c>--target=PublishStaging</c> CLI surface compiles and is discoverable today.
+/// Staging publish task.
+/// Delegates to <see cref="PublishTaskRunner"/>, which currently logs and throws
+/// <see cref="NotImplementedException"/> until feed-push logic is implemented.
 /// </summary>
 [TaskName("PublishStaging")]
-[TaskDescription("Stub — Phase 2b will push the packed nupkg set to the staging feed (GitHub Packages).")]
+[TaskDescription("Stub — will push the packed nupkg set to the staging feed when publish logic is implemented.")]
 public sealed class PublishStagingTask(PublishTaskRunner runner, ICakeLog log) : AsyncFrostingTask<BuildContext>
 {
     private readonly PublishTaskRunner _runner = runner ?? throw new ArgumentNullException(nameof(runner));
@@ -25,7 +23,7 @@ public sealed class PublishStagingTask(PublishTaskRunner runner, ICakeLog log) :
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        _log.Warning("PublishStaging is a Phase-2b stub. Invocation will throw NotImplementedException — the real staging publisher is not yet wired.");
+        _log.Warning("PublishStaging is a stub. Invocation will throw NotImplementedException until a real staging publisher is implemented.");
 
         var request = new PublishRequest(
             PackagesDir: new DirectoryPath("."),

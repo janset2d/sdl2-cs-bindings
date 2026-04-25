@@ -7,11 +7,9 @@ using NuGet.Versioning;
 namespace Build.Tests.Unit.Application.Versioning;
 
 /// <summary>
-/// Slice A provider seam. ExplicitVersionProvider holds an operator-supplied
-/// {family → version} mapping and exposes it through <see cref="IPackageVersionProvider"/>
-/// after G54 upstream-alignment validation. Tests use the real
-/// <see cref="UpstreamVersionAlignmentValidator"/> (pure-logic, stateless) rather than a
-/// mock — we care about the integration path provider-to-G54, not the mock.
+/// Tests for <see cref="ExplicitVersionProvider"/>.
+/// These cases verify that an operator-supplied family/version mapping flows through the
+/// provider and the real <see cref="UpstreamVersionAlignmentValidator"/>.
 /// </summary>
 public sealed class ExplicitVersionProviderTests
 {

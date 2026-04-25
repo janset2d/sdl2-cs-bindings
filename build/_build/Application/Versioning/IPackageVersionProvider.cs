@@ -3,42 +3,18 @@ using NuGet.Versioning;
 namespace Build.Application.Versioning;
 
 /// <summary>
-/// Resolves a per-family version mapping from some source (operator-supplied, manifest, git tag).
-/// Introduced as the ADR-003 §3.1 version-provider seam. Three implementations are planned:
-/// <list type="bullet">
-///   <item><see cref="ExplicitVersionProvider"/> (Slice A) — operator-supplied mapping validated against manifest.</item>
-///   <item><c>ManifestVersionProvider</c> (Slice B1) — manifest upstream + suffix composition.</item>
-///   <item><c>GitTagVersionProvider</c> (Slice C) — family-tag / meta-tag discovery with topological ordering.</item>
-/// </list>
+/// Resolves a per-family version mapping from a source such as operator-supplied
+/// values, manifest metadata, or git tags.
 /// <para>
-/// <b>Resolve-once invariant (ADR-003 §2.4):</b> within a single invocation the resolved mapping
-/// is immutable. Stage tasks consume the mapping; they do not re-resolve it. The CI job graph
-/// realizes this via a dedicated <c>ResolveVersions</c> job whose output is piped to downstream
-/// jobs through <c>needs:</c>. The local-dev path realizes it via
-/// <c>LocalArtifactSourceResolver.PrepareFeedAsync</c> resolving once and passing the same
-/// mapping instance to every stage runner it composes.
+/// The returned mapping is the authoritative scope for the caller. Stage tasks
+/// consume the mapping they are given and do not re-resolve versions internally.
+/// Providers may accept a <paramref name="requestedScope"/> filter, but the final
+/// scope is defined by the mapping that comes back.
 /// </para>
 /// <para>
-/// <b>Single scope axis (ADR-003 §2.2):</b> the mapping's key set IS the scope. Stage tasks
-/// never receive a separate family list alongside the mapping. Providers may accept a
-/// <paramref name="requestedScope"/> filter so CI-side callers can carve out a subset without
-/// rebuilding the mapping, but the scope's authoritative home is the resolved mapping itself.
-/// </para>
-/// <para>
-/// <b>JSON output shape (canonical contract, locked at plan-lock):</b> when the mapping is
-/// serialized by the <c>ResolveVersions</c> task for CI <c>needs:</c> consumption, it is a
-/// flat object keyed by family identifier with NuGet-normalized version strings as values:
-/// <code>
-/// {
-///   "sdl2-core": "2.32.0-ci.run-id-12345",
-///   "sdl2-image": "2.8.0-ci.run-id-12345"
-/// }
-/// </code>
-/// This shape maps 1:1 to the provider's in-memory <see cref="IReadOnlyDictionary{TKey, TValue}"/>
-/// return type, to the <c>--explicit-version</c> CLI repeated-option input
-/// (<c>--explicit-version sdl2-core=2.32.0-ci.run-id-12345</c>), and to YAML
-/// <c>${{ fromJson(needs.resolve-versions.outputs.versions-json) }}</c> consumption — no
-/// intermediate parsing.
+/// When serialized by <c>ResolveVersions</c>, the mapping becomes a flat JSON object
+/// keyed by family identifier with NuGet-normalized version strings as values. That
+/// keeps the CLI, JSON, and in-memory dictionary forms aligned.
 /// </para>
 /// </summary>
 public interface IPackageVersionProvider

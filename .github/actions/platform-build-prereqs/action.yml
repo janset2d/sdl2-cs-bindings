@@ -4,23 +4,15 @@ description: >
   etc.) required by vcpkg hybrid-static SDL2 ports. Linux and Windows are
   no-ops: the custom GHCR builder image (docker/linux-builder.Dockerfile)
   bakes every Linux prereq, and on Windows the Cake host's IMsvcDevEnvironment
-  (Slice CA) self-sources the MSVC toolchain. Only macOS still needs an
+  self-sources the MSVC toolchain. Only macOS still needs an
   at-job-time brew install because we do not own a macOS base image.
 
 runs:
   using: "composite"
   steps:
-    # ──────────────────────────────────────────────────────────────────────────
-    # macOS — brew preamble mirrors prepare-native-assets-macos.yml:31-35.
-    # `pkg-config autoconf automake libtool` cover every vcpkg port's
-    # autotools expectation. cmake comes from vcpkg's own bundled download
-    # on macOS so is deliberately not installed here.
-    #
-    # GitHub macOS runner images ship most of these formulas preinstalled;
-    # idempotent per-formula check avoids the "already installed" noise that
-    # `brew install` emits as a step-level warning. If a formula IS missing
-    # (runner image drift), we install it cleanly.
-    # ──────────────────────────────────────────────────────────────────────────
+    # macOS still needs Homebrew-installed autotools packages for some vcpkg ports.
+    # The per-formula check keeps the step quiet on runner images that already
+    # have these formulas preinstalled.
     - name: Homebrew prereqs (macOS)
       if: runner.os == 'macOS'
       shell: bash
@@ -35,17 +27,14 @@ runs:
           fi
         done
 
-    # Linux: no-op. docker/linux-builder.Dockerfile bakes every apt package
-    # (build-essential + SDL2 backends + freepats + libicu + autoconf-2.72 +
-    # cmake + ninja + git with safe.directory). See Slice E E2 + prepare-*-linux.yml:37-80.
+    # Linux: no-op. The builder image already contains the native build toolchain.
     - name: Linux prereqs (no-op, baked into ghcr.io/janset2d/sdl2-bindings-linux-builder)
       if: runner.os == 'Linux'
       shell: bash
       run: 'echo "Linux prereqs are baked into the container image; nothing to install at job-time."'
 
-    # Windows: no-op. PackageConsumerSmoke's Cake host uses IMsvcDevEnvironment
-    # (Application/Tools/Msvc, Slice CA) to self-source vcvarsall + populate
-    # CMAKE_* env from VS installation discovered via vswhere.
+    # Windows: no-op. The Cake host sources vcvarsall and populates CMAKE_*
+    # variables from the installed Visual Studio toolchain.
     - name: Windows prereqs (no-op, MSVC self-sourced by IMsvcDevEnvironment)
       if: runner.os == 'Windows'
       shell: pwsh

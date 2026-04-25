@@ -4,9 +4,8 @@ using Cake.Core.IO;
 namespace Build.Tests.Unit.Domain.Publishing;
 
 /// <summary>
-/// Shape sanity for the ADR-003 §3.2 <see cref="PublishRequest"/> record. The Publish stage
-/// itself is a Slice E stub; the record shape is locked in Slice C so Phase 2b Stream D-ci
-/// can consume the contract without retroactive record churn.
+/// Shape sanity for the <see cref="PublishRequest"/> record.
+/// The request stays stable even while publish execution is still stubbed.
 /// </summary>
 public sealed class PublishRequestTests
 {

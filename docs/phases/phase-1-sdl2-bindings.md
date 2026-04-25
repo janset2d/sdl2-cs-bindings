@@ -7,6 +7,8 @@
 
 Establish the foundational C# binding libraries for SDL2 and its satellites, build a cross-platform native binary harvesting pipeline, and prove the concept works end-to-end.
 
+> Historical-shape note: this document records the Phase 1 topology as it existed in 2025. The later config merge folded `build/runtimes.json` and `build/system_artefacts.json` into `build/manifest.json` (schema v2.1), and the `prepare-native-assets-*.yml` workflow family was retired on 2026-04-25 in favor of `release.yml` plus `build-linux-container.yml`.
+
 ## What Was Accomplished
 
 ### C# Bindings
@@ -14,7 +16,7 @@ Establish the foundational C# binding libraries for SDL2 and its satellites, bui
 All five SDL2 satellite libraries were set up as modular .NET projects importing source files from the [SDL2-CS](https://github.com/flibitijibibo/SDL2-CS) submodule:
 
 | Project | Source File | Lines | Package ID |
-|---------|-----------|-------|-----------|
+| --- | --- | --- | --- |
 | `src/SDL2.Core/` | `external/sdl2-cs/src/SDL2.cs` | 8,966 | Janset.SDL2.Core |
 | `src/SDL2.Image/` | `external/sdl2-cs/src/SDL2_image.cs` | 316 | Janset.SDL2.Image |
 | `src/SDL2.Mixer/` | `external/sdl2-cs/src/SDL2_mixer.cs` | 665 | Janset.SDL2.Mixer |
@@ -45,16 +47,16 @@ A comprehensive build system was created in `build/_build/`:
 - **PreFlightCheckTask**: Validates version consistency between `manifest.json` and `vcpkg.json`
 - **Platform-specific tools**: dumpbin (Windows), ldd (Linux), otool (macOS)
 
-### Configuration Files
+### Historical Phase-1 Configuration Files
 
 | File | Purpose |
-|------|---------|
+| --- | --- |
 | `build/manifest.json` | Library definitions: 5 libraries with vcpkg names, versions, native package names, binary patterns |
-| `build/runtimes.json` | 7 RIDs mapped to vcpkg triplets and CI runners |
-| `build/system_artefacts.json` | OS library exclusion whitelist (kernel32, libc, Cocoa, etc.) |
+| `build/runtimes.json` | Historical Phase-1 file: 7 RIDs mapped to vcpkg triplets and CI runners (later merged into `build/manifest.json`) |
+| `build/system_artefacts.json` | Historical Phase-1 file: OS library exclusion whitelist (later merged into `build/manifest.json`) |
 | `vcpkg.json` | vcpkg dependencies with feature flags (SDL2 + SDL2_image only) |
 
-### CI/CD Workflows
+### Historical Phase-1 CI/CD Workflows
 
 Four GitHub Actions workflows were created and tested:
 
@@ -78,7 +80,7 @@ A reusable composite action `vcpkg-setup` handles vcpkg bootstrap, binary cachin
 
 2. **Separate .Native packages**: Following SkiaSharp/LibGit2Sharp pattern. Managed bindings reference their native counterpart via `ProjectReference`.
 
-3. **Three-tier dependency resolution**: Runtime analysis (binary closure walking) → package metadata (vcpkg queries) → overrides (system_artefacts.json exclusions).
+3. **Three-tier dependency resolution**: Runtime analysis (binary closure walking) → package metadata (vcpkg queries) → overrides (the Phase-1 `system_artefacts.json` exclusions, later merged into `build/manifest.json`).
 
 4. **tar.gz for Unix symlinks**: Linux/macOS natives are archived to preserve symlink chains that NuGet's ZIP format destroys. Extracted at build time via MSBuild targets.
 
@@ -95,7 +97,7 @@ A reusable composite action `vcpkg-setup` handles vcpkg bootstrap, binary cachin
 
 ## Lessons Learned
 
-1. **Linux dependency scanning is complex**: `ldd` output varies by distro and container. The `system_artefacts.json` whitelist was essential to avoid bundling OS libraries.
+1. **Linux dependency scanning is complex**: `ldd` output varies by distro and container. The Phase-1 `system_artefacts.json` whitelist was essential to avoid bundling OS libraries; that exclusion data later moved into `build/manifest.json`.
 2. **macOS universal binaries**: otool analysis needed special handling for fat/universal Mach-O binaries.
 3. **vcpkg binary caching**: Critical for CI performance. Without it, each run rebuilds everything from source (~15-30 minutes per triplet).
 4. **Symlink chains are real**: A typical Linux SDL2 install has `libSDL2.so → libSDL2-2.0.so.0 → libSDL2-2.0.so.0.3200.4`. All three must be preserved for runtime linking to work.

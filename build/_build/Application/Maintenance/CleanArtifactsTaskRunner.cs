@@ -8,9 +8,9 @@ using Cake.Core.IO;
 namespace Build.Application.Maintenance;
 
 /// <summary>
-/// Wipes the ephemeral build-output subtrees so a fresh Slice D run starts from a clean slate.
-/// Does NOT touch <c>vcpkg_installed/</c> — that is expensive to rebuild and safely reusable across
-/// invocations. Replaces the bash <c>rm -rf</c> preamble from <c>docs/playbook/TEMP-wsl-smoke-commands.md</c>.
+/// Wipes the ephemeral build-output subtrees so a fresh run starts from a clean slate.
+/// Does not touch <c>vcpkg_installed/</c> because rebuilding that directory is expensive and
+/// it is safe to reuse across invocations.
 /// </summary>
 public sealed class CleanArtifactsTaskRunner(
     ICakeContext cakeContext,

@@ -10,10 +10,8 @@ namespace Build.Application.Ci;
 
 /// <summary>
 /// Emits the GitHub-Actions-shape matrix JSON derived from <see cref="ManifestConfig.Runtimes"/>.
-/// Single output file (<c>artifacts/matrix/runtimes.json</c>) consumed by both the <c>harvest</c>
-/// and <c>native-smoke</c> jobs in <c>release.yml</c>. The native-smoke job shares the harvest
-/// matrix shape — the four PA-2 RIDs naturally fail at <c>cmake --preset &lt;rid&gt;</c> until the
-/// CMake preset file grows in Phase 2b (no code-level cap in the runner).
+/// The single output file (<c>artifacts/matrix/runtimes.json</c>) is consumed by both the
+/// <c>harvest</c> and <c>consumer-smoke</c> jobs in <c>release.yml</c>.
 /// </summary>
 public sealed class GenerateMatrixTaskRunner(
     ICakeContext cakeContext,

@@ -5,9 +5,9 @@ using NuGet.Versioning;
 namespace Build.Domain.Packaging;
 
 /// <summary>
-/// Scope-contains implementation of G58 per Slice C.6. Feed-probe extension is a
-/// separate surface (future <c>IG58FeedProbe</c>) that Pack stage wiring will inject
-/// opt-in via <c>--feed &lt;URL&gt;</c>; not wired by Slice C.
+/// Scope-contains implementation of G58.
+/// Feed probing is a separate optional surface; the current validator only reasons about
+/// the supplied mapping and manifest dependency graph.
 /// </summary>
 public sealed class G58CrossFamilyDepResolvabilityValidator : IG58CrossFamilyDepResolvabilityValidator
 {

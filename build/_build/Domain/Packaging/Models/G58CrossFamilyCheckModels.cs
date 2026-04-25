@@ -8,10 +8,9 @@ namespace Build.Domain.Packaging.Models;
 /// <c>--feed</c> — from a target feed.
 /// </summary>
 /// <remarks>
-/// Slice C.6 implements <see cref="InScope"/> and <see cref="Missing"/> only. The
-/// feed-probe surface (<see cref="OnFeed"/>, <see cref="FeedProbeFailed"/>) is reserved
-/// for the Pack-stage opt-in path introduced post-C.7; until the probe is wired these
-/// states are never returned by the current validator.
+/// The current validator returns <see cref="InScope"/> and <see cref="Missing"/> only.
+/// The feed-probe states (<see cref="OnFeed"/>, <see cref="FeedProbeFailed"/>) are reserved
+/// for callers that choose to extend G58 with external-feed inspection.
 /// </remarks>
 public enum G58CrossFamilyCheckStatus
 {
