@@ -2,7 +2,7 @@
 
 > **This is the canonical status document.** When code and docs disagree, verify against the code. When phases and this file disagree, this file wins.
 
-**Last updated**: 2026-04-25 (Slice E follow-up pass closed on master at `d190b5b`; `release.yml` and `build-linux-container.yml` are now the live CI surface, with publish still gated behind Phase 2b stubs)
+**Last updated**: 2026-04-26 (post-push `release.yml` run 24938451364 green on master `8ec85c5`; Slice E follow-up pass remains closed and the live CI surface is still `release.yml` + `build-linux-container.yml`, with publish gated behind Phase 2b stubs)
 **Maintainer**: Deniz Irgin (@denizirgin)
 
 ## Mission
