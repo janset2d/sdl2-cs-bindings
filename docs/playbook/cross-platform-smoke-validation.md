@@ -108,6 +108,15 @@ export DOTNET_ROOT="$HOME/.dotnet"
 
 Consider adding these exports to `~/.bashrc` or `~/.profile` to avoid repeating them.
 
+**WSL `dotnet pack` PATH gotcha:** WSL's `appendWindowsPath=true` default prepends Windows PATH entries, so `/mnt/c/Program Files/dotnet` ends up ahead of `/home/<user>/.dotnet` after the prepend above. The Cake host itself starts on the Linux dotnet (full-path or absolute resolution), but `dotnet pack` invoked internally by `IDotNetPackInvoker` resolves through naked PATH lookup and picks Windows dotnet — `MSBuild.dll` then fails with `MSB1001: Unknown switch` against Linux paths (`/home/<user>/...`). D-G checkpoints (PreFlight, Harvest, NativeSmoke, …) are unaffected because they invoke vcpkg / scanners / cmake through Cake's `IPathService` abstractions rather than naked PATH. **For checkpoints J (Package) and K (PackageConsumerSmoke), set a Linux-only PATH explicitly:**
+
+```bash
+export PATH="$HOME/.dotnet:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+export DOTNET_ROOT="$HOME/.dotnet"
+```
+
+This drops `/mnt/c/...` entries entirely; WSL Ubuntu has Linux-native git, cmake, gcc, dotnet (`~/.dotnet/`), so the resulting environment is fully self-contained on the Linux side. Without this override, `SetupLocalDev --source=local` fails at the first `dotnet pack '...Native.csproj'` invocation.
+
 **native-smoke MIDI decoder prereq:** SDL_mixer's bundled internal Timidity only supports **GUS `.pat` patches** (not SF2) and only registers the `MIDI` decoder when it finds a GUS-format config at init. On Debian/Ubuntu install `freepats` (`sudo apt install -y freepats`) — that drops GUS patches + `/etc/timidity/freepats.cfg`, which SDL_mixer's bundled Timidity auto-searches via its `TIMIDITY_CFG_FREEPATS` fallback path. The alternative `timidity` apt package installs `/etc/timidity/timidity.cfg` pointing at FluidR3_GM.sf2 (a `%font` SF2 directive) — bundled Timidity does NOT parse SF2 binaries, so `timidity` alone does not register the decoder. Without `freepats` installed, `Mix decoder: MIDI` will report "decoder missing" — a clear signal rather than a silent skip. This is also an **end-user concern**: Janset ships the bundled Timidity code (Artistic License) but does not ship GUS patches (GPL); consumers on Linux who want MIDI install their own patches the same way. Packaging strategy for the end-user UX (doc-only vs opt-in `.Soundfonts` meta-package) is tracked in [phase-2-adaptation-plan.md PD-14](../phases/phase-2-adaptation-plan.md#pending-decisions) and will be resolved before the first public Mixer-family release.
 
 ### macOS (SSH)
