@@ -33,12 +33,6 @@
     <PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
     <!-- used by tests/scripts/*.cs file-based witness apps -->
     <PackageVersion Include="Spectre.Console" Version="0.49.1" />
-    <!-- net462 reference assemblies: implicit on Windows (local SDK install ships
-         them under Reference Assemblies/Microsoft/Framework/.NETFramework/v4.6.2)
-         but auto-pulled by Microsoft.NET.Sdk on Linux/macOS where the local refs are
-         absent. Pinning explicitly here keeps the lock-file graph identical across
-         platforms — without it, RestoreLockedMode fails with NU1004 in CI Linux. -->
-    <PackageVersion Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" />
     <!-- test packages -->
     <PackageVersion Include="TUnit" Version="1.33.0" />
     <PackageVersion Include="NSubstitute" Version="5.3.0" />
