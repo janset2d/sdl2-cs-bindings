@@ -248,7 +248,6 @@ Users reference `Janset.SDL2.Core` (or the meta-package `Janset.SDL2`). The `.Na
 ## What Doesn't Work Yet
 
 - **NuGet publishing**: `PublishStaging` / `PublishPublic` Cake targets are scaffolded stubs (P6 — throws `NotImplementedException` with Phase-2b pointer); `release.yml` jobs gated `if: false`. Real implementation arrives with Phase 2b's first prerelease publication wave.
-- **PA-2 behavioral validation**: the four newly-hybridized runtime rows (`win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64`) packed + consumer-smoked end-to-end via Slice E follow-up CI runs, but a formal PA-2 witness pass per the playbook remains Phase 2b work.
 - **`SDL2.Mixer.Native`**: full codec dependencies in the hybrid bake validated on `win-x64`; per-RID codec parity audit pending.
 - **`SDL2.Ttf.Native`**: harvest + pack pipeline live, but per-RID font-rendering smoke beyond `TTF_Init` is still pending.
 - **`SDL2.Net` family**: manifest entry retired 2026-04-22 (`bc652d1`); will re-land with the full skeleton (binding csproj + native csproj + overlay port + manifest entries + harvest validation) per [#58](https://github.com/janset2d/sdl2-cs-bindings/issues/58).
