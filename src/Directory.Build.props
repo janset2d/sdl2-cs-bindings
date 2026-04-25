@@ -8,8 +8,22 @@
   </PropertyGroup>
 
   <PropertyGroup>
+    <!--
+      Lock-file generation for src/ csprojs (5 SDL2.* + 5 SDL2.*.Native via
+      src/native/Directory.Build.props inheritance). Drift gets visible per
+      commit; PR review catches it manually.
+
+      RestoreLockedMode is intentionally NOT set here. Library projects in src/
+      pull SDK-implicit packages whose version follows the runtime patch
+      (e.g. Microsoft.NET.ILLink.Tasks 9.0.x with IsTrimmable=true), and
+      global.json rollForward=latestFeature lets the CI runner image's patch
+      drift past the local SDK's. Strict mode would fail the Pack stage every
+      time Microsoft ships a runtime patch, which would force a lock-file +
+      explicit-pin bump cycle on every cadence. Strict mode lives only on the
+      build host (build/_build + build/_build.Tests) where the package surface
+      is bounded and Cake host determinism is the real prize.
+    -->
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
-    <RestoreLockedMode Condition="'$(GITHUB_ACTIONS)' == 'true'">true</RestoreLockedMode>
   </PropertyGroup>
 
   <ItemGroup>
