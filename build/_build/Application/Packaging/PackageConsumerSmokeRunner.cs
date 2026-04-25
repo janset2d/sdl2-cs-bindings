@@ -370,6 +370,15 @@ public sealed class PackageConsumerSmokeRunner(
             .Append("-r")
             .Append(rid);
 
+        // .NET Framework + AnyCPU + native package presence triggers SDK's auto-x86
+        // RuntimeIdentifierInference. Our consumer-side .targets resolves the copy RID
+        // from $(Platform) (not $(RuntimeIdentifier)) precisely because user-explicit `-r`
+        // and SDK auto-x86 produce indistinguishable property states. Forwarding `-p:Platform=<arch>`
+        // alongside `-r <rid>` makes the smoke runner's intent explicit and lets the
+        // .targets pick up the correct native DLL set. Only applies on Windows + net4x;
+        // other TFMs/RIDs use the standard SDK runtimes/<rid>/native flow.
+        AppendNet4xPlatformArgument(arguments, rid, tfm);
+
         AppendBuildServerSuppressionFlags(arguments);
         AppendFeedArguments(arguments, packagesCache, feedPath);
         AppendSmokePackageVersionProperties(arguments, smokePackages, explicitVersions);
@@ -379,6 +388,35 @@ public sealed class PackageConsumerSmokeRunner(
             arguments,
             echoStdout: true,
             environmentVariables: dotNetRuntimeEnvironment);
+    }
+
+    /// <summary>
+    /// Map a Windows RID to the matching MSBuild Platform value when the smoke target
+    /// framework is .NET Framework. Disambiguates user-explicit RID from SDK's auto-x86
+    /// inference inside the consumer-side native DLL copy target. No-op for non-Windows
+    /// RIDs and non-.NET Framework TFMs.
+    /// </summary>
+    private static void AppendNet4xPlatformArgument(ProcessArgumentBuilder arguments, string rid, string tfm)
+    {
+        if (!tfm.StartsWith("net4", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var platform = rid switch
+        {
+            "win-x64" => "x64",
+            "win-x86" => "x86",
+            "win-arm64" => "ARM64",
+            _ => null,
+        };
+
+        if (platform is null)
+        {
+            return;
+        }
+
+        arguments.Append($"-p:Platform={platform}");
     }
 
     private static void AppendFeedArguments(ProcessArgumentBuilder arguments, DirectoryPath packagesCache, DirectoryPath feedPath)

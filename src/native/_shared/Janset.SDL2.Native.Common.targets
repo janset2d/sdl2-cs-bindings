@@ -291,24 +291,72 @@
     .NETFramework on Windows: explicit DLL copy, batched per payload item.
 
     SDK-style .NETFramework projects only honour runtimes/<rid>/native/ when a
-    <RuntimeIdentifier> or non-AnyCPU <PlatformTarget> is set. AnyCPU — the default for
-    new .NETFramework SDK-style projects — leaves the runtimes/ directory untouched, so
-    we ship the Windows DLLs via a plain MSBuild <Copy>. $(TargetDir) (not $(OutDir))
-    matches the historical pre-S1 contract and is what downstream .NETFramework tooling
-    (e.g. NUnit console, ClickOnce publish) expects.
+    <RuntimeIdentifier> or non-AnyCPU <PlatformTarget> is set. AnyCPU — the
+    default for new .NETFramework SDK-style projects — leaves the runtimes/
+    directory untouched (or, if the SDK detects RID-specific package content,
+    auto-sets PlatformTarget=x86 + RuntimeIdentifier=win-x86 — see
+    https://learn.microsoft.com/en-us/nuget/create-packages/native-files-in-net-packages
+    "SDK style projects targeting .NET Framework"). For modern SDK-style net4x
+    projects with Prefer32Bit=false (the default), the apphost runs at host
+    OSArchitecture (typically x64), producing a hard process-vs-native arch
+    mismatch when the SDK chose x86 native DLLs while the process is x64
+    (BadImageFormatException at first P/Invoke).
+
+    We resolve the copy RID at target evaluation time (NOT initial property
+    eval) so we can override the SDK's auto-x86 inference based on the actual
+    host architecture, while still respecting any explicit consumer choice
+    (Platform=x86/x64/ARM64 or RuntimeIdentifier set).
+
+    Resolution priority (first match wins):
+      1. Explicit RuntimeIdentifier passed by consumer or smoke runner (`-r win-x64`).
+      2. Explicit non-AnyCPU Platform: x86/x64/ARM64 mapped to win-x86/x64/arm64.
+      3. AnyCPU + Prefer32Bit=true: win-x86 (32-bit-required intent honoured).
+      4. AnyCPU + Prefer32Bit unset/false: host OSArchitecture (the canonical
+         "AnyCPU runs at host arch" semantic). Overrides SDK auto-x86 selection.
+
+    $(TargetDir) (not $(OutDir)) matches the historical pre-S1 contract and is
+    what downstream .NETFramework tooling (e.g. NUnit console, ClickOnce
+    publish) expects.
   -->
   <Target Name="_JansetSdlNativeCopyDllsForFrameworkWindows"
           AfterTargets="Build"
-          Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework' and '$(OS)' == 'Windows_NT' and '$(_JansetSdlEffectiveRid.StartsWith(`win-`))' == 'true' and '@(_JansetSdlNativePayload)' != ''"
+          Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework' and '$(OS)' == 'Windows_NT' and '@(_JansetSdlNativePayload)' != ''"
           Outputs="%(_JansetSdlNativePayload.Identity).copied">
 
+    <PropertyGroup>
+      <!--
+        Resolve copy RID at target evaluation time. We deliberately do NOT consult
+        $(RuntimeIdentifier) — under SDK's auto-x86 inference for AnyCPU + .NETFramework
+        + native package presence, $(RuntimeIdentifier) is set to win-x86 indistinguishably
+        from a consumer who explicitly passed `-r win-x86`. The two scenarios produce
+        identical MSBuild property states, and treating SDK auto-x86 as "user intent"
+        yields the BadImageFormatException we are trying to prevent.
+
+        Resolution priority (first match wins):
+          1. Explicit Platform mapping: Platform=x86/x64/ARM64 set by consumer (or by
+             smoke runners that pass `-p:Platform=<arch>` alongside `-r <rid>`).
+          2. AnyCPU + Prefer32Bit=true → win-x86 (32-bit-required intent honoured).
+          3. AnyCPU + Prefer32Bit unset/false → host OSArchitecture (the canonical
+             "AnyCPU runs at host arch" semantic). Overrides SDK auto-x86 selection.
+      -->
+      <_JansetSdlNet4xCopyRid></_JansetSdlNet4xCopyRid>
+      <_JansetSdlNet4xCopyRid Condition="'$(Platform)' == 'x64'">win-x64</_JansetSdlNet4xCopyRid>
+      <_JansetSdlNet4xCopyRid Condition="'$(Platform)' == 'x86'">win-x86</_JansetSdlNet4xCopyRid>
+      <_JansetSdlNet4xCopyRid Condition="'$(Platform)' == 'ARM64'">win-arm64</_JansetSdlNet4xCopyRid>
+      <_JansetSdlNet4xCopyRid Condition="'$(_JansetSdlNet4xCopyRid)' == '' and ('$(Platform)' == '' or '$(Platform)' == 'AnyCPU') and '$(Prefer32Bit)' == 'true'">win-x86</_JansetSdlNet4xCopyRid>
+      <_JansetSdlNet4xCopyRid Condition="'$(_JansetSdlNet4xCopyRid)' == '' and ('$(Platform)' == '' or '$(Platform)' == 'AnyCPU') and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()) == 'X64'">win-x64</_JansetSdlNet4xCopyRid>
+      <_JansetSdlNet4xCopyRid Condition="'$(_JansetSdlNet4xCopyRid)' == '' and ('$(Platform)' == '' or '$(Platform)' == 'AnyCPU') and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()) == 'Arm64'">win-arm64</_JansetSdlNet4xCopyRid>
+      <_JansetSdlNet4xCopyRid Condition="'$(_JansetSdlNet4xCopyRid)' == '' and ('$(Platform)' == '' or '$(Platform)' == 'AnyCPU') and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()) == 'X86'">win-x86</_JansetSdlNet4xCopyRid>
+    </PropertyGroup>
+
     <ItemGroup>
-      <_JansetSdlNativeDllForCopy Include="%(_JansetSdlNativePayload.PackageRoot)runtimes/$(_JansetSdlEffectiveRid)/native/*.dll" />
+      <_JansetSdlNativeDllForCopy Include="%(_JansetSdlNativePayload.PackageRoot)runtimes/$(_JansetSdlNet4xCopyRid)/native/*.dll"
+                                  Condition="'$(_JansetSdlNet4xCopyRid)' != ''" />
     </ItemGroup>
 
     <Message Importance="normal"
              Condition="'@(_JansetSdlNativeDllForCopy)' != ''"
-             Text="[%(_JansetSdlNativePayload.Identity)] copying $(_JansetSdlEffectiveRid) DLLs to '$(TargetDir)' for .NETFramework AnyCPU consumer." />
+             Text="[%(_JansetSdlNativePayload.Identity)] copying $(_JansetSdlNet4xCopyRid) DLLs to '$(TargetDir)' (Platform=$(Platform), Prefer32Bit=$(Prefer32Bit); ignoring SDK-inferred RuntimeIdentifier=$(RuntimeIdentifier))." />
 
     <Copy SourceFiles="@(_JansetSdlNativeDllForCopy)"
           DestinationFolder="$(TargetDir)"
