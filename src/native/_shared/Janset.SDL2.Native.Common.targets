@@ -104,12 +104,19 @@
   </PropertyGroup>
 
   <!--
-    Unix pre-extract cleanup: wipe $(OutDir)runtimes/<rid>/native/ before the
-    batched extract runs. Guarantees stale versioned library files from prior
-    package versions (e.g. libSDL2-2.0.so.0.3200.10 lingering after updating
-    to SDL2 2.32.12 which ships libSDL2-2.0.so.0.3200.12) do not ship
-    alongside the fresh payload. Source tarballs in the NuGet package cache
-    are untouched — this only clears the OutDir-side staging area.
+    Unix pre-extract cleanup (portable builds only): wipe
+    $(OutDir)runtimes/<rid>/native/ before the batched extract runs, so stale
+    versioned library files from prior package versions (e.g.
+    libSDL2-2.0.so.0.3200.10 lingering after updating to SDL2 2.32.12 which
+    ships libSDL2-2.0.so.0.3200.12) do not ship alongside the fresh payload.
+    Source tarballs in the NuGet package cache are untouched — this only
+    clears the OutDir-side staging area.
+
+    Conditioned on '$(RuntimeIdentifier)' == '': in RID-specific builds the
+    SDK flattens runtimes/<rid>/native/* into $(OutDir) root, where our .so /
+    .dylib files mix with the consumer's own output, so a wholesale wipe is
+    unsafe. Stale-update mitigation for RID-specific builds is a separate
+    concern, deferred to a future refinement.
 
     Not batched: runs once regardless of how many .Native wrappers import
     this common.targets. The batched extract target below depends on it via
@@ -117,30 +124,37 @@
     extracted.
   -->
   <Target Name="_JansetSdlNativeCleanOutDirRidFolder"
-          Condition="'$(_JansetSdlIsUnixExtractCandidate)' == 'true' and '@(_JansetSdlNativePayload)' != ''">
+          Condition="'$(_JansetSdlIsUnixExtractCandidate)' == 'true' and '$(RuntimeIdentifier)' == '' and '@(_JansetSdlNativePayload)' != ''">
     <RemoveDir Directories="$(OutDir)runtimes/$(_JansetSdlEffectiveRid)/native"
                Condition="Exists('$(OutDir)runtimes/$(_JansetSdlEffectiveRid)/native')" />
   </Target>
 
   <!--
-    Unix build: extract each family's tarball into $(OutDir)runtimes/<rid>/native/
-    after the SDK's standard copy pass. Task batching on
-    %(_JansetSdlNativePayload.Identity) runs the Exec once per item, so Core
-    and Image (and Mixer, Ttf, Gfx) each get their payload extracted
-    independently.
+    Unix build: extract each family's tarball into the destination that mirrors
+    the SDK's single-file native asset placement convention (reference:
+    ppy.SDL3-CS, SkiaSharp.NativeAssets.Linux — packages that ship a single
+    libSDL3.so / libSkiaSharp.so via runtimes/<rid>/native/ and rely on default
+    SDK handling). Task batching on %(_JansetSdlNativePayload.Identity) runs
+    the Exec once per item, so Core and Image (and Mixer, Ttf, Gfx) each get
+    their payload extracted independently.
 
-    Why runtimes/<rid>/native/ rather than $(OutDir) root:
-      - Mirrors the Windows Core/CoreApp layout the SDK produces for .dll
-        runtime items. Portable builds keep the nested runtimes/<rid>/native/
-        tree; RID-specific / self-contained publishes flatten to the output
-        root via the SDK's post-build step. P/Invoke's default native library
-        resolver searches both AppContext.BaseDirectory AND
-        AppContext.BaseDirectory/runtimes/{RID}/native, so nesting is a
-        supported layout on all platforms.
-      - Stale-on-update containment: prior-version library files live in one
-        directory that the pre-extract cleanup target (above) wipes wholesale.
-        Flat-in-$(OutDir) mixed our .so files with the consumer's own output,
-        making selective cleanup after a package version bump unreliable.
+    Destination — branched by build mode (see _JansetSdlNativeExtractDir below):
+      - Portable build ($(RuntimeIdentifier) empty): extract into
+        $(OutDir)runtimes/<rid>/native/. SDK keeps that subdirectory and
+        deps.json runtimeTargets entries direct the runtime probing path there.
+        P/Invoke probes both AppContext.BaseDirectory AND
+        AppContext.BaseDirectory/runtimes/{RID}/native, so nested layout works
+        AND keeps the output tree tidy (mirrors Windows DLL placement).
+      - RID-specific build ($(RuntimeIdentifier) set; e.g. `dotnet test -r linux-x64`,
+        self-contained publish): extract flat into $(OutDir). SDK normally
+        flattens runtimes/<rid>/native/* into the output root after
+        CopyFilesToOutputDirectory; AppContext.BaseDirectory becomes that flat
+        directory and the runtime does NOT subprobe runtimes/{RID}/native —
+        flat is the only layout that works in this mode.
+
+    Microsoft documentation that defines this duality (the canonical
+    "RID-specific publish flattens; portable nested" rule):
+    https://learn.microsoft.com/en-us/nuget/create-packages/native-files-in-net-packages
 
     Why tar:
       - tar on POSIX preserves symlinks by default; -f names the archive,
@@ -160,7 +174,8 @@
 
     <PropertyGroup>
       <_JansetSdlTarball>%(_JansetSdlNativePayload.PackageRoot)runtimes/$(_JansetSdlEffectiveRid)/native/%(_JansetSdlNativePayload.Identity).tar.gz</_JansetSdlTarball>
-      <_JansetSdlNativeExtractDir>$(OutDir)runtimes/$(_JansetSdlEffectiveRid)/native</_JansetSdlNativeExtractDir>
+      <_JansetSdlNativeExtractDir Condition="'$(RuntimeIdentifier)' != ''">$(OutDir.TrimEnd('/').TrimEnd('\\'))</_JansetSdlNativeExtractDir>
+      <_JansetSdlNativeExtractDir Condition="'$(_JansetSdlNativeExtractDir)' == ''">$(OutDir)runtimes/$(_JansetSdlEffectiveRid)/native</_JansetSdlNativeExtractDir>
     </PropertyGroup>
 
     <Message Importance="normal"
@@ -193,27 +208,28 @@
   </Target>
 
   <!--
-    Unix publish pre-extract cleanup: same as _JansetSdlNativeCleanOutDirRidFolder
-    but targets $(PublishDir)runtimes/<rid>/native/. Runs once before the batched
-    publish extract via DependsOnTargets on the extract target below.
+    Unix publish pre-extract cleanup (portable publish only; same rationale as
+    _JansetSdlNativeCleanOutDirRidFolder above): wipe
+    $(PublishDir)runtimes/<rid>/native/ before the batched publish extract.
+    Conditioned on '$(RuntimeIdentifier)' == '' — RID-specific publishes
+    flatten the runtimes tree into the publish root, where wholesale wipe
+    would remove the consumer's own output too.
   -->
   <Target Name="_JansetSdlNativeCleanPublishDirRidFolder"
-          Condition="'$(_JansetSdlIsUnixExtractCandidate)' == 'true' and '@(_JansetSdlNativePayload)' != ''">
+          Condition="'$(_JansetSdlIsUnixExtractCandidate)' == 'true' and '$(RuntimeIdentifier)' == '' and '@(_JansetSdlNativePayload)' != ''">
     <RemoveDir Directories="$(PublishDir)runtimes/$(_JansetSdlEffectiveRid)/native"
                Condition="Exists('$(PublishDir)runtimes/$(_JansetSdlEffectiveRid)/native')" />
   </Target>
 
   <!--
-    Unix publish: same extraction as the build target, but into
-    $(PublishDir)runtimes/<rid>/native/. Needed for `dotnet publish`,
-    `dotnet publish -r <rid>`, and self-contained scenarios where
-    $(PublishDir) != $(OutDir). Batched over @(_JansetSdlNativePayload) for
-    the same reason as the build target.
+    Unix publish: same extraction as the build target, but into $(PublishDir).
+    Same RuntimeIdentifier-aware destination branching applies — see the build
+    target comment above for the canonical layout rationale (portable nested,
+    RID-specific flat, mirroring SDK single-file convention).
 
-    In RID-specific / self-contained publish flows, the SDK's publish
-    pipeline flattens runtimes/<rid>/native/* into the publish root after
-    our extract runs; the tar.gz cleanup below covers both the nested
-    (portable) and flattened (RID-specific) locations.
+    Needed for `dotnet publish`, `dotnet publish -r <rid>`, and self-contained
+    scenarios where $(PublishDir) != $(OutDir). Batched over
+    @(_JansetSdlNativePayload) for the same reason as the build target.
   -->
   <Target Name="_JansetSdlNativeExtractTarballToPublishDir"
           AfterTargets="CopyFilesToPublishDirectory"
@@ -223,7 +239,8 @@
 
     <PropertyGroup>
       <_JansetSdlTarballForPublish>%(_JansetSdlNativePayload.PackageRoot)runtimes/$(_JansetSdlEffectiveRid)/native/%(_JansetSdlNativePayload.Identity).tar.gz</_JansetSdlTarballForPublish>
-      <_JansetSdlNativePublishExtractDir>$(PublishDir)runtimes/$(_JansetSdlEffectiveRid)/native</_JansetSdlNativePublishExtractDir>
+      <_JansetSdlNativePublishExtractDir Condition="'$(RuntimeIdentifier)' != ''">$(PublishDir.TrimEnd('/').TrimEnd('\\'))</_JansetSdlNativePublishExtractDir>
+      <_JansetSdlNativePublishExtractDir Condition="'$(_JansetSdlNativePublishExtractDir)' == ''">$(PublishDir)runtimes/$(_JansetSdlEffectiveRid)/native</_JansetSdlNativePublishExtractDir>
     </PropertyGroup>
 
     <MakeDir Directories="$(_JansetSdlNativePublishExtractDir)"
