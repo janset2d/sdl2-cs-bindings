@@ -1,12 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Xml.Linq;
 using Build.Context;
-using Build.Context.Configs;
 using Build.Context.Models;
 using Build.Domain.Packaging.Models;
 using Build.Domain.Paths;
 using Build.Domain.Preflight;
-using Build.Infrastructure.Paths;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;
@@ -96,14 +93,9 @@ public sealed class LocalArtifactSourceResolver(
                 "Run PrepareFeedAsync first (or supply a non-empty mapping from the composing runner).");
         }
 
-        var propsFile = _pathService.GetLocalPropsFile();
-        var directory = propsFile.GetDirectory();
-        _cakeContext.EnsureDirectoryExists(directory);
+        await JansetLocalPropsWriter.WriteAsync(_cakeContext, _pathService, LocalFeedPath, versions);
 
-        var xml = BuildLocalPropsContent(LocalFeedPath, versions);
-        await _cakeContext.WriteAllTextAsync(propsFile, xml);
-
-        _log.Information("LocalArtifactSourceResolver wrote local override: {0}", propsFile.FullPath);
+        _log.Information("LocalArtifactSourceResolver wrote local override: {0}", _pathService.GetLocalPropsFile().FullPath);
         _log.Information("LocalArtifactSourceResolver local feed path: {0}", LocalFeedPath.FullPath);
     }
 
@@ -136,26 +128,5 @@ public sealed class LocalArtifactSourceResolver(
         throw new CakeException(
             $"LocalArtifactSourceResolver expected package '{packagePath.GetFilename().FullPath}' in local feed '{_pathService.PackagesOutput.FullPath}', but it was not found. " +
             "Re-run 'SetupLocalDev --source=local --rid <rid>' so the Pack stage regenerates the feed.");
-    }
-
-    private static string BuildLocalPropsContent(
-        DirectoryPath localFeedPath,
-        IReadOnlyDictionary<string, NuGetVersion> familyVersions)
-    {
-        var propertyGroup = new XElement("PropertyGroup",
-            new XElement("LocalPackageFeed", localFeedPath.FullPath));
-
-        foreach (var pair in familyVersions.OrderBy(p => p.Key, StringComparer.OrdinalIgnoreCase))
-        {
-            var propertyName = FamilyIdentifierConventions.VersionPropertyName(pair.Key);
-            propertyGroup.Add(new XElement(propertyName, pair.Value.ToNormalizedString()));
-        }
-
-        var document = new XDocument(
-            new XDeclaration("1.0", "utf-8", null),
-            new XElement("Project", propertyGroup));
-
-        var body = document.ToString();
-        return string.Concat(document.Declaration?.ToString(), "\n", body);
     }
 }

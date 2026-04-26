@@ -24,6 +24,7 @@
     <PackageReference Include="Cake.Frosting" />
     <PackageReference Include="Cake.Frosting.Git" />
     <PackageReference Include="NuGet.Frameworks" />
+    <PackageReference Include="NuGet.Protocol" />
     <PackageReference Include="NuGet.Versioning" />
     <PackageReference Include="OneOf" />
     <PackageReference Include="OneOf.Monads" />

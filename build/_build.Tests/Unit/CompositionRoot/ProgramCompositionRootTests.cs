@@ -263,7 +263,7 @@ public sealed class ProgramCompositionRootTests
         using var provider = services.BuildServiceProvider();
         var resolver = provider.GetRequiredService<IArtifactSourceResolver>();
 
-        await Assert.That(resolver.GetType()).IsEqualTo(typeof(UnsupportedArtifactSourceResolver));
+        await Assert.That(resolver.GetType()).IsEqualTo(typeof(RemoteArtifactSourceResolver));
         await Assert.That(resolver.Profile).IsEqualTo(ArtifactProfile.RemoteInternal);
     }
 

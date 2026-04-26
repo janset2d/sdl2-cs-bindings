@@ -201,6 +201,7 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton<ResolveVersionsTaskRunner>();
     services.AddSingleton<IDotNetPackInvoker, DotNetPackInvoker>();
     services.AddSingleton<IDotNetRuntimeEnvironment, DotNetRuntimeEnvironment>();
+    services.AddSingleton<INuGetFeedClient, NuGetProtocolFeedClient>();
     services.AddSingleton<INativePackageMetadataGenerator, NativePackageMetadataGenerator>();
     services.AddSingleton<IReadmeMappingTableGenerator, ReadmeMappingTableGenerator>();
     services.AddSingleton<IPackageTaskRunner, PackageTaskRunner>();
@@ -209,6 +210,7 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton<VcpkgBootstrapTool>();
     services.AddSingleton<IMsvcDevEnvironment, MsvcDevEnvironment>();
     services.AddSingleton<LocalArtifactSourceResolver>();
+    services.AddSingleton<RemoteArtifactSourceResolver>();
     services.AddSingleton<ArtifactSourceResolverFactory>();
     services.AddSingleton<IArtifactSourceResolver>(provider =>
         provider.GetRequiredService<ArtifactSourceResolverFactory>().Create(source));

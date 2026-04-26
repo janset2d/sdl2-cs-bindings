@@ -21,8 +21,9 @@
          local dev (both x64). Harvest/smoke matrix arm64 runners consume resolved mappings
          via the explicit-version CLI flag and never call into these aliases. -->
     <PackageVersion Include="Cake.Frosting.Git" Version="5.0.1" />
-    <PackageVersion Include="NuGet.Frameworks" Version="7.3.0" />
-    <PackageVersion Include="NuGet.Versioning" Version="7.3.0" />
+    <PackageVersion Include="NuGet.Frameworks" Version="7.3.1" />
+    <PackageVersion Include="NuGet.Protocol" Version="7.3.1" />
+    <PackageVersion Include="NuGet.Versioning" Version="7.3.1" />
     <PackageVersion Include="OneOf" Version="3.0.271" />
     <PackageVersion Include="OneOf.Monads" Version="1.21.0" />
     <PackageVersion Include="OneOf.SourceGenerator" Version="3.0.271" />

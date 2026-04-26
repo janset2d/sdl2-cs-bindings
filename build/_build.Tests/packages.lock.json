@@ -316,18 +316,18 @@
       },
       "NuGet.Common": {
         "type": "Transitive",
-        "resolved": "7.3.0",
-        "contentHash": "y+7cQuzc6zePfo3GdueKgFAfE06pyNv1EGeordAMXotm6WEJw/m7UHv7GSLnib2HEPpzUk4Wvxgn9VgWkIe6Yw==",
+        "resolved": "7.3.1",
+        "contentHash": "1mp7zmyAGmQfT93ELC4c+MYOrJ8Ff4ekFZRek4JSVLb/wOO/o0bsPfLmqujCsJ2Hlwc+fpq1TQEnjSEgWdt8ng==",
         "dependencies": {
-          "NuGet.Frameworks": "7.3.0"
+          "NuGet.Frameworks": "7.3.1"
         }
       },
       "NuGet.Configuration": {
         "type": "Transitive",
-        "resolved": "7.3.0",
-        "contentHash": "9qNpnZP73pfGm1MYET78OCW/HNnKNZpTfWPB2z/EyxQnfWtJBANeFyogX8s7S+oWMbR+EG2w6jbDVKdvVJfCXA==",
+        "resolved": "7.3.1",
+        "contentHash": "tGxWBo47EQONOaqY+MbEWMrNjFthHgfavLM1HE0RcLyOXVCoQKBlZGV7v0hrS/rJrQKw6ZaBeHetX+ZJgS7Lxg==",
         "dependencies": {
-          "NuGet.Common": "7.3.0",
+          "NuGet.Common": "7.3.1",
           "System.Security.Cryptography.ProtectedData": "8.0.0"
         }
       },
@@ -341,21 +341,13 @@
       },
       "NuGet.Packaging": {
         "type": "Transitive",
-        "resolved": "7.3.0",
-        "contentHash": "yvmJ8LUPUVMm2DAKSK3+QfJKoCxQR1NuyPYLHqFHb1zmUcGwq+IvSl/4JjUivJDztXnI9GSVlE/SjQLsRJPoYw==",
+        "resolved": "7.3.1",
+        "contentHash": "5bT8uOrNBx4Srhbrd3HonYmyKhWJkvQyTWTYE2jvfPgYx2aCbPmq8MCYko7ce78hEN9mpq2xlrztVhguYPc+GQ==",
         "dependencies": {
           "Newtonsoft.Json": "13.0.3",
-          "NuGet.Configuration": "7.3.0",
-          "NuGet.Versioning": "7.3.0",
+          "NuGet.Configuration": "7.3.1",
+          "NuGet.Versioning": "7.3.1",
           "System.Security.Cryptography.Pkcs": "8.0.1"
-        }
-      },
-      "NuGet.Protocol": {
-        "type": "Transitive",
-        "resolved": "7.3.0",
-        "contentHash": "QWx4Fko06Act+gVhB9UUc8Hzt0fnA8qQhD5SFn/xEis2ZZVzmatHmMdsc0SV7tyvCUlfG8DzQzYLF7fF4LvTyA==",
-        "dependencies": {
-          "NuGet.Packaging": "7.3.0"
         }
       },
       "NuGet.Resolver": {
@@ -422,8 +414,9 @@
           "Cake.CMake": "[1.4.0, )",
           "Cake.Frosting": "[6.1.0, )",
           "Cake.Frosting.Git": "[5.0.1, )",
-          "NuGet.Frameworks": "[7.3.0, )",
-          "NuGet.Versioning": "[7.3.0, )",
+          "NuGet.Frameworks": "[7.3.1, )",
+          "NuGet.Protocol": "[7.3.1, )",
+          "NuGet.Versioning": "[7.3.1, )",
           "OneOf": "[3.0.271, )",
           "OneOf.Monads": "[1.21.0, )",
           "OneOf.SourceGenerator": "[3.0.271, )",
@@ -476,15 +469,24 @@
       },
       "NuGet.Frameworks": {
         "type": "CentralTransitive",
-        "requested": "[7.3.0, )",
-        "resolved": "7.3.0",
-        "contentHash": "AnhSFUOrCrWp7pGtqhfOxa5HKm4rfpQxuatGDKzpGtTczasj6OcGVtB74PyqW7osdu9/BtkjnkAYvNk5iT82Gg=="
+        "requested": "[7.3.1, )",
+        "resolved": "7.3.1",
+        "contentHash": "VUPAE5l/Ir4Gb3dv+v0jq0Qe4nfwxfrfiYN7QhwlGyWPXFKYXSSke1t1bV/ZYd6idtTtRDqJPM49Lt/U8NTocg=="
+      },
+      "NuGet.Protocol": {
+        "type": "CentralTransitive",
+        "requested": "[7.3.1, )",
+        "resolved": "7.3.1",
+        "contentHash": "vYd5vtCJ/tpMQjbAs6rrftNgeh5Ip1w7tnEsDZCpGObKgUgOxHQBekCul3TnzmbNgobvJEkDJNaec5/ZBv66Hg==",
+        "dependencies": {
+          "NuGet.Packaging": "7.3.1"
+        }
       },
       "NuGet.Versioning": {
         "type": "CentralTransitive",
-        "requested": "[7.3.0, )",
-        "resolved": "7.3.0",
-        "contentHash": "iOQPAdnVgj2U+K3AcdGGGcdS1tWyh3nvr64eqTDFCsDuHySBXSHRhl7eR8hdc0BZHxDjacRstbuaJKCurt2oPw=="
+        "requested": "[7.3.1, )",
+        "resolved": "7.3.1",
+        "contentHash": "TJrQWSmD1vakfav7qIhDXgDFfaZFfMJ+v6P8tcND9ZqXajD5B/ZzaoGYNzL4D3eDue6vAOUvwzu42G+19JNVUA=="
       },
       "OneOf": {
         "type": "CentralTransitive",
