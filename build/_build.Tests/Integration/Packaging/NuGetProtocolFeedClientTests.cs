@@ -111,6 +111,40 @@ public sealed class NuGetProtocolFeedClientTests
         await Assert.That(downloadedBytes.Length).IsEqualTo(sourceBytes.Length);
     }
 
+    [Test]
+    public async Task PushAsync_Should_Copy_Nupkg_To_Local_Folder_Feed()
+    {
+        using var feed = new TempDirectory("janset-temp-feed-");
+        using var sourceDir = new TempDirectory("janset-temp-source-");
+
+        var sourcePath = WriteMinimalNupkg(sourceDir.Path, "Test.Pkg", "1.0.0");
+        var sourceBytes = await File.ReadAllBytesAsync(sourcePath);
+
+        var client = CreateRealClient();
+
+        await client.PushAsync(feed.Path, "ignored", new FilePath(sourcePath));
+
+        // Local-feed layout (v2 flat vs v3 hierarchical) is NuGet.Protocol's call;
+        // the contract we care about is "the .nupkg landed somewhere under the feed
+        // root with byte-identical content".
+        var pushed = Directory.GetFiles(feed.Path, "*.nupkg", SearchOption.AllDirectories);
+        await Assert.That(pushed.Length).IsEqualTo(1);
+
+        var pushedBytes = await File.ReadAllBytesAsync(pushed[0]);
+        await Assert.That(pushedBytes.Length).IsEqualTo(sourceBytes.Length);
+    }
+
+    [Test]
+    public async Task PushAsync_Should_Throw_When_Source_Nupkg_Missing()
+    {
+        using var feed = new TempDirectory("janset-temp-feed-");
+        var client = CreateRealClient();
+
+        await Assert.That(async () =>
+                await client.PushAsync(feed.Path, "ignored", new FilePath(System.IO.Path.Combine(feed.Path, "Missing.Pkg.1.0.0.nupkg"))))
+            .Throws<Exception>();
+    }
+
     private static NuGetProtocolFeedClient CreateRealClient()
     {
         var environment = OperatingSystem.IsWindows()

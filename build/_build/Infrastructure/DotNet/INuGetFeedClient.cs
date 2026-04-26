@@ -19,4 +19,10 @@ public interface INuGetFeedClient
         NuGetVersion version,
         DirectoryPath targetDir,
         CancellationToken cancellationToken = default);
+
+    Task PushAsync(
+        string feedUrl,
+        string authToken,
+        FilePath nupkgPath,
+        CancellationToken cancellationToken = default);
 }

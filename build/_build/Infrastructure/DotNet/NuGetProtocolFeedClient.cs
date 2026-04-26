@@ -90,6 +90,37 @@ public sealed class NuGetProtocolFeedClient(ICakeContext cakeContext, ICakeLog l
         return targetPath;
     }
 
+    public async Task PushAsync(
+        string feedUrl,
+        string authToken,
+        FilePath nupkgPath,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(feedUrl);
+        ArgumentException.ThrowIfNullOrWhiteSpace(authToken);
+        ArgumentNullException.ThrowIfNull(nupkgPath);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var repository = CreateRepository(feedUrl, authToken);
+        var resource = await repository.GetResourceAsync<PackageUpdateResource>(cancellationToken);
+
+        // skipDuplicate=false so a re-push at the same version fails loud — operators
+        // must bump the prerelease counter rather than accidentally republishing.
+        await resource.Push(
+            packagePaths: [nupkgPath.FullPath],
+            symbolSource: null,
+            timeoutInSecond: 60,
+            disableBuffering: false,
+            getApiKey: _ => authToken,
+            getSymbolApiKey: _ => authToken,
+            noServiceEndpoint: false,
+            skipDuplicate: false,
+            symbolPackageUpdateResource: null,
+            log: NullLogger.Instance);
+
+        _log.Verbose("NuGetProtocolFeedClient pushed '{0}' -> '{1}'.", nupkgPath.FullPath, feedUrl);
+    }
+
     private static SourceRepository CreateRepository(string feedUrl, string authToken)
     {
         var packageSource = new PackageSource(feedUrl)

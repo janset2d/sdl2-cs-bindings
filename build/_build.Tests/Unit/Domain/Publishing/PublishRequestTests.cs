@@ -1,25 +1,24 @@
 using Build.Domain.Publishing.Models;
-using Cake.Core.IO;
+using NuGet.Versioning;
 
 namespace Build.Tests.Unit.Domain.Publishing;
 
-/// <summary>
-/// Shape sanity for the <see cref="PublishRequest"/> record.
-/// The request stays stable even while publish execution is still stubbed.
-/// </summary>
 public sealed class PublishRequestTests
 {
     [Test]
-    public async Task Constructor_Should_Hold_Packages_Dir_Feed_Url_And_Token()
+    public async Task Constructor_Should_Hold_All_Fields()
     {
-        var packagesDir = new DirectoryPath("artifacts/packages");
         const string feedUrl = "https://nuget.pkg.github.com/janset2d/index.json";
         const string authToken = "token-sentinel";
+        var versions = new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["sdl2-core"] = NuGetVersion.Parse("2.32.0-ci.1"),
+        };
 
-        var request = new PublishRequest(packagesDir, feedUrl, authToken);
+        var request = new PublishRequest(feedUrl, authToken, versions);
 
-        await Assert.That(request.PackagesDir.FullPath).IsEqualTo("artifacts/packages");
         await Assert.That(request.FeedUrl).IsEqualTo(feedUrl);
         await Assert.That(request.AuthToken).IsEqualTo(authToken);
+        await Assert.That(request.Versions["sdl2-core"].ToNormalizedString()).IsEqualTo("2.32.0-ci.1");
     }
 }

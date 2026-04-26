@@ -36,6 +36,11 @@ on:
       explicit-versions:
         description: 'For mode=explicit: sdl2-core=2.32.0,sdl2-image=2.8.0,... (repeated --explicit-version shape)'
         required: false
+      publish-staging:
+        description: 'Run the publish-staging job (push nupkgs to GitHub Packages). Gated until first witness validates the e2e flow against the real feed.'
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -403,19 +408,55 @@ jobs:
           --rid ${{ matrix.rid }}
           --versions-file artifacts/resolve-versions/versions.json
 
-  # Publish jobs stay disabled until feed-push logic is implemented.
   publish-staging:
+    # Pushes the packed nupkgs to the GitHub Packages internal feed (PD-5 write path).
+    # Gated behind workflow_dispatch.inputs.publish-staging until the first witness
+    # validates the e2e flow against the real feed. Tag pushes never auto-trigger
+    # this job today; lift the gate in a follow-up commit after first green witness.
+    # Per-job 'packages: write' override keeps every other job at the workflow-level
+    # 'packages: read' default. PublishTaskRunner refuses to push 'local.*' prerelease
+    # versions so a stray operator dispatch can never leak a local-pack into staging.
     name: Publish (Staging)
     needs: [consumer-smoke]
-    if: false  # Disabled until publish-staging is implemented.
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish-staging == true }}
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
     steps:
-      - run: echo "publish-staging is not yet implemented."
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - uses: actions/download-artifact@v8
+        with:
+          name: cake-host
+          path: ./cake-host
+      - name: Download nupkg artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: nupkg-output
+          path: artifacts/packages
+      - name: Download versions.json
+        uses: actions/download-artifact@v8
+        with:
+          name: resolve-versions-output
+          path: artifacts/resolve-versions
+      - name: Run PublishStaging
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >
+          dotnet ./cake-host/Build.dll
+          --target PublishStaging
+          --versions-file artifacts/resolve-versions/versions.json
 
+  # Phase 2b PD-7: stays disabled until promotion-to-nuget.org logic lands.
   publish-public:
     name: Publish (Public)
     needs: [publish-staging]
-    if: false  # Disabled until publish-public is implemented.
+    if: false
     runs-on: ubuntu-24.04
     steps:
       - run: echo "publish-public is not yet implemented."
