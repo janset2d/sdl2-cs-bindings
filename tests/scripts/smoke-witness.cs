@@ -36,6 +36,9 @@ try
         case SmokeMode.CiSim:
             await RunCiSimAsync(context, results);
             break;
+        case SmokeMode.Remote:
+            await RunRemoteAsync(context, results);
+            break;
     }
 }
 catch (StepFailedException failure)
@@ -60,6 +63,7 @@ static (SmokeMode? Mode, bool Verbose) ParseArgs(string[] args)
     {
         "local" => (SmokeMode?)SmokeMode.Local,
         "ci-sim" => (SmokeMode?)SmokeMode.CiSim,
+        "remote" => (SmokeMode?)SmokeMode.Remote,
         var raw => PrintUnknownMode(raw),
     };
 
@@ -67,8 +71,9 @@ static (SmokeMode? Mode, bool Verbose) ParseArgs(string[] args)
 
     static SmokeMode? PrintUnknownMode(string raw)
     {
-        AnsiConsole.MarkupLine($"[red]Unknown mode '{Markup.Escape(raw)}'. Expected 'local' or 'ci-sim'.[/]");
-        AnsiConsole.MarkupLine("  [grey]local[/]    → CleanArtifacts → SetupLocalDev → PackageConsumerSmoke (default; fast dev iterate)");
+        AnsiConsole.MarkupLine($"[red]Unknown mode '{Markup.Escape(raw)}'. Expected 'local', 'remote', or 'ci-sim'.[/]");
+        AnsiConsole.MarkupLine("  [grey]local[/]    → CleanArtifacts → SetupLocalDev (--source=local) → PackageConsumerSmoke (default; fast dev iterate)");
+        AnsiConsole.MarkupLine("  [grey]remote[/]   → CleanArtifacts → SetupLocalDev (--source=remote) → PackageConsumerSmoke (test against published GH Packages feed; needs GH_TOKEN env)");
         AnsiConsole.MarkupLine("  [grey]ci-sim[/]   → mini CI replay: every stage invoked standalone with ResolveVersions mapping + ConsumerSmoke");
         AnsiConsole.MarkupLine("  [grey]-v/--verbose[/] → tee each step's stdout/stderr to the console (default: off; output always written to log files)");
         return null;
@@ -80,7 +85,13 @@ static async Task<WitnessContext> InitializeContextAsync(SmokeMode mode, bool ve
     var repoRoot = await FindRepoRootAsync();
     var runId = DateTimeOffset.UtcNow.ToString("yyyyMMddTHHmmssZ", CultureInfo.InvariantCulture);
     var platform = ResolvePlatformTag();
-    var modeTag = mode == SmokeMode.Local ? "local" : "ci-sim";
+    var modeTag = mode switch
+    {
+        SmokeMode.Local => "local",
+        SmokeMode.Remote => "remote",
+        SmokeMode.CiSim => "ci-sim",
+        _ => throw new InvalidOperationException($"Unhandled smoke mode '{mode}'."),
+    };
 
     // Logs live under `.logs/witness/` at the repo root (gitignored) rather than
     // `artifacts/` so Cake's CleanArtifacts target cannot wipe them mid-run. Clear
@@ -108,6 +119,21 @@ static async Task RunLocalAsync(WitnessContext ctx, List<StepResult> results)
     // Cake's --versions-file reads the JSON directly — no client-side family
     // filtering needed; PackageConsumerSmokeRunner already filters to concrete
     // families (managed_project + native_project != null).
+    var versionsFile = Path.Combine(ctx.RepoRoot, "artifacts", "resolve-versions", "versions.json");
+    await PrintResolvedVersionsFromFileAsync(versionsFile);
+
+    await StepAsync(ctx, results, "PackageConsumerSmoke",
+        ["--target", "PackageConsumerSmoke", "--rid", ctx.HostRid, "--versions-file", versionsFile]);
+}
+
+static async Task RunRemoteAsync(WitnessContext ctx, List<StepResult> results)
+{
+    await StepAsync(ctx, results, "CleanArtifacts", ["--target", "CleanArtifacts"]);
+    await StepAsync(ctx, results, "SetupLocalDev (remote)", ["--target", "SetupLocalDev", "--source=remote"]);
+
+    // RemoteArtifactSourceResolver writes versions.json from its discovered mapping
+    // (parity with the Local profile), so the consumer-smoke step routes through the
+    // same --versions-file flag in both modes.
     var versionsFile = Path.Combine(ctx.RepoRoot, "artifacts", "resolve-versions", "versions.json");
     await PrintResolvedVersionsFromFileAsync(versionsFile);
 
@@ -293,7 +319,14 @@ static void PrintHeader(WitnessContext ctx)
     var table = new Table().NoBorder().HideHeaders();
     table.AddColumn(new TableColumn(string.Empty).PadRight(2));
     table.AddColumn(new TableColumn(string.Empty));
-    table.AddRow("[grey]Mode[/]", $"[cyan]{Markup.Escape(ctx.Mode == SmokeMode.Local ? "local" : "ci-sim")}[/]");
+    var modeLabel = ctx.Mode switch
+    {
+        SmokeMode.Local => "local",
+        SmokeMode.Remote => "remote",
+        SmokeMode.CiSim => "ci-sim",
+        _ => "unknown",
+    };
+    table.AddRow("[grey]Mode[/]", $"[cyan]{Markup.Escape(modeLabel)}[/]");
     table.AddRow("[grey]Platform[/]", $"[cyan]{Markup.Escape(ctx.Platform)}[/] ([cyan]{Markup.Escape(ctx.HostRid)}[/])");
     table.AddRow("[grey]Repo[/]", $"[cyan]{Markup.Escape(ctx.RepoRoot)}[/]");
     table.AddRow("[grey]HEAD[/]", $"[cyan]{Markup.Escape(ctx.HeadSha ?? "unknown")}[/]");
@@ -467,6 +500,7 @@ namespace Build.Scripts.SmokeWitness
     {
         Local,
         CiSim,
+        Remote,
     }
 
     internal sealed record WitnessContext(

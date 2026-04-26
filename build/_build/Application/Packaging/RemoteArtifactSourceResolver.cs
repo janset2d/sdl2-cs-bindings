@@ -108,6 +108,10 @@ public sealed class RemoteArtifactSourceResolver(
 
         _resolvedVersions = resolved;
 
+        // Parity with the Local profile: emit versions.json so witness scripts and
+        // standalone PackageConsumerSmoke invocations can route through --versions-file.
+        await VersionsFileWriter.WriteAsync(_cakeContext, _pathService, resolved);
+
         _log.Information(
             "RemoteArtifactSourceResolver pulled {0} family/families from '{1}' into '{2}'.",
             resolved.Count,

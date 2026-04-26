@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text.Json;
 using System.Xml.Linq;
 using Build.Application.Packaging;
 using Build.Domain.Packaging.Models;
@@ -343,6 +344,46 @@ public sealed class RemoteArtifactSourceResolverTests
             .IsEqualTo(explicitVersion.ToNormalizedString());
         await Assert.That(propertyGroup.Element("JansetSdl2ImagePackageVersion")?.Value)
             .IsEqualTo(explicitVersion.ToNormalizedString());
+    }
+
+    [Test]
+    public async Task PrepareFeedAsync_Should_Write_Versions_Json_From_Discovered_Mapping()
+    {
+        var manifest = ManifestFixture.CreateTestManifestConfig();
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
+            .WithManifest(manifest)
+            .BuildContextWithHandles();
+        repo.Environment.SetEnvironmentVariable("GH_TOKEN", "gh-token-value");
+
+        var version = NuGetVersion.Parse("2.32.0-preview.1");
+        var feedClient = CreateFeedClient(latestVersion: version);
+
+        var resolver = new RemoteArtifactSourceResolver(
+            repo.CakeContext,
+            repo.CakeContext.Log,
+            repo.Paths,
+            manifest,
+            feedClient);
+
+        await resolver.PrepareFeedAsync(repo.BuildContext, EmptyVersions());
+
+        // versions.json parity with the Local profile so witness scripts and standalone
+        // PackageConsumerSmoke invocations can route through --versions-file uniformly.
+        var versionsFile = repo.FileSystem.GetFile(repo.Paths.GetResolveVersionsOutputFile());
+        await Assert.That(versionsFile.Exists).IsTrue();
+
+        string json;
+        using (var stream = versionsFile.OpenRead())
+        using (var reader = new StreamReader(stream))
+        {
+            json = await reader.ReadToEndAsync();
+        }
+
+        using var doc = JsonDocument.Parse(json);
+        await Assert.That(doc.RootElement.GetProperty("sdl2-core").GetString())
+            .IsEqualTo(version.ToNormalizedString());
+        await Assert.That(doc.RootElement.GetProperty("sdl2-image").GetString())
+            .IsEqualTo(version.ToNormalizedString());
     }
 
     [Test]

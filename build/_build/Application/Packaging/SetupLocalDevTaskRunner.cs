@@ -81,7 +81,11 @@ public sealed class SetupLocalDevTaskRunner(
 
         // Emit the same versions.json shape that ResolveVersionsTaskRunner writes in CI
         // so that smoke-witness and PackageConsumerSmoke can read versions after SetupLocalDev.
-        await WriteVersionsJsonAsync(mapping);
+        await VersionsFileWriter.WriteAsync(_cakeContext, _pathService, mapping);
+        _log.Information(
+            "SetupLocalDev wrote {0} family/version entries to {1}.",
+            mapping.Count,
+            _pathService.GetResolveVersionsOutputFile().FullPath);
 
         await _preflightTaskRunner.RunAsync(context, new PreflightRequest(mapping), cancellationToken);
         _ensureVcpkgDependenciesTaskRunner.Run(context);
@@ -118,20 +122,4 @@ public sealed class SetupLocalDevTaskRunner(
         return await provider.ResolveAsync(scope, cancellationToken);
     }
 
-    private async Task WriteVersionsJsonAsync(IReadOnlyDictionary<string, NuGetVersion> mapping)
-    {
-        var serializable = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var (family, version) in mapping)
-        {
-            serializable[family] = version.ToNormalizedString();
-        }
-
-        var outputFile = _pathService.GetResolveVersionsOutputFile();
-        await _cakeContext.WriteJsonAsync(outputFile, serializable);
-
-        _log.Information(
-            "SetupLocalDev wrote {0} family/version entries to {1}.",
-            serializable.Count,
-            outputFile.FullPath);
-    }
 }
