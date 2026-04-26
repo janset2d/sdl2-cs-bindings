@@ -11,7 +11,8 @@ Orchestrates the post-B2 flat Cake graph into two reproducible witness flows.
 
 | Mode | What it runs | Intent |
 | --- | --- | --- |
-| `local` (default) | `CleanArtifacts` → `SetupLocalDev` → `PackageConsumerSmoke` | Fast dev iterate. Validates the `SetupLocalDev` composition + end-to-end consumer smoke. |
+| `local` (default) | `CleanArtifacts` → `SetupLocalDev --source=local` → `PackageConsumerSmoke` | Fast dev iterate. Validates the `SetupLocalDev` composition (vcpkg + harvest + pack + override) + end-to-end consumer smoke. |
+| `remote` | `CleanArtifacts` → `SetupLocalDev --source=remote` → `PackageConsumerSmoke` | Test against the **last published wave** on GitHub Packages. Skips vcpkg/harvest/pack entirely — `RemoteArtifactSourceResolver` discovers + downloads the latest published nupkg per family, then the same consumer smoke validates them as an external consumer would. Requires `GH_TOKEN` env (see below). |
 | `ci-sim` | `CleanArtifacts` → `ResolveVersions` → `PreFlightCheck` → `EnsureVcpkgDependencies` → `Harvest` → `NativeSmoke` → `ConsolidateHarvest` → `Package` → `PackageConsumerSmoke` | Mini CI/CD replay. Every stage invoked standalone with the `ResolveVersions`-emitted mapping, mirroring `release.yml`, then closes the loop with the same consumer smoke gate the pipeline uses after packaging. |
 
 Logs land under `.logs/witness/<platform>-<mode>-<runId>/NN-<step>.log` (gitignored,
@@ -29,14 +30,17 @@ collides.
 chmod +x tests/scripts/smoke-witness.cs
 
 ./tests/scripts/smoke-witness.cs             # local mode (default)
+./tests/scripts/smoke-witness.cs remote       # pull from GH Packages, smoke against pulled feed
 ./tests/scripts/smoke-witness.cs ci-sim       # mini CI simulation
 ```
 
-**Windows (shebang is Unix-only at the OS level — use `dotnet run`):**
+**Windows (shebang is Unix-only at the OS level — use `dotnet run` from inside `tests/scripts`):**
 
 ```pwsh
-dotnet run tests/scripts/smoke-witness.cs           # local mode
-dotnet run tests/scripts/smoke-witness.cs ci-sim    # mini CI simulation
+cd tests\scripts
+dotnet run smoke-witness.cs           # local mode
+dotnet run smoke-witness.cs remote    # pull from GH Packages, smoke against pulled feed
+dotnet run smoke-witness.cs ci-sim    # mini CI simulation
 ```
 
 Either invocation works from the repo root; `git rev-parse --show-toplevel`
@@ -50,11 +54,14 @@ resolves the repo root internally.
   (net9-pinned for the build-host) does not interfere.
 - **git** on `PATH` — used to resolve repo root + capture the short HEAD SHA
   into the summary panel.
-- **vcpkg prerequisites** — the same set the main build needs (`EnsureVcpkgDependencies`
-  is invoked as a stage). See [`docs/playbook/cross-platform-smoke-validation.md`][playbook].
+- **vcpkg prerequisites** (only for `local` and `ci-sim`) — the same set the main
+  build needs (`EnsureVcpkgDependencies` is invoked as a stage). See
+  [`docs/playbook/cross-platform-smoke-validation.md`][playbook]. `remote` mode
+  skips vcpkg entirely.
 - **CMake + C/C++ toolchain** — only when `ci-sim` reaches `NativeSmoke`.
   `local` mode skips `NativeSmoke` entirely (by design — ADR-003 §6.4
-  amendment: `SetupLocalDev` no longer composes `NativeSmoke`).
+  amendment: `SetupLocalDev` no longer composes `NativeSmoke`); `remote` mode
+  has no native compilation step at all.
   - **Windows:** plain PowerShell works. The Cake host self-sources the MSVC
     environment via VSWhere + `vcvarsall.bat` (see `IMsvcDevEnvironment` in
     `build/_build/Infrastructure/Tools/Msvc/`, Slice CA). You need Visual
@@ -65,6 +72,17 @@ resolves the repo root internally.
     (`apt install build-essential`, `brew install cmake ninja`, …). The
     `IMsvcDevEnvironment` resolver is Windows-only and short-circuited at the
     `NativeSmokeTaskRunner` call site.
+- **`GH_TOKEN` env var** (only for `remote` mode) — Classic PAT with
+  `read:packages` scope. GitHub Packages NuGet feed always requires
+  authentication, even for public packages (anonymous read is not supported
+  on the NuGet/npm/Maven registries — only `ghcr.io` containers allow it).
+  Setup recipes in [`docs/playbook/local-development.md`](../../docs/playbook/local-development.md#github-packages-auth---sourceremote).
+
+### How `remote` mode threads versions into `PackageConsumerSmoke`
+
+`SetupLocalDev --source=remote` discovers the latest published version per concrete family from `https://nuget.pkg.github.com/janset2d/index.json`, downloads managed + native nupkg pairs into `artifacts/packages/`, and writes both `Janset.Local.props` (consumer-side MSBuild override) and `artifacts/resolve-versions/versions.json` (Cake-pipeline-side mapping). The witness then runs `PackageConsumerSmoke --rid <host> --versions-file artifacts/resolve-versions/versions.json` exactly the same way `local` and `ci-sim` modes do — uniform `--versions-file` flag across all three witness paths.
+
+If the feed has no published version for a family (or family-version invariant is violated — e.g. managed and native disagree), the resolver fails loud with operator-friendly remediation instead of silently producing an inconsistent feed.
 
 ### How `ci-sim` threads versions into `PackageConsumerSmoke`
 
@@ -109,6 +127,12 @@ mapping is supplied (mirrors `PackageTask.ShouldRun` — same rationale).
 - **`JNSMK001` on `local` mode** → `SetupLocalDev` did not stamp the props
   file. Inspect the `02-SetupLocalDev.log` for resolver errors (usually
   missing feed directory or unknown family).
+- **`Failed to retrieve information about 'Janset.SDL2.Core' from remote source`**
+  on `remote` mode → almost always auth scope. Inspect
+  `02-SetupLocalDev--remote-.log`; if the underlying HTTP error is hidden, set
+  `GH_TOKEN` to a freshly-created Classic PAT with `read:packages` scope.
+  Token created without that scope returns a misleading "could not retrieve"
+  rather than an explicit 401/403.
 - **Shebang fails on Unix with "bad interpreter"** → the checkout picked up
   CRLF. `dos2unix tests/scripts/smoke-witness.cs` or re-clone after
   configuring `core.autocrlf=false`; `.gitattributes` pins LF for the

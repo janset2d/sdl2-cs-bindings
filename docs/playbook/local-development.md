@@ -2,7 +2,7 @@
 
 > How to clone, build, and develop Janset.SDL2 on your local machine.
 >
-> **Status 2026-04-19 (ADR-001 transition).** `SetupLocalDev --source=local` is now the canonical fresh-clone path (package-first consumer contract per [ADR-001](../decisions/2026-04-18-versioning-d3seg.md) §2.8). `--source=remote` / `--source=release` are accepted profile stubs for Phase 2b. The manual vcpkg + Harvest + Package flow below stays as a fallback/debug route.
+> **Status 2026-04-26.** `SetupLocalDev --source=local` is the canonical fresh-clone path (package-first consumer contract per [ADR-001](../decisions/2026-04-18-versioning-d3seg.md) §2.8). `--source=remote` is also operational (PD-5 closure, 2026-04-26) — pulls latest published nupkgs from the GitHub Packages internal feed and exercises the same consumer surface. `--source=release` (public NuGet.org) stays stubbed pending Phase 2b PD-7. Manual vcpkg + Harvest + Package flow below stays as a fallback/debug route.
 
 ## Quick Start (recommended)
 
@@ -17,11 +17,26 @@ cd sdl2-cs-bindings
 dotnet run --project build/_build -- --target SetupLocalDev --source=local
 ```
 
-Result: `artifacts/packages/` populated with D-3seg-versioned prerelease nupkgs (e.g. `Janset.SDL2.Core 2.32.0-local.<timestamp>`), and `build/msbuild/Janset.Local.props` written (gitignored) with the matching `LocalPackageFeed` + per-family version properties. Opening any smoke / sample csproj in Rider / VS / VS Code then restores + builds directly from the local feed.
+Result: `artifacts/packages/` populated with D-3seg-versioned prerelease nupkgs (e.g. `Janset.SDL2.Core 2.32.0-local.<timestamp>`), and `build/msbuild/Janset.Local.props` + `artifacts/resolve-versions/versions.json` written (both gitignored). Opening any smoke / sample csproj in Rider / VS / VS Code then restores + builds directly from the local feed.
 
-`--source=remote` / `--source=release` are accepted now but intentionally fail with a "not implemented in Phase 2a" error until feed-download profile work lands.
+`--source=release` is accepted but intentionally fails with a "not implemented" error until Phase 2b PD-7 wires the public-feed promotion path.
 
 If you need to debug the internals manually, follow the "Full Build" fallback sequence below.
+
+### Alternative — `--source=remote` (test against published internal feed)
+
+When you want to validate your consumer code against the **last published wave** on GitHub Packages without packing locally, use `--source=remote`. This skips vcpkg / Harvest / Pack entirely and downloads the latest published managed + native nupkg per family:
+
+```bash
+# One-time: set GH_TOKEN to a Classic PAT with read:packages scope.
+# (See "Environment Variables" below for the full setup recipe.)
+
+dotnet run --project build/_build -- --target SetupLocalDev --source=remote
+```
+
+Result: `artifacts/packages/` is wiped, then populated with the latest published version of every concrete family from `https://nuget.pkg.github.com/janset2d/index.json`. `Janset.Local.props` + `versions.json` get the same shape as `--source=local`, so smoke / sample csprojs restore from the pulled feed identically.
+
+`--source=remote` is the right tool for "did the latest CI publish actually work end-to-end as a consumer would see it?" — exactly what `tests/scripts/smoke-witness.cs remote` automates (see [tests/scripts/README.md](../../tests/scripts/README.md)).
 
 ## Prerequisites
 
@@ -208,7 +223,43 @@ dotnet run -- --target Harvest --verbosity Diagnostic
 | `VCPKG_ROOT` | vcpkg installation path | `external/vcpkg/` |
 | `VCPKG_DEFAULT_TRIPLET` | Default build triplet | Auto-detected from OS |
 | `DOTNET_ROOT` | .NET runtime root (required on WSL/macOS when dotnet is not in standard system paths) | Not set (see [cross-platform smoke validation](cross-platform-smoke-validation.md#per-platform-environment-setup)) |
+| `GH_TOKEN` | GitHub Packages auth for `SetupLocalDev --source=remote`. Falls back to `GITHUB_TOKEN` if unset. | Not set (see "GitHub Packages auth" below) |
 | `DOTNET_CLI_TELEMETRY_OPTOUT` | Disable .NET telemetry | Not set |
+
+### GitHub Packages auth (`--source=remote`)
+
+The `RemoteArtifactSourceResolver` reads `GH_TOKEN` (then `GITHUB_TOKEN`) from the environment. GitHub Packages NuGet feed **always requires authentication**, even for public packages — anonymous read is not supported on the NuGet/npm/Maven registries (only `ghcr.io` containers allow anonymous public pulls). This is by-design GitHub behavior, not a misconfiguration; making packages public only changes the ACL applied after authentication, not the auth requirement itself.
+
+**Token requirements:**
+
+- **Classic PAT** (fine-grained PATs are not supported by GH Packages NuGet — documented limitation).
+- Scope: `read:packages` (for `--source=remote`); add `write:packages` if you ever need the PD-8 manual escape hatch (operator-driven publish).
+- SSO: if your org enforces SAML SSO, authorize the PAT for the `janset2d` org after creating it.
+
+**Setup recipes:**
+
+```bash
+# Recipe A — gh CLI scope refresh (interactive browser auth, one-time)
+gh auth refresh -h github.com -s read:packages
+export GH_TOKEN=$(gh auth token)
+dotnet run --project build/_build -- --target SetupLocalDev --source=remote
+
+# Recipe B — dedicated PAT (explicit, easier to rotate)
+# 1. github.com/settings/tokens/new → Classic → scope: read:packages → Generate
+# 2. Persist via shell rc or per-platform env:
+
+# bash / zsh:
+export GH_TOKEN=ghp_yourtokenhere
+echo 'export GH_TOKEN=ghp_yourtokenhere' >> ~/.bashrc
+
+# Windows (PowerShell, persistent User-scope):
+[Environment]::SetEnvironmentVariable('GH_TOKEN', 'ghp_yourtokenhere', 'User')
+# Then restart shells so the new env is inherited.
+```
+
+**CI does not need this** — `release.yml`'s `publish-staging` job maps `${{ secrets.GITHUB_TOKEN }}` into `GH_TOKEN` automatically; that token is scoped + short-lived per workflow run.
+
+**External-consumer note**: this auth is for **internal feed access** (CI-staged prereleases). External consumers of Janset.SDL2 packages will go through nuget.org once the public-feed promotion path lands (Phase 2b PD-7); they will not need a PAT at all. The `--source=remote` flow is a developer/maintainer-side dogfooding tool, not the external-consumer path.
 
 ## Common Tasks
 
