@@ -16,8 +16,8 @@ release.yml                          (10-job pipeline; tag-push + workflow_dispa
 ├── consolidate-harvest              (aggregation; merges per-RID status JSON)
 ├── pack                             (per-family pack + post-pack G21–G58 validators)
 ├── consumer-smoke (matrix, 7 RIDs)  (matrix re-entry; per-TFM TUnit smoke + restore)
-├── publish-staging                  (gated `if: false`; Phase-2b stub)
-└── publish-public                   (gated `if: false`; Phase-2b stub)
+├── publish-staging                  (dispatch-gated internal GitHub Packages push)
+└── publish-public                   (PD-7 stub; nuget.org Trusted Publishing pending)
 
 build-linux-container.yml            (multi-arch GHCR builder image; workflow_dispatch + monthly cron)
 ├── build (matrix: amd64, arm64)     (per-arch native build via docker/build-push-action; push-by-digest)
@@ -67,7 +67,6 @@ Composite actions live under `.github/actions/`:
 
 **Known port-specific issues**:
 
-
 - **autoconf < 2.70 on focal/Ubuntu 20.04**: gperf 3.3 (transitive via harfbuzz) requires autoconf ≥ 2.70. The Linux builder image (`docker/linux-builder.Dockerfile`) builds autoconf 2.72 from source on top of focal's apt 2.69 to satisfy this. If a vcpkg port introduces a new autoconf-dependent transitive, autoconf 2.72 should still cover it; if a port requires autoconf > 2.72 in the future, bump the Dockerfile source-build URL and SHA256 pin in lockstep. See [#77](https://github.com/janset2d/sdl2-cs-bindings/issues/77).
 - **mpg123 arm64 NEON64 + fixed-point math conflict**: vcpkg's upstream `mpg123` port FPU detection incorrectly reports `HAVE_FPU=0` on arm64 Linux containers, enabling `REAL_IS_FIXED` which conflicts with `OPT_NEON64`. Workaround: a vcpkg overlay port at [`vcpkg-overlay-ports/mpg123/`](../../vcpkg-overlay-ports/) patches the FPU detection to force `HAVE_FPU=1` on arm64 Linux. The `vcpkg-setup` composite passes `--overlay-ports` automatically. **Re-validate on every vcpkg baseline bump**; remove when upstream fixes land. See [#78](https://github.com/janset2d/sdl2-cs-bindings/issues/78) + [microsoft/vcpkg#40709](https://github.com/microsoft/vcpkg/issues/40709). Maintenance protocol: [`vcpkg-overlay-ports/README.md`](../../vcpkg-overlay-ports/).
 - **Linux missing dev headers**: builder image bakes the canonical SDL2 dependency set (X11 + Wayland + ALSA + freepats for MIDI + libicu + autotools). If a vcpkg feature flag introduces a new system dep, update [`docker/linux-builder.Dockerfile`](../../docker/linux-builder.Dockerfile) and re-run `build-linux-container.yml` to publish a new `focal-<yyyymmdd>-<sha>` tag. The mutable `focal-latest` pointer retags onto the new digest after `imagetools create` runs.
@@ -90,10 +89,12 @@ vcpkg-bin-{platform-identity}-{triplet}-{hashFiles(vcpkg.json, vcpkg-overlay-tri
 ```
 
 Where `{platform-identity}` is:
+
 - **Host jobs** (Windows, macOS): the runner label as-is (e.g., `windows-2025`, `macos-15-intel`).
 - **Container jobs** (Linux): the GHCR image's per-platform child manifest digest, resolved inline by `vcpkg-setup` from the mutable `:focal-latest` tag (matched via `runner.os` + `runner.arch`).
 
 Triggers for cache miss (legitimate cold rebuild expected):
+
 - Vcpkg baseline / submodule commit bump.
 - `vcpkg.json` change (new feature flag, new dependency, version override).
 - Overlay triplet / port edit.
@@ -137,6 +138,7 @@ Triggers for cache miss (legitimate cold rebuild expected):
 **Symptoms**: `harvest` Linux matrix entry fails at `actions/checkout@v6` with `Error response from daemon: pull access denied` or `manifest unknown`. Or `docker pull` of `focal-latest` returns only one arch (e.g., amd64 missing or arm64 missing).
 
 **Diagnosis**: Two known causes:
+
 - **Untagged version pruned by retention**: the `retention` job's `actions/delete-package-versions` previously had `delete-only-untagged-versions: false`, which swept platform-specific runtime manifests that GHCR reported as "untagged" (they were members of the multi-arch image index, not standalone-tagged). Post-2026-04-22 fix: `delete-only-untagged-versions: true` constrains deletes to genuinely-orphaned versions.
 - **SBOM/provenance attestation noise**: `docker/build-push-action@v6` with attestations enabled produces 2 manifests per arch (runtime + attestation). Tagless attestation manifests look like "untagged versions" to retention tooling. Workflow disables them: `provenance: false` + `sbom: false`.
 

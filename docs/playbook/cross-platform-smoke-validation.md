@@ -83,7 +83,7 @@ These will be added as their parent streams land. Add the command reference and 
 | --- | --- | --- | --- |
 | Windows | Local (current machine) | `E:\repos\my-projects\janset2d\sdl2-cs-bindings` | `x64-windows-hybrid` |
 | Linux | WSL from Windows | `/home/deniz/repos/sdl2-cs-bindings` | `x64-linux-hybrid` |
-| macOS Intel | SSH: `Armut@192.168.50.205` | `/Users/armut/repos/sdl2-cs-bindings` | `x64-osx-hybrid` |
+| macOS Intel | SSH: `Armut@192.168.50.178` | `/Users/armut/repos/sdl2-cs-bindings` | `x64-osx-hybrid` |
 
 Keep all 3 repos on the same commit before running the matrix. Verify with `git log --oneline -1` on each.
 
@@ -104,7 +104,7 @@ export DOTNET_ROOT="$HOME/.dotnet"
 
 **Why `DOTNET_ROOT`?** TUnit uses Microsoft Testing Platform which produces a native apphost. The apphost resolves .NET runtime via `DOTNET_ROOT`, not `PATH`. Without it, tests build but fail at execution with `Failed to resolve libhostfxr.so`.
 
-Consider adding these exports to `~/.bashrc` or `~/.profile` to avoid repeating them.
+**Use zsh on WSL.** The repo's WSL Ubuntu setup runs zsh as the default login shell — persist these exports in `~/.zshrc`, not `~/.bashrc`. For Windows-side harnesses driving WSL non-interactively, use `wsl zsh -c "setopt no_nomatch; source ~/.zshrc; …"` rather than `wsl zsh -lic '…'`; the `setopt` guard is required because zsh's default `nomatch` chokes on the unquoted `(x86)` token in the WSL-inherited Windows PATH (`Program Files (x86)/...`) the moment a login shell expands it. bash silently passes the literal, which is why the bash form has historically worked but isn't the canonical invocation here. Cake child processes are unaffected — they don't glob-expand `$PATH`.
 
 **WSL `dotnet pack` PATH gotcha:** WSL's `appendWindowsPath=true` default prepends Windows PATH entries, so `/mnt/c/Program Files/dotnet` ends up ahead of `/home/<user>/.dotnet` after the prepend above. The Cake host itself starts on the Linux dotnet (full-path or absolute resolution), but `dotnet pack` invoked internally by `IDotNetPackInvoker` resolves through naked PATH lookup and picks Windows dotnet — `MSBuild.dll` then fails with `MSB1001: Unknown switch` against Linux paths (`/home/<user>/...`). D-G checkpoints (PreFlight, Harvest, NativeSmoke, …) are unaffected because they invoke vcpkg / scanners / cmake through Cake's `IPathService` abstractions rather than naked PATH. **For checkpoints J (Package) and K (PackageConsumerSmoke), set a Linux-only PATH explicitly:**
 

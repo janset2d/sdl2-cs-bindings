@@ -184,7 +184,9 @@ Cake PackageTask → NuGet .nupkg files (full 7-RID matrix green via release.yml
     ↓
 PackageConsumerSmoke (matrix re-entry, per-TFM TUnit) → validates the produced nupkgs end-to-end
     ↓
-[Phase 2b] PublishStaging / PublishPublic → real feed transfer (Cake stubs landed P6; release.yml jobs gated `if: false` until impl)
+PublishStaging → internal GitHub Packages feed (dispatch-gated; tag-push auto-publish blocked pending version routing)
+    ↓
+[Phase 2b] PublishPublic → nuget.org promotion via Trusted Publishing OIDC (stub pending PD-7)
 ```
 
 ### Key Configuration Files
@@ -231,13 +233,13 @@ Janset.SDL2                              ← Meta-package (pulls everything)
 
 Users reference `Janset.SDL2.Core` (or the meta-package `Janset.SDL2`). The `.Native` dependency is pulled in transitively — users never reference it directly.
 
-## What Works Today (as of 2026-04-26, master `8ec85c5`)
+## What Works Today (as of 2026-04-29)
 
 - **C# bindings**: all 5 SDL2 libraries (`Core`/`Image`/`Mixer`/`Ttf`/`Gfx`) compile against `net9.0`/`net8.0`/`netstandard2.0`/`net462`.
 - **Cake Frosting build host**: 20 lifecycle + diagnostic targets (Info, CleanArtifacts, CompileSolution, GenerateMatrix, ResolveVersions, PreFlightCheck, EnsureVcpkgDependencies, Harvest, NativeSmoke, ConsolidateHarvest, Inspect-HarvestedDependencies, Package, PackageConsumerSmoke, SetupLocalDev, Coverage-Check, PublishStaging, PublishPublic, plus dependency-analysis aliases). DDD-layered per ADR-002 (Tasks/Application/Domain/Infrastructure + LayerDependencyTests catchnet).
-- **Build-host test suite**: 460 TUnit tests covering Domain, Application, Infrastructure, Tasks, Context, CompositionRoot. Run via `dotnet test build/_build.Tests/Build.Tests.csproj -c Release`. Coverage ratchet gate `Coverage-Check` enforces the floor in `build/coverage-baseline.json`.
-- **Version-source providers** (ADR-003): `ManifestVersionProvider` (manifest-derived), `GitTagVersionProvider` (tag-driven targeted/full-train), `ExplicitVersionProvider` (operator override) — `ResolveVersions` Cake target emits canonical `versions.json` consumed by every downstream stage via `--versions-file`.
-- **CI pipeline** (`release.yml`, 10 jobs): tag-push + `workflow_dispatch` triggers; dynamic 7-RID matrix from `manifest.runtimes[]`; consumer smoke matrix re-entry; Cake host built once + distributed as FDD artifact; GHCR-hosted Linux builder image.
+- **Build-host test suite**: 493 TUnit tests covering Domain, Application, Infrastructure, Tasks, Context, CompositionRoot. Run via `dotnet test build/_build.Tests/Build.Tests.csproj -c Release`. Coverage ratchet gate `Coverage-Check` enforces the floor in `build/coverage-baseline.json`.
+- **Version-source providers** (ADR-003): `ManifestVersionProvider` (manifest-derived), `GitTagVersionProvider` (tag-driven targeted/full-train), `ExplicitVersionProvider` (operator override). `ResolveVersions` emits canonical `versions.json` for manifest/tag paths today; 2026-04-29 course correction says CI explicit mode must also route through `ResolveVersions --version-source=explicit` before downstream stages run.
+- **CI pipeline** (`release.yml`, 10 jobs): tag-push + `workflow_dispatch` triggers; dynamic 7-RID matrix from `manifest.runtimes[]`; consumer smoke matrix re-entry; Cake host built once + distributed as FDD artifact; GHCR-hosted Linux builder image. Current routing gap: `resolve-versions` still hard-codes manifest-derived CI suffixes, so tag-push staging remains blocked until trigger-aware version routing lands.
 - **Cross-platform validation**: A-K checkpoints green on Windows + WSL Linux at master `d190b5b` (P7 witness 2026-04-25); all 7 RIDs green again via post-push CI run 24938451364 on master `8ec85c5` (Pack ✓, ConsumerSmoke ✓ across `win-{x64,x86,arm64}`/`linux-{x64,arm64}`/`osx-{x64,arm64}`).
 - **PreFlight validation**: manifest.json ↔ vcpkg.json consistency, strategy coherence, csproj pack contract (G4/G6/G7/G17/G18), G54 upstream version alignment, G58 cross-family dependency resolvability (defense-in-depth in PreFlight + Pack).
 - **Lock-file discipline** (P5): `<RestorePackagesWithLockFile>true</...>` on `build/_build` + `build/_build.Tests` + 10 `src/**` csprojs; strict mode (`<RestoreLockedMode Condition="'$(GITHUB_ACTIONS)'='true'"/>`) only on the build host; `src/` lenient mode absorbs SDK-implicit-package drift (ILLink.Tasks per runtime patch, NETFramework.ReferenceAssemblies per host OS).
@@ -247,11 +249,11 @@ Users reference `Janset.SDL2.Core` (or the meta-package `Janset.SDL2`). The `.Na
 
 ## What Doesn't Work Yet
 
-- **NuGet publishing**: `PublishStaging` / `PublishPublic` Cake targets are scaffolded stubs (P6 — throws `NotImplementedException` with Phase-2b pointer); `release.yml` jobs gated `if: false`. Real implementation arrives with Phase 2b's first prerelease publication wave.
+- **NuGet publishing**: `PublishStaging` is live for the internal GitHub Packages feed but still gated behind `workflow_dispatch.inputs.publish-staging=true`; tag-push auto-publish must wait for trigger-aware `ResolveVersions` routing. `PublishPublic` is still stubbed pending PD-7 (nuget.org promotion via Trusted Publishing OIDC).
 - **`SDL2.Mixer.Native`**: full codec dependencies in the hybrid bake validated on `win-x64`; per-RID codec parity audit pending.
 - **`SDL2.Ttf.Native`**: harvest + pack pipeline live, but per-RID font-rendering smoke beyond `TTF_Init` is still pending.
 - **`SDL2.Net` family**: manifest entry retired 2026-04-22 (`bc652d1`); will re-land with the full skeleton (binding csproj + native csproj + overlay port + manifest entries + harvest validation) per [#58](https://github.com/janset2d/sdl2-cs-bindings/issues/58).
-- **`RemoteArtifactSourceResolver`** (PD-5): `SetupLocalDev --source=remote` accepted but stubbed (`UnsupportedArtifactSourceResolver`); remote-internal feed download is Phase 2b.
+- **`SetupLocalDev --source=release`**: public-feed resolver remains stubbed until PD-7 publishes the first packages to nuget.org. `--source=remote` is operational against the internal GitHub Packages feed; Linux/macOS host witnesses are still pending.
 - **Samples**: `samples/` directory empty; targeted to land alongside the first prerelease publication ([#60](https://github.com/janset2d/sdl2-cs-bindings/issues/60)).
 - **Binding autogeneration**: CppAst-based generator (Phase 4) is the long-term plan to replace the `external/sdl2-cs/` submodule import. Not yet started.
 - **SDL3 support**: scoped for after SDL2 line is fully shipped.

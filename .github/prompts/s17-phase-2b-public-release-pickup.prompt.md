@@ -1,6 +1,6 @@
 ---
 name: "S17 Phase 2b pickup (post-PD-5 closure, public-release horizon)"
-description: "Priming prompt for the next agent entering janset2d/sdl2-cs-bindings after PD-5 closure (RemoteArtifactSourceResolver + PublishStagingTask + VersionsFileWriter + smoke-witness remote mode landed across commits 94a3696..549ad2f, plus local-dev / smoke-witness doc updates). The internal GitHub Packages staging feed is populated and end-to-end witnessed (CI run 24962876812; local Windows witness 3/3 PASS, ConsumerSmoke 35/35). Recommended next move: settle small post-session wins (publish-staging gate-lift, multi-platform --source=remote witness, PD-5 doc closures across canonical docs), then turn to the public-release horizon — Phase 2b PD-7 + first prerelease publish to nuget.org (#63) via Trusted Publishing OIDC."
+description: "Priming prompt for the next agent entering janset2d/sdl2-cs-bindings after PD-5 closure (RemoteArtifactSourceResolver + PublishStagingTask + VersionsFileWriter + smoke-witness remote mode landed across commits 94a3696..549ad2f, plus local-dev / smoke-witness doc updates). The internal GitHub Packages staging feed is populated and end-to-end witnessed (CI run 24962876812; local Windows witness 3/3 PASS, ConsumerSmoke 35/35). Course correction 2026-04-29: implement trigger-aware ResolveVersions routing, including --version-source=explicit, before any publish-staging tag-push gate-lift; then continue with multi-platform --source=remote witness and public-release work (PD-7 / #63)."
 argument-hint: "Optional focus area, constraints, or reason to override the recommended next step"
 agent: "agent"
 model: "Claude Opus 4.7 (1M context)"
@@ -26,7 +26,7 @@ The codebase is in a strong post-PD-5 state:
 
 That means the highest-value next move is **either**:
 
-1. Tie up the small post-session wins (publish-staging gate-lift, multi-platform `--source=remote` witness on Linux + macOS, PD-5 doc closure across canonical surfaces).
+1. Tie up the small post-session wins in the corrected order: trigger-aware `ResolveVersions` routing first, then publish-staging tag-push gate-lift, plus multi-platform `--source=remote` witness on Linux + macOS and PD-5 doc closure across canonical surfaces.
 2. **OR** — the bigger horizon — pick up **public-release work**: PD-7 full-train orchestration + Trusted Publishing OIDC setup + first prerelease publish to nuget.org (#63) + draft `playbook/release-recovery.md` (PD-8).
 
 Talk to Deniz before committing to which one. Smaller wins are ~30 min of doc + tiny YAML edit + 2 platform reruns; the public-release work is a multi-session arc.
@@ -115,22 +115,29 @@ Target RIDs (canonical in `build/manifest.json runtimes[]`):
 
 ## Recommended Next Step
 
-### Recommended pickup A — small wins (lift gate + multi-platform witness + onboarding tail)
+### Recommended pickup A — small wins (version routing + gate + multi-platform witness + onboarding tail)
 
-Lowest-friction, highest-confidence move. PD-5 doc closure across `plan.md` + `phase-2-adaptation-plan.md` + `cross-platform-smoke-validation.md` already landed in the session-close commit, so pickup A is now even smaller — three sub-items:
+Lowest-friction, highest-confidence move, but do it in the corrected order. PD-5 doc closure across `plan.md` + `phase-2-adaptation-plan.md` + `cross-platform-smoke-validation.md` already landed in the session-close commit, so pickup A is now four sub-items:
 
-1. **Lift the `publish-staging` gate**. The job is currently `if: github.event_name == 'workflow_dispatch' && inputs.publish-staging == true`. Witness validated the e2e flow; the gate is now ceremony. Three options:
-   - **(a)** drop the `if` entirely — publish-staging runs on every tag push too; simplest.
-   - **(b)** keep the workflow_dispatch input as an opt-out (`default: true`) for safety dry-runs.
-   - **(c)** condition on `github.event_name == 'push'` (tag triggers) OR `inputs.publish-staging == true` (dispatch opt-in).
-   Preference depends on Deniz; (c) is the most controlled but adds expression complexity.
+1. **Implement trigger-aware `ResolveVersions` routing before touching the staging gate**. Current `release.yml` accepts tag triggers and `workflow_dispatch mode=explicit`, but the `resolve-versions` job still hard-codes manifest-derived CI suffixes. Land the Cake + YAML route first:
+   - `workflow_dispatch mode=manifest-derived` → manifest provider + `ci.<run-id>.<attempt>` suffix.
+   - `workflow_dispatch mode=explicit` → parse `inputs.explicit-versions` into repeated `--explicit-version family=semver` and call `ResolveVersions --version-source=explicit`.
+   - family tag push → extract family id and call git-tag targeted mode.
+   - `train-*` tag push → meta-tag mode.
+   - downstream jobs keep consuming only `--versions-file`.
 
-2. **Multi-platform `--source=remote` witness**. Run `tests/scripts/smoke-witness.cs remote --verbose` on:
+2. **Then lift the `publish-staging` tag-push gate**. The job is currently `if: github.event_name == 'workflow_dispatch' && inputs.publish-staging == true`. After routing lands, reasonable shapes are:
+   - **(a)** run on tag pushes and keep dispatch opt-in for manual manifest/explicit staging.
+   - **(b)** add a dispatch opt-out/default for dry-runs.
+   - **(c)** keep tag-push staging behind a second explicit confirmation until first tag witness.
+   Preference depends on Deniz; (a) is the natural ADR-003 shape once version routing is correct.
+
+3. **Multi-platform `--source=remote` witness**. Run `tests/scripts/smoke-witness.cs remote --verbose` on:
    - WSL Linux (linux-x64) — `GH_TOKEN` exported in the WSL session.
-   - macOS Intel (osx-x64) — SSH into `Armut@192.168.50.205`. `GH_TOKEN` set on the macOS side.
+   - macOS Intel (osx-x64) — SSH into `Armut@192.168.50.178`. `GH_TOKEN` set on the macOS side.
    PD-5 exit-criterion #4 ("operational on all 3 host platforms") only fully closes after these.
 
-3. **Onboarding-tail doc closure** (small surgical edits not done in the session-close commit):
+4. **Onboarding-tail doc closure** (small surgical edits not done in the session-close commit):
    - `docs/onboarding.md` "What Doesn't Work Yet" → drop the `RemoteArtifactSourceResolver` reference if any; possibly add a "First public release pending" replacement bullet.
    - `cross-platform-smoke-validation.md` Active vs Planned tables — structural promotion of checkpoint L from §Planned to §Active table (deferred from session-close commit; promotion criteria already marked met inline).
 
@@ -154,7 +161,8 @@ If Deniz says "go big", pickup B; otherwise default to A. Pickup B should not st
 2. Run `git log --oneline -10` and confirm the doc/prompt close from this session is the most recent commit.
 3. Confirm worktree is clean; `gh run view 24962876812 --json conclusion` is `success`.
 4. **If pickup A**:
-   - Inspect `release.yml` lines around the `publish-staging` `if:` condition and decide gate shape with Deniz.
+   - Inspect `ResolveVersionsTaskRunner`, `VersioningOptions`, `release.yml`, and tests; implement explicit-mode resolution + trigger-aware workflow routing before changing the `publish-staging` gate.
+   - Inspect `release.yml` lines around the `publish-staging` `if:` condition and decide gate shape with Deniz after routing is correct.
    - Run `tests/scripts/smoke-witness.cs remote` on Linux + macOS (or arrange for Deniz to run on macOS via SSH) and capture results.
    - Update PD-5 closure across canonical docs as listed above.
 5. **If pickup B**:
@@ -224,7 +232,7 @@ These still do not change without explicit Deniz override:
 
 PD-5 is implementation-closed and witnessed on win-x64 + CI. The natural rhythm for the next session:
 
-- ~30 min on small wins (gate-lift + multi-platform witness + PD-5 doc closures).
+- small wins in sequence (explicit/tag version routing → gate-lift → multi-platform witness → PD-5 doc closures).
 - Then talk to Deniz about pickup B scope (public-release horizon is multi-session; consider scoping the first commit narrowly — Trusted Publishing OIDC setup alone is a reasonable first commit).
 
 Don't open with five parallel futures. Pick one of A or B based on Deniz's signal.

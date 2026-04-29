@@ -493,7 +493,23 @@ This is not a greenfield rewrite mandate, but neither is it a preserve-the-curre
 | --- | --- |
 | **PD-7 (full-train orchestration)** | **Direction selected.** `GitTagVersionProvider` multi-mode + manifest-driven topological ordering formalises the mechanism: meta-tag trigger + `manifest.package_families[].depends_on` supply the ordering; no separate `release-set.json`; the manifest remains SSoT. **Formal closure** happens during canonical doc sweep + implementation. Sub-items that stay open outside this ADR: meta-package versioning (tracked in [`release-lifecycle-direction.md`](../knowledge-base/release-lifecycle-direction.md) §Meta-Package) is not covered here. |
 | **PD-8 (manual escape hatch)** | **Direction selected.** An operator runs the same pipeline Cake provides (for example `dotnet cake --target=Pack --explicit-version sdl2-image=2.8.1-hotfix.1`) without CI as the orchestrator. The `--explicit-version` mapping carries scope via its key set (§2.2); no separate `--family` argument is required. Audit trail rides the existing git-tag + CI-log discipline. **Formal closure** lands when `playbook/release-recovery.md` is written, the Cake helper surface is enumerated, and a real recovery scenario is validated end-to-end during the implementation pass. |
-| **PD-13 (`--family-version` retirement)** | **Closed (2026-04-22).** Legacy `--family-version` flag retired; replaced by `--explicit-version family=version,...` (ExplicitVersionProvider input) — type-safe, multi-family safe, G54-validated per entry. `ExplicitVersionProvider` wired into `ResolveVersionsTaskRunner` (Slice B1); `PackageConsumerSmokeRunner` enforces non-empty mapping (Slice C.8); `PackageConsumerSmokeTask.ShouldRun` skips silently when no mapping supplied. All legacy `--family-version` call sites removed across Cake tasks, CLI parsing, and smoke-witness.cs. |
+| **PD-13 (`--family-version` retirement)** | **Closed (2026-04-22; amended 2026-04-29).** Legacy `--family-version` flag retired; replaced by `--explicit-version family=version,...` (ExplicitVersionProvider input) — type-safe, multi-family safe, G54-validated per entry. `PackageConsumerSmokeRunner` enforces non-empty mapping (Slice C.8); `PackageConsumerSmokeTask.ShouldRun` skips silently when no mapping supplied. All legacy `--family-version` call sites removed across Cake tasks, CLI parsing, and smoke-witness.cs. **Course correction:** CI/workflow-dispatch explicit releases must flow through `ResolveVersions --version-source=explicit`, consume repeated `--explicit-version family=semver`, and emit the same `versions.json` artifact as manifest/tag providers. Direct stage-target `--explicit-version` remains valid for operator-driven ad-hoc / PD-8 flows. |
+
+## 6.1 Amendment — explicit CI mode normalization (2026-04-29)
+
+The ADR-003 invariant remains: the build host resolves versions once, CI publishes the immutable mapping as `versions.json`, and every downstream stage consumes that mapping via `--versions-file`.
+
+Post-PD-5 review found one unsafe sequencing risk: `release.yml` currently has tag triggers and a `workflow_dispatch mode=explicit` surface, but the live `resolve-versions` job still resolves only manifest-derived CI-suffixed versions. Therefore `publish-staging` must stay gated for tag pushes until version-source routing lands; otherwise a tag such as `sdl2-core-2.32.0` could publish `2.32.0-ci.<run>.<attempt>` artifacts.
+
+The selected course is:
+
+- `workflow_dispatch mode=manifest-derived` → `ResolveVersions --version-source=manifest --suffix=ci.<run-id>.<attempt>`.
+- `workflow_dispatch mode=explicit` → parse the inline mapping into repeated `--explicit-version family=semver` arguments and call `ResolveVersions --version-source=explicit`.
+- family tag push (`sdl2-*-*.*.*`, future `sdl3-*-*.*.*`) → extract the family id and call `ResolveVersions --version-source=git-tag` in targeted scope.
+- train/meta tag push (`train-*`) → call `ResolveVersions --version-source=meta-tag`.
+- all downstream jobs continue to consume only the emitted `versions.json` artifact.
+
+This amendment does **not** remove direct `--explicit-version` support on individual stage targets. That remains the manual escape-hatch shape for PD-8 and local ad-hoc recovery. The normalization applies to CI job-chain releases, where auditability and one artifact contract matter more than bypass convenience.
 
 Implementation commits formalise PD-7/8/13 closure as their respective deliverables land; cross-document references in `release-lifecycle-direction.md`, `release-guardrails.md`, and `plan.md` are updated during the doc sweep pass.
 

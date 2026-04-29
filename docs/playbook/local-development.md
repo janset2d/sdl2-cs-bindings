@@ -246,9 +246,13 @@ dotnet run --project build/_build -- --target SetupLocalDev --source=remote
 
 # Recipe B — dedicated PAT (explicit, easier to rotate)
 # 1. github.com/settings/tokens/new → Classic → scope: read:packages → Generate
-# 2. Persist via shell rc or per-platform env:
+# 2. Persist via shell rc or per-platform env.
 
-# bash / zsh:
+# zsh (default on WSL Ubuntu + recent macOS — prefer this on WSL):
+export GH_TOKEN=ghp_yourtokenhere
+echo 'export GH_TOKEN=ghp_yourtokenhere' >> ~/.zshrc
+
+# bash (older distros / users who haven't switched):
 export GH_TOKEN=ghp_yourtokenhere
 echo 'export GH_TOKEN=ghp_yourtokenhere' >> ~/.bashrc
 
