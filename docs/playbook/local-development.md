@@ -230,6 +230,8 @@ dotnet run -- --target Harvest --verbosity Diagnostic
 
 The `RemoteArtifactSourceResolver` reads `GH_TOKEN` (then `GITHUB_TOKEN`) from the environment. GitHub Packages NuGet feed **always requires authentication**, even for public packages — anonymous read is not supported on the NuGet/npm/Maven registries (only `ghcr.io` containers allow anonymous public pulls). This is by-design GitHub behavior, not a misconfiguration; making packages public only changes the ACL applied after authentication, not the auth requirement itself.
 
+The resolver does **not** query the GitHub CLI credential store. If `GH_TOKEN` is set in the process environment, a stale or invalid `gh auth token` value does not matter; the env var is the contract used by both local witnesses and CI.
+
 **Token requirements:**
 
 - **Classic PAT** (fine-grained PATs are not supported by GH Packages NuGet — documented limitation).

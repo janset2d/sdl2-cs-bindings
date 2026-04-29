@@ -29,9 +29,10 @@ collides.
 # but on fresh clones checked out on Windows side you may need to re-run this.
 chmod +x tests/scripts/smoke-witness.cs
 
-./tests/scripts/smoke-witness.cs             # local mode (default)
-./tests/scripts/smoke-witness.cs remote       # pull from GH Packages, smoke against pulled feed
-./tests/scripts/smoke-witness.cs ci-sim       # mini CI simulation
+cd tests/scripts
+./smoke-witness.cs             # local mode (default)
+./smoke-witness.cs remote       # pull from GH Packages, smoke against pulled feed
+./smoke-witness.cs ci-sim       # mini CI simulation
 ```
 
 **Windows (shebang is Unix-only at the OS level — use `dotnet run` from inside `tests/scripts`):**
@@ -43,8 +44,12 @@ dotnet run smoke-witness.cs remote    # pull from GH Packages, smoke against pul
 dotnet run smoke-witness.cs ci-sim    # mini CI simulation
 ```
 
-Either invocation works from the repo root; `git rev-parse --show-toplevel`
-resolves the repo root internally.
+The script resolves the repo root internally with `git rev-parse --show-toplevel`,
+but the Unix shebang form itself should be launched from `tests/scripts`. From
+the repo root, `./tests/scripts/smoke-witness.cs` can be misinterpreted by the
+.NET file-based app launcher as a `dotnet-./tests/...` subcommand lookup. Use
+`cd tests/scripts && ./smoke-witness.cs <mode>` on Unix, or the `dotnet run`
+form above on Windows.
 
 ### Requirements
 
@@ -77,6 +82,9 @@ resolves the repo root internally.
   authentication, even for public packages (anonymous read is not supported
   on the NuGet/npm/Maven registries — only `ghcr.io` containers allow it).
   Setup recipes in [`docs/playbook/local-development.md`](../../docs/playbook/local-development.md#github-packages-auth---sourceremote).
+  The resolver reads `GH_TOKEN`/`GITHUB_TOKEN` directly from the process
+  environment; a stale or invalid stored `gh` CLI token is irrelevant when the
+  env var is set.
 
 ### How `remote` mode threads versions into `PackageConsumerSmoke`
 
@@ -137,6 +145,13 @@ mapping is supplied (mirrors `PackageTask.ShouldRun` — same rationale).
   CRLF. `dos2unix tests/scripts/smoke-witness.cs` or re-clone after
   configuring `core.autocrlf=false`; `.gitattributes` pins LF for the
   scripts directory.
+- **Shebang from repo root fails with a `dotnet-./tests/...` lookup** → run the
+  shebang form from the script directory instead:
+  `cd tests/scripts && ./smoke-witness.cs remote`. The Windows-supported form
+  is still `cd tests\scripts; dotnet run smoke-witness.cs remote`.
+- **macOS skips `net462` with `mono binary not found in $PATH`** → expected on
+  hosts without Mono. Install `brew install mono` if you need the macOS
+  `net462` runtime slice; `net9.0` and `net8.0` still execute normally.
 
 [msdocs-file-based-apps]: https://learn.microsoft.com/en-us/dotnet/core/sdk/file-based-apps
 [playbook]: ../../docs/playbook/cross-platform-smoke-validation.md
