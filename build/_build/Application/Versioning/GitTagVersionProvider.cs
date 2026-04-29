@@ -97,28 +97,61 @@ public sealed class GitTagVersionProvider(
     {
         return _scope switch
         {
-            GitTagScope.Targeted targeted => [ResolveFamilyByIdOrThrow(targeted.FamilyId)],
+            GitTagScope.Targeted targeted => [ResolveFamilyByIdOrTagOrThrow(targeted.FamilyId)],
             GitTagScope.Train => [.. _manifestConfig.PackageFamilies
                 .Where(family => !string.IsNullOrWhiteSpace(family.ManagedProject) && !string.IsNullOrWhiteSpace(family.NativeProject))],
             _ => throw new CakeException($"GitTagVersionProvider received unrecognized scope '{_scope.GetType().Name}'."),
         };
     }
 
-    private PackageFamilyConfig ResolveFamilyByIdOrThrow(string familyId)
+    private PackageFamilyConfig ResolveFamilyByIdOrTagOrThrow(string familyIdOrTag)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(familyId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(familyIdOrTag);
 
         var match = _manifestConfig.PackageFamilies.SingleOrDefault(candidate =>
-            string.Equals(candidate.Name, familyId, StringComparison.OrdinalIgnoreCase));
+            string.Equals(candidate.Name, familyIdOrTag, StringComparison.OrdinalIgnoreCase));
 
-        if (match is null)
+        if (match is not null)
         {
-            throw new CakeException(
-                $"GitTagVersionProvider (Single scope) references family '{familyId}' " +
-                "that is not present in manifest.json package_families[].");
+            return match;
         }
 
-        return match;
+        var matchingTagFamilies = _manifestConfig.PackageFamilies
+            .Where(family =>
+                !string.IsNullOrWhiteSpace(family.ManagedProject) &&
+                !string.IsNullOrWhiteSpace(family.NativeProject) &&
+                IsFamilyTagForScope(family, familyIdOrTag))
+            .ToList();
+
+        if (matchingTagFamilies.Count == 1)
+        {
+            return matchingTagFamilies[0];
+        }
+
+        if (matchingTagFamilies.Count > 1)
+        {
+            throw new CakeException(
+                $"GitTagVersionProvider (Single scope) found ambiguous family tag scope '{familyIdOrTag}': " +
+                string.Join(", ", matchingTagFamilies.Select(family => family.Name).OrderBy(name => name, StringComparer.OrdinalIgnoreCase)) +
+                ". Ensure package_families[].tag_prefix values are unique.");
+        }
+
+        throw new CakeException(
+            $"GitTagVersionProvider (Single scope) references family or family tag '{familyIdOrTag}' " +
+            "that is not present in manifest.json package_families[].");
+    }
+
+    private static bool IsFamilyTagForScope(PackageFamilyConfig family, string scope)
+    {
+        var tagPrefix = string.IsNullOrWhiteSpace(family.TagPrefix) ? family.Name : family.TagPrefix;
+        var expectedPrefix = tagPrefix + "-";
+        if (!scope.StartsWith(expectedPrefix, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var versionLiteral = scope[expectedPrefix.Length..];
+        return NuGetVersion.TryParse(versionLiteral, out _);
     }
 
     private static List<PackageFamilyConfig> FilterByRequestedScope(

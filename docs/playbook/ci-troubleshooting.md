@@ -16,7 +16,7 @@ release.yml                          (10-job pipeline; tag-push + workflow_dispa
 ├── consolidate-harvest              (aggregation; merges per-RID status JSON)
 ├── pack                             (per-family pack + post-pack G21–G58 validators)
 ├── consumer-smoke (matrix, 7 RIDs)  (matrix re-entry; per-TFM TUnit smoke + restore)
-├── publish-staging                  (dispatch-gated internal GitHub Packages push)
+├── publish-staging                  (dispatch-gated for manual runs; release tags publish to internal GitHub Packages after smoke)
 └── publish-public                   (PD-7 stub; nuget.org Trusted Publishing pending)
 
 build-linux-container.yml            (multi-arch GHCR builder image; workflow_dispatch + monthly cron)

@@ -1,9 +1,11 @@
 using System.Text.Json;
 using Build.Application.Versioning;
 using Build.Context.Configs;
+using Build.Context.Models;
 using Build.Domain.Preflight;
 using Build.Tests.Fixtures;
 using Cake.Core;
+using NuGet.Versioning;
 
 namespace Build.Tests.Unit.Application.Versioning;
 
@@ -25,7 +27,7 @@ public sealed class ResolveVersionsTaskRunnerTests
             suffix: "test.smoke",
             scope: []);
 
-        var runner = new ResolveVersionsTaskRunner(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, versioning, new UpstreamVersionAlignmentValidator());
+        var runner = CreateRunner(repo, manifest, versioning);
 
         await runner.RunAsync();
 
@@ -59,7 +61,7 @@ public sealed class ResolveVersionsTaskRunnerTests
             suffix: "ci.12345",
             scope: ["sdl2-core"]);
 
-        var runner = new ResolveVersionsTaskRunner(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, versioning, new UpstreamVersionAlignmentValidator());
+        var runner = CreateRunner(repo, manifest, versioning);
 
         await runner.RunAsync();
 
@@ -80,6 +82,99 @@ public sealed class ResolveVersionsTaskRunnerTests
     }
 
     [Test]
+    public async Task RunAsync_Should_Write_Canonical_Json_For_Explicit_Source_Happy_Path()
+    {
+        var manifest = ManifestFixture.CreateTestManifestConfig();
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).WithManifest(manifest).BuildContextWithHandles();
+
+        var explicitVersions = new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["sdl2-image"] = NuGetVersion.Parse("2.8.0-rc.2"),
+            ["sdl2-core"] = NuGetVersion.Parse("2.32.0-rc.1"),
+        };
+
+        var versioning = new VersioningConfiguration(
+            versionSource: "explicit",
+            suffix: null,
+            scope: []);
+
+        var runner = CreateRunner(repo, manifest, versioning, explicitVersions);
+
+        await runner.RunAsync();
+
+        var outputFile = repo.Paths.GetResolveVersionsOutputFile();
+        var writtenFile = repo.FileSystem.GetFile(outputFile);
+
+        string content;
+        using (var stream = writtenFile.Open(FileMode.Open, FileAccess.Read, FileShare.Read))
+        using (var reader = new StreamReader(stream))
+        {
+            content = await reader.ReadToEndAsync();
+        }
+
+        var deserialized = JsonSerializer.Deserialize<SortedDictionary<string, string>>(content);
+        await Assert.That(deserialized).IsNotNull();
+        await Assert.That(deserialized!.Count).IsEqualTo(2);
+        await Assert.That(deserialized.Keys.ToArray()).IsEquivalentTo(["sdl2-core", "sdl2-image"]);
+        await Assert.That(deserialized["sdl2-core"]).IsEqualTo("2.32.0-rc.1");
+        await Assert.That(deserialized["sdl2-image"]).IsEqualTo("2.8.0-rc.2");
+    }
+
+    [Test]
+    public async Task RunAsync_Should_Honor_Scope_Filter_For_Explicit_Source_When_Supplied()
+    {
+        var manifest = ManifestFixture.CreateTestManifestConfig();
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).WithManifest(manifest).BuildContextWithHandles();
+
+        var explicitVersions = new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["sdl2-core"] = NuGetVersion.Parse("2.32.0-rc.1"),
+            ["sdl2-image"] = NuGetVersion.Parse("2.8.0-rc.2"),
+        };
+
+        var versioning = new VersioningConfiguration(
+            versionSource: "explicit",
+            suffix: null,
+            scope: ["sdl2-core"]);
+
+        var runner = CreateRunner(repo, manifest, versioning, explicitVersions);
+
+        await runner.RunAsync();
+
+        var outputFile = repo.Paths.GetResolveVersionsOutputFile();
+        var writtenFile = repo.FileSystem.GetFile(outputFile);
+
+        string content;
+        using (var stream = writtenFile.Open(FileMode.Open, FileAccess.Read, FileShare.Read))
+        using (var reader = new StreamReader(stream))
+        {
+            content = await reader.ReadToEndAsync();
+        }
+
+        var deserialized = JsonSerializer.Deserialize<SortedDictionary<string, string>>(content);
+        await Assert.That(deserialized!.Count).IsEqualTo(1);
+        await Assert.That(deserialized.ContainsKey("sdl2-core")).IsTrue();
+        await Assert.That(deserialized.ContainsKey("sdl2-image")).IsFalse();
+    }
+
+    [Test]
+    public async Task RunAsync_Should_Throw_When_Explicit_Source_Has_No_ExplicitVersions()
+    {
+        var manifest = ManifestFixture.CreateTestManifestConfig();
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).WithManifest(manifest).BuildContextWithHandles();
+
+        var versioning = new VersioningConfiguration(
+            versionSource: "explicit",
+            suffix: null,
+            scope: []);
+
+        var runner = CreateRunner(repo, manifest, versioning);
+
+        var exception = await Assert.ThrowsAsync<CakeException>(() => runner.RunAsync());
+        await Assert.That(exception!.Message).Contains("--explicit-version");
+    }
+
+    [Test]
     public async Task RunAsync_Should_Throw_When_VersionSource_Is_Missing()
     {
         var manifest = ManifestFixture.CreateTestManifestConfig();
@@ -90,7 +185,7 @@ public sealed class ResolveVersionsTaskRunnerTests
             suffix: "test",
             scope: []);
 
-        var runner = new ResolveVersionsTaskRunner(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, versioning, new UpstreamVersionAlignmentValidator());
+        var runner = CreateRunner(repo, manifest, versioning);
 
         var exception = await Assert.ThrowsAsync<CakeException>(() => runner.RunAsync());
         await Assert.That(exception!.Message).Contains("--version-source");
@@ -107,7 +202,7 @@ public sealed class ResolveVersionsTaskRunnerTests
             suffix: null,
             scope: []);
 
-        var runner = new ResolveVersionsTaskRunner(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, versioning, new UpstreamVersionAlignmentValidator());
+        var runner = CreateRunner(repo, manifest, versioning);
 
         var exception = await Assert.ThrowsAsync<CakeException>(() => runner.RunAsync());
         await Assert.That(exception!.Message).Contains("--suffix");
@@ -127,7 +222,7 @@ public sealed class ResolveVersionsTaskRunnerTests
             suffix: null,
             scope: []);
 
-        var runner = new ResolveVersionsTaskRunner(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, versioning, new UpstreamVersionAlignmentValidator());
+        var runner = CreateRunner(repo, manifest, versioning);
 
         var exception = await Assert.ThrowsAsync<CakeException>(() => runner.RunAsync());
         await Assert.That(exception!.Message).Contains("exactly one --scope");
@@ -146,7 +241,7 @@ public sealed class ResolveVersionsTaskRunnerTests
             suffix: null,
             scope: ["sdl2-core", "sdl2-image"]);
 
-        var runner = new ResolveVersionsTaskRunner(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, versioning, new UpstreamVersionAlignmentValidator());
+        var runner = CreateRunner(repo, manifest, versioning);
 
         var exception = await Assert.ThrowsAsync<CakeException>(() => runner.RunAsync());
         await Assert.That(exception!.Message).Contains("meta-tag");
@@ -163,9 +258,23 @@ public sealed class ResolveVersionsTaskRunnerTests
             suffix: null,
             scope: []);
 
-        var runner = new ResolveVersionsTaskRunner(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, versioning, new UpstreamVersionAlignmentValidator());
+        var runner = CreateRunner(repo, manifest, versioning);
 
         var exception = await Assert.ThrowsAsync<CakeException>(() => runner.RunAsync());
         await Assert.That(exception!.Message).Contains("nonsense");
     }
+
+    private static ResolveVersionsTaskRunner CreateRunner(
+        FakeRepoHandles repo,
+        ManifestConfig manifest,
+        VersioningConfiguration versioning,
+        IReadOnlyDictionary<string, NuGetVersion>? explicitVersions = null) =>
+        new(
+            repo.CakeContext,
+            repo.CakeContext.Log,
+            repo.Paths,
+            manifest,
+            new PackageBuildConfiguration(explicitVersions ?? new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase)),
+            versioning,
+            new UpstreamVersionAlignmentValidator());
 }

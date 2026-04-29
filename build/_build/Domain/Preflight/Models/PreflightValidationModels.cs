@@ -84,8 +84,14 @@ public enum UpstreamVersionAlignmentCheckStatus
     /// <summary>Family identifier in the mapping is not present in manifest package_families.</summary>
     FamilyNotFound,
 
+    /// <summary>Manifest package_families[] contains duplicate names.</summary>
+    DuplicateFamilyName,
+
     /// <summary>Family library_ref does not resolve to a manifest library_manifests entry.</summary>
     LibraryRefNotFound,
+
+    /// <summary>Manifest library_manifests[] contains duplicate names.</summary>
+    DuplicateLibraryName,
 
     /// <summary>Manifest vcpkg_version is not parseable semantic version.</summary>
     InvalidUpstreamVersion,

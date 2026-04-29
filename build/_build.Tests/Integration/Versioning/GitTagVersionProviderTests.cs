@@ -1,4 +1,8 @@
+using System.Text.Json;
 using Build.Application.Versioning;
+using Build.Context.Configs;
+using Build.Context.Models;
+using Build.Domain.Paths;
 using Build.Domain.Preflight;
 using Build.Domain.Versioning;
 using Build.Tests.Fixtures;
@@ -6,6 +10,7 @@ using Cake.Core;
 using Cake.Core.IO;
 using Cake.Testing;
 using NSubstitute;
+using NuGet.Versioning;
 
 namespace Build.Tests.Integration.Versioning;
 
@@ -18,6 +23,41 @@ namespace Build.Tests.Integration.Versioning;
 public sealed class GitTagVersionProviderTests
 {
     [Test]
+    public async Task RunAsync_GitTagSource_Should_Write_Canonical_Json_When_Scope_Is_Full_Family_Tag()
+    {
+        using var repo = new TempGitRepo();
+        repo.CommitFile("README.md", "initial", "initial commit");
+        repo.TagHead("sdl2-image-2.8.0");
+
+        var manifest = ManifestFixture.CreateTestManifestConfig();
+        var cakeContext = CreateCakeContext();
+        var outputFile = new FilePath(System.IO.Path.Combine(repo.Path, "artifacts", "resolve-versions", "versions.json"));
+        var pathService = Substitute.For<IPathService>();
+        pathService.RepoRoot.Returns(new DirectoryPath(repo.Path));
+        pathService.GetResolveVersionsOutputFile().Returns(outputFile);
+
+        var runner = new ResolveVersionsTaskRunner(
+            cakeContext,
+            cakeContext.Log,
+            pathService,
+            manifest,
+            new PackageBuildConfiguration(new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase)),
+            new VersioningConfiguration(
+                versionSource: "git-tag",
+                suffix: null,
+                scope: ["sdl2-image-2.8.0"]),
+            new UpstreamVersionAlignmentValidator());
+
+        await runner.RunAsync();
+
+        var content = await System.IO.File.ReadAllTextAsync(outputFile.FullPath);
+        var deserialized = JsonSerializer.Deserialize<SortedDictionary<string, string>>(content);
+        await Assert.That(deserialized).IsNotNull();
+        await Assert.That(deserialized!.Count).IsEqualTo(1);
+        await Assert.That(deserialized["sdl2-image"]).IsEqualTo("2.8.0");
+    }
+
+    [Test]
     public async Task ResolveAsync_Targeted_Should_Return_Family_Version_From_Tag_At_Head()
     {
         using var repo = new TempGitRepo();
@@ -25,6 +65,21 @@ public sealed class GitTagVersionProviderTests
         repo.TagHead("sdl2-image-2.8.0");
 
         var provider = CreateProvider(repo, new GitTagScope.Targeted("sdl2-image"));
+
+        var result = await provider.ResolveAsync(Empty.Scope);
+
+        await Assert.That(result.Count).IsEqualTo(1);
+        await Assert.That(result["sdl2-image"].ToNormalizedString()).IsEqualTo("2.8.0");
+    }
+
+    [Test]
+    public async Task ResolveAsync_Targeted_Should_Accept_Family_Tag_As_Targeted_Scope()
+    {
+        using var repo = new TempGitRepo();
+        repo.CommitFile("README.md", "initial", "initial commit");
+        repo.TagHead("sdl2-image-2.8.0");
+
+        var provider = CreateProvider(repo, new GitTagScope.Targeted("sdl2-image-2.8.0"));
 
         var result = await provider.ResolveAsync(Empty.Scope);
 
@@ -118,42 +173,14 @@ public sealed class GitTagVersionProviderTests
 
     private static ICakeContext CreateCakeContext()
     {
-        // Cake.Frosting.Git's UseRepository helper validates via
-        // ICakeContext.FileSystem.Exist(DirectoryPath) before handing off to LibGit2Sharp.
-        // FakeFileSystem doesn't know about the temp directories TempGitRepo creates on
-        // real disk — substitute a real-disk Exist predicate while leaving the rest of
-        // IFileSystem unimplemented (Cake.Git only calls Exist).
         var env = OperatingSystem.IsWindows()
             ? FakeEnvironment.CreateWindowsEnvironment()
             : FakeEnvironment.CreateUnixEnvironment();
 
-        // IFileSystem.Exist(...) is an extension method in Cake.Core.IO — not an interface
-        // member — so it can't be intercepted directly. Cake.Git uses it via the extension
-        // which delegates to IFileSystem.GetDirectory(path).Exists and
-        // IFileSystem.GetFile(path).Exists. Mock those call sites and delegate to System.IO
-        // so the real temp path is accepted.
-        var fileSystem = Substitute.For<IFileSystem>();
-        fileSystem.GetDirectory(Arg.Any<DirectoryPath>()).Returns(call =>
-        {
-            var path = (DirectoryPath)call[0];
-            var dir = Substitute.For<IDirectory>();
-            dir.Exists.Returns(System.IO.Directory.Exists(path.FullPath));
-            dir.Path.Returns(path);
-            return dir;
-        });
-        fileSystem.GetFile(Arg.Any<FilePath>()).Returns(call =>
-        {
-            var path = (FilePath)call[0];
-            var file = Substitute.For<IFile>();
-            file.Exists.Returns(System.IO.File.Exists(path.FullPath));
-            file.Path.Returns(path);
-            return file;
-        });
-
         var context = Substitute.For<ICakeContext>();
         context.Environment.Returns(env);
         context.Log.Returns(new FakeLog());
-        context.FileSystem.Returns(fileSystem);
+        context.FileSystem.Returns(new FileSystem());
         return context;
     }
 

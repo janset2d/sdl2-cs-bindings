@@ -34,7 +34,7 @@ Per [ADR-003 §4](../decisions/2026-04-20-release-lifecycle-orchestration.md), e
 | **Pack** | Single-runner after Consolidate | G13 (NuGet built-in schema), G21, G22, G23, G25, G26, G27, G46 (MSBuild pre-pack guard), G47, G48, G51, G52, G53, G55, G56, G57, G58 | nupkg emission + post-pack shape (minimum-range + version-match + TFM consistency + symbols + metadata + `buildTransitive/` contract + per-RID payload shape + license payload + staged-replace invariants + native metadata file + cross-family upper bound + README mapping + cross-family dep resolvability) |
 | **ConsumerSmoke** | Per-RID matrix **re-entry** (ADR-003 §3.4) | — | Restore + runtime TUnit pass per TFM; no G-series numbering (behavioral smoke, not a structural guardrail). |
 | **Publish** | Single-runner per feed tier | G31, G32, G33, G34, G35 | Monotonicity + no-existing-version + smoke-gate + stage-ordering + cross-family resolvability at feed scope |
-| **Full-Train (PD-7 scope)** | Meta-tag trigger | G37, G38, G39, G40, G41, G42 | `release-set.json` schema + family existence + SemVer + no-dup + ordering + partial-train handling |
+| **Full-Train (PD-7 scope)** | Meta-tag trigger | G37, G38, G39, G40, G41, G42 | Manifest-driven family selection + family-tag SemVer/G54 + no-dup + ordering + partial-train handling |
 | **Manual Escape (PD-8 scope)** | Operator-driven | G43, G44, G45 | Version↔tag drift + explicit feed source + audit trail |
 | **Coverage gate** | CI pre-matrix | G36 | Coverage ratchet floor |
 
@@ -130,18 +130,18 @@ These guardrails are CI-workflow-level checks that run before any publish action
 | G35 | Cross-family coherence: satellite family's Core minimum version is `<= currently-published Core version` (satellite cannot demand unreleased Core) | Planned (D-ci) | Cake `ValidateTask` |
 | G36 | Coverage ratchet floor maintained (`build/coverage-baseline.json`) | Active locally (#86); CI wiring planned (Stream C) | `Coverage-Check` Cake task |
 
-### 2.7 Full-Train Release-Set Validation (PD-7 scope)
+### 2.7 Full-Train Meta-Tag Validation (PD-7 scope)
 
-When PD-7 lands, the meta-tag + `release-set.json` workflow needs its own guardrails.
+When PD-7 lands, the meta-tag workflow needs its own guardrails. ADR-003 selected manifest-driven train composition: `manifest.json package_families[].depends_on` supplies ordering, family tags at the invocation commit supply versions, and no separate `release-set.json` is planned.
 
 | # | Invariant | Status | Owner |
 | --- | --- | --- | --- |
-| G37 | `release-set.json` JSON schema validity | Planned (PD-7 → D-ci) | Cake `TrainValidateTask` |
-| G38 | Every family identifier in `release-set.json` exists in `manifest.json` | Planned (PD-7 → D-ci) | Cake `TrainValidateTask` |
-| G39 | Every version in `release-set.json` parses as SemVer | Planned (PD-7 → D-ci) | Cake `TrainValidateTask` |
-| G40 | No duplicate family entries in `release-set.json` | Planned (PD-7 → D-ci) | Cake `TrainValidateTask` |
-| G41 | Release ordering enforced: core completes before satellites start | Planned (PD-7 → D-ci) | CI workflow `needs:` graph |
-| G42 | All families in `release-set.json` either succeed end-to-end or train is marked partial | Planned (PD-7 → D-ci) | CI workflow + recovery playbook |
+| G37 | Train/meta tag resolves only concrete package families from `manifest.json` | Planned (PD-7 → D-ci) | `GitTagVersionProvider` + PreFlight |
+| G38 | Required family tags exist at the invocation commit | Planned (PD-7 → D-ci) | `GitTagVersionProvider` |
+| G39 | Every family-tag version parses as SemVer and passes G54 upstream alignment | Planned (PD-7 → D-ci) | `GitTagVersionProvider` + G54 |
+| G40 | Manifest family identifiers and tag prefixes are unique before train resolution | Planned (PD-7 → D-ci) | PreFlight |
+| G41 | Release ordering follows `manifest.json package_families[].depends_on` | Planned (PD-7 → D-ci) | `FamilyTopologyHelpers` |
+| G42 | All train families either succeed end-to-end or the train is marked partial with recovery guidance | Planned (PD-7 → D-ci) | CI workflow + recovery playbook |
 
 ### 2.8 Manual Escape Hatch (PD-8 scope)
 
@@ -167,7 +167,7 @@ Counts reflect post-ADR-003 (2026-04-20) scope. S1 (2026-04-17) retired 9 exact-
 | ADR-001 D-3seg (2026-04-18) | G54 (upstream Major.Minor coherence), G55 (native metadata file), G56 (satellite upper bound), G57 (README mapping table) | 26 |
 | ADR-003 orchestration (2026-04-20) | G58 (cross-family dep resolvability at Pack stage) | 27 |
 | D-ci | G28–G35 (CI publish pipeline) | 35 |
-| PD-7 (full-train) | G37–G42 (release-set validation) | 41 |
+| PD-7 (full-train) | G37–G42 (meta-tag validation) | 41 |
 | PD-8 (manual escape) | G43–G45 (manual operator validation) | 44 |
 | — | G11, G12, G13 are NuGet/build-host built-ins (not delivered by any stream; G11 marked REVISIT) | — |
 | — | G47, G48 (native package buildTransitive + per-RID payload shape) landed with post-S1 buildTransitive contract; already counted within D-local post-S1 | — |

@@ -24,6 +24,12 @@ public sealed class UpstreamVersionAlignmentValidator : IUpstreamVersionAlignmen
         ArgumentNullException.ThrowIfNull(versions);
 
         var checks = new List<UpstreamVersionAlignmentCheck>(versions.Count);
+        checks.AddRange(ValidateUniqueManifestKeys(manifestConfig));
+
+        if (checks.Count > 0)
+        {
+            return UpstreamVersionAlignmentResult.Fail(new UpstreamVersionAlignmentValidation(checks));
+        }
 
         foreach (var (requestedFamily, parsedFamilyVersion) in versions)
         {
@@ -37,6 +43,37 @@ public sealed class UpstreamVersionAlignmentValidator : IUpstreamVersionAlignmen
             : UpstreamVersionAlignmentResult.Pass(validation);
     }
 
+    private static List<UpstreamVersionAlignmentCheck> ValidateUniqueManifestKeys(ManifestConfig manifestConfig)
+    {
+        var checks = new List<UpstreamVersionAlignmentCheck>();
+
+        checks.AddRange(manifestConfig.PackageFamilies
+            .Where(family => !string.IsNullOrWhiteSpace(family.Name))
+            .GroupBy(family => family.Name, StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Count() > 1)
+            .Select(group => new UpstreamVersionAlignmentCheck(
+                FamilyIdentifier: group.Key,
+                LibraryRef: null,
+                FamilyVersion: "<not evaluated>",
+                UpstreamVersion: null,
+                Status: UpstreamVersionAlignmentCheckStatus.DuplicateFamilyName,
+                ErrorMessage: $"G54: manifest package_families[] contains duplicate family name '{group.Key}' (matched case-insensitively). Family names must be unique before upstream version alignment can run.")));
+
+        checks.AddRange(manifestConfig.LibraryManifests
+            .Where(library => !string.IsNullOrWhiteSpace(library.Name))
+            .GroupBy(library => library.Name, StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Count() > 1)
+            .Select(group => new UpstreamVersionAlignmentCheck(
+                FamilyIdentifier: "<manifest>",
+                LibraryRef: group.Key,
+                FamilyVersion: "<not evaluated>",
+                UpstreamVersion: null,
+                Status: UpstreamVersionAlignmentCheckStatus.DuplicateLibraryName,
+                ErrorMessage: $"G54: manifest library_manifests[] contains duplicate library name '{group.Key}' (matched case-insensitively). Library names must be unique before upstream version alignment can run.")));
+
+        return checks;
+    }
+
     private static UpstreamVersionAlignmentCheck ValidateEntry(
         ManifestConfig manifestConfig,
         string requestedFamily,
@@ -44,7 +81,7 @@ public sealed class UpstreamVersionAlignmentValidator : IUpstreamVersionAlignmen
     {
         var normalizedFamilyVersion = parsedFamilyVersion.ToNormalizedString();
 
-        var family = manifestConfig.PackageFamilies.SingleOrDefault(candidate =>
+        var family = manifestConfig.PackageFamilies.FirstOrDefault(candidate =>
             string.Equals(candidate.Name, requestedFamily, StringComparison.OrdinalIgnoreCase));
 
         if (family is null)
@@ -58,7 +95,7 @@ public sealed class UpstreamVersionAlignmentValidator : IUpstreamVersionAlignmen
                 ErrorMessage: $"G54: family '{requestedFamily}' was not found in manifest package_families[].");
         }
 
-        var library = manifestConfig.LibraryManifests.SingleOrDefault(candidate =>
+        var library = manifestConfig.LibraryManifests.FirstOrDefault(candidate =>
             string.Equals(candidate.Name, family.LibraryRef, StringComparison.OrdinalIgnoreCase));
 
         if (library is null)

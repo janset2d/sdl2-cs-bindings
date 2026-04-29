@@ -6,21 +6,22 @@ namespace Build.Context.Options;
 /// Version-resolution CLI options.
 /// <list type="bullet">
 ///   <item><see cref="VersionSourceOption"/> (<c>--version-source</c>) selects the provider
-///     path for the <c>ResolveVersions</c> target (<c>manifest</c>, <c>git-tag</c>,
-///     <c>meta-tag</c>).</item>
+///     path for the <c>ResolveVersions</c> target (<c>manifest</c>, <c>explicit</c>,
+///     <c>git-tag</c>, <c>meta-tag</c>).</item>
 ///   <item><see cref="VersionSuffixOption"/> (<c>--suffix</c>) supplies the prerelease suffix
 ///     appended by <c>ManifestVersionProvider</c>.</item>
 ///   <item><see cref="VersionScopeOption"/> (<c>--scope</c>) filters families for
 ///     <c>ResolveVersions</c>; empty means all families.</item>
 ///   <item><see cref="ExplicitVersionOption"/> (<c>--explicit-version</c>) carries repeated
-///     <c>family=semver</c> entries for stage-target execution.</item>
+///     <c>family=semver</c> entries for stage-target execution and for
+///     <c>ResolveVersions --version-source=explicit</c>.</item>
 /// </list>
 /// </summary>
 public static class VersioningOptions
 {
     public static readonly Option<string?> VersionSourceOption = new(
         aliases: ["--version-source"],
-        description: "Version source for the ResolveVersions target (manifest | git-tag | meta-tag). Required for ResolveVersions.");
+        description: "Version source for the ResolveVersions target (manifest | explicit | git-tag | meta-tag). Required for ResolveVersions.");
 
     public static readonly Option<string?> VersionSuffixOption = new(
         aliases: ["--suffix"],
@@ -35,7 +36,7 @@ public static class VersioningOptions
 
     public static readonly Option<List<string>> ExplicitVersionOption = new(
         aliases: ["--explicit-version"],
-        description: "Operator-supplied family-version mapping, repeated per family. Each occurrence is 'family=semver' (e.g., --explicit-version sdl2-core=2.32.0 --explicit-version sdl2-image=2.8.0).")
+        description: "Operator-supplied family-version mapping, repeated per family. Each occurrence is 'family=semver' (e.g., --explicit-version sdl2-core=2.32.0 --explicit-version sdl2-image=2.8.0). Used by stage targets and ResolveVersions --version-source=explicit.")
     {
         Arity = ArgumentArity.ZeroOrMore,
     };

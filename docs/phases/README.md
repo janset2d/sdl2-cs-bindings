@@ -23,11 +23,11 @@
 
 Post-[ADR-003](../decisions/2026-04-20-release-lifecycle-orchestration.md) priority items for Phase 2:
 
-1. **Canonical documentation sweep tail** — remove remaining drift on legacy and historical surfaces while keeping live docs pointed at the canonical plan, adaptation ledger, and CI knowledge-base. *(Active)*
-2. **PA-2 behavioral validation** — end-to-end pack + consumer-smoke witness runs on the four newly-hybridized RIDs (`win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64`) via the live `release.yml` pipeline.
-3. **Remote artifact source profile** — implement `RemoteArtifactSourceResolver` so `SetupLocalDev --source=remote` becomes operational (Phase 2b, Stream D-ci).
-4. **Publish path implementation** — replace the gated `publish-staging` / `publish-public` stubs with real staging/public feed transfer.
-5. **Release recovery and train orchestration** — close the remaining operator-flow decisions around full-train release and manual escape hatches (PD-7 / PD-8).
+1. **PD-7 public promotion** — implement `PublishPublicTask`, wire nuget.org Trusted Publishing OIDC, and publish the first prerelease (#63).
+2. **Train-tag release witness** — exercise the meta-tag path end to end with manifest-driven family ordering and document partial-train recovery expectations.
+3. **PD-8 release recovery** — write `playbook/release-recovery.md` and enumerate the operator-driven escape hatch around `ExplicitVersionProvider`.
+4. **Operational hardening** — keep evidence collection and CI troubleshooting docs current as staging/public release witnesses land.
+5. **Deferred cleanup** — HarvestPipeline extraction (#87), PD-15 SDL2_gfx Unix symbol guard, and change-detection feasibility remain non-blocking follow-ups.
 
 Historical Phase 2a scope items (vcpkg.json coverage, vcpkg baseline, Cake `PackageTask`, packaging strategy) already landed; see [plan.md](../plan.md) "What Works Today" and Strategic Decisions April 2026 for the current factual state. For the detailed stream-level ledger, see [phase-2-adaptation-plan.md](phase-2-adaptation-plan.md).
 

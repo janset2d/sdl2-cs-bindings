@@ -5,7 +5,9 @@ namespace Build.Domain.Versioning;
 /// <summary>
 /// Scope discriminator for <c>GitTagVersionProvider</c>.
 /// <list type="bullet">
-///   <item><see cref="Targeted"/> resolves a single family's tag at HEAD.</item>
+///   <item><see cref="Targeted"/> resolves a single family's tag at HEAD. The value may
+///     be either a family id (<c>sdl2-core</c>) or a full family tag
+///     (<c>sdl2-core-2.32.0</c>).</item>
 ///   <item><see cref="Train"/> resolves every concrete family tag at HEAD and orders
 ///     the result by dependency.</item>
 /// </list>

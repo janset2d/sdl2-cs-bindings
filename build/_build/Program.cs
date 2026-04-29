@@ -188,9 +188,10 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton<ReadmeMappingTableValidator>();
     services.AddSingleton<IPackageOutputValidator, PackageOutputValidator>();
     services.AddSingleton<IProjectMetadataReader, ProjectMetadataReader>();
-    // Stage tasks consume operator-supplied explicit versions only. Manifest- and git-tag-
-    // based resolution flow through the ResolveVersions target, which writes a versions file
-    // that downstream jobs feed back in as explicit versions.
+    // Stage tasks consume already-resolved explicit versions only. ResolveVersions handles
+    // every release shape upstream of stages: manifest+suffix dispatch, explicit dispatch,
+    // targeted family-tag push, and meta-tag train push. Downstream jobs feed the resolved
+    // versions.json back in via --explicit-version / --versions-file.
     services.AddSingleton<IPackageVersionProvider>(provider =>
     {
         var manifest = provider.GetRequiredService<ManifestConfig>();

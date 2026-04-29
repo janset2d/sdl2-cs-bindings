@@ -120,4 +120,55 @@ public sealed class UpstreamVersionAlignmentValidatorTests
         await Assert.That(result.Validation.Checks).HasSingleItem();
         await Assert.That(result.Validation.Checks[0].Status).IsEqualTo(UpstreamVersionAlignmentCheckStatus.FamilyNotFound);
     }
+
+    [Test]
+    public async Task Validate_Should_Return_Typed_Error_When_Manifest_Has_Duplicate_Family_Names()
+    {
+        var baseManifest = ManifestFixture.CreateTestManifestConfig();
+        var manifest = baseManifest with
+        {
+            PackageFamilies = baseManifest.PackageFamilies.Add(baseManifest.PackageFamilies[0] with
+            {
+                TagPrefix = "sdl2-core-duplicate",
+            }),
+        };
+
+        var validator = new UpstreamVersionAlignmentValidator();
+        var mapping = new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["sdl2-core"] = NuGetVersion.Parse("2.32.0"),
+        };
+
+        var result = validator.Validate(manifest, mapping);
+
+        await Assert.That(result.IsError()).IsTrue();
+        await Assert.That(result.Validation.Checks).HasSingleItem();
+        await Assert.That(result.Validation.Checks[0].Status).IsEqualTo(UpstreamVersionAlignmentCheckStatus.DuplicateFamilyName);
+    }
+
+    [Test]
+    public async Task Validate_Should_Return_Typed_Error_When_Manifest_Has_Duplicate_Library_Names()
+    {
+        var baseManifest = ManifestFixture.CreateTestManifestConfig();
+        var manifest = baseManifest with
+        {
+            LibraryManifests = baseManifest.LibraryManifests.Add(baseManifest.LibraryManifests[0] with
+            {
+                VcpkgName = "sdl2-duplicate",
+                IsCoreLib = false,
+            }),
+        };
+
+        var validator = new UpstreamVersionAlignmentValidator();
+        var mapping = new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["sdl2-core"] = NuGetVersion.Parse("2.32.0"),
+        };
+
+        var result = validator.Validate(manifest, mapping);
+
+        await Assert.That(result.IsError()).IsTrue();
+        await Assert.That(result.Validation.Checks).HasSingleItem();
+        await Assert.That(result.Validation.Checks[0].Status).IsEqualTo(UpstreamVersionAlignmentCheckStatus.DuplicateLibraryName);
+    }
 }

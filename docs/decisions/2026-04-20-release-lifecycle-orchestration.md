@@ -499,19 +499,19 @@ This is not a greenfield rewrite mandate, but neither is it a preserve-the-curre
 
 The ADR-003 invariant remains: the build host resolves versions once, CI publishes the immutable mapping as `versions.json`, and every downstream stage consumes that mapping via `--versions-file`.
 
-Post-PD-5 review found one unsafe sequencing risk: `release.yml` currently has tag triggers and a `workflow_dispatch mode=explicit` surface, but the live `resolve-versions` job still resolves only manifest-derived CI-suffixed versions. Therefore `publish-staging` must stay gated for tag pushes until version-source routing lands; otherwise a tag such as `sdl2-core-2.32.0` could publish `2.32.0-ci.<run>.<attempt>` artifacts.
+Post-PD-5 review found one unsafe sequencing risk: `release.yml` had tag triggers and a `workflow_dispatch mode=explicit` surface, but the live `resolve-versions` job still resolved only manifest-derived CI-suffixed versions. Therefore `publish-staging` had to stay gated for tag pushes until version-source routing landed; otherwise a tag such as `sdl2-core-2.32.0` could publish `2.32.0-ci.<run>.<attempt>` artifacts. The 2026-04-29 routing closure implemented the selected course below and lifted staging for release tags.
 
 The selected course is:
 
 - `workflow_dispatch mode=manifest-derived` → `ResolveVersions --version-source=manifest --suffix=ci.<run-id>.<attempt>`.
 - `workflow_dispatch mode=explicit` → parse the inline mapping into repeated `--explicit-version family=semver` arguments and call `ResolveVersions --version-source=explicit`.
-- family tag push (`sdl2-*-*.*.*`, future `sdl3-*-*.*.*`) → extract the family id and call `ResolveVersions --version-source=git-tag` in targeted scope.
+- family tag push (`sdl2-*-*.*.*`, future `sdl3-*-*.*.*`) → pass the full tag as targeted scope to `ResolveVersions --version-source=git-tag`.
 - train/meta tag push (`train-*`) → call `ResolveVersions --version-source=meta-tag`.
 - all downstream jobs continue to consume only the emitted `versions.json` artifact.
 
 This amendment does **not** remove direct `--explicit-version` support on individual stage targets. That remains the manual escape-hatch shape for PD-8 and local ad-hoc recovery. The normalization applies to CI job-chain releases, where auditability and one artifact contract matter more than bypass convenience.
 
-Implementation commits formalise PD-7/8/13 closure as their respective deliverables land; cross-document references in `release-lifecycle-direction.md`, `release-guardrails.md`, and `plan.md` are updated during the doc sweep pass.
+Implementation commits formalise PD-7/8/13 closure as their respective deliverables land; cross-document references in `release-lifecycle-direction.md`, `release-guardrails.md`, and `plan.md` are updated during the doc sweep passes.
 
 ---
 

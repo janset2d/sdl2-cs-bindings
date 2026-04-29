@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Text.Json;
 using Build.Context;
 using Build.Context.Configs;
@@ -17,9 +18,10 @@ namespace Build.Application.Versioning;
 /// mapping to disk as flat JSON, and lets downstream jobs consume the same file
 /// instead of re-resolving versions independently.
 /// <para>
-/// Supported sources are <c>manifest</c>, <c>git-tag</c>, and <c>meta-tag</c>.
-/// <c>--explicit-version</c> remains a direct stage-target input and does not flow
-/// through this runner.
+/// Supported sources are <c>manifest</c>, <c>explicit</c>, <c>git-tag</c>, and
+/// <c>meta-tag</c>. Explicit source uses the same operator-supplied mapping that
+/// stage targets consume, then writes the normalized <c>versions.json</c> file so
+/// downstream jobs can stay on the immutable mapping path.
 /// </para>
 /// </summary>
 public sealed class ResolveVersionsTaskRunner(
@@ -27,6 +29,7 @@ public sealed class ResolveVersionsTaskRunner(
     ICakeLog log,
     IPathService pathService,
     ManifestConfig manifestConfig,
+    PackageBuildConfiguration packageBuildConfiguration,
     VersioningConfiguration versioningConfiguration,
     IUpstreamVersionAlignmentValidator upstreamVersionAlignmentValidator)
 {
@@ -34,8 +37,11 @@ public sealed class ResolveVersionsTaskRunner(
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
     private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
     private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
+    private readonly PackageBuildConfiguration _packageBuildConfiguration = packageBuildConfiguration ?? throw new ArgumentNullException(nameof(packageBuildConfiguration));
     private readonly VersioningConfiguration _versioningConfiguration = versioningConfiguration ?? throw new ArgumentNullException(nameof(versioningConfiguration));
     private readonly IUpstreamVersionAlignmentValidator _upstreamVersionAlignmentValidator = upstreamVersionAlignmentValidator ?? throw new ArgumentNullException(nameof(upstreamVersionAlignmentValidator));
+
+    private static readonly IReadOnlySet<string> EmptyRequestedScope = ImmutableHashSet<string>.Empty.WithComparer(StringComparer.OrdinalIgnoreCase);
 
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
@@ -45,8 +51,7 @@ public sealed class ResolveVersionsTaskRunner(
         if (string.IsNullOrWhiteSpace(source))
         {
             throw new CakeException(
-                "ResolveVersions requires --version-source. Allowed values: manifest | git-tag | meta-tag. " +
-                "For operator-supplied mappings, pass --explicit-version directly on stage targets.");
+                "ResolveVersions requires --version-source. Allowed values: manifest | explicit | git-tag | meta-tag.");
         }
 
         var scope = BuildScope(_versioningConfiguration.Scope);
@@ -54,14 +59,11 @@ public sealed class ResolveVersionsTaskRunner(
         var mapping = source.ToLowerInvariant() switch
         {
             "manifest" => await ResolveFromManifestAsync(scope, cancellationToken),
+            "explicit" => await ResolveFromExplicitAsync(scope, cancellationToken),
             "git-tag" => await ResolveFromGitTagAsync(scope, cancellationToken),
             "meta-tag" => await ResolveFromMetaTagAsync(scope, cancellationToken),
-            "explicit" => throw new CakeException(
-                "ResolveVersions --version-source=explicit is not supported. Stage targets consume " +
-                "--explicit-version directly; ResolveVersions exists to emit a mapping that CI downstream " +
-                "jobs feed back in via --explicit-version."),
             _ => throw new CakeException(
-                $"ResolveVersions --version-source='{source}' is not recognized. Allowed values: manifest | git-tag | meta-tag."),
+                $"ResolveVersions --version-source='{source}' is not recognized. Allowed values: manifest | explicit | git-tag | meta-tag."),
         };
 
         await WriteMappingAsync(mapping, cancellationToken);
@@ -83,6 +85,25 @@ public sealed class ResolveVersionsTaskRunner(
         return await provider.ResolveAsync(scope, cancellationToken);
     }
 
+    private async Task<IReadOnlyDictionary<string, NuGetVersion>> ResolveFromExplicitAsync(
+        HashSet<string> scope,
+        CancellationToken cancellationToken)
+    {
+        if (_packageBuildConfiguration.ExplicitVersions.Count == 0)
+        {
+            throw new CakeException(
+                "ResolveVersions --version-source=explicit requires at least one " +
+                "--explicit-version <family>=<semver> entry so it can emit versions.json.");
+        }
+
+        var provider = new ExplicitVersionProvider(
+            _manifestConfig,
+            _upstreamVersionAlignmentValidator,
+            _packageBuildConfiguration.ExplicitVersions);
+
+        return await provider.ResolveAsync(scope, cancellationToken);
+    }
+
     private async Task<IReadOnlyDictionary<string, NuGetVersion>> ResolveFromGitTagAsync(
         HashSet<string> scope,
         CancellationToken cancellationToken)
@@ -95,15 +116,18 @@ public sealed class ResolveVersionsTaskRunner(
                 "releases use --version-source=meta-tag.");
         }
 
-        var familyId = scope.First();
+        var familyIdOrTag = scope.First();
         var provider = new GitTagVersionProvider(
             _manifestConfig,
             _upstreamVersionAlignmentValidator,
             _cakeContext,
             _pathService.RepoRoot,
-            new GitTagScope.Targeted(familyId));
+            new GitTagScope.Targeted(familyIdOrTag));
 
-        return await provider.ResolveAsync(scope, cancellationToken);
+        // GitTagScope.Targeted already narrows provider coverage to one family. The CLI scope
+        // may be a full tag (for example sdl2-core-2.32.0), while provider filtering accepts
+        // family ids only, so do not apply the same value a second time as a requested filter.
+        return await provider.ResolveAsync(EmptyRequestedScope, cancellationToken);
     }
 
     private async Task<IReadOnlyDictionary<string, NuGetVersion>> ResolveFromMetaTagAsync(

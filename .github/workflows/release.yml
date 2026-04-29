@@ -13,7 +13,8 @@
 # - pack creates the nupkg set from consolidated harvest output and versions.json.
 # - consumer-smoke re-enters the same RID matrix to install and test the packed artifacts.
 #
-# Publish jobs are defined but disabled until feed-push logic is implemented.
+# Staging publish is live for explicit dispatch and release tags. Public publish remains
+# disabled until PD-7 promotion-to-nuget.org logic lands.
 
 name: Release
 
@@ -132,6 +133,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           submodules: recursive
+          fetch-depth: 0
       - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
@@ -139,17 +141,57 @@ jobs:
         with:
           name: cake-host
           path: ./cake-host
-      - name: Resolve manifest versions
+      - name: Resolve manifest-derived dispatch versions
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'manifest-derived' }}
         run: >
           dotnet ./cake-host/Build.dll
           --target ResolveVersions
           --version-source=manifest
           --suffix=ci.${{ github.run_id }}.${{ github.run_attempt }}
+      - name: Resolve explicit dispatch versions
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'explicit' }}
+        shell: bash
+        env:
+          EXPLICIT_VERSIONS: ${{ inputs.explicit-versions }}
+        run: |
+          explicit_args=()
+          IFS=',' read -ra entries <<< "${EXPLICIT_VERSIONS}"
+          for raw in "${entries[@]}"; do
+            entry="${raw#"${raw%%[![:space:]]*}"}"
+            entry="${entry%"${entry##*[![:space:]]}"}"
+            if [ -n "$entry" ]; then
+              explicit_args+=(--explicit-version "$entry")
+            fi
+          done
+
+          if [ "${#explicit_args[@]}" -eq 0 ]; then
+            echo "::error::mode=explicit requires workflow_dispatch input explicit-versions."
+            exit 1
+          fi
+
+          dotnet ./cake-host/Build.dll \
+            --target ResolveVersions \
+            --version-source=explicit \
+            "${explicit_args[@]}"
+      - name: Resolve targeted family tag versions
+        if: ${{ github.event_name == 'push' && (startsWith(github.ref_name, 'sdl2-') || startsWith(github.ref_name, 'sdl3-')) }}
+        run: >
+          dotnet ./cake-host/Build.dll
+          --target ResolveVersions
+          --version-source=git-tag
+          --scope ${{ github.ref_name }}
+      - name: Resolve coordinated train tag versions
+        if: ${{ github.event_name == 'push' && startsWith(github.ref_name, 'train-') }}
+        run: >
+          dotnet ./cake-host/Build.dll
+          --target ResolveVersions
+          --version-source=meta-tag
       - name: Upload versions.json
         uses: actions/upload-artifact@v7
         with:
           name: resolve-versions-output
           path: artifacts/resolve-versions/versions.json
+          if-no-files-found: error
           retention-days: 7
 
   preflight:
@@ -410,15 +452,14 @@ jobs:
 
   publish-staging:
     # Pushes the packed nupkgs to the GitHub Packages internal feed (PD-5 write path).
-    # Gated behind workflow_dispatch.inputs.publish-staging until the first witness
-    # validates the e2e flow against the real feed. Tag pushes never auto-trigger
-    # this job today; lift the gate in a follow-up commit after first green witness.
+    # Dispatch stays checkbox-gated. Release tags publish to the internal feed after
+    # trigger-aware ResolveVersions routing emits tag-derived versions.json.
     # Per-job 'packages: write' override keeps every other job at the workflow-level
     # 'packages: read' default. PublishTaskRunner refuses to push 'local.*' prerelease
     # versions so a stray operator dispatch can never leak a local-pack into staging.
     name: Publish (Staging)
     needs: [consumer-smoke]
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish-staging == true }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.publish-staging == true) || (github.event_name == 'push' && (startsWith(github.ref_name, 'sdl2-') || startsWith(github.ref_name, 'sdl3-') || startsWith(github.ref_name, 'train-'))) }}
     runs-on: ubuntu-24.04
     permissions:
       contents: read
