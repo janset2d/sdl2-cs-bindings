@@ -92,7 +92,7 @@ Pack (single-runner) ───────────────────�
       ↓
 ConsumerSmoke (N-RID matrix RE-ENTRY) ──────────── per-RID managed/runtime restore + init
       ↓
-PublishStaging → PublishPublic (single-runner each)
+PublishStaging → PublishPublic (public promotion disabled pending PD-7)
 ```
 
 ### Per-stage request shapes (ADR-003 §3.2, implemented)
@@ -105,7 +105,7 @@ Each stage owns its own request record under `Domain/<Module>/Models/`; there is
 - `ConsolidateHarvestRequest` — successful rid list + output root
 - `PackRequest` — `IReadOnlyDictionary<string, NuGetVersion> Versions` (resolved version mapping; scope = mapping keys per §2.2)
 - `PackageConsumerSmokeRequest` — rid + Versions mapping + FeedPath
-- `PublishRequest` — `DirectoryPath PackagesDir` + `string FeedUrl` + `string AuthToken` (Phase-2b consumer; runner stub today)
+- `PublishRequest` — `DirectoryPath PackagesDir` + `string FeedUrl` + `string AuthToken` (live for `PublishStaging`; `PublishPublic` remains disabled pending public promotion work)
 
 ### Version source providers (ADR-003 §3.1, implemented)
 
@@ -121,12 +121,12 @@ CI flows (`release.yml`) emit the resolved mapping as a `versions.json` artifact
 
 ### Stage-owned validation
 
-Each guardrail belongs to exactly one stage; there is no monolithic "PostFlight" validator suite. Canonical mapping:
+Each guardrail has one owning stage; there is no monolithic "PostFlight" validator suite. Explicit mirrors, such as G58 in PreFlight, are called out where they exist. Canonical mapping:
 
 - **PreFlight:** G14/G15 (version consistency), G16 (strategy coherence), G4/G6/G7/G17/G18 (csproj pack contract), G49 (core library identity), G54 (upstream major.minor alignment).
 - **Harvest:** G19 (hybrid leak), G50 (primary ≥ 1).
 - **NativeSmoke:** native binaries load + initialize at OS level (C/C++ harness today; ADR-003 extracts as its own stage).
-- **Pack:** G21–G23, G25–G27, G46 (empty-payload guard), G47 (`buildTransitive/` contract), G48 (per-RID native payload shape), G55 (native metadata file), G56 (satellite cross-family upper bound), G57 (README mapping table), G58 (cross-family dep resolvability — planned, placement in Pack per ADR-003 §8 Open Question 1).
+- **Pack:** G21–G23, G25–G27, G46 (empty-payload guard), G47 (`buildTransitive/` contract), G48 (per-RID native payload shape), G55 (native metadata file), G56 (satellite cross-family upper bound), G57 (README mapping table), G58 (cross-family dependency scope reachability; Pack-owned and mirrored in PreFlight as defense in depth).
 - **ConsumerSmoke:** restore + runtime TUnit per-TFM pass.
 - **Publish:** feed auth + deduplication.
 
@@ -177,7 +177,7 @@ build/_build/
 │   ├── Maintenance/        ← CleanArtifactsTask, CompileSolutionTask
 │   ├── Packaging/          ← PackageTask, PackageConsumerSmokeTask, SetupLocalDevTask
 │   ├── Preflight/          ← PreFlightCheckTask
-│   ├── Publishing/         ← PublishStagingTask, PublishPublicTask (Phase-2b stubs, P6 2026-04-25)
+│   ├── Publishing/         ← PublishStagingTask (internal feed live), PublishPublicTask (disabled pending PD-7 / nuget.org Trusted Publishing)
 │   ├── Vcpkg/              ← EnsureVcpkgDependenciesTask
 │   └── Versioning/         ← ResolveVersionsTask
 ├── Application/            ← Use-case orchestrators (TaskRunners, Resolvers, Providers)
@@ -188,9 +188,9 @@ build/_build/
 │   ├── Diagnostics/        ← InspectHarvestedDependenciesTaskRunner
 │   ├── Harvesting/         ← HarvestTaskRunner, ConsolidateHarvestTaskRunner, NativeSmokeTaskRunner, ArtifactPlanner, ArtifactDeployer, BinaryClosureWalker
 │   ├── Maintenance/        ← CleanArtifactsTaskRunner, CompileSolutionTaskRunner
-│   ├── Packaging/          ← PackageTaskRunner, PackageConsumerSmokeRunner, SetupLocalDevTaskRunner, LocalArtifactSourceResolver, UnsupportedArtifactSourceResolver, ArtifactSourceResolverFactory, PackagingStrategyFactory, DependencyPolicyValidatorFactory
+│   ├── Packaging/          ← PackageTaskRunner, PackageConsumerSmokeRunner, SetupLocalDevTaskRunner, LocalArtifactSourceResolver, RemoteArtifactSourceResolver, UnsupportedArtifactSourceResolver, ArtifactSourceResolverFactory, PackagingStrategyFactory, DependencyPolicyValidatorFactory
 │   ├── Preflight/          ← PreflightTaskRunner, PreflightReporter
-│   ├── Publishing/         ← PublishTaskRunner (Phase-2b stub, P6)
+│   ├── Publishing/         ← PublishTaskRunner (internal staging feed push runner)
 │   ├── Vcpkg/              ← EnsureVcpkgDependenciesTaskRunner
 │   └── Versioning/         ← ResolveVersionsTaskRunner, ManifestVersionProvider, ExplicitVersionProvider, GitTagVersionProvider, ExplicitVersionParser
 ├── Domain/                 ← Models, value objects, result types, domain services (no outward deps)
@@ -200,7 +200,7 @@ build/_build/
 │   ├── Packaging/          ← PackageOutputValidator, NativePackageMetadata, ReadmeMappingTable, SmokeScopeComparator, SatelliteUpperBoundValidator, FamilyTopologyHelpers, G58CrossFamilyDepResolvabilityValidator + Models/Results (PackRequest, PackageConsumerSmokeRequest)
 │   ├── Paths/              ← IPathService abstraction
 │   ├── Preflight/          ← FamilyIdentifierConventions + validators (CoreLibraryIdentityValidator, CsprojPackContractValidator, StrategyCoherenceValidator, UpstreamVersionAlignmentValidator, VersionConsistencyValidator) + Models/Results (PreflightRequest)
-│   ├── Publishing/         ← Models/PublishRequest (Phase-2b consumer, P6)
+│   ├── Publishing/         ← Models/PublishRequest
 │   ├── Results/            ← BuildError, BuildResultExtensions, AsyncResultChaining helpers
 │   ├── Runtime/            ← RuntimeProfile, IRuntimeProfile, IMsvcDevEnvironment, IDotNetRuntimeEnvironment, MsvcTargetArch (RID→arch + cross-compile vcvarsall mapping, P4b)
 │   ├── Strategy/           ← HybridStatic / PureDynamic strategies + validators + StrategyResolver + Models/Results
@@ -235,7 +235,7 @@ All services are registered via dependency injection in `Program.cs`:
 | `ICoverageBaselineReader` | `CoverageBaselineReader` | Loads `build/coverage-baseline.json` into `CoverageBaseline` (line / branch floor + optional metadata) |
 | `ICoverageThresholdValidator` | `CoverageThresholdValidator` | Applies the ratchet rule to parsed metrics and returns a typed coverage result |
 | `IVcpkgManifestReader` | `VcpkgManifestReader` | Loads `vcpkg.json` into `VcpkgManifest` for PreFlight and future build-host consumers |
-| `IArtifactSourceResolver` | `LocalArtifactSourceResolver` for `--source=local`; `UnsupportedArtifactSourceResolver` for `--source=remote`/`--source=release` (Phase-2b stubs throwing `NotSupportedException`) | Feed-prep profile selection per ADR-001 §2.7. Subsumes the retired `INativeAcquisitionStrategy` design from the strategy brief — feed-prep abstraction replaces native-acquisition abstraction. |
+| `IArtifactSourceResolver` | `LocalArtifactSourceResolver` for `--source=local`; `RemoteArtifactSourceResolver` for `--source=remote`/`--source=remote-internal`; `UnsupportedArtifactSourceResolver` only for `--source=release`/`--source=release-public` | Feed-prep profile selection per ADR-001 §2.7. `RemoteInternal` pulls latest coherent managed/native family packages from GitHub Packages into the local feed; `ReleasePublic` remains unsupported until public promotion lands. Subsumes the retired `INativeAcquisitionStrategy` design from the strategy brief — feed-prep abstraction replaces native-acquisition abstraction. |
 | `IPackageVersionProvider` | `ExplicitVersionProvider` registered as singleton (the only stage-task-visible provider per ADR-003 §3.1); `ManifestVersionProvider` + `GitTagVersionProvider` reach the CLI only via `ResolveVersionsTask` | Version-source provider abstraction; emits `versions.json` consumed downstream via `--versions-file` |
 | `IDotNetPackInvoker` | `DotNetPackInvoker` | Wraps `dotnet pack` CLI invocation with Cake `IFileSystem` / `ICakeContext` integration |
 | `IDotNetRuntimeEnvironment` | `DotNetRuntimeEnvironment` | Win-x86 child-runtime bootstrap (downloads + injects `DOTNET_ROOT_X86` / `DOTNET_ROOT(x86)` only into child `dotnet test` invocations, P4d) |

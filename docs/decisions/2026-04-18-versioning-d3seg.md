@@ -81,7 +81,7 @@ MinVer is a **tag reader**, not a version inventor. Its sole function in this pr
 
 - Release builds (CI): the operator (human or workflow) creates the family tag at the release commit (`sdl2-core-2.32.0`) and pushes; CI checks out the tag, MinVer reads it, pack uses `$(Version) = 2.32.0`.
 - Untagged commits: MinVer produces a deterministic prerelease fallback, e.g. `2.32.0-alpha.0.N`. Never `0.0.0-*` unless no predecessor tag exists anywhere in history.
-- Cake `PackageTaskRunner.PackageVersionResolver` accepts an explicit `--family-version=<semver>` CLI flag which, when supplied, bypasses MinVer for that pack invocation. Used today only by PD-8 manual escape-hatch flows. It is **not** a primary mechanism; the tag is the source of truth for stable releases. **Note (2026-04-19, PD-13):** `SetupLocalDev` was refactored (pre-ADR-001 canon) to auto-generate per-family versions directly from `manifest.json library_manifests[].vcpkg_version` + local timestamp without consulting the flag, and `PackageConsumerSmoke` was reconciled to trust `Janset.Local.props` (renamed from `Janset.Smoke.local.props` in C.8a) as the version source of truth for smoke testing. The flag's surviving legitimate surface has narrowed to the PD-8 escape path; PD-13 is **closed (2026-04-22)** — runner-strict `--explicit-version` replaces props-based version sourcing; see ADR-003 §6.
+- Release orchestration no longer uses `--family-version`. ADR-003 replaced it with resolved version mappings: CI stages consume `--versions-file`, while operator-driven ad-hoc recovery can use repeated `--explicit-version family=semver` entries. MinVer remains the tag reader for stable family-tag releases.
 
 ### 2.4 Dependency contracts
 
@@ -184,7 +184,7 @@ public interface IArtifactSourceResolver
 }
 ```
 
-Only `LocalArtifactSourceResolver` is implemented in Phase 2a. `RemoteInternal` and `ReleasePublic` are stubbed with interface-level contracts and concrete implementation deferred to Phase 2b (Stream D-ci delivery).
+Current implementation state: `Local` and `RemoteInternal` are implemented. `Local` builds the repo packages into the local folder feed; `RemoteInternal` downloads managed/native package pairs from the GitHub Packages internal feed into the same local feed layout. `ReleasePublic` remains intentionally unsupported until the public NuGet promotion path lands.
 
 ### 2.8 Local dev UX contract
 
@@ -214,7 +214,7 @@ The task:
         Condition="Exists('$(MSBuildThisFileDirectory)Janset.Local.props')" />
 ```
 
-The `--source=remote` variant skips steps 1–3 and instead pulls prebuilt nupkgs from an internal feed into a local cache; the override-file write (step 4) and IDE readiness (step 5) are identical. This is the Phase 2b deliverable whose interface contract is locked in this ADR.
+The `--source=remote` variant skips steps 1–3 and instead pulls prebuilt nupkgs from the internal GitHub Packages feed into a local cache; the override-file write (step 4) and IDE readiness (step 5) are identical.
 
 ### 2.9 New preflight + post-pack guardrails (G54–G57)
 
@@ -289,7 +289,7 @@ The `Janset.SDL2` meta-package remains defined per `release-lifecycle-direction.
 - **`SetupLocalDev` full loop on a fresh clone is not instant.** vcpkg install on Linux in particular is slow on first run (no cache). Accepted; subsequent runs hit the vcpkg binary cache.
 - **Source Mode research work is superseded.** The symlink-preservation findings remain useful reference material (for future remote-feed tar extraction), but the ProjectReference mechanism is retired.
 - **Binding-debug fast-loop flow is no longer mainline.** If and when needed, a separate harness will be established. Accepted.
-- **Phase 2b workload includes patch-bump strict enforcement, remote profile impl, and Stream D-ci integration.** These were scope-deferred in this ADR to preserve delivery tempo; they are tracked in `phase-2-adaptation-plan.md` and PD-7 / PD-8.
+- **Phase 2b workload includes patch-bump strict enforcement and public promotion.** RemoteInternal has since landed; public NuGet promotion remains tracked under PD-7.
 
 ### 4.3 Neutral
 
@@ -302,7 +302,7 @@ The `Janset.SDL2` meta-package remains defined per `release-lifecycle-direction.
 This ADR does NOT:
 
 - Specify a mechanism for signaling breaking managed API changes in the version string. That is deferred to a hypothetical future ADR if/when such a change is required.
-- Implement the `RemoteInternal` or `ReleasePublic` `IArtifactSourceResolver` concrete classes. Those are Phase 2b deliverables under Stream D-ci.
+- Implement public `ReleasePublic` feed acquisition or public NuGet promotion. Those remain Phase 2b PD-7 work.
 - Implement strict release-must-bump-patch enforcement via nupkg hash diff / API surface comparison. Phase 2a uses file-existence overwrite guard only.
 - Change the meta-package versioning scheme. That decision is tracked separately under PD-7.
 - Retain any Source Mode or ProjectReference-based native-payload mechanism. These are explicitly retired.
@@ -328,78 +328,20 @@ Full analysis in the 2026-04-18 conversation transcript (strategic discussion ac
 
 ---
 
-## 7. Impact Checklist
+## 7. Implementation State
 
-Tracks the implementation work required by this ADR. Each item updates as waves complete. This section is a **living part of the ADR** — not a historical snapshot.
+ADR-001 is implemented as the current package/versioning baseline.
 
-### 7.1 Canonical docs (Wave V2)
-
-- [x] `docs/knowledge-base/release-lifecycle-direction.md` — §3 Versioning Model full rewrite (D-3seg), §4 Dependency Contract Model (upper bound added), §7 Two Version Planes renamed to "Cross-Referenced Version Planes" and rewritten, Tradeoffs #4/#5 updated + #6/#7 added — **DONE 2026-04-18**
-- [x] `docs/knowledge-base/release-guardrails.md` — G54–G57 new rows, stream-mapping + failure-mode catalog + cross-references updated — **DONE 2026-04-18**
-- [x] `docs/plan.md` — Strategic Decisions rows: execution model (3-mode → 2-source), tag-derived versioning (D-3seg), source-graph-vs-shipping-graph (package-first), two-source framework (profile abstraction) — **DONE 2026-04-18**
-- [x] `docs/phases/phase-2-adaptation-plan.md` — ADR-001 addendum, PD-12 created, PD-4 CLOSED, PD-5 REFRAMED, PD-6 CLOSED, Stream F scope rewritten (Source Mode retired → feed-prep), Strategy State Audit `INativeAcquisitionStrategy` retired, Execution Model diagram rewritten — **DONE 2026-04-18**
-- [x] `docs/research/execution-model-strategy-2026-04-13.md` — ADR-001 amendment header block explaining three-mode → two-source shift — **DONE 2026-04-18**
-- [x] `docs/research/source-mode-native-visibility-2026-04-15.md` — DEPRECATED banner, symlink findings kept as reference for future remote-feed caching — **DONE 2026-04-18**
-
-### 7.2 Moderate doc amendments (Wave V3)
-
-- [x] `docs/knowledge-base/ci-cd-packaging-and-release-plan.md` — D-3seg schema note; `native_lib_version` removed from library_manifests example; G54/G55 references added — **DONE 2026-04-18**
-- [x] `docs/knowledge-base/cake-build-architecture.md` — manifest example updated (native_lib_version removed, vcpkg_port_version added), ADR-001 schema note — **DONE 2026-04-18**
-- [x] `docs/research/full-train-release-orchestration-2026-04-16.md` — ADR-001 addendum added at top (meta-package versioning OPEN sub-item, D-3seg placeholder note on version-string examples) — **DONE 2026-04-18**
-- [x] `docs/research/release-recovery-and-manual-escape-hatch-2026-04-16.md` — ADR-001 addendum added (D-3seg + Artifact Source Profile impact on manual escape-hatch design) — **DONE 2026-04-18**
-- [x] `docs/research/cake-strategy-implementation-brief-2026-04-14.md` — manifest example updated, ADR-001 schema note — **DONE 2026-04-18**
-- [x] `docs/playbook/cross-platform-smoke-validation.md` — `--family-version` examples updated to D-3seg (2.32.0-smoke.1), D-3seg caveat note on multi-family packing, "Relationship to Local Dev (ADR-001)" section added — **DONE 2026-04-18**
-- [x] `docs/playbook/vcpkg-update.md` — "Update native_lib_version" step removed; Step 6a mapping-table regeneration added; ADR-001 reference — **DONE 2026-04-18**
-- [x] `docs/playbook/adding-new-library.md` — manifest entry updated (native_lib_version removed); ADR-001 note; mapping-table step added — **DONE 2026-04-18**
-- [x] `docs/playbook/local-development.md` — ADR-001 transition banner; Quick Start (recommended V5) section added; retired triplets replaced with hybrid variants; "Until PackageTask" wording retired; Step 5 rewritten as "Pack Families" with D-3seg version note; G46 note on direct pack; D-3seg version note on manual pack example — **DONE 2026-04-18**
-- [x] `docs/onboarding.md` — Repository tree fixed (`build/_build.Tests/` instead of `tests/Build.Tests/`), test count updated 241→324, Family Version glossary updated to D-3seg + G54 reference — **DONE 2026-04-18**
-- [x] `docs/phases/phase-2-cicd-packaging.md` — ADR-001 amendment header, D-3seg references, stale section flags (§2.2/§2.3/§2.4 status) — **DONE 2026-04-18**
-- [x] `docs/README.md` — Reviews table expanded (7 rows + entry-point consolidated index); Decisions (ADR) section added; retention policy paragraph added — **DONE 2026-04-18** (closes review-finding L38 + L39)
-
-### 7.3 Historical markers (Wave V6)
-
-- [x] `docs/research/exact-pin-spike-and-nugetizer-eval-2026-04-16.md` — add ADR pointer to SUPERSEDED header — **DONE 2026-04-20**
-- [x] `docs/research/release-lifecycle-patterns-2026-04-14-claude-opus.md` — "D-3seg adopted 2026-04-18" marker — **DONE 2026-04-20**
-- [x] `docs/research/release-lifecycle-strategy-research-2026-04-14-gpt-codex.md` — same — **DONE 2026-04-20**
-- [x] `docs/research/release-strategy-history-audit-2026-04-14-gpt-codex.md` — same; `binding_version` question closed — **DONE 2026-04-20**
-
-### 7.4 Manifest + model cleanup (Wave V4)
-
-- [x] Final repo-wide grep for `native_lib_version` / `NativeLibVersion` consumption (source/build-host scope; generated test-output artifacts excluded) — orphan confirmed before removal — **DONE 2026-04-19**
-- [x] `build/manifest.json` — remove `native_lib_version` from 6 library entries — **DONE 2026-04-19**
-- [x] `build/_build.Tests/Fixtures/Data/manifest.fixture.json` — same — **DONE 2026-04-19**
-- [x] `build/_build/Context/Models/ManifestConfigModels.cs` — remove `NativeLibVersion` property — **DONE 2026-04-19**
-- [x] `build/_build.Tests/Fixtures/ManifestFixture.cs` — remove fixture seeding — **DONE 2026-04-19**
-- [x] `build/_build.Tests/Fixtures/Seeders/ManifestConfigSeeder.cs` — checked; no remaining `NativeLibVersion` reference — **DONE 2026-04-19**
-
-### 7.5 New validators + metadata (Wave V4, merged with cleanup)
-
-- [x] `UpstreamVersionAlignmentValidator` (G54) + contract + Result + tests — **DONE 2026-04-19**
-- [x] `NativePackageMetadataValidator` (G55) + validator + PackageOutputValidator integration tests — **DONE 2026-04-19**
-- [x] `SatelliteUpperBoundValidator` (G56) + validator + PackageOutputValidator integration tests — **DONE 2026-04-19**
-- [x] `ReadmeMappingTableValidator` (G57) + validator + PackageOutputValidator integration tests — **DONE 2026-04-19**
-- [x] Native metadata file generator (pack-time include enforced from `.targets`) — **DONE 2026-04-19**
-- [x] README mapping table generator + HTML comment markers — **DONE 2026-04-19**
-- [x] `PackageOutputValidator` — G55–G57 wired into the existing result-accumulation pattern (G54 wired in PreFlight pipeline) — **DONE 2026-04-19**
-- [x] Build.Tests green post-edit — **DONE 2026-04-19**
-
-### 7.6 Profile abstraction + SetupLocalDev (Wave V5)
-
-- [x] `IArtifactSourceResolver` interface + `ArtifactProfile` enum + `IArtifactSourceResolver` infrastructure — **DONE 2026-04-19**
-- [x] `LocalArtifactSourceResolver` concrete — **DONE 2026-04-19**
-- [x] `RemoteArtifactSourceResolver` stub (contract-only) — **DONE 2026-04-19**
-- [x] `ReleaseArtifactSourceResolver` stub (contract-only) — **DONE 2026-04-19**
-- [x] `SetupLocalDev` Cake task — `--source=local` fully wired, `--source=remote` accepted but stubbed — **DONE 2026-04-19**
-- [x] `Janset.Local.props` conditional import in `Janset.Smoke.props` — **DONE 2026-04-19** (renamed from `Janset.Smoke.local.props` in C.8a)
-- [x] `.gitignore` — `build/msbuild/Janset.Local.props` — **DONE 2026-04-19** (entry updated in C.8a)
-- [x] IDE open test: smoke csproj restores + builds in IDE after `SetupLocalDev` runs — **DONE 2026-04-20** (`SetupLocalDev --source=local` on `win-x64` + direct `dotnet build` of `PackageConsumer.Smoke.csproj`)
-- [x] Source Mode mechanism removal — any landed code retires — **DONE 2026-04-20** (active docs/playbooks/smoke messaging aligned to ADR-001 package-first contract; historical research docs remain explicitly deprecated)
-
-### 7.7 Memory sidecar (Wave V6)
-
-- [x] Update `packaging_strategy_decisions.md` memory — **DONE 2026-04-20** (repo memory file created with ADR-001 package-first / artifact-source summary)
-- [x] Retire `release_lifecycle_direction_2026_04_15.md` memory (rename or supersede) — **DONE 2026-04-20** (no pre-existing repo memory file by that name; superseded state captured in new D-3seg sidecar)
-- [x] Create `versioning_d3seg_2026_04_18.md` memory — **DONE 2026-04-20**
+- D-3seg is the package family version model.
+- `native_lib_version` was removed from manifest models and fixtures.
+- G54-G57 package/version guardrails are implemented.
+- Package metadata and README mapping-table generation are wired into Pack.
+- `IArtifactSourceResolver` and `ArtifactProfile` are implemented.
+- `LocalArtifactSourceResolver` supports repo-local package production.
+- `RemoteArtifactSourceResolver` supports GitHub Packages internal feed acquisition.
+- `ReleasePublic` remains unsupported until public NuGet promotion lands.
+- `Janset.Local.props` is the local consumer override contract.
+- Source Mode / ProjectReference-based native payloads are retired.
 
 ---
 
@@ -432,3 +374,4 @@ Tracks the implementation work required by this ADR. Each item updates as waves 
 | Date | Change | Editor |
 |---|---|---|
 | 2026-04-18 | Initial draft and adoption | Deniz İrgin + LLM synthesis session |
+| 2026-04-30 | Current-state cleanup: RemoteInternal marked implemented, ReleasePublic left pending, impact checklist collapsed | GitHub Copilot |

@@ -158,6 +158,7 @@ Before proposing changes, review the documentation. If your change affects behav
 - For "how do I...?" questions: `docs/playbook/*`
 - For design rationale: `docs/research/*`
 - For broader tool/framework context: `docs/reference/*`
+- For cross-cutting architectural questions across files: query the persistent knowledge graph at `graphify-out/graph.json` via `/graphify query "<question>"` before grep'ing — see [`docs/playbook/graphify-runbook.md`](docs/playbook/graphify-runbook.md) for setup, maintenance cadence, and common queries.
 
 ### Documentation Loading Rules
 
@@ -217,6 +218,17 @@ Reference patterns for new build-host work:
 - **Result / error boundaries stay typed.** Services return `OneOf`-shaped results; tasks translate them into logging, `CakeException`, RID-status persistence, or cancellation semantics.
 - **Test folders mirror production.** `Unit/Domain/Packaging/PackageVersionResolverTests.cs` asserts the contract of `Domain/Packaging/PackageVersionResolver.cs`. Integration tests (when added) live under `Integration/<Scenario>/` and are not mirrored.
 - **When in doubt, compare the shape of Packaging (Wave 1 golden) before inventing a new build-host pattern.**
+
+## Knowledge Graph (graphify)
+
+This repo maintains a persistent code+docs knowledge graph at `graphify-out/graph.json` (~2100 nodes / ~2800 edges across 252 communities). It is the preferred entry point for cross-cutting architectural reasoning; grep is the fallback.
+
+- **Setup (fresh checkout):** see [`.graphify-patch/README.md`](.graphify-patch/README.md) for the site-packages patch (build/ + .github/ + yaml/json visibility) and [`docs/playbook/graphify-runbook.md`](docs/playbook/graphify-runbook.md) for the full lifecycle (install, hook, update, query).
+- **Code changes** are absorbed by the post-commit hook (`graphify hook install`) — AST-only, zero LLM cost.
+- **Doc / manifest / workflow / ADR changes** require a manual `/graphify . --update` after a session — typically <30K tokens because of the per-file cache.
+- **After `pip install -U graphifyy`** re-run `pwsh -File .graphify-patch/patch-graphify.ps1 patch`.
+
+For LLM agents: prefer `/graphify query "<question>"` over reading many files. The graph delivers ~85x token reduction at query time and surfaces non-obvious bridges (e.g. ADR ↔ manifest ↔ workflow triangles) that grep cannot find.
 
 ## Configuration File Relationships
 

@@ -2,12 +2,19 @@
 
 - **Status:** Accepted
 - **Date:** 2026-04-19
+- **Last reviewed:** 2026-04-30
 - **Deciders:** Deniz İrgin (primary), collaborative synthesis during 2026-04-19 Packaging maintainability review
 - **Supersedes:** No prior ADR
 - **Amends:** `docs/knowledge-base/cake-build-architecture.md` (module shape guidance); `AGENTS.md` / `docs/onboarding.md` (contributor mental model)
 - **Orthogonal to:** [ADR-001: D-3seg Versioning](2026-04-18-versioning-d3seg.md) — that ADR locks external contracts (version strings, consumer contract, source profile interface); this ADR locks the internal architecture that enforces those contracts.
 
 ---
+
+## Current Implementation State
+
+The Cake build host now follows the ADR-002 shape: `Tasks/`, `Application/`, `Domain/`, `Infrastructure/`, and `Context/` are the live top-level boundaries under `build/_build/`. `Infrastructure/Tools/` hosts the repo-authored Cake `Tool<T>` wrappers, and `build/_build.Tests/Unit/CompositionRoot/LayerDependencyTests.cs` enforces the layer direction rules.
+
+The target pattern is also live: task classes are thin Cake adapters and Application-layer runners own orchestration. Some interfaces remain for practical seams or existing test structure; new interfaces should still satisfy §2.3 rather than copying old single-implementation patterns.
 
 ## 1. Context
 
@@ -52,10 +59,9 @@ build/_build/
 ├── Tasks/             ← Presentation (Cake-native; EXCEPTION, see §2.5)
 ├── Application/       ← Use-case orchestrators (TaskRunners, Resolvers, SmokeRunner)
 ├── Domain/            ← Models, value objects, domain services, result types
-├── Infrastructure/    ← PathService, JSON IO, process wrappers, filesystem, ZIP
+├── Infrastructure/    ← PathService, JSON IO, process wrappers, filesystem, ZIP, Tool<T> wrappers
 ├── Context/           ← BuildContext (Cake task boundary; locked by steering)
-├── CompositionRoot/   ← Program.cs DI wiring
-└── Tools/             ← (pre-existing — vcpkg bootstrap etc.; scope re-evaluated in Wave 4)
+└── Program.cs         ← DI wiring + CLI options
 ```
 
 Each non-exception layer is a top-level directory. Modules (Packaging / Harvesting / Preflight / Coverage / Strategy) appear as sub-folders **inside the layer they belong to**, not as peer top-level concepts.
@@ -136,7 +142,8 @@ build/_build/
 │       ├── PackageTaskRunner.cs
 │       ├── PackageConsumerSmokeRunner.cs
 │       ├── LocalArtifactSourceResolver.cs
-│       └── PendingArtifactSourceResolver.cs          (RemoteInternal + ReleasePublic stub)
+│       ├── RemoteArtifactSourceResolver.cs
+│       └── UnsupportedArtifactSourceResolver.cs      (ReleasePublic pending)
 ├── Domain/
 │   └── Packaging/
 │       ├── PackageVersion.cs
@@ -173,7 +180,7 @@ Tasks/ internal organization (by concern: `Harvest/`, `Packaging/`, `Preflight/`
 
 ### 2.6 Tools/ placement — Cake-native wrappers are Infrastructure
 
-The existing `build/_build/Tools/` directory contains Cake Frosting tool wrappers for external CLIs that Cake does not natively expose: vcpkg, dumpbin, ldd, otool. Each wrapper follows the canonical Cake Frosting convention (documented in [cake-frosting-build-expertise.md](../reference/cake-frosting-build-expertise.md) §3.1):
+`build/_build/Infrastructure/Tools/` contains Cake Frosting tool wrappers for external CLIs that Cake does not natively expose: vcpkg, dumpbin, ldd, otool. Each wrapper follows the canonical Cake Frosting convention (documented in [cake-frosting-build-expertise.md](../reference/cake-frosting-build-expertise.md) §3.1):
 
 - `*Tool.cs` inherits `Cake.Core.Tooling.Tool<TSettings>` (tool resolution, argument building, process execution).
 - `*Aliases.cs` provides `ICakeContext` extension methods decorated with `[CakeMethodAlias]` (the Cake DSL gateway).
@@ -349,178 +356,18 @@ This ADR does NOT:
 
 ---
 
-## 6. Implementation Waves
+## 6. Implementation State
 
-Living checklist. Updated in-place as waves complete. Same pattern as ADR-001 §7.
+ADR-002 is implemented as the build-host baseline rather than an active wave plan.
 
-### 6.1 Wave 1 — Packaging (active, 2026-04-19)
+- The four-layer folder split is live under `build/_build/`.
+- `Infrastructure/Tools/` is the final home for repo-authored Cake `Tool<T>` wrappers.
+- `Program.cs` is the composition root for DI and CLI option wiring.
+- Packaging, Harvesting, Preflight, Coverage, Versioning, SetupLocalDev, Publishing, and smoke orchestration now live behind Application-layer runners or resolvers.
+- `LayerDependencyTests` enforces Domain no outward dependencies, Infrastructure no Application dependencies, and the intended Task-layer shape.
+- Harvest and ConsolidateHarvest runner extraction has landed; task classes should remain presentation adapters.
 
-Executed in isolated commits per step; each step has a mandatory validation gate; full smoke on step 7; architecture-test catchnet lands in step 8.
-
-#### Step 1 — Stub resolver reshape (rename + shared base; NO merge)
-
-- [x] Introduce `abstract class StubArtifactSourceResolverBase` sharing the `NotImplementedException` boilerplate (`PrepareFeedAsync`, `WriteConsumerOverrideAsync`, `LocalFeedPath` accessor).
-- [ ] Keep `RemoteInternalArtifactSourceResolver` (now extends base, sets `Profile => RemoteInternal`).
-- [ ] Rename `ReleaseArtifactSourceResolver` → `ReleasePublicArtifactSourceResolver` for enum-name alignment with `ArtifactProfile.ReleasePublic` (ADR-001 §2.7).
-- [ ] Two concrete profile-identified classes preserved; boilerplate deduplicated via base. Per-profile DI registration in Program.cs unchanged in shape.
-
-Rationale for abandoning the earlier "merge into Pending" plan: a single `PendingArtifactSourceResolver` blurs two distinct domain profiles behind one class name. `RemoteInternal` and `ReleasePublic` are semantically different feed-preparation strategies (one is the staging feed, one is the public promotion target); the class name should carry that identity. Abstract base + two concretes deduplicates boilerplate without collapsing the semantic distinction. ADR-001 §2.7 explicitly lists both as separate concrete types; that shape is preserved.
-
-**Validation gate:**
-
-```bash
-dotnet build build/_build
-dotnet test build/_build.Tests
-```
-
-Expected: green. Compile error on any call site still referencing the old `ReleaseArtifactSourceResolver` name — fix in the same commit.
-
-#### Step 2 — Metadata generator + validator consolidation
-
-- [ ] Merge `NativePackageMetadata.cs` (model) + `NativePackageMetadataGenerator.cs` + `NativePackageMetadataValidator.cs` into one file.
-- [ ] Merge `ReadmeMappingTable.cs` (utility) + `ReadmeMappingTableGenerator.cs` + `ReadmeMappingTableValidator.cs` into one file.
-- [ ] Remove `INativePackageMetadataGenerator` and `IReadmeMappingTableGenerator` interfaces (criterion 3 check: no independent axis of change; contract IS the current implementation).
-- [ ] Update `PackageOutputValidator` composition: inject concrete validators via constructor instead of constructing with `new` inline.
-- [ ] Update test wiring.
-
-**Validation gate:**
-
-```bash
-dotnet build build/_build
-dotnet test build/_build.Tests --filter "FullyQualifiedName~Metadata|FullyQualifiedName~Readme"
-dotnet test build/_build.Tests
-```
-
-#### Step 3 — Mock-less single-impl interface removal
-
-- [ ] Remove `IPackageVersionResolver`, `IDotNetPackInvoker`, `IProjectMetadataReader`, `IPackageFamilySelector`, `IPackageConsumerSmokeRunner`.
-- [ ] `Program.cs`: register concrete types (`AddSingleton<PackageVersionResolver>()`, etc.).
-- [ ] Update dependent types to accept concrete parameters.
-- [ ] Test constructors update from `Mock<IFoo>` to `Foo` instance or minimal `FakeFoo` where a real collaborator is inappropriate.
-
-**Validation gate:**
-
-```bash
-dotnet build build/_build
-dotnet test build/_build.Tests
-```
-
-Expected: ctor-signature test failures only; fix-in-same-commit.
-
-#### Step 4 — Folder split (production + test mirror)
-
-- [ ] Production moves via `git mv` to `Application/Packaging/`, `Domain/Packaging/`, `Infrastructure/Packaging/` (or shared `Infrastructure/Paths`, `/Json`, `/DotNet` where the concern is cross-cutting) per §2.4.
-- [ ] Namespace updates (`Build.Modules.Packaging.*` → `Build.Domain.Packaging.*` etc.).
-- [ ] **Test mirror in same commit** per §2.7: `build/_build.Tests/Unit/Modules/Packaging/*Tests.cs` → correct layer sub-folder; namespaces updated.
-- [ ] `CompositionRoot` wiring updated for new namespaces.
-
-**Validation gate:**
-
-```bash
-dotnet build build/_build
-dotnet build build/_build.Tests
-dotnet test build/_build.Tests
-```
-
-#### Step 5 — PackageTaskRunner internal reshape
-
-- [ ] Split `RunAsync` into three private phase methods: `EnsureHarvestReadyAsync`, `PrepareMetadataAsync`, `PackAndValidateAsync`.
-- [ ] Extract small helper records or value tuples for phase-to-phase state if clarity benefits.
-- [ ] No new files; no interface changes; dependencies unchanged.
-
-**Validation gate:**
-
-```bash
-dotnet build build/_build
-dotnet test build/_build.Tests --filter "FullyQualifiedName~PackageTaskRunner"
-dotnet test build/_build.Tests
-```
-
-#### Step 6 — Steering #2 audit (clarification-only, no code change)
-
-Original analysis flagged `LocalArtifactSourceResolver` injecting `IPackageTaskRunner` as a steering violation. Audit during Wave 1 execution clarified that the original steering checkpoint ("do not orchestrate Cake task graph by DI-injecting **task classes** into another task") targets Task-class-to-Task-class injection, not service-to-service composition within the Application layer. See §2.2 clarification.
-
-- [ ] Audit confirms `SetupLocalDevTask` injects only `IArtifactSourceResolver` + `ICakeLog` — no Task class injected.
-- [ ] Audit confirms `LocalArtifactSourceResolver` injects `IPackageTaskRunner` (a service, not a task) — permitted by both original steering and §2.2.
-- [ ] No code change required for Wave 1. Redesigning SetupLocalDev to express per-family pack iteration through Cake's static dependency graph would require dynamic task fanout (not supported by Cake Frosting out-of-the-box) and is deferred to a future wave if visibility in `--tree` output becomes desired.
-
-**Validation gate:** none (no code change). Audit memo recorded in this ADR.
-
-#### Step 7 — Full smoke
-
-- [ ] Wipe artifact feed.
-- [ ] Run `SetupLocalDev --source=local` end-to-end.
-- [ ] Verify one representative smoke csproj restores and builds against the generated feed.
-- [ ] Confirm `build/msbuild/Janset.Local.props` was written with expected properties.
-
-**Validation gate:**
-
-```bash
-rm -rf artifacts/packages/*
-dotnet build build/_build
-dotnet test build/_build.Tests
-dotnet run --project build/_build -- --target SetupLocalDev --source=local
-# smoke csproj restore + build — exact path confirmed during baseline inventory
-dotnet build <smoke-csproj> -c Release
-```
-
-#### Step 8 — Architecture test catchnet
-
-- [ ] Implement `build/_build.Tests/Unit/CompositionRoot/LayerDependencyTests.cs` per §2.8 (3 invariants: Domain-no-outward, Infrastructure-no-Application, Tasks-only-via-Application).
-- [ ] Run once against the Wave 1 end-state to confirm invariants hold.
-- [ ] Any violation is either a real drift (fix in same commit) or an intentional exception (document in the test with a rationale comment — no silent suppressions).
-
-**Validation gate:**
-
-```bash
-dotnet build build/_build.Tests
-dotnet test build/_build.Tests --filter "FullyQualifiedName~LayerDependency"
-dotnet test build/_build.Tests
-```
-
-Wave 1 closes when step 8 passes. Memory sidecar updated to record Wave 1 completion.
-
-### 6.2 Wave 2 — Harvesting (deferred, separate session)
-
-- [ ] Audit Harvesting for the same layer mapping (it is already close; mostly a move operation).
-- [ ] Move Domain types (`PackageInfo`, `DeploymentPlan`, `BinaryClosure`, results) to `Domain/Harvesting/`.
-- [ ] Move orchestrators (`ArtifactPlanner`, `ArtifactDeployer`, `BinaryClosureWalker`) to `Application/Harvesting/`.
-- [ ] Move `VcpkgCliProvider` to `Infrastructure/Vcpkg/`.
-
-### 6.3 Wave 3 — Preflight + Coverage (deferred)
-
-- [ ] Preflight: validators to `Domain/Preflight/`, reporter to `Application/Preflight/`. Addresses PreFlightCheckTask 9-dep heaviness via composite grouping.
-- [ ] Coverage: readers to `Infrastructure/Coverage/`, threshold validator to `Domain/Coverage/`.
-
-### 6.4 Wave 4 — Contracts/ retirement + Tools/ relocation (deferred)
-
-- [ ] Surviving interfaces relocated to owning layer; `Modules/Contracts/` directory deleted.
-- [ ] `Modules/PathService.cs` hoisted to `Infrastructure/Paths/`.
-- [ ] `Tools/` relocated to `Infrastructure/Tools/` per §2.6 (per-tool sub-folders preserved: `Vcpkg/`, `Dumpbin/`, `Ldd/`, `Otool/`). Namespace updates for `Build.Tools.*` → `Build.Infrastructure.Tools.*`.
-- [ ] `Modules/` directory deleted.
-
-### 6.5 Wave 5 — Documentation closure (deferred, bundled with Wave 4)
-
-- [ ] `AGENTS.md` four-layer map added.
-- [ ] `docs/onboarding.md` repository-tree section rewritten.
-- [ ] `docs/knowledge-base/cake-build-architecture.md` module-shape section rewritten; Harvesting example replaced with layered example.
-- [ ] Memory sidecar updated (new `cake_build_host_ddd_layering.md` entry, `cake_refactor_decisions_*` superseded).
-
-### 6.6 Wave 6 — Fat-task runner extraction (deferred, discovered 2026-04-19)
-
-Surfaced during Wave 2 validation: the architecture tests (§2.8) reported 10 `Build.Tasks.Harvest.*` → `Build.Domain.Harvesting.Models|Results.*` references. Root cause: `HarvestTask` (617 lines) and `ConsolidateHarvestTask` (480 lines) keep their full orchestration bodies (pipeline stages, RID-status emission, per-library directory invalidation, cross-RID receipt invalidation, consolidation staged-replace swap, Spectre rendering, JSON serialization) directly inside the Cake task class, unlike `PackageTask` which delegates to `IPackageTaskRunner` (see §6.1). Wave 2 accepted this by refining §2.8 invariant #3 to permit Tasks referencing Domain / Infrastructure **DTOs** (`.Models.*`, `.Results.*`) because those are value-carrying types, not behavior. Domain / Infrastructure **services** at the layer root remain forbidden from Tasks.
-
-Wave 6 finishes the job by extracting the orchestration body out of the two fat Harvest tasks while leaving Cake-presentation (Spectre rendering, `AnsiConsole` calls) in the Task layer.
-
-- [ ] Introduce `Application/Harvesting/HarvestTaskRunner.cs` + `IHarvestTaskRunner`. Move `ResolveLibrariesToHarvest`, `ProcessLibraryAsync`, `PrepareLibraryOutputForCurrentRid`, `InvalidateCrossRidReceipts`, `ExecuteHarvestPipelineAsync`, `GenerateRidStatusFileAsync`, `GenerateErrorRidStatusFileAsync`, and the operational exception classification into the runner.
-- [ ] Introduce `Application/Harvesting/ConsolidateHarvestRunner.cs` + `IConsolidateHarvestRunner`. Move the staged-replace swap (`*.tmp` → final), manifest and summary generation, license union / divergence detection, and RID aggregation into the runner.
-- [ ] Design the Task → Runner progress surface: prefer `IAsyncEnumerable<LibraryHarvestOutcome>` over callback interfaces so the Task can render per-library results as they arrive; runner owns all IO + domain model construction, Task owns all `AnsiConsole` / Spectre `Rule` / `Panel` rendering.
-- [ ] Slim `HarvestTask` + `ConsolidateHarvestTask` to thin adapters (~20 lines each) following the `PackageTask` pattern.
-- [ ] Re-run §2.8 architecture tests against the stricter original invariant (`forbiddenPrefixes: [Domain, Infrastructure]` with NO DTO exception); the test's `isAllowedReference` DTO relaxation retires once Wave 6 lands.
-- [ ] Mirror test relocations: `Unit/Application/Harvesting/HarvestTaskRunnerTests.cs`, `Unit/Application/Harvesting/ConsolidateHarvestRunnerTests.cs`; the existing `Unit/Tasks/Harvest/HarvestTaskTests.cs` and `ConsolidateHarvestTests.cs` either shrink to adapter tests or retire, depending on what they currently cover.
-- [ ] Full smoke via `SetupLocalDev` end-to-end confirming no regression in the harvest → consolidate → pack chain.
-
-Risks tracked: the current `HarvestTask.RunAsync(BuildContext)` signature takes `BuildContext` directly and uses `context.Paths`, `context.Vcpkg`, `context.Log`, `context.EnsureDirectoryExists`. Moving this into a Runner means injecting `ICakeContext`, `ICakeLog`, `IPathService` into the runner (matching `PackageTaskRunner`) — DI-compatible, but the test fixtures (`FakeRepoBuilder`, `FakeRepoPlatform`, seeders) need the runner to accept the fake-populated instances identically.
+Remaining cleanup is case-by-case: single-implementation interfaces that survived previous refactors should be retained only when they satisfy §2.3.
 
 ---
 
@@ -530,8 +377,8 @@ Risks tracked: the current `HarvestTask.RunAsync(BuildContext)` signature takes 
 
 - [ADR-001: D-3seg Versioning](2026-04-18-versioning-d3seg.md) — locks external contracts enforced by this internal architecture.
 - [release-lifecycle-direction.md](../knowledge-base/release-lifecycle-direction.md) — release governance context.
-- [cake-build-architecture.md](../knowledge-base/cake-build-architecture.md) — current module-shape doc (to be rewritten in Wave 5).
-- [AGENTS.md](../../AGENTS.md) — contributor mental model (to be updated in Wave 5).
+- [cake-build-architecture.md](../knowledge-base/cake-build-architecture.md) — current build-host architecture guide.
+- [AGENTS.md](../../AGENTS.md) — contributor mental model.
 - [harvesting-process.md](../knowledge-base/harvesting-process.md) — Harvest reference shape that informed Wave 2 target.
 - [cake-frosting-build-expertise.md](../reference/cake-frosting-build-expertise.md) — Cake Frosting tooling conventions that locked §2.6 Tools/ placement decision.
 

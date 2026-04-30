@@ -1,0 +1,56 @@
+# graphify scan exclusions for this repo. Patterns are fnmatch-based and
+# matched against every path segment, so bare names like `bin` catch any
+# depth. Run with detect.py patched (see .graphify-patch/README.md) so
+# build/ and .github/ are NOT auto-skipped at root.
+#
+# Folders intentionally kept (do NOT add here): .github, build, docker,
+# src, tests, vcpkg-overlay-ports, vcpkg-overlay-triplets.
+
+# --- Generated .NET / native build outputs (graphify does not auto-skip these) ---
+bin
+obj
+artifacts
+vcpkg_installed
+TestResults
+cmake-build-*
+build/coverage-baseline.json
+
+# --- Lock / generated config files (huge transitive dep trees, structural noise) ---
+packages.lock.json
+*.lock.json
+CMakeUserPresets.json.example
+
+# --- Vendored / transitional submodules ---
+# external/sdl2-cs is retired in Phase 4 by the CppAst generator (per AGENTS.md).
+# external/vcpkg is the upstream submodule.
+external
+
+# --- IDE / personal state not already caught by graphify's hidden-dir skip ---
+*.user
+*.DotSettings.user
+
+# --- .github noise: handoff prompts and one-off java-upgrade tooling ---
+# Only keep .github/workflows/*.yml (CI/CD topology).
+.github/prompts
+.github/java-upgrade
+.github/actions
+
+# --- Out of scope ---
+# Only docs/decisions/ (ADRs) is kept — those are durable architectural
+# memory. Everything else under docs/ moves too fast and AGENTS.md already
+# summarizes the canonical content. When adding a new top-level docs folder
+# or file, decide here whether to graph it or skip it.
+docs/_archive
+docs/knowledge-base
+docs/phases
+docs/playbook
+docs/reference
+docs/research
+docs/reviews
+docs/README.md
+docs/onboarding.md
+docs/plan.md
+docs/parking-lot.md
+
+# assets/ is project logos only; no semantic content to extract.
+assets
