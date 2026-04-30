@@ -40,9 +40,6 @@ bld/
 # JetBrains IDEs
 .idea/
 
-# graphify knowledge graph artifacts (regenerable; see docs/playbook/graphify-runbook.md)
-graphify-out/
-
 # Visual Studio 2017 auto generated files
 Generated\ Files/
 

@@ -69,7 +69,6 @@
 | [cake-frosting-patterns.md](playbook/cake-frosting-patterns.md) | What Cake Frosting patterns should I follow in this repo? |
 | [cake-frosting-host-organization.md](playbook/cake-frosting-host-organization.md) | How should I structure and scale the Cake build host? |
 | [cross-platform-smoke-validation.md](playbook/cross-platform-smoke-validation.md) | How do I verify cross-platform correctness after a refactor? |
-| [graphify-runbook.md](playbook/graphify-runbook.md) | How do I install, query, and maintain the persistent knowledge graph? |
 
 ### Knowledge Base (Deep Technical References)
 
