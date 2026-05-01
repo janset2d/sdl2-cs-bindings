@@ -448,3 +448,5 @@ build/_build/.cake/
 # feature toggles (interactive run loop, IDE-specific cache vars) ride
 # CMakeUserPresets.json. The .example template stays VCS-tracked.
 tests/smoke-tests/native-smoke/CMakeUserPresets.json
+
+.mcp.json
