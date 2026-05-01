@@ -12,8 +12,6 @@ using Build.Domain.Packaging.Results;
 using Build.Domain.Paths;
 using Build.Domain.Preflight;
 using Build.Infrastructure.DotNet;
-using Build.Infrastructure.Paths;
-using Cake.Common;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;

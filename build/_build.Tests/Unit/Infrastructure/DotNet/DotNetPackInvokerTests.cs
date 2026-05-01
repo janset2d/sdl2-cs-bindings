@@ -1,6 +1,5 @@
 using Build.Domain.Paths;
 using Build.Infrastructure.DotNet;
-using Build.Infrastructure.Paths;
 using Build.Tests.Fixtures;
 using Cake.Core.IO;
 using Cake.Testing;

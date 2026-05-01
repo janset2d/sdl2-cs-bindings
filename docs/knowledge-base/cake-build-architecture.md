@@ -2,7 +2,7 @@
 
 > Deep technical reference for the Cake Frosting build system in `build/_build/`.
 >
-> **Layering update (2026-04-19):** The build host is now DDD-layered per [ADR-002](../decisions/2026-04-19-ddd-layering-build-host.md). The historical `Modules/` + `Tools/` directory layout described below has been superseded by `Application/<Module>/` + `Domain/<Module>/` + `Infrastructure/<Module>/` with `Tasks/` retained as the Cake-native presentation layer and `Infrastructure/Tools/` hosting Cake `Tool<T>` / `Aliases` / `Settings` wrappers. Interface discipline is formalized (three criteria) and enforced by `LayerDependencyTests`. Where this document still refers to `Modules/*` paths for legacy examples, the mental mapping is: "Models and domain services → `Domain/<Module>/`, use-case orchestrators → `Application/<Module>/`, external-system adapters → `Infrastructure/<Module>/`." Contributor on-ramp: [AGENTS.md § Build-Host Reference Pattern](../../AGENTS.md) + [docs/onboarding.md repo tree](../onboarding.md).
+> **Architecture update (2026-05-02):** The build host shape is now governed by [ADR-004 — Cake-native feature-oriented architecture](../decisions/2026-05-02-cake-native-feature-architecture.md), which supersedes ADR-002 (DDD layering, 2026-04-19) and any earlier `Modules/` + `Tools/` references. Five top-level folders: `Host/` (Cake/Frosting runtime, CLI, BuildContext, composition root, paths, Cake extensions) + `Features/<X>/` (operational vertical slices — Cake `Task` + size-triggered `Pipeline` + validators + generators + Request DTOs + per-feature `ServiceCollectionExtensions`; `Features/LocalDev/` is the designated multi-feature orchestration slice) + `Shared/` (build-domain vocabulary, no Cake deps, no I/O) + `Tools/` (Cake `Tool<TSettings>` wrappers ONLY) + `Integrations/` (non-Cake-Tool external adapters: NuGet protocol client, dotnet pack invoker, project metadata reader, coverage XML readers, vcpkg manifest reader, MSVC env resolver). Direction-of-dependency invariants enforced by `ArchitectureTests` (renamed from `LayerDependencyTests` at the P2 wave). **Mental mapping for the legacy text below:** ADR-002 `Application/<Module>/` and `Domain/<Module>/` orchestrators → ADR-004 `Features/<Module>/<X>Pipeline.cs` + co-located validators; ADR-002 `Domain/<Module>/Models|Results/` → ADR-004 `Shared/<X>/` (cross-feature primitives) or `Features/<Module>/` (feature-local); ADR-002 `Infrastructure/Tools/` → ADR-004 `Tools/` (Cake `Tool<T>`) + `Integrations/` (everything else). **Mid-migration status:** code currently carries the ADR-002 layered shape; see [`docs/phases/phase-x-build-host-modernization-2026-05-02.md`](../phases/phase-x-build-host-modernization-2026-05-02.md) for current wave status. Contributor on-ramp: [AGENTS.md § Build-Host Reference Pattern](../../AGENTS.md) + [docs/onboarding.md repo tree](../onboarding.md).
 
 ## Overview
 
@@ -161,7 +161,7 @@ Neither defect is tracked upstream at `flibitijibibo/SDL2-CS` (searched 2026-04-
 
 ## Architecture
 
-The build host follows ADR-002 DDD layering (`Tasks/Application/Domain/Infrastructure`).
+The build host follows [ADR-004](../decisions/2026-05-02-cake-native-feature-architecture.md) Cake-native feature-oriented architecture (`Host/Features/Shared/Tools/Integrations`); the ADR-002 layered shape (`Tasks/Application/Domain/Infrastructure`) is superseded but persists in the live tree until P1/P2 migration waves close.
 
 ```text
 build/_build/
@@ -214,7 +214,7 @@ build/_build/
     └── Vcpkg/              ← VcpkgCliProvider, VcpkgManifestReader
 ```
 
-Layer discipline (Tasks → Application → Domain, Infrastructure → Domain; Domain has no outward deps) is asserted by `build/_build.Tests/Unit/CompositionRoot/LayerDependencyTests.cs`. See [ADR-002](../decisions/2026-04-19-ddd-layering-build-host.md) for rationale and the temporary catchnet allowance for fat-task holdovers (HarvestTask, PreFlight) being reduced under Wave 6.
+Direction-of-dependency invariants are asserted by `build/_build.Tests/Unit/CompositionRoot/LayerDependencyTests.cs` until the P2 wave migration, after which the file is renamed to `ArchitectureTests.cs` and the rule set is rewritten around the ADR-004 shape (`Shared` no outward + no Cake; `Tools` and `Integrations` no `Features` deps; `Features.X` no `Features.Y` cross-reference except from `Features/LocalDev/`; `Host` free). See [ADR-004 §2.13](../decisions/2026-05-02-cake-native-feature-architecture.md) for the new invariants and ADR-002 §2.8 (preserved in the superseded ADR file) for the historical layered-shape rule set that runs while migration is mid-flight.
 
 ## Service Architecture (DI)
 

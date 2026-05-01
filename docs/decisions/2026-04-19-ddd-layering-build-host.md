@@ -1,20 +1,21 @@
 # ADR-002: DDD Layered Architecture for the Cake Build-Host
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-004 (Cake-Native Feature-Oriented Build-Host Architecture)](2026-05-02-cake-native-feature-architecture.md) on 2026-05-02
 - **Date:** 2026-04-19
 - **Last reviewed:** 2026-04-30
 - **Deciders:** Deniz İrgin (primary), collaborative synthesis during 2026-04-19 Packaging maintainability review
 - **Supersedes:** No prior ADR
-- **Amends:** `docs/knowledge-base/cake-build-architecture.md` (module shape guidance); `AGENTS.md` / `docs/onboarding.md` (contributor mental model)
-- **Orthogonal to:** [ADR-001: D-3seg Versioning](2026-04-18-versioning-d3seg.md) — that ADR locks external contracts (version strings, consumer contract, source profile interface); this ADR locks the internal architecture that enforces those contracts.
+- **Orthogonal to:** [ADR-001: D-3seg Versioning](2026-04-18-versioning-d3seg.md) — that ADR locks external contracts (version strings, consumer contract, source profile interface); this ADR locked the internal architecture that enforced those contracts at adoption.
+
+> **This ADR is no longer authoritative.** The internal build-host architecture is governed by [ADR-004](2026-05-02-cake-native-feature-architecture.md). The §2.3 three-criteria interface rule and the §2.3.1 delegate-hook amendment carry forward into ADR-004 §2.9 / §2.9.1 verbatim. The content below is preserved as the historical record of the layered shape that ran the build host between 2026-04-19 and the ADR-004 migration.
 
 ---
 
-## Current Implementation State
+## Historical Implementation State (2026-04-19 → 2026-05-02)
 
-The Cake build host now follows the ADR-002 shape: `Tasks/`, `Application/`, `Domain/`, `Infrastructure/`, and `Context/` are the live top-level boundaries under `build/_build/`. `Infrastructure/Tools/` hosts the repo-authored Cake `Tool<T>` wrappers, and `build/_build.Tests/Unit/CompositionRoot/LayerDependencyTests.cs` enforces the layer direction rules.
+The Cake build host followed the ADR-002 shape: `Tasks/`, `Application/`, `Domain/`, `Infrastructure/`, and `Context/` were the live top-level boundaries under `build/_build/`. `Infrastructure/Tools/` hosted the repo-authored Cake `Tool<T>` wrappers, and `build/_build.Tests/Unit/CompositionRoot/LayerDependencyTests.cs` enforced the layer direction rules.
 
-The target pattern is also live: task classes are thin Cake adapters and Application-layer runners own orchestration. Some interfaces remain for practical seams or existing test structure; new interfaces should still satisfy §2.3 rather than copying old single-implementation patterns.
+The target pattern was also live: task classes were thin Cake adapters and Application-layer runners owned orchestration. Some interfaces remained for practical seams or existing test structure; new interfaces had to satisfy §2.3.
 
 ## 1. Context
 

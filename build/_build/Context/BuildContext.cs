@@ -1,7 +1,6 @@
 ﻿using Build.Context.Configs;
 using Build.Domain.Paths;
 using Build.Domain.Runtime;
-using Build.Infrastructure.Paths;
 using Cake.Core;
 using Cake.Frosting;
 

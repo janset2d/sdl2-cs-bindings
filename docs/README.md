@@ -105,8 +105,9 @@
 | Document | Decision | Date | Status |
 | --- | --- | --- | --- |
 | [2026-04-18-versioning-d3seg.md](decisions/2026-04-18-versioning-d3seg.md) | ADR-001 — D-3seg versioning, package-first local dev, artifact source profile abstraction | 2026-04-18 | Accepted |
-| [2026-04-19-ddd-layering-build-host.md](decisions/2026-04-19-ddd-layering-build-host.md) | ADR-002 — DDD layering for the Cake build host (Tasks / Application / Domain / Infrastructure) | 2026-04-19 | Accepted |
+| [2026-04-19-ddd-layering-build-host.md](decisions/2026-04-19-ddd-layering-build-host.md) | ADR-002 — DDD layering for the Cake build host (Tasks / Application / Domain / Infrastructure) | 2026-04-19 | Superseded by ADR-004 |
 | [2026-04-20-release-lifecycle-orchestration.md](decisions/2026-04-20-release-lifecycle-orchestration.md) | ADR-003 — Release lifecycle orchestration + version source providers (Manifest / GitTag / Explicit) | 2026-04-20 | Draft (v1.5 post-sweep) |
+| [2026-05-02-cake-native-feature-architecture.md](decisions/2026-05-02-cake-native-feature-architecture.md) | ADR-004 — Cake-native feature-oriented build-host architecture (Host / Features / Shared / Tools / Integrations) | 2026-05-02 | Accepted |
 
 New ADRs land under [`decisions/`](decisions/) with a dated filename (`YYYY-MM-DD-<slug>.md`) and carry an embedded Impact Checklist that tracks implementation completion.
 

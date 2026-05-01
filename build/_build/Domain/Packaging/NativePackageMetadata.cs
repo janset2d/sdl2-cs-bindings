@@ -6,7 +6,6 @@ using Build.Context;
 using Build.Context.Models;
 using Build.Domain.Packaging.Models;
 using Build.Domain.Paths;
-using Build.Infrastructure.Paths;
 using Cake.Core;
 using Cake.Core.IO;
 

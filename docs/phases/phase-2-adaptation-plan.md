@@ -5,7 +5,7 @@
 **Prerequisites:**
 
 - [ADR-001 — D-3seg Versioning, Package-First Local Dev, Artifact Source Profile](../decisions/2026-04-18-versioning-d3seg.md) (2026-04-18)
-- [ADR-002 — DDD Layering for the Cake Build-Host](../decisions/2026-04-19-ddd-layering-build-host.md) (2026-04-19)
+- [ADR-002 — DDD Layering for the Cake Build-Host](../decisions/2026-04-19-ddd-layering-build-host.md) (2026-04-19; superseded by [ADR-004](../decisions/2026-05-02-cake-native-feature-architecture.md) on 2026-05-02 — body below references ADR-002 because the Phase 2 streams executed against that shape; current architecture is ADR-004)
 - [ADR-003 — Release Lifecycle Orchestration + Version Source Providers](../decisions/2026-04-20-release-lifecycle-orchestration.md) (2026-04-21, v1.5)
 - [Release Lifecycle Direction](../knowledge-base/release-lifecycle-direction.md) (policy only, post-narrowing)
 
@@ -136,7 +136,7 @@ Closed / withdrawn / recorded PDs (PD-1, PD-2, PD-4, PD-6, PD-9, PD-11, PD-12) l
 
 - **Policy:** [release-lifecycle-direction.md](../knowledge-base/release-lifecycle-direction.md)
 - **Orchestration architecture:** [ADR-003](../decisions/2026-04-20-release-lifecycle-orchestration.md)
-- **Build-host layering:** [ADR-002](../decisions/2026-04-19-ddd-layering-build-host.md)
+- **Build-host architecture:** [ADR-004](../decisions/2026-05-02-cake-native-feature-architecture.md) (current, supersedes ADR-002)
 - **Versioning + consumer contract:** [ADR-001](../decisions/2026-04-18-versioning-d3seg.md)
 - **Pipeline + guardrails:** [cake-build-architecture.md](../knowledge-base/cake-build-architecture.md), [release-guardrails.md](../knowledge-base/release-guardrails.md), [ci-cd-packaging-and-release-plan.md](../knowledge-base/ci-cd-packaging-and-release-plan.md)
 - **Smoke validation:** [cross-platform-smoke-validation.md](../playbook/cross-platform-smoke-validation.md)

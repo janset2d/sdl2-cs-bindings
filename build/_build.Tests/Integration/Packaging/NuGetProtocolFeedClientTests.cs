@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.IO;
 using System.IO.Compression;
 using Build.Infrastructure.DotNet;
 using Build.Tests.Fixtures;

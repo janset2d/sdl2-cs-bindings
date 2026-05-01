@@ -85,7 +85,7 @@ The native packages are pulled in transitively — you never need to reference `
 | Area | Status |
 | --- | --- |
 | C# bindings (5 SDL2 libraries) | Done |
-| Cake Frosting build host (DDD-layered, ADR-002) | Done |
+| Cake Frosting build host (Cake-native feature-oriented per ADR-004; supersedes ADR-002 DDD layering) | Done — migration to ADR-004 shape in progress |
 | Native binary harvesting pipeline (7-RID hybrid-static) | Done |
 | Cross-platform CI workflow (`release.yml`, 10 jobs) | Done |
 | NuGet package creation (5 family × 3 nupkg) | Done |

@@ -1,4 +1,3 @@
-using System.IO;
 using System.Text.Json;
 using System.Xml.Linq;
 using Build.Application.Packaging;

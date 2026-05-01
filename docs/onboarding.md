@@ -99,7 +99,7 @@ janset2d/sdl2-cs-bindings/
 │
 ├── build/
 │   ├── manifest.json          ← Single source of truth: packaging config, runtimes, system exclusions, library manifests
-│   └── _build/                ← Cake Frosting build system (DDD-layered per ADR-002)
+│   └── _build/                ← Cake Frosting build system (Cake-native feature-oriented per ADR-004; supersedes ADR-002)
 │       ├── Program.cs         ← Entry point + DI composition root
 │       ├── Context/           ← BuildContext binding (Cake task boundary)
 │       ├── Tasks/             ← Presentation: Cake Frosting task classes (Harvest, Package, PreFlight, etc.)
@@ -236,7 +236,7 @@ Users reference `Janset.SDL2.Core` (or the meta-package `Janset.SDL2`). The `.Na
 ## What Works Today (as of 2026-04-29)
 
 - **C# bindings**: all 5 SDL2 libraries (`Core`/`Image`/`Mixer`/`Ttf`/`Gfx`) compile against `net9.0`/`net8.0`/`netstandard2.0`/`net462`.
-- **Cake Frosting build host**: 20 lifecycle + diagnostic targets (Info, CleanArtifacts, CompileSolution, GenerateMatrix, ResolveVersions, PreFlightCheck, EnsureVcpkgDependencies, Harvest, NativeSmoke, ConsolidateHarvest, Inspect-HarvestedDependencies, Package, PackageConsumerSmoke, SetupLocalDev, Coverage-Check, PublishStaging, PublishPublic, plus dependency-analysis aliases). DDD-layered per ADR-002 (Tasks/Application/Domain/Infrastructure + LayerDependencyTests catchnet).
+- **Cake Frosting build host**: 20 lifecycle + diagnostic targets (Info, CleanArtifacts, CompileSolution, GenerateMatrix, ResolveVersions, PreFlightCheck, EnsureVcpkgDependencies, Harvest, NativeSmoke, ConsolidateHarvest, Inspect-HarvestedDependencies, Package, PackageConsumerSmoke, SetupLocalDev, Coverage-Check, PublishStaging, PublishPublic, plus dependency-analysis aliases). Architecture governed by ADR-004 (Cake-native feature-oriented; supersedes ADR-002 DDD layering): target shape `Host/Features/Shared/Tools/Integrations` enforced by `ArchitectureTests` after the P2 wave; current code still carries the ADR-002 layered shape pending migration (see `docs/phases/phase-x-build-host-modernization-2026-05-02.md`).
 - **Build-host test suite**: 500 TUnit tests covering Domain, Application, Infrastructure, Tasks, Context, CompositionRoot. Run via `dotnet test build/_build.Tests/Build.Tests.csproj -c Release`. Coverage ratchet gate `Coverage-Check` enforces the floor in `build/coverage-baseline.json`.
 - **Version-source providers** (ADR-003): `ManifestVersionProvider` (manifest-derived), `GitTagVersionProvider` (tag-driven targeted/full-train), `ExplicitVersionProvider` (operator override). `ResolveVersions` emits canonical `versions.json` for manifest, explicit, family-tag, and train-tag paths; downstream stages consume that artifact via `--versions-file`.
 - **CI pipeline** (`release.yml`, 10 jobs): tag-push + `workflow_dispatch` triggers; trigger-aware `resolve-versions` routing; dynamic 7-RID matrix from `manifest.runtimes[]`; consumer smoke matrix re-entry; Cake host built once + distributed as FDD artifact; GHCR-hosted Linux builder image.

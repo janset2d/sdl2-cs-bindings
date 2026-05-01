@@ -8,7 +8,6 @@ using Build.Domain.Paths;
 using Build.Domain.Preflight;
 using Build.Domain.Runtime;
 using Build.Infrastructure.DotNet;
-using Build.Infrastructure.Paths;
 using Cake.Common;
 using Cake.Common.IO;
 using Cake.Core;

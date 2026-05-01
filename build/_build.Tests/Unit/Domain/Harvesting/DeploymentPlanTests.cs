@@ -3,7 +3,6 @@ using Build.Application.Harvesting;
 using Build.Domain.Harvesting.Models;
 using Build.Domain.Paths;
 using Build.Domain.Runtime;
-using Build.Infrastructure.Paths;
 using Build.Infrastructure.Vcpkg;
 using Build.Tests.Fixtures;
 using Cake.Core;

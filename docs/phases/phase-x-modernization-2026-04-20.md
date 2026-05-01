@@ -2,6 +2,8 @@
 
 > **Status:** PARKED / UNASSIGNED. This document captures a comprehensive modernization research pass and staged implementation roadmap produced during the 2026-04-20 session. It is intentionally **not tied to any specific phase** — the individual stages (M0–M8) can be pulled into Phase 2a, Phase 2b, Phase 3, or later work items as scheduling and priority dictate.
 >
+> **ADR-002 references throughout this doc are historical.** The build-host architecture has since moved to [ADR-004 (Cake-native feature-oriented, 2026-05-02)](../decisions/2026-05-02-cake-native-feature-architecture.md), which supersedes ADR-002. M-stage implementations that pull into a real wave should read mappings against ADR-004 §2.1 (top-level shape) — for example, `Domain/Results/` referenced below maps to `Shared/Results/` (or to a feature folder per ADR-004 §2.6.1 admission criteria).
+>
 > **Date:** 2026-04-20
 > **Maintainer:** Deniz Irgin (@denizirgin)
 > **Scope:** Cross-cutting repository modernization (target frameworks, C# language, NuGet packages, analyzer posture, .editorconfig, Result pattern, vcpkg baseline, documentation drift, Native AOT future-feasibility)

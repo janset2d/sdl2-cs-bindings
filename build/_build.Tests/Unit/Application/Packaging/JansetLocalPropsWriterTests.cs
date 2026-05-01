@@ -1,4 +1,3 @@
-using System.IO;
 using System.Xml.Linq;
 using Build.Application.Packaging;
 using Build.Tests.Fixtures;

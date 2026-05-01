@@ -1,6 +1,5 @@
 using Build.Domain.Harvesting.Results;
 using Build.Domain.Paths;
-using Build.Infrastructure.Paths;
 using Build.Infrastructure.Vcpkg;
 using Build.Tests.Fixtures;
 using Cake.Core.IO;

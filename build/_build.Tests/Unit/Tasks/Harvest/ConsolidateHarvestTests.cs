@@ -6,7 +6,6 @@ using Build.Tests.Fixtures;
 using Build.Tests.Fixtures.Seeders;
 using Build.Tasks.Harvest;
 using Cake.Core;
-using Cake.Core.IO;
 using NSubstitute;
 
 namespace Build.Tests.Unit.Tasks.Harvest;

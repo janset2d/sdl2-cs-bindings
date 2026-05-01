@@ -4,7 +4,6 @@ using Build.Context.Models;
 using Build.Domain.Packaging.Models;
 using Build.Domain.Paths;
 using Build.Domain.Preflight;
-using Build.Infrastructure.Paths;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.IO;

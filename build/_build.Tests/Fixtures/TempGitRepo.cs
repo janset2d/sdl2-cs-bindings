@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.IO;
 using LibGit2Sharp;
 
 namespace Build.Tests.Fixtures;

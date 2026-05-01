@@ -5,7 +5,7 @@
 **Last reviewed:** 2026-04-30
 **Author:** Deniz Irgin (@denizirgin) + session collaboration
 **Extends:** [ADR-001 (D-3seg versioning + Artifact Source Profile)](2026-04-18-versioning-d3seg.md)
-**Extends:** [ADR-002 (DDD layering for build host)](2026-04-19-ddd-layering-build-host.md)
+**Extends:** [ADR-004 (Cake-Native Feature-Oriented Build-Host Architecture)](2026-05-02-cake-native-feature-architecture.md) — succeeds ADR-002, which governed the build-host shape at this ADR's adoption
 **Supersedes:** —
 
 ---
@@ -49,12 +49,13 @@ This ADR is **not** a preserve-the-current-composition document. It exists to se
 - Package-first consumer contract (Source Mode retired)
 - Artifact Source Profile abstraction (`Local` / `RemoteInternal` / `ReleasePublic`)
 
-**ADR-002 (2026-04-19)** locked:
+**ADR-004 (2026-05-02, succeeds ADR-002 of 2026-04-19)** locks:
 
-- DDD layering for the build host: `Tasks / Application / Domain / Infrastructure`
-- Layer discipline enforced by architecture tests
+- Cake-native feature-oriented build-host shape: `Host / Features / Shared / Tools / Integrations`
+- Direction-of-dependency invariants enforced by `ArchitectureTests`
+- Three-criteria interface rule + delegate-hook amendment for non-mockable third-party boundaries (carried forward from ADR-002 §2.3 / §2.3.1 verbatim)
 
-### 1.2 The gap ADR-001 and ADR-002 did not close
+### 1.2 The gap ADR-001 and the build-host architecture ADR did not close
 
 At adoption time, the repo carried three independent version-resolution paths that did not compose:
 
@@ -335,7 +336,7 @@ The ADR-003 refactor kept the policy model from this ADR but adjusted class boun
 | **Retain** | `PackageOutputValidator` + G21-G48 + G54-G58 | Invoked inside the Pack stage |
 | **Retain** | `CoverageCheckTask` + ratchet policy | Chained into the preflight gate |
 | **Retain** | `ManifestConfig` + schema v2.1 | SSoT role strengthened |
-| **Retain** | DDD layering (ADR-002) | New additions do not violate ADR-002 |
+| **Retain** | Build-host architecture (ADR-004; was ADR-002 layering at adoption) | New additions live under feature folders + ServiceCollectionExtensions per feature |
 | **Retain** | D-3seg versioning (ADR-001) | Version shape is unchanged |
 | **Retain** | Artifact Source Profile (ADR-001) | `Local` / `RemoteInternal` / `ReleasePublic` — preserved on the feed-prep axis |
 | **Refactor** | `IPackageVersionProvider` | Three implementations: Manifest, GitTag, Explicit |
@@ -369,9 +370,9 @@ The ADR-003 refactor kept the policy model from this ADR but adjusted class boun
 | ADR | Relationship |
 | --- | --- |
 | **ADR-001 (D-3seg + Artifact Source Profile)** | **Extends.** ADR-001 locked version shape and consumer contract. ADR-003 adds version **sources** on top (3 providers) and draws the release-lifecycle ownership graph. Artifact Source Profile (`Local/RemoteInternal/ReleasePublic`) is preserved as the **feed-prep** axis; version source is an orthogonal axis. |
-| **ADR-002 (DDD layering)** | **Consistent.** New components (version providers → Application, pipeline request records → Domain, Cake targets → Tasks) respect ADR-002 invariants. `LayerDependencyTests` gates the additions. |
+| **ADR-004 (Cake-Native Feature-Oriented Architecture; succeeds ADR-002)** | **Consistent.** New components live under `Features/Versioning/` (providers + `ResolveVersionsTask`) and `Shared/` sub-folders (`Manifest`, `Versions`, `Runtime`) for request records, manifest models, and RID/triplet vocabulary; stage tasks live in their respective feature folders. `ArchitectureTests` gates the additions. |
 
-Neither ADR-001 nor ADR-002 is superseded. ADR-003 fills the orchestration gap they left open.
+ADR-003 is unaffected by the ADR-002 → ADR-004 transition: the orchestration graph is independent of the internal folder layout. ADR-001 is not superseded; ADR-003 fills the orchestration gap ADR-001 left open.
 
 ---
 

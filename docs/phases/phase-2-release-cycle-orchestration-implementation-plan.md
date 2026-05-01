@@ -8,7 +8,7 @@
 **Prerequisites (read these first):**
 
 - [ADR-001 — D-3seg Versioning, Package-First Local Dev, Artifact Source Profile](../decisions/2026-04-18-versioning-d3seg.md)
-- [ADR-002 — DDD Layering for the Cake Build-Host](../decisions/2026-04-19-ddd-layering-build-host.md)
+- [ADR-002 — DDD Layering for the Cake Build-Host](../decisions/2026-04-19-ddd-layering-build-host.md) (superseded by [ADR-004](../decisions/2026-05-02-cake-native-feature-architecture.md) on 2026-05-02 — body below references ADR-002 because the implementation plan executed against that shape; current architecture is ADR-004)
 - [ADR-003 — Release Lifecycle Orchestration + Version Source Providers](../decisions/2026-04-20-release-lifecycle-orchestration.md)
 - [Phase 2 Adaptation Plan (ledger)](phase-2-adaptation-plan.md)
 - [Cross-Platform Smoke Validation (playbook)](../playbook/cross-platform-smoke-validation.md)

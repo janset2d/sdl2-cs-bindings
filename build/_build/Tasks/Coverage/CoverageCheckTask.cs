@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-using System.Globalization;
 using Build.Application.Coverage;
 using Build.Context;
 using Cake.Frosting;

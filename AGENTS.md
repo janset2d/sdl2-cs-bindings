@@ -197,26 +197,31 @@ Issue tracking is part of the software delivery lifecycle in this repo.
 
 ## Build-Host Reference Pattern
 
-The Cake build host is DDD-layered per [ADR-002](../docs/decisions/2026-04-19-ddd-layering-build-host.md). Four top-level layers under `build/_build/` plus a Cake-native `Tasks/` exception:
+The Cake build host follows a Cake-native, feature-oriented vertical-slice architecture per [ADR-004](../docs/decisions/2026-05-02-cake-native-feature-architecture.md), which supersedes ADR-002 (DDD Layered Architecture, 2026-04-19). Five top-level folders under `build/_build/`:
 
-| Layer | Folder | Role |
-| --- | --- | --- |
-| Presentation | `Tasks/` | Cake Frosting task classes. Own dependency mapping + user-facing failure rendering. |
-| Application | `Application/<Module>/` | Use-case orchestrators (TaskRunners, Resolvers, SmokeRunner). Coordinate Domain + Infrastructure. |
-| Domain | `Domain/<Module>/` | Models, value objects, domain services, result types, domain-level abstractions (e.g. `IPathService`). No outward dependencies. |
-| Infrastructure | `Infrastructure/<Module>/` | Adapters for external systems: filesystem, process, Cake Tool wrappers. Implement Domain abstractions. |
+| Folder | Role |
+| --- | --- |
+| `Host/` | Cake/Frosting runtime, CLI parsing, `BuildContext`, composition root, paths, Cake extensions |
+| `Features/` | Operational vertical slices (Harvesting, Packaging, Preflight, Versioning, Publishing, LocalDev, …). Each feature owns its Cake `Task`, `Pipeline` (when extracted), validators, generators, `Request` DTOs, and a `ServiceCollectionExtensions.cs`. |
+| `Shared/` | Build-domain vocabulary (manifest models, runtime types, version mapping, package family conventions, results) — no Cake dependencies, no I/O |
+| `Tools/` | Cake `Tool<TSettings>` wrappers ONLY (vcpkg, dumpbin, ldd, otool, tar, cmake, native-smoke) |
+| `Integrations/` | Non-Cake-Tool external adapters (NuGet protocol client, dotnet pack invoker, project metadata reader, coverage XML readers, vcpkg manifest reader, MSVC environment resolver) |
 
-Layer discipline is enforced by `build/_build.Tests/Unit/CompositionRoot/LayerDependencyTests.cs` (three invariants: Domain no outward deps; Infrastructure no Application; target shape is Tasks -> Application plus DTO/results).
+Direction-of-dependency invariants are enforced by `build/_build.Tests/Unit/CompositionRoot/ArchitectureTests.cs` (renamed from `LayerDependencyTests.cs` at the P2 wave; see [`docs/phases/phase-x-build-host-modernization-2026-05-02.md`](../docs/phases/phase-x-build-host-modernization-2026-05-02.md) for migration status).
+
+> **Status note (mid-migration).** Code currently carries the ADR-002 layered shape (`Application/<Module>/`, `Domain/<Module>/`, `Infrastructure/<Module>/`, `Tasks/<Module>/`, `Context/`) until the P1/P2 waves complete. The patterns below describe the **target shape** — mid-migration commits may temporarily mix shapes inside a wave boundary, but new work should follow the target unless explicitly transitional.
 
 Reference patterns for new build-host work:
 
-- **Task layer shape:** thin adapter — inject a single TaskRunner from Application + read-only configs from Context, delegate `RunAsync`. `PackageTask` is the golden example; `HarvestTask`, `ConsolidateHarvestTask`, `NativeSmokeTask`, `PackageConsumerSmokeTask`, `PublishStagingTask`, `PublishPublicTask` all follow the same shape post-Slice-D refactor (Wave 6 runner extraction landed). Fat-task layout retired.
-- **Keep `BuildContext` at the task boundary.** Tasks own orchestration, user-facing policy, and failure rendering, but the preferred behavior surface is the Application-layer runner.
-- **Interface discipline:** keep an interface only if (1) multiple implementations exist today or (2) it formalizes an independent axis of change. Test mocks are supporting evidence, not a standalone reason to create or retain a seam. Otherwise use `internal sealed class` and register concrete in Program.cs.
-- **Cake dependencies flow inward across layers, not outward.** Infrastructure may take `ICakeContext`/`IFileSystem`/`IPathService`; Domain may take `IFileSystem` and `IPathService` for file contract validation but not `ICakeContext`; Application may take any Cake type; Tasks sit on top.
-- **Result / error boundaries stay typed.** Services return `OneOf`-shaped results; tasks translate them into logging, `CakeException`, RID-status persistence, or cancellation semantics.
-- **Test folders mirror production.** `Unit/Domain/Packaging/PackageVersionResolverTests.cs` asserts the contract of `Domain/Packaging/PackageVersionResolver.cs`. Integration tests (when added) live under `Integration/<Scenario>/` and are not mirrored.
-- **When in doubt, compare the shape of Packaging (Wave 1 golden) before inventing a new build-host pattern.**
+- **Task layer shape:** thin Cake adapter — translates `BuildContext` + configuration into a feature-specific `Request` DTO and delegates to a `Pipeline` (or `Flow` from the LocalDev orchestration feature) co-located in the same feature folder. `PackageTask` is the golden example; the Task's body is one `Request.From(...)` build + one `pipeline.RunAsync(request)` call.
+- **Pipeline classes are size-triggered, not convention-triggered.** Below ~200 LOC the logic stays in the Task with private methods. Above it, extract to `<X>Pipeline.cs` co-located in the feature folder. The threshold is a smell signal, not a hard rule (ADR-004 §2.4).
+- **`BuildContext` is invocation state, not a service locator.** Pipelines target `RunAsync(TRequest, CancellationToken)`; pure services (validators, generators, planners, readers) take explicit inputs only. Tools and Integrations may receive narrow Cake abstractions (`ICakeContext`, `ICakeLog`, `IFileSystem`) but never the full `BuildContext`. See ADR-004 §2.11.1–§2.11.3.
+- **Interface discipline (ADR-004 §2.9):** keep an interface only if (1) multiple production implementations exist today, (2) it formalizes an independent axis of change, or (3) it backs a high-cost test seam (transitional debt — flagged for P3 review). Test mocks alone are not sufficient justification.
+- **Cross-feature data sharing flows through `Shared/`.** Code-level cross-feature references are forbidden by `ArchitectureTests` invariant #4, with one explicit allowlist exception for `Features/LocalDev/` (the designated orchestration feature; see ADR-004 §2.5).
+- **`Shared/Results/` is for cross-feature result primitives only.** Feature-specific `*Error` / `*Result` types stay in their feature folder. See ADR-004 §2.6.1 admission criteria.
+- **Result / error boundaries stay typed.** Services return `OneOf`-shaped results; Tasks translate them into Cake logging, `CakeException`, RID-status persistence, or cancellation semantics.
+- **Test folders mirror production.** `Unit/Features/Packaging/PackagePipelineTests.cs` asserts the contract of `Features/Packaging/PackagePipeline.cs`. Integration tests live under `Integration/<Scenario>/` and are not mirrored.
+- **When in doubt,** compare against ADR-004 §2.3 reference layout (Packaging — the largest feature) or §2.5 (LocalDev — the only orchestration feature) before inventing a new build-host pattern.
 
 ## Configuration File Relationships
 

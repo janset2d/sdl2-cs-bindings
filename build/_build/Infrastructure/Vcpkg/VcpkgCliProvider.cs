@@ -5,7 +5,6 @@ using Build.Context;
 using Build.Domain.Harvesting.Models;
 using Build.Domain.Harvesting.Results;
 using Build.Domain.Paths;
-using Build.Infrastructure.Paths;
 using Build.Infrastructure.Tools.Vcpkg;
 using Build.Infrastructure.Tools.Vcpkg.Settings;
 using Cake.Core;

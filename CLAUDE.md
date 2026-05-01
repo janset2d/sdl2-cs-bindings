@@ -88,24 +88,30 @@ PublishStaging (GitHub Packages internal feed) → PublishPublic (nuget.org via 
 - **LGPL-free codec stack**: drop mpg123 / libxmp / fluidsynth; use bundled minimp3 / drflac / libmodplug / Timidity / native MIDI. Adding LGPL codecs requires explicit reopening of the strategic decision.
 - **tar.gz for Unix symlinks**: NuGet can't preserve symlinks; `buildTransitive/Janset.SDL2.Native.Common.targets` extracts at consumer build time.
 
-### Cake build host layout (DDD per [ADR-002](docs/decisions/2026-04-19-ddd-layering-build-host.md))
+### Cake build host layout (Cake-native feature-oriented per [ADR-004](docs/decisions/2026-05-02-cake-native-feature-architecture.md))
 
-`build/_build/` has four layers, with `Tasks/` as a Cake-native presentation exception. Layer discipline is enforced by `build/_build.Tests/Unit/CompositionRoot/LayerDependencyTests.cs` — Domain has no outward deps; Infrastructure has no Application; tasks shape is `Tasks → Application → Domain ← Infrastructure`.
+`build/_build/` is organized as five top-level folders per ADR-004 (which supersedes ADR-002 DDD layering, 2026-04-19). Direction-of-dependency invariants are enforced by `build/_build.Tests/Unit/CompositionRoot/ArchitectureTests.cs` (renamed from `LayerDependencyTests.cs` at the P2 wave).
 
-| Layer | Folder | Role |
-| --- | --- | --- |
-| Presentation | `Tasks/<Module>/` | Thin Cake Frosting task classes — own dependency mapping + user-facing failure rendering, delegate to a single Application TaskRunner |
-| Application | `Application/<Module>/` | Use-case orchestrators (TaskRunners, Resolvers, SmokeRunner) — coordinate Domain + Infrastructure |
-| Domain | `Domain/<Module>/` | Models, value objects, domain services, result types, abstractions like `IPathService`. No outward deps. |
-| Infrastructure | `Infrastructure/<Module>/` | Adapters: filesystem, process, Cake `Tool<T>` wrappers (vcpkg, dumpbin, ldd, otool), MSBuild/dotnet CLI |
+| Folder | Role |
+| --- | --- |
+| `Host/` | Cake/Frosting runtime, CLI parsing, `BuildContext`, composition root, paths, Cake extensions |
+| `Features/<X>/` | Operational vertical slice — Cake `Task` + `Pipeline` (size-triggered) + validators + generators + `Request` DTOs + `ServiceCollectionExtensions.cs`. Examples: `Features/Packaging/`, `Features/Harvesting/`, `Features/Preflight/`, `Features/LocalDev/` (the designated orchestration feature). |
+| `Shared/` | Build-domain vocabulary — manifest models, runtime types, version mapping, package family conventions, cross-feature result primitives. No Cake dependencies, no I/O. |
+| `Tools/` | Cake `Tool<TSettings>` wrappers ONLY (vcpkg, dumpbin, ldd, otool, tar, cmake, native-smoke) |
+| `Integrations/` | Non-Cake-Tool external adapters: NuGet protocol client, dotnet pack invoker, project metadata reader, coverage XML readers, vcpkg manifest reader, MSVC environment resolver |
+
+> **Status note (mid-migration).** Code currently carries the ADR-002 layered shape (`Application/<Module>/`, `Domain/<Module>/`, `Infrastructure/<Module>/`, `Tasks/<Module>/`, `Context/`) until P1/P2 waves complete. See [`docs/phases/phase-x-build-host-modernization-2026-05-02.md`](docs/phases/phase-x-build-host-modernization-2026-05-02.md) for current wave status. Reference shapes below describe the **target state**.
 
 Reference shapes for new build-host work:
 
-- **Task layer is thin**: inject one TaskRunner from Application + read-only configs from `BuildContext`, delegate to `RunAsync`. Golden examples: `PackageTask`, `HarvestTask`, `PublishStagingTask` post-Slice-D refactor (Wave 6 runner extraction).
-- **Interface discipline**: keep an interface only if (1) multiple implementations exist today, or (2) it formalizes an independent axis of change. Mocks alone don't justify a seam — prefer `internal sealed class` registered concrete in `Program.cs`.
-- **Cake deps flow inward**: Infrastructure may take `ICakeContext` / `IFileSystem` / `IPathService`; Domain may take `IFileSystem` and `IPathService` (file-contract validation) but **not** `ICakeContext`; Application may take any Cake type; Tasks sit on top.
-- **Typed result boundaries**: services return `OneOf`-shaped results; tasks translate them into logging, `CakeException`, RID-status persistence, or cancellation.
-- **When in doubt**, compare against Wave 1 Packaging.
+- **Task layer is thin**: build a feature-specific `Request` DTO from `BuildContext` + configuration, delegate to `pipeline.RunAsync(request)`. The Task body is one line of orchestration delegation. Golden example: `PackageTask`.
+- **Pipeline classes are size-triggered.** Below ~200 LOC the logic stays in the Task with private methods. Above it, extract to `<X>Pipeline.cs` co-located in the feature folder (smell threshold, not hard rule — ADR-004 §2.4).
+- **`BuildContext` is invocation state, not service locator.** Pipelines target `RunAsync(TRequest)`; pure services take explicit inputs only; Tools and Integrations may take narrow Cake abstractions (`ICakeContext`, `ICakeLog`, `IFileSystem`) but never the full `BuildContext`. See ADR-004 §2.11.
+- **Interface discipline (ADR-004 §2.9):** keep an interface only if (1) multiple production implementations exist, (2) it formalizes an independent axis of change, or (3) it backs a high-cost test seam (transitional). Mocks alone don't justify a seam — prefer `internal sealed class` registered concrete via `Features/<X>/ServiceCollectionExtensions.cs`.
+- **Cross-feature data sharing flows through `Shared/`.** Code-level cross-feature references are forbidden by `ArchitectureTests` invariant #4, with one allowlist exception for `Features/LocalDev/`.
+- **`Shared/Results/` is for cross-feature primitives only.** Feature-specific `*Error` / `*Result` types stay in their feature folder (ADR-004 §2.6.1).
+- **Typed result boundaries**: services return `OneOf`-shaped results; tasks translate them into Cake logging, `CakeException`, RID-status persistence, or cancellation.
+- **When in doubt**, compare against ADR-004 §2.3 reference layout (Packaging) or §2.5 (LocalDev).
 
 ### Configuration topology
 

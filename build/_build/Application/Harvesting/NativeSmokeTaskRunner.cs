@@ -8,7 +8,6 @@ using Cake.CMake;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;
-using Cake.Core.IO;
 using Cake.Core.Tooling;
 
 namespace Build.Application.Harvesting;
