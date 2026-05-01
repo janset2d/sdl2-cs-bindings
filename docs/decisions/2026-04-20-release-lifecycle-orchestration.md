@@ -423,6 +423,7 @@ These PDs resolve in their own time via separate commits / research notes.
 - **CI workflow bypass of the provider abstraction is trivially easy.** If a CI engineer or operator wires up the `resolve-versions` job incorrectly and emits a wrong versions mapping, Cake won't catch it — it only validates at G54 (manifest coherence) and other post-input guardrails. Mitigation: explicit validation of the `resolve-versions` output inside PreFlight (G54 + manifest coherence + format check).
 - **`GitTagVersionProvider` topological ordering errors** — if `manifest.package_families[].depends_on` ever contains a cycle (it shouldn't, but the invariant is worth defending), the resolver could loop. Mitigation: a cycle-detection guardrail (candidate G59).
 - **Consumer smoke matrix re-entry artifact size** — the Pack stage produces a 7-RID nupkg set (~100-200 MB total); 7 runners download that during smoke = 700 MB–1.4 GB of transfer. Cheap inside GitHub Actions but noticeable locally if a contributor reproduces the matrix. Mitigation: measure during impl; split into per-RID artifact upload/download if needed.
+- **Tag-push trigger fan-out for train release** — surfaced empirically during the 2026-05-01 rehearsal. GitHub Actions `on.push.tags` semantics fire one workflow run per pushed tag; a train release requires every family tag at HEAD (so `GitTagVersionProvider.Train` can find it) plus the `train-*` tag, so an atomic N+1-tag push creates N+1 workflow runs of which only 1 is the desired train run. The other N also functionally fail at the partial-scope gaps (G58 / `ConsumerSmoke`). No native git/Actions mechanism collapses this fan-out. Mitigation: see §15 Empirical Operational Reality for the reconsideration direction.
 
 ---
 
@@ -515,3 +516,32 @@ Remaining outside this ADR's completed implementation: public NuGet promotion (`
 | 2026-04-20 | v1 | Initial decision: version-source providers, stage-owned validation, and single release workflow direction. |
 | 2026-04-21 | v1.1 | Implementation discovery moved local feed composition into `SetupLocalDevTaskRunner` and kept NativeSmoke out of the local feed-prep loop. |
 | 2026-04-30 | v2 | Updated from proposal record to current implementation state; removed stale pseudocode, open implementation questions, and historical checklist clutter. |
+| 2026-05-01 | v2.1 | Added §15 Empirical Operational Reality capturing rehearsal evidence + four open gaps. The §3.4 trigger model (tag-push as canonical release trigger) is now under reconsideration; final direction pending PD-7 design pass. |
+
+---
+
+## 15. Empirical Operational Reality (2026-05-01)
+
+The trigger-aware version routing landed in commit `437edff` (April 29, 2026 baseline) was rehearsed end-to-end across four CI runs on master `0ffaa7a`. The rehearsals validated the `Resolve Versions` routing layer but exposed **four operational gaps** between the policy this ADR locked and the tooling that backs it. Two of the four gaps (the satellite-only and partial-scope guardrail behaviors) are within the design envelope this ADR anticipated as deferred; the third revealed a CI-workflow design issue that this ADR did not contemplate; the fourth was a fix-now blocker that has already landed.
+
+| # | Stage | Surfaced via | Status |
+| --- | --- | --- | --- |
+| 1 | `Resolve Versions` `--scope` filter rejected full-tag scope | Run 25212911868 (initial diagnosis pre-commit; fixed before tag push) | Fixed in `437edff` |
+| 2 | `PreFlight` + `Pack` G58 cross-family resolvability is scope-contains only; satellite tag without core in scope blocks | Run 25212911868 (`sdl2-image-2.8.0-rehearsal.1` halted at G58) | **Open** — feed-probe deferred (this ADR §8 Q1 era; resolved-state in §8 currently silent) |
+| 3 | `PackageConsumerSmoke` runner enforces all-or-nothing manifest-concrete scope | Run 25213284985 (`sdl2-core-2.32.0-rehearsal.1` halted at `EnsureSelectionSupportsCurrentSmokeScope`) | **Open** — partial-scope smoke not yet supported |
+| 4 | `release.yml` `on.push.tags` fans out one workflow run per pushed tag; train release atomic-pushes N+1 tags so N+1 workflow runs queue, of which only 1 is the desired train run | Train rehearsal preparation (no run executed; design wart blocked the rehearsal command sequence) | **Open** — trigger mechanism under reconsideration |
+
+**Implication for §3.4 (CI/CD Orchestration).** §3.4 sketched a single `release.yml` triggering on `tags: ['sdl2-*-*.*.*', 'sdl3-*-*.*.*', 'train-*']`. The fan-out semantic of GitHub Actions tag triggers makes the train arm of this trigger filter operationally impractical: train release requires N+1 tags at HEAD (per-family + the train tag), which fans out into N+1 workflow runs. The N family-tag runs are unwanted noise that also functionally fail at gaps #2 / #3, requiring the operator to manually cancel them via the Actions UI. This was rejected by Deniz (2026-05-01) as not a tenable operator UX.
+
+**Direction (decision pending; PD-7 adjacent).** Two leading candidates for the trigger mechanism, neither finalized:
+
+1. **Manual `workflow_dispatch` as canonical trigger.** Releases are operator-driven via GitHub Actions UI or `gh workflow run`, supplying scope through `mode=explicit explicit-versions=...`. Tag pushes drop from the trigger filter; tags become audit-trail-only records created after a successful release. Targeted release of a single family is a dispatch with a single `--explicit-version` entry. Gaps #2 + #3 still apply for sub-5-family scopes but the operation is deliberate and controlled rather than fanning out into noise.
+2. **GitHub Releases as trigger source.** A GitHub Release object (creating tags as a side-effect) carries a body / release notes that encodes the family-version mapping. The workflow triggers on `release: published`, parses the body, routes through `ResolveVersions --version-source=explicit`. One Release event = one workflow run regardless of how many family tags the release object creates. Audit trail and trigger combine.
+
+Both options preserve the §2 governance policy (targeted vs full-train, core-first ordering, family-version coherence) documented in [release-lifecycle-direction.md](../knowledge-base/release-lifecycle-direction.md). Both also leave gaps #2 and #3 as **separate** open work — closing the trigger-mechanism question does not subsume the partial-scope gaps.
+
+**This ADR is not superseded.** The §2 mental model (RID → Family → Version axes; three providers; pre-stage version resolution; immutable mapping; stage-owned validation) and §3.1–§3.3 (provider design, stage request records, resolver-centric `SetupLocalDev`) remain canonical. §3.4's specific tag-push trigger filter is the only piece under active reconsideration; the rest of the orchestration architecture stands.
+
+For the operational rule today: **prefer `workflow_dispatch mode=explicit publish-staging=true` for any actual release work.** The tag-push path remains in `release.yml` as research surface but is not the canonical operator path until either (a) gap #4 is addressed via a workflow-design slice, or (b) tag-push is dropped from the trigger filter altogether in favor of one of the candidates above.
+
+Tracking moves to the [Phase 2b adaptation plan](../phases/phase-2-adaptation-plan.md) and [release-guardrails.md §5.1](../knowledge-base/release-guardrails.md). The PD-7 design pass that finalizes the public-promotion path will pin the trigger mechanism for both internal staging and nuget.org publish.

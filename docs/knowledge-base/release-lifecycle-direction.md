@@ -67,6 +67,15 @@ These terms are used consistently across all documentation, issues, code, and co
 
 **Release Ordering** — When the release set includes both core and satellite families (whether full-train or multi-family targeted): core releases first, then satellites. This is required because satellites declare a minimum dependency (`>=`) on core, so core must be available on the feed before satellite packages can resolve their dependencies. When only satellite families are in the release set, no ordering constraint applies — they can release independently or in parallel.
 
+> **Operational reality (2026-05-01):** the "satellite-only release without ordering" sentence above is a **policy** statement that does not yet have full tooling support. The 2026-05-01 tag-push rehearsals surfaced **two distinct scope-assumption gaps** in the pipeline:
+>
+> 1. **G58 cross-family resolvability** — `PreFlight` + `Pack` enforce a scope-contains check; satellite without core in scope blocks at G58 even when core is published on the target feed. Feed-probe is a deferred relaxation surface.
+> 2. **`PackageConsumerSmoke` partial-scope rejection** — the smoke runner currently enforces "all manifest-concrete families OR none" against the resolved scope; partial scope rejected before `dotnet restore` runs. Even a targeted core-only release (which trivially passes G58) blocks here.
+>
+> Combined operational consequence: **the only release shapes that pass the full pipeline today are those that include every concrete family in scope** — train tag, multi-family explicit dispatch covering all 5 families, and manifest-derived dispatch. Targeted single-family or arbitrary-subset releases blocks at one of the two gaps.
+>
+> The "core-first then satellites independently" policy direction documented above is correct as the long-term shape; until both gaps close, treat the operational rule as "all 5 concrete families together per release wave." See [release-guardrails.md §5.1 Pipeline Scope-Assumption Gaps](release-guardrails.md) for full evidence trail (CI runs 25103035810, 25212911868, 25213284985), candidate fix directions (per-library smoke split is the current leaning but not finalized — research + decision required), and PD-7 adjacency.
+
 **Release Promotion** — The staged path a package follows from build to public availability:
 
 1. **Local folder feed** — produced by every local Cake pack run. For developer validation.
@@ -112,6 +121,25 @@ A release of an `sdl2-*` family is independent of any `sdl3-*` family. The two S
 ### Cadence
 
 There is no fixed release schedule. Releases are event-driven (family tag push). However, periodic full-train coherence checkpoints are recommended at milestones to verify that all families still work together, even if no individual family has changed.
+
+### Trigger Mechanism — Under Reconsideration (2026-05-01)
+
+The §2 governance model above describes **policy** (what releases are, when they fire, how they order). The **mechanism** that historically backed it — every release fires from a `git push origin <tag>` against `release.yml`'s `on.push.tags: ['sdl2-*-*.*.*', 'sdl3-*-*.*.*', 'train-*']` filter — is being reconsidered after the 2026-05-01 rehearsal cycle exposed a structural design issue.
+
+**Issue:** GitHub Actions tag-trigger semantics fire one workflow run per pushed tag. A train release requires every concrete family tag at HEAD (because `GitTagVersionProvider.Train` reads each family's version from its own tag), so an atomic 6-tag push creates 6 separate workflow runs. Five of those (the family-tag-triggered runs) are unwanted noise; only the `train-*`-triggered run is the actual release. There is no native git/Actions mechanism to push tags atomically AND trigger only one workflow.
+
+The five noise runs are also functionally broken under the current pipeline-scope assumptions: four satellites fail at G58 and the core tag fails at `PackageConsumerSmoke` (see [release-guardrails.md §5.1](release-guardrails.md)). So in practice train release via tag push = "atomic-push 6 tags, then manually cancel 5 workflow runs from the UI." This is not a tenable operator UX.
+
+**Direction (decision pending):** Two leading candidates, neither finalized:
+
+1. **Manual `workflow_dispatch` as canonical trigger.** Releases are operator-driven via the GitHub Actions UI or `gh workflow run`, supplying scope through `mode=explicit explicit-versions=...`. Tag pushes are dropped from the trigger filter entirely; tags become **audit-trail-only** records (created after a successful release as a historical pointer to the released commit). Targeted release of a single family is just a dispatch with a single `--explicit-version` entry. The G58 + ConsumerSmoke partial-scope gaps still apply for any sub-5-family scope, but the operation becomes deliberate and controlled rather than fanning out into noise.
+2. **GitHub Releases as trigger source.** A GitHub Release object (creating tags as a side-effect) carries a body / release notes that can encode the family-version mapping. The workflow triggers on `release: published`, parses the body for the explicit-version mapping, and routes through `ResolveVersions --version-source=explicit`. One Release event = one workflow run regardless of how many family tags are co-created. Audit trail and trigger combine in one artifact.
+
+Both options preserve the §2 policy — targeted vs full-train, core-first ordering, family-version coherence — while breaking the dependency on the per-tag fan-out. Both also accept the G58 + ConsumerSmoke single-family gaps as **separate** open work; the trigger-mechanism reconsideration does not subsume those gaps.
+
+The current `on.push.tags` trigger filter and the `Resolve targeted family tag versions` / `Resolve coordinated train tag versions` steps in `release.yml` are not being removed yet; they remain in place as the "tag-push happy path" until a successor mechanism is decided. But the operational rule for now is: **prefer `workflow_dispatch mode=explicit publish-staging=true` for any actual release work.** The tag-push path is research surface, not the canonical operator path.
+
+This reconsideration is tracked in [phase-2-adaptation-plan.md](../phases/phase-2-adaptation-plan.md) and is PD-7 adjacent: the public-promotion path designed under PD-7 will pin the trigger mechanism for both internal staging and nuget.org publish.
 
 ---
 
