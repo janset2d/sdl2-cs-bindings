@@ -24,12 +24,8 @@ using Build.Host.Cake;
 using Build.Host.Cli.Options;
 using Build.Host.Configuration;
 using Build.Host.Paths;
-using Build.Integrations.Coverage;
-using Build.Integrations.DependencyAnalysis;
-using Build.Integrations.DotNet;
-using Build.Integrations.Msvc;
-using Build.Integrations.NuGet;
-using Build.Integrations.Vcpkg;
+using Build.Integrations;
+using Build.Tools;
 using Build.Shared.Manifest;
 using Build.Shared.Runtime;
 using Build.Shared.Strategy;
@@ -141,51 +137,17 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
         throw new InvalidOperationException("--source cannot be empty. Allowed values: local, remote, release.");
     }
 
-    services.AddSingleton<IPathService>(provider =>
-    {
-        var repositoryConfiguration = provider.GetRequiredService<RepositoryConfiguration>();
-        var cakeLogger = provider.GetRequiredService<ICakeLog>();
-        return new PathService(repositoryConfiguration, parsedArgs, cakeLogger);
-    });
-
-    services.AddSingleton<IRuntimeProfile>(sp =>
-    {
-        var runtimeConfig = sp.GetRequiredService<RuntimeConfig>();
-        var systemArtefactsConfig = sp.GetRequiredService<SystemArtefactsConfig>();
-        var vcpkgConfiguration = sp.GetRequiredService<VcpkgConfiguration>();
-        var cakeEnvironment = sp.GetRequiredService<ICakeEnvironment>();
-
-        var rid = vcpkgConfiguration.Rid
-            .Match<string>(
-                _ => cakeEnvironment.Platform.Rid(),
-                configRid => configRid.Value);
-
-        var runtimeInfo = runtimeConfig.Runtimes.Single(r => string.Equals(r.Rid, rid, StringComparison.Ordinal));
-
-        return new RuntimeProfile(runtimeInfo, systemArtefactsConfig);
-    });
-
-    // Integrations (non-Cake-Tool external adapters) and Tools (Cake Tool<T> wrappers).
-    // Per ADR-004 §2.7 / §2.8 these are flat registrations — no AddIntegrations() /
-    // AddToolWrappers() extensions yet (deferred to a later structural pass).
-    services.AddSingleton<IPackageInfoProvider, VcpkgCliProvider>();
-    services.AddSingleton<ICoberturaReader, CoberturaReader>();
-    services.AddSingleton<ICoverageBaselineReader, CoverageBaselineReader>();
-    services.AddSingleton<IVcpkgManifestReader, VcpkgManifestReader>();
-    services.AddSingleton<IProjectMetadataReader, ProjectMetadataReader>();
-    services.AddSingleton<IDotNetPackInvoker, DotNetPackInvoker>();
-    services.AddSingleton<IDotNetRuntimeEnvironment, DotNetRuntimeEnvironment>();
-    services.AddSingleton<INuGetFeedClient, NuGetProtocolFeedClient>();
-    services.AddSingleton<IMsvcDevEnvironment, MsvcDevEnvironment>();
-    services.AddSingleton<VcpkgBootstrapTool>();
-
-    // Feature roster — composition root reads as the architectural index. Each
-    // AddXFeature() registers that feature's pipelines + feature-local validators /
-    // generators / factories per ADR-004 §2.12. AddPackagingFeature carries the parsed
-    // --source CLI value because the resolver factory closure consumes it; the LocalDev
-    // orchestration feature is registered last so every sibling pipeline it composes is
-    // already in the container (per ADR-004 §2.5 + §2.13 invariant #4 allowlist).
+    // Composition root reads as the architectural index per ADR-004 §2.12: 13
+    // per-feature AddXFeature() calls + 3 cross-cutting groupings (AddHostBuildingBlocks,
+    // AddIntegrations, AddToolWrappers). AddPackagingFeature carries the parsed --source
+    // CLI value because its resolver factory closure consumes it. AddHostBuildingBlocks
+    // takes parsedArgs for the same reason (IPathService consumes vcpkg-dir overrides).
+    // The LocalDev orchestration feature is registered last so every sibling pipeline it
+    // composes is already in the container (per ADR-004 §2.5 + §2.13 invariant #4 allowlist).
     services
+        .AddHostBuildingBlocks(parsedArgs)
+        .AddIntegrations()
+        .AddToolWrappers()
         .AddInfoFeature()
         .AddMaintenanceFeature()
         .AddCiFeature()
@@ -199,47 +161,6 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
         .AddPublishingFeature()
         .AddPackagingFeature(source)
         .AddLocalDevFeature();
-
-    services.AddSingleton<IRuntimeScanner>(provider =>
-    {
-        var env = provider.GetRequiredService<ICakeEnvironment>();
-        var context = provider.GetRequiredService<ICakeContext>();
-
-        var currentRid = env.Platform.Rid();
-        return currentRid switch
-        {
-            Rids.WinX64 or Rids.WinX86 or Rids.WinArm64 => new WindowsDumpbinScanner(context),
-            Rids.LinuxX64 or Rids.LinuxArm64 => new LinuxLddScanner(context),
-            Rids.OsxX64 or Rids.OsxArm64 => new MacOtoolScanner(context),
-            _ => throw new NotSupportedException($"Unsupported OS for IRuntimeScanner: {currentRid}"),
-        };
-    });
-
-    // Single manifest.json load - schema v2.1 merges runtimes + system_exclusions + library_manifests + package_families
-    services.AddSingleton<ManifestConfig>(provider =>
-    {
-        var ctx = provider.GetRequiredService<ICakeContext>();
-        var pathService = provider.GetRequiredService<IPathService>();
-
-        var manifestFile = pathService.GetManifestFile();
-        return ctx.ToJson<ManifestConfig>(manifestFile);
-    });
-
-    services.AddSingleton<RuntimeConfig>(provider =>
-    {
-        var manifest = provider.GetRequiredService<ManifestConfig>();
-
-        return manifest.Runtimes.Count == 0
-            ? throw new InvalidOperationException("manifest.json requires a non-empty runtimes section.")
-            : new RuntimeConfig { Runtimes = manifest.Runtimes };
-    });
-
-    services.AddSingleton<SystemArtefactsConfig>(provider =>
-    {
-        var manifest = provider.GetRequiredService<ManifestConfig>();
-
-        return manifest.SystemExclusions;
-    });
 }
 
 static async Task<DirectoryPath> DetermineRepoRootAsync(DirectoryInfo? repoRootArg)
