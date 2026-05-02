@@ -2,7 +2,7 @@ using OneOf;
 using OneOf.Monads;
 using OneOf.Types;
 
-namespace Build.Features.Packaging;
+namespace Build.Shared.Packaging;
 
 /// <summary>
 /// Result monad for <c>IProjectMetadataReader.ReadAsync</c>:

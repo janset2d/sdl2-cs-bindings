@@ -4,6 +4,7 @@ using System.IO.Compression;
 using System.Xml.Linq;
 using Build.Features.Preflight;
 using Build.Shared.Manifest;
+using Build.Shared.Packaging;
 using Cake.Core.IO;
 using NuGet.Frameworks;
 using NuGet.Versioning;

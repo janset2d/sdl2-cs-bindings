@@ -11,6 +11,7 @@ using Build.Host.Paths;
 using Build.Integrations.DotNet;
 using Build.Shared.Harvesting;
 using Build.Shared.Manifest;
+using Build.Shared.Packaging;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;

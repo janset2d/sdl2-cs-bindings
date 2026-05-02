@@ -1,4 +1,5 @@
 using Build.Shared.Manifest;
+using Build.Shared.Packaging;
 using Cake.Core.IO;
 
 namespace Build.Features.Packaging;

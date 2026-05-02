@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Build.Features.Packaging;
+using Build.Shared.Packaging;
 using Cake.Common.Tools.DotNet;
 using Cake.Common.Tools.DotNet.MSBuild;
 using Cake.Core;
@@ -82,7 +82,7 @@ public sealed class ProjectMetadataReader(ICakeContext cakeContext, ICakeLog log
             properties = [];
             error = new ProjectMetadataError(
                 $"dotnet msbuild -getProperty returned empty output for '{projectPath.FullPath}'.",
-                projectPath);
+                projectPath.FullPath);
             return false;
         }
 
@@ -96,7 +96,7 @@ public sealed class ProjectMetadataReader(ICakeContext cakeContext, ICakeLog log
             properties = [];
             error = new ProjectMetadataError(
                 $"Could not parse dotnet msbuild -getProperty output for '{projectPath.FullPath}': {ex.Message}. Raw output: {joined}",
-                projectPath,
+                projectPath.FullPath,
                 ex);
             return false;
         }
@@ -109,7 +109,7 @@ public sealed class ProjectMetadataReader(ICakeContext cakeContext, ICakeLog log
                 properties = [];
                 error = new ProjectMetadataError(
                     $"dotnet msbuild -getProperty output for '{projectPath.FullPath}' is missing the 'Properties' object. Raw output: {joined}",
-                    projectPath);
+                    projectPath.FullPath);
                 return false;
             }
 
@@ -152,7 +152,7 @@ public sealed class ProjectMetadataReader(ICakeContext cakeContext, ICakeLog log
         targetFrameworks = [];
         error = new ProjectMetadataError(
             $"Could not resolve target frameworks for '{projectPath.FullPath}'. Neither TargetFrameworks nor TargetFramework were set.",
-            projectPath);
+            projectPath.FullPath);
         return false;
     }
 

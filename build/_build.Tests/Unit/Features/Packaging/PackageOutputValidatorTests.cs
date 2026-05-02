@@ -3,6 +3,7 @@ using System.Text.Json;
 using Build.Features.Packaging;
 using Build.Features.Preflight;
 using Build.Shared.Manifest;
+using Build.Shared.Packaging;
 using Build.Tests.Fixtures;
 using Cake.Core.IO;
 

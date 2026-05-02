@@ -9,6 +9,7 @@ using Build.Host;
 using Build.Integrations.Vcpkg;
 using Build.Shared.Harvesting;
 using Build.Shared.Manifest;
+using Build.Shared.Packaging;
 using Build.Shared.Runtime;
 using Build.Shared.Strategy;
 using Build.Tests.Fixtures;

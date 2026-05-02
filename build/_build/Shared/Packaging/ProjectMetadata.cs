@@ -1,4 +1,4 @@
-namespace Build.Features.Packaging;
+namespace Build.Shared.Packaging;
 
 /// <summary>
 /// Evaluated MSBuild metadata for a csproj file, resolved after the full

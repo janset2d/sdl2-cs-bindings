@@ -1,5 +1,6 @@
 using Build.Features.Packaging.ArtifactSourceResolvers;
 using Build.Host.Configuration;
+using Build.Shared.Packaging;
 using Build.Shared.Strategy;
 using Microsoft.Extensions.DependencyInjection;
 

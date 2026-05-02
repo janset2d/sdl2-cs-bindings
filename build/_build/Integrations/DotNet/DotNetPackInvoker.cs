@@ -1,5 +1,5 @@
-using Build.Features.Packaging;
 using Build.Host.Paths;
+using Build.Shared.Packaging;
 using Cake.Common.Tools.DotNet;
 using Cake.Common.Tools.DotNet.MSBuild;
 using Cake.Common.Tools.DotNet.Pack;
@@ -48,7 +48,7 @@ public sealed class DotNetPackInvoker(ICakeContext cakeContext, ICakeLog log, IP
         }
         catch (CakeException ex)
         {
-            return new DotNetPackError($"dotnet pack failed for '{projectPath.GetFilename().FullPath}' at version {invocation.Version}: {ex.Message}", projectPath, ex);
+            return new DotNetPackError($"dotnet pack failed for '{projectPath.GetFilename().FullPath}' at version {invocation.Version}: {ex.Message}", projectPath.FullPath, ex);
         }
 
         return DotNetPackResult.ToSuccess();

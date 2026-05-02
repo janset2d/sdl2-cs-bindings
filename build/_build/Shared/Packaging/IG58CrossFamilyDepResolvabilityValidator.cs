@@ -1,7 +1,7 @@
 using Build.Shared.Manifest;
 using NuGet.Versioning;
 
-namespace Build.Features.Packaging;
+namespace Build.Shared.Packaging;
 
 /// <summary>
 /// Guardrail G58: cross-family dependency resolvability.

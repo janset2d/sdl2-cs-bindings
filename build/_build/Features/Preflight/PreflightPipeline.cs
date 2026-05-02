@@ -1,7 +1,7 @@
-using Build.Features.Packaging;
 using Build.Host;
 using Build.Integrations.Vcpkg;
 using Build.Shared.Manifest;
+using Build.Shared.Packaging;
 using Build.Shared.Results;
 using Cake.Common.IO;
 using Cake.Core;

@@ -1,9 +1,9 @@
-using Build.Features.Packaging;
 using Build.Features.Preflight;
 using Build.Host;
 using Build.Host.Configuration;
 using Build.Integrations.Vcpkg;
 using Build.Shared.Manifest;
+using Build.Shared.Packaging;
 using Build.Shared.Strategy;
 using Build.Tests.Fixtures;
 using Cake.Core;

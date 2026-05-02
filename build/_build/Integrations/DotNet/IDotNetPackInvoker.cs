@@ -1,4 +1,4 @@
-using Build.Features.Packaging;
+using Build.Shared.Packaging;
 using Cake.Core.IO;
 
 namespace Build.Integrations.DotNet;

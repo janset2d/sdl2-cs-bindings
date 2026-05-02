@@ -1,5 +1,5 @@
-using Build.Features.Packaging;
 using Build.Shared.Manifest;
+using Build.Shared.Packaging;
 using Build.Tests.Fixtures;
 using NuGet.Versioning;
 

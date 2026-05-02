@@ -1,4 +1,4 @@
-namespace Build.Features.Packaging;
+namespace Build.Shared.Packaging;
 
 /// <summary>
 /// Outcome of a single G58 cross-family dependency resolvability check. Each satellite

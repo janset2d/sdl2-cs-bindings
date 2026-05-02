@@ -1,7 +1,7 @@
 using Build.Shared.Manifest;
 using NuGet.Versioning;
 
-namespace Build.Features.Packaging;
+namespace Build.Shared.Packaging;
 
 /// <summary>
 /// Scope-contains implementation of G58.
