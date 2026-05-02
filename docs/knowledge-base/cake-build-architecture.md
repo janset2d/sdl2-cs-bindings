@@ -23,10 +23,10 @@ The build system is a .NET 9.0 console application using **Cake Frosting v6.1.0*
 - **Harvesting remains the build-host reference pattern** for service boundaries: pipeline keeps `BuildContext`, validators / planners / deployers take explicit inputs, Cake capabilities are injected where they are used. Tests mirror the split (whitebox unit tests for the services, task-shape tests for behavior contracts).
 - **`BuildContext` is invocation state, not a service locator** (ADR-004 §2.11). The four properties it carries are `Paths`, `Runtime`, `Manifest`, `Options`. Pipelines accept `(BuildContext context, TRequest request, CancellationToken ct)` today; the cut-over to `RunAsync(TRequest, CancellationToken)` is a P4 deliverable. Pure services (validators, generators, planners, readers) take explicit inputs only — never a full `BuildContext`. Tools and Integrations may take narrow Cake abstractions (`ICakeContext`, `ICakeLog`, `IFileSystem`) but never `BuildContext` itself.
 - **LocalDev is the designated multi-feature orchestration slice** per ADR-004 §2.5 + §2.13 invariant #4 allowlist. `Features/LocalDev/SetupLocalDevFlow` composes `EnsureVcpkgDependenciesPipeline`, `PreflightPipeline`, `HarvestPipeline`, `ConsolidateHarvestPipeline`, `IPackagePipeline`, `IPackageConsumerSmokePipeline`, `ManifestVersionProvider`, and `IArtifactSourceResolver` for the `--source=local` profile. Adding a second orchestration feature requires editing the allowlist in [`ArchitectureTests`](../../build/_build.Tests/Unit/CompositionRoot/ArchitectureTests.cs) **and** ADR-004.
-- **Per-feature `ServiceCollectionExtensions.AddXFeature()`** (ADR-004 §2.12 composition-root architectural index): each `Features/<X>/` folder ships a `ServiceCollectionExtensions` static class whose extension method registers that feature's pipelines, validators, generators, and factory closures on `IServiceCollection`. `Program.cs ConfigureBuildServices` reads as a 13-line feature roster of `services.AddXFeature()` calls plus inline `Tools/`, `Integrations/`, and `Host/` registrations. LocalDev is registered last so every sibling pipeline it composes is already in the container.
+- **Per-feature `ServiceCollectionExtensions.AddXFeature()`** (ADR-004 §2.12 composition-root architectural index): each `Features/<X>/` folder ships a `ServiceCollectionExtensions` static class whose extension method registers that feature's pipelines, validators, generators, and factory closures on `IServiceCollection`. `Program.cs ConfigureBuildServices` reads as 3 cross-cutting group calls (`AddHostBuildingBlocks`, `AddIntegrations`, `AddToolWrappers`) plus a 13-call feature roster. LocalDev is registered last so every sibling pipeline it composes is already in the container.
 - **DI smoke per feature**: [`Unit/CompositionRoot/ServiceCollectionExtensionsSmokeTests.cs`](../../build/_build.Tests/Unit/CompositionRoot/ServiceCollectionExtensionsSmokeTests.cs) seeds a `ServiceCollection` via [`Fixtures/TestHostFixture.AddTestHostBuildingBlocks`](../../build/_build.Tests/Fixtures/TestHostFixture.cs), invokes a single `AddXFeature()` (plus its declared cross-feature dependencies), and asserts every descriptor the feature added resolves through `provider.GetService(...)` without throwing. Catches missing-transitive-dep / mistyped-factory regressions at CI gate time without bootstrapping Cake.
 - **`OneOf` result discipline**: every pipeline / validator / reader / planner returns a typed `Result<TError, TSuccess>` from the `OneOf.Monads` surface (implicit/explicit operators + `From*`/`To*` factories) instead of throwing. Cross-feature void-marker `Unit` lives in `Shared/Results/`; per-feature error hierarchies derive from `Shared/Results/BuildError`.
-- `PreflightPipeline` is the pre-matrix fail-fast stage (`release.yml preflight` job). `CoverageCheckPipeline` keeps Cake-side path resolution + failure policy in the Task; the pass/fail decision lives behind `ICoverageThresholdValidator`. `PathService` already exposes `harvest-staging` helpers for future distributed CI; current tasks and workflows still write to `artifacts/harvest_output/`.
+- `PreflightPipeline` is the pre-matrix fail-fast stage (`release.yml preflight` job). `CoverageCheckPipeline` keeps Cake-side path resolution + failure policy in the Task; the pass/fail decision lives in the concrete `CoverageThresholdValidator`. `PathService` already exposes `harvest-staging` helpers for future distributed CI; current tasks and workflows still write to `artifacts/harvest_output/`.
 - **Packaging flow** spans `Features/Packaging/`, `Features/Publishing/`, `Shared/Packaging/`, and `Integrations/DotNet/`: thin tasks (`PackageTask`, `PackageConsumerSmokeTask`, `SetupLocalDevTask`, `PublishStagingTask`, `PublishPublicTask`) + size-triggered pipelines (`PackagePipeline`, `PackageConsumerSmokePipeline`, `SetupLocalDevFlow`, `PublishPipeline`) + narrow services (`DotNetPackInvoker`, `ProjectMetadataReader`, `PackageOutputValidator`, `G58CrossFamilyDepResolvabilityValidator`, `FamilyTopologyHelpers`). `PackageOutputValidator` accumulates all post-pack observations (G21–G23, G25–G27, G46–G48, G55–G58) into a single `PackageValidation` aggregate so operators see the complete failure set, not first-throw-wins. **All 7 manifest runtime rows** green end-to-end via `release.yml` — Pack ✓ + ConsumerSmoke ✓ on master `8ec85c5` (CI run 24938451364, 2026-04-26). `PostFlightTask` retired in Slice B2 (2026-04-21) — semantics absorbed into `SetupLocalDevFlow` (Flow 1) + standalone `Package` + `PackageConsumerSmoke` (Flow 2) per ADR-003 §3.3 + cross-platform-smoke-validation.md §K. `PublishStagingTask` is live for the internal GitHub Packages staging feed; dispatch is checkbox-gated and release tags publish after trigger-aware `ResolveVersions` routing. `PublishPublicTask` remains a Phase 2b PD-7 stub pending nuget.org Trusted Publishing OIDC.
 
 ## Strategy Layer Reality Check
@@ -192,7 +192,7 @@ build/_build/
 │   └── Paths/              ← IPathService + PathService (Host-tier; P4 §8.3 splits into BuildPaths fluent groups)
 ├── Features/               ← Operational vertical slices (13 features post-Adım 13)
 │   ├── Ci/                 ← GenerateMatrixTask + GenerateMatrixPipeline + ServiceCollectionExtensions
-│   ├── Coverage/           ← CoverageCheckTask + CoverageCheckPipeline + CoverageThresholdValidator + ICoverageThresholdValidator
+│   ├── Coverage/           ← CoverageCheckTask + CoverageCheckPipeline + CoverageThresholdValidator
 │   ├── DependencyAnalysis/ ← OtoolAnalyzeTask + OtoolAnalyzePipeline (diagnostic alias)
 │   ├── Diagnostics/        ← InspectHarvestedDependenciesTask + InspectHarvestedDependenciesPipeline
 │   ├── Harvesting/         ← HarvestTask + HarvestPipeline + ConsolidateHarvestTask/Pipeline + NativeSmokeTask/Pipeline + ArtifactPlanner + ArtifactDeployer + BinaryClosureWalker + IArtifactPlanner / IArtifactDeployer / IBinaryClosureWalker
@@ -241,7 +241,7 @@ See [ADR-004 §2.13](../decisions/2026-05-02-cake-native-feature-architecture.md
 
 ## Service Architecture (DI)
 
-`Program.cs ConfigureBuildServices` reads as the architectural index per ADR-004 §2.12: 13 `services.AddXFeature()` calls (Info → Maintenance → Ci → Coverage → Versioning → Vcpkg → Diagnostics → DependencyAnalysis → Preflight → Harvesting → Publishing → Packaging → LocalDev) plus inline `Tools/`, `Integrations/`, and `Host/` registrations. LocalDev is registered last so every sibling pipeline it composes is already in the container per ADR-004 §2.5.
+`Program.cs ConfigureBuildServices` reads as the architectural index per ADR-004 §2.12: 3 cross-cutting group calls (`AddHostBuildingBlocks(parsedArgs)`, `AddIntegrations()`, `AddToolWrappers()`) followed by 13 `services.AddXFeature()` calls (Info → Maintenance → Ci → Coverage → Versioning → Vcpkg → Diagnostics → DependencyAnalysis → Preflight → Harvesting → Publishing → Packaging → LocalDev). LocalDev is registered last so every sibling pipeline it composes is already in the container per ADR-004 §2.5.
 
 | Service Interface | Implementation | Purpose |
 | --- | --- | --- |
@@ -254,10 +254,10 @@ See [ADR-004 §2.13](../decisions/2026-05-02-cake-native-feature-architecture.md
 | `IRuntimeScanner` | Platform-specific (Integrations/DependencyAnalysis) | dumpbin (Windows), ldd (Linux), otool (macOS); resolved per-RID by Program.cs factory closure |
 | `IPackagingStrategy` | `HybridStaticStrategy` / `PureDynamicStrategy` (Shared/Strategy) | Packaging model and core-library interpretation; resolved by `PackagingStrategyFactory` from `VcpkgConfiguration` triplet |
 | `IDependencyPolicyValidator` | `HybridStaticValidator` / `PureDynamicValidator` (Shared/Strategy) | Strategy-aware closure validation (hybrid leak enforcement, pure-dynamic pass-through); resolved by `DependencyPolicyValidatorFactory` |
-| `IStrategyResolver` | `StrategyResolver` (Shared/Strategy) | Maps `runtimes[].triplet` ↔ packaging model; consumed by `IStrategyCoherenceValidator` + factory closures |
+| `IStrategyResolver` | `StrategyResolver` (Shared/Strategy) | Maps `runtimes[].triplet` ↔ packaging model; consumed by `StrategyCoherenceValidator` + factory closures |
 | `ICoberturaReader` | `CoberturaReader` (Integrations/Coverage) | Parses cobertura XML into `Shared/Coverage/CoverageMetrics` |
 | `ICoverageBaselineReader` | `CoverageBaselineReader` (Integrations/Coverage) | Loads `build/coverage-baseline.json` into `Shared/Coverage/CoverageBaseline` |
-| `ICoverageThresholdValidator` | `CoverageThresholdValidator` (Features/Coverage) | Applies the ratchet rule to parsed metrics; emits `Shared/Coverage/CoverageCheckResult` |
+| `CoverageThresholdValidator` | concrete (Features/Coverage) | Applies the ratchet rule to parsed metrics; emits `Shared/Coverage/CoverageCheckResult` |
 | `IVcpkgManifestReader` | `VcpkgManifestReader` (Integrations/Vcpkg) | Loads `vcpkg.json` into `Shared/Manifest/VcpkgManifest` for Preflight + future consumers |
 | `IArtifactSourceResolver` | `LocalArtifactSourceResolver` for `--source=local`; `RemoteArtifactSourceResolver` for `--source=remote`/`--source=remote-internal` (Features/Packaging/ArtifactSourceResolvers) | Feed-prep profile selection per ADR-001 §2.7. `RemoteInternal` pulls latest coherent managed/native family packages from GitHub Packages into the local feed; `ReleasePublic` remains stubbed pending PD-7. Subsumes the retired `INativeAcquisitionStrategy` design from the strategy brief — feed-prep abstraction replaces native-acquisition abstraction. |
 | `IPackageVersionProvider` | `ExplicitVersionProvider` registered as singleton (the only stage-task-visible provider per ADR-003 §3.1); `ManifestVersionProvider` + `GitTagVersionProvider` reach the CLI only via `ResolveVersionsPipeline` | Version-source provider abstraction; emits `versions.json` consumed downstream via `--versions-file` |
@@ -412,11 +412,16 @@ var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
   .WithVcpkgJson(vcpkgManifest)
   .BuildContextWithHandles();
 
-var task = new PreFlightCheckTask(
+var pipeline = new PreflightPipeline(
   manifest,
-  new VersionConsistencyValidator(),
+  vcpkgManifestReader,
   new StrategyCoherenceValidator(new StrategyResolver()),
+  upstreamVersionAlignmentValidator,
+  csprojPackContractValidator,
+  g58CrossFamilyValidator,
   new PreflightReporter(repo.BuildContext));
+
+var task = new PreFlightCheckTask(pipeline, packageBuildConfiguration);
 task.Run(repo.BuildContext);
 
 await Assert.That(repo.Exists("artifacts/harvest_output/SDL2/rid-status/win-x64.json")).IsTrue();

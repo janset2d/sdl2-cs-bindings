@@ -4,9 +4,9 @@ using Cake.Core.IO;
 
 namespace Build.Features.Preflight;
 
-public sealed class VersionConsistencyValidator : IVersionConsistencyValidator
+public static class VersionConsistencyValidator
 {
-    public VersionConsistencyResult Validate(ManifestConfig manifest, VcpkgManifest vcpkgManifest, FilePath manifestPath, FilePath vcpkgManifestPath)
+    public static VersionConsistencyResult Validate(ManifestConfig manifest, VcpkgManifest vcpkgManifest, FilePath manifestPath, FilePath vcpkgManifestPath)
     {
         ArgumentNullException.ThrowIfNull(manifest);
         ArgumentNullException.ThrowIfNull(vcpkgManifest);

@@ -4,7 +4,7 @@ using Build.Shared.Strategy;
 
 namespace Build.Features.Preflight;
 
-public sealed class StrategyCoherenceValidator(IStrategyResolver strategyResolver) : IStrategyCoherenceValidator
+public sealed class StrategyCoherenceValidator(IStrategyResolver strategyResolver)
 {
     private readonly IStrategyResolver _strategyResolver = strategyResolver ?? throw new ArgumentNullException(nameof(strategyResolver));
 

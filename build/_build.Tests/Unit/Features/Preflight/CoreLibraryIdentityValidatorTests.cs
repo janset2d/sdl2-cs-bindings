@@ -10,9 +10,8 @@ public class CoreLibraryIdentityValidatorTests
     public async Task Validate_Returns_Match_When_Fields_Agree()
     {
         var manifest = ManifestFixture.CreateTestManifestConfig();
-        var validator = new CoreLibraryIdentityValidator();
 
-        var result = validator.Validate(manifest);
+        var result = CoreLibraryIdentityValidator.Validate(manifest);
 
         await Assert.That(result.IsSuccess()).IsTrue();
         await Assert.That(result.Validation.Check.Status).IsEqualTo(CoreLibraryIdentityCheckStatus.Match);
@@ -29,9 +28,8 @@ public class CoreLibraryIdentityValidatorTests
         {
             PackagingConfig = manifest.PackagingConfig with { CoreLibrary = "SDL2" },
         };
-        var validator = new CoreLibraryIdentityValidator();
 
-        var result = validator.Validate(caseDrifted);
+        var result = CoreLibraryIdentityValidator.Validate(caseDrifted);
 
         await Assert.That(result.IsSuccess()).IsTrue();
         await Assert.That(result.Validation.Check.Status).IsEqualTo(CoreLibraryIdentityCheckStatus.Match);
@@ -45,9 +43,8 @@ public class CoreLibraryIdentityValidatorTests
         {
             PackagingConfig = manifest.PackagingConfig with { CoreLibrary = "sdl3" },
         };
-        var validator = new CoreLibraryIdentityValidator();
 
-        var result = validator.Validate(drifted);
+        var result = CoreLibraryIdentityValidator.Validate(drifted);
 
         await Assert.That(result.IsError()).IsTrue();
         await Assert.That(result.Validation.Check.Status).IsEqualTo(CoreLibraryIdentityCheckStatus.PackagingConfigCoreLibraryMismatch);
@@ -65,9 +62,8 @@ public class CoreLibraryIdentityValidatorTests
         {
             LibraryManifests = ImmutableList.Create(ManifestFixture.CreateTestSatelliteLibrary()),
         };
-        var validator = new CoreLibraryIdentityValidator();
 
-        var result = validator.Validate(nonCoreOnly);
+        var result = CoreLibraryIdentityValidator.Validate(nonCoreOnly);
 
         await Assert.That(result.IsError()).IsTrue();
         await Assert.That(result.Validation.Check.Status).IsEqualTo(CoreLibraryIdentityCheckStatus.InvalidCoreLibraryManifestCount);
@@ -84,9 +80,8 @@ public class CoreLibraryIdentityValidatorTests
                 ManifestFixture.CreateTestCoreLibrary(name: "SDL2", vcpkgName: "sdl2"),
                 ManifestFixture.CreateTestCoreLibrary(name: "SDL3", vcpkgName: "sdl3")),
         };
-        var validator = new CoreLibraryIdentityValidator();
 
-        var result = validator.Validate(duplicated);
+        var result = CoreLibraryIdentityValidator.Validate(duplicated);
 
         await Assert.That(result.IsError()).IsTrue();
         await Assert.That(result.Validation.Check.Status).IsEqualTo(CoreLibraryIdentityCheckStatus.InvalidCoreLibraryManifestCount);

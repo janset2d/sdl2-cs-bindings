@@ -84,7 +84,7 @@ PublishStaging (GitHub Packages internal feed) → PublishPublic (nuget.org via 
 ### Native packaging strategy (settled — do not re-debate)
 
 - **Hybrid-static / dynamic-core** across all 7 RIDs: transitive deps are statically baked into satellite shared libs while the SDL2 core library stays dynamic (single source-of-truth instance across the package set). Encoded in custom vcpkg overlay triplets at `vcpkg-overlay-triplets/` (`x64-windows-hybrid`, `arm64-linux-hybrid`, etc.).
-- **Triplet name = strategy** — there is no `--strategy` CLI flag. `manifest.runtimes[].strategy` is the formal mapping enforced by `IStrategyResolver` + `IStrategyCoherenceValidator` (G14/G15/G16).
+- **Triplet name = strategy** — there is no `--strategy` CLI flag. `manifest.runtimes[].strategy` is the formal mapping enforced by `IStrategyResolver` + `StrategyCoherenceValidator` (G14/G15/G16).
 - **LGPL-free codec stack**: drop mpg123 / libxmp / fluidsynth; use bundled minimp3 / drflac / libmodplug / Timidity / native MIDI. Adding LGPL codecs requires explicit reopening of the strategic decision.
 - **tar.gz for Unix symlinks**: NuGet can't preserve symlinks; `buildTransitive/Janset.SDL2.Native.Common.targets` extracts at consumer build time.
 
@@ -100,11 +100,11 @@ PublishStaging (GitHub Packages internal feed) → PublishPublic (nuget.org via 
 | `Tools/` | Cake `Tool<TSettings>` wrappers ONLY (vcpkg, dumpbin, ldd, otool, tar, cmake, native-smoke) |
 | `Integrations/` | Non-Cake-Tool external adapters: NuGet protocol client, dotnet pack invoker, project metadata reader, coverage XML readers, vcpkg manifest reader, MSVC environment resolver |
 
-> **Status note (mid-migration).** Code currently carries the ADR-002 layered shape (`Application/<Module>/`, `Domain/<Module>/`, `Infrastructure/<Module>/`, `Tasks/<Module>/`, `Context/`) until P1/P2 waves complete. See [`docs/phases/phase-x-build-host-modernization-2026-05-02.md`](docs/phases/phase-x-build-host-modernization-2026-05-02.md) for current wave status. Reference shapes below describe the **target state**.
+The ADR-002 layered shape (`Application/<Module>/`, `Domain/<Module>/`, `Infrastructure/<Module>/`, `Tasks/<Module>/`, `Context/`) has been retired from production code. See [`docs/phases/phase-x-build-host-modernization-2026-05-02.md`](docs/phases/phase-x-build-host-modernization-2026-05-02.md) for current Phase X wave status.
 
 Reference shapes for new build-host work:
 
-- **Task layer is thin**: build a feature-specific `Request` DTO from `BuildContext` + configuration, delegate to `pipeline.RunAsync(request)`. The Task body is one line of orchestration delegation. Golden example: `PackageTask`.
+- **Task layer is thin**: build a feature-specific `Request` DTO from `BuildContext` + configuration, delegate to the co-located pipeline. The current interim signature is `pipeline.RunAsync(context, request, cancellationToken)`; P4 cuts this over to `pipeline.RunAsync(request, cancellationToken)`. Golden example: `PackageTask`.
 - **Pipeline classes are size-triggered.** Below ~200 LOC the logic stays in the Task with private methods. Above it, extract to `<X>Pipeline.cs` co-located in the feature folder (smell threshold, not hard rule — ADR-004 §2.4).
 - **`BuildContext` is invocation state, not service locator.** Pipelines target `RunAsync(TRequest)`; pure services take explicit inputs only; Tools and Integrations may take narrow Cake abstractions (`ICakeContext`, `ICakeLog`, `IFileSystem`) but never the full `BuildContext`. See ADR-004 §2.11.
 - **Interface discipline (ADR-004 §2.9):** keep an interface only if (1) multiple production implementations exist, (2) it formalizes an independent axis of change, or (3) it backs a high-cost test seam (transitional). Mocks alone don't justify a seam — prefer `internal sealed class` registered concrete via `Features/<X>/ServiceCollectionExtensions.cs`.

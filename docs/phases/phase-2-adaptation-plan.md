@@ -62,7 +62,7 @@ Post-Stream B closure (#85) + ADR-001 + PA-2. This section is **stable fact list
 | --- | --- | --- |
 | `IPackagingStrategy` | Named accessor: `Model` + `IsCoreLibrary(string vcpkgName)` string-compare helper | **Landed as designed.** Consumed by `HybridStaticValidator` only; Packaging module does not consume it. Pack output shape is identical for hybrid and pure-dynamic RIDs. |
 | `IDependencyPolicyValidator` | Strategy-aware harvest-closure policy | **Landed as designed.** `HybridStaticValidator` has real behavioral logic (transitive-dep leak detection via scanner output; **G19**). `PureDynamicValidator` is an intentional pass-through per the design brief. Wired per-RID via DI; invoked from `HarvestTaskRunner`. |
-| `StrategyResolver` + `IStrategyCoherenceValidator` | Manifest↔triplet coherence check | **Landed.** Invoked from `PreflightTaskRunner` as **G16**. |
+| `StrategyResolver` + `StrategyCoherenceValidator` | Manifest↔triplet coherence check | **Landed.** Invoked from `PreflightTaskRunner` as **G16**. |
 | `INativeAcquisitionStrategy` | Native binary acquisition routes (brief draft: VcpkgBuild / Overrides / CiArtifact) | **Retired by ADR-001.** The Artifact Source Profile abstraction (`IArtifactSourceResolver` + `ArtifactProfile { Local / RemoteInternal / ReleasePublic }`) covers the feed-prep concern from the consumer-facing side. The original interface is not re-added. |
 | `IPayloadLayoutPolicy` | Windows direct-copy vs Unix archive policy abstraction | **Still deferred.** The brief-cited trigger condition ("when PackageTask is implemented") has been met. The decision between extracting the policy now or formally retiring the deferral belongs to the Cake refactor pass (ADR-003 impl). |
 

@@ -10,11 +10,10 @@ public sealed class VersionConsistencyValidatorTests
     [Test]
     public async Task Validate_Should_Return_Success_When_Manifest_And_Overrides_Are_Aligned()
     {
-        var validator = new VersionConsistencyValidator();
         var manifest = CreateManifestConfig("2.32.10", 0);
         var vcpkgManifest = CreateVcpkgManifest("2.32.10", 0);
 
-        var result = validator.Validate(
+        var result = VersionConsistencyValidator.Validate(
             manifest,
             vcpkgManifest,
             new FilePath("/repo/build/manifest.json"),
@@ -27,11 +26,10 @@ public sealed class VersionConsistencyValidatorTests
     [Test]
     public async Task Validate_Should_Return_Error_When_Override_Version_Does_Not_Match_Manifest()
     {
-        var validator = new VersionConsistencyValidator();
         var manifest = CreateManifestConfig("2.32.10", 0);
         var vcpkgManifest = CreateVcpkgManifest("2.31.0", 0);
 
-        var result = validator.Validate(
+        var result = VersionConsistencyValidator.Validate(
             manifest,
             vcpkgManifest,
             new FilePath("/repo/build/manifest.json"),

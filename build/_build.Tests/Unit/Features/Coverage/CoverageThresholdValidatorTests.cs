@@ -5,8 +5,6 @@ namespace Build.Tests.Unit.Features.Coverage;
 
 public class CoverageThresholdValidatorTests
 {
-    private static CoverageThresholdValidator CreateValidator() => new();
-
     private static CoverageBaseline Baseline(double lineMin = 60.0, double branchMin = 49.0) =>
         new() { LineCoverageMin = lineMin, BranchCoverageMin = branchMin };
 
@@ -24,7 +22,7 @@ public class CoverageThresholdValidatorTests
     [Test]
     public async Task Validate_Should_Return_Success_When_Both_Metrics_Above_Thresholds()
     {
-        var result = CreateValidator().Validate(
+        var result = CoverageThresholdValidator.Validate(
             Metrics(lineRate: 0.65, branchRate: 0.55),
             Baseline());
 
@@ -34,7 +32,7 @@ public class CoverageThresholdValidatorTests
     [Test]
     public async Task Validate_Should_Return_Success_When_Metrics_Exactly_Match_Thresholds()
     {
-        var result = CreateValidator().Validate(
+        var result = CoverageThresholdValidator.Validate(
             Metrics(lineRate: 0.60, branchRate: 0.49),
             Baseline(lineMin: 60.0, branchMin: 49.0));
 
@@ -44,7 +42,7 @@ public class CoverageThresholdValidatorTests
     [Test]
     public async Task Validate_Should_Return_Violation_When_Line_Coverage_Below_Threshold()
     {
-        var result = CreateValidator().Validate(
+        var result = CoverageThresholdValidator.Validate(
             Metrics(lineRate: 0.55, branchRate: 0.55),
             Baseline(lineMin: 60.0, branchMin: 49.0));
 
@@ -61,7 +59,7 @@ public class CoverageThresholdValidatorTests
     [Test]
     public async Task Validate_Should_Return_Violation_When_Branch_Coverage_Below_Threshold()
     {
-        var result = CreateValidator().Validate(
+        var result = CoverageThresholdValidator.Validate(
             Metrics(lineRate: 0.65, branchRate: 0.40),
             Baseline(lineMin: 60.0, branchMin: 49.0));
 
@@ -75,7 +73,7 @@ public class CoverageThresholdValidatorTests
     [Test]
     public async Task Validate_Should_Report_Both_Failures_When_Both_Metrics_Below_Thresholds()
     {
-        var result = CreateValidator().Validate(
+        var result = CoverageThresholdValidator.Validate(
             Metrics(lineRate: 0.40, branchRate: 0.30),
             Baseline(lineMin: 60.0, branchMin: 49.0));
 
@@ -88,7 +86,7 @@ public class CoverageThresholdValidatorTests
     [Test]
     public async Task Validate_Should_Include_Measured_Percent_And_Floor_In_Failure_Messages()
     {
-        var result = CreateValidator().Validate(
+        var result = CoverageThresholdValidator.Validate(
             Metrics(lineRate: 0.5532, branchRate: 0.4421),
             Baseline(lineMin: 60.0, branchMin: 49.0));
 
@@ -106,7 +104,7 @@ public class CoverageThresholdValidatorTests
         var metrics = Metrics(lineRate: 0.65, branchRate: 0.55);
         var baseline = Baseline(lineMin: 60.0, branchMin: 49.0);
 
-        var result = CreateValidator().Validate(metrics, baseline);
+        var result = CoverageThresholdValidator.Validate(metrics, baseline);
 
         await Assert.That(result.IsSuccess()).IsTrue();
         await Assert.That(result.CheckSuccess.Metrics).IsEqualTo(metrics);
@@ -119,7 +117,7 @@ public class CoverageThresholdValidatorTests
         var metrics = Metrics(lineRate: 0.40, branchRate: 0.30);
         var baseline = Baseline(lineMin: 60.0, branchMin: 49.0);
 
-        var result = CreateValidator().Validate(metrics, baseline);
+        var result = CoverageThresholdValidator.Validate(metrics, baseline);
         var typed = (CoverageThresholdViolation)(CoverageError)result;
 
         await Assert.That(typed.Metrics).IsEqualTo(metrics);

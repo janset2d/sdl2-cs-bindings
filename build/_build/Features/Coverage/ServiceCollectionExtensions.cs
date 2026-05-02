@@ -8,7 +8,6 @@ public static class ServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.AddSingleton<ICoverageThresholdValidator, CoverageThresholdValidator>();
         services.AddSingleton<CoverageCheckPipeline>();
 
         return services;

@@ -2,7 +2,7 @@
 
 > **This is the canonical status document.** When code and docs disagree, verify against the code. When phases and this file disagree, this file wins.
 
-**Last updated**: 2026-05-02 (Phase X build-host modernization wave: P0 + P1 + P2 closed on `master` — ADR-002 layered shape retired, ADR-004 5-folder shape live; Adım 13 post-P2 follow-up wave pending before P3 starts)
+**Last updated**: 2026-05-02 (Phase X build-host modernization wave: P0 + P1 + P2 + Adım 13 closed on `master` — ADR-002 layered shape retired, ADR-004 5-folder shape live; P3 interface review is close-ready in the working tree)
 **Maintainer**: Deniz Irgin (@denizirgin)
 
 ## Mission
@@ -24,17 +24,18 @@ Phase 2 is now divided into two stages:
 
 ### Phase X (build-host modernization, ADR-004 migration)
 
-**Phase X: Build-Host Modernization** (P0 + P1 + P2 CLOSED on `master`; Adım 13 follow-up wave pending before P3 starts) — standalone cross-cutting refactor wave that is deliberately decoupled from Phase 2 release work. Tracks the migration from the ADR-002 DDD-layered build-host shape (`Tasks/Application/Domain/Infrastructure/Context`) to the ADR-004 Cake-native feature-oriented shape (`Host/Features/Shared/Tools/Integrations`).
+**Phase X: Build-Host Modernization** (P0 + P1 + P2 + Adım 13 CLOSED on `master`; P3 interface review is close-ready in the working tree) — standalone cross-cutting refactor wave that is deliberately decoupled from Phase 2 release work. Tracks the migration from the ADR-002 DDD-layered build-host shape (`Tasks/Application/Domain/Infrastructure/Context`) to the ADR-004 Cake-native feature-oriented shape (`Host/Features/Shared/Tools/Integrations`).
 
 | Wave | Status | Commit | Behaviour |
 | --- | --- | --- | --- |
 | P0 Safety Baseline | ✅ CLOSED | `e602b6c` | smoke-witness `--emit-baseline` flag + verify-baselines.cs file-based-app helper + 4 baselines (Win local fast-loop, Linux + ci-sim Win + macOS Intel milestone-loop) + 6 doc updates + ADR-004 §2.14 rename criterion. Behaviour signal locked at this commit. |
 | P1 Folder Migration | ✅ CLOSED | `b6de515` | 291 git mv (production + test mirror) + Rider Adjust Namespaces sweep. ADR-002 namespaces empty in production code; ADR-004 5-folder shape live with 13 feature folders. Behaviour signal byte-equal to P0. |
-| P2 Terminology + DI rewrite | ✅ CLOSED | `3ab2e68` | 12 sub-steps: cosmetic warmup, CakeExtensions split, BuildOptions aggregate, BuildContext slim (6→4 prop), `*TaskRunner` → `*Pipeline` rename + `SetupLocalDev` → Flow, per-feature `ServiceCollectionExtensions` × 13, Program.cs DI chain collapse, `Shared/Runtime` Cake-decoupling (`PlatformFamily` → `RuntimeFamily`, `IsSystemFile(FilePath)` → `string`), `LayerDependencyTests` → `ArchitectureTests` rewrite (5 invariants; 3 skipped with explicit P3 deadline tracking). Behaviour signal byte-equal to P0 across Win local + Win ci-sim + WSL Linux. |
-| Adım 13 (post-P2 follow-up) | 🚧 PENDING | — | Cross-tier violation cleanup (BinaryClosure / HarvestManifest / Coverage&Packaging result types into `Shared/<X>/`) + un-skip 3 ArchitectureTests invariants + 13 ServiceCollectionExtensions smoke tests + `cake-build-architecture.md` ADR-004 rewrite. **Must close before P3 starts.** Detailed inventory + sub-step plan in [phase-x §14](phases/phase-x-build-host-modernization-2026-05-02.md#14-ad%C4%B1m-13-post-p2-follow-up-wave). |
-| P3 Interface Review → P5 Atomic Naming | ⏸️ NOT STARTED | — | Sequenced after Adım 13. P3 prunes single-impl interfaces per ADR-004 §2.9; P4 closes the `RunAsync(BuildContext, TRequest)` migration exception + `IPathService` fluent split; P5 atomic Cake-target rename wave. |
+| P2 Terminology + DI rewrite | ✅ CLOSED | `3ab2e68` | 12 sub-steps: cosmetic warmup, CakeExtensions split, BuildOptions aggregate, BuildContext slim (6→4 prop), `*TaskRunner` → `*Pipeline` rename + `SetupLocalDev` → Flow, per-feature `ServiceCollectionExtensions` × 13, initial Program.cs DI chain collapse, `Shared/Runtime` Cake-decoupling (`PlatformFamily` → `RuntimeFamily`, `IsSystemFile(FilePath)` → `string`), `LayerDependencyTests` → `ArchitectureTests` rewrite (5 invariants; 3 skipped until Adım 13). Behaviour signal byte-equal to P0 across Win local + Win ci-sim + WSL Linux. |
+| Adım 13 (post-P2 follow-up) | ✅ CLOSED | `d79daa1` → `dfa4ed9` | Cross-tier violation cleanup promoted shared Harvesting/Coverage/Packaging/Versioning vocabulary into `Shared/<X>/`; 3 skipped ArchitectureTests invariants are active (5/5 invariants, 1 P4-deferred IPathService named exception); 13 ServiceCollectionExtensions smoke tests landed via `TestHostFixture`; `cake-build-architecture.md` was rewritten to ADR-004; Program.cs DI chain now reads as `AddHostBuildingBlocks().AddIntegrations().AddToolWrappers()` + 13 `AddXFeature()` calls. Local suite: 515 tests / 0 skipped. |
+| P3 Interface Review | 🧪 CLOSE-READY | pending commit | 32 production interfaces reviewed per ADR-004 §2.9; 4 removed (`ICoverageThresholdValidator`, `IVersionConsistencyValidator`, `ICoreLibraryIdentityValidator`, `IStrategyCoherenceValidator`); 28 retained with criterion labels. Verification: 515/515 tests, fast-loop MATCH, Windows milestone-loop local + ci-sim MATCH. |
+| P4 API Surface Refactors → P5 Atomic Naming | ⏸️ NOT STARTED | — | P4 closes the `RunAsync(BuildContext, TRequest)` migration exception + `IPathService` fluent split; P5 atomic Cake-target rename wave. |
 
-Phase X is **non-gating** for Phase 2 release work — they may interleave on `master` (commits during Phase X waves are pure-refactor, behaviour-signal byte-equal to baseline). See [phases/phase-x-build-host-modernization-2026-05-02.md](phases/phase-x-build-host-modernization-2026-05-02.md) for the full wave roadmap and Adım 13 inventory.
+Phase X is **non-gating** for Phase 2 release work — they may interleave on `master` (commits during Phase X waves are pure-refactor, behaviour-signal byte-equal to baseline). See [phases/phase-x-build-host-modernization-2026-05-02.md](phases/phase-x-build-host-modernization-2026-05-02.md) for the full wave roadmap and P3/P4/P5 gates.
 
 See [phases/README.md](phases/README.md) for the full phase breakdown, [phases/phase-2-adaptation-plan.md](phases/phase-2-adaptation-plan.md) for the Phase 2b active execution ledger, and [phases/phase-x-build-host-modernization-2026-05-02.md](phases/phase-x-build-host-modernization-2026-05-02.md) for the Phase X migration wave roadmap.
 

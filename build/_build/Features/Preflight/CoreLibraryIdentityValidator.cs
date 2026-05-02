@@ -16,9 +16,9 @@ namespace Build.Features.Preflight;
 /// operator-facing error before any downstream task runs.
 /// </para>
 /// </summary>
-public sealed class CoreLibraryIdentityValidator : ICoreLibraryIdentityValidator
+public static class CoreLibraryIdentityValidator
 {
-    public CoreLibraryIdentityResult Validate(ManifestConfig manifestConfig)
+    public static CoreLibraryIdentityResult Validate(ManifestConfig manifestConfig)
     {
         ArgumentNullException.ThrowIfNull(manifestConfig);
 

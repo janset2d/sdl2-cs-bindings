@@ -177,9 +177,7 @@ public class PreFlightCheckTaskRunTests
         var runner = new PreflightPipeline(
             manifestConfig,
             new VcpkgManifestReader(context.FileSystem),
-            new VersionConsistencyValidator(),
             new StrategyCoherenceValidator(new StrategyResolver()),
-            new CoreLibraryIdentityValidator(),
             new UpstreamVersionAlignmentValidator(),
             new CsprojPackContractValidator(context.FileSystem),
             new G58CrossFamilyDepResolvabilityValidator(),

@@ -12,15 +12,13 @@ namespace Build.Features.Coverage;
 
 public sealed class CoverageCheckPipeline(
     ICoberturaReader coberturaReader,
-    ICoverageBaselineReader coverageBaselineReader,
-    ICoverageThresholdValidator coverageThresholdValidator)
+    ICoverageBaselineReader coverageBaselineReader)
 {
     internal const string CoverageFileArgument = "coverage-file";
     internal const string DefaultCoverageRelativePath = "artifacts/test-results/build-tests/coverage.cobertura.xml";
 
     private readonly ICoberturaReader _coberturaReader = coberturaReader ?? throw new ArgumentNullException(nameof(coberturaReader));
     private readonly ICoverageBaselineReader _coverageBaselineReader = coverageBaselineReader ?? throw new ArgumentNullException(nameof(coverageBaselineReader));
-    private readonly ICoverageThresholdValidator _coverageThresholdValidator = coverageThresholdValidator ?? throw new ArgumentNullException(nameof(coverageThresholdValidator));
 
     public void Run(BuildContext context)
     {
@@ -51,7 +49,7 @@ public sealed class CoverageCheckPipeline(
 
         var metrics = _coberturaReader.ParseFile(coveragePath);
         var baseline = _coverageBaselineReader.ParseFile(baselinePath);
-        var result = _coverageThresholdValidator.Validate(metrics, baseline);
+        var result = CoverageThresholdValidator.Validate(metrics, baseline);
 
         result.OnError(error => LogFailureAndThrow(error, context.Log));
 

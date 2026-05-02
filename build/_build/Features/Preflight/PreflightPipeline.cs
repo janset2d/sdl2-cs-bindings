@@ -15,9 +15,7 @@ namespace Build.Features.Preflight;
 public sealed class PreflightPipeline(
     ManifestConfig manifestConfig,
     IVcpkgManifestReader vcpkgManifestReader,
-    IVersionConsistencyValidator versionConsistencyValidator,
-    IStrategyCoherenceValidator strategyCoherenceValidator,
-    ICoreLibraryIdentityValidator coreLibraryIdentityValidator,
+    StrategyCoherenceValidator strategyCoherenceValidator,
     IUpstreamVersionAlignmentValidator upstreamVersionAlignmentValidator,
     ICsprojPackContractValidator csprojPackContractValidator,
     IG58CrossFamilyDepResolvabilityValidator g58CrossFamilyDepResolvabilityValidator,
@@ -25,9 +23,7 @@ public sealed class PreflightPipeline(
 {
     private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
     private readonly IVcpkgManifestReader _vcpkgManifestReader = vcpkgManifestReader ?? throw new ArgumentNullException(nameof(vcpkgManifestReader));
-    private readonly IVersionConsistencyValidator _versionConsistencyValidator = versionConsistencyValidator ?? throw new ArgumentNullException(nameof(versionConsistencyValidator));
-    private readonly IStrategyCoherenceValidator _strategyCoherenceValidator = strategyCoherenceValidator ?? throw new ArgumentNullException(nameof(strategyCoherenceValidator));
-    private readonly ICoreLibraryIdentityValidator _coreLibraryIdentityValidator = coreLibraryIdentityValidator ?? throw new ArgumentNullException(nameof(coreLibraryIdentityValidator));
+    private readonly StrategyCoherenceValidator _strategyCoherenceValidator = strategyCoherenceValidator ?? throw new ArgumentNullException(nameof(strategyCoherenceValidator));
     private readonly IUpstreamVersionAlignmentValidator _upstreamVersionAlignmentValidator = upstreamVersionAlignmentValidator ?? throw new ArgumentNullException(nameof(upstreamVersionAlignmentValidator));
     private readonly ICsprojPackContractValidator _csprojPackContractValidator = csprojPackContractValidator ?? throw new ArgumentNullException(nameof(csprojPackContractValidator));
     private readonly IG58CrossFamilyDepResolvabilityValidator _g58CrossFamilyDepResolvabilityValidator = g58CrossFamilyDepResolvabilityValidator ?? throw new ArgumentNullException(nameof(g58CrossFamilyDepResolvabilityValidator));
@@ -59,7 +55,7 @@ public sealed class PreflightPipeline(
 
         var vcpkgManifest = _vcpkgManifestReader.ParseFile(vcpkgManifestPath);
 
-        var versionConsistencyValidation = _versionConsistencyValidator.Validate(_manifestConfig, vcpkgManifest, manifestPath, vcpkgManifestPath);
+        var versionConsistencyValidation = VersionConsistencyValidator.Validate(_manifestConfig, vcpkgManifest, manifestPath, vcpkgManifestPath);
         _preflightReporter.ReportVersionConsistency(versionConsistencyValidation.Validation);
         versionConsistencyValidation.OnError(error => ThrowPreflightFailure(context.Log, "Version consistency", error));
 
@@ -67,7 +63,7 @@ public sealed class PreflightPipeline(
         _preflightReporter.ReportStrategyCoherence(strategyCoherenceValidation.Validation);
         strategyCoherenceValidation.OnError(error => ThrowPreflightFailure(context.Log, "Strategy coherence", error));
 
-        var coreLibraryIdentityValidation = _coreLibraryIdentityValidator.Validate(_manifestConfig);
+        var coreLibraryIdentityValidation = CoreLibraryIdentityValidator.Validate(_manifestConfig);
         _preflightReporter.ReportCoreLibraryIdentity(coreLibraryIdentityValidation.Validation);
         coreLibraryIdentityValidation.OnError(error => ThrowPreflightFailure(context.Log, "Core library identity", error));
 

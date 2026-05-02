@@ -9,9 +9,9 @@ namespace Build.Features.Coverage;
 /// (0..100) while cobertura metrics are at ratio scale (0..1) — the comparison happens on
 /// percentages via <see cref="CoverageMetrics.LinePercent"/> and <see cref="CoverageMetrics.BranchPercent"/>.
 /// </summary>
-public sealed class CoverageThresholdValidator : ICoverageThresholdValidator
+public static class CoverageThresholdValidator
 {
-    public CoverageCheckResult Validate(CoverageMetrics metrics, CoverageBaseline baseline)
+    public static CoverageCheckResult Validate(CoverageMetrics metrics, CoverageBaseline baseline)
     {
         ArgumentNullException.ThrowIfNull(metrics);
         ArgumentNullException.ThrowIfNull(baseline);

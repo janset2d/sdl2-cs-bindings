@@ -11,13 +11,11 @@ public static class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
 
         // Strategy resolver (Shared/Strategy seam) — Preflight is the primary consumer
-        // via IStrategyCoherenceValidator. Other features that need strategy resolution
+        // via StrategyCoherenceValidator. Other features that need strategy resolution
         // pick it up transitively from this registration.
         services.AddSingleton<IStrategyResolver, StrategyResolver>();
 
-        services.AddSingleton<IVersionConsistencyValidator, VersionConsistencyValidator>();
-        services.AddSingleton<IStrategyCoherenceValidator, StrategyCoherenceValidator>();
-        services.AddSingleton<ICoreLibraryIdentityValidator, CoreLibraryIdentityValidator>();
+        services.AddSingleton<StrategyCoherenceValidator>();
         services.AddSingleton<IUpstreamVersionAlignmentValidator, UpstreamVersionAlignmentValidator>();
         services.AddSingleton<ICsprojPackContractValidator, CsprojPackContractValidator>();
 

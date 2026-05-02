@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Build.Features.Harvesting;
 using Build.Features.LocalDev;
 using Build.Features.Packaging;
@@ -305,26 +304,7 @@ public sealed class SetupLocalDevTaskRunnerTests
         var vcpkgManifestReader = Substitute.For<IVcpkgManifestReader>();
         vcpkgManifestReader.ParseFile(Arg.Any<FilePath>()).Returns(CreateVcpkgManifest());
 
-        var versionConsistencyValidator = Substitute.For<IVersionConsistencyValidator>();
-        versionConsistencyValidator.Validate(Arg.Any<ManifestConfig>(), Arg.Any<VcpkgManifest>(), Arg.Any<FilePath>(), Arg.Any<FilePath>())
-            .Returns(VersionConsistencyResult.Pass(new VersionConsistencyValidation(
-                repo.ResolveFile("build/manifest.json"),
-                repo.ResolveFile("vcpkg.json"),
-                [])));
-
-        var strategyCoherenceValidator = Substitute.For<IStrategyCoherenceValidator>();
-        strategyCoherenceValidator.Validate(Arg.Any<IImmutableList<RuntimeInfo>>())
-            .Returns(StrategyCoherenceResult.Pass(new StrategyCoherenceValidation([])));
-
-        var coreLibraryIdentityValidator = Substitute.For<ICoreLibraryIdentityValidator>();
-        coreLibraryIdentityValidator.Validate(Arg.Any<ManifestConfig>())
-            .Returns(CoreLibraryIdentityResult.Pass(new CoreLibraryIdentityValidation(
-                new CoreLibraryIdentityCheck(
-                    ManifestCoreVcpkgName: "sdl2",
-                    PackagingConfigCoreLibrary: manifest.PackagingConfig.CoreLibrary,
-                    CoreLibraryManifestCount: 1,
-                    Status: CoreLibraryIdentityCheckStatus.Match,
-                    ErrorMessage: null))));
+        var strategyCoherenceValidator = new StrategyCoherenceValidator(new StrategyResolver());
 
         var upstreamVersionAlignmentValidator = Substitute.For<IUpstreamVersionAlignmentValidator>();
         upstreamVersionAlignmentValidator.Validate(Arg.Any<ManifestConfig>(), Arg.Any<IReadOnlyDictionary<string, NuGetVersion>>())
@@ -337,9 +317,7 @@ public sealed class SetupLocalDevTaskRunnerTests
         return new PreflightPipeline(
             manifest,
             vcpkgManifestReader,
-            versionConsistencyValidator,
             strategyCoherenceValidator,
-            coreLibraryIdentityValidator,
             upstreamVersionAlignmentValidator,
             csprojPackContractValidator,
             new G58CrossFamilyDepResolvabilityValidator(),

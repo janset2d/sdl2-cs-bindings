@@ -89,8 +89,7 @@ public class CoverageCheckTaskRunTests
     {
         var runner = new CoverageCheckPipeline(
             new CoberturaReader(fileSystem),
-            new CoverageBaselineReader(fileSystem),
-            new CoverageThresholdValidator());
+            new CoverageBaselineReader(fileSystem));
 
         return new CoverageCheckTask(runner);
     }

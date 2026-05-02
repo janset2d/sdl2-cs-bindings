@@ -162,10 +162,8 @@ public sealed class ProgramCompositionRootTests
         var strategy = provider.GetRequiredService<IPackagingStrategy>();
         var strategyResolver = provider.GetRequiredService<IStrategyResolver>();
         var validator = provider.GetRequiredService<IDependencyPolicyValidator>();
-        var coverageThresholdValidator = provider.GetRequiredService<ICoverageThresholdValidator>();
         var vcpkgManifestReader = provider.GetRequiredService<IVcpkgManifestReader>();
-        var versionConsistencyValidator = provider.GetRequiredService<IVersionConsistencyValidator>();
-        var strategyCoherenceValidator = provider.GetRequiredService<IStrategyCoherenceValidator>();
+        var strategyCoherenceValidator = provider.GetRequiredService<StrategyCoherenceValidator>();
         var packageOutputValidator = provider.GetRequiredService<IPackageOutputValidator>();
         var projectMetadataReader = provider.GetRequiredService<IProjectMetadataReader>();
         var packageVersionProvider = provider.GetRequiredService<IPackageVersionProvider>();
@@ -180,9 +178,7 @@ public sealed class ProgramCompositionRootTests
         await Assert.That(strategy.GetType()).IsEqualTo(typeof(HybridStaticStrategy));
         await Assert.That(strategyResolver.GetType()).IsEqualTo(typeof(StrategyResolver));
         await Assert.That(validator.GetType()).IsEqualTo(typeof(HybridStaticValidator));
-        await Assert.That(coverageThresholdValidator.GetType()).IsEqualTo(typeof(CoverageThresholdValidator));
         await Assert.That(vcpkgManifestReader.GetType()).IsEqualTo(typeof(VcpkgManifestReader));
-        await Assert.That(versionConsistencyValidator.GetType()).IsEqualTo(typeof(VersionConsistencyValidator));
         await Assert.That(strategyCoherenceValidator.GetType()).IsEqualTo(typeof(StrategyCoherenceValidator));
         await Assert.That(packageOutputValidator.GetType()).IsEqualTo(typeof(PackageOutputValidator));
         await Assert.That(projectMetadataReader.GetType()).IsEqualTo(typeof(ProjectMetadataReader));
@@ -218,7 +214,6 @@ public sealed class ProgramCompositionRootTests
         var strategy = provider.GetRequiredService<IPackagingStrategy>();
         var strategyResolver = provider.GetRequiredService<IStrategyResolver>();
         var validator = provider.GetRequiredService<IDependencyPolicyValidator>();
-        var coverageThresholdValidator = provider.GetRequiredService<ICoverageThresholdValidator>();
         var vcpkgManifestReader = provider.GetRequiredService<IVcpkgManifestReader>();
         var packageOutputValidator = provider.GetRequiredService<IPackageOutputValidator>();
         var projectMetadataReader = provider.GetRequiredService<IProjectMetadataReader>();
@@ -231,7 +226,6 @@ public sealed class ProgramCompositionRootTests
         await Assert.That(strategy.GetType()).IsEqualTo(typeof(PureDynamicStrategy));
         await Assert.That(strategyResolver.GetType()).IsEqualTo(typeof(StrategyResolver));
         await Assert.That(validator.GetType()).IsEqualTo(typeof(PureDynamicValidator));
-        await Assert.That(coverageThresholdValidator.GetType()).IsEqualTo(typeof(CoverageThresholdValidator));
         await Assert.That(vcpkgManifestReader.GetType()).IsEqualTo(typeof(VcpkgManifestReader));
         await Assert.That(packageOutputValidator.GetType()).IsEqualTo(typeof(PackageOutputValidator));
         await Assert.That(projectMetadataReader.GetType()).IsEqualTo(typeof(ProjectMetadataReader));
