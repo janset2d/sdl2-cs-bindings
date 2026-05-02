@@ -4,6 +4,7 @@ using Build.Shared.Harvesting;
 using Build.Tests.Fixtures;
 using Build.Tests.Fixtures.Seeders;
 using Cake.Core;
+using Cake.Testing;
 using NSubstitute;
 
 namespace Build.Tests.Unit.Features.Harvesting;
@@ -11,6 +12,9 @@ namespace Build.Tests.Unit.Features.Harvesting;
 public class ConsolidateHarvestTests
 {
     private static JsonSerializerOptions JsonOptions => HarvestJsonContract.Options;
+
+    private static ConsolidateHarvestPipeline CreatePipeline(FakeRepoHandles repo) =>
+        new(repo.CakeContext, new FakeLog(), repo.Paths);
 
     [Test]
     public async Task RunAsync_Should_Calculate_Correct_Summary_For_Mixed_Rids()
@@ -122,7 +126,7 @@ public class ConsolidateHarvestTests
             .WithHarvestStatus("SDL2", "linux-x64", CreateFailedStatus("SDL2", "linux-x64", "x64-linux-hybrid", "ldd failed"))
             .BuildContextWithHandles();
 
-        var task = new ConsolidateHarvestTask(new ConsolidateHarvestPipeline());
+        var task = new ConsolidateHarvestTask(CreatePipeline(repo));
 
         await task.RunAsync(repo.BuildContext);
 
@@ -152,7 +156,7 @@ public class ConsolidateHarvestTests
             .WithTextFile("artifacts/harvest_output/SDL2_image/rid-status/corrupt.json", "{ this is not valid json")
             .BuildContextWithHandles();
 
-        var task = new ConsolidateHarvestTask(new ConsolidateHarvestPipeline());
+        var task = new ConsolidateHarvestTask(CreatePipeline(repo));
 
         var thrown = await Assert.That(() => task.RunAsync(repo.BuildContext)).Throws<CakeException>();
         await Assert.That(thrown!.Message).Contains("corrupt.json");
@@ -170,7 +174,7 @@ public class ConsolidateHarvestTests
             .WithTextFile("artifacts/harvest_output/SDL2_mixer/rid-status/two.json", "also invalid")
             .BuildContextWithHandles();
 
-        var task = new ConsolidateHarvestTask(new ConsolidateHarvestPipeline());
+        var task = new ConsolidateHarvestTask(CreatePipeline(repo));
 
         var thrown = await Assert.That(() => task.RunAsync(repo.BuildContext)).Throws<CakeException>();
         await Assert.That(thrown!.Message).Contains("one.json");
@@ -200,7 +204,7 @@ public class ConsolidateHarvestTests
                 .WithLicense("libasound", content: "alsa-copyright"))
             .BuildContextWithHandles();
 
-        var task = new ConsolidateHarvestTask(new ConsolidateHarvestPipeline());
+        var task = new ConsolidateHarvestTask(CreatePipeline(repo));
         await task.RunAsync(repo.BuildContext);
 
         await Assert.That(repo.Exists("artifacts/harvest_output/SDL2/licenses/_consolidated/sdl2/copyright")).IsTrue();
@@ -222,7 +226,7 @@ public class ConsolidateHarvestTests
                 .WithLicense("libpng", content: "libpng license text v1"))
             .BuildContextWithHandles();
 
-        var task = new ConsolidateHarvestTask(new ConsolidateHarvestPipeline());
+        var task = new ConsolidateHarvestTask(CreatePipeline(repo));
         await task.RunAsync(repo.BuildContext);
 
         await Assert.That(repo.Exists("artifacts/harvest_output/SDL2_image/licenses/_consolidated/libpng/copyright")).IsTrue();
@@ -248,7 +252,7 @@ public class ConsolidateHarvestTests
                 .WithLicense("libvorbis", content: "libvorbis v1.3.8 copyright"))
             .BuildContextWithHandles();
 
-        var task = new ConsolidateHarvestTask(new ConsolidateHarvestPipeline());
+        var task = new ConsolidateHarvestTask(CreatePipeline(repo));
         await task.RunAsync(repo.BuildContext);
 
         // Per-RID variants exist, canonical unsuffixed does not.
@@ -277,7 +281,7 @@ public class ConsolidateHarvestTests
                 .WithLicense("libwebp", fileName: "LICENSE.md", content: "webp apache-2.0 text with linux-only footer"))
             .BuildContextWithHandles();
 
-        var task = new ConsolidateHarvestTask(new ConsolidateHarvestPipeline());
+        var task = new ConsolidateHarvestTask(CreatePipeline(repo));
         await task.RunAsync(repo.BuildContext);
 
         await Assert.That(repo.Exists("artifacts/harvest_output/SDL2_gfx/licenses/_consolidated/libwebp/LICENSE.win-x64.md")).IsTrue();
@@ -305,7 +309,7 @@ public class ConsolidateHarvestTests
                 .WithLicense("libopus", content: "opus-license"))
             .BuildContextWithHandles();
 
-        var task = new ConsolidateHarvestTask(new ConsolidateHarvestPipeline());
+        var task = new ConsolidateHarvestTask(CreatePipeline(repo));
         await task.RunAsync(repo.BuildContext);
 
         var manifestJson = await repo.ReadAllTextAsync("artifacts/harvest_output/SDL2_mixer/harvest-manifest.json");
@@ -334,7 +338,7 @@ public class ConsolidateHarvestTests
                 .WithLicense("libwebp", content: "webp v1.4 copyright with trailing footer"))
             .BuildContextWithHandles();
 
-        var task = new ConsolidateHarvestTask(new ConsolidateHarvestPipeline());
+        var task = new ConsolidateHarvestTask(CreatePipeline(repo));
         await task.RunAsync(repo.BuildContext);
 
         var manifestJson = await repo.ReadAllTextAsync("artifacts/harvest_output/SDL2_image/harvest-manifest.json");
@@ -364,7 +368,7 @@ public class ConsolidateHarvestTests
                 .AsFailure("ldd scan failed"))
             .BuildContextWithHandles();
 
-        var task = new ConsolidateHarvestTask(new ConsolidateHarvestPipeline());
+        var task = new ConsolidateHarvestTask(CreatePipeline(repo));
         await task.RunAsync(repo.BuildContext);
 
         var manifestJson = await repo.ReadAllTextAsync("artifacts/harvest_output/SDL2_ttf/harvest-manifest.json");
@@ -389,7 +393,7 @@ public class ConsolidateHarvestTests
                 .WithLicense("libfreetype", content: "freetype-license"))
             .BuildContextWithHandles();
 
-        var task = new ConsolidateHarvestTask(new ConsolidateHarvestPipeline());
+        var task = new ConsolidateHarvestTask(CreatePipeline(repo));
         await task.RunAsync(repo.BuildContext);
 
         // Final artifacts present:
@@ -425,7 +429,7 @@ public class ConsolidateHarvestTests
 
         repo.CakeContext.FileSystem.Returns(throwingFileSystem);
 
-        var task = new ConsolidateHarvestTask(new ConsolidateHarvestPipeline());
+        var task = new ConsolidateHarvestTask(CreatePipeline(repo));
 
         await Assert.That(() => task.RunAsync(repo.BuildContext)).Throws<CakeException>();
 
@@ -470,7 +474,7 @@ public class ConsolidateHarvestTests
 
         repo.CakeContext.FileSystem.Returns(throwingFileSystem);
 
-        var task = new ConsolidateHarvestTask(new ConsolidateHarvestPipeline());
+        var task = new ConsolidateHarvestTask(CreatePipeline(repo));
 
         var thrown = await Assert.That(() => task.RunAsync(repo.BuildContext)).Throws<CakeException>();
         await Assert.That(thrown!.Message).Contains("ConsolidateHarvest failed");
@@ -525,7 +529,7 @@ public class ConsolidateHarvestTests
                 .AsFailure("harvest failed post-deploy"))
             .BuildContextWithHandles();
 
-        var task = new ConsolidateHarvestTask(new ConsolidateHarvestPipeline());
+        var task = new ConsolidateHarvestTask(CreatePipeline(repo));
         await task.RunAsync(repo.BuildContext);
 
         // _consolidated/ is never created when no successful RID contributed.
@@ -573,7 +577,7 @@ public class ConsolidateHarvestTests
 
         var repo = builder.BuildContextWithHandles();
 
-        var task = new ConsolidateHarvestTask(new ConsolidateHarvestPipeline());
+        var task = new ConsolidateHarvestTask(CreatePipeline(repo));
         await task.RunAsync(repo.BuildContext);
 
         var manifestPath = $"artifacts/harvest_output/{libraryName}/harvest-manifest.json";

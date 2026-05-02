@@ -1,4 +1,4 @@
-﻿namespace Build.Shared.Runtime;
+namespace Build.Shared.Runtime;
 
 public interface IRuntimeProfile
 {

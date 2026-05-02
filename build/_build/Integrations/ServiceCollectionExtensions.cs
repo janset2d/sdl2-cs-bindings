@@ -33,6 +33,11 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<INuGetFeedClient, NuGetProtocolFeedClient>();
         services.AddSingleton<IMsvcDevEnvironment, MsvcDevEnvironment>();
 
+        // VcpkgBootstrapTool is a sealed concrete (not a Cake Tool<T>) that wraps
+        // bootstrap-vcpkg.bat / .sh dispatch. Relocated from Tools/Vcpkg/ at P1.18
+        // per ADR-004 §2.10 (Tools is Cake Tool<T> wrappers ONLY).
+        services.AddSingleton<VcpkgBootstrapTool>();
+
         return services;
     }
 }

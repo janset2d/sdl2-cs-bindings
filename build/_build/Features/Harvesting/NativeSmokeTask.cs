@@ -14,6 +14,6 @@ public sealed class NativeSmokeTask(NativeSmokePipeline nativeSmokePipeline) : A
         ArgumentNullException.ThrowIfNull(context);
 
         var request = new NativeSmokeRequest(context.Runtime.Rid);
-        return _nativeSmokePipeline.RunAsync(context, request);
+        return _nativeSmokePipeline.RunAsync(request);
     }
 }

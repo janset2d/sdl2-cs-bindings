@@ -17,6 +17,6 @@ public sealed class HarvestTask(
         ArgumentNullException.ThrowIfNull(context);
 
         var request = new HarvestRequest(context.Runtime.Rid, _vcpkgConfiguration.Libraries.ToList());
-        return _harvestPipeline.RunAsync(context, request);
+        return _harvestPipeline.RunAsync(request);
     }
 }

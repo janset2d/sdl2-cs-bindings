@@ -3,7 +3,6 @@ using Build.Integrations.Coverage;
 using Build.Shared.Coverage;
 using Build.Tests.Fixtures;
 using Cake.Core;
-using Cake.Core.IO;
 
 namespace Build.Tests.Unit.Features.Coverage;
 
@@ -17,7 +16,7 @@ public class CoverageCheckTaskRunTests
             .WithCoberturaReport(CreateCoverageXml(lineRate: 0.60, branchRate: 0.50))
             .BuildContextWithHandles();
 
-        var task = CreateTask(repo.FileSystem);
+        var task = CreateTask(repo);
 
         task.Run(repo.BuildContext);
     }
@@ -30,7 +29,7 @@ public class CoverageCheckTaskRunTests
             .WithCoberturaReport(CreateCoverageXml(lineRate: 0.55, branchRate: 0.50))
             .BuildContextWithHandles();
 
-        var task = CreateTask(repo.FileSystem);
+        var task = CreateTask(repo);
 
         await Assert.That(() => task.Run(repo.BuildContext)).Throws<CakeException>();
     }
@@ -43,7 +42,7 @@ public class CoverageCheckTaskRunTests
             .WithCoberturaReport(CreateCoverageXml(lineRate: 0.60, branchRate: 0.40))
             .BuildContextWithHandles();
 
-        var task = CreateTask(repo.FileSystem);
+        var task = CreateTask(repo);
 
         await Assert.That(() => task.Run(repo.BuildContext)).Throws<CakeException>();
     }
@@ -55,7 +54,7 @@ public class CoverageCheckTaskRunTests
             .WithCoverageBaseline(CreateCoverageBaseline(lineMin: 50.0, branchMin: 40.0))
             .BuildContextWithHandles();
 
-        var task = CreateTask(repo.FileSystem);
+        var task = CreateTask(repo);
 
         await Assert.That(() => task.Run(repo.BuildContext)).Throws<InvalidOperationException>();
     }
@@ -67,7 +66,7 @@ public class CoverageCheckTaskRunTests
             .WithCoberturaReport(CreateCoverageXml(lineRate: 0.60, branchRate: 0.50))
             .BuildContextWithHandles();
 
-        var task = CreateTask(repo.FileSystem);
+        var task = CreateTask(repo);
 
         await Assert.That(() => task.Run(repo.BuildContext)).Throws<InvalidOperationException>();
     }
@@ -80,16 +79,20 @@ public class CoverageCheckTaskRunTests
             .WithCoberturaReport(CreateCoverageXml(lineRate: 0.60, branchRate: 0.49))
             .BuildContextWithHandles();
 
-        var task = CreateTask(repo.FileSystem);
+        var task = CreateTask(repo);
 
         task.Run(repo.BuildContext);
     }
 
-    private static CoverageCheckTask CreateTask(IFileSystem fileSystem)
+    private static CoverageCheckTask CreateTask(FakeRepoHandles repo)
     {
         var runner = new CoverageCheckPipeline(
-            new CoberturaReader(fileSystem),
-            new CoverageBaselineReader(fileSystem));
+            new CoberturaReader(repo.CakeContext.FileSystem),
+            new CoverageBaselineReader(repo.CakeContext.FileSystem),
+            repo.CakeContext,
+            repo.CakeContext.Log,
+            repo.Paths,
+            repo.CakeContext.Arguments);
 
         return new CoverageCheckTask(runner);
     }

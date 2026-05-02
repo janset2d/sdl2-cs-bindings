@@ -12,6 +12,6 @@ public sealed class ConsolidateHarvestTask(ConsolidateHarvestPipeline consolidat
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        return _consolidateHarvestPipeline.RunAsync(context, new ConsolidateHarvestRequest());
+        return _consolidateHarvestPipeline.RunAsync(new ConsolidateHarvestRequest());
     }
 }

@@ -1,4 +1,4 @@
-﻿using Cake.Common.IO;
+using Cake.Common.IO;
 using Cake.Common.Tools.VSWhere;
 using Cake.Common.Tools.VSWhere.Latest;
 using Cake.Core;

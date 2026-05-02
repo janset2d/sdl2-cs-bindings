@@ -3,6 +3,7 @@ using System.Text.Json;
 using Build.Features.Harvesting;
 using Build.Host.Configuration;
 using Build.Shared.Harvesting;
+using Cake.Testing;
 using Build.Shared.Manifest;
 using Build.Shared.Runtime;
 using Build.Shared.Strategy;
@@ -34,7 +35,8 @@ public class HarvestTaskTests
         var task = CreateHarvestTask(
             manifestConfig,
             closure: ClosureWithSinglePrimary(CoreLibrary),
-            plannerResult: PlannerResultWithSinglePrimary(CoreLibrary));
+            plannerResult: PlannerResultWithSinglePrimary(CoreLibrary),
+            repo: repo);
 
         await task.RunAsync(repo.BuildContext);
 
@@ -77,7 +79,10 @@ public class HarvestTaskTests
                 mockDeployer,
                 mockValidator,
                 runtimeProfile,
-                manifestConfig),
+                manifestConfig,
+                repo.CakeContext,
+                new FakeLog(),
+                repo.Paths),
             new VcpkgConfiguration([], null));
 
         var thrown = false;
@@ -129,7 +134,10 @@ public class HarvestTaskTests
                 mockDeployer,
                 mockValidator,
                 runtimeProfile,
-                manifestConfig),
+                manifestConfig,
+                repo.CakeContext,
+                new FakeLog(),
+                repo.Paths),
             new VcpkgConfiguration([], null));
 
         await Assert.That(() => task.RunAsync(repo.BuildContext)).Throws<InvalidOperationException>();
@@ -169,7 +177,10 @@ public class HarvestTaskTests
                 mockDeployer,
                 mockValidator,
                 runtimeProfile,
-                manifestConfig),
+                manifestConfig,
+                repo.CakeContext,
+                new FakeLog(),
+                repo.Paths),
             new VcpkgConfiguration([], null));
 
         await Assert.That(() => task.RunAsync(repo.BuildContext)).Throws<OperationCanceledException>();
@@ -194,6 +205,7 @@ public class HarvestTaskTests
             manifestConfig,
             closure: ClosureWithSinglePrimary(SatelliteLibrary),
             plannerResult: PlannerResultWithSinglePrimary(SatelliteLibrary),
+            repo: repo,
             vcpkgConfiguration: repo.BuildContext.Options.Vcpkg);
 
         await task.RunAsync(repo.BuildContext);
@@ -231,7 +243,8 @@ public class HarvestTaskTests
         var task = CreateHarvestTask(
             manifestConfig,
             closure: ClosureWithSinglePrimary(CoreLibrary),
-            plannerResult: PlannerResultWithSinglePrimary(CoreLibrary));
+            plannerResult: PlannerResultWithSinglePrimary(CoreLibrary),
+            repo: repo);
 
         await task.RunAsync(repo.BuildContext);
 
@@ -287,7 +300,10 @@ public class HarvestTaskTests
                 mockDeployer,
                 mockValidator,
                 runtimeProfile,
-                manifestConfig),
+                manifestConfig,
+                repo.CakeContext,
+                new FakeLog(),
+                repo.Paths),
             new VcpkgConfiguration([], null));
 
         await Assert.That(() => task.RunAsync(repo.BuildContext)).Throws<CakeException>();
@@ -314,7 +330,8 @@ public class HarvestTaskTests
         var task = CreateHarvestTask(
             manifestConfig,
             closure: ClosureWithSinglePrimary(CoreLibrary),
-            plannerResult: PlannerResultWithSinglePrimary(CoreLibrary));
+            plannerResult: PlannerResultWithSinglePrimary(CoreLibrary),
+            repo: repo);
 
         await task.RunAsync(repo.BuildContext);
 
@@ -347,7 +364,8 @@ public class HarvestTaskTests
         var task = CreateHarvestTask(
             manifestConfig,
             closure: ClosureWithSinglePrimary(CoreLibrary),
-            plannerResult: PlannerResultWithSinglePrimary(CoreLibrary));
+            plannerResult: PlannerResultWithSinglePrimary(CoreLibrary),
+            repo: repo);
 
         await task.RunAsync(repo.BuildContext);
 
@@ -376,7 +394,8 @@ public class HarvestTaskTests
         var task = CreateHarvestTask(
             manifestConfig,
             closure: ClosureWithSinglePrimary(CoreLibrary),
-            plannerResult: PlannerResultWithEmptyStatistics(CoreLibrary));
+            plannerResult: PlannerResultWithEmptyStatistics(CoreLibrary),
+            repo: repo);
 
         var exception = await Assert.That(() => task.RunAsync(repo.BuildContext)).Throws<CakeException>();
 
@@ -394,6 +413,7 @@ public class HarvestTaskTests
         ManifestConfig manifestConfig,
         BinaryClosure closure,
         ArtifactPlannerResult plannerResult,
+        FakeRepoHandles repo,
         VcpkgConfiguration? vcpkgConfiguration = null)
     {
         var mockWalker = Substitute.For<IBinaryClosureWalker>();
@@ -418,7 +438,10 @@ public class HarvestTaskTests
                 mockDeployer,
                 mockValidator,
                 runtimeProfile,
-                manifestConfig),
+                manifestConfig,
+                repo.CakeContext,
+                new FakeLog(),
+                repo.Paths),
             vcpkgConfiguration ?? new VcpkgConfiguration([], null));
     }
 

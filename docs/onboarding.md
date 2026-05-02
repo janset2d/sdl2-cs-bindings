@@ -233,7 +233,7 @@ Janset.SDL2                              ← Meta-package (pulls everything)
 
 Users reference `Janset.SDL2.Core` (or the meta-package `Janset.SDL2`). The `.Native` dependency is pulled in transitively — users never reference it directly.
 
-## What Works Today (as of 2026-04-29)
+## What Works Today (as of 2026-05-02)
 
 - **C# bindings**: all 5 SDL2 libraries (`Core`/`Image`/`Mixer`/`Ttf`/`Gfx`) compile against `net9.0`/`net8.0`/`netstandard2.0`/`net462`.
 - **Cake Frosting build host**: 20 lifecycle + diagnostic targets (Info, CleanArtifacts, CompileSolution, GenerateMatrix, ResolveVersions, PreFlightCheck, EnsureVcpkgDependencies, Harvest, NativeSmoke, ConsolidateHarvest, Inspect-HarvestedDependencies, Package, PackageConsumerSmoke, SetupLocalDev, Coverage-Check, PublishStaging, PublishPublic, plus dependency-analysis aliases). Architecture governed by ADR-004 (Cake-native feature-oriented; supersedes ADR-002 DDD layering): `Host/Features/Shared/Tools/Integrations` shape is live and enforced by `ArchitectureTests` (see `docs/phases/phase-x-build-host-modernization-2026-05-02.md`).

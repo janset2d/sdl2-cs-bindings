@@ -51,7 +51,7 @@ public sealed class PublishStagingTask(
             AuthToken: authToken,
             Versions: _packageBuildConfiguration.ExplicitVersions);
 
-        return _runner.RunAsync(context, request);
+        return _runner.RunAsync(request);
     }
 
     private string ResolveAuthToken()

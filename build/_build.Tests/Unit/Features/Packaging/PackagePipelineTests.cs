@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Build.Features.Harvesting;
 using Build.Features.Packaging;
 using Build.Host.Configuration;
 using Build.Integrations.DotNet;
@@ -108,7 +107,7 @@ public sealed class PackageTaskRunnerTests
             new G58CrossFamilyDepResolvabilityValidator(),
             resolveHeadCommitSha: StubResolveHeadCommitSha);
 
-        await runner.RunAsync(repo.BuildContext, CreateSdl2CorePackRequest());
+        await runner.RunAsync(CreateSdl2CorePackRequest());
 
         // Step 1: Pack native — standard `dotnet pack`, native csproj receives $(NativePayloadSource).
         dotNetPackInvoker.Received(1).Pack(
@@ -152,7 +151,7 @@ public sealed class PackageTaskRunnerTests
 
         var runner = BuildRunnerWithMinimalMocks(repo, manifest);
 
-        var thrown = await Assert.That(() => runner.RunAsync(repo.BuildContext, CreateSdl2CorePackRequest())).Throws<Cake.Core.CakeException>();
+        var thrown = await Assert.That(() => runner.RunAsync(CreateSdl2CorePackRequest())).Throws<Cake.Core.CakeException>();
         await Assert.That(thrown!.Message).Contains("lacks a consolidation receipt");
     }
 
@@ -183,7 +182,7 @@ public sealed class PackageTaskRunnerTests
 
         var runner = BuildRunnerWithMinimalMocks(repo, manifest);
 
-        var thrown = await Assert.That(() => runner.RunAsync(repo.BuildContext, CreateSdl2CorePackRequest())).Throws<Cake.Core.CakeException>();
+        var thrown = await Assert.That(() => runner.RunAsync(CreateSdl2CorePackRequest())).Throws<Cake.Core.CakeException>();
         await Assert.That(thrown!.Message).Contains("zero license entries");
     }
 
@@ -201,7 +200,7 @@ public sealed class PackageTaskRunnerTests
             ["ghost-family"] = NuGetVersion.Parse("1.2.3"),
         });
 
-        var thrown = await Assert.That(() => runner.RunAsync(repo.BuildContext, ghostRequest)).Throws<Cake.Core.CakeException>();
+        var thrown = await Assert.That(() => runner.RunAsync(ghostRequest)).Throws<Cake.Core.CakeException>();
         // Post-C.7: G58 catches the ghost-family mapping before PackagePipeline's own
         // ResolveSelectedFamilies reaches it (manifest coherence is a G58 responsibility).
         await Assert.That(thrown!.Message).Contains("G58");
@@ -294,7 +293,7 @@ public sealed class PackageTaskRunnerTests
 
         var runner = BuildRunnerWithMinimalMocks(repo, manifest);
 
-        var thrown = await Assert.That(() => runner.RunAsync(repo.BuildContext, CreateSdl2CorePackRequest())).Throws<Cake.Core.CakeException>();
+        var thrown = await Assert.That(() => runner.RunAsync(CreateSdl2CorePackRequest())).Throws<Cake.Core.CakeException>();
         await Assert.That(thrown!.Message).Contains("licenses/_consolidated");
     }
 

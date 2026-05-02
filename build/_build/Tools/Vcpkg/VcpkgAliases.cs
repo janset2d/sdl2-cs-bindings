@@ -1,4 +1,4 @@
-﻿using Build.Tools.Vcpkg.Settings;
+using Build.Tools.Vcpkg.Settings;
 using Cake.Core;
 using Cake.Core.Annotations;
 using Cake.Core.Diagnostics;

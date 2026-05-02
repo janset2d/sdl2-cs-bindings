@@ -1,5 +1,5 @@
 using System.Globalization;
-using Build.Host;
+using Build.Host.Configuration;
 using Build.Host.Paths;
 using Build.Shared.Manifest;
 using Build.Shared.Runtime;
@@ -25,23 +25,23 @@ public sealed class InspectHarvestedDependenciesPipeline(
     ICakeLog log,
     IPathService pathService,
     IRuntimeProfile runtimeProfile,
-    ManifestConfig manifestConfig)
+    ManifestConfig manifestConfig,
+    VcpkgConfiguration vcpkgConfiguration)
 {
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
     private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
     private readonly IRuntimeProfile _runtimeProfile = runtimeProfile ?? throw new ArgumentNullException(nameof(runtimeProfile));
     private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
+    private readonly VcpkgConfiguration _vcpkgConfiguration = vcpkgConfiguration ?? throw new ArgumentNullException(nameof(vcpkgConfiguration));
 
-    public Task RunAsync(BuildContext context)
+    public Task RunAsync()
     {
-        ArgumentNullException.ThrowIfNull(context);
-
         var rid = _runtimeProfile.Rid;
         var platform = _runtimeProfile.Family;
         var osKey = ResolveOsKey(platform, rid);
 
-        var libraries = ResolveLibraries(context);
+        var libraries = ResolveLibraries();
 
         foreach (var library in libraries)
         {
@@ -52,9 +52,9 @@ public sealed class InspectHarvestedDependenciesPipeline(
         return Task.CompletedTask;
     }
 
-    private List<LibraryManifest> ResolveLibraries(BuildContext context)
+    private List<LibraryManifest> ResolveLibraries()
     {
-        var specified = context.Options.Vcpkg.Libraries;
+        var specified = _vcpkgConfiguration.Libraries;
         var manifestLibs = _manifestConfig.LibraryManifests.ToList();
 
         if (specified.Count == 0)

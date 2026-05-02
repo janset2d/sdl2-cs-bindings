@@ -1,4 +1,4 @@
-﻿#pragma warning disable S2737, CA1031
+#pragma warning disable S2737, CA1031
 
 using System.Collections.Immutable;
 using Build.Tools.Otool;

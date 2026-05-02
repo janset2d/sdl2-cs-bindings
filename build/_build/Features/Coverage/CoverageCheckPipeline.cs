@@ -1,5 +1,5 @@
 using System.Globalization;
-using Build.Host;
+using Build.Host.Paths;
 using Build.Integrations.Coverage;
 using Build.Shared.Coverage;
 using Build.Shared.Results;
@@ -12,27 +12,33 @@ namespace Build.Features.Coverage;
 
 public sealed class CoverageCheckPipeline(
     ICoberturaReader coberturaReader,
-    ICoverageBaselineReader coverageBaselineReader)
+    ICoverageBaselineReader coverageBaselineReader,
+    ICakeContext cakeContext,
+    ICakeLog log,
+    IPathService pathService,
+    ICakeArguments arguments)
 {
     internal const string CoverageFileArgument = "coverage-file";
     internal const string DefaultCoverageRelativePath = "artifacts/test-results/build-tests/coverage.cobertura.xml";
 
     private readonly ICoberturaReader _coberturaReader = coberturaReader ?? throw new ArgumentNullException(nameof(coberturaReader));
     private readonly ICoverageBaselineReader _coverageBaselineReader = coverageBaselineReader ?? throw new ArgumentNullException(nameof(coverageBaselineReader));
+    private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
+    private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
+    private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
+    private readonly ICakeArguments _arguments = arguments ?? throw new ArgumentNullException(nameof(arguments));
 
-    public void Run(BuildContext context)
+    public void Run()
     {
-        ArgumentNullException.ThrowIfNull(context);
+        _log.Information("🔍 Running coverage ratchet check...");
 
-        context.Log.Information("🔍 Running coverage ratchet check...");
+        var coveragePath = ResolveCoveragePath();
+        var baselinePath = _pathService.GetCoverageBaselineFile();
 
-        var coveragePath = ResolveCoveragePath(context);
-        var baselinePath = context.Paths.GetCoverageBaselineFile();
+        _log.Information("Coverage file: {0}", coveragePath.FullPath);
+        _log.Information("Baseline file: {0}", baselinePath.FullPath);
 
-        context.Log.Information("Coverage file: {0}", coveragePath.FullPath);
-        context.Log.Information("Baseline file: {0}", baselinePath.FullPath);
-
-        if (!context.FileExists(coveragePath))
+        if (!_cakeContext.FileExists(coveragePath))
         {
             throw new InvalidOperationException(
                 $"❌ Coverage file not found: {coveragePath.FullPath}. " +
@@ -40,7 +46,7 @@ public sealed class CoverageCheckPipeline(
                 "or pass --coverage-file=<path> to point at an existing cobertura report.");
         }
 
-        if (!context.FileExists(baselinePath))
+        if (!_cakeContext.FileExists(baselinePath))
         {
             throw new InvalidOperationException(
                 $"❌ Coverage baseline file not found: {baselinePath.FullPath}. " +
@@ -51,26 +57,24 @@ public sealed class CoverageCheckPipeline(
         var baseline = _coverageBaselineReader.ParseFile(baselinePath);
         var result = CoverageThresholdValidator.Validate(metrics, baseline);
 
-        result.OnError(error => LogFailureAndThrow(error, context.Log));
+        result.OnError(error => LogFailureAndThrow(error, _log));
 
-        LogSuccessReport(context.Log, result.CheckSuccess);
+        LogSuccessReport(_log, result.CheckSuccess);
     }
 
-    internal static FilePath ResolveCoveragePath(BuildContext context)
+    private FilePath ResolveCoveragePath()
     {
-        ArgumentNullException.ThrowIfNull(context);
-
-        var overridePath = TryGetOverridePath(context.Arguments);
+        var overridePath = TryGetOverridePath(_arguments);
 
         if (!string.IsNullOrWhiteSpace(overridePath))
         {
             var filePath = new FilePath(overridePath);
             return filePath.IsRelative
-                ? context.Paths.RepoRoot.CombineWithFilePath(filePath)
+                ? _pathService.RepoRoot.CombineWithFilePath(filePath)
                 : filePath;
         }
 
-        return context.Paths.RepoRoot.CombineWithFilePath(DefaultCoverageRelativePath);
+        return _pathService.RepoRoot.CombineWithFilePath(DefaultCoverageRelativePath);
     }
 
     private static string? TryGetOverridePath(ICakeArguments arguments)

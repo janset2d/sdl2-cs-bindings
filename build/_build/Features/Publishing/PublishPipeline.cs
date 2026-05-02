@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using Build.Features.Preflight;
-using Build.Host;
 using Build.Host.Paths;
 using Build.Integrations.NuGet;
 using Build.Shared.Manifest;
@@ -32,9 +31,8 @@ public sealed class PublishPipeline(
 
     [SuppressMessage("Major Code Smell", "S3267:Loops should be simplified with LINQ expressions",
         Justification = "Per-family side effects: cancellation, two awaited pushes, structured logging.")]
-    public async Task RunAsync(BuildContext context, PublishRequest request, CancellationToken cancellationToken = default)
+    public async Task RunAsync(PublishRequest request, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
 

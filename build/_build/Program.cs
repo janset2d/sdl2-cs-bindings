@@ -14,7 +14,6 @@ using Build.Features.Info;
 using Build.Features.LocalDev;
 using Build.Features.Maintenance;
 using Build.Features.Packaging;
-using Build.Features.Packaging.ArtifactSourceResolvers;
 using Build.Features.Preflight;
 using Build.Features.Publishing;
 using Build.Features.Vcpkg;
@@ -23,20 +22,13 @@ using Build.Host;
 using Build.Host.Cake;
 using Build.Host.Cli.Options;
 using Build.Host.Configuration;
-using Build.Host.Paths;
 using Build.Integrations;
 using Build.Tools;
-using Build.Shared.Manifest;
-using Build.Shared.Runtime;
-using Build.Shared.Strategy;
-using Build.Tools.Vcpkg;
 using Cake.Core;
-using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 using Cake.Frosting;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
-using DotNetRuntimeEnvironment = Build.Integrations.DotNet.DotNetRuntimeEnvironment;
 
 var root = new RootCommand("Cake build for janset2d/sdl2-cs-bindings");
 

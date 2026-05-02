@@ -1,4 +1,4 @@
-﻿using Cake.Core;
+using Cake.Core;
 using Cake.Core.IO;
 using Cake.Core.Tooling;
 
@@ -58,10 +58,10 @@ public sealed partial class LddRunner : Tool<LddSettings>
         var processOutput = string.Empty;
 
         Run(settings, args, new ProcessSettings
-            {
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-            },
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        },
             process => processOutput = string.Join(Environment.NewLine, process.GetStandardOutput()));
 
         return processOutput;

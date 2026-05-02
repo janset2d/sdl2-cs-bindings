@@ -323,7 +323,6 @@ Tools/
 │   ├── VcpkgTool.cs
 │   ├── VcpkgInstallTool.cs
 │   ├── VcpkgPackageInfoTool.cs
-│   ├── VcpkgBootstrapTool.cs
 │   ├── VcpkgAliases.cs
 │   └── Settings/
 │       ├── VcpkgSettings.cs
@@ -353,7 +352,8 @@ Integrations/
 │   └── NuGetProtocolFeedClient.cs      ← HTTP-level NuGet protocol client
 ├── Vcpkg/
 │   ├── VcpkgCliProvider.cs             ← non-Tool process invoker backing IPackageInfoProvider
-│   └── VcpkgManifestReader.cs          ← JSON manifest reader
+│   ├── VcpkgManifestReader.cs          ← JSON manifest reader
+│   └── VcpkgBootstrapTool.cs           ← bootstrap-vcpkg.bat/.sh dispatch (sealed concrete; not a Cake Tool<T>)
 ├── Coverage/
 │   ├── CoberturaReader.cs              ← Cobertura XML parser
 │   └── CoverageBaselineReader.cs       ← baseline JSON reader
@@ -442,7 +442,7 @@ Permitted under the following invariants:
 ```csharp
 public sealed class BuildContext : FrostingContext
 {
-    public BuildPaths Paths { get; }              // Host/Paths
+    public IPathService Paths { get; }            // Host/Paths
     public RuntimeProfile Runtime { get; }        // Shared/Runtime
     public ManifestConfig Manifest { get; }       // Shared/Manifest (data only — no behavior)
     public BuildOptions Options { get; }          // Host/Configuration aggregate (Vcpkg, Package, Versioning, Repository, DotNet, Diagnostics)
@@ -512,9 +512,9 @@ internal sealed record SetupLocalDevRequest(
 Two valid patterns, choose by intent:
 
 - **Path is part of the target's invocation contract** → put it on the Request. Example: `PackageConsumerSmokeRequest.FeedPath` — the smoke target's intent depends on which feed it is reading from.
-- **Path is generic repo/artifact layout knowledge** → inject `BuildPaths` (or a sub-grouped path service after P4) into the Pipeline / service. Example: `paths.GetHarvestLibraryManifestFile(library, rid)` — repo layout, not invocation intent.
+- **Path is generic repo/artifact layout knowledge** → inject `IPathService` into the Pipeline / service. Example: `paths.GetHarvestLibraryManifestFile(library, rid)` — repo layout, not invocation intent.
 
-The dividing line: if changing the path changes what the target is doing, it is intent (Request). If the path is an implementation detail of how the target reads its own outputs, it is layout (BuildPaths).
+The dividing line: if changing the path changes what the target is doing, it is intent (Request). If the path is an implementation detail of how the target reads its own outputs, it is layout (IPathService).
 
 ### 2.12 DI registration shape — one extension method per feature
 
@@ -627,9 +627,9 @@ P1/P2 (folder migration + Pipeline rename + ServiceCollectionExtensions per feat
 
 P1/P2 runs with green tests using existing seams (mock-based interaction tests survive). P3 evaluates each surviving `I*` against §2.9 criteria with bounded test-rewrite scope per item.
 
-### 3.5 Why PathService split is also deferred
+### 3.5 Why PathService split was discarded
 
-The current `IPathService` has 50+ members consumed at hundreds of callsites. Splitting into `BuildPaths.Harvest`, `.Packages`, `.Smoke` etc. is desirable but is an **API refactor** on top of a folder refactor. Done together, they produce one giant unreviewable diff. Done separately, each is bounded.
+The `IPathService` fluent split into `BuildPaths.Harvest`, `.Packages`, `.Smoke` etc. was originally deferred to P4 §8.3 but was discarded on 2026-05-02. The 50+ member interface consumed at hundreds of callsites would have required a multi-commit sub-wave of mechanical rewrites whose cost-to-benefit ratio didn't justify the churn. `IPathService` remains the canonical Host-tier path abstraction; Integrations adapters may consume it as a cross-cutting concern.
 
 ### 3.6 Why "Features" prefix folder instead of flat top-level operation folders
 
@@ -693,7 +693,8 @@ Implementation is governed by a separate refactor plan at [`docs/phases/phase-x-
 | **P1** | Folder migration: Host split, Features re-grouping, Tools/Integrations separation, Shared narrowing | Medium (file moves) | §2.1–§2.8 |
 | **P2** | Terminology migration: `*TaskRunner` → `*Pipeline` rename, `ServiceCollectionExtensions` per feature, `BuildOptions` aggregate, `BuildContext` slimming, `LayerDependencyTests.cs` → `ArchitectureTests.cs` (file rename via `git mv` + invariant rewrite, atomic in-wave) | Medium (rename + DI shape) | §2.4, §2.5, §2.10, §2.11, §2.12, §2.13 |
 | **P3** | Interface review wave: §2.9 criteria applied to surviving `I*` types, test rewrite scope-bounded | High (test impact) | §2.9 |
-| **P4** | API-surface refactors (deferred): Pipeline `RunAsync(BuildContext, TRequest)` → `RunAsync(TRequest)` cut-over (closes §2.11.1 migration exception), PathService fluent split, large-Pipeline internal refactor (PackageConsumerSmokePipeline, HarvestPipeline) | Low–Medium (per-item) | §2.11 |
+| **P4-A** | Pipeline `RunAsync(BuildContext, TRequest)` → `RunAsync(TRequest)` cut-over (closes §2.11.1 migration exception) | Medium | §2.11 |
+| **P4-C** | Large-Pipeline internal refactor (PackageConsumerSmokePipeline, HarvestPipeline, PackagePipeline) — optional, per-Pipeline judgment | Low | §2.4 |
 | **P5** | Naming cleanup tail + `UnsupportedArtifactSourceResolver` retirement | Low | §2.14, §2.15 |
 
 P0 must complete before P1. P1 + P2 land per-feature with green tests at every wave boundary. P3 starts only after P2 closes — no interface pruning during structural migration.

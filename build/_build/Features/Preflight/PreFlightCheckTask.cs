@@ -29,6 +29,6 @@ public sealed class PreFlightCheckTask(
         ArgumentNullException.ThrowIfNull(context);
 
         var request = new PreflightRequest(_packageBuildConfiguration.ExplicitVersions);
-        return _preflightPipeline.RunAsync(context, request);
+        return _preflightPipeline.RunAsync(request);
     }
 }

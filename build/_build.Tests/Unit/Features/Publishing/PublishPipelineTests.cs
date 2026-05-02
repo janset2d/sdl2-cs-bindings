@@ -23,7 +23,7 @@ public sealed class PublishTaskRunnerTests
         var runner = new PublishPipeline(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, feedClient);
         var request = new PublishRequest(string.Empty, AuthToken, OneVersion("sdl2-core", "2.32.0-ci.1"));
 
-        var thrown = await Assert.That(() => runner.RunAsync(repo.BuildContext, request)).Throws<CakeException>();
+        var thrown = await Assert.That(() => runner.RunAsync(request)).Throws<CakeException>();
         await Assert.That(thrown!.Message).Contains("non-empty FeedUrl");
     }
 
@@ -37,7 +37,7 @@ public sealed class PublishTaskRunnerTests
         var runner = new PublishPipeline(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, feedClient);
         var request = new PublishRequest(FeedUrl, string.Empty, OneVersion("sdl2-core", "2.32.0-ci.1"));
 
-        var thrown = await Assert.That(() => runner.RunAsync(repo.BuildContext, request)).Throws<CakeException>();
+        var thrown = await Assert.That(() => runner.RunAsync(request)).Throws<CakeException>();
         await Assert.That(thrown!.Message).Contains("non-empty AuthToken");
         await Assert.That(thrown.Message).Contains("GH_TOKEN");
     }
@@ -52,7 +52,7 @@ public sealed class PublishTaskRunnerTests
         var runner = new PublishPipeline(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, feedClient);
         var request = new PublishRequest(FeedUrl, AuthToken, new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase));
 
-        var thrown = await Assert.That(() => runner.RunAsync(repo.BuildContext, request)).Throws<CakeException>();
+        var thrown = await Assert.That(() => runner.RunAsync(request)).Throws<CakeException>();
         await Assert.That(thrown!.Message).Contains("at least one --explicit-version");
     }
 
@@ -68,7 +68,7 @@ public sealed class PublishTaskRunnerTests
         var runner = new PublishPipeline(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, feedClient);
         var request = new PublishRequest(FeedUrl, AuthToken, OneVersion("sdl2-core", "2.32.0-local.20260421T000000"));
 
-        var thrown = await Assert.That(() => runner.RunAsync(repo.BuildContext, request)).Throws<CakeException>();
+        var thrown = await Assert.That(() => runner.RunAsync(request)).Throws<CakeException>();
         await Assert.That(thrown!.Message).Contains("local.");
         await Assert.That(thrown.Message).Contains("staging feed");
 
@@ -85,7 +85,7 @@ public sealed class PublishTaskRunnerTests
         var runner = new PublishPipeline(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, feedClient);
         var request = new PublishRequest(FeedUrl, AuthToken, OneVersion("ghost-family", "1.0.0-ci.1"));
 
-        var thrown = await Assert.That(() => runner.RunAsync(repo.BuildContext, request)).Throws<CakeException>();
+        var thrown = await Assert.That(() => runner.RunAsync(request)).Throws<CakeException>();
         await Assert.That(thrown!.Message).Contains("unknown family 'ghost-family'");
     }
 
@@ -99,7 +99,7 @@ public sealed class PublishTaskRunnerTests
         var runner = new PublishPipeline(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, feedClient);
         var request = new PublishRequest(FeedUrl, AuthToken, OneVersion("sdl2-core", "2.32.0-ci.1"));
 
-        var thrown = await Assert.That(() => runner.RunAsync(repo.BuildContext, request)).Throws<CakeException>();
+        var thrown = await Assert.That(() => runner.RunAsync(request)).Throws<CakeException>();
         await Assert.That(thrown!.Message).Contains("Janset.SDL2.Core.2.32.0-ci.1.nupkg");
         await Assert.That(thrown.Message).Contains("not found");
     }
@@ -115,7 +115,7 @@ public sealed class PublishTaskRunnerTests
         var runner = new PublishPipeline(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, feedClient);
         var request = new PublishRequest(FeedUrl, AuthToken, OneVersion("sdl2-core", "2.32.0-ci.1"));
 
-        var thrown = await Assert.That(() => runner.RunAsync(repo.BuildContext, request)).Throws<CakeException>();
+        var thrown = await Assert.That(() => runner.RunAsync(request)).Throws<CakeException>();
         await Assert.That(thrown!.Message).Contains("Janset.SDL2.Core.Native.2.32.0-ci.1.nupkg");
     }
 
@@ -139,7 +139,7 @@ public sealed class PublishTaskRunnerTests
         };
         var request = new PublishRequest(FeedUrl, AuthToken, versions);
 
-        await runner.RunAsync(repo.BuildContext, request);
+        await runner.RunAsync(request);
 
         // 2 families × (managed + native) = 4 pushes.
         await feedClient.Received(4).PushAsync(FeedUrl, AuthToken, Arg.Any<FilePath>(), Arg.Any<CancellationToken>());
@@ -170,7 +170,7 @@ public sealed class PublishTaskRunnerTests
         var runner = new PublishPipeline(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, feedClient);
         var request = new PublishRequest(FeedUrl, AuthToken, OneVersion("sdl2-core", "2.32.0-LOCAL.X"));
 
-        var thrown = await Assert.That(() => runner.RunAsync(repo.BuildContext, request)).Throws<CakeException>();
+        var thrown = await Assert.That(() => runner.RunAsync(request)).Throws<CakeException>();
         await Assert.That(thrown!.Message).Contains("local.");
     }
 

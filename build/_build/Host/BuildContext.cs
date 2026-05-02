@@ -1,4 +1,4 @@
-﻿using Build.Host.Configuration;
+using Build.Host.Configuration;
 using Build.Host.Paths;
 using Build.Shared.Manifest;
 using Build.Shared.Runtime;

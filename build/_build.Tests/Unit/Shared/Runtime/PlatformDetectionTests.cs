@@ -1,7 +1,6 @@
 using Build.Shared.Manifest;
 using Build.Shared.Runtime;
 using Build.Tests.Fixtures;
-using Cake.Core;
 
 namespace Build.Tests.Unit.Shared.Runtime;
 

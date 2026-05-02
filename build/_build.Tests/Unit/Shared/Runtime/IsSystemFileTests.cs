@@ -1,5 +1,4 @@
 using Build.Tests.Fixtures;
-using Cake.Core.IO;
 
 namespace Build.Tests.Unit.Shared.Runtime;
 

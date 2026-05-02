@@ -9,7 +9,7 @@ using NSubstitute;
 
 namespace Build.Tests.Unit.Features.Diagnostics;
 
-public sealed class InspectHarvestedDependenciesTaskRunnerTests
+public sealed class InspectHarvestedDependenciesPipelineTests
 {
     [Test]
     public async Task RunAsync_Should_Throw_When_Platform_Is_Unknown()
@@ -22,10 +22,11 @@ public sealed class InspectHarvestedDependenciesTaskRunnerTests
         // (RuntimeFamily has no Unknown member by design — Shared/ vocabulary is closed-set
         // per ADR-004 §2.6).
         var profile = CreateRuntimeProfile("win-x64", (RuntimeFamily)999);
+        var vcpkgConfig = repo.BuildContext.Options.Vcpkg;
         var runner = new InspectHarvestedDependenciesPipeline(
-            repo.CakeContext, new FakeLog(), repo.Paths, profile, ManifestFixture.CreateTestManifestConfig());
+            repo.CakeContext, new FakeLog(), repo.Paths, profile, ManifestFixture.CreateTestManifestConfig(), vcpkgConfig);
 
-        var ex = await Assert.That(() => runner.RunAsync(repo.BuildContext)).Throws<CakeException>();
+        var ex = await Assert.That(() => runner.RunAsync()).Throws<CakeException>();
         await Assert.That(ex!.Message).Contains("OS key");
     }
 
@@ -37,10 +38,11 @@ public sealed class InspectHarvestedDependenciesTaskRunnerTests
             .BuildContextWithHandles();
 
         var profile = CreateRuntimeProfile("linux-x64", RuntimeFamily.Linux);
+        var vcpkgConfig = repo.BuildContext.Options.Vcpkg;
         var runner = new InspectHarvestedDependenciesPipeline(
-            repo.CakeContext, new FakeLog(), repo.Paths, profile, ManifestFixture.CreateTestManifestConfig());
+            repo.CakeContext, new FakeLog(), repo.Paths, profile, ManifestFixture.CreateTestManifestConfig(), vcpkgConfig);
 
-        var ex = await Assert.That(() => runner.RunAsync(repo.BuildContext)).Throws<CakeException>();
+        var ex = await Assert.That(() => runner.RunAsync()).Throws<CakeException>();
         await Assert.That(ex!.Message).Contains("missing");
         await Assert.That(ex.Message).Contains("--target Harvest --rid linux-x64");
     }
@@ -55,10 +57,11 @@ public sealed class InspectHarvestedDependenciesTaskRunnerTests
             .BuildContextWithHandles();
 
         var profile = CreateRuntimeProfile("linux-x64", RuntimeFamily.Linux);
+        var vcpkgConfig = repo.BuildContext.Options.Vcpkg;
         var runner = new InspectHarvestedDependenciesPipeline(
-            repo.CakeContext, new FakeLog(), repo.Paths, profile, ManifestFixture.CreateTestManifestConfig());
+            repo.CakeContext, new FakeLog(), repo.Paths, profile, ManifestFixture.CreateTestManifestConfig(), vcpkgConfig);
 
-        var ex = await Assert.That(() => runner.RunAsync(repo.BuildContext)).Throws<CakeException>();
+        var ex = await Assert.That(() => runner.RunAsync()).Throws<CakeException>();
         await Assert.That(ex!.Message).Contains("native.tar.gz");
     }
 
@@ -71,10 +74,11 @@ public sealed class InspectHarvestedDependenciesTaskRunnerTests
             .BuildContextWithHandles();
 
         var profile = CreateRuntimeProfile("linux-x64", RuntimeFamily.Linux);
+        var vcpkgConfig = repo.BuildContext.Options.Vcpkg;
         var runner = new InspectHarvestedDependenciesPipeline(
-            repo.CakeContext, new FakeLog(), repo.Paths, profile, ManifestFixture.CreateTestManifestConfig());
+            repo.CakeContext, new FakeLog(), repo.Paths, profile, ManifestFixture.CreateTestManifestConfig(), vcpkgConfig);
 
-        var ex = await Assert.That(() => runner.RunAsync(repo.BuildContext)).Throws<CakeException>();
+        var ex = await Assert.That(() => runner.RunAsync()).Throws<CakeException>();
         await Assert.That(ex!.Message).Contains("SDL2_not_real");
     }
 
@@ -90,10 +94,11 @@ public sealed class InspectHarvestedDependenciesTaskRunnerTests
             .BuildContextWithHandles();
 
         var profile = CreateRuntimeProfile("win-x64", RuntimeFamily.Windows);
+        var vcpkgConfig = repo.BuildContext.Options.Vcpkg;
         var runner = new InspectHarvestedDependenciesPipeline(
-            repo.CakeContext, new FakeLog(), repo.Paths, profile, ManifestFixture.CreateTestManifestConfig());
+            repo.CakeContext, new FakeLog(), repo.Paths, profile, ManifestFixture.CreateTestManifestConfig(), vcpkgConfig);
 
-        var ex = await Assert.That(() => runner.RunAsync(repo.BuildContext)).Throws<CakeException>();
+        var ex = await Assert.That(() => runner.RunAsync()).Throws<CakeException>();
         await Assert.That(ex!.Message).Contains("no primary binary matched");
     }
 
@@ -119,10 +124,11 @@ public sealed class InspectHarvestedDependenciesTaskRunnerTests
             .BuildContextWithHandles();
 
         var profile = CreateRuntimeProfile("win-x64", RuntimeFamily.Windows);
+        var vcpkgConfig = repo.BuildContext.Options.Vcpkg;
         var runner = new InspectHarvestedDependenciesPipeline(
-            repo.CakeContext, new FakeLog(), repo.Paths, profile, manifest);
+            repo.CakeContext, new FakeLog(), repo.Paths, profile, manifest, vcpkgConfig);
 
-        var ex = await Assert.That(() => runner.RunAsync(repo.BuildContext)).Throws<CakeException>();
+        var ex = await Assert.That(() => runner.RunAsync()).Throws<CakeException>();
         await Assert.That(ex!.Message).Contains("no primary_binaries entry for OS 'Windows'");
     }
 

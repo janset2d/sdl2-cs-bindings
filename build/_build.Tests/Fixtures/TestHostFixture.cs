@@ -1,21 +1,16 @@
-using Build.Host;
-using Build.Host.Configuration;
 using Build.Host.Paths;
 using Build.Integrations.Coverage;
 using Build.Integrations.DependencyAnalysis;
 using Build.Integrations.DotNet;
-using Build.Integrations.Msvc;
 using Build.Integrations.NuGet;
 using Build.Integrations.Vcpkg;
 using Build.Shared.Manifest;
 using Build.Shared.Runtime;
-using Build.Tools.Vcpkg;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
-using DotNetRuntimeEnvironment = Build.Integrations.DotNet.DotNetRuntimeEnvironment;
 
 namespace Build.Tests.Fixtures;
 
@@ -38,6 +33,7 @@ namespace Build.Tests.Fixtures;
 /// Tools / Integrations are NSubstitute-backed for interface registrations.
 /// <see cref="VcpkgBootstrapTool"/> is sealed and is registered as a concrete singleton —
 /// its constructor only requires <see cref="ICakeContext"/>, which the fixture provides.
+/// Production registration lives in <see cref="Build.Integrations.ServiceCollectionExtensions.AddIntegrations"/>.
 /// </para>
 /// </remarks>
 public static class TestHostFixture
@@ -83,9 +79,7 @@ public static class TestHostFixture
         services.AddSingleton(manifest.SystemExclusions);
 
         // Tools / Integrations — NSubstitute fakes for interfaces, concrete for the sealed
-        // VcpkgBootstrapTool wrapper. Production registrations live in Program.cs alongside
-        // these but feature smokes don't exercise their behaviour, only that the DI graph
-        // resolves them.
+        // VcpkgBootstrapTool wrapper.
         services.AddSingleton(Substitute.For<IPackageInfoProvider>());
         services.AddSingleton(Substitute.For<ICoberturaReader>());
         services.AddSingleton(Substitute.For<ICoverageBaselineReader>());

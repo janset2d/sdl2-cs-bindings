@@ -1,4 +1,4 @@
-using Build.Host;
+using Build.Host.Configuration;
 using Build.Host.Paths;
 using Build.Shared.Manifest;
 using Build.Shared.Runtime;
@@ -20,7 +20,8 @@ public sealed class NativeSmokePipeline(
     IPathService pathService,
     IRuntimeProfile runtimeProfile,
     ManifestConfig manifestConfig,
-    IMsvcDevEnvironment msvcDevEnvironment)
+    IMsvcDevEnvironment msvcDevEnvironment,
+    VcpkgConfiguration vcpkgConfiguration)
 {
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
@@ -28,17 +29,17 @@ public sealed class NativeSmokePipeline(
     private readonly IRuntimeProfile _runtimeProfile = runtimeProfile ?? throw new ArgumentNullException(nameof(runtimeProfile));
     private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
     private readonly IMsvcDevEnvironment _msvcDevEnvironment = msvcDevEnvironment ?? throw new ArgumentNullException(nameof(msvcDevEnvironment));
+    private readonly VcpkgConfiguration _vcpkgConfiguration = vcpkgConfiguration ?? throw new ArgumentNullException(nameof(vcpkgConfiguration));
 
-    public async Task RunAsync(BuildContext context, NativeSmokeRequest request, CancellationToken cancellationToken = default)
+    public async Task RunAsync(NativeSmokeRequest request, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
 
         EnsureNativeSmokeInputsReady();
 
-        var libraries = ResolveLibrariesToValidate(context);
-        EnsureHarvestPayloadReady(context, libraries);
+        var libraries = ResolveLibrariesToValidate();
+        EnsureHarvestPayloadReady(libraries);
 
         var preset = request.Rid;
         await RunCmakeConfigureAsync(preset);
@@ -77,9 +78,9 @@ public sealed class NativeSmokePipeline(
         }
     }
 
-    private List<LibraryManifest> ResolveLibrariesToValidate(BuildContext context)
+    private List<LibraryManifest> ResolveLibrariesToValidate()
     {
-        var specifiedLibraries = context.Options.Vcpkg.Libraries;
+        var specifiedLibraries = _vcpkgConfiguration.Libraries;
         var manifestLibraries = _manifestConfig.LibraryManifests.ToList();
 
         if (!specifiedLibraries.Any())
@@ -104,7 +105,7 @@ public sealed class NativeSmokePipeline(
         return result;
     }
 
-    private void EnsureHarvestPayloadReady(BuildContext context, IReadOnlyList<LibraryManifest> libraries)
+    private void EnsureHarvestPayloadReady(IReadOnlyList<LibraryManifest> libraries)
     {
         foreach (var libraryName in libraries.Select(l => l.Name))
         {
@@ -112,14 +113,14 @@ public sealed class NativeSmokePipeline(
                 .GetHarvestLibraryRidRuntimesDir(libraryName, _runtimeProfile.Rid)
                 .Combine("native");
 
-            if (!context.DirectoryExists(nativeDir))
+            if (!_cakeContext.DirectoryExists(nativeDir))
             {
                 throw new CakeException(
                     $"NativeSmoke precondition failed: '{nativeDir.FullPath}' is missing for library '{libraryName}'. " +
                     $"Run '--target Harvest --rid {_runtimeProfile.Rid}' first.");
             }
 
-            var hasPayload = context.GetFiles($"{nativeDir.FullPath}/**/*").Count > 0;
+            var hasPayload = _cakeContext.GetFiles($"{nativeDir.FullPath}/**/*").Count > 0;
             if (!hasPayload)
             {
                 throw new CakeException(

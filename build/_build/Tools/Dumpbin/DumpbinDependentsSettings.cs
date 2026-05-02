@@ -1,4 +1,4 @@
-﻿using Cake.Core.Tooling;
+using Cake.Core.Tooling;
 
 namespace Build.Tools.Dumpbin;
 

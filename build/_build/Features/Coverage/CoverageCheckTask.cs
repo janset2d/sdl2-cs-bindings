@@ -30,6 +30,6 @@ public sealed class CoverageCheckTask(
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        _coverageCheckPipeline.Run(context);
+        _coverageCheckPipeline.Run();
     }
 }

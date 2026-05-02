@@ -1,5 +1,3 @@
-using Build.Host;
-
 namespace Build.Features.Packaging;
 
 /// <summary>
@@ -9,5 +7,5 @@ namespace Build.Features.Packaging;
 /// </summary>
 public interface IPackagePipeline
 {
-    Task RunAsync(BuildContext context, PackRequest request, CancellationToken cancellationToken = default);
+    Task RunAsync(PackRequest request, CancellationToken cancellationToken = default);
 }

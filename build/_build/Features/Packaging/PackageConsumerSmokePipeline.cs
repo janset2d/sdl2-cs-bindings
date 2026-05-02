@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using Build.Features.Preflight;
-using Build.Host;
 using Build.Host.Configuration;
 using Build.Host.Paths;
 using Build.Integrations.DotNet;
@@ -54,9 +53,8 @@ public sealed class PackageConsumerSmokePipeline(
 
     [SuppressMessage("Design", "MA0051:Method is too long",
         Justification = "Linear orchestration: guards + feed resolve + compile-sanity + per-TFM smoke. Splitting hurts traceability of the operator-visible pass/fail sequence.")]
-    public async Task RunAsync(BuildContext context, PackageConsumerSmokeRequest request, CancellationToken cancellationToken = default)
+    public async Task RunAsync(PackageConsumerSmokeRequest request, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
 

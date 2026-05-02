@@ -10,7 +10,7 @@
 > - **`Tools/`** — Cake `Tool<TSettings>` wrappers ONLY (vcpkg, dumpbin, ldd, otool, tar, native-smoke).
 > - **`Integrations/`** — non-Cake-Tool external adapters (NuGet protocol client, dotnet pack invoker, project metadata reader, coverage XML readers, vcpkg manifest reader, MSVC env resolver, dependency-analysis scanners).
 >
-> Direction-of-dependency invariants are asserted by [`ArchitectureTests`](../../build/_build.Tests/Unit/CompositionRoot/ArchitectureTests.cs) (renamed from `LayerDependencyTests` at the P2 wave); the five invariants are listed in [ADR-004 §2.13](../decisions/2026-05-02-cake-native-feature-architecture.md#213-architecturetests-direction-of-dependency-invariants). One named exception is documented inline: `Integrations/{DotNet,Vcpkg} → Host.Paths.IPathService` is tolerated until P4 §8.3 BuildPaths fluent split (see phase-x §14.5). Contributor on-ramp: [AGENTS.md § Build-Host Reference Pattern](../../AGENTS.md) + [docs/onboarding.md repo tree](../onboarding.md).
+> Direction-of-dependency invariants are asserted by [`ArchitectureTests`](../../build/_build.Tests/Unit/CompositionRoot/ArchitectureTests.cs) (renamed from `LayerDependencyTests` at the P2 wave); the five invariants are listed in [ADR-004 §2.13](../decisions/2026-05-02-cake-native-feature-architecture.md#213-architecturetests-direction-of-dependency-invariants). One permanent named exception is documented inline: `Integrations/{DotNet,Vcpkg} → Host.Paths.IPathService` — `IPathService` is the canonical Host-tier path abstraction that Integrations adapters may consume (see phase-x §14.5). Contributor on-ramp: [AGENTS.md § Build-Host Reference Pattern](../../AGENTS.md) + [docs/onboarding.md repo tree](../onboarding.md).
 
 ## Overview
 
@@ -189,7 +189,7 @@ build/_build/
 │   ├── Cake/               ← CakeJsonExtensions, CakePlatformExtensions, CakeFileSystemExtensions
 │   ├── Cli/                ← CakeOptions, RepositoryOptions, VcpkgOptions, DotNetOptions, PackageOptions, VersioningOptions, DumpbinOptions
 │   ├── Configuration/      ← BuildOptions aggregate + per-axis records (VcpkgConfiguration, PackageBuildConfiguration, VersioningConfiguration, RepositoryConfiguration, DotNetBuildConfiguration, DumpbinConfiguration)
-│   └── Paths/              ← IPathService + PathService (Host-tier; P4 §8.3 splits into BuildPaths fluent groups)
+│   └── Paths/              ← IPathService + PathService (Host-tier path abstraction)
 ├── Features/               ← Operational vertical slices (13 features post-Adım 13)
 │   ├── Ci/                 ← GenerateMatrixTask + GenerateMatrixPipeline + ServiceCollectionExtensions
 │   ├── Coverage/           ← CoverageCheckTask + CoverageCheckPipeline + CoverageThresholdValidator
@@ -219,21 +219,21 @@ build/_build/
 │   ├── NativeSmoke/        ← CMake invocation wrapper for the C/C++ smoke harness (Slice D)
 │   ├── Otool/              ← OtoolTool, OtoolSettings, OtoolAliases, OtoolAnalyzeRunner
 │   ├── Tar/                ← Tar wrapper (symlink-preserving extract, Slice D)
-│   └── Vcpkg/              ← VcpkgTool, VcpkgSettings, VcpkgAliases (also hosts VcpkgBootstrapTool sealed class for bootstrap-vcpkg.bat/.sh dispatch — see phase-x §2.7 Adım-13 follow-up note for relocation candidacy under Integrations/Vcpkg/)
-└── Integrations/           ← Non-Cake-Tool external adapters (invariant #3: no Features deps; IPathService Host-coupling tolerated until P4 §8.3)
+│   └── Vcpkg/              ← VcpkgTool, VcpkgInstallTool, VcpkgPackageInfoTool, VcpkgSettings, VcpkgAliases
+└── Integrations/           ← Non-Cake-Tool external adapters (invariant #3: no Features deps; IPathService Host-coupling permanently tolerated — see ArchitectureTests invariant #3)
     ├── Coverage/           ← CoberturaReader + ICoberturaReader; CoverageBaselineReader + ICoverageBaselineReader
     ├── DependencyAnalysis/ ← WindowsDumpbinScanner, LinuxLddScanner, MacOtoolScanner, IRuntimeScanner
     ├── DotNet/             ← DotNetPackInvoker + IDotNetPackInvoker; ProjectMetadataReader + IProjectMetadataReader; DotNetRuntimeEnvironment + IDotNetRuntimeEnvironment (win-x86 child runtime bootstrap, P4d)
     ├── Msvc/               ← MsvcDevEnvironment + IMsvcDevEnvironment (vswhere + vcvarsall + env-delta merge per MsvcTargetArch, Slice CA)
     ├── NuGet/              ← NuGetProtocolFeedClient + INuGetFeedClient (read+write to GitHub Packages staging feed; PD-7 nuget.org public path TBD)
-    └── Vcpkg/              ← VcpkgCliProvider (IPackageInfoProvider impl) + VcpkgManifestReader (IVcpkgManifestReader impl)
+    └── Vcpkg/              ← VcpkgCliProvider (IPackageInfoProvider impl) + VcpkgManifestReader (IVcpkgManifestReader impl) + VcpkgBootstrapTool (bootstrap-vcpkg.bat/.sh dispatch, sealed concrete)
 ```
 
 Direction-of-dependency invariants are asserted by [`build/_build.Tests/Unit/CompositionRoot/ArchitectureTests.cs`](../../build/_build.Tests/Unit/CompositionRoot/ArchitectureTests.cs):
 
 1. **`Shared_Should_Have_No_Outward_Or_Cake_Dependencies`** — `Build.Shared.*` may reference pure-domain libraries only (`NuGet.Versioning`, `OneOf`, `System.Text.Json`, etc.). No Cake.*, no `Build.Host.*`, no `Build.Features.*`, no `Build.Tools.*`, no `Build.Integrations.*`.
 2. **`Tools_Should_Have_No_Feature_Dependencies`** — `Build.Tools.*` may depend on Cake framework + `Build.Shared.*` only.
-3. **`Integrations_Should_Have_No_Feature_Dependencies`** — `Build.Integrations.*` may depend on Cake framework + `Build.Shared.*` only. **Inline named exception**: 2 IPathService Host-couplings (`Integrations.DotNet.DotNetPackInvoker → Build.Host.Paths.IPathService`; `Integrations.Vcpkg.VcpkgCliProvider → Build.Host.Paths.IPathService`) are tolerated via a `p4DeferredAllowlist` HashSet in the test method until P4 §8.3 BuildPaths fluent split dissolves IPathService into per-axis path services. Lift the allowlist entries when the P4 wave closes.
+3. **`Integrations_Should_Have_No_Feature_Dependencies`** — `Build.Integrations.*` may depend on Cake framework + `Build.Shared.*` only. **Inline named exception**: 2 IPathService Host-couplings (`Integrations.DotNet.DotNetPackInvoker → Build.Host.Paths.IPathService`; `Integrations.Vcpkg.VcpkgCliProvider → Build.Host.Paths.IPathService`) are permanently tolerated via a `permanentIntegrationsAllowlist` HashSet in the test method. `IPathService` is the canonical Host-tier path abstraction that Integrations adapters may consume; the BuildPaths fluent split originally scoped to P4 §8.3 was discarded on 2026-05-02.
 4. **`Features_Should_Not_Cross_Reference_Except_From_LocalDev`** — `Build.Features.X.*` may not reference types in `Build.Features.Y.*`. Cross-feature data sharing flows through `Build.Shared.*`. `Build.Features.LocalDev.*` is the sole orchestration-feature exception (see ADR-004 §2.5).
 5. **`Host_Is_Free`** — `Build.Host.*` may reference any layer; documented as a dual-direction sanity check, asserts only that the namespace is non-empty.
 

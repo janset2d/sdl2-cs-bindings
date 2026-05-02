@@ -12,6 +12,7 @@ public sealed class InfoTask(InfoPipeline infoPipeline) : AsyncFrostingTask<Buil
 
     public override async Task RunAsync(BuildContext context)
     {
-        await _infoPipeline.RunAsync(context);
+        ArgumentNullException.ThrowIfNull(context);
+        await _infoPipeline.RunAsync();
     }
 }

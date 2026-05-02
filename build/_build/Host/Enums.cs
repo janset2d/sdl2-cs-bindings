@@ -1,4 +1,4 @@
-﻿namespace Build.Host;
+namespace Build.Host;
 
 public static class Rids
 {

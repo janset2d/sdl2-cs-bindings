@@ -107,7 +107,7 @@ public sealed class PackageOutputValidator(
                 managedProjectMetadata);
         }
 
-            if (managedMetadata is not null && nativeMetadata is not null)
+        if (managedMetadata is not null && nativeMetadata is not null)
         {
             EvaluateWithinFamilyVersionCoherence(checks, family, managedMetadata, nativeMetadata, artifacts.ManagedPackage, artifacts.NativePackage);
         }

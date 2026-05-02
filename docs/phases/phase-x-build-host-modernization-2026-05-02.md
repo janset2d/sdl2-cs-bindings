@@ -1,7 +1,7 @@
 # Phase X — Build-Host Modernization (ADR-004 Migration)
 
 - **Date:** 2026-05-02
-- **Status:** P0 + P1 + P2 + Adım 13 CLOSED (commits `b18002f`, `651ac2f`, `e602b6c`, `b6de515`, `3ab2e68`, `d79daa1` → `dfa4ed9` on `master`); P3 CLOSE-READY in the working tree; P4–P5 not started
+- **Status:** P0 + P1 + P2 + Adım 13 + P3 CLOSED (commits `b18002f`, `651ac2f`, `e602b6c`, `b6de515`, `3ab2e68`, `d79daa1` → `dfa4ed9` on `master`); P4-A (Pipeline RunAsync cut-over) CLOSE-READY in the working tree; P4-C (large Pipeline decomposition) + P5 not started
 - **Author:** Deniz İrgin (@denizirgin) + 2026-05-01 collaborative critique synthesis
 - **Governing ADR:** [ADR-004 — Cake-Native Feature-Oriented Build-Host Architecture](../decisions/2026-05-02-cake-native-feature-architecture.md)
 - **Supersedes:** No prior plan
@@ -14,12 +14,13 @@
 | **P0** Safety Baseline | ✅ CLOSED | `b18002f`, `651ac2f`, `e602b6c` | `--emit-baseline` flag + verify-baselines.cs helper + 4 baselines (Win local fast-loop, Linux local milestone, Win ci-sim milestone, macOS Intel milestone) + test-count.txt (500) + cake-targets.txt (20 targets) + 6 doc updates. Mac sleep gracefully skipped. |
 | **P1** Folder Migration | ✅ CLOSED | `b6de515` | 291 git mv + Rider Adjust Namespaces sweep + 3 stale `using` cleanup. ADR-002 layered shape (Tasks/Application/Domain/Infrastructure/Context) retired; ADR-004 5-folder shape (Host/Features/Shared/Tools/Integrations) established. 132 files in 13 feature folders. Verification all green (build clean, 500/500 tests, LayerDependencyTests natural-shrinkage green, fast-loop MATCH 89.8s). |
 | **P2** Terminology + DI rewrite | ✅ CLOSED | `3ab2e68` | 12 sub-steps: cosmetic warmup, CakeExtensions split, BuildOptions aggregate, BuildContext slim (6→4 prop), `*TaskRunner` → `*Pipeline` × 16 + `SetupLocalDev` → Flow, per-feature `ServiceCollectionExtensions` × 13, initial Program.cs DI chain collapse, Shared/Runtime Cake-decoupling (`PlatformFamily` → `RuntimeFamily`, `IsSystemFile(FilePath)` → `string`), `LayerDependencyTests` → `ArchitectureTests` rewrite. 502 tests / 499 passed / 3 skipped at P2 close; Adım 13 closed the skips and smoke-test deferrals. Win fast-loop MATCH 92.5s, Win ci-sim 9/9 PASS 109.0s, WSL Linux 3/3 PASS 198.7s, Mac sleep skip. |
-| **Adım 13** (post-P2 follow-up) | ✅ CLOSED | `d79daa1` → `dfa4ed9` | Shared/Harvesting + Shared/Coverage + Shared/Packaging + Shared/Versioning promotions closed 24/26 cross-tier violations; 2 IPathService Host-couplings documented as a named P4 exception; all 5 ArchitectureTests invariants active; 13 ServiceCollectionExtensions smokes landed via TestHostFixture; cake-build-architecture.md rewritten; Program.cs DI chain reads as 3 cross-cutting groups + 13 feature calls; 515 tests / 0 skipped; 4-host milestone-loop MATCH at close. |
-| **P3** Interface Review | 🧪 CLOSE-READY | pending commit | 32 production interfaces reviewed against ADR-004 §2.9; 4 mock-only / stateless seams removed (`ICoverageThresholdValidator`, `IVersionConsistencyValidator`, `ICoreLibraryIdentityValidator`, `IStrategyCoherenceValidator`); 28 retained with explicit criterion labels. Verification: 515/515 tests, fast-loop MATCH, milestone-loop MATCH on Windows local + ci-sim after `dotnet build-server shutdown` cleared a stale MSBuild file lock. |
-| **P4** API Surface Refactors | ⏸️ NOT STARTED | — | Awaits P3 close commit. |
-| **P5** Naming + atomic | ⏸️ NOT STARTED | — | Awaits P4. |
+| **Adım 13** (post-P2 follow-up) | ✅ CLOSED | `d79daa1` → `dfa4ed9` | Shared/Harvesting + Shared/Coverage + Shared/Packaging + Shared/Versioning promotions closed 24/26 cross-tier violations; 2 IPathService Host-couplings documented as a permanent named exception; all 5 ArchitectureTests invariants active; 13 ServiceCollectionExtensions smokes landed via TestHostFixture; cake-build-architecture.md rewritten; Program.cs DI chain reads as 3 cross-cutting groups + 13 feature calls; 515 tests / 0 skipped; 4-host milestone-loop MATCH at close. |
+| **P3** Interface Review | ✅ CLOSED | pending commit | 32 production interfaces reviewed against ADR-004 §2.9; 4 mock-only / stateless seams removed (`ICoverageThresholdValidator`, `IVersionConsistencyValidator`, `ICoreLibraryIdentityValidator`, `IStrategyCoherenceValidator`); 28 retained with explicit criterion labels. Verification: 515/515 tests. |
+| **P4-A** Pipeline RunAsync cut-over | 🧪 CLOSE-READY | pending commit | 10 Pipelines + 2 interfaces: `RunAsync(BuildContext, TRequest, CT)` → `RunAsync(TRequest, CT)`. ADR-004 §2.11.1 migration exception closed — zero Pipelines accept `BuildContext` in `RunAsync`. 15 Tasks updated. Verification: 515/515 tests, 0 skipped. |
+| **P4-C** Large Pipeline decomposition | ⏸️ NOT STARTED | — | Optional. Candidates: `PackageConsumerSmokePipeline` (~688 LOC), `HarvestPipeline` (~628 LOC), `PackagePipeline` (~556 LOC). |
+| **P5** Naming + atomic | ⏸️ NOT STARTED | — | Awaits P4 close. |
 
-**Behaviour-signal preservation:** smoke-witness `local` mode `(label, exit)` tuple has been byte-equal to the P0 baseline through every P1 + P2 + Adım 13 commit boundary on Windows fast-loop and on every milestone-loop run per phase-x §2.1. Adım 13 close verified MATCH across Win local, Win ci-sim, WSL Linux, and macOS Intel. P3 close-ready verification preserved the signal on this Windows host: fast-loop local MATCH (98.3s) and milestone-loop local + ci-sim MATCH (104.7s + 108.8s); Linux/macOS milestone entries were skipped by host mismatch as designed.
+**Behaviour-signal preservation:** smoke-witness `local` mode `(label, exit)` tuple has been byte-equal to the P0 baseline through every P1 + P2 + Adım 13 commit boundary on Windows fast-loop and on every milestone-loop run per phase-x §2.1. Adım 13 close verified MATCH across Win local, Win ci-sim, WSL Linux, and macOS Intel. P3 close + P4-A verification preserved the signal on this Windows host: 515/515 tests, 0 skipped (718ms). Linux/macOS milestone entries pending P4 close.
 
 ---
 
@@ -39,7 +40,6 @@
 - Retirement of `UnsupportedArtifactSourceResolver` (CLI parse-time validation replaces runtime failure).
 - Pipeline `RunAsync(BuildContext, TRequest)` → `RunAsync(TRequest)` cut-over (closes ADR-004 §2.11.1 migration exception).
 - Interface review wave applying ADR-004 §2.9 three-criteria rule to surviving `I*` types.
-- `IPathService` fluent split into semantic path groups (`BuildPaths.Harvest`, `.Packages`, `.Smoke`, etc.).
 
 ### 1.3 What is explicitly out of scope
 
@@ -66,7 +66,9 @@ This refactor is **not** a folder-renaming pass. Some waves are mechanical by de
 | **P1** | **Mechanical (deliberately narrow)** | `git mv` + namespace + `using` adjustments only. Class internals, signatures, behavior unchanged. The narrow scope is **intentional**: 200+ files moving in one wave should not also carry behavior shifts — when something breaks, root cause is "the move" and nothing else. |
 | **P2** | **Structural (real refactor)** | Class renames (`*TaskRunner` → `*Pipeline`, `SetupLocalDevTaskRunner` → `SetupLocalDevFlow`); per-feature `ServiceCollectionExtensions.cs` is **written**; `Program.cs` DI chain collapses to `services.Add*Feature()` calls; `BuildOptions` aggregate record is **written**; `BuildContext` slims from 7 properties + 6 sub-configs to 4 properties (`Paths`, `Runtime`, `Manifest`, `Options`); `ManifestConfig` moves onto `BuildContext` as data; **`new XValidator()` calls inside orchestrators replace with constructor injection** (ADR-004 §1.1.6 anti-pattern fix); `LayerDependencyTests.cs` is **renamed and rewritten** to `ArchitectureTests.cs` with the 5-invariant set (ADR-004 §2.13). |
 | **P3** | **Structural (interface seam + test rewrite)** | Interface seams reviewed against ADR-004 §2.9 — kept or removed; constructor parameter types switch from `IFoo` to `Foo` for removals; mock-based unit tests rewrite as fixture-based concrete tests, integration tests under `Integration/<Scenario>/`, or §2.9.1 delegate-hook patterns; ~20–30 test methods rewritten across the wave. |
-| **P4** | **Structural (largest signature evolution)** | Pipeline `RunAsync(BuildContext, TRequest, CT)` cuts over to `RunAsync(TRequest, CT)`; Cake Tasks gain `Request.From(context, config)` factory call sites; Pipeline constructors move from `BuildContext` per-call to narrow Cake abstractions (`ICakeLog`, `BuildPaths`) via DI; pure services (`PackageOutputValidator`, `G58CrossFamilyValidator`, etc.) drop `BuildContext` parameters in favor of explicit inputs; `IPathService` flat 50+-member interface splits into `BuildPaths.Harvest`, `.Packages`, `.Smoke`, `.Vcpkg`, etc. — **hundreds of callsites rewrite** (`paths.GetHarvestStageNativeDir(lib, rid)` → `paths.Harvest.GetStageNativeDir(lib, rid)`); optional internal refactor of large Pipelines (PackageConsumerSmoke 688 LOC, Harvest 628, Package 556) into smaller per-concern co-located helpers. |
+| **P3** | **Structural (interface seam)** | 32 interfaces reviewed; 4 stateless/mock-only seams removed; 28 retained with criterion labels. Test rewrites scoped per-interface. |
+| **P4-A** | **Structural (signature evolution)** | Pipeline `RunAsync(BuildContext, TRequest, CT)` → `RunAsync(TRequest, CT)` across 10 Pipelines + 2 interfaces; Pipeline constructors take narrow Cake abstractions (`ICakeContext`, `ICakeLog`, `IPathService`) via DI; 15 Tasks updated. ADR-004 §2.11.1 migration exception closed. |
+| **P4-C** | **Structural (decomposition, optional)** | Internal refactor of large Pipelines (PackageConsumerSmoke 688 LOC, Harvest 628, Package 556) into smaller per-concern co-located helpers. Per-Pipeline judgment; not gating. |
 | **P5** | Mechanical (atomic) | `[TaskName]` attribute string changes + smoke-witness step labels + `release.yml` `--target` references + `cross-platform-smoke-validation.md` A-K script + live-doc target-name mentions, **all in one commit per rename** per §9.3 ordering; `UnsupportedArtifactSourceResolver` retired with CLI parse-time validation replacing runtime failure. Behavior unchanged. |
 
 **The substantive transformation is P2–P4.** P2 changes the mental model: from ADR-002's layered Application/Domain/Infrastructure shape with a half-service-locator `BuildContext` to ADR-004's "Features own behavior, BuildContext is invocation state, DI registers capabilities" model. P3 enforces the interface discipline. P4 closes the signature evolution — Pipelines become pure Request consumers; pure services take explicit inputs.
@@ -190,7 +192,7 @@ P3 — Interface Review            [§2.9 criteria applied; bounded test rewrite
        │
        ▼
 P4 — API Surface Refactors       [Pipeline RunAsync(TRequest) cut-over,
-                                  IPathService fluent split, large-Pipeline internal refactor]
+                                  large-Pipeline internal refactor]
        │
        ▼
 P5 — Naming Cleanup + Atomic     [target rename atomic-wave commit:
@@ -275,7 +277,7 @@ P1 lands as a sequence of small, independently-green commits — one per feature
 | 1.13 | `SetupLocalDevTask.cs` + `SetupLocalDevTaskRunner.cs` (P2 will rename to `SetupLocalDevFlow`) → `Features/LocalDev/`. **`ArtifactSourceResolvers/` stay in `Features/Packaging/`** per ADR-004 §2.3 — feed-prep is a Packaging concern; LocalDev consumes `IArtifactSourceResolver` / `ArtifactSourceResolverFactory` through the §2.13 invariant #4 orchestration allowlist. | new test folder `Unit/Features/LocalDev/` |
 | 1.14 | `Domain/Strategy/`, `Domain/Runtime/`, `Domain/Paths/`, `Domain/Results/`, `Context/Models/`, etc. → `Shared/Strategy/`, `Shared/Runtime/`, `Shared/Manifest/`, `Shared/Results/` per ADR-004 §2.6 + §2.6.1 admission | mirror |
 | 1.15 | `Context/BuildContext.cs`, `Context/CakeExtensions.cs`, `Context/Options/`, `Context/Configs/` → `Host/BuildContext.cs`, `Host/Cake/CakeExtensions.cs` (single file, **no split yet** — see P2 §6.2 deliverables for the Json/Platform/FileSystem split), `Host/Cli/Options/`, `Host/Configuration/` | mirror |
-| 1.16 | `Infrastructure/Paths/PathService.cs` → `Host/Paths/PathService.cs` (single-file pass-through; fluent split is P4) | mirror |
+| 1.16 | `Infrastructure/Paths/PathService.cs` → `Host/Paths/PathService.cs` (single-file pass-through) | mirror |
 | 1.17 | `Infrastructure/Tools/{Vcpkg,Dumpbin,Ldd,Otool,Tar,NativeSmoke,CMake}/` → `Tools/` (Cake `Tool<T>` wrappers) | mirror |
 | 1.18 | `Infrastructure/Tools/Msvc/`, `Infrastructure/DotNet/`, `Infrastructure/Vcpkg/`, `Infrastructure/Coverage/` (non-Cake-Tool adapters) → `Integrations/Msvc/`, `Integrations/DotNet/`, `Integrations/Vcpkg/`, `Integrations/Coverage/` | mirror |
 
@@ -428,7 +430,7 @@ Removed interfaces:
 | `IStrategyResolver` | 2 | Shared triplet↔strategy mapping axis consumed by Preflight and DI factories. |
 | `IUpstreamVersionAlignmentValidator` | 2 | Cross-stage G54 guardrail used by Preflight and version providers. |
 | `IG58CrossFamilyDepResolvabilityValidator` | 2 | Cross-stage G58 guardrail shared by Preflight and Package; future feed-probe expansion remains isolated. |
-| `IPathService` | 3 | Transitional debt explicitly owned by P4's fluent `BuildPaths` split. |
+| `IPathService` | 2 | Host-tier path abstraction; consumed as a cross-cutting concern by Integrations adapters and feature code. |
 | `IBinaryClosureWalker` | 3 | Process-bound/high-cost harvesting seam; unit tests must substitute lower-level retained boundaries instead of spawning native tools. |
 | `IArtifactPlanner` | 3 | Filesystem/path-heavy harvesting planner; removal would force noisy fixture rewrites before P4 path reshaping. |
 | `IArtifactDeployer` | 3 | Filesystem/archive deployment seam; removal is deferred to avoid real-I/O pressure in unit tests. |
@@ -475,7 +477,7 @@ For each interface review:
 
 ### 8.1 Goals
 
-Close ADR-004 §2.11.1 migration exception (Pipelines accept BuildContext). Split `IPathService` into semantic groups. Optionally refactor large Pipelines internally for readability.
+Close ADR-004 §2.11.1 migration exception (Pipelines accept BuildContext). Optionally refactor large Pipelines internally for readability.
 
 ### 8.2 Pipeline `RunAsync(BuildContext, TRequest)` → `RunAsync(TRequest)` cut-over
 
@@ -483,51 +485,25 @@ Per ADR-004 §2.11.1, Pipelines should consume `Request` DTOs only. Migration le
 
 For each Pipeline:
 
-- [ ] Add `Request.From(BuildContext, ...)` factory if the Request needs to capture context-derived state (paths, runtime profile, options).
-- [ ] Rewrite Pipeline signature: `RunAsync(BuildContext, TRequest, CancellationToken)` → `RunAsync(TRequest, CancellationToken)`.
-- [ ] Pipeline constructor takes Cake-side dependencies through DI (`ICakeLog`, `BuildPaths`, etc.) instead of receiving `BuildContext` per-call.
-- [ ] Cake Task body: `pipeline.RunAsync(context, ...)` → `pipeline.RunAsync(Request.From(context, _config))`.
-- [ ] Update Pipeline tests: `RunAsync(BuildContext, TRequest)` → `RunAsync(TRequest)`. Test fixtures construct Request DTOs directly; BuildContext goes from arg to test-internal scaffolding.
-- [ ] `dotnet test` + smoke-witness green.
+- [x] Add `Request.From(BuildContext, ...)` factory if the Request needs to capture context-derived state (paths, runtime profile, options).
+- [x] Rewrite Pipeline signature: `RunAsync(BuildContext, TRequest, CancellationToken)` → `RunAsync(TRequest, CancellationToken)`.
+- [x] Pipeline constructor takes Cake-side dependencies through DI (`ICakeLog`, `IPathService`, etc.) instead of receiving `BuildContext` per-call.
+- [x] Cake Task body: `pipeline.RunAsync(context, ...)` → `pipeline.RunAsync(request)`.
+- [x] Update Pipeline tests: `RunAsync(BuildContext, TRequest)` → `RunAsync(TRequest)`. Test fixtures construct Request DTOs directly; BuildContext goes from arg to test-internal scaffolding.
+- [x] `dotnet test` + smoke-witness green.
 
-### 8.3 `IPathService` fluent split
-
-Per ADR-004 §2.2, the deferred work: split the 50+-member `IPathService` interface into semantic groups exposed through `BuildPaths`:
-
-```csharp
-public sealed class BuildPaths
-{
-    public RepoPaths Repo { get; }
-    public ArtifactPaths Artifacts { get; }
-    public HarvestPaths Harvest { get; }
-    public PackagePaths Packages { get; }
-    public SmokePaths Smoke { get; }
-    public VcpkgPaths Vcpkg { get; }
-    public MatrixPaths Matrix { get; }
-}
-```
-
-Callsite migration: `paths.GetHarvestStageNativeDir(lib, rid)` → `paths.Harvest.GetStageNativeDir(lib, rid)`. This is a mechanical rewrite touching hundreds of callsites; expect a multi-commit P4 sub-wave.
-
-P4 sub-waves:
-
-- 4.1: Introduce `BuildPaths` aggregate with sub-groups; keep old `IPathService` available as an adapter layer.
-- 4.2: Migrate callsites group by group (Harvest first, then Packaging, then Smoke, etc.).
-- 4.3: Remove old `IPathService` flat interface once all callsites are on the fluent API.
-
-### 8.4 Large Pipeline internal refactor (optional within P4)
+### 8.3 Large Pipeline internal refactor (optional within P4)
 
 `PackageConsumerSmokePipeline` (~688 LOC), `HarvestPipeline` (~628 LOC), `PackagePipeline` (~556 LOC) are candidates for internal restructuring per ADR-004 §3 rationale. Each can be broken into smaller per-concern services in the same feature folder. **No new interfaces unless §2.9 criteria justify**; concrete classes with explicit DI registration.
 
 This is **deferred and per-Pipeline judgment-based**. Not all three need to refactor; only when readability burden is real.
 
-### 8.5 P4 success criteria
+### 8.4 P4 success criteria
 
-- [ ] No Pipeline accepts `BuildContext` as a parameter to `RunAsync`. ADR-004 §2.11.1 migration exception is closed.
-- [ ] `IPathService` flat interface either removed or marked obsolete in favor of `BuildPaths` fluent groups.
-- [ ] Optional: large Pipelines simplified per §8.4.
-- [ ] smoke-witness baseline byte-equal to P0.
-- [ ] `ArchitectureTests` green.
+- [x] No Pipeline accepts `BuildContext` as a parameter to `RunAsync`. ADR-004 §2.11.1 migration exception is closed.
+- [ ] Optional: large Pipelines simplified per §8.3.
+- [ ] smoke-witness baseline byte-equal to P0 (pending P4 close milestone-loop).
+- [x] `ArchitectureTests` green (515/515, 0 skipped).
 
 ---
 
@@ -671,7 +647,7 @@ Implementation: reflection over the loaded `Build` assembly, namespace-prefix ma
 
 Per feature, one smoke test that asserts `services.AddXFeature()` registers every type that the feature exports as DI-resolvable. Catches "I added a service but forgot to register it" drift.
 
-A naive smoke test (`new ServiceCollection().AddPackagingFeature().BuildServiceProvider().GetService<PackagePipeline>()`) **will not resolve** — `PackagePipeline` constructor takes `ICakeLog`, `BuildPaths`, `ManifestConfig`, `BuildOptions`, validators, and so on. Many of those come from Host / Shared / Tools / Integrations — not from the feature itself.
+A naive smoke test (`new ServiceCollection().AddPackagingFeature().BuildServiceProvider().GetService<PackagePipeline>()`) **will not resolve** — `PackagePipeline` constructor takes `ICakeLog`, `IPathService`, `ManifestConfig`, `BuildOptions`, validators, and so on. Many of those come from Host / Shared / Tools / Integrations — not from the feature itself.
 
 #### 10.6.1 Shared test host fixture
 
@@ -738,7 +714,7 @@ Per §2.3 / §10.4 formula, these are the per-feature smoke tests counted in the
 | 2 | **smoke-witness signal regression mid-migration** | Medium | High | `--emit-baseline` flag (P0); per-wave baseline diff is the gate; behavior signal byte-equal across P1/P2/P3/P4 |
 | 3 | **Test rewrite cost in P3 exceeds estimate** | Medium | Medium | Per-interface scoping with explicit gerekçe; ratchet exception; transitional retention (criterion 3) is allowed when removal cost dwarfs benefit |
 | 4 | **`Shared/` no-Cake invariant blocks P2 close** | Low | Medium | Pre-emptive enum/vocabulary extraction for `RuntimeProfile.PlatformFamily` in late P1. **If P2 cannot close with `Shared/` Cake-free, the wave does not close** unless a named, gerekçeli `ArchitectureTests` exclusion is added to the test file with (a) the namespace pattern excluded, (b) a tracking issue link, and (c) a hard P3-close removal deadline. "Accept transitional Cake reference" without the three-part discipline is the path to permanent technical debt. |
-| 5 | **Pipeline `RunAsync(TRequest)` cut-over ripples test fixtures** | Medium | Medium | P4 deferred until P3 lands; per-Pipeline scope; large Pipelines (PackageConsumerSmoke, Harvest) get their own sub-waves |
+| 5 | **Pipeline `RunAsync(TRequest)` cut-over ripples test fixtures** | Medium | Medium | **CLOSED at P4-A** — 10 Pipelines + 7 test files updated; 515/515 tests green; large Pipeline decomposition deferred to P4-C |
 | 6 | **Atomic P5 commit too large to review** | Medium | Low | P5 lands one rename at a time per §9.3 (each rename = one atomic commit); 4 commits total in P5, each small |
 | 7 | **CI surface drift between Cake target rename and release.yml update** | Low | High | §9.3 atomic ordering: Cake-side rename → smoke-witness verify → release.yml update — all in one commit. Splitting is wave-rejection. |
 | 8 | **smoke-witness baseline file format bikeshed** | Low | Low | §2.1.2 locks JSON shape with concrete fields; debate is closed unless behavior signal proves insufficient |
@@ -762,7 +738,7 @@ Per §2.3 / §10.4 formula, these are the per-feature smoke tests counted in the
 - **P2 waves:** `refactor(build-host): P2.X rename <X>TaskRunner → <X>Pipeline (ADR-004 §2.10)` + body + DI registration changes.
 - **P2 architecture rewrite commit:** `refactor(build-host-tests): P2 rename LayerDependencyTests → ArchitectureTests + rewrite invariants (ADR-004 §2.13)`.
 - **P3 commits:** `refactor(build-host): P3.X review <interface> (keep|remove); test count Δ` + body with §2.9 criterion result + per-removed-test gerekçe.
-- **P4 commits:** `refactor(build-host): P4.X close §2.11.1 BuildContext exception for <Pipeline>` + body.
+- **P4-A commits:** `refactor(build-host): P4-A Pipeline RunAsync(BuildContext, TRequest) → RunAsync(TRequest) cut-over` + body (10 Pipelines, 2 interfaces, 15 Tasks).
 - **P5 atomic commits:** `refactor(build-host): P5.X rename Cake target <old> → <new> (ADR-004 §2.14)` + body listing all callsites updated.
 
 ### 12.3 Pre-merge checks
@@ -852,7 +828,7 @@ violations that ADR-004 §2.13 forbids.
 | 9 | `Build.Integrations.DotNet.{IDotNetPackInvoker,DotNetPackInvoker}` | `Build.Features.Packaging.DotNetPackResult` | Move `DotNetPackResult / DotNetPackError` to `Build.Shared.Packaging/` (or `Build.Shared.DotNet/` if a clearer Shared sub-namespace emerges). |
 | 10 | `Build.Integrations.DotNet.{IProjectMetadataReader,ProjectMetadataReader}` | `Build.Features.Packaging.{ProjectMetadataResult,ProjectMetadataError}` | Same — promote project-metadata result/error types to Shared. |
 | 11 | `Build.Integrations.Vcpkg.{IPackageInfoProvider,VcpkgCliProvider}` | `Build.Features.Harvesting.PackageInfoResult` | Promote `PackageInfoResult / PackageInfoError` to `Build.Shared.Harvesting/` (alongside the closure types). |
-| 12 | `Build.Integrations.DotNet.DotNetPackInvoker` | `Build.Host.Paths.IPathService` | Constructor injection of `IPathService` is fine; the violation is **type-reference** (likely a property typed as `IPathService` or a method param). Resolution: keep DI injection but type the field/parameter as the narrowest viable Shared abstraction (or accept this as a P4 `BuildPaths` fluent split prerequisite that ADR-004 §2.2 already calls out). |
+| 12 | `Build.Integrations.DotNet.DotNetPackInvoker` | `Build.Host.Paths.IPathService` | Accepted as a permanent named exception. `IPathService` is the canonical Host-tier path abstraction that Integrations adapters may consume; the BuildPaths fluent split originally scoped to P4 §8.3 was discarded on 2026-05-02. |
 | 13 | `Build.Integrations.Vcpkg.VcpkgCliProvider` | `Build.Host.Paths.IPathService` | Same. |
 | 14 | `Build.Features.Packaging.DotNetPackResult` | `Build.Features.Harvesting.Unit` | Promote `Unit` (or whichever `Build.Features.Harvesting.*` value type leaks into `DotNetPackResult`) to Shared. Likely an `OneOf`/`Result` discriminator. |
 | 15 | `Build.Features.Packaging.PackagePipeline` | `Build.Features.Harvesting.HarvestManifest` | Promote `HarvestManifest` to `Build.Shared.Harvesting/`. Both Packaging and Harvesting consume the manifest as a cross-stage data contract — textbook Shared vocabulary. |
@@ -868,7 +844,7 @@ Total: 26 individual violations across 20 callsites (some multi-violation, e.g. 
 2. **Adım 13.2 — Shared/Coverage promote.** Move `CoverageMetrics`, `CoverageBaseline`, `CoverageCheckResult / Success / Error` to `Shared/Coverage/`. `Integrations/Coverage/*` adapters consume Shared. Build clean + fast-loop MATCH.
 3. **Adım 13.3 — Shared/Packaging promote (subset).** Move `DotNetPackResult / DotNetPackError`, `ProjectMetadataResult / ProjectMetadataError`, G58 result + interface to `Shared/Packaging/`. Decide G58 interface location with same commit. `Integrations/DotNet/*`, `Features/Preflight/*` callsites adjusted. Build clean + fast-loop MATCH.
 4. **Adım 13.4 — Shared/Versioning promote.** Move `IUpstreamVersionAlignmentValidator` (and its `UpstreamVersionAlignmentResult`) to `Shared/Versioning/`. `Features/Versioning/*` provider chain consumes Shared. Build clean + fast-loop MATCH.
-5. **Adım 13.5 — Integrations Host-decoupling.** Replace `IPathService` type-references in `Integrations/DotNet/*` and `Integrations/Vcpkg/*` with whatever the narrowest valid abstraction is (likely a Shared path-fragment record or just the specific `DirectoryPath` Cake type passed at the call site). If the cleanest fix requires P4's `BuildPaths` fluent split, leave a documented `[Skip]` on `Integrations_Should_Have_No_Feature_Dependencies` for the IPathService rows only and lift it at P4 close instead. Build clean + fast-loop MATCH.
+5. **Adım 13.5 — Integrations Host-decoupling.** Accepted as a permanent named exception. `IPathService` is the canonical Host-tier path abstraction that Integrations adapters may consume. The decision at Adım 13.5 was to defer with a named exception on `Integrations_Should_Have_No_Feature_Dependencies`; the BuildPaths fluent split was later discarded on 2026-05-02. The allowlist entries are permanent. Build clean + fast-loop MATCH.
 6. **Adım 13.6 — Un-skip 3 ArchitectureTests invariants.** Remove `[Skip(...)]` annotations; assert green. Test count target: 502 → 502 (same, since skip→pass within the same test methods). Wave-close gating only.
 7. **Adım 13.7 — Per-feature ServiceCollectionExtensions smoke tests × 13.** Land `TestHostFixture.AddTestHostBuildingBlocks()` shared infrastructure first (Cake fakes + Shared vocabulary fakes + integration substitutes), then add `Add<X>Feature_Should_Register_All_Pipeline_And_Validator_Types` smoke per feature. Test count target: 502 → ~515 (+13 smokes; phase-x §10.4 P2 close ratchet expectation met retroactively).
 8. **Adım 13.8 — `cake-build-architecture.md` ADR-004 rewrite.** Atomic same-commit update of the canonical architecture doc — replace ADR-002 `Tasks/Application/Domain/Infrastructure` tree description with ADR-004 `Host/Features/Shared/Tools/Integrations` shape, including the LocalDev orchestration-feature exception, the Pipeline / Flow vocabulary, and the BuildContext discipline rule. Other docs (AGENTS.md, CLAUDE.md, onboarding.md) updated only if they carry stale ADR-002 narrative; most already point at ADR-004 from prior batches.
@@ -880,8 +856,8 @@ Total: 26 individual violations across 20 callsites (some multi-violation, e.g. 
 - [x] 4 cross-tier types promoted to `Shared/Coverage/`; `Integrations/Coverage` adapters consume Shared.
 - [x] 6 cross-tier types promoted to `Shared/Packaging/`; `Integrations/DotNet` + `Features/Preflight` callsites consume Shared. G58 interface placement documented.
 - [x] `IUpstreamVersionAlignmentValidator` (+ result) promoted to `Shared/Versioning/`; Versioning provider chain consumes Shared.
-- [x] `Integrations/{DotNet,Vcpkg}` IPathService coupling resolved (or explicit P4-deferral skip with named exception).
-- [x] All 5 `ArchitectureTests` invariants green (no `[Skip]` annotations; the 2 IPathService rows are documented as a named P4 exception inline).
+- [x] `Integrations/{DotNet,Vcpkg}` IPathService coupling resolved as a permanent named exception (fluent split discarded 2026-05-02).
+- [x] All 5 `ArchitectureTests` invariants green (no `[Skip]` annotations; the 2 IPathService rows are documented as a permanent named exception inline).
 - [x] 13 `ServiceCollectionExtensions` smoke tests green via shared `TestHostFixture.AddTestHostBuildingBlocks()`. Test count ≥ 515.
 - [x] `cake-build-architecture.md` rewritten to ADR-004 shape; AGENTS.md / CLAUDE.md / onboarding.md cross-references audited.
 - [x] (Optional) `AddToolWrappers / AddIntegrations / AddHostBuildingBlocks` extensions land; Program.cs DI section reads as 16 `AddX*()` calls instead of 13 + 10 inline.
@@ -891,14 +867,14 @@ Total: 26 individual violations across 20 callsites (some multi-violation, e.g. 
 
 - **Type-promotion ripple.** Each promoted type has 5–20 callsites. Rider's "Move to Namespace" + Adjust Namespaces handle most of it cleanly; manual touch-up needed for adapter constructors and DI registrations.
 - **G58 placement decision.** Whether the validator interface itself moves to Shared or stays in Packaging behind a Preflight-side facade is a real design call. Recommend deciding atomic with sub-step 14.3.3.
-- **IPathService Host-coupling.** Two options collide here — either we type-decouple Integrations from Host now (which may require a temporary record adapter), or we accept the IPathService rows as a P4 prerequisite and leave a named exception on `Integrations_Should_Have_No_Feature_Dependencies`. The wave's gating reads on whichever option closes the violation count to zero (or to a documented, deadline-tracked named exception).
+- **IPathService Host-coupling.** Two options were evaluated — either type-decouple Integrations from Host (which would require a temporary record adapter), or accept the IPathService rows as a named exception. The decision at Adım 13.5 was to defer with a named exception, and the fluent split was later discarded on 2026-05-02. The exception is now permanent.
 - **`TestHostFixture` infrastructure cost.** Per phase-x §10.6, the shared fixture must register Cake fakes (`ICakeLog`, `ICakeContext`, `IFileSystem` via `FakeFileSystem`), Host singletons (`BuildPaths`, `RuntimeProfile`, `ManifestConfig`, `BuildOptions`), and substitutes for every Tool / Integration the features transitively need. The fixture itself is a multi-hundred-line file; budget for its construction explicitly.
 
 ### 14.6 What stays out of Adım 13
 
 - Interface review (P3) — Adım 13 does **not** prune any `I*` interface; it only relocates types. P3 §2.9 review starts only after Adım 13 closes green.
 - Pipeline `RunAsync(BuildContext, TRequest)` → `RunAsync(TRequest)` cut-over (P4 §8.2) — Adım 13 stays at the P2 invocation shape; signature evolution belongs to P4.
-- `IPathService` fluent split into `BuildPaths.Harvest` / `.Packages` / etc. (P4 §8.3) — Adım 13 may touch the IPathService callsite count if step 5 deferral adopts the "type-decouple now" option, but the fluent split itself stays a P4 concern.
+- `IPathService` fluent split — discarded on 2026-05-02. `IPathService` remains the canonical Host-tier path abstraction; the 50+-member interface split into `BuildPaths` sub-groups didn't justify its churn cost.
 - Cake target rename atomic-wave (P5 §9) — naming cleanup remains the last step of the migration arc.
 
 ---
@@ -912,3 +888,4 @@ Total: 26 individual violations across 20 callsites (some multi-violation, e.g. 
 | 2026-05-02 | P0-kickoff session refinement: §2.1.5 fast/milestone loop cadence introduced (Win local fast-loop per wave commit; WSL Linux + Windows ci-sim milestone loop at P-wave close commits; macOS opt-in per §10.5 / not gating); §4.2 deliverables table + §4.3 success criteria absorb `verify-baselines.cs` file-based-app helper (`tests/scripts/verify-baselines.cs`, .NET 10 SDK directory-scope via `tests/scripts/global.json`); §5.2 wave 1.13 prerequisites extended from `1.9 + 1.10 + 1.12` to `1.6 + 1.9 + 1.10 + 1.12` reflecting `SetupLocalDevTaskRunner` ctor inventory (`EnsureVcpkgDependenciesTaskRunner`, `PreflightTaskRunner`, `HarvestTaskRunner`, `ConsolidateHarvestTaskRunner`, `IPackageTaskRunner`); §5.4 `LayerDependencyTests` strategy reframed from Decision-A "exclusion-list-grows-monotonically" to natural-prefix-shrinkage (test silently no-ops as content migrates, no exclusion list maintenance, atomic rewrite at P2 §6.4 — preserves test count and P1-wide mechanical enforcement coverage); §12.3 pre-merge checks split into fast-loop (every wave commit) vs milestone-loop (P-wave close commits only) entries | Deniz İrgin (+ P0-kickoff session refactor) |
 | 2026-05-02 | P0 + P1 + P2 closed across commits `b18002f`, `651ac2f`, `e602b6c`, `b6de515`, `3ab2e68`. Doc sweep: top-of-doc Wave-Status Snapshot table added; §4.3 P0 success criteria checked off with closure metrics (Win 3/3 PASS 101.8s, Linux 3/3 PASS 184.0s, ci-sim 9/9 PASS 119.2s, macOS 3/3 PASS 145.7s, test-count 500, cake-targets 20); §6.5 P2 success criteria annotated with [x]/[ ] and post-P2 deferred items called out (ServiceCollectionExtensions smokes + cross-tier violation cleanup + cake-build-architecture.md doc rewrite all moved to Adım 13); §13 references updated to point at the `ArchitectureTests.cs` rename. **§14 Adım 13 (post-P2 follow-up wave) added** with full inventory of 26 cross-tier violations from `ArchitectureTests` skip output (Shared/Strategy → Features/Harvesting types, Integrations/Coverage \| DotNet \| Vcpkg → Features.* result types, Integrations/{DotNet,Vcpkg} → Host/Paths/IPathService, Features cross-references for HarvestManifest + G58 + IUpstreamVersionAlignmentValidator), 9-step sub-plan (Shared/{Harvesting,Coverage,Packaging,Versioning} promotes + IPathService decouple + un-skip + smokes + cake-build-arch doc rewrite + optional Tools/Integrations/Host extension grouping), and explicit "must close before P3" gate. §14 prior content (former change-log) renumbered to §15. **Session learnings folded in**: smoke-witness silent-mode log-write fix, verify-baselines `BuildEntries` dedup, Mac SSH liveness-probe pattern, lingering-dotnet-process flake mitigation (build-server shutdown ritual), WSL `wsl zsh -c` absolute-path bind requirement (PWD-leakage workaround already documented in cross-platform-smoke-validation.md §504-540 — referenced from there). | Deniz İrgin (+ P2-close session sweep) |
 | 2026-05-02 | P3 interface review close-ready sweep: 32 production `I*` seams audited against ADR-004 §2.9; four stateless/mock-only seams removed; retained interfaces classified under criteria 1/2/3; P3 success criteria checked with 515/515 tests, fast-loop MATCH, and Windows milestone-loop local + ci-sim MATCH after stale MSBuild file-lock cleanup. | Deniz İrgin + Codex |
+| 2026-05-02 | P3 CLOSED + P4-A close-ready sweep. P3 committed (4 interfaces removed, 28 retained with criterion labels, 515/515 tests). **VcpkgBootstrapTool relocated** from `Tools/Vcpkg/` to `Integrations/Vcpkg/` (sealed concrete, not a Cake `Tool<T>`); `AddToolWrappers()` is now a clean no-op body. **IPathService fluent split permanently discarded** — every canonical doc updated (ADR-004 §3.5 rewritten, phase-x §8.3 removed + renumbered, ArchitectureTests allowlist entries marked permanent, plan.md/AGENTS.md/CLAUDE.md/cake-build-architecture.md swept). **P4-A Pipeline RunAsync(BuildContext, TRequest) → RunAsync(TRequest) cut-over:** 10 Pipelines + 2 interfaces + 15 Tasks updated; ADR-004 §2.11.1 migration exception closed; 7 test files updated. Verification: 515/515 tests, 0 skipped (718ms). Phase-x doc swept: §7 P3 success criteria checked, §8.2 checklist checked, §8.4 P4-A criteria checked, wave table split into P4-A/P4-C, risk #5 closed. | Deniz İrgin + Codex |

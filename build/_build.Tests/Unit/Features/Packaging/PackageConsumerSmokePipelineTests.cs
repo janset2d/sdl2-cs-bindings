@@ -3,7 +3,6 @@ using Build.Host.Configuration;
 using Build.Host.Paths;
 using Build.Integrations.DotNet;
 using Build.Shared.Runtime;
-using Build.Tests.Fixtures;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
@@ -24,14 +23,13 @@ public sealed class PackageConsumerSmokeRunnerTests
     {
         // C.8 strict: empty mapping → CakeException before any work begins.
         var runner = CreateMinimalRunner();
-        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
         var request = new PackageConsumerSmokeRequest(
             "win-x64",
             new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase),
             new DirectoryPath("artifacts/packages"));
 
         var exception = await Assert.ThrowsAsync<Cake.Core.CakeException>(
-            () => runner.RunAsync(repo.BuildContext, request));
+            () => runner.RunAsync(request));
         await Assert.That(exception!.Message).Contains("non-empty version mapping");
     }
 
@@ -39,10 +37,9 @@ public sealed class PackageConsumerSmokeRunnerTests
     public async Task RunAsync_Should_Throw_ArgumentNullException_When_Request_Null()
     {
         var runner = CreateMinimalRunner();
-        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
 
         await Assert.ThrowsAsync<ArgumentNullException>(
-            () => runner.RunAsync(repo.BuildContext, null!));
+            () => runner.RunAsync(null!));
     }
 
     private static PackageConsumerSmokePipeline CreateMinimalRunner()

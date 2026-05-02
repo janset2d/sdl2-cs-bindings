@@ -48,6 +48,6 @@ public sealed class PackageTask(
         ArgumentNullException.ThrowIfNull(context);
 
         var request = new PackRequest(_packageBuildConfiguration.ExplicitVersions);
-        return _packagePipeline.RunAsync(context, request);
+        return _packagePipeline.RunAsync(request);
     }
 }

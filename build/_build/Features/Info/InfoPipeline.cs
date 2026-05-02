@@ -2,23 +2,23 @@
 
 using System.ComponentModel;
 using System.Runtime.InteropServices;
-using Build.Host;
 using Build.Shared.Runtime;
 using Cake.Common;
+using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 using Spectre.Console;
 
 namespace Build.Features.Info;
 
-public sealed class InfoPipeline(IRuntimeProfile runtimeProfile)
+public sealed class InfoPipeline(ICakeContext cakeContext, ICakeLog log, IRuntimeProfile runtimeProfile)
 {
+    private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
+    private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
     private readonly IRuntimeProfile _runtimeProfile = runtimeProfile ?? throw new ArgumentNullException(nameof(runtimeProfile));
 
-    public async Task RunAsync(BuildContext context)
+    public async Task RunAsync()
     {
-        ArgumentNullException.ThrowIfNull(context);
-
         AnsiConsole.Write(new FigletText("Build Info").Color(Color.CornflowerBlue));
         AnsiConsole.WriteLine();
 
@@ -28,15 +28,15 @@ public sealed class InfoPipeline(IRuntimeProfile runtimeProfile)
 
         void AddRow(string key, string value) => grid.AddRow($"[bold aqua]{key}:[/]", value);
 
-        AddRow("Operating System", $"{context.Environment.Platform.Family}");
+        AddRow("Operating System", $"{_cakeContext.Environment.Platform.Family}");
         AddRow("OS Version", $"{Environment.OSVersion}");
         AddRow("OS Architecture", $"{RuntimeInformation.OSArchitecture}");
-        AddRow("Is 64-bit OS", $"[{(context.Environment.Platform.Is64Bit ? "green" : "red")}]{context.Environment.Platform.Is64Bit}[/]");
+        AddRow("Is 64-bit OS", $"[{(_cakeContext.Environment.Platform.Is64Bit ? "green" : "red")}]{_cakeContext.Environment.Platform.Is64Bit}[/]");
         AddRow("Rid", _runtimeProfile.Rid);
         AddRow("Vcpkg Triplet", _runtimeProfile.Triplet);
-        AddRow("Cake Version", $"{context.Environment.Runtime.CakeVersion}");
+        AddRow("Cake Version", $"{_cakeContext.Environment.Runtime.CakeVersion}");
         AddRow(".NET Version", $"{RuntimeInformation.FrameworkDescription}");
-        AddRow("Working Dir", $"{context.Environment.WorkingDirectory.FullPath}");
+        AddRow("Working Dir", $"{_cakeContext.Environment.WorkingDirectory.FullPath}");
 
         AnsiConsole.Write(
             new Panel(grid)
@@ -55,7 +55,7 @@ public sealed class InfoPipeline(IRuntimeProfile runtimeProfile)
             {
                 try
                 {
-                    var process = context.StartAndReturnProcess(
+                    var process = _cakeContext.StartAndReturnProcess(
                         "dotnet",
                         new ProcessSettings { Arguments = "--version", RedirectStandardOutput = true, Silent = true }
                     );
@@ -82,12 +82,12 @@ public sealed class InfoPipeline(IRuntimeProfile runtimeProfile)
                 catch (Win32Exception)
                 {
                     sdkVersion = "[red]Not Found (Command failed)[/]";
-                    context.Log.Error("dotnet --version command failed (Win32Exception). Is the .NET SDK in PATH?");
+                    _log.Error("dotnet --version command failed (Win32Exception). Is the .NET SDK in PATH?");
                 }
                 catch (Exception ex)
                 {
                     sdkVersion = "[red]Error[/]";
-                    context.Log.Verbose($"Checking dotnet --version failed: {ex.Message}");
+                    _log.Verbose($"Checking dotnet --version failed: {ex.Message}");
                 }
 
                 return Task.FromResult(Task.CompletedTask);

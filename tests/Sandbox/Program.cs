@@ -56,18 +56,12 @@ internal static class Program
         {
             while (SDL_PollEvent(out var sdlEvent) != 0)
             {
-                if (sdlEvent.type == SDL_EventType.SDL_QUIT)
+                if (sdlEvent.type != SDL_EventType.SDL_QUIT && sdlEvent is not { type: SDL_EventType.SDL_KEYDOWN, key.keysym.sym: SDL_Keycode.SDLK_ESCAPE })
                 {
-                    running = false;
-                    break;
+                    continue;
                 }
-
-                if (sdlEvent.type == SDL_EventType.SDL_KEYDOWN &&
-                    sdlEvent.key.keysym.sym == SDL_Keycode.SDLK_ESCAPE)
-                {
-                    running = false;
-                    break;
-                }
+                running = false;
+                break;
             }
 
             SDL_Delay(16);

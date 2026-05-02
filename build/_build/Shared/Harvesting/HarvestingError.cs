@@ -1,4 +1,4 @@
-﻿using Build.Shared.Results;
+using Build.Shared.Results;
 
 namespace Build.Shared.Harvesting;
 

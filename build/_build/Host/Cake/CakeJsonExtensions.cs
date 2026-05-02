@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.IO;

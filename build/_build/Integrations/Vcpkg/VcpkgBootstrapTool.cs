@@ -2,11 +2,11 @@ using Cake.Common;
 using Cake.Core;
 using Cake.Core.IO;
 
-namespace Build.Tools.Vcpkg;
+namespace Build.Integrations.Vcpkg;
 
 /// <summary>
-/// Tool wrapper for vcpkg bootstrap scripts. Reuses Cake process APIs but centralizes
-/// bootstrap command construction under the Vcpkg tools module.
+/// Adapter for vcpkg bootstrap scripts. Reuses Cake process APIs but centralizes
+/// bootstrap command construction under the Vcpkg integrations module.
 /// </summary>
 public sealed class VcpkgBootstrapTool(ICakeContext cakeContext)
 {

@@ -1,4 +1,5 @@
 using Build.Host;
+using Build.Integrations.Vcpkg;
 using Build.Shared.Runtime;
 using Build.Tools.Vcpkg;
 using Build.Tools.Vcpkg.Settings;
@@ -18,6 +19,9 @@ public sealed class EnsureVcpkgDependenciesPipeline(
     private readonly IRuntimeProfile _runtimeProfile = runtimeProfile ?? throw new ArgumentNullException(nameof(runtimeProfile));
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
 
+    // P4-deferred: this Pipeline still receives BuildContext because its own RunAsync(TRequest)
+    // cut-over requires a VcpkgRequest DTO and the VcpkgTask signature change. Tracked in
+    // phase-x §8.2 (remaining P4-B debt — EnsureVcpkgDependenciesPipeline + SetupLocalDevFlow).
     public void Run(BuildContext context)
     {
         ArgumentNullException.ThrowIfNull(context);

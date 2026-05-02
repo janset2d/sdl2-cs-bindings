@@ -74,13 +74,16 @@ public sealed class ArchitectureTests
     }
 
     /// <summary>
-    /// P4-deferred named exception per phase-x §14.5 IPathService Host-coupling risk:
+    /// Named exception per phase-x §14.5 IPathService Host-coupling risk:
     /// 2 violations (<c>Integrations.{DotNet,Vcpkg} → Host.Paths.IPathService</c>) are
-    /// intentionally tolerated until P4 §8.3 BuildPaths fluent split dissolves
-    /// <see cref="Build.Host.Paths.IPathService"/> into per-axis path services. Decoupling
-    /// at Adım 13.5 was rejected because the P4 wave immediately re-touches these classes —
-    /// see phase-x §14.5 risk #3. To lift this exception at P4 close, drop the
-    /// <c>p4DeferredAllowlist</c> entries and ensure no replacement violations surface.
+    /// permanently tolerated. <see cref="Build.Host.Paths.IPathService"/> is the canonical
+    /// Host-tier path abstraction that Integrations adapters may consume — the
+    /// BuildPaths fluent split originally scoped to P4 §8.3 was discarded on
+    /// 2026-05-02 (the 50+-member interface + hundreds-of-callsite rewrite didn't
+    /// justify its cost). Decoupling at Adım 13.5 was also rejected because the
+    /// P4 wave would have immediately re-touched these classes — see phase-x §14.5
+    /// risk #3. The allowlist entries are permanent; do not add new
+    /// Integrations→IPathService couplings without explicit approval.
     /// </summary>
     [Test]
     public async Task Integrations_Should_Have_No_Feature_Dependencies()
@@ -93,14 +96,14 @@ public sealed class ArchitectureTests
             forbiddenPrefixes: [FeaturesPrefix, HostPrefix, ToolsPrefix],
             forbidCakeReferences: false);
 
-        var p4DeferredAllowlist = new HashSet<string>(StringComparer.Ordinal)
+        var permanentIntegrationsAllowlist = new HashSet<string>(StringComparer.Ordinal)
         {
             "  Build.Integrations.DotNet.DotNetPackInvoker -> Build.Host.Paths.IPathService",
             "  Build.Integrations.Vcpkg.VcpkgCliProvider -> Build.Host.Paths.IPathService",
         };
 
         var unexpectedViolations = violations
-            .Where(violation => !p4DeferredAllowlist.Contains(violation))
+            .Where(violation => !permanentIntegrationsAllowlist.Contains(violation))
             .ToList();
 
         await Assert.That(unexpectedViolations)

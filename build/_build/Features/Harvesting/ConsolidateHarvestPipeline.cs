@@ -3,41 +3,43 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using Build.Host;
 using Build.Host.Cake;
+using Build.Host.Paths;
 using Build.Shared.Harvesting;
 using Cake.Common.IO;
+using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 
 namespace Build.Features.Harvesting;
 
-public sealed class ConsolidateHarvestPipeline
+public sealed class ConsolidateHarvestPipeline(
+    ICakeContext cakeContext,
+    ICakeLog log,
+    IPathService pathService)
 {
+    private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
+    private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
+    private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
     private readonly JsonSerializerOptions _jsonOptions = HarvestJsonContract.Options;
 
-    public async Task RunAsync(BuildContext context, ConsolidateHarvestRequest request, CancellationToken cancellationToken = default)
+    public async Task RunAsync(ConsolidateHarvestRequest request, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var harvestOutputBase = context.Paths.HarvestOutput;
+        var harvestOutputBase = _pathService.HarvestOutput;
         _ = _jsonOptions;
-        context.Log.Information("Consolidating harvest RID status files from: {0}", harvestOutputBase);
+        _log.Information("Consolidating harvest RID status files from: {0}", harvestOutputBase);
 
-        var libraryDirs = EnsureConsolidationInputsReady(context, harvestOutputBase);
+        var libraryDirs = EnsureConsolidationInputsReady(harvestOutputBase);
 
-        // Aggregate failures across libraries so operators see every problem in one run
-        // instead of fixing one and re-running to find the next. Task fails fatally at the
-        // end if any library hit an error — pre-H1 code swallowed per-library exceptions
-        // and ended with "completed successfully" which hid compliance regressions.
         var failures = new List<(string Library, string Message)>();
 
         foreach (var libraryDir in libraryDirs)
         {
             var libraryName = libraryDir.GetDirectoryName();
-            var failureMessage = await TryConsolidateLibraryAsync(context, libraryName);
+            var failureMessage = await TryConsolidateLibraryAsync(libraryName);
             if (failureMessage is not null)
             {
                 failures.Add((libraryName, failureMessage));
@@ -51,19 +53,19 @@ public sealed class ConsolidateHarvestPipeline
                 $"ConsolidateHarvest failed for {failures.Count} library/libraries — {summary}. Stale receipts (if any) were not overwritten; re-run Harvest + ConsolidateHarvest after resolving the underlying errors.");
         }
 
-        context.Log.Information("Harvest consolidation completed successfully");
+        _log.Information("Harvest consolidation completed successfully");
     }
 
-    private static List<DirectoryPath> EnsureConsolidationInputsReady(BuildContext context, DirectoryPath harvestOutputBase)
+    private List<DirectoryPath> EnsureConsolidationInputsReady(DirectoryPath harvestOutputBase)
     {
-        if (!context.DirectoryExists(harvestOutputBase))
+        if (!_cakeContext.DirectoryExists(harvestOutputBase))
         {
             throw new Cake.Core.CakeException(
                 $"ConsolidateHarvest precondition failed: harvest output root '{harvestOutputBase.FullPath}' is missing. " +
                 "Run '--target Harvest' first, or fetch the per-RID harvest artifacts into this path when consolidating in a multi-runner CI pipeline.");
         }
 
-        var libraryDirs = context.GetDirectories($"{harvestOutputBase}/*");
+        var libraryDirs = _cakeContext.GetDirectories($"{harvestOutputBase}/*");
         if (libraryDirs.Count == 0)
         {
             throw new Cake.Core.CakeException(
@@ -74,11 +76,11 @@ public sealed class ConsolidateHarvestPipeline
         return libraryDirs.ToList();
     }
 
-    private static async Task<string?> TryConsolidateLibraryAsync(BuildContext context, string libraryName)
+    private async Task<string?> TryConsolidateLibraryAsync(string libraryName)
     {
         try
         {
-            var ridStatuses = await LoadRidStatusesAsync(context, libraryName);
+            var ridStatuses = await LoadRidStatusesAsync(libraryName);
             if (ridStatuses is null)
             {
                 return null;
@@ -91,19 +93,19 @@ public sealed class ConsolidateHarvestPipeline
             // deletes old + Moves tmp → final. If we crash between Phase 1 and Phase 2,
             // old state is preserved; Package's gate keeps trusting the previous valid
             // receipt until the next Consolidate run retries.
-            var consolidationState = await ConsolidateLicensesToTempAsync(context, libraryName, ridStatuses);
+            var consolidationState = await ConsolidateLicensesToTempAsync(libraryName, ridStatuses);
 
             var manifest = GenerateHarvestManifest(libraryName, ridStatuses, consolidationState);
-            await WriteManifestAndSummaryTempAsync(context, libraryName, manifest);
+            await WriteManifestAndSummaryTempAsync(libraryName, manifest);
 
-            SwapTempArtifactsIntoPlace(context, libraryName);
+            SwapTempArtifactsIntoPlace(libraryName);
             return null;
         }
         catch (Exception ex)
         {
-            context.Log.Error("Failed to consolidate harvest for library {0}: {1}", libraryName, ex.Message);
-            context.Log.Verbose("Consolidation error details: {0}", ex);
-            CleanupTempArtifacts(context, libraryName);
+            _log.Error("Failed to consolidate harvest for library {0}: {1}", libraryName, ex.Message);
+            _log.Verbose("Consolidation error details: {0}", ex);
+            CleanupTempArtifacts(libraryName);
             return ex.Message;
         }
     }
@@ -116,41 +118,41 @@ public sealed class ConsolidateHarvestPipeline
     /// library as fresh, and retries. Package's gate rejects the missing state in the
     /// meantime.
     /// </summary>
-    private static void SwapTempArtifactsIntoPlace(BuildContext context, string libraryName)
+    private void SwapTempArtifactsIntoPlace(string libraryName)
     {
-        var paths = context.Paths;
+        var paths = _pathService;
         var consolidatedFinal = paths.GetHarvestLibraryConsolidatedLicensesDir(libraryName);
         var consolidatedTemp = paths.GetHarvestLibraryConsolidatedLicensesTempDir(libraryName);
 
-        if (context.DirectoryExists(consolidatedTemp))
+        if (_cakeContext.DirectoryExists(consolidatedTemp))
         {
-            if (context.DirectoryExists(consolidatedFinal))
+            if (_cakeContext.DirectoryExists(consolidatedFinal))
             {
-                context.DeleteDirectory(consolidatedFinal, new DeleteDirectorySettings { Recursive = true, Force = true });
+                _cakeContext.DeleteDirectory(consolidatedFinal, new DeleteDirectorySettings { Recursive = true, Force = true });
             }
 
-            context.FileSystem.GetDirectory(consolidatedTemp).Move(consolidatedFinal);
-            context.Log.Verbose("Swapped consolidated license tree for {0}: {1}", libraryName, consolidatedFinal);
+            _cakeContext.FileSystem.GetDirectory(consolidatedTemp).Move(consolidatedFinal);
+            _log.Verbose("Swapped consolidated license tree for {0}: {1}", libraryName, consolidatedFinal);
         }
 
-        SwapFileIntoPlace(context, paths.GetHarvestLibraryManifestTempFile(libraryName), paths.GetHarvestLibraryManifestFile(libraryName), libraryName);
-        SwapFileIntoPlace(context, paths.GetHarvestLibrarySummaryTempFile(libraryName), paths.GetHarvestLibrarySummaryFile(libraryName), libraryName);
+        SwapFileIntoPlace(paths.GetHarvestLibraryManifestTempFile(libraryName), paths.GetHarvestLibraryManifestFile(libraryName), libraryName);
+        SwapFileIntoPlace(paths.GetHarvestLibrarySummaryTempFile(libraryName), paths.GetHarvestLibrarySummaryFile(libraryName), libraryName);
     }
 
-    private static void SwapFileIntoPlace(BuildContext context, FilePath tempPath, FilePath finalPath, string libraryName)
+    private void SwapFileIntoPlace(FilePath tempPath, FilePath finalPath, string libraryName)
     {
-        if (!context.FileExists(tempPath))
+        if (!_cakeContext.FileExists(tempPath))
         {
             return;
         }
 
-        if (context.FileExists(finalPath))
+        if (_cakeContext.FileExists(finalPath))
         {
-            context.DeleteFile(finalPath);
+            _cakeContext.DeleteFile(finalPath);
         }
 
-        context.FileSystem.GetFile(tempPath).Move(finalPath);
-        context.Log.Verbose("Swapped {0} for {1}: {2}", finalPath.GetFilename().FullPath, libraryName, finalPath);
+        _cakeContext.FileSystem.GetFile(tempPath).Move(finalPath);
+        _log.Verbose("Swapped {0} for {1}: {2}", finalPath.GetFilename().FullPath, libraryName, finalPath);
     }
 
     /// <summary>
@@ -159,54 +161,54 @@ public sealed class ConsolidateHarvestPipeline
     /// Failures to clean up are non-fatal — the next <c>HarvestTask.InvalidateCrossRidReceipts</c>
     /// run will retry cleanup at invalidation time.
     /// </summary>
-    private static void CleanupTempArtifacts(BuildContext context, string libraryName)
+    private void CleanupTempArtifacts(string libraryName)
     {
         try
         {
-            var paths = context.Paths;
+            var paths = _pathService;
 
             var consolidatedTemp = paths.GetHarvestLibraryConsolidatedLicensesTempDir(libraryName);
-            if (context.DirectoryExists(consolidatedTemp))
+            if (_cakeContext.DirectoryExists(consolidatedTemp))
             {
-                context.DeleteDirectory(consolidatedTemp, new DeleteDirectorySettings { Recursive = true, Force = true });
+                _cakeContext.DeleteDirectory(consolidatedTemp, new DeleteDirectorySettings { Recursive = true, Force = true });
             }
 
             var manifestTemp = paths.GetHarvestLibraryManifestTempFile(libraryName);
-            if (context.FileExists(manifestTemp))
+            if (_cakeContext.FileExists(manifestTemp))
             {
-                context.DeleteFile(manifestTemp);
+                _cakeContext.DeleteFile(manifestTemp);
             }
 
             var summaryTemp = paths.GetHarvestLibrarySummaryTempFile(libraryName);
-            if (context.FileExists(summaryTemp))
+            if (_cakeContext.FileExists(summaryTemp))
             {
-                context.DeleteFile(summaryTemp);
+                _cakeContext.DeleteFile(summaryTemp);
             }
         }
         catch (Exception ex)
         {
-            context.Log.Warning("Best-effort tmp cleanup failed for {0}: {1}", libraryName, ex.Message);
+            _log.Warning("Best-effort tmp cleanup failed for {0}: {1}", libraryName, ex.Message);
         }
     }
 
-    private static async Task<List<RidHarvestStatus>?> LoadRidStatusesAsync(BuildContext context, string libraryName)
+    private async Task<List<RidHarvestStatus>?> LoadRidStatusesAsync(string libraryName)
     {
-        var ridStatusDir = context.Paths.GetHarvestLibraryRidStatusDir(libraryName);
+        var ridStatusDir = _pathService.GetHarvestLibraryRidStatusDir(libraryName);
 
-        if (!context.DirectoryExists(ridStatusDir))
+        if (!_cakeContext.DirectoryExists(ridStatusDir))
         {
-            context.Log.Information("No RID status directory found for library: {0}", libraryName);
+            _log.Information("No RID status directory found for library: {0}", libraryName);
             return null;
         }
 
-        var ridStatusFiles = context.GetFiles($"{ridStatusDir}/*.json");
+        var ridStatusFiles = _cakeContext.GetFiles($"{ridStatusDir}/*.json");
         if (ridStatusFiles.Count == 0)
         {
-            context.Log.Warning("No RID status files found for library: {0}", libraryName);
+            _log.Warning("No RID status files found for library: {0}", libraryName);
             return null;
         }
 
-        context.Log.Information("Found {0} RID status files for library: {1}", ridStatusFiles.Count, libraryName);
+        _log.Information("Found {0} RID status files for library: {1}", ridStatusFiles.Count, libraryName);
 
         var ridStatuses = new List<RidHarvestStatus>();
         var invalidStatusFiles = new List<string>();
@@ -214,12 +216,12 @@ public sealed class ConsolidateHarvestPipeline
         {
             try
             {
-                var jsonContent = await context.ReadAllTextAsync(statusFile);
+                var jsonContent = await _cakeContext.ReadAllTextAsync(statusFile);
                 var ridStatus = CakeJsonExtensions.DeserializeJson<RidHarvestStatus>(jsonContent, HarvestJsonContract.Options);
                 if (ridStatus != null)
                 {
                     ridStatuses.Add(ridStatus);
-                    context.Log.Verbose("Loaded RID status for {0}: {1}", ridStatus.Rid, ridStatus.Success ? "Success" : "Failed");
+                    _log.Verbose("Loaded RID status for {0}: {1}", ridStatus.Rid, ridStatus.Success ? "Success" : "Failed");
                 }
             }
             catch (Exception ex)
@@ -237,47 +239,47 @@ public sealed class ConsolidateHarvestPipeline
 
         if (ridStatuses.Count == 0)
         {
-            context.Log.Warning("No valid RID status data found for library: {0}", libraryName);
+            _log.Warning("No valid RID status data found for library: {0}", libraryName);
             return null;
         }
 
         return ridStatuses;
     }
 
-    private static async Task WriteManifestAndSummaryTempAsync(BuildContext context, string libraryName, HarvestManifest manifest)
+    private async Task WriteManifestAndSummaryTempAsync(string libraryName, HarvestManifest manifest)
     {
         // Phase 1 of the staged replace: write to .tmp.json siblings so the old manifest +
         // summary survive any mid-flight crash. Phase 2 (SwapTempArtifactsIntoPlace) moves
         // these into final position once the whole library's consolidation succeeded.
-        var paths = context.Paths;
+        var paths = _pathService;
 
         var manifestTempPath = paths.GetHarvestLibraryManifestTempFile(libraryName);
-        await context.WriteJsonAsync(manifestTempPath, manifest, HarvestJsonContract.Options);
-        context.Log.Verbose("Wrote harvest manifest (tmp) for {0}: {1}", libraryName, manifestTempPath);
+        await _cakeContext.WriteJsonAsync(manifestTempPath, manifest, HarvestJsonContract.Options);
+        _log.Verbose("Wrote harvest manifest (tmp) for {0}: {1}", libraryName, manifestTempPath);
 
         var summaryTempPath = paths.GetHarvestLibrarySummaryTempFile(libraryName);
-        await context.WriteJsonAsync(summaryTempPath, manifest.Summary, HarvestJsonContract.Options);
-        context.Log.Verbose("Wrote harvest summary (tmp) for {0}: {1}", libraryName, summaryTempPath);
+        await _cakeContext.WriteJsonAsync(summaryTempPath, manifest.Summary, HarvestJsonContract.Options);
+        _log.Verbose("Wrote harvest summary (tmp) for {0}: {1}", libraryName, summaryTempPath);
     }
 
-    private static async Task<ConsolidationState> ConsolidateLicensesToTempAsync(BuildContext context, string libraryName, List<RidHarvestStatus> ridStatuses)
+    private async Task<ConsolidationState> ConsolidateLicensesToTempAsync(string libraryName, List<RidHarvestStatus> ridStatuses)
     {
-        var paths = context.Paths;
+        var paths = _pathService;
         var licensesRoot = paths.GetHarvestLibraryLicensesDir(libraryName);
         var consolidatedTempRoot = paths.GetHarvestLibraryConsolidatedLicensesTempDir(libraryName);
 
         // Phase 1 staging: wipe any leftover tmp from a previous crash and start fresh.
         // The real _consolidated/ stays untouched — SwapTempArtifactsIntoPlace handles the
         // replacement only after the whole write phase succeeded.
-        if (context.DirectoryExists(consolidatedTempRoot))
+        if (_cakeContext.DirectoryExists(consolidatedTempRoot))
         {
-            context.DeleteDirectory(consolidatedTempRoot, new DeleteDirectorySettings { Recursive = true, Force = true });
+            _cakeContext.DeleteDirectory(consolidatedTempRoot, new DeleteDirectorySettings { Recursive = true, Force = true });
         }
 
         var successfulRids = ridStatuses.Where(s => s.Success).Select(s => s.Rid).ToList();
         if (successfulRids.Count == 0)
         {
-            context.Log.Verbose("No successful RIDs for license consolidation.");
+            _log.Verbose("No successful RIDs for license consolidation.");
             return new ConsolidationState
             {
                 LicensesConsolidated = false,
@@ -286,10 +288,10 @@ public sealed class ConsolidateHarvestPipeline
             };
         }
 
-        var entries = CollectLicenseCandidates(context, licensesRoot, successfulRids);
+        var entries = CollectLicenseCandidates(licensesRoot, successfulRids);
         if (entries.Count == 0)
         {
-            context.Log.Verbose("No per-RID license files found under {0}.", licensesRoot);
+            _log.Verbose("No per-RID license files found under {0}.", licensesRoot);
             return new ConsolidationState
             {
                 LicensesConsolidated = false,
@@ -298,19 +300,19 @@ public sealed class ConsolidateHarvestPipeline
             };
         }
 
-        context.EnsureDirectoryExists(consolidatedTempRoot);
+        _cakeContext.EnsureDirectoryExists(consolidatedTempRoot);
 
         var divergences = new List<DivergentLicense>();
         foreach (var ((package, fileName), candidates) in entries)
         {
-            var divergence = await WriteConsolidatedEntryAsync(context, consolidatedTempRoot, package, fileName, candidates);
+            var divergence = await WriteConsolidatedEntryAsync(consolidatedTempRoot, package, fileName, candidates);
             if (divergence is not null)
             {
                 divergences.Add(divergence);
             }
         }
 
-        context.Log.Information(
+        _log.Information(
             "Staged {0} unique license entries across {1} RID(s) into {2}.",
             entries.Count,
             successfulRids.Count,
@@ -324,8 +326,7 @@ public sealed class ConsolidateHarvestPipeline
         };
     }
 
-    private static Dictionary<(string Package, string FileName), List<LicenseCandidate>> CollectLicenseCandidates(
-        BuildContext context,
+    private Dictionary<(string Package, string FileName), List<LicenseCandidate>> CollectLicenseCandidates(
         DirectoryPath licensesRoot,
         List<string> successfulRids)
     {
@@ -334,12 +335,12 @@ public sealed class ConsolidateHarvestPipeline
         foreach (var rid in successfulRids)
         {
             var ridRoot = licensesRoot.Combine(rid);
-            if (!context.DirectoryExists(ridRoot))
+            if (!_cakeContext.DirectoryExists(ridRoot))
             {
                 continue;
             }
 
-            foreach (var licenseFile in context.GetFiles($"{ridRoot}/**/*"))
+            foreach (var licenseFile in _cakeContext.GetFiles($"{ridRoot}/**/*"))
             {
                 var segments = GetRelativePathSegments(ridRoot, licenseFile);
                 if (segments.Count < 2)
@@ -364,20 +365,19 @@ public sealed class ConsolidateHarvestPipeline
         return entries;
     }
 
-    private static async Task<DivergentLicense?> WriteConsolidatedEntryAsync(
-        BuildContext context,
+    private async Task<DivergentLicense?> WriteConsolidatedEntryAsync(
         DirectoryPath consolidatedRoot,
         string package,
         string fileName,
         List<LicenseCandidate> candidates)
     {
         var packageDir = consolidatedRoot.Combine(package);
-        context.EnsureDirectoryExists(packageDir);
+        _cakeContext.EnsureDirectoryExists(packageDir);
 
         var hashed = new List<HashedLicenseCandidate>(candidates.Count);
         foreach (var candidate in candidates)
         {
-            var sha = await ComputeSha256Async(context, candidate.Path);
+            var sha = await ComputeSha256Async(candidate.Path);
             hashed.Add(new HashedLicenseCandidate(candidate.Rid, candidate.Path, sha));
         }
 
@@ -385,11 +385,11 @@ public sealed class ConsolidateHarvestPipeline
         if (distinctHashes == 1)
         {
             var canonicalPath = packageDir.CombineWithFilePath(fileName);
-            await CopyFileAsync(context, hashed[0].Path, canonicalPath);
+            await CopyFileAsync(hashed[0].Path, canonicalPath);
             return null;
         }
 
-        context.Log.Warning(
+        _log.Warning(
             "License divergence detected for package '{0}' file '{1}' across RIDs ({2}); writing per-RID variants.",
             package,
             fileName,
@@ -404,7 +404,7 @@ public sealed class ConsolidateHarvestPipeline
         {
             var variantName = $"{nameWithoutExtension}.{variant.Rid}{extension}";
             var variantPath = packageDir.CombineWithFilePath(variantName);
-            await CopyFileAsync(context, variant.Path, variantPath);
+            await CopyFileAsync(variant.Path, variantPath);
         }
 
         return new DivergentLicense
@@ -429,11 +429,11 @@ public sealed class ConsolidateHarvestPipeline
         return relative;
     }
 
-    private static async Task<string> ComputeSha256Async(BuildContext context, FilePath path)
+    private async Task<string> ComputeSha256Async(FilePath path)
     {
         // Route through ICakeContext.FileSystem so FakeFileSystem-backed tests can exercise
         // the consolidation logic with in-memory files.
-        var file = context.FileSystem.GetFile(path);
+        var file = _cakeContext.FileSystem.GetFile(path);
         await using var stream = file.OpenRead();
         using var sha = SHA256.Create();
         var hash = await sha.ComputeHashAsync(stream);
@@ -446,10 +446,10 @@ public sealed class ConsolidateHarvestPipeline
         return sb.ToString();
     }
 
-    private static async Task CopyFileAsync(BuildContext context, FilePath source, FilePath target)
+    private async Task CopyFileAsync(FilePath source, FilePath target)
     {
-        var sourceFile = context.FileSystem.GetFile(source);
-        var targetFile = context.FileSystem.GetFile(target);
+        var sourceFile = _cakeContext.FileSystem.GetFile(source);
+        var targetFile = _cakeContext.FileSystem.GetFile(target);
 
         await using var inputStream = sourceFile.OpenRead();
         await using var outputStream = targetFile.Open(FileMode.Create, FileAccess.Write, FileShare.None);

@@ -1,5 +1,7 @@
 using Build.Host;
 using Build.Host.Configuration;
+using Build.Host.Paths;
+using Build.Shared.Runtime;
 using Cake.Core.Diagnostics;
 using Cake.Frosting;
 
@@ -10,11 +12,15 @@ namespace Build.Features.Packaging;
 public sealed class PackageConsumerSmokeTask(
     IPackageConsumerSmokePipeline packageConsumerSmokePipeline,
     PackageBuildConfiguration packageBuildConfiguration,
-    ICakeLog log) : AsyncFrostingTask<BuildContext>
+    ICakeLog log,
+    IRuntimeProfile runtimeProfile,
+    IPathService pathService) : AsyncFrostingTask<BuildContext>
 {
     private readonly IPackageConsumerSmokePipeline _packageConsumerSmokePipeline = packageConsumerSmokePipeline ?? throw new ArgumentNullException(nameof(packageConsumerSmokePipeline));
     private readonly PackageBuildConfiguration _packageBuildConfiguration = packageBuildConfiguration ?? throw new ArgumentNullException(nameof(packageBuildConfiguration));
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
+    private readonly IRuntimeProfile _runtimeProfile = runtimeProfile ?? throw new ArgumentNullException(nameof(runtimeProfile));
+    private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
 
     /// <summary>
     /// Post-C.8 (Deniz Q5a decision, 2026-04-21): PackageConsumerSmoke is only meaningful
@@ -47,10 +53,10 @@ public sealed class PackageConsumerSmokeTask(
         ArgumentNullException.ThrowIfNull(context);
 
         var request = new PackageConsumerSmokeRequest(
-            context.Runtime.Rid,
+            _runtimeProfile.Rid,
             _packageBuildConfiguration.ExplicitVersions,
-            context.Paths.PackagesOutput);
+            _pathService.PackagesOutput);
 
-        return _packageConsumerSmokePipeline.RunAsync(context, request);
+        return _packageConsumerSmokePipeline.RunAsync(request);
     }
 }

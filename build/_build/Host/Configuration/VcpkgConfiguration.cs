@@ -20,7 +20,7 @@ public class VcpkgConfiguration
     /// </summary>
     public Option<string> Rid { get; init; }
 
-    public VcpkgConfiguration(IReadOnlyList<string>? libraries,  string? rid)
+    public VcpkgConfiguration(IReadOnlyList<string>? libraries, string? rid)
     {
         Libraries = new ReadOnlyCollection<string>(libraries?.ToList() ?? []);
         Rid = string.IsNullOrWhiteSpace(rid) ? Option<string>.None() : rid;

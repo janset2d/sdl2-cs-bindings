@@ -1,7 +1,6 @@
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Reflection;
-using Build.Features.Coverage;
 using Build.Features.Packaging;
 using Build.Features.Packaging.ArtifactSourceResolvers;
 using Build.Features.Preflight;

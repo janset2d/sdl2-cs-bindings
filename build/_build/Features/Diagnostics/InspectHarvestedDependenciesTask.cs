@@ -12,6 +12,6 @@ public sealed class InspectHarvestedDependenciesTask(InspectHarvestedDependencie
     public override Task RunAsync(BuildContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        return _runner.RunAsync(context);
+        return _runner.RunAsync();
     }
 }

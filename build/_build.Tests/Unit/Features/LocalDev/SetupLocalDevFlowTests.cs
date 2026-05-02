@@ -13,8 +13,6 @@ using Build.Shared.Runtime;
 using Build.Shared.Strategy;
 using Build.Shared.Versioning;
 using Build.Tests.Fixtures;
-using Build.Tools.Vcpkg;
-using Cake.Core;
 using Cake.Core.IO;
 using Cake.Core.Tooling;
 using Cake.Testing;
@@ -78,7 +76,7 @@ public sealed class SetupLocalDevTaskRunnerTests
             Arg.Any<CancellationToken>());
 
         await packagePipeline.DidNotReceiveWithAnyArgs()
-            .RunAsync(Arg.Any<BuildContext>(), Arg.Any<PackRequest>(), Arg.Any<CancellationToken>());
+            .RunAsync(Arg.Any<PackRequest>(), Arg.Any<CancellationToken>());
     }
 
     [Test]
@@ -112,7 +110,7 @@ public sealed class SetupLocalDevTaskRunnerTests
             .Returns(Task.CompletedTask);
 
         var packagePipeline = Substitute.For<IPackagePipeline>();
-        packagePipeline.RunAsync(Arg.Any<BuildContext>(), Arg.Any<PackRequest>(), Arg.Any<CancellationToken>())
+        packagePipeline.RunAsync(Arg.Any<PackRequest>(), Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
 
         var runner = BuildRunner(repo, manifest, resolver, packagePipeline);
@@ -121,7 +119,6 @@ public sealed class SetupLocalDevTaskRunnerTests
 
         // Pack received a non-empty mapping whose scope == concrete families in manifest.
         await packagePipeline.Received(1).RunAsync(
-            Arg.Any<BuildContext>(),
             Arg.Is<PackRequest>(request => request.Versions.Count == concreteFamilies.Count),
             Arg.Any<CancellationToken>());
 
@@ -195,7 +192,7 @@ public sealed class SetupLocalDevTaskRunnerTests
             .Returns(Task.CompletedTask);
 
         var packagePipeline = Substitute.For<IPackagePipeline>();
-        packagePipeline.RunAsync(Arg.Any<BuildContext>(), Arg.Any<PackRequest>(), Arg.Any<CancellationToken>())
+        packagePipeline.RunAsync(Arg.Any<PackRequest>(), Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
 
         var runner = BuildRunner(repo, manifest, resolver, packagePipeline);
@@ -283,7 +280,7 @@ public sealed class SetupLocalDevTaskRunnerTests
             runtimeProfile,
             repo.CakeContext.Log);
         var harvestPipeline = CreateHarvestPipeline(repo, manifest, runtimeProfile);
-        var consolidateHarvestPipeline = new ConsolidateHarvestPipeline();
+        var consolidateHarvestPipeline = new ConsolidateHarvestPipeline(repo.CakeContext, new FakeLog(), repo.Paths);
 
         return new SetupLocalDevFlow(
             repo.CakeContext,
@@ -321,7 +318,10 @@ public sealed class SetupLocalDevTaskRunnerTests
             upstreamVersionAlignmentValidator,
             csprojPackContractValidator,
             new G58CrossFamilyDepResolvabilityValidator(),
-            new PreflightReporter(repo.CakeContext));
+            new PreflightReporter(repo.CakeContext),
+            repo.CakeContext,
+            repo.CakeContext.Log,
+            repo.Paths);
     }
 
     private static HarvestPipeline CreateHarvestPipeline(
@@ -372,7 +372,10 @@ public sealed class SetupLocalDevTaskRunnerTests
             artifactDeployer,
             dependencyPolicyValidator,
             runtimeProfile,
-            manifest);
+            manifest,
+            repo.CakeContext,
+            new FakeLog(),
+            repo.Paths);
     }
 
     private static IRuntimeProfile CreateRuntimeProfile()

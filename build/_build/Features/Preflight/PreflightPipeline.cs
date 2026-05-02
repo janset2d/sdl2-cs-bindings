@@ -1,4 +1,4 @@
-using Build.Host;
+using Build.Host.Paths;
 using Build.Integrations.Vcpkg;
 using Build.Shared.Manifest;
 using Build.Shared.Packaging;
@@ -19,7 +19,10 @@ public sealed class PreflightPipeline(
     IUpstreamVersionAlignmentValidator upstreamVersionAlignmentValidator,
     ICsprojPackContractValidator csprojPackContractValidator,
     IG58CrossFamilyDepResolvabilityValidator g58CrossFamilyDepResolvabilityValidator,
-    PreflightReporter preflightReporter)
+    PreflightReporter preflightReporter,
+    ICakeContext cakeContext,
+    ICakeLog log,
+    IPathService pathService)
 {
     private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
     private readonly IVcpkgManifestReader _vcpkgManifestReader = vcpkgManifestReader ?? throw new ArgumentNullException(nameof(vcpkgManifestReader));
@@ -28,28 +31,24 @@ public sealed class PreflightPipeline(
     private readonly ICsprojPackContractValidator _csprojPackContractValidator = csprojPackContractValidator ?? throw new ArgumentNullException(nameof(csprojPackContractValidator));
     private readonly IG58CrossFamilyDepResolvabilityValidator _g58CrossFamilyDepResolvabilityValidator = g58CrossFamilyDepResolvabilityValidator ?? throw new ArgumentNullException(nameof(g58CrossFamilyDepResolvabilityValidator));
     private readonly PreflightReporter _preflightReporter = preflightReporter ?? throw new ArgumentNullException(nameof(preflightReporter));
+    private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
+    private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
+    private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
 
-    /// <summary>
-    /// C.2 uniform stage-runner contract: <c>Task RunAsync(BuildContext, TRequest, CT)</c>.
-    /// PreFlight validators are synchronous — the body stays sync and the method returns
-    /// <see cref="Task.CompletedTask"/>. Wrapping in an async signature keeps the 7-runner
-    /// surface uniform without forcing fake-async propagation into the validators themselves.
-    /// </summary>
-    public Task RunAsync(BuildContext context, PreflightRequest request, CancellationToken cancellationToken = default)
+    public Task RunAsync(PreflightRequest request, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
 
-        Run(context, request.Versions);
+        Run(request.Versions);
         return Task.CompletedTask;
     }
 
-    private void Run(BuildContext context, IReadOnlyDictionary<string, NuGetVersion> versions)
+    private void Run(IReadOnlyDictionary<string, NuGetVersion> versions)
     {
-        var manifestPath = context.Paths.GetManifestFile();
-        var vcpkgManifestPath = context.Paths.GetVcpkgManifestFile();
-        EnsurePreflightInputsReady(context, manifestPath, vcpkgManifestPath);
+        var manifestPath = _pathService.GetManifestFile();
+        var vcpkgManifestPath = _pathService.GetVcpkgManifestFile();
+        EnsurePreflightInputsReady(manifestPath, vcpkgManifestPath);
 
         _preflightReporter.ReportRunStart();
 
@@ -57,27 +56,24 @@ public sealed class PreflightPipeline(
 
         var versionConsistencyValidation = VersionConsistencyValidator.Validate(_manifestConfig, vcpkgManifest, manifestPath, vcpkgManifestPath);
         _preflightReporter.ReportVersionConsistency(versionConsistencyValidation.Validation);
-        versionConsistencyValidation.OnError(error => ThrowPreflightFailure(context.Log, "Version consistency", error));
+        versionConsistencyValidation.OnError(error => ThrowPreflightFailure(_log, "Version consistency", error));
 
         var strategyCoherenceValidation = _strategyCoherenceValidator.Validate(_manifestConfig.Runtimes);
         _preflightReporter.ReportStrategyCoherence(strategyCoherenceValidation.Validation);
-        strategyCoherenceValidation.OnError(error => ThrowPreflightFailure(context.Log, "Strategy coherence", error));
+        strategyCoherenceValidation.OnError(error => ThrowPreflightFailure(_log, "Strategy coherence", error));
 
         var coreLibraryIdentityValidation = CoreLibraryIdentityValidator.Validate(_manifestConfig);
         _preflightReporter.ReportCoreLibraryIdentity(coreLibraryIdentityValidation.Validation);
-        coreLibraryIdentityValidation.OnError(error => ThrowPreflightFailure(context.Log, "Core library identity", error));
+        coreLibraryIdentityValidation.OnError(error => ThrowPreflightFailure(_log, "Core library identity", error));
 
         var upstreamVersionAlignmentValidation = _upstreamVersionAlignmentValidator.Validate(_manifestConfig, versions);
         _preflightReporter.ReportUpstreamVersionAlignment(upstreamVersionAlignmentValidation.Validation);
-        upstreamVersionAlignmentValidation.OnError(error => ThrowPreflightFailure(context.Log, "Upstream version alignment", error));
+        upstreamVersionAlignmentValidation.OnError(error => ThrowPreflightFailure(_log, "Upstream version alignment", error));
 
-        var csprojPackContractValidation = _csprojPackContractValidator.Validate(_manifestConfig, context.Paths.RepoRoot);
+        var csprojPackContractValidation = _csprojPackContractValidator.Validate(_manifestConfig, _pathService.RepoRoot);
         _preflightReporter.ReportCsprojPackContract(csprojPackContractValidation.Validation);
-        csprojPackContractValidation.OnError(error => ThrowPreflightFailure(context.Log, "Csproj pack contract", error));
+        csprojPackContractValidation.OnError(error => ThrowPreflightFailure(_log, "Csproj pack contract", error));
 
-        // G58 scope-contains mirror (Deniz Q2 2026-04-21 decision): PreFlight runs the same
-        // check Pack runs, strictly scope-contains (no feed probe). Catches satellite-only
-        // --explicit-version misuse before Harvest/vcpkg spins up minutes of work.
         var g58Validation = _g58CrossFamilyDepResolvabilityValidator.Validate(versions, _manifestConfig);
         _preflightReporter.ReportG58CrossFamilyResolvability(g58Validation);
         if (g58Validation.HasErrors)
@@ -88,16 +84,16 @@ public sealed class PreflightPipeline(
         }
     }
 
-    private static void EnsurePreflightInputsReady(BuildContext context, FilePath manifestPath, FilePath vcpkgManifestPath)
+    private void EnsurePreflightInputsReady(FilePath manifestPath, FilePath vcpkgManifestPath)
     {
-        if (!context.FileExists(manifestPath))
+        if (!_cakeContext.FileExists(manifestPath))
         {
             throw new CakeException(
                 $"PreFlightCheck precondition failed: manifest file '{manifestPath.FullPath}' is missing. " +
                 "Run from the repository root or pass --repo-root to point Cake at a valid checkout.");
         }
 
-        if (!context.FileExists(vcpkgManifestPath))
+        if (!_cakeContext.FileExists(vcpkgManifestPath))
         {
             throw new CakeException(
                 $"PreFlightCheck precondition failed: vcpkg manifest '{vcpkgManifestPath.FullPath}' is missing. " +

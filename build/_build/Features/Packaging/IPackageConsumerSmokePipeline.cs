@@ -1,5 +1,3 @@
-using Build.Host;
-
 namespace Build.Features.Packaging;
 
 /// <summary>
@@ -9,5 +7,5 @@ namespace Build.Features.Packaging;
 /// </summary>
 public interface IPackageConsumerSmokePipeline
 {
-    Task RunAsync(BuildContext context, PackageConsumerSmokeRequest request, CancellationToken cancellationToken = default);
+    Task RunAsync(PackageConsumerSmokeRequest request, CancellationToken cancellationToken = default);
 }

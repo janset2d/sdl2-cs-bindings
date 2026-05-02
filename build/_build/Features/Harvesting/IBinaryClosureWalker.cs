@@ -1,4 +1,4 @@
-﻿using Build.Shared.Manifest;
+using Build.Shared.Manifest;
 
 namespace Build.Features.Harvesting;
 

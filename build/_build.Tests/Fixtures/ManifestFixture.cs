@@ -52,20 +52,20 @@ public static class ManifestFixture
     public static LibraryManifest CreateTestSatelliteLibrary(
         string name = "SDL2_image",
         string vcpkgName = "sdl2-image") => new()
-    {
-        Name = name,
-        VcpkgName = vcpkgName,
-        VcpkgVersion = "2.8.8",
-        VcpkgPortVersion = 2,
-        NativeLibName = "SDL2.Image.Native",
-        IsCoreLib = false,
-        PrimaryBinaries =
+        {
+            Name = name,
+            VcpkgName = vcpkgName,
+            VcpkgVersion = "2.8.8",
+            VcpkgPortVersion = 2,
+            NativeLibName = "SDL2.Image.Native",
+            IsCoreLib = false,
+            PrimaryBinaries =
         [
             new PrimaryBinary { Os = "Windows", Patterns = ["SDL2_image.dll"] },
             new PrimaryBinary { Os = "Linux", Patterns = ["libSDL2_image*"] },
             new PrimaryBinary { Os = "OSX", Patterns = ["libSDL2_image*.dylib"] },
         ],
-    };
+        };
 
     /// <summary>
     /// Minimal ManifestConfig for unit tests — core + one satellite.

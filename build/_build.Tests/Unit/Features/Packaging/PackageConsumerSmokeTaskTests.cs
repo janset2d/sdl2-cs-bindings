@@ -23,7 +23,7 @@ public sealed class PackageConsumerSmokeTaskTests
         var log = Substitute.For<ICakeLog>();
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
 
-        var task = new PackageConsumerSmokeTask(runner, config, log);
+        var task = new PackageConsumerSmokeTask(runner, config, log, repo.BuildContext.Runtime, repo.Paths);
 
         var result = task.ShouldRun(repo.BuildContext);
 
@@ -42,7 +42,7 @@ public sealed class PackageConsumerSmokeTaskTests
         var log = Substitute.For<ICakeLog>();
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
 
-        var task = new PackageConsumerSmokeTask(runner, config, log);
+        var task = new PackageConsumerSmokeTask(runner, config, log, repo.BuildContext.Runtime, repo.Paths);
 
         var result = task.ShouldRun(repo.BuildContext);
 

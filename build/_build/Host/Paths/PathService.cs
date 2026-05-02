@@ -1,4 +1,4 @@
-﻿using Build.Host.Configuration;
+using Build.Host.Configuration;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 

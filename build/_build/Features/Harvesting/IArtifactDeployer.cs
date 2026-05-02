@@ -1,4 +1,4 @@
-﻿namespace Build.Features.Harvesting;
+namespace Build.Features.Harvesting;
 
 public interface IArtifactDeployer
 {

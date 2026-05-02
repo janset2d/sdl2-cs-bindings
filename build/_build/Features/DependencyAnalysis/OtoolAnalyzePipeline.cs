@@ -1,101 +1,107 @@
 #pragma warning disable S2737, CA1031
 
-using Build.Host;
+using Build.Host.Configuration;
+using Build.Host.Paths;
 using Build.Tools.Otool;
-using Cake.Common.Diagnostics;
 using Cake.Common.IO;
+using Cake.Core;
+using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 using Spectre.Console;
 
 namespace Build.Features.DependencyAnalysis;
 
-public sealed class OtoolAnalyzePipeline
+public sealed class OtoolAnalyzePipeline(
+    ICakeContext cakeContext,
+    ICakeLog log,
+    IPathService pathService,
+    DumpbinConfiguration dumpbinConfiguration)
 {
     private readonly string _analysisTitle = "macOS Otool Analysis";
+    private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
+    private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
+    private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
+    private readonly DumpbinConfiguration _dumpbinConfiguration = dumpbinConfiguration ?? throw new ArgumentNullException(nameof(dumpbinConfiguration));
 
-    public async Task RunAsync(BuildContext context)
+    public async Task RunAsync()
     {
-        ArgumentNullException.ThrowIfNull(context);
-
         AnsiConsole.Write(new FigletText(_analysisTitle).Color(Color.Green));
         AnsiConsole.WriteLine();
 
-        // Analyze specific libraries if provided
-        if (context.Options.Dumpbin.DllToDump.Any())
+        if (_dumpbinConfiguration.DllToDump.Any())
         {
-            await AnalyzeSpecificLibrariesAsync(context);
+            await AnalyzeSpecificLibrariesAsync();
         }
         else
         {
-            await AnalyzeVcpkgLibrariesAsync(context);
+            await AnalyzeVcpkgLibrariesAsync();
         }
     }
 
-    private static async Task AnalyzeSpecificLibrariesAsync(BuildContext context)
+    private async Task AnalyzeSpecificLibrariesAsync()
     {
         AnsiConsole.Write(new Rule("[yellow]Analyzing Specific Libraries[/]").RuleStyle("grey"));
 
-        foreach (var libraryPath in context.Options.Dumpbin.DllToDump)
+        foreach (var libraryPath in _dumpbinConfiguration.DllToDump)
         {
-            var file = context.File(libraryPath);
+            var file = _cakeContext.File(libraryPath);
 
-            if (!context.FileExists(file))
+            if (!_cakeContext.FileExists(file))
             {
-                context.Warning("File not found: {0}", file.Path);
+                _log.Warning("File not found: {0}", file.Path);
                 continue;
             }
 
-            await AnalyzeSingleLibraryAsync(context, file);
+            await AnalyzeSingleLibraryAsync(file);
         }
     }
 
-    private static async Task AnalyzeVcpkgLibrariesAsync(BuildContext context)
+    private async Task AnalyzeVcpkgLibrariesAsync()
     {
         AnsiConsole.Write(new Rule("[yellow]Analyzing Vcpkg Libraries[/]").RuleStyle("grey"));
 
-        // Look for vcpkg installed libraries - try both x64 and arm64
         var possibleTriplets = new[] { "x64-osx-dynamic", "arm64-osx-dynamic" };
         DirectoryPath? vcpkgLibDir = null;
 
         foreach (var triplet in possibleTriplets)
         {
-            var testDir = context.Paths.GetVcpkgInstalledLibDir(triplet);
-            if (!context.DirectoryExists(testDir))
+            var testDir = _pathService.GetVcpkgInstalledLibDir(triplet);
+            if (!_cakeContext.DirectoryExists(testDir))
             {
                 continue;
             }
 
             vcpkgLibDir = testDir;
-            context.Information("Found vcpkg libraries for triplet: {0}", triplet);
+            _log.Information("Found vcpkg libraries for triplet: {0}", triplet);
             break;
         }
 
-        if (vcpkgLibDir == null || !context.DirectoryExists(vcpkgLibDir))
+        if (vcpkgLibDir == null || !_cakeContext.DirectoryExists(vcpkgLibDir))
         {
-            context.Warning("Vcpkg lib directory not found for any supported triplet");
-            context.Information("Try running: ./external/vcpkg/vcpkg install sdl2:x64-osx-dynamic");
-            context.Information("Or: ./external/vcpkg/vcpkg install sdl2:arm64-osx-dynamic");
+            _log.Warning("Vcpkg lib directory not found for any supported triplet");
+            _log.Information("Try running: ./external/vcpkg/vcpkg install sdl2:x64-osx-dynamic");
+            _log.Information("Or: ./external/vcpkg/vcpkg install sdl2:arm64-osx-dynamic");
             return;
         }
 
-        var dylibFiles = context.GetFiles($"{vcpkgLibDir}/*.dylib").ToList();
+        var dylibFiles = _cakeContext.GetFiles($"{vcpkgLibDir}/*.dylib").ToList();
 
         if (dylibFiles.Count == 0)
         {
-            context.Warning("No .dylib files found in: {0}", vcpkgLibDir);
+            _log.Warning("No .dylib files found in: {0}", vcpkgLibDir);
             return;
         }
 
-        context.Information("Found {0} dylib file(s) to analyze", dylibFiles.Count);
+        _log.Information("Found {0} dylib file(s) to analyze", dylibFiles.Count);
 
         foreach (var dylibFile in dylibFiles)
         {
-            await AnalyzeSingleLibraryAsync(context, dylibFile);
+            await AnalyzeSingleLibraryAsync(dylibFile);
         }
     }
 
 #pragma warning disable MA0051
-    private static async Task AnalyzeSingleLibraryAsync(BuildContext context, FilePath file)
+    private async Task AnalyzeSingleLibraryAsync(FilePath file)
 #pragma warning restore MA0051
     {
         AnsiConsole.Write(new Rule($"[cyan]Analyzing: {file.GetFilename()}[/]").RuleStyle("blue"));
@@ -103,9 +109,8 @@ public sealed class OtoolAnalyzePipeline
         try
         {
             var settings = new OtoolSettings(file);
-            var dependencies = await Task.Run(() => context.OtoolDependencies(settings));
+            var dependencies = await Task.Run(() => _cakeContext.OtoolDependencies(settings));
 
-            // Create analysis tables
             var dependencyTable = new Table()
                 .RoundedBorder()
                 .BorderColor(Color.Blue)
@@ -162,7 +167,6 @@ public sealed class OtoolAnalyzePipeline
 
             AnsiConsole.Write(dependencyTable);
 
-            // Summary statistics
             var statsGrid = new Grid()
                 .AddColumn()
                 .AddColumn();
@@ -179,10 +183,9 @@ public sealed class OtoolAnalyzePipeline
 
             AnsiConsole.Write(statsPanel);
 
-            // Suggest additions to system_artefacts.json
             if (systemLibraries.Count != 0)
             {
-                AnsiConsole.Write(new Rule("[green]Suggested system_artefacts.json entries[/]").RuleStyle("green"));
+                AnsiConsole.Write(new Rule("[green]Suggested system_exclusions entries for manifest.json[/]").RuleStyle("green"));
 
                 var suggestions = new Table()
                     .RoundedBorder()
@@ -201,12 +204,12 @@ public sealed class OtoolAnalyzePipeline
                 AnsiConsole.Write(suggestions);
             }
 
-            context.Information("Analysis complete for {0}: {1} total dependencies ({2} system, {3} user)",
+            _log.Information("Analysis complete for {0}: {1} total dependencies ({2} system, {3} user)",
                 file.GetFilename(), dependencies.Count, systemLibraries.Count, userLibraries.Count);
         }
         catch (Exception ex)
         {
-            context.Error("Failed to analyze {0}: {1}", file.GetFilename(), ex.Message);
+            _log.Error("Failed to analyze {0}: {1}", file.GetFilename(), ex.Message);
         }
 
         AnsiConsole.WriteLine();

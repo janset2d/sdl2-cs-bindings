@@ -1,4 +1,3 @@
-using Build.Tools.Vcpkg;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Build.Tools;
@@ -11,16 +10,16 @@ namespace Build.Tools;
 /// feature folder. Cake `Tool<T>` aliases (e.g. <c>VcpkgAliases</c>, <c>DumpbinAliases</c>)
 /// register themselves through Cake's automatic discovery and don't need DI bindings.
 /// </summary>
+/// <remarks>
+/// <see cref="Build.Integrations.Vcpkg.VcpkgBootstrapTool"/> was relocated to
+/// Integrations/Vcpkg/ at P1.18 — it is not a Cake <c>Tool&lt;TSettings&gt;</c>
+/// (sealed concrete wrapping bootstrap-vcpkg.bat/.sh dispatch).
+/// </remarks>
 public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddToolWrappers(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
-
-        // VcpkgBootstrapTool is a sealed concrete (not a Cake Tool<T>) that wraps
-        // bootstrap-vcpkg.bat / .sh dispatch. Phase-x §2.7 Adım-13 follow-up note
-        // flags candidacy for Integrations/Vcpkg/ relocation in a later wave.
-        services.AddSingleton<VcpkgBootstrapTool>();
 
         return services;
     }

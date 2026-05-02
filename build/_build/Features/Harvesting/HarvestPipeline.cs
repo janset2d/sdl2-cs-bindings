@@ -1,6 +1,6 @@
 using System.Text.Json;
-using Build.Host;
 using Build.Host.Cake;
+using Build.Host.Paths;
 using Build.Shared.Harvesting;
 using Build.Shared.Manifest;
 using Build.Shared.Results;
@@ -21,7 +21,10 @@ public sealed class HarvestPipeline(
     IArtifactDeployer artifactDeployer,
     IDependencyPolicyValidator dependencyPolicyValidator,
     IRuntimeProfile runtimeProfile,
-    ManifestConfig manifestConfig)
+    ManifestConfig manifestConfig,
+    ICakeContext cakeContext,
+    ICakeLog log,
+    IPathService pathService)
 {
     private readonly IBinaryClosureWalker _binaryClosureWalker = binaryClosureWalker ?? throw new ArgumentNullException(nameof(binaryClosureWalker));
     private readonly IArtifactPlanner _artifactPlanner = artifactPlanner ?? throw new ArgumentNullException(nameof(artifactPlanner));
@@ -29,41 +32,43 @@ public sealed class HarvestPipeline(
     private readonly IDependencyPolicyValidator _dependencyPolicyValidator = dependencyPolicyValidator ?? throw new ArgumentNullException(nameof(dependencyPolicyValidator));
     private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
     private readonly IRuntimeProfile _runtimeProfile = runtimeProfile ?? throw new ArgumentNullException(nameof(runtimeProfile));
+    private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
+    private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
+    private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
 
     private static JsonSerializerOptions JsonOptions => HarvestJsonContract.Options;
 
-    public async Task RunAsync(BuildContext context, HarvestRequest request, CancellationToken cancellationToken = default)
+    public async Task RunAsync(HarvestRequest request, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
 
-        EnsureHarvestInputsReady(context);
+        EnsureHarvestInputsReady();
 
-        var outputBase = context.Paths.HarvestOutput;
-        context.EnsureDirectoryExists(outputBase);
+        var outputBase = _pathService.HarvestOutput;
+        _cakeContext.EnsureDirectoryExists(outputBase);
 
-        var librariesToHarvest = ResolveLibrariesToHarvest(context, request.Libraries);
+        var librariesToHarvest = ResolveLibrariesToHarvest(request.Libraries);
 
         if (librariesToHarvest.Count == 0)
         {
-            context.Log.Warning("No libraries found to harvest (either specified or in manifest).");
+            _log.Warning("No libraries found to harvest (either specified or in manifest).");
             return;
         }
 
         foreach (var manifest in librariesToHarvest)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            await ProcessLibraryAsync(context, manifest, outputBase);
+            await ProcessLibraryAsync(manifest, outputBase);
         }
 
         AnsiConsole.Write(new Rule("[green]Harvest completed successfully[/]").RuleStyle("grey"));
     }
 
-    private void EnsureHarvestInputsReady(BuildContext context)
+    private void EnsureHarvestInputsReady()
     {
-        var tripletDir = context.Paths.GetVcpkgInstalledTripletDir(_runtimeProfile.Triplet);
-        if (!context.DirectoryExists(tripletDir))
+        var tripletDir = _pathService.GetVcpkgInstalledTripletDir(_runtimeProfile.Triplet);
+        if (!_cakeContext.DirectoryExists(tripletDir))
         {
             throw new CakeException(
                 $"Harvest precondition failed: vcpkg triplet directory '{tripletDir.FullPath}' is missing for triplet '{_runtimeProfile.Triplet}'. " +
@@ -71,20 +76,20 @@ public sealed class HarvestPipeline(
         }
     }
 
-    private List<LibraryManifest> ResolveLibrariesToHarvest(BuildContext context, IReadOnlyList<string> requestedLibraries)
+    private List<LibraryManifest> ResolveLibrariesToHarvest(IReadOnlyList<string> requestedLibraries)
     {
-        ArgumentNullException.ThrowIfNull(context);
+
         ArgumentNullException.ThrowIfNull(requestedLibraries);
 
         var allManifestLibraries = _manifestConfig.LibraryManifests.ToList();
 
         if (requestedLibraries.Count == 0)
         {
-            context.Log.Information("No specific libraries specified for harvest. Processing all libraries from manifest.");
+            _log.Information("No specific libraries specified for harvest. Processing all libraries from manifest.");
             return allManifestLibraries;
         }
 
-        context.Log.Information("Processing specified libraries for harvest: {0}", string.Join(", ", requestedLibraries));
+        _log.Information("Processing specified libraries for harvest: {0}", string.Join(", ", requestedLibraries));
 
         var librariesToHarvest = new List<LibraryManifest>(requestedLibraries.Count);
         foreach (var specLibName in requestedLibraries)
@@ -98,55 +103,55 @@ public sealed class HarvestPipeline(
         return librariesToHarvest;
     }
 
-    private async Task ProcessLibraryAsync(BuildContext context, LibraryManifest manifest, DirectoryPath outputBase)
+    private async Task ProcessLibraryAsync(LibraryManifest manifest, DirectoryPath outputBase)
     {
-        ArgumentNullException.ThrowIfNull(context);
+
         ArgumentNullException.ThrowIfNull(manifest);
         ArgumentNullException.ThrowIfNull(outputBase);
 
         AnsiConsole.Write(new Rule($"[yellow]Harvest: {manifest.Name}[/]").RuleStyle("grey"));
-        PrepareLibraryOutputForCurrentRid(context, manifest, outputBase);
+        PrepareLibraryOutputForCurrentRid(manifest, outputBase);
 
         try
         {
-            var statistics = await ExecuteHarvestPipelineAsync(context, manifest, outputBase);
+            var statistics = await ExecuteHarvestPipelineAsync(manifest, outputBase);
             DisplayHarvestReportSummary(statistics);
             AnsiConsole.Write(new Rule($"[green]Finished Harvest: {manifest.Name}[/]").RuleStyle("grey"));
         }
         catch (OperationCanceledException)
         {
-            context.Log.Warning("Harvest canceled for '{0}'.", manifest.Name);
+            _log.Warning("Harvest canceled for '{0}'.", manifest.Name);
             AnsiConsole.Write(new Rule($"[yellow]Canceled Harvest: {manifest.Name}[/]").RuleStyle("grey"));
             throw;
         }
         catch (CakeException)
         {
-            await HandleKnownHarvestFailureAsync(context, manifest, outputBase, $"Harvest failed for {manifest.Name}");
+            await HandleKnownHarvestFailureAsync(manifest, outputBase, $"Harvest failed for {manifest.Name}");
             throw;
         }
         catch (Exception ex) when (IsOperationalHarvestException(ex))
         {
-            await HandleOperationalHarvestFailureAsync(context, manifest, outputBase, ex);
+            await HandleOperationalHarvestFailureAsync(manifest, outputBase, ex);
             throw;
         }
     }
 
-    private void PrepareLibraryOutputForCurrentRid(BuildContext context, LibraryManifest manifest, DirectoryPath outputBase)
+    private void PrepareLibraryOutputForCurrentRid(LibraryManifest manifest, DirectoryPath outputBase)
     {
-        ArgumentNullException.ThrowIfNull(context);
+
         ArgumentNullException.ThrowIfNull(manifest);
         ArgumentNullException.ThrowIfNull(outputBase);
 
         // outputBase remains in the signature for parity with the historical call site,
         // but all path construction now goes through IPathService so the layout is governed
-        // in one place. PathService roots under context.Paths.HarvestOutput � same dir.
-        CleanCurrentRidPayload(context, manifest);
-        InvalidateCrossRidReceipts(context, manifest);
+        // in one place. PathService roots under _pathService.HarvestOutput � same dir.
+        CleanCurrentRidPayload(manifest);
+        InvalidateCrossRidReceipts(manifest);
     }
 
-    private void CleanCurrentRidPayload(BuildContext context, LibraryManifest manifest)
+    private void CleanCurrentRidPayload(LibraryManifest manifest)
     {
-        var paths = context.Paths;
+        var paths = _pathService;
         var currentRidRuntimeRoot = paths.GetHarvestLibraryRidRuntimesDir(manifest.Name, _runtimeProfile.Rid);
         var currentRidStatusFile = paths.GetHarvestLibraryRidStatusFile(manifest.Name, _runtimeProfile.Rid);
         // Post-H1 (2026-04-18): license cleanup is RID-scoped to match the RID-scoped deployment
@@ -154,22 +159,22 @@ public sealed class HarvestPipeline(
         // cross-RID consolidation belongs to ConsolidateHarvestTask, not Harvest's per-RID run.
         var currentRidLicenseRoot = paths.GetHarvestLibraryRidLicensesDir(manifest.Name, _runtimeProfile.Rid);
 
-        if (context.DirectoryExists(currentRidRuntimeRoot))
+        if (_cakeContext.DirectoryExists(currentRidRuntimeRoot))
         {
-            context.Log.Verbose("Cleaning existing harvest payload for {0}/{1}: {2}", manifest.Name, _runtimeProfile.Rid, currentRidRuntimeRoot);
-            context.DeleteDirectory(currentRidRuntimeRoot, new DeleteDirectorySettings { Recursive = true, Force = true });
+            _log.Verbose("Cleaning existing harvest payload for {0}/{1}: {2}", manifest.Name, _runtimeProfile.Rid, currentRidRuntimeRoot);
+            _cakeContext.DeleteDirectory(currentRidRuntimeRoot, new DeleteDirectorySettings { Recursive = true, Force = true });
         }
 
-        if (context.FileExists(currentRidStatusFile))
+        if (_cakeContext.FileExists(currentRidStatusFile))
         {
-            context.Log.Verbose("Deleting existing harvest RID status for {0}/{1}: {2}", manifest.Name, _runtimeProfile.Rid, currentRidStatusFile);
-            context.DeleteFile(currentRidStatusFile);
+            _log.Verbose("Deleting existing harvest RID status for {0}/{1}: {2}", manifest.Name, _runtimeProfile.Rid, currentRidStatusFile);
+            _cakeContext.DeleteFile(currentRidStatusFile);
         }
 
-        if (context.DirectoryExists(currentRidLicenseRoot))
+        if (_cakeContext.DirectoryExists(currentRidLicenseRoot))
         {
-            context.Log.Verbose("Refreshing harvest license payload for {0}/{1}: {2}", manifest.Name, _runtimeProfile.Rid, currentRidLicenseRoot);
-            context.DeleteDirectory(currentRidLicenseRoot, new DeleteDirectorySettings { Recursive = true, Force = true });
+            _log.Verbose("Refreshing harvest license payload for {0}/{1}: {2}", manifest.Name, _runtimeProfile.Rid, currentRidLicenseRoot);
+            _cakeContext.DeleteDirectory(currentRidLicenseRoot, new DeleteDirectorySettings { Recursive = true, Force = true });
         }
     }
 
@@ -190,75 +195,75 @@ public sealed class HarvestPipeline(
     /// pattern to work correctly.
     /// </para>
     /// </summary>
-    private static void InvalidateCrossRidReceipts(BuildContext context, LibraryManifest manifest)
+    private void InvalidateCrossRidReceipts(LibraryManifest manifest)
     {
-        var paths = context.Paths;
+        var paths = _pathService;
 
         var consolidatedLicenseRoot = paths.GetHarvestLibraryConsolidatedLicensesDir(manifest.Name);
-        if (context.DirectoryExists(consolidatedLicenseRoot))
+        if (_cakeContext.DirectoryExists(consolidatedLicenseRoot))
         {
-            context.Log.Verbose("Invalidating consolidated license payload for {0}: {1}", manifest.Name, consolidatedLicenseRoot);
-            context.DeleteDirectory(consolidatedLicenseRoot, new DeleteDirectorySettings { Recursive = true, Force = true });
+            _log.Verbose("Invalidating consolidated license payload for {0}: {1}", manifest.Name, consolidatedLicenseRoot);
+            _cakeContext.DeleteDirectory(consolidatedLicenseRoot, new DeleteDirectorySettings { Recursive = true, Force = true });
         }
 
         var consolidatedTempRoot = paths.GetHarvestLibraryConsolidatedLicensesTempDir(manifest.Name);
-        if (context.DirectoryExists(consolidatedTempRoot))
+        if (_cakeContext.DirectoryExists(consolidatedTempRoot))
         {
-            context.Log.Verbose("Cleaning orphan consolidated-tmp for {0}: {1}", manifest.Name, consolidatedTempRoot);
-            context.DeleteDirectory(consolidatedTempRoot, new DeleteDirectorySettings { Recursive = true, Force = true });
+            _log.Verbose("Cleaning orphan consolidated-tmp for {0}: {1}", manifest.Name, consolidatedTempRoot);
+            _cakeContext.DeleteDirectory(consolidatedTempRoot, new DeleteDirectorySettings { Recursive = true, Force = true });
         }
 
         var harvestManifestFile = paths.GetHarvestLibraryManifestFile(manifest.Name);
-        if (context.FileExists(harvestManifestFile))
+        if (_cakeContext.FileExists(harvestManifestFile))
         {
-            context.Log.Verbose("Invalidating stale harvest manifest for {0}: {1}", manifest.Name, harvestManifestFile);
-            context.DeleteFile(harvestManifestFile);
+            _log.Verbose("Invalidating stale harvest manifest for {0}: {1}", manifest.Name, harvestManifestFile);
+            _cakeContext.DeleteFile(harvestManifestFile);
         }
 
         var harvestManifestTempFile = paths.GetHarvestLibraryManifestTempFile(manifest.Name);
-        if (context.FileExists(harvestManifestTempFile))
+        if (_cakeContext.FileExists(harvestManifestTempFile))
         {
-            context.Log.Verbose("Cleaning orphan harvest-manifest-tmp for {0}: {1}", manifest.Name, harvestManifestTempFile);
-            context.DeleteFile(harvestManifestTempFile);
+            _log.Verbose("Cleaning orphan harvest-manifest-tmp for {0}: {1}", manifest.Name, harvestManifestTempFile);
+            _cakeContext.DeleteFile(harvestManifestTempFile);
         }
 
         var harvestSummaryFile = paths.GetHarvestLibrarySummaryFile(manifest.Name);
-        if (context.FileExists(harvestSummaryFile))
+        if (_cakeContext.FileExists(harvestSummaryFile))
         {
-            context.Log.Verbose("Invalidating stale harvest summary for {0}: {1}", manifest.Name, harvestSummaryFile);
-            context.DeleteFile(harvestSummaryFile);
+            _log.Verbose("Invalidating stale harvest summary for {0}: {1}", manifest.Name, harvestSummaryFile);
+            _cakeContext.DeleteFile(harvestSummaryFile);
         }
 
         var harvestSummaryTempFile = paths.GetHarvestLibrarySummaryTempFile(manifest.Name);
-        if (context.FileExists(harvestSummaryTempFile))
+        if (_cakeContext.FileExists(harvestSummaryTempFile))
         {
-            context.Log.Verbose("Cleaning orphan harvest-summary-tmp for {0}: {1}", manifest.Name, harvestSummaryTempFile);
-            context.DeleteFile(harvestSummaryTempFile);
+            _log.Verbose("Cleaning orphan harvest-summary-tmp for {0}: {1}", manifest.Name, harvestSummaryTempFile);
+            _cakeContext.DeleteFile(harvestSummaryTempFile);
         }
     }
 
-    private async Task<DeploymentStatistics> ExecuteHarvestPipelineAsync(BuildContext context, LibraryManifest manifest, DirectoryPath outputBase)
+    private async Task<DeploymentStatistics> ExecuteHarvestPipelineAsync(LibraryManifest manifest, DirectoryPath outputBase)
     {
-        ArgumentNullException.ThrowIfNull(context);
+
         ArgumentNullException.ThrowIfNull(manifest);
         ArgumentNullException.ThrowIfNull(outputBase);
 
         var closureResult = await _binaryClosureWalker.BuildClosureAsync(manifest);
-        closureResult.OnError(e => LogAndThrow("Binary closure", e, context.Log, manifest.Name));
+        closureResult.OnError(e => LogAndThrow("Binary closure", e, _log, manifest.Name));
 
         var validationResult = _dependencyPolicyValidator.Validate(closureResult.Closure, manifest);
-        validationResult.OnError(e => LogAndThrowValidation(e, context.Log, manifest.Name));
+        validationResult.OnError(e => LogAndThrowValidation(e, _log, manifest.Name));
 
         if (validationResult.ValidationSuccess.HasWarnings)
         {
-            LogValidationWarnings(context.Log, manifest.Name, validationResult.ValidationSuccess.Warnings);
+            LogValidationWarnings(_log, manifest.Name, validationResult.ValidationSuccess.Warnings);
         }
 
         var plannerResult = await _artifactPlanner.CreatePlanAsync(manifest, closureResult.Closure, outputBase);
-        plannerResult.OnError(e => LogAndThrow("Artifact planning", e, context.Log, manifest.Name));
+        plannerResult.OnError(e => LogAndThrow("Artifact planning", e, _log, manifest.Name));
 
         var copierResult = await _artifactDeployer.DeployArtifactsAsync(plannerResult.DeploymentPlan);
-        copierResult.OnError(e => LogAndThrow("Artifact copying", e, context.Log, manifest.Name));
+        copierResult.OnError(e => LogAndThrow("Artifact copying", e, _log, manifest.Name));
 
         var statistics = plannerResult.DeploymentPlan.Statistics;
 
@@ -274,11 +279,11 @@ public sealed class HarvestPipeline(
                 $"Harvest produced zero primary binaries for '{manifest.Name}' on {_runtimeProfile.Rid} " +
                 $"(triplet '{_runtimeProfile.Triplet}'). Closure walker and planner returned success but " +
                 "no primary files were deployed. Inspect vcpkg install output and manifest primary_binaries patterns.";
-            context.Log.Error(message);
+            _log.Error(message);
             throw new CakeException(message);
         }
 
-        await GenerateRidStatusFileAsync(context, manifest, statistics, outputBase);
+        await GenerateRidStatusFileAsync(manifest, statistics, outputBase);
         return statistics;
     }
 
@@ -484,28 +489,28 @@ public sealed class HarvestPipeline(
         }
     }
 
-    private async Task HandleKnownHarvestFailureAsync(BuildContext context, LibraryManifest manifest, DirectoryPath outputBase, string errorMessage)
+    private async Task HandleKnownHarvestFailureAsync(LibraryManifest manifest, DirectoryPath outputBase, string errorMessage)
     {
-        ArgumentNullException.ThrowIfNull(context);
+
         ArgumentNullException.ThrowIfNull(manifest);
         ArgumentNullException.ThrowIfNull(outputBase);
         ArgumentException.ThrowIfNullOrEmpty(errorMessage);
 
-        await GenerateErrorRidStatusFileAsync(context, manifest, outputBase, errorMessage);
+        await GenerateErrorRidStatusFileAsync(manifest, outputBase, errorMessage);
         AnsiConsole.Write(new Rule($"[red]Failed Harvest: {manifest.Name}[/]").RuleStyle("grey"));
     }
 
-    private async Task HandleOperationalHarvestFailureAsync(BuildContext context, LibraryManifest manifest, DirectoryPath outputBase, Exception ex)
+    private async Task HandleOperationalHarvestFailureAsync(LibraryManifest manifest, DirectoryPath outputBase, Exception ex)
     {
-        ArgumentNullException.ThrowIfNull(context);
+
         ArgumentNullException.ThrowIfNull(manifest);
         ArgumentNullException.ThrowIfNull(outputBase);
         ArgumentNullException.ThrowIfNull(ex);
 
-        context.Log.Error("Unexpected operational error during harvest of {0}: {1}", manifest.Name, ex.Message);
-        context.Log.Verbose("Harvest error details: {0}", ex);
+        _log.Error("Unexpected operational error during harvest of {0}: {1}", manifest.Name, ex.Message);
+        _log.Verbose("Harvest error details: {0}", ex);
 
-        await GenerateErrorRidStatusFileAsync(context, manifest, outputBase, ex.Message);
+        await GenerateErrorRidStatusFileAsync(manifest, outputBase, ex.Message);
         AnsiConsole.Write(new Rule($"[red]Failed Harvest: {manifest.Name}[/]").RuleStyle("grey"));
     }
 
@@ -514,17 +519,17 @@ public sealed class HarvestPipeline(
     /// This allows CI matrix jobs to run per library+RID while still generating a complete
     /// library-wide harvest manifest in a subsequent consolidation step.
     /// </summary>
-    private async Task GenerateRidStatusFileAsync(BuildContext context, LibraryManifest manifest, DeploymentStatistics statistics, DirectoryPath outputBase)
+    private async Task GenerateRidStatusFileAsync(LibraryManifest manifest, DeploymentStatistics statistics, DirectoryPath outputBase)
     {
-        ArgumentNullException.ThrowIfNull(context);
+
         ArgumentNullException.ThrowIfNull(manifest);
         ArgumentNullException.ThrowIfNull(statistics);
         ArgumentNullException.ThrowIfNull(outputBase);
 
         try
         {
-            var ridStatusDir = context.Paths.GetHarvestLibraryRidStatusDir(manifest.Name);
-            context.EnsureDirectoryExists(ridStatusDir);
+            var ridStatusDir = _pathService.GetHarvestLibraryRidStatusDir(manifest.Name);
+            _cakeContext.EnsureDirectoryExists(ridStatusDir);
 
             var ridStatus = new RidHarvestStatus
             {
@@ -545,35 +550,35 @@ public sealed class HarvestPipeline(
                 },
             };
 
-            var statusFilePath = context.Paths.GetHarvestLibraryRidStatusFile(manifest.Name, _runtimeProfile.Rid);
+            var statusFilePath = _pathService.GetHarvestLibraryRidStatusFile(manifest.Name, _runtimeProfile.Rid);
 
-            await context.WriteJsonAsync(statusFilePath, ridStatus, JsonOptions);
+            await _cakeContext.WriteJsonAsync(statusFilePath, ridStatus, JsonOptions);
 
-            context.Log.Information("Generated RID status file: {0}", statusFilePath);
+            _log.Information("Generated RID status file: {0}", statusFilePath);
         }
         catch (Exception ex) when (IsOperationalHarvestException(ex))
         {
-            LogRidStatusGenerationFailure(context, manifest, ex);
+            LogRidStatusGenerationFailure(manifest, ex);
 
             // Generate an error status file so consolidation knows this RID failed
-            await GenerateErrorRidStatusFileAsync(context, manifest, outputBase, ex.Message);
+            await GenerateErrorRidStatusFileAsync(manifest, outputBase, ex.Message);
         }
     }
 
     /// <summary>
     /// Generates an error RID status file when harvest fails for a specific RID.
     /// </summary>
-    private async Task GenerateErrorRidStatusFileAsync(BuildContext context, LibraryManifest manifest, DirectoryPath outputBase, string errorMessage)
+    private async Task GenerateErrorRidStatusFileAsync(LibraryManifest manifest, DirectoryPath outputBase, string errorMessage)
     {
-        ArgumentNullException.ThrowIfNull(context);
+
         ArgumentNullException.ThrowIfNull(manifest);
         ArgumentNullException.ThrowIfNull(outputBase);
         ArgumentException.ThrowIfNullOrEmpty(errorMessage);
 
         try
         {
-            var ridStatusDir = context.Paths.GetHarvestLibraryRidStatusDir(manifest.Name);
-            context.EnsureDirectoryExists(ridStatusDir);
+            var ridStatusDir = _pathService.GetHarvestLibraryRidStatusDir(manifest.Name);
+            _cakeContext.EnsureDirectoryExists(ridStatusDir);
 
             var ridStatus = new RidHarvestStatus
             {
@@ -586,15 +591,15 @@ public sealed class HarvestPipeline(
                 Statistics = null,
             };
 
-            var statusFilePath = context.Paths.GetHarvestLibraryRidStatusFile(manifest.Name, _runtimeProfile.Rid);
+            var statusFilePath = _pathService.GetHarvestLibraryRidStatusFile(manifest.Name, _runtimeProfile.Rid);
 
-            await context.WriteJsonAsync(statusFilePath, ridStatus, JsonOptions);
+            await _cakeContext.WriteJsonAsync(statusFilePath, ridStatus, JsonOptions);
 
-            context.Log.Information("Generated error RID status file: {0}", statusFilePath);
+            _log.Information("Generated error RID status file: {0}", statusFilePath);
         }
         catch (Exception ex) when (IsOperationalHarvestException(ex))
         {
-            LogErrorRidStatusGenerationFailure(context, manifest, ex);
+            LogErrorRidStatusGenerationFailure(manifest, ex);
         }
     }
 
@@ -605,23 +610,23 @@ public sealed class HarvestPipeline(
         return ex is IOException or UnauthorizedAccessException or InvalidOperationException or NotSupportedException or JsonException;
     }
 
-    private void LogRidStatusGenerationFailure(BuildContext context, LibraryManifest manifest, Exception ex)
+    private void LogRidStatusGenerationFailure(LibraryManifest manifest, Exception ex)
     {
-        ArgumentNullException.ThrowIfNull(context);
+
         ArgumentNullException.ThrowIfNull(manifest);
         ArgumentNullException.ThrowIfNull(ex);
 
-        context.Log.Warning("Failed to generate RID status file for {0}/{1}: {2}", manifest.Name, _runtimeProfile.Rid, ex.Message);
-        context.Log.Verbose("RID status file generation error details: {0}", ex);
+        _log.Warning("Failed to generate RID status file for {0}/{1}: {2}", manifest.Name, _runtimeProfile.Rid, ex.Message);
+        _log.Verbose("RID status file generation error details: {0}", ex);
     }
 
-    private void LogErrorRidStatusGenerationFailure(BuildContext context, LibraryManifest manifest, Exception ex)
+    private void LogErrorRidStatusGenerationFailure(LibraryManifest manifest, Exception ex)
     {
-        ArgumentNullException.ThrowIfNull(context);
+
         ArgumentNullException.ThrowIfNull(manifest);
         ArgumentNullException.ThrowIfNull(ex);
 
-        context.Log.Error("Failed to generate error RID status file for {0}/{1}: {2}", manifest.Name, _runtimeProfile.Rid, ex.Message);
-        context.Log.Verbose("Error RID status file generation error details: {0}", ex);
+        _log.Error("Failed to generate error RID status file for {0}/{1}: {2}", manifest.Name, _runtimeProfile.Rid, ex.Message);
+        _log.Verbose("Error RID status file generation error details: {0}", ex);
     }
 }

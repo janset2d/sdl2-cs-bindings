@@ -86,11 +86,11 @@ public sealed class SetupLocalDevFlow(
             mapping.Count,
             _pathService.GetResolveVersionsOutputFile().FullPath);
 
-        await _preflightPipeline.RunAsync(context, new PreflightRequest(mapping), cancellationToken);
+        await _preflightPipeline.RunAsync(new PreflightRequest(mapping), cancellationToken);
         _ensureVcpkgDependenciesPipeline.Run(context);
-        await _harvestPipeline.RunAsync(context, new HarvestRequest(_runtimeProfile.Rid, harvestLibraries), cancellationToken);
-        await _consolidateHarvestPipeline.RunAsync(context, new ConsolidateHarvestRequest(), cancellationToken);
-        await _packagePipeline.RunAsync(context, new PackRequest(mapping), cancellationToken);
+        await _harvestPipeline.RunAsync(new HarvestRequest(_runtimeProfile.Rid, harvestLibraries), cancellationToken);
+        await _consolidateHarvestPipeline.RunAsync(new ConsolidateHarvestRequest(), cancellationToken);
+        await _packagePipeline.RunAsync(new PackRequest(mapping), cancellationToken);
 
         await _artifactSourceResolver.PrepareFeedAsync(context, mapping, cancellationToken);
         await _artifactSourceResolver.WriteConsumerOverrideAsync(context, mapping, cancellationToken);

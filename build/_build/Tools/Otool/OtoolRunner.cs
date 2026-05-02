@@ -45,10 +45,10 @@ public sealed partial class OtoolRunner : Tool<OtoolSettings>
         var processOutput = string.Empty;
 
         Run(settings, arguments, new ProcessSettings
-            {
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-            },
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        },
             process => processOutput = string.Join(Environment.NewLine, process.GetStandardOutput()));
 
         return processOutput;
@@ -173,15 +173,15 @@ public sealed partial class OtoolRunner : Tool<OtoolSettings>
         switch (match.Success)
         {
             case true:
-            {
-                _context.Debug($"[DEBUG] Match groups count: {match.Groups.Count}");
-                for (var i = 0; i < match.Groups.Count; i++)
                 {
-                    _context.Debug($"[DEBUG] Group {i}: '{match.Groups[i].Value}'");
-                }
+                    _context.Debug($"[DEBUG] Match groups count: {match.Groups.Count}");
+                    for (var i = 0; i < match.Groups.Count; i++)
+                    {
+                        _context.Debug($"[DEBUG] Group {i}: '{match.Groups[i].Value}'");
+                    }
 
-                break;
-            }
+                    break;
+                }
             case false:
                 _context.Debug("[DEBUG] Regex match failed");
                 return null;

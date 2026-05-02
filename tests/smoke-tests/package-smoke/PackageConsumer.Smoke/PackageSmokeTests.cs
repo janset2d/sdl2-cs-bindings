@@ -452,7 +452,7 @@ public sealed class PackageSmokeTests
     private static bool IsWindowsPlatform()
     {
 #if NET5_0_OR_GREATER
-    return OperatingSystem.IsWindows();
+        return OperatingSystem.IsWindows();
 #else
     return RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 #endif
@@ -461,7 +461,7 @@ public sealed class PackageSmokeTests
     private static bool IsMacOsPlatform()
     {
 #if NET5_0_OR_GREATER
-    return OperatingSystem.IsMacOS();
+        return OperatingSystem.IsMacOS();
 #else
     return RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
 #endif
@@ -470,7 +470,7 @@ public sealed class PackageSmokeTests
     private static bool ContainsSharedObjectMarker(string value)
     {
 #if NET5_0_OR_GREATER
-    return value.Contains(".so", StringComparison.OrdinalIgnoreCase);
+        return value.Contains(".so", StringComparison.OrdinalIgnoreCase);
 #else
     return value.IndexOf(".so", StringComparison.OrdinalIgnoreCase) >= 0;
 #endif

@@ -2,9 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Text;
 using System.Xml.Linq;
-using Build.Features.Harvesting;
 using Build.Features.Preflight;
-using Build.Host;
 using Build.Host.Cake;
 using Build.Host.Configuration;
 using Build.Host.Paths;
@@ -77,9 +75,8 @@ public sealed class PackagePipeline : IPackagePipeline
         _resolveHeadCommitSha = () => resolver(_cakeContext, _pathService.RepoRoot);
     }
 
-    public async Task RunAsync(BuildContext context, PackRequest request, CancellationToken cancellationToken = default)
+    public async Task RunAsync(PackRequest request, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
 

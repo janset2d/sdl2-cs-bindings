@@ -1,4 +1,4 @@
-﻿#pragma warning disable CA1031
+#pragma warning disable CA1031
 
 using System.Diagnostics.CodeAnalysis;
 using Build.Host.Paths;

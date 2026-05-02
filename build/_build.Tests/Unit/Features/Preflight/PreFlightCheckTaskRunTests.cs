@@ -181,7 +181,10 @@ public class PreFlightCheckTaskRunTests
             new UpstreamVersionAlignmentValidator(),
             new CsprojPackContractValidator(context.FileSystem),
             new G58CrossFamilyDepResolvabilityValidator(),
-            new PreflightReporter(context));
+            new PreflightReporter(context),
+            context,
+            context.Log,
+            context.Paths);
 
         return new PreFlightCheckTask(runner, packageBuildConfiguration);
     }

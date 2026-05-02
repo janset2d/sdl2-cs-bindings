@@ -1,4 +1,3 @@
-using Build.Features.Harvesting;
 using Build.Host.Paths;
 using Build.Integrations.Vcpkg;
 using Build.Shared.Harvesting;
