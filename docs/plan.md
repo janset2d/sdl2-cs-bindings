@@ -2,7 +2,7 @@
 
 > **This is the canonical status document.** When code and docs disagree, verify against the code. When phases and this file disagree, this file wins.
 
-**Last updated**: 2026-05-02 (Phase X build-host modernization wave: P0 + P1 + P2 + Adım 13 + P3 closed on `master` — ADR-002 layered shape retired, ADR-004 5-folder shape live; P4-A Pipeline RunAsync cut-over is close-ready in the working tree)
+**Last updated**: 2026-05-02 (Phase X build-host modernization wave: P0 + P1 + P2 + Adım 13 + P3 + P4-A CLOSED on `master` at `d1127e4` — ADR-002 layered shape retired, ADR-004 5-folder shape live; P4-C large Pipeline decomposition + P5 not started)
 **Maintainer**: Deniz Irgin (@denizirgin)
 
 ## Mission
@@ -24,7 +24,7 @@ Phase 2 is now divided into two stages:
 
 ### Phase X (build-host modernization, ADR-004 migration)
 
-**Phase X: Build-Host Modernization** (P0 + P1 + P2 + Adım 13 + P3 CLOSED on `master`; P4-A Pipeline RunAsync cut-over is close-ready in the working tree) — standalone cross-cutting refactor wave that is deliberately decoupled from Phase 2 release work. Tracks the migration from the ADR-002 DDD-layered build-host shape (`Tasks/Application/Domain/Infrastructure/Context`) to the ADR-004 Cake-native feature-oriented shape (`Host/Features/Shared/Tools/Integrations`).
+**Phase X: Build-Host Modernization** (P0 + P1 + P2 + Adım 13 + P3 + P4-A CLOSED on `master` at `d1127e4`; P4-C + P5 not started) — standalone cross-cutting refactor wave that is deliberately decoupled from Phase 2 release work. Tracks the migration from the ADR-002 DDD-layered build-host shape (`Tasks/Application/Domain/Infrastructure/Context`) to the ADR-004 Cake-native feature-oriented shape (`Host/Features/Shared/Tools/Integrations`).
 
 | Wave | Status | Commit | Behaviour |
 | --- | --- | --- | --- |
@@ -32,8 +32,8 @@ Phase 2 is now divided into two stages:
 | P1 Folder Migration | ✅ CLOSED | `b6de515` | 291 git mv (production + test mirror) + Rider Adjust Namespaces sweep. ADR-002 namespaces empty in production code; ADR-004 5-folder shape live with 13 feature folders. Behaviour signal byte-equal to P0. |
 | P2 Terminology + DI rewrite | ✅ CLOSED | `3ab2e68` | 12 sub-steps: cosmetic warmup, CakeExtensions split, BuildOptions aggregate, BuildContext slim (6→4 prop), `*TaskRunner` → `*Pipeline` rename + `SetupLocalDev` → Flow, per-feature `ServiceCollectionExtensions` × 13, initial Program.cs DI chain collapse, `Shared/Runtime` Cake-decoupling (`PlatformFamily` → `RuntimeFamily`, `IsSystemFile(FilePath)` → `string`), `LayerDependencyTests` → `ArchitectureTests` rewrite (5 invariants; 3 skipped until Adım 13). Behaviour signal byte-equal to P0 across Win local + Win ci-sim + WSL Linux. |
 | Adım 13 (post-P2 follow-up) | ✅ CLOSED | `d79daa1` → `dfa4ed9` | Cross-tier violation cleanup promoted shared Harvesting/Coverage/Packaging/Versioning vocabulary into `Shared/<X>/`; 3 skipped ArchitectureTests invariants are active (5/5 invariants, 1 permanent IPathService named exception); 13 ServiceCollectionExtensions smoke tests landed via `TestHostFixture`; `cake-build-architecture.md` was rewritten to ADR-004; Program.cs DI chain now reads as `AddHostBuildingBlocks().AddIntegrations().AddToolWrappers()` + 13 `AddXFeature()` calls. Local suite: 515 tests / 0 skipped. |
-| P3 Interface Review | ✅ CLOSED | pending commit | 32 production interfaces reviewed per ADR-004 §2.9; 4 removed (`ICoverageThresholdValidator`, `IVersionConsistencyValidator`, `ICoreLibraryIdentityValidator`, `IStrategyCoherenceValidator`); 28 retained with criterion labels. Verification: 515/515 tests. |
-| P4-A Pipeline RunAsync cut-over | 🧪 CLOSE-READY | pending commit | 10 Pipelines + 2 interfaces: `RunAsync(BuildContext, TRequest, CT)` → `RunAsync(TRequest, CT)`. ADR-004 §2.11.1 migration exception closed. 15 Tasks updated. 515/515 tests, 0 skipped. |
+| P3 Interface Review | ✅ CLOSED | `d1127e4` | 32 production interfaces reviewed per ADR-004 §2.9; 4 removed; 28 retained with criterion labels. 515/515 tests. |
+| P4-A Pipeline RunAsync cut-over | ✅ CLOSED | `d1127e4` | 11 Pipelines + 2 interfaces: `RunAsync(BuildContext, TRequest)` → `RunAsync(TRequest)`. ADR-004 §2.11.1 migration exception closed. 15 Tasks updated. CoverageCheckPipeline (sync, 11th) caught by adversarial review. VcpkgBootstrapTool relocated to `Integrations/Vcpkg/`. IPathService fluent split permanently discarded. Cross-platform: 515/515 all 3 hosts, ci-sim 9/9 on Win+Linux+macOS. |
 | P4-C Large Pipeline decomposition | ⏸️ NOT STARTED | — | Optional. Candidates: `PackageConsumerSmokePipeline`, `HarvestPipeline`, `PackagePipeline`. |
 | P5 Atomic Naming | ⏸️ NOT STARTED | — | `PreFlightCheck` → `Preflight`, `Coverage-Check` → `CoverageCheck`, `Inspect-HarvestedDependencies` → `InspectHarvestedDependencies`. |
 

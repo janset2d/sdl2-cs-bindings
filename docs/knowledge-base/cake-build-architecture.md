@@ -20,7 +20,7 @@ The build system is a .NET 9.0 console application using **Cake Frosting v6.1.0*
 
 - The build host follows the Cake-native feature-oriented shape per ADR-004. Active harvest logic lives under `Features/Harvesting/`; packaging under `Features/Packaging/`; publishing under `Features/Publishing/`; and so on for the 13 features enumerated in the header.
 - **Task layer is thin** by ADR-004 §2.4: each `<X>Task` in a feature folder is a Cake `FrostingTask<BuildContext>` adapter that builds a `Request` DTO from `BuildContext` + the feature's configuration sub-record and delegates to a co-located `<X>Pipeline`. Reference example: `Features/Packaging/PackageTask.cs`. Pipeline classes are extracted from the Task only when they exceed ~200 LOC (smell threshold, not a hard rule per §2.4).
-- **Harvesting remains the build-host reference pattern** for service boundaries: pipeline keeps `BuildContext`, validators / planners / deployers take explicit inputs, Cake capabilities are injected where they are used. Tests mirror the split (whitebox unit tests for the services, task-shape tests for behavior contracts).
+- **Harvesting remains the build-host reference pattern** for service boundaries: pipeline takes `Request` DTOs only (ADR-004 §2.11.1, closed at P4-A), validators / planners / deployers take explicit inputs, Cake capabilities are injected via constructor DI. Tests mirror the split (whitebox unit tests for the services, task-shape tests for behavior contracts).
 - **`BuildContext` is invocation state, not a service locator** (ADR-004 §2.11). The four properties it carries are `Paths`, `Runtime`, `Manifest`, `Options`. Pipelines accept `(BuildContext context, TRequest request, CancellationToken ct)` today; the cut-over to `RunAsync(TRequest, CancellationToken)` is a P4 deliverable. Pure services (validators, generators, planners, readers) take explicit inputs only — never a full `BuildContext`. Tools and Integrations may take narrow Cake abstractions (`ICakeContext`, `ICakeLog`, `IFileSystem`) but never `BuildContext` itself.
 - **LocalDev is the designated multi-feature orchestration slice** per ADR-004 §2.5 + §2.13 invariant #4 allowlist. `Features/LocalDev/SetupLocalDevFlow` composes `EnsureVcpkgDependenciesPipeline`, `PreflightPipeline`, `HarvestPipeline`, `ConsolidateHarvestPipeline`, `IPackagePipeline`, `IPackageConsumerSmokePipeline`, `ManifestVersionProvider`, and `IArtifactSourceResolver` for the `--source=local` profile. Adding a second orchestration feature requires editing the allowlist in [`ArchitectureTests`](../../build/_build.Tests/Unit/CompositionRoot/ArchitectureTests.cs) **and** ADR-004.
 - **Per-feature `ServiceCollectionExtensions.AddXFeature()`** (ADR-004 §2.12 composition-root architectural index): each `Features/<X>/` folder ships a `ServiceCollectionExtensions` static class whose extension method registers that feature's pipelines, validators, generators, and factory closures on `IServiceCollection`. `Program.cs ConfigureBuildServices` reads as 3 cross-cutting group calls (`AddHostBuildingBlocks`, `AddIntegrations`, `AddToolWrappers`) plus a 13-call feature roster. LocalDev is registered last so every sibling pipeline it composes is already in the container.
@@ -135,7 +135,7 @@ Stage runners use one of two suffixes, chosen by intent:
 - **`<X>Pipeline`** — operational vertical slice for a single feature. Examples: `HarvestPipeline`, `PackagePipeline`, `PackageConsumerSmokePipeline`, `PreflightPipeline`, `ConsolidateHarvestPipeline`, `NativeSmokePipeline`, `PublishPipeline`, `ResolveVersionsPipeline`, `EnsureVcpkgDependenciesPipeline`, `CoverageCheckPipeline`, `OtoolAnalyzePipeline`, `InspectHarvestedDependenciesPipeline`, `GenerateMatrixPipeline`, `CleanArtifactsPipeline`, `CompileSolutionPipeline`, `InfoPipeline`. Each lives in `Features/<X>/<X>Pipeline.cs` next to its task.
 - **`<X>Flow`** — multi-feature orchestration slice. Today's only instance: `SetupLocalDevFlow` (`Features/LocalDev/SetupLocalDevFlow.cs`) for the local-dev composition path. Adding a second `Flow` requires extending the `OrchestrationFeatureAllowlist` in `ArchitectureTests` and ADR-004 §2.5.
 
-Pipelines target `RunAsync(BuildContext, TRequest, CancellationToken)` at present; P4 closes the cut-over to `RunAsync(TRequest, CancellationToken)` so pipelines stop receiving the full invocation context. Cake `Tool<TSettings>` wrappers under `Tools/` retain the `<X>Runner` suffix native to Cake (`LddRunner`, `OtoolRunner`, etc.) — see ADR-004 §2.10.
+Pipelines target `RunAsync(TRequest, CancellationToken)` — the ADR-004 §2.11.1 migration exception is closed at P4-A. Pipelines receive only their request DTO; Cake abstractions (`ICakeContext`, `ICakeLog`, `IPathService`) are constructor-injected. Two known exceptions remain documented inline: `EnsureVcpkgDependenciesPipeline.Run(BuildContext)` (P4-deferred) and `SetupLocalDevFlow.RunAsync(BuildContext, CT)` (P4-deferred — awaits sub-pipeline cut-overs). Cake `Tool<TSettings>` wrappers under `Tools/` retain the `<X>Runner` suffix native to Cake (`LddRunner`, `OtoolRunner`, etc.) — see ADR-004 §2.10.
 
 ### Stage-owned validation
 
@@ -276,7 +276,7 @@ See [ADR-004 §2.13](../decisions/2026-05-02-cake-native-feature-architecture.md
 
 When a build-host refactor needs precedent, compare the shape of the Harvesting module before inventing a new seam.
 
-- `HarvestTask` keeps `BuildContext`, task-only policy, and user-facing failure behavior.
+- `HarvestTask` keeps `BuildContext` in its `FrostingTask<BuildContext>.RunAsync()` override (Cake contract), but the Pipeline receives only `HarvestRequest`.
 - `BinaryClosureWalker`, `ArtifactPlanner`, and `ArtifactDeployer` take narrower dependencies and explicit domain inputs.
 - Service boundaries return typed domain results/errors instead of forcing exception-only flow everywhere.
 - Rich domain models (`BinaryClosure`, `DeploymentPlan`, `DeploymentStatistics`) carry intent better than raw path collections.
@@ -419,10 +419,13 @@ var pipeline = new PreflightPipeline(
   upstreamVersionAlignmentValidator,
   csprojPackContractValidator,
   g58CrossFamilyValidator,
-  new PreflightReporter(repo.BuildContext));
+  new PreflightReporter(repo.CakeContext),
+  repo.CakeContext,
+  repo.CakeContext.Log,
+  repo.Paths);
 
 var task = new PreFlightCheckTask(pipeline, packageBuildConfiguration);
-task.Run(repo.BuildContext);
+task.Run(repo.BuildContext); // BuildContext → FrostingTask override (Cake contract)
 
 await Assert.That(repo.Exists("artifacts/harvest_output/SDL2/rid-status/win-x64.json")).IsTrue();
 ```
