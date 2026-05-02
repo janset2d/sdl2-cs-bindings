@@ -8,7 +8,7 @@ namespace Build.Features.Preflight;
 /// must align with the family's upstream library major/minor from <c>manifest.json
 /// library_manifests[].vcpkg_version</c>. Strict-minor alignment applies unconditionally —
 /// each mapping entry is an explicit per-family assertion, not a shared scalar. Invoked in
-/// two places: <c>PreflightTaskRunner</c> (pre-pipeline gate) and <c>ExplicitVersionProvider</c>
+/// two places: <c>PreflightPipeline</c> (pre-pipeline gate) and <c>ExplicitVersionProvider</c>
 /// (provider-entry guard). Same implementation, two call sites — keeps G54 semantics identical
 /// regardless of who supplies the mapping.
 /// </summary>

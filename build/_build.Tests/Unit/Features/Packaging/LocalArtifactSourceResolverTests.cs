@@ -14,7 +14,7 @@ namespace Build.Tests.Unit.Features.Packaging;
 /// Tests for <see cref="LocalArtifactSourceResolver"/>.
 /// This resolver verifies the packaged feed for a supplied version mapping and stamps
 /// <c>Janset.Local.props</c> for IDE direct-restore consumers. Pipeline composition stays
-/// with <see cref="SetupLocalDevTaskRunner"/> and is covered separately.
+/// with <see cref="SetupLocalDevFlow"/> and is covered separately.
 /// </summary>
 public sealed class LocalArtifactSourceResolverTests
 {

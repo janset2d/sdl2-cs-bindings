@@ -43,7 +43,7 @@ public sealed class HybridStaticValidator(IRuntimeProfile profile, IPackagingStr
         // Every non-system, non-core, non-primary binary in the closure = transitive dep leak
         var violations = closure.Nodes
             .Where(node =>
-                !_profile.IsSystemFile(node.Path)
+                !_profile.IsSystemFile(node.Path.GetFilename().FullPath)
                 && !_strategy.IsCoreLibrary(node.OwnerPackage)
                 && !closure.IsPrimaryFile(node.Path))
             .ToList();

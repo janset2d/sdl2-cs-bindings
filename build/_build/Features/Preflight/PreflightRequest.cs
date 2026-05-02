@@ -3,7 +3,7 @@ using NuGet.Versioning;
 namespace Build.Features.Preflight;
 
 /// <summary>
-/// Request for <c>PreflightTaskRunner</c>.
+/// Request for <c>PreflightPipeline</c>.
 /// PreFlight is version-aware, so every invocation carries the resolved per-family version
 /// mapping and runs version-aware guardrails alongside structural validators.
 /// </summary>

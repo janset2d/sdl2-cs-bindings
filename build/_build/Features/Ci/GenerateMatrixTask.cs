@@ -5,13 +5,13 @@ namespace Build.Features.Ci;
 
 [TaskName("GenerateMatrix")]
 [TaskDescription("Emits artifacts/matrix/runtimes.json — the GitHub-Actions matrix derived from manifest.runtimes[]")]
-public sealed class GenerateMatrixTask(GenerateMatrixTaskRunner generateMatrixTaskRunner) : AsyncFrostingTask<BuildContext>
+public sealed class GenerateMatrixTask(GenerateMatrixPipeline generateMatrixPipeline) : AsyncFrostingTask<BuildContext>
 {
-    private readonly GenerateMatrixTaskRunner _generateMatrixTaskRunner = generateMatrixTaskRunner ?? throw new ArgumentNullException(nameof(generateMatrixTaskRunner));
+    private readonly GenerateMatrixPipeline _generateMatrixPipeline = generateMatrixPipeline ?? throw new ArgumentNullException(nameof(generateMatrixPipeline));
 
     public override Task RunAsync(BuildContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        return _generateMatrixTaskRunner.RunAsync();
+        return _generateMatrixPipeline.RunAsync();
     }
 }

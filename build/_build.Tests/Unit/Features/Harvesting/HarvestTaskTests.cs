@@ -70,7 +70,7 @@ public class HarvestTaskTests
         var runtimeProfile = CreateWindowsRuntimeProfile();
 
         var task = new HarvestTask(
-            new HarvestTaskRunner(
+            new HarvestPipeline(
                 mockWalker,
                 mockPlanner,
                 mockDeployer,
@@ -122,7 +122,7 @@ public class HarvestTaskTests
         var runtimeProfile = CreateWindowsRuntimeProfile();
 
         var task = new HarvestTask(
-            new HarvestTaskRunner(
+            new HarvestPipeline(
                 mockWalker,
                 mockPlanner,
                 mockDeployer,
@@ -162,7 +162,7 @@ public class HarvestTaskTests
         var runtimeProfile = CreateWindowsRuntimeProfile();
 
         var task = new HarvestTask(
-            new HarvestTaskRunner(
+            new HarvestPipeline(
                 mockWalker,
                 mockPlanner,
                 mockDeployer,
@@ -193,7 +193,7 @@ public class HarvestTaskTests
             manifestConfig,
             closure: ClosureWithSinglePrimary(SatelliteLibrary),
             plannerResult: PlannerResultWithSinglePrimary(SatelliteLibrary),
-            vcpkgConfiguration: repo.BuildContext.Vcpkg);
+            vcpkgConfiguration: repo.BuildContext.Options.Vcpkg);
 
         await task.RunAsync(repo.BuildContext);
 
@@ -280,7 +280,7 @@ public class HarvestTaskTests
 
         var runtimeProfile = CreateWindowsRuntimeProfile();
         var task = new HarvestTask(
-            new HarvestTaskRunner(
+            new HarvestPipeline(
                 mockWalker,
                 mockPlanner,
                 mockDeployer,
@@ -326,7 +326,7 @@ public class HarvestTaskTests
     public async Task RunAsync_Should_Invalidate_Cross_Rid_Consolidate_Receipts_On_Rid_Rerun()
     {
         // H1 invariant: HarvestTask deletes harvest-manifest.json + harvest-summary.json on
-        // every RID run. PackageTaskRunner's gate fails when harvest-manifest is missing, so
+        // every RID run. PackagePipeline's gate fails when harvest-manifest is missing, so
         // this invalidation forces a Consolidate re-run before Pack can proceed. Without this,
         // a Harvest run against stale _consolidated/ would let Pack silently ship a nupkg
         // with no third-party license entries.
@@ -411,7 +411,7 @@ public class HarvestTaskTests
         var runtimeProfile = CreateWindowsRuntimeProfile();
 
         return new HarvestTask(
-            new HarvestTaskRunner(
+            new HarvestPipeline(
                 mockWalker,
                 mockPlanner,
                 mockDeployer,
@@ -484,8 +484,8 @@ public class HarvestTaskTests
         var profile = Substitute.For<IRuntimeProfile>();
         profile.Rid.Returns(WindowsRid);
         profile.Triplet.Returns(WindowsTriplet);
-        profile.PlatformFamily.Returns(PlatformFamily.Windows);
-        profile.IsSystemFile(Arg.Any<FilePath>()).Returns(returnThis: false);
+        profile.Family.Returns(RuntimeFamily.Windows);
+        profile.IsSystemFile(Arg.Any<string>()).Returns(returnThis: false);
         return profile;
     }
 

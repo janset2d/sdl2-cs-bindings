@@ -18,7 +18,7 @@ namespace Build.Features.Packaging.ArtifactSourceResolvers;
 /// PD-5 read path: pulls latest published nupkgs from the GitHub Packages internal
 /// feed for <c>SetupLocalDev --source=remote</c>. Stateful between
 /// <see cref="PrepareFeedAsync"/> and <see cref="WriteConsumerOverrideAsync"/> —
-/// <see cref="SetupLocalDevTaskRunner"/> hands an empty version mapping for
+/// <see cref="SetupLocalDevFlow"/> hands an empty version mapping for
 /// non-Local profiles, so the resolver discovers internally and caches the result
 /// for the override-write companion call.
 /// </summary>

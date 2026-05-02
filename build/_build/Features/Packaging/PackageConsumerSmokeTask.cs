@@ -8,11 +8,11 @@ namespace Build.Features.Packaging;
 [TaskName("PackageConsumerSmoke")]
 [TaskDescription("Restores and runs the D-local package consumer smoke app against artifacts/packages")]
 public sealed class PackageConsumerSmokeTask(
-    IPackageConsumerSmokeRunner packageConsumerSmokeRunner,
+    IPackageConsumerSmokePipeline packageConsumerSmokePipeline,
     PackageBuildConfiguration packageBuildConfiguration,
     ICakeLog log) : AsyncFrostingTask<BuildContext>
 {
-    private readonly IPackageConsumerSmokeRunner _packageConsumerSmokeRunner = packageConsumerSmokeRunner ?? throw new ArgumentNullException(nameof(packageConsumerSmokeRunner));
+    private readonly IPackageConsumerSmokePipeline _packageConsumerSmokePipeline = packageConsumerSmokePipeline ?? throw new ArgumentNullException(nameof(packageConsumerSmokePipeline));
     private readonly PackageBuildConfiguration _packageBuildConfiguration = packageBuildConfiguration ?? throw new ArgumentNullException(nameof(packageBuildConfiguration));
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
 
@@ -51,6 +51,6 @@ public sealed class PackageConsumerSmokeTask(
             _packageBuildConfiguration.ExplicitVersions,
             context.Paths.PackagesOutput);
 
-        return _packageConsumerSmokeRunner.RunAsync(context, request);
+        return _packageConsumerSmokePipeline.RunAsync(context, request);
     }
 }

@@ -34,7 +34,7 @@ public sealed class GitTagVersionProviderTests
         pathService.RepoRoot.Returns(new DirectoryPath(repo.Path));
         pathService.GetResolveVersionsOutputFile().Returns(outputFile);
 
-        var runner = new ResolveVersionsTaskRunner(
+        var runner = new ResolveVersionsPipeline(
             cakeContext,
             cakeContext.Log,
             pathService,

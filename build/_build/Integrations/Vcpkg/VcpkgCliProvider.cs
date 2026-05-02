@@ -48,7 +48,7 @@ public sealed class VcpkgCliProvider : IPackageInfoProvider
                 return new PackageInfoError(message);
             }
 
-            var vcpkgInstalledOutput = CakeExtensions.DeserializeJson<VcpkgInstalledPackageOutput>(vcpkgJsonOutput);
+            var vcpkgInstalledOutput = CakeJsonExtensions.DeserializeJson<VcpkgInstalledPackageOutput>(vcpkgJsonOutput);
             if (vcpkgInstalledOutput == null || !vcpkgInstalledOutput.Results.TryGetValue(packageKey, out var packageResult))
             {
                 var message = $"Failed to deserialize or find package info for {packageKey} in vcpkg output.";

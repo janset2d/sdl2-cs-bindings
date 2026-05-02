@@ -4,7 +4,7 @@ using NuGet.Versioning;
 namespace Build.Features.Packaging;
 
 /// <summary>
-/// Request for the stateless <c>PackageConsumerSmokeRunner</c>.
+/// Request for the stateless <c>PackageConsumerSmokePipeline</c>.
 /// Carries everything the runner needs to execute a single matrix entry: RID, resolved
 /// version mapping, and feed directory.
 /// </summary>

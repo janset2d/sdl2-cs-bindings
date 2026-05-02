@@ -6,20 +6,20 @@ namespace Build.Features.DependencyAnalysis;
 [TaskName("Otool-Analyze")]
 public sealed class OtoolAnalyzeTask : AsyncFrostingTask<BuildContext>
 {
-    private readonly OtoolAnalyzeTaskRunner _otoolAnalyzeTaskRunner;
+    private readonly OtoolAnalyzePipeline _otoolAnalyzePipeline;
 
-    public OtoolAnalyzeTask() : this(new OtoolAnalyzeTaskRunner())
+    public OtoolAnalyzeTask() : this(new OtoolAnalyzePipeline())
     {
     }
 
-    public OtoolAnalyzeTask(OtoolAnalyzeTaskRunner otoolAnalyzeTaskRunner)
+    public OtoolAnalyzeTask(OtoolAnalyzePipeline otoolAnalyzePipeline)
     {
-        _otoolAnalyzeTaskRunner = otoolAnalyzeTaskRunner ?? throw new ArgumentNullException(nameof(otoolAnalyzeTaskRunner));
+        _otoolAnalyzePipeline = otoolAnalyzePipeline ?? throw new ArgumentNullException(nameof(otoolAnalyzePipeline));
     }
 
     public override Task RunAsync(BuildContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        return _otoolAnalyzeTaskRunner.RunAsync(context);
+        return _otoolAnalyzePipeline.RunAsync(context);
     }
 }

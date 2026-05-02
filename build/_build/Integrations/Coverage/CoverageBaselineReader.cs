@@ -23,7 +23,7 @@ public sealed class CoverageBaselineReader(IFileSystem fileSystem) : ICoverageBa
         ArgumentException.ThrowIfNullOrWhiteSpace(jsonContent);
 
         return DeserializeBaseline(
-            () => CakeExtensions.DeserializeJson<CoverageBaseline>(jsonContent),
+            () => CakeJsonExtensions.DeserializeJson<CoverageBaseline>(jsonContent),
             nameof(jsonContent));
     }
 
@@ -37,7 +37,7 @@ public sealed class CoverageBaselineReader(IFileSystem fileSystem) : ICoverageBa
         stream.CopyTo(buffer);
 
         return DeserializeBaseline(
-            () => CakeExtensions.DeserializeJson<CoverageBaseline>(buffer.ToArray()),
+            () => CakeJsonExtensions.DeserializeJson<CoverageBaseline>(buffer.ToArray()),
             nameof(path));
     }
 

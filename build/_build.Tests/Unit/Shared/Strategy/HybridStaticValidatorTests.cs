@@ -30,7 +30,7 @@ public sealed class HybridStaticValidatorTests
     public async Task Validate_Should_Pass_When_Satellite_Has_Only_Core_And_System_Deps()
     {
         var profile = Substitute.For<IRuntimeProfile>();
-        profile.IsSystemFile(Arg.Any<FilePath>()).Returns(false);
+        profile.IsSystemFile(Arg.Any<string>()).Returns(false);
 
         var strategy = new HybridStaticStrategy("sdl2");
         var validator = new HybridStaticValidator(profile, strategy, ValidationMode.Strict);
@@ -50,7 +50,7 @@ public sealed class HybridStaticValidatorTests
     public async Task Validate_Should_Fail_When_Transitive_Dep_Leaks_In_Strict_Mode()
     {
         var profile = Substitute.For<IRuntimeProfile>();
-        profile.IsSystemFile(Arg.Any<FilePath>()).Returns(false);
+        profile.IsSystemFile(Arg.Any<string>()).Returns(false);
 
         var strategy = new HybridStaticStrategy("sdl2");
         var validator = new HybridStaticValidator(profile, strategy, ValidationMode.Strict);
@@ -73,7 +73,7 @@ public sealed class HybridStaticValidatorTests
     public async Task Validate_Should_Pass_With_Warnings_In_Warn_Mode()
     {
         var profile = Substitute.For<IRuntimeProfile>();
-        profile.IsSystemFile(Arg.Any<FilePath>()).Returns(false);
+        profile.IsSystemFile(Arg.Any<string>()).Returns(false);
 
         var strategy = new HybridStaticStrategy("sdl2");
         var validator = new HybridStaticValidator(profile, strategy, ValidationMode.Warn);
@@ -97,7 +97,7 @@ public sealed class HybridStaticValidatorTests
     public async Task Validate_Should_Pass_In_Off_Mode_Even_With_Leaks()
     {
         var profile = Substitute.For<IRuntimeProfile>();
-        profile.IsSystemFile(Arg.Any<FilePath>()).Returns(false);
+        profile.IsSystemFile(Arg.Any<string>()).Returns(false);
 
         var strategy = new HybridStaticStrategy("sdl2");
         var validator = new HybridStaticValidator(profile, strategy, ValidationMode.Off);
@@ -118,8 +118,8 @@ public sealed class HybridStaticValidatorTests
     public async Task Validate_Should_Ignore_System_Files_In_Closure()
     {
         var profile = Substitute.For<IRuntimeProfile>();
-        profile.IsSystemFile(new FilePath("C:/vcpkg/bin/kernel32.dll")).Returns(true);
-        profile.IsSystemFile(Arg.Is<FilePath>(p => !p.FullPath.Contains("kernel32"))).Returns(false);
+        profile.IsSystemFile("kernel32.dll").Returns(true);
+        profile.IsSystemFile(Arg.Is<string>(s => !s.Contains("kernel32"))).Returns(false);
 
         var strategy = new HybridStaticStrategy("sdl2");
         var validator = new HybridStaticValidator(profile, strategy, ValidationMode.Strict);
@@ -139,7 +139,7 @@ public sealed class HybridStaticValidatorTests
     public async Task Validate_Should_Report_Violations_In_Error_Message()
     {
         var profile = Substitute.For<IRuntimeProfile>();
-        profile.IsSystemFile(Arg.Any<FilePath>()).Returns(false);
+        profile.IsSystemFile(Arg.Any<string>()).Returns(false);
 
         var strategy = new HybridStaticStrategy("sdl2");
         var validator = new HybridStaticValidator(profile, strategy, ValidationMode.Strict);

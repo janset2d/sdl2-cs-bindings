@@ -47,7 +47,7 @@ public sealed class LocalArtifactSourceResolver(
         {
             throw new CakeException(
                 "LocalArtifactSourceResolver.PrepareFeedAsync was invoked with an empty version mapping. " +
-                "The caller (SetupLocalDevTaskRunner in normal flows) must resolve a mapping before handing off.");
+                "The caller (SetupLocalDevFlow in normal flows) must resolve a mapping before handing off.");
         }
 
         if (!_cakeContext.DirectoryExists(_pathService.PackagesOutput))

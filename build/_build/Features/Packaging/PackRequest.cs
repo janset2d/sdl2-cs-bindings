@@ -3,7 +3,7 @@ using NuGet.Versioning;
 namespace Build.Features.Packaging;
 
 /// <summary>
-/// Request for <c>PackageTaskRunner</c>.
+/// Request for <c>PackagePipeline</c>.
 /// Carries the resolved per-family version mapping used for every concrete pack invocation
 /// in this stage. Harvest output and package output directories come from <c>IPathService</c>;
 /// the mapping's key set defines pack scope.

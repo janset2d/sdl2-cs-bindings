@@ -86,7 +86,7 @@ public class CoverageCheckTaskRunTests
 
     private static CoverageCheckTask CreateTask(IFileSystem fileSystem)
     {
-        var runner = new CoverageCheckTaskRunner(
+        var runner = new CoverageCheckPipeline(
             new CoberturaReader(fileSystem),
             new CoverageBaselineReader(fileSystem),
             new CoverageThresholdValidator());

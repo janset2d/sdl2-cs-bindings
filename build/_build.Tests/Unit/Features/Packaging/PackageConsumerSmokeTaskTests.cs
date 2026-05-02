@@ -19,7 +19,7 @@ public sealed class PackageConsumerSmokeTaskTests
     {
         var config = new PackageBuildConfiguration(
             new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase));
-        var runner = Substitute.For<IPackageConsumerSmokeRunner>();
+        var runner = Substitute.For<IPackageConsumerSmokePipeline>();
         var log = Substitute.For<ICakeLog>();
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
 
@@ -38,7 +38,7 @@ public sealed class PackageConsumerSmokeTaskTests
             ["sdl2-core"] = NuGetVersion.Parse("2.32.0-local.20260422T120000"),
         };
         var config = new PackageBuildConfiguration(versions);
-        var runner = Substitute.For<IPackageConsumerSmokeRunner>();
+        var runner = Substitute.For<IPackageConsumerSmokePipeline>();
         var log = Substitute.For<ICakeLog>();
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
 

@@ -1,4 +1,4 @@
-﻿using Build.Host;
+using Build.Host;
 using Build.Tools.Dumpbin;
 using Cake.Common.Diagnostics;
 using Cake.Common.IO;
@@ -13,7 +13,7 @@ public class DependentsTask : AsyncFrostingTask<BuildContext>
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        var file = context.File(context.DumpbinConfiguration.DllToDump[0]);
+        var file = context.File(context.Options.Dumpbin.DllToDump[0]);
 
         if (!context.FileExists(file))
         {

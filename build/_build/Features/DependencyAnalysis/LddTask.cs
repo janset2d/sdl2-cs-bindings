@@ -13,7 +13,7 @@ public class LddTask : AsyncFrostingTask<BuildContext>
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        var file = context.File(context.DumpbinConfiguration.DllToDump[0]);
+        var file = context.File(context.Options.Dumpbin.DllToDump[0]);
 
         if (!context.FileExists(file))
         {

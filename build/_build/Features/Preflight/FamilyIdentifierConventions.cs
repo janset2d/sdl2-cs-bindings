@@ -84,7 +84,7 @@ public static class FamilyIdentifierConventions
     /// <summary>
     /// Returns the canonical MSBuild property name carrying the consumer-side version of a
     /// family's managed package. Consumed by the shared smoke-test MSBuild props + the
-    /// <c>PackageConsumerSmokeRunner</c> when injecting <c>-p:...=&lt;version&gt;</c> into
+    /// <c>PackageConsumerSmokePipeline</c> when injecting <c>-p:...=&lt;version&gt;</c> into
     /// dotnet invocations.
     /// </summary>
     /// <remarks>

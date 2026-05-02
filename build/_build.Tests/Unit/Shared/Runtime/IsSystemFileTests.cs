@@ -18,7 +18,7 @@ public class IsSystemFileTests
     public async Task IsSystemFile_Should_Identify_Windows_System_Dlls(string fileName, bool expected)
     {
         var profile = RuntimeProfileFixture.CreateWindows();
-        var result = profile.IsSystemFile(new FilePath(fileName));
+        var result = profile.IsSystemFile(fileName);
         await Assert.That(result).IsEqualTo(expected);
     }
 
@@ -29,7 +29,7 @@ public class IsSystemFileTests
     public async Task IsSystemFile_Should_Be_Case_Insensitive_On_Windows(string fileName, bool expected)
     {
         var profile = RuntimeProfileFixture.CreateWindows();
-        var result = profile.IsSystemFile(new FilePath(fileName));
+        var result = profile.IsSystemFile(fileName);
         await Assert.That(result).IsEqualTo(expected);
     }
 
@@ -42,7 +42,7 @@ public class IsSystemFileTests
     public async Task IsSystemFile_Should_Match_Wildcard_Patterns_On_Windows(string fileName, bool expected)
     {
         var profile = RuntimeProfileFixture.CreateWindows();
-        var result = profile.IsSystemFile(new FilePath(fileName));
+        var result = profile.IsSystemFile(fileName);
         await Assert.That(result).IsEqualTo(expected);
     }
 
@@ -58,7 +58,7 @@ public class IsSystemFileTests
     public async Task IsSystemFile_Should_Identify_Linux_System_Libraries(string fileName, bool expected)
     {
         var profile = RuntimeProfileFixture.CreateLinux();
-        var result = profile.IsSystemFile(new FilePath(fileName));
+        var result = profile.IsSystemFile(fileName);
         await Assert.That(result).IsEqualTo(expected);
     }
 
@@ -72,7 +72,7 @@ public class IsSystemFileTests
     public async Task IsSystemFile_Should_Identify_MacOS_System_Libraries(string fileName, bool expected)
     {
         var profile = RuntimeProfileFixture.CreateMacOS();
-        var result = profile.IsSystemFile(new FilePath(fileName));
+        var result = profile.IsSystemFile(fileName);
         await Assert.That(result).IsEqualTo(expected);
     }
 }

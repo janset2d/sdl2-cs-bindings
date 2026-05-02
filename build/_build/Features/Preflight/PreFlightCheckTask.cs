@@ -18,10 +18,10 @@ namespace Build.Features.Preflight;
 [TaskName("PreFlightCheck")]
 [TaskDescription("Validates manifest-vcpkg version consistency and runtime strategy coherence (partial gate)")]
 public sealed class PreFlightCheckTask(
-    PreflightTaskRunner preflightTaskRunner,
+    PreflightPipeline preflightPipeline,
     PackageBuildConfiguration packageBuildConfiguration) : AsyncFrostingTask<BuildContext>
 {
-    private readonly PreflightTaskRunner _preflightTaskRunner = preflightTaskRunner ?? throw new ArgumentNullException(nameof(preflightTaskRunner));
+    private readonly PreflightPipeline _preflightPipeline = preflightPipeline ?? throw new ArgumentNullException(nameof(preflightPipeline));
     private readonly PackageBuildConfiguration _packageBuildConfiguration = packageBuildConfiguration ?? throw new ArgumentNullException(nameof(packageBuildConfiguration));
 
     public override Task RunAsync(BuildContext context)
@@ -29,6 +29,6 @@ public sealed class PreFlightCheckTask(
         ArgumentNullException.ThrowIfNull(context);
 
         var request = new PreflightRequest(_packageBuildConfiguration.ExplicitVersions);
-        return _preflightTaskRunner.RunAsync(context, request);
+        return _preflightPipeline.RunAsync(context, request);
     }
 }

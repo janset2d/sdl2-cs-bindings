@@ -174,14 +174,22 @@ public sealed class FakeRepoBuilder
         var pathService = CreatePathService();
         var runtimeProfile = CreateRuntimeProfileStub();
 
+        var manifest = ManifestConfigSeeder.FromDefaultFixture().Manifest;
+
+        var options = new BuildOptions(
+            Vcpkg: new VcpkgConfiguration(_libraries, _rid),
+            Package: new PackageBuildConfiguration(new Dictionary<string, NuGet.Versioning.NuGetVersion>(StringComparer.OrdinalIgnoreCase)),
+            Versioning: new VersioningConfiguration(null, null, []),
+            Repository: new RepositoryConfiguration(_repoRoot),
+            DotNet: new DotNetBuildConfiguration(_config),
+            Dumpbin: new DumpbinConfiguration([]));
+
         var context = new BuildContext(
             cakeContext,
             pathService,
             runtimeProfile,
-            new RepositoryConfiguration(_repoRoot),
-            new DotNetBuildConfiguration(_config),
-            new VcpkgConfiguration(_libraries, _rid),
-            new DumpbinConfiguration([]));
+            manifest,
+            options);
 
         return new FakeRepoHandles
         {
@@ -204,7 +212,7 @@ public sealed class FakeRepoBuilder
         var profile = Substitute.For<IRuntimeProfile>();
         profile.Rid.Returns(_rid ?? "win-x64");
         profile.Triplet.Returns("x64-windows-hybrid");
-        profile.PlatformFamily.Returns(PlatformFamily.Windows);
+        profile.Family.Returns(RuntimeFamily.Windows);
         return profile;
     }
 

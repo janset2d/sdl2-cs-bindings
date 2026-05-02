@@ -78,7 +78,7 @@ public record HarvestManifest
     /// for legacy (pre-H1) manifests OR manifests where Consolidate skipped license work
     /// because no successful RID contributed.
     /// <para>
-    /// Pack-time gate (<c>PackageTaskRunner.EnsureHarvestOutputReadyAsync</c>) asserts this
+    /// Pack-time gate (<c>PackagePipeline.EnsureHarvestOutputReadyAsync</c>) asserts this
     /// section exists and declares a non-zero license payload; absence means
     /// ConsolidateHarvest was either never run or invalidated mid-flight by a subsequent
     /// Harvest. Harvest's per-RID cleanup deletes harvest-manifest.json as part of its
@@ -93,7 +93,7 @@ public record HarvestManifest
 /// Consolidation receipt recording the post-H1 license-union work performed by
 /// <c>ConsolidateHarvestTask</c>. Lives inside <see cref="HarvestManifest"/> rather than
 /// as a separate file so the existing "harvest-manifest.json present → Consolidate ran"
-/// gate in <c>PackageTaskRunner</c> covers both manifest generation AND license
+/// gate in <c>PackagePipeline</c> covers both manifest generation AND license
 /// consolidation with a single file-existence check.
 /// </summary>
 public record ConsolidationState

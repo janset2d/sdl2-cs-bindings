@@ -22,14 +22,14 @@ namespace Build.Features.Coverage;
 [TaskName("Coverage-Check")]
 [TaskDescription("Validates test coverage against the baseline floor in build/coverage-baseline.json (ratchet policy)")]
 public sealed class CoverageCheckTask(
-    CoverageCheckTaskRunner coverageCheckTaskRunner) : FrostingTask<BuildContext>
+    CoverageCheckPipeline coverageCheckPipeline) : FrostingTask<BuildContext>
 {
-    private readonly CoverageCheckTaskRunner _coverageCheckTaskRunner = coverageCheckTaskRunner ?? throw new ArgumentNullException(nameof(coverageCheckTaskRunner));
+    private readonly CoverageCheckPipeline _coverageCheckPipeline = coverageCheckPipeline ?? throw new ArgumentNullException(nameof(coverageCheckPipeline));
 
     public override void Run(BuildContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        _coverageCheckTaskRunner.Run(context);
+        _coverageCheckPipeline.Run(context);
     }
 }

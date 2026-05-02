@@ -167,7 +167,7 @@ public sealed class NativePackageMetadataValidator(IFileSystem fileSystem)
         NativePackageMetadata? metadata;
         try
         {
-            metadata = CakeExtensions.DeserializeJson<NativePackageMetadata>(metadataContent);
+            metadata = CakeJsonExtensions.DeserializeJson<NativePackageMetadata>(metadataContent);
         }
         catch (JsonException ex)
         {

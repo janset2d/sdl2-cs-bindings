@@ -11,13 +11,13 @@ namespace Build.Features.Versioning;
 /// </summary>
 [TaskName("ResolveVersions")]
 [TaskDescription("Resolves per-family versions and emits artifacts/resolve-versions/versions.json")]
-public sealed class ResolveVersionsTask(ResolveVersionsTaskRunner resolveVersionsTaskRunner) : AsyncFrostingTask<BuildContext>
+public sealed class ResolveVersionsTask(ResolveVersionsPipeline resolveVersionsPipeline) : AsyncFrostingTask<BuildContext>
 {
-    private readonly ResolveVersionsTaskRunner _resolveVersionsTaskRunner = resolveVersionsTaskRunner ?? throw new ArgumentNullException(nameof(resolveVersionsTaskRunner));
+    private readonly ResolveVersionsPipeline _resolveVersionsPipeline = resolveVersionsPipeline ?? throw new ArgumentNullException(nameof(resolveVersionsPipeline));
 
     public override Task RunAsync(BuildContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        return _resolveVersionsTaskRunner.RunAsync();
+        return _resolveVersionsPipeline.RunAsync();
     }
 }

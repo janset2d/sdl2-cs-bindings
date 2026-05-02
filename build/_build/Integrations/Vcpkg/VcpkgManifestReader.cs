@@ -14,7 +14,7 @@ public sealed class VcpkgManifestReader(IFileSystem fileSystem) : IVcpkgManifest
         ArgumentException.ThrowIfNullOrWhiteSpace(jsonContent);
 
         return DeserializeManifest(
-            () => CakeExtensions.DeserializeJson<VcpkgManifest>(jsonContent),
+            () => CakeJsonExtensions.DeserializeJson<VcpkgManifest>(jsonContent),
             nameof(jsonContent));
     }
 
@@ -28,7 +28,7 @@ public sealed class VcpkgManifestReader(IFileSystem fileSystem) : IVcpkgManifest
         stream.CopyTo(buffer);
 
         return DeserializeManifest(
-            () => CakeExtensions.DeserializeJson<VcpkgManifest>(buffer.ToArray()),
+            () => CakeJsonExtensions.DeserializeJson<VcpkgManifest>(buffer.ToArray()),
             nameof(path));
     }
 

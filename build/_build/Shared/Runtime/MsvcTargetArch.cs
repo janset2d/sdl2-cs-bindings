@@ -29,7 +29,7 @@ public enum MsvcTargetArch
 
 /// <summary>
 /// RID ↔ <see cref="MsvcTargetArch"/> conversions + <c>vcvarsall.bat</c> arg builder.
-/// Kept as a domain-layer helper so <c>NativeSmokeTaskRunner</c> (Application) and
+/// Kept as a domain-layer helper so <c>NativeSmokePipeline</c> (Application) and
 /// <c>MsvcDevEnvironment</c> (Infrastructure) can both consume it without pulling
 /// shared arch logic into either layer.
 /// </summary>

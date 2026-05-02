@@ -5,13 +5,13 @@ namespace Build.Features.Maintenance;
 
 [TaskName("CleanArtifacts")]
 [TaskDescription("Wipes artifacts/ subtrees + native-smoke build dirs so a fresh Slice-D pass starts clean")]
-public sealed class CleanArtifactsTask(CleanArtifactsTaskRunner cleanArtifactsTaskRunner) : AsyncFrostingTask<BuildContext>
+public sealed class CleanArtifactsTask(CleanArtifactsPipeline cleanArtifactsPipeline) : AsyncFrostingTask<BuildContext>
 {
-    private readonly CleanArtifactsTaskRunner _cleanArtifactsTaskRunner = cleanArtifactsTaskRunner ?? throw new ArgumentNullException(nameof(cleanArtifactsTaskRunner));
+    private readonly CleanArtifactsPipeline _cleanArtifactsPipeline = cleanArtifactsPipeline ?? throw new ArgumentNullException(nameof(cleanArtifactsPipeline));
 
     public override Task RunAsync(BuildContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        return _cleanArtifactsTaskRunner.RunAsync();
+        return _cleanArtifactsPipeline.RunAsync();
     }
 }

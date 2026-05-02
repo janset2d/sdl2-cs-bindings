@@ -1,4 +1,4 @@
-﻿#pragma warning disable CA1031, MA0051
+#pragma warning disable CA1031, MA0051
 
 using Build.Integrations.DependencyAnalysis;
 using Build.Integrations.Vcpkg;
@@ -36,7 +36,7 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
 
             if (primaryFiles.Count == 0)
             {
-                return new ClosureNotFound($"No primary binaries found for {manifest.VcpkgName} on {_profile.PlatformFamily}");
+                return new ClosureNotFound($"No primary binaries found for {manifest.VcpkgName} on {_profile.Family}");
             }
 
             _log.Information("Found {0} primary file(s) for {1}: {2}", primaryFiles.Count, manifest.VcpkgName,
@@ -66,7 +66,7 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
                 }
 
                 var ownerPkgInfo = ownerPkgInfoResult.PackageInfo;
-                var ownedBinaries = ownerPkgInfo.OwnedFiles.Where(path => IsBinary(path) && !_profile.IsSystemFile(path)).ToList();
+                var ownedBinaries = ownerPkgInfo.OwnedFiles.Where(path => IsBinary(path) && !_profile.IsSystemFile(path.GetFilename().FullPath)).ToList();
                 foreach (var bin in ownedBinaries)
                 {
                     nodesDict.TryAdd(bin, new BinaryNode(bin, ownerPackage, originPackage));
@@ -102,7 +102,7 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
 
                 foreach (var dep in deps)
                 {
-                    if (_profile.IsSystemFile(dep) || nodesDict.ContainsKey(dep))
+                    if (_profile.IsSystemFile(dep.GetFilename().FullPath) || nodesDict.ContainsKey(dep))
                     {
                         continue;
                     }
@@ -128,11 +128,11 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
     private HashSet<FilePath> ResolvePrimaryBinaries(PackageInfo pkgInfo, LibraryManifest manifest)
     {
         var platformBinaries = manifest.PrimaryBinaries
-            .FirstOrDefault(pb => pb.Os.Equals(_profile.PlatformFamily.ToString(), StringComparison.OrdinalIgnoreCase));
+            .FirstOrDefault(pb => pb.Os.Equals(_profile.Family.ToString(), StringComparison.OrdinalIgnoreCase));
 
         if (platformBinaries == null)
         {
-            _log.Warning("No primary binary patterns defined for {0} on {1}", manifest.VcpkgName, _profile.PlatformFamily);
+            _log.Warning("No primary binary patterns defined for {0} on {1}", manifest.VcpkgName, _profile.Family);
             return [];
         }
 
@@ -209,15 +209,15 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
     private bool IsBinary(FilePath f)
     {
         var ext = f.GetExtension();
-        return _profile.PlatformFamily switch
+        return _profile.Family switch
         {
-            PlatformFamily.Windows => string.Equals(ext, ".dll", StringComparison.OrdinalIgnoreCase)
+            RuntimeFamily.Windows => string.Equals(ext, ".dll", StringComparison.OrdinalIgnoreCase)
                                       && string.Equals(f.GetDirectory().GetDirectoryName(), "bin", StringComparison.OrdinalIgnoreCase),
-            PlatformFamily.Linux => (string.Equals(ext, ".so", StringComparison.OrdinalIgnoreCase)
+            RuntimeFamily.Linux => (string.Equals(ext, ".so", StringComparison.OrdinalIgnoreCase)
                                      || f.GetFilename().FullPath.Contains(".so.", StringComparison.Ordinal))
                                     && string.Equals(f.GetDirectory().GetDirectoryName(), "lib", StringComparison.Ordinal)
                                     && !string.Equals(f.GetDirectory().GetParent().GetDirectoryName(), "debug", StringComparison.Ordinal),
-            PlatformFamily.OSX => string.Equals(ext, ".dylib", StringComparison.Ordinal)
+            RuntimeFamily.OSX => string.Equals(ext, ".dylib", StringComparison.Ordinal)
                                   && string.Equals(f.GetDirectory().GetDirectoryName(), "lib", StringComparison.Ordinal)
                                   && !string.Equals(f.GetDirectory().GetParent().GetDirectoryName(), "debug", StringComparison.Ordinal),
             _ => false,

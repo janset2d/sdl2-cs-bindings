@@ -276,16 +276,32 @@ static async Task<int> InvokeProcessAsync(string fileName, IEnumerable<string> a
     using var process = new Process { StartInfo = startInfo };
     process.Start();
 
-    if (!verbose)
-    {
-        // Silent: drain streams to prevent deadlock, no console output, no log file.
-        var outTask = process.StandardOutput.ReadToEndAsync();
-        var errTask = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
-        await Task.WhenAll(outTask, errTask);
-        return process.ExitCode;
-    }
+    var (stdout, stderr) = verbose
+        ? await DrainVerboselyAsync(process)
+        : await DrainSilentlyAsync(process);
 
+    // Always write a log file regardless of the verbose flag; silent runs need forensic
+    // evidence on disk just as much as (more than) verbose ones — verbose-rerun-required-
+    // to-debug a flaky failure was a footgun (the failing run's evidence was lost the
+    // moment the process exited).
+    await WriteLogAsync(fileName, argumentList, workingDirectory, logPath, process.ExitCode, stdout, stderr);
+    return process.ExitCode;
+}
+
+static async Task<(string Stdout, string Stderr)> DrainSilentlyAsync(Process process)
+{
+    // Silent: drain streams to prevent deadlock, no console echo. Output captured for
+    // the log file written by the caller.
+    var outTask = process.StandardOutput.ReadToEndAsync();
+    var errTask = process.StandardError.ReadToEndAsync();
+    await process.WaitForExitAsync();
+    var stdout = await outTask;
+    var stderr = await errTask;
+    return (stdout, stderr);
+}
+
+static async Task<(string Stdout, string Stderr)> DrainVerboselyAsync(Process process)
+{
     // Verbose: stream each line live to console + capture for log.
     // Use Console.Out directly — Cake's ANSI sequences would be misinterpreted by Spectre.
     var stdoutSb = new StringBuilder();
@@ -312,9 +328,11 @@ static async Task<int> InvokeProcessAsync(string fileName, IEnumerable<string> a
     await process.WaitForExitAsync();
     await Task.WhenAll(stdoutDone.Task, stderrDone.Task);
 
-    var stdout = stdoutSb.ToString();
-    var stderr = stderrSb.ToString();
+    return (stdoutSb.ToString(), stderrSb.ToString());
+}
 
+static async Task WriteLogAsync(string fileName, IList<string> argumentList, string workingDirectory, string logPath, int exitCode, string stdout, string stderr)
+{
     var header = new StringBuilder();
     header.Append("$ ").Append(fileName).Append(' ').AppendJoin(' ', argumentList).AppendLine();
     header.Append("# cwd=").AppendLine(workingDirectory);
@@ -330,11 +348,10 @@ static async Task<int> InvokeProcessAsync(string fileName, IEnumerable<string> a
         body.Append(stderr);
     }
     body.AppendLine();
-    body.Append("# exit=").Append(process.ExitCode)
+    body.Append("# exit=").Append(exitCode)
         .Append(' ').Append("finished=").AppendLine(DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture));
 
     await File.WriteAllTextAsync(logPath, body.ToString(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-    return process.ExitCode;
 }
 
 static async Task PrintResolvedVersionsFromFileAsync(string versionsFilePath)

@@ -1,7 +1,5 @@
 ﻿using System.Text.RegularExpressions;
 using Build.Shared.Manifest;
-using Cake.Core;
-using Cake.Core.IO;
 
 namespace Build.Shared.Runtime;
 
@@ -19,25 +17,25 @@ public sealed class RuntimeProfile : IRuntimeProfile
 
         if (Rid.StartsWith("win-", StringComparison.OrdinalIgnoreCase))
         {
-            PlatformFamily = PlatformFamily.Windows;
+            Family = RuntimeFamily.Windows;
         }
         else if (Rid.StartsWith("osx-", StringComparison.OrdinalIgnoreCase))
         {
-            PlatformFamily = PlatformFamily.OSX;
+            Family = RuntimeFamily.OSX;
         }
         else if (Rid.StartsWith("linux-", StringComparison.OrdinalIgnoreCase))
         {
-            PlatformFamily = PlatformFamily.Linux;
+            Family = RuntimeFamily.Linux;
         }
         else
         {
             throw new InvalidOperationException($"Unsupported rid {Rid}");
         }
 
-        var rawPatterns = PlatformFamily switch
+        var rawPatterns = Family switch
         {
-            PlatformFamily.Windows => artefacts.Windows.SystemDlls,
-            PlatformFamily.Linux => artefacts.Linux.SystemLibraries,
+            RuntimeFamily.Windows => artefacts.Windows.SystemDlls,
+            RuntimeFamily.Linux => artefacts.Linux.SystemLibraries,
             _ => artefacts.Osx.SystemLibraries,
         };
 
@@ -46,14 +44,11 @@ public sealed class RuntimeProfile : IRuntimeProfile
 
     public string Rid { get; }
     public string Triplet { get; }
-    public PlatformFamily PlatformFamily { get; }
+    public RuntimeFamily Family { get; }
 
-    public bool IsSystemFile(FilePath path)
+    public bool IsSystemFile(string fileName)
     {
-        ArgumentNullException.ThrowIfNull(path);
-
-        var fileName = path.GetFilename().FullPath;
-
+        ArgumentNullException.ThrowIfNull(fileName);
         return _systemRegexes.Any(rx => rx.IsMatch(fileName));
     }
 

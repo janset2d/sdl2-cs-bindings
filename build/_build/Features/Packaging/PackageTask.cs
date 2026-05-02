@@ -8,11 +8,11 @@ namespace Build.Features.Packaging;
 [TaskName("Package")]
 [TaskDescription("Packs managed/native families with explicit version propagation and post-pack nuspec assertions")]
 public sealed class PackageTask(
-    IPackageTaskRunner packageTaskRunner,
+    IPackagePipeline packagePipeline,
     PackageBuildConfiguration packageBuildConfiguration,
     ICakeLog log) : AsyncFrostingTask<BuildContext>
 {
-    private readonly IPackageTaskRunner _packageTaskRunner = packageTaskRunner ?? throw new ArgumentNullException(nameof(packageTaskRunner));
+    private readonly IPackagePipeline _packagePipeline = packagePipeline ?? throw new ArgumentNullException(nameof(packagePipeline));
     private readonly PackageBuildConfiguration _packageBuildConfiguration = packageBuildConfiguration ?? throw new ArgumentNullException(nameof(packageBuildConfiguration));
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
 
@@ -48,6 +48,6 @@ public sealed class PackageTask(
         ArgumentNullException.ThrowIfNull(context);
 
         var request = new PackRequest(_packageBuildConfiguration.ExplicitVersions);
-        return _packageTaskRunner.RunAsync(context, request);
+        return _packagePipeline.RunAsync(context, request);
     }
 }

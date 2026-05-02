@@ -5,7 +5,7 @@ namespace Build.Features.Packaging;
 /// <summary>
 /// Compares the set of <c>Janset.SDL&lt;N&gt;.&lt;Role&gt;</c> <c>PackageReference</c> identities
 /// declared in a smoke consumer's <c>.csproj</c> against the manifest-driven expected set
-/// (the application-layer <c>PackageConsumerSmokeRunner</c> derives expected from <c>manifest.json</c>
+/// (the application-layer <c>PackageConsumerSmokePipeline</c> derives expected from <c>manifest.json</c>
 /// package_families[] filtered to families that declare both managed and native projects).
 /// <para>
 /// Guards against scope drift: if a family graduates out of placeholder state (becomes

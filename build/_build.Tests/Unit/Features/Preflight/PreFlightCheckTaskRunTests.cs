@@ -173,7 +173,7 @@ public class PreFlightCheckTaskRunTests
     {
         var packageBuildConfiguration = new PackageBuildConfiguration(new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase));
 
-        var runner = new PreflightTaskRunner(
+        var runner = new PreflightPipeline(
             manifestConfig,
             new VcpkgManifestReader(context.FileSystem),
             new VersionConsistencyValidator(),

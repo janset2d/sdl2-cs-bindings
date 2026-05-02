@@ -1,7 +1,7 @@
 namespace Build.Features.Harvesting;
 
 /// <summary>
-/// Request for <c>HarvestTaskRunner</c>.
+/// Request for <c>HarvestPipeline</c>.
 /// Harvest is version-blind, so the request carries only the target RID and library filter.
 /// vcpkg configuration is resolved separately through DI.
 /// </summary>

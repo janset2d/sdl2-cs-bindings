@@ -100,11 +100,7 @@ static string ResolveHostRid()
 
 static IReadOnlyList<Entry> BuildEntries(LoopMode mode, string hostRid)
 {
-    // Fast loop: only the host-matched local baseline.
-    // Milestone loop: fast + every other-mode/other-host entry. The runtime gate inside
-    // VerifyEntryAsync skips entries whose target RID does not match the current host
-    // (cross-host verification is meaningless — a Windows host cannot reproduce a Linux
-    // byte-equal signal).
+    // Fast-loop entry: the host-matched local baseline is always present.
     var entries = new List<Entry>
     {
         new("local", hostRid, $"smoke-witness-local-{hostRid}.json"),
@@ -115,9 +111,32 @@ static IReadOnlyList<Entry> BuildEntries(LoopMode mode, string hostRid)
         return entries;
     }
 
-    entries.Add(new("local", "linux-x64", "smoke-witness-local-linux-x64.json"));
-    entries.Add(new("local", "osx-x64", "smoke-witness-local-osx-x64.json"));
-    entries.Add(new("ci-sim", "win-x64", "smoke-witness-ci-sim-win-x64.json"));
+    // Milestone-loop: add every other-host / other-mode entry beyond the fast-loop
+    // host-matched local. The runtime gate inside VerifyEntryAsync skips entries whose
+    // target RID does not match the current host (cross-host verification is meaningless
+    // — a Windows host cannot reproduce a Linux byte-equal signal). Dedup against the
+    // fast-loop entry so the host-matched local doesn't run twice when --milestone is
+    // invoked on a host whose RID also appears in the milestone catalog (e.g., Linux
+    // running --milestone would otherwise verify smoke-witness-local-linux-x64.json
+    // both as fast-loop and as milestone-loop entry).
+    var milestoneCatalog = new (string Mode, string TargetRid, string BaselineFile)[]
+    {
+        ("local",  "linux-x64", "smoke-witness-local-linux-x64.json"),
+        ("local",  "osx-x64",   "smoke-witness-local-osx-x64.json"),
+        ("ci-sim", "win-x64",   "smoke-witness-ci-sim-win-x64.json"),
+    };
+
+    foreach (var (catalogMode, catalogRid, catalogFile) in milestoneCatalog)
+    {
+        var alreadyAdded = entries.Any(e =>
+            string.Equals(e.Mode, catalogMode, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(e.TargetRid, catalogRid, StringComparison.OrdinalIgnoreCase));
+        if (!alreadyAdded)
+        {
+            entries.Add(new(catalogMode, catalogRid, catalogFile));
+        }
+    }
+
     return entries;
 }
 

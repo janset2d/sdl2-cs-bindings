@@ -842,7 +842,7 @@ public sealed class PackageOutputValidator(
     /// consolidated license tree, the operator skips ConsolidateHarvest, the pack gate
     /// somehow passes anyway (future regression or CI-side bypass), and Pack produces a
     /// nupkg with native assets but zero third-party attribution. The upstream layers
-    /// (Harvest invalidation + PackageTaskRunner receipt gate) should catch this first;
+    /// (Harvest invalidation + PackagePipeline receipt gate) should catch this first;
     /// G51 catches it if they don't.
     /// </summary>
     private static void EvaluateLicensePayloadPresence(

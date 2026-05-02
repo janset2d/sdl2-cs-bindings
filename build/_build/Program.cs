@@ -123,6 +123,18 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton(new VersioningConfiguration(parsedArgs.VersionSource, parsedArgs.Suffix, [.. parsedArgs.Scope]));
     services.AddSingleton(new DumpbinConfiguration([.. parsedArgs.Dll]));
 
+    // BuildOptions aggregate per ADR-004 §2.11.1: composed once at startup from the six
+    // operator-input sub-records above. Tasks consume the aggregate via context.Options.X
+    // for the canonical surface; services that only need a single axis still inject the
+    // sub-record directly.
+    services.AddSingleton<BuildOptions>(provider => new BuildOptions(
+        Vcpkg: provider.GetRequiredService<VcpkgConfiguration>(),
+        Package: provider.GetRequiredService<PackageBuildConfiguration>(),
+        Versioning: provider.GetRequiredService<VersioningConfiguration>(),
+        Repository: provider.GetRequiredService<RepositoryConfiguration>(),
+        DotNet: provider.GetRequiredService<DotNetBuildConfiguration>(),
+        Dumpbin: provider.GetRequiredService<DumpbinConfiguration>()));
+
     var source = parsedArgs.Source?.Trim();
     if (string.IsNullOrWhiteSpace(source))
     {
@@ -153,74 +165,40 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
         return new RuntimeProfile(runtimeInfo, systemArtefactsConfig);
     });
 
+    // Integrations (non-Cake-Tool external adapters) and Tools (Cake Tool<T> wrappers).
+    // Per ADR-004 §2.7 / §2.8 these are flat registrations — no AddIntegrations() /
+    // AddToolWrappers() extensions yet (deferred to a later structural pass).
     services.AddSingleton<IPackageInfoProvider, VcpkgCliProvider>();
-    services.AddSingleton<InfoTaskRunner>();
-    services.AddSingleton<IBinaryClosureWalker, BinaryClosureWalker>();
-    services.AddSingleton<IArtifactPlanner, ArtifactPlanner>();
-    services.AddSingleton<IArtifactDeployer, ArtifactDeployer>();
-    services.AddSingleton<HarvestTaskRunner>();
-    services.AddSingleton<NativeSmokeTaskRunner>();
-    services.AddSingleton<ConsolidateHarvestTaskRunner>();
-    services.AddSingleton<CleanArtifactsTaskRunner>();
-    services.AddSingleton<CompileSolutionTaskRunner>();
-    services.AddSingleton<InspectHarvestedDependenciesTaskRunner>();
-    services.AddSingleton<GenerateMatrixTaskRunner>();
-    services.AddSingleton<OtoolAnalyzeTaskRunner>();
     services.AddSingleton<ICoberturaReader, CoberturaReader>();
     services.AddSingleton<ICoverageBaselineReader, CoverageBaselineReader>();
-    services.AddSingleton<ICoverageThresholdValidator, CoverageThresholdValidator>();
-    services.AddSingleton<CoverageCheckTaskRunner>();
     services.AddSingleton<IVcpkgManifestReader, VcpkgManifestReader>();
-    services.AddSingleton<EnsureVcpkgDependenciesTaskRunner>();
-    services.AddSingleton<IVersionConsistencyValidator, VersionConsistencyValidator>();
-    services.AddSingleton<IStrategyResolver, StrategyResolver>();
-    services.AddSingleton<IStrategyCoherenceValidator, StrategyCoherenceValidator>();
-    services.AddSingleton<ICoreLibraryIdentityValidator, CoreLibraryIdentityValidator>();
-    services.AddSingleton<IUpstreamVersionAlignmentValidator, UpstreamVersionAlignmentValidator>();
-    services.AddSingleton<ICsprojPackContractValidator, CsprojPackContractValidator>();
-    services.AddSingleton<IG58CrossFamilyDepResolvabilityValidator, G58CrossFamilyDepResolvabilityValidator>();
-    services.AddSingleton<PreflightReporter>();
-    services.AddSingleton<PreflightTaskRunner>();
-    services.AddSingleton<NativePackageMetadataValidator>();
-    services.AddSingleton<ReadmeMappingTableValidator>();
-    services.AddSingleton<IPackageOutputValidator, PackageOutputValidator>();
     services.AddSingleton<IProjectMetadataReader, ProjectMetadataReader>();
-    // Stage tasks consume already-resolved explicit versions only. ResolveVersions handles
-    // every release shape upstream of stages: manifest+suffix dispatch, explicit dispatch,
-    // targeted family-tag push, and meta-tag train push. Downstream jobs feed the resolved
-    // versions.json back in via --explicit-version / --versions-file.
-    services.AddSingleton<IPackageVersionProvider>(provider =>
-    {
-        var manifest = provider.GetRequiredService<ManifestConfig>();
-        var upstreamVersionAlignmentValidator = provider.GetRequiredService<IUpstreamVersionAlignmentValidator>();
-        var packageBuildConfig = provider.GetRequiredService<PackageBuildConfiguration>();
-        return new ExplicitVersionProvider(manifest, upstreamVersionAlignmentValidator, packageBuildConfig.ExplicitVersions);
-    });
-    services.AddSingleton<ResolveVersionsTaskRunner>();
     services.AddSingleton<IDotNetPackInvoker, DotNetPackInvoker>();
     services.AddSingleton<IDotNetRuntimeEnvironment, DotNetRuntimeEnvironment>();
     services.AddSingleton<INuGetFeedClient, NuGetProtocolFeedClient>();
-    services.AddSingleton<INativePackageMetadataGenerator, NativePackageMetadataGenerator>();
-    services.AddSingleton<IReadmeMappingTableGenerator, ReadmeMappingTableGenerator>();
-    services.AddSingleton<IPackageTaskRunner, PackageTaskRunner>();
-    services.AddSingleton<IPackageConsumerSmokeRunner, PackageConsumerSmokeRunner>();
-    services.AddSingleton<PublishTaskRunner>();
-    services.AddSingleton<VcpkgBootstrapTool>();
     services.AddSingleton<IMsvcDevEnvironment, MsvcDevEnvironment>();
-    services.AddSingleton<LocalArtifactSourceResolver>();
-    services.AddSingleton<RemoteArtifactSourceResolver>();
-    services.AddSingleton<ArtifactSourceResolverFactory>();
-    services.AddSingleton<IArtifactSourceResolver>(provider =>
-        provider.GetRequiredService<ArtifactSourceResolverFactory>().Create(source));
-    services.AddSingleton<SetupLocalDevTaskRunner>();
+    services.AddSingleton<VcpkgBootstrapTool>();
 
-    services.AddSingleton<PackagingStrategyFactory>();
-    services.AddSingleton<IPackagingStrategy>(provider =>
-        provider.GetRequiredService<PackagingStrategyFactory>().Create());
-
-    services.AddSingleton<DependencyPolicyValidatorFactory>();
-    services.AddSingleton<IDependencyPolicyValidator>(provider =>
-        provider.GetRequiredService<DependencyPolicyValidatorFactory>().Create());
+    // Feature roster — composition root reads as the architectural index. Each
+    // AddXFeature() registers that feature's pipelines + feature-local validators /
+    // generators / factories per ADR-004 §2.12. AddPackagingFeature carries the parsed
+    // --source CLI value because the resolver factory closure consumes it; the LocalDev
+    // orchestration feature is registered last so every sibling pipeline it composes is
+    // already in the container (per ADR-004 §2.5 + §2.13 invariant #4 allowlist).
+    services
+        .AddInfoFeature()
+        .AddMaintenanceFeature()
+        .AddCiFeature()
+        .AddCoverageFeature()
+        .AddVersioningFeature()
+        .AddVcpkgFeature()
+        .AddDiagnosticsFeature()
+        .AddDependencyAnalysisFeature()
+        .AddPreflightFeature()
+        .AddHarvestingFeature()
+        .AddPublishingFeature()
+        .AddPackagingFeature(source)
+        .AddLocalDevFeature();
 
     services.AddSingleton<IRuntimeScanner>(provider =>
     {

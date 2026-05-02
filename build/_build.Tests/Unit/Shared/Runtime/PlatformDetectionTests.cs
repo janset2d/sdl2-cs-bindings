@@ -8,14 +8,14 @@ namespace Build.Tests.Unit.Shared.Runtime;
 public class PlatformDetectionTests
 {
     [Test]
-    [Arguments("win-x64", PlatformFamily.Windows)]
-    [Arguments("win-x86", PlatformFamily.Windows)]
-    [Arguments("win-arm64", PlatformFamily.Windows)]
-    [Arguments("linux-x64", PlatformFamily.Linux)]
-    [Arguments("linux-arm64", PlatformFamily.Linux)]
-    [Arguments("osx-x64", PlatformFamily.OSX)]
-    [Arguments("osx-arm64", PlatformFamily.OSX)]
-    public async Task RuntimeProfile_Should_Detect_Correct_Platform_Family(string rid, PlatformFamily expected)
+    [Arguments("win-x64", RuntimeFamily.Windows)]
+    [Arguments("win-x86", RuntimeFamily.Windows)]
+    [Arguments("win-arm64", RuntimeFamily.Windows)]
+    [Arguments("linux-x64", RuntimeFamily.Linux)]
+    [Arguments("linux-arm64", RuntimeFamily.Linux)]
+    [Arguments("osx-x64", RuntimeFamily.OSX)]
+    [Arguments("osx-arm64", RuntimeFamily.OSX)]
+    public async Task RuntimeProfile_Should_Detect_Correct_Platform_Family(string rid, RuntimeFamily expected)
     {
         var profile = rid switch
         {
@@ -25,7 +25,7 @@ public class PlatformDetectionTests
             _ => throw new ArgumentException($"Unexpected RID: {rid}", nameof(rid)),
         };
 
-        await Assert.That(profile.PlatformFamily).IsEqualTo(expected);
+        await Assert.That(profile.Family).IsEqualTo(expected);
     }
 
     [Test]

@@ -171,9 +171,9 @@ public sealed class ProgramCompositionRootTests
         var packageVersionProvider = provider.GetRequiredService<IPackageVersionProvider>();
         var dotNetPackInvoker = provider.GetRequiredService<IDotNetPackInvoker>();
         var dotNetRuntimeEnvironment = provider.GetRequiredService<IDotNetRuntimeEnvironment>();
-        var packageTaskRunner = provider.GetRequiredService<IPackageTaskRunner>();
-        var packageConsumerSmokeRunner = provider.GetRequiredService<IPackageConsumerSmokeRunner>();
-        var publishTaskRunner = provider.GetRequiredService<PublishTaskRunner>();
+        var packagePipeline = provider.GetRequiredService<IPackagePipeline>();
+        var packageConsumerSmokePipeline = provider.GetRequiredService<IPackageConsumerSmokePipeline>();
+        var publishPipeline = provider.GetRequiredService<PublishPipeline>();
         var msvcDevEnvironment = provider.GetRequiredService<IMsvcDevEnvironment>();
 
         await Assert.That(strategy.Model).IsEqualTo(PackagingModel.HybridStatic);
@@ -189,9 +189,9 @@ public sealed class ProgramCompositionRootTests
         await Assert.That(packageVersionProvider.GetType()).IsEqualTo(typeof(ExplicitVersionProvider));
         await Assert.That(dotNetPackInvoker.GetType()).IsEqualTo(typeof(DotNetPackInvoker));
         await Assert.That(dotNetRuntimeEnvironment.GetType()).IsEqualTo(typeof(DotNetRuntimeEnvironment));
-        await Assert.That(packageTaskRunner.GetType()).IsEqualTo(typeof(PackageTaskRunner));
-        await Assert.That(packageConsumerSmokeRunner.GetType()).IsEqualTo(typeof(PackageConsumerSmokeRunner));
-        await Assert.That(publishTaskRunner.GetType()).IsEqualTo(typeof(PublishTaskRunner));
+        await Assert.That(packagePipeline.GetType()).IsEqualTo(typeof(PackagePipeline));
+        await Assert.That(packageConsumerSmokePipeline.GetType()).IsEqualTo(typeof(PackageConsumerSmokePipeline));
+        await Assert.That(publishPipeline.GetType()).IsEqualTo(typeof(PublishPipeline));
         await Assert.That(msvcDevEnvironment.GetType()).IsEqualTo(typeof(MsvcDevEnvironment));
     }
 
@@ -224,8 +224,8 @@ public sealed class ProgramCompositionRootTests
         var projectMetadataReader = provider.GetRequiredService<IProjectMetadataReader>();
         var packageVersionProvider = provider.GetRequiredService<IPackageVersionProvider>();
         var dotNetPackInvoker = provider.GetRequiredService<IDotNetPackInvoker>();
-        var packageTaskRunner = provider.GetRequiredService<IPackageTaskRunner>();
-        var packageConsumerSmokeRunner = provider.GetRequiredService<IPackageConsumerSmokeRunner>();
+        var packagePipeline = provider.GetRequiredService<IPackagePipeline>();
+        var packageConsumerSmokePipeline = provider.GetRequiredService<IPackageConsumerSmokePipeline>();
 
         await Assert.That(strategy.Model).IsEqualTo(PackagingModel.PureDynamic);
         await Assert.That(strategy.GetType()).IsEqualTo(typeof(PureDynamicStrategy));
@@ -237,8 +237,8 @@ public sealed class ProgramCompositionRootTests
         await Assert.That(projectMetadataReader.GetType()).IsEqualTo(typeof(ProjectMetadataReader));
         await Assert.That(packageVersionProvider.GetType()).IsEqualTo(typeof(ExplicitVersionProvider));
         await Assert.That(dotNetPackInvoker.GetType()).IsEqualTo(typeof(DotNetPackInvoker));
-        await Assert.That(packageTaskRunner.GetType()).IsEqualTo(typeof(PackageTaskRunner));
-        await Assert.That(packageConsumerSmokeRunner.GetType()).IsEqualTo(typeof(PackageConsumerSmokeRunner));
+        await Assert.That(packagePipeline.GetType()).IsEqualTo(typeof(PackagePipeline));
+        await Assert.That(packageConsumerSmokePipeline.GetType()).IsEqualTo(typeof(PackageConsumerSmokePipeline));
     }
 
     [Test]

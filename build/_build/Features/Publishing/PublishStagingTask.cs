@@ -13,7 +13,7 @@ namespace Build.Features.Publishing;
 [SuppressMessage("Minor Code Smell", "S1075:URIs should not be hardcoded",
     Justification = "Internal feed URL is part of the release-lifecycle contract, not operator-tunable.")]
 public sealed class PublishStagingTask(
-    PublishTaskRunner runner,
+    PublishPipeline runner,
     PackageBuildConfiguration packageBuildConfiguration,
     ICakeContext cakeContext,
     ICakeLog log) : AsyncFrostingTask<BuildContext>
@@ -22,7 +22,7 @@ public sealed class PublishStagingTask(
 
     private static readonly string[] AuthEnvVarChain = ["GH_TOKEN", "GITHUB_TOKEN"];
 
-    private readonly PublishTaskRunner _runner = runner ?? throw new ArgumentNullException(nameof(runner));
+    private readonly PublishPipeline _runner = runner ?? throw new ArgumentNullException(nameof(runner));
     private readonly PackageBuildConfiguration _packageBuildConfiguration = packageBuildConfiguration ?? throw new ArgumentNullException(nameof(packageBuildConfiguration));
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
