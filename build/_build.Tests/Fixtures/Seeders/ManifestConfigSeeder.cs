@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 using System.Text.Json;
-using Build.Context.Models;
+using Build.Shared.Manifest;
 
 namespace Build.Tests.Fixtures.Seeders;
 

@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using System.Text.Json;
-using Build.Context.Models;
-using Build.Domain.Strategy.Models;
+using Build.Shared.Manifest;
+using Build.Shared.Strategy;
 
 namespace Build.Tests.Fixtures;
 

@@ -1,0 +1,34 @@
+using System.CommandLine;
+
+namespace Build.Host.Cli.Options;
+
+public static class VcpkgOptions
+{
+    public static readonly Option<DirectoryInfo?> VcpkgDirOption = new(
+        aliases: ["--vcpkg-dir"],
+        description: "Absolute path to the vcpkg directory. If not specified, defaults to the current directory.")
+    {
+        IsRequired = false,
+    };
+
+    public static readonly Option<DirectoryInfo?> VcpkgInstalledDirOption = new(
+        aliases: ["--vcpkg-installed-dir"],
+        description: "Absolute path to the vcpkg_installed directory. If not specified, defaults to the current directory.")
+    {
+        IsRequired = false,
+    };
+
+    public static readonly Option<List<string>> LibraryOption = new(
+        "--library",
+        "Specify specific libraries to build (e.g., --library SDL2 --library SDL2_image).")
+    {
+        Arity = ArgumentArity.ZeroOrMore,
+    };
+
+    public static readonly Option<string> RidOption = new(
+        "--rid",
+        "Specify target Runtime Identifiers (RID) for native builds (e.g., --rid win-x64 --rid linux-x64).")
+    {
+        IsRequired = false,
+    };
+}

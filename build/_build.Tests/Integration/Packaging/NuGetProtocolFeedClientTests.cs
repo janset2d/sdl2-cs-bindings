@@ -1,6 +1,6 @@
 using System.Globalization;
 using System.IO.Compression;
-using Build.Infrastructure.DotNet;
+using Build.Integrations.NuGet;
 using Build.Tests.Fixtures;
 using Cake.Core;
 using Cake.Core.IO;

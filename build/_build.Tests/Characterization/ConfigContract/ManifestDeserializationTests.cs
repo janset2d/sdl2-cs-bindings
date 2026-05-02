@@ -1,6 +1,6 @@
 using System.Text.Json;
-using Build.Context.Models;
-using Build.Domain.Strategy.Models;
+using Build.Shared.Manifest;
+using Build.Shared.Strategy;
 using Build.Tests.Fixtures;
 
 namespace Build.Tests.Characterization.ConfigContract;

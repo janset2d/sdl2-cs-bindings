@@ -1,6 +1,6 @@
 using System.Text.Json;
-using Build.Context.Models;
-using Build.Domain.Runtime;
+using Build.Shared.Manifest;
+using Build.Shared.Runtime;
 
 namespace Build.Tests.Fixtures;
 

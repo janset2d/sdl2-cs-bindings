@@ -1,5 +1,5 @@
 using System.Reflection;
-using Build.Context;
+using Build.Host;
 
 namespace Build.Tests.Unit.CompositionRoot;
 

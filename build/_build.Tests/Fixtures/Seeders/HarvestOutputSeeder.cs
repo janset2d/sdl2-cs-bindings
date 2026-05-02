@@ -1,6 +1,5 @@
 using System.Text.Json;
-using Build.Domain.Harvesting;
-using Build.Domain.Harvesting.Models;
+using Build.Features.Harvesting;
 
 namespace Build.Tests.Fixtures.Seeders;
 
