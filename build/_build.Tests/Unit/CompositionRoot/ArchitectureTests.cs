@@ -36,18 +36,11 @@ public sealed class ArchitectureTests
     /// permitted to reference sibling feature pipelines per ADR-004 §2.5 + §2.13 invariant #4.
     /// Adding a second orchestration feature requires editing this list <em>and</em> the ADR.
     /// </summary>
-    private static readonly string[] OrchestrationFeatureAllowlist = ["Build.Features.LocalDev."];
+    private static readonly string[] OrchestrationFeatureAllowlist = ["Build.Features.LocalDev"];
 
     private static readonly Assembly BuildAssembly = typeof(BuildContext).Assembly;
 
     [Test]
-    [Skip("P2-close transitional exception per phase-x §11 risk #4: " +
-        "Build.Shared.Strategy.* references Build.Features.Harvesting.BinaryClosure / BinaryNode (6 violations). " +
-        "Root cause: P1 wave 1.10 moved Domain/Harvesting/Models/BinaryClosure to Features/Harvesting/, but " +
-        "Shared/Strategy validators consume that type as their input contract. Resolution requires moving " +
-        "BinaryClosure / BinaryNode (and possibly the rest of the Domain.Harvesting.Models.* shape) to " +
-        "Shared/Harvesting/ so the cross-tier dependency goes Shared → Shared instead of Shared → Features. " +
-        "Tracked for the post-P2 follow-up wave (Adım 13) before P3 starts.")]
     public async Task Shared_Should_Have_No_Outward_Or_Cake_Dependencies()
     {
         // Build.Shared.* may reference pure-domain libraries only (NuGet.Versioning, OneOf, etc.)
@@ -80,16 +73,16 @@ public sealed class ArchitectureTests
             .Because(FormatViolations(violations));
     }
 
+    /// <summary>
+    /// P4-deferred named exception per phase-x §14.5 IPathService Host-coupling risk:
+    /// 2 violations (<c>Integrations.{DotNet,Vcpkg} → Host.Paths.IPathService</c>) are
+    /// intentionally tolerated until P4 §8.3 BuildPaths fluent split dissolves
+    /// <see cref="Build.Host.Paths.IPathService"/> into per-axis path services. Decoupling
+    /// at Adım 13.5 was rejected because the P4 wave immediately re-touches these classes —
+    /// see phase-x §14.5 risk #3. To lift this exception at P4 close, drop the
+    /// <c>p4DeferredAllowlist</c> entries and ensure no replacement violations surface.
+    /// </summary>
     [Test]
-    [Skip("Adım 13.5 deferral per phase-x §14.5 IPathService Host-coupling risk: " +
-        "Integrations.{DotNet,Vcpkg} → Host.Paths.IPathService (2 violations remain post-13.4). " +
-        "Specifically: DotNetPackInvoker injects IPathService for .PackagesOutput; VcpkgCliProvider " +
-        "injects IPathService for .VcpkgRoot + .GetVcpkgInstalledDir. Original 13 violations: rows " +
-        "7-11 (Coverage*/DotNetPack*/ProjectMetadata*/PackageInfoResult result types) closed by Adım " +
-        "13.1-13.3 promotions; rows 12-13 (IPathService injections) intentionally deferred to P4 §8.3 " +
-        "BuildPaths fluent split where IPathService dissolves into per-axis path services anyway — " +
-        "decoupling now would create churn the P4 wave immediately re-touches. Lift this Skip at P4 " +
-        "close (§13.6 of phase-x roadmap retroactively reads as P4-deadline tracking for these rows).")]
     public async Task Integrations_Should_Have_No_Feature_Dependencies()
     {
         // Build.Integrations.* may depend on Cake framework + Build.Shared.* only. Same
@@ -100,22 +93,22 @@ public sealed class ArchitectureTests
             forbiddenPrefixes: [FeaturesPrefix, HostPrefix, ToolsPrefix],
             forbidCakeReferences: false);
 
-        await Assert.That(violations)
+        var p4DeferredAllowlist = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "  Build.Integrations.DotNet.DotNetPackInvoker -> Build.Host.Paths.IPathService",
+            "  Build.Integrations.Vcpkg.VcpkgCliProvider -> Build.Host.Paths.IPathService",
+        };
+
+        var unexpectedViolations = violations
+            .Where(violation => !p4DeferredAllowlist.Contains(violation))
+            .ToList();
+
+        await Assert.That(unexpectedViolations)
             .IsEmpty()
-            .Because(FormatViolations(violations));
+            .Because(FormatViolations(unexpectedViolations));
     }
 
     [Test]
-    [Skip("P2-close transitional exception per phase-x §11 risk #4: " +
-        "Cross-feature references exist in 7 callsites — Packaging→Harvesting (HarvestManifest, Unit), " +
-        "Preflight→Packaging (G58 validator + result), Versioning→Preflight (UpstreamVersionAlignmentValidator). " +
-        "Root cause: shared cross-feature primitives (HarvestManifest, G58 validation result, " +
-        "UpstreamVersionAlignmentValidator interface) live inside their owning features instead of " +
-        "Shared/<X>/. Resolution: promote each to a Shared sub-namespace (Shared/Harvesting for " +
-        "HarvestManifest; Shared/Versioning for IUpstreamVersionAlignmentValidator; Shared/Packaging for " +
-        "G58CrossFamilyValidation result type). The G58 validator interface itself is a §2.9-criterion-2 " +
-        "cross-feature seam that legitimately stays under Features/Packaging/, but its result type is " +
-        "vocabulary. Tracked for the post-P2 follow-up wave (Adım 13) before P3 starts.")]
     public async Task Features_Should_Not_Cross_Reference_Except_From_LocalDev()
     {
         // Build.Features.X.* may not reference types in Build.Features.Y.*. Cross-feature
@@ -132,15 +125,14 @@ public sealed class ArchitectureTests
 
         foreach (var sourceType in featureTypes)
         {
-            // Skip allowlisted orchestration features — they may reference sibling features.
-            if (OrchestrationFeatureAllowlist.Any(allow =>
-                sourceType.Namespace?.StartsWith(allow, StringComparison.Ordinal) == true))
+            var sourceFeatureRoot = ExtractFeatureRoot(sourceType.Namespace!);
+            if (sourceFeatureRoot is null)
             {
                 continue;
             }
 
-            var sourceFeatureRoot = ExtractFeatureRoot(sourceType.Namespace!);
-            if (sourceFeatureRoot is null)
+            // Skip allowlisted orchestration features — they may reference sibling features.
+            if (OrchestrationFeatureAllowlist.Contains(sourceFeatureRoot, StringComparer.Ordinal))
             {
                 continue;
             }
