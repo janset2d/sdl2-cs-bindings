@@ -171,7 +171,7 @@ Operationalizes the [phase-x ADR-004 plan §2.1.5](../../docs/phases/phase-x-bui
 | Loop | Entries | Cadence |
 | --- | --- | --- |
 | **Fast** (default) | `local` mode, host-matched (e.g. `smoke-witness-local-win-x64.json` on Windows) | Every wave commit boundary (developer's pre-merge ritual) |
-| **Milestone** (`--milestone`) | Fast loop + Linux local + macOS local (opt-in) + Windows ci-sim — runtime gate skips entries this host cannot reproduce | P-wave close commits only (P0/P1/P2/P3/P4/P5 close) |
+| **Milestone** (`--milestone`) | Fast loop + Linux local (`linux-x64`) + macOS Intel local (`osx-x64`, opt-in) + Windows ci-sim (`win-x64`) — runtime gate skips entries this host cannot reproduce | P-wave close commits only (P0/P1/P2/P3/P4/P5 close) |
 
 Cross-host verification is intentionally meaningless: a Windows host running `--milestone` will skip Linux and macOS entries with `SKIP (host)` instead of pretending to verify them. The intent is "what could *this* host produce?", not "which baselines does it own?".
 

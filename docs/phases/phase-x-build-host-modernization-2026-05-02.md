@@ -122,7 +122,7 @@ This is the developer's pre-merge ritual: before opening a wave commit, run `cd 
 **Milestone loop — every P-wave close commit boundary (P0 close, P1 close, ..., P5 close):**
 
 - `smoke-witness-local-linux-x64.json` — WSL Linux host, `local` mode.
-- `smoke-witness-local-osx-arm64.json` — macOS host, `local` mode (best-effort coverage; `ssh` access typically suffices, not a wave-merge gating precondition per §10.5).
+- `smoke-witness-local-osx-x64.json` — macOS Intel host, `local` mode (best-effort coverage; `ssh Armut@<host>` access typically suffices, not a wave-merge gating precondition per §10.5). The Intel slot covers the maintainer's available macOS hardware today; an `osx-arm64` companion baseline can be added the same way once an Apple Silicon host is in rotation.
 - `smoke-witness-ci-sim-win-x64.json` — Windows host, `ci-sim` mode (full pipeline replay: `CleanArtifacts → ResolveVersions → PreFlightCheck → EnsureVcpkgDependencies → Harvest → NativeSmoke → ConsolidateHarvest → Package → PackageConsumerSmoke`).
 
 Milestone-loop baselines update at the same commit that closes a P-wave (e.g. the single P0 close commit, the final P1 close commit, etc.). Mid-wave commits do not touch milestone baselines. macOS coverage is **best-effort, not gating** — Linux + Windows-ci-sim suffice for the milestone gate; `osx-arm64` is captured opportunistically when host availability permits.
@@ -204,7 +204,7 @@ Establish the verifiable starting point. Capture baselines, freeze the public Ca
 | smoke-witness `--emit-baseline` flag | `tests/scripts/smoke-witness.cs` | Single PR; flag is additive (no behavior change to existing modes) |
 | Fast-loop baseline (`local` Win) | `tests/scripts/baselines/smoke-witness-local-win-x64.json` (committed) | JSON behavior signal per §2.1.2; gates every wave commit per §2.1.5 fast-loop cadence |
 | Milestone baseline (`local` Linux) | `tests/scripts/baselines/smoke-witness-local-linux-x64.json` (committed) | JSON behavior signal per §2.1.2; gates P-wave close commits per §2.1.5 milestone-loop cadence |
-| Milestone baseline (`local` macOS, opt-in) | `tests/scripts/baselines/smoke-witness-local-osx-arm64.json` (committed when available) | Best-effort coverage per §2.1.5 + §10.5; not a wave-merge precondition |
+| Milestone baseline (`local` macOS, opt-in) | `tests/scripts/baselines/smoke-witness-local-osx-x64.json` (committed when available; `osx-arm64` companion when Apple Silicon host is added) | Best-effort coverage per §2.1.5 + §10.5; not a wave-merge precondition |
 | Milestone baseline (`ci-sim` Win) | `tests/scripts/baselines/smoke-witness-ci-sim-win-x64.json` (committed) | Full pipeline replay; gates P-wave close commits per §2.1.5 |
 | `verify-baselines.cs` helper | `tests/scripts/verify-baselines.cs` (file-based app, .NET 10) | Default = fast loop; `--milestone` = milestone loop. Spawns `smoke-witness.cs --emit-baseline tmp.json` per entry, diffs via `JsonSerializer`, exits non-zero on mismatch. Operationalizes §2.1.5 + §12.3 pre-merge checks |
 | Test count baseline | `tests/scripts/baselines/test-count.txt` (committed) | Plain integer; behavior contract belongs in VCS |
@@ -725,7 +725,7 @@ For every wave merge, the following must be green:
 - [ ] **Test wall-time gate (P3 only):** total `dotnet test` wall time ≤ (P2 close wall time × 1.20). Other waves capture wall time for trend visibility but do not gate on it.
 - [ ] `LayerDependencyTests` (P0–P1) or `ArchitectureTests` (P2+) green
 - [ ] **Fast loop (every wave commit):** `cd tests/scripts && dotnet run verify-baselines.cs` exits zero — i.e. `smoke-witness local` baseline byte-equal to `smoke-witness-local-win-x64.json` (P5 updates baseline).
-- [ ] **Milestone loop (P-wave close commits only — P0/P1/P2/P3/P4/P5 close):** `cd tests/scripts && dotnet run verify-baselines.cs --milestone` exits zero, covering `smoke-witness-local-linux-x64.json` (WSL Linux) + `smoke-witness-ci-sim-win-x64.json` (Windows ci-sim). `smoke-witness-local-osx-arm64.json` is best-effort per §10.5 — captured when host is reachable, not gating. (P5 updates each baseline atomically per §9.3.)
+- [ ] **Milestone loop (P-wave close commits only — P0/P1/P2/P3/P4/P5 close):** `cd tests/scripts && dotnet run verify-baselines.cs --milestone` exits zero, covering `smoke-witness-local-linux-x64.json` (WSL Linux) + `smoke-witness-ci-sim-win-x64.json` (Windows ci-sim). `smoke-witness-local-osx-x64.json` (macOS Intel) is best-effort per §10.5 — captured when host is reachable, not gating; an `osx-arm64` companion will be added when Apple Silicon hardware enters rotation. (P5 updates each baseline atomically per §9.3.)
 - [ ] No mid-wave commits — every commit on the branch is itself green (verifiable via `git rebase --exec`)
 
 ### 12.4 Rollback policy

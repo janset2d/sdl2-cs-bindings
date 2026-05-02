@@ -2,8 +2,8 @@
 #:property TargetFramework=net10.0
 #:property TargetFrameworks=
 #:property PublishAot=false
-#:property NoError=$(NoError);CA1502;CA1505;CA1031;CA1515;CA2007;IL2026;IL3050
-#:property NoWarn=$(NoWarn);CA1502;CA1505;CA1031;CA1515;CA2007;IL2026;IL3050
+#:property NoError=$(NoError);CA1502;CA1505;CA1031;CA1515;CA2007;CA1869;IL2026;IL3050
+#:property NoWarn=$(NoWarn);CA1502;CA1505;CA1031;CA1515;CA2007;CA1869;IL2026;IL3050
 #:package Spectre.Console
 
 using System.Diagnostics;
@@ -116,7 +116,7 @@ static IReadOnlyList<Entry> BuildEntries(LoopMode mode, string hostRid)
     }
 
     entries.Add(new("local", "linux-x64", "smoke-witness-local-linux-x64.json"));
-    entries.Add(new("local", "osx-arm64", "smoke-witness-local-osx-arm64.json"));
+    entries.Add(new("local", "osx-x64", "smoke-witness-local-osx-x64.json"));
     entries.Add(new("ci-sim", "win-x64", "smoke-witness-ci-sim-win-x64.json"));
     return entries;
 }
