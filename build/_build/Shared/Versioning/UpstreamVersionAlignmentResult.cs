@@ -1,8 +1,9 @@
+using Build.Shared.Results;
 using OneOf;
 using OneOf.Monads;
 using OneOf.Types;
 
-namespace Build.Features.Preflight;
+namespace Build.Shared.Versioning;
 
 public sealed class UpstreamVersionAlignmentResult(OneOf<Error<UpstreamVersionAlignmentError>, Success<UpstreamVersionAlignmentSuccess>> result)
     : Result<UpstreamVersionAlignmentError, UpstreamVersionAlignmentSuccess>(result)
@@ -59,7 +60,7 @@ public sealed class UpstreamVersionAlignmentResult(OneOf<Error<UpstreamVersionAl
 
 public sealed record UpstreamVersionAlignmentSuccess(UpstreamVersionAlignmentValidation Validation);
 
-public sealed class UpstreamVersionAlignmentError : PreflightError
+public sealed class UpstreamVersionAlignmentError : BuildError
 {
     public UpstreamVersionAlignmentError(UpstreamVersionAlignmentValidation validation, string message, Exception? exception = null)
         : base(message, exception)

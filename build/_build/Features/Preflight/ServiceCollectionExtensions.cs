@@ -1,4 +1,5 @@
 using Build.Shared.Strategy;
+using Build.Shared.Versioning;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Build.Features.Preflight;

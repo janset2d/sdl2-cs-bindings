@@ -1,7 +1,7 @@
 using Build.Shared.Manifest;
 using NuGet.Versioning;
 
-namespace Build.Features.Preflight;
+namespace Build.Shared.Versioning;
 
 /// <summary>
 /// Post-ADR-003 G54 validator shape: accepts a resolved per-family

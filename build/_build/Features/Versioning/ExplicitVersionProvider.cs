@@ -1,5 +1,5 @@
-using Build.Features.Preflight;
 using Build.Shared.Manifest;
+using Build.Shared.Versioning;
 using Cake.Core;
 using NuGet.Versioning;
 

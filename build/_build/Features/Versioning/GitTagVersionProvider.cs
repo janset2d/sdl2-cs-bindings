@@ -1,6 +1,6 @@
 using Build.Features.Packaging;
-using Build.Features.Preflight;
 using Build.Shared.Manifest;
+using Build.Shared.Versioning;
 using Cake.Core;
 using Cake.Core.IO;
 using Cake.Git;

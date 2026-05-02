@@ -1,7 +1,7 @@
 using Build.Shared.Manifest;
 using NuGet.Versioning;
 
-namespace Build.Features.Preflight;
+namespace Build.Shared.Versioning;
 
 /// <summary>
 /// Guardrail G54 (ADR-001 + ADR-003): every entry in the resolved per-family version mapping

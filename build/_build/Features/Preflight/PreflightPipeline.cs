@@ -3,6 +3,7 @@ using Build.Integrations.Vcpkg;
 using Build.Shared.Manifest;
 using Build.Shared.Packaging;
 using Build.Shared.Results;
+using Build.Shared.Versioning;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;
@@ -108,7 +109,7 @@ public sealed class PreflightPipeline(
         }
     }
 
-    private static void ThrowPreflightFailure(ICakeLog log, string phase, PreflightError error)
+    private static void ThrowPreflightFailure(ICakeLog log, string phase, BuildError error)
     {
         ArgumentNullException.ThrowIfNull(log);
         ArgumentException.ThrowIfNullOrWhiteSpace(phase);

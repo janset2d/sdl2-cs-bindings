@@ -1,4 +1,5 @@
 using Build.Shared.Packaging;
+using Build.Shared.Versioning;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 

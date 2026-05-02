@@ -5,6 +5,7 @@ using Build.Integrations.Vcpkg;
 using Build.Shared.Manifest;
 using Build.Shared.Packaging;
 using Build.Shared.Strategy;
+using Build.Shared.Versioning;
 using Build.Tests.Fixtures;
 using Cake.Core;
 using NuGet.Versioning;

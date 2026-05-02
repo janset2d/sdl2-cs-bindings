@@ -1,9 +1,9 @@
 using System.Collections.Immutable;
-using Build.Features.Preflight;
 using Build.Host.Cake;
 using Build.Host.Configuration;
 using Build.Host.Paths;
 using Build.Shared.Manifest;
+using Build.Shared.Versioning;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using NuGet.Versioning;

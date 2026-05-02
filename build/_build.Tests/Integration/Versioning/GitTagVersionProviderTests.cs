@@ -1,8 +1,8 @@
 using System.Text.Json;
-using Build.Features.Preflight;
 using Build.Features.Versioning;
 using Build.Host.Configuration;
 using Build.Host.Paths;
+using Build.Shared.Versioning;
 using Build.Tests.Fixtures;
 using Cake.Core;
 using Cake.Core.IO;

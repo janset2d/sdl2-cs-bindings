@@ -12,6 +12,7 @@ using Build.Shared.Manifest;
 using Build.Shared.Packaging;
 using Build.Shared.Runtime;
 using Build.Shared.Strategy;
+using Build.Shared.Versioning;
 using Build.Tests.Fixtures;
 using Build.Tools.Vcpkg;
 using Cake.Core;

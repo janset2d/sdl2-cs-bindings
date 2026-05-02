@@ -1,6 +1,6 @@
-using Build.Features.Preflight;
 using Build.Host.Configuration;
 using Build.Shared.Manifest;
+using Build.Shared.Versioning;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Build.Features.Versioning;

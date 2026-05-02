@@ -1,8 +1,8 @@
-using Build.Features.Preflight;
+using Build.Shared.Versioning;
 using Build.Tests.Fixtures;
 using NuGet.Versioning;
 
-namespace Build.Tests.Unit.Features.Preflight;
+namespace Build.Tests.Unit.Shared.Versioning;
 
 /// <summary>
 /// Post-B1 G54 validator consumes a resolved <see cref="IReadOnlyDictionary{TKey, TValue}"/>
