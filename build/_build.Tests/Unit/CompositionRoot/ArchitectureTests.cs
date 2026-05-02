@@ -81,15 +81,15 @@ public sealed class ArchitectureTests
     }
 
     [Test]
-    [Skip("P2-close transitional exception per phase-x §11 risk #4: " +
-        "Build.Integrations.* references Build.Features.* and Build.Host.Paths.IPathService (13 violations). " +
-        "Root cause: P1 wave 1.18 moved Infrastructure/{Coverage,DotNet,Vcpkg}/ adapters to Integrations/, but " +
-        "they continue to consume result/model types co-located with their primary feature consumers " +
-        "(CoverageMetrics, DotNetPackResult, ProjectMetadataResult, PackageInfoResult). Resolution requires " +
-        "moving those result types to Shared/<X>/ so adapters depend on Shared vocabulary. The IPathService " +
-        "Host-coupling is a separate concern — Integrations/{DotNet,Vcpkg} should take BuildPaths/IPathService " +
-        "via constructor injection but NOT type-reference Host (P4 BuildPaths fluent split addresses this). " +
-        "Tracked for the post-P2 follow-up wave (Adım 13) before P3 starts.")]
+    [Skip("Adım 13.5 deferral per phase-x §14.5 IPathService Host-coupling risk: " +
+        "Integrations.{DotNet,Vcpkg} → Host.Paths.IPathService (2 violations remain post-13.4). " +
+        "Specifically: DotNetPackInvoker injects IPathService for .PackagesOutput; VcpkgCliProvider " +
+        "injects IPathService for .VcpkgRoot + .GetVcpkgInstalledDir. Original 13 violations: rows " +
+        "7-11 (Coverage*/DotNetPack*/ProjectMetadata*/PackageInfoResult result types) closed by Adım " +
+        "13.1-13.3 promotions; rows 12-13 (IPathService injections) intentionally deferred to P4 §8.3 " +
+        "BuildPaths fluent split where IPathService dissolves into per-axis path services anyway — " +
+        "decoupling now would create churn the P4 wave immediately re-touches. Lift this Skip at P4 " +
+        "close (§13.6 of phase-x roadmap retroactively reads as P4-deadline tracking for these rows).")]
     public async Task Integrations_Should_Have_No_Feature_Dependencies()
     {
         // Build.Integrations.* may depend on Cake framework + Build.Shared.* only. Same
