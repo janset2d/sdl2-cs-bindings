@@ -586,7 +586,7 @@ Violations fail the test suite, gating commit/CI runs at the same boundary `Laye
 
 ### 2.14 Naming cleanup
 
-Cake target names normalize to PascalCase without hyphens:
+Cake target names normalize to plain PascalCase. **Rename criterion:** a target is renamed only when its current shape violates plain PascalCase — hyphen-separated segments (`Coverage-Check`, `Inspect-HarvestedDependencies`) or inner mixed-case where an internal letter is unexpectedly capitalized (`PreFlightCheck`'s inner `F`) are the only triggers. PascalCase names with semantic prefixes (`PackageConsumerSmoke`, `EnsureVcpkgDependencies`, `ConsolidateHarvest`, `ResolveVersions`, `NativeSmoke`, `OtoolAnalyze`, `Dependents`, `Ldd`, `GenerateMatrix`, `SetupLocalDev`, `PublishStaging`, `PublishPublic`, `Harvest`, `Package`, `Info`, `CleanArtifacts`, `CompileSolution`) stay because the prefix carries contextual scope and the shape is already well-formed. The criterion is mechanical, not aesthetic — debating whether `PackageConsumerSmoke` *could* read better is out of scope; the rule answers only "does the current shape parse as plain PascalCase?".
 
 | Old | New |
 |---|---|
@@ -724,3 +724,4 @@ P0 must complete before P1. P1 + P2 land per-feature with green tests at every w
 | --- | --- | --- |
 | 2026-05-02 | Initial draft and adoption | Deniz İrgin + 2026-05-01 collaborative critique synthesis |
 | 2026-05-02 | Same-day batch revision — pre-finalization comments folded in (`docs/reviews/mycomments.txt`): SetupLocalDev → `Features/LocalDev/` (§2.3, §2.5); architecture rule #4 orchestration-feature exception (§2.13); Pipeline LOC threshold reframed as smell signal (§2.4); `BuildContext` boundary rule sharpened — Pipelines target `RunAsync(TRequest)`, services take explicit inputs, Tools take narrow Cake abstractions (§2.11.1–§2.11.3); `Shared/Results` admission criteria + Strategy-domain co-location exception (§2.6.1); `LayerDependencyTests` rename consolidated to P2 wave (§2.13, §6); `Features/Common/` renamed to `Features/Info/`; `AddLocalDevFeature()` added to composition root chain (§2.12); `Shared/` no-Cake invariant strengthened with bounded P1 migration exception for legacy `RuntimeProfile` Cake `PlatformFamily` references (§2.6, §2.13); Request DTO conventions wording de-Turkified (§2.11.2); `MsvcDevEnvironment` relocated from `Tools/` to `Integrations/Msvc/` — not a Cake `Tool<T>`, calls `vcvarsall.bat` (§2.7, §2.8); atomic-wave commit clarification (§2.14); `§1.2` motto added | Deniz İrgin |
+| 2026-05-02 | P0-kickoff session refinement: §2.14 rename criterion paragraph (plain-PascalCase trigger rule — hyphen segments + inner mixed-case as the only renames; PascalCase names with semantic prefixes retained) | Deniz İrgin (+ P0-kickoff session refactor) |

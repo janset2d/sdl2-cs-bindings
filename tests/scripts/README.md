@@ -3,6 +3,15 @@
 Local witness scripts for Cake build-host validation. Single-file .NET 10 apps
 ([file-based apps][msdocs-file-based-apps]) — no `.csproj`, no build ceremony, just run.
 
+`tests/scripts/global.json` pins the .NET 10 SDK for this directory scope so the
+repo-root `global.json` (net9-pinned for the build-host) does not interfere.
+Always invoke from inside `tests/scripts/`.
+
+| Script | Purpose |
+| --- | --- |
+| [`smoke-witness.cs`](#smoke-witnesscs) | Black-box behavior witness — exercises the Cake target chain end-to-end via `dotnet run` from outside the host. Writes per-step logs and (with `--emit-baseline`) a deterministic JSON behavior signal. |
+| [`verify-baselines.cs`](#verify-baselinescs) | Pre-merge gate helper — operationalizes the phase-x ADR-004 plan §2.1.5 fast/milestone loop cadence. Spawns `smoke-witness.cs` per loop entry, diffs emitted JSON against committed baselines, exits non-zero on mismatch. |
+
 ## `smoke-witness.cs`
 
 Orchestrates the post-B2 flat Cake graph into two reproducible witness flows.
@@ -152,6 +161,62 @@ mapping is supplied (mirrors `PackageTask.ShouldRun` — same rationale).
 - **macOS skips `net462` with `mono binary not found in $PATH`** → expected on
   hosts without Mono. Install `brew install mono` if you need the macOS
   `net462` runtime slice; `net9.0` and `net8.0` still execute normally.
+
+## `verify-baselines.cs`
+
+Operationalizes the [phase-x ADR-004 plan §2.1.5](../../docs/phases/phase-x-build-host-modernization-2026-05-02.md#215-loop-cadence--fast-vs-milestone) fast/milestone loop cadence and the [§12.3](../../docs/phases/phase-x-build-host-modernization-2026-05-02.md#123-pre-merge-checks) pre-merge checks. Runs `smoke-witness.cs` for each loop entry, emits a temp baseline, deserializes both the emitted and committed baselines via the same `JsonSerializer` options, and compares logical tuples (mode + host_rid + ordered `(label, exit)` step list + passed/failed). Mismatches exit non-zero — wave-rejection signal.
+
+### Loops
+
+| Loop | Entries | Cadence |
+| --- | --- | --- |
+| **Fast** (default) | `local` mode, host-matched (e.g. `smoke-witness-local-win-x64.json` on Windows) | Every wave commit boundary (developer's pre-merge ritual) |
+| **Milestone** (`--milestone`) | Fast loop + Linux local + macOS local (opt-in) + Windows ci-sim — runtime gate skips entries this host cannot reproduce | P-wave close commits only (P0/P1/P2/P3/P4/P5 close) |
+
+Cross-host verification is intentionally meaningless: a Windows host running `--milestone` will skip Linux and macOS entries with `SKIP (host)` instead of pretending to verify them. The intent is "what could *this* host produce?", not "which baselines does it own?".
+
+### Run
+
+```pwsh
+cd tests\scripts
+
+# Fast loop — host-matched local baseline only
+dotnet run verify-baselines.cs
+
+# Milestone loop — fast + every other-mode baseline this host can reproduce
+dotnet run verify-baselines.cs --milestone
+
+# Debug: keep emitted temp baselines instead of cleaning them up
+dotnet run verify-baselines.cs --keep-tmp
+```
+
+```bash
+# Unix shell form (Linux / macOS) — once chmod +x is applied
+cd tests/scripts
+./verify-baselines.cs
+./verify-baselines.cs --milestone
+```
+
+### Exit codes
+
+- `0` — every non-skipped entry matched (skipped entries from missing baseline files or host-RID mismatch are tolerated, reported in the summary panel).
+- `1` — at least one entry mismatched the committed baseline OR a smoke-witness spawn failed.
+
+### Status semantics
+
+| Status | Meaning |
+| --- | --- |
+| `MATCH` | Emitted JSON deserialized identical to committed baseline. Green. |
+| `MISMATCH` | Logical tuple drift — step labels differ, exit codes differ, step count differs, mode/host_rid drifted, or passed/failed counters disagree. Detail column lists every individual problem. |
+| `SKIP (host)` | This host cannot reproduce the entry's target RID (e.g. running on `win-x64`, entry targets `linux-x64`). Tolerated; not gating. |
+| `SKIP (no baseline)` | Baseline file is not committed yet for this entry. Tolerated; emit a milestone-loop baseline first to lift the skip. |
+| `SPAWN FAIL` | smoke-witness exited non-zero or did not emit a baseline file. Detail column carries the spawn exit code. |
+
+### Design notes
+
+- **No bash / PowerShell helper.** `verify-baselines.cs` is a file-based app for the same reason `smoke-witness.cs` is — one shell-flavor (none), one runtime (.NET 10 SDK pinned by `tests/scripts/global.json`), cross-platform by construction. See [Microsoft Learn — File-based apps][msdocs-file-based-apps].
+- **Spawn pattern matches smoke-witness.** Each entry spawns `dotnet run smoke-witness.cs <mode> --emit-baseline <tmp>` from this directory. Drains stdout/stderr to prevent deadlock; smoke-witness's own `.logs/witness/...` files retain the per-step log output for inspection if a step fails.
+- **Logical equality, not byte equality.** Comparing files byte-for-byte is fragile across CRLF/LF or indentation drift. Comparing deserialized records with the same `JsonSerializerOptions` makes the gate correctness-shaped, not formatting-shaped.
 
 [msdocs-file-based-apps]: https://learn.microsoft.com/en-us/dotnet/core/sdk/file-based-apps
 [playbook]: ../../docs/playbook/cross-platform-smoke-validation.md

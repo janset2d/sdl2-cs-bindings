@@ -109,6 +109,28 @@ Step labels and step ordering are the part that **may legitimately change** unde
 
 `smoke-witness.cs` gains an opt-in `--emit-baseline <path>` flag in P0. When passed, the witness writes the §2.1.2 JSON to the given path after the run completes. This is the mechanical hook that wave commits use to capture before/after baselines without grep'ing console output.
 
+#### 2.1.5 Loop cadence — fast vs milestone
+
+Per-host baseline files commit under `tests/scripts/baselines/`. Different files have different verification cadence to balance pre-merge friction against multi-host coverage:
+
+**Fast loop — every wave commit boundary:**
+
+- `smoke-witness-local-win-x64.json` — Windows host, `local` mode (`CleanArtifacts → SetupLocalDev → PackageConsumerSmoke`).
+
+This is the developer's pre-merge ritual: before opening a wave commit, run `cd tests/scripts && dotnet run smoke-witness.cs local --emit-baseline tmp.json` and diff against the committed baseline. Strict equality is the green criterion (per §2.1.2). The fast loop runs in ~5–10 minutes on warm vcpkg cache, ~15–30 minutes cold.
+
+**Milestone loop — every P-wave close commit boundary (P0 close, P1 close, ..., P5 close):**
+
+- `smoke-witness-local-linux-x64.json` — WSL Linux host, `local` mode.
+- `smoke-witness-local-osx-arm64.json` — macOS host, `local` mode (best-effort coverage; `ssh` access typically suffices, not a wave-merge gating precondition per §10.5).
+- `smoke-witness-ci-sim-win-x64.json` — Windows host, `ci-sim` mode (full pipeline replay: `CleanArtifacts → ResolveVersions → PreFlightCheck → EnsureVcpkgDependencies → Harvest → NativeSmoke → ConsolidateHarvest → Package → PackageConsumerSmoke`).
+
+Milestone-loop baselines update at the same commit that closes a P-wave (e.g. the single P0 close commit, the final P1 close commit, etc.). Mid-wave commits do not touch milestone baselines. macOS coverage is **best-effort, not gating** — Linux + Windows-ci-sim suffice for the milestone gate; `osx-arm64` is captured opportunistically when host availability permits.
+
+**`verify-baselines.cs` helper (P0 deliverable, file-based app at `tests/scripts/verify-baselines.cs` per [Microsoft Learn — File-based apps](https://learn.microsoft.com/en-us/dotnet/core/sdk/file-based-apps)) operationalizes both loops.** Default invocation runs the fast loop; `--milestone` runs all milestone-loop baselines that the current host can reach. Implementation pattern matches `smoke-witness.cs`: spawns `smoke-witness.cs --emit-baseline tmp.json` per loop entry, deserializes both files via the same `JsonSerializer` options, compares logical tuples, prints a Spectre table with green/red rows. Non-zero exit on any mismatch — wave-rejection signal in §12.3.
+
+The choice of file-based app over PowerShell/bash mirrors the existing `tests/scripts/global.json` directory-scope pattern (`.NET 10` SDK pinned for `tests/scripts/`, repo root pinned for build-host). One pattern, two scripts, zero shell-flavor proliferation.
+
 ### 2.2 ArchitectureTests
 
 `build/_build.Tests/Unit/CompositionRoot/LayerDependencyTests.cs` runs every CI build today and asserts the ADR-002 layer-direction rule set. P2 wave renames the file to `ArchitectureTests.cs` via `git mv` and rewrites the invariants around the ADR-004 shape (5 invariants, see ADR-004 §2.13).
@@ -180,8 +202,11 @@ Establish the verifiable starting point. Capture baselines, freeze the public Ca
 | Deliverable | Location | Form |
 |---|---|---|
 | smoke-witness `--emit-baseline` flag | `tests/scripts/smoke-witness.cs` | Single PR; flag is additive (no behavior change to existing modes) |
-| Baseline `local` mode | `tests/scripts/baselines/smoke-witness-local-<host-rid>.json` (committed) | JSON behavior signal per §2.1.2; per-host file (e.g. `-win-x64.json`, `-linux-x64.json`, `-osx-arm64.json`) so different developers contribute their own host's baseline |
-| Baseline `ci-sim` mode | `tests/scripts/baselines/smoke-witness-ci-sim-<host-rid>.json` (committed) | JSON behavior signal per §2.1.2; per-host file |
+| Fast-loop baseline (`local` Win) | `tests/scripts/baselines/smoke-witness-local-win-x64.json` (committed) | JSON behavior signal per §2.1.2; gates every wave commit per §2.1.5 fast-loop cadence |
+| Milestone baseline (`local` Linux) | `tests/scripts/baselines/smoke-witness-local-linux-x64.json` (committed) | JSON behavior signal per §2.1.2; gates P-wave close commits per §2.1.5 milestone-loop cadence |
+| Milestone baseline (`local` macOS, opt-in) | `tests/scripts/baselines/smoke-witness-local-osx-arm64.json` (committed when available) | Best-effort coverage per §2.1.5 + §10.5; not a wave-merge precondition |
+| Milestone baseline (`ci-sim` Win) | `tests/scripts/baselines/smoke-witness-ci-sim-win-x64.json` (committed) | Full pipeline replay; gates P-wave close commits per §2.1.5 |
+| `verify-baselines.cs` helper | `tests/scripts/verify-baselines.cs` (file-based app, .NET 10) | Default = fast loop; `--milestone` = milestone loop. Spawns `smoke-witness.cs --emit-baseline tmp.json` per entry, diffs via `JsonSerializer`, exits non-zero on mismatch. Operationalizes §2.1.5 + §12.3 pre-merge checks |
 | Test count baseline | `tests/scripts/baselines/test-count.txt` (committed) | Plain integer; behavior contract belongs in VCS |
 | Public Cake target surface freeze | `tests/scripts/baselines/cake-targets.txt` (committed) | `dotnet run -- --tree` output captured at P0 commit; target names that must survive untouched until P5 |
 | Target rename inventory | This plan §9.2 (a table embedded below) | Each old name → new name + atomic-wave callsites |
@@ -190,10 +215,12 @@ Establish the verifiable starting point. Capture baselines, freeze the public Ca
 ### 4.3 P0 success criteria
 
 - [ ] smoke-witness `--emit-baseline <path>` lands; backwards compatible (no flag → old behavior).
-- [ ] `smoke-witness local --emit-baseline ...` runs green on Windows + WSL Linux; baseline JSON committed.
-- [ ] `smoke-witness ci-sim --emit-baseline ...` runs green on at least Windows; baseline JSON committed.
-- [ ] `dotnet test build/_build.Tests/Build.Tests.csproj -c Release` runs green; test count is the baseline number.
-- [ ] `dotnet run --project build/_build -- --tree` output captured.
+- [ ] `verify-baselines.cs` lands at `tests/scripts/verify-baselines.cs`; `cd tests/scripts && dotnet run verify-baselines.cs` exits zero on Windows host, `--milestone` exits zero when WSL Linux + Windows ci-sim baselines are present (macOS opt-in).
+- [ ] Fast-loop baseline `smoke-witness-local-win-x64.json` runs green and is committed (per §2.1.5 fast-loop cadence).
+- [ ] Milestone-loop baseline `smoke-witness-local-linux-x64.json` runs green on WSL Linux and is committed (per §2.1.5 milestone-loop cadence).
+- [ ] Milestone-loop baseline `smoke-witness-ci-sim-win-x64.json` runs green on Windows and is committed.
+- [ ] `dotnet test build/_build.Tests/Build.Tests.csproj -c Release` runs green; test count is the baseline number, written to `tests/scripts/baselines/test-count.txt`.
+- [ ] `dotnet run --project build/_build -- --tree` output captured to `tests/scripts/baselines/cake-targets.txt`.
 - [ ] Public target surface freeze list is committed; any target name outside this list during P1–P4 is a wave-rejection signal.
 - [ ] Target rename inventory (§9.2) reviewed and approved; this plan revision number incremented.
 
@@ -237,7 +264,7 @@ P1 lands as a sequence of small, independently-green commits — one per feature
 
 The order above is **recommended, not strict**. Constraints:
 
-- Wave 1.13 must follow waves 1.9 + 1.10 + 1.12 (LocalDev references Preflight + Harvesting + Packaging pipelines).
+- Wave 1.13 must follow waves 1.6 + 1.9 + 1.10 + 1.12 (LocalDev references Vcpkg + Preflight + Harvesting + Packaging pipelines — `SetupLocalDevTaskRunner`'s constructor consumes `EnsureVcpkgDependenciesTaskRunner`, `PreflightTaskRunner`, `HarvestTaskRunner`, `ConsolidateHarvestTaskRunner`, and `IPackageTaskRunner` — all four feature folders must exist before LocalDev moves).
 - Wave 1.14 should precede 1.15 (BuildContext references `Shared/Manifest`, `Shared/Runtime`).
 - Wave 1.17 + 1.18 must run before any feature wave that constructs Tool/Integration types directly (most do via DI, so timing is loose).
 
@@ -258,13 +285,16 @@ For every wave 1.X commit:
 
 ### 5.4 LayerDependencyTests invariants during P1
 
-P1 commits keep `LayerDependencyTests.cs` (ADR-002 shape) running. Some moves may temporarily violate ADR-002 invariants (e.g., when `Domain/<X>/` content moves to `Features/<X>/`, ADR-002's "Domain has no outward dependencies" no longer applies because the namespace shifts). Two options:
+P1 commits keep `LayerDependencyTests.cs` (ADR-002 shape) running unchanged. The test asserts three invariants over `Build.Domain.*`, `Build.Infrastructure.*`, and `Build.Tasks.*` namespace prefixes. As content migrates to `Build.Features.*`, `Build.Shared.*`, `Build.Host.*`, `Build.Tools.*`, and `Build.Integrations.*`, **the test's source-prefix coverage shrinks naturally** — newly-relocated types no longer match any of the three source prefixes, so they fall outside the test's scope without requiring exclusion lists or per-wave invariant rewrites.
 
-**A — Tolerate transitional violations.** Add namespace exclusions to `LayerDependencyTests` per wave, removed at P2 close. Risk: noise.
+The test stays mechanically green throughout P1 because:
 
-**B — Rewrite invariants incrementally.** Each P1 wave updates `LayerDependencyTests` to recognize the moved namespace under both old and new locations.
+- Migrated types live under prefixes the test does not inspect (`Features.*`, `Shared.*`, `Host.*`, `Tools.*`, `Integrations.*`); violations cannot accumulate against them.
+- Not-yet-migrated content (still under `Domain.*` / `Infrastructure.*` / `Tasks.*`) keeps satisfying the original ADR-002 invariants — those types' outgoing references either stay within their original layer or point to types that haven't moved yet (i.e. still in the same legacy prefix).
 
-**Decision: A.** P1 is meant to be mechanical move; rewriting invariants per wave inflates wave scope. Transitional namespace exclusions are documented, removed at P2 atomic rewrite. Each P1 commit's `LayerDependencyTests` exclusion list is one line in the commit message.
+P1 close leaves `Domain.*` / `Infrastructure.*` / `Tasks.*` empty (or near-empty); the test trivially passes against an empty source set. **P2 atomic rewrite** (§6.4) replaces the file via `git mv` to `ArchitectureTests.cs` with the five ADR-004 §2.13 invariants — exclusion lists are not introduced, removed, or maintained at any point.
+
+**Why the test is preserved through P1 instead of deleted-and-recreated.** During the longest wave (P1, ~18 sub-waves), at least *some* mechanical enforcement of architecture direction is desirable — even if the surviving invariants only cover the shrinking pre-migration tree. Deleting the test now and recreating it at P2 leaves a P1-wide enforcement gap and forces a test-count exception in §2.3 ratchet. The natural-shrinkage path keeps the file alive (test count stable at the P0 baseline of 500) without per-wave maintenance cost. ADR-004's vertical-slice bet relies on architecture-test invariant #4 (`Features` cross-reference ban with LocalDev allowlist); the file *carrying* that bet stays continuous through P1, the *invariants* it carries flip atomically at P2.
 
 ### 5.5 P1 success criteria (cumulative across waves)
 
@@ -694,8 +724,8 @@ For every wave merge, the following must be green:
 - [ ] Test count meets ratchet for that wave (§2.3)
 - [ ] **Test wall-time gate (P3 only):** total `dotnet test` wall time ≤ (P2 close wall time × 1.20). Other waves capture wall time for trend visibility but do not gate on it.
 - [ ] `LayerDependencyTests` (P0–P1) or `ArchitectureTests` (P2+) green
-- [ ] `tests/scripts/smoke-witness.cs local --emit-baseline` matches baseline (P5 updates baseline)
-- [ ] `tests/scripts/smoke-witness.cs ci-sim --emit-baseline` matches baseline (P5 updates baseline)
+- [ ] **Fast loop (every wave commit):** `cd tests/scripts && dotnet run verify-baselines.cs` exits zero — i.e. `smoke-witness local` baseline byte-equal to `smoke-witness-local-win-x64.json` (P5 updates baseline).
+- [ ] **Milestone loop (P-wave close commits only — P0/P1/P2/P3/P4/P5 close):** `cd tests/scripts && dotnet run verify-baselines.cs --milestone` exits zero, covering `smoke-witness-local-linux-x64.json` (WSL Linux) + `smoke-witness-ci-sim-win-x64.json` (Windows ci-sim). `smoke-witness-local-osx-arm64.json` is best-effort per §10.5 — captured when host is reachable, not gating. (P5 updates each baseline atomically per §9.3.)
 - [ ] No mid-wave commits — every commit on the branch is itself green (verifiable via `git rebase --exec`)
 
 ### 12.4 Rollback policy
@@ -738,3 +768,4 @@ No partial rollback within a wave — all-or-nothing per commit.
 | --- | --- | --- |
 | 2026-05-02 | Initial draft after ADR-004 finalization; Turn 3 deliverable from the 2026-05-01 to 2026-05-02 build-host refactor synthesis session | Deniz İrgin + collaborative critique synthesis |
 | 2026-05-02 | Same-day pre-finalization patch wave (12 patches): §1.3 CLI surface contradiction (target rename + `--source` narrowing exception); §1.5 Mechanical vs structural waves table added; §4.2 baselines committed under `tests/scripts/baselines/` per-host (TBD closed); §5.2 P1.2 Coverage ambiguity removed; §5.2 P1.13 ArtifactSourceResolvers stay in Packaging per ADR-004 §2.3 (LocalDev consumes via §2.13 invariant #4 allowlist); §5.2 P1.15 CakeExtensions split moved to P2 (P1 stays mechanical); §6.2 sub-validator DI injection deliverable explicit (ADR-004 §1.1.6 anti-pattern fix); §6.2 CakeExtensions split deliverable added to P2; §7.4 + §7.5 + §11 risk #11 + §12.3 P3 test wall-time gate (≤ 1.20× P2 baseline) — addresses concrete-impl I/O test inflation risk; FakeFileSystem mandatory for filesystem-bound seam rewrites; §9.5 P5 "four renames" → "three" + rolling baseline note; §10.6 ServiceCollectionExtensions smoke tests use shared `TestHostFixture.AddTestHostBuildingBlocks()`; §11 risk #4 Shared no-Cake transitional exception sertleştirildi (named exclusion + tracking issue + P3 deadline); §2.3 + §10.4 + §6.5 test count ratchet hard sayıdan formüle dönüştü | Deniz İrgin |
+| 2026-05-02 | P0-kickoff session refinement: §2.1.5 fast/milestone loop cadence introduced (Win local fast-loop per wave commit; WSL Linux + Windows ci-sim milestone loop at P-wave close commits; macOS opt-in per §10.5 / not gating); §4.2 deliverables table + §4.3 success criteria absorb `verify-baselines.cs` file-based-app helper (`tests/scripts/verify-baselines.cs`, .NET 10 SDK directory-scope via `tests/scripts/global.json`); §5.2 wave 1.13 prerequisites extended from `1.9 + 1.10 + 1.12` to `1.6 + 1.9 + 1.10 + 1.12` reflecting `SetupLocalDevTaskRunner` ctor inventory (`EnsureVcpkgDependenciesTaskRunner`, `PreflightTaskRunner`, `HarvestTaskRunner`, `ConsolidateHarvestTaskRunner`, `IPackageTaskRunner`); §5.4 `LayerDependencyTests` strategy reframed from Decision-A "exclusion-list-grows-monotonically" to natural-prefix-shrinkage (test silently no-ops as content migrates, no exclusion list maintenance, atomic rewrite at P2 §6.4 — preserves test count and P1-wide mechanical enforcement coverage); §12.3 pre-merge checks split into fast-loop (every wave commit) vs milestone-loop (P-wave close commits only) entries | Deniz İrgin (+ P0-kickoff session refactor) |

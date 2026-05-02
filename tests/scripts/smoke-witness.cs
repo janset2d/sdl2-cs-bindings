@@ -2,8 +2,8 @@
 #:property TargetFramework=net10.0
 #:property TargetFrameworks=
 #:property PublishAot=false
-#:property NoError=$(NoError);CA1502;CA1505;CA1031;CA1515;CA2007
-#:property NoWarn=$(NoWarn);CA1502;CA1505;CA1031;CA1515;CA2007
+#:property NoError=$(NoError);CA1502;CA1505;CA1031;CA1515;CA2007;IL2026;IL3050
+#:property NoWarn=$(NoWarn);CA1502;CA1505;CA1031;CA1515;CA2007;IL2026;IL3050
 #:package Spectre.Console
 
 using System.Diagnostics;
@@ -14,7 +14,7 @@ using System.Text.Json;
 using Build.Scripts.SmokeWitness;
 using Spectre.Console;
 
-var (mode, verbose) = ParseArgs(args);
+var (mode, verbose, baselinePath) = ParseArgs(args);
 if (mode is null)
 {
     return 2;
@@ -51,14 +51,57 @@ catch (StepFailedException failure)
 totalStopwatch.Stop();
 PrintSummary(results, totalStopwatch.Elapsed, context.LogDir);
 
+if (baselinePath is not null)
+{
+    await EmitBaselineAsync(context, results, baselinePath);
+}
+
 return results.Exists(static r => !r.Succeeded) ? 1 : 0;
 
-static (SmokeMode? Mode, bool Verbose) ParseArgs(string[] args)
+static (SmokeMode? Mode, bool Verbose, string? BaselinePath) ParseArgs(string[] args)
 {
     var verbose = args.Any(a => a is "--verbose" or "-v");
 
-    // First non-flag positional arg is the mode; default to "local".
-    var modeArg = args.FirstOrDefault(a => !a.StartsWith('-')) ?? "local";
+    // --emit-baseline <path> consumes the next argument as the output path. Track which
+    // indices have been claimed so the mode positional lookup below skips over the
+    // consumed value (e.g. `--emit-baseline foo.json local` must still resolve mode to
+    // `local`, not `foo.json`).
+    string? baselinePath = null;
+    var consumedIndices = new HashSet<int>();
+    for (var i = 0; i < args.Length; i++)
+    {
+        if (args[i] is not "--emit-baseline")
+        {
+            continue;
+        }
+
+        if (i + 1 >= args.Length)
+        {
+            AnsiConsole.MarkupLine("[red]--emit-baseline requires a path argument.[/]");
+            return (null, verbose, null);
+        }
+
+        baselinePath = args[i + 1];
+        consumedIndices.Add(i);
+        consumedIndices.Add(i + 1);
+    }
+
+    // First non-flag positional arg (excluding values consumed by --emit-baseline) is
+    // the mode; default to "local".
+    string? modeArg = null;
+    for (var i = 0; i < args.Length; i++)
+    {
+        var a = args[i];
+        if (a.StartsWith('-') || consumedIndices.Contains(i))
+        {
+            continue;
+        }
+
+        modeArg = a;
+        break;
+    }
+
+    modeArg ??= "local";
     var mode = modeArg.Trim().ToLowerInvariant() switch
     {
         "local" => (SmokeMode?)SmokeMode.Local,
@@ -67,7 +110,7 @@ static (SmokeMode? Mode, bool Verbose) ParseArgs(string[] args)
         var raw => PrintUnknownMode(raw),
     };
 
-    return (mode, verbose);
+    return (mode, verbose, baselinePath);
 
     static SmokeMode? PrintUnknownMode(string raw)
     {
@@ -76,6 +119,7 @@ static (SmokeMode? Mode, bool Verbose) ParseArgs(string[] args)
         AnsiConsole.MarkupLine("  [grey]remote[/]   → CleanArtifacts → SetupLocalDev (--source=remote) → PackageConsumerSmoke (test against published GH Packages feed; needs GH_TOKEN env)");
         AnsiConsole.MarkupLine("  [grey]ci-sim[/]   → mini CI replay: every stage invoked standalone with ResolveVersions mapping + ConsumerSmoke");
         AnsiConsole.MarkupLine("  [grey]-v/--verbose[/] → tee each step's stdout/stderr to the console (default: off; output always written to log files)");
+        AnsiConsole.MarkupLine("  [grey]--emit-baseline <path>[/] → after the run, write a deterministic JSON behavior signal (mode/host_rid/step labels+exit codes) to <path>; phase-x P0 deliverable (ADR-004 plan §2.1.2)");
         return null;
     }
 }
@@ -448,6 +492,46 @@ static string ResolveHostRid()
     return $"{os}-{arch}";
 }
 
+static async Task EmitBaselineAsync(WitnessContext ctx, List<StepResult> results, string baselinePath)
+{
+    // Behavior signal per phase-x plan §2.1.2: deterministic ordered tuple of
+    // (step label, exit code) plus mode + host RID. Wave commits compare the
+    // baseline-before vs baseline-after; strict equality is the green criterion.
+    // Step duration, log path, and console output are intentionally excluded
+    // because they are non-deterministic (timestamps, runIds, Cake progress).
+    var modeLabel = ctx.Mode switch
+    {
+        SmokeMode.Local => "local",
+        SmokeMode.Remote => "remote",
+        SmokeMode.CiSim => "ci-sim",
+        _ => "unknown",
+    };
+
+    var baseline = new BaselineSignal(
+        Mode: modeLabel,
+        HostRid: ctx.HostRid,
+        StepCount: results.Count,
+        Steps: [.. results.Select(r => new BaselineStep(r.Label, r.ExitCode))],
+        Passed: results.Count(static r => r.Succeeded),
+        Failed: results.Count(static r => !r.Succeeded));
+
+    var directory = Path.GetDirectoryName(baselinePath);
+    if (!string.IsNullOrEmpty(directory))
+    {
+        Directory.CreateDirectory(directory);
+    }
+
+    var options = new JsonSerializerOptions
+    {
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+    };
+    var json = JsonSerializer.Serialize(baseline, options);
+    await File.WriteAllTextAsync(baselinePath, json + Environment.NewLine, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+
+    AnsiConsole.MarkupLine($"[grey]Baseline signal written:[/] [cyan]{Markup.Escape(baselinePath)}[/]");
+}
+
 static async Task<string?> TryGetHeadShaAsync(string repoRoot)
 {
     try
@@ -517,6 +601,16 @@ namespace Build.Scripts.SmokeWitness
     {
         public bool Succeeded => ExitCode == 0;
     }
+
+    internal sealed record BaselineSignal(
+        string Mode,
+        string HostRid,
+        int StepCount,
+        IReadOnlyList<BaselineStep> Steps,
+        int Passed,
+        int Failed);
+
+    internal sealed record BaselineStep(string Label, int Exit);
 
     public sealed class StepFailedException : Exception
     {
