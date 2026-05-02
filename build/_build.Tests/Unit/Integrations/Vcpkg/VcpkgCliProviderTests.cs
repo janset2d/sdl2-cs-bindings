@@ -1,6 +1,7 @@
 using Build.Features.Harvesting;
 using Build.Host.Paths;
 using Build.Integrations.Vcpkg;
+using Build.Shared.Harvesting;
 using Build.Tests.Fixtures;
 using Cake.Core.IO;
 using Cake.Testing;
@@ -37,7 +38,7 @@ public sealed class VcpkgCliProviderTests
         await Assert.That(packageInfo.PackageName).IsEqualTo("sdl2-image");
         await Assert.That(packageInfo.Triplet).IsEqualTo("x64-windows-hybrid");
         await Assert.That(packageInfo.DeclaredDependencies).Contains("sdl2:x64-windows-hybrid");
-        await Assert.That(packageInfo.OwnedFiles.Select(path => path.FullPath)).Contains("C:/repo/vcpkg_installed/x64-windows-hybrid/bin/SDL2_image.dll");
+        await Assert.That(packageInfo.OwnedFiles).Contains("C:/repo/vcpkg_installed/x64-windows-hybrid/bin/SDL2_image.dll");
     }
 
     [Test]

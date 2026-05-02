@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Build.Features.Harvesting;
+using Build.Shared.Harvesting;
 
 namespace Build.Tests.Fixtures.Seeders;
 

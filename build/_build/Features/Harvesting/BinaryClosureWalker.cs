@@ -2,6 +2,7 @@
 
 using Build.Integrations.DependencyAnalysis;
 using Build.Integrations.Vcpkg;
+using Build.Shared.Harvesting;
 using Build.Shared.Manifest;
 using Build.Shared.Runtime;
 using Cake.Common.IO;
@@ -66,10 +67,13 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
                 }
 
                 var ownerPkgInfo = ownerPkgInfoResult.PackageInfo;
-                var ownedBinaries = ownerPkgInfo.OwnedFiles.Where(path => IsBinary(path) && !_profile.IsSystemFile(path.GetFilename().FullPath)).ToList();
+                var ownedBinaries = ownerPkgInfo.OwnedFiles
+                    .Select(s => new FilePath(s))
+                    .Where(path => IsBinary(path) && !_profile.IsSystemFile(path.GetFilename().FullPath))
+                    .ToList();
                 foreach (var bin in ownedBinaries)
                 {
-                    nodesDict.TryAdd(bin, new BinaryNode(bin, ownerPackage, originPackage));
+                    nodesDict.TryAdd(bin, new BinaryNode(bin.FullPath, ownerPackage, originPackage));
                 }
 
                 originPackage = ownerPkgInfo.PackageName;
@@ -108,12 +112,13 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
                     }
 
                     var owner = TryInferPackageNameFromPath(dep) ?? "Unknown";
-                    nodesDict[dep] = new BinaryNode(dep, owner, originPkg);
+                    nodesDict[dep] = new BinaryNode(dep.FullPath, owner, originPkg);
                     binQueue.Enqueue(dep);
                 }
             }
 
-            return new BinaryClosure(primaryFiles, [.. nodesDict.Values], processedPackages);
+            var primaryFilesAsStrings = primaryFiles.Select(f => f.FullPath).ToHashSet(StringComparer.Ordinal);
+            return new BinaryClosure(primaryFilesAsStrings, [.. nodesDict.Values], processedPackages);
         }
         catch (OperationCanceledException)
         {
@@ -142,7 +147,7 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
         {
             _log.Debug("Checking pattern '{0}' against {1} owned files", pattern, pkgInfo.OwnedFiles.Count);
 
-            var binaryFiles = pkgInfo.OwnedFiles.Where(IsBinary).ToList();
+            var binaryFiles = pkgInfo.OwnedFiles.Select(s => new FilePath(s)).Where(IsBinary).ToList();
             _log.Debug("Found {0} binary files in package", binaryFiles.Count);
 
             var matchingFiles = binaryFiles

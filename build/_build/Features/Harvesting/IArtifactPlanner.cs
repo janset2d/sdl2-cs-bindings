@@ -1,4 +1,5 @@
-﻿using Build.Shared.Manifest;
+﻿using Build.Shared.Harvesting;
+using Build.Shared.Manifest;
 using Cake.Core.IO;
 
 namespace Build.Features.Harvesting;

@@ -1,4 +1,4 @@
-using Build.Features.Harvesting;
+using Build.Shared.Harvesting;
 using OneOf;
 using OneOf.Monads;
 using OneOf.Types;

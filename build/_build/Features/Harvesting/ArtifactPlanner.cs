@@ -3,6 +3,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Build.Host.Paths;
 using Build.Integrations.Vcpkg;
+using Build.Shared.Harvesting;
 using Build.Shared.Manifest;
 using Build.Shared.Runtime;
 using Cake.Core;
@@ -56,9 +57,12 @@ public sealed class ArtifactPlanner : IArtifactPlanner
             // licenses/_consolidated/ which is what PackageTask consumes at pack time.
             var licenseOutput = outRoot.Combine(currentLibraryName).Combine("licenses").Combine(_profile.Rid);
 
-            foreach (var (filePath, ownerPackageName, originPackage) in closure.Nodes)
+            foreach (var node in closure.Nodes)
             {
                 ct.ThrowIfCancellationRequested();
+
+                var ownerPackageName = node.OwnerPackage;
+                var originPackage = node.OriginPackage;
 
                 if (!isCore && (originPackage.Equals(_corePackageName, StringComparison.OrdinalIgnoreCase)
                                 || ownerPackageName.Equals(_corePackageName, StringComparison.OrdinalIgnoreCase)))
@@ -66,7 +70,8 @@ public sealed class ArtifactPlanner : IArtifactPlanner
                     continue;
                 }
 
-                var origin = closure.IsPrimaryFile(filePath) ? ArtifactOrigin.Primary : ArtifactOrigin.Runtime;
+                var filePath = new FilePath(node.Path);
+                var origin = closure.IsPrimaryFile(node.Path) ? ArtifactOrigin.Primary : ArtifactOrigin.Runtime;
 
                 if (_environment.Platform.Family == PlatformFamily.Windows)
                 {
@@ -92,8 +97,14 @@ public sealed class ArtifactPlanner : IArtifactPlanner
                     continue;
                 }
 
-                foreach (var licensePath in infoResult.PackageInfo.OwnedFiles.Where(IsLicense))
+                foreach (var licensePathString in infoResult.PackageInfo.OwnedFiles)
                 {
+                    var licensePath = new FilePath(licensePathString);
+                    if (!IsLicense(licensePath))
+                    {
+                        continue;
+                    }
+
                     var licenseTargetPath = licenseOutput.Combine(packageName).CombineWithFilePath(licensePath.GetFilename().FullPath);
                     actions.Add(new FileCopyAction(licensePath, licenseTargetPath, packageName, ArtifactOrigin.License));
                 }

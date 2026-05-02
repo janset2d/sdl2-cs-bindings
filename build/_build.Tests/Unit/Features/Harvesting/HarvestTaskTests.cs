@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using Build.Features.Harvesting;
 using Build.Host.Configuration;
+using Build.Shared.Harvesting;
 using Build.Shared.Manifest;
 using Build.Shared.Runtime;
 using Build.Shared.Strategy;
@@ -275,7 +276,7 @@ public class HarvestTaskTests
         var mockValidator = Substitute.For<IDependencyPolicyValidator>();
         mockValidator.Validate(Arg.Any<BinaryClosure>(), Arg.Any<LibraryManifest>())
             .Returns(ValidationResult.Fail(
-            [new BinaryNode(new FilePath("C:/vcpkg/bin/zlib1.dll"), "zlib", "sdl2-image")],
+            [new BinaryNode("C:/vcpkg/bin/zlib1.dll", "zlib", "sdl2-image")],
             "dependency leak detected"));
 
         var runtimeProfile = CreateWindowsRuntimeProfile();
@@ -426,7 +427,7 @@ public class HarvestTaskTests
         // Shaped like a real hybrid-static harvest closure: exactly one primary binary,
         // no runtime deps in the node set (transitive deps are statically baked), and the
         // owning vcpkg package recorded in the Packages set.
-        var primaryPath = new FilePath($"C:/vcpkg/installed/{WindowsTriplet}/bin/{libraryName}.dll");
+        var primaryPath = $"C:/vcpkg/installed/{WindowsTriplet}/bin/{libraryName}.dll";
         var primarySet = ImmutableHashSet.Create(primaryPath);
         var packages = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {

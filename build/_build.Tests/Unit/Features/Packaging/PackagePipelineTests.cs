@@ -3,6 +3,7 @@ using Build.Features.Harvesting;
 using Build.Features.Packaging;
 using Build.Host.Configuration;
 using Build.Integrations.DotNet;
+using Build.Shared.Harvesting;
 using Build.Shared.Manifest;
 using Build.Tests.Fixtures;
 using Cake.Core;

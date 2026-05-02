@@ -556,13 +556,84 @@ No build-host code change is required; this is purely an operator / harness inpu
 # Kill all CLI-launched build servers (same action the runner performs):
 dotnet build-server shutdown
 
-# Kill dotnet processes older than MSBuild's 10-minute reuse timeout (PowerShell):
-Get-Process dotnet | Where-Object { ((Get-Date) - $_.StartTime).TotalMinutes -gt 15 } | Stop-Process -Force
+# Kill BOTH dotnet (MSBuild workers, VBCSCompiler) and testhost.exe processes.
+# testhost.exe is the TUnit / Microsoft Testing Platform host that survives
+# the build-server shutdown's 10-minute reuse window and holds open file
+# handles on Microsoft.Testing.Platform.dll — that handle is what trips
+# CleanArtifacts in the very next run. Targeting both names is required.
+Get-Process dotnet, testhost -ErrorAction SilentlyContinue |
+    Where-Object { ((Get-Date) - $_.StartTime).TotalMinutes -gt 15 -and $_.Id -ne $PID } |
+    Stop-Process -Force -ErrorAction SilentlyContinue
 ```
 
 On macOS / Linux the equivalent is `pkill -f /nodemode:1` for MSBuild worker nodes, or use the same `dotnet build-server shutdown` which is cross-platform.
 
 **Tree-scoped kill (experiment).** A more precise fix — killing only the processes spawned by the runner itself via `Process.Kill(entireProcessTree: true)` — is tracked as a roadmap experiment (GitHub issue, labels `area:build-system`, `type:experiment`). That refactor would eliminate the side-effect warning above but requires giving up Cake's `IProcess` abstraction for the smoke runner's `dotnet` invocations; deferred until the side-effect actually bites someone's parallel workflow.
+
+**Pre-`verify-baselines.cs` ritual (Phase X observation, 2026-05-02).** During the
+P2 wave, the build-host migration test loop ran `dotnet test` followed by
+`dotnet run verify-baselines.cs` repeatedly. The `verify-baselines.cs` helper
+spawns `smoke-witness.cs` whose `01-CleanArtifacts` step trips on the
+`Microsoft.Testing.Platform.dll` lock the previous `dotnet test` left behind
+— observed twice during P2 (Adım 6 and Adım 7 fast-loop gates). The reliable
+recipe before each `verify-baselines.cs` invocation in a tight test-then-verify
+loop:
+
+```powershell
+dotnet build-server shutdown 2>&1 | Out-Null
+Get-Process dotnet, testhost -ErrorAction SilentlyContinue |
+    Where-Object { ((Get-Date) - $_.StartTime).TotalMinutes -gt 1 -and $_.Id -ne $PID } |
+    Stop-Process -Force -ErrorAction SilentlyContinue
+Start-Sleep -Seconds 3
+dotnet run verify-baselines.cs
+```
+
+(The `1-minute` age threshold is intentionally tighter than the `15-minute`
+manual-fallback default above — by the time you're running the second
+`verify-baselines.cs`, the lingering `testhost.exe` is at most a few minutes
+old and the conservative cutoff would miss it.) This ritual is captured at
+the witness side too in [`tests/scripts/README.md`](../../tests/scripts/README.md#troubleshooting)
+under the `Microsoft.Testing.Platform.dll is denied` entry — a human
+operator running the witness loop interactively rarely needs it because the
+test→verify gap is naturally larger; CI / scripted loops should bake it in.
+
+## Host Liveness Pre-flight (added 2026-05-02 from Phase X session)
+
+The macOS Intel host at `Armut@192.168.50.178` is on a private LAN and
+auto-sleeps when idle. Before driving a remote SSH run from a script — for
+example the `verify-baselines.cs --milestone` flow that includes the
+`smoke-witness-local-osx-x64.json` slot — probe liveness with a fast
+`BatchMode` connect attempt:
+
+```powershell
+ssh -o ConnectTimeout=5 -o BatchMode=yes Armut@192.168.50.178 'echo MAC_AWAKE'
+```
+
+- Exit `0` + literal `MAC_AWAKE` echoed back → host is reachable, key auth
+  succeeded, proceed.
+- Exit `255` + `Connection timed out` → host is asleep (or off LAN). Skip
+  the macOS run; phase-x §10.5 makes macOS Intel coverage non-gating
+  precisely for this case. The witness flow continues with Win + WSL Linux.
+- Exit `255` + `Permission denied (publickey,…)` → host reachable but key
+  auth needs setup. Resolve before retrying.
+- Anything else → treat as a real connectivity issue, do not retry blindly.
+
+The `BatchMode=yes` flag suppresses any interactive prompts (password,
+host-key fingerprint confirmation) so a sleeping or mis-keyed host fails
+fast instead of hanging on an unanswerable prompt — important when the
+probe runs from a script that expects a deterministic exit code.
+
+WSL Linux is always reachable from the same Windows box (it shares the
+process tree), so no liveness probe is needed for the Linux clone — the
+`wsl zsh -c '…'` invocation either succeeds immediately or surfaces a
+distro-not-installed error that's obviously fatal.
+
+> **WSL invocation gotcha (already documented under [PWD env leakage in
+> non-interactive cross-shell invocations](#pwd-env-leakage-in-non-interactive-cross-shell-invocations)).**
+> When driving WSL from a Windows PowerShell harness via `wsl zsh -c '…'`,
+> bind absolute paths up front (`cd /home/deniz/repos/sdl2-cs-bindings && …`)
+> rather than expanding shell variables — variable interpolation through the
+> WSLENV bridge can drop or stale-out the value before zsh sees it.
 
 ## Failure Triage
 
@@ -571,8 +642,9 @@ When a checkpoint fails, classify before reacting:
 1. **Environment issue** — dotnet not in PATH, missing tools, stale build output. Fix the environment, re-run.
 2. **Stale repo** — platforms not on the same commit. `git pull` and re-run.
 3. **Code regression** — same commit, clean environment, still fails. This is what the smoke matrix is designed to catch. Report with platform, checkpoint, exact error.
+4. **Lingering process flake** — `Microsoft.Testing.Platform.dll` access denied during `01-CleanArtifacts` (Windows only). Not a regression; see [Lingering dotnet processes mitigation](#lingering-dotnet-processes-mitigation) for the build-server shutdown ritual. Run the ritual, retry once. If it persists past one retry, escalate to category 1/3.
 
-Do not conflate environment issues with code regressions. The majority of cross-platform "failures" in practice are category 1 or 2.
+Do not conflate environment issues with code regressions. The majority of cross-platform "failures" in practice are category 1, 2, or 4.
 
 ## Extending This Matrix
 

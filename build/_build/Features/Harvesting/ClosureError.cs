@@ -1,3 +1,5 @@
+using Build.Shared.Harvesting;
+
 namespace Build.Features.Harvesting;
 
 public abstract class ClosureError : HarvestingError

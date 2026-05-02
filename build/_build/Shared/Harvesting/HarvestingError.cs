@@ -1,6 +1,6 @@
 ﻿using Build.Shared.Results;
 
-namespace Build.Features.Harvesting;
+namespace Build.Shared.Harvesting;
 
 public abstract class HarvestingError : BuildError
 {

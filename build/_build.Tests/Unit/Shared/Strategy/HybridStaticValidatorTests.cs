@@ -1,8 +1,8 @@
 using Build.Shared.Runtime;
 using Build.Shared.Strategy;
 using Build.Tests.Fixtures;
-using Cake.Core.IO;
 using NSubstitute;
+using IoPath = System.IO.Path;
 
 namespace Build.Tests.Unit.Shared.Strategy;
 
@@ -66,7 +66,7 @@ public sealed class HybridStaticValidatorTests
 
         await Assert.That(result.IsError()).IsTrue();
         await Assert.That(result.ValidationError.Violations.Count).IsEqualTo(1);
-        await Assert.That(result.ValidationError.Violations[0].Path.GetFilename().FullPath).IsEqualTo("zlib1.dll");
+        await Assert.That(IoPath.GetFileName(result.ValidationError.Violations[0].Path)).IsEqualTo("zlib1.dll");
     }
 
     [Test]

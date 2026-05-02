@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Build.Features.Harvesting;
+using Build.Shared.Harvesting;
 using Build.Tests.Fixtures;
 using Build.Tests.Fixtures.Seeders;
 using Cake.Core;

@@ -7,6 +7,7 @@ using Build.Features.Preflight;
 using Build.Features.Vcpkg;
 using Build.Host;
 using Build.Integrations.Vcpkg;
+using Build.Shared.Harvesting;
 using Build.Shared.Manifest;
 using Build.Shared.Runtime;
 using Build.Shared.Strategy;
@@ -355,8 +356,8 @@ public sealed class SetupLocalDevTaskRunnerTests
         var binaryClosureWalker = Substitute.For<IBinaryClosureWalker>();
         binaryClosureWalker.BuildClosureAsync(Arg.Any<LibraryManifest>(), Arg.Any<CancellationToken>())
             .Returns(new BinaryClosure(
-                new HashSet<FilePath> { sourcePrimary },
-                [new BinaryNode(sourcePrimary, "sdl2", "sdl2")],
+                new HashSet<string>(StringComparer.Ordinal) { sourcePrimary.FullPath },
+                [new BinaryNode(sourcePrimary.FullPath, "sdl2", "sdl2")],
                 new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "sdl2" }));
 
         var artifactPlanner = Substitute.For<IArtifactPlanner>();

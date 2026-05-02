@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using Build.Host;
 using Build.Host.Cake;
+using Build.Shared.Harvesting;
 using Cake.Common.IO;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;

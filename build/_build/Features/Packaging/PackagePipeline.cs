@@ -9,6 +9,7 @@ using Build.Host.Cake;
 using Build.Host.Configuration;
 using Build.Host.Paths;
 using Build.Integrations.DotNet;
+using Build.Shared.Harvesting;
 using Build.Shared.Manifest;
 using Cake.Common.IO;
 using Cake.Core;

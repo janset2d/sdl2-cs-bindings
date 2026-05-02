@@ -3,6 +3,7 @@
 using System.Collections.Immutable;
 using Build.Features.Harvesting;
 using Build.Host.Cake;
+using Build.Shared.Harvesting;
 using Build.Host.Paths;
 using Build.Tools.Vcpkg;
 using Build.Tools.Vcpkg.Settings;
@@ -57,7 +58,7 @@ public sealed class VcpkgCliProvider : IPackageInfoProvider
             }
 
             var ownedFiles = packageResult.Owns
-                .Select(relativeChildPath => _vcpkgInstallDir.CombineWithFilePath(relativeChildPath))
+                .Select(relativeChildPath => _vcpkgInstallDir.CombineWithFilePath(relativeChildPath).FullPath)
                 .ToImmutableList();
 
             return new PackageInfo(PackageName: packageName, Triplet: triplet, OwnedFiles: ownedFiles, DeclaredDependencies: packageResult.Dependencies ?? []);

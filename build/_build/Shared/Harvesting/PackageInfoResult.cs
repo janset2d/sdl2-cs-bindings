@@ -2,7 +2,7 @@ using OneOf;
 using OneOf.Monads;
 using OneOf.Types;
 
-namespace Build.Features.Harvesting;
+namespace Build.Shared.Harvesting;
 
 public sealed class PackageInfoResult(OneOf<Error<PackageInfoError>, Success<PackageInfo>> result) : Result<PackageInfoError, PackageInfo>(result)
 {

@@ -1,4 +1,4 @@
-namespace Build.Features.Harvesting;
+namespace Build.Shared.Harvesting;
 
 public sealed class PackageInfoError : HarvestingError
 {

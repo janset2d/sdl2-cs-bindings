@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Build.Host;
 using Build.Host.Cake;
+using Build.Shared.Harvesting;
 using Build.Shared.Manifest;
 using Build.Shared.Results;
 using Build.Shared.Runtime;
@@ -10,6 +11,7 @@ using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 using Spectre.Console;
+using IoPath = System.IO.Path;
 
 namespace Build.Features.Harvesting;
 
@@ -137,7 +139,7 @@ public sealed class HarvestPipeline(
 
         // outputBase remains in the signature for parity with the historical call site,
         // but all path construction now goes through IPathService so the layout is governed
-        // in one place. PathService roots under context.Paths.HarvestOutput — same dir.
+        // in one place. PathService roots under context.Paths.HarvestOutput ï¿½ same dir.
         CleanCurrentRidPayload(context, manifest);
         InvalidateCrossRidReceipts(context, manifest);
     }
@@ -176,7 +178,7 @@ public sealed class HarvestPipeline(
     /// license evidence, so the cross-RID receipts produced by ConsolidateHarvestTask
     /// (licenses/_consolidated/, harvest-manifest.json, harvest-summary.json) are always
     /// stale after Harvest touches this library. Deleting them here turns the implicit
-    /// dependency into an explicit invalidation — Package's gate will fail until
+    /// dependency into an explicit invalidation ï¿½ Package's gate will fail until
     /// ConsolidateHarvest regenerates the receipts. Skipping this would let a stale
     /// receipt authorize a pack against empty licenses/_consolidated/, silently dropping
     /// attribution.
@@ -307,7 +309,7 @@ public sealed class HarvestPipeline(
         }
 
         var infoPanel = new Panel(grid)
-            .Header($"[bold yellow]{stats.LibraryName} – Deployment Summary[/]", Justify.Left)
+            .Header($"[bold yellow]{stats.LibraryName} ï¿½ Deployment Summary[/]", Justify.Left)
             .BorderColor(Color.Grey);
 
         AnsiConsole.Write(infoPanel);
@@ -372,7 +374,7 @@ public sealed class HarvestPipeline(
         AddDetailRows(detailTable, "[grey54]License[/]", stats.LicenseFiles);
 
         var detailPanel = new Panel(detailTable)
-            .Header($"[bold yellow]{stats.LibraryName} – Detailed File List[/]", Justify.Left)
+            .Header($"[bold yellow]{stats.LibraryName} ï¿½ Detailed File List[/]", Justify.Left)
             .BorderColor(Color.Grey);
 
         AnsiConsole.Write(detailPanel);
@@ -436,7 +438,7 @@ public sealed class HarvestPipeline(
             log.Verbose("Details: {0}", error.Exception);
         }
 
-        throw new CakeException($"{phase} failed for '{libraryName}'. Use –verbosity=diagnostic for details. Error: {error.Message}");
+        throw new CakeException($"{phase} failed for '{libraryName}'. Use ï¿½verbosity=diagnostic for details. Error: {error.Message}");
     }
 
     private static void LogAndThrowValidation(ValidationError error, ICakeLog log, string libraryName)
@@ -451,14 +453,14 @@ public sealed class HarvestPipeline(
         {
             log.Error(
                 "  - {0} (owner: {1}, origin: {2})",
-                violation.Path.GetFilename().FullPath,
+                IoPath.GetFileName(violation.Path),
                 violation.OwnerPackage,
                 violation.OriginPackage);
         }
 
         throw new CakeException(
             $"Dependency policy validation failed for '{libraryName}'. " +
-            $"Use –verbosity=diagnostic for details. Error: {error.Message}");
+            $"Use ï¿½verbosity=diagnostic for details. Error: {error.Message}");
     }
 
     private static void LogValidationWarnings(ICakeLog log, string libraryName, IReadOnlyList<BinaryNode> warnings)
@@ -476,7 +478,7 @@ public sealed class HarvestPipeline(
         {
             log.Warning(
                 "  - {0} (owner: {1}, origin: {2})",
-                warning.Path.GetFilename().FullPath,
+                IoPath.GetFileName(warning.Path),
                 warning.OwnerPackage,
                 warning.OriginPackage);
         }

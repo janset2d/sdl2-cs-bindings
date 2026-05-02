@@ -1,4 +1,4 @@
-using Build.Features.Harvesting;
+using Build.Shared.Harvesting;
 using Build.Shared.Manifest;
 
 namespace Build.Shared.Strategy;

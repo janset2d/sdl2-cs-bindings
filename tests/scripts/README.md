@@ -29,6 +29,15 @@ outside `artifacts/` so Cake's `CleanArtifacts` target cannot wipe them mid-run)
 Each run clears its own subdir first in case the same second-level timestamp
 collides.
 
+> **Silent runs leave forensic logs too.** Since the P0-close session fix
+> (smoke-witness.cs `InvokeProcessAsync` rewrite, 2026-05-02), the per-step
+> log file is written regardless of `--verbose`. Verbose mode adds live
+> console echo of stdout/stderr; silent mode just doesn't echo. Both modes
+> now persist the per-step `NN-<step>.log` so a flaky failure leaves
+> evidence on disk without requiring a verbose rerun. Phase-x [§14
+> Adım 13](../../docs/phases/phase-x-build-host-modernization-2026-05-02.md#14-ad%C4%B1m-13-post-p2-follow-up-wave)
+> design-notes for the rationale.
+
 ### Run
 
 **Unix (Linux / macOS):**
@@ -161,6 +170,28 @@ mapping is supplied (mirrors `PackageTask.ShouldRun` — same rationale).
 - **macOS skips `net462` with `mono binary not found in $PATH`** → expected on
   hosts without Mono. Install `brew install mono` if you need the macOS
   `net462` runtime slice; `net9.0` and `net8.0` still execute normally.
+- **`Access to the path 'Microsoft.Testing.Platform.dll' is denied`** during
+  `01-CleanArtifacts.log` (or any other early step) → Windows-only
+  lingering-`testhost.exe` flake. The TUnit / Microsoft Testing Platform
+  testhost stays alive in the per-user 10-minute build-server reuse window
+  and holds an open file handle on `Microsoft.Testing.Platform.dll` from a
+  prior `dotnet test` run. CleanArtifacts then trips on the locked file.
+  Mitigation:
+
+  ```pwsh
+  dotnet build-server shutdown
+  Get-Process dotnet, testhost -ErrorAction SilentlyContinue |
+      Where-Object { ((Get-Date) - $_.StartTime).TotalMinutes -gt 1 -and $_.Id -ne $PID } |
+      Stop-Process -Force -ErrorAction SilentlyContinue
+  Start-Sleep -Seconds 3
+  dotnet run smoke-witness.cs local
+  ```
+
+  This is the same playbook entry as
+  [`docs/playbook/cross-platform-smoke-validation.md` Lingering dotnet processes mitigation](../../docs/playbook/cross-platform-smoke-validation.md#lingering-dotnet-processes-mitigation),
+  reproduced here for witness-loop ergonomics. Side-effect warning: the
+  shutdown is per-user, so it terminates concurrent CLI build servers in
+  other shells (their next build re-spawns; no work is lost).
 
 ## `verify-baselines.cs`
 
@@ -215,8 +246,10 @@ cd tests/scripts
 ### Design notes
 
 - **No bash / PowerShell helper.** `verify-baselines.cs` is a file-based app for the same reason `smoke-witness.cs` is — one shell-flavor (none), one runtime (.NET 10 SDK pinned by `tests/scripts/global.json`), cross-platform by construction. See [Microsoft Learn — File-based apps][msdocs-file-based-apps].
-- **Spawn pattern matches smoke-witness.** Each entry spawns `dotnet run smoke-witness.cs <mode> --emit-baseline <tmp>` from this directory. Drains stdout/stderr to prevent deadlock; smoke-witness's own `.logs/witness/...` files retain the per-step log output for inspection if a step fails.
+- **Spawn pattern matches smoke-witness.** Each entry spawns `dotnet run smoke-witness.cs <mode> --emit-baseline <tmp>` from this directory. Drains stdout/stderr to prevent deadlock; smoke-witness's own `.logs/witness/...` files retain the per-step log output for inspection if a step fails (now persisted in silent mode too — see the smoke-witness section above).
 - **Logical equality, not byte equality.** Comparing files byte-for-byte is fragile across CRLF/LF or indentation drift. Comparing deserialized records with the same `JsonSerializerOptions` makes the gate correctness-shaped, not formatting-shaped.
+- **Fast-loop / milestone-loop dedup.** `BuildEntries` walks the milestone-loop catalogue (`local linux-x64`, `local osx-x64`, `ci-sim win-x64`) and skips any entry whose `(mode, target_rid)` already matches the host-matched fast-loop slot. Without this, running `--milestone` on Linux double-runs `smoke-witness-local-linux-x64.json` (once as fast loop, once as milestone catalogue entry). Cosmetic but observable — fixed in the P2-warmup step (phase-x §14 Adım 1).
+- **Per-host gating semantics.** A Windows host running `--milestone` will see Linux + macOS entries reported as `SKIP (host)` because cross-host verification is meaningless (a Windows host cannot reproduce a Linux byte-equal signal). The intent is "what could *this* host produce?", not "which baselines does it own?". A clean Windows `--milestone` therefore reports `MATCH (local win-x64)` + `SKIP (host)` × 2 (Linux + macOS) + `MATCH (ci-sim win-x64)`. Linux equivalent reports `MATCH (local linux-x64)` + `SKIP (host)` × 3.
 
 [msdocs-file-based-apps]: https://learn.microsoft.com/en-us/dotnet/core/sdk/file-based-apps
 [playbook]: ../../docs/playbook/cross-platform-smoke-validation.md

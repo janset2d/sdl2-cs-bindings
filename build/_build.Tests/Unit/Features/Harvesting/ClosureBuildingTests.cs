@@ -2,7 +2,9 @@ using System.Collections.Immutable;
 using Build.Features.Harvesting;
 using Build.Integrations.DependencyAnalysis;
 using Build.Integrations.Vcpkg;
+using Build.Shared.Harvesting;
 using Build.Shared.Runtime;
+using IoPath = System.IO.Path;
 using Build.Tests.Fixtures;
 using Cake.Core;
 using Cake.Core.IO;
@@ -131,7 +133,7 @@ public class ClosureBuildingTests
         await Assert.That(result.IsSuccess()).IsTrue();
 
         // System files should NOT appear as nodes in the closure
-        var nodeFiles = result.Closure.Nodes.Select(n => n.Path.GetFilename().FullPath).ToList();
+        var nodeFiles = result.Closure.Nodes.Select(n => IoPath.GetFileName(n.Path)).ToList();
         await Assert.That(nodeFiles).DoesNotContain("kernel32.dll");
         await Assert.That(nodeFiles).DoesNotContain("user32.dll");
     }
@@ -170,7 +172,7 @@ public class ClosureBuildingTests
 
         await Assert.That(result.IsSuccess()).IsTrue();
 
-        var allPaths = result.Closure.Nodes.Select(n => n.Path.GetFilename().FullPath).ToList();
+        var allPaths = result.Closure.Nodes.Select(n => IoPath.GetFileName(n.Path)).ToList();
         await Assert.That(allPaths).Contains("extra_dep.dll");
     }
 
@@ -183,6 +185,6 @@ public class ClosureBuildingTests
             _fakeFs.CreateFile(filePath);
             return filePath;
         }).ToImmutableList();
-        return new PackageInfo(name, "x64-windows-hybrid", files, dependencies.ToImmutableList());
+        return new PackageInfo(name, "x64-windows-hybrid", files.Select(f => f.FullPath).ToImmutableList(), dependencies.ToImmutableList());
     }
 }

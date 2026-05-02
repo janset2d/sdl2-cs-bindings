@@ -2,14 +2,18 @@
 
 > **This is the canonical status document.** When code and docs disagree, verify against the code. When phases and this file disagree, this file wins.
 
-**Last updated**: 2026-04-29 (post-PD-5 routing closure: `ResolveVersions` now routes workflow dispatch manifest/explicit modes plus family/train tags through the shared `versions.json` artifact; `publish-staging` tag-push gate lifted for internal-feed release tags; `publish-public` remains PD-7)
+**Last updated**: 2026-05-02 (Phase X build-host modernization wave: P0 + P1 + P2 closed on `master` — ADR-002 layered shape retired, ADR-004 5-folder shape live; Adım 13 post-P2 follow-up wave pending before P3 starts)
 **Maintainer**: Deniz Irgin (@denizirgin)
 
 ## Mission
 
 Provide the .NET ecosystem with production-quality, modular SDL2 and SDL3 bindings that include **cross-platform native libraries built from source** — something no other project offers.
 
-## Current Phase
+## Current Phases
+
+Two parallel tracks in flight, sequenced independently:
+
+### Phase 2 (release pipeline track)
 
 **Phase 2: CI/CD & Packaging** (IN PROGRESS — resumed after ~10 month hiatus; ADR-003 rewrite landed, PA-2 behavioral validation closed 2026-04-26, PD-5 RemoteInternal artifact source + PublishStaging real impl landed 2026-04-26, trigger-aware `ResolveVersions` routing + tag-push staging gate-lift landed 2026-04-29; current work is the Phase 2b public path tail: PD-7 and first prerelease publication to nuget.org)
 
@@ -18,7 +22,21 @@ Phase 2 is now divided into two stages:
 - **Phase 2a — Hybrid Packaging Foundation Spike** (LANDED for the Phase 2a proof slice on 3 RIDs): Hybrid static + dynamic core packaging model proven end-to-end for `sdl2-core` + `sdl2-image` on `win-x64` / `linux-x64` / `osx-x64`. Windows host extended to 5 concrete families (`sdl2-core` / `-image` / `-mixer` / `-ttf` / `-gfx`). Package-consumer smoke test spine, Cake strategy awareness, and local feed validation operational.
 - **Phase 2b — Full Hybrid Pipeline + Orchestration Rewrite** (ACTIVE): Canonical doc sweep (landed) → Cake refactor per ADR-003 (IPackageVersionProvider + per-stage request records + NativeSmoke extract + G58 + --explicit-version) (landed) → CI/CD workflow rewrite (`release.yml` with dynamic matrix + consumer smoke re-entry) (landed) → PA-2 behavioral validation on remaining 4 RIDs (closed 2026-04-26 via run 24938451364) → Remote artifact source profile + PublishStaging real impl (closed 2026-04-26 via run 24962876812) → trigger-aware version routing + internal-feed tag-push staging gate-lift (landed 2026-04-29) → public prerelease (PD-7 Trusted Publishing OIDC + #63 first nuget.org publish).
 
-See [phases/README.md](phases/README.md) for the full phase breakdown and [phases/phase-2-adaptation-plan.md](phases/phase-2-adaptation-plan.md) for the active execution ledger.
+### Phase X (build-host modernization, ADR-004 migration)
+
+**Phase X: Build-Host Modernization** (P0 + P1 + P2 CLOSED on `master`; Adım 13 follow-up wave pending before P3 starts) — standalone cross-cutting refactor wave that is deliberately decoupled from Phase 2 release work. Tracks the migration from the ADR-002 DDD-layered build-host shape (`Tasks/Application/Domain/Infrastructure/Context`) to the ADR-004 Cake-native feature-oriented shape (`Host/Features/Shared/Tools/Integrations`).
+
+| Wave | Status | Commit | Behaviour |
+| --- | --- | --- | --- |
+| P0 Safety Baseline | ✅ CLOSED | `e602b6c` | smoke-witness `--emit-baseline` flag + verify-baselines.cs file-based-app helper + 4 baselines (Win local fast-loop, Linux + ci-sim Win + macOS Intel milestone-loop) + 6 doc updates + ADR-004 §2.14 rename criterion. Behaviour signal locked at this commit. |
+| P1 Folder Migration | ✅ CLOSED | `b6de515` | 291 git mv (production + test mirror) + Rider Adjust Namespaces sweep. ADR-002 namespaces empty in production code; ADR-004 5-folder shape live with 13 feature folders. Behaviour signal byte-equal to P0. |
+| P2 Terminology + DI rewrite | ✅ CLOSED | `3ab2e68` | 12 sub-steps: cosmetic warmup, CakeExtensions split, BuildOptions aggregate, BuildContext slim (6→4 prop), `*TaskRunner` → `*Pipeline` rename + `SetupLocalDev` → Flow, per-feature `ServiceCollectionExtensions` × 13, Program.cs DI chain collapse, `Shared/Runtime` Cake-decoupling (`PlatformFamily` → `RuntimeFamily`, `IsSystemFile(FilePath)` → `string`), `LayerDependencyTests` → `ArchitectureTests` rewrite (5 invariants; 3 skipped with explicit P3 deadline tracking). Behaviour signal byte-equal to P0 across Win local + Win ci-sim + WSL Linux. |
+| Adım 13 (post-P2 follow-up) | 🚧 PENDING | — | Cross-tier violation cleanup (BinaryClosure / HarvestManifest / Coverage&Packaging result types into `Shared/<X>/`) + un-skip 3 ArchitectureTests invariants + 13 ServiceCollectionExtensions smoke tests + `cake-build-architecture.md` ADR-004 rewrite. **Must close before P3 starts.** Detailed inventory + sub-step plan in [phase-x §14](phases/phase-x-build-host-modernization-2026-05-02.md#14-ad%C4%B1m-13-post-p2-follow-up-wave). |
+| P3 Interface Review → P5 Atomic Naming | ⏸️ NOT STARTED | — | Sequenced after Adım 13. P3 prunes single-impl interfaces per ADR-004 §2.9; P4 closes the `RunAsync(BuildContext, TRequest)` migration exception + `IPathService` fluent split; P5 atomic Cake-target rename wave. |
+
+Phase X is **non-gating** for Phase 2 release work — they may interleave on `master` (commits during Phase X waves are pure-refactor, behaviour-signal byte-equal to baseline). See [phases/phase-x-build-host-modernization-2026-05-02.md](phases/phase-x-build-host-modernization-2026-05-02.md) for the full wave roadmap and Adım 13 inventory.
+
+See [phases/README.md](phases/README.md) for the full phase breakdown, [phases/phase-2-adaptation-plan.md](phases/phase-2-adaptation-plan.md) for the Phase 2b active execution ledger, and [phases/phase-x-build-host-modernization-2026-05-02.md](phases/phase-x-build-host-modernization-2026-05-02.md) for the Phase X migration wave roadmap.
 
 ## Strategic Decisions — April 2026
 

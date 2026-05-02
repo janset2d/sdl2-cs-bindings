@@ -1,3 +1,5 @@
+using Build.Shared.Harvesting;
+using Build.Shared.Results;
 using OneOf;
 using OneOf.Monads;
 using OneOf.Types;
@@ -43,9 +45,4 @@ public sealed class CopierResult(OneOf<Error<HarvestingError>, Success<Unit>> re
     public static CopierResult ToSuccess() => Unit.Value;
 
     public CopierError AsCopierError() => (CopierError)AsT0.Value;
-}
-
-public readonly struct Unit
-{
-    public static readonly Unit Value;
 }

@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Build.Features.Harvesting;
 using Build.Host.Paths;
 using Build.Integrations.Vcpkg;
+using Build.Shared.Harvesting;
 using Build.Shared.Runtime;
 using Build.Tests.Fixtures;
 using Cake.Core;
@@ -183,9 +184,9 @@ public class DeploymentPlanTests
         _mockPkg.GetPackageInfoAsync("sdl2-image", "x64-windows-hybrid", Arg.Any<CancellationToken>())
             .Returns(new PackageInfo(
                 "sdl2-image", "x64-windows-hybrid",
-                ImmutableList.Create<FilePath>(
-                    new FilePath("C:/vcpkg/bin/SDL2_image.dll"),
-                    new FilePath("C:/vcpkg/share/sdl2-image/copyright")),
+                ImmutableList.Create(
+                    "C:/vcpkg/bin/SDL2_image.dll",
+                    "C:/vcpkg/share/sdl2-image/copyright"),
                 ImmutableList<string>.Empty));
 
         var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"));
@@ -224,6 +225,6 @@ public class DeploymentPlanTests
         _mockPkg.GetPackageInfoAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(callInfo => new PackageInfo(
                 callInfo.ArgAt<string>(0), callInfo.ArgAt<string>(1),
-                ImmutableList<FilePath>.Empty, ImmutableList<string>.Empty));
+                ImmutableList<string>.Empty, ImmutableList<string>.Empty));
     }
 }

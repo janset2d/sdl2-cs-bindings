@@ -1,6 +1,7 @@
-using Build.Features.Harvesting;
+using Build.Shared.Harvesting;
 using Build.Shared.Manifest;
 using Build.Shared.Runtime;
+using IoPath = System.IO.Path;
 
 namespace Build.Shared.Strategy;
 
@@ -43,7 +44,7 @@ public sealed class HybridStaticValidator(IRuntimeProfile profile, IPackagingStr
         // Every non-system, non-core, non-primary binary in the closure = transitive dep leak
         var violations = closure.Nodes
             .Where(node =>
-                !_profile.IsSystemFile(node.Path.GetFilename().FullPath)
+                !_profile.IsSystemFile(IoPath.GetFileName(node.Path))
                 && !_strategy.IsCoreLibrary(node.OwnerPackage)
                 && !closure.IsPrimaryFile(node.Path))
             .ToList();
