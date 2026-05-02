@@ -1,4 +1,4 @@
-namespace Build.Features.Coverage;
+namespace Build.Shared.Coverage;
 
 /// <summary>
 /// Represents a successful coverage ratchet check — both line and branch coverage met or

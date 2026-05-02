@@ -1,4 +1,4 @@
-namespace Build.Features.Coverage;
+namespace Build.Shared.Coverage;
 
 /// <summary>
 /// Parsed metrics from a cobertura coverage report.

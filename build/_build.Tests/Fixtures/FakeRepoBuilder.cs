@@ -2,6 +2,7 @@ using System.Text.Json;
 using Build.Features.Coverage;
 using Build.Features.Harvesting;
 using Build.Host;
+using Build.Shared.Coverage;
 using Build.Shared.Harvesting;
 using Build.Host.Configuration;
 using Build.Host.Paths;

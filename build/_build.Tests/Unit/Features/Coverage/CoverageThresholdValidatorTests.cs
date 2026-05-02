@@ -1,4 +1,5 @@
 using Build.Features.Coverage;
+using Build.Shared.Coverage;
 
 namespace Build.Tests.Unit.Features.Coverage;
 

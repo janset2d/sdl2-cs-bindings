@@ -2,7 +2,7 @@ using OneOf;
 using OneOf.Monads;
 using OneOf.Types;
 
-namespace Build.Features.Coverage;
+namespace Build.Shared.Coverage;
 
 /// <summary>
 /// Result monad for coverage ratchet validation:

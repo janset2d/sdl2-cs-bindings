@@ -1,6 +1,6 @@
 using System.Text.Json;
-using Build.Features.Coverage;
 using Build.Host.Cake;
+using Build.Shared.Coverage;
 using Cake.Core.IO;
 
 namespace Build.Integrations.Coverage;

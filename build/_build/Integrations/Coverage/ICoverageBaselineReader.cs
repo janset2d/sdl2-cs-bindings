@@ -1,4 +1,4 @@
-using Build.Features.Coverage;
+using Build.Shared.Coverage;
 using Cake.Core.IO;
 
 namespace Build.Integrations.Coverage;

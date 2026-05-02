@@ -1,6 +1,7 @@
 using System.Globalization;
 using Build.Host;
 using Build.Integrations.Coverage;
+using Build.Shared.Coverage;
 using Build.Shared.Results;
 using Cake.Common.IO;
 using Cake.Core;

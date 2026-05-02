@@ -1,4 +1,5 @@
 using System.Globalization;
+using Build.Shared.Coverage;
 
 namespace Build.Features.Coverage;
 

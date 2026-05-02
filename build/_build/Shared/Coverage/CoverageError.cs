@@ -1,6 +1,6 @@
 using Build.Shared.Results;
 
-namespace Build.Features.Coverage;
+namespace Build.Shared.Coverage;
 
 /// <summary>
 /// Base class for coverage ratchet errors. Mirrors the <c>StrategyError</c> / <c>HarvestingError</c>

@@ -1,3 +1,5 @@
+using Build.Shared.Coverage;
+
 namespace Build.Features.Coverage;
 
 public interface ICoverageThresholdValidator

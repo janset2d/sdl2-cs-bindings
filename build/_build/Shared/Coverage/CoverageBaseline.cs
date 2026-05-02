@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Build.Features.Coverage;
+namespace Build.Shared.Coverage;
 
 /// <summary>
 /// Coverage ratchet baseline — the static floor committed in <c>build/coverage-baseline.json</c>.

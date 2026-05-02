@@ -1,5 +1,6 @@
 using Build.Features.Coverage;
 using Build.Integrations.Coverage;
+using Build.Shared.Coverage;
 using Build.Tests.Fixtures;
 using Cake.Core;
 using Cake.Core.IO;
