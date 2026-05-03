@@ -105,14 +105,14 @@ Triggers for cache miss (legitimate cold rebuild expected):
 
 ### `RestoreLockedMode` strict-mode failure (NU1004 / NU1005 / NU1009)
 
-**Symptoms**: `build-cake-host` job's `dotnet test build/_build.Tests/Build.Tests.csproj` fails with `NU1004: The package references have changed` or `NU1009: implicitly referenced packages` during restore.
+**Symptoms**: `build-cake-host` job's `dotnet test --project build/_build.Tests/Build.Tests.csproj` fails with `NU1004: The package references have changed` or `NU1009: implicitly referenced packages` during restore.
 
-**Diagnosis**: P5 (Slice E follow-up) introduced strict lock-file mode on the build-host csprojs only. Strict mode is gated on `$(GITHUB_ACTIONS)='true'` in `build/_build/Build.csproj` + `build/_build.Tests/Build.Tests.csproj`. `src/**` csprojs use lenient mode (lock files committed for diff visibility, but drift regenerates rather than fails) precisely because SDK-implicit packages (`Microsoft.NET.ILLink.Tasks` per .NET runtime patch, `Microsoft.NETFramework.ReferenceAssemblies` per host OS) drift past the local SDK on every monthly Microsoft cadence.
+**Diagnosis**: P5 (Slice E follow-up) introduced strict lock-file mode on the build-host csprojs only. Strict mode is gated on `$(GITHUB_ACTIONS)='true'` in `build/_build/Build.csproj` + `build/_build.Tests/Build.Tests.csproj`. `src/**` csprojs intentionally do not generate lock files because SDK-implicit packages (`Microsoft.NET.ILLink.Tasks` per .NET runtime patch, `Microsoft.NETFramework.ReferenceAssemblies` per host OS) drift past the local SDK on every monthly Microsoft cadence.
 
 **Fixes**:
 
 - **Build-host strict failure**: legitimate lock-file drift on bounded package surface. Run `dotnet restore build/_build.Tests/Build.Tests.csproj --force-evaluate` locally, commit the regenerated `packages.lock.json` files. Build-host package surface is `Cake.Frosting + OneOf + NuGet.Versioning + ...` — none patch-driven, so genuine drift is rare and usually intentional (CPM bump).
-- **NEVER copy strict mode to `src/`**: a previous attempt failed with NU1004 + NU1009 chains because Linux SDK auto-implicit-defines `Microsoft.NETFramework.ReferenceAssemblies` for every csproj at root level CPM. Lenient mode in `src/Directory.Build.props` is the correct discipline. See [memory: Lock-File Strict-Mode Scope Discipline](../../) for the full rationale.
+- **NEVER copy strict mode or lock-file generation to `src/`**: a previous strict-mode attempt failed with NU1004 + NU1009 chains because Linux SDK auto-implicit-defines `Microsoft.NETFramework.ReferenceAssemblies` for every csproj at root level CPM. `src/` stays lock-file-free; package determinism is enforced by the Cake build host, PreFlight, Package validation, and PackageConsumerSmoke.
 
 ### `consumer-smoke` matrix entry fails on net4x runtime
 

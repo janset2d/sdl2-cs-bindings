@@ -238,7 +238,7 @@ P0 closed at commits `b18002f` (kickoff + fast-loop), `651ac2f` (milestone basel
 - [x] Milestone-loop baseline `smoke-witness-local-linux-x64.json` runs green on WSL Linux (3/3 PASS, 184.0s with hot vcpkg cache).
 - [x] Milestone-loop baseline `smoke-witness-ci-sim-win-x64.json` runs green on Windows (9/9 PASS, 119.2s — full pipeline replay).
 - [x] Milestone-loop baseline `smoke-witness-local-osx-x64.json` runs green on macOS Intel via SSH (3/3 PASS, 145.7s; opt-in per §10.5).
-- [x] `dotnet test build/_build.Tests/Build.Tests.csproj -c Release` runs green; `tests/scripts/baselines/test-count.txt` = `500`.
+- [x] `dotnet test --project build/_build.Tests/Build.Tests.csproj -c Release --framework net10.0` runs green; `tests/scripts/baselines/test-count.txt` = `500`.
 - [x] `dotnet run --project build/_build -- --tree` output captured (header-stripped + sorted) to `tests/scripts/baselines/cake-targets.txt` — 20 targets.
 - [x] Public target surface freeze list is committed; any target name outside this list during P1–P4 is a wave-rejection signal.
 - [x] Target rename inventory (§9.2) reviewed; ADR-004 §2.14 rename criterion added (plain-PascalCase trigger rule).
@@ -297,7 +297,7 @@ For every wave 1.X commit:
 - [ ] Update `Program.cs` DI registrations if class location changed (no class rename yet — type names are unchanged).
 - [ ] Update test mirror in the same commit: `git mv` test files, namespace updates, `using` adjustments.
 - [ ] `dotnet build build/_build/Build.csproj -c Release` succeeds.
-- [ ] `dotnet test build/_build.Tests/Build.Tests.csproj -c Release` succeeds; test count ≥ P0 baseline.
+- [ ] `dotnet test --project build/_build.Tests/Build.Tests.csproj -c Release --framework net10.0` succeeds; test count ≥ P0 baseline.
 - [ ] `LayerDependencyTests` green (still ADR-002 invariants, but the ADR-004 destinations also satisfy ADR-002 partially — see §5.4).
 - [ ] `smoke-witness local --emit-baseline tmp.json` matches P0 baseline JSON byte-for-byte.
 - [ ] Commit message: `refactor(build-host): P1.X migrate <feature> to Features/<X>/ shape (ADR-004)`.
@@ -746,7 +746,7 @@ Per §2.3 / §10.4 formula, these are the per-feature smoke tests counted in the
 For every wave merge, the following must be green:
 
 - [ ] `dotnet build build/_build/Build.csproj -c Release`
-- [ ] `dotnet test build/_build.Tests/Build.Tests.csproj -c Release`
+- [ ] `dotnet test --project build/_build.Tests/Build.Tests.csproj -c Release --framework net10.0`
 - [ ] Test count meets ratchet for that wave (§2.3)
 - [ ] **Test wall-time gate (P3 only):** total `dotnet test` wall time ≤ (P2 close wall time × 1.20). Other waves capture wall time for trend visibility but do not gate on it.
 - [ ] `LayerDependencyTests` (P0–P1) or `ArchitectureTests` (P2+) green

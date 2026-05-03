@@ -153,7 +153,7 @@ runbook. Cake-over-Cake is a chicken-and-egg loop.
 dotnet restore build/_build.Tests/Build.Tests.csproj --use-lock-file \
   | tee "$LOG_DIR/10-restore-build-tests.log"
 
-dotnet test build/_build.Tests/Build.Tests.csproj --no-restore \
+dotnet test --project build/_build.Tests/Build.Tests.csproj --no-restore --framework net10.0 \
   | tee "$LOG_DIR/11-build-host-tests.log"
 
 dotnet restore build/_build/Build.csproj --use-lock-file \

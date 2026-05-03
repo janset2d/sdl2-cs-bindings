@@ -114,7 +114,7 @@ dotnet build src/SDL2.Core/SDL2.Core.csproj
 dotnet build src/SDL2.Image/SDL2.Image.csproj
 
 # Optional: build-host regression suite
-dotnet test build/_build.Tests/Build.Tests.csproj -c Release --nologo
+dotnet test --project build/_build.Tests/Build.Tests.csproj -c Release --framework net10.0
 
 # Note: the root solution intentionally keeps smoke projects.
 # If build/msbuild/Janset.Local.props is missing or stale,

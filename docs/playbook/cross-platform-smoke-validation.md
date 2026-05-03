@@ -192,7 +192,7 @@ If you need the previous run for comparison, archive it somewhere outside `artif
 The Cake host cannot run its own unit tests from inside Cake — that's a chicken-and-egg loop. `dotnet test` against `build/_build.Tests/Build.Tests.csproj` is a bootstrap-only invocation. Every other smoke step below invokes a Cake target.
 
 ```bash
-dotnet test build/_build.Tests/Build.Tests.csproj --no-restore
+dotnet test --project build/_build.Tests/Build.Tests.csproj --no-restore --framework net10.0
 ```
 
 ### B. Cake Restore + Build (Release) (pre-Cake bootstrap exception)

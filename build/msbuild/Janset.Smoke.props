@@ -35,6 +35,22 @@
     <JansetSmokeVersionSentinel>0.0.0-smoke-sentinel</JansetSmokeVersionSentinel>
   </PropertyGroup>
 
+  <!--
+    Local-dev ergonomics for SDK-style .NET Framework smoke consumers on Windows.
+    With native PackageReference assets present, the .NET SDK can infer win-x86 for
+    naked `dotnet clean/build/restore` when PlatformTarget is unset. That is useful
+    only when the caller asked for x86. For ordinary local solution commands after
+    SetupLocalDev, default the net462 smoke app to the host process architecture.
+
+    Cake/release paths pass an explicit RuntimeIdentifier (and, for net462, Platform),
+    so they bypass this default and keep testing the requested RID.
+  -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net462' and '$(OS)' == 'Windows_NT' and '$(RuntimeIdentifier)' == '' and ('$(Platform)' == '' or '$(Platform)' == 'AnyCPU') and '$(PlatformTarget)' == ''">
+    <PlatformTarget Condition="$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()) == 'X64'">x64</PlatformTarget>
+    <PlatformTarget Condition="$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()) == 'X86'">x86</PlatformTarget>
+    <PlatformTarget Condition="$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()) == 'Arm64'">ARM64</PlatformTarget>
+  </PropertyGroup>
+
   <PropertyGroup>
     <!-- SDL2 family version properties. -->
     <JansetSdl2CorePackageVersion Condition="'$(JansetSdl2CorePackageVersion)' == ''">$(JansetSmokeVersionSentinel)</JansetSdl2CorePackageVersion>

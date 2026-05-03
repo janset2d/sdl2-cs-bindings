@@ -33,8 +33,8 @@ dotnet build src/SDL2.Core/SDL2.Core.csproj
 # re-run SetupLocalDev to regenerate before `dotnet build Janset.SDL2.sln`.
 
 # Build-host regression suite (TUnit on Microsoft.Testing.Platform)
-dotnet test build/_build.Tests/Build.Tests.csproj -c Release --nologo
-# Single test class: append --filter "FullyQualifiedName~PackageVersionResolverTests"
+dotnet test --project build/_build.Tests/Build.Tests.csproj -c Release --framework net10.0
+# Single test class: append MTP/TUnit filters after `--`, e.g. `-- --treenode-filter "/*/*/PackageVersionResolverTests/*"`
 
 # Pipeline targets (run individually for debugging)
 dotnet run --project build/_build -- --target PreFlightCheck
@@ -137,7 +137,7 @@ Legacy `runtimes.json` and `system_artefacts.json` were merged into `manifest.js
 ## Project Conventions
 
 - **TFMs are centralized in [Directory.Build.props](Directory.Build.props)**: `$(LibraryTargetFrameworks) = net10.0;net9.0;net8.0;netstandard2.0;net462`, `$(ExecutableTargetFrameworks) = net10.0;net9.0;net8.0;net462`. net462 builds on Linux via `Microsoft.NETFramework.ReferenceAssemblies` (no Mono needed for compile).
-- **Central package management** via [Directory.Packages.props](Directory.Packages.props) (`<ManagePackageVersionsCentrally>true`). Lock files are enabled on the build host (strict mode under CI) and on `src/**` projects (lenient — absorbs SDK-implicit-package drift).
+- **Central package management** via [Directory.Packages.props](Directory.Packages.props) (`<ManagePackageVersionsCentrally>true`). Lock files are enabled only on the build host (`build/_build` + `build/_build.Tests`, strict mode under CI). `src/**` projects intentionally do not generate lock files because SDK-implicit packages drift with runtime/host patches.
 - **Analysis is strict**: `TreatWarningsAsErrors=true`, `AnalysisMode=All`, latest-feature SDK pin in [global.json](global.json) (10.0.203). Suppressions go in csproj or with file-scoped `#pragma`, not by lowering the global bar.
 - **Test naming** (TUnit): `<MethodName>_Should_<Verb>_<optional When/If/Given>` — PascalCase method name, underscores between every other word segment, `Should` always present (e.g. `IsSystemFile_Should_Return_True_When_Windows_System_Dll`).
 - **Test folders mirror production**: `Unit/Domain/Packaging/PackageVersionResolverTests.cs` asserts the contract of `Domain/Packaging/PackageVersionResolver.cs`. Integration tests live under `Integration/<Scenario>/` and are not mirrored.

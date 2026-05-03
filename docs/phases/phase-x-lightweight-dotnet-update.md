@@ -37,7 +37,7 @@ The update is intentionally not a broad modernization. It should not change nati
 6. Remove the temporary `tests/scripts` SDK pin now that the root SDK is .NET 10.
 7. Preserve deterministic CI setup for hosted runners and the custom Linux container.
 8. Update hardcoded `net9.0` test fixtures so tests assert the new current matrix instead of stale current-state literals.
-9. Regenerate lock files through restore, not by hand.
+9. Regenerate build-host lock files through restore, not by hand; retire `src/**/packages.lock.json` because SDK-implicit package drift made them noisy without providing CI protection.
 10. Validate with build-host tests and both `smoke-witness.cs local` and `smoke-witness.cs ci-sim`.
 
 ## 3. Non-Goals
@@ -158,7 +158,7 @@ This is not a statement that LF no longer matters. The shebang scripts still nee
 ### L0 - Preflight Snapshot
 
 - [ ] Run `git status --short` or inspect source-control state.
-- [ ] Preserve unrelated user changes, especially existing `src/*/packages.lock.json` drift.
+- [ ] Preserve unrelated user changes; remove `src/**/packages.lock.json` only as part of the explicit lock-file scope decision.
 - [ ] Confirm `dotnet --list-sdks` includes `10.0.203` or a compatible `10.0.2xx` SDK.
 - [ ] Capture the current hardcoded `.NET 9` hit list with generated folders excluded.
 - [ ] Confirm root `.gitattributes` still enforces LF before deleting `tests/scripts/.gitattributes`.
@@ -295,22 +295,23 @@ Expected lock files:
 
 - `build/_build/packages.lock.json`
 - `build/_build.Tests/packages.lock.json`
-- `src/**/packages.lock.json`
-- any smoke/test lock files affected by inherited TFM expansion
+
+Expected removals:
+
+- `src/**/packages.lock.json` (src lock-file generation retired in this wave)
 
 Tasks:
 
 - [ ] Run restore with .NET 10 SDK.
-- [ ] Let lock files update mechanically.
-- [ ] Review lock-file diffs for expected `net10.0` target groups and SDK/analyzer package changes.
+- [ ] Let build-host lock files update mechanically.
+- [ ] Review build-host lock-file diffs for expected `net10.0` target groups and SDK/analyzer package changes.
 - [ ] Do not hand-edit lock files.
-- [ ] Preserve unrelated lock-file changes that predate this wave unless Deniz explicitly asks to revert them.
+- [ ] Remove src lock files with the corresponding `src/Directory.Build.props` policy update so they do not regenerate.
 
 Expected result:
 
-- `net10.0` groups appear where inherited TFM policy requires them.
-- `net9.0` groups remain for supported rows.
-- Existing `net8.0`, `netstandard2.0`, and `net462` rows remain.
+- Build-host lock files track the single `net10.0` host/test TFM.
+- `src/**` restores remain package-lock-free and are governed by CPM + package validation rather than lock files.
 
 ### L8 - Validation
 
@@ -320,7 +321,7 @@ Minimum local validation:
 dotnet --info
 dotnet restore Janset.SDL2.sln
 dotnet build build/_build/Build.csproj -c Release --nologo
-dotnet test build/_build.Tests/Build.Tests.csproj -c Release --nologo
+dotnet test --project build/_build.Tests/Build.Tests.csproj -c Release --framework net10.0
 dotnet build src/SDL2.Core/SDL2.Core.csproj -c Release --nologo
 Push-Location tests/scripts
 dotnet run smoke-witness.cs local
@@ -367,9 +368,9 @@ Optional follow-up validation:
 - [ ] `tests/scripts/.gitattributes` is removed only after confirming root LF policy covers it.
 - [ ] `release.yml` keeps deterministic `setup-dotnet` and installs extra `9.0.x` + `8.0.x` for consumer smoke.
 - [ ] Hardcoded-current `net9.0` test fixtures are updated; compatibility `net9.0` fixtures remain.
-- [ ] Lock files are regenerated and reviewed.
+- [ ] Build-host lock files are regenerated and reviewed; `src/**/packages.lock.json` files are removed.
 - [ ] Live docs reflect .NET 10 / C# 14 and the expanded TFM matrix.
-- [ ] `dotnet test build/_build.Tests/Build.Tests.csproj -c Release --nologo` passes.
+- [ ] `dotnet test --project build/_build.Tests/Build.Tests.csproj -c Release --framework net10.0` passes.
 - [ ] `tests/scripts/smoke-witness.cs local` passes.
 - [ ] `tests/scripts/smoke-witness.cs ci-sim` passes or has a documented, reproducible environment blocker.
 
@@ -380,11 +381,11 @@ Rollback should be a normal revert of the implementation commit or commit series
 If the wave is split:
 
 1. Revert CI/runtime edits first only if CI is blocked and local code changes are still under investigation.
-2. Revert SDK/TFM/language edits and regenerated lock files together.
+2. Revert SDK/TFM/language edits and build-host lock files together.
 3. Restore `tests/scripts/global.json` and `tests/scripts/.gitattributes` together if root SDK reverts to .NET 9.
 4. Revert doc updates last, so historical notes about the failed attempt can be preserved if useful.
 
-Do not partially revert only lock files after the SDK/TFM change; that produces a misleading restore state.
+Do not partially revert only build-host lock files after the SDK/TFM change; that produces a misleading restore state.
 
 ## 9. Implementation Notes For The Next Agent Pass
 

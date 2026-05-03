@@ -289,7 +289,7 @@ Fast verification loop:
 
 ```bash
 # Build-host test suite (TUnit)
-dotnet test build/_build.Tests/Build.Tests.csproj -c Release
+dotnet test --project build/_build.Tests/Build.Tests.csproj -c Release --framework net10.0
 
 # Build everything
 dotnet build Janset.SDL2.sln
