@@ -3,9 +3,9 @@
 Local witness scripts for Cake build-host validation. Single-file .NET 10 apps
 ([file-based apps][msdocs-file-based-apps]) — no `.csproj`, no build ceremony, just run.
 
-`tests/scripts/global.json` pins the .NET 10 SDK for this directory scope so the
-repo-root `global.json` (net9-pinned for the build-host) does not interfere.
-Always invoke from inside `tests/scripts/`.
+`tests/scripts/global.json` was removed (2026-05-03). Scripts now use the repo-root
+`global.json` (pinned to .NET 10.0.203). Run from any directory — the root SDK pin
+is the single source of truth.
 
 | Script | Purpose |
 | --- | --- |
@@ -47,34 +47,33 @@ collides.
 # but on fresh clones checked out on Windows side you may need to re-run this.
 chmod +x tests/scripts/smoke-witness.cs
 
-cd tests/scripts
-./smoke-witness.cs             # local mode (default)
-./smoke-witness.cs remote       # pull from GH Packages, smoke against pulled feed
-./smoke-witness.cs ci-sim       # mini CI simulation
+# Run from repo root — root global.json pins .NET 10 for the whole repo.
+./tests/scripts/smoke-witness.cs             # local mode (default)
+./tests/scripts/smoke-witness.cs remote       # pull from GH Packages
+./tests/scripts/smoke-witness.cs ci-sim       # mini CI simulation
 ```
 
-**Windows (shebang is Unix-only at the OS level — use `dotnet run` from inside `tests/scripts`):**
+**Windows (shebang is Unix-only at the OS level — use `dotnet run --file`):**
 
 ```pwsh
-cd tests\scripts
-dotnet run smoke-witness.cs           # local mode
-dotnet run smoke-witness.cs remote    # pull from GH Packages, smoke against pulled feed
-dotnet run smoke-witness.cs ci-sim    # mini CI simulation
+# Run from repo root. The --file flag is required because the repo root
+# contains project files (build/_build/Build.csproj, Janset.SDL2.sln).
+dotnet run --file tests/scripts/smoke-witness.cs           # local mode
+dotnet run --file tests/scripts/smoke-witness.cs remote    # pull from GH Packages
+dotnet run --file tests/scripts/smoke-witness.cs ci-sim    # mini CI simulation
 ```
 
-The script resolves the repo root internally with `git rev-parse --show-toplevel`,
-but the Unix shebang form itself should be launched from `tests/scripts`. From
-the repo root, `./tests/scripts/smoke-witness.cs` can be misinterpreted by the
-.NET file-based app launcher as a `dotnet-./tests/...` subcommand lookup. Use
-`cd tests/scripts && ./smoke-witness.cs <mode>` on Unix, or the `dotnet run`
-form above on Windows.
+The script resolves the repo root internally with `git rev-parse --show-toplevel`.
+Both the shebang form (`./tests/scripts/smoke-witness.cs`) and the `dotnet run`
+form work from the repo root — the root `global.json` now pins .NET 10.0.203 for
+the whole repository, so there is no longer a need to `cd` into `tests/scripts/`
+to pick up a directory-scoped SDK pin.
 
 ### Requirements
 
-- **.NET 10 SDK** (`10.0.100` or later). File-based apps + the `#:package` /
-  `#:property` directives are .NET 10 features; `tests/scripts/global.json` pins
-  the SDK selection for this directory scope so the repo-root `global.json`
-  (net9-pinned for the build-host) does not interfere.
+- **.NET 10 SDK** (`10.0.203` or later). File-based apps + the `#:package` /
+  `#:property` directives are .NET 10 features; the repo-root `global.json`
+  pins the SDK selection for the whole repository.
 - **git** on `PATH` — used to resolve repo root + capture the short HEAD SHA
   into the summary panel.
 - **vcpkg prerequisites** (only for `local` and `ci-sim`) — the same set the main
@@ -163,10 +162,10 @@ mapping is supplied (mirrors `PackageTask.ShouldRun` — same rationale).
   CRLF. `dos2unix tests/scripts/smoke-witness.cs` or re-clone after
   configuring `core.autocrlf=false`; `.gitattributes` pins LF for the
   scripts directory.
-- **Shebang from repo root fails with a `dotnet-./tests/...` lookup** → run the
-  shebang form from the script directory instead:
-  `cd tests/scripts && ./smoke-witness.cs remote`. The Windows-supported form
-  is still `cd tests\scripts; dotnet run smoke-witness.cs remote`.
+- **Shebang from repo root fails with a `dotnet-./tests/...` lookup** → this was a
+  .NET 9 directory-scoped SDK artifact; resolved in .NET 10 with the unified root
+  `global.json`. If you still see it, verify `dotnet --version` reports 10.0.203+.
+  Fallback: `dotnet run --file tests/scripts/smoke-witness.cs <mode>` works on all platforms.
 - **macOS skips `net462` with `mono binary not found in $PATH`** → expected on
   hosts without Mono. Install `brew install mono` if you need the macOS
   `net462` runtime slice; `net9.0` and `net8.0` still execute normally.
@@ -184,7 +183,7 @@ mapping is supplied (mirrors `PackageTask.ShouldRun` — same rationale).
       Where-Object { ((Get-Date) - $_.StartTime).TotalMinutes -gt 1 -and $_.Id -ne $PID } |
       Stop-Process -Force -ErrorAction SilentlyContinue
   Start-Sleep -Seconds 3
-  dotnet run smoke-witness.cs local
+  dotnet run --file tests/scripts/smoke-witness.cs local
   ```
 
   This is the same playbook entry as
@@ -209,23 +208,22 @@ Cross-host verification is intentionally meaningless: a Windows host running `--
 ### Run
 
 ```pwsh
-cd tests\scripts
+# Run from repo root. --file flag required (repo root has project files).
 
 # Fast loop — host-matched local baseline only
-dotnet run verify-baselines.cs
+dotnet run --file tests/scripts/verify-baselines.cs
 
 # Milestone loop — fast + every other-mode baseline this host can reproduce
-dotnet run verify-baselines.cs --milestone
+dotnet run --file tests/scripts/verify-baselines.cs --milestone
 
 # Debug: keep emitted temp baselines instead of cleaning them up
-dotnet run verify-baselines.cs --keep-tmp
+dotnet run --file tests/scripts/verify-baselines.cs --keep-tmp
 ```
 
 ```bash
 # Unix shell form (Linux / macOS) — once chmod +x is applied
-cd tests/scripts
-./verify-baselines.cs
-./verify-baselines.cs --milestone
+./tests/scripts/verify-baselines.cs
+./tests/scripts/verify-baselines.cs --milestone
 ```
 
 ### Exit codes
@@ -245,7 +243,7 @@ cd tests/scripts
 
 ### Design notes
 
-- **No bash / PowerShell helper.** `verify-baselines.cs` is a file-based app for the same reason `smoke-witness.cs` is — one shell-flavor (none), one runtime (.NET 10 SDK pinned by `tests/scripts/global.json`), cross-platform by construction. See [Microsoft Learn — File-based apps][msdocs-file-based-apps].
+- **No bash / PowerShell helper.** `verify-baselines.cs` is a file-based app for the same reason `smoke-witness.cs` is — one shell-flavor (none), one runtime (.NET 10 SDK pinned by repo-root `global.json`), cross-platform by construction. See [Microsoft Learn — File-based apps][msdocs-file-based-apps].
 - **Spawn pattern matches smoke-witness.** Each entry spawns `dotnet run smoke-witness.cs <mode> --emit-baseline <tmp>` from this directory. Drains stdout/stderr to prevent deadlock; smoke-witness's own `.logs/witness/...` files retain the per-step log output for inspection if a step fails (now persisted in silent mode too — see the smoke-witness section above).
 - **Logical equality, not byte equality.** Comparing files byte-for-byte is fragile across CRLF/LF or indentation drift. Comparing deserialized records with the same `JsonSerializerOptions` makes the gate correctness-shaped, not formatting-shaped.
 - **Fast-loop / milestone-loop dedup.** `BuildEntries` walks the milestone-loop catalogue (`local linux-x64`, `local osx-x64`, `ci-sim win-x64`) and skips any entry whose `(mode, target_rid)` already matches the host-matched fast-loop slot. Without this, running `--milestone` on Linux double-runs `smoke-witness-local-linux-x64.json` (once as fast loop, once as milestone catalogue entry). Cosmetic but observable — fixed in the P2-warmup step (phase-x §14 Adım 1).

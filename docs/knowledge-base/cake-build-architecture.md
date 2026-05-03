@@ -14,7 +14,7 @@
 
 ## Overview
 
-The build system is a .NET 9.0 console application using **Cake Frosting v6.1.0**. It orchestrates the native binary harvesting pipeline — collecting compiled SDL2/SDL3 libraries and their transitive dependencies from vcpkg output and organizing them for NuGet packaging.
+The build system is a .NET 10.0 console application using **Cake Frosting v6.1.0**. It orchestrates the native binary harvesting pipeline — collecting compiled SDL2/SDL3 libraries and their transitive dependencies from vcpkg output and organizing them for NuGet packaging.
 
 ## Current Implementation Notes
 

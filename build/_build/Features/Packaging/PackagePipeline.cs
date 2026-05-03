@@ -294,7 +294,9 @@ public sealed class PackagePipeline : IPackagePipeline
         }
 
         string nuspecContent;
+#pragma warning disable CA1849, S6966 // ZipArchiveEntry.Open sync used intentionally for small metadata reads
         using (var reader = new StreamReader(nuspecEntry.Open(), Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: false))
+#pragma warning restore CA1849, S6966
         {
             nuspecContent = await reader.ReadToEndAsync(cancellationToken);
         }
@@ -347,7 +349,9 @@ public sealed class PackagePipeline : IPackagePipeline
             ? document.ToString(SaveOptions.DisableFormatting)
             : string.Concat(document.Declaration, Environment.NewLine, document.ToString(SaveOptions.DisableFormatting));
 
+#pragma warning disable CA1849, S6966 // ZipArchiveEntry.Open sync used intentionally for small metadata writes
         await using var updatedEntryStream = updatedNuspecEntry.Open();
+#pragma warning restore CA1849, S6966
         await using var writer = new StreamWriter(updatedEntryStream, new UTF8Encoding(false));
         await writer.WriteAsync(updatedContent);
 

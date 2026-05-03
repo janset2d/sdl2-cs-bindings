@@ -74,7 +74,7 @@ public sealed class PackageTaskRunnerTests
 
         var projectMetadataReader = Substitute.For<IProjectMetadataReader>();
         ProjectMetadataResult metadataResult = new ProjectMetadata(
-            ["net9.0", "net8.0", "netstandard2.0", "net462"],
+            ["net10.0", "net9.0", "net8.0", "netstandard2.0", "net462"],
             "Authors",
             "LICENSE",
             "icon.png");
@@ -244,7 +244,7 @@ public sealed class PackageTaskRunnerTests
 
         var projectMetadataReader = Substitute.For<IProjectMetadataReader>();
         projectMetadataReader.ReadAsync(Arg.Any<FilePath>(), Arg.Any<CancellationToken>())
-            .Returns(new ProjectMetadata(["net9.0"], "Authors", "LICENSE", "icon.png"));
+            .Returns(new ProjectMetadata(["net10.0"], "Authors", "LICENSE", "icon.png"));
 
         var packageOutputValidator = Substitute.For<IPackageOutputValidator>();
         packageOutputValidator.ValidateAsync(

@@ -350,15 +350,11 @@ public sealed class PackageConsumerSmokePipeline(
         string tfm,
         IReadOnlyDictionary<string, string> dotNetRuntimeEnvironment)
     {
-        var arguments = new ProcessArgumentBuilder()
-            .Append("test")
-            .AppendQuoted(projectPath.FullPath)
-            .Append("-c")
-            .Append(_dotNetBuildConfiguration.Configuration)
-            .Append("-f")
-            .Append(tfm)
-            .Append("-r")
-            .Append(rid);
+        var arguments = CreateSmokeTestArguments(
+            projectPath,
+            _dotNetBuildConfiguration.Configuration,
+            rid,
+            tfm);
 
         // .NET Framework + AnyCPU + native package presence triggers SDK's auto-x86
         // RuntimeIdentifierInference. Our consumer-side .targets resolves the copy RID
@@ -369,7 +365,6 @@ public sealed class PackageConsumerSmokePipeline(
         // other TFMs/RIDs use the standard SDK runtimes/<rid>/native flow.
         AppendNet4xPlatformArgument(arguments, rid, tfm);
 
-        AppendBuildServerSuppressionFlags(arguments);
         AppendFeedArguments(arguments, packagesCache, feedPath);
         AppendSmokePackageVersionProperties(arguments, smokePackages, explicitVersions);
 
@@ -378,6 +373,26 @@ public sealed class PackageConsumerSmokePipeline(
             arguments,
             echoStdout: true,
             environmentVariables: dotNetRuntimeEnvironment);
+    }
+
+    internal static ProcessArgumentBuilder CreateSmokeTestArguments(FilePath projectPath, string configuration, string rid, string tfm)
+    {
+        ArgumentNullException.ThrowIfNull(projectPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(configuration);
+        ArgumentException.ThrowIfNullOrWhiteSpace(rid);
+        ArgumentException.ThrowIfNullOrWhiteSpace(tfm);
+
+        return new ProcessArgumentBuilder()
+            .Append("test")
+            .Append("--project")
+            .AppendQuoted(projectPath.FullPath)
+            .Append("-c")
+            .Append(configuration)
+            .Append("-f")
+            .Append(tfm)
+            .Append("-r")
+            .Append(rid)
+            .Append("-p:UseSharedCompilation=false");
     }
 
     /// <summary>
@@ -451,7 +466,7 @@ public sealed class PackageConsumerSmokePipeline(
     }
 
     /// <summary>
-    /// Append the trio of flags that keep a single <c>dotnet build/test</c> invocation from
+    /// Append the trio of flags that keep a single <c>dotnet build</c> invocation from
     /// spawning long-lived build-server children:
     /// <list type="bullet">
     ///   <item><description><c>--disable-build-servers</c> — tells the dotnet CLI not to spawn Roslyn / Razor / MSBuild servers, and to shut down any it did end up spawning once the invocation returns.</description></item>
@@ -477,7 +492,7 @@ public sealed class PackageConsumerSmokePipeline(
     /// prior build / test run receives a friendly shutdown signal via its named
     /// pipe (Windows) or unix domain socket (Linux/macOS). Failures here are logged at
     /// verbose level and do not abort the run — the subsequent
-    /// <see cref="AppendBuildServerSuppressionFlags"/> flags remain the primary defence.
+    /// build invocation flags and test-slice shutdowns remain the primary defence.
     /// <para>
     /// Side-effect note: the shutdown is per-user, not per-process-tree, so any other
     /// concurrent CLI build on the same machine will re-warm its cache on the next invocation.

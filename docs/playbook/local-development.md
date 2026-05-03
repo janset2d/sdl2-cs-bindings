@@ -42,7 +42,7 @@ Result: `artifacts/packages/` is wiped, then populated with the latest published
 
 | Tool | Version | Purpose |
 | --- | --- | --- |
-| .NET SDK | 9.0.x | Building managed projects and Cake build system |
+| .NET SDK | 10.0.x (pinned by repo-root `global.json`) | Building managed projects and Cake build system |
 | Git | 2.30+ | Submodule support |
 | Visual Studio / Rider / VS Code | Any | IDE (optional but recommended) |
 
@@ -338,7 +338,7 @@ The build host's Windows dependency scanner expects Visual Studio C++ tooling.
 
 ### Cake build fails
 
-- Ensure .NET 9.0 SDK is installed: `dotnet --version`
+- Ensure .NET 10.0 SDK is installed (pinned by repo-root `global.json`): `dotnet --version`
 - Try cleaning: `cd build/_build && dotnet clean && dotnet build`
 - Check `--verbosity Diagnostic` output for details
 

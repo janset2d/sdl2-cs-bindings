@@ -22,10 +22,10 @@ public sealed class PackageOutputValidatorTests
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
     // Long-form TFMs emitted in nuspec dependency groups (what `dotnet pack` writes).
-    private static readonly string[] NuspecFrameworkGroups = [".NETFramework4.6.2", ".NETStandard2.0", "net8.0", "net9.0"];
+    private static readonly string[] NuspecFrameworkGroups = [".NETFramework4.6.2", ".NETStandard2.0", "net8.0", "net9.0", "net10.0"];
 
     // Short-form TFMs as resolved from MSBuild -getProperty:TargetFrameworks (what the reader returns).
-    private static readonly string[] CsprojTargetFrameworks = ["net9.0", "net8.0", "netstandard2.0", "net462"];
+    private static readonly string[] CsprojTargetFrameworks = ["net10.0", "net9.0", "net8.0", "netstandard2.0", "net462"];
 
     private static PackageOutputValidator CreateValidator(FakeRepoHandles repo)
         => new(
@@ -126,7 +126,7 @@ public sealed class PackageOutputValidatorTests
 
         var dependencyGroups = CreateDependencyGroups(
             NuspecFrameworkGroups.Select(group =>
-                group == "net9.0"
+                group == "net10.0"
                     ? (group, CreateDependencyMap(family, "1.2.3", "9.9.9"))
                     : (group, CreateDependencyMap(family, "1.2.3", "1.2.3")))
                 .ToList());
@@ -195,7 +195,7 @@ public sealed class PackageOutputValidatorTests
         var artifacts = CreateArtifacts(repo, family, "1.2.3");
         var validator = CreateValidator(repo);
 
-        var metadataMissingNet462 = DefaultMetadata(targetFrameworks: ["net9.0", "net8.0", "netstandard2.0"]);
+        var metadataMissingNet462 = DefaultMetadata(targetFrameworks: ["net10.0", "net9.0", "net8.0", "netstandard2.0"]);
 
         var result = await ValidateAsync(validator, repo, family, artifacts, "1.2.3", metadataMissingNet462);
 
@@ -419,7 +419,7 @@ public sealed class PackageOutputValidatorTests
                 repo,
                 symbolsPackagePath,
                 ("symbols.nuspec", "<package><metadata><id>symbols</id></metadata></package>"),
-                ($"lib/net9.0/{managedPackageId}.pdb", "pdb"));
+                ($"lib/net10.0/{managedPackageId}.pdb", "pdb"));
         }
 
         return new PackageArtifacts(managedPackagePath, symbolsPackagePath, nativePackagePath);

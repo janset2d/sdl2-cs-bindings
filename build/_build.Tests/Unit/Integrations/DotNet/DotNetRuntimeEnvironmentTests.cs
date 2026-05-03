@@ -11,9 +11,9 @@ public sealed class DotNetRuntimeEnvironmentTests
     public async Task ResolveRuntimeChannels_Should_Return_Distinct_Modern_Runtime_Channels()
     {
         var channels = DotNetRuntimeEnvironment.ResolveRuntimeChannels(
-            ["net9.0", "net8.0", "net462", "netstandard2.0", "net9.0-windows"]);
+            ["net10.0", "net9.0", "net8.0", "net462", "netstandard2.0", "net10.0-windows"]);
 
-        await Assert.That(channels).IsEquivalentTo(["8.0", "9.0"]);
+        await Assert.That(channels).IsEquivalentTo(["8.0", "9.0", "10.0"]);
     }
 
     [Test]
@@ -30,7 +30,7 @@ public sealed class DotNetRuntimeEnvironmentTests
     {
         var resolver = new DotNetRuntimeEnvironment(Substitute.For<ICakeLog>());
 
-        var environment = await resolver.ResolveAsync("linux-x64", ["net9.0"]);
+        var environment = await resolver.ResolveAsync("linux-x64", ["net10.0"]);
 
         await Assert.That(environment).IsEmpty();
     }
@@ -45,7 +45,7 @@ public sealed class DotNetRuntimeEnvironmentTests
 
         var resolver = new DotNetRuntimeEnvironment(Substitute.For<ICakeLog>());
 
-        var thrown = await Assert.That(async () => await resolver.ResolveAsync("win-x86", ["net9.0"])).Throws<PlatformNotSupportedException>();
+        var thrown = await Assert.That(async () => await resolver.ResolveAsync("win-x86", ["net10.0"])).Throws<PlatformNotSupportedException>();
         await Assert.That(thrown!.Message).Contains("win-x86");
         await Assert.That(thrown.Message).Contains("non-Windows");
     }

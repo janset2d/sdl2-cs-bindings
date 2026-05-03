@@ -28,7 +28,7 @@
 | `harvest` (matrix, 7 RIDs) | Per-RID harvest + native-smoke inline | Uses `vcpkg-setup` + `platform-build-prereqs` composites; Linux RIDs run on `ghcr.io/janset2d/sdl2-bindings-linux-builder:focal-latest` |
 | `consolidate-harvest` | Aggregation | Single runner; merges per-RID status into `harvest-manifest.json` + `harvest-summary.json` |
 | `pack` | Per-family pack | Consumes `versions.json` via `--versions-file`; G21–G58 post-pack guardrails run inside `PackageOutputValidator` |
-| `consumer-smoke` (matrix, 7 RIDs) | Matrix re-entry | Per-RID restore + per-TFM TUnit (`net9.0`/`net8.0`/`net462`); `IDotNetRuntimeEnvironment` bootstraps win-x86 runtime via Cake (no inline YAML PowerShell); `IPackageConsumerSmokeRunner` enforces `--explicit-version` mandatory |
+| `consumer-smoke` (matrix, 7 RIDs) | Matrix re-entry | Per-RID restore + per-TFM TUnit (`net10.0`/`net9.0`/`net8.0`/`net462`); `IDotNetRuntimeEnvironment` bootstraps win-x86 runtime via Cake (no inline YAML PowerShell); `IPackageConsumerSmokeRunner` enforces `--explicit-version` mandatory |
 | `publish-staging` | Internal staging feed push | Real implementation landed 2026-04-26; pushes managed + native nupkg pairs to GitHub Packages via `PublishStagingTask`. Dispatch remains gated to `workflow_dispatch.inputs.publish-staging=true`; release tags publish to staging after trigger-aware `resolve-versions` emits tag-derived mappings. |
 | `publish-public` | Public feed promotion | Stubbed pending PD-7; target direction is nuget.org promotion via Trusted Publishing OIDC. |
 

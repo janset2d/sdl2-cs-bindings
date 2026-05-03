@@ -69,7 +69,7 @@ Modular C# bindings for SDL2 (and upcoming SDL3) with cross-platform native libr
 
 | Technology | Role |
 | --- | --- |
-| .NET 9.0 / C# 13 | Managed binding projects |
+| .NET 10.0 / C# 14 | Managed binding projects |
 | Cake Frosting 6.1.0 | Build automation (native binary harvesting) |
 | vcpkg | Cross-platform native library builds |
 | GitHub Actions | CI/CD (cross-platform build matrix) |

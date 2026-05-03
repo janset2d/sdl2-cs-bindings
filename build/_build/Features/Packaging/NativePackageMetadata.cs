@@ -151,7 +151,9 @@ public sealed class NativePackageMetadataValidator(IFileSystem fileSystem)
                     $"G55: native package '{nativePackagePath.GetFilename().FullPath}' does not contain root metadata file 'janset-native-metadata.json'.");
             }
 
+#pragma warning disable CA1849, S6966 // ZipArchiveEntry.Open sync used intentionally for small metadata reads
             using var reader = new StreamReader(metadataEntry.Open());
+#pragma warning restore CA1849, S6966
             metadataContent = await reader.ReadToEndAsync();
         }
         catch (Exception ex) when (ex is IOException or InvalidDataException)

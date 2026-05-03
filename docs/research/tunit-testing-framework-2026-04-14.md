@@ -16,7 +16,7 @@
 | DI support | Built-in (`ClassDataSource`, `IClassConstructor`, `DependencyInjectionDataSourceAttribute`) | Constructor injection only | Limited |
 | Instance model | Fresh instance per test | Fresh instance per test | Shared by default |
 
-TUnit aligns with the project's .NET 9.0 target and modern C# patterns. Microsoft.Testing.Platform is the recommended runner going forward.
+TUnit aligns with the project's .NET 10.0 target and modern C# patterns. Microsoft.Testing.Platform is the recommended runner going forward.
 
 ## Package Version
 

@@ -12,6 +12,14 @@
 | 4 | Binding Auto-Generation | PLANNED | [phase-4-binding-autogen.md](phase-4-binding-autogen.md) |
 | 5 | SDL3 Support | PLANNED | [phase-5-sdl3-support.md](phase-5-sdl3-support.md) |
 
+## Standalone Phase X Plans
+
+| Plan | Status | Document |
+| --- | --- | --- |
+| Build-Host Modernization (ADR-004 Migration) | IN PROGRESS / PARTIAL CLOSED | [phase-x-build-host-modernization-2026-05-02.md](phase-x-build-host-modernization-2026-05-02.md) |
+| Lightweight .NET 10 / C# 14 Update | PLANNED | [phase-x-lightweight-dotnet-update.md](phase-x-lightweight-dotnet-update.md) |
+| Modernization Wave | PARKED / UNASSIGNED | [phase-x-modernization-2026-04-20.md](phase-x-modernization-2026-04-20.md) |
+
 > **Retired phase documents** (kept as redirect stubs for backlink integrity — not canonical navigation targets):
 >
 > - `phase-2-cicd-packaging.md` — superseded by `phase-2-adaptation-plan.md` and `plan.md` roadmap.

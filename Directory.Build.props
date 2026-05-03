@@ -13,14 +13,14 @@
       want executable or single-TFM semantics.
   -->
   <PropertyGroup>
-    <LatestDotNet>net9.0</LatestDotNet>
-    <LibraryTargetFrameworks>$(LatestDotNet);net8.0;netstandard2.0;net462</LibraryTargetFrameworks>
-    <ExecutableTargetFrameworks>$(LatestDotNet);net8.0;net462</ExecutableTargetFrameworks>
+    <LatestDotNet>net10.0</LatestDotNet>
+    <LibraryTargetFrameworks>$(LatestDotNet);net9.0;net8.0;netstandard2.0;net462</LibraryTargetFrameworks>
+    <ExecutableTargetFrameworks>$(LatestDotNet);net9.0;net8.0;net462</ExecutableTargetFrameworks>
     <TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
   </PropertyGroup>
 
   <PropertyGroup>
-    <LangVersion>13.0</LangVersion>
+    <LangVersion>14.0</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

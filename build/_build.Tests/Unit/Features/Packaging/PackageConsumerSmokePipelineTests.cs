@@ -42,6 +42,27 @@ public sealed class PackageConsumerSmokeRunnerTests
             () => runner.RunAsync(null!));
     }
 
+    [Test]
+    public async Task CreateSmokeTestArguments_Should_Use_Project_Option_For_Project_Path()
+    {
+        var arguments = PackageConsumerSmokePipeline.CreateSmokeTestArguments(
+            new FilePath("tests/smoke-tests/package-smoke/PackageConsumer.Smoke/PackageConsumer.Smoke.csproj"),
+            "Release",
+            "win-x64",
+            "net10.0");
+
+        var rendered = arguments.Render();
+
+        await Assert.That(rendered).StartsWith("test --project ");
+        await Assert.That(rendered).Contains("PackageConsumer.Smoke.csproj");
+        await Assert.That(rendered).Contains("-c Release");
+        await Assert.That(rendered).Contains("-f net10.0");
+        await Assert.That(rendered).Contains("-r win-x64");
+        await Assert.That(rendered).Contains("-p:UseSharedCompilation=false");
+        await Assert.That(rendered).DoesNotContain("--disable-build-servers");
+        await Assert.That(rendered).DoesNotContain("nodeReuse");
+    }
+
     private static PackageConsumerSmokePipeline CreateMinimalRunner()
     {
         var cakeContext = Substitute.For<ICakeContext>();

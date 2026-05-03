@@ -89,7 +89,7 @@ These decisions were made during the packaging strategy research cycle (April 20
 
 | Library | Package ID | Source | Compiles | Targets |
 | --- | --- | --- | --- | --- |
-| SDL2 | `Janset.SDL2.Core` | `external/sdl2-cs/src/SDL2.cs` (8,966 lines) | Yes | net9.0, net8.0, netstandard2.0, net462 |
+| SDL2 | `Janset.SDL2.Core` | `external/sdl2-cs/src/SDL2.cs` (8,966 lines) | Yes | net10.0, net9.0, net8.0, netstandard2.0, net462 |
 | SDL2_image | `Janset.SDL2.Image` | `external/sdl2-cs/src/SDL2_image.cs` (316 lines) | Yes | Same |
 | SDL2_mixer | `Janset.SDL2.Mixer` | `external/sdl2-cs/src/SDL2_mixer.cs` (665 lines) | Yes | Same |
 | SDL2_ttf | `Janset.SDL2.Ttf` | `external/sdl2-cs/src/SDL2_ttf.cs` (768 lines) | Yes | Same |
@@ -120,7 +120,7 @@ These decisions were made during the packaging strategy research cycle (April 20
 
 | Component | Status |
 | --- | --- |
-| Cake Frosting host | Working (.NET 9.0, Cake.Frosting 6.1.0) |
+| Cake Frosting host | Working (.NET 10.0, Cake.Frosting 6.1.0) |
 | DI-based service architecture | Working (IPathService, IRuntimeProfile, etc.) |
 | BinaryClosureWalker (Windows/dumpbin) | Working |
 | Dumpbin tool discovery (Windows) | Working (checks `VCToolsInstallDir` first, then `vswhere` + MSVC candidate probing) |

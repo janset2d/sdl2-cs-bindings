@@ -220,7 +220,9 @@ public sealed class PackageOutputValidator(
                 return null;
             }
 
+#pragma warning disable CA1849, S6966 // ZipArchiveEntry.Open sync used intentionally for small metadata reads
             using var reader = new StreamReader(nuspecEntry.Open());
+#pragma warning restore CA1849, S6966
             var rawXml = await reader.ReadToEndAsync();
             var document = XDocument.Parse(rawXml, LoadOptions.PreserveWhitespace);
 

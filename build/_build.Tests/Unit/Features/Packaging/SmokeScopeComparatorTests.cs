@@ -107,7 +107,7 @@ public class SmokeScopeComparatorTests
         const string csproj = """
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
-                <TargetFramework>net9.0</TargetFramework>
+                <TargetFramework>net10.0</TargetFramework>
               </PropertyGroup>
             </Project>
             """;
@@ -129,7 +129,7 @@ public class SmokeScopeComparatorTests
         const string csproj = """
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
-                <TargetFramework>net9.0</TargetFramework>
+                <TargetFramework>net10.0</TargetFramework>
                 <JansetSmokeSdl2Families>Core;Image;Mixer;Ttf;Gfx</JansetSmokeSdl2Families>
               </PropertyGroup>
             </Project>
@@ -151,7 +151,7 @@ public class SmokeScopeComparatorTests
         const string csproj = """
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
-                <TargetFramework>net9.0</TargetFramework>
+                <TargetFramework>net10.0</TargetFramework>
                 <JansetSmokeSdl2Families>Core;Image</JansetSmokeSdl2Families>
               </PropertyGroup>
               <ItemGroup>
@@ -177,7 +177,7 @@ public class SmokeScopeComparatorTests
         const string csproj = """
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
-                <TargetFramework>net9.0</TargetFramework>
+                <TargetFramework>net10.0</TargetFramework>
                 <JansetSmokeSdl3Families>Core;Image</JansetSmokeSdl3Families>
               </PropertyGroup>
             </Project>
@@ -197,7 +197,7 @@ public class SmokeScopeComparatorTests
         return $"""
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
-                <TargetFramework>net9.0</TargetFramework>
+                <TargetFramework>net10.0</TargetFramework>
               </PropertyGroup>
               <ItemGroup>
             {references}

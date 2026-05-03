@@ -99,7 +99,7 @@ G25 is intentionally scoped to the managed package's `.snupkg`. Payload-only `.N
 | # | Invariant | Status | Owner |
 | --- | --- | --- | --- |
 | G21 | Within-family Native dependency emitted as bare minimum range `x.y.z` (no brackets). Cross-family dependencies must preserve the same lower-bound semantics (`>= x.y.z`) while upper-bound enforcement is owned by G56. Additional 2026-04-17 consumer-safety invariant: within-family Native dependency must not exclude build assets, otherwise `.NET Framework` consumers lose the native `buildTransitive` copy targets. | Active (D-local; reframed by S1 2026-04-17, refined by ADR-001 V4 2026-04-19) | Cake `PackageTask` post-pack assertion |
-| G22 | All TFM dependency groups (net9.0, net8.0, netstandard2.0, net462) are consistent with each other | Active (D-local, 2026-04-16) | Cake `PackageTask` post-pack assertion |
+| G22 | All TFM dependency groups (net10.0, net9.0, net8.0, netstandard2.0, net462) are consistent with each other | Active (D-local, 2026-04-16) | Cake `PackageTask` post-pack assertion |
 | G23 | **Primary within-family coherence check (post-S1).** Native package's `<version>` matches the managed package's `<version>` byte-for-byte. Detects drift between family members that would make the minimum-range contract misleading (consumer resolves compatible versions but publisher intended them pinned together). | Active (D-local; promoted to primary by S1 2026-04-17) | Cake `PackageTask` post-pack assertion |
 | G25 | Managed symbol package (.snupkg) is present and valid | Active (D-local, 2026-04-16) | Cake `PackageTask` post-pack assertion |
 | G26 | Nuspec `<repository>` element points at expected commit SHA | Active (D-local, 2026-04-16) | Cake `PackageTask` post-pack assertion |

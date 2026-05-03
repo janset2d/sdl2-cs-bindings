@@ -24,7 +24,7 @@
 
 Every command in §2 onward invokes a Cake target via
 `dotnet run --project build/_build/Build.csproj …` or the compiled
-`build/_build/bin/Release/net9.0/Build` entrypoint.
+`build/_build/bin/Release/net10.0/Build` entrypoint.
 
 The **one allowed exception** is §3 (build-host bootstrap). The Cake host
 cannot run its own unit tests or compile its own csproj from inside Cake —
@@ -184,15 +184,15 @@ dotnet run --project build/_build/Build.csproj -c Release -- \
   --target EnsureVcpkgDependencies --rid "$RID" --repo-root "$PWD" \
   | tee "$LOG_DIR/16-ensure-vcpkg.log"
 
-./build/_build/bin/Release/net9.0/Build \
+./build/_build/bin/Release/net10.0/Build \
   --target Harvest --rid "$RID" --repo-root "$PWD" \
   | tee "$LOG_DIR/20-harvest.log"
 
-./build/_build/bin/Release/net9.0/Build \
+./build/_build/bin/Release/net10.0/Build \
   --target NativeSmoke --rid "$RID" --repo-root "$PWD" \
   | tee "$LOG_DIR/25-native-smoke.log"
 
-./build/_build/bin/Release/net9.0/Build \
+./build/_build/bin/Release/net10.0/Build \
   --target ConsolidateHarvest --repo-root "$PWD" \
   | tee "$LOG_DIR/30-consolidate.log"
 ```
@@ -208,7 +208,7 @@ dotnet run --project build/_build/Build.csproj -c Release -- \
 ## 5. Cake-first dependency inspection
 
 ```bash
-./build/_build/bin/Release/net9.0/Build \
+./build/_build/bin/Release/net10.0/Build \
   --target Inspect-HarvestedDependencies --rid "$RID" --repo-root "$PWD" \
   | tee "$LOG_DIR/35-inspect-deps.log"
 ```
@@ -238,7 +238,7 @@ dotnet run --project build/_build/Build.csproj -c Release -- \
 cat build/msbuild/Janset.Local.props | tee "$LOG_DIR/41-smoke-local-props.log"
 ls -1 artifacts/packages | tee "$LOG_DIR/42-packages.log"
 
-./build/_build/bin/Release/net9.0/Build \
+./build/_build/bin/Release/net10.0/Build \
   --target PackageConsumerSmoke --rid "$RID" --repo-root "$PWD" \
   | tee "$LOG_DIR/50-package-consumer-smoke.log"
 ```
@@ -272,15 +272,18 @@ Redundant with the NET6+ symlink assertion baked into the consumer smoke, but
 useful when debugging extraction issues:
 
 ```bash
+find tests/smoke-tests/package-smoke/PackageConsumer.Smoke/bin/Release/net10.0/$RID \
+  -print | grep 'libSDL2' | sort | tee "$LOG_DIR/60-net10-symlinks.log"
+
 find tests/smoke-tests/package-smoke/PackageConsumer.Smoke/bin/Release/net9.0/$RID \
-  -print | grep 'libSDL2' | sort | tee "$LOG_DIR/60-net9-symlinks.log"
+  -print | grep 'libSDL2' | sort | tee "$LOG_DIR/61-net9-symlinks.log"
 
 find tests/smoke-tests/package-smoke/PackageConsumer.Smoke/bin/Release/net8.0/$RID \
-  -print | grep 'libSDL2' | sort | tee "$LOG_DIR/61-net8-symlinks.log"
+  -print | grep 'libSDL2' | sort | tee "$LOG_DIR/62-net8-symlinks.log"
 
 if [ "$PLATFORM" = "macos" ] && command -v mono >/dev/null; then
   find tests/smoke-tests/package-smoke/PackageConsumer.Smoke/bin/Release/net462/$RID \
-    -print | grep 'libSDL2' | sort | tee "$LOG_DIR/62-net462-symlinks.log"
+    -print | grep 'libSDL2' | sort | tee "$LOG_DIR/63-net462-symlinks.log"
 fi
 ```
 

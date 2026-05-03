@@ -76,7 +76,7 @@ dotnet add package Janset.SDL2.Image
 
 The native packages are pulled in transitively — you never need to reference `.Native` packages directly.
 
-**Target Frameworks**: net9.0, net8.0, netstandard2.0, net462
+**Target Frameworks**: net10.0, net9.0, net8.0, netstandard2.0, net462
 
 ## Project Status
 

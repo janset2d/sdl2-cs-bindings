@@ -59,7 +59,7 @@ These are validated today and should pass on all 3 platforms.
 | F1 | Inspect-HarvestedDependencies | **D** | Platform-aware artifact-side spot-check: Unix RIDs extract `native.tar.gz` via the repo-local tar wrapper into `artifacts/temp/inspect/<rid>/<lib>/` preserving SONAME symlinks, Windows RIDs read `runtimes/<rid>/native/` directly, then invokes the platform scanner (Dumpbin/Ldd/Otool) on each library's primary binary | per-library `Primary binary resolved` line + dep scanner output; no stray third-party codec DLLs / `.so` / `.dylib` entries beyond the SDL core shared library + OS/system libs |
 | G | NativeSmoke (C/C++ harness via Cake) | **D** | Hybrid-built natives load and initialize at runtime; Cake target wraps CMake configure/build + native-smoke executable invocation via Cake.CMake + `NativeSmokeRunnerTool` | `29 passed, 0 failed, Result: ALL PASS` on the current expanded harness |
 | J | Package (family-aware pack + post-pack validator) | D-local (post-S1), flag-updated B1 | Per-family pack produces valid `.nupkg` per library (managed + native + .snupkg) + post-pack validator suite (G21–G23, G25–G27, G47, G48) passes on every produced package | 3 `.nupkg` files per family at the `--explicit-version` mapping; post-pack validator 0 violations |
-| K | PackageConsumerSmoke | D-local (post-S1, expanded on Windows) | `PackageReference` restore from local feed + consumer-side `buildTransitive` target fires + runtime smoke succeeds for the concrete package-consumer set (`sdl2-core`, `sdl2-image`, `sdl2-mixer`, `sdl2-ttf`, `sdl2-gfx`) + Unix symlink chain preserved | per-TFM TUnit pass; current Windows host expectation is 12 passing tests on `net9.0`/`net8.0` and 11 passing tests on `net462`; netstandard2.0 compile-sanity passes |
+| K | PackageConsumerSmoke | D-local (post-S1, expanded on Windows) | `PackageReference` restore from local feed + consumer-side `buildTransitive` target fires + runtime smoke succeeds for the concrete package-consumer set (`sdl2-core`, `sdl2-image`, `sdl2-mixer`, `sdl2-ttf`, `sdl2-gfx`) + Unix symlink chain preserved | per-TFM TUnit pass; current Windows host expectation is 12 passing tests on `net10.0`/`net9.0`/`net8.0` and 11 passing tests on `net462`; netstandard2.0 compile-sanity passes |
 | L | `SetupLocalDev --source=remote` | F | Remote artifact-source feed prep populates the local cache + writes `Janset.Local.props` + `versions.json` correctly; consumer smoke green against pulled feed | **Closed 2026-04-29** against CI run 24962876812: Windows `win-x64` 3/3 PASS, ConsumerSmoke 35/35; WSL Linux `linux-x64` 3/3 PASS, ConsumerSmoke 24/24 (`net462` skipped); macOS Intel `osx-x64` 3/3 PASS, ConsumerSmoke 24/24 (`net462` skipped because Mono absent). |
 
 **Scope caveat for J and K (2026-04-17):** The current code path for `PackageConsumerSmoke` requires the concrete five-family smoke scope (`sdl2-core`, `sdl2-image`, `sdl2-mixer`, `sdl2-ttf`, `sdl2-gfx`). That widened scope is re-validated on `win-x64`. Linux and macOS still retain the older proof-slice evidence for `sdl2-core` + `sdl2-image`; rerunning the expanded scope there is still Phase 2b work, as is end-to-end validation for the newly hybridized rows (`win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64`).
@@ -197,7 +197,7 @@ dotnet test build/_build.Tests/Build.Tests.csproj --no-restore
 
 ### B. Cake Restore + Build (Release) (pre-Cake bootstrap exception)
 
-Same rationale as A — Cake cannot compile its own csproj. After B, every subsequent step invokes a Cake target (either via `dotnet run --project build/_build/Build.csproj -- --target <X>` or the compiled `./build/_build/bin/Release/net9.0/Build[.exe]` entrypoint).
+Same rationale as A — Cake cannot compile its own csproj. After B, every subsequent step invokes a Cake target (either via `dotnet run --project build/_build/Build.csproj -- --target <X>` or the compiled `./build/_build/bin/Release/net10.0/Build[.exe]` entrypoint).
 
 ```bash
 dotnet restore build/_build/Build.csproj --use-lock-file
@@ -249,19 +249,19 @@ CI workflows use the Release binary directly. Local smoke should match:
 
 ```bash
 # Windows:
-./build/_build/bin/Release/net9.0/Build.exe --target Harvest \
+./build/_build/bin/Release/net10.0/Build.exe --target Harvest \
   --library SDL2 --library SDL2_image --library SDL2_mixer \
   --library SDL2_ttf --library SDL2_gfx --library SDL2_net \
   --rid win-x64
 
 # Linux:
-./build/_build/bin/Release/net9.0/Build --target Harvest \
+./build/_build/bin/Release/net10.0/Build --target Harvest \
   --library SDL2 --library SDL2_image --library SDL2_mixer \
   --library SDL2_ttf --library SDL2_gfx --library SDL2_net \
   --rid linux-x64 --repo-root "$(pwd)"
 
 # macOS:
-./build/_build/bin/Release/net9.0/Build --target Harvest \
+./build/_build/bin/Release/net10.0/Build --target Harvest \
   --library SDL2 --library SDL2_image --library SDL2_mixer \
   --library SDL2_ttf --library SDL2_gfx --library SDL2_net \
   --rid osx-x64 --repo-root "$(pwd)"
@@ -278,13 +278,13 @@ CI workflows use the Release binary directly. Local smoke should match:
 
 ```bash
 # Windows:
-./build/_build/bin/Release/net9.0/Build.exe --target ConsolidateHarvest --rid win-x64
+./build/_build/bin/Release/net10.0/Build.exe --target ConsolidateHarvest --rid win-x64
 
 # Linux:
-./build/_build/bin/Release/net9.0/Build --target ConsolidateHarvest --repo-root "$(pwd)"
+./build/_build/bin/Release/net10.0/Build --target ConsolidateHarvest --repo-root "$(pwd)"
 
 # macOS:
-./build/_build/bin/Release/net9.0/Build --target ConsolidateHarvest --repo-root "$(pwd)"
+./build/_build/bin/Release/net10.0/Build --target ConsolidateHarvest --repo-root "$(pwd)"
 ```
 
 **What to look for:** `harvest-manifest.json` + `harvest-summary.json` generated under each library in `artifacts/harvest_output/`.
@@ -466,7 +466,7 @@ dotnet run --project build/_build/Build.csproj -- \
 **What to look for:**
 
 - `Running dotnet compile-sanity netstandard2.0 consumer` passes first (compile-only sanity against the Compile.NetStandard consumer).
-- One `Running dotnet test package-smoke (<tfm>)` line per executable TFM resolved from `PackageConsumer.Smoke.csproj`'s inherited `$(ExecutableTargetFrameworks)` — typically `net9.0`, `net8.0`, `net462`.
+- One `Running dotnet test package-smoke (<tfm>)` line per executable TFM resolved from `PackageConsumer.Smoke.csproj`'s inherited `$(ExecutableTargetFrameworks)` — typically `net10.0`, `net9.0`, `net8.0`, `net462`.
 - `Failed: 0` for each TFM. On the current expanded Windows scope, passing tests include native asset landing for `core/image/mixer/ttf/gfx`, `SDL_Init_Cycle_Succeeds`, PNG fixture load, mixer decoder-surface validation, `TTF_Init`, a headless `SDL2_gfx` render path, and linked-version major checks. The Unix symlink assertion still applies on modern Unix TFMs only (`#if NET6_0_OR_GREATER`).
 - net462 runtime coverage depends on the host's Mono availability:
   - **Windows**: always runs — .NET Framework ships natively, no Mono required.
@@ -497,7 +497,7 @@ dotnet run --project build/_build/Build.csproj -- \
 | `--showtree` fails | All | Flag does not exist | Use `--tree` instead |
 | Linux Harvest is ~20× slower | WSL/Linux | ldd scanning is inherently slower than dumpbin | Expected behavior, not a regression |
 | `vswhere.exe not found` warning | Windows | Git Bash doesn't load VS environment | Cosmetic — build.bat handles it via VsDevCmd.bat fallback |
-| macOS SDK version mismatch | macOS | Multiple SDKs installed (8/9/10) | global.json pins to 9.0.x — verify with `dotnet --version` from repo root |
+| macOS SDK version mismatch | macOS | Multiple SDKs installed (8/9/10/11) | global.json pins to 10.0.x — verify with `dotnet --version` from repo root |
 | Lingering `dotnet` processes after `PostFlight` / `PackageConsumerSmoke` | All | MSBuild worker nodes (`/nodemode:1 /nodeReuse:true`), VBCSCompiler (Roslyn), and testhost (Microsoft Testing Platform) stay alive ~10 min for reuse. On Windows they hold file handles on `Microsoft.Testing.Platform.dll` and break the next run's `bin/` cleanup. On macOS / Linux the same processes accumulate RAM (~100 MB each). | Automatic mitigation + manual fallback documented below under [Lingering dotnet processes mitigation](#lingering-dotnet-processes-mitigation). |
 | `$PWD` points at `/mnt/...` or the Windows path inside a WSL invocation (or at the SSH client's working directory on a macOS SSH invocation) despite a successful `cd` | WSL invoked via Windows `wsl -c '...'`, macOS invoked via non-interactive `ssh <host> '...'` | WSLENV + non-interactive SSH env inheritance: the caller shell's `PWD` leaks into the child shell, and some `bash` command-substitution paths (`$(pwd)`, subshells) read the stale value before `cd` has re-exported it. The runbook's documented `--repo-root "$PWD"` shape assumes an **interactive** WSL terminal / SSH session where POSIX `cd` updates `$PWD` reliably. | Only affects cross-shell harnesses (Windows bash → `wsl -c`, remote tooling → `ssh … '…'`). Human operators running the runbook inside an interactive WSL terminal or an interactive SSH session do not see this. If you do hit it, bind an absolute path first (`REPO=/home/deniz/repos/sdl2-cs-bindings` on Linux or `REPO=/Users/armut/repos/sdl2-cs-bindings` on macOS), then pass `--repo-root "$REPO"` everywhere the runbook says `--repo-root "$PWD"`. See [PWD env leakage in non-interactive cross-shell invocations](#pwd-env-leakage-in-non-interactive-cross-shell-invocations) below. |
 
@@ -540,13 +540,13 @@ No build-host code change is required; this is purely an operator / harness inpu
 
 ### Lingering dotnet processes mitigation
 
-`PackageConsumerSmokeRunner` runs `dotnet build-server shutdown` on entry, again before each executable TFM slice, and passes `--disable-build-servers -p:UseSharedCompilation=false -nodeReuse:false` to every `dotnet build/test` invocation. That keeps the normal case clean: new runs do not spawn detachable MSBuild / Roslyn / Razor server children and the later `net462` slice is less likely to inherit bad state from earlier `net8.0` / `net9.0` runs.
+`PackageConsumerSmokeRunner` runs `dotnet build-server shutdown` on entry, again before each executable TFM slice, passes `--disable-build-servers -p:UseSharedCompilation=false -nodeReuse:false` to `dotnet build` invocations, and passes only `-p:UseSharedCompilation=false` to `dotnet test` invocations. .NET 10's Microsoft.Testing.Platform `dotnet test` command rejects the old CLI-level build-server flags and forwards them to the test application, so the shutdown calls are the cross-TFM cleanup mechanism for test slices. That keeps the normal case clean: new runs do not inherit detachable MSBuild / Roslyn / Razor server children and the later `net462` slice is less likely to inherit bad state from earlier `net10.0` / `net9.0` / `net8.0` runs.
 
 **Shutdown call count per PackageConsumerSmoke run.** One shutdown fires on entry; one fires before **each** executable TFM slice. Concrete totals:
 
-- Windows default (net9.0 + net8.0 + net462): **4 shutdowns** per PackageConsumerSmoke invocation.
-- Linux default (net9.0 + net8.0; net462 skipped for Mono/TUnit incompatibility): **3 shutdowns**.
-- macOS with `mono` on `$PATH` (net9.0 + net8.0 + net462): **4 shutdowns**. macOS without Mono (net9.0 + net8.0; net462 auto-skipped): **3 shutdowns**.
+- Windows default (net10.0 + net9.0 + net8.0 + net462): **5 shutdowns** per PackageConsumerSmoke invocation.
+- Linux default (net10.0 + net9.0 + net8.0; net462 skipped for Mono/TUnit incompatibility): **4 shutdowns**.
+- macOS with `mono` on `$PATH` (net10.0 + net9.0 + net8.0 + net462): **5 shutdowns**. macOS without Mono (net10.0 + net9.0 + net8.0; net462 auto-skipped): **4 shutdowns**.
 
 **Side-effect warning — `dotnet build-server shutdown` is scoped per-user, not per-project.** It also terminates CLI build servers owned by any other concurrent shell running `dotnet build` / `dotnet watch` / `dotnet test` (those processes re-spawn their servers on the next build; work is not lost, but there is a small warm-cache hit). The command does NOT touch Visual Studio, Rider, or VS Code / C# DevKit language-service MSBuild nodes — those run under different hosts and use separate IPC channels. If you are mid-way through a long parallel CLI build in another terminal, defer the `PackageConsumerSmoke` run until it finishes.
 
@@ -784,7 +784,7 @@ That means:
 What `-r <rid>` exercises today:
 
 - Runtime-specific restore resolves the `.Native` package's `runtimes/{rid}/native/` subtree
-- SDK-level file copy places the native binaries directly under `bin/Release/net9.0/<rid>/`
+- SDK-level file copy places the native binaries directly under `bin/Release/net10.0/<rid>/`
 - `dotnet run --no-build --no-restore -r <rid>` executes the pre-built binary with runtime assets already present in the output folder
 - P/Invoke loader succeeds because the DLL is sitting next to the managed assembly
 

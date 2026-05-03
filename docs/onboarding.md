@@ -235,7 +235,7 @@ Users reference `Janset.SDL2.Core` (or the meta-package `Janset.SDL2`). The `.Na
 
 ## What Works Today (as of 2026-05-02)
 
-- **C# bindings**: all 5 SDL2 libraries (`Core`/`Image`/`Mixer`/`Ttf`/`Gfx`) compile against `net9.0`/`net8.0`/`netstandard2.0`/`net462`.
+- **C# bindings**: all 5 SDL2 libraries (`Core`/`Image`/`Mixer`/`Ttf`/`Gfx`) compile against `net10.0`/`net9.0`/`net8.0`/`netstandard2.0`/`net462`.
 - **Cake Frosting build host**: 20 lifecycle + diagnostic targets (Info, CleanArtifacts, CompileSolution, GenerateMatrix, ResolveVersions, PreFlightCheck, EnsureVcpkgDependencies, Harvest, NativeSmoke, ConsolidateHarvest, Inspect-HarvestedDependencies, Package, PackageConsumerSmoke, SetupLocalDev, Coverage-Check, PublishStaging, PublishPublic, plus dependency-analysis aliases). Architecture governed by ADR-004 (Cake-native feature-oriented; supersedes ADR-002 DDD layering): `Host/Features/Shared/Tools/Integrations` shape is live and enforced by `ArchitectureTests` (see `docs/phases/phase-x-build-host-modernization-2026-05-02.md`).
 - **Build-host test suite**: 515 TUnit tests covering Host, Features, Shared, Tools, Integrations, and CompositionRoot. Run via `dotnet test build/_build.Tests/Build.Tests.csproj -c Release`. Coverage ratchet gate `Coverage-Check` enforces the floor in `build/coverage-baseline.json`.
 - **Version-source providers** (ADR-003): `ManifestVersionProvider` (manifest-derived), `GitTagVersionProvider` (tag-driven targeted/full-train), `ExplicitVersionProvider` (operator override). `ResolveVersions` emits canonical `versions.json` for manifest, explicit, family-tag, and train-tag paths; downstream stages consume that artifact via `--versions-file`.
