@@ -23,8 +23,7 @@ namespace Build.Host;
 /// <para>
 /// Takes <see cref="ParsedArguments"/> directly because <see cref="IPathService"/>
 /// composes its layout from CLI overrides (<c>--vcpkg-dir</c>, <c>--vcpkg-installed-dir</c>)
-/// before any DI resolution can happen — the same closure-capture pattern used by
-/// <c>AddPackagingFeature(string source)</c> for the artifact-source resolver.
+/// before any DI resolution can happen.
 /// </para>
 /// </summary>
 public static class ServiceCollectionExtensions

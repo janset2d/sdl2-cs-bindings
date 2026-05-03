@@ -34,7 +34,7 @@ A build host is not a domain application. It is a release machine — a directed
 
 ADR-002 was the right call for the first refactor cycle. But the layered shape has reached its ceiling: every Phase-2b additional operation (`PublishStaging`, `GenerateMatrix`, `ResolveVersions`, `PreflightReporter`, three `IArtifactSourceResolver` profiles) accelerated the file-count trajectory ADR-002 was supposed to halt — because the layered shape inadvertently rewards adding a fourth file (model + interface + impl + validator) per concern instead of co-locating them by operation.
 
-> **Motto for the new shape:** *Features own behavior. LocalDev owns orchestration. Shared owns vocabulary. Tools run commands. Host runs Cake.*
+> **Motto for the new shape:** *Features own behavior. Shared owns vocabulary. Tools run commands. Host runs Cake. Dev orchestration lives outside Cake — see tools.cs.*
 
 ### 1.3 Decision precedents reviewed
 
@@ -55,7 +55,7 @@ ADR-002 was the right call for the first refactor cycle. But the layered shape h
 ```
 build/_build/
 ├── Host/             ← Cake/Frosting runtime, CLI parsing, BuildContext, composition root, paths, Cake extensions
-├── Features/         ← operational vertical slices (Harvesting, Packaging, Preflight, Versioning, Publishing, LocalDev, ...)
+├── Features/         ← operational vertical slices (Harvesting, Packaging, Preflight, Versioning, Publishing, ...). No orchestration features — multi-feature compose lives in repo-root tools.cs, not in Cake.
 ├── Shared/           ← build-domain vocabulary (manifest models, runtime models, package family conventions, results)
 ├── Tools/            ← Cake `Tool<TSettings>` wrappers ONLY (vcpkg, dumpbin, ldd, otool, tar, msvc, cmake, native-smoke)
 ├── Integrations/     ← non-Cake-Tool external adapters (NuGet protocol client, dotnet pack invoker, project metadata reader, coverage XML readers, vcpkg manifest reader)
@@ -137,23 +137,12 @@ Features/Packaging/
 ├── G58CrossFamilyValidator.cs
 ├── SatelliteUpperBoundValidator.cs
 ├── FamilyTopologyHelpers.cs
-├── ArtifactSourceResolvers/            ← Local / Remote (§2.15 retires Unsupported)
+├── ArtifactSourceResolvers/            ← Retired in Phase Y (2026-05-03); dev orchestration moved to repo-root tools.cs
 ├── PackRequest.cs
 ├── PackagingError.cs
 └── ServiceCollectionExtensions.cs      ← services.AddPackagingFeature()
 ```
 
-**Reference layout (LocalDev, the only orchestration feature):**
-
-```text
-Features/LocalDev/
-├── SetupLocalDevTask.cs                ← Cake adapter
-├── SetupLocalDevFlow.cs                ← multi-feature compose (Preflight → Vcpkg → Harvest → ConsolidateHarvest → Package → ArtifactSourceResolver)
-├── SetupLocalDevRequest.cs
-└── ServiceCollectionExtensions.cs      ← services.AddLocalDevFeature()
-```
-
-`Features/LocalDev/` is the **designated orchestration feature** — the only feature folder that may reference sibling feature pipelines (see §2.13 invariant #4). It exists because `SetupLocalDev` semantically is not a packaging operation; it is local-developer-experience orchestration that terminates with feed preparation. Co-locating it inside `Features/Packaging/` would force `Packaging → {Preflight, Vcpkg, Harvesting}` cross-feature dependencies that violate the architecture-test invariant.
 
 **Feature roster (target migration map):**
 
@@ -167,7 +156,6 @@ Features/LocalDev/
 | `Features/Vcpkg/` | EnsureVcpkgDependenciesTask |
 | `Features/Harvesting/` | HarvestTask + HarvestPipeline + BinaryClosureWalker + ArtifactPlanner + ArtifactDeployer + NativeSmokeTask + ConsolidateHarvestTask |
 | `Features/Packaging/` | PackageTask + PackagePipeline + PackageConsumerSmokeTask + PackageConsumerSmokePipeline + post-pack validators + native-package metadata generators + Local/Remote ArtifactSourceResolvers |
-| `Features/LocalDev/` | SetupLocalDevTask + SetupLocalDevFlow — **designated orchestration feature** (§2.13 rule #4 allowlist); the only feature permitted to reference sibling feature pipelines |
 | `Features/Publishing/` | PublishStagingTask + PublishPublicTask |
 | `Features/Diagnostics/` | InspectHarvestedDependenciesTask |
 | `Features/DependencyAnalysis/` | OtoolAnalyzeTask + DependentsTask + LddTask |
@@ -237,24 +225,9 @@ internal sealed class PackagePipeline(
 
 The Pipeline reads as orchestration; details live in named private methods or per-concern services within the same feature folder. **Note:** during P1/P2 migration, existing Cake-heavy pipelines may transitionally retain `RunAsync(BuildContext, TRequest, ...)` signatures while their internals are extracted (§2.11 migration exception). The reference shape above is the post-P4 target.
 
-### 2.5 Flow class — multi-feature composition only
+### 2.5 Multi-feature composition lives outside Cake
 
-`Flow` classes are reserved for **multi-feature composition** — a single Cake Task that internally orchestrates pipelines belonging to **different** features.
-
-The repo has exactly one such case today: `SetupLocalDev` runs `Preflight → EnsureVcpkg → Harvest → ConsolidateHarvest → Package → ArtifactSourceResolver`. Each step is a pipeline in a different feature.
-
-| Convention | Detail |
-|---|---|
-| File name | `XFlow.cs` (e.g., `SetupLocalDevFlow.cs`) |
-| Class | `internal sealed class XFlow` |
-| Location | A **designated orchestration feature folder**. Today the only one is `Features/LocalDev/`. Sibling features must not cross-reference each other; orchestration features are the explicit allowlist exception in §2.13 invariant #4. |
-
-**Adding a second orchestration feature is by exception, not convention.** If a new multi-feature compose surfaces (none anticipated today), the choice is between:
-
-1. Folding it into `Features/LocalDev/` if the orchestration is local-developer-experience-shaped.
-2. Adding a new orchestration feature folder and **explicitly extending the §2.13 invariant #4 allowlist** in the same wave. Implicit "this feature happens to call others" drift is the anti-pattern the rule is designed to prevent.
-
-**A Pipeline that internally composes its own sub-steps without crossing feature boundaries stays a Pipeline.** Renaming a Pipeline to a Flow because it has many steps is the anti-pattern.
+Cake feature cross-reference is strict — no exceptions. Multi-feature compose needs live in repo-root tools.cs, which calls Cake targets sequentially via `dotnet run --file tools.cs -- build --target X`. The designated orchestration feature pattern was ADR-004 v1's temporary carve-out, retired in Phase Y (2026-05-03). Former wording (SetupLocalDev example, "today only LocalDev") is removed.
 
 ### 2.6 Shared/
 
@@ -423,7 +396,6 @@ Permitted under the following invariants:
 |---|---|---|
 | **Task** | Cake Frosting public target adapter (`[TaskName]`-decorated `FrostingTask<BuildContext>` subclass) | Build-host vocabulary |
 | **Pipeline** | Large target implementation extracted from a Task body when it exceeds ~200 LOC | Build-host vocabulary |
-| **Flow** | Multi-feature composition: one Cake Task that orchestrates pipelines from different features (only `SetupLocalDev` today) | Build-host vocabulary |
 | **Tool** | Cake `Tool<TSettings>` wrapper around an external CLI | Cake-native (matches `Tools/`) |
 | **Integration** | Non-Cake-Tool external system adapter | Build-host vocabulary (matches `Integrations/`) |
 | **Feature** | Operational vertical slice owning one or more related Cake targets | Build-host vocabulary (matches `Features/`) |
@@ -496,11 +468,6 @@ internal sealed record PackageConsumerSmokeRequest(
 
 internal sealed record PreflightRequest(
     IReadOnlyDictionary<string, NuGetVersion> Versions);
-
-internal sealed record SetupLocalDevRequest(
-    string Source,
-    string Rid,
-    IReadOnlyList<string> Libraries);
 ```
 
 **A Request carries:** target's explicit intent + CLI-derived normalized values + scope/version/rid/source values for this run + required input/output paths.
@@ -559,8 +526,7 @@ services
     .AddDiagnosticsFeature()
     .AddDependencyAnalysisFeature()
     .AddCoverageFeature()
-    .AddLocalDevFeature();        // registered last — depends on sibling feature pipelines (§2.13 rule #4 allowlist)
-```
+    ```
 
 The chain doubles as an architectural index — every feature folder has a corresponding `Add*Feature` line.
 
@@ -579,7 +545,7 @@ The new file lives at `build/_build.Tests/Unit/CompositionRoot/ArchitectureTests
 1. **Shared has no outward dependencies on the build host or on Cake.** `Build.Shared.*` may reference pure-domain libraries only (`NuGet.Versioning`, `OneOf`, etc.) — not `Cake.*` framework types, not `Build.Host.*`, not `Build.Features.*`, not `Build.Tools.*`, not `Build.Integrations.*`. **Migration exception (P1 only):** existing `Shared/Runtime/RuntimeProfile` and similar types that transitionally hold Cake `PlatformFamily` references are tolerated until the P2 wave replaces them with build-host-local enums or vocabulary types. The exception closes at P2 close — `ArchitectureTests` invariant #1 enforces no-Cake from that point.
 2. **Tools have no Feature dependencies.** `Build.Tools.*` may depend on Cake framework + `Build.Shared.*` only.
 3. **Integrations have no Feature dependencies.** `Build.Integrations.*` may depend on Cake framework + `Build.Shared.*` only.
-4. **Features do not cross-reference each other in code, except from designated orchestration features.** `Build.Features.X.*` may not reference types in `Build.Features.Y.*`. Cross-feature data sharing flows through `Build.Shared.*` (e.g., `Shared.Manifest.HarvestManifest` consumed by `Features/Packaging/`). **Orchestration-feature exception:** `Build.Features.LocalDev.*` may reference sibling feature pipelines and tasks for the express purpose of multi-feature composition. The allowlist is **explicit and singular** — today only `LocalDev` qualifies. Adding a second orchestration feature requires extending this rule with the same explicit allowlist semantics in the same wave; implicit "this feature happens to call others" drift is the anti-pattern this rule blocks.
+4. **Features do not cross-reference each other in code.** `Build.Features.X.*` may not reference types in `Build.Features.Y.*`. Cross-feature data sharing flows through `Build.Shared.*` exclusively. No exceptions.
 5. **Host is free.** `Build.Host.*` may reference any layer (it is the composition site — Program.cs, CompositionRoot, BuildContext bind everything).
 
 Violations fail the test suite, gating commit/CI runs at the same boundary `LayerDependencyTests` did.
@@ -597,9 +563,6 @@ Cake target names normalize to plain PascalCase. **Rename criterion:** a target 
 
 **No backwards-compatibility aliases.** `release.yml`, `smoke-witness.cs`, and `tests/scripts/*.cs` update atomically with the Cake target rename **in the same migration wave commit**. Splitting into separate commits would break CI between commits — both old and new target names would be wrong simultaneously across a non-atomic rename.
 
-### 2.15 ArtifactSourceResolver scope narrowing
-
-`UnsupportedArtifactSourceResolver` (currently maps `release` / `release-public` to runtime failure) is retired. The CLI `--source` option accepts only `local` and `remote` until Phase 2b PD-7 lands public-feed promotion. Out-of-range values fail at CLI parse, not at resolver invocation. When `release` lands, the resolver returns to ADR-001 §2.7 shape.
 
 ---
 
@@ -673,7 +636,7 @@ A flat top-level (`_build/Harvest/`, `_build/Package/`, `_build/Tools/`, `_build
 
 This ADR does NOT:
 
-- Reduce the public Cake target surface or change CLI semantics (other than `--source` narrowing in §2.15).
+- Reduce the public Cake target surface or change CLI semantics (Phase Y retired `--source`; see `phase-y-dev-tools-extraction-2026-05-03.md`).
 - Change `manifest.json` contract or guardrail G-numbering.
 - Introduce a Roslyn analyzer to enforce architecture rules — `ArchitectureTests` covers the same ground at lower cost.
 - Move tests outside `build/_build.Tests/`.
@@ -695,7 +658,7 @@ Implementation is governed by a separate refactor plan at [`docs/phases/phase-x-
 | **P3** | Interface review wave: §2.9 criteria applied to surviving `I*` types, test rewrite scope-bounded | High (test impact) | §2.9 |
 | **P4-A** | Pipeline `RunAsync(BuildContext, TRequest)` → `RunAsync(TRequest)` cut-over (closes §2.11.1 migration exception) | Medium | §2.11 |
 | **P4-C** | Large-Pipeline internal refactor (PackageConsumerSmokePipeline, HarvestPipeline, PackagePipeline) — optional, per-Pipeline judgment | Low | §2.4 |
-| **P5** | Naming cleanup tail + `UnsupportedArtifactSourceResolver` retirement | Low | §2.14, §2.15 |
+| **P5** | Naming cleanup tail (UnsupportedArtifactSourceResolver retirement moved to Phase Y Wave B) | Low | §2.14 |
 
 P0 must complete before P1. P1 + P2 land per-feature with green tests at every wave boundary. P3 starts only after P2 closes — no interface pruning during structural migration.
 

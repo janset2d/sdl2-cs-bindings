@@ -6,7 +6,6 @@ using Build.Features.DependencyAnalysis;
 using Build.Features.Diagnostics;
 using Build.Features.Harvesting;
 using Build.Features.Info;
-using Build.Features.LocalDev;
 using Build.Features.Maintenance;
 using Build.Features.Packaging;
 using Build.Features.Preflight;
@@ -67,7 +66,7 @@ public sealed class ServiceCollectionExtensionsSmokeTests
         // BuildServiceProvider — the smoke validates the resolved cross-feature contract.
         await AssertAllRegisteredTypesResolve(services =>
         {
-            services.AddPackagingFeature("local");
+            services.AddPackagingFeature();
             services.AddPreflightFeature();
             services.AddVersioningFeature();
         });
@@ -98,7 +97,7 @@ public sealed class ServiceCollectionExtensionsSmokeTests
         // (registered by AddPackagingFeature).
         await AssertAllRegisteredTypesResolve(services =>
         {
-            services.AddPackagingFeature("local");
+            services.AddPackagingFeature();
             services.AddPreflightFeature();
         });
     }
@@ -112,7 +111,7 @@ public sealed class ServiceCollectionExtensionsSmokeTests
         // production composition.
         await AssertAllRegisteredTypesResolve(services =>
         {
-            services.AddPackagingFeature("local");
+            services.AddPackagingFeature();
             services.AddPreflightFeature();
             services.AddHarvestingFeature();
         });
@@ -134,25 +133,7 @@ public sealed class ServiceCollectionExtensionsSmokeTests
         {
             services.AddPreflightFeature();
             services.AddVersioningFeature();
-            services.AddPackagingFeature("local");
-        });
-    }
-
-    [Test]
-    public async Task AddLocalDevFeature_Should_Register_All_Pipeline_And_Validator_Types()
-    {
-        // LocalDev orchestration feature consumes sibling pipelines (Preflight, Vcpkg,
-        // Harvesting, Packaging, Versioning). Per ADR-004 §2.5 + §2.13 invariant #4
-        // allowlist, it is registered last so all sibling pipelines are already in the
-        // container; the smoke mirrors that ordering.
-        await AssertAllRegisteredTypesResolve(services =>
-        {
-            services.AddPreflightFeature();
-            services.AddVcpkgFeature();
-            services.AddHarvestingFeature();
-            services.AddVersioningFeature();
-            services.AddPackagingFeature("local");
-            services.AddLocalDevFeature();
+            services.AddPackagingFeature();
         });
     }
 

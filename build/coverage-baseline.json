@@ -1,8 +1,8 @@
 {
   "line_coverage_min": 65.0,
   "branch_coverage_min": 58.0,
-  "reviewed_at": "2026-04-22",
+  "reviewed_at": "2026-05-03",
   "measured_line": 66.37,
   "measured_branch": 59.43,
-  "notes": "Ratchet baseline for Cake build-host test coverage. Floors are set below the measured snapshot by a small buffer so ordinary churn does not trip the gate; raise only when a confirmed coverage increase lands, never lower to paper over a regression. Coverage report location: artifacts/test-results/build-tests/coverage.cobertura.xml (override via --coverage-file=<path> Cake argument)."
+  "notes": "Phase Y Wave B (2026-05-03) test count reset: 515 → 485. Coverage floors are NOT lowered — the phase removed 30 tests that tested deleted types (LocalDev, resolvers, writers: 26 from full-file deletes + 4 method-level deletes), so the absolute coverage percentage is expected to change but the ratchet remains at the original floors. Raise only when a confirmed coverage increase lands, never lower to paper over a regression. Coverage report location: artifacts/test-results/build-tests/coverage.cobertura.xml (override via --coverage-file=<path> Cake argument)."
 }

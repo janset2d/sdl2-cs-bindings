@@ -8,10 +8,10 @@ namespace Build.Tests.Unit.Integrations.Msvc;
 
 /// <summary>
 /// Unit coverage for the platform-guard + contract shape. Windows-specific resolution
-/// (VSWhere + vcvarsall.bat invocation + env-delta parse) is exercised end-to-end by
-/// <c>tests/scripts/smoke-witness.cs ci-sim</c> on Windows, not by this fixture — the
-/// resolver spawns <c>cmd.exe</c> and a real Visual Studio installation, which is
-/// outside the scope of a build-host unit test.
+/// (VSWhere + vcvarsall.bat invocation + env-delta parse) is exercised end-to-end by a
+/// host-RID Cake invocation (e.g. <c>--target Harvest</c> or the repo-root <c>tools ci-sim</c>
+/// replay) on Windows, not by this fixture — the resolver spawns <c>cmd.exe</c> and a real
+/// Visual Studio installation, which is outside the scope of a build-host unit test.
 /// </summary>
 public sealed class MsvcDevEnvironmentTests
 {

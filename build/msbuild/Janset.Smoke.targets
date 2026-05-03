@@ -66,7 +66,7 @@
   <Target Name="_GuardSmokeLocalFeed" BeforeTargets="Restore;Build">
     <Error
       Code="JNSMK001"
-      Text="Smoke projects require LocalPackageFeed. Either run SetupLocalDev --source=local first (which writes build/msbuild/Janset.Local.props for IDE/direct build), or invoke via Cake PackageConsumerSmoke so the runner injects the feed path explicitly."
+      Text="Smoke projects require LocalPackageFeed. Either run 'tools setup --source=local' first (which writes build/msbuild/Janset.Local.props for IDE/direct build), or invoke via Cake PackageConsumerSmoke so the runner injects the feed path explicitly."
       Condition="'$(LocalPackageFeed)' == ''" />
   </Target>
 

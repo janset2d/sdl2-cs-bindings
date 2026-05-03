@@ -21,7 +21,7 @@ public sealed class EnsureVcpkgDependenciesPipeline(
 
     // P4-deferred: this Pipeline still receives BuildContext because its own RunAsync(TRequest)
     // cut-over requires a VcpkgRequest DTO and the VcpkgTask signature change. Tracked in
-    // phase-x §8.2 (remaining P4-B debt — EnsureVcpkgDependenciesPipeline + SetupLocalDevFlow).
+    // phase-x §8.2 (remaining P4-B debt — EnsureVcpkgDependenciesPipeline).
     public void Run(BuildContext context)
     {
         ArgumentNullException.ThrowIfNull(context);

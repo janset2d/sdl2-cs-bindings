@@ -17,7 +17,6 @@ public class PathConstructionTests
             VcpkgDir: null,
             VcpkgInstalledDir: null,
             Library: [],
-            Source: "local",
             Rid: "",
             Dll: [],
             VersionSource: null,
@@ -83,13 +82,6 @@ public class PathConstructionTests
     {
         var svc = CreatePathService("/repo");
         await Assert.That(svc.BuildProjectFile.FullPath).IsEqualTo("/repo/build/_build/Build.csproj");
-    }
-
-    [Test]
-    public async Task GetLocalPropsFile_Should_Point_To_Build_Msbuild_Override()
-    {
-        var svc = CreatePathService("/repo");
-        await Assert.That(svc.GetLocalPropsFile().FullPath).IsEqualTo("/repo/build/msbuild/Janset.Local.props");
     }
 
     [Test]

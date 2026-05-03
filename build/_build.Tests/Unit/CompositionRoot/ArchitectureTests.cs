@@ -12,8 +12,10 @@ namespace Build.Tests.Unit.CompositionRoot;
 ///   <item><description><c>Shared</c> has no outward dependencies on the build host or on Cake.</description></item>
 ///   <item><description><c>Tools</c> have no Feature dependencies (Cake framework + <c>Build.Shared.*</c> only).</description></item>
 ///   <item><description><c>Integrations</c> have no Feature dependencies (Cake framework + <c>Build.Shared.*</c> only).</description></item>
-///   <item><description><c>Features</c> do not cross-reference each other in code, except from the designated
-///       orchestration feature <c>Build.Features.LocalDev</c> (allowlist, see ADR-004 §2.5 + §2.13 invariant #4).</description></item>
+///   <item><description><c>Features</c> do not cross-reference each other in code. Cross-feature
+///       data sharing flows through <c>Build.Shared.*</c> exclusively. Phase Y (2026-05-03) retired
+///       the LocalDev orchestration-feature carve-out; multi-feature compose now lives
+///       in repo-root <c>tools.cs</c>, not in Cake.</description></item>
 ///   <item><description><c>Host</c> is free — the composition site (Program.cs, BuildContext, CompositionRoot, paths) may
 ///       reference any layer, and is excluded from every other invariant's source set.</description></item>
 /// </list>
@@ -30,13 +32,6 @@ public sealed class ArchitectureTests
     private const string IntegrationsPrefix = "Build.Integrations.";
     private const string FeaturesPrefix = "Build.Features.";
     private const string HostPrefix = "Build.Host.";
-
-    /// <summary>
-    /// Designated orchestration feature allowlist for invariant #4 — the only feature
-    /// permitted to reference sibling feature pipelines per ADR-004 §2.5 + §2.13 invariant #4.
-    /// Adding a second orchestration feature requires editing this list <em>and</em> the ADR.
-    /// </summary>
-    private static readonly string[] OrchestrationFeatureAllowlist = ["Build.Features.LocalDev"];
 
     private static readonly Assembly BuildAssembly = typeof(BuildContext).Assembly;
 
@@ -112,15 +107,12 @@ public sealed class ArchitectureTests
     }
 
     [Test]
-    public async Task Features_Should_Not_Cross_Reference_Except_From_LocalDev()
+    public async Task Features_Should_Not_Cross_Reference()
     {
         // Build.Features.X.* may not reference types in Build.Features.Y.*. Cross-feature
-        // data sharing flows through Build.Shared.* (e.g., HarvestManifest consumed by
-        // Features/Packaging/). The exception: the designated orchestration feature
-        // (Build.Features.LocalDev) may reference sibling feature pipelines for the express
-        // purpose of multi-feature composition (ADR-004 §2.5 + §2.13 invariant #4).
-        // Adding a second orchestration feature requires extending OrchestrationFeatureAllowlist
-        // and the ADR.
+        // data sharing flows through Build.Shared.* exclusively. Phase Y (2026-05-03) retired
+        // the LocalDev orchestration-feature carve-out; multi-feature compose now lives
+        // in repo-root tools.cs, not in Cake.
         var violations = new List<string>();
 
         var featureTypes = SafeGetTypes(BuildAssembly)
@@ -130,12 +122,6 @@ public sealed class ArchitectureTests
         {
             var sourceFeatureRoot = ExtractFeatureRoot(sourceType.Namespace!);
             if (sourceFeatureRoot is null)
-            {
-                continue;
-            }
-
-            // Skip allowlisted orchestration features — they may reference sibling features.
-            if (OrchestrationFeatureAllowlist.Contains(sourceFeatureRoot, StringComparer.Ordinal))
             {
                 continue;
             }

@@ -174,7 +174,7 @@ public sealed class PackageConsumerSmokePipeline(
         {
             throw new CakeException(
                 $"PackageConsumerSmoke precondition failed: local feed directory '{feedPath.FullPath}' is missing. " +
-                "Run 'SetupLocalDev --source=local --rid <rid>' or '--target Package --explicit-version <family>=<semver>' first.");
+                "Pack the local feed first via '--target Package --versions-file <path>' or '--target Package --explicit-version <family>=<semver>'.");
         }
     }
 
@@ -285,7 +285,7 @@ public sealed class PackageConsumerSmokePipeline(
         if (missingFamilies.Count != 0)
         {
             throw new CakeException(
-                $"PackageConsumerSmoke currently validates the concrete package-consumer set {DescribeSmokeScope(smokePackages)}. Run without --explicit-version to use the SetupLocalDev-written local.props default, or include the full smoke scope in --explicit-version. Missing: {string.Join(", ", missingFamilies)}. Placeholder families (managed_project or native_project null) are automatically excluded.");
+                $"PackageConsumerSmoke currently validates the concrete package-consumer set {DescribeSmokeScope(smokePackages)}. Either include the full smoke scope in --explicit-version, or use --versions-file <path> to feed a complete mapping. Missing: {string.Join(", ", missingFamilies)}. Placeholder families (managed_project or native_project null) are automatically excluded.");
         }
     }
 
@@ -294,7 +294,7 @@ public sealed class PackageConsumerSmokePipeline(
     /// only accepts a non-empty <c>--explicit-version</c> mapping; the legacy empty-mapping →
     /// props-fallback path retired when Deniz Q5a direction landed (2026-04-21).
     /// Per-family pack-existence is asserted at this gate so a missing nupkg surfaces with
-    /// the SetupLocalDev remediation hint rather than opaquely inside <c>dotnet restore</c>.
+    /// an actionable remediation hint rather than opaquely inside <c>dotnet restore</c>.
     /// </summary>
     private IReadOnlyDictionary<string, NuGetVersion> ResolveSmokeVersionMappingAndEnsureFeed(
         IReadOnlyList<SmokePackage> smokePackages,

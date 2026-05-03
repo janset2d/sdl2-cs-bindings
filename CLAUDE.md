@@ -14,23 +14,23 @@ The approval gate in AGENTS.md is binding: do not start coding new features, mod
 
 ## Common Commands
 
-The Cake Frosting build host is invoked as a regular `dotnet run` — `build.ps1` / `build.sh` are thin shims that forward args.
+The Cake Frosting build host is invoked as a regular `dotnet run`. Repo-root `tools.cs` (file-based .NET 10 app) is the canonical dev-orchestration entry point; it forwards to Cake under the hood.
 
 ```pwsh
 # Discover lifecycle targets
 dotnet run --project build/_build -- --tree
 dotnet run --project build/_build -- --target Info
 
-# Fresh-clone canonical setup (vcpkg + Harvest + Pack + writes build/msbuild/Janset.Local.props)
-dotnet run --project build/_build -- --target SetupLocalDev --source=local
-# --source=remote pulls latest published nupkgs from the GitHub Packages internal feed
-#   (requires GH_TOKEN with read:packages — Classic PAT, fine-grained PATs unsupported by GH Packages NuGet)
-# --source=release is intentionally stubbed until Phase 2b PD-7
+# tools.cs dev orchestration (repo-root file-based app, forwards to Cake):
+dotnet run --file tools.cs -- build --target Info      # Cake forwarder (passthrough)
+dotnet run --file tools.cs -- build --tree
+dotnet run --file tools.cs -- setup                    # local-dev feed bootstrap (--source=local|remote-github|remote-nuget)
+dotnet run --file tools.cs -- ci-sim                   # mini CI replay (9-step pipeline, per-step logs)
 
 # Managed-only build (skip native pipeline)
 dotnet build src/SDL2.Core/SDL2.Core.csproj
 # Solution-level build can fail on smoke restore (NU1101) if Janset.Local.props is stale —
-# re-run SetupLocalDev to regenerate before `dotnet build Janset.SDL2.sln`.
+# re-run `tools setup --source=local` to regenerate before `dotnet build Janset.SDL2.sln`.
 
 # Build-host regression suite (TUnit on Microsoft.Testing.Platform)
 dotnet test --project build/_build.Tests/Build.Tests.csproj -c Release --framework net10.0
@@ -50,6 +50,8 @@ Versioning notes:
 - `--explicit-version` accepts `<family>=<semver>` repeated; mutually exclusive with `--versions-file`.
 - **G58 cross-family scope**: pack a satellite (e.g. `sdl2-image`) without also supplying a satisfying `sdl2-core` version → Pack stops. For local rehearsal, pack all 5 concrete families together or pack `sdl2-core` alone.
 - Direct `dotnet pack` on a `*.Native.csproj` hard-fails G46 (empty native payload). Always go through the `Package` task.
+
+> **Cake host CI-only mission**: the Cake Frosting build host (`build/_build/`) is a CI-only production pipeline for native harvesting, packaging, and validation. Day-to-day dev orchestration (setup, test, package) lives in `tools.cs`, the repo-root file-based app that forwards to Cake under the hood. Direct `dotnet run --project build/_build` invocations are for CI debugging and pipeline target discovery only.
 
 ## High-Level Architecture
 
@@ -95,7 +97,7 @@ PublishStaging (GitHub Packages internal feed) → PublishPublic (nuget.org via 
 | Folder | Role |
 | --- | --- |
 | `Host/` | Cake/Frosting runtime, CLI parsing, `BuildContext`, composition root, paths, Cake extensions |
-| `Features/<X>/` | Operational vertical slice — Cake `Task` + `Pipeline` (size-triggered) + validators + generators + `Request` DTOs + `ServiceCollectionExtensions.cs`. Examples: `Features/Packaging/`, `Features/Harvesting/`, `Features/Preflight/`, `Features/LocalDev/` (the designated orchestration feature). |
+| `Features/<X>/` | Operational vertical slice — Cake `Task` + `Pipeline` (size-triggered) + validators + generators + `Request` DTOs + `ServiceCollectionExtensions.cs`. Examples: `Features/Packaging/`, `Features/Harvesting/`, `Features/Preflight/`. |
 | `Shared/` | Build-domain vocabulary — manifest models, runtime types, version mapping, package family conventions, cross-feature result primitives. No Cake dependencies, no I/O. |
 | `Tools/` | Cake `Tool<TSettings>` wrappers ONLY (vcpkg, dumpbin, ldd, otool, tar, cmake, native-smoke) |
 | `Integrations/` | Non-Cake-Tool external adapters: NuGet protocol client, dotnet pack invoker, project metadata reader, coverage XML readers, vcpkg manifest reader, MSVC environment resolver |
@@ -108,10 +110,10 @@ Reference shapes for new build-host work:
 - **Pipeline classes are size-triggered.** Below ~200 LOC the logic stays in the Task with private methods. Above it, extract to `<X>Pipeline.cs` co-located in the feature folder (smell threshold, not hard rule — ADR-004 §2.4).
 - **`BuildContext` is invocation state, not service locator.** Pipelines target `RunAsync(TRequest)`; pure services take explicit inputs only; Tools and Integrations may take narrow Cake abstractions (`ICakeContext`, `ICakeLog`, `IFileSystem`) but never the full `BuildContext`. See ADR-004 §2.11.
 - **Interface discipline (ADR-004 §2.9):** keep an interface only if (1) multiple production implementations exist, (2) it formalizes an independent axis of change, or (3) it backs a high-cost test seam (transitional). Mocks alone don't justify a seam — prefer `internal sealed class` registered concrete via `Features/<X>/ServiceCollectionExtensions.cs`.
-- **Cross-feature data sharing flows through `Shared/`.** Code-level cross-feature references are forbidden by `ArchitectureTests` invariant #4, with one allowlist exception for `Features/LocalDev/`.
+- **Cross-feature data sharing flows through `Shared/`.** Code-level cross-feature references are forbidden by `ArchitectureTests` invariant #4.
 - **`Shared/Results/` is for cross-feature primitives only.** Feature-specific `*Error` / `*Result` types stay in their feature folder (ADR-004 §2.6.1).
 - **Typed result boundaries**: services return `OneOf`-shaped results; tasks translate them into Cake logging, `CakeException`, RID-status persistence, or cancellation.
-- **When in doubt**, compare against ADR-004 §2.3 reference layout (Packaging) or §2.5 (LocalDev).
+- **When in doubt**, compare against ADR-004 §2.3 reference layout (Packaging).
 
 ### Configuration topology
 

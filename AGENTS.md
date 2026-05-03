@@ -28,7 +28,7 @@ Then branch to relevant docs based on your task (see `docs/README.md` for naviga
 
 - Start coding new features
 - Refactor production code
-- Modify build system (Cake Frosting tasks, MSBuild targets)
+- Modify build system (Cake Frosting tasks, MSBuild targets, tools.cs)
 - Change CI/CD pipelines (GitHub Actions workflows)
 - Update vcpkg.json or manifest.json (legacy `runtimes.json` / `system_artefacts.json` retired — merged into manifest.json schema v2.1)
 - Modify project files (.csproj, .sln, Directory.Build.props)

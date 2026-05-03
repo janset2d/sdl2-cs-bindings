@@ -3,11 +3,11 @@
 > How to verify that the Cake build host, harvest pipeline, native libraries, and package-consumer path work correctly across the supported local hosts after a refactor or significant change.
 
 **Last validated:** 2026-04-29 remote-feed host witness at `4afdd1d` against CI-published wave `release.yml` run 24962876812; prior all-7-RID CI confirmation remains run 24938451364 on master `8ec85c5`.
-**Result (2026-04-29):** PD-5 exit criterion #4 is fully closed; `SetupLocalDev --source=remote` works on all 3 maintainer host platforms against the same GitHub Packages wave:
+**Result (2026-04-29):** PD-5 exit criterion #4 is fully closed; the remote-feed bootstrap (then `SetupLocalDev --source=remote`, now `tools setup --source=remote-github` after the Phase Y retirement of the Cake-side `SetupLocalDev` target) works on all 3 maintainer host platforms against the same GitHub Packages wave:
 
 - **CI (all 7 RIDs)**: `release.yml` run 24938451364 green on master `8ec85c5` — Pack ✓ + ConsumerSmoke ✓ across `win-{x64,x86,arm64}` / `linux-{x64,arm64}` / `osx-{x64,arm64}`. Build host strict-mode lock-file gate held; ConsumerSmoke per-TFM TUnit (`net9.0` + `net8.0`) green on every RID; `net462` runtime green on Windows runners, correctly skipped on Linux + macOS per the platform Mono / TUnit-incompat gates in `PackageConsumerSmokeRunner.ShouldSkipTfm`.
 - **Remote-feed host witness (Windows + WSL Linux + macOS Intel)**: all 3 platforms pulled the same CI-published wave from run 24962876812 (`sdl2-core=2.32.0-ci.24962876812.1`, `sdl2-gfx=1.0.0-ci.24962876812.1`, `sdl2-image=2.8.0-ci.24962876812.1`, `sdl2-mixer=2.8.0-ci.24962876812.1`, `sdl2-ttf=2.24.0-ci.24962876812.1`). Windows `win-x64`: 3/3 PASS in 78.6s, ConsumerSmoke 35/35. WSL Linux `linux-x64`: 3/3 PASS in 71.0s, ConsumerSmoke 24/24 with `net462` correctly skipped. macOS Intel `osx-x64`: 3/3 PASS in 119.5s, ConsumerSmoke 24/24 with `net462` skipped because Mono is not installed.
-- **Local A-K walkthrough (Windows + WSL Linux)**: every checkpoint A→K green on master `d190b5b`. Windows `win-x64`: build-host 460/460, native-smoke 29/29, harvest 1-primary/0-runtime per library, `Inspect-HarvestedDependencies` confirmed no leaked codec/font deps, `SetupLocalDev --source=local` 15 nupkgs in 41.8s, `PackageConsumerSmoke` 12 + 12 + 11 = 35/35 PASS across `net9.0`/`net8.0`/`net462`. WSL Linux: same shape, MIDI decoder fonctional via builder image's `freepats` package, `PackageConsumerSmoke` 12 + 12 = 24/24 PASS (`net462` auto-skip per Mono+TUnit incompat).
+- **Local A-K walkthrough (Windows + WSL Linux)**: every checkpoint A→K green on master `d190b5b`. Windows `win-x64`: build-host 460/460, native-smoke 29/29, harvest 1-primary/0-runtime per library, `Inspect-HarvestedDependencies` confirmed no leaked codec/font deps, the local-dev feed bootstrap (then `SetupLocalDev --source=local`, now `tools setup --source=local`) produced 15 nupkgs in 41.8s, `PackageConsumerSmoke` 12 + 12 + 11 = 35/35 PASS across `net9.0`/`net8.0`/`net462`. WSL Linux: same shape, MIDI decoder fonctional via builder image's `freepats` package, `PackageConsumerSmoke` 12 + 12 = 24/24 PASS (`net462` auto-skip per Mono+TUnit incompat).
 - **Builder image**: `ghcr.io/janset2d/sdl2-bindings-linux-builder:focal-latest` (multi-arch amd64+arm64) consumed by `release.yml` Linux jobs; bakes the full apt preamble (autotools + SDL2 backends + `freepats` MIDI patches + `libicu*` + autoconf 2.72) + GCC 11 PPA + Kitware CMake. Builder workflow `build-linux-container.yml` runs monthly (cron 1st of each month 03:00 UTC) absorbing upstream security-patch drift.
 
 **Cake-first invocation contract (Slice DA, 2026-04-21).** Every checkpoint below invokes a Cake target directly. Pre-Slice-D raw shell blocks (`rm -rf artifacts/…`, `tar -xzf native.tar.gz`, `cmake --preset <rid>`, manual per-TFM `dotnet test`) have dedicated Cake targets after Slice D:
@@ -16,7 +16,7 @@
 - Tarball extraction + ldd/otool/dumpbin → `--target Inspect-HarvestedDependencies --rid <rid>`
 - CMake configure + build + native-smoke invocation → `--target NativeSmoke --rid <rid>`
 - Per-TFM consumer smoke loop → `--target PackageConsumerSmoke --rid <rid>`
-- Full local-dev feed bootstrap (pack + local.props) → `--target SetupLocalDev --source=local --rid <rid>`
+- Full local-dev feed bootstrap (pack + local.props) → `tools setup --source=local` (repo-root file-based app — see [local-development.md](local-development.md))
 
 The only allowed non-Cake invocations in the big-smoke flow are checkpoints A and B (build-host unit tests + Cake-host csproj build). Cake cannot compile or test itself — that bootstrap exception is explicit. See `unix-smoke-runbook.md` for the concrete per-platform witness script.
 
@@ -34,8 +34,8 @@ The only allowed non-Cake invocations in the big-smoke flow are checkpoints A an
 ## Recommended Big-Smoke Rules
 
 - Treat `artifacts/` as a **single-run disposable workspace** for this playbook. If you want a trustworthy answer to "everything still works", start from an empty artifact tree instead of reusing old `harvest_output/`, `packages/`, or consumer-smoke caches.
-- Do **not** define success as "every Cake target was invoked once." Some targets are lifecycle gates (`PreFlightCheck`, `EnsureVcpkgDependencies`, `Harvest`, `NativeSmoke`, `ConsolidateHarvest`, `Package`, `PackageConsumerSmoke`, `PostFlight`, `SetupLocalDev`), some are diagnostics (`Inspect-HarvestedDependencies`, `Dumpbin-Dependents`, `Ldd-Dependents`, `Otool-Analyze`), some are utility (`CleanArtifacts`, `CompileSolution`, `GenerateMatrix`), and some are local-only safeguards (`Coverage-Check`). The big smoke should exercise the lifecycle gates on every platform and the diagnostics where they add evidence.
-- `SetupLocalDev --source=local` is a useful **developer-convenience umbrella** because it prepares the local feed after `EnsureVcpkgDependencies -> Harvest -> NativeSmoke -> ConsolidateHarvest`, but it does **not** replace an explicit `PreFlightCheck` gate in this playbook. Keep PreFlight as a standalone fail-fast step.
+- Do **not** define success as "every Cake target was invoked once." Some targets are lifecycle gates (`PreFlightCheck`, `EnsureVcpkgDependencies`, `Harvest`, `NativeSmoke`, `ConsolidateHarvest`, `Package`, `PackageConsumerSmoke`), some are diagnostics (`Inspect-HarvestedDependencies`, `Dumpbin-Dependents`, `Ldd-Dependents`, `Otool-Analyze`), some are utility (`CleanArtifacts`, `CompileSolution`, `GenerateMatrix`), and some are local-only safeguards (`Coverage-Check`). The big smoke should exercise the lifecycle gates on every platform and the diagnostics where they add evidence.
+- `tools setup --source=local` is a useful **developer-convenience umbrella** that orchestrates the full local-dev feed bootstrap (CleanArtifacts → ResolveVersions → PreFlight → EnsureVcpkgDependencies → Harvest → ConsolidateHarvest → Package + writes `Janset.Local.props`), but the explicit `PreFlightCheck` gate in this playbook is still kept as a standalone fail-fast step.
 - Use a **fresh version suffix per run** and never mix package families from multiple smoke attempts in `artifacts/packages/`. Even with orchestrator-supplied version properties, a dirty local feed is how you accidentally end up debugging ghosts.
 - Record results per platform as a bundle: command log, harvested dependency inspection, native-smoke output, and final package-consumer result. If one platform goes red, you want evidence, not vibes.
 
@@ -51,7 +51,7 @@ These are validated today and should pass on all 3 platforms.
 | --- | --- | --- | --- | --- |
 | A | Build-host unit tests (**bootstrap exception**) | Baseline | Refactored code logic is correct | 460 passed, 0 failed on master `d190b5b` (Slice E follow-up pass P7 walkthrough, 2026-04-25) |
 | B | Cake restore + build (Release) (**bootstrap exception**) | Baseline | Build host compiles clean on all platforms | 0 warnings, 0 errors (usually implied by A — tests build the same assemblies) |
-| C | Cake `--tree` | Baseline | Task dependency graph is flat (Slice B2) | every stage task standalone — `CleanArtifacts`, `CompileSolution`, `ConsolidateHarvest`, `EnsureVcpkgDependencies`, `GenerateMatrix`, `Harvest`, `Info`, `Inspect-HarvestedDependencies`, `NativeSmoke`, `Package`, `PackageConsumerSmoke`, `PreFlightCheck`, `PublishPublic`, `PublishStaging`, `ResolveVersions`, `SetupLocalDev` + diagnostic targets (`Coverage-Check`, `Dumpbin-Dependents`, `Ldd-Dependents`, `Otool-Analyze`). No `PostFlight`. |
+| C | Cake `--tree` | Baseline | Task dependency graph is flat (Slice B2) | every stage task standalone — `CleanArtifacts`, `CompileSolution`, `ConsolidateHarvest`, `EnsureVcpkgDependencies`, `GenerateMatrix`, `Harvest`, `Info`, `Inspect-HarvestedDependencies`, `NativeSmoke`, `Package`, `PackageConsumerSmoke`, `PreFlightCheck`, `PublishPublic`, `PublishStaging`, `ResolveVersions` + diagnostic targets (`Coverage-Check`, `Dumpbin-Dependents`, `Ldd-Dependents`, `Otool-Analyze`). No `PostFlight`, no `SetupLocalDev` (Phase Y moved dev orchestration to repo-root `tools.cs`). |
 | D | PreFlightCheck | Baseline + A-risky + S1 | manifest.json ↔ vcpkg.json consistency + strategy coherence + post-S1 csproj pack contract (G4/G6/G7/G17/G18) | 6/6 versions, 7/7 strategies, 6/6 families × 10/10 csprojs all green |
 | D1 | EnsureVcpkgDependencies | Baseline | vcpkg bootstrap scripts + manifest install work for the current triplet, with overlay triplets/ports applied | bootstrap only when needed, install exits 0, triplet/overlay paths logged |
 | E | Harvest | Baseline | Binary closure walk + deployment works per-platform; default scope is the full manifest library set | per-library `1 primary, 0 runtime, DirectCopy/Archive` green, rid-status JSON generated |
@@ -60,7 +60,7 @@ These are validated today and should pass on all 3 platforms.
 | G | NativeSmoke (C/C++ harness via Cake) | **D** | Hybrid-built natives load and initialize at runtime; Cake target wraps CMake configure/build + native-smoke executable invocation via Cake.CMake + `NativeSmokeRunnerTool` | `29 passed, 0 failed, Result: ALL PASS` on the current expanded harness |
 | J | Package (family-aware pack + post-pack validator) | D-local (post-S1), flag-updated B1 | Per-family pack produces valid `.nupkg` per library (managed + native + .snupkg) + post-pack validator suite (G21–G23, G25–G27, G47, G48) passes on every produced package | 3 `.nupkg` files per family at the `--explicit-version` mapping; post-pack validator 0 violations |
 | K | PackageConsumerSmoke | D-local (post-S1, expanded on Windows) | `PackageReference` restore from local feed + consumer-side `buildTransitive` target fires + runtime smoke succeeds for the concrete package-consumer set (`sdl2-core`, `sdl2-image`, `sdl2-mixer`, `sdl2-ttf`, `sdl2-gfx`) + Unix symlink chain preserved | per-TFM TUnit pass; current Windows host expectation is 12 passing tests on `net10.0`/`net9.0`/`net8.0` and 11 passing tests on `net462`; netstandard2.0 compile-sanity passes |
-| L | `SetupLocalDev --source=remote` | F | Remote artifact-source feed prep populates the local cache + writes `Janset.Local.props` + `versions.json` correctly; consumer smoke green against pulled feed | **Closed 2026-04-29** against CI run 24962876812: Windows `win-x64` 3/3 PASS, ConsumerSmoke 35/35; WSL Linux `linux-x64` 3/3 PASS, ConsumerSmoke 24/24 (`net462` skipped); macOS Intel `osx-x64` 3/3 PASS, ConsumerSmoke 24/24 (`net462` skipped because Mono absent). |
+| L | `tools setup --source=remote-github` | F | Remote artifact-source feed prep populates the local cache + writes `Janset.Local.props` + `versions.json` correctly; consumer smoke green against pulled feed | **Closed 2026-04-29** (then under the now-retired `SetupLocalDev --source=remote` Cake target) against CI run 24962876812: Windows `win-x64` 3/3 PASS, ConsumerSmoke 35/35; WSL Linux `linux-x64` 3/3 PASS, ConsumerSmoke 24/24 (`net462` skipped); macOS Intel `osx-x64` 3/3 PASS, ConsumerSmoke 24/24 (`net462` skipped because Mono absent). Phase Y (2026-05-03) moved this surface to `tools setup --source=remote-github`. |
 
 **Scope caveat for J and K (2026-04-17):** The current code path for `PackageConsumerSmoke` requires the concrete five-family smoke scope (`sdl2-core`, `sdl2-image`, `sdl2-mixer`, `sdl2-ttf`, `sdl2-gfx`). That widened scope is re-validated on `win-x64`. Linux and macOS still retain the older proof-slice evidence for `sdl2-core` + `sdl2-image`; rerunning the expanded scope there is still Phase 2b work, as is end-to-end validation for the newly hybridized rows (`win-arm64`, `win-x86`, `linux-arm64`, `osx-arm64`).
 
@@ -114,7 +114,7 @@ export PATH="$HOME/.dotnet:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sb
 export DOTNET_ROOT="$HOME/.dotnet"
 ```
 
-This drops `/mnt/c/...` entries entirely; WSL Ubuntu has Linux-native git, cmake, gcc, dotnet (`~/.dotnet/`), so the resulting environment is fully self-contained on the Linux side. Without this override, `SetupLocalDev --source=local` fails at the first `dotnet pack '...Native.csproj'` invocation.
+This drops `/mnt/c/...` entries entirely; WSL Ubuntu has Linux-native git, cmake, gcc, dotnet (`~/.dotnet/`), so the resulting environment is fully self-contained on the Linux side. Without this override, `tools setup --source=local` fails at the first `dotnet pack '...Native.csproj'` invocation.
 
 **native-smoke MIDI decoder prereq:** SDL_mixer's bundled internal Timidity only supports **GUS `.pat` patches** (not SF2) and only registers the `MIDI` decoder when it finds a GUS-format config at init. On Debian/Ubuntu install `freepats` (`sudo apt install -y freepats`) — that drops GUS patches + `/etc/timidity/freepats.cfg`, which SDL_mixer's bundled Timidity auto-searches via its `TIMIDITY_CFG_FREEPATS` fallback path. The alternative `timidity` apt package installs `/etc/timidity/timidity.cfg` pointing at FluidR3_GM.sf2 (a `%font` SF2 directive) — bundled Timidity does NOT parse SF2 binaries, so `timidity` alone does not register the decoder. Without `freepats` installed, `Mix decoder: MIDI` will report "decoder missing" — a clear signal rather than a silent skip. This is also an **end-user concern**: Janset ships the bundled Timidity code (Artistic License) but does not ship GUS patches (GPL); consumers on Linux who want MIDI install their own patches the same way. Packaging strategy for the end-user UX (doc-only vs opt-in `.Soundfonts` meta-package) is tracked in [phase-2-adaptation-plan.md PD-14](../phases/phase-2-adaptation-plan.md#pending-decisions) and will be resolved before the first public Mixer-family release.
 
@@ -140,7 +140,7 @@ All commands assume you are at the repo root. The environment exports from the s
 The repo-local `vcpkg_installed/` tree does **not** behave like a permanent multi-triplet cache in this workflow. In local manifest mode, the most recently installed triplet is the one you should assume is present under `vcpkg_installed/`.
 
 - Do not assume `x64-windows-hybrid`, `x86-windows-hybrid`, and `arm64-windows-hybrid` will all remain materialized side by side after repeated local `vcpkg install --triplet ...` runs.
-- For real local validation of more than one RID, use a staged loop driven by Cake targets per RID: `CleanArtifacts` → `SetupLocalDev --source=local --rid <rid-A>` → `Inspect-HarvestedDependencies --rid <rid-A>` → `CleanArtifacts` → `SetupLocalDev --source=local --rid <rid-B>` → `Inspect-HarvestedDependencies --rid <rid-B>`. `SetupLocalDev` internally composes PreFlight → EnsureVcpkg → Harvest → NativeSmoke → ConsolidateHarvest → Package for the target RID in one invocation; a fresh `CleanArtifacts` between RIDs prevents cross-RID state leakage.
+- For real local validation of more than one RID, use a staged loop driven by Cake targets per RID: `CleanArtifacts` → explicit pack chain for `<rid-A>` (`PreFlightCheck` → `EnsureVcpkgDependencies --rid <rid-A>` → `Harvest --rid <rid-A>` → `ConsolidateHarvest` → `Package --explicit-version ...`) → `Inspect-HarvestedDependencies --rid <rid-A>` → `CleanArtifacts` → repeat for `<rid-B>`. The `tools setup --source=local` umbrella is host-RID only; cross-RID validation is an explicit-target chain. A fresh `CleanArtifacts` between RIDs prevents cross-RID state leakage.
 - CI is unaffected because each RID job installs exactly one triplet in isolation.
 
 ### Clean-Slate Artifact Rule
@@ -407,7 +407,7 @@ dotnet run --project build/_build/Build.csproj -- \
 # Linux / macOS: add --repo-root "$(pwd)" as in the other targets.
 ```
 
-> **Natural local-dev alternative.** For a full local feed bootstrap, prefer `--target SetupLocalDev --source=local --rid <rid>` (see §K). `SetupLocalDev` internally derives per-family D-3seg versions with a `local.<unix-timestamp>` suffix via `ManifestVersionProvider` and composes PreFlight → Harvest → NativeSmoke → ConsolidateHarvest → Package in one invocation — no `--explicit-version` required. Use explicit `Package` with `--explicit-version` only when you need a specific version string (e.g., for PA-2 witness records, for repro of a specific reported-failure CI run, or for exercising the pack surface in isolation).
+> **Natural local-dev alternative.** For a full local feed bootstrap, prefer `tools setup --source=local` (see §K). The script internally drives Cake's `ResolveVersions` target with a `local.<timestamp>` suffix and then composes PreFlight → Harvest → ConsolidateHarvest → Package in one invocation — no `--explicit-version` required. Use explicit `Package` with `--explicit-version` only when you need a specific version string (e.g., for PA-2 witness records, for repro of a specific reported-failure CI run, or for exercising the pack surface in isolation).
 
 **What to look for:**
 
@@ -418,30 +418,31 @@ dotnet run --project build/_build/Build.csproj -- \
 
 ### K. PackageConsumerSmoke (consumer restore + runtime SDL_Init)
 
-`PackageConsumerSmoke` runs the per-TFM TUnit smoke against the local feed produced by `Package` (or by `SetupLocalDev`), plus a netstandard2.0 compile-sanity pass. Two Cake-first flows exist; pick based on what you want to exercise.
+`PackageConsumerSmoke` runs the per-TFM TUnit smoke against the local feed produced by `Package` (or by `tools setup --source=local`), plus a netstandard2.0 compile-sanity pass. Two flows exist; pick based on what you want to exercise.
 
-**Flow 1 (primary for big smoke) — `SetupLocalDev`:**
+**Flow 1 (primary for big smoke) — `tools setup`:**
 
-`SetupLocalDev --source=local` composes PreFlight → EnsureVcpkgDependencies → Harvest → ConsolidateHarvest → Package + writes `build/msbuild/Janset.Local.props` in a single invocation with per-family D-3seg versions auto-derived from the manifest. The composition lives in `Application/Packaging/SetupLocalDevTaskRunner`; `LocalArtifactSourceResolver` only verifies the produced feed and stamps the `.local.props` override. `NativeSmoke` is **not** part of this chain (Slice B2 amendment — CMake + platform C/C++ toolchain prereq is orthogonal to feed materialisation; native smoke runs as its own standalone target or via the CI harvest matrix). `--rid` is optional when targeting the host RID; pass it only for cross-build targets (e.g., `win-x86` on a `win-x64` host). Pair this invocation with a direct `PackageConsumerSmoke` afterwards for end-to-end witness:
+`tools setup --source=local` composes ResolveVersions → PreFlightCheck → EnsureVcpkgDependencies → Harvest → ConsolidateHarvest → Package + writes `build/msbuild/Janset.Local.props` in a single invocation with per-family D-3seg versions auto-derived from the manifest (suffix `local.<timestamp>`). `NativeSmoke` is **not** part of this chain (CMake + platform C/C++ toolchain prereq is orthogonal to feed materialisation; native smoke runs as its own standalone target or via the CI harvest matrix). The script always uses the host RID. Pair this invocation with a direct Cake `PackageConsumerSmoke` afterwards for end-to-end witness:
 
 ```bash
-# Windows (host RID default — win-x64 here):
-dotnet run --project build/_build/Build.csproj -- \
-  --target SetupLocalDev --source=local
+# Windows / Linux / macOS:
+dotnet run --file tools.cs -- setup --source=local
+# (or `./tools.cs setup --source=local` on Unix after `chmod +x tools.cs`)
 
 dotnet run --project build/_build/Build.csproj -- \
   --target PackageConsumerSmoke
 
-# Cross-build (Windows host targeting win-x86 or win-arm64):
-dotnet run --project build/_build/Build.csproj -- \
-  --target SetupLocalDev --source=local --rid win-x86
-
-# Linux / macOS: add --repo-root "$(pwd)" to both. If you need a non-host RID,
-# add --rid <rid> as well.
-
 # Optional sibling — verify native payloads load at OS level:
 dotnet run --project build/_build/Build.csproj -- \
   --target NativeSmoke
+```
+
+For a single-shot run that also includes `NativeSmoke` and `PackageConsumerSmoke` (full 9-step CI replay on the host RID), use the dedicated subcommand:
+
+```bash
+dotnet run --file tools.cs -- ci-sim
+# Add --verbose to tee each step's output to the console; per-step logs land
+# under .logs/tools/<platform>-ci-sim-<runid>/.
 ```
 
 **Flow 2 (targeted, version-pinned) — explicit `Package` + `PackageConsumerSmoke`:**
@@ -461,7 +462,7 @@ dotnet run --project build/_build/Build.csproj -- \
 # Linux / macOS: add --repo-root "$(pwd)" to both.
 ```
 
-> `PostFlight` retired in Slice B2 (2026-04-21). Its umbrella semantics are absorbed into `SetupLocalDevTaskRunner` (Flow 1) + standalone `Package` + `PackageConsumerSmoke` targets (Flow 2) after graph flattening. `--family` / `--family-version` retired in Slice B1 — use repeated `--explicit-version <family>=<semver>` entries instead.
+> `PostFlight` retired in Slice B2 (2026-04-21). The Cake-side `SetupLocalDev` target itself was retired in Phase Y (2026-05-03); its multi-feature composition now lives in repo-root `tools.cs` (Flow 1). `--family` / `--family-version` retired in Slice B1 — use repeated `--explicit-version <family>=<semver>` entries (or `--versions-file <path>`) instead.
 
 **What to look for:**
 
@@ -570,14 +571,13 @@ On macOS / Linux the equivalent is `pkill -f /nodemode:1` for MSBuild worker nod
 
 **Tree-scoped kill (experiment).** A more precise fix — killing only the processes spawned by the runner itself via `Process.Kill(entireProcessTree: true)` — is tracked as a roadmap experiment (GitHub issue, labels `area:build-system`, `type:experiment`). That refactor would eliminate the side-effect warning above but requires giving up Cake's `IProcess` abstraction for the smoke runner's `dotnet` invocations; deferred until the side-effect actually bites someone's parallel workflow.
 
-**Pre-`verify-baselines.cs` ritual (Phase X observation, 2026-05-02).** During the
-P2 wave, the build-host migration test loop ran `dotnet test` followed by
-`dotnet run verify-baselines.cs` repeatedly. The `verify-baselines.cs` helper
-spawns `smoke-witness.cs` whose `01-CleanArtifacts` step trips on the
-`Microsoft.Testing.Platform.dll` lock the previous `dotnet test` left behind
-— observed twice during P2 (Adım 6 and Adım 7 fast-loop gates). The reliable
-recipe before each `verify-baselines.cs` invocation in a tight test-then-verify
-loop:
+**Pre-`tools ci-sim` ritual (Phase X observation, 2026-05-02; carried forward).** During
+the Phase X build-host migration the test loop ran `dotnet test` followed by a witness
+script repeatedly, and the witness's `01-CleanArtifacts` step tripped on the
+`Microsoft.Testing.Platform.dll` lock the previous `dotnet test` left behind — observed
+twice during P2 (Adım 6 and Adım 7 fast-loop gates). The same lock surface still applies
+to `tools ci-sim` (whose first step is `CleanArtifacts`); the reliable recipe before each
+invocation in a tight test-then-verify loop is:
 
 ```powershell
 dotnet build-server shutdown 2>&1 | Out-Null
@@ -585,25 +585,23 @@ Get-Process dotnet, testhost -ErrorAction SilentlyContinue |
     Where-Object { ((Get-Date) - $_.StartTime).TotalMinutes -gt 1 -and $_.Id -ne $PID } |
     Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 3
-dotnet run verify-baselines.cs
+dotnet run --file tools.cs -- ci-sim
 ```
 
 (The `1-minute` age threshold is intentionally tighter than the `15-minute`
 manual-fallback default above — by the time you're running the second
-`verify-baselines.cs`, the lingering `testhost.exe` is at most a few minutes
-old and the conservative cutoff would miss it.) This ritual is captured at
-the witness side too in [`tests/scripts/README.md`](../../tests/scripts/README.md#troubleshooting)
-under the `Microsoft.Testing.Platform.dll is denied` entry — a human
-operator running the witness loop interactively rarely needs it because the
-test→verify gap is naturally larger; CI / scripted loops should bake it in.
+`tools ci-sim`, the lingering `testhost.exe` is at most a few minutes old
+and the conservative cutoff would miss it.) Phase Y (2026-05-03) retired
+the `tests/scripts/smoke-witness.cs` + `verify-baselines.cs` machinery; the
+operative reproduction surface is now `tools ci-sim` directly.
 
 ## Host Liveness Pre-flight (added 2026-05-02 from Phase X session)
 
 The macOS Intel host at `Armut@192.168.50.178` is on a private LAN and
 auto-sleeps when idle. Before driving a remote SSH run from a script — for
-example the `verify-baselines.cs --milestone` flow that includes the
-`smoke-witness-local-osx-x64.json` slot — probe liveness with a fast
-`BatchMode` connect attempt:
+example a `tools ci-sim` invocation routed at the macOS host as part of a
+multi-platform witness sweep — probe liveness with a fast `BatchMode`
+connect attempt:
 
 ```powershell
 ssh -o ConnectTimeout=5 -o BatchMode=yes Armut@192.168.50.178 'echo MAC_AWAKE'
@@ -664,11 +662,12 @@ Under [ADR-001](../decisions/2026-04-18-versioning-d3seg.md), the local dev flow
 
 | Flow | Feed source | Consumer contract | Driver |
 | --- | --- | --- | --- |
-| `SetupLocalDev --source=local` (Phase 2a, lands V5) | Repo pack → `artifacts/packages` | PackageReference + exact-pinned smoke override | `build/msbuild/Janset.Local.props` generated by task |
-| `SetupLocalDev --source=remote` (landed 2026-04-26 PD-5) | Internal feed download → local cache | Same | Same override file + `versions.json`, written from remote-discovered versions |
+| `tools setup --source=local` | Repo pack → `artifacts/packages` | PackageReference + exact-pinned smoke override | `build/msbuild/Janset.Local.props` written by the script |
+| `tools setup --source=remote-github` | Internal feed download → local cache | Same | Same override file + `versions.json`, written from remote-discovered versions |
+| `tools setup --source=remote-nuget` | Stub pending Phase 2b PD-7 (public NuGet promotion) | Same | n/a — exits with "not yet implemented" |
 | This smoke matrix (manual A–K walkthrough) | Whatever the operator staged | Same | CLI `-p:` flags or local.props |
 
-Once `SetupLocalDev` ships, IDE-opened smoke csprojs restore without Cake in the loop (the `Janset.Local.props` conditional import picks up the per-developer feed + version values). See [local-development.md](local-development.md) for the full Quick Start flow.
+After `tools setup` runs, IDE-opened smoke csprojs restore without Cake in the loop (the `Janset.Local.props` conditional import picks up the per-developer feed + version values). See [local-development.md](local-development.md) for the full Quick Start flow.
 
 ## Relationship to CI
 
@@ -850,7 +849,7 @@ PA-2 moved four previously-stock runtime rows onto hybrid overlay triplets (2026
 
 **Closure record (2026-04-26):** `workflow_dispatch` on master `8ec85c5` with default `mode=manifest-derived` produced `release.yml` run 24938451364 — all 10 jobs green; the four PA-2 RIDs cleared every stage's owned validators on their native runners. Per-TFM TUnit `PackageConsumerSmoke` results: **win-arm64** net9.0/net8.0/net462 = 12+12+11 = **35/35**; **win-x86** net9.0/net8.0/net462 = 12+12+11 = **35/35**; **linux-arm64** net9.0/net8.0 = 12+12 = **24/24** (net462 auto-skipped per Linux Mono+TUnit incompat gate); **osx-arm64** net9.0/net8.0 = 12+12 = **24/24** (net462 auto-skipped per macOS no-mono gate). `Harvest + NativeSmoke` green on every RID, so the 29-test C harness built and executed under each PA-2 RID's native (or near-native via WoW64 for `win-x86`) runtime. Suffix shape: `ci.24938451364.1` (the `release.yml` `--suffix=ci.${{ github.run_id }}.${{ github.run_attempt }}` default — the prior `pa2.<run-id>` wording in this section was fictional; `ExplicitVersionProvider` covers any custom suffix shape an operator might want, e.g. `--explicit-version sdl2-core=2.32.0-pa2-witness.1` for a manually-labeled witness run).
 
-**ADR-003 + Slice B1/D CLI migration note (2026-04-21).** The legacy `--family` / `--family-version` flags on `PostFlight` / `Package` retired in Slice B1. Local-host PA-2 reproductions now run through the post-B1 CLI: either the `SetupLocalDev` umbrella (for full local-feed + consumer-smoke end-to-end) or an explicit `Package` → `PackageConsumerSmoke` pair with `--explicit-version <family>=<semver>` per family. CI runs flow through `release.yml` `workflow_dispatch` with `mode=manifest-derived` (the closure shape, suffix `ci.<run-id>.<attempt>`) or `mode=explicit` (operator-supplied per-family versions including any custom suffix).
+**ADR-003 + Slice B1/D CLI migration note (2026-04-21).** The legacy `--family` / `--family-version` flags on `PostFlight` / `Package` retired in Slice B1. Local-host PA-2 reproductions now run through the post-B1 CLI: either the `tools setup --source=local` umbrella (for full local-feed + consumer-smoke end-to-end on the host RID) or an explicit `Package` → `PackageConsumerSmoke` pair with `--explicit-version <family>=<semver>` per family (or `--versions-file`). CI runs flow through `release.yml` `workflow_dispatch` with `mode=manifest-derived` (the closure shape, suffix `ci.<run-id>.<attempt>`) or `mode=explicit` (operator-supplied per-family versions including any custom suffix).
 
 Each invocation packs the concrete five-family smoke scope, exercises harvest → consolidate → pack → consumer-smoke, and records pass/fail against this playbook. Record the result in the "Last validated" header at the top of this document as each triplet passes; any failure triage into (a) upstream vcpkg port issue, (b) overlay-triplet tuning needed, or (c) vcpkg feature-flag degradation — file a `docs/research/` note before re-attempting.
 
@@ -865,18 +864,17 @@ Trigger each run via workflow-dispatch on the matching GitHub runner:
 
 Per-RID command (adapt the runner via workflow input; body identical).
 
-**Primary path — `SetupLocalDev` umbrella** (recommended for PA-2 witness: auto-derives per-family D-3seg versions with the operator-supplied suffix, runs the full pipeline, writes `Janset.Local.props`, then `PackageConsumerSmoke` covers consumer restore + runtime):
+**Primary path — host-RID `tools setup` umbrella** (recommended when the PA-2 RID matches the host: auto-derives per-family D-3seg versions, runs the full local pipeline, writes `Janset.Local.props`, then `PackageConsumerSmoke` covers consumer restore + runtime):
 
 ```bash
-# Replace <rid> with the PA-2 RID from the table above.
-dotnet run --project build/_build/Build.csproj -c Release -- \
-  --target SetupLocalDev --source=local --rid <rid> --suffix=pa2-witness.1
+# Run on the matching native runner — `tools setup` always uses the host RID.
+dotnet run --file tools.cs -- setup --source=local
 
 dotnet run --project build/_build/Build.csproj -c Release -- \
-  --target PackageConsumerSmoke --rid <rid>
+  --target PackageConsumerSmoke
 ```
 
-**Alternative — explicit per-family version mapping** (use only if you need exact pinning for a specific version string):
+**Alternative — explicit per-family version mapping** (use when you need a specific version string, a non-host RID via cross-build, or a custom suffix like `pa2-witness.<rid>.1`):
 
 ```bash
 dotnet run --project build/_build/Build.csproj -c Release -- \
@@ -891,7 +889,7 @@ dotnet run --project build/_build/Build.csproj -c Release -- \
   --target PackageConsumerSmoke --rid <rid>
 ```
 
-> **NativeSmoke on PA-2 RIDs.** `tests/smoke-tests/native-smoke/CMakePresets.json` ships configure + build presets for every `manifest.runtimes[]` row (14 buildPresets total, Release + Debug per RID, since Slice E follow-up P8.4). Post-Slice-B2, `NativeSmoke` is no longer part of the `SetupLocalDev` chain — invoke it explicitly when you want native-level coverage on a local PA-2 reproduction (`--target NativeSmoke --rid <pa2-rid>`). The Cake host does not hard-code a RID allow-list; the preset file is the source of truth.
+> **NativeSmoke on PA-2 RIDs.** `tests/smoke-tests/native-smoke/CMakePresets.json` ships configure + build presets for every `manifest.runtimes[]` row (14 buildPresets total, Release + Debug per RID, since Slice E follow-up P8.4). `NativeSmoke` is not part of the `tools setup` chain — invoke it explicitly when you want native-level coverage on a local PA-2 reproduction (`--target NativeSmoke --rid <pa2-rid>`), or run `tools ci-sim` for the full 9-step host-RID replay that includes `NativeSmoke`. The Cake host does not hard-code a RID allow-list; the preset file is the source of truth.
 
 **Acceptance per witness:**
 

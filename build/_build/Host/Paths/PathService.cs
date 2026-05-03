@@ -288,11 +288,6 @@ public sealed class PathService : IPathService
         return RepoRoot.CombineWithFilePath("README.md");
     }
 
-    public FilePath GetLocalPropsFile()
-    {
-        return BuildDir.Combine("msbuild").CombineWithFilePath("Janset.Local.props");
-    }
-
     public DirectoryPath ResolveVersionsOutputDirectory => ArtifactsDir.Combine("resolve-versions");
 
     public FilePath GetResolveVersionsOutputFile()

@@ -106,8 +106,8 @@ See [docs/plan.md](docs/plan.md) for detailed status and roadmap.
 git clone --recursive https://github.com/janset2d/sdl2-cs-bindings.git
 cd sdl2-cs-bindings
 
-# Canonical local setup (V5): prepare local feed + smoke override in one step
-dotnet run --project build/_build -- --target SetupLocalDev --source=local
+# Canonical local setup: prepare local feed + smoke override in one step
+dotnet run --file tools.cs -- setup --source=local
 
 # Build managed bindings directly (fast managed-only path)
 dotnet build src/SDL2.Core/SDL2.Core.csproj

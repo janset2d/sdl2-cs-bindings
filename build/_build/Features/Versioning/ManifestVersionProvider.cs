@@ -20,11 +20,11 @@ namespace Build.Features.Versioning;
 /// </para>
 /// <para>
 /// Stage tasks do not instantiate this provider directly; they consume explicit versions.
-/// <c>ManifestVersionProvider</c>
-/// is instantiated inside <c>LocalArtifactSourceResolver.PrepareFeedAsync</c> (local-dev
-/// suffix) and inside the <c>ResolveVersions</c> task runner (CI manifest-derived mode),
-/// where the resolved mapping is then either handed to stage runners in-process or
-/// serialized to JSON for CI <c>needs:</c> consumption.
+/// <c>ManifestVersionProvider</c> is instantiated inside the <c>ResolveVersions</c> task
+/// runner — for both local-dev (suffix <c>local.&lt;timestamp&gt;</c>) and CI manifest-derived
+/// runs (suffix <c>ci.&lt;run-id&gt;.&lt;run-attempt&gt;</c>) — where the resolved mapping is
+/// serialized to <c>artifacts/resolve-versions/versions.json</c> for downstream targets and
+/// CI <c>needs:</c> consumption.
 /// </para>
 /// </summary>
 public sealed class ManifestVersionProvider(

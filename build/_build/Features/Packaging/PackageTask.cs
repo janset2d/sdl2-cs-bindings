@@ -18,17 +18,10 @@ public sealed class PackageTask(
 
     /// <summary>
     /// Pack is only meaningful when the operator (or a CI <c>resolve-versions</c> job output)
-    /// supplies at least one <c>--explicit-version family=semver</c> entry. When the mapping
-    /// is empty, this task is auto-skipped because the stage boundary is now explicit: local-dev
-    /// packaging flows through <c>SetupLocalDev --source=local</c>, and standalone/CI pack
-    /// invocations hand the resolved mapping through repeated <c>--explicit-version</c> entries.
-    /// <para>
-    /// Local-dev packs route through <c>SetupLocalDev --source=local</c>, which resolves a
-    /// local-suffixed mapping via <c>ManifestVersionProvider</c> and calls the runner directly
-    /// with a populated <see cref="PackRequest"/>. Direct <c>--target Package</c>
-    /// without any <c>--explicit-version</c> is a misuse that the skip surfaces visibly in the
-    /// Cake log rather than failing opaquely.
-    /// </para>
+    /// supplies at least one <c>--explicit-version family=semver</c> entry, or a <c>--versions-file</c>
+    /// pointing at a serialized mapping. When neither is supplied this task is auto-skipped:
+    /// direct <c>--target Package</c> without a resolved mapping is a misuse, and the skip
+    /// surfaces it visibly in the Cake log rather than failing opaquely inside the pack.
     /// </summary>
     public override bool ShouldRun(BuildContext context)
     {
@@ -39,7 +32,7 @@ public sealed class PackageTask(
             return true;
         }
 
-        _log.Information("Package task skipped: no --explicit-version mapping supplied. Local-dev packaging routes through SetupLocalDev; standalone and CI stage invocations must pass the resolved mapping through --explicit-version.");
+        _log.Information("Package task skipped: no --explicit-version / --versions-file mapping supplied. Pass the resolved per-family mapping via --explicit-version <family>=<semver> entries or --versions-file <path>.");
         return false;
     }
 

@@ -2,8 +2,8 @@
   <!--
     Janset.SDL2 developer sandbox. Pulls the shared smoke/consumer scaffolding from
     build/msbuild/Janset.Smoke.{props,targets} so that JansetSmokeSdl2Families below
-    expands into local-feed PackageReference entries via Janset.Smoke.local.props
-    (written by `SetupLocalDev` with source=local).
+    expands into local-feed PackageReference entries via Janset.Local.props
+    (written by the repo-root `tools setup` script with the `local` source).
   -->
   <Import Project="$(MSBuildThisFileDirectory)../../build/msbuild/Janset.Smoke.props" />
 

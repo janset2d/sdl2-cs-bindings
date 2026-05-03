@@ -11,7 +11,6 @@ using Build.Features.DependencyAnalysis;
 using Build.Features.Diagnostics;
 using Build.Features.Harvesting;
 using Build.Features.Info;
-using Build.Features.LocalDev;
 using Build.Features.Maintenance;
 using Build.Features.Packaging;
 using Build.Features.Preflight;
@@ -51,7 +50,6 @@ root.AddOption(VcpkgOptions.VcpkgDirOption);
 root.AddOption(VcpkgOptions.VcpkgInstalledDirOption);
 root.AddOption(VcpkgOptions.LibraryOption);
 root.AddOption(VcpkgOptions.RidOption);
-root.AddOption(PackageOptions.SourceOption);
 
 root.AddOption(VersioningOptions.VersionSourceOption);
 root.AddOption(VersioningOptions.VersionSuffixOption);
@@ -123,19 +121,10 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
         DotNet: provider.GetRequiredService<DotNetBuildConfiguration>(),
         Dumpbin: provider.GetRequiredService<DumpbinConfiguration>()));
 
-    var source = parsedArgs.Source?.Trim();
-    if (string.IsNullOrWhiteSpace(source))
-    {
-        throw new InvalidOperationException("--source cannot be empty. Allowed values: local, remote, release.");
-    }
-
-    // Composition root reads as the architectural index per ADR-004 §2.12: 13
+    // Composition root reads as the architectural index per ADR-004 §2.12: 12
     // per-feature AddXFeature() calls + 3 cross-cutting groupings (AddHostBuildingBlocks,
-    // AddIntegrations, AddToolWrappers). AddPackagingFeature carries the parsed --source
-    // CLI value because its resolver factory closure consumes it. AddHostBuildingBlocks
-    // takes parsedArgs for the same reason (IPathService consumes vcpkg-dir overrides).
-    // The LocalDev orchestration feature is registered last so every sibling pipeline it
-    // composes is already in the container (per ADR-004 §2.5 + §2.13 invariant #4 allowlist).
+    // AddIntegrations, AddToolWrappers). AddHostBuildingBlocks takes parsedArgs because
+    // IPathService consumes vcpkg-dir overrides.
     services
         .AddHostBuildingBlocks(parsedArgs)
         .AddIntegrations()
@@ -151,8 +140,7 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
         .AddPreflightFeature()
         .AddHarvestingFeature()
         .AddPublishingFeature()
-        .AddPackagingFeature(source)
-        .AddLocalDevFeature();
+        .AddPackagingFeature();
 }
 
 static async Task<DirectoryPath> DetermineRepoRootAsync(DirectoryInfo? repoRootArg)
@@ -287,7 +275,6 @@ namespace Build
         DirectoryInfo? VcpkgDir,
         DirectoryInfo? VcpkgInstalledDir,
         IList<string> Library,
-        string Source,
         string Rid,
         IList<string> Dll,
         string? VersionSource,

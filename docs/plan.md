@@ -2,7 +2,7 @@
 
 > **This is the canonical status document.** When code and docs disagree, verify against the code. When phases and this file disagree, this file wins.
 
-**Last updated**: 2026-05-02 (Phase X build-host modernization wave: P0 + P1 + P2 + Adım 13 + P3 + P4-A CLOSED on `master` at `d1127e4` — ADR-002 layered shape retired, ADR-004 5-folder shape live; P4-C large Pipeline decomposition + P5 not started)
+**Last updated**: 2026-05-03 (Phase Y Wave B in progress; Phase X build-host modernization wave: P0 + P1 + P2 + Adım 13 + P3 + P4-A CLOSED on `master` at `d1127e4` — ADR-002 layered shape retired, ADR-004 5-folder shape live; P4-C large Pipeline decomposition + P5 not started)
 **Maintainer**: Deniz Irgin (@denizirgin)
 
 ## Mission
@@ -36,6 +36,7 @@ Phase 2 is now divided into two stages:
 | P4-A Pipeline RunAsync cut-over | ✅ CLOSED | `d1127e4` | 11 Pipelines + 2 interfaces: `RunAsync(BuildContext, TRequest)` → `RunAsync(TRequest)`. ADR-004 §2.11.1 migration exception closed. 15 Tasks updated. CoverageCheckPipeline (sync, 11th) caught by adversarial review. VcpkgBootstrapTool relocated to `Integrations/Vcpkg/`. IPathService fluent split permanently discarded. Cross-platform: 515/515 all 3 hosts, ci-sim 9/9 on Win+Linux+macOS. |
 | P4-C Large Pipeline decomposition | ⏸️ NOT STARTED | — | Optional. Candidates: `PackageConsumerSmokePipeline`, `HarvestPipeline`, `PackagePipeline`. |
 | P5 Atomic Naming | ⏸️ NOT STARTED | — | `PreFlightCheck` → `Preflight`, `Coverage-Check` → `CoverageCheck`, `Inspect-HarvestedDependencies` → `InspectHarvestedDependencies`. |
+| Phase Y Wave B | 🟡 IN PROGRESS | — | Dev orchestration extraction: move setup/test/package workflows from Cake host into `tools.cs` repo-root file-based app; Cake host narrows to CI-only mission. |
 
 Phase X is **non-gating** for Phase 2 release work — they may interleave on `master` (commits during Phase X waves are pure-refactor, behaviour-signal byte-equal to baseline). See [phases/phase-x-build-host-modernization-2026-05-02.md](phases/phase-x-build-host-modernization-2026-05-02.md) for the full wave roadmap and P3/P4/P5 gates.
 

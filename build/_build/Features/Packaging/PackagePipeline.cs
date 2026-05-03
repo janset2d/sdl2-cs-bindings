@@ -40,8 +40,9 @@ public sealed class PackagePipeline : IPackagePipeline
     /// <c>ICakeContext.FileSystem</c> and hits <c>System.IO</c> directly via LibGit2Sharp's
     /// native binary — which means unit tests using <c>FakeFileSystem</c> cannot be served
     /// by the default resolver. Tests inject a stub lambda; production uses the default.
-    /// The end-to-end witness (smoke-witness.cs) exercises the default resolver against a
-    /// real repo, so default behaviour stays covered without an explicit integration test.
+    /// End-to-end runs against a real repo (CI <c>release.yml</c> + the host-RID Pack
+    /// invocations the dev orchestration script drives) exercise the default resolver,
+    /// so default behaviour stays covered without an explicit integration test.
     /// </summary>
     private readonly Func<string> _resolveHeadCommitSha;
 

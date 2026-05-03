@@ -2,7 +2,6 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Reflection;
 using Build.Features.Packaging;
-using Build.Features.Packaging.ArtifactSourceResolvers;
 using Build.Features.Preflight;
 using Build.Features.Publishing;
 using Build.Features.Versioning;
@@ -234,79 +233,6 @@ public sealed class ProgramCompositionRootTests
         await Assert.That(packageConsumerSmokePipeline.GetType()).IsEqualTo(typeof(PackageConsumerSmokePipeline));
     }
 
-    [Test]
-    public async Task ConfigureBuildServices_Should_Resolve_Remote_Source_Resolver()
-    {
-        var method = GetProgramHelper(
-            "g__ConfigureBuildServices",
-            typeof(IServiceCollection),
-            typeof(ParsedArguments),
-            typeof(DirectoryPath));
-
-        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
-            .WithManifest(CreateCompositionRootManifest("hybrid-static", "x64-windows-hybrid"))
-            .BuildContextWithHandles();
-
-        var services = CreateServiceCollectionForCompositionRoot(repo);
-        var parsedArguments = CreateParsedArguments(repo.RepoRoot.FullPath, "win-x64", "remote");
-
-        method.Invoke(null, [services, parsedArguments, repo.RepoRoot]);
-
-        using var provider = services.BuildServiceProvider();
-        var resolver = provider.GetRequiredService<IArtifactSourceResolver>();
-
-        await Assert.That(resolver.GetType()).IsEqualTo(typeof(RemoteArtifactSourceResolver));
-        await Assert.That(resolver.Profile).IsEqualTo(ArtifactProfile.RemoteInternal);
-    }
-
-    [Test]
-    public async Task ConfigureBuildServices_Should_Resolve_Release_Source_Resolver()
-    {
-        var method = GetProgramHelper(
-            "g__ConfigureBuildServices",
-            typeof(IServiceCollection),
-            typeof(ParsedArguments),
-            typeof(DirectoryPath));
-
-        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
-            .WithManifest(CreateCompositionRootManifest("hybrid-static", "x64-windows-hybrid"))
-            .BuildContextWithHandles();
-
-        var services = CreateServiceCollectionForCompositionRoot(repo);
-        var parsedArguments = CreateParsedArguments(repo.RepoRoot.FullPath, "win-x64", "release");
-
-        method.Invoke(null, [services, parsedArguments, repo.RepoRoot]);
-
-        using var provider = services.BuildServiceProvider();
-        var resolver = provider.GetRequiredService<IArtifactSourceResolver>();
-
-        await Assert.That(resolver.GetType()).IsEqualTo(typeof(UnsupportedArtifactSourceResolver));
-        await Assert.That(resolver.Profile).IsEqualTo(ArtifactProfile.ReleasePublic);
-    }
-
-    [Test]
-    public async Task ConfigureBuildServices_Should_Throw_When_Source_Is_Whitespace()
-    {
-        var method = GetProgramHelper(
-            "g__ConfigureBuildServices",
-            typeof(IServiceCollection),
-            typeof(ParsedArguments),
-            typeof(DirectoryPath));
-
-        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
-            .WithManifest(CreateCompositionRootManifest("hybrid-static", "x64-windows-hybrid"))
-            .BuildContextWithHandles();
-
-        var services = CreateServiceCollectionForCompositionRoot(repo);
-        var parsedArguments = CreateParsedArguments(repo.RepoRoot.FullPath, "win-x64", "   ");
-
-        var thrown = await Assert.That(() => method.Invoke(null, [services, parsedArguments, repo.RepoRoot]))
-            .Throws<TargetInvocationException>();
-
-        await Assert.That(thrown!.InnerException).IsNotNull();
-        await Assert.That(thrown.InnerException!.Message).Contains("--source cannot be empty");
-    }
-
     private static MethodInfo GetProgramHelper(string methodNameFragment, params Type[] parameterTypes)
     {
         var method = ProgramType
@@ -382,7 +308,7 @@ public sealed class ProgramCompositionRootTests
         return services;
     }
 
-    private static ParsedArguments CreateParsedArguments(string repoRoot, string rid, string source = "local")
+    private static ParsedArguments CreateParsedArguments(string repoRoot, string rid)
     {
         return new ParsedArguments(
             RepoRoot: new DirectoryInfo(repoRoot),
@@ -390,7 +316,6 @@ public sealed class ProgramCompositionRootTests
             VcpkgDir: null,
             VcpkgInstalledDir: null,
             Library: [],
-            Source: source,
             Rid: rid,
             Dll: [],
             VersionSource: null,

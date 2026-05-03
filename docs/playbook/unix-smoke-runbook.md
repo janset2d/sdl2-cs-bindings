@@ -4,11 +4,13 @@
 > `linux-x64`, Intel macOS over SSH for `osx-x64`). Platform differences are
 > parameterised via `$PLATFORM` / `$RID` / `$PRESET` env vars declared in §1.
 >
-> **Prefer `tests/scripts/smoke-witness.cs` when possible.** Since Slice BA
-> (2026-04-21) a single-file .NET 10 app collapses §1–§8 below into one
-> command (`./smoke-witness.cs local` for the SetupLocalDev + consumer smoke
-> path, `./smoke-witness.cs ci-sim` for the mini CI replay). Spectre UI +
-> auto log-tee into `.logs/witness/<platform>-<mode>-<runId>/`. This runbook
+> **Prefer the repo-root `tools.cs` script when possible.** Since Phase Y
+> (2026-05-03) the file-based .NET 10 dev-orchestration app collapses §1–§8
+> below into a single command per axis: `dotnet run --file tools.cs -- setup
+> --source=local` for the local-feed bootstrap + props write (host RID),
+> `dotnet run --file tools.cs -- ci-sim` for the 9-step mini CI replay
+> including `NativeSmoke` and `PackageConsumerSmoke`. Spectre UI + per-step
+> log-tee into `.logs/tools/<platform>-<subcommand>-<runId>/`. This runbook
 > remains authoritative for **manual deep-dive witnessing** — skipping
 > stages, first-time host bring-up where you want explicit per-command
 > feedback, triaging a specific Cake target in isolation.
@@ -228,12 +230,11 @@ dotnet run --project build/_build/Build.csproj -c Release -- \
   diagnostic; Harvest's internal scanner (during the harvest stage) is the
   one that gates deployment.
 
-## 6. Cake-first local feed + consumer smoke
+## 6. Local feed + consumer smoke
 
 ```bash
-dotnet run --project build/_build/Build.csproj -c Release -- \
-  --target SetupLocalDev --source=local --rid "$RID" --repo-root "$PWD" \
-  | tee "$LOG_DIR/40-setup-local-dev.log"
+dotnet run --file tools.cs -- setup --source=local \
+  | tee "$LOG_DIR/40-tools-setup.log"
 
 cat build/msbuild/Janset.Local.props | tee "$LOG_DIR/41-smoke-local-props.log"
 ls -1 artifacts/packages | tee "$LOG_DIR/42-packages.log"
@@ -245,15 +246,16 @@ ls -1 artifacts/packages | tee "$LOG_DIR/42-packages.log"
 
 **What to look for:**
 
-- `SetupLocalDev`: composes PreFlight → EnsureVcpkgDependencies → Harvest →
-  ConsolidateHarvest → Package internally via
-  `Application/Packaging/SetupLocalDevTaskRunner` (post-B2 split;
-  `LocalArtifactSourceResolver` narrows to verify-feed + stamp-props). `NativeSmoke`
-  is deliberately NOT in this chain — step §4 covered it separately. Writes
-  per-family D-3seg versions (`sdl2-core 2.32.0-local.<ts>`,
-  `sdl2-gfx 1.0.0-local.<ts>`, `sdl2-image/mixer 2.8.0-local.<ts>`,
-  `sdl2-ttf 2.24.0-local.<ts>`), produces 15 nupkgs in `artifacts/packages/`,
-  and writes `build/msbuild/Janset.Local.props` referencing them.
+- `tools setup --source=local`: orchestrates CleanArtifacts → ResolveVersions
+  (with `--suffix=local.<timestamp>` + per-concrete-family `--scope`) →
+  PreFlightCheck → EnsureVcpkgDependencies → Harvest → ConsolidateHarvest →
+  Package by spawning Cake target invocations. `NativeSmoke` is deliberately
+  NOT in this chain — step §4 covered it separately (and `tools ci-sim`
+  covers it as part of the full CI replay). Writes per-family D-3seg
+  versions (`sdl2-core 2.32.0-local.<ts>`, `sdl2-gfx 1.0.0-local.<ts>`,
+  `sdl2-image/mixer 2.8.0-local.<ts>`, `sdl2-ttf 2.24.0-local.<ts>`),
+  produces 15 nupkgs in `artifacts/packages/`, and writes
+  `build/msbuild/Janset.Local.props` referencing them.
 - `PackageConsumerSmoke`: internally loops executable TFMs resolved from
   `PackageConsumer.Smoke.csproj`'s `$(ExecutableTargetFrameworks)`. Per-platform
   net462 policy:
@@ -307,8 +309,8 @@ fi
   echo '--- inspect-deps per-lib counts ---'
   grep -E 'Primary binary resolved|deps\):' "$LOG_DIR/35-inspect-deps.log" || true
   echo
-  echo '--- setup-local-dev ---'
-  grep -E 'SetupLocalDev completed|Packed family|Failed' "$LOG_DIR/40-setup-local-dev.log" || true
+  echo '--- tools setup ---'
+  grep -E 'OK|Packed family|Failed' "$LOG_DIR/40-tools-setup.log" || true
   echo
   echo '--- consumer smoke ---'
   grep -E 'Test summary|failed:|succeeded:|total:|Skipping package-smoke' "$LOG_DIR/50-package-consumer-smoke.log" || true
@@ -326,7 +328,7 @@ At minimum, paste the contents of (or upload) these files:
 - `$LOG_DIR/25-native-smoke.log`
 - `$LOG_DIR/30-consolidate.log`
 - `$LOG_DIR/35-inspect-deps.log`
-- `$LOG_DIR/40-setup-local-dev.log`
+- `$LOG_DIR/40-tools-setup.log`
 - `$LOG_DIR/50-package-consumer-smoke.log`
 - `$LOG_DIR/99-quick-summary.log`
 

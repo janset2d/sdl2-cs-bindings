@@ -224,7 +224,6 @@ public sealed class FakeRepoBuilder
             VcpkgDir: null,
             VcpkgInstalledDir: null,
             Library: _libraries.ToList(),
-            Source: "local",
             Rid: _rid ?? string.Empty,
             Dll: [],
             VersionSource: null,

@@ -2,8 +2,8 @@
   <!--
     Consumer-side TUnit smoke. Feeds + versions + guards come from
     build/msbuild/Janset.Smoke.{props,targets} via tests/smoke-tests/Directory.Build.{props,targets}.
-    Values arrive either through SetupLocalDev's generated Janset.Smoke.local.props
-    (IDE/direct build path) or through Cake's PackageConsumerSmokeRunner.
+    Values arrive either through Janset.Local.props (written by the repo-root `tools setup`
+    script, IDE/direct build path) or through Cake's PackageConsumerSmokeRunner.
   -->
   <PropertyGroup>
     <!--

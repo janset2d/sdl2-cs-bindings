@@ -25,10 +25,10 @@ public sealed class PackageConsumerSmokeTask(
     /// <summary>
     /// Post-C.8 (Deniz Q5a decision, 2026-04-21): PackageConsumerSmoke is only meaningful
     /// when the operator or a CI <c>resolve-versions</c> job output supplies at least one
-    /// <c>--explicit-version family=semver</c> entry. When the mapping is empty, the task
-    /// is auto-skipped with a log hint pointing at <c>SetupLocalDev --source=local</c> (which
-    /// resolves the mapping locally) and at the canonical <c>--explicit-version</c> CLI
-    /// surface for ad-hoc invocations. Mirrors <c>PackageTask.ShouldRun</c> — same rationale.
+    /// <c>--explicit-version family=semver</c> entry (or a <c>--versions-file</c> mapping).
+    /// When the mapping is empty, the task is auto-skipped with a log hint pointing at the
+    /// canonical <c>--explicit-version</c> / <c>--versions-file</c> CLI surface. Mirrors
+    /// <c>PackageTask.ShouldRun</c> — same rationale.
     /// </summary>
     public override bool ShouldRun(BuildContext context)
     {
@@ -40,11 +40,10 @@ public sealed class PackageConsumerSmokeTask(
         }
 
         _log.Information(
-            "PackageConsumerSmoke skipped: no --explicit-version mapping supplied. Run " +
-            "'SetupLocalDev --source=local --rid <rid>' to resolve the mapping locally and " +
-            "follow up with '--target=PackageConsumerSmoke --explicit-version <family>=<semver>' " +
-            "(repeat per concrete family), or invoke via the CI matrix which threads the " +
-            "resolve-versions job's emitted mapping into this target.");
+            "PackageConsumerSmoke skipped: no --explicit-version / --versions-file mapping supplied. " +
+            "Pass --explicit-version <family>=<semver> per concrete family, or --versions-file <path> " +
+            "pointing at a serialized mapping (e.g. the artifact emitted by --target ResolveVersions, " +
+            "or the resolve-versions job's output threaded by the CI matrix).");
         return false;
     }
 

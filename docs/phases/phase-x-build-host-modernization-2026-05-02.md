@@ -37,7 +37,7 @@
 - Renaming of `LayerDependencyTests.cs` to `ArchitectureTests.cs` with an invariant rewrite around the ADR-004 5-folder shape.
 - Cake target naming cleanup (`PreFlightCheck` → `Preflight`, `Coverage-Check` → `CoverageCheck`, `Inspect-HarvestedDependencies` → `InspectHarvestedDependencies`).
 - Atomic same-commit updates of `release.yml`, `tests/scripts/smoke-witness.cs`, `docs/playbook/cross-platform-smoke-validation.md`, and any target-name references throughout live docs at the rename wave.
-- Retirement of `UnsupportedArtifactSourceResolver` (CLI parse-time validation replaces runtime failure).
+- Retirement of `UnsupportedArtifactSourceResolver` (retired in Phase Y Wave B — see `phase-y-dev-tools-extraction-2026-05-03.md`).
 - Pipeline `RunAsync(BuildContext, TRequest)` → `RunAsync(TRequest)` cut-over (closes ADR-004 §2.11.1 migration exception).
 - Interface review wave applying ADR-004 §2.9 three-criteria rule to surviving `I*` types.
 
@@ -50,11 +50,13 @@
 - `release.yml` 10-job topology — only target-name updates from §2.14, no job re-shuffle.
 - Pack guardrails (G14/G15/G16/G46/G54/G58) — preserved verbatim, relocated to feature folders.
 - `external/sdl2-cs` and any submodule — untouched.
-- Public CLI semantics — unchanged, **except for** ADR-004 §2.14 target-name normalization (`PreFlightCheck` → `Preflight`, `Coverage-Check` → `CoverageCheck`, `Inspect-HarvestedDependencies` → `InspectHarvestedDependencies`) and §2.15 `--source` narrowing (`release` / `release-public` retired until Phase 2b PD-7). Both shifts are explicit ADR-004 deliverables, landed atomically with their callsite updates in P5.
+- Public CLI semantics — unchanged, **except for** ADR-004 §2.14 target-name normalization (`PreFlightCheck` → `Preflight`, `Coverage-Check` → `CoverageCheck`, `Inspect-HarvestedDependencies` → `InspectHarvestedDependencies`). `--source` narrowing was moved to Phase Y Wave B (2026-05-03) which retired the entire `--source` CLI option and its `ArtifactSourceResolver` family.
 
 ### 1.4 Why a standalone phase
 
 Phase 2 / 2b are release-pipeline tracks (CI/CD, Publishing, RemoteArtifactSourceResolver tail). This refactor is structural — it touches every feature folder but should not change observable behavior. Mixing this migration into a Phase 2b commit train would produce unreviewable diffs and increase the risk of behavior regressions hiding inside structural changes.
+
+Phase Y (2026-05-03) handles Cake mission narrowing + dev-tools extraction as a parallel track outside this plan — Phase X is architectural shape, Phase Y is architectural scope.
 
 ### 1.5 Mechanical vs structural waves
 
@@ -69,7 +71,7 @@ This refactor is **not** a folder-renaming pass. Some waves are mechanical by de
 | **P3** | **Structural (interface seam)** | 32 interfaces reviewed; 4 stateless/mock-only seams removed; 28 retained with criterion labels. Test rewrites scoped per-interface. |
 | **P4-A** | **Structural (signature evolution)** | Pipeline `RunAsync(BuildContext, TRequest, CT)` → `RunAsync(TRequest, CT)` across 10 Pipelines + 2 interfaces; Pipeline constructors take narrow Cake abstractions (`ICakeContext`, `ICakeLog`, `IPathService`) via DI; 15 Tasks updated. ADR-004 §2.11.1 migration exception closed. |
 | **P4-C** | **Structural (decomposition, optional)** | Internal refactor of large Pipelines (PackageConsumerSmoke 688 LOC, Harvest 628, Package 556) into smaller per-concern co-located helpers. Per-Pipeline judgment; not gating. |
-| **P5** | Mechanical (atomic) | `[TaskName]` attribute string changes + smoke-witness step labels + `release.yml` `--target` references + `cross-platform-smoke-validation.md` A-K script + live-doc target-name mentions, **all in one commit per rename** per §9.3 ordering; `UnsupportedArtifactSourceResolver` retired with CLI parse-time validation replacing runtime failure. Behavior unchanged. |
+| **P5** | Mechanical (atomic) | Atomic same-commit target rename: `PreFlightCheck` → `Preflight`, `Coverage-Check` → `CoverageCheck`, `Inspect-HarvestedDependencies` → `InspectHarvestedDependencies`. `tools ci-sim` step labels + `release.yml` `--target` references + live-doc mentions updated in the same commit. `UnsupportedArtifactSourceResolver` retirement + `--source` narrowing moved to Phase Y Wave B. |
 
 **The substantive transformation is P2–P4.** P2 changes the mental model: from ADR-002's layered Application/Domain/Infrastructure shape with a half-service-locator `BuildContext` to ADR-004's "Features own behavior, BuildContext is invocation state, DI registers capabilities" model. P3 enforces the interface discipline. P4 closes the signature evolution — Pipelines become pure Request consumers; pure services take explicit inputs.
 
@@ -82,6 +84,8 @@ P1 and P5 are bracketed by design: mechanical, narrow-scoped, easy to review at 
 Three invariants govern the migration. Every wave commit must keep all three green.
 
 ### 2.1 smoke-witness behavior signal
+
+**Retired by Phase Y Wave A (2026-05-03).** This section was load-bearing during P0–P4-A; Phase Y Wave A retired the baseline scaffolding (`--emit-baseline` flag, `BaselineSignal`/`BaselineStep` records, `verify-baselines.cs`, `tests/scripts/baselines/*`). The dev pre-merge ritual is now `tools ci-sim` + manual step-list/exit-code diff. The §2.1.x sub-sections below are preserved as chronological evidence, not as load-bearing mechanism.
 
 [`tests/scripts/smoke-witness.cs`](../../tests/scripts/smoke-witness.cs) is the **black-box behavior contract** for the build host. It exercises Cake targets through `dotnet run` from outside the host, in three modes:
 
@@ -114,38 +118,40 @@ Behavior signal = the **ordered tuple** of `(step label, exit code)` pairs plus 
 
 This signal is **deterministic** across runs at a given commit. Wave commits compare baseline-before vs baseline-after — strict equality is the green criterion. Step duration, log path, and log content are intentionally outside the signal.
 
-#### 2.1.3 When the signal changes
+#### 2.1.3 When the signal changed (historical — Phase Y Wave A retired baseline files)
 
-Step labels and step ordering are the part that **may legitimately change** under this refactor:
+The baseline-file mechanism is retired; step labels are still observable via `tools ci-sim` console output and manually diffed, but there is no longer a committed JSON baseline or an automated cadence enforcing it.
 
-- **P5 naming cleanup wave:** `PreFlightCheck` → `Preflight`, `Coverage-Check` → `CoverageCheck`, `Inspect-HarvestedDependencies` → `InspectHarvestedDependencies`. The baseline file is updated atomically with the rename (same commit) and the new baseline is the wave's exit signal.
-- All other waves must **not** alter the signal. If a P1/P2/P3/P4 wave changes the step list or any exit code from the baseline, the migration is leaking behavior — wave is rejected, root-cause is found before re-attempting.
+- **P5 naming cleanup wave** will rename `PreFlightCheck` → `Preflight`, `Coverage-Check` → `CoverageCheck`, `Inspect-HarvestedDependencies` → `InspectHarvestedDependencies`. The `tools ci-sim` step labels must be updated in the same atomic commit that renames the Cake targets.
+- P1–P4-A waves were gated by baseline-file equality; all passed with MATCH. The baseline was a P0–P4-A safety net, now retired.
 
 #### 2.1.4 P0 deliverable: `--emit-baseline` flag
 
-`smoke-witness.cs` gains an opt-in `--emit-baseline <path>` flag in P0. When passed, the witness writes the §2.1.2 JSON to the given path after the run completes. This is the mechanical hook that wave commits use to capture before/after baselines without grep'ing console output.
+`smoke-witness.cs` gained an opt-in `--emit-baseline <path>` flag in P0. When passed, the witness wrote the §2.1.2 JSON to the given path after the run completed. **Phase Y Wave A (2026-05-03) removed this flag, the `BaselineSignal`/`BaselineStep` record types, the `EmitBaselineAsync` method, and all related parsing code.**
 
 #### 2.1.5 Loop cadence — fast vs milestone
 
-Per-host baseline files commit under `tests/scripts/baselines/`. Different files have different verification cadence to balance pre-merge friction against multi-host coverage:
+**Phase Y Wave A (2026-05-03) retired the baseline-file cadence.** The fast/milestone loop was a Phase X migration safety net. Post-Phase-Y, the dev pre-merge check is `dotnet run --file tools.cs -- ci-sim` and manually diffing the step list and exit codes against the last known-good run. Automated cadence is gone; baseline files under `tests/scripts/baselines/` are deleted. The paragraphs below are historical record, not active mechanism.
 
-**Fast loop — every wave commit boundary:**
+Per-host baseline files were committed under `tests/scripts/baselines/` (deleted by Phase Y Wave A). Different files had different verification cadence to balance pre-merge friction against multi-host coverage:
 
-- `smoke-witness-local-win-x64.json` — Windows host, `local` mode (`CleanArtifacts → SetupLocalDev → PackageConsumerSmoke`).
+**Fast loop — every wave commit boundary (retired):**
 
-This is the developer's pre-merge ritual: before opening a wave commit, run `cd tests/scripts && dotnet run smoke-witness.cs local --emit-baseline tmp.json` and diff against the committed baseline. Strict equality is the green criterion (per §2.1.2). The fast loop runs in ~5–10 minutes on warm vcpkg cache, ~15–30 minutes cold.
+- `smoke-witness-local-win-x64.json` — Windows host, `local` mode.
 
-**Milestone loop — every P-wave close commit boundary (P0 close, P1 close, ..., P5 close):**
+The developer's pre-merge ritual was: run `smoke-witness.cs local` and diff the step list against the committed baseline. Post-Phase-Y, this is replaced by `dotnet run --file tools.cs -- ci-sim` with manual step-list/exit-code diff.
+
+**Milestone loop — every P-wave close commit boundary (retired):**
 
 - `smoke-witness-local-linux-x64.json` — WSL Linux host, `local` mode.
-- `smoke-witness-local-osx-x64.json` — macOS Intel host, `local` mode (best-effort coverage; `ssh Armut@<host>` access typically suffices, not a wave-merge gating precondition per §10.5). The Intel slot covers the maintainer's available macOS hardware today; an `osx-arm64` companion baseline can be added the same way once an Apple Silicon host is in rotation.
-- `smoke-witness-ci-sim-win-x64.json` — Windows host, `ci-sim` mode (full pipeline replay: `CleanArtifacts → ResolveVersions → PreFlightCheck → EnsureVcpkgDependencies → Harvest → NativeSmoke → ConsolidateHarvest → Package → PackageConsumerSmoke`).
+- `smoke-witness-local-osx-x64.json` — macOS Intel host, `local` mode (best-effort).
+- `smoke-witness-ci-sim-win-x64.json` — Windows host, `ci-sim` mode (full pipeline replay).
 
-Milestone-loop baselines update at the same commit that closes a P-wave (e.g. the single P0 close commit, the final P1 close commit, etc.). Mid-wave commits do not touch milestone baselines. macOS coverage is **best-effort, not gating** — Linux + Windows-ci-sim suffice for the milestone gate; `osx-arm64` is captured opportunistically when host availability permits.
+Milestone-loop baselines were updated at P-wave close commits. macOS coverage was best-effort, not gating.
 
-**`verify-baselines.cs` helper (P0 deliverable, file-based app at `tests/scripts/verify-baselines.cs` per [Microsoft Learn — File-based apps](https://learn.microsoft.com/en-us/dotnet/core/sdk/file-based-apps)) operationalizes both loops.** Default invocation runs the fast loop; `--milestone` runs all milestone-loop baselines that the current host can reach. Implementation pattern matches `smoke-witness.cs`: spawns `smoke-witness.cs --emit-baseline tmp.json` per loop entry, deserializes both files via the same `JsonSerializer` options, compares logical tuples, prints a Spectre table with green/red rows. Non-zero exit on any mismatch — wave-rejection signal in §12.3.
+**`verify-baselines.cs` (deleted by Phase Y Wave A)** was a file-based app that operationalized both loops — spawning `smoke-witness.cs --emit-baseline <tmp>` per loop entry, comparing deserialized logical tuples, and printing a Spectre table. Non-zero exit on mismatch served as the wave-rejection signal in §12.3.
 
-The choice of file-based app over PowerShell/bash mirrors the existing `tests/scripts/global.json` directory-scope pattern (`.NET 10` SDK pinned for `tests/scripts/`, repo root pinned for build-host). One pattern, two scripts, zero shell-flavor proliferation.
+Both scripts were file-based .NET 10 apps with zero shell-flavor proliferation. Only `smoke-witness.cs` survives post-Phase-Y Wave A (minus the `--emit-baseline` flag); `verify-baselines.cs` is deleted.
 
 ### 2.2 ArchitectureTests
 

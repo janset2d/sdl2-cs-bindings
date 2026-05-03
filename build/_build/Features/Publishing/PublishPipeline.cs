@@ -18,9 +18,10 @@ public sealed class PublishPipeline(
     ManifestConfig manifestConfig,
     INuGetFeedClient feedClient)
 {
-    // local.<timestamp> is the suffix shape SetupLocalDevFlow stamps onto local-pack
-    // versions. Refusing to push these prevents an operator stumbling --target PublishStaging
-    // after --source=local and shipping ephemeral local builds to the staging feed.
+    // local.<timestamp> is the suffix shape ResolveVersions stamps onto local-pack versions
+    // when invoked with --suffix=local.<ts>. Refusing to push these prevents an operator
+    // stumbling --target PublishStaging after a local pack and shipping ephemeral local
+    // builds to the staging feed.
     private const string LocalSuffixPrefix = "local.";
 
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
