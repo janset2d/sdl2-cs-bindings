@@ -8,7 +8,7 @@ public interface IRuntimeProfile
 
     /// <summary>
     /// Build-host-local OS family for this runtime profile, decoupled from Cake's
-    /// <c>PlatformFamily</c>. Per ADR-004 §2.6 the Shared layer carries no Cake deps.
+    /// <c>PlatformFamily</c>. The Shared layer carries no Cake deps.
     /// Cake-tier code (Tools, Cake extensions) reads <c>ICakePlatform.Family</c> directly.
     /// </summary>
     RuntimeFamily Family { get; }

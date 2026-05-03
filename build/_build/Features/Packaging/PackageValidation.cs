@@ -3,9 +3,8 @@ using Cake.Core.IO;
 namespace Build.Features.Packaging;
 
 /// <summary>
-/// Enumerates the post-S1 nuspec guardrails checked by <c>IPackageOutputValidator</c>.
-/// Each constant maps 1:1 to a guardrail in
-/// <c>docs/knowledge-base/release-guardrails.md</c>.
+/// Enumerates the nuspec guardrails checked by <c>IPackageOutputValidator</c>.
+/// Each constant maps 1:1 to a guardrail in the release-guardrails documentation.
 /// </summary>
 public enum PackageValidationCheckKind
 {
@@ -47,7 +46,7 @@ public enum PackageValidationCheckKind
 
     /// <summary>
     /// G51 — native package ships at least one third-party license entry under
-    /// <c>licenses/</c>. Defends against the H1 failure mode where a Harvest-without-
+    /// <c>licenses/</c>. Defends against the failure mode where a Harvest-without-
     /// Consolidate sequence produces a valid-looking nupkg with native assets but zero
     /// license attribution. Pairs with the HarvestTask invalidation + PackagePipeline
     /// receipt gate; this post-pack check is the last line of defence if upstream gates

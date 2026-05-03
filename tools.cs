@@ -119,7 +119,7 @@ public sealed class SetupCommand : AsyncCommand<SetupSettings>
 
     private static int RunRemoteNuGetStub()
     {
-        AnsiConsole.MarkupLine("[yellow]remote-nuget source not yet implemented (Phase 2b PD-7 territory).[/]");
+        AnsiConsole.MarkupLine("[yellow]remote-nuget source not yet implemented.[/]");
         return 64;
     }
 

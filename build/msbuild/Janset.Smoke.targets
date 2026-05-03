@@ -8,9 +8,6 @@
     Depends on properties declared in Janset.Smoke.props. Each version-property guard is
     conditional on the consumer actually referencing the corresponding package — a project
     that only references Janset.SDL2.Core should not need a version for sdl2-image.
-
-    See also: docs/playbook/cross-platform-smoke-validation.md (Authoring new smoke
-    projects) for the full consumer contract.
   -->
 
   <!--
@@ -86,7 +83,7 @@
 
     <Error
       Code="JNSMK009"
-      Text="Smoke project declared neither JansetSmokeSdl2Families nor JansetSmokeSdl3Families. A smoke csproj must select exactly one SDL generation via one of those property lists (e.g. '&lt;JansetSmokeSdl2Families&gt;Core;Image;Mixer;Ttf;Gfx&lt;/JansetSmokeSdl2Families&gt;'). See docs/playbook/cross-platform-smoke-validation.md §'Authoring New Smoke Projects'."
+      Text="Smoke project declared neither JansetSmokeSdl2Families nor JansetSmokeSdl3Families. A smoke csproj must select exactly one SDL generation via one of those property lists (e.g. '&lt;JansetSmokeSdl2Families&gt;Core;Image;Mixer;Ttf;Gfx&lt;/JansetSmokeSdl2Families&gt;'). Set the property to one or more semicolon-delimited family roles."
       Condition="'$(JansetSmokeSdl2Families)' == '' and '$(JansetSmokeSdl3Families)' == ''" />
   </Target>
 

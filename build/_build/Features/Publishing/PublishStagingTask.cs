@@ -9,7 +9,7 @@ using Cake.Frosting;
 namespace Build.Features.Publishing;
 
 [TaskName("PublishStaging")]
-[TaskDescription("Pushes packed nupkgs to the GitHub Packages staging feed (PD-5 write path).")]
+[TaskDescription("Pushes packed nupkgs to the GitHub Packages staging feed.")]
 [SuppressMessage("Minor Code Smell", "S1075:URIs should not be hardcoded",
     Justification = "Internal feed URL is part of the release-lifecycle contract, not operator-tunable.")]
 public sealed class PublishStagingTask(
@@ -68,6 +68,6 @@ public sealed class PublishStagingTask(
         throw new CakeException(
             $"PublishStaging requires a GitHub Packages auth token. Set one of: {string.Join(", ", AuthEnvVarChain)}. " +
             "CI: release.yml maps ${{ secrets.GITHUB_TOKEN }} into GH_TOKEN automatically. " +
-            "Local PD-8 escape hatch: 'gh auth token' produces a usable value (PAT with write:packages scope works too).");
+            "Local escape hatch: 'gh auth token' produces a usable value (PAT with write:packages scope works too).");
     }
 }

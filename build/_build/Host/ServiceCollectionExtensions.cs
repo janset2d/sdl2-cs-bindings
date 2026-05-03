@@ -13,7 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Build.Host;
 
 /// <summary>
-/// Composition-root grouping for Host-tier services (ADR-004 §2.11 + §2.12):
+/// Composition-root grouping for Host-tier services:
 /// path resolution, runtime profile, manifest-derived singletons, and the
 /// per-platform <see cref="IRuntimeScanner"/> dispatch closure. Manifest-derived
 /// configs (<see cref="ManifestConfig"/>, <see cref="RuntimeConfig"/>,

@@ -5,6 +5,8 @@
 **Owner:** Deniz İrgin (@denizirgin).
 **Authorship:** Drafted during plan-first session 2026-04-21; revised after three-reviewer critical pass; updated as slices land.
 
+> **Note:** The `SetupLocalDev` Cake target and `IArtifactSourceResolver` abstraction described throughout this plan were retired by Phase Y (2026-05-03). The multi-feature composition now lives in repo-root `tools.cs`. Commands in this plan that reference `--target SetupLocalDev --source=...` should be read as `tools setup --source=...` in the post-Phase-Y operator surface. The Status line above reflects the historical state when this plan was authored; the implementation has since landed and the plan serves as a historical record.
+
 **Prerequisites (read these first):**
 
 - [ADR-001 — D-3seg Versioning, Package-First Local Dev, Artifact Source Profile](../decisions/2026-04-18-versioning-d3seg.md)
@@ -1074,7 +1076,6 @@ To keep the pass tractable, these are explicitly deferred:
 - **PD-15 sdl2-gfx Unix visibility regression guard.** Separate decision thread.
 - **`dotnet-affected` change-detection (Stream E full impl).** Scope-reduced to 2a spike only; full impl is Phase 2b.
 - **`IPayloadLayoutPolicy` extraction.** Deferral conditional on PackageTask landing; PackageTask has landed; the extraction-or-retirement decision is deferred past this pass unless pure-dynamic strategy re-enters scope.
-- **`phase-x-modernization-2026-04-20.md` items (M0–M8).** Orthogonal modernization track.
 
 ---
 

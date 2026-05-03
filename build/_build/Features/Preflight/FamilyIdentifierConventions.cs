@@ -3,8 +3,7 @@ using System.Globalization;
 namespace Build.Features.Preflight;
 
 /// <summary>
-/// Canonical family-identifier naming conventions per
-/// <c>docs/knowledge-base/release-lifecycle-direction.md §1</c>.
+/// Canonical family-identifier naming conventions.
 /// </summary>
 /// <remarks>
 /// Family identifier format: <c>sdl&lt;major&gt;-&lt;role&gt;</c> (lowercase, kebab).

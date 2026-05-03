@@ -165,34 +165,11 @@ Operationally this means:
 
 ### 2.7 Artifact Source Profile abstraction
 
-A single Cake-level abstraction governs where artifacts come from and where/how the local feed is populated.
-
-```csharp
-public enum ArtifactProfile
-{
-    Local,            // repo-local pack produces the feed
-    RemoteInternal,   // internal feed (GitHub Packages or equivalent) populates local cache
-    ReleasePublic     // public NuGet.org is the origin (promotion path)
-}
-
-public interface IArtifactSourceResolver
-{
-    ArtifactProfile Profile { get; }
-    Task PrepareFeedAsync(CancellationToken ct);
-    DirectoryPath LocalFeedPath { get; }
-    Task WriteConsumerOverrideAsync(CancellationToken ct); // writes Janset.Local.props
-}
-```
-
-Current implementation state: `Local` and `RemoteInternal` are implemented. `Local` builds the repo packages into the local folder feed; `RemoteInternal` downloads managed/native package pairs from the GitHub Packages internal feed into the same local feed layout. `ReleasePublic` remains intentionally unsupported until the public NuGet promotion path lands.
+The consumer-feed seam responsibility moved to repo-root `tools.cs setup` in Phase Y (2026-05-03). The Cake host no longer carries an `IArtifactSourceResolver` abstraction.
 
 ### 2.8 Local dev UX contract
 
-A new Cake task `SetupLocalDev` is the canonical entry point for a developer booting a fresh checkout.
-
-```bash
-dotnet run --project build/_build -- --target SetupLocalDev --source=local
-```
+`tools setup --source=local` is the canonical entry point for a developer booting a fresh checkout (then `SetupLocalDev --source=local`, now `tools setup --source=local` after Phase Y).
 
 The task:
 
@@ -201,7 +178,7 @@ The task:
 3. Runs `Harvest` + `ConsolidateHarvest` + `Package` (all families) at an auto-generated upstream-aligned prerelease version per family, e.g.:
    - `sdl2-core-2.32.0-local.<YYYYMMDDTHHMMSS>`
    - `sdl2-image-2.8.0-local.<YYYYMMDDTHHMMSS>`
-   - (one timestamp shared across families for a given `SetupLocalDev` invocation)
+   - (one timestamp shared across families for a given `tools setup` invocation)
 4. Writes `build/msbuild/Janset.Local.props` (gitignored) with:
    - `<LocalPackageFeed>` pointing to `artifacts/packages`.
    - Per-family `<JansetSdl<N><Role>PackageVersion>` set to the freshly-packed versions.
@@ -214,7 +191,7 @@ The task:
         Condition="Exists('$(MSBuildThisFileDirectory)Janset.Local.props')" />
 ```
 
-The `--source=remote` variant skips steps 1–3 and instead pulls prebuilt nupkgs from the internal GitHub Packages feed into a local cache; the override-file write (step 4) and IDE readiness (step 5) are identical.
+The `tools setup --source=remote-github` variant (previously `--source=remote`) skips steps 1–3 and instead pulls prebuilt nupkgs from the internal GitHub Packages feed into a local cache; the override-file write (step 4) and IDE readiness (step 5) are identical.
 
 ### 2.9 New preflight + post-pack guardrails (G54–G57)
 
@@ -258,7 +235,7 @@ The `Janset.SDL2` meta-package remains defined per `release-lifecycle-direction.
 ### 3.4 Why profile abstraction (Local / RemoteInternal / ReleasePublic)
 
 - **Same consumer contract across modes.** The thing that varies is feed preparation, not consumer behavior. Abstraction captures the actual variability point.
-- **CI and local dev converge on one mental model.** `SetupLocalDev --source=remote` is the "download the CI-produced packages and run smoke" equivalent of what external adopters will do.
+- **CI and local dev converge on one mental model.** `tools setup --source=remote-github` is the "download the CI-produced packages and run smoke" equivalent of what external adopters will do.
 - **Stream D-ci work is pre-locked at the interface level.** When CI pipeline implementation happens in Phase 2b, it plugs into `RemoteInternal` + `ReleasePublic` resolvers without reshaping the consumer surface.
 
 ### 3.5 Why metadata file + README mapping over version-string encoding
@@ -278,7 +255,7 @@ The `Janset.SDL2` meta-package remains defined per `release-lifecycle-direction.
 - Smoke, examples, sandbox, and external consumers exercise the same consumer code path. Bug classes collapse.
 - MinVer works as designed, no 4-part workarounds.
 - Artifact Source Profile abstraction future-proofs CI integration.
-- `SetupLocalDev` offers a one-command path from fresh clone to IDE-ready smoke.
+- `tools setup --source=local` offers a one-command path from fresh clone to IDE-ready smoke.
 - PreFlight G54 + post-pack G55–G57 replace weak conventional hygiene with structural enforcement.
 
 ### 4.2 Negative / trade-offs accepted
@@ -286,7 +263,7 @@ The `Janset.SDL2` meta-package remains defined per `release-lifecycle-direction.
 - **Breaking managed API change path is abnormal.** Requires a separate future ADR when it happens. Accepted because it's expected to be rare and because forcing a binding-rewrite scenario to fit SemVer-major signal was not worth the version-shape complication.
 - **Cross-family version shapes differ visually** (Core `2.32.x` vs Image `2.8.x` vs Gfx `1.0.x`). Accepted because `release-lifecycle-direction.md` §3 "Version Independence" already made this a design principle; D-3seg now makes it literal. README mapping table explains.
 - **SDL upstream patch version is invisible in the family version string.** Consumer must consult metadata file or README to learn that `Janset.SDL2.Core 2.32.0` wraps SDL 2.32.10 vs 2.32.12. Accepted; metadata file + mapping table are the compensating mechanism.
-- **`SetupLocalDev` full loop on a fresh clone is not instant.** vcpkg install on Linux in particular is slow on first run (no cache). Accepted; subsequent runs hit the vcpkg binary cache.
+- **`tools setup --source=local` full loop on a fresh clone is not instant.** vcpkg install on Linux in particular is slow on first run (no cache). Accepted; subsequent runs hit the vcpkg binary cache.
 - **Source Mode research work is superseded.** The symlink-preservation findings remain useful reference material (for future remote-feed tar extraction), but the ProjectReference mechanism is retired.
 - **Binding-debug fast-loop flow is no longer mainline.** If and when needed, a separate harness will be established. Accepted.
 - **Phase 2b workload includes patch-bump strict enforcement and public promotion.** RemoteInternal has since landed; public NuGet promotion remains tracked under PD-7.
@@ -336,10 +313,7 @@ ADR-001 is implemented as the current package/versioning baseline.
 - `native_lib_version` was removed from manifest models and fixtures.
 - G54-G57 package/version guardrails are implemented.
 - Package metadata and README mapping-table generation are wired into Pack.
-- `IArtifactSourceResolver` and `ArtifactProfile` are implemented.
-- `LocalArtifactSourceResolver` supports repo-local package production.
-- `RemoteArtifactSourceResolver` supports GitHub Packages internal feed acquisition.
-- `ReleasePublic` remains unsupported until public NuGet promotion lands.
+- The feed-prep concern was extracted to `tools.cs setup` in Phase Y (2026-05-03).
 - `Janset.Local.props` is the local consumer override contract.
 - Source Mode / ProjectReference-based native payloads are retired.
 

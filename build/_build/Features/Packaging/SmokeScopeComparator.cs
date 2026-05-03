@@ -62,13 +62,12 @@ public static class SmokeScopeComparator
             }
         }
 
-        // Path 2 (post-S1 canonical pattern): <JansetSmokeSdl{2,3}Families>Core;Image;…</…>
+        // Path 2 (canonical pattern): <JansetSmokeSdl{2,3}Families>Core;Image;…</…>
         // property. build/msbuild/Janset.Smoke.targets auto-expands the semicolon-
         // separated role list into Janset.SDL<N>.<Role> PackageReference items at
         // MSBuild eval time. Raw XML parsing cannot see that expansion, so we replicate
         // the role → package-id mapping here. Keeps drift detection accurate under the
-        // authoring convention documented in docs/playbook/cross-platform-smoke-validation.md
-        // §"Authoring New Smoke / Example Consumer Projects".
+        // authoring convention for the smoke consumer projects.
         ExpandFamilyListProperty(doc, "JansetSmokeSdl2Families", generation: "2", identities);
         ExpandFamilyListProperty(doc, "JansetSmokeSdl3Families", generation: "3", identities);
 

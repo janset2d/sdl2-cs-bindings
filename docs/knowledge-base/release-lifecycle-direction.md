@@ -9,7 +9,7 @@
 > **Decision records binding this document:**
 >
 > - [ADR-001: D-3seg Versioning, Package-First Local Dev, Artifact Source Profile Abstraction](../decisions/2026-04-18-versioning-d3seg.md) — authoritative for §3, §4 cross-family upper bound, §7, and Tradeoffs #4/#5.
-> - [ADR-003: Release Lifecycle Orchestration + Version Source Providers](../decisions/2026-04-20-release-lifecycle-orchestration.md) — authoritative for pipeline-stage ownership, version-source provider contracts, invocation semantics, `SetupLocalDev` composition model, and the PD-13 `--family-version` retirement direction.
+> - [ADR-003: Release Lifecycle Orchestration + Version Source Providers](../decisions/2026-04-20-release-lifecycle-orchestration.md) — authoritative for pipeline-stage ownership, version-source provider contracts, invocation semantics, the (now-retired) `SetupLocalDev` composition model (Phase Y, 2026-05-03 — orchestration moved to `tools.cs`), and the PD-13 `--family-version` retirement direction.
 >
 > **Research basis:** Four independent research efforts converged on the prior (pre-D-3seg) conclusions; ADR-001 refined the versioning and consumer-contract decisions on 2026-04-18; ADR-003 formalized the orchestration ownership model on 2026-04-20:
 >
@@ -284,7 +284,7 @@ The matrix is generated dynamically from `manifest.json` runtimes section. No ha
 ### Stage 1: Local Folder Feed
 
 - Produced by the build system's package task locally.
-- Used for `SetupLocalDev`-driven local package validation, IDE-ready smoke restore/build, and other local package-consumer development.
+- Used for `tools setup`-driven local package validation, IDE-ready smoke restore/build, and other local package-consumer development.
 - No external infrastructure required.
 
 ### Stage 2: Internal Feed (Staging)

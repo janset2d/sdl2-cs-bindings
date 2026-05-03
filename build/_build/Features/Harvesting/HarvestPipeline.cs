@@ -154,7 +154,7 @@ public sealed class HarvestPipeline(
         var paths = _pathService;
         var currentRidRuntimeRoot = paths.GetHarvestLibraryRidRuntimesDir(manifest.Name, _runtimeProfile.Rid);
         var currentRidStatusFile = paths.GetHarvestLibraryRidStatusFile(manifest.Name, _runtimeProfile.Rid);
-        // Post-H1 (2026-04-18): license cleanup is RID-scoped to match the RID-scoped deployment
+        // License cleanup is RID-scoped to match the RID-scoped deployment
         // layout written by ArtifactPlanner. Sibling RIDs keep their license evidence intact;
         // cross-RID consolidation belongs to ConsolidateHarvestTask, not Harvest's per-RID run.
         var currentRidLicenseRoot = paths.GetHarvestLibraryRidLicensesDir(manifest.Name, _runtimeProfile.Rid);
@@ -179,7 +179,7 @@ public sealed class HarvestPipeline(
     }
 
     /// <summary>
-    /// H1 invalidation: any Harvest re-run can change the successful-RID set OR the per-RID
+    /// Invalidation: any Harvest re-run can change the successful-RID set OR the per-RID
     /// license evidence, so the cross-RID receipts produced by ConsolidateHarvestTask
     /// (licenses/_consolidated/, harvest-manifest.json, harvest-summary.json) are always
     /// stale after Harvest touches this library. Deleting them here turns the implicit

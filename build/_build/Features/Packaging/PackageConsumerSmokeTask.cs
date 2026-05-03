@@ -23,7 +23,7 @@ public sealed class PackageConsumerSmokeTask(
     private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
 
     /// <summary>
-    /// Post-C.8 (Deniz Q5a decision, 2026-04-21): PackageConsumerSmoke is only meaningful
+    /// PackageConsumerSmoke is only meaningful
     /// when the operator or a CI <c>resolve-versions</c> job output supplies at least one
     /// <c>--explicit-version family=semver</c> entry (or a <c>--versions-file</c> mapping).
     /// When the mapping is empty, the task is auto-skipped with a log hint pointing at the

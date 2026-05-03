@@ -32,7 +32,7 @@ A 2026-05-01 critique pass (preserved at [`docs/reviews/code-review-conversation
 
 A build host is not a domain application. It is a release machine — a directed acyclic graph of operations, each producing artifacts consumed by the next. The natural mental model is the **operational journey**, not the **domain model**.
 
-ADR-002 was the right call for the first refactor cycle. But the layered shape has reached its ceiling: every Phase-2b additional operation (`PublishStaging`, `GenerateMatrix`, `ResolveVersions`, `PreflightReporter`, three `IArtifactSourceResolver` profiles) accelerated the file-count trajectory ADR-002 was supposed to halt — because the layered shape inadvertently rewards adding a fourth file (model + interface + impl + validator) per concern instead of co-locating them by operation.
+ADR-002 was the right call for the first refactor cycle. But the layered shape has reached its ceiling: every Phase-2b additional operation (`PublishStaging`, `GenerateMatrix`, `ResolveVersions`, `PreflightReporter`, `IArtifactSourceResolver` profiles (retired in Phase Y 2026-05-03)) accelerated the file-count trajectory ADR-002 was supposed to halt — because the layered shape inadvertently rewards adding a fourth file (model + interface + impl + validator) per concern instead of co-locating them by operation.
 
 > **Motto for the new shape:** *Features own behavior. Shared owns vocabulary. Tools run commands. Host runs Cake. Dev orchestration lives outside Cake — see tools.cs.*
 
@@ -342,7 +342,7 @@ ADR-002 §2.3's three-criteria rule is preserved with one refinement: **test moc
 
 An interface earns its existence only if it satisfies one of:
 
-1. **Multiple production implementations exist today.** Polymorphic dispatch by profile, platform, or strategy. Examples: `IRuntimeScanner` (3 OS impls), `IPackagingStrategy` (2 strategy impls), `IDependencyPolicyValidator` (2 strategy impls), `IArtifactSourceResolver` (Local / Remote profiles per ADR-001 §2.7).
+1. **Multiple production implementations exist today.** Polymorphic dispatch by profile, platform, or strategy. Examples: `IRuntimeScanner` (3 OS impls), `IPackagingStrategy` (2 strategy impls), `IDependencyPolicyValidator` (2 strategy impls), `IArtifactSourceResolver` (2 profiles, retired in Phase Y 2026-05-03 — its feed-prep concern moved to `tools.cs setup`).
 
 2. **The interface formalizes an independent axis of change.** Even with one implementation today, the contract is part of an architectural seam recognized by the project. The reviewer must be able to state the axis in one sentence (e.g., "feed protocol could swap from NuGet HTTP to local filesystem"). Speculation does not qualify.
 
@@ -360,7 +360,7 @@ An interface earns its existence only if it satisfies one of:
 
 - `IRuntimeScanner` (criterion 1: 3 OS impls)
 - `IPackagingStrategy`, `IDependencyPolicyValidator` (criterion 1: 2 impls each)
-- `IArtifactSourceResolver` (criterion 1: 2 active profiles + ADR-001 §2.7 ReleasePublic landing in Phase 2b)
+- `IArtifactSourceResolver` (retired in Phase Y 2026-05-03 — feed-prep seam moved to `tools.cs setup`; was criterion 1: 2 profiles)
 - `INuGetFeedClient`, `IDotNetPackInvoker`, `IProjectMetadataReader`, `IVcpkgManifestReader`, `IMsvcDevEnvironment` (criterion 2: external boundary contracts)
 
 #### 2.9.1 Delegate-hook pattern for non-mockable third-party boundaries
@@ -636,7 +636,7 @@ A flat top-level (`_build/Harvest/`, `_build/Package/`, `_build/Tools/`, `_build
 
 This ADR does NOT:
 
-- Reduce the public Cake target surface or change CLI semantics (Phase Y retired `--source`; see `phase-y-dev-tools-extraction-2026-05-03.md`).
+- Reduce the public Cake target surface or change CLI semantics (Phase Y retired `--source`).
 - Change `manifest.json` contract or guardrail G-numbering.
 - Introduce a Roslyn analyzer to enforce architecture rules — `ArchitectureTests` covers the same ground at lower cost.
 - Move tests outside `build/_build.Tests/`.
@@ -648,7 +648,7 @@ This ADR does NOT:
 
 ## 6. Implementation phases
 
-Implementation is governed by a separate refactor plan at [`docs/phases/phase-x-build-host-modernization-2026-05-02.md`](../phases/phase-x-build-host-modernization-2026-05-02.md). Summary:
+The architecture was implemented across the following waves (all closed on `master`):
 
 | Phase | Scope | Risk | ADR section |
 |---|---|---|---|
@@ -673,7 +673,6 @@ P0 must complete before P1. P1 + P2 land per-feature with green tests at every w
 - [ADR-003 (Release Lifecycle Orchestration)](2026-04-20-release-lifecycle-orchestration.md) — invariants unchanged; internal-layout references updated to ADR-004 shape.
 - [`docs/reviews/code-review-conversation.txt`](../reviews/code-review-conversation.txt) — 2026-05-01 critique pass (first reviewer).
 - [`docs/reviews/conversation-2.txt`](../reviews/conversation-2.txt) — 2026-05-01 critique extension (second reviewer + first reviewer's revision).
-- `docs/phases/phase-x-build-host-modernization-2026-05-02.md` — refactor plan (next deliverable).
 
 ### 7.2 External / inspirational
 
@@ -689,4 +688,4 @@ P0 must complete before P1. P1 + P2 land per-feature with green tests at every w
 | 2026-05-02 | Initial draft and adoption | Deniz İrgin + 2026-05-01 collaborative critique synthesis |
 | 2026-05-02 | Same-day batch revision — pre-finalization comments folded in (`docs/reviews/mycomments.txt`): SetupLocalDev → `Features/LocalDev/` (§2.3, §2.5); architecture rule #4 orchestration-feature exception (§2.13); Pipeline LOC threshold reframed as smell signal (§2.4); `BuildContext` boundary rule sharpened — Pipelines target `RunAsync(TRequest)`, services take explicit inputs, Tools take narrow Cake abstractions (§2.11.1–§2.11.3); `Shared/Results` admission criteria + Strategy-domain co-location exception (§2.6.1); `LayerDependencyTests` rename consolidated to P2 wave (§2.13, §6); `Features/Common/` renamed to `Features/Info/`; `AddLocalDevFeature()` added to composition root chain (§2.12); `Shared/` no-Cake invariant strengthened with bounded P1 migration exception for legacy `RuntimeProfile` Cake `PlatformFamily` references (§2.6, §2.13); Request DTO conventions wording de-Turkified (§2.11.2); `MsvcDevEnvironment` relocated from `Tools/` to `Integrations/Msvc/` — not a Cake `Tool<T>`, calls `vcvarsall.bat` (§2.7, §2.8); atomic-wave commit clarification (§2.14); `§1.2` motto added | Deniz İrgin |
 | 2026-05-02 | P0-kickoff session refinement: §2.14 rename criterion paragraph (plain-PascalCase trigger rule — hyphen segments + inner mixed-case as the only renames; PascalCase names with semantic prefixes retained) | Deniz İrgin (+ P0-kickoff session refactor) |
-| 2026-05-02 | P0 + P1 + P2 migration waves closed on `master` (commits `b18002f`, `651ac2f`, `e602b6c`, `b6de515`, `3ab2e68`). The ADR-002 layered shape (`Tasks/Application/Domain/Infrastructure/Context`) is fully retired in production code; the ADR-004 5-folder shape (`Host/Features/Shared/Tools/Integrations`) is live with 13 feature folders, per-feature `ServiceCollectionExtensions` × 13, BuildContext slimmed to 4 properties (`Paths`, `Runtime`, `Manifest`, `Options`) per §2.11, BuildOptions aggregate per §2.11.1, `*TaskRunner` → `*Pipeline` rename per §2.10, `SetupLocalDevTaskRunner` → `SetupLocalDevFlow` per §2.5, and `LayerDependencyTests` → `ArchitectureTests` rewrite per §2.13 (5 invariants; 3 currently skipped with explicit P3 deadline tracking per [phase-x §14 Adım 13](../phases/phase-x-build-host-modernization-2026-05-02.md#14-ad%C4%B1m-13-post-p2-follow-up-wave)). `Shared/` no-Cake invariant closed — `Build.Shared.Runtime.RuntimeFamily` build-host-local enum replaces `Cake.Core.PlatformFamily`, `IRuntimeProfile.IsSystemFile(string)` replaces `(FilePath)` per the §2.6 P1 transitional exception closure rule. Pre-P3 gate: Adım 13 (post-P2 follow-up wave) closes the remaining cross-tier violations (BinaryClosure / HarvestManifest / Coverage&Packaging result types into `Shared/<X>/`) and lands the deferred `ServiceCollectionExtensions` smokes + `cake-build-architecture.md` doc rewrite. **No ADR-004 invariants change in this entry — only realisation status.** | Deniz İrgin (+ P2-close session sweep) |
+| 2026-05-02 | P0 + P1 + P2 migration waves closed on `master` (commits `b18002f`, `651ac2f`, `e602b6c`, `b6de515`, `3ab2e68`). The ADR-002 layered shape (`Tasks/Application/Domain/Infrastructure/Context`) is fully retired in production code; the ADR-004 5-folder shape (`Host/Features/Shared/Tools/Integrations`) is live with 13 feature folders, per-feature `ServiceCollectionExtensions` × 13, BuildContext slimmed to 4 properties (`Paths`, `Runtime`, `Manifest`, `Options`) per §2.11, BuildOptions aggregate per §2.11.1, `*TaskRunner` → `*Pipeline` rename per §2.10, `SetupLocalDevTaskRunner` → `SetupLocalDevFlow` per §2.5, and `LayerDependencyTests` → `ArchitectureTests` rewrite per §2.13 (5 invariants). `Shared/` no-Cake invariant closed — `Build.Shared.Runtime.RuntimeFamily` build-host-local enum replaces `Cake.Core.PlatformFamily`, `IRuntimeProfile.IsSystemFile(string)` replaces `(FilePath)` per the §2.6 P1 transitional exception closure rule. Pre-P3 gate: Adım 13 (post-P2 follow-up wave) closes the remaining cross-tier violations (BinaryClosure / HarvestManifest / Coverage&Packaging result types into `Shared/<X>/`) and lands the deferred `ServiceCollectionExtensions` smokes + `cake-build-architecture.md` doc rewrite. **No ADR-004 invariants change in this entry — only realisation status.** | Deniz İrgin (+ P2-close session sweep) |

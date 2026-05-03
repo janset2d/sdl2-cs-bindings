@@ -18,7 +18,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Build.Tests.Unit.CompositionRoot;
 
 /// <summary>
-/// Per-feature DI smoke per phase-x §10.6 + §14.3 sub-step 13.7. Each test seeds a
+/// Per-feature DI smoke. Each test seeds a
 /// <see cref="ServiceCollection"/> with <see cref="TestHostFixture.AddTestHostBuildingBlocks"/>
 /// (Cake fakes + Host singletons + Tool/Integration substitutes), invokes a single
 /// <c>AddXFeature()</c>, captures the descriptors the feature added, builds the provider,
@@ -26,7 +26,7 @@ namespace Build.Tests.Unit.CompositionRoot;
 /// <para>
 /// Catches DI graph regressions (missing transitive dependency, mistyped factory closure,
 /// wrong lifetime) at CI gate time without requiring full Cake host bootstrapping. Each
-/// feature has exactly one smoke; future features add one each per ADR-004 §2.12 vertical
+/// feature has exactly one smoke; future features add one each per the vertical
 /// slice convention.
 /// </para>
 /// </summary>

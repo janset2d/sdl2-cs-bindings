@@ -10,7 +10,7 @@ public sealed class ProjectMetadataError : PackagingError
 
     /// <summary>
     /// The csproj that was being queried when the failure occurred (canonical full-path
-    /// string per ADR-004 §2.6 Shared no-Cake invariant), when available.
+    /// string, Shared no-Cake invariant), when available.
     /// </summary>
     public string? ProjectPath { get; }
 }

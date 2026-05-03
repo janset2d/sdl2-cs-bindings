@@ -19,8 +19,7 @@ public sealed class InspectHarvestedDependenciesPipelineTests
             .BuildContextWithHandles();
 
         // Use an out-of-range RuntimeFamily value to exercise the default-switch path
-        // (RuntimeFamily has no Unknown member by design — Shared/ vocabulary is closed-set
-        // per ADR-004 §2.6).
+        // (RuntimeFamily has no Unknown member by design — Shared/ vocabulary is closed-set).
         var profile = CreateRuntimeProfile("win-x64", (RuntimeFamily)999);
         var vcpkgConfig = repo.BuildContext.Options.Vcpkg;
         var runner = new InspectHarvestedDependenciesPipeline(

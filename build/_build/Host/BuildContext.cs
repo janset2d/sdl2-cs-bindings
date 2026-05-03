@@ -10,11 +10,10 @@ namespace Build.Host;
 /// <summary>
 /// Cake/Frosting invocation state for the build host. Carries the four orthogonal axes
 /// every Cake task or pipeline composes its work against — repo / artifact paths, the
-/// runtime/RID profile, the loaded manifest, and operator-supplied options. Per ADR-004
-/// §2.11 the surface is intentionally narrow: data + ambient Cake API, never a service
-/// locator. Behavior lives in <see cref="Features"/>; cross-feature vocabulary in
-/// <see cref="Shared"/>; CLI tool wrappers in <see cref="Tools"/>; non-Cake adapters in
-/// <see cref="Integrations"/>.
+/// runtime/RID profile, the loaded manifest, and operator-supplied options. The surface
+/// is intentionally narrow: data + ambient Cake API, never a service locator. Behavior
+/// lives in <see cref="Features"/>; cross-feature vocabulary in <see cref="Shared"/>;
+/// CLI tool wrappers in <see cref="Tools"/>; non-Cake adapters in <see cref="Integrations"/>.
 /// </summary>
 public sealed class BuildContext : FrostingContext
 {
@@ -39,7 +38,7 @@ public sealed class BuildContext : FrostingContext
     public IRuntimeProfile Runtime { get; }
 
     /// <summary>
-    /// Loaded <c>build/manifest.json</c> as data. Per ADR-004 §2.11 read-only access only;
+    /// Loaded <c>build/manifest.json</c> as data. Read-only access only;
     /// helpers like <c>ResolveConcreteFamilies()</c> live in <c>Shared/PackageFamilies/</c>
     /// extensions, not on this carrier.
     /// </summary>

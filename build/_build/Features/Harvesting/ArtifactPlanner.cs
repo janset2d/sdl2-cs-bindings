@@ -51,7 +51,7 @@ public sealed class ArtifactPlanner : IArtifactPlanner
             var currentLibraryName = current.Name;
 
             var nativeOutput = outRoot.Combine(currentLibraryName).Combine("runtimes").Combine(_profile.Rid).Combine("native");
-            // Post-H1 (2026-04-18): licenses are written RID-scoped under licenses/{rid}/{package}/...
+            // Licenses are written RID-scoped under licenses/{rid}/{package}/...
             // so sequential multi-RID harvests preserve each RID's license attribution instead of
             // overwriting library-flat. ConsolidateHarvestTask unions all successful RIDs into
             // licenses/_consolidated/ which is what PackageTask consumes at pack time.

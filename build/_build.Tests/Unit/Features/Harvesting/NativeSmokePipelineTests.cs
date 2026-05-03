@@ -90,8 +90,8 @@ public sealed class NativeSmokeTaskRunnerTests
     {
         // Regression guard: the earlier 3-RID cap (win-x64/linux-x64/osx-x64) was removed in the
         // symmetric 7-RID pivot. The runner must no longer reject RIDs by name — only downstream
-        // CMake preset resolution arbitrates (out of scope for strategy A). Here we simply assert
-        // that a PA-2 RID gets past RID inspection and fails later at the harvest-output
+        // CMake preset resolution arbitrates. Here we simply assert
+        // that a win-arm64 RID gets past RID inspection and fails later at the harvest-output
         // precondition (proving no cap rejection earlier).
         var repo = WithNativeSmokeProjectFiles(new FakeRepoBuilder(FakeRepoPlatform.Windows, repoRoot: "C:/repo"))
             .WithRid("win-arm64")

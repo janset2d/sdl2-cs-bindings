@@ -44,11 +44,10 @@
         $(PackageId).tar.gz to avoid filename collisions when multiple .Native packages
         land in the same output folder. This file locates each archive via its item
         metadata and extracts with shell `tar -xzf`, which preserves symlinks on POSIX
-        by default, then removes the staged archive. Documented in
-        docs/knowledge-base/harvesting-process.md §5.
+        by default, then removes the staged archive.
       - .NETFramework on Windows AnyCPU: the SDK does not honour runtimes/ for AnyCPU
         projects, so we copy the per-RID *.dll files explicitly into $(TargetDir).
-        Matches the historical pre-S1 behaviour that shipped with this repo's .Native
+        Matches the historical behaviour that shipped with this repo's .Native
         packages for net462 consumers.
 
     Intentionally NOT supported by this file:

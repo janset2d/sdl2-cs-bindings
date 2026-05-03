@@ -102,7 +102,7 @@ PublishStaging (GitHub Packages internal feed) → PublishPublic (nuget.org via 
 | `Tools/` | Cake `Tool<TSettings>` wrappers ONLY (vcpkg, dumpbin, ldd, otool, tar, cmake, native-smoke) |
 | `Integrations/` | Non-Cake-Tool external adapters: NuGet protocol client, dotnet pack invoker, project metadata reader, coverage XML readers, vcpkg manifest reader, MSVC environment resolver |
 
-The ADR-002 layered shape (`Application/<Module>/`, `Domain/<Module>/`, `Infrastructure/<Module>/`, `Tasks/<Module>/`, `Context/`) has been retired from production code. See [`docs/phases/phase-x-build-host-modernization-2026-05-02.md`](docs/phases/phase-x-build-host-modernization-2026-05-02.md) for current Phase X wave status.
+The ADR-002 layered shape (`Application/<Module>/`, `Domain/<Module>/`, `Infrastructure/<Module>/`, `Tasks/<Module>/`, `Context/`) has been retired from production code.
 
 Reference shapes for new build-host work:
 

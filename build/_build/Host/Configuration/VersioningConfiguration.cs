@@ -1,7 +1,7 @@
 namespace Build.Host.Configuration;
 
 /// <summary>
-/// Holds the ADR-003 version-axis CLI inputs for the <c>ResolveVersions</c> target. Stage
+/// Holds the version-axis CLI inputs for the <c>ResolveVersions</c> target. Stage
 /// tasks (PreFlight / Package / ConsumerSmoke) do NOT read this configuration — they consume
 /// the resolved mapping through <c>IPackageVersionProvider</c>. This class carries only the
 /// inputs that shape the <c>ResolveVersions</c> invocation itself.

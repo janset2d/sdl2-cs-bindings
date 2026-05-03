@@ -4,7 +4,7 @@ using NuGet.Versioning;
 namespace Build.Shared.Versioning;
 
 /// <summary>
-/// Guardrail G54 (ADR-001 + ADR-003): every entry in the resolved per-family version mapping
+/// Guardrail G54: every entry in the resolved per-family version mapping
 /// must align with the family's upstream library major/minor from <c>manifest.json
 /// library_manifests[].vcpkg_version</c>. Strict-minor alignment applies unconditionally —
 /// each mapping entry is an explicit per-family assertion, not a shared scalar. Invoked in

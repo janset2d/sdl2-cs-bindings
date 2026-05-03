@@ -88,10 +88,10 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     // ICakeContext.ToJson<T>() so the read flows through Cake's IFileSystem.
     var hasVersionsFile = !string.IsNullOrWhiteSpace(parsedArgs.VersionsFile);
     var hasExplicitVersion = parsedArgs.ExplicitVersion.Any(e => !string.IsNullOrWhiteSpace(e));
+
     if (hasVersionsFile && hasExplicitVersion)
     {
-        throw new InvalidOperationException(
-            "--versions-file and --explicit-version are mutually exclusive. Use one or the other.");
+        throw new InvalidOperationException("--versions-file and --explicit-version are mutually exclusive. Use one or the other.");
     }
 
     services.AddSingleton<PackageBuildConfiguration>(provider =>
@@ -109,10 +109,9 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton(new VersioningConfiguration(parsedArgs.VersionSource, parsedArgs.Suffix, [.. parsedArgs.Scope]));
     services.AddSingleton(new DumpbinConfiguration([.. parsedArgs.Dll]));
 
-    // BuildOptions aggregate per ADR-004 §2.11.1: composed once at startup from the six
-    // operator-input sub-records above. Tasks consume the aggregate via context.Options.X
-    // for the canonical surface; services that only need a single axis still inject the
-    // sub-record directly.
+    // BuildOptions aggregate: composed once at startup from the six operator-input sub-records
+    // above. Tasks consume the aggregate via context.Options.X for the canonical surface;
+    // services that only need a single axis still inject the sub-record directly.
     services.AddSingleton<BuildOptions>(provider => new BuildOptions(
         Vcpkg: provider.GetRequiredService<VcpkgConfiguration>(),
         Package: provider.GetRequiredService<PackageBuildConfiguration>(),
@@ -121,10 +120,9 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
         DotNet: provider.GetRequiredService<DotNetBuildConfiguration>(),
         Dumpbin: provider.GetRequiredService<DumpbinConfiguration>()));
 
-    // Composition root reads as the architectural index per ADR-004 §2.12: 12
-    // per-feature AddXFeature() calls + 3 cross-cutting groupings (AddHostBuildingBlocks,
-    // AddIntegrations, AddToolWrappers). AddHostBuildingBlocks takes parsedArgs because
-    // IPathService consumes vcpkg-dir overrides.
+    // Composition root: 12 per-feature AddXFeature() calls + 3 cross-cutting groupings
+    // (AddHostBuildingBlocks, AddIntegrations, AddToolWrappers). AddHostBuildingBlocks takes
+    // parsedArgs because IPathService consumes vcpkg-dir overrides.
     services
         .AddHostBuildingBlocks(parsedArgs)
         .AddIntegrations()

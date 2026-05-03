@@ -181,7 +181,7 @@ public sealed class PackageConsumerSmokePipeline(
     /// <summary>
     /// Resolve the concrete smoke scope from <c>manifest.json</c>: every family that
     /// declares both managed_project and native_project (i.e., packs a real nupkg today).
-    /// Families still in placeholder state (e.g., <c>sdl2-net</c> as of 2026-04-18) are
+    /// Families still in placeholder state (e.g., <c>sdl2-net</c>) are
     /// excluded automatically without a hardcoded list here.
     /// </summary>
     private List<SmokePackage> ResolveSmokePackages()
@@ -290,9 +290,8 @@ public sealed class PackageConsumerSmokePipeline(
     }
 
     /// <summary>
-    /// Resolves the smoke version mapping and verifies the feed is ready. Post-C.8 the runner
-    /// only accepts a non-empty <c>--explicit-version</c> mapping; the legacy empty-mapping →
-    /// props-fallback path retired when Deniz Q5a direction landed (2026-04-21).
+    /// Resolves the smoke version mapping and verifies the feed is ready. The runner
+    /// only accepts a non-empty <c>--explicit-version</c> mapping.
     /// Per-family pack-existence is asserted at this gate so a missing nupkg surfaces with
     /// an actionable remediation hint rather than opaquely inside <c>dotnet restore</c>.
     /// </summary>
@@ -439,7 +438,7 @@ public sealed class PackageConsumerSmokePipeline(
     /// Forward each <c>--explicit-version family=semver</c> entry as a per-family
     /// <c>-p:Janset&lt;Generation&gt;&lt;Role&gt;PackageVersion=&lt;version&gt;</c> override
     /// so the consumer csproj restores the exact-matching nupkg set. Mapping is mandatory
-    /// post-C.8 (<see cref="PackageConsumerSmokeRequest"/> guarantees non-empty by runner
+    /// (<see cref="PackageConsumerSmokeRequest"/> guarantees non-empty by runner
     /// entry-point guard).
     /// </summary>
     private static void AppendSmokePackageVersionProperties(
@@ -496,9 +495,8 @@ public sealed class PackageConsumerSmokePipeline(
     /// <para>
     /// Side-effect note: the shutdown is per-user, not per-process-tree, so any other
     /// concurrent CLI build on the same machine will re-warm its cache on the next invocation.
-    /// See <c>docs/playbook/cross-platform-smoke-validation.md</c> "Lingering dotnet
-    /// processes mitigation" — this call fires once on entry and once before each
-    /// executable TFM slice (typical total on Windows: 4 shutdowns per PackageConsumerSmoke run).
+    /// This call fires once on entry and once before each executable TFM slice
+    /// (typical total on Windows: 4 shutdowns per PackageConsumerSmoke run).
     /// </para>
     /// </summary>
     private void ShutdownDotNetBuildServers()

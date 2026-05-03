@@ -15,7 +15,7 @@ public sealed class PreflightReporter(ICakeContext cakeContext)
     {
         Log.Information("🔍 Running pre-flight checks...");
         Log.Information("ℹ️ Scope: version consistency + runtime strategy coherence + core identity + upstream version alignment + csproj pack contract.");
-        Log.Information("ℹ️ Deferred to Stream C: dynamic matrix and CI artifact-flow gates.");
+        // Dynamic matrix and CI artifact-flow gates are checked downstream in the CI pipeline.
     }
 
     public void ReportVersionConsistency(VersionConsistencyValidation validation)
@@ -201,8 +201,8 @@ public sealed class PreflightReporter(ICakeContext cakeContext)
         {
             var failedCount = validation.Checks.Count(c => !c.IsValid);
             Log.Error("❌ Pre-flight check FAILED - {0} csproj pack contract violation(s) detected", failedCount);
-            Log.Error("   Refer to docs/knowledge-base/release-guardrails.md (G1-G8, G17, G18) for the canonical rules");
-            Log.Error("   Refer to docs/knowledge-base/release-lifecycle-direction.md §1 for family identifier conventions");
+            Log.Error("   Review the canonical pack-contract rules (G1-G8, G17, G18) for details.");
+            Log.Error("   Review the family identifier conventions for family name format guidance.");
             return;
         }
 
@@ -250,7 +250,7 @@ public sealed class PreflightReporter(ICakeContext cakeContext)
         {
             var failedCount = validation.Checks.Count(check => check.IsError);
             Log.Error("❌ Pre-flight check FAILED - {0} G58 cross-family resolvability violation(s) detected", failedCount);
-            Log.Error("   Either include the dependency family in --explicit-version / --scope, or wait for the Pack-stage feed-probe surface (post-C wiring).");
+            Log.Error("   Either include the dependency family in --explicit-version / --scope, or use the Pack-stage feed-probe surface when available.");
             return;
         }
 

@@ -13,8 +13,8 @@
 # - pack creates the nupkg set from consolidated harvest output and versions.json.
 # - consumer-smoke re-enters the same RID matrix to install and test the packed artifacts.
 #
-# Staging publish is live for explicit dispatch and release tags. Public publish remains
-# disabled until PD-7 promotion-to-nuget.org logic lands.
+# Staging publish runs for explicit dispatch and release tags. Public publish stays
+# disabled until promotion-to-nuget.org logic lands.
 
 name: Release
 
@@ -38,7 +38,7 @@ on:
         description: 'For mode=explicit: sdl2-core=2.32.0,sdl2-image=2.8.0,... (repeated --explicit-version shape)'
         required: false
       publish-staging:
-        description: 'Run the publish-staging job (push nupkgs to GitHub Packages). Gated until first witness validates the e2e flow against the real feed.'
+        description: 'Run the publish-staging job (push nupkgs to GitHub Packages).'
         type: boolean
         required: false
         default: false
@@ -452,7 +452,7 @@ jobs:
           --versions-file artifacts/resolve-versions/versions.json
 
   publish-staging:
-    # Pushes the packed nupkgs to the GitHub Packages internal feed (PD-5 write path).
+    # Pushes the packed nupkgs to the GitHub Packages internal feed.
     # Dispatch stays checkbox-gated. Release tags publish to the internal feed after
     # trigger-aware ResolveVersions routing emits tag-derived versions.json.
     # Per-job 'packages: write' override keeps every other job at the workflow-level
@@ -494,7 +494,7 @@ jobs:
           --target PublishStaging
           --versions-file artifacts/resolve-versions/versions.json
 
-  # Phase 2b PD-7: stays disabled until promotion-to-nuget.org logic lands.
+  # Stays disabled until promotion-to-nuget.org logic lands.
   publish-public:
     name: Publish (Public)
     needs: [publish-staging]

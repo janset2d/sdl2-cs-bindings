@@ -15,7 +15,7 @@ namespace Build.Features.Versioning;
 /// <para>
 /// Callers compose the suffix from their context: <c>local.&lt;timestamp&gt;</c> for
 /// developer workflows, <c>ci.&lt;run-id&gt;.&lt;run-attempt&gt;</c> for CI manifest-derived
-/// runs, <c>pa2.&lt;run-id&gt;</c> for PA-2 witness runs. Provider does not know about
+/// runs, <c>pa2.<run-id></c> for build-validation runs. Provider does not know about
 /// workflow semantics; it only stamps the given suffix onto the upstream prefix.
 /// </para>
 /// <para>

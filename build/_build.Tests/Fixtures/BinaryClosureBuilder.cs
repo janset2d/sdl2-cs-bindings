@@ -4,8 +4,7 @@ namespace Build.Tests.Fixtures;
 
 /// <summary>
 /// Fluent builder for constructing <see cref="BinaryClosure"/> test fixtures.
-/// Path-typed members are <see cref="string"/> per ADR-004 §2.6 Cake-decoupling
-/// (Adım 13.1).
+/// Path-typed members are <see cref="string"/> to decouple from Cake's path types.
 /// </summary>
 public sealed class BinaryClosureBuilder
 {

@@ -10,12 +10,12 @@ using DotNetRuntimeEnvironment = Build.Integrations.DotNet.DotNetRuntimeEnvironm
 namespace Build.Integrations;
 
 /// <summary>
-/// Composition-root grouping for non-Cake-Tool external adapters (ADR-004 §2.8).
+/// Composition-root grouping for non-Cake-Tool external adapters.
 /// Each registration binds an interface from the <c>Build.Integrations.*</c>
-/// namespace to its concrete implementation. Per ADR-004 §2.12 this collapses
-/// the inline integrations block in <c>Program.cs ConfigureBuildServices</c>
-/// into a single <c>AddIntegrations()</c> call so the composition root reads as
-/// a feature roster + cross-cutting groups.
+/// namespace to its concrete implementation. This collapses the inline
+/// integrations block in <c>Program.cs ConfigureBuildServices</c> into a single
+/// <c>AddIntegrations()</c> call so the composition root reads as a feature
+/// roster + cross-cutting groups.
 /// </summary>
 public static class ServiceCollectionExtensions
 {
@@ -34,8 +34,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMsvcDevEnvironment, MsvcDevEnvironment>();
 
         // VcpkgBootstrapTool is a sealed concrete (not a Cake Tool<T>) that wraps
-        // bootstrap-vcpkg.bat / .sh dispatch. Relocated from Tools/Vcpkg/ at P1.18
-        // per ADR-004 §2.10 (Tools is Cake Tool<T> wrappers ONLY).
+        // bootstrap-vcpkg.bat / .sh dispatch. Tools is Cake Tool<T> wrappers ONLY,
+        // so VcpkgBootstrapTool lives here in Integrations.
         services.AddSingleton<VcpkgBootstrapTool>();
 
         return services;

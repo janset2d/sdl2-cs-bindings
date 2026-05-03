@@ -17,8 +17,7 @@ namespace Build.Features.Diagnostics;
 /// <summary>
 /// Per-RID diagnostic: for each library in scope, extract (Unix) or read (Windows) the harvested
 /// payload for the active RID, locate the primary binary via <see cref="PrimaryBinary"/> patterns,
-/// and invoke the platform dependency scanner (Dumpbin / Ldd / Otool). Replaces the bash
-/// <c>inspect_ldd</c> loop in <c>docs/playbook/TEMP-wsl-smoke-commands.md</c> §5.
+/// and invoke the platform dependency scanner (Dumpbin / Ldd / Otool).
 /// </summary>
 public sealed class InspectHarvestedDependenciesPipeline(
     ICakeContext cakeContext,

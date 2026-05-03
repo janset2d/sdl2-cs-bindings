@@ -190,7 +190,7 @@ public class ConsolidateHarvestTests
     [Test]
     public async Task RunAsync_Should_Union_Per_Rid_Licenses_Into_Consolidated_Output()
     {
-        // Post-H1: Consolidate unions per-RID license evidence into licenses/_consolidated/
+        // Consolidate unions per-RID license evidence into licenses/_consolidated/
         // so PackageTask consumes a single deduplicated set regardless of contributing RIDs.
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
             .Seed(new HarvestOutputSeeder("SDL2", "win-x64", "x64-windows-hybrid")
@@ -296,7 +296,7 @@ public class ConsolidateHarvestTests
     [Test]
     public async Task RunAsync_Should_Stamp_Consolidation_State_Onto_Harvest_Manifest()
     {
-        // H1: the harvest-manifest receipt carries a ConsolidationState recording the
+        // The harvest-manifest receipt carries a ConsolidationState recording the
         // license-union work. Pack-time gate in PackagePipeline depends on this section
         // being present and declaring a non-zero license entry count.
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
@@ -359,7 +359,7 @@ public class ConsolidateHarvestTests
     {
         // Even the skipped-consolidation path must write a receipt — the receipt's
         // LicensesConsolidated=false + LicenseEntriesCount=0 is the signal Pack uses to
-        // reject. Without the receipt at all, pre-H1 "missing Consolidation" gate fires;
+        // reject. Without the receipt at all, the "missing Consolidation" gate fires;
         // without correct content, Pack could authorize a degenerate run.
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
             .Seed(new HarvestOutputSeeder("SDL2_ttf", "win-x64", "x64-windows-hybrid")
@@ -383,7 +383,7 @@ public class ConsolidateHarvestTests
     [Test]
     public async Task RunAsync_Should_Clean_Up_Temp_Artifacts_On_Happy_Path()
     {
-        // H1 completion: staged-replace writes to .tmp siblings in Phase 1, then Phase 2
+        // Staged-replace writes to .tmp siblings in Phase 1, then Phase 2
         // swaps them into place. After a successful Consolidate, no .tmp artifacts should
         // survive — they're all moved to their final names or (for the consolidated dir)
         // renamed atomically onto the live location.
@@ -410,7 +410,7 @@ public class ConsolidateHarvestTests
     [Test]
     public async Task RunAsync_Should_Preserve_Old_State_When_Consolidate_Crashes_During_Temp_Write_Phase()
     {
-        // H1 completion — Phase 1 (temp-write) crash invariant. Previous Consolidate left
+        // Phase 1 (temp-write) crash invariant. Previous Consolidate left
         // a valid state on disk (_consolidated/libpng/copyright + harvest-manifest.json).
         // New Consolidate writes entries into licenses/_consolidated.tmp/ — inject a
         // failure mid-loop. Expected: swap never begins, so the old state is fully intact.
@@ -460,10 +460,10 @@ public class ConsolidateHarvestTests
     [Test]
     public async Task RunAsync_Should_Fail_Fatally_When_Any_Library_Consolidation_Fails()
     {
-        // H1 completion: per-library exceptions are no longer silently swallowed. The
+        // Per-library exceptions are no longer silently swallowed. The
         // task aggregates failures across libraries then throws at the end so operators
         // see every broken library in one run AND the overall Cake task status is failed.
-        // Pre-H1 behavior (log + continue as green) hid compliance regressions entirely.
+        // Legacy behavior (log + continue as green) hid compliance regressions entirely.
         var repo = SeedRepoWithPreviousValidConsolidation();
         var throwingFileSystem = new ThrowingFileSystem(
             inner: repo.FileSystem,

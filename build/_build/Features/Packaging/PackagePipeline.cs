@@ -190,7 +190,7 @@ public sealed class PackagePipeline : IPackagePipeline
     {
         var nativePayloadSource = _pathService.GetHarvestLibraryDir(family.LibraryRef);
 
-        // Post-S1 (2026-04-17): within-family dependency is SkiaSharp-style minimum range.
+        // Within-family dependency is SkiaSharp-style minimum range.
         // No exact-pin CPM plumbing, no per-family MSBuild property. Each pack invocation
         // gets $(Version) and (for the native only) $(NativePayloadSource). Managed's
         // ProjectReference to the native emits as a standard `>=` dependency in the nuspec.

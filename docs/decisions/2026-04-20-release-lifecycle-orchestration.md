@@ -60,7 +60,7 @@ This ADR is **not** a preserve-the-current-composition document. It exists to se
 At adoption time, the repo carried three independent version-resolution paths that did not compose:
 
 1. **Git tag + MinVer** — tag drives `$(Version)` (single family)
-2. **Manifest + suffix** — `SetupLocalDev` auto-derivation (all families)
+2. **Manifest + suffix** — `tools setup` auto-derivation (all families)
 3. **CLI `--family-version`** — operator override (single family; G54 rejects multi-family; now retired)
 
 And five release scenarios, each selecting one of those three paths with its own ad-hoc wiring:
@@ -78,7 +78,7 @@ And five release scenarios, each selecting one of those three paths with its own
 ### 1.3 Research trail / prior attempts
 
 - **An earlier proposal in this session:** a 5-profile enum (`Local` / `Witness` / `TargetedRelease` / `FullTrainRelease` / `ManualEscape`). Retired because the **axis is wrong**: "scenario" is an output of the question "where does the version come from", not the driver. The real axis is the version source; scenarios fall out of the provider + scope + trigger combination.
-- **SetupLocalDev leaking into CI:** `SetupLocalDev` was designed as a local-dev convenience, but because it was the only working end-to-end flow, it acquired gravity toward CI usage. That pull is wrong — CI should select its own provider and call Cake with explicit version mappings.
+- **SetupLocalDev leaking into CI:** `SetupLocalDev` (now `tools setup` as of Phase Y) was designed as a local-dev convenience, but because it was the only working end-to-end flow, it acquired gravity toward CI usage. That pull is wrong — CI should select its own provider and call Cake with explicit version mappings.
 
 ---
 
@@ -135,7 +135,7 @@ This invariant means:
 - Version resolution happens **exactly once per invocation**, before any stage executes.
 - Every downstream stage receives the same mapping instance (or wire-equal JSON copy across job boundaries).
 
-The resolution step can physically live either as a dedicated CI `resolve-versions` job that invokes the build host, or as the first step inside a local composite target (for example, `SetupLocalDev` invoking the selected artifact-source resolver, which then performs profile-owned resolution/orchestration). Placement and CLI surface name are implementation details; the invariant — resolve once, distribute immutably, consume everywhere — is the contract.
+The resolution step can physically live either as a dedicated CI `resolve-versions` job that invokes the build host, or as the first step inside `tools setup` (which replaced the former `SetupLocalDev` Cake target in Phase Y). Placement and CLI surface name are implementation details; the invariant — resolve once, distribute immutably, consume everywhere — is the contract.
 
 This invariant applies to **CI job-chain runs** and **composite Cake targets**. Operator-driven ad-hoc sequencing of standalone targets is outside its scope: each such target invocation is its own invocation and may resolve independently. In that mode, each invocation accepts its inputs independently; cross-invocation consistency is the operator's responsibility, supplemented (not replaced) by stage-level validators such as G54.
 
@@ -196,23 +196,21 @@ Current Cake target surface:
 --target=PublishPublic          (disabled until PD-7)
 ```
 
-### 3.3 Layer 3 — Convenience Target (Cake, composition)
+### 3.3 Layer 3 — Convenience Subcommand (tools.cs, composition)
 
-`SetupLocalDev` is a convenience target for local-dev ergonomics. It is implemented as a thin Cake task over `SetupLocalDevTaskRunner`.
+The repo-root `tools.cs setup --source=local` subcommand replaces the former Cake `SetupLocalDev` target (moved to `tools.cs` in Phase Y, 2026-05-03). The subcommand orchestrates the local composite flow: resolve manifest-derived local versions, run PreFlight, ensure vcpkg, harvest, consolidate, package, then stamp the local consumer override — all from outside the Cake host.
 
 Current shape:
 
-- `SetupLocalDevTaskRunner` owns the local composite flow: resolve manifest-derived local versions, run PreFlight, ensure vcpkg, harvest, consolidate, package, then stamp the local consumer override.
-- `IArtifactSourceResolver` remains the profile boundary for feed preparation and override writing.
-- `LocalArtifactSourceResolver` prepares the repo-produced feed.
-- `RemoteArtifactSourceResolver` downloads the latest matching managed/native pairs from GitHub Packages into the same local feed layout.
-- `ReleasePublic` is intentionally unsupported until public NuGet promotion lands.
+- `tools setup --source=local` runs the full repo-pack → local-feed → `Janset.Local.props` flow.
+- `tools setup --source=remote-github` (previously `--source=remote`) downloads the latest matching managed/native pairs from GitHub Packages into the same local feed layout.
+- `tools setup --source=release` remains a Phase 2b PD-7 placeholder (public NuGet.org promotion).
 
-NativeSmoke is not part of the local feed-prep loop. It remains a standalone target and runs in the CI harvest matrix.
+NativeSmoke is not part of the local setup loop. It remains a standalone Cake target and runs in the CI harvest matrix.
 
-**Critical:** CI/CD does **not** call this target. CI invokes the build host's version-resolution entrypoint in its own `resolve-versions` job, then calls the pipeline stage targets with the resolved mapping. `SetupLocalDev`'s `Janset.Local.props` side effect is meaningless for CI.
+**Critical:** CI/CD does **not** call this subcommand. CI invokes the build host's version-resolution entrypoint in its own `resolve-versions` job, then calls the pipeline stage targets with the resolved mapping. The `Janset.Local.props` side effect is meaningless for CI.
 
-**Relationship to Artifact Source Profile (ADR-001).** `SetupLocalDev` is the orchestrating convenience layer for the **`Local` Artifact Source Profile** defined in [ADR-001 §2.7–§2.8](2026-04-18-versioning-d3seg.md). It composes the `Local` profile's feed-preparation flow (repo pack → local folder feed → `Janset.Local.props`) with the Cake pipeline; it does not bypass or replace the `IArtifactSourceResolver` seam. The `RemoteInternal` and `ReleasePublic` profiles retain their own orchestration paths (CI-driven, no local composite target); all three profiles continue to meet at the `PackageReference + local folder feed` consumer contract locked in ADR-001.
+**Relationship to Artifact Source Profile (ADR-001).** `tools setup` is the orchestrating convenience layer for the feed-preparation concern that ADR-001 §2.7 originally designed as `IArtifactSourceResolver`. As of Phase Y (2026-05-03) that seam lives in `tools.cs`, not the Cake host. The consumer contract (`PackageReference + local folder feed`) locked in ADR-001 is unchanged.
 
 ### 3.4 Layer 4 — CI/CD Orchestration
 
@@ -338,13 +336,13 @@ The ADR-003 refactor kept the policy model from this ADR but adjusted class boun
 | **Retain** | `ManifestConfig` + schema v2.1 | SSoT role strengthened |
 | **Retain** | Build-host architecture (ADR-004; was ADR-002 layering at adoption) | New additions live under feature folders + ServiceCollectionExtensions per feature |
 | **Retain** | D-3seg versioning (ADR-001) | Version shape is unchanged |
-| **Retain** | Artifact Source Profile (ADR-001) | `Local` / `RemoteInternal` / `ReleasePublic` — preserved on the feed-prep axis |
+| **Retain/Retired** | Artifact Source Profile (ADR-001) | `--source=` naming preserved in `tools setup --source=...`; the `IArtifactSourceResolver` abstraction was retired from the Cake host in Phase Y |
 | **Refactor** | `IPackageVersionProvider` | Three implementations: Manifest, GitTag, Explicit |
 | **Refactor** | `PreFlightCheckTask` | Version-aware and consumes resolved mappings |
 | **Refactor** | `HarvestTask` | Delegates orchestration to `HarvestTaskRunner`; NativeSmoke is its own stage/target |
 | **Refactor** | `PackageTask` | Input is a per-family version mapping; G58 added |
 | **Refactor** | `PackageConsumerSmokeTask` | Matrix re-entry stage: RID + feed + versions |
-| **Refactor** | `SetupLocalDev` | `SetupLocalDevTaskRunner` owns local composition; resolvers prepare feeds and write overrides |
+| **Retire** (moved to tools.cs) | `SetupLocalDev` / `SetupLocalDevTaskRunner` | Migrated to repo-root `tools.cs setup --source=...` in Phase Y (2026-05-03). Cake host no longer carries a SetupLocalDev target. |
 | **Retire** | `--family-version` CLI flag (single-valued, G54-incompatible with multi-family) | Replaced by `--explicit-version key=value,...` (ExplicitVersionProvider input). PD-13 closes. |
 | **Retire** | Monolithic "PostFlight" naming | Each stage owns its validation; `PostFlight` target is retired. |
 | **New** | `IPackageVersionProvider` + 3 impls | Service-only, not a Cake target |
@@ -436,17 +434,17 @@ A `ReleaseProfile` enum (`Local` / `Witness` / `TargetedRelease` / `FullTrainRel
 
 **Why rejected:** "scenario" was the wrong axis. The real axis is the version source; scenarios are outputs of `(provider, scope, trigger)` combinations. The enum forces a profile × strategy cross-product where each profile needs its own branch, which is not DRY. The adopted model (3 providers + 1 pipeline + CI orchestrator) has fewer moving parts and explains more.
 
-### Alt-2: SetupLocalDev Option B (no convenience target, everything explicit)
+### Alt-2: SetupLocalDev Option B (no convenience target, everything explicit — selected by Phase Y extraction)
 
 The user runs 7 separate Cake commands and writes `local.props` manually.
 
-**Why rejected:** ergonomically painful. Nobody would use it; it would inevitably be wrapped in a local script and end up reinventing `SetupLocalDev` without the domain-layer benefits.
+**Why rejected at ADR-003 time:** ergonomically painful. Nobody would use it; it would inevitably be wrapped in a local script and end up reinventing `SetupLocalDev` without the domain-layer benefits. Phase Y (2026-05-03) extracted the convenience flow to `tools.cs setup` — effectively the local script that ADR-003 anticipated, but implemented as a repo-root file-based .NET app rather than an ad-hoc shell script.
 
-### Alt-3: SetupLocalDev Option C (providers exposed as Cake targets, SetupLocalDev chains them)
+### Alt-3: SetupLocalDev Option C (providers exposed as Cake targets)
 
-Three separate `Resolve*Versions` Cake targets, with `SetupLocalDev` chaining them.
+Three separate `Resolve*Versions` Cake targets, with a composite target chaining them.
 
-**Why rejected:** widens the Cake CLI surface without offsetting benefit. Per §3.1 the build host owns a single version-resolution entrypoint; three public `Resolve*` targets would fragment that surface for no orchestration gain. The three targets would exist mostly to serve one user — `SetupLocalDev` — and would still leave its local-dev ergonomics problem unsolved.
+**Why rejected:** widens the Cake CLI surface without offsetting benefit. Per §3.1 the build host owns a single version-resolution entrypoint; three public `Resolve*` targets would fragment that surface for no orchestration gain.
 
 ### Alt-4: SetupLocalDev Option D (providers as DI services, CI can invoke if desired)
 
@@ -515,7 +513,7 @@ Remaining outside this ADR's completed implementation: public NuGet promotion (`
 | Date | Revision | Change |
 | --- | --- | --- |
 | 2026-04-20 | v1 | Initial decision: version-source providers, stage-owned validation, and single release workflow direction. |
-| 2026-04-21 | v1.1 | Implementation discovery moved local feed composition into `SetupLocalDevTaskRunner` and kept NativeSmoke out of the local feed-prep loop. |
+| 2026-04-21 | v1.1 | Implementation discovery moved local feed composition into `SetupLocalDevTaskRunner` (later migrated to `tools.cs setup` in Phase Y, 2026-05-03) and kept NativeSmoke out of the local feed-prep loop. |
 | 2026-04-30 | v2 | Updated from proposal record to current implementation state; removed stale pseudocode, open implementation questions, and historical checklist clutter. |
 | 2026-05-01 | v2.1 | Added §15 Empirical Operational Reality capturing rehearsal evidence + four open gaps. The §3.4 trigger model (tag-push as canonical release trigger) is now under reconsideration; final direction pending PD-7 design pass. |
 
@@ -541,7 +539,7 @@ The trigger-aware version routing landed in commit `437edff` (April 29, 2026 bas
 
 Both options preserve the §2 governance policy (targeted vs full-train, core-first ordering, family-version coherence) documented in [release-lifecycle-direction.md](../knowledge-base/release-lifecycle-direction.md). Both also leave gaps #2 and #3 as **separate** open work — closing the trigger-mechanism question does not subsume the partial-scope gaps.
 
-**This ADR is not superseded.** The §2 mental model (RID → Family → Version axes; three providers; pre-stage version resolution; immutable mapping; stage-owned validation) and §3.1–§3.3 (provider design, stage request records, resolver-centric `SetupLocalDev`) remain canonical. §3.4's specific tag-push trigger filter is the only piece under active reconsideration; the rest of the orchestration architecture stands.
+**This ADR is not superseded.** The §2 mental model (RID → Family → Version axes; three providers; pre-stage version resolution; immutable mapping; stage-owned validation) and §3.1–§3.3 (provider design, stage request records, `tools setup` subcommand replacing the former `SetupLocalDev` Cake target) remain canonical. §3.4's specific tag-push trigger filter is the only piece under active reconsideration; the rest of the orchestration architecture stands.
 
 For the operational rule today: **prefer `workflow_dispatch mode=explicit publish-staging=true` for any actual release work.** The tag-push path remains in `release.yml` as research surface but is not the canonical operator path until either (a) gap #4 is addressed via a workflow-design slice, or (b) tag-push is dropped from the trigger filter altogether in favor of one of the candidates above.
 

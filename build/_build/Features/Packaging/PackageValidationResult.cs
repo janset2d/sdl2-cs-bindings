@@ -9,7 +9,7 @@ namespace Build.Features.Packaging;
 /// <summary>
 /// Result monad for <c>IPackageOutputValidator.ValidateAsync</c>:
 /// <list type="bullet">
-///   <item><term>Success</term><description><see cref="PackageValidationSuccess"/> — every post-S1 guardrail passed</description></item>
+///   <item><term>Success</term><description><see cref="PackageValidationSuccess"/> — every guardrail passed</description></item>
 ///   <item><term>Error</term><description><see cref="PackageValidationError"/> — one or more guardrails tripped; full check list preserved</description></item>
 /// </list>
 /// Mirrors the <see cref="CsprojPackContractResult"/> pattern

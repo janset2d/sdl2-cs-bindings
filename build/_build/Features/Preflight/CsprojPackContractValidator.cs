@@ -7,14 +7,13 @@ namespace Build.Features.Preflight;
 
 /// <summary>
 /// Validates that every managed and native csproj referenced by <c>manifest.json package_families[]</c>
-/// conforms to the canonical pack contract documented in
-/// <c>docs/knowledge-base/release-guardrails.md</c> guardrails G4, G6, G7, G17, G18.
+/// conforms to the canonical pack contract guardrails G4, G6, G7, G17, G18.
 /// </summary>
 /// <remarks>
-/// Post-S1 scope (2026-04-17): guardrails G1 (PrivateAssets="all"), G2 (paired PackageReference),
+/// Guardrails G1 (PrivateAssets="all"), G2 (paired PackageReference),
 /// G3 (bracket-notation PackageVersion), G5 (family-version property name convention), and G8
 /// (sentinel fallback) were retired when within-family exact-pin was replaced with SkiaSharp-style
-/// minimum range. This validator retains the structural checks that remain relevant post-S1:
+/// minimum range. This validator retains the structural checks that remain relevant:
 /// canonical PackageId naming (G6), MinVerTagPrefix alignment with manifest (G4), Native
 /// ProjectReference path correctness (G7), and manifest cross-section references (G17, G18).
 ///

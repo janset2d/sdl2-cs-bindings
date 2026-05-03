@@ -15,14 +15,14 @@ using NuGet.Versioning;
 namespace Build.Tests.Unit.Features.Packaging;
 
 /// <summary>
-/// Post-S1 (2026-04-17): <see cref="PackagePipeline"/> runs a 2-step per-family flow —
+/// <see cref="PackagePipeline"/> runs a 2-step per-family flow —
 /// Pack(native) then Pack(managed), both with <c>$(Version)</c>, native additionally with
-/// <c>$(NativePayloadSource)</c>. No 4-step orchestration, no <c>BuildProjectReferences=false</c>.
+/// <c>$(NativePayloadSource)</c>.
 /// </summary>
 public sealed class PackageTaskRunnerTests
 {
     // Stub SHA for test-time delegate override: matches the legacy FakeProcess stdout the
-    // pre-C.3 subprocess mock produced. Cake.Frosting.Git bypasses FakeFileSystem, so unit
+    // subprocess mock produced. Cake.Frosting.Git bypasses FakeFileSystem, so unit
     // tests inject this constant via the resolveHeadCommitSha delegate instead.
     private const string StubHeadSha = "0123456789abcdef0123456789abcdef01234567";
 
@@ -34,7 +34,7 @@ public sealed class PackageTaskRunnerTests
         var manifest = ManifestFixture.CreateTestManifestConfig();
         var family = manifest.PackageFamilies.Single(static packageFamily => packageFamily.Name == "sdl2-core");
 
-        // Post-H1: pack gate validates runtimes/ + licenses/_consolidated/ specifically.
+        // Pack gate validates runtimes/ + licenses/_consolidated/ specifically.
         // The happy-path fixture must seed the consolidated layout (not library-flat) or
         // the gate would reject — which is exactly the class of regression the tightened
         // gate exists to catch.
@@ -120,8 +120,7 @@ public sealed class PackageTaskRunnerTests
             noBuild: false);
 
         // Step 2: Pack managed — standard `dotnet pack`, no $(NativePayloadSource) threading.
-        // Managed's ProjectReference to the native emits as a standard minimum-range dependency
-        // (post-S1 SkiaSharp-style; no exact-pin CPM plumbing).
+        // Managed's ProjectReference to the native emits as a standard minimum-range dependency.
         dotNetPackInvoker.Received(1).Pack(
             Arg.Is<FilePath>(path => string.Equals(path.FullPath, repo.ResolveFile(family.ManagedProject!).FullPath, StringComparison.OrdinalIgnoreCase)),
             Arg.Is<DotNetPackInvocation>(invocation =>
@@ -134,8 +133,8 @@ public sealed class PackageTaskRunnerTests
     [Test]
     public async Task RunAsync_Should_Throw_When_Harvest_Manifest_Lacks_Consolidation_Receipt()
     {
-        // H1 gate: harvest-manifest.json without a Consolidation section is either legacy
-        // pre-H1 state OR a manifest the operator hand-crafted without running the new
+        // Harvest-manifest.json without a Consolidation section is either legacy
+        // state OR a manifest the operator hand-crafted without running
         // ConsolidateHarvestTask. Either way, Pack must refuse — the native csproj packs
         // from licenses/_consolidated/ which may be empty or absent.
         var manifest = ManifestFixture.CreateTestManifestConfig();
@@ -158,7 +157,7 @@ public sealed class PackageTaskRunnerTests
     [Test]
     public async Task RunAsync_Should_Throw_When_Consolidation_Reports_Zero_License_Entries()
     {
-        // H1 gate: a Consolidation section with LicensesConsolidated=false (or
+        // A Consolidation section with LicensesConsolidated=false (or
         // LicenseEntriesCount=0) means no successful RID contributed license evidence —
         // Pack would ship a nupkg with no attribution. Fail with a clear compliance message.
         var manifest = ManifestFixture.CreateTestManifestConfig();
@@ -201,7 +200,7 @@ public sealed class PackageTaskRunnerTests
         });
 
         var thrown = await Assert.That(() => runner.RunAsync(ghostRequest)).Throws<Cake.Core.CakeException>();
-        // Post-C.7: G58 catches the ghost-family mapping before PackagePipeline's own
+        // G58 catches the ghost-family mapping before PackagePipeline's own
         // ResolveSelectedFamilies reaches it (manifest coherence is a G58 responsibility).
         await Assert.That(thrown!.Message).Contains("G58");
     }
@@ -275,7 +274,7 @@ public sealed class PackageTaskRunnerTests
     [Test]
     public async Task RunAsync_Should_Throw_When_Consolidated_License_Tree_Missing_Even_If_Receipt_Valid()
     {
-        // H1 tightened gate: the native csproj packs only from licenses/_consolidated/**.
+        // The native csproj packs only from licenses/_consolidated/**.
         // A manifest with a seemingly-valid Consolidation section but an empty or absent
         // _consolidated/ subtree on disk would silently produce an empty-license nupkg.
         // The gate must refuse the pre-pack rather than relying on post-pack G51 to catch it.
@@ -286,7 +285,7 @@ public sealed class PackageTaskRunnerTests
             .WithManifest(manifest)
             .WithTextFile("artifacts/harvest_output/SDL2/harvest-manifest.json", JsonSerializer.Serialize(validManifest))
             .WithTextFile("artifacts/harvest_output/SDL2/runtimes/win-x64/native/SDL2.dll", "payload")
-            // Per-RID license present (pre-H1 shape would have accepted this), but no
+            // Per-RID license present (legacy shape would have accepted this), but no
             // licenses/_consolidated/ subtree at all — the tightened gate must still reject.
             .WithTextFile("artifacts/harvest_output/SDL2/licenses/win-x64/sdl2/copyright", "license")
             .BuildContextWithHandles();
@@ -330,7 +329,7 @@ public sealed class PackageTaskRunnerTests
                 FailedRids = 0,
                 SuccessRate = 1,
             },
-            // H1: post-Consolidate receipt — harvest manifest carries the license
+            // Post-Consolidate receipt — harvest manifest carries the license
             // consolidation state. Gate in PackagePipeline rejects a null Consolidation.
             Consolidation = new ConsolidationState
             {

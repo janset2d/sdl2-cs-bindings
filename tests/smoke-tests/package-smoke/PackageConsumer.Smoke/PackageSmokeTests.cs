@@ -4,14 +4,14 @@ using System.Runtime.InteropServices;
 namespace PackageConsumer.Smoke;
 
 /// <summary>
-/// Shipping-graph smoke. Each test asserts one step of the Package Validation Mode
-/// integration spine (see docs/research/execution-model-strategy-2026-04-13.md §7.2):
+/// Shipping-graph smoke. Each test asserts one step of the package validation
+/// integration spine:
 ///
 /// 1. Native assets land in the consumer's output directory.
 /// 2. SDL_Init / SDL_Quit cycle succeeds (loader finds the native binary).
 /// 3. Linked versions report expected upstream values.
 ///
-/// Runs per TFM via TUnit + Microsoft Testing Platform. Invoke via Cake PostFlight
+/// Runs per TFM via TUnit + Microsoft Testing Platform. Invoke via Cake
 /// (per-TFM <c>dotnet test --filter Category=PackageSmoke -f &lt;tfm&gt;</c>), not directly.
 /// </summary>
 [NotInParallel]
@@ -243,8 +243,8 @@ public sealed class PackageSmokeTests
     /// <summary>
     /// Linux / macOS: the harvest pipeline ships symlink chains (e.g.
     /// <c>libSDL2.so → libSDL2-2.0.so.0 → libSDL2-2.0.so.0.&lt;patch&gt;</c>) via
-    /// native.tar.gz because NuGet cannot represent symlinks directly (see
-    /// docs/knowledge-base/harvesting-process.md §5, NuGet/Home#12136). The
+    /// via native.tar.gz because NuGet cannot represent symlinks directly
+    /// (NuGet/Home#12136). The
     /// consumer-side extraction target in <c>buildTransitive/Janset.SDL2.Native.Common.targets</c>
     /// uses shell <c>tar -xzf</c>, which preserves symlinks on POSIX by default.
     ///

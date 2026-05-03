@@ -18,9 +18,8 @@
 
     <!--
       Smoke family declaration. Janset.Smoke.targets expands this list into exact-pinned
-      PackageReference entries. See build/msbuild/Janset.Smoke.{props,targets} for the
-      contract, and docs/playbook/cross-platform-smoke-validation.md §'Authoring New
-      Smoke Projects' for authoring guidance.
+      PackageReference entries. Set the property to one or more semicolon-delimited family
+      roles (e.g. Core;Image;Mixer;Ttf;Gfx for a full SDL2 consumer).
     -->
     <JansetSmokeSdl2Families>Core;Image;Mixer;Ttf;Gfx</JansetSmokeSdl2Families>
   </PropertyGroup>

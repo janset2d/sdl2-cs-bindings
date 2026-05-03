@@ -8,10 +8,10 @@ using NSubstitute;
 namespace Build.Tests.Unit.Integrations.DotNet;
 
 /// <summary>
-/// Post-S1 (2026-04-17): <see cref="DotNetPackInvoker"/> exposes only <c>Pack</c>.
+/// <see cref="DotNetPackInvoker"/> exposes only <c>Pack</c>.
 /// <c>Build</c> / <c>Restore</c> methods and the <c>buildProjectReferences</c> /
-/// <c>FamilyVersionProperty</c> plumbing were retired when Mechanism 3 exact-pin
-/// was replaced with SkiaSharp-style minimum range.
+/// <c>FamilyVersionProperty</c> plumbing were retired when exact-pin
+/// was replaced with a minimum-range dependency model.
 /// </summary>
 public sealed class DotNetPackInvokerTests
 {

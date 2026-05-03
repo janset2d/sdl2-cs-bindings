@@ -23,12 +23,12 @@ The target pattern was also live: task classes were thin Cake adapters and Appli
 
 A 2026-04-19 maintainability audit of `build/_build/Modules/Packaging/` surfaced structural drift that post-ADR-001 delivery accelerated:
 
-1. **Packaging module file count exploded to 34** against Harvesting's 19. The driver was not domain complexity alone; each new concern (G54–G57 validators, `janset-native-metadata.json` generator, README mapping table generator, three `IArtifactSourceResolver` profiles) landed as its own `ISomething` + `Something` + `SomethingValidator` + `Models/Something.cs` quartet.
+1. **Packaging module file count exploded to 34** against Harvesting's 19. The driver was not domain complexity alone; each new concern (G54–G57 validators, `janset-native-metadata.json` generator, README mapping table generator, three `IArtifactSourceResolver` profiles) landed (the LocalDev orchestration feature was retired in Phase Y, 2026-05-03) as its own `ISomething` + `Something` + `SomethingValidator` + `Models/Something.cs` quartet.
 2. **Interface bloat was cargo-cult, not seam discipline.** At least seven single-method interfaces in Packaging (`IPackageVersionResolver`, `IDotNetPackInvoker`, `IProjectMetadataReader`, `IPackageFamilySelector`, `INativePackageMetadataGenerator`, `IReadmeMappingTableGenerator`, `IPackageConsumerSmokeRunner`) had exactly one implementation and zero mocks in tests. They existed because "DI needs an interface" — not because of any replaceable seam. Contrast with Harvesting's `IBinaryClosureWalker` (5 test mocks) and `IArtifactDeployer` (5 mocks), which are genuine seams.
 3. **Sub-validators were `new`-ed inside the orchestrator.** `PackageOutputValidator` (1,038 lines) composed `NativePackageMetadataValidator`, `ReadmeMappingTableValidator`, and `SatelliteUpperBoundValidator` by constructing them directly instead of receiving them via DI. This hybrid — "orchestrator with sub-validator interfaces but manual composition" — is the worst of both worlds: the abstraction tax is paid without the testability or substitutability benefit.
-4. **Concerns from different architectural layers co-habited the same folder.** Domain models (`PackageVersion`, `NativePackageMetadata`, `ArtifactProfile`), use-case orchestrators (`PackageTaskRunner`, `LocalArtifactSourceResolver`), Cake CLI wrappers (`DotNetPackInvoker`), and I/O helpers (ZIP reading, JSON generation) all sat at the same directory depth with no shape signal.
+4. **Concerns from different architectural layers co-habited the same folder.** Domain models (`PackageVersion`, `NativePackageMetadata`, `ArtifactProfile` — retired in Phase Y), use-case orchestrators (`PackageTaskRunner`, `LocalArtifactSourceResolver` — retired in Phase Y), Cake CLI wrappers (`DotNetPackInvoker`), and I/O helpers (ZIP reading, JSON generation) all sat at the same directory depth with no shape signal.
 5. **Cross-cutting infrastructure existed but was not formalized.** `IPathService` (memory-locked reuse pattern) and JSON helpers were present and correctly reused, but there was no **"Infrastructure layer"** shape communicating to contributors "this is where cross-module technical concerns live; reuse before you reinvent."
-6. **Application-layer orchestration drift.** `LocalArtifactSourceResolver` injected `IPackageTaskRunner` and triggered `Pack` from inside feed preparation — a borderline violation of the steering checkpoint "do not orchestrate Cake task graph by DI-injecting task runners into one another." Cake dependency mapping, not DI chaining, should sequence `Harvest → ConsolidateHarvest → Package → SetupLocalDev`.
+6. **Application-layer orchestration drift.** `LocalArtifactSourceResolver` injected `IPackageTaskRunner` and triggered `Pack` from inside feed preparation — a borderline violation of the steering checkpoint "do not orchestrate Cake task graph by DI-injecting task runners into one another." Cake dependency mapping, not DI chaining, should sequence `Harvest → ConsolidateHarvest → Package`. (The LocalDev orchestration was retired in Phase Y, 2026-05-03.)
 
 ### 1.2 The strategic observation
 
@@ -103,7 +103,7 @@ An interface earns its existence only if it formalizes a real runtime seam. The 
 
 **Supporting evidence, not a criterion on its own:** tests mock it. Dedicated substitutes are useful evidence that a seam is already paying rent, but mockability alone does not justify introducing or retaining an interface. If a type exists only to make an interaction-style unit test convenient, prefer concrete construction, fixtures, or a coarser application boundary.
 
-Criterion 2 is the guard against over-pruning. Some single-implementation types legitimately serve as architectural boundaries and should keep their interface even before a second implementation materializes. When applying criterion 2, the ADR-writer / reviewer must be able to state the axis of change in one sentence. Examples where criterion 2 alone could justify a seam: a future "package introspection" boundary that today has one impl (file-system-backed) but clearly belongs in a contract because a feed-backed impl is roadmapped; an `IArtifactSourceResolver` whose contract is explicitly tied to ADR-001 artifact source profiles.
+Criterion 2 is the guard against over-pruning. Some single-implementation types legitimately serve as architectural boundaries and should keep their interface even before a second implementation materializes. When applying criterion 2, the ADR-writer / reviewer must be able to state the axis of change in one sentence. Examples where criterion 2 alone could justify a seam: a future "package introspection" boundary that today has one impl (file-system-backed) but clearly belongs in a contract because a feed-backed impl is roadmapped; an `IArtifactSourceResolver` whose contract is explicitly tied to ADR-001 artifact source profiles. (The LocalDev orchestration feature was retired in Phase Y, 2026-05-03.)
 
 Counter-examples under this rule typically include small packaging / preflight helper seams such as `IPackageVersionResolver`, `IDotNetPackInvoker`, `IProjectMetadataReader`, `IPackageFamilySelector`, `IPackageConsumerSmokeRunner`, `INativePackageMetadataGenerator`, `IReadmeMappingTableGenerator`, and one-implementation validator / reporter interfaces that exist mainly to support interaction-style task tests. If they still have one implementation, no strong axis of change, and are kept alive only because tests substitute them, they are review targets rather than precedent.
 
@@ -142,16 +142,14 @@ build/_build/
 │   └── Packaging/
 │       ├── PackageTaskRunner.cs
 │       ├── PackageConsumerSmokeRunner.cs
-│       ├── LocalArtifactSourceResolver.cs
-│       ├── RemoteArtifactSourceResolver.cs
-│       └── UnsupportedArtifactSourceResolver.cs      (ReleasePublic pending)
+│       └── <ArtifactSourceResolvers>                  ← (retired in Phase Y, 2026-05-03 — moved to tools.cs setup)
 ├── Domain/
 │   └── Packaging/
 │       ├── PackageVersion.cs
 │       ├── PackageFamilySelection.cs
 │       ├── PackageArtifacts.cs
 │       ├── ProjectMetadata.cs
-│       ├── ArtifactProfile.cs
+│       ├── <ArtifactProfile.cs, local resolvers>     ← (retired in Phase Y, 2026-05-03)
 │       ├── NativePackageMetadata.cs                  (model + generator + validator — §2.3 no interface)
 │       ├── ReadmeMappingTable.cs                     (model + generator + validator)
 │       ├── PackageValidation.cs
@@ -252,7 +250,7 @@ build/_build.Tests/
 │   ├── Context/                         (mirrors build/_build/Context/)
 │   └── CompositionRoot/                 (mirrors build/_build/CompositionRoot/)
 ├── Integration/                         (scenario-based; populated as needed)
-│   └── <scenario-folders>                 e.g. SetupLocalDev/, PackagingPipeline/, PreflightGate/
+│   └── <scenario-folders>                 e.g. PackagingPipeline/, PreflightGate/
 ├── Characterization/                    (unchanged — contract snapshot tests)
 │   └── ConfigContract/
 └── Fixtures/                            (unchanged — shared test infrastructure)
@@ -262,7 +260,7 @@ build/_build.Tests/
 
 **Unit tests** mirror production folder by folder. A test file at `Unit/Domain/Packaging/PackageOutputValidatorTests.cs` asserts the contract of `Domain/Packaging/PackageOutputValidator.cs`. Navigation from test to code is mechanical.
 
-**Integration tests** do not mirror production folders — they cross layer boundaries by nature. Integration tests are organized by **scenario** (the user-visible flow under test), not by module. Examples: `Integration/SetupLocalDev/` for the end-to-end `SetupLocalDev --source=local` flow; `Integration/PackagingPipeline/` for Harvest → ConsolidateHarvest → Package → Validate. No `Integration/` sub-folders are created speculatively; each arrives with the first test that justifies it.
+**Integration tests** do not mirror production folders — they cross layer boundaries by nature. Integration tests are organized by **scenario** (the user-visible flow under test), not by module. Example: `Integration/PackagingPipeline/` for Harvest → ConsolidateHarvest → Package → Validate. No `Integration/` sub-folders are created speculatively; each arrives with the first test that justifies it.
 
 **Characterization tests** (contract snapshots, e.g. manifest deserialization) remain at `Characterization/`. They are not unit tests (they cover serialization contracts), not integration tests (no cross-layer orchestration). The existing folder stays.
 
@@ -315,7 +313,7 @@ Three invariants hold at every commit from the close of Wave 1 onward:
 
 - **Abstraction without substitutability is tax.** Navigation cost + mental overhead + DI wiring + file count all increase; zero-cost occurs only if a second implementation or a test mock eventually materializes.
 - **Tests provide evidence, not entitlement.** A mock can confirm that a seam is paying rent, but an interface that exists only because an interaction-style unit test substitutes it is usually a sign that the caller boundary is too granular.
-- **Surviving interfaces are self-documenting.** `IArtifactSourceResolver` surviving means "yes, 3 profiles are coming (ADR-001 §2.7)." `IRuntimeScanner` surviving means "yes, 3 platform implementations exist." The seam earns its cost.
+- **Surviving interfaces are self-documenting.** `IArtifactSourceResolver` surviving meant "yes, 3 profiles are coming (ADR-001 §2.7)" (retired in Phase Y, 2026-05-03). `IRuntimeScanner` surviving means "yes, 3 platform implementations exist." The seam earns its cost.
 
 ### 3.4 Why Tasks/ exception
 
@@ -353,7 +351,7 @@ This ADR does NOT:
 - Define a new DI container or composition-root framework; existing `Microsoft.Extensions.DependencyInjection` usage continues.
 - Move `build/_build.Tests/` test project layout (tests follow implementation structure naturally — mirror updates happen inside each wave).
 - Touch `external/sdl2-cs` or any submodule.
-- Reopen interface decisions for ADR-001-locked seams (`IArtifactSourceResolver`, `IPackagingStrategy`, etc.).
+- Reopen interface decisions for ADR-001-locked seams (`IArtifactSourceResolver` — since retired in Phase Y 2026-05-03, `IPackagingStrategy`, etc.).
 
 ---
 
@@ -364,7 +362,7 @@ ADR-002 is implemented as the build-host baseline rather than an active wave pla
 - The four-layer folder split is live under `build/_build/`.
 - `Infrastructure/Tools/` is the final home for repo-authored Cake `Tool<T>` wrappers.
 - `Program.cs` is the composition root for DI and CLI option wiring.
-- Packaging, Harvesting, Preflight, Coverage, Versioning, SetupLocalDev, Publishing, and smoke orchestration now live behind Application-layer runners or resolvers.
+- Packaging, Harvesting, Preflight, Coverage, Versioning, Publishing, and smoke orchestration now live behind Application-layer runners or resolvers. (SetupLocalDev/LocalDev orchestration retired in Phase Y, 2026-05-03.)
 - `LayerDependencyTests` enforces Domain no outward dependencies, Infrastructure no Application dependencies, and the intended Task-layer shape.
 - Harvest and ConsolidateHarvest runner extraction has landed; task classes should remain presentation adapters.
 

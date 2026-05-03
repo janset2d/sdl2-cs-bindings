@@ -104,7 +104,7 @@ janset2d/sdl2-cs-bindings/
 │       ├── Context/           ← BuildContext binding (Cake task boundary)
 │       ├── Tasks/             ← Presentation: Cake Frosting task classes (Harvest, Package, PreFlight, etc.)
 │       ├── Application/       ← Use-case orchestrators (TaskRunners, Resolvers, SmokeRunner)
-│       │   ├── Packaging/     ← PackageTaskRunner, SmokeRunner, ArtifactSourceResolvers
+│       │   ├── Packaging/     ← PackageTaskRunner, SmokeRunner (ArtifactSourceResolvers retired in Phase Y)
 │       │   ├── Harvesting/    ← ArtifactPlanner, ArtifactDeployer, BinaryClosureWalker
 │       │   └── Preflight/     ← PreflightReporter
 │       ├── Domain/            ← Models, value objects, domain services, result types
@@ -236,7 +236,7 @@ Users reference `Janset.SDL2.Core` (or the meta-package `Janset.SDL2`). The `.Na
 ## What Works Today (as of 2026-05-02)
 
 - **C# bindings**: all 5 SDL2 libraries (`Core`/`Image`/`Mixer`/`Ttf`/`Gfx`) compile against `net10.0`/`net9.0`/`net8.0`/`netstandard2.0`/`net462`.
-- **Cake Frosting build host**: 20 lifecycle + diagnostic targets (Info, CleanArtifacts, CompileSolution, GenerateMatrix, ResolveVersions, PreFlightCheck, EnsureVcpkgDependencies, Harvest, NativeSmoke, ConsolidateHarvest, Inspect-HarvestedDependencies, Package, PackageConsumerSmoke, SetupLocalDev, Coverage-Check, PublishStaging, PublishPublic, plus dependency-analysis aliases). Architecture governed by ADR-004 (Cake-native feature-oriented; supersedes ADR-002 DDD layering): `Host/Features/Shared/Tools/Integrations` shape is live and enforced by `ArchitectureTests` (see `docs/phases/phase-x-build-host-modernization-2026-05-02.md`).
+- **Cake Frosting build host**: 19 lifecycle + diagnostic targets (Info, CleanArtifacts, CompileSolution, GenerateMatrix, ResolveVersions, PreFlightCheck, EnsureVcpkgDependencies, Harvest, NativeSmoke, ConsolidateHarvest, Inspect-HarvestedDependencies, Package, PackageConsumerSmoke, Coverage-Check, PublishStaging, PublishPublic, plus dependency-analysis aliases). `SetupLocalDev` was retired in Phase Y (2026-05-03); dev orchestration moved to `tools.cs` as `tools setup --source=...`. Architecture governed by ADR-004 (Cake-native feature-oriented; supersedes ADR-002 DDD layering): `Host/Features/Shared/Tools/Integrations` shape is live and enforced by `ArchitectureTests`.
 - **Build-host test suite**: 516 TUnit tests covering Host, Features, Shared, Tools, Integrations, and CompositionRoot. Run via `dotnet test --project build/_build.Tests/Build.Tests.csproj -c Release --framework net10.0`. Coverage ratchet gate `Coverage-Check` enforces the floor in `build/coverage-baseline.json`.
 - **Version-source providers** (ADR-003): `ManifestVersionProvider` (manifest-derived), `GitTagVersionProvider` (tag-driven targeted/full-train), `ExplicitVersionProvider` (operator override). `ResolveVersions` emits canonical `versions.json` for manifest, explicit, family-tag, and train-tag paths; downstream stages consume that artifact via `--versions-file`.
 - **CI pipeline** (`release.yml`, 10 jobs): tag-push + `workflow_dispatch` triggers; trigger-aware `resolve-versions` routing; dynamic 7-RID matrix from `manifest.runtimes[]`; consumer smoke matrix re-entry; Cake host built once + distributed as FDD artifact; GHCR-hosted Linux builder image.
@@ -253,7 +253,7 @@ Users reference `Janset.SDL2.Core` (or the meta-package `Janset.SDL2`). The `.Na
 - **`SDL2.Mixer.Native`**: full codec dependencies in the hybrid bake validated on `win-x64`; per-RID codec parity audit pending.
 - **`SDL2.Ttf.Native`**: harvest + pack pipeline live, but per-RID font-rendering smoke beyond `TTF_Init` is still pending.
 - **`SDL2.Net` family**: manifest entry retired 2026-04-22 (`bc652d1`); will re-land with the full skeleton (binding csproj + native csproj + overlay port + manifest entries + harvest validation) per [#58](https://github.com/janset2d/sdl2-cs-bindings/issues/58).
-- **`SetupLocalDev --source=release`**: public-feed resolver remains stubbed until PD-7 publishes the first packages to nuget.org. `--source=remote` is operational against the internal GitHub Packages feed and has been witnessed on Windows, WSL Linux, and macOS Intel.
+- **`SetupLocalDev` / `tools setup --source=release`**: the Cake-host `SetupLocalDev` flow was retired in Phase Y (2026-05-03); orchestration moved to `tools.cs`. The `tools setup --source=remote-github` path is operational against the internal GitHub Packages feed (witnessed on Windows, WSL Linux, and macOS Intel). `tools setup --source=remote-nuget` (public-feed resolver) remains stubbed until PD-7 publishes the first packages to nuget.org.
 - **Samples**: `samples/` directory empty; targeted to land alongside the first prerelease publication ([#60](https://github.com/janset2d/sdl2-cs-bindings/issues/60)).
 - **Binding autogeneration**: CppAst-based generator (Phase 4) is the long-term plan to replace the `external/sdl2-cs/` submodule import. Not yet started.
 - **SDL3 support**: scoped for after SDL2 line is fully shipped.

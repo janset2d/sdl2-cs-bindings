@@ -15,7 +15,7 @@ namespace Build.Features.Packaging;
 /// Post-pack nuspec assertions for a packed family (one managed + one native .nupkg).
 /// </summary>
 /// <remarks>
-/// Post-S1 scope (2026-04-17): guardrails G20 (within-family exact-pin `[x.y.z]` assertion)
+/// Guardrails G20 (within-family exact-pin `[x.y.z]` assertion)
 /// and G24 (sentinel leak check) were retired when within-family dependencies moved to
 /// SkiaSharp-style minimum range. The validator now enforces:
 /// <list type="bullet">
@@ -545,7 +545,7 @@ public sealed class PackageOutputValidator(
         string expectedVersion,
         ManifestConfig manifestConfig)
     {
-        // G21 (post-ADR-001): within-family Native remains bare minimum range (`x.y.z`).
+        // G21: within-family Native remains bare minimum range (`x.y.z`).
         // Cross-family dependencies must keep the same lower bound semantics (`>= x.y.z`),
         // while G56 separately enforces the explicit upper bound `< (UpstreamMajor + 1).0.0`.
         var expectedNativePackageId = FamilyIdentifierConventions.NativePackageId(family.Name);

@@ -207,7 +207,7 @@ The Cake build host follows a Cake-native, feature-oriented vertical-slice archi
 | `Tools/` | Cake `Tool<TSettings>` wrappers ONLY (vcpkg, dumpbin, ldd, otool, tar, cmake, native-smoke) |
 | `Integrations/` | Non-Cake-Tool external adapters (NuGet protocol client, dotnet pack invoker, project metadata reader, coverage XML readers, vcpkg manifest reader, MSVC environment resolver) |
 
-Direction-of-dependency invariants are enforced by `build/_build.Tests/Unit/CompositionRoot/ArchitectureTests.cs` (renamed from `LayerDependencyTests.cs` at the P2 wave; see [`docs/phases/phase-x-build-host-modernization-2026-05-02.md`](../docs/phases/phase-x-build-host-modernization-2026-05-02.md) for migration status). The ADR-002 layered shape (`Application/<Module>/`, `Domain/<Module>/`, `Infrastructure/<Module>/`, `Tasks/<Module>/`, `Context/`) has been retired from production code; new build-host work should use the ADR-004 shape unless an active migration wave explicitly says otherwise.
+Direction-of-dependency invariants are enforced by `build/_build.Tests/Unit/CompositionRoot/ArchitectureTests.cs` (renamed from `LayerDependencyTests.cs` at the P2 wave). The ADR-002 layered shape (`Application/<Module>/`, `Domain/<Module>/`, `Infrastructure/<Module>/`, `Tasks/<Module>/`, `Context/`) has been retired from production code; new build-host work should use the ADR-004 shape unless an active migration wave explicitly says otherwise.
 
 Reference patterns for new build-host work:
 

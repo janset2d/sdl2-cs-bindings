@@ -177,20 +177,12 @@ jobs:
         with:
           package-name: sdl2-bindings-linux-builder
           package-type: container
-          # Retention policy rewritten after 2026-04-22 incident: the previous
-          # `delete-only-untagged-versions: false` + `min-versions-to-keep: 3`
-          # shape swept an amd64 runtime manifest that GHCR reported as
-          # "untagged version" (it was a member of the multi-arch image
-          # index, not a standalone-tagged item). `docker pull` then 404'd
-          # looking for that manifest digest.
-          #
-          # New shape: `delete-only-untagged-versions: true` constrains deletes
-          # to genuinely orphaned versions, never touching anything reachable
-          # via a tag pointer (focal-latest or focal-<date>-<sha>). With
-          # provenance/sbom attestation disabled in the build step above, a
-          # successful multi-arch push produces 1 tagged manifest-list pointing
-          # to 2 runtime manifests (both referenced, never pruned). Stale
-          # manifests from abandoned builds (e.g. arm64 pushed but amd64
-          # failed) accumulate as untagged versions and this step cleans them.
+          # delete-only-untagged-versions: true constrains deletes to genuinely
+          # orphaned versions, never touching anything reachable via a tag pointer
+          # (focal-latest or focal-<date>-<sha>). With provenance/sbom attestation
+          # disabled in the build step above, a successful multi-arch push produces
+          # 1 tagged manifest-list pointing to 2 runtime manifests (both referenced,
+          # never pruned). Stale manifests from abandoned builds (e.g. arm64 pushed
+          # but amd64 failed) accumulate as untagged versions and this step cleans them.
           min-versions-to-keep: 5
           delete-only-untagged-versions: true

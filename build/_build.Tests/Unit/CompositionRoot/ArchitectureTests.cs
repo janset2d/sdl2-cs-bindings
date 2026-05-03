@@ -4,7 +4,7 @@ using Build.Host;
 namespace Build.Tests.Unit.CompositionRoot;
 
 /// <summary>
-/// Architecture-level direction-of-dependency invariants per ADR-004 §2.13.
+/// Architecture-level direction-of-dependency invariants.
 /// <para>
 /// Five invariants are asserted against the production <c>Build</c> assembly:
 /// </para>
@@ -13,16 +13,15 @@ namespace Build.Tests.Unit.CompositionRoot;
 ///   <item><description><c>Tools</c> have no Feature dependencies (Cake framework + <c>Build.Shared.*</c> only).</description></item>
 ///   <item><description><c>Integrations</c> have no Feature dependencies (Cake framework + <c>Build.Shared.*</c> only).</description></item>
 ///   <item><description><c>Features</c> do not cross-reference each other in code. Cross-feature
-///       data sharing flows through <c>Build.Shared.*</c> exclusively. Phase Y (2026-05-03) retired
-///       the LocalDev orchestration-feature carve-out; multi-feature compose now lives
-///       in repo-root <c>tools.cs</c>, not in Cake.</description></item>
+///       data sharing flows through <c>Build.Shared.*</c> exclusively. Multi-feature compose
+///       lives in repo-root <c>tools.cs</c>, not in Cake.</description></item>
 ///   <item><description><c>Host</c> is free — the composition site (Program.cs, BuildContext, CompositionRoot, paths) may
 ///       reference any layer, and is excluded from every other invariant's source set.</description></item>
 /// </list>
 /// <para>
-/// Renamed from <c>LayerDependencyTests</c> at the P2 wave per phase-x §6.4. The ADR-002 three-invariant
-/// shape (Domain / Application / Infrastructure / Tasks) is retired in this rewrite; ADR-002 namespaces are
-/// no longer present in the codebase post-P1, so checking against them would assert against an empty source set.
+/// Renamed from <c>LayerDependencyTests</c>. The three-invariant shape (Domain /
+/// Application / Infrastructure / Tasks) is retired in this rewrite; those namespaces are
+/// no longer present in the codebase, so checking against them would assert against an empty source set.
 /// </para>
 /// </summary>
 public sealed class ArchitectureTests
@@ -40,7 +39,7 @@ public sealed class ArchitectureTests
     {
         // Build.Shared.* may reference pure-domain libraries only (NuGet.Versioning, OneOf, etc.)
         // — not Cake.* framework types, not Build.Host.*, not Build.Features.*, not Build.Tools.*,
-        // not Build.Integrations.*. Per ADR-004 §2.6 the Shared layer is the build host's
+        // not Build.Integrations.*. The Shared layer is the build host's
         // vocabulary surface, decoupled from every other namespace.
         var violations = FindViolations(
             sourcePrefix: SharedPrefix,
@@ -57,7 +56,7 @@ public sealed class ArchitectureTests
     {
         // Build.Tools.* may depend on Cake framework + Build.Shared.* only. Cake Tool<TSettings>
         // wrappers stay generic to the build host; coupling them to a specific Feature would
-        // re-create the Application/Infrastructure mixed-concern shape ADR-002 §1.1.4 flagged.
+        // re-create cross-concern coupling that the architecture rejects.
         var violations = FindViolations(
             sourcePrefix: ToolsPrefix,
             forbiddenPrefixes: [FeaturesPrefix, HostPrefix, IntegrationsPrefix],
@@ -69,15 +68,11 @@ public sealed class ArchitectureTests
     }
 
     /// <summary>
-    /// Named exception per phase-x §14.5 IPathService Host-coupling risk:
-    /// 2 violations (<c>Integrations.{DotNet,Vcpkg} → Host.Paths.IPathService</c>) are
-    /// permanently tolerated. <see cref="Build.Host.Paths.IPathService"/> is the canonical
-    /// Host-tier path abstraction that Integrations adapters may consume — the
-    /// BuildPaths fluent split originally scoped to P4 §8.3 was discarded on
-    /// 2026-05-02 (the 50+-member interface + hundreds-of-callsite rewrite didn't
-    /// justify its cost). Decoupling at Adım 13.5 was also rejected because the
-    /// P4 wave would have immediately re-touched these classes — see phase-x §14.5
-    /// risk #3. The allowlist entries are permanent; do not add new
+    /// Two Integrations→Host couplings are permanently allowed:
+    /// <c>Integrations.DotNet.DotNetPackInvoker → Host.Paths.IPathService</c> and
+    /// <c>Integrations.Vcpkg.VcpkgCliProvider → Host.Paths.IPathService</c>.
+    /// <see cref="Build.Host.Paths.IPathService"/> is the canonical Host-tier path
+    /// abstraction that Integrations adapters may consume. Do not add new
     /// Integrations→IPathService couplings without explicit approval.
     /// </summary>
     [Test]
@@ -110,9 +105,8 @@ public sealed class ArchitectureTests
     public async Task Features_Should_Not_Cross_Reference()
     {
         // Build.Features.X.* may not reference types in Build.Features.Y.*. Cross-feature
-        // data sharing flows through Build.Shared.* exclusively. Phase Y (2026-05-03) retired
-        // the LocalDev orchestration-feature carve-out; multi-feature compose now lives
-        // in repo-root tools.cs, not in Cake.
+        // data sharing flows through Build.Shared.* exclusively. Multi-feature compose
+        // lives in repo-root tools.cs, not in Cake.
         var violations = new List<string>();
 
         var featureTypes = SafeGetTypes(BuildAssembly)
