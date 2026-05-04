@@ -39,7 +39,7 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
 
     public async Task<IReadOnlyDictionary<string, string>> ResolveAsync(
         MsvcTargetArch targetArch,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
         if (!OperatingSystem.IsWindows())
         {
@@ -53,18 +53,16 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
             return cached;
         }
 
-        var result = await ResolveCoreAsync(targetArch, cancellationToken);
+        var result = await ResolveCoreAsync(targetArch, ct);
         // ConcurrentDictionary handles the race; a pathological concurrent invocation would
         // at worst cause two resolver runs with the later write winning — same outcome.
         _cache[targetArch] = result;
         return result;
     }
 
-    private async Task<IReadOnlyDictionary<string, string>> ResolveCoreAsync(
-        MsvcTargetArch targetArch,
-        CancellationToken cancellationToken)
+    private async Task<IReadOnlyDictionary<string, string>> ResolveCoreAsync(MsvcTargetArch targetArch, CancellationToken ct)
     {
-        cancellationToken.ThrowIfCancellationRequested();
+        ct.ThrowIfCancellationRequested();
 
         // Fast path: the caller's shell (Developer PowerShell, CI workflow that already
         // sourced vcvars, etc.) has MSVC live. VCToolsInstallDir is the canonical marker.
@@ -111,7 +109,7 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
             vcvarsBat.FullPath,
             vcvarsArg);
 
-        var delta = await CaptureEnvironmentDeltaAsync(vcvarsBat, vcvarsArg, cancellationToken);
+        var delta = await CaptureEnvironmentDeltaAsync(vcvarsBat, vcvarsArg, ct);
         _log.Information(
             "MsvcDevEnvironment: captured {0} env var(s) to merge into MSVC-dependent child processes for target '{1}'.",
             delta.Count,
@@ -122,7 +120,7 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
     private static async Task<Dictionary<string, string>> CaptureEnvironmentDeltaAsync(
         FilePath vcvarsBat,
         string vcvarsArg,
-        CancellationToken cancellationToken)
+        CancellationToken ct)
     {
         // Shell out to cmd.exe so vcvarsall.bat can set env vars in its own shell scope,
         // then dump them via `set`. We capture stdout, parse KEY=VALUE, and diff against
@@ -152,10 +150,10 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
         };
 
         process.Start();
-        var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
-        var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
+        var stdoutTask = process.StandardOutput.ReadToEndAsync(ct);
+        var stderrTask = process.StandardError.ReadToEndAsync(ct);
 
-        await process.WaitForExitAsync(cancellationToken);
+        await process.WaitForExitAsync(ct);
         var stdout = await stdoutTask;
         var stderr = await stderrTask;
 

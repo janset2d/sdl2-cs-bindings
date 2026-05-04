@@ -31,10 +31,10 @@ public sealed class NativeSmokePipeline(
     private readonly IMsvcDevEnvironment _msvcDevEnvironment = msvcDevEnvironment ?? throw new ArgumentNullException(nameof(msvcDevEnvironment));
     private readonly VcpkgConfiguration _vcpkgConfiguration = vcpkgConfiguration ?? throw new ArgumentNullException(nameof(vcpkgConfiguration));
 
-    public async Task RunAsync(NativeSmokeRequest request, CancellationToken cancellationToken = default)
+    public async Task RunAsync(NativeSmokeRequest request, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        cancellationToken.ThrowIfCancellationRequested();
+        ct.ThrowIfCancellationRequested();
 
         EnsureNativeSmokeInputsReady();
 
@@ -43,9 +43,9 @@ public sealed class NativeSmokePipeline(
 
         var preset = request.Rid;
         await RunCmakeConfigureAsync(preset);
-        cancellationToken.ThrowIfCancellationRequested();
+        ct.ThrowIfCancellationRequested();
         await RunCmakeBuildAsync(preset);
-        cancellationToken.ThrowIfCancellationRequested();
+        ct.ThrowIfCancellationRequested();
         RunNativeSmokeBinary(preset);
 
         _log.Information("NativeSmoke completed successfully for RID '{0}'.", request.Rid);

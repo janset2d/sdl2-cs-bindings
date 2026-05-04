@@ -20,18 +20,18 @@ public sealed class NuGetProtocolFeedClient(ICakeContext cakeContext, ICakeLog l
         string authToken,
         string packageId,
         bool includePrerelease,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(feedUrl);
         ArgumentException.ThrowIfNullOrWhiteSpace(authToken);
         ArgumentException.ThrowIfNullOrWhiteSpace(packageId);
-        cancellationToken.ThrowIfCancellationRequested();
+        ct.ThrowIfCancellationRequested();
 
         var repository = CreateRepository(feedUrl, authToken);
-        var resource = await repository.GetResourceAsync<FindPackageByIdResource>(cancellationToken);
+        var resource = await repository.GetResourceAsync<FindPackageByIdResource>(ct);
 
         using var cache = new SourceCacheContext { NoCache = true };
-        var versions = await resource.GetAllVersionsAsync(packageId, cache, NullLogger.Instance, cancellationToken);
+        var versions = await resource.GetAllVersionsAsync(packageId, cache, NullLogger.Instance, ct);
 
         var latest = versions
             .Where(v => includePrerelease || !v.IsPrerelease)
@@ -54,17 +54,17 @@ public sealed class NuGetProtocolFeedClient(ICakeContext cakeContext, ICakeLog l
         string packageId,
         NuGetVersion version,
         DirectoryPath targetDir,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(feedUrl);
         ArgumentException.ThrowIfNullOrWhiteSpace(authToken);
         ArgumentException.ThrowIfNullOrWhiteSpace(packageId);
         ArgumentNullException.ThrowIfNull(version);
         ArgumentNullException.ThrowIfNull(targetDir);
-        cancellationToken.ThrowIfCancellationRequested();
+        ct.ThrowIfCancellationRequested();
 
         var repository = CreateRepository(feedUrl, authToken);
-        var resource = await repository.GetResourceAsync<FindPackageByIdResource>(cancellationToken);
+        var resource = await repository.GetResourceAsync<FindPackageByIdResource>(ct);
 
         using var cache = new SourceCacheContext { NoCache = true };
 
@@ -76,7 +76,7 @@ public sealed class NuGetProtocolFeedClient(ICakeContext cakeContext, ICakeLog l
         // FileMode.Create truncates a stale partial file from a prior failed download.
         var targetFile = _cakeContext.FileSystem.GetFile(targetPath);
         await using var fileStream = targetFile.Open(FileMode.Create, FileAccess.Write, FileShare.None);
-        var copied = await resource.CopyNupkgToStreamAsync(packageId, version, fileStream, cache, NullLogger.Instance, cancellationToken);
+        var copied = await resource.CopyNupkgToStreamAsync(packageId, version, fileStream, cache, NullLogger.Instance, ct);
 
         if (!copied)
         {
@@ -94,15 +94,15 @@ public sealed class NuGetProtocolFeedClient(ICakeContext cakeContext, ICakeLog l
         string feedUrl,
         string authToken,
         FilePath nupkgPath,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(feedUrl);
         ArgumentException.ThrowIfNullOrWhiteSpace(authToken);
         ArgumentNullException.ThrowIfNull(nupkgPath);
-        cancellationToken.ThrowIfCancellationRequested();
+        ct.ThrowIfCancellationRequested();
 
         var repository = CreateRepository(feedUrl, authToken);
-        var resource = await repository.GetResourceAsync<PackageUpdateResource>(cancellationToken);
+        var resource = await repository.GetResourceAsync<PackageUpdateResource>(ct);
 
         // skipDuplicate=false so a re-push at the same version fails loud — operators
         // must bump the prerelease counter rather than accidentally republishing.

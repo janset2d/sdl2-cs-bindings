@@ -74,7 +74,7 @@ public static class CakeJsonExtensions
 
     /// <summary>
     /// Cake-native asynchronous JSON read. Mirror of <see cref="ToJson{TModel}"/> backed by
-    /// <see cref="JsonSerializer.DeserializeAsync{TValue}(Stream, JsonSerializerOptions?, CancellationToken)"/>.
+    /// <see cref="JsonSerializer.DeserializeAsync{TValue}(Stream, JsonSerializerOptions?, ct)"/>.
     /// Callers pass their own <see cref="JsonSerializerOptions"/> when they need a domain-specific
     /// shape (naming policy, converters, case-insensitivity); otherwise System.Text.Json defaults
     /// apply. Wraps I/O and <see cref="JsonException"/> into <see cref="CakeException"/> so the

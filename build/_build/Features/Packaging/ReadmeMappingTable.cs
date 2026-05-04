@@ -148,7 +148,7 @@ public sealed class ReadmeMappingTableGenerator(
     private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
 
-    public async Task UpdateAsync(CancellationToken cancellationToken = default)
+    public async Task UpdateAsync(CancellationToken ct = default)
     {
         var readmePath = _pathService.GetReadmeFile();
 
@@ -159,7 +159,7 @@ public sealed class ReadmeMappingTableGenerator(
 
         var expectedBlock = ReadmeMappingTable.BuildBlock(_manifestConfig);
         var original = await _cakeContext.ReadAllTextAsync(readmePath);
-        cancellationToken.ThrowIfCancellationRequested();
+        ct.ThrowIfCancellationRequested();
 
         var updated = ReadmeMappingTable.UpsertBlock(original, expectedBlock);
 
@@ -169,7 +169,7 @@ public sealed class ReadmeMappingTableGenerator(
         }
 
         await _cakeContext.WriteAllTextAsync(readmePath, updated);
-        cancellationToken.ThrowIfCancellationRequested();
+        ct.ThrowIfCancellationRequested();
     }
 }
 

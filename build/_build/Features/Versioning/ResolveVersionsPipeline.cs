@@ -37,13 +37,15 @@ public sealed class ResolveVersionsPipeline(
     private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
     private readonly PackageBuildConfiguration _packageBuildConfiguration = packageBuildConfiguration ?? throw new ArgumentNullException(nameof(packageBuildConfiguration));
     private readonly VersioningConfiguration _versioningConfiguration = versioningConfiguration ?? throw new ArgumentNullException(nameof(versioningConfiguration));
-    private readonly IUpstreamVersionAlignmentValidator _upstreamVersionAlignmentValidator = upstreamVersionAlignmentValidator ?? throw new ArgumentNullException(nameof(upstreamVersionAlignmentValidator));
+
+    private readonly IUpstreamVersionAlignmentValidator _upstreamVersionAlignmentValidator =
+        upstreamVersionAlignmentValidator ?? throw new ArgumentNullException(nameof(upstreamVersionAlignmentValidator));
 
     private static readonly IReadOnlySet<string> EmptyRequestedScope = ImmutableHashSet<string>.Empty.WithComparer(StringComparer.OrdinalIgnoreCase);
 
-    public async Task RunAsync(CancellationToken cancellationToken = default)
+    public async Task RunAsync(CancellationToken ct = default)
     {
-        cancellationToken.ThrowIfCancellationRequested();
+        ct.ThrowIfCancellationRequested();
 
         var source = _versioningConfiguration.VersionSource;
         if (string.IsNullOrWhiteSpace(source))
@@ -56,20 +58,18 @@ public sealed class ResolveVersionsPipeline(
 
         var mapping = source.ToLowerInvariant() switch
         {
-            "manifest" => await ResolveFromManifestAsync(scope, cancellationToken),
-            "explicit" => await ResolveFromExplicitAsync(scope, cancellationToken),
-            "git-tag" => await ResolveFromGitTagAsync(scope, cancellationToken),
-            "meta-tag" => await ResolveFromMetaTagAsync(scope, cancellationToken),
+            "manifest" => await ResolveFromManifestAsync(scope, ct),
+            "explicit" => await ResolveFromExplicitAsync(scope, ct),
+            "git-tag" => await ResolveFromGitTagAsync(scope, ct),
+            "meta-tag" => await ResolveFromMetaTagAsync(scope, ct),
             _ => throw new CakeException(
                 $"ResolveVersions --version-source='{source}' is not recognized. Allowed values: manifest | explicit | git-tag | meta-tag."),
         };
 
-        await WriteMappingAsync(mapping, cancellationToken);
+        await WriteMappingAsync(mapping, ct);
     }
 
-    private async Task<IReadOnlyDictionary<string, NuGetVersion>> ResolveFromManifestAsync(
-        HashSet<string> scope,
-        CancellationToken cancellationToken)
+    private async Task<IReadOnlyDictionary<string, NuGetVersion>> ResolveFromManifestAsync(HashSet<string> scope, CancellationToken ct)
     {
         var suffix = _versioningConfiguration.Suffix;
         if (string.IsNullOrWhiteSpace(suffix))
@@ -80,12 +80,12 @@ public sealed class ResolveVersionsPipeline(
         }
 
         var provider = new ManifestVersionProvider(_manifestConfig, suffix);
-        return await provider.ResolveAsync(scope, cancellationToken);
+        return await provider.ResolveAsync(scope, ct);
     }
 
     private async Task<IReadOnlyDictionary<string, NuGetVersion>> ResolveFromExplicitAsync(
         HashSet<string> scope,
-        CancellationToken cancellationToken)
+        CancellationToken ct)
     {
         if (_packageBuildConfiguration.ExplicitVersions.Count == 0)
         {
@@ -99,12 +99,12 @@ public sealed class ResolveVersionsPipeline(
             _upstreamVersionAlignmentValidator,
             _packageBuildConfiguration.ExplicitVersions);
 
-        return await provider.ResolveAsync(scope, cancellationToken);
+        return await provider.ResolveAsync(scope, ct);
     }
 
     private async Task<IReadOnlyDictionary<string, NuGetVersion>> ResolveFromGitTagAsync(
         HashSet<string> scope,
-        CancellationToken cancellationToken)
+        CancellationToken ct)
     {
         if (scope.Count != 1)
         {
@@ -125,12 +125,12 @@ public sealed class ResolveVersionsPipeline(
         // GitTagScope.Targeted already narrows provider coverage to one family. The CLI scope
         // may be a full tag (for example sdl2-core-2.32.0), while provider filtering accepts
         // family ids only, so do not apply the same value a second time as a requested filter.
-        return await provider.ResolveAsync(EmptyRequestedScope, cancellationToken);
+        return await provider.ResolveAsync(EmptyRequestedScope, ct);
     }
 
     private async Task<IReadOnlyDictionary<string, NuGetVersion>> ResolveFromMetaTagAsync(
         HashSet<string> scope,
-        CancellationToken cancellationToken)
+        CancellationToken ct)
     {
         var provider = new GitTagVersionProvider(
             _manifestConfig,
@@ -139,10 +139,10 @@ public sealed class ResolveVersionsPipeline(
             _pathService.RepoRoot,
             new GitTagScope.Train());
 
-        return await provider.ResolveAsync(scope, cancellationToken);
+        return await provider.ResolveAsync(scope, ct);
     }
 
-    private async Task WriteMappingAsync(IReadOnlyDictionary<string, NuGetVersion> mapping, CancellationToken cancellationToken)
+    private async Task WriteMappingAsync(IReadOnlyDictionary<string, NuGetVersion> mapping, CancellationToken ct)
     {
         // Flat JSON shape: {family-id: semver-string}. Sort keys for deterministic output
         // and write NuGet-normalized version strings so downstream consumers can round-trip
@@ -156,7 +156,7 @@ public sealed class ResolveVersionsPipeline(
         var outputFile = _pathService.GetResolveVersionsOutputFile();
         await _cakeContext.WriteJsonAsync(outputFile, serializable);
 
-        cancellationToken.ThrowIfCancellationRequested();
+        ct.ThrowIfCancellationRequested();
 
         var inlineJson = _cakeContext.SerializeJson(serializable);
         _log.Information("ResolveVersions wrote {0} family/version entries to {1}.", serializable.Count, outputFile.FullPath);

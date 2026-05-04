@@ -38,10 +38,10 @@ public sealed class HarvestPipeline(
 
     private static JsonSerializerOptions JsonOptions => HarvestJsonContract.Options;
 
-    public async Task RunAsync(HarvestRequest request, CancellationToken cancellationToken = default)
+    public async Task RunAsync(HarvestRequest request, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        cancellationToken.ThrowIfCancellationRequested();
+        ct.ThrowIfCancellationRequested();
 
         EnsureHarvestInputsReady();
 
@@ -58,7 +58,7 @@ public sealed class HarvestPipeline(
 
         foreach (var manifest in librariesToHarvest)
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            ct.ThrowIfCancellationRequested();
             await ProcessLibraryAsync(manifest, outputBase);
         }
 

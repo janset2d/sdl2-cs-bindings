@@ -32,10 +32,10 @@ public sealed class PublishPipeline(
 
     [SuppressMessage("Major Code Smell", "S3267:Loops should be simplified with LINQ expressions",
         Justification = "Per-family side effects: cancellation, two awaited pushes, structured logging.")]
-    public async Task RunAsync(PublishRequest request, CancellationToken cancellationToken = default)
+    public async Task RunAsync(PublishRequest request, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        cancellationToken.ThrowIfCancellationRequested();
+        ct.ThrowIfCancellationRequested();
 
         ValidateRequest(request);
 
@@ -43,7 +43,7 @@ public sealed class PublishPipeline(
 
         foreach (var family in concreteFamilies)
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            ct.ThrowIfCancellationRequested();
 
             var version = request.Versions[family.Name];
             EnsureNotLocalSuffix(family.Name, version);
@@ -61,8 +61,8 @@ public sealed class PublishPipeline(
                 managedPackageId,
                 nativePackageId);
 
-            await _feedClient.PushAsync(request.FeedUrl, request.AuthToken, managedNupkg, cancellationToken);
-            await _feedClient.PushAsync(request.FeedUrl, request.AuthToken, nativeNupkg, cancellationToken);
+            await _feedClient.PushAsync(request.FeedUrl, request.AuthToken, managedNupkg, ct);
+            await _feedClient.PushAsync(request.FeedUrl, request.AuthToken, nativeNupkg, ct);
         }
 
         _log.Information(

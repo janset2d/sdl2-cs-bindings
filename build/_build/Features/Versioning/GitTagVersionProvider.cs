@@ -35,10 +35,10 @@ public sealed class GitTagVersionProvider(
 
     public Task<IReadOnlyDictionary<string, NuGetVersion>> ResolveAsync(
         IReadOnlySet<string> requestedScope,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(requestedScope);
-        cancellationToken.ThrowIfCancellationRequested();
+        ct.ThrowIfCancellationRequested();
 
         var headSha = ResolveHeadCommitSha();
         var tagsAtHead = CollectTagsAtHead(headSha);
@@ -49,7 +49,7 @@ public sealed class GitTagVersionProvider(
         var mapping = new Dictionary<string, NuGetVersion>(effectiveFamilies.Count, StringComparer.OrdinalIgnoreCase);
         foreach (var family in effectiveFamilies)
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            ct.ThrowIfCancellationRequested();
             var version = ResolveVersionForFamily(family, tagsAtHead, headSha);
             mapping[family.Name] = version;
         }

@@ -11,5 +11,5 @@ public interface IProjectMetadataReader
     /// <see cref="ProjectMetadataResult"/> carrying either the resolved metadata or a
     /// <see cref="ProjectMetadataError"/> describing the MSBuild or parse failure.
     /// </summary>
-    Task<ProjectMetadataResult> ReadAsync(FilePath projectPath, CancellationToken cancellationToken = default);
+    Task<ProjectMetadataResult> ReadAsync(FilePath projectPath, CancellationToken ct = default);
 }

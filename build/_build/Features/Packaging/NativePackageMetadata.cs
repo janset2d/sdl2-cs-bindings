@@ -56,7 +56,7 @@ public sealed class NativePackageMetadataGenerator(
         PackageFamilyConfig family,
         string familyVersion,
         string buildCommitSha,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(family);
         ArgumentException.ThrowIfNullOrWhiteSpace(familyVersion);
@@ -95,7 +95,7 @@ public sealed class NativePackageMetadataGenerator(
         // Enforce the same JSON file contract used across build-host modules.
         _ = await _cakeContext.ToJsonAsync<NativePackageMetadata>(targetPath);
 
-        cancellationToken.ThrowIfCancellationRequested();
+        ct.ThrowIfCancellationRequested();
     }
 }
 

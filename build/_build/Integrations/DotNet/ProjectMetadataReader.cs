@@ -22,10 +22,10 @@ public sealed class ProjectMetadataReader(ICakeContext cakeContext, ICakeLog log
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
 
-    public Task<ProjectMetadataResult> ReadAsync(FilePath projectPath, CancellationToken cancellationToken = default)
+    public Task<ProjectMetadataResult> ReadAsync(FilePath projectPath, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(projectPath);
-        cancellationToken.ThrowIfCancellationRequested();
+        ct.ThrowIfCancellationRequested();
 
         var settings = new DotNetMSBuildSettings
         {

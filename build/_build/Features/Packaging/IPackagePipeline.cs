@@ -7,5 +7,5 @@ namespace Build.Features.Packaging;
 /// </summary>
 public interface IPackagePipeline
 {
-    Task RunAsync(PackRequest request, CancellationToken cancellationToken = default);
+    Task RunAsync(PackRequest request, CancellationToken ct = default);
 }

@@ -76,10 +76,10 @@ public sealed class PackagePipeline : IPackagePipeline
         _resolveHeadCommitSha = () => resolver(_cakeContext, _pathService.RepoRoot);
     }
 
-    public async Task RunAsync(PackRequest request, CancellationToken cancellationToken = default)
+    public async Task RunAsync(PackRequest request, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        cancellationToken.ThrowIfCancellationRequested();
+        ct.ThrowIfCancellationRequested();
 
         var explicitVersions = request.Versions;
         if (explicitVersions.Count == 0)
@@ -109,15 +109,15 @@ public sealed class PackagePipeline : IPackagePipeline
         var expectedCommitSha = ResolveHeadCommitSha();
 
         // G57 generator: keep README mapping block aligned with manifest before pack validation.
-        await _readmeMappingTableGenerator.UpdateAsync(cancellationToken);
+        await _readmeMappingTableGenerator.UpdateAsync(ct);
 
         _cakeContext.EnsureDirectoryExists(_pathService.PackagesOutput);
 
         foreach (var family in families)
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            ct.ThrowIfCancellationRequested();
             var familyVersion = explicitVersions[family.Name].ToNormalizedString();
-            await PackFamilyAsync(family, familyVersion, expectedCommitSha, cancellationToken);
+            await PackFamilyAsync(family, familyVersion, expectedCommitSha, ct);
         }
     }
 
@@ -153,7 +153,7 @@ public sealed class PackagePipeline : IPackagePipeline
         return orderedFamilies;
     }
 
-    private async Task PackFamilyAsync(PackageFamilyConfig family, string version, string expectedCommitSha, CancellationToken cancellationToken)
+    private async Task PackFamilyAsync(PackageFamilyConfig family, string version, string expectedCommitSha, CancellationToken ct)
     {
         var managedProjectPath = ResolveProjectPath(family.ManagedProject, family.Name, "managed_project");
         var nativeProjectPath = ResolveProjectPath(family.NativeProject, family.Name, "native_project");
@@ -161,24 +161,24 @@ public sealed class PackagePipeline : IPackagePipeline
         _log.Information("Packing family '{0}' at version '{1}'.", family.Name, version);
 
         // Phase 1: EnsureHarvestReady — gate the pack on a valid ConsolidateHarvest receipt.
-        await EnsureHarvestReadyAsync(family, cancellationToken);
+        await EnsureHarvestReadyAsync(family, ct);
 
         // Phase 2: PrepareMetadata — stamp the native payload with G55 machine-readable metadata.
-        await PrepareMetadataAsync(family, version, expectedCommitSha, cancellationToken);
+        await PrepareMetadataAsync(family, version, expectedCommitSha, ct);
 
         // Phase 3: PackAndValidate — dotnet pack, normalize cross-family deps, post-pack guardrails.
-        await PackAndValidateAsync(family, version, expectedCommitSha, managedProjectPath, nativeProjectPath, cancellationToken);
+        await PackAndValidateAsync(family, version, expectedCommitSha, managedProjectPath, nativeProjectPath, ct);
     }
 
-    private Task EnsureHarvestReadyAsync(PackageFamilyConfig family, CancellationToken cancellationToken)
-        => EnsureHarvestOutputReadyAsync(family, cancellationToken);
+    private Task EnsureHarvestReadyAsync(PackageFamilyConfig family, CancellationToken ct)
+        => EnsureHarvestOutputReadyAsync(family, ct);
 
     private Task PrepareMetadataAsync(
         PackageFamilyConfig family,
         string version,
         string expectedCommitSha,
-        CancellationToken cancellationToken)
-        => _nativePackageMetadataGenerator.GenerateAsync(family, version, expectedCommitSha, cancellationToken);
+        CancellationToken ct)
+        => _nativePackageMetadataGenerator.GenerateAsync(family, version, expectedCommitSha, ct);
 
     private async Task PackAndValidateAsync(
         PackageFamilyConfig family,
@@ -186,7 +186,7 @@ public sealed class PackagePipeline : IPackagePipeline
         string expectedCommitSha,
         FilePath managedProjectPath,
         FilePath nativeProjectPath,
-        CancellationToken cancellationToken)
+        CancellationToken ct)
     {
         var nativePayloadSource = _pathService.GetHarvestLibraryDir(family.LibraryRef);
 
@@ -216,9 +216,9 @@ public sealed class PackagePipeline : IPackagePipeline
         }
 
         var artifacts = CreateArtifacts(family, version);
-        await NormalizeCrossFamilyDependencyRangesAsync(family, artifacts.ManagedPackage, version, cancellationToken);
+        await NormalizeCrossFamilyDependencyRangesAsync(family, artifacts.ManagedPackage, version, ct);
 
-        var metadataResult = await _projectMetadataReader.ReadAsync(managedProjectPath, cancellationToken);
+        var metadataResult = await _projectMetadataReader.ReadAsync(managedProjectPath, ct);
         if (metadataResult.IsError())
         {
             var error = metadataResult.ProjectMetadataError;
@@ -257,7 +257,7 @@ public sealed class PackagePipeline : IPackagePipeline
         PackageFamilyConfig family,
         FilePath managedPackagePath,
         string lowerBoundVersion,
-        CancellationToken cancellationToken)
+        CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(family);
         ArgumentNullException.ThrowIfNull(managedPackagePath);
@@ -299,7 +299,7 @@ public sealed class PackagePipeline : IPackagePipeline
         using (var reader = new StreamReader(nuspecEntry.Open(), Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: false))
 #pragma warning restore CA1849, S6966
         {
-            nuspecContent = await reader.ReadToEndAsync(cancellationToken);
+            nuspecContent = await reader.ReadToEndAsync(ct);
         }
 
         var document = XDocument.Parse(nuspecContent, LoadOptions.PreserveWhitespace);
@@ -317,7 +317,7 @@ public sealed class PackagePipeline : IPackagePipeline
         var hasChanges = false;
         foreach (var dependencyFamily in family.DependsOn)
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            ct.ThrowIfCancellationRequested();
 
             var dependencyPackageId = FamilyIdentifierConventions.ManagedPackageId(dependencyFamily);
             var upperBound = ResolveCrossFamilyUpperBound(dependencyFamily);
@@ -423,7 +423,7 @@ public sealed class PackagePipeline : IPackagePipeline
         }
     }
 
-    private async Task EnsureHarvestOutputReadyAsync(PackageFamilyConfig family, CancellationToken cancellationToken)
+    private async Task EnsureHarvestOutputReadyAsync(PackageFamilyConfig family, CancellationToken ct)
     {
         var manifestPath = _pathService.GetHarvestLibraryManifestFile(family.LibraryRef);
 
@@ -434,7 +434,7 @@ public sealed class PackagePipeline : IPackagePipeline
         }
 
         var harvestManifest = await _cakeContext.ToJsonAsync<HarvestManifest>(manifestPath);
-        cancellationToken.ThrowIfCancellationRequested();
+        ct.ThrowIfCancellationRequested();
 
         AssertConsolidationReceiptValid(family, manifestPath, harvestManifest);
         AssertPayloadSubtreesPopulated(family);

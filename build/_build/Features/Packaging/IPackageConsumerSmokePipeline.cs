@@ -7,5 +7,5 @@ namespace Build.Features.Packaging;
 /// </summary>
 public interface IPackageConsumerSmokePipeline
 {
-    Task RunAsync(PackageConsumerSmokeRequest request, CancellationToken cancellationToken = default);
+    Task RunAsync(PackageConsumerSmokeRequest request, CancellationToken ct = default);
 }

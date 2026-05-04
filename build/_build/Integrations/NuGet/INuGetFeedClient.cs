@@ -10,7 +10,7 @@ public interface INuGetFeedClient
         string authToken,
         string packageId,
         bool includePrerelease,
-        CancellationToken cancellationToken = default);
+        CancellationToken ct = default);
 
     Task<FilePath> DownloadAsync(
         string feedUrl,
@@ -18,11 +18,11 @@ public interface INuGetFeedClient
         string packageId,
         NuGetVersion version,
         DirectoryPath targetDir,
-        CancellationToken cancellationToken = default);
+        CancellationToken ct = default);
 
     Task PushAsync(
         string feedUrl,
         string authToken,
         FilePath nupkgPath,
-        CancellationToken cancellationToken = default);
+        CancellationToken ct = default);
 }

@@ -23,10 +23,10 @@ public sealed class ConsolidateHarvestPipeline(
     private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
     private readonly JsonSerializerOptions _jsonOptions = HarvestJsonContract.Options;
 
-    public async Task RunAsync(ConsolidateHarvestRequest request, CancellationToken cancellationToken = default)
+    public async Task RunAsync(ConsolidateHarvestRequest request, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        cancellationToken.ThrowIfCancellationRequested();
+        ct.ThrowIfCancellationRequested();
 
         var harvestOutputBase = _pathService.HarvestOutput;
         _ = _jsonOptions;

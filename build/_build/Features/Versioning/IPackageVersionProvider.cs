@@ -32,8 +32,8 @@ public interface IPackageVersionProvider
     /// known entries and the requested keys; missing keys surface as a provider-specific error.
     /// Scope is matched case-insensitively on family identifier per repo convention.
     /// </param>
-    /// <param name="cancellationToken">Cancellation.</param>
+    /// <param name="ct">Cancellation.</param>
     Task<IReadOnlyDictionary<string, NuGetVersion>> ResolveAsync(
         IReadOnlySet<string> requestedScope,
-        CancellationToken cancellationToken = default);
+        CancellationToken ct = default);
 }

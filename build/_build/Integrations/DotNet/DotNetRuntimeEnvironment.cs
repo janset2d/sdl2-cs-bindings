@@ -33,7 +33,7 @@ public sealed partial class DotNetRuntimeEnvironment(ICakeLog log) : IDotNetRunt
     public async Task<IReadOnlyDictionary<string, string>> ResolveAsync(
         string rid,
         IReadOnlyList<string> targetFrameworks,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rid);
         ArgumentNullException.ThrowIfNull(targetFrameworks);
@@ -66,7 +66,7 @@ public sealed partial class DotNetRuntimeEnvironment(ICakeLog log) : IDotNetRunt
             return cached;
         }
 
-        var resolved = await ResolveCoreAsync(runtimeChannels, cancellationToken);
+        var resolved = await ResolveCoreAsync(runtimeChannels, ct);
         _cache[cacheKey] = resolved;
         return resolved;
     }
@@ -108,7 +108,7 @@ public sealed partial class DotNetRuntimeEnvironment(ICakeLog log) : IDotNetRunt
 
     private async Task<IReadOnlyDictionary<string, string>> ResolveCoreAsync(
         IReadOnlyList<string> runtimeChannels,
-        CancellationToken cancellationToken)
+        CancellationToken ct)
     {
         var cacheRoot = Path.Combine(Path.GetTempPath(), "janset-sdl2", "dotnet-runtime-env");
         var x86Root = Path.Combine(cacheRoot, "x86");
@@ -117,11 +117,11 @@ public sealed partial class DotNetRuntimeEnvironment(ICakeLog log) : IDotNetRunt
         Directory.CreateDirectory(cacheRoot);
         Directory.CreateDirectory(x86Root);
 
-        await EnsureInstallScriptAsync(installScriptPath, cancellationToken);
+        await EnsureInstallScriptAsync(installScriptPath, ct);
 
         foreach (var channel in runtimeChannels)
         {
-            await InstallRuntimeAsync(installScriptPath, x86Root, channel, cancellationToken);
+            await InstallRuntimeAsync(installScriptPath, x86Root, channel, ct);
         }
 
         _log.Information(
@@ -138,7 +138,7 @@ public sealed partial class DotNetRuntimeEnvironment(ICakeLog log) : IDotNetRunt
         };
     }
 
-    private static async Task EnsureInstallScriptAsync(string installScriptPath, CancellationToken cancellationToken)
+    private static async Task EnsureInstallScriptAsync(string installScriptPath, CancellationToken ct)
     {
         if (File.Exists(installScriptPath))
         {
@@ -146,16 +146,12 @@ public sealed partial class DotNetRuntimeEnvironment(ICakeLog log) : IDotNetRunt
         }
 
         using var client = new HttpClient();
-        await using var input = await client.GetStreamAsync(InstallScriptUri, cancellationToken);
+        await using var input = await client.GetStreamAsync(InstallScriptUri, ct);
         await using var output = File.Create(installScriptPath);
-        await input.CopyToAsync(output, cancellationToken);
+        await input.CopyToAsync(output, ct);
     }
 
-    private async Task InstallRuntimeAsync(
-        string installScriptPath,
-        string installRoot,
-        string channel,
-        CancellationToken cancellationToken)
+    private async Task InstallRuntimeAsync(string installScriptPath, string installRoot, string channel, CancellationToken ct)
     {
         var powershellExecutable = ResolvePowerShellExecutable();
 
@@ -188,10 +184,10 @@ public sealed partial class DotNetRuntimeEnvironment(ICakeLog log) : IDotNetRunt
         process.StartInfo.ArgumentList.Add(installRoot);
 
         process.Start();
-        var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
-        var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
+        var stdoutTask = process.StandardOutput.ReadToEndAsync(ct);
+        var stderrTask = process.StandardError.ReadToEndAsync(ct);
 
-        await process.WaitForExitAsync(cancellationToken);
+        await process.WaitForExitAsync(ct);
         var stdout = await stdoutTask;
         var stderr = await stderrTask;
 

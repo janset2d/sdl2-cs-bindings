@@ -53,5 +53,5 @@ public interface IMsvcDevEnvironment
     /// <exception cref="PlatformNotSupportedException">Thrown when invoked on a
     /// non-Windows host. The caller must gate on
     /// <see cref="OperatingSystem.IsWindows"/>.</exception>
-    Task<IReadOnlyDictionary<string, string>> ResolveAsync(MsvcTargetArch targetArch, CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<string, string>> ResolveAsync(MsvcTargetArch targetArch, CancellationToken ct = default);
 }

@@ -23,10 +23,10 @@ public sealed class ExplicitVersionProvider(
 
     public Task<IReadOnlyDictionary<string, NuGetVersion>> ResolveAsync(
         IReadOnlySet<string> requestedScope,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(requestedScope);
-        cancellationToken.ThrowIfCancellationRequested();
+        ct.ThrowIfCancellationRequested();
 
         if (_operatorSuppliedMapping.Count == 0)
         {

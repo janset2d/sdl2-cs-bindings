@@ -8,5 +8,5 @@ public interface INativePackageMetadataGenerator
         PackageFamilyConfig family,
         string familyVersion,
         string buildCommitSha,
-        CancellationToken cancellationToken = default);
+        CancellationToken ct = default);
 }

@@ -34,19 +34,17 @@ public sealed class ManifestVersionProvider(
     private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
     private readonly string _suffix = NormalizeSuffix(suffix);
 
-    public Task<IReadOnlyDictionary<string, NuGetVersion>> ResolveAsync(
-        IReadOnlySet<string> requestedScope,
-        CancellationToken cancellationToken = default)
+    public Task<IReadOnlyDictionary<string, NuGetVersion>> ResolveAsync(IReadOnlySet<string> requestedScope, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(requestedScope);
-        cancellationToken.ThrowIfCancellationRequested();
+        ct.ThrowIfCancellationRequested();
 
         var familiesToResolve = ResolveFamiliesInScope(requestedScope);
 
         var mapping = new Dictionary<string, NuGetVersion>(familiesToResolve.Count, StringComparer.OrdinalIgnoreCase);
         foreach (var family in familiesToResolve)
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            ct.ThrowIfCancellationRequested();
             mapping[family.Name] = BuildVersionFor(family);
         }
 

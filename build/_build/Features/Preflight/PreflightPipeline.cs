@@ -35,10 +35,10 @@ public sealed class PreflightPipeline(
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
     private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
 
-    public Task RunAsync(PreflightRequest request, CancellationToken cancellationToken = default)
+    public Task RunAsync(PreflightRequest request, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        cancellationToken.ThrowIfCancellationRequested();
+        ct.ThrowIfCancellationRequested();
 
         Run(request.Versions);
         return Task.CompletedTask;

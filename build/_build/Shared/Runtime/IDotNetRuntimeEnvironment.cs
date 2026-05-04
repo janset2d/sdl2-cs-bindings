@@ -30,5 +30,5 @@ public interface IDotNetRuntimeEnvironment
     Task<IReadOnlyDictionary<string, string>> ResolveAsync(
         string rid,
         IReadOnlyList<string> targetFrameworks,
-        CancellationToken cancellationToken = default);
+        CancellationToken ct = default);
 }

@@ -53,10 +53,10 @@ public sealed class PackageConsumerSmokePipeline(
 
     [SuppressMessage("Design", "MA0051:Method is too long",
         Justification = "Linear orchestration: guards + feed resolve + compile-sanity + per-TFM smoke. Splitting hurts traceability of the operator-visible pass/fail sequence.")]
-    public async Task RunAsync(PackageConsumerSmokeRequest request, CancellationToken cancellationToken = default)
+    public async Task RunAsync(PackageConsumerSmokeRequest request, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        cancellationToken.ThrowIfCancellationRequested();
+        ct.ThrowIfCancellationRequested();
 
         // Require versions on the request itself. This runner does not fall back to
         // Janset.Local.props, which keeps package version injection on a single path.
@@ -73,7 +73,7 @@ public sealed class PackageConsumerSmokePipeline(
 
         var smokePackages = ResolveSmokePackages();
         EnsureSelectionSupportsCurrentSmokeScope(smokePackages, request.Versions);
-        await EnsureSmokeCsprojsMatchManifestScopeAsync(smokePackages, cancellationToken);
+        await EnsureSmokeCsprojsMatchManifestScopeAsync(smokePackages, ct);
 
         var explicitVersions = ResolveSmokeVersionMappingAndEnsureFeed(smokePackages, request.Versions, request.FeedPath);
 
@@ -108,7 +108,7 @@ public sealed class PackageConsumerSmokePipeline(
         //    evaluation of the smoke csproj (inherits $(ExecutableTargetFrameworks)
         //    from root Directory.Build.props), so adding a new TFM at root
         //    automatically expands the smoke matrix here with no extra wiring.
-        var metadataResult = await _projectMetadataReader.ReadAsync(smokeProject, cancellationToken);
+        var metadataResult = await _projectMetadataReader.ReadAsync(smokeProject, ct);
         if (metadataResult.IsError())
         {
             var error = metadataResult.ProjectMetadataError;
@@ -124,11 +124,11 @@ public sealed class PackageConsumerSmokePipeline(
         var runtimeEnvironmentDelta = await _dotNetRuntimeEnvironment.ResolveAsync(
             request.Rid,
             metadataResult.ProjectMetadata.TargetFrameworks,
-            cancellationToken);
+            ct);
 
         foreach (var tfm in metadataResult.ProjectMetadata.TargetFrameworks)
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            ct.ThrowIfCancellationRequested();
 
             if (ShouldSkipTfm(tfm, out var skipReason))
             {
@@ -217,7 +217,7 @@ public sealed class PackageConsumerSmokePipeline(
     /// not as a green-but-meaningless smoke result.
     /// </para>
     /// </summary>
-    private async Task EnsureSmokeCsprojsMatchManifestScopeAsync(IReadOnlyList<SmokePackage> smokePackages, CancellationToken cancellationToken)
+    private async Task EnsureSmokeCsprojsMatchManifestScopeAsync(IReadOnlyList<SmokePackage> smokePackages, CancellationToken ct)
     {
         var expectedManagedPackageIds = smokePackages
             .Select(package => package.ManagedPackageId)
@@ -231,7 +231,7 @@ public sealed class PackageConsumerSmokePipeline(
 
         foreach (var (projectPath, description) in consumerProjects)
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            ct.ThrowIfCancellationRequested();
 
             var file = _cakeContext.FileSystem.GetFile(projectPath);
             if (!file.Exists)
@@ -244,7 +244,7 @@ public sealed class PackageConsumerSmokePipeline(
             await using (var stream = file.OpenRead())
             using (var reader = new StreamReader(stream))
             {
-                csprojXml = await reader.ReadToEndAsync(cancellationToken);
+                csprojXml = await reader.ReadToEndAsync(ct);
             }
 
             var comparison = SmokeScopeComparator.Compare(csprojXml, expectedManagedPackageIds);
