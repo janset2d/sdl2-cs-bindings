@@ -1,8 +1,10 @@
 # Symbol Visibility in Hybrid Static Packaging — Analysis & Strategy
 
+> **Authored before the 2026-05-04 docs cleanup.** Originally cited the `packaging-strategy-hybrid-static` research note; that note was retired (conclusions absorbed into code + [`AGENTS.md`](../../AGENTS.md) "Settled Strategic Decisions"). Body content preserved as historical research.
+
 **Date:** 2026-04-14
 **Status:** Research complete, decisions locked
-**Related:** [packaging-strategy-hybrid-static-2026-04-13.md](packaging-strategy-hybrid-static-2026-04-13.md), [#83](https://github.com/janset2d/sdl2-cs-bindings/issues/83)
+**Related:** [#83](https://github.com/janset2d/sdl2-cs-bindings/issues/83)
 
 ## The Problem
 

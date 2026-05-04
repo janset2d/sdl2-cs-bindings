@@ -1,9 +1,11 @@
 # Unix Native Identity Strategy — vcpkg, SDL2 Family, Overlay Ports, and the Single-File Question
 
+> **Authored before the 2026-05-04 docs cleanup.** Several originally-cited research notes (`symlink-handling`, `native-packaging-comparative-analysis`, `packaging-strategy-hybrid-static`, `source-mode-native-visibility`) were retired during the cleanup; their conclusions are absorbed into code (`vcpkg-overlay-triplets/`, `buildTransitive/Janset.SDL2.Native.Common.targets`) and into [`AGENTS.md`](../../AGENTS.md) "Settled Strategic Decisions". Body content preserved as historical research; inline links to retired docs no longer resolve.
+
 **Date:** 2026-04-22
 **Status:** Research complete, recommendation ready; no canonical repo decision applied yet
 **Audience:** Maintainer / future contributors evaluating whether to keep the current tar.gz symlink-preserving strategy or replace it with single-file Unix outputs
-**Related:** [symlink-handling.md](symlink-handling.md), [native-packaging-comparative-analysis-2026-04-13.md](native-packaging-comparative-analysis-2026-04-13.md), [packaging-strategy-hybrid-static-2026-04-13.md](packaging-strategy-hybrid-static-2026-04-13.md), [source-mode-native-visibility-2026-04-15.md](source-mode-native-visibility-2026-04-15.md), [../onboarding.md](../onboarding.md), [../plan.md](../plan.md)
+**Related:** [`../onboarding.md`](../onboarding.md), [`../plan.md`](../plan.md)
 
 ## 1. Executive Summary
 

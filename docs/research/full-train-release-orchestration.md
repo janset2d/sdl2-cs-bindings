@@ -1,9 +1,10 @@
 # Research: Full-Train Release Orchestration
 
+> **Authored before the 2026-05-04 docs cleanup.** Originally cited the now-retired `release-lifecycle-direction.md` knowledge-base doc and `ADR-001 D-3seg Versioning` (both deleted; D-3seg lives in [`AGENTS.md`](../../AGENTS.md) "Settled Strategic Decisions" and is enforced by guardrail G54). The "ADR-001 addendum" and "S1 addendum" sections below describe historical contract evolution. Body content preserved as historical research; PD-7 scope remains live and tracked in [`phase-2-adaptation-plan.md`](../phases/phase-2-adaptation-plan.md).
+
 **Date:** 2026-04-16
-**Status:** Roadmap placeholder — research pending. **Amended 2026-04-18 (ADR-001):** family versioning adopted D-3seg shape (`<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>`). See "ADR-001 addendum" below. **Prior amendment 2026-04-17 (S1):** within-family dependency contract changed from exact pin to minimum range. See "S1 addendum" below.
-**Context:** Stream D-ci blocker. PD-7 open. See [phase-2-adaptation-plan.md](../phases/phase-2-adaptation-plan.md) Pending Decisions.
-**Prerequisite reading:** [release-lifecycle-direction.md](../knowledge-base/release-lifecycle-direction.md), [ADR-001: D-3seg Versioning](../decisions/2026-04-18-versioning-d3seg.md)
+**Status:** Roadmap placeholder — research pending.
+**Context:** PD-7 open. See [phase-2-adaptation-plan.md](../phases/phase-2-adaptation-plan.md) Pending Decisions.
 
 ---
 

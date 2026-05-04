@@ -34,20 +34,7 @@ CppAst provides the best balance of simplicity (pure .NET, NuGet package) and fl
 
 ### 4.1 Generator Project
 
-Create `src/Generator/` as a standalone .NET console application:
-
-```
-src/Generator/
-├── Generator.csproj           ← Targets net9.0, references CppAst NuGet
-├── Program.cs                 ← Entry point: parse headers → generate C#
-├── CsCodeGenerator.cs         ← Core type mapping and generation logic
-├── CsCodeGenerator.Enums.cs   ← Enum generation (partial class)
-├── CsCodeGenerator.Structs.cs ← Struct generation
-├── CsCodeGenerator.Functions.cs ← Function/P/Invoke generation
-├── CsCodeGenerator.Constants.cs ← Constant generation
-├── CodeWriter.cs              ← Text output helper
-└── include/                   ← Vendored SDL2/SDL3 headers (or sourced from submodule)
-```
+Create `src/Generator/` as a standalone .NET console app referencing `CppAst` from NuGet. File layout decided at implementation time.
 
 ### 4.2 Generation Pipeline
 

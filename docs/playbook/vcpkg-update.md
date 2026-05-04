@@ -80,10 +80,10 @@ Update each library's override to the desired version:
 
 Keep `build/manifest.json` in sync with vcpkg.json:
 
-- Update `vcpkg_version` fields (authoritative upstream version; also drives family version Major.Minor via G54 — see [ADR-001 §2.1](../decisions/2026-04-18-versioning-d3seg.md))
+- Update `vcpkg_version` fields (authoritative upstream version; also drives family version Major.Minor via G54)
 - Update `vcpkg_port_version` fields (recorded in `janset-native-metadata.json` at pack time — G55)
 
-> **Removed 2026-04-18 (ADR-001):** `native_lib_version` field was removed from `manifest.json` schema. Under D-3seg, family version is derived from the git tag (MinVer), and the exact upstream patch version lives in `janset-native-metadata.json` per-package (G55) + README mapping table (G57). There is no pre-declared `native_lib_version` to update.
+> **Note:** the `native_lib_version` field was removed from the `manifest.json` schema under D-3seg. Family version is derived from the git tag (MinVer), and the exact upstream patch version lives in `janset-native-metadata.json` per-package (G55) + README mapping table (G57). There is no pre-declared `native_lib_version` to update.
 
 ### Step 6a: Update README mapping table
 

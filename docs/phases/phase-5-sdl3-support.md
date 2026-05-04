@@ -71,20 +71,11 @@ The Cake Frosting build system should be parameterized to handle both SDL2 and S
 
 ### 5.3 Binding Generation
 
-Use the Phase 4 generator to produce SDL3 bindings:
+Primary path: the Phase 4 CppAst generator. Configure for SDL3 headers, map SDL3-specific types (`SDL_bool → bool`, new handle types, redesigned audio surface), generate into `src/SDL3.<X>/Generated/`.
 
-- Configure for SDL3 headers (from submodule or vendored)
-- Map SDL3-specific types (SDL_bool → bool, new handle types, etc.)
-- Generate into `src/SDL3.Core/Generated/`, etc.
+Bridge option while the generator is being built: import [flibitijibibo/SDL3-CS](https://github.com/flibitijibibo/SDL3-CS) as a submodule (mirroring the SDL2-CS approach).
 
-### 5.4 SDL3 C# Binding Source
-
-For SDL3 bindings, options:
-
-- **Primary**: Use our own CppAst generator (Phase 4)
-- **Alternative**: Import from [flibitijibibo/SDL3-CS](https://github.com/flibitijibibo/SDL3-CS) as submodule (similar to SDL2-CS approach) while generator is being built
-
-### 5.5 NuGet Package Topology
+### 5.4 NuGet Package Topology
 
 ```
 Janset.SDL3                              ← Meta-package
@@ -100,15 +91,9 @@ Janset.SDL3                              ← Meta-package
 
 Note: No SDL3.Gfx (no SDL3 equivalent) and no SDL3.Net (upstream not ready).
 
-### 5.6 Solution Organization
+### 5.5 Solution Organization
 
-Options for organizing SDL2 + SDL3 in a single repo:
-
-- **Option A**: Single `Janset.SDL.sln` with solution folders for SDL2/ and SDL3/
-- **Option B**: Separate solution files: `Janset.SDL2.sln` + `Janset.SDL3.sln` + `Janset.SDL.sln` (combined)
-- **Option C**: Solution filters: `.slnf` files to filter by SDL version
-
-Recommendation: Option A with solution filters for developer convenience.
+Decision deferred to activation. Working preference: single `Janset.SDL.sln` (or `.slnx`) with `.slnf` filters per SDL major. Alternatives (separate `.sln` files, solution-folder partitioning) re-evaluated then.
 
 ## Exit Criteria
 

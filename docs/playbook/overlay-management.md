@@ -203,7 +203,7 @@ rm -rf vcpkg_installed/x64-windows-hybrid
 ### Step 5: Update Documentation
 
 - `vcpkg-overlay-ports/README.md` — update "Based on upstream version" field
-- `docs/research/lgpl-free-codec-migration-2026-04-14.md` — if format coverage changed
+- `docs/research/lgpl-free-codec-migration.md` — if format coverage changed
 - This playbook — if procedures changed
 
 ## Procedure: Removing an Overlay
@@ -235,7 +235,7 @@ Use this checklist when reviewing overlay-related changes:
 
 ## Symbol Visibility
 
-Full analysis: [research/symbol-visibility-analysis-2026-04-14.md](../research/symbol-visibility-analysis-2026-04-14.md)
+Full analysis: [research/symbol-visibility-analysis.md](../research/symbol-visibility-analysis.md)
 
 ### The Short Version
 
@@ -356,7 +356,7 @@ nm -D libSDL2_ttf.so | grep ' T ' | grep -v 'TTF_' | wc -l  # non-API exports: e
 
 ### Linux
 
-- **Symbol visibility:** `-fvisibility=hidden` in triplet handles most symbols. Libraries with explicit `visibility("default")` annotations (FreeType, libwebp, opusfile) still leak until version scripts are added (Phase 2b). See [symbol-visibility-analysis-2026-04-14.md](../research/symbol-visibility-analysis-2026-04-14.md).
+- **Symbol visibility:** `-fvisibility=hidden` in triplet handles most symbols. Libraries with explicit `visibility("default")` annotations (FreeType, libwebp, opusfile) still leak until version scripts are added (Phase 2b). See [symbol-visibility-analysis.md](../research/symbol-visibility-analysis.md).
 - **MIDI:** No OS-level MIDI synth. Two options:
   - **Timidity** (bundled in SDL2_mixer, Artistic License): requires `timidity.cfg` + GUS patch files at runtime. Install via `apt install timidity-daemon` or `freepats`. Without these, MIDI returns NULL/silence — no crash.
   - **Recommendation for consumers:** Use MP3/OGG for music on Linux. MIDI is niche and requires user-side setup.

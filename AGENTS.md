@@ -1,16 +1,16 @@
 # Agent Instructions — Janset.SDL2 / Janset.SDL3
 
-These are operating rules for LLM/code agents working in this repository.
+Operating rules for LLM/code agents working in this repository.
 
 ## First Steps
 
-**Before doing anything, read these files in order:**
+Read in order before doing anything:
 
-1. `docs/onboarding.md` — Project overview, strategic decisions, repo layout, glossary
-2. This file (`AGENTS.md`) — Operating rules and approval gates
-3. `docs/plan.md` — Current status, active phase, roadmap, version tracking
+1. `docs/onboarding.md` — project overview, repo layout, glossary
+2. This file — operating rules and approval gates
+3. `docs/plan.md` — current status, active phase, roadmap
 
-Then branch to relevant docs based on your task (see `docs/README.md` for navigation).
+Branch out via `docs/README.md` based on the task.
 
 ## Communication Style (Deniz Preferences)
 
@@ -20,22 +20,20 @@ Then branch to relevant docs based on your task (see `docs/README.md` for naviga
 - Avoid yes-person behavior.
 - Prefer clarity over cleverness.
 - Talk like a millennial (Gen Y).
-- Bilingual context: Deniz communicates in Turkish and English interchangeably.
+- Bilingual: Deniz communicates in Turkish and English interchangeably.
 
 ## Approval Gate (Hard Rule)
 
-### Do NOT
+### Do NOT (without explicit "go / apply / proceed / başla / yap")
 
 - Start coding new features
 - Refactor production code
-- Modify build system (Cake Frosting tasks, MSBuild targets, tools.cs)
+- Modify the build system (Cake Frosting tasks, MSBuild targets, `tools.cs`)
 - Change CI/CD pipelines (GitHub Actions workflows)
-- Update vcpkg.json or manifest.json (legacy `runtimes.json` / `system_artefacts.json` retired — merged into manifest.json schema v2.1)
-- Modify project files (.csproj, .sln, Directory.Build.props)
+- Update `vcpkg.json` or `build/manifest.json`
+- Modify project files (`.csproj`, `.sln`, `Directory.Build.props`)
 - Run deployment or publish commands
 - Commit changes
-
-...unless explicitly approved ("go", "apply", "proceed", "başla", "yap", etc.).
 
 ### Exceptions
 
@@ -45,260 +43,208 @@ Then branch to relevant docs based on your task (see `docs/README.md` for naviga
 
 ### Before Any Commit
 
-- Present:
-  - Summary of changes
-  - Proposed commit message
-- Ask for approval before committing.
+Present a summary of changes and a proposed commit message; ask for approval first.
 
 ### Before Any Deployment / Apply
 
-For infrastructure or deployment operations:
-
-- Planning / dry-run operations are allowed.
-- Apply / mutate operations require explicit approval.
-
-If unsure → stop and ask.
+Planning and dry-run operations are allowed; apply / mutate operations require explicit approval. If unsure → stop and ask.
 
 ## Project Context
 
-### What This Project Is
+Modular C# bindings for SDL2 (and upcoming SDL3) with cross-platform native libraries built from source via vcpkg, distributed as NuGet packages. Foundation layer for the Janset2D game framework, but designed as a fully independent open-source project.
 
-Modular C# bindings for SDL2 (and upcoming SDL3) with cross-platform native libraries built from source via vcpkg, distributed as NuGet packages. Foundation for the Janset2D game framework.
-
-### Key Technologies
-
-| Technology | Role |
+| Stack | Role |
 | --- | --- |
-| .NET 10.0 / C# 14 | Managed binding projects |
-| Cake Frosting 6.1.0 | Build automation (native binary harvesting) |
-| vcpkg | Cross-platform native library builds |
-| GitHub Actions | CI/CD (cross-platform build matrix) |
+| .NET 10 / C# 14 | Managed bindings + Cake build host + `tools.cs` |
+| Cake Frosting 6.1 | CI build automation (native harvesting, packaging, validation) |
+| `tools.cs` (.NET 10 file-based app) | Local dev orchestration; forwards to Cake |
+| vcpkg | Native library builds (custom hybrid overlay triplets) |
+| GitHub Actions | CI/CD across 7 RIDs |
 | NuGet | Package distribution |
 
-### Target Platforms (7 RIDs)
+### Target Platforms (7 RIDs, all hybrid-static)
 
-All 7 runtime rows ship under `hybrid-static` per PA-2 (2026-04-18). Authoritative source: `build/manifest.json runtimes[]`.
-
-| RID | vcpkg Triplet |
-| --- | --- |
-| win-x64 | x64-windows-hybrid |
-| win-x86 | x86-windows-hybrid |
-| win-arm64 | arm64-windows-hybrid |
-| linux-x64 | x64-linux-hybrid |
-| linux-arm64 | arm64-linux-hybrid |
-| osx-x64 | x64-osx-hybrid |
-| osx-arm64 | arm64-osx-hybrid |
+`win-{x64,x86,arm64}`, `linux-{x64,arm64}`, `osx-{x64,arm64}`. Authoritative source: `build/manifest.json runtimes[]`.
 
 ### SDL Libraries in Scope
 
-**SDL2** (priority — finish first): SDL2, SDL2_image, SDL2_mixer, SDL2_ttf, SDL2_gfx, SDL2_net
-**SDL3** (future): SDL3, SDL3_image, SDL3_mixer, SDL3_ttf (no SDL3_net yet — upstream WIP)
+- **SDL2** (priority — finish first): SDL2, SDL2_image, SDL2_mixer, SDL2_ttf, SDL2_gfx, SDL2_net (binding pending)
+- **SDL3** (future): SDL3, SDL3_image, SDL3_mixer, SDL3_ttf
 
 ## Settled Strategic Decisions
 
-These are final. Do not re-debate unless Deniz explicitly reopens them.
+Final unless Deniz explicitly reopens.
 
 | Decision | Detail |
 | --- | --- |
-| Dual SDL support | SDL2 AND SDL3 in the same monorepo |
+| Dual SDL support | SDL2 and SDL3 in the same monorepo; SDL2 priority |
 | Full RID coverage | 7+ targets, no scope reduction |
-| vcpkg-based builds | All natives built from source, not downloaded |
-| Separate .Native packages | Per-library split (SkiaSharp/LibGit2Sharp pattern) |
-| tar.gz for Unix symlinks | NuGet can't preserve symlinks; MSBuild extracts at build time |
-| CppAst for binding autogen | Phase 4 — replaces SDL2-CS imports with generated bindings |
-| Nx rejected | .NET-native tooling only (dotnet-affected, .slnx, Cake expansion) |
-| Maximum feature coverage | Both X11 + Wayland, all image/audio codecs, Harfbuzz |
-| Hybrid Static + Dynamic Core | Transitive deps static-baked into satellites; SDL2 core dynamic; custom vcpkg overlay triplets |
-| LGPL-free codec stack | Drop mpg123/libxmp/fluidsynth; use bundled minimp3/drflac/libmodplug/Timidity/Native MIDI |
-| external/sdl2-cs removal | Transitional, not trusted — CppAst generator (Phase 4) replaces it |
-| C++ native smoke test | CMake/vcpkg IDE-debuggable project for testing hybrid natives directly (Phase 2b) |
-| Triplet = strategy | No `--strategy` CLI flag; triplet name encodes the strategy; manifest `runtimes[].strategy` is the formal mapping |
-| Config merge | 3 config files (manifest.json, runtimes.json, system_artefacts.json) → single manifest.json (schema v2.1, package_families[] added) |
-| Validator uses vcpkg metadata | No manually maintained expected-deps lists; BinaryClosureWalker output = ground truth |
-| TUnit for testing | TUnit 1.33.0 + Microsoft.Testing.Platform; test-first approach; characterization tests before refactoring |
+| vcpkg-based builds | All natives built from source; no downloads |
+| Separate `.Native` packages | Per-family split (SkiaSharp / LibGit2Sharp pattern) |
+| Hybrid-static / dynamic-core | Transitive deps static-baked into satellites; SDL core stays dynamic; encoded in `vcpkg-overlay-triplets/` |
+| LGPL-free codec stack | Drop mpg123 / libxmp / fluidsynth; use bundled minimp3 / drflac / libmodplug / Timidity / native MIDI |
+| tar.gz for Unix symlinks | NuGet can't preserve symlinks; `buildTransitive/Janset.SDL2.Native.Common.targets` extracts at consumer build time |
+| D-3seg versioning | `<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>` per family; UpstreamMajor.Minor anchored to `manifest.library_manifests[].vcpkg_version` (G54) |
+| Triplet name = strategy | `manifest.runtimes[].strategy` is the formal mapping; no `--strategy` CLI flag |
+| Validator uses vcpkg metadata | No manually maintained expected-deps lists; binary closure walker output is ground truth |
+| Package-first consumer contract | Smoke / sample / sandbox csprojs consume packages via local folder feed; `Janset.Local.props` carries family versions |
+| CppAst for binding autogen | Phase 4 — replaces SDL2-CS imports |
+| `external/sdl2-cs` is transitional | Untrusted for production testing; retires when CppAst generator ships |
+| C++ native smoke test | CMake/vcpkg IDE-debuggable harness for OS-level hybrid validation |
+| TUnit + MTP for testing | Microsoft.Testing.Platform; characterization tests before refactoring |
 
-## Test Naming Convention
+## Test Naming Convention (TUnit)
 
-**Pattern:** `<MethodName>_Should_<Do/Have/Return/Throw/etc.>_<optional When/If/Given etc.>`
+Pattern: `<MethodName>_Should_<Verb>_<optional When/If/Given>`
 
-- Method name is PascalCase, no underscores within it
-- Every other word segment separated by underscores
-- `Should` is always present
+- PascalCase method name (no inner underscores).
+- Underscores between every other word segment.
+- `Should` always present.
 
-**Examples:**
+Examples:
 
 - `IsSystemFile_Should_Return_True_When_Windows_System_Dll`
 - `ParseSemanticVersion_Should_Throw_ArgumentException_When_Invalid_Format`
-- `Validate_Should_Reject_Transitive_Dep_Leak_In_Hybrid_Mode`
 
-## Docs-First Workflow
+## Engineering Preferences
 
-Before proposing changes, review the documentation. If your change affects behavior, topology, or infrastructure, update the relevant docs in the same change. Documentation is a first-class artifact.
-
-### Canonical Docs — Read Before Proposing or Making Changes
-
-- [`docs/onboarding.md`](docs/onboarding.md) — Project overview, strategic decisions, repo layout
-- [`docs/plan.md`](docs/plan.md) — Canonical status, phase roll-up, version tracking, roadmap
-- [`docs/phases/README.md`](docs/phases/README.md) — Phase workflow, active vs completed phases
-
-> **Living docs rule:** If you discover a new fact, workflow decision, or implementation constraint while coding, update the relevant canonical doc immediately — usually `docs/plan.md` or the active phase doc.
-
-### Where to Start (Quick Orientation)
-
-- Start with `docs/onboarding.md` (project overview + strategic decisions).
-- Read `docs/plan.md` next (current status + roadmap).
-- Use `docs/phases/README.md` to determine which phase is active.
-- Use `docs/README.md` for the full documentation map.
-- For build system work: `docs/knowledge-base/cake-build-architecture.md`
-- For CI/CD work: `docs/knowledge-base/ci-cd-packaging-and-release-plan.md` (live-state pointer + canonical-content-locations index; pre-Slice-E design preserved at `docs/_archive/`)
-- For ADR-003 release lifecycle orchestration (provider/scope/version axes, stage-owned validation, matrix re-entry): `docs/decisions/2026-04-20-release-lifecycle-orchestration.md`
-- For native harvesting: `docs/knowledge-base/harvesting-process.md`
-- For overlay triplets & ports: `docs/playbook/overlay-management.md`
-- For native smoke test (C++ validation): `tests/smoke-tests/native-smoke/README.md`
-- For "how do I...?" questions: `docs/playbook/*`
-- For design rationale: `docs/research/*`
-- For broader tool/framework context: `docs/reference/*`
-
-### Documentation Loading Rules
-
-- Load `docs/onboarding.md` and `docs/plan.md` before doing anything.
-- Resolve the active phase before loading detailed phase docs.
-- Load playbooks, research docs, and reference docs only when the task actually needs them.
-- When docs conflict, prefer `plan.md` for status and code for runtime behavior.
-
-### Change Hygiene
-
-- Prefer consolidation over new files. Only create a new doc when it clearly reduces complexity.
-- Avoid duplicating tables/registries across documents. If duplication is unavoidable, state which one is authoritative.
-- When you rename or move docs, update all internal references.
-- Research docs must always carry a date.
-
-## Issue Management
-
-Issue tracking is part of the software delivery lifecycle in this repo.
-
-- Roadmap-worthy work should exist in GitHub issues, not only in chat, docs, or commit history.
-- Issues should use the current roadmap model from `docs/plan.md` and `docs/phases/README.md`, not retired planning terminology.
-- Issue bodies should capture current reality, why the work matters, links to canonical docs, and concrete exit criteria.
-- If scope changes, update the issue instead of letting the tracker drift away from the docs.
-- PRs are optional in this repo. Direct commits are acceptable when appropriate.
-- When possible, map commits back to issues with references such as `refs #123` or `closes #123`.
-- If work is intentionally deferred, park it explicitly in canonical docs or backlog issues instead of leaving it implied.
-
-## Engineering Preferences (Guidance For Recommendations)
-
-- Flag repetition aggressively (DRY matters).
+- Flag repetition aggressively (DRY).
 - Prefer "engineered enough": not hacky, not over-abstracted.
 - Bias toward explicit over clever.
 - Prefer handling more edge cases, not fewer.
 - Strong preference for tests when changing behavior.
 - Cross-platform correctness is critical — always consider all 3 OS families.
-- vcpkg and Cake Frosting are the build backbone — proposals should work within these tools.
+- vcpkg and Cake Frosting are the build backbone — proposals must work within these tools.
 
 ## Build-Host Reference Pattern
 
-The Cake build host follows a Cake-native, feature-oriented vertical-slice architecture per [ADR-004](../docs/decisions/2026-05-02-cake-native-feature-architecture.md), which supersedes ADR-002 (DDD Layered Architecture, 2026-04-19). Five top-level folders under `build/_build/`:
+The Cake build host (`build/_build/`) follows a Cake-native feature-oriented architecture:
 
 | Folder | Role |
 | --- | --- |
-| `Host/` | Cake/Frosting runtime, CLI parsing, `BuildContext`, composition root, paths, Cake extensions |
-| `Features/` | Operational vertical slices (Harvesting, Packaging, Preflight, Versioning, Publishing, LocalDev, …). Each feature owns its Cake `Task`, `Pipeline` (when extracted), validators, generators, `Request` DTOs, and a `ServiceCollectionExtensions.cs`. |
-| `Shared/` | Build-domain vocabulary (manifest models, runtime types, version mapping, package family conventions, results) — no Cake dependencies, no I/O |
+| `Host/` | Cake/Frosting runtime, CLI parsing, `BuildContext`, composition root, paths |
+| `Features/<X>/` | Operational vertical slice — Task + optional Pipeline + validators + `Request` DTOs + `ServiceCollectionExtensions.cs` |
+| `Shared/` | Build-domain vocabulary (manifest models, runtime types, results); no Cake deps, no I/O |
 | `Tools/` | Cake `Tool<TSettings>` wrappers ONLY (vcpkg, dumpbin, ldd, otool, tar, cmake, native-smoke) |
-| `Integrations/` | Non-Cake-Tool external adapters (NuGet protocol client, dotnet pack invoker, project metadata reader, coverage XML readers, vcpkg manifest reader, MSVC environment resolver) |
+| `Integrations/` | Non-Cake-Tool external adapters (NuGet client, dotnet pack invoker, project metadata reader, etc.) |
 
-Direction-of-dependency invariants are enforced by `build/_build.Tests/Unit/CompositionRoot/ArchitectureTests.cs` (renamed from `LayerDependencyTests.cs` at the P2 wave). The ADR-002 layered shape (`Application/<Module>/`, `Domain/<Module>/`, `Infrastructure/<Module>/`, `Tasks/<Module>/`, `Context/`) has been retired from production code; new build-host work should use the ADR-004 shape unless an active migration wave explicitly says otherwise.
+Direction-of-dependency invariants are enforced by `build/_build.Tests/Unit/CompositionRoot/ArchitectureTests.cs`.
 
-Reference patterns for new build-host work:
+For new build-host work:
 
-- **Task layer shape:** thin Cake adapter — translates `BuildContext` + configuration into a feature-specific `Request` DTO and delegates to a `Pipeline` (or `Flow` from the LocalDev orchestration feature) co-located in the same feature folder. The current interim signature is `pipeline.RunAsync(context, request, cancellationToken)`; P4 cuts this over to `pipeline.RunAsync(request, cancellationToken)`.
-- **Pipeline classes are size-triggered, not convention-triggered.** Below ~200 LOC the logic stays in the Task with private methods. Above it, extract to `<X>Pipeline.cs` co-located in the feature folder. The threshold is a smell signal, not a hard rule (ADR-004 §2.4).
-- **`BuildContext` is invocation state, not a service locator.** Pipelines target `RunAsync(TRequest, CancellationToken)`; pure services (validators, generators, planners, readers) take explicit inputs only. Tools and Integrations may receive narrow Cake abstractions (`ICakeContext`, `ICakeLog`, `IFileSystem`) but never the full `BuildContext`. See ADR-004 §2.11.1–§2.11.3.
-- **Interface discipline (ADR-004 §2.9):** keep an interface only if (1) multiple production implementations exist today, (2) it formalizes an independent axis of change, or (3) it backs a high-cost test seam (transitional debt — flagged for P3 review). Test mocks alone are not sufficient justification.
-- **Cross-feature data sharing flows through `Shared/`.** Code-level cross-feature references are forbidden by `ArchitectureTests` invariant #4, with one explicit allowlist exception for `Features/LocalDev/` (the designated orchestration feature; see ADR-004 §2.5).
-- **`Shared/Results/` is for cross-feature result primitives only.** Feature-specific `*Error` / `*Result` types stay in their feature folder. See ADR-004 §2.6.1 admission criteria.
-- **Result / error boundaries stay typed.** Services return `OneOf`-shaped results; Tasks translate them into Cake logging, `CakeException`, RID-status persistence, or cancellation semantics.
-- **Test folders mirror production.** `Unit/Features/Packaging/PackagePipelineTests.cs` asserts the contract of `Features/Packaging/PackagePipeline.cs`. Integration tests live under `Integration/<Scenario>/` and are not mirrored.
-- **When in doubt,** compare against ADR-004 §2.3 reference layout (Packaging — the largest feature) or §2.5 (LocalDev — the only orchestration feature) before inventing a new build-host pattern.
+- **Tasks are thin**: build a feature-specific `Request` DTO from `BuildContext` + configuration, delegate to a co-located pipeline.
+- **Pipeline classes are size-triggered**: below ~200 LOC the logic stays in the Task with private methods; above, extract a `<X>Pipeline.cs` co-located in the feature folder. Smell threshold, not a hard rule.
+- **`BuildContext` is invocation state, not a service locator.** Pipelines target `RunAsync(TRequest)`; pure services take explicit inputs only; Tools / Integrations may take narrow Cake abstractions (`ICakeContext`, `ICakeLog`, `IFileSystem`) but never `BuildContext`.
+- **Interface discipline**: keep an interface only if (1) multiple production implementations exist, (2) it formalizes an independent axis of change, or (3) it backs a high-cost test seam (transitional). Mocks alone do not justify a seam.
+- **Cross-feature data sharing flows through `Shared/`.** Code-level cross-feature references are forbidden by `ArchitectureTests`.
+- **Typed result boundaries**: services return `OneOf`-shaped results; tasks translate them into Cake logging, `CakeException`, or RID-status persistence.
+
+Golden example to compare against: `build/_build/Features/Packaging/`.
+
+> **Cake host vs `tools.cs`.** The Cake build host is a CI-only production pipeline for native harvesting, packaging, and validation. Day-to-day dev orchestration (setup, ci-sim, passthrough) lives in `tools.cs` at the repo root. Direct `dotnet run --project build/_build` invocations are for CI debugging and target discovery only.
 
 ## Configuration File Relationships
 
-Understanding these is essential for build system work:
-
 ```text
-vcpkg.json                    ← What vcpkg builds (dependencies + features)
+vcpkg.json                    ← What vcpkg builds (deps + features)
     ↕ must match
 build/manifest.json           ← Single source of truth (schema v2.1):
     ├── packaging_config      ← validation mode, core library
     ├── runtimes[]            ← RID ↔ triplet ↔ strategy ↔ CI runner ↔ container image
-    ├── package_families[]    ← family identity (managed_project, native_project, library_ref, depends_on, change_paths)
-    ├── system_exclusions     ← OS libraries to exclude from packages
+    ├── package_families[]    ← family identity (managed_project, native_project, library_ref, depends_on)
+    ├── system_exclusions     ← OS libraries excluded from packages
     └── library_manifests[]   ← library versions, binary patterns
     ↕ validated by
-PreFlightCheckTask            ← Fails if versions / triplet↔strategy / family scope inconsistent (G14, G15, G16, G49, G54, G58)
+PreFlightCheckTask            ← G14/G15/G16/G49/G54/G58 + family-scope guardrails
 ```
 
-> **Note:** `manifest.json` is the authoritative source. Legacy `runtimes.json` and `system_artefacts.json` files may still exist in history or older notes, but they are no longer the source of truth.
+Legacy `runtimes.json` and `system_artefacts.json` were merged into `manifest.json` schema v2.1 — treat any reference to them as stale.
+
+## Build Host Pipeline
+
+Native packaging is a 5-stage Cake pipeline (per-RID matrix expanded by `release.yml`):
+
+1. **Harvest** (per-RID) — `BinaryClosureWalker` walks vcpkg-installed primary binaries, collects transitive deps via `dumpbin` / `ldd` / `otool`, applies system-library exclusions from `manifest.system_exclusions`, validates hybrid-static leak-freeness (G19), copies the resolved closure plus license attribution to `artifacts/harvest_output/<lib>/runtimes/<rid>/native/` + `licenses/<rid>/<package>/`. **NativeSmoke** runs immediately after Harvest on the same RID's harness.
+2. **ConsolidateHarvest** (single runner) — merges per-RID outputs into `harvest-manifest.json` + `harvest-summary.json` + `licenses/_consolidated/` via stage-replace.
+3. **Package** (single runner) — `dotnet pack` per family at the resolved D-3seg version. Post-pack guardrails (G21–G27, G46–G48, G51–G58) assert nuspec shape, native payload, license attribution, and cross-family resolvability.
+4. **PackageConsumerSmoke** (per-RID matrix re-entry) — restores the packed nupkgs against a local folder feed, runs TUnit per executable TFM (`net10` / `net9` / `net8` / `net462`), proves the consumer-side P/Invoke / dyld / Unix-symlink-extraction paths.
+5. **PublishStaging** (single runner) — pushes managed + native nupkg pairs to the GitHub Packages internal feed via `NuGet.Protocol.PackageUpdateResource`. `PublishPublic` (nuget.org) is stubbed pending Phase 2b PD-7.
+
+`PreFlightCheck` runs single-runner before the matrix and validates every cross-cutting invariant (manifest ↔ vcpkg, csproj pack contract, strategy coherence, G54 upstream alignment, G58 cross-family scope reachability).
+
+Canonical implementation: `build/_build/Features/{Harvesting,Packaging,Preflight,Publishing}/` and `.github/workflows/release.yml`. See [`docs/knowledge-base/release-guardrails.md`](docs/knowledge-base/release-guardrails.md) §2.0 for the stage-owned validation map.
+
+## Docs-First Workflow
+
+Before proposing changes, review documentation. If the change shifts behavior, topology, or infrastructure, update the relevant doc in the same change. Documentation is a first-class artifact.
+
+Canonical reading order before non-trivial work:
+
+1. `docs/onboarding.md` (project overview)
+2. `docs/plan.md` (current status + roadmap)
+3. `docs/phases/README.md` (active phase)
+4. `docs/README.md` (full doc map)
+
+Conflict resolution:
+
+1. **Code wins over docs** for runtime behavior questions.
+2. **`plan.md` wins** for current status and phase information.
+3. **`onboarding.md` wins** for strategic decisions.
+4. **Knowledge-base / playbook wins** for repo-specific operational details.
+
+Change hygiene:
+
+- Prefer consolidation over new files.
+- Avoid duplicating tables / registries; state which one is authoritative.
+- When you rename or move docs, update all internal references.
+- Research docs always carry a date.
+
+## Issue Management
+
+Issue tracking is part of the delivery lifecycle.
+
+- Roadmap-worthy work belongs in GitHub issues, not only chat / docs / commits.
+- Issues use the current roadmap model from `docs/plan.md` and `docs/phases/README.md`.
+- Issue bodies capture current reality, why the work matters, links to canonical docs, concrete exit criteria.
+- Label model: `type:*` plus `area:*`, plus optional `platform:*` for OS-specific work.
+- PRs are optional in this repo; direct commits are acceptable.
+- When possible, reference issues in commits (`refs #123` / `closes #123`).
+- Deferred work goes to canonical docs or backlog issues — never implied.
 
 ## Agent Guidance: dotnet-skills
 
-IMPORTANT: Prefer retrieval-led reasoning over pretraining for any .NET work.
-Workflow: skim repo patterns -> consult dotnet-skills by name -> implement smallest-change -> note conflicts.
+Prefer retrieval-led reasoning over pretraining for .NET work. Workflow: skim repo patterns → consult `dotnet-skills` by name → implement smallest-change → note conflicts.
 
-Routing (invoke by name)
+Routing (invoke by name):
 
-- C# / code quality: modern-csharp-coding-standards, csharp-concurrency-patterns, api-design, type-design-performance
-- ASP.NET Core / Web (incl. Aspire): aspire-service-defaults, aspire-integration-testing, transactional-emails
-- Data: efcore-patterns, database-performance
-- DI / config: dependency-injection-patterns, microsoft-extensions-configuration
-- Testing: testcontainers-integration-tests, playwright-blazor-testing, snapshot-testing
+- C# / code quality: `modern-csharp-coding-standards`, `csharp-concurrency-patterns`, `api-design`, `type-design-performance`
+- ASP.NET / Aspire: `aspire-service-defaults`, `aspire-integration-testing`, `transactional-emails`
+- Data: `efcore-patterns`, `database-performance`
+- DI / config: `dependency-injection-patterns`, `microsoft-extensions-configuration`
+- Testing: `testcontainers-integration-tests`, `playwright-blazor-testing`, `snapshot-testing`
 
-Quality gates (use when applicable)
+Quality gates:
 
-- dotnet-slopwatch: after substantial new/refactor/LLM-authored code
-- crap-analysis: after tests added/changed in complex code
+- `dotnet-slopwatch`: after substantial new / refactor / LLM-authored code
+- `crap-analysis`: after tests added / changed in complex code
 
-Specialist agents
-
-- dotnet-concurrency-specialist, dotnet-performance-analyst, dotnet-benchmark-designer, akka-net-specialist, docfx-specialist
+Specialist agents available: `dotnet-concurrency-specialist`, `dotnet-performance-analyst`, `dotnet-benchmark-designer`, `akka-net-specialist`, `docfx-specialist`.
 
 ## When Deniz Asks For A Review
 
-### Before You Start (Pick Review Depth)
+Pick depth first:
 
-Ask Deniz which mode to use:
+1. **Deep review** (interactive): Architecture → Code Quality → Tests → Performance, up to 4 top issues per section.
+2. **Quick review** (interactive): one focused question per section.
 
-1. Deep review (interactive): Architecture → Code Quality → Tests → Performance, up to 4 top issues per section.
-2. Quick review (interactive): one focused question per section.
+For each issue:
 
-### What To Evaluate
+- Describe concretely with file references (and line numbers when possible).
+- Provide 2–3 options including "do nothing" when reasonable. For each: effort, risk, impact, maintenance burden.
+- Recommend one, explain why, ask Deniz to confirm before proceeding.
 
-Architecture:
+Output format:
 
-- System boundaries and coupling
-- Data flows and bottlenecks
-- Cross-platform correctness (Windows/Linux/macOS)
-- Build system coherence (vcpkg ↔ manifest ↔ Cake ↔ CI)
-
-Code quality:
-
-- Organization and module structure
-- DRY violations (be aggressive)
-- Error handling and missing edge cases
-- Technical debt hotspots
-- Over/under engineering relative to preferences above
-
-### How To Report Issues
-
-For each issue (bug, smell, design concern, or risk):
-
-- Describe the problem concretely with file references (and line numbers when possible).
-- Provide 2–3 options, including "do nothing" when reasonable.
-- For each option: effort, risk, impact, and maintenance burden.
-- Give a recommended option first, explain why, and ask Deniz to confirm direction before proceeding.
-
-### Output Format (For Reviews)
-
-- Number issues (`1`, `2`, `3`, ...).
-- Label options with letters (`A`, `B`, `C`), and list the recommended option first.
-- Keep the review interactive: ask Deniz to choose/confirm before doing big changes.
+- Number issues (`1`, `2`, ...).
+- Label options (`A`, `B`, `C`); list the recommended one first.
+- Keep interactive: ask Deniz to choose / confirm before big changes.

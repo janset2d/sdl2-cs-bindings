@@ -54,11 +54,11 @@ For IDE or direct-CLI validation, run `dotnet run --file tools.cs -- setup --sou
 - **Not samples.** Samples (future `samples/` tree) are consumer-facing documentation. Smoke tests are **internal integrity gates** that may or may not have pedagogical value.
 - **Not a separate source-graph validation lane.** ADR-001 retired Source Mode as a supported consumer contract. Smoke tests validate the canonical package-first path; if a throwaway binding-debug harness is ever needed later, it lives outside this directory.
 
-## Relationship to Cross-Platform Smoke Validation Matrix
+## Relationship to Validation Workflows
 
-[`docs/playbook/cross-platform-smoke-validation.md`](../../docs/playbook/cross-platform-smoke-validation.md) catalogs the checkpoints (A-G active, H-L planned). The checkpoints in this directory:
+The smoke harnesses in this directory feed two validation paths:
 
-- **G** — native-smoke C++ runtime test (active on 3 platforms)
-- **K** — package-smoke consumer test (planned; active on win-x64 only for Phase 2a proof slice)
+- **`tools ci-sim`** ([`docs/playbook/local-validation.md`](../../docs/playbook/local-validation.md)) — full 9-step CI replay on host RID. Runs `NativeSmoke` (C++ / CMake harness) and `PackageConsumerSmoke` (TUnit per-TFM consumer test) in sequence.
+- **`release.yml` matrix** — per-RID `harvest` + `consumer-smoke` jobs exercise the same harnesses across all 7 RIDs.
 
-Promotion to "active on all 3 platforms" for K is Phase 2b work, gated on Unix `buildTransitive/*.targets` landing (tar.gz extraction for Linux/macOS package consumers).
+The C++ NativeSmoke harness is active on Windows + Linux + macOS hosts. `PackageConsumerSmoke` is active across all 7 RIDs via CI matrix re-entry.

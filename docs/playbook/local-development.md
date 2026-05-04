@@ -2,7 +2,7 @@
 
 > How to clone, build, and develop Janset.SDL2 on your local machine.
 >
-> **Status 2026-05-03.** Phase Y moved dev orchestration out of Cake into the repo-root `tools.cs` script (file-based .NET 10 app). `tools setup --source=local` is the canonical fresh-clone path (package-first consumer contract per [ADR-001](../decisions/2026-04-18-versioning-d3seg.md) §2.8). `--source=remote-github` pulls latest published nupkgs from the GitHub Packages internal feed and exercises the same consumer surface. `--source=remote-nuget` is stubbed pending Phase 2b PD-7 (public-feed promotion). Manual vcpkg + Harvest + Package flow below stays as a fallback/debug route.
+> Dev orchestration lives in the repo-root `tools.cs` script (file-based .NET 10 app), not the Cake host. `tools setup --source=local` is the canonical fresh-clone path (package-first consumer contract — smoke / sample / sandbox csprojs consume packages via a local folder feed). `--source=remote-github` pulls the latest published nupkgs from the GitHub Packages internal feed and exercises the same consumer surface. `--source=remote-nuget` is stubbed pending Phase 2b PD-7 (public-feed promotion). The manual vcpkg + Harvest + Package flow below stays as a fallback / debug route.
 
 ## Quick Start (recommended)
 
@@ -89,7 +89,7 @@ For local testing with native binaries, you have two options:
 3. Extract under your local `artifacts/harvest_output/` so the per-library subtrees land at the expected path.
 4. The packed `.nupkg` files are also available as the `nupkg-output` artifact from the same run; you can drop them into a local feed and consume via `Janset.Local.props` instead of harvesting + packing locally.
 
-The retired `prepare-native-assets-*.yml` family was deleted 2026-04-25 (P8.1) — its harvest discipline lives inside `release.yml`'s `harvest` matrix job now. See [ci-cd-packaging-and-release-plan.md](../knowledge-base/ci-cd-packaging-and-release-plan.md) for the live job topology.
+See `.github/workflows/release.yml` for the live job topology.
 
 #### Option B: Install SDL2 system-wide
 
@@ -170,7 +170,7 @@ dotnet run -- --target ConsolidateHarvest
 
 ### Step 5: Pack Families (or let `Package` task handle it)
 
-With Harvest + ConsolidateHarvest green, produce the per-family nupkgs via the Cake `Package` task. Version string MUST follow [D-3seg](../decisions/2026-04-18-versioning-d3seg.md) (`<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>` with prerelease suffix for local iterations):
+With Harvest + ConsolidateHarvest green, produce the per-family nupkgs via the Cake `Package` task. The version string MUST follow D-3seg (`<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>` with prerelease suffix for local iterations — see `AGENTS.md` "Settled Strategic Decisions" for context):
 
 ```bash
 dotnet run --project build/_build -- --target Package \
@@ -181,9 +181,9 @@ dotnet run --project build/_build -- --target Package \
   --explicit-version sdl2-gfx=1.0.0-local.1
 ```
 
-Each `--explicit-version <family>=<semver>` entry must follow D-3seg (`<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>` per family — anchored to the family's `library_manifests[].vcpkg_version` via G54). The `--family` / `--family-version` legacy flags retired in Slice B1 (PD-13 closure 2026-04-22); CLI surface is now provider-strict via `ExplicitVersionProvider`. For a stable release you would tag the commit (`git tag sdl2-core-2.32.0`) and let `GitTagVersionProvider` resolve the mapping from the tag — see [ADR-003 §3.1](../decisions/2026-04-20-release-lifecycle-orchestration.md) for the version-source provider architecture.
+Each `--explicit-version <family>=<semver>` entry must follow D-3seg (`<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>` per family — anchored to the family's `library_manifests[].vcpkg_version` via G54). The legacy `--family` / `--family-version` flags are retired; the CLI surface is now provider-strict via `ExplicitVersionProvider`. For a stable release you would tag the commit (`git tag sdl2-core-2.32.0`) and let `GitTagVersionProvider` resolve the mapping from the tag — see `build/_build/Features/Versioning/` for the version-source provider implementations.
 
-> **G58 cross-family scope rule.** If you `--explicit-version` a satellite family (e.g., `sdl2-image`) without also supplying its `depends_on` core (e.g., `sdl2-core`) at a satisfying version, Pack stops at G58. The example above includes all 5 concrete families precisely so that every satellite's cross-family dep on `sdl2-core` is in scope. For a single-family local rehearsal, either pack core in addition (lightest workaround) or use the family member that has no cross-family deps (`sdl2-core`). The same constraint applies to CI tag-push releases — see [release-lifecycle-direction.md §1 Release Ordering](../knowledge-base/release-lifecycle-direction.md) and [release-guardrails.md §5.1](../knowledge-base/release-guardrails.md).
+> **G58 cross-family scope rule.** If you `--explicit-version` a satellite family (e.g., `sdl2-image`) without also supplying its `depends_on` core (e.g., `sdl2-core`) at a satisfying version, Pack stops at G58. The example above includes all 5 concrete families precisely so that every satellite's cross-family dep on `sdl2-core` is in scope. For a single-family local rehearsal, either pack core in addition (lightest workaround) or use the family member that has no cross-family deps (`sdl2-core`). The same constraint applies to CI tag-push releases — see [release-guardrails.md §4.1](../knowledge-base/release-guardrails.md).
 >
 > **Manual per-satellite copy is retired.** The pre-2026-04-18 "copy `artifacts/harvest_output/.../runtimes/<rid>/native/*` into `src/native/<Lib>.Native/runtimes/<rid>/native/`" step no longer applies — the native csproj packs from `$(NativePayloadSource)` (handed in by Cake, `artifacts/harvest_output/<Lib>/` root), never from the `src/` tree. Guardrail G46 hard-fails direct `dotnet pack` of a `.Native` csproj without `$(NativePayloadSource)`.
 
@@ -312,7 +312,7 @@ Direct `dotnet pack` on a managed csproj (e.g. for a quick isolated pack test) i
 dotnet pack src/SDL2.Core/SDL2.Core.csproj -o ./artifacts/packages/ -p:PackageVersion=2.32.0-local.1
 ```
 
-> Versions like `0.1.0-local.1` or `1.0.0-local.1` violate D-3seg (UpstreamMajor.UpstreamMinor not anchored to SDL2 2.32.x). G54 will reject them at PreFlight. See [ADR-001 §2.1](../decisions/2026-04-18-versioning-d3seg.md).
+> Versions like `0.1.0-local.1` or `1.0.0-local.1` violate D-3seg (UpstreamMajor.UpstreamMinor not anchored to SDL2 2.32.x). G54 will reject them at PreFlight. See `AGENTS.md` "Settled Strategic Decisions" for D-3seg context.
 
 ## Troubleshooting
 

@@ -1,5 +1,7 @@
 # Dependency Modernization And .NET 10 Updater — Combined Global + Repo-Specific Prompt (v1)
 
+> **Authored before the 2026-05-04 docs cleanup.** The repo-specific grounding section references docs retired during the cleanup — `ADR-001 (2026-04-18)` superseded by [`docs/decisions/2026-05-05-d3seg-and-package-first.md`](../../docs/decisions/2026-05-05-d3seg-and-package-first.md); `ADR-002 (DDD layering)` retired in favor of [`AGENTS.md`](../../AGENTS.md) "Build-Host Reference Pattern" (current `Host/Features/Shared/Tools/Integrations` shape); `knowledge-base/cake-build-architecture.md` + `knowledge-base/harvesting-process.md` retired in favor of code (`build/_build/`) + [`AGENTS.md`](../../AGENTS.md) "Build Host Pipeline"; `playbook/cross-platform-smoke-validation.md` retired in favor of [`docs/playbook/local-validation.md`](../../docs/playbook/local-validation.md). Treat the global modernization contract (sections 1-16) as durable; verify the repo-specific layer (section 5 "Grounding Protocol") against current `AGENTS.md` + `docs/onboarding.md` + `docs/plan.md` before acting.
+
 ```md
 ---
 name: "Dependency Modernization And .NET 10 Updater"

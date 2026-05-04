@@ -1,5 +1,7 @@
 # General Deep Dive Code Reviewer — Combined Global + Repo-Specific Prompt (v2)
 
+> **Authored before the 2026-05-04 docs cleanup.** The repo-specific grounding section references docs retired during the cleanup — `ADR-001 (2026-04-18)` superseded by [`docs/decisions/2026-05-05-d3seg-and-package-first.md`](../../docs/decisions/2026-05-05-d3seg-and-package-first.md); `ADR-002 (DDD layering — Tasks/Application/Domain/Infrastructure)` retired in favor of the ADR-004 5-folder shape (`Host/Features/Shared/Tools/Integrations`) documented in [`AGENTS.md`](../../AGENTS.md) "Build-Host Reference Pattern" — the §5 "Build-host layer map" in this prompt is **stale** and should be read through that current shape; `knowledge-base/cake-build-architecture.md` + `knowledge-base/harvesting-process.md` retired in favor of code (`build/_build/`) + [`AGENTS.md`](../../AGENTS.md) "Build Host Pipeline"; `playbook/cross-platform-smoke-validation.md` retired in favor of [`docs/playbook/local-validation.md`](../../docs/playbook/local-validation.md). Treat the global reviewer contract (sections 1-15) as durable; verify the repo-specific layer (sections 5 + 7 + 9) against current `AGENTS.md` + `docs/onboarding.md` + `docs/plan.md` before acting.
+
 ```md
 ---
 name: "General Deep Dive Code Reviewer"

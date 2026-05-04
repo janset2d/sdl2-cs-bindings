@@ -90,6 +90,5 @@ If a new SDL library is added (e.g. `sdl3`, `sdl3-image`):
 
 ## Related
 
-- **Why hybrid?** [docs/research/packaging-strategy-hybrid-static-2026-04-13.md](../docs/research/packaging-strategy-hybrid-static-2026-04-13.md)
-- **Ecosystem evidence:** [docs/research/native-packaging-comparative-analysis-2026-04-13.md](../docs/research/native-packaging-comparative-analysis-2026-04-13.md)
+- **Why hybrid?** Industry pattern (SkiaSharp / LibGit2Sharp / SQLitePCLRaw) and project policy — see [`AGENTS.md`](../AGENTS.md) "Settled Strategic Decisions" and [`docs/research/native-packaging-patterns.md`](../docs/research/native-packaging-patterns.md).
 - **Overlay ports:** [vcpkg-overlay-ports/README.md](../vcpkg-overlay-ports/README.md)

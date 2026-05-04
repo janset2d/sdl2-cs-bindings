@@ -1,38 +1,28 @@
-# Release Guardrails Roadmap
+# Release Guardrails
 
-> **Status:** Canonical — this doc is the single map of every guardrail the project commits to land. Every entry has an owning stream and a current implementation status. When a guardrail moves from "planned" to "active," update its row here in the same change.
->
-> **Last updated:** 2026-04-30 (ADR-003 currentization — **G58** is active as a scope-contains check in Pack and mirrored in PreFlight as defense in depth; feed probing remains deferred.) Prior: 2026-04-21 ADR-003 adoption; 2026-04-19 Wave V4 G54–G57; 2026-04-18 ADR-001 adoption; 2026-04-17 S1 adoption.
->
-> **Why a dedicated roadmap:** Defense-in-depth is a hard requirement for this project. A single missed inconsistency between manifest, csproj, vcpkg, family tag, and produced nupkg can ship a broken package family. Guardrails are scattered across multiple subsystems (PreFlight, MSBuild, Cake, CI workflows, post-pack assertions, feed checks). This doc enumerates them all, deduplicates, and maps each to its owning stream so nothing is forgotten in the gap between A-risky and the public release of v1.0.
->
-> **ADR-001 adoption note (2026-04-18):** D-3seg versioning (`<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>`) locked. New guardrails: **G54** (PreFlight — family tag UpstreamMajor.UpstreamMinor ≡ `manifest.json library_manifests[].vcpkg_version` Major.Minor), **G55** (post-pack — `janset-native-metadata.json` packed into every `.Native` nupkg + schema valid + content matches vcpkg-resolved upstream), **G56** (post-pack — satellite cross-family dep declares upper bound `< (UpstreamMajor + 1).0.0`), **G57** (post-pack — README mapping table block between `<!-- JANSET:MAPPING-TABLE-START -->` / `<!-- JANSET:MAPPING-TABLE-END -->` markers matches manifest). Wave V4 implementation landed on 2026-04-19 and promoted all four to Active. **Strict release-must-bump-patch enforcement (API-diff / hash-based)** is explicitly deferred to Phase 2b; Phase 2a scope is overwrite-attempt guard only. See [ADR-001 §2.9 and §7.5](../decisions/2026-04-18-versioning-d3seg.md).
->
-> **S1 adoption note (2026-04-17):** Within-family exact-pin requirement retired in favor of SkiaSharp-style minimum range (`>=`). Guardrails **G1, G2, G3, G5, G8, G9, G10, G20, G24 removed** from active scope (exact-pin-specific). **G23 reframed** as the primary within-family coherence check (was derivative of G20). **G11 marked REVISIT** (NuGet built-in NU5016; relevance under minimum-range contract uncertain). **G4, G6, G7, G17, G18, G21, G22, G25–G27, G46** retained. Drift protection moves from consumer-side nuspec invariant to orchestration-time invariant (Cake atomic pack + post-pack version-match). Historical rationale preserved in the [archived adaptation plan](../_archive/phase-2-adaptation-plan-2026-04-15.md) "S1 Adoption Record" section; see [release-lifecycle-direction.md §4 Drift Protection Model](release-lifecycle-direction.md) for the policy record.
->
-> **ADR-003 adoption note (2026-04-20 accepted / implemented):** Orchestration architecture locks stage-owned validation — every guardrail has an owning pipeline stage; there is no monolithic "PostFlight" validator suite. The existing §2.1–§2.8 subsections organize guardrails by **subsystem** (structural / MSBuild / NuGet / manifest / post-pack / CI / train / manual); **§2.0 Stage-Owned Validation Mapping** organizes the same set by ADR-003 **pipeline stage** (PreFlight / Harvest / NativeSmoke / Pack / ConsumerSmoke / Publish / Full-Train / Manual Escape). Both views reference the same guardrails; use whichever lens fits the reading task. **G58** (cross-family dep resolvability) is Pack-owned and also runs in PreFlight as an early defense-in-depth mirror.
+> Single map of every guardrail this project commits to land. Each entry has an owning stage and a current implementation status. When a guardrail moves from "planned" to "active," update its row here in the same change.
 
 ## 1. Guardrail Philosophy
 
 1. **Strict by default.** Every guardrail hard-fails when violated. Bypasses (when they exist) require explicit operator action and loud logging.
 2. **Defense-in-depth.** Each invariant is checked at multiple layers when feasible — structural (PreFlight), build-time (MSBuild target), pack-time (post-pack assertion), publish-time (CI gate). One missed check is rarely the only check.
 3. **Catch as early as possible.** A guardrail that fires at PreFlight is preferable to one that fires at Pack, which is preferable to one that fires at Publish, which is preferable to one that fires at Consumer.
-4. **No silent skips.** If a guardrail is conditionally bypassed (e.g., `AllowEmptyNativePayload=true` for G46 — the only documented pack-time bypass post-S1), the bypass is logged loudly with the override reason.
+4. **No silent skips.** If a guardrail is conditionally bypassed (e.g., `AllowEmptyNativePayload=true` for G46 — the only documented pack-time bypass), the bypass is logged loudly with the override reason.
 5. **Mirror the failure to its source.** Error messages name the file, line, property, and the canonical rule that was violated, so the operator can fix without re-reading the code.
 
 ## 2. Guardrail Inventory
 
-### 2.0 Stage-Owned Validation Mapping (ADR-003 lens)
+### 2.0 Stage-Owned Validation Mapping
 
-Per [ADR-003 §4](../decisions/2026-04-20-release-lifecycle-orchestration.md), every guardrail has one owning pipeline stage. This view organizes the same guardrail set listed in §2.1–§2.8 by the stage that owns enforcement; explicit mirrors, such as G58 in PreFlight, are called out in the row text.
+Every guardrail has one owning pipeline stage. This view organizes the same set listed in §2.1–§2.8 by the stage that owns enforcement; explicit mirrors are called out in the row text.
 
 | Stage | Runs | Guardrails | Coverage |
 | --- | --- | --- | --- |
 | **PreFlight** | Single-runner, fail-fast before matrix work | G4, G6, G7, G14, G15, G16, G17, G18, G49, G54, G58 (mirror) | Structural csproj contract + manifest↔vcpkg coherence + strategy coherence + core identity + upstream major.minor alignment + cross-family dependency scope reachability mirror |
 | **Harvest** | Per-RID matrix | G19, G50 | Hybrid-static transitive leak detection + primary binary ≥ 1 post-deploy assertion |
-| **NativeSmoke** | Per-RID matrix (extracted from Harvest per ADR-003 §3.2) | — | C/C++ harness (`tests/smoke-tests/native-smoke/`) today; no G-series numbering yet. Proves native binaries load + initialize at OS level. |
-| **Pack** | Single-runner after Consolidate | G13 (NuGet built-in schema), G21, G22, G23, G25, G26, G27, G46 (MSBuild pre-pack guard), G47, G48, G51, G52, G53, G55, G56, G57, G58 | nupkg emission + post-pack shape (minimum-range + version-match + TFM consistency + symbols + metadata + `buildTransitive/` contract + per-RID payload shape + license payload + staged-replace invariants + native metadata file + cross-family upper bound + README mapping + cross-family dep resolvability) |
-| **ConsumerSmoke** | Per-RID matrix **re-entry** (ADR-003 §3.4) | — | Restore + runtime TUnit pass per TFM; no G-series numbering (behavioral smoke, not a structural guardrail). |
+| **NativeSmoke** | Per-RID matrix | — | C/C++ harness (`tests/smoke-tests/native-smoke/`); no G-series numbering yet. Proves native binaries load + initialize at OS level. |
+| **Pack** | Single-runner after Consolidate | G13 (NuGet schema), G21, G22, G23, G25, G26, G27, G46 (MSBuild pre-pack), G47, G48, G51, G52, G53, G55, G56, G57, G58 | nupkg emission + post-pack shape (minimum-range + version-match + TFM consistency + symbols + metadata + `buildTransitive/` contract + per-RID payload shape + license payload + staged-replace invariants + native metadata file + cross-family upper bound + README mapping + cross-family dep resolvability) |
+| **ConsumerSmoke** | Per-RID matrix re-entry | — | Restore + runtime TUnit pass per TFM; behavioral, not structural. |
 | **Publish** | Single-runner per feed tier | G31, G32, G33, G34, G35 | Monotonicity + no-existing-version + smoke-gate + stage-ordering + cross-family resolvability at feed scope |
 | **Full-Train (PD-7 scope)** | Meta-tag trigger | G37, G38, G39, G40, G41, G42 | Manifest-driven family selection + family-tag SemVer/G54 + no-dup + ordering + partial-train handling |
 | **Manual Escape (PD-8 scope)** | Operator-driven | G43, G44, G45 | Version↔tag drift + explicit feed source + audit trail |
@@ -40,151 +30,115 @@ Per [ADR-003 §4](../decisions/2026-04-20-release-lifecycle-orchestration.md), e
 
 The subsystem view (§2.1–§2.8) remains authoritative for each guardrail's owner (validator class, task, MSBuild target, CI workflow step). This stage view is a routing map; it references the same guardrails, not duplicates.
 
-### 2.1 csproj Structural (PreFlight, A-risky scope — post-S1 subset)
-
-These guardrails run as part of `PreFlightCheckTask` and are the first line of defense. They check that csproj files conform to the canonical shape established by [release-lifecycle-direction.md §1](release-lifecycle-direction.md).
-
-> **S1 2026-04-17:** Guardrails G1 (PrivateAssets="all"), G2 (paired PackageReference), G3 (bracket notation PackageVersion), G5 (family-version property name convention), G8 (sentinel fallback) **RETIRED**. They enforced the exact-pin csproj shape (Mechanism 3) which is no longer used. Retained: G4, G6, G7. Cross-section checks G17/G18 remain in §2.4.
+### 2.1 csproj Structural (PreFlight)
 
 | # | Invariant | Status | Owner |
 | --- | --- | --- | --- |
-| G4 | csproj `<MinVerTagPrefix>` equals `manifest.json package_families[].tag_prefix + "-"` | Active (A-risky step 3, post-S1 subset) | `CsprojPackContractValidator` |
-| G6 | csproj `<PackageId>` follows canonical pattern `Janset.SDL<Major>.<Role>` (managed) or `Janset.SDL<Major>.<Role>.Native` (native) | Active (A-risky step 3, post-S1 subset) | `CsprojPackContractValidator` |
-| G7 | Native `<ProjectReference>` path resolves to `manifest.json package_families[].native_project` | Active (A-risky step 3, post-S1 subset) | `CsprojPackContractValidator` |
+| G4 | csproj `<MinVerTagPrefix>` equals `manifest.json package_families[].tag_prefix + "-"` | Active | `CsprojPackContractValidator` |
+| G6 | csproj `<PackageId>` follows canonical pattern `Janset.SDL<Major>.<Role>` (managed) or `Janset.SDL<Major>.<Role>.Native` (native) | Active | `CsprojPackContractValidator` |
+| G7 | Native `<ProjectReference>` path resolves to `manifest.json package_families[].native_project` | Active | `CsprojPackContractValidator` |
 
-### 2.2 MSBuild Build-Time (Directory.Build.targets, post-S1 scope)
-
-These guardrails run as MSBuild targets during `dotnet build` / `dotnet pack` invocation. They catch issues that PreFlight cannot see (runtime-resolved property values).
-
-> **S1 2026-04-17:** Guardrails G9 (`_GuardAgainstShippingRestoreSentinel`) and G10 (`AllowSentinelExactPin` bypass banner) **RETIRED**. They enforced the `0.0.0-restore` sentinel mechanism which no longer exists (sentinel PropertyGroup removed from managed csprojs). G46 unrelated to exact-pin — stays.
+### 2.2 MSBuild Build-Time
 
 | # | Invariant | Status | Owner |
 | --- | --- | --- | --- |
-| G46 | Pack of a `Janset.SDL2.*.Native` package fails if `$(NativePayloadSource)` is unset (native csproj has no source-tree fallback; empty payload would ship otherwise). Bypass `-p:AllowEmptyNativePayload=true` for deliberate empty packs. | Active (D-local Tier 2 cleanup, 2026-04-17) | `_GuardAgainstEmptyNativePayload` in [src/Directory.Build.targets](../../src/Directory.Build.targets) |
+| G46 | Pack of a `Janset.SDL2.*.Native` package fails if `$(NativePayloadSource)` is unset (native csproj has no source-tree fallback; empty payload would ship otherwise). Bypass `-p:AllowEmptyNativePayload=true` for deliberate empty packs. | Active | `_GuardAgainstEmptyNativePayload` in `src/Directory.Build.targets` |
 
 ### 2.3 Restore + Pack (NuGet built-in)
 
-NuGet itself enforces some invariants we rely on but don't author. Tracked here for completeness so we know what NOT to re-implement.
+NuGet enforces some invariants we rely on but don't author. Tracked here so we know what NOT to re-implement.
 
 | # | Invariant | Status | Owner |
 | --- | --- | --- | --- |
-| G11 | Restore-time and pack-time version mismatch between bracket-notation `PackageVersion` and resolved project version produces NU5016 ("empty version range") | **REVISIT (S1 2026-04-17)** — effectively dead-letter under minimum-range contract; no bracket-notation `PackageVersion` items remain in managed csprojs post-S1. Kept listed as informational tripwire: if anyone reintroduces bracket notation, NuGet still enforces. Revisit whether to keep tracking or drop. | NuGet `Pack.targets` |
-| G12 | CPM violation: every `PackageReference` must have a matching `PackageVersion` | Active (NuGet built-in) | NuGet `CPM` validation |
-| G13 | Manifest schema validity (JSON parseable, required fields present) | Active (build host) | `JsonSerializer.Deserialize<ManifestConfig>` |
+| G12 | CPM violation: every `PackageReference` must have a matching `PackageVersion` | Active | NuGet built-in |
+| G13 | Manifest schema validity (JSON parseable, required fields present) | Active | `JsonSerializer.Deserialize<ManifestConfig>` |
 
-### 2.4 Manifest + vcpkg Coherence (PreFlight, B closed)
-
-Already-active guardrails from Stream B. Listed for completeness.
+### 2.4 Manifest + vcpkg Coherence (PreFlight)
 
 | # | Invariant | Status | Owner |
 | --- | --- | --- | --- |
 | G14 | `manifest.json library_manifests[].vcpkg_version` equals `vcpkg.json` override | Active | `VersionConsistencyValidator` |
 | G15 | `manifest.json library_manifests[].vcpkg_port_version` equals `vcpkg.json` port version | Active | `VersionConsistencyValidator` |
 | G16 | `manifest.json runtimes[].strategy` is coherent with the declared triplet | Active | `StrategyCoherenceValidator` |
-| G17 | `package_families[].depends_on` references existing family identifiers | Planned (A-risky step 3 polish) | `CsprojPackContractValidator` (cross-section check) |
-| G18 | `package_families[].library_ref` references existing `library_manifests[].name` | Planned (A-risky step 3 polish) | `CsprojPackContractValidator` (cross-section check) |
-| G19 | Hybrid-static strategy: zero transitive dep leaks in harvest output | Active (B) | `HybridStaticValidator` |
-| G49 | Core-library identity coherence: `library_manifests[core_lib=true].vcpkg_name` equals `packaging_config.core_library` (case-insensitive); exactly one `core_lib=true` entry declared | Active (2026-04-18) | `CoreLibraryIdentityValidator` |
-| G50 | Harvest must produce ≥1 primary binary per library+RID: post-deployment assertion in `HarvestTask` fails fast if `DeploymentStatistics.PrimaryFiles.Count == 0`, even when closure walker and planner returned success-shaped results. Defends against silent feature-flag degradation / partial vcpkg install shapes that pass upstream guards. | Active (2026-04-18) | `HarvestTask` post-deploy assertion |
-| G54 | **Family tag UpstreamMajor.UpstreamMinor ↔ manifest coherence (D-3seg anchor).** The family tag's first two SemVer segments MUST equal `manifest.json library_manifests[].vcpkg_version`'s first two segments for that family. Example: tag `sdl2-core-2.32.0` at a commit where `manifest.json` declares SDL2 at `2.32.10` → G54 passes (both anchor to `2.32`). A tag `sdl2-core-2.31.0` at the same commit fails. Enforces the §7 Cross-Referenced Version Planes coupling defined in [release-lifecycle-direction.md](release-lifecycle-direction.md). | Active (V4, 2026-04-19) | `UpstreamVersionAlignmentValidator` (PreFlight) |
+| G17 | `package_families[].depends_on` references existing family identifiers | Active | `CsprojPackContractValidator` (cross-section check) |
+| G18 | `package_families[].library_ref` references existing `library_manifests[].name` | Active | `CsprojPackContractValidator` (cross-section check) |
+| G19 | Hybrid-static strategy: zero transitive dep leaks in harvest output | Active (Harvest stage) | `HybridStaticValidator` |
+| G49 | Core-library identity coherence: `library_manifests[core_lib=true].vcpkg_name` equals `packaging_config.core_library` (case-insensitive); exactly one `core_lib=true` entry declared | Active | `CoreLibraryIdentityValidator` |
+| G50 | Harvest must produce ≥1 primary binary per library+RID: `HarvestTask` post-deployment assertion fails fast if `DeploymentStatistics.PrimaryFiles.Count == 0`. Defends against silent feature-flag degradation / partial vcpkg install shapes that pass upstream guards. | Active (Harvest stage) | `HarvestTask` post-deploy assertion |
+| G54 | **Family tag UpstreamMajor.UpstreamMinor ↔ manifest coherence (D-3seg anchor).** The family tag's first two SemVer segments MUST equal `manifest.json library_manifests[].vcpkg_version`'s first two segments for that family. Example: tag `sdl2-core-2.32.0` at a commit where `manifest.json` declares SDL2 at `2.32.10` → G54 passes (both anchor to `2.32`). A tag `sdl2-core-2.31.0` at the same commit fails. | Active | `UpstreamVersionAlignmentValidator` (PreFlight) |
 
-### 2.5 Post-Pack nuspec Assertion (Stream D-local scope — post-S1 subset)
+### 2.5 Post-Pack nuspec Assertion (Pack stage)
 
-These guardrails run AFTER `dotnet pack` completes, opening the produced `.nupkg` and asserting the emitted nuspec is correct. This is the defense-in-depth layer that catches anything the structural + MSBuild layers missed.
+These guardrails open the produced `.nupkg` and assert the emitted nuspec is correct. Defense-in-depth layer that catches anything the structural + MSBuild layers missed.
 
-G25 is intentionally scoped to the managed package's `.snupkg`. Payload-only `.Native` projects currently disable symbol-package generation by design, so D-local validates the symbols that should exist instead of pretending every package emits a `.snupkg`.
-
-> **S1 2026-04-17:** G20 (exact-pin `[x.y.z]` nuspec assertion) **RETIRED** — exact-pin no longer used. G24 (sentinel leak check) **RETIRED** — sentinel no longer exists. G21 **REFRAMED** to minimum-range semantics. ADR-001 V4 (2026-04-19) further tightened cross-family shape: preserve lower bound and enforce explicit upper bound via G56. G23 **REFRAMED and PROMOTED** to primary within-family coherence check (was derivative of G20). G22, G25–G27 unchanged.
+G25 is intentionally scoped to the managed package's `.snupkg`. Payload-only `.Native` projects currently disable symbol-package generation by design.
 
 | # | Invariant | Status | Owner |
 | --- | --- | --- | --- |
-| G21 | Within-family Native dependency emitted as bare minimum range `x.y.z` (no brackets). Cross-family dependencies must preserve the same lower-bound semantics (`>= x.y.z`) while upper-bound enforcement is owned by G56. Additional 2026-04-17 consumer-safety invariant: within-family Native dependency must not exclude build assets, otherwise `.NET Framework` consumers lose the native `buildTransitive` copy targets. | Active (D-local; reframed by S1 2026-04-17, refined by ADR-001 V4 2026-04-19) | Cake `PackageTask` post-pack assertion |
-| G22 | All TFM dependency groups (net10.0, net9.0, net8.0, netstandard2.0, net462) are consistent with each other | Active (D-local, 2026-04-16) | Cake `PackageTask` post-pack assertion |
-| G23 | **Primary within-family coherence check (post-S1).** Native package's `<version>` matches the managed package's `<version>` byte-for-byte. Detects drift between family members that would make the minimum-range contract misleading (consumer resolves compatible versions but publisher intended them pinned together). | Active (D-local; promoted to primary by S1 2026-04-17) | Cake `PackageTask` post-pack assertion |
-| G25 | Managed symbol package (.snupkg) is present and valid | Active (D-local, 2026-04-16) | Cake `PackageTask` post-pack assertion |
-| G26 | Nuspec `<repository>` element points at expected commit SHA | Active (D-local, 2026-04-16) | Cake `PackageTask` post-pack assertion |
-| G27 | Nuspec metadata fields (id, authors, license, icon) match expected values | Active (D-local, 2026-04-16) | Cake `PackageTask` post-pack assertion |
-| G47 | Native package ships the consumer-side buildTransitive contract — both `buildTransitive/$(PackageId).targets` (thin wrapper) and `buildTransitive/Janset.SDL2.Native.Common.targets` (shared extraction + .NETFramework AnyCPU copy). Missing either entry leaves Linux/macOS consumers without the `tar -xzf` extraction step (DllNotFoundException at first P/Invoke) and .NETFramework AnyCPU consumers without the per-RID DLL copy. | Active (D-local, 2026-04-17) | Cake `PackageTask` post-pack assertion |
-| G48 | For every `runtimes/<rid>/native/` subtree in the native `.nupkg`: Windows RIDs ship one or more `*.dll` files with no tarball; Unix RIDs ship exactly one `$(PackageId).tar.gz` (the per-package rename that prevents filename collision with sibling `.Native` packages when the .NET SDK flattens the RID subtree into the consumer's `$(OutDir)`). | Active (D-local, 2026-04-17) | Cake `PackageTask` post-pack assertion |
-| G51 | Native `.nupkg` ships at least one entry under `licenses/`. Defence-in-depth pair with the H1 invalidation + receipt gate: if Harvest invalidation is bypassed or `PackageTaskRunner`'s `ConsolidationState` gate is regressed, this post-pack check still refuses a nupkg that carries native assets without third-party license attribution. Compliance surface — a nupkg missing license attribution is a release-blocking defect. | Active (H1, 2026-04-18) | Cake `PackageTask` post-pack assertion (`PackageOutputValidator.EvaluateLicensePayloadPresence`) |
-| G52 | Package pre-pack payload gate checks `runtimes/` AND `licenses/_consolidated/` specifically, not the top-level `licenses/` parent. Pre-H1 completion the gate only asserted `licenses/**/*` was non-empty — a receipt claiming consolidation plus per-RID evidence under `licenses/<rid>/` passed the gate while the pack-time include pattern (`licenses/_consolidated/**/*` in `src/native/Directory.Build.props`) would ship an empty license payload. The tightened gate closes that pre-pack window alongside the post-pack G51. | Active (H1, 2026-04-18) | Cake `PackageTask` pre-pack assertion (`PackageTaskRunner.EnsureHarvestOutputReadyAsync` via `PayloadDirectories`) |
-| G53 | ConsolidateHarvest staged-replace invariant — Phase 1 writes to `_consolidated.tmp/` + `harvest-manifest.tmp.json` + `harvest-summary.tmp.json`; Phase 2 deletes the old artifacts and moves tmp → final. If Phase 1 fails the old valid state survives completely (next Consolidate retry replaces it). Per-library exceptions are aggregated and the task fails fatally — pre-H1-completion behavior logged "completed successfully" on per-library failure which hid compliance regressions. Malformed or unreadable `rid-status/*.json` input is also fatal, never warning-only skip, because silently dropping a RID can shrink the consolidated license set and create a false-green compliance result. Staged replace is not strictly atomic (`IFile.Move` / `IDirectory.Move` have no overwrite overload, so the swap is delete-then-move with a microsecond-scale window); cleanup after a crash in that window is handled by the next Harvest invalidation. | Active (H1, 2026-04-18) | Cake `ConsolidateHarvestTask` + `HarvestTask.InvalidateCrossRidReceipts` tmp orphan cleanup |
-| G55 | **Native package ships `janset-native-metadata.json` at root.** Every `.Native` nupkg contains a machine-readable metadata JSON with schema: `{ janset_family_version, family_identifier, upstream_library, upstream_version, vcpkg_port_version, triplet_set, build_commit }`. Post-pack validator opens the nupkg, asserts the file exists + parses as valid JSON + schema-matches + `upstream_version` equals the vcpkg-resolved version for the primary triplet + `build_commit` equals the HEAD SHA at pack time. Complements version-string D-3seg by carrying the exact upstream patch + port_version that the shortened version string drops. Enables downstream tooling (release notes generation, mapping-table diffing, CI audit) without having to reverse-engineer from file hashes. | Active (V4, 2026-04-19) | `NativePackageMetadataValidator` (post-pack) |
-| G56 | **Satellite cross-family dep upper bound declared.** Every satellite `.nuspec` cross-family dependency on Core (e.g., `Janset.SDL2.Image → Janset.SDL2.Core`) declares both lower bound (`>= x.y.z`) AND upper bound (`< (UpstreamMajor + 1).0.0`). Parses the exact range expression — not just "dependency present." Prevents accidental consumer-side resolution across SDL upstream majors (defence even though `sdl2-*` / `sdl3-*` family identifiers already split the package IDs). | Active (V4, 2026-04-19) | `SatelliteUpperBoundValidator` (post-pack) |
-| G57 | **README mapping table current.** `README.md` mapping block delimited by `<!-- JANSET:MAPPING-TABLE-START -->` / `<!-- JANSET:MAPPING-TABLE-END -->` markers matches the current `manifest.json library_manifests[]` set byte-equivalent to the Cake-generator output. Detects stale mapping tables that would mis-inform consumers about which upstream version a family version corresponds to. Cake-generated at pack time; validator asserts currency. | Active (V4, 2026-04-19) | `ReadmeMappingTableValidator` (post-pack) |
-| G58 | **Cross-family dependency resolvability.** If the resolved version mapping contains a satellite family, each declared cross-family dependency must also be present in the same mapping. This active scope-contains check runs in Pack and is mirrored in PreFlight, so a satellite pack cannot emit a lower-bound Core dependency that the current invocation cannot resolve. Feed probing remains a deferred relaxation surface; today the release invocation includes the dependency family in scope. The deferred feed-probe is expected to query the **publish target feed** for the current invocation (GH Packages for tag-push staging, nuget.org for the future PD-7 public promotion path). See [§5.1 Pipeline Scope-Assumption Gaps](#51-pipeline-scope-assumption-gaps--operational-implications) below for operational implications observed during the 2026-05-01 tag-push rehearsals (alongside the related `PackageConsumerSmoke` partial-scope gap). Complements G56 (upper bound declared in nuspec) + G35 (Publish-stage cross-family monotonicity). | Active (ADR-003 implementation) | `G58CrossFamilyDepResolvabilityValidator` via `PreflightTaskRunner` + `PackageTaskRunner` |
+| G21 | Within-family Native dependency emitted as bare minimum range `x.y.z` (no brackets). Cross-family dependencies preserve `>= x.y.z` lower-bound semantics (upper-bound enforcement owned by G56). Within-family Native dependency must not exclude build assets, else `.NET Framework` consumers lose the native `buildTransitive` copy targets. | Active | Cake `PackageTask` post-pack assertion |
+| G22 | All TFM dependency groups (net10.0, net9.0, net8.0, netstandard2.0, net462) are consistent with each other | Active | Cake `PackageTask` post-pack assertion |
+| G23 | **Primary within-family coherence check.** Native package's `<version>` matches the managed package's `<version>` byte-for-byte. Detects drift between family members that would make the minimum-range contract misleading. | Active | Cake `PackageTask` post-pack assertion |
+| G25 | Managed symbol package (.snupkg) is present and valid | Active | Cake `PackageTask` post-pack assertion |
+| G26 | Nuspec `<repository>` element points at expected commit SHA | Active | Cake `PackageTask` post-pack assertion |
+| G27 | Nuspec metadata fields (id, authors, license, icon) match expected values | Active | Cake `PackageTask` post-pack assertion |
+| G47 | Native package ships the consumer-side buildTransitive contract — both `buildTransitive/$(PackageId).targets` (thin wrapper) and `buildTransitive/Janset.SDL2.Native.Common.targets` (shared extraction + .NETFramework AnyCPU copy). Missing either entry leaves Linux/macOS consumers without the `tar -xzf` extraction step (DllNotFoundException at first P/Invoke) and .NETFramework AnyCPU consumers without the per-RID DLL copy. | Active | Cake `PackageTask` post-pack assertion |
+| G48 | For every `runtimes/<rid>/native/` subtree: Windows RIDs ship one or more `*.dll` files with no tarball; Unix RIDs ship exactly one `$(PackageId).tar.gz` (per-package rename prevents filename collision when the SDK flattens RID subtrees into the consumer's `$(OutDir)`). | Active | Cake `PackageTask` post-pack assertion |
+| G51 | Native `.nupkg` ships at least one entry under `licenses/`. Compliance surface — a nupkg missing license attribution is a release-blocking defect. | Active | Cake `PackageTask` post-pack assertion (`PackageOutputValidator.EvaluateLicensePayloadPresence`) |
+| G52 | Pack pre-pack payload gate checks `runtimes/` AND `licenses/_consolidated/`, not the top-level `licenses/` parent. Tightens against false-green where receipt + per-RID evidence under `licenses/<rid>/` would pass while the pack-time include pattern (`licenses/_consolidated/**/*`) shipped an empty payload. | Active | Cake `PackageTask` pre-pack assertion (`PackageTaskRunner.EnsureHarvestOutputReadyAsync` via `PayloadDirectories`) |
+| G53 | ConsolidateHarvest staged-replace invariant — Phase 1 writes to `_consolidated.tmp/` + `harvest-manifest.tmp.json` + `harvest-summary.tmp.json`; Phase 2 deletes old artifacts and moves tmp → final. If Phase 1 fails the old valid state survives. Per-library exceptions aggregated and the task fails fatally — silent license drops would create false-green compliance. Malformed `rid-status/*.json` is also fatal, never warning-only skip. | Active | Cake `ConsolidateHarvestTask` + `HarvestTask.InvalidateCrossRidReceipts` tmp orphan cleanup |
+| G55 | **Native package ships `janset-native-metadata.json` at root.** Schema: `{ janset_family_version, family_identifier, upstream_library, upstream_version, vcpkg_port_version, triplet_set, build_commit }`. Validator opens the nupkg, asserts file exists + parses + schema-matches + `upstream_version` equals vcpkg-resolved version + `build_commit` equals HEAD SHA. Carries the exact upstream patch + port_version that the D-3seg version string drops. | Active | `NativePackageMetadataValidator` (post-pack) |
+| G56 | **Satellite cross-family dep upper bound declared.** Every satellite cross-family dependency on Core declares both lower bound (`>= x.y.z`) AND upper bound (`< (UpstreamMajor + 1).0.0`). Parses the exact range expression — not just "dependency present." Prevents accidental consumer-side resolution across SDL upstream majors. | Active | `SatelliteUpperBoundValidator` (post-pack) |
+| G57 | **README mapping table current.** `README.md` mapping block delimited by `<!-- JANSET:MAPPING-TABLE-START -->` / `<!-- JANSET:MAPPING-TABLE-END -->` markers matches the current `manifest.json library_manifests[]` set byte-equivalent to the Cake-generator output. | Active | `ReadmeMappingTableValidator` (post-pack) |
+| G58 | **Cross-family dependency resolvability.** If the resolved version mapping contains a satellite family, each declared cross-family dependency must also be present in the same mapping. Active scope-contains check in Pack and mirrored in PreFlight, so a satellite pack cannot emit a lower-bound Core dependency that the current invocation cannot resolve. Feed probing remains a deferred relaxation surface (gap #2 in §4.1). The deferred feed-probe queries the **publish target feed** (GH Packages for tag-push staging, nuget.org for the future PD-7 path). Complements G56 (upper bound declared in nuspec) + G35 (Publish-stage cross-family monotonicity). | Active | `G58CrossFamilyDepResolvabilityValidator` via `PreflightTaskRunner` + `PackageTaskRunner` |
 
-### 2.6 CI Pipeline (Stream C + D-ci scope)
-
-These guardrails are CI-workflow-level checks that run before any publish action.
+### 2.6 CI Pipeline (planned)
 
 | # | Invariant | Status | Owner |
 | --- | --- | --- | --- |
-| G28 | Tag pushed matches format `sdl<major>-<role>-<semver>` | Planned (D-ci) | CI workflow regex |
-| G29 | Tag's family identifier exists in `manifest.json package_families[]` | Planned (D-ci) | CI / Cake `ValidateTask` |
-| G30 | Tag's SemVer parses cleanly (no malformed pre-release suffix etc.) | Planned (D-ci) | CI / Cake (NuGet.Versioning) |
-| G31 | Tag's version is strictly greater than the latest published version on internal feed (monotonicity) | Planned (D-ci) | Cake `ValidateTask` (queries internal feed) |
-| G32 | NuGet.org "version already exists" check before public push (prevents accidental re-publish) | Planned (D-ci) | CI workflow / Cake |
-| G33 | Smoke test must pass before publish (explicit `needs:` gate) | Planned (D-ci) | CI workflow |
-| G34 | Internal feed publish completes before public promote (no skipping stages) | Planned (D-ci) | Promotion workflow |
-| G35 | Cross-family coherence: satellite family's Core minimum version is `<= currently-published Core version` (satellite cannot demand unreleased Core) | Planned (D-ci) | Cake `ValidateTask` |
-| G36 | Coverage ratchet floor maintained (`build/coverage-baseline.json`) | Active locally (#86); CI wiring planned (Stream C) | `Coverage-Check` Cake task |
+| G28 | Tag pushed matches format `sdl<major>-<role>-<semver>` | Planned | CI workflow regex |
+| G29 | Tag's family identifier exists in `manifest.json package_families[]` | Planned | CI / Cake `ValidateTask` |
+| G30 | Tag's SemVer parses cleanly (no malformed pre-release suffix etc.) | Planned | CI / Cake (NuGet.Versioning) |
+| G31 | Tag's version is strictly greater than the latest published version on internal feed (monotonicity) | Planned | Cake `ValidateTask` (queries internal feed) |
+| G32 | NuGet.org "version already exists" check before public push | Planned | CI workflow / Cake |
+| G33 | Smoke test must pass before publish (explicit `needs:` gate) | Planned | CI workflow |
+| G34 | Internal feed publish completes before public promote | Planned | Promotion workflow |
+| G35 | Cross-family coherence: satellite family's Core minimum version is `<= currently-published Core version` (satellite cannot demand unreleased Core) | Planned | Cake `ValidateTask` |
+| G36 | Coverage ratchet floor maintained (`build/coverage-baseline.json`) | Active locally; CI wiring planned | `Coverage-Check` Cake task |
 
 ### 2.7 Full-Train Meta-Tag Validation (PD-7 scope)
 
-When PD-7 lands, the meta-tag workflow needs its own guardrails. ADR-003 selected manifest-driven train composition: `manifest.json package_families[].depends_on` supplies ordering, family tags at the invocation commit supply versions, and no separate `release-set.json` is planned.
+ADR-003 selected manifest-driven train composition: `manifest.json package_families[].depends_on` supplies ordering, family tags at the invocation commit supply versions, and no separate `release-set.json` is planned.
 
 | # | Invariant | Status | Owner |
 | --- | --- | --- | --- |
-| G37 | Train/meta tag resolves only concrete package families from `manifest.json` | Planned (PD-7 → D-ci) | `GitTagVersionProvider` + PreFlight |
-| G38 | Required family tags exist at the invocation commit | Planned (PD-7 → D-ci) | `GitTagVersionProvider` |
-| G39 | Every family-tag version parses as SemVer and passes G54 upstream alignment | Planned (PD-7 → D-ci) | `GitTagVersionProvider` + G54 |
-| G40 | Manifest family identifiers and tag prefixes are unique before train resolution | Planned (PD-7 → D-ci) | PreFlight |
-| G41 | Release ordering follows `manifest.json package_families[].depends_on` | Planned (PD-7 → D-ci) | `FamilyTopologyHelpers` |
-| G42 | All train families either succeed end-to-end or the train is marked partial with recovery guidance | Planned (PD-7 → D-ci) | CI workflow + recovery playbook |
+| G37 | Train/meta tag resolves only concrete package families from `manifest.json` | Planned | `GitTagVersionProvider` + PreFlight |
+| G38 | Required family tags exist at the invocation commit | Planned | `GitTagVersionProvider` |
+| G39 | Every family-tag version parses as SemVer and passes G54 upstream alignment | Planned | `GitTagVersionProvider` + G54 |
+| G40 | Manifest family identifiers and tag prefixes are unique before train resolution | Planned | PreFlight |
+| G41 | Release ordering follows `manifest.json package_families[].depends_on` | Planned | `FamilyTopologyHelpers` |
+| G42 | All train families either succeed end-to-end or the train is marked partial with recovery guidance | Planned | CI workflow + recovery playbook |
 
 ### 2.8 Manual Escape Hatch (PD-8 scope)
 
-When PD-8 lands, the manual operator flow needs its own guardrails.
-
 | # | Invariant | Status | Owner |
 | --- | --- | --- | --- |
-| G43 | Manual pack operator-typed family version matches the family tag (no version drift between hand-typed CLI and intended tag) | Planned (PD-8 → D-local) | Cake `Pack-Family` validates against git tag if present |
-| G44 | Manual push requires explicit feed source identification (no implicit defaults that ship to public) | Planned (PD-8 → D-local) | Cake `Push-Family --source=` is required |
-| G45 | Manual release records audit trail (who, what, when, hash) | Planned (PD-8 → D-local) | Cake `Push-Family` writes audit JSON |
+| G43 | Manual pack operator-typed family version matches the family tag (no version drift between hand-typed CLI and intended tag) | Planned | Cake `Pack-Family` validates against git tag if present |
+| G44 | Manual push requires explicit feed source identification (no implicit defaults that ship to public) | Planned | Cake `Push-Family --source=` is required |
+| G45 | Manual release records audit trail (who, what, when, hash) | Planned | Cake `Push-Family` writes audit JSON |
 
-## 3. Stream Mapping (At-a-Glance)
+## 3. Failure Mode Catalog
 
-Counts reflect post-ADR-003 (2026-04-20) scope. S1 (2026-04-17) retired 9 exact-pin-related guardrails; H1 (2026-04-18) added G49–G53; ADR-001 (2026-04-18) added G54–G57; ADR-003 (2026-04-20) added G58. Historical pre-S1 cumulative was 43; post-S1 was 34; post-H1 was 39; post-ADR-001 was 43; post-ADR-003 is **44**.
-
-| Stream | Guardrails delivered | Cumulative active |
-| --- | --- | --- |
-| B (closed) | G14, G15, G16, G19, G36 (local) | 5 |
-| A-risky (partially reverted 2026-04-17) | G4, G6, G7 (PreFlight csproj — post-S1 subset), G17, G18 (cross-section) | 10 |
-| C (CI modernization) | G36 (CI gate wiring — same guardrail as B-local; count unchanged) | 10 |
-| D-local (post-S1) | G21, G22, G23 (post-pack assertions — minimum range + version match), G25, G26, G27 (symbols, repo, metadata), G46 (MSBuild payload guard) | 17 |
-| H1 (license integrity, 2026-04-18) | G49, G50 (identity + harvest post-deploy), G51, G52, G53 (license payload + pack gate + staged replace) | 22 |
-| ADR-001 D-3seg (2026-04-18) | G54 (upstream Major.Minor coherence), G55 (native metadata file), G56 (satellite upper bound), G57 (README mapping table) | 26 |
-| ADR-003 orchestration (2026-04-20) | G58 (cross-family dep resolvability at Pack stage) | 27 |
-| D-ci | G28–G35 (CI publish pipeline) | 35 |
-| PD-7 (full-train) | G37–G42 (meta-tag validation) | 41 |
-| PD-8 (manual escape) | G43–G45 (manual operator validation) | 44 |
-| — | G11, G12, G13 are NuGet/build-host built-ins (not delivered by any stream; G11 marked REVISIT) | — |
-| — | G47, G48 (native package buildTransitive + per-RID payload shape) landed with post-S1 buildTransitive contract; already counted within D-local post-S1 | — |
-
-## 4. Failure Mode Catalog
-
-For each known failure mode, list the guardrails that catch it. If no guardrail catches it, that's a gap to fill. (Post-S1 2026-04-17: rows specific to exact-pin mechanism removed; rows for minimum-range contract added.)
+For each known failure mode, list the guardrails that catch it. If no guardrail catches it, that's a gap to fill.
 
 | Failure mode | Guardrails | Gap? |
 | --- | --- | --- |
-| MinVer tag prefix in csproj drifts from manifest (e.g., csproj says `core-` but manifest says `sdl2-core-`) | G4 | No |
+| MinVer tag prefix in csproj drifts from manifest | G4 | No |
 | Operator creates new family in manifest but doesn't add csprojs | G7 (path doesn't resolve) | No |
-| Csproj `<PackageId>` deviates from canonical `Janset.SDL<Major>.<Role>` convention | G6 | No |
-| Operator passes wrong family version flag at CLI (managed and native end up at different versions) | G23 (post-pack version match) | No |
-| Family dependency accidentally emitted as exact-pin bracket notation instead of minimum range | G21 | No |
+| Csproj `<PackageId>` deviates from canonical convention | G6 | No |
+| Operator passes wrong family version flag at CLI (managed and native end up at different versions) | G23 | No |
+| Family dependency accidentally emitted as exact-pin bracket notation | G21 | No |
 | Missing TFM group in dependency emission | G22 | No |
-| Managed and native shipped at mismatched versions (e.g., Cake orchestration bug) | G23 (within-family version coherence check — primary defense post-S1) | No |
+| Managed and native shipped at mismatched versions (Cake orchestration bug) | G23 | No |
 | Republishing same version (overwrite attempt) | G31 (monotonicity), G32 (existing-version check) | No |
 | Satellite published referencing unreleased Core version | G35 | No |
 | Tag pushed in wrong format (e.g., `sdl2-image-1.3` missing patch) | G28, G30 | No |
@@ -198,83 +152,66 @@ For each known failure mode, list the guardrails that catch it. If no guardrail 
 | Strategy / triplet incoherent | G16 | No |
 | Hybrid-static build leaks transitive deps | G19 | No |
 | Coverage drops below floor | G36 | No |
-| Operator generates package with wrong nuspec metadata (e.g., wrong author) | G27 | No |
+| Operator generates package with wrong nuspec metadata | G27 | No |
 | Managed symbol package missing | G25 | No |
 | Build artifact contains wrong commit SHA | G26 | No |
 | Direct `dotnet pack` of a `.Native` csproj without Cake ships empty runtimes/licenses payload | G46 | No |
-| Family tag's Major.Minor drifts from upstream vcpkg_version Major.Minor (operator tags `sdl2-core-2.31.0` while manifest says SDL2 2.32.10) | G54 | No |
-| Native nupkg ships without machine-readable upstream-version metadata — exact SDL patch + port_version becomes invisible to downstream tooling | G55 | No |
-| Satellite nuspec missing cross-family upper bound; hypothetical `Janset.SDL2.Core 3.x` could resolve against `Janset.SDL2.Image 2.8.x` | G56 | No |
-| README mapping table drifts from manifest (consumer reads wrong "which SDL version does this family wrap?" answer) | G57 | No |
+| Family tag's Major.Minor drifts from upstream `vcpkg_version` Major.Minor | G54 | No |
+| Native nupkg ships without machine-readable upstream-version metadata | G55 | No |
+| Satellite nuspec missing cross-family upper bound | G56 | No |
+| README mapping table drifts from manifest | G57 | No |
 | Satellite pack invocation emits nuspec declaring `>= Core x.y.z` while Core is missing from the resolved invocation scope (consumer-side restore would fail unless a later feed-probe relaxation proves it already exists on the target feed) | G58 | No |
 
-**Retired failure modes (S1 2026-04-17):** "Operator removes PrivateAssets=all" (no longer a mechanism), "Operator adds new satellite without bracket-notation PackageVersion" (no longer required), "Standalone dotnet pack ships 0.0.0-restore sentinel" (sentinel removed), "Renaming family in manifest without updating csproj property names" (`Sdl<Role>FamilyVersion` property no longer required). These failure modes cannot occur under the S1 shape.
+**Net:** every cataloged failure mode is caught by at least one guardrail before the package reaches public consumers. Operational gaps (not structural) are documented in §4.1.
 
-**Net:** with the full guardrail roadmap landed, every currently-cataloged failure mode is caught by at least one guardrail before the package reaches public consumers. If a future failure mode is discovered without a covering guardrail, add a new row here AND a new guardrail to fill the gap.
-
-## 5. Operational Principles
+## 4. Operational Principles
 
 1. **PreFlight is the single CI gate** that runs before any matrix work. If PreFlight fails, no resources are spent on builds that would fail downstream anyway.
-2. **Multi-layer for the critical invariants.** Within-family version coherence (post-S1 2026-04-17: the critical release invariant, since drift is otherwise invisible under minimum-range semantics) is checked at the orchestration layer (Cake atomic `PackageTask` packs both family members at the same per-family entry of the `--explicit-version <family>=<semver>` mapping in one invocation; the legacy `--family-version` flag retired in Slice B1 / PD-13 closure 2026-04-22) AND at the post-pack layer (G23 asserts the emitted `<version>` elements match byte-for-byte). Two independent layers; either alone would be sufficient, together they are defense-in-depth.
-3. **Bypass requires explicit, loud opt-in.** `-p:AllowEmptyNativePayload=true` (G46 bypass) is the only documented pack-time bypass in post-S1 scope. It produces banner-level warning. No silent escape hatches.
+2. **Multi-layer for the critical invariants.** Within-family version coherence is checked at the orchestration layer (Cake atomic `PackageTask` packs both family members at the same per-family entry of the `--explicit-version <family>=<semver>` mapping in one invocation) AND at the post-pack layer (G23 asserts the emitted `<version>` elements match byte-for-byte). Two independent layers; either alone would be sufficient, together they are defense-in-depth.
+3. **Bypass requires explicit, loud opt-in.** `-p:AllowEmptyNativePayload=true` (G46 bypass) is the only documented pack-time bypass. It produces a banner-level warning. No silent escape hatches.
 4. **New invariants land WITH their guardrail** — never as "we'll add the check later." The gap between "rule exists" and "rule enforced" is the rot zone.
-5. **Cross-cutting checks live in PreFlight.** Per-package or per-pack-output checks live in their respective stream's task. Don't mix layers.
+5. **Cross-cutting checks live in PreFlight.** Per-package or per-pack-output checks live in their respective stage's task. Don't mix layers.
 
-### 5.1 Pipeline Scope-Assumption Gaps — Operational Implications
+### 4.1 Pipeline Scope-Assumption Gaps — Operational Implications
 
-The 2026-05-01 tag-push rehearsals (three runs against master `0ffaa7a`) traced the trigger-aware routing end-to-end and surfaced three distinct stages where the pipeline currently assumes **full ecosystem coverage** rather than honoring the resolved scope. Two gaps remain open; the third (the resolve-time scope-filter rejection) was fixed in `437edff` and stays here only as the historical anchor for the pattern.
+The 2026-05-01 tag-push rehearsals traced trigger-aware routing end-to-end and surfaced four gaps where the pipeline assumed full ecosystem coverage rather than honoring the resolved scope. One was fixed in `437edff` and stays here only as the historical anchor for the pattern.
 
 | # | Stage | Gap | Status |
 | --- | --- | --- | --- |
 | 1 | `Resolve Versions` `--scope` filter | Provider's `FilterByRequestedScope` rejected full-tag scope values like `sdl2-image-2.8.0` because it expected family-id keys only | **Fixed** in `437edff` (`EmptyRequestedScope` from `ResolveFromGitTagAsync`) |
 | 2 | `PreFlight` + `Pack` G58 cross-family resolvability | Scope-contains check only; satellite without core in same scope blocks at G58 even when core is published on the target feed | **Open** — feed-probe deferred relaxation surface |
 | 3 | `PackageConsumerSmoke` runner | `EnsureSelectionSupportsCurrentSmokeScope` enforces "all manifest-concrete families OR none" against the `--explicit-version` mapping; partial scope rejected before any `dotnet restore` runs | **Open** — partial-scope smoke not yet supported |
-| 4 | `release.yml` tag-trigger fan-out | `on.push.tags` filter fires one workflow run per pushed tag. A train release requires N+1 tags atomically (N family tags so `GitTagVersionProvider.Train` can find them at HEAD, plus the `train-*` tag). GitHub creates N+1 separate workflow runs; only the `train-*` run is the desired release — the N family-tag runs are unwanted noise that also functionally fail at gaps #2 / #3. | **Open** — trigger mechanism under reconsideration; see [release-lifecycle-direction.md §2 Trigger Mechanism — Under Reconsideration](release-lifecycle-direction.md) |
+| 4 | `release.yml` tag-trigger fan-out | `on.push.tags` filter fires one workflow run per pushed tag. A train release requires N+1 tags atomically (N family tags + the `train-*` tag); GitHub creates N+1 separate workflow runs of which only `train-*` is the desired release. | **Open** — trigger mechanism under reconsideration |
 
-The three rehearsal runs:
+**Operational consequence today.** The only release shapes that pass the full pipeline are those that include every concrete family in the resolved scope — train tag, multi-family explicit dispatch with all 5 families, and manifest-derived dispatch. Targeted single-family or arbitrary-subset releases block at gap #2 (satellites) or gap #3 (any partial scope including core-only).
 
-- `release.yml` run 25103035810 — `workflow_dispatch mode=manifest-derived`, full 5-family scope. End-to-end green.
-- `release.yml` run 25212911868 — tag push `sdl2-image-2.8.0-rehearsal.1`, single satellite scope. **Halted at gap #2 (G58)**: `sdl2-image` declares cross-family dep on `sdl2-core`, scope had only `sdl2-image`.
-- `release.yml` run 25213284985 — tag push `sdl2-core-2.32.0-rehearsal.1`, single core scope. G58 passed (core has no cross-family deps), Pack emitted exactly two nupkgs (managed + native), but **halted at gap #3 (ConsumerSmoke)**: runner detected `Missing: sdl2-gfx, sdl2-image, sdl2-mixer, sdl2-ttf` and refused to proceed. Publish-staging skipped because `consumer-smoke` failed the `needs:` chain.
-
-**Operational consequence today:** the only release shapes that pass the full pipeline are those that include **every concrete family** in the resolved scope — train tag, multi-family explicit dispatch with all 5 families, and manifest-derived dispatch (which always covers all 5). Targeted single-family or arbitrary-subset releases blocks at gap #2 (satellites) or gap #3 (any partial scope including core-only).
-
-Until gaps #2 and #3 close, the canonical release ordering documented in [release-lifecycle-direction.md §1 Release Ordering](release-lifecycle-direction.md) is operationally enforced as "all families together" rather than "core first, then satellites independently."
-
-Gap #4 is **separate** from #2 / #3: closing #2 + #3 enables partial-scope releases content-wise, but #4 is about the **trigger mechanism**. Even with #2 + #3 closed, the per-tag workflow fan-out makes train release via tag-push impractical (atomic 6-tag push = 6 workflow runs, 5 of them noise). #4 is currently driving a reconsideration of whether tag-push is the right canonical trigger at all — see the candidate directions below and the discussion in [release-lifecycle-direction.md §2 Trigger Mechanism — Under Reconsideration](release-lifecycle-direction.md).
+Until gaps #2 and #3 close, the canonical "core first, then satellites independently" release ordering is operationally enforced as "all families together." Gap #4 is **separate**: closing #2 + #3 enables partial-scope content-wise, but #4 is about the **trigger mechanism**. Even with #2 + #3 closed, per-tag workflow fan-out makes train release via tag-push impractical.
 
 #### Candidate directions (research + decision required, not final)
 
-For gap #3 (`PackageConsumerSmoke` partial-scope), Deniz's current leaning (2026-05-01) is toward **per-library / per-family smoke csprojs** rather than the existing single multi-family csproj — each family carries its own consumer smoke project; the runner invokes only the smoke projects whose families are in scope. This isolates per-family consumer surfaces structurally and lets targeted release naturally exercise only the released family. The same direction may apply to native smoke (C++/CMake harness), though that is not a strong opinion yet.
+For gap #3, current leaning (2026-05-01) is **per-library / per-family smoke csprojs** rather than the existing single multi-family csproj — each family carries its own consumer smoke project; the runner invokes only the smoke projects whose families are in scope. Same direction may apply to native smoke. Tradeoffs to evaluate: file count vs scope isolation; manifest-csproj drift catchnet shape; whether per-family smoke covers the cross-family interaction surface that the current 5-family csproj exercises.
 
-The full design question — whether to split smoke projects per family, parameterize a single project via conditional `PackageReference`, or some hybrid — remains open and needs research + discussion. Tradeoffs to evaluate: file count vs scope isolation; manifest-csproj drift catchnet shape; whether the per-family smoke covers the cross-family interaction surface that the current 5-family csproj exercises; how this composes with the future feed-probe slice for gap #2.
+For gap #2, the deferred slice queries the **publish target feed** for the satellite's invocation — GH Packages staging for tag-push, nuget.org for the future PD-7 public promotion path. NuGet semver ordering matters: a CI prerelease `2.32.0-ci.<run-id>` does NOT satisfy `>= 2.32.0` because prerelease versions come before their base release in NuGet ordering, so the satellite's lower bound effectively requires a stable (or stable-comparable) core version on the target feed.
 
-For gap #2 (G58 feed-probe), the deferred slice would query the **publish target feed** for the satellite's invocation — GH Packages staging for tag-push releases, nuget.org for the future PD-7 public promotion path. The feed query must respect NuGet semver ordering: a CI prerelease such as `2.32.0-ci.<run-id>` does NOT satisfy `>= 2.32.0` because prerelease versions come before their base release in NuGet ordering, so the satellite's lower bound effectively requires a stable (or stable-comparable) core version on the target feed.
+For gap #4, two candidate replacements: (a) **manual `workflow_dispatch` as canonical**, with tags becoming audit-trail-only records created after a successful release; (b) **GitHub Releases as trigger source**, with the release body parsed for family-version mapping and `release: published` firing one workflow run regardless of tag count. Both preserve the existing governance policy while breaking per-tag fan-out.
 
-For gap #4 (trigger fan-out), Deniz's leaning (2026-05-01) is to step away from tag-push as the canonical trigger entirely. Two candidate replacements: (a) **manual `workflow_dispatch` as canonical**, with tags becoming audit-trail-only records created after a successful release; (b) **GitHub Releases as trigger source**, with the release body / notes encoding the family-version mapping and `release: published` event firing one workflow run regardless of how many tags the release object creates. Both preserve the §2 governance policy in `release-lifecycle-direction.md` while breaking the per-tag fan-out dependency. Final direction is open — see the discussion in [release-lifecycle-direction.md §2 Trigger Mechanism — Under Reconsideration](release-lifecycle-direction.md).
+All four gaps are PD-7 adjacent. The first nuget.org prerelease publish ([#63](https://github.com/janset2d/sdl2-cs-bindings/issues/63)) — likely targeting a single family at first — needs at least gaps #2 and #3 closed for the release shape to be operationally complete; gap #4 needs a deliberate decision before the public-promotion path is locked.
 
-All four gaps are PD-7 adjacent. The first nuget.org prerelease publish (#63) — likely targeting a single family at first — needs at least gaps #2 and #3 closed for the release shape to be operationally complete; gap #4 needs closure (or at least a deliberate "tag-push remains as one of N triggers" decision) before the public-promotion path is locked. Tracking lives in the [Phase 2b adaptation plan](../phases/phase-2-adaptation-plan.md).
-
-## 6. Adding a New Guardrail
+## 5. Adding a New Guardrail
 
 When a new failure mode emerges:
 
-1. **Catalog the failure mode** in §4 with current state ("Gap?" = Yes).
+1. **Catalog the failure mode** in §3 with current state ("Gap?" = Yes).
 2. **Pick the layer** — the earliest layer that has visibility into the inputs needed.
 3. **Pick the owner** — which task / target / workflow runs the check.
 4. **Add a row** to the appropriate §2 subsection with status = "Planned" and owner.
 5. **Implement the check.** PR includes the test that demonstrates the failure mode is caught.
-6. **Promote to "Active"** in §2 + flip the §4 row to "No (Gap closed)".
-7. **Update the §3 Cumulative count.**
+6. **Promote to "Active"** in §2 + flip the §3 row to "No (Gap closed)".
 
-## 7. Cross-References
+## 6. Cross-References
 
-- [ADR-001: D-3seg Versioning, Package-First Local Dev, Artifact Source Profile Abstraction](../decisions/2026-04-18-versioning-d3seg.md) — authoritative decision record that added G54–G57
-- [ADR-003: Release Lifecycle Orchestration + Version Source Providers](../decisions/2026-04-20-release-lifecycle-orchestration.md) — authoritative decision record that added G58 and locked the stage-owned validation model shown in §2.0
-- [release-lifecycle-direction.md](release-lifecycle-direction.md) — canonical policy that the guardrails enforce
-- [phase-2-adaptation-plan.md](../phases/phase-2-adaptation-plan.md) — current active execution ledger (post-ADR-003 rewrite); historical S1/ADR-001 rollout narrative preserved in the [archive](../_archive/phase-2-adaptation-plan-2026-04-15.md)
-- [exact-pin-spike-and-nugetizer-eval-2026-04-16.md](../research/exact-pin-spike-and-nugetizer-eval-2026-04-16.md) — **SUPERSEDED 2026-04-17.** Within-family exact-pin mechanism research. Kept as history; no longer binding. The production-time version flow constraint documented there is what motivated S1 adoption.
-- [nu5016-cake-restore-investigation-2026-04-17.md](../../artifacts/temp/nu5016-cake-restore-investigation-2026-04-17.md) — investigation artifact: traced NU5016 root cause to `NuGet.Build.Tasks.Pack.targets:335` globals-replace; resolution via S1 adoption
-- [full-train-release-orchestration-2026-04-16.md](../research/full-train-release-orchestration-2026-04-16.md) — PD-7 scope
-- [release-recovery-and-manual-escape-hatch-2026-04-16.md](../research/release-recovery-and-manual-escape-hatch-2026-04-16.md) — PD-8 scope
-- [src/Directory.Build.targets](../../src/Directory.Build.targets) — current MSBuild guard implementation
+- [`plan.md`](../plan.md) — current roadmap; PD-7 / PD-8 work tracked there.
+- [`phases/phase-2-adaptation-plan.md`](../phases/phase-2-adaptation-plan.md) — Phase 2b execution ledger; gap detail + candidate directions.
+- `.github/workflows/release.yml` — live CI pipeline.
+- `build/_build/Features/Preflight/` and `build/_build/Features/Packaging/` — guardrail implementations.
+- `src/Directory.Build.targets` — current MSBuild guard implementation.

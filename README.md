@@ -85,13 +85,13 @@ The native packages are pulled in transitively — you never need to reference `
 | Area | Status |
 | --- | --- |
 | C# bindings (5 SDL2 libraries) | Done |
-| Cake Frosting build host (Cake-native feature-oriented per ADR-004; supersedes ADR-002 DDD layering) | Done — migration to ADR-004 shape in progress |
+| Cake Frosting build host (feature-oriented vertical slices) | Done |
 | Native binary harvesting pipeline (7-RID hybrid-static) | Done |
 | Cross-platform CI workflow (`release.yml`, 10 jobs) | Done |
 | NuGet package creation (5 family × 3 nupkg) | Done |
-| Build-host test suite (TUnit) | Done — 460/460 |
-| Cross-platform smoke validation (A-K checkpoints) | Done — Windows + WSL Linux local, 7 RIDs CI |
-| Release pipeline publish stubs (PublishStaging / PublishPublic) | Phase 2b — Cake stubs landed, real feed transfer pending |
+| Build-host test suite (TUnit) | Done |
+| Cross-platform smoke validation | Done — `tools ci-sim` on host RID, 7-RID matrix in CI |
+| Release pipeline publish | PublishStaging live (GitHub Packages internal feed); PublishPublic pending Phase 2b PD-7 (nuget.org promotion via Trusted Publishing OIDC) |
 | SDL2_net support | Phase 3 — manifest entry retired pending binding skeleton (#58) |
 | Binding auto-generation (CppAst) | Phase 4 |
 | SDL3 support | Phase 5 |
@@ -139,11 +139,12 @@ For detailed build instructions, see [docs/playbook/local-development.md](docs/p
 
 | Document | Purpose |
 | --- | --- |
-| [docs/onboarding.md](docs/onboarding.md) | Project overview, decisions, repo layout |
+| [docs/onboarding.md](docs/onboarding.md) | Project overview, glossary, where-to-go pointers |
 | [docs/plan.md](docs/plan.md) | Current status and roadmap |
-| [docs/playbook/](docs/playbook/) | How-to recipes (local dev, adding libraries, vcpkg updates) |
-| [docs/knowledge-base/](docs/knowledge-base/) | Deep technical references (harvesting, CI/CD, Cake architecture) |
-| [docs/research/](docs/research/) | Design rationale (packaging patterns, autogen approaches, SDL3 analysis) |
+| [docs/playbook/](docs/playbook/) | How-to recipes (local dev, validation, adding libraries, vcpkg updates, overlays) |
+| [docs/knowledge-base/release-guardrails.md](docs/knowledge-base/release-guardrails.md) | G-numbered guardrail registry + failure-mode catalog |
+| [docs/decisions/](docs/decisions/) | Architecture decision records |
+| [docs/research/](docs/research/) | Design rationale (packaging patterns, autogen approaches, SDL3 analysis, future-research starting points) |
 | [docs/phases/](docs/phases/) | Phase-by-phase execution details |
 
 ## Architecture
