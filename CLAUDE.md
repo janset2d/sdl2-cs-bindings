@@ -40,14 +40,15 @@ dotnet test --project build/_build.Tests/Build.Tests.csproj -c Release --framewo
 dotnet run --project build/_build -- --target PreFlightCheck
 dotnet run --project build/_build -- --target Harvest --library SDL2 --library SDL2_image --rid win-x64
 dotnet run --project build/_build -- --target ConsolidateHarvest
-dotnet run --project build/_build -- --target Package --explicit-version sdl2-core=2.32.0-local.1 ...
+dotnet run --project build/_build -- --target ResolveVersions --version-source=explicit --explicit-version sdl2-core=2.32.0-local.1
+dotnet run --project build/_build -- --target Package --versions-file artifacts/resolve-versions/versions.json
 dotnet run --project build/_build -- --target CoverageCheck   # ratchet against build/coverage-baseline.json
 ```
 
 Versioning notes:
 
 - Versions follow **D-3seg** (`<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>`, see [ADR-001](docs/decisions/2026-04-18-versioning-d3seg.md)). UpstreamMajor.Minor is anchored to `manifest.library_manifests[].vcpkg_version` and enforced by guardrail G54.
-- `--explicit-version` accepts `<family>=<semver>` repeated; mutually exclusive with `--versions-file`.
+- `--explicit-version` / `--explicit-versions` are ResolveVersions inputs only; mutually exclusive with each other. Stage targets read `--versions-file`. See `docs/playbook/local-development.md` for the canonical 2-command flow.
 - **G58 cross-family scope**: pack a satellite (e.g. `sdl2-image`) without also supplying a satisfying `sdl2-core` version → Pack stops. For local rehearsal, pack all 5 concrete families together or pack `sdl2-core` alone.
 - Direct `dotnet pack` on a `*.Native.csproj` hard-fails G46 (empty native payload). Always go through the `Package` task.
 

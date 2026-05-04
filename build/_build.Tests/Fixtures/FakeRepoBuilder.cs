@@ -32,6 +32,11 @@ public sealed class FakeRepoBuilder
     private IReadOnlyList<string> _libraries = [];
     private string? _rid;
     private string _config = "Release";
+    private string? _suffix;
+    private IReadOnlyList<string> _scope = [];
+    private IReadOnlyList<string> _explicitVersion = [];
+    private string? _explicitVersions;
+    private string? _versionsFile;
 
     public FakeRepoBuilder(FakeRepoPlatform platform = FakeRepoPlatform.Windows, string? repoRoot = null)
     {
@@ -126,6 +131,36 @@ public sealed class FakeRepoBuilder
         return this;
     }
 
+    public FakeRepoBuilder WithSuffix(string? suffix)
+    {
+        _suffix = suffix;
+        return this;
+    }
+
+    public FakeRepoBuilder WithScope(params string[] scope)
+    {
+        _scope = scope ?? throw new ArgumentNullException(nameof(scope));
+        return this;
+    }
+
+    public FakeRepoBuilder WithExplicitVersion(params string[] entries)
+    {
+        _explicitVersion = entries ?? throw new ArgumentNullException(nameof(entries));
+        return this;
+    }
+
+    public FakeRepoBuilder WithExplicitVersions(string? commaSeparated)
+    {
+        _explicitVersions = commaSeparated;
+        return this;
+    }
+
+    public FakeRepoBuilder WithVersionsFile(string? path)
+    {
+        _versionsFile = path;
+        return this;
+    }
+
     public FakeRepoBuilder WithArgument(string name, string value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -171,15 +206,15 @@ public sealed class FakeRepoBuilder
     {
         var arguments = CreateArguments();
         var cakeContext = CreateCakeContext(arguments);
-        var pathService = CreatePathService();
+        var parsedArguments = CreateParsedArguments();
+        var pathService = new PathService(new RepositoryConfiguration(_repoRoot), parsedArguments, new FakeLog());
         var runtimeProfile = CreateRuntimeProfileStub();
 
         var manifest = ManifestConfigSeeder.FromDefaultFixture().Manifest;
 
-        var options = new BuildOptions(
+        var options = new Configurations(
             Vcpkg: new VcpkgConfiguration(_libraries, _rid),
             Package: new PackageBuildConfiguration(new Dictionary<string, NuGet.Versioning.NuGetVersion>(StringComparer.OrdinalIgnoreCase)),
-            Versioning: new VersioningConfiguration(null, null, []),
             Repository: new RepositoryConfiguration(_repoRoot),
             DotNet: new DotNetBuildConfiguration(_config),
             Dumpbin: new DumpbinConfiguration([]));
@@ -189,6 +224,7 @@ public sealed class FakeRepoBuilder
             pathService,
             runtimeProfile,
             manifest,
+            parsedArguments,
             options);
 
         return new FakeRepoHandles
@@ -216,24 +252,19 @@ public sealed class FakeRepoBuilder
         return profile;
     }
 
-    private PathService CreatePathService()
-    {
-        var parsedArguments = new ParsedArguments(
-            RepoRoot: null,
-            Config: _config,
-            VcpkgDir: null,
-            VcpkgInstalledDir: null,
-            Library: _libraries.ToList(),
-            Rid: _rid ?? string.Empty,
-            Dll: [],
-            VersionSource: null,
-            Suffix: null,
-            Scope: [],
-            ExplicitVersion: [],
-            VersionsFile: null);
-
-        return new PathService(new RepositoryConfiguration(_repoRoot), parsedArguments, new FakeLog());
-    }
+    private ParsedArguments CreateParsedArguments() => new(
+        RepoRoot: null,
+        Config: _config,
+        VcpkgDir: null,
+        VcpkgInstalledDir: null,
+        Library: _libraries.ToList(),
+        Rid: _rid ?? string.Empty,
+        Dll: [],
+        Suffix: _suffix,
+        Scope: [.. _scope],
+        ExplicitVersion: [.. _explicitVersion],
+        ExplicitVersions: _explicitVersions,
+        VersionsFile: _versionsFile);
 
     private ICakeArguments CreateArguments()
     {

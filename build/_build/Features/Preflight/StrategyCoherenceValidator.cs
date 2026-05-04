@@ -14,8 +14,7 @@ public sealed class StrategyCoherenceValidator(IStrategyResolver strategyResolve
 
         if (runtimes.Count == 0)
         {
-            throw new InvalidOperationException(
-                "manifest.json requires a non-empty runtimes section for strategy coherence validation.");
+            throw new InvalidOperationException("manifest.json requires a non-empty runtimes section for strategy coherence validation.");
         }
 
         var checks = new List<RuntimeStrategyCheck>(runtimes.Count);

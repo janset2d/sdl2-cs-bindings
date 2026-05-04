@@ -3,7 +3,6 @@
     <PackageId>Janset.SDL2.Core</PackageId>
     <Description>Core C# bindings for SDL2 (based on SDL-CS)</Description>
     <TargetFrameworks>$(TargetFrameworks)</TargetFrameworks>
-    <MinVerTagPrefix>sdl2-core-</MinVerTagPrefix>
   </PropertyGroup>
 
   <ItemGroup>

@@ -7,7 +7,7 @@ using Cake.Core.IO;
 namespace Build.Tests.Unit.Features.Preflight;
 
 /// <summary>
-/// Post-S1 scope: G1/G2/G3/G5/G8 retired. Validator enforces G4, G6, G7, G17, G18 only.
+/// Post-S1 scope: G1/G2/G3/G4/G5/G8 retired. Validator enforces G6, G7, G17, G18 only.
 /// </summary>
 public sealed class CsprojPackContractValidatorTests
 {
@@ -15,36 +15,13 @@ public sealed class CsprojPackContractValidatorTests
     public async Task Validate_Should_Return_Success_When_All_Csprojs_Conform()
     {
         var (validator, repoRoot, manifest) = ArrangeWithFamily(
-            ManagedCsproj("Janset.SDL2.Image", "sdl2-image-"),
-            NativeCsproj("Janset.SDL2.Image.Native", "sdl2-image-"));
+            ManagedCsproj("Janset.SDL2.Image"),
+            NativeCsproj("Janset.SDL2.Image.Native"));
 
         var result = validator.Validate(manifest, repoRoot);
 
         await Assert.That(result.IsSuccess()).IsTrue();
         await Assert.That(result.Validation.HasErrors).IsFalse();
-    }
-
-    [Test]
-    public async Task Validate_Should_Fail_When_MinVerTagPrefix_Drifts_From_Manifest()
-    {
-        const string managedCsproj = """
-                                     <Project Sdk="Microsoft.NET.Sdk">
-                                       <PropertyGroup>
-                                         <PackageId>Janset.SDL2.Image</PackageId>
-                                         <MinVerTagPrefix>image-</MinVerTagPrefix>
-                                       </PropertyGroup>
-                                       <ItemGroup>
-                                         <ProjectReference Include="..\native\SDL2.Image.Native\SDL2.Image.Native.csproj" />
-                                       </ItemGroup>
-                                     </Project>
-                                     """;
-        var (validator, repoRoot, manifest) = ArrangeWithFamily(
-            (Path: "src/SDL2.Image/SDL2.Image.csproj", Content: managedCsproj),
-            NativeCsproj("Janset.SDL2.Image.Native", "sdl2-image-"));
-
-        var result = validator.Validate(manifest, repoRoot);
-
-        await AssertFails(result, CsprojPackContractCheckKind.MinVerTagPrefixMatchesManifest);
     }
 
     [Test]
@@ -54,7 +31,6 @@ public sealed class CsprojPackContractValidatorTests
                                      <Project Sdk="Microsoft.NET.Sdk">
                                        <PropertyGroup>
                                          <PackageId>Janset.SDL2.WrongName</PackageId>
-                                         <MinVerTagPrefix>sdl2-image-</MinVerTagPrefix>
                                        </PropertyGroup>
                                        <ItemGroup>
                                          <ProjectReference Include="..\native\SDL2.Image.Native\SDL2.Image.Native.csproj" />
@@ -63,7 +39,7 @@ public sealed class CsprojPackContractValidatorTests
                                      """;
         var (validator, repoRoot, manifest) = ArrangeWithFamily(
             (Path: "src/SDL2.Image/SDL2.Image.csproj", Content: managedCsproj),
-            NativeCsproj("Janset.SDL2.Image.Native", "sdl2-image-"));
+            NativeCsproj("Janset.SDL2.Image.Native"));
 
         var result = validator.Validate(manifest, repoRoot);
 
@@ -77,7 +53,6 @@ public sealed class CsprojPackContractValidatorTests
                                      <Project Sdk="Microsoft.NET.Sdk">
                                        <PropertyGroup>
                                          <PackageId>Janset.SDL2.Image</PackageId>
-                                         <MinVerTagPrefix>sdl2-image-</MinVerTagPrefix>
                                        </PropertyGroup>
                                        <ItemGroup>
                                          <ProjectReference Include="..\native\SDL2.Unrelated.Native\SDL2.Unrelated.Native.csproj" />
@@ -86,7 +61,7 @@ public sealed class CsprojPackContractValidatorTests
                                      """;
         var (validator, repoRoot, manifest) = ArrangeWithFamily(
             (Path: "src/SDL2.Image/SDL2.Image.csproj", Content: managedCsproj),
-            NativeCsproj("Janset.SDL2.Image.Native", "sdl2-image-"));
+            NativeCsproj("Janset.SDL2.Image.Native"));
 
         var result = validator.Validate(manifest, repoRoot);
 
@@ -100,12 +75,11 @@ public sealed class CsprojPackContractValidatorTests
                                     <Project Sdk="Microsoft.NET.Sdk">
                                       <PropertyGroup>
                                         <PackageId>Janset.SDL2.Image.WrongNative</PackageId>
-                                        <MinVerTagPrefix>sdl2-image-</MinVerTagPrefix>
                                       </PropertyGroup>
                                     </Project>
                                     """;
         var (validator, repoRoot, manifest) = ArrangeWithFamily(
-            ManagedCsproj("Janset.SDL2.Image", "sdl2-image-"),
+            ManagedCsproj("Janset.SDL2.Image"),
             (Path: "src/native/SDL2.Image.Native/SDL2.Image.Native.csproj", Content: nativeCsproj));
 
         var result = validator.Validate(manifest, repoRoot);
@@ -211,13 +185,12 @@ public sealed class CsprojPackContractValidatorTests
         return (validator, handles.RepoRoot, manifest);
     }
 
-    private static (string Path, string Content) ManagedCsproj(string packageId, string tagPrefix)
+    private static (string Path, string Content) ManagedCsproj(string packageId)
     {
         var content = $"""
                        <Project Sdk="Microsoft.NET.Sdk">
                          <PropertyGroup>
                            <PackageId>{packageId}</PackageId>
-                           <MinVerTagPrefix>{tagPrefix}</MinVerTagPrefix>
                          </PropertyGroup>
                          <ItemGroup>
                            <ProjectReference Include="..\native\SDL2.Image.Native\SDL2.Image.Native.csproj" />
@@ -228,13 +201,12 @@ public sealed class CsprojPackContractValidatorTests
         return (Path: "src/SDL2.Image/SDL2.Image.csproj", Content: content);
     }
 
-    private static (string Path, string Content) NativeCsproj(string packageId, string tagPrefix)
+    private static (string Path, string Content) NativeCsproj(string packageId)
     {
         var content = $"""
                        <Project Sdk="Microsoft.NET.Sdk">
                          <PropertyGroup>
                            <PackageId>{packageId}</PackageId>
-                           <MinVerTagPrefix>{tagPrefix}</MinVerTagPrefix>
                          </PropertyGroup>
                        </Project>
                        """;

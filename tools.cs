@@ -148,9 +148,9 @@ public sealed class SetupCommand : AsyncCommand<SetupSettings>
         }
 
         var scopeArgs = families.SelectMany(f => new[] { "--scope", f.Name }).ToArray();
-        var resolveArgs = new List<string> { "--target", "ResolveVersions", "--version-source=manifest", $"--suffix={suffix}" };
+        var resolveArgs = new List<string> { "--target", "ResolveVersionsFromManifest", $"--suffix={suffix}" };
         resolveArgs.AddRange(scopeArgs);
-        if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "ResolveVersions", resolveArgs, verbose: false))
+        if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "ResolveVersionsFromManifest", resolveArgs, verbose: false))
             return FinishSetup(results, totalStopwatch, 1);
 
         var versionsPath = Path.Combine(repoRoot, "artifacts", "resolve-versions", "versions.json");
@@ -462,10 +462,10 @@ public sealed class CiSimCommand : AsyncCommand<CiSimSettings>
                 ["--target", "CleanArtifacts"], settings.Verbose))
             return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 1);
 
-        // Step 2: ResolveVersions
-        var resolveArgs = new List<string> { "--target", "ResolveVersions", "--version-source=manifest", $"--suffix={suffix}" };
+        // Step 2: ResolveVersionsFromManifest
+        var resolveArgs = new List<string> { "--target", "ResolveVersionsFromManifest", $"--suffix={suffix}" };
         resolveArgs.AddRange(scopeArgs);
-        if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "ResolveVersions",
+        if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "ResolveVersionsFromManifest",
                 resolveArgs, settings.Verbose))
             return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 1);
 

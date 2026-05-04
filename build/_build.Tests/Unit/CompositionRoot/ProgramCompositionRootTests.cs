@@ -164,7 +164,7 @@ public sealed class ProgramCompositionRootTests
         var strategyCoherenceValidator = provider.GetRequiredService<StrategyCoherenceValidator>();
         var packageOutputValidator = provider.GetRequiredService<IPackageOutputValidator>();
         var projectMetadataReader = provider.GetRequiredService<IProjectMetadataReader>();
-        var packageVersionProvider = provider.GetRequiredService<IPackageVersionProvider>();
+        var versionsJsonWriter = provider.GetRequiredService<VersionsJsonWriter>();
         var dotNetPackInvoker = provider.GetRequiredService<IDotNetPackInvoker>();
         var dotNetRuntimeEnvironment = provider.GetRequiredService<IDotNetRuntimeEnvironment>();
         var packagePipeline = provider.GetRequiredService<IPackagePipeline>();
@@ -180,7 +180,7 @@ public sealed class ProgramCompositionRootTests
         await Assert.That(strategyCoherenceValidator.GetType()).IsEqualTo(typeof(StrategyCoherenceValidator));
         await Assert.That(packageOutputValidator.GetType()).IsEqualTo(typeof(PackageOutputValidator));
         await Assert.That(projectMetadataReader.GetType()).IsEqualTo(typeof(ProjectMetadataReader));
-        await Assert.That(packageVersionProvider.GetType()).IsEqualTo(typeof(ExplicitVersionProvider));
+        await Assert.That(versionsJsonWriter.GetType()).IsEqualTo(typeof(VersionsJsonWriter));
         await Assert.That(dotNetPackInvoker.GetType()).IsEqualTo(typeof(DotNetPackInvoker));
         await Assert.That(dotNetRuntimeEnvironment.GetType()).IsEqualTo(typeof(DotNetRuntimeEnvironment));
         await Assert.That(packagePipeline.GetType()).IsEqualTo(typeof(PackagePipeline));
@@ -215,7 +215,7 @@ public sealed class ProgramCompositionRootTests
         var vcpkgManifestReader = provider.GetRequiredService<IVcpkgManifestReader>();
         var packageOutputValidator = provider.GetRequiredService<IPackageOutputValidator>();
         var projectMetadataReader = provider.GetRequiredService<IProjectMetadataReader>();
-        var packageVersionProvider = provider.GetRequiredService<IPackageVersionProvider>();
+        var versionsJsonWriter = provider.GetRequiredService<VersionsJsonWriter>();
         var dotNetPackInvoker = provider.GetRequiredService<IDotNetPackInvoker>();
         var packagePipeline = provider.GetRequiredService<IPackagePipeline>();
         var packageConsumerSmokePipeline = provider.GetRequiredService<IPackageConsumerSmokePipeline>();
@@ -227,7 +227,7 @@ public sealed class ProgramCompositionRootTests
         await Assert.That(vcpkgManifestReader.GetType()).IsEqualTo(typeof(VcpkgManifestReader));
         await Assert.That(packageOutputValidator.GetType()).IsEqualTo(typeof(PackageOutputValidator));
         await Assert.That(projectMetadataReader.GetType()).IsEqualTo(typeof(ProjectMetadataReader));
-        await Assert.That(packageVersionProvider.GetType()).IsEqualTo(typeof(ExplicitVersionProvider));
+        await Assert.That(versionsJsonWriter.GetType()).IsEqualTo(typeof(VersionsJsonWriter));
         await Assert.That(dotNetPackInvoker.GetType()).IsEqualTo(typeof(DotNetPackInvoker));
         await Assert.That(packagePipeline.GetType()).IsEqualTo(typeof(PackagePipeline));
         await Assert.That(packageConsumerSmokePipeline.GetType()).IsEqualTo(typeof(PackageConsumerSmokePipeline));
@@ -318,10 +318,10 @@ public sealed class ProgramCompositionRootTests
             Library: [],
             Rid: rid,
             Dll: [],
-            VersionSource: null,
             Suffix: null,
             Scope: [],
             ExplicitVersion: [],
+            ExplicitVersions: null,
             VersionsFile: null);
     }
 

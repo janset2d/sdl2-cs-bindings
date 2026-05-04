@@ -27,6 +27,7 @@ using Cake.Core;
 using Cake.Core.IO;
 using Cake.Frosting;
 using Microsoft.Extensions.DependencyInjection;
+using NuGet.Versioning;
 using Spectre.Console;
 
 var root = new RootCommand("Cake build for janset2d/sdl2-cs-bindings");
@@ -51,11 +52,13 @@ root.AddOption(VcpkgOptions.VcpkgInstalledDirOption);
 root.AddOption(VcpkgOptions.LibraryOption);
 root.AddOption(VcpkgOptions.RidOption);
 
-root.AddOption(VersioningOptions.VersionSourceOption);
-root.AddOption(VersioningOptions.VersionSuffixOption);
-root.AddOption(VersioningOptions.VersionScopeOption);
-root.AddOption(VersioningOptions.ExplicitVersionOption);
-root.AddOption(VersioningOptions.VersionsFileOption);
+root.AddOption(ResolveVersionsFromManifestOptions.VersionSuffixOption);
+root.AddOption(ResolveVersionsFromManifestOptions.VersionScopeOption);
+
+root.AddOption(ResolveVersionsFromExplicitOptions.ExplicitVersionOption);
+root.AddOption(ResolveVersionsFromExplicitOptions.ExplicitVersionsOption);
+
+root.AddOption(StageVersionsOptions.VersionsFileOption);
 
 root.AddOption(DumpbinOptions.DllOption);
 
@@ -83,39 +86,32 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton(new RepositoryConfiguration(repoRootPath));
     services.AddSingleton(new DotNetBuildConfiguration(configuration: parsedArgs.Config));
 
-    // Mutually exclusive inputs: either --versions-file for a precomputed mapping or
-    // --explicit-version for repeated CLI entries. Never both. File I/O is deferred to
-    // ICakeContext.ToJson<T>() so the read flows through Cake's IFileSystem.
-    var hasVersionsFile = !string.IsNullOrWhiteSpace(parsedArgs.VersionsFile);
-    var hasExplicitVersion = parsedArgs.ExplicitVersion.Any(e => !string.IsNullOrWhiteSpace(e));
-
-    if (hasVersionsFile && hasExplicitVersion)
-    {
-        throw new InvalidOperationException("--versions-file and --explicit-version are mutually exclusive. Use one or the other.");
-    }
-
+    // PackageBuildConfiguration carries the resolved family→version mapping consumed by
+    // stage targets (PreFlight, Package, ConsumerSmoke, PublishStaging). Populated only
+    // from --versions-file. Stage tasks fail-loud at task entry when the mapping is empty.
+    // ResolveVersions tasks read --explicit-version* directly from ParsedArguments — no
+    // typed Configuration intermediary.
     services.AddSingleton<PackageBuildConfiguration>(provider =>
     {
-        if (hasVersionsFile)
+        var hasVersionsFile = !string.IsNullOrWhiteSpace(parsedArgs.VersionsFile);
+        if (!hasVersionsFile)
         {
-            var ctx = provider.GetRequiredService<ICakeContext>();
-            var dict = ctx.ToJson<Dictionary<string, string>>(new FilePath(parsedArgs.VersionsFile!));
-            var entries = dict.Select(kvp => $"{kvp.Key}={kvp.Value}");
-            return new PackageBuildConfiguration(ExplicitVersionParser.ParseCliEntries(entries));
+            return new PackageBuildConfiguration(new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase));
         }
 
-        return new PackageBuildConfiguration(ExplicitVersionParser.ParseCliEntries(parsedArgs.ExplicitVersion));
+        var ctx = provider.GetRequiredService<ICakeContext>();
+        var dict = ctx.ToJson<Dictionary<string, string>>(new FilePath(parsedArgs.VersionsFile!));
+        var entries = dict.Select(kvp => $"{kvp.Key}={kvp.Value}");
+        return new PackageBuildConfiguration(ExplicitVersionParser.ParseCliEntries(entries));
     });
-    services.AddSingleton(new VersioningConfiguration(parsedArgs.VersionSource, parsedArgs.Suffix, [.. parsedArgs.Scope]));
     services.AddSingleton(new DumpbinConfiguration([.. parsedArgs.Dll]));
 
-    // BuildOptions aggregate: composed once at startup from the six operator-input sub-records
-    // above. Tasks consume the aggregate via context.Options.X for the canonical surface;
-    // services that only need a single axis still inject the sub-record directly.
-    services.AddSingleton<BuildOptions>(provider => new BuildOptions(
+    // Configurations aggregate: 5 axes (Versioning slot retired in plan v4 — versioning
+    // tasks read ParsedArguments directly). Tasks consume context.Options.X; services that
+    // only need a single axis inject the sub-record directly.
+    services.AddSingleton<Configurations>(provider => new Configurations(
         Vcpkg: provider.GetRequiredService<VcpkgConfiguration>(),
         Package: provider.GetRequiredService<PackageBuildConfiguration>(),
-        Versioning: provider.GetRequiredService<VersioningConfiguration>(),
         Repository: provider.GetRequiredService<RepositoryConfiguration>(),
         DotNet: provider.GetRequiredService<DotNetBuildConfiguration>(),
         Dumpbin: provider.GetRequiredService<DumpbinConfiguration>()));
@@ -275,9 +271,9 @@ namespace Build
         IList<string> Library,
         string Rid,
         IList<string> Dll,
-        string? VersionSource,
         string? Suffix,
         IList<string> Scope,
         IList<string> ExplicitVersion,
+        string? ExplicitVersions,
         string? VersionsFile);
 }

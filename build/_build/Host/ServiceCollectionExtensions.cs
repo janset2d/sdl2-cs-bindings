@@ -100,6 +100,8 @@ public static class ServiceCollectionExtensions
             return manifest.SystemExclusions;
         });
 
+        services.AddSingleton(parsedArgs);
+
         return services;
     }
 }

@@ -3,13 +3,16 @@ using NuGet.Versioning;
 namespace Build.Host.Configuration;
 
 /// <summary>
-/// Operator-supplied version input: a mapping of family identifier to NuGet version. The
-/// mapping is populated in <c>Program.cs</c> from repeated <c>--explicit-version</c> CLI
-/// entries or <c>--versions-file</c>, then shared with stage runners and
-/// <c>ResolveVersions --version-source=explicit</c>.
+/// Resolved family→version mapping consumed by stage targets (PreFlight, Package,
+/// PackageConsumerSmoke, PublishStaging). Populated only from <c>--versions-file</c>.
+/// <para>
+/// <c>--explicit-version</c> / <c>--explicit-versions</c> are ResolveVersions inputs
+/// and live on <see cref="VersioningConfiguration"/>. Stage targets never see them
+/// directly — operator input flows through ResolveVersions → versions.json → this record.
+/// </para>
 /// </summary>
-public sealed class PackageBuildConfiguration(IReadOnlyDictionary<string, NuGetVersion> explicitVersions)
+public sealed class PackageBuildConfiguration(IReadOnlyDictionary<string, NuGetVersion> familyVersionMapping)
 {
-    public IReadOnlyDictionary<string, NuGetVersion> ExplicitVersions { get; } =
-        explicitVersions ?? throw new ArgumentNullException(nameof(explicitVersions));
+    public IReadOnlyDictionary<string, NuGetVersion> FamilyVersionMapping { get; } =
+        familyVersionMapping ?? throw new ArgumentNullException(nameof(familyVersionMapping));
 }

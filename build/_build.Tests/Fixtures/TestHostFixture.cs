@@ -71,7 +71,6 @@ public static class TestHostFixture
         services.AddSingleton(options);
         services.AddSingleton(options.Vcpkg);
         services.AddSingleton(options.Package);
-        services.AddSingleton(options.Versioning);
         services.AddSingleton(options.Repository);
         services.AddSingleton(options.DotNet);
         services.AddSingleton(options.Dumpbin);

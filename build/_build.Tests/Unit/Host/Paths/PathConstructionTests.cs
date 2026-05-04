@@ -19,10 +19,10 @@ public class PathConstructionTests
             Library: [],
             Rid: "",
             Dll: [],
-            VersionSource: null,
             Suffix: null,
             Scope: [],
             ExplicitVersion: [],
+            ExplicitVersions: null,
             VersionsFile: null);
         var log = Substitute.For<ICakeLog>();
         return new PathService(repoConfig, parsedArgs, log);

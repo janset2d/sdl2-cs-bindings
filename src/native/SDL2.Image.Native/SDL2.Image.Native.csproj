@@ -1,7 +1,6 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <PackageId>Janset.SDL2.Image.Native</PackageId>
     <Description>Native SDL_image libraries built via vcpkg</Description>
-    <MinVerTagPrefix>sdl2-image-</MinVerTagPrefix>
   </PropertyGroup>
 </Project>

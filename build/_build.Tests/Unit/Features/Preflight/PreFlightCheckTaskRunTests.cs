@@ -29,6 +29,24 @@ public class PreFlightCheckTaskRunTests
     }
 
     [Test]
+    public async Task RunAsync_Should_Throw_When_FamilyVersionMapping_Empty()
+    {
+        var manifestConfig = CreateManifestConfig("2.32.10", 0);
+        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
+            .WithManifest(manifestConfig)
+            .WithVcpkgJson(CreateVcpkgManifest("2.32.10", 0))
+            .BuildContextWithHandles();
+
+        var context = repo.BuildContext;
+
+        var task = CreateTask(manifestConfig, context, familyVersions:
+            new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase));
+
+        var ex = await Assert.That(() => task.RunAsync(context)).Throws<CakeException>();
+        await Assert.That(ex!.Message).Contains("--versions-file");
+    }
+
+    [Test]
     public async Task RunAsync_Should_Throw_When_Override_Version_Does_Not_Match_Manifest()
     {
         var manifestConfig = CreateManifestConfig("2.32.10", 0);
@@ -170,9 +188,16 @@ public class PreFlightCheckTaskRunTests
         };
     }
 
-    private static PreFlightCheckTask CreateTask(ManifestConfig manifestConfig, BuildContext context)
+    private static PreFlightCheckTask CreateTask(
+        ManifestConfig manifestConfig,
+        BuildContext context,
+        IReadOnlyDictionary<string, NuGetVersion>? familyVersions = null)
     {
-        var packageBuildConfiguration = new PackageBuildConfiguration(new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase));
+        var versions = familyVersions ?? new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["sdl2-core"] = NuGetVersion.Parse("2.32.0"),
+        };
+        var packageBuildConfiguration = new PackageBuildConfiguration(versions);
 
         var runner = new PreflightPipeline(
             manifestConfig,

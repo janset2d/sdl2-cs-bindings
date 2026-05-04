@@ -5,6 +5,7 @@
 
 using Build.Host;
 using Build.Host.Configuration;
+using Cake.Core;
 using Cake.Frosting;
 
 namespace Build.Features.Preflight;
@@ -28,7 +29,15 @@ public sealed class PreFlightCheckTask(
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        var request = new PreflightRequest(_packageBuildConfiguration.ExplicitVersions);
+        if (_packageBuildConfiguration.FamilyVersionMapping.Count == 0)
+        {
+            throw new CakeException(
+                "PreFlightCheck requires --versions-file <path>. " +
+                "Run --target ResolveVersions first to produce a versions.json, " +
+                "then re-run with --versions-file artifacts/resolve-versions/versions.json.");
+        }
+
+        var request = new PreflightRequest(_packageBuildConfiguration.FamilyVersionMapping);
         return _preflightPipeline.RunAsync(request);
     }
 }

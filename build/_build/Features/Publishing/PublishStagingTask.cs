@@ -3,7 +3,6 @@ using Build.Host;
 using Build.Host.Configuration;
 using Cake.Common;
 using Cake.Core;
-using Cake.Core.Diagnostics;
 using Cake.Frosting;
 
 namespace Build.Features.Publishing;
@@ -15,8 +14,7 @@ namespace Build.Features.Publishing;
 public sealed class PublishStagingTask(
     PublishPipeline runner,
     PackageBuildConfiguration packageBuildConfiguration,
-    ICakeContext cakeContext,
-    ICakeLog log) : AsyncFrostingTask<BuildContext>
+    ICakeContext cakeContext) : AsyncFrostingTask<BuildContext>
 {
     private const string GitHubPackagesFeedUrl = "https://nuget.pkg.github.com/janset2d/index.json";
 
@@ -25,31 +23,25 @@ public sealed class PublishStagingTask(
     private readonly PublishPipeline _runner = runner ?? throw new ArgumentNullException(nameof(runner));
     private readonly PackageBuildConfiguration _packageBuildConfiguration = packageBuildConfiguration ?? throw new ArgumentNullException(nameof(packageBuildConfiguration));
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
-    private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
-
-    public override bool ShouldRun(BuildContext context)
-    {
-        ArgumentNullException.ThrowIfNull(context);
-
-        if (_packageBuildConfiguration.ExplicitVersions.Count > 0)
-        {
-            return true;
-        }
-
-        _log.Information("PublishStaging task skipped: no --explicit-version mapping supplied. CI's resolve-versions job emits versions.json which downstream jobs consume via --versions-file.");
-        return false;
-    }
 
     public override Task RunAsync(BuildContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
+
+        if (_packageBuildConfiguration.FamilyVersionMapping.Count == 0)
+        {
+            throw new CakeException(
+                "PublishStaging requires --versions-file <path>. " +
+                "Run --target ResolveVersions first to produce a versions.json, " +
+                "then re-run with --versions-file artifacts/resolve-versions/versions.json.");
+        }
 
         var authToken = ResolveAuthToken();
 
         var request = new PublishRequest(
             FeedUrl: GitHubPackagesFeedUrl,
             AuthToken: authToken,
-            Versions: _packageBuildConfiguration.ExplicitVersions);
+            Versions: _packageBuildConfiguration.FamilyVersionMapping);
 
         return _runner.RunAsync(request);
     }

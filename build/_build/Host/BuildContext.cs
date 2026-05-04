@@ -22,12 +22,14 @@ public sealed class BuildContext : FrostingContext
         IPathService pathService,
         IRuntimeProfile runtimeProfile,
         ManifestConfig manifest,
-        BuildOptions options)
+        ParsedArguments parsedArguments,
+        Configurations options)
         : base(context)
     {
         Paths = pathService ?? throw new ArgumentNullException(nameof(pathService));
         Runtime = runtimeProfile ?? throw new ArgumentNullException(nameof(runtimeProfile));
         Manifest = manifest ?? throw new ArgumentNullException(nameof(manifest));
+        ParsedArguments = parsedArguments ?? throw new ArgumentNullException(nameof(parsedArguments));
         Options = options ?? throw new ArgumentNullException(nameof(options));
     }
 
@@ -45,9 +47,15 @@ public sealed class BuildContext : FrostingContext
     public ManifestConfig Manifest { get; }
 
     /// <summary>
+    /// Parsed CLI arguments. Set once at composition time; invocation state is immutable
+    /// thereafter — tasks read but never mutate.
+    /// </summary>
+    public ParsedArguments ParsedArguments { get; }
+
+    /// <summary>
     /// Aggregate of operator-input axes (Vcpkg, Package, Versioning, Repository, DotNet,
     /// Dumpbin) normalized from CLI args at composition time. Per-axis sub-records remain
     /// individually DI-injectable for services that only need a single slice.
     /// </summary>
-    public BuildOptions Options { get; }
+    public Configurations Options { get; }
 }

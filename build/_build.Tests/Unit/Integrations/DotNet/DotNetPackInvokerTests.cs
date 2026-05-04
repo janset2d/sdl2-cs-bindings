@@ -41,7 +41,6 @@ public sealed class DotNetPackInvokerTests
 
         var renderedArgs = capture.Settings!.Arguments.Render();
         await Assert.That(renderedArgs).Contains("1.2.3");
-        await Assert.That(renderedArgs).Contains("MinVerSkip=true");
         await Assert.That(renderedArgs).Contains("NativePayloadSource=");
         await Assert.That(renderedArgs).Contains("harvest_output/SDL2");
     }

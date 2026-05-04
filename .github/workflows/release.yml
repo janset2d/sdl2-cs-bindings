@@ -13,17 +13,12 @@
 # - pack creates the nupkg set from consolidated harvest output and versions.json.
 # - consumer-smoke re-enters the same RID matrix to install and test the packed artifacts.
 #
-# Staging publish runs for explicit dispatch and release tags. Public publish stays
-# disabled until promotion-to-nuget.org logic lands.
+# Staging publish runs for explicit workflow_dispatch with publish-staging checkbox.
+# Public publish stays disabled until promotion-to-nuget.org logic lands.
 
 name: Release
 
 on:
-  push:
-    tags:
-      - 'sdl2-*-*.*.*'    # targeted family release (e.g., sdl2-core-2.32.0)
-      - 'sdl3-*-*.*.*'    # targeted family release, SDL3 line (future)
-      - 'train-*'         # coordinated multi-family release tag
   workflow_dispatch:
     inputs:
       mode:
@@ -145,47 +140,14 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'manifest-derived' }}
         run: >
           dotnet ./cake-host/Build.dll
-          --target ResolveVersions
-          --version-source=manifest
+          --target ResolveVersionsFromManifest
           --suffix=ci.${{ github.run_id }}.${{ github.run_attempt }}
       - name: Resolve explicit dispatch versions
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'explicit' }}
-        shell: bash
-        env:
-          EXPLICIT_VERSIONS: ${{ inputs.explicit-versions }}
-        run: |
-          explicit_args=()
-          IFS=',' read -ra entries <<< "${EXPLICIT_VERSIONS}"
-          for raw in "${entries[@]}"; do
-            entry="${raw#"${raw%%[![:space:]]*}"}"
-            entry="${entry%"${entry##*[![:space:]]}"}"
-            if [ -n "$entry" ]; then
-              explicit_args+=(--explicit-version "$entry")
-            fi
-          done
-
-          if [ "${#explicit_args[@]}" -eq 0 ]; then
-            echo "::error::mode=explicit requires workflow_dispatch input explicit-versions."
-            exit 1
-          fi
-
-          dotnet ./cake-host/Build.dll \
-            --target ResolveVersions \
-            --version-source=explicit \
-            "${explicit_args[@]}"
-      - name: Resolve targeted family tag versions
-        if: ${{ github.event_name == 'push' && (startsWith(github.ref_name, 'sdl2-') || startsWith(github.ref_name, 'sdl3-')) }}
         run: >
           dotnet ./cake-host/Build.dll
-          --target ResolveVersions
-          --version-source=git-tag
-          --scope ${{ github.ref_name }}
-      - name: Resolve coordinated train tag versions
-        if: ${{ github.event_name == 'push' && startsWith(github.ref_name, 'train-') }}
-        run: >
-          dotnet ./cake-host/Build.dll
-          --target ResolveVersions
-          --version-source=meta-tag
+          --target ResolveVersionsFromExplicit
+          --explicit-versions "${{ inputs.explicit-versions }}"
       - name: Upload versions.json
         uses: actions/upload-artifact@v7
         with:
@@ -460,7 +422,7 @@ jobs:
     # versions so a stray operator dispatch can never leak a local-pack into staging.
     name: Publish (Staging)
     needs: [consumer-smoke]
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.publish-staging == true) || (github.event_name == 'push' && (startsWith(github.ref_name, 'sdl2-') || startsWith(github.ref_name, 'sdl3-') || startsWith(github.ref_name, 'train-'))) }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish-staging == true }}
     runs-on: ubuntu-24.04
     permissions:
       contents: read

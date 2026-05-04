@@ -12,11 +12,7 @@ namespace Build.Features.Ci;
 /// The single output file (<c>artifacts/matrix/runtimes.json</c>) is consumed by both the
 /// <c>harvest</c> and <c>consumer-smoke</c> jobs in <c>release.yml</c>.
 /// </summary>
-public sealed class GenerateMatrixPipeline(
-    ICakeContext cakeContext,
-    ICakeLog log,
-    IPathService pathService,
-    ManifestConfig manifestConfig)
+public sealed class GenerateMatrixPipeline(ICakeContext cakeContext, ICakeLog log, IPathService pathService, ManifestConfig manifestConfig)
 {
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));

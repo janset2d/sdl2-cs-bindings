@@ -13,7 +13,6 @@ namespace Build.Features.Preflight;
 /// <list type="bullet">
 /// <item>Managed PackageId: <c>Janset.SDL{Major}.{Role}</c> (e.g. <c>Janset.SDL2.Core</c>)</item>
 /// <item>Native PackageId: <c>Janset.SDL{Major}.{Role}.Native</c> (e.g. <c>Janset.SDL2.Core.Native</c>)</item>
-/// <item>MinVerTagPrefix: <c>{family}-</c> (e.g. <c>sdl2-core-</c>)</item>
 /// </list>
 /// </remarks>
 public static class FamilyIdentifierConventions
@@ -68,16 +67,6 @@ public static class FamilyIdentifierConventions
     {
         var (sdlMajor, role) = Parse(familyIdentifier);
         return string.Create(CultureInfo.InvariantCulture, $"Janset.SDL{sdlMajor}.{role}.Native");
-    }
-
-    /// <summary>
-    /// Returns the expected MinVerTagPrefix for a manifest tag prefix string.
-    /// MinVer requires a trailing dash to separate prefix from SemVer.
-    /// </summary>
-    public static string MinVerTagPrefix(string manifestTagPrefix)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(manifestTagPrefix);
-        return manifestTagPrefix + "-";
     }
 
     /// <summary>

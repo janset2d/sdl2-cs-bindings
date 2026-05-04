@@ -7,14 +7,15 @@ namespace Build.Features.Preflight;
 
 /// <summary>
 /// Validates that every managed and native csproj referenced by <c>manifest.json package_families[]</c>
-/// conforms to the canonical pack contract guardrails G4, G6, G7, G17, G18.
+/// conforms to the canonical pack contract guardrails G6, G7, G17, G18.
 /// </summary>
 /// <remarks>
 /// Guardrails G1 (PrivateAssets="all"), G2 (paired PackageReference),
-/// G3 (bracket-notation PackageVersion), G5 (family-version property name convention), and G8
+/// G3 (bracket-notation PackageVersion), G4 (MinVerTagPrefix alignment),
+/// G5 (family-version property name convention), and G8
 /// (sentinel fallback) were retired when within-family exact-pin was replaced with SkiaSharp-style
 /// minimum range. This validator retains the structural checks that remain relevant:
-/// canonical PackageId naming (G6), MinVerTagPrefix alignment with manifest (G4), Native
+/// canonical PackageId naming (G6), Native
 /// ProjectReference path correctness (G7), and manifest cross-section references (G17, G18).
 ///
 /// The validator parses each csproj as XML (no MSBuild evaluation) so it can run inside PreFlight
@@ -72,7 +73,6 @@ public sealed class CsprojPackContractValidator(IFileSystem fileSystem) : ICspro
         }
 
         checks.Add(CheckManagedPackageId(family, relativePath, root));
-        checks.Add(CheckMinVerTagPrefix(family, relativePath, root));
         checks.Add(CheckNativeProjectReferencePath(family, repoRoot, relativePath, root));
     }
 
@@ -98,19 +98,6 @@ public sealed class CsprojPackContractValidator(IFileSystem fileSystem) : ICspro
             ErrorMessage: string.Equals(actualPackageId, expectedNativePackageId, StringComparison.Ordinal)
                 ? null
                 : $"Native csproj <PackageId> must equal '{expectedNativePackageId}' (canonical Janset.SDL<Major>.<Role>.Native). Actual: '{actualPackageId ?? "<missing>"}'."));
-
-        var actualMinVerTagPrefix = ReadPropertyValue(root, "MinVerTagPrefix");
-        var expectedMinVerTagPrefix = FamilyIdentifierConventions.MinVerTagPrefix(family.TagPrefix);
-        checks.Add(new CsprojPackContractCheck(
-            family.Name,
-            relativePath,
-            CsprojPackContractCheckKind.MinVerTagPrefixMatchesManifest,
-            IsValid: string.Equals(actualMinVerTagPrefix, expectedMinVerTagPrefix, StringComparison.Ordinal),
-            ExpectedValue: expectedMinVerTagPrefix,
-            ActualValue: actualMinVerTagPrefix,
-            ErrorMessage: string.Equals(actualMinVerTagPrefix, expectedMinVerTagPrefix, StringComparison.Ordinal)
-                ? null
-                : $"Native csproj <MinVerTagPrefix> must equal '{expectedMinVerTagPrefix}' (manifest tag_prefix + '-'). Actual: '{actualMinVerTagPrefix ?? "<missing>"}'."));
     }
 
     // Synchronous file read justified: PreFlight runs once per Cake invocation against ~10 small csproj
@@ -172,23 +159,6 @@ public sealed class CsprojPackContractValidator(IFileSystem fileSystem) : ICspro
             ErrorMessage: string.Equals(actual, expected, StringComparison.Ordinal)
                 ? null
                 : $"Managed csproj <PackageId> must equal '{expected}' (canonical Janset.SDL<Major>.<Role>). Actual: '{actual ?? "<missing>"}'.");
-    }
-
-    private static CsprojPackContractCheck CheckMinVerTagPrefix(PackageFamilyConfig family, string relativePath, XElement root)
-    {
-        var actual = ReadPropertyValue(root, "MinVerTagPrefix");
-        var expected = FamilyIdentifierConventions.MinVerTagPrefix(family.TagPrefix);
-        return new CsprojPackContractCheck(
-            family.Name,
-            relativePath,
-            CsprojPackContractCheckKind.MinVerTagPrefixMatchesManifest,
-            IsValid: string.Equals(actual, expected, StringComparison.Ordinal),
-            ExpectedValue: expected,
-            ActualValue: actual,
-            ErrorMessage: string.Equals(actual, expected
-                , StringComparison.Ordinal)
-                ? null
-                : $"Managed csproj <MinVerTagPrefix> must equal '{expected}' (manifest tag_prefix + '-'). Actual: '{actual ?? "<missing>"}'.");
     }
 
     private static CsprojPackContractCheck CheckNativeProjectReferencePath(PackageFamilyConfig family, DirectoryPath repoRoot, string relativePath, XElement root)

@@ -3,7 +3,6 @@
     <PackageId>Janset.SDL2.Ttf</PackageId>
     <Description>Ttf C# bindings for SDL_ttf (based on SDL-CS)</Description>
     <TargetFrameworks>$(TargetFrameworks)</TargetFrameworks>
-    <MinVerTagPrefix>sdl2-ttf-</MinVerTagPrefix>
   </PropertyGroup>
 
   <ItemGroup>

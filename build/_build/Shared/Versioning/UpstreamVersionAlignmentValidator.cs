@@ -14,9 +14,7 @@ namespace Build.Shared.Versioning;
 /// </summary>
 public sealed class UpstreamVersionAlignmentValidator : IUpstreamVersionAlignmentValidator
 {
-    public UpstreamVersionAlignmentResult Validate(
-        ManifestConfig manifestConfig,
-        IReadOnlyDictionary<string, NuGetVersion> versions)
+    public UpstreamVersionAlignmentResult Validate(ManifestConfig manifestConfig, IReadOnlyDictionary<string, NuGetVersion> versions)
     {
         ArgumentNullException.ThrowIfNull(manifestConfig);
         ArgumentNullException.ThrowIfNull(versions);
@@ -55,7 +53,8 @@ public sealed class UpstreamVersionAlignmentValidator : IUpstreamVersionAlignmen
                 FamilyVersion: "<not evaluated>",
                 UpstreamVersion: null,
                 Status: UpstreamVersionAlignmentCheckStatus.DuplicateFamilyName,
-                ErrorMessage: $"G54: manifest package_families[] contains duplicate family name '{group.Key}' (matched case-insensitively). Family names must be unique before upstream version alignment can run.")));
+                ErrorMessage:
+                $"G54: manifest package_families[] contains duplicate family name '{group.Key}' (matched case-insensitively). Family names must be unique before upstream version alignment can run.")));
 
         checks.AddRange(manifestConfig.LibraryManifests
             .Where(library => !string.IsNullOrWhiteSpace(library.Name))
@@ -67,15 +66,13 @@ public sealed class UpstreamVersionAlignmentValidator : IUpstreamVersionAlignmen
                 FamilyVersion: "<not evaluated>",
                 UpstreamVersion: null,
                 Status: UpstreamVersionAlignmentCheckStatus.DuplicateLibraryName,
-                ErrorMessage: $"G54: manifest library_manifests[] contains duplicate library name '{group.Key}' (matched case-insensitively). Library names must be unique before upstream version alignment can run.")));
+                ErrorMessage:
+                $"G54: manifest library_manifests[] contains duplicate library name '{group.Key}' (matched case-insensitively). Library names must be unique before upstream version alignment can run.")));
 
         return checks;
     }
 
-    private static UpstreamVersionAlignmentCheck ValidateEntry(
-        ManifestConfig manifestConfig,
-        string requestedFamily,
-        NuGetVersion parsedFamilyVersion)
+    private static UpstreamVersionAlignmentCheck ValidateEntry(ManifestConfig manifestConfig, string requestedFamily, NuGetVersion parsedFamilyVersion)
     {
         var normalizedFamilyVersion = parsedFamilyVersion.ToNormalizedString();
 

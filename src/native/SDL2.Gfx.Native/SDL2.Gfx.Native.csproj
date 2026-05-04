@@ -2,6 +2,5 @@
   <PropertyGroup>
     <PackageId>Janset.SDL2.Gfx.Native</PackageId>
     <Description>Native SDL_gfx libraries built via vcpkg</Description>
-    <MinVerTagPrefix>sdl2-gfx-</MinVerTagPrefix>
   </PropertyGroup>
 </Project>

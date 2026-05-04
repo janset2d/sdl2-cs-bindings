@@ -12,8 +12,6 @@ namespace Build.Integrations.DotNet;
 public sealed class DotNetPackInvoker(ICakeContext cakeContext, ICakeLog log, IPathService pathService) : IDotNetPackInvoker
 {
     private const string NativePayloadSourceProperty = "NativePayloadSource";
-    private const string MinVerSkipProperty = "MinVerSkip";
-    private const string MinVerSkipTrue = "true";
 
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
@@ -56,16 +54,12 @@ public sealed class DotNetPackInvoker(ICakeContext cakeContext, ICakeLog log, IP
 
     private static DotNetMSBuildSettings BuildMSBuildSettings(DotNetPackInvocation invocation)
     {
-        // MinVerSkip=true: Cake has already resolved the family version (MinVer-derived from
-        // git tag, or from --family-version override). Setting this property prevents MinVer's
-        // own target from re-reading git tags and overwriting $(Version) with its fallback
-        // (e.g., 0.0.0-alpha.0.N when no matching tag exists). $(Version) supplied below wins.
+        // Version is resolved by Cake upstream (PackagePipeline via --versions-file mapping)
+        // and injected as $(Version) in every pack invocation.
         var settings = new DotNetMSBuildSettings
         {
             Version = invocation.Version,
         };
-
-        settings.WithProperty(MinVerSkipProperty, MinVerSkipTrue);
 
         if (invocation.NativePayloadSource is not null)
         {

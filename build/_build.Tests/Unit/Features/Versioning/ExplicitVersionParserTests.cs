@@ -4,10 +4,9 @@ using NuGet.Versioning;
 namespace Build.Tests.Unit.Features.Versioning;
 
 /// <summary>
-/// Tests for <see cref="ExplicitVersionParser.ParseCliEntries"/>: the single pure-function
-/// entry point that validates <c>"family=semver"</c> strings into a typed dictionary.
-/// The <c>--versions-file</c> path is tested through the DI composition root
-/// (ProgramCompositionRootTests) where Cake's <c>IFileSystem</c> is exercised via fakes.
+/// Tests for <see cref="ExplicitVersionParser.ParseCliEntries"/> and
+/// <see cref="ExplicitVersionParser.ParseCommaSeparated"/> — the two pure-function
+/// entry points that validate <c>"family=semver"</c> strings into a typed dictionary.
 /// </summary>
 public sealed class ExplicitVersionParserTests
 {
@@ -101,6 +100,85 @@ public sealed class ExplicitVersionParserTests
 
         await Assert.That(result.Count).IsEqualTo(1);
         await Assert.That(result.ContainsKey("sdl2-core")).IsTrue();
+    }
+
+    // ───────────────────────────────────────────────────────────────────────
+    //  ParseCommaSeparated
+    // ───────────────────────────────────────────────────────────────────────
+
+    [Test]
+    public async Task ParseCommaSeparated_Should_Return_Empty_When_Null()
+    {
+        var result = ExplicitVersionParser.ParseCommaSeparated(null);
+
+        await Assert.That(result.Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task ParseCommaSeparated_Should_Return_Empty_When_Whitespace()
+    {
+        var result = ExplicitVersionParser.ParseCommaSeparated("   ");
+
+        await Assert.That(result.Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task ParseCommaSeparated_Should_Parse_Single_Entry()
+    {
+        var result = ExplicitVersionParser.ParseCommaSeparated("sdl2-core=2.32.0");
+
+        await Assert.That(result.Count).IsEqualTo(1);
+        await Assert.That(result.ContainsKey("sdl2-core")).IsTrue();
+        await Assert.That(result["sdl2-core"]).IsEqualTo(NuGetVersion.Parse("2.32.0"));
+    }
+
+    [Test]
+    public async Task ParseCommaSeparated_Should_Parse_Multiple_Entries()
+    {
+        var result = ExplicitVersionParser.ParseCommaSeparated(
+            "sdl2-core=2.32.0-ci.123,sdl2-image=2.8.0-ci.123,sdl2-ttf=2.24.0-ci.123");
+
+        await Assert.That(result.Count).IsEqualTo(3);
+        await Assert.That(result["sdl2-core"]).IsEqualTo(NuGetVersion.Parse("2.32.0-ci.123"));
+        await Assert.That(result["sdl2-image"]).IsEqualTo(NuGetVersion.Parse("2.8.0-ci.123"));
+        await Assert.That(result["sdl2-ttf"]).IsEqualTo(NuGetVersion.Parse("2.24.0-ci.123"));
+    }
+
+    [Test]
+    public async Task ParseCommaSeparated_Should_Trim_Whitespace()
+    {
+        var result = ExplicitVersionParser.ParseCommaSeparated(
+            "  sdl2-core=2.32.0 , sdl2-image=2.8.0  ");
+
+        await Assert.That(result.Count).IsEqualTo(2);
+        await Assert.That(result["sdl2-core"]).IsEqualTo(NuGetVersion.Parse("2.32.0"));
+        await Assert.That(result["sdl2-image"]).IsEqualTo(NuGetVersion.Parse("2.8.0"));
+    }
+
+    [Test]
+    public async Task ParseCommaSeparated_Should_Skip_Empty_Segments()
+    {
+        var result = ExplicitVersionParser.ParseCommaSeparated(
+            "sdl2-core=2.32.0,,sdl2-image=2.8.0,,");
+
+        await Assert.That(result.Count).IsEqualTo(2);
+        await Assert.That(result.ContainsKey("sdl2-core")).IsTrue();
+        await Assert.That(result.ContainsKey("sdl2-image")).IsTrue();
+    }
+
+    [Test]
+    public async Task ParseCommaSeparated_Should_Throw_On_Invalid_SemVer()
+    {
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            Task.FromResult(ExplicitVersionParser.ParseCommaSeparated("sdl2-core=not-a-version")));
+    }
+
+    [Test]
+    public async Task ParseCommaSeparated_Should_Throw_On_Duplicate_Family()
+    {
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            Task.FromResult(ExplicitVersionParser.ParseCommaSeparated(
+                "sdl2-core=2.32.0,sdl2-core=2.32.1")));
     }
 
 }

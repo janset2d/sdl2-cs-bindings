@@ -201,7 +201,7 @@ public sealed class PreflightReporter(ICakeContext cakeContext)
         {
             var failedCount = validation.Checks.Count(c => !c.IsValid);
             Log.Error("❌ Pre-flight check FAILED - {0} csproj pack contract violation(s) detected", failedCount);
-            Log.Error("   Review the canonical pack-contract rules (G1-G8, G17, G18) for details.");
+            Log.Error("   Review the canonical pack-contract rules (G6, G7, G17, G18) for details.");
             Log.Error("   Review the family identifier conventions for family name format guidance.");
             return;
         }

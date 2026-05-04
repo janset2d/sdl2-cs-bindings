@@ -5,9 +5,6 @@ public enum CsprojPackContractCheckKind
     /// <summary>G7 — Native ProjectReference path resolves to manifest's native_project.</summary>
     NativeProjectReferencePathMatchesManifest,
 
-    /// <summary>G4 — csproj MinVerTagPrefix equals manifest's tag_prefix + "-".</summary>
-    MinVerTagPrefixMatchesManifest,
-
     /// <summary>G6 — csproj PackageId matches canonical Janset.SDL{Major}.{Role}[.Native] convention.</summary>
     PackageIdMatchesCanonicalConvention,
 

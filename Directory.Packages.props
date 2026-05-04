@@ -12,14 +12,9 @@
     <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.7.0.110445" />
     <!-- packages -->
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
-    <PackageVersion Include="MinVer" Version="7.0.0" />
     <PackageVersion Include="Cake.CMake" Version="1.4.0" />
     <PackageVersion Include="Cake.Frosting" Version="6.1.0" />
-    <!-- Cake.Frosting.Git: LibGit2Sharp-backed git alias pack. Slice C introduces it for
-         GitTagVersionProvider (tag discovery, describe, commit resolution). x64-only via
-         LibGit2Sharp native binaries; used only on the resolve-versions CI runner and
-         local dev (both x64). Harvest/smoke matrix arm64 runners consume resolved mappings
-         via the explicit-version CLI flag and never call into these aliases. -->
+    <!-- Cake.Frosting.Git: used by PackagePipeline for GitLogTip HEAD-SHA stamping (G55 native metadata). -->
     <PackageVersion Include="Cake.Frosting.Git" Version="5.0.1" />
     <PackageVersion Include="NuGet.Frameworks" Version="7.3.1" />
     <PackageVersion Include="NuGet.Protocol" Version="7.3.1" />

@@ -1,6 +1,3 @@
-using Build.Host.Configuration;
-using Build.Shared.Manifest;
-using Build.Shared.Versioning;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Build.Features.Versioning;
@@ -11,19 +8,11 @@ public static class ServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        // Stage tasks consume already-resolved explicit versions only. ResolveVersions handles
-        // every release shape upstream of stages: manifest+suffix dispatch, explicit dispatch,
-        // targeted family-tag push, and meta-tag train push. Downstream jobs feed the resolved
-        // versions.json back in via --explicit-version / --versions-file.
-        services.AddSingleton<IPackageVersionProvider>(provider =>
-        {
-            var manifest = provider.GetRequiredService<ManifestConfig>();
-            var upstreamVersionAlignmentValidator = provider.GetRequiredService<IUpstreamVersionAlignmentValidator>();
-            var packageBuildConfig = provider.GetRequiredService<PackageBuildConfiguration>();
-            return new ExplicitVersionProvider(manifest, upstreamVersionAlignmentValidator, packageBuildConfig.ExplicitVersions);
-        });
-
-        services.AddSingleton<ResolveVersionsPipeline>();
+        // Two task-per-source pattern: ResolveVersionsFromManifestTask and
+        // ResolveVersionsFromExplicitTask self-register via Cake.Frosting [TaskName]
+        // attribute discovery. Only the shared output writer needs DI here; both tasks
+        // inject it to produce identical versions.json shape consumed by stage targets.
+        services.AddSingleton<VersionsJsonWriter>();
 
         return services;
     }
