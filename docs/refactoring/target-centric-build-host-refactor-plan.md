@@ -610,6 +610,16 @@ Exit criteria:
 - Test infrastructure does not use a giant `TestBase`.
 - Cake `FakeFileSystem` is the default filesystem in unit/scenario tests.
 
+### P2a polish — Deferred items for P3
+
+The following items were identified during the P2a V2 test infrastructure review (see `docs/refactoring/p2a-v2-test-infrastructure-review-handoff.md`) and are deferred to P3:
+
+1. **Host composition parity (§3-5).** `TargetTestHostV2` currently builds its DI container manually. Move to production `AddHostBuildingBlocks(parsedArgs)` plus documented fake overrides. Register fake Cake primitives (`ICakeContext`, `ICakeLog`, `ICakeEnvironment`, `IFileSystem`, `IGlobber`, `ICakeArguments`, `ICakeConfiguration`) and configuration records (`RepositoryConfiguration`, `VcpkgConfiguration`, `PackageBuildConfiguration`, `DotNetBuildConfiguration`, `DumpbinConfiguration`) before calling `AddHostBuildingBlocks`. Use `Microsoft.Extensions.DependencyInjection.Extensions.Replace` where override intent matters. Build `BuildContext` from provider-resolved production-shaped services instead of manual construction.
+2. **`IRuntimeProfile` production behavior.** Remove `Substitute.For<IRuntimeProfile>()` from `ToLegacyBuildContext`. Use the `IRuntimeProfile` resolved from `AddHostBuildingBlocks(parsedArgs)`. This makes `IsSystemFile(string)` use production-shaped data.
+3. **Runtime-bearing fake manifest.** The default fake manifest must include at least one `RuntimeInfo` matching the world's active RID, plus populated `SystemExclusions` for `IsSystemFile(...)` to work. Provide pre-built `RuntimeConfig` fixtures as test framework building blocks so tests can exercise RID-specific behavior without constructing manifests from scratch.
+4. **Shim behavior tests.** Once `TargetTestHostV2` uses production host composition, add tests for `ToLegacyBuildContext`: Windows/Linux/macOS RID → `RuntimeFamily` + triplet, configured `Rid`/`Config` → `ParsedArguments`, repo root → `PathService`, manifest instance propagation, default manifest validity.
+5. **`ToLegacyBuildContext` retirement tracking.** The shim retires when `Host/Configuration` and `Configurations` retire. P5 must remove the shim or explicitly document any remaining bridge. Add to the refactoring plan P5 tasks.
+
 ### P3 - Foundation completion and BuildContext transition
 
 Goal: finish the shared concepts needed by multiple target migrations without creating a new dumping ground.
@@ -666,11 +676,22 @@ Tasks per target:
 6. Update tests/namespaces.
 7. Verify command contract through direct Cake target or `tools.cs` where applicable.
 
+**Info target — IAnsiConsole injection.** `InfoPipeline` is the only build-host class using Spectre.Console interactive widgets (`Status().StartAsync()`). The static `AnsiConsole` facade prevents parallel scenario testing and couples to a global console. During the `InfoTask` migration:
+
+1. Add `Spectre.Console.Testing` package for test-side `TestConsole`.
+2. Register `IAnsiConsole` in production `Program.cs`: `services.AddSingleton<IAnsiConsole>(AnsiConsole.Console)`.
+3. Constructor-inject `IAnsiConsole` into `InfoPipeline`. Replace all static `AnsiConsole.X` calls with `_console.X`.
+4. Audit and migrate all non-interactive `AnsiConsole` call sites (`OtoolAnalyzePipeline`, `HarvestPipeline`, `Program.cs`) to `IAnsiConsole` injection for consistency.
+5. `FakeCakeWorldV2` exposes a `TestConsole` instance per world. `TargetTestHostV2` registers it as `IAnsiConsole` alongside other Cake primitives.
+6. This unblocks the `InfoTask` failure-path scenario test (dotnet non-zero exit code) and full log/output assertions.
+
 Exit criteria:
 
 - Multiple low-risk targets use final layout.
 - Migration pattern is boring and repeatable.
 - No repo-wide rename has hidden old architecture under new names.
+- All `AnsiConsole` static calls in the build host use `IAnsiConsole` injection.
+- `InfoTask` failure-path scenario test passes.
 
 ### P5 - Retire coverage and strategy-era abstractions
 

@@ -1,6 +1,6 @@
 # P2a — Test Infrastructure V2 Design
 
-- **Status:** Accepted
+- **Status:** Superseded — canonical truth in `docs/refactoring/p2a-v2-test-infrastructure-review-handoff.md`, `docs/refactoring/target-centric-build-host-refactor-plan.md`, and git history. This file is a temporary execution artifact.
 - **Date:** 2026-05-05
 - **Scope:** `build/_build.Tests/Fixtures/` (new V2 files), `build/_build.Tests/Scenarios/` (first scenario)
 - **Non-goal:** Foundation primitives (P2b), production code changes, retiring existing test infra

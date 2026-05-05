@@ -64,6 +64,7 @@ Use this checklist for each ADR-002 migration slice.
 
 - [ ] Comments in `.cs`, `.csproj`, `.props`, `.targets`, workflow YAML, and local orchestration scripts explain local logic directly.
 - [ ] Comments do not point to internal or external docs as a substitute for explaining behavior.
+- [ ] Phase numbers, ADR references, and migration timing live in canonical docs, not logic-bearing comments.
 - [ ] Types, files, methods, and test classes use behavior-first names.
 - [ ] Guardrail IDs such as `G58` are report/log/test-data/docs metadata only, not primary code identity.
 - [ ] Guardrail-related messages include both readable behavior and any needed guardrail ID.

@@ -175,7 +175,7 @@ public sealed class FakeCakeWorldV2
         return _fileSystem.GetFile(path).Exists;
     }
 
-    // ── compatibility shim (retires when Host/Configuration is removed) ──
+    // ── compatibility shim for unmigrated tasks that still require the legacy BuildContext shape ──
 
     public BuildContext ToLegacyBuildContext(ManifestConfig? manifest = null)
     {
