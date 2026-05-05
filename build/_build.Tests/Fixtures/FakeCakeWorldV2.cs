@@ -21,6 +21,12 @@ public enum FakeRepoPlatformV2
     Unix,
 }
 
+public sealed record ProcessInvocation(
+    FilePath Command,
+    string Arguments,
+    bool RedirectStandardOutput,
+    bool Silent);
+
 public sealed class FakeCakeWorldV2
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
@@ -29,7 +35,10 @@ public sealed class FakeCakeWorldV2
     private readonly FakeEnvironment _environment;
     private readonly DirectoryPath _repoRoot;
     private readonly Dictionary<string, (int ExitCode, string StdOut, string StdErr)> _processResults = new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<ProcessInvocation> _processInvocations = [];
     private FilePath? _toolPath;
+    private FilePath? _defaultToolPath;
+    private (int ExitCode, string StdOut, string StdErr)? _defaultProcessResult;
     private string _rid = "win-x64";
     private string _config = "Release";
 
@@ -38,6 +47,8 @@ public sealed class FakeCakeWorldV2
     public TestLogV2 Log { get; }
     public ICakeContext CakeContext { get; }
     public DirectoryPath RepoRoot => _repoRoot;
+
+    public IReadOnlyList<ProcessInvocation> ProcessInvocations => _processInvocations;
 
     private FakeCakeWorldV2(FakeRepoPlatformV2 platform, string? repoRoot)
     {
@@ -111,6 +122,15 @@ public sealed class FakeCakeWorldV2
         return this;
     }
 
+    public FakeCakeWorldV2 WithDefaultProcessResult(
+        int exitCode = 0,
+        string stdOut = "",
+        string stdErr = "")
+    {
+        _defaultProcessResult = (exitCode, stdOut, stdErr);
+        return this;
+    }
+
     public FakeCakeWorldV2 WithToolPath(FilePath toolPath)
     {
         _toolPath = toolPath;
@@ -118,6 +138,12 @@ public sealed class FakeCakeWorldV2
         {
             _fileSystem.CreateFile(toolPath);
         }
+        return this;
+    }
+
+    public FakeCakeWorldV2 WithDefaultToolPath(FilePath toolPath)
+    {
+        _defaultToolPath = toolPath;
         return this;
     }
 
@@ -149,7 +175,7 @@ public sealed class FakeCakeWorldV2
         return _fileSystem.GetFile(path).Exists;
     }
 
-    // ── compatibility shim (retires P5 with Host/Configuration) ──
+    // ── compatibility shim (retires when Host/Configuration is removed) ──
 
     public BuildContext ToLegacyBuildContext(ManifestConfig? manifest = null)
     {
@@ -240,36 +266,54 @@ public sealed class FakeCakeWorldV2
             .Returns(call =>
             {
                 var filePath = (FilePath)call[0];
+                var settings = (ProcessSettings)call[1];
                 var command = filePath.GetFilename().FullPath;
+
+                var arguments = settings.Arguments?.Render() ?? "";
+                _processInvocations.Add(new ProcessInvocation(
+                    filePath,
+                    arguments,
+                    settings.RedirectStandardOutput,
+                    settings.Silent));
 
                 if (_processResults.TryGetValue(command, out var result))
                 {
-                    var process = new FakeProcess();
-                    process.SetExitCode(result.ExitCode);
-
-                    var stdOutLines = result.StdOut
-                        .Split('\n', StringSplitOptions.RemoveEmptyEntries);
-                    process.SetStandardOutput(stdOutLines);
-
-                    if (!string.IsNullOrWhiteSpace(result.StdErr))
-                    {
-                        var stdErrLines = result.StdErr
-                            .Split('\n', StringSplitOptions.RemoveEmptyEntries);
-                        process.SetStandardError(stdErrLines);
-                    }
-
-                    return process;
+                    return CreateFakeProcess(result.ExitCode, result.StdOut, result.StdErr);
                 }
 
-                var defaultProcess = new FakeProcess();
-                defaultProcess.SetExitCode(0);
-                return defaultProcess;
+                if (_defaultProcessResult is { } def)
+                {
+                    return CreateFakeProcess(def.ExitCode, def.StdOut, def.StdErr);
+                }
+
+                var renderedArgs = string.IsNullOrWhiteSpace(arguments) ? "" : $" {arguments}";
+                throw new InvalidOperationException(
+                    $"Process '{command}{renderedArgs}' was not configured. " +
+                    $"Call WithProcessResult(\"{command}\", exitCode: 0, stdOut: \"...\") to seed the result, " +
+                    "or WithDefaultProcessResult(...) to accept any unconfigured command.");
             });
 
         var toolLocator = Substitute.For<IToolLocator>();
-        var resolvedToolPath = _toolPath ?? new FilePath("/dev/null");
-        toolLocator.Resolve(Arg.Any<string>()).Returns(resolvedToolPath);
-        toolLocator.Resolve(Arg.Any<IEnumerable<string>>()).Returns(resolvedToolPath);
+
+        // Lazy resolution: _toolPath / _defaultToolPath may be configured after construction.
+        toolLocator.Resolve(Arg.Any<string>())
+            .Returns(_ =>
+            {
+                if (_toolPath is not null) return _toolPath;
+                if (_defaultToolPath is not null) return _defaultToolPath;
+                throw new InvalidOperationException(
+                    "Tool path was not configured. " +
+                    "Call WithToolPath(path) for a specific tool, or WithDefaultToolPath(path) to accept any unconfigured tool.");
+            });
+        toolLocator.Resolve(Arg.Any<IEnumerable<string>>())
+            .Returns(_ =>
+            {
+                if (_toolPath is not null) return _toolPath;
+                if (_defaultToolPath is not null) return _defaultToolPath;
+                throw new InvalidOperationException(
+                    "Tool path was not configured. " +
+                    "Call WithToolPath(path) for a specific tool, or WithDefaultToolPath(path) to accept any unconfigured tool.");
+            });
 
         var globber = new Globber(_fileSystem, _environment);
 
@@ -286,5 +330,27 @@ public sealed class FakeCakeWorldV2
         context.Tools.Returns(toolLocator);
 
         return context;
+    }
+
+    private static FakeProcess CreateFakeProcess(int exitCode, string stdOut, string stdErr)
+    {
+        var process = new FakeProcess();
+        process.SetExitCode(exitCode);
+
+        var stdOutLines = stdOut
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        if (stdOutLines.Length > 0)
+        {
+            process.SetStandardOutput(stdOutLines);
+        }
+
+        if (!string.IsNullOrWhiteSpace(stdErr))
+        {
+            var stdErrLines = stdErr
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            process.SetStandardError(stdErrLines);
+        }
+
+        return process;
     }
 }

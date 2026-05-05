@@ -18,12 +18,19 @@ public sealed class InfoTask_Scenarios
 
         await Assert.That(result.Success).IsTrue();
         await Assert.That(result.Exception).IsNull();
+
+        await Assert.That(world.ProcessInvocations.Count)
+            .IsGreaterThanOrEqualTo(1);
+        var dotnetInv = world.ProcessInvocations[0];
+        await Assert.That(dotnetInv.Command.FullPath).Contains("dotnet");
+        await Assert.That(dotnetInv.Arguments).Contains("--version");
+        await Assert.That(dotnetInv.RedirectStandardOutput).IsTrue();
     }
 
-    // Additional scenario tests (dotnet failure, SDK version log assertion) deferred.
-    // InfoPipeline uses AnsiConsole.Status() (Spectre.Console interactive spinner),
-    // which requires a real terminal or per-test IAnsiConsole isolation. The Spectre
-    // static facade races with other parallel tests that also call AnsiConsole.Write().
-    // When InfoPipeline migrates to Targets/Info/ in P4, the spinner can be replaced
-    // with ICakeLog-based progress output, making it fully scenario-testable.
+    // DotNet failure-path scenario deferred. InfoPipeline uses AnsiConsole.Status()
+    // (Spectre.Console interactive spinner), which cannot run in two parallel test
+    // instances without IAnsiConsole injection. The fix (constructor-inject IAnsiConsole,
+    // Spectre.Console.Testing.TestConsole in FakeCakeWorldV2) is deferred to P4
+    // alongside the InfoTask migration. See docs/refactoring/p2a-v2-test-infrastructure-
+    // review-handoff.md §12 for the canonical fix plan.
 }
