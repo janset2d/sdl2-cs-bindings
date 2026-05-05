@@ -3,6 +3,7 @@ using Build.Host.Paths;
 using Build.Shared.Manifest;
 using Build.Shared.Runtime;
 using Cake.Core;
+using Cake.Core.IO;
 using Cake.Frosting;
 
 namespace Build.Host;
@@ -58,4 +59,18 @@ public sealed class BuildContext : FrostingContext
     /// individually DI-injectable for services that only need a single slice.
     /// </summary>
     public Configurations Options { get; }
+
+    // ── Named CLI properties (ADR-002 §6) ──
+
+    /// <summary>Resolved runtime identifier (e.g. "win-x64").</summary>
+    public string RuntimeIdentifier => Runtime.Rid;
+
+    /// <summary>Build configuration from --config CLI option. Default is "Release".</summary>
+    public string BuildConfiguration => ParsedArguments.Config;
+
+    /// <summary>Path to the resolved versions file (--versions-file or default output path).</summary>
+    public FilePath VersionsFilePath =>
+        !string.IsNullOrWhiteSpace(ParsedArguments.VersionsFile)
+            ? new FilePath(ParsedArguments.VersionsFile!)
+            : Paths.GetResolveVersionsOutputFile();
 }

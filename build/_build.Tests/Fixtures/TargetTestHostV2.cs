@@ -2,6 +2,7 @@ using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Frosting;
 using Microsoft.Extensions.DependencyInjection;
+using Spectre.Console;
 
 namespace Build.Tests.Fixtures;
 
@@ -57,6 +58,9 @@ public sealed class TargetTestHostV2<TTask> where TTask : class, IFrostingTask
 
         // The task class itself
         services.AddSingleton<TTask>();
+
+        // IAnsiConsole from the fake world (Spectre.Console.Testing.TestConsole)
+        services.AddSingleton<IAnsiConsole>(_world.AnsiConsole);
 
         // Target-specific registrations (e.g. AddInfoFeature)
         foreach (var register in _registrations)

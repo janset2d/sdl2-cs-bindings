@@ -106,6 +106,8 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     });
     services.AddSingleton(new DumpbinConfiguration([.. parsedArgs.Dll]));
 
+    services.AddSingleton<IAnsiConsole>(AnsiConsole.Console);
+
     // Configurations aggregate: 5 axes (Versioning slot retired in plan v4 — versioning
     // tasks read ParsedArguments directly). Tasks consume context.Options.X; services that
     // only need a single axis inject the sub-record directly.
