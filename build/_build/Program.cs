@@ -10,7 +10,7 @@ using Build.Features.Coverage;
 using Build.Features.DependencyAnalysis;
 using Build.Features.Diagnostics;
 using Build.Features.Harvesting;
-using Build.Features.Info;
+using Build.Targets.Info;
 using Build.Features.Maintenance;
 using Build.Features.Packaging;
 using Build.Features.Preflight;
@@ -108,6 +108,8 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
 
     services.AddSingleton<IAnsiConsole>(AnsiConsole.Console);
 
+    services.AddSingleton<InfoTask>();
+
     // Configurations aggregate: 5 axes (Versioning slot retired in plan v4 — versioning
     // tasks read ParsedArguments directly). Tasks consume context.Options.X; services that
     // only need a single axis inject the sub-record directly.
@@ -125,7 +127,6 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
         .AddHostBuildingBlocks(parsedArgs)
         .AddIntegrations()
         .AddToolWrappers()
-        .AddInfoFeature()
         .AddMaintenanceFeature()
         .AddCiFeature()
         .AddCoverageFeature()

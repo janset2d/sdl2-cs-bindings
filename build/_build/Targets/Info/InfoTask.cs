@@ -1,26 +1,33 @@
-# pragma warning disable CA1031
+#pragma warning disable CA1031
 
 using System.ComponentModel;
 using System.Runtime.InteropServices;
-using Build.Shared.Runtime;
+using Build.Host;
 using Cake.Common;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
+using Cake.Frosting;
 using Spectre.Console;
 
-namespace Build.Features.Info;
+namespace Build.Targets.Info;
 
-public sealed class InfoPipeline(ICakeContext cakeContext, ICakeLog log, IRuntimeProfile runtimeProfile)
+[TaskName("Info")]
+public sealed class InfoTask : AsyncFrostingTask<BuildContext>
 {
-    private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
-    private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
-    private readonly IRuntimeProfile _runtimeProfile = runtimeProfile ?? throw new ArgumentNullException(nameof(runtimeProfile));
+    private readonly IAnsiConsole _console;
 
-    public async Task RunAsync()
+    public InfoTask(IAnsiConsole console)
     {
-        AnsiConsole.Write(new FigletText("Build Info").Color(Color.CornflowerBlue));
-        AnsiConsole.WriteLine();
+        _console = console ?? throw new ArgumentNullException(nameof(console));
+    }
+
+    public override async Task RunAsync(BuildContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        _console.Write(new FigletText("Build Info").Color(Color.CornflowerBlue));
+        _console.WriteLine();
 
         var grid = new Grid()
             .AddColumn(new GridColumn().NoWrap().PadRight(2))
@@ -28,34 +35,34 @@ public sealed class InfoPipeline(ICakeContext cakeContext, ICakeLog log, IRuntim
 
         void AddRow(string key, string value) => grid.AddRow($"[bold aqua]{key}:[/]", value);
 
-        AddRow("Operating System", $"{_cakeContext.Environment.Platform.Family}");
+        AddRow("Operating System", $"{context.Environment.Platform.Family}");
         AddRow("OS Version", $"{Environment.OSVersion}");
         AddRow("OS Architecture", $"{RuntimeInformation.OSArchitecture}");
-        AddRow("Is 64-bit OS", $"[{(_cakeContext.Environment.Platform.Is64Bit ? "green" : "red")}]{_cakeContext.Environment.Platform.Is64Bit}[/]");
-        AddRow("Rid", _runtimeProfile.Rid);
-        AddRow("Vcpkg Triplet", _runtimeProfile.Triplet);
-        AddRow("Cake Version", $"{_cakeContext.Environment.Runtime.CakeVersion}");
+        AddRow("Is 64-bit OS", $"[{(context.Environment.Platform.Is64Bit ? "green" : "red")}]{context.Environment.Platform.Is64Bit}[/]");
+        AddRow("Rid", context.RuntimeIdentifier);
+        AddRow("Vcpkg Triplet", context.Runtime.Triplet);
+        AddRow("Cake Version", $"{context.Environment.Runtime.CakeVersion}");
         AddRow(".NET Version", $"{RuntimeInformation.FrameworkDescription}");
-        AddRow("Working Dir", $"{_cakeContext.Environment.WorkingDirectory.FullPath}");
+        AddRow("Working Dir", $"{context.Environment.WorkingDirectory.FullPath}");
 
-        AnsiConsole.Write(
+        _console.Write(
             new Panel(grid)
                 .Header("[yellow]Environment Details[/]")
                 .Border(BoxBorder.Rounded)
                 .BorderColor(Color.Grey)
                 .Padding(1, 1)
         );
-        AnsiConsole.WriteLine();
+        _console.WriteLine();
 
         var sdkVersion = "[grey]Unknown[/]";
-        await AnsiConsole.Status()
+        await _console.Status()
             .Spinner(Spinner.Known.Dots)
             .SpinnerStyle(Style.Parse("aqua"))
             .StartAsync("[aqua]Checking .NET SDK Version...[/]", _ =>
             {
                 try
                 {
-                    var process = _cakeContext.StartAndReturnProcess(
+                    var process = context.StartAndReturnProcess(
                         "dotnet",
                         new ProcessSettings { Arguments = "--version", RedirectStandardOutput = true, Silent = true }
                     );
@@ -82,18 +89,18 @@ public sealed class InfoPipeline(ICakeContext cakeContext, ICakeLog log, IRuntim
                 catch (Win32Exception)
                 {
                     sdkVersion = "[red]Not Found (Command failed)[/]";
-                    _log.Error("dotnet --version command failed (Win32Exception). Is the .NET SDK in PATH?");
+                    context.Log.Error("dotnet --version command failed (Win32Exception). Is the .NET SDK in PATH?");
                 }
                 catch (Exception ex)
                 {
                     sdkVersion = "[red]Error[/]";
-                    _log.Verbose($"Checking dotnet --version failed: {ex.Message}");
+                    context.Log.Verbose($"Checking dotnet --version failed: {ex.Message}");
                 }
 
                 return Task.FromResult(Task.CompletedTask);
             });
 
-        AnsiConsole.MarkupLine($"[bold aqua].NET SDK Version:[/] {sdkVersion}");
-        AnsiConsole.WriteLine();
+        _console.MarkupLine($"[bold aqua].NET SDK Version:[/] {sdkVersion}");
+        _console.WriteLine();
     }
 }
