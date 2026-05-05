@@ -1,0 +1,15 @@
+{
+  "schema_version": "2.1",
+  "packaging_config": {
+    "validation_mode": "Strict",
+    "core_library": "sdl2"
+  },
+  "runtimes": [],
+  "package_families": [],
+  "system_exclusions": {
+    "windows": { "dll_exact": [], "dll_prefix": [], "dll_suffix": [] },
+    "linux": { "so_exact": [], "so_prefix": [], "so_suffix": [] },
+    "osx": { "dylib_exact": [], "dylib_prefix": [], "dylib_suffix": [] }
+  },
+  "library_manifests": []
+}

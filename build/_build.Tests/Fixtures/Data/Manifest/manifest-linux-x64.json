@@ -1,0 +1,58 @@
+{
+  "schema_version": "2.1",
+  "packaging_config": {
+    "validation_mode": "Strict",
+    "core_library": "sdl2"
+  },
+  "runtimes": [
+    {
+      "rid": "linux-x64",
+      "triplet": "x64-linux-hybrid",
+      "ci_runner": "ubuntu-latest",
+      "container_image": "mcr.microsoft.com/dotnet/sdk:10.0-noble"
+    }
+  ],
+  "package_families": [
+    {
+      "name": "sdl2-core",
+      "tag_prefix": "sdl2-core/v",
+      "managed_project": "src/SDL2.Core/SDL2.Core.csproj",
+      "native_project": "src/SDL2.Core.Native/SDL2.Core.Native.csproj",
+      "library_ref": "sdl2",
+      "depends_on": [],
+      "change_paths": ["src/SDL2.Core/", "src/SDL2.Core.Native/"]
+    }
+  ],
+  "system_exclusions": {
+    "windows": {
+      "dll_exact": [],
+      "dll_prefix": [],
+      "dll_suffix": []
+    },
+    "linux": {
+      "so_exact": [],
+      "so_prefix": ["libc", "libdl", "libpthread", "librt", "libm", "ld-linux"],
+      "so_suffix": []
+    },
+    "osx": {
+      "dylib_exact": [],
+      "dylib_prefix": [],
+      "dylib_suffix": []
+    }
+  },
+  "library_manifests": [
+    {
+      "name": "SDL2",
+      "vcpkg_name": "sdl2",
+      "vcpkg_version": "2.32.10",
+      "vcpkg_port_version": 0,
+      "native_lib_name": "SDL2",
+      "core_lib": true,
+      "primary_binaries": [
+        {"os": "windows", "patterns": ["SDL2.dll"]},
+        {"os": "linux", "patterns": ["libSDL2-2.0.so*"]},
+        {"os": "osx", "patterns": ["libSDL2-2.0*.dylib"]}
+      ]
+    }
+  ]
+}

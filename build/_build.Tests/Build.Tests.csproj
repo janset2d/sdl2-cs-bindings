@@ -22,6 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Spectre.Console.Testing" />
     <PackageReference Include="TUnit" />
     <PackageReference Include="NSubstitute" />
     <PackageReference Include="Cake.Testing" />
@@ -30,5 +31,6 @@
   <ItemGroup>
     <!-- Canonical fixture data shipped alongside tests. Loaded by ManifestConfigSeeder.FromDefaultFixture(). -->
     <None Update="Fixtures\Data\**\*.*" CopyToOutputDirectory="PreserveNewest" />
+    <EmbeddedResource Include="Fixtures\Data\**\*.json" />
   </ItemGroup>
 </Project>
