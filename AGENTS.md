@@ -211,24 +211,70 @@ Issue tracking is part of the delivery lifecycle.
 - When possible, reference issues in commits (`refs #123` / `closes #123`).
 - Deferred work goes to canonical docs or backlog issues — never implied.
 
-## Agent Guidance: dotnet-skills
+## Skills Used in This Project
 
-Prefer retrieval-led reasoning over pretraining for .NET work. Workflow: skim repo patterns → consult `dotnet-skills` by name → implement smallest-change → note conflicts.
+Skills encode workflow discipline and retrieval-led reasoning — not optional decoration. Workflow: skim repo patterns → consult skills by name (`Skill` tool) → implement smallest-change → note conflicts. Specialist agents (`Agent` tool) handle delegated scope. Order of precedence: **process skills first**, **implementation skills second**.
 
-Routing (invoke by name):
+### Tier 1 — Always Active (Essential)
 
-- C# / code quality: `modern-csharp-coding-standards`, `csharp-concurrency-patterns`, `api-design`, `type-design-performance`
-- ASP.NET / Aspire: `aspire-service-defaults`, `aspire-integration-testing`, `transactional-emails`
-- Data: `efcore-patterns`, `database-performance`
-- DI / config: `dependency-injection-patterns`, `microsoft-extensions-configuration`
-- Testing: `testcontainers-integration-tests`, `playwright-blazor-testing`, `snapshot-testing`
+Run by default; no trigger needed.
 
-Quality gates:
+**Process discipline (`superpowers:*`):**
 
-- `dotnet-slopwatch`: after substantial new / refactor / LLM-authored code
-- `crap-analysis`: after tests added / changed in complex code
+| Skill | Why it's mandatory |
+| --- | --- |
+| `using-superpowers` | meta — establishes skill discovery; loaded at session start |
+| `brainstorming` | every feature / refactor / design pass — pairs with §Approval Gate |
+| `writing-plans` | multi-step tasks need a written plan before code |
+| `test-driven-development` | TUnit + characterization tests are a settled decision (§Settled Strategic Decisions) |
+| `verification-before-completion` | "evidence before assertions" — required before claiming done |
+| `systematic-debugging` | every bug / test failure / unexpected behavior — no shotgun debugging |
+| `requesting-code-review` / `receiving-code-review` | enforces §When Deniz Asks For A Review structure |
 
-Specialist agents available: `dotnet-concurrency-specialist`, `dotnet-performance-analyst`, `dotnet-benchmark-designer`, `akka-net-specialist`, `docfx-specialist`.
+**.NET core (stack-mandated, `dotnet-skills:*`):**
+
+| Skill | Why it's mandatory |
+| --- | --- |
+| `dotnet-project-structure` | `Directory.Build.props` (×3), `Directory.Packages.props`, `global.json` already in use — changes must respect the model |
+| `package-management` | CPM is active; `Janset.SDL2.*` NuGets are the public deliverable |
+| `modern-csharp-coding-standards` | .NET 10 / C# 14 baseline; records, pattern matching, primary ctors are in scope |
+| `api-design` | public NuGet API + D-3seg versioning (G54) require extend-only discipline |
+| `dotnet-local-tools` | Cake and friends are pinned via `dotnet-tools.json` |
+
+### Tier 2 — Context-Triggered
+
+Decision rows: skill ↔ trigger ↔ reason ↔ action. Invoke only when the trigger fires; do not pre-emptively load.
+
+| Skill | When (trigger) | Why (reason) | How (action) |
+| --- | --- | --- | --- |
+| `dotnet-slopwatch` | after substantial new / refactor / LLM-authored code | catches disabled tests, suppressed warnings, empty catch blocks | run before declaring complete; treat findings as gating |
+| `type-design-performance` | designing P/Invoke structs, hot-path types, sealed/readonly choices | bindings cross managed↔native boundary; struct layout matters | invoke when touching `SDL2.Core` types or interop wrappers |
+| `csharp-concurrency-patterns` | adding async / `Task.Run` / `lock` / `Channel<T>` | wrong primitive → deadlocks or wasted threads | invoke before adding any synchronization primitive |
+| `dependency-injection-patterns` | adding/editing `Features/<X>/ServiceCollectionExtensions.cs` or composition root | feature-oriented host relies on grouped registrations (§Build-Host Reference Pattern) | invoke when wiring a new feature module |
+| `microsoft-extensions-configuration` | new strongly-typed config / `IOptions` / `IValidateOptions` | settings drift causes silent CI failures | invoke when adding `BuildContext`-adjacent config |
+| `crap-analysis` | tests added/changed in complex code | flags untested high-complexity paths | invoke after non-trivial test additions |
+| `snapshot-testing` | manifest / nuspec / harvest-output baseline work | catches unintended schema/output drift | invoke when designing characterization tests with structured output |
+| `ilspy-decompile` | inspecting SDL2-CS internals, NuGet payloads, framework behavior | external binaries are opaque without decompilation | invoke before assuming behavior of imported assemblies |
+| `using-git-worktrees` | parallel feature work needing workspace isolation | prevents stomping in-progress changes | invoke before starting an isolated branch |
+| `executing-plans` | executing a written plan in a separate session | enforces review checkpoints | invoke after `writing-plans` produces a plan |
+| `subagent-driven-development` / `dispatching-parallel-agents` | independent tasks suitable for parallelism | maximizes throughput without context bleed | invoke when ≥2 tasks have no shared state |
+| `finishing-a-development-branch` | implementation complete, tests green | structures merge/PR/cleanup decision | invoke before commit-and-push |
+
+### Tier 3 — Specialist Agents (`Agent` tool)
+
+Delegate when scope or analysis depth warrants it:
+
+- `dotnet-concurrency-specialist` — racy tests, deadlocks, async timing bugs
+- `dotnet-performance-analyst` — profiler/benchmark interpretation, regression detection
+- `dotnet-benchmark-designer` — designing new BenchmarkDotNet suites
+- `roslyn-incremental-generator-specialist` — Phase 4 CppAst binding generator
+- `Explore` — broad codebase search (>3 query rounds)
+- `Plan` — implementation strategy design
+
+### Out of Scope (Skip)
+
+Not applicable to this stack — do not invoke without explicit reason:
+`akka-net-*`, `aspire-*`, `mailpit`, `mjml-*`, `verify-email-snapshots`, `efcore-patterns`, `database-performance`, `testcontainers-integration-tests`, `playwright-*`, `dotnet-devcert-trust`, `OpenTelemetry-NET-Instrumentation`, `marketplace-publishing`, `skills-index-snippets`, `docfx-specialist`.
 
 ## When Deniz Asks For A Review
 

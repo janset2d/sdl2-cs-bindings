@@ -450,3 +450,4 @@ build/_build/.cake/
 tests/smoke-tests/native-smoke/CMakeUserPresets.json
 
 .mcp.json
+.slopwatch

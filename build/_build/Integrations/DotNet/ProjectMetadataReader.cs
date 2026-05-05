@@ -40,10 +40,7 @@ public sealed class ProjectMetadataReader(ICakeContext cakeContext, ICakeLog log
         _log.Verbose("Resolving project metadata for '{0}' via dotnet msbuild -getProperty.", projectPath.FullPath);
 
         var capturedLines = new List<string>();
-        _cakeContext.DotNetMSBuild(
-            projectPath.FullPath,
-            settings,
-            lines => capturedLines.AddRange(lines));
+        _cakeContext.DotNetMSBuild(projectPath.FullPath, settings, capturedLines.AddRange);
 
         if (!TryParseProperties(capturedLines, projectPath, out var properties, out var parseError))
         {
