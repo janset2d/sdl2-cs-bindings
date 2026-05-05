@@ -12,6 +12,7 @@ using Cake.Core.IO;
 using Cake.Core.Tooling;
 using Cake.Testing;
 using NSubstitute;
+using Spectre.Console.Testing;
 
 namespace Build.Tests.Fixtures;
 
@@ -50,6 +51,8 @@ public sealed class FakeCakeWorldV2
 
     public IReadOnlyList<ProcessInvocation> ProcessInvocations => _processInvocations;
 
+    public TestConsole AnsiConsole { get; } = new();
+
     private FakeCakeWorldV2(FakeRepoPlatformV2 platform, string? repoRoot)
     {
         _environment = platform switch
@@ -70,6 +73,33 @@ public sealed class FakeCakeWorldV2
         string? repoRoot = null)
     {
         return new FakeCakeWorldV2(platform, repoRoot);
+    }
+
+    public static FakeCakeWorldV2 CreateWindows(string? repoRoot = null)
+    {
+        var world = new FakeCakeWorldV2(FakeRepoPlatformV2.Windows, repoRoot);
+        var manifestContent = FixtureLoader.Load("Manifest/manifest-win-x64.json");
+        world.WithManifestFile(manifestContent);
+        world.WithDefaultProcessResult(exitCode: 0, stdOut: "", stdErr: "");
+        return world;
+    }
+
+    public static FakeCakeWorldV2 CreateLinux(string? repoRoot = null)
+    {
+        var world = new FakeCakeWorldV2(FakeRepoPlatformV2.Unix, repoRoot);
+        var manifestContent = FixtureLoader.Load("Manifest/manifest-linux-x64.json");
+        world.WithManifestFile(manifestContent);
+        world.WithDefaultProcessResult(exitCode: 0, stdOut: "", stdErr: "");
+        return world;
+    }
+
+    public static FakeCakeWorldV2 CreateOsx(string? repoRoot = null)
+    {
+        var world = new FakeCakeWorldV2(FakeRepoPlatformV2.Unix, repoRoot);
+        var manifestContent = FixtureLoader.Load("Manifest/manifest-osx-x64.json");
+        world.WithManifestFile(manifestContent);
+        world.WithDefaultProcessResult(exitCode: 0, stdOut: "", stdErr: "");
+        return world;
     }
 
     // ── fluent seeders ──

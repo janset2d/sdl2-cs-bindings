@@ -23,13 +23,14 @@
     <PackageVersion Include="OneOf.Monads" Version="1.21.0" />
     <PackageVersion Include="OneOf.SourceGenerator" Version="3.0.271" />
     <PackageVersion Include="PolySharp" Version="1.15.0" />
+    <PackageVersion Include="Spectre.Console.Testing" Version="0.54.0" />
     <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
     <PackageVersion Include="System.CommandLine.NamingConventionBinder" Version="2.0.0-beta4.22272.1" />
     <PackageVersion Include="System.Memory" Version="4.6.3" />
     <PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
     <!-- used by repo-root tools.cs (file-based dev-orchestration script) -->
-    <PackageVersion Include="Spectre.Console" Version="0.49.1" />
-    <PackageVersion Include="Spectre.Console.Cli" Version="0.49.1" />
+    <PackageVersion Include="Spectre.Console" Version="0.54.0" />
+    <PackageVersion Include="Spectre.Console.Cli" Version="0.54.0" />
     <PackageVersion Include="CliWrap" Version="3.10.1" />
     <!-- test packages -->
     <PackageVersion Include="TUnit" Version="1.33.0" />
