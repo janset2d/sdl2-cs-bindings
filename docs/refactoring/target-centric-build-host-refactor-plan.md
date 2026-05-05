@@ -612,11 +612,11 @@ Exit criteria:
 
 ### P2a polish — Deferred items for P3
 
-The following items were identified during the P2a V2 test infrastructure review (see `docs/refactoring/p2a-v2-test-infrastructure-review-handoff.md`) and are deferred to P3:
+The following items were identified during the P2a V2 test infrastructure review and are deferred to P3:
 
 1. **Host composition parity (§3-5).** `TargetTestHostV2` currently builds its DI container manually. Move to production `AddHostBuildingBlocks(parsedArgs)` plus documented fake overrides. Register fake Cake primitives (`ICakeContext`, `ICakeLog`, `ICakeEnvironment`, `IFileSystem`, `IGlobber`, `ICakeArguments`, `ICakeConfiguration`) and configuration records (`RepositoryConfiguration`, `VcpkgConfiguration`, `PackageBuildConfiguration`, `DotNetBuildConfiguration`, `DumpbinConfiguration`) before calling `AddHostBuildingBlocks`. Use `Microsoft.Extensions.DependencyInjection.Extensions.Replace` where override intent matters. Build `BuildContext` from provider-resolved production-shaped services instead of manual construction.
 2. **`IRuntimeProfile` production behavior.** Remove `Substitute.For<IRuntimeProfile>()` from `ToLegacyBuildContext`. Use the `IRuntimeProfile` resolved from `AddHostBuildingBlocks(parsedArgs)`. This makes `IsSystemFile(string)` use production-shaped data.
-3. **Runtime-bearing fake manifest.** The default fake manifest must include at least one `RuntimeInfo` matching the world's active RID, plus populated `SystemExclusions` for `IsSystemFile(...)` to work. Provide pre-built `RuntimeConfig` fixtures as test framework building blocks so tests can exercise RID-specific behavior without constructing manifests from scratch.
+3. **Runtime-bearing fake manifest and `RuntimeConfig` fixtures.** The default fake manifest must include at least one `RuntimeInfo` matching the world's active RID, plus populated `SystemExclusions` for `IsSystemFile(...)` to work. Provide pre-built `RuntimeConfig` fixtures as test framework building blocks under `Fixtures/Data/` so tests can exercise RID-specific behavior (`IsSystemFile`, platform predication, triplet resolution) without constructing manifests from scratch. Fixture variants should cover at minimum: `win-x64`, `linux-x64`, `osx-x64`; optionally parameterized via TUnit data-driven tests for broader RID coverage.
 4. **Shim behavior tests.** Once `TargetTestHostV2` uses production host composition, add tests for `ToLegacyBuildContext`: Windows/Linux/macOS RID → `RuntimeFamily` + triplet, configured `Rid`/`Config` → `ParsedArguments`, repo root → `PathService`, manifest instance propagation, default manifest validity.
 5. **`ToLegacyBuildContext` retirement tracking.** The shim retires when `Host/Configuration` and `Configurations` retire. P5 must remove the shim or explicitly document any remaining bridge. Add to the refactoring plan P5 tasks.
 
@@ -678,12 +678,13 @@ Tasks per target:
 
 **Info target — IAnsiConsole injection.** `InfoPipeline` is the only build-host class using Spectre.Console interactive widgets (`Status().StartAsync()`). The static `AnsiConsole` facade prevents parallel scenario testing and couples to a global console. During the `InfoTask` migration:
 
-1. Add `Spectre.Console.Testing` package for test-side `TestConsole`.
+1. Add `Spectre.Console.Testing` package (`Spectre.Console.Testing.TestConsole`) for test-side console isolation. Each `TestConsole` ships with `NoopExclusivityMode` — zero-throw, fully parallel-safe.
 2. Register `IAnsiConsole` in production `Program.cs`: `services.AddSingleton<IAnsiConsole>(AnsiConsole.Console)`.
-3. Constructor-inject `IAnsiConsole` into `InfoPipeline`. Replace all static `AnsiConsole.X` calls with `_console.X`.
-4. Audit and migrate all non-interactive `AnsiConsole` call sites (`OtoolAnalyzePipeline`, `HarvestPipeline`, `Program.cs`) to `IAnsiConsole` injection for consistency.
-5. `FakeCakeWorldV2` exposes a `TestConsole` instance per world. `TargetTestHostV2` registers it as `IAnsiConsole` alongside other Cake primitives.
-6. This unblocks the `InfoTask` failure-path scenario test (dotnet non-zero exit code) and full log/output assertions.
+3. Constructor-inject `IAnsiConsole` into `InfoPipeline`. Replace every static `AnsiConsole.X` call (`Write`, `MarkupLine`, `Status().StartAsync()`) with `_console.X`.
+4. Audit and migrate all remaining static `AnsiConsole` call sites in the build host (`OtoolAnalyzePipeline.Write/MarkupLine`, `HarvestPipeline.Write`, `Program.cs MarkupLine`) to `IAnsiConsole` injection for consistency. These are non-interactive calls that do not race today but should use the injected console for testability.
+5. `FakeCakeWorldV2` exposes a `Spectre.Console.Testing.TestConsole` instance per world: `public TestConsole AnsiConsole { get; } = new();`.
+6. `TargetTestHostV2.RunAsync` registers it as `IAnsiConsole` alongside other Cake primitives: `services.AddSingleton<IAnsiConsole>(_world.AnsiConsole)`.
+7. This unblocks the `InfoTask` failure-path scenario test (dotnet non-zero exit code), full log/output assertions, and the two deferred `InfoTask_Scenarios` tests.
 
 Exit criteria:
 

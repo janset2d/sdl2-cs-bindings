@@ -118,3 +118,28 @@ Use this checklist for each ADR-002 migration slice.
 - [ ] The agreed validation command was run for the slice.
 - [ ] Commit summary and proposed commit message were presented before committing.
 
+## 13. V2 test infrastructure
+
+- [ ] New and migrated tests use V2 infra (`FakeCakeWorldV2`, `TestLogV2`, `TargetTestHostV2<TTask>`).
+- [ ] Process commands are configured via `WithProcessResult(...)` or the explicit `WithDefaultProcessResult(...)` API.
+- [ ] Unconfigured process commands fail fast — no silent "exit code 0" default.
+- [ ] Tool paths are configured via `WithToolPath(...)` or the explicit `WithDefaultToolPath(...)` API.
+- [ ] Scenario tests assert on `ProcessInvocations` when process behavior matters.
+- [ ] `TargetTestHostV2<TTask>` constraint uses `IFrostingTask` — both sync and async tasks are supported.
+- [ ] `ToLegacyBuildContext` is used only as a compatibility bridge; new tasks inject named services directly.
+- [ ] V1 fixtures (`FakeRepoBuilder`, `TestHostFixture`) are not extended — only unmigrated code uses them.
+
+### Test migration rule
+
+When a production target is migrated to `Targets/<CakeTargetName>/`, its existing tests under `Unit/Features/<OldFeature>/` must migrate to V2 test infrastructure in the same migration slice. New unit tests go under `Unit/Targets/<CakeTargetName>/`, new scenarios under `Scenarios/<CakeTargetName>/`.
+
+## 14. Non-actions (do not reopen without explicit approval)
+
+- [ ] `FakeRepoPlatformV2.Unix` was not split into Linux and macOS.
+- [ ] `HasMessageExact(...)` was not added to `TestLogV2` unnecessarily.
+- [ ] No reflection-based shim usage tracker or architecture-police test was added.
+- [ ] Production `InfoPipeline` / Spectre.Console output was not refactored outside the P4 `IAnsiConsole` injection slice.
+- [ ] `System.IO.Abstractions` was not introduced.
+- [ ] Giant abstract `TestBase` was not introduced.
+- [ ] `Spectre.Console.Testing.TestConsole` was not used outside `FakeCakeWorldV2`.
+
