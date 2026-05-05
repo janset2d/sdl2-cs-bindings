@@ -758,12 +758,14 @@ Tasks:
    - report warnings/errors;
    - throw once if fatal.
 6. Add scenario coverage for success and representative failure cases.
+7. Add (or strengthen) a manifest lowercase invariant validator: every `manifest.package_families[].name` must match `^sdl[0-9]+-[a-z][a-z0-9-]*$`. P2b's `PackageFamilyId` uses ordinal-exact equality; the manifest is canonical-lowercase by convention, but a hand-edited mixed-case entry (`SDL2-Core`) would silently bypass legacy ignore-case lookups and then break `PackageFamilyId` lookups in P3+/P4+ consumers. PreFlight is the canonical home for this contract.
 
 Exit criteria:
 
 - `PreFlightCheckTask` tells the validation story directly.
 - Validators are named by the rule they enforce.
 - No generic `PreflightPipeline` remains.
+- Manifest lowercase invariant is enforced on every `package_families[].name`.
 
 ### P7 - Package migration
 
@@ -1003,6 +1005,7 @@ These are intentionally deferred until code pressure gives better information.
 | Whether `RuntimeId` is needed | Add a string-backed value object if raw RID strings keep crossing target/service boundaries. |
 | Whether a scenario base class earns its keep | Default no; allow a narrow domain-specific scenario DSL later. |
 | How fast `Characterization` disappears | Keep during migration, promote valuable tests to `Scenarios`, delete implementation-shape tests at the end. |
+| Whether named-concept folders stay root-level long-term | ADR §7 places `Manifest`, `Runtime`, `Versioning`, `Packaging`, `Results`, and repositories as root-level siblings of `Targets/`. P2b ships `Versioning/` and `Results/` at root accordingly. **Revisit after P10**: with all named concepts and repositories live, reassess whether the resulting root-level fan-out (`Targets/`, `Tools/`, plus 5–7 named concepts) reads cleanly or warrants an ADR-002 amendment introducing a parent grouping. No relocation should be made mid-refactor — folder churn during target migrations is more expensive than a single post-refactor reorganization slice. |
 
 ## 15. Anti-goals
 
