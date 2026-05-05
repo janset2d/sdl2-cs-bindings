@@ -6,15 +6,30 @@ namespace Build.Tests.Fixtures;
 
 public sealed class TestLogV2 : ICakeLog
 {
+    private readonly Lock _lock = new();
     private readonly List<LogEntry> _entries = [];
 
     public Verbosity Verbosity { get; set; } = Verbosity.Normal;
 
-    public IReadOnlyList<LogEntry> Entries => _entries;
+    public IReadOnlyList<LogEntry> Entries
+    {
+        get { lock (_lock) { return _entries.ToList(); } }
+    }
 
-    public int ErrorCount => _entries.Count(e => e.Level == LogLevel.Error);
-    public int WarningCount => _entries.Count(e => e.Level == LogLevel.Warning);
-    public int InfoCount => _entries.Count(e => e.Level == LogLevel.Information);
+    public int ErrorCount
+    {
+        get { lock (_lock) { return _entries.Count(e => e.Level == LogLevel.Error); } }
+    }
+
+    public int WarningCount
+    {
+        get { lock (_lock) { return _entries.Count(e => e.Level == LogLevel.Warning); } }
+    }
+
+    public int InfoCount
+    {
+        get { lock (_lock) { return _entries.Count(e => e.Level == LogLevel.Information); } }
+    }
 
     public void Write(Verbosity verbosity, LogLevel level, string format, params object[] args)
     {
@@ -27,19 +42,28 @@ public sealed class TestLogV2 : ICakeLog
             ? string.Format(CultureInfo.InvariantCulture, format, args)
             : format;
 
-        _entries.Add(new LogEntry(level, message, verbosity));
+        lock (_lock)
+        {
+            _entries.Add(new LogEntry(level, message, verbosity));
+        }
     }
 
     public bool HasMessage(LogLevel level, string contains)
     {
-        return _entries.Any(e =>
-            e.Level == level &&
-            e.Message.Contains(contains, StringComparison.OrdinalIgnoreCase));
+        lock (_lock)
+        {
+            return _entries.Any(e =>
+                e.Level == level &&
+                e.Message.Contains(contains, StringComparison.OrdinalIgnoreCase));
+        }
     }
 
     public bool HasNoMessages(LogLevel level)
     {
-        return !_entries.Any(e => e.Level == level);
+        lock (_lock)
+        {
+            return !_entries.Any(e => e.Level == level);
+        }
     }
 }
 

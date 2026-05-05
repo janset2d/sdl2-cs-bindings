@@ -1,13 +1,11 @@
-#pragma warning disable CA1031
-
-using System.Runtime.ExceptionServices;
-using Build.Host;
+using Cake.Core;
+using Cake.Core.Diagnostics;
 using Cake.Frosting;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Build.Tests.Fixtures;
 
-public sealed class TargetTestHostV2<TTask> where TTask : AsyncFrostingTask<BuildContext>
+public sealed class TargetTestHostV2<TTask> where TTask : class, IFrostingTask
 {
     private readonly FakeCakeWorldV2 _world;
     private readonly List<Action<IServiceCollection>> _registrations = [];
@@ -37,7 +35,7 @@ public sealed class TargetTestHostV2<TTask> where TTask : AsyncFrostingTask<Buil
 
         // Cake primitives from the fake world
         services.AddSingleton(_world.CakeContext);
-        services.AddSingleton<Cake.Core.Diagnostics.ICakeLog>(_world.Log);
+        services.AddSingleton<ICakeLog>(_world.Log);
         services.AddSingleton(_world.CakeContext.Environment);
         services.AddSingleton(_world.CakeContext.FileSystem);
         services.AddSingleton(_world.CakeContext.Globber);
@@ -71,13 +69,19 @@ public sealed class TargetTestHostV2<TTask> where TTask : AsyncFrostingTask<Buil
 
         try
         {
+            // IFrostingTask.RunAsync works for both sync FrostingTask<T> and
+            // async AsyncFrostingTask<T>. BuildContext implements ICakeContext
+            // through FrostingContext → CakeContext.
             await task.RunAsync(buildContext);
             return new TargetRunResultV2(true, null, _world.Log);
         }
+#pragma warning disable CA1031
+        // Test harness intentionally captures all exception types so scenario
+        // tests can assert on failure modes without losing the log.
         catch (Exception ex)
+#pragma warning restore CA1031
         {
-            var captured = ExceptionDispatchInfo.Capture(ex);
-            return new TargetRunResultV2(false, captured.SourceException, _world.Log);
+            return new TargetRunResultV2(false, ex, _world.Log);
         }
     }
 }
