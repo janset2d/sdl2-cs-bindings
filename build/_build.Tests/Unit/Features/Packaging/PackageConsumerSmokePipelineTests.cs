@@ -6,6 +6,7 @@ using Build.Shared.Runtime;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
+using Build.Tests.Fixtures;
 using NSubstitute;
 using NuGet.Versioning;
 
@@ -69,7 +70,7 @@ public sealed class PackageConsumerSmokeRunnerTests
         cakeContext.Log.Returns(Substitute.For<ICakeLog>());
         var log = Substitute.For<ICakeLog>();
         var pathService = Substitute.For<IPathService>();
-        var manifestConfig = Fixtures.ManifestFixture.CreateTestManifestConfig();
+        var manifestConfig = ManifestFixture.CreateTestManifestConfig();
         var dotNetConfig = new DotNetBuildConfiguration("Release");
         var projectMetadataReader = Substitute.For<IProjectMetadataReader>();
         var dotNetRuntimeEnvironment = Substitute.For<IDotNetRuntimeEnvironment>();
