@@ -8,7 +8,8 @@
     {
       "rid": "win-x64",
       "triplet": "x64-windows-hybrid",
-      "ci_runner": "windows-latest",
+      "strategy": "hybrid-static",
+      "runner": "windows-latest",
       "container_image": null
     }
   ],
@@ -25,19 +26,13 @@
   ],
   "system_exclusions": {
     "windows": {
-      "dll_exact": ["kernel32.dll", "user32.dll", "ntdll.dll"],
-      "dll_prefix": [],
-      "dll_suffix": []
+      "system_dlls": ["kernel32.dll", "user32.dll", "ntdll.dll"]
     },
     "linux": {
-      "so_exact": [],
-      "so_prefix": ["libc", "libdl", "libpthread", "librt", "libm"],
-      "so_suffix": []
+      "system_libraries": ["libc", "libdl", "libpthread", "librt", "libm"]
     },
     "osx": {
-      "dylib_exact": [],
-      "dylib_prefix": ["/usr/lib/", "/System/Library/"],
-      "dylib_suffix": []
+      "system_libraries": ["/usr/lib/", "/System/Library/"]
     }
   },
   "library_manifests": [

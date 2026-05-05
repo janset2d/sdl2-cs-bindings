@@ -8,7 +8,8 @@
     {
       "rid": "osx-x64",
       "triplet": "x64-osx-hybrid",
-      "ci_runner": "macos-latest",
+      "strategy": "hybrid-static",
+      "runner": "macos-latest",
       "container_image": null
     }
   ],
@@ -25,19 +26,13 @@
   ],
   "system_exclusions": {
     "windows": {
-      "dll_exact": [],
-      "dll_prefix": [],
-      "dll_suffix": []
+      "system_dlls": []
     },
     "linux": {
-      "so_exact": [],
-      "so_prefix": [],
-      "so_suffix": []
+      "system_libraries": []
     },
     "osx": {
-      "dylib_exact": [],
-      "dylib_prefix": ["/usr/lib/", "/System/Library/"],
-      "dylib_suffix": []
+      "system_libraries": ["/usr/lib/", "/System/Library/"]
     }
   },
   "library_manifests": [

@@ -8,7 +8,8 @@
     {
       "rid": "linux-x64",
       "triplet": "x64-linux-hybrid",
-      "ci_runner": "ubuntu-latest",
+      "strategy": "hybrid-static",
+      "runner": "ubuntu-latest",
       "container_image": "mcr.microsoft.com/dotnet/sdk:10.0-noble"
     }
   ],
@@ -25,19 +26,13 @@
   ],
   "system_exclusions": {
     "windows": {
-      "dll_exact": [],
-      "dll_prefix": [],
-      "dll_suffix": []
+      "system_dlls": []
     },
     "linux": {
-      "so_exact": [],
-      "so_prefix": ["libc", "libdl", "libpthread", "librt", "libm", "ld-linux"],
-      "so_suffix": []
+      "system_libraries": ["libc", "libdl", "libpthread", "librt", "libm", "ld-linux"]
     },
     "osx": {
-      "dylib_exact": [],
-      "dylib_prefix": [],
-      "dylib_suffix": []
+      "system_libraries": []
     }
   },
   "library_manifests": [
