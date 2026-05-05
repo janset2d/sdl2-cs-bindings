@@ -85,7 +85,7 @@ Final unless Deniz explicitly reopens.
 | LGPL-free codec stack | Drop mpg123 / libxmp / fluidsynth; use bundled minimp3 / drflac / libmodplug / Timidity / native MIDI |
 | tar.gz for Unix symlinks | NuGet can't preserve symlinks; `buildTransitive/Janset.SDL2.Native.Common.targets` extracts at consumer build time |
 | D-3seg versioning | `<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>` per family; UpstreamMajor.Minor anchored to `manifest.library_manifests[].vcpkg_version` (G54) |
-| Triplet name = strategy | `manifest.runtimes[].strategy` is the formal mapping; no `--strategy` CLI flag |
+| Hybrid-static encoded by triplets | Triplet names encode the build model; ADR-002 retires `manifest.runtimes[].strategy` during the target-centric build-host refactor. No `--strategy` CLI flag |
 | Validator uses vcpkg metadata | No manually maintained expected-deps lists; binary closure walker output is ground truth |
 | Package-first consumer contract | Smoke / sample / sandbox csprojs consume packages via local folder feed; `Janset.Local.props` carries family versions |
 | CppAst for binding autogen | Phase 4 — replaces SDL2-CS imports |
@@ -115,31 +115,54 @@ Examples:
 - Strong preference for tests when changing behavior.
 - Cross-platform correctness is critical — always consider all 3 OS families.
 - vcpkg and Cake Frosting are the build backbone — proposals must work within these tools.
+- Prefer small public sealed classes with explicit collaborators over large classes with many private helper methods. Private methods are for local mechanics and narrative flow. If a private method contains business rules, branching-heavy logic, algorithmic behavior, or deserves independent tests, extract it into a named collaborator. Do not create ceremonial interfaces for single-implementation classes. See [`docs/refactoring/extraction-guidelines.md`](docs/refactoring/extraction-guidelines.md) for the full decision tree.
 
 ## Build-Host Reference Pattern
 
-The Cake build host (`build/_build/`) follows a Cake-native feature-oriented architecture:
+The Cake build host (`build/_build/`) is migrating to the target-centric architecture accepted in [`docs/decisions/2026-05-05-target-centric-build-host.md`](docs/decisions/2026-05-05-target-centric-build-host.md). Treat that ADR plus [`docs/refactoring/target-centric-build-host-refactor-plan.md`](docs/refactoring/target-centric-build-host-refactor-plan.md) as canonical for new build-host work and refactoring. Existing code may still contain the old `Features/`, `Shared/`, `Integrations/`, `Host/Configuration`, `*Pipeline`, strategy, and coverage-gate shapes until the migration reaches them.
 
-| Folder | Role |
+Target architecture:
+
+| Concept | Rule |
 | --- | --- |
-| `Host/` | Cake/Frosting runtime, CLI parsing, `BuildContext`, composition root, paths |
-| `Features/<X>/` | Operational vertical slice — Task + optional Pipeline + validators + `Request` DTOs + `ServiceCollectionExtensions.cs` |
-| `Shared/` | Build-domain vocabulary (manifest models, runtime types, results); no Cake deps, no I/O |
-| `Tools/` | Cake `Tool<TSettings>` wrappers ONLY (vcpkg, dumpbin, ldd, otool, tar, cmake, native-smoke) |
-| `Integrations/` | Non-Cake-Tool external adapters (NuGet client, dotnet pack invoker, project metadata reader, etc.) |
+| `Targets/<CakeTargetName>/` | Primary navigation unit. Folder names follow Cake target names from `tools.cs`, `release.yml`, and `[TaskName]`. |
+| Task class | Owns high-level orchestration, target input validation, request construction, expected-error reporting, and `CakeException` translation. |
+| Request DTO | Immutable input contract passed from a task to collaborators when useful. It does not replace the Cake `RunAsync(BuildContext context)` signature. |
+| Target collaborators | Named behavior/policy/IO adapters extracted only when complexity, reuse, testability, dependencies, or change reasons justify it. |
+| Named concepts | Cross-target code is promoted only to real concepts such as `Manifest`, `Runtime`, `Versioning`, `Packaging`, `Results`, or file-backed repositories. |
+| `Integrations/` | Not a default target-state layer. Existing adapters should move to target-local services, named concepts, or `Tools/` if they are Cake `Tool<TSettings>` wrappers. |
+| `Tools/` | Cake `Tool<TSettings>` wrappers ONLY (vcpkg, dumpbin, ldd, otool, tar, cmake, native-smoke). |
 
-Direction-of-dependency invariants are enforced by `build/_build.Tests/Unit/CompositionRoot/ArchitectureTests.cs`.
+For new or migrated build-host work:
 
-For new build-host work:
+- **Tasks are not pass-through shells.** Simple targets may keep behavior inline; larger targets extract named collaborators instead of mandatory pipelines.
+- **Requests are earned but standard for non-trivial behavior.** Non-trivial executable targets use `<Target>Request` when collaborators need stable input; trivial/no-op/default/fully-inline targets are exempt.
+- **Cake targets model user-visible lifecycle.** Do not split large work into internal pseudo-target chains just to reduce LOC; use named collaborators.
+- **Retire `*Pipeline` as a default pattern.** Do not replace it with generic `Runner` / `Operation` / `Processor` wrappers.
+- **Retire `Host/Configuration`.** `BuildContext` exposes named readonly CLI properties; file-backed state flows through repositories such as `ManifestRepository` and `VersionFileRepository`.
+- **No catch-all `Shared` / `Common`.** Promote code only when it represents a named concept; otherwise keep it with the target that owns it.
+- **Reuse must be real.** A second real consumer must exist, or be introduced in the same migration slice/phase, before code is promoted out of a target.
+- **Interface discipline remains hybrid.** Keep interfaces for multiple implementations, independent change axes, expensive seams, or important task collaborator contracts. Do not create ceremonial `IFoo` / `Foo` pairs.
+- **Cake nativeness is a hard rule at build boundaries.** For build-host IO, process execution, paths, logging, environment access, and tool invocation, use Cake-native abstractions by default: Cake aliases/addins first, then `Tool<TSettings>`, then named library/API adapters. Raw BCL IO or raw process invocation requires slice-review justification.
+- **Pure code stays pure.** Pure policies, algorithms, and value objects should stay Cake-free when simple domain values are enough.
+- **Code comments must be self-contained.** In `.cs`, `.csproj`, `.props`, `.targets`, workflow YAML, and local orchestration scripts, comments explain local logic directly; they do not point to docs as a substitute for explanation.
+- **Guardrail IDs are not code names.** IDs such as `G58` belong in reports/log metadata/test data/docs mappings. Types, files, methods, and test classes use behavior-first names.
+- **FrostingLifetime is not hidden target state.** Use it only for true host lifecycle setup/teardown; do not preload manifest/version target state there by default.
+- **`tools.cs` stays standalone.** It may perform minimal manifest parsing from `build/manifest.json`, but must not reference `build/_build` internals.
+- **Prefer modern C# without cleverness theater.** Use immutable records/value objects and pattern matching where they clarify the build domain; avoid over-abstracted functional cosplay.
+- **Check ecosystem tools first.** Before writing wrappers around external tools, check existing Cake aliases/addins/plugins or Cake abstractions and document why they are not used.
+- **Warning suppressions are last resort.** Avoid broad `#pragma warning disable`; if needed, keep suppressions local and justified.
+- **Typed result boundaries are simple.** Use `Result<T,TError>` for expected operation failures and `ValidationReport` / `ValidationCheck` for multi-check validations. Avoid OneOf-style result hierarchies.
+- **Architecture tests are retired as design police.** Use the ADR, refactor plan, AGENTS.md, and [`docs/refactoring/target-centric-build-host-review-checklist.md`](docs/refactoring/target-centric-build-host-review-checklist.md) instead.
 
-- **Tasks are thin**: build a feature-specific `Request` DTO from `BuildContext` + configuration, delegate to a co-located pipeline.
-- **Pipeline classes are size-triggered**: below ~200 LOC the logic stays in the Task with private methods; above, extract a `<X>Pipeline.cs` co-located in the feature folder. Smell threshold, not a hard rule.
-- **`BuildContext` is invocation state, not a service locator.** Pipelines target `RunAsync(TRequest)`; pure services take explicit inputs only; Tools / Integrations may take narrow Cake abstractions (`ICakeContext`, `ICakeLog`, `IFileSystem`) but never `BuildContext`.
-- **Interface discipline**: keep an interface only if (1) multiple production implementations exist, (2) it formalizes an independent axis of change, or (3) it backs a high-cost test seam (transitional). Mocks alone do not justify a seam.
-- **Cross-feature data sharing flows through `Shared/`.** Code-level cross-feature references are forbidden by `ArchitectureTests`.
-- **Typed result boundaries**: services return `OneOf`-shaped results; tasks translate them into Cake logging, `CakeException`, or RID-status persistence.
+### ADR-002 migration execution rules
 
-Golden example to compare against: `build/_build/Features/Packaging/`.
+- Migrate on an isolated branch/worktree from clean `master`. Do not push during iterative work; merge to `master` only after the full refactor is accepted.
+- Per migration slice flow: `brainstorming` skill → `writing-plans` skill → user approval → `executing-plans` skill → walk through the [review checklist](docs/refactoring/target-centric-build-host-review-checklist.md) → present summary + proposed commit message → user approval → commit.
+- [`docs/refactoring/extraction-guidelines.md`](docs/refactoring/extraction-guidelines.md) is canon for private-method, collaborator extraction, and interface decisions during migration slices.
+- [`docs/refactoring/conversation-history.md`](docs/refactoring/conversation-history.md) holds the design dialogue archive; consult only when ADR/plan/checklist rationale is unclear. The plan and ADR are self-contained for execution.
+
+Golden examples to compare against during the migration: current `ResolveVersionsFromManifestTask` and `ResolveVersionsFromExplicitTask` are closer to the desired task-owned orchestration style than the large Packaging/Harvesting pipelines.
 
 > **Cake host vs `tools.cs`.** The Cake build host is a CI-only production pipeline for native harvesting, packaging, and validation. Day-to-day dev orchestration (setup, ci-sim, passthrough) lives in `tools.cs` at the repo root. Direct `dotnet run --project build/_build` invocations are for CI debugging and target discovery only.
 
@@ -158,7 +181,7 @@ build/manifest.json           ← Single source of truth (schema v2.1):
 PreFlightCheckTask            ← G14/G15/G16/G49/G54/G58 + family-scope guardrails
 ```
 
-Legacy `runtimes.json` and `system_artefacts.json` were merged into `manifest.json` schema v2.1 — treat any reference to them as stale.
+Legacy `runtimes.json` and `system_artefacts.json` were merged into `manifest.json` schema v2.1 — treat any reference to them as stale. ADR-002 retires `runtimes[].strategy` during the target-centric build-host refactor; until that migration lands, the diagram above reflects the current schema.
 
 ## Build Host Pipeline
 
@@ -170,9 +193,9 @@ Native packaging is a 5-stage Cake pipeline (per-RID matrix expanded by `release
 4. **PackageConsumerSmoke** (per-RID matrix re-entry) — restores the packed nupkgs against a local folder feed, runs TUnit per executable TFM (`net10` / `net9` / `net8` / `net462`), proves the consumer-side P/Invoke / dyld / Unix-symlink-extraction paths.
 5. **PublishStaging** (single runner) — pushes managed + native nupkg pairs to the GitHub Packages internal feed via `NuGet.Protocol.PackageUpdateResource`. `PublishPublic` (nuget.org) is stubbed pending Phase 2b PD-7.
 
-`PreFlightCheck` runs single-runner before the matrix and validates every cross-cutting invariant (manifest ↔ vcpkg, csproj pack contract, strategy coherence, G54 upstream alignment, G58 cross-family scope reachability).
+`PreFlightCheck` runs single-runner before the matrix and validates every cross-cutting invariant (manifest ↔ vcpkg, csproj pack contract, current strategy coherence until ADR-002 removes it, G54 upstream alignment, G58 cross-family scope reachability).
 
-Canonical implementation: `build/_build/Features/{Harvesting,Packaging,Preflight,Publishing}/` and `.github/workflows/release.yml`. See [`docs/knowledge-base/release-guardrails.md`](docs/knowledge-base/release-guardrails.md) §2.0 for the stage-owned validation map.
+Current pre-migration implementation: `build/_build/Features/{Harvesting,Packaging,Preflight,Publishing}/` and `.github/workflows/release.yml`. Target-state implementation follows ADR-002 under `build/_build/Targets/`. See [`docs/knowledge-base/release-guardrails.md`](docs/knowledge-base/release-guardrails.md) §2.0 for the stage-owned validation map.
 
 ## Docs-First Workflow
 
@@ -250,7 +273,7 @@ Decision rows: skill ↔ trigger ↔ reason ↔ action. Invoke only when the tri
 | `dotnet-slopwatch` | after substantial new / refactor / LLM-authored code | catches disabled tests, suppressed warnings, empty catch blocks | run before declaring complete; treat findings as gating |
 | `type-design-performance` | designing P/Invoke structs, hot-path types, sealed/readonly choices | bindings cross managed↔native boundary; struct layout matters | invoke when touching `SDL2.Core` types or interop wrappers |
 | `csharp-concurrency-patterns` | adding async / `Task.Run` / `lock` / `Channel<T>` | wrong primitive → deadlocks or wasted threads | invoke before adding any synchronization primitive |
-| `dependency-injection-patterns` | adding/editing `Features/<X>/ServiceCollectionExtensions.cs` or composition root | feature-oriented host relies on grouped registrations (§Build-Host Reference Pattern) | invoke when wiring a new feature module |
+| `dependency-injection-patterns` | adding/editing `Targets/<X>/ServiceCollectionExtensions.cs` or composition root | target-centric host relies on grouped registrations (§Build-Host Reference Pattern) | invoke when wiring a new target module |
 | `microsoft-extensions-configuration` | new strongly-typed config / `IOptions` / `IValidateOptions` | settings drift causes silent CI failures | invoke when adding `BuildContext`-adjacent config |
 | `crap-analysis` | tests added/changed in complex code | flags untested high-complexity paths | invoke after non-trivial test additions |
 | `snapshot-testing` | manifest / nuspec / harvest-output baseline work | catches unintended schema/output drift | invoke when designing characterization tests with structured output |

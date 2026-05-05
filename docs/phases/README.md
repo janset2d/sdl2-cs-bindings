@@ -8,13 +8,18 @@ Phase workflow + active phase navigation.
 | --- | --- | --- | --- |
 | 1 | SDL2 Core Bindings + Harvesting | DONE | retired (code + git history are canonical) |
 | 2 | CI/CD & Packaging | **IN PROGRESS** | [phase-2-adaptation-plan.md](phase-2-adaptation-plan.md) |
+| X | Build-Host Modernization (ADR-004 closed; ADR-002 target-centric refactor) | **IN PROGRESS** | [target-centric-build-host-refactor-plan.md](../refactoring/target-centric-build-host-refactor-plan.md) |
 | 3 | SDL2 Complete (samples, meta-package, first prerelease) | PLANNED | [plan.md](../plan.md) roadmap |
 | 4 | Binding Auto-Generation | PLANNED | [phase-4-binding-autogen.md](phase-4-binding-autogen.md) |
 | 5 | SDL3 Support | PLANNED | [phase-5-sdl3-support.md](phase-5-sdl3-support.md) |
 
-## Active Phase
+## Active Phases
+
+Two phases are active in parallel:
 
 **Phase 2: CI/CD & Packaging.** Core surface is landed (`release.yml` + Cake build host + `tools.cs`). The remaining tail lives in [phase-2-adaptation-plan.md](phase-2-adaptation-plan.md): nuget.org promotion (PD-7), release-recovery playbook (PD-8), and the four scope-assumption gaps surfaced in the 2026-05-01 tag-push rehearsals.
+
+**Phase X: Build-Host Modernization — ADR-002 target-centric refactor.** ADR-004 migration is closed (P0 → P4-A on master). ADR-002 is the active continuation; it absorbs residual ADR-004 cleanup. Canonical docs: [`../decisions/2026-05-05-target-centric-build-host.md`](../decisions/2026-05-05-target-centric-build-host.md), [`../refactoring/target-centric-build-host-refactor-plan.md`](../refactoring/target-centric-build-host-refactor-plan.md), [`../refactoring/target-centric-build-host-review-checklist.md`](../refactoring/target-centric-build-host-review-checklist.md). P0 docs/guardrails closed; P1 baseline + inventory next.
 
 ## Phase Lifecycle
 

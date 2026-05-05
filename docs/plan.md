@@ -10,11 +10,13 @@ Provide the .NET ecosystem with production-quality, modular SDL2 and SDL3 bindin
 
 ## Current Phase
 
+Two streams are active in parallel:
+
 **Phase 2: CI/CD & Packaging — IN PROGRESS.** Core surface is landed (`release.yml` + Cake build host + `tools.cs`). Phase 2b tail = nuget.org promotion (PD-7), release-recovery playbook (PD-8), and the four scope-assumption gaps surfaced in 2026-05-01 rehearsals.
 
-Active execution ledger: [phases/phase-2-adaptation-plan.md](phases/phase-2-adaptation-plan.md).
+**Phase X / build-host refactor (ADR-002 target-centric architecture) — ACTIVE.** Supersedes residual ADR-004 cleanup. P0 docs/guardrails closed; P1 baseline + inventory next. Canonical docs: [`decisions/2026-05-05-target-centric-build-host.md`](decisions/2026-05-05-target-centric-build-host.md), [`refactoring/target-centric-build-host-refactor-plan.md`](refactoring/target-centric-build-host-refactor-plan.md), [`refactoring/target-centric-build-host-review-checklist.md`](refactoring/target-centric-build-host-review-checklist.md).
 
-Phase X (build-host modernization, ADR-004 migration) closed P0 → P4-A on `master`. Optional cleanup (P4-C large pipeline decomposition, P5 atomic naming) remains.
+Active execution ledgers: [phases/phase-2-adaptation-plan.md](phases/phase-2-adaptation-plan.md) (Phase 2b) and [refactoring/target-centric-build-host-refactor-plan.md](refactoring/target-centric-build-host-refactor-plan.md) (build-host refactor).
 
 ## Roadmap
 
@@ -66,12 +68,11 @@ Design brief: [phases/phase-5-sdl3-support.md](phases/phase-5-sdl3-support.md).
 - [ ] Add SDL3 bindings and native packages to monorepo ([#71](https://github.com/janset2d/sdl2-cs-bindings/issues/71))
 - [ ] Extend CI and packaging flow for SDL3 prereleases ([#72](https://github.com/janset2d/sdl2-cs-bindings/issues/72))
 
-### Phase X — Build-Host Modernization (mostly closed)
+### Phase X — Build-Host Modernization
 
-ADR-004 migration; only optional cleanup remains.
+ADR-004 migration closed (P0 → P4-A on `master`). [`ADR-002 target-centric refactor`](decisions/2026-05-05-target-centric-build-host.md) is the active continuation and absorbs residual ADR-004 cleanup — former P4-C pipeline decomposition and P5 atomic naming items are subsumed by ADR-002's full target-by-target refactor.
 
-- [ ] **P4-C** Large Pipeline decomposition (optional): candidates `PackageConsumerSmokePipeline`, `HarvestPipeline`, `PackagePipeline`
-- [ ] **P5** Atomic naming: `PreFlightCheck → Preflight`, `Coverage-Check → CoverageCheck`, `Inspect-HarvestedDependencies → InspectHarvestedDependencies`
+**Active plan:** [`refactoring/target-centric-build-host-refactor-plan.md`](refactoring/target-centric-build-host-refactor-plan.md). P0 docs/guardrails closed; P1 baseline + inventory next.
 
 ### 2027 — Stabilization
 
@@ -112,7 +113,7 @@ SDL3 vcpkg availability: SDL3 3.4.4, SDL3_image 3.4.2, SDL3_mixer 3.2.0#1, SDL3_
 
 - **Operating rules**: [`AGENTS.md`](../AGENTS.md), [`docs/onboarding.md`](onboarding.md)
 - **Phase docs**: [phases/](phases/) — Phase 2 active ledger + Phase 4/5 design briefs
-- **Architecture decisions**: [decisions/](decisions/) — ADR-001 (D-3seg + package-first) accepted
+- **Architecture decisions**: [decisions/](decisions/) — ADR-001 (D-3seg + package-first) accepted; ADR-002 (target-centric build-host) accepted
 - **Guardrails**: [knowledge-base/release-guardrails.md](knowledge-base/release-guardrails.md)
 - **How-to recipes**: [playbook/](playbook/)
 - **Design rationale**: [research/](research/)
