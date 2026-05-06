@@ -40,7 +40,7 @@ public sealed class OtoolAnalyzePipeline(
 
     private async Task AnalyzeSpecificLibrariesAsync()
     {
-        AnsiConsole.Write(new Rule("[yellow]Analyzing Specific Libraries[/]").RuleStyle("grey"));
+        AnsiConsole.Write(new Rule("[yellow]Analyzing Specific Libraries[/]"));
 
         foreach (var libraryPath in _dumpbinConfiguration.DllToDump)
         {
@@ -58,7 +58,7 @@ public sealed class OtoolAnalyzePipeline(
 
     private async Task AnalyzeVcpkgLibrariesAsync()
     {
-        AnsiConsole.Write(new Rule("[yellow]Analyzing Vcpkg Libraries[/]").RuleStyle("grey"));
+        AnsiConsole.Write(new Rule("[yellow]Analyzing Vcpkg Libraries[/]"));
 
         var possibleTriplets = new[] { "x64-osx-dynamic", "arm64-osx-dynamic" };
         DirectoryPath? vcpkgLibDir = null;
@@ -104,7 +104,7 @@ public sealed class OtoolAnalyzePipeline(
     private async Task AnalyzeSingleLibraryAsync(FilePath file)
 #pragma warning restore MA0051
     {
-        AnsiConsole.Write(new Rule($"[cyan]Analyzing: {file.GetFilename()}[/]").RuleStyle("blue"));
+        AnsiConsole.Write(new Rule($"[cyan]Analyzing: {file.GetFilename()}[/]"));
 
         try
         {
@@ -185,7 +185,7 @@ public sealed class OtoolAnalyzePipeline(
 
             if (systemLibraries.Count != 0)
             {
-                AnsiConsole.Write(new Rule("[green]Suggested system_exclusions entries for manifest.json[/]").RuleStyle("green"));
+                AnsiConsole.Write(new Rule("[green]Suggested system_exclusions entries for manifest.json[/]"));
 
                 var suggestions = new Table()
                     .RoundedBorder()

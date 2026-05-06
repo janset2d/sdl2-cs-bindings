@@ -86,17 +86,20 @@
       },
       "Spectre.Console": {
         "type": "Direct",
-        "requested": "[0.54.0, )",
-        "resolved": "0.54.0",
-        "contentHash": "StDXCFayfy0yB1xzUHT2tgEpV1/HFTiS4JgsAQS49EYTfMixSwwucaQs/bIOCwXjWwIQTMuxjUIxcB5XsJkFJA=="
+        "requested": "[0.55.2, )",
+        "resolved": "0.55.2",
+        "contentHash": "yc0g12YJpmZHofGJLTQX02/uqfzJ6XHRx6pe9rANNjleQptXMHPxD9KI2/DWkXiJWddc+4oizEdGox15c89hhw==",
+        "dependencies": {
+          "Spectre.Console.Ansi": "0.55.2"
+        }
       },
       "Spectre.Console.Testing": {
         "type": "Direct",
-        "requested": "[0.54.0, )",
-        "resolved": "0.54.0",
-        "contentHash": "9QjSrRH+scy66ppmOLDiSno0Uh1ISJL18FqmTQDFNvK/oNI1DaI30cy2Uj6v0gxLZghtc/eKTwXtPpe0KKfHXw==",
+        "requested": "[0.55.2, )",
+        "resolved": "0.55.2",
+        "contentHash": "g7BWoLVGAAJZ4VKR/GfQOLoOO0lpjPTsrO9C6GsFB/o93FtZqvDluc1RC483/kKhKPS1kqErswksoMQEueuiRw==",
         "dependencies": {
-          "Spectre.Console": "0.54.0"
+          "Spectre.Console": "0.55.2"
         }
       },
       "TUnit": {
@@ -367,6 +370,11 @@
           "NuGet.Protocol": "7.3.0"
         }
       },
+      "Spectre.Console.Ansi": {
+        "type": "Transitive",
+        "resolved": "0.55.2",
+        "contentHash": "tN3KEJQQZwLW9HJnG5YTSAxfBwxsmg1wVuGvhGG2rM+pbl+NGaHU8pDcNofPlOXlgpkbpBMxI5t9o9qPfy3sHQ=="
+      },
       "System.Diagnostics.EventLog": {
         "type": "Transitive",
         "resolved": "6.0.0",
@@ -416,6 +424,8 @@
           "OneOf": "[3.0.271, )",
           "OneOf.Monads": "[1.21.0, )",
           "OneOf.SourceGenerator": "[3.0.271, )",
+          "Spectre.Console": "[0.55.2, )",
+          "Spectre.Console.Cli": "[0.55.0, )",
           "System.CommandLine": "[2.0.0-beta4.22272.1, )",
           "System.CommandLine.NamingConventionBinder": "[2.0.0-beta4.22272.1, )"
         }
@@ -507,11 +517,11 @@
       },
       "Spectre.Console.Cli": {
         "type": "CentralTransitive",
-        "requested": "[0.54.0, )",
-        "resolved": "0.53.1",
-        "contentHash": "y//7ZZ0shhvgXzoJXJzMaLGA4dPem8qCbkyv9khfE8NQDlH4hPVsHOHYoz6uzAwiTX9Yd7OnX3wNOX/wRfPUOg==",
+        "requested": "[0.55.0, )",
+        "resolved": "0.55.0",
+        "contentHash": "cFJTB1te4eaAICd4Zp+8T/kiRn1ikQxgGqmoNarb1qoQ/7LzHAvVQ62x5U9GW3E0QI7sZLcXIIoq4CpqgTx42Q==",
         "dependencies": {
-          "Spectre.Console": "0.53.1"
+          "Spectre.Console": "0.55.0"
         }
       },
       "System.CommandLine": {

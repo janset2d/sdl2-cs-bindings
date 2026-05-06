@@ -18,6 +18,13 @@ namespace Build.Host;
 /// </summary>
 public sealed class BuildContext : FrostingContext
 {
+    private readonly string _buildConfiguration;
+    private readonly FilePath _versionsFilePath;
+    private readonly string? _resolveVersionsSuffix;
+    private readonly IReadOnlyList<string> _resolveVersionsScope;
+    private readonly IReadOnlyList<string> _explicitVersionEntries;
+    private readonly string? _explicitVersions;
+
     public BuildContext(
         ICakeContext context,
         IPathService pathService,
@@ -30,8 +37,18 @@ public sealed class BuildContext : FrostingContext
         Paths = pathService ?? throw new ArgumentNullException(nameof(pathService));
         Runtime = runtimeProfile ?? throw new ArgumentNullException(nameof(runtimeProfile));
         Manifest = manifest ?? throw new ArgumentNullException(nameof(manifest));
-        ParsedArguments = parsedArguments ?? throw new ArgumentNullException(nameof(parsedArguments));
         Options = options ?? throw new ArgumentNullException(nameof(options));
+
+        ArgumentNullException.ThrowIfNull(parsedArguments);
+
+        _buildConfiguration = parsedArguments.Config;
+        _versionsFilePath = !string.IsNullOrWhiteSpace(parsedArguments.VersionsFile)
+            ? new FilePath(parsedArguments.VersionsFile!)
+            : pathService.GetResolveVersionsOutputFile();
+        _resolveVersionsSuffix = parsedArguments.Suffix;
+        _resolveVersionsScope = [.. parsedArguments.Scope];
+        _explicitVersionEntries = [.. parsedArguments.ExplicitVersion];
+        _explicitVersions = parsedArguments.ExplicitVersions;
     }
 
     /// <summary>Repo / artifact / harvest layout knowledge. Cake-aware (carries DirectoryPath / FilePath).</summary>
@@ -48,14 +65,8 @@ public sealed class BuildContext : FrostingContext
     public ManifestConfig Manifest { get; }
 
     /// <summary>
-    /// Parsed CLI arguments. Set once at composition time; invocation state is immutable
-    /// thereafter — tasks read but never mutate.
-    /// </summary>
-    public ParsedArguments ParsedArguments { get; }
-
-    /// <summary>
-    /// Aggregate of operator-input axes (Vcpkg, Package, Versioning, Repository, DotNet,
-    /// Dumpbin) normalized from CLI args at composition time. Per-axis sub-records remain
+     /// Aggregate of operator-input axes (Vcpkg, Package, Versioning, Repository, DotNet,
+     /// Dumpbin) normalized from CLI args at composition time. Per-axis sub-records remain
     /// individually DI-injectable for services that only need a single slice.
     /// </summary>
     public Configurations Options { get; }
@@ -66,11 +77,20 @@ public sealed class BuildContext : FrostingContext
     public string RuntimeIdentifier => Runtime.Rid;
 
     /// <summary>Build configuration from --config CLI option. Default is "Release".</summary>
-    public string BuildConfiguration => ParsedArguments.Config;
+    public string BuildConfiguration => _buildConfiguration;
 
     /// <summary>Path to the resolved versions file (--versions-file or default output path).</summary>
-    public FilePath VersionsFilePath =>
-        !string.IsNullOrWhiteSpace(ParsedArguments.VersionsFile)
-            ? new FilePath(ParsedArguments.VersionsFile!)
-            : Paths.GetResolveVersionsOutputFile();
+    public FilePath VersionsFilePath => _versionsFilePath;
+
+    /// <summary>Prerelease suffix consumed by ResolveVersionsFromManifest.</summary>
+    public string? ResolveVersionsSuffix => _resolveVersionsSuffix;
+
+    /// <summary>Family scope filter consumed by ResolveVersionsFromManifest. Empty means all families.</summary>
+    public IReadOnlyList<string> ResolveVersionsScope => _resolveVersionsScope;
+
+    /// <summary>Repeated family-version entries consumed by ResolveVersionsFromExplicit.</summary>
+    public IReadOnlyList<string> ExplicitVersionEntries => _explicitVersionEntries;
+
+    /// <summary>Comma-separated family-version entries consumed by ResolveVersionsFromExplicit.</summary>
+    public string? ExplicitVersions => _explicitVersions;
 }

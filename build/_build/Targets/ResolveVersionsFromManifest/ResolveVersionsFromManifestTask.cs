@@ -1,89 +1,71 @@
 using System.Globalization;
 using Build.Host;
+using Build.Repositories;
 using Build.Shared.Manifest;
+using Build.Versioning;
 using Cake.Core;
 using Cake.Frosting;
 using NuGet.Versioning;
 
-namespace Build.Features.Versioning;
+namespace Build.Targets.ResolveVersionsFromManifest;
 
-/// <summary>
-/// Resolves per-family versions from <c>manifest.json library_manifests[].vcpkg_version</c>
-/// upstream major/minor + caller-supplied <c>--suffix</c>, then writes
-/// <c>artifacts/resolve-versions/versions.json</c>. Output shape:
-/// <c>&lt;UpstreamMajor&gt;.&lt;UpstreamMinor&gt;.0-&lt;suffix&gt;</c> per family.
-/// <para>
-/// Inputs read from <see cref="BuildContext.ParsedArguments"/>: <c>Suffix</c> (required)
-/// and <c>Scope</c> (optional, empty=all families). Self-validates at task entry per the
-/// per-task validation principle.
-/// </para>
-/// </summary>
 [TaskName("ResolveVersionsFromManifest")]
 [TaskDescription("Resolves per-family versions from manifest upstream + --suffix; emits artifacts/resolve-versions/versions.json")]
-public sealed class ResolveVersionsFromManifestTask(ManifestConfig manifestConfig, VersionsJsonWriter writer) : AsyncFrostingTask<BuildContext>
+public sealed class ResolveVersionsFromManifestTask(
+    IManifestRepository manifestRepository,
+    IVersionFileRepository versionFileRepository) : AsyncFrostingTask<BuildContext>
 {
-    private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
-    private readonly VersionsJsonWriter _writer = writer ?? throw new ArgumentNullException(nameof(writer));
+    private readonly IManifestRepository _manifestRepository = manifestRepository ?? throw new ArgumentNullException(nameof(manifestRepository));
+    private readonly IVersionFileRepository _versionFileRepository = versionFileRepository ?? throw new ArgumentNullException(nameof(versionFileRepository));
 
     public override async Task RunAsync(BuildContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        ArgumentNullException.ThrowIfNull(context.ParsedArguments);
 
-        if (string.IsNullOrWhiteSpace(context.ParsedArguments.Suffix))
+        if (string.IsNullOrWhiteSpace(context.ResolveVersionsSuffix))
         {
             throw new CakeException(
                 "ResolveVersionsFromManifest requires --suffix. Example: " +
                 "--suffix=ci.$GITHUB_RUN_ID or --suffix=local.$(date -u +%Y%m%dT%H%M%SZ).");
         }
 
-        var suffix = context.ParsedArguments.Suffix.Trim();
-        var scope = BuildScope(context.ParsedArguments.Scope);
+        var manifest = _manifestRepository.Load();
+        var suffix = context.ResolveVersionsSuffix.Trim();
+        var scope = BuildScope(context.ResolveVersionsScope);
+        var families = ResolveFamiliesInScope(manifest, scope);
 
-        var families = ResolveFamiliesInScope(scope);
+        var versions = new PackageFamilyVersionSet(
+            families.Select(family => new PackageFamilyVersion(new PackageFamilyId(family.Name), BuildVersionFor(manifest, family, suffix))));
 
-        var mapping = new Dictionary<string, NuGetVersion>(families.Count, StringComparer.OrdinalIgnoreCase);
-        foreach (var family in families)
-        {
-            mapping[family.Name] = BuildVersionFor(family, suffix);
-        }
-
-        await _writer.WriteAsync(mapping);
+        await _versionFileRepository.SaveAsync(versions);
     }
 
-    private static HashSet<string> BuildScope(IList<string>? rawScope)
+    private static HashSet<string> BuildScope(IReadOnlyList<string> rawScope)
     {
         var scope = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        if (rawScope is null || rawScope.Count == 0)
-        {
-            return scope;
-        }
-
         foreach (var entry in rawScope)
         {
-            if (string.IsNullOrWhiteSpace(entry))
+            if (!string.IsNullOrWhiteSpace(entry))
             {
-                continue;
+                scope.Add(entry.Trim());
             }
-
-            scope.Add(entry.Trim());
         }
 
         return scope;
     }
 
-    private List<PackageFamilyConfig> ResolveFamiliesInScope(HashSet<string> requestedScope)
+    private static List<PackageFamilyConfig> ResolveFamiliesInScope(ManifestConfig manifest, HashSet<string> requestedScope)
     {
         if (requestedScope.Count == 0)
         {
-            if (_manifestConfig.PackageFamilies.Count == 0)
+            if (manifest.PackageFamilies.Count == 0)
             {
                 throw new CakeException(
                     "ResolveVersionsFromManifest cannot resolve versions: manifest.json package_families[] is empty. " +
                     "Declare at least one family before invoking this target.");
             }
 
-            return [.. _manifestConfig.PackageFamilies];
+            return [.. manifest.PackageFamilies];
         }
 
         var resolved = new List<PackageFamilyConfig>(requestedScope.Count);
@@ -91,32 +73,33 @@ public sealed class ResolveVersionsFromManifestTask(ManifestConfig manifestConfi
 
         foreach (var requested in requestedScope)
         {
-            var match = _manifestConfig.PackageFamilies.SingleOrDefault(candidate =>
+            var match = manifest.PackageFamilies.SingleOrDefault(candidate =>
                 string.Equals(candidate.Name, requested, StringComparison.OrdinalIgnoreCase));
 
             if (match is null)
             {
                 missing.Add(requested);
-                continue;
             }
-
-            resolved.Add(match);
+            else
+            {
+                resolved.Add(match);
+            }
         }
 
         if (missing.Count > 0)
         {
             var missingList = string.Join(", ", missing.Order(StringComparer.OrdinalIgnoreCase));
             throw new CakeException(
-                $"ResolveVersionsFromManifest cannot resolve versions for requested scope entries not in manifest.json package_families[]: {missingList}." +
+                $"ResolveVersionsFromManifest cannot resolve versions for requested scope entries not in manifest.json package_families[]: {missingList}. " +
                 "Add the families to manifest or narrow the --scope filter.");
         }
 
         return resolved;
     }
 
-    private NuGetVersion BuildVersionFor(PackageFamilyConfig family, string suffix)
+    private static NuGetVersion BuildVersionFor(ManifestConfig manifest, PackageFamilyConfig family, string suffix)
     {
-        var library = _manifestConfig.LibraryManifests.SingleOrDefault(candidate =>
+        var library = manifest.LibraryManifests.SingleOrDefault(candidate =>
             string.Equals(candidate.Name, family.LibraryRef, StringComparison.OrdinalIgnoreCase));
 
         if (library is null)
@@ -134,7 +117,6 @@ public sealed class ResolveVersionsFromManifestTask(ManifestConfig manifestConfi
         }
 
         var candidate = string.Create(CultureInfo.InvariantCulture, $"{upstreamVersion.Major}.{upstreamVersion.Minor}.0-{suffix}");
-
         if (!NuGetVersion.TryParse(candidate, out var composed))
         {
             throw new CakeException(

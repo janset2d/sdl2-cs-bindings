@@ -1,0 +1,105 @@
+using Build.Repositories;
+using Build.Shared.Versioning;
+using Build.Targets.ResolveVersionsFromExplicit;
+using Build.Tests.Fixtures;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Build.Tests.Scenarios.ResolveVersionsFromExplicit;
+
+public sealed class ResolveVersionsFromExplicitTaskScenarios
+{
+    [Test]
+    public async Task RunAsync_Should_Write_Full_Mapping_From_Operator_Input()
+    {
+        var world = FakeCakeWorldV2.CreateWindows()
+            .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
+            .WithExplicitVersion("sdl2-image=2.8.0-rc.2", "sdl2-core=2.32.0-rc.1");
+
+        var result = await CreateHost(world).RunAsync();
+
+        await Assert.That(result.Success).IsTrue();
+        var json = world.ReadAllText("artifacts/resolve-versions/versions.json");
+        await Assert.That(json).Contains("\"sdl2-core\": \"2.32.0-rc.1\"");
+        await Assert.That(json).Contains("\"sdl2-image\": \"2.8.0-rc.2\"");
+    }
+
+    [Test]
+    public async Task RunAsync_Should_Throw_When_Operator_Mapping_Fails_G54_Alignment()
+    {
+        var world = FakeCakeWorldV2.CreateWindows()
+            .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
+            .WithExplicitVersion("sdl2-core=3.0.0");
+
+        var result = await CreateHost(world).RunAsync();
+
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.Exception!.Message).Contains("G54");
+        await Assert.That(result.Exception.Message).Contains("sdl2-core");
+        await Assert.That(result.Exception.Message).Contains("major");
+    }
+
+    [Test]
+    public async Task RunAsync_Should_Throw_When_No_ExplicitVersion_Or_ExplicitVersions_Supplied()
+    {
+        var world = FakeCakeWorldV2.CreateWindows()
+            .WithManifestObject(ManifestFixture.CreateTestManifestConfig());
+
+        var result = await CreateHost(world).RunAsync();
+
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.Exception!.Message).Contains("--explicit-version");
+        await Assert.That(result.Exception.Message).Contains("--explicit-versions");
+    }
+
+    [Test]
+    public async Task RunAsync_Should_Throw_When_Both_ExplicitVersion_And_ExplicitVersions_Supplied()
+    {
+        var world = FakeCakeWorldV2.CreateWindows()
+            .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
+            .WithExplicitVersion("sdl2-core=2.32.0-rc.1")
+            .WithExplicitVersions("sdl2-image=2.8.0-rc.2");
+
+        var result = await CreateHost(world).RunAsync();
+
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.Exception!.Message).Contains("mutually exclusive");
+    }
+
+    [Test]
+    public async Task RunAsync_Should_Parse_ExplicitVersions_Comma_Separated_Form()
+    {
+        var world = FakeCakeWorldV2.CreateWindows()
+            .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
+            .WithExplicitVersions("sdl2-core=2.32.0-test.smoke,sdl2-image=2.8.0-test.smoke");
+
+        var result = await CreateHost(world).RunAsync();
+
+        await Assert.That(result.Success).IsTrue();
+        var json = world.ReadAllText("artifacts/resolve-versions/versions.json");
+        await Assert.That(json).Contains("\"sdl2-core\": \"2.32.0-test.smoke\"");
+        await Assert.That(json).Contains("\"sdl2-image\": \"2.8.0-test.smoke\"");
+    }
+
+    [Test]
+    public async Task RunAsync_Should_Throw_When_ExplicitVersions_Comma_Form_Has_Malformed_Entry()
+    {
+        var world = FakeCakeWorldV2.CreateWindows()
+            .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
+            .WithExplicitVersions("sdl2-core:2.32.0,sdl2-image=2.8.0");
+
+        var result = await CreateHost(world).RunAsync();
+
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.Exception!.Message).Contains("could not parse operator input");
+    }
+
+    private static TargetTestHostV2<ResolveVersionsFromExplicitTask> CreateHost(FakeCakeWorldV2 world)
+    {
+        return new TargetTestHostV2<ResolveVersionsFromExplicitTask>(world)
+            .WithServices(services =>
+            {
+                services.AddRepositories();
+                services.AddSingleton<IUpstreamVersionAlignmentValidator, UpstreamVersionAlignmentValidator>();
+            });
+    }
+}

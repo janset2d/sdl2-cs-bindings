@@ -1,19 +1,18 @@
 using NuGet.Versioning;
 
-namespace Build.Features.Versioning;
+namespace Build.Versioning;
 
 /// <summary>
 /// Parses <c>--explicit-version family=semver</c> (repeated) and
 /// <c>--explicit-versions family=semver,...</c> (comma-separated) CLI entries into the
-/// canonical <see cref="IReadOnlyDictionary{TKey, TValue}"/> mapping consumed by
-/// <see cref="ResolveVersionsPipeline"/> when <c>--version-source=explicit</c>.
+/// canonical <see cref="PackageFamilyVersionSet"/> mapping consumed by ResolveVersions targets.
 /// Stage targets do not consume this parser; they read the resolved mapping via
-/// <c>--versions-file</c>. Errors surface as <see cref="ArgumentException"/> at CLI
-/// binding time so malformed input fails fast before any task runs.
+/// <c>--versions-file</c>. Errors surface as <see cref="ArgumentException"/> so malformed
+/// operator input fails fast at task entry.
 /// </summary>
 public static class ExplicitVersionParser
 {
-    public static IReadOnlyDictionary<string, NuGetVersion> ParseCliEntries(IEnumerable<string> entries)
+    public static PackageFamilyVersionSet ParseCliEntries(IEnumerable<string> entries)
     {
         ArgumentNullException.ThrowIfNull(entries);
 
@@ -52,7 +51,10 @@ public static class ExplicitVersionParser
             }
         }
 
-        return mapping;
+        return new PackageFamilyVersionSet(
+            mapping
+                .OrderBy(static kvp => kvp.Key, StringComparer.Ordinal)
+                .Select(static kvp => new PackageFamilyVersion(new PackageFamilyId(kvp.Key), kvp.Value)));
     }
 
     /// <summary>
@@ -62,11 +64,11 @@ public static class ExplicitVersionParser
     /// <c>inputs.explicit-versions</c> directly as a single string.
     /// Null or whitespace input returns an empty mapping.
     /// </summary>
-    public static IReadOnlyDictionary<string, NuGetVersion> ParseCommaSeparated(string? commaSeparated)
+    public static PackageFamilyVersionSet ParseCommaSeparated(string? commaSeparated)
     {
         if (string.IsNullOrWhiteSpace(commaSeparated))
         {
-            return new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase);
+            return PackageFamilyVersionSet.Empty;
         }
 
         var segments = commaSeparated.Split(',');

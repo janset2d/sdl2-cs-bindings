@@ -52,7 +52,6 @@ public sealed class InfoTask(IAnsiConsole console) : AsyncFrostingTask<BuildCont
         var sdkVersion = "[grey]Unknown[/]";
         await _console.Status()
             .Spinner(Spinner.Known.Dots)
-            .SpinnerStyle(Style.Parse("aqua"))
             .StartAsync("[aqua]Checking .NET SDK Version...[/]", _ =>
             {
                 try

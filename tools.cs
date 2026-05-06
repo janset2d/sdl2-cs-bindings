@@ -83,8 +83,10 @@ public sealed class BuildSettings : CommandSettings { }
 
 public sealed class BuildCommand : AsyncCommand<BuildSettings>
 {
-    public override async Task<int> ExecuteAsync(CommandContext context, BuildSettings settings)
+    protected override async Task<int> ExecuteAsync(CommandContext context, BuildSettings settings, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         var remainingRaw = context.Remaining.Raw.ToArray();
         var cakeArgs = remainingRaw.Length > 0
             ? remainingRaw
@@ -99,8 +101,10 @@ public sealed class BuildCommand : AsyncCommand<BuildSettings>
 
 public sealed class SetupCommand : AsyncCommand<SetupSettings>
 {
-    public override async Task<int> ExecuteAsync(CommandContext ctx, SetupSettings settings)
+    protected override async Task<int> ExecuteAsync(CommandContext ctx, SetupSettings settings, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         var source = settings.Source.Trim().ToLowerInvariant();
         return source switch
         {
@@ -430,8 +434,10 @@ public sealed class RemoteGitHubSetupException : Exception
 
 public sealed class CiSimCommand : AsyncCommand<CiSimSettings>
 {
-    public override async Task<int> ExecuteAsync(CommandContext ctx, CiSimSettings settings)
+    protected override async Task<int> ExecuteAsync(CommandContext ctx, CiSimSettings settings, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         var repoRoot = await Shared.ResolveRepoRootAsync();
         var hostRid = Shared.ResolveHostRid();
         var families = Shared.GetConcreteFamilies(repoRoot);

@@ -182,6 +182,8 @@ A healthy task class:
 
 Simple, no-op, default, marker, or fully-inline targets are exempt from request ceremony.
 
+Cake task classes are discovered by Cake Frosting from `[TaskName]` metadata and should not be explicitly registered in DI. Register the task's collaborators, repositories, tools, and options; let Cake construct the task from the service provider. V2 tests follow the same rule by creating the task from the provider without adding the task type as a service.
+
 ### 5.3 Extraction rule
 
 For the full private-method decision tree and collaborator design guidance, see [extraction-guidelines.md](extraction-guidelines.md). The summary:
@@ -358,6 +360,8 @@ The refactor should remove:
 - `Verbosity` or existing Cake logging settings when needed
 
 Exact property names should follow the existing CLI option names but avoid leaking parser dictionaries.
+
+When a target migrates to `Targets/`, it reads named `BuildContext` properties rather than `BuildContext.ParsedArguments`. If a migration slice removes the last task consumer of a raw parser value, remove that value from the public `BuildContext` surface in the same slice. `ParsedArguments` remains a composition-root binding input, not a task-facing API.
 
 ### File-backed state
 
@@ -624,7 +628,7 @@ That assumption was rejected during P3 design (2026-05-06). A migrated target re
 
 3. **`ToLegacyBuildContext` stays frozen.** The shim is a temporary compatibility bridge for unmigrated tests. It receives zero new features, zero fluent configuration for `Configurations` sub-records, and zero investment. It retires in P5 along with `Host/Configuration` and `Configurations`. No shim behavior tests — testing the shim is testing infrastructure we're deleting.
 
-**The rule:** When a target migrates to `Targets/`, its tests use V2 infra exclusively. `TargetTestHostV2` builds `BuildContext` directly from `FakeCakeWorldV2` properties — no `AddHostBuildingBlocks`, no `Configurations`, no shim. Migrated targets read named `BuildContext` properties; unmigrated targets continue using the shim until their migration slice.
+**The rule:** When a target migrates to `Targets/`, its tests use V2 infra exclusively. `TargetTestHostV2` builds `BuildContext` directly from `FakeCakeWorldV2` properties — no `AddHostBuildingBlocks`, no `Configurations`, no shim. `ToLegacyBuildContext` is not a compatibility support surface for migrated targets. Do not add V1 fixture features or shim behavior to keep old target tests alive. Migrated tests assert against the target's ADR-002 shape; unmigrated targets continue using the shim until their migration slice.
 
 ### P3 - Foundation completion and BuildContext transition ✅ (completed 2026-05-06)
 
@@ -771,6 +775,17 @@ Exit criteria:
 - No repo-wide rename has hidden old architecture under new names.
 - All `AnsiConsole` static calls in the build host use `IAnsiConsole` injection.
 - `InfoTask` failure-path scenario test passes.
+
+#### Post-P4 research task: `versions.json` path contract
+
+Before refactoring stage-target version loading further, research and decide the `versions.json` path contract:
+
+1. Verify every current producer/consumer path in `release.yml`, `tools.cs`, `BuildContext`, `VersionFileRepository`, and stage tasks.
+2. Decide whether `--versions-file` should be removed and stage targets should always read the predetermined ResolveVersions output path.
+3. Or decide whether `--versions-file` should be supported consistently by both ResolveVersions writers and stage readers.
+4. Or keep the current reader-only `--versions-file` contract, but make repository naming/registration explicit enough that writer-output and stage-input semantics cannot be confused.
+
+Current known signal: `release.yml`, `tools.cs setup`, `tools.cs ci-sim`, and remote package acquisition all converge on `artifacts/resolve-versions/versions.json`; ResolveVersions writes that path today, while stage targets pass it back through `--versions-file`.
 
 ### P5 - Retire coverage and strategy-era abstractions
 
@@ -1125,4 +1140,3 @@ The refactor is done when:
 12. Guardrail-related code uses behavior-first names; guardrail IDs remain metadata/reporting labels.
 13. `Integrations/` has either disappeared or every remaining adapter has a named, justified destination.
 14. Docs and agent guidance describe the new architecture, not the old one.
-

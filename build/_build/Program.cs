@@ -10,19 +10,19 @@ using Build.Features.Coverage;
 using Build.Features.DependencyAnalysis;
 using Build.Features.Diagnostics;
 using Build.Features.Harvesting;
-using Build.Targets.Info;
 using Build.Features.Maintenance;
 using Build.Features.Packaging;
 using Build.Features.Preflight;
 using Build.Features.Publishing;
 using Build.Features.Vcpkg;
-using Build.Features.Versioning;
 using Build.Host;
 using Build.Host.Cake;
 using Build.Host.Cli.Options;
 using Build.Host.Configuration;
 using Build.Integrations;
+using Build.Repositories;
 using Build.Tools;
+using Build.Versioning;
 using Cake.Core;
 using Cake.Core.IO;
 using Cake.Frosting;
@@ -89,8 +89,7 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     // PackageBuildConfiguration carries the resolved family→version mapping consumed by
     // stage targets (PreFlight, Package, ConsumerSmoke, PublishStaging). Populated only
     // from --versions-file. Stage tasks fail-loud at task entry when the mapping is empty.
-    // ResolveVersions tasks read --explicit-version* directly from ParsedArguments — no
-    // typed Configuration intermediary.
+    // ResolveVersions tasks read named BuildContext properties and emit PackageFamilyVersionSet.
     services.AddSingleton<PackageBuildConfiguration>(provider =>
     {
         var hasVersionsFile = !string.IsNullOrWhiteSpace(parsedArgs.VersionsFile);
@@ -100,18 +99,18 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
         }
 
         var ctx = provider.GetRequiredService<ICakeContext>();
-        var dict = ctx.ToJson<Dictionary<string, string>>(new FilePath(parsedArgs.VersionsFile!));
-        var entries = dict.Select(kvp => $"{kvp.Key}={kvp.Value}");
-        return new PackageBuildConfiguration(ExplicitVersionParser.ParseCliEntries(entries));
+        var versionSet = ctx.ToJson<PackageFamilyVersionSet>(new FilePath(parsedArgs.VersionsFile!));
+        return new PackageBuildConfiguration(versionSet.ToDictionary(
+            static entry => entry.Family.Value,
+            static entry => entry.Version,
+            StringComparer.OrdinalIgnoreCase));
     });
     services.AddSingleton(new DumpbinConfiguration([.. parsedArgs.Dll]));
 
     services.AddSingleton<IAnsiConsole>(AnsiConsole.Console);
 
-    services.AddSingleton<InfoTask>();
-
     // Configurations aggregate: 5 axes (Versioning slot retired in plan v4 — versioning
-    // tasks read ParsedArguments directly). Tasks consume context.Options.X; services that
+    // tasks read named BuildContext properties). Tasks consume context.Options.X; services that
     // only need a single axis inject the sub-record directly.
     services.AddSingleton<Configurations>(provider => new Configurations(
         Vcpkg: provider.GetRequiredService<VcpkgConfiguration>(),
@@ -120,17 +119,17 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
         DotNet: provider.GetRequiredService<DotNetBuildConfiguration>(),
         Dumpbin: provider.GetRequiredService<DumpbinConfiguration>()));
 
-    // Composition root: 12 per-feature AddXFeature() calls + 3 cross-cutting groupings
+    // Composition root: 11 per-feature AddXFeature() calls + 3 cross-cutting groupings
     // (AddHostBuildingBlocks, AddIntegrations, AddToolWrappers). AddHostBuildingBlocks takes
     // parsedArgs because IPathService consumes vcpkg-dir overrides.
     services
         .AddHostBuildingBlocks(parsedArgs)
+        .AddRepositories()
         .AddIntegrations()
         .AddToolWrappers()
         .AddMaintenanceFeature()
         .AddCiFeature()
         .AddCoverageFeature()
-        .AddVersioningFeature()
         .AddVcpkgFeature()
         .AddDiagnosticsFeature()
         .AddDependencyAnalysisFeature()

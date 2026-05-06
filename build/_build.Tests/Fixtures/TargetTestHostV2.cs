@@ -42,8 +42,8 @@ public sealed class TargetTestHostV2<TTask> where TTask : class, IFrostingTask
         services.AddSingleton(_world.CakeContext.Arguments);
         services.AddSingleton(_world.CakeContext.Configuration);
 
-        // Legacy compatibility: BuildContext + its sub-parts
-        var buildContext = _world.ToLegacyBuildContext(_manifest);
+        // V2 BuildContext + its sub-parts
+        var buildContext = _world.CreateBuildContext(_manifest);
         services.AddSingleton(buildContext);
         services.AddSingleton(buildContext.Manifest);
         services.AddSingleton(buildContext.Runtime);
@@ -55,9 +55,6 @@ public sealed class TargetTestHostV2<TTask> where TTask : class, IFrostingTask
         services.AddSingleton(buildContext.Options.DotNet);
         services.AddSingleton(buildContext.Options.Dumpbin);
 
-        // The task class itself
-        services.AddSingleton<TTask>();
-
         // IAnsiConsole from the fake world (Spectre.Console.Testing.TestConsole)
         services.AddSingleton<IAnsiConsole>(_world.AnsiConsole);
 
@@ -68,7 +65,7 @@ public sealed class TargetTestHostV2<TTask> where TTask : class, IFrostingTask
         }
 
         using var provider = services.BuildServiceProvider();
-        var task = provider.GetRequiredService<TTask>();
+        var task = ActivatorUtilities.CreateInstance<TTask>(provider);
 
         try
         {

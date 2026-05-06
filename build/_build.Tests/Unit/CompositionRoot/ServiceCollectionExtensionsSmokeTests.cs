@@ -10,7 +10,6 @@ using Build.Features.Packaging;
 using Build.Features.Preflight;
 using Build.Features.Publishing;
 using Build.Features.Vcpkg;
-using Build.Features.Versioning;
 using Build.Tests.Fixtures;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -47,22 +46,6 @@ public sealed class ServiceCollectionExtensionsSmokeTests
     public async Task AddCoverageFeature_Should_Register_All_Pipeline_And_Validator_Types()
     {
         await AssertAllRegisteredTypesResolve(services => services.AddCoverageFeature());
-    }
-
-    [Test]
-    public async Task AddVersioningFeature_Should_Register_All_Pipeline_And_Validator_Types()
-    {
-        // Versioning's IPackageVersionProvider factory closure consumes
-        // IUpstreamVersionAlignmentValidator (registered by Preflight, which transitively
-        // requires Packaging for IG58CrossFamilyDepResolvabilityValidator). Pre-register
-        // both upstream features to mirror production where everything lands before
-        // BuildServiceProvider — the smoke validates the resolved cross-feature contract.
-        await AssertAllRegisteredTypesResolve(services =>
-        {
-            services.AddPackagingFeature();
-            services.AddPreflightFeature();
-            services.AddVersioningFeature();
-        });
     }
 
     [Test]
@@ -119,13 +102,11 @@ public sealed class ServiceCollectionExtensionsSmokeTests
     [Test]
     public async Task AddPackagingFeature_Should_Register_All_Pipeline_And_Validator_Types()
     {
-        // Packaging depends on Preflight (PackagePipeline transitively) + Versioning
-        // (IPackageVersionProvider used downstream). Pre-register them so the smoke
-        // mirrors the production composition order.
+        // Packaging depends on Preflight transitively through PackagePipeline.
+        // Pre-register it so the smoke mirrors the production composition order.
         await AssertAllRegisteredTypesResolve(services =>
         {
             services.AddPreflightFeature();
-            services.AddVersioningFeature();
             services.AddPackagingFeature();
         });
     }

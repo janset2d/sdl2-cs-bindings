@@ -24,6 +24,8 @@ Use this checklist for each ADR-002 migration slice.
 
 - [ ] The task class tells the high-level build story.
 - [ ] The task reads named `BuildContext` properties instead of raw parser dictionaries.
+- [ ] Migrated tasks do not read `BuildContext.ParsedArguments`.
+- [ ] Raw parser values are removed from public `BuildContext` when the migration slice removes their last task consumer.
 - [ ] Target input validation happens at the task boundary.
 - [ ] Non-trivial executable target behavior has a `<Target>Request` when collaborators need a stable input contract.
 - [ ] Trivial/no-op/default/fully-inline targets did not receive request ceremony.
@@ -49,6 +51,7 @@ Use this checklist for each ADR-002 migration slice.
 - [ ] No ceremonial `IFoo`/`Foo` pairs were added.
 - [ ] Small pure helpers remain concrete.
 - [ ] DI registration lives near the code being registered.
+- [ ] Cake task classes are not explicitly registered in DI; only their collaborators are registered.
 - [ ] `Program.cs` remains composition/root parsing, not target business logic.
 
 ## 6. Shared concepts
@@ -126,12 +129,14 @@ Use this checklist for each ADR-002 migration slice.
 - [ ] Tool paths are configured via `WithToolPath(...)` or the explicit `WithDefaultToolPath(...)` API.
 - [ ] Scenario tests assert on `ProcessInvocations` when process behavior matters.
 - [ ] `TargetTestHostV2<TTask>` constraint uses `IFrostingTask` — both sync and async tasks are supported.
-- [ ] `ToLegacyBuildContext` is used only as a compatibility bridge; new tasks inject named services directly.
+- [ ] `ToLegacyBuildContext` was not extended to support migrated target tests.
+- [ ] Migrated target tests do not use V1 fixture features or shim behavior to keep old tests alive.
+- [ ] V2 target tests instantiate task classes from the service provider without registering the task type as a service.
 - [ ] V1 fixtures (`FakeRepoBuilder`, `TestHostFixture`) are not extended — only unmigrated code uses them.
 
 ### Test migration rule
 
-When a production target is migrated to `Targets/<CakeTargetName>/`, its existing tests under `Unit/Features/<OldFeature>/` must migrate to V2 test infrastructure in the same migration slice. New unit tests go under `Unit/Targets/<CakeTargetName>/`, new scenarios under `Scenarios/<CakeTargetName>/`.
+When a production target is migrated to `Targets/<CakeTargetName>/`, its existing tests under `Unit/Features/<OldFeature>/` must migrate to V2 test infrastructure in the same migration slice. New unit tests go under `Unit/Targets/<CakeTargetName>/`, new scenarios under `Scenarios/<CakeTargetName>/`. `ToLegacyBuildContext` is not a compatibility support surface for migrated targets.
 
 ## 14. Non-actions (do not reopen without explicit approval)
 
@@ -142,4 +147,3 @@ When a production target is migrated to `Targets/<CakeTargetName>/`, its existin
 - [ ] `System.IO.Abstractions` was not introduced.
 - [ ] Giant abstract `TestBase` was not introduced.
 - [ ] `Spectre.Console.Testing.TestConsole` was not used outside `FakeCakeWorldV2`.
-

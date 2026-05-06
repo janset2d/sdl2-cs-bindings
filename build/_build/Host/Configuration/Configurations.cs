@@ -15,11 +15,10 @@ namespace Build.Host.Configuration;
 /// only need that axis.
 /// </para>
 /// <para>
-/// The <c>Versioning</c> slot was retired in plan v4 (versioning split): tasks
-/// <c>ResolveVersionsFromManifest</c> and <c>ResolveVersionsFromExplicit</c> read
-/// <see cref="BuildContext.ParsedArguments"/> directly. The Configuration record pattern
-/// is being retired feature-by-feature; remaining slots stay until each owning feature
-/// migrates to direct ParsedArguments reads.
+/// The <c>Versioning</c> slot was retired after the ResolveVersions targets moved to
+/// named <see cref="BuildContext"/> properties. The Configuration record pattern is
+/// being retired feature-by-feature; remaining slots stay until each owning feature
+/// migrates to task-facing properties or target-local collaborators.
 /// </para>
 /// </summary>
 /// <remarks>

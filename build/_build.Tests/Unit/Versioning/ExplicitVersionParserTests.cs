@@ -1,12 +1,12 @@
-using Build.Features.Versioning;
+using Build.Versioning;
 using NuGet.Versioning;
 
-namespace Build.Tests.Unit.Features.Versioning;
+namespace Build.Tests.Unit.Versioning;
 
 /// <summary>
 /// Tests for <see cref="ExplicitVersionParser.ParseCliEntries"/> and
 /// <see cref="ExplicitVersionParser.ParseCommaSeparated"/> — the two pure-function
-/// entry points that validate <c>"family=semver"</c> strings into a typed dictionary.
+/// entry points that validate <c>"family=semver"</c> strings into a typed version set.
 /// </summary>
 public sealed class ExplicitVersionParserTests
 {
@@ -28,8 +28,8 @@ public sealed class ExplicitVersionParserTests
         var result = ExplicitVersionParser.ParseCliEntries(["sdl2-core=2.32.0"]);
 
         await Assert.That(result.Count).IsEqualTo(1);
-        await Assert.That(result.ContainsKey("sdl2-core")).IsTrue();
-        await Assert.That(result["sdl2-core"]).IsEqualTo(NuGetVersion.Parse("2.32.0"));
+        await Assert.That(result.Contains(new PackageFamilyId("sdl2-core"))).IsTrue();
+        await Assert.That(result.RequireVersion(new PackageFamilyId("sdl2-core"))).IsEqualTo(NuGetVersion.Parse("2.32.0"));
     }
 
     [Test]
@@ -43,18 +43,18 @@ public sealed class ExplicitVersionParserTests
         ]);
 
         await Assert.That(result.Count).IsEqualTo(3);
-        await Assert.That(result["sdl2-core"]).IsEqualTo(NuGetVersion.Parse("2.32.0-ci.123"));
-        await Assert.That(result["sdl2-image"]).IsEqualTo(NuGetVersion.Parse("2.8.0-ci.123"));
-        await Assert.That(result["sdl2-ttf"]).IsEqualTo(NuGetVersion.Parse("2.24.0-ci.123"));
+        await Assert.That(result.RequireVersion(new PackageFamilyId("sdl2-core"))).IsEqualTo(NuGetVersion.Parse("2.32.0-ci.123"));
+        await Assert.That(result.RequireVersion(new PackageFamilyId("sdl2-image"))).IsEqualTo(NuGetVersion.Parse("2.8.0-ci.123"));
+        await Assert.That(result.RequireVersion(new PackageFamilyId("sdl2-ttf"))).IsEqualTo(NuGetVersion.Parse("2.24.0-ci.123"));
     }
 
     [Test]
-    public async Task ParseCliEntries_Should_Be_Case_Insensitive_On_Family_Key()
+    public async Task ParseCliEntries_Should_Preserve_Input_Family_Casing()
     {
         var result = ExplicitVersionParser.ParseCliEntries(["SDL2-Core=2.32.0"]);
 
-        await Assert.That(result.ContainsKey("sdl2-core")).IsTrue();
-        await Assert.That(result.ContainsKey("SDL2-Core")).IsTrue();
+        await Assert.That(result.Contains(new PackageFamilyId("SDL2-Core"))).IsTrue();
+        await Assert.That(result.Contains(new PackageFamilyId("sdl2-core"))).IsFalse();
     }
 
     [Test]
@@ -99,7 +99,7 @@ public sealed class ExplicitVersionParserTests
         var result = ExplicitVersionParser.ParseCliEntries(["", "  ", "sdl2-core=2.32.0", ""]);
 
         await Assert.That(result.Count).IsEqualTo(1);
-        await Assert.That(result.ContainsKey("sdl2-core")).IsTrue();
+        await Assert.That(result.Contains(new PackageFamilyId("sdl2-core"))).IsTrue();
     }
 
     // ───────────────────────────────────────────────────────────────────────
@@ -128,8 +128,8 @@ public sealed class ExplicitVersionParserTests
         var result = ExplicitVersionParser.ParseCommaSeparated("sdl2-core=2.32.0");
 
         await Assert.That(result.Count).IsEqualTo(1);
-        await Assert.That(result.ContainsKey("sdl2-core")).IsTrue();
-        await Assert.That(result["sdl2-core"]).IsEqualTo(NuGetVersion.Parse("2.32.0"));
+        await Assert.That(result.Contains(new PackageFamilyId("sdl2-core"))).IsTrue();
+        await Assert.That(result.RequireVersion(new PackageFamilyId("sdl2-core"))).IsEqualTo(NuGetVersion.Parse("2.32.0"));
     }
 
     [Test]
@@ -139,9 +139,9 @@ public sealed class ExplicitVersionParserTests
             "sdl2-core=2.32.0-ci.123,sdl2-image=2.8.0-ci.123,sdl2-ttf=2.24.0-ci.123");
 
         await Assert.That(result.Count).IsEqualTo(3);
-        await Assert.That(result["sdl2-core"]).IsEqualTo(NuGetVersion.Parse("2.32.0-ci.123"));
-        await Assert.That(result["sdl2-image"]).IsEqualTo(NuGetVersion.Parse("2.8.0-ci.123"));
-        await Assert.That(result["sdl2-ttf"]).IsEqualTo(NuGetVersion.Parse("2.24.0-ci.123"));
+        await Assert.That(result.RequireVersion(new PackageFamilyId("sdl2-core"))).IsEqualTo(NuGetVersion.Parse("2.32.0-ci.123"));
+        await Assert.That(result.RequireVersion(new PackageFamilyId("sdl2-image"))).IsEqualTo(NuGetVersion.Parse("2.8.0-ci.123"));
+        await Assert.That(result.RequireVersion(new PackageFamilyId("sdl2-ttf"))).IsEqualTo(NuGetVersion.Parse("2.24.0-ci.123"));
     }
 
     [Test]
@@ -151,8 +151,8 @@ public sealed class ExplicitVersionParserTests
             "  sdl2-core=2.32.0 , sdl2-image=2.8.0  ");
 
         await Assert.That(result.Count).IsEqualTo(2);
-        await Assert.That(result["sdl2-core"]).IsEqualTo(NuGetVersion.Parse("2.32.0"));
-        await Assert.That(result["sdl2-image"]).IsEqualTo(NuGetVersion.Parse("2.8.0"));
+        await Assert.That(result.RequireVersion(new PackageFamilyId("sdl2-core"))).IsEqualTo(NuGetVersion.Parse("2.32.0"));
+        await Assert.That(result.RequireVersion(new PackageFamilyId("sdl2-image"))).IsEqualTo(NuGetVersion.Parse("2.8.0"));
     }
 
     [Test]
@@ -162,8 +162,8 @@ public sealed class ExplicitVersionParserTests
             "sdl2-core=2.32.0,,sdl2-image=2.8.0,,");
 
         await Assert.That(result.Count).IsEqualTo(2);
-        await Assert.That(result.ContainsKey("sdl2-core")).IsTrue();
-        await Assert.That(result.ContainsKey("sdl2-image")).IsTrue();
+        await Assert.That(result.Contains(new PackageFamilyId("sdl2-core"))).IsTrue();
+        await Assert.That(result.Contains(new PackageFamilyId("sdl2-image"))).IsTrue();
     }
 
     [Test]

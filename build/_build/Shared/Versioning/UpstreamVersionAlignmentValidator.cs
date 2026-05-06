@@ -1,4 +1,5 @@
 using Build.Shared.Manifest;
+using Build.Versioning;
 using NuGet.Versioning;
 
 namespace Build.Shared.Versioning;
@@ -14,6 +15,18 @@ namespace Build.Shared.Versioning;
 /// </summary>
 public sealed class UpstreamVersionAlignmentValidator : IUpstreamVersionAlignmentValidator
 {
+    public UpstreamVersionAlignmentResult Validate(ManifestConfig manifestConfig, PackageFamilyVersionSet versions)
+    {
+        ArgumentNullException.ThrowIfNull(versions);
+
+        var mapping = versions.ToDictionary(
+            static entry => entry.Family.Value,
+            static entry => entry.Version,
+            StringComparer.OrdinalIgnoreCase);
+
+        return Validate(manifestConfig, mapping);
+    }
+
     public UpstreamVersionAlignmentResult Validate(ManifestConfig manifestConfig, IReadOnlyDictionary<string, NuGetVersion> versions)
     {
         ArgumentNullException.ThrowIfNull(manifestConfig);

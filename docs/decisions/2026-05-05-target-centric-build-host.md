@@ -141,6 +141,8 @@ Small pure helpers, simple policies, and one-off extracted classes should usuall
 
 DI registration should stay close to the code being registered through focused `IServiceCollection` extension methods. Keep `Program.cs` as composition/root parsing, not business logic.
 
+Cake task classes are discovered from `[TaskName]` metadata and should not be explicitly registered in DI. Register collaborators, repositories, tools, and options; let Cake construct the task from the service provider.
+
 Prefer idiomatic modern C# where it clarifies the build domain: immutable records, value objects, and pattern matching are welcome; over-abstracted functional cosplay is not.
 
 ## 9. Cake nativeness
@@ -209,6 +211,8 @@ TUnit creates a new test class instance per test. Prefer composable builders and
 Cake `FakeFileSystem` is the standard fake filesystem for build-host unit and scenario tests. Avoid `System.IO` inside the Cake project; use real filesystem APIs only where external integration boundaries make them necessary.
 
 `Characterization` tests may remain as a temporary safety net during the refactor. Valuable long-lived tests should graduate into `Scenarios` after the behavior stabilizes.
+
+Migrated target tests use the V2 fake Cake world directly. `ToLegacyBuildContext` is a temporary bridge for unmigrated tests, not a compatibility surface to extend for migrated targets.
 
 Architecture dependency tests are not the guardrail for this refactor. The guardrails are this ADR, the refactor phase plan, `AGENTS.md`, and a review checklist.
 

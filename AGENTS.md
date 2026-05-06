@@ -154,6 +154,7 @@ For new or migrated build-host work:
 - **Warning suppressions are last resort.** Avoid broad `#pragma warning disable`; if needed, keep suppressions local and justified.
 - **Typed result boundaries are simple.** Use `Result<T,TError>` for expected operation failures and `ValidationReport` / `ValidationCheck` for multi-check validations. Avoid OneOf-style result hierarchies.
 - **Architecture tests are retired as design police.** Use the ADR, refactor plan, AGENTS.md, and [`docs/refactoring/target-centric-build-host-review-checklist.md`](docs/refactoring/target-centric-build-host-review-checklist.md) instead.
+- **Isolated worktrees are not native-build workspaces unless explicitly provisioned.** Do not initialize/update submodules or run vcpkg/native flows in ADR-002 migration worktrees just to verify target refactors; run managed tests and target discovery there, then run full `tools.cs setup` / `ci-sim` from the main provisioned checkout after merge.
 
 ### ADR-002 migration execution rules
 
@@ -253,6 +254,7 @@ Run by default; no trigger needed.
 | `verification-before-completion` | "evidence before assertions" — required before claiming done |
 | `systematic-debugging` | every bug / test failure / unexpected behavior — no shotgun debugging |
 | `requesting-code-review` / `receiving-code-review` | enforces §When Deniz Asks For A Review structure |
+| `dotnet-slopwatch` | mandatory anti-slop gate after LLM-authored code/project/test changes; catches disabled tests, broad suppressions, empty catch blocks, delays, and CPM bypasses |
 
 **.NET core (stack-mandated, `dotnet-skills:*`):**
 
@@ -270,7 +272,6 @@ Decision rows: skill ↔ trigger ↔ reason ↔ action. Invoke only when the tri
 
 | Skill | When (trigger) | Why (reason) | How (action) |
 | --- | --- | --- | --- |
-| `dotnet-slopwatch` | after substantial new / refactor / LLM-authored code | catches disabled tests, suppressed warnings, empty catch blocks | run before declaring complete; treat findings as gating |
 | `type-design-performance` | designing P/Invoke structs, hot-path types, sealed/readonly choices | bindings cross managed↔native boundary; struct layout matters | invoke when touching `SDL2.Core` types or interop wrappers |
 | `csharp-concurrency-patterns` | adding async / `Task.Run` / `lock` / `Channel<T>` | wrong primitive → deadlocks or wasted threads | invoke before adding any synchronization primitive |
 | `dependency-injection-patterns` | adding/editing `Targets/<X>/ServiceCollectionExtensions.cs` or composition root | target-centric host relies on grouped registrations (§Build-Host Reference Pattern) | invoke when wiring a new target module |

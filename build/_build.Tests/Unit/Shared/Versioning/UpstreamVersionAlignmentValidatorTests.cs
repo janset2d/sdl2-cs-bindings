@@ -1,5 +1,6 @@
 using Build.Shared.Versioning;
 using Build.Tests.Fixtures;
+using Build.Versioning;
 using NuGet.Versioning;
 
 namespace Build.Tests.Unit.Shared.Versioning;
@@ -23,6 +24,22 @@ public sealed class UpstreamVersionAlignmentValidatorTests
         await Assert.That(result.IsSuccess()).IsTrue();
         await Assert.That(result.Validation.HasErrors).IsFalse();
         await Assert.That(result.Validation.Checks).IsEmpty();
+    }
+
+    [Test]
+    public async Task Validate_Should_Accept_PackageFamilyVersionSet()
+    {
+        var manifest = ManifestFixture.CreateTestManifestConfig();
+        var versions = new PackageFamilyVersionSet(
+        [
+            new PackageFamilyVersion(new PackageFamilyId("sdl2-core"), NuGetVersion.Parse("2.32.0")),
+            new PackageFamilyVersion(new PackageFamilyId("sdl2-image"), NuGetVersion.Parse("2.8.0")),
+        ]);
+        var validator = new UpstreamVersionAlignmentValidator();
+
+        var result = validator.Validate(manifest, versions);
+
+        await Assert.That(result.IsError()).IsFalse();
     }
 
     [Test]

@@ -62,7 +62,7 @@ public sealed class HarvestPipeline(
             await ProcessLibraryAsync(manifest, outputBase);
         }
 
-        AnsiConsole.Write(new Rule("[green]Harvest completed successfully[/]").RuleStyle("grey"));
+        AnsiConsole.Write(new Rule("[green]Harvest completed successfully[/]"));
     }
 
     private void EnsureHarvestInputsReady()
@@ -109,19 +109,19 @@ public sealed class HarvestPipeline(
         ArgumentNullException.ThrowIfNull(manifest);
         ArgumentNullException.ThrowIfNull(outputBase);
 
-        AnsiConsole.Write(new Rule($"[yellow]Harvest: {manifest.Name}[/]").RuleStyle("grey"));
+        AnsiConsole.Write(new Rule($"[yellow]Harvest: {manifest.Name}[/]"));
         PrepareLibraryOutputForCurrentRid(manifest, outputBase);
 
         try
         {
             var statistics = await ExecuteHarvestPipelineAsync(manifest, outputBase);
             DisplayHarvestReportSummary(statistics);
-            AnsiConsole.Write(new Rule($"[green]Finished Harvest: {manifest.Name}[/]").RuleStyle("grey"));
+            AnsiConsole.Write(new Rule($"[green]Finished Harvest: {manifest.Name}[/]"));
         }
         catch (OperationCanceledException)
         {
             _log.Warning("Harvest canceled for '{0}'.", manifest.Name);
-            AnsiConsole.Write(new Rule($"[yellow]Canceled Harvest: {manifest.Name}[/]").RuleStyle("grey"));
+            AnsiConsole.Write(new Rule($"[yellow]Canceled Harvest: {manifest.Name}[/]"));
             throw;
         }
         catch (CakeException)
@@ -497,7 +497,7 @@ public sealed class HarvestPipeline(
         ArgumentException.ThrowIfNullOrEmpty(errorMessage);
 
         await GenerateErrorRidStatusFileAsync(manifest, outputBase, errorMessage);
-        AnsiConsole.Write(new Rule($"[red]Failed Harvest: {manifest.Name}[/]").RuleStyle("grey"));
+        AnsiConsole.Write(new Rule($"[red]Failed Harvest: {manifest.Name}[/]"));
     }
 
     private async Task HandleOperationalHarvestFailureAsync(LibraryManifest manifest, DirectoryPath outputBase, Exception ex)
@@ -511,7 +511,7 @@ public sealed class HarvestPipeline(
         _log.Verbose("Harvest error details: {0}", ex);
 
         await GenerateErrorRidStatusFileAsync(manifest, outputBase, ex.Message);
-        AnsiConsole.Write(new Rule($"[red]Failed Harvest: {manifest.Name}[/]").RuleStyle("grey"));
+        AnsiConsole.Write(new Rule($"[red]Failed Harvest: {manifest.Name}[/]"));
     }
 
     /// <summary>

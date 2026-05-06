@@ -1,4 +1,5 @@
 using Build.Shared.Manifest;
+using Build.Versioning;
 using NuGet.Versioning;
 
 namespace Build.Shared.Versioning;
@@ -15,4 +16,8 @@ public interface IUpstreamVersionAlignmentValidator
     UpstreamVersionAlignmentResult Validate(
         ManifestConfig manifestConfig,
         IReadOnlyDictionary<string, NuGetVersion> versions);
+
+    UpstreamVersionAlignmentResult Validate(
+        ManifestConfig manifestConfig,
+        PackageFamilyVersionSet versions);
 }

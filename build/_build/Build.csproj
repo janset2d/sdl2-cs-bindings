@@ -29,6 +29,8 @@
     <PackageReference Include="OneOf" />
     <PackageReference Include="OneOf.Monads" />
     <PackageReference Include="OneOf.SourceGenerator" />
+    <PackageReference Include="Spectre.Console" />
+    <PackageReference Include="Spectre.Console.Cli" />
     <PackageReference Include="System.CommandLine" />
     <PackageReference Include="System.CommandLine.NamingConventionBinder" />
   </ItemGroup>

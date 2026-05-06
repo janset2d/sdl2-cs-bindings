@@ -41,6 +41,11 @@ public sealed class FakeCakeWorldV2
     private (int ExitCode, string StdOut, string StdErr)? _defaultProcessResult;
     private string _rid = "win-x64";
     private string _config = "Release";
+    private string? _suffix;
+    private readonly List<string> _scope = [];
+    private readonly List<string> _explicitVersion = [];
+    private string? _explicitVersions;
+    private string? _versionsFile;
 
     public FakeFileSystem FileSystem => _fileSystem;
     public FakeEnvironment Environment => _environment;
@@ -189,6 +194,38 @@ public sealed class FakeCakeWorldV2
         return this;
     }
 
+    public FakeCakeWorldV2 WithSuffix(string? suffix)
+    {
+        _suffix = suffix;
+        return this;
+    }
+
+    public FakeCakeWorldV2 WithScope(params string[] scope)
+    {
+        _scope.Clear();
+        _scope.AddRange(scope);
+        return this;
+    }
+
+    public FakeCakeWorldV2 WithExplicitVersion(params string[] entries)
+    {
+        _explicitVersion.Clear();
+        _explicitVersion.AddRange(entries);
+        return this;
+    }
+
+    public FakeCakeWorldV2 WithExplicitVersions(string? entries)
+    {
+        _explicitVersions = entries;
+        return this;
+    }
+
+    public FakeCakeWorldV2 WithVersionsFile(string? versionsFile)
+    {
+        _versionsFile = versionsFile;
+        return this;
+    }
+
     // ── access helpers ──
 
     public string ReadAllText(string relativePath)
@@ -205,9 +242,7 @@ public sealed class FakeCakeWorldV2
         return _fileSystem.GetFile(path).Exists;
     }
 
-    // ── compatibility shim for unmigrated tasks that still require the legacy BuildContext shape ──
-
-    public BuildContext ToLegacyBuildContext(ManifestConfig? manifest = null)
+    public BuildContext CreateBuildContext(ManifestConfig? manifest = null)
     {
         var resolvedManifest = manifest ?? new ManifestConfig
         {
@@ -236,11 +271,11 @@ public sealed class FakeCakeWorldV2
             Library: [],
             Rid: _rid,
             Dll: [],
-            Suffix: null,
-            Scope: [],
-            ExplicitVersion: [],
-            ExplicitVersions: null,
-            VersionsFile: null);
+            Suffix: _suffix,
+            Scope: [.. _scope],
+            ExplicitVersion: [.. _explicitVersion],
+            ExplicitVersions: _explicitVersions,
+            VersionsFile: _versionsFile);
 
         var pathService = new PathService(
             new RepositoryConfiguration(_repoRoot),
