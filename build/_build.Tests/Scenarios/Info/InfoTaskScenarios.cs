@@ -3,7 +3,7 @@ using Build.Tests.Fixtures;
 
 namespace Build.Tests.Scenarios.Info;
 
-public sealed class InfoTask_Scenarios
+public sealed class InfoTaskScenarios
 {
     [Test]
     public async Task RunAsync_Should_Complete_Without_Exception_When_DotNet_Is_Available()

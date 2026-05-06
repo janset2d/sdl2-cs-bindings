@@ -84,6 +84,21 @@
         "resolved": "10.7.0.110445",
         "contentHash": "U4v2LWopxADYkUv7Z5CX7ifKMdDVqHb7a1bzppIQnQi4WQR6z1Zi5rDkCHlVYGEd1U/WMz1IJCU8OmFZLJpVig=="
       },
+      "Spectre.Console": {
+        "type": "Direct",
+        "requested": "[0.54.0, )",
+        "resolved": "0.54.0",
+        "contentHash": "StDXCFayfy0yB1xzUHT2tgEpV1/HFTiS4JgsAQS49EYTfMixSwwucaQs/bIOCwXjWwIQTMuxjUIxcB5XsJkFJA=="
+      },
+      "Spectre.Console.Testing": {
+        "type": "Direct",
+        "requested": "[0.54.0, )",
+        "resolved": "0.54.0",
+        "contentHash": "9QjSrRH+scy66ppmOLDiSno0Uh1ISJL18FqmTQDFNvK/oNI1DaI30cy2Uj6v0gxLZghtc/eKTwXtPpe0KKfHXw==",
+        "dependencies": {
+          "Spectre.Console": "0.54.0"
+        }
+      },
       "TUnit": {
         "type": "Direct",
         "requested": "[1.33.0, )",
@@ -490,15 +505,9 @@
         "resolved": "3.0.271",
         "contentHash": "I7e5kx5prSV99g+rM/xO5KMhwBQL/b+NlUY76RhbutXJ0tgiuMoqgOFnlTHOxCLrlKmwaMzp3VI8oz05PSlcIA=="
       },
-      "Spectre.Console": {
-        "type": "CentralTransitive",
-        "requested": "[0.49.1, )",
-        "resolved": "0.54.0",
-        "contentHash": "StDXCFayfy0yB1xzUHT2tgEpV1/HFTiS4JgsAQS49EYTfMixSwwucaQs/bIOCwXjWwIQTMuxjUIxcB5XsJkFJA=="
-      },
       "Spectre.Console.Cli": {
         "type": "CentralTransitive",
-        "requested": "[0.49.1, )",
+        "requested": "[0.54.0, )",
         "resolved": "0.53.1",
         "contentHash": "y//7ZZ0shhvgXzoJXJzMaLGA4dPem8qCbkyv9khfE8NQDlH4hPVsHOHYoz6uzAwiTX9Yd7OnX3wNOX/wRfPUOg==",
         "dependencies": {

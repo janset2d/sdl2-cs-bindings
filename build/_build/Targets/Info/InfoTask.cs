@@ -13,14 +13,9 @@ using Spectre.Console;
 namespace Build.Targets.Info;
 
 [TaskName("Info")]
-public sealed class InfoTask : AsyncFrostingTask<BuildContext>
+public sealed class InfoTask(IAnsiConsole console) : AsyncFrostingTask<BuildContext>
 {
-    private readonly IAnsiConsole _console;
-
-    public InfoTask(IAnsiConsole console)
-    {
-        _console = console ?? throw new ArgumentNullException(nameof(console));
-    }
+    private readonly IAnsiConsole _console = console ?? throw new ArgumentNullException(nameof(console));
 
     public override async Task RunAsync(BuildContext context)
     {

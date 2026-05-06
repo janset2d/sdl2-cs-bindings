@@ -610,44 +610,122 @@ Exit criteria:
 - Test infrastructure does not use a giant `TestBase`.
 - Cake `FakeFileSystem` is the default filesystem in unit/scenario tests.
 
-### P2a polish — Deferred items for P3
+### P2a polish — Re-evaluated and re-scoped for P3 (2026-05-06)
 
-The following items were identified during the P2a V2 test infrastructure review and are deferred to P3:
+The original P2a review proposed host composition parity via production `AddHostBuildingBlocks` plus fake overrides. That design assumed migrated targets would keep one foot in legacy — injecting `IRuntimeProfile`, `IPathService`, and `Configurations` sub-records resolved from the production DI pipeline.
 
-1. **Host composition parity (§3-5).** `TargetTestHostV2` currently builds its DI container manually. Move to production `AddHostBuildingBlocks(parsedArgs)` plus documented fake overrides. Register fake Cake primitives (`ICakeContext`, `ICakeLog`, `ICakeEnvironment`, `IFileSystem`, `IGlobber`, `ICakeArguments`, `ICakeConfiguration`) and configuration records (`RepositoryConfiguration`, `VcpkgConfiguration`, `PackageBuildConfiguration`, `DotNetBuildConfiguration`, `DumpbinConfiguration`) before calling `AddHostBuildingBlocks`. Use `Microsoft.Extensions.DependencyInjection.Extensions.Replace` where override intent matters. Build `BuildContext` from provider-resolved production-shaped services instead of manual construction.
-2. **`IRuntimeProfile` production behavior.** Remove `Substitute.For<IRuntimeProfile>()` from `ToLegacyBuildContext`. Use the `IRuntimeProfile` resolved from `AddHostBuildingBlocks(parsedArgs)`. This makes `IsSystemFile(string)` use production-shaped data.
-3. **Runtime-bearing fake manifest and `RuntimeConfig` fixtures.** The default fake manifest must include at least one `RuntimeInfo` matching the world's active RID, plus populated `SystemExclusions` for `IsSystemFile(...)` to work. Provide pre-built `RuntimeConfig` fixtures as test framework building blocks under `Fixtures/Data/` so tests can exercise RID-specific behavior (`IsSystemFile`, platform predication, triplet resolution) without constructing manifests from scratch. Fixture variants should cover at minimum: `win-x64`, `linux-x64`, `osx-x64`; optionally parameterized via TUnit data-driven tests for broader RID coverage.
-4. **Shim behavior tests.** Once `TargetTestHostV2` uses production host composition, add tests for `ToLegacyBuildContext`: Windows/Linux/macOS RID → `RuntimeFamily` + triplet, configured `Rid`/`Config` → `ParsedArguments`, repo root → `PathService`, manifest instance propagation, default manifest validity.
-5. **`ToLegacyBuildContext` retirement tracking.** The shim retires when `Host/Configuration` and `Configurations` retire. P5 must remove the shim or explicitly document any remaining bridge. Add to the refactoring plan P5 tasks.
+That assumption was rejected during P3 design (2026-05-06). A migrated target reads simple named `BuildContext` properties (`RuntimeIdentifier`, `Configuration`, `VersionsFilePath`). It does not inject `IRuntimeProfile`, `IPathService`, or `Configurations`. Calling `AddHostBuildingBlocks` in the test host would register production services the task never touches, only to immediately replace half of them with fakes — ceremony, not safety.
+
+**Revised P3 items:**
+
+1. **`FakeCakeWorldV2` platform factories.** Three static factories — `CreateWindows()`, `CreateLinux()`, `CreateOsx()` — that set up the correct `FakeEnvironment` + a minimal valid manifest with matching `RuntimeInfo` + populated `SystemExclusions`. These are the "I just need a world" path. Everything is overridable via the existing fluent API (`WithRid`, `WithManifestFile`, `WithProcessResult`, etc.).
+
+2. **Embedded JSON fixture files under `Fixtures/Data/`.** Inspired by the homeruntech/dotnet-backend-monorepo-tool pattern. Canonical manifest and version-set fixtures live as embedded resources under `Fixtures/Data/`, loaded via `Assembly.GetManifestResourceStream()`, and fed into `FakeCakeWorldV2` via `WithManifestFile`/`WithTextFile`. No runtime file I/O in tests, fully Cake-native at the test boundary. Pre-built fixtures for `win-x64`, `linux-x64`, `osx-x64` at minimum.
+
+3. **`ToLegacyBuildContext` stays frozen.** The shim is a temporary compatibility bridge for unmigrated tests. It receives zero new features, zero fluent configuration for `Configurations` sub-records, and zero investment. It retires in P5 along with `Host/Configuration` and `Configurations`. No shim behavior tests — testing the shim is testing infrastructure we're deleting.
+
+**The rule:** When a target migrates to `Targets/`, its tests use V2 infra exclusively. `TargetTestHostV2` builds `BuildContext` directly from `FakeCakeWorldV2` properties — no `AddHostBuildingBlocks`, no `Configurations`, no shim. Migrated targets read named `BuildContext` properties; unmigrated targets continue using the shim until their migration slice.
 
 ### P3 - Foundation completion and BuildContext transition
 
-Goal: finish the shared concepts needed by multiple target migrations without creating a new dumping ground.
+Goal: finish the shared concepts needed by multiple target migrations without creating a new dumping ground. Prove the pattern by migrating `InfoTask` — the simplest target, already on V2 infra — to `Targets/Info/` with named `BuildContext` properties.
 
 Candidate concepts:
 
-- `ManifestRepository`
-- `VersionFileRepository`
-- `PackageFamilyId`
-- `PackageFamilyVersionSet`
-- `Result<T,TError>`
-- `ValidationReport`
-- `ValidationCheck`
+- `IManifestRepository` / `ManifestRepository`
+- `IVersionFileRepository` / `VersionFileRepository`
+- `PackageFamilyId` (already shipped in P2b)
+- `PackageFamilyVersionSet` (already shipped in P2b)
+- `Result<T,TError>` (already shipped in P2b)
+- `ValidationReport` / `ValidationCheck` (already shipped in P2b)
 
-Tasks:
+#### Repository design
 
-1. Add repository tests using Cake fake filesystem.
-2. Introduce `BuildContext` named properties while keeping compatibility with unmigrated code.
-3. Move `Program.cs` toward pure composition/root parsing.
-4. Decide whether `RuntimeId` is needed based on actual migrated boundaries.
-5. Keep `PathService` / host path construction under `Host` unless implementation pressure reveals a better named concept.
-6. Do not delete `Host/Configuration` until all consumers have moved.
+Both repositories are practical file adapters (ADR-002 §6), not DDD repositories. Interfaces are justified (ADR-002 §8): file-backed seams that need test doubles.
+
+```csharp
+public interface IManifestRepository
+{
+    ManifestConfig Load();
+}
+
+public interface IVersionFileRepository
+{
+    PackageFamilyVersionSet Load();
+    Task SaveAsync(PackageFamilyVersionSet versions);
+}
+```
+
+Both take `ICakeContext` + `FilePath` via constructor injection. All JSON I/O routes through the existing `CakeJsonExtensions` (`ToJson<T>`, `WriteJsonAsync<T>`) — Cake-native per ADR-002 §9. The `[JsonConverter]` on `PackageFamilyVersionSet` is honored transparently because `CakeJsonExtensions` uses `System.Text.Json` internally. Zero new JSON code.
+
+`ManifestRepository.Load()` deserializes `build/manifest.json` into the existing `ManifestConfig` model. `VersionFileRepository.Load()` deserializes `versions.json` into `PackageFamilyVersionSet`; `SaveAsync()` serializes it back out via `WriteJsonAsync`. The flat `{family-id: semver}` wire shape matches the existing `VersionsJsonWriter` output exactly.
+
+Errors surface as `CakeException` (inherited from `CakeJsonExtensions` for missing files, bad JSON, null deserialization). No new error types.
+
+#### FakeCakeWorldV2 platform factories
+
+Three static factories that Just Work for the common case:
+
+```csharp
+public static FakeCakeWorldV2 CreateWindows(string? repoRoot = null);
+public static FakeCakeWorldV2 CreateLinux(string? repoRoot = null);
+public static FakeCakeWorldV2 CreateOsx(string? repoRoot = null);
+```
+
+Each factory sets up the correct `FakeEnvironment` (Windows/Unix), a minimal valid `ManifestConfig` on disk with a matching `RuntimeInfo` and populated `SystemExclusions`, and sensible default process results. Everything is overridable via the existing fluent API. The manifest is seeded as an embedded JSON fixture from `Fixtures/Data/`.
+
+#### Embedded JSON fixtures (Fixtures/Data/)
+
+Inspired by the homeruntech/dotnet-backend-monorepo-tool pattern. Canonical fixture files live as embedded resources under `build/_build.Tests/Fixtures/Data/`, organized by domain:
+
+```text
+Fixtures/Data/
+  Manifest/
+    manifest-win-x64.json
+    manifest-linux-x64.json
+    manifest-osx-x64.json
+    manifest-minimal.json
+    manifest-invalid-empty-runtimes.json
+  Versions/
+    versions-valid.json
+    versions-empty.json
+    versions-invalid-semver.json
+```
+
+Loaded via `Assembly.GetManifestResourceStream()` and fed into `FakeCakeWorldV2` via `WithManifestFile`/`WithTextFile`. No runtime file I/O in tests, fully Cake-native at the test boundary.
+
+#### IAnsiConsole injection
+
+`FakeCakeWorldV2` exposes a `Spectre.Console.Testing.TestConsole` instance per world:
+
+```csharp
+public TestConsole AnsiConsole { get; } = new();
+```
+
+`TargetTestHostV2.RunAsync()` registers it as `IAnsiConsole` alongside other Cake primitives. This unblocks scenario tests that need to assert on console output (InfoTask, future targets). `TestConsole` ships with `NoopExclusivityMode` — fully parallel-safe, zero shared state between test instances.
+
+#### P3 task list
+
+1. Add embedded JSON fixture infrastructure (`ResourceLoader` or equivalent) + `Fixtures/Data/` directory.
+2. Add `FakeCakeWorldV2.CreateWindows/CreateLinux/CreateOsx` platform factories.
+3. Add `IManifestRepository` / `ManifestRepository` + unit tests (uses `FakeCakeWorldV2.CakeContext` + `CakeJsonExtensions`).
+4. Add `IVersionFileRepository` / `VersionFileRepository` + unit tests.
+5. Introduce `BuildContext` named properties incrementally:
+   - `RuntimeIdentifier` (string, from `ICakeEnvironment.Platform.Rid()`)
+   - `Configuration` (string, from `--config` CLI option)
+   - `VersionsFilePath` (FilePath, from `--versions-file` or default)
+6. Migrate `InfoTask` to `Targets/Info/InfoTask.cs` with `IAnsiConsole` injection as the proof-of-pattern migration.
+7. Keep `PathService` / `Host` path construction under `Host` unless implementation pressure reveals a better named concept.
+8. Do not delete `Host/Configuration` until all consumers have moved.
 
 Exit criteria:
 
 - New target code can avoid raw parsed args and raw version dictionaries.
-- Existing targets still run.
+- Migrated `InfoTask` lives under `Targets/Info/` with named `BuildContext` properties.
+- Existing unmigrated targets still run.
 - Foundation code has unit tests and avoids premature broad abstractions.
+- `TestConsole` is available in `FakeCakeWorldV2` for console-output assertions.
+- No new code was added to `ToLegacyBuildContext` or `Host/Configuration`.
 
 ### P4 - Low-risk target migrations
 

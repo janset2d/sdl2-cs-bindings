@@ -1,4 +1,3 @@
-using System.Reflection;
 using Assembly = System.Reflection.Assembly;
 
 namespace Build.Tests.Fixtures;

@@ -356,13 +356,13 @@
       },
       "Spectre.Console": {
         "type": "CentralTransitive",
-        "requested": "[0.49.1, )",
+        "requested": "[0.54.0, )",
         "resolved": "0.54.0",
         "contentHash": "StDXCFayfy0yB1xzUHT2tgEpV1/HFTiS4JgsAQS49EYTfMixSwwucaQs/bIOCwXjWwIQTMuxjUIxcB5XsJkFJA=="
       },
       "Spectre.Console.Cli": {
         "type": "CentralTransitive",
-        "requested": "[0.49.1, )",
+        "requested": "[0.54.0, )",
         "resolved": "0.53.1",
         "contentHash": "y//7ZZ0shhvgXzoJXJzMaLGA4dPem8qCbkyv9khfE8NQDlH4hPVsHOHYoz6uzAwiTX9Yd7OnX3wNOX/wRfPUOg==",
         "dependencies": {

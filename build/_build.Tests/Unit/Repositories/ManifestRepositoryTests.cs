@@ -1,7 +1,6 @@
 using Build.Repositories;
 using Build.Tests.Fixtures;
 using Cake.Core;
-using Cake.Core.IO;
 
 namespace Build.Tests.Unit.Repositories;
 

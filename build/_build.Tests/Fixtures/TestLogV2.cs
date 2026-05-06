@@ -1,5 +1,4 @@
 using System.Globalization;
-using Cake.Core;
 using Cake.Core.Diagnostics;
 
 namespace Build.Tests.Fixtures;
@@ -62,7 +61,7 @@ public sealed class TestLogV2 : ICakeLog
     {
         lock (_lock)
         {
-            return !_entries.Any(e => e.Level == level);
+            return _entries.All(e => e.Level != level);
         }
     }
 }

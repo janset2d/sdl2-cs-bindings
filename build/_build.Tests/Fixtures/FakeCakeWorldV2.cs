@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.Json;
 using Build.Host;
 using Build.Host.Configuration;
@@ -168,6 +167,7 @@ public sealed class FakeCakeWorldV2
         {
             _fileSystem.CreateFile(toolPath);
         }
+
         return this;
     }
 
@@ -367,8 +367,7 @@ public sealed class FakeCakeWorldV2
         var process = new FakeProcess();
         process.SetExitCode(exitCode);
 
-        var stdOutLines = stdOut
-            .Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var stdOutLines = stdOut.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         if (stdOutLines.Length > 0)
         {
             process.SetStandardOutput(stdOutLines);
@@ -376,8 +375,7 @@ public sealed class FakeCakeWorldV2
 
         if (!string.IsNullOrWhiteSpace(stdErr))
         {
-            var stdErrLines = stdErr
-                .Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            var stdErrLines = stdErr.Split('\n', StringSplitOptions.RemoveEmptyEntries);
             process.SetStandardError(stdErrLines);
         }
 

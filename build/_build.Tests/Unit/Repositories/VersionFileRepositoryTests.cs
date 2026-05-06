@@ -2,7 +2,6 @@ using Build.Repositories;
 using Build.Tests.Fixtures;
 using Build.Versioning;
 using Cake.Core;
-using Cake.Core.IO;
 using NuGet.Versioning;
 
 namespace Build.Tests.Unit.Repositories;

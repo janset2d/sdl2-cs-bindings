@@ -1,7 +1,5 @@
 using Build.Tests.Fixtures;
-using Cake.Core;
 using Cake.Core.IO;
-using Cake.Core.Tooling;
 
 namespace Build.Tests.Unit.Fixtures;
 
