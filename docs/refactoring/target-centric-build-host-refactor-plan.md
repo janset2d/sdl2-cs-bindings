@@ -735,14 +735,17 @@ Exit criteria:
 
 Goal: prove the target module layout before touching boss fights.
 
-Suggested order:
+Completed in this phase:
 
 1. `Info`
-2. `CleanArtifacts`
-3. `CompileSolution`
-4. `ResolveVersionsFromManifest`
-5. `ResolveVersionsFromExplicit`
-6. diagnostic targets:
+2. `ResolveVersionsFromManifest`
+3. `ResolveVersionsFromExplicit`
+
+Remaining suggested order:
+
+1. `CleanArtifacts`
+2. `CompileSolution`
+3. diagnostic targets:
    - `Dumpbin-Dependents`
    - `Ldd-Dependents`
    - `Otool-Analyze`
@@ -768,6 +771,8 @@ Tasks per target:
 6. `TargetTestHostV2.RunAsync` registers it as `IAnsiConsole` alongside other Cake primitives: `services.AddSingleton<IAnsiConsole>(_world.AnsiConsole)`.
 7. This unblocks the `InfoTask` failure-path scenario test (dotnet non-zero exit code), full log/output assertions, and the two deferred `InfoTask_Scenarios` tests.
 
+**ResolveVersions targets — repository-backed version output.** `ResolveVersionsFromManifest` and `ResolveVersionsFromExplicit` now live under `Targets/`, consume named `BuildContext` properties, and write `PackageFamilyVersionSet` through `IVersionFileRepository`. `VersionsJsonWriter` and the old `Features/Versioning` service registration are gone. `ExplicitVersionParser` lives under the named `Versioning` concept and returns typed version sets. The explicit target keeps input-shape validation separate from parser invocation, and G54 validation has a typed overload for `PackageFamilyVersionSet`; the dictionary overload remains only for unmigrated stage consumers.
+
 Exit criteria:
 
 - Multiple low-risk targets use final layout.
@@ -775,6 +780,7 @@ Exit criteria:
 - No repo-wide rename has hidden old architecture under new names.
 - All `AnsiConsole` static calls in the build host use `IAnsiConsole` injection.
 - `InfoTask` failure-path scenario test passes.
+- ResolveVersions targets use `PackageFamilyVersionSet` and repositories instead of raw version dictionaries and `VersionsJsonWriter`.
 
 #### Post-P4 research task: `versions.json` path contract
 

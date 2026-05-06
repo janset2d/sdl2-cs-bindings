@@ -266,6 +266,8 @@ Run by default; no trigger needed.
 | `api-design` | public NuGet API + D-3seg versioning (G54) require extend-only discipline |
 | `dotnet-local-tools` | Cake and friends are pinned via `dotnet-tools.json` |
 
+Slopwatch command for this repo: `slopwatch analyze --fail-on warning --exclude "artifacts/**,external/**,vcpkg_installed/**,**/bin/**,**/obj/**"`. The excludes keep generated package caches, vendored submodules, native install trees, and build outputs out of the anti-slop gate.
+
 ### Tier 2 — Context-Triggered
 
 Decision rows: skill ↔ trigger ↔ reason ↔ action. Invoke only when the trigger fires; do not pre-emptively load.
