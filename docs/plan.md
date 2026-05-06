@@ -14,7 +14,7 @@ Two streams are active in parallel:
 
 **Phase 2: CI/CD & Packaging — IN PROGRESS.** Core surface is landed (`release.yml` + Cake build host + `tools.cs`). Phase 2b tail = nuget.org promotion (PD-7), release-recovery playbook (PD-8), and the four scope-assumption gaps surfaced in 2026-05-01 rehearsals.
 
-**Phase X / build-host refactor (ADR-002 target-centric architecture) — ACTIVE.** Supersedes residual ADR-004 cleanup. P0 docs/guardrails closed; P1 baseline + inventory next. Canonical docs: [`decisions/2026-05-05-target-centric-build-host.md`](decisions/2026-05-05-target-centric-build-host.md), [`refactoring/target-centric-build-host-refactor-plan.md`](refactoring/target-centric-build-host-refactor-plan.md), [`refactoring/target-centric-build-host-review-checklist.md`](refactoring/target-centric-build-host-review-checklist.md).
+**Phase X / build-host refactor (ADR-002 target-centric architecture) — ACTIVE.** P0 (docs/guardrails), P1 (baseline), P2a (V2 test infra), P2b (foundation primitives), and P3 (repositories + BuildContext + InfoTask migration) complete. 577 tests, 0 failures. P4 (low-risk target migrations) ready. Canonical docs: [`decisions/2026-05-05-target-centric-build-host.md`](decisions/2026-05-05-target-centric-build-host.md), [`refactoring/target-centric-build-host-refactor-plan.md`](refactoring/target-centric-build-host-refactor-plan.md), [`refactoring/target-centric-build-host-review-checklist.md`](refactoring/target-centric-build-host-review-checklist.md).
 
 Active execution ledgers: [phases/phase-2-adaptation-plan.md](phases/phase-2-adaptation-plan.md) (Phase 2b) and [refactoring/target-centric-build-host-refactor-plan.md](refactoring/target-centric-build-host-refactor-plan.md) (build-host refactor).
 

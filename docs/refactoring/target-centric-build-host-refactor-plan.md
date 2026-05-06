@@ -626,7 +626,7 @@ That assumption was rejected during P3 design (2026-05-06). A migrated target re
 
 **The rule:** When a target migrates to `Targets/`, its tests use V2 infra exclusively. `TargetTestHostV2` builds `BuildContext` directly from `FakeCakeWorldV2` properties — no `AddHostBuildingBlocks`, no `Configurations`, no shim. Migrated targets read named `BuildContext` properties; unmigrated targets continue using the shim until their migration slice.
 
-### P3 - Foundation completion and BuildContext transition
+### P3 - Foundation completion and BuildContext transition ✅ (completed 2026-05-06)
 
 Goal: finish the shared concepts needed by multiple target migrations without creating a new dumping ground. Prove the pattern by migrating `InfoTask` — the simplest target, already on V2 infra — to `Targets/Info/` with named `BuildContext` properties.
 
