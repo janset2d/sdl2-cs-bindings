@@ -5,7 +5,6 @@ using Build.Features.Coverage;
 using Build.Features.DependencyAnalysis;
 using Build.Features.Diagnostics;
 using Build.Features.Harvesting;
-using Build.Features.Maintenance;
 using Build.Features.Packaging;
 using Build.Features.Preflight;
 using Build.Features.Publishing;
@@ -30,12 +29,6 @@ namespace Build.Tests.Unit.CompositionRoot;
 /// </summary>
 public sealed class ServiceCollectionExtensionsSmokeTests
 {
-    [Test]
-    public async Task AddMaintenanceFeature_Should_Register_All_Pipeline_And_Validator_Types()
-    {
-        await AssertAllRegisteredTypesResolve(services => services.AddMaintenanceFeature());
-    }
-
     [Test]
     public async Task AddCiFeature_Should_Register_All_Pipeline_And_Validator_Types()
     {

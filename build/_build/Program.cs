@@ -10,7 +10,6 @@ using Build.Features.Coverage;
 using Build.Features.DependencyAnalysis;
 using Build.Features.Diagnostics;
 using Build.Features.Harvesting;
-using Build.Features.Maintenance;
 using Build.Features.Packaging;
 using Build.Features.Preflight;
 using Build.Features.Publishing;
@@ -127,7 +126,6 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
         .AddRepositories()
         .AddIntegrations()
         .AddToolWrappers()
-        .AddMaintenanceFeature()
         .AddCiFeature()
         .AddCoverageFeature()
         .AddVcpkgFeature()

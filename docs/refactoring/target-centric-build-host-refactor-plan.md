@@ -109,8 +109,6 @@ Current Cake target surface found via `[TaskName]`:
 | Target | Current area | Migration notes |
 | --- | --- | --- |
 | `Info` | `Features/Info` | Low-risk early migration. Useful for target layout proof. |
-| `CleanArtifacts` | `Features/Maintenance` | Low-risk maintenance target. |
-| `CompileSolution` | `Features/Maintenance` | Low-risk, but touches process/build invocation. |
 | `GenerateMatrix` | `Features/Ci` | CI contract target; preserve output shape exactly. |
 | `EnsureVcpkgDependencies` | `Features/Vcpkg` | Tool/process-adjacent; keep Cake abstractions acceptable. |
 | `ResolveVersionsFromManifest` | `Features/Versioning` | Already close to target-owned orchestration. Early migration candidate. |
@@ -745,15 +743,14 @@ Completed in this phase:
 4. `versions.json` path contract resolved — `--versions-file` universal, `PathService` hardcoded directory removed
 5. `CleanArtifacts` **retired** (not migrated — local hygiene belongs in `tools.cs`, not Cake)
 6. `testing-guidelines.md` extracted as canonical test reference (embedded fixtures, V2/V1 rules, filesystem seeding, anti-patterns)
+7. `CompileSolution` **retired** (not migrated — zero Cake callers; bare `dotnet build Janset.SDL2.sln` covers the use case)
 
-Remaining suggested order:
+Remaining suggested order: diagnostic targets only.
 
-1. `CompileSolution`
-2. diagnostic targets:
-   - `Dumpbin-Dependents`
-   - `Ldd-Dependents`
-   - `Otool-Analyze`
-   - `Inspect-HarvestedDependencies`
+- `Dumpbin-Dependents`
+- `Ldd-Dependents`
+- `Otool-Analyze`
+- `Inspect-HarvestedDependencies`
 
 Tasks per target:
 
@@ -787,6 +784,7 @@ Exit criteria:
 - ResolveVersions targets use `PackageFamilyVersionSet` and repositories instead of raw version dictionaries and `VersionsJsonWriter`.
 - `versions.json` path contract resolved: `--versions-file` universal, `PathService` hardcoded path removed.
 - `CleanArtifacts` retired from Cake (local hygiene in `tools.cs`).
+- `CompileSolution` retired from Cake (zero callers; bare `dotnet build Janset.SDL2.sln` covers the use case).
 - `testing-guidelines.md` canonical test reference extracted and cross-referenced from ADR, plan, checklist, and AGENTS.md.
 
 #### Post-P4 research task: `versions.json` path contract ✅ (resolved 2026-05-07)
