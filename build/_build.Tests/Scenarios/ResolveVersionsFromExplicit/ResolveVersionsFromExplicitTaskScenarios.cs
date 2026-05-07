@@ -13,7 +13,8 @@ public sealed class ResolveVersionsFromExplicitTaskScenarios
     {
         var world = FakeCakeWorldV2.CreateWindows()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
-            .WithExplicitVersion("sdl2-image=2.8.0-rc.2", "sdl2-core=2.32.0-rc.1");
+            .WithExplicitVersion("sdl2-image=2.8.0-rc.2", "sdl2-core=2.32.0-rc.1")
+            .WithVersionsFile("artifacts/resolve-versions/versions.json");
 
         var result = await CreateHost(world).RunAsync();
 
@@ -28,7 +29,8 @@ public sealed class ResolveVersionsFromExplicitTaskScenarios
     {
         var world = FakeCakeWorldV2.CreateWindows()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
-            .WithExplicitVersion("sdl2-core=3.0.0");
+            .WithExplicitVersion("sdl2-core=3.0.0")
+            .WithVersionsFile("artifacts/resolve-versions/versions.json");
 
         var result = await CreateHost(world).RunAsync();
 
@@ -42,7 +44,8 @@ public sealed class ResolveVersionsFromExplicitTaskScenarios
     public async Task RunAsync_Should_Throw_When_No_ExplicitVersion_Or_ExplicitVersions_Supplied()
     {
         var world = FakeCakeWorldV2.CreateWindows()
-            .WithManifestObject(ManifestFixture.CreateTestManifestConfig());
+            .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
+            .WithVersionsFile("artifacts/resolve-versions/versions.json");
 
         var result = await CreateHost(world).RunAsync();
 
@@ -57,7 +60,8 @@ public sealed class ResolveVersionsFromExplicitTaskScenarios
         var world = FakeCakeWorldV2.CreateWindows()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithExplicitVersion("sdl2-core=2.32.0-rc.1")
-            .WithExplicitVersions("sdl2-image=2.8.0-rc.2");
+            .WithExplicitVersions("sdl2-image=2.8.0-rc.2")
+            .WithVersionsFile("artifacts/resolve-versions/versions.json");
 
         var result = await CreateHost(world).RunAsync();
 
@@ -70,7 +74,8 @@ public sealed class ResolveVersionsFromExplicitTaskScenarios
     {
         var world = FakeCakeWorldV2.CreateWindows()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
-            .WithExplicitVersions("sdl2-core=2.32.0-test.smoke,sdl2-image=2.8.0-test.smoke");
+            .WithExplicitVersions("sdl2-core=2.32.0-test.smoke,sdl2-image=2.8.0-test.smoke")
+            .WithVersionsFile("artifacts/resolve-versions/versions.json");
 
         var result = await CreateHost(world).RunAsync();
 
@@ -85,12 +90,26 @@ public sealed class ResolveVersionsFromExplicitTaskScenarios
     {
         var world = FakeCakeWorldV2.CreateWindows()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
-            .WithExplicitVersions("sdl2-core:2.32.0,sdl2-image=2.8.0");
+            .WithExplicitVersions("sdl2-core:2.32.0,sdl2-image=2.8.0")
+            .WithVersionsFile("artifacts/resolve-versions/versions.json");
 
         var result = await CreateHost(world).RunAsync();
 
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.Exception!.Message).Contains("could not parse operator input");
+    }
+
+    [Test]
+    public async Task RunAsync_Should_Throw_When_VersionsFile_Is_Missing()
+    {
+        var world = FakeCakeWorldV2.CreateWindows()
+            .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
+            .WithExplicitVersion("sdl2-core=2.32.0-rc.1");
+
+        var result = await CreateHost(world).RunAsync();
+
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.Exception!.Message).Contains("--versions-file");
     }
 
     private static TargetTestHostV2<ResolveVersionsFromExplicitTask> CreateHost(FakeCakeWorldV2 world)

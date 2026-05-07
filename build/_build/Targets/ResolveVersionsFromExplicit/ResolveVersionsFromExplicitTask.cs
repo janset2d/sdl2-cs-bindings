@@ -9,7 +9,7 @@ using Cake.Frosting;
 namespace Build.Targets.ResolveVersionsFromExplicit;
 
 [TaskName("ResolveVersionsFromExplicit")]
-[TaskDescription("Resolves per-family versions from --explicit-version / --explicit-versions; emits artifacts/resolve-versions/versions.json")]
+[TaskDescription("Resolves per-family versions from --explicit-version / --explicit-versions; writes versions.json to --versions-file path")]
 public sealed class ResolveVersionsFromExplicitTask(
     IManifestRepository manifestRepository,
     IVersionFileRepository versionFileRepository,
@@ -23,13 +23,20 @@ public sealed class ResolveVersionsFromExplicitTask(
     {
         ArgumentNullException.ThrowIfNull(context);
 
+        if (context.VersionsFilePath is null)
+        {
+            throw new CakeException(
+                "ResolveVersionsFromExplicit requires --versions-file <path>. " +
+                "Example: --versions-file artifacts/resolve-versions/versions.json");
+        }
+
         var input = ResolveOperatorInput(context);
         var versions = ParseOperatorMapping(input);
         var manifest = _manifestRepository.Load();
 
         EnforceUpstreamVersionAlignment(manifest, versions);
 
-        await _versionFileRepository.SaveAsync(versions);
+        await _versionFileRepository.SaveAsync(context.VersionsFilePath, versions);
     }
 
     private static ExplicitVersionInput ResolveOperatorInput(BuildContext context)

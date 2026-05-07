@@ -8,7 +8,6 @@ public static class ServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.AddSingleton<CleanArtifactsPipeline>();
         services.AddSingleton<CompileSolutionPipeline>();
 
         return services;

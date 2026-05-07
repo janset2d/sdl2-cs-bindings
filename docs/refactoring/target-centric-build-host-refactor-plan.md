@@ -439,6 +439,8 @@ Rules:
 
 ## 9. Testing architecture
 
+> **Operational companion:** [`testing-guidelines.md`](testing-guidelines.md) — canonical reference for test data policy, V2/V1 infrastructure, filesystem seeding, scenario test structure, and anti-patterns. This section defines the architecture; the guidelines document defines the day-to-day rules.
+
 ### Taxonomy
 
 | Folder | Meaning |
@@ -740,12 +742,14 @@ Completed in this phase:
 1. `Info`
 2. `ResolveVersionsFromManifest`
 3. `ResolveVersionsFromExplicit`
+4. `versions.json` path contract resolved — `--versions-file` universal, `PathService` hardcoded directory removed
+5. `CleanArtifacts` **retired** (not migrated — local hygiene belongs in `tools.cs`, not Cake)
+6. `testing-guidelines.md` extracted as canonical test reference (embedded fixtures, V2/V1 rules, filesystem seeding, anti-patterns)
 
 Remaining suggested order:
 
-1. `CleanArtifacts`
-2. `CompileSolution`
-3. diagnostic targets:
+1. `CompileSolution`
+2. diagnostic targets:
    - `Dumpbin-Dependents`
    - `Ldd-Dependents`
    - `Otool-Analyze`
@@ -781,17 +785,13 @@ Exit criteria:
 - All `AnsiConsole` static calls in the build host use `IAnsiConsole` injection.
 - `InfoTask` failure-path scenario test passes.
 - ResolveVersions targets use `PackageFamilyVersionSet` and repositories instead of raw version dictionaries and `VersionsJsonWriter`.
+- `versions.json` path contract resolved: `--versions-file` universal, `PathService` hardcoded path removed.
+- `CleanArtifacts` retired from Cake (local hygiene in `tools.cs`).
+- `testing-guidelines.md` canonical test reference extracted and cross-referenced from ADR, plan, checklist, and AGENTS.md.
 
-#### Post-P4 research task: `versions.json` path contract
+#### Post-P4 research task: `versions.json` path contract ✅ (resolved 2026-05-07)
 
-Before refactoring stage-target version loading further, research and decide the `versions.json` path contract:
-
-1. Verify every current producer/consumer path in `release.yml`, `tools.cs`, `BuildContext`, `VersionFileRepository`, and stage tasks.
-2. Decide whether `--versions-file` should be removed and stage targets should always read the predetermined ResolveVersions output path.
-3. Or decide whether `--versions-file` should be supported consistently by both ResolveVersions writers and stage readers.
-4. Or keep the current reader-only `--versions-file` contract, but make repository naming/registration explicit enough that writer-output and stage-input semantics cannot be confused.
-
-Current known signal: `release.yml`, `tools.cs setup`, `tools.cs ci-sim`, and remote package acquisition all converge on `artifacts/resolve-versions/versions.json`; ResolveVersions writes that path today, while stage targets pass it back through `--versions-file`.
+Decision: `--versions-file` is universal — both ResolveVersions writers AND stage-task readers use it. `PathService.ResolveVersionsOutputDirectory` / `GetResolveVersionsOutputFile()` removed. `IVersionFileRepository` takes path at method-call time, not constructor injection. `BuildContext.VersionsFilePath` is `FilePath?` with no fallback; every task validates at entry (defense in depth). `CleanArtifacts` retired from Cake — artifact cleanup is local-dev hygiene owned by `tools.cs`, not a build pipeline stage. See commit `e893600` → current `master`.
 
 ### P5 - Retire coverage and strategy-era abstractions
 

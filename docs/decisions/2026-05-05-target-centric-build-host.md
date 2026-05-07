@@ -193,6 +193,8 @@ Avoid duplicate "log and throw" noise.
 
 The build-host test project is first-class infrastructure.
 
+> **Operational detail:** [`testing-guidelines.md`](../refactoring/testing-guidelines.md) carries the day-to-day rules — test data policy (embedded fixtures vs centralized inline), V2 vs V1 infrastructure, filesystem seeding, scenario test structure, and anti-patterns. This section defines the architecture; the guidelines document defines the practice.
+
 The target taxonomy is:
 
 | Category | Purpose |

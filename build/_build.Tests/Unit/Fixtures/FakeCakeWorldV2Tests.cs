@@ -197,8 +197,7 @@ public sealed class FakeCakeWorldV2Tests
     [Test]
     public async Task Tool_Should_Resolve_Configured_Path()
     {
-        var world = FakeCakeWorldV2.Create()
-            .WithToolPath(new FilePath("/tools/custom"));
+        var world = FakeCakeWorldV2.Create().WithToolPath(new FilePath("/tools/custom"));
 
         var result = world.CakeContext.Tools.Resolve("any-tool");
 

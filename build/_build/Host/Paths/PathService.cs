@@ -288,13 +288,6 @@ public sealed class PathService : IPathService
         return RepoRoot.CombineWithFilePath("README.md");
     }
 
-    public DirectoryPath ResolveVersionsOutputDirectory => ArtifactsDir.Combine("resolve-versions");
-
-    public FilePath GetResolveVersionsOutputFile()
-    {
-        return ResolveVersionsOutputDirectory.CombineWithFilePath("versions.json");
-    }
-
     public DirectoryPath SmokeTestsRoot => RepoRoot.Combine("tests").Combine("smoke-tests");
 
     public FilePath PackageConsumerSmokeProject =>

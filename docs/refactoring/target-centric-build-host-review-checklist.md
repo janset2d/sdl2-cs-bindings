@@ -94,6 +94,8 @@ Use this checklist for each ADR-002 migration slice.
 
 ## 10. Testing
 
+> **Operational detail:** [`testing-guidelines.md`](testing-guidelines.md) — test data policy, V2/V1 infra rules, filesystem seeding, scenario structure, anti-patterns.
+
 - [ ] Unit tests cover pure policies, validators, and small algorithms directly.
 - [ ] Scenario tests exercise real task orchestration with fake Cake world for migrated target behavior.
 - [ ] Integration tests are limited to mission-critical external boundaries.

@@ -21,19 +21,12 @@ public enum FakeRepoPlatformV2
     Unix,
 }
 
-public sealed record ProcessInvocation(
-    FilePath Command,
-    string Arguments,
-    bool RedirectStandardOutput,
-    bool Silent);
+public sealed record ProcessInvocation(FilePath Command, string Arguments, bool RedirectStandardOutput, bool Silent);
 
 public sealed class FakeCakeWorldV2
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
-    private readonly FakeFileSystem _fileSystem;
-    private readonly FakeEnvironment _environment;
-    private readonly DirectoryPath _repoRoot;
     private readonly Dictionary<string, (int ExitCode, string StdOut, string StdErr)> _processResults = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<ProcessInvocation> _processInvocations = [];
     private FilePath? _toolPath;
@@ -47,11 +40,13 @@ public sealed class FakeCakeWorldV2
     private string? _explicitVersions;
     private string? _versionsFile;
 
-    public FakeFileSystem FileSystem => _fileSystem;
-    public FakeEnvironment Environment => _environment;
+    public FakeFileSystem FileSystem { get; }
+
+    public FakeEnvironment Environment { get; }
+
     public TestLogV2 Log { get; }
     public ICakeContext CakeContext { get; }
-    public DirectoryPath RepoRoot => _repoRoot;
+    public DirectoryPath RepoRoot { get; }
 
     public IReadOnlyList<ProcessInvocation> ProcessInvocations => _processInvocations;
 
@@ -59,22 +54,21 @@ public sealed class FakeCakeWorldV2
 
     private FakeCakeWorldV2(FakeRepoPlatformV2 platform, string? repoRoot)
     {
-        _environment = platform switch
+        Environment = platform switch
         {
             FakeRepoPlatformV2.Windows => FakeEnvironment.CreateWindowsEnvironment(),
             FakeRepoPlatformV2.Unix => FakeEnvironment.CreateUnixEnvironment(),
             _ => throw new ArgumentOutOfRangeException(nameof(platform)),
         };
 
-        _fileSystem = new FakeFileSystem(_environment);
-        _repoRoot = new DirectoryPath(repoRoot ?? (platform == FakeRepoPlatformV2.Windows ? "C:/repo" : "/repo"));
+        RepoRoot = new DirectoryPath(repoRoot ?? (platform == FakeRepoPlatformV2.Windows ? "C:/repo" : "/repo"));
+        Environment.WorkingDirectory = RepoRoot;
+        FileSystem = new FakeFileSystem(Environment);
         Log = new TestLogV2();
         CakeContext = BuildCakeContext();
     }
 
-    public static FakeCakeWorldV2 Create(
-        FakeRepoPlatformV2 platform = FakeRepoPlatformV2.Windows,
-        string? repoRoot = null)
+    public static FakeCakeWorldV2 Create(FakeRepoPlatformV2 platform = FakeRepoPlatformV2.Windows, string? repoRoot = null)
     {
         return new FakeCakeWorldV2(platform, repoRoot);
     }
@@ -119,16 +113,16 @@ public sealed class FakeCakeWorldV2
         ArgumentNullException.ThrowIfNull(content);
 
         var fullPath = path.IsRelative
-            ? _repoRoot.CombineWithFilePath(path)
+            ? RepoRoot.CombineWithFilePath(path)
             : path;
 
-        var dir = _fileSystem.GetDirectory(fullPath.GetDirectory());
+        var dir = FileSystem.GetDirectory(fullPath.GetDirectory());
         if (!dir.Exists)
         {
             dir.Create();
         }
 
-        var file = _fileSystem.GetFile(fullPath);
+        var file = FileSystem.GetFile(fullPath);
         using var stream = file.Open(FileMode.Create, FileAccess.Write, FileShare.None);
         using var writer = new StreamWriter(stream);
         writer.Write(content);
@@ -146,20 +140,13 @@ public sealed class FakeCakeWorldV2
         return WithManifestFile(JsonSerializer.Serialize(manifest, JsonOptions));
     }
 
-    public FakeCakeWorldV2 WithProcessResult(
-        string command,
-        int exitCode,
-        string stdOut,
-        string stdErr = "")
+    public FakeCakeWorldV2 WithProcessResult(string command, int exitCode, string stdOut, string stdErr = "")
     {
         _processResults[command] = (exitCode, stdOut, stdErr);
         return this;
     }
 
-    public FakeCakeWorldV2 WithDefaultProcessResult(
-        int exitCode = 0,
-        string stdOut = "",
-        string stdErr = "")
+    public FakeCakeWorldV2 WithDefaultProcessResult(int exitCode = 0, string stdOut = "", string stdErr = "")
     {
         _defaultProcessResult = (exitCode, stdOut, stdErr);
         return this;
@@ -168,9 +155,9 @@ public sealed class FakeCakeWorldV2
     public FakeCakeWorldV2 WithToolPath(FilePath toolPath)
     {
         _toolPath = toolPath;
-        if (!_fileSystem.GetFile(toolPath).Exists)
+        if (!FileSystem.GetFile(toolPath).Exists)
         {
-            _fileSystem.CreateFile(toolPath);
+            FileSystem.CreateFile(toolPath);
         }
 
         return this;
@@ -222,7 +209,7 @@ public sealed class FakeCakeWorldV2
 
     public FakeCakeWorldV2 WithVersionsFile(string? versionsFile)
     {
-        _versionsFile = versionsFile;
+        _versionsFile = versionsFile is null ? null : RepoRoot.CombineWithFilePath(versionsFile).FullPath;
         return this;
     }
 
@@ -230,16 +217,16 @@ public sealed class FakeCakeWorldV2
 
     public string ReadAllText(string relativePath)
     {
-        var path = _repoRoot.CombineWithFilePath(relativePath);
-        using var stream = _fileSystem.GetFile(path).OpenRead();
+        var path = RepoRoot.CombineWithFilePath(relativePath);
+        using var stream = FileSystem.GetFile(path).OpenRead();
         using var reader = new StreamReader(stream);
         return reader.ReadToEnd();
     }
 
     public bool FileExists(string relativePath)
     {
-        var path = _repoRoot.CombineWithFilePath(relativePath);
-        return _fileSystem.GetFile(path).Exists;
+        var path = RepoRoot.CombineWithFilePath(relativePath);
+        return FileSystem.GetFile(path).Exists;
     }
 
     public BuildContext CreateBuildContext(ManifestConfig? manifest = null)
@@ -278,7 +265,7 @@ public sealed class FakeCakeWorldV2
             VersionsFile: _versionsFile);
 
         var pathService = new PathService(
-            new RepositoryConfiguration(_repoRoot),
+            new RepositoryConfiguration(RepoRoot),
             parsedArgs,
             Log);
 
@@ -307,9 +294,8 @@ public sealed class FakeCakeWorldV2
 
         var options = new Configurations(
             Vcpkg: new VcpkgConfiguration([], _rid),
-            Package: new PackageBuildConfiguration(
-                new Dictionary<string, NuGet.Versioning.NuGetVersion>(StringComparer.OrdinalIgnoreCase)),
-            Repository: new RepositoryConfiguration(_repoRoot),
+            Package: new PackageBuildConfiguration(new Dictionary<string, NuGet.Versioning.NuGetVersion>(StringComparer.OrdinalIgnoreCase)),
+            Repository: new RepositoryConfiguration(RepoRoot),
             DotNet: new DotNetBuildConfiguration(_config),
             Dumpbin: new DumpbinConfiguration([]));
 
@@ -380,12 +366,12 @@ public sealed class FakeCakeWorldV2
                     "Call WithToolPath(path) for a specific tool, or WithDefaultToolPath(path) to accept any unconfigured tool.");
             });
 
-        var globber = new Globber(_fileSystem, _environment);
+        var globber = new Globber(FileSystem, Environment);
 
         var context = Substitute.For<ICakeContext>();
         context.Log.Returns(Log);
-        context.Environment.Returns(_environment);
-        context.FileSystem.Returns(_fileSystem);
+        context.Environment.Returns(Environment);
+        context.FileSystem.Returns(FileSystem);
         context.Globber.Returns(globber);
         context.Arguments.Returns(Substitute.For<ICakeArguments>());
         context.Configuration.Returns(Substitute.For<ICakeConfiguration>());

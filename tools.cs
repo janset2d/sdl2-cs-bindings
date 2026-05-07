@@ -142,22 +142,21 @@ public sealed class SetupCommand : AsyncCommand<SetupSettings>
 
         if (!noClean)
         {
-            if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "CleanArtifacts",
-                    ["--target", "CleanArtifacts"], verbose: false))
-                return FinishSetup(results, totalStopwatch, 1);
+            AnsiConsole.MarkupLine("[grey]Cleaning artifacts/ ...[/]");
+            Shared.CleanArtifacts(repoRoot);
         }
         else
         {
             AnsiConsole.MarkupLine("[grey]Skipping CleanArtifacts (--no-clean).[/]");
         }
 
+        var versionsPath = Path.Combine(repoRoot, "artifacts", "resolve-versions", "versions.json");
+
         var scopeArgs = families.SelectMany(f => new[] { "--scope", f.Name }).ToArray();
-        var resolveArgs = new List<string> { "--target", "ResolveVersionsFromManifest", $"--suffix={suffix}" };
+        var resolveArgs = new List<string> { "--target", "ResolveVersionsFromManifest", $"--suffix={suffix}", "--versions-file", versionsPath };
         resolveArgs.AddRange(scopeArgs);
         if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "ResolveVersionsFromManifest", resolveArgs, verbose: false))
             return FinishSetup(results, totalStopwatch, 1);
-
-        var versionsPath = Path.Combine(repoRoot, "artifacts", "resolve-versions", "versions.json");
 
         if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "PreFlightCheck",
                 ["--target", "PreFlightCheck", "--versions-file", versionsPath], verbose: false))
@@ -241,9 +240,8 @@ public sealed class SetupCommand : AsyncCommand<SetupSettings>
 
         if (!noClean)
         {
-            if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "CleanArtifacts",
-                    ["--target", "CleanArtifacts"], verbose: false))
-                return FinishSetup(results, totalStopwatch, 1);
+            AnsiConsole.MarkupLine("[grey]Cleaning artifacts/ ...[/]");
+            Shared.CleanArtifacts(repoRoot);
         }
         else
         {
@@ -464,18 +462,17 @@ public sealed class CiSimCommand : AsyncCommand<CiSimSettings>
         var scopeArgs = families.SelectMany(f => new[] { "--scope", f.Name }).ToArray();
 
         // Step 1: CleanArtifacts
-        if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "CleanArtifacts",
-                ["--target", "CleanArtifacts"], settings.Verbose))
-            return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 1);
+        AnsiConsole.MarkupLine("[grey]Cleaning artifacts/ ...[/]");
+        Shared.CleanArtifacts(repoRoot);
+
+        var versionsPath = Path.Combine(repoRoot, "artifacts", "resolve-versions", "versions.json");
 
         // Step 2: ResolveVersionsFromManifest
-        var resolveArgs = new List<string> { "--target", "ResolveVersionsFromManifest", $"--suffix={suffix}" };
+        var resolveArgs = new List<string> { "--target", "ResolveVersionsFromManifest", $"--suffix={suffix}", "--versions-file", versionsPath };
         resolveArgs.AddRange(scopeArgs);
         if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "ResolveVersionsFromManifest",
                 resolveArgs, settings.Verbose))
             return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 1);
-
-        var versionsPath = Path.Combine(repoRoot, "artifacts", "resolve-versions", "versions.json");
 
         // Step 3: PreFlightCheck
         if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "PreFlightCheck",
@@ -539,6 +536,18 @@ public sealed class CiSimCommand : AsyncCommand<CiSimSettings>
 internal static class Shared
 {
     // ── path / identity helpers ──
+
+    public static void CleanArtifacts(string repoRoot)
+    {
+        var artifactsDir = Path.Combine(repoRoot, "artifacts");
+        if (Directory.Exists(artifactsDir))
+            Directory.Delete(artifactsDir, recursive: true);
+        Directory.CreateDirectory(artifactsDir);
+
+        var nativeSmokeBuildDir = Path.Combine(repoRoot, "tests", "smoke-tests", "native-smoke", "build");
+        if (Directory.Exists(nativeSmokeBuildDir))
+            Directory.Delete(nativeSmokeBuildDir, recursive: true);
+    }
 
     /// <summary>Pure Cake passthrough — forwards output directly to the console, no log capture.</summary>
     public static async Task<int> RunCakePassthroughAsync(string[] cakeArgs)

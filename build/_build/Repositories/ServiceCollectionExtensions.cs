@@ -20,8 +20,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IVersionFileRepository>(provider =>
         {
             var context = provider.GetRequiredService<ICakeContext>();
-            var paths = provider.GetRequiredService<IPathService>();
-            return new VersionFileRepository(context, paths.GetResolveVersionsOutputFile());
+            return new VersionFileRepository(context);
         });
 
         return services;

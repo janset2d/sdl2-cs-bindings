@@ -10,7 +10,7 @@ using NuGet.Versioning;
 namespace Build.Targets.ResolveVersionsFromManifest;
 
 [TaskName("ResolveVersionsFromManifest")]
-[TaskDescription("Resolves per-family versions from manifest upstream + --suffix; emits artifacts/resolve-versions/versions.json")]
+[TaskDescription("Resolves per-family versions from manifest upstream + --suffix; writes versions.json to --versions-file path")]
 public sealed class ResolveVersionsFromManifestTask(
     IManifestRepository manifestRepository,
     IVersionFileRepository versionFileRepository) : AsyncFrostingTask<BuildContext>
@@ -21,6 +21,13 @@ public sealed class ResolveVersionsFromManifestTask(
     public override async Task RunAsync(BuildContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
+
+        if (context.VersionsFilePath is null)
+        {
+            throw new CakeException(
+                "ResolveVersionsFromManifest requires --versions-file <path>. " +
+                "Example: --versions-file artifacts/resolve-versions/versions.json");
+        }
 
         if (string.IsNullOrWhiteSpace(context.ResolveVersionsSuffix))
         {
@@ -37,7 +44,7 @@ public sealed class ResolveVersionsFromManifestTask(
         var versions = new PackageFamilyVersionSet(
             families.Select(family => new PackageFamilyVersion(new PackageFamilyId(family.Name), BuildVersionFor(manifest, family, suffix))));
 
-        await _versionFileRepository.SaveAsync(versions);
+        await _versionFileRepository.SaveAsync(context.VersionsFilePath, versions);
     }
 
     private static HashSet<string> BuildScope(IReadOnlyList<string> rawScope)

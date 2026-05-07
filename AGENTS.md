@@ -161,6 +161,7 @@ For new or migrated build-host work:
 - Migrate on an isolated branch/worktree from clean `master`. Do not push during iterative work; merge to `master` only after the full refactor is accepted.
 - Per migration slice flow: `brainstorming` skill → `writing-plans` skill → user approval → `executing-plans` skill → walk through the [review checklist](docs/refactoring/target-centric-build-host-review-checklist.md) → present summary + proposed commit message → user approval → commit.
 - [`docs/refactoring/extraction-guidelines.md`](docs/refactoring/extraction-guidelines.md) is canon for private-method, collaborator extraction, and interface decisions during migration slices.
+- [`docs/refactoring/testing-guidelines.md`](docs/refactoring/testing-guidelines.md) is canon for test data policy (embedded fixtures vs centralized inline), V2/V1 infrastructure, filesystem seeding, and test anti-patterns.
 - [`docs/refactoring/conversation-history.md`](docs/refactoring/conversation-history.md) holds the design dialogue archive; consult only when ADR/plan/checklist rationale is unclear. The plan and ADR are self-contained for execution.
 
 Golden examples to compare against during the migration: current `ResolveVersionsFromManifestTask` and `ResolveVersionsFromExplicitTask` are closer to the desired task-owned orchestration style than the large Packaging/Harvesting pipelines.

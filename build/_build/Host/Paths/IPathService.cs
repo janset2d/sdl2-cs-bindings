@@ -145,20 +145,6 @@ public interface IPathService
     FilePath GetReadmeFile();
 
     /// <summary>
-    /// artifacts/resolve-versions/ — directory that holds the versions.json emitted by
-    /// <c>ResolveVersions</c>. Cleaned by <c>CleanArtifacts</c> so that a full clean-state
-    /// run never reads a stale mapping from a prior invocation.
-    /// </summary>
-    DirectoryPath ResolveVersionsOutputDirectory { get; }
-
-    /// <summary>
-    /// artifacts/resolve-versions/versions.json — flat {family-id: semver-string} JSON mapping
-    /// emitted by the <c>ResolveVersions</c> task. CI downstream jobs consume this file via
-    /// <c>needs:</c> outputs; local operators can inspect it for debugging.
-    /// </summary>
-    FilePath GetResolveVersionsOutputFile();
-
-    /// <summary>
     /// Root for the smoke / example consumer surface. Individual smoke projects live under
     /// a family-scoped subdirectory (<c>package-smoke/</c> today, <c>examples/</c> future).
     /// </summary>

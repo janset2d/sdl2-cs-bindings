@@ -14,7 +14,7 @@ Two streams are active in parallel:
 
 **Phase 2: CI/CD & Packaging — IN PROGRESS.** Core surface is landed (`release.yml` + Cake build host + `tools.cs`). Phase 2b tail = nuget.org promotion (PD-7), release-recovery playbook (PD-8), and the four scope-assumption gaps surfaced in 2026-05-01 rehearsals.
 
-**Phase X / build-host refactor (ADR-002 target-centric architecture) — ACTIVE.** P0 (docs/guardrails), P1 (baseline), P2a (V2 test infra), P2b (foundation primitives), P3 (repositories + BuildContext + InfoTask migration), and the ResolveVersions part of P4 are complete. 578 tests, 0 failures. Remaining P4 candidates are CleanArtifacts, CompileSolution, and diagnostic targets; before moving stage-target version loading further, resolve the `versions.json` path contract research task in the refactor plan. Canonical docs: [`decisions/2026-05-05-target-centric-build-host.md`](decisions/2026-05-05-target-centric-build-host.md), [`refactoring/target-centric-build-host-refactor-plan.md`](refactoring/target-centric-build-host-refactor-plan.md), [`refactoring/target-centric-build-host-review-checklist.md`](refactoring/target-centric-build-host-review-checklist.md).
+**Phase X / build-host refactor (ADR-002 target-centric architecture) — ACTIVE.** P0 (docs/guardrails), P1 (baseline), P2a (V2 test infra), P2b (foundation primitives), P3 (repositories + BuildContext + InfoTask migration), and the ResolveVersions part of P4 are complete. `versions.json` path contract resolved: `--versions-file` is universal for both ResolveVersions writers and stage-task readers, `PathService` no longer hardcodes the output directory. `CleanArtifacts` retired from Cake (local hygiene owned by `tools.cs`). `testing-guidelines.md` extracted as canonical test reference. 578 tests, 0 failures. Remaining P4 candidates: `CompileSolution` and diagnostic targets. Canonical docs: [`decisions/2026-05-05-target-centric-build-host.md`](decisions/2026-05-05-target-centric-build-host.md), [`refactoring/target-centric-build-host-refactor-plan.md`](refactoring/target-centric-build-host-refactor-plan.md), [`refactoring/target-centric-build-host-review-checklist.md`](refactoring/target-centric-build-host-review-checklist.md), [`refactoring/testing-guidelines.md`](refactoring/testing-guidelines.md).
 
 Active execution ledgers: [phases/phase-2-adaptation-plan.md](phases/phase-2-adaptation-plan.md) (Phase 2b) and [refactoring/target-centric-build-host-refactor-plan.md](refactoring/target-centric-build-host-refactor-plan.md) (build-host refactor).
 
@@ -72,7 +72,10 @@ Design brief: [phases/phase-5-sdl3-support.md](phases/phase-5-sdl3-support.md).
 
 ADR-004 migration closed (P0 → P4-A on `master`). [`ADR-002 target-centric refactor`](decisions/2026-05-05-target-centric-build-host.md) is the active continuation and absorbs residual ADR-004 cleanup — former P4-C pipeline decomposition and P5 atomic naming items are subsumed by ADR-002's full target-by-target refactor.
 
-**Active plan:** [`refactoring/target-centric-build-host-refactor-plan.md`](refactoring/target-centric-build-host-refactor-plan.md). ADR-002 P0-P3 are closed; P4 is underway with `Info`, `ResolveVersionsFromManifest`, and `ResolveVersionsFromExplicit` migrated.
+**Active plan:** [`refactoring/target-centric-build-host-refactor-plan.md`](refactoring/target-centric-build-host-refactor-plan.md). ADR-002 P0-P3 closed; P4 in progress. `Info`, `ResolveVersionsFromManifest`, `ResolveVersionsFromExplicit` migrated; `versions.json` path contract resolved; `CleanArtifacts` retired from Cake; `testing-guidelines.md` extracted.
+
+**Post-refactor tasks (after P10):**
+- [ ] Redesign `FakeCakeWorldV2` fluent API — method names like `WithVersionsFile` / `WithSuffix` / `WithRid` are confusing (they set CLI option values, not file contents). A clearer separation between "CLI option seeding" and "fake filesystem seeding" is warranted once all targets are migrated and the full test surface is on V2.
 
 ### 2027 — Stabilization
 

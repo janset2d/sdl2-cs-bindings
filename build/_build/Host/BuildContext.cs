@@ -19,7 +19,7 @@ namespace Build.Host;
 public sealed class BuildContext : FrostingContext
 {
     private readonly string _buildConfiguration;
-    private readonly FilePath _versionsFilePath;
+    private readonly FilePath? _versionsFilePath;
     private readonly string? _resolveVersionsSuffix;
     private readonly IReadOnlyList<string> _resolveVersionsScope;
     private readonly IReadOnlyList<string> _explicitVersionEntries;
@@ -44,7 +44,7 @@ public sealed class BuildContext : FrostingContext
         _buildConfiguration = parsedArguments.Config;
         _versionsFilePath = !string.IsNullOrWhiteSpace(parsedArguments.VersionsFile)
             ? new FilePath(parsedArguments.VersionsFile!)
-            : pathService.GetResolveVersionsOutputFile();
+            : null;
         _resolveVersionsSuffix = parsedArguments.Suffix;
         _resolveVersionsScope = [.. parsedArguments.Scope];
         _explicitVersionEntries = [.. parsedArguments.ExplicitVersion];
@@ -79,8 +79,8 @@ public sealed class BuildContext : FrostingContext
     /// <summary>Build configuration from --config CLI option. Default is "Release".</summary>
     public string BuildConfiguration => _buildConfiguration;
 
-    /// <summary>Path to the resolved versions file (--versions-file or default output path).</summary>
-    public FilePath VersionsFilePath => _versionsFilePath;
+    /// <summary>Path to the resolved versions file from --versions-file. Null when not supplied; tasks must validate.</summary>
+    public FilePath? VersionsFilePath => _versionsFilePath;
 
     /// <summary>Prerelease suffix consumed by ResolveVersionsFromManifest.</summary>
     public string? ResolveVersionsSuffix => _resolveVersionsSuffix;

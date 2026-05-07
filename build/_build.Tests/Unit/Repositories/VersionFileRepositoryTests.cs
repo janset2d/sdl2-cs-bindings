@@ -14,16 +14,11 @@ public sealed class VersionFileRepositoryTests
     [Test]
     public async Task Load_Should_Deserialize_Valid_Versions_File()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
-            .WithTextFile("artifacts/versions.json", """
-            {
-              "sdl2-core": "2.32.0",
-              "sdl2-image": "2.8.0"
-            }
-            """);
+        var content = FixtureLoader.Load("Versions/versions-valid.json");
+        var world = FakeCakeWorldV2.CreateWindows().WithTextFile("artifacts/versions.json", content);
         var path = world.RepoRoot.CombineWithFilePath("artifacts/versions.json");
-        var repo = new VersionFileRepository(world.CakeContext, path);
-        var set = repo.Load();
+        var repo = new VersionFileRepository(world.CakeContext);
+        var set = repo.Load(path);
 
         await Assert.That(set.Count).IsEqualTo(2);
         await Assert.That(set.RequireVersion(Sdl2Core)).IsEqualTo(NuGetVersion.Parse("2.32.0"));
@@ -33,11 +28,11 @@ public sealed class VersionFileRepositoryTests
     [Test]
     public async Task Load_Should_Return_Empty_Set_For_Empty_Json_Object()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
-            .WithTextFile("artifacts/versions.json", "{}");
+        var content = FixtureLoader.Load("Versions/versions-empty.json");
+        var world = FakeCakeWorldV2.CreateWindows().WithTextFile("artifacts/versions.json", content);
         var path = world.RepoRoot.CombineWithFilePath("artifacts/versions.json");
-        var repo = new VersionFileRepository(world.CakeContext, path);
-        var set = repo.Load();
+        var repo = new VersionFileRepository(world.CakeContext);
+        var set = repo.Load(path);
 
         await Assert.That(set.Count).IsEqualTo(0);
     }
@@ -47,9 +42,9 @@ public sealed class VersionFileRepositoryTests
     {
         var world = FakeCakeWorldV2.CreateWindows();
         var path = world.RepoRoot.CombineWithFilePath("missing.json");
-        var repo = new VersionFileRepository(world.CakeContext, path);
+        var repo = new VersionFileRepository(world.CakeContext);
 
-        await Assert.That(() => repo.Load()).Throws<CakeException>();
+        await Assert.That(() => repo.Load(path)).Throws<CakeException>().And.HasMessageContaining("does not exist");
     }
 
     [Test]
@@ -63,30 +58,48 @@ public sealed class VersionFileRepositoryTests
             new PackageFamilyVersion(Sdl2Image, NuGetVersion.Parse("2.8.0")),
         ]);
 
-        var repo = new VersionFileRepository(world.CakeContext, path);
-        await repo.SaveAsync(original);
+        var repo = new VersionFileRepository(world.CakeContext);
+        await repo.SaveAsync(path, original);
 
         await Assert.That(world.FileExists("artifacts/versions.json")).IsTrue();
 
-        var roundtripped = repo.Load();
+        var roundtripped = repo.Load(path);
         await Assert.That(roundtripped).IsEqualTo(original);
     }
 
     [Test]
     public async Task SaveAsync_Should_Overwrite_Existing_File()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
-            .WithTextFile("artifacts/versions.json", """{"sdl2-core":"1.0.0"}""");
+        var content = FixtureLoader.Load("Versions/versions-single-family.json");
+        var world = FakeCakeWorldV2.CreateWindows().WithTextFile("artifacts/versions.json", content);
         var path = world.RepoRoot.CombineWithFilePath("artifacts/versions.json");
         var updated = new PackageFamilyVersionSet(
         [
             new PackageFamilyVersion(Sdl2Core, NuGetVersion.Parse("2.32.0")),
         ]);
 
-        var repo = new VersionFileRepository(world.CakeContext, path);
-        await repo.SaveAsync(updated);
+        var repo = new VersionFileRepository(world.CakeContext);
+        await repo.SaveAsync(path, updated);
 
-        var loaded = repo.Load();
+        var loaded = repo.Load(path);
+        await Assert.That(loaded.RequireVersion(Sdl2Core)).IsEqualTo(NuGetVersion.Parse("2.32.0"));
+    }
+
+    [Test]
+    public async Task SaveAsync_Should_Create_Parent_Directory_When_Missing()
+    {
+        var world = FakeCakeWorldV2.CreateWindows();
+        var path = world.RepoRoot.CombineWithFilePath("deep/nested/versions.json");
+        var versions = new PackageFamilyVersionSet(
+        [
+            new PackageFamilyVersion(Sdl2Core, NuGetVersion.Parse("2.32.0")),
+        ]);
+
+        var repo = new VersionFileRepository(world.CakeContext);
+        await repo.SaveAsync(path, versions);
+
+        await Assert.That(world.FileExists("deep/nested/versions.json")).IsTrue();
+        var loaded = repo.Load(path);
         await Assert.That(loaded.RequireVersion(Sdl2Core)).IsEqualTo(NuGetVersion.Parse("2.32.0"));
     }
 }

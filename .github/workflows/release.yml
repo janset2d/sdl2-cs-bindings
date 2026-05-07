@@ -42,6 +42,9 @@ permissions:
   contents: read
   packages: read
 
+env:
+  VERSIONS_FILE: artifacts/resolve-versions/versions.json
+
 jobs:
   build-cake-host:
     # Build, test, coverage-check, and publish the Cake host once per workflow run.
@@ -142,12 +145,14 @@ jobs:
           dotnet ./cake-host/Build.dll
           --target ResolveVersionsFromManifest
           --suffix=ci.${{ github.run_id }}.${{ github.run_attempt }}
+          --versions-file ${{ env.VERSIONS_FILE }}
       - name: Resolve explicit dispatch versions
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'explicit' }}
         run: >
           dotnet ./cake-host/Build.dll
           --target ResolveVersionsFromExplicit
           --explicit-versions "${{ inputs.explicit-versions }}"
+          --versions-file ${{ env.VERSIONS_FILE }}
       - name: Upload versions.json
         uses: actions/upload-artifact@v7
         with:
@@ -181,7 +186,7 @@ jobs:
         run: >
           dotnet ./cake-host/Build.dll
           --target PreFlightCheck
-          --versions-file artifacts/resolve-versions/versions.json
+          --versions-file ${{ env.VERSIONS_FILE }}
 
   generate-matrix:
     # Emit the RID matrix from build/manifest.json. Harvest and consumer-smoke
@@ -341,7 +346,7 @@ jobs:
         run: >
           dotnet ./cake-host/Build.dll
           --target Package
-          --versions-file artifacts/resolve-versions/versions.json
+          --versions-file ${{ env.VERSIONS_FILE }}
       - name: Upload nupkg artifacts
         uses: actions/upload-artifact@v7
         with:
@@ -411,7 +416,7 @@ jobs:
           dotnet ./cake-host/Build.dll
           --target PackageConsumerSmoke
           --rid ${{ matrix.rid }}
-          --versions-file artifacts/resolve-versions/versions.json
+          --versions-file ${{ env.VERSIONS_FILE }}
 
   publish-staging:
     # Pushes the packed nupkgs to the GitHub Packages internal feed.
@@ -454,7 +459,7 @@ jobs:
         run: >
           dotnet ./cake-host/Build.dll
           --target PublishStaging
-          --versions-file artifacts/resolve-versions/versions.json
+          --versions-file ${{ env.VERSIONS_FILE }}
 
   # Stays disabled until promotion-to-nuget.org logic lands.
   publish-public:
