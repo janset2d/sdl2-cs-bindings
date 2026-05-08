@@ -139,8 +139,9 @@ private static TargetTestHostV2<MyTask> CreateHost(FakeCakeWorldV2 world)
 
 Scenario host rules:
 
-- Process commands: `WithProcessResult(cmd, exitCode, stdOut)` or `WithDefaultProcessResult(...)` — **unconfigured commands fail fast**.
-- Tool paths: `WithToolPath(path)` or `WithDefaultToolPath(path)`.
+- Process commands: `WithProcessResult(cmd, exitCode, stdOut)` or `WithDefaultProcessResult(...)` — **unconfigured commands fail fast**. The `cmd` key is matched against the executable filename including extension on Windows (e.g. `dumpbin.exe`, not `dumpbin`); Unix tools have no extension (`tar`, `ldd`, `otool`).
+- Tool paths: `WithToolPath(path)` (legacy global default), `WithToolPath(toolName, path)` (per-tool — required when a scenario invokes multiple `Tool<TSettings>` wrappers and each must resolve to a distinct executable so process invocations get distinct filename keys), or `WithDefaultToolPath(path)`.
+- Process side effects: `WithProcessSideEffect(cmd, world => ...)` — fires before the process result is returned and lets the test mutate the fake world, typically seeding files into the fake filesystem to simulate the side effects of a real tool. Required for happy-path scenarios that invoke tools that produce filesystem output (e.g. `tar` extraction populating a destination directory) — pre-seeding via `WithTextFile` alone gets wiped by `DeleteDirectory` calls inside the workflow.
 - Assert on `world.ProcessInvocations` when process behavior matters.
 - `TargetTestHostV2<TTask>` constraint is `IFrostingTask` — both sync and async supported.
 - V2 tests instantiate task classes from the service provider without registering the task type as a service.

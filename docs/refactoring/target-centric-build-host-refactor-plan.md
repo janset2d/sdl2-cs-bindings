@@ -121,13 +121,9 @@ Current Cake target surface found via `[TaskName]`:
 | `PackageConsumerSmoke` | `Features/Packaging` | High risk; platform/TFM/package restore/runtime behavior. |
 | `PublishStaging` | `Features/Publishing` | Mission-critical, but can migrate after package contracts stabilize. |
 | `PublishPublic` | `Features/Publishing` | Stubbed; keep behavior unchanged unless Phase 2b PD-7 explicitly starts. |
-| `Dumpbin-Dependents` | `Features/DependencyAnalysis` | Diagnostic target. Folder can keep hyphen; namespace cannot. |
-| `Ldd-Dependents` | `Features/DependencyAnalysis` | Diagnostic target. Folder can keep hyphen; namespace cannot. |
-| `Otool-Analyze` | `Features/DependencyAnalysis` | Diagnostic target. Folder can keep hyphen; namespace cannot. |
-| `Inspect-HarvestedDependencies` | `Features/Diagnostics` | Diagnostic target. Preserve command usability. |
 | `Coverage-Check` | `Features/Coverage` | Retire as Cake target. Remove command references and baseline gate. |
 
-For hyphenated target names, the folder may match the Cake target string for navigation, for example `Targets/Otool-Analyze/`, while namespaces use valid C# names such as `Build.Targets.OtoolAnalyze`.
+Folder names always use valid C# identifiers (PascalCase, no hyphens), even when the Cake target name itself is hyphenated (e.g. `Otool-Analyze`). The Cake target name lives on the `[TaskName("Otool-Analyze")]` attribute and stays operator-facing on the CLI; the folder + namespace pair (`Targets/OtoolAnalyze/` ↔ `Build.Targets.OtoolAnalyze`) stays C#-conventional. This matches the existing `Targets/Info/` and `Targets/ResolveVersionsFromManifest/` shape.
 
 ## 5. Final architecture rules
 
@@ -744,13 +740,7 @@ Completed in this phase:
 5. `CleanArtifacts` **retired** (not migrated — local hygiene belongs in `tools.cs`, not Cake)
 6. `testing-guidelines.md` extracted as canonical test reference (embedded fixtures, V2/V1 rules, filesystem seeding, anti-patterns)
 7. `CompileSolution` **retired** (not migrated — zero Cake callers; bare `dotnet build Janset.SDL2.sln` covers the use case)
-
-Remaining suggested order: diagnostic targets only.
-
-- `Dumpbin-Dependents`
-- `Ldd-Dependents`
-- `Otool-Analyze`
-- `Inspect-HarvestedDependencies`
+8. Diagnostic targets migrated to `Targets/<PascalCaseTargetName>/` (Cake target name hyphens stay on `[TaskName]`; folders + namespaces are C#-conventional): `Targets/DumpbinDependents/`, `Targets/LddDependents/`, `Targets/OtoolAnalyze/`, `Targets/InspectHarvestedDependencies/`. `OtoolAnalyzePipeline` and `InspectHarvestedDependenciesPipeline` retired; `LibraryClassifier`, `OtoolReporter`, and `HarvestPayloadInspector` extracted as named collaborators; `BuildContext.Dlls` and `BuildContext.Libraries` named properties added; `IAnsiConsole` injected into `OtoolReporter`
 
 Tasks per target:
 
@@ -785,6 +775,7 @@ Exit criteria:
 - `versions.json` path contract resolved: `--versions-file` universal, `PathService` hardcoded path removed.
 - `CleanArtifacts` retired from Cake (local hygiene in `tools.cs`).
 - `CompileSolution` retired from Cake (zero callers; bare `dotnet build Janset.SDL2.sln` covers the use case).
+- Diagnostic targets migrated to `Targets/<PascalCaseTargetName>/` (Cake target hyphens stay on `[TaskName]`; folders + namespaces are C#-conventional). `OtoolAnalyzePipeline` and `InspectHarvestedDependenciesPipeline` retired; `LibraryClassifier`, `OtoolReporter`, and `HarvestPayloadInspector` extracted.
 - `testing-guidelines.md` canonical test reference extracted and cross-referenced from ADR, plan, checklist, and AGENTS.md.
 
 #### Post-P4 research task: `versions.json` path contract ✅ (resolved 2026-05-07)

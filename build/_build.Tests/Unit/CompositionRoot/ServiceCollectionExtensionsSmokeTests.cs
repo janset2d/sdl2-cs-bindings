@@ -2,8 +2,6 @@
 
 using Build.Features.Ci;
 using Build.Features.Coverage;
-using Build.Features.DependencyAnalysis;
-using Build.Features.Diagnostics;
 using Build.Features.Harvesting;
 using Build.Features.Packaging;
 using Build.Features.Preflight;
@@ -45,18 +43,6 @@ public sealed class ServiceCollectionExtensionsSmokeTests
     public async Task AddVcpkgFeature_Should_Register_All_Pipeline_And_Validator_Types()
     {
         await AssertAllRegisteredTypesResolve(services => services.AddVcpkgFeature());
-    }
-
-    [Test]
-    public async Task AddDiagnosticsFeature_Should_Register_All_Pipeline_And_Validator_Types()
-    {
-        await AssertAllRegisteredTypesResolve(services => services.AddDiagnosticsFeature());
-    }
-
-    [Test]
-    public async Task AddDependencyAnalysisFeature_Should_Register_All_Pipeline_And_Validator_Types()
-    {
-        await AssertAllRegisteredTypesResolve(services => services.AddDependencyAnalysisFeature());
     }
 
     [Test]

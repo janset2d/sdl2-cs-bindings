@@ -24,6 +24,8 @@ public sealed class BuildContext : FrostingContext
     private readonly IReadOnlyList<string> _resolveVersionsScope;
     private readonly IReadOnlyList<string> _explicitVersionEntries;
     private readonly string? _explicitVersions;
+    private readonly IReadOnlyList<string> _dlls;
+    private readonly IReadOnlyList<string> _libraries;
 
     public BuildContext(
         ICakeContext context,
@@ -49,6 +51,8 @@ public sealed class BuildContext : FrostingContext
         _resolveVersionsScope = [.. parsedArguments.Scope];
         _explicitVersionEntries = [.. parsedArguments.ExplicitVersion];
         _explicitVersions = parsedArguments.ExplicitVersions;
+        _dlls = [.. parsedArguments.Dll];
+        _libraries = [.. parsedArguments.Library];
     }
 
     /// <summary>Repo / artifact / harvest layout knowledge. Cake-aware (carries DirectoryPath / FilePath).</summary>
@@ -93,4 +97,10 @@ public sealed class BuildContext : FrostingContext
 
     /// <summary>Comma-separated family-version entries consumed by ResolveVersionsFromExplicit.</summary>
     public string? ExplicitVersions => _explicitVersions;
+
+    /// <summary>Operator-supplied --dll list. Consumed by Dumpbin-Dependents, Ldd-Dependents, Otool-Analyze.</summary>
+    public IReadOnlyList<string> Dlls => _dlls;
+
+    /// <summary>Operator-supplied --library list. Consumed by Inspect-HarvestedDependencies.</summary>
+    public IReadOnlyList<string> Libraries => _libraries;
 }

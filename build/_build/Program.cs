@@ -7,8 +7,8 @@ using System.Diagnostics;
 using Build;
 using Build.Features.Ci;
 using Build.Features.Coverage;
-using Build.Features.DependencyAnalysis;
-using Build.Features.Diagnostics;
+using Build.Targets.InspectHarvestedDependencies;
+using Build.Targets.OtoolAnalyze;
 using Build.Features.Harvesting;
 using Build.Features.Packaging;
 using Build.Features.Preflight;
@@ -129,8 +129,8 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
         .AddCiFeature()
         .AddCoverageFeature()
         .AddVcpkgFeature()
-        .AddDiagnosticsFeature()
-        .AddDependencyAnalysisFeature()
+        .AddInspectHarvestedDependenciesTarget()
+        .AddOtoolAnalyzeTarget()
         .AddPreflightFeature()
         .AddHarvestingFeature()
         .AddPublishingFeature()

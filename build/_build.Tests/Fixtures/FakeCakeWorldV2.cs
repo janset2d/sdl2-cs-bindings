@@ -28,9 +28,11 @@ public sealed class FakeCakeWorldV2
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
     private readonly Dictionary<string, (int ExitCode, string StdOut, string StdErr)> _processResults = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Action<FakeCakeWorldV2>> _processSideEffects = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<ProcessInvocation> _processInvocations = [];
     private FilePath? _toolPath;
     private FilePath? _defaultToolPath;
+    private readonly Dictionary<string, FilePath> _toolPathsByName = new(StringComparer.OrdinalIgnoreCase);
     private (int ExitCode, string StdOut, string StdErr)? _defaultProcessResult;
     private string _rid = "win-x64";
     private string _config = "Release";
@@ -39,6 +41,8 @@ public sealed class FakeCakeWorldV2
     private readonly List<string> _explicitVersion = [];
     private string? _explicitVersions;
     private string? _versionsFile;
+    private readonly List<string> _dlls = [];
+    private readonly List<string> _libraries = [];
 
     public FakeFileSystem FileSystem { get; }
 
@@ -88,6 +92,7 @@ public sealed class FakeCakeWorldV2
         var manifestContent = FixtureLoader.Load("Manifest/manifest-linux-x64.json");
         world.WithManifestFile(manifestContent);
         world.WithDefaultProcessResult(exitCode: 0, stdOut: "", stdErr: "");
+        world.WithRid("linux-x64");
         return world;
     }
 
@@ -97,6 +102,7 @@ public sealed class FakeCakeWorldV2
         var manifestContent = FixtureLoader.Load("Manifest/manifest-osx-x64.json");
         world.WithManifestFile(manifestContent);
         world.WithDefaultProcessResult(exitCode: 0, stdOut: "", stdErr: "");
+        world.WithRid("osx-x64");
         return world;
     }
 
@@ -146,6 +152,19 @@ public sealed class FakeCakeWorldV2
         return this;
     }
 
+    /// <summary>
+    /// Registers a callback that fires when a matching process is invoked, allowing the test to mutate the
+    /// fake world (typically seeding files into the fake filesystem to simulate the side effects of a real tool
+    /// — e.g. tar extraction creating files in the destination directory).
+    /// </summary>
+    public FakeCakeWorldV2 WithProcessSideEffect(string command, Action<FakeCakeWorldV2> sideEffect)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(command);
+        ArgumentNullException.ThrowIfNull(sideEffect);
+        _processSideEffects[command] = sideEffect;
+        return this;
+    }
+
     public FakeCakeWorldV2 WithDefaultProcessResult(int exitCode = 0, string stdOut = "", string stdErr = "")
     {
         _defaultProcessResult = (exitCode, stdOut, stdErr);
@@ -155,6 +174,24 @@ public sealed class FakeCakeWorldV2
     public FakeCakeWorldV2 WithToolPath(FilePath toolPath)
     {
         _toolPath = toolPath;
+        if (!FileSystem.GetFile(toolPath).Exists)
+        {
+            FileSystem.CreateFile(toolPath);
+        }
+
+        return this;
+    }
+
+    /// <summary>
+    /// Per-tool path override keyed by IToolLocator query (tool name like "tar" or "ldd"). Use when a
+    /// scenario invokes multiple Tool&lt;T&gt; wrappers and each must resolve to a distinct executable
+    /// (so process invocations get distinct filename keys for WithProcessResult / WithProcessSideEffect).
+    /// </summary>
+    public FakeCakeWorldV2 WithToolPath(string toolName, FilePath toolPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(toolName);
+        ArgumentNullException.ThrowIfNull(toolPath);
+        _toolPathsByName[toolName] = toolPath;
         if (!FileSystem.GetFile(toolPath).Exists)
         {
             FileSystem.CreateFile(toolPath);
@@ -213,6 +250,29 @@ public sealed class FakeCakeWorldV2
         return this;
     }
 
+    public FakeCakeWorldV2 WithDll(string dll)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(dll);
+        _dlls.Add(dll);
+        return this;
+    }
+
+    public FakeCakeWorldV2 WithDlls(params string[] dlls)
+    {
+        ArgumentNullException.ThrowIfNull(dlls);
+        _dlls.Clear();
+        _dlls.AddRange(dlls);
+        return this;
+    }
+
+    public FakeCakeWorldV2 WithLibraries(params string[] libraries)
+    {
+        ArgumentNullException.ThrowIfNull(libraries);
+        _libraries.Clear();
+        _libraries.AddRange(libraries);
+        return this;
+    }
+
     // ── access helpers ──
 
     public string ReadAllText(string relativePath)
@@ -255,9 +315,9 @@ public sealed class FakeCakeWorldV2
             Config: _config,
             VcpkgDir: null,
             VcpkgInstalledDir: null,
-            Library: [],
+            Library: [.. _libraries],
             Rid: _rid,
-            Dll: [],
+            Dll: [.. _dlls],
             Suffix: _suffix,
             Scope: [.. _scope],
             ExplicitVersion: [.. _explicitVersion],
@@ -327,6 +387,11 @@ public sealed class FakeCakeWorldV2
                     settings.RedirectStandardOutput,
                     settings.Silent));
 
+                if (_processSideEffects.TryGetValue(command, out var sideEffect))
+                {
+                    sideEffect(this);
+                }
+
                 if (_processResults.TryGetValue(command, out var result))
                 {
                     return CreateFakeProcess(result.ExitCode, result.StdOut, result.StdErr);
@@ -348,22 +413,29 @@ public sealed class FakeCakeWorldV2
 
         // Lazy resolution: _toolPath / _defaultToolPath may be configured after construction.
         toolLocator.Resolve(Arg.Any<string>())
-            .Returns(_ =>
+            .Returns(call =>
             {
+                var toolName = (string)call[0];
+                if (_toolPathsByName.TryGetValue(toolName, out var perTool)) return perTool;
                 if (_toolPath is not null) return _toolPath;
                 if (_defaultToolPath is not null) return _defaultToolPath;
                 throw new InvalidOperationException(
                     "Tool path was not configured. " +
-                    "Call WithToolPath(path) for a specific tool, or WithDefaultToolPath(path) to accept any unconfigured tool.");
+                    "Call WithToolPath(name, path) for per-tool, WithToolPath(path) for the legacy global default, or WithDefaultToolPath(path) to accept any unconfigured tool.");
             });
         toolLocator.Resolve(Arg.Any<IEnumerable<string>>())
-            .Returns(_ =>
+            .Returns(call =>
             {
+                var names = (IEnumerable<string>)call[0];
+                foreach (var n in names)
+                {
+                    if (_toolPathsByName.TryGetValue(n, out var perTool)) return perTool;
+                }
                 if (_toolPath is not null) return _toolPath;
                 if (_defaultToolPath is not null) return _defaultToolPath;
                 throw new InvalidOperationException(
                     "Tool path was not configured. " +
-                    "Call WithToolPath(path) for a specific tool, or WithDefaultToolPath(path) to accept any unconfigured tool.");
+                    "Call WithToolPath(name, path) for per-tool, WithToolPath(path) for the legacy global default, or WithDefaultToolPath(path) to accept any unconfigured tool.");
             });
 
         var globber = new Globber(FileSystem, Environment);

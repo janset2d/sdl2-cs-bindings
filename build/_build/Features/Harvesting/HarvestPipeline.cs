@@ -546,7 +546,7 @@ public sealed class HarvestPipeline(
                     LicenseFilesCount = statistics.LicenseFiles.Count,
                     DeployedPackagesCount = statistics.DeployedPackages.Count,
                     FilteredPackagesCount = statistics.FilteredPackages.Count,
-                    DeploymentStrategy = statistics.DeploymentStrategy.ToString()
+                    DeploymentStrategy = statistics.DeploymentStrategy.ToString(),
                 },
             };
 

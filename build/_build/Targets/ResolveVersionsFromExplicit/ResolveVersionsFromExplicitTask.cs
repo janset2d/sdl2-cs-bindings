@@ -71,7 +71,7 @@ public sealed class ResolveVersionsFromExplicitTask(
             {
                 ExplicitVersionInputKind.RepeatedEntries => ExplicitVersionParser.ParseCliEntries(input.Entries),
                 ExplicitVersionInputKind.CommaSeparated => ExplicitVersionParser.ParseCommaSeparated(input.CommaSeparated),
-                _ => throw new CakeException("ResolveVersionsFromExplicit received an unsupported explicit version input shape.")
+                _ => throw new CakeException("ResolveVersionsFromExplicit received an unsupported explicit version input shape."),
             };
         }
         catch (ArgumentException ex)
@@ -101,7 +101,7 @@ public sealed class ResolveVersionsFromExplicitTask(
     private enum ExplicitVersionInputKind
     {
         RepeatedEntries,
-        CommaSeparated
+        CommaSeparated,
     }
 
     private sealed record ExplicitVersionInput(ExplicitVersionInputKind Kind, IReadOnlyList<string> Entries, string? CommaSeparated);
