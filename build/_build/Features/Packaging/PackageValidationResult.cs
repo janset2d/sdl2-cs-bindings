@@ -1,5 +1,5 @@
-using Build.Features.Preflight;
 using Build.Shared.Packaging;
+using Build.Validation.Models;
 using OneOf;
 using OneOf.Monads;
 using OneOf.Types;
@@ -12,9 +12,9 @@ namespace Build.Features.Packaging;
 ///   <item><term>Success</term><description><see cref="PackageValidationSuccess"/> — every guardrail passed</description></item>
 ///   <item><term>Error</term><description><see cref="PackageValidationError"/> — one or more guardrails tripped; full check list preserved</description></item>
 /// </list>
-/// Mirrors the <see cref="CsprojPackContractResult"/> pattern
-/// (<c>Pass</c>/<c>Fail</c> factories + <see cref="Validation"/> accessor) so the task layer
-/// can iterate violations instead of catching first-throw-wins exceptions.
+/// Mirrors the legacy CsprojPackContract result pattern (<c>Pass</c>/<c>Fail</c>
+/// factories + <see cref="Validation"/> accessor) so the task layer can iterate
+/// violations instead of catching first-throw-wins exceptions.
 /// </summary>
 public sealed class PackageValidationResult(OneOf<Error<PackageValidationError>, Success<PackageValidationSuccess>> result)
     : Result<PackageValidationError, PackageValidationSuccess>(result)

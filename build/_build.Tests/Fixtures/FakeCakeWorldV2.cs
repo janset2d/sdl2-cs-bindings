@@ -353,7 +353,7 @@ public sealed class FakeCakeWorldV2
 
         var options = new Configurations(
             Vcpkg: new VcpkgConfiguration([], _rid),
-            Package: new PackageBuildConfiguration(new Dictionary<string, NuGet.Versioning.NuGetVersion>(StringComparer.OrdinalIgnoreCase)),
+            Package: new PackageBuildConfiguration(Build.Versioning.PackageFamilyVersionSet.Empty),
             Repository: new RepositoryConfiguration(RepoRoot),
             DotNet: new DotNetBuildConfiguration(_config),
             Dumpbin: new DumpbinConfiguration([]));

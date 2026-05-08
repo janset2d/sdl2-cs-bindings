@@ -57,10 +57,11 @@ Use this checklist for each ADR-002 migration slice.
 ## 6. Shared concepts
 
 - [ ] No catch-all `Shared` or `Common` bucket was introduced.
-- [ ] Cross-target code was promoted only to a named concept such as `Manifest`, `Runtime`, `Versioning`, `Packaging`, `Results`, or a repository.
+- [ ] Cross-target code was promoted only to a named concept such as `Manifest`, `Runtime`, `Versioning`, `Packaging`, `Validation`, `Results`, or a repository.
+- [ ] `Validation/` carries cross-cutting validators under domain alt-folders (`Manifest/`, `Versioning/`, `Packaging/`, `Models/`, `Conventions/`) with a single `AddValidators()` registration point. Established by S12 (P6).
 - [ ] "Imminent reuse" means a second real consumer exists in the same migration slice or phase, not hypothetical future reuse.
 - [ ] File-backed state uses repository naming where appropriate.
-- [ ] Version APIs avoid raw `IReadOnlyDictionary<string, NuGetVersion>` boundaries.
+- [ ] Version APIs avoid raw `IReadOnlyDictionary<string, NuGetVersion>` boundaries (retired end-to-end in S12; production code holds zero residue).
 - [ ] Package family identity uses manifest-driven value objects, not enums.
 
 ## 7. Code/document boundary and naming
@@ -107,12 +108,14 @@ Use this checklist for each ADR-002 migration slice.
 ## 11. Retired abstractions
 
 - [ ] No new mandatory `*Pipeline` class was introduced.
+- [ ] `PreflightPipeline` is gone (retired in S12 — `PreFlightCheckTask` owns orchestration directly).
 - [ ] `Host/Configuration` usage decreased or stayed unchanged only for unmigrated code.
 - [ ] Strategy abstraction usage decreased when touching manifest/runtime/preflight/packaging code.
 - [ ] Coverage gate code was not expanded.
 - [ ] Architecture dependency tests were not updated to enforce new taste rules.
 - [ ] `Integrations/` usage decreased or a remaining adapter has a named, justified destination.
 - [ ] `FrostingLifetime` was not used to hide manifest/version target state preload.
+- [ ] OneOf-shaped result types: only the surviving 7 (`PackageInfoResult`, `DotNetPackResult`, `ProjectMetadataResult`, `ArtifactPlannerResult`, `ClosureResult`, `CopierResult`, `PackageValidationResult`) remain after S12 — each retires within its respective P7/P8/P9 target migration.
 
 ## 12. Documentation and validation
 

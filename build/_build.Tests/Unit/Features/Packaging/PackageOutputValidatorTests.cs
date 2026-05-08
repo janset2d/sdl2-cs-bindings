@@ -1,7 +1,7 @@
 using System.IO.Compression;
 using System.Text.Json;
 using Build.Features.Packaging;
-using Build.Features.Preflight;
+using Build.Validation.Conventions;
 using Build.Shared.Manifest;
 using Build.Shared.Packaging;
 using Build.Tests.Fixtures;

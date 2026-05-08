@@ -1,7 +1,7 @@
 using Build.Repositories;
-using Build.Shared.Versioning;
 using Build.Targets.ResolveVersionsFromExplicit;
 using Build.Tests.Fixtures;
+using Build.Validation.Versioning;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Build.Tests.Scenarios.ResolveVersionsFromExplicit;

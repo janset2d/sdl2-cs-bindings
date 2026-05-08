@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO.Compression;
 using System.Xml.Linq;
-using Build.Features.Preflight;
+using Build.Validation.Conventions;
 using Build.Shared.Manifest;
 using Build.Shared.Packaging;
 using Cake.Core.IO;

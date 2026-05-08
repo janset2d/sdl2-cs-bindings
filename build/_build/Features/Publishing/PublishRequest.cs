@@ -1,8 +1,8 @@
-using NuGet.Versioning;
+using Build.Versioning;
 
 namespace Build.Features.Publishing;
 
 public sealed record PublishRequest(
     string FeedUrl,
     string AuthToken,
-    IReadOnlyDictionary<string, NuGetVersion> Versions);
+    PackageFamilyVersionSet Versions);

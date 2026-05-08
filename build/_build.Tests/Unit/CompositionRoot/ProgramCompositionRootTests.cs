@@ -2,8 +2,8 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Reflection;
 using Build.Features.Packaging;
-using Build.Features.Preflight;
 using Build.Features.Publishing;
+using Build.Validation.Packaging;
 using Build.Host;
 using Build.Host.Cli.Options;
 using Build.Integrations.DotNet;
@@ -156,7 +156,7 @@ public sealed class ProgramCompositionRootTests
 
         using var provider = services.BuildServiceProvider();
 
-        var hybridStaticOverlayValidator = provider.GetRequiredService<HybridStaticOverlayValidator>();
+        var hybridStaticOverlayValidator = provider.GetRequiredService<IHybridStaticOverlayValidator>();
         var vcpkgManifestReader = provider.GetRequiredService<IVcpkgManifestReader>();
         var packageOutputValidator = provider.GetRequiredService<IPackageOutputValidator>();
         var projectMetadataReader = provider.GetRequiredService<IProjectMetadataReader>();
@@ -169,7 +169,7 @@ public sealed class ProgramCompositionRootTests
         var publishPipeline = provider.GetRequiredService<PublishPipeline>();
         var msvcDevEnvironment = provider.GetRequiredService<IMsvcDevEnvironment>();
 
-        await Assert.That(hybridStaticOverlayValidator.GetType()).IsEqualTo(typeof(HybridStaticOverlayValidator));
+        await Assert.That(hybridStaticOverlayValidator).IsTypeOf<HybridStaticOverlayValidator>();
         await Assert.That(vcpkgManifestReader.GetType()).IsEqualTo(typeof(VcpkgManifestReader));
         await Assert.That(packageOutputValidator.GetType()).IsEqualTo(typeof(PackageOutputValidator));
         await Assert.That(projectMetadataReader.GetType()).IsEqualTo(typeof(ProjectMetadataReader));

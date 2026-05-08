@@ -1,7 +1,7 @@
 using Build.Host;
 using Build.Repositories;
 using Build.Shared.Manifest;
-using Build.Shared.Versioning;
+using Build.Validation.Versioning;
 using Build.Versioning;
 using Cake.Core;
 using Cake.Frosting;
@@ -82,18 +82,18 @@ public sealed class ResolveVersionsFromExplicitTask(
 
     private void EnforceUpstreamVersionAlignment(ManifestConfig manifest, PackageFamilyVersionSet versions)
     {
-        var validationResult = _upstreamVersionAlignmentValidator.Validate(manifest, versions);
-        if (!validationResult.IsError())
+        var validation = _upstreamVersionAlignmentValidator.Validate(manifest, versions);
+        if (!validation.HasErrors)
         {
             return;
         }
 
-        var errors = validationResult.Validation.Checks
+        var errors = validation.Checks
             .Where(check => check.IsError && !string.IsNullOrWhiteSpace(check.ErrorMessage))
             .Select(check => check.ErrorMessage!);
 
         throw new CakeException(
-            "ResolveVersionsFromExplicit G54 (upstream version alignment) rejected one or more entries:" +
+            "ResolveVersionsFromExplicit upstream version alignment [G54] rejected one or more entries:" +
             Environment.NewLine +
             "  - " + string.Join(Environment.NewLine + "  - ", errors));
     }

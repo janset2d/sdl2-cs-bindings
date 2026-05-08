@@ -2,7 +2,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Text;
 using System.Xml.Linq;
-using Build.Features.Preflight;
 using Build.Host.Cake;
 using Build.Host.Configuration;
 using Build.Host.Paths;
@@ -10,6 +9,9 @@ using Build.Integrations.DotNet;
 using Build.Shared.Harvesting;
 using Build.Shared.Manifest;
 using Build.Shared.Packaging;
+using Build.Validation.Conventions;
+using Build.Validation.Versioning;
+using Build.Versioning;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;
@@ -31,7 +33,7 @@ public sealed class PackagePipeline : IPackagePipeline
     private readonly IReadmeMappingTableGenerator _readmeMappingTableGenerator;
     private readonly IProjectMetadataReader _projectMetadataReader;
     private readonly IPackageOutputValidator _packageOutputValidator;
-    private readonly IG58CrossFamilyDepResolvabilityValidator _g58CrossFamilyDepResolvabilityValidator;
+    private readonly ICrossFamilyDependencyResolvabilityValidator _crossFamilyDependencyResolvabilityValidator;
 
     /// <summary>
     /// HEAD SHA resolver. Default implementation delegates to Cake.Frosting.Git's
@@ -57,7 +59,7 @@ public sealed class PackagePipeline : IPackagePipeline
         IReadmeMappingTableGenerator readmeMappingTableGenerator,
         IProjectMetadataReader projectMetadataReader,
         IPackageOutputValidator packageOutputValidator,
-        IG58CrossFamilyDepResolvabilityValidator g58CrossFamilyDepResolvabilityValidator,
+        ICrossFamilyDependencyResolvabilityValidator crossFamilyDependencyResolvabilityValidator,
         Func<ICakeContext, DirectoryPath, string>? resolveHeadCommitSha = null)
     {
         _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
@@ -70,7 +72,7 @@ public sealed class PackagePipeline : IPackagePipeline
         _readmeMappingTableGenerator = readmeMappingTableGenerator ?? throw new ArgumentNullException(nameof(readmeMappingTableGenerator));
         _projectMetadataReader = projectMetadataReader ?? throw new ArgumentNullException(nameof(projectMetadataReader));
         _packageOutputValidator = packageOutputValidator ?? throw new ArgumentNullException(nameof(packageOutputValidator));
-        _g58CrossFamilyDepResolvabilityValidator = g58CrossFamilyDepResolvabilityValidator ?? throw new ArgumentNullException(nameof(g58CrossFamilyDepResolvabilityValidator));
+        _crossFamilyDependencyResolvabilityValidator = crossFamilyDependencyResolvabilityValidator ?? throw new ArgumentNullException(nameof(crossFamilyDependencyResolvabilityValidator));
 
         var resolver = resolveHeadCommitSha ?? DefaultResolveHeadCommitSha;
         _resolveHeadCommitSha = () => resolver(_cakeContext, _pathService.RepoRoot);
@@ -81,30 +83,30 @@ public sealed class PackagePipeline : IPackagePipeline
         ArgumentNullException.ThrowIfNull(request);
         ct.ThrowIfCancellationRequested();
 
-        var explicitVersions = request.Versions;
-        if (explicitVersions.Count == 0)
+        if (request.Versions.Count == 0)
         {
             throw new CakeException(
                 "Package task requires at least one --explicit-version family=semver entry. " +
-                "Stage targets consume the resolved version mapping directly, and the mapping " +
+                "Stage targets consume the resolved version set directly, and the set " +
                 "also defines package scope.");
         }
 
-        // G58 runs again here as a pack-stage guard, even if the caller skipped PreFlight.
-        var g58Validation = _g58CrossFamilyDepResolvabilityValidator.Validate(explicitVersions, _manifestConfig);
-        if (g58Validation.HasErrors)
+        // [G58] runs again here as a pack-stage guard, even if the caller skipped PreFlight.
+        var crossFamilyValidation = _crossFamilyDependencyResolvabilityValidator.Validate(request.Versions, _manifestConfig);
+        if (crossFamilyValidation.HasErrors)
         {
-            foreach (var errorCheck in g58Validation.Checks.Where(check => check.IsError))
+            foreach (var errorCheck in crossFamilyValidation.Checks.Where(check => check.IsError))
             {
-                _log.Error("G58 {0} → {1}: {2}", errorCheck.DependentFamily, errorCheck.DependencyFamily, errorCheck.ErrorMessage);
+                _log.Error("[G58] {0} → {1}: {2}", errorCheck.DependentFamily, errorCheck.DependencyFamily, errorCheck.ErrorMessage);
             }
 
             throw new CakeException(
-                "Package task refused to proceed: G58 cross-family dependency resolvability detected " +
-                $"{g58Validation.Checks.Count(check => check.IsError)} unresolved dependency/dependencies. " +
+                "Package task refused to proceed: cross-family dependency resolvability [G58] detected " +
+                $"{crossFamilyValidation.Checks.Count(check => check.IsError)} unresolved dependency/dependencies. " +
                 "Either include the missing families in --explicit-version, or (post-C feed-probe wiring) pass --feed <URL> to enable target-feed resolution.");
         }
 
+        var explicitVersions = request.Versions;
         var families = ResolveSelectedFamilies(explicitVersions);
         var expectedCommitSha = ResolveHeadCommitSha();
 
@@ -116,17 +118,18 @@ public sealed class PackagePipeline : IPackagePipeline
         foreach (var family in families)
         {
             ct.ThrowIfCancellationRequested();
-            var familyVersion = explicitVersions[family.Name].ToNormalizedString();
+            var familyVersion = explicitVersions.RequireVersion(new PackageFamilyId(family.Name)).ToNormalizedString();
             await PackFamilyAsync(family, familyVersion, expectedCommitSha, ct);
         }
     }
 
-    private IReadOnlyList<PackageFamilyConfig> ResolveSelectedFamilies(IReadOnlyDictionary<string, NuGetVersion> explicitVersions)
+    private IReadOnlyList<PackageFamilyConfig> ResolveSelectedFamilies(PackageFamilyVersionSet explicitVersions)
     {
         var selectedFamilies = new List<PackageFamilyConfig>(explicitVersions.Count);
 
-        foreach (var requestedFamily in explicitVersions.Keys)
+        foreach (var entry in explicitVersions)
         {
+            var requestedFamily = entry.Family.Value;
             var family = _manifestConfig.PackageFamilies.SingleOrDefault(candidate =>
                 string.Equals(candidate.Name, requestedFamily, StringComparison.OrdinalIgnoreCase));
 

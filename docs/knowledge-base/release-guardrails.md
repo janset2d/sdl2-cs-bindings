@@ -18,7 +18,7 @@ Every guardrail has one owning pipeline stage. This view organizes the same set 
 
 | Stage | Runs | Guardrails | Coverage |
 | --- | --- | --- | --- |
-| **PreFlight** | Single-runner, fail-fast before matrix work | G4, G6, G7, G14, G15, G16, G17, G18, G49, G54, G58 (mirror) | Structural csproj contract + manifest↔vcpkg coherence + strategy coherence + core identity + upstream major.minor alignment + cross-family dependency scope reachability mirror |
+| **PreFlight** | Single-runner, fail-fast before matrix work | G4, G6, G7, G14, G15, G16, G17, G18, G49, G54, G58 (mirror), G59 | Structural csproj contract + manifest↔vcpkg coherence + hybrid-static overlay coherence + core identity + manifest family-name invariant + upstream major.minor alignment + cross-family dependency scope reachability mirror |
 | **Harvest** | Per-RID matrix | G19, G50 | Hybrid-static transitive leak detection + primary binary ≥ 1 post-deploy assertion |
 | **NativeSmoke** | Per-RID matrix | — | C/C++ harness (`tests/smoke-tests/native-smoke/`); no G-series numbering yet. Proves native binaries load + initialize at OS level. |
 | **Pack** | Single-runner after Consolidate | G13 (NuGet schema), G21, G22, G23, G25, G26, G27, G46 (MSBuild pre-pack), G47, G48, G51, G52, G53, G55, G56, G57, G58 | nupkg emission + post-pack shape (minimum-range + version-match + TFM consistency + symbols + metadata + `buildTransitive/` contract + per-RID payload shape + license payload + staged-replace invariants + native metadata file + cross-family upper bound + README mapping + cross-family dep resolvability) |
@@ -65,6 +65,7 @@ NuGet enforces some invariants we rely on but don't author. Tracked here so we k
 | G49 | Core-library identity coherence: `library_manifests[core_lib=true].vcpkg_name` equals `packaging_config.core_library` (case-insensitive); exactly one `core_lib=true` entry declared | Active | `CoreLibraryIdentityValidator` |
 | G50 | Harvest must produce ≥1 primary binary per library+RID: `HarvestTask` post-deployment assertion fails fast if `DeploymentStatistics.PrimaryFiles.Count == 0`. Defends against silent feature-flag degradation / partial vcpkg install shapes that pass upstream guards. | Active (Harvest stage) | `HarvestTask` post-deploy assertion |
 | G54 | **Family tag UpstreamMajor.UpstreamMinor ↔ manifest coherence (D-3seg anchor).** The family tag's first two SemVer segments MUST equal `manifest.json library_manifests[].vcpkg_version`'s first two segments for that family. Example: tag `sdl2-core-2.32.0` at a commit where `manifest.json` declares SDL2 at `2.32.10` → G54 passes (both anchor to `2.32`). A tag `sdl2-core-2.31.0` at the same commit fails. | Active | `UpstreamVersionAlignmentValidator` (PreFlight) |
+| G59 | **Manifest family name invariant.** Every `package_families[].name` matches `^sdl[0-9]+-[a-z][a-z0-9-]*$` (lowercase kebab, e.g. `sdl2-core`, `sdl2-image`). Hand-edited mixed-case entries (`SDL2-Core`) silently bypass `PackageFamilyId` ordinal-exact lookups in downstream consumers; this invariant catches the drift at PreFlight time before any build operation runs. | Active | `ManifestFamilyNameInvariantValidator` (PreFlight) |
 
 ### 2.5 Post-Pack nuspec Assertion (Pack stage)
 
@@ -158,6 +159,7 @@ For each known failure mode, list the guardrails that catch it. If no guardrail 
 | Satellite nuspec missing cross-family upper bound | G56 | No |
 | README mapping table drifts from manifest | G57 | No |
 | Satellite pack invocation emits nuspec declaring `>= Core x.y.z` while Core is missing from the resolved invocation scope (consumer-side restore would fail unless a later feed-probe relaxation proves it already exists on the target feed) | G58 | No |
+| Hand-edited manifest family name with uppercase / underscore / non-canonical kebab (`SDL2-Core`, `sdl2_core`, `sdlx-core`) silently bypasses `PackageFamilyId` ordinal-exact lookups downstream | G59 | No |
 
 **Net:** every cataloged failure mode is caught by at least one guardrail before the package reaches public consumers. Operational gaps (not structural) are documented in §4.1.
 

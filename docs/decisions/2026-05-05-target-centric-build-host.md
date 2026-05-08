@@ -139,6 +139,8 @@ Use an interface when at least one of these is true:
 
 Small pure helpers, simple policies, and one-off extracted classes should usually stay concrete. Avoid ceremonial `IFoo`/`Foo` pairs.
 
+> **S12 amendment (2026-05-08):** `Validation/` is an explicit exception. All seven build-host validators (manifest invariants, version consistency, core identity, csproj pack contract, upstream alignment, cross-family resolvability, hybrid-static overlay) ship with `IFoo` interfaces and `AddSingleton<IFoo, Foo>()` registrations for uniform DI shape. Justified by ADR-002 §8 last two bullets (validators are independent-axis-of-change collaborators; their contracts matter to PreFlightCheckTask + ResolveVersionsFromExplicit + Package consumers). Bonus: interface implementations cannot be marked static, so `CA1822`/`S2325` analyzers are silently satisfied with zero `[SuppressMessage]` attributes. The exception is bounded to `Validation/` — broader build-host code continues to follow the default "concrete unless interface earned" rule.
+
 DI registration should stay close to the code being registered through focused `IServiceCollection` extension methods. Keep `Program.cs` as composition/root parsing, not business logic.
 
 Cake task classes are discovered from `[TaskName]` metadata and should not be explicitly registered in DI. Register collaborators, repositories, tools, and options; let Cake construct the task from the service provider.

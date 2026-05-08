@@ -4,7 +4,7 @@ namespace Build.Shared.Packaging;
 
 /// <summary>
 /// Module-level base for Packaging domain errors. Mirrors <c>HarvestingError</c>
-/// and <c>PreflightError</c> so every build-host module exposes the same
+/// so the surviving build-host modules expose the same
 /// <see cref="BuildError"/>-derived shape.
 /// </summary>
 public abstract class PackagingError : BuildError

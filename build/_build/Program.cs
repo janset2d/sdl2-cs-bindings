@@ -10,8 +10,8 @@ using Build.Targets.InspectHarvestedDependencies;
 using Build.Targets.OtoolAnalyze;
 using Build.Features.Harvesting;
 using Build.Features.Packaging;
-using Build.Features.Preflight;
 using Build.Features.Publishing;
+using Build.Targets.PreFlightCheck;
 using Build.Features.Vcpkg;
 using Build.Host;
 using Build.Host.Cake;
@@ -20,6 +20,7 @@ using Build.Host.Configuration;
 using Build.Integrations;
 using Build.Repositories;
 using Build.Tools;
+using Build.Validation;
 using Build.Versioning;
 using Cake.Common.IO;
 using Cake.Core;
@@ -94,7 +95,7 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
         var hasVersionsFile = !string.IsNullOrWhiteSpace(parsedArgs.VersionsFile);
         if (!hasVersionsFile)
         {
-            return new PackageBuildConfiguration(new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase));
+            return new PackageBuildConfiguration(PackageFamilyVersionSet.Empty);
         }
 
         var ctx = provider.GetRequiredService<ICakeContext>();
@@ -103,17 +104,14 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
         // ResolveVersions targets pass --versions-file as their OUTPUT path — the file
         // doesn't exist yet when the DI factory runs. Stage tasks that READ versions
         // (PreFlight, Package, ConsumerSmoke, PublishStaging) fail-loud at task entry
-        // when the mapping is empty, so empty-on-missing is safe.
+        // when the set is empty, so empty-on-missing is safe.
         if (!ctx.FileExists(filePath))
         {
-            return new PackageBuildConfiguration(new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase));
+            return new PackageBuildConfiguration(PackageFamilyVersionSet.Empty);
         }
 
         var versionSet = ctx.ToJson<PackageFamilyVersionSet>(filePath);
-        return new PackageBuildConfiguration(versionSet.ToDictionary(
-            static entry => entry.Family.Value,
-            static entry => entry.Version,
-            StringComparer.OrdinalIgnoreCase));
+        return new PackageBuildConfiguration(versionSet);
     });
     services.AddSingleton(new DumpbinConfiguration([.. parsedArgs.Dll]));
 
@@ -135,13 +133,14 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services
         .AddHostBuildingBlocks(parsedArgs)
         .AddRepositories()
+        .AddValidators()
         .AddIntegrations()
         .AddToolWrappers()
         .AddCiFeature()
         .AddVcpkgFeature()
         .AddInspectHarvestedDependenciesTarget()
         .AddOtoolAnalyzeTarget()
-        .AddPreflightFeature()
+        .AddPreFlightCheck()
         .AddHarvestingFeature()
         .AddPublishingFeature()
         .AddPackagingFeature();

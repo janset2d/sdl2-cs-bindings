@@ -1,10 +1,11 @@
 using System.Diagnostics.CodeAnalysis;
-using Build.Features.Preflight;
+using Build.Validation.Conventions;
 using Build.Host.Configuration;
 using Build.Host.Paths;
 using Build.Integrations.DotNet;
 using Build.Shared.Manifest;
 using Build.Shared.Runtime;
+using Build.Versioning;
 using Cake.Common;
 using Cake.Common.IO;
 using Cake.Core;
@@ -270,7 +271,7 @@ public sealed class PackageConsumerSmokePipeline(
         }
     }
 
-    private static void EnsureSelectionSupportsCurrentSmokeScope(IReadOnlyList<SmokePackage> smokePackages, IReadOnlyDictionary<string, NuGetVersion> explicitVersions)
+    private static void EnsureSelectionSupportsCurrentSmokeScope(IReadOnlyList<SmokePackage> smokePackages, PackageFamilyVersionSet explicitVersions)
     {
         if (explicitVersions.Count == 0)
         {
@@ -278,7 +279,7 @@ public sealed class PackageConsumerSmokePipeline(
         }
 
         var missingFamilies = smokePackages
-            .Where(package => !explicitVersions.ContainsKey(package.FamilyName))
+            .Where(package => !explicitVersions.Contains(new PackageFamilyId(package.FamilyName)))
             .Select(package => package.FamilyName)
             .ToList();
 
@@ -295,20 +296,20 @@ public sealed class PackageConsumerSmokePipeline(
     /// Per-family pack-existence is asserted at this gate so a missing nupkg surfaces with
     /// an actionable remediation hint rather than opaquely inside <c>dotnet restore</c>.
     /// </summary>
-    private IReadOnlyDictionary<string, NuGetVersion> ResolveSmokeVersionMappingAndEnsureFeed(
+    private PackageFamilyVersionSet ResolveSmokeVersionMappingAndEnsureFeed(
         IReadOnlyList<SmokePackage> smokePackages,
-        IReadOnlyDictionary<string, NuGetVersion> explicitVersions,
+        PackageFamilyVersionSet explicitVersions,
         DirectoryPath feedPath)
     {
         EnsurePackageArtifactsExist(smokePackages, explicitVersions, feedPath);
         return explicitVersions;
     }
 
-    private void EnsurePackageArtifactsExist(IReadOnlyList<SmokePackage> smokePackages, IReadOnlyDictionary<string, NuGetVersion> explicitVersions, DirectoryPath feedPath)
+    private void EnsurePackageArtifactsExist(IReadOnlyList<SmokePackage> smokePackages, PackageFamilyVersionSet explicitVersions, DirectoryPath feedPath)
     {
         foreach (var smokePackage in smokePackages)
         {
-            var version = explicitVersions[smokePackage.FamilyName].ToNormalizedString();
+            var version = explicitVersions.RequireVersion(new PackageFamilyId(smokePackage.FamilyName)).ToNormalizedString();
             EnsurePackageExists(smokePackage.ManagedPackageId, version, feedPath);
             EnsurePackageExists(smokePackage.NativePackageId, version, feedPath);
         }
@@ -324,7 +325,7 @@ public sealed class PackageConsumerSmokePipeline(
         }
     }
 
-    private void RunCompileSanity(FilePath projectPath, IReadOnlyList<SmokePackage> smokePackages, IReadOnlyDictionary<string, NuGetVersion> explicitVersions, DirectoryPath packagesCache, DirectoryPath feedPath)
+    private void RunCompileSanity(FilePath projectPath, IReadOnlyList<SmokePackage> smokePackages, PackageFamilyVersionSet explicitVersions, DirectoryPath packagesCache, DirectoryPath feedPath)
     {
         var arguments = new ProcessArgumentBuilder()
             .Append("build")
@@ -342,7 +343,7 @@ public sealed class PackageConsumerSmokePipeline(
     private void RunSmokeForTfm(
         FilePath projectPath,
         IReadOnlyList<SmokePackage> smokePackages,
-        IReadOnlyDictionary<string, NuGetVersion> explicitVersions,
+        PackageFamilyVersionSet explicitVersions,
         DirectoryPath packagesCache,
         DirectoryPath feedPath,
         string rid,
@@ -444,7 +445,7 @@ public sealed class PackageConsumerSmokePipeline(
     private static void AppendSmokePackageVersionProperties(
         ProcessArgumentBuilder arguments,
         IReadOnlyList<SmokePackage> smokePackages,
-        IReadOnlyDictionary<string, NuGetVersion> explicitVersions)
+        PackageFamilyVersionSet explicitVersions)
     {
         ArgumentNullException.ThrowIfNull(arguments);
         ArgumentNullException.ThrowIfNull(smokePackages);
@@ -452,7 +453,7 @@ public sealed class PackageConsumerSmokePipeline(
 
         foreach (var smokePackage in smokePackages)
         {
-            if (explicitVersions.TryGetValue(smokePackage.FamilyName, out var version))
+            if (explicitVersions.TryGetVersion(new PackageFamilyId(smokePackage.FamilyName), out var version))
             {
                 arguments.Append($"-p:{smokePackage.VersionPropertyName}={version.ToNormalizedString()}");
             }

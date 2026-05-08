@@ -1,6 +1,7 @@
 using Build.Features.Packaging;
 using Build.Host.Configuration;
 using Build.Tests.Fixtures;
+using Build.Versioning;
 using Cake.Core;
 using NSubstitute;
 using NuGet.Versioning;
@@ -17,8 +18,7 @@ public sealed class PackageConsumerSmokeTaskTests
     [Test]
     public async Task RunAsync_Should_Throw_When_FamilyVersionMapping_Empty()
     {
-        var config = new PackageBuildConfiguration(
-            new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase));
+        var config = new PackageBuildConfiguration(PackageFamilyVersionSet.Empty);
         var runner = Substitute.For<IPackageConsumerSmokePipeline>();
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
 
@@ -31,10 +31,9 @@ public sealed class PackageConsumerSmokeTaskTests
     [Test]
     public async Task RunAsync_Should_Delegate_When_FamilyVersionMapping_Present()
     {
-        var versions = new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["sdl2-core"] = NuGetVersion.Parse("2.32.0-local.20260422T120000"),
-        };
+        var versions = new PackageFamilyVersionSet([
+            new PackageFamilyVersion(new PackageFamilyId("sdl2-core"), NuGetVersion.Parse("2.32.0-local.20260422T120000")),
+        ]);
         var config = new PackageBuildConfiguration(versions);
         var runner = Substitute.For<IPackageConsumerSmokePipeline>();
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();

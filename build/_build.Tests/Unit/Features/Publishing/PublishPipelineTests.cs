@@ -1,6 +1,7 @@
 using Build.Features.Publishing;
 using Build.Integrations.NuGet;
 using Build.Tests.Fixtures;
+using Build.Versioning;
 using Cake.Core;
 using Cake.Core.IO;
 using NSubstitute;
@@ -50,7 +51,7 @@ public sealed class PublishTaskRunnerTests
         var feedClient = Substitute.For<INuGetFeedClient>();
 
         var runner = new PublishPipeline(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, feedClient);
-        var request = new PublishRequest(FeedUrl, AuthToken, new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase));
+        var request = new PublishRequest(FeedUrl, AuthToken, PackageFamilyVersionSet.Empty);
 
         var thrown = await Assert.That(() => runner.RunAsync(request)).Throws<CakeException>();
         await Assert.That(thrown!.Message).Contains("at least one --explicit-version");
@@ -132,11 +133,10 @@ public sealed class PublishTaskRunnerTests
         var feedClient = Substitute.For<INuGetFeedClient>();
         var runner = new PublishPipeline(repo.CakeContext, repo.CakeContext.Log, repo.Paths, manifest, feedClient);
 
-        var versions = new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["sdl2-core"] = NuGetVersion.Parse("2.32.0-ci.1"),
-            ["sdl2-image"] = NuGetVersion.Parse("2.8.0-ci.1"),
-        };
+        var versions = new PackageFamilyVersionSet([
+            new PackageFamilyVersion(new PackageFamilyId("sdl2-core"), NuGetVersion.Parse("2.32.0-ci.1")),
+            new PackageFamilyVersion(new PackageFamilyId("sdl2-image"), NuGetVersion.Parse("2.8.0-ci.1")),
+        ]);
         var request = new PublishRequest(FeedUrl, AuthToken, versions);
 
         await runner.RunAsync(request);
@@ -174,8 +174,8 @@ public sealed class PublishTaskRunnerTests
         await Assert.That(thrown!.Message).Contains("local.");
     }
 
-    private static Dictionary<string, NuGetVersion> OneVersion(string family, string version) =>
-        new(StringComparer.OrdinalIgnoreCase) { [family] = NuGetVersion.Parse(version) };
+    private static PackageFamilyVersionSet OneVersion(string family, string version) =>
+        new([new PackageFamilyVersion(new PackageFamilyId(family), NuGetVersion.Parse(version))]);
 
     private static void SeedPackage(FakeRepoHandles repo, string packageId, string version)
     {

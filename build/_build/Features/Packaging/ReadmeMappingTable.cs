@@ -1,5 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
-using Build.Features.Preflight;
+using Build.Validation.Conventions;
 using Build.Host.Cake;
 using Build.Host.Paths;
 using Build.Shared.Manifest;

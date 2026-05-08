@@ -1,4 +1,5 @@
 using Build.Features.Packaging;
+using Build.Versioning;
 using NuGet.Versioning;
 
 namespace Build.Tests.Unit.Features.Packaging;
@@ -12,10 +13,9 @@ public sealed class PackRequestTests
     [Test]
     public async Task Constructor_Should_Hold_Versions_Mapping()
     {
-        var versions = new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["sdl2-core"] = NuGetVersion.Parse("2.32.0-ci.run-id-12345"),
-        };
+        var versions = new PackageFamilyVersionSet([
+            new PackageFamilyVersion(new PackageFamilyId("sdl2-core"), NuGetVersion.Parse("2.32.0-ci.run-id-12345")),
+        ]);
 
         var request = new PackRequest(versions);
 

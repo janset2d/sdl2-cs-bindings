@@ -18,7 +18,6 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<NativePackageMetadataValidator>();
         services.AddSingleton<ReadmeMappingTableValidator>();
         services.AddSingleton<IPackageOutputValidator, PackageOutputValidator>();
-        services.AddSingleton<IG58CrossFamilyDepResolvabilityValidator, G58CrossFamilyDepResolvabilityValidator>();
 
         // Generators
         services.AddSingleton<INativePackageMetadataGenerator, NativePackageMetadataGenerator>();

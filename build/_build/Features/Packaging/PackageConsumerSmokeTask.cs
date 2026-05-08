@@ -24,7 +24,7 @@ public sealed class PackageConsumerSmokeTask(
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        if (_packageBuildConfiguration.FamilyVersionMapping.Count == 0)
+        if (_packageBuildConfiguration.FamilyVersions.Count == 0)
         {
             throw new CakeException(
                 "PackageConsumerSmoke requires --versions-file <path>. " +
@@ -34,7 +34,7 @@ public sealed class PackageConsumerSmokeTask(
 
         var request = new PackageConsumerSmokeRequest(
             _runtimeProfile.Rid,
-            _packageBuildConfiguration.FamilyVersionMapping,
+            _packageBuildConfiguration.FamilyVersions,
             _pathService.PackagesOutput);
 
         return _packageConsumerSmokePipeline.RunAsync(request);

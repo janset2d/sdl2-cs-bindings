@@ -13,10 +13,9 @@ namespace Build.Versioning;
 public readonly record struct PackageFamilyVersion(PackageFamilyId Family, NuGetVersion Version);
 
 /// <summary>
-/// Typed family→version mapping. Replaces raw
-/// <c>IReadOnlyDictionary&lt;string, NuGetVersion&gt;</c> at task/service boundaries.
-/// Immutable; two sets with the same contents are equal regardless of input order.
-/// Throws on duplicate family at construction.
+/// Typed family→version mapping. The canonical shape used at every task/service
+/// boundary in the build host. Immutable; two sets with the same contents are equal
+/// regardless of input order. Throws on duplicate family at construction.
 /// </summary>
 [JsonConverter(typeof(PackageFamilyVersionSetJsonConverter))]
 public sealed record PackageFamilyVersionSet : IReadOnlyCollection<PackageFamilyVersion>

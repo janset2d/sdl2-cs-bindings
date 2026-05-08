@@ -197,7 +197,7 @@ public sealed class FakeRepoBuilder
 
         var options = new Configurations(
             Vcpkg: new VcpkgConfiguration(_libraries, _rid),
-            Package: new PackageBuildConfiguration(new Dictionary<string, NuGet.Versioning.NuGetVersion>(StringComparer.OrdinalIgnoreCase)),
+            Package: new PackageBuildConfiguration(Build.Versioning.PackageFamilyVersionSet.Empty),
             Repository: new RepositoryConfiguration(_repoRoot),
             DotNet: new DotNetBuildConfiguration(_config),
             Dumpbin: new DumpbinConfiguration([]));

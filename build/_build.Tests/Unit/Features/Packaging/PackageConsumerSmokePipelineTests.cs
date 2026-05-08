@@ -3,6 +3,7 @@ using Build.Host.Configuration;
 using Build.Host.Paths;
 using Build.Integrations.DotNet;
 using Build.Shared.Runtime;
+using Build.Versioning;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
@@ -26,7 +27,7 @@ public sealed class PackageConsumerSmokeRunnerTests
         var runner = CreateMinimalRunner();
         var request = new PackageConsumerSmokeRequest(
             "win-x64",
-            new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase),
+            PackageFamilyVersionSet.Empty,
             new DirectoryPath("artifacts/packages"));
 
         var exception = await Assert.ThrowsAsync<Cake.Core.CakeException>(

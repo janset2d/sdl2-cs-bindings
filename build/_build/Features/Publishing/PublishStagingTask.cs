@@ -28,7 +28,7 @@ public sealed class PublishStagingTask(
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        if (_packageBuildConfiguration.FamilyVersionMapping.Count == 0)
+        if (_packageBuildConfiguration.FamilyVersions.Count == 0)
         {
             throw new CakeException(
                 "PublishStaging requires --versions-file <path>. " +
@@ -41,7 +41,7 @@ public sealed class PublishStagingTask(
         var request = new PublishRequest(
             FeedUrl: GitHubPackagesFeedUrl,
             AuthToken: authToken,
-            Versions: _packageBuildConfiguration.FamilyVersionMapping);
+            Versions: _packageBuildConfiguration.FamilyVersions);
 
         return _runner.RunAsync(request);
     }

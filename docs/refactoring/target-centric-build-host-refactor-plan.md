@@ -75,7 +75,7 @@ Observed hotspots from the current codebase:
 | `build/_build/Features/Harvesting/HarvestPipeline.cs` | Large mixed orchestration/reporting/status/validation pipeline. |
 | `build/_build/Features/Packaging/PackagePipeline.cs` | Large packaging boss fight: family selection, versions, pack invocation, validation, dependency ranges. |
 | `build/_build/Features/Packaging/PackageConsumerSmokePipeline.cs` | Large consumer smoke orchestration with platform/TFM behavior. |
-| `build/_build/Features/Preflight/PreflightPipeline.cs` | Cross-cutting validation pipeline that includes strategy-era logic. |
+| ~~`build/_build/Features/Preflight/PreflightPipeline.cs`~~ | Retired in S12 (2026-05-08). PreFlight migrated to `Targets/PreFlightCheck/`; orchestration owned by `PreFlightCheckTask` directly; no replacement pipeline. |
 | `build/_build/Host/Configuration/` | Centralized configuration pattern marked for retirement. |
 | `build/_build.Tests/Unit/CompositionRoot/ArchitectureTests.cs` | Architecture tests marked for deletion/replacement by written guardrails. |
 
@@ -293,6 +293,7 @@ Candidate top-level concepts:
 | `Runtime` | RID/triplet/platform identity, runtime selection, platform predicates. | Per-target runtime behavior. |
 | `Versioning` | `PackageFamilyId`, version file read/write, version set models, D-3seg helpers. | `ResolveVersions*` task orchestration. |
 | `Packaging` | Package-domain models reused by multiple targets. | `PackageTask` orchestration if only used there. |
+| `Validation` | All cross-cutting validators (manifest invariants, version consistency, core identity, csproj pack contract, upstream alignment, cross-family resolvability, hybrid-static overlay) under domain alt-folders (`Manifest/`, `Versioning/`, `Packaging/`, `Models/`, `Conventions/`). Single `AddValidators()` registration point. Established by S12. | Target-specific orchestration; that lives in the consuming target (e.g. `PreFlightCheckTask`). |
 | `Results` | Minimal `Result<T,TError>`, validation report/check primitives. | Target-specific error catalogs unless reused. |
 | `Repositories` or named repository folders | File-backed source-of-truth adapters. | Generic in-memory services or fake DDD ceremony. |
 
@@ -813,30 +814,48 @@ Exit criteria:
 
 ### P6 - PreFlightCheck migration
 
+> **Status:** P6 closed in S12 (2026-05-08). PreFlight migrated to `Targets/PreFlightCheck/`; `PreflightPipeline` deleted; cross-cutting validators relocated to root-level `Validation/` named concept with domain alt-folders (`Manifest/`, `Versioning/`, `Packaging/`, `Models/`, `Conventions/`). G58-prefixed types renamed to `CrossFamilyDependency*`. New `ManifestFamilyNameInvariantValidator` (G59) added. New `IVcpkgManifestRepository` mirrors `IManifestRepository` symmetry. 5 OneOf result types deleted (`VersionConsistencyResult`, `CoreLibraryIdentityResult`, `CsprojPackContractResult`, `UpstreamVersionAlignmentResult`, `PreflightError`); 12 → 7 surviving (parking-lot updated). `PackageFamilyVersionSet` typed boundary fully retired `IReadOnlyDictionary<string, NuGetVersion>` end-to-end (B-mode finish: pipeline internals also converted, not just public boundaries). All seven validators ship with `IFoo` interfaces + `AddSingleton<IFoo, Foo>()` per S12 amendment to ADR-002 §8 (uniform DI shape; analyzer side-effects). V2 scenario tests added at `Scenarios/PreFlightCheck/PreFlightCheckTaskScenarioTests.cs` covering happy path + 8 failure paths (one per validator + 2 boundary preconditions). Test count: 541. Phase X items captured in [parking-lot.md](../parking-lot.md): PreflightReporter `IAnsiConsole` migration, `Build.Validation.Versioning` ↔ `Build.Versioning` namespace duplication, `PreFlightCheckTask` ctor style consistency, validator analyzer suppressions closure audit.
+
 Goal: convert cross-cutting validation without recreating a mega-pipeline.
 
-Candidate target module:
+Realized target module (S12):
 
 ```text
-Targets/
-  PreFlightCheck/
-    PreFlightCheckTask.cs
-    Requests/
-      PreFlightCheckRequest.cs
-    Validation/
-      ManifestVcpkgConsistencyValidator.cs
-      CoreLibraryIdentityValidator.cs
-      UpstreamVersionAlignmentValidator.cs
-      PackageFamilyScopeValidator.cs
-      ProjectPackContractValidator.cs
-    Reporting/
-      PreflightReporter.cs
+build/_build/
+  Targets/
+    PreFlightCheck/
+      PreFlightCheckTask.cs
+      ServiceCollectionExtensions.cs
+      Reporting/
+        PreflightReporter.cs
+  Validation/                         # root-level named concept (S12)
+    ServiceCollectionExtensions.cs    # AddValidators() — 7 IFoo, Foo registrations
+    Manifest/
+      IVersionConsistencyValidator.cs / VersionConsistencyValidator.cs
+      ICoreLibraryIdentityValidator.cs / CoreLibraryIdentityValidator.cs
+      IManifestFamilyNameInvariantValidator.cs / ManifestFamilyNameInvariantValidator.cs
+      ICsprojPackContractValidator.cs / CsprojPackContractValidator.cs
+    Versioning/
+      IUpstreamVersionAlignmentValidator.cs / UpstreamVersionAlignmentValidator.cs
+      ICrossFamilyDependencyResolvabilityValidator.cs / CrossFamilyDependencyResolvabilityValidator.cs
+    Packaging/
+      IHybridStaticOverlayValidator.cs / HybridStaticOverlayValidator.cs
+    Models/
+      LibraryVersionCheck.cs
+      CoreLibraryIdentityModels.cs
+      CsprojPackContractModels.cs
+      UpstreamVersionAlignmentModels.cs
+      CrossFamilyDependencyModels.cs
+    Conventions/
+      FamilyIdentifierConventions.cs
+  Repositories/
+    IVcpkgManifestRepository.cs / VcpkgManifestRepository.cs   # NEW S12
 ```
 
-Tasks:
+Original P6 tasks (preserved here for traceability — all closed S12):
 
 1. Preserve existing G-numbered guardrail behavior where still valid.
-2. Remove strategy-specific validation.
+2. Remove strategy-specific validation. (Done in S11; P6 confirmed clean.)
 3. Use `ValidationReport` / `ValidationCheck` for multi-check output.
 4. Use behavior-first validator names; guardrail IDs remain report/documentation metadata.
 5. Keep task orchestration readable:
@@ -845,14 +864,18 @@ Tasks:
    - report warnings/errors;
    - throw once if fatal.
 6. Add scenario coverage for success and representative failure cases.
-7. Add (or strengthen) a manifest lowercase invariant validator: every `manifest.package_families[].name` must match `^sdl[0-9]+-[a-z][a-z0-9-]*$`. P2b's `PackageFamilyId` uses ordinal-exact equality; the manifest is canonical-lowercase by convention, but a hand-edited mixed-case entry (`SDL2-Core`) would silently bypass legacy ignore-case lookups and then break `PackageFamilyId` lookups in P3+/P4+ consumers. PreFlight is the canonical home for this contract.
+7. Add (or strengthen) a manifest lowercase invariant validator: every `manifest.package_families[].name` must match `^sdl[0-9]+-[a-z][a-z0-9-]*$`. PreFlight is the canonical home for this contract. (Realized as `ManifestFamilyNameInvariantValidator` carrying guardrail ID `G59`.)
 
-Exit criteria:
+Exit criteria (all met S12):
 
-- `PreFlightCheckTask` tells the validation story directly.
-- Validators are named by the rule they enforce.
-- No generic `PreflightPipeline` remains.
-- Manifest lowercase invariant is enforced on every `package_families[].name`.
+- `PreFlightCheckTask` tells the validation story directly. ✅
+- Validators are named by the rule they enforce. ✅
+- No generic `PreflightPipeline` remains. ✅
+- Manifest lowercase invariant is enforced on every `package_families[].name`. ✅
+- `Validation/` root concept established with domain alt-folders. ✅
+- `IVcpkgManifestRepository` introduced for repository symmetry. ✅
+- `IReadOnlyDictionary<string, NuGetVersion>` zero-residue across the build host (production code). ✅
+- V2 scenario coverage for cross-cutting validation tasks. ✅
 
 ### P7 - Package migration
 

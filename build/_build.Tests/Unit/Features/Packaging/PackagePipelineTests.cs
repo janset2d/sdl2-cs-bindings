@@ -6,6 +6,8 @@ using Build.Shared.Harvesting;
 using Build.Shared.Manifest;
 using Build.Shared.Packaging;
 using Build.Tests.Fixtures;
+using Build.Validation.Versioning;
+using Build.Versioning;
 using Cake.Core;
 using Cake.Core.IO;
 using Cake.Testing;
@@ -104,7 +106,7 @@ public sealed class PackageTaskRunnerTests
             readmeMappingTableGenerator,
             projectMetadataReader,
             packageOutputValidator,
-            new G58CrossFamilyDepResolvabilityValidator(),
+            new CrossFamilyDependencyResolvabilityValidator(),
             resolveHeadCommitSha: StubResolveHeadCommitSha);
 
         await runner.RunAsync(CreateSdl2CorePackRequest());
@@ -194,10 +196,9 @@ public sealed class PackageTaskRunnerTests
             .BuildContextWithHandles();
 
         var runner = BuildRunnerWithMinimalMocks(repo, manifest);
-        var ghostRequest = new PackRequest(new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["ghost-family"] = NuGetVersion.Parse("1.2.3"),
-        });
+        var ghostRequest = new PackRequest(new PackageFamilyVersionSet([
+            new PackageFamilyVersion(new PackageFamilyId("ghost-family"), NuGetVersion.Parse("1.2.3")),
+        ]));
 
         var thrown = await Assert.That(() => runner.RunAsync(ghostRequest)).Throws<Cake.Core.CakeException>();
         // G58 catches the ghost-family mapping before PackagePipeline's own
@@ -207,10 +208,9 @@ public sealed class PackageTaskRunnerTests
 
     private static PackRequest CreateSdl2CorePackRequest()
     {
-        return new PackRequest(new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["sdl2-core"] = NuGetVersion.Parse("1.2.3"),
-        });
+        return new PackRequest(new PackageFamilyVersionSet([
+            new PackageFamilyVersion(new PackageFamilyId("sdl2-core"), NuGetVersion.Parse("1.2.3")),
+        ]));
     }
 
     private static PackagePipeline BuildRunnerWithMinimalMocks(
@@ -267,7 +267,7 @@ public sealed class PackageTaskRunnerTests
             readmeMappingTableGenerator,
             projectMetadataReader,
             packageOutputValidator,
-            new G58CrossFamilyDepResolvabilityValidator(),
+            new CrossFamilyDependencyResolvabilityValidator(),
             resolveHeadCommitSha: StubResolveHeadCommitSha);
     }
 

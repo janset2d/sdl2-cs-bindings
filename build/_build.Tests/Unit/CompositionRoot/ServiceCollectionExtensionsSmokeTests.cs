@@ -3,10 +3,11 @@
 using Build.Features.Ci;
 using Build.Features.Harvesting;
 using Build.Features.Packaging;
-using Build.Features.Preflight;
 using Build.Features.Publishing;
 using Build.Features.Vcpkg;
+using Build.Targets.PreFlightCheck;
 using Build.Tests.Fixtures;
+using Build.Validation;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Build.Tests.Unit.CompositionRoot;
@@ -39,14 +40,15 @@ public sealed class ServiceCollectionExtensionsSmokeTests
     }
 
     [Test]
-    public async Task AddPreflightFeature_Should_Register_All_Pipeline_And_Validator_Types()
+    public async Task AddPreFlightCheck_Should_Register_All_Reporter_And_Validator_Types()
     {
-        // PreflightPipeline injects IG58CrossFamilyDepResolvabilityValidator
-        // (registered by AddPackagingFeature).
+        // PreFlightCheckTask injects validators registered by AddValidators() (Validation/ root)
+        // and repositories from AddRepositories(). AddPreFlightCheck only registers the
+        // target-local PreflightReporter — Cake discovers the task class via [TaskName].
         await AssertAllRegisteredTypesResolve(services =>
         {
-            services.AddPackagingFeature();
-            services.AddPreflightFeature();
+            services.AddValidators();
+            services.AddPreFlightCheck();
         });
     }
 
@@ -54,13 +56,13 @@ public sealed class ServiceCollectionExtensionsSmokeTests
     public async Task AddHarvestingFeature_Should_Register_All_Pipeline_And_Validator_Types()
     {
         // HarvestPipeline injects IDependencyPolicyValidator (registered by Packaging via
-        // DependencyPolicyValidatorFactory). The factory transitively requires IStrategyResolver
-        // (registered by Preflight). Both upstream features pre-registered to mirror
-        // production composition.
+        // DependencyPolicyValidatorFactory). Packaging is pre-registered to mirror production
+        // composition. AddValidators() supplies validators relocated to Validation/, which
+        // Packaging consumes transitively.
         await AssertAllRegisteredTypesResolve(services =>
         {
+            services.AddValidators();
             services.AddPackagingFeature();
-            services.AddPreflightFeature();
             services.AddHarvestingFeature();
         });
     }
@@ -74,11 +76,10 @@ public sealed class ServiceCollectionExtensionsSmokeTests
     [Test]
     public async Task AddPackagingFeature_Should_Register_All_Pipeline_And_Validator_Types()
     {
-        // Packaging depends on Preflight transitively through PackagePipeline.
-        // Pre-register it so the smoke mirrors the production composition order.
+        // AddValidators() supplies validators relocated to Validation/.
         await AssertAllRegisteredTypesResolve(services =>
         {
-            services.AddPreflightFeature();
+            services.AddValidators();
             services.AddPackagingFeature();
         });
     }

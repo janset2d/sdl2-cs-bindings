@@ -18,7 +18,7 @@ public sealed class PackageTask(
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        if (_packageBuildConfiguration.FamilyVersionMapping.Count == 0)
+        if (_packageBuildConfiguration.FamilyVersions.Count == 0)
         {
             throw new CakeException(
                 "PackageTask requires --versions-file <path>. " +
@@ -27,7 +27,7 @@ public sealed class PackageTask(
                 "then re-run with --versions-file artifacts/resolve-versions/versions.json.");
         }
 
-        var request = new PackRequest(_packageBuildConfiguration.FamilyVersionMapping);
+        var request = new PackRequest(_packageBuildConfiguration.FamilyVersions);
         return _packagePipeline.RunAsync(request);
     }
 }

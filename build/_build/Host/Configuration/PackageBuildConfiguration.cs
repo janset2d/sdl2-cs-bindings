@@ -1,9 +1,9 @@
-using NuGet.Versioning;
+using Build.Versioning;
 
 namespace Build.Host.Configuration;
 
 /// <summary>
-/// Resolved family→version mapping consumed by stage targets (PreFlight, Package,
+/// Resolved family→version set consumed by stage targets (PreFlight, Package,
 /// PackageConsumerSmoke, PublishStaging). Populated only from <c>--versions-file</c>.
 /// <para>
 /// <c>--explicit-version</c> / <c>--explicit-versions</c> are ResolveVersions inputs
@@ -11,8 +11,8 @@ namespace Build.Host.Configuration;
 /// directly — operator input flows through ResolveVersions → versions.json → this record.
 /// </para>
 /// </summary>
-public sealed class PackageBuildConfiguration(IReadOnlyDictionary<string, NuGetVersion> familyVersionMapping)
+public sealed class PackageBuildConfiguration(PackageFamilyVersionSet familyVersions)
 {
-    public IReadOnlyDictionary<string, NuGetVersion> FamilyVersionMapping { get; } =
-        familyVersionMapping ?? throw new ArgumentNullException(nameof(familyVersionMapping));
+    public PackageFamilyVersionSet FamilyVersions { get; } =
+        familyVersions ?? throw new ArgumentNullException(nameof(familyVersions));
 }

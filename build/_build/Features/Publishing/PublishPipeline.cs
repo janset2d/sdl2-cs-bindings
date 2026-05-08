@@ -1,8 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
-using Build.Features.Preflight;
+using Build.Validation.Conventions;
 using Build.Host.Paths;
 using Build.Integrations.NuGet;
 using Build.Shared.Manifest;
+using Build.Versioning;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;
@@ -45,7 +46,7 @@ public sealed class PublishPipeline(
         {
             ct.ThrowIfCancellationRequested();
 
-            var version = request.Versions[family.Name];
+            var version = request.Versions.RequireVersion(new PackageFamilyId(family.Name));
             EnsureNotLocalSuffix(family.Name, version);
 
             var managedPackageId = FamilyIdentifierConventions.ManagedPackageId(family.Name);
@@ -89,11 +90,12 @@ public sealed class PublishPipeline(
         }
     }
 
-    private List<PackageFamilyConfig> ResolveConcreteFamiliesInScope(IReadOnlyDictionary<string, NuGetVersion> versions)
+    private List<PackageFamilyConfig> ResolveConcreteFamiliesInScope(PackageFamilyVersionSet versions)
     {
         var selected = new List<PackageFamilyConfig>(versions.Count);
-        foreach (var familyName in versions.Keys)
+        foreach (var entry in versions)
         {
+            var familyName = entry.Family.Value;
             var family = _manifestConfig.PackageFamilies.SingleOrDefault(candidate =>
                 string.Equals(candidate.Name, familyName, StringComparison.OrdinalIgnoreCase))
                 ?? throw new CakeException(
