@@ -1,4 +1,3 @@
-using Build.Integrations.Coverage;
 using Build.Integrations.DotNet;
 using Build.Integrations.Msvc;
 using Build.Integrations.NuGet;
@@ -24,8 +23,6 @@ public static class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
 
         services.AddSingleton<IPackageInfoProvider, VcpkgCliProvider>();
-        services.AddSingleton<ICoberturaReader, CoberturaReader>();
-        services.AddSingleton<ICoverageBaselineReader, CoverageBaselineReader>();
         services.AddSingleton<IVcpkgManifestReader, VcpkgManifestReader>();
         services.AddSingleton<IProjectMetadataReader, ProjectMetadataReader>();
         services.AddSingleton<IDotNetPackInvoker, DotNetPackInvoker>();

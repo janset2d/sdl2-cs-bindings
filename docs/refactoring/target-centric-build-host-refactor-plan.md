@@ -121,7 +121,6 @@ Current Cake target surface found via `[TaskName]`:
 | `PackageConsumerSmoke` | `Features/Packaging` | High risk; platform/TFM/package restore/runtime behavior. |
 | `PublishStaging` | `Features/Publishing` | Mission-critical, but can migrate after package contracts stabilize. |
 | `PublishPublic` | `Features/Publishing` | Stubbed; keep behavior unchanged unless Phase 2b PD-7 explicitly starts. |
-| `Coverage-Check` | `Features/Coverage` | Retire as Cake target. Remove command references and baseline gate. |
 
 Folder names always use valid C# identifiers (PascalCase, no hyphens), even when the Cake target name itself is hyphenated (e.g. `Otool-Analyze`). The Cake target name lives on the `[TaskName("Otool-Analyze")]` attribute and stays operator-facing on the CLI; the folder + namespace pair (`Targets/OtoolAnalyze/` ↔ `Build.Targets.OtoolAnalyze`) stays C#-conventional. This matches the existing `Targets/Info/` and `Targets/ResolveVersionsFromManifest/` shape.
 
@@ -783,6 +782,8 @@ Exit criteria:
 Decision: `--versions-file` is universal — both ResolveVersions writers AND stage-task readers use it. `PathService.ResolveVersionsOutputDirectory` / `GetResolveVersionsOutputFile()` removed. `IVersionFileRepository` takes path at method-call time, not constructor injection. `BuildContext.VersionsFilePath` is `FilePath?` with no fallback; every task validates at entry (defense in depth). `CleanArtifacts` retired from Cake — artifact cleanup is local-dev hygiene owned by `tools.cs`, not a build pipeline stage. See commit `e893600` → current `master`.
 
 ### P5 - Retire coverage and strategy-era abstractions
+
+> **Status:** Coverage retirement complete (S10, 2026-05-08). Strategy retirement remains and ships as S11.
 
 Goal: remove abstractions explicitly rejected by ADR-002.
 

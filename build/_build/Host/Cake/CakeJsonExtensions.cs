@@ -185,7 +185,7 @@ public static class CakeJsonExtensions
 
     /// <summary>
     /// Cake-native JSON deserialization from an in-memory UTF-16 string. Non-extension static
-    /// helper so Infrastructure readers (VcpkgManifestReader, CoverageBaselineReader, …) that
+    /// helper so Infrastructure readers (VcpkgManifestReader, …) that
     /// do not carry an <see cref="ICakeContext"/> dependency can still route their JSON parse
     /// through the repo's central Cake JSON surface. Callers own null-handling and wrap
     /// <see cref="JsonException"/> with domain-specific context.

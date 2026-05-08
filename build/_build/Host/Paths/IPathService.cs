@@ -35,7 +35,6 @@ public interface IPathService
     FilePath GetHarvestManifestFile(string libraryName, string rid);
     FilePath GetManifestFile();
     FilePath GetVcpkgManifestFile();
-    FilePath GetCoverageBaselineFile();
     FilePath SolutionFile { get; }
 
     /// <summary>

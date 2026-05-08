@@ -26,7 +26,6 @@ Every guardrail has one owning pipeline stage. This view organizes the same set 
 | **Publish** | Single-runner per feed tier | G31, G32, G33, G34, G35 | Monotonicity + no-existing-version + smoke-gate + stage-ordering + cross-family resolvability at feed scope |
 | **Full-Train (PD-7 scope)** | Meta-tag trigger | G37, G38, G39, G40, G41, G42 | Manifest-driven family selection + family-tag SemVer/G54 + no-dup + ordering + partial-train handling |
 | **Manual Escape (PD-8 scope)** | Operator-driven | G43, G44, G45 | Version↔tag drift + explicit feed source + audit trail |
-| **Coverage gate** | CI pre-matrix | G36 | Coverage ratchet floor |
 
 The subsystem view (§2.1–§2.8) remains authoritative for each guardrail's owner (validator class, task, MSBuild target, CI workflow step). This stage view is a routing map; it references the same guardrails, not duplicates.
 
@@ -103,7 +102,6 @@ G25 is intentionally scoped to the managed package's `.snupkg`. Payload-only `.N
 | G33 | Smoke test must pass before publish (explicit `needs:` gate) | Planned | CI workflow |
 | G34 | Internal feed publish completes before public promote | Planned | Promotion workflow |
 | G35 | Cross-family coherence: satellite family's Core minimum version is `<= currently-published Core version` (satellite cannot demand unreleased Core) | Planned | Cake `ValidateTask` |
-| G36 | Coverage ratchet floor maintained (`build/coverage-baseline.json`) | Active locally; CI wiring planned | `Coverage-Check` Cake task |
 
 ### 2.7 Full-Train Meta-Tag Validation (PD-7 scope)
 
@@ -151,7 +149,6 @@ For each known failure mode, list the guardrails that catch it. If no guardrail 
 | vcpkg.json drifts from manifest | G14 | No |
 | Strategy / triplet incoherent | G16 | No |
 | Hybrid-static build leaks transitive deps | G19 | No |
-| Coverage drops below floor | G36 | No |
 | Operator generates package with wrong nuspec metadata | G27 | No |
 | Managed symbol package missing | G25 | No |
 | Build artifact contains wrong commit SHA | G26 | No |

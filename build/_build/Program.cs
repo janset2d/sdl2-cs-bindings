@@ -6,7 +6,6 @@ using System.CommandLine.NamingConventionBinder;
 using System.Diagnostics;
 using Build;
 using Build.Features.Ci;
-using Build.Features.Coverage;
 using Build.Targets.InspectHarvestedDependencies;
 using Build.Targets.OtoolAnalyze;
 using Build.Features.Harvesting;
@@ -127,7 +126,6 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
         .AddIntegrations()
         .AddToolWrappers()
         .AddCiFeature()
-        .AddCoverageFeature()
         .AddVcpkgFeature()
         .AddInspectHarvestedDependenciesTarget()
         .AddOtoolAnalyzeTarget()

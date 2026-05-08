@@ -51,7 +51,6 @@ Forwards all subsequent args directly to `dotnet run --project build/_build -- .
 dotnet run --file tools.cs -- build --tree
 dotnet run --file tools.cs -- build --target Info
 dotnet run --file tools.cs -- build --target Inspect-HarvestedDependencies --rid linux-x64
-dotnet run --file tools.cs -- build --target Coverage-Check
 ```
 
 ## Per-TFM Smoke Behavior

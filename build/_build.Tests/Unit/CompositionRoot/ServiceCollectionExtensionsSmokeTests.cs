@@ -1,7 +1,6 @@
 #pragma warning disable CA1031
 
 using Build.Features.Ci;
-using Build.Features.Coverage;
 using Build.Features.Harvesting;
 using Build.Features.Packaging;
 using Build.Features.Preflight;
@@ -31,12 +30,6 @@ public sealed class ServiceCollectionExtensionsSmokeTests
     public async Task AddCiFeature_Should_Register_All_Pipeline_And_Validator_Types()
     {
         await AssertAllRegisteredTypesResolve(services => services.AddCiFeature());
-    }
-
-    [Test]
-    public async Task AddCoverageFeature_Should_Register_All_Pipeline_And_Validator_Types()
-    {
-        await AssertAllRegisteredTypesResolve(services => services.AddCoverageFeature());
     }
 
     [Test]

@@ -1,5 +1,4 @@
 using Build.Host.Paths;
-using Build.Integrations.Coverage;
 using Build.Integrations.DependencyAnalysis;
 using Build.Integrations.DotNet;
 using Build.Integrations.NuGet;
@@ -80,8 +79,6 @@ public static class TestHostFixture
         // Tools / Integrations — NSubstitute fakes for interfaces, concrete for the sealed
         // VcpkgBootstrapTool wrapper.
         services.AddSingleton(Substitute.For<IPackageInfoProvider>());
-        services.AddSingleton(Substitute.For<ICoberturaReader>());
-        services.AddSingleton(Substitute.For<ICoverageBaselineReader>());
         services.AddSingleton(Substitute.For<IVcpkgManifestReader>());
         services.AddSingleton(Substitute.For<IProjectMetadataReader>());
         services.AddSingleton(Substitute.For<IDotNetPackInvoker>());

@@ -76,13 +76,21 @@
 
 ## Hardening Backlog
 
-### Logging And Coverage Metadata Hygiene
+### Invariant-Culture Logging Hygiene
 
 - Status: `hardening-backlog`
 - Preserve:
   - Keep numeric / date logging culture-invariant anywhere the build host prints metrics or timestamps.
   - If invariant-format logging appears in multiple tasks, factor a tiny helper instead of repeating ad hoc `string.Create(CultureInfo.InvariantCulture, ...)` shapes.
-  - Decide whether `measured_*` fields in `build/coverage-baseline.json` are intentional snapshots or metadata that should be auto-rewritten by a dedicated ratchet-raise flow.
+
+### Optional Coverage Signal
+
+- Status: `parked`
+- ADR-002 §14 left the door open for coverage to return later as an optional non-blocking signal (not a build-host target concern). The Cake-owned `Coverage-Check` gate retired in S10 (2026-05-08); coverage instrumentation came out of CI entirely.
+- Preserve:
+  - Re-introduce only when there is concrete motivation (PR-comment summary, dashboard surface, external SaaS, etc.) and a deliberate design.
+  - Do NOT reintroduce as a build-host Cake target — that shape was rejected. If it returns, it returns as a CI-side signal owned by the workflow, not a build-host gate.
+  - Re-add must include the rationale and the surface it serves; otherwise it stays parked.
 
 ### Performance And Caching
 

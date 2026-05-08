@@ -159,11 +159,6 @@ public sealed class PathService : IPathService
         return RepoRoot.CombineWithFilePath("vcpkg.json");
     }
 
-    public FilePath GetCoverageBaselineFile()
-    {
-        return BuildDir.CombineWithFilePath("coverage-baseline.json");
-    }
-
     public FilePath SolutionFile => RepoRoot.CombineWithFilePath("Janset.SDL2.sln");
 
     public DirectoryPath NativeSmokeProjectDir =>

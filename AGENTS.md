@@ -267,7 +267,7 @@ Run by default; no trigger needed.
 | `api-design` | public NuGet API + D-3seg versioning (G54) require extend-only discipline |
 | `dotnet-local-tools` | Cake and friends are pinned via `dotnet-tools.json` |
 
-Slopwatch command for this repo: `slopwatch analyze --fail-on warning --exclude "artifacts/**,external/**,vcpkg_installed/**,**/bin/**,**/obj/**"`. The excludes keep generated package caches, vendored submodules, native install trees, and build outputs out of the anti-slop gate.
+Slopwatch command for this repo: `slopwatch analyze --fail-on warning --exclude "artifacts/**,external/**,vcpkg_installed/**,**/bin/**,**/obj/**"`. The excludes keep generated package caches, vendored submodules, native install trees, and build outputs out of the anti-slop gate. After a slice that deletes code or moves files, rebuild the baseline with `slopwatch init -f --exclude "..."` (same exclude list) to drop stale entries pointing at deleted paths.
 
 ### Tier 2 — Context-Triggered
 

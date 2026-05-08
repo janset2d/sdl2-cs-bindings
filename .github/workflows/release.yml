@@ -4,7 +4,7 @@
 # and invoke a single Cake target for each behavior boundary.
 #
 # Current flow:
-# - build-cake-host builds, tests, coverage-checks, and publishes the Cake host artifact.
+# - build-cake-host builds, tests, and publishes the Cake host artifact.
 # - resolve-versions writes artifacts/resolve-versions/versions.json.
 # - preflight validates manifest and packaging invariants against that resolved mapping.
 # - generate-matrix emits the RID matrix from build/manifest.json.
@@ -47,7 +47,7 @@ env:
 
 jobs:
   build-cake-host:
-    # Build, test, coverage-check, and publish the Cake host once per workflow run.
+    # Build, test, and publish the Cake host once per workflow run.
     # Downstream jobs download the same framework-dependent artifact and invoke
     # `dotnet ./cake-host/Build.dll --target X` instead of rebuilding the host.
     # vcpkg submodules are skipped here because this job never runs Harvest or NativeSmoke.
@@ -81,18 +81,11 @@ jobs:
         # projects, samples) would pull in work we don't want here. Build.Tests
         # ProjectReference'es Build.csproj so its restore graph covers the Cake host.
         run: dotnet restore build/_build.Tests/Build.Tests.csproj
-      - name: Test Cake host (with coverage)
-        # TUnit + MTP `--coverage` cobertura output path must be absolute; with a
-        # relative path MTP writes under the test executable's bin dir instead of
-        # the repo-root-relative path CoverageCheckTaskRunner expects.
+      - name: Test Cake host
         run: >
           dotnet test --project build/_build.Tests/Build.Tests.csproj
           --configuration Release
           --no-restore
-          --
-          --coverage
-          --coverage-output-format cobertura
-          --coverage-output ${{ github.workspace }}/artifacts/test-results/build-tests/coverage.cobertura.xml
       - name: Publish Cake host (FDD, cross-OS)
         run: >
           dotnet publish build/_build/Build.csproj
@@ -100,8 +93,6 @@ jobs:
           --no-restore
           -p:UseAppHost=false
           --output ./out/cake-host
-      - name: Coverage-Check (ratchet against build/coverage-baseline.json)
-        run: dotnet ./out/cake-host/Build.dll --target Coverage-Check
       - name: Upload cake-host artifact
         uses: actions/upload-artifact@v7
         with:
@@ -109,17 +100,6 @@ jobs:
           path: ./out/cake-host
           if-no-files-found: error
           retention-days: 1
-      # TUnit HTML report uploads itself via ACTIONS_RUNTIME_TOKEN exported above;
-      # we only need to surface the cobertura coverage xml manually since the
-      # Coverage-Check gate consumes it and a human reader may want the raw data.
-      - name: Upload coverage artifact (cobertura xml)
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: coverage
-          path: artifacts/test-results/build-tests/coverage.cobertura.xml
-          if-no-files-found: warn
-          retention-days: 7
 
   resolve-versions:
     # Emit artifacts/resolve-versions/versions.json once so downstream jobs reuse

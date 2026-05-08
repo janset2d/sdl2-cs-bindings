@@ -16,10 +16,6 @@
       "commandName": "Project",
       "commandLineArgs": "--target PreFlightCheck --verbosity normal"
     },
-    "Coverage-Check": {
-      "commandName": "Project",
-      "commandLineArgs": "--target Coverage-Check --verbosity normal"
-    },
     "Vcpkg-Harvest": {
       "commandName": "Project",
       "commandLineArgs": "--target harvest --library SDL2 --library SDL2_image --verbosity normal",

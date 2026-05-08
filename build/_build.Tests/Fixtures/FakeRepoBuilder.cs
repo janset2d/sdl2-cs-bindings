@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Build.Host;
-using Build.Shared.Coverage;
 using Build.Shared.Harvesting;
 using Build.Host.Configuration;
 using Build.Host.Paths;
@@ -71,22 +70,6 @@ public sealed class FakeRepoBuilder
     {
         ArgumentNullException.ThrowIfNull(manifest);
         return WithVcpkgJson(JsonSerializer.Serialize(manifest, JsonOptions));
-    }
-
-    public FakeRepoBuilder WithCoverageBaseline(string json)
-    {
-        return WithTextFile("build/coverage-baseline.json", json);
-    }
-
-    public FakeRepoBuilder WithCoverageBaseline(CoverageBaseline baseline)
-    {
-        ArgumentNullException.ThrowIfNull(baseline);
-        return WithCoverageBaseline(JsonSerializer.Serialize(baseline, JsonOptions));
-    }
-
-    public FakeRepoBuilder WithCoberturaReport(string xml, FilePath? relativePath = null)
-    {
-        return WithTextFile(relativePath ?? new FilePath("artifacts/test-results/build-tests/coverage.cobertura.xml"), xml);
     }
 
     public FakeRepoBuilder WithHarvestStatus(string libraryName, string rid, string json)
