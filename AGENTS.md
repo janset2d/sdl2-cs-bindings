@@ -85,7 +85,7 @@ Final unless Deniz explicitly reopens.
 | LGPL-free codec stack | Drop mpg123 / libxmp / fluidsynth; use bundled minimp3 / drflac / libmodplug / Timidity / native MIDI |
 | tar.gz for Unix symlinks | NuGet can't preserve symlinks; `buildTransitive/Janset.SDL2.Native.Common.targets` extracts at consumer build time |
 | D-3seg versioning | `<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>` per family; UpstreamMajor.Minor anchored to `manifest.library_manifests[].vcpkg_version` (G54) |
-| Hybrid-static encoded by triplets | Triplet names encode the build model; ADR-002 retires `manifest.runtimes[].strategy` during the target-centric build-host refactor. No `--strategy` CLI flag |
+| Hybrid-static encoded by triplets | Triplet names encode the build model; `manifest.runtimes[].strategy` field retired in S11 (2026-05-08); PreFlight validates triplet→overlay coherence via `HybridStaticOverlayValidator` (G16). No `--strategy` CLI flag |
 | Validator uses vcpkg metadata | No manually maintained expected-deps lists; binary closure walker output is ground truth |
 | Package-first consumer contract | Smoke / sample / sandbox csprojs consume packages via local folder feed; `Janset.Local.props` carries family versions |
 | CppAst for binding autogen | Phase 4 — replaces SDL2-CS imports |
@@ -183,7 +183,7 @@ build/manifest.json           ← Single source of truth (schema v2.1):
 PreFlightCheckTask            ← G14/G15/G16/G49/G54/G58 + family-scope guardrails
 ```
 
-Legacy `runtimes.json` and `system_artefacts.json` were merged into `manifest.json` schema v2.1 — treat any reference to them as stale. ADR-002 retires `runtimes[].strategy` during the target-centric build-host refactor; until that migration lands, the diagram above reflects the current schema.
+Legacy `runtimes.json` and `system_artefacts.json` were merged into `manifest.json` schema v2.1 — treat any reference to them as stale. The `runtimes[].strategy` field retired in S11 (2026-05-08); the diagram above reflects current schema.
 
 ## Build Host Pipeline
 

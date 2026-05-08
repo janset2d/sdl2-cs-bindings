@@ -47,7 +47,6 @@ public sealed class GenerateMatrixTaskRunnerTests
             var emitted = output.Include.Single(e => string.Equals(e.Rid, seed.Rid, StringComparison.Ordinal));
             await Assert.That(emitted.Triplet).IsEqualTo(seed.Triplet);
             await Assert.That(emitted.Runner).IsEqualTo(seed.Runner);
-            await Assert.That(emitted.Strategy).IsEqualTo(seed.Strategy);
             await Assert.That(emitted.ContainerImage).IsEqualTo(seed.ContainerImage);
         }
     }

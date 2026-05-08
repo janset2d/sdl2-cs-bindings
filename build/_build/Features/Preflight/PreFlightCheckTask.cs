@@ -12,12 +12,13 @@ namespace Build.Features.Preflight;
 
 /// <summary>
 /// Pre-flight validation task that checks version consistency between manifest.json and vcpkg.json,
-/// and validates strategy coherence for runtime entries in manifest.json.
-/// This task ensures that the intended native library versions in manifest.json match
-/// the actual vcpkg overrides before starting any build operations.
+/// and validates that every runtime triplet has a corresponding hybrid overlay file
+/// (HybridStaticOverlayValidator, G16). This task ensures that the intended native library
+/// versions in manifest.json match the actual vcpkg overrides — and that the hybrid-static
+/// packaging model is operationally backed — before starting any build operations.
 /// </summary>
 [TaskName("PreFlightCheck")]
-[TaskDescription("Validates manifest-vcpkg version consistency and runtime strategy coherence (partial gate)")]
+[TaskDescription("Validates manifest-vcpkg version consistency and hybrid-static overlay coherence (partial gate)")]
 public sealed class PreFlightCheckTask(
     PreflightPipeline preflightPipeline,
     PackageBuildConfiguration packageBuildConfiguration) : AsyncFrostingTask<BuildContext>

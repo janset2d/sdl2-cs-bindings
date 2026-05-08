@@ -10,7 +10,7 @@ namespace Build.Features.Preflight;
 ///   <item><description><c>library_manifests[].core_lib=true</c> (flag on a single library entry);</description></item>
 ///   <item><description><c>packaging_config.core_library</c> (explicit string).</description></item>
 /// </list>
-/// Runtime consumers (ArtifactPlanner, HybridStaticStrategy factory) read via
+/// Runtime consumers (HybridStaticLeakValidator, ArtifactPlanner) read via
 /// <see cref="ManifestConfig.CoreLibrary"/>, so if the two fields drift the runtime still
 /// resolves to the library-flag winner. This validator surfaces the drift with a clean
 /// operator-facing error before any downstream task runs.

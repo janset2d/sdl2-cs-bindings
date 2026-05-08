@@ -21,6 +21,7 @@ using Build.Integrations;
 using Build.Repositories;
 using Build.Tools;
 using Build.Versioning;
+using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.IO;
 using Cake.Frosting;
@@ -97,7 +98,18 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
         }
 
         var ctx = provider.GetRequiredService<ICakeContext>();
-        var versionSet = ctx.ToJson<PackageFamilyVersionSet>(new FilePath(parsedArgs.VersionsFile!));
+        var filePath = new FilePath(parsedArgs.VersionsFile!);
+
+        // ResolveVersions targets pass --versions-file as their OUTPUT path — the file
+        // doesn't exist yet when the DI factory runs. Stage tasks that READ versions
+        // (PreFlight, Package, ConsumerSmoke, PublishStaging) fail-loud at task entry
+        // when the mapping is empty, so empty-on-missing is safe.
+        if (!ctx.FileExists(filePath))
+        {
+            return new PackageBuildConfiguration(new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase));
+        }
+
+        var versionSet = ctx.ToJson<PackageFamilyVersionSet>(filePath);
         return new PackageBuildConfiguration(versionSet.ToDictionary(
             static entry => entry.Family.Value,
             static entry => entry.Version,

@@ -213,7 +213,7 @@ dotnet run -- --tree
 
 # Run a specific task
 dotnet run -- --target Info              # Show environment info
-dotnet run -- --target PreFlightCheck    # Partial gate: version + runtime strategy coherence
+dotnet run -- --target PreFlightCheck    # Partial gate: version + runtime triplet overlay coherence
 dotnet run -- --target Harvest --library SDL2 --rid win-x64
 dotnet run -- --target ConsolidateHarvest
 

@@ -1,7 +1,6 @@
 using System.Collections.Immutable;
 using System.Text.Json;
 using Build.Shared.Manifest;
-using Build.Shared.Strategy;
 
 namespace Build.Tests.Fixtures;
 
@@ -84,7 +83,6 @@ public static class ManifestFixture
             {
                 Rid = "win-x64",
                 Triplet = "x64-windows-hybrid",
-                Strategy = "hybrid-static",
                 Runner = "windows-latest",
                 ContainerImage = null,
             },

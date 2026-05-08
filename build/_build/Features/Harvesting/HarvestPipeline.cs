@@ -1,17 +1,16 @@
 using System.Text.Json;
 using Build.Host.Cake;
 using Build.Host.Paths;
+using Build.Results;
 using Build.Shared.Harvesting;
 using Build.Shared.Manifest;
 using Build.Shared.Results;
 using Build.Shared.Runtime;
-using Build.Shared.Strategy;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 using Spectre.Console;
-using IoPath = System.IO.Path;
 
 namespace Build.Features.Harvesting;
 
@@ -19,7 +18,6 @@ public sealed class HarvestPipeline(
     IBinaryClosureWalker binaryClosureWalker,
     IArtifactPlanner artifactPlanner,
     IArtifactDeployer artifactDeployer,
-    IDependencyPolicyValidator dependencyPolicyValidator,
     IRuntimeProfile runtimeProfile,
     ManifestConfig manifestConfig,
     ICakeContext cakeContext,
@@ -29,7 +27,6 @@ public sealed class HarvestPipeline(
     private readonly IBinaryClosureWalker _binaryClosureWalker = binaryClosureWalker ?? throw new ArgumentNullException(nameof(binaryClosureWalker));
     private readonly IArtifactPlanner _artifactPlanner = artifactPlanner ?? throw new ArgumentNullException(nameof(artifactPlanner));
     private readonly IArtifactDeployer _artifactDeployer = artifactDeployer ?? throw new ArgumentNullException(nameof(artifactDeployer));
-    private readonly IDependencyPolicyValidator _dependencyPolicyValidator = dependencyPolicyValidator ?? throw new ArgumentNullException(nameof(dependencyPolicyValidator));
     private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
     private readonly IRuntimeProfile _runtimeProfile = runtimeProfile ?? throw new ArgumentNullException(nameof(runtimeProfile));
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
@@ -251,12 +248,20 @@ public sealed class HarvestPipeline(
         var closureResult = await _binaryClosureWalker.BuildClosureAsync(manifest);
         closureResult.OnError(e => LogAndThrow("Binary closure", e, _log, manifest.Name));
 
-        var validationResult = _dependencyPolicyValidator.Validate(closureResult.Closure, manifest);
-        validationResult.OnError(e => LogAndThrowValidation(e, _log, manifest.Name));
+        var leakValidator = new HybridStaticLeakValidator(
+            _runtimeProfile,
+            _manifestConfig.CoreLibrary.VcpkgName,
+            _manifestConfig.PackagingConfig.ValidationMode);
+        var leakReport = leakValidator.Validate(closureResult.Closure, manifest);
 
-        if (validationResult.ValidationSuccess.HasWarnings)
+        if (!leakReport.IsValid)
         {
-            LogValidationWarnings(_log, manifest.Name, validationResult.ValidationSuccess.Warnings);
+            LogAndThrowLeakReport(leakReport, _log, manifest.Name);
+        }
+
+        if (leakReport.HasWarnings)
+        {
+            LogLeakWarnings(_log, manifest.Name, leakReport.Warnings);
         }
 
         var plannerResult = await _artifactPlanner.CreatePlanAsync(manifest, closureResult.Closure, outputBase);
@@ -446,46 +451,38 @@ public sealed class HarvestPipeline(
         throw new CakeException($"{phase} failed for '{libraryName}'. Use �verbosity=diagnostic for details. Error: {error.Message}");
     }
 
-    private static void LogAndThrowValidation(ValidationError error, ICakeLog log, string libraryName)
+    private static void LogAndThrowLeakReport(ValidationReport report, ICakeLog log, string libraryName)
     {
-        ArgumentNullException.ThrowIfNull(error);
+        ArgumentNullException.ThrowIfNull(report);
         ArgumentNullException.ThrowIfNull(log);
         ArgumentException.ThrowIfNullOrEmpty(libraryName);
 
-        log.Error("Dependency policy validation failed for '{0}': {1}", libraryName, error.Message);
+        log.Error("Hybrid-static leak validation failed for '{0}': {1} violation(s) detected.", libraryName, report.Errors.Count);
 
-        foreach (var violation in error.Violations)
+        foreach (var error in report.Errors)
         {
-            log.Error(
-                "  - {0} (owner: {1}, origin: {2})",
-                IoPath.GetFileName(violation.Path),
-                violation.OwnerPackage,
-                violation.OriginPackage);
+            log.Error("  - {0}", error.Message);
         }
 
         throw new CakeException(
-            $"Dependency policy validation failed for '{libraryName}'. " +
-            $"Use �verbosity=diagnostic for details. Error: {error.Message}");
+            $"Hybrid-static leak validation failed for '{libraryName}'. " +
+            $"Use --verbosity=diagnostic for details. {report.Errors.Count} violation(s).");
     }
 
-    private static void LogValidationWarnings(ICakeLog log, string libraryName, IReadOnlyList<BinaryNode> warnings)
+    private static void LogLeakWarnings(ICakeLog log, string libraryName, IReadOnlyList<ValidationCheck> warnings)
     {
         ArgumentNullException.ThrowIfNull(log);
         ArgumentException.ThrowIfNullOrEmpty(libraryName);
         ArgumentNullException.ThrowIfNull(warnings);
 
         log.Warning(
-            "Dependency policy validation produced {0} warning(s) for '{1}' (non-blocking).",
+            "Hybrid-static leak validation produced {0} warning(s) for '{1}' (non-blocking).",
             warnings.Count,
             libraryName);
 
         foreach (var warning in warnings)
         {
-            log.Warning(
-                "  - {0} (owner: {1}, origin: {2})",
-                IoPath.GetFileName(warning.Path),
-                warning.OwnerPackage,
-                warning.OriginPackage);
+            log.Warning("  - {0}", warning.Message);
         }
     }
 

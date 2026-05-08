@@ -9,8 +9,6 @@ public record RuntimeInfo
 
     [JsonPropertyName("triplet")] public required string Triplet { get; init; }
 
-    [JsonPropertyName("strategy")] public required string Strategy { get; init; }
-
     [JsonPropertyName("runner")] public required string Runner { get; init; }
 
     [JsonPropertyName("container_image")] public string? ContainerImage { get; init; }

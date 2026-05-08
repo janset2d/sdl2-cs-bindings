@@ -34,21 +34,6 @@ public sealed record VersionConsistencyValidation(
     public int CheckedLibraries => Checks.Count;
 }
 
-public sealed record RuntimeStrategyCheck(
-    string Rid,
-    string Triplet,
-    string Strategy,
-    bool IsValid,
-    string? ResolvedModel,
-    string? ErrorMessage);
-
-public sealed record StrategyCoherenceValidation(IReadOnlyList<RuntimeStrategyCheck> Checks)
-{
-    public bool HasErrors => Checks.Any(check => !check.IsValid);
-
-    public int CheckedRuntimes => Checks.Count;
-}
-
 public enum CoreLibraryIdentityCheckStatus
 {
     /// <summary>Both manifest fields agree on the same core-library vcpkg name.</summary>

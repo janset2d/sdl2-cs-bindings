@@ -4,7 +4,6 @@ using Build.Host.Configuration;
 using Build.Integrations.Vcpkg;
 using Build.Shared.Manifest;
 using Build.Shared.Packaging;
-using Build.Shared.Strategy;
 using Build.Shared.Versioning;
 using Build.Tests.Fixtures;
 using Cake.Core;
@@ -20,6 +19,7 @@ public class PreFlightCheckTaskRunTests
         var manifestConfig = CreateManifestConfig("2.32.10", 0);
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
             .WithManifest(manifestConfig)
+            .WithTextFile("vcpkg-overlay-triplets/x64-windows-hybrid.cmake", "# overlay")
             .WithVcpkgJson(CreateVcpkgManifest("2.32.10", 0))
             .BuildContextWithHandles();
 
@@ -34,6 +34,7 @@ public class PreFlightCheckTaskRunTests
         var manifestConfig = CreateManifestConfig("2.32.10", 0);
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
             .WithManifest(manifestConfig)
+            .WithTextFile("vcpkg-overlay-triplets/x64-windows-hybrid.cmake", "# overlay")
             .WithVcpkgJson(CreateVcpkgManifest("2.32.10", 0))
             .BuildContextWithHandles();
 
@@ -52,6 +53,7 @@ public class PreFlightCheckTaskRunTests
         var manifestConfig = CreateManifestConfig("2.32.10", 0);
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
             .WithManifest(manifestConfig)
+            .WithTextFile("vcpkg-overlay-triplets/x64-windows-hybrid.cmake", "# overlay")
             .WithVcpkgJson(CreateVcpkgManifest("2.31.0", 0))
             .BuildContextWithHandles();
 
@@ -63,15 +65,15 @@ public class PreFlightCheckTaskRunTests
     }
 
     [Test]
-    public async Task RunAsync_Should_Throw_When_Runtime_Strategy_And_Triplet_Are_Incoherent()
+    public async Task RunAsync_Should_Throw_When_Runtime_Triplet_Is_Not_Hybrid_Overlay()
     {
         var manifestConfig = CreateManifestConfig(
             "2.32.10",
             0,
-            strategy: "pure-dynamic",
-            triplet: "x64-windows-hybrid");
+            triplet: "x64-windows-stock");
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
             .WithManifest(manifestConfig)
+            .WithTextFile("vcpkg-overlay-triplets/x64-windows-hybrid.cmake", "# overlay")
             .WithVcpkgJson(CreateVcpkgManifest("2.32.10", 0))
             .BuildContextWithHandles();
 
@@ -79,7 +81,8 @@ public class PreFlightCheckTaskRunTests
 
         var task = CreateTask(manifestConfig, context);
 
-        await Assert.That(() => task.RunAsync(context)).Throws<CakeException>();
+        var exception = await Assert.That(() => task.RunAsync(context)).Throws<CakeException>();
+        await Assert.That(exception!.Message).Contains("hybrid-static overlay");
     }
 
     [Test]
@@ -88,6 +91,7 @@ public class PreFlightCheckTaskRunTests
         var manifestConfig = CreateManifestConfig("2.32.10", 0);
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
             .WithManifest(manifestConfig)
+            .WithTextFile("vcpkg-overlay-triplets/x64-windows-hybrid.cmake", "# overlay")
             .WithTextFile("vcpkg.json", "{\"dependencies\":[\"sdl2\"]}")
             .BuildContextWithHandles();
 
@@ -102,6 +106,7 @@ public class PreFlightCheckTaskRunTests
         var manifestConfig = CreateManifestConfig("2.32", 0);
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
             .WithManifest(manifestConfig)
+            .WithTextFile("vcpkg-overlay-triplets/x64-windows-hybrid.cmake", "# overlay")
             .WithVcpkgJson(CreateVcpkgManifest("2.32.10", 0))
             .BuildContextWithHandles();
 
@@ -122,6 +127,7 @@ public class PreFlightCheckTaskRunTests
         };
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
             .WithManifest(manifestConfig)
+            .WithTextFile("vcpkg-overlay-triplets/x64-windows-hybrid.cmake", "# overlay")
             .WithVcpkgJson(CreateVcpkgManifest("2.32.10", 0))
             .BuildContextWithHandles();
 
@@ -138,7 +144,6 @@ public class PreFlightCheckTaskRunTests
     private static ManifestConfig CreateManifestConfig(
         string version,
         int portVersion,
-        string strategy = "hybrid-static",
         string triplet = "x64-windows-hybrid")
     {
         var manifest = ManifestFixture.CreateTestManifestConfig();
@@ -151,7 +156,6 @@ public class PreFlightCheckTaskRunTests
                 {
                     Rid = "win-x64",
                     Triplet = triplet,
-                    Strategy = strategy,
                     Runner = "windows-latest",
                     ContainerImage = null,
                 },
@@ -202,7 +206,7 @@ public class PreFlightCheckTaskRunTests
         var runner = new PreflightPipeline(
             manifestConfig,
             new VcpkgManifestReader(context.FileSystem),
-            new StrategyCoherenceValidator(new StrategyResolver()),
+            new HybridStaticOverlayValidator(context, context.Paths),
             new UpstreamVersionAlignmentValidator(),
             new CsprojPackContractValidator(context.FileSystem),
             new G58CrossFamilyDepResolvabilityValidator(),

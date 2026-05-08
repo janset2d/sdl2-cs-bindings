@@ -1,3 +1,4 @@
+using Build.Results;
 using Build.Shared.Packaging;
 using Build.Shared.Versioning;
 using Cake.Core;
@@ -14,7 +15,7 @@ public sealed class PreflightReporter(ICakeContext cakeContext)
     public void ReportRunStart()
     {
         Log.Information("🔍 Running pre-flight checks...");
-        Log.Information("ℹ️ Scope: version consistency + runtime strategy coherence + core identity + upstream version alignment + csproj pack contract.");
+        Log.Information("ℹ️ Scope: version consistency + hybrid-static overlay coherence + core identity + upstream version alignment + csproj pack contract.");
         // Dynamic matrix and CI artifact-flow gates are checked downstream in the CI pipeline.
     }
 
@@ -71,32 +72,27 @@ public sealed class PreflightReporter(ICakeContext cakeContext)
         Log.Information("   manifest.json and vcpkg.json are properly aligned");
     }
 
-    public void ReportStrategyCoherence(StrategyCoherenceValidation validation)
+    public void ReportHybridStaticOverlay(ValidationReport report)
     {
-        ArgumentNullException.ThrowIfNull(validation);
+        ArgumentNullException.ThrowIfNull(report);
 
-        foreach (var check in validation.Checks)
+        Log.Information("");
+        Log.Information("🔄 Checking hybrid-static overlay coherence (G16)...");
+
+        foreach (var error in report.Errors)
         {
-            Log.Information("🔄 Checking strategy coherence for RID {0} ({1})...", check.Rid, check.Triplet);
-
-            if (check.IsValid)
-            {
-                Log.Information("  ✅ Strategy coherence confirmed: {0}", check.ResolvedModel);
-                continue;
-            }
-
-            Log.Error("  ❌ Strategy coherence mismatch for RID {0}: {1}", check.Rid, check.ErrorMessage);
+            Log.Error("  ❌ {0}: {1}", error.Name, error.Message);
         }
 
         Log.Information("");
-        if (validation.HasErrors)
+        if (!report.IsValid)
         {
-            Log.Error("❌ Pre-flight check FAILED - Found strategy coherence mismatches");
-            Log.Error("   Fix runtimes[].strategy and runtimes[].triplet alignment in manifest.json");
+            Log.Error("❌ Pre-flight check FAILED - {0} hybrid-static overlay violation(s) detected (G16)", report.Errors.Count);
+            Log.Error("   Verify manifest.runtimes[].triplet ends with '-hybrid' AND vcpkg-overlay-triplets/<triplet>.cmake exists.");
             return;
         }
 
-        Log.Information("✅ Strategy coherence check PASSED - All {0} runtimes are coherent", validation.CheckedRuntimes);
+        Log.Information("✅ Hybrid-static overlay check PASSED - all runtime triplets have valid hybrid overlay files");
     }
 
     public void ReportCoreLibraryIdentity(CoreLibraryIdentityValidation validation)

@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Build.Shared.Manifest;
-using Build.Shared.Strategy;
 using Build.Tests.Fixtures;
 
 namespace Build.Tests.Characterization.ConfigContract;
@@ -118,19 +117,6 @@ public class ManifestDeserializationTests
     }
 
     [Test]
-    public async Task DeserializeManifest_Should_Have_Strategy_Per_Runtime()
-    {
-        var json = await WorkspaceFiles.ReadAllTextAsync(WorkspaceFiles.ManifestPath).ConfigureAwait(false);
-        var config = JsonSerializer.Deserialize<ManifestConfig>(json)!;
-
-        foreach (var runtime in config.Runtimes!)
-        {
-            await Assert.That(runtime.Strategy).IsNotNull();
-            await Assert.That(runtime.Strategy == "hybrid-static" || runtime.Strategy == "pure-dynamic").IsTrue();
-        }
-    }
-
-    [Test]
     public async Task DeserializeManifest_Should_Have_Inline_SystemExclusions()
     {
         var json = await WorkspaceFiles.ReadAllTextAsync(WorkspaceFiles.ManifestPath).ConfigureAwait(false);
@@ -143,17 +129,16 @@ public class ManifestDeserializationTests
     }
 
     [Test]
-    public async Task DeserializeManifest_Should_Have_Hybrid_Triplets_Matching_Strategy()
+    public async Task DeserializeManifest_Should_Have_Hybrid_Overlay_Triplets_For_All_Runtimes()
     {
         var json = await WorkspaceFiles.ReadAllTextAsync(WorkspaceFiles.ManifestPath).ConfigureAwait(false);
         var config = JsonSerializer.Deserialize<ManifestConfig>(json)!;
 
         foreach (var runtime in config.Runtimes!)
         {
-            var isHybridTriplet = runtime.Triplet.Contains("hybrid", StringComparison.OrdinalIgnoreCase);
-            var isHybridStrategy = string.Equals(runtime.Strategy, "hybrid-static", StringComparison.OrdinalIgnoreCase);
-
-            await Assert.That(isHybridTriplet).IsEqualTo(isHybridStrategy);
+            await Assert.That(runtime.Triplet.EndsWith("-hybrid", StringComparison.OrdinalIgnoreCase))
+                .IsTrue()
+                .Because($"runtime '{runtime.Rid}' triplet '{runtime.Triplet}' must end with '-hybrid' post-S11 (PreFlight HybridStaticOverlayValidator).");
         }
     }
 }

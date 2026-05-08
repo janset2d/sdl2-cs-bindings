@@ -58,7 +58,7 @@ NuGet enforces some invariants we rely on but don't author. Tracked here so we k
 | --- | --- | --- | --- |
 | G14 | `manifest.json library_manifests[].vcpkg_version` equals `vcpkg.json` override | Active | `VersionConsistencyValidator` |
 | G15 | `manifest.json library_manifests[].vcpkg_port_version` equals `vcpkg.json` port version | Active | `VersionConsistencyValidator` |
-| G16 | `manifest.json runtimes[].strategy` is coherent with the declared triplet | Active | `StrategyCoherenceValidator` |
+| G16 | `manifest.json runtimes[].triplet` is a hybrid overlay triplet (`-hybrid` suffix, overlay `.cmake` exists in `vcpkg-overlay-triplets/`) | Active | `HybridStaticOverlayValidator` |
 | G17 | `package_families[].depends_on` references existing family identifiers | Active | `CsprojPackContractValidator` (cross-section check) |
 | G18 | `package_families[].library_ref` references existing `library_manifests[].name` | Active | `CsprojPackContractValidator` (cross-section check) |
 | G19 | Hybrid-static strategy: zero transitive dep leaks in harvest output | Active (Harvest stage) | `HybridStaticValidator` |
@@ -147,7 +147,7 @@ For each known failure mode, list the guardrails that catch it. If no guardrail 
 | Manual escape: operator publishes to wrong feed | G44 | No (after PD-8) |
 | Full-train: core fails but satellites continue | G41 | No (after PD-7) |
 | vcpkg.json drifts from manifest | G14 | No |
-| Strategy / triplet incoherent | G16 | No |
+| Runtime triplet is not a hybrid overlay triplet | G16 | No |
 | Hybrid-static build leaks transitive deps | G19 | No |
 | Operator generates package with wrong nuspec metadata | G27 | No |
 | Managed symbol package missing | G25 | No |

@@ -15,7 +15,7 @@ namespace Build.Features.Preflight;
 public sealed class PreflightPipeline(
     ManifestConfig manifestConfig,
     IVcpkgManifestReader vcpkgManifestReader,
-    StrategyCoherenceValidator strategyCoherenceValidator,
+    HybridStaticOverlayValidator hybridStaticOverlayValidator,
     IUpstreamVersionAlignmentValidator upstreamVersionAlignmentValidator,
     ICsprojPackContractValidator csprojPackContractValidator,
     IG58CrossFamilyDepResolvabilityValidator g58CrossFamilyDepResolvabilityValidator,
@@ -26,7 +26,7 @@ public sealed class PreflightPipeline(
 {
     private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
     private readonly IVcpkgManifestReader _vcpkgManifestReader = vcpkgManifestReader ?? throw new ArgumentNullException(nameof(vcpkgManifestReader));
-    private readonly StrategyCoherenceValidator _strategyCoherenceValidator = strategyCoherenceValidator ?? throw new ArgumentNullException(nameof(strategyCoherenceValidator));
+    private readonly HybridStaticOverlayValidator _hybridStaticOverlayValidator = hybridStaticOverlayValidator ?? throw new ArgumentNullException(nameof(hybridStaticOverlayValidator));
     private readonly IUpstreamVersionAlignmentValidator _upstreamVersionAlignmentValidator = upstreamVersionAlignmentValidator ?? throw new ArgumentNullException(nameof(upstreamVersionAlignmentValidator));
     private readonly ICsprojPackContractValidator _csprojPackContractValidator = csprojPackContractValidator ?? throw new ArgumentNullException(nameof(csprojPackContractValidator));
     private readonly IG58CrossFamilyDepResolvabilityValidator _g58CrossFamilyDepResolvabilityValidator = g58CrossFamilyDepResolvabilityValidator ?? throw new ArgumentNullException(nameof(g58CrossFamilyDepResolvabilityValidator));
@@ -58,9 +58,14 @@ public sealed class PreflightPipeline(
         _preflightReporter.ReportVersionConsistency(versionConsistencyValidation.Validation);
         versionConsistencyValidation.OnError(error => ThrowPreflightFailure(_log, "Version consistency", error));
 
-        var strategyCoherenceValidation = _strategyCoherenceValidator.Validate(_manifestConfig.Runtimes);
-        _preflightReporter.ReportStrategyCoherence(strategyCoherenceValidation.Validation);
-        strategyCoherenceValidation.OnError(error => ThrowPreflightFailure(_log, "Strategy coherence", error));
+        var hybridStaticOverlayReport = _hybridStaticOverlayValidator.Validate(_manifestConfig.Runtimes);
+        _preflightReporter.ReportHybridStaticOverlay(hybridStaticOverlayReport);
+        if (!hybridStaticOverlayReport.IsValid)
+        {
+            throw new CakeException(
+                "Pre-flight check failed during hybrid-static overlay validation. " +
+                $"{hybridStaticOverlayReport.Errors.Count} error(s). Use --verbosity=diagnostic for details.");
+        }
 
         var coreLibraryIdentityValidation = CoreLibraryIdentityValidator.Validate(_manifestConfig);
         _preflightReporter.ReportCoreLibraryIdentity(coreLibraryIdentityValidation.Validation);

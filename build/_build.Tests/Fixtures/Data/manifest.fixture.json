@@ -10,7 +10,6 @@
     {
       "rid": "win-x64",
       "triplet": "x64-windows-hybrid",
-      "strategy": "hybrid-static",
       "runner": "windows-latest",
       "container_image": null
     }

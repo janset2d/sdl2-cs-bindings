@@ -1,29 +1,29 @@
+using Build.Results;
+using Build.Shared.Harvesting;
+using Build.Shared.Manifest;
 using Build.Shared.Runtime;
-using Build.Shared.Strategy;
 using Build.Tests.Fixtures;
 using NSubstitute;
-using IoPath = System.IO.Path;
 
-namespace Build.Tests.Unit.Shared.Strategy;
+namespace Build.Tests.Unit.Shared.Harvesting;
 
-public sealed class HybridStaticValidatorTests
+public sealed class HybridStaticLeakValidatorTests
 {
     [Test]
     public async Task Validate_Should_Pass_When_Library_Is_Core()
     {
         var profile = Substitute.For<IRuntimeProfile>();
-        var strategy = new HybridStaticStrategy("sdl2");
-        var validator = new HybridStaticValidator(profile, strategy, ValidationMode.Strict);
+        var validator = new HybridStaticLeakValidator(profile, "sdl2", ValidationMode.Strict);
 
         var manifest = ManifestFixture.CreateTestCoreLibrary();
         var closure = new BinaryClosureBuilder()
             .AddPrimaryFile("C:/vcpkg/bin/SDL2.dll", "sdl2")
             .Build();
 
-        var result = validator.Validate(closure, manifest);
+        var report = validator.Validate(closure, manifest);
 
-        await Assert.That(result.IsSuccess()).IsTrue();
-        await Assert.That(result.ValidationSuccess.HasWarnings).IsFalse();
+        await Assert.That(report.IsValid).IsTrue();
+        await Assert.That(report.Count).IsEqualTo(0);
     }
 
     [Test]
@@ -32,8 +32,7 @@ public sealed class HybridStaticValidatorTests
         var profile = Substitute.For<IRuntimeProfile>();
         profile.IsSystemFile(Arg.Any<string>()).Returns(false);
 
-        var strategy = new HybridStaticStrategy("sdl2");
-        var validator = new HybridStaticValidator(profile, strategy, ValidationMode.Strict);
+        var validator = new HybridStaticLeakValidator(profile, "sdl2", ValidationMode.Strict);
 
         var manifest = ManifestFixture.CreateTestSatelliteLibrary();
         var closure = new BinaryClosureBuilder()
@@ -41,9 +40,9 @@ public sealed class HybridStaticValidatorTests
             .AddRuntimeDependency("C:/vcpkg/bin/SDL2.dll", "sdl2", "sdl2-image")
             .Build();
 
-        var result = validator.Validate(closure, manifest);
+        var report = validator.Validate(closure, manifest);
 
-        await Assert.That(result.IsSuccess()).IsTrue();
+        await Assert.That(report.IsValid).IsTrue();
     }
 
     [Test]
@@ -52,8 +51,7 @@ public sealed class HybridStaticValidatorTests
         var profile = Substitute.For<IRuntimeProfile>();
         profile.IsSystemFile(Arg.Any<string>()).Returns(false);
 
-        var strategy = new HybridStaticStrategy("sdl2");
-        var validator = new HybridStaticValidator(profile, strategy, ValidationMode.Strict);
+        var validator = new HybridStaticLeakValidator(profile, "sdl2", ValidationMode.Strict);
 
         var manifest = ManifestFixture.CreateTestSatelliteLibrary();
         var closure = new BinaryClosureBuilder()
@@ -62,11 +60,13 @@ public sealed class HybridStaticValidatorTests
             .AddRuntimeDependency("C:/vcpkg/bin/zlib1.dll", "zlib", "sdl2-image")
             .Build();
 
-        var result = validator.Validate(closure, manifest);
+        var report = validator.Validate(closure, manifest);
 
-        await Assert.That(result.IsError()).IsTrue();
-        await Assert.That(result.ValidationError.Violations.Count).IsEqualTo(1);
-        await Assert.That(IoPath.GetFileName(result.ValidationError.Violations[0].Path)).IsEqualTo("zlib1.dll");
+        await Assert.That(report.IsValid).IsFalse();
+        await Assert.That(report.Errors.Count).IsEqualTo(1);
+        await Assert.That(report.Errors[0].Severity).IsEqualTo(ValidationSeverity.Error);
+        await Assert.That(report.Errors[0].Code).IsEqualTo("G19");
+        await Assert.That(report.Errors[0].Message).Contains("zlib1.dll");
     }
 
     [Test]
@@ -75,8 +75,7 @@ public sealed class HybridStaticValidatorTests
         var profile = Substitute.For<IRuntimeProfile>();
         profile.IsSystemFile(Arg.Any<string>()).Returns(false);
 
-        var strategy = new HybridStaticStrategy("sdl2");
-        var validator = new HybridStaticValidator(profile, strategy, ValidationMode.Warn);
+        var validator = new HybridStaticLeakValidator(profile, "sdl2", ValidationMode.Warn);
 
         var manifest = ManifestFixture.CreateTestSatelliteLibrary();
         var closure = new BinaryClosureBuilder()
@@ -84,13 +83,13 @@ public sealed class HybridStaticValidatorTests
             .AddRuntimeDependency("C:/vcpkg/bin/zlib1.dll", "zlib", "sdl2-image")
             .Build();
 
-        var result = validator.Validate(closure, manifest);
+        var report = validator.Validate(closure, manifest);
 
-        // Warn mode: Success (non-blocking) but warnings populated
-        await Assert.That(result.IsSuccess()).IsTrue();
-        await Assert.That(result.ValidationSuccess.HasWarnings).IsTrue();
-        await Assert.That(result.ValidationSuccess.Warnings.Count).IsGreaterThan(0);
-        await Assert.That(result.ValidationSuccess.Mode).IsEqualTo(ValidationMode.Warn);
+        // Warn mode: IsValid=true (non-blocking) but warnings populated
+        await Assert.That(report.IsValid).IsTrue();
+        await Assert.That(report.HasWarnings).IsTrue();
+        await Assert.That(report.Warnings.Count).IsGreaterThan(0);
+        await Assert.That(report.Warnings[0].Severity).IsEqualTo(ValidationSeverity.Warning);
     }
 
     [Test]
@@ -99,8 +98,7 @@ public sealed class HybridStaticValidatorTests
         var profile = Substitute.For<IRuntimeProfile>();
         profile.IsSystemFile(Arg.Any<string>()).Returns(false);
 
-        var strategy = new HybridStaticStrategy("sdl2");
-        var validator = new HybridStaticValidator(profile, strategy, ValidationMode.Off);
+        var validator = new HybridStaticLeakValidator(profile, "sdl2", ValidationMode.Off);
 
         var manifest = ManifestFixture.CreateTestSatelliteLibrary();
         var closure = new BinaryClosureBuilder()
@@ -108,10 +106,11 @@ public sealed class HybridStaticValidatorTests
             .AddRuntimeDependency("C:/vcpkg/bin/zlib1.dll", "zlib", "sdl2-image")
             .Build();
 
-        var result = validator.Validate(closure, manifest);
+        var report = validator.Validate(closure, manifest);
 
-        await Assert.That(result.IsSuccess()).IsTrue();
-        await Assert.That(result.ValidationSuccess.HasWarnings).IsFalse();
+        await Assert.That(report.IsValid).IsTrue();
+        await Assert.That(report.HasWarnings).IsFalse();
+        await Assert.That(report.Count).IsEqualTo(0);
     }
 
     [Test]
@@ -121,8 +120,7 @@ public sealed class HybridStaticValidatorTests
         profile.IsSystemFile("kernel32.dll").Returns(true);
         profile.IsSystemFile(Arg.Is<string>(s => !s.Contains("kernel32"))).Returns(false);
 
-        var strategy = new HybridStaticStrategy("sdl2");
-        var validator = new HybridStaticValidator(profile, strategy, ValidationMode.Strict);
+        var validator = new HybridStaticLeakValidator(profile, "sdl2", ValidationMode.Strict);
 
         var manifest = ManifestFixture.CreateTestSatelliteLibrary();
         var closure = new BinaryClosureBuilder()
@@ -130,19 +128,18 @@ public sealed class HybridStaticValidatorTests
             .AddRuntimeDependency("C:/vcpkg/bin/kernel32.dll", "windows", "sdl2-image")
             .Build();
 
-        var result = validator.Validate(closure, manifest);
+        var report = validator.Validate(closure, manifest);
 
-        await Assert.That(result.IsSuccess()).IsTrue();
+        await Assert.That(report.IsValid).IsTrue();
     }
 
     [Test]
-    public async Task Validate_Should_Report_Violations_In_Error_Message()
+    public async Task Validate_Should_Report_All_Violations_As_Separate_Checks()
     {
         var profile = Substitute.For<IRuntimeProfile>();
         profile.IsSystemFile(Arg.Any<string>()).Returns(false);
 
-        var strategy = new HybridStaticStrategy("sdl2");
-        var validator = new HybridStaticValidator(profile, strategy, ValidationMode.Strict);
+        var validator = new HybridStaticLeakValidator(profile, "sdl2", ValidationMode.Strict);
 
         var manifest = ManifestFixture.CreateTestSatelliteLibrary();
         var closure = new BinaryClosureBuilder()
@@ -151,10 +148,11 @@ public sealed class HybridStaticValidatorTests
             .AddRuntimeDependency("C:/vcpkg/bin/libpng16.dll", "libpng", "sdl2-image")
             .Build();
 
-        var result = validator.Validate(closure, manifest);
+        var report = validator.Validate(closure, manifest);
 
-        await Assert.That(result.IsError()).IsTrue();
-        await Assert.That(result.ValidationError.Message).Contains("2 violation(s)");
-        await Assert.That(result.ValidationError.Violations.Count).IsEqualTo(2);
+        await Assert.That(report.IsValid).IsFalse();
+        await Assert.That(report.Errors.Count).IsEqualTo(2);
+        await Assert.That(report.Errors.Any(c => c.Message.Contains("zlib1.dll", StringComparison.Ordinal))).IsTrue();
+        await Assert.That(report.Errors.Any(c => c.Message.Contains("libpng16.dll", StringComparison.Ordinal))).IsTrue();
     }
 }

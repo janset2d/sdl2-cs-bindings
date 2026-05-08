@@ -77,8 +77,6 @@ Observed hotspots from the current codebase:
 | `build/_build/Features/Packaging/PackageConsumerSmokePipeline.cs` | Large consumer smoke orchestration with platform/TFM behavior. |
 | `build/_build/Features/Preflight/PreflightPipeline.cs` | Cross-cutting validation pipeline that includes strategy-era logic. |
 | `build/_build/Host/Configuration/` | Centralized configuration pattern marked for retirement. |
-| `build/_build/Shared/Strategy/` | Strategy abstraction marked for retirement. |
-| `build/_build/Features/Coverage/` | Coverage target marked for retirement. |
 | `build/_build.Tests/Unit/CompositionRoot/ArchitectureTests.cs` | Architecture tests marked for deletion/replacement by written guardrails. |
 
 ### TUnit
@@ -783,7 +781,7 @@ Decision: `--versions-file` is universal — both ResolveVersions writers AND st
 
 ### P5 - Retire coverage and strategy-era abstractions
 
-> **Status:** Coverage retirement complete (S10, 2026-05-08). Strategy retirement remains and ships as S11.
+> **Status:** P5 closed — coverage retirement (S10, 2026-05-08) and strategy retirement (S11, 2026-05-08) both shipped. Hybrid-static is encoded by overlay triplet name + file existence; PreFlight validates the real invariant via `HybridStaticOverlayValidator`. The leak validator survives as `HybridStaticLeakValidator` in `Shared/Harvesting/`, returning canonical `ValidationReport` instead of the OneOf-shaped `ValidationResult`. Eleven other OneOf-shaped result types survive for retirement in P6/P7/P8/P10 — see [`parking-lot.md`](../parking-lot.md).
 
 Goal: remove abstractions explicitly rejected by ADR-002.
 

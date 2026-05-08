@@ -8,7 +8,6 @@
     {
       "rid": "linux-x64",
       "triplet": "x64-linux-hybrid",
-      "strategy": "hybrid-static",
       "runner": "ubuntu-latest",
       "container_image": "mcr.microsoft.com/dotnet/sdk:10.0-noble"
     }

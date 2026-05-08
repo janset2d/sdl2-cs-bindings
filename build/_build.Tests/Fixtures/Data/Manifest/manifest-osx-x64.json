@@ -8,7 +8,6 @@
     {
       "rid": "osx-x64",
       "triplet": "x64-osx-hybrid",
-      "strategy": "hybrid-static",
       "runner": "macos-latest",
       "container_image": null
     }

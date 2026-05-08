@@ -26,7 +26,6 @@ public sealed class GenerateMatrixPipeline(ICakeContext cakeContext, ICakeLog lo
             {
                 Rid = r.Rid,
                 Triplet = r.Triplet,
-                Strategy = r.Strategy,
                 Runner = r.Runner,
                 ContainerImage = r.ContainerImage,
             })

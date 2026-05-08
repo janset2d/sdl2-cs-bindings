@@ -6,7 +6,6 @@ using Build.Shared.Harvesting;
 using Cake.Testing;
 using Build.Shared.Manifest;
 using Build.Shared.Runtime;
-using Build.Shared.Strategy;
 using Build.Tests.Fixtures;
 using Build.Tests.Fixtures.Seeders;
 using Cake.Core;
@@ -69,7 +68,6 @@ public class HarvestTaskTests
 
         var mockPlanner = Substitute.For<IArtifactPlanner>();
         var mockDeployer = Substitute.For<IArtifactDeployer>();
-        var mockValidator = CreatePassingValidator();
         var runtimeProfile = CreateWindowsRuntimeProfile();
 
         var task = new HarvestTask(
@@ -77,7 +75,6 @@ public class HarvestTaskTests
                 mockWalker,
                 mockPlanner,
                 mockDeployer,
-                mockValidator,
                 runtimeProfile,
                 manifestConfig,
                 repo.CakeContext,
@@ -124,7 +121,6 @@ public class HarvestTaskTests
 
         var mockPlanner = Substitute.For<IArtifactPlanner>();
         var mockDeployer = Substitute.For<IArtifactDeployer>();
-        var mockValidator = CreatePassingValidator();
         var runtimeProfile = CreateWindowsRuntimeProfile();
 
         var task = new HarvestTask(
@@ -132,7 +128,6 @@ public class HarvestTaskTests
                 mockWalker,
                 mockPlanner,
                 mockDeployer,
-                mockValidator,
                 runtimeProfile,
                 manifestConfig,
                 repo.CakeContext,
@@ -167,7 +162,6 @@ public class HarvestTaskTests
 
         var mockPlanner = Substitute.For<IArtifactPlanner>();
         var mockDeployer = Substitute.For<IArtifactDeployer>();
-        var mockValidator = CreatePassingValidator();
         var runtimeProfile = CreateWindowsRuntimeProfile();
 
         var task = new HarvestTask(
@@ -175,7 +169,6 @@ public class HarvestTaskTests
                 mockWalker,
                 mockPlanner,
                 mockDeployer,
-                mockValidator,
                 runtimeProfile,
                 manifestConfig,
                 repo.CakeContext,
@@ -270,8 +263,13 @@ public class HarvestTaskTests
         await Assert.That(preservedLinuxStatus.Rid).IsEqualTo(LinuxRid);
     }
 
+    // Dependency policy validation failure path retired in S11 — leak detection now lives
+    // in HybridStaticLeakValidator (independently unit-tested) and is constructed inline by
+    // HarvestPipeline. The "leak → CakeException" integration is a one-line if/throw in
+    // HarvestPipeline that the unit tests cover structurally.
+
     [Test]
-    public async Task RunAsync_Should_Throw_When_Dependency_Policy_Validation_Fails()
+    public async Task RunAsync_Should_Complete_When_Closure_Has_No_Leaks()
     {
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
         SeedVcpkgTripletLayout(repo);
@@ -279,34 +277,16 @@ public class HarvestTaskTests
         var library = ManifestFixture.CreateTestSatelliteLibrary();
         var manifestConfig = CreateManifestConfig([library]);
 
-        var mockWalker = Substitute.For<IBinaryClosureWalker>();
-        mockWalker.BuildClosureAsync(Arg.Any<LibraryManifest>(), Arg.Any<CancellationToken>())
-            .Returns(ClosureWithSinglePrimary(SatelliteLibrary));
+        var task = CreateHarvestTask(
+            manifestConfig,
+            closure: ClosureWithSinglePrimary(SatelliteLibrary),
+            plannerResult: PlannerResultWithSinglePrimary(SatelliteLibrary),
+            repo: repo);
 
-        var mockPlanner = Substitute.For<IArtifactPlanner>();
-        var mockDeployer = Substitute.For<IArtifactDeployer>();
+        await task.RunAsync(repo.BuildContext);
 
-        var mockValidator = Substitute.For<IDependencyPolicyValidator>();
-        mockValidator.Validate(Arg.Any<BinaryClosure>(), Arg.Any<LibraryManifest>())
-            .Returns(ValidationResult.Fail(
-            [new BinaryNode("C:/vcpkg/bin/zlib1.dll", "zlib", "sdl2-image")],
-            "dependency leak detected"));
-
-        var runtimeProfile = CreateWindowsRuntimeProfile();
-        var task = new HarvestTask(
-            new HarvestPipeline(
-                mockWalker,
-                mockPlanner,
-                mockDeployer,
-                mockValidator,
-                runtimeProfile,
-                manifestConfig,
-                repo.CakeContext,
-                new FakeLog(),
-                repo.Paths),
-            new VcpkgConfiguration([], null));
-
-        await Assert.That(() => task.RunAsync(repo.BuildContext)).Throws<CakeException>();
+        var statusFilePath = RidStatusPath(SatelliteLibrary, WindowsRid);
+        await Assert.That(repo.Exists(statusFilePath)).IsTrue();
     }
 
     [Test]
@@ -428,7 +408,6 @@ public class HarvestTaskTests
         mockDeployer.DeployArtifactsAsync(Arg.Any<DeploymentPlan>(), Arg.Any<CancellationToken>())
             .Returns(CopierResult.ToSuccess());
 
-        var mockValidator = CreatePassingValidator();
         var runtimeProfile = CreateWindowsRuntimeProfile();
 
         return new HarvestTask(
@@ -436,7 +415,6 @@ public class HarvestTaskTests
                 mockWalker,
                 mockPlanner,
                 mockDeployer,
-                mockValidator,
                 runtimeProfile,
                 manifestConfig,
                 repo.CakeContext,
@@ -495,14 +473,6 @@ public class HarvestTaskTests
         return plan;
     }
 
-    private static IDependencyPolicyValidator CreatePassingValidator()
-    {
-        var validator = Substitute.For<IDependencyPolicyValidator>();
-        validator.Validate(Arg.Any<BinaryClosure>(), Arg.Any<LibraryManifest>())
-            .Returns(ValidationResult.Pass());
-        return validator;
-    }
-
     private static IRuntimeProfile CreateWindowsRuntimeProfile()
     {
         var profile = Substitute.For<IRuntimeProfile>();
@@ -516,9 +486,16 @@ public class HarvestTaskTests
     private static ManifestConfig CreateManifestConfig(IReadOnlyList<LibraryManifest> libraries)
     {
         var baseline = ManifestFixture.CreateTestManifestConfig();
+        // HybridStaticLeakValidator (constructed inline by HarvestPipeline post-S11)
+        // reads manifest.CoreLibrary.VcpkgName — so the manifest must always have a
+        // core library even when the test exercises only a satellite.
+        var hasCoreLib = libraries.Any(l => l.IsCoreLib);
+        var allLibraries = hasCoreLib
+            ? libraries
+            : [.. libraries, ManifestFixture.CreateTestCoreLibrary()];
         return baseline with
         {
-            LibraryManifests = libraries.ToImmutableList(),
+            LibraryManifests = allLibraries.ToImmutableList(),
         };
     }
 

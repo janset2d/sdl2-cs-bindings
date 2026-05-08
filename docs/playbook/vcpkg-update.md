@@ -98,7 +98,7 @@ dotnet run --project build/_build -- --target UpdateMappingTable
 ### Step 7: Validate
 
 ```bash
-# Run pre-flight check (validates manifest.json ↔ vcpkg.json consistency + runtime strategy coherence)
+# Run pre-flight check (validates manifest.json ↔ vcpkg.json consistency + runtime triplet overlay coherence)
 cd build/_build
 dotnet run -- --target PreFlightCheck
 

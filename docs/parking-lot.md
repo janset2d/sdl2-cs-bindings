@@ -92,6 +92,16 @@
   - Do NOT reintroduce as a build-host Cake target — that shape was rejected. If it returns, it returns as a CI-side signal owned by the workflow, not a build-host gate.
   - Re-add must include the rationale and the surface it serves; otherwise it stays parked.
 
+### OneOf-Shaped Result Types (Surviving Post-S11)
+
+- Status: `parked`
+- ADR-002 §11 retires "OneOf-style result hierarchies for expected build failures" in favor of `Result<T, TError>` (binary) or `ValidationReport`/`ValidationCheck` (multi-check). S11 retired 5 strategy-related OneOf result types and demonstrated the collapse pattern (`ValidationResult`/`ValidationError`/`ValidationSuccess` → `ValidationReport`).
+- Preserve:
+  - Eleven OneOf-shaped result types survive: `PackageInfoResult`, `UpstreamVersionAlignmentResult`, `DotNetPackResult`, `ProjectMetadataResult`, `ArtifactPlannerResult`, `ClosureResult`, `CopierResult`, `PackageValidationResult`, `CsprojPackContractResult`, `CoreLibraryIdentityResult`, `VersionConsistencyResult`.
+  - Each retires within its respective target migration (P6/P7/P8) when that target's pipeline gets reshaped.
+  - The OneOf package dependency stays in `Build.csproj` and `Directory.Packages.props` until all 11 types retire (likely P10 final cleanup).
+  - The collapse pattern: OneOf-shaped `Result<TError, TSuccess>` → either `ValidationReport` (multi-check with severities) OR a homegrown `Result<T, TError>` record struct (binary success/failure) per ADR-002 §11.
+
 ### Performance And Caching
 
 - Status: `hardening-backlog`

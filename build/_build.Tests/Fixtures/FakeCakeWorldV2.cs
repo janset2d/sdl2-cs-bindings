@@ -4,7 +4,6 @@ using Build.Host.Configuration;
 using Build.Host.Paths;
 using Build.Shared.Manifest;
 using Build.Shared.Runtime;
-using Build.Shared.Strategy;
 using Cake.Core;
 using Cake.Core.Configuration;
 using Cake.Core.IO;

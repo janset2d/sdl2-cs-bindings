@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using System.Text.Json.Serialization;
-using Build.Shared.Strategy;
 
 namespace Build.Shared.Manifest;
 

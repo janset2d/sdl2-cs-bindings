@@ -12,7 +12,6 @@ using Build.Integrations.Vcpkg;
 using Build.Repositories;
 using Build.Shared.Manifest;
 using Build.Shared.Runtime;
-using Build.Shared.Strategy;
 using Build.Tests.Fixtures;
 using Cake.Core;
 using Cake.Core.Diagnostics;
@@ -138,7 +137,7 @@ public sealed class ProgramCompositionRootTests
     }
 
     [Test]
-    public async Task ConfigureBuildServices_Should_Resolve_Hybrid_Strategy_And_Validator()
+    public async Task ConfigureBuildServices_Should_Resolve_Core_Production_Services()
     {
         var method = GetProgramHelper(
             "g__ConfigureBuildServices",
@@ -147,7 +146,7 @@ public sealed class ProgramCompositionRootTests
             typeof(DirectoryPath));
 
         var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
-            .WithManifest(CreateCompositionRootManifest("hybrid-static", "x64-windows-hybrid"))
+            .WithManifest(CreateCompositionRootManifest("x64-windows-hybrid"))
             .BuildContextWithHandles();
 
         var services = CreateServiceCollectionForCompositionRoot(repo);
@@ -157,11 +156,8 @@ public sealed class ProgramCompositionRootTests
 
         using var provider = services.BuildServiceProvider();
 
-        var strategy = provider.GetRequiredService<IPackagingStrategy>();
-        var strategyResolver = provider.GetRequiredService<IStrategyResolver>();
-        var validator = provider.GetRequiredService<IDependencyPolicyValidator>();
+        var hybridStaticOverlayValidator = provider.GetRequiredService<HybridStaticOverlayValidator>();
         var vcpkgManifestReader = provider.GetRequiredService<IVcpkgManifestReader>();
-        var strategyCoherenceValidator = provider.GetRequiredService<StrategyCoherenceValidator>();
         var packageOutputValidator = provider.GetRequiredService<IPackageOutputValidator>();
         var projectMetadataReader = provider.GetRequiredService<IProjectMetadataReader>();
         var manifestRepository = provider.GetRequiredService<IManifestRepository>();
@@ -173,12 +169,8 @@ public sealed class ProgramCompositionRootTests
         var publishPipeline = provider.GetRequiredService<PublishPipeline>();
         var msvcDevEnvironment = provider.GetRequiredService<IMsvcDevEnvironment>();
 
-        await Assert.That(strategy.Model).IsEqualTo(PackagingModel.HybridStatic);
-        await Assert.That(strategy.GetType()).IsEqualTo(typeof(HybridStaticStrategy));
-        await Assert.That(strategyResolver.GetType()).IsEqualTo(typeof(StrategyResolver));
-        await Assert.That(validator.GetType()).IsEqualTo(typeof(HybridStaticValidator));
+        await Assert.That(hybridStaticOverlayValidator.GetType()).IsEqualTo(typeof(HybridStaticOverlayValidator));
         await Assert.That(vcpkgManifestReader.GetType()).IsEqualTo(typeof(VcpkgManifestReader));
-        await Assert.That(strategyCoherenceValidator.GetType()).IsEqualTo(typeof(StrategyCoherenceValidator));
         await Assert.That(packageOutputValidator.GetType()).IsEqualTo(typeof(PackageOutputValidator));
         await Assert.That(projectMetadataReader.GetType()).IsEqualTo(typeof(ProjectMetadataReader));
         await Assert.That(manifestRepository.GetType()).IsEqualTo(typeof(ManifestRepository));
@@ -189,52 +181,6 @@ public sealed class ProgramCompositionRootTests
         await Assert.That(packageConsumerSmokePipeline.GetType()).IsEqualTo(typeof(PackageConsumerSmokePipeline));
         await Assert.That(publishPipeline.GetType()).IsEqualTo(typeof(PublishPipeline));
         await Assert.That(msvcDevEnvironment.GetType()).IsEqualTo(typeof(MsvcDevEnvironment));
-    }
-
-    [Test]
-    public async Task ConfigureBuildServices_Should_Resolve_PureDynamic_Strategy_And_Validator()
-    {
-        var method = GetProgramHelper(
-            "g__ConfigureBuildServices",
-            typeof(IServiceCollection),
-            typeof(ParsedArguments),
-            typeof(DirectoryPath));
-
-        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
-            .WithManifest(CreateCompositionRootManifest("pure-dynamic", "x64-windows"))
-            .BuildContextWithHandles();
-
-        var services = CreateServiceCollectionForCompositionRoot(repo);
-        var parsedArguments = CreateParsedArguments(repo.RepoRoot.FullPath, "win-x64");
-
-        method.Invoke(null, [services, parsedArguments, repo.RepoRoot]);
-
-        using var provider = services.BuildServiceProvider();
-
-        var strategy = provider.GetRequiredService<IPackagingStrategy>();
-        var strategyResolver = provider.GetRequiredService<IStrategyResolver>();
-        var validator = provider.GetRequiredService<IDependencyPolicyValidator>();
-        var vcpkgManifestReader = provider.GetRequiredService<IVcpkgManifestReader>();
-        var packageOutputValidator = provider.GetRequiredService<IPackageOutputValidator>();
-        var projectMetadataReader = provider.GetRequiredService<IProjectMetadataReader>();
-        var manifestRepository = provider.GetRequiredService<IManifestRepository>();
-        var versionFileRepository = provider.GetRequiredService<IVersionFileRepository>();
-        var dotNetPackInvoker = provider.GetRequiredService<IDotNetPackInvoker>();
-        var packagePipeline = provider.GetRequiredService<IPackagePipeline>();
-        var packageConsumerSmokePipeline = provider.GetRequiredService<IPackageConsumerSmokePipeline>();
-
-        await Assert.That(strategy.Model).IsEqualTo(PackagingModel.PureDynamic);
-        await Assert.That(strategy.GetType()).IsEqualTo(typeof(PureDynamicStrategy));
-        await Assert.That(strategyResolver.GetType()).IsEqualTo(typeof(StrategyResolver));
-        await Assert.That(validator.GetType()).IsEqualTo(typeof(PureDynamicValidator));
-        await Assert.That(vcpkgManifestReader.GetType()).IsEqualTo(typeof(VcpkgManifestReader));
-        await Assert.That(packageOutputValidator.GetType()).IsEqualTo(typeof(PackageOutputValidator));
-        await Assert.That(projectMetadataReader.GetType()).IsEqualTo(typeof(ProjectMetadataReader));
-        await Assert.That(manifestRepository.GetType()).IsEqualTo(typeof(ManifestRepository));
-        await Assert.That(versionFileRepository.GetType()).IsEqualTo(typeof(VersionFileRepository));
-        await Assert.That(dotNetPackInvoker.GetType()).IsEqualTo(typeof(DotNetPackInvoker));
-        await Assert.That(packagePipeline.GetType()).IsEqualTo(typeof(PackagePipeline));
-        await Assert.That(packageConsumerSmokePipeline.GetType()).IsEqualTo(typeof(PackageConsumerSmokePipeline));
     }
 
     private static MethodInfo GetProgramHelper(string methodNameFragment, params Type[] parameterTypes)
@@ -329,7 +275,7 @@ public sealed class ProgramCompositionRootTests
             VersionsFile: null);
     }
 
-    private static ManifestConfig CreateCompositionRootManifest(string strategy, string triplet)
+    private static ManifestConfig CreateCompositionRootManifest(string triplet)
     {
         var manifest = ManifestFixture.CreateTestManifestConfig();
 
@@ -341,7 +287,6 @@ public sealed class ProgramCompositionRootTests
                 {
                     Rid = "win-x64",
                     Triplet = triplet,
-                    Strategy = strategy,
                     Runner = "windows-latest",
                     ContainerImage = null,
                 },
