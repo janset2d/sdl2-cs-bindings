@@ -175,6 +175,61 @@
   - Pure refinements; no functional defect today (set is immutable, comparisons + iteration both correct).
   - Worth a P10 sweep alongside any other foundation-type performance review.
 
+### `tools.cs` Command Naming Clarity (build vs setup vs ci-sim)
+
+- Status: `parked`
+- Surfaced post-S12 (2026-05-09). `tools.cs` exposes three subcommands with conceptually distinct roles:
+  - **`build`** — Cake passthrough escape hatch. Forwards args to Cake Frosting raw (e.g., `tools.cs build --target Info`, `tools.cs build --tree`). Doesn't actually BUILD anything by itself.
+  - **`setup [--source local|remote-github|remote-nuget] [--no-clean]`** — Local-dev environment bootstrap. Cleans `artifacts/`, runs Cake stages `ResolveVersions → PreFlightCheck → EnsureVcpkgDeps → Harvest → ConsolidateHarvest → Package`, verifies the family nupkgs land, writes `Janset.Local.props` so consumer csprojs pick up local versions. **Actual local-dev setup workflow.**
+  - **`ci-sim [-v]`** — Full CI replay (8-stage pipeline + per-step logs). Mirrors `release.yml`.
+- Confusion: `build` is misleading — it doesn't compile or pack on its own; it's just "run a Cake target with these args". The clearer names would be:
+  - **Option A: rename `build` → `cake`** — honest about what it is. Self-documenting at the CLI layer. Costs: `tools.cs:45` rename + `CLAUDE.md` examples + 2 historical priming prompts under `.github/prompts/` reference `build --tree`. ~5 sites.
+  - **Option B: rename `build` → `target`** — `tools.cs target --target Info` reads redundantly. Worse than A.
+  - **Option C: keep `build`, add `cake` as alias** — backward-compatible but two names for the same thing.
+  - **Option D: doc-only clarification** — keep names, add a one-liner to `CLAUDE.md` "Common Commands" header explaining the layering. Smallest change.
+- Preserve:
+  - Decision pending. Worth bundling with a future Phase X command-surface review (alongside `tools.cs setup --source=remote-nuget` PD-7 wiring + any new commands).
+  - If renaming, update `CLAUDE.md`, `tests/smoke-tests/README.md` (line 49 references `setup --source=local`), `README.md` (line 110), and any historical priming prompts that reference `build --tree`.
+
+### Vcpkg Cache Key Mutability + CI Cache Audit
+
+- Status: `hardening-backlog`
+- Surfaced post-S12 (2026-05-09). Two distinct concerns surfaced together:
+  1. **Cache invalidation cost** (confirmed empirically): every time something busts the cache key (vcpkg.json edit, overlay-triplet/port edit, vcpkg submodule bump), the next release pipeline pays ~18-20 min cold-build cost. Recent example: run `25550425138` (post-S11 retirement on `392c35e`) was a cold MISS (`Cache not found for input keys: vcpkg-bin-windows-2025-...`, `Restored 0 package(s)`, all 29 packages compiled from source). Total pipeline 30 min vs the next run on the same key (run `25575839739`) which HIT cleanly and finished in 12 min. Pattern repeats whenever `vcpkg-overlay-triplets/**` or `vcpkg-overlay-ports/**` content changes. The S11 strategy retirement touched overlay triplets, busting the cache.
+  2. **Silent-recompile risk** (latent, not yet observed): cache key includes `windows-2025` / `macos-15-intel` / `macos-26` / `windows-11-arm` (mutable runner labels) but NOT runner image version or compiler ABI hash. If GitHub patches MSVC / Apple updates Xcode CLT / Linux container content shifts, the GH Actions cache HIT can be a false positive while vcpkg's compiler-ABI hash differs, forcing 29-package recompile (5-30 min) WITHOUT any "cache miss" log indicator. Deniz reports having hit this in past projects.
+- Cache key composition (current — `vcpkg-setup` action.yml lines 122-135):
+  - `vcpkg-bin-{platform-identity}-{triplet}-{hashFiles(vcpkg.json + overlay-triplets/** + overlay-ports/**)}-{vcpkg submodule SHA}`
+  - `platform-identity` = container digest for Linux (immutable) OR raw runner label for Windows + macOS (mutable)
+- Concrete fixes (Phase X "CI cache audit" candidate):
+  1. **Include runner image version in cache key for Windows + macOS** — guard against silent MSVC / Xcode-CLT patches. Inject the runner image version (e.g., from `Image Release` field in the job log header, or `runner.image_version` if exposed). Busts cache deterministically on runner-image rolls.
+  2. **Cache `external/vcpkg/downloads/` alongside `.vcpkg-cache`** — Windows runs currently re-download CMake 4.2.3 (~9s) and PowerShell 7.5.4 (~22s) every run because vcpkg's vendored tools live outside the cache path. Adding the downloads folder saves ~31s per Windows run × 3 Windows RIDs = ~1.5 min total per release pipeline.
+  3. **Pre-warm the cache on master push** (separate trigger): a workflow that runs `vcpkg-setup` only on every master push primes the cache for subsequent release pipelines. Costs one cold-build-equivalent run after a cache-busting commit; saves all subsequent release pipelines from paying it.
+  4. **Consider matching Linux's container-digest approach for Windows** — Linux already uses `ghcr.io/janset2d/sdl2-bindings-linux-builder@sha256:...` (immutable digest). Windows can't easily container-fy, but baking a Windows runner image with prebuilt vcpkg + CMake + PS7 would be equivalent at higher infra cost.
+- Other variance hotspots from the same investigation (separate from caching):
+  - **macOS `platform-build-prereqs` (42-63s)** — `brew install` of build tooling on every run. Cache `/opt/homebrew` keyed on a brewfile hash. Largest single optimization win across all platforms.
+  - **Windows checkout submodule init (28-50s)** — `submodules: false` + separate `git submodule update --init --depth=1 external/vcpkg` step. Saves ~10-15s.
+  - **Defender exclusion for Windows `.vcpkg-cache/`** — `Add-MpPreference -ExclusionPath` could shave ~5-10s off NTFS extraction.
+- Preserve:
+  - Run `25575839739` had cache key working correctly (cold-build paid by previous run `25550425138`).
+  - Real symptom: ~18-min penalty per cache-busting commit. Confirmed empirically. Worth a dedicated "CI cache audit" Phase X slice once P7-P9 boss fights settle.
+
+### Windows Runner Architecture Plan (3 CPU architectures)
+
+- Status: `parked` (current setup is correct; preserve for `windows-2025` deprecation + cache key plan)
+- Surfaced post-S12 (2026-05-09). Manifest currently maps Windows RIDs to runners as:
+  - `win-x64` → `windows-2025` (Intel x64 native) ✅
+  - `win-arm64` → `windows-11-arm` (Windows 11 Desktop ARM64 image, native ARM hardware) ✅
+  - `win-x86` → `windows-2025` (Intel x64 host cross-compiling x86 via MSVC `/arch:IA32`) ✅
+- Verification per public docs:
+  - Windows arm64 runners GA Sep 2024 ([changelog](https://github.blog/changelog/2024-09-03-github-actions-arm64-linux-and-windows-runners-are-now-generally-available/)); public-repo preview Apr 2025 ([changelog](https://github.blog/changelog/2025-04-14-windows-arm64-hosted-runners-now-available-in-public-preview/)); private-repo standard Jan 2026 ([changelog](https://github.blog/changelog/2026-01-29-arm64-standard-runners-are-now-available-in-private-repositories/)). Label: `windows-11-arm`, 4 vCPUs free in public, Windows 11 Desktop image with full toolchain.
+  - **No native Windows x86 (32-bit) hosted runner exists.** GitHub Actions only ships 64-bit Windows. x86 builds must cross-compile from x64 host using MSVC's vendored x86 toolchain (vcpkg's `x86-windows-hybrid` triplet handles this transparently). Confirmed via vcpkg discussions and CI cross-build write-ups.
+- Verdict: **current mapping is correct for all 3 Windows architectures.** Deniz's intuition was half-correct (win-x86 IS x64-host cross-compile) and half-incorrect (win-arm64 is native, not x64-host).
+- Pending action items (next CI cache audit slice):
+  1. **`windows-2025` → `windows-2025-vs2026` migration** before 2026-05-12 GitHub deprecation. Touches `manifest.json runtimes[].runner` for win-x64 + win-x86. Already tracked separately in `plan.md` Phase X items.
+  2. **Pin runner image versions explicitly** for cache-key stability (see Vcpkg Cache Key Mutability entry above). Per-arch consideration: each Windows runner label rolls independently — `windows-2025` patches affect both win-x64 and win-x86 (same cache key bust); `windows-11-arm` patches affect only win-arm64.
+  3. **No need to add native x86 runners** — they don't exist on GitHub Actions and cross-compile from x64 is the standard pattern. vcpkg's binary cache works correctly across host/target arch since the cache key includes the target triplet.
+  4. **Optional: investigate larger ARM64 runner** — public-repo ARM64 runners ship 4 vCPUs; if private-repo conversion happens later, larger runners (8/16/32 vCPU) may speed Harvest on win-arm64 (currently 1m38s-2m18s).
+
 ## Packaging, Supply Chain, And Release Detail
 
 ### SBOM Generation
