@@ -18,7 +18,7 @@ public sealed class HybridStaticOverlayValidatorTests
         var pathService = CreatePathServiceFor(world);
 
         var runtimes = ImmutableList.Create(
-            new RuntimeInfo { Rid = "win-x64", Triplet = "x64-windows-hybrid", Runner = "windows-2025", ContainerImage = null });
+            new RuntimeInfo { Rid = "win-x64", Triplet = "x64-windows-hybrid", Runner = "windows-2025-vs2026", ContainerImage = null });
 
         var validator = new HybridStaticOverlayValidator(world.CakeContext, pathService);
         var report = validator.Validate(runtimes);
@@ -34,7 +34,7 @@ public sealed class HybridStaticOverlayValidatorTests
         var pathService = CreatePathServiceFor(world);
 
         var runtimes = ImmutableList.Create(
-            new RuntimeInfo { Rid = "win-x64", Triplet = "x64-windows-stock", Runner = "windows-2025", ContainerImage = null });
+            new RuntimeInfo { Rid = "win-x64", Triplet = "x64-windows-stock", Runner = "windows-2025-vs2026", ContainerImage = null });
 
         var validator = new HybridStaticOverlayValidator(world.CakeContext, pathService);
         var report = validator.Validate(runtimes);
@@ -53,7 +53,7 @@ public sealed class HybridStaticOverlayValidatorTests
         var pathService = CreatePathServiceFor(world);
 
         var runtimes = ImmutableList.Create(
-            new RuntimeInfo { Rid = "win-x64", Triplet = "x64-windows-hybrid", Runner = "windows-2025", ContainerImage = null });
+            new RuntimeInfo { Rid = "win-x64", Triplet = "x64-windows-hybrid", Runner = "windows-2025-vs2026", ContainerImage = null });
 
         var validator = new HybridStaticOverlayValidator(world.CakeContext, pathService);
         var report = validator.Validate(runtimes);
@@ -72,7 +72,7 @@ public sealed class HybridStaticOverlayValidatorTests
         var pathService = CreatePathServiceFor(world);
 
         var runtimes = ImmutableList.Create(
-            new RuntimeInfo { Rid = "win-x64", Triplet = "x64-windows-hybrid", Runner = "windows-2025", ContainerImage = null },
+            new RuntimeInfo { Rid = "win-x64", Triplet = "x64-windows-hybrid", Runner = "windows-2025-vs2026", ContainerImage = null },
             new RuntimeInfo { Rid = "linux-x64", Triplet = "x64-linux-stock", Runner = "ubuntu-24.04", ContainerImage = null },
             new RuntimeInfo { Rid = "osx-x64", Triplet = "x64-osx-hybrid", Runner = "macos-15-intel", ContainerImage = null });
 

@@ -215,20 +215,19 @@
 
 ### Windows Runner Architecture Plan (3 CPU architectures)
 
-- Status: `parked` (current setup is correct; preserve for `windows-2025` deprecation + cache key plan)
-- Surfaced post-S12 (2026-05-09). Manifest currently maps Windows RIDs to runners as:
-  - `win-x64` → `windows-2025` (Intel x64 native) ✅
+- Status: `parked` (current setup is correct; preserve for cache key plan)
+- Surfaced post-S12 (2026-05-09). Manifest maps Windows RIDs to runners as:
+  - `win-x64` → `windows-2025-vs2026` (Intel x64 native; migrated from `windows-2025` 2026-05-09 ahead of 2026-05-12 GitHub deprecation) ✅
   - `win-arm64` → `windows-11-arm` (Windows 11 Desktop ARM64 image, native ARM hardware) ✅
-  - `win-x86` → `windows-2025` (Intel x64 host cross-compiling x86 via MSVC `/arch:IA32`) ✅
+  - `win-x86` → `windows-2025-vs2026` (Intel x64 host cross-compiling x86 via MSVC `/arch:IA32`; migrated 2026-05-09) ✅
 - Verification per public docs:
   - Windows arm64 runners GA Sep 2024 ([changelog](https://github.blog/changelog/2024-09-03-github-actions-arm64-linux-and-windows-runners-are-now-generally-available/)); public-repo preview Apr 2025 ([changelog](https://github.blog/changelog/2025-04-14-windows-arm64-hosted-runners-now-available-in-public-preview/)); private-repo standard Jan 2026 ([changelog](https://github.blog/changelog/2026-01-29-arm64-standard-runners-are-now-available-in-private-repositories/)). Label: `windows-11-arm`, 4 vCPUs free in public, Windows 11 Desktop image with full toolchain.
   - **No native Windows x86 (32-bit) hosted runner exists.** GitHub Actions only ships 64-bit Windows. x86 builds must cross-compile from x64 host using MSVC's vendored x86 toolchain (vcpkg's `x86-windows-hybrid` triplet handles this transparently). Confirmed via vcpkg discussions and CI cross-build write-ups.
 - Verdict: **current mapping is correct for all 3 Windows architectures.** Deniz's intuition was half-correct (win-x86 IS x64-host cross-compile) and half-incorrect (win-arm64 is native, not x64-host).
 - Pending action items (next CI cache audit slice):
-  1. **`windows-2025` → `windows-2025-vs2026` migration** before 2026-05-12 GitHub deprecation. Touches `manifest.json runtimes[].runner` for win-x64 + win-x86. Already tracked separately in `plan.md` Phase X items.
-  2. **Pin runner image versions explicitly** for cache-key stability (see Vcpkg Cache Key Mutability entry above). Per-arch consideration: each Windows runner label rolls independently — `windows-2025` patches affect both win-x64 and win-x86 (same cache key bust); `windows-11-arm` patches affect only win-arm64.
-  3. **No need to add native x86 runners** — they don't exist on GitHub Actions and cross-compile from x64 is the standard pattern. vcpkg's binary cache works correctly across host/target arch since the cache key includes the target triplet.
-  4. **Optional: investigate larger ARM64 runner** — public-repo ARM64 runners ship 4 vCPUs; if private-repo conversion happens later, larger runners (8/16/32 vCPU) may speed Harvest on win-arm64 (currently 1m38s-2m18s).
+  1. **Pin runner image versions explicitly** for cache-key stability (see Vcpkg Cache Key Mutability entry above). Per-arch consideration: each Windows runner label rolls independently — `windows-2025-vs2026` patches affect both win-x64 and win-x86 (same cache key bust); `windows-11-arm` patches affect only win-arm64.
+  2. **No need to add native x86 runners** — they don't exist on GitHub Actions and cross-compile from x64 is the standard pattern. vcpkg's binary cache works correctly across host/target arch since the cache key includes the target triplet.
+  3. **Optional: investigate larger ARM64 runner** — public-repo ARM64 runners ship 4 vCPUs; if private-repo conversion happens later, larger runners (8/16/32 vCPU) may speed Harvest on win-arm64 (currently 1m38s-2m18s).
 
 ## Packaging, Supply Chain, And Release Detail
 
