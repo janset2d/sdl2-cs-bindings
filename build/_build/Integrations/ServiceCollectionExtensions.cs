@@ -25,7 +25,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IPackageInfoProvider, VcpkgCliProvider>();
         services.AddSingleton<IVcpkgManifestReader, VcpkgManifestReader>();
         services.AddSingleton<IProjectMetadataReader, ProjectMetadataReader>();
-        services.AddSingleton<IDotNetPackInvoker, DotNetPackInvoker>();
+        // IDotNetPackInvoker relocated target-local to Targets/Package/Services/ in S13;
+        // registration lives in Targets/Package/ServiceCollectionExtensions.AddPackage().
         services.AddSingleton<IDotNetRuntimeEnvironment, DotNetRuntimeEnvironment>();
         services.AddSingleton<INuGetFeedClient, NuGetProtocolFeedClient>();
         services.AddSingleton<IMsvcDevEnvironment, MsvcDevEnvironment>();

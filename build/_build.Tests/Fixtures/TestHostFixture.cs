@@ -3,6 +3,7 @@ using Build.Integrations.DependencyAnalysis;
 using Build.Integrations.DotNet;
 using Build.Integrations.NuGet;
 using Build.Integrations.Vcpkg;
+using Build.Targets.Package.Services;
 using Build.Shared.Manifest;
 using Build.Shared.Runtime;
 using Cake.Core;

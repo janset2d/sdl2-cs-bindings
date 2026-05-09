@@ -110,12 +110,14 @@ public sealed class PackageConsumerSmokePipeline(
         //    from root Directory.Build.props), so adding a new TFM at root
         //    automatically expands the smoke matrix here with no extra wiring.
         var metadataResult = await _projectMetadataReader.ReadAsync(smokeProject, ct);
-        if (metadataResult.IsError())
+        if (metadataResult.IsFailure)
         {
-            var error = metadataResult.ProjectMetadataError;
+            var error = metadataResult.Error;
             _log.Error("PackageConsumerSmoke could not resolve TFMs for '{0}': {1}", smokeProject.FullPath, error.Message);
             throw new CakeException($"PackageConsumerSmoke could not resolve TFMs for '{smokeProject.FullPath}'. Error: {error.Message}");
         }
+
+        var projectMetadata = metadataResult.Value;
 
         // 1b. Compile-only sanity for the netstandard2.0 consumer slice.
         //     netstandard2.0 is a contract, not a runtime — if this library compiles
@@ -124,10 +126,10 @@ public sealed class PackageConsumerSmokePipeline(
 
         var runtimeEnvironmentDelta = await _dotNetRuntimeEnvironment.ResolveAsync(
             request.Rid,
-            metadataResult.ProjectMetadata.TargetFrameworks,
+            projectMetadata.TargetFrameworks,
             ct);
 
-        foreach (var tfm in metadataResult.ProjectMetadata.TargetFrameworks)
+        foreach (var tfm in projectMetadata.TargetFrameworks)
         {
             ct.ThrowIfCancellationRequested();
 

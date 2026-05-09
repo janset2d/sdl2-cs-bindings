@@ -1,18 +1,19 @@
+using Build.Results;
 using Build.Shared.Packaging;
 using Cake.Core.IO;
 
-namespace Build.Integrations.DotNet;
+namespace Build.Targets.Package.Services;
 
 public interface IDotNetPackInvoker
 {
     /// <summary>
     /// Invokes <c>dotnet pack</c> for <paramref name="projectPath"/>. Returns a typed
-    /// <see cref="DotNetPackResult"/> capturing either success (artifacts written to
-    /// <c>artifacts/packages</c>) or a <see cref="DotNetPackError"/> describing the underlying
-    /// Cake/MSBuild failure. Exceptions from the underlying invocation are wrapped instead
-    /// of surfacing as raw <c>CakeException</c>s.
+    /// <see cref="Result{TValue,TError}"/> where success carries <see cref="Unit"/> (artifacts
+    /// written to <c>artifacts/packages</c>) and failure carries a <see cref="DotNetPackError"/>
+    /// describing the underlying Cake/MSBuild failure. Exceptions from the underlying
+    /// invocation are wrapped instead of surfacing as raw <c>CakeException</c>s.
     /// </summary>
-    DotNetPackResult Pack(FilePath projectPath, DotNetPackInvocation invocation, bool noRestore, bool noBuild);
+    Result<Unit, DotNetPackError> Pack(FilePath projectPath, DotNetPackInvocation invocation, bool noRestore, bool noBuild);
 }
 
 /// <summary>

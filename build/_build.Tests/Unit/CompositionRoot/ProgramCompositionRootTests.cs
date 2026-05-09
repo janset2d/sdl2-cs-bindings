@@ -3,6 +3,7 @@ using System.CommandLine.Invocation;
 using System.Reflection;
 using Build.Features.Packaging;
 using Build.Features.Publishing;
+using Build.Targets.Package.Services;
 using Build.Validation.Packaging;
 using Build.Host;
 using Build.Host.Cli.Options;
@@ -164,7 +165,7 @@ public sealed class ProgramCompositionRootTests
         var versionFileRepository = provider.GetRequiredService<IVersionFileRepository>();
         var dotNetPackInvoker = provider.GetRequiredService<IDotNetPackInvoker>();
         var dotNetRuntimeEnvironment = provider.GetRequiredService<IDotNetRuntimeEnvironment>();
-        var packagePipeline = provider.GetRequiredService<IPackagePipeline>();
+        var packageFamilyPacker = provider.GetRequiredService<PackageFamilyPacker>();
         var packageConsumerSmokePipeline = provider.GetRequiredService<IPackageConsumerSmokePipeline>();
         var publishPipeline = provider.GetRequiredService<PublishPipeline>();
         var msvcDevEnvironment = provider.GetRequiredService<IMsvcDevEnvironment>();
@@ -177,7 +178,7 @@ public sealed class ProgramCompositionRootTests
         await Assert.That(versionFileRepository.GetType()).IsEqualTo(typeof(VersionFileRepository));
         await Assert.That(dotNetPackInvoker.GetType()).IsEqualTo(typeof(DotNetPackInvoker));
         await Assert.That(dotNetRuntimeEnvironment.GetType()).IsEqualTo(typeof(DotNetRuntimeEnvironment));
-        await Assert.That(packagePipeline.GetType()).IsEqualTo(typeof(PackagePipeline));
+        await Assert.That(packageFamilyPacker.GetType()).IsEqualTo(typeof(PackageFamilyPacker));
         await Assert.That(packageConsumerSmokePipeline.GetType()).IsEqualTo(typeof(PackageConsumerSmokePipeline));
         await Assert.That(publishPipeline.GetType()).IsEqualTo(typeof(PublishPipeline));
         await Assert.That(msvcDevEnvironment.GetType()).IsEqualTo(typeof(MsvcDevEnvironment));

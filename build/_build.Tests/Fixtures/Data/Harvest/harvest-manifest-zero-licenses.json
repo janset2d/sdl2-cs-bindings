@@ -1,0 +1,32 @@
+{
+  "library_name": "sdl2",
+  "generated_timestamp": "2026-05-09T10:00:00+00:00",
+  "rids": [
+    {
+      "library_name": "sdl2",
+      "rid": "win-x64",
+      "triplet": "x64-windows-hybrid",
+      "success": true,
+      "timestamp": "2026-05-09T09:55:00+00:00",
+      "statistics": {
+        "primary_files_count": 1,
+        "runtime_files_count": 1,
+        "license_files_count": 0,
+        "deployed_packages_count": 1,
+        "filtered_packages_count": 0,
+        "deployment_strategy": "hybrid-static"
+      }
+    }
+  ],
+  "summary": {
+    "total_rids": 3,
+    "successful_rids": 1,
+    "failed_rids": 0,
+    "success_rate": 0.33
+  },
+  "consolidation": {
+    "licenses_consolidated": false,
+    "license_entries_count": 0,
+    "divergent_licenses": []
+  }
+}

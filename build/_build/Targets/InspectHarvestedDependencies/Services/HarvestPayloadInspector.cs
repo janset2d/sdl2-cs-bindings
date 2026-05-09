@@ -13,10 +13,7 @@ using Cake.Core.IO;
 
 namespace Build.Targets.InspectHarvestedDependencies.Services;
 
-public sealed class HarvestPayloadInspector(
-    ICakeContext cakeContext,
-    ICakeLog log,
-    IPathService pathService)
+public sealed class HarvestPayloadInspector(ICakeContext cakeContext, ICakeLog log, IPathService pathService)
 {
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));

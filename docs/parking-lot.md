@@ -92,15 +92,15 @@
   - Do NOT reintroduce as a build-host Cake target — that shape was rejected. If it returns, it returns as a CI-side signal owned by the workflow, not a build-host gate.
   - Re-add must include the rationale and the surface it serves; otherwise it stays parked.
 
-### OneOf-Shaped Result Types (Surviving Post-S12)
+### OneOf-Shaped Result Types (Surviving Post-S13)
 
 - Status: `parked`
-- ADR-002 §11 retires "OneOf-style result hierarchies for expected build failures" in favor of `Result<T, TError>` (binary) or `ValidationReport`/`ValidationCheck` (multi-check). S11 retired 5 strategy-related OneOf result types and demonstrated the collapse pattern (`ValidationResult`/`ValidationError`/`ValidationSuccess` → `ValidationReport`). S12 (P6 PreFlight migration, 2026-05-08) retired 5 more: `VersionConsistencyResult`, `CoreLibraryIdentityResult`, `CsprojPackContractResult`, `UpstreamVersionAlignmentResult`, `PreflightError` — each replaced by direct typed `*Validation` returns or, for `PreflightError`, deletion outright (no replacement; `BuildError` survives for `HarvestingError` / `PackagingError`).
+- ADR-002 §11 retires "OneOf-style result hierarchies for expected build failures" in favor of `Result<T, TError>` (binary) or `ValidationReport`/`ValidationCheck` (multi-check). S11 retired 5 strategy-related OneOf result types and demonstrated the collapse pattern. S12 (P6 PreFlight migration, 2026-05-08) retired 5 more: `VersionConsistencyResult`, `CoreLibraryIdentityResult`, `CsprojPackContractResult`, `UpstreamVersionAlignmentResult`, `PreflightError`. S13 (P7 Package migration, 2026-05-09) retired 3 more: `DotNetPackResult` (→ `Result<Unit, DotNetPackError>` with new `Build.Results.Unit` value type), `ProjectMetadataResult` (→ `Result<ProjectMetadata, ProjectMetadataError>`), `PackageValidationResult` (collapsed to `ValidationReport` along with `PackageValidation` / `PackageValidationCheck` / `GuardrailKind` enum — guardrail IDs now live in `ValidationCheck.Code` strings; reporters format as `[Gnn] message`).
 - Preserve:
-  - Seven OneOf-shaped result types survive post-S12: `PackageInfoResult`, `DotNetPackResult`, `ProjectMetadataResult`, `ArtifactPlannerResult`, `ClosureResult`, `CopierResult`, `PackageValidationResult`.
-  - Each retires within its respective target migration (P7/P8/P9) when that target's pipeline gets reshaped.
+  - Four OneOf-shaped result types survive post-S13: `PackageInfoResult`, `ArtifactPlannerResult`, `ClosureResult`, `CopierResult`.
+  - Each retires within its respective target migration (P8 Harvest/NativeSmoke/ConsolidateHarvest covers ArtifactPlannerResult, ClosureResult, CopierResult; P9 ConsumerSmoke covers PackageInfoResult).
   - The OneOf package dependency stays in `Build.csproj` and `Directory.Packages.props` until all surviving types retire (likely P10 final cleanup).
-  - The collapse pattern: OneOf-shaped `Result<TError, TSuccess>` → either `ValidationReport` (multi-check with severities) OR a homegrown `Result<T, TError>` record struct (binary success/failure) per ADR-002 §11.
+  - The collapse pattern: OneOf-shaped `Result<TError, TSuccess>` → either `ValidationReport` (multi-check with severities) OR `Build.Results.Result<T, TError>` record struct (binary success/failure) per ADR-002 §11.
 
 ### Performance And Caching
 
@@ -241,6 +241,49 @@
 
 - Status: `planned`
 - Managed `.snupkg` publication is live. Deferred: native symbol handling strategy (per-platform `.pdb` / `.dSYM` / `.debug` payloads + symbol server publish).
+
+### PackageTask HEAD SHA Resolver Func vs Interface
+
+- Status: `parked`
+- `PackageTask` carries an optional `Func<ICakeContext, DirectoryPath, string>` ctor hook for HEAD SHA resolution. Default impl wraps `context.GitLogTip(repoRoot)` (Cake.Frosting.Git → LibGit2Sharp). Cake.Git bypasses `ICakeContext.FileSystem` and hits System.IO directly, which means `FakeFileSystem`-backed scenario tests can't be served by the default — they inject a stub lambda via DI registration.
+- Surfaced during S13 (P7 Package migration, 2026-05-09). Considered extracting `IGitHeadResolver` for uniformity but kept the Func as the minimal change. Revisit if a second consumer appears (e.g., Harvest-time or Publish-time SHA stamping).
+- Preserve:
+  - Func vs interface is a small surface, not load-bearing on the migration. The current shape works and tests it via DI registration.
+  - When P10 retrospects on cross-target stamping needs, decide whether `IGitHeadResolver` (in a `Git/` named concept) earns its existence.
+
+### PackageFamilyPacker Ctor Style Consistency (S13 carry-forward)
+
+- Status: `parked`
+- Same shape question as the existing `PreFlightCheckTask` ctor style item: `PackageFamilyPacker` declares 10 explicit `private readonly` fields with `ArgumentNullException.ThrowIfNull` checks. `PackageTask` uses an explicit ctor with field declarations too (because of the optional Func hook). Sibling targets like `OtoolAnalyzeTask` use the primary-ctor-as-capture pattern.
+- Surfaced during S13 (P7 Package migration, 2026-05-09). Kept the verbose null-check style for consistency with PreFlight and to support the optional Func parameter clearly.
+- Preserve:
+  - Roll into the same future ADR-002 §8 amendment / build-host coding-style guideline that addresses PreFlightCheckTask. A single sweep across migrated tasks will be cleaner than per-slice decisions.
+
+### S13 Reviewer Follow-Ups (Code/Test Cleanup)
+
+- Status: `parked`
+- Multi-agent code review on the S13 staged diff (7 reviewers: full-context architect, necessary-context architect, two unbiased architects, QA test specialist, plus two external reviewers) consensus surfaced findings beyond the cleanup that landed in S13. Address in a future cleanup slice; not blocking shipping.
+- Preserve:
+  - **Cross-family dependency lower-bound semantics (T3.1) — verify intent.** `DependencyRangeNormalizer` writes the *satellite's own* version as the lower bound of its dependency on the core family (e.g. sdl2-image=2.8.0 → emits sdl2-core dep range `[2.8.0, 3.0.0)`, not `[2.32.0, 3.0.0)`). This is *existing pre-S13 behavior preserved*, but Agent 2 raised whether it's intentional G56 policy or latent bug. Verify against `release-guardrails.md` G56 intent and either document the policy explicitly or fix to use the dependency family's resolved version (would change package output → behavior risk).
+  - **HarvestReadinessValidator validator-vs-gate naming (T3.2).** Lives in `Validation/Packaging/`, named `…Validator`, but throws `CakeException` (gate semantics) instead of returning `ValidationReport` like the rest of the cohort. Two options: (a) rename to `HarvestReadinessGate` + relocate to `Targets/Package/Services/` (carve-out from ADR §8 amendment), or (b) change to return `ValidationReport` and have `PackageFamilyPacker` translate to throw at the boundary. (b) brings it into cohort consistency with sibling Packaging validators but requires reshaping the 7 unit tests' `ThrowsAsync` assertions.
+  - **NIT cluster (Tier 4 from review).**
+    - "(post-C feed-probe wiring)" phrase in `PackageTask` G58 error message leaks an internal phase reference to operator output — strip to "pass `--feed <URL>`".
+    - `Build.Results.Unit.Value => default` could be `public static readonly Unit Value;` (zero-init field; one IL load instead of getter call on every Result construction).
+    - Fully-qualified type names inline in `PackageFamilyPacker.cs` (`Build.Validation.Conventions.FamilyIdentifierConventions`, called twice) and inline `Build.Versioning.PackageFamilyVersionSet` in `FakeCakeWorldV2.cs` — add `using` statements instead.
+  - **QA test debt (Tier 5 from review).** Highest-leverage items:
+    - `Scenarios/Package/PackageTaskScenarioTests.RunAsync_Should_Pack_All_Selected_Families_When_Happy_Path` has anemic orchestration assertions — assert `packInvoker.Received(2).Pack(...)` per family, verify topological pack order (sdl2-core before sdl2-image), and verify `headSha` propagates to `nativeMetadataGen.GenerateAsync(family, version, headSha, ct)`.
+    - `Unit/Validation/Packaging/HarvestReadinessValidatorTests.EnsureReadyAsync_Should_Return_When_All_Gates_Pass` only asserts "no throw" — assert on the success-path `_log.Information("...will pack harvest payload for successful RIDs:...")` line and add coverage for the `DivergentLicenses.Count > 0` warning branch (currently 0% covered).
+    - `Unit/Targets/Package/Services/PackageFamilyPackerTests` lacks tests for `dotnet pack` failure (native + managed) and `IProjectMetadataReader` failure paths the Packer explicitly handles. Add 2-3 tests stubbing `Result<>.Failure` from those collaborators and asserting on the `CakeException` "See log." anchor + reporter-emitted log line.
+    - Two payload-subtree-missing tests in `HarvestReadinessValidatorTests` are indistinguishable on assertion (both check `"harvest payload directory" + "is missing"`). Tighten to assert on the unique path component (`runtimes` vs `_consolidated`).
+    - `DependencyRangeNormalizer` — 3 throw branches uncovered (nuspec entry missing per S13 cleanup adds a new check too, library_ref missing in manifest, vcpkg_version invalid).
+
+### Features/Packaging/ServiceCollectionExtensions ConsumerSmoke-only Half
+
+- Status: `parked`
+- After S13 (P7 Pack migration), `Features/Packaging/ServiceCollectionExtensions.AddPackagingFeature()` registers only ConsumerSmoke-side artifacts (`IPackageConsumerSmokePipeline`, generators consumed by both Pack and ConsumerSmoke). The Pack side moved to `Targets/Package/ServiceCollectionExtensions.AddPackage()`. The split surface is asymmetric — `AddPackagingFeature` retains a name that no longer fits its content.
+- Surfaced during S13 (P7 Package migration, 2026-05-09). Renaming + restructuring deferred to P9 (ConsumerSmoke migration), at which point `Features/Packaging/` should retire entirely.
+- Preserve:
+  - Decide rename / structure during P9 migration. Likely outcome: `AddPackagingFeature` retires; ConsumerSmoke registrations move into `Targets/PackageConsumerSmoke/ServiceCollectionExtensions.AddPackageConsumerSmoke()`. Generators (`INativePackageMetadataGenerator`, `IReadmeMappingTableGenerator`) split between Pack and ConsumerSmoke based on actual consumer.
 
 ## Retention Rule
 

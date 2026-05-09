@@ -1,0 +1,62 @@
+{
+  "library_name": "sdl2",
+  "generated_timestamp": "2026-05-09T10:00:00+00:00",
+  "rids": [
+    {
+      "library_name": "sdl2",
+      "rid": "win-x64",
+      "triplet": "x64-windows-hybrid",
+      "success": true,
+      "timestamp": "2026-05-09T09:55:00+00:00",
+      "statistics": {
+        "primary_files_count": 1,
+        "runtime_files_count": 1,
+        "license_files_count": 1,
+        "deployed_packages_count": 1,
+        "filtered_packages_count": 0,
+        "deployment_strategy": "hybrid-static"
+      }
+    },
+    {
+      "library_name": "sdl2",
+      "rid": "linux-x64",
+      "triplet": "x64-linux-hybrid",
+      "success": true,
+      "timestamp": "2026-05-09T09:56:00+00:00",
+      "statistics": {
+        "primary_files_count": 1,
+        "runtime_files_count": 1,
+        "license_files_count": 1,
+        "deployed_packages_count": 1,
+        "filtered_packages_count": 0,
+        "deployment_strategy": "hybrid-static"
+      }
+    },
+    {
+      "library_name": "sdl2",
+      "rid": "osx-x64",
+      "triplet": "x64-osx-hybrid",
+      "success": true,
+      "timestamp": "2026-05-09T09:57:00+00:00",
+      "statistics": {
+        "primary_files_count": 1,
+        "runtime_files_count": 1,
+        "license_files_count": 1,
+        "deployed_packages_count": 1,
+        "filtered_packages_count": 0,
+        "deployment_strategy": "hybrid-static"
+      }
+    }
+  ],
+  "summary": {
+    "total_rids": 3,
+    "successful_rids": 3,
+    "failed_rids": 0,
+    "success_rate": 1.0
+  },
+  "consolidation": {
+    "licenses_consolidated": true,
+    "license_entries_count": 3,
+    "divergent_licenses": []
+  }
+}

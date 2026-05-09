@@ -40,6 +40,7 @@ public sealed class FakeCakeWorldV2
     private readonly List<string> _explicitVersion = [];
     private string? _explicitVersions;
     private string? _versionsFile;
+    private Build.Versioning.PackageFamilyVersionSet _familyVersions = Build.Versioning.PackageFamilyVersionSet.Empty;
     private readonly List<string> _dlls = [];
     private readonly List<string> _libraries = [];
 
@@ -131,6 +132,32 @@ public sealed class FakeCakeWorldV2
         using var stream = file.Open(FileMode.Create, FileAccess.Write, FileShare.None);
         using var writer = new StreamWriter(stream);
         writer.Write(content);
+        return this;
+    }
+
+    public FakeCakeWorldV2 WithBinaryFile(string relativePath, byte[] content)
+    {
+        return WithBinaryFile(new FilePath(relativePath), content);
+    }
+
+    public FakeCakeWorldV2 WithBinaryFile(FilePath path, byte[] content)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        ArgumentNullException.ThrowIfNull(content);
+
+        var fullPath = path.IsRelative
+            ? RepoRoot.CombineWithFilePath(path)
+            : path;
+
+        var dir = FileSystem.GetDirectory(fullPath.GetDirectory());
+        if (!dir.Exists)
+        {
+            dir.Create();
+        }
+
+        var file = FileSystem.GetFile(fullPath);
+        using var stream = file.Open(FileMode.Create, FileAccess.Write, FileShare.None);
+        stream.Write(content, 0, content.Length);
         return this;
     }
 
@@ -249,6 +276,17 @@ public sealed class FakeCakeWorldV2
         return this;
     }
 
+    /// <summary>
+    /// Sets the resolved <see cref="Build.Versioning.PackageFamilyVersionSet"/> stamped into
+    /// <c>BuildContext.Options.Package.FamilyVersions</c>. <see cref="Build.Targets.Package.PackageTask"/>
+    /// reads its scope from that set, so scenarios that exercise Pack must seed it explicitly.
+    /// </summary>
+    public FakeCakeWorldV2 WithFamilyVersions(Build.Versioning.PackageFamilyVersionSet familyVersions)
+    {
+        _familyVersions = familyVersions ?? throw new ArgumentNullException(nameof(familyVersions));
+        return this;
+    }
+
     public FakeCakeWorldV2 WithDll(string dll)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(dll);
@@ -353,7 +391,7 @@ public sealed class FakeCakeWorldV2
 
         var options = new Configurations(
             Vcpkg: new VcpkgConfiguration([], _rid),
-            Package: new PackageBuildConfiguration(Build.Versioning.PackageFamilyVersionSet.Empty),
+            Package: new PackageBuildConfiguration(_familyVersions),
             Repository: new RepositoryConfiguration(RepoRoot),
             DotNet: new DotNetBuildConfiguration(_config),
             Dumpbin: new DumpbinConfiguration([]));

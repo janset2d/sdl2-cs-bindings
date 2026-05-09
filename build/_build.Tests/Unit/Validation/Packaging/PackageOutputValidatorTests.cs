@@ -1,13 +1,15 @@
 using System.IO.Compression;
 using System.Text.Json;
 using Build.Features.Packaging;
-using Build.Validation.Conventions;
+using Build.Results;
 using Build.Shared.Manifest;
 using Build.Shared.Packaging;
 using Build.Tests.Fixtures;
+using Build.Validation.Conventions;
+using Build.Validation.Packaging;
 using Cake.Core.IO;
 
-namespace Build.Tests.Unit.Features.Packaging;
+namespace Build.Tests.Unit.Validation.Packaging;
 
 /// <summary>
 /// Post-S1 scope: G20/G24 retired. G21 unified (all family deps = minimum range),
@@ -15,7 +17,7 @@ namespace Build.Tests.Unit.Features.Packaging;
 /// </summary>
 public sealed class PackageOutputValidatorTests
 {
-    private const string ExpectedAuthors = "Janset2D, Deniz \u0130rgin";
+    private const string ExpectedAuthors = "Janset2D, Deniz İrgin";
     private const string ExpectedLicenseFile = "LICENSE";
     private const string ExpectedIcon = "janset2d-sdl-min.png";
     private const string ExpectedCommit = "0123456789abcdef0123456789abcdef01234567";
@@ -27,58 +29,58 @@ public sealed class PackageOutputValidatorTests
     // Short-form TFMs as resolved from MSBuild -getProperty:TargetFrameworks (what the reader returns).
     private static readonly string[] CsprojTargetFrameworks = ["net10.0", "net9.0", "net8.0", "netstandard2.0", "net462"];
 
-    private static PackageOutputValidator CreateValidator(FakeRepoHandles repo)
+    private static PackageOutputValidator CreateValidator(FakeCakeWorldV2 world)
         => new(
-            repo.FileSystem,
-            new NativePackageMetadataValidator(repo.FileSystem),
-            new ReadmeMappingTableValidator(repo.FileSystem));
+            world.FileSystem,
+            new NativePackageMetadataValidator(world.FileSystem),
+            new ReadmeMappingTableValidator(world.FileSystem));
 
     [Test]
     public async Task Validate_Should_Pass_When_Artifacts_Conform_For_Satellite_Family()
     {
-        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
+        var world = FakeCakeWorldV2.CreateWindows();
         var family = GetFamily("sdl2-image");
-        var artifacts = CreateArtifacts(repo, family, "1.2.3");
-        var validator = CreateValidator(repo);
+        var artifacts = CreateArtifacts(world, family, "1.2.3");
+        var validator = CreateValidator(world);
 
-        var result = await ValidateAsync(validator, repo, family, artifacts, "1.2.3", DefaultMetadata());
+        var report = await ValidateAsync(validator, world, family, artifacts, "1.2.3", DefaultMetadata());
 
-        await Assert.That(result.IsSuccess()).IsTrue();
-        await Assert.That(result.Validation.HasErrors).IsFalse();
+        await Assert.That(report.IsValid).IsTrue();
+        await Assert.That(report.Errors.Count).IsEqualTo(0);
     }
 
     [Test]
     public async Task Validate_Should_Fail_When_Native_Dependency_Is_Bracketed_Post_S1()
     {
-        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
+        var world = FakeCakeWorldV2.CreateWindows();
         var family = GetFamily("sdl2-image");
-        var artifacts = CreateArtifacts(repo, family, "1.2.3", nativeDependencyVersion: "[1.2.3]");
-        var validator = CreateValidator(repo);
+        var artifacts = CreateArtifacts(world, family, "1.2.3", nativeDependencyVersion: "[1.2.3]");
+        var validator = CreateValidator(world);
 
-        var result = await ValidateAsync(validator, repo, family, artifacts, "1.2.3", DefaultMetadata());
+        var report = await ValidateAsync(validator, world, family, artifacts, "1.2.3", DefaultMetadata());
 
-        await Assert.That(result.IsError()).IsTrue();
-        await Assert.That(result.Validation.Checks.Any(check => check.Kind == PackageValidationCheckKind.FamilyDependencyMinimumRange && check.IsError)).IsTrue();
+        await Assert.That(report.IsValid).IsFalse();
+        await Assert.That(report.Errors.Any(check => check.Code == "G21")).IsTrue();
     }
 
     [Test]
     public async Task Validate_Should_Fail_When_CrossFamily_Dependency_Is_Bracketed()
     {
-        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
+        var world = FakeCakeWorldV2.CreateWindows();
         var family = GetFamily("sdl2-image");
-        var artifacts = CreateArtifacts(repo, family, "1.2.3", coreDependencyVersion: "[1.2.3]");
-        var validator = CreateValidator(repo);
+        var artifacts = CreateArtifacts(world, family, "1.2.3", coreDependencyVersion: "[1.2.3]");
+        var validator = CreateValidator(world);
 
-        var result = await ValidateAsync(validator, repo, family, artifacts, "1.2.3", DefaultMetadata());
+        var report = await ValidateAsync(validator, world, family, artifacts, "1.2.3", DefaultMetadata());
 
-        await Assert.That(result.IsError()).IsTrue();
-        await Assert.That(result.Validation.Checks.Any(check => check.Kind == PackageValidationCheckKind.SatelliteCrossFamilyUpperBound && check.IsError)).IsTrue();
+        await Assert.That(report.IsValid).IsFalse();
+        await Assert.That(report.Errors.Any(check => check.Code == "G56")).IsTrue();
     }
 
     [Test]
     public async Task Validate_Should_Fail_When_Native_Dependency_Excludes_Build_Assets()
     {
-        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
+        var world = FakeCakeWorldV2.CreateWindows();
         var family = GetFamily("sdl2-image");
 
         var dependencyGroups = CreateDependencyGroups(
@@ -89,17 +91,17 @@ public sealed class PackageOutputValidatorTests
             nativeDependencyMetadata: "exclude=\"Build,Analyzers\"");
 
         var artifacts = CreateArtifacts(
-            repo,
+            world,
             family,
             "1.2.3",
             managedDependencyGroupsXml: dependencyGroups);
 
-        var validator = CreateValidator(repo);
+        var validator = CreateValidator(world);
 
-        var result = await ValidateAsync(validator, repo, family, artifacts, "1.2.3", DefaultMetadata());
+        var report = await ValidateAsync(validator, world, family, artifacts, "1.2.3", DefaultMetadata());
 
-        await Assert.That(result.IsError()).IsTrue();
-        await Assert.That(result.Validation.Checks.Any(check => check.Kind == PackageValidationCheckKind.FamilyDependencyMinimumRange && check.IsError)).IsTrue();
+        await Assert.That(report.IsValid).IsFalse();
+        await Assert.That(report.Errors.Any(check => check.Code == "G21")).IsTrue();
     }
 
     [Test]
@@ -107,21 +109,21 @@ public sealed class PackageOutputValidatorTests
     {
         // G23 primary check post-S1: detects mismatched family members that would otherwise
         // resolve silently under the minimum-range contract.
-        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
+        var world = FakeCakeWorldV2.CreateWindows();
         var family = GetFamily("sdl2-image");
-        var artifacts = CreateArtifacts(repo, family, "1.2.3", nativePackageVersion: "1.2.4");
-        var validator = CreateValidator(repo);
+        var artifacts = CreateArtifacts(world, family, "1.2.3", nativePackageVersion: "1.2.4");
+        var validator = CreateValidator(world);
 
-        var result = await ValidateAsync(validator, repo, family, artifacts, "1.2.3", DefaultMetadata());
+        var report = await ValidateAsync(validator, world, family, artifacts, "1.2.3", DefaultMetadata());
 
-        await Assert.That(result.IsError()).IsTrue();
-        await Assert.That(result.Validation.Checks.Any(check => check.Kind == PackageValidationCheckKind.WithinFamilyVersionCoherence && check.IsError)).IsTrue();
+        await Assert.That(report.IsValid).IsFalse();
+        await Assert.That(report.Errors.Any(check => check.Code == "G23")).IsTrue();
     }
 
     [Test]
     public async Task Validate_Should_Fail_When_TargetFramework_Groups_Are_Inconsistent()
     {
-        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
+        var world = FakeCakeWorldV2.CreateWindows();
         var family = GetFamily("sdl2-image");
 
         var dependencyGroups = CreateDependencyGroups(
@@ -132,103 +134,103 @@ public sealed class PackageOutputValidatorTests
                 .ToList());
 
         var artifacts = CreateArtifacts(
-            repo,
+            world,
             family,
             "1.2.3",
             managedDependencyGroupsXml: dependencyGroups);
 
-        var validator = CreateValidator(repo);
+        var validator = CreateValidator(world);
 
-        var result = await ValidateAsync(validator, repo, family, artifacts, "1.2.3", DefaultMetadata());
+        var report = await ValidateAsync(validator, world, family, artifacts, "1.2.3", DefaultMetadata());
 
-        await Assert.That(result.IsError()).IsTrue();
-        await Assert.That(result.Validation.Checks.Any(check => check.Kind == PackageValidationCheckKind.DependencyGroupsConsistentAcrossFrameworks && check.IsError)).IsTrue();
+        await Assert.That(report.IsValid).IsFalse();
+        await Assert.That(report.Errors.Any(check => check.Code == "G22")).IsTrue();
     }
 
     [Test]
     public async Task Validate_Should_Fail_When_Managed_Symbol_Package_Is_Missing()
     {
-        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
+        var world = FakeCakeWorldV2.CreateWindows();
         var family = GetFamily("sdl2-image");
-        var artifacts = CreateArtifacts(repo, family, "1.2.3", includeSymbols: false);
-        var validator = CreateValidator(repo);
+        var artifacts = CreateArtifacts(world, family, "1.2.3", includeSymbols: false);
+        var validator = CreateValidator(world);
 
-        var result = await ValidateAsync(validator, repo, family, artifacts, "1.2.3", DefaultMetadata());
+        var report = await ValidateAsync(validator, world, family, artifacts, "1.2.3", DefaultMetadata());
 
-        await Assert.That(result.IsError()).IsTrue();
-        await Assert.That(result.Validation.Checks.Any(check => check.Kind == PackageValidationCheckKind.ManagedSymbolsPackageValid && check.IsError)).IsTrue();
+        await Assert.That(report.IsValid).IsFalse();
+        await Assert.That(report.Errors.Any(check => check.Code == "G25")).IsTrue();
     }
 
     [Test]
     public async Task Validate_Should_Fail_When_Repository_Commit_Drifts()
     {
-        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
+        var world = FakeCakeWorldV2.CreateWindows();
         var family = GetFamily("sdl2-image");
-        var artifacts = CreateArtifacts(repo, family, "1.2.3", commit: "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef");
-        var validator = CreateValidator(repo);
+        var artifacts = CreateArtifacts(world, family, "1.2.3", commit: "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef");
+        var validator = CreateValidator(world);
 
-        var result = await ValidateAsync(validator, repo, family, artifacts, "1.2.3", DefaultMetadata());
+        var report = await ValidateAsync(validator, world, family, artifacts, "1.2.3", DefaultMetadata());
 
-        await Assert.That(result.IsError()).IsTrue();
-        await Assert.That(result.Validation.Checks.Any(check => check.Kind == PackageValidationCheckKind.CanonicalMetadataMatches && check.IsError)).IsTrue();
+        await Assert.That(report.IsValid).IsFalse();
+        await Assert.That(report.Errors.Any(check => check.Code == "G26")).IsTrue();
     }
 
     [Test]
     public async Task Validate_Should_Fail_When_Nuspec_Authors_Differ_From_Csproj_Metadata()
     {
-        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
+        var world = FakeCakeWorldV2.CreateWindows();
         var family = GetFamily("sdl2-image");
-        var artifacts = CreateArtifacts(repo, family, "1.2.3", authors: "Wrong Author");
-        var validator = CreateValidator(repo);
+        var artifacts = CreateArtifacts(world, family, "1.2.3", authors: "Wrong Author");
+        var validator = CreateValidator(world);
 
-        var result = await ValidateAsync(validator, repo, family, artifacts, "1.2.3", DefaultMetadata());
+        var report = await ValidateAsync(validator, world, family, artifacts, "1.2.3", DefaultMetadata());
 
-        await Assert.That(result.IsError()).IsTrue();
-        await Assert.That(result.Validation.Checks.Any(check => check.Kind == PackageValidationCheckKind.CanonicalMetadataMatches && check.IsError)).IsTrue();
+        await Assert.That(report.IsValid).IsFalse();
+        await Assert.That(report.Errors.Any(check => check.Code == "G27")).IsTrue();
     }
 
     [Test]
     public async Task Validate_Should_Fail_When_Csproj_TargetFrameworks_Diverge_From_Nuspec_Groups()
     {
-        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
+        var world = FakeCakeWorldV2.CreateWindows();
         var family = GetFamily("sdl2-image");
-        var artifacts = CreateArtifacts(repo, family, "1.2.3");
-        var validator = CreateValidator(repo);
+        var artifacts = CreateArtifacts(world, family, "1.2.3");
+        var validator = CreateValidator(world);
 
         var metadataMissingNet462 = DefaultMetadata(targetFrameworks: ["net10.0", "net9.0", "net8.0", "netstandard2.0"]);
 
-        var result = await ValidateAsync(validator, repo, family, artifacts, "1.2.3", metadataMissingNet462);
+        var report = await ValidateAsync(validator, world, family, artifacts, "1.2.3", metadataMissingNet462);
 
-        await Assert.That(result.IsError()).IsTrue();
-        await Assert.That(result.Validation.Checks.Any(check => check.Kind == PackageValidationCheckKind.DependencyGroupsConsistentAcrossFrameworks && check.IsError)).IsTrue();
+        await Assert.That(report.IsValid).IsFalse();
+        await Assert.That(report.Errors.Any(check => check.Code == "G22")).IsTrue();
     }
 
     [Test]
     public async Task Validate_Should_Fail_When_Native_Package_Missing_BuildTransitive_Wrapper()
     {
-        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
+        var world = FakeCakeWorldV2.CreateWindows();
         var family = GetFamily("sdl2-image");
-        var artifacts = CreateArtifacts(repo, family, "1.2.3", nativeIncludeBuildTransitiveWrapper: false);
-        var validator = CreateValidator(repo);
+        var artifacts = CreateArtifacts(world, family, "1.2.3", nativeIncludeBuildTransitiveWrapper: false);
+        var validator = CreateValidator(world);
 
-        var result = await ValidateAsync(validator, repo, family, artifacts, "1.2.3", DefaultMetadata());
+        var report = await ValidateAsync(validator, world, family, artifacts, "1.2.3", DefaultMetadata());
 
-        await Assert.That(result.IsError()).IsTrue();
-        await Assert.That(result.Validation.Checks.Any(check => check.Kind == PackageValidationCheckKind.BuildTransitiveContractPresent && check.IsError)).IsTrue();
+        await Assert.That(report.IsValid).IsFalse();
+        await Assert.That(report.Errors.Any(check => check.Code == "G47")).IsTrue();
     }
 
     [Test]
     public async Task Validate_Should_Fail_When_Native_Package_Missing_Shared_Common_Targets()
     {
-        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
+        var world = FakeCakeWorldV2.CreateWindows();
         var family = GetFamily("sdl2-image");
-        var artifacts = CreateArtifacts(repo, family, "1.2.3", nativeIncludeSharedCommonTargets: false);
-        var validator = CreateValidator(repo);
+        var artifacts = CreateArtifacts(world, family, "1.2.3", nativeIncludeSharedCommonTargets: false);
+        var validator = CreateValidator(world);
 
-        var result = await ValidateAsync(validator, repo, family, artifacts, "1.2.3", DefaultMetadata());
+        var report = await ValidateAsync(validator, world, family, artifacts, "1.2.3", DefaultMetadata());
 
-        await Assert.That(result.IsError()).IsTrue();
-        await Assert.That(result.Validation.Checks.Any(check => check.Kind == PackageValidationCheckKind.BuildTransitiveContractPresent && check.IsError)).IsTrue();
+        await Assert.That(report.IsValid).IsFalse();
+        await Assert.That(report.Errors.Any(check => check.Code == "G47")).IsTrue();
     }
 
     [Test]
@@ -238,15 +240,15 @@ public sealed class PackageOutputValidatorTests
         // defence against the H1 failure mode — if upstream invalidation + gate are
         // bypassed, this post-pack check catches a nupkg shipped without third-party
         // attribution.
-        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
+        var world = FakeCakeWorldV2.CreateWindows();
         var family = GetFamily("sdl2-image");
-        var artifacts = CreateArtifacts(repo, family, "1.2.3", nativeIncludeLicensePayload: false);
-        var validator = CreateValidator(repo);
+        var artifacts = CreateArtifacts(world, family, "1.2.3", nativeIncludeLicensePayload: false);
+        var validator = CreateValidator(world);
 
-        var result = await ValidateAsync(validator, repo, family, artifacts, "1.2.3", DefaultMetadata());
+        var report = await ValidateAsync(validator, world, family, artifacts, "1.2.3", DefaultMetadata());
 
-        await Assert.That(result.IsError()).IsTrue();
-        await Assert.That(result.Validation.Checks.Any(check => check.Kind == PackageValidationCheckKind.LicensePayloadPresent && check.IsError)).IsTrue();
+        await Assert.That(report.IsValid).IsFalse();
+        await Assert.That(report.Errors.Any(check => check.Code == "G51")).IsTrue();
     }
 
     [Test]
@@ -255,24 +257,24 @@ public sealed class PackageOutputValidatorTests
         // G29: an archive named native.tar.gz (the pre-S1 shape) would collide with
         // sibling .Native packages on the consumer side. Validator must catch any drift
         // away from $(PackageId).tar.gz naming.
-        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
+        var world = FakeCakeWorldV2.CreateWindows();
         var family = GetFamily("sdl2-image");
-        var artifacts = CreateArtifacts(repo, family, "1.2.3", nativeLinuxTarballFileName: "native.tar.gz");
-        var validator = CreateValidator(repo);
+        var artifacts = CreateArtifacts(world, family, "1.2.3", nativeLinuxTarballFileName: "native.tar.gz");
+        var validator = CreateValidator(world);
 
-        var result = await ValidateAsync(validator, repo, family, artifacts, "1.2.3", DefaultMetadata());
+        var report = await ValidateAsync(validator, world, family, artifacts, "1.2.3", DefaultMetadata());
 
-        await Assert.That(result.IsError()).IsTrue();
-        await Assert.That(result.Validation.Checks.Any(check => check.Kind == PackageValidationCheckKind.NativePayloadShapePerRid && check.IsError)).IsTrue();
+        await Assert.That(report.IsValid).IsFalse();
+        await Assert.That(report.Errors.Any(check => check.Code == "G48")).IsTrue();
     }
 
     [Test]
     public async Task Validate_Should_Fail_When_Project_Metadata_License_Is_Empty()
     {
-        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows).BuildContextWithHandles();
+        var world = FakeCakeWorldV2.CreateWindows();
         var family = GetFamily("sdl2-image");
-        var artifacts = CreateArtifacts(repo, family, "1.2.3");
-        var validator = CreateValidator(repo);
+        var artifacts = CreateArtifacts(world, family, "1.2.3");
+        var validator = CreateValidator(world);
 
         var metadata = new ProjectMetadata(
             TargetFrameworks: CsprojTargetFrameworks,
@@ -280,10 +282,10 @@ public sealed class PackageOutputValidatorTests
             PackageLicenseFile: string.Empty,
             PackageIcon: ExpectedIcon);
 
-        var result = await ValidateAsync(validator, repo, family, artifacts, "1.2.3", metadata);
+        var report = await ValidateAsync(validator, world, family, artifacts, "1.2.3", metadata);
 
-        await Assert.That(result.IsError()).IsTrue();
-        await Assert.That(result.Validation.Checks.Any(check => check.Kind == PackageValidationCheckKind.ProjectMetadataComplete && check.IsError)).IsTrue();
+        await Assert.That(report.IsValid).IsFalse();
+        await Assert.That(report.Errors.Any(check => check.Name == "Project metadata completeness")).IsTrue();
     }
 
     private static ProjectMetadata DefaultMetadata(
@@ -304,16 +306,16 @@ public sealed class PackageOutputValidatorTests
         return ManifestFixture.CreateTestManifestConfig().PackageFamilies.Single(family => string.Equals(family.Name, familyName, StringComparison.OrdinalIgnoreCase));
     }
 
-    private static async Task<PackageValidationResult> ValidateAsync(
+    private static async Task<ValidationReport> ValidateAsync(
         PackageOutputValidator validator,
-        FakeRepoHandles repo,
+        FakeCakeWorldV2 world,
         PackageFamilyConfig family,
         PackageArtifacts artifacts,
         string expectedVersion,
         ProjectMetadata metadata)
     {
         var manifest = ManifestFixture.CreateTestManifestConfig();
-        var readmePath = EnsureReadme(repo, manifest);
+        var readmePath = EnsureReadme(world, manifest);
 
         return await validator.ValidateAsync(
             family,
@@ -325,19 +327,15 @@ public sealed class PackageOutputValidatorTests
             readmePath);
     }
 
-    private static FilePath EnsureReadme(FakeRepoHandles repo, ManifestConfig manifest)
+    private static FilePath EnsureReadme(FakeCakeWorldV2 world, ManifestConfig manifest)
     {
-        var readmePath = repo.ResolveFile("README.md");
-        var file = repo.FileSystem.GetFile(readmePath);
-        using var stream = file.Open(FileMode.Create, FileAccess.Write, FileShare.None);
-        using var writer = new StreamWriter(stream);
-        writer.Write(ReadmeMappingTable.BuildBlock(manifest));
-
+        var readmePath = world.RepoRoot.CombineWithFilePath("README.md");
+        world.WithTextFile(readmePath, ReadmeMappingTable.BuildBlock(manifest));
         return readmePath;
     }
 
     private static PackageArtifacts CreateArtifacts(
-        FakeRepoHandles repo,
+        FakeCakeWorldV2 world,
         PackageFamilyConfig family,
         string version,
         string? nativeDependencyVersion = null,
@@ -356,9 +354,9 @@ public sealed class PackageOutputValidatorTests
         var managedPackageId = FamilyIdentifierConventions.ManagedPackageId(family.Name);
         var nativePackageId = FamilyIdentifierConventions.NativePackageId(family.Name);
 
-        var managedPackagePath = repo.ResolveFile($"artifacts/packages/{managedPackageId}.{version}.nupkg");
-        var nativePackagePath = repo.ResolveFile($"artifacts/packages/{nativePackageId}.{version}.nupkg");
-        var symbolsPackagePath = repo.ResolveFile($"artifacts/packages/{managedPackageId}.{version}.snupkg");
+        var managedPackagePath = world.RepoRoot.CombineWithFilePath($"artifacts/packages/{managedPackageId}.{version}.nupkg");
+        var nativePackagePath = world.RepoRoot.CombineWithFilePath($"artifacts/packages/{nativePackageId}.{version}.nupkg");
+        var symbolsPackagePath = world.RepoRoot.CombineWithFilePath($"artifacts/packages/{managedPackageId}.{version}.snupkg");
 
         var dependencyGroups = managedDependencyGroupsXml ?? CreateDependencyGroups(
             NuspecFrameworkGroups.Select(group => (group, CreateDependencyMap(
@@ -367,7 +365,7 @@ public sealed class PackageOutputValidatorTests
                 coreDependencyVersion ?? BuildCrossFamilyRangeExpression(family, version)))).ToList());
 
         WriteZip(
-            repo,
+            world,
             managedPackagePath,
             ("package.nuspec", CreateManagedNuspec(
                 family,
@@ -411,12 +409,12 @@ public sealed class PackageOutputValidatorTests
 
         nativeEntries.Add(("runtimes/win-x64/native/SDL2.dll", "win-x64-dll"));
 
-        WriteZip(repo, nativePackagePath, nativeEntries.ToArray());
+        WriteZip(world, nativePackagePath, [.. nativeEntries]);
 
         if (includeSymbols)
         {
             WriteZip(
-                repo,
+                world,
                 symbolsPackagePath,
                 ("symbols.nuspec", "<package><metadata><id>symbols</id></metadata></package>"),
                 ($"lib/net10.0/{managedPackageId}.pdb", "pdb"));
@@ -555,15 +553,15 @@ public sealed class PackageOutputValidatorTests
             """;
     }
 
-    private static void WriteZip(FakeRepoHandles repo, FilePath archivePath, params (string EntryName, string Content)[] entries)
+    private static void WriteZip(FakeCakeWorldV2 world, FilePath archivePath, params (string EntryName, string Content)[] entries)
     {
-        var directory = repo.FileSystem.GetDirectory(archivePath.GetDirectory());
+        var directory = world.FileSystem.GetDirectory(archivePath.GetDirectory());
         if (!directory.Exists)
         {
             directory.Create();
         }
 
-        var file = repo.FileSystem.GetFile(archivePath);
+        var file = world.FileSystem.GetFile(archivePath);
         using var stream = file.Open(FileMode.Create, FileAccess.Write, FileShare.None);
         using var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: false);
 

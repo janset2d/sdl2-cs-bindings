@@ -8,6 +8,7 @@ using Build;
 using Build.Features.Ci;
 using Build.Targets.InspectHarvestedDependencies;
 using Build.Targets.OtoolAnalyze;
+using Build.Targets.Package;
 using Build.Features.Harvesting;
 using Build.Features.Packaging;
 using Build.Features.Publishing;
@@ -143,7 +144,8 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
         .AddPreFlightCheck()
         .AddHarvestingFeature()
         .AddPublishingFeature()
-        .AddPackagingFeature();
+        .AddPackagingFeature()
+        .AddPackage();
 }
 
 static async Task<DirectoryPath> DetermineRepoRootAsync(DirectoryInfo? repoRootArg)

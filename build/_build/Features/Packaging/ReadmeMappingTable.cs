@@ -1,11 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
-using Build.Validation.Conventions;
 using Build.Host.Cake;
 using Build.Host.Paths;
 using Build.Shared.Manifest;
+using Build.Validation.Conventions;
 using Cake.Common.IO;
 using Cake.Core;
-using Cake.Core.IO;
 using NuGet.Versioning;
 
 namespace Build.Features.Packaging;
@@ -170,93 +169,5 @@ public sealed class ReadmeMappingTableGenerator(
 
         await _cakeContext.WriteAllTextAsync(readmePath, updated);
         ct.ThrowIfCancellationRequested();
-    }
-}
-
-/// <summary>
-/// Post-pack validator (G57) — asserts the README mapping block currently matches the
-/// manifest-driven generator output. Normalizes line endings for a stable diff.
-/// </summary>
-public sealed class ReadmeMappingTableValidator(IFileSystem fileSystem)
-{
-    private readonly IFileSystem _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
-
-    public PackageValidationCheck Validate(
-        PackageFamilyConfig family,
-        FilePath readmePath,
-        ManifestConfig manifestConfig)
-    {
-        ArgumentNullException.ThrowIfNull(family);
-        ArgumentNullException.ThrowIfNull(readmePath);
-        ArgumentNullException.ThrowIfNull(manifestConfig);
-
-        var file = _fileSystem.GetFile(readmePath);
-        if (!file.Exists)
-        {
-            return BuildFailure(
-                family,
-                readmePath,
-                "README mapping block present",
-                "README missing",
-                $"G57: README file '{readmePath.FullPath}' does not exist.");
-        }
-
-        string readmeContent;
-        using (var stream = file.OpenRead())
-        using (var reader = new StreamReader(stream))
-        {
-            readmeContent = reader.ReadToEnd();
-        }
-
-        var expectedBlock = ReadmeMappingTable.BuildBlock(manifestConfig);
-        if (!ReadmeMappingTable.TryExtractBlock(readmeContent, out var actualBlock))
-        {
-            return BuildFailure(
-                family,
-                readmePath,
-                ReadmeMappingTable.StartMarker + " ... " + ReadmeMappingTable.EndMarker,
-                "<missing markers>",
-                $"G57: README '{readmePath.GetFilename().FullPath}' is missing mapping table markers '{ReadmeMappingTable.StartMarker}' and/or '{ReadmeMappingTable.EndMarker}'.");
-        }
-
-        var lineEnding = readmeContent.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
-        var normalizedExpected = ReadmeMappingTable.NormalizeLineEndings(expectedBlock, lineEnding);
-        var normalizedActual = ReadmeMappingTable.NormalizeLineEndings(actualBlock, lineEnding);
-
-        if (string.Equals(normalizedExpected, normalizedActual, StringComparison.Ordinal))
-        {
-            return new PackageValidationCheck(
-                FamilyIdentifier: family.Name,
-                PackagePath: readmePath,
-                Kind: PackageValidationCheckKind.ReadmeMappingTableCurrent,
-                IsValid: true,
-                ExpectedValue: "manifest-aligned mapping block",
-                ActualValue: "current",
-                ErrorMessage: null);
-        }
-
-        return BuildFailure(
-            family,
-            readmePath,
-            normalizedExpected,
-            normalizedActual,
-            $"G57: README mapping table block in '{readmePath.GetFilename().FullPath}' is stale and does not match manifest-driven generator output.");
-    }
-
-    private static PackageValidationCheck BuildFailure(
-        PackageFamilyConfig family,
-        FilePath readmePath,
-        string expected,
-        string actual,
-        string message)
-    {
-        return new PackageValidationCheck(
-            FamilyIdentifier: family.Name,
-            PackagePath: readmePath,
-            Kind: PackageValidationCheckKind.ReadmeMappingTableCurrent,
-            IsValid: false,
-            ExpectedValue: expected,
-            ActualValue: actual,
-            ErrorMessage: message);
     }
 }

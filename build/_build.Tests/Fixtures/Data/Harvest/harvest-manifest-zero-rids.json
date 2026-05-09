@@ -1,0 +1,21 @@
+{
+  "library_name": "sdl2",
+  "generated_timestamp": "2026-05-09T10:00:00+00:00",
+  "rids": [
+    {
+      "library_name": "sdl2",
+      "rid": "win-x64",
+      "triplet": "x64-windows-hybrid",
+      "success": false,
+      "error_message": "build failed",
+      "timestamp": "2026-05-09T09:55:00+00:00"
+    }
+  ],
+  "summary": {
+    "total_rids": 1,
+    "successful_rids": 0,
+    "failed_rids": 1,
+    "success_rate": 0.0
+  },
+  "consolidation": null
+}

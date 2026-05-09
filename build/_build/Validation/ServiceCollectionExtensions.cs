@@ -25,6 +25,10 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ICrossFamilyDependencyResolvabilityValidator, CrossFamilyDependencyResolvabilityValidator>();
         services.AddSingleton<IUpstreamVersionAlignmentValidator, UpstreamVersionAlignmentValidator>();
         services.AddSingleton<IHybridStaticOverlayValidator, HybridStaticOverlayValidator>();
+        services.AddSingleton<IHarvestReadinessValidator, HarvestReadinessValidator>();
+        services.AddSingleton<INativePackageMetadataValidator, NativePackageMetadataValidator>();
+        services.AddSingleton<IReadmeMappingTableValidator, ReadmeMappingTableValidator>();
+        services.AddSingleton<IPackageOutputValidator, PackageOutputValidator>();
 
         return services;
     }

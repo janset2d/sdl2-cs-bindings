@@ -1,4 +1,5 @@
 using Build.Host.Paths;
+using Build.Results;
 using Build.Shared.Packaging;
 using Cake.Common.Tools.DotNet;
 using Cake.Common.Tools.DotNet.MSBuild;
@@ -7,7 +8,7 @@ using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 
-namespace Build.Integrations.DotNet;
+namespace Build.Targets.Package.Services;
 
 public sealed class DotNetPackInvoker(ICakeContext cakeContext, ICakeLog log, IPathService pathService) : IDotNetPackInvoker
 {
@@ -17,7 +18,7 @@ public sealed class DotNetPackInvoker(ICakeContext cakeContext, ICakeLog log, IP
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
     private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
 
-    public DotNetPackResult Pack(FilePath projectPath, DotNetPackInvocation invocation, bool noRestore, bool noBuild)
+    public Result<Unit, DotNetPackError> Pack(FilePath projectPath, DotNetPackInvocation invocation, bool noRestore, bool noBuild)
     {
         ArgumentNullException.ThrowIfNull(projectPath);
         ArgumentNullException.ThrowIfNull(invocation);
@@ -46,16 +47,18 @@ public sealed class DotNetPackInvoker(ICakeContext cakeContext, ICakeLog log, IP
         }
         catch (CakeException ex)
         {
-            return new DotNetPackError($"dotnet pack failed for '{projectPath.GetFilename().FullPath}' at version {invocation.Version}: {ex.Message}", projectPath.FullPath, ex);
+            return Result<Unit, DotNetPackError>.Failure(
+                new DotNetPackError($"dotnet pack failed for '{projectPath.GetFilename().FullPath}' at version {invocation.Version}: {ex.Message}", projectPath.FullPath, ex));
         }
 
-        return DotNetPackResult.ToSuccess();
+        return Result<Unit, DotNetPackError>.Success(Unit.Value);
     }
 
     private static DotNetMSBuildSettings BuildMSBuildSettings(DotNetPackInvocation invocation)
     {
-        // Version is resolved by Cake upstream (PackagePipeline via --versions-file mapping)
-        // and injected as $(Version) in every pack invocation.
+        // Version is resolved upstream by PackageTask from --versions-file (the resolved
+        // PackageFamilyVersionSet) and threaded through DotNetPackInvocation as $(Version)
+        // in every pack invocation.
         var settings = new DotNetMSBuildSettings
         {
             Version = invocation.Version,
