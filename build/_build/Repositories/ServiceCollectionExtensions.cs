@@ -32,6 +32,8 @@ public static class ServiceCollectionExtensions
             return new VersionFileRepository(context);
         });
 
+        services.AddSingleton<IHarvestStatusRepository, HarvestStatusRepository>();
+
         return services;
     }
 }

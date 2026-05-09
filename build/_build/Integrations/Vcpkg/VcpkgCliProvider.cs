@@ -1,9 +1,9 @@
 #pragma warning disable CA1031
 
 using System.Collections.Immutable;
-using Build.Features.Harvesting;
 using Build.Host.Cake;
 using Build.Shared.Harvesting;
+using Build.Targets.Harvest.Models;
 using Build.Host.Paths;
 using Build.Tools.Vcpkg;
 using Build.Tools.Vcpkg.Settings;

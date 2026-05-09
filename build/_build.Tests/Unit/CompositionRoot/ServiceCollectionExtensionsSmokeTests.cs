@@ -1,14 +1,19 @@
 #pragma warning disable CA1031
 
 using Build.Features.Ci;
-using Build.Features.Harvesting;
 using Build.Features.Packaging;
 using Build.Features.Publishing;
 using Build.Features.Vcpkg;
+using Build.Repositories;
+using Build.Targets.ConsolidateHarvest;
+using Build.Targets.Harvest;
+using Build.Targets.NativeSmoke;
 using Build.Targets.PreFlightCheck;
 using Build.Tests.Fixtures;
 using Build.Validation;
 using Microsoft.Extensions.DependencyInjection;
+using NSubstitute;
+using Spectre.Console;
 
 namespace Build.Tests.Unit.CompositionRoot;
 
@@ -23,6 +28,13 @@ namespace Build.Tests.Unit.CompositionRoot;
 /// wrong lifetime) at CI gate time without requiring full Cake host bootstrapping. Each
 /// feature has exactly one smoke; future features add one each per the vertical
 /// slice convention.
+/// </para>
+/// <para>
+/// <b>V1 fixture deferral:</b> this file consumes V1 <c>TestHostFixture.AddTestHostBuildingBlocks</c>;
+/// the testing-guidelines V2-on-touch rule is intentionally deferred for this file because
+/// creating a V2 equivalent (<c>FakeCakeWorldV2</c>-derived <c>IServiceCollection</c> seed) is
+/// its own infra slice rather than a single-test migration. Tracked in
+/// <c>docs/parking-lot.md</c> "S14 P8 Reviewer Follow-Ups".
 /// </para>
 /// </summary>
 public sealed class ServiceCollectionExtensionsSmokeTests
@@ -53,17 +65,42 @@ public sealed class ServiceCollectionExtensionsSmokeTests
     }
 
     [Test]
-    public async Task AddHarvestingFeature_Should_Register_All_Pipeline_And_Validator_Types()
+    public async Task AddHarvest_Should_Register_All_Collaborator_Types()
     {
-        // HarvestPipeline injects IDependencyPolicyValidator (registered by Packaging via
-        // DependencyPolicyValidatorFactory). Packaging is pre-registered to mirror production
-        // composition. AddValidators() supplies validators relocated to Validation/, which
-        // Packaging consumes transitively.
+        // HarvestTask injects walker/planner/deployer/preconditions validators registered by
+        // AddValidators(), the rid-status repository registered by AddRepositories() per the
+        // repository-cohort rule, and ManifestConfig + IPackageInfoProvider + IRuntimeScanner
+        // from AddTestHostBuildingBlocks. HarvestReporter takes IAnsiConsole — Program.cs binds
+        // the real console; smoke tests bind a substitute so the resolution graph closes.
+        await AssertAllRegisteredTypesResolve(services =>
+        {
+            services.AddSingleton(Substitute.For<IAnsiConsole>());
+            services.AddRepositories();
+            services.AddValidators();
+            services.AddHarvest();
+        });
+    }
+
+    [Test]
+    public async Task AddNativeSmoke_Should_Register_All_Collaborator_Types()
+    {
+        // AddNativeSmoke registers IMsvcDevEnvironment only after Phase 5 inline. Task pulls
+        // INativeSmokePreconditionsValidator from AddValidators(); other deps from host blocks.
         await AssertAllRegisteredTypesResolve(services =>
         {
             services.AddValidators();
-            services.AddPackagingFeature();
-            services.AddHarvestingFeature();
+            services.AddNativeSmoke();
+        });
+    }
+
+    [Test]
+    public async Task AddConsolidateHarvest_Should_Register_All_Collaborator_Types()
+    {
+        // ConsolidateHarvestReporter takes IAnsiConsole — see AddHarvest smoke for rationale.
+        await AssertAllRegisteredTypesResolve(services =>
+        {
+            services.AddSingleton(Substitute.For<IAnsiConsole>());
+            services.AddConsolidateHarvest();
         });
     }
 

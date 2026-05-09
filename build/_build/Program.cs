@@ -6,10 +6,12 @@ using System.CommandLine.NamingConventionBinder;
 using System.Diagnostics;
 using Build;
 using Build.Features.Ci;
+using Build.Targets.ConsolidateHarvest;
+using Build.Targets.Harvest;
 using Build.Targets.InspectHarvestedDependencies;
+using Build.Targets.NativeSmoke;
 using Build.Targets.OtoolAnalyze;
 using Build.Targets.Package;
-using Build.Features.Harvesting;
 using Build.Features.Packaging;
 using Build.Features.Publishing;
 using Build.Targets.PreFlightCheck;
@@ -114,19 +116,7 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
         var versionSet = ctx.ToJson<PackageFamilyVersionSet>(filePath);
         return new PackageBuildConfiguration(versionSet);
     });
-    services.AddSingleton(new DumpbinConfiguration([.. parsedArgs.Dll]));
-
     services.AddSingleton<IAnsiConsole>(AnsiConsole.Console);
-
-    // Configurations aggregate: 5 axes (Versioning slot retired in plan v4 — versioning
-    // tasks read named BuildContext properties). Tasks consume context.Options.X; services that
-    // only need a single axis inject the sub-record directly.
-    services.AddSingleton<Configurations>(provider => new Configurations(
-        Vcpkg: provider.GetRequiredService<VcpkgConfiguration>(),
-        Package: provider.GetRequiredService<PackageBuildConfiguration>(),
-        Repository: provider.GetRequiredService<RepositoryConfiguration>(),
-        DotNet: provider.GetRequiredService<DotNetBuildConfiguration>(),
-        Dumpbin: provider.GetRequiredService<DumpbinConfiguration>()));
 
     // Composition root: 11 per-feature AddXFeature() calls + 3 cross-cutting groupings
     // (AddHostBuildingBlocks, AddIntegrations, AddToolWrappers). AddHostBuildingBlocks takes
@@ -142,7 +132,9 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
         .AddInspectHarvestedDependenciesTarget()
         .AddOtoolAnalyzeTarget()
         .AddPreFlightCheck()
-        .AddHarvestingFeature()
+        .AddHarvest()
+        .AddNativeSmoke()
+        .AddConsolidateHarvest()
         .AddPublishingFeature()
         .AddPackagingFeature()
         .AddPackage();

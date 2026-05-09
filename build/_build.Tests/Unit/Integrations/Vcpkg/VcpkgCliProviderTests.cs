@@ -1,4 +1,5 @@
 using Build.Host.Paths;
+using Build.Harvesting;
 using Build.Integrations.Vcpkg;
 using Build.Shared.Harvesting;
 using Build.Tests.Fixtures;

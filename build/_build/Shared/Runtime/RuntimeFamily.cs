@@ -9,7 +9,7 @@ namespace Build.Shared.Runtime;
 /// </summary>
 /// <remarks>
 /// Tools, Integrations, and Cake extension code (e.g. <c>Tools/Vcpkg/VcpkgTool</c>,
-/// <c>Features/Harvesting/ArtifactPlanner</c>, <c>Host/Cake/CakePlatformExtensions</c>)
+/// <c>Targets/Harvest/Services/ArtifactPlanner</c>, <c>Host/Cake/CakePlatformExtensions</c>)
 /// continue to consume <c>Cake.Core.PlatformFamily</c> directly via
 /// <c>ICakePlatform.Family</c> — that's the Cake-native side of the boundary. Pure
 /// Shared / Features code that talks to <see cref="IRuntimeProfile.Family"/> uses this

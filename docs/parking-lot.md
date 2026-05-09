@@ -39,12 +39,40 @@
 
 ### Harvesting Component Refactors
 
-- Status: `parked`
-- Refactor seams identified in earlier reviews; not active work.
-- Preserve as pressure-tested directions only when real change volume justifies them:
-  - Splitting `BinaryClosureWalker` into primary-binary resolution / package-dep walking / binary scanning / file classification roles.
+- Status: `partially-resolved` (S14, 2026-05-09)
+- `HarvestPipeline` orchestration extraction landed in S14 ([#87](https://github.com/janset2d/sdl2-cs-bindings/issues/87) — `Targets/Harvest/` decomposes into HarvestTask + walker/planner/deployer/repo/reporter cohort).
+- Preserve as remaining pressure-tested directions:
+  - Splitting `BinaryClosureWalker.BuildClosureAsync` into two BFS phases (package-graph walk + runtime-dep walk) — currently 110-line method with file-scope MA0051 + CA1031 suppression. Reviewer D (S14, P8 review) flagged as deferred extraction; pre-migration parity preserved.
+  - `ArtifactPlanner.CreatePlanAsync` 175-line method splits action emission from statistics derivation. Statistics phase is a pure projection over actions — extract to `BuildStatistics(actions, closure, strategy)` private static or `DeploymentStatisticsBuilder`. Reviewers C+D (S14) convergent finding.
+  - `IPathService` god-service smell — 12+ harvest-shaped path methods consumed by HarvestStatusRepository + ConsolidateHarvest stack. Lift `IHarvestPaths` segregation. Reviewer D (S14).
+  - `HarvestStatusRepository` naming + scope reconsideration — `Invalidate` cleans cross-target consolidate paths (consolidated dir + manifest + summary) so the "Status" name is narrower than the type's responsibilities. Either rename to `HarvestArtifactsRepository` or split into `IHarvestStatusWriter` + `IHarvestArtifactsCleaner`. Reviewer D-S3 (S14).
+  - `DeploymentStatistics` cross-namespace dependency — root `Build.Repositories.IHarvestStatusRepository` references `Build.Targets.Harvest.Models.DeploymentStatistics`. Move `DeploymentStatistics` to `Build.Harvesting/` (cross-target named concept) for clean layering. Reviewers A/B/C/D convergent (S14).
   - Extracting `SystemFileFilter` if `RuntimeProfile` keeps accumulating non-profile logic.
-  - `HarvestPipeline` orchestration extraction ([#87](https://github.com/janset2d/sdl2-cs-bindings/issues/87), deferred).
+
+### S14 P8 Reviewer Follow-Ups
+
+- Status: `parked` (post-P8 hardening)
+- Multi-agent review at S14 Phase 11 surfaced Tier-3 findings absorbed below; tracked here for future slices when change volume justifies.
+- **ConfigureAwait collaborator sweep**: HarvestTask uses `.ConfigureAwait(false)` consistently; collaborators (Walker, Planner, Deployer, MsvcDevEnvironment, LicenseUnionWriter, HarvestArtifactMerger) didn't. Resolved in S14 closure cleanup.
+- **ConsolidateHarvest aggregate exception log-and-throw amplification** (Reviewer B-N5): per-library failure logged via reporter + each library's message embedded in aggregate `CakeException`. ADR §11 "log-and-throw noise" risk. Trim aggregate exception to count-only summary; log carries detail.
+- **`StagedArtifactSwapper.SwapAtomic` name vs reality** (C-S13): the XML doc admits "not truly atomic"; rename to `Swap` or `ReplaceWithStaged`. Either small naming pass or accept and clarify doc-comment in place.
+- **`MsvcDevEnvironment` process management defensive cleanup** (C-S8): `cmd.exe` child not explicitly killed on cancellation; small risk of orphan process if `ct` fires mid-vcvars. Add `try/finally { if (!process.HasExited) process.Kill(true); }` guard.
+- **Modernization opportunities**: `Convert.ToHexStringLower(hash)` (.NET 9+) replaces StringBuilder hex loop in `LicenseUnionWriter.ComputeSha256Async`; `SHA256.HashDataAsync` static replaces per-file `SHA256.Create()`.
+- **`ResolveLibrariesToHarvest` / `ResolveLibrariesToValidate` duplication** (C-S10, D-N1): identical algorithm in HarvestTask + NativeSmokeTask. Extract `ManifestConfig.ResolveRequested(...)` extension method.
+- **V1 fixture migration (smoke tests)** (E-B3): `ServiceCollectionExtensionsSmokeTests.cs` reuses V1 `TestHostFixture.AddTestHostBuildingBlocks`. Creating a V2 equivalent is its own infra slice. Document deferral; new V2 helper (`FakeCakeWorldV2.IntoServiceCollection()` or sibling) when next test-infra pass lands.
+
+### General-Purpose Reporter Infrastructure
+
+- Status: `parked` (post-P8 design)
+- 4 reporters now share a recurring shape: `LogStarting`, `StartLibrary(name)`, `FinishLibrary(name, ...)`, `ReportLibraryFailure` / `ReportPhaseFailure`, `LogCompleted`. PreflightReporter (ICakeContext-only) is the outlier; HarvestReporter + PackageReporter + ConsolidateHarvestReporter share IAnsiConsole + ICakeLog cohort.
+- Preserve:
+  - Rule of three has triggered. If a fifth reporter lands (P9 PackageConsumerSmoke or Publish surface), evaluate `IReporter` base or shared `RuleRenderer`.
+  - HarvestReporter has 9 public methods — design §15 risk register cap is 10. Watch the next addition.
+
+### Path / File CLI Option Drift
+
+- Status: `parked` (post-P8 cleanup item)
+- BuildContext CLI properties expose `VersionsFilePath` (FilePath), `ResolveVersionsScope` (IReadOnlyList<string>), `ExplicitVersionEntries`, etc. — typed where it matters but inconsistent shape across `--versions-file` (FilePath) vs `--scope` (string list) vs others. After P9/P10, audit BuildContext property types for cohort consistency + consider extension methods on BuildContext for common "resolve to canonical FilePath" shapes.
 
 ## Planned Operational Features
 
@@ -97,8 +125,8 @@
 - Status: `parked`
 - ADR-002 §11 retires "OneOf-style result hierarchies for expected build failures" in favor of `Result<T, TError>` (binary) or `ValidationReport`/`ValidationCheck` (multi-check). S11 retired 5 strategy-related OneOf result types and demonstrated the collapse pattern. S12 (P6 PreFlight migration, 2026-05-08) retired 5 more: `VersionConsistencyResult`, `CoreLibraryIdentityResult`, `CsprojPackContractResult`, `UpstreamVersionAlignmentResult`, `PreflightError`. S13 (P7 Package migration, 2026-05-09) retired 3 more: `DotNetPackResult` (→ `Result<Unit, DotNetPackError>` with new `Build.Results.Unit` value type), `ProjectMetadataResult` (→ `Result<ProjectMetadata, ProjectMetadataError>`), `PackageValidationResult` (collapsed to `ValidationReport` along with `PackageValidation` / `PackageValidationCheck` / `GuardrailKind` enum — guardrail IDs now live in `ValidationCheck.Code` strings; reporters format as `[Gnn] message`).
 - Preserve:
-  - Four OneOf-shaped result types survive post-S13: `PackageInfoResult`, `ArtifactPlannerResult`, `ClosureResult`, `CopierResult`.
-  - Each retires within its respective target migration (P8 Harvest/NativeSmoke/ConsolidateHarvest covers ArtifactPlannerResult, ClosureResult, CopierResult; P9 ConsumerSmoke covers PackageInfoResult).
+  - One OneOf-shaped result type survives post-S14: `PackageInfoResult` (vcpkg integration boundary). S14 retired `ArtifactPlannerResult`, `ClosureResult`, `CopierResult` as part of P8.
+  - `PackageInfoResult` retires within P9 ConsumerSmoke / vcpkg integration relocation; OneOf package dependency removal lands at P10 final cleanup.
   - The OneOf package dependency stays in `Build.csproj` and `Directory.Packages.props` until all surviving types retire (likely P10 final cleanup).
   - The collapse pattern: OneOf-shaped `Result<TError, TSuccess>` → either `ValidationReport` (multi-check with severities) OR `Build.Results.Result<T, TError>` record struct (binary success/failure) per ADR-002 §11.
 

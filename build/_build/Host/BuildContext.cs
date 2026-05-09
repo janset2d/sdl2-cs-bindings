@@ -1,4 +1,3 @@
-using Build.Host.Configuration;
 using Build.Host.Paths;
 using Build.Shared.Manifest;
 using Build.Shared.Runtime;
@@ -9,12 +8,12 @@ using Cake.Frosting;
 namespace Build.Host;
 
 /// <summary>
-/// Cake/Frosting invocation state for the build host. Carries the four orthogonal axes
-/// every Cake task or pipeline composes its work against — repo / artifact paths, the
-/// runtime/RID profile, the loaded manifest, and operator-supplied options. The surface
-/// is intentionally narrow: data + ambient Cake API, never a service locator. Behavior
-/// lives in <see cref="Features"/>; cross-feature vocabulary in <see cref="Shared"/>;
-/// CLI tool wrappers in <see cref="Tools"/>; non-Cake adapters in <see cref="Integrations"/>.
+/// Cake/Frosting invocation state for the build host. Carries repo / artifact paths, the
+/// runtime/RID profile, the loaded manifest, and named CLI properties parsed from the
+/// invocation. The surface is intentionally narrow: data + ambient Cake API, never a
+/// service locator. Behavior lives under <c>Targets/&lt;CakeTargetName&gt;/</c> per ADR-002 §4;
+/// cross-cutting validators under root <c>Validation/</c>; file-backed repositories under
+/// root <c>Repositories/</c>; Cake tool wrappers under <c>Tools/</c>.
 /// </summary>
 public sealed class BuildContext : FrostingContext
 {
@@ -32,14 +31,12 @@ public sealed class BuildContext : FrostingContext
         IPathService pathService,
         IRuntimeProfile runtimeProfile,
         ManifestConfig manifest,
-        ParsedArguments parsedArguments,
-        Configurations options)
+        ParsedArguments parsedArguments)
         : base(context)
     {
         Paths = pathService ?? throw new ArgumentNullException(nameof(pathService));
         Runtime = runtimeProfile ?? throw new ArgumentNullException(nameof(runtimeProfile));
         Manifest = manifest ?? throw new ArgumentNullException(nameof(manifest));
-        Options = options ?? throw new ArgumentNullException(nameof(options));
 
         ArgumentNullException.ThrowIfNull(parsedArguments);
 
@@ -67,13 +64,6 @@ public sealed class BuildContext : FrostingContext
     /// extensions, not on this carrier.
     /// </summary>
     public ManifestConfig Manifest { get; }
-
-    /// <summary>
-     /// Aggregate of operator-input axes (Vcpkg, Package, Versioning, Repository, DotNet,
-     /// Dumpbin) normalized from CLI args at composition time. Per-axis sub-records remain
-    /// individually DI-injectable for services that only need a single slice.
-    /// </summary>
-    public Configurations Options { get; }
 
     // ── Named CLI properties (ADR-002 §6) ──
 

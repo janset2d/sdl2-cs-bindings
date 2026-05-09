@@ -1,5 +1,4 @@
 using Build.Features.Packaging;
-using Build.Host.Configuration;
 using Build.Host.Paths;
 using Build.Integrations.DotNet;
 using Build.Results;
@@ -22,7 +21,6 @@ public sealed class PackageFamilyPacker
 {
     private readonly IPathService _pathService;
     private readonly ManifestConfig _manifestConfig;
-    private readonly DotNetBuildConfiguration _dotNetBuildConfiguration;
     private readonly IDotNetPackInvoker _dotNetPackInvoker;
     private readonly INativePackageMetadataGenerator _nativePackageMetadataGenerator;
     private readonly IProjectMetadataReader _projectMetadataReader;
@@ -34,7 +32,6 @@ public sealed class PackageFamilyPacker
     public PackageFamilyPacker(
         IPathService pathService,
         ManifestConfig manifestConfig,
-        DotNetBuildConfiguration dotNetBuildConfiguration,
         IDotNetPackInvoker dotNetPackInvoker,
         INativePackageMetadataGenerator nativePackageMetadataGenerator,
         IProjectMetadataReader projectMetadataReader,
@@ -45,7 +42,6 @@ public sealed class PackageFamilyPacker
     {
         _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
         _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
-        _dotNetBuildConfiguration = dotNetBuildConfiguration ?? throw new ArgumentNullException(nameof(dotNetBuildConfiguration));
         _dotNetPackInvoker = dotNetPackInvoker ?? throw new ArgumentNullException(nameof(dotNetPackInvoker));
         _nativePackageMetadataGenerator = nativePackageMetadataGenerator ?? throw new ArgumentNullException(nameof(nativePackageMetadataGenerator));
         _projectMetadataReader = projectMetadataReader ?? throw new ArgumentNullException(nameof(projectMetadataReader));
@@ -55,11 +51,12 @@ public sealed class PackageFamilyPacker
         _reporter = reporter ?? throw new ArgumentNullException(nameof(reporter));
     }
 
-    public async Task PackAsync(PackageFamilyConfig family, string version, string headSha, CancellationToken ct)
+    public async Task PackAsync(PackageFamilyConfig family, string version, string headSha, string buildConfiguration, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(family);
         ArgumentException.ThrowIfNullOrWhiteSpace(version);
         ArgumentException.ThrowIfNullOrWhiteSpace(headSha);
+        ArgumentException.ThrowIfNullOrWhiteSpace(buildConfiguration);
 
         var managedProjectPath = ResolveProjectPath(family.ManagedProject, family.Name, "managed_project");
         var nativeProjectPath = ResolveProjectPath(family.NativeProject, family.Name, "native_project");
@@ -82,7 +79,7 @@ public sealed class PackageFamilyPacker
         // both packs carry identical `version` and the post-pack validator asserts the emitted
         // <version> elements match (G23).
         var nativeInvocation = new DotNetPackInvocation(
-            Configuration: _dotNetBuildConfiguration.Configuration,
+            Configuration: buildConfiguration,
             Version: version,
             NativePayloadSource: nativePayloadSource);
 

@@ -26,7 +26,7 @@ public sealed class PackageFamilyPackerTests
         var family = TestFamily(name: "sdl2-core", managedProject: null, nativeProject: "src/native/SDL2.Core.Native/SDL2.Core.Native.csproj");
 
         var ex = await Assert.ThrowsAsync<CakeException>(async () =>
-            await packer.PackAsync(family, "2.32.0", "abc123sha", CancellationToken.None));
+            await packer.PackAsync(family, "2.32.0", "abc123sha", "Release", CancellationToken.None));
 
         await Assert.That(ex!.Message).Contains("missing manifest field 'managed_project'");
     }
@@ -38,7 +38,7 @@ public sealed class PackageFamilyPackerTests
         var family = TestFamily(name: "sdl2-core", managedProject: "src/SDL2.Core/SDL2.Core.csproj", nativeProject: null);
 
         var ex = await Assert.ThrowsAsync<CakeException>(async () =>
-            await packer.PackAsync(family, "2.32.0", "abc123sha", CancellationToken.None));
+            await packer.PackAsync(family, "2.32.0", "abc123sha", "Release", CancellationToken.None));
 
         await Assert.That(ex!.Message).Contains("missing manifest field 'native_project'");
     }
@@ -56,7 +56,7 @@ public sealed class PackageFamilyPackerTests
         var family = TestFamily(name: "sdl2-core", managedProject: "src/SDL2.Core/SDL2.Core.csproj", nativeProject: "src/native/SDL2.Core.Native/SDL2.Core.Native.csproj");
 
         var ex = await Assert.ThrowsAsync<CakeException>(async () =>
-            await packer.PackAsync(family, "2.32.0", "abc123sha", CancellationToken.None));
+            await packer.PackAsync(family, "2.32.0", "abc123sha", "Release", CancellationToken.None));
 
         await Assert.That(ex!.Message).Contains("post-pack validation failed with 3 error(s)");
         // PackageReporter formats errors as "  - [{Code}] {Message}" via ICakeLog.Error.
@@ -115,7 +115,6 @@ public sealed class PackageFamilyPackerTests
         var packer = new PackageFamilyPacker(
             pathService,
             manifest,
-            new DotNetBuildConfiguration("Release"),
             dotNetPackInvoker,
             nativeMetadataGenerator,
             projectMetadataReader,

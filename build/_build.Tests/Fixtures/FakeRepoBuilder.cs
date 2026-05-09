@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Build.Harvesting;
 using Build.Host;
 using Build.Shared.Harvesting;
 using Build.Host.Configuration;
@@ -195,20 +196,12 @@ public sealed class FakeRepoBuilder
 
         var manifest = ManifestConfigSeeder.FromDefaultFixture().Manifest;
 
-        var options = new Configurations(
-            Vcpkg: new VcpkgConfiguration(_libraries, _rid),
-            Package: new PackageBuildConfiguration(Build.Versioning.PackageFamilyVersionSet.Empty),
-            Repository: new RepositoryConfiguration(_repoRoot),
-            DotNet: new DotNetBuildConfiguration(_config),
-            Dumpbin: new DumpbinConfiguration([]));
-
         var context = new BuildContext(
             cakeContext,
             pathService,
             runtimeProfile,
             manifest,
-            parsedArguments,
-            options);
+            parsedArguments);
 
         return new FakeRepoHandles
         {

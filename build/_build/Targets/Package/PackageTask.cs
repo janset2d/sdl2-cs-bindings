@@ -92,7 +92,7 @@ public sealed class PackageTask : AsyncFrostingTask<BuildContext>
         foreach (var family in families)
         {
             var version = versions.RequireVersion(new PackageFamilyId(family.Name)).ToNormalizedString();
-            await _packer.PackAsync(family, version, headSha, CancellationToken.None);
+            await _packer.PackAsync(family, version, headSha, context.BuildConfiguration, CancellationToken.None);
         }
     }
 

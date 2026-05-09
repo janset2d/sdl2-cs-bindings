@@ -197,7 +197,7 @@ Native packaging is a 5-stage Cake pipeline (per-RID matrix expanded by `release
 
 `PreFlightCheck` runs single-runner before the matrix and validates every cross-cutting invariant (manifest ↔ vcpkg, csproj pack contract, current strategy coherence until ADR-002 removes it, G54 upstream alignment, G58 cross-family scope reachability).
 
-Current pre-migration implementation: `build/_build/Features/{Harvesting,Packaging,Preflight,Publishing}/` and `.github/workflows/release.yml`. Target-state implementation follows ADR-002 under `build/_build/Targets/`. See [`docs/knowledge-base/release-guardrails.md`](docs/knowledge-base/release-guardrails.md) §2.0 for the stage-owned validation map.
+Migrated targets: `build/_build/Targets/{PreFlightCheck,Harvest,NativeSmoke,ConsolidateHarvest,Package}/`. Pre-migration residue: `build/_build/Features/{Packaging,Publishing}/` (ConsumerSmoke + Publish stack — P9 territory) and `.github/workflows/release.yml`. See [`docs/knowledge-base/release-guardrails.md`](docs/knowledge-base/release-guardrails.md) §2.0 for the stage-owned validation map.
 
 ## Docs-First Workflow
 

@@ -1,6 +1,6 @@
 using Build.Host.Cake;
+using Build.Harvesting;
 using Build.Host.Paths;
-using Build.Shared.Harvesting;
 using Build.Shared.Manifest;
 using Cake.Common.IO;
 using Cake.Core;

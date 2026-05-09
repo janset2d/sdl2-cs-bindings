@@ -58,7 +58,8 @@ Use this checklist for each ADR-002 migration slice.
 
 - [ ] No catch-all `Shared` or `Common` bucket was introduced.
 - [ ] Cross-target code was promoted only to a named concept such as `Manifest`, `Runtime`, `Versioning`, `Packaging`, `Validation`, `Results`, or a repository.
-- [ ] `Validation/` carries cross-cutting validators under domain alt-folders (`Manifest/`, `Versioning/`, `Packaging/`, `Models/`, `Conventions/`) with a single `AddValidators()` registration point. Established by S12 (P6); expanded by S13 (P7) with `HarvestReadinessValidator`, the relocated `PackageOutputValidator`, plus extracted `NativePackageMetadataValidator` and `ReadmeMappingTableValidator` (11 validators total).
+- [ ] `Validation/` carries cross-cutting validators under domain alt-folders (`Manifest/`, `Versioning/`, `Packaging/`, `Models/`, `Conventions/`, `Harvesting/`, `NativeSmoke/`) with a single `AddValidators()` registration point. Established by S12 (P6); expanded by S13 (P7) with `HarvestReadinessValidator`, the relocated `PackageOutputValidator`, plus extracted `NativePackageMetadataValidator` and `ReadmeMappingTableValidator`; expanded by S14 (P8) with `IHarvestPreconditionsValidator`, `IHybridStaticLeakValidator`, `INativeSmokePreconditionsValidator` (14 validators total).
+- [ ] `Repositories/` (root namespace `Build.Repositories`) carries all build-host file-backed repositories with `IFoo` interfaces + `AddRepositories()` registration. ADR-002 §8 S14 amendment: parallel cohort exception alongside `Validation/`. 4 repositories at S14 close: `IManifestRepository`, `IVcpkgManifestRepository`, `IVersionFileRepository`, `IHarvestStatusRepository` (relocated from `Targets/Harvest/Services/` in S14). Each ships paired `<X>RepositoryUnitTests` (mock-based: ctor + arg validation) + `<X>RepositoryRoundTripTests` (sociable: FakeFileSystem byte-parity) classes in a single file.
 - [ ] "Imminent reuse" means a second real consumer exists in the same migration slice or phase, not hypothetical future reuse.
 - [ ] File-backed state uses repository naming where appropriate.
 - [ ] Version APIs avoid raw `IReadOnlyDictionary<string, NuGetVersion>` boundaries (retired end-to-end in S12; production code holds zero residue).
@@ -110,13 +111,16 @@ Use this checklist for each ADR-002 migration slice.
 - [ ] No new mandatory `*Pipeline` class was introduced.
 - [ ] `PreflightPipeline` is gone (retired in S12 — `PreFlightCheckTask` owns orchestration directly).
 - [ ] `PackagePipeline` is gone (retired in S13 — `PackageTask` owns orchestration; per-family flow in `PackageFamilyPacker`).
+- [ ] `HarvestPipeline` / `NativeSmokePipeline` / `ConsolidateHarvestPipeline` are gone (retired in S14 — task-owned orchestration in `Targets/{Harvest,NativeSmoke,ConsolidateHarvest}/`; NativeSmoke flattened post-self-review with `INativeSmokeRunner` + `NativeSmokePrerequisiteResolver` re-inlined per ADR §5).
+- [ ] `Configurations` aggregate + `BuildContext.Options` + `DumpbinConfiguration` are gone (retired in S14 — never-read aggregate dropped; `PackageFamilyPacker` `DotNetBuildConfiguration` injection replaced with `context.BuildConfiguration` named property).
+- [ ] `Features/Harvesting/` folder is gone (S14 — `HarvestJsonContract` promoted to `Build.Harvesting/`; `AddHarvestingFeature()` deleted).
 - [ ] `Host/Configuration` usage decreased or stayed unchanged only for unmigrated code.
 - [ ] Strategy abstraction usage decreased when touching manifest/runtime/preflight/packaging code.
 - [ ] Coverage gate code was not expanded.
 - [ ] Architecture dependency tests were not updated to enforce new taste rules.
 - [ ] `Integrations/` usage decreased or a remaining adapter has a named, justified destination.
 - [ ] `FrostingLifetime` was not used to hide manifest/version target state preload.
-- [ ] OneOf-shaped result types: only the surviving 4 (`PackageInfoResult`, `ArtifactPlannerResult`, `ClosureResult`, `CopierResult`) remain after S13 — each retires within its respective P8/P9 target migration. S13 retired `DotNetPackResult` (→ `Result<Unit, DotNetPackError>`), `ProjectMetadataResult` (→ `Result<ProjectMetadata, ProjectMetadataError>`), and `PackageValidationResult` (collapsed to `ValidationReport` + collapsed `PackageValidationCheck`/`GuardrailKind` enum into `ValidationCheck` with `Code` string).
+- [ ] OneOf-shaped result types: only `PackageInfoResult` survives after S14 (vcpkg integration boundary; retires with P9 ConsumerSmoke + Vcpkg integration relocation). S13 retired `DotNetPackResult` (→ `Result<Unit, DotNetPackError>`), `ProjectMetadataResult`, `PackageValidationResult`. S14 retired `ArtifactPlannerResult`, `ClosureResult`, `CopierResult` as part of P8 — each `Result<T, TError>` with `HarvestingError` discriminator preserved as the `PackageInfoResult` parent class until its own retirement.
 
 ## 12. Documentation and validation
 

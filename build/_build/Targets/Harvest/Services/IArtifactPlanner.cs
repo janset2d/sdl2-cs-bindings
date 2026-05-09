@@ -1,0 +1,12 @@
+using Build.Harvesting;
+using Build.Results;
+using Build.Shared.Manifest;
+using Build.Targets.Harvest.Models;
+using Cake.Core.IO;
+
+namespace Build.Targets.Harvest.Services;
+
+public interface IArtifactPlanner
+{
+    Task<Result<DeploymentPlan, ArtifactPlannerError>> CreatePlanAsync(LibraryManifest current, BinaryClosure closure, DirectoryPath outRoot, CancellationToken ct = default);
+}

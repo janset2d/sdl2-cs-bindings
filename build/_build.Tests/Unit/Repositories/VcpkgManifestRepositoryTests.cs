@@ -9,7 +9,49 @@ using NSubstitute;
 
 namespace Build.Tests.Unit.Repositories;
 
-public sealed class VcpkgManifestRepositoryTests
+/// <summary>
+/// Mock-based unit coverage for <see cref="VcpkgManifestRepository"/> — constructor argument
+/// validation. End-to-end load behavior (file-existence gate, reader delegation) is covered
+/// by <see cref="VcpkgManifestRepositoryRoundTripTests"/>.
+/// </summary>
+public sealed class VcpkgManifestRepositoryUnitTests
+{
+    [Test]
+    public async Task Constructor_Should_Throw_ArgumentNullException_When_Context_Is_Null()
+    {
+        var reader = Substitute.For<IVcpkgManifestReader>();
+        var path = new FilePath("/repo/vcpkg.json");
+
+        await Assert.That(() => new VcpkgManifestRepository(null!, reader, path))
+            .Throws<ArgumentNullException>();
+    }
+
+    [Test]
+    public async Task Constructor_Should_Throw_ArgumentNullException_When_Reader_Is_Null()
+    {
+        var ctx = Substitute.For<ICakeContext>();
+        var path = new FilePath("/repo/vcpkg.json");
+
+        await Assert.That(() => new VcpkgManifestRepository(ctx, null!, path))
+            .Throws<ArgumentNullException>();
+    }
+
+    [Test]
+    public async Task Constructor_Should_Throw_ArgumentNullException_When_Path_Is_Null()
+    {
+        var ctx = Substitute.For<ICakeContext>();
+        var reader = Substitute.For<IVcpkgManifestReader>();
+
+        await Assert.That(() => new VcpkgManifestRepository(ctx, reader, null!))
+            .Throws<ArgumentNullException>();
+    }
+}
+
+/// <summary>
+/// Sociable round-trip coverage for <see cref="VcpkgManifestRepository"/>. Pairs with
+/// <see cref="VcpkgManifestRepositoryUnitTests"/> per the repository-cohort rule.
+/// </summary>
+public sealed class VcpkgManifestRepositoryRoundTripTests
 {
     [Test]
     public async Task Load_Should_Return_Parsed_Manifest_When_File_Exists()
@@ -46,35 +88,5 @@ public sealed class VcpkgManifestRepositoryTests
         await Assert.That(ex!.Message).Contains("vcpkg manifest");
         await Assert.That(ex!.Message).Contains("does not exist");
         reader.DidNotReceive().ParseFile(Arg.Any<FilePath>());
-    }
-
-    [Test]
-    public async Task Constructor_Should_Throw_ArgumentNullException_When_Context_Is_Null()
-    {
-        var reader = Substitute.For<IVcpkgManifestReader>();
-        var path = new FilePath("/repo/vcpkg.json");
-
-        await Assert.That(() => new VcpkgManifestRepository(null!, reader, path))
-            .Throws<ArgumentNullException>();
-    }
-
-    [Test]
-    public async Task Constructor_Should_Throw_ArgumentNullException_When_Reader_Is_Null()
-    {
-        var world = FakeCakeWorldV2.CreateWindows();
-        var path = world.RepoRoot.CombineWithFilePath("vcpkg.json");
-
-        await Assert.That(() => new VcpkgManifestRepository(world.CakeContext, null!, path))
-            .Throws<ArgumentNullException>();
-    }
-
-    [Test]
-    public async Task Constructor_Should_Throw_ArgumentNullException_When_Path_Is_Null()
-    {
-        var world = FakeCakeWorldV2.CreateWindows();
-        var reader = Substitute.For<IVcpkgManifestReader>();
-
-        await Assert.That(() => new VcpkgManifestRepository(world.CakeContext, reader, null!))
-            .Throws<ArgumentNullException>();
     }
 }

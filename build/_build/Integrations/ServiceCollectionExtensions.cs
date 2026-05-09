@@ -1,5 +1,4 @@
 using Build.Integrations.DotNet;
-using Build.Integrations.Msvc;
 using Build.Integrations.NuGet;
 using Build.Integrations.Vcpkg;
 using Build.Shared.Runtime;
@@ -29,7 +28,6 @@ public static class ServiceCollectionExtensions
         // registration lives in Targets/Package/ServiceCollectionExtensions.AddPackage().
         services.AddSingleton<IDotNetRuntimeEnvironment, DotNetRuntimeEnvironment>();
         services.AddSingleton<INuGetFeedClient, NuGetProtocolFeedClient>();
-        services.AddSingleton<IMsvcDevEnvironment, MsvcDevEnvironment>();
 
         // VcpkgBootstrapTool is a sealed concrete (not a Cake Tool<T>) that wraps
         // bootstrap-vcpkg.bat / .sh dispatch. Tools is Cake Tool<T> wrappers ONLY,

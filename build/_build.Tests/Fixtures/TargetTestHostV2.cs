@@ -48,12 +48,13 @@ public sealed class TargetTestHostV2<TTask> where TTask : class, IFrostingTask
         services.AddSingleton(buildContext.Manifest);
         services.AddSingleton(buildContext.Runtime);
         services.AddSingleton(buildContext.Paths);
-        services.AddSingleton(buildContext.Options);
-        services.AddSingleton(buildContext.Options.Vcpkg);
-        services.AddSingleton(buildContext.Options.Package);
-        services.AddSingleton(buildContext.Options.Repository);
-        services.AddSingleton(buildContext.Options.DotNet);
-        services.AddSingleton(buildContext.Options.Dumpbin);
+        // Configurations aggregate + DumpbinConfiguration retired in S14. Surviving sub-records
+        // (P9-territory + composition-root consumers) are constructed inline here; tests that need
+        // non-default values override via WithServices.
+        services.AddSingleton(new Build.Host.Configuration.VcpkgConfiguration([], _world.Rid));
+        services.AddSingleton(new Build.Host.Configuration.PackageBuildConfiguration(_world.FamilyVersions));
+        services.AddSingleton(new Build.Host.Configuration.RepositoryConfiguration(_world.RepoRoot));
+        services.AddSingleton(new Build.Host.Configuration.DotNetBuildConfiguration("Release"));
 
         // IAnsiConsole from the fake world (Spectre.Console.Testing.TestConsole)
         services.AddSingleton<IAnsiConsole>(_world.AnsiConsole);

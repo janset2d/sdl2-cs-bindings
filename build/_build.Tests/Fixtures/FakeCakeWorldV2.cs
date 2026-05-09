@@ -52,6 +52,12 @@ public sealed class FakeCakeWorldV2
     public ICakeContext CakeContext { get; }
     public DirectoryPath RepoRoot { get; }
 
+    /// <summary>Active RID configured via <see cref="WithRid"/>; defaults to <c>win-x64</c>.</summary>
+    public string Rid => _rid;
+
+    /// <summary>Family versions configured via <see cref="WithFamilyVersions"/>; defaults to empty.</summary>
+    public Build.Versioning.PackageFamilyVersionSet FamilyVersions => _familyVersions;
+
     public IReadOnlyList<ProcessInvocation> ProcessInvocations => _processInvocations;
 
     public TestConsole AnsiConsole { get; } = new();
@@ -389,20 +395,12 @@ public sealed class FakeCakeWorldV2
         runtimeProfile.Triplet.Returns(triplet);
         runtimeProfile.Family.Returns(family);
 
-        var options = new Configurations(
-            Vcpkg: new VcpkgConfiguration([], _rid),
-            Package: new PackageBuildConfiguration(_familyVersions),
-            Repository: new RepositoryConfiguration(RepoRoot),
-            DotNet: new DotNetBuildConfiguration(_config),
-            Dumpbin: new DumpbinConfiguration([]));
-
         return new BuildContext(
             CakeContext,
             pathService,
             runtimeProfile,
             resolvedManifest,
-            parsedArgs,
-            options);
+            parsedArgs);
     }
 
     // ── internal: build faked ICakeContext ──

@@ -3,6 +3,7 @@ using Build.Integrations.DependencyAnalysis;
 using Build.Integrations.DotNet;
 using Build.Integrations.NuGet;
 using Build.Integrations.Vcpkg;
+using Build.Targets.NativeSmoke.Services;
 using Build.Targets.Package.Services;
 using Build.Shared.Manifest;
 using Build.Shared.Runtime;
@@ -46,7 +47,6 @@ public static class TestHostFixture
         var handles = builder.BuildContextWithHandles();
 
         var manifest = handles.BuildContext.Manifest;
-        var options = handles.BuildContext.Options;
         var pathService = handles.Paths;
         var runtimeProfile = handles.BuildContext.Runtime;
         var cakeContext = handles.CakeContext;
@@ -63,17 +63,15 @@ public static class TestHostFixture
         services.AddSingleton(cakeContext.Arguments);
         services.AddSingleton(cakeContext.Configuration);
 
-        // Host singletons (phase-x §6.5 BuildContext slim aggregate + per-axis
-        // sub-records still individually injectable).
+        // Host singletons. Configurations aggregate + DumpbinConfiguration retired in S14;
+        // surviving sub-records (P9-territory + composition-root consumers) constructed inline.
         services.AddSingleton<IPathService>(pathService);
         services.AddSingleton(runtimeProfile);
         services.AddSingleton(manifest);
-        services.AddSingleton(options);
-        services.AddSingleton(options.Vcpkg);
-        services.AddSingleton(options.Package);
-        services.AddSingleton(options.Repository);
-        services.AddSingleton(options.DotNet);
-        services.AddSingleton(options.Dumpbin);
+        services.AddSingleton(new Build.Host.Configuration.VcpkgConfiguration([], runtimeProfile.Rid));
+        services.AddSingleton(new Build.Host.Configuration.PackageBuildConfiguration(Build.Versioning.PackageFamilyVersionSet.Empty));
+        services.AddSingleton(new Build.Host.Configuration.RepositoryConfiguration(pathService.RepoRoot));
+        services.AddSingleton(new Build.Host.Configuration.DotNetBuildConfiguration("Release"));
         services.AddSingleton(new RuntimeConfig { Runtimes = manifest.Runtimes });
         services.AddSingleton(manifest.SystemExclusions);
 

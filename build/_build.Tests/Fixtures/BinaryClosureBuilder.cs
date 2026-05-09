@@ -1,3 +1,4 @@
+using Build.Harvesting;
 using Build.Shared.Harvesting;
 
 namespace Build.Tests.Fixtures;

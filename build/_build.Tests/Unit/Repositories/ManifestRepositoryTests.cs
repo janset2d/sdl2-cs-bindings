@@ -1,10 +1,40 @@
 using Build.Repositories;
 using Build.Tests.Fixtures;
 using Cake.Core;
+using Cake.Core.IO;
+using NSubstitute;
 
 namespace Build.Tests.Unit.Repositories;
 
-public sealed class ManifestRepositoryTests
+/// <summary>
+/// Mock-based unit coverage for <see cref="ManifestRepository"/> — constructor argument
+/// validation. Load behavior (JSON deserialization, file-not-found / invalid-JSON failure
+/// surface) is covered end-to-end by <see cref="ManifestRepositoryRoundTripTests"/> against
+/// FakeFileSystem; mocking the <see cref="ICakeContext.ToJson{T}"/> extension chain isn't
+/// productive here and the sociable tests already verify the contract bytewise.
+/// </summary>
+public sealed class ManifestRepositoryUnitTests
+{
+    [Test]
+    public async Task Constructor_Should_Throw_When_CakeContext_Is_Null()
+    {
+        var path = new FilePath("/repo/build/manifest.json");
+        await Assert.That(() => new ManifestRepository(null!, path)).Throws<ArgumentNullException>();
+    }
+
+    [Test]
+    public async Task Constructor_Should_Throw_When_ManifestPath_Is_Null()
+    {
+        var ctx = Substitute.For<ICakeContext>();
+        await Assert.That(() => new ManifestRepository(ctx, null!)).Throws<ArgumentNullException>();
+    }
+}
+
+/// <summary>
+/// Sociable round-trip coverage for <see cref="ManifestRepository"/>. Pairs with
+/// <see cref="ManifestRepositoryUnitTests"/> per the repository-cohort rule.
+/// </summary>
+public sealed class ManifestRepositoryRoundTripTests
 {
     [Test]
     public async Task Load_Should_Deserialize_Valid_Manifest()
