@@ -17,7 +17,7 @@ using Build.Targets.PreFlightCheck;
 using Build.Targets.PublishStaging;
 using Build.Host;
 using Build.Host.Cli.Options;
-using Build.Repositories;
+using Build.Data;
 using Build.Validation;
 using Cake.Core.IO;
 using Cake.Frosting;
@@ -85,12 +85,12 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton<IAnsiConsole>(AnsiConsole.Console);
 
     // Composition root: per-target AddXTarget() calls + cross-cutting groupings
-    // (AddHostBuildingBlocks, AddDependencyAnalysis, AddRepositories, AddValidators).
+    // (AddHostBuildingBlocks, AddDependencyAnalysis, AddData, AddValidators).
     // AddHostBuildingBlocks takes parsedArgs + repoRoot because IPathService composes its
     // layout from CLI overrides before any DI resolution.
     services
         .AddHostBuildingBlocks(parsedArgs, repoRootPath)
-        .AddRepositories()
+        .AddData()
         .AddValidators()
         .AddDependencyAnalysis()
         .AddInspectHarvestedDependenciesTarget()

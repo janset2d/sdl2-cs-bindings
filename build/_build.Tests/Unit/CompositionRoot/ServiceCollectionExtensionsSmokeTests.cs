@@ -1,6 +1,6 @@
 #pragma warning disable CA1031
 
-using Build.Repositories;
+using Build.Data;
 using Build.Targets.ConsolidateHarvest;
 using Build.Targets.Harvest;
 using Build.Targets.NativeSmoke;
@@ -42,7 +42,7 @@ public sealed class ServiceCollectionExtensionsSmokeTests
     public async Task AddPreFlightCheck_Should_Register_All_Reporter_And_Validator_Types()
     {
         // PreFlightCheckTask injects validators registered by AddValidators() (Validation/ root)
-        // and repositories from AddRepositories(). AddPreFlightCheck only registers the
+        // and repositories from AddData(). AddPreFlightCheck only registers the
         // target-local PreflightReporter — Cake discovers the task class via [TaskName].
         await AssertAllRegisteredTypesResolve(services =>
         {
@@ -55,7 +55,7 @@ public sealed class ServiceCollectionExtensionsSmokeTests
     public async Task AddHarvest_Should_Register_All_Collaborator_Types()
     {
         // HarvestTask injects walker/planner/deployer/preconditions validators registered by
-        // AddValidators(), the rid-status repository registered by AddRepositories() per the
+        // AddValidators(), the rid-status repository registered by AddData() per the
         // repository-cohort rule, and ManifestConfig + IRuntimeScanner from AddTestHostBuildingBlocks.
         // Vcpkg package metadata is read through Cake Vcpkg aliases on ICakeContext.
         // HarvestReporter takes IAnsiConsole — Program.cs binds the real console; smoke tests bind
@@ -63,7 +63,7 @@ public sealed class ServiceCollectionExtensionsSmokeTests
         await AssertAllRegisteredTypesResolve(services =>
         {
             services.AddSingleton(Substitute.For<IAnsiConsole>());
-            services.AddRepositories();
+            services.AddData();
             services.AddValidators();
             services.AddHarvest();
         });

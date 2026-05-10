@@ -1,4 +1,4 @@
-using Build.Repositories;
+using Build.Data;
 using Build.Targets.ResolveVersionsFromManifest;
 using Build.Tests.Fixtures;
 
@@ -118,7 +118,7 @@ public sealed class ResolveVersionsFromManifestTaskScenarios
         return new TargetTestHostV2<ResolveVersionsFromManifestTask>(world)
             .WithServices(services =>
             {
-                services.AddRepositories();
+                services.AddData();
             });
     }
 }

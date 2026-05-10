@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 using Build.Manifest;
-using Build.Repositories;
+using Build.Data;
 using Build.Targets.InspectHarvestedDependencies;
 using Build.Tests.Fixtures;
 
@@ -160,7 +160,7 @@ public sealed class InspectHarvestedDependenciesTaskScenarios
         return new TargetTestHostV2<InspectHarvestedDependenciesTask>(world)
             .WithServices(services =>
             {
-                services.AddRepositories();
+                services.AddData();
                 services.AddInspectHarvestedDependenciesTarget();
             });
     }

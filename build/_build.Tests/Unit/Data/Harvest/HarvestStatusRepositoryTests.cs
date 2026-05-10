@@ -1,7 +1,7 @@
 using Build.Harvesting;
 using Build.Host.Cake;
 using Build.Host.Paths;
-using Build.Repositories;
+using Build.Data.Harvest;
 using Build.Runtime;
 using Build.Targets.Harvest.Models;
 using Build.Tests.Fixtures;
@@ -10,7 +10,7 @@ using Cake.Core;
 using Cake.Core.IO;
 using NSubstitute;
 
-namespace Build.Tests.Unit.Repositories;
+namespace Build.Tests.Unit.Data.Harvest;
 
 /// <summary>
 /// Mock-based unit coverage for <see cref="HarvestStatusRepository"/> — argument validation,

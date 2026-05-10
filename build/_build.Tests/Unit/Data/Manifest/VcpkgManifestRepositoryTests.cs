@@ -1,10 +1,10 @@
-using Build.Repositories;
+using Build.Data.Manifest;
 using Build.Tests.Fixtures;
 using Cake.Core;
 using Cake.Core.IO;
 using NSubstitute;
 
-namespace Build.Tests.Unit.Repositories;
+namespace Build.Tests.Unit.Data.Manifest;
 
 /// <summary>
 /// Mock-based unit coverage for <see cref="VcpkgManifestRepository"/> — constructor argument

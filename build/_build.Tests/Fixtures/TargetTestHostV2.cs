@@ -52,7 +52,7 @@ public sealed class TargetTestHostV2<TTask> where TTask : class, IFrostingTask
         // Configurations aggregate + DumpbinConfiguration retired in S14; VcpkgConfiguration
         // + DotNetBuildConfiguration + PackageBuildConfiguration retired in S15 (P9). Tasks
         // load resolved family versions from context.VersionsFilePath via IVersionFileRepository
-        // (registered through AddRepositories); scenario tests seed the versions.json file via
+        // (registered through AddData); scenario tests seed the versions.json file via
         // FakeCakeWorldV2.WithVersionsFile + WithTextFile.
         // IAnsiConsole from the fake world (Spectre.Console.Testing.TestConsole)
         services.AddSingleton<IAnsiConsole>(_world.AnsiConsole);

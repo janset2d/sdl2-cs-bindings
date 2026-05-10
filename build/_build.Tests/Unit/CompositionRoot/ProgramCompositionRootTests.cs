@@ -1,6 +1,8 @@
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Reflection;
+using Build.Data.Manifest;
+using Build.Data.Versions;
 using Build.Packaging;
 using Build.Targets.Package.Services;
 using Build.Validation.Packaging;
@@ -9,7 +11,6 @@ using Build.Host.Cli.Options;
 using Build.Targets.PackageConsumerSmoke.Services;
 using Build.Manifest;
 using Build.Targets.NativeSmoke.Services;
-using Build.Repositories;
 using Build.Runtime;
 using Build.Tests.Fixtures;
 using Cake.Core;

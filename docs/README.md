@@ -70,6 +70,7 @@ See [decisions/README.md](decisions/README.md) for the index.
 | Document | Purpose |
 | --- | --- |
 | [refactoring/target-centric-build-host-refactor-plan.md](refactoring/target-centric-build-host-refactor-plan.md) | Detailed execution plan for ADR-002 build-host modernization |
+| [refactoring/data-layer-refactor-plan.md](refactoring/data-layer-refactor-plan.md) | Post-ADR-002 plan for moving file-backed/tool-read build contracts into `build\_build\Data\` |
 | [refactoring/target-centric-build-host-review-checklist.md](refactoring/target-centric-build-host-review-checklist.md) | Review checklist for target-centric build-host changes |
 
 ### Research (Dated Findings)

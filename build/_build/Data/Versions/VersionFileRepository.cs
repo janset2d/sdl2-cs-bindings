@@ -4,7 +4,7 @@ using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.IO;
 
-namespace Build.Repositories;
+namespace Build.Data.Versions;
 
 public interface IVersionFileRepository
 {

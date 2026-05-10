@@ -5,7 +5,7 @@ using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.IO;
 
-namespace Build.Repositories;
+namespace Build.Data.Manifest;
 
 /// <summary>
 /// File-backed repository for the repository-root <c>vcpkg.json</c> manifest. Loads the

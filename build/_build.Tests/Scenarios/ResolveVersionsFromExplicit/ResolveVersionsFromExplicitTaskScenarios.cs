@@ -1,4 +1,4 @@
-using Build.Repositories;
+using Build.Data;
 using Build.Targets.ResolveVersionsFromExplicit;
 using Build.Tests.Fixtures;
 using Build.Validation.Versioning;
@@ -117,7 +117,7 @@ public sealed class ResolveVersionsFromExplicitTaskScenarios
         return new TargetTestHostV2<ResolveVersionsFromExplicitTask>(world)
             .WithServices(services =>
             {
-                services.AddRepositories();
+                services.AddData();
                 services.AddSingleton<IUpstreamVersionAlignmentValidator, UpstreamVersionAlignmentValidator>();
             });
     }

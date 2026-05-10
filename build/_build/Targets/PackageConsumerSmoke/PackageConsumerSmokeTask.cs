@@ -1,10 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
+using Build.Data.Versions;
 using Build.Host;
 using Build.Host.Cake;
 using Build.Host.Paths;
 using Build.Manifest;
 using Build.Packaging;
-using Build.Repositories;
 using Build.Runtime;
 using Build.Targets.PackageConsumerSmoke.Reporting;
 using Build.Targets.PackageConsumerSmoke.Services;

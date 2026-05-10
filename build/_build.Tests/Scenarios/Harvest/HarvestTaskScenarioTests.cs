@@ -2,7 +2,7 @@ using Build.Harvesting;
 using Build.Host.Cake;
 using Build.DependencyAnalysis;
 using Build.Manifest;
-using Build.Repositories;
+using Build.Data;
 using Build.Results;
 using Build.Targets.Harvest;
 using Build.Targets.Harvest.Models;
@@ -298,7 +298,7 @@ public sealed class HarvestTaskScenarioTests
             // overrides in these task-level scenarios.
             services.AddSingleton(Substitute.For<IRuntimeScanner>());
 
-            services.AddRepositories();
+            services.AddData();
             services.AddValidators();
             services.AddHarvest();
 

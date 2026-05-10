@@ -1,12 +1,15 @@
+using Build.Data.Harvest;
+using Build.Data.Manifest;
+using Build.Data.Versions;
 using Build.Host.Paths;
 using Cake.Core;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Build.Repositories;
+namespace Build.Data;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddRepositories(this IServiceCollection services)
+    public static IServiceCollection AddData(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
 

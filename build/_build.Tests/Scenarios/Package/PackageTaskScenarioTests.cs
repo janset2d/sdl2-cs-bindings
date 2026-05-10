@@ -1,7 +1,7 @@
 using Build.Packaging;
 using Build.Manifest;
 using Build.Targets.Package.Models;
-using Build.Repositories;
+using Build.Data;
 using Build.Results;
 using Build.Targets.Package;
 using Build.Targets.Package.Services;
@@ -238,7 +238,7 @@ public sealed class PackageTaskScenarioTests
             .WithManifest(ManifestFixture.CreateTestManifestConfig())
             .WithServices(services =>
             {
-                services.AddRepositories();
+                services.AddData();
                 services.AddValidators();
                 services.AddPackage();
 

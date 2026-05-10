@@ -7,7 +7,7 @@ using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.IO;
 
-namespace Build.Repositories;
+namespace Build.Data.Harvest;
 
 /// <summary>
 /// File-backed repository for the per-RID rid-status JSON contract written by HarvestTask

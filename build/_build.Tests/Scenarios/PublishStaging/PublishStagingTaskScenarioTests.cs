@@ -1,5 +1,5 @@
 using Build.Targets.PublishStaging.Services;
-using Build.Repositories;
+using Build.Data;
 using Build.Targets.PublishStaging;
 using Build.Tests.Fixtures;
 using Cake.Core.IO;
@@ -139,7 +139,7 @@ public sealed class PublishStagingTaskScenarioTests
             .WithManifest(ManifestFixture.CreateTestManifestConfig())
             .WithServices(services =>
             {
-                services.AddRepositories();
+                services.AddData();
                 services.AddPublishStaging();
                 services.AddSingleton(feedClient);
             });

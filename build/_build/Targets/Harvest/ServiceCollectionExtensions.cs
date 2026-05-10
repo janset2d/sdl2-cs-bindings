@@ -9,7 +9,7 @@ public static class ServiceCollectionExtensions
     /// <summary>
     /// Registers Harvest-stage collaborators: closure walker, artifact planner + deployer,
     /// and reporter. Cross-cutting concerns come from sibling groups: validators from
-    /// <c>AddValidators()</c>; rid-status repository from <c>AddRepositories()</c>; the
+    /// <c>AddValidators()</c>; rid-status repository from <c>AddData()</c>; the
     /// per-platform <see cref="Build.DependencyAnalysis.IRuntimeScanner"/> dispatch closure
     /// from <c>AddDependencyAnalysis()</c> (host-platform abstraction, not Harvest-owned).
     /// <see cref="HarvestTask"/> itself is discovered by Cake Frosting from <c>[TaskName]</c>

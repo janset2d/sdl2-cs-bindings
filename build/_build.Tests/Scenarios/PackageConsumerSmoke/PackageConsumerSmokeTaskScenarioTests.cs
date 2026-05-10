@@ -1,6 +1,6 @@
 using Build.Targets.PackageConsumerSmoke.Services;
 using Build.Packaging;
-using Build.Repositories;
+using Build.Data;
 using Build.Results;
 using Build.Runtime;
 using Build.Targets.PackageConsumerSmoke;
@@ -172,7 +172,7 @@ public sealed class PackageConsumerSmokeTaskScenarioTests
             .WithManifest(ManifestFixture.CreateTestManifestConfig())
             .WithServices(services =>
             {
-                services.AddRepositories();
+                services.AddData();
                 services.AddValidators();
                 services.AddPackageConsumerSmoke();
 

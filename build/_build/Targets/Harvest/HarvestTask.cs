@@ -1,8 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using Build.Data.Harvest;
 using Build.Host;
 using Build.Manifest;
-using Build.Repositories;
 using Build.Targets.Harvest.Reporting;
 using Build.Targets.Harvest.Services;
 using Build.Validation.Harvesting;

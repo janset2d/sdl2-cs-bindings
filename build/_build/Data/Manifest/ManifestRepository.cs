@@ -3,7 +3,7 @@ using Build.Manifest;
 using Cake.Core;
 using Cake.Core.IO;
 
-namespace Build.Repositories;
+namespace Build.Data.Manifest;
 
 public interface IManifestRepository
 {

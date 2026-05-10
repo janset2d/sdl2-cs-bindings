@@ -1,4 +1,4 @@
-using Build.Repositories;
+using Build.Data.Versions;
 using Build.Tests.Fixtures;
 using Build.Versioning;
 using Cake.Core;
@@ -6,7 +6,7 @@ using Cake.Core.IO;
 using NSubstitute;
 using NuGet.Versioning;
 
-namespace Build.Tests.Unit.Repositories;
+namespace Build.Tests.Unit.Data.Versions;
 
 /// <summary>
 /// Mock-based unit coverage for <see cref="VersionFileRepository"/> — constructor + argument

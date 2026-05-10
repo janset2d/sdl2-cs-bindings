@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 using Build.Manifest;
-using Build.Repositories;
+using Build.Data;
 using Build.Targets.PreFlightCheck;
 using Build.Tests.Fixtures;
 using Build.Validation;
@@ -215,7 +215,7 @@ public sealed class PreFlightCheckTaskScenarioTests
         return new TargetTestHostV2<PreFlightCheckTask>(world)
             .WithServices(services =>
             {
-                services.AddRepositories();
+                services.AddData();
                 services.AddValidators();
                 services.AddPreFlightCheck();
             });
