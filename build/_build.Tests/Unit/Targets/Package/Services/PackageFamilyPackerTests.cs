@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
-using Build.Features.Packaging;
 using Build.Host.Configuration;
+using Build.Targets.Package.Models;
 using Build.Host.Paths;
 using Build.Integrations.DotNet;
 using Build.Results;

@@ -1,8 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Text.Json;
-using Build.Features.Packaging;
 using Build.Host.Cake;
+using Build.Targets.Package.Models;
 using Build.Results;
 using Build.Shared.Manifest;
 using Cake.Core.IO;

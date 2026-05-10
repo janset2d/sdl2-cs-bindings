@@ -1037,19 +1037,27 @@ Tasks:
 5. Delete architecture dependency tests.
 6. Promote valuable `Characterization` tests into `Scenarios`.
 7. Delete obsolete characterization tests that only protected old implementation shape.
-8. Update:
-   - `AGENTS.md`;
-   - `docs/onboarding.md` if needed;
-   - `docs/plan.md`;
-   - `docs/playbook/local-development.md`;
-   - `docs/playbook/local-validation.md`;
-   - release guardrails docs if G-number ownership changes.
+8. **JSON serialization contract consolidation.** Two `JsonSerializerOptions` instances coexist today: `Build.Harvesting.HarvestJsonContract.Options` (harvest-specific, snake_case + indented) and `Build.Host.Cake.CakeJsonExtensions.DefaultJsonOptions` (generic default). Naming policy is encoded as a runtime `JsonNamingPolicy` on every options instance instead of declared on the model types. Consolidate to a single root `Build.Json/` (or equivalent) namespace exposing **one** `JsonSerializerOptions` instance per shape (e.g. `Json.Default`, `Json.SnakeCase`), and move per-property naming onto the model types via `[JsonPropertyName]` / `[JsonConverter]` attributes so the on-disk shape is encoded in the type itself rather than implied by the options the caller happens to pass. Touches:
+   - `Harvesting/HarvestJsonContract.cs` — retire as a separate type; absorb into the consolidated root.
+   - `Host/Cake/CakeJsonExtensions.DefaultJsonOptions` — relocate to root `Build.Json/` (or whatever the consolidated home becomes).
+   - All harvest model types (`RidHarvestStatus`, `HarvestManifest`, `HarvestSummary`, `BinaryClosure`, `BinaryNode`, `ConsolidationState`, `DivergentLicense`, `HarvestStatistics`, `DeploymentStatistics`, `VcpkgInstalledPackageOutput`, etc.) — annotate properties with `[JsonPropertyName]` matching the current snake-case shape (or migrate to a model-level naming attribute / `JsonSourceGenerationOptions`) so the contract travels with the type.
+   - All consumer sites (`HarvestStatusRepository`, `HarvestArtifactMerger`, `VcpkgCliProvider`, etc.) — drop the explicit `HarvestJsonContract.Options` argument; the type's attributes carry the shape.
+   - Tests fixtures + V2 helpers that rely on `HarvestJsonContract.Options` parity — update to the consolidated home.
+9. Delete `Host/Configuration/RepositoryConfiguration.cs` (sole survivor of `Host/Configuration/` post-S15) once `RepoRoot` folds into `BuildContext`/`IPathService`.
+10. Update:
+    - `AGENTS.md`;
+    - `docs/onboarding.md` if needed;
+    - `docs/plan.md`;
+    - `docs/playbook/local-development.md`;
+    - `docs/playbook/local-validation.md`;
+    - release guardrails docs if G-number ownership changes.
 
 Exit criteria:
 
 - New build-host code follows ADR-002.
 - No old folder/concept remains solely for compatibility.
 - Documentation and tests describe the new architecture, not the old migration state.
+- JSON contract is single-sourced; naming policy lives on the model types via attributes.
 
 ## 12. Validation gates
 

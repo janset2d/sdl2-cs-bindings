@@ -100,27 +100,6 @@
         "resolved": "7.3.1",
         "contentHash": "TJrQWSmD1vakfav7qIhDXgDFfaZFfMJ+v6P8tcND9ZqXajD5B/ZzaoGYNzL4D3eDue6vAOUvwzu42G+19JNVUA=="
       },
-      "OneOf": {
-        "type": "Direct",
-        "requested": "[3.0.271, )",
-        "resolved": "3.0.271",
-        "contentHash": "pqpqeK8xQGggExhr4tesVgJkjdn+9HQAO0QgrYV2hFjE3y90okzk1kQMntMiUOGfV7FrCUfKPaVvPBD4IANqKg=="
-      },
-      "OneOf.Monads": {
-        "type": "Direct",
-        "requested": "[1.21.0, )",
-        "resolved": "1.21.0",
-        "contentHash": "Ot7BmQSJ6A5hAy22b5/LgAQEU8LaiXH4529VCzTnZnsVb66gLdS34Jji+rTA5JUtEg3Z7W49Es6X2Bzgeaeerw==",
-        "dependencies": {
-          "OneOf": "3.0.223"
-        }
-      },
-      "OneOf.SourceGenerator": {
-        "type": "Direct",
-        "requested": "[3.0.271, )",
-        "resolved": "3.0.271",
-        "contentHash": "I7e5kx5prSV99g+rM/xO5KMhwBQL/b+NlUY76RhbutXJ0tgiuMoqgOFnlTHOxCLrlKmwaMzp3VI8oz05PSlcIA=="
-      },
       "Roslynator.Analyzers": {
         "type": "Direct",
         "requested": "[4.13.1, )",

@@ -1,7 +1,7 @@
 using System.IO.Compression;
 using System.Text.Json;
-using Build.Features.Packaging;
 using Build.Results;
+using Build.Targets.Package.Models;
 using Build.Shared.Manifest;
 using Build.Shared.Packaging;
 using Build.Tests.Fixtures;
@@ -330,7 +330,7 @@ public sealed class PackageOutputValidatorTests
     private static FilePath EnsureReadme(FakeCakeWorldV2 world, ManifestConfig manifest)
     {
         var readmePath = world.RepoRoot.CombineWithFilePath("README.md");
-        world.WithTextFile(readmePath, ReadmeMappingTable.BuildBlock(manifest));
+        world.WithTextFile(readmePath, ReadmeMappingTableBlock.BuildBlock(manifest));
         return readmePath;
     }
 

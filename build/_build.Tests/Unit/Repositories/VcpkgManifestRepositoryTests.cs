@@ -1,5 +1,5 @@
 using System.Collections.Immutable;
-using Build.Integrations.Vcpkg;
+using Build.Vcpkg;
 using Build.Repositories;
 using Build.Shared.Manifest;
 using Build.Tests.Fixtures;

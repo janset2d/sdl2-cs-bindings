@@ -1,7 +1,7 @@
 using Build.Integrations.DotNet;
 using Build.Integrations.NuGet;
-using Build.Integrations.Vcpkg;
 using Build.Shared.Runtime;
+using Build.Tools;
 using Microsoft.Extensions.DependencyInjection;
 using DotNetRuntimeEnvironment = Build.Integrations.DotNet.DotNetRuntimeEnvironment;
 
@@ -21,17 +21,15 @@ public static class ServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.AddSingleton<IPackageInfoProvider, VcpkgCliProvider>();
-        services.AddSingleton<IVcpkgManifestReader, VcpkgManifestReader>();
         services.AddSingleton<IProjectMetadataReader, ProjectMetadataReader>();
         // IDotNetPackInvoker relocated target-local to Targets/Package/Services/ in S13;
         // registration lives in Targets/Package/ServiceCollectionExtensions.AddPackage().
         services.AddSingleton<IDotNetRuntimeEnvironment, DotNetRuntimeEnvironment>();
         services.AddSingleton<INuGetFeedClient, NuGetProtocolFeedClient>();
 
-        // VcpkgBootstrapTool is a sealed concrete (not a Cake Tool<T>) that wraps
-        // bootstrap-vcpkg.bat / .sh dispatch. Tools is Cake Tool<T> wrappers ONLY,
-        // so VcpkgBootstrapTool lives here in Integrations.
+        // VcpkgBootstrapTool relocated to Tools/ in S15 (P9). Vcpkg integration types
+        // (IPackageInfoProvider, IVcpkgManifestReader) moved to root Build.Vcpkg/
+        // namespace and register through AddVcpkg() in the composition root.
         services.AddSingleton<VcpkgBootstrapTool>();
 
         return services;

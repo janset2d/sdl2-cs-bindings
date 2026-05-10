@@ -1,5 +1,5 @@
 using Build.Host;
-using Build.Integrations.Vcpkg;
+using Build.Tools;
 using Build.Shared.Runtime;
 using Build.Tools.Vcpkg;
 using Build.Tools.Vcpkg.Settings;

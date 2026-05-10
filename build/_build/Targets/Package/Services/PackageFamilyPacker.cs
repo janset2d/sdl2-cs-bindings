@@ -1,5 +1,5 @@
-using Build.Features.Packaging;
 using Build.Host.Paths;
+using Build.Targets.Package.Models;
 using Build.Integrations.DotNet;
 using Build.Results;
 using Build.Shared.Manifest;

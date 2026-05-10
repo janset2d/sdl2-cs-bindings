@@ -1,10 +1,10 @@
-using Build.Features.Packaging;
 using Build.Host;
 using Build.Host.Configuration;
 using Build.Shared.Manifest;
 using Build.Targets.Package.Reporting;
 using Build.Targets.Package.Services;
 using Build.Validation.Versioning;
+using Build.Repositories;
 using Build.Versioning;
 using Cake.Common.IO;
 using Cake.Core;
@@ -25,7 +25,7 @@ namespace Build.Targets.Package;
 [TaskDescription("Packs managed/native families with explicit version propagation and post-pack nuspec assertions")]
 public sealed class PackageTask : AsyncFrostingTask<BuildContext>
 {
-    private readonly PackageBuildConfiguration _packageBuildConfiguration;
+    private readonly IVersionFileRepository _versionFileRepository;
     private readonly IReadmeMappingTableGenerator _readmeMappingTableGenerator;
     private readonly ICrossFamilyDependencyResolvabilityValidator _crossFamilyDependencyResolvabilityValidator;
     private readonly PackageFamilyPacker _packer;
@@ -33,14 +33,14 @@ public sealed class PackageTask : AsyncFrostingTask<BuildContext>
     private readonly Func<ICakeContext, DirectoryPath, string> _resolveHeadCommitSha;
 
     public PackageTask(
-        PackageBuildConfiguration packageBuildConfiguration,
+        IVersionFileRepository versionFileRepository,
         IReadmeMappingTableGenerator readmeMappingTableGenerator,
         ICrossFamilyDependencyResolvabilityValidator crossFamilyDependencyResolvabilityValidator,
         PackageFamilyPacker packer,
         PackageReporter reporter,
         Func<ICakeContext, DirectoryPath, string>? resolveHeadCommitSha = null)
     {
-        _packageBuildConfiguration = packageBuildConfiguration ?? throw new ArgumentNullException(nameof(packageBuildConfiguration));
+        _versionFileRepository = versionFileRepository ?? throw new ArgumentNullException(nameof(versionFileRepository));
         _readmeMappingTableGenerator = readmeMappingTableGenerator ?? throw new ArgumentNullException(nameof(readmeMappingTableGenerator));
         _crossFamilyDependencyResolvabilityValidator = crossFamilyDependencyResolvabilityValidator ?? throw new ArgumentNullException(nameof(crossFamilyDependencyResolvabilityValidator));
         _packer = packer ?? throw new ArgumentNullException(nameof(packer));
@@ -59,15 +59,22 @@ public sealed class PackageTask : AsyncFrostingTask<BuildContext>
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        var versions = _packageBuildConfiguration.FamilyVersions;
-
-        if (versions.Count == 0)
+        if (context.VersionsFilePath is null)
         {
             throw new CakeException(
                 "PackageTask requires --versions-file <path>. " +
                 "Run --target ResolveVersions first to produce a versions.json " +
                 "(e.g. --target ResolveVersions --version-source=manifest --suffix=local.<timestamp>), " +
                 "then re-run with --versions-file artifacts/resolve-versions/versions.json.");
+        }
+
+        var versions = _versionFileRepository.Load(context.VersionsFilePath);
+
+        if (versions.Count == 0)
+        {
+            throw new CakeException(
+                "PackageTask requires a non-empty version mapping. " +
+                "Re-run --target ResolveVersionsFromManifest or --target ResolveVersionsFromExplicit.");
         }
 
         // [G58] runs again here as a pack-stage guard, even if the caller skipped PreFlight.

@@ -3,9 +3,9 @@
 using System.Diagnostics.CodeAnalysis;
 using Build.Harvesting;
 using Build.Host.Paths;
-using Build.Integrations.Vcpkg;
 using Build.Results;
 using Build.Shared.Harvesting;
+using Build.Vcpkg;
 using Build.Shared.Manifest;
 using Build.Shared.Runtime;
 using Build.Targets.Harvest.Models;
@@ -85,13 +85,13 @@ public sealed class ArtifactPlanner(
                 ct.ThrowIfCancellationRequested();
                 var infoResult = await _pkg.GetPackageInfoAsync(packageName, _profile.Triplet, ct).ConfigureAwait(false);
 
-                if (infoResult.IsError())
+                if (infoResult.IsFailure)
                 {
                     _log.Warning("Package info not found for dependency {0}, continuing.", packageName);
                     continue;
                 }
 
-                foreach (var licensePathString in infoResult.PackageInfo.OwnedFiles)
+                foreach (var licensePathString in infoResult.Value.OwnedFiles)
                 {
                     var licensePath = new FilePath(licensePathString);
                     if (!IsLicense(licensePath))

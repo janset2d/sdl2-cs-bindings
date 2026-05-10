@@ -184,6 +184,8 @@ Types, files, methods, and test classes should use explicit build-domain names t
 
 Retire OneOf-style result hierarchies for expected build failures.
 
+> **S15 amendment (2026-05-10):** OneOf retirement story closes in P9. The last surviving `PackageInfoResult` collapsed to `Result<PackageInfo, PackageInfoError>` alongside `Integrations/Vcpkg/` promotion to root `Build.Vcpkg/`. The `OneOf`, `OneOf.SourceGenerator`, and `OneOf.Monads` NuGet packages are removed entirely from `Directory.Packages.props` and `build/_build/Build.csproj`. `Shared/Results/BuildResultExtensions.cs` (zero post-relocation consumers) retired in the same slice.
+
 Use simple typed results:
 
 - `Result<T, TError>` for expected operation success/failure;

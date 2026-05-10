@@ -46,6 +46,7 @@ public static class ServiceCollectionExtensions
         });
         services.AddSingleton<IHarvestPreconditionsValidator, HarvestPreconditionsValidator>();
         services.AddSingleton<INativeSmokePreconditionsValidator, NativeSmokePreconditionsValidator>();
+        services.AddSingleton<IPackageConsumerSmokePreconditionsValidator, PackageConsumerSmokePreconditionsValidator>();
 
         return services;
     }

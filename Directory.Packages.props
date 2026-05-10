@@ -19,9 +19,6 @@
     <PackageVersion Include="NuGet.Frameworks" Version="7.3.1" />
     <PackageVersion Include="NuGet.Protocol" Version="7.3.1" />
     <PackageVersion Include="NuGet.Versioning" Version="7.3.1" />
-    <PackageVersion Include="OneOf" Version="3.0.271" />
-    <PackageVersion Include="OneOf.Monads" Version="1.21.0" />
-    <PackageVersion Include="OneOf.SourceGenerator" Version="3.0.271" />
     <PackageVersion Include="PolySharp" Version="1.15.0" />
     <PackageVersion Include="Spectre.Console.Testing" Version="0.55.2" />
     <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />

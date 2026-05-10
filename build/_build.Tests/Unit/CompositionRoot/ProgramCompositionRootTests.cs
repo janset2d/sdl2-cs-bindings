@@ -1,14 +1,12 @@
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Reflection;
-using Build.Features.Packaging;
-using Build.Features.Publishing;
 using Build.Targets.Package.Services;
 using Build.Validation.Packaging;
 using Build.Host;
 using Build.Host.Cli.Options;
 using Build.Integrations.DotNet;
-using Build.Integrations.Vcpkg;
+using Build.Vcpkg;
 using Build.Targets.NativeSmoke.Services;
 using Build.Repositories;
 using Build.Shared.Manifest;
@@ -166,8 +164,7 @@ public sealed class ProgramCompositionRootTests
         var dotNetPackInvoker = provider.GetRequiredService<IDotNetPackInvoker>();
         var dotNetRuntimeEnvironment = provider.GetRequiredService<IDotNetRuntimeEnvironment>();
         var packageFamilyPacker = provider.GetRequiredService<PackageFamilyPacker>();
-        var packageConsumerSmokePipeline = provider.GetRequiredService<IPackageConsumerSmokePipeline>();
-        var publishPipeline = provider.GetRequiredService<PublishPipeline>();
+        var dotNetSmokeRunner = provider.GetRequiredService<Build.Targets.PackageConsumerSmoke.Services.DotNetSmokeRunner>();
         var msvcDevEnvironment = provider.GetRequiredService<IMsvcDevEnvironment>();
 
         await Assert.That(hybridStaticOverlayValidator).IsTypeOf<HybridStaticOverlayValidator>();
@@ -179,8 +176,7 @@ public sealed class ProgramCompositionRootTests
         await Assert.That(dotNetPackInvoker.GetType()).IsEqualTo(typeof(DotNetPackInvoker));
         await Assert.That(dotNetRuntimeEnvironment.GetType()).IsEqualTo(typeof(DotNetRuntimeEnvironment));
         await Assert.That(packageFamilyPacker.GetType()).IsEqualTo(typeof(PackageFamilyPacker));
-        await Assert.That(packageConsumerSmokePipeline.GetType()).IsEqualTo(typeof(PackageConsumerSmokePipeline));
-        await Assert.That(publishPipeline.GetType()).IsEqualTo(typeof(PublishPipeline));
+        await Assert.That(dotNetSmokeRunner).IsNotNull();
         await Assert.That(msvcDevEnvironment.GetType()).IsEqualTo(typeof(MsvcDevEnvironment));
     }
 

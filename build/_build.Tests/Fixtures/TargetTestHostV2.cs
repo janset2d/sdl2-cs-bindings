@@ -48,13 +48,12 @@ public sealed class TargetTestHostV2<TTask> where TTask : class, IFrostingTask
         services.AddSingleton(buildContext.Manifest);
         services.AddSingleton(buildContext.Runtime);
         services.AddSingleton(buildContext.Paths);
-        // Configurations aggregate + DumpbinConfiguration retired in S14. Surviving sub-records
-        // (P9-territory + composition-root consumers) are constructed inline here; tests that need
-        // non-default values override via WithServices.
-        services.AddSingleton(new Build.Host.Configuration.VcpkgConfiguration([], _world.Rid));
-        services.AddSingleton(new Build.Host.Configuration.PackageBuildConfiguration(_world.FamilyVersions));
+        // Configurations aggregate + DumpbinConfiguration retired in S14; VcpkgConfiguration
+        // + DotNetBuildConfiguration + PackageBuildConfiguration retired in S15 (P9). Tasks
+        // load resolved family versions from context.VersionsFilePath via IVersionFileRepository
+        // (registered through AddRepositories); scenario tests seed the versions.json file via
+        // FakeCakeWorldV2.WithVersionsFile + WithTextFile.
         services.AddSingleton(new Build.Host.Configuration.RepositoryConfiguration(_world.RepoRoot));
-        services.AddSingleton(new Build.Host.Configuration.DotNetBuildConfiguration("Release"));
 
         // IAnsiConsole from the fake world (Spectre.Console.Testing.TestConsole)
         services.AddSingleton<IAnsiConsole>(_world.AnsiConsole);

@@ -7,11 +7,10 @@
 
 using Build.Harvesting;
 using Build.Integrations.DependencyAnalysis;
-using Build.Integrations.Vcpkg;
 using Build.Results;
-using Build.Shared.Harvesting;
 using Build.Shared.Manifest;
 using Build.Shared.Runtime;
+using Build.Vcpkg;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;
@@ -33,15 +32,13 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
         {
             ArgumentNullException.ThrowIfNull(manifest);
 
-            // IPackageInfoProvider still returns OneOf-shaped PackageInfoResult (rootPkgInfoResult.IsError()
-            // / .PackageInfo). Migration to Result<T,TError> happens when vcpkg integration relocates.
             var rootPkgInfoResult = await _pkg.GetPackageInfoAsync(manifest.VcpkgName, _profile.Triplet, ct).ConfigureAwait(false);
-            if (rootPkgInfoResult.IsError())
+            if (rootPkgInfoResult.IsFailure)
             {
                 return Result<BinaryClosure, ClosureError>.Failure(new ClosureNotFound($"vcpkg info for package {manifest.VcpkgName} not found."));
             }
 
-            var rootPkgInfo = rootPkgInfoResult.PackageInfo;
+            var rootPkgInfo = rootPkgInfoResult.Value;
             var primaryFiles = ResolvePrimaryBinaries(rootPkgInfo, manifest);
 
             if (primaryFiles.Count == 0)
@@ -69,13 +66,13 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
                 ct.ThrowIfCancellationRequested();
 
                 var ownerPkgInfoResult = await _pkg.GetPackageInfoAsync(ownerPackage, _profile.Triplet, ct).ConfigureAwait(false);
-                if (ownerPkgInfoResult.IsError())
+                if (ownerPkgInfoResult.IsFailure)
                 {
                     _log.Warning("Package info not found for dependency {0}, continuing.", ownerPackage);
                     continue;
                 }
 
-                var ownerPkgInfo = ownerPkgInfoResult.PackageInfo;
+                var ownerPkgInfo = ownerPkgInfoResult.Value;
                 var ownedBinaries = ownerPkgInfo.OwnedFiles
                     .Select(s => new FilePath(s))
                     .Where(path => IsBinary(path) && !_profile.IsSystemFile(path.GetFilename().FullPath))

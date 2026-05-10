@@ -421,9 +421,6 @@
           "NuGet.Frameworks": "[7.3.1, )",
           "NuGet.Protocol": "[7.3.1, )",
           "NuGet.Versioning": "[7.3.1, )",
-          "OneOf": "[3.0.271, )",
-          "OneOf.Monads": "[1.21.0, )",
-          "OneOf.SourceGenerator": "[3.0.271, )",
           "Spectre.Console": "[0.55.2, )",
           "Spectre.Console.Cli": "[0.55.0, )",
           "System.CommandLine": "[2.0.0-beta4.22272.1, )",
@@ -493,27 +490,6 @@
         "requested": "[7.3.1, )",
         "resolved": "7.3.1",
         "contentHash": "TJrQWSmD1vakfav7qIhDXgDFfaZFfMJ+v6P8tcND9ZqXajD5B/ZzaoGYNzL4D3eDue6vAOUvwzu42G+19JNVUA=="
-      },
-      "OneOf": {
-        "type": "CentralTransitive",
-        "requested": "[3.0.271, )",
-        "resolved": "3.0.271",
-        "contentHash": "pqpqeK8xQGggExhr4tesVgJkjdn+9HQAO0QgrYV2hFjE3y90okzk1kQMntMiUOGfV7FrCUfKPaVvPBD4IANqKg=="
-      },
-      "OneOf.Monads": {
-        "type": "CentralTransitive",
-        "requested": "[1.21.0, )",
-        "resolved": "1.21.0",
-        "contentHash": "Ot7BmQSJ6A5hAy22b5/LgAQEU8LaiXH4529VCzTnZnsVb66gLdS34Jji+rTA5JUtEg3Z7W49Es6X2Bzgeaeerw==",
-        "dependencies": {
-          "OneOf": "3.0.223"
-        }
-      },
-      "OneOf.SourceGenerator": {
-        "type": "CentralTransitive",
-        "requested": "[3.0.271, )",
-        "resolved": "3.0.271",
-        "contentHash": "I7e5kx5prSV99g+rM/xO5KMhwBQL/b+NlUY76RhbutXJ0tgiuMoqgOFnlTHOxCLrlKmwaMzp3VI8oz05PSlcIA=="
       },
       "Spectre.Console.Cli": {
         "type": "CentralTransitive",

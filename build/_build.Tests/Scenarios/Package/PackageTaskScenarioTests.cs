@@ -1,5 +1,5 @@
-using Build.Features.Packaging;
 using Build.Integrations.DotNet;
+using Build.Targets.Package.Models;
 using Build.Repositories;
 using Build.Results;
 using Build.Shared.Manifest;
@@ -50,8 +50,9 @@ public sealed class PackageTaskScenarioTests
     [Test]
     public async Task RunAsync_Should_Throw_When_Versions_File_Missing()
     {
-        // FamilyVersions defaults to PackageFamilyVersionSet.Empty when WithFamilyVersions is omitted.
+        // No --versions-file passed; task entry should fail-loud.
         var world = NewWorld();
+        world.WithVersionsFile(null);
 
         var result = await CreateHost(world).RunAsync();
 
@@ -63,11 +64,9 @@ public sealed class PackageTaskScenarioTests
     public async Task RunAsync_Should_Throw_With_G58_Error_When_CrossFamily_Dependency_Unresolved()
     {
         // Versions has only sdl2-image, but sdl2-image depends on sdl2-core (per manifest).
-        var versions = new PackageFamilyVersionSet(
-        [
-            new PackageFamilyVersion(new PackageFamilyId("sdl2-image"), NuGetVersion.Parse("2.8.0")),
-        ]);
-        var world = NewWorld().WithFamilyVersions(versions);
+        // Override the multi-family fixture with a single-family JSON for this test.
+        var world = NewWorld()
+            .WithTextFile("artifacts/resolve-versions/versions.json", "{\n  \"sdl2-image\": \"2.8.0\"\n}");
 
         var result = await CreateHost(world).RunAsync();
 
@@ -201,7 +200,7 @@ public sealed class PackageTaskScenarioTests
 
     private static void SeedReadme(FakeCakeWorldV2 world)
     {
-        world.WithTextFile("README.md", ReadmeMappingTable.BuildBlock(ManifestFixture.CreateTestManifestConfig()));
+        world.WithTextFile("README.md", ReadmeMappingTableBlock.BuildBlock(ManifestFixture.CreateTestManifestConfig()));
     }
 
     private static TargetTestHostV2<PackageTask> CreateHost(FakeCakeWorldV2 world)

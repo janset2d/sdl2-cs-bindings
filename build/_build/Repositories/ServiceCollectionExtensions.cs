@@ -1,5 +1,5 @@
 using Build.Host.Paths;
-using Build.Integrations.Vcpkg;
+using Build.Vcpkg;
 using Cake.Core;
 using Microsoft.Extensions.DependencyInjection;
 

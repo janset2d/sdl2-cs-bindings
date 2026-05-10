@@ -1,8 +1,8 @@
 using System.Collections.Immutable;
 using Build.Host.Paths;
 using Build.Harvesting;
-using Build.Integrations.Vcpkg;
-using Build.Shared.Harvesting;
+using Build.Results;
+using Build.Vcpkg;
 using Build.Shared.Runtime;
 using Build.Targets.Harvest.Models;
 using Build.Targets.Harvest.Services;
@@ -183,12 +183,12 @@ public sealed class ArtifactPlannerTests
 
         // Package has a copyright file
         _mockPkg.GetPackageInfoAsync("sdl2-image", "x64-windows-hybrid", Arg.Any<CancellationToken>())
-            .Returns(new PackageInfo(
+            .Returns(Result<PackageInfo, PackageInfoError>.Success(new PackageInfo(
                 "sdl2-image", "x64-windows-hybrid",
                 ImmutableList.Create(
                     "C:/vcpkg/bin/SDL2_image.dll",
                     "C:/vcpkg/share/sdl2-image/copyright"),
-                ImmutableList<string>.Empty));
+                ImmutableList<string>.Empty)));
 
         var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"));
 
@@ -224,8 +224,8 @@ public sealed class ArtifactPlannerTests
     private void SetupEmptyLicenseResponse()
     {
         _mockPkg.GetPackageInfoAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(callInfo => new PackageInfo(
+            .Returns(callInfo => Result<PackageInfo, PackageInfoError>.Success(new PackageInfo(
                 callInfo.ArgAt<string>(0), callInfo.ArgAt<string>(1),
-                ImmutableList<string>.Empty, ImmutableList<string>.Empty));
+                ImmutableList<string>.Empty, ImmutableList<string>.Empty)));
     }
 }

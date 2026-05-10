@@ -1,4 +1,4 @@
-using Build.Features.Packaging;
+using Build.Targets.Package.Models;
 using Build.Tests.Fixtures;
 using Build.Validation.Packaging;
 using Cake.Core.IO;
@@ -19,7 +19,7 @@ public sealed class ReadmeMappingTableValidatorTests
         var manifest = ManifestFixture.CreateTestManifestConfig();
         var world = FakeCakeWorldV2.CreateWindows();
         var readmePath = world.RepoRoot.CombineWithFilePath("README.md");
-        world.WithTextFile(readmePath, ReadmeMappingTable.BuildBlock(manifest));
+        world.WithTextFile(readmePath, ReadmeMappingTableBlock.BuildBlock(manifest));
         var family = manifest.PackageFamilies[0];
 
         var validator = new ReadmeMappingTableValidator(world.FileSystem);
@@ -72,7 +72,7 @@ public sealed class ReadmeMappingTableValidatorTests
         var world = FakeCakeWorldV2.CreateWindows();
         var readmePath = world.RepoRoot.CombineWithFilePath("README.md");
         // Readme has the markers but with a stale (different) inner block.
-        var staleBlock = $"{ReadmeMappingTable.StartMarker}\n| stale | row |\n{ReadmeMappingTable.EndMarker}";
+        var staleBlock = $"{ReadmeMappingTableBlock.StartMarker}\n| stale | row |\n{ReadmeMappingTableBlock.EndMarker}";
         world.WithTextFile(readmePath, staleBlock);
         var family = manifest.PackageFamilies[0];
 
@@ -91,7 +91,7 @@ public sealed class ReadmeMappingTableValidatorTests
         var manifest = ManifestFixture.CreateTestManifestConfig();
         var world = FakeCakeWorldV2.CreateWindows();
         var readmePath = world.RepoRoot.CombineWithFilePath("README.md");
-        var crlfBlock = ReadmeMappingTable.BuildBlock(manifest).Replace("\n", "\r\n", StringComparison.Ordinal);
+        var crlfBlock = ReadmeMappingTableBlock.BuildBlock(manifest).Replace("\n", "\r\n", StringComparison.Ordinal);
         world.WithTextFile(readmePath, crlfBlock);
         var family = manifest.PackageFamilies[0];
 

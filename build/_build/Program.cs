@@ -12,9 +12,11 @@ using Build.Targets.InspectHarvestedDependencies;
 using Build.Targets.NativeSmoke;
 using Build.Targets.OtoolAnalyze;
 using Build.Targets.Package;
-using Build.Features.Packaging;
-using Build.Features.Publishing;
+using Build.Targets.PackageConsumerSmoke;
 using Build.Targets.PreFlightCheck;
+using Build.Targets.PublishPublic;
+using Build.Targets.PublishStaging;
+using Build.Vcpkg;
 using Build.Features.Vcpkg;
 using Build.Host;
 using Build.Host.Cake;
@@ -85,37 +87,14 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     ArgumentNullException.ThrowIfNull(services);
     ArgumentNullException.ThrowIfNull(parsedArgs);
 
-    services.AddSingleton(new VcpkgConfiguration([.. parsedArgs.Library], parsedArgs.Rid));
     services.AddSingleton(new RepositoryConfiguration(repoRootPath));
-    services.AddSingleton(new DotNetBuildConfiguration(configuration: parsedArgs.Config));
 
-    // PackageBuildConfiguration carries the resolved family→version mapping consumed by
-    // stage targets (PreFlight, Package, ConsumerSmoke, PublishStaging). Populated only
-    // from --versions-file. Stage tasks fail-loud at task entry when the mapping is empty.
-    // ResolveVersions tasks read named BuildContext properties and emit PackageFamilyVersionSet.
-    services.AddSingleton<PackageBuildConfiguration>(provider =>
-    {
-        var hasVersionsFile = !string.IsNullOrWhiteSpace(parsedArgs.VersionsFile);
-        if (!hasVersionsFile)
-        {
-            return new PackageBuildConfiguration(PackageFamilyVersionSet.Empty);
-        }
-
-        var ctx = provider.GetRequiredService<ICakeContext>();
-        var filePath = new FilePath(parsedArgs.VersionsFile!);
-
-        // ResolveVersions targets pass --versions-file as their OUTPUT path — the file
-        // doesn't exist yet when the DI factory runs. Stage tasks that READ versions
-        // (PreFlight, Package, ConsumerSmoke, PublishStaging) fail-loud at task entry
-        // when the set is empty, so empty-on-missing is safe.
-        if (!ctx.FileExists(filePath))
-        {
-            return new PackageBuildConfiguration(PackageFamilyVersionSet.Empty);
-        }
-
-        var versionSet = ctx.ToJson<PackageFamilyVersionSet>(filePath);
-        return new PackageBuildConfiguration(versionSet);
-    });
+    // Stage tasks (PreFlight, Package, ConsumerSmoke, PublishStaging) load the resolved
+    // family→version mapping from `context.VersionsFilePath` via IVersionFileRepository.
+    // Each task validates the path + non-empty mapping at task entry. ResolveVersions
+    // tasks emit the file via the same repository's SaveAsync; the wrapper-style DI
+    // registration that pre-S15 paradigm used (PackageBuildConfiguration) was retired
+    // alongside the other Configuration classes.
     services.AddSingleton<IAnsiConsole>(AnsiConsole.Console);
 
     // Composition root: 11 per-feature AddXFeature() calls + 3 cross-cutting groupings
@@ -125,6 +104,7 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
         .AddHostBuildingBlocks(parsedArgs)
         .AddRepositories()
         .AddValidators()
+        .AddVcpkg()
         .AddIntegrations()
         .AddToolWrappers()
         .AddCiFeature()
@@ -135,9 +115,10 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
         .AddHarvest()
         .AddNativeSmoke()
         .AddConsolidateHarvest()
-        .AddPublishingFeature()
-        .AddPackagingFeature()
-        .AddPackage();
+        .AddPackage()
+        .AddPackageConsumerSmoke()
+        .AddPublishStaging()
+        .AddPublishPublic();
 }
 
 static async Task<DirectoryPath> DetermineRepoRootAsync(DirectoryInfo? repoRootArg)

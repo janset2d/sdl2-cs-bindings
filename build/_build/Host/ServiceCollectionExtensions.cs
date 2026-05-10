@@ -44,13 +44,14 @@ public static class ServiceCollectionExtensions
         {
             var runtimeConfig = sp.GetRequiredService<RuntimeConfig>();
             var systemArtefactsConfig = sp.GetRequiredService<SystemArtefactsConfig>();
-            var vcpkgConfiguration = sp.GetRequiredService<VcpkgConfiguration>();
             var cakeEnvironment = sp.GetRequiredService<ICakeEnvironment>();
 
-            var rid = vcpkgConfiguration.Rid
-                .Match<string>(
-                    _ => cakeEnvironment.Platform.Rid(),
-                    configRid => configRid.Value);
+            // RID resolution: --rid CLI override wins; otherwise fall back to the host's
+            // platform default. VcpkgConfiguration retired in S15 (P9) — its OneOf-based
+            // Option<string> wrapper around the same value was indirection without payoff.
+            var rid = string.IsNullOrWhiteSpace(parsedArgs.Rid)
+                ? cakeEnvironment.Platform.Rid()
+                : parsedArgs.Rid;
 
             var runtimeInfo = runtimeConfig.Runtimes.Single(r => string.Equals(r.Rid, rid, StringComparison.Ordinal));
 

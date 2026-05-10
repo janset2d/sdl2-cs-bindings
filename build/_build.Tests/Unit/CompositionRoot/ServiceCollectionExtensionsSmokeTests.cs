@@ -1,14 +1,16 @@
 #pragma warning disable CA1031
 
 using Build.Features.Ci;
-using Build.Features.Packaging;
-using Build.Features.Publishing;
 using Build.Features.Vcpkg;
 using Build.Repositories;
 using Build.Targets.ConsolidateHarvest;
 using Build.Targets.Harvest;
 using Build.Targets.NativeSmoke;
+using Build.Targets.PackageConsumerSmoke;
 using Build.Targets.PreFlightCheck;
+using Build.Targets.PublishPublic;
+using Build.Targets.PublishStaging;
+using Build.Vcpkg;
 using Build.Tests.Fixtures;
 using Build.Validation;
 using Microsoft.Extensions.DependencyInjection;
@@ -105,19 +107,42 @@ public sealed class ServiceCollectionExtensionsSmokeTests
     }
 
     [Test]
-    public async Task AddPublishingFeature_Should_Register_All_Pipeline_And_Validator_Types()
+    public async Task AddVcpkg_Should_Register_All_Vcpkg_Types()
     {
-        await AssertAllRegisteredTypesResolve(services => services.AddPublishingFeature());
+        // Vcpkg root concept exposes IPackageInfoProvider + IVcpkgManifestReader.
+        // VcpkgCliProvider depends on IPathService + ICakeContext + ICakeLog (host blocks).
+        await AssertAllRegisteredTypesResolve(services => services.AddVcpkg());
     }
 
     [Test]
-    public async Task AddPackagingFeature_Should_Register_All_Pipeline_And_Validator_Types()
+    public async Task AddPublishStaging_Should_Register_All_Collaborator_Types()
     {
-        // AddValidators() supplies validators relocated to Validation/.
+        // PublishStagingTask is discovered by Cake; INuGetFeedClient comes from AddIntegrations
+        // (test host blocks). AddPublishStaging itself currently registers nothing — sanity that
+        // the call closes cleanly is the smoke surface.
+        await AssertAllRegisteredTypesResolve(services => services.AddPublishStaging());
+    }
+
+    [Test]
+    public async Task AddPublishPublic_Should_Register_Stub_Types()
+    {
+        // Stub task — discovered by Cake; AddPublishPublic registers nothing.
+        await AssertAllRegisteredTypesResolve(services => services.AddPublishPublic());
+    }
+
+    [Test]
+    public async Task AddPackageConsumerSmoke_Should_Register_All_Collaborator_Types()
+    {
+        // PackageConsumerSmokeTask injects DotNetSmokeRunner + MonoAvailabilityProbe +
+        // PackageConsumerSmokeReporter (registered here) + IPackageConsumerSmokePreconditionsValidator
+        // (registered by AddValidators) + IProjectMetadataReader + IDotNetRuntimeEnvironment
+        // (host blocks). PackageConsumerSmokeReporter takes IAnsiConsole — bind a substitute so
+        // the resolution graph closes.
         await AssertAllRegisteredTypesResolve(services =>
         {
+            services.AddSingleton(Substitute.For<IAnsiConsole>());
             services.AddValidators();
-            services.AddPackagingFeature();
+            services.AddPackageConsumerSmoke();
         });
     }
 

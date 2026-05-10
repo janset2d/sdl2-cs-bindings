@@ -1,12 +1,12 @@
 using System.Collections.Immutable;
 using Build.Integrations.DependencyAnalysis;
 using Build.Harvesting;
-using Build.Integrations.Vcpkg;
-using Build.Shared.Harvesting;
+using Build.Results;
 using Build.Shared.Runtime;
 using IoPath = System.IO.Path;
 using Build.Targets.Harvest.Services;
 using Build.Tests.Fixtures;
+using Build.Vcpkg;
 using Cake.Core;
 using Cake.Core.IO;
 using Cake.Testing;
@@ -143,7 +143,7 @@ public sealed class BinaryClosureWalkerTests
         var manifest = ManifestFixture.CreateTestSatelliteLibrary();
 
         _mockPkg.GetPackageInfoAsync("sdl2-image", "x64-windows-hybrid", Arg.Any<CancellationToken>())
-            .Returns(new PackageInfoError("Package not found"));
+            .Returns(Result<PackageInfo, PackageInfoError>.Failure(new PackageInfoError("Package not found")));
 
         var walker = new BinaryClosureWalker(_mockScanner, _mockPkg, _profile, _mockCtx);
         var result = await walker.BuildClosureAsync(manifest);
@@ -175,7 +175,7 @@ public sealed class BinaryClosureWalkerTests
         await Assert.That(allPaths).Contains("extra_dep.dll");
     }
 
-    private PackageInfoResult CreatePackageInfo(string name, string[] ownedFiles, string[] dependencies)
+    private Result<PackageInfo, PackageInfoError> CreatePackageInfo(string name, string[] ownedFiles, string[] dependencies)
     {
         var basePath = "C:/vcpkg_installed/x64-windows-hybrid";
         var files = ownedFiles.Select(f =>
@@ -184,6 +184,7 @@ public sealed class BinaryClosureWalkerTests
             _fakeFs.CreateFile(filePath);
             return filePath;
         }).ToImmutableList();
-        return new PackageInfo(name, "x64-windows-hybrid", files.Select(f => f.FullPath).ToImmutableList(), dependencies.ToImmutableList());
+        return Result<PackageInfo, PackageInfoError>.Success(
+            new PackageInfo(name, "x64-windows-hybrid", files.Select(f => f.FullPath).ToImmutableList(), dependencies.ToImmutableList()));
     }
 }

@@ -1,4 +1,4 @@
-using Build.Integrations.Vcpkg;
+using Build.Vcpkg;
 using Build.Shared.Manifest;
 using Cake.Common.IO;
 using Cake.Core;

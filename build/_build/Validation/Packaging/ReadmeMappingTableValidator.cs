@@ -1,5 +1,5 @@
-using Build.Features.Packaging;
 using Build.Results;
+using Build.Targets.Package.Models;
 using Build.Shared.Manifest;
 using Cake.Core.IO;
 
@@ -37,16 +37,16 @@ public sealed class ReadmeMappingTableValidator(IFileSystem fileSystem) : IReadm
             readmeContent = reader.ReadToEnd();
         }
 
-        var expectedBlock = ReadmeMappingTable.BuildBlock(manifestConfig);
-        if (!ReadmeMappingTable.TryExtractBlock(readmeContent, out var actualBlock))
+        var expectedBlock = ReadmeMappingTableBlock.BuildBlock(manifestConfig);
+        if (!ReadmeMappingTableBlock.TryExtractBlock(readmeContent, out var actualBlock))
         {
             return Failure(
-                $"G57: README '{readmePath.GetFilename().FullPath}' is missing mapping table markers '{ReadmeMappingTable.StartMarker}' and/or '{ReadmeMappingTable.EndMarker}'.");
+                $"G57: README '{readmePath.GetFilename().FullPath}' is missing mapping table markers '{ReadmeMappingTableBlock.StartMarker}' and/or '{ReadmeMappingTableBlock.EndMarker}'.");
         }
 
         var lineEnding = readmeContent.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
-        var normalizedExpected = ReadmeMappingTable.NormalizeLineEndings(expectedBlock, lineEnding);
-        var normalizedActual = ReadmeMappingTable.NormalizeLineEndings(actualBlock, lineEnding);
+        var normalizedExpected = ReadmeMappingTableBlock.NormalizeLineEndings(expectedBlock, lineEnding);
+        var normalizedActual = ReadmeMappingTableBlock.NormalizeLineEndings(actualBlock, lineEnding);
 
         if (string.Equals(normalizedExpected, normalizedActual, StringComparison.Ordinal))
         {

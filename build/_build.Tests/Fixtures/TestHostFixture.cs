@@ -2,8 +2,9 @@ using Build.Host.Paths;
 using Build.Integrations.DependencyAnalysis;
 using Build.Integrations.DotNet;
 using Build.Integrations.NuGet;
-using Build.Integrations.Vcpkg;
 using Build.Targets.NativeSmoke.Services;
+using Build.Tools;
+using Build.Vcpkg;
 using Build.Targets.Package.Services;
 using Build.Shared.Manifest;
 using Build.Shared.Runtime;
@@ -64,14 +65,11 @@ public static class TestHostFixture
         services.AddSingleton(cakeContext.Configuration);
 
         // Host singletons. Configurations aggregate + DumpbinConfiguration retired in S14;
-        // surviving sub-records (P9-territory + composition-root consumers) constructed inline.
+        // VcpkgConfiguration retired in S15 (inlined into IRuntimeProfile factory).
         services.AddSingleton<IPathService>(pathService);
         services.AddSingleton(runtimeProfile);
         services.AddSingleton(manifest);
-        services.AddSingleton(new Build.Host.Configuration.VcpkgConfiguration([], runtimeProfile.Rid));
-        services.AddSingleton(new Build.Host.Configuration.PackageBuildConfiguration(Build.Versioning.PackageFamilyVersionSet.Empty));
         services.AddSingleton(new Build.Host.Configuration.RepositoryConfiguration(pathService.RepoRoot));
-        services.AddSingleton(new Build.Host.Configuration.DotNetBuildConfiguration("Release"));
         services.AddSingleton(new RuntimeConfig { Runtimes = manifest.Runtimes });
         services.AddSingleton(manifest.SystemExclusions);
 
