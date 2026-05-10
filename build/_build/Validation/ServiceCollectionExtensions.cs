@@ -1,4 +1,4 @@
-using Build.Manifest;
+using Build.Data.Manifest;
 using Build.Runtime;
 using Build.Validation.Harvesting;
 using Build.Validation.Manifest;

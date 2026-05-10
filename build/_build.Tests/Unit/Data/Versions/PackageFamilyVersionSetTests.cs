@@ -1,8 +1,8 @@
 using System.Text.Json;
-using Build.Versioning;
+using Build.Data.Versions;
 using NuGet.Versioning;
 
-namespace Build.Tests.Unit.Versioning;
+namespace Build.Tests.Unit.Data.Versions;
 
 /// <summary>
 /// Tests for <see cref="PackageFamilyVersionSet"/> — the typed family→version

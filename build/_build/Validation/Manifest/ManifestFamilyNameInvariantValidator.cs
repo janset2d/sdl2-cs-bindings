@@ -1,5 +1,5 @@
 using System.Text.RegularExpressions;
-using Build.Manifest;
+using Build.Data.Manifest;
 using Build.Results;
 
 namespace Build.Validation.Manifest;

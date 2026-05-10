@@ -1,6 +1,6 @@
 using System.Text.Json;
 using Build.Host.Cake;
-using Build.Manifest;
+using Build.Data.Manifest;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.IO;

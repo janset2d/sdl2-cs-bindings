@@ -1,4 +1,4 @@
-using Build.Manifest;
+using Build.Data.Manifest;
 using Build.Validation.Models;
 
 namespace Build.Validation.Manifest;

@@ -1,5 +1,5 @@
 using System.Collections.Immutable;
-using Build.Manifest;
+using Build.Data.Manifest;
 using Build.Data;
 using Build.Targets.PreFlightCheck;
 using Build.Tests.Fixtures;

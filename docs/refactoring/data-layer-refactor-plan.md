@@ -124,7 +124,7 @@ build\_build\
       PackageFamilyVersionSet.cs
       VersionFileRepository.cs
     ProjectMetadata\
-      ProjectMetadata.cs
+      EvaluatedProjectMetadata.cs
       ProjectMetadataError.cs
       ProjectMetadataReader.cs
     Harvest\
@@ -198,7 +198,7 @@ Both test classes may live in one test file when that keeps the repository contr
 | `VcpkgManifestRepository` | `Repositories\` | `Data\Manifest\` | Owner of `vcpkg.json` IO. |
 | `versions.json` model | `Versioning\PackageFamilyVersionSet.cs` | `Data\Versions\` | File contract for resolved package family versions. |
 | `VersionFileRepository` | `Repositories\` | `Data\Versions\` | Owner of `versions.json` IO. |
-| MSBuild project metadata | `Packaging\ProjectMetadata*.cs` | `Data\ProjectMetadata\` | Tool-read project data, consumed by more than Package. |
+| MSBuild project metadata | `Packaging\ProjectMetadata*.cs` | `Data\ProjectMetadata\` | Tool-read project data, consumed by more than Package. The data record is named `EvaluatedProjectMetadata` to avoid a namespace/type-name conflict. |
 | `rid-status/*.json` models | `Harvesting\HarvestManifest.cs` | `Data\Harvest\` | Per-RID persisted harvest status. |
 | `harvest-manifest.json` models | `Harvesting\HarvestManifest.cs` | `Data\Harvest\` | Consolidated persisted harvest contract. |
 | `HarvestStatusRepository` | `Repositories\` | `Data\Harvest\` | Owner of per-RID status writes and invalidation. |
@@ -320,7 +320,7 @@ No production `Build.Repositories` or `AddRepositories` references remain.
 - Move manifest models into `Data\Manifest`.
 - Move `PackageFamilyVersionSet` into `Data\Versions`.
 - Move `ExplicitVersionParser` out of root `Versioning` into `Targets\ResolveVersionsFromExplicit\Services`.
-- Move `ProjectMetadata`, `ProjectMetadataReader`, and `ProjectMetadataError` into `Data\ProjectMetadata`.
+- Move `ProjectMetadataReader` and `ProjectMetadataError` into `Data\ProjectMetadata`, and rename the data record to `EvaluatedProjectMetadata`.
 - Delete `PackagingError` if it no longer has a real module to represent.
 
 **How:**
@@ -710,3 +710,4 @@ These are intentionally not part of the first Data-layer refactor:
 - `SmokeProjectScopeReader`: target-local extraction only if `PackageConsumerSmokeTask` remains too large after manifest cleanup.
 - Diagnostic target input unification (`--dll` / `--library`): separate roadmap item.
 - Public publishing implementation: Phase 2b PD-7, unrelated to this topology cleanup.
+- CI log hygiene from the Phase 1 green run is captured in [`../parking-lot.md`](../parking-lot.md) under "Release CI Log Hygiene".

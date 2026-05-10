@@ -1,6 +1,7 @@
+using Build.Data.Versions;
 using NuGet.Versioning;
 
-namespace Build.Versioning;
+namespace Build.Targets.ResolveVersionsFromExplicit.Services;
 
 /// <summary>
 /// Parses <c>--explicit-version family=semver</c> (repeated) and

@@ -3,7 +3,7 @@ using Build.Harvesting;
 using Build.Host;
 using Build.Host.Cake;
 using Build.Host.Paths;
-using Build.Manifest;
+using Build.Data.Manifest;
 using Build.Runtime;
 using Build.Tests.Fixtures.Seeders;
 using Cake.Core;

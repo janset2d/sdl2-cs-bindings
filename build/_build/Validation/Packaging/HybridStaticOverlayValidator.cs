@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 using Build.Host.Paths;
-using Build.Manifest;
+using Build.Data.Manifest;
 using Build.Results;
 using Cake.Common.IO;
 using Cake.Core;

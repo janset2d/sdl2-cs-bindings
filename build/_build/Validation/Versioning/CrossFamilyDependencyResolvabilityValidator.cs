@@ -1,6 +1,6 @@
-using Build.Manifest;
+using Build.Data.Manifest;
 using Build.Validation.Models;
-using Build.Versioning;
+using Build.Data.Versions;
 
 namespace Build.Validation.Versioning;
 

@@ -1,8 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Xml.Linq;
-using Build.Manifest;
-using Build.Packaging;
+using Build.Data.Manifest;
+using Build.Data.ProjectMetadata;
 using Build.Results;
 using Build.Targets.Package.Models;
 using Build.Validation.Conventions;
@@ -29,7 +29,7 @@ public interface IPackageOutputValidator
         PackageArtifacts artifacts,
         string expectedVersion,
         string expectedCommitSha,
-        ProjectMetadata managedProjectMetadata,
+        EvaluatedProjectMetadata managedProjectMetadata,
         ManifestConfig manifestConfig,
         FilePath readmePath);
 }
@@ -52,7 +52,7 @@ public sealed class PackageOutputValidator(
         PackageArtifacts artifacts,
         string expectedVersion,
         string expectedCommitSha,
-        ProjectMetadata managedProjectMetadata,
+        EvaluatedProjectMetadata managedProjectMetadata,
         ManifestConfig manifestConfig,
         FilePath readmePath)
     {
@@ -147,27 +147,27 @@ public sealed class PackageOutputValidator(
     private static void AddProjectMetadataCompletenessChecks(
         List<ValidationCheck> checks,
         PackageFamilyConfig family,
-        ProjectMetadata metadata)
+        EvaluatedProjectMetadata metadata)
     {
         AddCompletenessCheck(
             checks,
             metadata.TargetFrameworks.Count != 0,
-            $"ProjectMetadata for family '{family.Name}' has no target frameworks. Check that the managed csproj declares <TargetFrameworks> (directly or via Directory.Build.props).");
+            $"EvaluatedProjectMetadata for family '{family.Name}' has no target frameworks. Check that the managed csproj declares <TargetFrameworks> (directly or via Directory.Build.props).");
 
         AddCompletenessCheck(
             checks,
             !string.IsNullOrWhiteSpace(metadata.Authors),
-            $"ProjectMetadata for family '{family.Name}' is missing Authors. Expected value from Directory.Build.props.");
+            $"EvaluatedProjectMetadata for family '{family.Name}' is missing Authors. Expected value from Directory.Build.props.");
 
         AddCompletenessCheck(
             checks,
             !string.IsNullOrWhiteSpace(metadata.PackageLicenseFile),
-            $"ProjectMetadata for family '{family.Name}' is missing PackageLicenseFile. Expected value from Directory.Build.props.");
+            $"EvaluatedProjectMetadata for family '{family.Name}' is missing PackageLicenseFile. Expected value from Directory.Build.props.");
 
         AddCompletenessCheck(
             checks,
             !string.IsNullOrWhiteSpace(metadata.PackageIcon),
-            $"ProjectMetadata for family '{family.Name}' is missing PackageIcon. Expected value from Directory.Build.props.");
+            $"EvaluatedProjectMetadata for family '{family.Name}' is missing PackageIcon. Expected value from Directory.Build.props.");
     }
 
     private static void AddCompletenessCheck(
@@ -247,7 +247,7 @@ public sealed class PackageOutputValidator(
         string expectedPackageId,
         string expectedVersion,
         string expectedCommitSha,
-        ProjectMetadata projectMetadata)
+        EvaluatedProjectMetadata projectMetadata)
     {
         var packageId = TryGetChildValue(metadata, "id", out var missingId);
         AddCanonicalCheck(
@@ -336,7 +336,7 @@ public sealed class PackageOutputValidator(
         FilePath managedPackagePath,
         XElement metadata,
         string expectedVersion,
-        ProjectMetadata projectMetadata,
+        EvaluatedProjectMetadata projectMetadata,
         ManifestConfig manifestConfig)
     {
         var dependencies = metadata.Elements().SingleOrDefault(element => string.Equals(element.Name.LocalName, "dependencies", StringComparison.Ordinal));

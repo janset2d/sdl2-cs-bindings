@@ -1,7 +1,8 @@
-using Build.Versioning;
+using Build.Data.Versions;
+using Build.Targets.ResolveVersionsFromExplicit.Services;
 using NuGet.Versioning;
 
-namespace Build.Tests.Unit.Versioning;
+namespace Build.Tests.Unit.Targets.ResolveVersionsFromExplicit.Services;
 
 /// <summary>
 /// Tests for <see cref="ExplicitVersionParser.ParseCliEntries"/> and

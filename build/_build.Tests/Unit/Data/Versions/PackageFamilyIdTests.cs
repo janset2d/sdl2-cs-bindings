@@ -1,6 +1,6 @@
-using Build.Versioning;
+using Build.Data.Versions;
 
-namespace Build.Tests.Unit.Versioning;
+namespace Build.Tests.Unit.Data.Versions;
 
 /// <summary>
 /// Tests for <see cref="PackageFamilyId"/> — the format-agnostic, ordinal-exact

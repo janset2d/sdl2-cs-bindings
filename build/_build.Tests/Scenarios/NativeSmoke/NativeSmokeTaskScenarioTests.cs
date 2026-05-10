@@ -1,4 +1,4 @@
-using Build.Manifest;
+using Build.Data.Manifest;
 using Build.Targets.NativeSmoke;
 using Build.Targets.NativeSmoke.Services;
 using Build.Tests.Fixtures;

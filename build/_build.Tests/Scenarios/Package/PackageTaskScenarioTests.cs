@@ -1,5 +1,5 @@
-using Build.Packaging;
-using Build.Manifest;
+using Build.Data.ProjectMetadata;
+using Build.Data.Manifest;
 using Build.Targets.Package.Models;
 using Build.Data;
 using Build.Results;
@@ -8,7 +8,7 @@ using Build.Targets.Package.Services;
 using Build.Tests.Fixtures;
 using Build.Validation;
 using Build.Validation.Packaging;
-using Build.Versioning;
+using Build.Data.Versions;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
@@ -213,8 +213,8 @@ public sealed class PackageTaskScenarioTests
 
         var metadataReader = Substitute.For<IProjectMetadataReader>();
         metadataReader.Read(Arg.Any<FilePath>())
-            .Returns(Result<ProjectMetadata, ProjectMetadataError>.Success(
-                new ProjectMetadata(["net10.0"], "Authors", "LICENSE", "icon.png")));
+            .Returns(Result<EvaluatedProjectMetadata, ProjectMetadataError>.Success(
+                new EvaluatedProjectMetadata(["net10.0"], "Authors", "LICENSE", "icon.png")));
 
         var nativeMetadataGen = Substitute.For<INativePackageMetadataGenerator>();
         nativeMetadataGen.GenerateAsync(Arg.Any<PackageFamilyConfig>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
@@ -229,7 +229,7 @@ public sealed class PackageTaskScenarioTests
             Arg.Any<PackageArtifacts>(),
             Arg.Any<string>(),
             Arg.Any<string>(),
-            Arg.Any<ProjectMetadata>(),
+            Arg.Any<EvaluatedProjectMetadata>(),
             Arg.Any<ManifestConfig>(),
             Arg.Any<FilePath>())
             .Returns(ValidationReport.Empty);
@@ -267,7 +267,7 @@ public sealed class PackageTaskScenarioTests
                 Arg.Any<PackageArtifacts>(),
                 Arg.Any<string>(),
                 Arg.Any<string>(),
-                Arg.Any<ProjectMetadata>(),
+                Arg.Any<EvaluatedProjectMetadata>(),
                 Arg.Any<ManifestConfig>(),
                 Arg.Any<FilePath>())
                 .Returns(stubReport);

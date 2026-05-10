@@ -107,7 +107,7 @@ public sealed class ServiceCollectionExtensionsSmokeTests
         // PackageConsumerSmokeReporter + IDotNetRuntimeEnvironment (all registered by
         // AddPackageConsumerSmoke post-P10) + IPackageConsumerSmokePreconditionsValidator
         // (registered by AddValidators) + IProjectMetadataReader (registered by AddPackage,
-        // root Build.Packaging cross-target reader). PackageConsumerSmokeReporter takes
+        // Build.Data.ProjectMetadata cross-target reader). PackageConsumerSmokeReporter takes
         // IAnsiConsole — bind a substitute so the resolution graph closes.
         await AssertAllRegisteredTypesResolve(services =>
         {

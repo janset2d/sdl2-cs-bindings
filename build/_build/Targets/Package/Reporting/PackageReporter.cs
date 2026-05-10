@@ -1,5 +1,5 @@
-using Build.Manifest;
-using Build.Packaging;
+using Build.Data.Manifest;
+using Build.Data.ProjectMetadata;
 using Build.Results;
 using Build.Targets.Package.Models;
 using Build.Validation.Models;

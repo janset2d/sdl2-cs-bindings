@@ -159,6 +159,17 @@
 - Status: `hardening-backlog`
 - Explicit tool-path selection where environment drift matters; reproducible CI vs local tool resolution guidance.
 
+### Release CI Log Hygiene
+
+- Status: `hardening-backlog`
+- Surfaced during inspection of green Release workflow run `25637587638`. No failing job or hidden test failure was found, but several noisy log patterns are worth cleaning up so future failures are easier to spot.
+- Preserve:
+  - `actions/download-artifact@v8` emits repeated `[DEP0005] Buffer()` deprecation warnings. Likely upstream/action noise, but track in case an action upgrade or pin can remove it.
+  - Build-host invocations repeatedly warn that `--vcpkg-dir` and `--vcpkg-installed-dir` were not specified before defaulting to repository-relative paths. Either pass explicit paths from CI or downgrade expected default-path messages.
+  - NativeSmoke CMake configure warns that `VCPKG_OVERLAY_TRIPLETS` is manually specified but unused on every RID. Check whether the variable is unnecessary for the native-smoke CMake project.
+  - Windows vcpkg setup downloads PowerShell 7.5.4 during compiler hash detection. Consider caching/preinstalling if this remains repeated runtime noise.
+  - linux-x64 Harvest logs `Package info not found for dependency gperf, continuing.` for each SDL family. Harmless in the green run, but it may deserve an explicit exclusion or clearer diagnostic.
+
 ### PreflightReporter `IAnsiConsole` Migration
 
 - Status: `parked`

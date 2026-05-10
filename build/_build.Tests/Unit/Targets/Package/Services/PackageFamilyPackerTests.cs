@@ -1,8 +1,8 @@
 using System.Collections.Immutable;
 using Build.Targets.Package.Models;
 using Build.Host.Paths;
-using Build.Packaging;
-using Build.Manifest;
+using Build.Data.ProjectMetadata;
+using Build.Data.Manifest;
 using Build.Results;
 using Build.Targets.Package.Reporting;
 using Build.Targets.Package.Services;
@@ -86,8 +86,8 @@ public sealed class PackageFamilyPackerTests
 
         var projectMetadataReader = Substitute.For<IProjectMetadataReader>();
         projectMetadataReader.Read(Arg.Any<FilePath>())
-            .Returns(Result<ProjectMetadata, ProjectMetadataError>.Success(
-                new ProjectMetadata(["net10.0"], "Authors", "LICENSE", "icon.png")));
+            .Returns(Result<EvaluatedProjectMetadata, ProjectMetadataError>.Success(
+                new EvaluatedProjectMetadata(["net10.0"], "Authors", "LICENSE", "icon.png")));
 
         var packageOutputValidator = Substitute.For<IPackageOutputValidator>();
         packageOutputValidator.ValidateAsync(
@@ -95,7 +95,7 @@ public sealed class PackageFamilyPackerTests
             Arg.Any<PackageArtifacts>(),
             Arg.Any<string>(),
             Arg.Any<string>(),
-            Arg.Any<ProjectMetadata>(),
+            Arg.Any<EvaluatedProjectMetadata>(),
             Arg.Any<ManifestConfig>(),
             Arg.Any<FilePath>())
             .Returns(outputValidatorReport ?? ValidationReport.Empty);

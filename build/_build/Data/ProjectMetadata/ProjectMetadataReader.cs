@@ -6,17 +6,17 @@ using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 
-namespace Build.Packaging;
+namespace Build.Data.ProjectMetadata;
 
 public interface IProjectMetadataReader
 {
     /// <summary>
     /// Resolves MSBuild-evaluated properties (<c>TargetFrameworks</c>, <c>Authors</c>,
     /// <c>PackageLicenseFile</c>, <c>PackageIcon</c>) for the supplied csproj. Returns a typed
-    /// <see cref="Result{TValue,TError}"/> carrying either the resolved <see cref="ProjectMetadata"/>
+    /// <see cref="Result{TValue,TError}"/> carrying either the resolved <see cref="EvaluatedProjectMetadata"/>
     /// or a <see cref="ProjectMetadataError"/> describing the MSBuild or parse failure.
     /// </summary>
-    Result<ProjectMetadata, ProjectMetadataError> Read(FilePath projectPath);
+    Result<EvaluatedProjectMetadata, ProjectMetadataError> Read(FilePath projectPath);
 }
 
 public sealed class ProjectMetadataReader(ICakeContext cakeContext, ICakeLog log) : IProjectMetadataReader
@@ -34,7 +34,7 @@ public sealed class ProjectMetadataReader(ICakeContext cakeContext, ICakeLog log
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
 
     /// <inheritdoc />
-    public Result<ProjectMetadata, ProjectMetadataError> Read(FilePath projectPath)
+    public Result<EvaluatedProjectMetadata, ProjectMetadataError> Read(FilePath projectPath)
     {
         ArgumentNullException.ThrowIfNull(projectPath);
 
@@ -58,30 +58,30 @@ public sealed class ProjectMetadataReader(ICakeContext cakeContext, ICakeLog log
         catch (CakeException ex)
         {
             var message = $"dotnet msbuild -getProperty failed for '{projectPath.FullPath}': {ex.Message}";
-            return Result<ProjectMetadata, ProjectMetadataError>.Failure(new ProjectMetadataError(message, projectPath.FullPath, ex));
+            return Result<EvaluatedProjectMetadata, ProjectMetadataError>.Failure(new ProjectMetadataError(message, projectPath.FullPath, ex));
         }
 
         if (!TryParseProperties(capturedLines, projectPath, out var properties, out var parseError))
         {
-            return Result<ProjectMetadata, ProjectMetadataError>.Failure(parseError);
+            return Result<EvaluatedProjectMetadata, ProjectMetadataError>.Failure(parseError);
         }
 
         if (!TryResolveTargetFrameworks(properties, projectPath, out var targetFrameworks, out var tfmError))
         {
-            return Result<ProjectMetadata, ProjectMetadataError>.Failure(tfmError);
+            return Result<EvaluatedProjectMetadata, ProjectMetadataError>.Failure(tfmError);
         }
 
         var authors = GetPropertyOrEmpty(properties, "Authors");
         var licenseFile = GetPropertyOrEmpty(properties, "PackageLicenseFile");
         var icon = GetPropertyOrEmpty(properties, "PackageIcon");
 
-        var metadata = new ProjectMetadata(
+        var metadata = new EvaluatedProjectMetadata(
             TargetFrameworks: targetFrameworks,
             Authors: authors,
             PackageLicenseFile: licenseFile,
             PackageIcon: icon);
 
-        return Result<ProjectMetadata, ProjectMetadataError>.Success(metadata);
+        return Result<EvaluatedProjectMetadata, ProjectMetadataError>.Success(metadata);
     }
 
     private static bool TryParseProperties(

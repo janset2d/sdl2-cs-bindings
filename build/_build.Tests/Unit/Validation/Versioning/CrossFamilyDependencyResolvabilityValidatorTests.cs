@@ -1,8 +1,8 @@
-using Build.Manifest;
+using Build.Data.Manifest;
 using Build.Tests.Fixtures;
 using Build.Validation.Models;
 using Build.Validation.Versioning;
-using Build.Versioning;
+using Build.Data.Versions;
 using NuGet.Versioning;
 
 namespace Build.Tests.Unit.Validation.Versioning;

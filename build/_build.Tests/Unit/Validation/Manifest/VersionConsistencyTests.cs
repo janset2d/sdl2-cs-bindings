@@ -1,4 +1,4 @@
-using Build.Manifest;
+using Build.Data.Manifest;
 
 namespace Build.Tests.Unit.Validation.Manifest;
 

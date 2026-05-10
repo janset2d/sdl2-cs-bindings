@@ -1,9 +1,9 @@
 using Build.Host.Paths;
 using Build.DependencyAnalysis;
-using Build.Packaging;
+using Build.Data.ProjectMetadata;
 using Build.Targets.PackageConsumerSmoke.Services;
 using Build.Targets.PublishStaging.Services;
-using Build.Manifest;
+using Build.Data.Manifest;
 using Build.Runtime;
 using Build.Targets.NativeSmoke.Services;
 using Build.Targets.Package.Services;
@@ -36,7 +36,7 @@ namespace Build.Tests.Fixtures;
 /// results instead of DI-registered command providers. Scanners live in
 /// <c>Build.DependencyAnalysis</c>, NuGet client in <c>Targets/PublishStaging/Services/</c>,
 /// .NET runtime env in <c>Targets/PackageConsumerSmoke/Services/</c>, and project metadata
-/// reader in <c>Build.Packaging</c>.
+/// reader in <c>Build.Data.ProjectMetadata</c>.
 /// </para>
 /// </remarks>
 public static class TestHostFixture

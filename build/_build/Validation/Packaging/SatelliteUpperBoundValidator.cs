@@ -1,5 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
-using Build.Manifest;
+using Build.Data.Manifest;
 using Build.Results;
 using Cake.Core.IO;
 using NuGet.Versioning;

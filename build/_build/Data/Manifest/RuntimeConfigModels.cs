@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using System.Text.Json.Serialization;
 
-namespace Build.Manifest;
+namespace Build.Data.Manifest;
 
 public record RuntimeInfo
 {

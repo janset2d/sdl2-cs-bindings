@@ -1,6 +1,5 @@
 using Build.Data.Versions;
 using Build.Tests.Fixtures;
-using Build.Versioning;
 using Cake.Core;
 using Cake.Core.IO;
 using NSubstitute;

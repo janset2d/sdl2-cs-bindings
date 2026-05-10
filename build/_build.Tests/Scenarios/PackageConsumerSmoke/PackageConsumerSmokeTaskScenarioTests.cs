@@ -1,5 +1,5 @@
 using Build.Targets.PackageConsumerSmoke.Services;
-using Build.Packaging;
+using Build.Data.ProjectMetadata;
 using Build.Data;
 using Build.Results;
 using Build.Runtime;
@@ -161,8 +161,8 @@ public sealed class PackageConsumerSmokeTaskScenarioTests
     {
         var metadataReader = Substitute.For<IProjectMetadataReader>();
         metadataReader.Read(Arg.Any<FilePath>())
-            .Returns(Result<ProjectMetadata, ProjectMetadataError>.Success(
-                new ProjectMetadata(["net10.0"], "Authors", "LICENSE", "icon.png")));
+            .Returns(Result<EvaluatedProjectMetadata, ProjectMetadataError>.Success(
+                new EvaluatedProjectMetadata(["net10.0"], "Authors", "LICENSE", "icon.png")));
 
         var runtimeEnvironment = Substitute.For<IDotNetRuntimeEnvironment>();
         runtimeEnvironment.ResolveAsync(Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())

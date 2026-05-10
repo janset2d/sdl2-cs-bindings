@@ -18,7 +18,7 @@ public static class ServiceCollectionExtensions
         // PackageConsumerSmokeTask discovered by Cake via [TaskName].
         // IPackageConsumerSmokePreconditionsValidator registered by AddValidators().
         // SmokeScopeComparator is a static class — no registration.
-        // IProjectMetadataReader registered by AddPackage() (root Build.Packaging,
+        // IProjectMetadataReader registered by AddPackage() (Build.Data.ProjectMetadata,
         // shared cross-target reader).
 
         return services;

@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using NuGet.Versioning;
 
-namespace Build.Versioning;
+namespace Build.Data.Versions;
 
 /// <summary>
 /// Identifier for a package family declared in <c>build/manifest.json</c>'s

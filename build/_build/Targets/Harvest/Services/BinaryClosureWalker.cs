@@ -8,7 +8,7 @@
 using Build.Harvesting;
 using Build.DependencyAnalysis;
 using Build.Host.Paths;
-using Build.Manifest;
+using Build.Data.Manifest;
 using Build.Results;
 using Build.Runtime;
 using Build.Tools.Vcpkg;

@@ -1,4 +1,4 @@
-using Build.Manifest;
+using Build.Data.Manifest;
 using Cake.Core.Diagnostics;
 using Cake.Frosting;
 using Microsoft.Extensions.DependencyInjection;

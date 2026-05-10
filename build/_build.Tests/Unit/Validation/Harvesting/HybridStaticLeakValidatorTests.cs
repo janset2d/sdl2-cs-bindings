@@ -1,4 +1,4 @@
-using Build.Manifest;
+using Build.Data.Manifest;
 using Build.Results;
 using Build.Runtime;
 using Build.Tests.Fixtures;

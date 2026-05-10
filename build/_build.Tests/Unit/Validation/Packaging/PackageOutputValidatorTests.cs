@@ -1,8 +1,8 @@
 using System.IO.Compression;
 using System.Text.Json;
 using Build.Host.Cake;
-using Build.Manifest;
-using Build.Packaging;
+using Build.Data.Manifest;
+using Build.Data.ProjectMetadata;
 using Build.Results;
 using Build.Targets.Package.Models;
 using Build.Tests.Fixtures;
@@ -277,7 +277,7 @@ public sealed class PackageOutputValidatorTests
         var artifacts = CreateArtifacts(world, family, "1.2.3");
         var validator = CreateValidator(world);
 
-        var metadata = new ProjectMetadata(
+        var metadata = new EvaluatedProjectMetadata(
             TargetFrameworks: CsprojTargetFrameworks,
             Authors: ExpectedAuthors,
             PackageLicenseFile: string.Empty,
@@ -289,13 +289,13 @@ public sealed class PackageOutputValidatorTests
         await Assert.That(report.Errors.Any(check => check.Name == "Project metadata completeness")).IsTrue();
     }
 
-    private static ProjectMetadata DefaultMetadata(
+    private static EvaluatedProjectMetadata DefaultMetadata(
         IReadOnlyList<string>? targetFrameworks = null,
         string? authors = null,
         string? licenseFile = null,
         string? icon = null)
     {
-        return new ProjectMetadata(
+        return new EvaluatedProjectMetadata(
             TargetFrameworks: targetFrameworks ?? CsprojTargetFrameworks,
             Authors: authors ?? ExpectedAuthors,
             PackageLicenseFile: licenseFile ?? ExpectedLicenseFile,
@@ -313,7 +313,7 @@ public sealed class PackageOutputValidatorTests
         PackageFamilyConfig family,
         PackageArtifacts artifacts,
         string expectedVersion,
-        ProjectMetadata metadata)
+        EvaluatedProjectMetadata metadata)
     {
         var manifest = ManifestFixture.CreateTestManifestConfig();
         var readmePath = EnsureReadme(world, manifest);

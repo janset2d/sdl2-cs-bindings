@@ -1,6 +1,5 @@
 using Build.Data.Manifest;
 using Build.Host;
-using Build.Manifest;
 using Build.Runtime;
 using Build.Targets.InspectHarvestedDependencies.Services;
 using Cake.Core;

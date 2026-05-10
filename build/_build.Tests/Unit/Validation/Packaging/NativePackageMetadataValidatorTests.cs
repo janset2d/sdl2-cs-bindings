@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 using System.IO.Compression;
 using System.Text.Json;
 using Build.Host.Cake;
-using Build.Manifest;
+using Build.Data.Manifest;
 using Build.Targets.Package.Models;
 using Build.Tests.Fixtures;
 using Build.Validation.Packaging;

@@ -2,7 +2,7 @@ using System.Text.Json;
 using Build.Host;
 using Build.Host.Cake;
 using Build.Host.Paths;
-using Build.Manifest;
+using Build.Data.Manifest;
 using Build.Runtime;
 using Cake.Core;
 using Cake.Core.Configuration;
@@ -39,7 +39,7 @@ public sealed class FakeCakeWorldV2
     private readonly List<string> _explicitVersion = [];
     private string? _explicitVersions;
     private string? _versionsFile;
-    private Build.Versioning.PackageFamilyVersionSet _familyVersions = Build.Versioning.PackageFamilyVersionSet.Empty;
+    private Build.Data.Versions.PackageFamilyVersionSet _familyVersions = Build.Data.Versions.PackageFamilyVersionSet.Empty;
     private readonly List<string> _dlls = [];
     private readonly List<string> _libraries = [];
 
@@ -55,7 +55,7 @@ public sealed class FakeCakeWorldV2
     public string Rid => _rid;
 
     /// <summary>Family versions configured via <see cref="WithFamilyVersions"/>; defaults to empty.</summary>
-    public Build.Versioning.PackageFamilyVersionSet FamilyVersions => _familyVersions;
+    public Build.Data.Versions.PackageFamilyVersionSet FamilyVersions => _familyVersions;
 
     public IReadOnlyList<ProcessInvocation> ProcessInvocations => _processInvocations;
 
@@ -291,11 +291,11 @@ public sealed class FakeCakeWorldV2
     }
 
     /// <summary>
-    /// Sets the resolved <see cref="Build.Versioning.PackageFamilyVersionSet"/> stamped into
+    /// Sets the resolved <see cref="Build.Data.Versions.PackageFamilyVersionSet"/> stamped into
     /// <c>BuildContext.Options.Package.FamilyVersions</c>. <see cref="Build.Targets.Package.PackageTask"/>
     /// reads its scope from that set, so scenarios that exercise Pack must seed it explicitly.
     /// </summary>
-    public FakeCakeWorldV2 WithFamilyVersions(Build.Versioning.PackageFamilyVersionSet familyVersions)
+    public FakeCakeWorldV2 WithFamilyVersions(Build.Data.Versions.PackageFamilyVersionSet familyVersions)
     {
         _familyVersions = familyVersions ?? throw new ArgumentNullException(nameof(familyVersions));
         return this;
