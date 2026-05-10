@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Text.Json;
-using Build.Shared.Manifest;
+using Build.Host.Cake;
+using Build.Manifest;
 
 namespace Build.Tests.Fixtures.Seeders;
 
@@ -11,18 +12,13 @@ namespace Build.Tests.Fixtures.Seeders;
 /// via the <c>With*</c> methods or supply a fully-built <see cref="ManifestConfig"/> via the
 /// constructor overload.
 /// <para>
-/// Uses <see cref="JsonSerializerOptions.Default"/>-compatible serialization so the on-disk
-/// representation round-trips through the production <c>ICakeContext.ToJson&lt;ManifestConfig&gt;</c>
-/// reader.
+/// Uses <see cref="CakeJsonExtensions.DefaultJsonOptions"/> so the on-disk representation
+/// round-trips through the production <c>ICakeContext.ToJson&lt;ManifestConfig&gt;</c> reader
+/// using the same serializer settings as every other build-host JSON write.
 /// </para>
 /// </summary>
 public sealed class ManifestConfigSeeder : IFixtureSeeder
 {
-    private static readonly JsonSerializerOptions WriteOptions = new()
-    {
-        WriteIndented = true,
-    };
-
     private readonly ManifestConfig _manifest;
 
     public ManifestConfigSeeder(ManifestConfig manifest)
@@ -36,7 +32,7 @@ public sealed class ManifestConfigSeeder : IFixtureSeeder
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var json = JsonSerializer.Serialize(_manifest, WriteOptions);
+        var json = JsonSerializer.Serialize(_manifest, CakeJsonExtensions.DefaultJsonOptions);
         builder.WithTextFile("build/manifest.json", json);
     }
 

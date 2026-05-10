@@ -1,6 +1,5 @@
 using Build.Targets.OtoolAnalyze;
 using Build.Tests.Fixtures;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Build.Tests.Scenarios.OtoolAnalyze;
 

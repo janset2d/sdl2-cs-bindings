@@ -1,7 +1,7 @@
 using Build.Host;
+using Build.Manifest;
 using Build.Repositories;
-using Build.Shared.Manifest;
-using Build.Shared.Runtime;
+using Build.Runtime;
 using Build.Targets.InspectHarvestedDependencies.Services;
 using Cake.Core;
 using Cake.Core.Diagnostics;

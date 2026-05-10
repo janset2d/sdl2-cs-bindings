@@ -1,4 +1,4 @@
-using Build.Shared.Manifest;
+using Build.Manifest;
 using Build.Validation.Models;
 using NuGet.Versioning;
 

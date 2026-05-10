@@ -1,7 +1,6 @@
-using Build.Harvesting;
+using Build.Manifest;
 using Build.Results;
-using Build.Shared.Manifest;
-using Build.Shared.Runtime;
+using Build.Runtime;
 using Build.Tests.Fixtures;
 using Build.Validation.Harvesting;
 using NSubstitute;

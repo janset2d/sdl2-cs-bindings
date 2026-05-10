@@ -1,8 +1,6 @@
 using Build.Repositories;
-using Build.Shared.Manifest;
 using Build.Targets.ResolveVersionsFromManifest;
 using Build.Tests.Fixtures;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Build.Tests.Scenarios.ResolveVersionsFromManifest;
 

@@ -1,6 +1,6 @@
 using Build.Host.Paths;
 using Build.Results;
-using Build.Shared.Runtime;
+using Build.Runtime;
 using Cake.Common.IO;
 using Cake.Core;
 

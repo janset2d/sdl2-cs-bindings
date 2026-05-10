@@ -119,7 +119,7 @@ Examples:
 
 ## Build-Host Reference Pattern
 
-The Cake build host (`build/_build/`) is migrating to the target-centric architecture accepted in [`docs/decisions/2026-05-05-target-centric-build-host.md`](docs/decisions/2026-05-05-target-centric-build-host.md). Treat that ADR plus [`docs/refactoring/target-centric-build-host-refactor-plan.md`](docs/refactoring/target-centric-build-host-refactor-plan.md) as canonical for new build-host work and refactoring. Existing code may still contain the old `Features/`, `Shared/`, `Integrations/`, `Host/Configuration`, `*Pipeline`, strategy, and coverage-gate shapes until the migration reaches them.
+The Cake build host (`build/_build/`) follows the target-centric architecture accepted in [`docs/decisions/2026-05-05-target-centric-build-host.md`](docs/decisions/2026-05-05-target-centric-build-host.md). Treat that ADR plus [`docs/refactoring/target-centric-build-host-refactor-plan.md`](docs/refactoring/target-centric-build-host-refactor-plan.md) as canonical for new build-host work. **ADR-002 migration is complete as of 2026-05-10 (S16, P10).** The repository carries only ADR-aligned shapes: `Targets/<Name>/`, `Tools/`, `Validation/`, `Repositories/`, plus root-level named concepts (`Manifest/`, `Runtime/`, `Packaging/`, `Results/`, `Harvesting/`, `Vcpkg/`, `DependencyAnalysis/`, `Versioning/`).
 
 Target architecture:
 
@@ -129,9 +129,9 @@ Target architecture:
 | Task class | Owns high-level orchestration, target input validation, request construction, expected-error reporting, and `CakeException` translation. |
 | Request DTO | Immutable input contract passed from a task to collaborators when useful. It does not replace the Cake `RunAsync(BuildContext context)` signature. |
 | Target collaborators | Named behavior/policy/IO adapters extracted only when complexity, reuse, testability, dependencies, or change reasons justify it. |
-| Named concepts | Cross-target code is promoted only to real concepts such as `Manifest`, `Runtime`, `Versioning`, `Packaging`, `Results`, or file-backed repositories. |
-| `Integrations/` | Not a default target-state layer. Existing adapters should move to target-local services, named concepts, or `Tools/` if they are Cake `Tool<TSettings>` wrappers. |
-| `Tools/` | Cake `Tool<TSettings>` wrappers ONLY (vcpkg, dumpbin, ldd, otool, tar, cmake, native-smoke). |
+| Named concepts | Cross-target code lives at root as real concepts: `Manifest/`, `Runtime/`, `Versioning/`, `Packaging/`, `Results/`, `Harvesting/`, `Vcpkg/`, `DependencyAnalysis/`, plus file-backed `Repositories/`. |
+| `Tools/` | Cake `Tool<TSettings>` wrappers + the sealed `VcpkgBootstrapTool` (vcpkg, dumpbin, ldd, otool, tar, cmake, native-smoke). |
+| Retired layers | `Features/`, `Shared/`, `Integrations/`, `Host/Configuration/` are gone. Do not reintroduce them — promote new code to the appropriate target-local or root-concept home from the start. |
 
 For new or migrated build-host work:
 
@@ -197,7 +197,7 @@ Native packaging is a 5-stage Cake pipeline (per-RID matrix expanded by `release
 
 `PreFlightCheck` runs single-runner before the matrix and validates every cross-cutting invariant (manifest ↔ vcpkg, csproj pack contract, current strategy coherence until ADR-002 removes it, G54 upstream alignment, G58 cross-family scope reachability).
 
-Migrated targets: `build/_build/Targets/{PreFlightCheck,Harvest,NativeSmoke,ConsolidateHarvest,Package,PackageConsumerSmoke,PublishStaging,PublishPublic}/`. Pre-migration residue: `build/_build/Features/{Ci,Vcpkg,DependencyAnalysis,Diagnostics}/` (P10 territory — these were not in P9 scope) and `.github/workflows/release.yml`. The legacy `Features/{Packaging,Publishing}/` folders dissolved in S15 (P9). See [`docs/knowledge-base/release-guardrails.md`](docs/knowledge-base/release-guardrails.md) §2.0 for the stage-owned validation map.
+All Cake targets live under `build/_build/Targets/<TargetName>/` post-S16 (P10): `PreFlightCheck`, `Harvest`, `NativeSmoke`, `ConsolidateHarvest`, `Package`, `PackageConsumerSmoke`, `PublishStaging`, `PublishPublic`, `GenerateMatrix`, `EnsureVcpkgDependencies`, `InspectHarvestedDependencies`, `OtoolAnalyze`, `ResolveVersionsFromManifest`, `ResolveVersionsFromExplicit`, `StageVersions`. The legacy `Features/`, `Shared/`, `Integrations/`, and `Host/Configuration/` layers are retired; cross-target named concepts live at root (`Build.{Manifest,Runtime,Packaging,Results,Harvesting,Vcpkg,DependencyAnalysis,Versioning,Repositories}`). See [`docs/knowledge-base/release-guardrails.md`](docs/knowledge-base/release-guardrails.md) §2.0 for the stage-owned validation map.
 
 ## Docs-First Workflow
 

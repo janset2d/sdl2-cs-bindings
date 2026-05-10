@@ -1,9 +1,8 @@
 using System.Collections.Immutable;
+using Build.Manifest;
 using Build.Repositories;
-using Build.Shared.Manifest;
 using Build.Targets.InspectHarvestedDependencies;
 using Build.Tests.Fixtures;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Build.Tests.Scenarios.InspectHarvestedDependencies;
 

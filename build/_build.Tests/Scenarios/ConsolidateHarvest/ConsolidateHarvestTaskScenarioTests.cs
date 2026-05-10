@@ -175,7 +175,7 @@ public sealed class ConsolidateHarvestTaskScenarioTests
                 DeploymentStrategy = "DirectCopy",
             },
         };
-        return JsonSerializer.Serialize(status, HarvestJsonContract.Options);
+        return JsonSerializer.Serialize(status, CakeJsonExtensions.DefaultJsonOptions);
     }
 
     private static TargetTestHostV2<ConsolidateHarvestTask> CreateHost(FakeCakeWorldV2 world)

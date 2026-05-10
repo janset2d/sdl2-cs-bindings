@@ -62,5 +62,5 @@ Closed PDs: PD-1, PD-2, PD-4, PD-5, PD-6, PD-9, PD-11, PD-12, PD-13.
 ## Cross-Reference
 
 - **Roadmap + status:** [`plan.md`](../plan.md)
-- **Pipeline + guardrails:** `.github/workflows/release.yml`, `build/_build/Features/`, [`release-guardrails.md`](../knowledge-base/release-guardrails.md)
+- **Pipeline + guardrails:** `.github/workflows/release.yml`, `build/_build/Targets/`, [`release-guardrails.md`](../knowledge-base/release-guardrails.md)
 - **Local dev:** [`local-development.md`](../playbook/local-development.md)

@@ -1,4 +1,4 @@
-using Build.Shared.Results;
+using Build.Results;
 
 namespace Build.Vcpkg;
 

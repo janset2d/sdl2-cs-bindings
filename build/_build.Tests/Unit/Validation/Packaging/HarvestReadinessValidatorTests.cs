@@ -1,5 +1,5 @@
 using System.Collections.Immutable;
-using Build.Shared.Manifest;
+using Build.Manifest;
 using Build.Tests.Fixtures;
 using Build.Validation.Packaging;
 using Cake.Core;

@@ -1,6 +1,6 @@
 using Build.Host.Cake;
 using Build.Host.Paths;
-using Build.Shared.Manifest;
+using Build.Manifest;
 using Build.Targets.Package.Models;
 using Cake.Core;
 

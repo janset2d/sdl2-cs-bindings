@@ -1,4 +1,3 @@
-using Build.Host.Configuration;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 
@@ -13,13 +12,13 @@ public sealed class PathService : IPathService
     private readonly DirectoryPath _vcpkgRoot;
     private readonly DirectoryPath _vcpkgInstalledDir;
 
-    public PathService(RepositoryConfiguration repoConfiguration, ParsedArguments parsedArguments, ICakeLog log)
+    public PathService(DirectoryPath repoRoot, ParsedArguments parsedArguments, ICakeLog log)
     {
-        ArgumentNullException.ThrowIfNull(repoConfiguration);
+        ArgumentNullException.ThrowIfNull(repoRoot);
         ArgumentNullException.ThrowIfNull(parsedArguments);
         ArgumentNullException.ThrowIfNull(log);
 
-        _repoRoot = repoConfiguration.RepoRoot;
+        _repoRoot = repoRoot;
 
         // Determine Vcpkg Root Path
         if (parsedArguments.VcpkgDir?.Exists == true)

@@ -20,7 +20,7 @@ public readonly record struct PackageFamilyVersion(PackageFamilyId Family, NuGet
 [JsonConverter(typeof(PackageFamilyVersionSetJsonConverter))]
 public sealed record PackageFamilyVersionSet : IReadOnlyCollection<PackageFamilyVersion>
 {
-    public static PackageFamilyVersionSet Empty { get; } = new(Array.Empty<PackageFamilyVersion>());
+    public static PackageFamilyVersionSet Empty { get; } = new([]);
 
     private readonly Dictionary<PackageFamilyId, NuGetVersion> _versions;
 

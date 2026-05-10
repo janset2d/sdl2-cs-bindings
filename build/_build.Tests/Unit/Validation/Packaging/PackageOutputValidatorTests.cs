@@ -1,9 +1,10 @@
 using System.IO.Compression;
 using System.Text.Json;
+using Build.Host.Cake;
+using Build.Manifest;
+using Build.Packaging;
 using Build.Results;
 using Build.Targets.Package.Models;
-using Build.Shared.Manifest;
-using Build.Shared.Packaging;
 using Build.Tests.Fixtures;
 using Build.Validation.Conventions;
 using Build.Validation.Packaging;
@@ -21,7 +22,6 @@ public sealed class PackageOutputValidatorTests
     private const string ExpectedLicenseFile = "LICENSE";
     private const string ExpectedIcon = "janset2d-sdl-min.png";
     private const string ExpectedCommit = "0123456789abcdef0123456789abcdef01234567";
-    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
     // Long-form TFMs emitted in nuspec dependency groups (what `dotnet pack` writes).
     private static readonly string[] NuspecFrameworkGroups = [".NETFramework4.6.2", ".NETStandard2.0", "net8.0", "net9.0", "net10.0"];
@@ -33,7 +33,8 @@ public sealed class PackageOutputValidatorTests
         => new(
             world.FileSystem,
             new NativePackageMetadataValidator(world.FileSystem),
-            new ReadmeMappingTableValidator(world.FileSystem));
+            new ReadmeMappingTableValidator(world.FileSystem),
+            new SatelliteUpperBoundValidator());
 
     [Test]
     public async Task Validate_Should_Pass_When_Artifacts_Conform_For_Satellite_Family()
@@ -504,7 +505,7 @@ public sealed class PackageOutputValidatorTests
             BuildCommit = commit,
         };
 
-        return JsonSerializer.Serialize(metadata, JsonOptions);
+        return JsonSerializer.Serialize(metadata, CakeJsonExtensions.DefaultJsonOptions);
     }
 
     private static string CreateManagedNuspec(

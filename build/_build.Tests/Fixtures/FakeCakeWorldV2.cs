@@ -1,9 +1,9 @@
 using System.Text.Json;
 using Build.Host;
-using Build.Host.Configuration;
+using Build.Host.Cake;
 using Build.Host.Paths;
-using Build.Shared.Manifest;
-using Build.Shared.Runtime;
+using Build.Manifest;
+using Build.Runtime;
 using Cake.Core;
 using Cake.Core.Configuration;
 using Cake.Core.IO;
@@ -24,8 +24,6 @@ public sealed record ProcessInvocation(FilePath Command, string Arguments, bool 
 
 public sealed class FakeCakeWorldV2
 {
-    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
-
     private readonly Dictionary<string, (int ExitCode, string StdOut, string StdErr)> _processResults = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Action<FakeCakeWorldV2>> _processSideEffects = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<ProcessInvocation> _processInvocations = [];
@@ -175,7 +173,7 @@ public sealed class FakeCakeWorldV2
     public FakeCakeWorldV2 WithManifestObject(ManifestConfig manifest)
     {
         ArgumentNullException.ThrowIfNull(manifest);
-        return WithManifestFile(JsonSerializer.Serialize(manifest, JsonOptions));
+        return WithManifestFile(JsonSerializer.Serialize(manifest, CakeJsonExtensions.DefaultJsonOptions));
     }
 
     public FakeCakeWorldV2 WithProcessResult(string command, int exitCode, string stdOut, string stdErr = "")
@@ -368,7 +366,7 @@ public sealed class FakeCakeWorldV2
             VersionsFile: _versionsFile);
 
         var pathService = new PathService(
-            new RepositoryConfiguration(RepoRoot),
+            RepoRoot,
             parsedArgs,
             Log);
 

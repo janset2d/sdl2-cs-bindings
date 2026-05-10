@@ -1,5 +1,5 @@
-using Build.Shared.Manifest;
-using Build.Shared.Runtime;
+using Build.Manifest;
+using Build.Runtime;
 using Build.Validation.Harvesting;
 using Build.Validation.Manifest;
 using Build.Validation.NativeSmoke;
@@ -34,6 +34,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IHarvestReadinessValidator, HarvestReadinessValidator>();
         services.AddSingleton<INativePackageMetadataValidator, NativePackageMetadataValidator>();
         services.AddSingleton<IReadmeMappingTableValidator, ReadmeMappingTableValidator>();
+        services.AddSingleton<ISatelliteUpperBoundValidator, SatelliteUpperBoundValidator>();
         services.AddSingleton<IPackageOutputValidator, PackageOutputValidator>();
         services.AddSingleton<IHybridStaticLeakValidator>(sp =>
         {

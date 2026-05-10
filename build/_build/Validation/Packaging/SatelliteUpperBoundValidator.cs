@@ -1,16 +1,16 @@
 using System.Diagnostics.CodeAnalysis;
+using Build.Manifest;
 using Build.Results;
-using Build.Shared.Manifest;
 using Cake.Core.IO;
 using NuGet.Versioning;
 
 namespace Build.Validation.Packaging;
 
-public static class SatelliteUpperBoundValidator
+public sealed class SatelliteUpperBoundValidator : ISatelliteUpperBoundValidator
 {
     [SuppressMessage("Design", "MA0051:Method is too long",
         Justification = "G56 validation intentionally keeps parse, manifest resolution, and bound checks in one path for full diagnostic context.")]
-    public static ValidationCheck? Validate(
+    public ValidationCheck? Validate(
         PackageFamilyConfig family,
         FilePath managedPackagePath,
         string dependencyFamily,

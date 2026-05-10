@@ -1,6 +1,6 @@
 using System.Globalization;
 using System.Xml.Linq;
-using Build.Shared.Manifest;
+using Build.Manifest;
 using Build.Validation.Conventions;
 using Build.Validation.Models;
 using Cake.Core.IO;

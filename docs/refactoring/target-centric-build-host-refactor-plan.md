@@ -782,7 +782,7 @@ Decision: `--versions-file` is universal — both ResolveVersions writers AND st
 
 ### P5 - Retire coverage and strategy-era abstractions
 
-> **Status:** P5 closed — coverage retirement (S10, 2026-05-08) and strategy retirement (S11, 2026-05-08) both shipped. Hybrid-static is encoded by overlay triplet name + file existence; PreFlight validates the real invariant via `HybridStaticOverlayValidator`. The leak validator survives as `HybridStaticLeakValidator` in `Shared/Harvesting/`, returning canonical `ValidationReport` instead of the OneOf-shaped `ValidationResult`. Eleven other OneOf-shaped result types survive for retirement in P6/P7/P8/P10 — see [`parking-lot.md`](../parking-lot.md).
+> **Status:** P5 closed — coverage retirement (S10, 2026-05-08) and strategy retirement (S11, 2026-05-08) both shipped. Hybrid-static is encoded by overlay triplet name + file existence; PreFlight validates the real invariant via `HybridStaticOverlayValidator`. The leak validator now lives at `Validation/Harvesting/HybridStaticLeakValidator.cs` (S14 cohort), returning canonical `ValidationReport` instead of the OneOf-shaped `ValidationResult`. All eleven OneOf-shaped result types subsequently retired across P6–P9 (final OneOf removal landed in S15 P9 alongside the OneOf NuGet dep retirement).
 
 Goal: remove abstractions explicitly rejected by ADR-002.
 
@@ -1025,6 +1025,8 @@ Exit criteria:
 - no public publish behavior is accidentally implemented as part of the refactor.
 
 ### P10 - Final cleanup
+
+> **Status:** Closed in S16 (2026-05-10). ADR-002 migration is complete. Single atomic slice retired pre-ADR scaffolding; subsequent execution surfaced two architectural refinements vs the original task list: (a) JSON consolidation kept the existing `CakeJsonExtensions.DefaultJsonOptions` home (no new `Build.Json/` namespace) since the redundant naming policy on `HarvestJsonContract` was already shadowed by per-property `[JsonPropertyName]` attributes; (b) scanners moved to a new `Build.DependencyAnalysis/` root concept rather than target-local `Targets/Harvest/Services/Scanners/` (Deniz's mid-slice correction — IRuntimeScanner is a host-platform abstraction, not a Harvest-domain detail). See `docs/plan.md` S16 entry for the closure record.
 
 Goal: remove old architecture residue.
 

@@ -1,13 +1,12 @@
-using Build.Shared.Manifest;
+using Build.Manifest;
 
 namespace Build.Repositories;
 
 /// <summary>
-/// Practical file adapter for the repository's vcpkg manifest. Mirrors
-/// <see cref="IManifestRepository"/>: knows the canonical file path via DI,
-/// parses the manifest via <see cref="Build.Integrations.Vcpkg.IVcpkgManifestReader"/>,
-/// and surfaces missing-file failures as <see cref="Cake.Core.CakeException"/>
-/// with an operator-friendly message before the reader is invoked.
+/// File-backed repository for the repository-root <c>vcpkg.json</c> manifest. Loads the
+/// canonical file via <see cref="Cake.Core.ICakeContext.FileSystem"/>, deserializes through
+/// the project's central JSON surface, and surfaces missing-file or invalid-JSON failures as
+/// <see cref="Cake.Core.CakeException"/> with operator-friendly messages.
 /// </summary>
 public interface IVcpkgManifestRepository
 {

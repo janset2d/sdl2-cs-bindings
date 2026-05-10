@@ -1,6 +1,6 @@
 using Build.Host;
+using Build.Manifest;
 using Build.Repositories;
-using Build.Shared.Manifest;
 using Build.Validation.Versioning;
 using Build.Versioning;
 using Cake.Core;

@@ -1,7 +1,7 @@
 using Build.Host.Cake;
 using Build.Harvesting;
 using Build.Host.Paths;
-using Build.Shared.Manifest;
+using Build.Manifest;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;

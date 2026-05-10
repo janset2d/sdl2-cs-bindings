@@ -1,11 +1,10 @@
 using System.Text.Json;
 using Build.Harvesting;
 using Build.Host;
-using Build.Shared.Harvesting;
-using Build.Host.Configuration;
+using Build.Host.Cake;
 using Build.Host.Paths;
-using Build.Shared.Manifest;
-using Build.Shared.Runtime;
+using Build.Manifest;
+using Build.Runtime;
 using Build.Tests.Fixtures.Seeders;
 using Cake.Core;
 using Cake.Core.Configuration;
@@ -19,11 +18,6 @@ namespace Build.Tests.Fixtures;
 
 public sealed class FakeRepoBuilder
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        WriteIndented = true,
-    };
-
     private readonly FakeEnvironment _environment;
     private readonly FakeFileSystem _fileSystem;
     private readonly DirectoryPath _repoRoot;
@@ -59,7 +53,7 @@ public sealed class FakeRepoBuilder
     public FakeRepoBuilder WithManifest(ManifestConfig manifest)
     {
         ArgumentNullException.ThrowIfNull(manifest);
-        return WithManifest(JsonSerializer.Serialize(manifest, JsonOptions));
+        return WithManifest(JsonSerializer.Serialize(manifest, CakeJsonExtensions.DefaultJsonOptions));
     }
 
     public FakeRepoBuilder WithVcpkgJson(string json)
@@ -70,7 +64,7 @@ public sealed class FakeRepoBuilder
     public FakeRepoBuilder WithVcpkgJson(VcpkgManifest manifest)
     {
         ArgumentNullException.ThrowIfNull(manifest);
-        return WithVcpkgJson(JsonSerializer.Serialize(manifest, JsonOptions));
+        return WithVcpkgJson(JsonSerializer.Serialize(manifest, CakeJsonExtensions.DefaultJsonOptions));
     }
 
     public FakeRepoBuilder WithHarvestStatus(string libraryName, string rid, string json)
@@ -84,7 +78,7 @@ public sealed class FakeRepoBuilder
     public FakeRepoBuilder WithHarvestStatus(string libraryName, string rid, RidHarvestStatus status)
     {
         ArgumentNullException.ThrowIfNull(status);
-        return WithHarvestStatus(libraryName, rid, JsonSerializer.Serialize(status, JsonOptions));
+        return WithHarvestStatus(libraryName, rid, JsonSerializer.Serialize(status, CakeJsonExtensions.DefaultJsonOptions));
     }
 
     public FakeRepoBuilder WithVcpkgInstalledLayout(string triplet, Action<VcpkgInstalledFake> configure)
@@ -191,7 +185,7 @@ public sealed class FakeRepoBuilder
         var arguments = CreateArguments();
         var cakeContext = CreateCakeContext(arguments);
         var parsedArguments = CreateParsedArguments();
-        var pathService = new PathService(new RepositoryConfiguration(_repoRoot), parsedArguments, new FakeLog());
+        var pathService = new PathService(_repoRoot, parsedArguments, new FakeLog());
         var runtimeProfile = CreateRuntimeProfileStub();
 
         var manifest = ManifestConfigSeeder.FromDefaultFixture().Manifest;

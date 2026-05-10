@@ -2,7 +2,7 @@ using Build.Harvesting;
 using Build.Host.Cake;
 using Build.Host.Paths;
 using Build.Repositories;
-using Build.Shared.Runtime;
+using Build.Runtime;
 using Build.Targets.Harvest.Models;
 using Build.Tests.Fixtures;
 using Cake.Common.IO;

@@ -1,7 +1,7 @@
 using System.Globalization;
 using Build.Host;
+using Build.Manifest;
 using Build.Repositories;
-using Build.Shared.Manifest;
 using Build.Versioning;
 using Cake.Core;
 using Cake.Frosting;

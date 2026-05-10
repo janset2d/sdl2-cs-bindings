@@ -1,7 +1,8 @@
 using System.Collections.Immutable;
 using System.IO.Compression;
 using System.Text.Json;
-using Build.Shared.Manifest;
+using Build.Host.Cake;
+using Build.Manifest;
 using Build.Targets.Package.Models;
 using Build.Tests.Fixtures;
 using Build.Validation.Packaging;
@@ -20,7 +21,6 @@ public sealed class NativePackageMetadataValidatorTests
 {
     private const string ExpectedFamilyVersion = "2.32.0";
     private const string ExpectedCommit = "0123456789abcdef0123456789abcdef01234567";
-    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
     [Test]
     public async Task ValidateAsync_Should_Return_Null_When_Metadata_Matches_Manifest()
@@ -188,7 +188,7 @@ public sealed class NativePackageMetadataValidatorTests
     {
         SeedNupkgWithEntries(world, nupkgPath,
         [
-            ("janset-native-metadata.json", JsonSerializer.Serialize(metadata, JsonOptions)),
+            ("janset-native-metadata.json", JsonSerializer.Serialize(metadata, CakeJsonExtensions.DefaultJsonOptions)),
             ("package.nuspec", "<package />"),
         ]);
     }

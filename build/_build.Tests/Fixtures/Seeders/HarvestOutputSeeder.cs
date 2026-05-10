@@ -1,7 +1,6 @@
 using System.Text.Json;
 using Build.Harvesting;
-using Build.Shared.Harvesting;
-using Build.Targets.Harvest.Models;
+using Build.Host.Cake;
 
 namespace Build.Tests.Fixtures.Seeders;
 
@@ -107,7 +106,7 @@ public sealed class HarvestOutputSeeder : IFixtureSeeder
             Statistics = _success ? ComputeStatistics() : null,
         };
 
-        var json = JsonSerializer.Serialize(status, HarvestJsonContract.Options);
+        var json = JsonSerializer.Serialize(status, CakeJsonExtensions.DefaultJsonOptions);
         builder.WithTextFile($"artifacts/harvest_output/{_library}/rid-status/{_rid}.json", json);
     }
 

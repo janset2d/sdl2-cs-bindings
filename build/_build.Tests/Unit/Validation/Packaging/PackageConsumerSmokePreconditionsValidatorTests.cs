@@ -1,6 +1,5 @@
 using Build.Tests.Fixtures;
 using Build.Validation.Packaging;
-using Cake.Core.IO;
 
 namespace Build.Tests.Unit.Validation.Packaging;
 

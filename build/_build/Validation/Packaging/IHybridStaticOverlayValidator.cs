@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
+using Build.Manifest;
 using Build.Results;
-using Build.Shared.Manifest;
 
 namespace Build.Validation.Packaging;
 

@@ -1,5 +1,4 @@
 using Build.Host.Paths;
-using Build.Vcpkg;
 using Cake.Core;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -21,9 +20,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IVcpkgManifestRepository>(provider =>
         {
             var context = provider.GetRequiredService<ICakeContext>();
-            var reader = provider.GetRequiredService<IVcpkgManifestReader>();
             var paths = provider.GetRequiredService<IPathService>();
-            return new VcpkgManifestRepository(context, reader, paths.GetVcpkgManifestFile());
+            return new VcpkgManifestRepository(context, paths.GetVcpkgManifestFile());
         });
 
         services.AddSingleton<IVersionFileRepository>(provider =>

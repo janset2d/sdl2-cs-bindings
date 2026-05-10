@@ -1,9 +1,8 @@
-using Build.Integrations.DotNet;
+using Build.Packaging;
+using Build.Manifest;
 using Build.Targets.Package.Models;
 using Build.Repositories;
 using Build.Results;
-using Build.Shared.Manifest;
-using Build.Shared.Packaging;
 using Build.Targets.Package;
 using Build.Targets.Package.Services;
 using Build.Tests.Fixtures;

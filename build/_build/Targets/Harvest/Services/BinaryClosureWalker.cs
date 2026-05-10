@@ -6,10 +6,10 @@
 #pragma warning disable CA1031, MA0051
 
 using Build.Harvesting;
-using Build.Integrations.DependencyAnalysis;
+using Build.DependencyAnalysis;
+using Build.Manifest;
 using Build.Results;
-using Build.Shared.Manifest;
-using Build.Shared.Runtime;
+using Build.Runtime;
 using Build.Vcpkg;
 using Cake.Common.IO;
 using Cake.Core;

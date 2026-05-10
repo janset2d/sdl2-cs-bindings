@@ -1,5 +1,5 @@
 using Build.Host;
-using Build.Shared.Manifest;
+using Build.Manifest;
 using Build.Targets.Package.Reporting;
 using Build.Targets.Package.Services;
 using Build.Validation.Versioning;

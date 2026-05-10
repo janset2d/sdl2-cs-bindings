@@ -71,5 +71,5 @@ Out of scope for D-3seg. If a binding-only API break is required (e.g., a CppAst
 - [`AGENTS.md`](../../AGENTS.md) "Settled Strategic Decisions" + "Configuration File Relationships" + "Build Host Pipeline"
 - [`docs/knowledge-base/release-guardrails.md`](../knowledge-base/release-guardrails.md) — G54, G55, G56, G57, G58 + dependency contract guardrails
 - `build/manifest.json library_manifests[].vcpkg_version` — UpstreamMajor.Minor anchor source
-- `build/_build/Features/Versioning/` — version provider implementations
+- `build/_build/Targets/{ResolveVersionsFromManifest,ResolveVersionsFromExplicit,StageVersions}/` — version provider implementations
 - `tools.cs` — feed preparation orchestration

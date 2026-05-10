@@ -52,7 +52,7 @@ public sealed class HarvestArtifactMerger(ICakeContext cakeContext, IPathService
             try
             {
                 var jsonContent = await _cakeContext.ReadAllTextAsync(statusFile).ConfigureAwait(false);
-                var ridStatus = CakeJsonExtensions.DeserializeJson<RidHarvestStatus>(jsonContent, HarvestJsonContract.Options);
+                var ridStatus = CakeJsonExtensions.DeserializeJson<RidHarvestStatus>(jsonContent);
                 if (ridStatus != null)
                 {
                     ridStatuses.Add(ridStatus);
@@ -116,9 +116,9 @@ public sealed class HarvestArtifactMerger(ICakeContext cakeContext, IPathService
         ct.ThrowIfCancellationRequested();
 
         var manifestTempPath = _pathService.GetHarvestLibraryManifestTempFile(libraryName);
-        await _cakeContext.WriteJsonAsync(manifestTempPath, manifest, HarvestJsonContract.Options).ConfigureAwait(false);
+        await _cakeContext.WriteJsonAsync(manifestTempPath, manifest).ConfigureAwait(false);
 
         var summaryTempPath = _pathService.GetHarvestLibrarySummaryTempFile(libraryName);
-        await _cakeContext.WriteJsonAsync(summaryTempPath, manifest.Summary, HarvestJsonContract.Options).ConfigureAwait(false);
+        await _cakeContext.WriteJsonAsync(summaryTempPath, manifest.Summary).ConfigureAwait(false);
     }
 }

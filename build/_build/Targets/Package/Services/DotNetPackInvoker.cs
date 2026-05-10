@@ -1,6 +1,6 @@
 using Build.Host.Paths;
+using Build.Packaging;
 using Build.Results;
-using Build.Shared.Packaging;
 using Cake.Common.Tools.DotNet;
 using Cake.Common.Tools.DotNet.MSBuild;
 using Cake.Common.Tools.DotNet.Pack;

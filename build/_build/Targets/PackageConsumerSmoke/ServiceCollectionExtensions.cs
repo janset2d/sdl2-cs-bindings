@@ -13,11 +13,13 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<DotNetSmokeRunner>();
         services.AddSingleton<MonoAvailabilityProbe>();
         services.AddSingleton<PackageConsumerSmokeReporter>();
+        services.AddSingleton<IDotNetRuntimeEnvironment, DotNetRuntimeEnvironment>();
 
         // PackageConsumerSmokeTask discovered by Cake via [TaskName].
         // IPackageConsumerSmokePreconditionsValidator registered by AddValidators().
         // SmokeScopeComparator is a static class — no registration.
-        // IProjectMetadataReader + IDotNetRuntimeEnvironment registered by AddIntegrations() (P10).
+        // IProjectMetadataReader registered by AddPackage() (root Build.Packaging,
+        // shared cross-target reader).
 
         return services;
     }

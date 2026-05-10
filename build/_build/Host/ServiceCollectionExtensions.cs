@@ -1,43 +1,45 @@
 #pragma warning disable MA0045
 
 using Build.Host.Cake;
-using Build.Host.Configuration;
 using Build.Host.Paths;
-using Build.Integrations.DependencyAnalysis;
-using Build.Shared.Manifest;
-using Build.Shared.Runtime;
+using Build.Manifest;
+using Build.Runtime;
 using Cake.Core;
 using Cake.Core.Diagnostics;
+using Cake.Core.IO;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Build.Host;
 
 /// <summary>
 /// Composition-root grouping for Host-tier services:
-/// path resolution, runtime profile, manifest-derived singletons, and the
-/// per-platform <see cref="IRuntimeScanner"/> dispatch closure. Manifest-derived
+/// path resolution, runtime profile, and manifest-derived singletons. Manifest-derived
 /// configs (<see cref="ManifestConfig"/>, <see cref="RuntimeConfig"/>,
 /// <see cref="SystemArtefactsConfig"/>) live here because they are loaded once
 /// at startup from <c>build/manifest.json</c> via <see cref="IPathService"/> +
-/// <see cref="ICakeContext"/>, both Host-tier resolutions.
+/// <see cref="ICakeContext"/>, both Host-tier resolutions. <c>IRuntimeScanner</c> dispatch
+/// (host-platform abstraction) lives in the <c>Build.DependencyAnalysis</c> root concept.
 /// <para>
-/// Takes <see cref="ParsedArguments"/> directly because <see cref="IPathService"/>
-/// composes its layout from CLI overrides (<c>--vcpkg-dir</c>, <c>--vcpkg-installed-dir</c>)
-/// before any DI resolution can happen.
+/// Takes <see cref="ParsedArguments"/> + the resolved repository root directly because
+/// <see cref="IPathService"/> composes its layout from CLI overrides
+/// (<c>--vcpkg-dir</c>, <c>--vcpkg-installed-dir</c>) before any DI resolution can happen.
 /// </para>
 /// </summary>
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddHostBuildingBlocks(this IServiceCollection services, ParsedArguments parsedArgs)
+    public static IServiceCollection AddHostBuildingBlocks(
+        this IServiceCollection services,
+        ParsedArguments parsedArgs,
+        DirectoryPath repoRoot)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(parsedArgs);
+        ArgumentNullException.ThrowIfNull(repoRoot);
 
         services.AddSingleton<IPathService>(provider =>
         {
-            var repositoryConfiguration = provider.GetRequiredService<RepositoryConfiguration>();
             var cakeLogger = provider.GetRequiredService<ICakeLog>();
-            return new PathService(repositoryConfiguration, parsedArgs, cakeLogger);
+            return new PathService(repoRoot, parsedArgs, cakeLogger);
         });
 
         services.AddSingleton<IRuntimeProfile>(sp =>
@@ -56,21 +58,6 @@ public static class ServiceCollectionExtensions
             var runtimeInfo = runtimeConfig.Runtimes.Single(r => string.Equals(r.Rid, rid, StringComparison.Ordinal));
 
             return new RuntimeProfile(runtimeInfo, systemArtefactsConfig);
-        });
-
-        services.AddSingleton<IRuntimeScanner>(provider =>
-        {
-            var env = provider.GetRequiredService<ICakeEnvironment>();
-            var context = provider.GetRequiredService<ICakeContext>();
-
-            var currentRid = env.Platform.Rid();
-            return currentRid switch
-            {
-                Rids.WinX64 or Rids.WinX86 or Rids.WinArm64 => new WindowsDumpbinScanner(context),
-                Rids.LinuxX64 or Rids.LinuxArm64 => new LinuxLddScanner(context),
-                Rids.OsxX64 or Rids.OsxArm64 => new MacOtoolScanner(context),
-                _ => throw new NotSupportedException($"Unsupported OS for IRuntimeScanner: {currentRid}"),
-            };
         });
 
         // Single manifest.json load — schema v2.1 merges runtimes + system_exclusions

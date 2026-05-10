@@ -1,13 +1,14 @@
 using Build.Host.Paths;
-using Build.Integrations.DependencyAnalysis;
-using Build.Integrations.DotNet;
-using Build.Integrations.NuGet;
+using Build.DependencyAnalysis;
+using Build.Packaging;
+using Build.Targets.PackageConsumerSmoke.Services;
+using Build.Targets.PublishStaging.Services;
+using Build.Manifest;
+using Build.Runtime;
 using Build.Targets.NativeSmoke.Services;
 using Build.Tools;
 using Build.Vcpkg;
 using Build.Targets.Package.Services;
-using Build.Shared.Manifest;
-using Build.Shared.Runtime;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
@@ -32,10 +33,14 @@ namespace Build.Tests.Fixtures;
 /// FakeFileSystem-backed shape with the rest of the test suite.
 /// </para>
 /// <para>
-/// Tools / Integrations are NSubstitute-backed for interface registrations.
+/// Tools and target-local services are NSubstitute-backed for interface registrations.
 /// <see cref="VcpkgBootstrapTool"/> is sealed and is registered as a concrete singleton —
 /// its constructor only requires <see cref="ICakeContext"/>, which the fixture provides.
-/// Production registration lives in <see cref="Build.Integrations.ServiceCollectionExtensions.AddIntegrations"/>.
+/// Production registration lives in
+/// <see cref="Build.Tools.ServiceCollectionExtensions.AddToolWrappers"/> after the P10 redistribution
+/// (S16): scanners moved to <c>Build.DependencyAnalysis</c>, NuGet client to
+/// <c>Targets/PublishStaging/Services/</c>, .NET runtime env to <c>Targets/PackageConsumerSmoke/Services/</c>,
+/// and project metadata reader to <c>Build.Packaging</c>.
 /// </para>
 /// </remarks>
 public static class TestHostFixture
@@ -69,14 +74,12 @@ public static class TestHostFixture
         services.AddSingleton<IPathService>(pathService);
         services.AddSingleton(runtimeProfile);
         services.AddSingleton(manifest);
-        services.AddSingleton(new Build.Host.Configuration.RepositoryConfiguration(pathService.RepoRoot));
         services.AddSingleton(new RuntimeConfig { Runtimes = manifest.Runtimes });
         services.AddSingleton(manifest.SystemExclusions);
 
         // Tools / Integrations — NSubstitute fakes for interfaces, concrete for the sealed
         // VcpkgBootstrapTool wrapper.
         services.AddSingleton(Substitute.For<IPackageInfoProvider>());
-        services.AddSingleton(Substitute.For<IVcpkgManifestReader>());
         services.AddSingleton(Substitute.For<IProjectMetadataReader>());
         services.AddSingleton(Substitute.For<IDotNetPackInvoker>());
         services.AddSingleton(Substitute.For<IDotNetRuntimeEnvironment>());

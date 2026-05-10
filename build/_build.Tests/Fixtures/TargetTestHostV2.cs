@@ -1,3 +1,4 @@
+using Build.Manifest;
 using Cake.Core.Diagnostics;
 using Cake.Frosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,7 +10,7 @@ public sealed class TargetTestHostV2<TTask> where TTask : class, IFrostingTask
 {
     private readonly FakeCakeWorldV2 _world;
     private readonly List<Action<IServiceCollection>> _registrations = [];
-    private Build.Shared.Manifest.ManifestConfig? _manifest;
+    private ManifestConfig? _manifest;
 
     public TargetTestHostV2(FakeCakeWorldV2 world)
     {
@@ -23,7 +24,7 @@ public sealed class TargetTestHostV2<TTask> where TTask : class, IFrostingTask
         return this;
     }
 
-    public TargetTestHostV2<TTask> WithManifest(Build.Shared.Manifest.ManifestConfig manifest)
+    public TargetTestHostV2<TTask> WithManifest(ManifestConfig manifest)
     {
         _manifest = manifest ?? throw new ArgumentNullException(nameof(manifest));
         return this;
@@ -53,8 +54,6 @@ public sealed class TargetTestHostV2<TTask> where TTask : class, IFrostingTask
         // load resolved family versions from context.VersionsFilePath via IVersionFileRepository
         // (registered through AddRepositories); scenario tests seed the versions.json file via
         // FakeCakeWorldV2.WithVersionsFile + WithTextFile.
-        services.AddSingleton(new Build.Host.Configuration.RepositoryConfiguration(_world.RepoRoot));
-
         // IAnsiConsole from the fake world (Spectre.Console.Testing.TestConsole)
         services.AddSingleton<IAnsiConsole>(_world.AnsiConsole);
 

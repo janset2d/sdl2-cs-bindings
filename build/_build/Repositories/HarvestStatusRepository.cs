@@ -1,7 +1,7 @@
 using Build.Harvesting;
 using Build.Host.Cake;
 using Build.Host.Paths;
-using Build.Shared.Runtime;
+using Build.Runtime;
 using Build.Targets.Harvest.Models;
 using Cake.Common.IO;
 using Cake.Core;
@@ -42,7 +42,7 @@ public sealed class HarvestStatusRepository(
 
     /// <summary>
     /// Persists a success-flagged <see cref="RidHarvestStatus"/> record at
-    /// <c>rid-status/{rid}.json</c> using <see cref="HarvestJsonContract.Options"/>. Counts
+    /// <c>rid-status/{rid}.json</c> via <see cref="CakeJsonExtensions.WriteJsonAsync"/>. Counts
     /// roll up from the supplied <see cref="DeploymentStatistics"/>; the deployment-strategy
     /// enum is rendered as its enum-name string for cross-RID JSON parity.
     /// </summary>
@@ -104,7 +104,7 @@ public sealed class HarvestStatusRepository(
         _cakeContext.EnsureDirectoryExists(statusDir);
 
         var statusFile = _pathService.GetHarvestLibraryRidStatusFile(libraryName, _runtimeProfile.Rid);
-        await _cakeContext.WriteJsonAsync(statusFile, record, HarvestJsonContract.Options).ConfigureAwait(false);
+        await _cakeContext.WriteJsonAsync(statusFile, record).ConfigureAwait(false);
     }
 
     private void CleanCurrentRidPayload(string libraryName)

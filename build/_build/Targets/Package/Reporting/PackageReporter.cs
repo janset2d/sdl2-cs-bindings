@@ -1,7 +1,7 @@
+using Build.Manifest;
+using Build.Packaging;
 using Build.Results;
 using Build.Targets.Package.Models;
-using Build.Shared.Manifest;
-using Build.Shared.Packaging;
 using Build.Validation.Models;
 using Cake.Core.Diagnostics;
 

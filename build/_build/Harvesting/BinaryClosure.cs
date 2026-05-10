@@ -19,7 +19,7 @@ namespace Build.Harvesting;
 /// </para>
 /// <para>
 /// Path-typed members are <see cref="string"/> (canonical Cake <c>FilePath.FullPath</c> form)
-/// rather than <c>Cake.Core.IO.FilePath</c> — Shared/ types must not depend on Cake.
+/// rather than <c>Cake.Core.IO.FilePath</c> — root concept types stay Cake-decoupled where pure.
 /// Callers that need <c>FilePath</c> behavior wrap at the use site.
 /// </para>
 /// </summary>

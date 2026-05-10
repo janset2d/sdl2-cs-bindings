@@ -1,4 +1,4 @@
-using Build.Shared.Harvesting;
+using Build.Harvesting;
 
 namespace Build.Targets.Harvest.Services;
 

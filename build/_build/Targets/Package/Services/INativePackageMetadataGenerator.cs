@@ -1,4 +1,4 @@
-using Build.Shared.Manifest;
+using Build.Manifest;
 
 namespace Build.Targets.Package.Services;
 

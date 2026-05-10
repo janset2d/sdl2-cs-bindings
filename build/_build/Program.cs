@@ -5,7 +5,7 @@ using System.CommandLine.Invocation;
 using System.CommandLine.NamingConventionBinder;
 using System.Diagnostics;
 using Build;
-using Build.Features.Ci;
+using Build.DependencyAnalysis;
 using Build.Targets.ConsolidateHarvest;
 using Build.Targets.Harvest;
 using Build.Targets.InspectHarvestedDependencies;
@@ -14,14 +14,10 @@ using Build.Targets.OtoolAnalyze;
 using Build.Targets.Package;
 using Build.Targets.PackageConsumerSmoke;
 using Build.Targets.PreFlightCheck;
-using Build.Targets.PublishPublic;
 using Build.Targets.PublishStaging;
 using Build.Vcpkg;
-using Build.Features.Vcpkg;
 using Build.Host;
 using Build.Host.Cli.Options;
-using Build.Host.Configuration;
-using Build.Integrations;
 using Build.Repositories;
 using Build.Tools;
 using Build.Validation;
@@ -82,8 +78,6 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     ArgumentNullException.ThrowIfNull(services);
     ArgumentNullException.ThrowIfNull(parsedArgs);
 
-    services.AddSingleton(new RepositoryConfiguration(repoRootPath));
-
     // Stage tasks (PreFlight, Package, ConsumerSmoke, PublishStaging) load the resolved
     // family→version mapping from `context.VersionsFilePath` via IVersionFileRepository.
     // Each task validates the path + non-empty mapping at task entry. ResolveVersions
@@ -92,18 +86,17 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     // alongside the other Configuration classes.
     services.AddSingleton<IAnsiConsole>(AnsiConsole.Console);
 
-    // Composition root: 11 per-feature AddXFeature() calls + 3 cross-cutting groupings
-    // (AddHostBuildingBlocks, AddIntegrations, AddToolWrappers). AddHostBuildingBlocks takes
-    // parsedArgs because IPathService consumes vcpkg-dir overrides.
+    // Composition root: per-target AddXTarget() calls + cross-cutting groupings
+    // (AddHostBuildingBlocks, AddDependencyAnalysis, AddToolWrappers, AddRepositories,
+    // AddValidators, AddVcpkg). AddHostBuildingBlocks takes parsedArgs + repoRoot because
+    // IPathService composes its layout from CLI overrides before any DI resolution.
     services
-        .AddHostBuildingBlocks(parsedArgs)
+        .AddHostBuildingBlocks(parsedArgs, repoRootPath)
         .AddRepositories()
         .AddValidators()
         .AddVcpkg()
-        .AddIntegrations()
+        .AddDependencyAnalysis()
         .AddToolWrappers()
-        .AddCiFeature()
-        .AddVcpkgFeature()
         .AddInspectHarvestedDependenciesTarget()
         .AddOtoolAnalyzeTarget()
         .AddPreFlightCheck()
@@ -112,8 +105,10 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
         .AddConsolidateHarvest()
         .AddPackage()
         .AddPackageConsumerSmoke()
-        .AddPublishStaging()
-        .AddPublishPublic();
+        .AddPublishStaging();
+
+    // PublishPublicTask discovered by Cake via [TaskName]; no AddPublishPublic() since the
+    // stub registers nothing. Real implementation lands as PD-7 in Phase 2b.
 }
 
 static async Task<DirectoryPath> DetermineRepoRootAsync(DirectoryInfo? repoRootArg)

@@ -212,5 +212,5 @@ When a new failure mode emerges:
 - [`plan.md`](../plan.md) — current roadmap; PD-7 / PD-8 work tracked there.
 - [`phases/phase-2-adaptation-plan.md`](../phases/phase-2-adaptation-plan.md) — Phase 2b execution ledger; gap detail + candidate directions.
 - `.github/workflows/release.yml` — live CI pipeline.
-- `build/_build/Features/Preflight/` and `build/_build/Features/Packaging/` — guardrail implementations.
+- `build/_build/Targets/{PreFlightCheck,Package}/` and `build/_build/Validation/` — guardrail implementations.
 - `src/Directory.Build.targets` — current MSBuild guard implementation.

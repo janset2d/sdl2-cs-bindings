@@ -1,11 +1,9 @@
 using System.Collections.Immutable;
-using Build.Host.Configuration;
 using Build.Targets.Package.Models;
 using Build.Host.Paths;
-using Build.Integrations.DotNet;
+using Build.Packaging;
+using Build.Manifest;
 using Build.Results;
-using Build.Shared.Manifest;
-using Build.Shared.Packaging;
 using Build.Targets.Package.Reporting;
 using Build.Targets.Package.Services;
 using Build.Tests.Fixtures;

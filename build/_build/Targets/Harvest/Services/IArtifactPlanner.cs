@@ -1,6 +1,6 @@
 using Build.Harvesting;
+using Build.Manifest;
 using Build.Results;
-using Build.Shared.Manifest;
 using Build.Targets.Harvest.Models;
 using Cake.Core.IO;
 

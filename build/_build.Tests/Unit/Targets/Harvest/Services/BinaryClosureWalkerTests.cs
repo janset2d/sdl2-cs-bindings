@@ -1,8 +1,7 @@
 using System.Collections.Immutable;
-using Build.Integrations.DependencyAnalysis;
-using Build.Harvesting;
+using Build.DependencyAnalysis;
 using Build.Results;
-using Build.Shared.Runtime;
+using Build.Runtime;
 using IoPath = System.IO.Path;
 using Build.Targets.Harvest.Services;
 using Build.Tests.Fixtures;

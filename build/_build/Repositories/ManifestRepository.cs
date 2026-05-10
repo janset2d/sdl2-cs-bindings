@@ -1,5 +1,5 @@
 using Build.Host.Cake;
-using Build.Shared.Manifest;
+using Build.Manifest;
 using Cake.Core;
 using Cake.Core.IO;
 

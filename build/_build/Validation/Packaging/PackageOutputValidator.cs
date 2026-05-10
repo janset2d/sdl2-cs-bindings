@@ -1,10 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Xml.Linq;
+using Build.Manifest;
+using Build.Packaging;
 using Build.Results;
 using Build.Targets.Package.Models;
-using Build.Shared.Manifest;
-using Build.Shared.Packaging;
 using Build.Validation.Conventions;
 using Cake.Core.IO;
 using NuGet.Frameworks;
@@ -40,11 +40,13 @@ namespace Build.Validation.Packaging;
 public sealed class PackageOutputValidator(
     IFileSystem fileSystem,
     INativePackageMetadataValidator nativePackageMetadataValidator,
-    IReadmeMappingTableValidator readmeMappingTableValidator) : IPackageOutputValidator
+    IReadmeMappingTableValidator readmeMappingTableValidator,
+    ISatelliteUpperBoundValidator satelliteUpperBoundValidator) : IPackageOutputValidator
 {
     private readonly IFileSystem _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
     private readonly INativePackageMetadataValidator _nativePackageMetadataValidator = nativePackageMetadataValidator ?? throw new ArgumentNullException(nameof(nativePackageMetadataValidator));
     private readonly IReadmeMappingTableValidator _readmeMappingTableValidator = readmeMappingTableValidator ?? throw new ArgumentNullException(nameof(readmeMappingTableValidator));
+    private readonly ISatelliteUpperBoundValidator _satelliteUpperBoundValidator = satelliteUpperBoundValidator ?? throw new ArgumentNullException(nameof(satelliteUpperBoundValidator));
 
     public async Task<ValidationReport> ValidateAsync(
         PackageFamilyConfig family,
@@ -329,7 +331,7 @@ public sealed class PackageOutputValidator(
     [SuppressMessage("Design", "MA0051:Method is too long",
         Justification =
             "Dependency-group walking interleaves framework parity, inter-group consistency, and per-group expected-dependency checks (G21/G22) — splitting them obscures the per-framework control flow.")]
-    private static void EvaluateDependencyGroups(
+    private void EvaluateDependencyGroups(
         List<ValidationCheck> checks,
         PackageFamilyConfig family,
         FilePath managedPackagePath,
@@ -473,7 +475,7 @@ public sealed class PackageOutputValidator(
 
     [SuppressMessage("Design", "MA0051:Method is too long",
         Justification = "G21 within-family + cross-family dependency contract walking stays co-located so the full minimum-range assertion is readable end-to-end.")]
-    private static void EvaluateExpectedDependencies(
+    private void EvaluateExpectedDependencies(
         List<ValidationCheck> checks,
         PackageFamilyConfig family,
         FilePath managedPackagePath,
@@ -524,7 +526,7 @@ public sealed class PackageOutputValidator(
                 AddFamilyDependencyCheck(checks, isValid: false,
                     $"G21: managed package '{managedPackagePath.GetFilename().FullPath}' must declare cross-family '{expectedManagedPackageId}' with lower bound '>={expectedVersion}'. Actual: '<missing>'.");
 
-                AddIfPresent(checks, SatelliteUpperBoundValidator.Validate(
+                AddIfPresent(checks, _satelliteUpperBoundValidator.Validate(
                     family,
                     managedPackagePath,
                     dependencyFamily,
@@ -539,7 +541,7 @@ public sealed class PackageOutputValidator(
             AddFamilyDependencyCheck(checks, isValid: crossLowerBoundValid,
                 $"G21: managed package '{managedPackagePath.GetFilename().FullPath}' must declare cross-family '{expectedManagedPackageId}' with lower bound '>={expectedVersion}'. Actual expression: '{dependencyContract.Version}'.");
 
-            AddIfPresent(checks, SatelliteUpperBoundValidator.Validate(
+            AddIfPresent(checks, _satelliteUpperBoundValidator.Validate(
                 family,
                 managedPackagePath,
                 dependencyFamily,

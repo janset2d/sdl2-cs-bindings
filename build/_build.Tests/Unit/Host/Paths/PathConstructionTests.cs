@@ -1,4 +1,3 @@
-using Build.Host.Configuration;
 using Build.Host.Paths;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
@@ -10,7 +9,6 @@ public class PathConstructionTests
 {
     private static PathService CreatePathService(string repoRoot = "/repo")
     {
-        var repoConfig = new RepositoryConfiguration(new DirectoryPath(repoRoot));
         var parsedArgs = new ParsedArguments(
             RepoRoot: null,
             Config: "Release",
@@ -25,7 +23,7 @@ public class PathConstructionTests
             ExplicitVersions: null,
             VersionsFile: null);
         var log = Substitute.For<ICakeLog>();
-        return new PathService(repoConfig, parsedArgs, log);
+        return new PathService(new DirectoryPath(repoRoot), parsedArgs, log);
     }
 
     [Test]

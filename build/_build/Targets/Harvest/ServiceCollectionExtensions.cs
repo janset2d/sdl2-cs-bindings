@@ -7,13 +7,13 @@ namespace Build.Targets.Harvest;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers Harvest-stage collaborators: closure walker, artifact planner + deployer, and
-    /// reporter. Cross-cutting validators (<c>IHybridStaticLeakValidator</c>,
-    /// <c>IHarvestPreconditionsValidator</c>) come from <c>AddValidators()</c>; the rid-status
-    /// repository (<c>IHarvestStatusRepository</c>) comes from <c>AddRepositories()</c> per the
-    /// repository-cohort rule (root <c>Build.Repositories</c>, interface-bound, mock + sociable
-    /// tests). <see cref="HarvestTask"/> itself is discovered by Cake Frosting from
-    /// <c>[TaskName]</c> metadata; do not register it here.
+    /// Registers Harvest-stage collaborators: closure walker, artifact planner + deployer,
+    /// and reporter. Cross-cutting concerns come from sibling groups: validators from
+    /// <c>AddValidators()</c>; rid-status repository from <c>AddRepositories()</c>; the
+    /// per-platform <see cref="Build.DependencyAnalysis.IRuntimeScanner"/> dispatch closure
+    /// from <c>AddDependencyAnalysis()</c> (host-platform abstraction, not Harvest-owned).
+    /// <see cref="HarvestTask"/> itself is discovered by Cake Frosting from <c>[TaskName]</c>
+    /// metadata; do not register it here.
     /// </summary>
     public static IServiceCollection AddHarvest(this IServiceCollection services)
     {

@@ -1,5 +1,5 @@
+using Build.Manifest;
 using Build.Results;
-using Build.Shared.Manifest;
 using Cake.Core.IO;
 
 namespace Build.Validation.Packaging;

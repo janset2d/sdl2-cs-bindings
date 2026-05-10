@@ -1,3 +1,4 @@
+using Build.Targets.PublishStaging.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Build.Targets.PublishStaging;
@@ -8,8 +9,10 @@ public static class ServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
+        services.AddSingleton<INuGetFeedClient, NuGetProtocolFeedClient>();
+
         // PublishStagingTask discovered by Cake via [TaskName].
-        // INuGetFeedClient comes from AddIntegrations() (P10 relocation candidate).
+
         return services;
     }
 }

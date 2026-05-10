@@ -1,17 +1,14 @@
-using Build.Integrations.DotNet;
+using Build.Targets.PackageConsumerSmoke.Services;
+using Build.Packaging;
 using Build.Repositories;
 using Build.Results;
-using Build.Shared.Manifest;
-using Build.Shared.Packaging;
-using Build.Shared.Runtime;
+using Build.Runtime;
 using Build.Targets.PackageConsumerSmoke;
 using Build.Tests.Fixtures;
 using Build.Validation;
-using Build.Versioning;
 using Cake.Core.IO;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
-using NuGet.Versioning;
 
 namespace Build.Tests.Scenarios.PackageConsumerSmoke;
 

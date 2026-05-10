@@ -1,12 +1,10 @@
-using Build.Integrations.NuGet;
+using Build.Targets.PublishStaging.Services;
 using Build.Repositories;
 using Build.Targets.PublishStaging;
 using Build.Tests.Fixtures;
-using Build.Versioning;
 using Cake.Core.IO;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
-using NuGet.Versioning;
 
 namespace Build.Tests.Scenarios.PublishStaging;
 

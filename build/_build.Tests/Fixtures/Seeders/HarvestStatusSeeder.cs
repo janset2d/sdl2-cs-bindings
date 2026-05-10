@@ -1,13 +1,12 @@
 using System.Text.Json;
 using Build.Harvesting;
-using Build.Shared.Harvesting;
-using Build.Targets.Harvest.Models;
+using Build.Host.Cake;
 
 namespace Build.Tests.Fixtures.Seeders;
 
 /// <summary>
 /// Writes a single <c>artifacts/harvest_output/{library}/rid-status/{rid}.json</c> file using
-/// the same <see cref="HarvestJsonContract.Options"/> that <c>HarvestTask</c> writes in
+/// the same <see cref="CakeJsonExtensions.DefaultJsonOptions"/> that <c>HarvestTask</c> writes in
 /// production. Use the factory methods (<see cref="Success"/>, <see cref="Failure"/>) for the
 /// common cases; use the constructor directly when a test needs a hand-shaped status record.
 /// </summary>
@@ -28,7 +27,7 @@ public sealed class HarvestStatusSeeder : IFixtureSeeder
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var json = JsonSerializer.Serialize(_status, HarvestJsonContract.Options);
+        var json = JsonSerializer.Serialize(_status, CakeJsonExtensions.DefaultJsonOptions);
         builder.WithTextFile($"artifacts/harvest_output/{_status.LibraryName}/rid-status/{_status.Rid}.json", json);
     }
 

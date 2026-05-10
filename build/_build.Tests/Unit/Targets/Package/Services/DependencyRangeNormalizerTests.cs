@@ -1,10 +1,9 @@
 using System.Collections.Immutable;
-using Build.Shared.Manifest;
+using Build.Manifest;
 using Build.Targets.Package.Services;
 using Build.Tests.Fixtures;
 using Build.Tests.Fixtures.Builders;
 using Cake.Core;
-using Cake.Core.IO;
 
 namespace Build.Tests.Unit.Targets.Package.Services;
 

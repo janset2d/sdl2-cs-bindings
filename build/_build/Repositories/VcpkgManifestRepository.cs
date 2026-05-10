@@ -1,16 +1,16 @@
-using Build.Vcpkg;
-using Build.Shared.Manifest;
+using System.Text.Json;
+using Build.Host.Cake;
+using Build.Manifest;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.IO;
 
 namespace Build.Repositories;
 
-public sealed class VcpkgManifestRepository(ICakeContext context, IVcpkgManifestReader reader, FilePath vcpkgManifestPath)
+public sealed class VcpkgManifestRepository(ICakeContext context, FilePath vcpkgManifestPath)
     : IVcpkgManifestRepository
 {
     private readonly ICakeContext _context = context ?? throw new ArgumentNullException(nameof(context));
-    private readonly IVcpkgManifestReader _reader = reader ?? throw new ArgumentNullException(nameof(reader));
     private readonly FilePath _vcpkgManifestPath = vcpkgManifestPath ?? throw new ArgumentNullException(nameof(vcpkgManifestPath));
 
     public VcpkgManifest Load()
@@ -22,6 +22,25 @@ public sealed class VcpkgManifestRepository(ICakeContext context, IVcpkgManifest
                 "Run from the repository root or pass --repo-root to point Cake at a valid checkout.");
         }
 
-        return _reader.ParseFile(_vcpkgManifestPath);
+        try
+        {
+            var file = _context.FileSystem.GetFile(_vcpkgManifestPath);
+            using var stream = file.OpenRead();
+            using var buffer = new MemoryStream();
+            stream.CopyTo(buffer);
+
+            var manifest = CakeJsonExtensions.DeserializeJson<VcpkgManifest>(buffer.ToArray());
+            return manifest
+                ?? throw new CakeException(
+                    $"VcpkgManifestRepository: vcpkg manifest at '{_vcpkgManifestPath.FullPath}' deserialized to null. " +
+                    "The file is syntactically valid JSON but evaluates to a null object — re-emit the file or fix its contents.");
+        }
+        catch (JsonException ex)
+        {
+            throw new CakeException(
+                $"VcpkgManifestRepository: vcpkg manifest at '{_vcpkgManifestPath.FullPath}' contains invalid JSON: {ex.Message}. " +
+                "Re-run vcpkg install or fix the file syntax.",
+                ex);
+        }
     }
 }

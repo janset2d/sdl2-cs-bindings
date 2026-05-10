@@ -1,6 +1,6 @@
 using Build.Host.Paths;
-using Build.Shared.Manifest;
-using Build.Shared.Runtime;
+using Build.Manifest;
+using Build.Runtime;
 using Cake.Core;
 using Cake.Core.IO;
 using Cake.Frosting;
@@ -60,7 +60,7 @@ public sealed class BuildContext : FrostingContext
 
     /// <summary>
     /// Loaded <c>build/manifest.json</c> as data. Read-only access only;
-    /// helpers like <c>ResolveConcreteFamilies()</c> live in <c>Shared/PackageFamilies/</c>
+    /// helpers like <c>ResolveConcreteFamilies()</c> live in extension methods (root concept)
     /// extensions, not on this carrier.
     /// </summary>
     public ManifestConfig Manifest { get; }

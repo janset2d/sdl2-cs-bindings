@@ -1,23 +1,22 @@
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Reflection;
+using Build.Packaging;
 using Build.Targets.Package.Services;
 using Build.Validation.Packaging;
 using Build.Host;
 using Build.Host.Cli.Options;
-using Build.Integrations.DotNet;
-using Build.Vcpkg;
+using Build.Targets.PackageConsumerSmoke.Services;
+using Build.Manifest;
 using Build.Targets.NativeSmoke.Services;
 using Build.Repositories;
-using Build.Shared.Manifest;
-using Build.Shared.Runtime;
+using Build.Runtime;
 using Build.Tests.Fixtures;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 using Cake.Testing;
 using Microsoft.Extensions.DependencyInjection;
-using DotNetRuntimeEnvironment = Build.Integrations.DotNet.DotNetRuntimeEnvironment;
 
 namespace Build.Tests.Unit.CompositionRoot;
 
@@ -156,7 +155,6 @@ public sealed class ProgramCompositionRootTests
         using var provider = services.BuildServiceProvider();
 
         var hybridStaticOverlayValidator = provider.GetRequiredService<IHybridStaticOverlayValidator>();
-        var vcpkgManifestReader = provider.GetRequiredService<IVcpkgManifestReader>();
         var packageOutputValidator = provider.GetRequiredService<IPackageOutputValidator>();
         var projectMetadataReader = provider.GetRequiredService<IProjectMetadataReader>();
         var manifestRepository = provider.GetRequiredService<IManifestRepository>();
@@ -168,7 +166,6 @@ public sealed class ProgramCompositionRootTests
         var msvcDevEnvironment = provider.GetRequiredService<IMsvcDevEnvironment>();
 
         await Assert.That(hybridStaticOverlayValidator).IsTypeOf<HybridStaticOverlayValidator>();
-        await Assert.That(vcpkgManifestReader.GetType()).IsEqualTo(typeof(VcpkgManifestReader));
         await Assert.That(packageOutputValidator.GetType()).IsEqualTo(typeof(PackageOutputValidator));
         await Assert.That(projectMetadataReader.GetType()).IsEqualTo(typeof(ProjectMetadataReader));
         await Assert.That(manifestRepository.GetType()).IsEqualTo(typeof(ManifestRepository));

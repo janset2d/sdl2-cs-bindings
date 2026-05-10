@@ -1,9 +1,8 @@
 using Build.Host.Paths;
-using Build.Targets.Package.Models;
-using Build.Integrations.DotNet;
+using Build.Manifest;
+using Build.Packaging;
 using Build.Results;
-using Build.Shared.Manifest;
-using Build.Shared.Packaging;
+using Build.Targets.Package.Models;
 using Build.Targets.Package.Reporting;
 using Build.Validation.Packaging;
 using Cake.Core;

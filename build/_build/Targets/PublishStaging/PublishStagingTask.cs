@@ -1,9 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
 using Build.Host;
 using Build.Host.Paths;
-using Build.Integrations.NuGet;
+using Build.Targets.PublishStaging.Services;
+using Build.Manifest;
 using Build.Repositories;
-using Build.Shared.Manifest;
 using Build.Validation.Conventions;
 using Build.Versioning;
 using Cake.Common;

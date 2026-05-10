@@ -8,10 +8,12 @@ namespace Build.Host.Cake;
 public static class CakeJsonExtensions
 {
     /// <summary>
-    /// Project-wide default JSON serialization options for <see cref="WriteJsonAsync{TModel}"/>
-    /// callers that do not need a domain-specific shape (e.g., HarvestJsonContract.Options).
-    /// Indented for human inspection of the emitted file; other settings stay System.Text.Json
-    /// defaults (PascalCase, UTF-8, no escape-tightening).
+    /// Single source of truth for build-host JSON serialization. Indented for human inspection
+    /// of emitted files; otherwise stays at System.Text.Json defaults. On-disk shapes (snake_case
+    /// for harvest models, kebab-case for vcpkg-installed payloads, etc.) are encoded on the
+    /// type itself via <c>[JsonPropertyName]</c> attributes — no naming policy is configured here
+    /// because it would either be redundant (when attributes match) or actively wrong (when they
+    /// don't, e.g. <c>VcpkgInstalledPackageOutput</c>'s kebab-case fields).
     /// </summary>
     public static readonly JsonSerializerOptions DefaultJsonOptions = new()
     {
@@ -185,10 +187,9 @@ public static class CakeJsonExtensions
 
     /// <summary>
     /// Cake-native JSON deserialization from an in-memory UTF-16 string. Non-extension static
-    /// helper so Infrastructure readers (VcpkgManifestReader, …) that
-    /// do not carry an <see cref="ICakeContext"/> dependency can still route their JSON parse
-    /// through the repo's central Cake JSON surface. Callers own null-handling and wrap
-    /// <see cref="JsonException"/> with domain-specific context.
+    /// helper so callers that do not carry an <see cref="ICakeContext"/> dependency can still
+    /// route their JSON parse through the repo's central Cake JSON surface. Callers own
+    /// null-handling and wrap <see cref="JsonException"/> with domain-specific context.
     /// <para>
     /// AOT / source-gen ready: supply a <see cref="JsonSerializerOptions"/> whose
     /// <c>TypeInfoResolver</c> points at a <c>JsonSerializerContext</c> derived type to bypass

@@ -3,10 +3,10 @@
 using System.Diagnostics.CodeAnalysis;
 using Build.Harvesting;
 using Build.Host.Paths;
+using Build.Manifest;
 using Build.Results;
+using Build.Runtime;
 using Build.Vcpkg;
-using Build.Shared.Manifest;
-using Build.Shared.Runtime;
 using Build.Targets.Harvest.Models;
 using Cake.Core;
 using Cake.Core.Diagnostics;

@@ -114,13 +114,14 @@ Use this checklist for each ADR-002 migration slice.
 - [ ] `HarvestPipeline` / `NativeSmokePipeline` / `ConsolidateHarvestPipeline` are gone (retired in S14 — task-owned orchestration in `Targets/{Harvest,NativeSmoke,ConsolidateHarvest}/`; NativeSmoke flattened post-self-review with `INativeSmokeRunner` + `NativeSmokePrerequisiteResolver` re-inlined per ADR §5).
 - [ ] `Configurations` aggregate + `BuildContext.Options` + `DumpbinConfiguration` are gone (retired in S14 — never-read aggregate dropped; `PackageFamilyPacker` `DotNetBuildConfiguration` injection replaced with `context.BuildConfiguration` named property).
 - [ ] `Features/Harvesting/` folder is gone (S14 — `HarvestJsonContract` promoted to `Build.Harvesting/`; `AddHarvestingFeature()` deleted).
-- [ ] `Host/Configuration` usage decreased or stayed unchanged only for unmigrated code.
-- [ ] Strategy abstraction usage decreased when touching manifest/runtime/preflight/packaging code.
-- [ ] Coverage gate code was not expanded.
-- [ ] Architecture dependency tests were not updated to enforce new taste rules.
-- [ ] `Integrations/` usage decreased or a remaining adapter has a named, justified destination.
+- [ ] `Host/Configuration/` is gone (S16 P10) — do not reintroduce. Repository-root path flows directly through `AddHostBuildingBlocks(parsedArgs, repoRoot)` into `PathService` ctor.
+- [ ] Strategy abstraction not reintroduced. Hybrid-static encoded by overlay triplet name; `HybridStaticOverlayValidator` enforces the invariant.
+- [ ] Coverage gate code not reintroduced.
+- [ ] Architecture dependency tests not reintroduced (retired in S16 P10 per ADR-002 §14).
+- [ ] `Integrations/` is gone (S16 P10) — do not reintroduce. New adapters land target-local in `Targets/<X>/Services/` or as named root concepts (`Build.Packaging/`, `Build.DependencyAnalysis/`, etc.).
+- [ ] `Features/` is gone (S16 P10) — do not reintroduce. New executable targets land in `Targets/<TargetName>/`.
 - [ ] `FrostingLifetime` was not used to hide manifest/version target state preload.
-- [ ] OneOf-shaped result types: only `PackageInfoResult` survives after S14 (vcpkg integration boundary; retires with P9 ConsumerSmoke + Vcpkg integration relocation). S13 retired `DotNetPackResult` (→ `Result<Unit, DotNetPackError>`), `ProjectMetadataResult`, `PackageValidationResult`. S14 retired `ArtifactPlannerResult`, `ClosureResult`, `CopierResult` as part of P8 — each `Result<T, TError>` with `HarvestingError` discriminator preserved as the `PackageInfoResult` parent class until its own retirement.
+- [ ] Zero OneOf result types in production code (closed in S15 P9; OneOf NuGet packages removed entirely in `Directory.Packages.props`).
 
 ## 12. Documentation and validation
 

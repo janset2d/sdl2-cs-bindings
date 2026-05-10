@@ -1,5 +1,5 @@
 using System.Collections.Immutable;
-using Build.Shared.Manifest;
+using Build.Manifest;
 using Build.Targets.Package.Services;
 
 namespace Build.Tests.Unit.Targets.Package.Services;

@@ -1,9 +1,9 @@
 using Build.Harvesting;
 using Build.Host.Cake;
-using Build.Integrations.DependencyAnalysis;
+using Build.DependencyAnalysis;
+using Build.Manifest;
 using Build.Repositories;
 using Build.Results;
-using Build.Shared.Manifest;
 using Build.Vcpkg;
 using Build.Targets.Harvest;
 using Build.Targets.Harvest.Models;

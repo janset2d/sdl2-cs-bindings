@@ -1,12 +1,10 @@
 using System.Collections.Immutable;
-using Build.Vcpkg;
+using Build.Manifest;
 using Build.Repositories;
-using Build.Shared.Manifest;
 using Build.Targets.PreFlightCheck;
 using Build.Tests.Fixtures;
 using Build.Validation;
 using Cake.Core.Diagnostics;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Build.Tests.Scenarios.PreFlightCheck;
 
@@ -217,7 +215,6 @@ public sealed class PreFlightCheckTaskScenarioTests
         return new TargetTestHostV2<PreFlightCheckTask>(world)
             .WithServices(services =>
             {
-                services.AddSingleton<IVcpkgManifestReader, VcpkgManifestReader>();
                 services.AddRepositories();
                 services.AddValidators();
                 services.AddPreFlightCheck();

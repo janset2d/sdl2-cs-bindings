@@ -1,5 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
-using Build.Shared.Manifest;
+using Build.Manifest;
 using Build.Validation.Conventions;
 using NuGet.Versioning;
 

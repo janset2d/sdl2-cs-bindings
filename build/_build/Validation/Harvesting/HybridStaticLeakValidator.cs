@@ -1,8 +1,8 @@
 using Build.Harvesting;
+using Build.Manifest;
 using Build.Results;
-using Build.Shared.Manifest;
-using Build.Shared.Runtime;
-using IoPath = System.IO.Path;
+using Build.Runtime;
+using Cake.Core.IO;
 
 namespace Build.Validation.Harvesting;
 
@@ -24,21 +24,20 @@ public sealed class HybridStaticLeakValidator(IRuntimeProfile profile, string co
     private readonly string _coreLibraryName = !string.IsNullOrWhiteSpace(coreLibraryName)
         ? coreLibraryName
         : throw new ArgumentException("Core library name must be non-empty.", nameof(coreLibraryName));
-    private readonly ValidationMode _mode = mode;
 
     public ValidationReport Validate(BinaryClosure closure, LibraryManifest manifest)
     {
         ArgumentNullException.ThrowIfNull(closure);
         ArgumentNullException.ThrowIfNull(manifest);
 
-        if (_mode == ValidationMode.Off || manifest.IsCoreLib)
+        if (mode == ValidationMode.Off || manifest.IsCoreLib)
         {
             return ValidationReport.Empty;
         }
 
         var violations = closure.Nodes
             .Where(node =>
-                !_profile.IsSystemFile(IoPath.GetFileName(node.Path))
+                !_profile.IsSystemFile(GetFilenameSegment(node.Path))
                 && !string.Equals(_coreLibraryName, node.OwnerPackage, StringComparison.OrdinalIgnoreCase)
                 && !closure.IsPrimaryFile(node.Path))
             .ToList();
@@ -48,16 +47,23 @@ public sealed class HybridStaticLeakValidator(IRuntimeProfile profile, string co
             return ValidationReport.Empty;
         }
 
-        var severity = _mode == ValidationMode.Strict
+        var severity = mode == ValidationMode.Strict
             ? ValidationSeverity.Error
             : ValidationSeverity.Warning;
 
         var checks = violations.Select(v => new ValidationCheck(
             Name: "Hybrid-static transitive leak",
             Severity: severity,
-            Message: $"Transitive dep leak: {IoPath.GetFileName(v.Path)} (owner: {v.OwnerPackage}, origin: {v.OriginPackage})",
+            Message: $"Transitive dep leak: {GetFilenameSegment(v.Path)} (owner: {v.OwnerPackage}, origin: {v.OriginPackage})",
             Code: "G19")).ToList();
 
         return new ValidationReport(checks);
     }
+
+    /// <summary>
+    /// Cake-native filename extraction. Wraps the raw closure node path into a Cake
+    /// <see cref="FilePath"/> and returns its filename segment as a string. Replaces a former
+    /// <c>System.IO.Path.GetFileName</c> alias usage to keep validator IO Cake-typed (ADR-002 §9).
+    /// </summary>
+    private static string GetFilenameSegment(string nodePath) => new FilePath(nodePath).GetFilename().FullPath;
 }
