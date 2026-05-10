@@ -1,7 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Build.Host;
 using Build.Host.Cake;
-using Build.Host.Configuration;
 using Build.Host.Paths;
 using Build.Integrations.DotNet;
 using Build.Repositories;

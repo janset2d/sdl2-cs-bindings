@@ -1,5 +1,4 @@
 using Build.Results;
-using Build.Validation.Conventions;
 using Build.Validation.Models;
 using Cake.Core;
 using Cake.Core.Diagnostics;

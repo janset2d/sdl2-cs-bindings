@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.IO.Compression;
 using System.Xml.Linq;
 using Build.Results;

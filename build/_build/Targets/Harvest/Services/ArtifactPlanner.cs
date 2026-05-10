@@ -4,7 +4,6 @@ using System.Diagnostics.CodeAnalysis;
 using Build.Harvesting;
 using Build.Host.Paths;
 using Build.Results;
-using Build.Shared.Harvesting;
 using Build.Vcpkg;
 using Build.Shared.Manifest;
 using Build.Shared.Runtime;

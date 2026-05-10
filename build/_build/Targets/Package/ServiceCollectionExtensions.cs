@@ -1,4 +1,3 @@
-using Build.Integrations.DotNet;
 using Build.Targets.Package.Reporting;
 using Build.Targets.Package.Services;
 using Microsoft.Extensions.DependencyInjection;

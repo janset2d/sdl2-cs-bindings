@@ -3,7 +3,6 @@ using Build.Targets.OtoolAnalyze.Reporting;
 using Build.Targets.OtoolAnalyze.Services;
 using Build.Tools.Otool;
 using Cake.Common.IO;
-using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 using Cake.Frosting;

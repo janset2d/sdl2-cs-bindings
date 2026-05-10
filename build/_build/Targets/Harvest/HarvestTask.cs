@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
-using Build.Harvesting;
 using Build.Host;
 using Build.Repositories;
 using Build.Shared.Manifest;

@@ -10,7 +10,6 @@ using Build.Targets.ConsolidateHarvest.Reporting;
 using Build.Targets.ConsolidateHarvest.Services;
 using Cake.Common.IO;
 using Cake.Core;
-using Cake.Core.IO;
 using Cake.Frosting;
 
 namespace Build.Targets.ConsolidateHarvest;
