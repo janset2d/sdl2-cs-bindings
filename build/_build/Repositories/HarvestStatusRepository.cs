@@ -13,9 +13,19 @@ namespace Build.Repositories;
 /// File-backed repository for the per-RID rid-status JSON contract written by HarvestTask
 /// and read by ConsolidateHarvestTask. Owns invalidation of stale per-RID payload + cross-RID
 /// consolidated receipts before a fresh harvest run, and persistence of the
-/// <see cref="RidHarvestStatus"/> success/error record. The schema is byte-identical to the
-/// pre-migration contract so consolidation + Pack continue to consume the same bytes.
+/// <see cref="RidHarvestStatus"/> success/error record. The schema stays byte-identical to
+/// the established rid-status contract so consolidation and Pack consume the same bytes.
 /// </summary>
+public interface IHarvestStatusRepository
+{
+    void Invalidate(string libraryName, CancellationToken ct = default);
+
+    Task WriteSuccessAsync(string libraryName, DeploymentStatistics statistics, CancellationToken ct = default);
+
+    Task WriteErrorAsync(string libraryName, string errorMessage, CancellationToken ct = default);
+}
+
+/// <inheritdoc />
 public sealed class HarvestStatusRepository(
     ICakeContext cakeContext,
     IPathService pathService,

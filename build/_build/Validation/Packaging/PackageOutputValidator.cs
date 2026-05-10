@@ -12,31 +12,29 @@ using NuGet.Versioning;
 
 namespace Build.Validation.Packaging;
 
-/// <summary>
-/// Post-pack nuspec assertions for a packed family (one managed + one native .nupkg).
-/// </summary>
-/// <remarks>
-/// Guardrails G20 (within-family exact-pin `[x.y.z]` assertion)
-/// and G24 (sentinel leak check) were retired when within-family dependencies moved to
-/// SkiaSharp-style minimum range. The validator now enforces:
-/// <list type="bullet">
-///   <item><description>G21 — within-family native dependency emits bare minimum range `x.y.z`; cross-family dependencies preserve lower bound `&gt;= x.y.z`.</description></item>
-///   <item><description>G22 — all TFM dependency groups agree.</description></item>
-///   <item><description>G23 — managed and native packages emit identical <c>&lt;version&gt;</c> elements (primary within-family coherence check).</description></item>
-///   <item><description>G25 — managed symbol package (.snupkg) is present and valid.</description></item>
-///   <item><description>G26 — nuspec <c>&lt;repository&gt;</c> commit matches expected SHA.</description></item>
-///   <item><description>G27 — nuspec metadata (id, authors, license, icon) matches project metadata.</description></item>
-///   <item><description>G47 — native package ships the consumer-side buildTransitive contract (thin wrapper + shared common.targets).</description></item>
-///   <item><description>G48 — every <c>runtimes/&lt;rid&gt;/native/</c> subtree in the native package has the correct payload shape (DLLs on Windows, <c>$(PackageId).tar.gz</c> on Unix).</description></item>
-///   <item><description>G55 — native package ships valid root <c>janset-native-metadata.json</c> matching manifest/build invariants.</description></item>
-///   <item><description>G56 — every satellite cross-family dependency declares upper bound <c>&lt; (UpstreamMajor + 1).0.0</c>.</description></item>
-///   <item><description>G57 — README mapping block between JANSET markers is current and generator-equivalent.</description></item>
-/// </list>
-///
-/// Every guardrail is evaluated and added to the returned <see cref="ValidationReport"/>.
-/// Operators see the full failure set instead of the first-throw-wins subset produced by the
-/// pre-Result-pattern surface.
-/// </remarks>
+public interface IPackageOutputValidator
+{
+    /// <summary>
+    /// Runs post-pack guardrails against the packed artifacts of a family.
+    /// Current scope includes G21–G27 and payload/metadata/readme checks
+    /// (G47, G48, G51, G55, G56, G57).
+    /// Every guardrail is evaluated and the aggregated <see cref="ValidationReport"/> is
+    /// returned regardless of outcome, so operators see the complete failure set (not only
+    /// the first tripped guardrail). Each <see cref="ValidationCheck"/> carries the
+    /// guardrail ID in <c>Code</c> (e.g. "G21") and a human-readable behavior label in
+    /// <c>Name</c>; <c>Code</c> is null for foundational checks (NuspecLoad, ProjectMetadataComplete).
+    /// </summary>
+    Task<ValidationReport> ValidateAsync(
+        PackageFamilyConfig family,
+        PackageArtifacts artifacts,
+        string expectedVersion,
+        string expectedCommitSha,
+        ProjectMetadata managedProjectMetadata,
+        ManifestConfig manifestConfig,
+        FilePath readmePath);
+}
+
+/// <inheritdoc />
 public sealed class PackageOutputValidator(
     IFileSystem fileSystem,
     INativePackageMetadataValidator nativePackageMetadataValidator,
@@ -48,6 +46,7 @@ public sealed class PackageOutputValidator(
     private readonly IReadmeMappingTableValidator _readmeMappingTableValidator = readmeMappingTableValidator ?? throw new ArgumentNullException(nameof(readmeMappingTableValidator));
     private readonly ISatelliteUpperBoundValidator _satelliteUpperBoundValidator = satelliteUpperBoundValidator ?? throw new ArgumentNullException(nameof(satelliteUpperBoundValidator));
 
+    /// <inheritdoc />
     public async Task<ValidationReport> ValidateAsync(
         PackageFamilyConfig family,
         PackageArtifacts artifacts,

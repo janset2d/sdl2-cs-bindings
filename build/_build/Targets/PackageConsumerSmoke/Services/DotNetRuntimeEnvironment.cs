@@ -3,16 +3,44 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.RegularExpressions;
-using Build.Runtime;
 using Cake.Core.Diagnostics;
 
 namespace Build.Targets.PackageConsumerSmoke.Services;
 
 /// <summary>
-/// Resolves RID-specific child-process runtime overrides for <c>dotnet</c>-hosted smoke
-/// executions. Today this means bootstrapping x86 .NET runtimes on Windows for
-/// <c>PackageConsumerSmoke --rid win-x86</c> while leaving the parent Cake host on x64.
+/// Resolves child-process .NET runtime environment overrides needed for RID-specific
+/// smoke-test execution when the host runner's default <c>dotnet</c> installation is
+/// insufficient for the target apphost architecture.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Current concrete use-case: <c>PackageConsumerSmoke</c> on <c>win-x86</c>. GitHub's
+/// Windows runners ship x64 .NET on <c>PATH</c>, but a 32-bit apphost resolves its own
+/// runtime via <c>DOTNET_ROOT_X86</c> / <c>DOTNET_ROOT(x86)</c>. When those are absent, the
+/// x86 smoke executable falls back to the x64 hostfxr and dies with
+/// <c>0x800700C1 (BAD_EXE_FORMAT)</c>.
+/// </para>
+/// <para>
+/// Return shape matches <see cref="IMsvcDevEnvironment"/>: callers merge the returned delta
+/// into the child process only. The parent Cake host stays on the default x64 SDK / host;
+/// no global <c>PATH</c> or <c>DOTNET_ROOT</c> mutation happens.
+/// </para>
+/// </remarks>
+public interface IDotNetRuntimeEnvironment
+{
+    /// <summary>
+    /// Returns the environment-variable delta required for child <c>dotnet</c> invocations
+    /// targeting <paramref name="rid"/> and the executable <paramref name="targetFrameworks"/>.
+    /// Non-special cases return an empty dictionary. Windows x86 smoke on a non-Windows host
+    /// throws <see cref="PlatformNotSupportedException"/> as a defence-in-depth assertion.
+    /// </summary>
+    Task<IReadOnlyDictionary<string, string>> ResolveAsync(
+        string rid,
+        IReadOnlyList<string> targetFrameworks,
+        CancellationToken ct = default);
+}
+
+/// <inheritdoc />
 [SuppressMessage(
     "Minor Code Smell",
     "S1075:URIs should not be hardcoded",
@@ -24,16 +52,13 @@ public sealed partial class DotNetRuntimeEnvironment(ICakeLog log) : IDotNetRunt
     private const string DotNetRootX86Legacy = "DOTNET_ROOT(x86)";
     private static readonly Uri InstallScriptUri = new("https://dot.net/v1/dotnet-install.ps1", UriKind.Absolute);
 
-    private static readonly IReadOnlyDictionary<string, string> Empty =
-        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    private static readonly IReadOnlyDictionary<string, string> Empty = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
     private readonly ConcurrentDictionary<string, IReadOnlyDictionary<string, string>> _cache = new(StringComparer.OrdinalIgnoreCase);
 
-    public async Task<IReadOnlyDictionary<string, string>> ResolveAsync(
-        string rid,
-        IReadOnlyList<string> targetFrameworks,
-        CancellationToken ct = default)
+    /// <inheritdoc />
+    public async Task<IReadOnlyDictionary<string, string>> ResolveAsync(string rid, IReadOnlyList<string> targetFrameworks, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rid);
         ArgumentNullException.ThrowIfNull(targetFrameworks);
@@ -106,9 +131,7 @@ public sealed partial class DotNetRuntimeEnvironment(ICakeLog log) : IDotNetRunt
         return channels.Select(major => $"{major}.0").ToArray();
     }
 
-    private async Task<IReadOnlyDictionary<string, string>> ResolveCoreAsync(
-        IReadOnlyList<string> runtimeChannels,
-        CancellationToken ct)
+    private async Task<IReadOnlyDictionary<string, string>> ResolveCoreAsync(IReadOnlyList<string> runtimeChannels, CancellationToken ct)
     {
         var cacheRoot = Path.Combine(Path.GetTempPath(), "janset-sdl2", "dotnet-runtime-env");
         var x86Root = Path.Combine(cacheRoot, "x86");

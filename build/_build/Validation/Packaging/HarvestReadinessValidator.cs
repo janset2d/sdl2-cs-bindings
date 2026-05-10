@@ -10,16 +10,19 @@ using Cake.Core.IO;
 namespace Build.Validation.Packaging;
 
 /// <summary>
-/// Pack-stage gate. Asserts harvest-manifest.json is present, carries a non-empty
-/// consolidation receipt with at least one license entry, and that the per-family
-/// payload subtrees consumed by the native csproj (runtimes/ + licenses/_consolidated/)
-/// exist and are non-empty. The check warns on divergent license attribution but does
-/// not block the pack.
+/// Gates Pack-stage execution against ConsolidateHarvest output for the family's
+/// library_ref. Throws <c>CakeException</c> with full diagnostics on failure
+/// (gate semantics; no return value). Failure modes: harvest manifest missing,
+/// consolidation receipt missing, zero successful RIDs, zero license entries,
+/// payload subtree (runtimes/ or licenses/_consolidated/) missing or empty.
 /// </summary>
-public sealed class HarvestReadinessValidator(
-    ICakeContext cakeContext,
-    IPathService pathService,
-    ICakeLog log) : IHarvestReadinessValidator
+public interface IHarvestReadinessValidator
+{
+    Task EnsureReadyAsync(PackageFamilyConfig family, CancellationToken ct);
+}
+
+/// <inheritdoc />
+public sealed class HarvestReadinessValidator(ICakeContext cakeContext, IPathService pathService, ICakeLog log) : IHarvestReadinessValidator
 {
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
     private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
@@ -46,7 +49,7 @@ public sealed class HarvestReadinessValidator(
         var successfulRids = harvestManifest.Rids
             .Where(ridStatus => ridStatus.Success)
             .Select(ridStatus => ridStatus.Rid)
-            .OrderBy(rid => rid, StringComparer.OrdinalIgnoreCase);
+            .Order(StringComparer.OrdinalIgnoreCase);
 
         _log.Information("Family '{0}' will pack harvest payload for successful RIDs: {1}", family.Name, string.Join(", ", successfulRids));
     }

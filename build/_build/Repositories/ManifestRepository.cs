@@ -5,16 +5,15 @@ using Cake.Core.IO;
 
 namespace Build.Repositories;
 
-public sealed class ManifestRepository : IManifestRepository
+public interface IManifestRepository
 {
-    private readonly ICakeContext _context;
-    private readonly FilePath _manifestPath;
+    ManifestConfig Load();
+}
 
-    public ManifestRepository(ICakeContext context, FilePath manifestPath)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _manifestPath = manifestPath ?? throw new ArgumentNullException(nameof(manifestPath));
-    }
+public sealed class ManifestRepository(ICakeContext context, FilePath manifestPath) : IManifestRepository
+{
+    private readonly ICakeContext _context = context ?? throw new ArgumentNullException(nameof(context));
+    private readonly FilePath _manifestPath = manifestPath ?? throw new ArgumentNullException(nameof(manifestPath));
 
     public ManifestConfig Load()
     {

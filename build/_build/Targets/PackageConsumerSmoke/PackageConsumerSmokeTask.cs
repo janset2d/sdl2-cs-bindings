@@ -131,7 +131,7 @@ public sealed class PackageConsumerSmokeTask : AsyncFrostingTask<BuildContext>
         context.EnsureDirectoryExists(workingRoot);
         context.EnsureDirectoryExists(packagesCache);
 
-        var metadataResult = await _projectMetadataReader.ReadAsync(smokeProject);
+        var metadataResult = _projectMetadataReader.Read(smokeProject);
         if (metadataResult.IsFailure)
         {
             throw new CakeException(

@@ -18,6 +18,11 @@ using Cake.Core.IO;
 
 namespace Build.Targets.Harvest.Services;
 
+public interface IBinaryClosureWalker
+{
+    Task<Result<BinaryClosure, ClosureError>> BuildClosureAsync(LibraryManifest manifest, CancellationToken ct = default);
+}
+
 public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoProvider pkg, IRuntimeProfile profile, ICakeContext ctx) : IBinaryClosureWalker
 {
     private readonly IRuntimeScanner _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));

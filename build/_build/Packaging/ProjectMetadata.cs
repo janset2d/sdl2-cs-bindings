@@ -6,8 +6,4 @@ namespace Build.Packaging;
 /// cref="IPackageOutputValidator"/> to replace hard-coded
 /// expectations with values sourced from the repository's canonical props.
 /// </summary>
-public sealed record ProjectMetadata(
-    IReadOnlyList<string> TargetFrameworks,
-    string Authors,
-    string PackageLicenseFile,
-    string PackageIcon);
+public sealed record ProjectMetadata(IReadOnlyList<string> TargetFrameworks, string Authors, string PackageLicenseFile, string PackageIcon);

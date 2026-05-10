@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Build.Packaging;
 using Build.Results;
 using Cake.Common.Tools.DotNet;
 using Cake.Common.Tools.DotNet.MSBuild;
@@ -8,6 +7,17 @@ using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 
 namespace Build.Packaging;
+
+public interface IProjectMetadataReader
+{
+    /// <summary>
+    /// Resolves MSBuild-evaluated properties (<c>TargetFrameworks</c>, <c>Authors</c>,
+    /// <c>PackageLicenseFile</c>, <c>PackageIcon</c>) for the supplied csproj. Returns a typed
+    /// <see cref="Result{TValue,TError}"/> carrying either the resolved <see cref="ProjectMetadata"/>
+    /// or a <see cref="ProjectMetadataError"/> describing the MSBuild or parse failure.
+    /// </summary>
+    Result<ProjectMetadata, ProjectMetadataError> Read(FilePath projectPath);
+}
 
 public sealed class ProjectMetadataReader(ICakeContext cakeContext, ICakeLog log) : IProjectMetadataReader
 {
@@ -23,10 +33,10 @@ public sealed class ProjectMetadataReader(ICakeContext cakeContext, ICakeLog log
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
 
-    public Task<Result<ProjectMetadata, ProjectMetadataError>> ReadAsync(FilePath projectPath, CancellationToken ct = default)
+    /// <inheritdoc />
+    public Result<ProjectMetadata, ProjectMetadataError> Read(FilePath projectPath)
     {
         ArgumentNullException.ThrowIfNull(projectPath);
-        ct.ThrowIfCancellationRequested();
 
         var settings = new DotNetMSBuildSettings
         {
@@ -47,24 +57,18 @@ public sealed class ProjectMetadataReader(ICakeContext cakeContext, ICakeLog log
         }
         catch (CakeException ex)
         {
-            // Cake's DotNetMSBuild surfaces tool failures (non-zero exit, missing dotnet,
-            // malformed project file) as CakeException. Convert to the typed Result surface
-            // so the caller's IsFailure check stays the only failure path it has to handle.
-            return Task.FromResult(Result<ProjectMetadata, ProjectMetadataError>.Failure(
-                new ProjectMetadataError(
-                    $"dotnet msbuild -getProperty failed for '{projectPath.FullPath}': {ex.Message}",
-                    projectPath.FullPath,
-                    ex)));
+            var message = $"dotnet msbuild -getProperty failed for '{projectPath.FullPath}': {ex.Message}";
+            return Result<ProjectMetadata, ProjectMetadataError>.Failure(new ProjectMetadataError(message, projectPath.FullPath, ex));
         }
 
         if (!TryParseProperties(capturedLines, projectPath, out var properties, out var parseError))
         {
-            return Task.FromResult(Result<ProjectMetadata, ProjectMetadataError>.Failure(parseError));
+            return Result<ProjectMetadata, ProjectMetadataError>.Failure(parseError);
         }
 
         if (!TryResolveTargetFrameworks(properties, projectPath, out var targetFrameworks, out var tfmError))
         {
-            return Task.FromResult(Result<ProjectMetadata, ProjectMetadataError>.Failure(tfmError));
+            return Result<ProjectMetadata, ProjectMetadataError>.Failure(tfmError);
         }
 
         var authors = GetPropertyOrEmpty(properties, "Authors");
@@ -77,7 +81,7 @@ public sealed class ProjectMetadataReader(ICakeContext cakeContext, ICakeLog log
             PackageLicenseFile: licenseFile,
             PackageIcon: icon);
 
-        return Task.FromResult(Result<ProjectMetadata, ProjectMetadataError>.Success(metadata));
+        return Result<ProjectMetadata, ProjectMetadataError>.Success(metadata);
     }
 
     private static bool TryParseProperties(
@@ -92,9 +96,7 @@ public sealed class ProjectMetadataReader(ICakeContext cakeContext, ICakeLog log
         if (string.IsNullOrWhiteSpace(joined))
         {
             properties = [];
-            error = new ProjectMetadataError(
-                $"dotnet msbuild -getProperty returned empty output for '{projectPath.FullPath}'.",
-                projectPath.FullPath);
+            error = new ProjectMetadataError($"dotnet msbuild -getProperty returned empty output for '{projectPath.FullPath}'.", projectPath.FullPath);
             return false;
         }
 
@@ -105,23 +107,21 @@ public sealed class ProjectMetadataReader(ICakeContext cakeContext, ICakeLog log
         }
         catch (JsonException ex)
         {
+            var message = $"Could not parse dotnet msbuild -getProperty output for '{projectPath.FullPath}': {ex.Message}. Raw output: {joined}";
+
             properties = [];
-            error = new ProjectMetadataError(
-                $"Could not parse dotnet msbuild -getProperty output for '{projectPath.FullPath}': {ex.Message}. Raw output: {joined}",
-                projectPath.FullPath,
-                ex);
+            error = new ProjectMetadataError(message, projectPath.FullPath, ex);
             return false;
         }
 
         using (document)
         {
-            if (!document.RootElement.TryGetProperty("Properties", out var propertiesElement) ||
-                propertiesElement.ValueKind != JsonValueKind.Object)
+            if (!document.RootElement.TryGetProperty("Properties", out var propertiesElement) || propertiesElement.ValueKind != JsonValueKind.Object)
             {
+                var message = $"dotnet msbuild -getProperty output for '{projectPath.FullPath}' is missing the 'Properties' object. Raw output: {joined}";
+
                 properties = [];
-                error = new ProjectMetadataError(
-                    $"dotnet msbuild -getProperty output for '{projectPath.FullPath}' is missing the 'Properties' object. Raw output: {joined}",
-                    projectPath.FullPath);
+                error = new ProjectMetadataError(message, projectPath.FullPath);
                 return false;
             }
 

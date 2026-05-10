@@ -85,7 +85,7 @@ public sealed class PackageFamilyPackerTests
             .Returns(Task.CompletedTask);
 
         var projectMetadataReader = Substitute.For<IProjectMetadataReader>();
-        projectMetadataReader.ReadAsync(Arg.Any<FilePath>(), Arg.Any<CancellationToken>())
+        projectMetadataReader.Read(Arg.Any<FilePath>())
             .Returns(Result<ProjectMetadata, ProjectMetadataError>.Success(
                 new ProjectMetadata(["net10.0"], "Authors", "LICENSE", "icon.png")));
 

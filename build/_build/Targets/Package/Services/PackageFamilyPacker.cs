@@ -93,13 +93,11 @@ public sealed class PackageFamilyPacker
         var artifacts = CreateArtifacts(family, version);
         await _dependencyRangeNormalizer.NormalizeAsync(family, artifacts.ManagedPackage, version, ct);
 
-        var metadataResult = await _projectMetadataReader.ReadAsync(managedProjectPath, ct);
+        var metadataResult = _projectMetadataReader.Read(managedProjectPath);
         if (metadataResult.IsFailure)
         {
-            // Reporter logs detail; CakeException carries an anchor to point operators at the log.
             _reporter.ReportProjectMetadataError(family, metadataResult.Error);
-            throw new CakeException(
-                $"Project metadata resolution failed for family '{family.Name}'. See log.");
+            throw new CakeException($"Project metadata resolution failed for family '{family.Name}'. See log.");
         }
 
         var report = await _packageOutputValidator.ValidateAsync(

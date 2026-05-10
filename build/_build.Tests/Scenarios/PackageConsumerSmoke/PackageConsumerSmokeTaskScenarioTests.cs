@@ -160,7 +160,7 @@ public sealed class PackageConsumerSmokeTaskScenarioTests
     private static TargetTestHostV2<PackageConsumerSmokeTask> CreateHost(FakeCakeWorldV2 world)
     {
         var metadataReader = Substitute.For<IProjectMetadataReader>();
-        metadataReader.ReadAsync(Arg.Any<FilePath>(), Arg.Any<CancellationToken>())
+        metadataReader.Read(Arg.Any<FilePath>())
             .Returns(Result<ProjectMetadata, ProjectMetadataError>.Success(
                 new ProjectMetadata(["net10.0"], "Authors", "LICENSE", "icon.png")));
 

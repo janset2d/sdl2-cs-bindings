@@ -10,6 +10,11 @@ using Cake.Core.IO;
 
 namespace Build.Targets.Harvest.Services;
 
+public interface IArtifactDeployer
+{
+    Task<Result<DeploymentStatistics, CopierError>> DeployArtifactsAsync(DeploymentPlan plan, CancellationToken ct = default);
+}
+
 public sealed class ArtifactDeployer(ICakeContext ctx) : IArtifactDeployer
 {
     private readonly ICakeContext _ctx = ctx ?? throw new ArgumentNullException(nameof(ctx));

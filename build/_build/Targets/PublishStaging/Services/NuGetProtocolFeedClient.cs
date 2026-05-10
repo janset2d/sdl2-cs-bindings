@@ -10,6 +10,15 @@ using NuGet.Versioning;
 
 namespace Build.Targets.PublishStaging.Services;
 
+public interface INuGetFeedClient
+{
+    Task<NuGetVersion?> GetLatestVersionAsync(string feedUrl, string authToken, string packageId, bool includePrerelease, CancellationToken ct = default);
+
+    Task<FilePath> DownloadAsync(string feedUrl, string authToken, string packageId, NuGetVersion version, DirectoryPath targetDir, CancellationToken ct = default);
+
+    Task PushAsync(string feedUrl, string authToken, FilePath nupkgPath, CancellationToken ct = default);
+}
+
 public sealed class NuGetProtocolFeedClient(ICakeContext cakeContext, ICakeLog log) : INuGetFeedClient
 {
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
@@ -68,7 +77,7 @@ public sealed class NuGetProtocolFeedClient(ICakeContext cakeContext, ICakeLog l
 
         using var cache = new SourceCacheContext { NoCache = true };
 
-        var fileName = string.Concat(packageId, ".", version.ToNormalizedString(), ".nupkg");
+        var fileName = $"{packageId}.{version.ToNormalizedString()}.nupkg";
         var targetPath = targetDir.CombineWithFilePath(fileName);
 
         _cakeContext.EnsureDirectoryExists(targetDir);

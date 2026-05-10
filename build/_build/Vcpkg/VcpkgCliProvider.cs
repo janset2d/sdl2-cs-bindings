@@ -13,6 +13,11 @@ using Cake.Core.IO;
 
 namespace Build.Vcpkg;
 
+public interface IPackageInfoProvider
+{
+    Task<Result<PackageInfo, PackageInfoError>> GetPackageInfoAsync(string packageName, string triplet, CancellationToken ct = default);
+}
+
 public sealed class VcpkgCliProvider : IPackageInfoProvider
 {
     private readonly ICakeContext _context;

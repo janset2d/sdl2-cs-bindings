@@ -212,7 +212,7 @@ public sealed class PackageTaskScenarioTests
             .Returns(Result<Build.Results.Unit, DotNetPackError>.Success(Build.Results.Unit.Value));
 
         var metadataReader = Substitute.For<IProjectMetadataReader>();
-        metadataReader.ReadAsync(Arg.Any<FilePath>(), Arg.Any<CancellationToken>())
+        metadataReader.Read(Arg.Any<FilePath>())
             .Returns(Result<ProjectMetadata, ProjectMetadataError>.Success(
                 new ProjectMetadata(["net10.0"], "Authors", "LICENSE", "icon.png")));
 

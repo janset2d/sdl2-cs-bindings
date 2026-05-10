@@ -7,12 +7,24 @@ using Cake.Core.IO;
 
 namespace Build.Repositories;
 
+/// <summary>
+/// File-backed repository for the repository-root <c>vcpkg.json</c> manifest. Loads the
+/// canonical file via <see cref="Cake.Core.ICakeContext.FileSystem"/>, deserializes through
+/// the project's central JSON surface, and surfaces missing-file or invalid-JSON failures as
+/// <see cref="Cake.Core.CakeException"/> with operator-friendly messages.
+/// </summary>
+public interface IVcpkgManifestRepository
+{
+    VcpkgManifest Load();
+}
+
 public sealed class VcpkgManifestRepository(ICakeContext context, FilePath vcpkgManifestPath)
     : IVcpkgManifestRepository
 {
     private readonly ICakeContext _context = context ?? throw new ArgumentNullException(nameof(context));
     private readonly FilePath _vcpkgManifestPath = vcpkgManifestPath ?? throw new ArgumentNullException(nameof(vcpkgManifestPath));
 
+    /// <inheritdoc />
     public VcpkgManifest Load()
     {
         if (!_context.FileExists(_vcpkgManifestPath))

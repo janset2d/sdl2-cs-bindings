@@ -6,14 +6,16 @@ using Cake.Core.IO;
 
 namespace Build.Repositories;
 
-public sealed class VersionFileRepository : IVersionFileRepository
+public interface IVersionFileRepository
 {
-    private readonly ICakeContext _context;
+    PackageFamilyVersionSet Load(FilePath path);
 
-    public VersionFileRepository(ICakeContext context)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-    }
+    Task SaveAsync(FilePath path, PackageFamilyVersionSet versions);
+}
+
+public sealed class VersionFileRepository(ICakeContext context) : IVersionFileRepository
+{
+    private readonly ICakeContext _context = context ?? throw new ArgumentNullException(nameof(context));
 
     public PackageFamilyVersionSet Load(FilePath path)
     {

@@ -17,6 +17,12 @@ namespace Build.Validation.Packaging;
 /// catches manifest typos (wrong suffix) and missing overlay drops (declared triplet has no
 /// backing <c>.cmake</c> file).
 /// </remarks>
+public interface IHybridStaticOverlayValidator
+{
+    ValidationReport Validate(IImmutableList<RuntimeInfo> runtimes);
+}
+
+/// <inheritdoc />
 public sealed class HybridStaticOverlayValidator(ICakeContext cakeContext, IPathService pathService) : IHybridStaticOverlayValidator
 {
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));

@@ -6,13 +6,18 @@ using Cake.Core.IO;
 namespace Build.Validation.Packaging;
 
 /// <summary>
-/// Pre-flight validator for the PackageConsumerSmoke target. Asserts the smoke csproj,
-/// the compile-sanity csproj, and the local feed directory all exist before the task
-/// invokes <c>dotnet build</c> / <c>dotnet test</c>. Errors carry guardrail-style codes
-/// (<c>PCSP-01</c>..<c>03</c>) that reporters and logs surface alongside the message.
+/// Validates the prerequisites for the PackageConsumerSmoke target before any dotnet
+/// invocation: smoke csproj exists, compile-sanity csproj exists, local feed directory
+/// exists. Returns a <see cref="ValidationReport"/> so the task can translate
+/// errors at the boundary; collaborators below the task should not throw.
 /// </summary>
-public sealed class PackageConsumerSmokePreconditionsValidator(ICakeContext cakeContext)
-    : IPackageConsumerSmokePreconditionsValidator
+public interface IPackageConsumerSmokePreconditionsValidator
+{
+    ValidationReport Validate(FilePath smokeCsproj, FilePath compileSanityCsproj, DirectoryPath feedPath);
+}
+
+/// <inheritdoc />
+public sealed class PackageConsumerSmokePreconditionsValidator(ICakeContext cakeContext) : IPackageConsumerSmokePreconditionsValidator
 {
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
 
@@ -29,7 +34,8 @@ public sealed class PackageConsumerSmokePreconditionsValidator(ICakeContext cake
             checks.Add(new ValidationCheck(
                 Name: "Smoke project exists",
                 Severity: ValidationSeverity.Error,
-                Message: $"PackageConsumerSmoke precondition failed: smoke project '{smokeCsproj.FullPath}' is missing. Sync the repository checkout before running the consumer smoke stage.",
+                Message:
+                $"PackageConsumerSmoke precondition failed: smoke project '{smokeCsproj.FullPath}' is missing. Sync the repository checkout before running the consumer smoke stage.",
                 Code: "PCSP-01"));
         }
 
@@ -38,7 +44,8 @@ public sealed class PackageConsumerSmokePreconditionsValidator(ICakeContext cake
             checks.Add(new ValidationCheck(
                 Name: "Compile-sanity project exists",
                 Severity: ValidationSeverity.Error,
-                Message: $"PackageConsumerSmoke precondition failed: compile-sanity project '{compileSanityCsproj.FullPath}' is missing. Sync the repository checkout before running the consumer smoke stage.",
+                Message:
+                $"PackageConsumerSmoke precondition failed: compile-sanity project '{compileSanityCsproj.FullPath}' is missing. Sync the repository checkout before running the consumer smoke stage.",
                 Code: "PCSP-02"));
         }
 
@@ -47,7 +54,8 @@ public sealed class PackageConsumerSmokePreconditionsValidator(ICakeContext cake
             checks.Add(new ValidationCheck(
                 Name: "Local feed directory exists",
                 Severity: ValidationSeverity.Error,
-                Message: $"PackageConsumerSmoke precondition failed: local feed directory '{feedPath.FullPath}' is missing. Pack the local feed first via '--target Package --versions-file <path>' or '--target Package --explicit-version <family>=<semver>'.",
+                Message:
+                $"PackageConsumerSmoke precondition failed: local feed directory '{feedPath.FullPath}' is missing. Pack the local feed first via '--target Package --versions-file <path>' or '--target Package --explicit-version <family>=<semver>'.",
                 Code: "PCSP-03"));
         }
 

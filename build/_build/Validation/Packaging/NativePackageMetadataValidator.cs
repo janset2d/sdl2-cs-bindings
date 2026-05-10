@@ -10,11 +10,23 @@ using Cake.Core.IO;
 namespace Build.Validation.Packaging;
 
 /// <summary>
-/// Post-pack validator (G55) — opens a .Native nupkg, extracts <c>janset-native-metadata.json</c>,
-/// and asserts the payload matches <see cref="ManifestConfig"/> and the active build invariants.
-/// Returns <see langword="null"/> when the metadata is consistent with the manifest, or a single
+/// Post-pack validator (G55) that opens a .Native nupkg, extracts
+/// <c>janset-native-metadata.json</c>, and asserts the payload matches
+/// <see cref="ManifestConfig"/> and the active build invariants. Returns
+/// <see langword="null"/> when the metadata is consistent with the manifest, or a single
 /// <see cref="ValidationCheck"/> aggregating every drift the validator found.
 /// </summary>
+public interface INativePackageMetadataValidator
+{
+    Task<ValidationCheck?> ValidateAsync(
+        PackageFamilyConfig family,
+        FilePath nativePackagePath,
+        string expectedFamilyVersion,
+        string expectedCommitSha,
+        ManifestConfig manifestConfig);
+}
+
+/// <inheritdoc />
 public sealed class NativePackageMetadataValidator(IFileSystem fileSystem) : INativePackageMetadataValidator
 {
     private readonly IFileSystem _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));

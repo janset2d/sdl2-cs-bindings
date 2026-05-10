@@ -12,6 +12,12 @@ namespace Build.Validation.Versioning;
 /// alignment applies unconditionally — each set entry is an explicit per-family assertion.
 /// Invoked by PreFlightCheck and ResolveVersionsFromExplicit.
 /// </summary>
+public interface IUpstreamVersionAlignmentValidator
+{
+    UpstreamVersionAlignmentValidation Validate(ManifestConfig manifestConfig, PackageFamilyVersionSet versions);
+}
+
+/// <inheritdoc />
 public sealed class UpstreamVersionAlignmentValidator : IUpstreamVersionAlignmentValidator
 {
     public UpstreamVersionAlignmentValidation Validate(ManifestConfig manifestConfig, PackageFamilyVersionSet versions)

@@ -12,10 +12,13 @@ namespace Build.Targets.Package.Services;
 /// packaging invocation (not per family) because the block reflects the manifest state, not
 /// a single family's state.
 /// </summary>
-public sealed class ReadmeMappingTableGenerator(
-    ManifestConfig manifestConfig,
-    IPathService pathService,
-    ICakeContext cakeContext) : IReadmeMappingTableGenerator
+public interface IReadmeMappingTableGenerator
+{
+    Task UpdateAsync(CancellationToken ct = default);
+}
+
+/// <inheritdoc />
+public sealed class ReadmeMappingTableGenerator(ManifestConfig manifestConfig, IPathService pathService, ICakeContext cakeContext) : IReadmeMappingTableGenerator
 {
     private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
     private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
