@@ -8,7 +8,6 @@ using Build.Targets.PackageConsumerSmoke;
 using Build.Targets.PreFlightCheck;
 using Build.Targets.Package;
 using Build.Targets.PublishStaging;
-using Build.Vcpkg;
 using Build.Tests.Fixtures;
 using Build.Validation;
 using Microsoft.Extensions.DependencyInjection;
@@ -57,9 +56,10 @@ public sealed class ServiceCollectionExtensionsSmokeTests
     {
         // HarvestTask injects walker/planner/deployer/preconditions validators registered by
         // AddValidators(), the rid-status repository registered by AddRepositories() per the
-        // repository-cohort rule, and ManifestConfig + IPackageInfoProvider + IRuntimeScanner
-        // from AddTestHostBuildingBlocks. HarvestReporter takes IAnsiConsole — Program.cs binds
-        // the real console; smoke tests bind a substitute so the resolution graph closes.
+        // repository-cohort rule, and ManifestConfig + IRuntimeScanner from AddTestHostBuildingBlocks.
+        // Vcpkg package metadata is read through Cake Vcpkg aliases on ICakeContext.
+        // HarvestReporter takes IAnsiConsole — Program.cs binds the real console; smoke tests bind
+        // a substitute so the resolution graph closes.
         await AssertAllRegisteredTypesResolve(services =>
         {
             services.AddSingleton(Substitute.For<IAnsiConsole>());
@@ -90,15 +90,6 @@ public sealed class ServiceCollectionExtensionsSmokeTests
             services.AddSingleton(Substitute.For<IAnsiConsole>());
             services.AddConsolidateHarvest();
         });
-    }
-
-    [Test]
-    public async Task AddVcpkg_Should_Register_All_Vcpkg_Types()
-    {
-        // Vcpkg root concept exposes IPackageInfoProvider only after the P10 absorb (S16);
-        // VcpkgManifestRepository in Build.Repositories owns the manifest-load surface.
-        // VcpkgCliProvider depends on IPathService + ICakeContext + ICakeLog (host blocks).
-        await AssertAllRegisteredTypesResolve(services => services.AddVcpkg());
     }
 
     [Test]

@@ -1,6 +1,5 @@
 using Build.Host;
 using Build.Runtime;
-using Build.Tools;
 using Build.Tools.Vcpkg;
 using Build.Tools.Vcpkg.Settings;
 using Cake.Common.IO;
@@ -14,12 +13,10 @@ namespace Build.Targets.EnsureVcpkgDependencies;
 [TaskName("EnsureVcpkgDependencies")]
 [TaskDescription("Bootstraps vcpkg if needed and installs manifest dependencies for current runtime triplet")]
 public sealed class EnsureVcpkgDependenciesTask(
-    VcpkgBootstrapTool vcpkgBootstrapTool,
     IRuntimeProfile runtimeProfile,
     ICakeLog log)
     : FrostingTask<BuildContext>
 {
-    private readonly VcpkgBootstrapTool _vcpkgBootstrapTool = vcpkgBootstrapTool ?? throw new ArgumentNullException(nameof(vcpkgBootstrapTool));
     private readonly IRuntimeProfile _runtimeProfile = runtimeProfile ?? throw new ArgumentNullException(nameof(runtimeProfile));
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
 
@@ -43,8 +40,7 @@ public sealed class EnsureVcpkgDependenciesTask(
             OverlayPorts = new List<DirectoryPath> { context.Paths.VcpkgOverlayPortsDir },
         };
 
-        var installTool = new VcpkgInstallTool(context);
-        installTool.Install(installSettings);
+        context.VcpkgInstall(installSettings);
     }
 
     private void EnsureVcpkgBootstrapped(BuildContext context)
@@ -68,9 +64,11 @@ public sealed class EnsureVcpkgDependenciesTask(
             throw new CakeException($"Cannot bootstrap vcpkg: '{context.Paths.VcpkgBootstrapShellScript.FullPath}' does not exist.");
         }
 
-        _vcpkgBootstrapTool.Bootstrap(
-            context.Paths.VcpkgRoot,
-            context.Paths.VcpkgBootstrapBatchScript,
-            context.Paths.VcpkgBootstrapShellScript);
+        context.VcpkgBootstrap(new VcpkgBootstrapSettings
+        {
+            VcpkgRoot = context.Paths.VcpkgRoot,
+            WindowsScript = context.Paths.VcpkgBootstrapBatchScript,
+            UnixScript = context.Paths.VcpkgBootstrapShellScript,
+        });
     }
 }

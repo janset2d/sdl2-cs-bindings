@@ -7,10 +7,12 @@
 
 using Build.Harvesting;
 using Build.DependencyAnalysis;
+using Build.Host.Paths;
 using Build.Manifest;
 using Build.Results;
 using Build.Runtime;
-using Build.Vcpkg;
+using Build.Tools.Vcpkg;
+using Build.Tools.Vcpkg.Settings;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;
@@ -23,13 +25,13 @@ public interface IBinaryClosureWalker
     Task<Result<BinaryClosure, ClosureError>> BuildClosureAsync(LibraryManifest manifest, CancellationToken ct = default);
 }
 
-public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoProvider pkg, IRuntimeProfile profile, ICakeContext ctx) : IBinaryClosureWalker
+public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IRuntimeProfile profile, ICakeContext ctx, IPathService pathService) : IBinaryClosureWalker
 {
     private readonly IRuntimeScanner _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
-    private readonly IPackageInfoProvider _pkg = pkg ?? throw new ArgumentNullException(nameof(pkg));
     private readonly IRuntimeProfile _profile = profile ?? throw new ArgumentNullException(nameof(profile));
     private readonly ICakeContext _ctx = ctx ?? throw new ArgumentNullException(nameof(ctx));
     private readonly ICakeLog _log = ctx.Log;
+    private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
 
     public async Task<Result<BinaryClosure, ClosureError>> BuildClosureAsync(LibraryManifest manifest, CancellationToken ct = default)
     {
@@ -37,7 +39,7 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
         {
             ArgumentNullException.ThrowIfNull(manifest);
 
-            var rootPkgInfoResult = await _pkg.GetPackageInfoAsync(manifest.VcpkgName, _profile.Triplet, ct).ConfigureAwait(false);
+            var rootPkgInfoResult = await Task.FromResult(GetPackageInfo(manifest.VcpkgName, ct)).ConfigureAwait(false);
             if (rootPkgInfoResult.IsFailure)
             {
                 return Result<BinaryClosure, ClosureError>.Failure(new ClosureNotFound($"vcpkg info for package {manifest.VcpkgName} not found."));
@@ -70,7 +72,7 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
 
                 ct.ThrowIfCancellationRequested();
 
-                var ownerPkgInfoResult = await _pkg.GetPackageInfoAsync(ownerPackage, _profile.Triplet, ct).ConfigureAwait(false);
+                var ownerPkgInfoResult = await Task.FromResult(GetPackageInfo(ownerPackage, ct)).ConfigureAwait(false);
                 if (ownerPkgInfoResult.IsFailure)
                 {
                     _log.Warning("Package info not found for dependency {0}, continuing.", ownerPackage);
@@ -141,7 +143,7 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
         }
     }
 
-    private HashSet<FilePath> ResolvePrimaryBinaries(PackageInfo pkgInfo, LibraryManifest manifest)
+    private HashSet<FilePath> ResolvePrimaryBinaries(VcpkgPackageInfo pkgInfo, LibraryManifest manifest)
     {
         var platformBinaries = manifest.PrimaryBinaries
             .FirstOrDefault(pb => pb.Os.Equals(_profile.Family.ToString(), StringComparison.OrdinalIgnoreCase));
@@ -238,5 +240,19 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IPackageInfoPro
                                   && !string.Equals(f.GetDirectory().GetParent().GetDirectoryName(), "debug", StringComparison.Ordinal),
             _ => false,
         };
+    }
+
+    private Result<VcpkgPackageInfo, VcpkgPackageInfoError> GetPackageInfo(string packageName, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        return _ctx.VcpkgPackageInfo(
+            packageName,
+            _profile.Triplet,
+            _pathService.GetVcpkgInstalledDir,
+            new VcpkgPackageInfoSettings(_pathService.VcpkgRoot)
+            {
+                Installed = true,
+                JsonOutput = true,
+            });
     }
 }

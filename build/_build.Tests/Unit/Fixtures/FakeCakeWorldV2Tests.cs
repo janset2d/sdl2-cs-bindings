@@ -225,4 +225,76 @@ public sealed class FakeCakeWorldV2Tests
 
         await Assert.That(result.FullPath).IsEqualTo("/dev/default");
     }
+
+    [Test]
+    public async Task Process_Should_Match_Exact_Command_And_Arguments_When_Configured()
+    {
+        var world = FakeCakeWorldV2.Create()
+            .WithProcessResult("vcpkg.exe", "x-package-info \"sdl2-image:x64-windows-hybrid\" --x-installed --x-json", exitCode: 0, stdOut: "image")
+            .WithProcessResult("vcpkg.exe", "x-package-info \"sdl2:x64-windows-hybrid\" --x-installed --x-json", exitCode: 0, stdOut: "core");
+
+        var image = world.CakeContext.ProcessRunner.Start(
+            new FilePath("vcpkg.exe"),
+            new ProcessSettings { Arguments = "x-package-info \"sdl2-image:x64-windows-hybrid\" --x-installed --x-json" });
+        var core = world.CakeContext.ProcessRunner.Start(
+            new FilePath("vcpkg.exe"),
+            new ProcessSettings { Arguments = "x-package-info \"sdl2:x64-windows-hybrid\" --x-installed --x-json" });
+
+        await Assert.That(image.GetStandardOutput().Single()).IsEqualTo("image");
+        await Assert.That(core.GetStandardOutput().Single()).IsEqualTo("core");
+    }
+
+    [Test]
+    public async Task Process_Should_Prefer_Exact_Arguments_Over_Command_Only_Result()
+    {
+        var world = FakeCakeWorldV2.Create()
+            .WithProcessResult("vcpkg.exe", exitCode: 0, stdOut: "fallback")
+            .WithProcessResult("vcpkg.exe", "x-package-info \"sdl2:x64-windows-hybrid\" --x-installed --x-json", exitCode: 0, stdOut: "exact");
+
+        var process = world.CakeContext.ProcessRunner.Start(
+            new FilePath("vcpkg.exe"),
+            new ProcessSettings { Arguments = "x-package-info \"sdl2:x64-windows-hybrid\" --x-installed --x-json" });
+
+        await Assert.That(process.GetStandardOutput().Single()).IsEqualTo("exact");
+    }
+
+    [Test]
+    public async Task Process_Should_Match_Exact_Arguments_When_Command_Casing_Differs()
+    {
+        var world = FakeCakeWorldV2.Create()
+            .WithProcessResult("vcpkg.exe", exitCode: 0, stdOut: "fallback")
+            .WithProcessResult("VCPKG.EXE", "x-package-info \"sdl2:x64-windows-hybrid\" --x-installed --x-json", exitCode: 0, stdOut: "exact");
+
+        var process = world.CakeContext.ProcessRunner.Start(
+            new FilePath("vcpkg.exe"),
+            new ProcessSettings { Arguments = "x-package-info \"sdl2:x64-windows-hybrid\" --x-installed --x-json" });
+
+        await Assert.That(process.GetStandardOutput().Single()).IsEqualTo("exact");
+    }
+
+    [Test]
+    public async Task Process_Should_Fall_Back_To_Command_Only_Result_When_Exact_Arguments_Differ_By_Case()
+    {
+        var world = FakeCakeWorldV2.Create()
+            .WithProcessResult("vcpkg.exe", exitCode: 0, stdOut: "fallback")
+            .WithProcessResult("vcpkg.exe", "x-package-info \"SDL2:X64-WINDOWS-HYBRID\" --X-INSTALLED --X-JSON", exitCode: 0, stdOut: "exact");
+
+        var process = world.CakeContext.ProcessRunner.Start(
+            new FilePath("vcpkg.exe"),
+            new ProcessSettings { Arguments = "x-package-info \"sdl2:x64-windows-hybrid\" --x-installed --x-json" });
+
+        await Assert.That(process.GetStandardOutput().Single()).IsEqualTo("fallback");
+    }
+
+    [Test]
+    public async Task WithProcessResult_Should_Throw_ArgumentException_When_Command_Is_Whitespace()
+    {
+        var world = FakeCakeWorldV2.Create();
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+        {
+            world.WithProcessResult(" ", exitCode: 0, stdOut: "");
+            return Task.CompletedTask;
+        });
+    }
 }

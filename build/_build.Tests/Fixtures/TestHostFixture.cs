@@ -6,8 +6,6 @@ using Build.Targets.PublishStaging.Services;
 using Build.Manifest;
 using Build.Runtime;
 using Build.Targets.NativeSmoke.Services;
-using Build.Tools;
-using Build.Vcpkg;
 using Build.Targets.Package.Services;
 using Cake.Core;
 using Cake.Core.Diagnostics;
@@ -21,8 +19,8 @@ namespace Build.Tests.Fixtures;
 /// Shared DI seam for per-feature <c>ServiceCollectionExtensions</c> smoke tests
 /// (phase-x §10.6 + §14.3 sub-step 13.7). Registers every Cake fake, Host singleton,
 /// Tool / Integration substitute that any feature transitively consumes — production
-/// code path under <c>Program.cs ConfigureBuildServices</c> minus the per-feature
-/// <c>AddXFeature()</c> calls. Tests then add a single feature on top and assert
+/// code path under <c>Program.cs ConfigureBuildServices</c> minus the per-target
+/// <c>AddX()</c> calls. Tests then add a single target on top and assert
 /// the resulting <see cref="IServiceProvider"/> resolves every registered descriptor
 /// without throwing.
 /// </summary>
@@ -34,13 +32,11 @@ namespace Build.Tests.Fixtures;
 /// </para>
 /// <para>
 /// Tools and target-local services are NSubstitute-backed for interface registrations.
-/// <see cref="VcpkgBootstrapTool"/> is sealed and is registered as a concrete singleton —
-/// its constructor only requires <see cref="ICakeContext"/>, which the fixture provides.
-/// Production registration lives in
-/// <see cref="Build.Tools.ServiceCollectionExtensions.AddToolWrappers"/> after the P10 redistribution
-/// (S16): scanners moved to <c>Build.DependencyAnalysis</c>, NuGet client to
-/// <c>Targets/PublishStaging/Services/</c>, .NET runtime env to <c>Targets/PackageConsumerSmoke/Services/</c>,
-/// and project metadata reader to <c>Build.Packaging</c>.
+/// Vcpkg command execution is exercised through Cake tool aliases and fake process
+/// results instead of DI-registered command providers. Scanners live in
+/// <c>Build.DependencyAnalysis</c>, NuGet client in <c>Targets/PublishStaging/Services/</c>,
+/// .NET runtime env in <c>Targets/PackageConsumerSmoke/Services/</c>, and project metadata
+/// reader in <c>Build.Packaging</c>.
 /// </para>
 /// </remarks>
 public static class TestHostFixture
@@ -77,16 +73,15 @@ public static class TestHostFixture
         services.AddSingleton(new RuntimeConfig { Runtimes = manifest.Runtimes });
         services.AddSingleton(manifest.SystemExclusions);
 
-        // Tools / Integrations — NSubstitute fakes for interfaces, concrete for the sealed
-        // VcpkgBootstrapTool wrapper.
-        services.AddSingleton(Substitute.For<IPackageInfoProvider>());
+        // Tools / integrations that remain interface-backed in target collaborators.
+        // Vcpkg command execution is exercised through Cake tool aliases and FakeCakeWorldV2
+        // process results instead of a DI-registered provider.
         services.AddSingleton(Substitute.For<IProjectMetadataReader>());
         services.AddSingleton(Substitute.For<IDotNetPackInvoker>());
         services.AddSingleton(Substitute.For<IDotNetRuntimeEnvironment>());
         services.AddSingleton(Substitute.For<INuGetFeedClient>());
         services.AddSingleton(Substitute.For<IMsvcDevEnvironment>());
         services.AddSingleton(Substitute.For<IRuntimeScanner>());
-        services.AddSingleton<VcpkgBootstrapTool>();
 
         return services;
     }

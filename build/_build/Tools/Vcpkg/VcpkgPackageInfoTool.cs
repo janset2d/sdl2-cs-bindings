@@ -13,11 +13,11 @@ public sealed class VcpkgPackageInfoTool(ICakeContext cakeContext) : VcpkgTool<V
     private readonly ICakeLog _log = cakeContext.Log;
 
     /// <summary>
-    /// Executes the 'vcpkg x-package-info' command and returns the output.
+    /// Executes the 'vcpkg x-package-info' command and returns raw stdout.
     /// </summary>
     /// <param name="settings">The settings.</param>
     /// <param name="package">Package name to get info for.</param>
-    public string? GetPackageInfo(VcpkgPackageInfoSettings settings, string package)
+    public string? GetPackageInfoJson(VcpkgPackageInfoSettings settings, string package)
     {
         ArgumentNullException.ThrowIfNull(settings);
         if (string.IsNullOrWhiteSpace(package))

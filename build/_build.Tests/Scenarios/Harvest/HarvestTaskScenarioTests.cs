@@ -4,7 +4,6 @@ using Build.DependencyAnalysis;
 using Build.Manifest;
 using Build.Repositories;
 using Build.Results;
-using Build.Vcpkg;
 using Build.Targets.Harvest;
 using Build.Targets.Harvest.Models;
 using Build.Targets.Harvest.Services;
@@ -294,9 +293,9 @@ public sealed class HarvestTaskScenarioTests
 
         return host.WithServices(services =>
         {
-            // Stub external integrations (vcpkg CLI + dumpbin/ldd/otool scanner) so scenarios
-            // never invoke real tools against the fake filesystem.
-            services.AddSingleton(Substitute.For<IPackageInfoProvider>());
+            // Stub external scanner integration so scenarios never invoke real tools against
+            // the fake filesystem. Vcpkg package metadata is hidden behind walker/planner
+            // overrides in these task-level scenarios.
             services.AddSingleton(Substitute.For<IRuntimeScanner>());
 
             services.AddRepositories();

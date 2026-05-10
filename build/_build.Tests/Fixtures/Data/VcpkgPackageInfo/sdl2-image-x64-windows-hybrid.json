@@ -1,0 +1,17 @@
+{
+  "results": {
+    "sdl2-image:x64-windows-hybrid": {
+      "version-string": "2.8.0",
+      "port-version": 0,
+      "triplet": "x64-windows-hybrid",
+      "dependencies": [
+        "sdl2:x64-windows-hybrid",
+        "libpng:x64-windows-hybrid"
+      ],
+      "owns": [
+        "x64-windows-hybrid/bin/SDL2_image.dll",
+        "x64-windows-hybrid/share/sdl2-image/copyright"
+      ]
+    }
+  }
+}

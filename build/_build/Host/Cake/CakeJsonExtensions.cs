@@ -12,8 +12,8 @@ public static class CakeJsonExtensions
     /// of emitted files; otherwise stays at System.Text.Json defaults. On-disk shapes (snake_case
     /// for harvest models, kebab-case for vcpkg-installed payloads, etc.) are encoded on the
     /// type itself via <c>[JsonPropertyName]</c> attributes — no naming policy is configured here
-    /// because it would either be redundant (when attributes match) or actively wrong (when they
-    /// don't, e.g. <c>VcpkgInstalledPackageOutput</c>'s kebab-case fields).
+    /// because it would either be redundant (when attributes match) or actively wrong for
+    /// external CLI payloads that encode their own kebab-case field names.
     /// </summary>
     public static readonly JsonSerializerOptions DefaultJsonOptions = new()
     {

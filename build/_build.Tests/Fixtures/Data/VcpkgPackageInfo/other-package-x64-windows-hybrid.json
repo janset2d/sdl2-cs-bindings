@@ -1,0 +1,12 @@
+{
+  "results": {
+    "other-package:x64-windows-hybrid": {
+      "version-string": "1.0.0",
+      "port-version": 0,
+      "triplet": "x64-windows-hybrid",
+      "owns": [
+        "x64-windows-hybrid/bin/other.dll"
+      ]
+    }
+  }
+}

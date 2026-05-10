@@ -1,37 +1,32 @@
+using Build.Tools.Vcpkg.Settings;
 using Cake.Common;
 using Cake.Core;
 using Cake.Core.IO;
 
-namespace Build.Tools;
+namespace Build.Tools.Vcpkg;
 
-/// <summary>
-/// Adapter for vcpkg bootstrap scripts. Reuses Cake process APIs but centralizes
-/// bootstrap command construction under the Vcpkg integrations module.
-/// </summary>
 public sealed class VcpkgBootstrapTool(ICakeContext cakeContext)
 {
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
 
-    public void Bootstrap(DirectoryPath vcpkgRoot, FilePath windowsScript, FilePath unixScript)
+    public void Bootstrap(VcpkgBootstrapSettings settings)
     {
-        ArgumentNullException.ThrowIfNull(vcpkgRoot);
-        ArgumentNullException.ThrowIfNull(windowsScript);
-        ArgumentNullException.ThrowIfNull(unixScript);
+        ArgumentNullException.ThrowIfNull(settings);
 
-        if (OperatingSystem.IsWindows())
+        if (_cakeContext.Environment.Platform.Family == PlatformFamily.Windows)
         {
             RunBootstrapCommand(
                 fileName: "cmd",
-                arguments: new ProcessArgumentBuilder().Append("/c").AppendQuoted(windowsScript.FullPath),
-                workingDirectory: vcpkgRoot,
+                arguments: new ProcessArgumentBuilder().Append("/c").AppendQuoted(settings.WindowsScript.FullPath),
+                workingDirectory: settings.VcpkgRoot,
                 description: "vcpkg bootstrap (Windows)");
             return;
         }
 
         RunBootstrapCommand(
             fileName: "bash",
-            arguments: new ProcessArgumentBuilder().AppendQuoted(unixScript.FullPath),
-            workingDirectory: vcpkgRoot,
+            arguments: new ProcessArgumentBuilder().AppendQuoted(settings.UnixScript.FullPath),
+            workingDirectory: settings.VcpkgRoot,
             description: "vcpkg bootstrap (Unix)");
     }
 

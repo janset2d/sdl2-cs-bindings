@@ -1,15 +1,15 @@
-using System.Collections.Immutable;
+using Build;
 using Build.DependencyAnalysis;
-using Build.Results;
+using Build.Host.Paths;
 using Build.Runtime;
-using IoPath = System.IO.Path;
 using Build.Targets.Harvest.Services;
 using Build.Tests.Fixtures;
-using Build.Vcpkg;
+using Build.Tests.Fixtures.Seeders;
 using Cake.Core;
 using Cake.Core.IO;
 using Cake.Testing;
 using NSubstitute;
+using IoPath = System.IO.Path;
 
 namespace Build.Tests.Unit.Targets.Harvest.Services;
 
@@ -17,19 +17,20 @@ public sealed class BinaryClosureWalkerTests
 {
     private readonly FakeCakeWorldV2 _world;
     private readonly IRuntimeScanner _mockScanner;
-    private readonly IPackageInfoProvider _mockPkg;
     private readonly RuntimeProfile _profile;
     private readonly ICakeContext _mockCtx;
     private readonly FakeFileSystem _fakeFs;
+    private readonly PathService _pathService;
 
     public BinaryClosureWalkerTests()
     {
         _world = FakeCakeWorldV2.CreateWindows();
         _mockScanner = Substitute.For<IRuntimeScanner>();
-        _mockPkg = Substitute.For<IPackageInfoProvider>();
         _profile = RuntimeProfileFixture.CreateWindows();
         _mockCtx = _world.CakeContext;
         _fakeFs = _world.FileSystem;
+        _pathService = new PathService(_world.RepoRoot, CreateParsedArguments(), _world.Log);
+        _world.WithToolPath("vcpkg.exe", _pathService.VcpkgRoot.CombineWithFilePath("vcpkg.exe"));
     }
 
     [Test]
@@ -37,16 +38,13 @@ public sealed class BinaryClosureWalkerTests
     {
         var manifest = ManifestFixture.CreateTestSatelliteLibrary();
 
-        _mockPkg.GetPackageInfoAsync("sdl2-image", "x64-windows-hybrid", Arg.Any<CancellationToken>())
-            .Returns(CreatePackageInfo("sdl2-image", ["bin/SDL2_image.dll"], ["sdl2:x64-windows-hybrid"]));
-
-        _mockPkg.GetPackageInfoAsync("sdl2", "x64-windows-hybrid", Arg.Any<CancellationToken>())
-            .Returns(CreatePackageInfo("sdl2", ["bin/SDL2.dll"], []));
+        SeedPackageInfo("sdl2-image", ["bin/SDL2_image.dll"], ["sdl2:x64-windows-hybrid"]);
+        SeedPackageInfo("sdl2", ["bin/SDL2.dll"], []);
 
         _mockScanner.ScanAsync(Arg.Any<FilePath>(), Arg.Any<CancellationToken>())
-            .Returns(ImmutableHashSet<FilePath>.Empty);
+            .Returns(new HashSet<FilePath>());
 
-        var walker = new BinaryClosureWalker(_mockScanner, _mockPkg, _profile, _mockCtx);
+        var walker = new BinaryClosureWalker(_mockScanner, _profile, _mockCtx, _pathService);
         var result = await walker.BuildClosureAsync(manifest);
 
         await Assert.That(result.IsSuccess).IsTrue();
@@ -58,28 +56,22 @@ public sealed class BinaryClosureWalkerTests
     {
         var manifest = ManifestFixture.CreateTestSatelliteLibrary();
 
-        // sdl2-image depends on sdl2 and zlib
-        _mockPkg.GetPackageInfoAsync("sdl2-image", "x64-windows-hybrid", Arg.Any<CancellationToken>())
-            .Returns(CreatePackageInfo("sdl2-image", ["bin/SDL2_image.dll"], ["sdl2:x64-windows-hybrid", "zlib:x64-windows-hybrid"]));
-
-        _mockPkg.GetPackageInfoAsync("sdl2", "x64-windows-hybrid", Arg.Any<CancellationToken>())
-            .Returns(CreatePackageInfo("sdl2", ["bin/SDL2.dll"], []));
-
-        _mockPkg.GetPackageInfoAsync("zlib", "x64-windows-hybrid", Arg.Any<CancellationToken>())
-            .Returns(CreatePackageInfo("zlib", ["bin/zlib1.dll"], []));
+        SeedPackageInfo("sdl2-image", ["bin/SDL2_image.dll"], ["sdl2:x64-windows-hybrid", "zlib:x64-windows-hybrid"]);
+        SeedPackageInfo("sdl2", ["bin/SDL2.dll"], []);
+        SeedPackageInfo("zlib", ["bin/zlib1.dll"], []);
 
         _mockScanner.ScanAsync(Arg.Any<FilePath>(), Arg.Any<CancellationToken>())
-            .Returns(ImmutableHashSet<FilePath>.Empty);
+            .Returns(new HashSet<FilePath>());
 
-        var walker = new BinaryClosureWalker(_mockScanner, _mockPkg, _profile, _mockCtx);
+        var walker = new BinaryClosureWalker(_mockScanner, _profile, _mockCtx, _pathService);
         var result = await walker.BuildClosureAsync(manifest);
 
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(result.Value.Packages).Contains("sdl2-image");
         await Assert.That(result.Value.Packages).Contains("sdl2");
         await Assert.That(result.Value.Packages).Contains("zlib");
-        // Verify transitive depth-2 walk actually invoked the provider for the chained dep.
-        await _mockPkg.Received(1).GetPackageInfoAsync("zlib", "x64-windows-hybrid", Arg.Any<CancellationToken>());
+        await Assert.That(_world.ProcessInvocations.Any(invocation =>
+            invocation.Arguments.Contains("zlib:x64-windows-hybrid", StringComparison.Ordinal))).IsTrue();
     }
 
     [Test]
@@ -87,22 +79,19 @@ public sealed class BinaryClosureWalkerTests
     {
         var manifest = ManifestFixture.CreateTestSatelliteLibrary();
 
-        // vcpkg-cmake and vcpkg-cmake-config are internal, should be skipped
-        _mockPkg.GetPackageInfoAsync("sdl2-image", "x64-windows-hybrid", Arg.Any<CancellationToken>())
-            .Returns(CreatePackageInfo("sdl2-image", ["bin/SDL2_image.dll"],
-                ["sdl2:x64-windows-hybrid", "vcpkg-cmake:x64-windows-hybrid", "vcpkg-cmake-config:x64-windows-hybrid"]));
-
-        _mockPkg.GetPackageInfoAsync("sdl2", "x64-windows-hybrid", Arg.Any<CancellationToken>())
-            .Returns(CreatePackageInfo("sdl2", ["bin/SDL2.dll"], []));
+        SeedPackageInfo(
+            "sdl2-image",
+            ["bin/SDL2_image.dll"],
+            ["sdl2:x64-windows-hybrid", "vcpkg-cmake:x64-windows-hybrid", "vcpkg-cmake-config:x64-windows-hybrid"]);
+        SeedPackageInfo("sdl2", ["bin/SDL2.dll"], []);
 
         _mockScanner.ScanAsync(Arg.Any<FilePath>(), Arg.Any<CancellationToken>())
-            .Returns(ImmutableHashSet<FilePath>.Empty);
+            .Returns(new HashSet<FilePath>());
 
-        var walker = new BinaryClosureWalker(_mockScanner, _mockPkg, _profile, _mockCtx);
+        var walker = new BinaryClosureWalker(_mockScanner, _profile, _mockCtx, _pathService);
         var result = await walker.BuildClosureAsync(manifest);
 
         await Assert.That(result.IsSuccess).IsTrue();
-        // vcpkg internal packages should not appear in the processed packages
         await Assert.That(result.Value.Packages).DoesNotContain("vcpkg-cmake");
         await Assert.That(result.Value.Packages).DoesNotContain("vcpkg-cmake-config");
     }
@@ -112,25 +101,22 @@ public sealed class BinaryClosureWalkerTests
     {
         var manifest = ManifestFixture.CreateTestSatelliteLibrary();
 
-        _mockPkg.GetPackageInfoAsync("sdl2-image", "x64-windows-hybrid", Arg.Any<CancellationToken>())
-            .Returns(CreatePackageInfo("sdl2-image", ["bin/SDL2_image.dll"], []));
+        SeedPackageInfo("sdl2-image", ["bin/SDL2_image.dll"], []);
 
-        // Runtime scan discovers system DLLs
         var scanResult = new HashSet<FilePath>
         {
             new("C:/Windows/System32/kernel32.dll"),
             new("C:/Windows/System32/user32.dll"),
-        }.ToImmutableHashSet();
+        };
 
         _mockScanner.ScanAsync(Arg.Any<FilePath>(), Arg.Any<CancellationToken>())
             .Returns(scanResult);
 
-        var walker = new BinaryClosureWalker(_mockScanner, _mockPkg, _profile, _mockCtx);
+        var walker = new BinaryClosureWalker(_mockScanner, _profile, _mockCtx, _pathService);
         var result = await walker.BuildClosureAsync(manifest);
 
         await Assert.That(result.IsSuccess).IsTrue();
 
-        // System files should NOT appear as nodes in the closure
         var nodeFiles = result.Value.Nodes.Select(n => IoPath.GetFileName(n.Path)).ToList();
         await Assert.That(nodeFiles).DoesNotContain("kernel32.dll");
         await Assert.That(nodeFiles).DoesNotContain("user32.dll");
@@ -141,10 +127,9 @@ public sealed class BinaryClosureWalkerTests
     {
         var manifest = ManifestFixture.CreateTestSatelliteLibrary();
 
-        _mockPkg.GetPackageInfoAsync("sdl2-image", "x64-windows-hybrid", Arg.Any<CancellationToken>())
-            .Returns(Result<PackageInfo, PackageInfoError>.Failure(new PackageInfoError("Package not found")));
+        SeedMissingPackageInfo("sdl2-image");
 
-        var walker = new BinaryClosureWalker(_mockScanner, _mockPkg, _profile, _mockCtx);
+        var walker = new BinaryClosureWalker(_mockScanner, _profile, _mockCtx, _pathService);
         var result = await walker.BuildClosureAsync(manifest);
 
         await Assert.That(result.IsFailure).IsTrue();
@@ -155,17 +140,15 @@ public sealed class BinaryClosureWalkerTests
     {
         var manifest = ManifestFixture.CreateTestSatelliteLibrary();
 
-        _mockPkg.GetPackageInfoAsync("sdl2-image", "x64-windows-hybrid", Arg.Any<CancellationToken>())
-            .Returns(CreatePackageInfo("sdl2-image", ["bin/SDL2_image.dll"], []));
+        SeedPackageInfo("sdl2-image", ["bin/SDL2_image.dll"], []);
 
-        // Runtime scan discovers a DLL not in vcpkg metadata
         var runtimeDiscovered = new FilePath("C:/vcpkg_installed/x64-windows-hybrid/bin/extra_dep.dll");
-        var scanResult = new HashSet<FilePath> { runtimeDiscovered }.ToImmutableHashSet();
+        var scanResult = new HashSet<FilePath> { runtimeDiscovered };
 
         _mockScanner.ScanAsync(Arg.Any<FilePath>(), Arg.Any<CancellationToken>())
             .Returns(scanResult);
 
-        var walker = new BinaryClosureWalker(_mockScanner, _mockPkg, _profile, _mockCtx);
+        var walker = new BinaryClosureWalker(_mockScanner, _profile, _mockCtx, _pathService);
         var result = await walker.BuildClosureAsync(manifest);
 
         await Assert.That(result.IsSuccess).IsTrue();
@@ -174,16 +157,33 @@ public sealed class BinaryClosureWalkerTests
         await Assert.That(allPaths).Contains("extra_dep.dll");
     }
 
-    private Result<PackageInfo, PackageInfoError> CreatePackageInfo(string name, string[] ownedFiles, string[] dependencies)
+    private static ParsedArguments CreateParsedArguments() => new(
+        RepoRoot: null,
+        Config: "Release",
+        VcpkgDir: null,
+        VcpkgInstalledDir: null,
+        Library: [],
+        Rid: "win-x64",
+        Dll: [],
+        Suffix: null,
+        Scope: [],
+        ExplicitVersion: [],
+        ExplicitVersions: null,
+        VersionsFile: null);
+
+    private void SeedPackageInfo(string name, string[] ownedFiles, string[] dependencies)
     {
-        var basePath = "C:/vcpkg_installed/x64-windows-hybrid";
-        var files = ownedFiles.Select(f =>
+        var basePath = _pathService.GetVcpkgInstalledDir.Combine("x64-windows-hybrid");
+        foreach (var relativePath in ownedFiles)
         {
-            var filePath = new FilePath($"{basePath}/{f}");
-            _fakeFs.CreateFile(filePath);
-            return filePath;
-        }).ToImmutableList();
-        return Result<PackageInfo, PackageInfoError>.Success(
-            new PackageInfo(name, "x64-windows-hybrid", files.Select(f => f.FullPath).ToImmutableList(), dependencies.ToImmutableList()));
+            _fakeFs.CreateFile(basePath.CombineWithFilePath(relativePath));
+        }
+
+        _world.WithVcpkgPackageInfo(name, "x64-windows-hybrid", ownedFiles, dependencies);
+    }
+
+    private void SeedMissingPackageInfo(string name)
+    {
+        _world.WithMissingVcpkgPackageInfo(name, "x64-windows-hybrid");
     }
 }

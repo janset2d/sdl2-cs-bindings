@@ -9,7 +9,7 @@ namespace Build.Tests.Unit.Tools.Vcpkg;
 public sealed class VcpkgPackageInfoToolTests
 {
     [Test]
-    public async Task GetPackageInfo_Should_Return_Output_And_Include_Expected_Arguments()
+    public async Task GetPackageInfoJson_Should_Return_Output_And_Include_Expected_Arguments()
     {
         var environment = FakeEnvironment.CreateWindowsEnvironment();
         var fileSystem = new FakeFileSystem(environment);
@@ -22,7 +22,7 @@ public sealed class VcpkgPackageInfoToolTests
         var context = new FakeCakeToolContextBuilder(fileSystem, environment)
             .WithProcessCapture(out var capture)
             .WithToolPath(vcpkgExe)
-            .WithStandardOutput(["{\"results\":{}}"])
+            .WithStandardOutput([VcpkgPackageInfoFixture.EmptyResults])
             .Build();
         var tool = new VcpkgPackageInfoTool(context);
 
@@ -34,9 +34,9 @@ public sealed class VcpkgPackageInfoToolTests
             JsonOutput = true,
         };
 
-        var output = tool.GetPackageInfo(settings, "sdl2-image:x64-windows-hybrid");
+        var output = tool.GetPackageInfoJson(settings, "sdl2-image:x64-windows-hybrid");
 
-        await Assert.That(output).IsEqualTo("{\"results\":{}}");
+        await Assert.That(output).IsEqualTo(VcpkgPackageInfoFixture.EmptyResults);
         await Assert.That(capture.Settings).IsNotNull();
 
         var renderedArgs = capture.Settings!.Arguments.Render();
@@ -50,7 +50,7 @@ public sealed class VcpkgPackageInfoToolTests
     }
 
     [Test]
-    public async Task GetPackageInfo_Should_Return_Output_When_Process_Exits_NonZero_But_Has_Stdout()
+    public async Task GetPackageInfoJson_Should_Return_Output_When_Process_Exits_NonZero_But_Has_Stdout()
     {
         var environment = FakeEnvironment.CreateWindowsEnvironment();
         var fileSystem = new FakeFileSystem(environment);
@@ -64,7 +64,7 @@ public sealed class VcpkgPackageInfoToolTests
             .WithProcessCapture(out _)
             .WithToolPath(vcpkgExe)
             .WithExitCode(1)
-            .WithStandardOutput(["{\"results\":{\"sdl2\":{}}}"])
+            .WithStandardOutput([VcpkgPackageInfoFixture.Sdl2MinimalWindows])
             .Build();
         var tool = new VcpkgPackageInfoTool(context);
 
@@ -74,13 +74,13 @@ public sealed class VcpkgPackageInfoToolTests
             Installed = true,
         };
 
-        var output = tool.GetPackageInfo(settings, "sdl2:x64-windows-hybrid");
+        var output = tool.GetPackageInfoJson(settings, "sdl2:x64-windows-hybrid");
 
-        await Assert.That(output).IsEqualTo("{\"results\":{\"sdl2\":{}}}");
+        await Assert.That(output).IsEqualTo(VcpkgPackageInfoFixture.Sdl2MinimalWindows);
     }
 
     [Test]
-    public async Task GetPackageInfo_Should_Return_Null_When_Command_Produces_No_Output()
+    public async Task GetPackageInfoJson_Should_Return_Null_When_Command_Produces_No_Output()
     {
         var environment = FakeEnvironment.CreateWindowsEnvironment();
         var fileSystem = new FakeFileSystem(environment);
@@ -102,7 +102,7 @@ public sealed class VcpkgPackageInfoToolTests
             JsonOutput = true,
         };
 
-        var output = tool.GetPackageInfo(settings, "sdl2:x64-windows-hybrid");
+        var output = tool.GetPackageInfoJson(settings, "sdl2:x64-windows-hybrid");
 
         await Assert.That(output).IsNull();
     }

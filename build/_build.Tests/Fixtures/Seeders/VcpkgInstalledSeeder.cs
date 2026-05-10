@@ -3,8 +3,8 @@ namespace Build.Tests.Fixtures.Seeders;
 /// <summary>
 /// Writes a fake <c>vcpkg_installed/{triplet}/</c> layout: <c>info/*.list</c> package-ownership
 /// records, plus <c>bin/</c> / <c>lib/</c> / <c>share/</c> payload files. Mirrors the real
-/// vcpkg manifest-mode output closely enough for <c>VcpkgCliProvider</c> consumers and the
-/// binary-closure walker to operate against fakes.
+/// vcpkg manifest-mode output closely enough for harvest tests to exercise binary-closure
+/// behavior against fakes.
 /// </summary>
 public sealed class VcpkgInstalledSeeder : IFixtureSeeder
 {

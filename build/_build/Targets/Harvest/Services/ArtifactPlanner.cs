@@ -6,8 +6,9 @@ using Build.Host.Paths;
 using Build.Manifest;
 using Build.Results;
 using Build.Runtime;
-using Build.Vcpkg;
 using Build.Targets.Harvest.Models;
+using Build.Tools.Vcpkg;
+using Build.Tools.Vcpkg.Settings;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
@@ -20,15 +21,14 @@ public interface IArtifactPlanner
 }
 
 public sealed class ArtifactPlanner(
-    IPackageInfoProvider pkg,
     IRuntimeProfile profile,
     IPathService pathService,
     ICakeContext context,
     ManifestConfig manifestConfig) : IArtifactPlanner
 {
-    private readonly IPackageInfoProvider _pkg = pkg ?? throw new ArgumentNullException(nameof(pkg));
     private readonly IRuntimeProfile _profile = profile ?? throw new ArgumentNullException(nameof(profile));
     private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
+    private readonly ICakeContext _context = context ?? throw new ArgumentNullException(nameof(context));
     private readonly ICakeLog _log = (context ?? throw new ArgumentNullException(nameof(context))).Log;
     private readonly string _corePackageName = (manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig))).CoreLibrary.VcpkgName;
 
@@ -87,7 +87,7 @@ public sealed class ArtifactPlanner(
             foreach (var packageName in copiedPackages)
             {
                 ct.ThrowIfCancellationRequested();
-                var infoResult = await _pkg.GetPackageInfoAsync(packageName, _profile.Triplet, ct).ConfigureAwait(false);
+                var infoResult = await Task.FromResult(GetPackageInfo(packageName, ct)).ConfigureAwait(false);
 
                 if (infoResult.IsFailure)
                 {
@@ -211,4 +211,18 @@ public sealed class ArtifactPlanner(
     private static bool IsLicense(FilePath f) =>
         f.Segments.Contains("share", StringComparer.OrdinalIgnoreCase) &&
         f.GetFilename().FullPath.Equals("copyright", StringComparison.OrdinalIgnoreCase);
+
+    private Result<VcpkgPackageInfo, VcpkgPackageInfoError> GetPackageInfo(string packageName, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        return _context.VcpkgPackageInfo(
+            packageName,
+            _profile.Triplet,
+            _pathService.GetVcpkgInstalledDir,
+            new VcpkgPackageInfoSettings(_pathService.VcpkgRoot)
+            {
+                Installed = true,
+                JsonOutput = true,
+            });
+    }
 }

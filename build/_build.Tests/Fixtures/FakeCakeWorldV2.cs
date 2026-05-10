@@ -25,6 +25,7 @@ public sealed record ProcessInvocation(FilePath Command, string Arguments, bool 
 public sealed class FakeCakeWorldV2
 {
     private readonly Dictionary<string, (int ExitCode, string StdOut, string StdErr)> _processResults = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<(string Command, string Arguments), (int ExitCode, string StdOut, string StdErr)> _processResultsByArguments = new(ProcessResultArgumentsComparer.Instance);
     private readonly Dictionary<string, Action<FakeCakeWorldV2>> _processSideEffects = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<ProcessInvocation> _processInvocations = [];
     private FilePath? _toolPath;
@@ -178,7 +179,16 @@ public sealed class FakeCakeWorldV2
 
     public FakeCakeWorldV2 WithProcessResult(string command, int exitCode, string stdOut, string stdErr = "")
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(command);
         _processResults[command] = (exitCode, stdOut, stdErr);
+        return this;
+    }
+
+    public FakeCakeWorldV2 WithProcessResult(string command, string arguments, int exitCode, string stdOut, string stdErr = "")
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(command);
+        ArgumentNullException.ThrowIfNull(arguments);
+        _processResultsByArguments[(command, arguments)] = (exitCode, stdOut, stdErr);
         return this;
     }
 
@@ -425,6 +435,11 @@ public sealed class FakeCakeWorldV2
                     sideEffect(this);
                 }
 
+                if (_processResultsByArguments.TryGetValue((command, arguments), out var exactResult))
+                {
+                    return CreateFakeProcess(exactResult.ExitCode, exactResult.StdOut, exactResult.StdErr);
+                }
+
                 if (_processResults.TryGetValue(command, out var result))
                 {
                     return CreateFakeProcess(result.ExitCode, result.StdOut, result.StdErr);
@@ -494,17 +509,33 @@ public sealed class FakeCakeWorldV2
         process.SetExitCode(exitCode);
 
         var stdOutLines = stdOut.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        if (stdOutLines.Length > 0)
-        {
-            process.SetStandardOutput(stdOutLines);
-        }
+        process.SetStandardOutput(stdOutLines);
 
-        if (!string.IsNullOrWhiteSpace(stdErr))
-        {
-            var stdErrLines = stdErr.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            process.SetStandardError(stdErrLines);
-        }
+        var stdErrLines = stdErr.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        process.SetStandardError(stdErrLines);
 
         return process;
+    }
+
+    private sealed class ProcessResultArgumentsComparer : IEqualityComparer<(string Command, string Arguments)>
+    {
+        public static readonly ProcessResultArgumentsComparer Instance = new();
+
+        private ProcessResultArgumentsComparer()
+        {
+        }
+
+        public bool Equals((string Command, string Arguments) x, (string Command, string Arguments) y)
+        {
+            return StringComparer.OrdinalIgnoreCase.Equals(x.Command, y.Command)
+                && StringComparer.Ordinal.Equals(x.Arguments, y.Arguments);
+        }
+
+        public int GetHashCode((string Command, string Arguments) obj)
+        {
+            return HashCode.Combine(
+                StringComparer.OrdinalIgnoreCase.GetHashCode(obj.Command),
+                StringComparer.Ordinal.GetHashCode(obj.Arguments));
+        }
     }
 }

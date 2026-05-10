@@ -1,33 +1,22 @@
-using System.Collections.Immutable;
-using Build.Host.Paths;
-using Build.Results;
+using Build.Manifest;
 using Build.Runtime;
-using Build.Vcpkg;
 using Build.Targets.Harvest.Models;
 using Build.Targets.Harvest.Services;
 using Build.Tests.Fixtures;
-using Cake.Core;
+using Build.Tests.Fixtures.Seeders;
 using Cake.Core.IO;
-using Cake.Testing;
-using NSubstitute;
 
 namespace Build.Tests.Unit.Targets.Harvest.Services;
 
 public sealed class ArtifactPlannerTests
 {
-    private readonly IPackageInfoProvider _mockPkg;
     private readonly RuntimeProfile _windowsProfile;
     private readonly RuntimeProfile _linuxProfile;
-    private readonly IPathService _mockPathService;
 
     public ArtifactPlannerTests()
     {
-        _mockPkg = Substitute.For<IPackageInfoProvider>();
         _windowsProfile = RuntimeProfileFixture.CreateWindows();
         _linuxProfile = RuntimeProfileFixture.CreateLinux();
-        _mockPathService = Substitute.For<IPathService>();
-        _mockPathService.GetVcpkgInstalledLibDir(Arg.Any<string>())
-            .Returns(new DirectoryPath("/vcpkg_installed/x64-linux-hybrid/lib"));
     }
 
     [Test]
@@ -38,11 +27,11 @@ public sealed class ArtifactPlannerTests
             .AddPrimaryFile("C:/vcpkg/bin/SDL2_image.dll", "sdl2-image")
             .Build();
 
-        var ctx = CreateWindowsCakeContext();
+        var world = CreateWindowsWorld();
         var manifestConfig = ManifestFixture.CreateTestManifestConfig();
-        var planner = new ArtifactPlanner(_mockPkg, _windowsProfile, _mockPathService, ctx, manifestConfig);
+        var planner = CreatePlanner(world, _windowsProfile, manifestConfig);
 
-        SetupEmptyLicenseResponse();
+        SeedPackageInfo(world, "sdl2-image", "x64-windows-hybrid", [], []);
 
         var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"));
 
@@ -62,11 +51,11 @@ public sealed class ArtifactPlannerTests
             .AddPrimaryFile("/vcpkg/lib/libSDL2_image.so", "sdl2-image")
             .Build();
 
-        var ctx = CreateLinuxCakeContext();
+        var world = CreateLinuxWorld();
         var manifestConfig = ManifestFixture.CreateTestManifestConfig();
-        var planner = new ArtifactPlanner(_mockPkg, _linuxProfile, _mockPathService, ctx, manifestConfig);
+        var planner = CreatePlanner(world, _linuxProfile, manifestConfig);
 
-        SetupEmptyLicenseResponse();
+        SeedPackageInfo(world, "sdl2-image", "x64-linux-hybrid", [], []);
 
         var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"));
 
@@ -83,25 +72,24 @@ public sealed class ArtifactPlannerTests
     {
         var manifest = ManifestFixture.CreateTestSatelliteLibrary();
 
-        // Closure has both satellite and core library binaries
         var closure = new BinaryClosureBuilder()
             .AddPrimaryFile("C:/vcpkg/bin/SDL2_image.dll", "sdl2-image")
             .AddRuntimeDependency("C:/vcpkg/bin/SDL2.dll", "sdl2", "sdl2-image")
             .AddRuntimeDependency("C:/vcpkg/bin/zlib1.dll", "zlib", "sdl2-image")
             .Build();
 
-        var ctx = CreateWindowsCakeContext();
+        var world = CreateWindowsWorld();
         var manifestConfig = ManifestFixture.CreateTestManifestConfig();
-        var planner = new ArtifactPlanner(_mockPkg, _windowsProfile, _mockPathService, ctx, manifestConfig);
+        var planner = CreatePlanner(world, _windowsProfile, manifestConfig);
 
-        SetupEmptyLicenseResponse();
+        SeedPackageInfo(world, "sdl2-image", "x64-windows-hybrid", [], []);
+        SeedPackageInfo(world, "zlib", "x64-windows-hybrid", [], []);
 
         var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"));
 
         await Assert.That(result.IsSuccess).IsTrue();
 
         var plan = result.Value;
-        // Core library (sdl2) deps should be filtered out for satellite packages
         var deployedFiles = plan.Actions.OfType<FileCopyAction>()
             .Where(a => a.Origin != ArtifactOrigin.License)
             .Select(a => a.SourcePath.GetFilename().FullPath)
@@ -120,11 +108,11 @@ public sealed class ArtifactPlannerTests
             .AddPrimaryFile("C:/vcpkg/bin/SDL2.dll", "sdl2")
             .Build();
 
-        var ctx = CreateWindowsCakeContext();
+        var world = CreateWindowsWorld();
         var manifestConfig = ManifestFixture.CreateTestManifestConfig();
-        var planner = new ArtifactPlanner(_mockPkg, _windowsProfile, _mockPathService, ctx, manifestConfig);
+        var planner = CreatePlanner(world, _windowsProfile, manifestConfig);
 
-        SetupEmptyLicenseResponse();
+        SeedPackageInfo(world, "sdl2", "x64-windows-hybrid", [], []);
 
         var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"));
 
@@ -149,11 +137,12 @@ public sealed class ArtifactPlannerTests
             .AddRuntimeDependency("C:/vcpkg/bin/zlib1.dll", "zlib", "sdl2-image")
             .Build();
 
-        var ctx = CreateWindowsCakeContext();
+        var world = CreateWindowsWorld();
         var manifestConfig = ManifestFixture.CreateTestManifestConfig();
-        var planner = new ArtifactPlanner(_mockPkg, _windowsProfile, _mockPathService, ctx, manifestConfig);
+        var planner = CreatePlanner(world, _windowsProfile, manifestConfig);
 
-        SetupEmptyLicenseResponse();
+        SeedPackageInfo(world, "sdl2-image", "x64-windows-hybrid", [], []);
+        SeedPackageInfo(world, "zlib", "x64-windows-hybrid", [], []);
 
         var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"));
 
@@ -176,18 +165,16 @@ public sealed class ArtifactPlannerTests
             .AddPrimaryFile("C:/vcpkg/bin/SDL2_image.dll", "sdl2-image")
             .Build();
 
-        var ctx = CreateWindowsCakeContext();
+        var world = CreateWindowsWorld();
         var manifestConfig = ManifestFixture.CreateTestManifestConfig();
-        var planner = new ArtifactPlanner(_mockPkg, _windowsProfile, _mockPathService, ctx, manifestConfig);
+        var planner = CreatePlanner(world, _windowsProfile, manifestConfig);
 
-        // Package has a copyright file
-        _mockPkg.GetPackageInfoAsync("sdl2-image", "x64-windows-hybrid", Arg.Any<CancellationToken>())
-            .Returns(Result<PackageInfo, PackageInfoError>.Success(new PackageInfo(
-                "sdl2-image", "x64-windows-hybrid",
-                ImmutableList.Create(
-                    "C:/vcpkg/bin/SDL2_image.dll",
-                    "C:/vcpkg/share/sdl2-image/copyright"),
-                ImmutableList<string>.Empty)));
+        SeedPackageInfo(
+            world,
+            "sdl2-image",
+            "x64-windows-hybrid",
+            ["bin/SDL2_image.dll", "share/sdl2-image/copyright"],
+            []);
 
         var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"));
 
@@ -202,29 +189,35 @@ public sealed class ArtifactPlannerTests
         await Assert.That(plan.Statistics.LicenseFiles.Count).IsGreaterThan(0);
     }
 
-    private static ICakeContext CreateWindowsCakeContext()
+    private static FakeCakeWorldV2 CreateWindowsWorld()
     {
-        var env = FakeEnvironment.CreateWindowsEnvironment();
-        var ctx = Substitute.For<ICakeContext>();
-        ctx.Environment.Returns(env);
-        ctx.Log.Returns(new FakeLog());
-        return ctx;
+        var world = FakeCakeWorldV2.CreateWindows();
+        world.WithToolPath("vcpkg.exe", world.RepoRoot.CombineWithFilePath("external/vcpkg/vcpkg.exe"));
+        return world;
     }
 
-    private static ICakeContext CreateLinuxCakeContext()
+    private static FakeCakeWorldV2 CreateLinuxWorld()
     {
-        var env = FakeEnvironment.CreateUnixEnvironment();
-        var ctx = Substitute.For<ICakeContext>();
-        ctx.Environment.Returns(env);
-        ctx.Log.Returns(new FakeLog());
-        return ctx;
+        var world = FakeCakeWorldV2.CreateLinux();
+        world.WithToolPath("vcpkg", world.RepoRoot.CombineWithFilePath("external/vcpkg/vcpkg"));
+        return world;
     }
 
-    private void SetupEmptyLicenseResponse()
+    private static ArtifactPlanner CreatePlanner(
+        FakeCakeWorldV2 world,
+        RuntimeProfile profile,
+        ManifestConfig manifestConfig)
     {
-        _mockPkg.GetPackageInfoAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(callInfo => Result<PackageInfo, PackageInfoError>.Success(new PackageInfo(
-                callInfo.ArgAt<string>(0), callInfo.ArgAt<string>(1),
-                ImmutableList<string>.Empty, ImmutableList<string>.Empty)));
+        return new ArtifactPlanner(profile, world.CreateBuildContext().Paths, world.CakeContext, manifestConfig);
+    }
+
+    private static void SeedPackageInfo(
+        FakeCakeWorldV2 world,
+        string name,
+        string triplet,
+        string[] ownedFiles,
+        string[] dependencies)
+    {
+        world.WithVcpkgPackageInfo(name, triplet, ownedFiles, dependencies);
     }
 }
