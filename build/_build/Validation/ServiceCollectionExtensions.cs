@@ -1,5 +1,3 @@
-using Build.Data.Manifest.Models;
-using Build.Runtime;
 using Build.Validation.Harvesting;
 using Build.Validation.Manifest;
 using Build.Validation.NativeSmoke;
@@ -36,15 +34,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IReadmeMappingTableValidator, ReadmeMappingTableValidator>();
         services.AddSingleton<ISatelliteUpperBoundValidator, SatelliteUpperBoundValidator>();
         services.AddSingleton<IPackageOutputValidator, PackageOutputValidator>();
-        services.AddSingleton<IHybridStaticLeakValidator>(sp =>
-        {
-            var manifest = sp.GetRequiredService<ManifestConfig>();
-            var profile = sp.GetRequiredService<IRuntimeProfile>();
-            return new HybridStaticLeakValidator(
-                profile,
-                manifest.CoreLibrary.VcpkgName,
-                manifest.PackagingConfig.ValidationMode);
-        });
+        services.AddSingleton<IHybridStaticLeakValidator, HybridStaticLeakValidator>();
         services.AddSingleton<IHarvestPreconditionsValidator, HarvestPreconditionsValidator>();
         services.AddSingleton<INativeSmokePreconditionsValidator, NativeSmokePreconditionsValidator>();
         services.AddSingleton<IPackageConsumerSmokePreconditionsValidator, PackageConsumerSmokePreconditionsValidator>();

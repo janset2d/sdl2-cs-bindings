@@ -1,9 +1,9 @@
 #pragma warning disable MA0045
 
+using Build.Data.Manifest;
 using Build.Host.Cake;
 using Build.Host.Paths;
-using Build.Data.Manifest.Models;
-using Build.Runtime;
+using Build.Host.Runtime;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
@@ -13,12 +13,9 @@ namespace Build.Host;
 
 /// <summary>
 /// Composition-root grouping for Host-tier services:
-/// path resolution, runtime profile, and manifest-derived singletons. Manifest-derived
-/// configs (<see cref="ManifestConfig"/>, <see cref="RuntimeConfig"/>,
-/// <see cref="SystemArtefactsConfig"/>) live here because they are loaded once
-/// at startup from <c>build/manifest.json</c> via <see cref="IPathService"/> +
-/// <see cref="ICakeContext"/>, both Host-tier resolutions. <c>IRuntimeScanner</c> dispatch
-/// (host-platform abstraction) lives in the <c>Build.DependencyAnalysis</c> root concept.
+/// path resolution and runtime profile. Manifest loading flows through
+/// <see cref="IManifestRepository"/> so file-backed data access stays in
+/// <c>Data\Manifest</c>; Host does not expose the loaded manifest as ambient state.
 /// <para>
 /// Takes <see cref="ParsedArguments"/> + the resolved repository root directly because
 /// <see cref="IPathService"/> composes its layout from CLI overrides
@@ -44,8 +41,7 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<IRuntimeProfile>(sp =>
         {
-            var runtimeConfig = sp.GetRequiredService<RuntimeConfig>();
-            var systemArtefactsConfig = sp.GetRequiredService<SystemArtefactsConfig>();
+            var manifest = sp.GetRequiredService<IManifestRepository>().Load();
             var cakeEnvironment = sp.GetRequiredService<ICakeEnvironment>();
 
             // RID resolution: --rid CLI override wins; otherwise fall back to the host's
@@ -55,37 +51,14 @@ public static class ServiceCollectionExtensions
                 ? cakeEnvironment.Platform.Rid()
                 : parsedArgs.Rid;
 
-            var runtimeInfo = runtimeConfig.Runtimes.Single(r => string.Equals(r.Rid, rid, StringComparison.Ordinal));
+            if (manifest.Runtimes.Count == 0)
+            {
+                throw new InvalidOperationException("manifest.json requires a non-empty runtimes section.");
+            }
 
-            return new RuntimeProfile(runtimeInfo, systemArtefactsConfig);
-        });
+            var runtimeInfo = manifest.Runtimes.Single(r => string.Equals(r.Rid, rid, StringComparison.Ordinal));
 
-        // Single manifest.json load — schema v2.1 merges runtimes + system_exclusions
-        // + library_manifests + package_families. Loaded via IPathService + ICakeContext
-        // (both Host-tier) once per invocation.
-        services.AddSingleton<ManifestConfig>(provider =>
-        {
-            var ctx = provider.GetRequiredService<ICakeContext>();
-            var pathService = provider.GetRequiredService<IPathService>();
-
-            var manifestFile = pathService.GetManifestFile();
-            return ctx.ToJson<ManifestConfig>(manifestFile);
-        });
-
-        services.AddSingleton<RuntimeConfig>(provider =>
-        {
-            var manifest = provider.GetRequiredService<ManifestConfig>();
-
-            return manifest.Runtimes.Count == 0
-                ? throw new InvalidOperationException("manifest.json requires a non-empty runtimes section.")
-                : new RuntimeConfig { Runtimes = manifest.Runtimes };
-        });
-
-        services.AddSingleton<SystemArtefactsConfig>(provider =>
-        {
-            var manifest = provider.GetRequiredService<ManifestConfig>();
-
-            return manifest.SystemExclusions;
+            return new RuntimeProfile(runtimeInfo, manifest.SystemExclusions);
         });
 
         services.AddSingleton(parsedArgs);

@@ -1,4 +1,4 @@
-namespace Build.Harvesting;
+namespace Build.Targets.Harvest.Models;
 
 /// <summary>
 /// Immutable result of dependency discovery.

@@ -12,6 +12,7 @@ namespace Build.Targets.Package.Services;
 public interface INativePackageMetadataGenerator
 {
     Task GenerateAsync(
+        ManifestConfig manifestConfig,
         PackageFamilyConfig family,
         string familyVersion,
         string buildCommitSha,
@@ -20,27 +21,27 @@ public interface INativePackageMetadataGenerator
 
 /// <inheritdoc />
 public sealed class NativePackageMetadataGenerator(
-    ManifestConfig manifestConfig,
     IPathService pathService,
     INativePackageMetadataRepository nativePackageMetadataRepository) : INativePackageMetadataGenerator
 {
-    private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
     private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
 
     private readonly INativePackageMetadataRepository _nativePackageMetadataRepository =
         nativePackageMetadataRepository ?? throw new ArgumentNullException(nameof(nativePackageMetadataRepository));
 
     public async Task GenerateAsync(
+        ManifestConfig manifestConfig,
         PackageFamilyConfig family,
         string familyVersion,
         string buildCommitSha,
         CancellationToken ct = default)
     {
+        ArgumentNullException.ThrowIfNull(manifestConfig);
         ArgumentNullException.ThrowIfNull(family);
         ArgumentException.ThrowIfNullOrWhiteSpace(familyVersion);
         ArgumentException.ThrowIfNullOrWhiteSpace(buildCommitSha);
 
-        var library = _manifestConfig.LibraryManifests.SingleOrDefault(candidate => string.Equals(candidate.Name, family.LibraryRef, StringComparison.OrdinalIgnoreCase));
+        var library = manifestConfig.LibraryManifests.SingleOrDefault(candidate => string.Equals(candidate.Name, family.LibraryRef, StringComparison.OrdinalIgnoreCase));
 
         if (library is null)
         {
@@ -48,7 +49,7 @@ public sealed class NativePackageMetadataGenerator(
                 $"Cannot generate native metadata for family '{family.Name}' because library_ref '{family.LibraryRef}' was not found in manifest library_manifests[].");
         }
 
-        var triplets = _manifestConfig.Runtimes
+        var triplets = manifestConfig.Runtimes
             .Select(runtime => runtime.Triplet)
             .Where(triplet => !string.IsNullOrWhiteSpace(triplet))
             .Distinct(StringComparer.OrdinalIgnoreCase)

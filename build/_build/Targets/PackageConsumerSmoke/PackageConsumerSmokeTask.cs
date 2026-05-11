@@ -1,11 +1,12 @@
 using System.Diagnostics.CodeAnalysis;
+using Build.Data.Manifest;
 using Build.Data.Versions;
 using Build.Host;
 using Build.Host.Cake;
 using Build.Host.Paths;
 using Build.Data.Manifest.Models;
 using Build.Data.ProjectMetadata;
-using Build.Runtime;
+using Build.Host.Runtime;
 using Build.Targets.PackageConsumerSmoke.Reporting;
 using Build.Targets.PackageConsumerSmoke.Services;
 using Build.Validation.Conventions;
@@ -28,9 +29,9 @@ public sealed class PackageConsumerSmokeTask : AsyncFrostingTask<BuildContext>
     private readonly IProjectMetadataReader _projectMetadataReader;
     private readonly IDotNetRuntimeEnvironment _dotNetRuntimeEnvironment;
     private readonly IVersionFileRepository _versionFileRepository;
+    private readonly IManifestRepository _manifestRepository;
     private readonly IRuntimeProfile _runtimeProfile;
     private readonly IPathService _pathService;
-    private readonly ManifestConfig _manifestConfig;
 
     public PackageConsumerSmokeTask(
         IPackageConsumerSmokePreconditionsValidator preconditionsValidator,
@@ -40,9 +41,9 @@ public sealed class PackageConsumerSmokeTask : AsyncFrostingTask<BuildContext>
         IProjectMetadataReader projectMetadataReader,
         IDotNetRuntimeEnvironment dotNetRuntimeEnvironment,
         IVersionFileRepository versionFileRepository,
+        IManifestRepository manifestRepository,
         IRuntimeProfile runtimeProfile,
-        IPathService pathService,
-        ManifestConfig manifestConfig)
+        IPathService pathService)
     {
         _preconditionsValidator = preconditionsValidator ?? throw new ArgumentNullException(nameof(preconditionsValidator));
         _runner = runner ?? throw new ArgumentNullException(nameof(runner));
@@ -51,9 +52,9 @@ public sealed class PackageConsumerSmokeTask : AsyncFrostingTask<BuildContext>
         _projectMetadataReader = projectMetadataReader ?? throw new ArgumentNullException(nameof(projectMetadataReader));
         _dotNetRuntimeEnvironment = dotNetRuntimeEnvironment ?? throw new ArgumentNullException(nameof(dotNetRuntimeEnvironment));
         _versionFileRepository = versionFileRepository ?? throw new ArgumentNullException(nameof(versionFileRepository));
+        _manifestRepository = manifestRepository ?? throw new ArgumentNullException(nameof(manifestRepository));
         _runtimeProfile = runtimeProfile ?? throw new ArgumentNullException(nameof(runtimeProfile));
         _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
-        _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
     }
 
     private sealed record SmokePackage(string FamilyName, string ManagedPackageId, string NativePackageId, string VersionPropertyName)
@@ -94,6 +95,7 @@ public sealed class PackageConsumerSmokeTask : AsyncFrostingTask<BuildContext>
         var smokeProject = _pathService.PackageConsumerSmokeProject;
         var compileSanityProject = _pathService.CompileSanityProject;
         var feedPath = _pathService.PackagesOutput;
+        var manifest = _manifestRepository.Load();
 
         var preconditionReport = _preconditionsValidator.Validate(smokeProject, compileSanityProject, feedPath);
         if (!preconditionReport.IsValid)
@@ -103,7 +105,7 @@ public sealed class PackageConsumerSmokeTask : AsyncFrostingTask<BuildContext>
                 string.Join(Environment.NewLine, preconditionReport.Errors.Select(e => $"  [{e.Code}] {e.Message}")));
         }
 
-        var smokePackages = ResolveSmokePackages();
+        var smokePackages = ResolveSmokePackages(manifest);
         EnsureSelectionSupportsCurrentSmokeScope(smokePackages, familyVersions);
         await EnsureSmokeCsprojsMatchManifestScopeAsync(context, smokePackages, default);
         EnsurePackageArtifactsExist(context, smokePackages, familyVersions, feedPath);
@@ -184,9 +186,9 @@ public sealed class PackageConsumerSmokeTask : AsyncFrostingTask<BuildContext>
         _reporter.LogCompleted(tfmsRun: ranCount, tfmsSkipped: skippedCount);
     }
 
-    private List<SmokePackage> ResolveSmokePackages()
+    private static List<SmokePackage> ResolveSmokePackages(ManifestConfig manifestConfig)
     {
-        var concreteFamilies = _manifestConfig.PackageFamilies
+        var concreteFamilies = manifestConfig.PackageFamilies
             .Where(HasConcreteProjects)
             .OrderBy(family => family.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();

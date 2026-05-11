@@ -1,5 +1,5 @@
 using Build.Data.Manifest.Models;
-using Build.Runtime;
+using Build.Host.Runtime;
 using Build.Tests.Fixtures;
 
 namespace Build.Tests.Unit.Runtime;

@@ -1,4 +1,4 @@
-namespace Build.DependencyAnalysis;
+namespace Build.Targets.Harvest.Models;
 
 public static class Rids
 {

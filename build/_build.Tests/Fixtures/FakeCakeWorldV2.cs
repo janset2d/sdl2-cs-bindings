@@ -4,7 +4,7 @@ using Build.Host.Cake;
 using Build.Host.Paths;
 using Build.Data.Manifest;
 using Build.Data.Manifest.Models;
-using Build.Runtime;
+using Build.Host.Runtime;
 using Cake.Core;
 using Cake.Core.Configuration;
 using Cake.Core.IO;
@@ -343,24 +343,10 @@ public sealed class FakeCakeWorldV2
 
     public BuildContext CreateBuildContext(ManifestConfig? manifest = null)
     {
-        var resolvedManifest = manifest ?? new ManifestConfig
+        if (manifest is not null)
         {
-            SchemaVersion = "2.1",
-            Runtimes = [],
-            PackageFamilies = [],
-            SystemExclusions = new SystemArtefactsConfig
-            {
-                Windows = new WindowsSystemArtefacts(),
-                Linux = new LinuxSystemArtefacts(),
-                Osx = new OsxSystemArtefacts(),
-            },
-            LibraryManifests = System.Collections.Immutable.ImmutableList<LibraryManifest>.Empty,
-            PackagingConfig = new PackagingConfig
-            {
-                ValidationMode = ValidationMode.Strict,
-                CoreLibrary = "sdl2",
-            },
-        };
+            WithManifestObject(manifest);
+        }
 
         var parsedArgs = new ParsedArguments(
             RepoRoot: null,
@@ -408,7 +394,6 @@ public sealed class FakeCakeWorldV2
             CakeContext,
             pathService,
             runtimeProfile,
-            resolvedManifest,
             parsedArgs);
     }
 

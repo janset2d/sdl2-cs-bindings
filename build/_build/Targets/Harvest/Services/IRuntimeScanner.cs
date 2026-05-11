@@ -1,6 +1,6 @@
 using Cake.Core.IO;
 
-namespace Build.DependencyAnalysis;
+namespace Build.Targets.Harvest.Services;
 
 public interface IRuntimeScanner
 {

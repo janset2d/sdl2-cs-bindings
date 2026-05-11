@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Text.Json;
+using Build.Data;
 using Build.Data.Manifest.Models;
 using Build.Targets.GenerateMatrix;
 using Build.Targets.GenerateMatrix.Models;
@@ -77,6 +78,7 @@ public sealed class GenerateMatrixTaskScenarioTests
 
     private static TargetTestHostV2<GenerateMatrixTask> CreateHost(FakeCakeWorldV2 world)
     {
-        return new TargetTestHostV2<GenerateMatrixTask>(world);
+        return new TargetTestHostV2<GenerateMatrixTask>(world)
+            .WithServices(services => services.AddData());
     }
 }

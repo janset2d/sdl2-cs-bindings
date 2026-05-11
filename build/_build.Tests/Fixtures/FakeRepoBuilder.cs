@@ -5,7 +5,7 @@ using Build.Host.Cake;
 using Build.Host.Paths;
 using Build.Data.Manifest;
 using Build.Data.Manifest.Models;
-using Build.Runtime;
+using Build.Host.Runtime;
 using Build.Tests.Fixtures.Seeders;
 using Cake.Core;
 using Cake.Core.Configuration;
@@ -189,13 +189,10 @@ public sealed class FakeRepoBuilder
         var pathService = new PathService(_repoRoot, parsedArguments, new FakeLog());
         var runtimeProfile = CreateRuntimeProfileStub();
 
-        var manifest = ManifestConfigSeeder.FromDefaultFixture().Manifest;
-
         var context = new BuildContext(
             cakeContext,
             pathService,
             runtimeProfile,
-            manifest,
             parsedArguments);
 
         return new FakeRepoHandles

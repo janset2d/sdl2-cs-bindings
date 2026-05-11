@@ -1,4 +1,4 @@
-using Build.Harvesting;
+using Build.Targets.Harvest.Models;
 
 namespace Build.Tests.Fixtures;
 

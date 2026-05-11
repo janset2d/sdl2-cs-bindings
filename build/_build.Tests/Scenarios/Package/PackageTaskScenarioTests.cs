@@ -217,11 +217,11 @@ public sealed class PackageTaskScenarioTests
                 new EvaluatedProjectMetadata(["net10.0"], "Authors", "LICENSE", "icon.png")));
 
         var nativeMetadataGen = Substitute.For<INativePackageMetadataGenerator>();
-        nativeMetadataGen.GenerateAsync(Arg.Any<PackageFamilyConfig>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        nativeMetadataGen.GenerateAsync(Arg.Any<ManifestConfig>(), Arg.Any<PackageFamilyConfig>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
 
         var readmeGen = Substitute.For<IReadmeMappingTableGenerator>();
-        readmeGen.UpdateAsync(Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
+        readmeGen.UpdateAsync(Arg.Any<ManifestConfig>(), Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
 
         var outputValidator = Substitute.For<IPackageOutputValidator>();
         outputValidator.ValidateAsync(

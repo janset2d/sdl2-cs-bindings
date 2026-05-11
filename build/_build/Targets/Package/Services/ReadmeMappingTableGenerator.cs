@@ -14,18 +14,18 @@ namespace Build.Targets.Package.Services;
 /// </summary>
 public interface IReadmeMappingTableGenerator
 {
-    Task UpdateAsync(CancellationToken ct = default);
+    Task UpdateAsync(ManifestConfig manifestConfig, CancellationToken ct = default);
 }
 
 /// <inheritdoc />
-public sealed class ReadmeMappingTableGenerator(ManifestConfig manifestConfig, IPathService pathService, ICakeContext cakeContext) : IReadmeMappingTableGenerator
+public sealed class ReadmeMappingTableGenerator(IPathService pathService, ICakeContext cakeContext) : IReadmeMappingTableGenerator
 {
-    private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
     private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
 
-    public async Task UpdateAsync(CancellationToken ct = default)
+    public async Task UpdateAsync(ManifestConfig manifestConfig, CancellationToken ct = default)
     {
+        ArgumentNullException.ThrowIfNull(manifestConfig);
         var readmePath = _pathService.GetReadmeFile();
 
         if (!_cakeContext.FileExists(readmePath))
@@ -33,7 +33,7 @@ public sealed class ReadmeMappingTableGenerator(ManifestConfig manifestConfig, I
             throw new InvalidOperationException($"README mapping table generation failed: file '{readmePath.FullPath}' does not exist.");
         }
 
-        var expectedBlock = ReadmeMappingTableBlock.BuildBlock(_manifestConfig);
+        var expectedBlock = ReadmeMappingTableBlock.BuildBlock(manifestConfig);
         var original = await _cakeContext.ReadAllTextAsync(readmePath);
         ct.ThrowIfCancellationRequested();
 

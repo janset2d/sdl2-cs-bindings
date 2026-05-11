@@ -55,4 +55,12 @@ public sealed class BuildContextResolveVersionsTests
 
         await Assert.That(property).IsNull();
     }
+
+    [Test]
+    public async Task Manifest_Should_Not_Be_Public_Task_Facing_Property()
+    {
+        var property = typeof(BuildContext).GetProperty("Manifest");
+
+        await Assert.That(property).IsNull();
+    }
 }

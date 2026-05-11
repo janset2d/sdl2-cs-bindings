@@ -1,7 +1,7 @@
 using System.Globalization;
 using Build.Host.Paths;
 using Build.Data.Manifest.Models;
-using Build.Runtime;
+using Build.Host.Runtime;
 using Build.Tools.Dumpbin;
 using Build.Tools.Ldd;
 using Build.Tools.Otool;

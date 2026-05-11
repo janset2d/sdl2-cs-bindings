@@ -1,11 +1,10 @@
 #pragma warning disable CA1031
 
 using System.Diagnostics.CodeAnalysis;
-using Build.Harvesting;
-using Build.Host.Paths;
 using Build.Data.Manifest.Models;
+using Build.Host.Paths;
+using Build.Host.Runtime;
 using Build.Results;
-using Build.Runtime;
 using Build.Targets.Harvest.Models;
 using Build.Tools.Vcpkg;
 using Build.Tools.Vcpkg.Settings;
@@ -17,27 +16,33 @@ namespace Build.Targets.Harvest.Services;
 
 public interface IArtifactPlanner
 {
-    Task<Result<DeploymentPlan, ArtifactPlannerError>> CreatePlanAsync(LibraryManifest current, BinaryClosure closure, DirectoryPath outRoot, CancellationToken ct = default);
+    Task<Result<DeploymentPlan, ArtifactPlannerError>> CreatePlanAsync(
+        LibraryManifest current,
+        BinaryClosure closure,
+        DirectoryPath outRoot,
+        string corePackageName,
+        CancellationToken ct = default);
 }
 
-public sealed class ArtifactPlanner(
-    IRuntimeProfile profile,
-    IPathService pathService,
-    ICakeContext context,
-    ManifestConfig manifestConfig) : IArtifactPlanner
+public sealed class ArtifactPlanner(IRuntimeProfile profile, IPathService pathService, ICakeContext context) : IArtifactPlanner
 {
     private readonly IRuntimeProfile _profile = profile ?? throw new ArgumentNullException(nameof(profile));
     private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
     private readonly ICakeContext _context = context ?? throw new ArgumentNullException(nameof(context));
     private readonly ICakeLog _log = (context ?? throw new ArgumentNullException(nameof(context))).Log;
-    private readonly string _corePackageName = (manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig))).CoreLibrary.VcpkgName;
 
     [SuppressMessage("Design", "MA0051:Method is too long")]
-    public async Task<Result<DeploymentPlan, ArtifactPlannerError>> CreatePlanAsync(LibraryManifest current, BinaryClosure closure, DirectoryPath outRoot, CancellationToken ct = default)
+    public async Task<Result<DeploymentPlan, ArtifactPlannerError>> CreatePlanAsync(
+        LibraryManifest current,
+        BinaryClosure closure,
+        DirectoryPath outRoot,
+        string corePackageName,
+        CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(current);
         ArgumentNullException.ThrowIfNull(closure);
         ArgumentNullException.ThrowIfNull(outRoot);
+        ArgumentException.ThrowIfNullOrWhiteSpace(corePackageName);
 
         try
         {
@@ -62,8 +67,8 @@ public sealed class ArtifactPlanner(
                 var ownerPackageName = node.OwnerPackage;
                 var originPackage = node.OriginPackage;
 
-                if (!isCore && (originPackage.Equals(_corePackageName, StringComparison.OrdinalIgnoreCase)
-                                || ownerPackageName.Equals(_corePackageName, StringComparison.OrdinalIgnoreCase)))
+                if (!isCore && (originPackage.Equals(corePackageName, StringComparison.OrdinalIgnoreCase)
+                                || ownerPackageName.Equals(corePackageName, StringComparison.OrdinalIgnoreCase)))
                 {
                     continue;
                 }

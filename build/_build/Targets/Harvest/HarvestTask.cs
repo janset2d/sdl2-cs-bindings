@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Build.Data.Harvest;
+using Build.Data.Manifest;
 using Build.Host;
 using Build.Data.Manifest.Models;
 using Build.Targets.Harvest.Reporting;
@@ -31,7 +32,7 @@ public sealed class HarvestTask(
     IArtifactDeployer deployer,
     IHarvestStatusRepository statusRepo,
     HarvestReporter reporter,
-    ManifestConfig manifestConfig) : AsyncFrostingTask<BuildContext>
+    IManifestRepository manifestRepository) : AsyncFrostingTask<BuildContext>
 {
     private readonly IHarvestPreconditionsValidator _preconditions = preconditions ?? throw new ArgumentNullException(nameof(preconditions));
     private readonly IBinaryClosureWalker _walker = walker ?? throw new ArgumentNullException(nameof(walker));
@@ -40,7 +41,7 @@ public sealed class HarvestTask(
     private readonly IArtifactDeployer _deployer = deployer ?? throw new ArgumentNullException(nameof(deployer));
     private readonly IHarvestStatusRepository _statusRepo = statusRepo ?? throw new ArgumentNullException(nameof(statusRepo));
     private readonly HarvestReporter _reporter = reporter ?? throw new ArgumentNullException(nameof(reporter));
-    private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
+    private readonly IManifestRepository _manifestRepository = manifestRepository ?? throw new ArgumentNullException(nameof(manifestRepository));
 
     public override async Task RunAsync(BuildContext context)
     {
@@ -66,7 +67,8 @@ public sealed class HarvestTask(
         var outputBase = context.Paths.HarvestOutput;
         context.EnsureDirectoryExists(outputBase);
 
-        var libraries = ResolveLibrariesToHarvest(context.Libraries);
+        var manifest = _manifestRepository.Load();
+        var libraries = ResolveLibrariesToHarvest(manifest, context.Libraries);
         if (libraries.Count == 0)
         {
             context.Log.Warning("No libraries found to harvest (either specified or in manifest).");
@@ -75,16 +77,22 @@ public sealed class HarvestTask(
 
         _reporter.LogStarting(libraries.Select(l => l.Name).ToArray());
 
+        var corePackageName = manifest.CoreLibrary.VcpkgName;
+        var validationMode = manifest.PackagingConfig.ValidationMode;
         foreach (var library in libraries)
         {
-            await ProcessLibraryAsync(library, outputBase).ConfigureAwait(false);
+            await ProcessLibraryAsync(library, outputBase, corePackageName, validationMode).ConfigureAwait(false);
         }
 
         _reporter.LogCompleted();
     }
 
     [SuppressMessage("Design", "MA0051", Justification = "Linear orchestration of fail-fast harvest steps; per-step collaborators carry the algorithmic weight per ADR-002 §5. Inlining keeps the build story readable rather than hiding it behind ceremonial Process/Handle/Do helpers per checklist §4.6.")]
-    private async Task ProcessLibraryAsync(LibraryManifest library, DirectoryPath outputBase)
+    private async Task ProcessLibraryAsync(
+        LibraryManifest library,
+        DirectoryPath outputBase,
+        string corePackageName,
+        ValidationMode validationMode)
     {
         _reporter.StartLibrary(library.Name);
 
@@ -99,7 +107,7 @@ public sealed class HarvestTask(
             }
             var closure = closureResult.Value;
 
-            var leakReport = _leakValidator.Validate(closure, library);
+            var leakReport = _leakValidator.Validate(closure, library, corePackageName, validationMode);
             if (!leakReport.IsValid)
             {
                 _reporter.ReportLeakReport(library.Name, leakReport);
@@ -114,7 +122,7 @@ public sealed class HarvestTask(
                 _reporter.ReportLeakReport(library.Name, leakReport);
             }
 
-            var plannerResult = await _planner.CreatePlanAsync(library, closure, outputBase).ConfigureAwait(false);
+            var plannerResult = await _planner.CreatePlanAsync(library, closure, outputBase, corePackageName).ConfigureAwait(false);
             if (plannerResult.IsFailure)
             {
                 throw await CreateLibraryFailureAsync(library.Name, "Artifact planning", plannerResult.Error.Message, plannerResult.Error.Exception).ConfigureAwait(false);
@@ -172,9 +180,9 @@ public sealed class HarvestTask(
         return new CakeException($"{phase} failed for '{libraryName}'.");
     }
 
-    private List<LibraryManifest> ResolveLibrariesToHarvest(IReadOnlyList<string> requestedLibraries)
+    private static List<LibraryManifest> ResolveLibrariesToHarvest(ManifestConfig manifestConfig, IReadOnlyList<string> requestedLibraries)
     {
-        var allManifestLibraries = _manifestConfig.LibraryManifests.ToList();
+        var allManifestLibraries = manifestConfig.LibraryManifests.ToList();
 
         if (requestedLibraries.Count == 0)
         {

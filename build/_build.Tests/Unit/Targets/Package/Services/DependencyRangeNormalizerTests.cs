@@ -22,9 +22,9 @@ public sealed class DependencyRangeNormalizerTests
         var nupkg = "artifacts/packages/Janset.SDL2.Image.2.8.0.nupkg";
         world.WithBinaryFile(nupkg, NuspecBuilder.AsNupkgZip("Janset.SDL2.Image.nuspec", nuspecBytes));
 
-        var normalizer = new DependencyRangeNormalizer(world.CakeContext, world.Log, manifest);
+        var normalizer = new DependencyRangeNormalizer(world.CakeContext, world.Log);
 
-        await normalizer.NormalizeAsync(family, world.RepoRoot.CombineWithFilePath(nupkg), "2.8.0", CancellationToken.None);
+        await normalizer.NormalizeAsync(manifest, family, world.RepoRoot.CombineWithFilePath(nupkg), "2.8.0", CancellationToken.None);
 
         var rewritten = NuspecReader.GetDependencyVersion(world, world.RepoRoot.CombineWithFilePath(nupkg), "Janset.SDL2.Core");
         await Assert.That(rewritten).IsEqualTo("[2.8.0, 3.0.0)");
@@ -39,9 +39,9 @@ public sealed class DependencyRangeNormalizerTests
         var nupkg = "artifacts/packages/Janset.SDL2.Core.2.32.0.nupkg";
         world.WithBinaryFile(nupkg, NuspecBuilder.AsNupkgZip("Janset.SDL2.Core.nuspec", nuspecBytes));
 
-        var normalizer = new DependencyRangeNormalizer(world.CakeContext, world.Log, manifest);
+        var normalizer = new DependencyRangeNormalizer(world.CakeContext, world.Log);
 
-        await normalizer.NormalizeAsync(family, world.RepoRoot.CombineWithFilePath(nupkg), "2.32.0", CancellationToken.None);
+        await normalizer.NormalizeAsync(manifest, family, world.RepoRoot.CombineWithFilePath(nupkg), "2.32.0", CancellationToken.None);
 
         // No exception, no rewrite — the early-return branch returns before opening the zip.
         // Verify the file contents are byte-identical to what we wrote.
@@ -62,9 +62,9 @@ public sealed class DependencyRangeNormalizerTests
         var nupkg = "artifacts/packages/Janset.SDL2.Image.2.8.0.nupkg";
         world.WithBinaryFile(nupkg, NuspecBuilder.AsNupkgZip("Janset.SDL2.Image.nuspec", nuspecBytes));
 
-        var normalizer = new DependencyRangeNormalizer(world.CakeContext, world.Log, manifest);
+        var normalizer = new DependencyRangeNormalizer(world.CakeContext, world.Log);
 
-        await normalizer.NormalizeAsync(family, world.RepoRoot.CombineWithFilePath(nupkg), "2.8.0", CancellationToken.None);
+        await normalizer.NormalizeAsync(manifest, family, world.RepoRoot.CombineWithFilePath(nupkg), "2.8.0", CancellationToken.None);
 
         // hasChanges=false path: nuspec entry not deleted/recreated.
         var rewritten = NuspecReader.GetDependencyVersion(world, world.RepoRoot.CombineWithFilePath(nupkg), "Janset.SDL2.Core");
@@ -79,9 +79,9 @@ public sealed class DependencyRangeNormalizerTests
         var nupkg = "artifacts/packages/Janset.SDL2.Image.2.8.0.nupkg";
         // Don't seed the .nupkg.
 
-        var normalizer = new DependencyRangeNormalizer(world.CakeContext, world.Log, manifest);
+        var normalizer = new DependencyRangeNormalizer(world.CakeContext, world.Log);
 
-        await normalizer.NormalizeAsync(family, world.RepoRoot.CombineWithFilePath(nupkg), "2.8.0", CancellationToken.None);
+        await normalizer.NormalizeAsync(manifest, family, world.RepoRoot.CombineWithFilePath(nupkg), "2.8.0", CancellationToken.None);
 
         // No throw. Verbose log emitted.
     }
@@ -100,10 +100,10 @@ public sealed class DependencyRangeNormalizerTests
         var nupkg = "artifacts/packages/Janset.SDL2.Image.2.8.0.nupkg";
         world.WithBinaryFile(nupkg, NuspecBuilder.AsNupkgZip("Janset.SDL2.Image.nuspec", nuspecBytes));
 
-        var normalizer = new DependencyRangeNormalizer(world.CakeContext, world.Log, manifest);
+        var normalizer = new DependencyRangeNormalizer(world.CakeContext, world.Log);
 
         var ex = await Assert.ThrowsAsync<CakeException>(async () =>
-            await normalizer.NormalizeAsync(family, world.RepoRoot.CombineWithFilePath(nupkg), "2.8.0", CancellationToken.None));
+            await normalizer.NormalizeAsync(manifest, family, world.RepoRoot.CombineWithFilePath(nupkg), "2.8.0", CancellationToken.None));
 
         await Assert.That(ex!.Message).Contains("does not exist in manifest package_families[]");
     }

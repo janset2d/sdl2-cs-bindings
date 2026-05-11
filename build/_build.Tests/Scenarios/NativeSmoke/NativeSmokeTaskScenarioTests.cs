@@ -1,3 +1,4 @@
+using Build.Data;
 using Build.Data.Manifest.Models;
 using Build.Targets.NativeSmoke;
 using Build.Targets.NativeSmoke.Services;
@@ -175,6 +176,7 @@ public sealed class NativeSmokeTaskScenarioTests
 
         return host.WithServices(services =>
         {
+            services.AddData();
             services.AddValidators();
             services.AddNativeSmoke();
 

@@ -1,7 +1,8 @@
+using Build.Data.Manifest;
 using Build.Host;
 using Build.Host.Paths;
 using Build.Data.Manifest.Models;
-using Build.Runtime;
+using Build.Host.Runtime;
 using Build.Targets.NativeSmoke.Requests;
 using Build.Targets.NativeSmoke.Services;
 using Build.Tools.NativeSmoke;
@@ -34,14 +35,14 @@ public sealed class NativeSmokeTask(
     ICakeContext cakeContext,
     IPathService pathService,
     IRuntimeProfile runtimeProfile,
-    ManifestConfig manifestConfig) : AsyncFrostingTask<BuildContext>
+    IManifestRepository manifestRepository) : AsyncFrostingTask<BuildContext>
 {
     private readonly INativeSmokePreconditionsValidator _preconditions = preconditions ?? throw new ArgumentNullException(nameof(preconditions));
     private readonly IMsvcDevEnvironment _msvcDevEnvironment = msvcDevEnvironment ?? throw new ArgumentNullException(nameof(msvcDevEnvironment));
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
     private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
     private readonly IRuntimeProfile _runtimeProfile = runtimeProfile ?? throw new ArgumentNullException(nameof(runtimeProfile));
-    private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
+    private readonly IManifestRepository _manifestRepository = manifestRepository ?? throw new ArgumentNullException(nameof(manifestRepository));
 
     public override async Task RunAsync(BuildContext context)
     {
@@ -63,7 +64,8 @@ public sealed class NativeSmokeTask(
             throw new CakeException(preReport.Errors[0].Message);
         }
 
-        var libraries = ResolveLibrariesToValidate(context.Libraries);
+        var manifest = _manifestRepository.Load();
+        var libraries = ResolveLibrariesToValidate(manifest, context.Libraries);
         EnsureHarvestPayloadReady(context, libraries);
 
         var request = new NativeSmokeRequest(context.Runtime.Rid);
@@ -178,9 +180,9 @@ public sealed class NativeSmokeTask(
         }
     }
 
-    private List<LibraryManifest> ResolveLibrariesToValidate(IReadOnlyList<string> requestedLibraries)
+    private static List<LibraryManifest> ResolveLibrariesToValidate(ManifestConfig manifestConfig, IReadOnlyList<string> requestedLibraries)
     {
-        var allManifestLibraries = _manifestConfig.LibraryManifests.ToList();
+        var allManifestLibraries = manifestConfig.LibraryManifests.ToList();
 
         if (requestedLibraries.Count == 0)
         {

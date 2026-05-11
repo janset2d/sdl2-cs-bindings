@@ -5,12 +5,11 @@
 // would tighten the diagnostic surface but changes pre-migration behavior; deferred to a follow-up slice.
 #pragma warning disable CA1031, MA0051
 
-using Build.Harvesting;
-using Build.DependencyAnalysis;
 using Build.Host.Paths;
 using Build.Data.Manifest.Models;
+using Build.Host.Runtime;
 using Build.Results;
-using Build.Runtime;
+using Build.Targets.Harvest.Models;
 using Build.Tools.Vcpkg;
 using Build.Tools.Vcpkg.Settings;
 using Cake.Common.IO;

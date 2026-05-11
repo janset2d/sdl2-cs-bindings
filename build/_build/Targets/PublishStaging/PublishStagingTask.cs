@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Build.Data.Manifest;
 using Build.Data.Versions;
 using Build.Host;
 using Build.Host.Paths;
@@ -38,7 +39,7 @@ public sealed class PublishStagingTask : AsyncFrostingTask<BuildContext>
     private readonly ICakeLog _log;
     private readonly INuGetFeedClient _feedClient;
     private readonly IPathService _pathService;
-    private readonly ManifestConfig _manifestConfig;
+    private readonly IManifestRepository _manifestRepository;
     private readonly IVersionFileRepository _versionFileRepository;
 
     public PublishStagingTask(
@@ -46,14 +47,14 @@ public sealed class PublishStagingTask : AsyncFrostingTask<BuildContext>
         ICakeLog log,
         INuGetFeedClient feedClient,
         IPathService pathService,
-        ManifestConfig manifestConfig,
+        IManifestRepository manifestRepository,
         IVersionFileRepository versionFileRepository)
     {
         _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
         _log = log ?? throw new ArgumentNullException(nameof(log));
         _feedClient = feedClient ?? throw new ArgumentNullException(nameof(feedClient));
         _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
-        _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
+        _manifestRepository = manifestRepository ?? throw new ArgumentNullException(nameof(manifestRepository));
         _versionFileRepository = versionFileRepository ?? throw new ArgumentNullException(nameof(versionFileRepository));
     }
 
@@ -80,7 +81,8 @@ public sealed class PublishStagingTask : AsyncFrostingTask<BuildContext>
         }
 
         var authToken = ResolveAuthToken();
-        var concreteFamilies = ResolveConcreteFamiliesInScope(familyVersions);
+        var manifest = _manifestRepository.Load();
+        var concreteFamilies = ResolveConcreteFamiliesInScope(manifest, familyVersions);
 
         foreach (var family in concreteFamilies)
         {
@@ -124,13 +126,13 @@ public sealed class PublishStagingTask : AsyncFrostingTask<BuildContext>
             "Local escape hatch: 'gh auth token' produces a usable value (PAT with write:packages scope works too).");
     }
 
-    private List<PackageFamilyConfig> ResolveConcreteFamiliesInScope(PackageFamilyVersionSet versions)
+    private static List<PackageFamilyConfig> ResolveConcreteFamiliesInScope(ManifestConfig manifestConfig, PackageFamilyVersionSet versions)
     {
         var selected = new List<PackageFamilyConfig>(versions.Count);
         foreach (var entry in versions)
         {
             var familyName = entry.Family.Value;
-            var family = _manifestConfig.PackageFamilies.SingleOrDefault(c =>
+            var family = manifestConfig.PackageFamilies.SingleOrDefault(c =>
                 string.Equals(c.Name, familyName, StringComparison.OrdinalIgnoreCase))
                 ?? throw new CakeException(
                     $"PublishStaging received unknown family '{familyName}'. Add it to manifest.json package_families[] or fix the explicit-version mapping.");

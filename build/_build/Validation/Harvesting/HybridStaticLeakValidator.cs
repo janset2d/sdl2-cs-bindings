@@ -1,8 +1,7 @@
-using Build.Harvesting;
-using Build.Data.Manifest;
 using Build.Data.Manifest.Models;
+using Build.Host.Runtime;
 using Build.Results;
-using Build.Runtime;
+using Build.Targets.Harvest.Models;
 using Cake.Core.IO;
 
 namespace Build.Validation.Harvesting;
@@ -21,21 +20,23 @@ namespace Build.Validation.Harvesting;
 /// </remarks>
 public interface IHybridStaticLeakValidator
 {
-    ValidationReport Validate(BinaryClosure closure, LibraryManifest manifest);
+    ValidationReport Validate(
+        BinaryClosure closure,
+        LibraryManifest manifest,
+        string coreLibraryName,
+        ValidationMode mode);
 }
 
 /// <inheritdoc />
-public sealed class HybridStaticLeakValidator(IRuntimeProfile profile, string coreLibraryName, ValidationMode mode) : IHybridStaticLeakValidator
+public sealed class HybridStaticLeakValidator(IRuntimeProfile profile) : IHybridStaticLeakValidator
 {
     private readonly IRuntimeProfile _profile = profile ?? throw new ArgumentNullException(nameof(profile));
-    private readonly string _coreLibraryName = !string.IsNullOrWhiteSpace(coreLibraryName)
-        ? coreLibraryName
-        : throw new ArgumentException("Core library name must be non-empty.", nameof(coreLibraryName));
 
-    public ValidationReport Validate(BinaryClosure closure, LibraryManifest manifest)
+    public ValidationReport Validate(BinaryClosure closure, LibraryManifest manifest, string coreLibraryName, ValidationMode mode)
     {
         ArgumentNullException.ThrowIfNull(closure);
         ArgumentNullException.ThrowIfNull(manifest);
+        ArgumentException.ThrowIfNullOrWhiteSpace(coreLibraryName);
 
         if (mode == ValidationMode.Off || manifest.IsCoreLib)
         {
@@ -45,7 +46,7 @@ public sealed class HybridStaticLeakValidator(IRuntimeProfile profile, string co
         var violations = closure.Nodes
             .Where(node =>
                 !_profile.IsSystemFile(GetFilenameSegment(node.Path))
-                && !string.Equals(_coreLibraryName, node.OwnerPackage, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(coreLibraryName, node.OwnerPackage, StringComparison.OrdinalIgnoreCase)
                 && !closure.IsPrimaryFile(node.Path))
             .ToList();
 

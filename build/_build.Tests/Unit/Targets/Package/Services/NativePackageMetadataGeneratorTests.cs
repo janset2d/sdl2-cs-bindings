@@ -19,9 +19,9 @@ public sealed class NativePackageMetadataGeneratorTests
         var paths = Substitute.For<IPathService>();
         paths.GetHarvestLibraryNativeMetadataFile(family.LibraryRef).Returns(metadataPath);
         var repository = Substitute.For<INativePackageMetadataRepository>();
-        var generator = new NativePackageMetadataGenerator(manifest, paths, repository);
+        var generator = new NativePackageMetadataGenerator(paths, repository);
 
-        await generator.GenerateAsync(family, "2.32.0", "0123456789abcdef0123456789abcdef01234567");
+        await generator.GenerateAsync(manifest, family, "2.32.0", "0123456789abcdef0123456789abcdef01234567");
 
         await repository.Received(1).WriteAsync(
             metadataPath,

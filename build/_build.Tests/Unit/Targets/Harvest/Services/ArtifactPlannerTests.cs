@@ -1,5 +1,5 @@
 using Build.Data.Manifest.Models;
-using Build.Runtime;
+using Build.Host.Runtime;
 using Build.Targets.Harvest.Models;
 using Build.Targets.Harvest.Services;
 using Build.Tests.Fixtures;
@@ -10,6 +10,8 @@ namespace Build.Tests.Unit.Targets.Harvest.Services;
 
 public sealed class ArtifactPlannerTests
 {
+    private const string CorePackageName = "sdl2";
+
     private readonly RuntimeProfile _windowsProfile;
     private readonly RuntimeProfile _linuxProfile;
 
@@ -28,12 +30,11 @@ public sealed class ArtifactPlannerTests
             .Build();
 
         var world = CreateWindowsWorld();
-        var manifestConfig = ManifestFixture.CreateTestManifestConfig();
-        var planner = CreatePlanner(world, _windowsProfile, manifestConfig);
+        var planner = CreatePlanner(world, _windowsProfile);
 
         SeedPackageInfo(world, "sdl2-image", "x64-windows-hybrid", [], []);
 
-        var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"));
+        var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"), CorePackageName);
 
         await Assert.That(result.IsSuccess).IsTrue();
 
@@ -52,12 +53,11 @@ public sealed class ArtifactPlannerTests
             .Build();
 
         var world = CreateLinuxWorld();
-        var manifestConfig = ManifestFixture.CreateTestManifestConfig();
-        var planner = CreatePlanner(world, _linuxProfile, manifestConfig);
+        var planner = CreatePlanner(world, _linuxProfile);
 
         SeedPackageInfo(world, "sdl2-image", "x64-linux-hybrid", [], []);
 
-        var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"));
+        var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"), CorePackageName);
 
         await Assert.That(result.IsSuccess).IsTrue();
 
@@ -79,13 +79,12 @@ public sealed class ArtifactPlannerTests
             .Build();
 
         var world = CreateWindowsWorld();
-        var manifestConfig = ManifestFixture.CreateTestManifestConfig();
-        var planner = CreatePlanner(world, _windowsProfile, manifestConfig);
+        var planner = CreatePlanner(world, _windowsProfile);
 
         SeedPackageInfo(world, "sdl2-image", "x64-windows-hybrid", [], []);
         SeedPackageInfo(world, "zlib", "x64-windows-hybrid", [], []);
 
-        var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"));
+        var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"), CorePackageName);
 
         await Assert.That(result.IsSuccess).IsTrue();
 
@@ -109,12 +108,11 @@ public sealed class ArtifactPlannerTests
             .Build();
 
         var world = CreateWindowsWorld();
-        var manifestConfig = ManifestFixture.CreateTestManifestConfig();
-        var planner = CreatePlanner(world, _windowsProfile, manifestConfig);
+        var planner = CreatePlanner(world, _windowsProfile);
 
         SeedPackageInfo(world, "sdl2", "x64-windows-hybrid", [], []);
 
-        var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"));
+        var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"), CorePackageName);
 
         await Assert.That(result.IsSuccess).IsTrue();
 
@@ -138,13 +136,12 @@ public sealed class ArtifactPlannerTests
             .Build();
 
         var world = CreateWindowsWorld();
-        var manifestConfig = ManifestFixture.CreateTestManifestConfig();
-        var planner = CreatePlanner(world, _windowsProfile, manifestConfig);
+        var planner = CreatePlanner(world, _windowsProfile);
 
         SeedPackageInfo(world, "sdl2-image", "x64-windows-hybrid", [], []);
         SeedPackageInfo(world, "zlib", "x64-windows-hybrid", [], []);
 
-        var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"));
+        var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"), CorePackageName);
 
         await Assert.That(result.IsSuccess).IsTrue();
 
@@ -166,8 +163,7 @@ public sealed class ArtifactPlannerTests
             .Build();
 
         var world = CreateWindowsWorld();
-        var manifestConfig = ManifestFixture.CreateTestManifestConfig();
-        var planner = CreatePlanner(world, _windowsProfile, manifestConfig);
+        var planner = CreatePlanner(world, _windowsProfile);
 
         SeedPackageInfo(
             world,
@@ -176,7 +172,7 @@ public sealed class ArtifactPlannerTests
             ["bin/SDL2_image.dll", "share/sdl2-image/copyright"],
             []);
 
-        var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"));
+        var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"), CorePackageName);
 
         await Assert.That(result.IsSuccess).IsTrue();
 
@@ -205,10 +201,9 @@ public sealed class ArtifactPlannerTests
 
     private static ArtifactPlanner CreatePlanner(
         FakeCakeWorldV2 world,
-        RuntimeProfile profile,
-        ManifestConfig manifestConfig)
+        RuntimeProfile profile)
     {
-        return new ArtifactPlanner(profile, world.CreateBuildContext().Paths, world.CakeContext, manifestConfig);
+        return new ArtifactPlanner(profile, world.CreateBuildContext().Paths, world.CakeContext);
     }
 
     private static void SeedPackageInfo(

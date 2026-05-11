@@ -4,16 +4,11 @@ using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 
-namespace Build.DependencyAnalysis;
+namespace Build.Targets.Harvest.Services;
 
-public sealed class WindowsDumpbinScanner : IRuntimeScanner
+public sealed class WindowsDumpbinScanner(ICakeContext context) : IRuntimeScanner
 {
-    private readonly ICakeContext _context;
-
-    public WindowsDumpbinScanner(ICakeContext context)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-    }
+    private readonly ICakeContext _context = context ?? throw new ArgumentNullException(nameof(context));
 
     public async Task<IReadOnlySet<FilePath>> ScanAsync(FilePath binary, CancellationToken ct = default)
     {

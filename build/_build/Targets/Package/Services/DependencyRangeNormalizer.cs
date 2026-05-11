@@ -21,21 +21,21 @@ namespace Build.Targets.Package.Services;
 /// </summary>
 public sealed class DependencyRangeNormalizer(
     ICakeContext cakeContext,
-    ICakeLog log,
-    ManifestConfig manifestConfig)
+    ICakeLog log)
 {
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
-    private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
 
     [SuppressMessage("Design", "MA0051:Method is too long",
         Justification = "G56 normalization intentionally keeps zip read, nuspec parse, range rewrite, and zip update in one linear path for debuggability.")]
     public async Task NormalizeAsync(
+        ManifestConfig manifestConfig,
         PackageFamilyConfig family,
         FilePath managedPackagePath,
         string lowerBoundVersion,
         CancellationToken ct)
     {
+        ArgumentNullException.ThrowIfNull(manifestConfig);
         ArgumentNullException.ThrowIfNull(family);
         ArgumentNullException.ThrowIfNull(managedPackagePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(lowerBoundVersion);
@@ -108,7 +108,7 @@ public sealed class DependencyRangeNormalizer(
             ct.ThrowIfCancellationRequested();
 
             var dependencyPackageId = FamilyIdentifierConventions.ManagedPackageId(dependencyFamily);
-            var upperBound = ResolveCrossFamilyUpperBound(dependencyFamily);
+            var upperBound = ResolveCrossFamilyUpperBound(manifestConfig, dependencyFamily);
             var expectedRange = $"[{lowerBoundVersion}, {upperBound})";
 
             foreach (var dependencyElement in dependencyElements.Where(element =>
@@ -150,11 +150,12 @@ public sealed class DependencyRangeNormalizer(
             family.Name);
     }
 
-    private NuGetVersion ResolveCrossFamilyUpperBound(string dependencyFamily)
+    private static NuGetVersion ResolveCrossFamilyUpperBound(ManifestConfig manifestConfig, string dependencyFamily)
     {
+        ArgumentNullException.ThrowIfNull(manifestConfig);
         ArgumentException.ThrowIfNullOrWhiteSpace(dependencyFamily);
 
-        var dependencyFamilyConfig = _manifestConfig.PackageFamilies.SingleOrDefault(candidate =>
+        var dependencyFamilyConfig = manifestConfig.PackageFamilies.SingleOrDefault(candidate =>
             string.Equals(candidate.Name, dependencyFamily, StringComparison.OrdinalIgnoreCase));
 
         if (dependencyFamilyConfig is null)
@@ -163,7 +164,7 @@ public sealed class DependencyRangeNormalizer(
                 $"Cannot resolve cross-family dependency range for '{dependencyFamily}' because it does not exist in manifest package_families[].");
         }
 
-        var dependencyLibrary = _manifestConfig.LibraryManifests.SingleOrDefault(candidate =>
+        var dependencyLibrary = manifestConfig.LibraryManifests.SingleOrDefault(candidate =>
             string.Equals(candidate.Name, dependencyFamilyConfig.LibraryRef, StringComparison.OrdinalIgnoreCase));
 
         if (dependencyLibrary is null)

@@ -5,7 +5,6 @@ using System.CommandLine.Invocation;
 using System.CommandLine.NamingConventionBinder;
 using System.Diagnostics;
 using Build;
-using Build.DependencyAnalysis;
 using Build.Targets.ConsolidateHarvest;
 using Build.Targets.Harvest;
 using Build.Targets.InspectHarvestedDependencies;
@@ -85,14 +84,13 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     services.AddSingleton<IAnsiConsole>(AnsiConsole.Console);
 
     // Composition root: per-target AddXTarget() calls + cross-cutting groupings
-    // (AddHostBuildingBlocks, AddDependencyAnalysis, AddData, AddValidators).
+    // (AddHostBuildingBlocks, AddData, AddValidators).
     // AddHostBuildingBlocks takes parsedArgs + repoRoot because IPathService composes its
     // layout from CLI overrides before any DI resolution.
     services
         .AddHostBuildingBlocks(parsedArgs, repoRootPath)
         .AddData()
         .AddValidators()
-        .AddDependencyAnalysis()
         .AddInspectHarvestedDependenciesTarget()
         .AddOtoolAnalyzeTarget()
         .AddPreFlightCheck()

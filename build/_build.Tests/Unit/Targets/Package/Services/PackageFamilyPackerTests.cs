@@ -24,7 +24,7 @@ public sealed class PackageFamilyPackerTests
         var family = TestFamily(name: "sdl2-core", managedProject: null, nativeProject: "src/native/SDL2.Core.Native/SDL2.Core.Native.csproj");
 
         var ex = await Assert.ThrowsAsync<CakeException>(async () =>
-            await packer.PackAsync(family, "2.32.0", "abc123sha", "Release", CancellationToken.None));
+            await packer.PackAsync(ManifestFixture.CreateTestManifestConfig(), family, "2.32.0", "abc123sha", "Release", CancellationToken.None));
 
         await Assert.That(ex!.Message).Contains("missing manifest field 'managed_project'");
     }
@@ -36,7 +36,7 @@ public sealed class PackageFamilyPackerTests
         var family = TestFamily(name: "sdl2-core", managedProject: "src/SDL2.Core/SDL2.Core.csproj", nativeProject: null);
 
         var ex = await Assert.ThrowsAsync<CakeException>(async () =>
-            await packer.PackAsync(family, "2.32.0", "abc123sha", "Release", CancellationToken.None));
+            await packer.PackAsync(ManifestFixture.CreateTestManifestConfig(), family, "2.32.0", "abc123sha", "Release", CancellationToken.None));
 
         await Assert.That(ex!.Message).Contains("missing manifest field 'native_project'");
     }
@@ -54,7 +54,7 @@ public sealed class PackageFamilyPackerTests
         var family = TestFamily(name: "sdl2-core", managedProject: "src/SDL2.Core/SDL2.Core.csproj", nativeProject: "src/native/SDL2.Core.Native/SDL2.Core.Native.csproj");
 
         var ex = await Assert.ThrowsAsync<CakeException>(async () =>
-            await packer.PackAsync(family, "2.32.0", "abc123sha", "Release", CancellationToken.None));
+            await packer.PackAsync(ManifestFixture.CreateTestManifestConfig(), family, "2.32.0", "abc123sha", "Release", CancellationToken.None));
 
         await Assert.That(ex!.Message).Contains("post-pack validation failed with 3 error(s)");
         // PackageReporter formats errors as "  - [{Code}] {Message}" via ICakeLog.Error.
@@ -74,14 +74,12 @@ public sealed class PackageFamilyPackerTests
             .Returns(call => new DirectoryPath($"C:/repo/artifacts/harvest_output/{(string)call[0]}"));
         pathService.GetReadmeFile().Returns(new FilePath("C:/repo/README.md"));
 
-        var manifest = ManifestFixture.CreateTestManifestConfig();
-
         var dotNetPackInvoker = Substitute.For<IDotNetPackInvoker>();
         dotNetPackInvoker.Pack(Arg.Any<FilePath>(), Arg.Any<DotNetPackInvocation>(), Arg.Any<bool>(), Arg.Any<bool>())
             .Returns(Result<Build.Results.Unit, DotNetPackError>.Success(Build.Results.Unit.Value));
 
         var nativeMetadataGenerator = Substitute.For<INativePackageMetadataGenerator>();
-        nativeMetadataGenerator.GenerateAsync(Arg.Any<PackageFamilyConfig>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        nativeMetadataGenerator.GenerateAsync(Arg.Any<ManifestConfig>(), Arg.Any<PackageFamilyConfig>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
 
         var projectMetadataReader = Substitute.For<IProjectMetadataReader>();
@@ -104,15 +102,14 @@ public sealed class PackageFamilyPackerTests
         harvestReadinessValidator.EnsureReadyAsync(Arg.Any<PackageFamilyConfig>(), Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
 
-        // DependencyRangeNormalizer needs an ICakeContext + ICakeLog + ManifestConfig. Use a minimal world.
+        // DependencyRangeNormalizer needs an ICakeContext + ICakeLog. Use a minimal world.
         var world = FakeCakeWorldV2.CreateWindows();
-        var normalizer = new DependencyRangeNormalizer(world.CakeContext, world.Log, manifest);
+        var normalizer = new DependencyRangeNormalizer(world.CakeContext, world.Log);
 
         var reporter = new PackageReporter(log);
 
         var packer = new PackageFamilyPacker(
             pathService,
-            manifest,
             dotNetPackInvoker,
             nativeMetadataGenerator,
             projectMetadataReader,

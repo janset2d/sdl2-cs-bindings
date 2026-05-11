@@ -1,9 +1,8 @@
 using Build.Host.Paths;
-using Build.DependencyAnalysis;
 using Build.Data.ProjectMetadata;
+using Build.Targets.Harvest.Services;
 using Build.Targets.PackageConsumerSmoke.Services;
 using Build.Targets.PublishStaging.Services;
-using Build.Data.Manifest.Models;
 using Build.Targets.NativeSmoke.Services;
 using Build.Targets.Package.Services;
 using Cake.Core;
@@ -32,8 +31,8 @@ namespace Build.Tests.Fixtures;
 /// <para>
 /// Tools and target-local services are NSubstitute-backed for interface registrations.
 /// Vcpkg command execution is exercised through Cake tool aliases and fake process
-/// results instead of DI-registered command providers. Scanners live in
-/// <c>Build.DependencyAnalysis</c>, NuGet client in <c>Targets/PublishStaging/Services/</c>,
+/// results instead of DI-registered command providers. Harvest scanners live in
+/// <c>Targets/Harvest/Services/</c>, NuGet client in <c>Targets/PublishStaging/Services/</c>,
 /// .NET runtime env in <c>Targets/PackageConsumerSmoke/Services/</c>, and project metadata
 /// reader in <c>Build.Data.ProjectMetadata</c>.
 /// </para>
@@ -47,7 +46,6 @@ public static class TestHostFixture
         var builder = repoBuilder ?? new FakeRepoBuilder();
         var handles = builder.BuildContextWithHandles();
 
-        var manifest = handles.BuildContext.Manifest;
         var pathService = handles.Paths;
         var runtimeProfile = handles.BuildContext.Runtime;
         var cakeContext = handles.CakeContext;
@@ -64,13 +62,10 @@ public static class TestHostFixture
         services.AddSingleton(cakeContext.Arguments);
         services.AddSingleton(cakeContext.Configuration);
 
-        // Host singletons. Configurations aggregate + DumpbinConfiguration retired in S14;
-        // VcpkgConfiguration retired in S15 (inlined into IRuntimeProfile factory).
+        // Host singletons. Runtime profile is prebuilt by FakeRepoBuilder so target
+        // composition tests do not need to read manifest.json unless the target itself does.
         services.AddSingleton<IPathService>(pathService);
         services.AddSingleton(runtimeProfile);
-        services.AddSingleton(manifest);
-        services.AddSingleton(new RuntimeConfig { Runtimes = manifest.Runtimes });
-        services.AddSingleton(manifest.SystemExclusions);
 
         // Tools / integrations that remain interface-backed in target collaborators.
         // Vcpkg command execution is exercised through Cake tool aliases and FakeCakeWorldV2

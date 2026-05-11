@@ -32,6 +32,11 @@ public sealed class TargetTestHostV2<TTask> where TTask : class, IFrostingTask
 
     public async Task<TargetRunResultV2> RunAsync()
     {
+        if (_manifest is not null)
+        {
+            _world.WithManifestObject(_manifest);
+        }
+
         var services = new ServiceCollection();
 
         // Cake primitives from the fake world
@@ -44,9 +49,8 @@ public sealed class TargetTestHostV2<TTask> where TTask : class, IFrostingTask
         services.AddSingleton(_world.CakeContext.Configuration);
 
         // V2 BuildContext + its sub-parts
-        var buildContext = _world.CreateBuildContext(_manifest);
+        var buildContext = _world.CreateBuildContext();
         services.AddSingleton(buildContext);
-        services.AddSingleton(buildContext.Manifest);
         services.AddSingleton(buildContext.Runtime);
         services.AddSingleton(buildContext.Paths);
         // Configurations aggregate + DumpbinConfiguration retired in S14; VcpkgConfiguration

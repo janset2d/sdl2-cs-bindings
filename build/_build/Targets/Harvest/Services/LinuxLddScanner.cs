@@ -7,18 +7,12 @@ using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 
-namespace Build.DependencyAnalysis;
+namespace Build.Targets.Harvest.Services;
 
-public sealed class LinuxLddScanner : IRuntimeScanner
+public sealed class LinuxLddScanner(ICakeContext context) : IRuntimeScanner
 {
-    private readonly ICakeContext _context;
-    private readonly ICakeLog _log;
-
-    public LinuxLddScanner(ICakeContext context)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _log = context.Log;
-    }
+    private readonly ICakeContext _context = context ?? throw new ArgumentNullException(nameof(context));
+    private readonly ICakeLog _log = context.Log;
 
     public async Task<IReadOnlySet<FilePath>> ScanAsync(FilePath binary, CancellationToken ct = default)
     {
@@ -60,3 +54,5 @@ public sealed class LinuxLddScanner : IRuntimeScanner
         }
     }
 }
+
+#pragma warning restore S2737, CA1031

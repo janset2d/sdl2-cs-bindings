@@ -19,7 +19,6 @@ namespace Build.Targets.Package.Services;
 public sealed class PackageFamilyPacker
 {
     private readonly IPathService _pathService;
-    private readonly ManifestConfig _manifestConfig;
     private readonly IDotNetPackInvoker _dotNetPackInvoker;
     private readonly INativePackageMetadataGenerator _nativePackageMetadataGenerator;
     private readonly IProjectMetadataReader _projectMetadataReader;
@@ -30,7 +29,6 @@ public sealed class PackageFamilyPacker
 
     public PackageFamilyPacker(
         IPathService pathService,
-        ManifestConfig manifestConfig,
         IDotNetPackInvoker dotNetPackInvoker,
         INativePackageMetadataGenerator nativePackageMetadataGenerator,
         IProjectMetadataReader projectMetadataReader,
@@ -40,7 +38,6 @@ public sealed class PackageFamilyPacker
         PackageReporter reporter)
     {
         _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
-        _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
         _dotNetPackInvoker = dotNetPackInvoker ?? throw new ArgumentNullException(nameof(dotNetPackInvoker));
         _nativePackageMetadataGenerator = nativePackageMetadataGenerator ?? throw new ArgumentNullException(nameof(nativePackageMetadataGenerator));
         _projectMetadataReader = projectMetadataReader ?? throw new ArgumentNullException(nameof(projectMetadataReader));
@@ -50,8 +47,15 @@ public sealed class PackageFamilyPacker
         _reporter = reporter ?? throw new ArgumentNullException(nameof(reporter));
     }
 
-    public async Task PackAsync(PackageFamilyConfig family, string version, string headSha, string buildConfiguration, CancellationToken ct)
+    public async Task PackAsync(
+        ManifestConfig manifestConfig,
+        PackageFamilyConfig family,
+        string version,
+        string headSha,
+        string buildConfiguration,
+        CancellationToken ct)
     {
+        ArgumentNullException.ThrowIfNull(manifestConfig);
         ArgumentNullException.ThrowIfNull(family);
         ArgumentException.ThrowIfNullOrWhiteSpace(version);
         ArgumentException.ThrowIfNullOrWhiteSpace(headSha);
@@ -66,7 +70,7 @@ public sealed class PackageFamilyPacker
         await _harvestReadinessValidator.EnsureReadyAsync(family, ct);
 
         // Phase 2: PrepareMetadata — stamp the native payload with G55 machine-readable metadata.
-        await _nativePackageMetadataGenerator.GenerateAsync(family, version, headSha, ct);
+        await _nativePackageMetadataGenerator.GenerateAsync(manifestConfig, family, version, headSha, ct);
 
         // Phase 3: PackAndValidate — dotnet pack, normalize cross-family deps, post-pack guardrails.
         var nativePayloadSource = _pathService.GetHarvestLibraryDir(family.LibraryRef);
@@ -91,7 +95,7 @@ public sealed class PackageFamilyPacker
         ThrowIfPackFailed(family, managedPackResult);
 
         var artifacts = CreateArtifacts(family, version);
-        await _dependencyRangeNormalizer.NormalizeAsync(family, artifacts.ManagedPackage, version, ct);
+        await _dependencyRangeNormalizer.NormalizeAsync(manifestConfig, family, artifacts.ManagedPackage, version, ct);
 
         var metadataResult = _projectMetadataReader.Read(managedProjectPath);
         if (metadataResult.IsFailure)
@@ -106,7 +110,7 @@ public sealed class PackageFamilyPacker
             version,
             headSha,
             metadataResult.Value,
-            _manifestConfig,
+            manifestConfig,
             _pathService.GetReadmeFile());
 
         _reporter.ReportValidationDiagnostics(family, report);

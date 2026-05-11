@@ -7,7 +7,7 @@ using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 
-namespace Build.DependencyAnalysis;
+namespace Build.Targets.Harvest.Services;
 
 public class MacOtoolScanner : IRuntimeScanner
 {
@@ -78,7 +78,7 @@ public class MacOtoolScanner : IRuntimeScanner
         // @rpath: Try to resolve relative to binary's directory
         if (libPath.StartsWith("@rpath/", StringComparison.Ordinal))
         {
-            var relativePath = libPath.Substring("@rpath/".Length);
+            var relativePath = libPath["@rpath/".Length..];
             var binaryDir = binary.GetDirectory();
             var resolvedPath = binaryDir.CombineWithFilePath(relativePath);
 
@@ -98,7 +98,7 @@ public class MacOtoolScanner : IRuntimeScanner
         // @loader_path: Resolve relative to the binary's directory
         if (libPath.StartsWith("@loader_path/", StringComparison.Ordinal))
         {
-            var relativePath = libPath.Substring("@loader_path/".Length);
+            var relativePath = libPath["@loader_path/".Length..];
             var binaryDir = binary.GetDirectory();
             var resolvedPath = binaryDir.CombineWithFilePath(relativePath);
 
@@ -111,7 +111,7 @@ public class MacOtoolScanner : IRuntimeScanner
         // @executable_path: For now, treat similar to @loader_path
         if (libPath.StartsWith("@executable_path/", StringComparison.Ordinal))
         {
-            var relativePath = libPath.Substring("@executable_path/".Length);
+            var relativePath = libPath["@executable_path/".Length..];
             var binaryDir = binary.GetDirectory();
             var resolvedPath = binaryDir.CombineWithFilePath(relativePath);
 
@@ -124,3 +124,5 @@ public class MacOtoolScanner : IRuntimeScanner
         return null;
     }
 }
+
+#pragma warning restore S2737, CA1031

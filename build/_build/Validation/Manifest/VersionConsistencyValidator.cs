@@ -1,4 +1,3 @@
-using Build.Data.Manifest;
 using Build.Data.Manifest.Models;
 using Build.Validation.Models;
 using NuGet.Versioning;

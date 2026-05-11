@@ -1,7 +1,5 @@
 using Build.Data.Harvest;
-using Build.Harvesting;
 using Build.Host.Cake;
-using Build.DependencyAnalysis;
 using Build.Data;
 using Build.Data.Manifest.Models;
 using Build.Results;
@@ -171,7 +169,7 @@ public sealed class HarvestTaskScenarioTests
 
         var walkerStub = StubWalkerSuccess();
         var leakStub = Substitute.For<IHybridStaticLeakValidator>();
-        leakStub.Validate(Arg.Any<BinaryClosure>(), Arg.Any<LibraryManifest>())
+        leakStub.Validate(Arg.Any<BinaryClosure>(), Arg.Any<LibraryManifest>(), Arg.Any<string>(), Arg.Any<ValidationMode>())
             .Returns(new ValidationReport([
                 new ValidationCheck("LeakCheck", ValidationSeverity.Error, "leak: zlib1.dll leaks transitive dep"),
             ]));
@@ -236,7 +234,7 @@ public sealed class HarvestTaskScenarioTests
     private static IHybridStaticLeakValidator StubLeakValidatorClean()
     {
         var leak = Substitute.For<IHybridStaticLeakValidator>();
-        leak.Validate(Arg.Any<BinaryClosure>(), Arg.Any<LibraryManifest>())
+        leak.Validate(Arg.Any<BinaryClosure>(), Arg.Any<LibraryManifest>(), Arg.Any<string>(), Arg.Any<ValidationMode>())
             .Returns(ValidationReport.Empty);
         return leak;
     }
@@ -245,7 +243,7 @@ public sealed class HarvestTaskScenarioTests
     {
         var planner = Substitute.For<IArtifactPlanner>();
         var plan = new DeploymentPlan([], statistics);
-        planner.CreatePlanAsync(Arg.Any<LibraryManifest>(), Arg.Any<BinaryClosure>(), Arg.Any<DirectoryPath>(), Arg.Any<CancellationToken>())
+        planner.CreatePlanAsync(Arg.Any<LibraryManifest>(), Arg.Any<BinaryClosure>(), Arg.Any<DirectoryPath>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(Result<DeploymentPlan, ArtifactPlannerError>.Success(plan));
         return planner;
     }

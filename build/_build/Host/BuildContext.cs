@@ -1,6 +1,5 @@
 using Build.Host.Paths;
-using Build.Data.Manifest.Models;
-using Build.Runtime;
+using Build.Host.Runtime;
 using Cake.Core;
 using Cake.Core.IO;
 using Cake.Frosting;
@@ -9,11 +8,10 @@ namespace Build.Host;
 
 /// <summary>
 /// Cake/Frosting invocation state for the build host. Carries repo / artifact paths, the
-/// runtime/RID profile, the loaded manifest, and named CLI properties parsed from the
-/// invocation. The surface is intentionally narrow: data + ambient Cake API, never a
-/// service locator. Behavior lives under <c>Targets/&lt;CakeTargetName&gt;/</c> per ADR-002 §4;
+/// runtime/RID profile, and named CLI properties parsed from the invocation. The surface is intentionally narrow: data + ambient Cake API, never a
+/// service locator. Behavior lives under <c>Targets/&lt;CakeTargetName&gt;/</c>;
 /// cross-cutting validators under root <c>Validation/</c>; file-backed repositories under
-/// root <c>Repositories/</c>; Cake tool wrappers under <c>Tools/</c>.
+/// root <c>Data/</c>; Cake tool wrappers under <c>Tools/</c>.
 /// </summary>
 public sealed class BuildContext : FrostingContext
 {
@@ -26,17 +24,10 @@ public sealed class BuildContext : FrostingContext
     private readonly IReadOnlyList<string> _dlls;
     private readonly IReadOnlyList<string> _libraries;
 
-    public BuildContext(
-        ICakeContext context,
-        IPathService pathService,
-        IRuntimeProfile runtimeProfile,
-        ManifestConfig manifest,
-        ParsedArguments parsedArguments)
-        : base(context)
+    public BuildContext(ICakeContext context, IPathService pathService, IRuntimeProfile runtimeProfile, ParsedArguments parsedArguments) : base(context)
     {
         Paths = pathService ?? throw new ArgumentNullException(nameof(pathService));
         Runtime = runtimeProfile ?? throw new ArgumentNullException(nameof(runtimeProfile));
-        Manifest = manifest ?? throw new ArgumentNullException(nameof(manifest));
 
         ArgumentNullException.ThrowIfNull(parsedArguments);
 
@@ -57,13 +48,6 @@ public sealed class BuildContext : FrostingContext
 
     /// <summary>Active RID profile (RID, triplet, system-exclusion list, host-vs-target invariants).</summary>
     public IRuntimeProfile Runtime { get; }
-
-    /// <summary>
-    /// Loaded <c>build/manifest.json</c> as data. Read-only access only;
-    /// helpers like <c>ResolveConcreteFamilies()</c> live in extension methods (root concept)
-    /// extensions, not on this carrier.
-    /// </summary>
-    public ManifestConfig Manifest { get; }
 
     // ── Named CLI properties (ADR-002 §6) ──
 
