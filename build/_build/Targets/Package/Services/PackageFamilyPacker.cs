@@ -1,5 +1,5 @@
 using Build.Host.Paths;
-using Build.Data.Manifest;
+using Build.Data.Manifest.Models;
 using Build.Data.ProjectMetadata;
 using Build.Results;
 using Build.Targets.Package.Models;

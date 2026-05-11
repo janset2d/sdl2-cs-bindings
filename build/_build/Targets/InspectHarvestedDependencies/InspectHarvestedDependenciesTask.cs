@@ -1,4 +1,5 @@
 using Build.Data.Manifest;
+using Build.Data.Manifest.Models;
 using Build.Host;
 using Build.Runtime;
 using Build.Targets.InspectHarvestedDependencies.Services;

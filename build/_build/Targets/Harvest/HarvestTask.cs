@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Build.Data.Harvest;
 using Build.Host;
-using Build.Data.Manifest;
+using Build.Data.Manifest.Models;
 using Build.Targets.Harvest.Reporting;
 using Build.Targets.Harvest.Services;
 using Build.Validation.Harvesting;

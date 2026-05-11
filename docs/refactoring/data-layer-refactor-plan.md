@@ -357,8 +357,8 @@ Any remaining hits must be intentional and documented, otherwise removed.
 
 - Move harvest JSON contract models to `Data\Harvest`.
 - Add `IHarvestManifestRepository`.
-- Move rid-status loading and harvest manifest/temp summary writing out of `HarvestArtifactMerger`.
-- Keep manifest aggregation in `HarvestArtifactMerger`.
+- Move rid-status loading and harvest manifest/temp summary writing out of the old merger helper.
+- Keep manifest aggregation task-local in `ConsolidateHarvestTask`.
 - Keep license union and staged swapping target-local.
 
 **How:**
@@ -371,10 +371,10 @@ Task<HarvestManifest> LoadManifestAsync(string libraryName, CancellationToken ct
 Task WriteManifestTempAsync(string libraryName, HarvestManifest manifest, CancellationToken ct = default);
 ```
 
-`HarvestArtifactMerger` should become a pure aggregator:
+Manifest aggregation should remain a private static helper on `ConsolidateHarvestTask`:
 
 ```csharp
-public HarvestManifest BuildManifest(
+private static HarvestManifest BuildManifest(
     string libraryName,
     IReadOnlyList<RidHarvestStatus> ridStatuses,
     ConsolidationState consolidationState)
@@ -385,14 +385,14 @@ public HarvestManifest BuildManifest(
 ```text
 repository.LoadRidStatusesAsync
   -> licenseWriter.WriteUnionAsync
-  -> merger.BuildManifest
+  -> BuildManifest
   -> repository.WriteManifestTempAsync
   -> staged swaps
 ```
 
 **Acceptance:**
 
-- `HarvestArtifactMerger` no longer injects `ICakeContext` or `IPathService`.
+- No standalone `HarvestArtifactMerger` collaborator remains unless aggregation gains reuse or independent test pressure.
 - `LicenseUnionWriter` remains target-local.
 - `StagedArtifactSwapper` remains target-local.
 - Repository tests cover invalid JSON, empty/missing status directories, successful status read, manifest read, and temp write parity.

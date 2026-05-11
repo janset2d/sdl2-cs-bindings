@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
-using Build.Data.Manifest;
+using Build.Data.Harvest;
+using Build.Data.Manifest.Models;
 using Build.Tests.Fixtures;
 using Build.Validation.Packaging;
 using Cake.Core;
@@ -136,7 +137,8 @@ public sealed class HarvestReadinessValidatorTests
     private static HarvestReadinessValidator NewValidator(FakeCakeWorldV2 world)
     {
         var context = world.CreateBuildContext();
-        return new HarvestReadinessValidator(world.CakeContext, context.Paths, world.Log);
+        var harvestManifestRepository = new HarvestManifestRepository(world.CakeContext, context.Paths);
+        return new HarvestReadinessValidator(world.CakeContext, context.Paths, harvestManifestRepository, world.Log);
     }
 
     private static PackageFamilyConfig TestFamily() => new()

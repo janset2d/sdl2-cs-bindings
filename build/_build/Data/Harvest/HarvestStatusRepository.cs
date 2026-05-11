@@ -1,4 +1,3 @@
-using Build.Harvesting;
 using Build.Host.Cake;
 using Build.Host.Paths;
 using Build.Runtime;
@@ -26,10 +25,7 @@ public interface IHarvestStatusRepository
 }
 
 /// <inheritdoc />
-public sealed class HarvestStatusRepository(
-    ICakeContext cakeContext,
-    IPathService pathService,
-    IRuntimeProfile runtimeProfile) : IHarvestStatusRepository
+public sealed class HarvestStatusRepository(ICakeContext cakeContext, IPathService pathService, IRuntimeProfile runtimeProfile) : IHarvestStatusRepository
 {
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
     private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));

@@ -1,5 +1,5 @@
 using System.Collections.Immutable;
-using Build.Data.Manifest;
+using Build.Data.Manifest.Models;
 using Build.Targets.Package.Services;
 using Build.Tests.Fixtures;
 using Build.Tests.Fixtures.Builders;

@@ -1,4 +1,4 @@
-using Build.Data.Manifest;
+using Build.Data.Manifest.Models;
 using Build.Runtime;
 using Build.Targets.Harvest.Models;
 using Build.Targets.Harvest.Services;

@@ -1,4 +1,4 @@
-namespace Build.Data.Manifest;
+namespace Build.Data.Manifest.Models;
 
 /// <summary>
 /// Controls how dependency policy violations are handled during harvest.

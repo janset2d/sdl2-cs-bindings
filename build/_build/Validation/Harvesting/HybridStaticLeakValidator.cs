@@ -1,5 +1,6 @@
 using Build.Harvesting;
 using Build.Data.Manifest;
+using Build.Data.Manifest.Models;
 using Build.Results;
 using Build.Runtime;
 using Cake.Core.IO;

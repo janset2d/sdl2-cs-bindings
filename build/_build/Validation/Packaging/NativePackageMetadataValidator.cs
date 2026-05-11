@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Text.Json;
 using Build.Host.Cake;
-using Build.Data.Manifest;
+using Build.Data.Manifest.Models;
 using Build.Targets.Package.Models;
 using Build.Results;
 using Cake.Core.IO;

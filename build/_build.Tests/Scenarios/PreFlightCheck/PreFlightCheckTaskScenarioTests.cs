@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
-using Build.Data.Manifest;
 using Build.Data;
+using Build.Data.Manifest.Models;
 using Build.Targets.PreFlightCheck;
 using Build.Tests.Fixtures;
 using Build.Validation;

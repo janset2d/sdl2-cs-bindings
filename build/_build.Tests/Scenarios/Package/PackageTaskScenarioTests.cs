@@ -1,7 +1,7 @@
 using Build.Data.ProjectMetadata;
-using Build.Data.Manifest;
 using Build.Targets.Package.Models;
 using Build.Data;
+using Build.Data.Manifest.Models;
 using Build.Results;
 using Build.Targets.Package;
 using Build.Targets.Package.Services;

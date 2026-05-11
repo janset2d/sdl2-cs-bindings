@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using System.Text.Json;
 using Build.Host.Cake;
-using Build.Data.Manifest;
+using Build.Data.Manifest.Models;
 
 namespace Build.Tests.Fixtures.Seeders;
 

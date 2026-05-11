@@ -1,6 +1,6 @@
 using Build.Data.Versions;
 using Build.Host;
-using Build.Data.Manifest;
+using Build.Data.Manifest.Models;
 using Build.Targets.Package.Reporting;
 using Build.Targets.Package.Services;
 using Build.Validation.Versioning;

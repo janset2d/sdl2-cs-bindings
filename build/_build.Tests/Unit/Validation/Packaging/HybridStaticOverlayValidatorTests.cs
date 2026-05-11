@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
+using Build.Data.Manifest.Models;
 using Build.Host.Paths;
-using Build.Data.Manifest;
 using Build.Tests.Fixtures;
 using Build.Validation.Packaging;
 using NSubstitute;

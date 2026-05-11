@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 using Build.Host;
 using Build.Host.Cake;
 using Build.Host.Paths;
-using Build.Data.Manifest;
+using Build.Data.Manifest.Models;
 using Build.Targets.GenerateMatrix.Models;
 using Cake.Core;
 using Cake.Core.Diagnostics;

@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 using System.Text.Json;
-using Build.Data.Manifest;
+using Build.Data.Manifest.Models;
 using Build.Targets.GenerateMatrix;
 using Build.Targets.GenerateMatrix.Models;
 using Build.Tests.Fixtures;

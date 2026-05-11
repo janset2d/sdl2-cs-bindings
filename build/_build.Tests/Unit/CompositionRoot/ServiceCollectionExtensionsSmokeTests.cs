@@ -46,6 +46,7 @@ public sealed class ServiceCollectionExtensionsSmokeTests
         // target-local PreflightReporter — Cake discovers the task class via [TaskName].
         await AssertAllRegisteredTypesResolve(services =>
         {
+            services.AddData();
             services.AddValidators();
             services.AddPreFlightCheck();
         });
@@ -73,9 +74,11 @@ public sealed class ServiceCollectionExtensionsSmokeTests
     public async Task AddNativeSmoke_Should_Register_All_Collaborator_Types()
     {
         // AddNativeSmoke registers IMsvcDevEnvironment only after Phase 5 inline. Task pulls
-        // INativeSmokePreconditionsValidator from AddValidators(); other deps from host blocks.
+        // INativeSmokePreconditionsValidator from AddValidators(); AddData closes validators
+        // that read file-backed contracts, matching Program.cs composition order.
         await AssertAllRegisteredTypesResolve(services =>
         {
+            services.AddData();
             services.AddValidators();
             services.AddNativeSmoke();
         });
@@ -84,10 +87,12 @@ public sealed class ServiceCollectionExtensionsSmokeTests
     [Test]
     public async Task AddConsolidateHarvest_Should_Register_All_Collaborator_Types()
     {
+        // ConsolidateHarvestTask reads rid-status/manifest data through AddData repositories.
         // ConsolidateHarvestReporter takes IAnsiConsole — see AddHarvest smoke for rationale.
         await AssertAllRegisteredTypesResolve(services =>
         {
             services.AddSingleton(Substitute.For<IAnsiConsole>());
+            services.AddData();
             services.AddConsolidateHarvest();
         });
     }
@@ -112,6 +117,7 @@ public sealed class ServiceCollectionExtensionsSmokeTests
         await AssertAllRegisteredTypesResolve(services =>
         {
             services.AddSingleton(Substitute.For<IAnsiConsole>());
+            services.AddData();
             services.AddValidators();
             services.AddPackage();
             services.AddPackageConsumerSmoke();

@@ -1,7 +1,6 @@
-using Build.Host.Cake;
-using Build.Harvesting;
+using Build.Data.Harvest;
 using Build.Host.Paths;
-using Build.Data.Manifest;
+using Build.Data.Manifest.Models;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;
@@ -22,10 +21,15 @@ public interface IHarvestReadinessValidator
 }
 
 /// <inheritdoc />
-public sealed class HarvestReadinessValidator(ICakeContext cakeContext, IPathService pathService, ICakeLog log) : IHarvestReadinessValidator
+public sealed class HarvestReadinessValidator(
+    ICakeContext cakeContext,
+    IPathService pathService,
+    IHarvestManifestRepository harvestManifestRepository,
+    ICakeLog log) : IHarvestReadinessValidator
 {
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
     private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
+    private readonly IHarvestManifestRepository _harvestManifestRepository = harvestManifestRepository ?? throw new ArgumentNullException(nameof(harvestManifestRepository));
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
 
     public async Task EnsureReadyAsync(PackageFamilyConfig family, CancellationToken ct)
@@ -40,7 +44,7 @@ public sealed class HarvestReadinessValidator(ICakeContext cakeContext, IPathSer
                 $"Package task cannot pack family '{family.Name}' because harvest manifest '{manifestPath.FullPath}' is missing. Run Harvest + ConsolidateHarvest for library '{family.LibraryRef}' first.");
         }
 
-        var harvestManifest = await _cakeContext.ToJsonAsync<HarvestManifest>(manifestPath);
+        var harvestManifest = await _harvestManifestRepository.LoadManifestAsync(family.LibraryRef, ct).ConfigureAwait(false);
         ct.ThrowIfCancellationRequested();
 
         AssertConsolidationReceiptValid(family, manifestPath, harvestManifest);

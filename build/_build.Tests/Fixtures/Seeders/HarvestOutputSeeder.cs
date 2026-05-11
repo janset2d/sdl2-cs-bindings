@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Build.Harvesting;
+using Build.Data.Harvest;
 using Build.Host.Cake;
 
 namespace Build.Tests.Fixtures.Seeders;

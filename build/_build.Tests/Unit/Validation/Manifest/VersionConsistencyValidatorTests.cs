@@ -1,4 +1,5 @@
 using Build.Data.Manifest;
+using Build.Data.Manifest.Models;
 using Build.Tests.Fixtures;
 using Build.Validation.Manifest;
 

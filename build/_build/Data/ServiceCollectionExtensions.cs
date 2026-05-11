@@ -34,6 +34,7 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddSingleton<IHarvestStatusRepository, HarvestStatusRepository>();
+        services.AddSingleton<IHarvestManifestRepository, HarvestManifestRepository>();
 
         return services;
     }

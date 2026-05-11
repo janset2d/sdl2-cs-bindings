@@ -1,8 +1,9 @@
+using Build.Data.Harvest;
 using Build.Harvesting;
 using Build.Host.Cake;
 using Build.DependencyAnalysis;
-using Build.Data.Manifest;
 using Build.Data;
+using Build.Data.Manifest.Models;
 using Build.Results;
 using Build.Targets.Harvest;
 using Build.Targets.Harvest.Models;

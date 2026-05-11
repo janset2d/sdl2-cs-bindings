@@ -3,6 +3,7 @@ using Build.Host;
 using Build.Host.Cake;
 using Build.Host.Paths;
 using Build.Data.Manifest;
+using Build.Data.Manifest.Models;
 using Build.Runtime;
 using Cake.Core;
 using Cake.Core.Configuration;

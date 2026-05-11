@@ -1,0 +1,15 @@
+{
+  "library_name": "sdl2-core",
+  "rid": "win-x64",
+  "triplet": "x64-windows-hybrid",
+  "success": true,
+  "timestamp": "2026-05-09T09:55:00+00:00",
+  "statistics": {
+    "primary_files_count": 1,
+    "runtime_files_count": 0,
+    "license_files_count": 1,
+    "deployed_packages_count": 1,
+    "filtered_packages_count": 0,
+    "deployment_strategy": "DirectCopy"
+  }
+}

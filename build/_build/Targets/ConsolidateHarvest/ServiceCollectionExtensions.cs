@@ -5,10 +5,9 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Build.Targets.ConsolidateHarvest;
 
 /// <summary>
-/// Registers the ConsolidateHarvest target's collaborators. Three services + one reporter,
-/// each scoped to a single responsibility (RID-status load + manifest build/write, license
-/// union with divergence detection, atomic file/dir swap) so the task body reads as a
-/// linear staged-replace narrative.
+/// Registers the ConsolidateHarvest target's collaborators. File-backed manifest IO is owned
+/// by Data; this target keeps license union, atomic file/dir swap, and reporting services so
+/// the task body reads as a linear staged-replace narrative.
 /// </summary>
 public static class ServiceCollectionExtensions
 {
@@ -16,7 +15,6 @@ public static class ServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.AddSingleton<HarvestArtifactMerger>();
         services.AddSingleton<LicenseUnionWriter>();
         services.AddSingleton<StagedArtifactSwapper>();
         services.AddSingleton<ConsolidateHarvestReporter>();

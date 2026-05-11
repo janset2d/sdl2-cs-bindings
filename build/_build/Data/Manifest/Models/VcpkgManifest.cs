@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using System.Text.Json.Serialization;
 
-namespace Build.Data.Manifest;
+namespace Build.Data.Manifest.Models;
 
 public sealed record VcpkgManifest
 {

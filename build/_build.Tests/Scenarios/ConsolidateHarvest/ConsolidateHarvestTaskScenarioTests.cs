@@ -1,5 +1,6 @@
 using System.Text.Json;
-using Build.Harvesting;
+using Build.Data;
+using Build.Data.Harvest;
 using Build.Host.Cake;
 using Build.Targets.ConsolidateHarvest;
 using Build.Tests.Fixtures;
@@ -49,7 +50,7 @@ public sealed class ConsolidateHarvestTaskScenarioTests
     [Test]
     public async Task RunAsync_Should_Skip_Library_With_No_Rid_Status_Files()
     {
-        // Library dir exists but rid-status/ is empty → merger returns null → reporter logs
+        // Library dir exists but rid-status/ is empty -> repository returns null -> reporter logs
         // skip + info, no failure aggregation.
         var world = FakeCakeWorldV2.CreateWindows()
             .WithTextFile($"artifacts/harvest_output/{LibraryName}/.placeholder", string.Empty);
@@ -181,6 +182,8 @@ public sealed class ConsolidateHarvestTaskScenarioTests
     private static TargetTestHostV2<ConsolidateHarvestTask> CreateHost(FakeCakeWorldV2 world)
     {
         var host = new TargetTestHostV2<ConsolidateHarvestTask>(world);
-        return host.WithServices(services => services.AddConsolidateHarvest());
+        return host.WithServices(services => services
+            .AddData()
+            .AddConsolidateHarvest());
     }
 }

@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Build.Harvesting;
+namespace Build.Data.Harvest;
 
 /// <summary>
 /// Represents the status of a harvest operation for a specific library and RID combination.
@@ -119,8 +119,7 @@ public record ConsolidationState
     /// Empty when all contributing RIDs agreed on byte-identical license text for every
     /// (package, fileName). Non-empty entries indicate attribution variance that operators
     /// should be aware of — both the canonical unsuffixed path and per-RID suffixed
-    /// variants are omitted / written according to the divergence rules in
-    /// <c>ConsolidateHarvestTask.WriteConsolidatedEntryAsync</c>.
+    /// variants are omitted / written according to the consolidation writer's divergence rules.
     /// </summary>
     [JsonPropertyName("divergent_licenses")]
     public required IReadOnlyList<DivergentLicense> DivergentLicenses { get; init; }

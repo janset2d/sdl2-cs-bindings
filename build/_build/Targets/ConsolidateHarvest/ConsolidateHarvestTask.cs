@@ -4,6 +4,7 @@
 // funnels into the failures list; the operator gets a complete picture across all libraries.
 #pragma warning disable CA1031
 
+using Build.Data.Harvest;
 using Build.Host;
 using Build.Host.Paths;
 using Build.Targets.ConsolidateHarvest.Reporting;
@@ -18,21 +19,21 @@ namespace Build.Targets.ConsolidateHarvest;
 /// Cake target that merges the per-RID harvest receipts produced by Harvest into a single
 /// per-library <c>harvest-manifest.json</c> + <c>licenses/_consolidated/</c> tree. Owns the
 /// staged-replace orchestration directly: precondition gate (harvest output present), then
-/// per-library walk through merger → license union → manifest write → atomic swap. Failures
+/// per-library walk through status load → license union → manifest write → atomic swap. Failures
 /// aggregate across libraries so the operator sees the full picture in one report. Direct
 /// successor to the retired pre-migration ConsolidateHarvestPipeline.
 /// </summary>
 [TaskName("ConsolidateHarvest")]
 [TaskDescription("Merges per-RID harvest receipts into per-library harvest-manifest.json + consolidated license tree")]
 public sealed class ConsolidateHarvestTask(
-    HarvestArtifactMerger merger,
+    IHarvestManifestRepository harvestManifestRepository,
     LicenseUnionWriter licenseWriter,
     StagedArtifactSwapper swapper,
     ConsolidateHarvestReporter reporter,
     ICakeContext cakeContext,
     IPathService pathService) : AsyncFrostingTask<BuildContext>
 {
-    private readonly HarvestArtifactMerger _merger = merger ?? throw new ArgumentNullException(nameof(merger));
+    private readonly IHarvestManifestRepository _harvestManifestRepository = harvestManifestRepository ?? throw new ArgumentNullException(nameof(harvestManifestRepository));
     private readonly LicenseUnionWriter _licenseWriter = licenseWriter ?? throw new ArgumentNullException(nameof(licenseWriter));
     private readonly StagedArtifactSwapper _swapper = swapper ?? throw new ArgumentNullException(nameof(swapper));
     private readonly ConsolidateHarvestReporter _reporter = reporter ?? throw new ArgumentNullException(nameof(reporter));
@@ -88,7 +89,7 @@ public sealed class ConsolidateHarvestTask(
 
         try
         {
-            var ridStatuses = await _merger.LoadRidStatusesAsync(libraryName).ConfigureAwait(false);
+            var ridStatuses = await _harvestManifestRepository.LoadRidStatusesAsync(libraryName).ConfigureAwait(false);
             if (ridStatuses is null)
             {
                 _reporter.SkipLibraryNoRidStatus(libraryName, "No RID status files found");
@@ -100,8 +101,8 @@ public sealed class ConsolidateHarvestTask(
             // Phase 1 of the staged replace: write everything to .tmp siblings so the old
             // _consolidated/ + harvest-manifest + harvest-summary survive any mid-flight crash.
             var consolidationState = await _licenseWriter.WriteUnionAsync(libraryName, ridStatuses).ConfigureAwait(false);
-            var manifest = HarvestArtifactMerger.BuildManifest(libraryName, ridStatuses, consolidationState);
-            await _merger.WriteManifestTempAsync(libraryName, manifest).ConfigureAwait(false);
+            var manifest = BuildManifest(libraryName, ridStatuses, consolidationState);
+            await _harvestManifestRepository.WriteManifestTempAsync(libraryName, manifest).ConfigureAwait(false);
 
             // Phase 2: atomic swap each .tmp into its final location. Crash between operations
             // leaves the workspace in a recoverable state — the next Consolidate run sees the
@@ -125,6 +126,31 @@ public sealed class ConsolidateHarvestTask(
             CleanupTempArtifacts(libraryName);
             return ex.Message;
         }
+    }
+
+    private static HarvestManifest BuildManifest(string libraryName, IReadOnlyList<RidHarvestStatus> ridStatuses, ConsolidationState consolidationState)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(libraryName);
+        ArgumentNullException.ThrowIfNull(ridStatuses);
+        ArgumentNullException.ThrowIfNull(consolidationState);
+
+        var successfulRids = ridStatuses.Count(r => r.Success);
+        var failedRids = ridStatuses.Count - successfulRids;
+
+        return new HarvestManifest
+        {
+            LibraryName = libraryName,
+            GeneratedTimestamp = DateTimeOffset.UtcNow,
+            Rids = ridStatuses,
+            Summary = new HarvestSummary
+            {
+                TotalRids = ridStatuses.Count,
+                SuccessfulRids = successfulRids,
+                FailedRids = failedRids,
+                SuccessRate = ridStatuses.Count > 0 ? (double)successfulRids / ridStatuses.Count : 0.0,
+            },
+            Consolidation = consolidationState,
+        };
     }
 
     /// <summary>

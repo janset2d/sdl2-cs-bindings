@@ -1,4 +1,4 @@
-namespace Build.Host;
+namespace Build.DependencyAnalysis;
 
 public static class Rids
 {

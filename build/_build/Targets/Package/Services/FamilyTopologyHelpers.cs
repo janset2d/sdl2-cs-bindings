@@ -1,4 +1,4 @@
-using Build.Data.Manifest;
+using Build.Data.Manifest.Models;
 
 namespace Build.Targets.Package.Services;
 

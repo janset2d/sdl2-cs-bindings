@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using Build.Targets.NativeSmoke.Services;
 using Cake.Core.Diagnostics;
 
 namespace Build.Targets.PackageConsumerSmoke.Services;
