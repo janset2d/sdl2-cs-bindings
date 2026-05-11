@@ -1,8 +1,6 @@
-using Build.Host.Cake;
 using Build.Host.Paths;
+using Build.Data.NativePackageMetadata;
 using Build.Data.Manifest.Models;
-using Build.Targets.Package.Models;
-using Cake.Core;
 
 namespace Build.Targets.Package.Services;
 
@@ -21,11 +19,16 @@ public interface INativePackageMetadataGenerator
 }
 
 /// <inheritdoc />
-public sealed class NativePackageMetadataGenerator(ManifestConfig manifestConfig, IPathService pathService, ICakeContext cakeContext) : INativePackageMetadataGenerator
+public sealed class NativePackageMetadataGenerator(
+    ManifestConfig manifestConfig,
+    IPathService pathService,
+    INativePackageMetadataRepository nativePackageMetadataRepository) : INativePackageMetadataGenerator
 {
     private readonly ManifestConfig _manifestConfig = manifestConfig ?? throw new ArgumentNullException(nameof(manifestConfig));
     private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
-    private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
+
+    private readonly INativePackageMetadataRepository _nativePackageMetadataRepository =
+        nativePackageMetadataRepository ?? throw new ArgumentNullException(nameof(nativePackageMetadataRepository));
 
     public async Task GenerateAsync(
         PackageFamilyConfig family,
@@ -37,8 +40,7 @@ public sealed class NativePackageMetadataGenerator(ManifestConfig manifestConfig
         ArgumentException.ThrowIfNullOrWhiteSpace(familyVersion);
         ArgumentException.ThrowIfNullOrWhiteSpace(buildCommitSha);
 
-        var library = _manifestConfig.LibraryManifests.SingleOrDefault(
-            candidate => string.Equals(candidate.Name, family.LibraryRef, StringComparison.OrdinalIgnoreCase));
+        var library = _manifestConfig.LibraryManifests.SingleOrDefault(candidate => string.Equals(candidate.Name, family.LibraryRef, StringComparison.OrdinalIgnoreCase));
 
         if (library is null)
         {
@@ -53,7 +55,7 @@ public sealed class NativePackageMetadataGenerator(ManifestConfig manifestConfig
             .Order(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        var metadata = new NativePackageMetadata
+        var metadata = new NativePackageMetadataDocument
         {
             JansetFamilyVersion = familyVersion,
             FamilyIdentifier = family.Name,
@@ -65,7 +67,7 @@ public sealed class NativePackageMetadataGenerator(ManifestConfig manifestConfig
         };
 
         var targetPath = _pathService.GetHarvestLibraryNativeMetadataFile(family.LibraryRef);
-        await _cakeContext.WriteJsonAsync(targetPath, metadata);
+        await _nativePackageMetadataRepository.WriteAsync(targetPath, metadata, ct).ConfigureAwait(false);
 
         ct.ThrowIfCancellationRequested();
     }

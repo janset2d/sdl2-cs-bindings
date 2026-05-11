@@ -1,5 +1,6 @@
 using Build.Data.Harvest;
 using Build.Data.Manifest;
+using Build.Data.NativePackageMetadata;
 using Build.Data.Versions;
 using Build.Host.Paths;
 using Cake.Core;
@@ -35,6 +36,7 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<IHarvestStatusRepository, HarvestStatusRepository>();
         services.AddSingleton<IHarvestManifestRepository, HarvestManifestRepository>();
+        services.AddSingleton<INativePackageMetadataRepository, NativePackageMetadataRepository>();
 
         return services;
     }

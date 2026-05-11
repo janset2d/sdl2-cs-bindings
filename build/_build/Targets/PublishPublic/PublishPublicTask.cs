@@ -12,7 +12,6 @@ public sealed class PublishPublicTask : AsyncFrostingTask<BuildContext>
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        throw new CakeException(
-            "PublishPublic is not implemented yet. Staging-validated artifacts will promote to nuget.org via a separate workflow.");
+        throw new CakeException("PublishPublic is not implemented yet. Staging-validated artifacts will promote to nuget.org via a separate workflow.");
     }
 }

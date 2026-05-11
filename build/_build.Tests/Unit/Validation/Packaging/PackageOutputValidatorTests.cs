@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text.Json;
+using Build.Data.NativePackageMetadata;
 using Build.Host.Cake;
 using Build.Data.Manifest.Models;
 using Build.Data.ProjectMetadata;
@@ -32,7 +33,7 @@ public sealed class PackageOutputValidatorTests
     private static PackageOutputValidator CreateValidator(FakeCakeWorldV2 world)
         => new(
             world.FileSystem,
-            new NativePackageMetadataValidator(world.FileSystem),
+            new NativePackageMetadataValidator(new NativePackageMetadataRepository(world.CakeContext)),
             new ReadmeMappingTableValidator(world.FileSystem),
             new SatelliteUpperBoundValidator());
 
@@ -490,7 +491,7 @@ public sealed class PackageOutputValidatorTests
         var manifest = ManifestFixture.CreateTestManifestConfig();
         var library = manifest.LibraryManifests.Single(l => string.Equals(l.Name, family.LibraryRef, StringComparison.OrdinalIgnoreCase));
 
-        var metadata = new NativePackageMetadata
+        var metadata = new NativePackageMetadataDocument
         {
             JansetFamilyVersion = familyVersion,
             FamilyIdentifier = family.Name,

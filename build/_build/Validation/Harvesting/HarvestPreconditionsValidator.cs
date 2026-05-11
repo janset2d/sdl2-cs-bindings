@@ -17,10 +17,7 @@ public interface IHarvestPreconditionsValidator
     ValidationReport Validate();
 }
 
-public sealed class HarvestPreconditionsValidator(
-    ICakeContext cakeContext,
-    IPathService pathService,
-    IRuntimeProfile runtimeProfile) : IHarvestPreconditionsValidator
+public sealed class HarvestPreconditionsValidator(ICakeContext cakeContext, IPathService pathService, IRuntimeProfile runtimeProfile) : IHarvestPreconditionsValidator
 {
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
     private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));

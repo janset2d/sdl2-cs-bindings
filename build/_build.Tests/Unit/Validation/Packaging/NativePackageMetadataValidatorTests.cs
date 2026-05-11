@@ -1,9 +1,9 @@
 using System.Collections.Immutable;
 using System.IO.Compression;
 using System.Text.Json;
+using Build.Data.NativePackageMetadata;
 using Build.Host.Cake;
 using Build.Data.Manifest.Models;
-using Build.Targets.Package.Models;
 using Build.Tests.Fixtures;
 using Build.Validation.Packaging;
 using Cake.Core.IO;
@@ -31,7 +31,7 @@ public sealed class NativePackageMetadataValidatorTests
         var packagePath = world.RepoRoot.CombineWithFilePath("artifacts/packages/Janset.SDL2.Core.Native.2.32.0.nupkg");
         SeedNupkg(world, packagePath, ConsistentMetadata(manifest, family, ExpectedFamilyVersion, ExpectedCommit));
 
-        var validator = new NativePackageMetadataValidator(world.FileSystem);
+        var validator = CreateValidator(world);
 
         var result = await validator.ValidateAsync(family, packagePath, ExpectedFamilyVersion, ExpectedCommit, manifest);
 
@@ -47,7 +47,7 @@ public sealed class NativePackageMetadataValidatorTests
         var packagePath = world.RepoRoot.CombineWithFilePath("artifacts/packages/Janset.SDL2.Core.Native.2.32.0.nupkg");
         // No nupkg seeded.
 
-        var validator = new NativePackageMetadataValidator(world.FileSystem);
+        var validator = CreateValidator(world);
 
         var result = await validator.ValidateAsync(family, packagePath, ExpectedFamilyVersion, ExpectedCommit, manifest);
 
@@ -66,7 +66,7 @@ public sealed class NativePackageMetadataValidatorTests
         SeedNupkgWithEntries(world, packagePath, [("package.nuspec", "<package />")]);
         // No janset-native-metadata.json.
 
-        var validator = new NativePackageMetadataValidator(world.FileSystem);
+        var validator = CreateValidator(world);
 
         var result = await validator.ValidateAsync(family, packagePath, ExpectedFamilyVersion, ExpectedCommit, manifest);
 
@@ -82,9 +82,9 @@ public sealed class NativePackageMetadataValidatorTests
         var manifest = ManifestFixture.CreateTestManifestConfig();
         var family = manifest.PackageFamilies.Single(f => f.Name == "sdl2-core");
         var packagePath = world.RepoRoot.CombineWithFilePath("artifacts/packages/Janset.SDL2.Core.Native.2.32.0.nupkg");
-        SeedNupkgWithEntries(world, packagePath, [("janset-native-metadata.json", "{not valid json")]);
+        SeedNupkgWithEntries(world, packagePath, [("janset-native-metadata.json", FixtureLoader.Load("NativePackageMetadata/native-metadata-invalid.json"))]);
 
-        var validator = new NativePackageMetadataValidator(world.FileSystem);
+        var validator = CreateValidator(world);
 
         var result = await validator.ValidateAsync(family, packagePath, ExpectedFamilyVersion, ExpectedCommit, manifest);
 
@@ -103,7 +103,7 @@ public sealed class NativePackageMetadataValidatorTests
         var driftedMetadata = ConsistentMetadata(manifest, family, "9.9.9", ExpectedCommit);
         SeedNupkg(world, packagePath, driftedMetadata);
 
-        var validator = new NativePackageMetadataValidator(world.FileSystem);
+        var validator = CreateValidator(world);
 
         var result = await validator.ValidateAsync(family, packagePath, ExpectedFamilyVersion, ExpectedCommit, manifest);
 
@@ -122,7 +122,7 @@ public sealed class NativePackageMetadataValidatorTests
         var driftedMetadata = ConsistentMetadata(manifest, family, ExpectedFamilyVersion, "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef");
         SeedNupkg(world, packagePath, driftedMetadata);
 
-        var validator = new NativePackageMetadataValidator(world.FileSystem);
+        var validator = CreateValidator(world);
 
         var result = await validator.ValidateAsync(family, packagePath, ExpectedFamilyVersion, ExpectedCommit, manifest);
 
@@ -138,7 +138,7 @@ public sealed class NativePackageMetadataValidatorTests
         var family = manifest.PackageFamilies.Single(f => f.Name == "sdl2-core");
         var packagePath = world.RepoRoot.CombineWithFilePath("artifacts/packages/Janset.SDL2.Core.Native.2.32.0.nupkg");
         var library = manifest.LibraryManifests.Single(l => string.Equals(l.Name, family.LibraryRef, StringComparison.OrdinalIgnoreCase));
-        var driftedMetadata = new NativePackageMetadata
+        var driftedMetadata = new NativePackageMetadataDocument
         {
             JansetFamilyVersion = "9.9.9",                       // mismatch
             FamilyIdentifier = "sdl2-bogus",                     // mismatch
@@ -150,7 +150,7 @@ public sealed class NativePackageMetadataValidatorTests
         };
         SeedNupkg(world, packagePath, driftedMetadata);
 
-        var validator = new NativePackageMetadataValidator(world.FileSystem);
+        var validator = CreateValidator(world);
 
         var result = await validator.ValidateAsync(family, packagePath, ExpectedFamilyVersion, ExpectedCommit, manifest);
 
@@ -160,14 +160,17 @@ public sealed class NativePackageMetadataValidatorTests
         await Assert.That(result.Message).Contains("upstream_library");
     }
 
-    private static NativePackageMetadata ConsistentMetadata(
+    private static NativePackageMetadataValidator CreateValidator(FakeCakeWorldV2 world)
+        => new(new NativePackageMetadataRepository(world.CakeContext));
+
+    private static NativePackageMetadataDocument ConsistentMetadata(
         ManifestConfig manifest,
         PackageFamilyConfig family,
         string familyVersion,
         string commit)
     {
         var library = manifest.LibraryManifests.Single(l => string.Equals(l.Name, family.LibraryRef, StringComparison.OrdinalIgnoreCase));
-        return new NativePackageMetadata
+        return new NativePackageMetadataDocument
         {
             JansetFamilyVersion = familyVersion,
             FamilyIdentifier = family.Name,
@@ -184,7 +187,7 @@ public sealed class NativePackageMetadataValidatorTests
         };
     }
 
-    private static void SeedNupkg(FakeCakeWorldV2 world, FilePath nupkgPath, NativePackageMetadata metadata)
+    private static void SeedNupkg(FakeCakeWorldV2 world, FilePath nupkgPath, NativePackageMetadataDocument metadata)
     {
         SeedNupkgWithEntries(world, nupkgPath,
         [

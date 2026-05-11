@@ -12,12 +12,7 @@ namespace Build.Targets.GenerateMatrix;
 
 [TaskName("GenerateMatrix")]
 [TaskDescription("Emits artifacts/matrix/runtimes.json — the GitHub-Actions matrix derived from manifest.runtimes[]")]
-public sealed class GenerateMatrixTask(
-    ICakeContext cakeContext,
-    ICakeLog log,
-    IPathService pathService,
-    ManifestConfig manifestConfig)
-    : AsyncFrostingTask<BuildContext>
+public sealed class GenerateMatrixTask(ICakeContext cakeContext, ICakeLog log, IPathService pathService, ManifestConfig manifestConfig) : AsyncFrostingTask<BuildContext>
 {
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));

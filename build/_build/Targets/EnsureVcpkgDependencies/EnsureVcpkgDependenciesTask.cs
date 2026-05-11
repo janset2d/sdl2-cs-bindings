@@ -36,8 +36,8 @@ public sealed class EnsureVcpkgDependenciesTask(
         {
             Triplet = _runtimeProfile.Triplet,
             ManifestRoot = context.Paths.RepoRoot,
-            OverlayTriplets = new List<DirectoryPath> { context.Paths.VcpkgOverlayTripletsDir },
-            OverlayPorts = new List<DirectoryPath> { context.Paths.VcpkgOverlayPortsDir },
+            OverlayTriplets = [context.Paths.VcpkgOverlayTripletsDir],
+            OverlayPorts = [context.Paths.VcpkgOverlayPortsDir],
         };
 
         context.VcpkgInstall(installSettings);

@@ -132,7 +132,7 @@ build\_build\
       HarvestStatusRepository.cs
       HarvestManifestRepository.cs
     NativePackageMetadata\
-      NativePackageMetadata.cs
+      NativePackageMetadataDocument.cs
       NativePackageMetadataError.cs
       NativePackageMetadataRepository.cs
 
@@ -203,7 +203,7 @@ Both test classes may live in one test file when that keeps the repository contr
 | `harvest-manifest.json` models | `Harvesting\HarvestManifest.cs` | `Data\Harvest\` | Consolidated persisted harvest contract. |
 | `HarvestStatusRepository` | `Repositories\` | `Data\Harvest\` | Owner of per-RID status writes and invalidation. |
 | `HarvestManifestRepository` | does not exist yet | `Data\Harvest\` | Should own rid-status reads and manifest/summary temp writes. |
-| `janset-native-metadata.json` model | `Targets\Package\Models\NativePackageMetadata.cs` | `Data\NativePackageMetadata\` | Packaged machine-readable metadata contract. |
+| `janset-native-metadata.json` model | `Targets\Package\Models\NativePackageMetadata.cs` | `Data\NativePackageMetadata\NativePackageMetadataDocument.cs` | Packaged machine-readable metadata contract. The data record is named `NativePackageMetadataDocument` to avoid a namespace/type-name conflict. |
 | `NativePackageMetadataRepository` | does not exist yet | `Data\NativePackageMetadata\` | Should own metadata JSON writes and nupkg extraction reads. |
 
 ### 3.2 Definite non-Data candidates
@@ -403,7 +403,7 @@ repository.LoadRidStatusesAsync
 
 **What:**
 
-- Move `NativePackageMetadata` to `Data\NativePackageMetadata`.
+- Move `NativePackageMetadata` to `Data\NativePackageMetadata` as `NativePackageMetadataDocument`.
 - Add `INativePackageMetadataRepository`.
 - Keep manifest-derived metadata computation in `NativePackageMetadataGenerator`.
 - Move JSON write and `.nupkg` metadata extraction into the repository.
@@ -414,9 +414,9 @@ repository.LoadRidStatusesAsync
 `INativePackageMetadataRepository` should expose:
 
 ```csharp
-Task WriteAsync(FilePath path, NativePackageMetadata metadata, CancellationToken ct = default);
+Task WriteAsync(FilePath path, NativePackageMetadataDocument metadata, CancellationToken ct = default);
 
-Task<Result<NativePackageMetadata, NativePackageMetadataError>> ReadFromPackageAsync(
+Task<Result<NativePackageMetadataDocument, NativePackageMetadataError>> ReadFromPackageAsync(
     FilePath nativePackagePath,
     CancellationToken ct = default);
 ```

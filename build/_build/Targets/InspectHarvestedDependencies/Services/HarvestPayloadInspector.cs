@@ -45,11 +45,7 @@ public sealed class HarvestPayloadInspector(ICakeContext cakeContext, ICakeLog l
         return Task.CompletedTask;
     }
 
-    private DirectoryPath PrepareInspectionDirectory(
-        LibraryManifest library,
-        string rid,
-        RuntimeFamily platform,
-        DirectoryPath harvestNativeDir)
+    private DirectoryPath PrepareInspectionDirectory(LibraryManifest library, string rid, RuntimeFamily platform, DirectoryPath harvestNativeDir)
     {
         if (platform == RuntimeFamily.Windows)
         {

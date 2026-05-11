@@ -1,0 +1,12 @@
+{
+  "janset_family_version": "2.32.0",
+  "family_identifier": "sdl2-core",
+  "upstream_library": "sdl2",
+  "upstream_version": "2.32.8",
+  "vcpkg_port_version": 0,
+  "triplet_set": [
+    "x64-windows-hybrid",
+    "x64-linux-hybrid"
+  ],
+  "build_commit": "0123456789abcdef0123456789abcdef01234567"
+}

@@ -6,8 +6,7 @@ using NuGet.Versioning;
 namespace Build.Targets.Package.Models;
 
 /// <summary>
-/// Human-readable half of the cross-referenced metadata pair (see <see cref="NativePackageMetadata"/>
-/// for the machine-readable half). Builds, extracts, and upserts the version-mapping block delimited
+/// Human-readable half of the cross-referenced metadata pair. Builds, extracts, and upserts the version-mapping block delimited
 /// by <see cref="StartMarker"/> / <see cref="EndMarker"/>. Asserted current by post-pack guardrail G57.
 /// </summary>
 public static class ReadmeMappingTableBlock

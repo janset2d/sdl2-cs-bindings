@@ -1,12 +1,12 @@
 using System.Text.Json.Serialization;
 
-namespace Build.Targets.Package.Models;
+namespace Build.Data.NativePackageMetadata;
 
 /// <summary>
 /// Root <c>janset-native-metadata.json</c> schema packed into every .Native nupkg.
 /// Asserted current + coherent with <c>ManifestConfig</c> by post-pack guardrail G55.
 /// </summary>
-public sealed class NativePackageMetadata
+public sealed class NativePackageMetadataDocument
 {
     [JsonPropertyName("janset_family_version")]
     public required string JansetFamilyVersion { get; init; }
