@@ -47,6 +47,36 @@ public sealed class PackageTaskScenarioTests
     }
 
     [Test]
+    public async Task RunAsync_Should_Forward_CancellationToken_To_Generator_And_Packer_Chain()
+    {
+        using var cts = new CancellationTokenSource();
+        var readmeGen = Substitute.For<IReadmeMappingTableGenerator>();
+        var nativeMetadataGen = Substitute.For<INativePackageMetadataGenerator>();
+        var world = NewWorld()
+            .WithFamilyVersions(MultiFamilyVersions())
+            .WithCancellationToken(cts.Token);
+        SeedHarvestPayload(world, CoreLibrary);
+        SeedHarvestPayload(world, ImageLibrary);
+        SeedReadme(world);
+
+        var result = await CreateHost(world, readmeGen, nativeMetadataGen).RunAsync();
+
+        await Assert.That(result.Success).IsTrue();
+        // PackageTask:98 directly forwards ct to UpdateAsync.
+        await readmeGen.Received().UpdateAsync(
+            Arg.Any<ManifestConfig>(),
+            Arg.Is<CancellationToken>(ct => ct == cts.Token));
+        // PackageTask:105 → PackageFamilyPacker.PackAsync → GenerateAsync chain.
+        // Asserts the full forward through PackAsync's ct parameter.
+        await nativeMetadataGen.Received().GenerateAsync(
+            Arg.Any<ManifestConfig>(),
+            Arg.Any<PackageFamilyConfig>(),
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Is<CancellationToken>(ct => ct == cts.Token));
+    }
+
+    [Test]
     public async Task RunAsync_Should_Throw_When_Versions_File_Missing()
     {
         // No --versions-file passed; task entry should fail-loud.
@@ -204,18 +234,21 @@ public sealed class PackageTaskScenarioTests
         world.WithTextFile("README.md", ReadmeMappingTableBlock.BuildBlock(ManifestFixture.CreateTestManifestConfig()));
     }
 
-    private static TargetTestHost<PackageTask> CreateHost(FakeCakeWorld world)
+    private static TargetTestHost<PackageTask> CreateHost(
+        FakeCakeWorld world,
+        IReadmeMappingTableGenerator? readmeGen = null,
+        INativePackageMetadataGenerator? nativeMetadataGen = null)
     {
         var metadataReader = Substitute.For<IProjectMetadataReader>();
         metadataReader.Read(Arg.Any<FilePath>())
             .Returns(Result<EvaluatedProjectMetadata, ProjectMetadataError>.Success(
                 new EvaluatedProjectMetadata(["net10.0"], "Authors", "LICENSE", "icon.png")));
 
-        var nativeMetadataGen = Substitute.For<INativePackageMetadataGenerator>();
+        nativeMetadataGen ??= Substitute.For<INativePackageMetadataGenerator>();
         nativeMetadataGen.GenerateAsync(Arg.Any<ManifestConfig>(), Arg.Any<PackageFamilyConfig>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
 
-        var readmeGen = Substitute.For<IReadmeMappingTableGenerator>();
+        readmeGen ??= Substitute.For<IReadmeMappingTableGenerator>();
         readmeGen.UpdateAsync(Arg.Any<ManifestConfig>(), Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
 
         var outputValidator = Substitute.For<IPackageOutputValidator>();

@@ -19,8 +19,9 @@ public sealed class PublishStagingTaskScenarioTests
     [Test]
     public async Task RunAsync_Should_Push_Managed_And_Native_Pair_Per_Family_When_Happy_Path()
     {
+        using var cts = new CancellationTokenSource();
         var feedClient = Substitute.For<INuGetFeedClient>();
-        var world = NewWorld(feedClient);
+        var world = NewWorld(feedClient).WithCancellationToken(cts.Token);
         // Multi-family fixture: sdl2-core@2.32.0 + sdl2-image@2.8.0.
         SeedFeedNupkgs(world, ("sdl2-core", "2.32.0"), ("sdl2-image", "2.8.0"));
         world.Environment.SetEnvironmentVariable("GH_TOKEN", "test-token");
@@ -29,12 +30,12 @@ public sealed class PublishStagingTaskScenarioTests
 
         await Assert.That(result.Exception).IsNull();
         await Assert.That(result.Success).IsTrue();
-        // 2 families × (managed + native) = 4 pushes
+        // 2 families × (managed + native) = 4 pushes, all forwarding the BuildContext's ct.
         await feedClient.Received(4).PushAsync(
             Arg.Is<string>(url => url.Contains("nuget.pkg.github.com", StringComparison.Ordinal)),
             Arg.Is<string>(token => token == "test-token"),
             Arg.Any<FilePath>(),
-            Arg.Any<CancellationToken>());
+            Arg.Is<CancellationToken>(ct => ct == cts.Token));
     }
 
     [Test]

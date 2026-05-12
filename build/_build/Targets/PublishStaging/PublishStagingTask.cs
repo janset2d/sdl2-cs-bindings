@@ -83,6 +83,7 @@ public sealed class PublishStagingTask : AsyncFrostingTask<BuildContext>
         var authToken = ResolveAuthToken();
         var manifest = _manifestRepository.Load();
         var concreteFamilies = ResolveConcreteFamiliesInScope(manifest, familyVersions);
+        var ct = context.CancellationToken;
 
         foreach (var family in concreteFamilies)
         {
@@ -102,8 +103,8 @@ public sealed class PublishStagingTask : AsyncFrostingTask<BuildContext>
                 managedPackageId,
                 nativePackageId);
 
-            await _feedClient.PushAsync(GitHubPackagesFeedUrl, authToken, managedNupkg, CancellationToken.None);
-            await _feedClient.PushAsync(GitHubPackagesFeedUrl, authToken, nativeNupkg, CancellationToken.None);
+            await _feedClient.PushAsync(GitHubPackagesFeedUrl, authToken, managedNupkg, ct);
+            await _feedClient.PushAsync(GitHubPackagesFeedUrl, authToken, nativeNupkg, ct);
         }
 
         _log.Information("PublishStaging pushed {0} family/families to '{1}'.", concreteFamilies.Count, GitHubPackagesFeedUrl);

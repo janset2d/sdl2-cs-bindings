@@ -44,6 +44,7 @@ public sealed class FakeCakeWorld
     private Build.Data.Versions.PackageFamilyVersionSet _familyVersions = Build.Data.Versions.PackageFamilyVersionSet.Empty;
     private readonly List<string> _dlls = [];
     private readonly List<string> _libraries = [];
+    private CancellationToken _cancellationToken = CancellationToken.None;
 
     public FakeFileSystem FileSystem { get; }
 
@@ -297,6 +298,14 @@ public sealed class FakeCakeWorld
         return this;
     }
 
+    /// <summary>Seeds the CancellationToken flowed through <see cref="BuildContext.CancellationToken"/>
+    /// so tests can assert ct propagation through tasks. Defaults to <see cref="CancellationToken.None"/>.</summary>
+    public FakeCakeWorld WithCancellationToken(CancellationToken cancellationToken)
+    {
+        _cancellationToken = cancellationToken;
+        return this;
+    }
+
     /// <summary>
     /// Sets the resolved <see cref="Build.Data.Versions.PackageFamilyVersionSet"/> stamped into
     /// <c>BuildContext.Options.Package.FamilyVersions</c>. <see cref="Build.Targets.Package.PackageTask"/>
@@ -400,7 +409,8 @@ public sealed class FakeCakeWorld
             CakeContext,
             pathService,
             runtimeProfile,
-            parsedArgs);
+            parsedArgs,
+            _cancellationToken);
     }
 
     // ── internal: build faked ICakeContext ──

@@ -93,16 +93,17 @@ public sealed class PackageTask : AsyncFrostingTask<BuildContext>
 
         var families = ResolveSelectedFamilies(versions, manifest);
         var headSha = _resolveHeadCommitSha(context, context.Paths.RepoRoot);
+        var ct = context.CancellationToken;
 
         // G57 generator: keep README mapping block aligned with manifest before pack validation.
-        await _readmeMappingTableGenerator.UpdateAsync(manifest, CancellationToken.None);
+        await _readmeMappingTableGenerator.UpdateAsync(manifest, ct);
 
         context.EnsureDirectoryExists(context.Paths.PackagesOutput);
 
         foreach (var family in families)
         {
             var version = versions.RequireVersion(new PackageFamilyId(family.Name)).ToNormalizedString();
-            await _packer.PackAsync(manifest, family, version, headSha, context.BuildConfiguration, CancellationToken.None);
+            await _packer.PackAsync(manifest, family, version, headSha, context.BuildConfiguration, ct);
         }
     }
 

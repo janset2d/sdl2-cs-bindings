@@ -105,9 +105,11 @@ public sealed class PackageConsumerSmokeTask : AsyncFrostingTask<BuildContext>
                 string.Join(Environment.NewLine, preconditionReport.Errors.Select(e => $"  [{e.Code}] {e.Message}")));
         }
 
+        var ct = context.CancellationToken;
+
         var smokePackages = ResolveSmokePackages(manifest);
         EnsureSelectionSupportsCurrentSmokeScope(smokePackages, familyVersions);
-        await EnsureSmokeCsprojsMatchManifestScopeAsync(context, smokePackages, default);
+        await EnsureSmokeCsprojsMatchManifestScopeAsync(context, smokePackages, ct);
         EnsurePackageArtifactsExist(context, smokePackages, familyVersions, feedPath);
 
         _reporter.LogStarting(_runtimeProfile.Rid, smokePackages.Select(p => p.FamilyName).ToList());
@@ -148,7 +150,8 @@ public sealed class PackageConsumerSmokeTask : AsyncFrostingTask<BuildContext>
 
         var runtimeEnvironmentDelta = await _dotNetRuntimeEnvironment.ResolveAsync(
             _runtimeProfile.Rid,
-            projectMetadata.TargetFrameworks);
+            projectMetadata.TargetFrameworks,
+            ct);
 
         var ranCount = 0;
         var skippedCount = 0;

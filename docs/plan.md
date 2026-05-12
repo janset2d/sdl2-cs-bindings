@@ -74,12 +74,7 @@ Closed 2026-05-10. The build host now follows [`ADR-002`](decisions/2026-05-05-t
 
 **Canonical docs:** [`decisions/2026-05-05-target-centric-build-host.md`](decisions/2026-05-05-target-centric-build-host.md), [`decisions/2026-05-12-build-host-data-layer.md`](decisions/2026-05-12-build-host-data-layer.md), [`knowledge-base/testing-guidelines.md`](knowledge-base/testing-guidelines.md), [`knowledge-base/extraction-guidelines.md`](knowledge-base/extraction-guidelines.md).
 
-**Post-refactor tasks (after P10):**
-
-- [ ] Redesign `FakeCakeWorld` fluent API — method names like `WithVersionsFile` / `WithSuffix` / `WithRid` are confusing (they set CLI option values, not file contents). A clearer separation between "CLI option seeding" and "fake filesystem seeding" is warranted across the canonical test surface.
-- [ ] **Unify diagnostic target UX** — bring `Dumpbin-Dependents` and `Ldd-Dependents` up to `Otool-Analyze`'s elaboration (per-platform system-library classifier, dependency table, manifest.json `system_exclusions` suggestion section). Reuse the current scanner implementations consistently across Harvest and the diagnostic targets instead of drifting into duplicate per-platform logic.
-- [ ] **Unify diagnostic target binary inputs** — collapse `--dll` and `--library` into a single CLI option that auto-detects path vs manifest name. All four diagnostic targets accept both modes; `Inspect-HarvestedDependencies` already manifest-resolves, the others gain manifest-resolution via `PrimaryBinary` patterns. Update `launchSettings.json`, `tools.cs`, docs; deprecation cycle for old flags.
-- [ ] **Resolve `Otool-Analyze`'s stale hardcoded vcpkg triplets** — the `--dll` empty fallback walks `vcpkg_installed/{x64-osx-dynamic, arm64-osx-dynamic}/lib/*.dylib`. Those are pre-hybrid-static triplets and don't match the project's current packaging model. The vcpkg-mode is likely a stale dev convenience nobody uses. Decide: delete the mode entirely, or migrate it to hybrid-static triplet awareness via `IRuntimeProfile.Triplet`.
+**Post-refactor hardening:** tracked in [`post-refactor-cleanup-plan.md`](post-refactor-cleanup-plan.md) — correctness gaps, style sweep, deferred extractions, test debt, UX polish. When all checkboxes resolve there, that file retires and any survivors fold back here.
 
 ### 2027 — Stabilization
 

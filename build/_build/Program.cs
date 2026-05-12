@@ -4,6 +4,7 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.CommandLine.NamingConventionBinder;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Build;
 using Build.Targets.ConsolidateHarvest;
 using Build.Targets.Harvest;
@@ -64,10 +65,44 @@ static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArgumen
     var initialCakeArgs = context.ParseResult.Tokens.Select(t => t.Value).ToArray();
     var effectiveCakeArgs = GetEffectiveCakeArguments(initialCakeArgs, repoRootPath, context);
 
-    return new CakeHost()
-        .UseContext<BuildContext>()
-        .ConfigureServices(services => ConfigureBuildServices(services, parsedArgs, repoRootPath))
-        .Run(effectiveCakeArgs);
+    using var cts = new CancellationTokenSource();
+
+    // Console.CancelKeyPress fires for Ctrl+C on all platforms; setting e.Cancel=true
+    // prevents immediate process termination so collaborators get a chance to clean up.
+    // A second Ctrl+C falls through to the default OS handler and force-quits.
+    void OnCancelKeyPress(object? sender, ConsoleCancelEventArgs e)
+    {
+        if (cts.IsCancellationRequested)
+        {
+            return;
+        }
+        e.Cancel = true;
+        cts.Cancel();
+    }
+    Console.CancelKeyPress += OnCancelKeyPress;
+
+    // PosixSignalRegistration handles SIGTERM on Unix (kill <pid>, container stop, etc.).
+    // No-op on Windows. SIGINT is already covered by Console.CancelKeyPress.
+    using var sigTermRegistration = PosixSignalRegistration.Create(PosixSignal.SIGTERM, _ => cts.Cancel());
+
+    try
+    {
+        return new CakeHost()
+            .UseContext<BuildContext>()
+            .ConfigureServices(services =>
+            {
+                ConfigureBuildServices(services, parsedArgs, repoRootPath);
+                // CancellationToken is a struct; the generic AddSingleton<T> overload has a
+                // `where T : class` constraint, so register via the non-generic Type + instance
+                // overload. ActivatorUtilities unboxes when resolving BuildContext's ctor param.
+                services.AddSingleton(typeof(CancellationToken), cts.Token);
+            })
+            .Run(effectiveCakeArgs);
+    }
+    finally
+    {
+        Console.CancelKeyPress -= OnCancelKeyPress;
+    }
 }
 
 static void ConfigureBuildServices(IServiceCollection services, ParsedArguments parsedArgs, DirectoryPath repoRootPath)

@@ -23,8 +23,14 @@ public sealed class BuildContext : FrostingContext
     private readonly string? _explicitVersions;
     private readonly IReadOnlyList<string> _dlls;
     private readonly IReadOnlyList<string> _libraries;
+    private readonly CancellationToken _cancellationToken;
 
-    public BuildContext(ICakeContext context, IPathService pathService, IRuntimeProfile runtimeProfile, ParsedArguments parsedArguments) : base(context)
+    public BuildContext(
+        ICakeContext context,
+        IPathService pathService,
+        IRuntimeProfile runtimeProfile,
+        ParsedArguments parsedArguments,
+        CancellationToken cancellationToken) : base(context)
     {
         Paths = pathService ?? throw new ArgumentNullException(nameof(pathService));
         Runtime = runtimeProfile ?? throw new ArgumentNullException(nameof(runtimeProfile));
@@ -41,6 +47,7 @@ public sealed class BuildContext : FrostingContext
         _explicitVersions = parsedArguments.ExplicitVersions;
         _dlls = [.. parsedArguments.Dll];
         _libraries = [.. parsedArguments.Library];
+        _cancellationToken = cancellationToken;
     }
 
     /// <summary>Repo / artifact / harvest layout knowledge. Cake-aware (carries DirectoryPath / FilePath).</summary>
@@ -77,4 +84,9 @@ public sealed class BuildContext : FrostingContext
 
     /// <summary>Operator-supplied --library list. Consumed by Inspect-HarvestedDependencies.</summary>
     public IReadOnlyList<string> Libraries => _libraries;
+
+    /// <summary>Process-level cancellation token. Wired by Program.cs to Console.CancelKeyPress + SIGTERM.
+    /// Tasks must read this at the top of RunAsync and forward to async collaborators rather than
+    /// passing CancellationToken.None or default.</summary>
+    public CancellationToken CancellationToken => _cancellationToken;
 }

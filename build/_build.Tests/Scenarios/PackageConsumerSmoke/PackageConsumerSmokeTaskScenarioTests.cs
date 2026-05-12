@@ -86,6 +86,25 @@ public sealed class PackageConsumerSmokeTaskScenarioTests
     }
 
     [Test]
+    public async Task RunAsync_Should_Forward_CancellationToken_To_DotNetRuntimeEnvironment()
+    {
+        using var cts = new CancellationTokenSource();
+        var world = NewWorld().WithCancellationToken(cts.Token);
+        SeedSmokeProjects(world);
+        SeedFeedNupkgs(world, ("sdl2-core", "2.32.0"), ("sdl2-image", "2.8.0"));
+
+        var runtimeEnvironment = CreateDefaultRuntimeEnvironment();
+
+        var result = await CreateHost(world, runtimeEnvironment).RunAsync();
+
+        await Assert.That(result.Success).IsTrue();
+        await runtimeEnvironment.Received().ResolveAsync(
+            Arg.Any<string>(),
+            Arg.Any<IReadOnlyList<string>>(),
+            Arg.Is<CancellationToken>(ct => ct == cts.Token));
+    }
+
+    [Test]
     public async Task RunAsync_Should_Throw_When_Required_Nupkg_Missing_From_Feed()
     {
         var world = NewWorld();
@@ -157,16 +176,14 @@ public sealed class PackageConsumerSmokeTaskScenarioTests
             """;
     }
 
-    private static TargetTestHost<PackageConsumerSmokeTask> CreateHost(FakeCakeWorld world)
+    private static TargetTestHost<PackageConsumerSmokeTask> CreateHost(FakeCakeWorld world, IDotNetRuntimeEnvironment? runtimeEnvironment = null)
     {
         var metadataReader = Substitute.For<IProjectMetadataReader>();
         metadataReader.Read(Arg.Any<FilePath>())
             .Returns(Result<EvaluatedProjectMetadata, ProjectMetadataError>.Success(
                 new EvaluatedProjectMetadata(["net10.0"], "Authors", "LICENSE", "icon.png")));
 
-        var runtimeEnvironment = Substitute.For<IDotNetRuntimeEnvironment>();
-        runtimeEnvironment.ResolveAsync(Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
-            .Returns(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
+        var rte = runtimeEnvironment ?? CreateDefaultRuntimeEnvironment();
 
         return new TargetTestHost<PackageConsumerSmokeTask>(world)
             .WithManifest(ManifestFixture.CreateTestManifestConfig())
@@ -177,7 +194,15 @@ public sealed class PackageConsumerSmokeTaskScenarioTests
                 services.AddPackageConsumerSmoke();
 
                 services.AddSingleton(metadataReader);
-                services.AddSingleton(runtimeEnvironment);
+                services.AddSingleton(rte);
             });
+    }
+
+    private static IDotNetRuntimeEnvironment CreateDefaultRuntimeEnvironment()
+    {
+        var runtimeEnvironment = Substitute.For<IDotNetRuntimeEnvironment>();
+        runtimeEnvironment.ResolveAsync(Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
+            .Returns(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
+        return runtimeEnvironment;
     }
 }
