@@ -59,6 +59,7 @@ Same shape for SDL3 when it lands (Phase 5).
 | If you are... | Read |
 | --- | --- |
 | LLM/agent entering for the first time | [AGENTS.md](../AGENTS.md) — operating rules + approval gate + settled decisions |
+| Asking how this project ships (end state, sequencing, labeling) | [release-strategy.md](release-strategy.md) — strategic anchor for the v1.0 path |
 | Contributor wanting current status / roadmap | [plan.md](plan.md) |
 | Working on the active phase | [phases/phase-2-adaptation-plan.md](phases/phase-2-adaptation-plan.md) |
 | Exploring how the project is organized | [README.md](README.md) — full doc map |

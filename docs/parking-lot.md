@@ -7,6 +7,13 @@
 - Items here are worth preserving but not in the active phase.
 - Promote items into [`plan.md`](plan.md), a phase doc, a playbook, or a knowledge-base doc when work actually starts.
 - Remove items only when they are clearly rejected or superseded — record why.
+- For **multi-file research** that's too large to inline (complete strategic + mechanical analyses), see [`parking-lot/`](parking-lot/) sibling directory. Each subdirectory carries its own README with unpark triggers.
+
+## Deferred Multi-File Research
+
+| Subdirectory | Topic | Unpark policy |
+| --- | --- | --- |
+| [`parking-lot/package-topology/`](parking-lot/package-topology/) | 3-tier role-metapackage refactor (`.<Role>` + `.Bindings` + `.Native`) | Triggers documented in [`release-strategy.md`](release-strategy.md) §Deferred Decisions; subdirectory README links to salvageable carve-outs already extracted |
 
 ## Status Legend
 

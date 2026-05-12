@@ -1,7 +1,7 @@
 # Phase 4: Binding Auto-Generation
 
-**Status**: PLANNED
-**Depends on**: Phase 3 (SDL2 Complete) — can overlap for R&D
+**Status**: PLANNED — **critical path for v1.0** per [`../release-strategy.md`](../release-strategy.md)
+**Order**: Lands **before** Phase 3 ship. First public `-preview.N` wave consumes AST-generated bindings, not the deprecated `external/sdl2-cs` imports. See [`../release-strategy.md`](../release-strategy.md) §Sequencing for rationale.
 
 ## Objective
 

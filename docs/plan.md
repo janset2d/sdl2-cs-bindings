@@ -20,6 +20,8 @@ Active execution ledger: [phases/phase-2-adaptation-plan.md](phases/phase-2-adap
 
 ## Roadmap
 
+> **Phase sequencing reordered per [`release-strategy.md`](release-strategy.md):** Phase 4 (CppAst binding generator) is **critical path for v1.0** and lands **before** the first public `-preview.N` wave (Phase 2b PD-7). Strategic rationale + stages + promotion gates live in [`release-strategy.md`](release-strategy.md); this file remains the tactical roadmap.
+
 ### Phase 2b — Public release tail
 
 Detail in [phases/phase-2-adaptation-plan.md](phases/phase-2-adaptation-plan.md) (PDs, gaps, candidate directions).
@@ -78,7 +80,9 @@ Closed 2026-05-10. The build host now follows [`ADR-002`](decisions/2026-05-05-t
 
 ### 2027 — Stabilization
 
-- [ ] Stabilize SDL2 + SDL3 packages (v1.0)
+Big-bang v1.0 launch shape + entry criteria per [`release-strategy.md`](release-strategy.md) §End State at v1.0 + §Promotion Gates.
+
+- [ ] Stabilize SDL2 + SDL3 packages (v1.0) — full satellite coverage per release-strategy end-state table
 - [ ] Community feedback incorporation
 - [ ] Begin Janset2D development on top of these bindings
 
@@ -113,10 +117,11 @@ SDL3 vcpkg availability: SDL3 3.4.4, SDL3_image 3.4.2, SDL3_mixer 3.2.0#1, SDL3_
 
 ## Cross-Reference
 
+- **Release strategy**: [`release-strategy.md`](release-strategy.md) — strategic anchor (end state, sequencing, labeling, promotion, maintenance)
 - **Operating rules**: [`AGENTS.md`](../AGENTS.md), [`docs/onboarding.md`](onboarding.md)
 - **Phase docs**: [phases/](phases/) — Phase 2 active ledger + Phase 4/5 design briefs
 - **Architecture decisions**: [decisions/](decisions/) — ADR-001 (D-3seg + package-first), ADR-002 (target-centric build-host), ADR-003 (contract-centric data layer)
 - **Guardrails**: [knowledge-base/release-guardrails.md](knowledge-base/release-guardrails.md)
 - **How-to recipes**: [playbook/](playbook/)
 - **Design rationale**: [research/](research/)
-- **Deferred ideas**: [parking-lot.md](parking-lot.md)
+- **Deferred ideas**: [parking-lot.md](parking-lot.md), [parking-lot/](parking-lot/)

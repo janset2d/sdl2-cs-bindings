@@ -26,9 +26,11 @@
 | Document | Purpose | When to Read |
 | --- | --- | --- |
 | [onboarding.md](onboarding.md) | Project overview, glossary, where-to-go pointers | First visit |
+| [release-strategy.md](release-strategy.md) | Strategic anchor — end state at v1.0, AST-first sequencing, NuGet labeling, promotion gates, maintenance commitment | Before making any decision that affects how the project ships |
 | [plan.md](plan.md) | Canonical roadmap, current phase, hardening backlog | Before any work session |
 | [post-refactor-cleanup-plan.md](post-refactor-cleanup-plan.md) | Completion record for the post-ADR-002 cleanup and build-host test infrastructure consolidation | When auditing why the migration-era notes were retired |
 | [parking-lot.md](parking-lot.md) | Preserved ideas + partial threads not on the active roadmap | When a deferred concern surfaces |
+| [parking-lot/](parking-lot/) | Deferred multi-file research (e.g., package-topology refactor) — directory siblings to `parking-lot.md` | When investigating an unpark trigger or surveying parked workstreams |
 | [phases/README.md](phases/README.md) | Phase workflow, active vs planned phases | When the phase question matters |
 
 ### Phases

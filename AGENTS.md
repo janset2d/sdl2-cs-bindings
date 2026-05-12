@@ -92,6 +92,9 @@ Final unless Deniz explicitly reopens.
 | `external/sdl2-cs` is transitional | Untrusted for production testing; retires when CppAst generator ships |
 | C++ native smoke test | CMake/vcpkg IDE-debuggable harness for OS-level hybrid validation |
 | TUnit + MTP for testing | Microsoft.Testing.Platform; characterization tests before refactoring |
+| Release shape | Big-bang v1.0 covering SDL2 + SDL3 + all in-scope satellites, reached iteratively via internal feed → `-preview.N` → `-rc.N` → stable. See [`docs/release-strategy.md`](docs/release-strategy.md). |
+| AST-first prioritization | Phase 4 (CppAst binding generator) lands **before** Phase 3 ship — first public `-preview.N` wave carries AST-generated bindings, not `external/sdl2-cs` imports. See [`docs/release-strategy.md`](docs/release-strategy.md) §Sequencing. |
+| Package topology refactor (3-tier role-meta + `.Bindings` + `.Native`) | **DEFERRED.** Research preserved in [`docs/parking-lot/package-topology/`](docs/parking-lot/package-topology/); unpark triggers in [`docs/release-strategy.md`](docs/release-strategy.md) §Deferred Decisions. |
 
 ## Test Naming Convention (TUnit)
 
