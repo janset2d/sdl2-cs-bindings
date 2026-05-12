@@ -25,7 +25,7 @@ public sealed class ConsolidateHarvestTaskScenarioTests
     [Test]
     public async Task RunAsync_Should_Throw_When_Harvest_Output_Root_Is_Missing()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
 
         var result = await CreateHost(world).RunAsync();
 
@@ -38,7 +38,7 @@ public sealed class ConsolidateHarvestTaskScenarioTests
     public async Task RunAsync_Should_Throw_When_Harvest_Output_Has_No_Library_Directories()
     {
         // Harvest root directory exists but contains nothing.
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithTextFile("artifacts/harvest_output/.placeholder", string.Empty);
 
         var result = await CreateHost(world).RunAsync();
@@ -52,7 +52,7 @@ public sealed class ConsolidateHarvestTaskScenarioTests
     {
         // Library dir exists but rid-status/ is empty -> repository returns null -> reporter logs
         // skip + info, no failure aggregation.
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithTextFile($"artifacts/harvest_output/{LibraryName}/.placeholder", string.Empty);
 
         var result = await CreateHost(world).RunAsync();
@@ -67,7 +67,7 @@ public sealed class ConsolidateHarvestTaskScenarioTests
     [Test]
     public async Task RunAsync_Should_Aggregate_Failure_When_Rid_Status_File_Is_Invalid_Json()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithTextFile($"artifacts/harvest_output/{LibraryName}/rid-status/{RidWindows}.json", "{ not valid json");
 
         var result = await CreateHost(world).RunAsync();
@@ -82,7 +82,7 @@ public sealed class ConsolidateHarvestTaskScenarioTests
     public async Task RunAsync_Should_Write_Manifest_With_Success_Stats_When_All_Rids_Succeed()
     {
         // Two RIDs, both successful, no divergent licenses.
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithTextFile($"artifacts/harvest_output/{LibraryName}/rid-status/{RidWindows}.json", SuccessRidStatus(RidWindows, "x64-windows-hybrid"))
             .WithTextFile($"artifacts/harvest_output/{LibraryName}/rid-status/{RidLinux}.json", SuccessRidStatus(RidLinux, "x64-linux-hybrid"));
 
@@ -108,7 +108,7 @@ public sealed class ConsolidateHarvestTaskScenarioTests
     public async Task RunAsync_Should_Detect_License_Divergence_Across_Rids()
     {
         // Same package "zlib", same file "copyright", different content per RID → divergence.
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithTextFile($"artifacts/harvest_output/{LibraryName}/rid-status/{RidWindows}.json", SuccessRidStatus(RidWindows, "x64-windows-hybrid"))
             .WithTextFile($"artifacts/harvest_output/{LibraryName}/rid-status/{RidLinux}.json", SuccessRidStatus(RidLinux, "x64-linux-hybrid"))
             .WithTextFile($"artifacts/harvest_output/{LibraryName}/licenses/{RidWindows}/zlib/copyright", "windows-flavored copyright text")
@@ -137,7 +137,7 @@ public sealed class ConsolidateHarvestTaskScenarioTests
     {
         // Same content across RIDs → single canonical entry, no divergence record.
         const string sharedContent = "shared zlib copyright text";
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithTextFile($"artifacts/harvest_output/{LibraryName}/rid-status/{RidWindows}.json", SuccessRidStatus(RidWindows, "x64-windows-hybrid"))
             .WithTextFile($"artifacts/harvest_output/{LibraryName}/rid-status/{RidLinux}.json", SuccessRidStatus(RidLinux, "x64-linux-hybrid"))
             .WithTextFile($"artifacts/harvest_output/{LibraryName}/licenses/{RidWindows}/zlib/copyright", sharedContent)
@@ -179,9 +179,9 @@ public sealed class ConsolidateHarvestTaskScenarioTests
         return JsonSerializer.Serialize(status, CakeJsonExtensions.DefaultJsonOptions);
     }
 
-    private static TargetTestHostV2<ConsolidateHarvestTask> CreateHost(FakeCakeWorldV2 world)
+    private static TargetTestHost<ConsolidateHarvestTask> CreateHost(FakeCakeWorld world)
     {
-        var host = new TargetTestHostV2<ConsolidateHarvestTask>(world);
+        var host = new TargetTestHost<ConsolidateHarvestTask>(world);
         return host.WithServices(services => services
             .AddData()
             .AddConsolidateHarvest());

@@ -10,10 +10,7 @@ namespace Build.Targets.Package.Services;
 /// </summary>
 public static class FamilyTopologyHelpers
 {
-    public static bool TryOrderByDependencies(
-        IReadOnlyList<PackageFamilyConfig> selected,
-        out IReadOnlyList<PackageFamilyConfig> ordered,
-        out string errorMessage)
+    public static bool TryOrderByDependencies(IReadOnlyList<PackageFamilyConfig> selected, out IReadOnlyList<PackageFamilyConfig> ordered, out string errorMessage)
     {
         ArgumentNullException.ThrowIfNull(selected);
 

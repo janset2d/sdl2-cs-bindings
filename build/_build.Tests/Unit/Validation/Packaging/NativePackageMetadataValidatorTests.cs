@@ -12,7 +12,7 @@ namespace Build.Tests.Unit.Validation.Packaging;
 
 /// <summary>
 /// Solitary unit tests for <see cref="NativePackageMetadataValidator"/> — exercise the
-/// validator directly against a Cake <c>FakeFileSystem</c> (the standard V2 boundary fake)
+/// validator directly against a Cake <c>FakeFileSystem</c> (the standard boundary fake)
 /// without routing through <see cref="PackageOutputValidator"/>. The sociable side
 /// (consumer wires the real instance) is covered by
 /// <c>PackageOutputValidatorTests.Validate_Should_*</c>.
@@ -25,7 +25,7 @@ public sealed class NativePackageMetadataValidatorTests
     [Test]
     public async Task ValidateAsync_Should_Return_Null_When_Metadata_Matches_Manifest()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var manifest = ManifestFixture.CreateTestManifestConfig();
         var family = manifest.PackageFamilies.Single(f => f.Name == "sdl2-core");
         var packagePath = world.RepoRoot.CombineWithFilePath("artifacts/packages/Janset.SDL2.Core.Native.2.32.0.nupkg");
@@ -41,7 +41,7 @@ public sealed class NativePackageMetadataValidatorTests
     [Test]
     public async Task ValidateAsync_Should_Fail_When_Native_Package_Is_Missing()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var manifest = ManifestFixture.CreateTestManifestConfig();
         var family = manifest.PackageFamilies.Single(f => f.Name == "sdl2-core");
         var packagePath = world.RepoRoot.CombineWithFilePath("artifacts/packages/Janset.SDL2.Core.Native.2.32.0.nupkg");
@@ -59,7 +59,7 @@ public sealed class NativePackageMetadataValidatorTests
     [Test]
     public async Task ValidateAsync_Should_Fail_When_Metadata_Entry_Missing_From_Nupkg()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var manifest = ManifestFixture.CreateTestManifestConfig();
         var family = manifest.PackageFamilies.Single(f => f.Name == "sdl2-core");
         var packagePath = world.RepoRoot.CombineWithFilePath("artifacts/packages/Janset.SDL2.Core.Native.2.32.0.nupkg");
@@ -78,7 +78,7 @@ public sealed class NativePackageMetadataValidatorTests
     [Test]
     public async Task ValidateAsync_Should_Fail_When_Metadata_Json_Is_Invalid()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var manifest = ManifestFixture.CreateTestManifestConfig();
         var family = manifest.PackageFamilies.Single(f => f.Name == "sdl2-core");
         var packagePath = world.RepoRoot.CombineWithFilePath("artifacts/packages/Janset.SDL2.Core.Native.2.32.0.nupkg");
@@ -96,7 +96,7 @@ public sealed class NativePackageMetadataValidatorTests
     [Test]
     public async Task ValidateAsync_Should_Fail_When_Family_Version_Mismatches_Expected()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var manifest = ManifestFixture.CreateTestManifestConfig();
         var family = manifest.PackageFamilies.Single(f => f.Name == "sdl2-core");
         var packagePath = world.RepoRoot.CombineWithFilePath("artifacts/packages/Janset.SDL2.Core.Native.2.32.0.nupkg");
@@ -115,7 +115,7 @@ public sealed class NativePackageMetadataValidatorTests
     [Test]
     public async Task ValidateAsync_Should_Fail_When_Build_Commit_Mismatches_Expected()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var manifest = ManifestFixture.CreateTestManifestConfig();
         var family = manifest.PackageFamilies.Single(f => f.Name == "sdl2-core");
         var packagePath = world.RepoRoot.CombineWithFilePath("artifacts/packages/Janset.SDL2.Core.Native.2.32.0.nupkg");
@@ -133,7 +133,7 @@ public sealed class NativePackageMetadataValidatorTests
     [Test]
     public async Task ValidateAsync_Should_Aggregate_Multiple_Mismatches_In_One_Check()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var manifest = ManifestFixture.CreateTestManifestConfig();
         var family = manifest.PackageFamilies.Single(f => f.Name == "sdl2-core");
         var packagePath = world.RepoRoot.CombineWithFilePath("artifacts/packages/Janset.SDL2.Core.Native.2.32.0.nupkg");
@@ -160,7 +160,7 @@ public sealed class NativePackageMetadataValidatorTests
         await Assert.That(result.Message).Contains("upstream_library");
     }
 
-    private static NativePackageMetadataValidator CreateValidator(FakeCakeWorldV2 world)
+    private static NativePackageMetadataValidator CreateValidator(FakeCakeWorld world)
         => new(new NativePackageMetadataRepository(world.CakeContext));
 
     private static NativePackageMetadataDocument ConsistentMetadata(
@@ -187,7 +187,7 @@ public sealed class NativePackageMetadataValidatorTests
         };
     }
 
-    private static void SeedNupkg(FakeCakeWorldV2 world, FilePath nupkgPath, NativePackageMetadataDocument metadata)
+    private static void SeedNupkg(FakeCakeWorld world, FilePath nupkgPath, NativePackageMetadataDocument metadata)
     {
         SeedNupkgWithEntries(world, nupkgPath,
         [
@@ -196,7 +196,7 @@ public sealed class NativePackageMetadataValidatorTests
         ]);
     }
 
-    private static void SeedNupkgWithEntries(FakeCakeWorldV2 world, FilePath nupkgPath, ImmutableArray<(string Entry, string Content)> entries)
+    private static void SeedNupkgWithEntries(FakeCakeWorld world, FilePath nupkgPath, ImmutableArray<(string Entry, string Content)> entries)
     {
         var dir = world.FileSystem.GetDirectory(nupkgPath.GetDirectory());
         if (!dir.Exists)

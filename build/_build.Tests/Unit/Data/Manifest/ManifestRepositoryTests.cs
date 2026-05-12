@@ -39,7 +39,7 @@ public sealed class ManifestRepositoryRoundTripTests
     [Test]
     public async Task Load_Should_Deserialize_Valid_Manifest()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var manifestPath = world.RepoRoot.CombineWithFilePath("build/manifest.json");
         var repo = new ManifestRepository(world.CakeContext, manifestPath);
 
@@ -54,7 +54,7 @@ public sealed class ManifestRepositoryRoundTripTests
     [Test]
     public async Task Load_Should_Throw_CakeException_When_File_Missing()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var manifestPath = world.RepoRoot.CombineWithFilePath("build/nonexistent.json");
         var repo = new ManifestRepository(world.CakeContext, manifestPath);
 
@@ -64,7 +64,7 @@ public sealed class ManifestRepositoryRoundTripTests
     [Test]
     public async Task Load_Should_Throw_CakeException_When_File_Is_Invalid_Json()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithTextFile("build/bad-manifest.json", "not json {{{");
         var manifestPath = world.RepoRoot.CombineWithFilePath("build/bad-manifest.json");
         var repo = new ManifestRepository(world.CakeContext, manifestPath);

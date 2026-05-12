@@ -13,7 +13,7 @@ namespace Build.Tests.Unit.Targets.Harvest.Services;
 
 public sealed class BinaryClosureWalkerTests
 {
-    private readonly FakeCakeWorldV2 _world;
+    private readonly FakeCakeWorld _world;
     private readonly IRuntimeScanner _mockScanner;
     private readonly RuntimeProfile _profile;
     private readonly ICakeContext _mockCtx;
@@ -22,7 +22,7 @@ public sealed class BinaryClosureWalkerTests
 
     public BinaryClosureWalkerTests()
     {
-        _world = FakeCakeWorldV2.CreateWindows();
+        _world = FakeCakeWorld.CreateWindows();
         _mockScanner = Substitute.For<IRuntimeScanner>();
         _profile = RuntimeProfileFixture.CreateWindows();
         _mockCtx = _world.CakeContext;

@@ -19,7 +19,7 @@ One phase is active:
 
 **Phase 2: CI/CD & Packaging.** Core surface is landed (`release.yml` + Cake build host + `tools.cs`). The remaining tail lives in [phase-2-adaptation-plan.md](phase-2-adaptation-plan.md): nuget.org promotion (PD-7), release-recovery playbook (PD-8), and the four scope-assumption gaps surfaced in the 2026-05-01 tag-push rehearsals.
 
-**Closed stream: Phase X / Build-Host Modernization.** Closed 2026-05-10. Current build-host architecture is captured by [`../decisions/2026-05-05-target-centric-build-host.md`](../decisions/2026-05-05-target-centric-build-host.md) and [`../decisions/2026-05-12-build-host-data-layer.md`](../decisions/2026-05-12-build-host-data-layer.md). Durable practice lives in [`../knowledge-base/testing-guidelines.md`](../knowledge-base/testing-guidelines.md) and [`../knowledge-base/extraction-guidelines.md`](../knowledge-base/extraction-guidelines.md). Historical migration notes under `docs/refactoring/` are temporary and non-normative.
+**Closed stream: Phase X / Build-Host Modernization.** Closed 2026-05-10. Current build-host architecture is captured by [`../decisions/2026-05-05-target-centric-build-host.md`](../decisions/2026-05-05-target-centric-build-host.md) and [`../decisions/2026-05-12-build-host-data-layer.md`](../decisions/2026-05-12-build-host-data-layer.md). Durable practice lives in [`../knowledge-base/testing-guidelines.md`](../knowledge-base/testing-guidelines.md) and [`../knowledge-base/extraction-guidelines.md`](../knowledge-base/extraction-guidelines.md). Migration-era notes were retired after test-infrastructure consolidation.
 
 ## Phase Lifecycle
 

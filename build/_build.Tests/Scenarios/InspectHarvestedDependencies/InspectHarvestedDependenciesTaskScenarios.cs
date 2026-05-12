@@ -11,7 +11,7 @@ public sealed class InspectHarvestedDependenciesTaskScenarios
     [Test]
     public async Task RunAsync_Should_Run_Ldd_Against_Extracted_Payload_On_Linux()
     {
-        var world = FakeCakeWorldV2.CreateLinux()
+        var world = FakeCakeWorld.CreateLinux()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithLibraries("SDL2")
             .WithProcessResult("tar", exitCode: 0, stdOut: "")
@@ -34,7 +34,7 @@ public sealed class InspectHarvestedDependenciesTaskScenarios
     [Test]
     public async Task RunAsync_Should_Run_Dumpbin_Against_Native_Dir_On_Windows_Without_Extraction()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithLibraries("SDL2")
             .WithProcessResult("dumpbin.exe", exitCode: 0, stdOut: "    KERNEL32.dll\n")
@@ -52,7 +52,7 @@ public sealed class InspectHarvestedDependenciesTaskScenarios
     [Test]
     public async Task RunAsync_Should_Run_Otool_Against_Extracted_Payload_On_Macos()
     {
-        var world = FakeCakeWorldV2.CreateOsx()
+        var world = FakeCakeWorld.CreateOsx()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithLibraries("SDL2")
             .WithProcessResult("tar", exitCode: 0, stdOut: "")
@@ -74,7 +74,7 @@ public sealed class InspectHarvestedDependenciesTaskScenarios
     [Test]
     public async Task RunAsync_Should_Throw_When_Harvest_Native_Directory_Missing()
     {
-        var world = FakeCakeWorldV2.CreateLinux()
+        var world = FakeCakeWorld.CreateLinux()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithLibraries("SDL2");
 
@@ -89,7 +89,7 @@ public sealed class InspectHarvestedDependenciesTaskScenarios
     [Test]
     public async Task RunAsync_Should_Throw_When_Unix_Tarball_Missing()
     {
-        var world = FakeCakeWorldV2.CreateLinux()
+        var world = FakeCakeWorld.CreateLinux()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithLibraries("SDL2")
             .WithTextFile("artifacts/harvest_output/SDL2/runtimes/linux-x64/native/.placeholder", "");
@@ -104,7 +104,7 @@ public sealed class InspectHarvestedDependenciesTaskScenarios
     [Test]
     public async Task RunAsync_Should_Throw_When_Requested_Library_Is_Not_In_Manifest()
     {
-        var world = FakeCakeWorldV2.CreateLinux()
+        var world = FakeCakeWorld.CreateLinux()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithLibraries("SDL2_not_real");
 
@@ -118,7 +118,7 @@ public sealed class InspectHarvestedDependenciesTaskScenarios
     [Test]
     public async Task RunAsync_Should_Throw_When_Primary_Binary_Missing_From_Extracted_Payload()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithLibraries("SDL2")
             .WithTextFile("artifacts/harvest_output/SDL2/runtimes/win-x64/native/README.txt", "no primary here");
@@ -143,7 +143,7 @@ public sealed class InspectHarvestedDependenciesTaskScenarios
                 }),
         };
 
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithManifestObject(manifest)
             .WithLibraries("SDL2")
             .WithTextFile("artifacts/harvest_output/SDL2/runtimes/win-x64/native/SDL2.dll", "dll");
@@ -155,9 +155,9 @@ public sealed class InspectHarvestedDependenciesTaskScenarios
         await Assert.That(result.Exception!.Message).Contains("no primary_binaries entry for OS 'Windows'");
     }
 
-    private static TargetTestHostV2<InspectHarvestedDependenciesTask> CreateHost(FakeCakeWorldV2 world)
+    private static TargetTestHost<InspectHarvestedDependenciesTask> CreateHost(FakeCakeWorld world)
     {
-        return new TargetTestHostV2<InspectHarvestedDependenciesTask>(world)
+        return new TargetTestHost<InspectHarvestedDependenciesTask>(world)
             .WithServices(services =>
             {
                 services.AddData();

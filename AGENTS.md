@@ -159,8 +159,8 @@ For new or migrated build-host work:
 ### Build-Host Working Notes
 
 - [`docs/knowledge-base/extraction-guidelines.md`](docs/knowledge-base/extraction-guidelines.md) is canon for private-method, collaborator extraction, and interface decisions.
-- [`docs/knowledge-base/testing-guidelines.md`](docs/knowledge-base/testing-guidelines.md) is canon for build-host test data policy, V2/V1 infrastructure, filesystem seeding, and test anti-patterns.
-- `docs/refactoring/` is temporary historical material while the cleanup is being completed; do not treat it as the canonical source of architecture rules.
+- [`docs/knowledge-base/testing-guidelines.md`](docs/knowledge-base/testing-guidelines.md) is canon for build-host test data policy, canonical test infrastructure, filesystem seeding, and test anti-patterns.
+- Migration-era refactor notes were retired; durable architecture rules live in ADRs and knowledge-base docs.
 
 Current `ResolveVersionsFromManifestTask` and `ResolveVersionsFromExplicitTask` remain solid examples of task-owned orchestration without falling back to generic pipeline wrappers.
 

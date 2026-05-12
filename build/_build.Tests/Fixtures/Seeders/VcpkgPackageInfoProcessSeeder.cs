@@ -5,8 +5,8 @@ namespace Build.Tests.Fixtures.Seeders;
 
 public static class VcpkgPackageInfoProcessSeeder
 {
-    public static FakeCakeWorldV2 WithVcpkgPackageInfo(
-        this FakeCakeWorldV2 world,
+    public static FakeCakeWorld WithVcpkgPackageInfo(
+        this FakeCakeWorld world,
         string packageName,
         string triplet,
         IReadOnlyList<string> ownedFiles,
@@ -48,7 +48,7 @@ public static class VcpkgPackageInfoProcessSeeder
             stdOut: world.CakeContext.SerializeJson(payload));
     }
 
-    public static FakeCakeWorldV2 WithMissingVcpkgPackageInfo(this FakeCakeWorldV2 world, string packageName, string triplet)
+    public static FakeCakeWorld WithMissingVcpkgPackageInfo(this FakeCakeWorld world, string packageName, string triplet)
     {
         ArgumentNullException.ThrowIfNull(world);
         ArgumentException.ThrowIfNullOrWhiteSpace(packageName);
@@ -61,7 +61,7 @@ public static class VcpkgPackageInfoProcessSeeder
             stdOut: "");
     }
 
-    private static string GetVcpkgToolName(FakeCakeWorldV2 world)
+    private static string GetVcpkgToolName(FakeCakeWorld world)
     {
         return world.Environment.Platform.Family == PlatformFamily.Windows ? "vcpkg.exe" : "vcpkg";
     }

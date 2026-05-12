@@ -24,7 +24,7 @@ public sealed class PreFlightCheckTaskScenarioTests
     public async Task RunAsync_Should_Pass_When_All_Validators_Are_Green()
     {
         var manifest = ManifestFixture.CreateTestManifestConfig();
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithManifestObject(manifest)
             .WithTextFile("vcpkg.json", FixtureLoader.Load("Vcpkg/vcpkg-valid.json"))
             .WithTextFile("vcpkg-overlay-triplets/x64-windows-hybrid.cmake", "# overlay")
@@ -42,7 +42,7 @@ public sealed class PreFlightCheckTaskScenarioTests
     [Test]
     public async Task RunAsync_Should_Throw_When_VersionsFile_Argument_Is_Missing()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithTextFile("vcpkg.json", FixtureLoader.Load("Vcpkg/vcpkg-valid.json"))
             .WithTextFile("vcpkg-overlay-triplets/x64-windows-hybrid.cmake", "# overlay");
@@ -56,7 +56,7 @@ public sealed class PreFlightCheckTaskScenarioTests
     [Test]
     public async Task RunAsync_Should_Throw_When_Version_Mapping_Is_Empty()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithTextFile("vcpkg.json", FixtureLoader.Load("Vcpkg/vcpkg-valid.json"))
             .WithTextFile("vcpkg-overlay-triplets/x64-windows-hybrid.cmake", "# overlay")
@@ -74,7 +74,7 @@ public sealed class PreFlightCheckTaskScenarioTests
     {
         // [G16] — manifest declares triplet x64-windows-hybrid but no matching overlay file
         // exists at vcpkg-overlay-triplets/. PreFlight must refuse before any build runs.
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithTextFile("vcpkg.json", FixtureLoader.Load("Vcpkg/vcpkg-valid.json"))
             .WithVersionsFile(VersionsFilePath)
@@ -95,7 +95,7 @@ public sealed class PreFlightCheckTaskScenarioTests
         // VersionConsistency — vcpkg.json carries sdl2 v2.30.0 while manifest library_manifests
         // pins sdl2 to v2.32.10. PreFlight catches the drift before downstream packing
         // would silently consume the wrong upstream.
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithTextFile("vcpkg.json", FixtureLoader.Load("Vcpkg/vcpkg-version-mismatch.json"))
             .WithTextFile("vcpkg-overlay-triplets/x64-windows-hybrid.cmake", "# overlay")
@@ -131,7 +131,7 @@ public sealed class PreFlightCheckTaskScenarioTests
                     ChangePaths = [],
                 }),
         };
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithManifestObject(manifestWithBadName)
             .WithTextFile("vcpkg.json", FixtureLoader.Load("Vcpkg/vcpkg-valid.json"))
             .WithTextFile("vcpkg-overlay-triplets/x64-windows-hybrid.cmake", "# overlay")
@@ -150,7 +150,7 @@ public sealed class PreFlightCheckTaskScenarioTests
     {
         // [G54] — versions.json carries sdl2-core="3.0.0" while manifest library_manifests
         // pins sdl2 to upstream 2.32.10. Major drift breaks D-3seg version contract.
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithTextFile("vcpkg.json", FixtureLoader.Load("Vcpkg/vcpkg-valid.json"))
             .WithTextFile("vcpkg-overlay-triplets/x64-windows-hybrid.cmake", "# overlay")
@@ -172,7 +172,7 @@ public sealed class PreFlightCheckTaskScenarioTests
         // [G58] — versions.json carries sdl2-image but not sdl2-core; sdl2-image declares
         // depends_on=["sdl2-core"], so the satellite-only release would yield a package
         // that cannot resolve its within-monorepo dependency at restore time.
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithTextFile("vcpkg.json", FixtureLoader.Load("Vcpkg/vcpkg-valid.json"))
             .WithTextFile("vcpkg-overlay-triplets/x64-windows-hybrid.cmake", "# overlay")
@@ -194,7 +194,7 @@ public sealed class PreFlightCheckTaskScenarioTests
         // CsprojPackContractValidator — manifest references managed/native csproj files
         // that don't exist on disk. Catches stale package_families[] entries pointing at
         // moved or deleted projects.
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithTextFile("vcpkg.json", FixtureLoader.Load("Vcpkg/vcpkg-valid.json"))
             .WithTextFile("vcpkg-overlay-triplets/x64-windows-hybrid.cmake", "# overlay")
@@ -210,9 +210,9 @@ public sealed class PreFlightCheckTaskScenarioTests
         await Assert.That(result.Log.HasMessage(LogLevel.Error, "csproj pack contract")).IsTrue();
     }
 
-    private static TargetTestHostV2<PreFlightCheckTask> CreateHost(FakeCakeWorldV2 world)
+    private static TargetTestHost<PreFlightCheckTask> CreateHost(FakeCakeWorld world)
     {
-        return new TargetTestHostV2<PreFlightCheckTask>(world)
+        return new TargetTestHost<PreFlightCheckTask>(world)
             .WithServices(services =>
             {
                 services.AddData();
@@ -221,7 +221,7 @@ public sealed class PreFlightCheckTaskScenarioTests
             });
     }
 
-    private static void SeedCsprojsForManifestFixture(FakeCakeWorldV2 world)
+    private static void SeedCsprojsForManifestFixture(FakeCakeWorld world)
     {
         // Minimal csproj XML that satisfies CsprojPackContractValidator G6 (canonical
         // PackageId) and G7 (Native ProjectReference path). Mirrors the manifest fixture's

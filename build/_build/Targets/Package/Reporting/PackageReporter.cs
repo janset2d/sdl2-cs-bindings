@@ -3,6 +3,7 @@ using Build.Data.ProjectMetadata;
 using Build.Results;
 using Build.Targets.Package.Models;
 using Build.Validation.Models;
+using Cake.Core;
 using Cake.Core.Diagnostics;
 
 namespace Build.Targets.Package.Reporting;
@@ -55,16 +56,13 @@ public sealed class PackageReporter(ICakeLog log)
         }
     }
 
-    public void ReportPackError(PackageFamilyConfig family, DotNetPackError error)
+    public void ReportPackError(PackageFamilyConfig family, CakeException error)
     {
         ArgumentNullException.ThrowIfNull(family);
         ArgumentNullException.ThrowIfNull(error);
 
         _log.Error("dotnet pack failed for family '{0}': {1}", family.Name, error.Message);
-        if (error.Exception is not null)
-        {
-            _log.Verbose("Details: {0}", error.Exception);
-        }
+        _log.Verbose("Details: {0}", error);
     }
 
     public void ReportProjectMetadataError(PackageFamilyConfig family, ProjectMetadataError error)

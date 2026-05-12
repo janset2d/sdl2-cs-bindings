@@ -3,7 +3,7 @@ using Cake.Core.Diagnostics;
 
 namespace Build.Tests.Fixtures;
 
-public sealed class TestLogV2 : ICakeLog
+public sealed class TestLog : ICakeLog
 {
     private readonly Lock _lock = new();
     private readonly List<LogEntry> _entries = [];

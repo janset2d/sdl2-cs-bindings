@@ -101,21 +101,21 @@ public sealed class PublishStagingTaskScenarioTests
 
     private const string VersionsFilePath = "artifacts/resolve-versions/versions.json";
 
-    private static FakeCakeWorldV2 NewWorld(INuGetFeedClient feedClient)
+    private static FakeCakeWorld NewWorld(INuGetFeedClient feedClient)
     {
         ArgumentNullException.ThrowIfNull(feedClient);
-        return FakeCakeWorldV2.CreateWindows()
+        return FakeCakeWorld.CreateWindows()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithVersionsFile(VersionsFilePath)
             .WithTextFile(VersionsFilePath, FixtureLoader.Load("Versions/versions-multi-family.json"));
     }
 
-    private static void SeedVersionsFromFixture(FakeCakeWorldV2 world, string fixtureRelativePath)
+    private static void SeedVersionsFromFixture(FakeCakeWorld world, string fixtureRelativePath)
     {
         world.WithTextFile(VersionsFilePath, FixtureLoader.Load(fixtureRelativePath));
     }
 
-    private static void SeedFeedNupkgs(FakeCakeWorldV2 world, params (string Family, string Version)[] entries)
+    private static void SeedFeedNupkgs(FakeCakeWorld world, params (string Family, string Version)[] entries)
     {
         foreach (var (family, version) in entries)
         {
@@ -130,12 +130,12 @@ public sealed class PublishStagingTaskScenarioTests
         }
     }
 
-    private static TargetTestHostV2<PublishStagingTask> CreateHost(FakeCakeWorldV2 world, INuGetFeedClient feedClient)
+    private static TargetTestHost<PublishStagingTask> CreateHost(FakeCakeWorld world, INuGetFeedClient feedClient)
     {
         feedClient.PushAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<FilePath>(), Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
 
-        return new TargetTestHostV2<PublishStagingTask>(world)
+        return new TargetTestHost<PublishStagingTask>(world)
             .WithManifest(ManifestFixture.CreateTestManifestConfig())
             .WithServices(services =>
             {

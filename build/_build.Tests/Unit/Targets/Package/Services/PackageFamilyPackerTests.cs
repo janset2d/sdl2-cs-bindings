@@ -20,7 +20,7 @@ public sealed class PackageFamilyPackerTests
     [Test]
     public async Task PackAsync_Should_Throw_When_ManagedProject_Path_Empty()
     {
-        var (packer, _) = BuildPacker();
+        var (packer, _, _) = BuildPacker();
         var family = TestFamily(name: "sdl2-core", managedProject: null, nativeProject: "src/native/SDL2.Core.Native/SDL2.Core.Native.csproj");
 
         var ex = await Assert.ThrowsAsync<CakeException>(async () =>
@@ -32,7 +32,7 @@ public sealed class PackageFamilyPackerTests
     [Test]
     public async Task PackAsync_Should_Throw_When_NativeProject_Path_Empty()
     {
-        var (packer, _) = BuildPacker();
+        var (packer, _, _) = BuildPacker();
         var family = TestFamily(name: "sdl2-core", managedProject: "src/SDL2.Core/SDL2.Core.csproj", nativeProject: null);
 
         var ex = await Assert.ThrowsAsync<CakeException>(async () =>
@@ -50,7 +50,7 @@ public sealed class PackageFamilyPackerTests
             new ValidationCheck("TFM agreement", ValidationSeverity.Error, "net8 group disagrees with net10", Code: "G22"),
             new ValidationCheck("Repository commit", ValidationSeverity.Error, "expected sha did not match", Code: "G26"),
         ]);
-        var (packer, log) = BuildPacker(outputValidatorReport: failingReport);
+        var (packer, log, _) = BuildPacker(outputValidatorReport: failingReport);
         var family = TestFamily(name: "sdl2-core", managedProject: "src/SDL2.Core/SDL2.Core.csproj", nativeProject: "src/native/SDL2.Core.Native/SDL2.Core.Native.csproj");
 
         var ex = await Assert.ThrowsAsync<CakeException>(async () =>
@@ -63,9 +63,37 @@ public sealed class PackageFamilyPackerTests
         await Assert.That(log.HasMessage(LogLevel.Error, "[G26]")).IsTrue();
     }
 
-    private static (PackageFamilyPacker Packer, TestLogV2 Log) BuildPacker(ValidationReport? outputValidatorReport = null)
+    [Test]
+    public async Task PackAsync_Should_Invoke_DotNetPack_For_Native_And_Managed_Projects()
     {
-        var log = new TestLogV2();
+        var (packer, _, world) = BuildPacker();
+        var family = TestFamily(
+            name: "sdl2-core",
+            managedProject: "src/SDL2.Core/SDL2.Core.csproj",
+            nativeProject: "src/native/SDL2.Core.Native/SDL2.Core.Native.csproj");
+
+        await packer.PackAsync(ManifestFixture.CreateTestManifestConfig(), family, "2.32.0", "abc123sha", "Release", CancellationToken.None);
+
+        var invocations = world.ProcessInvocations
+            .Where(i => i.Command.GetFilename().FullPath == "dotnet.exe")
+            .ToList();
+
+        await Assert.That(invocations.Count).IsEqualTo(2);
+        await Assert.That(invocations[0].Arguments).Contains("SDL2.Core.Native.csproj");
+        await Assert.That(invocations[0].Arguments).Contains("2.32.0");
+        await Assert.That(invocations[0].Arguments).Contains("NativePayloadSource=");
+        await Assert.That(invocations[0].Arguments).Contains("harvest_output/sdl2");
+        await Assert.That(invocations[1].Arguments).Contains("SDL2.Core.csproj");
+        await Assert.That(invocations[1].Arguments).Contains("2.32.0");
+        await Assert.That(invocations[1].Arguments).DoesNotContain("NativePayloadSource=");
+    }
+
+    private static (PackageFamilyPacker Packer, TestLog Log, FakeCakeWorld World) BuildPacker(ValidationReport? outputValidatorReport = null)
+    {
+        var world = FakeCakeWorld.CreateWindows()
+            .WithToolPath(new FilePath("C:/tools/dotnet.exe"))
+            .WithProcessResult("dotnet.exe", exitCode: 0, stdOut: "");
+        var log = world.Log;
 
         var pathService = Substitute.For<IPathService>();
         pathService.RepoRoot.Returns(new DirectoryPath("C:/repo"));
@@ -73,10 +101,6 @@ public sealed class PackageFamilyPackerTests
         pathService.GetHarvestLibraryDir(Arg.Any<string>())
             .Returns(call => new DirectoryPath($"C:/repo/artifacts/harvest_output/{(string)call[0]}"));
         pathService.GetReadmeFile().Returns(new FilePath("C:/repo/README.md"));
-
-        var dotNetPackInvoker = Substitute.For<IDotNetPackInvoker>();
-        dotNetPackInvoker.Pack(Arg.Any<FilePath>(), Arg.Any<DotNetPackInvocation>(), Arg.Any<bool>(), Arg.Any<bool>())
-            .Returns(Result<Build.Results.Unit, DotNetPackError>.Success(Build.Results.Unit.Value));
 
         var nativeMetadataGenerator = Substitute.For<INativePackageMetadataGenerator>();
         nativeMetadataGenerator.GenerateAsync(Arg.Any<ManifestConfig>(), Arg.Any<PackageFamilyConfig>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
@@ -102,15 +126,14 @@ public sealed class PackageFamilyPackerTests
         harvestReadinessValidator.EnsureReadyAsync(Arg.Any<PackageFamilyConfig>(), Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
 
-        // DependencyRangeNormalizer needs an ICakeContext + ICakeLog. Use a minimal world.
-        var world = FakeCakeWorldV2.CreateWindows();
         var normalizer = new DependencyRangeNormalizer(world.CakeContext, world.Log);
 
         var reporter = new PackageReporter(log);
 
         var packer = new PackageFamilyPacker(
+            world.CakeContext,
+            log,
             pathService,
-            dotNetPackInvoker,
             nativeMetadataGenerator,
             projectMetadataReader,
             packageOutputValidator,
@@ -118,7 +141,7 @@ public sealed class PackageFamilyPackerTests
             normalizer,
             reporter);
 
-        return (packer, log);
+        return (packer, log, world);
     }
 
     private static PackageFamilyConfig TestFamily(string name, string? managedProject, string? nativeProject) => new()

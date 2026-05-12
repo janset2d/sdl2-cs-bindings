@@ -10,7 +10,7 @@ public static class ManifestFixture
     private static readonly Lazy<ManifestConfig> CachedManifest = new(LoadManifestFromJson);
 
     /// <summary>
-    /// Real manifest.json from build/ directory — production data.
+    /// Full manifest contract fixture captured from production data.
     /// </summary>
     public static ManifestConfig RealManifest => CachedManifest.Value;
 
@@ -124,8 +124,8 @@ public static class ManifestFixture
 
     private static ManifestConfig LoadManifestFromJson()
     {
-        var json = WorkspaceFiles.ReadAllText(WorkspaceFiles.ManifestPath);
+        var json = FixtureLoader.Load("Manifest/manifest-real.json");
         return JsonSerializer.Deserialize<ManifestConfig>(json)
-            ?? throw new InvalidOperationException("Failed to deserialize manifest.json");
+            ?? throw new InvalidOperationException("Failed to deserialize embedded real manifest fixture.");
     }
 }

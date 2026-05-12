@@ -1,7 +1,6 @@
 using Build.Tests.Fixtures;
 using Build.Tools.Tar;
 using Cake.Core.IO;
-using Cake.Testing;
 
 namespace Build.Tests.Unit.Tools.Tar;
 
@@ -10,25 +9,20 @@ public sealed class TarExtractToolTests
     [Test]
     public async Task Extract_Should_Invoke_Tar_With_Xzf_And_C_Destination()
     {
-        var environment = FakeEnvironment.CreateUnixEnvironment();
-        var fileSystem = new FakeFileSystem(environment);
         var tarPath = new FilePath("/usr/bin/tar");
-        fileSystem.CreateFile(tarPath);
 
-        var context = new FakeCakeToolContextBuilder(fileSystem, environment)
-            .WithProcessCapture(out var capture)
+        var world = FakeCakeWorld.CreateLinux()
             .WithToolPath(tarPath)
-            .Build();
+            .WithProcessResult("tar", exitCode: 0, stdOut: "");
 
-        var tool = new TarExtractTool(context.FileSystem, context.Environment, context.ProcessRunner, context.Tools);
+        var tool = new TarExtractTool(world.FileSystem, world.Environment, world.CakeContext.ProcessRunner, world.CakeContext.Tools);
         var settings = new TarExtractSettings(
             new FilePath("/repo/artifacts/harvest_output/SDL2/runtimes/linux-x64/native/native.tar.gz"),
             new DirectoryPath("/repo/artifacts/temp/inspect/linux-x64/SDL2"));
 
         tool.Extract(settings);
 
-        await Assert.That(capture.Settings).IsNotNull();
-        var args = capture.Settings!.Arguments.Render();
+        var args = world.ProcessInvocations.Single().Arguments;
         await Assert.That(args).StartsWith("-xzf ");
         await Assert.That(args).Contains("native.tar.gz");
         await Assert.That(args).Contains("-C ");
@@ -38,17 +32,13 @@ public sealed class TarExtractToolTests
     [Test]
     public async Task Extract_Should_Append_V_When_Verbose_Enabled()
     {
-        var environment = FakeEnvironment.CreateUnixEnvironment();
-        var fileSystem = new FakeFileSystem(environment);
         var tarPath = new FilePath("/usr/bin/tar");
-        fileSystem.CreateFile(tarPath);
 
-        var context = new FakeCakeToolContextBuilder(fileSystem, environment)
-            .WithProcessCapture(out var capture)
+        var world = FakeCakeWorld.CreateLinux()
             .WithToolPath(tarPath)
-            .Build();
+            .WithProcessResult("tar", exitCode: 0, stdOut: "");
 
-        var tool = new TarExtractTool(context.FileSystem, context.Environment, context.ProcessRunner, context.Tools);
+        var tool = new TarExtractTool(world.FileSystem, world.Environment, world.CakeContext.ProcessRunner, world.CakeContext.Tools);
         var settings = new TarExtractSettings(
             new FilePath("/tmp/a.tar.gz"),
             new DirectoryPath("/tmp/out"))
@@ -58,24 +48,20 @@ public sealed class TarExtractToolTests
 
         tool.Extract(settings);
 
-        var args = capture.Settings!.Arguments.Render();
+        var args = world.ProcessInvocations.Single().Arguments;
         await Assert.That(args).StartsWith("-xzvf ");
     }
 
     [Test]
     public async Task Extract_Should_Append_StripComponents_When_Set()
     {
-        var environment = FakeEnvironment.CreateUnixEnvironment();
-        var fileSystem = new FakeFileSystem(environment);
         var tarPath = new FilePath("/usr/bin/tar");
-        fileSystem.CreateFile(tarPath);
 
-        var context = new FakeCakeToolContextBuilder(fileSystem, environment)
-            .WithProcessCapture(out var capture)
+        var world = FakeCakeWorld.CreateLinux()
             .WithToolPath(tarPath)
-            .Build();
+            .WithProcessResult("tar", exitCode: 0, stdOut: "");
 
-        var tool = new TarExtractTool(context.FileSystem, context.Environment, context.ProcessRunner, context.Tools);
+        var tool = new TarExtractTool(world.FileSystem, world.Environment, world.CakeContext.ProcessRunner, world.CakeContext.Tools);
         var settings = new TarExtractSettings(
             new FilePath("/tmp/a.tar.gz"),
             new DirectoryPath("/tmp/out"))
@@ -85,23 +71,20 @@ public sealed class TarExtractToolTests
 
         tool.Extract(settings);
 
-        var args = capture.Settings!.Arguments.Render();
+        var args = world.ProcessInvocations.Single().Arguments;
         await Assert.That(args).Contains("--strip-components=2");
     }
 
     [Test]
     public async Task Extract_Should_Throw_When_Settings_Null()
     {
-        var environment = FakeEnvironment.CreateUnixEnvironment();
-        var fileSystem = new FakeFileSystem(environment);
         var tarPath = new FilePath("/usr/bin/tar");
-        fileSystem.CreateFile(tarPath);
 
-        var context = new FakeCakeToolContextBuilder(fileSystem, environment)
+        var world = FakeCakeWorld.CreateLinux()
             .WithToolPath(tarPath)
-            .Build();
+            .WithProcessResult("tar", exitCode: 0, stdOut: "");
 
-        var tool = new TarExtractTool(context.FileSystem, context.Environment, context.ProcessRunner, context.Tools);
+        var tool = new TarExtractTool(world.FileSystem, world.Environment, world.CakeContext.ProcessRunner, world.CakeContext.Tools);
 
         await Assert.That(() => tool.Extract(null!)).Throws<ArgumentNullException>();
     }

@@ -43,7 +43,7 @@ public sealed class VcpkgManifestRepositoryRoundTripTests
     [Test]
     public async Task Load_Should_Return_Parsed_Manifest_When_File_Exists()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithTextFile("vcpkg.json", FixtureLoader.Load("Vcpkg/vcpkg-valid.json"));
 
         var path = world.RepoRoot.CombineWithFilePath("vcpkg.json");
@@ -62,7 +62,7 @@ public sealed class VcpkgManifestRepositoryRoundTripTests
     [Test]
     public async Task Load_Should_Throw_CakeException_When_File_Is_Missing()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var path = world.RepoRoot.CombineWithFilePath("vcpkg.json");
         var repository = new VcpkgManifestRepository(world.CakeContext, path);
 
@@ -75,7 +75,7 @@ public sealed class VcpkgManifestRepositoryRoundTripTests
     [Test]
     public async Task Load_Should_Throw_CakeException_When_Json_Is_Invalid()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithTextFile("vcpkg.json", "{ this is not valid json");
 
         var path = world.RepoRoot.CombineWithFilePath("vcpkg.json");
@@ -90,7 +90,7 @@ public sealed class VcpkgManifestRepositoryRoundTripTests
     [Test]
     public async Task Load_Should_Throw_CakeException_When_Json_Deserializes_To_Null()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithTextFile("vcpkg.json", "null");
 
         var path = world.RepoRoot.CombineWithFilePath("vcpkg.json");

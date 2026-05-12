@@ -30,8 +30,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Canonical fixture data shipped alongside tests. Loaded by ManifestConfigSeeder.FromDefaultFixture(). -->
-    <None Update="Fixtures\Data\**\*.*" CopyToOutputDirectory="PreserveNewest" />
     <EmbeddedResource Include="Fixtures\Data\**\*.json" />
   </ItemGroup>
 </Project>

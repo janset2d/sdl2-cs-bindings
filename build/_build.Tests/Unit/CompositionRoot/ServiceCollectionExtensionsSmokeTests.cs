@@ -11,28 +11,19 @@ using Build.Targets.PublishStaging;
 using Build.Tests.Fixtures;
 using Build.Validation;
 using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
-using Spectre.Console;
 
 namespace Build.Tests.Unit.CompositionRoot;
 
 /// <summary>
-/// Per-feature DI smoke. Each test seeds a
-/// <see cref="ServiceCollection"/> with <see cref="TestHostFixture.AddTestHostBuildingBlocks"/>
-/// (Cake fakes + Host singletons + Tool/Integration substitutes), invokes a single
-/// <c>AddXFeature()</c>, captures the descriptors the feature added, builds the provider,
-/// and asserts every added service type resolves without throwing.
+/// Per-feature DI smoke. Each test seeds a <see cref="ServiceCollection"/> with
+/// <see cref="FakeCakeWorld"/> Cake primitives and build-host context, invokes a single
+/// <c>AddX()</c>, captures the descriptors the target added, builds the provider, and
+/// asserts every added service type resolves without throwing.
 /// <para>
 /// Catches DI graph regressions (missing transitive dependency, mistyped factory closure,
 /// wrong lifetime) at CI gate time without requiring full Cake host bootstrapping. Each
 /// feature has exactly one smoke; future features add one each per the vertical
 /// slice convention.
-/// </para>
-/// <para>
-/// <b>V1 fixture deferral:</b> this file consumes V1 <c>TestHostFixture.AddTestHostBuildingBlocks</c>;
-/// the testing-guidelines V2-on-touch rule is intentionally deferred for this file because
-/// creating a V2 equivalent (<c>FakeCakeWorldV2</c>-derived <c>IServiceCollection</c> seed) is
-/// its own infrastructure slice rather than a single-test migration.
 /// </para>
 /// </summary>
 public sealed class ServiceCollectionExtensionsSmokeTests
@@ -56,13 +47,11 @@ public sealed class ServiceCollectionExtensionsSmokeTests
     {
         // HarvestTask injects walker/planner/deployer/preconditions validators registered by
         // AddValidators(), the rid-status repository registered by AddData() per the
-        // repository-cohort rule, and ManifestConfig + IRuntimeScanner from AddTestHostBuildingBlocks.
+        // repository-cohort rule, and ManifestConfig + IRuntimeScanner from canonical composition.
         // Vcpkg package metadata is read through Cake Vcpkg aliases on ICakeContext.
-        // HarvestReporter takes IAnsiConsole — Program.cs binds the real console; smoke tests bind
-        // a substitute so the resolution graph closes.
+        // HarvestReporter takes IAnsiConsole; FakeCakeWorld binds a TestConsole.
         await AssertAllRegisteredTypesResolve(services =>
         {
-            services.AddSingleton(Substitute.For<IAnsiConsole>());
             services.AddData();
             services.AddValidators();
             services.AddHarvest();
@@ -87,10 +76,9 @@ public sealed class ServiceCollectionExtensionsSmokeTests
     public async Task AddConsolidateHarvest_Should_Register_All_Collaborator_Types()
     {
         // ConsolidateHarvestTask reads rid-status/manifest data through AddData repositories.
-        // ConsolidateHarvestReporter takes IAnsiConsole — see AddHarvest smoke for rationale.
+        // ConsolidateHarvestReporter takes IAnsiConsole; FakeCakeWorld binds a TestConsole.
         await AssertAllRegisteredTypesResolve(services =>
         {
-            services.AddSingleton(Substitute.For<IAnsiConsole>());
             services.AddData();
             services.AddConsolidateHarvest();
         });
@@ -111,11 +99,9 @@ public sealed class ServiceCollectionExtensionsSmokeTests
         // PackageConsumerSmokeReporter + IDotNetRuntimeEnvironment (all registered by
         // AddPackageConsumerSmoke) + IPackageConsumerSmokePreconditionsValidator
         // (registered by AddValidators) + IProjectMetadataReader (registered by AddPackage).
-        // PackageConsumerSmokeReporter takes IAnsiConsole, so bind a substitute to close the
-        // resolution graph.
+        // PackageConsumerSmokeReporter takes IAnsiConsole; FakeCakeWorld binds a TestConsole.
         await AssertAllRegisteredTypesResolve(services =>
         {
-            services.AddSingleton(Substitute.For<IAnsiConsole>());
             services.AddData();
             services.AddValidators();
             services.AddPackage();
@@ -127,7 +113,9 @@ public sealed class ServiceCollectionExtensionsSmokeTests
     {
         ArgumentNullException.ThrowIfNull(register);
 
-        var services = new ServiceCollection().AddTestHostBuildingBlocks();
+        var world = FakeCakeWorld.CreateWindows();
+        var services = new ServiceCollection()
+            .AddFakeCakeWorld(world);
         var hostDescriptorCount = services.Count;
 
         register(services);

@@ -1,16 +1,17 @@
 using Build.Tests.Fixtures;
+using Cake.Core;
 using Cake.Core.IO;
 
 namespace Build.Tests.Unit.Fixtures;
 
-public sealed class FakeCakeWorldV2Tests
+public sealed class FakeCakeWorldTests
 {
-    // ── existing V2 world tests ──
+    // ── fake world tests ──
 
     [Test]
     public async Task Create_Should_Set_Up_Windows_Fake_Environment_By_Default()
     {
-        var world = FakeCakeWorldV2.Create();
+        var world = FakeCakeWorld.Create();
 
         await Assert.That(world.Environment.Platform.Family)
             .IsEqualTo(Cake.Core.PlatformFamily.Windows);
@@ -22,7 +23,7 @@ public sealed class FakeCakeWorldV2Tests
     [Test]
     public async Task Create_Should_Set_Up_Unix_Fake_Environment_When_Specified()
     {
-        var world = FakeCakeWorldV2.Create(FakeRepoPlatformV2.Unix);
+        var world = FakeCakeWorld.Create(FakeRepoPlatform.Unix);
 
         await Assert.That(world.Environment.Platform.Family)
             .IsEqualTo(Cake.Core.PlatformFamily.Linux);
@@ -31,7 +32,7 @@ public sealed class FakeCakeWorldV2Tests
     [Test]
     public async Task WithTextFile_Should_Create_File_In_Fake_Filesystem()
     {
-        var world = FakeCakeWorldV2.Create();
+        var world = FakeCakeWorld.Create();
 
         world.WithTextFile("test/data.json", "{\"key\":42}");
 
@@ -43,7 +44,7 @@ public sealed class FakeCakeWorldV2Tests
     [Test]
     public async Task ReadAllText_Should_Return_File_Content()
     {
-        var world = FakeCakeWorldV2.Create();
+        var world = FakeCakeWorld.Create();
         world.WithTextFile("readme.md", "hello");
 
         var content = world.ReadAllText("readme.md");
@@ -54,7 +55,7 @@ public sealed class FakeCakeWorldV2Tests
     [Test]
     public async Task FileExists_Should_Return_True_For_Existing_File()
     {
-        var world = FakeCakeWorldV2.Create();
+        var world = FakeCakeWorld.Create();
         world.WithTextFile("exists.txt", "");
 
         await Assert.That(world.FileExists("exists.txt")).IsTrue();
@@ -63,7 +64,7 @@ public sealed class FakeCakeWorldV2Tests
     [Test]
     public async Task FileExists_Should_Return_False_For_Missing_File()
     {
-        var world = FakeCakeWorldV2.Create();
+        var world = FakeCakeWorld.Create();
 
         await Assert.That(world.FileExists("missing.txt")).IsFalse();
     }
@@ -73,7 +74,7 @@ public sealed class FakeCakeWorldV2Tests
     [Test]
     public async Task Process_Should_Propagate_Configured_Exit_Code()
     {
-        var world = FakeCakeWorldV2.Create()
+        var world = FakeCakeWorld.Create()
             .WithProcessResult("myapp", exitCode: 42, stdOut: "");
 
         var process = world.CakeContext.ProcessRunner.Start(
@@ -87,7 +88,7 @@ public sealed class FakeCakeWorldV2Tests
     [Test]
     public async Task Process_Should_Capture_Stdout_Lines()
     {
-        var world = FakeCakeWorldV2.Create()
+        var world = FakeCakeWorld.Create()
             .WithProcessResult("myapp", exitCode: 0, stdOut: "line1\nline2\n");
 
         var process = world.CakeContext.ProcessRunner.Start(
@@ -103,7 +104,7 @@ public sealed class FakeCakeWorldV2Tests
     [Test]
     public async Task Process_Should_Capture_Stderr_Lines()
     {
-        var world = FakeCakeWorldV2.Create()
+        var world = FakeCakeWorld.Create()
             .WithProcessResult("myapp", exitCode: 1, stdOut: "", stdErr: "err1\nerr2\n");
 
         var process = world.CakeContext.ProcessRunner.Start(
@@ -117,7 +118,7 @@ public sealed class FakeCakeWorldV2Tests
     [Test]
     public async Task Process_Command_Matching_Should_Be_Case_Insensitive()
     {
-        var world = FakeCakeWorldV2.Create()
+        var world = FakeCakeWorld.Create()
             .WithProcessResult("MyApp", exitCode: 7, stdOut: "");
 
         var process = world.CakeContext.ProcessRunner.Start(
@@ -131,7 +132,7 @@ public sealed class FakeCakeWorldV2Tests
     [Test]
     public async Task Process_Should_Throw_When_Command_Not_Configured()
     {
-        var world = FakeCakeWorldV2.Create();
+        var world = FakeCakeWorld.Create();
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
         {
@@ -145,7 +146,7 @@ public sealed class FakeCakeWorldV2Tests
     [Test]
     public async Task Process_Should_Use_Default_Result_When_Configured()
     {
-        var world = FakeCakeWorldV2.Create()
+        var world = FakeCakeWorld.Create()
             .WithDefaultProcessResult(exitCode: 99, stdOut: "default");
 
         var process = world.CakeContext.ProcessRunner.Start(
@@ -164,7 +165,7 @@ public sealed class FakeCakeWorldV2Tests
     [Test]
     public async Task ProcessInvocations_Should_Capture_Command_And_Arguments()
     {
-        var world = FakeCakeWorldV2.Create()
+        var world = FakeCakeWorld.Create()
             .WithProcessResult("git", exitCode: 0, stdOut: "");
 
         world.CakeContext.ProcessRunner.Start(
@@ -180,16 +181,35 @@ public sealed class FakeCakeWorldV2Tests
     [Test]
     public async Task ProcessInvocations_Should_Capture_Settings_Flags()
     {
-        var world = FakeCakeWorldV2.Create()
+        var world = FakeCakeWorld.Create()
             .WithProcessResult("cmd", exitCode: 0, stdOut: "");
 
         world.CakeContext.ProcessRunner.Start(
             new FilePath("cmd"),
-            new ProcessSettings { RedirectStandardOutput = true, Silent = true });
+            new ProcessSettings { RedirectStandardOutput = true, RedirectStandardError = true, Silent = true });
 
         var inv = world.ProcessInvocations[0];
         await Assert.That(inv.RedirectStandardOutput).IsTrue();
+        await Assert.That(inv.RedirectStandardError).IsTrue();
         await Assert.That(inv.Silent).IsTrue();
+    }
+
+    [Test]
+    public async Task Process_Should_Throw_Configured_Exception_For_Command()
+    {
+        var world = FakeCakeWorld.Create()
+            .WithProcessException("ldd", new CakeException("ldd failed"));
+
+        var exception = await Assert.ThrowsAsync<CakeException>(() =>
+        {
+            world.CakeContext.ProcessRunner.Start(
+                new FilePath("/usr/bin/ldd"),
+                new ProcessSettings { Arguments = "\"/app/bin/libSDL2_image.so\"" });
+            return Task.CompletedTask;
+        });
+
+        await Assert.That(exception!.Message).IsEqualTo("ldd failed");
+        await Assert.That(world.ProcessInvocations).HasSingleItem();
     }
 
     // ── tool fail-fast tests ──
@@ -197,7 +217,7 @@ public sealed class FakeCakeWorldV2Tests
     [Test]
     public async Task Tool_Should_Resolve_Configured_Path()
     {
-        var world = FakeCakeWorldV2.Create().WithToolPath(new FilePath("/tools/custom"));
+        var world = FakeCakeWorld.Create().WithToolPath(new FilePath("/tools/custom"));
 
         var result = world.CakeContext.Tools.Resolve("any-tool");
 
@@ -207,7 +227,7 @@ public sealed class FakeCakeWorldV2Tests
     [Test]
     public async Task Tool_Should_Throw_When_Path_Not_Configured()
     {
-        var world = FakeCakeWorldV2.Create();
+        var world = FakeCakeWorld.Create();
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => Task.FromResult(world.CakeContext.Tools.Resolve("any-tool")));
@@ -218,7 +238,7 @@ public sealed class FakeCakeWorldV2Tests
     [Test]
     public async Task Tool_Should_Use_Default_Path_When_Configured()
     {
-        var world = FakeCakeWorldV2.Create()
+        var world = FakeCakeWorld.Create()
             .WithDefaultToolPath(new FilePath("/dev/default"));
 
         var result = world.CakeContext.Tools.Resolve("anything");
@@ -229,7 +249,7 @@ public sealed class FakeCakeWorldV2Tests
     [Test]
     public async Task Process_Should_Match_Exact_Command_And_Arguments_When_Configured()
     {
-        var world = FakeCakeWorldV2.Create()
+        var world = FakeCakeWorld.Create()
             .WithProcessResult("vcpkg.exe", "x-package-info \"sdl2-image:x64-windows-hybrid\" --x-installed --x-json", exitCode: 0, stdOut: "image")
             .WithProcessResult("vcpkg.exe", "x-package-info \"sdl2:x64-windows-hybrid\" --x-installed --x-json", exitCode: 0, stdOut: "core");
 
@@ -247,7 +267,7 @@ public sealed class FakeCakeWorldV2Tests
     [Test]
     public async Task Process_Should_Prefer_Exact_Arguments_Over_Command_Only_Result()
     {
-        var world = FakeCakeWorldV2.Create()
+        var world = FakeCakeWorld.Create()
             .WithProcessResult("vcpkg.exe", exitCode: 0, stdOut: "fallback")
             .WithProcessResult("vcpkg.exe", "x-package-info \"sdl2:x64-windows-hybrid\" --x-installed --x-json", exitCode: 0, stdOut: "exact");
 
@@ -261,7 +281,7 @@ public sealed class FakeCakeWorldV2Tests
     [Test]
     public async Task Process_Should_Match_Exact_Arguments_When_Command_Casing_Differs()
     {
-        var world = FakeCakeWorldV2.Create()
+        var world = FakeCakeWorld.Create()
             .WithProcessResult("vcpkg.exe", exitCode: 0, stdOut: "fallback")
             .WithProcessResult("VCPKG.EXE", "x-package-info \"sdl2:x64-windows-hybrid\" --x-installed --x-json", exitCode: 0, stdOut: "exact");
 
@@ -275,7 +295,7 @@ public sealed class FakeCakeWorldV2Tests
     [Test]
     public async Task Process_Should_Fall_Back_To_Command_Only_Result_When_Exact_Arguments_Differ_By_Case()
     {
-        var world = FakeCakeWorldV2.Create()
+        var world = FakeCakeWorld.Create()
             .WithProcessResult("vcpkg.exe", exitCode: 0, stdOut: "fallback")
             .WithProcessResult("vcpkg.exe", "x-package-info \"SDL2:X64-WINDOWS-HYBRID\" --X-INSTALLED --X-JSON", exitCode: 0, stdOut: "exact");
 
@@ -289,7 +309,7 @@ public sealed class FakeCakeWorldV2Tests
     [Test]
     public async Task WithProcessResult_Should_Throw_ArgumentException_When_Command_Is_Whitespace()
     {
-        var world = FakeCakeWorldV2.Create();
+        var world = FakeCakeWorld.Create();
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
         {

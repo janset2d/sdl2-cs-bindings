@@ -1,13 +1,15 @@
 using Build.Host.Paths;
 using Build.Data.Manifest.Models;
 using Build.Data.ProjectMetadata;
-using Build.Results;
 using Build.Targets.Package.Models;
 using Build.Targets.Package.Reporting;
 using Build.Validation.Packaging;
+using Cake.Common.Tools.DotNet;
+using Cake.Common.Tools.DotNet.MSBuild;
+using Cake.Common.Tools.DotNet.Pack;
 using Cake.Core;
+using Cake.Core.Diagnostics;
 using Cake.Core.IO;
-// Cake.Core is required for CakeException; kept even though ICakeContext is not a Packer dep.
 
 namespace Build.Targets.Package.Services;
 
@@ -18,8 +20,11 @@ namespace Build.Targets.Package.Services;
 /// </summary>
 public sealed class PackageFamilyPacker
 {
+    private const string NativePayloadSourceProperty = "NativePayloadSource";
+
+    private readonly ICakeContext _cakeContext;
+    private readonly ICakeLog _log;
     private readonly IPathService _pathService;
-    private readonly IDotNetPackInvoker _dotNetPackInvoker;
     private readonly INativePackageMetadataGenerator _nativePackageMetadataGenerator;
     private readonly IProjectMetadataReader _projectMetadataReader;
     private readonly IPackageOutputValidator _packageOutputValidator;
@@ -28,8 +33,9 @@ public sealed class PackageFamilyPacker
     private readonly PackageReporter _reporter;
 
     public PackageFamilyPacker(
+        ICakeContext cakeContext,
+        ICakeLog log,
         IPathService pathService,
-        IDotNetPackInvoker dotNetPackInvoker,
         INativePackageMetadataGenerator nativePackageMetadataGenerator,
         IProjectMetadataReader projectMetadataReader,
         IPackageOutputValidator packageOutputValidator,
@@ -37,8 +43,9 @@ public sealed class PackageFamilyPacker
         DependencyRangeNormalizer dependencyRangeNormalizer,
         PackageReporter reporter)
     {
+        _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
+        _log = log ?? throw new ArgumentNullException(nameof(log));
         _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
-        _dotNetPackInvoker = dotNetPackInvoker ?? throw new ArgumentNullException(nameof(dotNetPackInvoker));
         _nativePackageMetadataGenerator = nativePackageMetadataGenerator ?? throw new ArgumentNullException(nameof(nativePackageMetadataGenerator));
         _projectMetadataReader = projectMetadataReader ?? throw new ArgumentNullException(nameof(projectMetadataReader));
         _packageOutputValidator = packageOutputValidator ?? throw new ArgumentNullException(nameof(packageOutputValidator));
@@ -81,18 +88,16 @@ public sealed class PackageFamilyPacker
         // as a standard `>=` dependency in the nuspec. Drift protection is orchestration-time:
         // both packs carry identical `version` and the post-pack validator asserts the emitted
         // <version> elements match (G23).
-        var nativeInvocation = new DotNetPackInvocation(
-            Configuration: buildConfiguration,
-            Version: version,
-            NativePayloadSource: nativePayloadSource);
-
-        var managedInvocation = nativeInvocation with { NativePayloadSource = null };
-
-        var nativePackResult = _dotNetPackInvoker.Pack(nativeProjectPath, nativeInvocation, noRestore: false, noBuild: false);
-        ThrowIfPackFailed(family, nativePackResult);
-
-        var managedPackResult = _dotNetPackInvoker.Pack(managedProjectPath, managedInvocation, noRestore: false, noBuild: false);
-        ThrowIfPackFailed(family, managedPackResult);
+        try
+        {
+            PackProject(nativeProjectPath, buildConfiguration, version, nativePayloadSource, noRestore: false, noBuild: false);
+            PackProject(managedProjectPath, buildConfiguration, version, nativePayloadSource: null, noRestore: false, noBuild: false);
+        }
+        catch (CakeException ex)
+        {
+            _reporter.ReportPackError(family, ex);
+            throw new CakeException($"dotnet pack failed for family '{family.Name}'. See log.", ex);
+        }
 
         var artifacts = CreateArtifacts(family, version);
         await _dependencyRangeNormalizer.NormalizeAsync(manifestConfig, family, artifacts.ManagedPackage, version, ct);
@@ -134,16 +139,46 @@ public sealed class PackageFamilyPacker
         return _pathService.RepoRoot.CombineWithFilePath(new FilePath(relativePath));
     }
 
-    private void ThrowIfPackFailed(PackageFamilyConfig family, Result<Unit, DotNetPackError> packResult)
+    private void PackProject(
+        FilePath projectPath,
+        string buildConfiguration,
+        string version,
+        DirectoryPath? nativePayloadSource,
+        bool noRestore,
+        bool noBuild)
     {
-        if (!packResult.IsFailure)
+        var settings = new DotNetPackSettings
         {
-            return;
+            Configuration = buildConfiguration,
+            OutputDirectory = _pathService.PackagesOutput,
+            NoRestore = noRestore,
+            NoBuild = noBuild,
+            MSBuildSettings = BuildMSBuildSettings(version, nativePayloadSource),
+        };
+
+        _log.Information(
+            "Running dotnet pack '{0}' at {1} (noRestore={2}, noBuild={3})",
+            projectPath.GetFilename().FullPath,
+            version,
+            noRestore,
+            noBuild);
+
+        _cakeContext.DotNetPack(projectPath.FullPath, settings);
+    }
+
+    private static DotNetMSBuildSettings BuildMSBuildSettings(string version, DirectoryPath? nativePayloadSource)
+    {
+        var settings = new DotNetMSBuildSettings
+        {
+            Version = version,
+        };
+
+        if (nativePayloadSource is not null)
+        {
+            settings.WithProperty(NativePayloadSourceProperty, nativePayloadSource.FullPath);
         }
 
-        // Reporter logs the detail; CakeException carries an anchor to send operators to the log.
-        _reporter.ReportPackError(family, packResult.Error);
-        throw new CakeException($"dotnet pack failed for family '{family.Name}'. See log.");
+        return settings;
     }
 
     private PackageArtifacts CreateArtifacts(PackageFamilyConfig family, string version)

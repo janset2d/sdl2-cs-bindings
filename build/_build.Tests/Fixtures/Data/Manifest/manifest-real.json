@@ -1,0 +1,237 @@
+{
+  "schema_version": "2.1",
+
+  "packaging_config": {
+    "validation_mode": "strict",
+    "core_library": "sdl2"
+  },
+
+  "runtimes": [
+    { "rid": "win-x64", "triplet": "x64-windows-hybrid", "runner": "windows-2025-vs2026", "container_image": null },
+    { "rid": "win-arm64", "triplet": "arm64-windows-hybrid", "runner": "windows-11-arm", "container_image": null },
+    { "rid": "win-x86", "triplet": "x86-windows-hybrid", "runner": "windows-2025-vs2026", "container_image": null },
+    { "rid": "linux-x64", "triplet": "x64-linux-hybrid", "runner": "ubuntu-24.04", "container_image": "ghcr.io/janset2d/sdl2-bindings-linux-builder:focal-latest" },
+    { "rid": "linux-arm64", "triplet": "arm64-linux-hybrid", "runner": "ubuntu-24.04-arm", "container_image": "ghcr.io/janset2d/sdl2-bindings-linux-builder:focal-latest" },
+    { "rid": "osx-x64", "triplet": "x64-osx-hybrid", "runner": "macos-15-intel", "container_image": null },
+    { "rid": "osx-arm64", "triplet": "arm64-osx-hybrid", "runner": "macos-26", "container_image": null }
+  ],
+
+  "package_families": [
+    {
+      "name": "sdl2-core",
+      "tag_prefix": "sdl2-core",
+      "managed_project": "src/SDL2.Core/SDL2.Core.csproj",
+      "native_project": "src/native/SDL2.Core.Native/SDL2.Core.Native.csproj",
+      "library_ref": "SDL2",
+      "depends_on": [],
+      "change_paths": [
+        "src/SDL2.Core/**",
+        "src/native/SDL2.Core.Native/**"
+      ]
+    },
+    {
+      "name": "sdl2-image",
+      "tag_prefix": "sdl2-image",
+      "managed_project": "src/SDL2.Image/SDL2.Image.csproj",
+      "native_project": "src/native/SDL2.Image.Native/SDL2.Image.Native.csproj",
+      "library_ref": "SDL2_image",
+      "depends_on": ["sdl2-core"],
+      "change_paths": [
+        "src/SDL2.Image/**",
+        "src/native/SDL2.Image.Native/**"
+      ]
+    },
+    {
+      "name": "sdl2-mixer",
+      "tag_prefix": "sdl2-mixer",
+      "managed_project": "src/SDL2.Mixer/SDL2.Mixer.csproj",
+      "native_project": "src/native/SDL2.Mixer.Native/SDL2.Mixer.Native.csproj",
+      "library_ref": "SDL2_mixer",
+      "depends_on": ["sdl2-core"],
+      "change_paths": [
+        "src/SDL2.Mixer/**",
+        "src/native/SDL2.Mixer.Native/**"
+      ]
+    },
+    {
+      "name": "sdl2-ttf",
+      "tag_prefix": "sdl2-ttf",
+      "managed_project": "src/SDL2.Ttf/SDL2.Ttf.csproj",
+      "native_project": "src/native/SDL2.Ttf.Native/SDL2.Ttf.Native.csproj",
+      "library_ref": "SDL2_ttf",
+      "depends_on": ["sdl2-core"],
+      "change_paths": [
+        "src/SDL2.Ttf/**",
+        "src/native/SDL2.Ttf.Native/**"
+      ]
+    },
+    {
+      "name": "sdl2-gfx",
+      "tag_prefix": "sdl2-gfx",
+      "managed_project": "src/SDL2.Gfx/SDL2.Gfx.csproj",
+      "native_project": "src/native/SDL2.Gfx.Native/SDL2.Gfx.Native.csproj",
+      "library_ref": "SDL2_gfx",
+      "depends_on": ["sdl2-core"],
+      "change_paths": [
+        "src/SDL2.Gfx/**",
+        "src/native/SDL2.Gfx.Native/**"
+      ]
+    }
+  ],
+
+  "system_exclusions": {
+    "windows": {
+      "system_dlls": [
+        "kernel32.dll",
+        "kernelbase.dll",
+        "ntdll.dll",
+        "user32.dll",
+        "gdi32.dll",
+        "winmm.dll",
+        "imm32.dll",
+        "advapi32.dll",
+        "shell32.dll",
+        "shlwapi.dll",
+        "ole32.dll",
+        "oleaut32.dll",
+        "version.dll",
+        "setupapi.dll",
+        "winspool.dll",
+        "comdlg32.dll",
+        "comctl32.dll",
+        "ws2_32.dll",
+        "iphlpapi.dll",
+        "crypt32.dll",
+        "d3d9.dll",
+        "d3d11.dll",
+        "dxgi.dll",
+        "ucrtbase.dll",
+        "msvcp*.dll",
+        "vcruntime*.dll",
+        "api-ms-win-*.dll"
+      ]
+    },
+    "linux": {
+      "system_libraries": [
+        "linux-vdso.so*",
+        "ld-linux-*.so*",
+        "libc.so*",
+        "libm.so*",
+        "libpthread.so*",
+        "libdl.so*",
+        "librt.so*",
+        "libutil.so*",
+        "libresolv.so*",
+        "libnss_*.so*",
+        "libstdc++.so*",
+        "libgcc_s.so*",
+        "libsystemd.so*",
+        "libdbus-*.so*",
+        "libexpat.so*",
+        "libasound.so*",
+        "libatopology.so*",
+        "libcap.so*",
+        "libpsx.so*",
+        "liblzma.so*",
+        "liblz4.so*",
+        "libzstd.so*",
+        "libblkid.so*",
+        "libmount.so*",
+        "libcrypt.so*",
+        "libxcrypt.so*",
+        "libowcrypt.so*"
+      ]
+    },
+    "osx": {
+      "system_libraries": [
+        "libSystem.B.dylib",
+        "libobjc.A.dylib",
+        "CoreVideo.framework",
+        "Cocoa.framework",
+        "IOKit.framework",
+        "ForceFeedback.framework",
+        "Carbon.framework",
+        "CoreAudio.framework",
+        "AudioToolbox.framework",
+        "AVFoundation.framework",
+        "Foundation.framework",
+        "GameController.framework",
+        "Metal.framework",
+        "QuartzCore.framework",
+        "CoreHaptics.framework",
+        "AppKit.framework",
+        "CoreFoundation.framework",
+        "CoreGraphics.framework",
+        "CoreServices.framework"
+      ]
+    }
+  },
+
+  "library_manifests": [
+    {
+      "name": "SDL2",
+      "vcpkg_name": "sdl2",
+      "vcpkg_version": "2.32.10",
+      "vcpkg_port_version": 0,
+      "native_lib_name": "SDL2.Core.Native",
+      "core_lib": true,
+      "primary_binaries": [
+        { "os": "Windows", "patterns": ["SDL2.dll"] },
+        { "os": "Linux", "patterns": ["libSDL2*"] },
+        { "os": "OSX", "patterns": ["libSDL2*.dylib"] }
+      ]
+    },
+    {
+      "name": "SDL2_image",
+      "vcpkg_name": "sdl2-image",
+      "vcpkg_version": "2.8.8",
+      "vcpkg_port_version": 2,
+      "native_lib_name": "SDL2.Image.Native",
+      "core_lib": false,
+      "primary_binaries": [
+        { "os": "Windows", "patterns": ["SDL2_image.dll"] },
+        { "os": "Linux", "patterns": ["libSDL2_image*"] },
+        { "os": "OSX", "patterns": ["libSDL2_image*.dylib"] }
+      ]
+    },
+    {
+      "name": "SDL2_mixer",
+      "vcpkg_name": "sdl2-mixer",
+      "vcpkg_version": "2.8.1",
+      "vcpkg_port_version": 2,
+      "native_lib_name": "SDL2.Mixer.Native",
+      "core_lib": false,
+      "primary_binaries": [
+        { "os": "Windows", "patterns": ["SDL2_mixer.dll"] },
+        { "os": "Linux", "patterns": ["libSDL2_mixer*"] },
+        { "os": "OSX", "patterns": ["libSDL2_mixer*.dylib"] }
+      ]
+    },
+    {
+      "name": "SDL2_ttf",
+      "vcpkg_name": "sdl2-ttf",
+      "vcpkg_version": "2.24.0",
+      "vcpkg_port_version": 0,
+      "native_lib_name": "SDL2.Ttf.Native",
+      "core_lib": false,
+      "primary_binaries": [
+        { "os": "Windows", "patterns": ["SDL2_ttf.dll"] },
+        { "os": "Linux", "patterns": ["libSDL2_ttf*"] },
+        { "os": "OSX", "patterns": ["libSDL2_ttf*.dylib"] }
+      ]
+    },
+    {
+      "name": "SDL2_gfx",
+      "vcpkg_name": "sdl2-gfx",
+      "vcpkg_version": "1.0.4",
+      "vcpkg_port_version": 11,
+      "native_lib_name": "SDL2.Gfx.Native",
+      "core_lib": false,
+      "primary_binaries": [
+        { "os": "Windows", "patterns": ["SDL2_gfx.dll"] },
+        { "os": "Linux", "patterns": ["libSDL2_gfx*"] },
+        { "os": "OSX", "patterns": ["libSDL2_gfx*.dylib"] }
+      ]
+    }
+  ]
+}

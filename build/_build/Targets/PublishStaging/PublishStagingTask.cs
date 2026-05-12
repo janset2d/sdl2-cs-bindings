@@ -21,7 +21,7 @@ namespace Build.Targets.PublishStaging;
 /// feed. Re-inlined orchestration per ADR §5 — pre-migration <c>PublishPipeline</c> was a
 /// thin wrapper around <see cref="INuGetFeedClient"/> with manifest scope filter and
 /// local-suffix guard; folding it into the task surface clarifies the operator-visible
-/// flow without losing testability (V2 scenarios consume <c>INuGetFeedClient</c> as a
+/// flow without losing testability (scenario tests consume <c>INuGetFeedClient</c> as a
 /// substitute).
 /// </summary>
 [TaskName("PublishStaging")]

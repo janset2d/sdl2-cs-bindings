@@ -18,7 +18,7 @@ public sealed class GenerateMatrixTaskScenarioTests
     [Test]
     public async Task RunAsync_Should_Emit_All_Seven_Runtimes_From_Real_Manifest()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithManifestObject(ManifestFixture.RealManifest);
 
         var run = await CreateHost(world).WithManifest(ManifestFixture.RealManifest).RunAsync();
@@ -40,7 +40,7 @@ public sealed class GenerateMatrixTaskScenarioTests
     [Test]
     public async Task RunAsync_Should_Preserve_Triplet_Runner_And_Container_Image_Per_Rid()
     {
-        var world = FakeCakeWorldV2.CreateLinux()
+        var world = FakeCakeWorld.CreateLinux()
             .WithManifestObject(ManifestFixture.RealManifest);
 
         var run = await CreateHost(world).WithManifest(ManifestFixture.RealManifest).RunAsync();
@@ -62,7 +62,7 @@ public sealed class GenerateMatrixTaskScenarioTests
     [Test]
     public async Task RunAsync_Should_Throw_When_Manifest_Runtimes_Is_Empty()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var manifest = ManifestFixture.CreateTestManifestConfig() with
         {
             Runtimes = ImmutableList<RuntimeInfo>.Empty,
@@ -75,9 +75,9 @@ public sealed class GenerateMatrixTaskScenarioTests
         await Assert.That(run.Exception!.Message).Contains("manifest.runtimes[] is empty");
     }
 
-    private static TargetTestHostV2<GenerateMatrixTask> CreateHost(FakeCakeWorldV2 world)
+    private static TargetTestHost<GenerateMatrixTask> CreateHost(FakeCakeWorld world)
     {
-        return new TargetTestHostV2<GenerateMatrixTask>(world)
+        return new TargetTestHost<GenerateMatrixTask>(world)
             .WithServices(services => services.AddData());
     }
 }

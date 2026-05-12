@@ -1,9 +1,6 @@
 using Build.Tests.Fixtures;
 using Build.Tools.Ldd;
 using Cake.Core.IO;
-using Cake.Core.Tooling;
-using Cake.Testing;
-using NSubstitute;
 
 namespace Build.Tests.Unit.Tools.Ldd;
 
@@ -12,12 +9,9 @@ public sealed class LddRunnerTests
     [Test]
     public async Task GetDependencies_Should_Throw_When_Platform_Is_Not_Unix()
     {
-        var environment = FakeEnvironment.CreateWindowsEnvironment();
-        var fileSystem = new FakeFileSystem(environment);
-        var processRunner = Substitute.For<IProcessRunner>();
-        var toolLocator = Substitute.For<IToolLocator>();
+        var world = FakeCakeWorld.CreateWindows();
 
-        var runner = new LddRunner(fileSystem, environment, processRunner, toolLocator);
+        var runner = new LddRunner(world.FileSystem, world.Environment, world.CakeContext.ProcessRunner, world.CakeContext.Tools);
         var settings = new LddSettings(new FilePath("C:/app/bin/SDL2.dll"));
 
         await Assert.That(() => runner.GetDependencies(settings)).Throws<PlatformNotSupportedException>();
@@ -26,18 +20,13 @@ public sealed class LddRunnerTests
     [Test]
     public async Task GetDependencies_Should_Pass_Flag_Arguments_And_File_Path()
     {
-        var environment = FakeEnvironment.CreateUnixEnvironment();
-        var fileSystem = new FakeFileSystem(environment);
         var lddPath = new FilePath("/usr/bin/ldd");
-        fileSystem.CreateFile(lddPath);
 
-        var context = new FakeCakeToolContextBuilder(fileSystem, environment)
-            .WithProcessCapture(out var capture)
+        var world = FakeCakeWorld.CreateLinux()
             .WithToolPath(lddPath)
-            .WithStandardOutput(["libSDL2-2.0.so.0 => /deps/libSDL2-2.0.so.0 (0x00007f)"])
-            .Build();
+            .WithProcessResult("ldd", exitCode: 0, stdOut: "libSDL2-2.0.so.0 => /deps/libSDL2-2.0.so.0 (0x00007f)");
 
-        var runner = new LddRunner(context.FileSystem, context.Environment, context.ProcessRunner, context.Tools);
+        var runner = new LddRunner(world.FileSystem, world.Environment, world.CakeContext.ProcessRunner, world.CakeContext.Tools);
         var settings = new LddSettings(new FilePath("/app/bin/libSDL2_image.so"))
         {
             ShowUnused = true,
@@ -49,9 +38,8 @@ public sealed class LddRunnerTests
         var output = runner.GetDependencies(settings);
 
         await Assert.That(output).Contains("libSDL2-2.0.so.0");
-        await Assert.That(capture.Settings).IsNotNull();
 
-        var renderedArgs = capture.Settings!.Arguments.Render();
+        var renderedArgs = world.ProcessInvocations.Single().Arguments;
         await Assert.That(renderedArgs).Contains("-u");
         await Assert.That(renderedArgs).Contains("-r");
         await Assert.That(renderedArgs).Contains("-d");
@@ -62,23 +50,16 @@ public sealed class LddRunnerTests
     [Test]
     public async Task GetDependenciesAsDictionary_Should_Parse_Redirected_And_Direct_Libraries()
     {
-        var environment = FakeEnvironment.CreateUnixEnvironment();
-        var fileSystem = new FakeFileSystem(environment);
         var lddPath = new FilePath("/usr/bin/ldd");
-        fileSystem.CreateFile(lddPath);
 
-        var context = new FakeCakeToolContextBuilder(fileSystem, environment)
-            .WithProcessCapture(out _)
+        var world = FakeCakeWorld.CreateLinux()
             .WithToolPath(lddPath)
-            .WithStandardOutput(
-            [
+            .WithProcessResult("ldd", exitCode: 0, stdOut: string.Join('\n',
                 "libSDL2-2.0.so.0 => /deps/libSDL2-2.0.so.0 (0x00007f)",
                 "libmissing.so.1 => not found",
-                "/lib64/ld-linux-x86-64.so.2 (0x00007f)",
-            ])
-            .Build();
+                "/lib64/ld-linux-x86-64.so.2 (0x00007f)"));
 
-        var runner = new LddRunner(context.FileSystem, context.Environment, context.ProcessRunner, context.Tools);
+        var runner = new LddRunner(world.FileSystem, world.Environment, world.CakeContext.ProcessRunner, world.CakeContext.Tools);
         var settings = new LddSettings(new FilePath("/app/bin/libSDL2_image.so"));
 
         var dependencies = runner.GetDependenciesAsDictionary(settings);

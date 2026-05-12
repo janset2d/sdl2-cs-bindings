@@ -111,6 +111,5 @@ Tradeoffs:
 ## 4. References
 
 - [`2026-05-05-target-centric-build-host.md`](2026-05-05-target-centric-build-host.md)
-- [`../refactoring/data-layer-refactor-plan.md`](../refactoring/data-layer-refactor-plan.md)
 - [`../../build/_build/Data/ServiceCollectionExtensions.cs`](../../build/_build/Data/ServiceCollectionExtensions.cs)
 - [`../../build/_build/Program.cs`](../../build/_build/Program.cs)

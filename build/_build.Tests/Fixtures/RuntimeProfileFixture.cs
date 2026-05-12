@@ -30,9 +30,9 @@ public static class RuntimeProfileFixture
 
     private static SystemArtefactsConfig LoadSystemExclusionsFromManifest()
     {
-        var manifestJson = WorkspaceFiles.ReadAllText(WorkspaceFiles.ManifestPath);
+        var manifestJson = FixtureLoader.Load("Manifest/manifest-real.json");
         var manifest = JsonSerializer.Deserialize<ManifestConfig>(manifestJson)
-            ?? throw new InvalidOperationException("Failed to deserialize manifest.json");
+            ?? throw new InvalidOperationException("Failed to deserialize embedded real manifest fixture.");
 
         return manifest.SystemExclusions;
     }

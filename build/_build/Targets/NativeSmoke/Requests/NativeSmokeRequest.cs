@@ -1,7 +1,7 @@
 namespace Build.Targets.NativeSmoke.Requests;
 
 /// <summary>
-/// Request for <c>NativeSmokePipeline</c>.
+/// Request consumed by <see cref="NativeSmokeTask"/>.
 /// NativeSmoke validates the harvested native payload for a single RID. Harvest output and
 /// CMake preset paths come from <c>IPathService</c>, so the request only needs the RID.
 /// </summary>

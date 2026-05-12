@@ -106,22 +106,23 @@ public sealed class PackageConsumerSmokeTaskScenarioTests
 
     private const string VersionsFilePath = "artifacts/resolve-versions/versions.json";
 
-    private static FakeCakeWorldV2 NewWorld()
+    private static FakeCakeWorld NewWorld()
     {
-        return FakeCakeWorldV2.CreateWindows()
+        return FakeCakeWorld.CreateWindows()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithVersionsFile(VersionsFilePath)
-            .WithTextFile(VersionsFilePath, FixtureLoader.Load("Versions/versions-multi-family.json"));
+            .WithTextFile(VersionsFilePath, FixtureLoader.Load("Versions/versions-multi-family.json"))
+            .WithProcessResult("dotnet", exitCode: 0, stdOut: "");
     }
 
-    private static void SeedSmokeProjects(FakeCakeWorldV2 world)
+    private static void SeedSmokeProjects(FakeCakeWorld world)
     {
         var csproj = BuildSmokeCsproj("sdl2-core", "sdl2-image");
         world.WithTextFile("tests/smoke-tests/package-smoke/PackageConsumer.Smoke/PackageConsumer.Smoke.csproj", csproj);
         world.WithTextFile("tests/smoke-tests/package-smoke/Compile.NetStandard/Compile.NetStandard.csproj", csproj);
     }
 
-    private static void SeedFeedNupkgs(FakeCakeWorldV2 world, params (string Family, string Version)[] entries)
+    private static void SeedFeedNupkgs(FakeCakeWorld world, params (string Family, string Version)[] entries)
     {
         // Family-name-to-package-id mapping: sdl2-core → Janset.SDL2.Core; sdl2-image → Janset.SDL2.Image
         foreach (var (family, version) in entries)
@@ -156,7 +157,7 @@ public sealed class PackageConsumerSmokeTaskScenarioTests
             """;
     }
 
-    private static TargetTestHostV2<PackageConsumerSmokeTask> CreateHost(FakeCakeWorldV2 world)
+    private static TargetTestHost<PackageConsumerSmokeTask> CreateHost(FakeCakeWorld world)
     {
         var metadataReader = Substitute.For<IProjectMetadataReader>();
         metadataReader.Read(Arg.Any<FilePath>())
@@ -167,7 +168,7 @@ public sealed class PackageConsumerSmokeTaskScenarioTests
         runtimeEnvironment.ResolveAsync(Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
 
-        return new TargetTestHostV2<PackageConsumerSmokeTask>(world)
+        return new TargetTestHost<PackageConsumerSmokeTask>(world)
             .WithManifest(ManifestFixture.CreateTestManifestConfig())
             .WithServices(services =>
             {

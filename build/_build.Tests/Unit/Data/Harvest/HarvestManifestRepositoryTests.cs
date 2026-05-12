@@ -71,7 +71,7 @@ public sealed class HarvestManifestRepositoryUnitTests
 
     private static HarvestManifestRepository CreateRepository()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var context = world.CreateBuildContext();
         return new HarvestManifestRepository(world.CakeContext, context.Paths);
     }
@@ -88,7 +88,7 @@ public sealed class HarvestManifestRepositoryRoundTripTests
     [Test]
     public async Task LoadRidStatusesAsync_Should_Return_Null_When_Rid_Status_Directory_Is_Missing()
     {
-        var (repository, _) = CreateRepository(FakeCakeWorldV2.CreateWindows());
+        var (repository, _) = CreateRepository(FakeCakeWorld.CreateWindows());
 
         var statuses = await repository.LoadRidStatusesAsync(LibraryName);
 
@@ -98,7 +98,7 @@ public sealed class HarvestManifestRepositoryRoundTripTests
     [Test]
     public async Task LoadRidStatusesAsync_Should_Return_Null_When_Rid_Status_Directory_Has_No_Json_Files()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithTextFile($"artifacts/harvest_output/{LibraryName}/rid-status/.placeholder", string.Empty);
         var (repository, _) = CreateRepository(world);
 
@@ -110,7 +110,7 @@ public sealed class HarvestManifestRepositoryRoundTripTests
     [Test]
     public async Task LoadRidStatusesAsync_Should_Return_Null_When_All_Rid_Status_Files_Parse_To_Null()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithTextFile(
                 $"artifacts/harvest_output/{LibraryName}/rid-status/win-x64.json",
                 FixtureLoader.Load("Harvest/rid-status-null.json"));
@@ -124,7 +124,7 @@ public sealed class HarvestManifestRepositoryRoundTripTests
     [Test]
     public async Task LoadRidStatusesAsync_Should_Throw_CakeException_When_Rid_Status_File_Is_Invalid_Json()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithTextFile(
                 $"artifacts/harvest_output/{LibraryName}/rid-status/win-x64.json",
                 FixtureLoader.Load("Harvest/rid-status-invalid.json"));
@@ -139,7 +139,7 @@ public sealed class HarvestManifestRepositoryRoundTripTests
     [Test]
     public async Task LoadRidStatusesAsync_Should_Load_All_Rid_Status_Files()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithTextFile(
                 $"artifacts/harvest_output/{LibraryName}/rid-status/win-x64.json",
                 FixtureLoader.Load("Harvest/rid-status-success-win-x64.json"))
@@ -161,7 +161,7 @@ public sealed class HarvestManifestRepositoryRoundTripTests
     public async Task LoadManifestAsync_Should_Load_Harvest_Manifest_File()
     {
         const string manifestLibrary = "sdl2";
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithTextFile(
                 $"artifacts/harvest_output/{manifestLibrary}/harvest-manifest.json",
                 FixtureLoader.Load("Harvest/harvest-manifest-ready.json"));
@@ -177,7 +177,7 @@ public sealed class HarvestManifestRepositoryRoundTripTests
     [Test]
     public async Task WriteManifestTempAsync_Should_Write_Manifest_And_Summary_With_Json_Parity()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var (repository, paths) = CreateRepository(world);
         var manifest = CreateManifest();
 
@@ -193,7 +193,7 @@ public sealed class HarvestManifestRepositoryRoundTripTests
             .IsEqualTo(world.CakeContext.SerializeJson(manifest.Summary));
     }
 
-    private static (HarvestManifestRepository Repository, IPathService Paths) CreateRepository(FakeCakeWorldV2 world)
+    private static (HarvestManifestRepository Repository, IPathService Paths) CreateRepository(FakeCakeWorld world)
     {
         var context = world.CreateBuildContext();
         return (new HarvestManifestRepository(world.CakeContext, context.Paths), context.Paths);

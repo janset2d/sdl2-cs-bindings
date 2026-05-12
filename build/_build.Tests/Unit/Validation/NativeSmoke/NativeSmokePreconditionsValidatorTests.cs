@@ -10,7 +10,7 @@ public sealed class NativeSmokePreconditionsValidatorTests
     [Test]
     public async Task Validate_Should_Return_Empty_Report_When_Project_Dir_And_Cmake_Files_Exist()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithTextFile("tests/smoke-tests/native-smoke/CMakeLists.txt", "# fake")
             .WithTextFile("tests/smoke-tests/native-smoke/CMakePresets.json", "{}");
 
@@ -27,7 +27,7 @@ public sealed class NativeSmokePreconditionsValidatorTests
     [Test]
     public async Task Validate_Should_Fail_When_Project_Dir_Missing()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
 
         var pathService = Substitute.For<IPathService>();
         pathService.NativeSmokeProjectDir.Returns(world.RepoRoot.Combine("tests/smoke-tests/native-smoke"));
@@ -44,7 +44,7 @@ public sealed class NativeSmokePreconditionsValidatorTests
     [Test]
     public async Task Validate_Should_Fail_When_CMakeLists_Missing()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithTextFile("tests/smoke-tests/native-smoke/CMakePresets.json", "{}");
 
         var pathService = Substitute.For<IPathService>();
@@ -61,7 +61,7 @@ public sealed class NativeSmokePreconditionsValidatorTests
     [Test]
     public async Task Validate_Should_Fail_When_CMakePresets_Missing()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithTextFile("tests/smoke-tests/native-smoke/CMakeLists.txt", "# fake");
 
         var pathService = Substitute.For<IPathService>();
@@ -78,7 +78,7 @@ public sealed class NativeSmokePreconditionsValidatorTests
     [Test]
     public async Task Validate_Should_Aggregate_Multiple_Missing_Files()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithTextFile("tests/smoke-tests/native-smoke/.placeholder", string.Empty);
 
         var pathService = Substitute.For<IPathService>();

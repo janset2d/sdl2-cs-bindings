@@ -14,8 +14,8 @@ public sealed class PublishPublicTaskScenarioTests
     [Test]
     public async Task RunAsync_Should_Throw_CakeException_With_Not_Implemented_Message()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
-        var host = new TargetTestHostV2<PublishPublicTask>(world);
+        var world = FakeCakeWorld.CreateWindows();
+        var host = new TargetTestHost<PublishPublicTask>(world);
 
         var result = await host.RunAsync();
 

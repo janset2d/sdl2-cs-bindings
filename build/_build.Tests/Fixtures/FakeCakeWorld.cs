@@ -15,19 +15,20 @@ using Spectre.Console.Testing;
 
 namespace Build.Tests.Fixtures;
 
-public enum FakeRepoPlatformV2
+public enum FakeRepoPlatform
 {
     Windows,
     Unix,
 }
 
-public sealed record ProcessInvocation(FilePath Command, string Arguments, bool RedirectStandardOutput, bool Silent);
+public sealed record ProcessInvocation(FilePath Command, string Arguments, bool RedirectStandardOutput, bool RedirectStandardError, bool Silent);
 
-public sealed class FakeCakeWorldV2
+public sealed class FakeCakeWorld
 {
     private readonly Dictionary<string, (int ExitCode, string StdOut, string StdErr)> _processResults = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<(string Command, string Arguments), (int ExitCode, string StdOut, string StdErr)> _processResultsByArguments = new(ProcessResultArgumentsComparer.Instance);
-    private readonly Dictionary<string, Action<FakeCakeWorldV2>> _processSideEffects = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Exception> _processExceptions = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Action<FakeCakeWorld>> _processSideEffects = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<ProcessInvocation> _processInvocations = [];
     private FilePath? _toolPath;
     private FilePath? _defaultToolPath;
@@ -48,7 +49,7 @@ public sealed class FakeCakeWorldV2
 
     public FakeEnvironment Environment { get; }
 
-    public TestLogV2 Log { get; }
+    public TestLog Log { get; }
     public ICakeContext CakeContext { get; }
     public DirectoryPath RepoRoot { get; }
 
@@ -62,64 +63,61 @@ public sealed class FakeCakeWorldV2
 
     public TestConsole AnsiConsole { get; } = new();
 
-    private FakeCakeWorldV2(FakeRepoPlatformV2 platform, string? repoRoot)
+    private FakeCakeWorld(FakeRepoPlatform platform, string? repoRoot)
     {
         Environment = platform switch
         {
-            FakeRepoPlatformV2.Windows => FakeEnvironment.CreateWindowsEnvironment(),
-            FakeRepoPlatformV2.Unix => FakeEnvironment.CreateUnixEnvironment(),
+            FakeRepoPlatform.Windows => FakeEnvironment.CreateWindowsEnvironment(),
+            FakeRepoPlatform.Unix => FakeEnvironment.CreateUnixEnvironment(),
             _ => throw new ArgumentOutOfRangeException(nameof(platform)),
         };
 
-        RepoRoot = new DirectoryPath(repoRoot ?? (platform == FakeRepoPlatformV2.Windows ? "C:/repo" : "/repo"));
+        RepoRoot = new DirectoryPath(repoRoot ?? (platform == FakeRepoPlatform.Windows ? "C:/repo" : "/repo"));
         Environment.WorkingDirectory = RepoRoot;
         FileSystem = new FakeFileSystem(Environment);
-        Log = new TestLogV2();
+        Log = new TestLog();
         CakeContext = BuildCakeContext();
     }
 
-    public static FakeCakeWorldV2 Create(FakeRepoPlatformV2 platform = FakeRepoPlatformV2.Windows, string? repoRoot = null)
+    public static FakeCakeWorld Create(FakeRepoPlatform platform = FakeRepoPlatform.Windows, string? repoRoot = null)
     {
-        return new FakeCakeWorldV2(platform, repoRoot);
+        return new FakeCakeWorld(platform, repoRoot);
     }
 
-    public static FakeCakeWorldV2 CreateWindows(string? repoRoot = null)
+    public static FakeCakeWorld CreateWindows(string? repoRoot = null)
     {
-        var world = new FakeCakeWorldV2(FakeRepoPlatformV2.Windows, repoRoot);
+        var world = new FakeCakeWorld(FakeRepoPlatform.Windows, repoRoot);
         var manifestContent = FixtureLoader.Load("Manifest/manifest-win-x64.json");
         world.WithManifestFile(manifestContent);
-        world.WithDefaultProcessResult(exitCode: 0, stdOut: "", stdErr: "");
         return world;
     }
 
-    public static FakeCakeWorldV2 CreateLinux(string? repoRoot = null)
+    public static FakeCakeWorld CreateLinux(string? repoRoot = null)
     {
-        var world = new FakeCakeWorldV2(FakeRepoPlatformV2.Unix, repoRoot);
+        var world = new FakeCakeWorld(FakeRepoPlatform.Unix, repoRoot);
         var manifestContent = FixtureLoader.Load("Manifest/manifest-linux-x64.json");
         world.WithManifestFile(manifestContent);
-        world.WithDefaultProcessResult(exitCode: 0, stdOut: "", stdErr: "");
         world.WithRid("linux-x64");
         return world;
     }
 
-    public static FakeCakeWorldV2 CreateOsx(string? repoRoot = null)
+    public static FakeCakeWorld CreateOsx(string? repoRoot = null)
     {
-        var world = new FakeCakeWorldV2(FakeRepoPlatformV2.Unix, repoRoot);
+        var world = new FakeCakeWorld(FakeRepoPlatform.Unix, repoRoot);
         var manifestContent = FixtureLoader.Load("Manifest/manifest-osx-x64.json");
         world.WithManifestFile(manifestContent);
-        world.WithDefaultProcessResult(exitCode: 0, stdOut: "", stdErr: "");
         world.WithRid("osx-x64");
         return world;
     }
 
     // ── fluent seeders ──
 
-    public FakeCakeWorldV2 WithTextFile(string relativePath, string content)
+    public FakeCakeWorld WithTextFile(string relativePath, string content)
     {
         return WithTextFile(new FilePath(relativePath), content);
     }
 
-    public FakeCakeWorldV2 WithTextFile(FilePath path, string content)
+    public FakeCakeWorld WithTextFile(FilePath path, string content)
     {
         ArgumentNullException.ThrowIfNull(path);
         ArgumentNullException.ThrowIfNull(content);
@@ -141,12 +139,12 @@ public sealed class FakeCakeWorldV2
         return this;
     }
 
-    public FakeCakeWorldV2 WithBinaryFile(string relativePath, byte[] content)
+    public FakeCakeWorld WithBinaryFile(string relativePath, byte[] content)
     {
         return WithBinaryFile(new FilePath(relativePath), content);
     }
 
-    public FakeCakeWorldV2 WithBinaryFile(FilePath path, byte[] content)
+    public FakeCakeWorld WithBinaryFile(FilePath path, byte[] content)
     {
         ArgumentNullException.ThrowIfNull(path);
         ArgumentNullException.ThrowIfNull(content);
@@ -167,29 +165,37 @@ public sealed class FakeCakeWorldV2
         return this;
     }
 
-    public FakeCakeWorldV2 WithManifestFile(string json)
+    public FakeCakeWorld WithManifestFile(string json)
     {
         return WithTextFile("build/manifest.json", json);
     }
 
-    public FakeCakeWorldV2 WithManifestObject(ManifestConfig manifest)
+    public FakeCakeWorld WithManifestObject(ManifestConfig manifest)
     {
         ArgumentNullException.ThrowIfNull(manifest);
         return WithManifestFile(JsonSerializer.Serialize(manifest, CakeJsonExtensions.DefaultJsonOptions));
     }
 
-    public FakeCakeWorldV2 WithProcessResult(string command, int exitCode, string stdOut, string stdErr = "")
+    public FakeCakeWorld WithProcessResult(string command, int exitCode, string stdOut, string stdErr = "")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(command);
         _processResults[command] = (exitCode, stdOut, stdErr);
         return this;
     }
 
-    public FakeCakeWorldV2 WithProcessResult(string command, string arguments, int exitCode, string stdOut, string stdErr = "")
+    public FakeCakeWorld WithProcessResult(string command, string arguments, int exitCode, string stdOut, string stdErr = "")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(command);
         ArgumentNullException.ThrowIfNull(arguments);
         _processResultsByArguments[(command, arguments)] = (exitCode, stdOut, stdErr);
+        return this;
+    }
+
+    public FakeCakeWorld WithProcessException(string command, Exception exception)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(command);
+        ArgumentNullException.ThrowIfNull(exception);
+        _processExceptions[command] = exception;
         return this;
     }
 
@@ -198,7 +204,7 @@ public sealed class FakeCakeWorldV2
     /// fake world (typically seeding files into the fake filesystem to simulate the side effects of a real tool
     /// — e.g. tar extraction creating files in the destination directory).
     /// </summary>
-    public FakeCakeWorldV2 WithProcessSideEffect(string command, Action<FakeCakeWorldV2> sideEffect)
+    public FakeCakeWorld WithProcessSideEffect(string command, Action<FakeCakeWorld> sideEffect)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(command);
         ArgumentNullException.ThrowIfNull(sideEffect);
@@ -206,13 +212,13 @@ public sealed class FakeCakeWorldV2
         return this;
     }
 
-    public FakeCakeWorldV2 WithDefaultProcessResult(int exitCode = 0, string stdOut = "", string stdErr = "")
+    public FakeCakeWorld WithDefaultProcessResult(int exitCode = 0, string stdOut = "", string stdErr = "")
     {
         _defaultProcessResult = (exitCode, stdOut, stdErr);
         return this;
     }
 
-    public FakeCakeWorldV2 WithToolPath(FilePath toolPath)
+    public FakeCakeWorld WithToolPath(FilePath toolPath)
     {
         _toolPath = toolPath;
         if (!FileSystem.GetFile(toolPath).Exists)
@@ -228,7 +234,7 @@ public sealed class FakeCakeWorldV2
     /// scenario invokes multiple Tool&lt;T&gt; wrappers and each must resolve to a distinct executable
     /// (so process invocations get distinct filename keys for WithProcessResult / WithProcessSideEffect).
     /// </summary>
-    public FakeCakeWorldV2 WithToolPath(string toolName, FilePath toolPath)
+    public FakeCakeWorld WithToolPath(string toolName, FilePath toolPath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(toolName);
         ArgumentNullException.ThrowIfNull(toolPath);
@@ -241,51 +247,51 @@ public sealed class FakeCakeWorldV2
         return this;
     }
 
-    public FakeCakeWorldV2 WithDefaultToolPath(FilePath toolPath)
+    public FakeCakeWorld WithDefaultToolPath(FilePath toolPath)
     {
         _defaultToolPath = toolPath;
         return this;
     }
 
-    public FakeCakeWorldV2 WithRid(string rid)
+    public FakeCakeWorld WithRid(string rid)
     {
         _rid = rid;
         return this;
     }
 
-    public FakeCakeWorldV2 WithConfig(string config)
+    public FakeCakeWorld WithConfig(string config)
     {
         _config = config;
         return this;
     }
 
-    public FakeCakeWorldV2 WithSuffix(string? suffix)
+    public FakeCakeWorld WithSuffix(string? suffix)
     {
         _suffix = suffix;
         return this;
     }
 
-    public FakeCakeWorldV2 WithScope(params string[] scope)
+    public FakeCakeWorld WithScope(params string[] scope)
     {
         _scope.Clear();
         _scope.AddRange(scope);
         return this;
     }
 
-    public FakeCakeWorldV2 WithExplicitVersion(params string[] entries)
+    public FakeCakeWorld WithExplicitVersion(params string[] entries)
     {
         _explicitVersion.Clear();
         _explicitVersion.AddRange(entries);
         return this;
     }
 
-    public FakeCakeWorldV2 WithExplicitVersions(string? entries)
+    public FakeCakeWorld WithExplicitVersions(string? entries)
     {
         _explicitVersions = entries;
         return this;
     }
 
-    public FakeCakeWorldV2 WithVersionsFile(string? versionsFile)
+    public FakeCakeWorld WithVersionsFile(string? versionsFile)
     {
         _versionsFile = versionsFile is null ? null : RepoRoot.CombineWithFilePath(versionsFile).FullPath;
         return this;
@@ -296,20 +302,20 @@ public sealed class FakeCakeWorldV2
     /// <c>BuildContext.Options.Package.FamilyVersions</c>. <see cref="Build.Targets.Package.PackageTask"/>
     /// reads its scope from that set, so scenarios that exercise Pack must seed it explicitly.
     /// </summary>
-    public FakeCakeWorldV2 WithFamilyVersions(Build.Data.Versions.PackageFamilyVersionSet familyVersions)
+    public FakeCakeWorld WithFamilyVersions(Build.Data.Versions.PackageFamilyVersionSet familyVersions)
     {
         _familyVersions = familyVersions ?? throw new ArgumentNullException(nameof(familyVersions));
         return this;
     }
 
-    public FakeCakeWorldV2 WithDll(string dll)
+    public FakeCakeWorld WithDll(string dll)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(dll);
         _dlls.Add(dll);
         return this;
     }
 
-    public FakeCakeWorldV2 WithDlls(params string[] dlls)
+    public FakeCakeWorld WithDlls(params string[] dlls)
     {
         ArgumentNullException.ThrowIfNull(dlls);
         _dlls.Clear();
@@ -317,7 +323,7 @@ public sealed class FakeCakeWorldV2
         return this;
     }
 
-    public FakeCakeWorldV2 WithLibraries(params string[] libraries)
+    public FakeCakeWorld WithLibraries(params string[] libraries)
     {
         ArgumentNullException.ThrowIfNull(libraries);
         _libraries.Clear();
@@ -414,7 +420,13 @@ public sealed class FakeCakeWorldV2
                     filePath,
                     arguments,
                     settings.RedirectStandardOutput,
+                    settings.RedirectStandardError,
                     settings.Silent));
+
+                if (_processExceptions.TryGetValue(command, out var exception))
+                {
+                    throw exception;
+                }
 
                 if (_processSideEffects.TryGetValue(command, out var sideEffect))
                 {
@@ -494,10 +506,10 @@ public sealed class FakeCakeWorldV2
         var process = new FakeProcess();
         process.SetExitCode(exitCode);
 
-        var stdOutLines = stdOut.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var stdOutLines = stdOut.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
         process.SetStandardOutput(stdOutLines);
 
-        var stdErrLines = stdErr.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var stdErrLines = stdErr.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
         process.SetStandardError(stdErrLines);
 
         return process;

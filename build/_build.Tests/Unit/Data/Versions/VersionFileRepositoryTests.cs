@@ -61,7 +61,7 @@ public sealed class VersionFileRepositoryRoundTripTests
     public async Task Load_Should_Deserialize_Valid_Versions_File()
     {
         var content = FixtureLoader.Load("Versions/versions-valid.json");
-        var world = FakeCakeWorldV2.CreateWindows().WithTextFile("artifacts/versions.json", content);
+        var world = FakeCakeWorld.CreateWindows().WithTextFile("artifacts/versions.json", content);
         var path = world.RepoRoot.CombineWithFilePath("artifacts/versions.json");
         var repo = new VersionFileRepository(world.CakeContext);
         var set = repo.Load(path);
@@ -75,7 +75,7 @@ public sealed class VersionFileRepositoryRoundTripTests
     public async Task Load_Should_Return_Empty_Set_For_Empty_Json_Object()
     {
         var content = FixtureLoader.Load("Versions/versions-empty.json");
-        var world = FakeCakeWorldV2.CreateWindows().WithTextFile("artifacts/versions.json", content);
+        var world = FakeCakeWorld.CreateWindows().WithTextFile("artifacts/versions.json", content);
         var path = world.RepoRoot.CombineWithFilePath("artifacts/versions.json");
         var repo = new VersionFileRepository(world.CakeContext);
         var set = repo.Load(path);
@@ -86,7 +86,7 @@ public sealed class VersionFileRepositoryRoundTripTests
     [Test]
     public async Task Load_Should_Throw_CakeException_When_File_Missing()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var path = world.RepoRoot.CombineWithFilePath("missing.json");
         var repo = new VersionFileRepository(world.CakeContext);
 
@@ -96,7 +96,7 @@ public sealed class VersionFileRepositoryRoundTripTests
     [Test]
     public async Task SaveAsync_Should_Write_And_Roundtrip()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var path = world.RepoRoot.CombineWithFilePath("artifacts/versions.json");
         var original = new PackageFamilyVersionSet(
         [
@@ -117,7 +117,7 @@ public sealed class VersionFileRepositoryRoundTripTests
     public async Task SaveAsync_Should_Overwrite_Existing_File()
     {
         var content = FixtureLoader.Load("Versions/versions-single-family.json");
-        var world = FakeCakeWorldV2.CreateWindows().WithTextFile("artifacts/versions.json", content);
+        var world = FakeCakeWorld.CreateWindows().WithTextFile("artifacts/versions.json", content);
         var path = world.RepoRoot.CombineWithFilePath("artifacts/versions.json");
         var updated = new PackageFamilyVersionSet(
         [
@@ -134,7 +134,7 @@ public sealed class VersionFileRepositoryRoundTripTests
     [Test]
     public async Task SaveAsync_Should_Create_Parent_Directory_When_Missing()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var path = world.RepoRoot.CombineWithFilePath("deep/nested/versions.json");
         var versions = new PackageFamilyVersionSet(
         [

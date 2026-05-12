@@ -36,7 +36,7 @@ root.AddOption(CakeOptions.VerbosityOption);
 root.AddOption(CakeOptions.VersionOption);
 root.AddOption(CakeOptions.WorkingPathOption);
 
-root.AddOption(RepositoryOptions.RepoRooOption);
+root.AddOption(RepositoryOptions.RepoRootOption);
 
 root.AddOption(DotNetOptions.ConfigOption);
 

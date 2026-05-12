@@ -30,7 +30,7 @@ public sealed class PackageOutputValidatorTests
     // Short-form TFMs as resolved from MSBuild -getProperty:TargetFrameworks (what the reader returns).
     private static readonly string[] CsprojTargetFrameworks = ["net10.0", "net9.0", "net8.0", "netstandard2.0", "net462"];
 
-    private static PackageOutputValidator CreateValidator(FakeCakeWorldV2 world)
+    private static PackageOutputValidator CreateValidator(FakeCakeWorld world)
         => new(
             world.FileSystem,
             new NativePackageMetadataValidator(new NativePackageMetadataRepository(world.CakeContext)),
@@ -40,7 +40,7 @@ public sealed class PackageOutputValidatorTests
     [Test]
     public async Task Validate_Should_Pass_When_Artifacts_Conform_For_Satellite_Family()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var family = GetFamily("sdl2-image");
         var artifacts = CreateArtifacts(world, family, "1.2.3");
         var validator = CreateValidator(world);
@@ -54,7 +54,7 @@ public sealed class PackageOutputValidatorTests
     [Test]
     public async Task Validate_Should_Fail_When_Native_Dependency_Is_Bracketed_Post_S1()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var family = GetFamily("sdl2-image");
         var artifacts = CreateArtifacts(world, family, "1.2.3", nativeDependencyVersion: "[1.2.3]");
         var validator = CreateValidator(world);
@@ -68,7 +68,7 @@ public sealed class PackageOutputValidatorTests
     [Test]
     public async Task Validate_Should_Fail_When_CrossFamily_Dependency_Is_Bracketed()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var family = GetFamily("sdl2-image");
         var artifacts = CreateArtifacts(world, family, "1.2.3", coreDependencyVersion: "[1.2.3]");
         var validator = CreateValidator(world);
@@ -82,7 +82,7 @@ public sealed class PackageOutputValidatorTests
     [Test]
     public async Task Validate_Should_Fail_When_Native_Dependency_Excludes_Build_Assets()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var family = GetFamily("sdl2-image");
 
         var dependencyGroups = CreateDependencyGroups(
@@ -111,7 +111,7 @@ public sealed class PackageOutputValidatorTests
     {
         // Detect mismatched family members that would otherwise resolve silently under
         // the minimum-range contract.
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var family = GetFamily("sdl2-image");
         var artifacts = CreateArtifacts(world, family, "1.2.3", nativePackageVersion: "1.2.4");
         var validator = CreateValidator(world);
@@ -125,7 +125,7 @@ public sealed class PackageOutputValidatorTests
     [Test]
     public async Task Validate_Should_Fail_When_TargetFramework_Groups_Are_Inconsistent()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var family = GetFamily("sdl2-image");
 
         var dependencyGroups = CreateDependencyGroups(
@@ -152,7 +152,7 @@ public sealed class PackageOutputValidatorTests
     [Test]
     public async Task Validate_Should_Fail_When_Managed_Symbol_Package_Is_Missing()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var family = GetFamily("sdl2-image");
         var artifacts = CreateArtifacts(world, family, "1.2.3", includeSymbols: false);
         var validator = CreateValidator(world);
@@ -166,7 +166,7 @@ public sealed class PackageOutputValidatorTests
     [Test]
     public async Task Validate_Should_Fail_When_Repository_Commit_Drifts()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var family = GetFamily("sdl2-image");
         var artifacts = CreateArtifacts(world, family, "1.2.3", commit: "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef");
         var validator = CreateValidator(world);
@@ -180,7 +180,7 @@ public sealed class PackageOutputValidatorTests
     [Test]
     public async Task Validate_Should_Fail_When_Nuspec_Authors_Differ_From_Csproj_Metadata()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var family = GetFamily("sdl2-image");
         var artifacts = CreateArtifacts(world, family, "1.2.3", authors: "Wrong Author");
         var validator = CreateValidator(world);
@@ -194,7 +194,7 @@ public sealed class PackageOutputValidatorTests
     [Test]
     public async Task Validate_Should_Fail_When_Csproj_TargetFrameworks_Diverge_From_Nuspec_Groups()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var family = GetFamily("sdl2-image");
         var artifacts = CreateArtifacts(world, family, "1.2.3");
         var validator = CreateValidator(world);
@@ -210,7 +210,7 @@ public sealed class PackageOutputValidatorTests
     [Test]
     public async Task Validate_Should_Fail_When_Native_Package_Missing_BuildTransitive_Wrapper()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var family = GetFamily("sdl2-image");
         var artifacts = CreateArtifacts(world, family, "1.2.3", nativeIncludeBuildTransitiveWrapper: false);
         var validator = CreateValidator(world);
@@ -224,7 +224,7 @@ public sealed class PackageOutputValidatorTests
     [Test]
     public async Task Validate_Should_Fail_When_Native_Package_Missing_Shared_Common_Targets()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var family = GetFamily("sdl2-image");
         var artifacts = CreateArtifacts(world, family, "1.2.3", nativeIncludeSharedCommonTargets: false);
         var validator = CreateValidator(world);
@@ -242,7 +242,7 @@ public sealed class PackageOutputValidatorTests
         // defence against the H1 failure mode — if upstream invalidation + gate are
         // bypassed, this post-pack check catches a nupkg shipped without third-party
         // attribution.
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var family = GetFamily("sdl2-image");
         var artifacts = CreateArtifacts(world, family, "1.2.3", nativeIncludeLicensePayload: false);
         var validator = CreateValidator(world);
@@ -258,7 +258,7 @@ public sealed class PackageOutputValidatorTests
     {
         // A generic archive name would collide with sibling .Native packages on the
         // consumer side. Validator must catch any drift away from $(PackageId).tar.gz naming.
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var family = GetFamily("sdl2-image");
         var artifacts = CreateArtifacts(world, family, "1.2.3", nativeLinuxTarballFileName: "native.tar.gz");
         var validator = CreateValidator(world);
@@ -272,7 +272,7 @@ public sealed class PackageOutputValidatorTests
     [Test]
     public async Task Validate_Should_Fail_When_Project_Metadata_License_Is_Empty()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var family = GetFamily("sdl2-image");
         var artifacts = CreateArtifacts(world, family, "1.2.3");
         var validator = CreateValidator(world);
@@ -309,7 +309,7 @@ public sealed class PackageOutputValidatorTests
 
     private static async Task<ValidationReport> ValidateAsync(
         PackageOutputValidator validator,
-        FakeCakeWorldV2 world,
+        FakeCakeWorld world,
         PackageFamilyConfig family,
         PackageArtifacts artifacts,
         string expectedVersion,
@@ -328,7 +328,7 @@ public sealed class PackageOutputValidatorTests
             readmePath);
     }
 
-    private static FilePath EnsureReadme(FakeCakeWorldV2 world, ManifestConfig manifest)
+    private static FilePath EnsureReadme(FakeCakeWorld world, ManifestConfig manifest)
     {
         var readmePath = world.RepoRoot.CombineWithFilePath("README.md");
         world.WithTextFile(readmePath, ReadmeMappingTableBlock.BuildBlock(manifest));
@@ -336,7 +336,7 @@ public sealed class PackageOutputValidatorTests
     }
 
     private static PackageArtifacts CreateArtifacts(
-        FakeCakeWorldV2 world,
+        FakeCakeWorld world,
         PackageFamilyConfig family,
         string version,
         string? nativeDependencyVersion = null,
@@ -554,7 +554,7 @@ public sealed class PackageOutputValidatorTests
             """;
     }
 
-    private static void WriteZip(FakeCakeWorldV2 world, FilePath archivePath, params (string EntryName, string Content)[] entries)
+    private static void WriteZip(FakeCakeWorld world, FilePath archivePath, params (string EntryName, string Content)[] entries)
     {
         var directory = world.FileSystem.GetDirectory(archivePath.GetDirectory());
         if (!directory.Exists)

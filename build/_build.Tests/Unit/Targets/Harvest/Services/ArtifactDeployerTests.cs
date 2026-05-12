@@ -9,13 +9,13 @@ namespace Build.Tests.Unit.Targets.Harvest.Services;
 
 public sealed class ArtifactDeployerTests
 {
-    private readonly FakeCakeWorldV2 _world;
+    private readonly FakeCakeWorld _world;
     private readonly FakeFileSystem _fakeFs;
     private readonly ICakeContext _ctx;
 
     public ArtifactDeployerTests()
     {
-        _world = FakeCakeWorldV2.CreateWindows();
+        _world = FakeCakeWorld.CreateWindows();
         _fakeFs = _world.FileSystem;
         _ctx = _world.CakeContext;
     }

@@ -150,7 +150,7 @@ public sealed class HarvestStatusRepositoryRoundTripTests
     [Test]
     public async Task Invalidate_Should_Delete_Existing_Per_Rid_Runtime_Tree()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithRid(Rid)
             .WithTextFile($"artifacts/harvest_output/{LibraryName}/runtimes/{Rid}/native/SDL2.dll", "fake");
         var ctx = world.CreateBuildContext();
@@ -165,7 +165,7 @@ public sealed class HarvestStatusRepositoryRoundTripTests
     [Test]
     public async Task Invalidate_Should_Delete_Existing_Per_Rid_Status_File()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithRid(Rid)
             .WithTextFile($"artifacts/harvest_output/{LibraryName}/rid-status/{Rid}.json", "{}");
         var ctx = world.CreateBuildContext();
@@ -180,7 +180,7 @@ public sealed class HarvestStatusRepositoryRoundTripTests
     [Test]
     public async Task Invalidate_Should_Delete_Existing_Per_Rid_Licenses_Tree()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithRid(Rid)
             .WithTextFile($"artifacts/harvest_output/{LibraryName}/licenses/{Rid}/zlib/copyright", "MIT");
         var ctx = world.CreateBuildContext();
@@ -195,7 +195,7 @@ public sealed class HarvestStatusRepositoryRoundTripTests
     [Test]
     public async Task Invalidate_Should_Delete_Cross_Rid_Consolidated_Artifacts()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithRid(Rid)
             .WithTextFile($"artifacts/harvest_output/{LibraryName}/licenses/_consolidated/zlib/copyright", "MIT")
             .WithTextFile($"artifacts/harvest_output/{LibraryName}/licenses/_consolidated.tmp/zlib/copyright", "MIT")
@@ -219,7 +219,7 @@ public sealed class HarvestStatusRepositoryRoundTripTests
     [Test]
     public async Task Invalidate_Should_Be_Noop_When_Nothing_To_Invalidate()
     {
-        var world = FakeCakeWorldV2.CreateWindows().WithRid(Rid);
+        var world = FakeCakeWorld.CreateWindows().WithRid(Rid);
         var ctx = world.CreateBuildContext();
         var repo = new HarvestStatusRepository(world.CakeContext, ctx.Paths, ctx.Runtime);
 
@@ -231,7 +231,7 @@ public sealed class HarvestStatusRepositoryRoundTripTests
     [Test]
     public async Task WriteSuccessAsync_Should_Persist_Status_Json_With_Success_Flag_And_Statistics()
     {
-        var world = FakeCakeWorldV2.CreateWindows().WithRid(Rid);
+        var world = FakeCakeWorld.CreateWindows().WithRid(Rid);
         var ctx = world.CreateBuildContext();
         var repo = new HarvestStatusRepository(world.CakeContext, ctx.Paths, ctx.Runtime);
         var statistics = CreateStatistics(primary: 2, runtime: 5, license: 3, deployed: 4, filtered: 1);
@@ -258,7 +258,7 @@ public sealed class HarvestStatusRepositoryRoundTripTests
     [Test]
     public async Task WriteErrorAsync_Should_Persist_Status_Json_With_Failure_Flag_And_Error_Message()
     {
-        var world = FakeCakeWorldV2.CreateWindows().WithRid(Rid);
+        var world = FakeCakeWorld.CreateWindows().WithRid(Rid);
         var ctx = world.CreateBuildContext();
         var repo = new HarvestStatusRepository(world.CakeContext, ctx.Paths, ctx.Runtime);
 

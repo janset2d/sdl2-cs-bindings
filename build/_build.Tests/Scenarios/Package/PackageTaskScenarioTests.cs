@@ -171,9 +171,11 @@ public sealed class PackageTaskScenarioTests
         await Assert.That(result.Log.HasMessage(LogLevel.Error, "[G26]")).IsTrue();
     }
 
-    private static FakeCakeWorldV2 NewWorld()
+    private static FakeCakeWorld NewWorld()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
+            .WithToolPath(new FilePath("C:/tools/dotnet.exe"))
+            .WithProcessResult("dotnet.exe", exitCode: 0, stdOut: "")
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithVersionsFile("artifacts/resolve-versions/versions.json")
             .WithTextFile("artifacts/resolve-versions/versions.json", FixtureLoader.Load("Versions/versions-multi-family.json"));
@@ -189,7 +191,7 @@ public sealed class PackageTaskScenarioTests
         ]);
     }
 
-    private static void SeedHarvestPayload(FakeCakeWorldV2 world, string libraryRef, string harvestManifestFixture = "Harvest/harvest-manifest-ready.json")
+    private static void SeedHarvestPayload(FakeCakeWorld world, string libraryRef, string harvestManifestFixture = "Harvest/harvest-manifest-ready.json")
     {
         world.WithTextFile($"artifacts/harvest_output/{libraryRef}/harvest-manifest.json",
             FixtureLoader.Load(harvestManifestFixture));
@@ -197,20 +199,13 @@ public sealed class PackageTaskScenarioTests
         world.WithTextFile($"artifacts/harvest_output/{libraryRef}/licenses/_consolidated/{libraryRef}/LICENSE.txt", "MIT");
     }
 
-    private static void SeedReadme(FakeCakeWorldV2 world)
+    private static void SeedReadme(FakeCakeWorld world)
     {
         world.WithTextFile("README.md", ReadmeMappingTableBlock.BuildBlock(ManifestFixture.CreateTestManifestConfig()));
     }
 
-    private static TargetTestHostV2<PackageTask> CreateHost(FakeCakeWorldV2 world)
+    private static TargetTestHost<PackageTask> CreateHost(FakeCakeWorld world)
     {
-        // Stub IDotNetPackInvoker, IProjectMetadataReader, INativePackageMetadataGenerator,
-        // IReadmeMappingTableGenerator, and IPackageOutputValidator so happy-path scenarios pass
-        // without having to fake-zip-archive every nupkg the real validator would inspect.
-        var packInvoker = Substitute.For<IDotNetPackInvoker>();
-        packInvoker.Pack(Arg.Any<FilePath>(), Arg.Any<DotNetPackInvocation>(), Arg.Any<bool>(), Arg.Any<bool>())
-            .Returns(Result<Build.Results.Unit, DotNetPackError>.Success(Build.Results.Unit.Value));
-
         var metadataReader = Substitute.For<IProjectMetadataReader>();
         metadataReader.Read(Arg.Any<FilePath>())
             .Returns(Result<EvaluatedProjectMetadata, ProjectMetadataError>.Success(
@@ -234,7 +229,7 @@ public sealed class PackageTaskScenarioTests
             Arg.Any<FilePath>())
             .Returns(ValidationReport.Empty);
 
-        return new TargetTestHostV2<PackageTask>(world)
+        return new TargetTestHost<PackageTask>(world)
             .WithManifest(ManifestFixture.CreateTestManifestConfig())
             .WithServices(services =>
             {
@@ -242,7 +237,6 @@ public sealed class PackageTaskScenarioTests
                 services.AddValidators();
                 services.AddPackage();
 
-                services.AddSingleton(packInvoker);
                 services.AddSingleton(metadataReader);
                 services.AddSingleton(nativeMetadataGen);
                 services.AddSingleton(readmeGen);
@@ -253,7 +247,7 @@ public sealed class PackageTaskScenarioTests
             });
     }
 
-    private static TargetTestHostV2<PackageTask> CreateHostWithStubValidator(FakeCakeWorldV2 world, ValidationReport stubReport)
+    private static TargetTestHost<PackageTask> CreateHostWithStubValidator(FakeCakeWorld world, ValidationReport stubReport)
     {
         var host = CreateHost(world);
         return host.WithServices(services =>

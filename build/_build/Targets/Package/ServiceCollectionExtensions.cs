@@ -8,8 +8,8 @@ namespace Build.Targets.Package;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers Pack-stage collaborators: dotnet pack invoker, dependency range normalizer,
-    /// per-family packer, reporter, the two metadata generators (native + README mapping), and
+    /// Registers Pack-stage collaborators: dependency range normalizer, per-family packer,
+    /// reporter, the two metadata generators (native + README mapping), and
     /// the cross-target project metadata reader in <c>Build.Data.ProjectMetadata</c> shared with
     /// PackageConsumerSmoke. Cross-cutting validators (HarvestReadiness, PackageOutput) come
     /// from <c>AddValidators()</c>. <see cref="PackageTask"/> itself is discovered by Cake
@@ -19,7 +19,6 @@ public static class ServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.AddSingleton<IDotNetPackInvoker, DotNetPackInvoker>();
         services.AddSingleton<DependencyRangeNormalizer>();
         services.AddSingleton<PackageReporter>();
         services.AddSingleton<PackageFamilyPacker>();

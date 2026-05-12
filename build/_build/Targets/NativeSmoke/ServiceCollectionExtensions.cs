@@ -5,7 +5,7 @@ namespace Build.Targets.NativeSmoke;
 
 /// <summary>
 /// Registers the NativeSmoke target's collaborators. <c>IMsvcDevEnvironment</c> lives here
-/// because NativeSmokeTask is its only consumer (Integrations/Msvc/ retired).
+/// because <see cref="NativeSmokeTask"/> is its only consumer.
 /// </summary>
 public static class ServiceCollectionExtensions
 {

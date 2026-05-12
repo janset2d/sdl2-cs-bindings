@@ -15,7 +15,6 @@ using Build.Tests.Fixtures;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
-using Cake.Testing;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Build.Tests.Unit.CompositionRoot;
@@ -126,7 +125,8 @@ public sealed class ProgramCompositionRootTests
     public async Task DetermineRepoRootAsync_Should_Use_RepoRoot_Argument_When_Path_Exists()
     {
         var method = GetProgramHelper("g__DetermineRepoRootAsync", typeof(DirectoryInfo));
-        var repoRoot = WorkspaceFiles.RepoRoot;
+        using var repoRootDirectory = new TempDirectory("janset-repo-root-");
+        var repoRoot = new DirectoryPath(repoRootDirectory.Path);
 
         var task = (Task<DirectoryPath>)method.Invoke(null, [new DirectoryInfo(repoRoot.FullPath)])!;
         var result = await task;
@@ -143,14 +143,13 @@ public sealed class ProgramCompositionRootTests
             typeof(ParsedArguments),
             typeof(DirectoryPath));
 
-        var repo = new FakeRepoBuilder(FakeRepoPlatform.Windows)
-            .WithManifest(CreateCompositionRootManifest("x64-windows-hybrid"))
-            .BuildContextWithHandles();
+        var world = FakeCakeWorld.CreateWindows()
+            .WithManifestObject(CreateCompositionRootManifest("x64-windows-hybrid"));
 
-        var services = CreateServiceCollectionForCompositionRoot(repo);
-        var parsedArguments = CreateParsedArguments(repo.RepoRoot.FullPath, "win-x64");
+        var services = CreateServiceCollectionForCompositionRoot(world);
+        var parsedArguments = CreateParsedArguments(world.RepoRoot.FullPath, "win-x64");
 
-        method.Invoke(null, [services, parsedArguments, repo.RepoRoot]);
+        method.Invoke(null, [services, parsedArguments, world.RepoRoot]);
 
         using var provider = services.BuildServiceProvider();
 
@@ -159,7 +158,6 @@ public sealed class ProgramCompositionRootTests
         var projectMetadataReader = provider.GetRequiredService<IProjectMetadataReader>();
         var manifestRepository = provider.GetRequiredService<IManifestRepository>();
         var versionFileRepository = provider.GetRequiredService<IVersionFileRepository>();
-        var dotNetPackInvoker = provider.GetRequiredService<IDotNetPackInvoker>();
         var dotNetRuntimeEnvironment = provider.GetRequiredService<IDotNetRuntimeEnvironment>();
         var packageFamilyPacker = provider.GetRequiredService<PackageFamilyPacker>();
         var dotNetSmokeRunner = provider.GetRequiredService<Build.Targets.PackageConsumerSmoke.Services.DotNetSmokeRunner>();
@@ -170,7 +168,6 @@ public sealed class ProgramCompositionRootTests
         await Assert.That(projectMetadataReader.GetType()).IsEqualTo(typeof(ProjectMetadataReader));
         await Assert.That(manifestRepository.GetType()).IsEqualTo(typeof(ManifestRepository));
         await Assert.That(versionFileRepository.GetType()).IsEqualTo(typeof(VersionFileRepository));
-        await Assert.That(dotNetPackInvoker.GetType()).IsEqualTo(typeof(DotNetPackInvoker));
         await Assert.That(dotNetRuntimeEnvironment.GetType()).IsEqualTo(typeof(DotNetRuntimeEnvironment));
         await Assert.That(packageFamilyPacker.GetType()).IsEqualTo(typeof(PackageFamilyPacker));
         await Assert.That(dotNetSmokeRunner).IsNotNull();
@@ -241,13 +238,13 @@ public sealed class ProgramCompositionRootTests
         return root;
     }
 
-    private static ServiceCollection CreateServiceCollectionForCompositionRoot(FakeRepoHandles repo)
+    private static ServiceCollection CreateServiceCollectionForCompositionRoot(FakeCakeWorld world)
     {
         var services = new ServiceCollection();
-        services.AddSingleton<ICakeEnvironment>(repo.Environment);
-        services.AddSingleton<ICakeContext>(repo.CakeContext);
-        services.AddSingleton<IFileSystem>(repo.FileSystem);
-        services.AddSingleton<ICakeLog>(new FakeLog());
+        services.AddSingleton<ICakeEnvironment>(world.CakeContext.Environment);
+        services.AddSingleton<ICakeContext>(world.CakeContext);
+        services.AddSingleton<IFileSystem>(world.FileSystem);
+        services.AddSingleton<ICakeLog>(world.Log);
 
         return services;
     }

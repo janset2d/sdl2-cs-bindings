@@ -9,7 +9,7 @@ public sealed class ResolveVersionsFromManifestTaskScenarios
     [Test]
     public async Task RunAsync_Should_Write_Versions_With_UpstreamMajorMinor_Zero_Suffix_Per_Family()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithSuffix("local.20260421T143022")
             .WithVersionsFile("artifacts/resolve-versions/versions.json");
@@ -27,7 +27,7 @@ public sealed class ResolveVersionsFromManifestTaskScenarios
     [Test]
     public async Task RunAsync_Should_Write_Only_Scoped_Families_When_Scope_Is_Subset()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithSuffix("ci.12345")
             .WithScope("sdl2-core")
@@ -45,7 +45,7 @@ public sealed class ResolveVersionsFromManifestTaskScenarios
     [Test]
     public async Task RunAsync_Should_Throw_When_Scoped_Family_Is_Missing_From_Manifest()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithSuffix("ci.12345")
             .WithScope("sdl2-core", "sdl2-made-up")
@@ -61,7 +61,7 @@ public sealed class ResolveVersionsFromManifestTaskScenarios
     [Test]
     public async Task RunAsync_Should_Throw_When_Suffix_Produces_Invalid_NuGet_SemVer()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithSuffix("bad_suffix")
             .WithVersionsFile("artifacts/resolve-versions/versions.json");
@@ -76,7 +76,7 @@ public sealed class ResolveVersionsFromManifestTaskScenarios
     [Test]
     public async Task RunAsync_Should_Throw_When_Suffix_Is_Missing()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithVersionsFile("artifacts/resolve-versions/versions.json");
 
@@ -89,7 +89,7 @@ public sealed class ResolveVersionsFromManifestTaskScenarios
     [Test]
     public async Task RunAsync_Should_Throw_When_Suffix_Is_Whitespace()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithSuffix("   ")
             .WithVersionsFile("artifacts/resolve-versions/versions.json");
@@ -103,7 +103,7 @@ public sealed class ResolveVersionsFromManifestTaskScenarios
     [Test]
     public async Task RunAsync_Should_Throw_When_VersionsFile_Is_Missing()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithSuffix("ci.12345");
 
@@ -113,9 +113,9 @@ public sealed class ResolveVersionsFromManifestTaskScenarios
         await Assert.That(result.Exception!.Message).Contains("--versions-file");
     }
 
-    private static TargetTestHostV2<ResolveVersionsFromManifestTask> CreateHost(FakeCakeWorldV2 world)
+    private static TargetTestHost<ResolveVersionsFromManifestTask> CreateHost(FakeCakeWorld world)
     {
-        return new TargetTestHostV2<ResolveVersionsFromManifestTask>(world)
+        return new TargetTestHost<ResolveVersionsFromManifestTask>(world)
             .WithServices(services =>
             {
                 services.AddData();

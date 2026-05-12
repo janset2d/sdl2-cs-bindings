@@ -40,7 +40,7 @@ public sealed class NativeSmokeTaskScenarioTests
     public async Task RunAsync_Should_Throw_When_CMakeLists_Is_Missing()
     {
         // CMakePresets present, CMakeLists absent → NativeSmokePreconditionsValidator fails.
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithRid(Rid)
             .WithTextFile("tests/smoke-tests/native-smoke/CMakePresets.json", "{}");
         var manifest = CreateSingleLibraryManifest();
@@ -54,7 +54,7 @@ public sealed class NativeSmokeTaskScenarioTests
     [Test]
     public async Task RunAsync_Should_Throw_When_CMakePresets_Is_Missing()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithRid(Rid)
             .WithTextFile("tests/smoke-tests/native-smoke/CMakeLists.txt", "# placeholder");
         var manifest = CreateSingleLibraryManifest();
@@ -82,7 +82,7 @@ public sealed class NativeSmokeTaskScenarioTests
     public async Task RunAsync_Should_Throw_When_Harvest_Payload_Is_Missing()
     {
         // Project files seeded; harvest output directory NOT seeded → payload check fails.
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithRid(Rid)
             .WithTextFile("tests/smoke-tests/native-smoke/CMakeLists.txt", "# placeholder")
             .WithTextFile("tests/smoke-tests/native-smoke/CMakePresets.json", "{}");
@@ -96,18 +96,13 @@ public sealed class NativeSmokeTaskScenarioTests
     }
 
     [Test]
+    [WindowsOnly]
     public async Task RunAsync_Should_Surface_CakeException_And_Skip_Cmake_When_Msvc_Probe_Fails()
     {
         // Runtime proof for the inlined-runner design's "fail-fast before cmake" property:
         // ApplyMsvcEnvironmentAsync awaits BEFORE _cakeContext.CMake(settings) runs, so a probe
         // exception short-circuits ConfigureAsync before any cmake.exe invocation. Assertion
         // surface: world.ProcessInvocations stays empty + the configure log line never lands.
-        if (!OperatingSystem.IsWindows())
-        {
-            // Non-Windows hosts short-circuit the MSVC probe gate; this scenario can't be exercised.
-            return;
-        }
-
         var world = SeedReadyWorld();
         var manifest = CreateSingleLibraryManifest();
 
@@ -129,17 +124,13 @@ public sealed class NativeSmokeTaskScenarioTests
     }
 
     [Test]
+    [WindowsOnly]
     public async Task RunAsync_Should_Throw_When_Rid_Is_Not_A_Supported_Windows_Arch()
     {
         // FromRid throws PlatformNotSupportedException for non-Windows RIDs on Windows host;
         // ApplyMsvcEnvironmentAsync wraps it into a CakeException with operator-actionable
         // context. Belt-and-braces — RID validation primarily fails at HarvestPreconditions
         // (triplet missing for non-Windows RIDs), but ConfigureAsync defends in depth.
-        if (!OperatingSystem.IsWindows())
-        {
-            return;
-        }
-
         var world = SeedReadyWorld()
             .WithRid("win-mips64")
             .WithTextFile($"artifacts/harvest_output/{LibraryName}/runtimes/win-mips64/native/SDL2.dll", "fake");
@@ -156,19 +147,19 @@ public sealed class NativeSmokeTaskScenarioTests
         await Assert.That(world.ProcessInvocations).IsEmpty();
     }
 
-    private static FakeCakeWorldV2 SeedReadyWorld() =>
-        FakeCakeWorldV2.CreateWindows()
+    private static FakeCakeWorld SeedReadyWorld() =>
+        FakeCakeWorld.CreateWindows()
             .WithRid(Rid)
             .WithTextFile("tests/smoke-tests/native-smoke/CMakeLists.txt", "# placeholder")
             .WithTextFile("tests/smoke-tests/native-smoke/CMakePresets.json", "{}")
             .WithTextFile($"artifacts/harvest_output/{LibraryName}/runtimes/{Rid}/native/SDL2.dll", "fake");
 
-    private static TargetTestHostV2<NativeSmokeTask> CreateHost(
-        FakeCakeWorldV2 world,
+    private static TargetTestHost<NativeSmokeTask> CreateHost(
+        FakeCakeWorld world,
         ManifestConfig? manifest = null,
         IMsvcDevEnvironment? msvcOverride = null)
     {
-        var host = new TargetTestHostV2<NativeSmokeTask>(world);
+        var host = new TargetTestHost<NativeSmokeTask>(world);
         if (manifest is not null)
         {
             host.WithManifest(manifest);

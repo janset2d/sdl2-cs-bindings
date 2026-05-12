@@ -11,7 +11,7 @@ public sealed class HarvestPreconditionsValidatorTests
     [Test]
     public async Task Validate_Should_Return_Empty_Report_When_Vcpkg_Triplet_Dir_Exists()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithTextFile("vcpkg_installed/x64-windows-hybrid/.placeholder", string.Empty);
 
         var pathService = Substitute.For<IPathService>();
@@ -32,7 +32,7 @@ public sealed class HarvestPreconditionsValidatorTests
     [Test]
     public async Task Validate_Should_Fail_When_Vcpkg_Triplet_Dir_Missing()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
 
         var pathService = Substitute.For<IPathService>();
         pathService.GetVcpkgInstalledTripletDir("x64-windows-hybrid")
@@ -56,7 +56,7 @@ public sealed class HarvestPreconditionsValidatorTests
     [Test]
     public async Task Validate_Should_Throw_ArgumentNullException_When_Constructor_Args_Null()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var pathService = Substitute.For<IPathService>();
         var profile = Substitute.For<IRuntimeProfile>();
 

@@ -11,7 +11,7 @@ public sealed class VcpkgAliasesTests
     [Test]
     public async Task VcpkgBootstrap_Should_Run_Cmd_On_Windows()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithProcessResult("cmd", "/c \"C:/repo/vcpkg/bootstrap-vcpkg.bat\"", exitCode: 0, stdOut: "bootstrapped");
 
         world.CakeContext.VcpkgBootstrap(new VcpkgBootstrapSettings
@@ -29,7 +29,7 @@ public sealed class VcpkgAliasesTests
     [Test]
     public async Task VcpkgBootstrap_Should_Run_Bash_On_Unix()
     {
-        var world = FakeCakeWorldV2.CreateLinux()
+        var world = FakeCakeWorld.CreateLinux()
             .WithProcessResult("bash", "\"/repo/vcpkg/bootstrap-vcpkg.sh\"", exitCode: 0, stdOut: "bootstrapped");
 
         world.CakeContext.VcpkgBootstrap(new VcpkgBootstrapSettings
@@ -47,7 +47,7 @@ public sealed class VcpkgAliasesTests
     [Test]
     public async Task VcpkgBootstrap_Should_Throw_CakeException_When_Process_Fails()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithProcessResult("cmd", "/c \"C:/repo/vcpkg/bootstrap-vcpkg.bat\"", exitCode: 17, stdOut: "out", stdErr: "err");
 
         var exception = await Assert.ThrowsAsync<CakeException>(() =>
@@ -70,7 +70,7 @@ public sealed class VcpkgAliasesTests
     [Test]
     public async Task VcpkgPackageInfo_Should_Return_Typed_Info_From_Raw_Json_Output()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithToolPath("vcpkg.exe", new FilePath("C:/repo/vcpkg/vcpkg.exe"))
             .WithProcessResult(
                 "vcpkg.exe",
@@ -92,7 +92,7 @@ public sealed class VcpkgAliasesTests
     [Test]
     public async Task VcpkgPackageInfo_Should_Force_Installed_Json_And_Preserve_Transitive_Settings()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithToolPath("vcpkg.exe", new FilePath("C:/repo/vcpkg/vcpkg.exe"))
             .WithProcessResult(
                 "vcpkg.exe",

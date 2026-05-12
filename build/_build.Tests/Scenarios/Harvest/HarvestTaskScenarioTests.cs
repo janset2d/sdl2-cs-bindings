@@ -32,7 +32,7 @@ public sealed class HarvestTaskScenarioTests
     [Test]
     public async Task RunAsync_Should_Throw_When_Rid_Is_Missing()
     {
-        var world = FakeCakeWorldV2.CreateWindows().WithRid("");
+        var world = FakeCakeWorld.CreateWindows().WithRid("");
         var manifest = ManifestFixture.CreateTestManifestConfig();
 
         var result = await CreateHost(world, manifest).RunAsync();
@@ -46,7 +46,7 @@ public sealed class HarvestTaskScenarioTests
     {
         // No vcpkg_installed dir seeded -> HarvestPreconditionsValidator fails before any
         // walker/planner/deployer work. Verifies cohort precondition gates the task body.
-        var world = FakeCakeWorldV2.CreateWindows().WithRid(Rid);
+        var world = FakeCakeWorld.CreateWindows().WithRid(Rid);
         var manifest = ManifestFixture.CreateTestManifestConfig();
 
         var result = await CreateHost(world, manifest).RunAsync();
@@ -214,8 +214,8 @@ public sealed class HarvestTaskScenarioTests
         await Assert.That(status.ErrorMessage!).Contains("zero primary binaries", StringComparison.Ordinal);
     }
 
-    private static FakeCakeWorldV2 SeedVcpkgInstall() =>
-        FakeCakeWorldV2.CreateWindows()
+    private static FakeCakeWorld SeedVcpkgInstall() =>
+        FakeCakeWorld.CreateWindows()
             .WithRid(Rid)
             .WithTextFile("vcpkg_installed/x64-windows-hybrid/.placeholder", string.Empty);
 
@@ -276,15 +276,15 @@ public sealed class HarvestTaskScenarioTests
             new HashSet<string>(StringComparer.OrdinalIgnoreCase),
             DeploymentStrategy.DirectCopy);
 
-    private static TargetTestHostV2<HarvestTask> CreateHost(
-        FakeCakeWorldV2 world,
+    private static TargetTestHost<HarvestTask> CreateHost(
+        FakeCakeWorld world,
         ManifestConfig? manifest = null,
         IBinaryClosureWalker? walkerOverride = null,
         IHybridStaticLeakValidator? leakValidatorOverride = null,
         IArtifactPlanner? plannerOverride = null,
         IArtifactDeployer? deployerOverride = null)
     {
-        var host = new TargetTestHostV2<HarvestTask>(world);
+        var host = new TargetTestHost<HarvestTask>(world);
         if (manifest is not null)
         {
             host.WithManifest(manifest);

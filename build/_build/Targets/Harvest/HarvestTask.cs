@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Build.Data.Harvest;
 using Build.Data.Manifest;
@@ -87,7 +86,6 @@ public sealed class HarvestTask(
         _reporter.LogCompleted();
     }
 
-    [SuppressMessage("Design", "MA0051", Justification = "Linear orchestration of fail-fast harvest steps; per-step collaborators carry the algorithmic weight. Inlining keeps the build story readable instead of hiding it behind ceremonial Process/Handle/Do helpers.")]
     private async Task ProcessLibraryAsync(
         LibraryManifest library,
         DirectoryPath outputBase,

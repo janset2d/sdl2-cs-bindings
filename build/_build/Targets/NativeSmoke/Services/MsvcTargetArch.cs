@@ -29,9 +29,8 @@ public enum MsvcTargetArch
 
 /// <summary>
 /// RID ↔ <see cref="MsvcTargetArch"/> conversions + <c>vcvarsall.bat</c> arg builder.
-/// Kept as a domain-layer helper so <c>NativeSmokePipeline</c> (Application) and
-/// <c>MsvcDevEnvironment</c> (Infrastructure) can both consume it without pulling
-/// shared arch logic into either layer.
+/// Kept target-local so <c>NativeSmokeTask</c> and <c>MsvcDevEnvironment</c> share
+/// one Windows RID mapping without duplicating MSVC architecture rules.
 /// </summary>
 public static class MsvcTargetArchExtensions
 {

@@ -12,7 +12,7 @@ public sealed class HybridStaticOverlayValidatorTests
     [Test]
     public async Task Validate_Should_Return_Empty_Report_When_All_Triplets_Have_Hybrid_Suffix_And_Overlay_Files_Exist()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithTextFile("vcpkg-overlay-triplets/x64-windows-hybrid.cmake", "# fake overlay");
         var pathService = CreatePathServiceFor(world);
 
@@ -29,7 +29,7 @@ public sealed class HybridStaticOverlayValidatorTests
     [Test]
     public async Task Validate_Should_Fail_When_Triplet_Lacks_Hybrid_Suffix()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var pathService = CreatePathServiceFor(world);
 
         var runtimes = ImmutableList.Create(
@@ -48,7 +48,7 @@ public sealed class HybridStaticOverlayValidatorTests
     public async Task Validate_Should_Fail_When_Hybrid_Triplet_Has_No_Overlay_File()
     {
         // Hybrid suffix but no overlay file seeded — operational drift case.
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var pathService = CreatePathServiceFor(world);
 
         var runtimes = ImmutableList.Create(
@@ -66,7 +66,7 @@ public sealed class HybridStaticOverlayValidatorTests
     [Test]
     public async Task Validate_Should_Aggregate_Multiple_Violations_Across_Runtimes()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithTextFile("vcpkg-overlay-triplets/x64-windows-hybrid.cmake", "# fake overlay");
         var pathService = CreatePathServiceFor(world);
 
@@ -86,7 +86,7 @@ public sealed class HybridStaticOverlayValidatorTests
     [Test]
     public async Task Validate_Should_Return_Empty_Report_When_Runtimes_Empty()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var pathService = CreatePathServiceFor(world);
 
         var validator = new HybridStaticOverlayValidator(world.CakeContext, pathService);
@@ -95,7 +95,7 @@ public sealed class HybridStaticOverlayValidatorTests
         await Assert.That(report.Count).IsEqualTo(0);
     }
 
-    private static IPathService CreatePathServiceFor(FakeCakeWorldV2 world)
+    private static IPathService CreatePathServiceFor(FakeCakeWorld world)
     {
         var pathService = Substitute.For<IPathService>();
         pathService.VcpkgOverlayTripletsDir.Returns(world.RepoRoot.Combine("vcpkg-overlay-triplets"));

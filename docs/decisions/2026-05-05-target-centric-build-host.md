@@ -123,7 +123,7 @@ The architectural testing taxonomy is:
 - **Scenario** for in-process task orchestration with a fake Cake world;
 - **Integration** for mission-critical external boundaries only.
 
-Cake `FakeFileSystem` is the default fake filesystem. V2 test infrastructure is the default. Operational details live in the testing guidelines knowledge-base document, not in this ADR.
+Cake `FakeFileSystem` is the default fake filesystem. Canonical test infrastructure is the default. Operational details live in the testing guidelines knowledge-base document, not in this ADR.
 
 ### 2.8 Retired abstractions
 

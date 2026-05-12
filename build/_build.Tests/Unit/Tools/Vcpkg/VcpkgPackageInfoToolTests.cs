@@ -2,7 +2,6 @@ using Build.Tests.Fixtures;
 using Build.Tools.Vcpkg;
 using Build.Tools.Vcpkg.Settings;
 using Cake.Core.IO;
-using Cake.Testing;
 
 namespace Build.Tests.Unit.Tools.Vcpkg;
 
@@ -11,20 +10,14 @@ public sealed class VcpkgPackageInfoToolTests
     [Test]
     public async Task GetPackageInfoJson_Should_Return_Output_And_Include_Expected_Arguments()
     {
-        var environment = FakeEnvironment.CreateWindowsEnvironment();
-        var fileSystem = new FakeFileSystem(environment);
         var vcpkgRoot = new DirectoryPath("C:/repo/vcpkg");
-        fileSystem.CreateDirectory(vcpkgRoot);
-
         var vcpkgExe = vcpkgRoot.CombineWithFilePath("vcpkg.exe");
-        fileSystem.CreateFile(vcpkgExe);
 
-        var context = new FakeCakeToolContextBuilder(fileSystem, environment)
-            .WithProcessCapture(out var capture)
+        var world = FakeCakeWorld.CreateWindows()
+            .WithBinaryFile(vcpkgExe, [])
             .WithToolPath(vcpkgExe)
-            .WithStandardOutput([VcpkgPackageInfoFixture.EmptyResults])
-            .Build();
-        var tool = new VcpkgPackageInfoTool(context);
+            .WithProcessResult("vcpkg.exe", exitCode: 0, stdOut: VcpkgPackageInfoFixture.EmptyResults);
+        var tool = new VcpkgPackageInfoTool(world.CakeContext);
 
         var settings = new VcpkgPackageInfoSettings(vcpkgRoot)
         {
@@ -36,10 +29,9 @@ public sealed class VcpkgPackageInfoToolTests
 
         var output = tool.GetPackageInfoJson(settings, "sdl2-image:x64-windows-hybrid");
 
-        await Assert.That(output).IsEqualTo(VcpkgPackageInfoFixture.EmptyResults);
-        await Assert.That(capture.Settings).IsNotNull();
+        await Assert.That(output).IsEqualTo(VcpkgPackageInfoFixture.EmptyResults.TrimEnd());
 
-        var renderedArgs = capture.Settings!.Arguments.Render();
+        var renderedArgs = world.ProcessInvocations.Single().Arguments;
         await Assert.That(renderedArgs).Contains("x-package-info");
         await Assert.That(renderedArgs).Contains("sdl2-image:x64-windows-hybrid");
         await Assert.That(renderedArgs).Contains("--triplet");
@@ -52,21 +44,14 @@ public sealed class VcpkgPackageInfoToolTests
     [Test]
     public async Task GetPackageInfoJson_Should_Return_Output_When_Process_Exits_NonZero_But_Has_Stdout()
     {
-        var environment = FakeEnvironment.CreateWindowsEnvironment();
-        var fileSystem = new FakeFileSystem(environment);
         var vcpkgRoot = new DirectoryPath("C:/repo/vcpkg");
-        fileSystem.CreateDirectory(vcpkgRoot);
-
         var vcpkgExe = vcpkgRoot.CombineWithFilePath("vcpkg.exe");
-        fileSystem.CreateFile(vcpkgExe);
 
-        var context = new FakeCakeToolContextBuilder(fileSystem, environment)
-            .WithProcessCapture(out _)
+        var world = FakeCakeWorld.CreateWindows()
+            .WithBinaryFile(vcpkgExe, [])
             .WithToolPath(vcpkgExe)
-            .WithExitCode(1)
-            .WithStandardOutput([VcpkgPackageInfoFixture.Sdl2MinimalWindows])
-            .Build();
-        var tool = new VcpkgPackageInfoTool(context);
+            .WithProcessResult("vcpkg.exe", exitCode: 1, stdOut: VcpkgPackageInfoFixture.Sdl2MinimalWindows);
+        var tool = new VcpkgPackageInfoTool(world.CakeContext);
 
         var settings = new VcpkgPackageInfoSettings(vcpkgRoot)
         {
@@ -76,26 +61,20 @@ public sealed class VcpkgPackageInfoToolTests
 
         var output = tool.GetPackageInfoJson(settings, "sdl2:x64-windows-hybrid");
 
-        await Assert.That(output).IsEqualTo(VcpkgPackageInfoFixture.Sdl2MinimalWindows);
+        await Assert.That(output).IsEqualTo(VcpkgPackageInfoFixture.Sdl2MinimalWindows.TrimEnd());
     }
 
     [Test]
     public async Task GetPackageInfoJson_Should_Return_Null_When_Command_Produces_No_Output()
     {
-        var environment = FakeEnvironment.CreateWindowsEnvironment();
-        var fileSystem = new FakeFileSystem(environment);
         var vcpkgRoot = new DirectoryPath("C:/repo/vcpkg");
-        fileSystem.CreateDirectory(vcpkgRoot);
-
         var vcpkgExe = vcpkgRoot.CombineWithFilePath("vcpkg.exe");
-        fileSystem.CreateFile(vcpkgExe);
 
-        var context = new FakeCakeToolContextBuilder(fileSystem, environment)
-            .WithProcessCapture(out _)
+        var world = FakeCakeWorld.CreateWindows()
+            .WithBinaryFile(vcpkgExe, [])
             .WithToolPath(vcpkgExe)
-            .WithStandardOutput([])
-            .Build();
-        var tool = new VcpkgPackageInfoTool(context);
+            .WithProcessResult("vcpkg.exe", exitCode: 0, stdOut: "");
+        var tool = new VcpkgPackageInfoTool(world.CakeContext);
 
         var settings = new VcpkgPackageInfoSettings(vcpkgRoot)
         {

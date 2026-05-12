@@ -19,9 +19,7 @@ namespace Build.Targets.Package.Services;
 /// concrete; single consumer (<c>PackageFamilyPacker</c>); no test seam beyond unit
 /// tests against <c>FakeFileSystem</c>.
 /// </summary>
-public sealed class DependencyRangeNormalizer(
-    ICakeContext cakeContext,
-    ICakeLog log)
+public sealed class DependencyRangeNormalizer(ICakeContext cakeContext, ICakeLog log)
 {
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
@@ -57,11 +55,11 @@ public sealed class DependencyRangeNormalizer(
             .GetFile(managedPackagePath)
             .Open(FileMode.Open, FileAccess.ReadWrite, FileShare.None);
 
-        using var archive = new ZipArchive(packageStream, ZipArchiveMode.Update, leaveOpen: false);
+        await using var archive = new ZipArchive(packageStream, ZipArchiveMode.Update, leaveOpen: false);
 
         var nuspecCandidates = archive.Entries.Where(entry =>
-            entry.FullName.EndsWith(".nuspec", StringComparison.OrdinalIgnoreCase) &&
-            !entry.FullName.StartsWith("package/", StringComparison.OrdinalIgnoreCase))
+                entry.FullName.EndsWith(".nuspec", StringComparison.OrdinalIgnoreCase) &&
+                !entry.FullName.StartsWith("package/", StringComparison.OrdinalIgnoreCase))
             .ToList();
 
         if (nuspecCandidates.Count == 0)

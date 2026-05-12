@@ -11,7 +11,7 @@ public sealed class BuildContextResolveVersionsTests
     [Test]
     public async Task ResolveVersionsSuffix_Should_Return_Parsed_Suffix()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithSuffix("ci.12345");
         var context = world.CreateBuildContext();
 
@@ -21,7 +21,7 @@ public sealed class BuildContextResolveVersionsTests
     [Test]
     public async Task ResolveVersionsScope_Should_Return_Parsed_Scope()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithScope("sdl2-core", "sdl2-image");
         var context = world.CreateBuildContext();
 
@@ -31,7 +31,7 @@ public sealed class BuildContextResolveVersionsTests
     [Test]
     public async Task ExplicitVersionEntries_Should_Return_Parsed_Repeated_Entries()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithExplicitVersion("sdl2-core=2.32.0", "sdl2-image=2.8.0");
         var context = world.CreateBuildContext();
 
@@ -41,7 +41,7 @@ public sealed class BuildContextResolveVersionsTests
     [Test]
     public async Task ExplicitVersions_Should_Return_Parsed_Comma_Separated_Entries()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithExplicitVersions("sdl2-core=2.32.0,sdl2-image=2.8.0");
         var context = world.CreateBuildContext();
 

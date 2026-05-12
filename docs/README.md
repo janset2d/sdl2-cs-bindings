@@ -27,6 +27,7 @@
 | --- | --- | --- |
 | [onboarding.md](onboarding.md) | Project overview, glossary, where-to-go pointers | First visit |
 | [plan.md](plan.md) | Canonical roadmap, current phase, hardening backlog | Before any work session |
+| [post-refactor-cleanup-plan.md](post-refactor-cleanup-plan.md) | Completion record for the post-ADR-002 cleanup and build-host test infrastructure consolidation | When auditing why the migration-era notes were retired |
 | [parking-lot.md](parking-lot.md) | Preserved ideas + partial threads not on the active roadmap | When a deferred concern surfaces |
 | [phases/README.md](phases/README.md) | Phase workflow, active vs planned phases | When the phase question matters |
 
@@ -55,7 +56,7 @@ Phase 3 (SDL2 Complete — samples, meta-package, first prerelease) lives direct
 | Document | Topic |
 | --- | --- |
 | [knowledge-base/release-guardrails.md](knowledge-base/release-guardrails.md) | Every G-numbered guardrail, owning stage, and failure-mode catalog |
-| [knowledge-base/testing-guidelines.md](knowledge-base/testing-guidelines.md) | Durable build-host testing policy: V2 infra, fake filesystem rule, fixture data policy, taxonomy |
+| [knowledge-base/testing-guidelines.md](knowledge-base/testing-guidelines.md) | Durable build-host testing policy: canonical infra, fake filesystem rule, fixture data policy, taxonomy |
 | [knowledge-base/extraction-guidelines.md](knowledge-base/extraction-guidelines.md) | Durable collaborator/extraction policy: private-method decision tree, interface discipline, anti-patterns |
 
 ### Decisions (Architecture Decision Records)
@@ -67,12 +68,6 @@ Phase 3 (SDL2 Complete — samples, meta-package, first prerelease) lives direct
 | [decisions/2026-05-12-build-host-data-layer.md](decisions/2026-05-12-build-host-data-layer.md) | ADR-003 — Contract-centric build host data layer | Accepted |
 
 See [decisions/README.md](decisions/README.md) for the index.
-
-### Historical Refactor Records (Temporary)
-
-| Document | Purpose |
-| --- | --- |
-| [refactoring/README.md](refactoring/README.md) | Temporary index for migration-era notes pending retirement or absorption into ADRs and the knowledge base |
 
 ### Research (Dated Findings)
 

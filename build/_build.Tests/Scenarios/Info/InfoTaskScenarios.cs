@@ -8,10 +8,10 @@ public sealed class InfoTaskScenarios
     [Test]
     public async Task RunAsync_Should_Complete_Without_Exception_When_DotNet_Is_Available()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithProcessResult("dotnet", exitCode: 0, stdOut: "10.0.203\n");
 
-        var host = new TargetTestHostV2<InfoTask>(world);
+        var host = new TargetTestHost<InfoTask>(world);
 
         var result = await host.RunAsync();
 
@@ -29,10 +29,10 @@ public sealed class InfoTaskScenarios
     [Test]
     public async Task RunAsync_Should_Display_Error_When_DotNet_Returns_NonZero_ExitCode()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithProcessResult("dotnet", exitCode: 1, stdOut: "", stdErr: "SDK not found");
 
-        var host = new TargetTestHostV2<InfoTask>(world);
+        var host = new TargetTestHost<InfoTask>(world);
 
         var result = await host.RunAsync();
 

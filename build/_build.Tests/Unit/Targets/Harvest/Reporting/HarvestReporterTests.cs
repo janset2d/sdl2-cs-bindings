@@ -17,7 +17,7 @@ public sealed class HarvestReporterTests
     [Test]
     public async Task StartLibrary_Should_Write_Library_Name_To_Console()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var reporter = new HarvestReporter(world.AnsiConsole, world.Log);
 
         reporter.StartLibrary(LibraryName);
@@ -28,7 +28,7 @@ public sealed class HarvestReporterTests
     [Test]
     public async Task FinishLibrary_Should_Render_Summary_Panel_And_Finish_Rule()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var reporter = new HarvestReporter(world.AnsiConsole, world.Log);
         var stats = CreateStats(primary: 2, runtime: 5, license: 3, deployed: 4, filtered: 1);
 
@@ -43,7 +43,7 @@ public sealed class HarvestReporterTests
     [Test]
     public async Task CancelLibrary_Should_Write_Cancel_Rule_And_Warning_Log()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var reporter = new HarvestReporter(world.AnsiConsole, world.Log);
 
         reporter.CancelLibrary(LibraryName);
@@ -56,7 +56,7 @@ public sealed class HarvestReporterTests
     [Test]
     public async Task LogCompleted_Should_Write_Green_Completion_Rule()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var reporter = new HarvestReporter(world.AnsiConsole, world.Log);
 
         reporter.LogCompleted();
@@ -67,7 +67,7 @@ public sealed class HarvestReporterTests
     [Test]
     public async Task LogStarting_Should_Emit_Info_Log_With_Library_Names()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var reporter = new HarvestReporter(world.AnsiConsole, world.Log);
 
         reporter.LogStarting(["sdl2-core", "sdl2-image"]);
@@ -79,7 +79,7 @@ public sealed class HarvestReporterTests
     [Test]
     public async Task ReportPhaseFailure_Should_Write_Red_Rule_And_Error_Log()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var reporter = new HarvestReporter(world.AnsiConsole, world.Log);
 
         reporter.ReportPhaseFailure(LibraryName, "Binary closure", "vcpkg cache miss", exception: null);
@@ -93,7 +93,7 @@ public sealed class HarvestReporterTests
     [Test]
     public async Task ReportPhaseFailure_Should_Log_Verbose_Exception_Details_When_Exception_Present()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         world.Log.Verbosity = Cake.Core.Diagnostics.Verbosity.Diagnostic;
         var reporter = new HarvestReporter(world.AnsiConsole, world.Log);
         var ex = new InvalidOperationException("boom");
@@ -107,7 +107,7 @@ public sealed class HarvestReporterTests
     [Test]
     public async Task ReportLeakReport_Should_Log_Each_Error_When_Report_Has_Errors()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var reporter = new HarvestReporter(world.AnsiConsole, world.Log);
         var report = new ValidationReport([
             new ValidationCheck("LeakCheck", ValidationSeverity.Error, "leak: zlib.dll leaks transitive dep"),
@@ -124,7 +124,7 @@ public sealed class HarvestReporterTests
     [Test]
     public async Task ReportLeakReport_Should_Log_Each_Warning_When_Report_Has_Warnings()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var reporter = new HarvestReporter(world.AnsiConsole, world.Log);
         var report = new ValidationReport([
             new ValidationCheck("LeakCheck", ValidationSeverity.Warning, "non-blocking warn"),
@@ -138,7 +138,7 @@ public sealed class HarvestReporterTests
     [Test]
     public async Task Constructor_Should_Throw_When_Console_Is_Null()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
 
         await Assert.That(() => new HarvestReporter(null!, world.Log))
             .Throws<ArgumentNullException>();
@@ -147,7 +147,7 @@ public sealed class HarvestReporterTests
     [Test]
     public async Task Constructor_Should_Throw_When_Log_Is_Null()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
 
         await Assert.That(() => new HarvestReporter(world.AnsiConsole, null!))
             .Throws<ArgumentNullException>();

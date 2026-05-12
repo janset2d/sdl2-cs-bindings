@@ -8,20 +8,29 @@ namespace Build.Tests.Unit.Manifest;
 public class RealManifestContractTests
 {
     [Test]
-    public async Task DeserializeManifest_Should_Parse_All_Library_Entries()
+    public async Task FixtureLoaderLoad_Should_Return_Real_Manifest_Fixture()
     {
-        var json = await WorkspaceFiles.ReadAllTextAsync(WorkspaceFiles.ManifestPath).ConfigureAwait(false);
+        var json = FixtureLoader.Load("Manifest/manifest-real.json");
         var config = JsonSerializer.Deserialize<ManifestConfig>(json);
 
         await Assert.That(config).IsNotNull();
-        await Assert.That(config!.LibraryManifests.Count).IsGreaterThanOrEqualTo(5);
+        await Assert.That(config!.Runtimes!.Count).IsEqualTo(7);
+        await Assert.That(config.LibraryManifests.Count).IsEqualTo(5);
+    }
+
+    [Test]
+    public async Task DeserializeManifest_Should_Parse_All_Library_Entries()
+    {
+        var config = ManifestFixture.RealManifest;
+
+        await Assert.That(config).IsNotNull();
+        await Assert.That(config.LibraryManifests.Count).IsGreaterThanOrEqualTo(5);
     }
 
     [Test]
     public async Task DeserializeManifest_Should_Have_Exactly_One_Core_Library()
     {
-        var json = await WorkspaceFiles.ReadAllTextAsync(WorkspaceFiles.ManifestPath).ConfigureAwait(false);
-        var config = JsonSerializer.Deserialize<ManifestConfig>(json)!;
+        var config = ManifestFixture.RealManifest;
 
         var coreLibs = config.LibraryManifests.Where(m => m.IsCoreLib).ToList();
         await Assert.That(coreLibs.Count).IsEqualTo(1);
@@ -31,8 +40,7 @@ public class RealManifestContractTests
     [Test]
     public async Task DeserializeManifest_Should_Have_Valid_Versions_For_All_Libraries()
     {
-        var json = await WorkspaceFiles.ReadAllTextAsync(WorkspaceFiles.ManifestPath).ConfigureAwait(false);
-        var config = JsonSerializer.Deserialize<ManifestConfig>(json)!;
+        var config = ManifestFixture.RealManifest;
 
         foreach (var lib in config.LibraryManifests)
         {
@@ -46,8 +54,7 @@ public class RealManifestContractTests
     [Test]
     public async Task DeserializeManifest_Should_Have_Platform_Binaries_For_All_Three_OS()
     {
-        var json = await WorkspaceFiles.ReadAllTextAsync(WorkspaceFiles.ManifestPath).ConfigureAwait(false);
-        var config = JsonSerializer.Deserialize<ManifestConfig>(json)!;
+        var config = ManifestFixture.RealManifest;
 
         foreach (var lib in config.LibraryManifests)
         {
@@ -61,8 +68,7 @@ public class RealManifestContractTests
     [Test]
     public async Task DeserializeManifest_Should_Have_PackagingConfig()
     {
-        var json = await WorkspaceFiles.ReadAllTextAsync(WorkspaceFiles.ManifestPath).ConfigureAwait(false);
-        var config = JsonSerializer.Deserialize<ManifestConfig>(json)!;
+        var config = ManifestFixture.RealManifest;
 
         await Assert.That(config.PackagingConfig).IsNotNull();
         await Assert.That(config.PackagingConfig.ValidationMode).IsEqualTo(ValidationMode.Strict);
@@ -72,8 +78,7 @@ public class RealManifestContractTests
     [Test]
     public async Task DeserializeManifest_Should_Have_All_Package_Families()
     {
-        var json = await WorkspaceFiles.ReadAllTextAsync(WorkspaceFiles.ManifestPath).ConfigureAwait(false);
-        var config = JsonSerializer.Deserialize<ManifestConfig>(json)!;
+        var config = ManifestFixture.RealManifest;
 
         await Assert.That(config.PackageFamilies).IsNotNull();
         await Assert.That(config.PackageFamilies.Count).IsEqualTo(5);
@@ -89,8 +94,7 @@ public class RealManifestContractTests
     [Test]
     public async Task DeserializeManifest_Should_Have_Package_Families_Referencing_Library_Manifests()
     {
-        var json = await WorkspaceFiles.ReadAllTextAsync(WorkspaceFiles.ManifestPath).ConfigureAwait(false);
-        var config = JsonSerializer.Deserialize<ManifestConfig>(json)!;
+        var config = ManifestFixture.RealManifest;
 
         var knownLibraries = config.LibraryManifests.Select(m => m.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
@@ -103,8 +107,7 @@ public class RealManifestContractTests
     [Test]
     public async Task DeserializeManifest_Should_Have_Inline_Runtimes()
     {
-        var json = await WorkspaceFiles.ReadAllTextAsync(WorkspaceFiles.ManifestPath).ConfigureAwait(false);
-        var config = JsonSerializer.Deserialize<ManifestConfig>(json)!;
+        var config = ManifestFixture.RealManifest;
 
         await Assert.That(config.Runtimes).IsNotNull();
         await Assert.That(config.Runtimes!.Count).IsEqualTo(7);
@@ -120,8 +123,7 @@ public class RealManifestContractTests
     [Test]
     public async Task DeserializeManifest_Should_Have_Inline_SystemExclusions()
     {
-        var json = await WorkspaceFiles.ReadAllTextAsync(WorkspaceFiles.ManifestPath).ConfigureAwait(false);
-        var config = JsonSerializer.Deserialize<ManifestConfig>(json)!;
+        var config = ManifestFixture.RealManifest;
 
         await Assert.That(config.SystemExclusions).IsNotNull();
         await Assert.That(config.SystemExclusions!.Windows.SystemDlls.Count).IsGreaterThan(0);
@@ -132,8 +134,7 @@ public class RealManifestContractTests
     [Test]
     public async Task DeserializeManifest_Should_Have_Hybrid_Overlay_Triplets_For_All_Runtimes()
     {
-        var json = await WorkspaceFiles.ReadAllTextAsync(WorkspaceFiles.ManifestPath).ConfigureAwait(false);
-        var config = JsonSerializer.Deserialize<ManifestConfig>(json)!;
+        var config = ManifestFixture.RealManifest;
 
         foreach (var runtime in config.Runtimes!)
         {

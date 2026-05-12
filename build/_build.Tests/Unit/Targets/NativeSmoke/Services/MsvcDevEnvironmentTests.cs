@@ -16,18 +16,10 @@ namespace Build.Tests.Unit.Targets.NativeSmoke.Services;
 public sealed class MsvcDevEnvironmentTests
 {
     [Test]
+    [NonWindowsOnly]
     public async Task ResolveAsync_Should_Throw_PlatformNotSupportedException_When_Host_Is_Not_Windows()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            // The contract is Windows-only; on Windows the resolver enters its real
-            // discovery path and this assertion cannot be exercised without stubbing
-            // OperatingSystem.IsWindows (static; not mockable). Leave the test active
-            // so non-Windows CI runners (Linux matrix, macOS matrix) pin the contract.
-            return;
-        }
-
-        var world = FakeCakeWorldV2.CreateLinux();
+        var world = FakeCakeWorld.CreateLinux();
         var resolver = new MsvcDevEnvironment(world.CakeContext, Substitute.For<ICakeLog>());
 
         var thrown = await Assert.That(async () => await resolver.ResolveAsync(MsvcTargetArch.X64)).Throws<PlatformNotSupportedException>();

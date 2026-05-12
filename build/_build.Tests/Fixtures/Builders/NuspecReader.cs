@@ -7,7 +7,7 @@ namespace Build.Tests.Fixtures.Builders;
 
 internal static class NuspecReader
 {
-    public static string? GetDependencyVersion(FakeCakeWorldV2 world, FilePath nupkgPath, string dependencyId)
+    public static string? GetDependencyVersion(FakeCakeWorld world, FilePath nupkgPath, string dependencyId)
     {
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(nupkgPath);

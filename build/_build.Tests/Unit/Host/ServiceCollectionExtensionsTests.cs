@@ -15,7 +15,7 @@ public sealed class ServiceCollectionExtensionsTests
     [Test]
     public async Task AddHostBuildingBlocks_Should_Load_RuntimeProfile_Manifest_Through_Repository()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithTextFile("build/manifest.json", "not valid json");
         var manifest = ManifestFixture.CreateTestManifestConfig();
         var repository = Substitute.For<IManifestRepository>();
@@ -35,7 +35,7 @@ public sealed class ServiceCollectionExtensionsTests
     [Test]
     public async Task AddHostBuildingBlocks_Should_Not_Register_Derived_Manifest_Projection_Config()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var services = CreateServices(world);
 
         services.AddHostBuildingBlocks(CreateParsedArguments(), world.RepoRoot);
@@ -47,7 +47,7 @@ public sealed class ServiceCollectionExtensionsTests
         await Assert.That(provider.GetService<ManifestConfig>()).IsNull();
     }
 
-    private static ServiceCollection CreateServices(FakeCakeWorldV2 world)
+    private static ServiceCollection CreateServices(FakeCakeWorld world)
     {
         var services = new ServiceCollection();
         services.AddSingleton(world.CakeContext);

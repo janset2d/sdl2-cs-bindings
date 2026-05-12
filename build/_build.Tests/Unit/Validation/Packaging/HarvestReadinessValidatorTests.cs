@@ -26,7 +26,7 @@ public sealed class HarvestReadinessValidatorTests
     [Test]
     public async Task EnsureReadyAsync_Should_Throw_When_Harvest_Manifest_Missing()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var validator = NewValidator(world);
 
         var ex = await Assert.ThrowsAsync<CakeException>(async () =>
@@ -39,7 +39,7 @@ public sealed class HarvestReadinessValidatorTests
     [Test]
     public async Task EnsureReadyAsync_Should_Throw_When_Consolidation_Receipt_Missing()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithTextFile($"artifacts/harvest_output/{LibraryRef}/harvest-manifest.json",
                 FixtureLoader.Load("Harvest/harvest-manifest-no-receipt.json"))
             .WithTextFile($"artifacts/harvest_output/{LibraryRef}/runtimes/win-x64/native/SDL2.dll", "<bytes>")
@@ -57,7 +57,7 @@ public sealed class HarvestReadinessValidatorTests
     [Test]
     public async Task EnsureReadyAsync_Should_Throw_When_Zero_Successful_Rids()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithTextFile($"artifacts/harvest_output/{LibraryRef}/harvest-manifest.json",
                 FixtureLoader.Load("Harvest/harvest-manifest-zero-rids.json"));
 
@@ -72,7 +72,7 @@ public sealed class HarvestReadinessValidatorTests
     [Test]
     public async Task EnsureReadyAsync_Should_Throw_When_Zero_License_Entries()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithTextFile($"artifacts/harvest_output/{LibraryRef}/harvest-manifest.json",
                 FixtureLoader.Load("Harvest/harvest-manifest-zero-licenses.json"))
             .WithTextFile($"artifacts/harvest_output/{LibraryRef}/runtimes/win-x64/native/SDL2.dll", "<bytes>")
@@ -90,7 +90,7 @@ public sealed class HarvestReadinessValidatorTests
     [Test]
     public async Task EnsureReadyAsync_Should_Throw_When_Payload_Runtime_Subtree_Missing()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithTextFile($"artifacts/harvest_output/{LibraryRef}/harvest-manifest.json",
                 FixtureLoader.Load("Harvest/harvest-manifest-ready.json"))
             .WithTextFile($"artifacts/harvest_output/{LibraryRef}/licenses/_consolidated/sdl2/LICENSE.txt", "MIT");
@@ -108,7 +108,7 @@ public sealed class HarvestReadinessValidatorTests
     [Test]
     public async Task EnsureReadyAsync_Should_Throw_When_Payload_Consolidated_Licenses_Subtree_Missing()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithTextFile($"artifacts/harvest_output/{LibraryRef}/harvest-manifest.json",
                 FixtureLoader.Load("Harvest/harvest-manifest-ready.json"))
             .WithTextFile($"artifacts/harvest_output/{LibraryRef}/runtimes/win-x64/native/SDL2.dll", "<bytes>");
@@ -123,9 +123,9 @@ public sealed class HarvestReadinessValidatorTests
         await Assert.That(ex!.Message).Contains("is missing");
     }
 
-    private static FakeCakeWorldV2 ReadyWorld()
+    private static FakeCakeWorld ReadyWorld()
     {
-        return FakeCakeWorldV2.CreateWindows()
+        return FakeCakeWorld.CreateWindows()
             .WithTextFile($"artifacts/harvest_output/{LibraryRef}/harvest-manifest.json",
                 FixtureLoader.Load("Harvest/harvest-manifest-ready.json"))
             .WithTextFile($"artifacts/harvest_output/{LibraryRef}/runtimes/win-x64/native/SDL2.dll", "<bytes>")
@@ -134,7 +134,7 @@ public sealed class HarvestReadinessValidatorTests
             .WithTextFile($"artifacts/harvest_output/{LibraryRef}/licenses/_consolidated/sdl2/LICENSE.txt", "MIT");
     }
 
-    private static HarvestReadinessValidator NewValidator(FakeCakeWorldV2 world)
+    private static HarvestReadinessValidator NewValidator(FakeCakeWorld world)
     {
         var context = world.CreateBuildContext();
         var harvestManifestRepository = new HarvestManifestRepository(world.CakeContext, context.Paths);

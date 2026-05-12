@@ -48,7 +48,7 @@ public sealed class NativePackageMetadataRepositoryUnitTests
 
     private static NativePackageMetadataRepository CreateRepository()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         return new NativePackageMetadataRepository(world.CakeContext);
     }
 }
@@ -60,7 +60,7 @@ public sealed class NativePackageMetadataRepositoryRoundTripTests
     [Test]
     public async Task WriteAsync_Should_Write_Metadata_Json()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var repository = new NativePackageMetadataRepository(world.CakeContext);
         var metadata = NativeMetadataFixture.Create();
         var path = world.RepoRoot.CombineWithFilePath("artifacts/harvest_output/sdl2/janset-native-metadata.json");
@@ -75,7 +75,7 @@ public sealed class NativePackageMetadataRepositoryRoundTripTests
     [Test]
     public async Task ReadFromPackageAsync_Should_Return_Metadata_When_Package_Contains_Valid_Metadata()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var repository = new NativePackageMetadataRepository(world.CakeContext);
         var packagePath = PackagePath(world);
         SeedNupkgWithEntries(world, packagePath,
@@ -94,7 +94,7 @@ public sealed class NativePackageMetadataRepositoryRoundTripTests
     [Test]
     public async Task ReadFromPackageAsync_Should_Return_Failure_When_Package_Is_Missing()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var repository = new NativePackageMetadataRepository(world.CakeContext);
         var packagePath = PackagePath(world);
 
@@ -107,7 +107,7 @@ public sealed class NativePackageMetadataRepositoryRoundTripTests
     [Test]
     public async Task ReadFromPackageAsync_Should_Return_Failure_When_Package_Is_Not_A_Zip()
     {
-        var world = FakeCakeWorldV2.CreateWindows()
+        var world = FakeCakeWorld.CreateWindows()
             .WithTextFile("artifacts/packages/Janset.SDL2.Core.Native.2.32.0.nupkg", "not a zip");
         var repository = new NativePackageMetadataRepository(world.CakeContext);
 
@@ -120,7 +120,7 @@ public sealed class NativePackageMetadataRepositoryRoundTripTests
     [Test]
     public async Task ReadFromPackageAsync_Should_Return_Failure_When_Metadata_Entry_Is_Missing()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var repository = new NativePackageMetadataRepository(world.CakeContext);
         var packagePath = PackagePath(world);
         SeedNupkgWithEntries(world, packagePath, [("package.nuspec", "<package />")]);
@@ -134,7 +134,7 @@ public sealed class NativePackageMetadataRepositoryRoundTripTests
     [Test]
     public async Task ReadFromPackageAsync_Should_Return_Failure_When_Metadata_Json_Is_Invalid()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var repository = new NativePackageMetadataRepository(world.CakeContext);
         var packagePath = PackagePath(world);
         SeedNupkgWithEntries(world, packagePath, [(MetadataEntryName, FixtureLoader.Load("NativePackageMetadata/native-metadata-invalid.json"))]);
@@ -148,7 +148,7 @@ public sealed class NativePackageMetadataRepositoryRoundTripTests
     [Test]
     public async Task ReadFromPackageAsync_Should_Return_Failure_When_Metadata_Deserializes_To_Null()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var repository = new NativePackageMetadataRepository(world.CakeContext);
         var packagePath = PackagePath(world);
         SeedNupkgWithEntries(world, packagePath, [(MetadataEntryName, FixtureLoader.Load("NativePackageMetadata/native-metadata-null.json"))]);
@@ -159,10 +159,10 @@ public sealed class NativePackageMetadataRepositoryRoundTripTests
         await Assert.That(result.Error.Message).Contains("deserialized to null", StringComparison.Ordinal);
     }
 
-    private static FilePath PackagePath(FakeCakeWorldV2 world)
+    private static FilePath PackagePath(FakeCakeWorld world)
         => world.RepoRoot.CombineWithFilePath("artifacts/packages/Janset.SDL2.Core.Native.2.32.0.nupkg");
 
-    private static void SeedNupkgWithEntries(FakeCakeWorldV2 world, FilePath nupkgPath, ImmutableArray<(string Entry, string Content)> entries)
+    private static void SeedNupkgWithEntries(FakeCakeWorld world, FilePath nupkgPath, ImmutableArray<(string Entry, string Content)> entries)
     {
         var directory = world.FileSystem.GetDirectory(nupkgPath.GetDirectory());
         if (!directory.Exists)

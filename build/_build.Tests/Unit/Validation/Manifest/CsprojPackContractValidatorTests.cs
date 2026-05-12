@@ -172,18 +172,17 @@ public sealed class CsprojPackContractValidatorTests
 
     private static (CsprojPackContractValidator Validator, DirectoryPath RepoRoot, ManifestConfig Manifest) Arrange(
         IReadOnlyList<PackageFamilyConfig> families,
-        Action<FakeRepoBuilder> seedFiles)
+        Action<FakeCakeWorld> seedFiles)
     {
-        var builder = new FakeRepoBuilder();
-        seedFiles(builder);
-        var handles = builder.BuildContextWithHandles();
+        var world = FakeCakeWorld.CreateWindows();
+        seedFiles(world);
 
         var manifest = ManifestFixture.CreateTestManifestConfig() with
         {
             PackageFamilies = [.. families],
         };
-        var validator = new CsprojPackContractValidator(handles.FileSystem);
-        return (validator, handles.RepoRoot, manifest);
+        var validator = new CsprojPackContractValidator(world.FileSystem);
+        return (validator, world.RepoRoot, manifest);
     }
 
     private static (string Path, string Content) ManagedCsproj(string packageId)

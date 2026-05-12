@@ -8,7 +8,7 @@ public sealed class PackageConsumerSmokePreconditionsValidatorTests
     [Test]
     public async Task Validate_Should_Return_Valid_When_All_Inputs_Present()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         world.WithTextFile("tests/Smoke.csproj", "<Project />");
         world.WithTextFile("tests/CompileSanity.csproj", "<Project />");
         world.WithTextFile("artifacts/packages/.placeholder", "");
@@ -27,7 +27,7 @@ public sealed class PackageConsumerSmokePreconditionsValidatorTests
     [Test]
     public async Task Validate_Should_Return_Error_When_Smoke_Csproj_Missing()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         world.WithTextFile("tests/CompileSanity.csproj", "<Project />");
         world.WithTextFile("artifacts/packages/.placeholder", "");
 
@@ -46,7 +46,7 @@ public sealed class PackageConsumerSmokePreconditionsValidatorTests
     [Test]
     public async Task Validate_Should_Return_Error_When_Compile_Sanity_Csproj_Missing()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         world.WithTextFile("tests/Smoke.csproj", "<Project />");
         world.WithTextFile("artifacts/packages/.placeholder", "");
 
@@ -65,7 +65,7 @@ public sealed class PackageConsumerSmokePreconditionsValidatorTests
     [Test]
     public async Task Validate_Should_Return_Error_When_Feed_Directory_Missing()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         world.WithTextFile("tests/Smoke.csproj", "<Project />");
         world.WithTextFile("tests/CompileSanity.csproj", "<Project />");
 
@@ -84,7 +84,7 @@ public sealed class PackageConsumerSmokePreconditionsValidatorTests
     [Test]
     public async Task Validate_Should_Aggregate_All_Errors_When_Multiple_Inputs_Missing()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
 
         var validator = new PackageConsumerSmokePreconditionsValidator(world.CakeContext);
 

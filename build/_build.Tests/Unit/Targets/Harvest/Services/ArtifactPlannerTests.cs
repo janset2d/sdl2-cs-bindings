@@ -185,29 +185,29 @@ public sealed class ArtifactPlannerTests
         await Assert.That(plan.Statistics.LicenseFiles.Count).IsGreaterThan(0);
     }
 
-    private static FakeCakeWorldV2 CreateWindowsWorld()
+    private static FakeCakeWorld CreateWindowsWorld()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         world.WithToolPath("vcpkg.exe", world.RepoRoot.CombineWithFilePath("external/vcpkg/vcpkg.exe"));
         return world;
     }
 
-    private static FakeCakeWorldV2 CreateLinuxWorld()
+    private static FakeCakeWorld CreateLinuxWorld()
     {
-        var world = FakeCakeWorldV2.CreateLinux();
+        var world = FakeCakeWorld.CreateLinux();
         world.WithToolPath("vcpkg", world.RepoRoot.CombineWithFilePath("external/vcpkg/vcpkg"));
         return world;
     }
 
     private static ArtifactPlanner CreatePlanner(
-        FakeCakeWorldV2 world,
+        FakeCakeWorld world,
         RuntimeProfile profile)
     {
         return new ArtifactPlanner(profile, world.CreateBuildContext().Paths, world.CakeContext);
     }
 
     private static void SeedPackageInfo(
-        FakeCakeWorldV2 world,
+        FakeCakeWorld world,
         string name,
         string triplet,
         string[] ownedFiles,

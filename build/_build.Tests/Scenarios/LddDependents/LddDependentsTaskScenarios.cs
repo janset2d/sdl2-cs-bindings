@@ -9,14 +9,14 @@ public sealed class LddDependentsTaskScenarios
     [Test]
     public async Task RunAsync_Should_Invoke_Ldd_When_Dll_Is_Provided()
     {
-        var world = FakeCakeWorldV2.CreateLinux()
+        var world = FakeCakeWorld.CreateLinux()
             .WithProcessResult("ldd", exitCode: 0,
                 stdOut: "    libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f1234560000)\n")
             .WithToolPath("/usr/bin/ldd")
             .WithDll("artifacts/libSDL2.so")
             .WithTextFile("artifacts/libSDL2.so", "binary content");
 
-        var host = new TargetTestHostV2<LddDependentsTask>(world);
+        var host = new TargetTestHost<LddDependentsTask>(world);
         var result = await host.RunAsync();
 
         await Assert.That(result.Success).IsTrue();
@@ -28,9 +28,9 @@ public sealed class LddDependentsTaskScenarios
     [Test]
     public async Task RunAsync_Should_Throw_When_Dll_Is_Missing()
     {
-        var world = FakeCakeWorldV2.CreateLinux();
+        var world = FakeCakeWorld.CreateLinux();
 
-        var host = new TargetTestHostV2<LddDependentsTask>(world);
+        var host = new TargetTestHost<LddDependentsTask>(world);
         var result = await host.RunAsync();
 
         await Assert.That(result.Success).IsFalse();
@@ -40,13 +40,13 @@ public sealed class LddDependentsTaskScenarios
     [Test]
     public async Task RunAsync_Should_Warn_But_Not_Throw_When_Dll_File_Does_Not_Exist()
     {
-        var world = FakeCakeWorldV2.CreateLinux()
+        var world = FakeCakeWorld.CreateLinux()
             .WithProcessResult("ldd", exitCode: 0,
                 stdOut: "    libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f1234560000)\n")
             .WithToolPath("/usr/bin/ldd")
             .WithDll("artifacts/missing.so");
 
-        var host = new TargetTestHostV2<LddDependentsTask>(world);
+        var host = new TargetTestHost<LddDependentsTask>(world);
         var result = await host.RunAsync();
 
         await Assert.That(result.Success).IsTrue();

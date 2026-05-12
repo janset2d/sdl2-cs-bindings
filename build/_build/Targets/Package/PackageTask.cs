@@ -50,7 +50,7 @@ public sealed class PackageTask : AsyncFrostingTask<BuildContext>
 
         // Cake.Git bypasses ICakeContext.FileSystem and hits System.IO directly via LibGit2Sharp's
         // native binary, which means unit tests against FakeFileSystem can't be served by the
-        // default resolver. The optional ctor hook lets V2 scenario tests inject a stub lambda;
+        // default resolver. The optional ctor hook lets scenario tests inject a stub lambda;
         // production uses the default GitLogTip-backed resolver. End-to-end runs against a real
         // repo (release.yml + tools.cs ci-sim) exercise the default, so default behavior stays
         // covered without a dedicated integration test.

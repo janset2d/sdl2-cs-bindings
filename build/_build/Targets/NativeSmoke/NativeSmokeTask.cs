@@ -24,8 +24,7 @@ namespace Build.Targets.NativeSmoke;
 /// execute. Configure + Build merge the MSVC env delta on Windows (cl.exe + Ninja inheritance);
 /// Execute lets the binary inherit the parent shell's PATH. The MSVC probe is triggered on
 /// the first ConfigureAsync call and cached per-arch by <see cref="IMsvcDevEnvironment"/>, so
-/// any toolchain failure surfaces before cmake.exe is invoked. Direct successor to the retired
-/// pre-migration NativeSmokePipeline.
+/// any toolchain failure surfaces before cmake.exe is invoked.
 /// </summary>
 [TaskName("NativeSmoke")]
 [TaskDescription("Runs native C smoke harness against harvested runtime payload")]

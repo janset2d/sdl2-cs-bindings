@@ -1,4 +1,5 @@
 using Build.Targets.PackageConsumerSmoke.Services;
+using Build.Tests.Fixtures;
 using Cake.Core.Diagnostics;
 using NSubstitute;
 
@@ -35,13 +36,9 @@ public sealed class DotNetRuntimeEnvironmentTests
     }
 
     [Test]
+    [NonWindowsOnly]
     public async Task ResolveAsync_Should_Throw_PlatformNotSupportedException_When_WinX86_On_NonWindows_Host()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            return;
-        }
-
         var resolver = new DotNetRuntimeEnvironment(Substitute.For<ICakeLog>());
 
         var thrown = await Assert.That(async () => await resolver.ResolveAsync("win-x86", ["net10.0"])).Throws<PlatformNotSupportedException>();

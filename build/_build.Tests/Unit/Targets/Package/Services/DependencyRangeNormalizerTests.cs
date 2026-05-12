@@ -108,10 +108,10 @@ public sealed class DependencyRangeNormalizerTests
         await Assert.That(ex!.Message).Contains("does not exist in manifest package_families[]");
     }
 
-    private static (FakeCakeWorldV2 World, ManifestConfig Manifest) WorldWithManifest()
+    private static (FakeCakeWorld World, ManifestConfig Manifest) WorldWithManifest()
     {
         var manifest = ManifestFixture.CreateTestManifestConfig();
-        var world = FakeCakeWorldV2.CreateWindows().WithManifestObject(manifest);
+        var world = FakeCakeWorld.CreateWindows().WithManifestObject(manifest);
         return (world, manifest);
     }
 }

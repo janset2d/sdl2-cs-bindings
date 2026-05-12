@@ -1,10 +1,10 @@
 # Testing Guidelines — Build-Host Tests
 
-Canonical reference for writing and maintaining tests in `build/_build.Tests/`. This knowledge-base copy is the durable home now that the ADR-002 refactor is closed; refactoring plans and checklists can stay historical without carrying day-to-day test practice.
+Canonical reference for writing and maintaining tests in `build/_build.Tests/`. This knowledge-base copy is the durable home now that the ADR-002 refactor is closed.
 
 ## The rule in one sentence
 
-Build-host tests use **Cake `FakeFileSystem`** and **V2 test infrastructure by default**. Test data lives in **embedded fixture files** under `Fixtures/Data/`. Touched tests migrate to V2 immediately.
+Build-host tests use **Cake `FakeFileSystem`** and the **canonical test infrastructure** by default. Test data lives in **embedded fixture files** under `Fixtures/Data/`. New or touched tests stay on the canonical harness.
 
 ## Filesystem rule
 
@@ -67,21 +67,20 @@ internal static class VersionsData
 
 **Decision trigger:** If the same data appears in >=3 test methods or >=2 test files → embedded fixture. If it's a single-test detail → centralized inline. If it's version/manifest/harvest data (build-domain critical) → embedded fixture regardless of count.
 
-## V2 vs V1 infrastructure
+## Current test infrastructure
 
-| | V2 (current) | V1 (frozen) |
-|---|---|---|
-| Filesystem | `FakeCakeWorldV2` | `FakeRepoBuilder` |
-| Test host | `TargetTestHostV2<TTask>` | `TestHostFixture` |
-| Log | `TestLogV2` | `FakeLog` (Cake) |
-| Context bridge | None needed | `ToLegacyBuildContext` |
+| Concern | Current fixture |
+|---|---|
+| Fake Cake world + filesystem | `FakeCakeWorld` |
+| Target scenario host | `TargetTestHost<TTask>` |
+| ServiceCollection smoke host | `ServiceCollectionTestHost` |
+| Log capture | `TestLog` |
 
 **Rules:**
 
-- **Touching a test?** Migrate it to V2. Applies to new tests AND modifications of existing tests — broader than the "migrated target" rule in the plan.
-- **V1 fixtures are frozen.** Do not add methods to `FakeRepoBuilder`, `TestHostFixture`, or `FakeCakeToolContextBuilder`. Do not extend `ToLegacyBuildContext`.
-- **Migrated target?** Existing tests under `Unit/Features/<OldFeature>/` move to V2 in the same migration slice. New tests go under `Unit/Targets/<CakeTargetName>/` or `Scenarios/<CakeTargetName>/`.
-- **Unmigrated target?** V1 fixtures remain available but degrade naturally as targets migrate.
+- **Touching a test?** Keep it on canonical infrastructure. New tests use `FakeCakeWorld`, `TargetTestHost<TTask>`, or `ServiceCollectionTestHost` as appropriate.
+- **Retired legacy fixtures stay retired.** Do not reintroduce `FakeRepoBuilder`, `TestHostFixture`, `FakeCakeToolContextBuilder`, or legacy context shims.
+- **Target-centric location rule:** New tests go under `Unit/Targets/<CakeTargetName>/` or `Scenarios/<CakeTargetName>/`; avoid resurrecting `Unit/Features/<OldFeature>/`.
 
 ## Test taxonomy
 
@@ -90,7 +89,7 @@ internal static class VersionsData
 | `Unit/` | Pure policies, validators, small algorithms | No FS dependency; just instantiate and assert |
 | `Scenarios/` | Real task orchestration, in-process | Cake `FakeFileSystem`, fake env, fake log, fake tools |
 | `Integration/` | Mission-critical external boundaries only | Real `dotnet`, real archives, real FS if Cake can't model it |
-| `Characterization/` | Temporary safety net during migration | V1 infra; graduate to `Scenarios` or delete |
+| `Characterization/` | Temporary safety net during migration | Graduate to `Scenarios` or delete before the migration closes |
 | `Fixtures/Data/` | Reusable fake data files | Embedded resources, loaded via `FixtureLoader` |
 
 ## TUnit rules
@@ -108,7 +107,7 @@ internal static class VersionsData
 public async Task RunAsync_Should_Write_Versions_When_Valid_Input()
 {
     // 1. Build the fake world with fixture data
-    var world = FakeCakeWorldV2.CreateWindows()
+    var world = FakeCakeWorld.CreateWindows()
         .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
         .WithTextFile("artifacts/resolve-versions/versions.json",
             VersionsData.Valid)  // <- centralized inline OR fixture file content
@@ -127,9 +126,9 @@ public async Task RunAsync_Should_Write_Versions_When_Valid_Input()
     await Assert.That(json).Contains("\"sdl2-core\": \"2.32.0-ci.12345\"");
 }
 
-private static TargetTestHostV2<MyTask> CreateHost(FakeCakeWorldV2 world)
+private static TargetTestHost<MyTask> CreateHost(FakeCakeWorld world)
 {
-    return new TargetTestHostV2<MyTask>(world)
+    return new TargetTestHost<MyTask>(world)
         .WithServices(services =>
         {
             services.AddData();
@@ -143,11 +142,11 @@ Scenario host rules:
 - Tool paths: `WithToolPath(path)` (legacy global default), `WithToolPath(toolName, path)` (per-tool — required when a scenario invokes multiple `Tool<TSettings>` wrappers and each must resolve to a distinct executable so process invocations get distinct filename keys), or `WithDefaultToolPath(path)`.
 - Process side effects: `WithProcessSideEffect(cmd, world => ...)` — fires before the process result is returned and lets the test mutate the fake world, typically seeding files into the fake filesystem to simulate the side effects of a real tool. Required for happy-path scenarios that invoke tools that produce filesystem output (e.g. `tar` extraction populating a destination directory) — pre-seeding via `WithTextFile` alone gets wiped by `DeleteDirectory` calls inside the workflow.
 - Assert on `world.ProcessInvocations` when process behavior matters.
-- `TargetTestHostV2<TTask>` constraint is `IFrostingTask` — both sync and async supported.
-- V2 tests instantiate task classes from the service provider without registering the task type as a service.
-- `TargetTestHostV2<TTask>.RunAsync()` returns `TargetRunResultV2` with `.Success`, `.Exception`, `.Log`.
+- `TargetTestHost<TTask>` constraint is `IFrostingTask` — both sync and async supported.
+- Tests instantiate task classes from the service provider without registering the task type as a service.
+- `TargetTestHost<TTask>.RunAsync()` returns `TargetRunResult` with `.Success`, `.Exception`, `.Log`.
 
-## Filesystem seeding in FakeCakeWorldV2
+## Filesystem seeding in FakeCakeWorld
 
 ```csharp
 // Single file from fixture content
@@ -188,7 +187,7 @@ var repo = new VersionFileRepository(world.CakeContext);
 
 ```csharp
 // BAD — inline string literal, repeated across tests
-var world = FakeCakeWorldV2.CreateWindows()
+var world = FakeCakeWorld.CreateWindows()
     .WithTextFile("versions.json", """
     {
       "sdl2-core": "2.32.0",
@@ -204,44 +203,42 @@ world.WithTextFile("artifacts/versions.json", content);
 world.WithTextFile("versions.json", VersionsData.Valid);
 ```
 
-### Extending frozen infrastructure
+### Reintroducing retired infrastructure
 
 ```csharp
-// BAD — adding methods to V1 fixtures
+// BAD — bringing back retired fixture shapes
 public FakeRepoBuilder WithNewFeature(...) { ... }
 
-// BAD — extending the shim
-public static BuildContext ToLegacyBuildContext(this FakeCakeWorldV2 world, ...) { ... }
+// BAD — adding legacy context shims
+public static BuildContext ToLegacyBuildContext(this FakeCakeWorld world, ...) { ... }
 
-// GOOD — use V2 fixtures for new work
-var world = FakeCakeWorldV2.CreateWindows().With...;
+// GOOD — use current fixtures for new work
+var world = FakeCakeWorld.CreateWindows().With...;
 ```
 
 ### TestBase
 
 ```csharp
 // BAD — large abstract TestBase with shared state
-public abstract class TestBase { protected FakeCakeWorldV2 World; ... }
+public abstract class TestBase { protected FakeCakeWorld World; ... }
 
 // GOOD — composable builders, narrow base only if it earns a domain name
-var world = FakeCakeWorldV2.CreateWindows().With...;
+var world = FakeCakeWorld.CreateWindows().With...;
 ```
 
 ## Non-actions (do not reopen without explicit approval)
 
-- Do not split `FakeRepoPlatformV2.Unix` into Linux and macOS.
-- Do not add unnecessary test helpers (e.g., `HasMessageExact` on `TestLogV2`).
+- Do not split `FakeRepoPlatform.Unix` into Linux and macOS.
+- Do not add unnecessary test helpers (e.g., `HasMessageExact` on `TestLog`).
 - Do not introduce `System.IO.Abstractions`.
 - Do not introduce a giant abstract `TestBase`.
-- Do not use `Spectre.Console.Testing.TestConsole` outside `FakeCakeWorldV2`.
+- Do not use `Spectre.Console.Testing.TestConsole` outside `FakeCakeWorld`.
 - Do not add reflection-based shim usage trackers or architecture-police tests.
-- V1 fixtures are frozen — do not extend them, do not add new V1 fixture features.
+- Retired legacy fixtures stay retired — do not recreate or extend them.
 
 ## References
 
-- [ADR-002 §12 (Testing model)](../decisions/2026-05-05-target-centric-build-host.md) — taxonomy, FakeFileSystem rule, V2 migration
-- [Refactoring plan §9 (Testing architecture)](../refactoring/target-centric-build-host-refactor-plan.md) — historical implementation notes
-- [Review checklist §10 + §13](../refactoring/target-centric-build-host-review-checklist.md) — historical per-slice review gate
+- [ADR-002 §12 (Testing model)](../decisions/2026-05-05-target-centric-build-host.md) — taxonomy and FakeFileSystem rule
 - [Extraction guidelines](extraction-guidelines.md) — private method extraction and collaborator design (sister document)
-- [AGENTS.md](../../AGENTS.md) — test naming convention, V2 default rule, slopwatch
+- [AGENTS.md](../../AGENTS.md) — test naming convention and slopwatch
 - [Homeruntech reference](https://github.com/homeruntech/dotnet-backend-monorepo-tool/tree/master/tests/Homerun.Dotnet.MonoRepoTools.Tests) — embedded fixture pattern inspiration

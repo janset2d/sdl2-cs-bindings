@@ -13,7 +13,7 @@ public sealed class PackageConsumerSmokeReporterTests
     [Test]
     public async Task LogStarting_Should_Write_Stage_Banner_With_Rid_And_Family_Names()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var reporter = new PackageConsumerSmokeReporter(world.AnsiConsole, world.Log);
 
         reporter.LogStarting("win-x64", ["sdl2-core", "sdl2-image"]);
@@ -27,7 +27,7 @@ public sealed class PackageConsumerSmokeReporterTests
     [Test]
     public async Task StartTfm_Should_Emit_Info_Log_With_Tfm()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var reporter = new PackageConsumerSmokeReporter(world.AnsiConsole, world.Log);
 
         reporter.StartTfm("net10.0");
@@ -38,7 +38,7 @@ public sealed class PackageConsumerSmokeReporterTests
     [Test]
     public async Task FinishTfm_Should_Emit_Info_Log_With_Tfm()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var reporter = new PackageConsumerSmokeReporter(world.AnsiConsole, world.Log);
 
         reporter.FinishTfm("net10.0");
@@ -49,7 +49,7 @@ public sealed class PackageConsumerSmokeReporterTests
     [Test]
     public async Task ReportSkippedTfm_Should_Emit_Warning_Log_With_Reason()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var reporter = new PackageConsumerSmokeReporter(world.AnsiConsole, world.Log);
 
         reporter.ReportSkippedTfm("net462", "Mono not found in PATH");
@@ -61,7 +61,7 @@ public sealed class PackageConsumerSmokeReporterTests
     [Test]
     public async Task LogCompleted_Should_Write_Completion_Rule_With_Counts()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         var reporter = new PackageConsumerSmokeReporter(world.AnsiConsole, world.Log);
 
         reporter.LogCompleted(tfmsRun: 3, tfmsSkipped: 1);
@@ -73,14 +73,14 @@ public sealed class PackageConsumerSmokeReporterTests
     [Test]
     public void Constructor_Should_Throw_When_Console_Null()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         Assert.Throws<ArgumentNullException>(() => new PackageConsumerSmokeReporter(console: null!, world.Log));
     }
 
     [Test]
     public void Constructor_Should_Throw_When_Log_Null()
     {
-        var world = FakeCakeWorldV2.CreateWindows();
+        var world = FakeCakeWorld.CreateWindows();
         Assert.Throws<ArgumentNullException>(() => new PackageConsumerSmokeReporter(world.AnsiConsole, log: null!));
     }
 }
