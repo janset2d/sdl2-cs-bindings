@@ -166,6 +166,28 @@ Current `ResolveVersionsFromManifestTask` and `ResolveVersionsFromExplicitTask` 
 
 > **Cake host vs `tools.cs`.** The Cake build host is a CI-only production pipeline for native harvesting, packaging, and validation. Day-to-day dev orchestration (setup, ci-sim, passthrough) lives in `tools.cs` at the repo root. Direct `dotnet run --project build/_build` invocations are for CI debugging and target discovery only.
 
+### Common Commands
+
+```pwsh
+# tools.cs is the canonical dev-orchestration entry point (file-based .NET 10 app, forwards to Cake):
+dotnet run --file tools.cs -- build --target Info      # Cake forwarder (passthrough)
+dotnet run --file tools.cs -- build --tree
+dotnet run --file tools.cs -- setup                    # local-dev feed bootstrap (--source=local|remote-github|remote-nuget)
+dotnet run --file tools.cs -- ci-sim                   # mini CI replay (9-step pipeline, per-step logs)
+
+# Direct Cake invocations (CI debugging / target discovery only):
+dotnet run --project build/_build -- --tree
+dotnet run --project build/_build -- --target Info
+
+# Build-host regression suite (TUnit on Microsoft.Testing.Platform)
+dotnet test --project build/_build.Tests/Build.Tests.csproj -c Release --framework net10.0
+
+# Managed-only build (skip native pipeline)
+dotnet build src/SDL2.Core/SDL2.Core.csproj
+```
+
+For full local setup, feed bootstrap, and troubleshooting workflow, see [`docs/playbook/local-development.md`](docs/playbook/local-development.md).
+
 ## Configuration File Relationships
 
 ```text
