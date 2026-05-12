@@ -14,8 +14,8 @@ using Cake.Core.IO;
 namespace Build.Tests.Unit.Validation.Packaging;
 
 /// <summary>
-/// Post-S1 scope: G20/G24 retired. G21 unified (all family deps = minimum range),
-/// G23 promoted to primary within-family coherence check. G22/G25/G26/G27 unchanged.
+/// Covers the current package guardrails: minimum-range dependency emission,
+/// family coherence, and package payload/naming validation.
 /// </summary>
 public sealed class PackageOutputValidatorTests
 {
@@ -109,8 +109,8 @@ public sealed class PackageOutputValidatorTests
     [Test]
     public async Task Validate_Should_Fail_When_Managed_And_Native_Versions_Drift()
     {
-        // G23 primary check post-S1: detects mismatched family members that would otherwise
-        // resolve silently under the minimum-range contract.
+        // Detect mismatched family members that would otherwise resolve silently under
+        // the minimum-range contract.
         var world = FakeCakeWorldV2.CreateWindows();
         var family = GetFamily("sdl2-image");
         var artifacts = CreateArtifacts(world, family, "1.2.3", nativePackageVersion: "1.2.4");
@@ -256,9 +256,8 @@ public sealed class PackageOutputValidatorTests
     [Test]
     public async Task Validate_Should_Fail_When_Native_Package_Linux_Tarball_Has_Wrong_Name()
     {
-        // G29: an archive named native.tar.gz (the pre-S1 shape) would collide with
-        // sibling .Native packages on the consumer side. Validator must catch any drift
-        // away from $(PackageId).tar.gz naming.
+        // A generic archive name would collide with sibling .Native packages on the
+        // consumer side. Validator must catch any drift away from $(PackageId).tar.gz naming.
         var world = FakeCakeWorldV2.CreateWindows();
         var family = GetFamily("sdl2-image");
         var artifacts = CreateArtifacts(world, family, "1.2.3", nativeLinuxTarballFileName: "native.tar.gz");

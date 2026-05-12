@@ -5,14 +5,14 @@
 # invariants for the hybrid packaging strategy live here so a new SDL port (e.g.
 # sdl3-image) lands in one place rather than being duplicated across 7 triplet files.
 #
-# Invariants (see docs/research/packaging-strategy-hybrid-static-2026-04-13.md):
+# Invariants:
 #   - Default library linkage: static. Transitive deps (zlib, libpng, libjpeg, etc.)
 #     become .lib/.a archives that link directly into satellite DLLs/so/dylibs.
 #   - CRT linkage: dynamic (preserves ucrtbase / libc interop expectations).
 #   - SDL family linkage override: DYNAMIC so we ship SDL2.dll / libSDL2.so and the
 #     satellite shared libraries that depend on it. Core SDL2 is the only external
-#     dynamic dependency a satellite is allowed to carry (enforced by
-#     HybridStaticValidator in the build host).
+#     dynamic dependency a satellite is allowed to carry; PreFlight validation rejects
+#     any broader dynamic closure.
 #   - Unix-only (Linux/Darwin): -fvisibility=hidden to prevent transitive-dep symbol
 #     leakage through satellite export tables.
 #   - Linux-only: VCPKG_FIXUP_ELF_RPATH so the satellite .so files resolve libSDL2.so

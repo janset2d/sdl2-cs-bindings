@@ -8,7 +8,8 @@ using Cake.Core.IO;
 namespace Build.Tests.Unit.Validation.Manifest;
 
 /// <summary>
-/// Post-S1 scope: G1/G2/G3/G4/G5/G8 retired. Validator enforces G6, G7, G17, G18 only.
+/// Exercises the current csproj pack-contract validator surface for package naming,
+/// project path, and managed/native pairing invariants.
 /// </summary>
 public sealed class CsprojPackContractValidatorTests
 {

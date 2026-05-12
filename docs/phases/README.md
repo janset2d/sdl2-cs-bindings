@@ -8,18 +8,18 @@ Phase workflow + active phase navigation.
 | --- | --- | --- | --- |
 | 1 | SDL2 Core Bindings + Harvesting | DONE | retired (code + git history are canonical) |
 | 2 | CI/CD & Packaging | **IN PROGRESS** | [phase-2-adaptation-plan.md](phase-2-adaptation-plan.md) |
-| X | Build-Host Modernization (ADR-004 closed; ADR-002 target-centric refactor) | **IN PROGRESS** | [target-centric-build-host-refactor-plan.md](../refactoring/target-centric-build-host-refactor-plan.md) |
+| X | Build-Host Modernization | DONE | [../decisions/2026-05-05-target-centric-build-host.md](../decisions/2026-05-05-target-centric-build-host.md) |
 | 3 | SDL2 Complete (samples, meta-package, first prerelease) | PLANNED | [plan.md](../plan.md) roadmap |
 | 4 | Binding Auto-Generation | PLANNED | [phase-4-binding-autogen.md](phase-4-binding-autogen.md) |
 | 5 | SDL3 Support | PLANNED | [phase-5-sdl3-support.md](phase-5-sdl3-support.md) |
 
 ## Active Phases
 
-Two phases are active in parallel:
+One phase is active:
 
 **Phase 2: CI/CD & Packaging.** Core surface is landed (`release.yml` + Cake build host + `tools.cs`). The remaining tail lives in [phase-2-adaptation-plan.md](phase-2-adaptation-plan.md): nuget.org promotion (PD-7), release-recovery playbook (PD-8), and the four scope-assumption gaps surfaced in the 2026-05-01 tag-push rehearsals.
 
-**Phase X: Build-Host Modernization — ADR-002 target-centric refactor.** ADR-004 migration is closed (P0 → P4-A on master). ADR-002 is the active continuation; it absorbs residual ADR-004 cleanup. Canonical docs: [`../decisions/2026-05-05-target-centric-build-host.md`](../decisions/2026-05-05-target-centric-build-host.md), [`../refactoring/target-centric-build-host-refactor-plan.md`](../refactoring/target-centric-build-host-refactor-plan.md), [`../refactoring/target-centric-build-host-review-checklist.md`](../refactoring/target-centric-build-host-review-checklist.md). P0 → P10 closed (S00 → S16, last update 2026-05-10): docs/guardrails landed, V2 test infra + foundation primitives shipped, repositories + named `BuildContext` properties wired, `Info` + `ResolveVersions{FromManifest,FromExplicit}` + four diagnostic targets migrated, coverage gate + strategy abstraction retired, PreFlight migrated to `Targets/PreFlightCheck/` with root-level `Validation/` named concept (S12), Pack migrated to `Targets/Package/` with `PackageFamilyPacker` owning the per-family 3-phase flow + 3 more OneOf result types retired (S13), Harvest stack migrated to `Targets/{Harvest,NativeSmoke,ConsolidateHarvest}/` with 3 reporters sharing the IAnsiConsole + ICakeLog cohort pattern + 3 OneOf result types retired + `Features/Harvesting/` folder dissolved (S14), PackageConsumerSmoke + PublishStaging + PublishPublic migrated to `Targets/`; OneOf retired and its NuGet packages removed; Vcpkg package-info/bootstrap behavior moved under Cake-native `Build.Tools.Vcpkg` aliases/tools; 3 Configuration classes retired; Pack-finish relocations landed under `Targets/Package/{Models,Services}/`; `Features/`, `Integrations/`, `Shared/`, `Host/Configuration/`, and the old root Vcpkg provider folder were retired. Cross-platform validated 8/8 PASS on Windows + WSL/linux-x64 + macOS/osx-x64 (S12); local ci-sim 8/8 PASS in 177s on Windows post-S13. Test count: 525 → 596. Next: Phase 2 packaging tail + post-ADR hardening from `docs/parking-lot.md`.
+**Closed stream: Phase X / Build-Host Modernization.** Closed 2026-05-10. Current build-host architecture is captured by [`../decisions/2026-05-05-target-centric-build-host.md`](../decisions/2026-05-05-target-centric-build-host.md) and [`../decisions/2026-05-12-build-host-data-layer.md`](../decisions/2026-05-12-build-host-data-layer.md). Durable practice lives in [`../knowledge-base/testing-guidelines.md`](../knowledge-base/testing-guidelines.md) and [`../knowledge-base/extraction-guidelines.md`](../knowledge-base/extraction-guidelines.md). Historical migration notes under `docs/refactoring/` are temporary and non-normative.
 
 ## Phase Lifecycle
 

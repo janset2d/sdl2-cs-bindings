@@ -13,8 +13,6 @@
 #   - drflac (Unlicense/MIT-0)    — src/codecs/dr_libs/dr_flac.h
 #   - stb_vorbis (MIT/Unlicense)  — src/codecs/stb_vorbis/stb_vorbis.h
 #   - Timidity (Artistic License) — src/codecs/timidity/*.c
-#
-# See: docs/research/license-inventory-2026-04-13.md
 # Issue: https://github.com/janset2d/sdl2-cs-bindings/issues/84
 
 vcpkg_from_github(

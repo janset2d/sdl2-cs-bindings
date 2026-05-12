@@ -49,7 +49,7 @@ public sealed class BuildContext : FrostingContext
     /// <summary>Active RID profile (RID, triplet, system-exclusion list, host-vs-target invariants).</summary>
     public IRuntimeProfile Runtime { get; }
 
-    // ── Named CLI properties (ADR-002 §6) ──
+    // Named CLI-derived properties.
 
     /// <summary>Resolved runtime identifier (e.g. "win-x64").</summary>
     public string RuntimeIdentifier => Runtime.Rid;

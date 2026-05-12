@@ -13,8 +13,8 @@ namespace Build.Validation;
 /// <c>Validation/Harvesting/</c>, and <c>Validation/NativeSmoke/</c> — the alt-folders
 /// organize them by domain while the canonical lookup point stays here. Composition root
 /// calls this once; PreFlightCheck, ResolveVersionsFromExplicit, Package, Harvest, and
-/// NativeSmoke all consume validators from DI. ADR-002 §8 amendment (S12 + S13 + S14)
-/// declares root <c>Validation/</c> an explicit IFoo-interface exception.
+/// NativeSmoke all consume validators from DI. Root <c>Validation/</c> is the
+/// explicit interface-friendly exception for cross-cutting build rules.
 /// </summary>
 public static class ServiceCollectionExtensions
 {

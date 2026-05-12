@@ -87,7 +87,7 @@ public sealed class HarvestTask(
         _reporter.LogCompleted();
     }
 
-    [SuppressMessage("Design", "MA0051", Justification = "Linear orchestration of fail-fast harvest steps; per-step collaborators carry the algorithmic weight per ADR-002 §5. Inlining keeps the build story readable rather than hiding it behind ceremonial Process/Handle/Do helpers per checklist §4.6.")]
+    [SuppressMessage("Design", "MA0051", Justification = "Linear orchestration of fail-fast harvest steps; per-step collaborators carry the algorithmic weight. Inlining keeps the build story readable instead of hiding it behind ceremonial Process/Handle/Do helpers.")]
     private async Task ProcessLibraryAsync(
         LibraryManifest library,
         DirectoryPath outputBase,

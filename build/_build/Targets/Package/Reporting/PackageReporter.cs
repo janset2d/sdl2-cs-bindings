@@ -10,8 +10,8 @@ namespace Build.Targets.Package.Reporting;
 /// <summary>
 /// Consolidates Pack-stage logging behind a single named seam. Sealed concrete; no
 /// IPackageReporter interface (single consumer, ICakeLog is the only collaborator).
-/// Mirrors the S12 PreflightReporter shape: Log* methods for normal progress,
-/// Report* methods for expected error paths whose details ship into the log before
+/// Log* methods cover normal progress, while Report* methods cover expected error
+/// paths whose details ship into the log before
 /// the task throws CakeException at the boundary.
 /// </summary>
 public sealed class PackageReporter(ICakeLog log)

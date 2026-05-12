@@ -53,15 +53,13 @@ public sealed class TargetTestHostV2<TTask> where TTask : class, IFrostingTask
         services.AddSingleton(buildContext);
         services.AddSingleton(buildContext.Runtime);
         services.AddSingleton(buildContext.Paths);
-        // Configurations aggregate + DumpbinConfiguration retired in S14; VcpkgConfiguration
-        // + DotNetBuildConfiguration + PackageBuildConfiguration retired in S15 (P9). Tasks
-        // load resolved family versions from context.VersionsFilePath via IVersionFileRepository
-        // (registered through AddData); scenario tests seed the versions.json file via
-        // FakeCakeWorldV2.WithVersionsFile + WithTextFile.
+        // Tasks load resolved family versions from context.VersionsFilePath via
+        // IVersionFileRepository (registered through AddData); scenario tests seed the
+        // versions.json file through FakeCakeWorldV2.WithVersionsFile + WithTextFile.
         // IAnsiConsole from the fake world (Spectre.Console.Testing.TestConsole)
         services.AddSingleton<IAnsiConsole>(_world.AnsiConsole);
 
-        // Target-specific registrations (e.g. AddInfoFeature)
+        // Target-specific registrations supplied by the test.
         foreach (var register in _registrations)
         {
             register(services);

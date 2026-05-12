@@ -66,10 +66,9 @@ jobs:
       - name: Enable TUnit HTML report auto-upload
         # TUnit generates `TestResults/{Assembly}-{os}-{tfm}-report.html` by
         # default and uploads it as a workflow artifact IF these two GitHub
-        # Actions runtime env vars are exposed. Option A from
-        # https://tunit.dev/docs/guides/html-report/#enabling-automatic-artifact-upload
-        # — removes the need for a manual actions/upload-artifact step for the
-        # report. Matrix jobs auto-deduplicate via the OS/TFM in the filename.
+        # Actions runtime env vars are exposed. This avoids a manual
+        # actions/upload-artifact step for the report. Matrix jobs stay distinct
+        # via the OS/TFM in the filename.
         uses: actions/github-script@v9
         with:
           script: |
@@ -365,8 +364,7 @@ jobs:
         # Matrix-aware TUnit auto-upload: `Assembly-{os}-{tfm}-report.html`
         # filename keeps per-RID reports distinct in the workflow artifact UI.
         # The env vars flow through Cake → `dotnet test` (PackageConsumerSmoke)
-        # via inheritance. See
-        # https://tunit.dev/docs/guides/html-report/#enabling-automatic-artifact-upload
+        # via inheritance.
         uses: actions/github-script@v9
         with:
           script: |

@@ -45,8 +45,7 @@ public static class ServiceCollectionExtensions
             var cakeEnvironment = sp.GetRequiredService<ICakeEnvironment>();
 
             // RID resolution: --rid CLI override wins; otherwise fall back to the host's
-            // platform default. VcpkgConfiguration retired in S15 (P9) — its OneOf-based
-            // Option<string> wrapper around the same value was indirection without payoff.
+            // platform default.
             var rid = string.IsNullOrWhiteSpace(parsedArgs.Rid)
                 ? cakeEnvironment.Platform.Rid()
                 : parsedArgs.Rid;

@@ -32,8 +32,7 @@ namespace Build.Tests.Unit.CompositionRoot;
 /// <b>V1 fixture deferral:</b> this file consumes V1 <c>TestHostFixture.AddTestHostBuildingBlocks</c>;
 /// the testing-guidelines V2-on-touch rule is intentionally deferred for this file because
 /// creating a V2 equivalent (<c>FakeCakeWorldV2</c>-derived <c>IServiceCollection</c> seed) is
-/// its own infra slice rather than a single-test migration. Tracked in
-/// <c>docs/parking-lot.md</c> "S14 P8 Reviewer Follow-Ups".
+/// its own infrastructure slice rather than a single-test migration.
 /// </para>
 /// </summary>
 public sealed class ServiceCollectionExtensionsSmokeTests
@@ -101,7 +100,7 @@ public sealed class ServiceCollectionExtensionsSmokeTests
     public async Task AddPublishStaging_Should_Register_All_Collaborator_Types()
     {
         // PublishStagingTask is discovered by Cake; AddPublishStaging registers
-        // INuGetFeedClient itself post-P10 (relocated from the retired AddIntegrations group).
+        // INuGetFeedClient itself and the publish-stage collaborators it owns.
         await AssertAllRegisteredTypesResolve(services => services.AddPublishStaging());
     }
 
@@ -110,10 +109,10 @@ public sealed class ServiceCollectionExtensionsSmokeTests
     {
         // PackageConsumerSmokeTask injects DotNetSmokeRunner + MonoAvailabilityProbe +
         // PackageConsumerSmokeReporter + IDotNetRuntimeEnvironment (all registered by
-        // AddPackageConsumerSmoke post-P10) + IPackageConsumerSmokePreconditionsValidator
-        // (registered by AddValidators) + IProjectMetadataReader (registered by AddPackage,
-        // Build.Data.ProjectMetadata cross-target reader). PackageConsumerSmokeReporter takes
-        // IAnsiConsole — bind a substitute so the resolution graph closes.
+        // AddPackageConsumerSmoke) + IPackageConsumerSmokePreconditionsValidator
+        // (registered by AddValidators) + IProjectMetadataReader (registered by AddPackage).
+        // PackageConsumerSmokeReporter takes IAnsiConsole, so bind a substitute to close the
+        // resolution graph.
         await AssertAllRegisteredTypesResolve(services =>
         {
             services.AddSingleton(Substitute.For<IAnsiConsole>());

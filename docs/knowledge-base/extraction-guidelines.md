@@ -1,6 +1,6 @@
 # Extraction Guidelines — Private Methods and Collaborator Design
 
-Transitional copy. The durable canonical home is now [`../knowledge-base/extraction-guidelines.md`](../knowledge-base/extraction-guidelines.md). Keep this file only until `docs/refactoring/` is retired.
+Guidance for deciding when a private method should stay private and when it should become a named collaborator. This knowledge-base copy is the durable home for the rule set that survived the ADR-002 refactor; it applies project-wide even though the initial pressure came from the build host.
 
 ## The rule in one sentence
 
@@ -111,32 +111,32 @@ Good names name a concept: `CollectLicenses`, `NormalizeDependencyRange`, `Resol
 
 The numeric thresholds below are smell thresholds, not hard rules. They are prompts to stop and think, not automatic extraction commands.
 
-```
+```text
 Private method:
-│
-├─ Contains business rule / build policy / branching algorithm?
-│  → Extract to named class (policy, validator, service)
-│
-├─ Takes 5+ parameters?
-│  → Extract to class; parameters are the constructor
-│
-├─ Mutates 3+ fields?
-│  → Suspicious. Consider extracting a state object or collaborator
-│
-├─ Called from multiple public methods in the same class?
-│  → Fine if pure mechanics. Suspicious if it carries behavior.
-│
-├─ Would I write independent tests for this?
-│  → Extract. Private methods are tested through their public caller.
-│
-├─ Generic name (Process, Handle, Do, Execute)?
-│  → Rename or extract. Names should earn their place.
-│
-├─ Under ~15 lines, no branching, no dependencies?
-│  → Fine as private. It is local mechanics.
-│
-└─ Makes the public method read like a story outline?
-   → Fine as private. It is a narrative helper.
+|
++- Contains business rule / build policy / branching algorithm?
+|  -> Extract to named class (policy, validator, service)
+|
++- Takes 5+ parameters?
+|  -> Extract to class; parameters are the constructor
+|
++- Mutates 3+ fields?
+|  -> Suspicious. Consider extracting a state object or collaborator
+|
++- Called from multiple public methods in the same class?
+|  -> Fine if pure mechanics. Suspicious if it carries behavior.
+|
++- Would I write independent tests for this?
+|  -> Extract. Private methods are tested through their public caller.
+|
++- Generic name (Process, Handle, Do, Execute)?
+|  -> Rename or extract. Names should earn their place.
+|
++- Under ~15 lines, no branching, no dependencies?
+|  -> Fine as private. It is local mechanics.
+|
++- Makes the public method read like a story outline?
+   -> Fine as private. It is a narrative helper.
 ```
 
 ## What to extract to
@@ -156,7 +156,7 @@ Not every extracted class needs an interface. Not every helper needs to be a cla
 
 Do not create:
 
-```
+```text
 IEmailNormalizer
 EmailNormalizer
 IEmailNormalizationStrategy

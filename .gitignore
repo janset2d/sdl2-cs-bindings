@@ -416,22 +416,20 @@ pack-projects.ps1
 
 # vcpkg installed binaries
 vcpkg_installed/
-# vcpkg binary cache used by CI (see .github/actions/vcpkg-setup/action.yml and
-# docs/playbook/overlay-management.md "vcpkg Binary Cache"). Local dev uses the OS
-# default; this entry only bites if you opt in via VCPKG_DEFAULT_BINARY_CACHE.
+# Optional vcpkg binary cache directory. CI seeds it explicitly; local development
+# uses the OS default unless you opt in via VCPKG_DEFAULT_BINARY_CACHE.
 .vcpkg-cache/
 
 # Native payloads committed to src/native/<Lib>/runtimes/ are build artifacts,
-# produced by Cake harvest. Do not commit. See Known Issues #1 in docs/plan.md.
+# produced by Harvest. Do not commit them.
 src/native/*/runtimes/
 build/msbuild/Janset.Local.props
 
 .vscode/
 build/_build/.cake/
 
-# Repo-root scratch for API reflection spikes, CMake target inspection,
-# and other throwaway probes created during build-host development. Not
-# committed; long-lived work lives under build/_build or docs/.
+# Repo-root scratch for throwaway probes and temporary local experiments.
+# Keep only durable work under the tracked source tree.
 /temp/
 
 # Local run logs from repo-root tools.cs (.logs/tools/<platform>-<subcommand>-<runid>/).

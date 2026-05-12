@@ -55,6 +55,8 @@ Phase 3 (SDL2 Complete — samples, meta-package, first prerelease) lives direct
 | Document | Topic |
 | --- | --- |
 | [knowledge-base/release-guardrails.md](knowledge-base/release-guardrails.md) | Every G-numbered guardrail, owning stage, and failure-mode catalog |
+| [knowledge-base/testing-guidelines.md](knowledge-base/testing-guidelines.md) | Durable build-host testing policy: V2 infra, fake filesystem rule, fixture data policy, taxonomy |
+| [knowledge-base/extraction-guidelines.md](knowledge-base/extraction-guidelines.md) | Durable collaborator/extraction policy: private-method decision tree, interface discipline, anti-patterns |
 
 ### Decisions (Architecture Decision Records)
 
@@ -62,16 +64,15 @@ Phase 3 (SDL2 Complete — samples, meta-package, first prerelease) lives direct
 | --- | --- | --- |
 | [decisions/2026-05-05-d3seg-and-package-first.md](decisions/2026-05-05-d3seg-and-package-first.md) | ADR-001 — D-3seg versioning + package-first consumer contract | Accepted |
 | [decisions/2026-05-05-target-centric-build-host.md](decisions/2026-05-05-target-centric-build-host.md) | ADR-002 — Target-centric Cake build host architecture | Accepted |
+| [decisions/2026-05-12-build-host-data-layer.md](decisions/2026-05-12-build-host-data-layer.md) | ADR-003 — Contract-centric build host data layer | Accepted |
 
 See [decisions/README.md](decisions/README.md) for the index.
 
-### Refactoring Plans
+### Historical Refactor Records (Temporary)
 
 | Document | Purpose |
 | --- | --- |
-| [refactoring/target-centric-build-host-refactor-plan.md](refactoring/target-centric-build-host-refactor-plan.md) | Detailed execution plan for ADR-002 build-host modernization |
-| [refactoring/data-layer-refactor-plan.md](refactoring/data-layer-refactor-plan.md) | Post-ADR-002 plan for moving file-backed/tool-read build contracts into `build\_build\Data\` |
-| [refactoring/target-centric-build-host-review-checklist.md](refactoring/target-centric-build-host-review-checklist.md) | Review checklist for target-centric build-host changes |
+| [refactoring/README.md](refactoring/README.md) | Temporary index for migration-era notes pending retirement or absorption into ADRs and the knowledge base |
 
 ### Research (Dated Findings)
 

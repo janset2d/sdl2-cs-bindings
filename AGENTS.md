@@ -115,11 +115,11 @@ Examples:
 - Strong preference for tests when changing behavior.
 - Cross-platform correctness is critical — always consider all 3 OS families.
 - vcpkg and Cake Frosting are the build backbone — proposals must work within these tools.
-- Prefer small public sealed classes with explicit collaborators over large classes with many private helper methods. Private methods are for local mechanics and narrative flow. If a private method contains business rules, branching-heavy logic, algorithmic behavior, or deserves independent tests, extract it into a named collaborator. Do not create ceremonial interfaces for single-implementation classes. See [`docs/refactoring/extraction-guidelines.md`](docs/refactoring/extraction-guidelines.md) for the full decision tree.
+- Prefer small public sealed classes with explicit collaborators over large classes with many private helper methods. Private methods are for local mechanics and narrative flow. If a private method contains business rules, branching-heavy logic, algorithmic behavior, or deserves independent tests, extract it into a named collaborator. Do not create ceremonial interfaces for single-implementation classes. See [`docs/knowledge-base/extraction-guidelines.md`](docs/knowledge-base/extraction-guidelines.md) for the full decision tree.
 
 ## Build-Host Reference Pattern
 
-The Cake build host (`build/_build/`) follows the target-centric architecture accepted in [`docs/decisions/2026-05-05-target-centric-build-host.md`](docs/decisions/2026-05-05-target-centric-build-host.md). Treat that ADR plus [`docs/refactoring/target-centric-build-host-refactor-plan.md`](docs/refactoring/target-centric-build-host-refactor-plan.md) as canonical for new build-host work. **ADR-002 migration is complete as of 2026-05-10 (S16, P10).** The repository carries only ADR-aligned shapes: `Targets/<Name>/`, `Tools/`, `Validation/`, `Repositories/`, plus root-level named concepts (`Manifest/`, `Runtime/`, `Packaging/`, `Results/`, `Harvesting/`, `Vcpkg/`, `DependencyAnalysis/`, `Versioning/`).
+The Cake build host (`build/_build/`) follows the target-centric architecture accepted in [`docs/decisions/2026-05-05-target-centric-build-host.md`](docs/decisions/2026-05-05-target-centric-build-host.md) and the contract-centric data-layer refinement accepted in [`docs/decisions/2026-05-12-build-host-data-layer.md`](docs/decisions/2026-05-12-build-host-data-layer.md). Treat those ADRs as the normative architecture decisions. **ADR-002 migration is complete as of 2026-05-10 (S16, P10).** The current production shape is target-centric plus a contract-centric data layer: `Targets/<Name>/`, `Tools/`, `Validation/`, `Data/`, `Host/`, and `Results/`.
 
 Target architecture:
 
@@ -129,7 +129,7 @@ Target architecture:
 | Task class | Owns high-level orchestration, target input validation, request construction, expected-error reporting, and `CakeException` translation. |
 | Request DTO | Immutable input contract passed from a task to collaborators when useful. It does not replace the Cake `RunAsync(BuildContext context)` signature. |
 | Target collaborators | Named behavior/policy/IO adapters extracted only when complexity, reuse, testability, dependencies, or change reasons justify it. |
-| Named concepts | Cross-target code lives at root as real concepts: `Manifest/`, `Runtime/`, `Versioning/`, `Packaging/`, `Results/`, `Harvesting/`, `Vcpkg/`, `DependencyAnalysis/`, plus file-backed `Repositories/`. |
+| Cross-target concepts | Promote code only when it represents a real shared concept. In the current build host that mainly means `Data/<Contract>/`, `Validation/`, `Results/`, and a narrow `Host/Runtime` surface rather than a broad root-concept fan-out. |
 | `Tools/` | Cake `Tool<TSettings>` wrappers + the sealed `VcpkgBootstrapTool` (vcpkg, dumpbin, ldd, otool, tar, cmake, native-smoke). |
 | Retired layers | `Features/`, `Shared/`, `Integrations/`, `Host/Configuration/` are gone. Do not reintroduce them — promote new code to the appropriate target-local or root-concept home from the start. |
 
@@ -139,7 +139,7 @@ For new or migrated build-host work:
 - **Requests are earned but standard for non-trivial behavior.** Non-trivial executable targets use `<Target>Request` when collaborators need stable input; trivial/no-op/default/fully-inline targets are exempt.
 - **Cake targets model user-visible lifecycle.** Do not split large work into internal pseudo-target chains just to reduce LOC; use named collaborators.
 - **Retire `*Pipeline` as a default pattern.** Do not replace it with generic `Runner` / `Operation` / `Processor` wrappers.
-- **Retire `Host/Configuration`.** `BuildContext` exposes named readonly CLI properties; file-backed state flows through repositories such as `ManifestRepository` and `VersionFileRepository`.
+- **Retire `Host/Configuration`.** `BuildContext` exposes named readonly CLI properties; file-backed state flows through `Data/<Contract>/` adapters such as `ManifestRepository` and `VersionFileRepository`.
 - **No catch-all `Shared` / `Common`.** Promote code only when it represents a named concept; otherwise keep it with the target that owns it.
 - **Reuse must be real.** A second real consumer must exist, or be introduced in the same migration slice/phase, before code is promoted out of a target.
 - **Interface discipline remains hybrid.** Keep interfaces for multiple implementations, independent change axes, expensive seams, or important task collaborator contracts. Do not create ceremonial `IFoo` / `Foo` pairs.
@@ -153,18 +153,16 @@ For new or migrated build-host work:
 - **Check ecosystem tools first.** Before writing wrappers around external tools, check existing Cake aliases/addins/plugins or Cake abstractions and document why they are not used.
 - **Warning suppressions are last resort.** Avoid broad `#pragma warning disable`; if needed, keep suppressions local and justified.
 - **Typed result boundaries are simple.** Use `Result<T,TError>` for expected operation failures and `ValidationReport` / `ValidationCheck` for multi-check validations. Avoid OneOf-style result hierarchies.
-- **Architecture tests are retired as design police.** Use the ADR, refactor plan, AGENTS.md, and [`docs/refactoring/target-centric-build-host-review-checklist.md`](docs/refactoring/target-centric-build-host-review-checklist.md) instead.
+- **Architecture tests are retired as design police.** Use the ADRs, knowledge-base guidelines, release guardrails, and code review discipline instead.
 - **Isolated worktrees are not native-build workspaces unless explicitly provisioned.** Do not initialize/update submodules or run vcpkg/native flows in ADR-002 migration worktrees just to verify target refactors; run managed tests and target discovery there, then run full `tools.cs setup` / `ci-sim` from the main provisioned checkout after merge.
 
-### ADR-002 migration execution rules
+### Build-Host Working Notes
 
-- Migrate on an isolated branch/worktree from clean `master`. Do not push during iterative work; merge to `master` only after the full refactor is accepted.
-- Per migration slice flow: `brainstorming` skill → `writing-plans` skill → user approval → `executing-plans` skill → walk through the [review checklist](docs/refactoring/target-centric-build-host-review-checklist.md) → present summary + proposed commit message → user approval → commit.
-- [`docs/refactoring/extraction-guidelines.md`](docs/refactoring/extraction-guidelines.md) is canon for private-method, collaborator extraction, and interface decisions during migration slices.
-- [`docs/refactoring/testing-guidelines.md`](docs/refactoring/testing-guidelines.md) is canon for test data policy (embedded fixtures vs centralized inline), V2/V1 infrastructure, filesystem seeding, and test anti-patterns.
-- [`docs/refactoring/conversation-history.md`](docs/refactoring/conversation-history.md) holds the design dialogue archive; consult only when ADR/plan/checklist rationale is unclear. The plan and ADR are self-contained for execution.
+- [`docs/knowledge-base/extraction-guidelines.md`](docs/knowledge-base/extraction-guidelines.md) is canon for private-method, collaborator extraction, and interface decisions.
+- [`docs/knowledge-base/testing-guidelines.md`](docs/knowledge-base/testing-guidelines.md) is canon for build-host test data policy, V2/V1 infrastructure, filesystem seeding, and test anti-patterns.
+- `docs/refactoring/` is temporary historical material while the cleanup is being completed; do not treat it as the canonical source of architecture rules.
 
-Golden examples to compare against during the migration: current `ResolveVersionsFromManifestTask` and `ResolveVersionsFromExplicitTask` are closer to the desired task-owned orchestration style than the large Packaging/Harvesting pipelines.
+Current `ResolveVersionsFromManifestTask` and `ResolveVersionsFromExplicitTask` remain solid examples of task-owned orchestration without falling back to generic pipeline wrappers.
 
 > **Cake host vs `tools.cs`.** The Cake build host is a CI-only production pipeline for native harvesting, packaging, and validation. Day-to-day dev orchestration (setup, ci-sim, passthrough) lives in `tools.cs` at the repo root. Direct `dotnet run --project build/_build` invocations are for CI debugging and target discovery only.
 
@@ -175,7 +173,7 @@ vcpkg.json                    ← What vcpkg builds (deps + features)
     ↕ must match
 build/manifest.json           ← Single source of truth (schema v2.1):
     ├── packaging_config      ← validation mode, core library
-    ├── runtimes[]            ← RID ↔ triplet ↔ strategy ↔ CI runner ↔ container image
+    ├── runtimes[]            ← RID ↔ triplet ↔ CI runner ↔ container image
     ├── package_families[]    ← family identity (managed_project, native_project, library_ref, depends_on)
     ├── system_exclusions     ← OS libraries excluded from packages
     └── library_manifests[]   ← library versions, binary patterns
@@ -195,9 +193,9 @@ Native packaging is a 5-stage Cake pipeline (per-RID matrix expanded by `release
 4. **PackageConsumerSmoke** (per-RID matrix re-entry) — restores the packed nupkgs against a local folder feed, runs TUnit per executable TFM (`net10` / `net9` / `net8` / `net462`), proves the consumer-side P/Invoke / dyld / Unix-symlink-extraction paths.
 5. **PublishStaging** (single runner) — pushes managed + native nupkg pairs to the GitHub Packages internal feed via `NuGet.Protocol.PackageUpdateResource`. `PublishPublic` (nuget.org) is stubbed pending Phase 2b PD-7.
 
-`PreFlightCheck` runs single-runner before the matrix and validates every cross-cutting invariant (manifest ↔ vcpkg, csproj pack contract, current strategy coherence until ADR-002 removes it, G54 upstream alignment, G58 cross-family scope reachability).
+`PreFlightCheck` runs single-runner before the matrix and validates every cross-cutting invariant (manifest ↔ vcpkg, csproj pack contract, hybrid-static overlay coherence, G54 upstream alignment, G58 cross-family scope reachability).
 
-All Cake targets live under `build/_build/Targets/<TargetName>/` post-S16 (P10): `PreFlightCheck`, `Harvest`, `NativeSmoke`, `ConsolidateHarvest`, `Package`, `PackageConsumerSmoke`, `PublishStaging`, `PublishPublic`, `GenerateMatrix`, `EnsureVcpkgDependencies`, `InspectHarvestedDependencies`, `OtoolAnalyze`, `ResolveVersionsFromManifest`, `ResolveVersionsFromExplicit`, `StageVersions`. The legacy `Features/`, `Shared/`, `Integrations/`, and `Host/Configuration/` layers are retired; cross-target named concepts live at root (`Build.{Manifest,Runtime,Packaging,Results,Harvesting,Vcpkg,DependencyAnalysis,Versioning,Repositories}`). See [`docs/knowledge-base/release-guardrails.md`](docs/knowledge-base/release-guardrails.md) §2.0 for the stage-owned validation map.
+All Cake targets live under `build/_build/Targets/<TargetName>/` post-S16 (P10): `PreFlightCheck`, `Harvest`, `NativeSmoke`, `ConsolidateHarvest`, `Package`, `PackageConsumerSmoke`, `PublishStaging`, `PublishPublic`, `GenerateMatrix`, `EnsureVcpkgDependencies`, `InspectHarvestedDependencies`, `OtoolAnalyze`, `ResolveVersionsFromManifest`, `ResolveVersionsFromExplicit`, `StageVersions`. The legacy `Features/`, `Shared/`, `Integrations/`, and `Host/Configuration/` layers are retired; supporting cross-target concepts now center on `Build.Data.*`, root `Validation/`, `Build.Results`, `Build.Host`, and `Build.Tools`. See [`docs/knowledge-base/release-guardrails.md`](docs/knowledge-base/release-guardrails.md) §2.0 for the stage-owned validation map.
 
 ## Docs-First Workflow
 

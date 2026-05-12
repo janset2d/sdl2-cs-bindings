@@ -15,8 +15,6 @@
 #
 # Upstream is effectively abandoned (SDL2_gfx 1.0.4 shipped 2018, no releases
 # since). No upstream issue to track.
-#
-# See: docs/playbook/cross-platform-smoke-validation.md — Known Gotchas
 
 set(VERSION 1.0.4)
 

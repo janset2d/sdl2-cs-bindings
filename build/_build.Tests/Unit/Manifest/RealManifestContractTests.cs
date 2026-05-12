@@ -139,7 +139,7 @@ public class RealManifestContractTests
         {
             await Assert.That(runtime.Triplet.EndsWith("-hybrid", StringComparison.OrdinalIgnoreCase))
                 .IsTrue()
-                .Because($"runtime '{runtime.Rid}' triplet '{runtime.Triplet}' must end with '-hybrid' post-S11 (PreFlight HybridStaticOverlayValidator).");
+                .Because($"runtime '{runtime.Rid}' triplet '{runtime.Triplet}' must end with '-hybrid' to match the hybrid triplet policy.");
         }
     }
 }

@@ -106,7 +106,7 @@ G25 is intentionally scoped to the managed package's `.snupkg`. Payload-only `.N
 
 ### 2.7 Full-Train Meta-Tag Validation (PD-7 scope)
 
-ADR-003 selected manifest-driven train composition: `manifest.json package_families[].depends_on` supplies ordering, family tags at the invocation commit supply versions, and no separate `release-set.json` is planned.
+The current PD-7 full-train design selects manifest-driven train composition: `manifest.json package_families[].depends_on` supplies ordering, family tags at the invocation commit supply versions, and no separate `release-set.json` is planned.
 
 | # | Invariant | Status | Owner |
 | --- | --- | --- | --- |

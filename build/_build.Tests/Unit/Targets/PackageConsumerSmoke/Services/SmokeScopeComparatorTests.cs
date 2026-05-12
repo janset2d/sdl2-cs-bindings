@@ -121,11 +121,10 @@ public class SmokeScopeComparatorTests
     [Test]
     public async Task Compare_Expands_JansetSmokeSdl2Families_Property_Into_Per_Role_Package_Ids()
     {
-        // Post-S1 canonical authoring pattern: the csproj declares a family role list
-        // and lets build/msbuild/Janset.Smoke.targets auto-expand it into PackageReference
-        // items at MSBuild eval time. Literal-only parsing cannot see that expansion;
-        // the comparator must reproduce the role → Janset.SDL<N>.<Role> mapping to keep
-        // drift detection accurate under this authoring style.
+        // Canonical authoring pattern: the csproj declares a family role list and lets
+        // build/msbuild/Janset.Smoke.targets expand it into PackageReference items at
+        // evaluation time. Literal-only parsing cannot see that expansion, so the
+        // comparator reproduces the role → Janset.SDL<N>.<Role> mapping.
         const string csproj = """
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>

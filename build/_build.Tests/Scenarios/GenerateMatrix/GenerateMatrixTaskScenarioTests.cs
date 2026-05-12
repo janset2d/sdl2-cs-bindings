@@ -11,8 +11,7 @@ namespace Build.Tests.Scenarios.GenerateMatrix;
 /// <summary>
 /// In-process behavior coverage for <c>GenerateMatrixTask</c>: exercises real task
 /// orchestration against the fake Cake world and asserts the emitted
-/// <c>artifacts/matrix/runtimes.json</c> shape against the seeded manifest. The retired
-/// <c>GenerateMatrixPipeline</c> body was inlined into <c>RunAsync</c> in S16 (P10).
+/// <c>artifacts/matrix/runtimes.json</c> shape against the seeded manifest.
 /// </summary>
 public sealed class GenerateMatrixTaskScenarioTests
 {

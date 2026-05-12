@@ -1,6 +1,6 @@
 # Testing Guidelines — Build-Host Tests
 
-Transitional copy. The durable canonical home is now [`../knowledge-base/testing-guidelines.md`](../knowledge-base/testing-guidelines.md). Keep this file only until `docs/refactoring/` is retired.
+Canonical reference for writing and maintaining tests in `build/_build.Tests/`. This knowledge-base copy is the durable home now that the ADR-002 refactor is closed; refactoring plans and checklists can stay historical without carrying day-to-day test practice.
 
 ## The rule in one sentence
 
@@ -65,7 +65,7 @@ internal static class VersionsData
 - Name pattern: `<Domain>Data`.
 - Never scatter the same string literal across multiple test methods.
 
-**Decision trigger:** If the same data appears in ≥3 test methods or ≥2 test files → embedded fixture. If it's a single-test detail → centralized inline. If it's version/manifest/harvest data (build-domain critical) → embedded fixture regardless of count.
+**Decision trigger:** If the same data appears in >=3 test methods or >=2 test files → embedded fixture. If it's a single-test detail → centralized inline. If it's version/manifest/harvest data (build-domain critical) → embedded fixture regardless of count.
 
 ## V2 vs V1 infrastructure
 
@@ -111,7 +111,7 @@ public async Task RunAsync_Should_Write_Versions_When_Valid_Input()
     var world = FakeCakeWorldV2.CreateWindows()
         .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
         .WithTextFile("artifacts/resolve-versions/versions.json",
-            VersionsData.Valid)  // ← centralized inline OR fixture file content
+            VersionsData.Valid)  // <- centralized inline OR fixture file content
         .WithVersionsFile("artifacts/resolve-versions/versions.json")
         .WithSuffix("ci.12345");
 
@@ -168,18 +168,18 @@ world.WithManifestObject(ManifestFixture.CreateTestManifestConfig());
 ### Real filesystem in tests
 
 ```csharp
-// ❌ BAD — real file I/O in unit/scenario tests
+// BAD — real file I/O in unit/scenario tests
 var json = File.ReadAllText("/some/real/path.json");
 
-// ❌ BAD — brittle AppContext traversal
+// BAD — brittle AppContext traversal
 var dir = Path.Combine(AppContext.BaseDirectory, "../../../../../");
 var manifest = File.ReadAllText(Path.Combine(dir, "build/manifest.json"));
 
-// ✅ GOOD — embedded fixture via FixtureLoader
+// GOOD — embedded fixture via FixtureLoader
 var json = FixtureLoader.Load("Versions/versions-valid.json");
 world.WithTextFile("artifacts/versions.json", json);
 
-// ✅ GOOD — Cake FakeFileSystem
+// GOOD — Cake FakeFileSystem
 var path = world.RepoRoot.CombineWithFilePath("artifacts/versions.json");
 var repo = new VersionFileRepository(world.CakeContext);
 ```
@@ -187,7 +187,7 @@ var repo = new VersionFileRepository(world.CakeContext);
 ### Inline JSON in test methods
 
 ```csharp
-// ❌ BAD — inline string literal, repeated across tests
+// BAD — inline string literal, repeated across tests
 var world = FakeCakeWorldV2.CreateWindows()
     .WithTextFile("versions.json", """
     {
@@ -196,34 +196,34 @@ var world = FakeCakeWorldV2.CreateWindows()
     }
     """);
 
-// ✅ GOOD — embedded fixture (critical/reusable)
+// GOOD — embedded fixture (critical/reusable)
 var content = FixtureLoader.Load("Versions/versions-valid.json");
 world.WithTextFile("artifacts/versions.json", content);
 
-// ✅ OK — centralized static class (small, single-test-scope)
+// OK — centralized static class (small, single-test-scope)
 world.WithTextFile("versions.json", VersionsData.Valid);
 ```
 
 ### Extending frozen infrastructure
 
 ```csharp
-// ❌ BAD — adding methods to V1 fixtures
+// BAD — adding methods to V1 fixtures
 public FakeRepoBuilder WithNewFeature(...) { ... }
 
-// ❌ BAD — extending the shim
+// BAD — extending the shim
 public static BuildContext ToLegacyBuildContext(this FakeCakeWorldV2 world, ...) { ... }
 
-// ✅ GOOD — use V2 fixtures for new work
+// GOOD — use V2 fixtures for new work
 var world = FakeCakeWorldV2.CreateWindows().With...;
 ```
 
 ### TestBase
 
 ```csharp
-// ❌ BAD — large abstract TestBase with shared state
+// BAD — large abstract TestBase with shared state
 public abstract class TestBase { protected FakeCakeWorldV2 World; ... }
 
-// ✅ GOOD — composable builders, narrow base only if it earns a domain name
+// GOOD — composable builders, narrow base only if it earns a domain name
 var world = FakeCakeWorldV2.CreateWindows().With...;
 ```
 
@@ -240,8 +240,8 @@ var world = FakeCakeWorldV2.CreateWindows().With...;
 ## References
 
 - [ADR-002 §12 (Testing model)](../decisions/2026-05-05-target-centric-build-host.md) — taxonomy, FakeFileSystem rule, V2 migration
-- [Refactoring plan §9 (Testing architecture)](target-centric-build-host-refactor-plan.md) — folders, boundaries, composable helpers
-- [Review checklist §10 + §13](target-centric-build-host-review-checklist.md) — per-slice testing gate + V2 infra rules
+- [Refactoring plan §9 (Testing architecture)](../refactoring/target-centric-build-host-refactor-plan.md) — historical implementation notes
+- [Review checklist §10 + §13](../refactoring/target-centric-build-host-review-checklist.md) — historical per-slice review gate
 - [Extraction guidelines](extraction-guidelines.md) — private method extraction and collaborator design (sister document)
 - [AGENTS.md](../../AGENTS.md) — test naming convention, V2 default rule, slopwatch
 - [Homeruntech reference](https://github.com/homeruntech/dotnet-backend-monorepo-tool/tree/master/tests/Homerun.Dotnet.MonoRepoTools.Tests) — embedded fixture pattern inspiration

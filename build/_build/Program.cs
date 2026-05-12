@@ -78,9 +78,8 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
     // Stage tasks (PreFlight, Package, ConsumerSmoke, PublishStaging) load the resolved
     // family→version mapping from `context.VersionsFilePath` via IVersionFileRepository.
     // Each task validates the path + non-empty mapping at task entry. ResolveVersions
-    // tasks emit the file via the same repository's SaveAsync; the wrapper-style DI
-    // registration that pre-S15 paradigm used (PackageBuildConfiguration) was retired
-    // alongside the other Configuration classes.
+    // tasks emit the file via the same repository's SaveAsync, so DI only needs the
+    // repository plus the path surfaced on BuildContext.
     services.AddSingleton<IAnsiConsole>(AnsiConsole.Console);
 
     // Composition root: per-target AddXTarget() calls + cross-cutting groupings

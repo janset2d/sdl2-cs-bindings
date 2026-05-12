@@ -1,6 +1,6 @@
 # Dependency Modernization And .NET 10 Updater — Combined Global + Repo-Specific Prompt (v1)
 
-> **Authored before the 2026-05-04 docs cleanup.** The repo-specific grounding section references docs retired during the cleanup — `ADR-001 (2026-04-18)` superseded by [`docs/decisions/2026-05-05-d3seg-and-package-first.md`](../../docs/decisions/2026-05-05-d3seg-and-package-first.md); `ADR-002 (DDD layering)` retired in favor of [`AGENTS.md`](../../AGENTS.md) "Build-Host Reference Pattern" (current `Host/Features/Shared/Tools/Integrations` shape); `knowledge-base/cake-build-architecture.md` + `knowledge-base/harvesting-process.md` retired in favor of code (`build/_build/`) + [`AGENTS.md`](../../AGENTS.md) "Build Host Pipeline"; `playbook/cross-platform-smoke-validation.md` retired in favor of [`docs/playbook/local-validation.md`](../../docs/playbook/local-validation.md). Treat the global modernization contract (sections 1-16) as durable; verify the repo-specific layer (section 5 "Grounding Protocol") against current `AGENTS.md` + `docs/onboarding.md` + `docs/plan.md` before acting.
+> Repo-specific grounding below is aligned with the current target-centric build host. When repo guidance conflicts, treat [AGENTS.md](../../AGENTS.md), [docs/onboarding.md](../../docs/onboarding.md), [docs/plan.md](../../docs/plan.md), and the current ADR set as canonical.
 
 ```md
 ---
@@ -156,19 +156,21 @@ Before recommending modernization, ground yourself in the repository’s actual 
 
 ### Repo-specific canonical context (default starting points)
 Read these when they materially help interpret the modernization scope:
-- [AGENTS.md](../AGENTS.md) — contributor on-ramp, Build-Host Reference Pattern (DDD four-layer map), approval-gate conventions
-- [docs/onboarding.md](../docs/onboarding.md) — strategic decisions, DDD-layered repo tree, TFM policy (`LibraryTargetFrameworks` / `ExecutableTargetFrameworks` in `Directory.Build.props`)
-- [docs/plan.md](../docs/plan.md) — current status, phase, roadmap
+- [AGENTS.md](../../AGENTS.md) — contributor on-ramp, current build-host architecture, approval-gate conventions
+- [docs/onboarding.md](../../docs/onboarding.md) — strategic decisions, repo layout, and TFM policy
+- [docs/plan.md](../../docs/plan.md) — current status, phase, roadmap
 
 High-value repo docs for relevant modernization scopes:
-- [docs/decisions/2026-04-18-versioning-d3seg.md](../docs/decisions/2026-04-18-versioning-d3seg.md) — ADR-001: D-3seg versioning, package-first consumer contract, artifact source profiles. External-facing package upgrades must respect this contract.
-- [docs/decisions/2026-04-19-ddd-layering-build-host.md](../docs/decisions/2026-04-19-ddd-layering-build-host.md) — ADR-002: DDD layering for build host. Modernization touching `build/_build/` must preserve the layer direction rules and keep `LayerDependencyTests` green.
-- [docs/knowledge-base/cake-build-architecture.md](../docs/knowledge-base/cake-build-architecture.md) — Cake Frosting reference (carries ADR-002 banner; legacy `Modules/*` / `Tools/*` paths inside the body are historical, the current tree is `Tasks/` + `Application/<Module>/` + `Domain/<Module>/` + `Infrastructure/<Module>/` with `Infrastructure/Tools/*` for Cake `Tool<T>` wrappers)
-- [docs/knowledge-base/release-guardrails.md](../docs/knowledge-base/release-guardrails.md) — G-numbered guardrails; package-surface upgrades must keep these intact
-- [docs/knowledge-base/harvesting-process.md](../docs/knowledge-base/harvesting-process.md)
-- [docs/phases/phase-2-adaptation-plan.md](../docs/phases/phase-2-adaptation-plan.md)
-- [docs/playbook/cross-platform-smoke-validation.md](../docs/playbook/cross-platform-smoke-validation.md)
-- [docs/playbook/overlay-management.md](../docs/playbook/overlay-management.md)
+- [docs/decisions/2026-05-05-d3seg-and-package-first.md](../../docs/decisions/2026-05-05-d3seg-and-package-first.md) — package-first consumer contract, D-3seg versioning, and external package surface rules
+- [docs/decisions/2026-05-05-target-centric-build-host.md](../../docs/decisions/2026-05-05-target-centric-build-host.md) — target-centric build-host architecture and task-owned orchestration rules
+- [docs/decisions/2026-05-12-build-host-data-layer.md](../../docs/decisions/2026-05-12-build-host-data-layer.md) — contract-centric `Data/` boundary for repositories and file-backed state
+- [docs/knowledge-base/release-guardrails.md](../../docs/knowledge-base/release-guardrails.md) — G-numbered guardrails; package-surface upgrades must keep these intact
+- [docs/knowledge-base/testing-guidelines.md](../../docs/knowledge-base/testing-guidelines.md)
+- [docs/knowledge-base/extraction-guidelines.md](../../docs/knowledge-base/extraction-guidelines.md)
+- [docs/phases/phase-2-adaptation-plan.md](../../docs/phases/phase-2-adaptation-plan.md)
+- [docs/playbook/local-validation.md](../../docs/playbook/local-validation.md)
+- [docs/playbook/overlay-management.md](../../docs/playbook/overlay-management.md)
+- [docs/playbook/vcpkg-update.md](../../docs/playbook/vcpkg-update.md)
 
 Do not read these mechanically. Read them because they help you understand the current modernization constraints.
 
@@ -177,9 +179,10 @@ Do not read these mechanically. Read them because they help you understand the c
 - `Directory.Packages.props` — Central Package Management; all managed dependency updates flow through this file.
 - `global.json` — SDK pinning.
 - `build/manifest.json` — runtime RIDs, triplets, library manifests (vcpkg versions + port versions). Native upgrade source of truth.
-- `build/vcpkg.json` — vcpkg package versions (family versions tracked in ADR-001 D-3seg format).
-- `build/_build/Infrastructure/Tools/Vcpkg/` — Cake-native vcpkg wrappers; changes here ripple into every Harvest run.
-- `build/_build/Infrastructure/Vcpkg/VcpkgCliProvider.cs` and `VcpkgManifestReader.cs` — consume vcpkg CLI + manifest JSON.
+- `vcpkg.json` — vcpkg package versions and feature graph for native dependency resolution.
+- `build/_build/Tools/Vcpkg/` — Cake-native vcpkg wrappers; changes here ripple into every Harvest run.
+- `build/_build/Data/Manifest/` and `build/_build/Data/Versions/` — repositories that expose manifest and resolved-version contracts to tasks.
+- `build/_build/Targets/Harvest/`, `build/_build/Targets/Package/`, and `build/_build/Targets/PackageConsumerSmoke/` — native upgrade ripple zones across harvest, packing, and consumer validation.
 - `build/msbuild/Janset.Smoke.{props,targets}` — local-dev consumer-feed infrastructure; package-version property names are centralized here (`JansetSdl<N><Role>PackageVersion`).
 - `tests/smoke-tests/Directory.Build.*` and `tests/Sandbox/Sandbox.csproj` — consume `Janset.Smoke.*` for local feed restore.
 
@@ -215,13 +218,13 @@ These are orientation hints, not truths.
 
 1. The repository uses Central Package Management (`Directory.Packages.props`) with `ManagePackageVersionsCentrally=true`. Direct `<PackageReference Version="…">` on individual csprojs is drift; bumps flow through CPM.
 2. TFM policy is centralized in the root `Directory.Build.props` via `LibraryTargetFrameworks` and `ExecutableTargetFrameworks`. Bumping `LatestDotNet` cascades across every SDK csproj that inherits the default. Verify analyzer baseline (`AnalysisLevel=latest`, `AnalysisMode=All`, `TreatWarningsAsErrors=true`) still holds after the move.
-3. The Cake build host is DDD-layered (ADR-002). Upgrades to packages consumed by build-host code land in the correct layer: Cake-native tool wrappers stay under `Infrastructure/Tools/*`, CLI adapters under `Infrastructure/{Vcpkg,DotNet,Coverage,DependencyAnalysis}/`, domain-level abstractions like `IPathService` under `Domain/Paths/`. Upgrades that would restructure these (e.g. a new Cake major) must respect the layer direction and keep `LayerDependencyTests` green.
-4. `build/manifest.json` + `build/vcpkg.json` are the effective source of truth for native package versions. Modernization that touches vcpkg ports or triplets must reconcile both files plus harvesting expectations.
+3. The Cake build host is target-centric. Upgrades touching build-host code should land in the current homes: `Build.Tools.*` for Cake tool wrappers, `Build.Data.*` for file-backed contracts, and `Targets/<Name>/` for target-local services.
+4. `build/manifest.json` + `vcpkg.json` are the effective source of truth for native package versions. Modernization that touches vcpkg ports or triplets must reconcile both files plus harvesting expectations.
 5. Cross-platform correctness matters more than a single host's success path. `ExecutableTargetFrameworks` (`net9.0;net8.0;net462`) means any upgrade that breaks net462 breaks Sandbox, `PackageConsumer.Smoke`, and `Compile.NetStandard`. PolySharp is already wired for the net462 cases that need it.
-6. Native package updates have downstream effects on harvesting, packaging, RID selection, symlink handling (Unix libs via `File.ResolveLinkTarget`), overlays, and artifact layout. A native bump without a harvest/pack validation run is not validated.
+6. Native package updates have downstream effects on harvesting, packaging, RID selection, symlink handling (Unix libs via `File.ResolveLinkTarget`), overlays, and artifact layout. A native bump without harvest/pack/consumer validation is not validated.
 7. External submodules (`external/sdl2-cs`, `external/vcpkg`) are transitional and should not automatically be treated as permanent integration points. `external/sdl2-cs` is scheduled for retirement via CppAst migration.
-8. Local-dev infrastructure (`build/msbuild/Janset.Smoke.{props,targets}`, `SetupLocalDev --source=local`) is the canonical consumer contract per ADR-001 §2.6. Upgrades that would bypass this (e.g. reintroducing `ProjectReference` chains for content injection) break the locked package-first model.
-9. Reusing current upgrade/build/release infrastructure is preferred over inventing a parallel modernization path. Existing `IPathService` (Domain abstraction, Infrastructure impl) handles path resolution; new upgrades should route through it.
+8. Local-dev infrastructure (`build/msbuild/Janset.Smoke.{props,targets}`, `dotnet run --file tools.cs -- setup --source=local`) is the canonical consumer contract. Upgrades that would bypass this (for example by reintroducing `ProjectReference` chains for content injection) break the locked package-first model.
+9. Reusing current upgrade/build/release infrastructure is preferred over inventing a parallel modernization path. Existing `IPathService`, `Build.Data.*`, and `Build.Tools.*` seams should absorb new dependency work where possible.
 10. Docs are first-class artifacts, but actual build and packaging behavior wins when docs drift. Running `dotnet build` at the repo root before trusting any doc claim about what builds.
 
 If these hypotheses are stale or contradicted by current code/docs, say so explicitly.
@@ -300,11 +303,11 @@ Look for:
 - CI images/SDK versions that must change with .NET 10 or package updates — align `global.json`, GitHub Actions images, and local-dev expectations
 - restore/build/test/publish implications across `ExecutableTargetFrameworks` (`net9.0;net8.0;net462`) and `LibraryTargetFrameworks` (`net9.0;net8.0;netstandard2.0;net462`); any drop of a TFM is a consumer-contract change
 - package lockfile or baseline changes through `Directory.Packages.props` (CPM)
-- runtime asset layout and RID-specific packaging implications; harvesting under `Application/Harvesting/` + `Infrastructure/DependencyAnalysis/` + `Infrastructure/Vcpkg/` must still produce the expected tree for `PackageTaskRunner` to consume
+- runtime asset layout and RID-specific packaging implications; `Targets/Harvest`, `Build.Data.Harvest`, and `Build.Tools.*` must still produce the expected tree for `Targets/Package` and `Targets/PackageConsumerSmoke` to consume
 - release guardrails that need adjustment (G21–G27, G47, G48, G54–G57 listed in `docs/knowledge-base/release-guardrails.md`)
 - analyzer and warning baseline shifts — `AnalysisLevel=latest` + `AnalysisMode=All` + `TreatWarningsAsErrors=true` is aggressive; .NET 10 analyzer moves WILL surface new errors
 - AOT/trimming/single-file/native-library loading implications where relevant (IsAotCompatible/IsTrimmable enabled for non-net462/netstandard2.0 in the root props)
-- `build/_build.Tests/Unit/CompositionRoot/LayerDependencyTests.cs` — architecture catchnet. Any upgrade that moves types across namespaces or introduces new dependencies into the build host must keep the three invariants (Domain no outward; Infrastructure no Application/Tasks; Tasks hold only interfaces + DTOs + `Infrastructure.Tools.*`)
+- `build/_build.Tests/Unit/CompositionRoot/ServiceCollectionExtensionsSmokeTests.cs` plus target scenario tests — fastest smoke checks for build-host wiring after dependency churn
 - Full solution `dotnet build` at the repo root is the truth, NOT `dotnet build build/_build` or `dotnet build build/_build.Tests` alone — the latter miss Sandbox, PackageConsumer.Smoke, Compile.NetStandard, and the native/managed src csprojs
 
 ### 8.8 Cleanup And Simplification Opportunities
@@ -364,10 +367,10 @@ Use these when relevant:
 5. Which features already exist in the upgraded dependencies that could replace local infrastructure or helper code? (E.g. `CakeExtensions`-hosted `ToJsonAsync` or the hand-written `OneOf.Monads` surface — both are candidates to track.)
 6. Which updates must be grouped together rather than applied piecemeal? (Cake Frosting majors, `Microsoft.CodeAnalysis.*` families, `Microsoft.Extensions.*` ecosystem, NuGet versioning libs.)
 7. Which updates are harmless on one platform but risky cross-platform? (Native-library loading, symlink chain preservation on Unix, net462 Mono hosting on Linux.)
-8. Which docs, tests, smoke scripts, or release guardrails would need to move with the upgrade? (ADR-001 contracts, ADR-002 layer direction, G-numbered post-pack guardrails.)
-9. Does the upgrade preserve the DDD layer direction? (If a package forces new `ICakeContext` surface into a type currently in Domain, the upgrade is a layer-violation risk — explain the mitigation.)
-10. Does the upgrade require regenerating `Janset.Smoke.local.props` via `SetupLocalDev --source=local`? Local-dev IDE flow stays green only when this file matches the new package versions.
-11. Would this upgrade benefit from or require extracting the Wave 6 fat-task runners (HarvestTaskRunner, ConsolidateHarvestRunner) first? Some Cake / Spectre.Console / serialization updates might be easier after that extraction.
+8. Which docs, tests, smoke scripts, or release guardrails would need to move with the upgrade? (ADR-001/ADR-002/ADR-003 contracts, local-validation flow, G-numbered post-pack guardrails.)
+9. Does the upgrade preserve the current target-centric boundary? (If a package forces new `ICakeContext` surface into `Build.Data` or another shared concept, explain the mitigation.)
+10. Does the upgrade require regenerating local-feed props via `dotnet run --file tools.cs -- setup --source=local`? Local IDE flow stays green only when that file matches the new package versions.
+11. Would this upgrade benefit from a small architecture cleanup in the same slice, or should that cleanup be explicitly deferred to keep the version change reviewable?
 
 ---
 
@@ -521,11 +524,22 @@ Ask:
 
 ### When evaluating modernization touching the build host
 Ask:
-- Does this change cross a DDD layer boundary? If yes, does the architecture test catchnet still pass?
-- Does the new dependency belong in `Infrastructure/Tools/*` (Cake `Tool<T>` wrapper) or in `Infrastructure/<Module>/` (domain-shaped adapter)?
+- Does this change cross a target/shared-concept boundary? If yes, is the promotion to `Data/`, `Validation/`, `Tools/`, `Host/`, or `Results/` actually warranted?
+- Does the new dependency belong in `Build.Tools/*` (Cake `Tool<T>` wrapper) or in a target-local service/collaborator?
 - Does it replace hand-written `OneOf.Monads` surface area, `IPathService` helpers, or `CakeExtensions` JSON helpers? If so, migration must stage the replacement across all consumers, not drop-in per-module.
-- Does it interact with the `build/msbuild/Janset.Smoke.*` local-dev infrastructure or the `SetupLocalDev` task? Those are ADR-001 locked contracts.
-- Does validation still pass both `dotnet test build/_build.Tests` and `dotnet build` at the repo root, and ideally a full `SetupLocalDev --source=local` smoke?
+- Does it interact with the `build/msbuild/Janset.Smoke.*` local-dev infrastructure or `dotnet run --file tools.cs -- setup --source=local`? Those are locked package-first contracts.
+- Does validation still pass both `dotnet test build/_build.Tests` and `dotnet build` at the repo root, and ideally a full local-feed setup smoke?
+
+*** Delete File: e:\repos\my-projects\janset2d\sdl2-cs-bindings\.github\prompts\s02-target-centric-refactor-p0-ready.prompt.md
+*** Delete File: e:\repos\my-projects\janset2d\sdl2-cs-bindings\.github\prompts\s03-p2a-complete-p3-ready.prompt.md
+*** Delete File: e:\repos\my-projects\janset2d\sdl2-cs-bindings\.github\prompts\s04-p2b-complete-p3-ready.prompt.md
+*** Delete File: e:\repos\my-projects\janset2d\sdl2-cs-bindings\.github\prompts\s05-p3-complete-p4-ready.prompt.md
+*** Delete File: e:\repos\my-projects\janset2d\sdl2-cs-bindings\.github\prompts\s06-p4-resolveversions-complete-slopwatch-ready.prompt.md
+*** Delete File: e:\repos\my-projects\janset2d\sdl2-cs-bindings\.github\prompts\s07-p4-versions-file-resolved-cleanartifacts-retired.prompt.md
+*** Delete File: e:\repos\my-projects\janset2d\sdl2-cs-bindings\.github\prompts\s08-p4-closed-diagnostics-migrated.prompt.md
+*** Delete File: e:\repos\my-projects\janset2d\sdl2-cs-bindings\.github\prompts\s11-p5-closed-strategy-retired.prompt.md
+*** Delete File: e:\repos\my-projects\janset2d\sdl2-cs-bindings\.github\prompts\s13-p6-closed-preflight-migrated.prompt.md
+*** Delete File: e:\repos\my-projects\janset2d\sdl2-cs-bindings\.github\prompts\s16-p10-closed-adr-002-migration-complete.prompt.md
 
 ---
 
