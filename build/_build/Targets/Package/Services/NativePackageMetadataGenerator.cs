@@ -20,14 +20,10 @@ public interface INativePackageMetadataGenerator
 }
 
 /// <inheritdoc />
-public sealed class NativePackageMetadataGenerator(
-    IPathService pathService,
-    INativePackageMetadataRepository nativePackageMetadataRepository) : INativePackageMetadataGenerator
+public sealed class NativePackageMetadataGenerator(IPathService pathService, INativePackageMetadataRepository nativePackageMetadataRepository) : INativePackageMetadataGenerator
 {
     private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
-
-    private readonly INativePackageMetadataRepository _nativePackageMetadataRepository =
-        nativePackageMetadataRepository ?? throw new ArgumentNullException(nameof(nativePackageMetadataRepository));
+    private readonly INativePackageMetadataRepository _nativePackageMetadataRepository = nativePackageMetadataRepository ?? throw new ArgumentNullException(nameof(nativePackageMetadataRepository));
 
     public async Task GenerateAsync(
         ManifestConfig manifestConfig,
