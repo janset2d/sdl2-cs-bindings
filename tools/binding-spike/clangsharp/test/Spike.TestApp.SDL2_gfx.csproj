@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Spike test app — ports giroletm/SDL2_gfx/test/testframerate.c to C# using our
+    ClangSharp-spike-generated SDL2_gfx bindings + sdl2-cs SDL2 core + local nupkg feed.
+
+    Wiring:
+    - SDL2 core P/Invokes + transitive SDL2.dll come from Janset.SDL2.Core (managed package)
+    - SDL2_gfx.dll comes from Janset.SDL2.Gfx.Native (buildTransitive copies DLL to bin/)
+    - SDL2_gfx P/Invokes come from our ProjectReference to Spike.Bindings.SDL2_gfx (spike-generated)
+    - Local-feed + version pinning via Janset.Local.props (written by `tools setup` source=local)
+  -->
+
+  <PropertyGroup>
+    <TargetFrameworks></TargetFrameworks>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsAotCompatible>false</IsAotCompatible>
+    <RootNamespace>Janset.Spike.SDL2.Gfx.Test</RootNamespace>
+    <AssemblyName>Janset.Spike.SDL2.Gfx.Test.ClangSharp</AssemblyName>
+    <IsPackable>false</IsPackable>
+
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <AnalysisLevel>none</AnalysisLevel>
+    <AnalysisMode>None</AnalysisMode>
+    <NoWarn>$(NoWarn);CS1591;CS8500;CA1707;CA1716;CA2101</NoWarn>
+  </PropertyGroup>
+
+  <!-- Local feed + version pins (file is gitignored; written by `tools setup source=local`). -->
+  <Import Project="$(MSBuildThisFileDirectory)../../../../build/msbuild/Janset.Local.props"
+          Condition="Exists('$(MSBuildThisFileDirectory)../../../../build/msbuild/Janset.Local.props')" />
+
+  <PropertyGroup Condition="'$(LocalPackageFeed)' != ''">
+    <RestoreAdditionalProjectSources>$(RestoreAdditionalProjectSources);$(LocalPackageFeed)</RestoreAdditionalProjectSources>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- SDL2 core: managed wrappers (sdl2-cs based) + transitive SDL2.dll via Janset.SDL2.Core.Native -->
+    <PackageReference Include="Janset.SDL2.Core" VersionOverride="[$(JansetSdl2CorePackageVersion)]" />
+
+    <!-- SDL2_gfx NATIVE only — managed binding comes from our spike instead -->
+    <PackageReference Include="Janset.SDL2.Gfx.Native" VersionOverride="[$(JansetSdl2GfxPackageVersion)]" />
+
+    <!-- Our spike-generated SDL2_gfx P/Invoke wrappers -->
+    <ProjectReference Include="../bindings/Spike.Bindings.SDL2_gfx.csproj" />
+  </ItemGroup>
+
+</Project>

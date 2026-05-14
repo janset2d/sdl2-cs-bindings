@@ -15,7 +15,7 @@ This document covers four feasibility dimensions:
 
 Out of scope: the actual generator implementation plan (that lands when Phase 4 activates). This is feasibility, not design.
 
-**2026-05-12 toolchain decision update.** After deeper research (see [`binding-autogen-approaches.md`](binding-autogen-approaches.md) §2026-05-12 Update — Decision Matrix Re-Validation + §2026-05-12 Source-Level Comparison), the toolchain choice flipped from CppAst to **ClangSharpPInvokeGenerator (ppy/SDL3-CS pattern)**. The output-quality rules in §2 are toolchain-agnostic and unchanged; toolchain-specific sections (§3 multi-platform parsing, §5 reference cross-check, §6 manual intervention surface, §8 effort estimate, §9 open decisions) are revised throughout to reflect the ClangSharp/RSP-driven pipeline.
+**2026-05-12 toolchain evidence update.** After deeper research (see [`binding-autogen-approaches.md`](binding-autogen-approaches.md) §2026-05-12 Update — Decision Matrix Re-Validation + §2026-05-12 Source-Level Comparison), the research recommendation shifted from CppAst toward **ClangSharpPInvokeGenerator (ppy/SDL3-CS pattern)** for raw bindings. This is not the final project decision; the WHY/HOW/WHAT design doc owns that decision. The output-quality rules in §2 are toolchain-agnostic and unchanged; toolchain-specific sections (§3 multi-platform parsing, §5 reference cross-check, §6 manual intervention surface, §8 effort estimate, §9 open decisions) capture provisional ClangSharp-pattern evidence for comparison against the CppAst spike.
 
 ## 2. Modern .NET P/Invoke Emit Target — Generator Rules for 2026
 
@@ -108,25 +108,27 @@ public static string? GetErrorString() => Utf8StringMarshaller.ConvertToManaged(
 
 For `char*` **return values where caller must `SDL_free`** the buffer: never emit `string` return with `StringMarshalling.Utf8` (marshaller calls `NativeMemory.Free`, which mismatches `SDL_free`). Emit `byte*` and write a hand-rolled `[CustomMarshaller(..., MarshalMode.ManagedToUnmanagedOut, ...)]` whose `Free` calls `SDL_free`. Microsoft's best-practices doc is explicit: *"Match the allocator: never mix `malloc`/`free` with `CoTaskMemAlloc`/`CoTaskMemFree`."*
 
-### Rule 5 — Boolean — emit wrapper struct, never raw `bool`
+### Rule 5 — Boolean wire types — model SDL2 and SDL3 separately, never raw `bool`
 
-SDL3 uses `SDL_bool` (1-byte). C# `bool` defaults to 4-byte `BOOL` marshalling under interop. Generator emits a `byte`-backed wrapper:
+SDL2 and SDL3 do not expose the same boolean ABI. C# `bool` defaults to 4-byte `BOOL` marshalling under interop, so the generator should never emit raw `bool` in P/Invoke signatures.
+
+SDL3 uses C `bool` / `_Bool`-style 1-byte values. Raw SDL3 bindings should use a byte-backed wrapper:
 
 ```csharp
 [StructLayout(LayoutKind.Sequential, Size = 1)]
-public readonly struct SDLBool(byte value) : IEquatable<SDLBool>
+public readonly struct SdlBool8(byte value) : IEquatable<SdlBool8>
 {
     public readonly byte Value = value;
     public bool AsBool => Value != 0;
-    public static SDLBool True => new(1);
-    public static SDLBool False => new(0);
-    public static implicit operator bool(SDLBool b) => b.AsBool;
-    public static implicit operator SDLBool(bool b) => new((byte)(b ? 1 : 0));
-    public bool Equals(SDLBool other) => Value == other.Value;
+    public static SdlBool8 True => new(1);
+    public static SdlBool8 False => new(0);
+    public static implicit operator bool(SdlBool8 b) => b.AsBool;
+    public static implicit operator SdlBool8(bool b) => new((byte)(b ? 1 : 0));
+    public bool Equals(SdlBool8 other) => Value == other.Value;
 }
 ```
 
-Implicit conversions hide the wrapper from callers. SDL2's `SDL_bool` is also 1-byte on all platforms (an `enum` with values 0/1) → same wrapper works.
+SDL2's `SDL_bool` is different: in current SDL2 headers it is either `typedef int SDL_bool` for ARM compiler compatibility or an enum with values `SDL_FALSE = 0` and `SDL_TRUE = 1`. SDL2 also asserts enum size equals `sizeof(int)`. Raw SDL2 bindings should therefore model `SDL_bool` as an int-backed enum or int-backed wrapper, not the 1-byte SDL3 wrapper. Implicit conversions can still hide the wire type from callers in both families, but the wire size must stay family-specific.
 
 ### Rule 6 — Span / Memory / buffers
 
@@ -149,7 +151,7 @@ For SDL functions that take a callback (event filters, audio callbacks, log hand
 ```csharp
 [LibraryImport(LibName, EntryPoint = "SDL_SetEventFilter")]
 public static partial void SDL_SetEventFilter(
-    delegate* unmanaged[Cdecl]<nint, SDL_Event*, SDLBool> filter,
+    delegate* unmanaged[Cdecl]<nint, SDL_Event*, SdlBool8> filter,
     nint userdata);
 ```
 
@@ -157,7 +159,7 @@ Callers write a `[UnmanagedCallersOnly]` static method and pass `&Method`:
 
 ```csharp
 [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-static SDLBool EventFilter(nint userdata, SDL_Event* e) { /* … */ return SDLBool.True; }
+static SdlBool8 EventFilter(nint userdata, SDL_Event* e) { /* … */ return SdlBool8.True; }
 
 SDL_SetEventFilter(&EventFilter, IntPtr.Zero);
 ```
@@ -216,7 +218,7 @@ Mirrors Alimer's `CsCodeGenerator.{Commands,Constants,Enum,Handles,Structs}.cs` 
 | 2 | Opaque pointers → `readonly partial struct Name(nint value)` |
 | 3 | Numeric IDs → typed `enum NameID : uint` |
 | 4 | UTF-8 strings in → triple overload (`byte*` / `ReadOnlySpan<byte>` / `string` w/ `StringMarshalling.Utf8`) |
-| 5 | Booleans → 1-byte wrapper struct (`SDLBool`), never raw `bool` |
+| 5 | Booleans → SDL2 int-backed enum/wrapper, SDL3 1-byte wrapper; never raw `bool` |
 | 6 | Buffers → `Span<T>`/`ReadOnlySpan<T>` + raw-pointer overload; never `Memory<T>` in P/Invoke; `out T` for single-element |
 | 7 | Callbacks → `delegate*` + `[UnmanagedCallersOnly]`, never `Delegate` |
 | 8 | Constants → `public const` (literal) or `public static readonly` (computed) |
@@ -230,25 +232,40 @@ Mirrors Alimer's `CsCodeGenerator.{Commands,Constants,Enum,Handles,Structs}.cs` 
 
 vcpkg installs library headers into `<vcpkg-installed>/<triplet>/include/<library>/`. For our build, that's e.g. `vcpkg_installed/x64-windows-hybrid/include/SDL2/SDL.h` and friends. Each triplet has its own `include/` tree.
 
-**Headers are the same source** across triplets — vcpkg installs identical content from the upstream tarball into each triplet directory. The per-triplet differentiation is in the **compiled artifacts** (lib/, bin/), not the headers themselves.
+**Headers are expected to be the same upstream source** across triplets for SDL's public headers: vcpkg installs the same library version into each triplet directory, and the per-triplet differentiation is normally in the **compiled artifacts** (lib/, bin/), not the public declarations. Do not turn that into an unchecked axiom, though. Ports can apply patches, generated config headers can exist in some ecosystems, line endings can differ, and platform SDK/system headers are absolutely not the same.
 
-Implication: generator does NOT need to parse headers from each triplet. **One canonical triplet's `include/` suffices as the parse source.** Pick a known-complete one (e.g., `x64-windows-hybrid`) and parse from there.
+Implication: generator should not parse every RID's vcpkg include tree by default. **One canonical SDL include tree can be the declaration source** after a cheap header-identity check against the Linux/WSL and macOS provisioned checkouts for the in-scope SDL public headers. That does not remove the need for platform parse passes: even byte-identical headers produce different ASTs once libclang sees different target macros, architecture flags, and system include/sysroot inputs.
+
+Local verification against provisioned Windows, WSL/Linux, and macOS checkouts confirmed the expected shape for SDL2: all three had the same 88 public SDL2 header filenames, and all checked binding-relevant public headers (`SDL.h`, `SDL_platform.h`, `SDL_stdinc.h`, `SDL_system.h`, `SDL_main.h`, `SDL_syswm.h`, `SDL_image.h`, `SDL_ttf.h`, `SDL_mixer.h`) matched byte-for-byte after CRLF normalization. `SDL_config.h` differed, as expected, because it is the generated/configured platform feature macro surface.
 
 ### Cross-platform API surface variance
 
-SDL is designed for cross-platform consumption: its headers expose a single API surface that conditionally compiles via `SDL_PLATFORM_WIN32` / `SDL_PLATFORM_LINUX` / `SDL_PLATFORM_MACOS` macros. The **public API surface is largely identical across OSes**; only OS-specific syscalls live behind `#ifdef` blocks.
+SDL is designed for cross-platform consumption, but the AST produced from its headers is not platform-independent. libclang parses one preprocessed translation unit at a time; macros, target triple, architecture flags, and include paths decide which declarations exist in that AST. This is a C/preprocessor constraint, not a CppAst-vs-ClangSharp distinction.
 
-Concrete examples of OS-conditional content in SDL2 headers:
+Concrete local verification against `vcpkg_installed\x64-windows-hybrid\include\SDL2` shows platform-conditioned public surface:
 
 | Header section | Variance |
 | --- | --- |
-| `SDL_syswm.h` | `SDL_SysWMinfo` union has per-platform variants (HWND on Windows, Display* on X11, NSWindow on macOS, etc.). |
-| `SDL_main.h` | Windows-specific `SDL_main` wrapper (WinMain). |
-| `SDL_thread.h` | Thread implementation is internal; API surface is identical. |
-| Audio backends | All audio device APIs are platform-agnostic at the binding level. |
-| Filesystem APIs | API surface identical; backing implementations differ. |
+| `SDL_platform.h` | Normalizes host and target macros such as `__LINUX__`, `__ANDROID__`, `__MACOSX__`, `__IPHONEOS__`, `__WIN32__`, `__WINRT__`, and `__GDK__`. |
+| `SDL_system.h` | Contains Windows-only `SDL_SetWindowsMessageHook`, D3D/DXGI helpers, Linux-only `SDL_LinuxSetThreadPriority*`, iOS, Android, WinRT, and GDK blocks. |
+| `SDL_main.h` | Switches startup/main handling and exposes Windows/GDK/iOS/WinRT entry helpers behind platform macros. |
+| `SDL_config.h` | Computes `SIZEOF_VOIDP` from `_WIN64`, `__LP64__`, and `_LP64`. |
+| `SDL_stdinc.h` | Chooses integer-format macros differently for Windows/GDK, LP64 Unix, Apple, and fallback cases. |
+| `SDL_syswm.h` | `SDL_SysWMinfo` has per-window-system variants and may require special handling or exclusion depending on support scope. |
 
-For the **public binding surface**, the variance is small and concentrated. CppAst can be configured with `SDL_PLATFORM_WIN32` etc. via `Defines` on the parser options to expose all platform branches.
+The variance is concentrated, but real. A single Linux-host parse can produce a useful platform-neutral subset; it cannot prove complete Windows/Linux/macOS coverage unless the generator also runs controlled platform-specific parses.
+
+### Header source, parse view, and host runner are separate axes
+
+Three concepts are easy to conflate and should stay separate in the Phase 4 design:
+
+| Axis | Meaning | Current evidence / tendency |
+| --- | --- | --- |
+| Header source | Which `SDL*.h` files are read as declaration input | One canonical vcpkg SDL include tree appears viable after header-identity checks. |
+| Parse view / pass | Which preprocessor macros, target system, architecture, and include/sysroot view libclang sees | Neutral + Windows + Linux + macOS views are required for platform-conditioned headers. |
+| Host runner | Where the generator executable runs | A pinned Linux container is the simplest deterministic host candidate, but it can still produce Windows/Linux/macOS parse views. |
+
+The CppAst platform-pass spike proved the distinction: it ran on Windows but produced a Linux-specific output file by parsing with a Linux target view, Linux macros enabled, Windows/macOS macros disabled, and minimal system-header stubs supplied. That does **not** mean native Linux/macOS runners are useless; they remain valuable for reproducibility checks, native export validation, package consumer smoke, and escalation if a controlled cross-target parse view cannot model a header correctly. It means "platform pass required" should not be read as "the generator must run on that platform."
 
 ### vcpkg feature variance — `vcpkg.json` platform conditions
 
@@ -270,16 +287,22 @@ These features affect the **compiled .so/.dll** (whether ALSA/DBus/X11/Wayland c
 
 **Implication**: the AST generator does not need feature-aware parsing. The header surface is single-source-of-truth regardless of which vcpkg features are enabled per triplet.
 
-### Multi-platform parsing — adopt ppy/SDL3-CS's RSP-per-platform pass strategy
+### Multi-platform parsing — validate platform-specific pass strategy
 
-libclang parses headers as the compiler would — one platform's view per parse, gated by preprocessor defines. There are two recorded approaches:
+Neither CppAst nor ClangSharp exposes an official "multi OS pass" feature. Both are adapters over libclang parse arguments:
+
+- CppAst exposes `Defines`, include folders, target options, and `AdditionalArguments`; a second platform view means a second `CppParser.Parse*` call with a different options instance.
+- ClangSharpPInvokeGenerator exposes `-D`, `-I`, `--additional`, and target arguments; a second platform view means a second tool invocation.
+
+There are two recorded approaches in comparable repositories:
 
 | Approach | Pattern | Trade-off |
 | --- | --- | --- |
-| **Single pass with all platform defines simultaneously set** (Alimer.Bindings.SDL pattern) | `Defines = { "SDL_PLATFORM_ANDROID", "SDL_PLATFORM_IOS", "SDL_PLATFORM_WINRT" }`, parse once, emit one output set | Simpler pipeline. Loses platform attribution — OS-specific functions risk being exposed cross-platform, causing runtime `DllNotFoundException`. Struct layouts that differ per platform (e.g. `SDL_SysWMinfo` unions) become ambiguous. |
-| **N+1 RSP-per-platform pass** (ppy/SDL3-CS pattern, **adopted**) | One platform-agnostic pass + one pass per OS, each with that OS's `SDL_PLATFORM_*` define, emitting `*.<Platform>.g.cs` files and injecting `[SupportedOSPlatform("Linux")]` etc. via RSP `--with-attribute` | More moving parts in the generator pipeline. Correctly attributes OS-specific symbols compile-time; consumers get `SYSLIB1054`-style analyzer warnings if they call a Windows-only API from a non-Windows TFM. |
+| **Single pass with multiple platform defines simultaneously set** (Alimer.Bindings.SDL pattern) | Parse once with Android/iOS/WinRT-style defines all active, emit one output set | Simpler pipeline. Works for much of SDL's neutral surface, but produces an impossible union target for platform-conditioned headers, loses platform attribution, and can silently miss mutually-exclusive `#elif` branches. Useful as a cautionary reference, not sufficient for platform-conditioned correctness across our 7-RID matrix. |
+| **Neutral + platform-specific passes** (ppy/SDL3-CS pattern) | One platform-agnostic pass, then one pass per platform with that platform's macros; exclude symbols already emitted by the neutral pass and write platform-specific files/attributes | More moving parts in the generator pipeline. Correctly attributes OS-specific symbols and keeps generated output reviewable by platform. This is the current validation target regardless of whether the selected implementation is CppAst or ClangSharp. |
+| **True multi-OS extraction + merge** (bottlenoselabs/SDL3-cs pattern) | Windows, Linux, and macOS CI runners each extract an FFI/API view; a later job merges those views into one cross-platform intermediate and generates C# | Strongest isolation from host/sysroot assumptions. Much heavier: merge semantics must classify common symbols, platform-only symbols, signature conflicts, and layout conflicts before C# emission. Treat as an escalation path unless SDL headers prove a controlled single-host strategy insufficient. |
 
-**Decision: adopt ppy/SDL3-CS's N+1 pass pattern.** For our 7-RID matrix (`win-{x64,x86,arm64}`, `linux-{x64,arm64}`, `osx-{x64,arm64}`), correctly attributing OS-specific symbols is high-value. The ppy pipeline (`generate_bindings.py`'s `generate_platform_specific_headers` helper) shows the canonical implementation; we port it to PowerShell to stay in-ecosystem with our existing `tools.cs` orchestration.
+**Current validation target:** for our 7-RID matrix (`win-{x64,x86,arm64}`, `linux-{x64,arm64}`, `osx-{x64,arm64}`), correctly attributing OS-specific symbols is high-value. The CppAst platform-pass spike proved ppy-equivalent neutral + platform passes for selected SDL2 platform headers. ClangSharp remains the comparison baseline because ppy already proves the same pattern for SDL3.
 
 ```python
 # ppy/SDL3-CS pattern, paraphrased
@@ -308,11 +331,54 @@ src/SDL3.Core/Generated/
 └── (etc.)
 ```
 
-Risk: macros that change *struct layout* per platform (e.g., `SDL_SysWMinfo` union) need per-platform handling. ppy's existing config covers this; we inherit their treatment.
+Risk: macros that change *struct layout* per platform (e.g., `SDL_SysWMinfo` union) need per-platform handling. ppy's existing config is the closest SDL reference; if we choose CppAst, we still need equivalent per-symbol attribution and merge/dedup logic.
+
+Baseline dedup and conflict rules:
+
+1. Generate the neutral pass first.
+2. Generate each platform pass with exactly one platform view active.
+3. Exclude symbols already emitted by the neutral pass from platform files.
+4. Emit neutral-only symbols into common generated files.
+5. Emit platform-only symbols into platform-suffixed files with `[SupportedOSPlatform]`.
+6. Fail generation, rather than guessing, if the same symbol appears in multiple views with incompatible signatures or layout-affecting type differences.
+
+### Generated source as a release input
+
+Generated C# binding source should be treated as a versioned release input, not a hidden build-time side effect. The release-grade workflow should be:
+
+1. Update SDL/vcpkg/manifest version inputs.
+2. Build or provision native libraries for the target matrix.
+3. Run the pinned generator with the pinned libclang/toolchain and canonical headers.
+4. Commit the generated `.g.cs` diff for review.
+5. In CI, run the generator again and fail if `git diff --exit-code` is not clean.
+6. Validate emitted P/Invoke entry points against actual native exports (`dumpbin`, `nm`, `otool`).
+7. Run package-consumer smoke tests with real assets.
+8. Pack and publish only after generated-source drift, export validation, and runtime smoke pass.
+
+This keeps consumer builds simple: installing `Janset.SDL2.*` packages does not require CppAst/ClangSharp, libclang, Python/PowerShell generator scripts, or platform SDK headers. It also keeps binding diffs reviewable when upstream SDL versions change.
 
 ### SDL3 surface — same shape, more APIs
 
 SDL3 adds GPU API, Camera, Storage, Dialog, AsyncIO surfaces — all platform-agnostic at the binding level. Same vcpkg + parse strategy applies; just more headers.
+
+### Satellite headers — separate outputs, shared core type universe
+
+SDL satellites are not independent type islands. Local header inspection shows:
+
+| Satellite | Header relationship | Shared core types observed |
+| --- | --- | --- |
+| `SDL_image.h` | Includes `SDL.h` and `SDL_version.h` | `SDL_Surface`, `SDL_Texture`, `SDL_Renderer`, `SDL_RWops` |
+| `SDL_ttf.h` | Includes `SDL.h` | `SDL_Color`, `SDL_Surface`, `SDL_Renderer`, `SDL_Texture`, `SDL_bool`, `SDL_version` |
+| `SDL_mixer.h` | Includes `SDL_stdinc.h`, `SDL_rwops.h`, `SDL_audio.h`, `SDL_endian.h`, `SDL_version.h` | `SDL_RWops`, `SDL_bool`, `SDL_AudioSpec`, `SDL_version` |
+
+Production generation should therefore use a **core-owned shared type universe**:
+
+- `SDL2.Core` owns `SDL_*` core structs, enums, handles, callbacks, and constants.
+- Satellite generators emit only satellite-owned surface (`IMG_*`, `Mix_*`, `TTF_*`, `gfx*`/`SDL2_gfx` family symbols) plus any truly satellite-owned structs/enums.
+- Satellite signatures reference core-owned managed types instead of regenerating duplicates.
+- Validation should fail if a satellite output redefines a core-owned type name or lowers a known core type to an untyped fallback because the type map was missing.
+
+This matches the observable ppy/SDL3-CS package shape: `SDL3_image-CS` is a separate satellite project/package, but it references `SDL3-CS` and its generated `IMG_*` declarations use core types such as `SDL_Surface*`, `SDL_IOStream*`, `SDL_Renderer*`, and `SDL_Texture*`. For our next spike, `SDL2_image` is the best risk slice because it exercises shared core types, satellite-owned functions, image asset smoke tests, and package dependency shape without the larger callback surface of SDL_mixer.
 
 ## 4. Hybrid-Static + Symbol Visibility Interaction
 
@@ -356,7 +422,7 @@ This validation is a **new guardrail candidate** for the Pack stage (joining G46
 
 ### Interaction with Phase 2b Linux version scripts
 
-[`symbol-visibility-analysis.md`](symbol-visibility-analysis.md) records the decision to add Linux version scripts (`.map` files) per satellite in Phase 2b. Once those land, the **exported symbol set tightens further** — only `SDL_*` / `IMG_*` / `Mix_*` / `TTF_*` prefixed symbols stay exported, everything else is `local: *`.
+[`../research/symbol-visibility-analysis.md`](../research/symbol-visibility-analysis.md) records the decision to add Linux version scripts (`.map` files) per satellite in Phase 2b. Once those land, the **exported symbol set tightens further** — only `SDL_*` / `IMG_*` / `Mix_*` / `TTF_*` prefixed symbols stay exported, everything else is `local: *`.
 
 For the AST generator, this **simplifies validation**: the exported set is now glob-pattern-driven (`SDL_*`), so we can statically check generator output against the version script's pattern rather than per-symbol dynamic lookup. Win for repeatability.
 
@@ -394,11 +460,11 @@ We are **not** copying sdl2-cs declarations or migrating to its format. We are u
 
 ### SDL3 oracle + toolchain reference: ppy/SDL3-CS
 
-[ppy/SDL3-CS](https://github.com/ppy/SDL3-CS) is MIT, auto-generated via ClangSharp + Dockerfile, and covers SDL3 core + SDL_image + SDL_mixer + SDL_ttf — the exact scope we plan for SDL3. **Post-2026-05-12 toolchain flip, ppy serves a second role: it's our generator-pattern reference.** We adopt ClangSharpPInvokeGenerator + ppy's per-platform RSP pass strategy directly.
+[ppy/SDL3-CS](https://github.com/ppy/SDL3-CS) is MIT, auto-generated via ClangSharp + Dockerfile, and covers SDL3 core + SDL_image + SDL_mixer + SDL_ttf — the exact scope we plan for SDL3. It serves a second role as the ClangSharp-pattern reference if that toolchain wins.
 
 This makes cross-check meaningfully tighter: when our generated output for an SDL3 function differs from ppy's, the difference reduces to "different RSP config" rather than "different parser, different emitter, different everything." Diffs become directly actionable — locate the RSP delta, decide whether their choice or ours is right.
 
-Modern format: ClangSharp + RSP-driven, `[DllImport]` by default in ppy's current config (we flip via `latest-codegen` mode → `[LibraryImport]`), `[NativeTypeName]`-attributed, `delegate*` callbacks. Cross-check methodology mirrors SDL2: locate corresponding declaration, diff, flag mismatches.
+Modern format: ClangSharp + RSP-driven, `[DllImport]` by default in ppy's current config, `[NativeTypeName]`-attributed, `delegate*` callbacks. The SDL2_gfx spike found `LibraryImport` requires analyzer auto-fix, post-processing, or another explicit conversion path. Cross-check methodology mirrors SDL2: locate corresponding declaration, diff, flag mismatches.
 
 ### Caveat — Reference projects may be wrong too
 
@@ -416,13 +482,13 @@ ClangSharp does substantially more out of the box than CppAst would — type map
 
 Examples (RSP syntax for ClangSharpPInvokeGenerator):
 
-- `SDL_bool` → `SDLBool` wrapper struct: `--remap SDL_bool=SDLBool` (Rule 5)
+- Boolean wire types: SDL2 `SDL_bool` → int-backed enum/wrapper; SDL3 bool-like values → byte-backed wrapper (Rule 5). Do not use a single `SDLBool` remap across both families.
 - Numeric type fixes: `--remap Uint8=byte`, `--remap Sint64=long`, `--with-type SDL_AudioFormat=uint` (Rule 3)
 - `const char *` UTF-8 handling: handled via ClangSharp's `byte*` default + a Roslyn extension (ppy's `FriendlyOverloadGenerator`) that synthesizes `string` overloads at consumer compile time (Rule 4)
 - Opaque pointer recognition: ClangSharp emits empty `partial struct SDL_Window { }` automatically from `typedef struct SDL_Window SDL_Window`; we extend with a Roslyn source generator pass that wraps it as the value-type handle pattern from Rule 2 (or accept ppy's raw-pointer style and revisit at Phase 4)
 - Callback typedef: ClangSharp's `latest-codegen` emits `delegate* unmanaged[Cdecl]<...>` automatically (Rule 7)
 - Bit-flag enum attribution: `--with-attribute SDL_WindowFlags=Flags` per type-name; ClangSharp does NOT auto-detect bit-flag intent (neither does any tool — see §approaches doc 2026-05-12 source-level comparison)
-- Per-field struct overrides: `--with-type SomeStruct.someField=SDLBool`
+- Per-field struct overrides: family-specific boolean override (`--with-type SomeStruct.someField=<bool-wire-type>`) when ClangSharp cannot infer the desired wrapper.
 
 ### Function-specific overrides
 
@@ -547,9 +613,9 @@ Three sources for this layer:
 
 Total upfront tooling cost: ~15-25h focused work. Per-regeneration cost: zero (all automated).
 
-## 8. Revised Effort Estimate
+## 8. Provisional ClangSharp-Pattern Effort Estimate
 
-**Recalibrated 2026-05-12 against the ClangSharp/ppy pattern instead of CppAst/Alimer.** Reference points: ppy/SDL3-CS's generator surface is ~32 KB total; we port the Python orchestrator to PowerShell + extend RSP coverage to SDL2 satellites; the heavy lifting (parsing + emission) lives in ClangSharpPInvokeGenerator which we don't maintain.
+**Recalibrated 2026-05-12 against the ClangSharp/ppy pattern instead of CppAst/Alimer.** This is a comparison point, not the final Phase 4 estimate. Reference points: ppy/SDL3-CS's generator surface is ~32 KB total; a ClangSharp path would port the Python orchestrator to PowerShell + extend RSP coverage to SDL2 satellites; the heavy lifting (parsing + emission) lives in ClangSharpPInvokeGenerator which we don't maintain.
 
 | Stage | Generator work | Testing infrastructure | Total focused | Calendar (hobby) |
 | --- | --- | --- | --- | --- |
@@ -560,7 +626,7 @@ Total upfront tooling cost: ~15-25h focused work. Per-regeneration cost: zero (a
 
 Total drops from prior CppAst estimate (~8–10 weeks focused / 5–9 months calendar) to **~5–8 weeks focused / 3.5–7 months calendar**. The ~3 week / 1.5 month savings come from not writing + maintaining a custom emitter — ClangSharp + ppy's pattern do that work for us.
 
-[`release-strategy.md`](../release-strategy.md) §Effort Calibration estimated 6-9 weeks focused / 5-9 months calendar; this updated analysis tightens to **5-8 weeks focused / 3.5-7 months calendar**. Worth a one-line note in release-strategy.md when convenient, but the calendar range still sits inside the same hobby-cadence band.
+[`release-strategy.md`](../release-strategy.md) §Effort Calibration estimates total work across all 5 stages at **~8–14 weeks focused / ~10–17 months calendar**, of which the Phase 4 portion (stages 1–3 — proof-of-life, SDL2 sweep, SDL3 extension) is **~5–8 weeks focused / ~3.5–7 months calendar**. The ClangSharp-pattern analysis above lands on the same Phase 4 number; the two docs agree once Phase 4 is separated from Stabilization + Big Bang. Verified 2026-05-14.
 
 ## 9. Open Decisions and Risks
 
@@ -569,15 +635,15 @@ Total drops from prior CppAst estimate (~8–10 weeks focused / 5–9 months cal
 | # | Decision | Default tendency |
 | --- | --- | --- |
 | D1 | Vendor SDL headers in repo vs read from vcpkg installation tree | **Read from vcpkg** — keeps version anchor authoritative; vendoring duplicates source-of-truth |
-| D2 | Multi-platform parsing strategy | **N+1 ClangSharp passes per platform-variant header** following ppy/SDL3-CS pattern (one platform-agnostic + one per OS), each emitting `*.<Platform>.g.cs` with `[SupportedOSPlatform]` injected via RSP `--with-attribute`. Single-pass-with-all-defines (Alimer pattern) rejected — would mis-attribute OS-specific symbols across our 7-RID matrix. |
+| D2 | Multi-platform parsing strategy | **Single pinned generation host + multiple parse views first.** Follow ppy/SDL3-CS's neutral + platform-specific pass pattern using either ClangSharp invocations/RSP files or CppAst parser-option passes. Keep true multi-OS extraction + merge as an escalation path if controlled parse views cannot model a header correctly. Single-pass-with-multiple-defines (Alimer pattern) is a risk because it creates an impossible union target and can mis-attribute or miss OS-specific symbols across our 7-RID matrix. |
 | D3 | Reference cross-check tool | **Lightweight `dotnet` script** in `build/_build` that locates corresponding declaration in `external/sdl2-cs` (SDL2) / cloned-`ppy/SDL3-CS` (SDL3), diffs signatures, emits a markdown report categorized as match / typed-handle delta / parameter-count mismatch / known-quirk / true-bug. Because we share toolchain with ppy/SDL3-CS for SDL3, diffs reduce to "different RSP config" — tractable. |
 | D4 | Symbol-existence validation as Pack-stage guardrail | **Yes** — joins G46-G58 with a behavior-first name and IDs assigned at the guardrail-catalog refresh. Cross-platform via `dumpbin /exports` (Windows), `nm -D --defined-only` (Linux), `nm -gU` (macOS). |
-| D5 | `<IsAotCompatible>true</IsAotCompatible>` on all generated csprojs | **Yes** — ClangSharp's `latest-codegen` / `preview-codegen` mode emits AOT-safe LibraryImport-style code. Signal AOT-readiness from day one. |
-| D6 | Computed-expression macros — emit as `static readonly` or skip | **`generate-macro-bindings` ClangSharp flag** for trivial cases (`#define SDL_INIT_AUDIO 0x10`); manual override list for genuinely-computed-at-runtime macros |
+| D5 | `<IsAotCompatible>true</IsAotCompatible>` on all generated csprojs | **Yes** — exact emission mechanism depends on the selected toolchain, but AOT-readiness should be signaled from day one. |
+| D6 | Computed-expression macros — emit as `static readonly` or skip | **Validate both toolchains** — at SDL2_gfx scope, ClangSharp's `--config generate-macro-bindings` and CppAst's ~30-line custom `TryEmitMacroConstant` both capture the same 8 numeric `#define` macros (verified 2026-05-14; see [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) §7.4). Open question: how each toolchain handles genuinely computed expressions (e.g., function-style macros, expression-bodied macros) on larger SDL headers. Manual override list remains the fallback. |
 | D7 | Variadic functions (`SDL_Log`, etc.) | **Preserve `__arglist` per ppy pattern** (information retained, true variadic available via IL helper if needed). Hand-write fmt-only wrappers in the consumer-facing partial class for ergonomics — best of both: lossless raw layer + ergonomic wrapper. |
-| D8 | Should generator output get checked into git, or generated on build? | **Checked into git** — same as both ppy/SDL3-CS and Alimer.Bindings.SDL; allows code review of binding diffs, simplifies consumer build (no ClangSharp tool transitively), survives offline build scenarios |
-| D9 | Multi-TFM emission strategy (`net10/net9/net8/netstandard2.0/net462`) | **ClangSharp `latest-codegen` for net7+ branches + Roslyn source generator post-process for the `#if NET7_0_OR_GREATER` partition.** Three sub-options to spike: (a) emit one declaration, post-process with conditional blocks; (b) generate twice with different ClangSharp codegen modes, merge; (c) ship only net7+ and drop net462/netstandard2.0 (revisit TFM scope at Phase 4 time). |
-| D10 | Roslyn source generator extension — fork ppy's `FriendlyOverloadGenerator` or write our own? | **Fork ppy's pattern, namespace under `Janset.SDL.SourceGeneration`**. Their MIT-licensed Roslyn extension covers the friendly `string?` overload synthesis we need (Rule 4). Adapt for SDL2 method-naming + multi-TFM emission; contribute back patches if relevant. |
+| D8 | Should generator output get checked into git, or generated on build? | **Checked into git with CI drift check** — same committed-source shape as ppy/SDL3-CS and Alimer.Bindings.SDL, plus a release guard that regenerates and fails on dirty diff. Allows code review of binding diffs, simplifies consumer build (no generator tool transitively), and survives offline build scenarios. |
+| D9 | Multi-TFM emission strategy (`net10/net9/net8/netstandard2.0/net462`) | **Spike both shapes before deciding** — ClangSharp likely needs post-processing or multi-pass merge; CppAst can emit conditional branches directly from one emitter. Also revisit whether `net462` / `netstandard2.0` remain in scope. |
+| D10 | Friendly overload generation strategy | **Undecided** — if ClangSharp wins, fork or adapt ppy's MIT-licensed Roslyn `FriendlyOverloadGenerator`; if CppAst wins, emit friendly overloads offline from the custom emitter. |
 | D11 | Python orchestrator vs PowerShell | **PowerShell** — keeps us in-ecosystem with existing `tools.cs` + Cake build host. Translation of ppy's `generate_bindings.py` is mechanical (~14 KB Python → ~10-15 KB PowerShell). Risk: PowerShell on macOS/Linux runners works but is less mature than Python; if pain surfaces during spike, fall back to Python without ideological resistance. |
 
 ### Risks
@@ -602,13 +668,13 @@ Four discussion threads deferred from this feasibility study, queued for the Pha
 
 ### 10.1 — Open Decisions D1–D11 Triage
 
-§9 enumerates 11 open decisions. The Phase 4 plan-authoring slice works through them. Structural ones first (these shape the generator skeleton): **D1** (vendor SDL headers in repo vs read from vcpkg installation tree — reproducibility, version pinning, offline build implications), **D2** (multi-platform parsing strategy — default tendency is N+1 RSP-per-platform pass per ppy/SDL3-CS pattern; confirm against our 7-RID matrix before committing), **D8** (generated output check-in — both ppy and Alimer check generated code into git; revisit whether that's right for our test/CI scenarios). D3–D7 + D9–D11 fold in as supporting decisions.
+§9 enumerates 11 open decisions. The Phase 4 plan-authoring slice works through them. Structural ones first (these shape the generator skeleton): **D1** (vendor SDL headers in repo vs read from vcpkg installation tree — reproducibility, version pinning, offline build implications), **D2** (multi-platform parsing strategy — default tendency is neutral + platform-specific passes per ppy/SDL3-CS pattern; confirm against our 7-RID matrix before committing), **D8** (generated output check-in — both ppy and Alimer check generated code into git; revisit whether that's right for our test/CI scenarios). D3–D7 + D9–D11 fold in as supporting decisions.
 
 ### 10.2 — Modern P/Invoke Deep-Dive (§2 emit rules)
 
 Several rules deserve standalone design conversations:
 
-- **SDLBool wrapper struct (Rule 5).** Layout, implicit conversion ergonomics, AOT cost, compatibility with `bool` in struct fields. Does our wrapper exactly match Alimer's `[StructLayout(Size=1)] readonly struct SDLBool(byte)`, or do we want a different `bool` ↔ `byte` story?
+- **SDL2/SDL3 boolean wire types (Rule 5).** Layout, implicit conversion ergonomics, AOT cost, compatibility with `bool` in struct fields. SDL2 `SDL_bool` must remain int-backed; SDL3 bool-like values can use a 1-byte wrapper similar to Alimer's `[StructLayout(Size=1)] readonly struct SDLBool(byte)`.
 - **`delegate*` callback lifetime patterns (Rule 7).** SDL retains callback pointers across frames; the `[UnmanagedCallersOnly]` static-method pattern is rooting-free but constrains the caller. Do we ship rooting helpers for instance-bound closures, or document the static-method-only constraint?
 - **Multi-TFM strategy (Rule 1).** Currently planning `net10 / net9 / net8 / netstandard2.0 / net462`. Question: is `net462` genuinely required, or does the baseline shift to `net8` (drops `LibraryImport`/`DllImport` dual-emission complexity, drops `System.Memory` polyfill on netstandard2.0)? TFM scope decision affects RSP config complexity, testing surface, and consumer ecosystem reach.
 - **`[Flags]` attribution for bit-flag enums (§approaches doc finding).** Neither ClangSharp nor CppAst auto-detects bit-flag intent on `Uint64 + #define`-style declarations. Where does `[Flags]` live — RSP per-type-name overrides (`--with-attribute SDL_WindowFlags=Flags`), or hand-written wrapper enum at the consumer layer (Alimer's approach for `SDL_WindowFlags`)?
@@ -634,13 +700,13 @@ Layer prioritization order — all 7 are valuable but land in stages. Specific d
 ## 11. Cross-Reference
 
 - [`binding-autogen-approaches.md`](binding-autogen-approaches.md) — tool comparison, industry survey, decision matrix (the companion to this doc)
-- [`symbol-visibility-analysis.md`](symbol-visibility-analysis.md) — hybrid-static symbol leakage analysis; Layer 4 validation builds on this
+- [`../research/symbol-visibility-analysis.md`](../research/symbol-visibility-analysis.md) — hybrid-static symbol leakage analysis; Layer 4 validation builds on this
 - [`../release-strategy.md`](../release-strategy.md) — Stage 1-5 sequencing, effort calibration, promotion gates
 - [`../phases/phase-4-binding-autogen.md`](../phases/phase-4-binding-autogen.md) — Phase 4 design brief; this feasibility informs the eventual Phase 4 implementation plan
 - [`../phases/phase-5-sdl3-support.md`](../phases/phase-5-sdl3-support.md) — Phase 5 SDL3 brief; AST generator extends to SDL3 in Stage 3
 - [`../knowledge-base/release-guardrails.md`](../knowledge-base/release-guardrails.md) — guardrail catalog; symbol-existence validation (Layer 4) is a new candidate
 - [`../knowledge-base/testing-guidelines.md`](../knowledge-base/testing-guidelines.md) — canonical test infrastructure; Layers 1-6 use existing TUnit + FakeCakeWorld + ConsumerSmoke seams
-- [`../../AGENTS.md`](../../AGENTS.md) — operating rules; `external/sdl2-cs` is transitional, retires when CppAst generator ships
+- [`../../AGENTS.md`](../../AGENTS.md) — operating rules; `external/sdl2-cs` is transitional, retires when the AST-generated binding surface ships
 
 ## Sources Cited
 

@@ -88,12 +88,12 @@ Final unless Deniz explicitly reopens.
 | Hybrid-static encoded by triplets | Triplet names encode the build model; `manifest.runtimes[].strategy` field retired in S11 (2026-05-08); PreFlight validates triplet→overlay coherence via `HybridStaticOverlayValidator` (G16). No `--strategy` CLI flag |
 | Validator uses vcpkg metadata | No manually maintained expected-deps lists; binary closure walker output is ground truth |
 | Package-first consumer contract | Smoke / sample / sandbox csprojs consume packages via local folder feed; `Janset.Local.props` carries family versions |
-| CppAst for binding autogen | Phase 4 — replaces SDL2-CS imports |
-| `external/sdl2-cs` is transitional | Untrusted for production testing; retires when CppAst generator ships |
+| Binding autogen replaces SDL2-CS | Phase 4 replaces SDL2-CS imports with AST-generated bindings. CppAst and ClangSharp are both spike-validated candidates; the final toolchain is intentionally undecided until the WHY/HOW/WHAT design doc is accepted. |
+| `external/sdl2-cs` is transitional | Untrusted for production testing; retires when the AST-generated binding surface ships |
 | C++ native smoke test | CMake/vcpkg IDE-debuggable harness for OS-level hybrid validation |
 | TUnit + MTP for testing | Microsoft.Testing.Platform; characterization tests before refactoring |
 | Release shape | Big-bang v1.0 covering SDL2 + SDL3 + all in-scope satellites, reached iteratively via internal feed → `-preview.N` → `-rc.N` → stable. See [`docs/release-strategy.md`](docs/release-strategy.md). |
-| AST-first prioritization | Phase 4 (CppAst binding generator) lands **before** Phase 3 ship — first public `-preview.N` wave carries AST-generated bindings, not `external/sdl2-cs` imports. See [`docs/release-strategy.md`](docs/release-strategy.md) §Sequencing. |
+| AST-first prioritization | Phase 4 binding auto-generation lands **before** Phase 3 ship — first public `-preview.N` wave carries AST-generated bindings, not `external/sdl2-cs` imports. See [`docs/release-strategy.md`](docs/release-strategy.md) §Sequencing. |
 | Package topology refactor (3-tier role-meta + `.Bindings` + `.Native`) | **DEFERRED.** Research preserved in [`docs/parking-lot/package-topology/`](docs/parking-lot/package-topology/); unpark triggers in [`docs/release-strategy.md`](docs/release-strategy.md) §Deferred Decisions. |
 
 ## Test Naming Convention (TUnit)
@@ -317,7 +317,7 @@ Delegate when scope or analysis depth warrants it:
 - `dotnet-concurrency-specialist` — racy tests, deadlocks, async timing bugs
 - `dotnet-performance-analyst` — profiler/benchmark interpretation, regression detection
 - `dotnet-benchmark-designer` — designing new BenchmarkDotNet suites
-- `roslyn-incremental-generator-specialist` — Phase 4 CppAst binding generator
+- `roslyn-incremental-generator-specialist` — Phase 4 source-generation work if the selected binding toolchain needs Roslyn-based friendly overloads or post-processing
 - `Explore` — broad codebase search (>3 query rounds)
 - `Plan` — implementation strategy design
 

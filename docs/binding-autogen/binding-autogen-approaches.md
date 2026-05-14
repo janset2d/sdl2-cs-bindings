@@ -4,20 +4,20 @@
 **Context**: Evaluating tools for auto-generating C# P/Invoke bindings from SDL2/SDL3 C headers.
 **Companion**: [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) — modern .NET marshalling emit targets, vcpkg/header/cross-platform interaction, manual intervention surface, testing strategy.
 
-## Conclusion
+## Current Evidence Snapshot
 
-**Initial recommendation (2026-04-11):** CppAst (Alimer approach) — lowest friction, purely .NET, full customization.
+**Initial recommendation (2026-04-11):** CppAst (Alimer approach) — lowest orchestration friction, C#-owned emitter, full customization. It is still libclang-backed; "pure .NET" here means no separate Python/CLI generator layer, not no native parser dependency.
 
-**Revised recommendation (2026-05-12 after deeper research):** **ClangSharpPInvokeGenerator** (ppy/SDL3-CS pattern). Driven by:
+**ClangSharp-favoring research recommendation (2026-05-12 after deeper research):** **ClangSharpPInvokeGenerator** (ppy/SDL3-CS pattern). Driven by:
 
-1. Re-evaluation of the 2026-04-11 decision matrix: **3 of 6 rows were scored incorrectly** (".NET ecosystem fit" was inverted, "Community backing" understated, "Setup simplicity" anchored on ppy's Python-orchestration-by-choice rather than ClangSharp's actual requirement). Recalculated total: CppAst 43 vs ClangSharp 63. See §2026-05-12 Update — Decision Matrix Re-Validation.
-2. Production-peer asymmetry: 6+ ClangSharp consumers (Microsoft-owned: CsWin32, win32metadata, TerraFX × 3; .NET Foundation: Silk.NET 3.0; major OSS: ppy/SDL3-CS) vs 4 CppAst consumers (3 in amerkoleci's orbit + SkiaSharp).
-3. Source-level comparison of ppy/SDL3-CS vs Alimer.Bindings.SDL: ppy's pipeline is ~32 KB total (~1/3 Alimer's ~100 KB), uses declarative RSP overrides instead of imperative C# changes, handles multi-platform parsing via N+1 ClangSharp passes (materially more rigorous than Alimer's single-pass-with-all-defines for our 7-RID scope). See §2026-05-12 Source-Level Comparison.
+1. Re-evaluation of the 2026-04-11 decision matrix: **3 of 6 rows were rescored and the weighting model was made explicit** (".NET ecosystem fit" was inverted, "Community backing" understated, "Setup simplicity" anchored on ppy's Python-orchestration-by-choice rather than ClangSharp's actual requirement). Recalculated weighted total: CppAst 43 vs ClangSharp 63. See §2026-05-12 Update — Decision Matrix Re-Validation.
+2. Production-peer asymmetry: more C-header binding precedent around ClangSharp / ClangSharp-derived tooling (TerraFX × 3, Silk.NET 3.0, ppy/SDL3-CS) than CppAst (3 in amerkoleci's orbit + SkiaSharp). CsWin32 and win32metadata remain useful Microsoft interop references, but they are `.winmd`/Roslyn metadata pipelines, not C-header ClangSharp consumers.
+3. Source-level comparison of ppy/SDL3-CS vs Alimer.Bindings.SDL: ppy's pipeline is ~32 KB total (~1/3 Alimer's ~100 KB), uses declarative RSP overrides instead of imperative C# changes, handles multi-platform parsing via N+1 ClangSharp passes (materially more rigorous for platform-conditioned SDL headers than Alimer's single-pass-with-all-defines). See §2026-05-12 Source-Level Comparison.
 4. Active .NET Foundation governance + 3+ active Microsoft committers vs single-maintainer + 3 multi-year-stale issues.
 
-**CppAst remains the right call for a different use case:** custom emission strategy where the generator participates in the output design (SkiaSharp's three-way-conditional `LibraryImport` / `DllImport` / Delegates-with-dlsym emission cannot be expressed in ClangSharp's RSP grammar). Not our scope.
+**Current status:** this is research evidence, not a final project decision. The WHY/HOW/WHAT design doc owns the decision. Deniz currently leans CppAst and wants more information, especially around whether production-shape scope makes a single custom emitter more valuable than ClangSharp's smaller raw-binding setup.
 
-**Validation strategy (added 2026-05-12):** Cross-check generator output against existing third-party bindings — `external/sdl2-cs` (already vendored) for SDL2 ground-truth, [ppy/SDL3-CS](https://github.com/ppy/SDL3-CS) for SDL3 ground-truth **and toolchain reference** (we adopt their generator pattern directly). They are typing + pattern references, not binding sources. See feasibility doc §Reference Cross-Check Strategy.
+**Validation strategy (added 2026-05-12):** Cross-check generator output against existing third-party bindings — `external/sdl2-cs` (already vendored) for SDL2 ground-truth, [ppy/SDL3-CS](https://github.com/ppy/SDL3-CS) for SDL3 ground-truth and ClangSharp reference. They are typing + pattern references, not binding sources. See feasibility doc §Reference Cross-Check Strategy.
 
 ## Approaches Compared
 
@@ -57,7 +57,7 @@ src/Generator/
 
 **Pros**:
 
-- No external dependencies (NuGet package only)
+- No separate generator CLI or Python layer; orchestration stays in C#
 - Full control over generated code
 - Easy to debug (it's just C#)
 - Stays in .NET ecosystem (no Python, no CLI tools)
@@ -67,7 +67,8 @@ src/Generator/
 
 - Custom generator must be maintained
 - Type mapping rules are manual (no database of SDL quirks)
-- Single-platform parsing (depends on platform-specific preprocessor defines)
+- libclang runtime/version coupling still exists and must be pinned with CppAst
+- Alimer's example is single-pass; a production CppAst path still needs explicit neutral + platform parse views for platform-conditioned headers
 
 ### 2. ClangSharp — Official LLVM .NET Binding (ppy/SDL3-CS)
 
@@ -168,7 +169,9 @@ src/Generator/
 | Maintenance burden | HIGH | 3 | 4 | 2 | 4 |
 | CI automation | LOW (for now) | 3 | 3 | 2 | 5 |
 | Community backing | MEDIUM | 3 | 5 | 3 | 2 |
-| **Weighted Total** | | **23** | **22** | **15** | **19** |
+| **Weighted Total** | | **23** | **23** | **15** | **19** |
+
+> Originally published 2026-04-11 with ClangSharp summed as 22; corrected to 23 on 2026-05-14 (column sums to 3+3+5+4+3+5=23). The "Weighted Total" label is historical — these rows were combined as unweighted sums; the actual HIGH/MEDIUM/LOW weighting was introduced on 2026-05-12 (see §"Decision matrix re-validation" below).
 
 ## Migration Path
 
@@ -176,7 +179,7 @@ Start with CppAst → if maintenance becomes painful, migrate to ClangSharp. The
 
 ## 2026-05-12 Update — Industry State + Scope Clarifications
 
-Survey re-validated one month after the initial recommendation. The CppAst decision still holds. Key clarifications that shift implementation expectations:
+Survey re-validated one month after the initial recommendation. The initial CppAst recommendation remained plausible, but later source-level comparison and spikes reframed it as a toolchain candidate rather than a settled decision. Key clarifications that shift implementation expectations:
 
 ### CppAst current state
 
@@ -191,7 +194,7 @@ Critical clarification: Alimer.Bindings.SDL **covers SDL3 core only**. It does N
 
 - License: MIT (compatible with our distribution).
 - Generator scope: `src/Generator/` ≈ 9 files (`Program.cs`, `CsCodeGenerator.cs` + 5 partial files for Commands/Constants/Enum/Handles/Structs, `CodeWriter.cs`, `CsCodeGeneratorOptions.cs`).
-- Single NuGet dep: CppAst 0.21.1 (we'd bump to 0.24.0).
+- Generator package dep: CppAst 0.21.1 in Alimer (we'd bump to 0.24.0), plus explicit libclang runtime/version pinning in our repo. CppAst removes a separate generator CLI, not libclang coupling.
 - No Alimer-specific shared infrastructure; the generator is self-contained.
 
 **What needs added beyond pure copy:**
@@ -221,7 +224,7 @@ Brief landscape of what other 2026 native-binding projects use:
 | amerkoleci/Vortice.Vulkan | CppAst (custom, same pattern as Alimer) | Same |
 | dotnet/Silk.NET 2.x (SDL2, SDL3, Vulkan, OpenGL, WebGPU…) | SilkTouch / BuildTools | `Ref`/`Ptr` wrapper types replacing overload-explosion |
 | dotnet/Silk.NET 3.0 (in-flight) | ClangSharp + SilkTouch mods | Same goal, different parser |
-| ppy/SDL3-CS (SDL3 + image + mixer + ttf) | ClangSharpPInvokeGenerator + Dockerfile + Python | High-quality LibraryImport bindings |
+| ppy/SDL3-CS (SDL3 + image + mixer + ttf) | ClangSharpPInvokeGenerator + Dockerfile + Python | High-quality `DllImport` raw bindings + friendly overload source generator |
 | flibitijibibo/SDL3-CS (SDL3 core only) | c2ffi JSON + custom C# emitter | Dual output: `Core.cs` (LibraryImport) + `Legacy.cs` (DllImport) |
 | bottlenoselabs/SDL3-cs (SDL + image + ttf) | c2cs + c2ffi tools | Auto-generated raw + hand-curated OOP wrapper |
 | FFmpeg.AutoGen | CppSharp (formerly ClangSharpUnsafeGenerator) | DllImport-based |
@@ -232,13 +235,13 @@ Brief landscape of what other 2026 native-binding projects use:
 
 ### Decision matrix re-validation — recommendation flips
 
-The 2026-04-11 matrix gave CppAst 23 vs ClangSharp 22 on a weighted 6-dimension comparison. A deeper source-level review on 2026-05-12 found **3 of the 6 rows were scored incorrectly** in the initial assessment.
+The 2026-04-11 matrix was an unweighted 6-dimension comparison whose columns actually sum to **CppAst 23 vs ClangSharp 23 (tied)**, even though the published row labeled it "23 vs 22" (arithmetic error in the original publication, corrected 2026-05-14 — see note below the original matrix). A deeper source-level review on 2026-05-12 both rescored **3 of the 6 rows** and made the intended HIGH/MEDIUM/LOW weighting explicit. The bigger numeric swing therefore comes from two changes: corrected row scores plus an explicit weighting model.
 
 | Factor | Weight | CppAst (orig → revised) | ClangSharp (orig → revised) | Reason for revision |
 | --- | --- | --- | --- | --- |
 | Setup simplicity | HIGH | 5 → **4** | 3 → **4** | The "ClangSharp requires Python" claim was anchored on ppy/SDL3-CS's choice. Python is NOT required by ClangSharp itself — PowerShell-only and pure-C# orchestration are equally valid. Both tools tie on setup now. |
-| .NET ecosystem fit | HIGH | 5 → **3** | 3 → **5** | **Inverted in the original matrix.** ClangSharp is a .NET Foundation project with Microsoft-paid maintainers (tannergooding, Xamarin team), used by CsWin32, TerraFX, win32metadata, Silk.NET 3.0, ppy/SDL3-CS. CppAst is an independent library that depends on ClangSharp internally. |
-| Output quality | MEDIUM | 4 → **3** | 5 → **5** | ClangSharp ships attribute-rich AOT-ready output OOTB (`[NativeTypeName]`, `[SupportedOSPlatform]`, configurable `LibraryImport` codegen modes). CppAst ships an AST — you write the emitter. Gap wider than initially scored. |
+| .NET ecosystem fit | HIGH | 5 → **3** | 3 → **5** | **Inverted in the original matrix.** ClangSharp is a .NET Foundation project with Microsoft-paid maintainers (tannergooding, Xamarin team), used by TerraFX, Silk.NET 3.0, and ppy/SDL3-CS for C-header binding work. CsWin32 and win32metadata are Microsoft interop references, but they are `.winmd`/Roslyn metadata pipelines and should not be counted as C-header ClangSharp consumers. CppAst is an independent library that depends on ClangSharp/libclang internally. |
+| Output quality | MEDIUM | 4 → **3** | 5 → **5** | ClangSharp ships attribute-rich output OOTB (`[NativeTypeName]`, `[SupportedOSPlatform]`). CppAst ships an AST — you write the emitter. Gap wider than initially scored, although the SDL2_gfx spike found `LibraryImport` conversion still needs a separate decision. |
 | Maintenance burden | HIGH | 3 → **3** | 4 → **4** | Direction was right (ClangSharp lower burden); magnitude was understated. Alimer's CppAst generator is ~100 KB / 2-5K LoC of custom code owned forever; ppy's ClangSharp setup is RSP files + thin orchestrator. |
 | CI automation | LOW | 3 → **3** | 3 → **4** | ClangSharp is a CLI tool invokable directly from CI; libclang ships as platform-specific runtime NuGet packages. CppAst requires building a C# generator project as a CI step. |
 | Community backing | MEDIUM | 3 → **2** | 5 → **5** | CppAst solo-maintained (xoofx, respected but one person), 28 open issues, 3 multi-year-stale critical bugs (#88, #81, #106). ClangSharp has 3+ active Microsoft committers + .NET Foundation governance + tighter response cadence. Gap wider than initially scored. |
@@ -248,7 +251,7 @@ The 2026-04-11 matrix gave CppAst 23 vs ClangSharp 22 on a weighted 6-dimension 
 - CppAst: 3·(4+3+3) + 2·(3+2) + 1·3 = **43**
 - ClangSharp: 3·(4+5+4) + 2·(5+5) + 1·4 = **63**
 
-**This flips the recommendation.** ClangSharpPInvokeGenerator + ppy/SDL3-CS pattern (per-RID RSPs + thin orchestrator) is the right call for Janset.SDL2/SDL3 — multi-TFM, multi-RID, .NET 10, SDL2 + SDL3 with multiple satellite libraries.
+**This flips the research recommendation, not the project decision.** ClangSharpPInvokeGenerator + ppy/SDL3-CS pattern (per-RID RSPs + thin orchestrator) is the strongest raw-binding evidence point for Janset.SDL2/SDL3, but the WHY/HOW/WHAT document still owns the final toolchain decision.
 
 **When CppAst would still be the right call:**
 
@@ -262,7 +265,7 @@ Neither applies to our current scope.
 
 `external/sdl2-cs` (Ethan Lee's SDL2# imports, zlib license, already vendored in this repo) provides every SDL2 + SDL2_image + SDL2_mixer + SDL2_ttf + SDL2_gfx P/Invoke signature in `[DllImport]` form. Total: 11,105 lines across 5 files. **This is our SDL2 ground truth** for "what type does this header field/argument map to?" — not a binding source, but a cross-check oracle.
 
-[ppy/SDL3-CS](https://github.com/ppy/SDL3-CS) (MIT, auto-generated via ClangSharp + Docker, covers SDL3 core + Image + Mixer + TTF — the exact scope we plan for SDL3) provides the same role for SDL3, **and additionally serves as our toolchain reference now that we adopt ClangSharp**.
+[ppy/SDL3-CS](https://github.com/ppy/SDL3-CS) (MIT, auto-generated via ClangSharp + Docker, covers SDL3 core + Image + Mixer + TTF — the exact scope we plan for SDL3) provides the same role for SDL3, **and additionally serves as the ClangSharp reference if that toolchain wins**.
 
 When our generator emits a function signature, we diff against the corresponding ground-truth signature in the reference project. Mismatches surface type-mapping bugs (e.g., `int` vs `SDL_bool`, `IntPtr` vs typed handle struct, `string` vs `byte*`). Captured in detail in [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) §Reference Cross-Check Strategy.
 
@@ -340,7 +343,7 @@ Style deltas:
 - ppy synthesizes the friendly `string?` overload at *consumer compile time* via Roslyn source generator; Alimer emits it eagerly in the generated file.
 - Alimer preserves doxygen as `<summary>…<br/></summary>`; ppy emits no xmldoc.
 
-Note: ppy can be configured to emit `[LibraryImport]` instead via RSP `latest-codegen` / `preview-codegen` modes; the default in their current repo is `[DllImport]`. Our adoption can flip this knob.
+Note: ClangSharp 21.1.8.3 still emits `[DllImport]` under `latest-codegen` / `preview-codegen`; those options select modern language/runtime shapes, not `[LibraryImport]`. If a ClangSharp path wins, `LibraryImport` requires a SYSLIB1054 analyzer fix, Roslyn post-process, or another explicit conversion path.
 
 ### Multi-platform parsing — sharp asymmetry
 
@@ -366,6 +369,8 @@ var options = new CppParserOptions
 ```
 
 For our **7-RID matrix** (Windows × 3, Linux × 2, macOS × 2), ppy's strategy is materially more rigorous. OS-specific functions (e.g., `SDL_SetWindowsMessageHook`) get correctly attributed compile-time, preventing runtime `DllNotFoundException` on consumer platforms that don't have the symbol.
+
+Important nuance: ppy's `generate_bindings.py` is documented as a manually-run script. Its multi-platform output is produced by multiple ClangSharp invocations with different macro views, not by running the generator on Windows/Linux/macOS and merging native-host outputs. By contrast, bottlenoselabs/SDL3-cs is the stronger true multi-OS extraction reference: its bindgen workflow extracts FFI data on Windows, macOS, and Linux runners, merges those platform artifacts into a cross-platform intermediate, then generates C#. That approach is more rigorous when host/sysroot fidelity is required, but it carries a larger merge/conflict-resolution burden than ppy's pass-and-exclude model.
 
 ### Variadic functions — different philosophies
 
@@ -425,12 +430,12 @@ This validates the framing: **CppAst's value is custom emission strategy, not ra
 
 1. ppy's pipeline is ~1/3 the surface of Alimer's (~32 KB vs ~100 KB).
 2. ppy's config is RSP-declarative (one-line per override); Alimer's is C#-imperative (rebuild generator per change).
-3. Alimer ships `[LibraryImport]` by default; ppy ships `[DllImport]`. ClangSharp's `latest-codegen` mode emits `[LibraryImport]` — we flip this knob.
+3. Alimer ships `[LibraryImport]` by default; ppy ships `[DllImport]`. The SDL2_gfx spike found ClangSharp 21.1.8.3 still emits `[DllImport]` under `latest-codegen`, so `LibraryImport` requires analyzer auto-fix, post-processing, or another explicit conversion path.
 4. ppy preserves `[NativeTypeName]` C-provenance everywhere; Alimer drops it.
 5. Alimer preserves doxygen xmldoc; ppy does not (acceptable trade-off; doc can come from a separate pass).
 6. **Multi-platform handling: ppy's N+1 pass is materially more rigorous than Alimer's single-pass-with-all-defines, and this matters for our 7-RID scope.** Critical risk surface.
 7. ppy's `FriendlyOverloadGenerator` Roslyn source-generator-on-top-of-ClangSharp-output is a pattern worth adopting (compile-time synthesis of friendly overloads keeps generated files lean).
-8. SkiaSharpGenerator (CppAst, custom-emission use case) validates "use the right tool for the use case" framing — Skia's three-way-conditional emission requires CppAst's freedom. Our use case is raw-P/Invoke-only; ClangSharp's leaner default wins.
+8. SkiaSharpGenerator (CppAst, custom-emission use case) validates "use the right tool for the use case" framing — Skia's three-way-conditional emission requires CppAst's freedom. If Janset scope stays raw-P/Invoke-only, ClangSharp's leaner default is compelling; if production-shape scope needs custom emission, CppAst becomes more compelling.
 
 ## Sources
 

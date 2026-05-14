@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Spike-only binding library — output of the custom CppAst-based emitter for SDL2_gfx.
+    Sibling to the ClangSharp spike at ../../clangsharp/bindings/.
+    Throwaway artifact on spike branch.
+  -->
+
+  <PropertyGroup>
+    <TargetFrameworks></TargetFrameworks>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsAotCompatible>true</IsAotCompatible>
+    <RootNamespace>Janset.Spike.SDL2.Gfx</RootNamespace>
+    <AssemblyName>Janset.Spike.SDL2.Gfx</AssemblyName>
+    <IsPackable>false</IsPackable>
+
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <CodeAnalysisTreatWarningsAsErrors>false</CodeAnalysisTreatWarningsAsErrors>
+    <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <AnalysisLevel>none</AnalysisLevel>
+    <AnalysisMode>None</AnalysisMode>
+    <NoWarn>$(NoWarn);CS1591;CS8500;CA1707;CA1716;CA2101;SYSLIB1054</NoWarn>
+  </PropertyGroup>
+
+</Project>

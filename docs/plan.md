@@ -20,7 +20,7 @@ Active execution ledger: [phases/phase-2-adaptation-plan.md](phases/phase-2-adap
 
 ## Roadmap
 
-> **Phase sequencing reordered per [`release-strategy.md`](release-strategy.md):** Phase 4 (CppAst binding generator) is **critical path for v1.0** and lands **before** the first public `-preview.N` wave (Phase 2b PD-7). Strategic rationale + stages + promotion gates live in [`release-strategy.md`](release-strategy.md); this file remains the tactical roadmap.
+> **Phase sequencing reordered per [`release-strategy.md`](release-strategy.md):** Phase 4 binding auto-generation is **critical path for v1.0** and lands **before** the first public `-preview.N` wave (Phase 2b PD-7). The generator toolchain is intentionally undecided until the WHY/HOW/WHAT design doc is accepted; current work validates spike evidence for CppAst and ClangSharp. Strategic rationale + stages + promotion gates live in [`release-strategy.md`](release-strategy.md); this file remains the tactical roadmap.
 
 ### Phase 2b — Public release tail
 
@@ -60,7 +60,7 @@ No separate phase doc per [phases/README.md](phases/README.md) retention test �
 
 Design brief: [phases/phase-4-binding-autogen.md](phases/phase-4-binding-autogen.md).
 
-- [ ] Implement CppAst-based binding generator ([#69](https://github.com/janset2d/sdl2-cs-bindings/issues/69))
+- [ ] Validate the binding-generator toolchain and implement the selected AST binding generator ([#69](https://github.com/janset2d/sdl2-cs-bindings/issues/69))
 - [ ] Migrate SDL2 bindings from imported SDL2-CS files to generated code ([#70](https://github.com/janset2d/sdl2-cs-bindings/issues/70))
 
 ### Phase 5 — SDL3 Support

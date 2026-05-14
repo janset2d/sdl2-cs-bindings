@@ -14,38 +14,33 @@ Replace the current SDL2-CS imported bindings with auto-generated C# bindings, e
 3. **Version updates**: When SDL2 or SDL3 releases new versions with API additions, we want to regenerate rather than hand-patch.
 4. **Quality**: Auto-generators can produce consistent marshalling, null checks, and string handling across all bindings.
 
-## Approach: CppAst-Based Generator
+## Approach: Toolchain Not Yet Decided
 
-After researching four different approaches (see [research/binding-autogen-approaches.md](../research/binding-autogen-approaches.md)), the recommended approach is **CppAst** (the same approach used by [Alimer.Bindings.SDL](https://github.com/amerkoleci/Alimer.Bindings.SDL)).
+The Phase 4 toolchain is intentionally undecided until the WHY/HOW/WHAT design doc is accepted. Current work validates spike evidence for two viable candidates:
 
-### Why CppAst Over Alternatives
+| Candidate | Strength | Risk / Cost |
+| --- | --- | --- |
+| CppAst custom emitter | Single C# codebase can absorb multi-TFM emission, friendly overloads, platform attribution, and custom macro handling in one offline generator. | More owned generator code and explicit CppAst/libclang version coordination. |
+| ClangSharpPInvokeGenerator | Smaller raw-binding setup, strong `[NativeTypeName]` provenance, RSP-driven overrides, and ppy/SDL3-CS as a close reference. | Production-shape ergonomics may require coordinated RSP, post-processing, and Roslyn source-generation layers. |
 
-| Criterion | CppAst | ClangSharp | c2ffi | c2ffi+c2cs |
-|-----------|--------|-----------|-------|-----------|
-| External dependencies | None (NuGet pkg) | Python + dotnet tool | CLI install | 2 dotnet tools |
-| Stays in .NET ecosystem | Yes | No (Python) | No (CLI) | Partial |
-| Customization | Full (custom C# generator) | RSP files + flags | Custom C# generator | JSON config |
-| Learning curve | Low | Medium | Medium | High |
-| CI automation | Easy | Medium | Medium | Best |
-
-CppAst provides the best balance of simplicity (pure .NET, NuGet package) and flexibility (full AST access for custom generation logic).
+The current goal is not to crown a winner; it is to validate the spike, identify missing evidence, and make the WHY/HOW/WHAT document decide with a clear trade-off record.
 
 ## Scope
 
 ### 4.1 Generator Project
 
-Create `src/Generator/` as a standalone .NET console app referencing `CppAst` from NuGet. File layout decided at implementation time.
+Create or wire the selected generator tooling after the WHY/HOW/WHAT decision. File layout is decided at implementation time and must keep generated output committed, reproducible, and reviewable.
 
 ### 4.2 Generation Pipeline
 
 ```
 SDL2/SDL3 C headers (from submodule or vendored)
     ↓
-CppAst.CppParser.ParseFile()  (libclang-based parsing)
+Selected AST parser/toolchain  (CppAst or ClangSharp/libclang)
     ↓
 CppCompilation AST  (types, functions, enums, structs, constants)
     ↓
-Custom CsCodeGenerator  (type mapping, marshalling rules, naming conventions)
+Generator/emission layer  (type mapping, marshalling rules, naming conventions)
     ↓
 Generated/*.cs  (one file per category or per-header)
     ↓
@@ -73,6 +68,7 @@ The same generator should handle SDL3 headers with minimal configuration changes
 - [ ] Generated SDL2 bindings compile and pass smoke tests
 - [ ] SDL2-CS imports replaced with generated code
 - [ ] Generator can also produce SDL3 bindings (validated by compilation)
+- [ ] Platform-conditioned SDL headers are parsed through controlled neutral + platform-specific passes, with OS-only symbols attributed or isolated appropriately
 - [ ] Generation is documented and reproducible
 - [ ] Generated code is committed to repo (not generated at build time)
 
@@ -82,10 +78,11 @@ The same generator should handle SDL3 headers with minimal configuration changes
 2. **String marshalling**: SDL functions use UTF-8 strings. Need consistent approach (custom marshaller, Unsafe_ prefix + source generator, or explicit encoding).
 3. **Header source**: Vendor SDL headers in the repo (Alimer approach) or parse from submodule?
 4. **Safe wrappers**: Generate only raw P/Invoke, or also generate safe overloads (ref/out parameters, span-based, string-returning)?
+5. **Platform passes**: Implement ppy-style neutral + platform-specific passes in ClangSharp orchestration, or implement equivalent pass orchestration in a CppAst emitter?
 
 ## References
 
 - [Alimer.Bindings.SDL Generator](https://github.com/amerkoleci/Alimer.Bindings.SDL/tree/main/src/Generator)
 - [CppAst NuGet Package](https://www.nuget.org/packages/CppAst)
 - [ppy/SDL3-CS ClangSharp approach](https://github.com/ppy/SDL3-CS)
-- [research/binding-autogen-approaches.md](../research/binding-autogen-approaches.md)
+- [binding-autogen/README.md](../binding-autogen/README.md)

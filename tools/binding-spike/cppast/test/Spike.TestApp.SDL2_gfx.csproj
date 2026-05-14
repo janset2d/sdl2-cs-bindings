@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Spike test app (CppAst side). Identical Program.cs to ClangSharp test (linked via Compile Include).
+    Only difference: ProjectReference target. Apples-to-apples runtime validation.
+  -->
+
+  <PropertyGroup>
+    <TargetFrameworks></TargetFrameworks>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsAotCompatible>false</IsAotCompatible>
+    <RootNamespace>Janset.Spike.SDL2.Gfx.Test</RootNamespace>
+    <AssemblyName>Janset.Spike.SDL2.Gfx.Test.CppAst</AssemblyName>
+    <IsPackable>false</IsPackable>
+
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <AnalysisLevel>none</AnalysisLevel>
+    <AnalysisMode>None</AnalysisMode>
+    <NoWarn>$(NoWarn);CS1591;CS8500;CA1707;CA1716;CA2101</NoWarn>
+  </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)../../../../build/msbuild/Janset.Local.props"
+          Condition="Exists('$(MSBuildThisFileDirectory)../../../../build/msbuild/Janset.Local.props')" />
+
+  <PropertyGroup Condition="'$(LocalPackageFeed)' != ''">
+    <RestoreAdditionalProjectSources>$(RestoreAdditionalProjectSources);$(LocalPackageFeed)</RestoreAdditionalProjectSources>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Janset.SDL2.Core" VersionOverride="[$(JansetSdl2CorePackageVersion)]" />
+    <PackageReference Include="Janset.SDL2.Gfx.Native" VersionOverride="[$(JansetSdl2GfxPackageVersion)]" />
+
+    <!-- Difference vs ClangSharp test: this ProjectReference target -->
+    <ProjectReference Include="../bindings/Spike.Bindings.SDL2_gfx.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Shared Program.cs from ClangSharp side — apples-to-apples test, same code, different bindings. -->
+    <Compile Include="../../clangsharp/test/Program.cs" Link="Program.cs" />
+  </ItemGroup>
+
+</Project>

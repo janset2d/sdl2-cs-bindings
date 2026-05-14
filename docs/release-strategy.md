@@ -12,7 +12,7 @@ For project framing, glossary, and non-goals, read [`onboarding.md`](onboarding.
 
 - **Pride-driven, not deadline-driven.** Hobby project, but the v1.0 launch is a "fame and glory" milestone — quality bar over delivery date. Don't ship until the maintainer is willing to put their name on it publicly.
 - **Full SDL coverage at v1.0.** Stable carries SDL2 + SDL3 families with all in-scope satellites. Partial coverage is preview territory.
-- **AST-generated bindings.** Manually maintained P/Invoke imports do not scale to SDL3 (no upstream `SDL3-CS` covering the satellite set we ship) and are unsustainable across 11K+ lines of bindings. The CppAst-based generator (Phase 4 per [`phases/phase-4-binding-autogen.md`](phases/phase-4-binding-autogen.md) and [`research/binding-autogen-approaches.md`](research/binding-autogen-approaches.md)) is **critical path for v1.0** — not a post-launch nice-to-have.
+- **AST-generated bindings.** Manually maintained P/Invoke imports do not scale to SDL3 (no upstream `SDL3-CS` covering the satellite set we ship) and are unsustainable across 11K+ lines of bindings. The binding auto-generation workstream (Phase 4 per [`phases/phase-4-binding-autogen.md`](phases/phase-4-binding-autogen.md) and [`binding-autogen/`](binding-autogen/)) is **critical path for v1.0** — not a post-launch nice-to-have. The generator toolchain remains undecided until the WHY/HOW/WHAT design doc is accepted.
 - **Maintainer accepts the post-launch treadmill.** Once stable ships, SDL upstream version bumps drive regenerate-and-release-wave cycles. NativeSmoke + ConsumerSmoke matrices catch mechanical regressions; semantic / API-drift regressions need occasional manual play-test passes.
 
 ## End State at v1.0
@@ -34,7 +34,7 @@ The roadmap **reorders the phase sequence in [`plan.md`](plan.md)**: AST landing
 | Stage | Phase mapping | Focus | Public-ship state |
 | --- | --- | --- | --- |
 | **Stage 0 — Current** | Phase 2b tail | CI/CD hardening; PD-7 / PD-8 prerequisites; pipeline scope-assumption gaps (#2 / #3 / #4) | Internal feed only |
-| **Stage 1 — AST proof-of-life** | Phase 4 (start) | CppAst generator R&D; SDL2.Core AST-generated end-to-end; learning-sdl2 validates output | Internal feed only |
+| **Stage 1 — AST proof-of-life** | Phase 4 (start) | Binding-generator R&D; SDL2.Core AST-generated end-to-end; learning-sdl2 validates output | Internal feed only |
 | **Stage 2 — SDL2 AST sweep** | Phase 4 (close) + Phase 3 | All SDL2 satellites AST-generated; `external/sdl2-cs` retired; samples + meta-package; **first `-preview.N` on nuget.org** | nuget.org `-preview.N` |
 | **Stage 3 — SDL3 extension** | Phase 5 | SDL3 family added; AST generator extended for SDL3 headers; SDL3 prereleases ship alongside SDL2 | nuget.org `-preview.N` for SDL2 + SDL3 |
 | **Stage 4 — Stabilization** | 2027 Stabilization | Real-consumer feedback intake; deferred-decision revisits; v1.0 launch wave preparation | nuget.org `-rc.N` near launch |
@@ -142,7 +142,7 @@ Currently: ≥2 weeks per wave. Open to revision if real-consumer feedback signa
 - [`onboarding.md`](onboarding.md) — project framing, glossary, non-goals
 - [`phases/phase-4-binding-autogen.md`](phases/phase-4-binding-autogen.md) — AST generator design brief
 - [`phases/phase-5-sdl3-support.md`](phases/phase-5-sdl3-support.md) — SDL3 monorepo + bindings design brief
-- [`research/binding-autogen-approaches.md`](research/binding-autogen-approaches.md) — CppAst vs alternatives, decision matrix
+- [`binding-autogen/`](binding-autogen/) — binding generator workstream index, approaches, feasibility, and spike findings
 - [`decisions/2026-05-05-d3seg-and-package-first.md`](decisions/2026-05-05-d3seg-and-package-first.md) — ADR-001 D-3seg + package-first consumer contract
 - [`parking-lot/package-topology/`](parking-lot/package-topology/) — deferred topology research
 - [`parking-lot.md`](parking-lot.md) — other deferred ideas

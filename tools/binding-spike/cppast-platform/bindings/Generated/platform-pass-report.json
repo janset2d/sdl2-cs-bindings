@@ -1,0 +1,141 @@
+[
+  {
+    "Platform": "Neutral",
+    "Defines": [
+    ],
+    "Undefines": [
+      "_WIN32",
+      "WIN32",
+      "__WIN32__",
+      "__WINDOWS__",
+      "linux",
+      "__linux",
+      "__linux__",
+      "__LINUX__",
+      "__APPLE__",
+      "__MACOSX__"
+    ],
+    "EmittedFunctions": [
+      "SDL_SetMainReady",
+      "SDL_main",
+      "SDL_IsTablet",
+      "SDL_OnApplicationDidBecomeActive",
+      "SDL_OnApplicationDidEnterBackground",
+      "SDL_OnApplicationDidReceiveMemoryWarning",
+      "SDL_OnApplicationWillEnterForeground",
+      "SDL_OnApplicationWillResignActive",
+      "SDL_OnApplicationWillTerminate"
+    ],
+    "ExcludedAsNeutral": [
+    ],
+    "DeferredConcerns": [
+      "SDL_syswm.h platform-specific struct/union layout is intentionally deferred from this function-only spike."
+    ]
+  },
+  {
+    "Platform": "Windows",
+    "Defines": [
+      "_WIN32=1",
+      "WIN32=1",
+      "__WIN32__=1",
+      "__WINDOWS__=1"
+    ],
+    "Undefines": [
+      "linux",
+      "__linux",
+      "__linux__",
+      "__LINUX__",
+      "__APPLE__",
+      "__MACOSX__"
+    ],
+    "EmittedFunctions": [
+      "SDL_RegisterApp",
+      "SDL_UnregisterApp",
+      "SDL_DXGIGetOutputInfo",
+      "SDL_Direct3D9GetAdapterIndex",
+      "SDL_RenderGetD3D11Device",
+      "SDL_RenderGetD3D12Device",
+      "SDL_RenderGetD3D9Device",
+      "SDL_SetWindowsMessageHook"
+    ],
+    "ExcludedAsNeutral": [
+      "SDL_IsTablet",
+      "SDL_OnApplicationDidBecomeActive",
+      "SDL_OnApplicationDidEnterBackground",
+      "SDL_OnApplicationDidReceiveMemoryWarning",
+      "SDL_OnApplicationWillEnterForeground",
+      "SDL_OnApplicationWillResignActive",
+      "SDL_OnApplicationWillTerminate",
+      "SDL_SetMainReady",
+      "SDL_main"
+    ],
+    "DeferredConcerns": [
+    ]
+  },
+  {
+    "Platform": "Linux",
+    "Defines": [
+      "linux=1",
+      "__linux=1",
+      "__linux__=1",
+      "__LINUX__=1"
+    ],
+    "Undefines": [
+      "_WIN32",
+      "WIN32",
+      "__WIN32__",
+      "__WINDOWS__",
+      "__APPLE__",
+      "__MACOSX__"
+    ],
+    "EmittedFunctions": [
+      "SDL_LinuxSetThreadPriority",
+      "SDL_LinuxSetThreadPriorityAndPolicy"
+    ],
+    "ExcludedAsNeutral": [
+      "SDL_IsTablet",
+      "SDL_OnApplicationDidBecomeActive",
+      "SDL_OnApplicationDidEnterBackground",
+      "SDL_OnApplicationDidReceiveMemoryWarning",
+      "SDL_OnApplicationWillEnterForeground",
+      "SDL_OnApplicationWillResignActive",
+      "SDL_OnApplicationWillTerminate",
+      "SDL_SetMainReady",
+      "SDL_main"
+    ],
+    "DeferredConcerns": [
+    ]
+  },
+  {
+    "Platform": "OSX",
+    "Defines": [
+      "__MACOSX__=1"
+    ],
+    "Undefines": [
+      "_WIN32",
+      "WIN32",
+      "__WIN32__",
+      "__WINDOWS__",
+      "linux",
+      "__linux",
+      "__linux__",
+      "__LINUX__",
+      "__APPLE__"
+    ],
+    "EmittedFunctions": [
+    ],
+    "ExcludedAsNeutral": [
+      "SDL_IsTablet",
+      "SDL_OnApplicationDidBecomeActive",
+      "SDL_OnApplicationDidEnterBackground",
+      "SDL_OnApplicationDidReceiveMemoryWarning",
+      "SDL_OnApplicationWillEnterForeground",
+      "SDL_OnApplicationWillResignActive",
+      "SDL_OnApplicationWillTerminate",
+      "SDL_SetMainReady",
+      "SDL_main"
+    ],
+    "DeferredConcerns": [
+    ]
+  }
+]

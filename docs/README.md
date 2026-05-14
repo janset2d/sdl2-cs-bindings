@@ -43,6 +43,15 @@
 
 Phase 3 (SDL2 Complete — samples, meta-package, first prerelease) lives directly in [plan.md](plan.md) per the [phases/README.md](phases/README.md) retention test.
 
+### Binding Auto-Generation Workstream
+
+| Document | Purpose |
+| --- | --- |
+| [binding-autogen/README.md](binding-autogen/README.md) | Workstream index and reading order for Phase 4 binding generator research, feasibility, and spike findings |
+| [binding-autogen/binding-autogen-onboarding.md](binding-autogen/binding-autogen-onboarding.md) | Fast onboarding for a fresh contributor or agent picking up the binding-autogen workstream |
+| [binding-autogen/binding-autogen-feasibility.md](binding-autogen/binding-autogen-feasibility.md) | Emit rules, platform-conditioned parsing model, validation layers, open decisions |
+| [binding-autogen/binding-autogen-spike-findings.md](binding-autogen/binding-autogen-spike-findings.md) | Hands-on SDL2_gfx spike findings for ClangSharp and CppAst |
+
 ### Playbook (How-To Recipes)
 
 | Document | Question It Answers |
@@ -73,7 +82,7 @@ See [decisions/README.md](decisions/README.md) for the index.
 
 ### Research (Dated Findings)
 
-[`research/`](research/) holds dated design rationale, comparative analyses, and historical research notes. Verify against current code before acting on any individual note.
+[`research/`](research/) holds dated design rationale, comparative analyses, and historical research notes. Active binding-generation workstream material lives in [`binding-autogen/`](binding-autogen/). Verify against current code before acting on any individual note.
 
 ## Conflict Resolution
 
