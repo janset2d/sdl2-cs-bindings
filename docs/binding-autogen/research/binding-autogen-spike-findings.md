@@ -5,7 +5,9 @@
 **Companion docs:**
 - [`binding-autogen-approaches.md`](binding-autogen-approaches.md) — toolchain evidence (CppAst → ClangSharp research recommendation, not final decision)
 - [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) — design feasibility (emit rules, testing strategy, open decisions)
-- [`../release-strategy.md`](../release-strategy.md) — AST-first stage sequencing
+- [`release-strategy.md`](../../release-strategy.md) — AST-first stage sequencing
+
+> **Decision note (2026-05-14):** This remains the spike evidence record. The accepted strategy brief and ADR-004 select the CppAst path for Phase 4 planning while preserving ClangSharp as the documented migration path.
 
 This document captures the **hands-on findings from running BOTH the ClangSharp+RSP pipeline and the CppAst-custom-emitter pipeline on SDL2_gfx**, plus deep-research on toolchain ecosystem practices. Both spikes ran on the same branch + same SDL2_gfx surface for apples-to-apples comparison. The earlier toolchain flip recommendation (CppAst → ClangSharp) was based on industry survey + source-level comparison of ppy/SDL3-CS vs Alimer.Bindings.SDL; this spike validates the evidence, not a final project decision.
 
@@ -886,8 +888,8 @@ These surfaced during spike, captured for the Phase 4 implementation plan to res
 
 - [`binding-autogen-approaches.md`](binding-autogen-approaches.md) — toolchain selection (CppAst → ClangSharp flip), industry survey, decision matrix
 - [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) — 11 emit rules, 7-layer testing strategy, 11 open decisions (D1–D11), 4 pending discussion threads
-- [`../release-strategy.md`](../release-strategy.md) — Stage 0-5 path, AST-first sequencing, end state at v1.0
-- [`../phases/phase-4-binding-autogen.md`](../phases/phase-4-binding-autogen.md) — Phase 4 design brief
+- [`../release-strategy.md`](../../release-strategy.md) — Stage 0-5 path, AST-first sequencing, end state at v1.0
+- [`../phases/phase-4-binding-autogen.md`](../../phases/phase-4-binding-autogen.md) — Phase 4 design brief
 - `tools/binding-spike/clangsharp/` — actual spike artifacts (on `spike/binding-autogen-sdl2-gfx` branch)
 
 ## Sources Cited

@@ -14,16 +14,16 @@ Replace the current SDL2-CS imported bindings with auto-generated C# bindings, e
 3. **Version updates**: When SDL2 or SDL3 releases new versions with API additions, we want to regenerate rather than hand-patch.
 4. **Quality**: Auto-generators can produce consistent marshalling, null checks, and string handling across all bindings.
 
-## Approach: Toolchain Not Yet Decided
+## Approach: CppAst Strategy Selected
 
-The Phase 4 toolchain is intentionally undecided until the WHY/HOW/WHAT design doc is accepted. Current work validates spike evidence for two viable candidates:
+The accepted WHY/HOW/WHAT strategy brief selects a CppAst-based C# emitter for Phase 4 planning. ClangSharp remains a validated fallback and migration path if the CppAst maintenance trade-off becomes unfavorable.
 
 | Candidate | Strength | Risk / Cost |
 | --- | --- | --- |
 | CppAst custom emitter | Single C# codebase can absorb multi-TFM emission, friendly overloads, platform attribution, and custom macro handling in one offline generator. | More owned generator code and explicit CppAst/libclang version coordination. |
 | ClangSharpPInvokeGenerator | Smaller raw-binding setup, strong `[NativeTypeName]` provenance, RSP-driven overrides, and ppy/SDL3-CS as a close reference. | Production-shape ergonomics may require coordinated RSP, post-processing, and Roslyn source-generation layers. |
 
-The current goal is not to crown a winner; it is to validate the spike, identify missing evidence, and make the WHY/HOW/WHAT document decide with a clear trade-off record.
+The current goal is to turn the accepted strategy into a Stage 1 implementation plan: SDL2.Core proof-of-life, neutral + platform-specific parse views, generated source committed to git, package-consumer smoke, and drift validation.
 
 ## Scope
 
@@ -86,3 +86,4 @@ The same generator should handle SDL3 headers with minimal configuration changes
 - [CppAst NuGet Package](https://www.nuget.org/packages/CppAst)
 - [ppy/SDL3-CS ClangSharp approach](https://github.com/ppy/SDL3-CS)
 - [binding-autogen/README.md](../binding-autogen/README.md)
+- [binding-autogen/binding-autogen-strategy-brief.md](../binding-autogen/binding-autogen-strategy-brief.md)

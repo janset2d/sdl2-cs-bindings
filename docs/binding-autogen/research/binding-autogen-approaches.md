@@ -4,6 +4,8 @@
 **Context**: Evaluating tools for auto-generating C# P/Invoke bindings from SDL2/SDL3 C headers.
 **Companion**: [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) — modern .NET marshalling emit targets, vcpkg/header/cross-platform interaction, manual intervention surface, testing strategy.
 
+> **Decision note (2026-05-14):** This remains the research record. The accepted strategy brief and ADR-004 select the CppAst path for Phase 4 planning while preserving ClangSharp as the documented migration path.
+
 ## Current Evidence Snapshot
 
 **Initial recommendation (2026-04-11):** CppAst (Alimer approach) — lowest orchestration friction, C#-owned emitter, full customization. It is still libclang-backed; "pure .NET" here means no separate Python/CLI generator layer, not no native parser dependency.

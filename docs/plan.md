@@ -20,7 +20,7 @@ Active execution ledger: [phases/phase-2-adaptation-plan.md](phases/phase-2-adap
 
 ## Roadmap
 
-> **Phase sequencing reordered per [`release-strategy.md`](release-strategy.md):** Phase 4 binding auto-generation is **critical path for v1.0** and lands **before** the first public `-preview.N` wave (Phase 2b PD-7). The generator toolchain is intentionally undecided until the WHY/HOW/WHAT design doc is accepted; current work validates spike evidence for CppAst and ClangSharp. Strategic rationale + stages + promotion gates live in [`release-strategy.md`](release-strategy.md); this file remains the tactical roadmap.
+> **Phase sequencing reordered per [`release-strategy.md`](release-strategy.md):** Phase 4 binding auto-generation is **critical path for v1.0** and lands **before** the first public `-preview.N` wave (Phase 2b PD-7). ADR-004 selects a CppAst-based generator for Phase 4 planning, with ClangSharp retained as the documented migration path. Strategic rationale + stages + promotion gates live in [`release-strategy.md`](release-strategy.md); this file remains the tactical roadmap.
 
 ### Phase 2b — Public release tail
 

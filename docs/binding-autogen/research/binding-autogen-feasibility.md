@@ -4,6 +4,8 @@
 **Companion**: [`binding-autogen-approaches.md`](binding-autogen-approaches.md) — tool comparison, industry survey, decision matrix.
 **Context**: Goes beyond "which tool" to answer "is this actually doable on our stack, what code would the generator emit in 2026, how does it interact with our hybrid-static vcpkg pipeline, what's manual vs automated, how do we know it works."
 
+> **Decision note (2026-05-14):** This remains the feasibility research record. The accepted strategy brief and ADR-004 select the CppAst path for Phase 4 planning while preserving ClangSharp as the documented migration path.
+
 ## 1. Scope
 
 This document covers four feasibility dimensions:
@@ -384,7 +386,7 @@ This matches the observable ppy/SDL3-CS package shape: `SDL3_image-CS` is a sepa
 
 ### Hybrid-static recap
 
-Per [`vcpkg-overlay-triplets/_hybrid-common.cmake`](../../vcpkg-overlay-triplets/_hybrid-common.cmake):
+Per [`vcpkg-overlay-triplets/_hybrid-common.cmake`](../../../vcpkg-overlay-triplets/_hybrid-common.cmake):
 
 - Default library linkage: **static** (transitive deps like zlib, libpng, FreeType are baked into satellite shared libraries).
 - SDL family linkage: **dynamic** (we ship `SDL2.dll` / `libSDL2.so` / `libSDL2-2.0.dylib` as dependencies).
@@ -422,7 +424,7 @@ This validation is a **new guardrail candidate** for the Pack stage (joining G46
 
 ### Interaction with Phase 2b Linux version scripts
 
-[`../research/symbol-visibility-analysis.md`](../research/symbol-visibility-analysis.md) records the decision to add Linux version scripts (`.map` files) per satellite in Phase 2b. Once those land, the **exported symbol set tightens further** — only `SDL_*` / `IMG_*` / `Mix_*` / `TTF_*` prefixed symbols stay exported, everything else is `local: *`.
+[`../research/symbol-visibility-analysis.md`](../../research/symbol-visibility-analysis.md) records the decision to add Linux version scripts (`.map` files) per satellite in Phase 2b. Once those land, the **exported symbol set tightens further** — only `SDL_*` / `IMG_*` / `Mix_*` / `TTF_*` prefixed symbols stay exported, everything else is `local: *`.
 
 For the AST generator, this **simplifies validation**: the exported set is now glob-pattern-driven (`SDL_*`), so we can statically check generator output against the version script's pattern rather than per-symbol dynamic lookup. Win for repeatability.
 
@@ -436,7 +438,7 @@ CppAst + manual type-mapping rules can produce subtly wrong signatures: `int` wh
 
 ### SDL2 oracle: `external/sdl2-cs`
 
-Already vendored at [`external/sdl2-cs/src/`](../../external/sdl2-cs/src/). Coverage:
+Already vendored at [`external/sdl2-cs/src/`](../../../external/sdl2-cs/src/). Coverage:
 
 | File | Lines |
 | --- | --- |
@@ -468,7 +470,7 @@ Modern format: ClangSharp + RSP-driven, `[DllImport]` by default in ppy's curren
 
 ### Caveat — Reference projects may be wrong too
 
-sdl2-cs has known issues (it's POC-grade, "untrusted for production" per [`AGENTS.md`](../../AGENTS.md)). ppy/SDL3-CS is high-quality but generator-emitted bindings can contain edge cases. Cross-check tells us **which signatures need human review**, not **which signatures are correct by definition**.
+sdl2-cs has known issues (it's POC-grade, "untrusted for production" per [`AGENTS.md`](../../../AGENTS.md)). ppy/SDL3-CS is high-quality but generator-emitted bindings can contain edge cases. Cross-check tells us **which signatures need human review**, not **which signatures are correct by definition**.
 
 Triangulation against multiple oracles + the C header itself produces a stronger signal than any single oracle. For SDL3 cross-check, also consult Alimer.Bindings.SDL (SDL3 core only) as a secondary reference.
 
@@ -596,8 +598,8 @@ Compiled-correct ≠ semantically-correct. Some bugs (struct field offset wrong,
 Three sources for this layer:
 
 1. **learning-sdl2** (Deniz's external consumer) — already serves as a real-world consumer running real SDL apps. After every public-feed wave, `learning-sdl2` validates the wave against actual rendering / audio / font scenarios.
-2. **Manual play-test pass** — occasional human-driven exercise. Cadence at maintainer discretion; recommended before each `-rc.N` promotion per [`release-strategy.md`](../release-strategy.md) §Promotion Gates.
-3. **Sample applications** under `samples/` (planned per [`plan.md`](../plan.md) Phase 3) — small SDL programs that exercise common patterns. Build + smoke-run gates on CI.
+2. **Manual play-test pass** — occasional human-driven exercise. Cadence at maintainer discretion; recommended before each `-rc.N` promotion per [`release-strategy.md`](../../release-strategy.md) §Promotion Gates.
+3. **Sample applications** under `samples/` (planned per [`plan.md`](../../plan.md) Phase 3) — small SDL programs that exercise common patterns. Build + smoke-run gates on CI.
 
 ### Test layer summary
 
@@ -626,7 +628,7 @@ Total upfront tooling cost: ~15-25h focused work. Per-regeneration cost: zero (a
 
 Total drops from prior CppAst estimate (~8–10 weeks focused / 5–9 months calendar) to **~5–8 weeks focused / 3.5–7 months calendar**. The ~3 week / 1.5 month savings come from not writing + maintaining a custom emitter — ClangSharp + ppy's pattern do that work for us.
 
-[`release-strategy.md`](../release-strategy.md) §Effort Calibration estimates total work across all 5 stages at **~8–14 weeks focused / ~10–17 months calendar**, of which the Phase 4 portion (stages 1–3 — proof-of-life, SDL2 sweep, SDL3 extension) is **~5–8 weeks focused / ~3.5–7 months calendar**. The ClangSharp-pattern analysis above lands on the same Phase 4 number; the two docs agree once Phase 4 is separated from Stabilization + Big Bang. Verified 2026-05-14.
+[`release-strategy.md`](../../release-strategy.md) §Effort Calibration estimates total work across all 5 stages at **~8–14 weeks focused / ~10–17 months calendar**, of which the Phase 4 portion (stages 1–3 — proof-of-life, SDL2 sweep, SDL3 extension) is **~5–8 weeks focused / ~3.5–7 months calendar**. The ClangSharp-pattern analysis above lands on the same Phase 4 number; the two docs agree once Phase 4 is separated from Stabilization + Big Bang. Verified 2026-05-14.
 
 ## 9. Open Decisions and Risks
 
@@ -659,7 +661,7 @@ Total drops from prior CppAst estimate (~8–10 weeks focused / 5–9 months cal
 | Multi-TFM `LibraryImport` + `DllImport` dual emission produces subtle behavioral divergence | Low-medium | TUnit consumer smoke runs on every TFM independently (existing). D9 spike validates the post-processing approach before commit. |
 | PowerShell orchestrator (D11) hits a portability snag on Linux/macOS runners | Low-medium | Fall back to Python (ppy's choice) if PowerShell pain surfaces — no ideological commitment, mechanical translation either way |
 | ppy's `FriendlyOverloadGenerator` Roslyn extension doesn't fit our multi-TFM model cleanly | Medium | D10 fork-and-adapt path planned; worst case we write the friendly-overload pass ourselves (~200-400 lines Roslyn) |
-| Phase 4 effort overruns by 2x | Low (down from prior Medium) | ClangSharp pattern is smaller surface than CppAst pattern; ppy/SDL3-CS as working reference de-risks integration. Per [`release-strategy.md`](../release-strategy.md), hobby cadence already accommodates worst-case 2-3x calendar variance |
+| Phase 4 effort overruns by 2x | Low (down from prior Medium) | ClangSharp pattern is smaller surface than CppAst pattern; ppy/SDL3-CS as working reference de-risks integration. Per [`release-strategy.md`](../../release-strategy.md), hobby cadence already accommodates worst-case 2-3x calendar variance |
 | Generator becomes maintenance burden (the case where CppAst migration would be considered) | Low | If RSP grammar can't express something we need at SDL scope, it's edge-case enough to handle in a Roslyn extension pass. Migration to CppAst would be considered if/when we decide to ship a Skia-style curated public API on top of raw bindings — not before. |
 
 ## 10. Pending Discussion Threads — WHY/HOW/WHAT Cycle
@@ -684,7 +686,7 @@ Several rules deserve standalone design conversations:
 Layer prioritization order — all 7 are valuable but land in stages. Specific design threads to anchor at Phase 4 plan time:
 
 - **Layer 4 design — symbol-existence validation as new Pack-stage guardrail.** Where does it live under `build/_build/Validation/`? Error message shape (filename, function name, target satellite, cross-platform tool output)? Integration with G46–G58 (joins as new entry or extends an existing one)? Behavior-first naming convention for the `release-guardrails.md` catalog entry?
-- **Layer 7 — Semantic / behavior testing coverage gap.** `learning-sdl2` covers real-usage scenarios maintainer cares about. Gap: code paths `learning-sdl2` doesn't exercise. Do we want sample apps under `samples/` (per [`plan.md`](../plan.md) Phase 3) to anchor specific scenarios (audio playback, font rendering, image loading, GPU API surface for SDL3)?
+- **Layer 7 — Semantic / behavior testing coverage gap.** `learning-sdl2` covers real-usage scenarios maintainer cares about. Gap: code paths `learning-sdl2` doesn't exercise. Do we want sample apps under `samples/` (per [`plan.md`](../../plan.md) Phase 3) to anchor specific scenarios (audio playback, font rendering, image loading, GPU API surface for SDL3)?
 
 ### 10.4 — Reference Cross-Check Tool Design (§5 + §7 Layer 3)
 
@@ -700,13 +702,13 @@ Layer prioritization order — all 7 are valuable but land in stages. Specific d
 ## 11. Cross-Reference
 
 - [`binding-autogen-approaches.md`](binding-autogen-approaches.md) — tool comparison, industry survey, decision matrix (the companion to this doc)
-- [`../research/symbol-visibility-analysis.md`](../research/symbol-visibility-analysis.md) — hybrid-static symbol leakage analysis; Layer 4 validation builds on this
-- [`../release-strategy.md`](../release-strategy.md) — Stage 1-5 sequencing, effort calibration, promotion gates
-- [`../phases/phase-4-binding-autogen.md`](../phases/phase-4-binding-autogen.md) — Phase 4 design brief; this feasibility informs the eventual Phase 4 implementation plan
-- [`../phases/phase-5-sdl3-support.md`](../phases/phase-5-sdl3-support.md) — Phase 5 SDL3 brief; AST generator extends to SDL3 in Stage 3
-- [`../knowledge-base/release-guardrails.md`](../knowledge-base/release-guardrails.md) — guardrail catalog; symbol-existence validation (Layer 4) is a new candidate
-- [`../knowledge-base/testing-guidelines.md`](../knowledge-base/testing-guidelines.md) — canonical test infrastructure; Layers 1-6 use existing TUnit + FakeCakeWorld + ConsumerSmoke seams
-- [`../../AGENTS.md`](../../AGENTS.md) — operating rules; `external/sdl2-cs` is transitional, retires when the AST-generated binding surface ships
+- [`../research/symbol-visibility-analysis.md`](../../research/symbol-visibility-analysis.md) — hybrid-static symbol leakage analysis; Layer 4 validation builds on this
+- [`../release-strategy.md`](../../release-strategy.md) — Stage 1-5 sequencing, effort calibration, promotion gates
+- [`../phases/phase-4-binding-autogen.md`](../../phases/phase-4-binding-autogen.md) — Phase 4 design brief; this feasibility informs the eventual Phase 4 implementation plan
+- [`../phases/phase-5-sdl3-support.md`](../../phases/phase-5-sdl3-support.md) — Phase 5 SDL3 brief; AST generator extends to SDL3 in Stage 3
+- [`../knowledge-base/release-guardrails.md`](../../knowledge-base/release-guardrails.md) — guardrail catalog; symbol-existence validation (Layer 4) is a new candidate
+- [`../knowledge-base/testing-guidelines.md`](../../knowledge-base/testing-guidelines.md) — canonical test infrastructure; Layers 1-6 use existing TUnit + FakeCakeWorld + ConsumerSmoke seams
+- [`../../AGENTS.md`](../../../AGENTS.md) — operating rules; `external/sdl2-cs` is transitional, retires when the AST-generated binding surface ships
 
 ## Sources Cited
 

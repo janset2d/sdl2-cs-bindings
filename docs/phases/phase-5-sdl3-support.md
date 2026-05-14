@@ -71,7 +71,7 @@ The Cake Frosting build system should be parameterized to handle both SDL2 and S
 
 ### 5.3 Binding Generation
 
-Primary path: the Phase 4 AST generator selected by the WHY/HOW/WHAT design doc. Configure for SDL3 headers, map SDL3-specific types (`SDL_bool → bool`, new handle types, redesigned audio surface), generate into `src/SDL3.<X>/Generated/`.
+Primary path: the CppAst AST generator selected by ADR-004 and implemented in Phase 4. Configure for SDL3 headers, map SDL3-specific types (`SDL_bool → bool`, new handle types, redesigned audio surface), generate into `src/SDL3.<X>/Generated/`.
 
 Bridge option while the generator is being built: import [flibitijibibo/SDL3-CS](https://github.com/flibitijibibo/SDL3-CS) as a submodule (mirroring the SDL2-CS approach).
 

@@ -163,11 +163,11 @@ Create `docs/decisions/2026-MM-DD-binding-autogen-toolchain.md` (use the session
 1. [`docs/onboarding.md`](../../docs/onboarding.md) — project framing + glossary + non-goals
 2. [`AGENTS.md`](../../AGENTS.md) — operating rules, approval gate, settled strategic decisions
 3. [`CLAUDE.md`](../../CLAUDE.md) — relay to AGENTS.md
-4. [`docs/binding-autogen/binding-autogen-onboarding.md`](../../docs/binding-autogen/binding-autogen-onboarding.md) — workstream entry point
+4. [`docs/binding-autogen/research/binding-autogen-onboarding.md`](../../docs/binding-autogen/research/binding-autogen-onboarding.md) — workstream entry point
 5. [`docs/binding-autogen/binding-autogen-strategy-brief.md`](../../docs/binding-autogen/binding-autogen-strategy-brief.md) — the in-progress brief (your active artifact)
-6. [`docs/binding-autogen/binding-autogen-feasibility.md`](../../docs/binding-autogen/binding-autogen-feasibility.md) — corrected this session; emit rules + 7-layer test strategy + open decisions
-7. [`docs/binding-autogen/binding-autogen-spike-findings.md`](../../docs/binding-autogen/binding-autogen-spike-findings.md) — corrected this session; scope-trajectory analysis + Q1-Q8 open questions
-8. [`docs/binding-autogen/binding-autogen-approaches.md`](../../docs/binding-autogen/binding-autogen-approaches.md) — corrected this session; decision matrix + source-level comparison
+6. [`docs/binding-autogen/research/binding-autogen-feasibility.md`](../../docs/binding-autogen/research/binding-autogen-feasibility.md) — corrected this session; emit rules + 7-layer test strategy + open decisions
+7. [`docs/binding-autogen/research/binding-autogen-spike-findings.md`](../../docs/binding-autogen/research/binding-autogen-spike-findings.md) — corrected this session; scope-trajectory analysis + Q1-Q8 open questions
+8. [`docs/binding-autogen/research/binding-autogen-approaches.md`](../../docs/binding-autogen/research/binding-autogen-approaches.md) — corrected this session; decision matrix + source-level comparison
 9. [`docs/release-strategy.md`](../../docs/release-strategy.md) — Stage 1-5 sequencing; AST-first anchor
 10. [`docs/phases/phase-4-binding-autogen.md`](../../docs/phases/phase-4-binding-autogen.md) — Phase 4 brief; superseded by strategy brief at Phase 6
 11. [`docs/decisions/2026-05-05-d3seg-and-package-first.md`](../../docs/decisions/2026-05-05-d3seg-and-package-first.md) — ADR-001 (D-3seg + family-lock)

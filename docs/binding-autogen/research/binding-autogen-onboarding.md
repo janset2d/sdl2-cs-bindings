@@ -6,7 +6,7 @@
 
 ## What This Document Is
 
-You're joining a mid-workstream research effort. Two binding-generation toolchains have been investigated, both validated end-to-end on a small SDL satellite (SDL2_gfx), and CppAst has now validated ppy-style neutral + platform-specific parsing plus SDL2_image satellite/shared-type topology. The current state is "spike evidence gathered, targeted follow-ups identified, WHY/HOW/WHAT design doc pending." This doc is your **10-minute orientation**: required reading list (in order), strategic anchors that won't change, open decisions that will. Read this first, then work through the required-reading list.
+You're joining a mid-workstream research effort. Two binding-generation toolchains have been investigated, both validated end-to-end on a small SDL satellite (SDL2_gfx), and CppAst has now validated ppy-style neutral + platform-specific parsing plus SDL2_image satellite/shared-type topology. The current strategy brief selects the CppAst path for Phase 4 planning while preserving ClangSharp as the migration path. This doc is your **10-minute orientation**: required reading list (in order), strategic anchors that won't change, open decisions that will. Read this first, then work through the required-reading list.
 
 Don't propose architecture or write code before completing the required reading. Several earlier conversational threads explored paths that turned out to be wrong or incomplete (initial CppAst-vs-ClangSharp matrix needed row rescoring plus explicit weighting; topology refactor parked after closer review); the docs capture both the decisions and the reasoning. Skipping context = repeating the same mistakes.
 
@@ -20,12 +20,13 @@ Each doc builds on the previous. Don't skip; the later docs assume context from 
 
 | # | Document | What it gives you | Time |
 | --- | --- | --- | --- |
-| 1 | [`../../AGENTS.md`](../../AGENTS.md) | Operating rules, approval gate, communication style (Deniz's preferences), settled strategic decisions, test naming convention, build-host reference pattern | 10 min |
-| 2 | [`../release-strategy.md`](../release-strategy.md) | Strategic anchor for v1.0 — end state, NuGet labeling, promotion gates, AST-first sequencing rationale, deferred decisions (topology parked) | 10 min |
-| 3 | [`../phases/phase-4-binding-autogen.md`](../phases/phase-4-binding-autogen.md) | Phase 4 design brief — the active phase this workstream belongs to | 5 min |
-| 4 | [`binding-autogen-approaches.md`](binding-autogen-approaches.md) | Toolchain comparison: industry survey of binding-generation tools, Decision Matrix Re-Validation (CppAst → ClangSharp flip), Source-Level Comparison of ppy/SDL3-CS vs Alimer.Bindings.SDL | 20 min |
-| 5 | [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) | Feasibility study: 11 emit rules for modern .NET P/Invoke, headers + cross-platform parsing, hybrid-static + symbol visibility, manual intervention surface, 7-layer testing strategy, 11 open decisions (D1–D11) + 4 pending discussion threads | 25 min |
-| 6 | [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) | **Hands-on spike results** — both toolchains validated end-to-end on SDL2_gfx, side-by-side comparison vs hand-written external/sdl2-cs, 8 open questions for Phase 4 plan including the scope-trajectory bet (Q8) | 30 min |
+| 1 | [`AGENTS.md`](../../../AGENTS.md) | Operating rules, approval gate, communication style (Deniz's preferences), settled strategic decisions, test naming convention, build-host reference pattern | 10 min |
+| 2 | [`release-strategy.md`](../../release-strategy.md) | Strategic anchor for v1.0 — end state, NuGet labeling, promotion gates, AST-first sequencing rationale, deferred decisions (topology parked) | 10 min |
+| 3 | [`phase-4-binding-autogen.md`](../../phases/phase-4-binding-autogen.md) | Phase 4 design brief — the active phase this workstream belongs to | 5 min |
+| 4 | [`binding-autogen-strategy-brief.md`](../binding-autogen-strategy-brief.md) | Accepted WHY/HOW/WHAT strategy brief selecting the CppAst path for Phase 4 planning | 20 min |
+| 5 | [`binding-autogen-approaches.md`](binding-autogen-approaches.md) | Toolchain comparison: industry survey of binding-generation tools, Decision Matrix Re-Validation (CppAst → ClangSharp flip), Source-Level Comparison of ppy/SDL3-CS vs Alimer.Bindings.SDL | 20 min |
+| 6 | [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) | Feasibility study: 11 emit rules for modern .NET P/Invoke, headers + cross-platform parsing, hybrid-static + symbol visibility, manual intervention surface, 7-layer testing strategy, 11 open decisions (D1–D11) + 4 pending discussion threads | 25 min |
+| 7 | [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) | **Hands-on spike results** — both toolchains validated end-to-end on SDL2_gfx, side-by-side comparison vs hand-written external/sdl2-cs, 8 open questions for Phase 4 plan including the scope-trajectory bet (Q8) | 30 min |
 
 Reading time total: ~100 minutes for proper internalization. Skim takes 30 minutes; you'll miss the decision audit trail.
 
@@ -35,12 +36,12 @@ These are settled. Don't relitigate.
 
 | Decision | Source of truth |
 | --- | --- |
-| **Big-bang v1.0 covering SDL2 + SDL3 + all in-scope satellites**, AST-generated, distributed via nuget.org stable | [`release-strategy.md`](../release-strategy.md) §End State at v1.0 |
-| **AST-first prioritization** — Phase 4 (binding generator) lands BEFORE first public `-preview.N` wave; `external/sdl2-cs` retires when AST output validated | [`release-strategy.md`](../release-strategy.md) §Sequencing |
-| **Package topology refactor — DEFERRED** (research preserved in [`../parking-lot/package-topology/`](../parking-lot/package-topology/) with unpark triggers) | [`release-strategy.md`](../release-strategy.md) §Deferred Decisions |
-| **D-3seg versioning + V1 family-lock** — `<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>`, all packages in a family share one version | [`../decisions/2026-05-05-d3seg-and-package-first.md`](../decisions/2026-05-05-d3seg-and-package-first.md) (ADR-001) |
-| **vcpkg-built hybrid-static natives across 7 RIDs** — strategy encoded in vcpkg overlay triplets | [`../../AGENTS.md`](../../AGENTS.md) §Settled Strategic Decisions + [`../../vcpkg-overlay-triplets/_hybrid-common.cmake`](../../vcpkg-overlay-triplets/_hybrid-common.cmake) |
-| **Pride-driven, not deadline-driven** — quality bar > calendar; Deniz sets the pace, says when topics are done | [`release-strategy.md`](../release-strategy.md) §Strategic Stance + memory `feedback_no_timing_pressure_or_motive_assumptions.md` |
+| **Big-bang v1.0 covering SDL2 + SDL3 + all in-scope satellites**, AST-generated, distributed via nuget.org stable | [`release-strategy.md`](../../release-strategy.md) §End State at v1.0 |
+| **AST-first prioritization** — Phase 4 (binding generator) lands BEFORE first public `-preview.N` wave; `external/sdl2-cs` retires when AST output validated | [`release-strategy.md`](../../release-strategy.md) §Sequencing |
+| **Package topology refactor — DEFERRED** (research preserved in [`../parking-lot/package-topology/`](../../parking-lot/package-topology/) with unpark triggers) | [`release-strategy.md`](../../release-strategy.md) §Deferred Decisions |
+| **D-3seg versioning + V1 family-lock** — `<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>`, all packages in a family share one version | [`../decisions/2026-05-05-d3seg-and-package-first.md`](../../decisions/2026-05-05-d3seg-and-package-first.md) (ADR-001) |
+| **vcpkg-built hybrid-static natives across 7 RIDs** — strategy encoded in vcpkg overlay triplets | [`../../AGENTS.md`](../../../AGENTS.md) §Settled Strategic Decisions + [`../../vcpkg-overlay-triplets/_hybrid-common.cmake`](../../../vcpkg-overlay-triplets/_hybrid-common.cmake) |
+| **Pride-driven, not deadline-driven** — quality bar > calendar; Deniz sets the pace, says when topics are done | [`release-strategy.md`](../../release-strategy.md) §Strategic Stance + memory `feedback_no_timing_pressure_or_motive_assumptions.md` |
 | **Reference cross-check oracles** — `external/sdl2-cs` for SDL2, `ppy/SDL3-CS` for SDL3 — generator output diffed against these as typing references (NOT binding sources) | [`binding-autogen-approaches.md`](binding-autogen-approaches.md) §Validation Strategy |
 
 ## Current State (As of 2026-05-14)
@@ -82,7 +83,7 @@ Versioning state: `Directory.Packages.props` carries pinned CppAst 0.24.0 + libc
 
 ### What works today
 
-- ✅ Both toolchains generate working SDL2_gfx bindings (102 functions, FPSmanager struct, 2-8 constants)
+- ✅ Both toolchains generate working SDL2_gfx bindings (102 functions, FPSmanager struct, 8 constants)
 - ✅ Both bindings compile clean as a standalone .NET 10 library
 - ✅ Both test apps run end-to-end: open window, init framerate, draw bouncing circle + HUD, 180 frames @ 30 FPS, clean shutdown
 - ✅ Native distribution via `Janset.SDL2.Core.Native` + `Janset.SDL2.Gfx.Native` packages' `buildTransitive` targets — zero manual DLL copy
@@ -90,18 +91,18 @@ Versioning state: `Directory.Packages.props` carries pinned CppAst 0.24.0 + libc
 - ✅ CppAst neutral + platform-specific pass spike works for SDL2 `SDL_system.h` / `SDL_main.h`: Windows and Linux symbols isolate correctly, neutral output stays clean, generated bindings compile, and the Linux pass proves the need for controlled sysroot/stub inputs when cross-target parsing from Windows
 - ✅ CppAst SDL2_image shared-type spike works: image bindings compile separately while reusing core-owned SDL concepts through a core-types project, with no duplicate core type declarations in the satellite output
 
-### Current toolchain stance (undecided)
+### Current toolchain stance
 
-**No final recommendation exists yet.** Until the WHY/HOW/WHAT design doc is written and accepted, the workstream goal is spike validation and evidence gathering, not committing to CppAst or ClangSharp.
+**Strategy decision:** CppAst is the selected Phase 4 planning direction. The strategy brief chooses it on the scope-trajectory argument: once multi-TFM dual emit, friendly overloads, typed handles, platform attribution, and satellite/shared-type topology are all in scope, CppAst's single C# emitter grows more linearly than a ClangSharp + RSP + post-process + Roslyn-extension stack.
 
-**Emerging maintainer lean (post-spike):** CppAst direction, driven by:
+The key drivers:
 
 - Single-codebase emitter scales linearly to convenience-layer features (multi-TFM dual emit + friendly `string` overloads + `ReadOnlySpan<T>` overloads + `[SupportedOSPlatform]` attribution all in the same `foreach` loop)
 - No separate Roslyn source generator project required for friendly overloads
 - `[NativeTypeName]` C-provenance attribute (ClangSharp's strongest unique deliverable) is "nice to have" not "load-bearing" — debug/audit value, no runtime impact
 - Custom-emission ceiling unbounded (matches Skia pattern if/when scope grows toward curated wrapper API on top of raw bindings)
 
-**Position is "lean, not commit"** — Deniz currently leans CppAst but wants more information before locking. Open question Q8 in `binding-autogen-spike-findings.md` §9 captures this as the "scope-trajectory bet."
+ClangSharp remains the documented migration path if CppAst's version-trio coupling or owned-emitter cost becomes painful in practice. The research docs preserve the raw-binding economics case for ClangSharp so that migration does not require re-discovering the evidence.
 
 ### Platform-pass research update (2026-05-14)
 
@@ -114,7 +115,7 @@ Repository comparison changed the reference set:
 - **Alimer.Bindings.SDL** is useful for C# output shape ideas, but its single-pass union of multiple platform macros is a cautionary pattern, not our target.
 - **Silk.NET** proves why Windows SDK / DirectX generation may require a Windows runner; it does not prove SDL generation needs one.
 
-The CppAst platform-pass spike validated the ppy-style neutral + platform-specific model for selected SDL2 headers. The SDL2_image shared-type spike validated the next boundary: satellite outputs can be generated separately while reusing core-owned SDL concepts instead of duplicating `SDL_Surface`, `SDL_Texture`, `SDL_Renderer`, `SDL_RWops`, and `SDL_version`. Remaining high-value experiments are macro alias emission (`IMG_GetError` / `IMG_SetError`), field-level `IMG_Animation` layout, full package-consumer runtime smoke with harvested natives, and then either SDL2_ttf or SDL2_mixer if we want a callback/font/audio-heavy satellite before WHY/HOW/WHAT.
+The CppAst platform-pass spike validated the ppy-style neutral + platform-specific model for selected SDL2 headers. The SDL2_image shared-type spike validated the next boundary: satellite outputs can be generated separately while reusing core-owned SDL concepts instead of duplicating `SDL_Surface`, `SDL_Texture`, `SDL_Renderer`, `SDL_RWops`, and `SDL_version`. Remaining high-value Stage 1/2 plan items are macro alias emission (`IMG_GetError` / `IMG_SetError`), field-level `IMG_Animation` layout, full package-consumer runtime smoke with harvested natives, and then either SDL2_ttf or SDL2_mixer if we want a callback/font/audio-heavy satellite before the SDL2 satellite sweep.
 
 ## Open Decisions for Phase 4 Plan
 
@@ -136,7 +137,7 @@ Q1 LibraryImport conversion path · Q2 Docker layer when? · Q3 friendly overloa
 
 ### If Deniz directs you to authoring the Phase 4 implementation plan
 
-Read [`../parking-lot/package-topology/phase-planning-methodology.md`](../parking-lot/package-topology/phase-planning-methodology.md) for the per-phase plan-authoring convention — even though topology refactor is parked, the methodology itself remains the reference for how detailed plan docs are authored in this project. Apply same discipline: reference matrix to ADRs + knowledge-base, slice-by-slice scope, exit criteria per slice.
+Read [`../parking-lot/package-topology/phase-planning-methodology.md`](../../parking-lot/package-topology/phase-planning-methodology.md) for the per-phase plan-authoring convention — even though topology refactor is parked, the methodology itself remains the reference for how detailed plan docs are authored in this project. Apply same discipline: reference matrix to ADRs + knowledge-base, slice-by-slice scope, exit criteria per slice.
 
 ### If Deniz directs you to more experimentation
 
@@ -170,27 +171,30 @@ In chronological-creation order (which approximates intellectual-buildup order):
 | Date | Document | Status |
 | --- | --- | --- |
 | 2026-04-11 | [`binding-autogen-approaches.md`](binding-autogen-approaches.md) (initial) | Active; enriched 2026-05-12 with toolchain flip + source-level comparison |
-| 2026-05-12 | [`release-strategy.md`](../release-strategy.md) | Active strategic anchor |
+| 2026-05-12 | [`release-strategy.md`](../../release-strategy.md) | Active strategic anchor |
 | 2026-05-12 | [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) | Active design-feasibility doc |
 | 2026-05-12 | [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) | Active hands-on spike findings (ClangSharp + CppAst) |
 | 2026-05-12 | This doc — [`binding-autogen-onboarding.md`](binding-autogen-onboarding.md) | LLM onboarding |
+| 2026-05-14 | [`binding-autogen-strategy-brief.md`](../binding-autogen-strategy-brief.md) | Accepted strategy brief selecting the CppAst direction |
+| 2026-05-14 | [`ADR-004`](../../decisions/2026-05-14-binding-autogen-toolchain.md) | Durable toolchain decision |
 
 Related canonical references:
 
-- [`../../AGENTS.md`](../../AGENTS.md) — operating rules
-- [`../release-strategy.md`](../release-strategy.md) — strategic anchor
-- [`../plan.md`](../plan.md) — tactical roadmap
-- [`../onboarding.md`](../onboarding.md) — project framing + glossary
-- [`../phases/phase-4-binding-autogen.md`](../phases/phase-4-binding-autogen.md) — Phase 4 design brief
-- [`../phases/phase-5-sdl3-support.md`](../phases/phase-5-sdl3-support.md) — Phase 5 SDL3 brief
-- [`../decisions/2026-05-05-d3seg-and-package-first.md`](../decisions/2026-05-05-d3seg-and-package-first.md) — ADR-001
-- [`../decisions/2026-05-05-target-centric-build-host.md`](../decisions/2026-05-05-target-centric-build-host.md) — ADR-002
-- [`../decisions/2026-05-12-build-host-data-layer.md`](../decisions/2026-05-12-build-host-data-layer.md) — ADR-003
-- [`../knowledge-base/release-guardrails.md`](../knowledge-base/release-guardrails.md) — guardrail catalog
-- [`../knowledge-base/testing-guidelines.md`](../knowledge-base/testing-guidelines.md) — test infra + fixture policy
-- [`../knowledge-base/extraction-guidelines.md`](../knowledge-base/extraction-guidelines.md) — collaborator extraction policy
-- [`../parking-lot.md`](../parking-lot.md) — parked single-line items
-- [`../parking-lot/package-topology/`](../parking-lot/package-topology/) — parked multi-file research (topology refactor)
+- [`AGENTS.md`](../../../AGENTS.md) — operating rules
+- [`release-strategy.md`](../../release-strategy.md) — strategic anchor
+- [`plan.md`](../../plan.md) — tactical roadmap
+- [`onboarding.md`](../../onboarding.md) — project framing + glossary
+- [`phase-4-binding-autogen.md`](../../phases/phase-4-binding-autogen.md) — Phase 4 design brief
+- [`phase-5-sdl3-support.md`](../../phases/phase-5-sdl3-support.md) — Phase 5 SDL3 brief
+- [`ADR-001`](../../decisions/2026-05-05-d3seg-and-package-first.md) — D-3seg + package-first
+- [`ADR-002`](../../decisions/2026-05-05-target-centric-build-host.md) — target-centric build host
+- [`ADR-003`](../../decisions/2026-05-12-build-host-data-layer.md) — contract-centric data layer
+- [`ADR-004`](../../decisions/2026-05-14-binding-autogen-toolchain.md) — binding autogen toolchain
+- [`release-guardrails.md`](../../knowledge-base/release-guardrails.md) — guardrail catalog
+- [`testing-guidelines.md`](../../knowledge-base/testing-guidelines.md) — test infra + fixture policy
+- [`extraction-guidelines.md`](../../knowledge-base/extraction-guidelines.md) — collaborator extraction policy
+- [`parking-lot.md`](../../parking-lot.md) — parked single-line items
+- [`parking-lot/package-topology/`](../../parking-lot/package-topology/) — parked multi-file research (topology refactor)
 
 External references:
 
@@ -203,4 +207,4 @@ External references:
 
 ## You're Ready
 
-Start with `AGENTS.md`, finish with `binding-autogen-spike-findings.md`. By then you'll have the context to make Phase-4-plan-grade decisions. If anything in the existing docs contradicts itself or seems wrong, raise it explicitly — don't quietly route around it.
+Start with `AGENTS.md`, read the strategy brief and ADR-004 before the research docs, then use `binding-autogen-spike-findings.md` for the empirical evidence. By then you'll have the context to make Phase-4-plan-grade decisions. If anything in the existing docs contradicts itself or seems wrong, raise it explicitly — don't quietly route around it.

@@ -1,14 +1,14 @@
 # Binding Auto-Generation Strategy Brief
 
-> Working draft. This is not canonical project policy yet. Promote accepted decisions into ADRs, AGENTS.md, release guardrails, and onboarding after Phase 4 ships. Retires when Phase 4 implementation completes and binding generator output supersedes `external/sdl2-cs`.
+> Strategy brief accepted for Phase 4 planning. Durable toolchain policy is recorded in [ADR-004](../decisions/2026-05-14-binding-autogen-toolchain.md); remaining implementation details promote into AGENTS.md, release guardrails, and onboarding as Phase 4 ships. Retires when Phase 4 implementation completes and binding generator output supersedes `external/sdl2-cs`.
 >
-> **Status (2026-05-14):** Draft complete for maintainer review. Sections complete: Decision Hypothesis / WHY / HOW / WHAT / Plan Shape / Current Open Decisions / Decision Audit / Cross-Reference. See [`binding-autogen-onboarding.md`](binding-autogen-onboarding.md) for workstream entry point.
+> **Status (2026-05-14):** Accepted strategy brief. Sections complete: Decision Hypothesis / WHY / HOW / WHAT / Plan Shape / Current Open Decisions / Decision Audit / Cross-Reference. See [`binding-autogen-onboarding.md`](research/binding-autogen-onboarding.md) for workstream entry point.
 
 ## Decision Hypothesis
 
 Phase 4 ships an auto-generated binding surface for SDL2 + SDL3 (core + all in-scope satellites), produced by a single CppAst-based C# emitter that:
 
-- pins CppAst 0.24.0 + libclang.runtime 20.1.2 + libClangSharp.runtime 20.1.2 (version-trio coupling per [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) §7.6);
+- pins CppAst 0.24.0 + libclang.runtime 20.1.2 + libClangSharp.runtime 20.1.2 (version-trio coupling per [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §7.6);
 - consumes vcpkg-installed canonical SDL headers via libclang controlled parse views (neutral + Windows + Linux + macOS), all executed inside a single Linux container per the ppy/SDL3-CS pattern, with platform-conditioned declarations attributed via `[SupportedOSPlatform]`;
 - emits per-family generated `.g.cs` files committed to the repository, dual-shaped for `[LibraryImport]` (net7+) and `[DllImport]` (legacy TFMs) in a single emitter loop;
 - emits typed `readonly partial struct` handle types (`SDL_Window`, `SDL_Renderer`, etc.) — zero-cost over `IntPtr` at the wire, type-safe at compile time, AOT-trivial — matching the Alimer / Vortice / Silk.NET ecosystem convention for CppAst-based bindings;
@@ -17,7 +17,7 @@ Phase 4 ships an auto-generated binding surface for SDL2 + SDL3 (core + all in-s
 
 The generator runs offline via a dedicated `regenerate-bindings.yml` workflow (manual trigger, auto-PR via peter-evans/create-pull-request, Silk.NET reference pattern) and locally via `tools.cs generate-bindings` (Docker invocation against the existing `linux-builder` image). Two new release guardrails close the binding ↔ native coherence loop: a vcpkg-state coherence validator at PreFlight (catches "natives rebuilt but bindings not regenerated"), and a symbol-existence validator at Pack (catches "binding declares an unexported function").
 
-The toolchain pick rests on the **scope-trajectory bet** ([`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) §7.8 + §9 Q8): at the production-shape feature investment this project commits to, CppAst's single-loop emitter has linear ownership growth while ClangSharpPInvokeGenerator + RSP + Roslyn-extension + post-process pipelines grow in architectural steps. ClangSharp remains a documented migration target if CppAst's maintenance burden surfaces in practice.
+The toolchain pick rests on the **scope-trajectory bet** ([`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §7.8 + §9 Q8): at the production-shape feature investment this project commits to, CppAst's single-loop emitter has linear ownership growth while ClangSharpPInvokeGenerator + RSP + Roslyn-extension + post-process pipelines grow in architectural steps. ClangSharp remains a documented migration target if CppAst's maintenance burden surfaces in practice.
 
 `external/sdl2-cs` retires when AST-generated SDL2 output passes runtime smoke against `learning-sdl2`. First public `-preview.N` wave ships AST-generated bindings, not sdl2-cs imports, per [`release-strategy.md`](../release-strategy.md) §Sequencing.
 
@@ -27,7 +27,7 @@ The toolchain pick rests on the **scope-trajectory bet** ([`binding-autogen-spik
 
 Four reasons, each load-bearing on its own:
 
-**SDL3 has no upstream `SDL3-CS` covering our scope.** Per [`release-strategy.md`](../release-strategy.md) §End State at v1.0, the v1.0 stable shape includes SDL3 Core + SDL3_image + SDL3_mixer + SDL3_ttf — all AST-generated, all 7 RIDs. There is no comparable hand-written upstream source: [ppy/SDL3-CS](https://github.com/ppy/SDL3-CS) is itself auto-generated (ClangSharp + Docker, MIT) and [flibitijibibo/SDL3-CS](https://github.com/flibitijibibo/SDL3-CS) covers SDL3 core only via c2ffi. The hand-written option does not exist; we ship a generator or we ship without SDL3. See [`binding-autogen-onboarding.md`](binding-autogen-onboarding.md) §Project Context.
+**SDL3 has no upstream `SDL3-CS` covering our scope.** Per [`release-strategy.md`](../release-strategy.md) §End State at v1.0, the v1.0 stable shape includes SDL3 Core + SDL3_image + SDL3_mixer + SDL3_ttf — all AST-generated, all 7 RIDs. There is no comparable hand-written upstream source: [ppy/SDL3-CS](https://github.com/ppy/SDL3-CS) is itself auto-generated (ClangSharp + Docker, MIT) and [flibitijibibo/SDL3-CS](https://github.com/flibitijibibo/SDL3-CS) covers SDL3 core only via c2ffi. The hand-written option does not exist; we ship a generator or we ship without SDL3. See [`binding-autogen-onboarding.md`](research/binding-autogen-onboarding.md) §Project Context.
 
 **Maintaining 11,105 lines of hand-written P/Invoke is unsustainable.** Verified line count against `external/sdl2-cs/src/` on 2026-05-14:
 
@@ -40,11 +40,11 @@ Four reasons, each load-bearing on its own:
 | `SDL2_gfx.cs` | 390 |
 | **Total** | **11,105** |
 
-Source: [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) §5 SDL2 oracle table. Adding SDL3 + satellites roughly doubles that surface. The current single-maintainer hobby cadence cannot sustain hand-patched regeneration across SDL minor bumps in both major versions, across 7 RIDs, with the platform-conditioned correctness required (see next bullet). See [`AGENTS.md`](../../AGENTS.md) §Settled Strategic Decisions row "Binding autogen replaces SDL2-CS."
+Source: [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) §5 SDL2 oracle table. Adding SDL3 + satellites roughly doubles that surface. The current single-maintainer hobby cadence cannot sustain hand-patched regeneration across SDL minor bumps in both major versions, across 7 RIDs, with the platform-conditioned correctness required (see next bullet). See [`AGENTS.md`](../../AGENTS.md) §Settled Strategic Decisions row "Binding autogen replaces SDL2-CS."
 
 **Regenerate-on-upstream-bump is a settled D-3seg mode.** Per [ADR-001](../decisions/2026-05-05-d3seg-and-package-first.md), the `FamilyPatch` segment of D-3seg versioning is "the repo's own iteration counter," monotonically increasing within a `UpstreamMajor.UpstreamMinor` line, **reset to 0 when either upstream segment changes**. That reset semantic only makes sense if bindings regenerate from new SDL headers — not if a maintainer hand-patches diffs into existing P/Invoke declarations. Per [`release-strategy.md`](../release-strategy.md) §Maintenance Commitment Post-v1.0: "When SDL2.32.x → 2.33.0 or SDL3.4.x → 3.5.0 lands in vcpkg, regenerate AST output + release wave."
 
-**Cross-RID correctness requires platform-conditioned parsing.** The 7-RID matrix (`win-{x64,x86,arm64}`, `linux-{x64,arm64}`, `osx-{x64,arm64}`) parses SDL headers that contain real platform-gated public declarations in `SDL_system.h`, `SDL_main.h`, `SDL_platform.h`, `SDL_config.h`, `SDL_stdinc.h`, `SDL_syswm.h` — see [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) §3 "Cross-platform API surface variance" + [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) §8.7 platform-pass result. Hand-written bindings cannot model this rigorously; libclang controlled parse views can. This is a libclang/preprocessor constraint, not a CppAst-vs-ClangSharp distinction.
+**Cross-RID correctness requires platform-conditioned parsing.** The 7-RID matrix (`win-{x64,x86,arm64}`, `linux-{x64,arm64}`, `osx-{x64,arm64}`) parses SDL headers that contain real platform-gated public declarations in `SDL_system.h`, `SDL_main.h`, `SDL_platform.h`, `SDL_config.h`, `SDL_stdinc.h`, `SDL_syswm.h` — see [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) §3 "Cross-platform API surface variance" + [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §8.7 platform-pass result. Hand-written bindings cannot model this rigorously; libclang controlled parse views can. This is a libclang/preprocessor constraint, not a CppAst-vs-ClangSharp distinction.
 
 ### Why `external/sdl2-cs` cannot ship to v1.0 stable
 
@@ -52,17 +52,17 @@ Source: [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) §5 S
 
 **No C-side type provenance.** sdl2-cs strips C type names from its `[DllImport]` signatures. Code-review of generator regenerations against future SDL bumps becomes guesswork. ClangSharp's `[NativeTypeName]` (and CppAst's optional equivalent) preserves provenance. See [Microsoft Learn — P/Invoke source generation](https://learn.microsoft.com/en-us/dotnet/standard/native-interop/pinvoke-source-generation) for the modern attribute-rich emission contract.
 
-**String marshalling defaults to ANSI on Windows.** Real bug confirmed in [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) §6.B: sdl2-cs's `public static extern int stringColor(IntPtr renderer, short x, short y, string s, uint color)` defaults to `LPStr` ANSI marshalling. On non-Latin Windows locales (Turkish, Japanese, Cyrillic, etc.) non-ASCII characters are corrupted before reaching SDL2_gfx, which expects UTF-8. [Microsoft Learn — Native interop best practices](https://learn.microsoft.com/en-us/dotnet/standard/native-interop/best-practices) §"String parameters" makes UTF-8 marshalling the modern default; sdl2-cs predates this guidance.
+**String marshalling defaults to ANSI on Windows.** Real bug confirmed in [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §6.B: sdl2-cs's `public static extern int stringColor(IntPtr renderer, short x, short y, string s, uint color)` defaults to `LPStr` ANSI marshalling. On non-Latin Windows locales (Turkish, Japanese, Cyrillic, etc.) non-ASCII characters are corrupted before reaching SDL2_gfx, which expects UTF-8. [Microsoft Learn — Native interop best practices](https://learn.microsoft.com/en-us/dotnet/standard/native-interop/best-practices) §"String parameters" makes UTF-8 marshalling the modern default; sdl2-cs predates this guidance.
 
-**`char` modeled as 16-bit Unicode where C uses 8-bit.** [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) §6.C: sdl2-cs `characterColor(IntPtr renderer, short x, short y, char c, uint color)` declares `char` (UTF-16 in C#) where the C signature is `char` (8-bit signed). The wire width is wrong on Windows non-Latin locales. Cross-platform implications are silent runtime corruption.
+**`char` modeled as 16-bit Unicode where C uses 8-bit.** [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §6.C: sdl2-cs `characterColor(IntPtr renderer, short x, short y, char c, uint color)` declares `char` (UTF-16 in C#) where the C signature is `char` (8-bit signed). The wire width is wrong on Windows non-Latin locales. Cross-platform implications are silent runtime corruption.
 
-**No `[Flags]` attribution.** [`binding-autogen-approaches.md`](binding-autogen-approaches.md) §"Bit-flag enum surprise": SDL flag types (`SDL_WindowFlags`, `SDL_InitFlags`, etc.) lose `[Flags]` attribution in sdl2-cs. Caller-side ergonomics (`WindowFlags.Resizable | WindowFlags.Shown`) work, but `ToString()` on combined flags renders integers, debugger display loses semantic info, IDE intellisense doesn't suggest flag composition.
+**No `[Flags]` attribution.** [`binding-autogen-approaches.md`](research/binding-autogen-approaches.md) §"Bit-flag enum surprise": SDL flag types (`SDL_WindowFlags`, `SDL_InitFlags`, etc.) lose `[Flags]` attribution in sdl2-cs. Caller-side ergonomics (`WindowFlags.Resizable | WindowFlags.Shown`) work, but `ToString()` on combined flags renders integers, debugger display loses semantic info, IDE intellisense doesn't suggest flag composition.
 
 **API churn risk for preview consumers.** Per [`release-strategy.md`](../release-strategy.md) §"Why AST-First, Not Public-Prerelease-First": publishing `-preview.N` packages built on sdl2-cs imports freezes the *wrong* API surface into consumer muscle memory. The eventual AST-generated surface differs (different method-name conventions, typed handles vs IntPtr, friendly overload shapes); rev-bumping to v2 after preview adoption is avoidable migration pain. AST-first sequencing means the first public package targets the eventual stable API from day one.
 
 ### Why CppAst — the scope-trajectory argument
 
-Both CppAst and ClangSharpPInvokeGenerator are spike-validated at SDL2_gfx scope. Both produced 102 working P/Invoke declarations, identical runtime behavior (180 frames @ 30 FPS, bouncing-circle render, timer jitter within 0.7%), and end-to-end native-distribution validation via `Janset.SDL2.Gfx.Native` buildTransitive targets. See [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) §8 "Runtime Validation — Both Toolchains End-to-End."
+Both CppAst and ClangSharpPInvokeGenerator are spike-validated at SDL2_gfx scope. Both produced 102 working P/Invoke declarations, identical runtime behavior (180 frames @ 30 FPS, bouncing-circle render, timer jitter within 0.7%), and end-to-end native-distribution validation via `Janset.SDL2.Gfx.Native` buildTransitive targets. See [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §8 "Runtime Validation — Both Toolchains End-to-End."
 
 **At raw P/Invoke-only scope, ClangSharp's owned LoC is lower** (verified 2026-05-14):
 
@@ -71,22 +71,22 @@ Both CppAst and ClangSharpPInvokeGenerator are spike-validated at SDL2_gfx scope
 | ClangSharp (RSP + 2 supplement files + dotnet-tools.json + csproj) | ~128 |
 | CppAst (Program.cs + generator csproj + bindings csproj) | ~320 |
 
-Source: [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) §7.5 trade-off matrix (corrected 2026-05-14).
+Source: [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §7.5 trade-off matrix (corrected 2026-05-14).
 
 **But we are explicitly not at raw P/Invoke-only scope.** This brief locks five production-shape features simultaneously, each of which the generator must support:
 
-1. **Full TFM matrix** (`net10 / net9 / net8 / netstandard2.0 / net462`), dual-emit `[LibraryImport]` (net7+) + `[DllImport]` (legacy) per function. See [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) §2 Rule 1; [Microsoft Learn — P/Invoke source generation](https://learn.microsoft.com/en-us/dotnet/standard/native-interop/pinvoke-source-generation) for the modern contract; [dotnet/runtime LibraryImportGenerator Compatibility](https://github.com/dotnet/runtime/blob/main/docs/design/libraries/LibraryImportGenerator/Compatibility.md) for the breaking-change matrix.
-2. **Typed `readonly struct` baseline** per opaque handle, with `IsNull` / `Null` / `IEquatable<T>` / implicit `nint` conversion / `[DebuggerDisplay]`. Verified ecosystem-standard against live code: [Alimer.Bindings.SDL Generated/Handles.cs](https://raw.githubusercontent.com/amerkoleci/Alimer.Bindings.SDL/main/src/Alimer.Bindings.SDL/Generated/Handles.cs), [Vortice.Vulkan Generated/Handles.cs](https://raw.githubusercontent.com/amerkoleci/Vortice.Vulkan/main/src/Vortice.Vulkan/Generated/Handles.cs). See [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) §2 Rule 2.
-3. **Friendly overloads** (`string` / `ReadOnlySpan<byte>` / `out` / `ref` / `Span<T>`) emitted alongside raw P/Invoke. See [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) §2 Rules 4 + 6; [Microsoft Learn — Custom marshalling source generation](https://learn.microsoft.com/en-us/dotnet/standard/native-interop/custom-marshalling-source-generation) for `Utf8StringMarshaller` semantics.
-4. **`[SupportedOSPlatform]` attribution** for platform-conditioned symbols, driven by multi-pass parsing. See [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) §3 "Multi-platform parsing"; [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) §8.7 platform-pass result; [ppy/SDL3-CS generate_bindings.py](https://raw.githubusercontent.com/ppy/SDL3-CS/master/SDL3-CS/generate_bindings.py) as the closest reference pattern.
-5. **Satellite/shared-types topology** — core-owned shared SDL type universe referenced from satellite emitters. See [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) §3 "Satellite headers — separate outputs, shared core type universe"; [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) §8.7 SDL2_image shared-type spike result.
+1. **Full TFM matrix** (`net10 / net9 / net8 / netstandard2.0 / net462`), dual-emit `[LibraryImport]` (net7+) + `[DllImport]` (legacy) per function. See [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) §2 Rule 1; [Microsoft Learn — P/Invoke source generation](https://learn.microsoft.com/en-us/dotnet/standard/native-interop/pinvoke-source-generation) for the modern contract; [dotnet/runtime LibraryImportGenerator Compatibility](https://github.com/dotnet/runtime/blob/main/docs/design/libraries/LibraryImportGenerator/Compatibility.md) for the breaking-change matrix.
+2. **Typed `readonly struct` baseline** per opaque handle, with `IsNull` / `Null` / `IEquatable<T>` / implicit `nint` conversion / `[DebuggerDisplay]`. Verified ecosystem-standard against live code: [Alimer.Bindings.SDL Generated/Handles.cs](https://raw.githubusercontent.com/amerkoleci/Alimer.Bindings.SDL/main/src/Alimer.Bindings.SDL/Generated/Handles.cs), [Vortice.Vulkan Generated/Handles.cs](https://raw.githubusercontent.com/amerkoleci/Vortice.Vulkan/main/src/Vortice.Vulkan/Generated/Handles.cs). See [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) §2 Rule 2.
+3. **Friendly overloads** (`string` / `ReadOnlySpan<byte>` / `out` / `ref` / `Span<T>`) emitted alongside raw P/Invoke. See [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) §2 Rules 4 + 6; [Microsoft Learn — Custom marshalling source generation](https://learn.microsoft.com/en-us/dotnet/standard/native-interop/custom-marshalling-source-generation) for `Utf8StringMarshaller` semantics.
+4. **`[SupportedOSPlatform]` attribution** for platform-conditioned symbols, driven by multi-pass parsing. See [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) §3 "Multi-platform parsing"; [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §8.7 platform-pass result; [ppy/SDL3-CS generate_bindings.py](https://raw.githubusercontent.com/ppy/SDL3-CS/master/SDL3-CS/generate_bindings.py) as the closest reference pattern.
+5. **Satellite/shared-types topology** — core-owned shared SDL type universe referenced from satellite emitters. See [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) §3 "Satellite headers — separate outputs, shared core type universe"; [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §8.7 SDL2_image shared-type spike result.
 
-**At this scope, ownership-growth trajectories diverge** — per [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) §7.8 "Scope-Growth Trade-off":
+**At this scope, ownership-growth trajectories diverge** — per [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §7.8 "Scope-Growth Trade-off":
 
 | Feature additive on top of raw P/Invoke | ClangSharp surface | CppAst surface |
 |---|---|---|
 | Multi-TFM dual emit | Post-process pipeline (separate project, Roslyn-syntax-rewriter or regex pass) | ~50 LoC iteration logic in same `Program.cs` |
-| Friendly `string` / `Span` / `out` overloads | Roslyn source generator project (ppy's `FriendlyOverloadGenerator` fork + modernize from `ISourceGenerator` to `IIncrementalGenerator` per [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) §5.5 corrected) | ~80 LoC iteration logic in same loop |
+| Friendly `string` / `Span` / `out` overloads | Roslyn source generator project (ppy's `FriendlyOverloadGenerator` fork + modernize from `ISourceGenerator` to `IIncrementalGenerator` per [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §5.5 corrected) | ~80 LoC iteration logic in same loop |
 | `[SupportedOSPlatform]` per-platform attribution | RSP `--with-attribute` (per-symbol) + per-platform pass orchestrator script | ~40 LoC iteration logic in same loop |
 | Typed `readonly struct` handle baseline | Not the ClangSharp default (emits `T*`); requires Roslyn post-process to rewrite | Natural emit pattern (see Alimer/Vortice production output) |
 
@@ -101,16 +101,16 @@ The gap inverts at our committed scope. CppAst's single-codebase elasticity is t
 
 **Three corrected facts that the toolchain pick does not rest on** (per Decision Audit section below + corrections committed 2026-05-14):
 
-- The "CppAst captured 8 macros vs ClangSharp's 2" claim was retracted — both toolchains capture all 8 SDL2_gfx constants identically with `--config generate-macro-bindings`. See [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) §7.4 (Revised 2026-05-14).
+- The "CppAst captured 8 macros vs ClangSharp's 2" claim was retracted — both toolchains capture all 8 SDL2_gfx constants identically with `--config generate-macro-bindings`. See [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §7.4 (Revised 2026-05-14).
 - `FriendlyOverloadGenerator` uses `ISourceGenerator` (older Roslyn API), not `IIncrementalGenerator`. The modernization is real D10 effort if we ever migrate to ClangSharp.
 - The original decision matrix arithmetic (CppAst 23 vs ClangSharp 22) summed wrong — both columns total 23. The recalculated weighted matrix (43 vs 63) still favors ClangSharp on raw-binding economics; the scope-trajectory argument overrides at our committed scope.
 
 **Two complementary toolchain-agnostic anchors hold:**
 
-- [Microsoft Learn — Native interop best practices](https://learn.microsoft.com/en-us/dotnet/standard/native-interop/best-practices) endorses `[LibraryImport]`, function pointers + `[UnmanagedCallersOnly]` for callbacks, and `[SupportedOSPlatform]` attribution. Our emit rules ([`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) §2) follow this guidance regardless of toolchain.
+- [Microsoft Learn — Native interop best practices](https://learn.microsoft.com/en-us/dotnet/standard/native-interop/best-practices) endorses `[LibraryImport]`, function pointers + `[UnmanagedCallersOnly]` for callbacks, and `[SupportedOSPlatform]` attribution. Our emit rules ([`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) §2) follow this guidance regardless of toolchain.
 - [Silk.NET 3.0 generation proposal](https://github.com/dotnet/Silk.NET/blob/main/documentation/proposals/Proposal%20-%20Generation%20of%20Library%20Sources%20and%20PInvoke%20Mechanisms.md) explicitly delegates parsing to ClangSharp, demonstrating ClangSharp's credibility for heavyweight multi-graphics-lib scope. For our focused SDL2 + SDL3 scope, the Alimer/Vortice CppAst pattern is the proportionate choice; Silk.NET's pipeline is documented evidence that ClangSharp is the migration target when scope grows past CppAst's tolerance.
 
-**Migration door stays open.** If CppAst's libclang version-trio coupling becomes painful in practice (per [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) §7.6 "Version-Trio Coupling is Real"), or if our scope shrinks to raw P/Invoke only and ClangSharp's leaner setup begins to dominate, the ClangSharp + ppy pattern is well-documented in [`binding-autogen-approaches.md`](binding-autogen-approaches.md) §2026-05-12 Source-Level Comparison. The generated `.cs` output format is the same on either side; migration is about the generator, not the output. Captured as a Risk row in Plan Shape below with explicit mitigation.
+**Migration door stays open.** If CppAst's libclang version-trio coupling becomes painful in practice (per [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §7.6 "Version-Trio Coupling is Real"), or if our scope shrinks to raw P/Invoke only and ClangSharp's leaner setup begins to dominate, the ClangSharp + ppy pattern is well-documented in [`binding-autogen-approaches.md`](research/binding-autogen-approaches.md) §2026-05-12 Source-Level Comparison. The generated `.cs` output format is the same on either side; migration is about the generator, not the output. Captured as a Risk row in Plan Shape below with explicit mitigation.
 
 ## HOW
 
@@ -126,7 +126,7 @@ Lock CppAst at version-trio:
 
 When generator hosting extends beyond Windows, add matching `libclang.runtime.{linux-x64,linux-arm64,osx-x64,osx-arm64}` and `libClangSharp.runtime.{...}` pins at the same `20.1.2` line. Mismatched majors crash the AST visitor.
 
-**Why the trio matters.** CppAst is a .NET library that wraps `ClangSharp` (the .NET binding to libclang), not libclang directly. CppAst 0.24.0 builds against ClangSharp 20.1.2.4, which requires libclang **20.1.x** native runtime. Installing the latest `libclang.runtime.*` (21.1.x at the time of the spike) against CppAst 0.24.0 surfaces as a `StackOverflowException` during `CppParser.ParseFiles` — verified during the spike, see [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) §7.6 "Version-Trio Coupling is Real."
+**Why the trio matters.** CppAst is a .NET library that wraps `ClangSharp` (the .NET binding to libclang), not libclang directly. CppAst 0.24.0 builds against ClangSharp 20.1.2.4, which requires libclang **20.1.x** native runtime. Installing the latest `libclang.runtime.*` (21.1.x at the time of the spike) against CppAst 0.24.0 surfaces as a `StackOverflowException` during `CppParser.ParseFiles` — verified during the spike, see [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §7.6 "Version-Trio Coupling is Real."
 
 **Bump policy.** Do not bump any of the three packages independently. CppAst version bumps (0.24 → 0.25, when it ships) drive coordinated bumps of all three. Validation: spike-build the generator against the new trio + run the full SDL2_gfx end-to-end test (per spike-findings §8) before committing the bump. References: [CppAst NuGet](https://www.nuget.org/packages/CppAst), [CppAst v0.24.0 release notes (GitHub)](https://github.com/xoofx/CppAst/releases).
 
@@ -175,7 +175,7 @@ The generator is **never** invoked at consumer build time — see "Generation en
 
 ### Emit rules — bound to feasibility §2
 
-The generator implements all 11 emit rules in [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) §2 "Modern .NET P/Invoke Emit Target." Rules are toolchain-agnostic; CppAst executes them via custom emitter code in the partial files above. Key locks this brief makes against the rule set:
+The generator implements all 11 emit rules in [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) §2 "Modern .NET P/Invoke Emit Target." Rules are toolchain-agnostic; CppAst executes them via custom emitter code in the partial files above. Key locks this brief makes against the rule set:
 
 | Rule | Locked decision |
 |---|---|
@@ -183,7 +183,7 @@ The generator implements all 11 emit rules in [`binding-autogen-feasibility.md`]
 | Rule 2 — Opaque handles | **Typed `readonly partial struct Name(nint value)`** per the Decision Hypothesis lock. Alimer/Vortice ecosystem pattern, verified against [Alimer Handles.cs](https://raw.githubusercontent.com/amerkoleci/Alimer.Bindings.SDL/main/src/Alimer.Bindings.SDL/Generated/Handles.cs) and [Vortice.Vulkan Handles.cs](https://raw.githubusercontent.com/amerkoleci/Vortice.Vulkan/main/src/Vortice.Vulkan/Generated/Handles.cs) |
 | Rule 3 — Numeric IDs | Typed `enum Name : uint` / `enum Name : ulong` for SDL `*ID` types; per [Microsoft Learn — Best practices](https://learn.microsoft.com/en-us/dotnet/standard/native-interop/best-practices) "DO use .NET types that map closest to the native type" |
 | Rule 4 — UTF-8 strings | Triple overload (`byte*` / `ReadOnlySpan<byte>` / `string` w/ `StringMarshalling.Utf8`); emitted in same loop as raw P/Invoke (see "Friendly overloads" below). [Microsoft Learn — Custom marshalling source generation](https://learn.microsoft.com/en-us/dotnet/standard/native-interop/custom-marshalling-source-generation) for `Utf8StringMarshaller` semantics |
-| Rule 5 — Boolean wire types | **SDL2 `SDL_bool` → int-backed enum/wrapper**; **SDL3 `bool` → 1-byte wrapper struct**. Never raw `bool`. Per [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) §2 Rule 5; SDL2/SDL3 ABI is genuinely different |
+| Rule 5 — Boolean wire types | **SDL2 `SDL_bool` → int-backed enum/wrapper**; **SDL3 `bool` → 1-byte wrapper struct**. Never raw `bool`. Per [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) §2 Rule 5; SDL2/SDL3 ABI is genuinely different |
 | Rule 6 — Buffers | `Span<T>` / `ReadOnlySpan<T>` overloads + raw-pointer overload (hot path); `out T` for single-element output; never `Memory<T>` in P/Invoke |
 | Rule 7 — Callbacks | `delegate* unmanaged[Cdecl]<...>` + `[UnmanagedCallersOnly]`; never `Delegate` or `Marshal.GetFunctionPointerForDelegate` |
 | Rule 8 — Constants | `public const` for literal numerics / strings; `public static readonly` for computed expressions; categorized per `CppMacro` shape |
@@ -193,9 +193,9 @@ The generator implements all 11 emit rules in [`binding-autogen-feasibility.md`]
 
 ### Multi-pass parsing strategy — neutral + per-OS inside one Linux container
 
-Local SDL2 header inspection (verified 2026-05-14, see [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) §3) confirms platform-conditioned public surface in `SDL_system.h`, `SDL_main.h`, `SDL_platform.h`, `SDL_config.h`, `SDL_stdinc.h`, `SDL_syswm.h`. This is a libclang/preprocessor constraint — each parse produces the AST for **one** macro/target/include configuration.
+Local SDL2 header inspection (verified 2026-05-14, see [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) §3) confirms platform-conditioned public surface in `SDL_system.h`, `SDL_main.h`, `SDL_platform.h`, `SDL_config.h`, `SDL_stdinc.h`, `SDL_syswm.h`. This is a libclang/preprocessor constraint — each parse produces the AST for **one** macro/target/include configuration.
 
-**Pattern: ppy-style N+1 passes, CppAst-executed, single Linux container.** One platform-agnostic pass + one pass per target platform (Windows, Linux, macOS). Each pass is a `CppParserOptions` instance with that platform's macros enabled + others undefined + appropriate `--target` triple + appropriate sysroot/stub includes. All four passes execute inside one Linux container per the ppy/SDL3-CS pattern — see [ppy/SDL3-CS generate_bindings.py](https://raw.githubusercontent.com/ppy/SDL3-CS/master/SDL3-CS/generate_bindings.py) `generate_platform_specific_headers()` function for the closest reference shape, paraphrased into CppAst by [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) §8.7 platform-pass spike result.
+**Pattern: ppy-style N+1 passes, CppAst-executed, single Linux container.** One platform-agnostic pass + one pass per target platform (Windows, Linux, macOS). Each pass is a `CppParserOptions` instance with that platform's macros enabled + others undefined + appropriate `--target` triple + appropriate sysroot/stub includes. All four passes execute inside one Linux container per the ppy/SDL3-CS pattern — see [ppy/SDL3-CS generate_bindings.py](https://raw.githubusercontent.com/ppy/SDL3-CS/master/SDL3-CS/generate_bindings.py) `generate_platform_specific_headers()` function for the closest reference shape, paraphrased into CppAst by [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §8.7 platform-pass spike result.
 
 The CppAst platform-pass spike originally ran on a Windows host with stub inputs for the Linux pass. Stage 1 migrates this to the Linux container: native Linux sysroot is available without stubs, Windows pass uses MinGW headers or stubs from the container's apt layer, macOS pass uses minimal Apple SDK header stubs. Stub-set inventory is a Stage 1 deliverable.
 
@@ -220,7 +220,7 @@ src/SDL2.Core/Generated/
         └── SDL_system.OSX.g.cs
 ```
 
-**Dedup + conflict rules** (per [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) §3 multi-platform parsing baseline):
+**Dedup + conflict rules** (per [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) §3 multi-platform parsing baseline):
 
 1. Run neutral pass first; emit its symbol set into common files.
 2. Run each platform pass with exactly one platform view active.
@@ -228,13 +228,13 @@ src/SDL2.Core/Generated/
 4. Emit platform-only symbols into platform-suffixed files with `[SupportedOSPlatform]` attribution.
 5. **Fail generation** (do not silently guess) if the same symbol appears in multiple views with incompatible signatures or layout-affecting type differences.
 
-**Cross-target parse views from a single Linux host.** "Platform pass" ≠ "native OS runner." Each pass selects a libclang `--target` + macros + sysroot/stub set; the host process stays in the Linux container. True multi-OS extraction + merge (per `bottlenoselabs/SDL3-cs` pattern) stays as an escalation path if controlled single-host parsing cannot model a header correctly. See [`binding-autogen-approaches.md`](binding-autogen-approaches.md) §2026-05-12 multi-platform parsing comparison.
+**Cross-target parse views from a single Linux host.** "Platform pass" ≠ "native OS runner." Each pass selects a libclang `--target` + macros + sysroot/stub set; the host process stays in the Linux container. True multi-OS extraction + merge (per `bottlenoselabs/SDL3-cs` pattern) stays as an escalation path if controlled single-host parsing cannot model a header correctly. See [`binding-autogen-approaches.md`](research/binding-autogen-approaches.md) §2026-05-12 multi-platform parsing comparison.
 
 **`SDL_syswm.h` struct/union layout** is deferred from the function-only platform-pass spike. Handle case-by-case at Stage 1 (see Plan Shape below); if a platform-variant struct cannot be modeled cleanly, intentionally exclude it from the binding surface and document.
 
 ### Satellite / shared-types topology
 
-SDL satellites are not independent type islands. Local header inspection (per [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) §3 satellite-headers table) confirms:
+SDL satellites are not independent type islands. Local header inspection (per [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) §3 satellite-headers table) confirms:
 
 | Satellite header | Includes | Shared core types observed |
 |---|---|---|
@@ -246,11 +246,11 @@ SDL satellites are not independent type islands. Local header inspection (per [`
 
 Validation rule (new G-guardrail candidate, see "Symbol-existence validation guardrail" below + WHAT impact inventory): **fail generation if a satellite output redefines a core-owned type name** or lowers a known core type to an untyped fallback because the type map was missing.
 
-**Spike validation** ([`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) §8.7 SDL2_image result): CppAst generated `SDL_image.h` into a separate image binding project while referencing a separate core-types project for core SDL concepts. Generated image output compiled, emitted 59 `IMG_*` extern declarations, emitted image-owned `ImgInitFlags` + opaque `ImgAnimation`, and reused core-owned `SDL_version` / `SDL_Surface` / `SDL_Texture` / `SDL_Renderer` / `SDL_RWops` through analyzer-clean managed names — **no duplicate core type declarations.** This is the topology pattern Plan Shape Stage 2 (SDL2 satellite sweep) generalizes. References: [ppy/SDL3-CS package structure](https://github.com/ppy/SDL3-CS) (separate `SDL3_image-CS`, `SDL3_mixer-CS`, `SDL3_ttf-CS` packages referencing `SDL3-CS` core).
+**Spike validation** ([`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §8.7 SDL2_image result): CppAst generated `SDL_image.h` into a separate image binding project while referencing a separate core-types project for core SDL concepts. Generated image output compiled, emitted 59 `IMG_*` extern declarations, emitted image-owned `ImgInitFlags` + opaque `ImgAnimation`, and reused core-owned `SDL_version` / `SDL_Surface` / `SDL_Texture` / `SDL_Renderer` / `SDL_RWops` through analyzer-clean managed names — **no duplicate core type declarations.** This is the topology pattern Plan Shape Stage 2 (SDL2 satellite sweep) generalizes. References: [ppy/SDL3-CS package structure](https://github.com/ppy/SDL3-CS) (separate `SDL3_image-CS`, `SDL3_mixer-CS`, `SDL3_ttf-CS` packages referencing `SDL3-CS` core).
 
 ### Multi-TFM dual emit — full matrix, single emitter loop
 
-Per [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) §2 Rule 1, every P/Invoke is emitted twice in one `foreach` iteration:
+Per [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) §2 Rule 1, every P/Invoke is emitted twice in one `foreach` iteration:
 
 ```csharp
 internal static partial class SDL2
@@ -269,7 +269,7 @@ internal static partial class SDL2
 }
 ```
 
-**Why dual-emit in the same loop (not post-process).** Per the scope-trajectory argument (WHY section above), CppAst's single emitter pass owns this in ~50 LoC of iteration logic inside `Program.cs`. ClangSharp's equivalent would be a separate Roslyn post-process project — see [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) §7.8.
+**Why dual-emit in the same loop (not post-process).** Per the scope-trajectory argument (WHY section above), CppAst's single emitter pass owns this in ~50 LoC of iteration logic inside `Program.cs`. ClangSharp's equivalent would be a separate Roslyn post-process project — see [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §7.8.
 
 **Compatibility deltas under LibraryImport** (drop in net7+ branch): `CallingConvention`, `CharSet`, `BestFitMapping`, `ThrowOnUnmappableChar`, `ExactSpelling`, `PreserveSig`. See [Microsoft Learn — P/Invoke source generation §Differences from DllImport](https://learn.microsoft.com/en-us/dotnet/standard/native-interop/pinvoke-source-generation) + the [dotnet/runtime LibraryImportGenerator Compatibility doc](https://github.com/dotnet/runtime/blob/main/docs/design/libraries/LibraryImportGenerator/Compatibility.md).
 
@@ -279,7 +279,7 @@ internal static partial class SDL2
 
 ### Friendly overloads — same emitter loop, no separate Roslyn extension
 
-Friendly overloads are emitted **alongside** the raw P/Invoke, in the same iteration over each function. Pattern from [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) §7.8 single-loop emit:
+Friendly overloads are emitted **alongside** the raw P/Invoke, in the same iteration over each function. Pattern from [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §7.8 single-loop emit:
 
 ```csharp
 foreach (var func in compilation.Functions.Where(InTargetHeader))
@@ -421,7 +421,7 @@ This means the existing image is **sufficient** for generation — no new Docker
 **Single canonical triplet for headers.** Generation pipeline runs `vcpkg install` for **one** triplet: `x64-linux-hybrid` (Linux container's native target). Rationale:
 
 - vcpkg has no "headers-only" install mode; full install with binary caching is the path. Cold install matches Harvest cost; cached install completes fast.
-- Header byte-identity check in [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) §3 confirmed: SDL2 public headers are byte-identical (post-CRLF-normalization) across all 7 vcpkg-installed triplets. Parsing one triplet's headers is sufficient input for all OS parse views.
+- Header byte-identity check in [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) §3 confirmed: SDL2 public headers are byte-identical (post-CRLF-normalization) across all 7 vcpkg-installed triplets. Parsing one triplet's headers is sufficient input for all OS parse views.
 - Cross-target parse views (per "Multi-pass parsing strategy" above) operate on the same canonical header set with different libclang `--target` / macros / sysroot settings.
 
 **Header byte-identity check as a CI step.** Belt-and-suspenders: generation pipeline includes a step that verifies SDL public header SHAs match across triplet outputs if more than one triplet has been installed in the cache. Catches the rare case where a vcpkg port patch differs by triplet. Cheap (~seconds), high signal.
@@ -533,7 +533,7 @@ The stamp file makes all three explicit. Maintenance asymmetry is small (one JSO
 
 ### Symbol-existence validation guardrail
 
-**Failure mode.** AST parsing surfaces every function *declared* in the header. Not every declared function is *exported* from the compiled satellite. Per [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) §4 "Symbol Visibility Risk":
+**Failure mode.** AST parsing surfaces every function *declared* in the header. Not every declared function is *exported* from the compiled satellite. Per [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) §4 "Symbol Visibility Risk":
 
 | Platform | Risk level | Why |
 |---|---|---|
@@ -571,7 +571,7 @@ The brief reshapes work across project structure, build host, CI surface, genera
 | `src/Janset.SDL2.Bindings.Generator/` | Does not exist | **Add** as a `net10` console app referencing `CppAst 0.24.0` + libclang runtime. Layout per "Generator architecture" above (`Program.cs` + partial `CsCodeGenerator.*.cs` files + `Rules/` policy objects). Invoked from the new Cake target via `Tool<TSettings>` wrapper. |
 | `src/Janset.SDL3.Bindings.Generator/` | Does not exist | **Add** at Phase 5 activation. Same layout as SDL2 generator; SDL3-specific type-map differences (bool wire types, `SDL_IOStream` vs `SDL_RWops`, etc.) live in this project's `Rules/`. |
 | `src/SDL2.<Family>/Generated/` | Does not exist | **Add** per-family. Receives generated `Commands.g.cs` / `Constants.g.cs` / `Enums.g.cs` / `Handles.g.cs` / `Structs.g.cs` / `Callbacks.g.cs` from the neutral pass + `Platform/<OS>/*.g.cs` from per-OS passes + `.generated-stamp` from the Cake target. Committed to git per Generation environment lock. |
-| `src/SDL2.<Family>/<Family>.csproj` | `<Compile Include="../../external/sdl2-cs/src/<Family>.cs" />` plus AOT / TFM / package metadata | **Update**: drop the sdl2-cs Compile Include; SDK glob picks up `Generated/**/*.cs` automatically (per [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) §3 finding #6). Add `AllowUnsafeBlocks=true`. Cross-csproj reference from satellite to `Janset.SDL2.Core` retained. |
+| `src/SDL2.<Family>/<Family>.csproj` | `<Compile Include="../../external/sdl2-cs/src/<Family>.cs" />` plus AOT / TFM / package metadata | **Update**: drop the sdl2-cs Compile Include; SDK glob picks up `Generated/**/*.cs` automatically (per [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §3 finding #6). Add `AllowUnsafeBlocks=true`. Cross-csproj reference from satellite to `Janset.SDL2.Core` retained. |
 | `build/_build/Targets/GenerateBindings/` | Does not exist | **Add** new Cake target per [`AGENTS.md`](../../AGENTS.md) §Build-Host Reference Pattern. Owns vcpkg-state resolution, vcpkg install for canonical triplet, emitter invocation, 3 OS parse view orchestration, output validation, `.generated-stamp` write. |
 | `build/_build/Validation/` (vcpkg-state coherence) | Does not exist | **Add** validator joining existing PreFlight validators (`HybridStaticOverlayValidator`, manifest schema validators). Behavior-first name candidate: `BindingVcpkgCoherenceValidator`. Reads `.generated-stamp` per family + current vcpkg state; fails PreFlight with actionable error on drift. |
 | `build/_build/Validation/` (symbol existence) | Does not exist | **Add** validator running at Pack stage (after Harvest, before Package). Behavior-first name candidate: `BindingSymbolExistenceValidator`. Cross-platform via existing `build/_build/Tools/` wrappers around `dumpbin /exports` / `nm -D --defined-only` / `nm -gU`. |
@@ -598,7 +598,7 @@ The brief reshapes work across project structure, build host, CI surface, genera
 
 ### Test strategy
 
-Maps the 7-layer strategy from [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) §7 to canonical project test infrastructure per [`testing-guidelines.md`](../knowledge-base/testing-guidelines.md). No new test scaffolding required at the brief level; Phase 4 plan owns specific test additions per slice.
+Maps the 7-layer strategy from [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) §7 to canonical project test infrastructure per [`testing-guidelines.md`](../knowledge-base/testing-guidelines.md). No new test scaffolding required at the brief level; Phase 4 plan owns specific test additions per slice.
 
 | Layer | Coverage | Infrastructure | New work |
 | --- | --- | --- | --- |
@@ -626,7 +626,7 @@ These are real work items but their resolution does not block this brief's accep
 - **Multi-TFM minimum window for SDL3.** Full matrix is locked for SDL2 (legacy Unity / Xamarin consumer reach); SDL3 may legitimately drop `netstandard2.0` / `net462` since SDL3 itself is a 2024+ library with no legacy consumer base. Phase 5 plan re-evaluates.
 - **Friendly-overload feature set scope.** Locked: `string` / `ReadOnlySpan<byte>` / `out` / `ref` / `Span<T>`. Open: whether to emit additional overloads (e.g., `Memory<T>` extension methods, ergonomic enum-flag combinators) — Phase 4 plan decides per-rule.
 - **`delegate*` callback lifetime helpers.** Rule 7 commits to `[UnmanagedCallersOnly]` static-method pattern. Edge case: do we ship rooting helpers for instance-bound closures? Feasibility §10.2 captured this as a discussion thread; Phase 4 plan resolves.
-- **Wrapper layer (`SdlWindow : IDisposable` on top of `SDL_Window` struct).** Q7 deferred past v1.0 per [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) §9. Revisit if real consumer feedback signals RAII need that doesn't compose with the typed-struct baseline.
+- **Wrapper layer (`SdlWindow : IDisposable` on top of `SDL_Window` struct).** Q7 deferred past v1.0 per [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §9. Revisit if real consumer feedback signals RAII need that doesn't compose with the typed-struct baseline.
 
 ## Plan Shape
 
@@ -722,14 +722,14 @@ This section records the 2026-05-14 fact-check so future readers know which earl
 
 | Finding | Correction / current state | Why it matters |
 | --- | --- | --- |
-| **Error 1 — macro-capture parity** | Earlier drafts said ClangSharp captured only 2 SDL2_gfx constants while CppAst captured 8. Current spike artifacts show ClangSharp with `--config generate-macro-bindings` captures the same 8 constants as CppAst. Corrected in [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) §2, §6.G, §7.4, §7.5, §7.7, and §9 Q6; mirrored in [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) §9 D6 and [`binding-autogen-onboarding.md`](binding-autogen-onboarding.md). | CppAst's case cannot claim a macro-capture advantage at SDL2_gfx scope. The toolchain decision rests on production-shape custom emission, not small-scope constants. |
-| **Error 2 — ppy source-generator API** | ppy's `FriendlyOverloadGenerator` implements `ISourceGenerator`, not `IIncrementalGenerator`. Corrected in [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) §5.5. | If the project migrates to ClangSharp + ppy-style friendly overloads, modernizing that generator is real work, not a free copy-paste. |
-| **Error 3 — original decision-matrix arithmetic** | The 2026-04-11 matrix summed to CppAst 23 vs ClangSharp 23, not 23 vs 22. Corrected in [`binding-autogen-approaches.md`](binding-autogen-approaches.md). The later weighted matrix remains CppAst 43 vs ClangSharp 63, favoring ClangSharp on raw-binding economics. | The brief can acknowledge ClangSharp's raw-binding strength honestly while still choosing CppAst for the broader output scope. No thumb-on-scale math. |
+| **Error 1 — macro-capture parity** | Earlier drafts said ClangSharp captured only 2 SDL2_gfx constants while CppAst captured 8. Current spike artifacts show ClangSharp with `--config generate-macro-bindings` captures the same 8 constants as CppAst. Corrected in [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §2, §6.G, §7.4, §7.5, §7.7, and §9 Q6; mirrored in [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) §9 D6 and [`binding-autogen-onboarding.md`](research/binding-autogen-onboarding.md). | CppAst's case cannot claim a macro-capture advantage at SDL2_gfx scope. The toolchain decision rests on production-shape custom emission, not small-scope constants. |
+| **Error 2 — ppy source-generator API** | ppy's `FriendlyOverloadGenerator` implements `ISourceGenerator`, not `IIncrementalGenerator`. Corrected in [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §5.5. | If the project migrates to ClangSharp + ppy-style friendly overloads, modernizing that generator is real work, not a free copy-paste. |
+| **Error 3 — original decision-matrix arithmetic** | The 2026-04-11 matrix summed to CppAst 23 vs ClangSharp 23, not 23 vs 22. Corrected in [`binding-autogen-approaches.md`](research/binding-autogen-approaches.md). The later weighted matrix remains CppAst 43 vs ClangSharp 63, favoring ClangSharp on raw-binding economics. | The brief can acknowledge ClangSharp's raw-binding strength honestly while still choosing CppAst for the broader output scope. No thumb-on-scale math. |
 | **Cosmetic drift refresh** | Current spike snapshots: ClangSharp RSP 43 lines, CppAst `Program.cs` 261 lines, `NativeTypeNameAttribute.cs` 25 lines, `Constants.cs` 11 lines. | Keeps line-count comparisons traceable. These are snapshot signals, not eternal truths. |
 | **Verified local/live claims** | Verified: `external/sdl2-cs` totals 11,105 lines; SDL2 public header set count is 88 in the checked vcpkg installs; CppAst 0.24.0 + libclang/libClangSharp 20.1.2 trio is the spike pin; Alimer.Bindings.SDL is SDL3 core only; ppy uses ClangSharpPInvokeGenerator 17.0.1 + Dockerfile + `generate_bindings.py` + `FriendlyOverloadGenerator.cs`; Silk.NET 3.0 proposal explicitly delegates parsing to ClangSharp. | These claims are used as support throughout WHY/HOW/WHAT. Future edits should re-check them before updating recommendations. |
 | **Outstanding verification items** | Still lower-priority: release-by-release confirmation that CppAst has been additive-only since 0.21.1; exact current SkiaSharpGenerator size and three-way emission details. | Neither blocks this brief. Both are useful if a later ADR wants deeper external precedent evidence. |
 
-The audit also explains why sibling docs can look directionally different: [`binding-autogen-approaches.md`](binding-autogen-approaches.md) and [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) preserve the raw-binding research recommendation that favored ClangSharp; this brief makes the later project decision after locking production-shape features that change the cost curve.
+The audit also explains why sibling docs can look directionally different: [`binding-autogen-approaches.md`](research/binding-autogen-approaches.md) and [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) preserve the raw-binding research recommendation that favored ClangSharp; this brief makes the later project decision after locking production-shape features that change the cost curve.
 
 ## Cross-Reference
 
@@ -744,16 +744,17 @@ The audit also explains why sibling docs can look directionally different: [`bin
 
 ### Binding-autogen workstream docs
 
-- [`binding-autogen-onboarding.md`](binding-autogen-onboarding.md) — LLM/human workstream entry point and required reading order.
-- [`binding-autogen-approaches.md`](binding-autogen-approaches.md) — tool survey, decision matrix, source-level comparison of ppy/SDL3-CS and Alimer.Bindings.SDL.
-- [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) — 11 emit rules, header/platform feasibility, symbol visibility, 7-layer testing strategy, D1-D11 open decisions.
-- [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) — SDL2_gfx ClangSharp + CppAst spike, runtime validation, platform-pass and SDL2_image shared-type follow-ups.
+- [`binding-autogen-onboarding.md`](research/binding-autogen-onboarding.md) — LLM/human workstream entry point and required reading order.
+- [`binding-autogen-approaches.md`](research/binding-autogen-approaches.md) — tool survey, decision matrix, source-level comparison of ppy/SDL3-CS and Alimer.Bindings.SDL.
+- [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) — 11 emit rules, header/platform feasibility, symbol visibility, 7-layer testing strategy, D1-D11 open decisions.
+- [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) — SDL2_gfx ClangSharp + CppAst spike, runtime validation, platform-pass and SDL2_image shared-type follow-ups.
 
 ### ADRs, guardrails, and planning conventions
 
 - [`../decisions/2026-05-05-d3seg-and-package-first.md`](../decisions/2026-05-05-d3seg-and-package-first.md) — ADR-001 D-3seg versioning + package-first consumer contract.
 - [`../decisions/2026-05-05-target-centric-build-host.md`](../decisions/2026-05-05-target-centric-build-host.md) — ADR-002 target-centric build-host architecture.
 - [`../decisions/2026-05-12-build-host-data-layer.md`](../decisions/2026-05-12-build-host-data-layer.md) — ADR-003 contract-centric data layer.
+- [`../decisions/2026-05-14-binding-autogen-toolchain.md`](../decisions/2026-05-14-binding-autogen-toolchain.md) — ADR-004 CppAst binding-generator toolchain decision.
 - [`../knowledge-base/release-guardrails.md`](../knowledge-base/release-guardrails.md) — guardrail catalog; binding vcpkg coherence and symbol existence get final G-IDs here later.
 - [`../knowledge-base/testing-guidelines.md`](../knowledge-base/testing-guidelines.md) — canonical TUnit/MTP test infrastructure and fixture policy.
 - [`../knowledge-base/extraction-guidelines.md`](../knowledge-base/extraction-guidelines.md) — collaborator extraction and interface discipline.

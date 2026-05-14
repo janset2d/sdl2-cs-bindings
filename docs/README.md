@@ -47,10 +47,12 @@ Phase 3 (SDL2 Complete — samples, meta-package, first prerelease) lives direct
 
 | Document | Purpose |
 | --- | --- |
-| [binding-autogen/README.md](binding-autogen/README.md) | Workstream index and reading order for Phase 4 binding generator research, feasibility, and spike findings |
-| [binding-autogen/binding-autogen-onboarding.md](binding-autogen/binding-autogen-onboarding.md) | Fast onboarding for a fresh contributor or agent picking up the binding-autogen workstream |
-| [binding-autogen/binding-autogen-feasibility.md](binding-autogen/binding-autogen-feasibility.md) | Emit rules, platform-conditioned parsing model, validation layers, open decisions |
-| [binding-autogen/binding-autogen-spike-findings.md](binding-autogen/binding-autogen-spike-findings.md) | Hands-on SDL2_gfx spike findings for ClangSharp and CppAst |
+| [binding-autogen/README.md](binding-autogen/README.md) | Workstream index and reading order for Phase 4 binding generator strategy and research |
+| [binding-autogen/binding-autogen-strategy-brief.md](binding-autogen/binding-autogen-strategy-brief.md) | WHY/HOW/WHAT strategy brief selecting the CppAst direction for Phase 4 planning |
+| [binding-autogen/research/binding-autogen-onboarding.md](binding-autogen/research/binding-autogen-onboarding.md) | Fast onboarding for a fresh contributor or agent picking up the binding-autogen workstream |
+| [binding-autogen/research/binding-autogen-feasibility.md](binding-autogen/research/binding-autogen-feasibility.md) | Emit rules, platform-conditioned parsing model, validation layers, open decisions |
+| [binding-autogen/research/binding-autogen-spike-findings.md](binding-autogen/research/binding-autogen-spike-findings.md) | Hands-on SDL2_gfx spike findings for ClangSharp and CppAst |
+| [decisions/2026-05-14-binding-autogen-toolchain.md](decisions/2026-05-14-binding-autogen-toolchain.md) | ADR-004 toolchain decision for the CppAst binding generator |
 
 ### Playbook (How-To Recipes)
 
