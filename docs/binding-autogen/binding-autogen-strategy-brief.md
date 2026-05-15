@@ -2,20 +2,20 @@
 
 > Strategy brief accepted for Phase 4 planning. Durable toolchain policy is recorded in [ADR-004](../decisions/2026-05-14-binding-autogen-toolchain.md); remaining implementation details promote into AGENTS.md, release guardrails, and onboarding as Phase 4 ships. Retires when Phase 4 implementation completes and binding generator output supersedes `external/sdl2-cs`.
 >
-> **Status (2026-05-14):** Accepted strategy brief. Sections complete: Decision Hypothesis / WHY / HOW / WHAT / Plan Shape / Current Open Decisions / Decision Audit / Cross-Reference. See [`binding-autogen-onboarding.md`](research/binding-autogen-onboarding.md) for workstream entry point.
+> **Status (2026-05-15):** Accepted strategy brief, revised 2026-05-15 to fold the generator into the Cake build host, lock Linux-container as the canonical determinism contract, correct the stub-strategy framing against ppy/SDL3-CS and the local CppAst spike evidence, defer `SDL_syswm.h` struct/union layout to Stage 2, and gate SDL3 work on PD-7 completion. Sections complete: Decision Hypothesis / WHY / HOW / WHAT / Plan Shape / Current Open Decisions / Decision Audit / Cross-Reference. See [`binding-autogen-onboarding.md`](research/binding-autogen-onboarding.md) for workstream entry point.
 
 ## Decision Hypothesis
 
-Phase 4 ships an auto-generated binding surface for SDL2 + SDL3 (core + all in-scope satellites), produced by a single CppAst-based C# emitter that:
+Phase 4 ships an auto-generated binding surface for SDL2 (core + all in-scope satellites) — SDL3 follows after PD-7 — produced by a CppAst-based emitter **hosted in the Cake build host** under `build/_build/Targets/GenerateBindings/`, that:
 
-- pins CppAst 0.24.0 + libclang.runtime 20.1.2 + libClangSharp.runtime 20.1.2 (version-trio coupling per [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §7.6);
-- consumes vcpkg-installed canonical SDL headers via libclang controlled parse views (neutral + Windows + Linux + macOS), all executed inside a single Linux container per the ppy/SDL3-CS pattern, with platform-conditioned declarations attributed via `[SupportedOSPlatform]`;
+- pins CppAst 0.24.0 + libclang.runtime.linux-x64 20.1.2 + libClangSharp.runtime.linux-x64 20.1.2 (version-trio coupling per [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §7.6). Non-Linux runtime packages are intentionally omitted; the generator is **Linux-canonical** and fail-closed on any other host RID;
+- consumes vcpkg-installed canonical SDL headers via libclang controlled parse views (neutral + per-OS/backend tuple set — see "Multi-pass parsing strategy" below for the catalog), all executed inside a single Linux container per the ppy/SDL3-CS pattern, with platform-conditioned declarations attributed via `[SupportedOSPlatform]`. Platform separation uses **preprocessor macro switching only** — no `--target` cross-compile flags, no mingw-w64, no Apple SDK; SDL headers' own forward-declarations carry the cross-OS opaque types;
 - emits per-family generated `.g.cs` files committed to the repository, dual-shaped for `[LibraryImport]` (net7+) and `[DllImport]` (legacy TFMs) in a single emitter loop;
 - emits typed `readonly partial struct` handle types (`SDL_Window`, `SDL_Renderer`, etc.) — zero-cost over `IntPtr` at the wire, type-safe at compile time, AOT-trivial — matching the Alimer / Vortice / Silk.NET ecosystem convention for CppAst-based bindings;
 - emits friendly overloads (`string` / `ReadOnlySpan<byte>` / `out` / `ref` / `Span<T>`) alongside the raw P/Invoke layer in the same loop;
 - targets the full TFM matrix (`net10` / `net9` / `net8` / `netstandard2.0` / `net462`).
 
-The generator runs offline via a dedicated `regenerate-bindings.yml` workflow (manual trigger, auto-PR via peter-evans/create-pull-request, Silk.NET reference pattern) and locally via `tools.cs generate-bindings` (Docker invocation against the existing `linux-builder` image). Two new release guardrails close the binding ↔ native coherence loop: a vcpkg-state coherence validator at PreFlight (catches "natives rebuilt but bindings not regenerated"), and a symbol-existence validator at Pack (catches "binding declares an unexported function").
+The generator runs offline via a dedicated `regenerate-bindings.yml` workflow (manual trigger, auto-PR via peter-evans/create-pull-request, Silk.NET reference pattern) and locally via `tools.cs generate-bindings` (Docker orchestration: repo-root volume mount, vcpkg cache mount, Cake Release-publish step, the pinned `linux-builder` image). Docker is a **hard prerequisite** for the determinism contract; there is no host-OS fallback path. Two new release guardrails close the binding ↔ native coherence loop: a vcpkg-state coherence validator at PreFlight (catches "natives rebuilt but bindings not regenerated"), and a symbol-existence validator at Pack (catches "binding declares an unexported function").
 
 The toolchain pick rests on the **scope-trajectory bet** ([`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §7.8 + §9 Q8): at the production-shape feature investment this project commits to, CppAst's single-loop emitter has linear ownership growth while ClangSharpPInvokeGenerator + RSP + Roslyn-extension + post-process pipelines grow in architectural steps. ClangSharp remains a documented migration target if CppAst's maintenance burden surfaces in practice.
 
@@ -112,6 +112,26 @@ The gap inverts at our committed scope. CppAst's single-codebase elasticity is t
 
 **Migration door stays open.** If CppAst's libclang version-trio coupling becomes painful in practice (per [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §7.6 "Version-Trio Coupling is Real"), or if our scope shrinks to raw P/Invoke only and ClangSharp's leaner setup begins to dominate, the ClangSharp + ppy pattern is well-documented in [`binding-autogen-approaches.md`](research/binding-autogen-approaches.md) §2026-05-12 Source-Level Comparison. The generated `.cs` output format is the same on either side; migration is about the generator, not the output. Captured as a Risk row in Plan Shape below with explicit mitigation.
 
+### Why hosted in the Cake build host — not a standalone CLI tool
+
+The 2026-05-14 draft of this brief proposed a standalone `src/Janset.SDL2.Bindings.Generator/` console app invoked from a Cake target via `Tool<TSettings>` subprocess wrapper. The 2026-05-15 revision folds the generator into the Cake build host as a target-local module under `build/_build/Targets/GenerateBindings/`. Five reasons, each independently sufficient:
+
+**1. Binding generation is structurally a CI/CD concern.** Every input the generator consumes is already owned by the build host: vcpkg state resolution (`Data/Manifest/`, `Data/Versions/`), canonical header provisioning (`Tools/VcpkgBootstrapTool`), the canonical RID + triplet mapping (`Host/Runtime`), the release manifest schema (`Data/Manifest/Models/`), the validation patterns that PreFlight already runs (`Validation/`, ADR-003 contract-centric data layer). A separate `src/`-tree console app would have to re-read `vcpkg.json` / `build/manifest.json` / `vcpkg-configuration.json`, re-implement the manifest parser, re-wrap vcpkg invocation, re-emit logs in a different style, and re-discover paths. That is a **parallel orchestration stack** for no incremental value — it duplicates existing surface and creates two places to chase a manifest-schema bump.
+
+**2. ADR-002 §2.1's target-centric navigation rule applies cleanly.** Every other Cake target lives under `build/_build/Targets/<CakeTargetName>/` and is reachable from `tools.cs` / `release.yml` / `--target X`. Binding generation is no exception: it ships as a `[TaskName("GenerateBindings")]` task next to `PreFlightCheck`, `Harvest`, `Package`, `PackageConsumerSmoke`, and `PublishStaging`. A maintainer reading `release.yml` should land in the same code shape regardless of which step they're chasing. Hiding the generator under `src/` or `tools/` breaks that navigation contract.
+
+**3. The release coherence loop closes inside the build host or not at all.** The two binding-related guardrails this brief locks — the `.generated-stamp` PreFlight drift check and the Stage 2 symbol-existence validator — are Cake-stage validators. They read `.generated-stamp`, recompute vcpkg + header state, walk harvested native binaries, and report through the same `ValidationReport` / `ValidationCheck` surface as G14 / G15 / G16 / G19 / G54 / G58. Keeping the generator outside the build host while the validators sit inside it creates a fault line: the thing that **writes** the stamp is in one stack, the thing that **validates** the stamp is in another. Folding the generator in keeps the entire coherence loop in one architecture.
+
+**4. The pure-vs-Cake split is preserved.** AGENTS.md §"Pure code stays pure" + §"Cake nativeness is a hard rule at build boundaries" both apply. The fold honors both: `HeaderSet/`, `Parsing/`, `Model/`, `Emitting/`, `Stamps/` carry no `ICakeContext`, no Cake aliases, no `Tool<TSettings>` dependencies — they're ordinary C# unit-tested from `build/_build.Tests/Unit/`. The Cake-aware shell (`GenerateBindingsTask`, `BindingGenerationRunner`, `ServiceCollectionExtensions`) is the only surface that touches Cake. This split is the **same shape** as `HarvestTask` + `BinaryClosureWalker` or `PreFlightCheckTask` + `HybridStaticOverlayValidator` — proven patterns in the existing build host. A standalone `src/` console app would not need this split, but would lose the ability to share `Tool<TSettings>` wrappers and Cake-native IO.
+
+**5. Test infrastructure already exists.** `build/_build.Tests/` runs TUnit on Microsoft.Testing.Platform with canonical `FakeCakeWorld`, `TargetTestHost`, `FixtureLoader`, and the manifest/versions/csproj seeding helpers per [`testing-guidelines.md`](../knowledge-base/testing-guidelines.md). A standalone generator project would either (a) take a dependency on `build/_build.Tests/`'s infrastructure across project boundaries (which CPM + the existing solution layout don't make easy), or (b) duplicate the infrastructure in `tests/Janset.SDL2.Bindings.Generator.Tests/`. Either path is worse than joining the existing test project.
+
+**Why not ppy-style external orchestrator (Python or PowerShell)?** Same five reasons amplified. ppy/SDL3-CS uses `generate_bindings.py` because their reference toolchain is ClangSharpPInvokeGenerator (a `dotnet tool`) driven by RSP files — a Python orchestrator is the path of least resistance for that stack. Our toolchain is CppAst as a `dotnet add`-able library inside a project we already own (the Cake host). Going through Python or PowerShell would add a runtime + a parsing + a process-boundary layer for zero scope benefit, plus break the §"Cake nativeness" rule.
+
+**Why not bottlenoselabs-style multi-OS native runners?** That pattern (Windows runner + macOS runner + Linux runner + merge job) solves a different problem: header surfaces that genuinely cannot be parsed from a single host. Stage 1's preprocessor-macro-only strategy proves this is not our problem at function level — see "Multi-pass parsing strategy" below. If a future SDL bump introduces a header that defeats single-host parsing, the bottlenoselabs pattern is the documented escalation; until then it's premature multi-runner complexity.
+
+**Local-dev story stays clean.** `tools.cs` is the canonical local-dev orchestration entry point per AGENTS.md §Common Commands. The fold preserves that — `tools.cs generate-bindings` joins `setup` / `ci-sim` / `build --target X` as siblings, runs the Cake `GenerateBindings` target inside the pinned Linux container, and writes regenerated source back to the host via volume mount. Same shape as every other `tools.cs` command; no new mental model.
+
 ## HOW
 
 ### Toolchain commitment + version-trio pin
@@ -120,56 +140,86 @@ Lock CppAst at version-trio:
 
 ```xml
 <PackageVersion Include="CppAst" Version="0.24.0" />
-<PackageVersion Include="libclang.runtime.win-x64" Version="20.1.2" />
-<PackageVersion Include="libClangSharp.runtime.win-x64" Version="20.1.2" />
+<PackageVersion Include="libclang.runtime.linux-x64" Version="20.1.2" />
+<PackageVersion Include="libClangSharp.runtime.linux-x64" Version="20.1.2" />
 ```
 
-When generator hosting extends beyond Windows, add matching `libclang.runtime.{linux-x64,linux-arm64,osx-x64,osx-arm64}` and `libClangSharp.runtime.{...}` pins at the same `20.1.2` line. Mismatched majors crash the AST visitor.
+**Linux-canonical lock.** Only the `linux-x64` runtime variants are pinned. Non-Linux runtime packages (`libclang.runtime.{win-x64, osx-x64, osx-arm64, linux-arm64}`) are intentionally absent. The generator runs **exclusively inside the pinned `linux-builder` container** and fails closed when the host RID is anything other than `linux-x64`. The exact diagnostic shape lives in the Stage 1 plan; the principle is: a maintainer running on a Windows or macOS dev host invokes `tools.cs generate-bindings`, which spins up the Linux container for them — they never see the generator execute on a non-Linux host.
+
+This is a deliberate scope shrink versus the original 2026-05-14 draft, which speculatively pinned five RID variants for "future per-RID parse-host scenarios." Those scenarios are not on the roadmap and the unused pins were dead weight. Re-pin if and when a real second host is required.
 
 **Why the trio matters.** CppAst is a .NET library that wraps `ClangSharp` (the .NET binding to libclang), not libclang directly. CppAst 0.24.0 builds against ClangSharp 20.1.2.4, which requires libclang **20.1.x** native runtime. Installing the latest `libclang.runtime.*` (21.1.x at the time of the spike) against CppAst 0.24.0 surfaces as a `StackOverflowException` during `CppParser.ParseFiles` — verified during the spike, see [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §7.6 "Version-Trio Coupling is Real."
 
-**Bump policy.** Do not bump any of the three packages independently. CppAst version bumps (0.24 → 0.25, when it ships) drive coordinated bumps of all three. Validation: spike-build the generator against the new trio + run the full SDL2_gfx end-to-end test (per spike-findings §8) before committing the bump. References: [CppAst NuGet](https://www.nuget.org/packages/CppAst), [CppAst v0.24.0 release notes (GitHub)](https://github.com/xoofx/CppAst/releases).
+**Bump policy.** Do not bump any of the three packages independently. CppAst version bumps (0.24 → 0.25, when it ships) drive coordinated bumps of both runtime packages. Validation: spike-build the generator against the new trio + run the full SDL2_gfx end-to-end test (per spike-findings §8) before committing the bump. References: [CppAst NuGet](https://www.nuget.org/packages/CppAst), [CppAst v0.24.0 release notes (GitHub)](https://github.com/xoofx/CppAst/releases).
 
-**Per-OS runtime packages.** Because the generation pipeline runs inside a single Linux container (see "Generation environment" below), the primary runtime package is `libclang.runtime.linux-x64`. The Windows / macOS / linux-arm64 runtimes are not required for generation, but Stage 1 commits to pinning them in `Directory.Packages.props` for completeness and parity with potential future per-RID parse-host scenarios. All RID-specific runtime versions must match within the same 20.1.x line. CppAst's NuGet transitive resolver picks platform-appropriate runtimes; we override with explicit pins so version skew can't silently land.
+### Generator architecture — Cake build host target
 
-### Generator architecture — single C# emitter project
+Binding generation is a CI/CD concern, not a separate src-tree tool. The emitter lives **inside the Cake build host** as a target-local module, alongside the rest of the production pipeline (PreFlight, Harvest, ConsolidateHarvest, Package, PackageConsumerSmoke, Publish). This inherits — at zero ceremony cost — the Cake host's vcpkg state resolution (`Data/Manifest/`, `Data/Versions/`), `Tool<TSettings>` wrappers (`Tools/VcpkgBootstrapTool`), validation infrastructure (`Validation/`), path/runtime profile state (`Host/`), and TUnit + MTP test rig (`build/_build.Tests/`). No parallel orchestration stack.
 
 ```text
-src/Janset.SDL2.Bindings.Generator/             ← single emitter project; one per major SDL version
-├── Janset.SDL2.Bindings.Generator.csproj       ← net10 console app; references CppAst 0.24.0 + libclang runtime
-├── Program.cs                                   ← entry + arg parsing + parse-pass orchestration
-├── CppAstParseRunner.cs                         ← libclang parse-view orchestration (neutral + per-OS)
-├── CsCodeGenerator.cs                           ← shared emitter state (type maps, namespace, partial-class scaffolding)
-├── CsCodeGenerator.Commands.cs                  ← P/Invoke function emit + friendly overloads (in one foreach)
-├── CsCodeGenerator.Handles.cs                   ← typed readonly struct emit per opaque handle
-├── CsCodeGenerator.Structs.cs                   ← POD struct + union emit with [StructLayout]
-├── CsCodeGenerator.Enums.cs                     ← enum emit with [Flags] attribution + underlying-type fixes
-├── CsCodeGenerator.Constants.cs                 ← #define / const emit (string + numeric forms)
-├── CsCodeGenerator.Callbacks.cs                 ← delegate* unmanaged[Cdecl]<...> emit per typedef
-├── CodeWriter.cs                                ← indentation-aware text builder
-├── EmitOptions.cs                               ← per-run config: family, header set, TFM matrix, platform passes
-└── Rules/                                       ← per-decision-rule policy objects (Rule 1–11 per feasibility §2)
+build/_build/Targets/GenerateBindings/            ← Cake target home, target-local until SDL3 creates real reuse pressure
+├── GenerateBindingsTask.cs                       ← [TaskName("GenerateBindings")] — orchestration + CakeException translation
+├── GenerateBindingsRequest.cs                    ← immutable target input contract per ADR-002 §2.2
+├── ServiceCollectionExtensions.cs                ← AddGenerateBindings() — focused DI registration per ADR-002 §2.5
+├── BindingGenerationRunner.cs                    ← Cake-side runner; invokes the pure emitter via named adapter
+├── HeaderSet/                                    ← vcpkg-installed canonical header resolution + fingerprint
+│   ├── HeaderSetResolver.cs
+│   └── HeaderSetFingerprint.cs
+├── Parsing/                                      ← libclang parse-view orchestration
+│   ├── CppAstParseRunner.cs                       ← runs one parse view per platform catalog entry
+│   ├── PlatformCatalog.cs                         ← (OsCondition, BackendCondition[]) tuple catalog — see "Multi-pass parsing strategy" below
+│   └── ParseDiagnosticFormatter.cs
+├── Model/                                        ← generator-owned declaration model
+│   ├── BindingModel.cs
+│   ├── DeclarationCollector.cs                    ← CppAst → BindingModel translation
+│   ├── DeclarationMergePolicy.cs                  ← neutral + per-platform dedup, fail-closed on signature conflict
+│   ├── CoreOwnedTypeMap.cs                        ← satellite redeclaration guard
+│   └── TypeMappingPolicy.cs                       ← C → managed type mapping rules
+├── Emitting/                                     ← per-category C# emitters; single foreach loop per Function
+│   ├── CodeWriter.cs                              ← indentation-aware text builder
+│   ├── CsCodeGenerator.cs                         ← shared emitter state + dispatch
+│   ├── CsCommandEmitter.cs                        ← P/Invoke dual emit + friendly overloads
+│   ├── CsHandleEmitter.cs                         ← typed readonly partial struct over nint
+│   ├── CsStructEmitter.cs                         ← POD struct + union with [StructLayout]
+│   ├── CsEnumEmitter.cs                           ← enum + [Flags] attribution
+│   ├── CsConstantEmitter.cs                       ← const vs static readonly categorization
+│   └── CsCallbackEmitter.cs                       ← delegate* unmanaged[Cdecl] emit
+└── Stamps/                                       ← .generated-stamp writer (deterministic, no wall-clock fields)
+    ├── GeneratedStamp.cs
+    └── GeneratedStampWriter.cs
+
+build/_build/Validation/BindingGeneration/        ← cross-cutting validators per ADR-002 §2.4
+├── BindingGenerationCoherenceValidator.cs        ← PreFlight: .generated-stamp drift detection
+└── (later) BindingSymbolExistenceValidator.cs    ← Pack stage: declared-but-not-exported guard (Stage 2)
 ```
 
-Layout mirrors the [Alimer.Bindings.SDL Generator](https://github.com/amerkoleci/Alimer.Bindings.SDL/tree/main/src/Generator) shape — proven production CppAst pattern at our toolchain. Output writes to `src/SDL2.<Family>/Generated/*.g.cs` (and `Generated/Platform/<OS>/*.<OS>.g.cs` for platform-conditioned symbols — see "Multi-pass parsing strategy" below). One generator project for SDL2; a parallel `src/Janset.SDL3.Bindings.Generator/` for SDL3 when Phase 5 activates per [`phase-5-sdl3-support.md`](../phases/phase-5-sdl3-support.md).
+**Cake-free emitter, Cake-orchestrated target.** The `HeaderSet/`, `Parsing/`, `Model/`, `Emitting/`, and `Stamps/` subfolders are **pure C#** — no `ICakeContext`, no Cake aliases, no Cake `Tool<TSettings>` dependencies. They can be unit-tested as ordinary code in `build/_build.Tests/Unit/`. The `GenerateBindingsTask`, `BindingGenerationRunner`, and `ServiceCollectionExtensions` are the Cake-aware shell: they consume Cake context, log through Cake, translate exceptions to `CakeException`, and stage outputs through Cake-native IO. This split honors [`AGENTS.md`](../../AGENTS.md) §"Pure code stays pure" and §"Cake nativeness is a hard rule at build boundaries" simultaneously.
 
-**Invocation surface — three-layer split.**
+**No standalone `src/Janset.SDL2.Bindings.Generator/` project.** The 2026-05-14 draft proposed a separate console app under `src/`. That framed the generator as a binding-source artifact; the revised framing treats it as build infrastructure that happens to emit binding source. The reframe avoids a parallel C# orchestration stack and reuses the existing build-host architecture.
+
+**SDL3 path.** Stays target-local until SDL3 becomes a real second consumer. At Phase 5 (gated on PD-7 — SDL2 real-public-release), a sibling Cake target (`GenerateSdl3Bindings`) is introduced; only then does shared code, if any, get promoted out of the SDL2 target per ADR-002 §2.4 "code stays target-local by default." Mass cross-extraction up front is forbidden by the same rule.
+
+**Invocation surface — two-layer split.**
 
 ```text
-src/Janset.SDL2.Bindings.Generator/        ← heavy work: parse + emit. Standalone, no Cake dependency.
-
-build/_build/Targets/GenerateBindings/     ← Cake target. Business orchestration:
+build/_build/Targets/GenerateBindings/     ← Cake target — heavy work + business orchestration:
                                               - resolve vcpkg-state (manifest.json + vcpkg.json)
                                               - vcpkg install canonical triplet (materialize headers)
-                                              - invoke emitter binary with 3 OS parse views
-                                              - validate output (no dup core types, no missing exports)
+                                              - drive PlatformCatalog parse views (one CppAst pass per entry)
+                                              - merge + validate output (no dup core types, no signature conflicts)
                                               - write .generated-stamp (vcpkg-state hash)
-                                              - write src/<family>/Generated/
+                                              - write src/SDL2.<Family>/Generated/
 
-tools.cs generate-bindings [--family X]    ← local convenience. Forwards to Cake target via Docker.
+tools.cs generate-bindings [--family X]    ← local convenience. Docker orchestration:
+                                              - ensures `linux-builder` image is present
+                                              - mounts repo root as volume (.dockerignore excludes vcpkg_installed/ + artifacts/)
+                                              - mounts host vcpkg cache for warm restarts
+                                              - publishes the Cake host (Release) into a side directory
+                                              - runs `dotnet ./cake-host/Build.dll --target GenerateBindings --family X` inside the container
+                                              - container writes Generated/*.g.cs back to the host via the mount
 ```
 
-This split mirrors [`AGENTS.md`](../../AGENTS.md) §Build-Host Reference Pattern + §Common Commands: "Cake build host is a CI-only production pipeline ... Day-to-day dev orchestration lives in `tools.cs`." The emitter binary is invoked from the Cake target via `Tool<TSettings>` wrapper per [`AGENTS.md`](../../AGENTS.md) §"Cake nativeness is a hard rule at build boundaries." Phase 4 plan owns the exact wrapper shape.
+This split mirrors [`AGENTS.md`](../../AGENTS.md) §Build-Host Reference Pattern + §Common Commands: "Cake build host is a CI-only production pipeline ... Day-to-day dev orchestration lives in `tools.cs`." `tools.cs` stays standalone per ADR-002 §2.3.
 
 The generator is **never** invoked at consumer build time — see "Generation environment" below.
 
@@ -191,13 +241,41 @@ The generator implements all 11 emit rules in [`binding-autogen-feasibility.md`]
 | Rule 10 — Modern C# emit | C# 14 features: collection expressions (`CallConvs = [typeof(CallConvCdecl)]`), `params ReadOnlySpan<T>`, ref-struct constraints |
 | Rule 11 — Partial-class boundaries | One `partial class SDL2` / `partial class SDL2_image` per family; split across `Commands.g.cs` / `Constants.g.cs` / `Enums.g.cs` / `Handles.g.cs` / `Structs.g.cs` / `Callbacks.g.cs` |
 
-### Multi-pass parsing strategy — neutral + per-OS inside one Linux container
+### Multi-pass parsing strategy — preprocessor-macro switching inside one Linux container
 
-Local SDL2 header inspection (verified 2026-05-14, see [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) §3) confirms platform-conditioned public surface in `SDL_system.h`, `SDL_main.h`, `SDL_platform.h`, `SDL_config.h`, `SDL_stdinc.h`, `SDL_syswm.h`. This is a libclang/preprocessor constraint — each parse produces the AST for **one** macro/target/include configuration.
+Local SDL2 header inspection (verified 2026-05-14, see [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) §3) confirms platform-conditioned public surface in `SDL_system.h`, `SDL_main.h`, `SDL_platform.h`, `SDL_config.h`, `SDL_stdinc.h`, `SDL_syswm.h`. This is a libclang/preprocessor constraint — each parse produces the AST for **one** macro configuration.
 
-**Pattern: ppy-style N+1 passes, CppAst-executed, single Linux container.** One platform-agnostic pass + one pass per target platform (Windows, Linux, macOS). Each pass is a `CppParserOptions` instance with that platform's macros enabled + others undefined + appropriate `--target` triple + appropriate sysroot/stub includes. All four passes execute inside one Linux container per the ppy/SDL3-CS pattern — see [ppy/SDL3-CS generate_bindings.py](https://raw.githubusercontent.com/ppy/SDL3-CS/master/SDL3-CS/generate_bindings.py) `generate_platform_specific_headers()` function for the closest reference shape, paraphrased into CppAst by [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §8.7 platform-pass spike result.
+**Pattern: ppy-style preprocessor-macro switching, CppAst-executed, single Linux container.** Each pass is a `CppParserOptions` instance that:
 
-The CppAst platform-pass spike originally ran on a Windows host with stub inputs for the Linux pass. Stage 1 migrates this to the Linux container: native Linux sysroot is available without stubs, Windows pass uses MinGW headers or stubs from the container's apt layer, macOS pass uses minimal Apple SDK header stubs. Stub-set inventory is a Stage 1 deliverable.
+1. **Undefines** every SDL platform identification macro from a fixed master list (so a prior pass's defines cannot leak in).
+2. **Defines** exactly the (OS, backend[]) macro group for the pass being run.
+3. Parses against the same vcpkg-installed SDL header set + the Linux container's apt sysroot.
+
+There is **no `--target` cross-compile flag**. There is **no mingw-w64**. There is **no Apple SDK**. SDL's own public headers carry the forward declarations (`typedef struct _NSWindow NSWindow;`, `typedef struct ANativeWindow ANativeWindow;`, `struct gbm_device;`, `struct IInspectable;`, etc.) needed to parse function signatures across every platform branch — confirmed by reading `vcpkg_installed/x64-windows-hybrid/include/SDL2/SDL_syswm.h` on 2026-05-15 (lines 86, 94-95, 105-106, 109-110, 120). Function-level platform surface parses without any hand-written platform stubs.
+
+**Evidence for the preprocessor-only approach:**
+
+- **ppy/SDL3-CS** (the closest production peer for our scope, see [`binding-autogen-approaches.md`](research/binding-autogen-approaches.md) §2026-05-12 comparison) uses `--undefine-macro` + `--define-macro` per pass exclusively. Their Dockerfile does not install mingw-w64; their entire stub-header inventory is a single 81-byte `include/process.h` shim. Verified via WebFetch on 2026-05-15 against [ppy/SDL3-CS](https://github.com/ppy/SDL3-CS) Dockerfile + `generate_bindings.py`.
+- **Our own CppAst spike** (`tools/binding-spike/cppast/generator/Program.cs` lines 42-72) used the same pattern — `Defines = ["_WIN32=1", "WIN32=1", "__WIN32__=1", "__WINDOWS__=1"]` plus `Undefines = ["linux", "__linux", "__linux__", "__LINUX__", "__APPLE__", "__MACOSX__"]` for the Windows pass, mirror-image for Linux and macOS — and parsed `SDL_system.h` + `SDL_main.h` successfully across three platforms (9 neutral + 8 Windows + 2 Linux functions, runtime-validated). The spike used 10 C-stdlib shim headers (`stdint.h`, `stddef.h`, `ctype.h`, etc.) only because it ran on a Windows host targeting Linux; **inside the Linux container those shims fall away** — the apt sysroot provides every C stdlib header natively.
+
+The earlier draft of this brief speculated about mingw-w64 and Apple SDK header stubs as Stage 1 inputs. That speculation was wrong and has been retracted — see Decision Audit row "Error 4 — toolchain stub strategy speculation" below.
+
+**Platform catalog — (OsCondition, BackendCondition[]) tuple model.** A catalog entry corresponds to one parse view. The catalog is a small data structure (~7–8 entries for SDL2.Core in Stage 1), not a flat macro array. Each entry pairs one OS identification macro group with the `SDL_VIDEO_DRIVER_*` backend macros that ship as compile-time-enabled video drivers on that OS. Stage 1 catalog (illustrative, final shape lives in the Stage 1 plan's `PlatformCatalog.cs`):
+
+| Catalog entry | OS macros defined | Backend macros defined |
+|---|---|---|
+| Neutral | (none) | (none) |
+| Windows desktop | `_WIN32`, `WIN32`, `__WIN32__`, `__WINDOWS__` | `SDL_VIDEO_DRIVER_WINDOWS` |
+| WinRT | `_WIN32`, `__WINRT__` | `SDL_VIDEO_DRIVER_WINRT` |
+| GDK | `_WIN32`, `__GDK__`, `__WINGDK__` | `SDL_VIDEO_DRIVER_WINDOWS` |
+| Linux | `__linux__`, `__LINUX__`, `linux` | `SDL_VIDEO_DRIVER_X11`, `SDL_VIDEO_DRIVER_WAYLAND`, `SDL_VIDEO_DRIVER_KMSDRM` |
+| macOS | `__APPLE__`, `__MACOSX__` | `SDL_VIDEO_DRIVER_COCOA` |
+| iOS | `__APPLE__`, `__IPHONEOS__` | `SDL_VIDEO_DRIVER_UIKIT` |
+| Android | `__ANDROID__` | `SDL_VIDEO_DRIVER_ANDROID` |
+
+Niche backends (DirectFB, Vivante, MIR, OS/2) are not part of the Stage 1 catalog. They are documented exclusions; revisit only if a consumer file an issue against the missing surface.
+
+The "master undefine list" the parser nukes at the start of every pass is the union of all OS macros plus all `SDL_VIDEO_DRIVER_*` macros (~30 entries). That list is hygiene; the **number of passes equals the catalog size, not the master-list size.**
 
 **Output topology:**
 
@@ -211,26 +289,28 @@ src/SDL2.Core/Generated/
 ├── Callbacks.g.cs           ← neutral pass — delegate* aliases
 ├── .generated-stamp         ← vcpkg-state coherence marker (see "vcpkg-state coherence guardrail" below)
 └── Platform/
-    ├── Windows/             ← Windows-only symbols, [SupportedOSPlatform("Windows")]
+    ├── Windows/             ← [SupportedOSPlatform("windows")]
     │   ├── SDL_system.Windows.g.cs
     │   └── SDL_main.Windows.g.cs
+    ├── WinRT/               ← [SupportedOSPlatform("windows10.0.10240.0")] or similar — exact attribute shape is Stage 1 plan deliverable
+    ├── GDK/
     ├── Linux/
-    │   └── SDL_system.Linux.g.cs
-    └── OSX/
-        └── SDL_system.OSX.g.cs
+    ├── OSX/                 ← [SupportedOSPlatform("osx")]
+    ├── IOS/
+    └── Android/
 ```
 
 **Dedup + conflict rules** (per [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) §3 multi-platform parsing baseline):
 
 1. Run neutral pass first; emit its symbol set into common files.
-2. Run each platform pass with exactly one platform view active.
+2. Run each platform pass with exactly one catalog entry active.
 3. Exclude symbols already emitted by the neutral pass from platform files.
 4. Emit platform-only symbols into platform-suffixed files with `[SupportedOSPlatform]` attribution.
 5. **Fail generation** (do not silently guess) if the same symbol appears in multiple views with incompatible signatures or layout-affecting type differences.
 
-**Cross-target parse views from a single Linux host.** "Platform pass" ≠ "native OS runner." Each pass selects a libclang `--target` + macros + sysroot/stub set; the host process stays in the Linux container. True multi-OS extraction + merge (per `bottlenoselabs/SDL3-cs` pattern) stays as an escalation path if controlled single-host parsing cannot model a header correctly. See [`binding-autogen-approaches.md`](research/binding-autogen-approaches.md) §2026-05-12 multi-platform parsing comparison.
+**`SDL_syswm.h` struct/union layout is Stage 2, not Stage 1.** The function-level platform spike intentionally deferred `SDL_SysWMinfo` and `SDL_SysWMmsg` union layout — see [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §8.7. Stage 1 emits `SDL_GetWindowWMInfo` as a function with an opaque `nint` (or `SDL_SysWMinfo*` modeled as opaque) parameter; the typed union layout, the 64-byte fixed-size lock (per `SDL_syswm.h` line 348), and the minimal forward-declaration stub set (~15–20 opaque types — `HWND`/`HDC`/`HINSTANCE`/`Display*`/`Window`/`IInspectable`/`gbm_device`/`wl_display`/`wl_surface`/`xdg_*`/`EGLNativeDisplayType`/`IDirectFB*` and a handful of others) are delivered together at Stage 2. Apple-SDK redistribution concerns do not apply because SDL's header already provides the non-`__OBJC__` `typedef struct _NSWindow NSWindow;` forward declaration directly (`SDL_syswm.h:86`); the Stage 2 stub library is purely forward declarations, not Apple SDK derivatives.
 
-**`SDL_syswm.h` struct/union layout** is deferred from the function-only platform-pass spike. Handle case-by-case at Stage 1 (see Plan Shape below); if a platform-variant struct cannot be modeled cleanly, intentionally exclude it from the binding surface and document.
+**True multi-OS extraction stays an escalation path.** If a header surface emerges that single-host preprocessor-macro switching cannot model — for example, a hypothetical SDL bump that introduces ABI-affecting compiler-intrinsic dependencies — the `bottlenoselabs/SDL3-cs` pattern (native multi-OS runners + merge) is the documented fallback. See [`binding-autogen-approaches.md`](research/binding-autogen-approaches.md) §2026-05-12 multi-platform parsing comparison.
 
 ### Satellite / shared-types topology
 
@@ -403,18 +483,22 @@ jobs:
 
 **No tag-push trigger.** The release pipeline reacts to maintainer-cut release tags; the regeneration pipeline does not. Per [`release-strategy.md`](../release-strategy.md) §Maintenance Commitment Post-v1.0 ("AST regeneration on upstream bumps ... aim ≤4 weeks from upstream stable release to Janset release. No formal SLA"), the cadence is **maintainer-decides**, not upstream-triggered. Future automation (e.g., scheduled regen on SDL upstream tag) is a Phase 5+ enhancement, not a v1.0 blocker.
 
-### Generation environment — Linux container, local-dev parity
+### Generation environment — Linux container is the canonical determinism contract
+
+**Docker is a hard prerequisite.** The generator runs **only** inside the pinned `linux-builder` container. There is no host-OS fallback: a `tools.cs generate-bindings` invocation on a Windows or macOS dev machine starts the container and runs the generator there. The runtime guard inside `GenerateBindingsTask` fails closed with an actionable diagnostic if the host RID is anything other than `linux-x64`. This is the price of the reproducibility contract — Layer 5 of the test strategy requires byte-identical output across CI and local-dev runs of the same vcpkg/toolchain state, which is only achievable when every parse view executes inside the same OS, apt sysroot, and libclang runtime.
 
 **Container image.** Generation environment reuses [`linux-builder.Dockerfile`](../../docker/linux-builder.Dockerfile) as-is. The image already carries:
 
-- vcpkg deps (X11 / Wayland / EGL / Vulkan / ALSA dev headers + autoconf 2.72 + GCC 11 + cmake + ninja). Required for `vcpkg install` step that materializes SDL headers.
-- `git config --system --add safe.directory '*'`. Required for the workflow's `actions/checkout` + workspace ownership.
+- vcpkg deps (X11 / Wayland / EGL / Vulkan / ALSA dev headers + autoconf 2.72 + GCC 11 + cmake + ninja). Required for `vcpkg install` step that materializes SDL headers, and (incidentally) for the `SDL_VIDEO_DRIVER_X11` / `SDL_VIDEO_DRIVER_WAYLAND` / `SDL_VIDEO_DRIVER_KMSDRM` parse passes — the apt sysroot resolves their dev headers natively.
+- `git config --system --add safe.directory '*'`. Required for the workflow's `actions/checkout` + workspace ownership and for `tools.cs generate-bindings`'s repo-root volume mount.
 - `python3 + python3-pip + python3-jinja2`. Not strictly required for our CppAst-based generator (no Python orchestration), but reused in the same image so CI parity with release.yml stays simple.
 
 **Deliberately not in the image:**
 
 - **`.NET SDK`** — per the Dockerfile's own comment ("`actions/setup-dotnet` handles runtime version pinning per-job (symmetric with Windows / macOS runners)"). `regenerate-bindings.yml`'s setup-dotnet step installs .NET 10 SDK at job start, matching the [`global.json`](../../global.json) pin.
 - **libclang native runtime** — pulled in transitively via CppAst's `libclang.runtime.linux-x64` NuGet (version-trio pinned per "Toolchain commitment" above). Deterministic regardless of host apt state.
+- **mingw-w64 cross-toolchain.** Intentionally not installed; the preprocessor-macro switching strategy (see "Multi-pass parsing strategy" above) makes it unnecessary.
+- **Apple SDK headers.** Not redistributable and not needed. SDL2 headers provide the cross-platform forward declarations the parser requires for macOS/iOS branches.
 
 This means the existing image is **sufficient** for generation — no new Dockerfile required. Image build cadence stays on the existing monthly rebuild cron documented in the Dockerfile preamble.
 
@@ -426,25 +510,40 @@ This means the existing image is **sufficient** for generation — no new Docker
 
 **Header byte-identity check as a CI step.** Belt-and-suspenders: generation pipeline includes a step that verifies SDL public header SHAs match across triplet outputs if more than one triplet has been installed in the cache. Catches the rare case where a vcpkg port patch differs by triplet. Cheap (~seconds), high signal.
 
-**Local dev — `tools.cs generate-bindings` shorthand.** Local development invokes the same container via Docker:
+**Local dev — `tools.cs generate-bindings` shorthand.** Local development invokes the same container via Docker. `tools.cs` simulates the CI/CD flow: publishes the Cake host once (Release, side directory), mounts the repo root + vcpkg cache into the container, runs the Cake target, and lets the volume mount carry the regenerated source files back to the host:
 
 ```csharp
-// tools.cs — sketch; Phase 4 plan owns exact shape per AGENTS.md §"tools.cs stays standalone"
+// tools.cs — sketch; Stage 1 plan owns exact shape per AGENTS.md §"tools.cs stays standalone"
 if (subcommand == "generate-bindings")
 {
     var image = "ghcr.io/janset2d/sdl2-bindings-linux-builder:focal-latest";
     var family = args.GetOptional("--family") ?? "all";
     var workspace = Directory.GetCurrentDirectory();
+    var vcpkgCache = Path.Combine(workspace, ".vcpkg-cache");
+    var cakeHost = Path.Combine(workspace, ".cake-host");
 
-    // Docker invocation. Equivalent to running the CI job locally.
-    var dockerArgs = $"run --rm -v \"{workspace}:/workspace\" -w /workspace {image} " +
-                     $"bash -c \"dotnet ./build/_build/Build.csproj --target GenerateBindings --family {family}\"";
+    // 1. Publish the Cake host in Release once. Same artifact shape as release.yml's build-cake-host job.
+    Cli.Wrap("dotnet").WithArguments(["publish", "build/_build/Build.csproj", "-c", "Release", "-o", cakeHost])
+       .WithWorkingDirectory(workspace).ExecuteAsync().GetAwaiter().GetResult();
 
-    Process.Start("docker", dockerArgs).WaitForExit();
+    // 2. Run the GenerateBindings Cake target inside the container.
+    //    .dockerignore excludes vcpkg_installed/, artifacts/, .vs/, bin/, obj/ — container does its own vcpkg install against the cache.
+    var dockerArgs = new[]
+    {
+        "run", "--rm",
+        "-v", $"{workspace}:/workspace",
+        "-v", $"{vcpkgCache}:/workspace/.vcpkg-cache",
+        "-w", "/workspace",
+        image,
+        "bash", "-c",
+        $"dotnet /workspace/.cake-host/Build.dll --target GenerateBindings --family {family}",
+    };
+
+    Cli.Wrap("docker").WithArguments(dockerArgs).ExecuteAsync().GetAwaiter().GetResult();
 }
 ```
 
-Joins the established commands enumerated in [`AGENTS.md`](../../AGENTS.md) §Common Commands (`tools.cs setup`, `tools.cs ci-sim`, `tools.cs build --target X`).
+Joins the established commands enumerated in [`AGENTS.md`](../../AGENTS.md) §Common Commands (`tools.cs setup`, `tools.cs ci-sim`, `tools.cs build --target X`). The exact arg shape, error handling, and `tools.cs`-side vcpkg-cache bootstrap policy are Stage 1 plan deliverables.
 
 **Local-dev prerequisites:**
 
@@ -568,16 +667,17 @@ The brief reshapes work across project structure, build host, CI surface, genera
 | Area | Current shape | Expected impact |
 | --- | --- | --- |
 | `external/sdl2-cs` submodule | Source-of-truth for managed SDL2 P/Invoke; consumed via `<Compile Include="../../external/sdl2-cs/src/<Family>.cs" />` in `src/SDL2.<Family>/<Family>.csproj` | **Retire** after AST output passes runtime smoke (per [`release-strategy.md`](../release-strategy.md) §Sequencing Stage 2). Submodule reference + Compile Include lines drop in the same slice that wires the corresponding generated `Generated/*.g.cs` into the family csproj. |
-| `src/Janset.SDL2.Bindings.Generator/` | Does not exist | **Add** as a `net10` console app referencing `CppAst 0.24.0` + libclang runtime. Layout per "Generator architecture" above (`Program.cs` + partial `CsCodeGenerator.*.cs` files + `Rules/` policy objects). Invoked from the new Cake target via `Tool<TSettings>` wrapper. |
-| `src/Janset.SDL3.Bindings.Generator/` | Does not exist | **Add** at Phase 5 activation. Same layout as SDL2 generator; SDL3-specific type-map differences (bool wire types, `SDL_IOStream` vs `SDL_RWops`, etc.) live in this project's `Rules/`. |
+| `src/Janset.SDL2.Bindings.Generator/` | Does not exist; was proposed in the 2026-05-14 draft | **Do not create.** Per the 2026-05-15 revision, binding generation is folded into the Cake build host (see `build/_build/Targets/GenerateBindings/` row below). A standalone `src/`-tree console app is rejected because it would duplicate Cake's vcpkg/manifest/tool/validation infrastructure. |
+| `src/Janset.SDL3.Bindings.Generator/` | Does not exist | **Do not create at Phase 4.** SDL3 binding generation is gated on PD-7 (SDL2 real-public-release). At Phase 5 a sibling Cake target (`GenerateSdl3Bindings`) is introduced; SDL3-specific type-map rules live target-local until SDL3 becomes a real second consumer and ADR-002 §2.4 promotion criteria are met. |
 | `src/SDL2.<Family>/Generated/` | Does not exist | **Add** per-family. Receives generated `Commands.g.cs` / `Constants.g.cs` / `Enums.g.cs` / `Handles.g.cs` / `Structs.g.cs` / `Callbacks.g.cs` from the neutral pass + `Platform/<OS>/*.g.cs` from per-OS passes + `.generated-stamp` from the Cake target. Committed to git per Generation environment lock. |
 | `src/SDL2.<Family>/<Family>.csproj` | `<Compile Include="../../external/sdl2-cs/src/<Family>.cs" />` plus AOT / TFM / package metadata | **Update**: drop the sdl2-cs Compile Include; SDK glob picks up `Generated/**/*.cs` automatically (per [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §3 finding #6). Add `AllowUnsafeBlocks=true`. Cross-csproj reference from satellite to `Janset.SDL2.Core` retained. |
-| `build/_build/Targets/GenerateBindings/` | Does not exist | **Add** new Cake target per [`AGENTS.md`](../../AGENTS.md) §Build-Host Reference Pattern. Owns vcpkg-state resolution, vcpkg install for canonical triplet, emitter invocation, 3 OS parse view orchestration, output validation, `.generated-stamp` write. |
+| `build/_build/Targets/GenerateBindings/` | Does not exist | **Add** new Cake target home per [`AGENTS.md`](../../AGENTS.md) §Build-Host Reference Pattern + ADR-002. Hosts both orchestration (`GenerateBindingsTask`, `BindingGenerationRunner`, `ServiceCollectionExtensions`) and the **pure emitter** (`HeaderSet/`, `Parsing/`, `Model/`, `Emitting/`, `Stamps/` subfolders — Cake-free, unit-testable). Drives vcpkg-state resolution, vcpkg install for canonical triplet (`x64-linux-hybrid`), one CppAst parse view per `PlatformCatalog` entry, output validation, `.generated-stamp` write. |
 | `build/_build/Validation/` (vcpkg-state coherence) | Does not exist | **Add** validator joining existing PreFlight validators (`HybridStaticOverlayValidator`, manifest schema validators). Behavior-first name candidate: `BindingVcpkgCoherenceValidator`. Reads `.generated-stamp` per family + current vcpkg state; fails PreFlight with actionable error on drift. |
 | `build/_build/Validation/` (symbol existence) | Does not exist | **Add** validator running at Pack stage (after Harvest, before Package). Behavior-first name candidate: `BindingSymbolExistenceValidator`. Cross-platform via existing `build/_build/Tools/` wrappers around `dumpbin /exports` / `nm -D --defined-only` / `nm -gU`. |
-| `build/_build/Tools/` | Wraps vcpkg, dumpbin, ldd, otool, tar, cmake, native-smoke per [`AGENTS.md`](../../AGENTS.md) §Build-Host Reference Pattern | **No new wrappers needed**: existing dumpbin / nm / otool wrappers cover symbol-existence validation. CppAst emitter invocation goes through a new `Tool<TSettings>` wrapper (Phase 4 plan finalizes shape). |
-| `tools.cs` | `setup` / `ci-sim` / `build --target X` subcommands per [`AGENTS.md`](../../AGENTS.md) §Common Commands | **Add** `generate-bindings [--family X]` subcommand. Forwards to Cake `GenerateBindings` target via Docker invocation against `ghcr.io/janset2d/sdl2-bindings-linux-builder:focal-latest`. |
-| `Directory.Packages.props` | CPM pins for production deps; spike-side has `CppAst 0.24.0` + win-x64 runtime pins for `tools/binding-spike/cppast/` | **Promote spike pins to production scope**: pin `CppAst 0.24.0` + `libclang.runtime.{win-x64,linux-x64,linux-arm64,osx-x64,osx-arm64} 20.1.2` + `libClangSharp.runtime.{...} 20.1.2`. Comment block explains version-trio coupling. |
+| `build/_build/Tools/` | Wraps vcpkg, dumpbin, ldd, otool, tar, cmake, native-smoke per [`AGENTS.md`](../../AGENTS.md) §Build-Host Reference Pattern | **No new wrappers needed**: existing dumpbin / nm / otool wrappers cover Stage 2 symbol-existence validation. The CppAst emitter is invoked directly from the in-host `BindingGenerationRunner`; no separate process boundary so no `Tool<TSettings>` wrapper is required. |
+| `tools.cs` | `setup` / `ci-sim` / `build --target X` subcommands per [`AGENTS.md`](../../AGENTS.md) §Common Commands | **Add** `generate-bindings [--family X]` subcommand. Publishes the Cake host (Release), mounts repo root + vcpkg cache into `ghcr.io/janset2d/sdl2-bindings-linux-builder:focal-latest`, runs `dotnet ./.cake-host/Build.dll --target GenerateBindings --family X` inside the container. `.dockerignore` excludes `vcpkg_installed/`, `artifacts/`, `.vs/`, `bin/`, `obj/` so the container's vcpkg install does not collide with host state. |
+| `Directory.Packages.props` | CPM pins for production deps; spike-side has `CppAst 0.24.0` + win-x64 runtime pins for `tools/binding-spike/cppast/` | **Add Linux-canonical production pins:** `CppAst 0.24.0` + `libclang.runtime.linux-x64 20.1.2` + `libClangSharp.runtime.linux-x64 20.1.2`. **Non-Linux runtime variants are intentionally absent** — Linux-canonical lock per "Toolchain commitment" above. Comment block explains version-trio coupling. |
+| `.dockerignore` | Existing root-level `.dockerignore` (verify and extend) | **Update** to exclude `vcpkg_installed/`, `artifacts/`, `.vs/`, `bin/`, `obj/`, `.cake-host/` so `tools.cs generate-bindings`'s volume mount does not leak host state into the container. |
 | `build/manifest.json` schema | `schema_version 2.1` with packaging config + runtimes + package families + system exclusions + library manifests | **No v2.2 bump required** if `.generated-stamp` per family is treated as binding-side state. Phase 4 plan re-evaluates whether a `binding_generator_project` field per `package_families[]` adds value or is redundant. |
 | `vcpkg.json` | Cross-platform vcpkg dependency declaration | **Unchanged** by this brief. The vcpkg-state coherence guardrail reads `vcpkg.json` + `vcpkg-configuration.json` + `build/manifest.json` but does not modify them. |
 | [`release.yml`](../../.github/workflows/release.yml) | 8-job pipeline: build-cake-host → resolve-versions → preflight → generate-matrix → harvest → consolidate-harvest → pack → consumer-smoke → publish-staging | **Update**: PreFlight job invokes the new `BindingVcpkgCoherenceValidator`; Pack job invokes the new `BindingSymbolExistenceValidator`. Both run as part of the existing Cake target invocations (no new jobs added). |
@@ -632,33 +732,39 @@ These are real work items but their resolution does not block this brief's accep
 
 This is **not** the implementation plan. It is the stage outline the Phase 4 plan authors against, aligned with [`release-strategy.md`](../release-strategy.md) §Sequencing and the per-phase plan-writing discipline from [`phase-planning-methodology.md`](../parking-lot/package-topology/phase-planning-methodology.md). The implementation plan should write concrete slices only for the next stage being executed, then re-plan the following stage against the code that actually shipped. No speculative "Stage 3 line-by-line instructions" before Stage 1 exists in the repo.
 
-### Stage 1 — SDL2.Core proof-of-life
+### Stage 1 — SDL2.Core proof-of-life with full platform-function attribution
 
-**Goal:** turn the spike evidence into a production-shaped SDL2.Core generator path without taking on the satellite matrix yet.
+**Goal:** turn the spike evidence into a production-shaped SDL2.Core generator path, hosted inside the Cake build host, covering every SDL2 platform-conditioned function — but stopping short of `SDL_syswm.h` struct/union layout, which moves to Stage 2.
 
 **Scope:**
 
-- Add the CppAst-based SDL2 generator project and the Cake `GenerateBindings` target shape described in HOW.
-- Generate SDL2.Core from vcpkg-installed headers through neutral + Windows + Linux + macOS parse views inside the pinned Linux container.
-- Emit committed `src/SDL2.Core/Generated/*.g.cs` plus `Generated/Platform/<OS>/*.g.cs` and `.generated-stamp`.
+- Add the CppAst-based generator under `build/_build/Targets/GenerateBindings/` and `build/_build/Validation/BindingGeneration/` per the HOW section. No standalone `src/`-tree project.
+- Generate SDL2.Core from vcpkg-installed headers through neutral + the full `PlatformCatalog` entry set (Windows desktop / WinRT / GDK / Linux / macOS / iOS / Android — ~7–8 passes) inside the pinned Linux container. Preprocessor-macro switching only — no `--target`, no mingw, no Apple SDK.
+- Emit committed `src/SDL2.Core/Generated/*.g.cs` for neutral surface + `Generated/Platform/<OS>/*.g.cs` for platform-conditioned functions + `.generated-stamp`. `[SupportedOSPlatform]` attribution drives off catalog entries.
+- Emit `SDL_GetWindowWMInfo` as a function with an opaque `nint`-shaped `SDL_SysWMinfo*` parameter. The typed union layout is deliberately excluded and recorded as a documented Stage 2 deliverable in the audit log.
 - Wire SDL2.Core to generated output and remove its production dependency on `external/sdl2-cs/src/SDL2.cs`.
 - Land Layer 1 compile, Layer 2 public API snapshot, Layer 5 reproducibility, and Layer 6 core runtime smoke coverage from the test strategy.
 
 **Exit criteria:**
 
 - SDL2.Core generated source compiles for `net10` / `net9` / `net8` / `netstandard2.0` / `net462`.
-- Regenerating from the same vcpkg state produces a clean `git diff --exit-code src/SDL2.Core/Generated`.
-- Platform-only core symbols are isolated or attributed; `SDL_syswm.h` platform-layout handling is either implemented or explicitly excluded with a documented reason.
-- `.generated-stamp` records generator + vcpkg + header-set state for SDL2.Core, and the PreFlight drift check is active for that family or deliberately scoped with a visible follow-up.
+- Regenerating from the same vcpkg state produces a clean `git diff --exit-code src/SDL2.Core/Generated` — proves Layer 5 reproducibility.
+- Every catalog entry's platform-only core functions are isolated into the matching `Platform/<OS>/*.g.cs` file and carry `[SupportedOSPlatform]` attribution.
+- `SDL_GetWindowWMInfo` is emitted; `SDL_SysWMinfo` and `SDL_SysWMmsg` typed-union surface is recorded as a Stage 2 deliverable in the audit log; no consumer-visible breakage from the deferral because Stage 1 is internal-feed only.
+- `.generated-stamp` records generator + vcpkg + header-set state for SDL2.Core, and the PreFlight drift check is active for that family.
+- The `GenerateBindings` Cake target refuses to run on a non-`linux-x64` host with an actionable diagnostic message.
+- `tools.cs generate-bindings` runs the full pipeline locally on a Windows or macOS dev machine via Docker and produces byte-identical output to CI.
 - Package-consumer smoke exercises `SDL_Init`, window creation/destruction, error retrieval, and at least one callback path against the packaged Core family.
 - `learning-sdl2` or an equivalent real consumer can run against the internal-feed Core wave without falling back to source/project references.
 
-### Stage 2 — SDL2 satellite sweep + `external/sdl2-cs` retirement
+### Stage 2 — SDL_syswm full union + satellite sweep + `external/sdl2-cs` retirement
 
-**Goal:** extend the production generator across every in-scope SDL2 satellite, then retire `external/sdl2-cs` from the production binding surface.
+**Goal:** complete the SDL2 surface — typed `SDL_SysWMinfo`/`SDL_SysWMmsg` union layout for every platform branch — and extend the production generator across every in-scope SDL2 satellite, then retire `external/sdl2-cs` from the production binding surface.
 
 **Scope:**
 
+- Add a small forward-declaration stub library (~15–20 types: `HWND`, `HDC`, `HINSTANCE`, `IInspectable`, `Display*`, `Window`, `wl_display`/`wl_surface`/`xdg_*`, `gbm_device`, `IDirectFB*`, `EGLNativeDisplayType`, `ANativeWindow`, etc.) to anchor the 64-byte `SDL_SysWMinfo.info` union layout across catalog branches. Stubs are pure forward declarations, not Apple SDK or Windows SDK derivatives; Apple's non-`__OBJC__` `typedef struct _NSWindow NSWindow;` comes directly from `SDL_syswm.h:86` and similar.
+- Emit typed `SDL_SysWMinfo` and `SDL_SysWMmsg` with `[StructLayout(LayoutKind.Explicit, Size = 64)]` on the `info` union, every platform branch at `[FieldOffset(0)]`, dummy padding emitted as documented in `SDL_syswm.h:346-348`.
 - Generate SDL2.Image, SDL2.Mixer, SDL2.Ttf, SDL2.Gfx, and SDL2.Net with satellite-owned APIs only.
 - Reuse the SDL2.Core-owned managed type universe for shared `SDL_*` structs, handles, enums, callbacks, and constants.
 - Add duplicate-core-type validation so satellites fail generation if they redeclare core-owned symbols or degrade them to untyped fallbacks.
@@ -668,6 +774,7 @@ This is **not** the implementation plan. It is the stage outline the Phase 4 pla
 
 **Exit criteria:**
 
+- `SDL_SysWMinfo` and `SDL_SysWMmsg` layout validates against hand-checked offsets for every platform branch the catalog covers; the 64-byte size lock holds.
 - Every SDL2 managed family builds from `Generated/**/*.g.cs`; no production `.csproj` includes files from `external/sdl2-cs/src/`.
 - Satellite signatures reuse core-owned managed types and do not duplicate `SDL_Surface`, `SDL_Texture`, `SDL_Renderer`, `SDL_RWops`, `SDL_version`, `SDL_bool`, or equivalent core symbols.
 - Reference cross-check output is reviewed and categorizes differences as expected typed-handle deltas, known quirks, or real generator defects.
@@ -675,13 +782,15 @@ This is **not** the implementation plan. It is the stage outline the Phase 4 pla
 - Full 7-RID native smoke + package consumer smoke passes for all SDL2 families from packages.
 - Stage 2 closes the AST-first requirement for the first public SDL2 `-preview.N` wave: generated bindings, package-first consumption, no sdl2-cs public API churn trap.
 
-### Stage 3 — SDL3 extension
+### Stage 3 — SDL3 extension (gated on PD-7)
 
 **Goal:** reuse the generator architecture for SDL3 Core + Image + Mixer + Ttf, with SDL3-specific ABI differences treated as first-class rules rather than SDL2 afterthoughts.
 
-**Scope:**
+**Gating:** Stage 3 does **not** begin until PD-7 (SDL2 real-public-release) is shipped. The SDL3 vcpkg port surface (overlay triplets, port patches, transitive dependency closure, hybrid-static validator updates) is its own substantial scope and must not block SDL2's path to stable. The strategic anchor in [`release-strategy.md`](../release-strategy.md) §Sequencing remains: SDL2 v1.0 stable ships first, SDL3 follows.
 
-- Add the SDL3 generator/project surface when Phase 5 activates, mirroring the SDL2 generator layout where it still fits.
+**Scope (when Stage 3 activates):**
+
+- Add a sibling `GenerateSdl3Bindings` Cake target under `build/_build/Targets/GenerateSdl3Bindings/`, mirroring the SDL2 layout. Shared code, if any, gets promoted out of the SDL2 target per ADR-002 §2.4 promotion criteria — not before SDL3 becomes a real second consumer.
 - Encode SDL3-specific type rules: 1-byte bool-like values, `SDL_IOStream` replacing `SDL_RWops`, SDL3 namespace/library naming, and SDL3 satellite headers.
 - Re-evaluate the legacy TFM window for SDL3 before copying SDL2's `netstandard2.0` / `net462` obligations.
 - Reuse the regeneration workflow, vcpkg-state stamp, reproducibility gate, reference cross-check, and symbol-existence validation.
@@ -707,8 +816,9 @@ This brief locks the strategy-level direction. It intentionally leaves lower-lev
 | Friendly-overload first slice | Start with the locked baseline only: `string`, `ReadOnlySpan<byte>`, `Span<T>`, `out`, and `ref`. Do not add `Memory<T>` or wrapper-layer conveniences in Stage 1. | Stage 1 plan |
 | Reference cross-check tool shape | Prefer a generator/audit tool invoked by `GenerateBindings` that emits categorized markdown under `artifacts/binding-audit/<date>/`. Promote to a separate Cake target only if a second real consumer appears. | Stage 2 plan |
 | Symbol-existence validator details | Implement as a Pack-stage validator under `build/_build/Validation/`, using behavior-first naming such as `BindingSymbolExistenceValidator`. Error messages name family, RID, native binary, entry point, and generated source location. | Stage 2 plan |
-| Generator host directory | Use `src/Janset.SDL2.Bindings.Generator/` for the SDL2 production emitter, then a parallel `src/Janset.SDL3.Bindings.Generator/` when SDL3 activates. Avoid hiding generator code under `tools/` once it becomes release-critical. | Stage 1 plan |
-| `SDL_syswm.h` platform-layout policy | Try controlled platform views first. If struct/union layout cannot be modeled cleanly, intentionally exclude the affected surface and document the exclusion before public preview. | Stage 1 plan |
+| Generator host directory | `build/_build/Targets/GenerateBindings/` for the SDL2 production generator (Cake-host fold per 2026-05-15 revision). At Stage 3, a sibling `build/_build/Targets/GenerateSdl3Bindings/` target. No `src/Janset.SDL2.Bindings.Generator/` standalone project; no `tools/`-hidden generator code. | Stage 1 plan |
+| `SDL_syswm.h` platform-layout policy | Stage 1: emit `SDL_GetWindowWMInfo` as a function with opaque `SDL_SysWMinfo*` parameter; log typed-union deferral in the audit log. Stage 2: introduce the ~15–20-type forward-declaration stub library, emit typed `SDL_SysWMinfo` / `SDL_SysWMmsg` with `[StructLayout(LayoutKind.Explicit, Size = 64)]` and platform branches at `[FieldOffset(0)]`. | Stage 2 plan |
+| SDL3 binding generation start | Gated on PD-7 completion. SDL3 vcpkg port + overlay triplet work is its own scope and must not block SDL2 v1.0 stable. Stage 3 plan begins after Stage 2 ships and PD-7 lands. | Stage 3 plan / post-PD-7 |
 | Variadic function convention | Preserve raw fidelity where the C# compiler/runtime can represent it, but ship fmt-only friendly wrappers for common logging calls. Do not pretend `LibraryImport` fully handles variadic APIs until Stage 1 proves the exact shape. | Stage 1 plan |
 | `.generated-stamp` schema | Keep the principle locked: generator version + CppAst/libclang version + vcpkg state + header-set hash. Exact JSON fields and recomputation mechanics are a Stage 1 deliverable. | Stage 1 plan |
 | Wrapper layer (`SdlWindow : IDisposable`, etc.) | Defer past v1.0 unless real consumer feedback says raw + friendly overloads are not enough. This is a higher-level API design project, not binding generation. | Post-v1.0 / explicit reopen |
@@ -728,6 +838,8 @@ This section records the 2026-05-14 fact-check so future readers know which earl
 | **Cosmetic drift refresh** | Current spike snapshots: ClangSharp RSP 43 lines, CppAst `Program.cs` 261 lines, `NativeTypeNameAttribute.cs` 25 lines, `Constants.cs` 11 lines. | Keeps line-count comparisons traceable. These are snapshot signals, not eternal truths. |
 | **Verified local/live claims** | Verified: `external/sdl2-cs` totals 11,105 lines; SDL2 public header set count is 88 in the checked vcpkg installs; CppAst 0.24.0 + libclang/libClangSharp 20.1.2 trio is the spike pin; Alimer.Bindings.SDL is SDL3 core only; ppy uses ClangSharpPInvokeGenerator 17.0.1 + Dockerfile + `generate_bindings.py` + `FriendlyOverloadGenerator.cs`; Silk.NET 3.0 proposal explicitly delegates parsing to ClangSharp. | These claims are used as support throughout WHY/HOW/WHAT. Future edits should re-check them before updating recommendations. |
 | **Outstanding verification items** | Still lower-priority: release-by-release confirmation that CppAst has been additive-only since 0.21.1; exact current SkiaSharpGenerator size and three-way emission details. | Neither blocks this brief. Both are useful if a later ADR wants deeper external precedent evidence. |
+| **Error 4 — toolchain stub strategy speculation (corrected 2026-05-15)** | The 2026-05-14 draft claimed Stage 1 would use "MinGW headers or stubs from the container's apt layer" for the Windows pass and "minimal Apple SDK header stubs" for the macOS pass. Both were speculation, not evidence-grounded. WebFetch of ppy/SDL3-CS (Dockerfile + `generate_bindings.py`) on 2026-05-15 confirmed ppy uses **preprocessor-macro switching only** — no mingw-w64, no Apple SDK, one tiny `include/process.h` shim (81 bytes). Local re-read of our CppAst spike at `tools/binding-spike/cppast/generator/Program.cs:42-72` confirmed the same pattern — `Defines`/`Undefines` macro juggling, no `--target`, no platform-specific header stubs (the spike's 10 stubs are pure C-stdlib shims for cross-host parsing and disappear inside the Linux container). Per-OS macro groups in [`SDL_syswm.h`](../../vcpkg_installed/x64-windows-hybrid/include/SDL2/SDL_syswm.h) (lines 86, 94-95, 105-106, 109-110, 120) carry their own forward declarations of `NSWindow`, `UIWindow`, `ANativeWindow`, `gbm_device`, etc., so function-level platform surface parses with zero hand-written stubs. | The strategy section "Multi-pass parsing strategy" has been rewritten to reflect the preprocessor-macro-only approach. Stage 1 scope expanded to cover the full 7–8 entry `PlatformCatalog` at function level; `SDL_syswm.h` typed-union layout was the only piece that legitimately needs forward-declaration stubs (~15–20 types), and that work is now scoped to Stage 2. |
+| **Reframe — generator hosted in Cake build host (2026-05-15)** | The 2026-05-14 draft proposed a standalone `src/Janset.SDL2.Bindings.Generator/` console app invoked from the Cake target via `Tool<TSettings>` wrapper. Per [`AGENTS.md`](../../AGENTS.md) §Build-Host Reference Pattern + ADR-002 + ADR-003 review, binding generation is unambiguously a CI/CD concern and the Cake build host already owns equivalent infrastructure (vcpkg state, manifest parsing, validation, tool wrappers, logging, paths, runtime profile). A parallel `src/`-tree orchestration stack would duplicate that surface and break ADR-002 §2.1's target-centric navigation rule. | The brief's HOW section was rewritten to fold the generator into `build/_build/Targets/GenerateBindings/` with subfolders for `HeaderSet/`, `Parsing/`, `Model/`, `Emitting/`, `Stamps/`. The pure-emitter rule ("Pure code stays pure" per AGENTS.md) is preserved by keeping those subfolders Cake-free and unit-testable from `build/_build.Tests/`. |
 
 The audit also explains why sibling docs can look directionally different: [`binding-autogen-approaches.md`](research/binding-autogen-approaches.md) and [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) preserve the raw-binding research recommendation that favored ClangSharp; this brief makes the later project decision after locking production-shape features that change the cost curve.
 
