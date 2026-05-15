@@ -13,6 +13,7 @@ This folder owns the binding auto-generation knowledge base for Phase 4. The roo
 | [`research/`](research/) | Research evidence, feasibility analysis, spike findings, and onboarding context that support the strategy brief. |
 | [`../superpowers/specs/2026-05-14-binding-generator-architecture-design.md`](../superpowers/specs/2026-05-14-binding-generator-architecture-design.md) | Architecture design spec (revised 2026-05-15) — temporary, retires when Stage 1 ships. |
 | [`../superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md`](../superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md) | Stage 1 implementation plan (revised 2026-05-15) — temporary, retires when Stage 1 ships. |
+| [`../playbook/binding-generator-maintenance.md`](../playbook/binding-generator-maintenance.md) | In-progress maintenance playbook for platform macro catalogs, generated stamps, and overlay coupling. |
 
 ## Reading Order
 
@@ -22,11 +23,12 @@ This folder owns the binding auto-generation knowledge base for Phase 4. The roo
 | 2 | [`research/binding-autogen-onboarding.md`](research/binding-autogen-onboarding.md) | Fast onboarding for a fresh contributor or agent picking up this workstream. |
 | 3 | [`../superpowers/specs/2026-05-14-binding-generator-architecture-design.md`](../superpowers/specs/2026-05-14-binding-generator-architecture-design.md) | Architecture design spec — Cake-host component layout, platform catalog tuple model, validation strategy. |
 | 4 | [`../superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md`](../superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md) | Stage 1 implementation plan — task-by-task TDD-style scaffolding under `build/_build/Targets/GenerateBindings/`. |
-| 5 | [`research/binding-autogen-approaches.md`](research/binding-autogen-approaches.md) | Toolchain survey and comparison across CppAst, ClangSharp, ppy/SDL3-CS, Alimer, SkiaSharp, and Silk.NET patterns. |
-| 6 | [`research/binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) | Feasibility study: emit rules, platform-conditioned parsing, validation layers, open decisions. |
-| 7 | [`research/binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) | Hands-on SDL2_gfx spike findings for ClangSharp and CppAst. |
+| 5 | [`../playbook/binding-generator-maintenance.md`](../playbook/binding-generator-maintenance.md) | Active maintenance procedure for macro catalogs, stamps, upstream bumps, and hybrid-static overlay coupling. |
+| 6 | [`research/binding-autogen-approaches.md`](research/binding-autogen-approaches.md) | Toolchain survey and comparison across CppAst, ClangSharp, ppy/SDL3-CS, Alimer, SkiaSharp, and Silk.NET patterns. |
+| 7 | [`research/binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) | Feasibility study: emit rules, platform-conditioned parsing, validation layers, open decisions. |
+| 8 | [`research/binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) | Hands-on SDL2_gfx spike findings for ClangSharp and CppAst. |
 
-Research docs (5–7) carry pre-2026-05-15 context and have not been retro-edited — the strategy brief's Decision Audit records the corrections that supersede claims in those docs (notably the mingw-w64 / Apple SDK stub speculation, retracted Error 4 row).
+Research docs (6–8) carry pre-2026-05-15 context and have not been retro-edited — the strategy brief's Decision Audit records the corrections that supersede claims in those docs (notably the mingw-w64 / Apple SDK stub speculation, retracted Error 4 row).
 
 ## Current Decision Posture
 

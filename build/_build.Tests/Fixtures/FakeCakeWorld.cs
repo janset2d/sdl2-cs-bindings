@@ -300,9 +300,9 @@ public sealed class FakeCakeWorld
 
     /// <summary>Seeds the CancellationToken flowed through <see cref="BuildContext.CancellationToken"/>
     /// so tests can assert ct propagation through tasks. Defaults to <see cref="CancellationToken.None"/>.</summary>
-    public FakeCakeWorld WithCancellationToken(CancellationToken cancellationToken)
+    public FakeCakeWorld WithCancellationToken(CancellationToken ct)
     {
-        _cancellationToken = cancellationToken;
+        _cancellationToken = ct;
         return this;
     }
 

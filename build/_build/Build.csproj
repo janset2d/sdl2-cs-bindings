@@ -23,6 +23,9 @@
     <PackageReference Include="Cake.CMake" />
     <PackageReference Include="Cake.Frosting" />
     <PackageReference Include="Cake.Frosting.Git" />
+    <PackageReference Include="CppAst" />
+    <PackageReference Include="libclang.runtime.linux-x64" />
+    <PackageReference Include="libClangSharp.runtime.linux-x64" />
     <PackageReference Include="NuGet.Frameworks" />
     <PackageReference Include="NuGet.Protocol" />
     <PackageReference Include="NuGet.Versioning" />

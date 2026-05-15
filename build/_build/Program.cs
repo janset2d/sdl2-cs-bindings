@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Build;
 using Build.Targets.ConsolidateHarvest;
+using Build.Targets.GenerateBindings;
 using Build.Targets.Harvest;
 using Build.Targets.InspectHarvestedDependencies;
 using Build.Targets.NativeSmoke;
@@ -127,6 +128,7 @@ static void ConfigureBuildServices(IServiceCollection services, ParsedArguments 
         .AddValidators()
         .AddInspectHarvestedDependenciesTarget()
         .AddOtoolAnalyzeTarget()
+        .AddGenerateBindings()
         .AddPreFlightCheck()
         .AddHarvest()
         .AddNativeSmoke()

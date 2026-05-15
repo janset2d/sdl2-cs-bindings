@@ -45,6 +45,28 @@
           "LibGit2Sharp": "0.30.0"
         }
       },
+      "CppAst": {
+        "type": "Direct",
+        "requested": "[0.24.0, )",
+        "resolved": "0.24.0",
+        "contentHash": "bKMZlo2LaLFsLOfDSBbVsu+1fI09jqmp5zIHRo0HClc+wb+Sxu0zXb5zidQhmUAlp0/ajlCsKmhLp/JRW7nRdQ==",
+        "dependencies": {
+          "ClangSharp": "20.1.2.4",
+          "Irony": "1.5.3"
+        }
+      },
+      "libclang.runtime.linux-x64": {
+        "type": "Direct",
+        "requested": "[20.1.2, )",
+        "resolved": "20.1.2",
+        "contentHash": "TslnqZKmXE17oqUSG70eJdRlI18MgxlYCu0VUTbklHJfS/WZ5PZqi3T5UlrBM/Wdavq6UpY/uN+cQc1Z0KRuHw=="
+      },
+      "libClangSharp.runtime.linux-x64": {
+        "type": "Direct",
+        "requested": "[20.1.2, )",
+        "resolved": "20.1.2",
+        "contentHash": "oxucHzVToB46VtOS9VzWrhBbFzChc28EgK+68nQNP+gxJyuyf4ccte9FNe6E+qmdUFvtATYLt004ZDQXuTuksw=="
+      },
       "Meziantou.Analyzer": {
         "type": "Direct",
         "requested": "[2.0.189, )",
@@ -217,6 +239,38 @@
           "NuGet.Versioning": "7.3.0",
           "System.Security.Cryptography.Pkcs": "10.0.3"
         }
+      },
+      "ClangSharp": {
+        "type": "Transitive",
+        "resolved": "20.1.2.4",
+        "contentHash": "XtObZyqqU26yazgoUCxQLw8AFjiZLY/mc10FtEHIY/Go+pvgSFGx+Ai5IlpxolIvxlQ+WWcPA2wLvULL+L7mVA==",
+        "dependencies": {
+          "ClangSharp.Interop": "20.1.2.4"
+        }
+      },
+      "ClangSharp.Interop": {
+        "type": "Transitive",
+        "resolved": "20.1.2.4",
+        "contentHash": "OxvJ9rxNM8Uq3WNLfUh/rq+8LBnK5GVrPJsQ9kR41upX3kWhIiKgoZC3XFQzhu2HTUp86jOu9RlnAaO82s9bWg==",
+        "dependencies": {
+          "libClang": "20.1.2",
+          "libClangSharp": "20.1.2"
+        }
+      },
+      "Irony": {
+        "type": "Transitive",
+        "resolved": "1.5.3",
+        "contentHash": "wy0LlNq9Bhqy2C9O5burGCJPB9CyWuWf/JHwcnaxnM5wapPEc7uW6MBBzkymrV/pS2UwETK/0nJXzhh5Y6wv4Q=="
+      },
+      "libclang": {
+        "type": "Transitive",
+        "resolved": "20.1.2",
+        "contentHash": "1A3NeS7Ko3KOZG14BuZv0ajii1y7yBEozKgYwZSG4xzGUc8kyKyVaX0KkzVHY+/jSPKvOgUuLONGDuJn0lGfsA=="
+      },
+      "libClangSharp": {
+        "type": "Transitive",
+        "resolved": "20.1.2",
+        "contentHash": "/716OBKj0Pg3RVh9D1gTggCF0fvTJy3KtmommelcEtycqJ9tOkMKSVwHh57tADMFrxKA/b2fxXIDyoKknjhh2w=="
       },
       "LibGit2Sharp": {
         "type": "Transitive",

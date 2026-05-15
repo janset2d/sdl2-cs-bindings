@@ -32,10 +32,10 @@ Out of scope:
 
 The generator is **hosted inside the Cake build host** under `build/_build/Targets/GenerateBindings/`, with cross-cutting validators under `build/_build/Validation/BindingGeneration/`. This is a deliberate reframe from the 2026-05-14 draft, which proposed a standalone `net10` console app at `src/Janset.SDL2.Bindings.Generator/`. Binding generation is a CI/CD concern and the Cake host already owns the equivalent infrastructure (vcpkg state, manifest parsing, validation patterns, tool wrappers, logging, paths, runtime profile) — a parallel orchestration stack would duplicate that surface and break ADR-002 §2.1's target-centric navigation rule.
 
-The split inside the target follows [`AGENTS.md`](../../../AGENTS.md) §"Pure code stays pure" and §"Cake nativeness is a hard rule at build boundaries" simultaneously:
+The split inside the target follows [`AGENTS.md`](../../../AGENTS.md) §"Pure code stays pure" and §"Cake nativeness is a hard rule at build boundaries" simultaneously. "Pure" here means parser/model/emitter policy should not depend on Cake task orchestration or host state. It does **not** mean build-host file, path, or JSON I/O may bypass Cake abstractions; any code that reads headers, writes generated files, or writes `.generated-stamp` uses `ICakeContext`, `Cake.Core.IO` paths, and the host Cake helper extensions.
 
-- **Pure emitter code** (`HeaderSet/`, `Parsing/`, `Model/`, `Emitting/`, `Stamps/`) — no `ICakeContext`, no Cake aliases, no Cake `Tool<TSettings>` dependencies. Unit-testable as ordinary C# from `build/_build.Tests/Unit/`.
-- **Cake-aware shell** (`GenerateBindingsTask`, `BindingGenerationRunner`, `ServiceCollectionExtensions`) — owns orchestration, logging, exception translation, Cake-native IO, and DI registration per ADR-002 §2.2 + §2.5.
+- **Pure policy code** (`Parsing/`, `Model/`, most of `Emitting/`) — no `ICakeContext`, no Cake aliases, no Cake `Tool<TSettings>` dependencies. Unit-testable as ordinary C# from `build/_build.Tests/Unit/`.
+- **Cake-native build boundary code** (`Targets/GenerateBindings/HeaderSet/`, `Data/BindingGeneration/`, generated-file persistence, `GenerateBindingsTask`, `BindingGenerationRunner`, `ServiceCollectionExtensions`) — owns filesystem, JSON, path construction, orchestration, logging, exception translation, and DI registration per ADR-002 §2.2 / §2.5 / §2.6 and ADR-003.
 
 Alimer.Bindings.SDL is the reference for CppAst emitter organization and typed-handle output shape. It is not the reference for platform parsing because its single-pass macro-union style is not strong enough for platform-conditioned SDL headers. ppy/SDL3-CS is the reference for the neutral-plus-platform pass orchestration pattern, executed through CppAst rather than ClangSharpPInvokeGenerator and through preprocessor-macro switching only — no `--target` cross-compile flags, no mingw-w64, no Apple SDK.
 
@@ -51,12 +51,9 @@ Planned layout — hosted in the Cake build host, target-local per ADR-002 §2.4
 build/_build/Targets/GenerateBindings/
 |-- GenerateBindingsTask.cs                    (Cake task — orchestration, [TaskName], CakeException translation)
 |-- GenerateBindingsRequest.cs                 (immutable target input contract per ADR-002 §2.2)
-|-- FamilyGenerationConfig.cs                  (family identity + input headers + library name + namespace/class + owned prefixes)
+|-- Sdl2CoreGenerationConfig.cs                (Stage 1 family identity + input headers + library name + namespace/class + owned prefixes)
 |-- ServiceCollectionExtensions.cs             (AddGenerateBindings() — focused DI registration per ADR-002 §2.5)
 |-- BindingGenerationRunner.cs                 (Cake-side runner — invokes the pure emitter, stages outputs through Cake IO)
-|-- HeaderSet/                                 (PURE — no Cake)
-|   |-- HeaderSetResolver.cs
-|   `-- HeaderSetFingerprint.cs
 |-- Parsing/                                   (PURE — no Cake)
 |   |-- CppAstParseRunner.cs
 |   |-- PlatformCatalog.cs
@@ -77,9 +74,15 @@ build/_build/Targets/GenerateBindings/
 |   |-- CsHandleEmitter.cs
 |   |-- CsStructEmitter.cs
 |   `-- CsCallbackEmitter.cs
-`-- Stamps/                                    (PURE — no Cake)
-    |-- GeneratedStamp.cs
-    `-- GeneratedStampWriter.cs
+build/_build/Data/BindingGeneration/            (file-backed/tool-read binding contracts per ADR-003)
+|-- GeneratedStamp.cs
+`-- GeneratedStampRepository.cs
+
+build/_build/Targets/GenerateBindings/HeaderSet/ (target-local SDL header input services)
+|-- ResolvedHeaderSet.cs
+|-- HeaderSetFingerprint.cs
+|-- HeaderSetResolver.cs
+`-- HeaderSetFingerprintCalculator.cs
 
 build/_build/Validation/BindingGeneration/     (cross-cutting validators per ADR-002 §2.4)
 |-- BindingGenerationCoherenceValidator.cs     (PreFlight — .generated-stamp drift detection at Stage 1)
@@ -94,8 +97,8 @@ Responsibilities:
 - `GenerateBindingsTask` (Cake `[TaskName("GenerateBindings")]`) — reads `BuildContext`, validates target inputs at the task boundary, builds the `GenerateBindingsRequest`, drives the `BindingGenerationRunner`, translates expected failures to `CakeException` with actionable diagnostics.
 - `BindingGenerationRunner` — Cake-aware shell. Stages headers through Cake-native paths, invokes the pure emitter, writes generated files through Cake-native IO so logging/dry-run semantics line up with the rest of the build host.
 - `GenerateBindingsRequest` — immutable input record (family, header set root, output root, runtime profile). Earned, not mandatory, per ADR-002 §2.2 — present here because the runner takes a stable input contract.
-- `FamilyGenerationConfig` — describes family identity, input headers, library name, output namespace/class, owned prefixes, and dependency on core-owned SDL types.
-- `HeaderSetResolver` — resolves the canonical vcpkg-installed public headers and rejects missing headers.
+- `Sdl2CoreGenerationConfig` — describes Stage 1 family identity, input headers, library name, output namespace/class, owned prefixes, and deferred declarations. General family config is introduced only when satellite generation creates a real second consumer.
+- `HeaderSetResolver` / `HeaderSetFingerprintCalculator` — resolve the canonical vcpkg-installed public headers via Cake filesystem APIs, reject missing or empty header sets, and compute the header fingerprint. They are target-local services because the SDL header input tree is generation input, not a build-host-owned persisted contract.
 - `PlatformCatalog` — owns the `(OsCondition, BackendCondition[])` tuple catalog (~7–8 entries for SDL2.Core in Stage 1). Each catalog entry corresponds to exactly one parse view. The catalog is data-driven and reviewable, not magic constants buried in code paths.
 - `CppAstParseRunner` — runs one parse view per catalog entry plus a neutral view. Each parse view is a `CppParserOptions` instance with the master undefine-all-platform-macros set, the entry's macro group defined, and no `--target` cross-compile flag.
 - `DeclarationCollector` — converts CppAst declarations into a generator-owned model.
@@ -103,12 +106,12 @@ Responsibilities:
 - `CoreOwnedTypeMap` — prevents satellites from redeclaring core-owned SDL types.
 - `KnownUnsupportedDeclarationPolicy` — explicit allowlist of declarations the generator intentionally omits (variadic functions with no fmt-only safe wrapper, the typed `SDL_SysWMinfo` union at Stage 1, etc.). Any unclassified unsupported declaration fails generation.
 - `Cs*Emitter` classes — generate category-specific `.g.cs` files in a single foreach loop per Function.
-- `GeneratedStampWriter` — writes generator, toolchain, vcpkg, header, and platform-pass state.
+- `GeneratedStampRepository` — reads and writes generator, toolchain, vcpkg, header, and platform-pass state via `CakeJsonExtensions` / Cake filesystem helpers.
 - `BindingGenerationCoherenceValidator` (under `build/_build/Validation/BindingGeneration/`) — PreFlight validator that compares the committed `.generated-stamp` against current vcpkg / header / toolchain state. Joins existing PreFlight validators alongside `HybridStaticOverlayValidator`, manifest schema validators, etc., per ADR-003 cross-cutting validator pattern.
 
-**Pure vs Cake split.** Subfolders marked `(PURE — no Cake)` carry no `ICakeContext`, no Cake aliases, no Cake `Tool<TSettings>` dependencies. They live under `Targets/GenerateBindings/` because their **scope** is target-local until SDL3 creates real reuse pressure (ADR-002 §2.4), not because they tangle with Cake-isms. They unit-test from `build/_build.Tests/Unit/` as ordinary C#. The Cake-aware shell (`GenerateBindingsTask`, `BindingGenerationRunner`, `ServiceCollectionExtensions`) is the only surface that touches Cake.
+**Pure vs Cake split.** Parser/model/emitter policy code carries no `ICakeContext`, no Cake aliases, no Cake `Tool<TSettings>` dependencies. Header resolution, stamp serialization, generated-file persistence, and task orchestration are build-host I/O boundaries and therefore use Cake-native abstractions. All of this remains target-local under `Targets/GenerateBindings/` until SDL3 creates real reuse pressure (ADR-002 §2.4).
 
-**Scenario tests** in `build/_build.Tests/Scenarios/` cover `GenerateBindingsTask` and the PreFlight stamp validator using the canonical `FakeCakeWorld` / `TargetTestHost` infrastructure from [`testing-guidelines.md`](../../knowledge-base/testing-guidelines.md). No new test scaffolding is required at the design-spec level.
+**Tests** use `FakeCakeWorld` / Cake `FakeFileSystem` for any filesystem behavior. Current Stage 1 unit tests live under `build/_build.Tests/Unit/Targets/GenerateBindings/`; future `GenerateBindingsTask` and PreFlight stamp validator scenario tests live under `build/_build.Tests/Scenarios/GenerateBindings/` and use `TargetTestHost`.
 
 No `Janset.SDL.Bindings.Generator.Core` project is created in Stage 1. No `src/Janset.SDL2.Bindings.Generator/` standalone project is created at any stage. Stage 3 (SDL3, gated on PD-7) introduces a sibling `Targets/GenerateSdl3Bindings/` Cake target; shared code, if any, gets promoted out of SDL2's target only when ADR-002 §2.4 promotion criteria are met.
 
@@ -175,7 +178,7 @@ Each parse view is a `CppParserOptions` instance with:
 - The catalog entry's `(OsCondition, BackendCondition[])` macro group defined.
 - The vcpkg-installed canonical SDL header set on the include path, plus the Linux container's apt sysroot for transitive `<stdint.h>`/`<stddef.h>`/`<X11/Xlib.h>`/`<wayland-client.h>`/etc.
 
-**Important — no `--target` cross-compile flag.** Platform separation is **preprocessor-driven only**. The 2026-05-14 draft of this spec implied a sysroot/stub-directory pattern (mingw-w64 for Windows, Apple SDK stubs for macOS); that framing was retracted on 2026-05-15 after ppy/SDL3-CS Dockerfile + `generate_bindings.py` were re-verified by WebFetch and the local CppAst spike at `tools/binding-spike/cppast/generator/Program.cs:42-72` was re-read. SDL2's public headers carry their own forward declarations for cross-platform opaque types (`typedef struct _NSWindow NSWindow;`, `typedef struct ANativeWindow ANativeWindow;`, `struct gbm_device;`, etc.), so function-level platform surface parses without any hand-written platform stubs.
+**Important — no `--target` cross-compile flag.** Platform separation is **preprocessor-driven only**. The 2026-05-14 draft of this spec implied a sysroot/stub-directory pattern (mingw-w64 for Windows, Apple SDK stubs for macOS); that framing was retracted on 2026-05-15 after ppy/SDL3-CS Dockerfile + `generate_bindings.py` were re-verified by WebFetch and the local CppAst platform-pass spike at `tools/binding-spike/cppast-platform/generator/Program.cs:42-72` was re-read. SDL2's public headers carry their own forward declarations for cross-platform opaque types (`typedef struct _NSWindow NSWindow;`, `typedef struct ANativeWindow ANativeWindow;`, `struct gbm_device;`, etc.), so function-level platform surface parses without any hand-written platform stubs.
 
 The exact catalog lives in `PlatformCatalog.cs` as data and is reviewed at Stage 1 plan landing.
 
@@ -196,7 +199,7 @@ The bounded audit found platform risk concentrated in SDL2.Core:
 
 Apple-SDK redistribution concerns do not apply because Apple's non-`__OBJC__` `typedef struct _NSWindow NSWindow;` is provided directly by `SDL_syswm.h:86` (and the equivalent for `UIWindow` at `:94-95`, `ANativeWindow` at `:105`). The Stage 2 stub library is pure forward declarations, not Apple SDK or Windows SDK derivatives.
 
-The 2026-05-14 draft framed `SDL_syswm.h` as a first-class Stage 1 proof target with the instruction "if the generator cannot model it safely, stop and return to design review." That framing was correct for the typed-union work but wrong about its stage placement — the function-level platform-pass spike at `tools/binding-spike/cppast/generator/Program.cs` intentionally deferred the union work, and Stage 1's production-shape proof is already adequate at function level (multi-pass orchestration, dedup, fail-closed merge, platform attribution, dual emit, typed handles, friendly overloads, AOT-clean signatures). The "stop and return to design review" guidance now applies to Stage 2.
+The 2026-05-14 draft framed `SDL_syswm.h` as a first-class Stage 1 proof target with the instruction "if the generator cannot model it safely, stop and return to design review." That framing was correct for the typed-union work but wrong about its stage placement — the function-level platform-pass spike at `tools/binding-spike/cppast-platform/generator/Program.cs` intentionally deferred the union work, and Stage 1's production-shape proof is already adequate at function level (multi-pass orchestration, dedup, fail-closed merge, platform attribution, dual emit, typed handles, friendly overloads, AOT-clean signatures). The "stop and return to design review" guidance now applies to Stage 2.
 
 ### Satellite topology
 
@@ -314,7 +317,7 @@ Symbol-existence validation belongs at the Pack stage after native harvest and b
 
 This spec feeds the Stage 1 implementation plan. The plan should implement only the SDL2.Core proof-of-life slice:
 
-1. Add the SDL2 generator project.
+1. Add the SDL2 generator module to the Cake build host project.
 2. Add enough platform catalog and parse-view infrastructure to prove SDL2.Core, especially `SDL_syswm.h`.
 3. Generate committed SDL2.Core output and `.generated-stamp`.
 4. Wire SDL2.Core away from `external/sdl2-cs/src/SDL2.cs`.
@@ -354,4 +357,4 @@ External:
 
 - <https://github.com/amerkoleci/Alimer.Bindings.SDL> — CppAst SDL3 core reference for emitter organization and typed-handle shape.
 - <https://github.com/ppy/SDL3-CS> — ClangSharp SDL3 reference for preprocessor-macro-driven multi-pass orchestration (Dockerfile + `generate_bindings.py`).
-- `tools/binding-spike/cppast/generator/Program.cs` — local CppAst platform-pass spike (Defines/Undefines macro juggling, line 42-72).
+- `tools/binding-spike/cppast-platform/generator/Program.cs` — local CppAst platform-pass spike (Defines/Undefines macro juggling, line 42-72).

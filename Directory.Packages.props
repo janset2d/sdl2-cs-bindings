@@ -1,11 +1,17 @@
 <Project>
   <ItemGroup>
     <!-- third-party analyzers -->
-    <!-- CppAst 0.24.0 builds against ClangSharp 20.1.2.4 + libClangSharp 20.1.2.
-         Newer libclang.runtime / libClangSharp.runtime versions cause AST visit recursion
-         (stack overflow) due to AST-shape changes between libclang 20.x → 21.x. -->
+    <!--
+      CppAst + libclang version trio - locked at 0.24.0 / 20.1.2. See ADR-004 and
+      docs/binding-autogen/binding-autogen-strategy-brief.md "Toolchain commitment + version-trio pin".
+      Bump policy: all three package families move together; spike-validate against the new trio before merging.
+      Production GenerateBindings is Linux-canonical and build/_build/Build.csproj references only linux-x64 runtimes.
+      Existing win-x64 runtime pins are retained for tracked spike projects under tools/binding-spike.
+    -->
     <PackageVersion Include="CppAst" Version="0.24.0" />
+    <PackageVersion Include="libclang.runtime.linux-x64" Version="20.1.2" />
     <PackageVersion Include="libclang.runtime.win-x64" Version="20.1.2" />
+    <PackageVersion Include="libClangSharp.runtime.linux-x64" Version="20.1.2" />
     <PackageVersion Include="libClangSharp.runtime.win-x64" Version="20.1.2" />
     <PackageVersion Include="Meziantou.Analyzer" Version="2.0.189" />
     <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.3.4" />

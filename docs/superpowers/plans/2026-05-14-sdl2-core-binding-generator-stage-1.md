@@ -10,6 +10,8 @@
 > 4. **`SDL_syswm.h` typed-union layout deferred to Stage 2.** Stage 1 emits `SDL_GetWindowWMInfo` as a function with opaque `nint`-shaped `SDL_SysWMinfo*` parameter. The typed union + ~15–20-type forward-declaration stub library + 64-byte layout lock are Stage 2 deliverables.
 >
 > Stage 1's production-shape proof now covers the full `PlatformCatalog` at function level (Neutral + Windows desktop + WinRT + GDK + Linux + macOS + iOS + Android — ~7–8 parse views, preprocessor-macro switching only — no `--target`, no mingw-w64, no Apple SDK). Stage 2 takes on the typed-union layout, satellite sweep, and `external/sdl2-cs` retirement; Stage 3 (SDL3) is gated on PD-7. The plan's task-by-task discipline (TDD, baseline checks, approval-gate commits) is unchanged.
+>
+> **Cake-native correction (2026-05-15):** Build-host code in this plan must use Cake-native path, filesystem, and JSON boundaries. In `build/_build`, use `Cake.Core.IO.DirectoryPath` / `FilePath`, `ICakeContext`, `CakeFileSystemExtensions`, and `CakeJsonExtensions`; do not introduce raw `System.IO` file/path APIs in target code. Unit and scenario tests use `FakeCakeWorld` / Cake `FakeFileSystem`, not real temp directories.
 
 **Goal:** Build the first production-shaped CppAst generator slice for `Janset.SDL2.Core` hosted inside the Cake build host, commit generated SDL2.Core source, and remove SDL2.Core's production compile dependency on `external\sdl2-cs\src\SDL2.cs`.
 
@@ -62,10 +64,6 @@ build\_build\Targets\GenerateBindings\
 |-- Sdl2CoreGenerationConfig.cs                   (Stage 1 SDL2.Core-specific config)
 |-- BindingGenerationRunner.cs                    (Cake-side runner; invokes the pure emitter via named adapter)
 |-- ServiceCollectionExtensions.cs                (AddGenerateBindings() — focused DI registration per ADR-002 §2.5)
-|-- HeaderSet\                                    (PURE — no Cake; unit-testable as ordinary C#)
-|   |-- HeaderSetResolver.cs
-|   |-- HeaderSetFingerprint.cs
-|   `-- HeaderSet.cs
 |-- Parsing\                                      (PURE — no Cake)
 |   |-- CppAstParseRunner.cs
 |   |-- CppAstParseResult.cs
@@ -93,9 +91,16 @@ build\_build\Targets\GenerateBindings\
 |   |-- CsStructEmitter.cs
 |   |-- CsCallbackEmitter.cs
 |   `-- GeneratedFileSet.cs
-`-- Stamps\                                       (PURE — no Cake)
-    |-- GeneratedStamp.cs
-    `-- GeneratedStampWriter.cs
+
+build\_build\Data\BindingGeneration\              (file-backed/tool-read binding contracts per ADR-003)
+|-- GeneratedStamp.cs
+`-- GeneratedStampRepository.cs                    (Cake-native .generated-stamp writer)
+
+build\_build\Targets\GenerateBindings\HeaderSet\   (target-local SDL header input services)
+|-- ResolvedHeaderSet.cs
+|-- HeaderSetFingerprint.cs
+|-- HeaderSetResolver.cs
+`-- HeaderSetFingerprintCalculator.cs
 
 build\_build\Validation\BindingGeneration\
 |-- BindingGenerationCoherenceValidator.cs        (PreFlight: .generated-stamp drift)
@@ -114,17 +119,21 @@ Tests join the canonical TUnit/MTP infrastructure under `build\_build.Tests\`. *
 
 ```text
 build\_build.Tests\Unit\Targets\GenerateBindings\
-|-- HeaderSet\HeaderSetResolverTests.cs
-|-- HeaderSet\HeaderSetFingerprintTests.cs
 |-- Parsing\PlatformCatalogTests.cs                 (asserts ~7-8 catalog entries, OS + backend macro groups)
 |-- Parsing\CppAstParseRunnerTests.cs               (asserts preprocessor-macro switching only, no --target)
 |-- Model\DeclarationMergePolicyTests.cs
 |-- Model\TypeMappingPolicyTests.cs
 |-- Model\KnownUnsupportedDeclarationPolicyTests.cs  (asserts SDL_SysWMinfo typed-union is `deferred-to-stage-2`)
 |-- Emitting\CsCodeGeneratorTests.cs
-|-- Stamps\GeneratedStampWriterTests.cs              (asserts no wall-clock timestamps)
 |-- Snapshots\Sdl2CorePublicApiTests.ApprovePublicApi.verified.txt
 `-- Sdl2CorePublicApiTests.cs
+
+build\_build.Tests\Unit\Data\BindingGeneration\
+`-- GeneratedStampRepositoryTests.cs
+
+build\_build.Tests\Unit\Targets\GenerateBindings\HeaderSet\
+|-- HeaderSetResolverTests.cs
+`-- HeaderSetFingerprintCalculatorTests.cs
 
 build\_build.Tests\Scenarios\GenerateBindings\
 |-- GenerateBindingsTaskScenarioTests.cs             (FakeCakeWorld + TargetTestHost — happy path, family selection, non-Linux host fail-closed)
@@ -249,9 +258,8 @@ internal static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddGenerateBindings(this IServiceCollection services)
     {
-        // Stage 1 tasks register pure collaborators here:
-        //   HeaderSetResolver, CppAstParseRunner, PlatformCatalog, DeclarationMergePolicy,
-        //   CsCodeGenerator, GeneratedStampWriter, BindingGenerationRunner.
+        // Stage 1 tasks register target-local generator collaborators here.
+        // File-backed binding contracts are registered in AddData() under Data/BindingGeneration.
         return services;
     }
 }
@@ -296,7 +304,7 @@ public sealed class Sdl2CoreGenerationConfigTests
 Run:
 
 ```pwsh
-dotnet test build\_build.Tests\Build.Tests.csproj -c Release --framework net10.0 --filter FullyQualifiedName~Sdl2CoreGenerationConfigTests
+dotnet test --project build\_build.Tests\Build.Tests.csproj -c Release --framework net10.0 --no-restore
 ```
 
 Expected: FAIL because `Sdl2CoreGenerationConfig` does not exist.
@@ -337,19 +345,21 @@ internal sealed record Sdl2CoreGenerationConfig(
 Create `build\_build\Targets\GenerateBindings\GenerateBindingsRequest.cs`:
 
 ```csharp
+using Cake.Core.IO;
+
 namespace Build.Targets.GenerateBindings;
 
 internal sealed record GenerateBindingsRequest(
     Sdl2CoreGenerationConfig Config,
-    DirectoryInfo VcpkgInstalledDirectory,
+    DirectoryPath VcpkgInstalledDirectory,
     string Triplet,
-    DirectoryInfo OutputDirectory);
+    DirectoryPath OutputDirectory);
 ```
 
 Re-run the test:
 
 ```pwsh
-dotnet test build\_build.Tests\Build.Tests.csproj -c Release --framework net10.0 --filter FullyQualifiedName~Sdl2CoreGenerationConfigTests
+dotnet test --project build\_build.Tests\Build.Tests.csproj -c Release --framework net10.0 --no-restore
 ```
 
 Expected: PASS.
@@ -373,257 +383,83 @@ Expected: build succeeds; all existing tests + the new `Sdl2CoreGenerationConfig
 
 **Files:**
 
-- Create: `build\_build\Targets\GenerateBindings\HeaderSet\HeaderSet.cs`
-- Create: `build\_build\Targets\GenerateBindings\HeaderSet\HeaderSetResolver.cs`
+- Create: `build\_build\Data\BindingGeneration\GeneratedStamp.cs`
+- Create: `build\_build\Data\BindingGeneration\GeneratedStampRepository.cs`
+- Modify: `build\_build\Data\ServiceCollectionExtensions.cs`
+- Create: `build\_build.Tests\Unit\Data\BindingGeneration\GeneratedStampRepositoryTests.cs`
+- Create: `build\_build\Targets\GenerateBindings\HeaderSet\ResolvedHeaderSet.cs`
 - Create: `build\_build\Targets\GenerateBindings\HeaderSet\HeaderSetFingerprint.cs`
-- Create: `build\_build\Targets\GenerateBindings\Stamps\GeneratedStamp.cs`
-- Create: `build\_build\Targets\GenerateBindings\Stamps\GeneratedStampWriter.cs`
-- Create: `build\_build.Tests\Unit\Targets\GenerateBindings\TestWorkspace.cs`
+- Create: `build\_build\Targets\GenerateBindings\HeaderSet\HeaderSetResolver.cs`
+- Create: `build\_build\Targets\GenerateBindings\HeaderSet\HeaderSetFingerprintCalculator.cs`
 - Create: `build\_build.Tests\Unit\Targets\GenerateBindings\HeaderSet\HeaderSetResolverTests.cs`
-- Create: `build\_build.Tests\Unit\Targets\GenerateBindings\HeaderSet\HeaderSetFingerprintTests.cs`
-- Create: `build\_build.Tests\Unit\Targets\GenerateBindings\Stamps\GeneratedStampWriterTests.cs`
+- Create: `build\_build.Tests\Unit\Targets\GenerateBindings\HeaderSet\HeaderSetFingerprintCalculatorTests.cs`
 
-- [ ] **Step 1: Write failing header resolver tests**
+`.generated-stamp` is a persisted JSON contract and belongs in `Data/BindingGeneration` per ADR-003. Header-set discovery/fingerprinting reads the vcpkg-installed input tree for one target invocation; it is target behavior like Harvest's `ArtifactPlanner` / `BinaryClosureWalker`, so it lives under `Targets/GenerateBindings/HeaderSet` as non-static services.
 
-Create `build\_build.Tests\Unit\Targets\GenerateBindings\TestWorkspace.cs`:
-
-```csharp
-namespace Build.Tests.Unit.Targets.GenerateBindings;
-
-internal sealed class TestWorkspace : IDisposable
-{
-    public TestWorkspace()
-    {
-        Root = Directory.CreateTempSubdirectory("janset-sdl2-generator-tests-");
-    }
-
-    public DirectoryInfo Root { get; }
-
-    public string WriteFile(string relativePath, string content)
-    {
-        var path = Path.Combine(Root.FullName, relativePath);
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllText(path, content);
-        return path;
-    }
-
-    public void Dispose()
-    {
-        Root.Delete(recursive: true);
-    }
-}
-```
+- [ ] **Step 1: Write failing repository tests**
 
 Create `build\_build.Tests\Unit\Targets\GenerateBindings\HeaderSet\HeaderSetResolverTests.cs`:
 
 ```csharp
 using Build.Targets.GenerateBindings.HeaderSet;
+using Build.Tests.Fixtures;
+using Cake.Core;
+using Cake.Core.IO;
 
 namespace Build.Tests.Unit.Targets.GenerateBindings.HeaderSet;
 
 public sealed class HeaderSetResolverTests
 {
     [Test]
-    public async Task ResolveCoreHeaders_Should_Return_Canonical_Core_Header_Paths()
+    public async Task ResolveSdl2CoreHeaders_Should_Return_Discovered_Header_Paths()
     {
-        using var workspace = new TestWorkspace();
-        var includeRoot = Path.Combine(workspace.Root.FullName, "vcpkg_installed", "x64-linux-hybrid", "include", "SDL2");
-        Directory.CreateDirectory(includeRoot);
+        var world = FakeCakeWorld.CreateLinux()
+            .WithTextFile("vcpkg_installed/x64-linux-hybrid/include/SDL2/SDL.h", "/* umbrella */")
+            .WithTextFile("vcpkg_installed/x64-linux-hybrid/include/SDL2/SDL_system.h", "/* system */")
+            .WithTextFile("vcpkg_installed/x64-linux-hybrid/include/SDL2/begin_code.h", "/* begin */");
+        var resolver = new HeaderSetResolver(world.CakeContext);
 
-        foreach (var header in HeaderSetResolver.Sdl2CoreHeaders)
-        {
-            File.WriteAllText(Path.Combine(includeRoot, header), "/* header */");
-        }
+        var result = resolver.ResolveSdl2CoreHeaders(world.RepoRoot.Combine("vcpkg_installed"), "x64-linux-hybrid");
 
-        var resolver = new HeaderSetResolver();
-        var result = resolver.ResolveCoreHeaders(
-            new DirectoryInfo(Path.Combine(workspace.Root.FullName, "vcpkg_installed")),
-            "x64-linux-hybrid");
-
-        await Assert.That(result.Headers.Select(path => Path.GetFileName(path.FullName)))
-            .IsEquivalentTo(HeaderSetResolver.Sdl2CoreHeaders);
+        await Assert.That(result.Headers.Select(path => path.GetFilename().FullPath))
+            .IsEquivalentTo(["SDL.h", "SDL_system.h", "begin_code.h"]);
     }
 
     [Test]
-    public async Task ResolveCoreHeaders_Should_Throw_When_Any_Core_Header_Is_Missing()
+    public async Task ResolveSdl2CoreHeaders_Should_Throw_When_No_Core_Headers_Are_Found()
     {
-        using var workspace = new TestWorkspace();
-        Directory.CreateDirectory(Path.Combine(workspace.Root.FullName, "vcpkg_installed", "x64-linux-hybrid", "include", "SDL2"));
+        var world = FakeCakeWorld.CreateLinux();
+        world.FileSystem.GetDirectory(world.RepoRoot.Combine("vcpkg_installed").Combine("x64-linux-hybrid").Combine("include").Combine("SDL2")).Create();
+        var resolver = new HeaderSetResolver(world.CakeContext);
 
-        var resolver = new HeaderSetResolver();
+        var exception = Assert.Throws<CakeException>(() =>
+            resolver.ResolveSdl2CoreHeaders(world.RepoRoot.Combine("vcpkg_installed"), "x64-linux-hybrid"));
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-        {
-            resolver.ResolveCoreHeaders(
-                new DirectoryInfo(Path.Combine(workspace.Root.FullName, "vcpkg_installed")),
-                "x64-linux-hybrid");
-        });
-
-        await Assert.That(exception.Message).Contains("SDL.h");
+        await Assert.That(exception.Message).Contains("No SDL2 headers");
     }
+
 }
 ```
 
-Run:
+Create `build\_build.Tests\Unit\Targets\GenerateBindings\HeaderSet\HeaderSetFingerprintCalculatorTests.cs` with the line-ending normalization test. It uses `FakeCakeWorld`, `ResolvedHeaderSet`, and `HeaderSetFingerprintCalculator`.
 
-```pwsh
-dotnet test --project build\_build.Tests\Build.Tests.csproj -c Release --framework net10.0 --no-restore
-```
-
-Expected: FAIL because `HeaderSetResolver` does not exist.
-
-- [ ] **Step 2: Implement header set resolver**
-
-Create `build\_build\Targets\GenerateBindings\HeaderSet\HeaderSet.cs`:
+Create `build\_build.Tests\Unit\Data\BindingGeneration\GeneratedStampRepositoryTests.cs`:
 
 ```csharp
-namespace Build.Targets.GenerateBindings.HeaderSet;
+using Build.Data.BindingGeneration;
+using Build.Host.Cake;
+using Build.Tests.Fixtures;
 
-internal sealed record HeaderSet(
-    DirectoryInfo IncludeRoot,
-    DirectoryInfo Sdl2IncludeDirectory,
-    IReadOnlyList<FileInfo> Headers);
-```
+namespace Build.Tests.Unit.Data.BindingGeneration;
 
-Create `build\_build\Targets\GenerateBindings\HeaderSet\HeaderSetResolver.cs`:
-
-```csharp
-namespace Build.Targets.GenerateBindings.HeaderSet;
-
-internal sealed class HeaderSetResolver
-{
-    public static readonly string[] Sdl2CoreHeaders =
-    [
-        "SDL.h",
-        "SDL_assert.h",
-        "SDL_atomic.h",
-        "SDL_audio.h",
-        "SDL_bits.h",
-        "SDL_blendmode.h",
-        "SDL_clipboard.h",
-        "SDL_config.h",
-        "SDL_cpuinfo.h",
-        "SDL_endian.h",
-        "SDL_error.h",
-        "SDL_events.h",
-        "SDL_filesystem.h",
-        "SDL_gamecontroller.h",
-        "SDL_gesture.h",
-        "SDL_guid.h",
-        "SDL_haptic.h",
-        "SDL_hidapi.h",
-        "SDL_hints.h",
-        "SDL_joystick.h",
-        "SDL_keyboard.h",
-        "SDL_keycode.h",
-        "SDL_loadso.h",
-        "SDL_locale.h",
-        "SDL_log.h",
-        "SDL_main.h",
-        "SDL_messagebox.h",
-        "SDL_metal.h",
-        "SDL_misc.h",
-        "SDL_mouse.h",
-        "SDL_mutex.h",
-        "SDL_pixels.h",
-        "SDL_platform.h",
-        "SDL_power.h",
-        "SDL_quit.h",
-        "SDL_rect.h",
-        "SDL_render.h",
-        "SDL_revision.h",
-        "SDL_rwops.h",
-        "SDL_scancode.h",
-        "SDL_sensor.h",
-        "SDL_shape.h",
-        "SDL_stdinc.h",
-        "SDL_surface.h",
-        "SDL_system.h",
-        "SDL_syswm.h",
-        "SDL_thread.h",
-        "SDL_timer.h",
-        "SDL_touch.h",
-        "SDL_types.h",
-        "SDL_version.h",
-        "SDL_video.h",
-        "begin_code.h",
-        "close_code.h"
-    ];
-
-    public HeaderSet ResolveCoreHeaders(DirectoryInfo vcpkgInstalledDirectory, string triplet)
-    {
-        ArgumentNullException.ThrowIfNull(vcpkgInstalledDirectory);
-
-        if (string.IsNullOrWhiteSpace(triplet))
-        {
-            throw new ArgumentException("Triplet is required.", nameof(triplet));
-        }
-
-        var includeRoot = new DirectoryInfo(Path.Combine(vcpkgInstalledDirectory.FullName, triplet, "include"));
-        var sdl2Include = new DirectoryInfo(Path.Combine(includeRoot.FullName, "SDL2"));
-
-        var headers = new List<FileInfo>(Sdl2CoreHeaders.Length);
-        foreach (var header in Sdl2CoreHeaders)
-        {
-            var path = new FileInfo(Path.Combine(sdl2Include.FullName, header));
-            if (!path.Exists)
-            {
-                throw new InvalidOperationException($"Required SDL2.Core header '{header}' was not found at '{path.FullName}'.");
-            }
-
-            headers.Add(path);
-        }
-
-        return new HeaderSet(includeRoot, sdl2Include, headers);
-    }
-}
-```
-
-- [ ] **Step 3: Write failing fingerprint and stamp tests**
-
-Create `build\_build.Tests\Unit\Targets\GenerateBindings\HeaderSet\HeaderSetFingerprintTests.cs`:
-
-```csharp
-using Build.Targets.GenerateBindings.HeaderSet;
-
-namespace Build.Tests.Unit.Targets.GenerateBindings.HeaderSet;
-
-public sealed class HeaderSetFingerprintTests
+public sealed class GeneratedStampRepositoryTests
 {
     [Test]
-    public async Task Compute_Should_Be_Stable_When_Line_Endings_Differ()
+    public async Task SaveAsync_Should_Write_Deterministic_Json_Without_Wall_Clock_Time()
     {
-        using var workspace = new TestWorkspace();
-        var includeRoot = Directory.CreateDirectory(Path.Combine(workspace.Root.FullName, "include"));
-        var sdl2Root = Directory.CreateDirectory(Path.Combine(includeRoot.FullName, "SDL2"));
-        var header = new FileInfo(Path.Combine(sdl2Root.FullName, "SDL.h"));
-
-        File.WriteAllText(header.FullName, "line1\r\nline2\r\n");
-        var crlf = HeaderSetFingerprint.Compute(new HeaderSet(includeRoot, sdl2Root, [header]));
-
-        File.WriteAllText(header.FullName, "line1\nline2\n");
-        var lf = HeaderSetFingerprint.Compute(new HeaderSet(includeRoot, sdl2Root, [header]));
-
-        await Assert.That(lf.Hash).IsEqualTo(crlf.Hash);
-        await Assert.That(lf.HeaderCount).IsEqualTo(1);
-    }
-}
-```
-
-Create `build\_build.Tests\Unit\Targets\GenerateBindings\Stamps\GeneratedStampWriterTests.cs`:
-
-```csharp
-using Build.Targets.GenerateBindings.Stamps;
-
-namespace Build.Tests.Unit.Targets.GenerateBindings.Stamps;
-
-public sealed class GeneratedStampWriterTests
-{
-    [Test]
-    public async Task Write_Should_Produce_Deterministic_Json_Without_Wall_Clock_Time()
-    {
-        using var workspace = new TestWorkspace();
-        var output = Directory.CreateDirectory(Path.Combine(workspace.Root.FullName, "Generated"));
+        var world = FakeCakeWorld.CreateLinux();
+        var output = world.RepoRoot.Combine("Generated");
+        var stampPath = output.CombineWithFilePath(".generated-stamp");
         var stamp = new GeneratedStamp(
             SchemaVersion: 1,
             Family: "sdl2-core",
@@ -637,15 +473,18 @@ public sealed class GeneratedStampWriterTests
             HeaderFingerprint: "sha256:abc",
             HeaderCount: 54,
             ParseViews: ["Neutral", "Windows"]);
+        var repository = new GeneratedStampRepository(world.CakeContext);
 
-        var writer = new GeneratedStampWriter();
-        writer.Write(output, stamp);
-        var first = File.ReadAllText(Path.Combine(output.FullName, ".generated-stamp"));
-        writer.Write(output, stamp);
-        var second = File.ReadAllText(Path.Combine(output.FullName, ".generated-stamp"));
+        await repository.SaveAsync(output, stamp);
+        var first = await world.CakeContext.ReadAllTextAsync(stampPath);
+        await repository.SaveAsync(output, stamp);
+        var second = await world.CakeContext.ReadAllTextAsync(stampPath);
+        var loaded = await repository.LoadAsync(output);
 
         await Assert.That(second).IsEqualTo(first);
         await Assert.That(second).DoesNotContain("generated_at");
+        await Assert.That(second).Contains("schema_version");
+        await Assert.That(loaded).IsEqualTo(stamp);
     }
 }
 ```
@@ -656,87 +495,36 @@ Run:
 dotnet test --project build\_build.Tests\Build.Tests.csproj -c Release --framework net10.0 --no-restore
 ```
 
-Expected: FAIL because fingerprint and stamp types do not exist.
+Expected: FAIL because `Build.Data.BindingGeneration` and `Targets/GenerateBindings/HeaderSet` types do not exist.
 
-- [ ] **Step 4: Implement fingerprint and stamp writer**
+- [ ] **Step 2: Implement target-local header-set services and Data-layer stamp contract**
+
+Create `build\_build\Targets\GenerateBindings\HeaderSet\ResolvedHeaderSet.cs`:
+
+```csharp
+using Cake.Core.IO;
+
+namespace Build.Targets.GenerateBindings.HeaderSet;
+
+public sealed record ResolvedHeaderSet(DirectoryPath IncludeRoot, DirectoryPath Sdl2IncludeDirectory, IReadOnlyList<FilePath> Headers);
+```
 
 Create `build\_build\Targets\GenerateBindings\HeaderSet\HeaderSetFingerprint.cs`:
 
 ```csharp
-using System.Security.Cryptography;
-using System.Text;
-
 namespace Build.Targets.GenerateBindings.HeaderSet;
 
-internal sealed record HeaderSetFingerprint(string Hash, int HeaderCount)
-{
-    public static HeaderSetFingerprint Compute(HeaderSet headerSet)
-    {
-        ArgumentNullException.ThrowIfNull(headerSet);
-
-        var builder = new StringBuilder();
-        foreach (var header in headerSet.Headers.OrderBy(file => file.FullName, StringComparer.OrdinalIgnoreCase))
-        {
-            var relativePath = Path.GetRelativePath(headerSet.IncludeRoot.FullName, header.FullName)
-                .Replace('\\', '/');
-            builder.Append(relativePath).Append('\n');
-            builder.Append(NormalizeLineEndings(File.ReadAllText(header.FullName))).Append('\n');
-        }
-
-        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString()))).ToLowerInvariant();
-        return new HeaderSetFingerprint($"sha256:{hash}", headerSet.Headers.Count);
-    }
-
-    private static string NormalizeLineEndings(string content) =>
-        content.Replace("\r\n", "\n", StringComparison.Ordinal).Replace("\r", "\n", StringComparison.Ordinal);
-}
+public sealed record HeaderSetFingerprint(string Hash, int HeaderCount);
 ```
 
-Create `build\_build\Targets\GenerateBindings\Stamps\GeneratedStamp.cs`:
+Create `build\_build\Targets\GenerateBindings\HeaderSet\HeaderSetResolver.cs` and `HeaderSetFingerprintCalculator.cs`. They are sealed target services using `ICakeContext`, not static helpers and not Data repositories. The calculator normalizes line endings to `Environment.NewLine`.
+
+Create `build\_build\Data\BindingGeneration\GeneratedStamp.cs` and `GeneratedStampRepository.cs`. The stamp record carries `[JsonPropertyName]` attributes for snake_case fields; the repository has `LoadAsync` and `SaveAsync` and uses `CakeJsonExtensions` / `CakeFileSystemExtensions`.
+
+Register the stamp repository in `build\_build\Data\ServiceCollectionExtensions.cs`:
 
 ```csharp
-namespace Build.Targets.GenerateBindings.Stamps;
-
-internal sealed record GeneratedStamp(
-    int SchemaVersion,
-    string Family,
-    string GeneratorAssembly,
-    string CppAstVersion,
-    string LibClangVersion,
-    string VcpkgTriplet,
-    string VcpkgManifestHash,
-    string VcpkgBaseline,
-    string ManifestLibraryVersion,
-    string HeaderFingerprint,
-    int HeaderCount,
-    IReadOnlyList<string> ParseViews);
-```
-
-Create `build\_build\Targets\GenerateBindings\Stamps\GeneratedStampWriter.cs`:
-
-```csharp
-using System.Text.Json;
-
-namespace Build.Targets.GenerateBindings.Stamps;
-
-internal sealed class GeneratedStampWriter
-{
-    private static readonly JsonSerializerOptions SerializerOptions = new()
-    {
-        WriteIndented = true
-    };
-
-    public void Write(DirectoryInfo outputDirectory, GeneratedStamp stamp)
-    {
-        ArgumentNullException.ThrowIfNull(outputDirectory);
-        ArgumentNullException.ThrowIfNull(stamp);
-
-        outputDirectory.Create();
-        var path = Path.Combine(outputDirectory.FullName, ".generated-stamp");
-        var json = JsonSerializer.Serialize(stamp, SerializerOptions) + Environment.NewLine;
-        File.WriteAllText(path, json);
-    }
-}
+services.AddSingleton<IGeneratedStampRepository, GeneratedStampRepository>();
 ```
 
 - [ ] **Step 5: Run tests**
@@ -935,8 +723,9 @@ If a future SDL header bump introduces a public surface that genuinely needs a s
 Create `build\_build.Tests\Unit\Targets\GenerateBindings\Parsing\CppAstParseRunnerTests.cs`:
 
 ```csharp
-using Build.Targets.GenerateBindings.HeaderSet;
+using Build.Data.BindingGeneration;
 using Build.Targets.GenerateBindings.Parsing;
+using Build.Tests.Fixtures;
 
 namespace Build.Tests.Unit.Targets.GenerateBindings.Parsing;
 
@@ -945,16 +734,16 @@ public sealed class CppAstParseRunnerTests
     [Test]
     public async Task Parse_Should_Return_Compilation_When_Header_Is_Valid()
     {
-        using var workspace = new TestWorkspace();
-        var includeRoot = Directory.CreateDirectory(Path.Combine(workspace.Root.FullName, "include"));
-        var sdl2Root = Directory.CreateDirectory(Path.Combine(includeRoot.FullName, "SDL2"));
-        var header = new FileInfo(Path.Combine(sdl2Root.FullName, "SDL_test.h"));
-        File.WriteAllText(header.FullName, "typedef int SDL_bool;\nextern int SDL_Init(unsigned int flags);\n");
+        var world = FakeCakeWorld.CreateLinux();
+        var includeRoot = world.RepoRoot.Combine("include");
+        var sdl2Root = includeRoot.Combine("SDL2");
+        var header = sdl2Root.CombineWithFilePath("SDL_test.h");
+        world.WithTextFile(header, "typedef int SDL_bool;\nextern int SDL_Init(unsigned int flags);\n");
 
         var parseView = new PlatformParseView("Neutral", PlatformConditionKind.Neutral, null, [], []);
         var runner = new CppAstParseRunner(new ParseDiagnosticFormatter());
 
-        var result = runner.Parse(new HeaderSet(includeRoot, sdl2Root, [header]), parseView);
+        var result = runner.Parse(new ResolvedHeaderSet(includeRoot, sdl2Root, [header]), parseView);
 
         await Assert.That(result.Compilation.HasErrors).IsFalse();
         await Assert.That(result.ParseView.Name).IsEqualTo("Neutral");
@@ -993,6 +782,8 @@ namespace Build.Targets.GenerateBindings.Parsing;
 
 internal sealed class ParseDiagnosticFormatter
 {
+    private const string DiagnosticLineSeparator = "\n";
+
     public string FormatErrors(string parseViewName, CppCompilation compilation)
     {
         ArgumentNullException.ThrowIfNull(compilation);
@@ -1004,7 +795,7 @@ internal sealed class ParseDiagnosticFormatter
 
         return messages.Length == 0
             ? $"CppAst parse failed for {parseViewName} without diagnostics."
-            : $"CppAst parse failed for {parseViewName}:{Environment.NewLine}{string.Join(Environment.NewLine, messages)}";
+            : $"CppAst parse failed for {parseViewName}:{DiagnosticLineSeparator}{string.Join(DiagnosticLineSeparator, messages)}";
     }
 }
 ```
@@ -1013,7 +804,7 @@ Create `build\_build\Targets\GenerateBindings\Parsing\CppAstParseRunner.cs`:
 
 ```csharp
 using CppAst;
-using Build.Targets.GenerateBindings.HeaderSet;
+using Build.Data.BindingGeneration;
 
 namespace Build.Targets.GenerateBindings.Parsing;
 
@@ -1021,7 +812,7 @@ internal sealed class CppAstParseRunner(ParseDiagnosticFormatter diagnosticForma
 {
     private readonly ParseDiagnosticFormatter _diagnosticFormatter = diagnosticFormatter ?? throw new ArgumentNullException(nameof(diagnosticFormatter));
 
-    public CppAstParseResult Parse(HeaderSet headerSet, PlatformParseView parseView)
+    public CppAstParseResult Parse(ResolvedHeaderSet headerSet, PlatformParseView parseView)
     {
         ArgumentNullException.ThrowIfNull(headerSet);
         ArgumentNullException.ThrowIfNull(parseView);
@@ -1972,7 +1763,7 @@ Before committing, present the summary and proposed message to Deniz and wait fo
 - Modify: `build\_build\Targets\GenerateBindings\Program.cs`
 - Create: `build\_build\Targets\GenerateBindings\Sdl2CoreGenerationConfig.cs`
 - Create: `build\_build\Targets\GenerateBindings\FamilyGenerationConfig.cs`
-- Create: `build\_build\Targets\GenerateBindings\BindingGenerationResult.cs`
+- Create: `build\_build\Targets\GenerateBindings\BindingGenerationError.cs`
 - Modify: `build\_build\Targets\GenerateBindings\Model\DeclarationCollector.cs`
 - Modify: `build\_build\Targets\GenerateBindings\Emitting\*.cs`
 - Create/replace: `src\SDL2.Core\Generated\*.g.cs`
@@ -1994,64 +1785,55 @@ public sealed class GeneratorEndToEndTests
     [Test]
     public async Task Program_Should_Generate_Core_Files_From_Minimal_Sdl_Header_Set()
     {
-        using var workspace = new TestWorkspace();
-        var vcpkgInstalled = Path.Combine(workspace.Root.FullName, "vcpkg_installed");
-        var includeRoot = Path.Combine(vcpkgInstalled, "x64-linux-hybrid", "include", "SDL2");
-        Directory.CreateDirectory(includeRoot);
+        var world = FakeCakeWorld.CreateLinux()
+            .WithTextFile("vcpkg_installed/x64-linux-hybrid/include/SDL2/SDL.h", """
+                typedef unsigned int Uint32;
+                typedef int SDL_bool;
+                typedef struct SDL_Window SDL_Window;
+                extern int SDL_Init(Uint32 flags);
+                extern void SDL_Quit(void);
+                extern SDL_Window* SDL_CreateWindow(const char *title, int x, int y, int w, int h, Uint32 flags);
+                extern void SDL_DestroyWindow(SDL_Window *window);
+                """);
 
-        foreach (var header in Build.Targets.GenerateBindings.HeaderSet.HeaderSetResolver.Sdl2CoreHeaders)
-        {
-            File.WriteAllText(Path.Combine(includeRoot, header), header == "SDL.h"
-                ? """
-                  typedef unsigned int Uint32;
-                  typedef int SDL_bool;
-                  typedef struct SDL_Window SDL_Window;
-                  extern int SDL_Init(Uint32 flags);
-                  extern void SDL_Quit(void);
-                  extern SDL_Window* SDL_CreateWindow(const char *title, int x, int y, int w, int h, Uint32 flags);
-                  extern void SDL_DestroyWindow(SDL_Window *window);
-                  """
-                : "/* empty */");
-        }
-
-        var output = Path.Combine(workspace.Root.FullName, "Generated");
+        var output = world.RepoRoot.Combine("Generated");
         var request = new GenerateBindingsRequest(
             Config: Sdl2CoreGenerationConfig.Default,
-            VcpkgInstalledDirectory: new DirectoryInfo(vcpkgInstalled),
+            VcpkgInstalledDirectory: world.RepoRoot.Combine("vcpkg_installed"),
             Triplet: "x64-linux-hybrid",
-            OutputDirectory: new DirectoryInfo(output));
+            OutputDirectory: output);
 
-        // Build the runner from real (non-Cake) collaborators. The Cake-aware GenerateBindingsTask
-        // shell is unit-tested separately under build\_build.Tests\Scenarios\GenerateBindings.
+        // Build the coordinator from real collaborators. It still receives world.CakeContext so
+        // all path, filesystem, and JSON work goes through Cake-native helpers.
         var runner = TestRunnerFactory.Create();
-        runner.Run(FakeCakeContext.Quiet(), request);
+        await runner.RunAsync(world.CakeContext, request);
 
-        await Assert.That(File.Exists(Path.Combine(output, "Commands.g.cs"))).IsTrue();
-        await Assert.That(File.Exists(Path.Combine(output, "Handles.g.cs"))).IsTrue();
-        await Assert.That(File.Exists(Path.Combine(output, ".generated-stamp"))).IsTrue();
-        await Assert.That(File.ReadAllText(Path.Combine(output, "Commands.g.cs"))).Contains("SDL_Init");
+        await Assert.That(world.FileExists("Generated/Commands.g.cs")).IsTrue();
+        await Assert.That(world.FileExists("Generated/Handles.g.cs")).IsTrue();
+        await Assert.That(world.FileExists("Generated/.generated-stamp")).IsTrue();
+        await Assert.That(world.ReadAllText("Generated/Commands.g.cs")).Contains("SDL_Init");
     }
 }
 ```
 
-`TestRunnerFactory.Create()` is a small fixture helper that news up the pure collaborators directly (no DI container needed in tests). `FakeCakeContext.Quiet()` is a no-op `ICakeContext` for tests that exercise the runner end-to-end without needing the Cake-aware shell. Both helpers join the canonical `FakeCakeWorld`/`TargetTestHost` infrastructure in `build\_build.Tests\TestInfrastructure\`.
+`TestRunnerFactory.Create()` is a small fixture helper that news up collaborators directly when no DI container is needed. Tests still pass `FakeCakeWorld.CakeContext`; do not introduce a separate fake Cake context helper.
 
 Run:
 
 ```pwsh
-dotnet test build\_build.Tests\Build.Tests.csproj -c Release --framework net10.0 --no-restore
+dotnet test --project build\_build.Tests\Build.Tests.csproj -c Release --framework net10.0 --no-restore
 ```
 
 Expected: FAIL because the full in-process generation pipeline is not yet implemented end-to-end (individual collaborators exist from Tasks 2-5 but their composition isn't wired through `BindingGenerationRunner` yet).
 
 - [ ] **Step 2: Implement generation coordinator**
 
-Create `build\_build\Targets\GenerateBindings\BindingGenerationResult.cs`:
+Create `build\_build\Targets\GenerateBindings\BindingGenerationError.cs` and use the existing `Build.Results.Result<T,TError>` pattern. Do not introduce a custom success/failure shape for generation.
 
 ```csharp
 namespace Build.Targets.GenerateBindings;
 
-internal sealed record BindingGenerationResult(int ExitCode, string Message);
+internal sealed record BindingGenerationError(string Message, Exception? Exception = null);
 ```
 
 Create `build\_build\Targets\GenerateBindings\FamilyGenerationConfig.cs`:
@@ -2078,35 +1860,38 @@ internal static class Sdl2CoreGenerationConfig
 }
 ```
 
-Create `build\_build\Targets\GenerateBindings\BindingGenerationPipeline.cs` — the pure (Cake-free) end-to-end orchestrator. This is the class the Cake-aware `BindingGenerationRunner` (from Task 8) composes. There is no separate console app and no `Cli/` subdirectory.
+Create `build\_build\Targets\GenerateBindings\BindingGenerationCoordinator.cs` — the target-local coordinator for parse/merge/emit. It receives `ICakeContext` because header reads, generated-file writes, stamp writes, and repository JSON reads are build-host IO and must stay Cake-native. There is no separate console app and no `Cli/` subdirectory.
 
 ```csharp
+using Build.Host.Cake;
+using Build.Data.BindingGeneration;
+using Build.Results;
 using Build.Targets.GenerateBindings.Emitting;
-using Build.Targets.GenerateBindings.HeaderSet;
 using Build.Targets.GenerateBindings.Model;
 using Build.Targets.GenerateBindings.Parsing;
-using Build.Targets.GenerateBindings.Stamps;
+using Cake.Common.IO;
+using Cake.Core;
 
 namespace Build.Targets.GenerateBindings;
 
-internal sealed class BindingGenerationPipeline(
+internal sealed class BindingGenerationCoordinator(
     HeaderSetResolver headerSetResolver,
+    HeaderSetFingerprintCalculator headerSetFingerprintCalculator,
+    IGeneratedStampRepository generatedStampRepository,
     CppAstParseRunner parseRunner,
     PlatformCatalog platformCatalog,
     DeclarationCollector declarationCollector,
     DeclarationMergePolicy mergePolicy,
     CsCodeGenerator codeGenerator,
-    GeneratedStampWriter stampWriter)
+    GeneratedStampFactory stampFactory)
 {
-    public BindingGenerationResult Run(GenerateBindingsRequest request, DirectoryInfo repoRoot)
+    public async Task<Result<GeneratedFileSet, BindingGenerationError>> RunAsync(ICakeContext context, GenerateBindingsRequest request)
     {
+        ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(request);
-        ArgumentNullException.ThrowIfNull(repoRoot);
 
-        var headerSet = headerSetResolver.ResolveCoreHeaders(request.VcpkgInstalledDirectory, request.Triplet);
-        var fingerprint = HeaderSetFingerprint.Compute(headerSet);
-        var vcpkgManifestPath = Path.Combine(repoRoot.FullName, "vcpkg.json");
-        var manifestPath = Path.Combine(repoRoot.FullName, "build", "manifest.json");
+        var headerSet = headerSetResolver.ResolveSdl2CoreHeaders(request.VcpkgInstalledDirectory, request.Triplet);
+        var fingerprint = await headerSetFingerprintCalculator.ComputeAsync(headerSet).ConfigureAwait(false);
 
         var catalog = platformCatalog.GetSdl2CoreCatalog();
         var neutralView = catalog.ParseViews.Single(view => view.Name == "Neutral");
@@ -2123,71 +1908,30 @@ internal sealed class BindingGenerationPipeline(
         var model = mergePolicy.Merge(neutralDeclarations, platformDeclarations);
         var generated = codeGenerator.Generate(model, request.Config);
 
-        WriteFiles(request.OutputDirectory, generated);
-        stampWriter.Write(request.OutputDirectory, new GeneratedStamp(
-            SchemaVersion: 1,
-            Family: request.Config.Family,
-            GeneratorAssembly: "Build.Targets.GenerateBindings",
-            CppAstVersion: "0.24.0",
-            LibClangVersion: "20.1.2",
-            VcpkgTriplet: request.Triplet,
-            VcpkgManifestHash: ComputeFileHash(vcpkgManifestPath),
-            VcpkgBaseline: ReadVcpkgBaseline(vcpkgManifestPath),
-            ManifestLibraryVersion: ReadSdl2ManifestVersion(manifestPath),
-            HeaderFingerprint: fingerprint.Hash,
-            HeaderCount: fingerprint.HeaderCount,
-            ParseViews: catalog.ParseViews.Select(view => view.Name).ToArray()));
+        await WriteFilesAsync(context, request.OutputDirectory, generated).ConfigureAwait(false);
+        var stamp = await stampFactory.CreateAsync(context, request, fingerprint, catalog.ParseViews).ConfigureAwait(false);
+        await generatedStampRepository.SaveAsync(request.OutputDirectory, stamp).ConfigureAwait(false);
 
-        return new BindingGenerationResult(0, $"Generated {generated.Files.Count} files for {request.Config.Family}.");
+        return Result<GeneratedFileSet, BindingGenerationError>.Success(generated);
     }
 
-    private static void WriteFiles(DirectoryInfo outputDirectory, GeneratedFileSet generated)
+    private static async Task WriteFilesAsync(ICakeContext context, DirectoryPath outputDirectory, GeneratedFileSet generated)
     {
-        if (outputDirectory.Exists)
+        if (context.DirectoryExists(outputDirectory))
         {
-            outputDirectory.Delete(recursive: true);
+            context.DeleteDirectory(outputDirectory, new DeleteDirectorySettings { Recursive = true, Force = true });
         }
 
-        outputDirectory.Create();
         foreach (var file in generated.Files)
         {
-            var path = Path.Combine(outputDirectory.FullName, file.Key.Replace('/', Path.DirectorySeparatorChar));
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            File.WriteAllText(path, file.Value);
+            var path = outputDirectory.CombineWithFilePath(file.Key);
+            await context.WriteAllTextAsync(path, file.Value).ConfigureAwait(false);
         }
-    }
-
-    private static string ComputeFileHash(string path)
-    {
-        var bytes = File.ReadAllBytes(path);
-        return "sha256:" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant();
-    }
-
-    private static string ReadVcpkgBaseline(string vcpkgManifestPath)
-    {
-        using var document = System.Text.Json.JsonDocument.Parse(File.ReadAllText(vcpkgManifestPath));
-        return document.RootElement.GetProperty("builtin-baseline").GetString()
-            ?? throw new InvalidOperationException("vcpkg.json is missing builtin-baseline.");
-    }
-
-    private static string ReadSdl2ManifestVersion(string manifestPath)
-    {
-        using var document = System.Text.Json.JsonDocument.Parse(File.ReadAllText(manifestPath));
-        foreach (var library in document.RootElement.GetProperty("library_manifests").EnumerateArray())
-        {
-            if (string.Equals(library.GetProperty("vcpkg_name").GetString(), "sdl2", StringComparison.Ordinal))
-            {
-                return library.GetProperty("vcpkg_version").GetString()
-                    ?? throw new InvalidOperationException("manifest.json sdl2 library manifest is missing vcpkg_version.");
-            }
-        }
-
-        throw new InvalidOperationException("manifest.json is missing library_manifests entry for vcpkg_name 'sdl2'.");
     }
 }
 ```
 
-The `BindingGenerationRunner` (from Task 8) is the Cake-aware shell that owns the `ICakeContext` interaction; it delegates to `BindingGenerationPipeline.Run(request, repoRoot)` for the real work. Tests of the pipeline construct it directly without a Cake context (see Task 6 Step 1 — `TestRunnerFactory.Create()` returns a pipeline-with-runner pair).
+The coordinator is target-local because it is not yet shared with SDL3, but it is not a Cake-free island: generated output and stamp state are build-host IO and therefore go through `ICakeContext` / Cake helper extensions. Pure model and emitter policies remain Cake-free beneath it.
 
 **No `Program.cs` replacement.** Stage 1 does not introduce a standalone executable for the generator. The Cake host's existing `build/_build/Program.cs` (the Frosting entry point) is the only `Program.cs` in scope, and Task 1 already wired `AddGenerateBindings()` into its composition root.
 
@@ -2218,7 +1962,7 @@ internal sealed class DeclarationCollector(TypeMappingPolicy typeMappingPolicy, 
                 Name: function.Name,
                 ReturnType: MapType(function.ReturnType),
                 Parameters: function.Parameters.Select(parameter => new BindingParameter(SafeIdentifier(parameter.Name), MapType(parameter.Type))).ToArray(),
-                SourceHeader: Path.GetFileName(function.SourceFile!),
+                SourceHeader: GetSourceHeaderName(function.SourceFile!),
                 ParseView: parseResult.ParseView.Name,
                 SupportedOsPlatform: parseResult.ParseView.SupportedOsPlatform))
             .OrderBy(function => function.SourceHeader, StringComparer.Ordinal)
@@ -2241,6 +1985,13 @@ internal sealed class DeclarationCollector(TypeMappingPolicy typeMappingPolicy, 
             CppClass cppClass => new(cppClass.Name, cppClass.Name, false, false, false),
             _ => throw new InvalidOperationException($"No SDL2.Core type mapping exists for CppAst type '{type}'.")
         };
+    }
+
+    private static string GetSourceHeaderName(string sourceFile)
+    {
+        var normalized = sourceFile.Replace('\\', '/');
+        var separator = normalized.LastIndexOf('/');
+        return separator < 0 ? normalized : normalized[(separator + 1)..];
     }
 
     private BindingTypeRef MapPointer(CppPointerType pointer)
@@ -2687,32 +2438,32 @@ Create `build\_build\Targets\GenerateBindings\BindingGenerationRunner.cs` as an 
 ```csharp
 using Cake.Core;
 using Cake.Core.IO;
-using Build.Targets.GenerateBindings.HeaderSet;
+using Build.Data.BindingGeneration;
 using Build.Targets.GenerateBindings.Parsing;
 using Build.Targets.GenerateBindings.Model;
 using Build.Targets.GenerateBindings.Emitting;
-using Build.Targets.GenerateBindings.Stamps;
 
 namespace Build.Targets.GenerateBindings;
 
 internal sealed class BindingGenerationRunner(
     HeaderSetResolver headerSetResolver,
+    HeaderSetFingerprintCalculator headerSetFingerprintCalculator,
+    IGeneratedStampRepository generatedStampRepository,
     CppAstParseRunner parseRunner,
     PlatformCatalog platformCatalog,
     DeclarationCollector declarationCollector,
     DeclarationMergePolicy mergePolicy,
     CsCodeGenerator codeGenerator,
-    GeneratedStampWriter stampWriter)
+    GeneratedStampFactory stampFactory)
 {
-    public void Run(ICakeContext context, GenerateBindingsRequest request)
+    public async Task RunAsync(ICakeContext context, GenerateBindingsRequest request)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(request);
 
         // 1. Resolve canonical headers (vcpkg-installed SDL include tree under request.Triplet).
-        var headerSet = headerSetResolver.ResolveCoreHeaders(
-            new DirectoryInfo(request.VcpkgInstalledDirectory.FullPath),
-            request.Triplet);
+        var headerSet = headerSetResolver.ResolveSdl2CoreHeaders(request.VcpkgInstalledDirectory, request.Triplet);
+        var fingerprint = await headerSetFingerprintCalculator.ComputeAsync(headerSet, context.CancellationToken).ConfigureAwait(false);
 
         // 2. Build parse views from the platform catalog (~7-8 entries for SDL2.Core in Stage 1).
         var parseViews = platformCatalog.GetParseViewsFor(request.Config);
@@ -2729,11 +2480,12 @@ internal sealed class BindingGenerationRunner(
         mergePolicy.Merge(bindingModel);
 
         // 5. Emit C# code into the output directory.
-        var outputDir = new DirectoryInfo(request.OutputDirectory.FullPath);
-        codeGenerator.Emit(bindingModel, request.Config, outputDir);
+        var generated = codeGenerator.Emit(bindingModel, request.Config);
+        await GeneratedFileSetWriter.WriteAsync(context, request.OutputDirectory, generated, context.CancellationToken).ConfigureAwait(false);
 
         // 6. Write the deterministic .generated-stamp.
-        stampWriter.Write(bindingModel, request, outputDir);
+        var stamp = await stampFactory.CreateAsync(context, request, fingerprint, parseViews).ConfigureAwait(false);
+        await generatedStampRepository.SaveAsync(request.OutputDirectory, stamp, context.CancellationToken).ConfigureAwait(false);
 
         context.Log.Information(
             "GenerateBindings: emitted {0} declarations across {1} parse views for {2}.",
@@ -2744,7 +2496,7 @@ internal sealed class BindingGenerationRunner(
 }
 ```
 
-The pure emitter collaborators (`HeaderSetResolver`, `CppAstParseRunner`, `PlatformCatalog`, `DeclarationCollector`, `DeclarationMergePolicy`, `CsCodeGenerator`, `GeneratedStampWriter`) are constructed earlier-task by earlier-task and registered through `AddGenerateBindings()`. The runner is the Cake-aware shell that ties them together — see ADR-002 §2.2 (task-owned orchestration) + §"Pure code stays pure".
+The target-local generator collaborators (`CppAstParseRunner`, `PlatformCatalog`, `DeclarationCollector`, `DeclarationMergePolicy`, `CsCodeGenerator`) are registered through `AddGenerateBindings()`. Header and stamp file contracts are Data-layer repositories from `AddData()` per ADR-003. The runner is the Cake-aware shell that ties them together — see ADR-002 §2.2 and ADR-003 §2.3.
 
 Create `build\_build\Targets\GenerateBindings\GenerateBindingsTask.cs` with the Linux-canonical host guard:
 
@@ -2785,11 +2537,11 @@ public sealed class GenerateBindingsTask(BindingGenerationRunner runner) : Async
 
         var request = new GenerateBindingsRequest(
             Config: Sdl2CoreGenerationConfig.Default,
-            VcpkgInstalledDirectory: new DirectoryInfo(context.Paths.GetVcpkgInstalledDir.FullPath),
+            VcpkgInstalledDirectory: context.Paths.GetVcpkgInstalledDir,
             Triplet: "x64-linux-hybrid", // canonical Stage 1 triplet
-            OutputDirectory: new DirectoryInfo(context.Paths.RepoRoot.Combine("src/SDL2.Core/Generated").FullPath));
+            OutputDirectory: context.Paths.RepoRoot.Combine("src").Combine("SDL2.Core").Combine("Generated"));
 
-        _runner.Run(context, request);
+        await _runner.RunAsync(context, request);
         return Task.CompletedTask;
     }
 }
@@ -2799,11 +2551,9 @@ Update `build\_build\Targets\GenerateBindings\ServiceCollectionExtensions.cs` (t
 
 ```csharp
 using Microsoft.Extensions.DependencyInjection;
-using Build.Targets.GenerateBindings.HeaderSet;
 using Build.Targets.GenerateBindings.Parsing;
 using Build.Targets.GenerateBindings.Model;
 using Build.Targets.GenerateBindings.Emitting;
-using Build.Targets.GenerateBindings.Stamps;
 
 namespace Build.Targets.GenerateBindings;
 
@@ -2813,8 +2563,8 @@ public static class ServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        // Pure collaborators — no Cake context, safe to instantiate as singletons.
-        services.AddSingleton<HeaderSetResolver>();
+        // Target-local collaborators. File-backed binding contracts come from AddData().
+        services.AddSingleton<ParseDiagnosticFormatter>();
         services.AddSingleton<CppAstParseRunner>();
         services.AddSingleton<PlatformCatalog>();
         services.AddSingleton<DeclarationCollector>();
@@ -2823,9 +2573,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<KnownUnsupportedDeclarationPolicy>();
         services.AddSingleton<TypeMappingPolicy>();
         services.AddSingleton<CsCodeGenerator>();
-        services.AddSingleton<GeneratedStampWriter>();
 
-        // Cake-aware shell — composes the pure collaborators above and translates to Cake logging/exception.
         services.AddSingleton<BindingGenerationRunner>();
 
         return services;
@@ -2973,8 +2721,8 @@ private static FakeCakeWorld CreatePreFlightWorldWithGeneratedStamp(
         .WithTextFile("vcpkg.json", vcpkgJson)
         .WithTextFile("vcpkg-overlay-triplets/x64-linux-hybrid.cmake", "# overlay")
         .WithVersionsFile(VersionsFilePath)
-        .WithTextFile(VersionsFilePath, FixtureLoader.Load("Versions/versions-valid.json"))
-        .WithTextFile("src/SDL2.Core/Generated/.generated-stamp", JsonSerializer.Serialize(stamp, JsonOptions));
+        .WithTextFile(VersionsFilePath, FixtureLoader.Load("Versions/versions-valid.json"));
+    world.WithTextFile("src/SDL2.Core/Generated/.generated-stamp", world.CakeContext.SerializeJson(stamp));
 
     foreach (var header in headers)
     {
@@ -3017,11 +2765,6 @@ private sealed record BindingGeneratedStampFixture(
             HeaderCount: headers.Count,
             ParseViews: [.. BindingGenerationStampContract.ExpectedSdl2CoreParseViews]);
 }
-
-private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
-{
-    WriteIndented = true
-};
 
 private static string ComputeFixtureFileHash(string content)
 {
@@ -3326,8 +3069,8 @@ public sealed class GenerateBindingsCommand : AsyncCommand<GenerateBindingsSetti
         AnsiConsole.MarkupLine($"[grey]Image:[/] [cyan]{Markup.Escape(LinuxBuilderImage)}[/]");
         AnsiConsole.WriteLine();
 
-        var cakeHostDir = Path.Combine(repoRoot, ".cake-host");
-        var vcpkgCacheDir = Path.Combine(repoRoot, ".vcpkg-cache");
+        var cakeHostDir = Shared.RepoPath(repoRoot, ".cake-host");
+        var vcpkgCacheDir = Shared.RepoPath(repoRoot, ".vcpkg-cache");
 
         // 1. Publish the Cake host (Release) into a side directory. Same artifact shape as release.yml.
         if (!await PublishCakeHostAsync(repoRoot, cakeHostDir, logDir))
@@ -3336,7 +3079,7 @@ public sealed class GenerateBindingsCommand : AsyncCommand<GenerateBindingsSetti
         }
 
         // 2. Ensure the host vcpkg cache directory exists so the container has something to mount.
-        Directory.CreateDirectory(vcpkgCacheDir);
+        Shared.EnsureDirectoryExists(vcpkgCacheDir);
 
         // 3. Run the container with repo root + vcpkg cache mounted.
         //    .dockerignore excludes vcpkg_installed/, artifacts/, .vs/, bin/, obj/, .cake-host/ so the
@@ -3575,7 +3318,7 @@ Before committing, present the summary and proposed message to Deniz and wait fo
 
 Add a Stage 1 section to `docs\binding-autogen\README.md`:
 
-```markdown
+````markdown
 ## Stage 1 generator entry point
 
 SDL2.Core binding generation now runs through the repository generator:
@@ -3586,13 +3329,13 @@ dotnet run --file tools.cs -- build --target GenerateBindings --family sdl2-core
 
 Generated source is committed under `src\SDL2.Core\Generated\`. Consumers never run the generator. The generated stamp at `src\SDL2.Core\Generated\.generated-stamp` records the generator/toolchain/header state used for the committed output.
 
-```
+````
 
 - [ ] **Step 2: Update local development playbook**
 
 Add a "Regenerating bindings" section to `docs\playbook\local-development.md`:
 
-```markdown
+````markdown
 ## Regenerating SDL2.Core bindings
 
 Stage 1 supports SDL2.Core generation:
@@ -3609,7 +3352,7 @@ git --no-pager diff -- src\SDL2.Core\Generated
 
 The generator reads `vcpkg_installed\<triplet>\include\SDL2` and writes committed source under `src\SDL2.Core\Generated\`. A clean second generation run should produce no diff. If the header tree is missing, run the existing local setup flow before generating.
 
-```
+````
 
 - [ ] **Step 3: Update release guardrails**
 

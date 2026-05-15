@@ -61,6 +61,7 @@ Phase 3 (SDL2 Complete — samples, meta-package, first prerelease) lives direct
 | [playbook/local-development.md](playbook/local-development.md) | How do I clone, build, and develop locally? |
 | [playbook/local-validation.md](playbook/local-validation.md) | How do I validate the pipeline end-to-end on my host (`tools ci-sim` / `tools setup`)? |
 | [playbook/adding-new-library.md](playbook/adding-new-library.md) | How do I add a new SDL satellite library? |
+| [playbook/binding-generator-maintenance.md](playbook/binding-generator-maintenance.md) | How do I maintain generated bindings, platform macro catalogs, and stamp coherence? |
 | [playbook/overlay-management.md](playbook/overlay-management.md) | How do I work with vcpkg overlay triplets and ports? |
 | [playbook/vcpkg-update.md](playbook/vcpkg-update.md) | How do I bump the vcpkg baseline and library versions? |
 
