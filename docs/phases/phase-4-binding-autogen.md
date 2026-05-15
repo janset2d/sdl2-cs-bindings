@@ -1,89 +1,59 @@
 # Phase 4: Binding Auto-Generation
 
-**Status**: PLANNED — **critical path for v1.0** per [`../release-strategy.md`](../release-strategy.md)
-**Order**: Lands **before** Phase 3 ship. First public `-preview.N` wave consumes AST-generated bindings, not the deprecated `external/sdl2-cs` imports. See [`../release-strategy.md`](../release-strategy.md) §Sequencing for rationale.
+**Status:** Strategy brief + architecture design spec + Stage 1 implementation plan all accepted 2026-05-15. **Critical path for v1.0** per [`../release-strategy.md`](../release-strategy.md) — lands **before** the first public `-preview.N` wave.
 
-## Objective
+**Order:** Phase 4 ships before Phase 3. First public preview consumes AST-generated bindings, not the deprecated `external/sdl2-cs` imports. See [`../release-strategy.md`](../release-strategy.md) §Sequencing for the rationale.
 
-Replace the current SDL2-CS imported bindings with auto-generated C# bindings, establishing a pipeline that can generate bindings for both SDL2 and SDL3 from their C headers.
+## Canonical Docs
 
-## Why Auto-Generation?
+This page is a thin pointer to the canonical Phase 4 documents. Do not duplicate strategy, architecture, or implementation detail here — it drifts.
 
-1. **SDL3 requires it**: SDL3's API is fundamentally different from SDL2. There is no SDL3-CS equivalent of SDL2-CS that we can simply import. We need our own generation pipeline.
-2. **Maintenance**: Manually maintaining ~11,000 lines of P/Invoke declarations across 6+ libraries is unsustainable.
-3. **Version updates**: When SDL2 or SDL3 releases new versions with API additions, we want to regenerate rather than hand-patch.
-4. **Quality**: Auto-generators can produce consistent marshalling, null checks, and string handling across all bindings.
+| Doc | Purpose |
+| --- | --- |
+| [`../binding-autogen/binding-autogen-strategy-brief.md`](../binding-autogen/binding-autogen-strategy-brief.md) | Accepted WHY/HOW/WHAT strategy brief (revised 2026-05-15). Authoritative for toolchain, generator host, parsing strategy, plan shape, open decisions. |
+| [`../superpowers/specs/2026-05-14-binding-generator-architecture-design.md`](../superpowers/specs/2026-05-14-binding-generator-architecture-design.md) | Architecture design spec. Component layout under `build/_build/Targets/GenerateBindings/`, platform catalog tuple model, validation strategy. |
+| [`../superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md`](../superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md) | Stage 1 implementation plan. Task-by-task TDD-style scaffolding. |
+| [`../decisions/2026-05-14-binding-autogen-toolchain.md`](../decisions/2026-05-14-binding-autogen-toolchain.md) | ADR-004 toolchain decision (CppAst). |
+| [`../binding-autogen/research/binding-autogen-onboarding.md`](../binding-autogen/research/binding-autogen-onboarding.md) | LLM/contributor onboarding (revised 2026-05-15). |
 
-## Approach: CppAst Strategy Selected
+## What Phase 4 Delivers
 
-The accepted WHY/HOW/WHAT strategy brief selects a CppAst-based C# emitter for Phase 4 planning. ClangSharp remains a validated fallback and migration path if the CppAst maintenance trade-off becomes unfavorable.
+A CppAst-based auto-generated binding surface for SDL2 (core + all in-scope satellites), hosted inside the Cake build host, producing committed `src/SDL2.<Family>/Generated/*.g.cs` source consumed by the existing managed-family csprojs. SDL3 work follows in Phase 5, gated on PD-7 (SDL2 real-public-release).
 
-| Candidate | Strength | Risk / Cost |
+The big shape:
+
+- **Generator home:** `build/_build/Targets/GenerateBindings/` (Cake target) + `build/_build/Validation/BindingGeneration/` (PreFlight + Pack-stage validators). Pure emitter code stays Cake-free; the Cake-aware shell owns orchestration.
+- **Toolchain:** CppAst 0.24.0 + libclang.runtime.linux-x64 + libClangSharp.runtime.linux-x64 (Linux-canonical version trio). Non-Linux runtime variants intentionally absent; generator fails closed on non-`linux-x64` hosts.
+- **Local invocation:** `tools.cs generate-bindings` orchestrates the pinned `linux-builder` Docker container; Docker is a hard prerequisite, no host-OS fallback.
+- **Parse strategy:** preprocessor-macro switching only across an ~8-entry `(OsCondition, BackendCondition[])` `PlatformCatalog` (Neutral + Windows desktop + WinRT + GDK + Linux + macOS + iOS + Android). No `--target` cross-compile flag, no mingw-w64, no Apple SDK.
+- **Output shape:** dual `[LibraryImport]` (net7+) / `[DllImport]` (legacy) emit per function, typed `readonly partial struct` opaque handles, friendly overloads (`string` / `ReadOnlySpan<byte>` / `Span<T>` / `out` / `ref`), `[SupportedOSPlatform]` attribution.
+- **Coherence guardrails:** `.generated-stamp` per family with PreFlight drift validator; Pack-stage symbol-existence validator at Stage 2.
+
+## Stage Sequencing
+
+Per the strategy brief §Plan Shape (and [`../release-strategy.md`](../release-strategy.md) §Sequencing — note the strategy brief subdivides the release-strategy "AST-first" stages further into per-execution-stage scope):
+
+| Stage | Scope | Public-ship state |
 | --- | --- | --- |
-| CppAst custom emitter | Single C# codebase can absorb multi-TFM emission, friendly overloads, platform attribution, and custom macro handling in one offline generator. | More owned generator code and explicit CppAst/libclang version coordination. |
-| ClangSharpPInvokeGenerator | Smaller raw-binding setup, strong `[NativeTypeName]` provenance, RSP-driven overrides, and ppy/SDL3-CS as a close reference. | Production-shape ergonomics may require coordinated RSP, post-processing, and Roslyn source-generation layers. |
+| **Stage 1** | SDL2.Core proof-of-life with full platform-conditioned function attribution. `SDL_GetWindowWMInfo` emitted as function with opaque `SDL_SysWMinfo*` (typed union deferred to Stage 2). | Internal feed only |
+| **Stage 2** | `SDL_SysWMinfo`/`SDL_SysWMmsg` typed-union layout with ~15–20-type forward-declaration stub library; SDL2 satellite sweep (Image, Mixer, Ttf, Gfx, Net); `external/sdl2-cs` retirement; Pack-stage symbol-existence validator. | First public `-preview.N` on nuget.org |
+| **Stage 3** | SDL3 extension (gated on PD-7). Sibling `GenerateSdl3Bindings` Cake target; SDL3-specific ABI rules (1-byte bool wire types, `SDL_IOStream` replacing `SDL_RWops`). | Captured under Phase 5. |
 
-The current goal is to turn the accepted strategy into a Stage 1 implementation plan: SDL2.Core proof-of-life, neutral + platform-specific parse views, generated source committed to git, package-consumer smoke, and drift validation.
+## Exit Criteria — Defer to Strategy Brief
 
-## Scope
+Detailed exit criteria per stage live in the strategy brief §Plan Shape. The Phase 4 brief intentionally does not duplicate them — the strategy brief is canonical and revising criteria in two places creates drift. Read [`../binding-autogen/binding-autogen-strategy-brief.md`](../binding-autogen/binding-autogen-strategy-brief.md) §Plan Shape for the per-stage criteria.
 
-### 4.1 Generator Project
+## Cross-Reference
 
-Create or wire the selected generator tooling after the WHY/HOW/WHAT decision. File layout is decided at implementation time and must keep generated output committed, reproducible, and reviewable.
-
-### 4.2 Generation Pipeline
-
-```
-SDL2/SDL3 C headers (from submodule or vendored)
-    ↓
-Selected AST parser/toolchain  (CppAst or ClangSharp/libclang)
-    ↓
-CppCompilation AST  (types, functions, enums, structs, constants)
-    ↓
-Generator/emission layer  (type mapping, marshalling rules, naming conventions)
-    ↓
-Generated/*.cs  (one file per category or per-header)
-    ↓
-src/SDL2.Core/Generated/  (or src/SDL3.Core/Generated/)
-```
-
-### 4.3 SDL2 Migration
-
-1. Generate SDL2 bindings from `external/sdl2-cs/` headers (or directly from SDL2 headers)
-2. Validate generated output matches current SDL2-CS functionality
-3. Replace `<Compile Include="../../external/sdl2-cs/src/SDL2.cs" />` with generated files
-4. Run smoke tests to verify everything still works
-
-### 4.4 SDL3 Preparation
-
-The same generator should handle SDL3 headers with minimal configuration changes:
-
-- Different header include paths
-- Different library name for `DllImport` (`SDL3` vs `SDL2`)
-- Different type mappings (SDL3 changed bool semantics, removed SDL_RWops, etc.)
-
-## Exit Criteria
-
-- [ ] Generator project builds and produces C# bindings from SDL2 headers
-- [ ] Generated SDL2 bindings compile and pass smoke tests
-- [ ] SDL2-CS imports replaced with generated code
-- [ ] Generator can also produce SDL3 bindings (validated by compilation)
-- [ ] Platform-conditioned SDL headers are parsed through controlled neutral + platform-specific passes, with OS-only symbols attributed or isolated appropriately
-- [ ] Generation is documented and reproducible
-- [ ] Generated code is committed to repo (not generated at build time)
-
-## Open Questions
-
-1. **LibraryImport vs DllImport**: Modern `[LibraryImport]` (net7.0+) vs traditional `[DllImport]` (all targets). May need both for multi-TFM support.
-2. **String marshalling**: SDL functions use UTF-8 strings. Need consistent approach (custom marshaller, Unsafe_ prefix + source generator, or explicit encoding).
-3. **Header source**: Vendor SDL headers in the repo (Alimer approach) or parse from submodule?
-4. **Safe wrappers**: Generate only raw P/Invoke, or also generate safe overloads (ref/out parameters, span-based, string-returning)?
-5. **Platform passes**: Implement ppy-style neutral + platform-specific passes in ClangSharp orchestration, or implement equivalent pass orchestration in a CppAst emitter?
-
-## References
-
-- [Alimer.Bindings.SDL Generator](https://github.com/amerkoleci/Alimer.Bindings.SDL/tree/main/src/Generator)
-- [CppAst NuGet Package](https://www.nuget.org/packages/CppAst)
-- [ppy/SDL3-CS ClangSharp approach](https://github.com/ppy/SDL3-CS)
-- [binding-autogen/README.md](../binding-autogen/README.md)
-- [binding-autogen/binding-autogen-strategy-brief.md](../binding-autogen/binding-autogen-strategy-brief.md)
+- [`../release-strategy.md`](../release-strategy.md) — strategic anchor (AST-first sequencing rationale)
+- [`../plan.md`](../plan.md) — tactical roadmap (Phase 4 row)
+- [`../binding-autogen/README.md`](../binding-autogen/README.md) — workstream index and reading order
+- [`../binding-autogen/binding-autogen-strategy-brief.md`](../binding-autogen/binding-autogen-strategy-brief.md) — accepted strategy brief
+- [`../binding-autogen/research/binding-autogen-onboarding.md`](../binding-autogen/research/binding-autogen-onboarding.md) — onboarding for contributors picking up this workstream
+- [`../binding-autogen/research/binding-autogen-feasibility.md`](../binding-autogen/research/binding-autogen-feasibility.md) — feasibility study (pre-2026-05-15; see strategy brief Decision Audit for retractions)
+- [`../binding-autogen/research/binding-autogen-spike-findings.md`](../binding-autogen/research/binding-autogen-spike-findings.md) — hands-on spike validation
+- [`../binding-autogen/research/binding-autogen-approaches.md`](../binding-autogen/research/binding-autogen-approaches.md) — toolchain survey + ppy/Alimer/Silk.NET comparison
+- [`../decisions/2026-05-14-binding-autogen-toolchain.md`](../decisions/2026-05-14-binding-autogen-toolchain.md) — ADR-004 CppAst toolchain decision
+- [`../decisions/2026-05-05-target-centric-build-host.md`](../decisions/2026-05-05-target-centric-build-host.md) — ADR-002 target-centric build-host pattern (the Cake-host fold inherits this)
+- [`../decisions/2026-05-12-build-host-data-layer.md`](../decisions/2026-05-12-build-host-data-layer.md) — ADR-003 contract-centric data layer (the binding validators extend this)
+- [`../phases/phase-5-sdl3-support.md`](phase-5-sdl3-support.md) — Phase 5 SDL3 brief (gated on PD-7)

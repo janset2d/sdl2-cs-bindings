@@ -7,7 +7,17 @@
 - [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) — design feasibility (emit rules, testing strategy, open decisions)
 - [`release-strategy.md`](../../release-strategy.md) — AST-first stage sequencing
 
-> **Decision note (2026-05-14):** This remains the spike evidence record. The accepted strategy brief and ADR-004 select the CppAst path for Phase 4 planning while preserving ClangSharp as the documented migration path.
+> **Decision note (2026-05-14, updated 2026-05-15):** This remains the spike evidence record. The accepted strategy brief and ADR-004 select the CppAst path for Phase 4 planning while preserving ClangSharp as the documented migration path.
+>
+> **Frozen research artifact.** The spike was run on a Windows host with C-stdlib shim headers (`stdint.h`, `stddef.h`, etc.) for cross-host parsing. Stage 1's production generator does NOT replicate that host setup — it runs Linux-canonical inside the pinned `linux-builder` Docker container, where the apt sysroot provides system headers natively and no C-stdlib shims are required. The preprocessor-macro switching pattern in `tools/binding-spike/cppast/generator/Program.cs:42-72` is what survives; the Windows host + stub-include scaffolding does not.
+>
+> Other 2026-05-15 strategy-brief corrections that affect how to read this doc:
+>
+> - The §8.7 platform-pass spike's deferral of `SDL_syswm.h` typed-union layout is now codified — Stage 1 production also defers it to Stage 2.
+> - The §9 open questions Q1–Q8 are resolved or scoped per the strategy brief's Plan Shape + Current Open Decisions tables; see the strategy brief for the resolution status of each.
+> - Section §7.4's "macro-capture parity" claim was already corrected in this doc (Error 1) and the strategy brief's Decision Audit; both toolchains capture all 8 SDL2_gfx constants with `--config generate-macro-bindings`.
+>
+> When a Phase 4 plan or implementation question arises, prefer the strategy brief + the design spec + the Stage 1 plan as canonical sources over this doc.
 
 This document captures the **hands-on findings from running BOTH the ClangSharp+RSP pipeline and the CppAst-custom-emitter pipeline on SDL2_gfx**, plus deep-research on toolchain ecosystem practices. Both spikes ran on the same branch + same SDL2_gfx surface for apples-to-apples comparison. The earlier toolchain flip recommendation (CppAst → ClangSharp) was based on industry survey + source-level comparison of ppy/SDL3-CS vs Alimer.Bindings.SDL; this spike validates the evidence, not a final project decision.
 

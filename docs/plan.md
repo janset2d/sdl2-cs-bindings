@@ -59,13 +59,20 @@ No separate phase doc per [phases/README.md](phases/README.md) retention test �
 ### Phase 4 — Binding Auto-Generation
 
 Design brief: [phases/phase-4-binding-autogen.md](phases/phase-4-binding-autogen.md).
+Strategy brief: [binding-autogen/binding-autogen-strategy-brief.md](binding-autogen/binding-autogen-strategy-brief.md) (revised 2026-05-15).
+Architecture design spec: [superpowers/specs/2026-05-14-binding-generator-architecture-design.md](superpowers/specs/2026-05-14-binding-generator-architecture-design.md).
+Stage 1 implementation plan: [superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md](superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md).
 
-- [ ] Validate the binding-generator toolchain and implement the selected AST binding generator ([#69](https://github.com/janset2d/sdl2-cs-bindings/issues/69))
-- [ ] Migrate SDL2 bindings from imported SDL2-CS files to generated code ([#70](https://github.com/janset2d/sdl2-cs-bindings/issues/70))
+**Status (2026-05-15):** Strategy + spec + Stage 1 plan accepted. Generator folded into the Cake build host under `build/_build/Targets/GenerateBindings/` (not a standalone `src/`-tree project). Linux-canonical determinism contract — Docker hard prereq for local invocation via `tools.cs generate-bindings`. Stage 1 covers SDL2.Core with full platform-conditioned function attribution (~8 parse views) but defers `SDL_syswm.h` typed-union layout to Stage 2. SDL3 binding generation gated on PD-7.
+
+- [ ] **Stage 1 — SDL2.Core proof-of-life**: scaffold `build/_build/Targets/GenerateBindings/` per Stage 1 plan Task 1; generate SDL2.Core from neutral + Windows desktop + WinRT + GDK + Linux + macOS + iOS + Android passes; wire SDL2.Core off `external/sdl2-cs/src/SDL2.cs`; land PreFlight `.generated-stamp` coherence validator; package-consumer smoke. ([#69](https://github.com/janset2d/sdl2-cs-bindings/issues/69))
+- [ ] **Stage 2 — SDL_syswm full union + satellite sweep + sdl2-cs retire**: emit typed `SDL_SysWMinfo`/`SDL_SysWMmsg` with `[StructLayout(LayoutKind.Explicit, Size = 64)]`, introduce small forward-declaration stub library (~15–20 types); generate SDL2.Image / SDL2.Mixer / SDL2.Ttf / SDL2.Gfx / SDL2.Net; Pack-stage `BindingSymbolExistenceValidator`; remove `external/sdl2-cs` from production compile paths. ([#70](https://github.com/janset2d/sdl2-cs-bindings/issues/70))
 
 ### Phase 5 — SDL3 Support
 
 Design brief: [phases/phase-5-sdl3-support.md](phases/phase-5-sdl3-support.md).
+
+**Gated on PD-7** (SDL2 real-public-release) per the binding-autogen strategy brief §Plan Shape Stage 3. The SDL3 vcpkg port + overlay triplet + transitive dependency closure work is its own substantial scope and must not block SDL2 v1.0 stable. Phase 5 plan starts after Phase 4 Stage 2 ships and PD-7 lands.
 
 - [ ] Add SDL3 bindings and native packages to monorepo ([#71](https://github.com/janset2d/sdl2-cs-bindings/issues/71))
 - [ ] Extend CI and packaging flow for SDL3 prereleases ([#72](https://github.com/janset2d/sdl2-cs-bindings/issues/72))

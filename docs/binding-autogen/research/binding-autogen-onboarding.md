@@ -1,14 +1,34 @@
 # Binding Autogen Workstream — LLM Onboarding
 
 **Audience:** an LLM (or fresh human contributor) picking up the AST binding-generation workstream for Janset.SDL2/SDL3 with no prior conversation context.
-**Date this onboarding reflects:** 2026-05-14.
+**Date this onboarding reflects:** 2026-05-15.
 **Maintainer:** Deniz İrgin (@denizirgin) — hobby project, sets the pace, communicates in Turkish + English.
 
 ## What This Document Is
 
-You're joining a mid-workstream research effort. Two binding-generation toolchains have been investigated, both validated end-to-end on a small SDL satellite (SDL2_gfx), and CppAst has now validated ppy-style neutral + platform-specific parsing plus SDL2_image satellite/shared-type topology. The current strategy brief selects the CppAst path for Phase 4 planning while preserving ClangSharp as the migration path. This doc is your **10-minute orientation**: required reading list (in order), strategic anchors that won't change, open decisions that will. Read this first, then work through the required-reading list.
+You're joining a mid-workstream research effort that has converged on a concrete implementation plan. Two binding-generation toolchains were investigated, both validated end-to-end on a small SDL satellite (SDL2_gfx); CppAst additionally validated ppy-style neutral + platform-specific parsing plus SDL2_image satellite/shared-type topology. The strategy brief selects the CppAst path; a companion architecture design spec and a Stage 1 implementation plan are accepted alongside. ClangSharp remains the documented migration path.
 
-Don't propose architecture or write code before completing the required reading. Several earlier conversational threads explored paths that turned out to be wrong or incomplete (initial CppAst-vs-ClangSharp matrix needed row rescoring plus explicit weighting; topology refactor parked after closer review); the docs capture both the decisions and the reasoning. Skipping context = repeating the same mistakes.
+The workstream went through a meaningful 2026-05-15 revision that this onboarding reflects. Read the "2026-05-15 Architectural Shifts" section below before the rest of the document — it tells you what changed and why, so you don't waste time learning superseded patterns.
+
+This doc is your **15-minute orientation**: required reading list (in order), strategic anchors that won't change, open decisions that will. Read this first, then work through the required-reading list.
+
+Don't propose architecture or write code before completing the required reading. Several earlier conversational threads explored paths that turned out to be wrong or incomplete (initial CppAst-vs-ClangSharp matrix needed row rescoring plus explicit weighting; topology refactor parked after closer review; a 2026-05-14 draft proposed a standalone `src/`-tree console app generator and mingw-w64 / Apple SDK stubs — all four retracted on 2026-05-15). The docs capture both the decisions and the reasoning. Skipping context = repeating the same mistakes.
+
+## 2026-05-15 Architectural Shifts
+
+The 2026-05-14 draft of the strategy brief was accepted, but four pieces of it were retracted on 2026-05-15 after closer review and external evidence. If you've been told something that contradicts what's below, the 2026-05-15 revision is the canonical answer; older claims should be treated as historical context, not active design.
+
+1. **Generator hosted in the Cake build host, not a standalone src/-tree project.** The generator lives under `build/_build/Targets/GenerateBindings/` with cross-cutting validators under `build/_build/Validation/BindingGeneration/`. Pure emitter code (`HeaderSet/`, `Parsing/`, `Model/`, `Emitting/`, `Stamps/`) stays Cake-free; the Cake-aware shell (`GenerateBindingsTask`, `BindingGenerationRunner`, `ServiceCollectionExtensions`) owns Cake context, logging, and IO. Why: binding generation is a CI/CD concern; the Cake host already owns vcpkg state, manifest parsing, tool wrappers, validators, paths, and the TUnit + FakeCakeWorld test infrastructure. A parallel `src/`-tree orchestration stack would duplicate that surface and break ADR-002 §2.1's target-centric navigation rule. See the brief's WHY §"Why hosted in the Cake build host — not a standalone CLI tool" for the full five-reason argument.
+
+2. **Linux-canonical determinism contract.** Only `libclang.runtime.linux-x64` + `libClangSharp.runtime.linux-x64` are pinned in the version trio — non-Linux runtime variants are intentionally absent. The `GenerateBindings` Cake target fails closed on any non-`linux-x64` host. Local invocation from Windows/macOS dev hosts routes through `tools.cs generate-bindings`, which provisions the pinned `linux-builder` Docker container automatically. Docker is a hard prerequisite; there is no host-OS fallback. Why: Layer 5 reproducibility (regenerate → byte-identical output) only holds when every parse view runs against the same OS, apt sysroot, and libclang runtime.
+
+3. **Preprocessor-macro switching only — mingw-w64 / Apple SDK stub speculation retracted.** Platform separation uses `--undefine-macro` + `--define-macro` only. No `--target` cross-compile flag, no mingw-w64 cross-toolchain, no Apple SDK header stubs. SDL's public headers carry their own forward declarations for cross-platform opaque types (`typedef struct _NSWindow NSWindow;` at `SDL_syswm.h:86`, `typedef struct ANativeWindow ANativeWindow;` at `:105`, `struct gbm_device;` at `:120`, etc.). Verified against ppy/SDL3-CS Dockerfile + `generate_bindings.py` (WebFetch 2026-05-15) and the local CppAst spike at `tools/binding-spike/cppast/generator/Program.cs:42-72`. Neither uses mingw-w64; ppy's entire stub-header inventory is a single 81-byte `include/process.h` shim. See the brief's HOW §"Multi-pass parsing strategy" + Decision Audit Error 4 row.
+
+4. **`SDL_syswm.h` typed-union layout deferred to Stage 2.** Stage 1 emits `SDL_GetWindowWMInfo` as a function with opaque `nint`-shaped `SDL_SysWMinfo*` parameter; `SDL_SysWMinfo` and `SDL_SysWMmsg` typed-union surface is recorded in `UnsupportedDeclarations.g.json` with category `deferred-to-stage-2`. Stage 2 introduces a small forward-declaration stub library (~15–20 opaque types: `HWND`, `HDC`, `HINSTANCE`, `IInspectable`, `Display*`, `Window`, `wl_display`/`wl_surface`/`xdg_*`, `gbm_device`, `IDirectFB*`, `EGLNativeDisplayType`, `ANativeWindow`) and emits the typed union with `[StructLayout(LayoutKind.Explicit, Size = 64)]` and platform branches at `[FieldOffset(0)]`, honoring the 64-byte size lock from `SDL_syswm.h:346-348`. Why: stub-library work and the typed union are a Stage 2 scope; Stage 1 already proves production-shape at function level (multi-pass orchestration, dedup, fail-closed merge, platform attribution, dual emit, typed handles, friendly overloads, AOT-clean signatures).
+
+5. **SDL3 binding generation gated on PD-7.** SDL3 work does not begin until PD-7 (SDL2 real-public-release) ships. The SDL3 vcpkg port + overlay triplet + transitive dependency closure work is its own substantial scope and must not block SDL2 v1.0 stable. Phase 5 plan starts after Stage 2 ships and PD-7 lands.
+
+The strategy brief's Decision Audit table records two retraction rows for these shifts: **Error 4 — toolchain stub strategy speculation (corrected 2026-05-15)** and **Reframe — generator hosted in Cake build host (2026-05-15)**. The brief's Plan Shape, Current Open Decisions, and WHAT impact inventory have all been re-aligned with these shifts.
 
 ## Project Context (One Paragraph)
 
@@ -23,12 +43,14 @@ Each doc builds on the previous. Don't skip; the later docs assume context from 
 | 1 | [`AGENTS.md`](../../../AGENTS.md) | Operating rules, approval gate, communication style (Deniz's preferences), settled strategic decisions, test naming convention, build-host reference pattern | 10 min |
 | 2 | [`release-strategy.md`](../../release-strategy.md) | Strategic anchor for v1.0 — end state, NuGet labeling, promotion gates, AST-first sequencing rationale, deferred decisions (topology parked) | 10 min |
 | 3 | [`phase-4-binding-autogen.md`](../../phases/phase-4-binding-autogen.md) | Phase 4 design brief — the active phase this workstream belongs to | 5 min |
-| 4 | [`binding-autogen-strategy-brief.md`](../binding-autogen-strategy-brief.md) | Accepted WHY/HOW/WHAT strategy brief selecting the CppAst path for Phase 4 planning | 20 min |
-| 5 | [`binding-autogen-approaches.md`](binding-autogen-approaches.md) | Toolchain comparison: industry survey of binding-generation tools, Decision Matrix Re-Validation (CppAst → ClangSharp flip), Source-Level Comparison of ppy/SDL3-CS vs Alimer.Bindings.SDL | 20 min |
-| 6 | [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) | Feasibility study: 11 emit rules for modern .NET P/Invoke, headers + cross-platform parsing, hybrid-static + symbol visibility, manual intervention surface, 7-layer testing strategy, 11 open decisions (D1–D11) + 4 pending discussion threads | 25 min |
-| 7 | [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) | **Hands-on spike results** — both toolchains validated end-to-end on SDL2_gfx, side-by-side comparison vs hand-written external/sdl2-cs, 8 open questions for Phase 4 plan including the scope-trajectory bet (Q8) | 30 min |
+| 4 | [`binding-autogen-strategy-brief.md`](../binding-autogen-strategy-brief.md) | Accepted WHY/HOW/WHAT strategy brief (revised 2026-05-15). Read the new WHY §"Why hosted in the Cake build host" and the Decision Audit Error 4 / Reframe rows carefully. | 25 min |
+| 5 | [`../../superpowers/specs/2026-05-14-binding-generator-architecture-design.md`](../../superpowers/specs/2026-05-14-binding-generator-architecture-design.md) | Architecture design spec (revised 2026-05-15). Cake-host component layout (`build/_build/Targets/GenerateBindings/`), platform catalog tuple model, pure-vs-Cake split. | 15 min |
+| 6 | [`../../superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md`](../../superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md) | Stage 1 implementation plan (revised 2026-05-15). Task-by-task TDD-style scaffolding under the Cake host. Read the revision header + Scope Decisions Locked section before the per-task detail. | 25 min |
+| 7 | [`binding-autogen-approaches.md`](binding-autogen-approaches.md) | Toolchain comparison: industry survey of binding-generation tools, Decision Matrix Re-Validation (CppAst → ClangSharp flip), Source-Level Comparison of ppy/SDL3-CS vs Alimer.Bindings.SDL. Historical research; some claims about platform stubs superseded by 2026-05-15 retractions in the strategy brief Decision Audit. | 20 min |
+| 8 | [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) | Feasibility study: 11 emit rules for modern .NET P/Invoke, headers + cross-platform parsing, hybrid-static + symbol visibility, manual intervention surface, 7-layer testing strategy, 11 open decisions (D1–D11) + 4 pending discussion threads. Historical research; mingw-w64 + Apple SDK stub framing was retracted on 2026-05-15. | 25 min |
+| 9 | [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) | **Hands-on spike results** — both toolchains validated end-to-end on SDL2_gfx, side-by-side comparison vs hand-written external/sdl2-cs, 8 open questions for Phase 4 plan including the scope-trajectory bet (Q8). | 30 min |
 
-Reading time total: ~100 minutes for proper internalization. Skim takes 30 minutes; you'll miss the decision audit trail.
+Reading time total: ~165 minutes for proper internalization. Skim takes 45 minutes; you'll miss the decision audit trail and the Cake-host architecture rationale.
 
 ## Strategic Anchors (Won't Change)
 
@@ -44,18 +66,19 @@ These are settled. Don't relitigate.
 | **Pride-driven, not deadline-driven** — quality bar > calendar; Deniz sets the pace, says when topics are done | [`release-strategy.md`](../../release-strategy.md) §Strategic Stance + memory `feedback_no_timing_pressure_or_motive_assumptions.md` |
 | **Reference cross-check oracles** — `external/sdl2-cs` for SDL2, `ppy/SDL3-CS` for SDL3 — generator output diffed against these as typing references (NOT binding sources) | [`binding-autogen-approaches.md`](binding-autogen-approaches.md) §Validation Strategy |
 
-## Current State (As of 2026-05-14)
+## Current State (As of 2026-05-15)
 
 ### Where the code lives
 
-- **Spike branch:** `spike/binding-autogen-sdl2-gfx` — both toolchains validated end-to-end with SDL2_gfx
-- **Spike artifacts root:** `tools/binding-spike/` (sibling subdirectories per toolchain)
-- **Master branch:** docs only at this point; spike branch carries the code
+- **Spike branch:** `spike/binding-autogen-sdl2-gfx` — both toolchains validated end-to-end with SDL2_gfx; this is the active workstream branch.
+- **Spike artifacts root:** `tools/binding-spike/` (sibling subdirectories per toolchain) — preserved for reference even after Stage 1 lands in `build/_build/Targets/GenerateBindings/`.
+- **Production target home (Stage 1 destination):** `build/_build/Targets/GenerateBindings/` + `build/_build/Validation/BindingGeneration/`. Not created yet — that is Stage 1 Task 1 work.
+- **Master branch:** docs only at this point; spike branch carries the code and the doc revisions.
 
-Files of interest:
+Files of interest (spike snapshot — line counts verified 2026-05-14; will drift):
 
 ```text
-tools/binding-spike/                         ← line counts verified 2026-05-14; will drift
+tools/binding-spike/
 ├── clangsharp/
 │   ├── .config/dotnet-tools.json          ← ClangSharpPInvokeGenerator 21.1.8.3 pinned
 │   ├── generator/sdl2-gfx.rsp              ← 43-line RSP declarative config
@@ -70,7 +93,8 @@ tools/binding-spike/                         ← line counts verified 2026-05-14
 └── cppast/
     ├── generator/
     │   ├── generator.csproj
-    │   └── Program.cs                       ← 261-line custom emitter
+    │   └── Program.cs                       ← 261-line custom emitter (Windows-host spike;
+    │                                          preprocessor-macro switching verified at lines 42-72)
     ├── bindings/
     │   ├── Spike.Bindings.SDL2_gfx.csproj
     │   └── Generated/SDL2_gfx.cs            ← 345 lines: 102 P/Invoke + FPSmanager + 8 const
@@ -79,7 +103,9 @@ tools/binding-spike/                         ← line counts verified 2026-05-14
         └── (no own Program.cs)
 ```
 
-Versioning state: `Directory.Packages.props` carries pinned CppAst 0.24.0 + libclang.runtime.win-x64 20.1.2 + libClangSharp.runtime.win-x64 20.1.2 (the version-trio coupling per `binding-autogen-spike-findings.md` §7.6). Don't bump these casually; CppAst 0.24.0 builds against libclang 20.1.x and newer libclang versions cause AST-visit stack-overflow at runtime.
+The spike ran on a Windows host with C-stdlib shim headers (`stdint.h`, `stddef.h`, etc. — not platform-OS stubs). When the generator moves into the Linux-canonical Cake host in Stage 1, those C-stdlib shims disappear because the apt sysroot provides them natively. The preprocessor-macro switching pattern in `Program.cs:42-72` is the spike contribution that survived intact.
+
+Versioning state (Stage 1 production scope): `Directory.Packages.props` will carry pinned CppAst 0.24.0 + libclang.runtime.linux-x64 20.1.2 + libClangSharp.runtime.linux-x64 20.1.2 (the version-trio coupling per `binding-autogen-spike-findings.md` §7.6). **Non-Linux runtime variants are intentionally absent** per the 2026-05-15 Linux-canonical lock. Don't bump these casually; CppAst 0.24.0 builds against libclang 20.1.x and newer libclang versions cause AST-visit stack-overflow at runtime.
 
 ### What works today
 
@@ -102,51 +128,77 @@ The key drivers:
 - `[NativeTypeName]` C-provenance attribute (ClangSharp's strongest unique deliverable) is "nice to have" not "load-bearing" — debug/audit value, no runtime impact
 - Custom-emission ceiling unbounded (matches Skia pattern if/when scope grows toward curated wrapper API on top of raw bindings)
 
+**Generator home (2026-05-15 lock):** `build/_build/Targets/GenerateBindings/` inside the Cake build host, target-local per ADR-002 §2.4 until SDL3 creates a real second consumer. No standalone `src/`-tree console app. Pure emitter code (`HeaderSet/`, `Parsing/`, `Model/`, `Emitting/`, `Stamps/`) stays Cake-free; the Cake-aware shell (`GenerateBindingsTask`, `BindingGenerationRunner`, `ServiceCollectionExtensions`) owns Cake context, logging, and IO.
+
 ClangSharp remains the documented migration path if CppAst's version-trio coupling or owned-emitter cost becomes painful in practice. The research docs preserve the raw-binding economics case for ClangSharp so that migration does not require re-discovering the evidence.
 
-### Platform-pass research update (2026-05-14)
+### Platform-pass research update (current, post 2026-05-15)
 
-Platform-conditioned parsing is now a first-class spike concern. This is not a CppAst or ClangSharp feature distinction; both sit on libclang, where each parse produces the AST for one macro/target/include configuration. Local SDL2 headers contain real platform-gated public declarations in `SDL_system.h`, `SDL_main.h`, `SDL_platform.h`, `SDL_config.h`, `SDL_stdinc.h`, and `SDL_syswm.h`.
+Platform-conditioned parsing is a first-class spike concern. This is not a CppAst or ClangSharp feature distinction; both sit on libclang, where each parse produces the AST for one macro/target/include configuration. Local SDL2 headers contain real platform-gated public declarations in `SDL_system.h`, `SDL_main.h`, `SDL_platform.h`, `SDL_config.h`, `SDL_stdinc.h`, and `SDL_syswm.h`.
 
-Repository comparison changed the reference set:
+**Pattern: preprocessor-macro switching only — no `--target`, no mingw-w64, no Apple SDK.** Each pass undefines every SDL platform identification macro, then defines exactly one `(OsCondition, BackendCondition[])` tuple's macros. SDL's public headers carry the cross-platform opaque-type forward declarations the parser needs (`typedef struct _NSWindow NSWindow;` at `SDL_syswm.h:86`, similar for `UIWindow`, `ANativeWindow`, `gbm_device`). Function-level platform surface parses without any hand-written platform stubs. Verified against:
 
-- **ppy/SDL3-CS** is the strongest SDL-specific platform-pass reference: neutral pass plus platform-specific passes.
+- **ppy/SDL3-CS** Dockerfile + `generate_bindings.py` (WebFetch 2026-05-15) — Ubuntu 24.04 container, no mingw-w64, single 81-byte `include/process.h` shim, preprocessor `--define-macro`/`--undefine-macro` orchestration.
+- **Local CppAst spike** `tools/binding-spike/cppast/generator/Program.cs:42-72` — `Defines`/`Undefines` macro juggling for `_WIN32`/`linux`/`__MACOSX__` triplet, no `--target`, parsed `SDL_system.h` + `SDL_main.h` successfully across all three platforms.
+
+Stage 1's `PlatformCatalog` is a ~8-entry `(OsCondition, BackendCondition[])` tuple model: Neutral + Windows desktop + WinRT + GDK + Linux + macOS + iOS + Android. Backends compile-enabled on each OS (Linux's X11/Wayland/KMSDRM) are bundled into that OS's pass. DirectFB / Vivante / MIR / OS-2 are documented Stage 1 exclusions. The master "undefine-all-platform-macros" hygiene list (~30 macros) is used per-pass to ensure clean isolation; pass count equals catalog size, not the hygiene list size.
+
+Repository comparison reference set:
+
+- **ppy/SDL3-CS** is the strongest SDL-specific platform-pass reference: neutral pass plus platform-specific passes via preprocessor macros only.
 - **SkiaSharp** remains a strong CppAst discipline reference, but not a platform-split reference because Skia's C API is platform-neutral.
 - **Alimer.Bindings.SDL** is useful for C# output shape ideas, but its single-pass union of multiple platform macros is a cautionary pattern, not our target.
-- **Silk.NET** proves why Windows SDK / DirectX generation may require a Windows runner; it does not prove SDL generation needs one.
+- **Silk.NET** uses a single Windows runner pinned to specific Visual Studio Build Tools — heavyweight, not applicable to our SDL focus.
+- **bottlenoselabs/SDL3-cs** uses native multi-OS runners + merge — documented escalation path if single-host preprocessor-macro switching ever fails to model a future SDL header surface.
 
-The CppAst platform-pass spike validated the ppy-style neutral + platform-specific model for selected SDL2 headers. The SDL2_image shared-type spike validated the next boundary: satellite outputs can be generated separately while reusing core-owned SDL concepts instead of duplicating `SDL_Surface`, `SDL_Texture`, `SDL_Renderer`, `SDL_RWops`, and `SDL_version`. Remaining high-value Stage 1/2 plan items are macro alias emission (`IMG_GetError` / `IMG_SetError`), field-level `IMG_Animation` layout, full package-consumer runtime smoke with harvested natives, and then either SDL2_ttf or SDL2_mixer if we want a callback/font/audio-heavy satellite before the SDL2 satellite sweep.
+The CppAst platform-pass spike validated the ppy-style neutral + platform-specific model for selected SDL2 headers; `SDL_syswm.h` typed-union layout was intentionally deferred and now sits in Stage 2. The SDL2_image shared-type spike validated the satellite/core-types boundary for Stage 2's SDL2 satellite sweep.
 
-## Open Decisions for Phase 4 Plan
+## Open Decisions — Status After 2026-05-15
 
-Captured from both feasibility study and spike findings. The Phase 4 plan-authoring slice will work through these.
+Many of the open decisions originally captured here have been resolved by the strategy brief, design spec, and Stage 1 plan. The table below shows the current status. Decisions still genuinely open are in the rightmost column; treat the rest as closed unless code execution surfaces evidence to reopen.
 
-### From `binding-autogen-feasibility.md` §9
+| Decision | Original source | Status as of 2026-05-15 |
+| --- | --- | --- |
+| D1 vendor vs vcpkg headers | feasibility §9 | **Closed** — vcpkg-installed canonical headers (linux-x64-hybrid triplet inside container). |
+| D2 multi-platform parsing strategy | feasibility §9 | **Closed** — preprocessor-macro switching only, no `--target`, no stubs at function level. See brief HOW §"Multi-pass parsing strategy". |
+| D3 cross-check tool | feasibility §9 | **Stage 2** — reference cross-check against external/sdl2-cs (SDL2) lands at Stage 2 satellite sweep. |
+| D4 symbol-existence guardrail | feasibility §9 | **Stage 2** — Pack-stage `BindingSymbolExistenceValidator` lands at Stage 2; Stage 1 preserves `EntryPoint` metadata for that later validator. |
+| D5 `IsAotCompatible` | feasibility §9 | **Closed** — `IsAotCompatible=true` on net8+ generated csprojs per brief HOW Rule 9. |
+| D6 computed macros | feasibility §9 | **Closed** — `public const` for literal values, `public static readonly` for computed expressions per brief HOW Rule 8. |
+| D7 variadic functions | feasibility §9 | **Closed** — classified in `KnownUnsupportedDeclarationPolicy` and omitted with audit entry; fmt-only friendly wrappers for common logging calls per Stage 1 plan. |
+| D8 generated output check-in | feasibility §9 | **Closed** — committed to git per ADR-004 + brief HOW. |
+| D9 multi-TFM emission | feasibility §9 | **Closed** — dual `[LibraryImport]` (net7+) + `[DllImport]` (legacy) emit in the same loop, full TFM matrix. |
+| D10 Roslyn source generator | feasibility §9 | **Closed (N/A)** — CppAst path doesn't require it; only relevant on ClangSharp migration. |
+| D11 PowerShell vs Python orchestrator | feasibility §9 | **Closed (N/A)** — Cake-host fold makes external orchestrators unnecessary; tools.cs (C# file-based app) is the local orchestration entry. |
+| Q1 LibraryImport conversion path | spike findings §9 | **Closed** — dual emit. |
+| Q2 Docker layer when? | spike findings §9 | **Closed** — Stage 1, Linux-canonical. Docker hard prereq from day one. |
+| Q3 friendly overload strategy | spike findings §9 | **Closed** — `string` / `ReadOnlySpan<byte>` / `Span<T>` / `out` / `ref` in the same emitter loop. |
+| Q4 platform-specific parsing pass | spike findings §9 | **Closed** — `(OsCondition, BackendCondition[])` tuple `PlatformCatalog`, ~8 entries for Stage 1 SDL2.Core. |
+| Q5 multi-TFM emission specifics | spike findings §9 | **Closed** — see D9 + brief HOW Rule 1. |
+| Q6 missing-macros investigation | spike findings §9 | **Closed** — Error 1 corrected; both toolchains capture all 8 SDL2_gfx constants with `--config generate-macro-bindings`. |
+| Q7 wrapper layer (`SdlWindow : IDisposable`) | spike findings §9 | **Deferred past v1.0** — explicit reopen if real consumer feedback says raw + friendly overloads aren't enough. |
+| Q8 scope-trajectory bet | spike findings §9 | **Resolved** — CppAst selected, ClangSharp documented migration path per ADR-004. |
+| `SDL_syswm.h` typed-union layout | brief §Multi-pass parsing | **Stage 2** — Stage 1 emits opaque pointer only. |
+| SDL3 binding generation start | brief §Plan Shape | **Gated on PD-7** (SDL2 real-public-release). Stage 3 work begins after Stage 2 ships and PD-7 lands. |
 
-D1 vendor vs vcpkg headers · D2 multi-platform parsing strategy · D3 cross-check tool · D4 symbol-existence guardrail · D5 `IsAotCompatible` · D6 computed macros · D7 variadic functions · D8 generated output check-in · D9 multi-TFM emission · D10 Roslyn source generator (if ClangSharp wins) · D11 PowerShell vs Python orchestrator
-
-### From `binding-autogen-spike-findings.md` §9
-
-Q1 LibraryImport conversion path · Q2 Docker layer when? · Q3 friendly overload strategy · Q4 platform-specific parsing pass · Q5 multi-TFM emission specifics · Q6 missing-macros investigation · Q7 wrapper layer yes/no/later · **Q8 scope-trajectory bet (CppAst single-emitter elasticity vs ClangSharp smaller raw-binding setup)**
-
-### From `binding-autogen-feasibility.md` §10 Pending Discussion Threads
-
-10.1 D1–D11 triage · 10.2 modern P/Invoke deep-dive (SDL2/SDL3 boolean wire types, callback lifetime, multi-TFM strategy, `[Flags]` attribution) · 10.3 testing strategy deep-dive (Layer 4 symbol-existence guardrail design) · 10.4 reference cross-check tool design
+Genuinely open Stage 1 plan-level decisions live in the Stage 1 plan itself — read it for the per-task scope. Genuinely open Stage 2 plan-level decisions wait until Stage 1 implementation ships (Stage 2 plan is written against actual Stage 1 code shape, not speculatively).
 
 ## How to Continue
 
-### If Deniz directs you to authoring the Phase 4 implementation plan
+### If Deniz directs you to executing Stage 1
 
-Read [`../parking-lot/package-topology/phase-planning-methodology.md`](../../parking-lot/package-topology/phase-planning-methodology.md) for the per-phase plan-authoring convention — even though topology refactor is parked, the methodology itself remains the reference for how detailed plan docs are authored in this project. Apply same discipline: reference matrix to ADRs + knowledge-base, slice-by-slice scope, exit criteria per slice.
+Read [`../../superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md`](../../superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md) and start at Task 1. The plan is task-by-task TDD-style. Approval gate is a hard rule: present each commit summary + proposed message to Deniz before committing. Skill `superpowers:subagent-driven-development` or `superpowers:executing-plans` is the recommended sub-skill for working through the plan.
+
+### If Deniz directs you to authoring the Stage 2 plan
+
+Wait until Stage 1 implementation ships first. The Stage 2 plan is written against actual Stage 1 code shape (folder names, type names, validator wiring), not speculatively. The strategy brief's Plan Shape Stage 2 section lists the scope: `SDL_syswm.h` full union + forward-declaration stub library + satellite sweep (Image, Mixer, Ttf, Gfx, Net) + `external/sdl2-cs` retirement. When the time comes, read [`../parking-lot/package-topology/phase-planning-methodology.md`](../../parking-lot/package-topology/phase-planning-methodology.md) for plan-authoring conventions (the methodology survives even though the topology refactor is parked).
 
 ### If Deniz directs you to more experimentation
 
-The spike branch is live. Continue under `tools/binding-spike/` with new sub-features:
+The spike branch is live. New experiments under `tools/binding-spike/` are fine, but **don't replicate Stage 1 plan work** — implement Stage 1 in `build/_build/Targets/GenerateBindings/` instead. Useful spike work:
 
-- **Multi-TFM dual emit:** add `#if NET7_0_OR_GREATER` guards in CppAst's `Program.cs` emit loop (or write a ClangSharp post-process pass). Verify generated code compiles for net10 + netstandard2.0 + net462.
-- **Friendly string overloads:** add `EmitFriendlyStringOverload` to CppAst's loop (or fork ppy's `FriendlyOverloadGenerator` Roslyn extension for ClangSharp side). Test that `pixelColor(renderer, x, y, "label")` works without manual UTF-8 encoding.
-- **Satellite/shared-type topology follow-up:** SDL2_image compile topology is validated; add macro alias emission and runtime image asset smoke once local harvested natives are available.
-- **`SDL_syswm.h` platform layout:** handle or intentionally defer platform-specific struct/union layout after the function-only platform-pass spike.
+- **Wrapper layer prototype:** explore `SdlWindow : IDisposable` shape on top of typed handle baseline if there's real consumer pressure (Q7 deferred).
+- **Reference cross-check tool prototype:** sketch the diff tool for Stage 2 (D3 / feasibility §10.4) so the Stage 2 plan inherits a working pattern.
 
 ### If Deniz directs you to a different area entirely
 
@@ -170,13 +222,15 @@ In chronological-creation order (which approximates intellectual-buildup order):
 
 | Date | Document | Status |
 | --- | --- | --- |
-| 2026-04-11 | [`binding-autogen-approaches.md`](binding-autogen-approaches.md) (initial) | Active; enriched 2026-05-12 with toolchain flip + source-level comparison |
+| 2026-04-11 | [`binding-autogen-approaches.md`](binding-autogen-approaches.md) (initial) | Active; enriched 2026-05-12 with toolchain flip + source-level comparison. Pre-2026-05-15 content; see strategy brief Decision Audit for corrections. |
 | 2026-05-12 | [`release-strategy.md`](../../release-strategy.md) | Active strategic anchor |
-| 2026-05-12 | [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) | Active design-feasibility doc |
-| 2026-05-12 | [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) | Active hands-on spike findings (ClangSharp + CppAst) |
-| 2026-05-12 | This doc — [`binding-autogen-onboarding.md`](binding-autogen-onboarding.md) | LLM onboarding |
-| 2026-05-14 | [`binding-autogen-strategy-brief.md`](../binding-autogen-strategy-brief.md) | Accepted strategy brief selecting the CppAst direction |
+| 2026-05-12 | [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) | Active design-feasibility doc; pre-2026-05-15 mingw-w64 / Apple-SDK speculation superseded by strategy brief Error 4 retraction. |
+| 2026-05-12 | [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md) | Active hands-on spike findings (ClangSharp + CppAst). |
+| 2026-05-12 | This doc — [`binding-autogen-onboarding.md`](binding-autogen-onboarding.md) | LLM onboarding (revised 2026-05-15). |
+| 2026-05-14 | [`binding-autogen-strategy-brief.md`](../binding-autogen-strategy-brief.md) | Accepted strategy brief; revised 2026-05-15 (Cake-host fold, Linux-canonical, stub retraction, SysWM Stage 2 deferral, SDL3 PD-7 gating). |
 | 2026-05-14 | [`ADR-004`](../../decisions/2026-05-14-binding-autogen-toolchain.md) | Durable toolchain decision |
+| 2026-05-14 | [`../../superpowers/specs/2026-05-14-binding-generator-architecture-design.md`](../../superpowers/specs/2026-05-14-binding-generator-architecture-design.md) | Architecture design spec; revised 2026-05-15 for Cake-host component layout + Linux-canonical + SysWM Stage 2 defer. Retires when Stage 1 ships. |
+| 2026-05-14 | [`../../superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md`](../../superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md) | Stage 1 implementation plan; revised 2026-05-15 for Cake-host fold + 8-entry PlatformCatalog + in-process pipeline + tools.cs Docker orchestration. Retires when Stage 1 ships. |
 
 Related canonical references:
 
@@ -187,8 +241,8 @@ Related canonical references:
 - [`phase-4-binding-autogen.md`](../../phases/phase-4-binding-autogen.md) — Phase 4 design brief
 - [`phase-5-sdl3-support.md`](../../phases/phase-5-sdl3-support.md) — Phase 5 SDL3 brief
 - [`ADR-001`](../../decisions/2026-05-05-d3seg-and-package-first.md) — D-3seg + package-first
-- [`ADR-002`](../../decisions/2026-05-05-target-centric-build-host.md) — target-centric build host
-- [`ADR-003`](../../decisions/2026-05-12-build-host-data-layer.md) — contract-centric data layer
+- [`ADR-002`](../../decisions/2026-05-05-target-centric-build-host.md) — target-centric build host (the pattern the Cake-host fold inherits)
+- [`ADR-003`](../../decisions/2026-05-12-build-host-data-layer.md) — contract-centric data layer (the pattern the binding validators extend)
 - [`ADR-004`](../../decisions/2026-05-14-binding-autogen-toolchain.md) — binding autogen toolchain
 - [`release-guardrails.md`](../../knowledge-base/release-guardrails.md) — guardrail catalog
 - [`testing-guidelines.md`](../../knowledge-base/testing-guidelines.md) — test infra + fixture policy
@@ -199,12 +253,13 @@ Related canonical references:
 External references:
 
 - [Alimer.Bindings.SDL](https://github.com/amerkoleci/Alimer.Bindings.SDL) — CppAst reference implementation (SDL3 core only)
-- [ppy/SDL3-CS](https://github.com/ppy/SDL3-CS) — ClangSharp reference implementation (SDL3 + Image + Mixer + TTF — same scope we plan)
-- [dotnet/Silk.NET](https://github.com/dotnet/Silk.NET) — alternative ClangSharp pipeline (heavyweight, multi-graphics-lib scope)
+- [ppy/SDL3-CS](https://github.com/ppy/SDL3-CS) — ClangSharp reference implementation (SDL3 + Image + Mixer + TTF — same scope we plan). Dockerfile + `generate_bindings.py` are the closest production peers for our preprocessor-macro-only multi-pass orchestration.
+- [dotnet/Silk.NET](https://github.com/dotnet/Silk.NET) — alternative ClangSharp pipeline (heavyweight, multi-graphics-lib scope, Windows-runner-bound)
+- [bottlenoselabs/SDL3-cs](https://github.com/bottlenoselabs/SDL3-cs) — native multi-OS runners + merge; documented escalation path if single-host preprocessor-macro switching ever fails to model a future SDL header surface.
 - [xoofx/CppAst](https://github.com/xoofx/CppAst) — CppAst NuGet
 - [dotnet/ClangSharp](https://github.com/dotnet/ClangSharp) — ClangSharp + ClangSharpPInvokeGenerator
 - [giroletm/SDL2_gfx test/](https://github.com/giroletm/SDL2_gfx/tree/master/test) — C test apps ported to spike test/Program.cs
 
 ## You're Ready
 
-Start with `AGENTS.md`, read the strategy brief and ADR-004 before the research docs, then use `binding-autogen-spike-findings.md` for the empirical evidence. By then you'll have the context to make Phase-4-plan-grade decisions. If anything in the existing docs contradicts itself or seems wrong, raise it explicitly — don't quietly route around it.
+Start with `AGENTS.md`, read the strategy brief and ADR-004 before the research docs, then read the design spec + Stage 1 plan to see how the strategy lands in code. Use `binding-autogen-spike-findings.md` for the empirical evidence. By then you'll have the context to execute Stage 1 (or plan Stage 2 after Stage 1 ships). If anything in the existing docs contradicts itself or seems wrong, raise it explicitly — don't quietly route around it. The strategy brief's Decision Audit is your reference for what was corrected and why.
