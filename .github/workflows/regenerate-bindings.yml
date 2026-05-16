@@ -1,0 +1,86 @@
+# Janset.SDL2 binding regeneration workflow.
+#
+# Runs the Cake `GenerateBindings` target on a fresh runner inside the pinned
+# linux-builder container to re-emit SDL2.Core binding source from the current
+# vcpkg-installed SDL2 headers. Mirrors `release.yml`'s container-job pattern
+# (`runs-on: ubuntu-24.04` + `container: ghcr.io/janset2d/sdl2-bindings-linux-builder:focal-latest`)
+# so the parse environment matches the rest of the production pipeline. Cake host
+# is built once and downloaded by the regen job, same artifact contract as
+# `release.yml` `build-cake-host`.
+#
+# vcpkg-setup composite action carries the multi-path cache extension (PSTH-I) —
+# binary cache + `external/vcpkg/buildtrees/sdl2/src` together — so SDL2's
+# dynapi manifest (`buildtrees/sdl2/src/<sha>.clean/src/dynapi/SDL2.exports`)
+# stays reachable across cache-hit runs. Without that extension the
+# `BindingPublicApiCoherenceValidator` post-emit step would fail to load the
+# manifest on every cache-hit regen.
+#
+# Generated output is uploaded as a workflow artifact for manual review. Auto-PR
+# via `peter-evans/create-pull-request` is intentionally deferred: Stage 1
+# Task 7 ("wire SDL2.Core away from external/sdl2-cs and update consumers for
+# typed handles") moves emission target from the gitignored
+# `artifacts/generated-bindings-preview/sdl2-core/` to the committed
+# `src/SDL2.Core/Generated/`. Until that flag-flip lands, the regenerated output
+# has no committed home for a PR diff to apply against. Operator workflow today:
+# trigger this dispatch → download artifact → inspect → manually integrate.
+
+name: Regenerate Bindings
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  build-cake-host:
+    # Reusable workflow shared with `release.yml`. Single host build avoids the regen
+    # job paying the publish cost while it's already burning CPU on the parse loop.
+    uses: ./.github/workflows/build-cake-host.yml
+
+  regenerate:
+    name: GenerateBindings (linux-x64)
+    needs: [build-cake-host]
+    runs-on: ubuntu-24.04
+    container: ghcr.io/janset2d/sdl2-bindings-linux-builder:focal-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - uses: ./.github/actions/platform-build-prereqs
+      - uses: ./.github/actions/vcpkg-setup
+        # PSTH-I: multi-path cache covers both binary cache + buildtrees/sdl2/src.
+        # SDL2.exports lives in buildtrees and is the dynapi cross-check oracle —
+        # vcpkg's binary cache does not preserve source extraction, so without
+        # this caching the validator would fail on cache-hit runs.
+        with:
+          platform-identity: ghcr.io/janset2d/sdl2-bindings-linux-builder:focal-latest
+          triplet: x64-linux-hybrid
+          vcpkg-cache-path: .vcpkg-cache
+          vcpkg-feature-flags: binarycaching
+      - uses: actions/download-artifact@v8
+        with:
+          name: cake-host
+          path: ./cake-host
+      - name: Cake Info
+        run: >
+          dotnet ./cake-host/Build.dll
+          --target Info
+          --rid linux-x64
+      - name: Run GenerateBindings
+        run: >
+          dotnet ./cake-host/Build.dll
+          --target GenerateBindings
+          --rid linux-x64
+      - name: Upload generated bindings preview
+        uses: actions/upload-artifact@v7
+        with:
+          name: generated-bindings-preview
+          path: artifacts/generated-bindings-preview/
+          if-no-files-found: error
+          retention-days: 7

@@ -22,12 +22,7 @@ public static class ServiceCollectionExtensions
             return new ManifestRepository(context, paths.GetManifestFile());
         });
 
-        services.AddSingleton<IVcpkgManifestRepository>(provider =>
-        {
-            var context = provider.GetRequiredService<ICakeContext>();
-            var paths = provider.GetRequiredService<IPathService>();
-            return new VcpkgManifestRepository(context, paths.GetVcpkgManifestFile());
-        });
+        services.AddSingleton<IVcpkgManifestRepository, VcpkgManifestRepository>();
 
         services.AddSingleton<IVersionFileRepository>(provider =>
         {

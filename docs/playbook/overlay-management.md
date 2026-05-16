@@ -37,7 +37,7 @@ Location: `vcpkg-overlay-ports/`
 | Port | Why | Upstream Issue | Tracking |
 | --- | --- | --- | --- |
 | `sdl2-mixer` | Enable bundled LGPL-free codec alternatives | N/A (design choice) | #84 |
-| `mpg123` | arm64 Linux FPU detection bug | microsoft/vcpkg#40709 | #78 (deprecated — pending removal) |
+| `sdl2-gfx` | `__declspec(dllexport)` only on MSVC; bare `extern` everywhere else loses public visibility under hybrid `-fvisibility=hidden` triplets | None (upstream abandoned since 2018) | PD-15 (regression guard pending) |
 
 ## Overlay Triplet Anatomy
 

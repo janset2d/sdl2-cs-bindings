@@ -3556,11 +3556,15 @@ This is a real drift risk for the existing overlays today (`sdl2-mixer`, `sdl2-g
 - Reads each matching `external/vcpkg/ports/<port>/vcpkg.json` (the upstream at the current submodule HEAD).
 - Cross-checks `version` + `port-version` fields. Mismatch → `ValidationCheck` with `ValidationSeverity.Error`, message lists overlay version vs upstream version vs upstream ref (commit + port name) + actionable next step ("re-sync overlay against upstream — see `vcpkg-overlay-ports/README.md` §Maintenance Rules").
 - Wired into `PreFlightCheckTask` via `AddValidators()` registration + `PreflightReporter` row.
-- New guardrail ID: **G59** (next available in `release-guardrails.md` series after current max — confirm at implementation time).
+- New guardrail ID: **G60** (next free slot — G59 was already taken by `ManifestFamilyNameInvariantValidator`).
 
 **Sequencing:** independent of PSTH-A through G. Can land any time. Recommended as a small focused slice with its own commit.
 
 ### PSTH-I: vcpkg-setup action.yml multi-path cache for binding regen
+
+**Landed 2026-05-16.** `.github/actions/vcpkg-setup/action.yml` cache step extended to multi-path: existing binary cache directory + `external/vcpkg/buildtrees/sdl2/src`. Same cache key (`hashFiles('vcpkg.json', 'vcpkg-overlay-triplets/**', 'vcpkg-overlay-ports/**')-${vcpkg_commit}`) already invalidates on relevant changes. Unblocks PSTH-J workflow.
+
+---
 
 `.github/actions/vcpkg-setup/action.yml` caches only `${{ inputs.vcpkg-cache-path }}` (vcpkg's binary cache). Binary cache restoration unpacks compiled artifacts into `installed/<triplet>/<port>/` but **does not re-extract source** into `buildtrees/<port>/src/` — vcpkg behaviour, confirmed against [vcpkg docs](https://learn.microsoft.com/en-us/vcpkg/users/binarycaching). The Stage 1 dynapi cross-check validator reads `SDL2.exports` from `external/vcpkg/buildtrees/sdl2/src/*/src/dynapi/SDL2.exports`. On a binary-cache hit the file is unreachable in CI.
 
@@ -3582,6 +3586,8 @@ Trade-off: cache size grows by ~80 MB (SDL2 source tree). Trivial against GH Act
 **Sequencing:** prerequisite for PSTH-J. Can land independently before the workflow is wired up.
 
 ### PSTH-J: regenerate-bindings.yml workflow
+
+**Landed 2026-05-16.** `.github/workflows/regenerate-bindings.yml` ships two jobs: `build-cake-host` (mirrors `release.yml`'s host build) + `regenerate` (container-job using PSTH-I's multi-path vcpkg-setup action). Trigger: `workflow_dispatch` only. Output: `generated-bindings-preview` artifact (manual review until Task 7 production-location flag-flip — auto-PR via peter-evans is deferred because the gitignored preview path has no committed home for a diff PR to apply against). Original target architecture below preserved for reference:
 
 New GitHub Actions workflow that runs the Cake `GenerateBindings` target on a fresh runner via the same container-job pattern as `release.yml`'s `harvest` job:
 

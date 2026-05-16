@@ -7,27 +7,27 @@ using NSubstitute;
 namespace Build.Tests.Unit.Data.Manifest;
 
 /// <summary>
-/// Mock-based unit coverage for <see cref="VcpkgManifestRepository"/> — constructor argument
-/// validation. End-to-end load behavior (file-existence gate, JSON deserialization, error
-/// translation) is covered by <see cref="VcpkgManifestRepositoryRoundTripTests"/>.
+/// Mock-based unit coverage for <see cref="VcpkgManifestRepository"/> — argument
+/// validation on both the constructor and the per-call <c>Load</c>. End-to-end load
+/// behavior (file-existence gate, JSON deserialization, error translation) is covered
+/// by <see cref="VcpkgManifestRepositoryRoundTripTests"/>.
 /// </summary>
 public sealed class VcpkgManifestRepositoryUnitTests
 {
     [Test]
     public async Task Constructor_Should_Throw_ArgumentNullException_When_Context_Is_Null()
     {
-        var path = new FilePath("/repo/vcpkg.json");
-
-        await Assert.That(() => new VcpkgManifestRepository(null!, path))
+        await Assert.That(() => new VcpkgManifestRepository(null!))
             .Throws<ArgumentNullException>();
     }
 
     [Test]
-    public async Task Constructor_Should_Throw_ArgumentNullException_When_Path_Is_Null()
+    public async Task Load_Should_Throw_ArgumentNullException_When_Path_Is_Null()
     {
         var ctx = Substitute.For<ICakeContext>();
+        var repository = new VcpkgManifestRepository(ctx);
 
-        await Assert.That(() => new VcpkgManifestRepository(ctx, null!))
+        await Assert.That(() => repository.Load(null!))
             .Throws<ArgumentNullException>();
     }
 }
@@ -47,9 +47,9 @@ public sealed class VcpkgManifestRepositoryRoundTripTests
             .WithTextFile("vcpkg.json", FixtureLoader.Load("Vcpkg/vcpkg-valid.json"));
 
         var path = world.RepoRoot.CombineWithFilePath("vcpkg.json");
-        var repository = new VcpkgManifestRepository(world.CakeContext, path);
+        var repository = new VcpkgManifestRepository(world.CakeContext);
 
-        var loaded = repository.Load();
+        var loaded = repository.Load(path);
 
         await Assert.That(loaded.Overrides).IsNotNull();
         await Assert.That(loaded.Overrides!.Count).IsEqualTo(2);
@@ -64,9 +64,9 @@ public sealed class VcpkgManifestRepositoryRoundTripTests
     {
         var world = FakeCakeWorld.CreateWindows();
         var path = world.RepoRoot.CombineWithFilePath("vcpkg.json");
-        var repository = new VcpkgManifestRepository(world.CakeContext, path);
+        var repository = new VcpkgManifestRepository(world.CakeContext);
 
-        var ex = await Assert.That(() => repository.Load()).Throws<CakeException>();
+        var ex = await Assert.That(() => repository.Load(path)).Throws<CakeException>();
 
         await Assert.That(ex!.Message).Contains("vcpkg manifest");
         await Assert.That(ex!.Message).Contains("does not exist");
@@ -79,9 +79,9 @@ public sealed class VcpkgManifestRepositoryRoundTripTests
             .WithTextFile("vcpkg.json", "{ this is not valid json");
 
         var path = world.RepoRoot.CombineWithFilePath("vcpkg.json");
-        var repository = new VcpkgManifestRepository(world.CakeContext, path);
+        var repository = new VcpkgManifestRepository(world.CakeContext);
 
-        var ex = await Assert.That(() => repository.Load()).Throws<CakeException>();
+        var ex = await Assert.That(() => repository.Load(path)).Throws<CakeException>();
 
         await Assert.That(ex!.Message).Contains("vcpkg manifest");
         await Assert.That(ex!.Message).Contains("invalid JSON");
@@ -94,9 +94,9 @@ public sealed class VcpkgManifestRepositoryRoundTripTests
             .WithTextFile("vcpkg.json", "null");
 
         var path = world.RepoRoot.CombineWithFilePath("vcpkg.json");
-        var repository = new VcpkgManifestRepository(world.CakeContext, path);
+        var repository = new VcpkgManifestRepository(world.CakeContext);
 
-        var ex = await Assert.That(() => repository.Load()).Throws<CakeException>();
+        var ex = await Assert.That(() => repository.Load(path)).Throws<CakeException>();
 
         await Assert.That(ex!.Message).Contains("deserialized to null");
     }

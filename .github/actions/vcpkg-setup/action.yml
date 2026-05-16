@@ -119,11 +119,22 @@ runs:
     # ──────────────────────────────────────────────────────────────────────────
     # 3 ▸ binary‐caching
     # ──────────────────────────────────────────────────────────────────────────
-    - name: Cache vcpkg binary artifacts
+    - name: Cache vcpkg binary artifacts + SDL2 buildtree source
       id: cache-vcpkg
       uses: actions/cache@v5
       with:
-        path: ${{ github.workspace }}/${{ inputs.vcpkg-cache-path }}
+        # Multi-path captures both the binary cache (compiled installed/<triplet>/<port>/
+        # archives) AND SDL2's extracted source under buildtrees/sdl2/src/. vcpkg's
+        # binary cache restoration unpacks installed artifacts but does NOT re-extract
+        # source — `installed/` is the only thing the cache contract covers per
+        # learn.microsoft.com/en-us/vcpkg/users/binarycaching. The binding-generator's
+        # post-emit dynapi validator reads SDL2.exports from buildtrees, so without
+        # caching buildtrees/sdl2/src alongside the binary cache the manifest is
+        # unreachable on every cache-hit CI run. ~80 MB extra cache, trivial against
+        # GH Actions multi-GB budget.
+        path: |
+          ${{ github.workspace }}/${{ inputs.vcpkg-cache-path }}
+          ${{ github.workspace }}/external/vcpkg/buildtrees/sdl2/src
         # Key includes vcpkg.json AND the full overlay-triplets + overlay-ports trees so
         # edits to triplet regex / port feature flags bust the GitHub Actions cache as
         # well as vcpkg's internal ABI hash. Without hashing overlays here, a hybrid

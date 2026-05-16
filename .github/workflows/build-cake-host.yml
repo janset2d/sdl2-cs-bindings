@@ -1,0 +1,68 @@
+# Reusable workflow: build, test, and publish the Cake host once per caller workflow.
+#
+# Called by `release.yml` and `regenerate-bindings.yml` (and any future pipeline that
+# fans out to multiple Cake target invocations). Uploads the framework-dependent host
+# publish output as the `cake-host` artifact so downstream jobs can
+# `actions/download-artifact@v8 with: name: cake-host` and invoke
+# `dotnet ./cake-host/Build.dll --target X` instead of rebuilding the host per stage.
+#
+# vcpkg submodules are skipped — the host build doesn't touch native code. TUnit's
+# HTML report auto-upload is wired in so `Build.Tests-<os>-<tfm>-report.html` lands as
+# a workflow artifact for every caller without additional plumbing.
+
+name: Build Cake Host (reusable)
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  build:
+    name: Build + Test Cake Host
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: false
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - uses: ./.github/actions/nuget-cache
+      - name: Enable TUnit HTML report auto-upload
+        # TUnit generates `TestResults/{Assembly}-{os}-{tfm}-report.html` by
+        # default and uploads it as a workflow artifact IF these two GitHub
+        # Actions runtime env vars are exposed. This avoids a manual
+        # actions/upload-artifact step for the report.
+        uses: actions/github-script@v9
+        with:
+          script: |
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env['ACTIONS_RUNTIME_TOKEN']);
+            core.exportVariable('ACTIONS_RESULTS_URL', process.env['ACTIONS_RESULTS_URL']);
+      - name: Restore Build.Tests (transitive covers Build.csproj)
+        # Targeted to the test project — NOT a solution-wide restore. `build/build.sln`
+        # currently carries only Build + Build.Tests but future additions (extra test
+        # projects, samples) would pull in work we don't want here. Build.Tests
+        # ProjectReference'es Build.csproj so its restore graph covers the Cake host.
+        run: dotnet restore build/_build.Tests/Build.Tests.csproj
+      - name: Test Cake host
+        run: >
+          dotnet test --project build/_build.Tests/Build.Tests.csproj
+          --configuration Release
+          --no-restore
+      - name: Publish Cake host (FDD, cross-OS)
+        run: >
+          dotnet publish build/_build/Build.csproj
+          --configuration Release
+          --no-restore
+          -p:UseAppHost=false
+          --output ./out/cake-host
+      - name: Upload cake-host artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: cake-host
+          path: ./out/cake-host
+          if-no-files-found: error
+          retention-days: 1

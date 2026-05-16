@@ -40,16 +40,6 @@ This directory contains local overrides for vcpkg ports that have upstream bugs 
 - **Why the patch rather than a per-port triplet exception:** Disabling `-fvisibility=hidden` for sdl2-gfx at the triplet level would also expose every transitive statically-linked symbol on the dynamic satellite's export table, which is the exact failure mode the hybrid strategy's visibility rule is designed to prevent (see `vcpkg-overlay-triplets/_hybrid-common.cmake:17`). The patch is port-local, annotates only the real public API, and matches how the rest of the SDL family handles exports (SDL_image/mixer/ttf/net all use SDL's own `DECLSPEC` which already emits `visibility("default")` on GCC/Clang).
 - **Regression guard — open (PD-15):** No automated CI check asserts the patched symbols remain `GLOBAL DEFAULT` / `T` after a vcpkg baseline bump. Today the patch is exercised by every CI job that runs `Harvest` on Linux / macOS, but a future baseline bump could rewrite the upstream source layout such that the patch applies with partial offsets or becomes a silent no-op, and the gap would only surface later at runtime (`EntryPointNotFoundException` on downstream C# consumers). Tracked as [phase-2-adaptation-plan.md PD-15](../docs/phases/phase-2-adaptation-plan.md#pending-decisions). Resolution candidates: smoke-time `readelf`/`nm` assertion on the harvested lib, post-pack `G`-series guardrail, or both.
 
-### mpg123 (DEPRECATED — pending removal)
-
-- **Why:** arm64 Linux FPU detection bug — container environments incorrectly report no FPU, causing `REAL_IS_FIXED` + `OPT_NEON64` compile conflict.
-- **Upstream issue:** microsoft/vcpkg#40709
-- **Tracking issue:** #78
-- **Dependency chain:** `sdl2-mixer` (feature: mpg123) → `mpg123`
-- **Based on upstream version:** 1.33.4 (vcpkg baseline `0b88aacd`)
-- **Files changed from upstream:** Only `have-fpu.diff` (FPU detection patch). All other files (`vcpkg.json`, `portfile.cmake`, `pkgconfig.diff`) are identical copies of the upstream port.
-- **Deprecation note:** The `mpg123` feature has been removed from our sdl2-mixer overlay (LGPL-free transition, #84). This overlay port is no longer needed for our build. It will be removed once confirmed that no other port depends on mpg123 in our dependency graph.
-
 ## How Patches Work in vcpkg
 
 vcpkg extracts source tarballs and applies patches using `git apply`. This means:
@@ -125,4 +115,4 @@ Keep this README current — it is the canonical registry of why each overlay ex
 
 Every overlay's `vcpkg.json` declares its own `"version"` (and sometimes `"port-version"`). The upstream port at the pinned vcpkg submodule commit has its own version. **No automated check today asserts they match.** When vcpkg submodule bumps advance the upstream port to a new version, our overlay can silently keep pinning the previous one — vcpkg uses the overlay version without warning.
 
-Tracked as **PSTH-H** in [`docs/superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md`](../docs/superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md). Target: new `OverlayPortVersionCoherenceValidator` under `build/_build/Validation/Vcpkg/`, wired into `PreFlightCheckTask`, new guardrail ID **G59**. Applies to all overlays (`sdl2-mixer`, `sdl2-gfx`, `mpg123`).
+**Landed 2026-05-16.** `OverlayPortVersionCoherenceValidator` under `build/_build/Validation/Vcpkg/` runs at PreFlight, parses every `vcpkg-overlay-ports/<port>/vcpkg.json` + the matching `external/vcpkg/ports/<port>/vcpkg.json`, and fails-closed on version / port-version drift. Guardrail ID **G60** — see [`docs/knowledge-base/release-guardrails.md`](../docs/knowledge-base/release-guardrails.md) §2.4 + Stage 1 plan §PSTH-H. Applies to all overlays (`sdl2-mixer`, `sdl2-gfx`, `mpg123`).

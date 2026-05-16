@@ -21,9 +21,11 @@ If the library has optional features, add them:
 ```json
 {
   "name": "sdl2-mixer",
-  "features": ["mpg123", "libflac", "opusfile", "libmodplug", "wavpack"]
+  "features": ["opusfile", "libmodplug", "wavpack"]
 }
 ```
+
+(`mpg123`, `libflac`, `fluidsynth` are deliberately excluded — see [`docs/research/lgpl-free-codec-migration.md`](../research/lgpl-free-codec-migration.md). The `sdl2-mixer` overlay port replaces those with bundled minimp3 / drflac / Timidity.)
 
 Add a version override:
 

@@ -274,4 +274,57 @@ public sealed class PreflightReporter(ICakeContext cakeContext)
 
         Log.Information("✅ Cross-family dependency resolvability check PASSED - {0} dependency/dependencies all resolvable within scope", validation.Checks.Count);
     }
+
+    public void ReportOverlayPortVersionCoherence(OverlayPortVersionCoherenceValidation validation)
+    {
+        ArgumentNullException.ThrowIfNull(validation);
+
+        Log.Information("");
+        Log.Information("🔄 Checking overlay port version coherence [G60]...");
+
+        if (validation.Checks.Count == 0)
+        {
+            Log.Information("  ℹ️ No overlay ports under vcpkg-overlay-ports/ — no checks to run.");
+            Log.Information("");
+            Log.Information("✅ Overlay port version coherence check PASSED - no overlays to validate");
+            return;
+        }
+
+        foreach (var check in validation.Checks)
+        {
+            switch (check.Status)
+            {
+                case OverlayPortVersionCheckStatus.Match:
+                    Log.Information(
+                        "  ✅ {0}: overlay {1}#{2} matches upstream {3}#{4}",
+                        check.PortName,
+                        check.OverlayVersion,
+                        check.OverlayPortVersion,
+                        check.UpstreamVersion,
+                        check.UpstreamPortVersion);
+                    break;
+                case OverlayPortVersionCheckStatus.VersionDrift:
+                    Log.Error("  ❌ {0}: {1}", check.PortName, check.ErrorMessage);
+                    break;
+                case OverlayPortVersionCheckStatus.OverlayManifestMissing:
+                case OverlayPortVersionCheckStatus.UpstreamPortMissing:
+                case OverlayPortVersionCheckStatus.InvalidJson:
+                    Log.Error("  ❌ {0}: {1}", check.PortName, check.ErrorMessage);
+                    break;
+                default:
+                    throw new InvalidOperationException($"Unsupported overlay port version check status '{check.Status}'.");
+            }
+        }
+
+        Log.Information("");
+        if (validation.HasErrors)
+        {
+            var failedCount = validation.Checks.Count(c => c.Status != OverlayPortVersionCheckStatus.Match);
+            Log.Error("❌ Pre-flight check FAILED - {0} overlay port version drift detected [G60]", failedCount);
+            Log.Error("   Re-sync overlays against external/vcpkg/ports/<port>/ per vcpkg-overlay-ports/README.md §'Maintenance Rules'.");
+            return;
+        }
+
+        Log.Information("✅ Overlay port version coherence check PASSED - all {0} overlays aligned with upstream", validation.Checks.Count);
+    }
 }
