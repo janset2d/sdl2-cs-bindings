@@ -323,6 +323,8 @@ This spec feeds the Stage 1 implementation plan. The plan should implement only 
 4. Wire SDL2.Core away from `external/sdl2-cs/src/SDL2.cs`.
 5. Add Stage 1 validation.
 
+**Precursor slice (2026-05-15):** A narrow local-output loop lands before Task 4. It establishes the Docker-based iteration surface (Cake `GenerateBindings` target + `tools.cs generate-bindings` subcommand + derived `binding-generator.Dockerfile`) so subsequent model + emitter design (Tasks 4-6) iterates against real CppAst-output artifacts. Output lands gitignored under `artifacts/generated-bindings-preview/sdl2-core/`; production-location flag-flip is Task 7. See [`2026-05-15-binding-generator-local-output-loop-design.md`](2026-05-15-binding-generator-local-output-loop-design.md).
+
 The Stage 2 plan is written after Stage 1 lands and uses the real Stage 1 code shape. The SDL3 plan is written later when Phase 5 activates.
 
 ## References

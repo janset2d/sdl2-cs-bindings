@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Build.Data.BindingGeneration;
+namespace Build.Data.BindingGeneration.Models;
 
 public sealed record GeneratedStamp(
     [property: JsonPropertyName("schema_version")]

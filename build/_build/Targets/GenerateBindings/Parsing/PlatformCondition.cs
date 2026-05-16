@@ -1,6 +1,6 @@
 namespace Build.Targets.GenerateBindings.Parsing;
 
-internal enum PlatformConditionKind
+public enum PlatformConditionKind
 {
     Neutral,
     OperatingSystem,

@@ -15,10 +15,10 @@ public sealed class HeaderSetFingerprintCalculatorTests
         var calculator = new HeaderSetFingerprintCalculator(world.CakeContext);
 
         world.WithTextFile(header, "line1\r\nline2\r\n");
-        var crlf = await calculator.ComputeAsync(new ResolvedHeaderSet(includeRoot, sdl2Root, [header]));
+        var crlf = await calculator.ComputeAsync(new ResolvedHeaderSet(includeRoot, includeRoot.Combine("synthetic"), sdl2Root, [header]));
 
         world.WithTextFile(header, "line1\nline2\n");
-        var lf = await calculator.ComputeAsync(new ResolvedHeaderSet(includeRoot, sdl2Root, [header]));
+        var lf = await calculator.ComputeAsync(new ResolvedHeaderSet(includeRoot, includeRoot.Combine("synthetic"), sdl2Root, [header]));
 
         await Assert.That(lf.Hash).IsEqualTo(crlf.Hash);
         await Assert.That(lf.HeaderCount).IsEqualTo(1);

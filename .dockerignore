@@ -1,0 +1,45 @@
+# Repo-root .dockerignore — applies when building from the repo root context
+# (e.g. `docker build -f docker/binding-generator.Dockerfile .`).
+#
+# Goal: keep host build state out of the binding-generator build context so the
+# container starts from a clean repo snapshot and provisions vcpkg organically
+# inside the image. This mirrors CI/CD parity — every fresh GitHub Actions runner
+# inits the vcpkg submodule and runs `vcpkg install` from scratch (binary cache
+# accelerates the build but the source tree is always reconstructed).
+#
+# Note: docker/.dockerignore continues to apply when building from `./docker`
+# context (linux-builder workflow). The two files do not conflict.
+
+# Build outputs
+**/bin/
+**/obj/
+.vs/
+artifacts/
+.cake-host/
+
+# IDE / editor scratch
+.idea/
+.vscode/
+*.user
+
+# Native build state — the entire vcpkg submodule plus host-side install dir.
+# The Dockerfile clones vcpkg fresh at the submodule-pinned commit (VCPKG_COMMIT
+# build-arg resolved by tools.cs via `git rev-parse HEAD:external/vcpkg`) and
+# bakes vcpkg state into image layers via `vcpkg install` at build time.
+vcpkg_installed/
+external/vcpkg/
+
+# Generated binding preview output — write-only bind-mount target.
+artifacts/generated-bindings-preview/
+
+# .git/ — not needed by the binding-generator image. Layer C clones vcpkg
+# directly with a pinned commit; Layer F's full repo COPY consumes only the
+# working tree.
+.git/
+
+# CI workflows aren't needed at container build time.
+.github/
+
+# Other repo metadata not needed at build time.
+.claude/
+*.log

@@ -877,7 +877,33 @@ Before committing, present the summary and proposed message to Deniz and wait fo
 
 ---
 
+## Task 3.5: Local Output Loop (precursor slice)
+
+> See [`docs/superpowers/plans/2026-05-15-binding-generator-local-output-loop.md`](2026-05-15-binding-generator-local-output-loop.md) for the full implementation plan and [`docs/superpowers/specs/2026-05-15-binding-generator-local-output-loop-design.md`](../specs/2026-05-15-binding-generator-local-output-loop-design.md) for the design rationale.
+
+This precursor slice establishes the Docker-based local generation loop (Cake `GenerateBindings` target + `tools.cs generate-bindings` subcommand + derived `binding-generator.Dockerfile`) so subsequent model + emitter tasks (4-6) iterate against real CppAst-output artifacts under `artifacts/generated-bindings-preview/sdl2-core/`. Output is gitignored at this stage; production-location flag-flip to `src/SDL2.<Family>/Generated/` lands at Task 7.
+
+The slice introduces temporary scaffolding explicitly marked for retirement:
+
+- `IPathService.GenerateBindingsPreviewRoot` + `GetGenerateBindingsPreviewFamilyRoot(string family)` — replaced by manifest family-id aware path API at Task 7.
+- `PreviewBindingModel` + `CppAstToPreviewModel` translator — replaced by real binding model at Task 4.
+- `PreviewEmitter` — replaced by per-category emitters at Task 5.
+
+The slice also adds defensive infrastructure that stays beyond Stage 1:
+
+- Maintenance playbook §"Trio Pinning" version table and `BindingGenerationRunner` libclang version assertion.
+- `.dockerignore` repo-root entry (filters host build state from container build context).
+- `tools.cs generate-bindings` Spectre.Console.Cli subcommand.
+
+**2026-05-16 update — Stage 1 Task 3.5 production findings.** Container smoke surfaced refinements not anticipated in the 2026-05-15 plan: per-header `CppParser.ParseFile` inner loop (outer per-view loop alone insufficient), 5 mandatory + 3 defensive platform-stub headers under `SyntheticHeaders/`, `SDL_DISABLE_*MMINTRIN_H` family defines, `-fdeclspec` flag, `-U__has_builtin` flag with corrected mechanism, `HeaderSetResolver.ExcludedHeaders` covering umbrella / scaffolding / satellite-umbrella / satellite-prefix / GL-convenience-wrapper / GL-sub-header / test-scaffolding categories, MacOS view `MAC_OS_X_VERSION_MIN_REQUIRED=1070` + iOS view `TARGET_OS_IPHONE=1`. Full friction log in [`../../binding-autogen/research/binding-autogen-spike-findings.md`](../../binding-autogen/research/binding-autogen-spike-findings.md) §11. Sub-task 11.5 in the precursor plan addresses the remaining AST inline filter + dynapi cross-check validator implementation — Task 4 below has hard dependencies on those two deliverables landing first.
+
+---
+
 ## Task 4: Binding Model, Merge Policy, and Fail-Closed Validators
+
+> **Prerequisites (added 2026-05-16):** Task 11.5 of [`2026-05-15-binding-generator-local-output-loop.md`](2026-05-15-binding-generator-local-output-loop.md) — AST inline filter (`CppFunctionFlags.Inline` skip per Silk.NET pattern) + `-U__has_builtin` restoration + Dynapi cross-check validator. These three deliverables remove ~16 SDL_FORCE_INLINE false-positives from the AST collection and establish the public-API ground-truth oracle that Task 4's `DeclarationCollector` / merge policy / fail-closed validators build on. Without them, Task 4's model carries leaks that fail at consumer runtime (`EntryPointNotFoundException`).
+>
+> **Cross-stage validator integration.** Task 11.5.C lands the dynapi cross-check validator directly under `build/_build/Validation/BindingGeneration/BindingPublicApiCoherenceValidator.cs` (root-level placement, per existing build-host convention — `HybridStaticOverlayValidator`, `BindingVcpkgCoherenceValidator`, `BindingSymbolExistenceValidator` all sit under `build/_build/Validation/`). The parsed `DynapiManifest` record lives under `build/_build/Data/BindingGeneration/` per ADR-003 contract-centric data layer, alongside its `IDynapiManifestRepository` / `DynapiManifestRepository` resolver (vcpkg buildtree primary, WebFetch fallback). Stage 2 PreFlight and Stage 2 Pack stages reuse the same validator + manifest record with different `SeverityProfile` values — Task 4 picks up the PreFlight wiring; Stage 2 Pack stage `BindingSymbolExistenceValidator` uses the same manifest as the expected-set input for its per-RID binary checks.
 
 **Files:**
 
@@ -890,7 +916,7 @@ Before committing, present the summary and proposed message to Deniz and wait fo
 - Create: `build\_build\Targets\GenerateBindings\Model\KnownUnsupportedDeclarationPolicy.cs`
 - Create: `build\_build\Targets\GenerateBindings\Model\DeclarationCollector.cs`
 - Create: `build\_build\Targets\GenerateBindings\Model\DeclarationMergePolicy.cs`
-- Create: `build\_build\Targets\GenerateBindings\Validation\*.cs`
+- Create: `build\_build\Targets\GenerateBindings\Validation\*.cs` (the dynapi cross-check validator landed in Task 11.5 lives here; Task 4 adds the additional fail-closed validators per its merge-policy work)
 - Create: `build\_build.Tests\Unit\Targets\GenerateBindings\Model\*.cs`
 
 - [ ] **Step 1: Write failing type mapping tests**
@@ -1266,6 +1292,8 @@ Before committing, present the summary and proposed message to Deniz and wait fo
 ---
 
 ## Task 5: C# Emitters for Handles, Structs, Constants, Enums, Callbacks, and Commands
+
+> **Marshalling shape parity vs. SDL2-CS (added 2026-05-16).** Stage 1 Task 3.5's placeholder `PreviewEmitter` produces raw-pointer-only command signatures (e.g., `internal static extern int SDL_RenderGeometry(IntPtr renderer, IntPtr vertices, int num_vertices, int* indices, int num_indices)`). SDL2-CS — the existing UX baseline — emits typed managed-array overloads with `[In] SDL_Vertex[] vertices, [In] int[] indices`. The wire-level marshalling is equivalent, but SDL2-CS's shape lets callers pass C# arrays without manual `GCHandle.Alloc` pinning. Task 5's emitter set MUST include the friendly-overload layer per ADR-004 §3 ("emit friendly overloads for UTF-8 strings, spans, `out`, and `ref` shapes alongside raw P/Invoke entry points") to close that UX gap. Concrete acceptance criterion: every `T*` parameter in the raw P/Invoke layer that takes a buffer + length pair MUST emit a corresponding `[In] T[]` overload (or `ReadOnlySpan<T>` per Rule 6) in the friendly-overload layer. Verification: spot-check `SDL_RenderGeometry` against SDL2-CS's `SDL2.cs:3209-3216` signature; document any signature parity gaps as ADR or feasibility-doc decisions before locking the emitter shape.
 
 **Files:**
 
@@ -3423,6 +3451,313 @@ docs: document SDL2 core binding generation
 ```
 
 Before committing, present the summary and proposed message to Deniz and wait for approval.
+
+---
+
+## Pre-Stage-2 Transition Hardening
+
+> **Context (2026-05-16):** Stage 1 Task 3.5's precursor slice landed working output (848 Neutral functions + 51 platform-only delta, dynapi-validated), but the implementation carries Stage 1 / "preview" naming and one-family hardcoding that does not survive into Stage 2's multi-family generation scope. These items are **transitional cleanup mandatory before Stage 2 Task 4 onwards (real binding model + per-category emitters + satellite sweep) starts** — they are not "Stage 2 work," they are "the prerequisites Stage 2 builds on." Each item is recorded with enough scope context that a future agent (or Deniz himself, after a long pause) can pick it up cold. Code-side comments **must not reference these items** — implementation comments stay self-explanatory per AGENTS.md §"Code comments must be self-contained"; cross-doc references live in PR descriptions / commit messages / this plan.
+
+### PSTH-A: Preview / Stage 1 naming purge
+
+The Stage 1 Task 3.5 implementation introduced "Preview" and "Stage 1 scratch" naming throughout the binding generator surface. These names made sense as transient scaffolding; they make zero sense for a feature-frozen Stage 2 surface. Rename + retire:
+
+Production code:
+
+- `PreviewBindingModel` → `BindingModel`
+- `PreviewParseView` → `BindingParseView` (or whatever the real Task 4 model nomenclature settles on — this depends on the cross-family design)
+- `PreviewFunction` → `BindingFunction` (or absorbed into the real model's `BindingDeclaration` polymorphism)
+- `PreviewParameter` → `BindingParameter`
+- `PreviewParseViewReport` → `BindingParseViewReport` (or whatever Task 4/5 emits)
+- `PreviewEmitter` → broken into `CsCommandsEmitter` / `CsHandlesEmitter` / `CsStructsEmitter` / etc. per Task 5 of this plan
+- `CppAstToPreviewModel` → `CppAstToBindingModel` (or absorbed into the Task 5 model)
+- `GenerateBindingsPreviewRoot` / `GetGenerateBindingsPreviewFamilyRoot` (in `IPathService`) → renamed `BindingGeneratorOutputRoot` / `GetBindingGeneratorOutputRoot(string family)` (or absorbed into Task 7's production-location flag-flip)
+
+Test code:
+
+- `PreviewBindingModelData` → `BindingModelData` (or per-test fixture)
+- `PreviewEmitterTests` / `PreviewParseViewReportTests` → renamed in lockstep with the emitter rename
+
+Emitted artifacts (consumer-visible — most important to clean before Task 7's production flag-flip):
+
+- `Sdl2Preview_<view>` emitted class prefix → `Sdl2Bindings_<view>` (or whatever Task 5/7 naming settles)
+- `Janset.Sdl2.Preview` emitted namespace → `Janset.Sdl2` (post-Task 7 production-location flag-flip)
+- `PreviewEmitter` emits `// Stage 1 binding-autogen preview output. Placeholder shape; replaced by real emitter at Stage 1 Task 5.` into every generated `.g.cs` file → strip (internal process commentary should not bleed into consumer-visible artifacts)
+- `unsafe partial` modifiers on emitted classes without any unsafe operations or partial extensions → drop until/unless used
+
+Also retire Stage-1-only comments referencing "placeholder shape," "scratch output," "Task 5 replaces this," etc. Once Task 5 lands, those references are stale lore.
+
+### PSTH-B: Family-based binding generation architecture
+
+`GenerateBindingsTask` is currently hardcoded to `sdl2-core`. Stage 2 introduces SDL2_image, SDL2_mixer, SDL2_ttf, SDL2_gfx, SDL2_net binding families; each family has different prefix ownership (IMG_*, Mix_*, TTF_*, gfx*, SDLNet_*) and a different header set within the same vcpkg `SDL2/` include directory. The current implementation cannot grow to that shape without a refactor.
+
+Target architecture (parallel to existing Cake task family-scoping pattern in `Harvest`, `Package`, `NativeSmoke`, etc.):
+
+- `GenerateBindingsTask` takes a `--family <name>` CLI argument (like `Harvest --library <name>`).
+- Per-family config types: `Sdl2CoreGenerationConfig` (already exists), `Sdl2ImageGenerationConfig`, `Sdl2MixerGenerationConfig`, ... — each declaring own `OwnedPrefixes`, header-set rules, deferred declarations, **and validator strategy** (see Stage 2 validator note below).
+- A family-resolver service maps the CLI argument to the right config (mirrors `ManifestFamilyConfig` lookup pattern from existing code).
+- `HeaderSetResolver.ResolveSdl2CoreHeaders` → `ResolveHeadersForFamily(familyConfig)`; the resolver consults the family config for inclusion / exclusion rules instead of hardcoding.
+
+**Validator strategy is per-family.** Stage 1's `IDynapiManifestRepository` + `IBindingPublicApiCoherenceValidator` pair is **SDL2-only** — SDL2's dynapi system (`src/dynapi/SDL2.exports`, redistributed via the Janset SDL2 overlay port to `share/sdl2/dynapi/`) has no equivalent in SDL2_image / SDL2_mixer / SDL2_ttf / SDL2_gfx / SDL2_net. Satellites use `extern DECLSPEC` header declarations directly as the export ground truth (no separate textual manifest). Stage 2 must therefore make the validator surface configurable on the family config — `Sdl2CoreGenerationConfig.Validator = DynapiCrossCheck(SDL2.exports path)`; `Sdl2ImageGenerationConfig.Validator = HeaderDerivedExports` (or analogous), with a third option `HarvestedBinarySymbols` available for Stage 2 Pack-stage cross-check via the existing `BinaryClosureWalker` (dumpbin / nm / otool). Captured in `docs/playbook/binding-generator-maintenance.md` §Dynapi Manifest Cross-Check scope note.
+
+### PSTH-C: Header set rules — per-family, not global
+
+`HeaderSetResolver.ExcludedHeaders` currently hardcodes "satellite umbrellas" (`SDL_image.h`, `SDL_mixer.h`, `SDL_net.h`, `SDL_ttf.h`) and the `SDL2_*` prefix exclusion. **This is dangerously coupled to Stage 1's sdl2-core scope.** When the satellite generation slice arrives (PSTH-B), it MUST include these headers — and an sdl2-image generation pass MUST exclude SDL2.Core headers (SDL_video.h, SDL_render.h, etc., which sdl2-image consumes but does not own).
+
+Refactor target: the resolver receives a header-selection policy from the family config:
+
+- Sdl2Core: include `SDL_*.h` except `{SDL.h, begin_code.h, close_code.h, SDL_image.h, SDL_mixer.h, SDL_net.h, SDL_ttf.h, SDL2_*, SDL_opengl*, SDL_egl.h, SDL_test*}`.
+- Sdl2Image: include `SDL_image.h` only.
+- Sdl2Mixer: include `SDL_mixer.h` only.
+- Sdl2Gfx: include `SDL2_*.h` (gfx family) only.
+- Each satellite's emitter filters by `OwnedPrefixes` so SDL_-prefixed signatures referenced from satellite headers map to core types (cross-csproj reference, never duplicate).
+
+### PSTH-D: Manifest centralization
+
+`Sdl2CoreGenerationConfig.OwnedPrefixes` + `DeferredDeclarations` + (eventually) per-family header rules live in code today. Strategy brief / ADR-003 contract-centric data layer suggests declarative config in `build/manifest.json` `package_families[]`. **Evaluate before PSTH-B implementation:**
+
+- Pro: one source of truth (`manifest.json` already drives runtimes, package families, library manifests, system exclusions); declarative; visible to ops without C# read.
+- Pro: cross-cutting validators (PreFlight, BindingPublicApi) read directly from manifest without C# round-trip.
+- Con: schema bump v2.2 with binding-generation fields; needs schema migration discipline.
+- Con: comments / explanations sit better in C# config code than JSON.
+
+Recommended outcome: hybrid — `manifest.json` carries identity (family name, owned prefixes, allowed header globs); C# config record carries logic + documentation (deferred declarations rationale, type mapping policy refs). The C# record is constructed from manifest-read at task entry.
+
+### PSTH-E: ExcludedHeaders configurable (natural consequence of C+D)
+
+The current `HeaderSetResolver.ExcludedHeaders` static `HashSet<string>` is global. After C+D it becomes family-scoped (`familyConfig.HeaderExclusions`). The static set goes away; the resolver becomes a policy executor.
+
+### PSTH-F: Code-side doc-reference temizliği
+
+The Stage 1 Task 3.5 implementation added comments that link to documents (`see spec §11.2`, `see docs/binding-autogen/research/...`). **AGENTS.md "Code comments must be self-contained" rule was violated.** Audit and clean:
+
+- `CppAstParseRunner.cs` — comments reference spec sections and dynapi research. Rewrite to explain the local logic without cross-doc references.
+- `HeaderSetResolver.cs` — comments reference spec / strategy brief decisions. Same fix.
+- `DynapiManifestRepository.cs` — comments reference ClangSharp issue #414 + ppy/SDL3-CS. Same fix — explain the local mechanism, not the research provenance.
+- Synthetic header stubs — comments reference spike-findings / playbook. Same fix.
+- `binding-generator.Dockerfile` — peer references in CPATH comment block. Same fix.
+
+Cross-doc references belong to PR description, commit message, ADR, or this plan. **Code reads on its own.**
+
+### PSTH-G: AGENTS.md update post-Stage-2
+
+After PSTH-A through PSTH-F land + Stage 2 satellite sweep ships, AGENTS.md §"Settled Strategic Decisions" gains a row: "Binding generation = family-scoped + manifest-driven." The "Binding autogen replaces SDL2-CS" + "`external/sdl2-cs` is transitional" rows collapse into one acknowledging completion. Phase 6 task.
+
+### PSTH-H: OverlayPortVersionCoherenceValidator (PreFlight guardrail)
+
+Today every overlay port under `vcpkg-overlay-ports/<port>/` carries its own `vcpkg.json` with a hardcoded `"version": "X.Y.Z"` field. The upstream port under `external/vcpkg/ports/<port>/vcpkg.json` (at the submodule's pinned commit) has its own version. **There is no automated check that the two match.** A vcpkg submodule bump can advance the upstream port to a new version without anyone noticing the overlay still pins the previous one — vcpkg's behaviour is to silently use the overlay's version when an overlay is active.
+
+This is a real drift risk for the existing overlays today (`sdl2-mixer`, `sdl2-gfx`, `mpg123`) and any future overlay we add. The overlay README's "Maintenance Rules" section prescribes manual diffing on baseline bumps — but discipline doesn't catch missed steps.
+
+**Target validator:**
+
+- New `OverlayPortVersionCoherenceValidator` under `build/_build/Validation/Vcpkg/` (or fold into an existing `Vcpkg/` validation cohort if one materializes).
+- Reads every `vcpkg-overlay-ports/<port>/vcpkg.json` `"version"` (and `"port-version"` if present).
+- Reads each matching `external/vcpkg/ports/<port>/vcpkg.json` (the upstream at the current submodule HEAD).
+- Cross-checks `version` + `port-version` fields. Mismatch → `ValidationCheck` with `ValidationSeverity.Error`, message lists overlay version vs upstream version vs upstream ref (commit + port name) + actionable next step ("re-sync overlay against upstream — see `vcpkg-overlay-ports/README.md` §Maintenance Rules").
+- Wired into `PreFlightCheckTask` via `AddValidators()` registration + `PreflightReporter` row.
+- New guardrail ID: **G59** (next available in `release-guardrails.md` series after current max — confirm at implementation time).
+
+**Sequencing:** independent of PSTH-A through G. Can land any time. Recommended as a small focused slice with its own commit.
+
+### PSTH-I: vcpkg-setup action.yml multi-path cache for binding regen
+
+`.github/actions/vcpkg-setup/action.yml` caches only `${{ inputs.vcpkg-cache-path }}` (vcpkg's binary cache). Binary cache restoration unpacks compiled artifacts into `installed/<triplet>/<port>/` but **does not re-extract source** into `buildtrees/<port>/src/` — vcpkg behaviour, confirmed against [vcpkg docs](https://learn.microsoft.com/en-us/vcpkg/users/binarycaching). The Stage 1 dynapi cross-check validator reads `SDL2.exports` from `external/vcpkg/buildtrees/sdl2/src/*/src/dynapi/SDL2.exports`. On a binary-cache hit the file is unreachable in CI.
+
+**Target change to `vcpkg-setup/action.yml`:**
+
+```yaml
+- uses: actions/cache@v5
+  with:
+    path: |
+      ${{ github.workspace }}/${{ inputs.vcpkg-cache-path }}
+      ${{ github.workspace }}/external/vcpkg/buildtrees/sdl2/src
+    key: vcpkg-bin-${{ ... }}-${{ inputs.triplet }}-${{ hashFiles('vcpkg.json', 'vcpkg-overlay-triplets/**', 'vcpkg-overlay-ports/**') }}-${{ steps.vcpkg_commit.outputs.commit }}
+```
+
+Existing cache key already invalidates on `vcpkg.json` (which carries `builtin-baseline`) + overlay tree changes + vcpkg submodule commit — same key applies to buildtrees, no key changes needed.
+
+Trade-off: cache size grows by ~80 MB (SDL2 source tree). Trivial against GH Actions' multi-GB cache budget.
+
+**Sequencing:** prerequisite for PSTH-J. Can land independently before the workflow is wired up.
+
+### PSTH-J: regenerate-bindings.yml workflow
+
+New GitHub Actions workflow that runs the Cake `GenerateBindings` target on a fresh runner via the same container-job pattern as `release.yml`'s `harvest` job:
+
+```yaml
+jobs:
+  regenerate:
+    runs-on: ubuntu-24.04
+    container: ghcr.io/janset2d/sdl2-bindings-linux-builder:focal-latest
+    steps:
+      - uses: actions/checkout@v6
+        with: { submodules: recursive }
+      - uses: actions/setup-dotnet@v5
+        with: { global-json-file: global.json }
+      - uses: ./.github/actions/platform-build-prereqs
+      - uses: ./.github/actions/vcpkg-setup
+        with:
+          platform-identity: ghcr.io/janset2d/sdl2-bindings-linux-builder:focal-latest
+          triplet: x64-linux-hybrid
+          vcpkg-cache-path: .vcpkg-cache
+          vcpkg-feature-flags: binarycaching
+      - uses: actions/download-artifact@v8
+        with: { name: cake-host, path: ./cake-host }
+      - run: dotnet ./cake-host/Build.dll --target GenerateBindings --rid linux-x64
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          branch: regenerate-bindings/${{ github.run_id }}
+          title: "chore(bindings): regenerate SDL2.Core bindings"
+```
+
+`workflow_dispatch`-only initially (manual operator trigger when SDL2 baseline bumps). Auto-PR via `peter-evans/create-pull-request` matches the Silk.NET reference pattern documented in the binding-autogen strategy brief.
+
+**Prerequisites:**
+
+- PSTH-I (action.yml multi-path cache) must land first.
+- Cake host published-artifact pattern: this workflow consumes the same `cake-host` artifact `release.yml` already publishes, so a small `build-cake-host` reuse step (or a dedicated build step within the workflow) is needed.
+- The Stage 1 plan's existing Task 8 was scoped to add a stamp validator at PreFlight; this workflow is a separate `Task 9` candidate or a post-Stage-1 hardening slice. Decide at implementation time.
+
+**Not in scope of this workflow:**
+
+- Production-location flag-flip to `src/SDL2.<Family>/Generated/` (Stage 1 Task 7).
+- Family selection (Stage 2 PSTH-B).
+- Promotion to release CI (`release.yml`) — that integration is Stage 2.
+
+### Sequencing
+
+- PSTH-A and PSTH-F are pure cleanup; can land any time before Task 4 starts.
+- PSTH-B, C, D, E are coupled (B without C is half-done; D depends on B+C settling). Recommended single landing: a dedicated "family-architecture refactor" slice between this plan and Task 4.
+- PSTH-G is Phase 6 work; do not touch until Stage 2 ships.
+- PSTH-H is independent. Small focused slice with its own commit, any time.
+- PSTH-I is prerequisite for PSTH-J. Can land independently before the workflow.
+- PSTH-J lands after PSTH-I + post-Stage-1 Task 8 (stamp validator). Tracked as a Stage 1 Task 9 candidate.
+
+---
+
+## Post-Implementation Review Findings (2026-05-16)
+
+After Stage 1 Task 3.5 implementation + production smoke (4m41s container run, 866 emitted symbols, validator gate clean with 0 false-positives and 6 false-negative warnings), a 3-agent code review + maintainer review surfaced a category of bug the slice's own validator architecture cannot catch. This section records the findings so the follow-up slice can land them as if they were part of Task 3.5 from the start.
+
+### Validator wire-format coverage gap (architectural)
+
+The dynapi cross-check validator (Task 11.5.C) compares only export symbol names against `SDL2.exports`. The Watcom DEF-file format encodes nothing about argument types, parameter order, or return-shape — it is a flat list of `++'_NAME'.'SDL2.dll'.'NAME'` entries the dynamic linker consumes by name. The validator is therefore blind to the wire-format ABI of the emitted P/Invoke surface.
+
+This means the production smoke can ship 866 sembol-correct emits **with byte-width-wrong parameter and return types** and the validator stays green. Bugs P0.1–P0.4 below are exactly this class: name-correct, wire-format-wrong. Consumer P/Invokes for those signatures would raise silent ABI corruption at runtime (wrong stack frame, parameter truncation, return-value mis-marshalling) — none of which the dynapi validator catches.
+
+**The Stage 2 Pack-stage `BindingSymbolExistenceValidator`** (already planned in the strategy brief §"Symbol-existence validation guardrail" + PSTH-J workflow) closes the symbol-presence layer at the binary-table boundary via `dumpbin /exports` / `nm -D` / `nm -gU` across the 3 OS RID matrix. But that validator is **also name-only** — binary symbol tables are byname dispatch dictionaries; they don't carry signature metadata (C ABI, DWARF/PDB excluded). So Stage 2 Pack catches "binding declares an unexported function" but does not catch "binding declares a function with the wrong parameter widths."
+
+**Wire-format signature ABI guardrail is a genuine outstanding gap.** Candidate layers, none chosen yet:
+
+- Static C-side cross-check via an independent parser of SDL2 public headers (cost: a second parser to maintain — defeats CppAst single-source advantage).
+- Per-RID consumer smoke matrix invoking selected functions with sentinel arguments and asserting return values match expected. The existing `release.yml consumer-smoke` per-RID matrix is the natural home; needs hand-curated function-spot list. Higher coverage = higher curation cost.
+- Runtime `Marshal.PrelinkAll` for symbol-presence — same coverage as dynapi/binary-table, no signature gain.
+
+This gap is recorded in the strategy brief and the maintenance playbook. **Not fixable in the follow-up slice — promote to its own Stage 2 / Phase 4 hardening item.**
+
+### P0 — Wire-format bugs (must fix in the follow-up slice, before commit)
+
+Each item carries silent runtime corruption potential. The translator emits correct function names + binds against existing native exports, but parameter/return wire widths diverge from the C ABI.
+
+- **P0.1** [`build/_build/Targets/GenerateBindings/Model/CppAstToPreviewModel.cs:240`] `MapTypedef` SDL_*-prefix fallback fires before chain-resolve to the underlying primitive. `SDL_AudioFormat` (typedef'd to `Uint16`), `SDL_SpinLock` (`int`), `SDL_GameControllerButton` (enum-backed) emit as `IntPtr` (8 bytes) instead of their underlying primitive width. Wire size wrong.
+- **P0.2** [`Model/CppAstToPreviewModel.cs:174`] `MapPrimitive`: `CppPrimitiveKind.Long => "int"` is wrong on Linux. C `long` is 64-bit on LP64 platforms (Linux x86_64, Linux arm64, macOS x86_64, macOS arm64); 32-bit only on Windows LLP64. Stage 1 parses Linux headers — Linux `long` is 64-bit; the emit is 32-bit `int`. Map to `nint` (platform-sized) or branch by `TargetSystem`.
+- **P0.3** [`Model/CppAstToPreviewModel.cs:156, 197, 217`] Catch-all `_ => "IntPtr"` swallows unknown `CppType` subtypes silently. Any new SDL2 header pattern → silent `IntPtr` without log/warn/throw. Fail-closed (or fail-warning) on unknown types is the safer default.
+- **P0.4** [`Targets/GenerateBindings/Emitting/PreviewEmitter.cs:34-78`] `StringBuilder.AppendLine` uses `Environment.NewLine`. Windows-host generation emits CRLF; Linux-host generation emits LF. Generated `.g.cs` content non-deterministic by host, breaking the `.generated-stamp` reproducibility contract. Use explicit `"\n"` writes (or `AppendLine` against a `StringBuilder` whose `NewLine` is forced to `"\n"`).
+- **P0.5** [`build/_build.Tests/Unit/Targets/GenerateBindings/Model/CppAstToPreviewModelTests.cs`] Translator semantic test coverage is empty — all tests use `new List<CppCompilation>()` with no functions. `MapType`/`MapTypedef`/`MapPrimitive`/`IsBindableSdl2Export`/dedup/neutral-subtract are zero-coverage. **This is what allowed P0.1–P0.3 to land undetected.** The fix needs synthetic typedef-heavy fixtures or a thin fake `CppFunction`/`CppType` factory; full libclang-integrated tests are infeasible on the Windows test host.
+
+### P1 — Determinism, concurrency, version-match accuracy (must fix in the follow-up slice)
+
+- **P1.1** [`Targets/GenerateBindings/HeaderSet/HeaderSetFingerprintCalculator.cs:35-39`] Cross-host hash divergence: file content reads honour OS-native line endings + path separators. Windows host vs Linux container produces different hashes for the same logical input set. `.generated-stamp`'s reproducibility contract is broken across hosts. Force LF + forward slashes before hashing.
+- **P1.2** Synthetic header content not in fingerprint. Dev edits `build/_build/Targets/GenerateBindings/SyntheticHeaders/windows.h` → hash unchanged → stale stamp says regen is unnecessary. Add the synthetic root to the input-set hash.
+- **P1.3** [`build/_build.Tests/Unit/CompositionRoot/ServiceCollectionExtensionsSmokeTests.cs:97-103`] `AddGenerateBindings` smoke does not chain `AddData()` though `GenerateBindingsTask` requires `IDynapiManifestRepository` from that cluster. Production works (Program.cs orders correctly) but the DI smoke test doesn't certify completeness. Pattern mismatch vs `AddPreFlightCheck` / `AddHarvest` / `AddPackageConsumerSmoke` smokes.
+- **P1.4** [`Targets/GenerateBindings/GenerateBindingsTask.cs:60-78`] `_log.Information(...)` inside PLINQ `.Select(...)` lambda. Cake `ICakeLog` thread-safety is undocumented; concurrent writes from 8 parallel view tasks may interleave. Capture per-view logs into a thread-safe accumulator (`ConcurrentBag<string>` or pre-built log lines) and flush sequentially post-PLINQ.
+- **P1.5** PLINQ safety claim made without empirical proof. Maintainer-verified via CppAst.NET source (`CppParser.ParseInternal` creates own `CXIndex.Create()` per call, no static mutable state) — but no stress test in repo. Spec §10.3 explicitly parks the verification; the implementation pre-empted it. Document the verification source in the task code comment; add a basic stress test (8 views × N iterations).
+- **P1.6** [`Targets/GenerateBindings/Parsing/LibclangVersionAsserter.cs:21,30`] Version check uses `resolvedVersion.Contains("20.1")` substring. Future libclang `20.10.x` false-matches. Use `Regex.IsMatch(version, @"\b20\.1\.\d+\b")` or version-parse + compare.
+- **P1.7** [`Targets/GenerateBindings/GenerateBindingsTask.cs:131-139`] `triplet.Contains("linux", StringComparison.OrdinalIgnoreCase)` weak match — `linux-experimental-anything` would pass. Use `triplet.EndsWith("-linux-hybrid", ...)` against the manifest-declared canonical triplet.
+- **P1.8** [`build/_build/Data/BindingGeneration/DynapiManifestRepository.cs:62-64`] `_context.GetFiles(globPath).OrderByDescending(file => file.FullPath, StringComparer.OrdinalIgnoreCase).First()` lex-sorts under `buildtrees/sdl2/src/*`. A version downgrade in vcpkg with a stale newer leftover buildtree on disk picks the stale (wrong) manifest. Restrict to single match (fail-closed on multiple) or use vcpkg version-aware sort.
+
+### P2 — Design (ADR-002 / ADR-003 compliance) + dead surface + stale comments
+
+- **P2.1** [`Targets/GenerateBindings/GenerateBindingsTask.cs:81-119`] `ValidatePublicApiCoherenceAsync` is business logic in the task body. Per ADR-002 §2.2 the task is an orchestrator; extract to `BindingPublicApiCoherenceChecker` collaborator (sealed class, single method, takes `PreviewBindingModel` + `FilePath` manifestPath + `SeverityProfile`, returns `ValidationReport`). Task calls collaborator + handles `CakeException` translation.
+- **P2.2** [`Targets/GenerateBindings/Sdl2CoreGenerationConfig.cs`] `Default` static usage couples task to global. Inject via DI as singleton. Bridges to PSTH-D manifest centralization.
+- **P2.3** [`Targets/GenerateBindings/Sdl2CoreGenerationConfig.cs`] Dead fields: `OwnedPrefixes` and `DeferredDeclarations` are populated, asserted in tests, never read by production code. Either wire them into translator filter (legitimate feature: SDL_/SDLK_/SDL_HINT_/SDL_INIT_ prefix gating + SDL_SysWMinfo/SDL_SysWMmsg deferred-emit skip) or remove until they earn a consumer.
+- **P2.4** [`build/_build/Data/BindingGeneration/GeneratedStampRepository.cs` + DI registration] `IGeneratedStampRepository` registered + tested, never injected into any task. Stage 1 stamp persistence was deferred to Task 8 (PreFlight drift validator); the repository is forward-looking dead surface today. Either wire stamp save/load into `GenerateBindingsTask` now or remove until Task 8 lands.
+- **P2.5** [`Targets/GenerateBindings/HeaderSet/HeaderSetFingerprintCalculator.cs` + DI registration] Similar: registered + tested, no caller. Stage 1 stamp deferral leaves this unused.
+- **P2.6** [Multiple files] `internal → public` visibility flips on `HeaderSetResolver`, `CppAstParseResult`, `CppAstParseRunner`, `ParseDiagnosticFormatter`, `PlatformParseView`, `PlatformConditionKind`, `Sdl2CoreGenerationConfig`, `ResolvedHeaderSet`. `build/_build/Build.csproj` already grants `InternalsVisibleTo Build.Tests`; widening to public for a build-host executable is unjustified. Rollback to `internal`.
+- **P2.7** [`Targets/GenerateBindings/Model/CppAstToPreviewModel.cs:148-242`] Type-mapping algorithm hidden in private static methods. Per `docs/knowledge-base/extraction-guidelines.md` §"Private methods are a smell when ... they contain business rules", extract to a `TypeMappingPolicy` sealed class. Independent test surface, smaller `CppAstToPreviewModel`, decouples translator from mapping rules.
+- **P2.8** [`Model/CppAstToPreviewModel.cs`] Typedef recursion in `MapTypedef`/`MapTypedefPointer` is unbounded. Circular SDL2 typedef (none today, possible) → infinite loop. Add max-depth guard.
+- **P2.9** [`Model/CppAstToPreviewModel.cs`] `SafeIdentifier` keyword reserved list incomplete. Missing `where`, `volatile`, `using`, `unsafe`, `fixed`, `lock`, `is`, `as`, `new`, etc. Use the canonical keyword set from Roslyn `SyntaxFacts.GetKeywordKind` or equivalent.
+- **P2.10** [`Targets/GenerateBindings/GenerateBindingsTask.cs:143`] Raw `Environment.GetEnvironmentVariable("CONTAINER_DIGEST")` — Cake-native violation. Wrap in `ICakeEnvironment.GetEnvironmentVariable` or pass via `BuildContext` property.
+- **P2.11** [`build/_build/Host/Paths/PathService.cs`] `IPathService.GetSdl2DynapiExportsGlob` returns raw `string`. Cake-native convention prefers typed `FilePath`/`FilePathCollection`. Either return collection via direct `GetFiles` or document why string is intentional (glob expansion happens in the repository).
+- **P2.12** [`PathService.cs:402-403`] `BindingGeneratorSyntheticHeadersRoot` uses multi-segment string `.Combine("a/b/c")`. Cosmetic Cake idiom — prefer chained `.Combine("a").Combine("b").Combine("c")`.
+- **P2.13** [`Data/BindingGeneration/DynapiManifestRepository.cs`] Hardcoded port name `"sdl2"` in glob composition. Future vcpkg layout change or port rename → silent break. Either accept port name as config or document the assumption.
+
+### P2 — Stale comments / lies (PSTH-F territory, specific cites)
+
+- **P2.14** [`Targets/GenerateBindings/Parsing/CppAstParseRunner.cs:81`] Comment "SystemIncludeFolders carries only the vcpkg SDL2 header set" — directly contradicted by the next 4 lines which add 2 paths (synthetic + vcpkg). Rewrite the opening claim.
+- **P2.15** [`Targets/GenerateBindings/GenerateBindingsTask.cs:17-21`] Top-of-class comment says "binding-generator-entrypoint.sh runs the two targets back to back (EnsureVcpkgDependencies then GenerateBindings)" — wrong since the Dockerfile refactor baked vcpkg state at image build time and entrypoint only runs `GenerateBindings`.
+- **P2.16** [`build/_build.Tests/Unit/CompositionRoot/ServiceCollectionExtensionsSmokeTests.cs:100-101`] Comment references deleted `IBindingGenerationRunner`.
+- **P2.17** [`build/_build/Targets/GenerateBindings/SyntheticHeaders/windows.h` + `SyntheticHeaders/Inspectable.h`] Comments reference a "DeferredDeclarations filter" that doesn't exist in production code (`DeferredDeclarations` is a dead field per P2.3).
+- **P2.18** [`build/_build.Tests/Unit/Targets/GenerateBindings/Emitting/PreviewBindingModelData.cs:18,23` + `PreviewParseViewReportTests.cs:19-20`] Fixture data wrongly attributes `SDL_Init` and `SDL_Quit` to `SDL_main.h`. Real location: `SDL.h` (lines 145, 224). The fixture pins the same wrong attribution as the production header-set assumption — see retraction below.
+- **P2.19** [`build/_build/Targets/GenerateBindings/HeaderSet/HeaderSetResolver.cs:18-20`] Comment claims "every symbol [SDL.h] would surface is also declared in one of the headers it includes" — false. **5 SDL.h-only declarations:** SDL_Init (line 145), SDL_InitSubSystem (162), SDL_QuitSubSystem (184), SDL_WasInit (200), SDL_Quit (224). The comment must be retracted and link to the RequiredFunctions fallback list (Task 11 / Çözüm C below).
+
+### PSTH-A scope expansion (Preview / Stage 1 naming purge — additions to the original PSTH-A item above)
+
+Three additional "Preview" surfaces escaped the original PSTH-A scope and must be retired in the same purge slice:
+
+- `CppAstToPreviewModel` class name → `CppAstToBindingModel` (or absorbed into the Task 5 model)
+- `PreviewBindingModelData` test fixture class → `BindingModelData` (or per-test fixture)
+- `Sdl2Preview_<view>` emitted class prefix → `Sdl2Bindings_<view>` (or whatever Task 5/7 naming settles)
+- `Janset.Sdl2.Preview` emitted namespace → `Janset.Sdl2` (post-Task 7 production-location flag-flip)
+- `PreviewEmitter` emits `// Stage 1 binding-autogen preview output. Placeholder shape; replaced by real emitter at Stage 1 Task 5.` into every generated `.g.cs` file → strip (internal process commentary should not bleed into consumer-visible artifacts)
+- `unsafe partial` modifiers on emitted classes without any unsafe operations or partial extensions → drop until/unless used
+
+### P3 — Polish
+
+- **P3.1** CRLF/LF normalization needed before commit — `.gitattributes` enforces LF for `*.cs` but Windows-saved files carry CRLF. `git add --renormalize .` before commit.
+- **P3.2** [`tools.cs:547`] `--cpus <N>` no validation — Spectre.Console.Cli accepts 0/negative/huge. Add `Validate()` to bound `[1, 1024]`.
+- **P3.3** [`tools.cs:583-590`] No retry on `docker pull` transient failures. Polly-style 3-attempt backoff for local-dev resilience.
+- **P3.4** [`tools.cs:708`] `catch (Exception ex)` in `ReadLinuxBaseImage` swallows root cause. Narrow to `JsonException`/`IOException`.
+- **P3.5** [`docker/binding-generator.Dockerfile:33-36`] `dotnet-install.sh` curl-pipe without checksum. Microsoft signs the script but the layer doesn't verify. Pin SHA or use `mcr.microsoft.com/dotnet/sdk:10.0` as base on top of linux-builder.
+- **P3.6** [`docker/binding-generator.Dockerfile:95-100`] Smoke check error message unfriendly when `SDL2.exports` is missing. Wrap in explicit bash check with descriptive error.
+- **P3.7** [`Targets/GenerateBindings/Sdl2CoreGenerationConfig.cs:28-31`] `ExcludedFunctionNames` declared `IReadOnlySet<string>` but initialized as mutable `HashSet`. Use `FrozenSet<string>` (.NET 8+) for honest immutability + faster `Contains` on the hot translator filter path.
+- **P3.8** [`build/_build/Host/Cake/CakeFileSystemExtensions.cs:41-53`] `WriteAllTextAsync` ignores `CancellationToken`. Signature lies; honour it.
+- **P3.9** [`Targets/GenerateBindings/HeaderSet/HeaderSetResolver.cs:194-219`] `ExcludedHeaders` defensive cruft — `SDL_opengles2_*` sub-headers are already unreachable via the umbrella exclusion of `SDL_opengles2.h`. Either remove or document why defensive listing is preferred.
+- **P3.10** [`Targets/GenerateBindings/Emitting/PreviewEmitter.cs:52`] `unsafe partial` modifiers on emitted class without any unsafe ops or partial extensions. Until/unless used, drop.
+- **P3.11** [`build/_build.Tests/Unit/Targets/GenerateBindings/Parsing/CppAstParseRunnerTests.cs:32`] Doesn't assert `SystemIncludeFolders` ordering (synthetic-first, vcpkg-second is correctness-critical per production comment).
+- **P3.12** [`build/_build.Tests/Unit/Targets/GenerateBindings/Sdl2CoreGenerationConfigTests.cs`] Pins record shape, not behaviour. After PSTH-D manifest centralization, tests should assert the config is loadable from manifest and validates correctly.
+- **P3.13** [`build/_build.Tests/Scenarios/GenerateBindings/GenerateBindingsTaskScenarioTests.cs`] Doesn't cover orchestration past parsing (validator integration, neutral-empty guard, write loop). The 3 fail-closed scenarios are the only coverage; happy-path is manual `tools.cs generate-bindings` smoke only.
+
+### Sound (no slip — verified)
+
+The following are confirmed working and should not be re-flagged in a future review:
+
+- ADR-002 task-orchestrator pattern preserved — no `Runner` / `Pipeline` / `Operation` wrappers reintroduced.
+- No `[IsDependentOn]` snuck back onto Cake tasks; sequential dispatch lives at the caller boundary (`docker/binding-generator-entrypoint.sh`, `tools.cs setup` host-side).
+- Dynapi resolution is vcpkg-only — no WebFetch fallback, no vendored copy.
+- BuildKit cache mount semantics correctly limited to local builds (not CI) — verified against [docs.docker.com/build/cache/invalidation](https://docs.docker.com/build/cache/invalidation/) and [depot.dev BuildKit cache in CI](https://depot.dev/blog/how-to-use-buildkit-cache-mounts-in-ci).
+- ADR-004 trio pin (CppAst 0.24.0 + libclang 20.1.2 + libClangSharp 20.1.2) honoured at run time (smoke logged `clang version 20.1.2`).
+- `ParseDiagnosticFormatter` thread-safe (immutable `readonly string` field, pure format method).
+- `CppParser.ParseFile` thread-safe — each call creates its own `CXIndex.Create()` per call; no static mutable state. Source: [CppAst.NET/src/CppAst/CppParser.cs](https://github.com/xoofx/CppAst.NET/blob/main/src/CppAst/CppParser.cs). PLINQ outer-view parallelism is structurally safe.
+- slopwatch clean (0 issues) per project exclude list.
+
+### Header strategy correction note (linked from PSTH-A retraction and §"Header set rules")
+
+The original Stage 1 plan assumed SDL.h-exclusion would not drop public surface because "every symbol it would surface is also declared in one of the headers it includes." This assumption is **false**: 5 SDL2 base functions (`SDL_Init`, `SDL_InitSubSystem`, `SDL_QuitSubSystem`, `SDL_WasInit`, `SDL_Quit`) are declared **only** in `SDL.h` (SDL2 release-2.32.10, lines 145, 162, 184, 200, 224). SDL2 monolithic API style differs from SDL3's modular `SDL_init.h`. Maintainer correction (2026-05-16): introduce a `Sdl2CoreGenerationConfig.RequiredFunctions` fallback list — hand-curated P/Invoke declarations (name + return type + parameter list) for symbols the parse loop cannot reach because their declaring header is excluded from the header set. The translator merges this list into the Neutral view's emission set. Visual-organisation nice-to-have: render the fallback declarations at the top of the emitted file (SDL2-CS convention) but not load-bearing — generated code is rarely human-reviewed. Stage 2 PSTH-D may migrate the list into `manifest.json package_families[]` for declarative cross-family management.
+
+### Sequencing for these review findings
+
+P0 and P1 land in a **follow-up slice** named "Stage 1 Task 3.5 — Post-Implementation Review Fixes." This slice fixes the wire-format bugs and the determinism/concurrency issues before Stage 1 Task 4/5 work begins, treating the corrections as if they were part of Task 3.5 from the start.
+
+P2 design items overlap with PSTH-A through PSTH-G refactor scope; group with the family-architecture slice where natural. P2 stale-comment items go into PSTH-F (code-side doc-reference cleanup).
+
+P3 polish bundles into a separate cleanup slice.
+
+The current dirty surface for Stage 1 Task 3.5 **must not commit in its present form**. Two paths considered:
+
+- **Path A**: Reset the dirty surface back to `c00a2cb` baseline, re-implement on top of the review findings (clean history). High effort.
+- **Path B (recommended)**: Apply P0 and P1 fixes directly into the dirty surface as if they were part of Task 3.5 from the start, then commit Task 3.5 + corrections as a single landing. P2 and P3 follow as subsequent slices.
 
 ---
 

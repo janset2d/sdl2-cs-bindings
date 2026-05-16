@@ -2,6 +2,8 @@
 
 **Status (2026-05-15):** active binding-generator workstream. Strategy brief, architecture design spec, and Stage 1 implementation plan are all accepted and aligned. CppAst remains the selected toolchain (ADR-004); the generator is hosted inside the Cake build host (Cake-host fold, 2026-05-15 revision); generation runs Linux-canonical from a pinned Docker container; `SDL_syswm.h` typed-union layout is deferred to Stage 2; SDL3 binding generation is gated on PD-7. ClangSharp remains the documented migration path if CppAst's maintenance trade-off changes.
 
+**Local loop (precursor, Stage 1 Task 3.5):** `dotnet run --file tools.cs -- generate-bindings` runs the Cake `GenerateBindings` target inside the pinned `linux-builder` derived container, producing spike-style preview output under `artifacts/generated-bindings-preview/sdl2-core/` (gitignored). Production-location flag-flip to `src/SDL2.<Family>/Generated/` lands at Stage 1 Task 7. Design + plan: [`../superpowers/specs/2026-05-15-binding-generator-local-output-loop-design.md`](../superpowers/specs/2026-05-15-binding-generator-local-output-loop-design.md) + [`../superpowers/plans/2026-05-15-binding-generator-local-output-loop.md`](../superpowers/plans/2026-05-15-binding-generator-local-output-loop.md).
+
 This folder owns the binding auto-generation knowledge base for Phase 4. The root keeps the workstream index and the active strategy brief; historical research and spike evidence live under `research/`. The companion design spec and Stage 1 implementation plan live under `../superpowers/specs/` and `../superpowers/plans/` per the project's plan-doc lifecycle convention — they retire when Stage 1 implementation ships.
 
 ## Folder Layout
@@ -13,6 +15,8 @@ This folder owns the binding auto-generation knowledge base for Phase 4. The roo
 | [`research/`](research/) | Research evidence, feasibility analysis, spike findings, and onboarding context that support the strategy brief. |
 | [`../superpowers/specs/2026-05-14-binding-generator-architecture-design.md`](../superpowers/specs/2026-05-14-binding-generator-architecture-design.md) | Architecture design spec (revised 2026-05-15) — temporary, retires when Stage 1 ships. |
 | [`../superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md`](../superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md) | Stage 1 implementation plan (revised 2026-05-15) — temporary, retires when Stage 1 ships. |
+| [`../superpowers/specs/2026-05-15-binding-generator-local-output-loop-design.md`](../superpowers/specs/2026-05-15-binding-generator-local-output-loop-design.md) | Stage 1 Task 3.5 design spec for the local-output-loop precursor slice — temporary, retires when the slice ships. |
+| [`../superpowers/plans/2026-05-15-binding-generator-local-output-loop.md`](../superpowers/plans/2026-05-15-binding-generator-local-output-loop.md) | Stage 1 Task 3.5 implementation plan for the local-output-loop slice — temporary, retires when the slice ships. |
 | [`../playbook/binding-generator-maintenance.md`](../playbook/binding-generator-maintenance.md) | In-progress maintenance playbook for platform macro catalogs, generated stamps, and overlay coupling. |
 
 ## Reading Order

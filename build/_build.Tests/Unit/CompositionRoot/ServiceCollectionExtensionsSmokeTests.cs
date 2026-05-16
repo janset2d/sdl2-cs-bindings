@@ -2,6 +2,7 @@
 
 using Build.Data;
 using Build.Targets.ConsolidateHarvest;
+using Build.Targets.GenerateBindings;
 using Build.Targets.Harvest;
 using Build.Targets.NativeSmoke;
 using Build.Targets.PackageConsumerSmoke;
@@ -90,6 +91,22 @@ public sealed class ServiceCollectionExtensionsSmokeTests
         // PublishStagingTask is discovered by Cake; AddPublishStaging registers
         // INuGetFeedClient itself and the publish-stage collaborators it owns.
         await AssertAllRegisteredTypesResolve(services => services.AddPublishStaging());
+    }
+
+    [Test]
+    public async Task AddGenerateBindings_Should_Register_All_Collaborator_Types()
+    {
+        // GenerateBindingsTask is discovered by Cake via [TaskName]; AddGenerateBindings
+        // registers the parser/header/validator collaborators that the task injects.
+        // AddData() chains in IDynapiManifestRepository which GenerateBindingsTask also
+        // consumes — Program.cs production order calls both, the smoke must mirror that
+        // dependency to certify the feature module's real composition. PreviewEmitter
+        // is a static utility — not registered.
+        await AssertAllRegisteredTypesResolve(services =>
+        {
+            services.AddData();
+            services.AddGenerateBindings();
+        });
     }
 
     [Test]

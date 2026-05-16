@@ -45,6 +45,8 @@ app.Configure(config =>
     config.AddCommand<BuildCommand>("build");
     config.AddCommand<SetupCommand>("setup");
     config.AddCommand<CiSimCommand>("ci-sim");
+    config.AddCommand<GenerateBindingsCommand>("generate-bindings")
+        .WithDescription("Generates Stage 1 SDL2.Core preview bindings inside the linux-builder container.");
 });
 return await app.RunAsync(args);
 
@@ -526,6 +528,222 @@ public sealed class CiSimCommand : AsyncCommand<CiSimSettings>
         if (exitCode != 0)
             AnsiConsole.MarkupLine($"[yellow]Inspect failing logs under[/] [cyan]{Markup.Escape(logDir)}[/].");
         return exitCode;
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────
+// GenerateBindings command — Stage 1 scratch loop orchestration
+// ──────────────────────────────────────────────────────────────────
+
+public sealed class GenerateBindingsSettings : CommandSettings
+{
+    [CommandOption("--rebuild-image")]
+    [Description("Pass --no-cache to docker build, forcing full image rebuild (re-runs Layer C-F including vcpkg install).")]
+    [DefaultValue(false)]
+    public bool RebuildImage { get; init; }
+
+    [CommandOption("--cpus <N>")]
+    [Description("Number of CPUs to dedicate to the container (default: host CPU count). On WSL2 the real ceiling is .wslconfig [wsl2] processors=N — adjust there first if the host VM is the bottleneck.")]
+    public int? Cpus { get; init; }
+
+    [CommandOption("--memory <SIZE>")]
+    [Description("Memory limit for the container (e.g. '8g', '4096m'). Default: unlimited (host max).")]
+    public string? Memory { get; init; }
+}
+
+public sealed class GenerateBindingsCommand : AsyncCommand<GenerateBindingsSettings>
+{
+    private const string ImageTag = "janset-binding-generator:focal-latest";
+    private const string OutputRelativePath = "artifacts/generated-bindings-preview/sdl2-core";
+
+    protected override async Task<int> ExecuteAsync(CommandContext ctx, GenerateBindingsSettings settings, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var repoRoot = await Shared.ResolveRepoRootAsync();
+
+        // [1] Validate docker daemon reachable.
+        var dockerProbe = await CaptureRunAsync("docker", ["version", "--format", "{{.Server.Version}}"], cancellationToken);
+        if (dockerProbe.ExitCode != 0)
+        {
+            AnsiConsole.MarkupLine("[red]Docker daemon not reachable.[/] Start Docker Desktop / dockerd, then retry.");
+            return 66;
+        }
+        AnsiConsole.MarkupLine($"[green]Docker daemon ready[/] (server {Markup.Escape(dockerProbe.StdOut.Trim())}).");
+
+        // [2] Resolve BASE_IMAGE from build/manifest.json runtimes[linux-x64].container_image.
+        var baseImage = ReadLinuxBaseImage(repoRoot);
+        if (string.IsNullOrWhiteSpace(baseImage))
+        {
+            AnsiConsole.MarkupLine("[red]Could not resolve BASE_IMAGE from build/manifest.json runtimes[linux-x64].container_image.[/]");
+            return 1;
+        }
+        AnsiConsole.MarkupLine($"[blue]BASE_IMAGE:[/] [cyan]{Markup.Escape(baseImage!)}[/]");
+
+        // [3] docker pull ${BASE_IMAGE} to refresh mutable tag.
+        AnsiConsole.MarkupLine("[blue]Pulling base image...[/]");
+        var pullExit = await StreamRunAsync("docker", ["pull", baseImage!], cancellationToken);
+        if (pullExit != 0)
+        {
+            AnsiConsole.MarkupLine($"[red]docker pull failed with exit code {pullExit}.[/]");
+            return pullExit;
+        }
+
+        // [4] docker inspect to capture resolved digest for audit trail.
+        var inspect = await CaptureRunAsync("docker", ["inspect", "--format={{index .RepoDigests 0}}", baseImage!], cancellationToken);
+        var containerDigest = inspect.StdOut.Trim();
+        if (string.IsNullOrWhiteSpace(containerDigest))
+        {
+            AnsiConsole.MarkupLine("[yellow]Could not capture base image digest; continuing without audit-trail digest.[/]");
+            containerDigest = string.Empty;
+        }
+        else
+        {
+            AnsiConsole.MarkupLine($"[blue]Base image digest:[/] [cyan]{Markup.Escape(containerDigest)}[/]");
+        }
+
+        // [4b] Resolve vcpkg submodule commit so the Dockerfile clones vcpkg at the
+        // repo's pinned ref. Stable across parent-repo commits that don't touch the
+        // submodule — keeps Layer C's image cache hot.
+        var vcpkgCommitProbe = await CaptureRunAsync("git", ["rev-parse", "HEAD:external/vcpkg"], cancellationToken, workingDirectory: repoRoot);
+        if (vcpkgCommitProbe.ExitCode != 0 || string.IsNullOrWhiteSpace(vcpkgCommitProbe.StdOut))
+        {
+            AnsiConsole.MarkupLine("[red]Failed to resolve vcpkg submodule commit via 'git rev-parse HEAD:external/vcpkg'.[/]");
+            AnsiConsole.MarkupLine($"[red]{Markup.Escape(vcpkgCommitProbe.StdErr.Trim())}[/]");
+            return 1;
+        }
+        var vcpkgCommit = vcpkgCommitProbe.StdOut.Trim();
+        AnsiConsole.MarkupLine($"[blue]vcpkg submodule commit:[/] [cyan]{Markup.Escape(vcpkgCommit)}[/]");
+
+        // [5] docker build the derived binding-generator image. vcpkg state is
+        // baked at build time (Layer E of binding-generator.Dockerfile).
+        AnsiConsole.MarkupLine("[blue]Building binding-generator image (vcpkg install runs at image build time)...[/]");
+        var buildArgs = new List<string>
+        {
+            "build",
+            "-t", ImageTag,
+            "--build-arg", $"BASE_IMAGE={baseImage}",
+            "--build-arg", $"VCPKG_COMMIT={vcpkgCommit}",
+            "-f", "docker/binding-generator.Dockerfile",
+        };
+        if (settings.RebuildImage)
+        {
+            buildArgs.Add("--no-cache");
+        }
+        buildArgs.Add(".");
+        var buildExit = await StreamRunAsync("docker", buildArgs, cancellationToken, workingDirectory: repoRoot);
+        if (buildExit != 0)
+        {
+            AnsiConsole.MarkupLine($"[red]docker build failed with exit code {buildExit}.[/]");
+            return buildExit;
+        }
+
+        // [6] Ensure host bind-mount target exists.
+        var outputDir = Path.Combine(repoRoot, OutputRelativePath);
+        Directory.CreateDirectory(outputDir);
+
+        // [7] docker run. ENTRYPOINT is binding-generator-entrypoint.sh, which
+        // runs only the GenerateBindings Cake target — vcpkg state is already
+        // baked into the image (Layer E). The bind-mount target equals the
+        // path the Cake task writes to inside the container; without matching
+        // paths, writes would land in the ephemeral container filesystem and
+        // never reach the host.
+        AnsiConsole.MarkupLine("[blue]Running GenerateBindings target inside container...[/]");
+        var cpus = settings.Cpus ?? Environment.ProcessorCount;
+        AnsiConsole.MarkupLine($"[blue]Container CPU allocation:[/] [cyan]{cpus}[/]"
+            + (settings.Memory is not null ? $" [blue]memory:[/] [cyan]{Markup.Escape(settings.Memory)}[/]" : string.Empty));
+
+        var runArgs = new List<string>
+        {
+            "run", "--rm",
+            "--cpus", cpus.ToString(CultureInfo.InvariantCulture),
+            "-v", $"{outputDir}:/workspace/{OutputRelativePath.Replace('\\', '/')}",
+            "-e", $"CONTAINER_DIGEST={containerDigest}",
+            "-e", "REPO_ROOT=/workspace",
+            "-e", "RID=linux-x64",
+        };
+        if (!string.IsNullOrWhiteSpace(settings.Memory))
+        {
+            runArgs.AddRange(["--memory", settings.Memory]);
+        }
+        runArgs.Add(ImageTag);
+
+        var runExit = await StreamRunAsync("docker", runArgs, cancellationToken);
+        if (runExit != 0)
+        {
+            AnsiConsole.MarkupLine($"[red]Container run exited with code {runExit}.[/]");
+            return runExit;
+        }
+
+        AnsiConsole.MarkupLine($"[green]Generation complete.[/] Output: [cyan]{Markup.Escape(outputDir)}[/]");
+        return 0;
+    }
+
+    private static string? ReadLinuxBaseImage(string repoRoot)
+    {
+        var manifestPath = Path.Combine(repoRoot, "build", "manifest.json");
+        if (!File.Exists(manifestPath))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var stream = File.OpenRead(manifestPath);
+            using var doc = JsonDocument.Parse(stream);
+            if (!doc.RootElement.TryGetProperty("runtimes", out var runtimes))
+            {
+                return null;
+            }
+            foreach (var runtime in runtimes.EnumerateArray())
+            {
+                if (runtime.TryGetProperty("rid", out var rid) &&
+                    rid.GetString() == "linux-x64" &&
+                    runtime.TryGetProperty("container_image", out var image))
+                {
+                    return image.GetString();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            AnsiConsole.MarkupLine($"[red]Manifest parse error:[/] {Markup.Escape(ex.Message)}");
+        }
+        return null;
+    }
+
+    private static async Task<(int ExitCode, string StdOut, string StdErr)> CaptureRunAsync(
+        string executable, IEnumerable<string> args, CancellationToken cancellationToken, string? workingDirectory = null)
+    {
+        var stdOut = new StringBuilder();
+        var stdErr = new StringBuilder();
+        var cmd = Cli.Wrap(executable)
+            .WithArguments(args)
+            .WithValidation(CommandResultValidation.None)
+            .WithStandardOutputPipe(PipeTarget.ToStringBuilder(stdOut))
+            .WithStandardErrorPipe(PipeTarget.ToStringBuilder(stdErr));
+        if (workingDirectory is not null)
+        {
+            cmd = cmd.WithWorkingDirectory(workingDirectory);
+        }
+        var result = await cmd.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+        return (result.ExitCode, stdOut.ToString(), stdErr.ToString());
+    }
+
+    private static async Task<int> StreamRunAsync(
+        string executable, IEnumerable<string> args, CancellationToken cancellationToken, string? workingDirectory = null)
+    {
+        var cmd = Cli.Wrap(executable)
+            .WithArguments(args)
+            .WithValidation(CommandResultValidation.None)
+            .WithStandardOutputPipe(PipeTarget.ToDelegate(line => AnsiConsole.WriteLine(line)))
+            .WithStandardErrorPipe(PipeTarget.ToDelegate(line => AnsiConsole.WriteLine(line)));
+        if (workingDirectory is not null)
+        {
+            cmd = cmd.WithWorkingDirectory(workingDirectory);
+        }
+        var result = await cmd.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+        return result.ExitCode;
     }
 }
 

@@ -1,3 +1,4 @@
+using Build.Data.BindingGeneration.Models;
 using Build.Host.Cake;
 using Cake.Core;
 using Cake.Core.IO;

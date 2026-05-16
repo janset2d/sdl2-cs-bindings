@@ -1,4 +1,5 @@
 using Build.Data.BindingGeneration;
+using Build.Data.BindingGeneration.Models;
 using Build.Host.Cake;
 using Build.Tests.Fixtures;
 

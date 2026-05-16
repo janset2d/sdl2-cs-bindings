@@ -1,8 +1,10 @@
 # Binding Generator Local Output Loop — Stage 1 Slice Design
 
-> **Status:** Draft (2026-05-15).
+> **Status:** Implementation complete 2026-05-16 (Tasks 1-11). Task 11.5 (AST inline filter + `-U__has_builtin` restoration + dynapi cross-check validator) pending — see [`../plans/2026-05-15-binding-generator-local-output-loop.md`](../plans/2026-05-15-binding-generator-local-output-loop.md).
 > **Scope:** Precursor slice landing **before** Stage 1 Task 4 (binding model + merge policy) in `docs/superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md`. Establishes the local CppAst-output iteration loop so subsequent model + emitter design (Tasks 4-6) iterates against real generated artifacts instead of designing emitter shape blind.
 > **Approval status:** Section-by-section approved 2026-05-15 by Deniz; spec written for handoff to `writing-plans` skill.
+>
+> **2026-05-16 implementation deltas (per [`../../binding-autogen/research/binding-autogen-spike-findings.md`](../../binding-autogen/research/binding-autogen-spike-findings.md) §11):** Container smoke surfaced refinements beyond the 2026-05-15 design — per-header `CppParser.ParseFile` inner loop required for parse-view isolation (not just per-view macro switching), 5 mandatory + 3 defensive platform-stub headers necessary under `SyntheticHeaders/` (Linux container lacks Win/Apple/WinRT system headers), `SDL_DISABLE_*MMINTRIN_H` family defines short-circuit SDL_cpuinfo.h's GCC intrinsic chain, `-fdeclspec` enables clang to parse libegl-dev's `__declspec` annotations, `-U__has_builtin` restored with corrected mechanism, MacOS / iOS views gained `MAC_OS_X_VERSION_MIN_REQUIRED=1070` + `TARGET_OS_IPHONE=1`. HeaderSetResolver excludes umbrella / scaffolding / satellite / OpenGL-convenience / GL-sub-header / test-scaffolding categories. Sections §3.2, §5.2, §8 retain the original 2026-05-15 design shape; deviations are recorded in spike-findings §11 and the plan's Task 11.5.
 
 ## 1. Goal
 
@@ -274,15 +276,22 @@ EnsureVcpkgDependencies (existing target):
 GenerateBindings (new target; depends on EnsureVcpkgDependencies):
   - assert context.Runtime.Triplet starts with "linux-" → fail-closed otherwise
   - libclang version assertion (Section 8.2)
-  - resolve canonical headers:
+  - resolve canonical headers (with exclusion list — see §8.7):
         headerSet = HeaderSetResolver.ResolveSdl2CoreHeaders(
             context.Paths.GetVcpkgInstalledTripletDir(triplet),
+            context.Paths.BindingGeneratorSyntheticHeadersRoot,
             triplet)
-  - parse loop:
+  - parse loop (two-tier isolation):
         var parseResults = new List<CppAstParseResult>();
         foreach (var view in PlatformCatalog.CreateSdl2Catalog().ParseViews):
-            parseResults.Add(CppAstParseRunner.Parse(headerSet, view));
-  - translate:
+            // Inner per-header loop (Alimer pattern): each ParseFile call is one
+            // isolated libclang TU. ParseFiles(allHeaders) collapses to one TU and
+            // pollutes builtin table via SDL_cpuinfo.h's GCC intrinsic chain.
+            var compilations = new List<CppCompilation>();
+            foreach (var header in headerSet.Headers):
+                compilations.Add(CppParser.ParseFile(header.FullPath, options));
+            parseResults.Add(new CppAstParseResult(view, compilations));
+  - translate (with (SourceFile, Name) dedup across compilations):
         var model = CppAstToPreviewModel.Translate(parseResults);
   - assert neutral view non-empty:
         if (model.Views.First(v => v.Name == "Neutral").Functions.Count == 0)
@@ -294,6 +303,8 @@ GenerateBindings (new target; depends on EnsureVcpkgDependencies):
         context.EnsureDirectoryExists(outputRoot);
         await BindingGenerationRunner.WriteAsync(fileSet, outputRoot, context.CancellationToken);
 ```
+
+**Implementation note (2026-05-16):** The 2026-05-15 design's single `CppParser.ParseFiles(allHeaders)` call did not survive the production-scope smoke. The inner per-header loop is structural — `CppAst.CppParser.ParseFile(h)` internally delegates to `ParseFiles([h])`, so isolation comes from the **loop**, not the API name. Without it, libclang's builtin-function table collides with GCC 11's `<xmmintrin.h>` / `<emmintrin.h>` declarations transitively pulled via `SDL_cpuinfo.h`. Peer convergence: `amerkoleci/Alimer.Bindings.SDL` (CppAst) + `ppy/SDL3-CS` (ClangSharp) both loop per header. CppAstParseResult's `Compilation` field became `Compilations` (plural list); translator iterates with `(SourceFile, Name)` deduplication since umbrella-style transitive includes can surface the same function across multiple per-header parses.
 
 ### 5.3 Iteration cost profile
 
@@ -480,6 +491,60 @@ Stage 1 `GeneratedStamp` schema (already in dirty surface from Tasks 1-3) gains 
 | vcpkg port digest pin | vcpkg baseline already version-locks ports. |
 | Self-hosted runner | Silk.NET-style Windows-specific solution; Linux container approach side-steps the MSVC-header-drift class of problem. |
 
+### 8.7 Parse-time configuration surface (2026-05-16 production reality)
+
+The Stage 1 Task 3.5 container smoke locked the following parser-options + sysroot-shim + header-exclusion set. Each entry is part of the binding-generator's durable maintenance surface (mirrored in [`../../playbook/binding-generator-maintenance.md`](../../playbook/binding-generator-maintenance.md)).
+
+**CppParserOptions baseline** (`CppAstParseRunner.CreateOptions`):
+
+| Setting | Value | Rationale |
+| --- | --- | --- |
+| `ParseMacros` | `true` | Required by Task 4-5 emitter scope (constant + enum extraction). |
+| `ParserKind` | `CppParserKind.C` | SDL2 is a C library; `Cpp` mode triggers extra C++ rules SDL2 doesn't use. |
+| `TargetSystem` | `"linux"` | CppAst defaults to `"windows"` even on Linux host (verified `CppParserOptions.cs` ctor); without override, libclang triple becomes `x86_64-pc-windows-` and SDL_stdinc.h:357 `_MSC_VER` branch activates (`#include <sal.h>` fails). |
+| `SystemIncludeFolders` | `[SyntheticIncludeRoot, IncludeRoot]` | Synthetic shims **first** so libclang resolves stub stand-ins before falling back to vcpkg's SDL2 include root. |
+
+**Baseline defines** (`_baseDefines`):
+
+```text
+SDL_DECLSPEC=                          # suppress __declspec / __attribute__((visibility))
+SDL_DISABLE_IMMINTRIN_H=1              # short-circuit SDL_cpuinfo.h:118 #include <immintrin.h>
+SDL_DISABLE_MMINTRIN_H=1               # short-circuit MMX intrinsics include
+SDL_DISABLE_XMMINTRIN_H=1              # short-circuit SSE intrinsics include
+SDL_DISABLE_EMMINTRIN_H=1              # short-circuit SSE2 intrinsics include
+SDL_DISABLE_PMMINTRIN_H=1              # short-circuit SSE3 intrinsics include
+SDL_DISABLE_MM3DNOW_H=1                # short-circuit 3DNow! intrinsics include
+SDL_DISABLE_LSX_H=1                    # short-circuit LoongArch SX intrinsics
+SDL_DISABLE_LASX_H=1                   # short-circuit LoongArch ASX intrinsics
+SDL_DISABLE_ARM_NEON_H=1               # short-circuit ARM NEON intrinsics include
+```
+
+**Baseline additional arguments** (`-` prefix flags passed to libclang CLI):
+
+```text
+-fdeclspec                             # allow __declspec syntax in C mode (libegl-dev /usr/include/EGL/egl.h:150-166 under Windows-flavour views)
+-U__has_builtin                        # force _SDL_HAS_BUILTIN(x) → 0 so SDL_stdinc.h:822, 853 _SDL_size_*_overflow_builtin SDL_FORCE_INLINE branches never enter the AST (defense-in-depth complement to §11.5 AST inline filter)
+```
+
+**Per-view defines and undefines** come from [`PlatformCatalog.cs`](../../../build/_build/Targets/GenerateBindings/Parsing/PlatformCatalog.cs). Notable additions beyond the 2026-05-15 design:
+
+- **MacOS view:** `MAC_OS_X_VERSION_MIN_REQUIRED=1070` — satisfies `SDL_platform.h:117 #error SDL for Mac OS X only supports deploying on 10.7 and above`.
+- **iOS view:** `TARGET_OS_IPHONE=1` — takes SDL_platform.h's iOS branch (line 108), which self-defines `__IPHONEOS__` and skips the macOS version check.
+
+**Synthetic header set** (`build/_build/Targets/GenerateBindings/SyntheticHeaders/`, 5 mandatory + 3 defensive). Full listing and retirement criteria in the directory README and [`../../playbook/binding-generator-maintenance.md`](../../playbook/binding-generator-maintenance.md). Mandatory: `process.h`, `windows.h` (carries `typedef void* HWND;` family), `Inspectable.h` (`typedef struct _IInspectable IInspectable;`), `AvailabilityMacros.h`, `TargetConditionals.h`. Defensive: `winapifamily.h`, `directfb.h`, `os2.h` — driver macros never enabled in any view; cheap insurance against future view additions enabling them inadvertently. No business logic in any stub.
+
+**Header exclusion set** (`HeaderSetResolver.ExcludedHeaders`):
+
+| Category | Headers | Reason |
+| --- | --- | --- |
+| Umbrella | `SDL.h` | `#include`s every other SDL2 header; under per-header parsing it collapses isolation. |
+| Scaffolding | `begin_code.h`, `close_code.h` | Pragma-pack pseudo-headers, zero AST surface; `close_code.h` `#error`s standalone. |
+| Satellite umbrellas | `SDL_image.h`, `SDL_mixer.h`, `SDL_net.h`, `SDL_ttf.h` | Stage 1 scope is SDL2.Core. Satellite generation slices own these. |
+| Satellite prefix (`StartsWith`) | `SDL2_*` | Same: SDL2_gfx satellite namespace. |
+| Graphics-API convenience wrappers | `SDL_opengl.h`, `SDL_opengles.h`, `SDL_opengles2.h`, `SDL_egl.h` | Zero SDL_ functions (`grep extern DECLSPEC == 0`); convenience headers for users who want raw GL alongside SDL. Excluding them also sidesteps Apple OpenGLES/ES1/gl.h transitive pulls. |
+| GL/GLES sub-headers | `SDL_opengl_glext.h`, `SDL_opengles2_gl2.h`, `SDL_opengles2_gl2ext.h`, `SDL_opengles2_gl2platform.h`, `SDL_opengles2_khrplatform.h` | Require umbrella's type setup to parse standalone; with umbrellas excluded, these are defensively gated too. |
+| Test scaffolding (`StartsWith`) | `SDL_test*` | SDLTest_* helpers — internal test suite, not public binding surface. |
+
 ### 8.6 Peer comparison (research input 2026-05-15)
 
 | Dimension | ppy/SDL3-CS | SkiaSharp | Silk.NET | Janset (us) |
@@ -505,12 +570,11 @@ The slice ships with the following doc updates (same commit or immediate follow-
 | `docs/playbook/binding-generator-maintenance.md` | Add: (a) Trio Pinning table (Section 8.3); (b) `tools.cs generate-bindings` local loop section; (c) vcpkg cache volume hygiene (`docker volume rm janset-vcpkg-cache` to nuke); (d) `--rebuild-image` semantics; (e) "Post-Stage 1 trio revalidation" maintenance item (Section 10.1). |
 | `docs/binding-autogen/README.md` | Surface the slice in Stage 1 status block. |
 | `docs/playbook/local-development.md` | Cross-reference: "Generated binding loop: `tools.cs generate-bindings` — see binding-generator-maintenance.md". |
-| `docs/parking-lot.md` | Two new entries: "Post-Stage 1 CppAst trio revalidation against latest" + "Deep-dive: system header / glibc / sysroot impact on SDL2 AST byte-identity" (Section 10). |
 | `.gitignore` | Add `artifacts/generated-bindings-preview/` if not already covered by `artifacts/`. |
 
 ## 10. Deferred Follow-ups
 
-Items intentionally parked at this design's landing time. Cross-linked from `docs/parking-lot.md` and `docs/playbook/binding-generator-maintenance.md`.
+Items intentionally parked at this design's landing time. **This section is the canonical record for binding-autogen-internal deferrals.** `docs/parking-lot.md` is reserved for items entirely outside the binding-autogen package scope; deferrals tracked here stay inside the workstream and live alongside the plans and playbook. Cross-linked from `docs/playbook/binding-generator-maintenance.md`.
 
 ### 10.1 Post-Stage 1 CppAst trio revalidation against latest
 
@@ -536,6 +600,17 @@ Items intentionally parked at this design's landing time. Cross-linked from `doc
     - Pin linux-builder image to immutable `:focal-<yyyymmdd>-<sha>` tag in manifest?
     - Accept controlled drift with `.generated-stamp` audit trail?
 - **Why parked:** SDL2's public API uses portable C primitives whose typedef stability across glibc 2.28-2.39 is empirically high. The cost of investigating drift now without evidence of a real regression is higher than the cost of investigating later when a regression provides ground truth. Spike findings §6 documents the theoretical risk: "system headers are part of the distro. Pinning an Ubuntu image digest = pinning glibc + gcc-includes + .NET SDK + everything libclang reads. Single source of truth." This deep-dive operationalizes that observation when (and if) it materializes.
+
+### 10.3 Container CPU allocation tuning
+
+- **Trigger:** Operator observation 2026-05-16 — during `tools.cs generate-bindings`, the container runs at ~100% CPU utilisation on a single core while the host machine sits at ~3% utilisation. The parse loop is 8 views × ~55 headers = ~440 sequential libclang TU invocations; total wall time ≈30 minutes. Most of the work is CPU-bound and parallelisable across cores, but Docker Desktop / WSL2 default CPU allocation gives the container too narrow a slice of host CPU.
+- **Action:** Expose a CPU-allocation control on `tools.cs generate-bindings`. Two layers to consider:
+  - **Docker `--cpus <N>` forwarding** — pass through to `docker run`. Default to `Environment.ProcessorCount` (full host capacity) or a configurable percentage. Optional flags on the subcommand: `--cpus <N>` (absolute), `--cpu-share <pct>` (relative).
+  - **WSL2 `.wslconfig` processor pinning** — if Docker is WSL2-backed, the underlying WSL2 VM's `processors=N` limit is the real cap. Document the recommended `.wslconfig` setting in the playbook (operator-side fix; not solvable from inside `tools.cs`).
+  - **Parallel parse evaluation** — separate dimension. Currently `BindingGenerationRunner.RunAsync` loops parse views sequentially. Some parallelisation may be safe (each `CppParser.ParseFile` is one libclang TU; thread-safety of CppAst should be verified). Outer per-view loop is the obvious parallelisation point — 8 independent views. Inner per-header loop within a view is sequential because libclang TU resource recycling matters less when the outer loop already saturates cores.
+- **Status (2026-05-16, Stage 1 Task 3.5 follow-up):** `--cpus N` / `--memory SIZE` flags landed in `tools.cs GenerateBindingsCommand`; default forwards `Environment.ProcessorCount`. Outer per-view PLINQ parallelism shipped in `GenerateBindingsTask` (`AsParallel().AsOrdered().WithCancellation(...).Select(...).ToList()`). Smoke result: 8 views × ~55 headers in **4m 41s** with `--cpus 24` (sequential expected ~25–30 min). CppAst thread-safety was verified by source inspection — each `CppParser.ParseFile` creates its own `CXIndex.Create()` per call with no static mutable state ([CppAst.NET/src/CppAst/CppParser.cs](https://github.com/xoofx/CppAst.NET/blob/main/src/CppAst/CppParser.cs)); the structural claim is sound. A formal stress test (N×iterations of all 8 views under PLINQ saturation) is still parked — recorded in the Stage 1 plan's Post-Implementation Review Findings P1.5.
+- **Why parked (remaining work):** A small in-task stress test that runs 8 PLINQ-parallel parse iterations against a smoke fixture and asserts deterministic output across iterations. Plus a thread-safe log-accumulator refactor for `_log.Information(...)` inside the PLINQ lambda — Cake `ICakeLog` is not documented thread-safe, so the current implementation may interleave log lines (recorded as Stage 1 plan Post-Implementation Review Findings P1.4).
+- **Maintainer note (Deniz, 2026-05-16):** "container'a daha çok CPU dedicate edelim hatta VCPU gibi bir option olabilir tools.cs'de — şuan CPU utilization %100 in container ama host makina %3."
 
 ## 11. References
 

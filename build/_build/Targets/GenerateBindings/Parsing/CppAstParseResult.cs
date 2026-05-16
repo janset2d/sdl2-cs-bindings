@@ -2,6 +2,6 @@ using CppAst;
 
 namespace Build.Targets.GenerateBindings.Parsing;
 
-internal sealed record CppAstParseResult(
+public sealed record CppAstParseResult(
     PlatformParseView ParseView,
-    CppCompilation Compilation);
+    IReadOnlyList<CppCompilation> Compilations);

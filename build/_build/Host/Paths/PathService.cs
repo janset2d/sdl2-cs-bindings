@@ -33,6 +33,15 @@ public interface IPathService
     DirectoryPath GetVcpkgInstalledShareDir(string triplet);
     DirectoryPath GetVcpkgPackageShareDir(string triplet, string packageName);
     FilePath GetVcpkgPackageCopyrightFile(string triplet, string packageName);
+
+    /// <summary>
+    /// Glob pattern that matches SDL2's dynapi manifest under vcpkg's buildtree.
+    /// Expands to <c>{VcpkgRoot}/buildtrees/sdl2/src/*/src/dynapi/SDL2.exports</c>;
+    /// the wildcard matches the version-tagged extraction directory vcpkg creates
+    /// during a real (non-cache-hit) source build.
+    /// </summary>
+    string GetSdl2DynapiExportsGlob();
+
     DirectoryPath GetHarvestStageDir(string libraryName, string rid);
     DirectoryPath GetHarvestStageNativeDir(string libraryName, string rid);
     DirectoryPath GetHarvestStageLicensesDir(string libraryName, string rid);
@@ -75,6 +84,29 @@ public interface IPathService
     /// artifacts/temp/inspect/{rid}/{library}
     /// </summary>
     DirectoryPath GetInspectOutputLibraryDir(string rid, string libraryName);
+
+    /// <summary>
+    /// artifacts/generated-bindings-preview/ — Stage 1 scratch loop output root.
+    /// Temporary scaffolding; retires when Task 5/7 of the Stage 1 plan lands real
+    /// emitters and the production-location flag-flip to src/SDL2.{Family}/Generated/.
+    /// Do not consume outside build/_build/Targets/GenerateBindings/ or
+    /// tools.cs generate-bindings.
+    /// </summary>
+    DirectoryPath GenerateBindingsPreviewRoot { get; }
+
+    /// <summary>
+    /// artifacts/generated-bindings-preview/{family}/ — per-family scratch loop output.
+    /// See <see cref="GenerateBindingsPreviewRoot"/> for retirement criteria.
+    /// </summary>
+    DirectoryPath GetGenerateBindingsPreviewFamilyRoot(string family);
+
+    /// <summary>
+    /// build/_build/Targets/GenerateBindings/SyntheticHeaders/ — empty stub system
+    /// headers added to the parser's SystemIncludeFolders so SDL2 headers that
+    /// reference Windows / Apple / WinRT system headers parse cleanly on Linux.
+    /// See the README in that directory for retirement criteria.
+    /// </summary>
+    DirectoryPath BindingGeneratorSyntheticHeadersRoot { get; }
 
     /// <summary>
     /// artifacts/matrix/
@@ -284,6 +316,11 @@ public sealed class PathService : IPathService
         return GetVcpkgPackageShareDir(triplet, packageName).CombineWithFilePath("copyright");
     }
 
+    public string GetSdl2DynapiExportsGlob()
+    {
+        return VcpkgRoot.Combine("buildtrees/sdl2/src/*/src/dynapi/SDL2.exports").FullPath;
+    }
+
     public DirectoryPath GetHarvestStageDir(string libraryName, string rid)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(libraryName);
@@ -352,6 +389,18 @@ public sealed class PathService : IPathService
         ArgumentException.ThrowIfNullOrWhiteSpace(libraryName);
         return GetInspectOutputRidDir(rid).Combine(libraryName);
     }
+
+    public DirectoryPath GenerateBindingsPreviewRoot
+        => ArtifactsDir.Combine("generated-bindings-preview");
+
+    public DirectoryPath GetGenerateBindingsPreviewFamilyRoot(string family)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(family);
+        return GenerateBindingsPreviewRoot.Combine(family);
+    }
+
+    public DirectoryPath BindingGeneratorSyntheticHeadersRoot
+        => RepoRoot.Combine("build/_build/Targets/GenerateBindings/SyntheticHeaders");
 
     public DirectoryPath MatrixOutputRoot => ArtifactsDir.Combine("matrix");
 

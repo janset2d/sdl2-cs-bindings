@@ -2,7 +2,7 @@ using CppAst;
 
 namespace Build.Targets.GenerateBindings.Parsing;
 
-internal sealed class ParseDiagnosticFormatter
+public sealed class ParseDiagnosticFormatter
 {
     private readonly string _diagnosticLineSeparator = Environment.NewLine;
 

@@ -12,6 +12,8 @@
 
 **Approval discipline:** Per `AGENTS.md` §"Approval Gate", do NOT commit without explicit Deniz approval. Each "Commit" step in this plan means: present the summary + proposed message to Deniz, wait for "go / apply / proceed / başla / yap", then commit. Tasks 1-3 of the parent Stage 1 plan are still dirty in the working tree; commit boundary for this slice is the maintainer's call (single combined commit vs. two-commit split).
 
+**Implementation status (2026-05-16):** Tasks 1-11 complete. Smoke produces 9 files, 848 Neutral / 51 platform-only delta. Task 11.5 (AST inline filter + `-U__has_builtin` restore + dynapi cross-check validator) added below — Stage 1 production frictions uncovered work that did not fit the 2026-05-15 plan shape. See [`../../binding-autogen/research/binding-autogen-spike-findings.md`](../../binding-autogen/research/binding-autogen-spike-findings.md) §11 for the full friction log and retracted assumptions.
+
 ---
 
 ## File Structure
@@ -65,8 +67,9 @@ docs/superpowers/specs/2026-05-14-binding-generator-architecture-design.md  (seq
 docs/superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md   (insert precursor task ref)
 docs/playbook/binding-generator-maintenance.md            (trio table + post-Stage-1 revalidation + tools.cs loop)
 docs/binding-autogen/README.md                            (Stage 1 status block)
-docs/parking-lot.md                                       (two deferred items)
 ```
+
+> **2026-05-16 note:** Earlier drafts of this plan also touched `docs/parking-lot.md` for "deferred follow-ups." That was incorrect placement — parking-lot is reserved for items outside the binding-autogen package scope. Binding-autogen-internal deferrals belong in this slice's design spec §10 (canonical) and in [`2026-05-14-sdl2-core-binding-generator-stage-1.md`](2026-05-14-sdl2-core-binding-generator-stage-1.md) (Stage-1-staged deferrals). Task 12 below has been updated to drop the parking-lot step.
 
 ---
 
@@ -2032,6 +2035,107 @@ Note in the next commit message or a verification log: "Manual smoke pass 2026-0
 
 **No commit step — this is verification only.**
 
+### Task 11 Implementation Result (2026-05-16)
+
+Smoke passed after **9 iterative container runs** that surfaced and resolved frictions not anticipated in the 2026-05-15 plan. Full friction log + retracted assumptions in [`../../binding-autogen/research/binding-autogen-spike-findings.md`](../../binding-autogen/research/binding-autogen-spike-findings.md) §11.
+
+Final smoke evidence:
+
+- **9 files produced** on host: 8 `Platform/<View>/Commands.g.cs` + `parse-views.json`.
+- **Header set:** 88 vcpkg-installed SDL2 headers minus exclusion list (umbrella, scaffolding, satellite umbrellas, satellite prefix, GL convenience wrappers, GL sub-headers, test scaffolding) → 54–58 headers per view depending on transitive resolution.
+- **Function counts:** Neutral 848, WindowsDesktop +8, WinRT +12, GDK +12, Linux +2, MacOS 0, IOS +4, Android +13. Total cross-view union ≈ 899.
+- **Top sources** (Neutral): SDL_stdinc.h 132, SDL_video.h 97, SDL_render.h 81, SDL_joystick.h 58, SDL_gamecontroller.h 58.
+- **Zero satellite leakage** across all 8 views (no `IMG_*`/`Mix_*`/`TTF_*`/`SDLNet_*`/`SDL2_*` emitted).
+- **vs. SDL2-CS (506 distinct externs):** 307 gap audited — ~141 scope-skip (SDL_stdinc / SDL_atomic / SDL_assert omissions where .NET has managed equivalents), ~16 unintended emit (SDL_FORCE_INLINE inline helpers, addressed by Task 11.5), ~150 version-delta (SDL2-CS pinned to SDL 2.0.22 of Apr 2022; our pin SDL 2.32.10 spans 6 upstream feature releases).
+- **Wall time:** ~30 min cold run (8 views × ~55 headers = ~440 libclang TU invocations).
+- **Step 5 byte-identical determinism re-run skipped** because each smoke is ~30 min wall time and the maintainer chose to defer the determinism re-check to the same commit window that approves Task 11.5. Re-run remains a Task 13 acceptance gate.
+
+---
+
+## Task 11.5: AST Inline Filter + `-U__has_builtin` Restore + Dynapi Cross-Check Validator
+
+**Files:**
+
+- Modify: `build/_build/Targets/GenerateBindings/Model/CppAstToPreviewModel.cs` (translator filter)
+- Modify: `build/_build/Targets/GenerateBindings/Parsing/CppAstParseRunner.cs` (`-U__has_builtin` restore with correct comment)
+- New: `build/_build/Data/BindingGeneration/DynapiManifest.cs` (pure record — `IReadOnlySet<string> PublicSymbols` + source metadata)
+- New: `build/_build/Data/BindingGeneration/DynapiManifestParser.cs` (pure — Watcom `.exports` text → `DynapiManifest`)
+- New: `build/_build/Data/BindingGeneration/IDynapiManifestRepository.cs` + `DynapiManifestRepository.cs` (Cake-aware — ADR-003 contract-centric pattern; resolves manifest via vcpkg buildtree path then WebFetch fallback)
+- New: `build/_build/Validation/BindingGeneration/BindingPublicApiCoherenceValidator.cs` (root `Validation/` per existing convention — `HybridStaticOverlayValidator` sibling; behavior-first name per AGENTS.md §"Guardrail IDs are not code names")
+- Modify: `build/_build/Targets/GenerateBindings/BindingGenerationRunner.cs` (resolve manifest via repository, call validator post-emit)
+- Modify: `build/_build/Targets/GenerateBindings/ServiceCollectionExtensions.cs` (register repository + validator)
+- New: `build/_build.Tests/Unit/Data/BindingGeneration/DynapiManifestParserTests.cs`
+- New: `build/_build.Tests/Unit/Data/BindingGeneration/DynapiManifestRepositoryTests.cs` (FakeCakeWorld + buildtree fixture)
+- New: `build/_build.Tests/Unit/Validation/BindingGeneration/BindingPublicApiCoherenceValidatorTests.cs`
+- Modify: `build/_build.Tests/Unit/Targets/GenerateBindings/Parsing/CppAstParseRunnerTests.cs` (re-add `-U__has_builtin` assertion)
+
+This task closes three gaps surfaced after Task 11:
+
+### Subtask 11.5.A: Translator AST Inline Filter
+
+Background: 16 distinct `SDL_FORCE_INLINE` helpers leak into Neutral output (`SDL_RectEmpty`, `SDL_RectEquals`, `SDL_PointInRect`, `SDL_FRectEmpty`, `SDL_FRectEquals`, `SDL_FRectEqualsEpsilon`, `SDL_PointInFRect`, `SDL_memset4`, `SDL_memcpy4`, `SDL_size_add_overflow`, `SDL_size_mul_overflow`, `SDL_MostSignificantBitIndex32`, `SDL_HasExactlyOneBitSet32`, `SDL_SwapFloat`, `_SDL_size_add_overflow_builtin`, `_SDL_size_mul_overflow_builtin`). They are not exported by `libSDL2-2.0.so` — calling them would raise `EntryPointNotFoundException`. Peer state-of-the-art (Silk.NET `src/Core/Silk.NET.BuildTools/Cpp/Clang.cs:1347-1358`): hard-skip `FunctionDecl.IsInlined` cursors. CppAst analog: `function.Flags.HasFlag(CppFunctionFlags.Inline)`.
+
+- [ ] **Step 1:** Add filter to `CppAstToPreviewModel.ExtractFunctions`:
+
+```csharp
+if (!IsSdl2Header(function.SourceFile)
+    || string.IsNullOrWhiteSpace(function.Name)
+    || function.Flags.HasFlag(CppFunctionFlags.Inline))
+{
+    continue;
+}
+```
+
+- [ ] **Step 2:** Re-run smoke. Expect Neutral 848 → ~832 (16 fewer). Confirm none of the 16 known inline names appear in any view's emitted output. Confirm SDL_Swap16/32/64 (which leak only on MSVC; they're macros on Windows path) still absent.
+- [ ] **Step 3:** Add a translator unit test that asserts inline filtering — synthetic `CppCompilation` mock with one inline and one extern, verify only extern emitted. Translator unit tests are not yet part of the slice's test surface (per spec §7.1); this is the first.
+
+### Subtask 11.5.B: `-U__has_builtin` Restore with Correct Comment
+
+Background: The flag was added to `BaseAdditionalArguments`, then retired as "redundant" mid-iteration, then proven correct after peer evidence (ppy/SDL3-CS `SDL_stdinc.rsp`). Real mechanism: `SDL_stdinc.h:127-131` defines `_SDL_HAS_BUILTIN(x)` via `#ifdef __has_builtin`; undefining the macro forces `_SDL_HAS_BUILTIN(x) → 0`, which skips `SDL_stdinc.h:822, 853` `_SDL_size_*_overflow_builtin` SDL_FORCE_INLINE declarations entirely. Defense-in-depth complement to Subtask 11.5.A's AST filter — kills 2 of the 16 leaks at parse time. Side-effect audit: no public-API declarations affected.
+
+- [ ] **Step 1:** Add `-U__has_builtin` back to `CppAstParseRunner.BaseAdditionalArguments` with a comment block explaining the actual mechanism (SDL_stdinc.h lines + `_SDL_HAS_BUILTIN` macro, NOT the previously-incorrect "GCC intrinsic guards" claim).
+- [ ] **Step 2:** Re-add the test assertion in `CppAstParseRunnerTests`: `options.AdditionalArguments.Contains("-U__has_builtin")`.
+- [ ] **Step 3:** Re-run smoke. Confirm `_SDL_size_*_overflow_builtin` names no longer reach the AST (they should never appear in CppAst's `compilation.Functions`, even before the inline filter). The remaining 14 inline names continue to be filtered by Subtask 11.5.A.
+
+### Subtask 11.5.C: Dynapi Cross-Check Validator
+
+Background: SDL2 ships `src/dynapi/SDL2.exports` as the textual public-API manifest. Cross-platform single source of truth. Validator pattern: generator-emit ∩ manifest = OK; generator-emit \ manifest = false-positive (fail-closed); manifest \ generator-emit = false-negative (fail-closed). Peer evidence: ppy/SDL3-CS `check_generated_functions` uses identical pattern against SDL3's `sdl.json`.
+
+**Design decisions (locked 2026-05-16 by maintainer):**
+
+1. **Manifest source — repository abstraction (ADR-003 pattern).** Treat `SDL2.exports` as a build-host input contract, mirror the existing `ManifestRepository` / `VersionFileRepository` pattern under `Data/BindingGeneration/`:
+   - **`DynapiManifest`** (pure record) — `IReadOnlySet<string> PublicSymbols` plus source metadata (resolved path, manifest origin enum: `VcpkgBuildtree` / `WebFetch`).
+   - **`DynapiManifestParser`** (pure) — Watcom `.exports` text → `DynapiManifest`. Regex `^\+\+'_(\w+)'\.'SDL2\.dll'\.'\w+'$`; comment / blank lines skipped.
+   - **`IDynapiManifestRepository` + `DynapiManifestRepository`** (Cake-aware) — `LoadAsync(string sdl2Version, CancellationToken)` resolves vcpkg buildtree first (`external/vcpkg/buildtrees/sdl2/src/<sha>/src/dynapi/SDL2.exports`), falls back to WebFetch (`https://raw.githubusercontent.com/libsdl-org/SDL/release-<version>/src/dynapi/SDL2.exports`) when buildtree absent. Returns `Result<DynapiManifest, ManifestResolutionError>` so callers can decide fail-closed vs warn.
+
+2. **Validator placement — root `Validation/BindingGeneration/` directly.** Per existing build-host convention (`HybridStaticOverlayValidator`, `BindingVcpkgCoherenceValidator`, `BindingSymbolExistenceValidator` all sit under `build/_build/Validation/`). Second-consumer promotion criterion already met because Stage 2 PreFlight + Pack stages are on the plan. Name: `BindingPublicApiCoherenceValidator` (behavior-first per AGENTS.md §"Guardrail IDs are not code names"). Public surface: `ValidationReport Validate(IReadOnlySet<string> emittedSymbols, DynapiManifest manifest, SeverityProfile profile)`.
+
+3. **Severity profile.** `SeverityProfile` enum / record carries fail-closed thresholds per stage:
+   - `Stage1Generator` — fail-closed on false-positives (sızıntı), log false-negatives as warnings (Stage 1 iterative tuning of exclusion list / parse views is expected).
+   - `Stage2PreFlight` and `Stage2Pack` — fail-closed in both directions. Picked up by their respective task implementations when those slices land; Task 11.5 only wires `Stage1Generator`.
+
+- [ ] **Step 1:** Implement `DynapiManifest` pure record under `build/_build/Data/BindingGeneration/`.
+- [ ] **Step 2:** Implement `DynapiManifestParser` (pure) under same namespace; unit tests covering: simple `++'_FuncName'.'SDL2.dll'.'FuncName'`, comment lines (`#`), Watcom-conditional-disabled lines (`# ++`), blank lines, malformed entries (rejected with diagnostic).
+- [ ] **Step 3:** Implement `IDynapiManifestRepository` + `DynapiManifestRepository` (Cake-aware) under same namespace. Probe order: vcpkg buildtree path → WebFetch. Unit tests use `FakeCakeWorld` for the buildtree branch; WebFetch branch is integration-only (don't unit-test network calls).
+- [ ] **Step 4:** Implement `BindingPublicApiCoherenceValidator` under `build/_build/Validation/BindingGeneration/`. `SeverityProfile` record with the three profiles above. Method returns `ValidationReport` per existing `Validation/` shape. Unit tests assert FP / FN classification + severity threshold behaviour.
+- [ ] **Step 5:** Wire `BindingGenerationRunner.RunAsync` to:
+  - resolve `SDL2.exports` via `IDynapiManifestRepository.LoadAsync` (the runner already knows the vcpkg pin via `Sdl2CoreGenerationConfig` and the buildtree path via `IPathService`),
+  - collect emitted symbol names from the final `PreviewBindingModel`,
+  - invoke `BindingPublicApiCoherenceValidator.Validate(...) with SeverityProfile.Stage1Generator`,
+  - on fail-closed `ValidationReport`, throw `CakeException` BEFORE writing files (don't leave half-validated output on disk).
+- [ ] **Step 6:** Register both `IDynapiManifestRepository` and `BindingPublicApiCoherenceValidator` in `ServiceCollectionExtensions.AddGenerateBindings()`. Add the registrations to `ServiceCollectionExtensionsSmokeTests.AddGenerateBindings_Should_Register_All_Collaborator_Types`.
+- [ ] **Step 7:** Re-run smoke. Expected outcome: zero false-positives after Subtasks 11.5.A + 11.5.B; false-negative warnings (if any) annotate the run log and feed back into exclusion-list / view-defines tuning.
+
+### Subtask 11.5.D: Final Determinism Check
+
+- [ ] Re-run `tools.cs generate-bindings` twice; diff outputs; expect byte-identical content. This is Task 11 Step 5 deferred — defense-in-depth dynapi validator and inline filter both have to land before the determinism re-check is meaningful.
+
+### Open follow-ups (recorded 2026-05-16, NOT in Task 11.5 scope)
+
+- **Container CPU allocation tuning** — `tools.cs generate-bindings` currently bottlenecks on a single container core (~30 min wall time, 100% one-core in container vs. ~3% host). Expose a `--cpus <N>` flag (Docker passthrough) and document operator-side `.wslconfig processors=N` setting; consider parallelising the outer per-view loop after a CppAst thread-safety audit. Tracked in [`../specs/2026-05-15-binding-generator-local-output-loop-design.md`](../specs/2026-05-15-binding-generator-local-output-loop-design.md) §10.3. Likely Task 6 or Task 13 implementation window.
+
+**Commit step:** Single combined commit for Task 11.5 A+B+C+D together with the Task 1-11 dirty surface. Present summary + proposed message to Deniz; wait for explicit "go / apply / proceed / başla / yap"; then commit.
+
 ---
 
 ## Task 12: Documentation Updates
@@ -2042,7 +2146,6 @@ Note in the next commit message or a verification log: "Manual smoke pass 2026-0
 - Modify: `docs/superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md`
 - Modify: `docs/playbook/binding-generator-maintenance.md`
 - Modify: `docs/binding-autogen/README.md`
-- Modify: `docs/parking-lot.md`
 - Modify: `.gitignore`
 
 All updates per spec §9. Tasks 1-3 of the parent Stage 1 plan have already modified several of these docs; **append** the slice-specific content rather than overwriting existing edits.
@@ -2148,25 +2251,9 @@ In the Stage 1 status block, append:
 
 > "**Local loop (precursor, Stage 1 Task 3.5):** `dotnet run --file tools.cs -- generate-bindings` runs the Cake `GenerateBindings` target inside the pinned `linux-builder` derived container, producing spike-style preview output under `artifacts/generated-bindings-preview/sdl2-core/`. See [`docs/superpowers/specs/2026-05-15-binding-generator-local-output-loop-design.md`](../superpowers/specs/2026-05-15-binding-generator-local-output-loop-design.md)."
 
-- [ ] **Step 7: Update docs/parking-lot.md**
+- [ ] **Step 7: ~~Update docs/parking-lot.md~~ — RETIRED 2026-05-16**
 
-Add two entries to an appropriate section (or create a new "Binding Autogen Maintenance" section if none exists):
-
-```markdown
-### Binding Autogen — Post-Stage-1 CppAst Trio Revalidation
-
-- Status: `planned`
-- Trigger: Stage 1 Tasks 4-10 ship stable regeneration baseline.
-- Action: bump CppAst + libclang.runtime + libClangSharp.runtime to latest, re-validate AST byte-identity per ADR-004 trio rule.
-- Rationale + criteria: [`docs/superpowers/specs/2026-05-15-binding-generator-local-output-loop-design.md`](superpowers/specs/2026-05-15-binding-generator-local-output-loop-design.md) §10.1.
-
-### Binding Autogen — Sysroot / glibc / System Header AST Deep-Dive
-
-- Status: `planned`
-- Trigger: byte-identity regression appears across regen runs, OR Stage 2 satellite generation surfaces a sysroot-related parse difference, OR linux-builder monthly rebuild produces materially different output.
-- Action: investigate depth of system-header-drift risk; decide between explicit apt pin, immutable container tag, or controlled drift with stamp audit.
-- Rationale + criteria: [`docs/superpowers/specs/2026-05-15-binding-generator-local-output-loop-design.md`](superpowers/specs/2026-05-15-binding-generator-local-output-loop-design.md) §10.2.
-```
+Binding-autogen-internal deferrals are tracked in [`../specs/2026-05-15-binding-generator-local-output-loop-design.md`](../specs/2026-05-15-binding-generator-local-output-loop-design.md) §10 (canonical) and in [`2026-05-14-sdl2-core-binding-generator-stage-1.md`](2026-05-14-sdl2-core-binding-generator-stage-1.md) when Stage-1-staged. `docs/parking-lot.md` is reserved for items outside the binding-autogen package scope. No parking-lot update for this slice.
 
 - [ ] **Step 8: Build managed projects to confirm doc changes don't break links**
 
@@ -2187,7 +2274,6 @@ Cross-references the precursor slice (Task 3.5) into:
   - maintenance playbook (Trio Pinning table + post-Stage-1 revalidation
     item + local loop operator section + checklist additions)
   - binding-autogen README (Stage 1 status)
-  - parking-lot (two deferred items)
 
 .gitignore extends to cover artifacts/generated-bindings-preview/.
 
@@ -2280,7 +2366,7 @@ Ready for Stage 1 Task 4: real binding model + merge policy.
    - Spec §8.3 trio table → Task 12 §Trio Pinning.
    - Spec §8.4 stamp container.digest → deferred: spec notes this lands at Stage 1 Task 8 (PreFlight), not in this slice. Runner logs container digest from env var (Task 5) but does not write a stamp. ✓ aligned.
    - Spec §9 doc updates → Task 12.
-   - Spec §10 deferred follow-ups → Task 12 parking-lot.md + maintenance playbook entries.
+   - Spec §10 deferred follow-ups → spec §10 itself is the canonical record (binding-autogen-internal deferrals live alongside the workstream, not in `docs/parking-lot.md`); maintenance playbook §"Post-Stage-1 Trio Revalidation" cross-references it.
 
 2. **Placeholder scan:** No "TBD", "TODO", "implement later" left. The maintenance playbook's "0.25+ TBD | TBD" entry in the Trio Pinning table is correct (it's the canonical "not yet evaluated" marker, not a plan placeholder).
 

@@ -39,6 +39,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IHarvestManifestRepository, HarvestManifestRepository>();
         services.AddSingleton<INativePackageMetadataRepository, NativePackageMetadataRepository>();
         services.AddSingleton<IGeneratedStampRepository, GeneratedStampRepository>();
+        services.AddSingleton<IDynapiManifestRepository, DynapiManifestRepository>();
 
         return services;
     }

@@ -118,3 +118,11 @@ Use this when adding or updating an overlay:
 - [ ] CI passes on all affected platforms
 
 Keep this README current — it is the canonical registry of why each overlay exists.
+
+## Open Hardening
+
+### Overlay version drift detection (PSTH-H)
+
+Every overlay's `vcpkg.json` declares its own `"version"` (and sometimes `"port-version"`). The upstream port at the pinned vcpkg submodule commit has its own version. **No automated check today asserts they match.** When vcpkg submodule bumps advance the upstream port to a new version, our overlay can silently keep pinning the previous one — vcpkg uses the overlay version without warning.
+
+Tracked as **PSTH-H** in [`docs/superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md`](../docs/superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md). Target: new `OverlayPortVersionCoherenceValidator` under `build/_build/Validation/Vcpkg/`, wired into `PreFlightCheckTask`, new guardrail ID **G59**. Applies to all overlays (`sdl2-mixer`, `sdl2-gfx`, `mpg123`).
