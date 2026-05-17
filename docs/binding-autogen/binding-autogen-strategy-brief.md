@@ -2,7 +2,7 @@
 
 > Strategy brief accepted for Phase 4 planning. Durable toolchain policy is recorded in [ADR-004](../decisions/2026-05-14-binding-autogen-toolchain.md); remaining implementation details promote into AGENTS.md, release guardrails, and onboarding as Phase 4 ships. Retires when Phase 4 implementation completes and binding generator output supersedes `external/sdl2-cs`.
 >
-> **Status (2026-05-15):** Accepted strategy brief, revised 2026-05-15 to fold the generator into the Cake build host, lock Linux-container as the canonical determinism contract, correct the stub-strategy framing against ppy/SDL3-CS and the local CppAst spike evidence, defer `SDL_syswm.h` struct/union layout to Stage 2, and gate SDL3 work on PD-7 completion. Sections complete: Decision Hypothesis / WHY / HOW / WHAT / Plan Shape / Current Open Decisions / Decision Audit / Cross-Reference. See [`binding-autogen-onboarding.md`](research/binding-autogen-onboarding.md) for workstream entry point.
+> **Status (2026-05-17):** Accepted strategy brief, revised 2026-05-17 to fold in the multi-agent stabilization review and peer API-surface research. The generator remains Cake-hosted, Linux-canonical, CppAst-based, and Stage-2-deferred for `SDL_syswm.h`; the public API surface is now explicitly **internal raw ABI externs + public typed low-level API + friendly overloads** per [`binding-api-surface-strategy.md`](binding-api-surface-strategy.md). Corrections: SDL2 `SDL_bool` is int-backed, generated command classes keep class-level `unsafe`, compile-check is diagnostic until generated output is structurally complete, and missing native types require an emit/map/defer taxonomy instead of empty stubs.
 
 ## Decision Hypothesis
 
@@ -10,9 +10,9 @@ Phase 4 ships an auto-generated binding surface for SDL2 (core + all in-scope sa
 
 - pins CppAst 0.24.0 + libclang.runtime.linux-x64 20.1.2 + libClangSharp.runtime.linux-x64 20.1.2 (version-trio coupling per [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §7.6). Non-Linux runtime packages are intentionally omitted; the generator is **Linux-canonical** and fail-closed on any other host RID;
 - consumes vcpkg-installed canonical SDL headers via libclang controlled parse views (neutral + per-OS/backend tuple set — see "Multi-pass parsing strategy" below for the catalog), all executed inside a single Linux container per the ppy/SDL3-CS pattern, with platform-conditioned declarations attributed via `[SupportedOSPlatform]`. Platform separation uses **preprocessor macro switching only** — no `--target` cross-compile flags, no mingw-w64, no Apple SDK; SDL headers' own forward-declarations carry the cross-OS opaque types;
-- emits per-family generated `.g.cs` files committed to the repository, dual-shaped for `[LibraryImport]` (net7+) and `[DllImport]` (legacy TFMs) in a single emitter loop;
-- emits typed `readonly partial struct` handle types (`SDL_Window`, `SDL_Renderer`, etc.) — zero-cost over `IntPtr` at the wire, type-safe at compile time, AOT-trivial — matching the Alimer / Vortice / Silk.NET ecosystem convention for CppAst-based bindings;
-- emits friendly overloads (`string` / `ReadOnlySpan<byte>` / `out` / `ref` / `Span<T>`) alongside the raw P/Invoke layer in the same loop;
+- emits per-family generated `.g.cs` files committed to the repository, with the raw ABI extern layer kept `internal` and dual-shaped for `[LibraryImport]` (net7+) and `[DllImport]` (legacy TFMs) in a single emitter loop;
+- emits typed `readonly partial struct` handle types (`SDL_Window`, `SDL_Renderer`, etc.) — zero-cost over direct `IntPtr`/`nint` at the wire, type-safe at compile time, AOT-trivial — matching the Alimer / Vortice / Silk.NET ecosystem convention for generated low-level bindings;
+- emits public low-level wrappers plus friendly overloads (`string` / `ReadOnlySpan<byte>` / `out` / `ref` / `Span<T>`) over the internal raw ABI layer. Public raw `IntPtr` externs are explicitly out of v1 preview scope;
 - targets the full TFM matrix (`net10` / `net9` / `net8` / `netstandard2.0` / `net462`).
 
 The generator runs offline via a dedicated `regenerate-bindings.yml` workflow (manual trigger, auto-PR via peter-evans/create-pull-request, Silk.NET reference pattern) and locally via `tools.cs generate-bindings` (Docker orchestration: repo-root volume mount, vcpkg cache mount, Cake Release-publish step, the pinned `linux-builder` image). Docker is a **hard prerequisite** for the determinism contract; there is no host-OS fallback path. Two new release guardrails close the binding ↔ native coherence loop: a vcpkg-state coherence validator at PreFlight (catches "natives rebuilt but bindings not regenerated"), and a symbol-existence validator at Pack (catches "binding declares an unexported function").
@@ -111,6 +111,27 @@ The gap inverts at our committed scope. CppAst's single-codebase elasticity is t
 - [Silk.NET 3.0 generation proposal](https://github.com/dotnet/Silk.NET/blob/main/documentation/proposals/Proposal%20-%20Generation%20of%20Library%20Sources%20and%20PInvoke%20Mechanisms.md) explicitly delegates parsing to ClangSharp, demonstrating ClangSharp's credibility for heavyweight multi-graphics-lib scope. For our focused SDL2 + SDL3 scope, the Alimer/Vortice CppAst pattern is the proportionate choice; Silk.NET's pipeline is documented evidence that ClangSharp is the migration target when scope grows past CppAst's tolerance.
 
 **Migration door stays open.** If CppAst's libclang version-trio coupling becomes painful in practice (per [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §7.6 "Version-Trio Coupling is Real"), or if our scope shrinks to raw P/Invoke only and ClangSharp's leaner setup begins to dominate, the ClangSharp + ppy pattern is well-documented in [`binding-autogen-approaches.md`](research/binding-autogen-approaches.md) §2026-05-12 Source-Level Comparison. The generated `.cs` output format is the same on either side; migration is about the generator, not the output. Captured as a Risk row in Plan Shape below with explicit mitigation.
+
+### Binding API surface decision — internal raw, public typed, friendly overloads
+
+The public API surface is **not** "publish whatever raw P/Invoke CppAst can emit." Multi-agent review and peer research on 2026-05-17 converged on the following shape, now canonical in [`binding-api-surface-strategy.md`](binding-api-surface-strategy.md):
+
+1. Internal raw ABI externs carry `[LibraryImport]` / `[DllImport]`, exact entrypoint names, unsafe pointer signatures, and ABI-correct wire types.
+2. Public low-level SDL-owned types are generated as typed handles/enums/structs/callbacks; SDL-owned handles use zero-allocation `readonly partial struct` wrappers over `nint`, not public `IntPtr` aliases.
+3. Public low-level function wrappers and friendly overloads call the internal raw layer. `string` overloads are convenience and may allocate while encoding UTF-16 to UTF-8; `ReadOnlySpan<byte>` / pointer overloads provide the caller-controlled path.
+4. High-level owner wrappers (`Window`, `Renderer`, etc.) are a later layer and must not be confused with the generated low-level handle structs.
+
+Peer evidence:
+
+| Peer | Relevant choice | Local decision |
+| --- | --- | --- |
+| SkiaSharp | raw P/Invoke is internal; public API is wrapper-first with a native-handle escape hatch | Keep raw externs internal; expose native value through typed handles |
+| Silk.NET | public low-level surface with pointer/ref/span overloads; generated implementation machinery | Borrow span/count metadata; avoid SDL-unneeded vtable/source-generator complexity |
+| ppy/SDL3-CS | public raw `Unsafe_*` plus Roslyn friendly generator | Borrow friendly generation concept; emit directly from CppAst instead of adding consumer-side Roslyn generator |
+| Alimer.Bindings.SDL | CppAst + typed `readonly partial struct(nint)` handles | Borrow typed handle/value-object shape |
+| SDL2-CS | public `IntPtr`/`out`/`ref`/`[In]`/`[Out]` P/Invoke | Use as legacy oracle only; do not freeze its IntPtr-heavy public shape |
+
+The direct consequence: public `Raw.IntPtr`, public `Raw.Typed`, and public `Friendly` namespaces all shipping together are rejected for v1 preview. That would triple documentation, tests, compatibility, and migration burden. If advanced binding authors later need a raw package, it can be added separately as an explicitly unstable surface after API review.
 
 ### Why hosted in the Cake build host — not a standalone CLI tool
 
@@ -236,7 +257,7 @@ The generator implements all 11 emit rules in [`binding-autogen-feasibility.md`]
 | Rule 1 — Attribute | `[LibraryImport]` net7+, `[DllImport]` legacy, **dual-emit per function** via `#if NET7_0_OR_GREATER` in the same emitter loop |
 | Rule 2 — Opaque handles | **Typed `readonly partial struct Name(nint value)`** per the Decision Hypothesis lock. Alimer/Vortice ecosystem pattern, verified against [Alimer Handles.cs](https://raw.githubusercontent.com/amerkoleci/Alimer.Bindings.SDL/main/src/Alimer.Bindings.SDL/Generated/Handles.cs) and [Vortice.Vulkan Handles.cs](https://raw.githubusercontent.com/amerkoleci/Vortice.Vulkan/main/src/Vortice.Vulkan/Generated/Handles.cs) |
 | Rule 3 — Numeric IDs | Typed `enum Name : uint` / `enum Name : ulong` for SDL `*ID` types; per [Microsoft Learn — Best practices](https://learn.microsoft.com/en-us/dotnet/standard/native-interop/best-practices) "DO use .NET types that map closest to the native type" |
-| Rule 4 — UTF-8 strings | Triple overload (`byte*` / `ReadOnlySpan<byte>` / `string` w/ `StringMarshalling.Utf8`); emitted in same loop as raw P/Invoke (see "Friendly overloads" below). [Microsoft Learn — Custom marshalling source generation](https://learn.microsoft.com/en-us/dotnet/standard/native-interop/custom-marshalling-source-generation) for `Utf8StringMarshaller` semantics |
+| Rule 4 — UTF-8 strings | Public overload set: low-level `byte*`, `ReadOnlySpan<byte>` for pre-encoded UTF-8, and `string` convenience. `string` encodes UTF-16 to null-terminated UTF-8 and may allocate; span/pointer overloads are the control path. See "Public wrappers + friendly overloads" below and [`binding-api-surface-strategy.md`](binding-api-surface-strategy.md). |
 | Rule 5 — Boolean wire types | **SDL2 `SDL_bool` → int-backed enum/wrapper**; **SDL3 `bool` → 1-byte wrapper struct**. Never raw `bool`. Per [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) §2 Rule 5; SDL2/SDL3 ABI is genuinely different |
 | Rule 6 — Buffers | `Span<T>` / `ReadOnlySpan<T>` overloads + raw-pointer overload (hot path); `out T` for single-element output; never `Memory<T>` in P/Invoke |
 | Rule 7 — Callbacks | `delegate* unmanaged[Cdecl]<...>` + `[UnmanagedCallersOnly]`; never `Delegate` or `Marshal.GetFunctionPointerForDelegate` |
@@ -341,23 +362,33 @@ Validation rule (new G-guardrail candidate, see "Symbol-existence validation gua
 
 **Spike validation** ([`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §8.7 SDL2_image result): CppAst generated `SDL_image.h` into a separate image binding project while referencing a separate core-types project for core SDL concepts. Generated image output compiled, emitted 59 `IMG_*` extern declarations, emitted image-owned `ImgInitFlags` + opaque `ImgAnimation`, and reused core-owned `SDL_version` / `SDL_Surface` / `SDL_Texture` / `SDL_Renderer` / `SDL_RWops` through analyzer-clean managed names — **no duplicate core type declarations.** This is the topology pattern Plan Shape Stage 2 (SDL2 satellite sweep) generalizes. References: [ppy/SDL3-CS package structure](https://github.com/ppy/SDL3-CS) (separate `SDL3_image-CS`, `SDL3_mixer-CS`, `SDL3_ttf-CS` packages referencing `SDL3-CS` core).
 
-### Multi-TFM dual emit — full matrix, single emitter loop
+### Multi-TFM raw ABI emit — full matrix, single emitter loop
 
-Per [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) §2 Rule 1, every P/Invoke is emitted twice in one `foreach` iteration:
+Per [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) §2 Rule 1, every **internal raw ABI extern** is emitted twice in one `foreach` iteration:
 
 ```csharp
-internal static partial class SDL2
+internal static unsafe partial class Sdl2_Neutral
 {
 #if NET7_0_OR_GREATER
-    [LibraryImport(LibName, EntryPoint = "SDL_CreateWindow", StringMarshalling = StringMarshalling.Utf8)]
+    [LibraryImport(LibName, EntryPoint = "SDL_CreateWindow")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial SDL_Window SDL_CreateWindow(string title, int x, int y, int w, int h, SDL_WindowFlags flags);
+    internal static partial SDL_Window SDL_CreateWindow(
+        byte* title,
+        int x,
+        int y,
+        int w,
+        int h,
+        SDL_WindowFlags flags);
 #else
     [DllImport(LibName, EntryPoint = "SDL_CreateWindow",
-               CallingConvention = CallingConvention.Cdecl, ExactSpelling = true,
-               CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
-    public static extern SDL_Window SDL_CreateWindow(
-        [MarshalAs(UnmanagedType.LPUTF8Str)] string title, int x, int y, int w, int h, SDL_WindowFlags flags);
+               CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    internal static extern SDL_Window SDL_CreateWindow(
+        byte* title,
+        int x,
+        int y,
+        int w,
+        int h,
+        SDL_WindowFlags flags);
 #endif
 }
 ```
@@ -370,17 +401,19 @@ internal static partial class SDL2
 
 **`AllowUnsafeBlocks`** must be on for every generated `.csproj`. AOT-compatible flag (`IsAotCompatible=true`) applies only to net8+ TFMs — `netstandard2.0` / `net462` don't have the concept.
 
-### Friendly overloads — same emitter loop, no separate Roslyn extension
+### Public wrappers + friendly overloads — same generator, no separate Roslyn extension
 
-Friendly overloads are emitted **alongside** the raw P/Invoke, in the same iteration over each function. Pattern from [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §7.8 single-loop emit:
+Public low-level wrappers and friendly overloads are emitted from the same binding model as the internal raw ABI externs. They call the internal raw methods rather than exposing `[DllImport]` / `[LibraryImport]` publicly. Pattern from [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §7.8 single-loop emit:
 
 ```csharp
 foreach (var func in compilation.Functions.Where(InTargetHeader))
 {
-    EmitMultiTFMPInvoke(sb, func);                                                       // raw layer (above)
+    EmitInternalRawAbi(sb, func);                                                        // internal raw layer
+
+    EmitLowLevelWrapper(sb, func);                                                       // public typed low-level layer
 
     if (func.Parameters.Any(IsUtf8StringParam))                                          // Rule 4
-        EmitFriendlyStringOverload(sb, func);
+        EmitFriendlyUtf8Overloads(sb, func);
 
     if (HasArrayWithCountPattern(func))                                                  // Rule 6
         EmitSpanOverload(sb, func);
@@ -395,14 +428,14 @@ foreach (var func in compilation.Functions.Where(InTargetHeader))
 
 **Per-rule emission detail:**
 
-- **UTF-8 string overloads (Rule 4):** triple emit — `byte*` (hot path) / `ReadOnlySpan<byte>` (stackalloc) / `string` (via `StringMarshalling.Utf8` under LibraryImport, via `[MarshalAs(UnmanagedType.LPUTF8Str)]` under DllImport).
-- **Span overloads (Rule 6):** for `T*` + length patterns, emit `Span<T>` / `ReadOnlySpan<T>` overload + retain raw `T*` overload for hot paths. Use `[MarshalUsing(CountElementName = nameof(count))]` under LibraryImport.
-- **`out T` / `ref T` overloads (Rule 6):** for single-element output pointers (`int*` → `out int`), emit idiomatic overload + retain raw pointer overload.
+- **UTF-8 string overloads (Rule 4):** public overload set includes unsafe `byte*` low-level control, `ReadOnlySpan<byte>` for pre-encoded UTF-8, and `string` convenience. `string` encodes UTF-16 to null-terminated UTF-8 and may allocate; span/pointer overloads are the control path.
+- **Span overloads (Rule 6):** for `T*` + length patterns, emit `Span<T>` / `ReadOnlySpan<T>` overloads only when SDL does not retain the pointer after the call. Retain the low-level raw-pointer public wrapper for true zero-allocation callers.
+- **`out T` / `ref T` overloads (Rule 6):** for single-element output pointers (`int*` → `out int`), emit idiomatic overload + retain pointer wrapper.
 - **No `Marshal.GetFunctionPointerForDelegate`** — callbacks use `delegate* unmanaged[Cdecl]<...>` + `[UnmanagedCallersOnly]` per Rule 7 + [Microsoft Learn best practices](https://learn.microsoft.com/en-us/dotnet/standard/native-interop/best-practices) "DO prefer using function pointers and `[UnmanagedCallersOnlyAttribute]` as opposed to `Delegate` types."
 
-**Why not Roslyn source generator on top of raw output (ppy pattern).** Would work, but adds a second project + second mental model + second version-coordination story for no scope-trajectory gain — see WHY section above. CppAst emits friendly overloads directly because we can; ClangSharp couldn't.
+**Why not Roslyn source generator on top of raw output (ppy pattern).** Would work, but adds a second project + second mental model + second version-coordination story for no scope-trajectory gain — see WHY section above. CppAst emits public wrappers and friendly overloads directly because we can; ClangSharp/ppy needed the Roslyn generator because their raw source comes from ClangSharp.
 
-**`Utf8StringMarshaller` availability.** Lives in `System.Runtime.InteropServices.Marshalling` since `net7`. Under `netstandard2.0` / `net462` branches we hand-roll the byte-pinning marshal logic in the same emitter (~15 LoC per overload, generator-emitted, not consumer-side). See [Microsoft Learn — Custom marshalling source generation](https://learn.microsoft.com/en-us/dotnet/standard/native-interop/custom-marshalling-source-generation).
+The detailed API-surface policy, including why public raw `IntPtr` externs are rejected and when spans are allowed, is canonical in [`binding-api-surface-strategy.md`](binding-api-surface-strategy.md).
 
 ### Generation pipeline — separate workflow, manual trigger, auto-PR
 
@@ -883,6 +916,7 @@ The audit also explains why sibling docs can look directionally different: [`bin
 ### Binding-autogen workstream docs
 
 - [`binding-autogen-onboarding.md`](research/binding-autogen-onboarding.md) — LLM/human workstream entry point and required reading order.
+- [`binding-api-surface-strategy.md`](binding-api-surface-strategy.md) — canonical public API surface decision, peer matrix, internal raw/public typed/friendly layering, string/span/handle/`SDL_bool` policy.
 - [`binding-autogen-approaches.md`](research/binding-autogen-approaches.md) — tool survey, decision matrix, source-level comparison of ppy/SDL3-CS and Alimer.Bindings.SDL.
 - [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) — 11 emit rules, header/platform feasibility, symbol visibility, 7-layer testing strategy, D1-D11 open decisions.
 - [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) — SDL2_gfx ClangSharp + CppAst spike, runtime validation, platform-pass and SDL2_image shared-type follow-ups.

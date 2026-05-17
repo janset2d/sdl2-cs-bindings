@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>$(LatestDotNet)</TargetFramework>
+    <TargetFrameworks></TargetFrameworks>
+    <AssemblyName>SDL2.Core.CompileCheck</AssemblyName>
+    <RootNamespace>Janset.SDL2.CompileCheck</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <IsAotCompatible>false</IsAotCompatible>
+    <IsTrimmable>false</IsTrimmable>
+    <EnableAOTAnalyzer>false</EnableAOTAnalyzer>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\artifacts\generated-bindings-preview\sdl2-core\**\*.g.cs" />
+  </ItemGroup>
+</Project>

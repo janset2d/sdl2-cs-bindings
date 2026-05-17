@@ -31,5 +31,6 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Fixtures\Data\**\*.json" />
+    <EmbeddedResource Include="Fixtures\Data\**\*.h" />
   </ItemGroup>
 </Project>

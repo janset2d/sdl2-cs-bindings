@@ -28,12 +28,41 @@ Deniz decides every commit boundary. The plan suggests checkpoints at phase exit
 | **Phase 3A** | Rider-driven mass rename (Preview → real) | Rider-driven — Deniz executes mass rename, agent prepares rename map |
 | **Phase 3B** | BindingModel extension (5 new categories + BindingTypeRef) | Continues from 3A |
 | **Phase 3C** | TypeMappingPolicy + KnownUnsupportedDeclarationPolicy + CoreOwnedTypeMap | Continues from 3B |
-| **Phase 3D** | CppAstToBindingModel translator refactor | Continues from 3C |
+| **Phase 3C-prime** | Stabilization corrections from 2026-05-17 review: class-level unsafe preserved, compile-check diagnostic kept manual, fallback parameter uniqueness, SDL2 `SDL_bool` ABI correction, CppAst fixture matrix, external/native type taxonomy | Continues from 3C before structural emission |
+| **Phase 3D** | CppAstToBindingModel translator refactor | Continues from 3C-prime |
 | **Phase 3E** | 6 per-category emitters + BindingEmitter dispatcher + EmitContext | Continues from 3D |
 | **Phase 3F** | Friendly overloads + dual P/Invoke emit in CsCommandEmitter | Continues from 3E |
 | **Phase 3G** | Output wiring + smoke + peer-oracle visual diff | Continues from 3F |
 
 Suggested commit boundaries: end of Phase 1, end of Phase 2A, end of Phase 2D, end of Phase 3A, end of Phase 3D, end of Phase 3E, end of Phase 3G. Deniz overrides freely.
+
+---
+
+## 2026-05-17 stabilization and API-surface correction
+
+This plan now incorporates two review passes:
+
+1. **Generator stabilization review**: blind compiler, CppAst translator, interop/API, peer-oracle, build/validation, and red-team reviews after the class-level unsafe fix and compile-check project.
+2. **API surface research**: Silk.NET, ppy/SDL3-CS, SkiaSharp, SDL2-CS, Alimer-informed synthesis, and independent API-shape risk analysis.
+
+Canonical API-surface decision: [`../../binding-autogen/binding-api-surface-strategy.md`](../../binding-autogen/binding-api-surface-strategy.md).
+
+Corrections that override older snippets in this plan:
+
+- Generated command classes remain `internal static unsafe partial class Sdl2_<View>`. Dropping class-level `unsafe` was a Phase 3A regression.
+- Public raw `IntPtr` externs are not part of v1 preview. Raw ABI externs stay internal; public surface is typed low-level wrappers plus friendly overloads.
+- SDL2 `SDL_bool` maps to `int` at the raw ABI. SDL3 bool-like values keep a separate 1-byte policy.
+- `KnownUnsupportedDeclarationPolicy` is manifest/type-policy driven; C variadic fmt-only functions are not blanket-filtered. Explicit `va_list` / `FILE*` / non-portable C-runtime APIs must be deferred or mapped by taxonomy.
+- Missing native types are not fixed by empty struct stubs. SDL-owned structs require real layout; external types require explicit emit/map/defer policy.
+- Compile-check under `tests\binding-compile-check` is a diagnostic tripwire until generated output is structurally complete. Before any blocking gate, add a non-empty generated-file guard to avoid false green.
+
+Immediate execution order before Phase 3D structural emission:
+
+1. Fix duplicate unnamed fallback parameter names with index-aware naming.
+2. Correct SDL2 `SDL_bool` ABI mapping to `int`.
+3. Add tiny CppAst fixture headers for enum-backed typedefs, variadics, `va_list`, `FILE*`, opaque handles, POD structs, unions, Vulkan, and GDK.
+4. Define external/native type taxonomy.
+5. Proceed to structural model population and category emitters.
 
 ---
 
@@ -144,7 +173,7 @@ In `docs/plan.md`, find the `### Phase 4 — Binding Auto-Generation` block. Rep
 
 ```markdown
 Design brief: [phases/phase-4-binding-autogen.md](phases/phase-4-binding-autogen.md).
-Strategy brief: [binding-autogen/binding-autogen-strategy-brief.md](binding-autogen/binding-autogen-strategy-brief.md) (revised 2026-05-15).
+Strategy brief: [binding-autogen/binding-autogen-strategy-brief.md](binding-autogen/binding-autogen-strategy-brief.md) (revised 2026-05-17).
 Architecture design spec: [superpowers/specs/2026-05-14-binding-generator-architecture-design.md](superpowers/specs/2026-05-14-binding-generator-architecture-design.md).
 Stage 1 implementation plan: [superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md](superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md).
 ```
@@ -153,7 +182,8 @@ with:
 
 ```markdown
 Design brief: [phases/phase-4-binding-autogen.md](phases/phase-4-binding-autogen.md).
-Strategy brief: [binding-autogen/binding-autogen-strategy-brief.md](binding-autogen/binding-autogen-strategy-brief.md) (revised 2026-05-15).
+Strategy brief: [binding-autogen/binding-autogen-strategy-brief.md](binding-autogen/binding-autogen-strategy-brief.md) (revised 2026-05-17).
+API surface strategy: [binding-autogen/binding-api-surface-strategy.md](binding-autogen/binding-api-surface-strategy.md) (internal raw ABI + public typed low-level + friendly overloads).
 Unified design spec: [superpowers/specs/2026-05-16-binding-generator-unified-design.md](superpowers/specs/2026-05-16-binding-generator-unified-design.md) (supersedes 2026-05-14 architecture spec + 2026-05-15 local-output-loop spec).
 Unified implementation plan: [superpowers/plans/2026-05-17-binding-generator-unified-plan.md](superpowers/plans/2026-05-17-binding-generator-unified-plan.md) (supersedes Stage 1 plan + local-output-loop plan).
 ```
@@ -1817,8 +1847,8 @@ Files (auto-rename via Rider should follow types):
 Namespaces / class names in emitted output:
   Janset.Sdl2.Preview                       -> Janset.SDL2
   Sdl2Preview_<view>                         -> Sdl2_<view>
-  internal static unsafe partial class       -> internal static partial class
-    (drop `unsafe` per P3.10 — no unsafe ops in current emit; will reintroduce per-method via `[UnmanagedFunctionPointer]` etc. where needed)
+  internal static unsafe partial class       -> internal static unsafe partial class
+    (keep class-level `unsafe`; pointer parameters in generated extern signatures require unsafe context)
 
 Comment strings (full match) in emitted output to remove:
   "// Stage 1 binding-autogen preview output. Placeholder shape;"  -> (delete)
@@ -1856,7 +1886,7 @@ Output files (`Platform/Neutral/Commands.g.cs` etc.) should have:
 - `namespace Janset.SDL2;` instead of `namespace Janset.Sdl2.Preview;`
 - `Sdl2_Neutral` class instead of `Sdl2Preview_Neutral`
 - No "preview placeholder" comments
-- No `unsafe` modifier on the class
+- `internal static unsafe partial class Sdl2_<View>` on every generated command class
 
 - [ ] **Step 3: Fix any rename misses (P2.14, P2.15, P2.16, P2.17, P2.18, P2.19)**
 
@@ -1885,7 +1915,7 @@ Rider mass rename:
   Janset.Sdl2.Preview ns            -> Janset.SDL2
   Sdl2Preview_<view> class          -> Sdl2_<view>
 
-Drop unsafe modifier (P3.10), strip preview-placeholder comments,
+Preserve class-level unsafe modifier, strip preview-placeholder comments,
 fix stale doc comments (P2.14-P2.19).
 
 Container smoke green; output byte-identical to pre-rename modulo
@@ -1896,7 +1926,9 @@ namespace/class names + comment-strip.
 
 > **Finding from 2026-05-17 unified-slice smoke (SDL.h exclusion vs constants gap):**
 >
-> **Open question — decision pending. Three options laid out below; choose with Deniz before implementing Phase 3B `BindingConstant` shape.**
+> **Decided 2026-05-17: Option A landed in commit `5bd563e` per peer-evidence review (SDL3 binding generators amerkoleci/Alimer.Bindings.SDL + ppy/SDL3-CS both exclude SDL3.h umbrella; pattern transfers Stage 3 unchanged) + SDL2 maintenance-mode drift posture (officially in maintenance since SDL 2.28.0 / June 2023; `SDL_INIT_*` set frozen since SDL 2.0.0 / 2013). Options B (umbrella parse pass) and C (drift-detection validator) preserved below as historical alternatives; if drift becomes a real concern after manifest-only proves leaky, Option C can layer on top of A without rip-out.**
+>
+> Below is the original three-option analysis as authored on 2026-05-17.
 >
 > ## The gap
 >
@@ -2170,7 +2202,7 @@ Container smoke byte-identical (modulo no functional change).
 >
 > - **`CoreOwnedTypeMap` answers identity only** — "Is identifier Y owned by family X?" Implementation stays prefix-based against `BindingGenerationConfig.OwnedPrefixes` (manifest-declared, family-scoped).
 > - **`TypeMappingPolicy` answers value-type mapping only** — primitive / explicit-width typedef / chain-resolved typedef / enum-as-int. **Does NOT classify pointers as handles vs structs; that's the translator's job in Phase 3D.**
-> - **`KnownUnsupportedDeclarationPolicy` answers deferred / variadic** — the manifest's `deferred_declarations` block + C-variadic baseline.
+> - **`KnownUnsupportedDeclarationPolicy` answers deferred / explicitly unsupported declarations** — the manifest's `deferred_declarations` block plus the external/native type taxonomy. C variadic fmt-only functions are not blanket-filtered.
 >
 > The current `MapPointer`'s `SDL_*`-prefix → `IntPtr` fallback IS the fragility we're cleaning up. Phase 3D translator populates `BindingTypeRef.IsOpaqueHandle` by structural inspection of `CppTypedef.ElementType` (empty `CppClass` = handle, primitive-resolving = value, etc.), not by re-encoding the prefix fallback inside the new policies. Emitters consume `BindingTypeRef` fields directly; the prefix check stays in `CoreOwnedTypeMap.IsOwned` for cross-family identity only.
 >
@@ -2236,6 +2268,23 @@ public sealed class TypeMappingPolicyTests
     }
 
     [Test]
+    public async Task SafeIdentifier_Should_Return_Indexed_Fallback_When_Parameter_Name_Is_Empty()
+    {
+        var policy = new TypeMappingPolicy(ConfigFixtures.Sdl2CoreWithDynapi(), new CoreOwnedTypeMap(ConfigFixtures.Sdl2CoreWithDynapi()));
+        await Assert.That(policy.SafeIdentifier("", 0)).IsEqualTo("@_p0");
+        await Assert.That(policy.SafeIdentifier("", 1)).IsEqualTo("@_p1");
+    }
+
+    [Test]
+    public async Task MapTypedef_Should_Map_Sdl2_Bool_To_Int()
+    {
+        var policy = new TypeMappingPolicy(ConfigFixtures.Sdl2CoreWithDynapi(), new CoreOwnedTypeMap(ConfigFixtures.Sdl2CoreWithDynapi()));
+        var td = MakeSdlBoolTypedef(); // typedef enum SDL_bool
+        var result = policy.MapTypedef(td, ConfigFixtures.Sdl2CoreWithDynapi());
+        await Assert.That(result.ManagedName).IsEqualTo("int");
+    }
+
+    [Test]
     public async Task Map_Should_Raise_Warning_For_Unknown_CppType()
     {
         // Map's catch-all branch should not silently emit IntPtr; should produce a typed warning result
@@ -2251,6 +2300,7 @@ public sealed class TypeMappingPolicyTests
     // CppAst helper builders — implementer fills in
     private static CppPrimitiveType MakeCppPrimitive(CppPrimitiveKind kind) => /* ... */ null!;
     private static CppTypedef MakeSdlAudioFormatTypedef() => /* ... */ null!;
+    private static CppTypedef MakeSdlBoolTypedef() => /* ... */ null!;
     private static CppTypedef MakeCircularTypedef() => /* ... */ null!;
     private static CppType MakeUnknownCppType() => /* ... */ null!;
 }
@@ -2280,7 +2330,7 @@ public sealed class TypeMappingPolicy(BindingGenerationConfig config, CoreOwnedT
         ["Sint16"] = "short", ["Uint16"] = "ushort",
         ["Sint32"] = "int", ["Uint32"] = "uint",
         ["Sint64"] = "long", ["Uint64"] = "ulong",
-        ["SDL_bool"] = "byte",
+        ["SDL_bool"] = "int",   // SDL2: enum-backed, int-width. SDL3 gets a separate 1-byte bool policy.
         ["size_t"] = "nuint", ["ptrdiff_t"] = "nint",
     }.ToFrozenDictionary(StringComparer.Ordinal);
 
@@ -2410,9 +2460,9 @@ public sealed class TypeMappingPolicy(BindingGenerationConfig config, CoreOwnedT
         return new BindingTypeRef("IntPtr", null, false, false);
     }
 
-    public string SafeIdentifier(string name)
+    public string SafeIdentifier(string name, int parameterIndex = -1)
     {
-        if (string.IsNullOrEmpty(name)) return "@_";
+        if (string.IsNullOrEmpty(name)) return parameterIndex >= 0 ? $"@_p{parameterIndex}" : "@_";
         var kind = SyntaxFacts.GetKeywordKind(name);
         if (kind != SyntaxKind.None) return "@" + name;
         return name;
@@ -2444,11 +2494,11 @@ namespace Build.Tests.Unit.Targets.GenerateBindings.Model;
 public sealed class KnownUnsupportedDeclarationPolicyTests
 {
     [Test]
-    public async Task IsUnsupported_Should_Return_True_For_Variadic_Baseline()
+    public async Task IsUnsupported_Should_Return_False_For_C_Variadic_Fmt_Only_Functions_By_Default()
     {
         var policy = new KnownUnsupportedDeclarationPolicy(ConfigFixtures.Sdl2CoreWithDynapi());
-        await Assert.That(policy.IsUnsupported("SDL_Log", out _)).IsTrue();
-        await Assert.That(policy.IsUnsupported("SDL_sscanf", out _)).IsTrue();
+        await Assert.That(policy.IsUnsupported("SDL_Log", out _)).IsFalse();
+        await Assert.That(policy.IsUnsupported("SDL_snprintf", out _)).IsFalse();
     }
 
     [Test]
@@ -2477,29 +2527,12 @@ namespace Build.Targets.GenerateBindings.Model;
 
 public sealed class KnownUnsupportedDeclarationPolicy
 {
-    private const string VariadicReason = "C variadic function. Stage 1 does not emit success-shaped P/Invoke for native varargs.";
-    private static readonly IReadOnlyDictionary<string, string> VariadicBaseline = new Dictionary<string, string>(StringComparer.Ordinal)
-    {
-        ["SDL_Log"] = VariadicReason,
-        ["SDL_LogVerbose"] = VariadicReason,
-        ["SDL_LogDebug"] = VariadicReason,
-        ["SDL_LogInfo"] = VariadicReason,
-        ["SDL_LogWarn"] = VariadicReason,
-        ["SDL_LogError"] = VariadicReason,
-        ["SDL_LogCritical"] = VariadicReason,
-        ["SDL_LogMessage"] = VariadicReason,
-        ["SDL_SetError"] = VariadicReason,
-        ["SDL_InvalidParamError"] = VariadicReason,
-        ["SDL_sscanf"] = VariadicReason,
-        ["SDL_snprintf"] = VariadicReason,
-    };
-
     private readonly IReadOnlyDictionary<string, string> _unsupported;
 
     public KnownUnsupportedDeclarationPolicy(BindingGenerationConfig config)
     {
         ArgumentNullException.ThrowIfNull(config);
-        var dict = new Dictionary<string, string>(VariadicBaseline, StringComparer.Ordinal);
+        var dict = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var (name, deferred) in config.DeferredDeclarations)
         {
             dict[name] = $"{deferred.Category}: {deferred.Reason}";
@@ -2619,8 +2652,8 @@ feat(binding-autogen): extract TypeMappingPolicy + KnownUnsupportedDeclarationPo
 - TypeMappingPolicy with P0.1 (chain-resolve typedef) + P0.2 (Long -> nint)
   + P0.3 (catch-all fallback explicit) + P2.8 (typedef depth guard, 16)
   + P2.9 (Roslyn SyntaxFacts.GetKeywordKind keyword set via Microsoft.CodeAnalysis.CSharp)
-- KnownUnsupportedDeclarationPolicy with C-variadic baseline + manifest
-  deferred_declarations stacking on top (SDL_SysWMinfo, SDL_SysWMmsg)
+- KnownUnsupportedDeclarationPolicy with manifest deferred_declarations
+  (SDL_SysWMinfo, SDL_SysWMmsg, explicit va_list/FILE*/external-native deferrals)
 - CoreOwnedTypeMap with IsOwned + QualifiedManagedReference (consumed at Stage 2 satellite emit)
 - DI factories register all three with BindingGenerationConfig + dependency injection
 - Tests: TypeMappingPolicy 5 scenarios, KnownUnsupportedDeclarationPolicy 3, CoreOwnedTypeMap 3
@@ -2630,6 +2663,31 @@ Phase 3D rewrites it to use these policies properly.
 ```
 
 ### Phase 3D — `CppAstToBindingModel` translator refactor
+
+### Phase 3D-prime guardrail: CppAst fixture matrix + external type taxonomy
+
+Before implementing structural category collection, pin the CppAst shapes that caused the current compile-check failures. Do not guess from generated C# errors alone.
+
+Required fixture headers/tests:
+
+- unnamed parameters: two unnamed parameters produce unique fallback names (`@_p0`, `@_p1`);
+- SDL2 `SDL_bool`: enum-backed typedef maps to raw `int`;
+- C variadic `...`: fmt parameter survives, trailing varargs do not create duplicate C# parameters;
+- explicit `va_list`: deferred or mapped by policy, never leaks `__va_list_tag`;
+- `FILE*` / `_IO_FILE*`: deferred or mapped by policy, never leaks `_IO_FILE`;
+- SDL-owned opaque handle: empty `SDL_*` class/typedef becomes `BindingHandle`;
+- SDL-owned POD struct: `SDL_GUID` / `SDL_GameControllerButtonBind` becomes `BindingStruct`, not an empty stub;
+- union: layout is explicit or deferred until layout proof exists;
+- Vulkan: dispatchable/non-dispatchable handles are mapped explicitly (`VkInstance -> IntPtr`, `VkSurfaceKHR -> ulong`) or header/function deferred;
+- GDK/platform SDK handles: mapped to `IntPtr`/opaque platform handles only through explicit platform policy.
+
+The output of this slice is tests + taxonomy, not broad structural emission. It exists to prevent compile-green-but-ABI-wrong fixes.
+
+Implementation hygiene:
+
+- `Targets\GenerateBindings\Model\` is for binding declaration records only.
+- `Targets\GenerateBindings\Translation\` owns CppAst translation and semantic policies: `CppAstToBindingModel`, `TypeMappingPolicy`, `ExternalNativeTypePolicy`, `KnownUnsupportedDeclarationPolicy`, and `CoreOwnedTypeMap`.
+- `build\manifest.json` remains declarative family config; ABI semantics stay in translation policy code unless a real per-family override is needed.
 
 ### Task 3D.1: Rewrite `CppAstToBindingModel.Translate` to populate all 6 categories
 
@@ -3055,7 +3113,9 @@ Phase 3F adds friendly overloads + dual P/Invoke emit in CsCommandEmitter.
 public async Task Emit_Should_Generate_Utf8_String_Overload_For_Byte_Pointer_Params()
 {
     // Input: SDL_LoadBMP(const char* file) -> byte* file at AST level
-    // Expected: emit `byte*` raw + `ReadOnlySpan<byte>` overload + `string` overload (StringMarshalling.Utf8)
+    // Expected: emit internal `byte*` raw ABI extern + public byte* low-level wrapper
+    // + `ReadOnlySpan<byte>` overload + `string` overload.
+    // `string` is convenience and may allocate while encoding UTF-16 -> UTF-8.
 }
 
 [Test]
@@ -3080,8 +3140,9 @@ This is non-trivial. The implementer adds methods to `CsCommandEmitter`:
 ```csharp
 private void EmitFunction(StringBuilder sb, BindingFunction func, EmitContext ctx)
 {
-    EmitRawPInvoke(sb, func, ctx);                                 // raw byte* / int* / void* signature
-    if (HasUtf8StringParam(func)) EmitUtf8StringOverload(sb, func, ctx);
+    EmitInternalRawAbi(sb, func, ctx);                             // internal byte* / int* / void* signature
+    EmitLowLevelWrapper(sb, func, ctx);                            // public typed low-level API, no extern attribute
+    if (HasUtf8StringParam(func)) EmitUtf8Overloads(sb, func, ctx);
     if (HasOutputPointerParam(func)) EmitOutOverload(sb, func, ctx);
     if (HasBufferParam(func)) EmitSpanOverload(sb, func, ctx);
 }
@@ -3091,11 +3152,11 @@ private static bool HasUtf8StringParam(BindingFunction f) =>
 // ... helpers
 ```
 
-The string heuristic: any `const char*` parameter (which maps to `byte*` per `MapPointer`) is a UTF-8 candidate. We can extend `BindingTypeRef` later with an `IsConstCharPointer` flag if more precision is needed.
+The string heuristic: any `const char*` parameter (which maps to `byte*` per `MapPointer`) is a UTF-8 candidate. Prefer extending `BindingTypeRef` with an `IsConstCharPointer` or `StringEncoding` flag before broad emission so friendly overloads do not rely on comment/name inference.
 
 - [ ] **Step 3: Run tests + verify container smoke + try to compile generated SDL2.Core**
 
-Compile the generated source against `src/SDL2.Core/SDL2.Core.csproj` to verify the overloads + raw P/Invoke layer compiles cleanly.
+Compile the generated source against the compile-check project to verify the internal raw ABI layer, public low-level wrappers, and friendly overloads compile cleanly.
 
 ```pwsh
 # Compile generated against a tiny harness csproj
@@ -3117,11 +3178,12 @@ Modify `EmitRawPInvoke` to produce both shapes:
 ```csharp
 sb.AppendLf("#if NET7_0_OR_GREATER");
 sb.Append("    [LibraryImport(LibName, EntryPoint = \"").Append(func.Name).AppendLf("\")]");
-// Add StringMarshalling.Utf8 if any string-shaped param
-sb.Append("    public static partial ").Append(func.ReturnType.ManagedName).Append(' ').Append(func.Name).AppendLf("(...);");
+// Raw ABI methods keep byte*/T* signatures. UTF-8 string convenience is emitted
+// by public wrapper overloads, not by the raw extern attribute.
+sb.Append("    internal static partial ").Append(func.ReturnType.ManagedName).Append(' ').Append(func.Name).AppendLf("(...);");
 sb.AppendLf("#else");
 sb.Append("    [DllImport(LibName, EntryPoint = \"").Append(func.Name).AppendLf("\", CallingConvention = CallingConvention.Cdecl)]");
-sb.Append("    public static extern ").Append(func.ReturnType.ManagedName).Append(' ').Append(func.Name).AppendLf("(...);");
+sb.Append("    internal static extern ").Append(func.ReturnType.ManagedName).Append(' ').Append(func.Name).AppendLf("(...);");
 sb.AppendLf("#endif");
 ```
 
@@ -3134,10 +3196,10 @@ public async Task Emit_Should_Produce_LibraryImport_For_Net7_And_DllImport_Fallb
     var content = /* emit SDL_Quit() */;
     await Assert.That(content).Contains("#if NET7_0_OR_GREATER");
     await Assert.That(content).Contains("[LibraryImport(LibName, EntryPoint = \"SDL_Quit\")]");
-    await Assert.That(content).Contains("public static partial void SDL_Quit()");
+    await Assert.That(content).Contains("internal static partial void SDL_Quit()");
     await Assert.That(content).Contains("#else");
     await Assert.That(content).Contains("[DllImport(LibName, EntryPoint = \"SDL_Quit\", CallingConvention = CallingConvention.Cdecl)]");
-    await Assert.That(content).Contains("public static extern void SDL_Quit()");
+    await Assert.That(content).Contains("internal static extern void SDL_Quit()");
     await Assert.That(content).Contains("#endif");
 }
 ```
@@ -3151,8 +3213,9 @@ Expected: green.
 ```text
 feat(binding-autogen): friendly overloads + dual P/Invoke emit (CppAst Rule 1+4+6)
 
-- CsCommandEmitter generates raw byte*/int*/void* signature
-- Adds string overload (StringMarshalling.Utf8 under [LibraryImport]) for const char* params
+- CsCommandEmitter generates internal raw byte*/int*/void* ABI signature
+- Adds public typed low-level wrapper over the internal raw ABI method
+- Adds string overload for const char* params (convenience, may allocate)
 - Adds ReadOnlySpan<byte> overload (pins via fixed, dispatches to raw)
 - Adds out T overload for single output pointer params
 - Adds Span<T> overload for buffer params
@@ -3161,6 +3224,22 @@ feat(binding-autogen): friendly overloads + dual P/Invoke emit (CppAst Rule 1+4+
 ```
 
 ### Phase 3G — Output wiring + smoke + peer-oracle diff
+
+### Task 3G.0: Add compile-check non-empty input guard before promoting the gate
+
+The diagnostic compile-check project currently glob-includes `artifacts\generated-bindings-preview\sdl2-core\**\*.g.cs`. Before wiring it into an opt-in or blocking flow, add a guard that fails when the generated input set is empty. Otherwise a missing/stale preview folder can produce a false green.
+
+- [ ] **Step 1: Add a generated-file existence check**
+
+Implement this either in the compile-check project file or in the `tools.cs generate-bindings --compile-check` wrapper when that wrapper exists. The failure message must say which generated root was empty.
+
+- [ ] **Step 2: Verify failure mode**
+
+Temporarily point the check at an empty generated root and confirm it fails with the explicit empty-input message.
+
+- [ ] **Step 3: Keep the check opt-in until generated output moves to `src\SDL2.Core\Generated`**
+
+The real `src\SDL2.Core\SDL2.Core.csproj` build becomes the blocking compile gate only after Task 7 flips from preview artifacts to production source.
 
 ### Task 3G.1: Final acceptance gates
 
@@ -3270,4 +3349,3 @@ Stage 2 satellites, Stage 3 SDL3.
 - Phase 3F friendly-overload heuristics for `const char*` detection use a temporary "all `byte*` are string candidates" heuristic; a future patch could extend `BindingTypeRef` with `IsConstCharPointer` for precision. Documented as a known refinement, not a blocker.
 
 **Approval-gate compliance check**: every potential commit boundary is suggested, not enforced. Manifest schema bump (Task 2A.1–2A.4) has explicit 🔒 approval marker. Rider rename (Phase 3A) is handoff-driven, not agent-executed. Plan respects AGENTS.md §"Approval Gate" throughout.
-

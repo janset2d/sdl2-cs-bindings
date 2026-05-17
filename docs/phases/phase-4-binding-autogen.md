@@ -11,6 +11,7 @@ This page is a thin pointer to the canonical Phase 4 documents. Do not duplicate
 | Doc | Purpose |
 | --- | --- |
 | [`../binding-autogen/binding-autogen-strategy-brief.md`](../binding-autogen/binding-autogen-strategy-brief.md) | Accepted WHY/HOW/WHAT strategy brief (revised 2026-05-15). Authoritative for toolchain, generator host, parsing strategy, plan shape, open decisions. |
+| [`../binding-autogen/binding-api-surface-strategy.md`](../binding-autogen/binding-api-surface-strategy.md) | Canonical API-surface decision: internal raw ABI, public typed low-level API, friendly overloads, peer matrix, string/span/handle/`SDL_bool` policy. |
 | [`../superpowers/specs/2026-05-16-binding-generator-unified-design.md`](../superpowers/specs/2026-05-16-binding-generator-unified-design.md) | **Active** unified design spec — manifest-driven per-family generator, BindingModel + 6 categories, per-category emitters. Supersedes 2026-05-14 architecture + 2026-05-15 local-output-loop specs. |
 | [`../superpowers/plans/2026-05-17-binding-generator-unified-plan.md`](../superpowers/plans/2026-05-17-binding-generator-unified-plan.md) | **Active** unified implementation plan. Phases 1–3G. Supersedes Stage 1 plan + local-output-loop plan. |
 | [`../decisions/2026-05-14-binding-autogen-toolchain.md`](../decisions/2026-05-14-binding-autogen-toolchain.md) | ADR-004 toolchain decision (CppAst). |
@@ -26,7 +27,7 @@ The big shape:
 - **Toolchain:** CppAst 0.24.0 + libclang.runtime.linux-x64 + libClangSharp.runtime.linux-x64 (Linux-canonical version trio). Non-Linux runtime variants intentionally absent; generator fails closed on non-`linux-x64` hosts.
 - **Local invocation:** `tools.cs generate-bindings` orchestrates the pinned `linux-builder` Docker container; Docker is a hard prerequisite, no host-OS fallback.
 - **Parse strategy:** preprocessor-macro switching only across an ~8-entry `(OsCondition, BackendCondition[])` `PlatformCatalog` (Neutral + Windows desktop + WinRT + GDK + Linux + macOS + iOS + Android). No `--target` cross-compile flag, no mingw-w64, no Apple SDK.
-- **Output shape:** dual `[LibraryImport]` (net7+) / `[DllImport]` (legacy) emit per function, typed `readonly partial struct` opaque handles, friendly overloads (`string` / `ReadOnlySpan<byte>` / `Span<T>` / `out` / `ref`), `[SupportedOSPlatform]` attribution.
+- **Output shape:** internal raw ABI externs with dual `[LibraryImport]` (net7+) / `[DllImport]` (legacy), public typed low-level handles/enums/structs/callbacks, public friendly overloads (`string` / `ReadOnlySpan<byte>` / `Span<T>` / `out` / `ref`), `[SupportedOSPlatform]` attribution. Public raw `IntPtr` externs are not part of v1 preview.
 - **Coherence guardrails:** `.generated-stamp` per family with PreFlight drift validator; Pack-stage symbol-existence validator at Stage 2.
 
 ## Stage Sequencing

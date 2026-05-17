@@ -9,9 +9,8 @@ namespace Build.Targets.GenerateBindings.Model;
 /// </summary>
 /// <param name="ManagedName">
 /// Emitted text, e.g. <c>"int"</c>, <c>"SDL_Surface*"</c>, <c>"ReadOnlySpan&lt;byte&gt;"</c>.
-/// Phase 3D translator rewrite owns the mapping from CppAst types to this value via
-/// <see cref="CppAstToBindingModel.MapType"/>; Phase 3E per-category emitters consume
-/// it directly.
+/// Phase 3D translator rewrite owns the mapping from CppAst types to this value;
+/// Phase 3E per-category emitters consume it directly.
 /// </param>
 /// <param name="OwningFamilyId">
 /// Cross-family ownership marker. <c>null</c> for primitives and managed BCL types;
@@ -36,8 +35,8 @@ public sealed record BindingTypeRef(
     bool IsOpaqueHandle)
 {
     /// <summary>
-    /// Stage 1 bridge factory used by <see cref="CppAstToBindingModel"/> + test
-    /// fixtures to wrap the existing string-based type-flow into <see cref="BindingTypeRef"/>
+    /// Stage 1 bridge factory used by the CppAst translator and test fixtures to
+    /// wrap the existing string-based type-flow into <see cref="BindingTypeRef"/>
     /// without re-walking the CppAst node graph. Heuristic-driven: pointer detection
     /// via <c>EndsWith("*")</c>; <c>OwningFamilyId</c> stays <c>null</c> (cross-family
     /// resolution activates at Stage 2); <c>IsOpaqueHandle</c> stays <c>false</c>

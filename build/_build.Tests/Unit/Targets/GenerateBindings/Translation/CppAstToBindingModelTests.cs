@@ -1,12 +1,20 @@
+using Build.Data.BindingGeneration.Models;
 using Build.Targets.GenerateBindings.Model;
 using Build.Targets.GenerateBindings.Parsing;
+using Build.Targets.GenerateBindings.Translation;
+using Build.Tests.Fixtures;
 using CppAst;
 
-namespace Build.Tests.Unit.Targets.GenerateBindings.Model;
+namespace Build.Tests.Unit.Targets.GenerateBindings.Translation;
 
 public sealed class CppAstToBindingModelTests
 {
-    private static readonly HashSet<string> NoExclusions = new(StringComparer.Ordinal);
+    // Phase 3C: Translate now takes a BindingGenerationConfig instead of a bare
+    // excludedFunctionNames hash set. The fixture's Sdl2CoreConfig() carries
+    // realistic excluded_functions ("SDL_main", "SDL_DYNAPI_entry") + empty
+    // DeferredDeclarations — neither affects the empty-CppCompilation test
+    // surface below, so the existing structural assertions hold.
+    private static readonly BindingGenerationConfig DefaultConfig = BindingGenerationFixture.Sdl2CoreConfig();
     private static readonly IReadOnlyList<BindingFunction> NoRequired = [];
     private static readonly string[] AscendingViewOrder = ["Neutral", "WindowsDesktop", "Linux"];
     private static readonly string[] DescendingViewOrder = ["Linux", "WindowsDesktop", "Neutral"];
@@ -22,6 +30,14 @@ public sealed class CppAstToBindingModelTests
         return new CppAstParseResult(view, new List<CppCompilation>());
     }
 
+    private static CppSourceSpan SdlHeaderSpan(string headerName)
+    {
+        var sourceFile = $"C:/vcpkg/installed/x64-linux-hybrid/include/SDL2/{headerName}";
+        return new CppSourceSpan(
+            new CppSourceLocation(sourceFile, 0, 1, 1),
+            new CppSourceLocation(sourceFile, 1, 1, 2));
+    }
+
     [Test]
     public async Task Translate_Should_Preserve_View_Ordering_From_Input_List()
     {
@@ -32,11 +48,11 @@ public sealed class CppAstToBindingModelTests
         // emitted model matches the input list 1:1.
         var ascending = CppAstToBindingModel.Translate(
             [EmptyResult("Neutral"), EmptyResult("WindowsDesktop", "windows"), EmptyResult("Linux", "linux")],
-            NoExclusions,
+            DefaultConfig,
             NoRequired);
         var descending = CppAstToBindingModel.Translate(
             [EmptyResult("Linux", "linux"), EmptyResult("WindowsDesktop", "windows"), EmptyResult("Neutral")],
-            NoExclusions,
+            DefaultConfig,
             NoRequired);
 
         await Assert.That(ascending.Views.Select(v => v.Name).ToList())
@@ -52,7 +68,7 @@ public sealed class CppAstToBindingModelTests
         // Pins the "no functions accidentally synthesized" property.
         var model = CppAstToBindingModel.Translate(
             [EmptyResult("Neutral"), EmptyResult("Linux", "linux")],
-            NoExclusions,
+            DefaultConfig,
             NoRequired);
 
         foreach (var view in model.Views)
@@ -66,7 +82,7 @@ public sealed class CppAstToBindingModelTests
     {
         var model = CppAstToBindingModel.Translate(
             [EmptyResult("Neutral"), EmptyResult("WindowsDesktop", "windows"), EmptyResult("MacOS", "osx")],
-            NoExclusions,
+            DefaultConfig,
             NoRequired);
 
         var neutral = model.Views.Single(v => v.Name == "Neutral");
@@ -79,11 +95,11 @@ public sealed class CppAstToBindingModelTests
     }
 
     [Test]
-    public void Translate_Should_Throw_When_ExcludedFunctionNames_Is_Null()
+    public void Translate_Should_Throw_When_Config_Is_Null()
     {
         Assert.Throws<ArgumentNullException>(() => CppAstToBindingModel.Translate(
             [EmptyResult("Neutral")],
-            excludedFunctionNames: null!,
+            config: null!,
             requiredFunctions: NoRequired));
     }
 
@@ -92,7 +108,7 @@ public sealed class CppAstToBindingModelTests
     {
         Assert.Throws<ArgumentNullException>(() => CppAstToBindingModel.Translate(
             [EmptyResult("Neutral")],
-            NoExclusions,
+            DefaultConfig,
             requiredFunctions: null!));
     }
 
@@ -110,7 +126,7 @@ public sealed class CppAstToBindingModelTests
 
         var model = CppAstToBindingModel.Translate(
             [EmptyResult("Neutral"), EmptyResult("Linux", "linux")],
-            NoExclusions,
+            DefaultConfig,
             required);
 
         var neutral = model.Views.Single(v => v.Name == "Neutral");
@@ -144,7 +160,7 @@ public sealed class CppAstToBindingModelTests
         };
 
         var tasks = Enumerable.Range(0, 32)
-            .Select(_ => Task.Run(() => CppAstToBindingModel.Translate(inputs, NoExclusions, required)))
+            .Select(_ => Task.Run(() => CppAstToBindingModel.Translate(inputs, DefaultConfig, required)))
             .ToArray();
         var results = await Task.WhenAll(tasks);
 
@@ -178,10 +194,124 @@ public sealed class CppAstToBindingModelTests
 
         var model = CppAstToBindingModel.Translate(
             [EmptyResult("Neutral"), EmptyResult("Linux", "linux")],
-            NoExclusions,
+            DefaultConfig,
             required);
 
         var linux = model.Views.Single(v => v.Name == "Linux");
         await Assert.That(linux.Functions).IsEmpty();
+    }
+
+    [Test]
+    public async Task Translate_Should_Assign_Indexed_Fallback_Names_When_Parameters_Are_Unnamed()
+    {
+        var function = new CppFunction("SDL_ReportAssertion")
+        {
+            ReturnType = CppPrimitiveType.Int,
+            Span = SdlHeaderSpan("SDL_assert.h"),
+        };
+        function.Parameters.Add(new CppParameter(CppPrimitiveType.Int, string.Empty));
+        function.Parameters.Add(new CppParameter(CppPrimitiveType.Int, string.Empty));
+
+        var compilation = new CppCompilation();
+        compilation.Functions.Add(function);
+
+        var model = CppAstToBindingModel.Translate(
+            [new CppAstParseResult(new PlatformParseView(
+                Name: "Neutral",
+                Kind: PlatformConditionKind.Neutral,
+                SupportedOsPlatform: null,
+                Defines: [],
+                Undefines: []), [compilation])],
+            DefaultConfig,
+            NoRequired);
+
+        var parameters = model.Views.Single().Functions.Single().Parameters;
+
+        await Assert.That(parameters.Select(p => p.Name).ToArray()).IsEquivalentTo(["@_p0", "@_p1"]);
+    }
+
+    [Test]
+    public async Task Translate_Should_Filter_Functions_With_Deferred_C_Runtime_Types()
+    {
+        var vaListFunction = new CppFunction("SDL_LogMessageV")
+        {
+            ReturnType = CppPrimitiveType.Void,
+            Span = SdlHeaderSpan("SDL_log.h"),
+        };
+        vaListFunction.Parameters.Add(new CppParameter(
+            new CppTypedef("va_list", new CppPointerType(new CppClass("__va_list_tag"))),
+            "ap"));
+
+        var fileFunction = new CppFunction("SDL_RWFromFP")
+        {
+            ReturnType = new CppPointerType(CppPrimitiveType.Void),
+            Span = SdlHeaderSpan("SDL_rwops.h"),
+        };
+        fileFunction.Parameters.Add(new CppParameter(
+            new CppPointerType(new CppTypedef("FILE", new CppClass("_IO_FILE"))),
+            "fp"));
+
+        var compilation = new CppCompilation();
+        compilation.Functions.Add(vaListFunction);
+        compilation.Functions.Add(fileFunction);
+
+        var model = CppAstToBindingModel.Translate(
+            [new CppAstParseResult(new PlatformParseView(
+                Name: "Neutral",
+                Kind: PlatformConditionKind.Neutral,
+                SupportedOsPlatform: null,
+                Defines: [],
+                Undefines: []), [compilation])],
+            DefaultConfig,
+            NoRequired);
+
+        await Assert.That(model.Views.Single().Functions).IsEmpty();
+    }
+
+    [Test]
+    public async Task Translate_Should_Map_Vulkan_And_GDK_Platform_Handle_Types_Explicitly()
+    {
+        var vulkan = new CppFunction("SDL_Vulkan_CreateSurface")
+        {
+            ReturnType = CppPrimitiveType.Int,
+            Span = SdlHeaderSpan("SDL_vulkan.h"),
+        };
+        vulkan.Parameters.Add(new CppParameter(
+            new CppTypedef("VkInstance", new CppPointerType(new CppClass("VkInstance_T"))),
+            "instance"));
+        vulkan.Parameters.Add(new CppParameter(
+            new CppPointerType(new CppTypedef("VkSurfaceKHR", new CppTypedef("uint64_t", CppPrimitiveType.UnsignedLong))),
+            "surface"));
+
+        var gdk = new CppFunction("SDL_GDKGetDefaultUser")
+        {
+            ReturnType = CppPrimitiveType.Int,
+            Span = SdlHeaderSpan("SDL_system.h"),
+        };
+        gdk.Parameters.Add(new CppParameter(
+            new CppPointerType(new CppTypedef("XUserHandle", new CppPointerType(CppPrimitiveType.Void))),
+            "outUserHandle"));
+
+        var compilation = new CppCompilation();
+        compilation.Functions.Add(vulkan);
+        compilation.Functions.Add(gdk);
+
+        var model = CppAstToBindingModel.Translate(
+            [new CppAstParseResult(new PlatformParseView(
+                Name: "Neutral",
+                Kind: PlatformConditionKind.Neutral,
+                SupportedOsPlatform: null,
+                Defines: [],
+                Undefines: []), [compilation])],
+            DefaultConfig,
+            NoRequired);
+
+        var functions = model.Views.Single().Functions;
+        var vulkanParameters = functions.Single(f => f.Name == "SDL_Vulkan_CreateSurface").Parameters;
+        var gdkParameter = functions.Single(f => f.Name == "SDL_GDKGetDefaultUser").Parameters.Single();
+
+        await Assert.That(vulkanParameters.Select(p => p.Type.ManagedName).ToArray())
+            .IsEquivalentTo(["IntPtr", "ulong*"]);
+        await Assert.That(gdkParameter.Type.ManagedName).IsEqualTo("IntPtr*");
     }
 }

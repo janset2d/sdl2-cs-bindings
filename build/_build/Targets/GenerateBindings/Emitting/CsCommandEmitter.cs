@@ -48,7 +48,7 @@ internal static class CsCommandEmitter
         builder.AppendLf();
         builder.AppendLf("namespace Janset.SDL2;");
         builder.AppendLf();
-        builder.Append("internal static partial class Sdl2_").AppendLf(view.Name);
+        builder.Append("internal static unsafe partial class Sdl2_").AppendLf(view.Name);
         builder.AppendLf('{');
         builder.AppendLf("    private const string LibName = \"SDL2\";");
 

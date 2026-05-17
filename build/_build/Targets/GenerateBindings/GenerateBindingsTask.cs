@@ -7,6 +7,7 @@ using Build.Targets.GenerateBindings.Emitting;
 using Build.Targets.GenerateBindings.HeaderSet;
 using Build.Targets.GenerateBindings.Model;
 using Build.Targets.GenerateBindings.Parsing;
+using Build.Targets.GenerateBindings.Translation;
 using Build.Validation.BindingGeneration;
 using Cake.Common.IO;
 using Cake.Core;
@@ -111,7 +112,7 @@ public sealed class GenerateBindingsTask(
             .Select(view => _parseRunner.Parse(config, headerSet, view))
             .ToList();
 
-        var model = CppAstToBindingModel.Translate(parseResults, config.ExcludedFunctions, ConvertRequiredFunctions(config));
+        var model = CppAstToBindingModel.Translate(parseResults, config, ConvertRequiredFunctions(config));
         LogPerViewCounts(model);
 
         await RunFamilyValidatorsAsync(model, config, ct).ConfigureAwait(false);

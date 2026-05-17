@@ -11,7 +11,7 @@
 > - The toolchain comparison's framing of generator-host setup (separate console app, separate test project) is superseded. Per 2026-05-15, the production generator lives inside the Cake build host under `build/_build/Targets/GenerateBindings/`. Pure emitter code (`HeaderSet/`, `Parsing/`, `Model/`, `Emitting/`, `Stamps/`) is Cake-free; the Cake-aware shell (`GenerateBindingsTask`, `BindingGenerationRunner`, `ServiceCollectionExtensions`) owns Cake context.
 > - The multi-platform-parsing comparison sections that hinge on `--target` cross-compile flags or mingw-w64 / Apple SDK stubs are superseded. Preprocessor-macro switching alone is the strategy; verified against ppy/SDL3-CS Dockerfile (WebFetch 2026-05-15) and the local CppAst spike — neither uses mingw, both use `--undefine-macro` / `--define-macro` only.
 > - The matrix arithmetic was corrected in §"Decision Matrix Re-Validation" (2026-05-12); both columns total 23 raw, 43 vs 63 weighted favoring ClangSharp on raw-binding economics. The strategy brief overrides on scope-trajectory grounds — see brief WHY §"Why CppAst — the scope-trajectory argument".
->
+> - API-surface details that mention public raw functions, public `IntPtr` raw APIs, or wrapper layering are superseded by [`../binding-api-surface-strategy.md`](../binding-api-surface-strategy.md) (2026-05-17): raw ABI externs are internal; public surface is typed low-level API plus friendly overloads.
 > When a Phase 4 plan or implementation question arises, prefer the strategy brief + the design spec + the Stage 1 plan as canonical sources over this doc.
 
 ## Current Evidence Snapshot

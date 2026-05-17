@@ -11,7 +11,7 @@
 > - **mingw-w64 / Apple SDK platform stubs as Stage 1 inputs** — retracted (Decision Audit Error 4). Stage 1 uses preprocessor-macro switching only, with no `--target` cross-compile flag and no platform SDK headers. SDL's public headers carry the necessary cross-platform opaque-type forward declarations. Verified against ppy/SDL3-CS Dockerfile + `generate_bindings.py` (WebFetch 2026-05-15) and the local CppAst spike at `tools/binding-spike/cppast/generator/Program.cs:42-72`.
 > - **Standalone `src/Janset.SDL2.Bindings.Generator/` console-app generator** — retracted (Decision Audit Reframe row). The generator is hosted inside the Cake build host under `build/_build/Targets/GenerateBindings/`, target-local per ADR-002 §2.4.
 > - **`SDL_syswm.h` as Stage 1 first-class proof target** — moved to Stage 2 with documented exclusion. Stage 1 emits `SDL_GetWindowWMInfo` as a function with opaque `SDL_SysWMinfo*` parameter; the typed union with `[StructLayout(LayoutKind.Explicit, Size = 64)]` and the forward-declaration stub library (~15–20 types) land in Stage 2.
->
+> - **API-surface examples** in this research doc are superseded by [`../binding-api-surface-strategy.md`](../binding-api-surface-strategy.md) (2026-05-17). Canonical shape is internal raw ABI externs + public typed low-level API + friendly overloads; public raw `IntPtr` externs are not in v1 preview.
 > When a Phase 4 plan or implementation question arises, prefer the strategy brief + the design spec + the Stage 1 plan as canonical sources over this doc.
 
 ## 1. Scope

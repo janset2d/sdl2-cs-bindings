@@ -49,6 +49,7 @@ Phase 3 (SDL2 Complete — samples, meta-package, first prerelease) lives direct
 | --- | --- |
 | [binding-autogen/README.md](binding-autogen/README.md) | Workstream index and reading order for Phase 4 binding generator strategy and research |
 | [binding-autogen/binding-autogen-strategy-brief.md](binding-autogen/binding-autogen-strategy-brief.md) | WHY/HOW/WHAT strategy brief selecting the CppAst direction for Phase 4 planning |
+| [binding-autogen/binding-api-surface-strategy.md](binding-autogen/binding-api-surface-strategy.md) | Canonical generated API surface decision: internal raw ABI, public typed low-level API, friendly overloads, peer matrix, string/span/handle/`SDL_bool` policy |
 | [binding-autogen/research/binding-autogen-onboarding.md](binding-autogen/research/binding-autogen-onboarding.md) | Fast onboarding for a fresh contributor or agent picking up the binding-autogen workstream |
 | [binding-autogen/research/binding-autogen-feasibility.md](binding-autogen/research/binding-autogen-feasibility.md) | Emit rules, platform-conditioned parsing model, validation layers, open decisions |
 | [binding-autogen/research/binding-autogen-spike-findings.md](binding-autogen/research/binding-autogen-spike-findings.md) | Hands-on SDL2_gfx spike findings for ClangSharp and CppAst |

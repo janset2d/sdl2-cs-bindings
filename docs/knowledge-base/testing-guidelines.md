@@ -43,10 +43,10 @@ Fixtures/Data/
     versions-single-family.json
 ```
 
-- File names describe the scenario: `versions-valid.json`, `versions-invalid-semver.json`.
+- File names describe the scenario and format: `versions-valid.json`, `versions-invalid-semver.json`, `cppast-fixture-matrix.h`.
 - Include both valid and invalid variants for every domain object.
-- Load via `FixtureLoader.Load("Domain/file.json")` — uses `Assembly.GetManifestResourceStream`.
-- `.csproj` glob catches all: `<EmbeddedResource Include="Fixtures\Data\**\*.json" />`.
+- Load via `FixtureLoader.Load("Domain/file.json")` or another embedded fixture path — uses `Assembly.GetManifestResourceStream`.
+- `.csproj` globs catch supported fixture formats explicitly, e.g. `<EmbeddedResource Include="Fixtures\Data\**\*.json" />` and `<EmbeddedResource Include="Fixtures\Data\**\*.h" />`.
 
 ### Centralized inline data
 

@@ -34,6 +34,17 @@ public sealed class CsCommandEmitterTests
     }
 
     [Test]
+    public async Task Emit_Should_Declare_View_Class_As_Unsafe()
+    {
+        var model = BindingModelData.TwoViewsNeutralPlusLinux();
+
+        var fileSet = CsCommandEmitter.Emit(model);
+
+        var neutralFile = fileSet.Files.Single(f => f.RelativePath == "Platform/Neutral/Commands.g.cs");
+        await Assert.That(neutralFile.Content).Contains("internal static unsafe partial class Sdl2_Neutral");
+    }
+
+    [Test]
     public async Task Emit_Should_Annotate_Platform_Views_With_SupportedOSPlatform()
     {
         var model = BindingModelData.TwoViewsNeutralPlusLinux();

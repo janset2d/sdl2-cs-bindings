@@ -2,7 +2,7 @@
 
 > **Status (2026-05-16):** Accepted unified design. Supersedes [`2026-05-14-binding-generator-architecture-design.md`](2026-05-14-binding-generator-architecture-design.md) and [`2026-05-15-binding-generator-local-output-loop-design.md`](2026-05-15-binding-generator-local-output-loop-design.md). Both predecessor specs were honest snapshots of their moment — 2026-05-14 captured the production-shape architecture decisions before the implementation surface existed; 2026-05-15 added a scratch local-output loop that intentionally produced a function-only `Preview*` shape so Tasks 4–6 could iterate against real CppAst output. This unified spec absorbs both, retires the `Preview*` scaffolding mindset, locks `build/manifest.json` as the per-family generation configuration center, and reframes the work as a manifest-driven per-family binding generator that finishes Stage 1 (SDL2.Core) and ships the infrastructure for Stage 2 (SDL2 satellites) and Stage 3 (SDL3) without rework.
 >
-> **Implementation plan:** [`../plans/2026-05-16-binding-generator-unified-plan.md`](../plans/2026-05-16-binding-generator-unified-plan.md).
+> **Implementation plan:** [`../plans/2026-05-17-binding-generator-unified-plan.md`](../plans/2026-05-17-binding-generator-unified-plan.md).
 >
 > **Workstream tracking:** [`../../binding-autogen/binding-autogen-strategy-brief.md`](../../binding-autogen/binding-autogen-strategy-brief.md) §Plan Shape carries the Stage 1/2/3 sequencing. [`../../decisions/2026-05-14-binding-autogen-toolchain.md`](../../decisions/2026-05-14-binding-autogen-toolchain.md) (ADR-004) locks the CppAst trio. [`../../decisions/2026-05-05-target-centric-build-host.md`](../../decisions/2026-05-05-target-centric-build-host.md) (ADR-002) and [`../../decisions/2026-05-12-build-host-data-layer.md`](../../decisions/2026-05-12-build-host-data-layer.md) (ADR-003) carry the host-architecture invariants this spec respects.
 
@@ -39,7 +39,7 @@ The generator is a **manifest-driven per-family binding generator hosted inside 
 
 **Pure-vs-Cake split (unchanged from predecessor specs).** Parser / model / emitter policy code carries no `ICakeContext`, no Cake aliases, no Cake `Tool<TSettings>` dependencies. Header resolution, generated-file persistence, generation-config repository, and task orchestration are build-host I/O boundaries and use Cake-native abstractions. Tests use `FakeCakeWorld` / `TargetTestHost` per [`../../knowledge-base/testing-guidelines.md`](../../knowledge-base/testing-guidelines.md).
 
-**Peer alignment.** Architecture decisions converge with `amerkoleci/Alimer.Bindings.SDL` (CppAst-based, single SDL3 family) on the unified `BindingModel` shape and 5–6-file per-category output topology. They converge with `ppy/SDL3-CS` on multi-pass parsing for platform-conditioned headers and on the dynapi-coherence post-emit check. They converge with Silk.NET 3.0 on manifest-driven per-library configuration. They diverge from all peers on per-family NuGet release independence via D-3seg versioning (SkiaSharp / LibGit2Sharp model), which is a deliberate scope decision recorded in [`../../../AGENTS.md`](../../../AGENTS.md) §Settled Strategic Decisions.
+**Peer alignment.** Architecture decisions converge with `amerkoleci/Alimer.Bindings.SDL` (CppAst-based, single SDL3 family) on the unified `BindingModel` shape, typed `readonly partial struct(nint)` handles, and 5–6-file per-category output topology. They converge with `ppy/SDL3-CS` on multi-pass parsing for platform-conditioned headers and on the dynapi-coherence post-emit check. They converge with SkiaSharp on keeping raw P/Invoke internal rather than public. They converge with Silk.NET on span/count metadata and generated low-level overload ideas, but not on Silk.NET's vtable/source-generator machinery. The public API surface decision is canonical in [`../../binding-autogen/binding-api-surface-strategy.md`](../../binding-autogen/binding-api-surface-strategy.md).
 
 ## 4. manifest.json v2.2 — `binding_generation` block per family
 
@@ -308,13 +308,14 @@ This is the architecture-spec pattern, **not** Alimer's partial-class pattern. P
 
 `CsCommandEmitter` emits, for each function with a `byte*` / `Span<byte>`-friendly parameter:
 
-1. **Raw P/Invoke** — `byte*` for UTF-8 strings, `T*` for buffers, `nint` for opaque handles.
-2. **`ReadOnlySpan<byte>` overload** — pins via `fixed`, dispatches to (1).
-3. **`string` overload** with `StringMarshalling.Utf8` (net7+ via `[LibraryImport]`); for `[DllImport]` legacy TFMs, manual `Utf8StringMarshaller` round-trip in a hand-emitted wrapper.
+1. **Internal raw ABI extern** — `byte*` for UTF-8 strings, `T*` for buffers, typed SDL handle structs for SDL-owned opaque handles, ABI-correct primitive wire types.
+2. **Public low-level wrapper** — calls (1) without exposing `[DllImport]` / `[LibraryImport]` publicly; keeps unsafe pointer overloads where they are the honest zero-allocation shape.
+3. **`ReadOnlySpan<byte>` overload** — accepts pre-encoded UTF-8 and appends a null terminator in temporary storage only when needed.
+4. **`string` overload** — convenience layer; encodes UTF-16 to UTF-8 and may allocate.
 
 For each function with output-pointer parameters: emits `out T` overload that dispatches to raw pointer signature. For each function with non-string buffer parameters: emits `Span<T>` / `ReadOnlySpan<T>` overload that pins + dispatches.
 
-The single-loop emission keeps overload + raw P/Invoke in the same file (`Commands.g.cs`), matching the strategy brief's HOW §"Emit rules — bound to feasibility §2" Rule 4 + Rule 6.
+The single-loop emission keeps raw ABI externs, public low-level wrappers, and friendly overloads generated from the same model. See [`../../binding-autogen/binding-api-surface-strategy.md`](../../binding-autogen/binding-api-surface-strategy.md) for the canonical string/span/handle policy.
 
 ### Dual P/Invoke emit (architecture spec Rule 1)
 
@@ -364,7 +365,7 @@ public sealed class CoreOwnedTypeMap
 
 `TypeMappingPolicy.MapPrimitive` corrects the legacy `Long → "int"` (P0.2 — Linux LP64 is 64-bit, was wrong) to `Long → "nint"` (platform-sized, round-trips on both LP64 and LLP64). `MapTypedef` chain-resolves through nested typedefs before falling back to `SDL_`-prefix → `IntPtr` (P0.1 — `SDL_AudioFormat`/`SDL_SpinLock`/`SDL_GameControllerButton` now emit their underlying primitive width). `Map`'s catch-all branch raises a typed warning rather than silently emitting `IntPtr` (P0.3).
 
-`KnownUnsupportedDeclarationPolicy` carries the C-variadic baseline (`SDL_Log`, `SDL_LogVerbose`, `SDL_SetError`, `SDL_sscanf`, `SDL_snprintf`, etc.) hard-coded as Stage 1 invariant (every SDL2 family that ships C variadics has the same baseline). The manifest's `deferred_declarations` block stacks on top.
+`KnownUnsupportedDeclarationPolicy` is **manifest-driven only** — it consumes `BindingGenerationConfig.DeferredDeclarations` (e.g. `SDL_SysWMinfo` deferred to Stage 2 typed-union shape) without any hard-coded baseline. C-variadic functions are intentionally **not filtered** here: per the 2026-05-17 peer-evidence review (see §8.2), the idiomatic SDL-family pattern is to emit variadic functions as fmt-only raw P/Invoke (the `...` tail is dropped, the `const char* fmt` parameter survives). SDL2-CS (hand-written, Ethan Lee) literal-comments this approach (`/* Use string.Format for arglists */`); Alimer.Bindings.SDL (CppAst SDL3) follows the same shape. Phase 3F's friendly-overload track adds the SDL2-CS-style `string fmtAndArglist` wrapper that makes the pre-format expectation explicit at the API surface. `__arglist` (ClangSharp / ppy/SDL3-CS default) is deliberately not adopted because it loses variadic capacity across the friendly-overload trio (Span/string wrappers cannot forward `__arglist` to the raw call) and Ethan Lee's bilinçli choice for SDL2-CS converged on the same fmt-only conclusion.
 
 `CoreOwnedTypeMap.QualifiedManagedReference` is the bridge that lets satellite emitters write `Janset.SDL2.SDL_Surface*` instead of redeclaring `SDL_Surface`. Stage 1 only uses `IsOwned` (during translation, to reject any satellite-side declaration of a core-owned type); the qualified-reference path activates at Stage 2.
 
@@ -465,15 +466,17 @@ using SDL_Renderer = Janset.SDL2.SDL_Renderer;
 using SDL_RWops = Janset.SDL2.SDL_RWops;
 using SDL_version = Janset.SDL2.SDL_version;
 
-public static unsafe partial class SDL_image
+internal static unsafe partial class Sdl2Image_Neutral
 {
-    [LibraryImport("SDL2_image", EntryPoint = "IMG_Load", StringMarshalling = StringMarshalling.Utf8)]
-    public static partial SDL_Surface* IMG_Load(string file);
+    [LibraryImport("SDL2_image", EntryPoint = "IMG_Load")]
+    internal static partial SDL_Surface IMG_Load(byte* file);
 
-    [LibraryImport("SDL2_image", EntryPoint = "IMG_LoadTexture", StringMarshalling = StringMarshalling.Utf8)]
-    public static partial SDL_Texture* IMG_LoadTexture(SDL_Renderer* renderer, string file);
+    [LibraryImport("SDL2_image", EntryPoint = "IMG_LoadTexture")]
+    internal static partial SDL_Texture IMG_LoadTexture(SDL_Renderer renderer, byte* file);
 }
 ```
+
+Public satellite wrappers and friendly overloads call these internal raw ABI methods; the extern declarations themselves are not public.
 
 **Generator-side enforcement.** When the satellite-stage `CppAstToBindingModel.Translate` encounters a typedef whose name is core-owned per `CoreOwnedTypeMap.IsOwned`, the translator does **not** populate `model.Handles` / `model.Structs` for that type — it records a `BindingTypeRef` whose `OwningFamilyId = "sdl2-core"` and `ManagedName = CoreOwnedTypeMap.QualifiedManagedReference(name)`. Emitters consume the qualified `ManagedName` directly.
 
@@ -518,7 +521,7 @@ Architecture-spec Rules 1–11 (per [`../../binding-autogen/binding-autogen-stra
 4. **Platform attribution from multi-pass parsing** (preserved from Task 3.5 / `0db0e31`; see §13).
 5. **Satellite/shared-type topology** — `CoreOwnedTypeMap` invariant + qualified namespace refs (§10 above).
 
-SDL2 `SDL_bool` → byte-backed (Rule 5); SDL3 `bool` → 1-byte wrapper struct (Rule 5 SDL3 variant) — Stage 3 deliverable, not in unified slice.
+SDL2 `SDL_bool` → int-backed raw ABI with friendly bool conversion (Rule 5); SDL3 bool-like values → 1-byte wrapper/byte raw policy (Rule 5 SDL3 variant). These mappings are intentionally separate; a shared bool wire wrapper is incorrect.
 
 ## 13. Multi-pass parsing infrastructure (preserved from Task 3.5)
 
@@ -621,7 +624,8 @@ The Stage 1 plan retires to `superseded/` as part of Phase 1; its corrections an
 ### Strategy + plans
 
 - [`docs/binding-autogen/binding-autogen-strategy-brief.md`](../../binding-autogen/binding-autogen-strategy-brief.md) — accepted strategy brief (revised 2026-05-15; Stage 1/2/3 sequencing + plan shape).
-- [`docs/superpowers/plans/2026-05-16-binding-generator-unified-plan.md`](../plans/2026-05-16-binding-generator-unified-plan.md) — implementation plan for this spec.
+- [`docs/binding-autogen/binding-api-surface-strategy.md`](../../binding-autogen/binding-api-surface-strategy.md) — canonical API surface decision: internal raw ABI, public typed low-level API, friendly overloads, peer matrix, string/span/handle/`SDL_bool` policy.
+- [`docs/superpowers/plans/2026-05-17-binding-generator-unified-plan.md`](../plans/2026-05-17-binding-generator-unified-plan.md) — implementation plan for this spec.
 - [`docs/playbook/binding-generator-maintenance.md`](../../playbook/binding-generator-maintenance.md) — per-family maintenance + parser-options rationale (the durable home for `parse_defines` per-entry rationale that doesn't fit in manifest.json).
 
 ### Superseded (retired in Phase 1)
