@@ -1894,6 +1894,94 @@ namespace/class names + comment-strip.
 
 ### Phase 3B — `BindingModel` extension + `BindingTypeRef`
 
+> **Finding from 2026-05-17 unified-slice smoke (SDL.h exclusion vs constants gap):**
+>
+> **Open question — decision pending. Three options laid out below; choose with Deniz before implementing Phase 3B `BindingConstant` shape.**
+>
+> ## The gap
+>
+> SDL.h is excluded from the per-header parse loop by `HeaderSetResolver` for three reasons (umbrella TU pulls ~50 transitive headers; failure isolation; pragmatic shortcut). The 5 base-API functions SDL.h declares (`SDL_Init`, `SDL_InitSubSystem`, `SDL_QuitSubSystem`, `SDL_WasInit`, `SDL_Quit`) are recovered via `manifest.binding_generation.required_functions` + translator-side Neutral-view injection.
+>
+> **The same gap exists for SDL.h-only CONSTANTS** that Stage 1's function-only emit doesn't currently surface:
+>
+> ```c
+> // SDL.h declarations not reachable from any other header:
+> #define SDL_INIT_TIMER          0x00000001u
+> #define SDL_INIT_AUDIO          0x00000010u
+> #define SDL_INIT_VIDEO          0x00000020u   // SDL_INIT_VIDEO implies SDL_INIT_EVENTS
+> #define SDL_INIT_JOYSTICK       0x00000200u   // implies SDL_INIT_EVENTS
+> #define SDL_INIT_HAPTIC         0x00001000u
+> #define SDL_INIT_GAMECONTROLLER 0x00002000u   // implies SDL_INIT_JOYSTICK
+> #define SDL_INIT_EVENTS         0x00004000u
+> #define SDL_INIT_SENSOR         0x00008000u
+> #define SDL_INIT_NOPARACHUTE    0x00100000u   // compatibility; flag is ignored
+> #define SDL_INIT_EVERYTHING ( \
+>                 SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS | \
+>                 SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC | SDL_INIT_GAMECONTROLLER | SDL_INIT_SENSOR \
+>             )
+> ```
+>
+> SDL.h declares these via `#define`; nothing else does. When `CsConstantEmitter` lands at Phase 3E and starts emitting `public const uint` / `public static readonly uint`, these would be missing from the bound surface — consumers couldn't call `SDL_Init(SDL_INIT_VIDEO)` because `SDL_INIT_VIDEO` wouldn't exist managed-side.
+>
+> **Why this isn't surfaced as a Stage 1 fix now**: Stage 1 emits functions only; constants are Phase 3E scope. No consumer-visible break in the current bulk slice; the gap is deferred-by-design until `CsConstantEmitter` lands. The Phase 3B model + Phase 3D translator + Phase 3E emitter all need to coordinate on the chosen resolution shape, so the design decision lives here as the source of truth.
+>
+> ## Option A — `required_constants` manifest field (analog to `required_functions`)
+>
+> Add a new `BindingGenerationConfig.RequiredConstants` field that hand-curates the SDL.h-only constants. Matches the existing pattern (`required_functions`) for SDL.h-only base-API functions.
+>
+> **Shape (Phase 3B):**
+>
+> ```csharp
+> public sealed record RequiredConstantConfig
+> {
+>     [JsonPropertyName("name")]          public required string Name { get; init; }
+>     [JsonPropertyName("type")]          public required string Type { get; init; }            // e.g. "uint"
+>     [JsonPropertyName("value")]         public string? Value { get; init; }                   // literal form, e.g. "0x00000001u"
+>     [JsonPropertyName("value_expr")]    public string? ValueExpr { get; init; }              // computed form, e.g. "SDL_INIT_TIMER | SDL_INIT_AUDIO | ..."
+>     [JsonPropertyName("source_header")] public required string SourceHeader { get; init; }   // e.g. "SDL.h"
+>     [JsonPropertyName("kind")]          public required ConstantKind Kind { get; init; }     // Literal | Computed
+> }
+> ```
+>
+> **Translator (Phase 3D)**: `CppAstToBindingModel.CollectConstants` merges `config.RequiredConstants` into the parsed-macros set (Neutral-view-anchored), same pattern as the function path already does for `config.RequiredFunctions`.
+>
+> **Emitter (Phase 3E)**: `CsConstantEmitter` distinguishes `ConstantKind.Literal` → `public const <type> NAME = <value>;` from `ConstantKind.Computed` → `public static readonly <type> NAME = <value_expr>;` (compound `SDL_INIT_EVERYTHING` needs `static readonly` because C#'s `const` rejects non-literal expressions).
+>
+> **manifest.json**: SDL2 `binding_generation.required_constants` seeded with 10 entries (9 literal + 1 computed). Maintenance lives in `docs/playbook/binding-generator-maintenance.md` §"Parse-time configuration surface (per family)" alongside `required_functions` rationale.
+>
+> **Pros**: symmetrical with existing `required_functions` pattern; deterministic; maintenance burden low (SDL2 base API is stable since SDL2.0.0 — `SDL_INIT_*` set hasn't changed across the 2.x line); compound macro handled cleanly via the `Literal` / `Computed` kind split.
+>
+> **Cons**: hand-curated → if SDL2 ever adds a new `SDL_INIT_*` macro the manifest needs a manual update; drift can go unnoticed until someone notices the missing constant in generated output.
+>
+> ## Option B — Separate macro-only SDL.h parse pass
+>
+> Run SDL.h through an out-of-band `CppParser.ParseFile(SDL.h, options)` call (separate from the main per-header loop), extract only `compilation.Macros` whose `SourceFile` resolves to `SDL.h` itself (not transitively included files), discard everything else (functions / structs / typedefs).
+>
+> **Translator (Phase 3D)**: dedicated `CollectSdlHOnlyMacros` step that runs once per parse view (or once total — SDL.h's `SDL_INIT_*` macros are platform-unconditional, so a single Neutral-anchored pass is probably enough). Filters `compilation.Macros` to `m.SourceFile.EndsWith("SDL.h")`.
+>
+> **Pros**: automatic — if SDL2 adds a new `SDL_INIT_*` macro it lands in generated output without any manifest update; no hand-curated list to maintain.
+>
+> **Cons**:
+> - **Umbrella TU cost**: SDL.h transitively pulls ~50 headers; one extra umbrella parse adds noticeable wall time per parse view (potentially 30-60s if naive, depends on caching).
+> - **Failure isolation lost**: a parse failure anywhere in the SDL.h umbrella chain poisons the constants pass; current per-header strategy specifically avoids this.
+> - **Translator complexity**: source-file filtering logic for "SDL.h-declared macros only" needs to be defensive against libclang resolving SDL.h via an absolute path vs a relative include path, depending on parse options.
+> - **Per-view question**: do we parse SDL.h once (Neutral only) or per-view? Currently the SDL_INIT_* set is platform-unconditional in SDL2.32.10, but if a future SDL minor introduces a platform-gated `SDL_INIT_*` (unlikely but possible), per-view parsing would be needed.
+>
+> ## Option C — Hybrid: Option A + drift-detection validator
+>
+> Layer Option A's hand-curated `required_constants` (used for actual emit) with a new `IBindingFamilyValidator` implementation — `SdlHConstantCoverageValidator` — that text-greps the SDL.h source file (resolvable via the same path the dynapi validator uses, after this slice's `git clone` fallback puts SDL2 source at a stable location) for `^#define SDL_(INIT|HINT)_` patterns and warns when manifest's `required_constants` is missing any.
+>
+> **Pros**: deterministic emit (Option A's discipline) + automatic drift detection (catches a new `SDL_INIT_*` introduced by an SDL2 minor bump before generated output ships); validator-id matches the existing manifest opt-in pattern (`sdl-h-constant-coverage` joins `dynapi-coherence` / `neutral-view-non-empty` / `required-functions-emitted`); warning-level under Stage1Generator profile (doesn't fail builds, surfaces in logs).
+>
+> **Cons**: extra validator implementation (~100 lines of code + tests); grep-based parser is fragile against multi-line macro definitions (the `SDL_INIT_EVERYTHING` compound case spans multiple lines via `\` continuation); validator path resolution coupled to the Dockerfile's conditional clone path or vcpkg buildtree state.
+>
+> ## Decision points to discuss with Deniz before implementation
+>
+> 1. **Curation policy**: how often does Deniz want to update manifest entries on SDL2 minor bumps? If "rarely, and the playbook already mandates an upstream-diff step on every bump" → Option A is sufficient. If "drift is a real risk and I don't trust myself to remember" → Option C earns its keep.
+> 2. **Umbrella parse appetite**: how much extra wall-time per generation run is acceptable for Option B's automatic coverage? Stage 1's current full-run is ~5 min total; +30-60s would be tolerable but visible.
+> 3. **Validator-surface budget**: Option C adds a 4th `IBindingFamilyValidator`. The validator-shape parking lot (`docs/parking-lot/validator-shape-standardization/README.md`) is the relevant context — do we want to spend that budget on drift detection or save it for higher-value Stage 2 checks?
+> 4. **Phase 3E coordination**: Whichever option lands, Phase 3E's `CsConstantEmitter` design (Literal vs Computed kind split) is the same. The disagreement is only on Phase 3B's `RequiredConstants` field shape (Option A = present, Option B = absent + parse-driven, Option C = present + validator-checked).
+
 ### Task 3B.1: Add new model records (Struct, Enum, Constant, Handle, Callback, TypeRef)
 
 **Files:**
