@@ -1,6 +1,6 @@
 namespace Build.Targets.GenerateBindings.Model;
 
-public sealed record PreviewParseView(
+public sealed record BindingParseView(
     string Name,
     string? SupportedOsPlatform,
-    IReadOnlyList<PreviewFunction> Functions);
+    IReadOnlyList<BindingFunction> Functions);

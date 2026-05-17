@@ -102,7 +102,7 @@ public sealed class ServiceCollectionExtensionsSmokeTests
         // AddValidators supplies IEnumerable<IBindingFamilyValidator> (3 family-scoped
         // validators that the task dispatches per manifest opt-in). Production order:
         // AddHostBuildingBlocks -> AddData -> AddValidators -> AddGenerateBindings.
-        // PreviewEmitter is a static utility — not registered.
+        // CsCommandEmitter is a static utility — not registered.
         await AssertAllRegisteredTypesResolve(services =>
         {
             services.AddData();

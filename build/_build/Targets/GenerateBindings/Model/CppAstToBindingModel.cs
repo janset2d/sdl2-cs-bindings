@@ -3,12 +3,12 @@ using CppAst;
 
 namespace Build.Targets.GenerateBindings.Model;
 
-internal static class CppAstToPreviewModel
+internal static class CppAstToBindingModel
 {
-    public static PreviewBindingModel Translate(
+    public static BindingModel Translate(
         IReadOnlyList<CppAstParseResult> parseResults,
         IReadOnlySet<string> excludedFunctionNames,
-        IReadOnlyList<PreviewFunction> requiredFunctions)
+        IReadOnlyList<BindingFunction> requiredFunctions)
     {
         ArgumentNullException.ThrowIfNull(parseResults);
         ArgumentNullException.ThrowIfNull(excludedFunctionNames);
@@ -26,7 +26,7 @@ internal static class CppAstToPreviewModel
             neutralFunctions.Add(required.Name);
         }
 
-        var views = new List<PreviewParseView>(parseResults.Count);
+        var views = new List<BindingParseView>(parseResults.Count);
 
         foreach (var result in parseResults)
         {
@@ -48,13 +48,13 @@ internal static class CppAstToPreviewModel
                     .ToList();
             }
 
-            views.Add(new PreviewParseView(
+            views.Add(new BindingParseView(
                 Name: result.ParseView.Name,
                 SupportedOsPlatform: result.ParseView.SupportedOsPlatform,
                 Functions: functions));
         }
 
-        return new PreviewBindingModel(views);
+        return new BindingModel(views);
     }
 
     private static HashSet<string> ExtractNeutralFunctionNames(
@@ -78,12 +78,12 @@ internal static class CppAstToPreviewModel
     // surface the same f.SourceFile (the real declaration site), so deduping by
     // (SourceFile, Name) collapses the umbrella-include duplicates without losing
     // any unique declarations. C has no overloads, so (SourceFile, Name) is unique.
-    private static List<PreviewFunction> ExtractFunctions(
+    private static List<BindingFunction> ExtractFunctions(
         IReadOnlyList<CppCompilation> compilations,
         IReadOnlySet<string> excludedFunctionNames)
     {
         var seen = new HashSet<(string SourceFile, string Name)>();
-        var functions = new List<PreviewFunction>();
+        var functions = new List<BindingFunction>();
 
         foreach (var compilation in compilations)
         {
@@ -138,14 +138,14 @@ internal static class CppAstToPreviewModel
             && !excludedFunctionNames.Contains(function.Name);
     }
 
-    private static PreviewFunction ToFunction(CppFunction function)
+    private static BindingFunction ToFunction(CppFunction function)
     {
         var sourceHeader = Path.GetFileName(function.SourceFile ?? string.Empty);
         var parameters = function.Parameters
-            .Select(p => new PreviewParameter(MapType(p.Type), SafeIdentifier(p.Name)))
+            .Select(p => new BindingParameter(MapType(p.Type), SafeIdentifier(p.Name)))
             .ToList();
 
-        return new PreviewFunction(
+        return new BindingFunction(
             Name: function.Name,
             ReturnType: MapType(function.ReturnType),
             Parameters: parameters,

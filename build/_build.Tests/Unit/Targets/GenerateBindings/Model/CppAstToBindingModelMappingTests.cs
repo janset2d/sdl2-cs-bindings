@@ -3,7 +3,7 @@ using CppAst;
 
 namespace Build.Tests.Unit.Targets.GenerateBindings.Model;
 
-// Targets CppAstToPreviewModel.MapType / MapPrimitive / MapTypedef / MapPointer.
+// Targets CppAstToBindingModel.MapType / MapPrimitive / MapTypedef / MapPointer.
 // Stage 1 Task 3.5 Post-Implementation Review surfaced wire-format bugs where
 // the previous private-static type-mapping silently emitted IntPtr (8 bytes)
 // for SDL_*-prefixed primitive typedefs and emitted 32-bit `int` for C `long`
@@ -14,7 +14,7 @@ namespace Build.Tests.Unit.Targets.GenerateBindings.Model;
 // CppPrimitiveType has no public constructor — its instances are static
 // singletons (CppPrimitiveType.Int, CppPrimitiveType.UnsignedShort, etc.).
 // Tests reference those.
-public sealed class CppAstToPreviewModelMappingTests
+public sealed class CppAstToBindingModelMappingTests
 {
     // ─── P0.1 — MapTypedef must chain-resolve before SDL_*-prefix fallback ───
 
@@ -28,7 +28,7 @@ public sealed class CppAstToPreviewModelMappingTests
         var uint16Typedef = new CppTypedef("Uint16", CppPrimitiveType.UnsignedShort);
         var sdlAudioFormat = new CppTypedef("SDL_AudioFormat", uint16Typedef);
 
-        await Assert.That(CppAstToPreviewModel.MapType(sdlAudioFormat)).IsEqualTo("ushort");
+        await Assert.That(CppAstToBindingModel.MapType(sdlAudioFormat)).IsEqualTo("ushort");
     }
 
     [Test]
@@ -36,7 +36,7 @@ public sealed class CppAstToPreviewModelMappingTests
     {
         var sdlSpinLock = new CppTypedef("SDL_SpinLock", CppPrimitiveType.Int);
 
-        await Assert.That(CppAstToPreviewModel.MapType(sdlSpinLock)).IsEqualTo("int");
+        await Assert.That(CppAstToBindingModel.MapType(sdlSpinLock)).IsEqualTo("int");
     }
 
     [Test]
@@ -48,7 +48,7 @@ public sealed class CppAstToPreviewModelMappingTests
         var enumType = new CppEnum("SDL_GameControllerButton");
         var typedef = new CppTypedef("SDL_GameControllerButton", enumType);
 
-        await Assert.That(CppAstToPreviewModel.MapType(typedef)).IsEqualTo("int");
+        await Assert.That(CppAstToBindingModel.MapType(typedef)).IsEqualTo("int");
     }
 
     [Test]
@@ -60,7 +60,7 @@ public sealed class CppAstToPreviewModelMappingTests
         var opaqueStruct = new CppClass("SDL_Window");
         var sdlWindow = new CppTypedef("SDL_Window", opaqueStruct);
 
-        await Assert.That(CppAstToPreviewModel.MapType(sdlWindow)).IsEqualTo("IntPtr");
+        await Assert.That(CppAstToBindingModel.MapType(sdlWindow)).IsEqualTo("IntPtr");
     }
 
     // ─── P0.2 — Linux `long` width on LP64 ───
@@ -73,13 +73,13 @@ public sealed class CppAstToPreviewModelMappingTests
         // headers; emitting `int` would truncate to 32-bit on the LP64 runtime
         // ABI and silently corrupt the wire format. `nint` is platform-sized at
         // CLR runtime, round-trips correctly on both target families.
-        await Assert.That(CppAstToPreviewModel.MapPrimitive(CppPrimitiveType.Long)).IsEqualTo("nint");
+        await Assert.That(CppAstToBindingModel.MapPrimitive(CppPrimitiveType.Long)).IsEqualTo("nint");
     }
 
     [Test]
     public async Task MapPrimitive_Should_Emit_Nuint_For_C_Unsigned_Long()
     {
-        await Assert.That(CppAstToPreviewModel.MapPrimitive(CppPrimitiveType.UnsignedLong)).IsEqualTo("nuint");
+        await Assert.That(CppAstToBindingModel.MapPrimitive(CppPrimitiveType.UnsignedLong)).IsEqualTo("nuint");
     }
 
     // ─── Regression guard — fixed-width primitives ───
@@ -87,18 +87,18 @@ public sealed class CppAstToPreviewModelMappingTests
     [Test]
     public async Task MapPrimitive_Should_Cover_Common_C_Primitives()
     {
-        await Assert.That(CppAstToPreviewModel.MapPrimitive(CppPrimitiveType.Void)).IsEqualTo("void");
-        await Assert.That(CppAstToPreviewModel.MapPrimitive(CppPrimitiveType.Bool)).IsEqualTo("byte");
-        await Assert.That(CppAstToPreviewModel.MapPrimitive(CppPrimitiveType.Char)).IsEqualTo("sbyte");
-        await Assert.That(CppAstToPreviewModel.MapPrimitive(CppPrimitiveType.UnsignedChar)).IsEqualTo("byte");
-        await Assert.That(CppAstToPreviewModel.MapPrimitive(CppPrimitiveType.Short)).IsEqualTo("short");
-        await Assert.That(CppAstToPreviewModel.MapPrimitive(CppPrimitiveType.UnsignedShort)).IsEqualTo("ushort");
-        await Assert.That(CppAstToPreviewModel.MapPrimitive(CppPrimitiveType.Int)).IsEqualTo("int");
-        await Assert.That(CppAstToPreviewModel.MapPrimitive(CppPrimitiveType.UnsignedInt)).IsEqualTo("uint");
-        await Assert.That(CppAstToPreviewModel.MapPrimitive(CppPrimitiveType.LongLong)).IsEqualTo("long");
-        await Assert.That(CppAstToPreviewModel.MapPrimitive(CppPrimitiveType.UnsignedLongLong)).IsEqualTo("ulong");
-        await Assert.That(CppAstToPreviewModel.MapPrimitive(CppPrimitiveType.Float)).IsEqualTo("float");
-        await Assert.That(CppAstToPreviewModel.MapPrimitive(CppPrimitiveType.Double)).IsEqualTo("double");
+        await Assert.That(CppAstToBindingModel.MapPrimitive(CppPrimitiveType.Void)).IsEqualTo("void");
+        await Assert.That(CppAstToBindingModel.MapPrimitive(CppPrimitiveType.Bool)).IsEqualTo("byte");
+        await Assert.That(CppAstToBindingModel.MapPrimitive(CppPrimitiveType.Char)).IsEqualTo("sbyte");
+        await Assert.That(CppAstToBindingModel.MapPrimitive(CppPrimitiveType.UnsignedChar)).IsEqualTo("byte");
+        await Assert.That(CppAstToBindingModel.MapPrimitive(CppPrimitiveType.Short)).IsEqualTo("short");
+        await Assert.That(CppAstToBindingModel.MapPrimitive(CppPrimitiveType.UnsignedShort)).IsEqualTo("ushort");
+        await Assert.That(CppAstToBindingModel.MapPrimitive(CppPrimitiveType.Int)).IsEqualTo("int");
+        await Assert.That(CppAstToBindingModel.MapPrimitive(CppPrimitiveType.UnsignedInt)).IsEqualTo("uint");
+        await Assert.That(CppAstToBindingModel.MapPrimitive(CppPrimitiveType.LongLong)).IsEqualTo("long");
+        await Assert.That(CppAstToBindingModel.MapPrimitive(CppPrimitiveType.UnsignedLongLong)).IsEqualTo("ulong");
+        await Assert.That(CppAstToBindingModel.MapPrimitive(CppPrimitiveType.Float)).IsEqualTo("float");
+        await Assert.That(CppAstToBindingModel.MapPrimitive(CppPrimitiveType.Double)).IsEqualTo("double");
     }
 
     // ─── Regression guard — SDL2 explicit-width typedef table ───
@@ -106,17 +106,17 @@ public sealed class CppAstToPreviewModelMappingTests
     [Test]
     public async Task MapType_Should_Recognize_SDL2_Fixed_Width_Typedefs()
     {
-        await Assert.That(CppAstToPreviewModel.MapType(new CppTypedef("Sint8", CppPrimitiveType.Char))).IsEqualTo("sbyte");
-        await Assert.That(CppAstToPreviewModel.MapType(new CppTypedef("Uint8", CppPrimitiveType.UnsignedChar))).IsEqualTo("byte");
-        await Assert.That(CppAstToPreviewModel.MapType(new CppTypedef("Sint16", CppPrimitiveType.Short))).IsEqualTo("short");
-        await Assert.That(CppAstToPreviewModel.MapType(new CppTypedef("Uint16", CppPrimitiveType.UnsignedShort))).IsEqualTo("ushort");
-        await Assert.That(CppAstToPreviewModel.MapType(new CppTypedef("Sint32", CppPrimitiveType.Int))).IsEqualTo("int");
-        await Assert.That(CppAstToPreviewModel.MapType(new CppTypedef("Uint32", CppPrimitiveType.UnsignedInt))).IsEqualTo("uint");
-        await Assert.That(CppAstToPreviewModel.MapType(new CppTypedef("Sint64", CppPrimitiveType.LongLong))).IsEqualTo("long");
-        await Assert.That(CppAstToPreviewModel.MapType(new CppTypedef("Uint64", CppPrimitiveType.UnsignedLongLong))).IsEqualTo("ulong");
-        await Assert.That(CppAstToPreviewModel.MapType(new CppTypedef("SDL_bool", CppPrimitiveType.Int))).IsEqualTo("byte");
-        await Assert.That(CppAstToPreviewModel.MapType(new CppTypedef("size_t", CppPrimitiveType.UnsignedLong))).IsEqualTo("nuint");
-        await Assert.That(CppAstToPreviewModel.MapType(new CppTypedef("ptrdiff_t", CppPrimitiveType.Long))).IsEqualTo("nint");
+        await Assert.That(CppAstToBindingModel.MapType(new CppTypedef("Sint8", CppPrimitiveType.Char))).IsEqualTo("sbyte");
+        await Assert.That(CppAstToBindingModel.MapType(new CppTypedef("Uint8", CppPrimitiveType.UnsignedChar))).IsEqualTo("byte");
+        await Assert.That(CppAstToBindingModel.MapType(new CppTypedef("Sint16", CppPrimitiveType.Short))).IsEqualTo("short");
+        await Assert.That(CppAstToBindingModel.MapType(new CppTypedef("Uint16", CppPrimitiveType.UnsignedShort))).IsEqualTo("ushort");
+        await Assert.That(CppAstToBindingModel.MapType(new CppTypedef("Sint32", CppPrimitiveType.Int))).IsEqualTo("int");
+        await Assert.That(CppAstToBindingModel.MapType(new CppTypedef("Uint32", CppPrimitiveType.UnsignedInt))).IsEqualTo("uint");
+        await Assert.That(CppAstToBindingModel.MapType(new CppTypedef("Sint64", CppPrimitiveType.LongLong))).IsEqualTo("long");
+        await Assert.That(CppAstToBindingModel.MapType(new CppTypedef("Uint64", CppPrimitiveType.UnsignedLongLong))).IsEqualTo("ulong");
+        await Assert.That(CppAstToBindingModel.MapType(new CppTypedef("SDL_bool", CppPrimitiveType.Int))).IsEqualTo("byte");
+        await Assert.That(CppAstToBindingModel.MapType(new CppTypedef("size_t", CppPrimitiveType.UnsignedLong))).IsEqualTo("nuint");
+        await Assert.That(CppAstToBindingModel.MapType(new CppTypedef("ptrdiff_t", CppPrimitiveType.Long))).IsEqualTo("nint");
     }
 
     // ─── Regression guard — pointers ───
@@ -125,14 +125,14 @@ public sealed class CppAstToPreviewModelMappingTests
     public async Task MapType_Should_Emit_IntPtr_For_Void_Star()
     {
         var voidStar = new CppPointerType(CppPrimitiveType.Void);
-        await Assert.That(CppAstToPreviewModel.MapType(voidStar)).IsEqualTo("IntPtr");
+        await Assert.That(CppAstToBindingModel.MapType(voidStar)).IsEqualTo("IntPtr");
     }
 
     [Test]
     public async Task MapType_Should_Emit_Primitive_Star_For_Primitive_Pointer()
     {
         var intStar = new CppPointerType(CppPrimitiveType.Int);
-        await Assert.That(CppAstToPreviewModel.MapType(intStar)).IsEqualTo("int*");
+        await Assert.That(CppAstToBindingModel.MapType(intStar)).IsEqualTo("int*");
     }
 
     [Test]
@@ -141,6 +141,6 @@ public sealed class CppAstToPreviewModelMappingTests
         // SDL_Window* — opaque handle pointer.
         var sdlWindowStruct = new CppClass("SDL_Window");
         var sdlWindowStar = new CppPointerType(sdlWindowStruct);
-        await Assert.That(CppAstToPreviewModel.MapType(sdlWindowStar)).IsEqualTo("IntPtr");
+        await Assert.That(CppAstToBindingModel.MapType(sdlWindowStar)).IsEqualTo("IntPtr");
     }
 }

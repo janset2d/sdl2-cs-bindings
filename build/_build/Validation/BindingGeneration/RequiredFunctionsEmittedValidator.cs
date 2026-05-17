@@ -21,7 +21,7 @@ public sealed class RequiredFunctionsEmittedValidator : IBindingFamilyValidator
 {
     public string ValidatorId => "required-functions-emitted";
 
-    public Task<ValidationReport> ValidateAsync(PreviewBindingModel model, BindingGenerationConfig config, CancellationToken ct)
+    public Task<ValidationReport> ValidateAsync(BindingModel model, BindingGenerationConfig config, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(model);
         ArgumentNullException.ThrowIfNull(config);

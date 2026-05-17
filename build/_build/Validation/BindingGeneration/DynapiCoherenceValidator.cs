@@ -32,7 +32,7 @@ public sealed class DynapiCoherenceValidator(IDynapiManifestRepository dynapiRep
 
     public string ValidatorId => "dynapi-coherence";
 
-    public async Task<ValidationReport> ValidateAsync(PreviewBindingModel model, BindingGenerationConfig config, CancellationToken ct)
+    public async Task<ValidationReport> ValidateAsync(BindingModel model, BindingGenerationConfig config, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(model);
         ArgumentNullException.ThrowIfNull(config);

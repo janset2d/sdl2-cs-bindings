@@ -3,35 +3,35 @@ using Build.Targets.GenerateBindings.Emitting;
 
 namespace Build.Tests.Unit.Targets.GenerateBindings.Emitting;
 
-public sealed class PreviewParseViewReportTests
+public sealed class BindingParseViewReportTests
 {
     [Test]
-    public async Task PreviewParseViewReport_Should_Round_Trip_Through_System_Text_Json()
+    public async Task BindingParseViewReport_Should_Round_Trip_Through_System_Text_Json()
     {
-        var original = new PreviewParseViewReport(
+        var original = new BindingParseViewReport(
         [
-            new PreviewParseViewReportEntry(
+            new BindingParseViewReportEntry(
                 Name: "Neutral",
                 SupportedOSPlatform: null,
                 FunctionCount: 2,
                 Functions:
                 [
-                    new PreviewParseViewReportFunction("SDL_Init", "SDL_main.h"),
-                    new PreviewParseViewReportFunction("SDL_Quit", "SDL_main.h"),
+                    new BindingParseViewReportFunction("SDL_Init", "SDL.h"),
+                    new BindingParseViewReportFunction("SDL_Quit", "SDL.h"),
                 ]),
-            new PreviewParseViewReportEntry(
+            new BindingParseViewReportEntry(
                 Name: "Linux",
                 SupportedOSPlatform: "linux",
                 FunctionCount: 1,
                 Functions:
                 [
-                    new PreviewParseViewReportFunction("SDL_LinuxSetThreadPriority", "SDL_system.h"),
+                    new BindingParseViewReportFunction("SDL_LinuxSetThreadPriority", "SDL_system.h"),
                 ]),
         ]);
 
         var options = new JsonSerializerOptions { WriteIndented = true };
         var json = JsonSerializer.Serialize(original, options);
-        var round = JsonSerializer.Deserialize<PreviewParseViewReport>(json, options);
+        var round = JsonSerializer.Deserialize<BindingParseViewReport>(json, options);
 
         await Assert.That(round).IsNotNull();
         await Assert.That(round!.Views.Count).IsEqualTo(2);

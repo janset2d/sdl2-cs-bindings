@@ -111,12 +111,12 @@ public sealed class GenerateBindingsTask(
             .Select(view => _parseRunner.Parse(config, headerSet, view))
             .ToList();
 
-        var model = CppAstToPreviewModel.Translate(parseResults, config.ExcludedFunctions, ConvertRequiredFunctions(config));
+        var model = CppAstToBindingModel.Translate(parseResults, config.ExcludedFunctions, ConvertRequiredFunctions(config));
         LogPerViewCounts(model);
 
         await RunFamilyValidatorsAsync(model, config, ct).ConfigureAwait(false);
 
-        var fileSet = PreviewEmitter.Emit(model);
+        var fileSet = CsCommandEmitter.Emit(model);
         await WriteAsync(context, fileSet, outputDirectory, ct).ConfigureAwait(false);
 
         _log.Information("Wrote {0} files to '{1}'.", fileSet.Files.Count, outputDirectory.FullPath);
@@ -124,21 +124,21 @@ public sealed class GenerateBindingsTask(
 
     /// <summary>
     /// Maps <see cref="BindingGenerationConfig.RequiredFunctions"/> (config record shape)
-    /// to <see cref="PreviewFunction"/> (translator input shape). Phase 3A's rename
-    /// retires <see cref="PreviewFunction"/>; until then, this is the bridge between
+    /// to <see cref="BindingFunction"/> (translator input shape). Phase 3A's rename
+    /// retires <see cref="BindingFunction"/>; until then, this is the bridge between
     /// the manifest-driven config and the legacy translator signature.
     /// </summary>
-    private static IReadOnlyList<PreviewFunction> ConvertRequiredFunctions(BindingGenerationConfig config)
+    private static IReadOnlyList<BindingFunction> ConvertRequiredFunctions(BindingGenerationConfig config)
     {
         return [.. config.RequiredFunctions.Select(rf =>
-            new PreviewFunction(
+            new BindingFunction(
                 Name: rf.Name,
                 ReturnType: rf.ReturnType,
-                Parameters: [.. rf.Parameters.Select(p => new PreviewParameter(p.Type, p.Name))],
+                Parameters: [.. rf.Parameters.Select(p => new BindingParameter(p.Type, p.Name))],
                 SourceHeader: rf.SourceHeader))];
     }
 
-    private async Task RunFamilyValidatorsAsync(PreviewBindingModel model, BindingGenerationConfig config, CancellationToken ct)
+    private async Task RunFamilyValidatorsAsync(BindingModel model, BindingGenerationConfig config, CancellationToken ct)
     {
         var enabledIds = config.Validators
             .Where(kv => kv.Value)
@@ -196,7 +196,7 @@ public sealed class GenerateBindingsTask(
         }
     }
 
-    private void LogPerViewCounts(PreviewBindingModel model)
+    private void LogPerViewCounts(BindingModel model)
     {
         foreach (var view in model.Views)
         {

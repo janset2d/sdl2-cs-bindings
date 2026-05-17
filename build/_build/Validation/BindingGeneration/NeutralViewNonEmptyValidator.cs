@@ -16,7 +16,7 @@ public sealed class NeutralViewNonEmptyValidator : IBindingFamilyValidator
 {
     public string ValidatorId => "neutral-view-non-empty";
 
-    public Task<ValidationReport> ValidateAsync(PreviewBindingModel model, BindingGenerationConfig config, CancellationToken ct)
+    public Task<ValidationReport> ValidateAsync(BindingModel model, BindingGenerationConfig config, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(model);
         ArgumentNullException.ThrowIfNull(config);

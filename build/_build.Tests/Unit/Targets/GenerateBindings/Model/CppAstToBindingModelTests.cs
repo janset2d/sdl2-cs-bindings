@@ -4,10 +4,10 @@ using CppAst;
 
 namespace Build.Tests.Unit.Targets.GenerateBindings.Model;
 
-public sealed class CppAstToPreviewModelTests
+public sealed class CppAstToBindingModelTests
 {
     private static readonly HashSet<string> NoExclusions = new(StringComparer.Ordinal);
-    private static readonly IReadOnlyList<PreviewFunction> NoRequired = [];
+    private static readonly IReadOnlyList<BindingFunction> NoRequired = [];
     private static readonly string[] AscendingViewOrder = ["Neutral", "WindowsDesktop", "Linux"];
     private static readonly string[] DescendingViewOrder = ["Linux", "WindowsDesktop", "Neutral"];
 
@@ -30,11 +30,11 @@ public sealed class CppAstToPreviewModelTests
         // order but the resulting parseResults list reflects catalog order.
         // Verifies the translator pins that contract: view sequence in the
         // emitted model matches the input list 1:1.
-        var ascending = CppAstToPreviewModel.Translate(
+        var ascending = CppAstToBindingModel.Translate(
             [EmptyResult("Neutral"), EmptyResult("WindowsDesktop", "windows"), EmptyResult("Linux", "linux")],
             NoExclusions,
             NoRequired);
-        var descending = CppAstToPreviewModel.Translate(
+        var descending = CppAstToBindingModel.Translate(
             [EmptyResult("Linux", "linux"), EmptyResult("WindowsDesktop", "windows"), EmptyResult("Neutral")],
             NoExclusions,
             NoRequired);
@@ -50,7 +50,7 @@ public sealed class CppAstToPreviewModelTests
     {
         // No CppCompilations in any parse result → no functions in any view.
         // Pins the "no functions accidentally synthesized" property.
-        var model = CppAstToPreviewModel.Translate(
+        var model = CppAstToBindingModel.Translate(
             [EmptyResult("Neutral"), EmptyResult("Linux", "linux")],
             NoExclusions,
             NoRequired);
@@ -64,7 +64,7 @@ public sealed class CppAstToPreviewModelTests
     [Test]
     public async Task Translate_Should_Carry_SupportedOsPlatform_Onto_The_Emitted_View()
     {
-        var model = CppAstToPreviewModel.Translate(
+        var model = CppAstToBindingModel.Translate(
             [EmptyResult("Neutral"), EmptyResult("WindowsDesktop", "windows"), EmptyResult("MacOS", "osx")],
             NoExclusions,
             NoRequired);
@@ -81,7 +81,7 @@ public sealed class CppAstToPreviewModelTests
     [Test]
     public void Translate_Should_Throw_When_ExcludedFunctionNames_Is_Null()
     {
-        Assert.Throws<ArgumentNullException>(() => CppAstToPreviewModel.Translate(
+        Assert.Throws<ArgumentNullException>(() => CppAstToBindingModel.Translate(
             [EmptyResult("Neutral")],
             excludedFunctionNames: null!,
             requiredFunctions: NoRequired));
@@ -90,7 +90,7 @@ public sealed class CppAstToPreviewModelTests
     [Test]
     public void Translate_Should_Throw_When_RequiredFunctions_Is_Null()
     {
-        Assert.Throws<ArgumentNullException>(() => CppAstToPreviewModel.Translate(
+        Assert.Throws<ArgumentNullException>(() => CppAstToBindingModel.Translate(
             [EmptyResult("Neutral")],
             NoExclusions,
             requiredFunctions: null!));
@@ -104,11 +104,11 @@ public sealed class CppAstToPreviewModelTests
         // the top of the file. Parsed-content order-invariance is asserted elsewhere.
         var required = new[]
         {
-            new PreviewFunction("SDL_Init", "int", [new PreviewParameter("uint", "flags")], "SDL.h"),
-            new PreviewFunction("SDL_Quit", "void", [], "SDL.h"),
+            new BindingFunction("SDL_Init", "int", [new BindingParameter("uint", "flags")], "SDL.h"),
+            new BindingFunction("SDL_Quit", "void", [], "SDL.h"),
         };
 
-        var model = CppAstToPreviewModel.Translate(
+        var model = CppAstToBindingModel.Translate(
             [EmptyResult("Neutral"), EmptyResult("Linux", "linux")],
             NoExclusions,
             required);
@@ -123,7 +123,7 @@ public sealed class CppAstToPreviewModelTests
     public async Task Translate_Should_Produce_Deterministic_Output_Under_Concurrent_Invocation()
     {
         // Stage 1 plan Post-Implementation Review P1.5: GenerateBindingsTask uses
-        // PLINQ outer-view parallelism for parsing; CppAstToPreviewModel.Translate
+        // PLINQ outer-view parallelism for parsing; CppAstToBindingModel.Translate
         // is the merge step downstream of those parallel results. Translate itself
         // is a pure static function with no shared mutable state — this test pins
         // that property by running 32 concurrent invocations on shared inputs and
@@ -139,12 +139,12 @@ public sealed class CppAstToPreviewModelTests
         };
         var required = new[]
         {
-            new PreviewFunction("SDL_Init", "int", [new PreviewParameter("uint", "flags")], "SDL.h"),
-            new PreviewFunction("SDL_Quit", "void", [], "SDL.h"),
+            new BindingFunction("SDL_Init", "int", [new BindingParameter("uint", "flags")], "SDL.h"),
+            new BindingFunction("SDL_Quit", "void", [], "SDL.h"),
         };
 
         var tasks = Enumerable.Range(0, 32)
-            .Select(_ => Task.Run(() => CppAstToPreviewModel.Translate(inputs, NoExclusions, required)))
+            .Select(_ => Task.Run(() => CppAstToBindingModel.Translate(inputs, NoExclusions, required)))
             .ToArray();
         var results = await Task.WhenAll(tasks);
 
@@ -173,10 +173,10 @@ public sealed class CppAstToPreviewModelTests
         // the structural property is sufficient here).
         var required = new[]
         {
-            new PreviewFunction("SDL_Init", "int", [new PreviewParameter("uint", "flags")], "SDL.h"),
+            new BindingFunction("SDL_Init", "int", [new BindingParameter("uint", "flags")], "SDL.h"),
         };
 
-        var model = CppAstToPreviewModel.Translate(
+        var model = CppAstToBindingModel.Translate(
             [EmptyResult("Neutral"), EmptyResult("Linux", "linux")],
             NoExclusions,
             required);

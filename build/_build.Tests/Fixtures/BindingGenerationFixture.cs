@@ -7,7 +7,7 @@ namespace Build.Tests.Fixtures;
 
 /// <summary>
 /// Lightweight builders for <see cref="BindingGenerationConfig"/> +
-/// <see cref="PreviewBindingModel"/> shapes used by validator tests. Keep
+/// <see cref="BindingModel"/> shapes used by validator tests. Keep
 /// surface narrow — fixture grows when validator coverage grows.
 /// </summary>
 public static class BindingGenerationFixture
@@ -94,33 +94,33 @@ public static class BindingGenerationFixture
             Parameters = [],
         };
 
-    public static PreviewBindingModel ModelWithNeutralFunctions(params string[] functionNames) =>
+    public static BindingModel ModelWithNeutralFunctions(params string[] functionNames) =>
         new([
-            new PreviewParseView(
+            new BindingParseView(
                 Name: "Neutral",
                 SupportedOsPlatform: null,
-                Functions: [.. functionNames.Select(n => new PreviewFunction(n, "void", [], "SDL_video.h"))]),
+                Functions: [.. functionNames.Select(n => new BindingFunction(n, "void", [], "SDL_video.h"))]),
         ]);
 
-    public static PreviewBindingModel ModelWithoutNeutralView() =>
+    public static BindingModel ModelWithoutNeutralView() =>
         new([
-            new PreviewParseView(
+            new BindingParseView(
                 Name: "WindowsDesktop",
                 SupportedOsPlatform: "windows",
-                Functions: [new PreviewFunction("SDL_RegisterApp", "int", [], "SDL_main.h")]),
+                Functions: [new BindingFunction("SDL_RegisterApp", "int", [], "SDL_main.h")]),
         ]);
 
-    public static PreviewBindingModel ModelWithMultipleViews(
+    public static BindingModel ModelWithMultipleViews(
         IReadOnlyList<string> neutralFunctionNames,
         IReadOnlyList<string>? windowsFunctionNames = null,
         IReadOnlyList<string>? linuxFunctionNames = null) =>
         new([
-            new PreviewParseView("Neutral", null,
-                [.. neutralFunctionNames.Select(n => new PreviewFunction(n, "void", [], "SDL_video.h"))]),
-            new PreviewParseView("WindowsDesktop", "windows",
-                [.. (windowsFunctionNames ?? []).Select(n => new PreviewFunction(n, "void", [], "SDL_system.h"))]),
-            new PreviewParseView("Linux", "linux",
-                [.. (linuxFunctionNames ?? []).Select(n => new PreviewFunction(n, "void", [], "SDL_system.h"))]),
+            new BindingParseView("Neutral", null,
+                [.. neutralFunctionNames.Select(n => new BindingFunction(n, "void", [], "SDL_video.h"))]),
+            new BindingParseView("WindowsDesktop", "windows",
+                [.. (windowsFunctionNames ?? []).Select(n => new BindingFunction(n, "void", [], "SDL_system.h"))]),
+            new BindingParseView("Linux", "linux",
+                [.. (linuxFunctionNames ?? []).Select(n => new BindingFunction(n, "void", [], "SDL_system.h"))]),
         ]);
 }
 

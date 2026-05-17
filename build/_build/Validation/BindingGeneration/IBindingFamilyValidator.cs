@@ -30,5 +30,5 @@ public interface IBindingFamilyValidator
     /// </summary>
     string ValidatorId { get; }
 
-    Task<ValidationReport> ValidateAsync(PreviewBindingModel model, BindingGenerationConfig config, CancellationToken ct);
+    Task<ValidationReport> ValidateAsync(BindingModel model, BindingGenerationConfig config, CancellationToken ct);
 }
