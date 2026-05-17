@@ -368,6 +368,42 @@ public sealed class CoreOwnedTypeMap
 
 `CoreOwnedTypeMap.QualifiedManagedReference` is the bridge that lets satellite emitters write `Janset.SDL2.SDL_Surface*` instead of redeclaring `SDL_Surface`. Stage 1 only uses `IsOwned` (during translation, to reject any satellite-side declaration of a core-owned type); the qualified-reference path activates at Stage 2.
 
+### 8.1 Two-axis split — identity (prefix) vs category (structural)
+
+The current Stage 1 translator (`CppAstToBindingModel.MapPointer`) collapses both axes into a string-prefix fallback:
+
+```csharp
+// pre-Phase-3C — fragile
+CppTypedef td when td.Name.StartsWith("SDL_", StringComparison.Ordinal) => "IntPtr",
+CppClass  cls when cls.Name.StartsWith("ID",   StringComparison.Ordinal) => "IntPtr",
+CppClass  cls when cls.Name.StartsWith("SDL_", StringComparison.Ordinal) => "IntPtr",
+```
+
+That's load-bearing while Stage 1 emits functions only (every SDL_-prefixed pointer becomes `IntPtr`, which round-trips correctly through P/Invoke), but it conflates two independent questions: **(a)** "does this family own the identifier?" and **(b)** "is this type an opaque handle, a value typedef, or a struct?". Phase 3F's typed-handle emit + Stage 2's cross-family qualified references both require these axes to be answered separately, by different machinery, against different inputs.
+
+Phase 3C splits them:
+
+| Axis | Question | Mechanism | Input |
+|---|---|---|---|
+| **Identity** | "Does family X own identifier Y?" | `CoreOwnedTypeMap.IsOwned(name)` — prefix scan against manifest's `owned_prefixes` array (cheap, manifest-declared, family-scoped) | `string identifier` |
+| **Category** | "Is this typedef an opaque handle, a value typedef, an enum-typedef, or a struct typedef?" | Phase 3D translator: **structural inspection** of `CppTypedef.ElementType` — empty `CppClass` (forward decl only) → handle; primitive / typedef-chain resolving to primitive → value typedef; `CppEnum` → enum-typedef | `CppType` (full AST node) |
+
+Identity stays prefix-based because manifest already declares it (`["SDL_", "SDLK_", "SDL_HINT_", "SDL_INIT_"]` for sdl2-core, `["IMG_"]` for sdl2-image, etc.) and the names are well-disciplined within each family. Category MUST NOT be prefix-based: `SDL_Window` (opaque handle) and `SDL_AudioFormat` (typedef of `Uint16`) both start with `SDL_` but emit through different paths. Stage 1's MapTypedef order trick (explicit-width typedefs first, then SDL_-prefix→IntPtr fallback) only works because the emitter is function-only — Phase 3F's typed-handle struct emit will pressure this distinction.
+
+### 8.2 Peer evidence
+
+Every viable peer ships an explicit category catalog separate from any naming convention. Prefix-only category detection is not the pattern in the ecosystem:
+
+| Project | Toolchain | Identity (which family?) | Category (handle vs value type?) |
+|---|---|---|---|
+| **Janset (this spec)** | CppAst | `CoreOwnedTypeMap.IsOwned` — manifest `owned_prefixes` array | Phase 3D translator: structural inspection of `CppTypedef.ElementType` |
+| **`amerkoleci/Alimer.Bindings.SDL`** | CppAst (SDL3) | Single-family generator — no identity check needed (every `SDL_*` is owned) | `_handleTypes` `HashSet<string>` built up at translation time via structural inspection of typedef target |
+| **`ppy/SDL3-CS`** | ClangSharp (SDL3) | RSP file `--with-namespace` directive | Per-type `--with-class` / `--with-pointer-class` directives explicit in RSP; libclang's `CXTypeKind` for the structural fallback |
+| **`mono/SkiaSharp`** | Custom | Per-project type registry in `Generated/api.json` | Per-handle base class declaration (`ISKHandle`); explicit in generator config |
+| **`dotnet/Silk.NET`** | Generic | `BindTask.TypeMaps` per-library JSON | Same JSON carries handle declarations |
+
+The pattern: **manifest carries identity, structural inspection carries category, neither leans on string-prefix for typed-handle emit.** Our Phase 3C extraction follows the same shape — `CoreOwnedTypeMap` does identity, Phase 3D translator does category, the legacy MapPointer SDL_-prefix fallback retires once `BindingTypeRef.IsOpaqueHandle` is properly populated by the translator.
+
 ## 9. Validator wiring — `IBindingFamilyValidator`
 
 ```csharp

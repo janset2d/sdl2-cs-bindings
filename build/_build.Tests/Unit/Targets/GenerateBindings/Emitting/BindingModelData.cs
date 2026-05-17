@@ -13,12 +13,12 @@ internal static class BindingModelData
             [
                 new BindingFunction(
                     "SDL_Init",
-                    "int",
-                    [new BindingParameter("uint", "flags")],
+                    BindingTypeRef.Of("int"),
+                    [new BindingParameter(BindingTypeRef.Of("uint"), "flags")],
                     "SDL.h"),
                 new BindingFunction(
                     "SDL_Quit",
-                    "void",
+                    BindingTypeRef.Of("void"),
                     [],
                     "SDL.h"),
             ]);
@@ -30,10 +30,10 @@ internal static class BindingModelData
             [
                 new BindingFunction(
                     "SDL_LinuxSetThreadPriority",
-                    "int",
+                    BindingTypeRef.Of("int"),
                     [
-                        new BindingParameter("long", "threadID"),
-                        new BindingParameter("int", "priority"),
+                        new BindingParameter(BindingTypeRef.Of("long"), "threadID"),
+                        new BindingParameter(BindingTypeRef.Of("int"), "priority"),
                     ],
                     "SDL_system.h"),
             ]);
@@ -50,7 +50,7 @@ internal static class BindingModelData
                 SupportedOsPlatform: null,
                 Functions:
                 [
-                    new BindingFunction("SDL_GetTicks", "uint", [], "SDL_timer.h"),
+                    new BindingFunction("SDL_GetTicks", BindingTypeRef.Of("uint"), [], "SDL_timer.h"),
                 ]),
         ]);
     }

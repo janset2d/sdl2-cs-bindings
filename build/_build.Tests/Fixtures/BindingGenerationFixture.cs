@@ -21,7 +21,8 @@ public static class BindingGenerationFixture
     public static BindingGenerationConfig Sdl2CoreConfig(
         bool enabled = true,
         bool withDynapi = true,
-        IReadOnlyList<RequiredFunctionConfig>? requiredFunctions = null) =>
+        IReadOnlyList<RequiredFunctionConfig>? requiredFunctions = null,
+        IReadOnlyList<RequiredConstantConfig>? requiredConstants = null) =>
         new()
         {
             FamilyId = "sdl2-core",
@@ -71,6 +72,7 @@ public static class BindingGenerationFixture
             },
             ExcludedFunctions = ["SDL_main", "SDL_DYNAPI_entry"],
             RequiredFunctions = requiredFunctions is null ? [] : [.. requiredFunctions],
+            RequiredConstants = requiredConstants is null ? [] : [.. requiredConstants],
             Dynapi = withDynapi ? new DynapiConfig { ExportsGlob = "buildtrees/sdl2/src/*/src/dynapi/SDL2.exports" } : null,
         };
 
@@ -94,12 +96,27 @@ public static class BindingGenerationFixture
             Parameters = [],
         };
 
+    public static RequiredConstantConfig RequiredConstant(
+        string name,
+        string type = "uint",
+        string value = "0x00000001u",
+        string sourceHeader = "SDL.h",
+        ConstantKind kind = ConstantKind.Literal) =>
+        new()
+        {
+            Name = name,
+            Type = type,
+            Value = value,
+            SourceHeader = sourceHeader,
+            Kind = kind,
+        };
+
     public static BindingModel ModelWithNeutralFunctions(params string[] functionNames) =>
         new([
             new BindingParseView(
                 Name: "Neutral",
                 SupportedOsPlatform: null,
-                Functions: [.. functionNames.Select(n => new BindingFunction(n, "void", [], "SDL_video.h"))]),
+                Functions: [.. functionNames.Select(n => new BindingFunction(n, BindingTypeRef.Of("void"), [], "SDL_video.h"))]),
         ]);
 
     public static BindingModel ModelWithoutNeutralView() =>
@@ -107,7 +124,7 @@ public static class BindingGenerationFixture
             new BindingParseView(
                 Name: "WindowsDesktop",
                 SupportedOsPlatform: "windows",
-                Functions: [new BindingFunction("SDL_RegisterApp", "int", [], "SDL_main.h")]),
+                Functions: [new BindingFunction("SDL_RegisterApp", BindingTypeRef.Of("int"), [], "SDL_main.h")]),
         ]);
 
     public static BindingModel ModelWithMultipleViews(
@@ -116,11 +133,11 @@ public static class BindingGenerationFixture
         IReadOnlyList<string>? linuxFunctionNames = null) =>
         new([
             new BindingParseView("Neutral", null,
-                [.. neutralFunctionNames.Select(n => new BindingFunction(n, "void", [], "SDL_video.h"))]),
+                [.. neutralFunctionNames.Select(n => new BindingFunction(n, BindingTypeRef.Of("void"), [], "SDL_video.h"))]),
             new BindingParseView("WindowsDesktop", "windows",
-                [.. (windowsFunctionNames ?? []).Select(n => new BindingFunction(n, "void", [], "SDL_system.h"))]),
+                [.. (windowsFunctionNames ?? []).Select(n => new BindingFunction(n, BindingTypeRef.Of("void"), [], "SDL_system.h"))]),
             new BindingParseView("Linux", "linux",
-                [.. (linuxFunctionNames ?? []).Select(n => new BindingFunction(n, "void", [], "SDL_system.h"))]),
+                [.. (linuxFunctionNames ?? []).Select(n => new BindingFunction(n, BindingTypeRef.Of("void"), [], "SDL_system.h"))]),
         ]);
 }
 

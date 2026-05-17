@@ -230,6 +230,18 @@
           { "name": "SDL_WasInit",       "return_type": "uint", "parameters": [{ "type": "uint", "name": "flags" }], "source_header": "SDL.h" },
           { "name": "SDL_Quit",          "return_type": "void", "parameters": [],                                    "source_header": "SDL.h" }
         ],
+        "required_constants": [
+          { "name": "SDL_INIT_TIMER",          "type": "uint", "value": "0x00000001u", "source_header": "SDL.h", "kind": "Literal" },
+          { "name": "SDL_INIT_AUDIO",          "type": "uint", "value": "0x00000010u", "source_header": "SDL.h", "kind": "Literal" },
+          { "name": "SDL_INIT_VIDEO",          "type": "uint", "value": "0x00000020u", "source_header": "SDL.h", "kind": "Literal" },
+          { "name": "SDL_INIT_JOYSTICK",       "type": "uint", "value": "0x00000200u", "source_header": "SDL.h", "kind": "Literal" },
+          { "name": "SDL_INIT_HAPTIC",         "type": "uint", "value": "0x00001000u", "source_header": "SDL.h", "kind": "Literal" },
+          { "name": "SDL_INIT_GAMECONTROLLER", "type": "uint", "value": "0x00002000u", "source_header": "SDL.h", "kind": "Literal" },
+          { "name": "SDL_INIT_EVENTS",         "type": "uint", "value": "0x00004000u", "source_header": "SDL.h", "kind": "Literal" },
+          { "name": "SDL_INIT_SENSOR",         "type": "uint", "value": "0x00008000u", "source_header": "SDL.h", "kind": "Literal" },
+          { "name": "SDL_INIT_NOPARACHUTE",    "type": "uint", "value": "0x00100000u", "source_header": "SDL.h", "kind": "Literal" },
+          { "name": "SDL_INIT_EVERYTHING",     "type": "uint", "value": "SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC | SDL_INIT_GAMECONTROLLER | SDL_INIT_SENSOR", "source_header": "SDL.h", "kind": "Computed" }
+        ],
         "deferred_declarations": {
           "SDL_SysWMinfo": {
             "category": "deferred-to-stage-2",

@@ -76,6 +76,12 @@ public sealed class BindingGenerationConfigRepositoryRoundTripTests
         await Assert.That(config.HeaderSet.HeaderGlob).IsEqualTo("*.h");
         await Assert.That(config.RequiredFunctions.Count).IsEqualTo(2);
         await Assert.That(config.RequiredFunctions[0].Name).IsEqualTo("SDL_Init");
+        await Assert.That(config.RequiredConstants.Count).IsEqualTo(2);
+        await Assert.That(config.RequiredConstants[0].Name).IsEqualTo("SDL_INIT_TIMER");
+        await Assert.That(config.RequiredConstants[0].Kind).IsEqualTo(ConstantKind.Literal);
+        await Assert.That(config.RequiredConstants[0].Value).IsEqualTo("0x00000001u");
+        await Assert.That(config.RequiredConstants[1].Name).IsEqualTo("SDL_INIT_EVERYTHING");
+        await Assert.That(config.RequiredConstants[1].Kind).IsEqualTo(ConstantKind.Computed);
         await Assert.That(config.DeferredDeclarations.ContainsKey("SDL_SysWMinfo")).IsTrue();
         await Assert.That(config.DeferredDeclarations["SDL_SysWMinfo"].Category).IsEqualTo("deferred-to-stage-2");
         await Assert.That(config.Validators["dynapi-coherence"]).IsTrue();

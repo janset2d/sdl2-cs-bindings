@@ -142,12 +142,12 @@ internal static class CppAstToBindingModel
     {
         var sourceHeader = Path.GetFileName(function.SourceFile ?? string.Empty);
         var parameters = function.Parameters
-            .Select(p => new BindingParameter(MapType(p.Type), SafeIdentifier(p.Name)))
+            .Select(p => new BindingParameter(BindingTypeRef.Of(MapType(p.Type)), SafeIdentifier(p.Name)))
             .ToList();
 
         return new BindingFunction(
             Name: function.Name,
-            ReturnType: MapType(function.ReturnType),
+            ReturnType: BindingTypeRef.Of(MapType(function.ReturnType)),
             Parameters: parameters,
             SourceHeader: sourceHeader);
     }

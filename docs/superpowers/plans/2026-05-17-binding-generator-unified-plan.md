@@ -2166,6 +2166,16 @@ Container smoke byte-identical (modulo no functional change).
 
 ### Phase 3C — Policy extractions
 
+> **Design intent (read before implementing 3C.1–3C.3):** Phase 3C extracts the type-mapping logic that currently lives inline as private static methods on `CppAstToBindingModel`. The split follows the two-axis design recorded in the unified spec §8.1:
+>
+> - **`CoreOwnedTypeMap` answers identity only** — "Is identifier Y owned by family X?" Implementation stays prefix-based against `BindingGenerationConfig.OwnedPrefixes` (manifest-declared, family-scoped).
+> - **`TypeMappingPolicy` answers value-type mapping only** — primitive / explicit-width typedef / chain-resolved typedef / enum-as-int. **Does NOT classify pointers as handles vs structs; that's the translator's job in Phase 3D.**
+> - **`KnownUnsupportedDeclarationPolicy` answers deferred / variadic** — the manifest's `deferred_declarations` block + C-variadic baseline.
+>
+> The current `MapPointer`'s `SDL_*`-prefix → `IntPtr` fallback IS the fragility we're cleaning up. Phase 3D translator populates `BindingTypeRef.IsOpaqueHandle` by structural inspection of `CppTypedef.ElementType` (empty `CppClass` = handle, primitive-resolving = value, etc.), not by re-encoding the prefix fallback inside the new policies. Emitters consume `BindingTypeRef` fields directly; the prefix check stays in `CoreOwnedTypeMap.IsOwned` for cross-family identity only.
+>
+> Peer evidence for the split (spec §8.2): Alimer.Bindings.SDL (CppAst SDL3), ppy/SDL3-CS (ClangSharp SDL3), SkiaSharp, and Silk.NET all separate identity from category. None use prefix-only for category — even single-family generators carry an explicit `_handleTypes` set built at translation time. Phase 3D follows the same pattern; Phase 3C just prepares the policy seams.
+
 ### Task 3C.1: Extract `TypeMappingPolicy`
 
 **Files:**

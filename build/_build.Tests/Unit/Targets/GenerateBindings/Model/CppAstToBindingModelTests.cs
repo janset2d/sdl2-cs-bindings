@@ -104,8 +104,8 @@ public sealed class CppAstToBindingModelTests
         // the top of the file. Parsed-content order-invariance is asserted elsewhere.
         var required = new[]
         {
-            new BindingFunction("SDL_Init", "int", [new BindingParameter("uint", "flags")], "SDL.h"),
-            new BindingFunction("SDL_Quit", "void", [], "SDL.h"),
+            new BindingFunction("SDL_Init", BindingTypeRef.Of("int"), [new BindingParameter(BindingTypeRef.Of("uint"), "flags")], "SDL.h"),
+            new BindingFunction("SDL_Quit", BindingTypeRef.Of("void"), [], "SDL.h"),
         };
 
         var model = CppAstToBindingModel.Translate(
@@ -139,8 +139,8 @@ public sealed class CppAstToBindingModelTests
         };
         var required = new[]
         {
-            new BindingFunction("SDL_Init", "int", [new BindingParameter("uint", "flags")], "SDL.h"),
-            new BindingFunction("SDL_Quit", "void", [], "SDL.h"),
+            new BindingFunction("SDL_Init", BindingTypeRef.Of("int"), [new BindingParameter(BindingTypeRef.Of("uint"), "flags")], "SDL.h"),
+            new BindingFunction("SDL_Quit", BindingTypeRef.Of("void"), [], "SDL.h"),
         };
 
         var tasks = Enumerable.Range(0, 32)
@@ -173,7 +173,7 @@ public sealed class CppAstToBindingModelTests
         // the structural property is sufficient here).
         var required = new[]
         {
-            new BindingFunction("SDL_Init", "int", [new BindingParameter("uint", "flags")], "SDL.h"),
+            new BindingFunction("SDL_Init", BindingTypeRef.Of("int"), [new BindingParameter(BindingTypeRef.Of("uint"), "flags")], "SDL.h"),
         };
 
         var model = CppAstToBindingModel.Translate(

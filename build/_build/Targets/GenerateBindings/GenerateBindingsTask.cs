@@ -123,18 +123,20 @@ public sealed class GenerateBindingsTask(
     }
 
     /// <summary>
-    /// Maps <see cref="BindingGenerationConfig.RequiredFunctions"/> (config record shape)
-    /// to <see cref="BindingFunction"/> (translator input shape). Phase 3A's rename
-    /// retires <see cref="BindingFunction"/>; until then, this is the bridge between
-    /// the manifest-driven config and the legacy translator signature.
+    /// Maps <see cref="BindingGenerationConfig.RequiredFunctions"/> (config record shape
+    /// with string-typed return + parameter types) to <see cref="BindingFunction"/>
+    /// (translator-input shape with <see cref="BindingTypeRef"/>). Phase 3D translator
+    /// rewrite will populate <see cref="BindingFunction"/> directly from CppAst types
+    /// (and also merge <see cref="BindingGenerationConfig.RequiredFunctions"/> internally),
+    /// retiring this bridge entirely.
     /// </summary>
     private static IReadOnlyList<BindingFunction> ConvertRequiredFunctions(BindingGenerationConfig config)
     {
         return [.. config.RequiredFunctions.Select(rf =>
             new BindingFunction(
                 Name: rf.Name,
-                ReturnType: rf.ReturnType,
-                Parameters: [.. rf.Parameters.Select(p => new BindingParameter(p.Type, p.Name))],
+                ReturnType: BindingTypeRef.Of(rf.ReturnType),
+                Parameters: [.. rf.Parameters.Select(p => new BindingParameter(BindingTypeRef.Of(p.Type), p.Name))],
                 SourceHeader: rf.SourceHeader))];
     }
 

@@ -1,0 +1,227 @@
+using System.Runtime.InteropServices;
+using Build.Data.BindingGeneration.Models;
+using Build.Targets.GenerateBindings.Model;
+
+namespace Build.Tests.Unit.Targets.GenerateBindings.Model;
+
+/// <summary>
+/// Phase 3B BindingModel extension records — record-shape + value-equality + the
+/// <see cref="BindingTypeRef.Of(string)"/> bridge heuristic. Translator + emitter
+/// behaviour for the new categories lands at Phase 3D / 3E; this suite only pins
+/// the in-memory shape so a future record-redesign that breaks equality contracts
+/// or ctor positional ordering surfaces as a test failure.
+/// </summary>
+public sealed class BindingTypeRefTests
+{
+    [Test]
+    public async Task Of_Should_Set_IsPointer_True_For_Names_Ending_With_Star()
+    {
+        var typeRef = BindingTypeRef.Of("SDL_Surface*");
+        await Assert.That(typeRef.ManagedName).IsEqualTo("SDL_Surface*");
+        await Assert.That(typeRef.IsPointer).IsTrue();
+    }
+
+    [Test]
+    public async Task Of_Should_Set_IsPointer_False_For_Primitive_Names()
+    {
+        var typeRef = BindingTypeRef.Of("int");
+        await Assert.That(typeRef.IsPointer).IsFalse();
+    }
+
+    [Test]
+    public async Task Of_Should_Set_IsPointer_False_For_IntPtr()
+    {
+        // IntPtr models a typed opaque handle, not a pointer in the pointer-arithmetic
+        // sense; the heuristic (EndsWith '*') correctly returns false. Phase 3D
+        // translator rewrite can tighten this further by inspecting CppType info.
+        var typeRef = BindingTypeRef.Of("IntPtr");
+        await Assert.That(typeRef.IsPointer).IsFalse();
+    }
+
+    [Test]
+    public async Task Of_Should_Default_OwningFamilyId_And_IsOpaqueHandle_For_Stage1_Bridge()
+    {
+        var typeRef = BindingTypeRef.Of("byte*");
+        await Assert.That(typeRef.OwningFamilyId).IsNull();
+        await Assert.That(typeRef.IsOpaqueHandle).IsFalse();
+    }
+
+    [Test]
+    public async Task Records_With_Equal_Fields_Should_Compare_Equal()
+    {
+        var a = new BindingTypeRef("int", null, false, false);
+        var b = new BindingTypeRef("int", null, false, false);
+        await Assert.That(a).IsEqualTo(b);
+    }
+
+    [Test]
+    public async Task Records_With_Different_OwningFamilyId_Should_Not_Compare_Equal()
+    {
+        var coreOwned = new BindingTypeRef("SDL_Surface*", OwningFamilyId: "sdl2-core", IsPointer: true, IsOpaqueHandle: false);
+        var unowned = new BindingTypeRef("SDL_Surface*", OwningFamilyId: null, IsPointer: true, IsOpaqueHandle: false);
+        await Assert.That(coreOwned).IsNotEqualTo(unowned);
+    }
+}
+
+public sealed class BindingStructTests
+{
+    [Test]
+    public async Task Sequential_Layout_Should_Leave_FieldOffset_Null()
+    {
+        var field = new BindingStructField("w", BindingTypeRef.Of("int"), FieldOffset: null);
+        await Assert.That(field.FieldOffset).IsNull();
+    }
+
+    [Test]
+    public async Task Explicit_Layout_Should_Carry_ExplicitSize_And_FieldOffset()
+    {
+        // SDL_SysWMinfo-style typed union: Layout=Explicit + ExplicitSize=64 on the
+        // struct, FieldOffset=0 on the union fields (Phase 3E emit shape).
+        var field = new BindingStructField("union_data", BindingTypeRef.Of("IntPtr"), FieldOffset: 0);
+        var sut = new BindingStruct(
+            Name: "SDL_SysWMinfo",
+            Fields: [field],
+            Layout: LayoutKind.Explicit,
+            ExplicitSize: 64);
+
+        await Assert.That(sut.Layout).IsEqualTo(LayoutKind.Explicit);
+        await Assert.That(sut.ExplicitSize).IsEqualTo(64);
+        await Assert.That(sut.Fields[0].FieldOffset).IsEqualTo(0);
+    }
+}
+
+public sealed class BindingEnumerationTests
+{
+    [Test]
+    public async Task IsFlags_True_Should_Survive_Into_Record()
+    {
+        var sut = new BindingEnumeration(
+            Name: "SDL_WindowFlags",
+            UnderlyingType: BindingTypeRef.Of("uint"),
+            Members: [new BindingEnumMember("SDL_WINDOW_FULLSCREEN", "0x00000001")],
+            IsFlags: true);
+
+        await Assert.That(sut.IsFlags).IsTrue();
+        await Assert.That(sut.Members[0].Value).IsEqualTo("0x00000001");
+    }
+
+    [Test]
+    public async Task IsFlags_False_Maps_To_Non_Flags_Enum_Emit()
+    {
+        var sut = new BindingEnumeration(
+            Name: "SDL_KeyState",
+            UnderlyingType: BindingTypeRef.Of("byte"),
+            Members:
+            [
+                new BindingEnumMember("SDL_RELEASED", "0"),
+                new BindingEnumMember("SDL_PRESSED", "1"),
+            ],
+            IsFlags: false);
+
+        await Assert.That(sut.IsFlags).IsFalse();
+        await Assert.That(sut.Members.Count).IsEqualTo(2);
+    }
+}
+
+public sealed class BindingConstantTests
+{
+    [Test]
+    public async Task Literal_Kind_Should_Emit_Through_Const_Path()
+    {
+        // Phase 3E CsConstantEmitter switches on Kind: Literal => public const,
+        // Computed => public static readonly. This test pins the discriminator.
+        var sut = new BindingConstant(
+            Name: "SDL_INIT_TIMER",
+            Type: BindingTypeRef.Of("uint"),
+            Value: "0x00000001u",
+            Kind: ConstantKind.Literal);
+
+        await Assert.That(sut.Kind).IsEqualTo(ConstantKind.Literal);
+    }
+
+    [Test]
+    public async Task Computed_Kind_Should_Emit_Through_Static_Readonly_Path()
+    {
+        var sut = new BindingConstant(
+            Name: "SDL_INIT_EVERYTHING",
+            Type: BindingTypeRef.Of("uint"),
+            Value: "SDL_INIT_TIMER | SDL_INIT_AUDIO",
+            Kind: ConstantKind.Computed);
+
+        await Assert.That(sut.Kind).IsEqualTo(ConstantKind.Computed);
+    }
+
+    [Test]
+    public async Task Same_Name_Different_Kind_Should_Compare_Unequal()
+    {
+        var literal = new BindingConstant("X", BindingTypeRef.Of("uint"), "1u", ConstantKind.Literal);
+        var computed = new BindingConstant("X", BindingTypeRef.Of("uint"), "1u", ConstantKind.Computed);
+        await Assert.That(literal).IsNotEqualTo(computed);
+    }
+}
+
+public sealed class BindingHandleTests
+{
+    [Test]
+    public async Task Records_With_Same_Name_Should_Compare_Equal()
+    {
+        var a = new BindingHandle("SDL_Window");
+        var b = new BindingHandle("SDL_Window");
+        await Assert.That(a).IsEqualTo(b);
+    }
+}
+
+public sealed class BindingCallbackTests
+{
+    [Test]
+    public async Task Records_Should_Carry_Signature_For_Phase3E_Emit()
+    {
+        var sut = new BindingCallback(
+            Name: "SDL_EventFilter",
+            ReturnType: BindingTypeRef.Of("int"),
+            Parameters:
+            [
+                new BindingParameter(BindingTypeRef.Of("IntPtr"), "userdata"),
+                new BindingParameter(BindingTypeRef.Of("SDL_Event*"), "event"),
+            ]);
+
+        await Assert.That(sut.Parameters.Count).IsEqualTo(2);
+        await Assert.That(sut.Parameters[1].Type.IsPointer).IsTrue();
+    }
+}
+
+public sealed class BindingModelExtendedShapeTests
+{
+    [Test]
+    public async Task Convenience_Single_Arg_Ctor_Should_Default_New_Categories_To_Empty()
+    {
+        // Stage 1 translator + test fixtures construct BindingModel(views) without
+        // the 5 new collections; the convenience ctor must pin empty defaults so
+        // emitters / validators see deterministic empty state.
+        var sut = new BindingModel(Views: []);
+
+        await Assert.That(sut.Structs).IsEmpty();
+        await Assert.That(sut.Enums).IsEmpty();
+        await Assert.That(sut.Constants).IsEmpty();
+        await Assert.That(sut.Handles).IsEmpty();
+        await Assert.That(sut.Callbacks).IsEmpty();
+    }
+
+    [Test]
+    public async Task Full_Ctor_Should_Surface_All_Five_New_Collections()
+    {
+        var sut = new BindingModel(
+            Views: [],
+            Structs: [new BindingStruct("SDL_Rect", [], LayoutKind.Sequential, null)],
+            Enums: [new BindingEnumeration("SDL_KeyState", BindingTypeRef.Of("byte"), [], false)],
+            Constants: [new BindingConstant("SDL_INIT_TIMER", BindingTypeRef.Of("uint"), "0x1u", ConstantKind.Literal)],
+            Handles: [new BindingHandle("SDL_Window")],
+            Callbacks: [new BindingCallback("SDL_EventFilter", BindingTypeRef.Of("int"), [])]);
+
+        await Assert.That(sut.Structs.Count).IsEqualTo(1);
+        await Assert.That(sut.Enums.Count).IsEqualTo(1);
+        await Assert.That(sut.Constants.Count).IsEqualTo(1);
+        await Assert.That(sut.Handles.Count).IsEqualTo(1);
+        await Assert.That(sut.Callbacks.Count).IsEqualTo(1);
+    }
+}

@@ -36,6 +36,20 @@ public sealed record BindingGenerationConfig
     [JsonPropertyName("clang_args")] public ImmutableList<string> ClangArgs { get; init; } = [];
     [JsonPropertyName("excluded_functions")] public ImmutableHashSet<string> ExcludedFunctions { get; init; } = [];
     [JsonPropertyName("required_functions")] public ImmutableList<RequiredFunctionConfig> RequiredFunctions { get; init; } = [];
+
+    /// <summary>
+    /// Hand-curated declarations of public constants that survive only in headers
+    /// excluded from the per-header parse loop (currently SDL.h — the umbrella TU is
+    /// excluded for failure-isolation reasons documented in friction #7 of
+    /// <c>docs/binding-autogen/research/binding-autogen-spike-findings.md</c>).
+    /// SDL2 contributes the 10 <c>SDL_INIT_*</c> macros declared exclusively in SDL.h.
+    /// Optional with empty-default; satellite placeholder entries leave it absent.
+    /// Maintenance rationale lives in
+    /// <c>docs/playbook/binding-generator-maintenance.md</c> §"Parse-time configuration
+    /// surface (per family)" alongside <c>required_functions</c>.
+    /// </summary>
+    [JsonPropertyName("required_constants")] public ImmutableList<RequiredConstantConfig> RequiredConstants { get; init; } = [];
+
     [JsonPropertyName("deferred_declarations")] public ImmutableDictionary<string, DeferredDeclarationConfig> DeferredDeclarations { get; init; } = ImmutableDictionary<string, DeferredDeclarationConfig>.Empty;
     [JsonPropertyName("validators")] public ImmutableDictionary<string, bool> Validators { get; init; } = ImmutableDictionary<string, bool>.Empty;
 
@@ -71,6 +85,56 @@ public sealed record DeferredDeclarationConfig
 {
     [JsonPropertyName("category")] public required string Category { get; init; }
     [JsonPropertyName("reason")] public required string Reason { get; init; }
+}
+
+/// <summary>
+/// Discriminates compile-time-literal constants (emit as <c>public const</c>)
+/// from runtime-computed expressions (emit as <c>public static readonly</c>).
+/// C# disallows non-literal expressions in <c>const</c>, so compound macros like
+/// SDL2's <c>SDL_INIT_EVERYTHING</c> (bitwise-OR of other constants) MUST use
+/// <c>static readonly</c>. Serializes as a JSON string (<c>"Literal"</c> /
+/// <c>"Computed"</c>) via the converter on the type.
+/// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum ConstantKind
+{
+    /// <summary>Compile-time literal — emit as <c>public const &lt;type&gt; NAME = &lt;value&gt;;</c>.</summary>
+    Literal,
+
+    /// <summary>Runtime-computed expression — emit as <c>public static readonly &lt;type&gt; NAME = &lt;value&gt;;</c>.</summary>
+    Computed,
+}
+
+/// <summary>
+/// Hand-curated public constant declaration recovered from a header that's
+/// excluded from the per-header parse loop. Mirrors the pattern of
+/// <see cref="RequiredFunctionConfig"/>: the manifest carries the explicit
+/// declaration, the translator merges it into the Neutral view at Phase 3D,
+/// and <c>CsConstantEmitter</c> at Phase 3E switches on <see cref="Kind"/> to
+/// pick between <c>public const</c> and <c>public static readonly</c> emit.
+/// </summary>
+public sealed record RequiredConstantConfig
+{
+    /// <summary>Identifier as it appears in C (e.g. <c>SDL_INIT_TIMER</c>).</summary>
+    [JsonPropertyName("name")] public required string Name { get; init; }
+
+    /// <summary>Managed type to emit (e.g. <c>"uint"</c>).</summary>
+    [JsonPropertyName("type")] public required string Type { get; init; }
+
+    /// <summary>
+    /// Literal value (for <see cref="ConstantKind.Literal"/>) OR computed expression
+    /// (for <see cref="ConstantKind.Computed"/>). Emitted verbatim into the .g.cs
+    /// — must be valid C# syntax for the declared <see cref="Type"/>. The two cases
+    /// share the field because <c>const</c> vs <c>static readonly</c> is the only
+    /// semantic distinction; both consume a right-hand-side expression.
+    /// </summary>
+    [JsonPropertyName("value")] public required string Value { get; init; }
+
+    /// <summary>Origin header (e.g. <c>"SDL.h"</c>). Documentation/audit only.</summary>
+    [JsonPropertyName("source_header")] public required string SourceHeader { get; init; }
+
+    /// <summary>See <see cref="ConstantKind"/>.</summary>
+    [JsonPropertyName("kind")] public required ConstantKind Kind { get; init; }
 }
 
 public sealed record DynapiConfig

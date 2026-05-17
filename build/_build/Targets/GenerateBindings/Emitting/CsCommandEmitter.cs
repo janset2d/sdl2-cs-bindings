@@ -64,7 +64,7 @@ internal static class CsCommandEmitter
             builder.AppendLf("    [DllImport(LibName, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]");
             builder
                 .Append("    internal static extern ")
-                .Append(function.ReturnType)
+                .Append(function.ReturnType.ManagedName)
                 .Append(' ')
                 .Append(function.Name)
                 .Append('(')
@@ -78,7 +78,7 @@ internal static class CsCommandEmitter
 
     private static string JoinParameters(IReadOnlyList<BindingParameter> parameters)
     {
-        return string.Join(", ", parameters.Select(p => $"{p.Type} {p.Name}"));
+        return string.Join(", ", parameters.Select(p => $"{p.Type.ManagedName} {p.Name}"));
     }
 
     private static string EmitReportJson(BindingModel model)

@@ -2,6 +2,6 @@ namespace Build.Targets.GenerateBindings.Model;
 
 public sealed record BindingFunction(
     string Name,
-    string ReturnType,
+    BindingTypeRef ReturnType,
     IReadOnlyList<BindingParameter> Parameters,
     string SourceHeader);
