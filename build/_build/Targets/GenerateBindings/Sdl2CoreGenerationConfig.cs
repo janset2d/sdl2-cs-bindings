@@ -7,8 +7,6 @@ internal sealed record Sdl2CoreGenerationConfig(
     string LibraryName,
     string Namespace,
     string PrimaryClassName,
-    IReadOnlyList<string> OwnedPrefixes,
-    IReadOnlyList<string> DeferredDeclarations,
     IReadOnlySet<string> ExcludedFunctionNames,
     IReadOnlyList<PreviewFunction> RequiredFunctions)
 {
@@ -17,12 +15,6 @@ internal sealed record Sdl2CoreGenerationConfig(
         LibraryName: "SDL2",
         Namespace: "SDL2",
         PrimaryClassName: "SDL",
-        OwnedPrefixes: ["SDL_", "SDLK_", "SDL_HINT_", "SDL_INIT_"],
-        DeferredDeclarations:
-        [
-            "SDL_SysWMinfo",
-            "SDL_SysWMmsg",
-        ],
         // SDL_main is declared in SDL_main.h as `extern DECLSPEC int SDL_main(int argc, char *argv[])`,
         // but its body is defined by the consuming application, not by SDL2 itself. SDL2's
         // libSDL2main.a / SDLmain.lib is a static-link wrapper that bridges into the application's

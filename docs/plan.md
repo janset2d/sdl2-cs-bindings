@@ -60,8 +60,8 @@ No separate phase doc per [phases/README.md](phases/README.md) retention test â€
 
 Design brief: [phases/phase-4-binding-autogen.md](phases/phase-4-binding-autogen.md).
 Strategy brief: [binding-autogen/binding-autogen-strategy-brief.md](binding-autogen/binding-autogen-strategy-brief.md) (revised 2026-05-15).
-Architecture design spec: [superpowers/specs/2026-05-14-binding-generator-architecture-design.md](superpowers/specs/2026-05-14-binding-generator-architecture-design.md).
-Stage 1 implementation plan: [superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md](superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md).
+Unified design spec: [superpowers/specs/2026-05-16-binding-generator-unified-design.md](superpowers/specs/2026-05-16-binding-generator-unified-design.md) (supersedes 2026-05-14 architecture spec + 2026-05-15 local-output-loop spec).
+Unified implementation plan: [superpowers/plans/2026-05-17-binding-generator-unified-plan.md](superpowers/plans/2026-05-17-binding-generator-unified-plan.md) (supersedes Stage 1 plan + local-output-loop plan).
 
 **Status (2026-05-15):** Strategy + spec + Stage 1 plan accepted. Generator folded into the Cake build host under `build/_build/Targets/GenerateBindings/` (not a standalone `src/`-tree project). Linux-canonical determinism contract â€” Docker hard prereq for local invocation via `tools.cs generate-bindings`. Stage 1 covers SDL2.Core with full platform-conditioned function attribution (~8 parse views) but defers `SDL_syswm.h` typed-union layout to Stage 2. SDL3 binding generation gated on PD-7.
 

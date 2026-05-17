@@ -39,6 +39,14 @@ public interface IPathService
     /// Expands to <c>{VcpkgRoot}/buildtrees/sdl2/src/*/src/dynapi/SDL2.exports</c>;
     /// the wildcard matches the version-tagged extraction directory vcpkg creates
     /// during a real (non-cache-hit) source build.
+    /// <para>
+    /// The <c>sdl2</c> port-name segment is intentional — the dynapi (dynamic-API
+    /// dispatch table) is an SDL2-Core-only feature. SDL2 satellites (sdl2-image /
+    /// sdl2-mixer / sdl2-ttf / sdl2-net / sdl2-gfx) do not have dynapi manifests,
+    /// and SDL3 removed the dynapi system entirely. When SDL3 support lands, a
+    /// distinct accessor (with its own SDL3-appropriate symbol oracle) is the
+    /// right shape, not a parameterized version of this one.
+    /// </para>
     /// </summary>
     string GetSdl2DynapiExportsGlob();
 

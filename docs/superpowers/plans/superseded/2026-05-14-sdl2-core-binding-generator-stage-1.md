@@ -1,5 +1,7 @@
 # SDL2 Core Binding Generator Stage 1 Implementation Plan
 
+> **Status (2026-05-17):** ⚠ **SUPERSEDED.** Tasks 1-3.5 + Post-Implementation Review P0/P1 fixes already landed in commits `c00a2cb`, `0db0e31`, `9a5f59e`. Remaining Task 4/5/7/8/9 + PSTH-A/B/C/D/E/F/G + P2/P3 items are absorbed into [`../2026-05-17-binding-generator-unified-plan.md`](../2026-05-17-binding-generator-unified-plan.md) per the unified spec [`../../specs/2026-05-16-binding-generator-unified-design.md`](../../specs/2026-05-16-binding-generator-unified-design.md) §16 absorption map. P2.4 / P2.5 retraction notes (Task 8 forward-looking) and P2.6 cascade-lock (Task-visibility-convention slice) remain in force in this superseded plan but are also captured in the unified spec out-of-scope list. Kept in `superseded/` for historical reference + implementation-seed mining (Task 4 §Step 2 `CoreOwnedTypeMap.cs` + `KnownUnsupportedDeclarationPolicy.cs` factory snippets feed into Phase 3 of the unified plan).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 >
 > **Revised 2026-05-15.** The 2026-05-14 draft of this plan proposed a standalone `src/Janset.SDL2.Bindings.Generator/` console app, a separate `tests/Janset.SDL2.Bindings.Generator.Tests/` test project, multi-RID `libclang.runtime.*` pins, and used the Windows `x64-windows-hybrid` triplet for canonical headers. All four were retracted on 2026-05-15:
@@ -1080,6 +1082,8 @@ internal sealed class KnownUnsupportedDeclarationPolicy
     public static KnownUnsupportedDeclarationPolicy CreateSdl2Core()
     {
         const string variadicReason = "C variadic function. Stage 1 does not emit success-shaped P/Invoke for native varargs.";
+        const string syswmDeferralReason =
+            "deferred-to-stage-2: SDL_syswm typed-union layout requires the platform-handle forward-declaration stub library (HWND/HDC/Display*/Window/etc.) and `[StructLayout(LayoutKind.Explicit, Size = 64)]` emission. Stage 1 emits SDL_GetWindowWMInfo with an opaque SDL_SysWMinfo* parameter; the typed union lands in Stage 2.";
         return new KnownUnsupportedDeclarationPolicy(new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["SDL_Log"] = variadicReason,
@@ -1093,13 +1097,52 @@ internal sealed class KnownUnsupportedDeclarationPolicy
             ["SDL_SetError"] = variadicReason,
             ["SDL_InvalidParamError"] = variadicReason,
             ["SDL_sscanf"] = variadicReason,
-            ["SDL_snprintf"] = variadicReason
+            ["SDL_snprintf"] = variadicReason,
+            // SysWM typed-union deferral (forward-declared by Stage 1 §"Component layout" + §2098 + §2127).
+            // Seeded from the pre-Task-4 `Sdl2CoreGenerationConfig.DeferredDeclarations` list that
+            // was retired in the P2-α slice (2026-05-16) — the prior Stage-1 config-field location
+            // was a placeholder; this policy is the proper home per the Model/ layout.
+            ["SDL_SysWMinfo"] = syswmDeferralReason,
+            ["SDL_SysWMmsg"] = syswmDeferralReason,
         });
     }
 
     public string? TryGetReason(string declarationName)
     {
         return _reasons.TryGetValue(declarationName, out var reason) ? reason : null;
+    }
+}
+```
+
+Create `build\_build\Targets\GenerateBindings\Model\CoreOwnedTypeMap.cs`. This is the proper home for the SDL2-Core owned-identifier prefix gating that was held in `Sdl2CoreGenerationConfig.OwnedPrefixes` as a placeholder before being retired in the P2-α slice (2026-05-16). The prefixes are: `SDL_` (functions / types / general macros), `SDLK_` (keycode constants like `SDLK_RETURN`), `SDL_HINT_` (hint-name constants like `SDL_HINT_RENDER_DRIVER`), `SDL_INIT_` (init-flag constants like `SDL_INIT_VIDEO`). Any identifier whose name starts with one of these belongs to SDL2-Core's surface; satellites (sdl2-image / sdl2-mixer / sdl2-ttf / sdl2-net / sdl2-gfx) own their own prefixes (`IMG_`, `Mix_`, `TTF_`, `SDLNet_`, `SDL2_gfx*`) and the satellite `CoreOwnedTypeMap` equivalents will be introduced in their respective per-family slices. `OrdinalIgnoreCase` because preprocessor macros and identifiers can mix case (e.g. `SDLK_a`).
+
+```csharp
+namespace Build.Targets.GenerateBindings.Model;
+
+internal sealed class CoreOwnedTypeMap
+{
+    private readonly IReadOnlyList<string> _ownedPrefixes;
+
+    private CoreOwnedTypeMap(IReadOnlyList<string> ownedPrefixes)
+    {
+        _ownedPrefixes = ownedPrefixes;
+    }
+
+    public static CoreOwnedTypeMap CreateSdl2Core()
+    {
+        return new CoreOwnedTypeMap(
+        [
+            "SDL_",
+            "SDLK_",
+            "SDL_HINT_",
+            "SDL_INIT_",
+        ]);
+    }
+
+    public bool IsOwned(string identifier)
+    {
+        ArgumentNullException.ThrowIfNull(identifier);
+        return _ownedPrefixes.Any(prefix => identifier.StartsWith(prefix, StringComparison.Ordinal));
     }
 }
 ```
@@ -3687,17 +3730,20 @@ Each item carries silent runtime corruption potential. The translator emits corr
 
 - **P2.1** [`Targets/GenerateBindings/GenerateBindingsTask.cs:81-119`] `ValidatePublicApiCoherenceAsync` is business logic in the task body. Per ADR-002 §2.2 the task is an orchestrator; extract to `BindingPublicApiCoherenceChecker` collaborator (sealed class, single method, takes `PreviewBindingModel` + `FilePath` manifestPath + `SeverityProfile`, returns `ValidationReport`). Task calls collaborator + handles `CakeException` translation.
 - **P2.2** [`Targets/GenerateBindings/Sdl2CoreGenerationConfig.cs`] `Default` static usage couples task to global. Inject via DI as singleton. Bridges to PSTH-D manifest centralization.
-- **P2.3** [`Targets/GenerateBindings/Sdl2CoreGenerationConfig.cs`] Dead fields: `OwnedPrefixes` and `DeferredDeclarations` are populated, asserted in tests, never read by production code. Either wire them into translator filter (legitimate feature: SDL_/SDLK_/SDL_HINT_/SDL_INIT_ prefix gating + SDL_SysWMinfo/SDL_SysWMmsg deferred-emit skip) or remove until they earn a consumer.
-- **P2.4** [`build/_build/Data/BindingGeneration/GeneratedStampRepository.cs` + DI registration] `IGeneratedStampRepository` registered + tested, never injected into any task. Stage 1 stamp persistence was deferred to Task 8 (PreFlight drift validator); the repository is forward-looking dead surface today. Either wire stamp save/load into `GenerateBindingsTask` now or remove until Task 8 lands.
-- **P2.5** [`Targets/GenerateBindings/HeaderSet/HeaderSetFingerprintCalculator.cs` + DI registration] Similar: registered + tested, no caller. Stage 1 stamp deferral leaves this unused.
-- **P2.6** [Multiple files] `internal → public` visibility flips on `HeaderSetResolver`, `CppAstParseResult`, `CppAstParseRunner`, `ParseDiagnosticFormatter`, `PlatformParseView`, `PlatformConditionKind`, `Sdl2CoreGenerationConfig`, `ResolvedHeaderSet`. `build/_build/Build.csproj` already grants `InternalsVisibleTo Build.Tests`; widening to public for a build-host executable is unjustified. Rollback to `internal`.
+- **P2.3** ✅ Landed in P2-α slice (2026-05-16). [`Targets/GenerateBindings/Sdl2CoreGenerationConfig.cs`] `OwnedPrefixes` + `DeferredDeclarations` removed from the record + `Default` factory; matching test assertions dropped. Both concepts re-home in Task 4 at their proper Model/ locations; the retired literal values are kept here as the forward-reference seed (so Task 4 doesn't have to mine `git log`):
+  - `OwnedPrefixes` literal `["SDL_", "SDLK_", "SDL_HINT_", "SDL_INIT_"]` → moves to `build/_build/Targets/GenerateBindings/Model/CoreOwnedTypeMap.cs` via `CoreOwnedTypeMap.CreateSdl2Core()` (Task 4 §Step 2 — implementation snippet added 2026-05-16; previously the file was named in §"Files" with no body).
+  - `DeferredDeclarations` literal `["SDL_SysWMinfo", "SDL_SysWMmsg"]` → moves to `build/_build/Targets/GenerateBindings/Model/KnownUnsupportedDeclarationPolicy.cs` via `KnownUnsupportedDeclarationPolicy.CreateSdl2Core()` with category `deferred-to-stage-2` and the documented reason string (Task 4 §Step 2 — entries added to the factory snippet 2026-05-16; previously the factory listed only the C-variadic class despite §"Component layout" + §2098 + §2127 promising SysWM coverage here).
+  Removing the placeholder fields from `Sdl2CoreGenerationConfig` now avoids creating a translator-filter consumer that Task 4 would have to rip out.
+- **P2.4** ⚠ **Retracted (2026-05-16) — original "dead surface" framing was wrong.** `IGeneratedStampRepository` + `GeneratedStampRepository` are **forward-looking infrastructure for Task 8** (`BindingGenerationCoherenceValidator` PreFlight stamp drift validator), as established in [`docs/binding-autogen/binding-autogen-strategy-brief.md`](../../binding-autogen/binding-autogen-strategy-brief.md) §"vcpkg-state coherence guardrail" and [`docs/superpowers/specs/2026-05-15-binding-generator-local-output-loop-design.md`](../specs/2026-05-15-binding-generator-local-output-loop-design.md) §"Out of scope". Removing would force re-adding the same surface when Task 8 lands. **Keep as-is** until Task 8 wires the consumer.
+- **P2.5** ⚠ **Retracted (2026-05-16) — same reason as P2.4.** `HeaderSetFingerprintCalculator` produces the `header_set_sha256` field of the Task 8 stamp. Strategy-brief §"vcpkg-state coherence guardrail" steps 1–2 are the consumer. **Keep as-is** until Task 8.
+- **P2.6** 🟡 **Partially un-actionable (2026-05-16) — the proposed rollback is cascade-locked by the public Cake Frosting Task convention.** `GenerateBindingsTask` is `public sealed class` like all 10 sibling tasks; CS0051 propagates `public` to every type appearing in the task's ctor signature or in any DI-collaborator's public method signature. The eight types listed (`HeaderSetResolver`, `CppAstParseResult`, `CppAstParseRunner` + `ICppAstParseRunner`, `ParseDiagnosticFormatter`, `PlatformParseView`, `PlatformConditionKind`, `ResolvedHeaderSet`, `Sdl2CoreGenerationConfig`) all transitively reach a public Task ctor and therefore cannot flip without first changing the Task-visibility convention repo-wide. `Sdl2CoreGenerationConfig` was already internal (consumed only via the `Default` static); no other in-scope type stays off the public signature graph. Inline code comments at the `HeaderSetResolver` + `ICppAstParseRunner` class declarations record this finding so a future reader doesn't re-attempt the rollback. **Defer until** a Task-visibility-convention slice flips all 10 sibling tasks to `internal sealed class` together.
 - **P2.7** [`Targets/GenerateBindings/Model/CppAstToPreviewModel.cs:148-242`] Type-mapping algorithm hidden in private static methods. Per `docs/knowledge-base/extraction-guidelines.md` §"Private methods are a smell when ... they contain business rules", extract to a `TypeMappingPolicy` sealed class. Independent test surface, smaller `CppAstToPreviewModel`, decouples translator from mapping rules.
 - **P2.8** [`Model/CppAstToPreviewModel.cs`] Typedef recursion in `MapTypedef`/`MapTypedefPointer` is unbounded. Circular SDL2 typedef (none today, possible) → infinite loop. Add max-depth guard.
 - **P2.9** [`Model/CppAstToPreviewModel.cs`] `SafeIdentifier` keyword reserved list incomplete. Missing `where`, `volatile`, `using`, `unsafe`, `fixed`, `lock`, `is`, `as`, `new`, etc. Use the canonical keyword set from Roslyn `SyntaxFacts.GetKeywordKind` or equivalent.
 - **P2.10** [`Targets/GenerateBindings/GenerateBindingsTask.cs:143`] Raw `Environment.GetEnvironmentVariable("CONTAINER_DIGEST")` — Cake-native violation. Wrap in `ICakeEnvironment.GetEnvironmentVariable` or pass via `BuildContext` property.
 - **P2.11** [`build/_build/Host/Paths/PathService.cs`] `IPathService.GetSdl2DynapiExportsGlob` returns raw `string`. Cake-native convention prefers typed `FilePath`/`FilePathCollection`. Either return collection via direct `GetFiles` or document why string is intentional (glob expansion happens in the repository).
 - **P2.12** [`PathService.cs:402-403`] `BindingGeneratorSyntheticHeadersRoot` uses multi-segment string `.Combine("a/b/c")`. Cosmetic Cake idiom — prefer chained `.Combine("a").Combine("b").Combine("c")`.
-- **P2.13** [`Data/BindingGeneration/DynapiManifestRepository.cs`] Hardcoded port name `"sdl2"` in glob composition. Future vcpkg layout change or port rename → silent break. Either accept port name as config or document the assumption.
+- **P2.13** ✅ Landed in P2-α slice (2026-05-16) — documented, not parameterized. [`build/_build/Host/Paths/PathService.cs:38-50`] `IPathService.GetSdl2DynapiExportsGlob` now carries an explicit `<para>` note explaining the `sdl2` segment is intentional: the dynapi (dynamic-API dispatch table) is an SDL2-Core-only feature. SDL2 satellites (sdl2-image / sdl2-mixer / sdl2-ttf / sdl2-net / sdl2-gfx) have no dynapi manifest, and SDL3 removed the dynapi system entirely; when SDL3 support lands, a distinct accessor with an SDL3-appropriate symbol oracle is the right shape rather than a parameterized version of this one. Parameterizing now would build the wrong abstraction.
 
 ### P2 — Stale comments / lies (PSTH-F territory, specific cites)
 

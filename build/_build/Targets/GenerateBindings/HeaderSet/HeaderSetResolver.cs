@@ -4,6 +4,9 @@ using Cake.Core.IO;
 
 namespace Build.Targets.GenerateBindings.HeaderSet;
 
+// Public because GenerateBindingsTask (sibling Cake Frosting Task convention is
+// `public sealed class XxxTask`) takes HeaderSetResolver in its ctor; CS0051
+// blocks the internal flip until the wider Task-visibility convention shifts.
 public sealed class HeaderSetResolver(ICakeContext context)
 {
     private const string Sdl2HeaderGlob = "*.h";

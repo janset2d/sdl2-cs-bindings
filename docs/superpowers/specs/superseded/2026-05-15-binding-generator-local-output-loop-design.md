@@ -1,6 +1,10 @@
 # Binding Generator Local Output Loop — Stage 1 Slice Design
 
-> **Status:** Implementation complete 2026-05-16 (Tasks 1-11). Task 11.5 (AST inline filter + `-U__has_builtin` restoration + dynapi cross-check validator) pending — see [`../plans/2026-05-15-binding-generator-local-output-loop.md`](../plans/2026-05-15-binding-generator-local-output-loop.md).
+> **Status (2026-05-17):** ⚠ **SUPERSEDED.** Local Docker loop infrastructure, multi-pass parsing decisions, parse-time configuration surface, and synthetic-header strategy absorbed into [`../2026-05-16-binding-generator-unified-design.md`](../2026-05-16-binding-generator-unified-design.md) §§13–14. Kept in `superseded/` for historical reference; the `Preview*` scratch-emitter shape it introduced is retired by the unified design. Do not treat as authoritative.
+>
+> Original status banner preserved below for context.
+>
+> **Original status:** Implementation complete 2026-05-16 (Tasks 1-11). Task 11.5 (AST inline filter + `-U__has_builtin` restoration + dynapi cross-check validator) pending — see [`../../plans/superseded/2026-05-15-binding-generator-local-output-loop.md`](../../plans/superseded/2026-05-15-binding-generator-local-output-loop.md).
 > **Scope:** Precursor slice landing **before** Stage 1 Task 4 (binding model + merge policy) in `docs/superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md`. Establishes the local CppAst-output iteration loop so subsequent model + emitter design (Tasks 4-6) iterates against real generated artifacts instead of designing emitter shape blind.
 > **Approval status:** Section-by-section approved 2026-05-15 by Deniz; spec written for handoff to `writing-plans` skill.
 >

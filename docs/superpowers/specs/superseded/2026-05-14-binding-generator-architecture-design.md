@@ -1,6 +1,10 @@
 # Binding Generator Architecture Design
 
-> Temporary design spec for the Phase 4 binding-generator architecture. Durable decisions from this file should be promoted into canonical binding-autogen docs after the implementation plan is accepted and the first implementation slice lands.
+> **Status (2026-05-17):** ⚠ **SUPERSEDED.** Architecture decisions absorbed into [`../2026-05-16-binding-generator-unified-design.md`](../2026-05-16-binding-generator-unified-design.md). Kept in `superseded/` for historical reference; do not treat as authoritative. The unified design retires the standalone `Preview*` shape, locks `build/manifest.json` as the per-family config center, and reframes the work as a manifest-driven per-family generator.
+>
+> Original status banner preserved below for context.
+>
+> **Original status:** Temporary design spec for the Phase 4 binding-generator architecture. Durable decisions from this file should be promoted into canonical binding-autogen docs after the implementation plan is accepted and the first implementation slice lands.
 >
 > **Revised 2026-05-15:** Generator folded into the Cake build host (was a standalone `src/`-tree console app in the 2026-05-14 draft); Linux-container locked as the canonical determinism contract; stub strategy reframed against ppy/SDL3-CS evidence (preprocessor-macro switching only — no mingw-w64, no Apple SDK); `SDL_syswm.h` typed-union layout deferred to Stage 2; SDL3 generator gated on PD-7. The architecture reuse rules and platform catalog are unchanged at the principle level — the implementation home moved.
 

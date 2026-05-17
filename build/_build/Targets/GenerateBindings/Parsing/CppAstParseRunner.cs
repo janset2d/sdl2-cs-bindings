@@ -3,6 +3,15 @@ using CppAst;
 
 namespace Build.Targets.GenerateBindings.Parsing;
 
+// Public because GenerateBindingsTask (sibling Cake Frosting Task convention is
+// `public sealed class XxxTask`) takes ICppAstParseRunner in its ctor; CS0051
+// would block the flip otherwise. Cascade: ResolvedHeaderSet / CppAstParseResult /
+// PlatformParseView (+ PlatformConditionKind enum member) / ParseDiagnosticFormatter
+// all stay public because they appear in this interface's public signature or in
+// the public CppAstParseRunner ctor. Until the Task-visibility convention shifts
+// (10 sibling tasks all `public sealed class XxxTask`), the rollback to internal
+// described in the Stage 1 plan §P2.6 cannot land for this surface — only types
+// off the public signature graph (currently none in this folder) can flip.
 public interface ICppAstParseRunner
 {
     CppAstParseResult Parse(ResolvedHeaderSet headerSet, PlatformParseView parseView);

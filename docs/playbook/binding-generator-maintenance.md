@@ -65,7 +65,7 @@ Bump procedure:
 
 ## Post-Stage-1 Trio Revalidation
 
-After Stage 1 Tasks 4-10 ship and the regeneration baseline is stable, attempt to bump the trio to absolute-latest available versions on NuGet. Maintainer comfort note (Deniz, 2026-05-15): "20.1.x içime sinmedi ama şimdilik concern'ümüz olmamalı". Trigger criteria and rationale: [`docs/superpowers/specs/2026-05-15-binding-generator-local-output-loop-design.md`](../superpowers/specs/2026-05-15-binding-generator-local-output-loop-design.md) §10.1.
+After the unified plan ships (Phases 1–3G) and the regeneration baseline is stable, attempt to bump the trio to absolute-latest available versions on NuGet. Maintainer comfort note (Deniz, 2026-05-15): "20.1.x içime sinmedi ama şimdilik concern'ümüz olmamalı". Trigger criteria and rationale: historical reference in [`../superpowers/specs/superseded/2026-05-15-binding-generator-local-output-loop-design.md`](../superpowers/specs/superseded/2026-05-15-binding-generator-local-output-loop-design.md) §10.1.
 
 ## Local Generation Loop
 
@@ -106,7 +106,7 @@ Peer baseline: ppy/SDL3-CS ships exactly **one** stub (`process.h`, ~80 bytes) f
 
 ## Header Set Resolver Exclusions Maintenance
 
-`HeaderSetResolver.ExcludedHeaders` filters the `*.h` glob over the SDL2 vcpkg include directory. Current categories (see [`../superpowers/specs/2026-05-15-binding-generator-local-output-loop-design.md`](../superpowers/specs/2026-05-15-binding-generator-local-output-loop-design.md) §8.7 for the full table):
+`HeaderSetResolver.ExcludedHeaders` filters the `*.h` glob over the SDL2 vcpkg include directory. Once the unified plan Phase 2 lands the manifest-driven config, these categories live in `manifest.library_manifests[].binding_generation.header_set.excluded_headers` + `excluded_header_prefixes`. Current categories (see [`../superpowers/specs/superseded/2026-05-15-binding-generator-local-output-loop-design.md`](../superpowers/specs/superseded/2026-05-15-binding-generator-local-output-loop-design.md) §8.7 for the original full table):
 
 - **Umbrella** — `SDL.h`. Pulls every other SDL2 header transitively.
 - **Scaffolding** — `begin_code.h`, `close_code.h`. Pragma-pack pseudo-headers; `close_code.h` `#error`s standalone.
@@ -136,23 +136,45 @@ Maintenance triggers and procedure:
 
 ## Parser Options Audit Cadence
 
-The parser's `BaseDefines` and `BaseAdditionalArguments` lists in `CppAstParseRunner.cs` carry workarounds for SDL header / libclang interaction bugs. They are not free — each entry is a documented mechanism, and adding without justification or keeping after the underlying SDL behaviour changes both create drift.
+The per-family `parse_defines` + `clang_args` entries in `build/manifest.json library_manifests[].binding_generation` carry workarounds for SDL header / libclang interaction bugs. They are not free — each entry is a documented mechanism, and adding without justification or keeping after the underlying SDL behaviour changes both create drift. Before the unified plan Phase 2 lands, these values live as `BaseDefines` + `BaseAdditionalArguments` lists in `CppAstParseRunner.cs`; after Phase 2, they live in the manifest and the audit cadence below operates against the manifest entries.
 
 Run this audit at every trio bump (CppAst / libclang.runtime / libClangSharp.runtime) and at every SDL2 minor release:
 
-1. **Re-read each entry's comment block.** Comments document the SDL header line + the symptom + the mechanism. If the comment references SDL_stdinc.h line numbers, verify those lines still match the current SDL2 pin.
-2. **Try removing one entry at a time, smoke, observe.** If the parse succeeds without the entry, retire it. If it fails with the symptom the comment documents, keep it.
+1. **Re-read each entry's rationale** (in `parse-time configuration surface (per family)` section below). Rationale documents the SDL header line + the symptom + the mechanism. If a rationale references SDL_stdinc.h line numbers, verify those lines still match the current SDL2 pin.
+2. **Try removing one entry at a time, smoke, observe.** If the parse succeeds without the entry, retire it (delete from manifest + this playbook). If it fails with the symptom the rationale documents, keep it.
 3. **Compare against ppy/SDL3-CS `SDL3-CS/SDL3/*.rsp` files.** Their per-header RSP files document equivalent workarounds for SDL3. Cross-check whether SDL2's stable equivalents still apply or have been superseded.
 
-Current Stage 1 entries (verified working at SDL2 2.32.10 + CppAst 0.24.0 + libclang 20.1.2):
-
-- `SDL_DECLSPEC=` — suppresses export attribute parsing globally.
-- `SDL_DISABLE_{IMMINTRIN,MMINTRIN,XMMINTRIN,EMMINTRIN,PMMINTRIN,MM3DNOW,LSX,LASX,ARM_NEON}_H=1` — SDL2's own documented escape hatch (SDL_cpuinfo.h:118-133) to bypass the GCC intrinsic header chain.
-- `-fdeclspec` — libegl-dev's `/usr/include/EGL/egl.h` uses `__declspec` under SDL_VIDEO_DRIVER_WINDOWS.
-- `-U__has_builtin` — forces `_SDL_HAS_BUILTIN(x) → 0` in SDL_stdinc.h:127-131 so `_SDL_size_*_overflow_builtin` SDL_FORCE_INLINE helpers never enter the AST.
-- `TargetSystem = "linux"` — overrides CppAst's `"windows"` ctor default (CppParserOptions.cs).
-
 Document any change to this set with the symptom that motivates it. Bare-flag additions are not acceptable.
+
+### Parse-time configuration surface (per family)
+
+JSON in `build/manifest.json` cannot host paragraph-length rationale per entry. The rationale lives here, per-family. When a value changes in the manifest, the corresponding rationale below updates in the same slice.
+
+#### sdl2-core
+
+Verified working at SDL2 2.32.10 + CppAst 0.24.0 + libclang 20.1.2.
+
+**`parse_defines`:**
+
+- **`SDL_DECLSPEC=`** — Suppresses the platform-specific export attributes (`__declspec(dllexport)` on Windows, `__attribute__((visibility("default")))` on Linux) so CppAst sees plain function declarations. Without this, libclang parses the attribute syntax and CppAst's function records pick up annotations that don't translate to our emit shape.
+
+- **`SDL_DISABLE_IMMINTRIN_H=1`**, **`SDL_DISABLE_MMINTRIN_H=1`**, **`SDL_DISABLE_XMMINTRIN_H=1`**, **`SDL_DISABLE_EMMINTRIN_H=1`**, **`SDL_DISABLE_PMMINTRIN_H=1`**, **`SDL_DISABLE_MM3DNOW_H=1`**, **`SDL_DISABLE_LSX_H=1`**, **`SDL_DISABLE_LASX_H=1`**, **`SDL_DISABLE_ARM_NEON_H=1`** — Short-circuit `SDL_cpuinfo.h:118-133`'s intrinsic-header includes (immintrin/mmintrin/xmmintrin/emmintrin/pmmintrin/mm3dnow/lsx/lasx/arm_neon). Without these defines, `SDL_cpuinfo.h` pulls GCC's intrinsic headers (via the Dockerfile's CPATH), whose `extern __inline` declarations of `_mm_pause` / `_mm_getcsr` / `__rdtsc` / `_mm_clflush` / `_mm_{l,m,s}fence` collide with libclang's internal builtin-function table and break the parse with `error: definition of builtin function ...`. The disable macros are the documented SDL2 escape hatch for binding generators — see SDL_cpuinfo.h lines 118-133 in any SDL2 release. Peer evidence: amerkoleci's Alimer.Bindings.SDL uses the SDL3 equivalents (SDL_PLATFORM_ANDROID/IOS/WINRT) for the same purpose.
+
+**`clang_args`:**
+
+- **`-fdeclspec`** — Enables `__declspec` parsing in C mode. `libegl-dev`'s `/usr/include/EGL/egl.h` declares its functions with `EGLAPI` which expands to `__declspec(dllimport/export)` on a Windows target — and SDL_egl.h is pulled by SDL_video.h under SDL_VIDEO_DRIVER_WINDOWS. Without `-fdeclspec`, clang's default C mode rejects every EGL function declaration in Windows-flavoured views. The flag is narrower than `-fms-extensions` (which enables the full MS dialect).
+
+- **`-U__has_builtin`** — Forces `SDL_stdinc.h:127-131` `#ifdef __has_builtin` to false, which makes `_SDL_HAS_BUILTIN(x)` always expand to 0. That short-circuits the `#if _SDL_HAS_BUILTIN(__builtin_{mul,add}_overflow)` blocks at SDL_stdinc.h:822 and 853, so `_SDL_size_mul_overflow_builtin` and `_SDL_size_add_overflow_builtin` SDL_FORCE_INLINE helpers never enter the AST. Defense-in-depth complement to the translator's `CppFunctionFlags.Inline` filter; kills 2 of the 16 known SDL_FORCE_INLINE leaks at parse time before the AST filter ever sees them. Peer reference: ppy/SDL3-CS `SDL_stdinc.rsp` uses the exact same flag.
+
+  Side-effect audit: three SDL2 sites reference `_SDL_HAS_BUILTIN` beyond the two SDL_stdinc.h declaration gates above — `SDL_assert.h:54` (selects `__builtin_debugtrap` for `SDL_TriggerBreakpoint` impl — macro body, no declaration impact), `SDL_endian.h:134/136/138` (selects `__builtin_bswap{16,32,64}` for `SDL_Swap*` SDL_FORCE_INLINE bodies — body content, helpers are already inline-filtered by the AST filter). No public-API declaration is affected by undefining the macro.
+
+**Non-config baseline (set by CppAstParseRunner, not in manifest):**
+
+- **`TargetSystem = "linux"`** — Overrides CppAst's `"windows"` ctor default (`CppParserOptions.cs`). Without this, libclang's triple becomes `x86_64-pc-windows-` even on a Linux host and SDL_stdinc.h:357 activates its `_MSC_VER` branch (`#include <sal.h>`), which fails inside the container. The `TargetSystem` field is a structural property of the parser, not a per-family knob — it stays in code.
+
+#### sdl2-image / sdl2-mixer / sdl2-ttf / sdl2-gfx / sdl2-net
+
+Satellite per-family rationales fill in at Stage 2 when each satellite's `binding_generation.enabled` flips to `true`. Most satellites can reuse `sdl2-core`'s `SDL_DECLSPEC=` and the GCC intrinsic-disable family; satellite-specific entries (e.g. `IMG_DISABLE_*` if SDL2_image grows analogous escape hatches in a future release) land here as they are introduced.
 
 ## Dynapi Manifest Cross-Check
 
@@ -279,8 +301,9 @@ Use this checklist when reviewing a generator or SDL update:
 ## Related Docs
 
 - `docs/binding-autogen/binding-autogen-strategy-brief.md`
-- `docs/superpowers/specs/2026-05-14-binding-generator-architecture-design.md`
-- `docs/superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md`
+- `docs/superpowers/specs/2026-05-16-binding-generator-unified-design.md` (active unified design spec)
+- `docs/superpowers/plans/2026-05-17-binding-generator-unified-plan.md` (active unified implementation plan)
+- `docs/superpowers/specs/superseded/` + `docs/superpowers/plans/superseded/` (historical 2026-05-14/05-15 specs+plans)
 - `docs/playbook/overlay-management.md`
 - `docs/playbook/vcpkg-update.md`
 - `docs/decisions/2026-05-05-target-centric-build-host.md`

@@ -1,5 +1,7 @@
 # Binding Generator Local Output Loop Implementation Plan
 
+> **Status (2026-05-17):** ⚠ **SUPERSEDED.** Tasks 1-11 + Task 11.5 (AST inline filter + `-U__has_builtin` restore + dynapi cross-check) shipped in commits `0db0e31` + `9a5f59e`. The `Preview*` shape this plan introduced retires per [`../2026-05-17-binding-generator-unified-plan.md`](../2026-05-17-binding-generator-unified-plan.md) Phase 3. Kept in `superseded/` for historical reference.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a Linux-canonical Docker-based local generation loop that produces spike-style placeholder SDL2.Core binding output under `artifacts/generated-bindings-preview/sdl2-core/`, giving Stage 1 Tasks 4-6 (model + emitters) a real artifact to iterate against.

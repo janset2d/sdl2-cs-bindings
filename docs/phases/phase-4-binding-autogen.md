@@ -11,8 +11,8 @@ This page is a thin pointer to the canonical Phase 4 documents. Do not duplicate
 | Doc | Purpose |
 | --- | --- |
 | [`../binding-autogen/binding-autogen-strategy-brief.md`](../binding-autogen/binding-autogen-strategy-brief.md) | Accepted WHY/HOW/WHAT strategy brief (revised 2026-05-15). Authoritative for toolchain, generator host, parsing strategy, plan shape, open decisions. |
-| [`../superpowers/specs/2026-05-14-binding-generator-architecture-design.md`](../superpowers/specs/2026-05-14-binding-generator-architecture-design.md) | Architecture design spec. Component layout under `build/_build/Targets/GenerateBindings/`, platform catalog tuple model, validation strategy. |
-| [`../superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md`](../superpowers/plans/2026-05-14-sdl2-core-binding-generator-stage-1.md) | Stage 1 implementation plan. Task-by-task TDD-style scaffolding. |
+| [`../superpowers/specs/2026-05-16-binding-generator-unified-design.md`](../superpowers/specs/2026-05-16-binding-generator-unified-design.md) | **Active** unified design spec — manifest-driven per-family generator, BindingModel + 6 categories, per-category emitters. Supersedes 2026-05-14 architecture + 2026-05-15 local-output-loop specs. |
+| [`../superpowers/plans/2026-05-17-binding-generator-unified-plan.md`](../superpowers/plans/2026-05-17-binding-generator-unified-plan.md) | **Active** unified implementation plan. Phases 1–3G. Supersedes Stage 1 plan + local-output-loop plan. |
 | [`../decisions/2026-05-14-binding-autogen-toolchain.md`](../decisions/2026-05-14-binding-autogen-toolchain.md) | ADR-004 toolchain decision (CppAst). |
 | [`../binding-autogen/research/binding-autogen-onboarding.md`](../binding-autogen/research/binding-autogen-onboarding.md) | LLM/contributor onboarding (revised 2026-05-15). |
 
