@@ -2,6 +2,19 @@ namespace Build.Targets.GenerateBindings.Parsing;
 
 internal sealed record PlatformCatalog(IReadOnlyList<PlatformParseView> ParseViews)
 {
+    /// <summary>
+    /// Manifest-driven catalog factory. <see cref="BindingGenerationConfig.PlatformCatalogId"/>
+    /// names which catalog to instantiate; Stage 1 ships only the SDL2.Core catalog.
+    /// Stage 2 extends the switch as each satellite needs its own platform-view shape
+    /// (most satellites collapse to Neutral-only).
+    /// </summary>
+    public static PlatformCatalog For(string catalogId) => catalogId switch
+    {
+        "sdl2-core" => CreateSdl2Catalog(),
+        _ => throw new InvalidOperationException(
+            $"Unknown platform catalog id '{catalogId}'. Add a case in PlatformCatalog.For when introducing a new catalog."),
+    };
+
     public static IReadOnlyList<string> AllPlatformMacros { get; } =
     [
         "_WIN32",

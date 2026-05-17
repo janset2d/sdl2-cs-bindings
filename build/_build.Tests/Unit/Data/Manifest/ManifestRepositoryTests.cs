@@ -46,7 +46,7 @@ public sealed class ManifestRepositoryRoundTripTests
         var manifest = repo.Load();
 
         await Assert.That(manifest).IsNotNull();
-        await Assert.That(manifest.SchemaVersion).IsEqualTo("2.1");
+        await Assert.That(manifest.SchemaVersion).IsEqualTo("2.2");
         await Assert.That(manifest.Runtimes.Count).IsGreaterThanOrEqualTo(1);
         await Assert.That(manifest.Runtimes[0].Rid).IsEqualTo("win-x64");
     }

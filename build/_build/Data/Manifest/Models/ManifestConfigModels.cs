@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Text.Json.Serialization;
+using Build.Data.BindingGeneration.Models;
 
 namespace Build.Data.Manifest.Models;
 
@@ -103,6 +104,7 @@ public record LibraryManifest
     [JsonPropertyName("native_lib_name")] public required string NativeLibName { get; init; }
     [JsonPropertyName("core_lib")] public required bool IsCoreLib { get; init; }
     [JsonPropertyName("primary_binaries")] public required IImmutableList<PrimaryBinary> PrimaryBinaries { get; init; }
+    [JsonPropertyName("binding_generation")] public required BindingGenerationConfig BindingGeneration { get; init; }
 }
 
 public record PrimaryBinary

@@ -1,6 +1,5 @@
 using Build.Targets.GenerateBindings.HeaderSet;
 using Build.Targets.GenerateBindings.Parsing;
-using Build.Validation.BindingGeneration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Build.Targets.GenerateBindings;
@@ -14,8 +13,11 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<ILibclangVersionAsserter, LibclangVersionAsserter>();
         services.AddSingleton<HeaderSetResolver>();
         services.AddSingleton<HeaderSetFingerprintCalculator>();
-        services.AddSingleton<IBindingPublicApiCoherenceValidator, BindingPublicApiCoherenceValidator>();
 
+        // Validators (IBindingPublicApiCoherenceValidator + IBindingFamilyValidator
+        // implementations) live under Build.Validation.BindingGeneration and register
+        // via AddValidators() per the canonical convention — see
+        // Build.Validation.ServiceCollectionExtensions.
         return services;
     }
 }

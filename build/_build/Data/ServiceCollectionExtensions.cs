@@ -36,6 +36,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IGeneratedStampRepository, GeneratedStampRepository>();
         services.AddSingleton<IDynapiManifestRepository, DynapiManifestRepository>();
 
+        services.AddSingleton<IBindingGenerationConfigRepository, BindingGenerationConfigRepository>();
+
         return services;
     }
 }

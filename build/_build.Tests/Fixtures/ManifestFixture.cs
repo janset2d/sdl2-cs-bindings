@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Text.Json;
+using Build.Data.BindingGeneration.Models;
 using Build.Data.Manifest;
 using Build.Data.Manifest.Models;
 
@@ -44,6 +45,7 @@ public static class ManifestFixture
             new PrimaryBinary { Os = "Linux", Patterns = ["libSDL2*"] },
             new PrimaryBinary { Os = "OSX", Patterns = ["libSDL2*.dylib"] },
         ],
+        BindingGeneration = CreateTestCoreBindingGeneration(),
     };
 
     /// <summary>
@@ -65,14 +67,68 @@ public static class ManifestFixture
             new PrimaryBinary { Os = "Linux", Patterns = ["libSDL2_image*"] },
             new PrimaryBinary { Os = "OSX", Patterns = ["libSDL2_image*.dylib"] },
         ],
+            BindingGeneration = CreateTestSatellitePlaceholderBindingGeneration(
+                managedNamespace: "SDL2.Image",
+                primaryClassName: "SDL_image",
+                platformCatalog: "sdl2-image",
+                ownedPrefix: "IMG_"),
         };
+
+    /// <summary>
+    /// Minimal core <see cref="BindingGenerationConfig"/> with enabled=true and the
+    /// real SDL2.Core identity (matches build/manifest.json's binding_generation block
+    /// shape). Used by <see cref="CreateTestCoreLibrary"/> to satisfy the required
+    /// <see cref="LibraryManifest.BindingGeneration"/> field.
+    /// </summary>
+    public static BindingGenerationConfig CreateTestCoreBindingGeneration() => new()
+    {
+        Enabled = true,
+        ManagedNamespace = "SDL2",
+        PrimaryClassName = "SDL",
+        PlatformCatalogId = "sdl2-core",
+        OwnedPrefixes = ["SDL_", "SDLK_", "SDL_HINT_", "SDL_INIT_"],
+        ParseDefines = ["SDL_DECLSPEC="],
+        ClangArgs = ["-fdeclspec", "-U__has_builtin"],
+        ExcludedFunctions = ["SDL_main", "SDL_DYNAPI_entry"],
+        HeaderSet = new HeaderSetConfig
+        {
+            IncludeDirGlob = "include/SDL2",
+            HeaderGlob = "*.h",
+            ExcludedHeaders = ["SDL.h"],
+            ExcludedHeaderPrefixes = ["SDL_test", "SDL2_"],
+        },
+        Validators = ImmutableDictionary<string, bool>.Empty
+            .Add("dynapi-coherence", true)
+            .Add("neutral-view-non-empty", true)
+            .Add("required-functions-emitted", true),
+        Dynapi = new DynapiConfig { ExportsGlob = "buildtrees/sdl2/src/*/src/dynapi/SDL2.exports" },
+    };
+
+    /// <summary>
+    /// Stage-2-placeholder <see cref="BindingGenerationConfig"/> with enabled=false.
+    /// Matches the satellite shape that's in build/manifest.json today — identity
+    /// fields populated, generation knobs absent. Used to satisfy
+    /// <see cref="LibraryManifest.BindingGeneration"/> for satellite fixtures.
+    /// </summary>
+    public static BindingGenerationConfig CreateTestSatellitePlaceholderBindingGeneration(
+        string managedNamespace,
+        string primaryClassName,
+        string platformCatalog,
+        string ownedPrefix) => new()
+    {
+        Enabled = false,
+        ManagedNamespace = managedNamespace,
+        PrimaryClassName = primaryClassName,
+        PlatformCatalogId = platformCatalog,
+        OwnedPrefixes = [ownedPrefix],
+    };
 
     /// <summary>
     /// Minimal ManifestConfig for unit tests — core + one satellite.
     /// </summary>
     public static ManifestConfig CreateTestManifestConfig() => new()
     {
-        SchemaVersion = "2.1",
+        SchemaVersion = "2.2",
         PackagingConfig = new PackagingConfig
         {
             ValidationMode = ValidationMode.Strict,

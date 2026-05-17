@@ -1,4 +1,5 @@
 using Build.Data.BindingGeneration;
+using Build.Data.BindingGeneration.Models;
 using Build.Results;
 using Build.Targets.GenerateBindings;
 using Build.Targets.GenerateBindings.HeaderSet;
@@ -8,6 +9,7 @@ using Build.Validation.BindingGeneration;
 using Cake.Core;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
+using static Build.Tests.Fixtures.BindingGenerationFixture;
 
 namespace Build.Tests.Scenarios.GenerateBindings;
 
@@ -17,8 +19,9 @@ namespace Build.Tests.Scenarios.GenerateBindings;
 /// FakeCakeWorld can stand in for, so the happy path is validated by the manual
 /// <c>tools.cs generate-bindings</c> smoke. These scenarios cover task-level
 /// guards that fire before parse work begins (triplet, libclang version,
-/// header resolver). Dynapi + validator behaviours are covered by their own
-/// unit tests against real implementations.
+/// header resolver). Validator behaviour is covered by per-validator unit tests
+/// in <c>Build.Tests.Unit.Validation.BindingGeneration</c>; config-load
+/// behaviour by the repository's own unit + round-trip tests.
 /// </summary>
 public sealed class GenerateBindingsTaskScenarioTests
 {
@@ -51,10 +54,12 @@ public sealed class GenerateBindingsTaskScenarioTests
     }
 
     [Test]
-    public async Task RunAsync_Should_Throw_When_Vcpkg_Sdl2_Include_Dir_Is_Missing()
+    public async Task RunAsync_Should_Throw_When_Vcpkg_Include_Dir_Is_Missing()
     {
-        // No vcpkg_installed/x64-linux-hybrid/include/SDL2/ seeded → HeaderSetResolver
-        // throws before any parse work. Verifies the resolver guards the task body.
+        // Config repository returns ["sdl2-core"] enabled + a valid config, but no
+        // vcpkg_installed/x64-linux-hybrid/include/SDL2/ seeded → HeaderSetResolver
+        // throws before any parse work. Verifies the resolver guards the task body
+        // once config loads.
         var world = FakeCakeWorld.CreateLinux();
 
         var result = await CreateHost(world).RunAsync();
@@ -62,16 +67,17 @@ public sealed class GenerateBindingsTaskScenarioTests
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.Exception).IsNotNull();
         await Assert.That(result.Exception).IsTypeOf<CakeException>();
-        await Assert.That(result.Exception!.Message).Contains("SDL2 include directory");
+        await Assert.That(result.Exception!.Message).Contains("include directory was not found");
     }
 
     private static TargetTestHost<GenerateBindingsTask> CreateHost(
         FakeCakeWorld world,
         ILibclangVersionAsserter? libclangAsserter = null,
         ICppAstParseRunner? parser = null,
-        IDynapiManifestRepository? dynapi = null,
-        IBindingPublicApiCoherenceValidator? validator = null)
+        IBindingGenerationConfigRepository? configRepository = null,
+        IEnumerable<IBindingFamilyValidator>? validators = null)
     {
+        var repo = configRepository ?? CreateEnabledSdl2CoreRepository();
         return new TargetTestHost<GenerateBindingsTask>(world)
             .WithServices(services =>
             {
@@ -79,8 +85,20 @@ public sealed class GenerateBindingsTaskScenarioTests
                 services.AddSingleton<HeaderSetResolver>();
                 services.AddSingleton(libclangAsserter ?? Substitute.For<ILibclangVersionAsserter>());
                 services.AddSingleton(parser ?? Substitute.For<ICppAstParseRunner>());
-                services.AddSingleton(dynapi ?? Substitute.For<IDynapiManifestRepository>());
-                services.AddSingleton(validator ?? Substitute.For<IBindingPublicApiCoherenceValidator>());
+                services.AddSingleton(repo);
+                if (validators is not null)
+                {
+                    foreach (var v in validators) services.AddSingleton(v);
+                }
             });
+    }
+
+    private static IBindingGenerationConfigRepository CreateEnabledSdl2CoreRepository()
+    {
+        var repo = Substitute.For<IBindingGenerationConfigRepository>();
+        repo.EnumerateEnabledFamilies().Returns(["sdl2-core"]);
+        repo.Load("sdl2-core").Returns(
+            Result<BindingGenerationConfig, BindingGenerationConfigError>.Success(Sdl2CoreConfig()));
+        return repo;
     }
 }

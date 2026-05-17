@@ -15,6 +15,7 @@ using System.Globalization;
 using System.IO;
 using System.Net.Http;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -615,6 +616,34 @@ public sealed class GenerateBindingsCommand : AsyncCommand<GenerateBindingsSetti
         var vcpkgCommit = vcpkgCommitProbe.StdOut.Trim();
         AnsiConsole.MarkupLine($"[blue]vcpkg submodule commit:[/] [cyan]{Markup.Escape(vcpkgCommit)}[/]");
 
+        // [4c] Read SDL2 version from manifest. The Dockerfile's conditional
+        // fallback uses this to git-clone SDL2 upstream source when vcpkg's
+        // binary cache hit skips source extraction — the cloned tree provides
+        // src/dynapi/SDL2.exports for DynapiCoherenceValidator. Version must
+        // match the vcpkg-baked SDL2 binary (same vcpkg_version field), so
+        // sourcing it from the same manifest entry keeps them in lockstep.
+        var sdl2Version = ReadSdl2VcpkgVersion(repoRoot);
+        if (string.IsNullOrWhiteSpace(sdl2Version))
+        {
+            AnsiConsole.MarkupLine("[red]Could not resolve SDL2 vcpkg_version from build/manifest.json library_manifests[name=SDL2].[/]");
+            return 1;
+        }
+        AnsiConsole.MarkupLine($"[blue]SDL2 vcpkg version:[/] [cyan]{Markup.Escape(sdl2Version!)}[/]");
+
+        // [4d] Compute a deterministic cache key for the binary cache BuildKit
+        // mount the Dockerfile's Layer E declares. Key composition mirrors
+        // .github/actions/vcpkg-setup/action.yml's actions/cache@v5 key
+        // (vcpkg.json + overlay-triplets + overlay-ports + vcpkg commit) so
+        // local Docker invalidation matches CI invalidation exactly. Content
+        // changes in any of those inputs yield a fresh key → new mount → cold
+        // from vcpkg's perspective → full from-source build → image layer
+        // captures buildtrees naturally. Without content-derived id, the binary
+        // cache mount would retain stale compiled artifacts across vcpkg.json
+        // bumps (vcpkg's own ABI hash would reject them but the mount would
+        // still waste disk).
+        var vcpkgCacheKey = ComputeVcpkgCacheKey(repoRoot, vcpkgCommit);
+        AnsiConsole.MarkupLine($"[blue]vcpkg cache key:[/] [cyan]{Markup.Escape(vcpkgCacheKey)}[/]");
+
         // [5] docker build the derived binding-generator image. vcpkg state is
         // baked at build time (Layer E of binding-generator.Dockerfile).
         AnsiConsole.MarkupLine("[blue]Building binding-generator image (vcpkg install runs at image build time)...[/]");
@@ -624,6 +653,8 @@ public sealed class GenerateBindingsCommand : AsyncCommand<GenerateBindingsSetti
             "-t", ImageTag,
             "--build-arg", $"BASE_IMAGE={baseImage}",
             "--build-arg", $"VCPKG_COMMIT={vcpkgCommit}",
+            "--build-arg", $"VCPKG_CACHE_KEY={vcpkgCacheKey}",
+            "--build-arg", $"SDL2_VERSION={sdl2Version}",
             "-f", "docker/binding-generator.Dockerfile",
         };
         if (settings.RebuildImage)
@@ -710,6 +741,98 @@ public sealed class GenerateBindingsCommand : AsyncCommand<GenerateBindingsSetti
             AnsiConsole.MarkupLine($"[red]Manifest parse error:[/] {Markup.Escape(ex.Message)}");
         }
         return null;
+    }
+
+    private static string? ReadSdl2VcpkgVersion(string repoRoot)
+    {
+        var manifestPath = Path.Combine(repoRoot, "build", "manifest.json");
+        if (!File.Exists(manifestPath))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var stream = File.OpenRead(manifestPath);
+            using var doc = JsonDocument.Parse(stream);
+            if (!doc.RootElement.TryGetProperty("library_manifests", out var libs))
+            {
+                return null;
+            }
+            foreach (var lib in libs.EnumerateArray())
+            {
+                if (lib.TryGetProperty("name", out var name) &&
+                    name.GetString() == "SDL2" &&
+                    lib.TryGetProperty("vcpkg_version", out var version))
+                {
+                    return version.GetString();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            AnsiConsole.MarkupLine($"[red]Manifest parse error reading SDL2 vcpkg_version:[/] {Markup.Escape(ex.Message)}");
+        }
+        return null;
+    }
+
+    // Deterministic cache-key compute for the BuildKit cache mounts in
+    // docker/binding-generator.Dockerfile Layer E. Hash inputs match
+    // .github/actions/vcpkg-setup/action.yml's actions/cache@v5 key composition
+    // (vcpkg.json + overlay-triplets + overlay-ports + vcpkg submodule commit)
+    // so local Docker invalidation behaves identically to CI invalidation.
+    //
+    // Cross-OS determinism notes:
+    //   * Relative paths normalised to forward slashes before hashing.
+    //   * Recursive enumeration sorted Ordinal before hashing so directory
+    //     iteration order on Windows / Linux produces the same digest.
+    //   * Each file's relative path is prefixed into the stream so a file
+    //     content shuffle (renames) busts the cache.
+    //   * SHA-256 truncated to 8 hex chars; collision space (2^32) is comfortably
+    //     larger than any realistic content-edit cardinality in this repo. The
+    //     mount id is also user-facing in `docker buildx du` output so short is good.
+    private static string ComputeVcpkgCacheKey(string repoRoot, string vcpkgCommit)
+    {
+        using var ms = new MemoryStream();
+
+        AppendFileToStream(ms, Path.Combine(repoRoot, "vcpkg.json"), "vcpkg.json");
+        AppendDirectoryToStream(ms, repoRoot, "vcpkg-overlay-ports");
+        AppendDirectoryToStream(ms, repoRoot, "vcpkg-overlay-triplets");
+        ms.Write(Encoding.UTF8.GetBytes($"VCPKG_COMMIT={vcpkgCommit}\n"));
+
+        ms.Position = 0;
+        var digest = SHA256.HashData(ms.ToArray());
+        return Convert.ToHexString(digest)[..8].ToLowerInvariant();
+    }
+
+    private static void AppendFileToStream(Stream output, string filePath, string normalisedRelativePath)
+    {
+        if (!File.Exists(filePath))
+        {
+            return;
+        }
+        var header = Encoding.UTF8.GetBytes($"FILE:{normalisedRelativePath}\n");
+        output.Write(header);
+        using var fs = File.OpenRead(filePath);
+        fs.CopyTo(output);
+        output.WriteByte((byte)'\n');
+    }
+
+    private static void AppendDirectoryToStream(Stream output, string repoRoot, string relativeDir)
+    {
+        var absoluteDir = Path.Combine(repoRoot, relativeDir);
+        if (!Directory.Exists(absoluteDir))
+        {
+            return;
+        }
+        var files = Directory.EnumerateFiles(absoluteDir, "*", SearchOption.AllDirectories)
+            .Select(absolute => Path.GetRelativePath(repoRoot, absolute).Replace('\\', '/'))
+            .OrderBy(rel => rel, StringComparer.Ordinal)
+            .ToList();
+        foreach (var rel in files)
+        {
+            AppendFileToStream(output, Path.Combine(repoRoot, rel), rel);
+        }
     }
 
     private static async Task<(int ExitCode, string StdOut, string StdErr)> CaptureRunAsync(

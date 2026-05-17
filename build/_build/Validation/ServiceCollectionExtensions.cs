@@ -1,3 +1,4 @@
+using Build.Validation.BindingGeneration;
 using Build.Validation.Harvesting;
 using Build.Validation.Manifest;
 using Build.Validation.NativeSmoke;
@@ -40,6 +41,16 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<INativeSmokePreconditionsValidator, NativeSmokePreconditionsValidator>();
         services.AddSingleton<IPackageConsumerSmokePreconditionsValidator, PackageConsumerSmokePreconditionsValidator>();
         services.AddSingleton<IOverlayPortVersionCoherenceValidator, OverlayPortVersionCoherenceValidator>();
+
+        // Binding-generation validators. Three IBindingFamilyValidator implementations
+        // share a single registration interface so IEnumerable<IBindingFamilyValidator>
+        // resolves to all of them; GenerateBindingsTask filters the IEnumerable by
+        // manifest.binding_generation.validators[id] = true per family per run.
+        // Adding a new validator: implement IBindingFamilyValidator, register here,
+        // flip the manifest key.
+        services.AddSingleton<IBindingFamilyValidator, DynapiCoherenceValidator>();
+        services.AddSingleton<IBindingFamilyValidator, NeutralViewNonEmptyValidator>();
+        services.AddSingleton<IBindingFamilyValidator, RequiredFunctionsEmittedValidator>();
 
         return services;
     }

@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "createdAt": "2026-05-12T09:45:22.5376978+00:00",
-  "updatedAt": "2026-05-12T09:45:22.5404061+00:00",
-  "description": "Initial baseline created by 'slopwatch init' on 2026-05-12 09:45:22 UTC",
+  "createdAt": "2026-05-17T08:07:33.3000195+00:00",
+  "updatedAt": "2026-05-17T08:07:33.305019+00:00",
+  "description": "Initial baseline created by 'slopwatch init' on 2026-05-17 08:07:33 UTC",
   "entries": [
     {
       "hash": "3cc9de032011b5a1",
@@ -11,7 +11,7 @@
       "lineNumber": 59,
       "codeSnippet": "<NoWarn>$(NoWarn);CS1591;CS1573;CS1572;CS1574</NoWarn>",
       "message": "Adding warnings to NoWarn: CS1591;CS1573;CS1572;CS1574",
-      "baselinedAt": "2026-05-12T09:45:22.5401717+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3044494+00:00"
     },
     {
       "hash": "0a50f86f60949a8d",
@@ -20,7 +20,7 @@
       "lineNumber": 118,
       "codeSnippet": "<NoWarn>$(NoWarn);CA1050;CA1515;CA1707;CA1806;CA2007;MA0045;MA0047;MA0051;S4144;S2699</NoWarn>",
       "message": "Adding warnings to NoWarn: CA1050;CA1515;CA1707;CA1806;CA2007;MA0045;MA0047;MA0051;S4144;S2699",
-      "baselinedAt": "2026-05-12T09:45:22.5402613+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3046761+00:00"
     },
     {
       "hash": "2f79f8ef4f31ea60",
@@ -29,7 +29,7 @@
       "lineNumber": 25,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL2.Core\" VersionOverride=\"[$(JansetSdl2CorePackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL2.Core' (version: [$(JansetSdl2CorePackageVersion)])",
-      "baselinedAt": "2026-05-12T09:45:22.5402664+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3046909+00:00"
     },
     {
       "hash": "de08ba0197cdea4e",
@@ -38,7 +38,7 @@
       "lineNumber": 28,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL2.Image\" VersionOverride=\"[$(JansetSdl2ImagePackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL2.Image' (version: [$(JansetSdl2ImagePackageVersion)])",
-      "baselinedAt": "2026-05-12T09:45:22.5402696+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3047032+00:00"
     },
     {
       "hash": "a48cc078114bab4e",
@@ -47,7 +47,7 @@
       "lineNumber": 31,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL2.Mixer\" VersionOverride=\"[$(JansetSdl2MixerPackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL2.Mixer' (version: [$(JansetSdl2MixerPackageVersion)])",
-      "baselinedAt": "2026-05-12T09:45:22.5402749+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3047126+00:00"
     },
     {
       "hash": "7ebcd48a18760e14",
@@ -56,7 +56,7 @@
       "lineNumber": 34,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL2.Ttf\" VersionOverride=\"[$(JansetSdl2TtfPackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL2.Ttf' (version: [$(JansetSdl2TtfPackageVersion)])",
-      "baselinedAt": "2026-05-12T09:45:22.540278+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3047205+00:00"
     },
     {
       "hash": "94ff501af69e1e7c",
@@ -65,7 +65,7 @@
       "lineNumber": 37,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL2.Gfx\" VersionOverride=\"[$(JansetSdl2GfxPackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL2.Gfx' (version: [$(JansetSdl2GfxPackageVersion)])",
-      "baselinedAt": "2026-05-12T09:45:22.5402803+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3047253+00:00"
     },
     {
       "hash": "950e7df61977fa05",
@@ -74,7 +74,7 @@
       "lineNumber": 40,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL2.Net\" VersionOverride=\"[$(JansetSdl2NetPackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL2.Net' (version: [$(JansetSdl2NetPackageVersion)])",
-      "baselinedAt": "2026-05-12T09:45:22.5402825+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3047289+00:00"
     },
     {
       "hash": "f7114e38b2afe118",
@@ -83,7 +83,7 @@
       "lineNumber": 45,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL3.Core\" VersionOverride=\"[$(JansetSdl3CorePackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL3.Core' (version: [$(JansetSdl3CorePackageVersion)])",
-      "baselinedAt": "2026-05-12T09:45:22.5402848+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3047328+00:00"
     },
     {
       "hash": "5fd54881b35294e7",
@@ -92,7 +92,7 @@
       "lineNumber": 48,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL3.Image\" VersionOverride=\"[$(JansetSdl3ImagePackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL3.Image' (version: [$(JansetSdl3ImagePackageVersion)])",
-      "baselinedAt": "2026-05-12T09:45:22.5402879+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3047388+00:00"
     },
     {
       "hash": "ee119cb8d2752ffd",
@@ -101,7 +101,7 @@
       "lineNumber": 51,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL3.Mixer\" VersionOverride=\"[$(JansetSdl3MixerPackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL3.Mixer' (version: [$(JansetSdl3MixerPackageVersion)])",
-      "baselinedAt": "2026-05-12T09:45:22.5402906+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3047438+00:00"
     },
     {
       "hash": "e7df10e555ef0a54",
@@ -110,7 +110,7 @@
       "lineNumber": 54,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL3.Ttf\" VersionOverride=\"[$(JansetSdl3TtfPackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL3.Ttf' (version: [$(JansetSdl3TtfPackageVersion)])",
-      "baselinedAt": "2026-05-12T09:45:22.5402928+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3047478+00:00"
     },
     {
       "hash": "929ffbc460182bbf",
@@ -119,7 +119,7 @@
       "lineNumber": 57,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL3.Gfx\" VersionOverride=\"[$(JansetSdl3GfxPackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL3.Gfx' (version: [$(JansetSdl3GfxPackageVersion)])",
-      "baselinedAt": "2026-05-12T09:45:22.5402949+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.304752+00:00"
     },
     {
       "hash": "ad5d445b27227140",
@@ -128,7 +128,7 @@
       "lineNumber": 60,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL3.Net\" VersionOverride=\"[$(JansetSdl3NetPackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL3.Net' (version: [$(JansetSdl3NetPackageVersion)])",
-      "baselinedAt": "2026-05-12T09:45:22.5402974+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3047624+00:00"
     },
     {
       "hash": "6353e66f2d6b21c7",
@@ -137,7 +137,7 @@
       "lineNumber": 8,
       "codeSnippet": "<NoWarn>$(NoWarn);CA1050;CA2007;CA1812;CA1515;MA0047;S3903;S2955</NoWarn>",
       "message": "Adding warnings to NoWarn: CA1050;CA2007;CA1812;CA1515;MA0047;S3903;S2955",
-      "baselinedAt": "2026-05-12T09:45:22.5403005+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3047699+00:00"
     },
     {
       "hash": "9a6549b853914ec8",
@@ -146,7 +146,7 @@
       "lineNumber": 1,
       "codeSnippet": "# pragma warning disable CA1031, MA0045, MA0051, CA1502, CA1505",
       "message": "#pragma warning disable for warnings CA1031, MA0045, MA0051, CA1502, CA1505 without matching restore in same scope",
-      "baselinedAt": "2026-05-12T09:45:22.5403036+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3047812+00:00"
     },
     {
       "hash": "b9b44692ed3b42fc",
@@ -155,7 +155,7 @@
       "lineNumber": 1,
       "codeSnippet": "#pragma warning disable MA0045",
       "message": "#pragma warning disable for warnings MA0045 without matching restore in same scope",
-      "baselinedAt": "2026-05-12T09:45:22.5403066+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3047877+00:00"
     },
     {
       "hash": "0dbab74e9bdd28b2",
@@ -164,7 +164,7 @@
       "lineNumber": 20,
       "codeSnippet": "SuppressMessage(\n    \"Design\",\n    \"CA1000:Do not declare static members on generic types\",\n    Justification =\n        \"Factory methods on a generic value type match the .NET BCL pattern (ImmutableArray<T>.Create, Nullable<T> helpers). The non-generic alternative would force Result.Failure<int, string>(\\\"err\\\") at every call site, where Result<int, string>.Failure(\\\"err\\\") reads cleaner.\")",
       "message": "SuppressMessage attribute suppressing Design:CA1000:Do not declare static members on generic types",
-      "baselinedAt": "2026-05-12T09:45:22.5403207+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3048285+00:00"
     },
     {
       "hash": "25e0d2c16bc64af4",
@@ -173,7 +173,7 @@
       "lineNumber": 41,
       "codeSnippet": "SuppressMessage(\"Naming\", \"CA1710:Identifiers should have correct suffix\",\n    Justification = \"The type's identity is 'a report of validation findings' — its public surface (IsValid, HasWarnings, Errors/Warnings projections, Combine) reads as report behavior, not collection operations. CA1710's suggested suffixes (Collection/Set/etc.) describe data-structure shape and would obscure that role.\")",
       "message": "SuppressMessage attribute suppressing Naming:CA1710:Identifiers should have correct suffix",
-      "baselinedAt": "2026-05-12T09:45:22.5403259+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3048491+00:00"
     },
     {
       "hash": "c0f455c945ae04a6",
@@ -182,7 +182,7 @@
       "lineNumber": 5,
       "codeSnippet": "#pragma warning disable CA1031",
       "message": "#pragma warning disable for warnings CA1031 without matching restore in same scope",
-      "baselinedAt": "2026-05-12T09:45:22.5403284+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3048554+00:00"
     },
     {
       "hash": "f903bc6f733798d8",
@@ -191,7 +191,7 @@
       "lineNumber": 1,
       "codeSnippet": "#pragma warning disable CA1031",
       "message": "#pragma warning disable for warnings CA1031 without matching restore in same scope",
-      "baselinedAt": "2026-05-12T09:45:22.5403316+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3048604+00:00"
     },
     {
       "hash": "e895576e4d861f8f",
@@ -200,7 +200,7 @@
       "lineNumber": 1,
       "codeSnippet": "#pragma warning disable CA1031",
       "message": "#pragma warning disable for warnings CA1031 without matching restore in same scope",
-      "baselinedAt": "2026-05-12T09:45:22.5403346+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3048708+00:00"
     },
     {
       "hash": "10195c6d20989bcb",
@@ -209,7 +209,7 @@
       "lineNumber": 34,
       "codeSnippet": "SuppressMessage(\"Design\", \"MA0051:Method is too long\")",
       "message": "SuppressMessage attribute suppressing Design:MA0051:Method is too long",
-      "baselinedAt": "2026-05-12T09:45:22.5403368+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3048757+00:00"
     },
     {
       "hash": "7f3fab0a7f8278ed",
@@ -218,7 +218,7 @@
       "lineNumber": 6,
       "codeSnippet": "#pragma warning disable CA1031, MA0051",
       "message": "#pragma warning disable for warnings CA1031, MA0051 without matching restore in same scope",
-      "baselinedAt": "2026-05-12T09:45:22.5403394+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3048782+00:00"
     },
     {
       "hash": "e3e6f95d3b02d155",
@@ -227,7 +227,7 @@
       "lineNumber": 1,
       "codeSnippet": "#pragma warning disable CA1031",
       "message": "#pragma warning disable for warnings CA1031 without matching restore in same scope",
-      "baselinedAt": "2026-05-12T09:45:22.5403414+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3048805+00:00"
     },
     {
       "hash": "68393ad931405071",
@@ -236,16 +236,16 @@
       "lineNumber": 118,
       "codeSnippet": "SuppressMessage(\"Performance\", \"MA0089:Use an overload with char instead of string\",\r\n        Justification = \"CRLF detection requires a two-character token.\")",
       "message": "SuppressMessage attribute suppressing Performance:MA0089:Use an overload with char instead of string",
-      "baselinedAt": "2026-05-12T09:45:22.5403463+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3048922+00:00"
     },
     {
       "hash": "a854f76f2bddf9b2",
       "ruleId": "SW002",
       "filePath": "build/_build/Targets/Package/Services/DependencyRangeNormalizer.cs",
-      "lineNumber": 29,
+      "lineNumber": 27,
       "codeSnippet": "SuppressMessage(\"Design\", \"MA0051:Method is too long\",\r\n        Justification = \"G56 normalization intentionally keeps zip read, nuspec parse, range rewrite, and zip update in one linear path for debuggability.\")",
       "message": "SuppressMessage attribute suppressing Design:MA0051:Method is too long",
-      "baselinedAt": "2026-05-12T09:45:22.5403499+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3049017+00:00"
     },
     {
       "hash": "9f5d7007ee0a930d",
@@ -254,7 +254,7 @@
       "lineNumber": 73,
       "codeSnippet": "SuppressMessage(\"Design\", \"MA0051:Method is too long\",\r\n        Justification = \"Linear orchestration: guards + scope/preconditions + per-TFM smoke. Splitting hurts traceability of the operator-visible pass/fail sequence.\")",
       "message": "SuppressMessage attribute suppressing Design:MA0051:Method is too long",
-      "baselinedAt": "2026-05-12T09:45:22.5403538+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3049103+00:00"
     },
     {
       "hash": "3270ca64173f311f",
@@ -263,7 +263,7 @@
       "lineNumber": 45,
       "codeSnippet": "SuppressMessage(\n    \"Minor Code Smell\",\n    \"S1075:URIs should not be hardcoded\",\n    Justification = \"Official Microsoft dotnet-install endpoint used deliberately for CI/runtime bootstrap.\")",
       "message": "SuppressMessage attribute suppressing Minor Code Smell:S1075:URIs should not be hardcoded",
-      "baselinedAt": "2026-05-12T09:45:22.5403575+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3049238+00:00"
     },
     {
       "hash": "61fba8e27816ea62",
@@ -272,7 +272,7 @@
       "lineNumber": 29,
       "codeSnippet": "SuppressMessage(\"Minor Code Smell\", \"S1075:URIs should not be hardcoded\",\r\n    Justification = \"Internal feed URL is part of the release-lifecycle contract, not operator-tunable.\")",
       "message": "SuppressMessage attribute suppressing Minor Code Smell:S1075:URIs should not be hardcoded",
-      "baselinedAt": "2026-05-12T09:45:22.5403637+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3049371+00:00"
     },
     {
       "hash": "de0509255a4181d0",
@@ -281,7 +281,7 @@
       "lineNumber": 61,
       "codeSnippet": "SuppressMessage(\"Major Code Smell\", \"S3267:Loops should be simplified with LINQ expressions\",\r\n        Justification = \"Per-family side effects: two awaited pushes, structured logging.\")",
       "message": "SuppressMessage attribute suppressing Major Code Smell:S3267:Loops should be simplified with LINQ expressions",
-      "baselinedAt": "2026-05-12T09:45:22.5403671+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3049495+00:00"
     },
     {
       "hash": "40d580462956ff72",
@@ -290,7 +290,7 @@
       "lineNumber": 1,
       "codeSnippet": "#pragma warning disable S2737, CA1031",
       "message": "#pragma warning disable for warnings S2737, CA1031 without matching restore in same scope",
-      "baselinedAt": "2026-05-12T09:45:22.5403696+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3049552+00:00"
     },
     {
       "hash": "e5b0b3627ee3fe20",
@@ -299,7 +299,7 @@
       "lineNumber": 30,
       "codeSnippet": "SuppressMessage(\"Design\", \"MA0051:Method is too long\",\r\n        Justification = \"G55 intentionally validates zip presence, JSON parse, schema fields, and manifest/build invariants in one linear flow for debuggability.\")",
       "message": "SuppressMessage attribute suppressing Design:MA0051:Method is too long",
-      "baselinedAt": "2026-05-12T09:45:22.5403728+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3049586+00:00"
     },
     {
       "hash": "c6e198e9a108697f",
@@ -308,7 +308,7 @@
       "lineNumber": 241,
       "codeSnippet": "SuppressMessage(\"Design\", \"MA0051:Method is too long\",\n        Justification = \"Six sequential canonical checks kept co-located for readability; splitting hurts traceability to guardrails G26/G27.\")",
       "message": "SuppressMessage attribute suppressing Design:MA0051:Method is too long",
-      "baselinedAt": "2026-05-12T09:45:22.5403762+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3049628+00:00"
     },
     {
       "hash": "e19f16229ce16248",
@@ -317,7 +317,7 @@
       "lineNumber": 330,
       "codeSnippet": "SuppressMessage(\"Design\", \"MA0051:Method is too long\",\n        Justification =\n            \"Dependency-group walking interleaves framework parity, inter-group consistency, and per-group expected-dependency checks (G21/G22) — splitting them obscures the per-framework control flow.\")",
       "message": "SuppressMessage attribute suppressing Design:MA0051:Method is too long",
-      "baselinedAt": "2026-05-12T09:45:22.5403795+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3049661+00:00"
     },
     {
       "hash": "7b064c337296ce62",
@@ -326,7 +326,7 @@
       "lineNumber": 475,
       "codeSnippet": "SuppressMessage(\"Design\", \"MA0051:Method is too long\",\n        Justification = \"G21 within-family + cross-family dependency contract walking stays co-located so the full minimum-range assertion is readable end-to-end.\")",
       "message": "SuppressMessage attribute suppressing Design:MA0051:Method is too long",
-      "baselinedAt": "2026-05-12T09:45:22.5403829+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3049709+00:00"
     },
     {
       "hash": "66d1d11e9fcb2701",
@@ -335,7 +335,7 @@
       "lineNumber": 31,
       "codeSnippet": "SuppressMessage(\"Design\", \"MA0051:Method is too long\",\n        Justification = \"G56 validation intentionally keeps parse, manifest resolution, and bound checks in one path for full diagnostic context.\")",
       "message": "SuppressMessage attribute suppressing Design:MA0051:Method is too long",
-      "baselinedAt": "2026-05-12T09:45:22.5403859+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3049738+00:00"
     },
     {
       "hash": "4a04c81f987a50cb",
@@ -344,7 +344,7 @@
       "lineNumber": 10,
       "codeSnippet": "<NoWarn>$(NoWarn);CA1050;CA1515;CA1707;CA1806;CA2007;MA0045;MA0047;MA0051;S4144;S2699</NoWarn>",
       "message": "Adding warnings to NoWarn: CA1050;CA1515;CA1707;CA1806;CA2007;MA0045;MA0047;MA0051;S4144;S2699",
-      "baselinedAt": "2026-05-12T09:45:22.5403882+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3049765+00:00"
     },
     {
       "hash": "5ccd2abc5efc8bc9",
@@ -353,7 +353,7 @@
       "lineNumber": 34,
       "codeSnippet": "catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)\n        {\n            // OS will reclaim; teardown failures must not fail green tests.\n        }",
       "message": "Empty catch block swallows exceptions without handling",
-      "baselinedAt": "2026-05-12T09:45:22.5403918+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3049836+00:00"
     },
     {
       "hash": "f96215c41936889a",
@@ -362,7 +362,7 @@
       "lineNumber": 1,
       "codeSnippet": "#pragma warning disable CA1031",
       "message": "#pragma warning disable for warnings CA1031 without matching restore in same scope",
-      "baselinedAt": "2026-05-12T09:45:22.5403944+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.304991+00:00"
     },
     {
       "hash": "7e872fb84a2fa746",
@@ -371,7 +371,7 @@
       "lineNumber": 8,
       "codeSnippet": "<NoWarn>$(NoWarn);NU5128</NoWarn>",
       "message": "Adding warnings to NoWarn: NU5128",
-      "baselinedAt": "2026-05-12T09:45:22.5403967+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3049998+00:00"
     },
     {
       "hash": "f1d2b78a4d36b56a",
@@ -380,7 +380,7 @@
       "lineNumber": 22,
       "codeSnippet": "<NoWarn>$(NoWarn);CA1303</NoWarn>",
       "message": "Adding warnings to NoWarn: CA1303",
-      "baselinedAt": "2026-05-12T09:45:22.5403992+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3050068+00:00"
     },
     {
       "hash": "30fbfd0352a38a1d",
@@ -389,7 +389,7 @@
       "lineNumber": 20,
       "codeSnippet": "SuppressMessage(\"Sonar\", \"S1144:Unused private types or members should be removed\",\n        Justification = \"Compile-time probe: the field materializes typeof references to assert netstandard2.0 surface visibility. Removing it defeats the purpose of the project.\")",
       "message": "SuppressMessage attribute suppressing Sonar:S1144:Unused private types or members should be removed",
-      "baselinedAt": "2026-05-12T09:45:22.5404027+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3050138+00:00"
     },
     {
       "hash": "92f5914716fab67d",
@@ -398,7 +398,7 @@
       "lineNumber": 22,
       "codeSnippet": "SuppressMessage(\"Performance\", \"CA1823:Unused fields\",\n        Justification = \"Compile-time probe: the field materializes typeof references to assert netstandard2.0 surface visibility. Removing it defeats the purpose of the project.\")",
       "message": "SuppressMessage attribute suppressing Performance:CA1823:Unused fields",
-      "baselinedAt": "2026-05-12T09:45:22.5404061+00:00"
+      "baselinedAt": "2026-05-17T08:07:33.3050189+00:00"
     }
   ]
 }

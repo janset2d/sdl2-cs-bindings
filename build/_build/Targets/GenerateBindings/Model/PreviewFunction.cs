@@ -1,6 +1,6 @@
 namespace Build.Targets.GenerateBindings.Model;
 
-internal sealed record PreviewFunction(
+public sealed record PreviewFunction(
     string Name,
     string ReturnType,
     IReadOnlyList<PreviewParameter> Parameters,

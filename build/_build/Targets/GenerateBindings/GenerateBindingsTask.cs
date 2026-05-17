@@ -1,6 +1,8 @@
 using Build.Data.BindingGeneration;
+using Build.Data.BindingGeneration.Models;
 using Build.Host;
 using Build.Host.Cake;
+using Build.Results;
 using Build.Targets.GenerateBindings.Emitting;
 using Build.Targets.GenerateBindings.HeaderSet;
 using Build.Targets.GenerateBindings.Model;
@@ -20,47 +22,71 @@ namespace Build.Targets.GenerateBindings;
 // back to back inside the container, matching the tools.cs setup / ci-sim
 // pattern that drives Cake host-side too).
 [TaskName("GenerateBindings")]
-[TaskDescription("Generates Stage 1 SDL2.Core preview bindings (Linux-canonical, runs inside linux-builder container).")]
+[TaskDescription("Regenerates SDL2 family bindings driven by manifest.library_manifests[].binding_generation. Default: every family with binding_generation.enabled=true. Linux-canonical, runs inside linux-builder container.")]
 public sealed class GenerateBindingsTask(
+    IBindingGenerationConfigRepository configRepository,
     HeaderSetResolver headerResolver,
     ICppAstParseRunner parseRunner,
     ILibclangVersionAsserter libclangVersionAsserter,
-    IDynapiManifestRepository dynapiRepository,
-    IBindingPublicApiCoherenceValidator publicApiValidator,
+    IEnumerable<IBindingFamilyValidator> validators,
     ICakeLog log) : AsyncFrostingTask<BuildContext>
 {
+    private readonly IBindingGenerationConfigRepository _configRepository = configRepository ?? throw new ArgumentNullException(nameof(configRepository));
     private readonly HeaderSetResolver _headerResolver = headerResolver ?? throw new ArgumentNullException(nameof(headerResolver));
     private readonly ICppAstParseRunner _parseRunner = parseRunner ?? throw new ArgumentNullException(nameof(parseRunner));
     private readonly ILibclangVersionAsserter _libclangVersionAsserter = libclangVersionAsserter ?? throw new ArgumentNullException(nameof(libclangVersionAsserter));
-    private readonly IDynapiManifestRepository _dynapiRepository = dynapiRepository ?? throw new ArgumentNullException(nameof(dynapiRepository));
-    private readonly IBindingPublicApiCoherenceValidator _publicApiValidator = publicApiValidator ?? throw new ArgumentNullException(nameof(publicApiValidator));
+    private readonly IReadOnlyList<IBindingFamilyValidator> _validators = validators?.ToList() ?? throw new ArgumentNullException(nameof(validators));
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
 
     public override async Task RunAsync(BuildContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        var triplet = context.Runtime.Triplet;
-        AssertLinuxTriplet(context.RuntimeIdentifier, triplet);
+        AssertLinuxTriplet(context.RuntimeIdentifier, context.Runtime.Triplet);
         _libclangVersionAsserter.Assert();
         LogContainerDigestIfPresent();
 
+        var families = _configRepository.EnumerateEnabledFamilies();
+        if (families.Count == 0)
+        {
+            throw new CakeException(
+                "No enabled binding-generation families in manifest. Set binding_generation.enabled=true on at least one library_manifests[] entry.");
+        }
+
+        foreach (var familyId in families)
+        {
+            await GenerateOneFamilyAsync(context, familyId, context.CancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task GenerateOneFamilyAsync(BuildContext context, string familyId, CancellationToken ct)
+    {
+        var configResult = _configRepository.Load(familyId);
+        if (configResult.TryGetError(out var error))
+        {
+            throw new CakeException($"Family '{familyId}' config load failed: {error.Reason}");
+        }
+        var config = configResult.Value;
+
+        var triplet = context.Runtime.Triplet;
         var vcpkgInstalledRoot = context.Paths.GetVcpkgInstalledDir;
         var syntheticHeadersRoot = context.Paths.BindingGeneratorSyntheticHeadersRoot;
-        var outputDirectory = context.Paths.GetGenerateBindingsPreviewFamilyRoot("sdl2-core");
+        var outputDirectory = context.Paths.GetGenerateBindingsPreviewFamilyRoot(config.FamilyId);
 
-        _log.Information("Generating SDL2.Core preview bindings to '{0}' (triplet '{1}').", outputDirectory.FullPath, triplet);
+        _log.Information(
+            "Generating '{0}' bindings to '{1}' (namespace {2}, primary class {3}, triplet '{4}').",
+            config.FamilyId, outputDirectory.FullPath, config.ManagedNamespace, config.PrimaryClassName, triplet);
 
-        var headerSet = _headerResolver.ResolveSdl2CoreHeaders(vcpkgInstalledRoot, syntheticHeadersRoot, triplet);
+        var headerSet = _headerResolver.Resolve(config, vcpkgInstalledRoot, syntheticHeadersRoot, triplet);
 
-        _log.Information("Resolved {0} SDL2 headers under '{1}'.", headerSet.Headers.Count, headerSet.Sdl2IncludeDirectory.FullPath);
+        _log.Information("Resolved {0} headers under '{1}'.", headerSet.Headers.Count, headerSet.FamilyIncludeDirectory.FullPath);
 
-        var catalog = PlatformCatalog.CreateSdl2Catalog();
+        var catalog = PlatformCatalog.For(config.PlatformCatalogId);
 
         // Pre-announce the parse views BEFORE entering the parallel loop. Cake
         // ICakeLog is not documented thread-safe, so calling _log.Information(...)
         // from inside the PLINQ Select(...) lambda would risk interleaved or
-        // corrupted log output across the 8 concurrent view tasks. Logging the
+        // corrupted log output across the concurrent view tasks. Logging the
         // catalog up front is harmless: the per-view function counts that
         // matter for diagnostics are emitted by LogPerViewCounts(model) after
         // the merge, sequentially.
@@ -81,60 +107,68 @@ public sealed class GenerateBindingsTask(
         var parseResults = catalog.ParseViews
             .AsParallel()
             .AsOrdered()
-            .WithCancellation(context.CancellationToken)
-            .Select(view => _parseRunner.Parse(headerSet, view))
+            .WithCancellation(ct)
+            .Select(view => _parseRunner.Parse(config, headerSet, view))
             .ToList();
 
-        var sdl2CoreConfig = Sdl2CoreGenerationConfig.Default;
-        var model = CppAstToPreviewModel.Translate(parseResults, sdl2CoreConfig.ExcludedFunctionNames, sdl2CoreConfig.RequiredFunctions);
-        EnsureNeutralViewNonEmpty(model);
+        var model = CppAstToPreviewModel.Translate(parseResults, config.ExcludedFunctions, ConvertRequiredFunctions(config));
         LogPerViewCounts(model);
 
-        await ValidatePublicApiCoherenceAsync(model, context.CancellationToken).ConfigureAwait(false);
+        await RunFamilyValidatorsAsync(model, config, ct).ConfigureAwait(false);
 
         var fileSet = PreviewEmitter.Emit(model);
-        await WriteAsync(context, fileSet, outputDirectory, context.CancellationToken).ConfigureAwait(false);
+        await WriteAsync(context, fileSet, outputDirectory, ct).ConfigureAwait(false);
 
         _log.Information("Wrote {0} files to '{1}'.", fileSet.Files.Count, outputDirectory.FullPath);
     }
 
-    private async Task ValidatePublicApiCoherenceAsync(PreviewBindingModel model, CancellationToken ct)
+    /// <summary>
+    /// Maps <see cref="BindingGenerationConfig.RequiredFunctions"/> (config record shape)
+    /// to <see cref="PreviewFunction"/> (translator input shape). Phase 3A's rename
+    /// retires <see cref="PreviewFunction"/>; until then, this is the bridge between
+    /// the manifest-driven config and the legacy translator signature.
+    /// </summary>
+    private static IReadOnlyList<PreviewFunction> ConvertRequiredFunctions(BindingGenerationConfig config)
     {
-        var manifestResult = await _dynapiRepository.LoadAsync(ct).ConfigureAwait(false);
-        if (manifestResult.TryGetError(out var error))
-        {
-            throw new CakeException(error.Reason);
-        }
+        return [.. config.RequiredFunctions.Select(rf =>
+            new PreviewFunction(
+                Name: rf.Name,
+                ReturnType: rf.ReturnType,
+                Parameters: [.. rf.Parameters.Select(p => new PreviewParameter(p.Type, p.Name))],
+                SourceHeader: rf.SourceHeader))];
+    }
 
-        var manifest = manifestResult.Value;
-
-        _log.Information("Dynapi manifest resolved: {0} ({1} public symbols).", manifest.SourcePath, manifest.PublicSymbols.Count);
-
-        var emittedSymbols = model.Views
-            .SelectMany(v => v.Functions)
-            .Select(f => f.Name)
+    private async Task RunFamilyValidatorsAsync(PreviewBindingModel model, BindingGenerationConfig config, CancellationToken ct)
+    {
+        var enabledIds = config.Validators
+            .Where(kv => kv.Value)
+            .Select(kv => kv.Key)
             .ToHashSet(StringComparer.Ordinal);
 
-        var report = _publicApiValidator.Validate(emittedSymbols, manifest, SeverityProfile.Stage1Generator);
+        var toRun = _validators.Where(v => enabledIds.Contains(v.ValidatorId)).ToList();
 
+        foreach (var validator in toRun)
+        {
+            var report = await validator.ValidateAsync(model, config, ct).ConfigureAwait(false);
+            LogReport(report, validator.ValidatorId);
+            if (!report.IsValid)
+            {
+                throw new CakeException(
+                    $"Validator '{validator.ValidatorId}' failed for family '{config.FamilyId}': {report.Errors.Count} error(s). See preceding log lines.");
+            }
+        }
+    }
+
+    private void LogReport(ValidationReport report, string validatorId)
+    {
         foreach (var warning in report.Warnings)
         {
-            _log.Warning("{0}: {1}", warning.Name, warning.Message);
+            _log.Warning("[{0}] {1}: {2}", validatorId, warning.Name, warning.Message);
         }
-
-        if (!report.IsValid)
+        foreach (var error in report.Errors)
         {
-            foreach (var err in report.Errors)
-            {
-                _log.Error("{0}: {1}", err.Name, err.Message);
-            }
-
-            throw new CakeException(
-                $"BindingPublicApiCoherenceValidator failed: {report.Errors.Count} symbol(s) emitted that SDL2's dynapi manifest does not list as public exports. See preceding log lines for the offending names.");
+            _log.Error("[{0}] {1}: {2}", validatorId, error.Name, error.Message);
         }
-
-        _log.Information("Public-API coherence check passed: {0} emitted symbols, {1} warnings (manifest exports missing from emit).",
-            emittedSymbols.Count, report.Warnings.Count);
     }
 
     private static void AssertLinuxTriplet(string rid, string triplet)
@@ -159,17 +193,6 @@ public sealed class GenerateBindingsTask(
         if (!string.IsNullOrWhiteSpace(digest))
         {
             _log.Information("linux-builder container digest: {0}", digest);
-        }
-    }
-
-    private static void EnsureNeutralViewNonEmpty(PreviewBindingModel model)
-    {
-        var neutral = model.Views.FirstOrDefault(v => string.Equals(v.Name, "Neutral", StringComparison.Ordinal));
-        if (neutral is null || neutral.Functions.Count == 0)
-        {
-            throw new CakeException(
-                "Neutral parse view returned 0 SDL2 functions. Header set or platform macro hygiene likely misconfigured. " +
-                "Inspect PlatformCatalog.AllPlatformMacros and verify the SDL2 header tree under vcpkg_installed.");
         }
     }
 

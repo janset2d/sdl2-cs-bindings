@@ -1,5 +1,5 @@
 {
-  "schema_version": "2.1",
+  "schema_version": "2.2",
 
   "packaging_config": {
     "validation_mode": "strict",
@@ -179,7 +179,76 @@
         { "os": "Windows", "patterns": ["SDL2.dll"] },
         { "os": "Linux", "patterns": ["libSDL2*"] },
         { "os": "OSX", "patterns": ["libSDL2*.dylib"] }
-      ]
+      ],
+      "binding_generation": {
+        "enabled": true,
+        "managed_namespace": "SDL2",
+        "primary_class_name": "SDL",
+        "platform_catalog": "sdl2-core",
+        "owned_prefixes": ["SDL_", "SDLK_", "SDL_HINT_", "SDL_INIT_"],
+        "parse_defines": [
+          "SDL_DECLSPEC=",
+          "SDL_DISABLE_IMMINTRIN_H=1",
+          "SDL_DISABLE_MMINTRIN_H=1",
+          "SDL_DISABLE_XMMINTRIN_H=1",
+          "SDL_DISABLE_EMMINTRIN_H=1",
+          "SDL_DISABLE_PMMINTRIN_H=1",
+          "SDL_DISABLE_MM3DNOW_H=1",
+          "SDL_DISABLE_LSX_H=1",
+          "SDL_DISABLE_LASX_H=1",
+          "SDL_DISABLE_ARM_NEON_H=1"
+        ],
+        "clang_args": ["-fdeclspec", "-U__has_builtin"],
+        "header_set": {
+          "include_dir_glob": "include/SDL2",
+          "header_glob": "*.h",
+          "excluded_headers": [
+            "SDL.h",
+            "begin_code.h",
+            "close_code.h",
+            "SDL_opengl.h",
+            "SDL_opengl_glext.h",
+            "SDL_opengles.h",
+            "SDL_opengles2.h",
+            "SDL_opengles2_gl2.h",
+            "SDL_opengles2_gl2ext.h",
+            "SDL_opengles2_gl2platform.h",
+            "SDL_opengles2_khrplatform.h",
+            "SDL_egl.h",
+            "SDL_image.h",
+            "SDL_mixer.h",
+            "SDL_net.h",
+            "SDL_ttf.h"
+          ],
+          "excluded_header_prefixes": ["SDL_test", "SDL2_"]
+        },
+        "excluded_functions": ["SDL_main", "SDL_DYNAPI_entry"],
+        "required_functions": [
+          { "name": "SDL_Init",          "return_type": "int",  "parameters": [{ "type": "uint", "name": "flags" }], "source_header": "SDL.h" },
+          { "name": "SDL_InitSubSystem", "return_type": "int",  "parameters": [{ "type": "uint", "name": "flags" }], "source_header": "SDL.h" },
+          { "name": "SDL_QuitSubSystem", "return_type": "void", "parameters": [{ "type": "uint", "name": "flags" }], "source_header": "SDL.h" },
+          { "name": "SDL_WasInit",       "return_type": "uint", "parameters": [{ "type": "uint", "name": "flags" }], "source_header": "SDL.h" },
+          { "name": "SDL_Quit",          "return_type": "void", "parameters": [],                                    "source_header": "SDL.h" }
+        ],
+        "deferred_declarations": {
+          "SDL_SysWMinfo": {
+            "category": "deferred-to-stage-2",
+            "reason": "SDL_syswm typed-union layout requires the platform-handle forward-declaration stub library (HWND/HDC/Display*/Window/etc.) and [StructLayout(LayoutKind.Explicit, Size = 64)] emission. Stage 1 emits SDL_GetWindowWMInfo with an opaque SDL_SysWMinfo* parameter; the typed union lands in Stage 2."
+          },
+          "SDL_SysWMmsg": {
+            "category": "deferred-to-stage-2",
+            "reason": "Same as SDL_SysWMinfo."
+          }
+        },
+        "validators": {
+          "dynapi-coherence": true,
+          "neutral-view-non-empty": true,
+          "required-functions-emitted": true
+        },
+        "dynapi": {
+          "exports_glob": "buildtrees/sdl2/src/*/src/dynapi/SDL2.exports"
+        }
+      }
     },
     {
       "name": "SDL2_image",
@@ -192,7 +261,15 @@
         { "os": "Windows", "patterns": ["SDL2_image.dll"] },
         { "os": "Linux", "patterns": ["libSDL2_image*"] },
         { "os": "OSX", "patterns": ["libSDL2_image*.dylib"] }
-      ]
+      ],
+      "binding_generation": {
+        "enabled": false,
+        "_stage": "stage-2-placeholder",
+        "managed_namespace": "SDL2.Image",
+        "primary_class_name": "SDL_image",
+        "platform_catalog": "sdl2-image",
+        "owned_prefixes": ["IMG_"]
+      }
     },
     {
       "name": "SDL2_mixer",
@@ -205,7 +282,15 @@
         { "os": "Windows", "patterns": ["SDL2_mixer.dll"] },
         { "os": "Linux", "patterns": ["libSDL2_mixer*"] },
         { "os": "OSX", "patterns": ["libSDL2_mixer*.dylib"] }
-      ]
+      ],
+      "binding_generation": {
+        "enabled": false,
+        "_stage": "stage-2-placeholder",
+        "managed_namespace": "SDL2.Mixer",
+        "primary_class_name": "SDL_mixer",
+        "platform_catalog": "sdl2-mixer",
+        "owned_prefixes": ["Mix_"]
+      }
     },
     {
       "name": "SDL2_ttf",
@@ -218,7 +303,15 @@
         { "os": "Windows", "patterns": ["SDL2_ttf.dll"] },
         { "os": "Linux", "patterns": ["libSDL2_ttf*"] },
         { "os": "OSX", "patterns": ["libSDL2_ttf*.dylib"] }
-      ]
+      ],
+      "binding_generation": {
+        "enabled": false,
+        "_stage": "stage-2-placeholder",
+        "managed_namespace": "SDL2.Ttf",
+        "primary_class_name": "SDL_ttf",
+        "platform_catalog": "sdl2-ttf",
+        "owned_prefixes": ["TTF_"]
+      }
     },
     {
       "name": "SDL2_gfx",
@@ -231,7 +324,26 @@
         { "os": "Windows", "patterns": ["SDL2_gfx.dll"] },
         { "os": "Linux", "patterns": ["libSDL2_gfx*"] },
         { "os": "OSX", "patterns": ["libSDL2_gfx*.dylib"] }
-      ]
+      ],
+      "binding_generation": {
+        "enabled": false,
+        "_stage": "stage-2-placeholder",
+        "managed_namespace": "SDL2.Gfx",
+        "primary_class_name": "SDL2_gfx",
+        "platform_catalog": "sdl2-gfx",
+        "owned_prefixes": [
+          "SDL2_gfx",
+          "rotozoom",
+          "boxColor",
+          "lineColor",
+          "pixelColor",
+          "filledCircle",
+          "circleRGBA",
+          "stringColor",
+          "characterColor",
+          "FPSmanager"
+        ]
+      }
     }
   ]
 }

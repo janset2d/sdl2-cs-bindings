@@ -97,14 +97,16 @@ public sealed class ServiceCollectionExtensionsSmokeTests
     public async Task AddGenerateBindings_Should_Register_All_Collaborator_Types()
     {
         // GenerateBindingsTask is discovered by Cake via [TaskName]; AddGenerateBindings
-        // registers the parser/header/validator collaborators that the task injects.
-        // AddData() chains in IDynapiManifestRepository which GenerateBindingsTask also
-        // consumes — Program.cs production order calls both, the smoke must mirror that
-        // dependency to certify the feature module's real composition. PreviewEmitter
-        // is a static utility — not registered.
+        // registers parser/header collaborators. AddData supplies
+        // IBindingGenerationConfigRepository + IDynapiManifestRepository.
+        // AddValidators supplies IEnumerable<IBindingFamilyValidator> (3 family-scoped
+        // validators that the task dispatches per manifest opt-in). Production order:
+        // AddHostBuildingBlocks -> AddData -> AddValidators -> AddGenerateBindings.
+        // PreviewEmitter is a static utility — not registered.
         await AssertAllRegisteredTypesResolve(services =>
         {
             services.AddData();
+            services.AddValidators();
             services.AddGenerateBindings();
         });
     }

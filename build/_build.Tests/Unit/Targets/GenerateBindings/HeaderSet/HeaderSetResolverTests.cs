@@ -2,20 +2,22 @@ using Build.Targets.GenerateBindings.HeaderSet;
 using Build.Tests.Fixtures;
 using Cake.Core;
 using Cake.Core.IO;
+using static Build.Tests.Fixtures.BindingGenerationFixture;
 
 namespace Build.Tests.Unit.Targets.GenerateBindings.HeaderSet;
 
 public sealed class HeaderSetResolverTests
 {
     [Test]
-    public async Task ResolveSdl2CoreHeaders_Should_Return_Discovered_Header_Paths()
+    public async Task Resolve_Should_Return_Discovered_Header_Paths()
     {
         var world = FakeCakeWorld.CreateLinux()
             .WithTextFile("vcpkg_installed/x64-linux-hybrid/include/SDL2/SDL_system.h", "/* system */")
             .WithTextFile("vcpkg_installed/x64-linux-hybrid/include/SDL2/SDL_video.h", "/* video */");
         var resolver = new HeaderSetResolver(world.CakeContext);
 
-        var result = resolver.ResolveSdl2CoreHeaders(
+        var result = resolver.Resolve(
+            Sdl2CoreConfig(),
             world.RepoRoot.Combine("vcpkg_installed"),
             world.RepoRoot.Combine("synthetic-headers"),
             "x64-linux-hybrid");
@@ -25,12 +27,14 @@ public sealed class HeaderSetResolverTests
     }
 
     [Test]
-    public async Task ResolveSdl2CoreHeaders_Should_Exclude_Non_Core_Headers()
+    public async Task Resolve_Should_Exclude_Non_Core_Headers_Per_Manifest_Lists()
     {
-        // Filters: umbrella (SDL.h), pragma-pack scaffolding (begin_code/close_code),
-        // satellite umbrellas (SDL_image/mixer/net/ttf and SDL2_* gfx), OpenGL/GLES
-        // sub-headers (SDL_opengl_glext, SDL_opengles2_*), and test scaffolding
-        // (SDL_test*.h).
+        // Filters come from BindingGenerationConfig.HeaderSet.{ExcludedHeaders,
+        // ExcludedHeaderPrefixes}. The fixture's Sdl2CoreConfig() mirrors the live
+        // manifest: umbrella (SDL.h), pragma-pack scaffolding (begin_code/close_code),
+        // satellite umbrellas (SDL_image/mixer/net/ttf and SDL2_* gfx prefix),
+        // OpenGL/GLES sub-headers (SDL_opengl_glext, SDL_opengles2_*), and test
+        // scaffolding (SDL_test* prefix).
         var world = FakeCakeWorld.CreateLinux()
             .WithTextFile("vcpkg_installed/x64-linux-hybrid/include/SDL2/SDL.h", "/* umbrella */")
             .WithTextFile("vcpkg_installed/x64-linux-hybrid/include/SDL2/begin_code.h", "/* begin */")
@@ -53,7 +57,8 @@ public sealed class HeaderSetResolverTests
             .WithTextFile("vcpkg_installed/x64-linux-hybrid/include/SDL2/SDL_vulkan.h", "/* vulkan — has SDL fns, kept */");
         var resolver = new HeaderSetResolver(world.CakeContext);
 
-        var result = resolver.ResolveSdl2CoreHeaders(
+        var result = resolver.Resolve(
+            Sdl2CoreConfig(),
             world.RepoRoot.Combine("vcpkg_installed"),
             world.RepoRoot.Combine("synthetic-headers"),
             "x64-linux-hybrid");
@@ -63,7 +68,23 @@ public sealed class HeaderSetResolverTests
     }
 
     [Test]
-    public async Task ResolveSdl2CoreHeaders_Should_Throw_When_No_Core_Headers_Are_Found()
+    public async Task Resolve_Should_Throw_When_Include_Directory_Missing()
+    {
+        var world = FakeCakeWorld.CreateLinux();
+        var resolver = new HeaderSetResolver(world.CakeContext);
+
+        var exception = Assert.Throws<CakeException>(() =>
+            resolver.Resolve(
+                Sdl2CoreConfig(),
+                world.RepoRoot.Combine("vcpkg_installed"),
+                world.RepoRoot.Combine("synthetic-headers"),
+                "x64-linux-hybrid"));
+
+        await Assert.That(exception!.Message).Contains("include directory was not found");
+    }
+
+    [Test]
+    public async Task Resolve_Should_Throw_When_Include_Directory_Has_No_Matching_Headers()
     {
         var world = FakeCakeWorld.CreateLinux();
         world.FileSystem.GetDirectory(
@@ -76,11 +97,12 @@ public sealed class HeaderSetResolverTests
         var resolver = new HeaderSetResolver(world.CakeContext);
 
         var exception = Assert.Throws<CakeException>(() =>
-            resolver.ResolveSdl2CoreHeaders(
+            resolver.Resolve(
+                Sdl2CoreConfig(),
                 world.RepoRoot.Combine("vcpkg_installed"),
                 world.RepoRoot.Combine("synthetic-headers"),
                 "x64-linux-hybrid"));
 
-        await Assert.That(exception.Message).Contains("No SDL2 headers");
+        await Assert.That(exception!.Message).Contains("No headers matching");
     }
 }
