@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Build.Data.BindingGeneration.Models;
 using Build.Targets.GenerateBindings.Model;
 using Build.Targets.GenerateBindings.Parsing;
@@ -37,6 +38,23 @@ public sealed class CppAstToBindingModelTests
             new CppSourceLocation(sourceFile, 0, 1, 1),
             new CppSourceLocation(sourceFile, 1, 1, 2));
     }
+
+    private static CppAstParseResult ParseResult(string viewName, string? supportedOsPlatform, CppCompilation compilation) =>
+        new(
+            new PlatformParseView(
+                Name: viewName,
+                Kind: supportedOsPlatform is null ? PlatformConditionKind.Neutral : PlatformConditionKind.OperatingSystem,
+                SupportedOsPlatform: supportedOsPlatform,
+                Defines: [],
+                Undefines: []),
+            [compilation]);
+
+    private static CppFunction SdlFunction(string name, string headerName) =>
+        new(name)
+        {
+            ReturnType = CppPrimitiveType.Int,
+            Span = SdlHeaderSpan(headerName),
+        };
 
     [Test]
     public async Task Translate_Should_Preserve_View_Ordering_From_Input_List()
@@ -202,6 +220,34 @@ public sealed class CppAstToBindingModelTests
     }
 
     [Test]
+    public async Task Translate_Should_Deduplicate_Identical_Platform_Function_Signatures_After_Neutral()
+    {
+        var windowsDesktop = new CppCompilation();
+        windowsDesktop.Functions.Add(SdlFunction("SDL_RegisterApp", "SDL_system.h"));
+
+        var winrt = new CppCompilation();
+        winrt.Functions.Add(SdlFunction("SDL_RegisterApp", "SDL_system.h"));
+        winrt.Functions.Add(SdlFunction("SDL_WinRTRunApp", "SDL_system.h"));
+
+        var model = CppAstToBindingModel.Translate(
+            [
+                EmptyResult("Neutral"),
+                ParseResult("WindowsDesktop", "windows", windowsDesktop),
+                ParseResult("WinRT", "windows10.0.10240.0", winrt),
+            ],
+            DefaultConfig,
+            NoRequired);
+
+        var desktopFunctions = model.Views.Single(v => v.Name == "WindowsDesktop").Functions;
+        var winrtFunctions = model.Views.Single(v => v.Name == "WinRT").Functions;
+
+        await Assert.That(desktopFunctions.Select(function => function.Name).ToArray())
+            .IsEquivalentTo(["SDL_RegisterApp"]);
+        await Assert.That(winrtFunctions.Select(function => function.Name).ToArray())
+            .IsEquivalentTo(["SDL_WinRTRunApp"]);
+    }
+
+    [Test]
     public async Task Translate_Should_Assign_Indexed_Fallback_Names_When_Parameters_Are_Unnamed()
     {
         var function = new CppFunction("SDL_ReportAssertion")
@@ -313,5 +359,121 @@ public sealed class CppAstToBindingModelTests
         await Assert.That(vulkanParameters.Select(p => p.Type.ManagedName).ToArray())
             .IsEquivalentTo(["IntPtr", "ulong*"]);
         await Assert.That(gdkParameter.Type.ManagedName).IsEqualTo("IntPtr*");
+    }
+
+    [Test]
+    public async Task Translate_Should_Collect_Generic_Defined_SDL_POD_Structs()
+    {
+        var custom = new CppClass("SDL_CustomPod")
+        {
+            ClassKind = CppClassKind.Struct,
+            IsDefinition = true,
+            Span = SdlHeaderSpan("SDL_custom.h"),
+        };
+        custom.Fields.Add(new CppField(CppPrimitiveType.Int, "width"));
+
+        var compilation = new CppCompilation();
+        compilation.Classes.Add(custom);
+
+        var model = CppAstToBindingModel.Translate(
+            [new CppAstParseResult(new PlatformParseView(
+                Name: "Neutral",
+                Kind: PlatformConditionKind.Neutral,
+                SupportedOsPlatform: null,
+                Defines: [],
+                Undefines: []), [compilation])],
+            DefaultConfig,
+            NoRequired);
+
+        var field = model.Structs.Single(s => s.Name == "SDL_CustomPod").Fields.Single();
+
+        await Assert.That(model.Structs.Single().Layout).IsEqualTo(LayoutKind.Sequential);
+        await Assert.That(field.Name).IsEqualTo("width");
+        await Assert.That(field.Type.ManagedName).IsEqualTo("int");
+        await Assert.That(field.FixedBufferLength).IsNull();
+        await Assert.That(field.FieldOffset).IsNull();
+    }
+
+    [Test]
+    public async Task Translate_Should_Collect_Defined_SDL_Unions_With_Explicit_Field_Offsets()
+    {
+        var bind = new CppClass("SDL_GameControllerButtonBind")
+        {
+            ClassKind = CppClassKind.Union,
+            IsDefinition = true,
+            SizeOf = 4,
+            Span = SdlHeaderSpan("SDL_gamecontroller.h"),
+        };
+        bind.Fields.Add(new CppField(CppPrimitiveType.Int, "button") { Offset = 0 });
+        bind.Fields.Add(new CppField(CppPrimitiveType.Int, "axis") { Offset = 0 });
+
+        var compilation = new CppCompilation();
+        compilation.Classes.Add(bind);
+
+        var model = CppAstToBindingModel.Translate(
+            [new CppAstParseResult(new PlatformParseView(
+                Name: "Neutral",
+                Kind: PlatformConditionKind.Neutral,
+                SupportedOsPlatform: null,
+                Defines: [],
+                Undefines: []), [compilation])],
+            DefaultConfig,
+            NoRequired);
+
+        var union = model.Structs.Single(s => s.Name == "SDL_GameControllerButtonBind");
+
+        await Assert.That(union.Layout).IsEqualTo(LayoutKind.Explicit);
+        await Assert.That(union.ExplicitSize).IsEqualTo(4);
+        await Assert.That(union.Fields.Select(f => f.Name).ToArray()).IsEquivalentTo(["button", "axis"]);
+        await Assert.That(union.Fields.Select(f => f.FieldOffset).ToArray()).IsEquivalentTo(new int?[] { 0, 0 });
+    }
+
+    [Test]
+    public async Task Translate_Should_Model_Anonymous_Union_Field_As_Generated_Sibling_Type()
+    {
+        var valueUnion = new CppClass(string.Empty)
+        {
+            ClassKind = CppClassKind.Union,
+            IsDefinition = true,
+            IsAnonymous = true,
+            SizeOf = 8,
+        };
+        valueUnion.Fields.Add(new CppField(CppPrimitiveType.Int, "button") { Offset = 0 });
+        valueUnion.Fields.Add(new CppField(CppPrimitiveType.Int, "axis") { Offset = 0 });
+
+        var bind = new CppClass("SDL_GameControllerButtonBind")
+        {
+            ClassKind = CppClassKind.Struct,
+            IsDefinition = true,
+            SizeOf = 12,
+            Span = SdlHeaderSpan("SDL_gamecontroller.h"),
+        };
+        bind.Fields.Add(new CppField(new CppEnum("SDL_GameControllerBindType"), "bindType"));
+        bind.Fields.Add(new CppField(valueUnion, "value"));
+
+        var compilation = new CppCompilation();
+        compilation.Classes.Add(bind);
+
+        var model = CppAstToBindingModel.Translate(
+            [new CppAstParseResult(new PlatformParseView(
+                Name: "Neutral",
+                Kind: PlatformConditionKind.Neutral,
+                SupportedOsPlatform: null,
+                Defines: [],
+                Undefines: []), [compilation])],
+            DefaultConfig,
+            NoRequired);
+
+        var parent = model.Structs.Single(s => s.Name == "SDL_GameControllerButtonBind");
+        var value = model.Structs.Single(s => s.Name == "SDL_GameControllerButtonBind_value");
+
+        await Assert.That(parent.Layout).IsEqualTo(LayoutKind.Sequential);
+        await Assert.That(parent.Fields.Select(f => f.Name).ToArray()).IsEquivalentTo(["bindType", "@value"]);
+        await Assert.That(parent.Fields.Select(f => f.Type.ManagedName).ToArray())
+            .IsEquivalentTo(["int", "SDL_GameControllerButtonBind_value"]);
+        await Assert.That(value.Layout).IsEqualTo(LayoutKind.Explicit);
+        await Assert.That(value.ExplicitSize).IsEqualTo(8);
+        await Assert.That(value.Fields.Select(f => f.Name).ToArray()).IsEquivalentTo(["button", "axis"]);
+        await Assert.That(value.Fields.Select(f => f.FieldOffset).ToArray()).IsEquivalentTo(new int?[] { 0, 0 });
     }
 }

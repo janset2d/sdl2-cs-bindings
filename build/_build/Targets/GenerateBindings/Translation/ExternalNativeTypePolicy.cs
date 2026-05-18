@@ -48,9 +48,29 @@ internal static class ExternalNativeTypePolicy
     {
         ArgumentNullException.ThrowIfNull(typedef);
 
+        if (DeferredNativeTypes.Contains(typedef.Name))
+        {
+            mapped = BindingTypeRef.Of("IntPtr");
+            return true;
+        }
+
         if (MappedTypedefs.TryGetValue(typedef.Name, out var managedName))
         {
             mapped = BindingTypeRef.Of(managedName + "*");
+            return true;
+        }
+
+        mapped = default!;
+        return false;
+    }
+
+    public static bool TryMapClassPointer(CppClass cls, out BindingTypeRef mapped)
+    {
+        ArgumentNullException.ThrowIfNull(cls);
+
+        if (DeferredNativeTypes.Contains(cls.Name))
+        {
+            mapped = BindingTypeRef.Of("IntPtr");
             return true;
         }
 

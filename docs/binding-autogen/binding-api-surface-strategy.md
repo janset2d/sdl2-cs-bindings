@@ -17,6 +17,33 @@ The chosen shape is:
 
 This is not invented locally. It combines established patterns from SkiaSharp, Silk.NET, ppy/SDL3-CS, Alimer.Bindings.SDL, and SDL2-CS, but selects the parts that fit this repository's SDL2 + SDL3 + old-TFM + NuGet compatibility goals.
 
+## Generator Output Contract
+
+Generated namespaces are family-owned and stable:
+
+| Family | Namespace | Public class | Internal raw ABI class |
+| --- | --- | --- | --- |
+| SDL2 core | `Janset.SDL2.Core` | `SDL2` | `SDL2Native` |
+| SDL2_gfx | `Janset.SDL2.Gfx` | `SDL2Gfx` | `SDL2GfxNative` |
+| SDL2_image | `Janset.SDL2.Image` | `SDL2Image` | `SDL2ImageNative` |
+| SDL2_mixer | `Janset.SDL2.Mixer` | `SDL2Mixer` | `SDL2MixerNative` |
+| SDL2_ttf | `Janset.SDL2.Ttf` | `SDL2Ttf` | `SDL2TtfNative` |
+| SDL2_net | `Janset.SDL2.Net` | `SDL2Net` | `SDL2NetNative` |
+
+Parse views (`Neutral`, `MacOS`, `Linux`, `WindowsDesktop`, etc.) are parser/output metadata, not class identity. They may affect file path, platform attributes, and deduplication, but they must not produce raw ABI classes such as `Sdl2_Neutral` or `Sdl2_MacOS`. The raw ABI class remains one `internal static unsafe partial` type per family, split across files.
+
+Canonical flow:
+
+```text
+CppAst parse results
+  -> Translation collaborators
+  -> BindingModel
+  -> Emitting collaborators
+  -> generated family namespace files
+```
+
+`CppAstToBindingModel` is an orchestrator. Function filtering, neutral-view merge, struct discovery, field translation, anonymous-union modeling, and type substitution are named translation collaborators, not private-method chains inside one class.
+
 ## Peer Research Matrix
 
 | Project | Raw native calls | Handle shape | Friendly overloads | Lesson for this repo |
@@ -42,9 +69,26 @@ This is not invented locally. It combines established patterns from SkiaSharp, S
 Internal raw externs are the only methods that carry `[DllImport]` / `[LibraryImport]`.
 
 ```csharp
-internal static unsafe partial class Sdl2_Neutral
+namespace Janset.SDL2.Core;
+
+internal static unsafe partial class SDL2Native
 {
-    [DllImport(LibName, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    private const string LibName = "SDL2";
+
+#if NET7_0_OR_GREATER
+    [LibraryImport(LibName, EntryPoint = "SDL_CreateWindow")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    internal static partial SDL_Window SDL_CreateWindow(
+        byte* title,
+        int x,
+        int y,
+        int w,
+        int h,
+        SDL_WindowFlags flags);
+#else
+    [DllImport(LibName, EntryPoint = "SDL_CreateWindow",
+        CallingConvention = CallingConvention.Cdecl,
+        ExactSpelling = true)]
     internal static extern SDL_Window SDL_CreateWindow(
         byte* title,
         int x,
@@ -52,9 +96,11 @@ internal static unsafe partial class Sdl2_Neutral
         int w,
         int h,
         SDL_WindowFlags flags);
+#endif
 
-    [DllImport(LibName, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    internal static extern int SDL_HasClipboardText();
+    [LibraryImport(LibName, EntryPoint = "SDL_HasClipboardText")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    internal static partial int SDL_HasClipboardText();
 }
 ```
 
@@ -64,6 +110,8 @@ Rules:
 - Raw externs do not expose `string`, `Span<T>`, `SafeHandle`, owner classes, or allocation behavior.
 - Raw externs preserve ABI correctness first. If a signature cannot be represented safely yet, defer/map explicitly instead of emitting a success-shaped lie.
 - Class-level `unsafe` is accepted for generated command classes. ppy/SDL3-CS and Alimer both use class-level unsafe for generated SDL bindings; method-level unsafe adds noise without reducing actual risk.
+- Platform-only raw externs stay in the same raw ABI class and carry `[SupportedOSPlatform]`; the platform name does not become a class suffix.
+- Shared members of the raw partial class, such as `LibName`, are emitted once per family raw ABI class. Platform partial files reference that member; they do not redeclare it.
 
 ### Layer 2: Public typed low-level types
 
@@ -100,6 +148,8 @@ SDL structs/enums/callbacks are also public typed low-level declarations:
 
 - POD structs: `[StructLayout(LayoutKind.Sequential)]`
 - unions: `[StructLayout(LayoutKind.Explicit)]` with field offsets
+- pointer-bearing structs are emitted with an unsafe struct context
+- fixed-size primitive arrays use C# fixed buffers; fixed-size arrays of non-fixed-buffer-compatible element types use `[InlineArray]` wrapper structs
 - flags: `[Flags]` where structural/name heuristics prove flag semantics
 - callbacks: modern `delegate* unmanaged[Cdecl]<...>` plus legacy delegate shape where old TFMs require it
 
@@ -110,6 +160,10 @@ Public functions call the internal raw externs. They are not extern declarations
 Examples below use normalized method names for readability; the exact public naming convention is a separate API naming decision.
 
 ```csharp
+namespace Janset.SDL2.Core;
+
+public static partial class SDL2
+{
 public static unsafe SDL_Window CreateWindow(
     byte* title,
     int x,
@@ -117,10 +171,11 @@ public static unsafe SDL_Window CreateWindow(
     int w,
     int h,
     SDL_WindowFlags flags)
-    => Sdl2_Neutral.SDL_CreateWindow(title, x, y, w, h, flags);
+    => SDL2Native.SDL_CreateWindow(title, x, y, w, h, flags);
 
 public static bool HasClipboardText()
-    => Sdl2_Neutral.SDL_HasClipboardText() != 0;
+    => SDL2Native.SDL_HasClipboardText() != 0;
+}
 ```
 
 This layer is the advanced zero-allocation surface. It can expose unsafe pointers where that is the honest C shape, but it still benefits from typed handles/enums/structs and keeps `[DllImport]` / `[LibraryImport]` internals private.
@@ -234,9 +289,10 @@ Missing generated type names must not be fixed by blindly emitting empty structs
 | Type family | Examples | Policy |
 | --- | --- | --- |
 | SDL-owned opaque handles | `SDL_Window`, `SDL_Renderer`, `SDL_Texture` | Emit typed `readonly partial struct` wrapping `nint`. |
-| SDL-owned POD structs | `SDL_Rect`, `SDL_Color`, `SDL_GUID` | Emit correct layout. Never emit empty stubs just for compile-green. |
+| SDL-owned POD structs | `SDL_Rect`, `SDL_Color` | Emit correct layout. Never emit empty stubs just for compile-green. |
+| SDL GUID value | `SDL_GUID` | Represent as `System.Guid` through `SdlNativeTypeSubstitutionPolicy`. This matches SDL2-CS and Alimer's idiomatic 16-byte GUID mapping; tests pin both `CppClass`/`CppTypedef` mapping to `Guid` and exclusion from generated `BindingStruct` output. |
 | SDL-owned unions | `SDL_Event`, `SDL_SysWMinfo` | Emit explicit layout only when layout is verified; defer otherwise. |
-| C runtime internals | `va_list`, `__va_list_tag`, `FILE`, `_IO_FILE` | Stage 1 defers/excludes unless a clear portable mapping exists. Do not leak compiler/runtime-private names into generated source. |
+| C runtime internals | `va_list`, `__va_list_tag`, `FILE`, `_IO_FILE` | Function APIs are deferred/excluded unless a clear portable mapping exists. SDL-owned struct storage that only carries a pointer to such internals maps that field to `IntPtr`; do not leak compiler/runtime-private names into generated source. |
 | Vulkan dispatchable handles | `VkInstance` | Stage 1 raw ABI maps to `IntPtr`; public typed/friendly layers may wrap the pointer value later. |
 | Vulkan non-dispatchable handles | `VkSurfaceKHR` | Stage 1 raw ABI maps to `ulong`; do not collapse blindly to pointer-width on 32-bit. |
 | GDK / platform SDK handles | `XUserHandle`, `XTaskQueueHandle`, `HWND` | Stage 1 raw ABI maps known opaque platform handles to `IntPtr`; add new platform SDK handles only through explicit policy. |
@@ -246,8 +302,17 @@ Generator implementation boundary:
 
 - `build\_build\Targets\GenerateBindings\Model\` contains binding declaration records only: `BindingModel`, `BindingTypeRef`, `BindingStruct`, `BindingHandle`, and sibling DTOs.
 - `build\_build\Targets\GenerateBindings\Translation\` contains CppAst-to-binding behavior: `CppAstToBindingModel`, `TypeMappingPolicy`, `ExternalNativeTypePolicy`, `KnownUnsupportedDeclarationPolicy`, and `CoreOwnedTypeMap`.
+- `CppAstToBindingModel` coordinates translation only. Extract bindable declaration filtering, function translation, neutral-view merge, struct translation, struct-field translation, and anonymous-union modeling into named collaborators when they carry policy or branching.
 - `build\manifest.json` carries family-specific declarative input such as enabled families, owned prefixes, excluded/required functions, required constants, and intentionally deferred declarations.
 - Translation policy code carries ABI semantics that should not become JSON knobs by default. Move a policy to manifest only when the behavior genuinely varies by family or needs a documented per-family override.
+
+Struct/union implementation discipline:
+
+- SDL-owned structs and unions are discovered from AST shape, not name allowlists. A `Stage1StructNames`-style allowlist is scaffolding and must not become production architecture.
+- Anonymous nested unions are modeled generically from CppAst anonymous `CppClass` nodes, using deterministic generated type names and `[StructLayout(LayoutKind.Explicit)]` for union storage.
+- `SDL_GameControllerButtonBind` is not a hard-coded translator branch. It is an ordinary test oracle for the generic anonymous-union path.
+- `SDL_GUID` is a substituted .NET value type, not a generated SDL struct. Raw/friendly signatures use `Guid`; structural emission skips the SDL-owned POD declaration through the named substitution policy.
+- `SDL_syswm.h` remains the explicit Stage 2 typed-union deferral because its platform-layout surface is broader than the Stage 1 function/struct foundation.
 
 ## Public Raw Extern Decision
 

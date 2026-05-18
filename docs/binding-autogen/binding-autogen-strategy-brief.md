@@ -264,7 +264,7 @@ The generator implements all 11 emit rules in [`binding-autogen-feasibility.md`]
 | Rule 8 — Constants | `public const` for literal numerics / strings; `public static readonly` for computed expressions; categorized per `CppMacro` shape |
 | Rule 9 — AOT | `<IsAotCompatible>true</IsAotCompatible>` on every generated binding csproj (net8+ TFMs); no `[RequiresDynamicCode]` / `[RequiresUnreferencedCode]` |
 | Rule 10 — Modern C# emit | C# 14 features: collection expressions (`CallConvs = [typeof(CallConvCdecl)]`), `params ReadOnlySpan<T>`, ref-struct constraints |
-| Rule 11 — Partial-class boundaries | One `partial class SDL2` / `partial class SDL2_image` per family; split across `Commands.g.cs` / `Constants.g.cs` / `Enums.g.cs` / `Handles.g.cs` / `Structs.g.cs` / `Callbacks.g.cs` |
+| Rule 11 — Partial-class boundaries | One public `partial class` per family (`SDL2`, `SDL2Image`, etc.) plus one internal raw ABI `partial class` per family (`SDL2Native`, `SDL2ImageNative`, etc.). Files split by category and platform, but parse-view names do not become class names. |
 
 ### Multi-pass parsing strategy — preprocessor-macro switching inside one Linux container
 
@@ -315,7 +315,9 @@ The "master undefine list" the parser nukes at the start of every pass is the un
 
 ```text
 src/SDL2.Core/Generated/
-├── Commands.g.cs            ← neutral pass: functions present on all platforms
+├── Commands.g.cs            ← public wrappers for neutral/common functions
+├── Native/
+│   └── Commands.g.cs        ← internal SDL2Native raw ABI for neutral/common functions
 ├── Constants.g.cs           ← neutral pass
 ├── Enums.g.cs               ← neutral pass
 ├── Handles.g.cs             ← neutral pass — typed readonly structs (Rule 2)
@@ -324,8 +326,7 @@ src/SDL2.Core/Generated/
 ├── .generated-stamp         ← vcpkg-state coherence marker (see "vcpkg-state coherence guardrail" below)
 └── Platform/
     ├── Windows/             ← [SupportedOSPlatform("windows")]
-    │   ├── SDL_system.Windows.g.cs
-    │   └── SDL_main.Windows.g.cs
+    │   └── Native.Commands.g.cs
     ├── WinRT/               ← [SupportedOSPlatform("windows10.0.10240.0")] or similar — exact attribute shape is Stage 1 plan deliverable
     ├── GDK/
     ├── Linux/
@@ -340,7 +341,30 @@ src/SDL2.Core/Generated/
 2. Run each platform pass with exactly one catalog entry active.
 3. Exclude symbols already emitted by the neutral pass from platform files.
 4. Emit platform-only symbols into platform-suffixed files with `[SupportedOSPlatform]` attribution.
-5. **Fail generation** (do not silently guess) if the same symbol appears in multiple views with incompatible signatures or layout-affecting type differences.
+5. Deduplicate identical C# signatures across platform views after Neutral so the shared `SDL2Native` partial class never declares the same extern twice.
+6. **Fail generation** (do not silently guess) if the same symbol appears in multiple views with incompatible signatures or layout-affecting type differences.
+
+Parse-view names are file/metadata concepts only. A platform pass may produce `Platform/MacOS/Native.Commands.g.cs`, but the class inside remains `SDL2Native`; `Sdl2_MacOS` / `Sdl2_Neutral` style classes are a spike-era shape and are superseded.
+
+Shared raw partial class members are emitted once per family. For example, `private const string LibName = "SDL2";` appears in the Neutral `SDL2Native` partial file; platform partial files reference it through the same partial type and must not redeclare it.
+
+**Translation collaborator boundary.** The CppAst-to-model flow is:
+
+```text
+CppAst parse results
+  -> Bindable declaration policy
+  -> Function / struct / field translators
+  -> BindingModel
+  -> category emitters
+```
+
+`CppAstToBindingModel` coordinates those collaborators. It does not own long private-method chains for function filtering, required-function merge, struct discovery, anonymous-union modeling, or type substitution. Those are named collaborators under `build/_build/Targets/GenerateBindings/Translation/`, following the extraction guideline that private methods are for local mechanics and narrative flow, not build policy or branching algorithms.
+
+**Struct and anonymous-union policy.** SDL-owned structs/unions are discovered by AST structure plus family ownership, not by a whitelist of names. `Stage1StructNames`-style gates and `SDL_GameControllerButtonBind`-specific flattening are implementation scaffolding, not production design. Anonymous nested unions are translated generically from CppAst anonymous `CppClass` nodes into deterministic explicit-layout managed structs; `SDL_GameControllerButtonBind` is a characterization case for that generic path, not a special branch.
+
+Struct emission keeps generated code compile-safe without hiding ABI shape: pointer fields make the containing struct `unsafe`, primitive fixed arrays use C# fixed buffers, and non-primitive fixed arrays emit deterministic `[InlineArray]` wrapper structs.
+
+**`SDL_GUID` representation is `System.Guid`.** This is an explicit substitution policy, not a random translator branch: `SdlNativeTypeSubstitutionPolicy` maps the SDL GUID value to `Guid`, and struct discovery excludes `SDL_GUID` from generated `BindingStruct` output. The choice follows SDL2-CS and Alimer's idiomatic 16-byte GUID mapping; tests pin class/typedef mapping and the struct-collector exclusion. A future fixed-buffer reversal would need a deliberate docs/tests change.
 
 **`SDL_syswm.h` struct/union layout is Stage 2, not Stage 1.** The function-level platform spike intentionally deferred `SDL_SysWMinfo` and `SDL_SysWMmsg` union layout — see [`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §8.7. Stage 1 emits `SDL_GetWindowWMInfo` as a function with an opaque `nint` (or `SDL_SysWMinfo*` modeled as opaque) parameter; the typed union layout, the 64-byte fixed-size lock (per `SDL_syswm.h` line 348), and the minimal forward-declaration stub set (~15–20 opaque types — `HWND`/`HDC`/`HINSTANCE`/`Display*`/`Window`/`IInspectable`/`gbm_device`/`wl_display`/`wl_surface`/`xdg_*`/`EGLNativeDisplayType`/`IDirectFB*` and a handful of others) are delivered together at Stage 2. Apple-SDK redistribution concerns do not apply because SDL's header already provides the non-`__OBJC__` `typedef struct _NSWindow NSWindow;` forward declaration directly (`SDL_syswm.h:86`); the Stage 2 stub library is purely forward declarations, not Apple SDK derivatives.
 
@@ -367,8 +391,12 @@ Validation rule (new G-guardrail candidate, see "Symbol-existence validation gua
 Per [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) §2 Rule 1, every **internal raw ABI extern** is emitted twice in one `foreach` iteration:
 
 ```csharp
-internal static unsafe partial class Sdl2_Neutral
+namespace Janset.SDL2.Core;
+
+internal static unsafe partial class SDL2Native
 {
+    private const string LibName = "SDL2";
+
 #if NET7_0_OR_GREATER
     [LibraryImport(LibName, EntryPoint = "SDL_CreateWindow")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]

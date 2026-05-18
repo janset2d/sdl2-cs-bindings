@@ -112,10 +112,12 @@ public static class TypeMappingPolicy
         {
             CppPrimitiveType prim => MapPrimitive(prim),
             CppPointerType pointer => MapPointer(pointer),
+            CppTypedef td when SdlNativeTypeSubstitutionPolicy.TryMap(td, out var mapped) => mapped,
             CppTypedef td when ExternalNativeTypePolicy.TryMapTypedef(td, out var mapped) => mapped,
             CppTypedef td => MapTypedef(td),
             CppArrayType arr => MapPointer(new CppPointerType(arr.ElementType)),
             CppEnum => BindingTypeRef.Of("int"),
+            CppClass cls when SdlNativeTypeSubstitutionPolicy.TryMap(cls, out var mapped) => mapped,
             CppClass cls => BindingTypeRef.Of(cls.Name),
             _ => BindingTypeRef.Of("IntPtr"),
         };
@@ -184,6 +186,7 @@ public static class TypeMappingPolicy
             CppTypedef td => MapTypedefPointer(td),
             CppClass cls when cls.Name.StartsWith("ID", StringComparison.Ordinal) => "IntPtr",
             CppClass cls when cls.Name.StartsWith("SDL_", StringComparison.Ordinal) => "IntPtr",
+            CppClass cls when ExternalNativeTypePolicy.TryMapClassPointer(cls, out var classPointerMapping) => classPointerMapping.ManagedName,
             CppClass cls => cls.Name + "*",
             _ => "IntPtr",
         };
@@ -218,6 +221,11 @@ public static class TypeMappingPolicy
         if (ExplicitTypedefMap.TryGetValue(td.Name, out var explicitMapping))
         {
             return BindingTypeRef.Of(explicitMapping);
+        }
+
+        if (SdlNativeTypeSubstitutionPolicy.TryMap(td, out var substitutedMapping))
+        {
+            return substitutedMapping;
         }
 
         if (ExternalNativeTypePolicy.TryMapTypedef(td, out var externalMapping))

@@ -73,6 +73,14 @@ public sealed class BindingStructTests
     }
 
     [Test]
+    public async Task Fixed_Buffer_Field_Should_Carry_Array_Length()
+    {
+        var field = new BindingStructField("data", BindingTypeRef.Of("byte"), FieldOffset: null, FixedBufferLength: 16);
+
+        await Assert.That(field.FixedBufferLength).IsEqualTo(16);
+    }
+
+    [Test]
     public async Task Explicit_Layout_Should_Carry_ExplicitSize_And_FieldOffset()
     {
         // SDL_SysWMinfo-style typed union: Layout=Explicit + ExplicitSize=64 on the

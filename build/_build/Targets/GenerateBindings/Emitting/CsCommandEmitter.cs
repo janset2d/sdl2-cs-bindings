@@ -18,9 +18,16 @@ internal static class CsCommandEmitter
 
         var files = new List<GeneratedFile>();
 
-        foreach (var view in model.Views)
+        var libNameViewIndex = FindLibNameViewIndex(model.Views);
+        for (var index = 0; index < model.Views.Count; index++)
         {
-            files.Add(new GeneratedFile(RelativePath: $"Platform/{view.Name}/Commands.g.cs", Content: EmitCommandsFile(view)));
+            var view = model.Views[index];
+            files.Add(new GeneratedFile(RelativePath: $"Platform/{view.Name}/Commands.g.cs", Content: EmitCommandsFile(view, includeLibName: index == libNameViewIndex)));
+        }
+
+        if (model.Structs.Count > 0)
+        {
+            files.Add(CsStructEmitter.Emit(model.Structs));
         }
 
         files.Add(new GeneratedFile(RelativePath: "parse-views.json", Content: EmitReportJson(model)));
@@ -28,7 +35,20 @@ internal static class CsCommandEmitter
         return new GeneratedFileSet(files);
     }
 
-    private static string EmitCommandsFile(BindingParseView view)
+    private static int FindLibNameViewIndex(IReadOnlyList<BindingParseView> views)
+    {
+        for (var index = 0; index < views.Count; index++)
+        {
+            if (string.Equals(views[index].Name, "Neutral", StringComparison.Ordinal))
+            {
+                return index;
+            }
+        }
+
+        return 0;
+    }
+
+    private static string EmitCommandsFile(BindingParseView view, bool includeLibName)
     {
         // AppendLf (Host.Text) forces '\n' regardless of host OS so generated
         // .g.cs content stays byte-identical across Windows dev / Linux container
@@ -46,11 +66,14 @@ internal static class CsCommandEmitter
         }
 
         builder.AppendLf();
-        builder.AppendLf("namespace Janset.SDL2;");
+        builder.AppendLf("namespace Janset.SDL2.Core;");
         builder.AppendLf();
-        builder.Append("internal static unsafe partial class Sdl2_").AppendLf(view.Name);
+        builder.AppendLf("internal static unsafe partial class SDL2Native");
         builder.AppendLf('{');
-        builder.AppendLf("    private const string LibName = \"SDL2\";");
+        if (includeLibName)
+        {
+            builder.AppendLf("    private const string LibName = \"SDL2\";");
+        }
 
         foreach (var function in view.Functions)
         {

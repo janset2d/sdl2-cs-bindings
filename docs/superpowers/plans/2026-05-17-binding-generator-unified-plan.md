@@ -28,8 +28,8 @@ Deniz decides every commit boundary. The plan suggests checkpoints at phase exit
 | **Phase 3A** | Rider-driven mass rename (Preview → real) | Rider-driven — Deniz executes mass rename, agent prepares rename map |
 | **Phase 3B** | BindingModel extension (5 new categories + BindingTypeRef) | Continues from 3A |
 | **Phase 3C** | TypeMappingPolicy + KnownUnsupportedDeclarationPolicy + CoreOwnedTypeMap | Continues from 3B |
-| **Phase 3C-prime** | Stabilization corrections from 2026-05-17 review: class-level unsafe preserved, compile-check diagnostic kept manual, fallback parameter uniqueness, SDL2 `SDL_bool` ABI correction, CppAst fixture matrix, external/native type taxonomy | Continues from 3C before structural emission |
-| **Phase 3D** | CppAstToBindingModel translator refactor | Continues from 3C-prime |
+| **Phase 3C-prime** | Stabilization/foundation corrections from 2026-05-17 review: stable `SDL2Native` raw ABI class contract, class-level unsafe preserved, compile-check diagnostic kept manual, fallback parameter uniqueness, SDL2 `SDL_bool` ABI correction, CppAst fixture matrix, external/native type taxonomy | Continues from 3C before structural emission |
+| **Phase 3D** | CppAst-to-BindingModel translator refactor into named collaborators; generic struct/anonymous-union translation; no `Stage1StructNames` production path | Continues from 3C-prime |
 | **Phase 3E** | 6 per-category emitters + BindingEmitter dispatcher + EmitContext | Continues from 3D |
 | **Phase 3F** | Friendly overloads + dual P/Invoke emit in CsCommandEmitter | Continues from 3E |
 | **Phase 3G** | Output wiring + smoke + peer-oracle visual diff | Continues from 3F |
@@ -49,20 +49,24 @@ Canonical API-surface decision: [`../../binding-autogen/binding-api-surface-stra
 
 Corrections that override older snippets in this plan:
 
-- Generated command classes remain `internal static unsafe partial class Sdl2_<View>`. Dropping class-level `unsafe` was a Phase 3A regression.
+- Generated raw ABI command classes use one stable internal family class such as `internal static unsafe partial class SDL2Native`; parse-view names (`Neutral`, `MacOS`, etc.) affect file path and `[SupportedOSPlatform]` metadata, not class names. Dropping class-level `unsafe` was a Phase 3A regression; view-specific classes such as `Sdl2_MacOS` are superseded.
 - Public raw `IntPtr` externs are not part of v1 preview. Raw ABI externs stay internal; public surface is typed low-level wrappers plus friendly overloads.
+- Family namespaces are fixed by package/family: SDL2 Core emits under `Janset.SDL2.Core`; satellites use `Janset.SDL2.Gfx`, `Janset.SDL2.Image`, and sibling namespaces.
 - SDL2 `SDL_bool` maps to `int` at the raw ABI. SDL3 bool-like values keep a separate 1-byte policy.
 - `KnownUnsupportedDeclarationPolicy` is manifest/type-policy driven; C variadic fmt-only functions are not blanket-filtered. Explicit `va_list` / `FILE*` / non-portable C-runtime APIs must be deferred or mapped by taxonomy.
 - Missing native types are not fixed by empty struct stubs. SDL-owned structs require real layout; external types require explicit emit/map/defer policy.
+- `Stage1StructNames` and `SDL_GameControllerButtonBind` name-specific flattening are scaffolding mistakes, not the production direction. SDL-owned structs/unions are discovered by AST shape, and anonymous unions are modeled generically with deterministic generated sibling types.
+- `SDL_GUID` is represented as `System.Guid` through a named SDL native type substitution policy. This follows SDL2-CS and Alimer; tests pin class/typedef mapping to `Guid` and exclude `SDL_GUID` from generated `BindingStruct` output.
 - Compile-check under `tests\binding-compile-check` is a diagnostic tripwire until generated output is structurally complete. Before any blocking gate, add a non-empty generated-file guard to avoid false green.
 
 Immediate execution order before Phase 3D structural emission:
 
-1. Fix duplicate unnamed fallback parameter names with index-aware naming.
-2. Correct SDL2 `SDL_bool` ABI mapping to `int`.
-3. Add tiny CppAst fixture headers for enum-backed typedefs, variadics, `va_list`, `FILE*`, opaque handles, POD structs, unions, Vulkan, and GDK.
-4. Define external/native type taxonomy.
-5. Proceed to structural model population and category emitters.
+1. Pin output contract: `Janset.SDL2.Core` namespace, public `SDL2`, internal `SDL2Native`, no `Sdl2_<View>` classes.
+2. Extract `CppAstToBindingModel` into named translation collaborators for functions, neutral merge, declaration policy, structs, and fields.
+3. Remove `Stage1StructNames`; discover SDL-owned structs/unions generically from AST shape.
+4. Model anonymous nested unions generically; use `SDL_GameControllerButtonBind` only as a characterization test.
+5. Pin `SDL_GUID` as `System.Guid` through docs/tests.
+6. Proceed to broader structural model population and category emitters.
 
 ---
 
@@ -1845,8 +1849,8 @@ Files (auto-rename via Rider should follow types):
   Tests/.../Emitting/PreviewBindingModelData.cs       -> Tests/.../Emitting/BindingModelData.cs
 
 Namespaces / class names in emitted output:
-  Janset.Sdl2.Preview                       -> Janset.SDL2
-  Sdl2Preview_<view>                         -> Sdl2_<view>
+  Janset.Sdl2.Preview                       -> Janset.SDL2.Core
+  Sdl2Preview_<view>                         -> SDL2Native
   internal static unsafe partial class       -> internal static unsafe partial class
     (keep class-level `unsafe`; pointer parameters in generated extern signatures require unsafe context)
 
@@ -1883,10 +1887,10 @@ Expected: green; container smoke produces output (with new class names + namespa
 - [ ] **Step 2: Compare emit output to pre-rename**
 
 Output files (`Platform/Neutral/Commands.g.cs` etc.) should have:
-- `namespace Janset.SDL2;` instead of `namespace Janset.Sdl2.Preview;`
-- `Sdl2_Neutral` class instead of `Sdl2Preview_Neutral`
+- `namespace Janset.SDL2.Core;` instead of `namespace Janset.Sdl2.Preview;`
+- `SDL2Native` class instead of `Sdl2Preview_Neutral`, `Sdl2_Neutral`, or any other view-specific raw ABI class
 - No "preview placeholder" comments
-- `internal static unsafe partial class Sdl2_<View>` on every generated command class
+- `internal static unsafe partial class SDL2Native` on every generated raw command class
 
 - [ ] **Step 3: Fix any rename misses (P2.14, P2.15, P2.16, P2.17, P2.18, P2.19)**
 
@@ -1912,8 +1916,8 @@ Rider mass rename:
   PreviewParseViewReport            -> BindingParseViewReport
   CppAstToPreviewModel              -> CppAstToBindingModel
   PreviewEmitter                    -> CsCommandEmitter
-  Janset.Sdl2.Preview ns            -> Janset.SDL2
-  Sdl2Preview_<view> class          -> Sdl2_<view>
+  Janset.Sdl2.Preview ns            -> Janset.SDL2.Core
+  Sdl2Preview_<view> class          -> SDL2Native
 
 Preserve class-level unsafe modifier, strip preview-placeholder comments,
 fix stale doc comments (P2.14-P2.19).
@@ -2676,7 +2680,7 @@ Required fixture headers/tests:
 - explicit `va_list`: deferred or mapped by policy, never leaks `__va_list_tag`;
 - `FILE*` / `_IO_FILE*`: deferred or mapped by policy, never leaks `_IO_FILE`;
 - SDL-owned opaque handle: empty `SDL_*` class/typedef becomes `BindingHandle`;
-- SDL-owned POD struct: `SDL_GUID` / `SDL_GameControllerButtonBind` becomes `BindingStruct`, not an empty stub;
+- SDL-owned POD struct: ordinary SDL-owned PODs become `BindingStruct`, while explicitly substituted values such as `SDL_GUID` map to their .NET type and are not emitted as structs;
 - union: layout is explicit or deferred until layout proof exists;
 - Vulkan: dispatchable/non-dispatchable handles are mapped explicitly (`VkInstance -> IntPtr`, `VkSurfaceKHR -> ulong`) or header/function deferred;
 - GDK/platform SDK handles: mapped to `IntPtr`/opaque platform handles only through explicit platform policy.
@@ -2824,22 +2828,21 @@ Expected: tests green; container smoke now produces a non-empty `Structs`/`Enums
 - [ ] **Step 6: Suggested commit boundary**
 
 ```text
-feat(binding-autogen): CppAstToBindingModel translator — all 6 categories populated
+feat(binding-autogen): extract binding translation collaborators
 
-- CppAstToBindingModel instantiable class (was static); takes TypeMappingPolicy +
-  KnownUnsupportedDeclarationPolicy + CoreOwnedTypeMap via ctor
-- CollectViews (functions, unchanged from previous behaviour)
-- CollectStructs (CppClass with fields -> BindingStruct + BindingStructField)
-- CollectEnums (CppEnum -> BindingEnum + Members + IsFlags heuristic)
-- CollectConstants (CppMacro -> BindingConstant + ConstantKind)
-- CollectHandles (opaque SDL_* CppClass without fields -> BindingHandle)
-- CollectCallbacks (typedef to function pointer -> BindingCallback)
+- CppAstToBindingModel reduced to orchestration
+- BindingFunctionTranslator owns function filtering/dedup/type mapping
+- NeutralFunctionSetBuilder owns required-function merge into Neutral
+- BindableDeclarationPolicy owns source-header/ownership/exclusion rules
+- BindingStructTranslator owns SDL-owned struct/union discovery
+- StructFieldTranslator owns fixed buffers and anonymous nested union modeling
 - Type mapping flows through TypeMappingPolicy (P0.1/P0.2/P0.3/P2.8/P2.9 baked)
 - Unsupported declarations skipped via KnownUnsupportedDeclarationPolicy
   (variadic baseline + manifest deferred_declarations like SDL_SysWMinfo)
+- No Stage1StructNames allowlist or SDL_GameControllerButtonBind-specific flattening
 
-Emitter still emits Commands.g.cs only; new categories visible in logs only.
-Phase 3E adds per-category emitters.
+Emitter still emits Commands.g.cs only unless the task explicitly includes the category emitter slice.
+Phase 3E adds or finalizes per-category emitters.
 ```
 
 ### Phase 3E — Per-category emitters

@@ -67,6 +67,21 @@ public sealed class TypeMappingPolicyTests
         await Assert.That(TypeMappingPolicy.Map(sdlWindow).ManagedName).IsEqualTo("IntPtr");
     }
 
+    [Test]
+    public async Task Map_Should_Represent_SDL_GUID_As_System_Guid()
+    {
+        var guidStruct = new CppClass("SDL_GUID")
+        {
+            ClassKind = CppClassKind.Struct,
+            IsDefinition = true,
+        };
+        guidStruct.Fields.Add(new CppField(new CppArrayType(CppPrimitiveType.UnsignedChar, 16), "data"));
+        var guidTypedef = new CppTypedef("SDL_GUID", guidStruct);
+
+        await Assert.That(TypeMappingPolicy.Map(guidStruct).ManagedName).IsEqualTo("Guid");
+        await Assert.That(TypeMappingPolicy.Map(guidTypedef).ManagedName).IsEqualTo("Guid");
+    }
+
     // ─── P0.2 — Linux `long` width on LP64 ───
 
     [Test]
@@ -155,6 +170,14 @@ public sealed class TypeMappingPolicyTests
         var sdlWindowStruct = new CppClass("SDL_Window");
         var sdlWindowStar = new CppPointerType(sdlWindowStruct);
         await Assert.That(TypeMappingPolicy.Map(sdlWindowStar).ManagedName).IsEqualTo("IntPtr");
+    }
+
+    [Test]
+    public async Task Map_Should_Emit_IntPtr_For_Deferred_C_Runtime_Class_Pointer()
+    {
+        var filePointer = new CppPointerType(new CppClass("_IO_FILE"));
+
+        await Assert.That(TypeMappingPolicy.Map(filePointer).ManagedName).IsEqualTo("IntPtr");
     }
 
     [Test]

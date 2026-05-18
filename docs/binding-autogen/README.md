@@ -40,6 +40,7 @@ Research docs (6–8) carry pre-2026-05-15 context and have not been retro-edite
 
 - CppAst is the selected Phase 4 planning direction, recorded in the strategy brief and [ADR-004](../decisions/2026-05-14-binding-autogen-toolchain.md).
 - Public API shape is **internal raw ABI externs + public typed low-level API + friendly overloads** per [`binding-api-surface-strategy.md`](binding-api-surface-strategy.md). Public raw `IntPtr` externs are not part of v1 preview; typed handles expose native values as the escape hatch.
+- Output class identity is family-based, not parse-view-based. SDL2 core uses namespace `Janset.SDL2.Core`, public class `SDL2`, and internal raw ABI class `SDL2Native`; parse views produce files/attributes, not `Sdl2_Neutral` or `Sdl2_MacOS` classes.
 - **Generator lives inside the Cake build host** under `build/_build/Targets/GenerateBindings/` with cross-cutting validators under `build/_build/Validation/BindingGeneration/`. No standalone `src/`-tree console app. Pure emitter code stays Cake-free; the Cake-aware shell owns orchestration.
 - **Linux-canonical** generation. Only `libclang.runtime.linux-x64` + `libClangSharp.runtime.linux-x64` are pinned. The `GenerateBindings` Cake target fails closed on non-`linux-x64` hosts. Local invocation routes through `tools.cs generate-bindings`, which orchestrates the pinned `linux-builder` Docker container — Docker is a hard prerequisite, no host-OS fallback.
 - **Preprocessor-macro switching only** for platform passes. No `--target` cross-compile flag, no mingw-w64, no Apple SDK headers. SDL's public headers carry the cross-platform opaque-type forward declarations the parser needs. Verified against ppy/SDL3-CS Dockerfile + `generate_bindings.py` (WebFetch 2026-05-15) and the local CppAst spike.
@@ -47,6 +48,7 @@ Research docs (6–8) carry pre-2026-05-15 context and have not been retro-edite
 - **SDL3 binding generation is gated on PD-7** (SDL2 real-public-release). The SDL3 vcpkg port + overlay triplet work is its own substantial scope and must not block SDL2 v1.0 stable.
 - ClangSharp remains the documented migration path if CppAst's version-trio coupling or owned-emitter cost becomes painful in practice.
 - ppy/SDL3-CS is the strongest SDL-specific reference for neutral + platform-specific passes. SkiaSharp is a strong CppAst discipline reference, but not a platform-split reference. Alimer is useful for C# shape ideas, but its single-pass union macro strategy is not sufficient for platform-conditioned headers/layout across our 7-RID correctness bar.
+- Structural emission is generic AST-driven work. Name allowlists such as `Stage1StructNames` and `SDL_GameControllerButtonBind`-specific flattening are not canonical design; anonymous unions are translated from AST shape. `SDL_GUID` is explicitly mapped to `System.Guid` through substitution policy and is not emitted as a generated struct.
 
 ## Related Canonical Docs
 

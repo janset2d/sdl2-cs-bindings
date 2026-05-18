@@ -18,6 +18,11 @@ public sealed record BindingStruct(
 /// <summary>
 /// One field of a <see cref="BindingStruct"/>. <see cref="FieldOffset"/> is only
 /// populated when the parent struct uses <see cref="LayoutKind.Explicit"/>; for
-/// sequential POD structs it stays <c>null</c>.
+/// sequential POD structs it stays <c>null</c>. <see cref="FixedBufferLength"/> is
+/// populated for fixed-size primitive arrays such as <c>unsigned char data[16]</c>.
 /// </summary>
-public sealed record BindingStructField(string Name, BindingTypeRef Type, int? FieldOffset);
+public sealed record BindingStructField(
+    string Name,
+    BindingTypeRef Type,
+    int? FieldOffset,
+    int? FixedBufferLength = null);
