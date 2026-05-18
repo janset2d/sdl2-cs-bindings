@@ -117,7 +117,7 @@ public sealed class GenerateBindingsTask(
 
         await RunFamilyValidatorsAsync(model, config, ct).ConfigureAwait(false);
 
-        var fileSet = CsCommandEmitter.Emit(model);
+        var fileSet = CsCommandEmitter.Emit(model, BindingEmissionOptions.FromConfig(config));
         await WriteAsync(context, fileSet, outputDirectory, ct).ConfigureAwait(false);
 
         _log.Information("Wrote {0} files to '{1}'.", fileSet.Files.Count, outputDirectory.FullPath);

@@ -1,12 +1,14 @@
 # Binding API Surface Strategy
 
-> **Status (2026-05-17):** Canonical API-surface decision for the SDL2/SDL3 binding generator. This document records the peer-research evidence, rejected alternatives, chosen public shape, overload policy, and performance/lifetime implications. The active implementation plan must follow this document when it describes raw externs, typed handles, `SDL_bool`, spans, strings, and friendly overloads.
+> **Status (2026-05-18):** Canonical API-surface decision for the SDL2/SDL3 binding generator. This document records the peer-research evidence, rejected alternatives, chosen public shape, overload policy, constants/macros policy, and performance/lifetime implications. The active implementation plan must follow this document when it describes raw externs, typed handles, `SDL_bool`, spans, strings, constants, enums, and friendly overloads.
 
 ## Decision Summary
 
 Use **internal raw ABI externs + public typed low-level API + public friendly overloads**.
 
 Do **not** ship a public `Raw.IntPtr` API in v1 preview. The escape hatch for advanced interop is exposed native handle values on typed SDL handles, not a second public P/Invoke universe.
+
+SDL2-CS compatibility is **best-effort**. It remains a legacy behavior oracle and migration aid, but it is not the public API design target. Modern C# interop shape wins when exact SDL2-CS compatibility conflicts with type safety, UTF-8 correctness, or long-term API stability.
 
 The chosen shape is:
 
@@ -19,16 +21,19 @@ This is not invented locally. It combines established patterns from SkiaSharp, S
 
 ## Generator Output Contract
 
-Generated namespaces are family-owned and stable:
+Generated C# identity is family-owned, stable, and **manifest-driven**. `build/manifest.json` `library_manifests[].binding_generation.managed_namespace` and `primary_class_name` are the source of truth; emitter code must not hardcode namespace or class identity. The internal raw ABI class is derived from `primary_class_name` by appending `Native`.
+
+Current SDL2 manifest entries:
 
 | Family | Namespace | Public class | Internal raw ABI class |
 | --- | --- | --- | --- |
-| SDL2 core | `Janset.SDL2.Core` | `SDL2` | `SDL2Native` |
-| SDL2_gfx | `Janset.SDL2.Gfx` | `SDL2Gfx` | `SDL2GfxNative` |
-| SDL2_image | `Janset.SDL2.Image` | `SDL2Image` | `SDL2ImageNative` |
-| SDL2_mixer | `Janset.SDL2.Mixer` | `SDL2Mixer` | `SDL2MixerNative` |
-| SDL2_ttf | `Janset.SDL2.Ttf` | `SDL2Ttf` | `SDL2TtfNative` |
-| SDL2_net | `Janset.SDL2.Net` | `SDL2Net` | `SDL2NetNative` |
+| SDL2 core | `SDL2` | `SDL` | `SDLNative` |
+| SDL2_image | `SDL2.Image` | `SDL_image` | `SDL_imageNative` |
+| SDL2_mixer | `SDL2.Mixer` | `SDL_mixer` | `SDL_mixerNative` |
+| SDL2_ttf | `SDL2.Ttf` | `SDL_ttf` | `SDL_ttfNative` |
+| SDL2_gfx | `SDL2.Gfx` | `SDL2_gfx` | `SDL2_gfxNative` |
+
+`SDL2_net` gets its binding identity when the package family enters `build/manifest.json`.
 
 Parse views (`Neutral`, `MacOS`, `Linux`, `WindowsDesktop`, etc.) are parser/output metadata, not class identity. They may affect file path, platform attributes, and deduplication, but they must not produce raw ABI classes such as `Sdl2_Neutral` or `Sdl2_MacOS`. The raw ABI class remains one `internal static unsafe partial` type per family, split across files.
 
@@ -69,9 +74,9 @@ CppAst parse results
 Internal raw externs are the only methods that carry `[DllImport]` / `[LibraryImport]`.
 
 ```csharp
-namespace Janset.SDL2.Core;
+namespace SDL2;
 
-internal static unsafe partial class SDL2Native
+internal static unsafe partial class SDLNative
 {
     private const string LibName = "SDL2";
 
@@ -153,6 +158,46 @@ SDL structs/enums/callbacks are also public typed low-level declarations:
 - flags: `[Flags]` where structural/name heuristics prove flag semantics
 - callbacks: modern `delegate* unmanaged[Cdecl]<...>` plus legacy delegate shape where old TFMs require it
 
+### Constants, enums, and C macros
+
+Generated constants preserve the SDL concept while using the C# shape that best matches how callers consume it:
+
+- numeric literal macros, including flag bits such as `SDL_INIT_TIMER`, emit as `public const` with the narrowest correct managed type;
+- composed numeric macros such as `SDL_INIT_EVERYTHING` may still emit as `public const` when the expression is a valid C# compile-time constant over other constants;
+- runtime-sized or runtime-dependent macros emit as `public static readonly` or a helper method/property, not as fake constants;
+- SDL flag groups emit as `[Flags]` enums when the enum/macro set represents bit composition, including composed aliases such as `SDL_WINDOW_FULLSCREEN_DESKTOP`;
+- string-like SDL macro keys such as `SDL_HINT_RENDER_DRIVER` emit as canonical UTF-8 literal span properties, not as duplicate `const string` aliases.
+
+Example:
+
+```csharp
+public const uint SDL_INIT_TIMER = 0x00000001u;
+
+public const uint SDL_INIT_EVERYTHING =
+    SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS |
+    SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC | SDL_INIT_GAMECONTROLLER | SDL_INIT_SENSOR;
+
+[Flags]
+public enum SDL_WindowFlags : uint
+{
+    SDL_WINDOW_FULLSCREEN = 0x00000001u,
+    SDL_WINDOW_OPENGL = 0x00000002u,
+    SDL_WINDOW_MOUSE_GRABBED = 0x00000100u,
+    SDL_WINDOW_FULLSCREEN_DESKTOP = SDL_WINDOW_FULLSCREEN | 0x00001000u,
+    SDL_WINDOW_INPUT_GRABBED = SDL_WINDOW_MOUSE_GRABBED,
+}
+
+public static ReadOnlySpan<byte> SDL_HINT_RENDER_DRIVER => "SDL_RENDER_DRIVER"u8;
+```
+
+The string-like macro decision is intentionally **not** "emit both `const string` and `ReadOnlySpan<byte>` for every key." Prior art splits into either SDL2-CS-style `const string` or ppy/Alimer-style UTF-8 span constants; duplicating both creates IntelliSense noise and makes callers ask which one is canonical. String ergonomics belongs on method overloads, not on duplicate macro constants:
+
+```csharp
+SDL.SetHint(SDL.SDL_HINT_RENDER_DRIVER, "opengl");
+SDL.SetHint("SDL_RENDER_DRIVER", "opengl");
+SDL.SetHint(SDL.SDL_HINT_RENDER_DRIVER, "opengl"u8);
+```
+
 ### Layer 3: Public generated function wrappers
 
 Public functions call the internal raw externs. They are not extern declarations themselves.
@@ -160,9 +205,9 @@ Public functions call the internal raw externs. They are not extern declarations
 Examples below use normalized method names for readability; the exact public naming convention is a separate API naming decision.
 
 ```csharp
-namespace Janset.SDL2.Core;
+namespace SDL2;
 
-public static partial class SDL2
+public static partial class SDL
 {
 public static unsafe SDL_Window CreateWindow(
     byte* title,
@@ -171,10 +216,10 @@ public static unsafe SDL_Window CreateWindow(
     int w,
     int h,
     SDL_WindowFlags flags)
-    => SDL2Native.SDL_CreateWindow(title, x, y, w, h, flags);
+    => SDLNative.SDL_CreateWindow(title, x, y, w, h, flags);
 
 public static bool HasClipboardText()
-    => SDL2Native.SDL_HasClipboardText() != 0;
+    => SDLNative.SDL_HasClipboardText() != 0;
 }
 ```
 
@@ -234,6 +279,7 @@ Policy:
 - Provide `string` overloads for normal use. They encode to null-terminated UTF-8 and may allocate.
 - Provide `ReadOnlySpan<byte>` overloads for pre-encoded UTF-8. They should be zero-allocation when the input is already null-terminated and may use stackalloc/rent when a terminator must be appended.
 - Keep `byte*` low-level overloads for true zero-allocation callers that already control native lifetime and null termination.
+- Emit string-like SDL macro constants as `ReadOnlySpan<byte>` UTF-8 literal properties. Do not also emit `const string` aliases for the same macro key.
 - Do not pretend every `string` call is allocation-free. Document the cost and provide the lower-level escape hatches.
 
 We do not need to predict "hot paths" perfectly. We expose the easy overload and the control overload. Callers choose based on their own performance needs.
@@ -355,4 +401,4 @@ The API surface decision changes the stabilization order:
 4. Define the external/native type taxonomy.
 5. Populate model categories and emit typed handles/enums/structs/callbacks/constants.
 6. Add friendly overloads using the string/span/out/ref policies above.
-7. Promote compile-check from manual diagnostic to opt-in/blocking only after generated input existence is guarded.
+7. Keep compile-check diagnostic until generated output is structurally complete; the generated-input existence guard is required before it can become blocking.

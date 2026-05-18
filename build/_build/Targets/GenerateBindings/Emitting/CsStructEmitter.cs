@@ -23,10 +23,13 @@ internal static class CsStructEmitter
         "double",
     };
 
-    public static GeneratedFile Emit(IReadOnlyList<BindingStruct> structs) =>
-        new("Types/Structs.g.cs", EmitStructsFile(structs));
+    public static GeneratedFile Emit(IReadOnlyList<BindingStruct> structs, BindingEmissionOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        return new("Types/Structs.g.cs", EmitStructsFile(structs, options));
+    }
 
-    private static string EmitStructsFile(IReadOnlyList<BindingStruct> structs)
+    private static string EmitStructsFile(IReadOnlyList<BindingStruct> structs, BindingEmissionOptions options)
     {
         var inlineArrays = CollectInlineArrays(structs);
 
@@ -39,7 +42,7 @@ internal static class CsStructEmitter
         }
         builder.AppendLf("using System.Runtime.InteropServices;");
         builder.AppendLf();
-        builder.AppendLf("namespace Janset.SDL2.Core;");
+        builder.Append("namespace ").Append(options.ManagedNamespace).AppendLf(';');
 
         foreach (var structure in structs)
         {

@@ -88,7 +88,8 @@ Final unless Deniz explicitly reopens.
 | Hybrid-static encoded by triplets | Triplet names encode the build model; `manifest.runtimes[].strategy` field retired in S11 (2026-05-08); PreFlight validates triplet→overlay coherence via `HybridStaticOverlayValidator` (G16). No `--strategy` CLI flag |
 | Validator uses vcpkg metadata | No manually maintained expected-deps lists; binary closure walker output is ground truth |
 | Package-first consumer contract | Smoke / sample / sandbox csprojs consume packages via local folder feed; `Janset.Local.props` carries family versions |
-| Binding autogen replaces SDL2-CS | Phase 4 replaces SDL2-CS imports with AST-generated bindings. ADR-004 selects CppAst for Phase 4 planning on scope-trajectory grounds; ClangSharp remains the documented migration path. |
+| Binding autogen replaces SDL2-CS | Phase 4 replaces SDL2-CS imports with AST-generated bindings. ADR-004 selects CppAst for Phase 4 planning on scope-trajectory grounds; ClangSharp remains the documented migration path. Generated API shape is internal raw ABI + public typed low-level API + friendly overloads; SDL2-CS compatibility is best-effort, not the design target. |
+| String-like SDL macro constants | `SDL_HINT_*` and similar string-like macro keys emit as canonical `ReadOnlySpan<byte>` UTF-8 literal properties. String ergonomics belongs to method overloads; do not duplicate every key as both `const string` and UTF-8 span. |
 | `external/sdl2-cs` is transitional | Untrusted for production testing; retires when the AST-generated binding surface ships |
 | C++ native smoke test | CMake/vcpkg IDE-debuggable harness for OS-level hybrid validation |
 | TUnit + MTP for testing | Microsoft.Testing.Platform; characterization tests before refactoring |

@@ -16,8 +16,5 @@ namespace Build.Targets.GenerateBindings.Model;
 /// <see cref="ConstantKind.Literal"/>; the compound expression for
 /// <see cref="ConstantKind.Computed"/>).
 /// </param>
-/// <param name="Kind">
-/// Discriminates compile-time literals (<c>public const</c>) from runtime-computed
-/// expressions (<c>public static readonly</c>). See <see cref="ConstantKind"/>.
-/// </param>
+/// <param name="Kind">C macro-shape metadata. See <see cref="ConstantKind"/>.</param>
 public sealed record BindingConstant(string Name, BindingTypeRef Type, string Value, ConstantKind Kind);

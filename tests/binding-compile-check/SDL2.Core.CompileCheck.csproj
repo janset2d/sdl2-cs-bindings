@@ -9,9 +9,17 @@
     <IsAotCompatible>false</IsAotCompatible>
     <IsTrimmable>false</IsTrimmable>
     <EnableAOTAnalyzer>false</EnableAOTAnalyzer>
+    <GeneratedBindingsPreviewRoot Condition="'$(GeneratedBindingsPreviewRoot)' == ''">$(MSBuildThisFileDirectory)..\..\artifacts\generated-bindings-preview\sdl2-core\</GeneratedBindingsPreviewRoot>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\artifacts\generated-bindings-preview\sdl2-core\**\*.g.cs" />
+    <GeneratedBindingCompileInput Include="$(GeneratedBindingsPreviewRoot)**\*.g.cs" />
+    <Compile Include="@(GeneratedBindingCompileInput)" />
   </ItemGroup>
+
+  <Target Name="EnsureGeneratedBindingCompileInputs" BeforeTargets="CoreCompile">
+    <Error
+      Condition="'@(GeneratedBindingCompileInput)' == ''"
+      Text="BINDING-COMPILE-CHECK-001: SDL2.Core compile-check found no generated binding .g.cs files under '$(GeneratedBindingsPreviewRoot)'. Run 'dotnet run --file tools.cs -- generate-bindings' before building this project." />
+  </Target>
 </Project>

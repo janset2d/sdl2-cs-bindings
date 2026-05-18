@@ -1,14 +1,14 @@
 # Binding Autogen Workstream — LLM Onboarding
 
 **Audience:** an LLM (or fresh human contributor) picking up the AST binding-generation workstream for Janset.SDL2/SDL3 with no prior conversation context.
-**Date this onboarding reflects:** 2026-05-15.
+**Date this onboarding reflects:** 2026-05-18.
 **Maintainer:** Deniz İrgin (@denizirgin) — hobby project, sets the pace, communicates in Turkish + English.
 
 ## What This Document Is
 
 You're joining a mid-workstream research effort that has converged on a concrete implementation plan. Two binding-generation toolchains were investigated, both validated end-to-end on a small SDL satellite (SDL2_gfx); CppAst additionally validated ppy-style neutral + platform-specific parsing plus SDL2_image satellite/shared-type topology. The strategy brief selects the CppAst path; a companion architecture design spec and a Stage 1 implementation plan are accepted alongside. ClangSharp remains the documented migration path.
 
-The workstream went through a meaningful 2026-05-15 revision that this onboarding reflects. Read the "2026-05-15 Architectural Shifts" section below before the rest of the document — it tells you what changed and why, so you don't waste time learning superseded patterns.
+The workstream went through meaningful 2026-05-15 and 2026-05-18 revisions that this onboarding reflects. Read the "2026-05-15 Architectural Shifts" section and the 2026-05-18 addendum below before the rest of the document — they tell you what changed and why, so you don't waste time learning superseded patterns.
 
 This doc is your **15-minute orientation**: required reading list (in order), strategic anchors that won't change, open decisions that will. Read this first, then work through the required-reading list.
 
@@ -30,6 +30,15 @@ The 2026-05-14 draft of the strategy brief was accepted, but four pieces of it w
 
 The strategy brief's Decision Audit table records two retraction rows for these shifts: **Error 4 — toolchain stub strategy speculation (corrected 2026-05-15)** and **Reframe — generator hosted in Cake build host (2026-05-15)**. The brief's Plan Shape, Current Open Decisions, and WHAT impact inventory have all been re-aligned with these shifts.
 
+## 2026-05-18 API Surface Addendum
+
+The canonical API-surface decision lives in [`../binding-api-surface-strategy.md`](../binding-api-surface-strategy.md). Current locks:
+
+1. **SDL2-CS compatibility is best-effort.** SDL2-CS remains a migration/reference oracle, but modern C# API shape wins where exact compatibility conflicts with typed handles, `nint`, UTF-8 correctness, spans, or future API stability.
+2. **Generated identity is manifest-driven.** SDL2 Core currently emits `namespace SDL2`, public class `SDL`, and internal raw ABI class `SDLNative` from `build/manifest.json` `managed_namespace` / `primary_class_name`. Parse views never become class names.
+3. **String-like SDL macro constants are UTF-8 spans.** `SDL_HINT_*` and similar keys emit as canonical `ReadOnlySpan<byte>` properties (`"..."u8`). Do not also emit `const string` aliases for the same keys; `string` ergonomics belongs to method overloads.
+4. **Stage 1 is generated-core readiness, not a minimal proof-of-life.** Before SDL2.Core drops `external/sdl2-cs/src/SDL2.cs`, generated output must cover the core replacement essentials: critical functions, numeric/string-like constants, `[Flags]` enums, verified structs/unions, fixed arrays, callbacks, typed handles, and compile-check trust gates.
+
 ## Project Context (One Paragraph)
 
 Janset.SDL2 is a .NET 10 / C# 14 project providing modular SDL2 (and planned SDL3) bindings + cross-platform native binaries built from source via vcpkg, distributed as NuGet packages across 7 RIDs (`win-x64`, `win-x86`, `win-arm64`, `linux-x64`, `linux-arm64`, `osx-x64`, `osx-arm64`). The current bindings layer is imported from `external/sdl2-cs/` (Ethan Lee's POC-grade SDL2-CS, deprecated upstream, marked "untrusted for production"). The AST workstream replaces this import with auto-generated bindings — same SDL2 surface, regenerable on SDL upstream bumps, and the precondition for SDL3 support (no upstream SDL3-CS covers our planned satellite scope). AST-first prioritization makes Phase 4 (binding generator) **critical path for v1.0 stable launch** — first public NuGet `-preview.N` wave should ship AST-generated bindings, not `external/sdl2-cs` imports.
@@ -43,7 +52,7 @@ Each doc builds on the previous. Don't skip; the later docs assume context from 
 | 1 | [`AGENTS.md`](../../../AGENTS.md) | Operating rules, approval gate, communication style (Deniz's preferences), settled strategic decisions, test naming convention, build-host reference pattern | 10 min |
 | 2 | [`release-strategy.md`](../../release-strategy.md) | Strategic anchor for v1.0 — end state, NuGet labeling, promotion gates, AST-first sequencing rationale, deferred decisions (topology parked) | 10 min |
 | 3 | [`phase-4-binding-autogen.md`](../../phases/phase-4-binding-autogen.md) | Phase 4 design brief — the active phase this workstream belongs to | 5 min |
-| 4 | [`binding-autogen-strategy-brief.md`](../binding-autogen-strategy-brief.md) | Accepted WHY/HOW/WHAT strategy brief (revised 2026-05-15). Read the new WHY §"Why hosted in the Cake build host" and the Decision Audit Error 4 / Reframe rows carefully. | 25 min |
+| 4 | [`binding-autogen-strategy-brief.md`](../binding-autogen-strategy-brief.md) | Accepted WHY/HOW/WHAT strategy brief (revised through 2026-05-18). Read the new WHY §"Why hosted in the Cake build host", API-surface decision, and Decision Audit Error 4 / Reframe rows carefully. | 25 min |
 | 5 | [`../../superpowers/specs/2026-05-16-binding-generator-unified-design.md`](../../superpowers/specs/2026-05-16-binding-generator-unified-design.md) | Unified design spec — manifest-driven per-family generator, BindingModel + 6 categories, per-category emitters, validator wiring. Supersedes the 2026-05-14 architecture spec + 2026-05-15 local-output-loop spec. | 20 min |
 | 6 | [`../../superpowers/plans/2026-05-17-binding-generator-unified-plan.md`](../../superpowers/plans/2026-05-17-binding-generator-unified-plan.md) | Unified implementation plan — Phase 1 (docs) / 2 (manifest schema + infrastructure) / 3 (Preview → real shape). Task-by-task with explicit approval gates. | 25 min |
 | 7 | [`binding-autogen-approaches.md`](binding-autogen-approaches.md) | Toolchain comparison: industry survey of binding-generation tools, Decision Matrix Re-Validation (CppAst → ClangSharp flip), Source-Level Comparison of ppy/SDL3-CS vs Alimer.Bindings.SDL. Historical research; some claims about platform stubs superseded by 2026-05-15 retractions in the strategy brief Decision Audit. | 20 min |

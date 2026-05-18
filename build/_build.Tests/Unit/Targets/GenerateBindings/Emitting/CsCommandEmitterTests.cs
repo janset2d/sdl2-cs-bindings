@@ -1,3 +1,4 @@
+using Build.Data.BindingGeneration.Models;
 using Build.Targets.GenerateBindings.Emitting;
 using Build.Targets.GenerateBindings.Model;
 using System.Runtime.InteropServices;
@@ -11,7 +12,7 @@ public sealed class CsCommandEmitterTests
     {
         var model = BindingModelData.TwoViewsNeutralPlusLinux();
 
-        var fileSet = CsCommandEmitter.Emit(model);
+        var fileSet = Emit(model);
 
         var relativePaths = fileSet.Files.Select(f => f.RelativePath).ToArray();
         await Assert.That(relativePaths).IsEquivalentTo(
@@ -27,7 +28,7 @@ public sealed class CsCommandEmitterTests
     {
         var model = BindingModelData.TwoViewsNeutralPlusLinux();
 
-        var fileSet = CsCommandEmitter.Emit(model);
+        var fileSet = Emit(model);
 
         var neutralFile = fileSet.Files.Single(f => f.RelativePath == "Platform/Neutral/Commands.g.cs");
         await Assert.That(neutralFile.Content).Contains("[DllImport(LibName, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]");
@@ -36,28 +37,30 @@ public sealed class CsCommandEmitterTests
     }
 
     [Test]
-    public async Task Emit_Should_Use_Core_Namespace_For_Command_Files()
+    public async Task Emit_Should_Use_Configured_Namespace_For_Command_Files()
     {
         var model = BindingModelData.TwoViewsNeutralPlusLinux();
 
-        var fileSet = CsCommandEmitter.Emit(model);
+        var fileSet = Emit(model);
 
         foreach (var file in CommandFiles(fileSet))
         {
-            await Assert.That(file.Content).Contains("namespace Janset.SDL2.Core;");
+            await Assert.That(file.Content).Contains("namespace SDL2;");
+            await Assert.That(file.Content).DoesNotContain("namespace Janset.SDL2.Core;");
         }
     }
 
     [Test]
-    public async Task Emit_Should_Declare_Stable_Raw_Abi_Class_For_Command_Files()
+    public async Task Emit_Should_Declare_Configured_Raw_Abi_Class_For_Command_Files()
     {
         var model = BindingModelData.TwoViewsNeutralPlusLinux();
 
-        var fileSet = CsCommandEmitter.Emit(model);
+        var fileSet = Emit(model);
 
         foreach (var file in CommandFiles(fileSet))
         {
-            await Assert.That(file.Content).Contains("internal static unsafe partial class SDL2Native");
+            await Assert.That(file.Content).Contains("internal static unsafe partial class SDLNative");
+            await Assert.That(file.Content).DoesNotContain("internal static unsafe partial class SDL2Native");
         }
     }
 
@@ -66,7 +69,7 @@ public sealed class CsCommandEmitterTests
     {
         var model = BindingModelData.TwoViewsNeutralPlusLinux();
 
-        var fileSet = CsCommandEmitter.Emit(model);
+        var fileSet = Emit(model);
 
         foreach (var file in CommandFiles(fileSet))
         {
@@ -81,7 +84,7 @@ public sealed class CsCommandEmitterTests
     {
         var model = BindingModelData.TwoViewsNeutralPlusLinux();
 
-        var fileSet = CsCommandEmitter.Emit(model);
+        var fileSet = Emit(model);
 
         var linuxFile = fileSet.Files.Single(f => f.RelativePath == "Platform/Linux/Commands.g.cs");
         await Assert.That(linuxFile.Content).Contains("[SupportedOSPlatform(\"linux\")]");
@@ -92,7 +95,7 @@ public sealed class CsCommandEmitterTests
     {
         var model = BindingModelData.TwoViewsNeutralPlusLinux();
 
-        var fileSet = CsCommandEmitter.Emit(model);
+        var fileSet = Emit(model);
 
         var neutralFile = fileSet.Files.Single(f => f.RelativePath == "Platform/Neutral/Commands.g.cs");
         await Assert.That(neutralFile.Content).DoesNotContain("SupportedOSPlatform");
@@ -103,7 +106,7 @@ public sealed class CsCommandEmitterTests
     {
         var model = BindingModelData.TwoViewsNeutralPlusLinux();
 
-        var fileSet = CsCommandEmitter.Emit(model);
+        var fileSet = Emit(model);
 
         var libNameDeclarationCount = CommandFiles(fileSet)
             .Sum(file => CountOccurrences(file.Content, "private const string LibName = \"SDL2\";"));
@@ -116,7 +119,7 @@ public sealed class CsCommandEmitterTests
     {
         var model = BindingModelData.LinuxBeforeNeutral();
 
-        var fileSet = CsCommandEmitter.Emit(model);
+        var fileSet = Emit(model);
 
         var linuxFile = fileSet.Files.Single(f => f.RelativePath == "Platform/Linux/Commands.g.cs");
         var neutralFile = fileSet.Files.Single(f => f.RelativePath == "Platform/Neutral/Commands.g.cs");
@@ -129,8 +132,8 @@ public sealed class CsCommandEmitterTests
     {
         var model = BindingModelData.TwoViewsNeutralPlusLinux();
 
-        var first = CsCommandEmitter.Emit(model);
-        var second = CsCommandEmitter.Emit(model);
+        var first = Emit(model);
+        var second = Emit(model);
 
         for (var i = 0; i < first.Files.Count; i++)
         {
@@ -144,7 +147,7 @@ public sealed class CsCommandEmitterTests
     {
         var model = BindingModelData.SingleNeutralEmptyParameterFunction();
 
-        var fileSet = CsCommandEmitter.Emit(model);
+        var fileSet = Emit(model);
 
         var file = fileSet.Files.Single(f => f.RelativePath == "Platform/Neutral/Commands.g.cs");
         await Assert.That(file.Content).Contains("internal static extern uint SDL_GetTicks();");
@@ -155,7 +158,7 @@ public sealed class CsCommandEmitterTests
     {
         var model = BindingModelData.EmptyModel();
 
-        var fileSet = CsCommandEmitter.Emit(model);
+        var fileSet = Emit(model);
 
         await Assert.That(fileSet.Files.Count).IsEqualTo(1);
         await Assert.That(fileSet.Files[0].RelativePath).IsEqualTo("parse-views.json");
@@ -166,10 +169,11 @@ public sealed class CsCommandEmitterTests
     {
         var model = BindingModelData.ModelWithStructs();
 
-        var fileSet = CsCommandEmitter.Emit(model);
+        var fileSet = Emit(model);
 
         var structsFile = fileSet.Files.Single(f => f.RelativePath == "Types/Structs.g.cs");
-        await Assert.That(structsFile.Content).Contains("namespace Janset.SDL2.Core;");
+        await Assert.That(structsFile.Content).Contains("namespace SDL2;");
+        await Assert.That(structsFile.Content).DoesNotContain("namespace Janset.SDL2.Core;");
         await Assert.That(structsFile.Content).Contains("[StructLayout(LayoutKind.Sequential)]");
         await Assert.That(structsFile.Content).Contains("public unsafe partial struct SDL_CustomBytes");
         await Assert.That(structsFile.Content).Contains("public fixed byte data[16];");
@@ -203,7 +207,7 @@ public sealed class CsCommandEmitterTests
             Handles: [],
             Callbacks: []);
 
-        var fileSet = CsCommandEmitter.Emit(model);
+        var fileSet = Emit(model);
 
         var structsFile = fileSet.Files.Single(f => f.RelativePath == "Types/Structs.g.cs");
         await Assert.That(structsFile.Content).Contains("public unsafe partial struct SDL_PointerFields");
@@ -231,7 +235,7 @@ public sealed class CsCommandEmitterTests
             Handles: [],
             Callbacks: []);
 
-        var fileSet = CsCommandEmitter.Emit(model);
+        var fileSet = Emit(model);
 
         var structsFile = fileSet.Files.Single(f => f.RelativePath == "Types/Structs.g.cs");
         await Assert.That(structsFile.Content).Contains("using System.Runtime.CompilerServices;");
@@ -242,10 +246,78 @@ public sealed class CsCommandEmitterTests
         await Assert.That(structsFile.Content).DoesNotContain("fixed SDL_MessageBoxColor colors[5];");
     }
 
+    [Test]
+    public async Task Emit_Should_Produce_Constants_File_When_Model_Has_Constants()
+    {
+        var model = new BindingModel(
+            Views: [],
+            Structs: [],
+            Enums: [],
+            Constants:
+            [
+                new BindingConstant("SDL_INIT_TIMER", BindingTypeRef.Of("uint"), "0x00000001u", ConstantKind.Literal),
+                new BindingConstant("SDL_INIT_EVERYTHING", BindingTypeRef.Of("uint"), "SDL_INIT_TIMER | SDL_INIT_AUDIO", ConstantKind.Computed),
+                new BindingConstant("SDL_HINT_RENDER_DRIVER", BindingTypeRef.Of("ReadOnlySpan<byte>"), "\"SDL_RENDER_DRIVER\"u8", ConstantKind.Literal),
+            ],
+            Handles: [],
+            Callbacks: []);
+
+        var fileSet = Emit(model);
+
+        var constantsFile = fileSet.Files.Single(f => f.RelativePath == "Constants.g.cs");
+        await Assert.That(constantsFile.Content).Contains("using System;");
+        await Assert.That(constantsFile.Content).Contains("namespace SDL2;");
+        await Assert.That(constantsFile.Content).Contains("public static partial class SDL");
+        await Assert.That(constantsFile.Content).Contains("public const uint SDL_INIT_TIMER = 0x00000001u;");
+        await Assert.That(constantsFile.Content).Contains("public const uint SDL_INIT_EVERYTHING = SDL_INIT_TIMER | SDL_INIT_AUDIO;");
+        await Assert.That(constantsFile.Content).Contains("public static ReadOnlySpan<byte> SDL_HINT_RENDER_DRIVER => \"SDL_RENDER_DRIVER\"u8;");
+        await Assert.That(constantsFile.Content).DoesNotContain("public const string SDL_HINT_RENDER_DRIVER");
+    }
+
+    [Test]
+    public async Task Emit_Should_Produce_Enums_File_When_Model_Has_Enums()
+    {
+        var model = new BindingModel(
+            Views: [],
+            Structs: [],
+            Enums:
+            [
+                new BindingEnumeration(
+                    Name: "SDL_WindowFlags",
+                    UnderlyingType: BindingTypeRef.Of("uint"),
+                    Members:
+                    [
+                        new BindingEnumMember("SDL_WINDOW_FULLSCREEN", "0x00000001u"),
+                        new BindingEnumMember("SDL_WINDOW_OPENGL", "0x00000002u"),
+                        new BindingEnumMember("SDL_WINDOW_MOUSE_GRABBED", "0x00000100u"),
+                        new BindingEnumMember("SDL_WINDOW_FULLSCREEN_DESKTOP", "SDL_WINDOW_FULLSCREEN | 0x00001000u"),
+                        new BindingEnumMember("SDL_WINDOW_INPUT_GRABBED", "SDL_WINDOW_MOUSE_GRABBED"),
+                    ],
+                    IsFlags: true),
+            ],
+            Constants: [],
+            Handles: [],
+            Callbacks: []);
+
+        var fileSet = Emit(model);
+
+        var enumsFile = fileSet.Files.Single(f => f.RelativePath == "Types/Enums.g.cs");
+        await Assert.That(enumsFile.Content).Contains("using System;");
+        await Assert.That(enumsFile.Content).Contains("namespace SDL2;");
+        await Assert.That(enumsFile.Content).Contains("[Flags]");
+        await Assert.That(enumsFile.Content).Contains("public enum SDL_WindowFlags : uint");
+        await Assert.That(enumsFile.Content).Contains("SDL_WINDOW_FULLSCREEN = 0x00000001u,");
+        await Assert.That(enumsFile.Content).Contains("SDL_WINDOW_FULLSCREEN_DESKTOP = SDL_WINDOW_FULLSCREEN | 0x00001000u,");
+        await Assert.That(enumsFile.Content).Contains("SDL_WINDOW_INPUT_GRABBED = SDL_WINDOW_MOUSE_GRABBED,");
+    }
+
     private static IEnumerable<GeneratedFile> CommandFiles(GeneratedFileSet fileSet)
     {
         return fileSet.Files.Where(f => f.RelativePath.EndsWith("Commands.g.cs", StringComparison.Ordinal));
     }
+
+    private static GeneratedFileSet Emit(BindingModel model) =>
+        CsCommandEmitter.Emit(model, new BindingEmissionOptions("SDL2", "SDL"));
 
     private static int CountOccurrences(string text, string value)
     {

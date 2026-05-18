@@ -28,6 +28,7 @@ internal static class CppAstToBindingModel
             .Build(parseResults, requiredFunctions);
         var structs = new BindingStructTranslator(declarationPolicy)
             .Extract(parseResults);
+        var constants = RequiredConstantTranslator.Translate(config.RequiredConstants);
 
         var views = new List<BindingParseView>(parseResults.Count);
         foreach (var result in parseResults)
@@ -58,6 +59,6 @@ internal static class CppAstToBindingModel
                 Functions: functions));
         }
 
-        return new BindingModel(views, structs, [], [], [], []);
+        return new BindingModel(views, structs, [], constants, [], []);
     }
 }

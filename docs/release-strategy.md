@@ -34,8 +34,8 @@ The roadmap **reorders the phase sequence in [`plan.md`](plan.md)**: AST landing
 | Stage | Phase mapping | Focus | Public-ship state |
 | --- | --- | --- | --- |
 | **Stage 0 — Current** | Phase 2b tail | CI/CD hardening; PD-7 / PD-8 prerequisites; pipeline scope-assumption gaps (#2 / #3 / #4) | Internal feed only |
-| **Stage 1 — AST proof-of-life** | Phase 4 (start) | Binding-generator R&D; SDL2.Core AST-generated end-to-end inside the Cake build host under `build/_build/Targets/GenerateBindings/`; Linux-canonical via `tools.cs generate-bindings` Docker orchestration; learning-sdl2 validates output. Per strategy brief §Plan Shape: full platform-conditioned function attribution (~8 parse views), `SDL_syswm.h` typed-union deferred to Stage 2. | Internal feed only |
-| **Stage 2 — SDL2 AST sweep** | Phase 4 (close) + Phase 3 | `SDL_syswm.h` typed-union layout with forward-declaration stub library; all SDL2 satellites AST-generated; `external/sdl2-cs` retired; Pack-stage symbol-existence validator; samples + meta-package; **first `-preview.N` on nuget.org**. Closes PD-7 prerequisites. | nuget.org `-preview.N` |
+| **Stage 1 — SDL2.Core generated-core readiness** | Phase 4 (start) | SDL2.Core AST-generated in production shape inside the Cake build host under `build/_build/Targets/GenerateBindings/`; Linux-canonical via `tools.cs generate-bindings` Docker orchestration; manifest-driven `SDL2.SDL` identity; internal raw ABI + public typed low-level + friendly overloads; constants/enums/structs/fixed arrays/callbacks/critical functions sufficient to remove the Core dependency on `external/sdl2-cs/src/SDL2.cs`. `SDL_syswm.h` typed-union layout remains Stage 2. | Internal feed only |
+| **Stage 2 — SDL2 family AST sweep** | Phase 4 (close) + Phase 3 | `SDL_syswm.h` typed-union layout with forward-declaration stub library; all SDL2 satellites AST-generated; remaining `external/sdl2-cs` production use retired; Pack-stage symbol-existence validator; samples + meta-package; **first `-preview.N` on nuget.org**. Closes PD-7 prerequisites. | nuget.org `-preview.N` |
 | **Stage 3 — SDL3 extension** | Phase 5 | SDL3 family added; AST generator extended for SDL3 headers via sibling `GenerateSdl3Bindings` Cake target; SDL3-specific ABI rules (1-byte bool wire types, `SDL_IOStream` replacing `SDL_RWops`); SDL3 prereleases ship alongside SDL2. **Gated on PD-7 completion** — SDL3 vcpkg port + overlay triplet + transitive dependency closure work is its own substantial scope and must not block SDL2 v1.0 stable. | nuget.org `-preview.N` for SDL2 + SDL3 |
 | **Stage 4 — Stabilization** | 2027 Stabilization | Real-consumer feedback intake; deferred-decision revisits; v1.0 launch wave preparation | nuget.org `-rc.N` near launch |
 | **Stage 5 — v1.0 Big Bang** | Stable launch | Stable cut of all in-scope families. Blog post, documentation site, sample apps. SDL2 + SDL3 brand launch event. | nuget.org stable |
@@ -55,7 +55,7 @@ Estimates calibrated against [Alimer.Bindings.SDL](https://github.com/amerkoleci
 
 | Stage | Focused-work effort | Calendar (hobby cadence) |
 | --- | --- | --- |
-| Stage 1 — proof-of-life | 1–2 weeks | 1–2 months |
+| Stage 1 — SDL2.Core generated-core readiness | 1–2 weeks | 1–2 months |
 | Stage 2 — SDL2 sweep | 2–3 weeks | 2–3 months |
 | Stage 3 — SDL3 extension | 2–3 weeks | 2–3 months |
 | Stage 4 — Stabilization | 2–4 weeks spread + calendar wait for feedback | 3–6 months |

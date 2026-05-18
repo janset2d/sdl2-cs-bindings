@@ -12,9 +12,10 @@ internal static class CsCommandEmitter
         WriteIndented = true,
     };
 
-    public static GeneratedFileSet Emit(BindingModel model)
+    public static GeneratedFileSet Emit(BindingModel model, BindingEmissionOptions options)
     {
         ArgumentNullException.ThrowIfNull(model);
+        ArgumentNullException.ThrowIfNull(options);
 
         var files = new List<GeneratedFile>();
 
@@ -22,12 +23,22 @@ internal static class CsCommandEmitter
         for (var index = 0; index < model.Views.Count; index++)
         {
             var view = model.Views[index];
-            files.Add(new GeneratedFile(RelativePath: $"Platform/{view.Name}/Commands.g.cs", Content: EmitCommandsFile(view, includeLibName: index == libNameViewIndex)));
+            files.Add(new GeneratedFile(RelativePath: $"Platform/{view.Name}/Commands.g.cs", Content: EmitCommandsFile(view, options, includeLibName: index == libNameViewIndex)));
         }
 
         if (model.Structs.Count > 0)
         {
-            files.Add(CsStructEmitter.Emit(model.Structs));
+            files.Add(CsStructEmitter.Emit(model.Structs, options));
+        }
+
+        if (model.Enums.Count > 0)
+        {
+            files.Add(CsEnumEmitter.Emit(model.Enums, options));
+        }
+
+        if (model.Constants.Count > 0)
+        {
+            files.Add(CsConstantEmitter.Emit(model.Constants, options));
         }
 
         files.Add(new GeneratedFile(RelativePath: "parse-views.json", Content: EmitReportJson(model)));
@@ -48,7 +59,7 @@ internal static class CsCommandEmitter
         return 0;
     }
 
-    private static string EmitCommandsFile(BindingParseView view, bool includeLibName)
+    private static string EmitCommandsFile(BindingParseView view, BindingEmissionOptions options, bool includeLibName)
     {
         // AppendLf (Host.Text) forces '\n' regardless of host OS so generated
         // .g.cs content stays byte-identical across Windows dev / Linux container
@@ -66,9 +77,9 @@ internal static class CsCommandEmitter
         }
 
         builder.AppendLf();
-        builder.AppendLf("namespace Janset.SDL2.Core;");
+        builder.Append("namespace ").Append(options.ManagedNamespace).AppendLf(';');
         builder.AppendLf();
-        builder.AppendLf("internal static unsafe partial class SDL2Native");
+        builder.Append("internal static unsafe partial class ").AppendLf(options.RawClassName);
         builder.AppendLf('{');
         if (includeLibName)
         {

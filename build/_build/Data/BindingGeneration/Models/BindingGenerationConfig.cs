@@ -88,12 +88,12 @@ public sealed record DeferredDeclarationConfig
 }
 
 /// <summary>
-/// Discriminates compile-time-literal constants (emit as <c>public const</c>)
-/// from runtime-computed expressions (emit as <c>public static readonly</c>).
-/// C# disallows non-literal expressions in <c>const</c>, so compound macros like
-/// SDL2's <c>SDL_INIT_EVERYTHING</c> (bitwise-OR of other constants) MUST use
-/// <c>static readonly</c>. Serializes as a JSON string (<c>"Literal"</c> /
-/// <c>"Computed"</c>) via the converter on the type.
+/// Describes the C macro shape recovered into a binding constant. Both literal
+/// numeric macros and C-computed numeric expressions can still emit as
+/// <c>public const</c> when the right-hand side is a valid C# compile-time
+/// constant expression, such as SDL2's <c>SDL_INIT_EVERYTHING</c> bitwise OR.
+/// Serializes as a JSON string (<c>"Literal"</c> / <c>"Computed"</c>) via the
+/// converter on the type.
 /// </summary>
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ConstantKind
@@ -101,7 +101,7 @@ public enum ConstantKind
     /// <summary>Compile-time literal — emit as <c>public const &lt;type&gt; NAME = &lt;value&gt;;</c>.</summary>
     Literal,
 
-    /// <summary>Runtime-computed expression — emit as <c>public static readonly &lt;type&gt; NAME = &lt;value&gt;;</c>.</summary>
+    /// <summary>C macro expression — emit as <c>public const</c> when the value is a valid C# compile-time expression.</summary>
     Computed,
 }
 
@@ -110,8 +110,8 @@ public enum ConstantKind
 /// excluded from the per-header parse loop. Mirrors the pattern of
 /// <see cref="RequiredFunctionConfig"/>: the manifest carries the explicit
 /// declaration, the translator merges it into the Neutral view at Phase 3D,
-/// and <c>CsConstantEmitter</c> at Phase 3E switches on <see cref="Kind"/> to
-/// pick between <c>public const</c> and <c>public static readonly</c> emit.
+/// and <c>CsConstantEmitter</c> at Phase 3E uses <see cref="Kind"/> as macro-shape
+/// metadata while selecting the C# output form.
 /// </summary>
 public sealed record RequiredConstantConfig
 {

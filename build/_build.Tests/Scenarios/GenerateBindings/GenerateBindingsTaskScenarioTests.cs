@@ -7,6 +7,7 @@ using Build.Targets.GenerateBindings.Parsing;
 using Build.Tests.Fixtures;
 using Build.Validation.BindingGeneration;
 using Cake.Core;
+using CppAst;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using static Build.Tests.Fixtures.BindingGenerationFixture;
@@ -70,6 +71,31 @@ public sealed class GenerateBindingsTaskScenarioTests
         await Assert.That(result.Exception!.Message).Contains("include directory was not found");
     }
 
+    [Test]
+    public async Task RunAsync_Should_Emit_Configured_CSharp_Identity()
+    {
+        var world = FakeCakeWorld.CreateLinux();
+        var config = Sdl2CoreConfig() with
+        {
+            ManagedNamespace = "Example.Bindings",
+            PrimaryClassName = "ExampleApi",
+        };
+        world.WithTextFile("vcpkg_installed/x64-linux-hybrid/include/SDL2/SDL_video.h", string.Empty);
+        var parser = Substitute.For<ICppAstParseRunner>();
+        parser
+            .Parse(Arg.Any<BindingGenerationConfig>(), Arg.Any<ResolvedHeaderSet>(), Arg.Any<PlatformParseView>())
+            .Returns(call => new CppAstParseResult(call.Arg<PlatformParseView>(), []));
+
+        var result = await CreateHost(world, parser: parser, configRepository: CreateEnabledRepository(config)).RunAsync();
+
+        await Assert.That(result.Success).IsTrue();
+        var commands = world.ReadAllText("artifacts/generated-bindings-preview/sdl2-core/Platform/Neutral/Commands.g.cs");
+        await Assert.That(commands).Contains("namespace Example.Bindings;");
+        await Assert.That(commands).Contains("internal static unsafe partial class ExampleApiNative");
+        await Assert.That(commands).DoesNotContain("namespace Janset.SDL2.Core;");
+        await Assert.That(commands).DoesNotContain("SDL2Native");
+    }
+
     private static TargetTestHost<GenerateBindingsTask> CreateHost(
         FakeCakeWorld world,
         ILibclangVersionAsserter? libclangAsserter = null,
@@ -95,10 +121,15 @@ public sealed class GenerateBindingsTaskScenarioTests
 
     private static IBindingGenerationConfigRepository CreateEnabledSdl2CoreRepository()
     {
+        return CreateEnabledRepository(Sdl2CoreConfig());
+    }
+
+    private static IBindingGenerationConfigRepository CreateEnabledRepository(BindingGenerationConfig config)
+    {
         var repo = Substitute.For<IBindingGenerationConfigRepository>();
-        repo.EnumerateEnabledFamilies().Returns(["sdl2-core"]);
-        repo.Load("sdl2-core").Returns(
-            Result<BindingGenerationConfig, BindingGenerationConfigError>.Success(Sdl2CoreConfig()));
+        repo.EnumerateEnabledFamilies().Returns([config.FamilyId]);
+        repo.Load(config.FamilyId).Returns(
+            Result<BindingGenerationConfig, BindingGenerationConfigError>.Success(config));
         return repo;
     }
 }

@@ -21,7 +21,7 @@ In scope:
 - Preserve the existing local Docker generation loop (`tools.cs generate-bindings` + `docker/binding-generator.Dockerfile`) unchanged.
 - Preserve the multi-pass parsing infrastructure (8 platform views, parser options, synthetic headers, header exclusions) that landed in Task 3.5 / `0db0e31`.
 - Replace `Sdl2CoreGenerationConfig.Default` (and the placeholder fields P2-α dropped) with manifest-loaded `BindingGenerationConfig` consumed by `CoreOwnedTypeMap` + `KnownUnsupportedDeclarationPolicy` + `CppAstParseRunner` + per-category emitters.
-- Wire the cross-family type-reference contract via `CoreOwnedTypeMap`: satellite emitters reference core-owned managed types by qualified namespace (`Janset.SDL2.SDL_Surface*`); cross-family compile check is enforced by csc through existing `<ProjectReference>` edges.
+- Wire the cross-family type-reference contract via `CoreOwnedTypeMap`: satellite emitters reference core-owned managed types by qualified namespace (`SDL2.SDL_Surface*` for the current SDL2 Core manifest identity); cross-family compile check is enforced by csc through existing `<ProjectReference>` edges.
 
 Out of scope (deferred to follow-up slices, explicitly named so they don't ambush the next agent):
 

@@ -2,7 +2,7 @@
 
 > Strategy brief accepted for Phase 4 planning. Durable toolchain policy is recorded in [ADR-004](../decisions/2026-05-14-binding-autogen-toolchain.md); remaining implementation details promote into AGENTS.md, release guardrails, and onboarding as Phase 4 ships. Retires when Phase 4 implementation completes and binding generator output supersedes `external/sdl2-cs`.
 >
-> **Status (2026-05-17):** Accepted strategy brief, revised 2026-05-17 to fold in the multi-agent stabilization review and peer API-surface research. The generator remains Cake-hosted, Linux-canonical, CppAst-based, and Stage-2-deferred for `SDL_syswm.h`; the public API surface is now explicitly **internal raw ABI externs + public typed low-level API + friendly overloads** per [`binding-api-surface-strategy.md`](binding-api-surface-strategy.md). Corrections: SDL2 `SDL_bool` is int-backed, generated command classes keep class-level `unsafe`, compile-check is diagnostic until generated output is structurally complete, and missing native types require an emit/map/defer taxonomy instead of empty stubs.
+> **Status (2026-05-18):** Accepted strategy brief, revised through 2026-05-18 to fold in stabilization review, peer API-surface research, manifest-driven identity, and constants/macros decisions. The generator remains Cake-hosted, Linux-canonical, CppAst-based, and Stage-2-deferred for `SDL_syswm.h`; the public API surface is **internal raw ABI externs + public typed low-level API + friendly overloads** per [`binding-api-surface-strategy.md`](binding-api-surface-strategy.md). Corrections: SDL2 `SDL_bool` is int-backed, generated command classes keep class-level `unsafe`, compile-check is diagnostic until generated output is structurally complete, missing native types require an emit/map/defer taxonomy instead of empty stubs, SDL2-CS compatibility is best-effort, and string-like SDL macro constants use canonical UTF-8 span properties rather than duplicate `const string` aliases.
 
 ## Decision Hypothesis
 
@@ -12,6 +12,7 @@ Phase 4 ships an auto-generated binding surface for SDL2 (core + all in-scope sa
 - consumes vcpkg-installed canonical SDL headers via libclang controlled parse views (neutral + per-OS/backend tuple set — see "Multi-pass parsing strategy" below for the catalog), all executed inside a single Linux container per the ppy/SDL3-CS pattern, with platform-conditioned declarations attributed via `[SupportedOSPlatform]`. Platform separation uses **preprocessor macro switching only** — no `--target` cross-compile flags, no mingw-w64, no Apple SDK; SDL headers' own forward-declarations carry the cross-OS opaque types;
 - emits per-family generated `.g.cs` files committed to the repository, with the raw ABI extern layer kept `internal` and dual-shaped for `[LibraryImport]` (net7+) and `[DllImport]` (legacy TFMs) in a single emitter loop;
 - emits typed `readonly partial struct` handle types (`SDL_Window`, `SDL_Renderer`, etc.) — zero-cost over direct `IntPtr`/`nint` at the wire, type-safe at compile time, AOT-trivial — matching the Alimer / Vortice / Silk.NET ecosystem convention for generated low-level bindings;
+- emits constants and enums with C#-correct semantics: numeric compile-time macros as `const`, C#-constant composed macros as `const`, runtime-dependent macros as `static readonly` or helpers, flag groups as `[Flags]` enums, and string-like macro keys such as `SDL_HINT_*` as `ReadOnlySpan<byte>` UTF-8 literal properties;
 - emits public low-level wrappers plus friendly overloads (`string` / `ReadOnlySpan<byte>` / `out` / `ref` / `Span<T>`) over the internal raw ABI layer. Public raw `IntPtr` externs are explicitly out of v1 preview scope;
 - targets the full TFM matrix (`net10` / `net9` / `net8` / `netstandard2.0` / `net462`).
 
@@ -19,7 +20,7 @@ The generator runs offline via a dedicated `regenerate-bindings.yml` workflow (m
 
 The toolchain pick rests on the **scope-trajectory bet** ([`binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) §7.8 + §9 Q8): at the production-shape feature investment this project commits to, CppAst's single-loop emitter has linear ownership growth while ClangSharpPInvokeGenerator + RSP + Roslyn-extension + post-process pipelines grow in architectural steps. ClangSharp remains a documented migration target if CppAst's maintenance burden surfaces in practice.
 
-`external/sdl2-cs` retires when AST-generated SDL2 output passes runtime smoke against `learning-sdl2`. First public `-preview.N` wave ships AST-generated bindings, not sdl2-cs imports, per [`release-strategy.md`](../release-strategy.md) §Sequencing.
+`external/sdl2-cs` retires in two steps: SDL2.Core stops compiling `external/sdl2-cs/src/SDL2.cs` when Stage 1 generated-core readiness is complete; the submodule as a production source retires fully after Stage 2 generates the SDL2 satellites. First public `-preview.N` wave ships AST-generated bindings, not sdl2-cs imports, per [`release-strategy.md`](../release-strategy.md) §Sequencing.
 
 ## WHY
 
@@ -114,12 +115,14 @@ The gap inverts at our committed scope. CppAst's single-codebase elasticity is t
 
 ### Binding API surface decision — internal raw, public typed, friendly overloads
 
-The public API surface is **not** "publish whatever raw P/Invoke CppAst can emit." Multi-agent review and peer research on 2026-05-17 converged on the following shape, now canonical in [`binding-api-surface-strategy.md`](binding-api-surface-strategy.md):
+The public API surface is **not** "publish whatever raw P/Invoke CppAst can emit" and is **not** "clone SDL2-CS exactly." Multi-agent review, peer research, and 2026-05-18 API discussion converged on the following shape, now canonical in [`binding-api-surface-strategy.md`](binding-api-surface-strategy.md):
 
 1. Internal raw ABI externs carry `[LibraryImport]` / `[DllImport]`, exact entrypoint names, unsafe pointer signatures, and ABI-correct wire types.
 2. Public low-level SDL-owned types are generated as typed handles/enums/structs/callbacks; SDL-owned handles use zero-allocation `readonly partial struct` wrappers over `nint`, not public `IntPtr` aliases.
 3. Public low-level function wrappers and friendly overloads call the internal raw layer. `string` overloads are convenience and may allocate while encoding UTF-16 to UTF-8; `ReadOnlySpan<byte>` / pointer overloads provide the caller-controlled path.
 4. High-level owner wrappers (`Window`, `Renderer`, etc.) are a later layer and must not be confused with the generated low-level handle structs.
+5. SDL2-CS compatibility is best-effort. It is useful as a migration oracle, but modern C# API shape wins where exact compatibility conflicts with typed handles, `nint`, UTF-8 correctness, spans, or future API stability.
+6. String-like SDL macro constants such as `SDL_HINT_*` use one canonical generated shape: `ReadOnlySpan<byte>` UTF-8 literal properties. `const string` aliases are not emitted for the same macro keys; string ergonomics belongs to method overloads.
 
 Peer evidence:
 
@@ -129,7 +132,7 @@ Peer evidence:
 | Silk.NET | public low-level surface with pointer/ref/span overloads; generated implementation machinery | Borrow span/count metadata; avoid SDL-unneeded vtable/source-generator complexity |
 | ppy/SDL3-CS | public raw `Unsafe_*` plus Roslyn friendly generator | Borrow friendly generation concept; emit directly from CppAst instead of adding consumer-side Roslyn generator |
 | Alimer.Bindings.SDL | CppAst + typed `readonly partial struct(nint)` handles | Borrow typed handle/value-object shape |
-| SDL2-CS | public `IntPtr`/`out`/`ref`/`[In]`/`[Out]` P/Invoke | Use as legacy oracle only; do not freeze its IntPtr-heavy public shape |
+| SDL2-CS | public `IntPtr`/`out`/`ref`/`[In]`/`[Out]` P/Invoke plus `const string` hint keys | Use as legacy oracle only; do not freeze its IntPtr-heavy public shape or duplicate every string-like macro as both string and UTF-8 span |
 
 The direct consequence: public `Raw.IntPtr`, public `Raw.Typed`, and public `Friendly` namespaces all shipping together are rejected for v1 preview. That would triple documentation, tests, compatibility, and migration burden. If advanced binding authors later need a raw package, it can be added separately as an explicitly unstable surface after API review.
 
@@ -261,10 +264,10 @@ The generator implements all 11 emit rules in [`binding-autogen-feasibility.md`]
 | Rule 5 — Boolean wire types | **SDL2 `SDL_bool` → int-backed enum/wrapper**; **SDL3 `bool` → 1-byte wrapper struct**. Never raw `bool`. Per [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) §2 Rule 5; SDL2/SDL3 ABI is genuinely different |
 | Rule 6 — Buffers | `Span<T>` / `ReadOnlySpan<T>` overloads + raw-pointer overload (hot path); `out T` for single-element output; never `Memory<T>` in P/Invoke |
 | Rule 7 — Callbacks | `delegate* unmanaged[Cdecl]<...>` + `[UnmanagedCallersOnly]`; never `Delegate` or `Marshal.GetFunctionPointerForDelegate` |
-| Rule 8 — Constants | `public const` for literal numerics / strings; `public static readonly` for computed expressions; categorized per `CppMacro` shape |
+| Rule 8 — Constants | `public const` for numeric literals and C# compile-time numeric expressions; `public static readonly` or helpers for runtime-dependent expressions; string-like SDL macro keys such as `SDL_HINT_*` emit as `ReadOnlySpan<byte>` UTF-8 literal properties, not duplicate `const string` aliases |
 | Rule 9 — AOT | `<IsAotCompatible>true</IsAotCompatible>` on every generated binding csproj (net8+ TFMs); no `[RequiresDynamicCode]` / `[RequiresUnreferencedCode]` |
 | Rule 10 — Modern C# emit | C# 14 features: collection expressions (`CallConvs = [typeof(CallConvCdecl)]`), `params ReadOnlySpan<T>`, ref-struct constraints |
-| Rule 11 — Partial-class boundaries | One public `partial class` per family (`SDL2`, `SDL2Image`, etc.) plus one internal raw ABI `partial class` per family (`SDL2Native`, `SDL2ImageNative`, etc.). Files split by category and platform, but parse-view names do not become class names. |
+| Rule 11 — Partial-class boundaries | One public `partial class` per family and one internal raw ABI `partial class` per family, both driven by `build/manifest.json` (`primary_class_name`, with raw ABI class derived by appending `Native`). SDL2 core currently emits public `SDL` and internal `SDLNative`. Files split by category and platform, but parse-view names do not become class names. |
 
 ### Multi-pass parsing strategy — preprocessor-macro switching inside one Linux container
 
@@ -317,7 +320,7 @@ The "master undefine list" the parser nukes at the start of every pass is the un
 src/SDL2.Core/Generated/
 ├── Commands.g.cs            ← public wrappers for neutral/common functions
 ├── Native/
-│   └── Commands.g.cs        ← internal SDL2Native raw ABI for neutral/common functions
+│   └── Commands.g.cs        ← internal SDLNative raw ABI for neutral/common functions
 ├── Constants.g.cs           ← neutral pass
 ├── Enums.g.cs               ← neutral pass
 ├── Handles.g.cs             ← neutral pass — typed readonly structs (Rule 2)
@@ -341,12 +344,12 @@ src/SDL2.Core/Generated/
 2. Run each platform pass with exactly one catalog entry active.
 3. Exclude symbols already emitted by the neutral pass from platform files.
 4. Emit platform-only symbols into platform-suffixed files with `[SupportedOSPlatform]` attribution.
-5. Deduplicate identical C# signatures across platform views after Neutral so the shared `SDL2Native` partial class never declares the same extern twice.
+5. Deduplicate identical C# signatures across platform views after Neutral so the shared manifest-derived raw ABI partial class never declares the same extern twice.
 6. **Fail generation** (do not silently guess) if the same symbol appears in multiple views with incompatible signatures or layout-affecting type differences.
 
-Parse-view names are file/metadata concepts only. A platform pass may produce `Platform/MacOS/Native.Commands.g.cs`, but the class inside remains `SDL2Native`; `Sdl2_MacOS` / `Sdl2_Neutral` style classes are a spike-era shape and are superseded.
+Parse-view names are file/metadata concepts only. A platform pass may produce `Platform/MacOS/Native.Commands.g.cs`, but the class inside remains the manifest-derived raw ABI partial class (`SDLNative` for SDL2 core); `Sdl2_MacOS` / `Sdl2_Neutral` style classes are a spike-era shape and are superseded.
 
-Shared raw partial class members are emitted once per family. For example, `private const string LibName = "SDL2";` appears in the Neutral `SDL2Native` partial file; platform partial files reference it through the same partial type and must not redeclare it.
+Shared raw partial class members are emitted once per family. For example, `private const string LibName = "SDL2";` appears in the Neutral `SDLNative` partial file; platform partial files reference it through the same partial type and must not redeclare it.
 
 **Translation collaborator boundary.** The CppAst-to-model flow is:
 
@@ -380,7 +383,7 @@ SDL satellites are not independent type islands. Local header inspection (per [`
 | `SDL_ttf.h` | `SDL.h` | `SDL_Color`, `SDL_Surface`, `SDL_Renderer`, `SDL_Texture`, `SDL_bool`, `SDL_version` |
 | `SDL_mixer.h` | `SDL_stdinc.h`, `SDL_rwops.h`, `SDL_audio.h`, `SDL_endian.h`, `SDL_version.h` | `SDL_RWops`, `SDL_bool`, `SDL_AudioSpec`, `SDL_version` |
 
-**Lock: core-owned shared type universe.** `Janset.SDL2.Core` owns every `SDL_*` core struct, enum, handle, callback, and constant. Satellite generators emit only satellite-owned surface (`IMG_*`, `Mix_*`, `TTF_*`, `gfx*`/SDL2_gfx-family symbols, `Net_*`) plus any truly satellite-owned types (e.g., `IMG_Animation`, `Mix_Chunk`, `TTF_Font`). Satellite signatures reference core-owned managed types via cross-csproj reference — never redeclare.
+**Lock: core-owned shared type universe.** The SDL2 core managed package owns every `SDL_*` core struct, enum, handle, callback, and constant. Its generated C# identity is currently `namespace SDL2; public static partial class SDL;` per `build/manifest.json`. Satellite generators emit only satellite-owned surface (`IMG_*`, `Mix_*`, `TTF_*`, `gfx*`/SDL2_gfx-family symbols, `Net_*`) plus any truly satellite-owned types (e.g., `IMG_Animation`, `Mix_Chunk`, `TTF_Font`). Satellite signatures reference core-owned managed types via cross-csproj reference — never redeclare.
 
 Validation rule (new G-guardrail candidate, see "Symbol-existence validation guardrail" below + WHAT impact inventory): **fail generation if a satellite output redefines a core-owned type name** or lowers a known core type to an untyped fallback because the type map was missing.
 
@@ -391,9 +394,9 @@ Validation rule (new G-guardrail candidate, see "Symbol-existence validation gua
 Per [`binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) §2 Rule 1, every **internal raw ABI extern** is emitted twice in one `foreach` iteration:
 
 ```csharp
-namespace Janset.SDL2.Core;
+namespace SDL2;
 
-internal static unsafe partial class SDL2Native
+internal static unsafe partial class SDLNative
 {
     private const string LibName = "SDL2";
 
@@ -750,7 +753,7 @@ The brief reshapes work across project structure, build host, CI surface, genera
 
 | Area | Current shape | Expected impact |
 | --- | --- | --- |
-| `external/sdl2-cs` submodule | Source-of-truth for managed SDL2 P/Invoke; consumed via `<Compile Include="../../external/sdl2-cs/src/<Family>.cs" />` in `src/SDL2.<Family>/<Family>.csproj` | **Retire** after AST output passes runtime smoke (per [`release-strategy.md`](../release-strategy.md) §Sequencing Stage 2). Submodule reference + Compile Include lines drop in the same slice that wires the corresponding generated `Generated/*.g.cs` into the family csproj. |
+| `external/sdl2-cs` submodule | Source-of-truth for managed SDL2 P/Invoke; consumed via `<Compile Include="../../external/sdl2-cs/src/<Family>.cs" />` in `src/SDL2.<Family>/<Family>.csproj` | **Retire in slices.** SDL2.Core drops its `SDL2.cs` Compile Include at Stage 1 generated-core readiness. Remaining satellite Compile Includes drop during Stage 2 as each satellite generated surface lands. After Stage 2, the submodule is at most a reference/test oracle, not a production source. |
 | `src/Janset.SDL2.Bindings.Generator/` | Does not exist; was proposed in the 2026-05-14 draft | **Do not create.** Per the 2026-05-15 revision, binding generation is folded into the Cake build host (see `build/_build/Targets/GenerateBindings/` row below). A standalone `src/`-tree console app is rejected because it would duplicate Cake's vcpkg/manifest/tool/validation infrastructure. |
 | `src/Janset.SDL3.Bindings.Generator/` | Does not exist | **Do not create at Phase 4.** SDL3 binding generation is gated on PD-7 (SDL2 real-public-release). At Phase 5 a sibling Cake target (`GenerateSdl3Bindings`) is introduced; SDL3-specific type-map rules live target-local until SDL3 becomes a real second consumer and ADR-002 §2.4 promotion criteria are met. |
 | `src/SDL2.<Family>/Generated/` | Does not exist | **Add** per-family. Receives generated `Commands.g.cs` / `Constants.g.cs` / `Enums.g.cs` / `Handles.g.cs` / `Structs.g.cs` / `Callbacks.g.cs` from the neutral pass + `Platform/<OS>/*.g.cs` from per-OS passes + `.generated-stamp` from the Cake target. Committed to git per Generation environment lock. |
@@ -796,7 +799,7 @@ Maps the 7-layer strategy from [`binding-autogen-feasibility.md`](research/bindi
 
 **Test layer ownership across stages:**
 
-- Layers 1, 5, 6 land at Stage 1 (SDL2.Core proof-of-life — CI-time gates + drift check + smoke).
+- Layers 1, 5, 6 land at Stage 1 (SDL2.Core generated-core readiness — CI-time gates + drift check + smoke).
 - Layer 2 lands at Stage 1 (snapshot the SDL2.Core public surface before satellite work begins, so satellite-stage diffs are review-able).
 - Layers 3, 4 land at Stage 2 (SDL2 satellite sweep — when more than one family exists to diff and validate).
 - Layer 7 is continuous from Stage 1 forward, picking up cadence at Stage 4 (Stabilization per [`release-strategy.md`](../release-strategy.md)).
@@ -816,9 +819,9 @@ These are real work items but their resolution does not block this brief's accep
 
 This is **not** the implementation plan. It is the stage outline the Phase 4 plan authors against, aligned with [`release-strategy.md`](../release-strategy.md) §Sequencing and the per-phase plan-writing discipline from [`phase-planning-methodology.md`](../parking-lot/package-topology/phase-planning-methodology.md). The implementation plan should write concrete slices only for the next stage being executed, then re-plan the following stage against the code that actually shipped. No speculative "Stage 3 line-by-line instructions" before Stage 1 exists in the repo.
 
-### Stage 1 — SDL2.Core proof-of-life with full platform-function attribution
+### Stage 1 — SDL2.Core generated-core readiness with full platform-function attribution
 
-**Goal:** turn the spike evidence into a production-shaped SDL2.Core generator path, hosted inside the Cake build host, covering every SDL2 platform-conditioned function — but stopping short of `SDL_syswm.h` struct/union layout, which moves to Stage 2.
+**Goal:** turn the spike evidence into a production-shaped SDL2.Core generator path, hosted inside the Cake build host, covering every SDL2 platform-conditioned function and the core declaration categories needed to replace `external/sdl2-cs/src/SDL2.cs` for the Core package — but stopping short of `SDL_syswm.h` struct/union layout, which moves to Stage 2.
 
 **Precursor slice (Task 3.5, 2026-05-15) — landed in commits `0db0e31` + `9a5f59e`:** A narrow local-output loop established the Docker iteration surface (Cake `GenerateBindings` target + `tools.cs generate-bindings` subcommand + derived `binding-generator.Dockerfile`) and produces spike-style placeholder output under `artifacts/generated-bindings-preview/sdl2-core/` (gitignored). Production-location flag-flip to `src/SDL2.<Family>/Generated/` remains a follow-up slice after the unified plan ships. Design + plan now retired: [`../superpowers/specs/superseded/2026-05-15-binding-generator-local-output-loop-design.md`](../superpowers/specs/superseded/2026-05-15-binding-generator-local-output-loop-design.md) + [`../superpowers/plans/superseded/2026-05-15-binding-generator-local-output-loop.md`](../superpowers/plans/superseded/2026-05-15-binding-generator-local-output-loop.md); their durable contributions absorbed into [`../superpowers/specs/2026-05-16-binding-generator-unified-design.md`](../superpowers/specs/2026-05-16-binding-generator-unified-design.md) §§13–14.
 
@@ -827,6 +830,7 @@ This is **not** the implementation plan. It is the stage outline the Phase 4 pla
 - Add the CppAst-based generator under `build/_build/Targets/GenerateBindings/` and `build/_build/Validation/BindingGeneration/` per the HOW section. No standalone `src/`-tree project.
 - Generate SDL2.Core from vcpkg-installed headers through neutral + the full `PlatformCatalog` entry set (Windows desktop / WinRT / GDK / Linux / macOS / iOS / Android — ~7–8 passes) inside the pinned Linux container. Preprocessor-macro switching only — no `--target`, no mingw, no Apple SDK.
 - Emit committed `src/SDL2.Core/Generated/*.g.cs` for neutral surface + `Generated/Platform/<OS>/*.g.cs` for platform-conditioned functions + `.generated-stamp`. `[SupportedOSPlatform]` attribution drives off catalog entries.
+- Emit the Core declaration categories required before replacement: manifest-driven `SDL2.SDL` / `SDLNative` identity, numeric and string-like constants, `[Flags]` enums, verified structs/unions, fixed arrays, callback typedefs, typed handles, and critical functions.
 - Emit `SDL_GetWindowWMInfo` as a function with an opaque `nint`-shaped `SDL_SysWMinfo*` parameter. The typed union layout is deliberately excluded and recorded as a documented Stage 2 deliverable in the audit log.
 - Wire SDL2.Core to generated output and remove its production dependency on `external/sdl2-cs/src/SDL2.cs`.
 - Land Layer 1 compile, Layer 2 public API snapshot, Layer 5 reproducibility, and Layer 6 core runtime smoke coverage from the test strategy.
@@ -834,6 +838,7 @@ This is **not** the implementation plan. It is the stage outline the Phase 4 pla
 **Exit criteria:**
 
 - SDL2.Core generated source compiles for `net10` / `net9` / `net8` / `netstandard2.0` / `net462`.
+- Generated SDL2.Core output covers the agreed replacement essentials: `SDL_INIT_*` numeric constants, `SDL_HINT_*` UTF-8 span macro keys, `[Flags]` flag enums such as `SDL_WindowFlags`, verified POD/union layout, fixed arrays, callbacks, typed handles, and the critical startup/window/error lifecycle functions.
 - Regenerating from the same vcpkg state produces a clean `git diff --exit-code src/SDL2.Core/Generated` — proves Layer 5 reproducibility.
 - Every catalog entry's platform-only core functions are isolated into the matching `Platform/<OS>/*.g.cs` file and carry `[SupportedOSPlatform]` attribution.
 - `SDL_GetWindowWMInfo` is emitted; `SDL_SysWMinfo` and `SDL_SysWMmsg` typed-union surface is recorded as a Stage 2 deliverable in the audit log; no consumer-visible breakage from the deferral because Stage 1 is internal-feed only.
@@ -843,9 +848,9 @@ This is **not** the implementation plan. It is the stage outline the Phase 4 pla
 - Package-consumer smoke exercises `SDL_Init`, window creation/destruction, error retrieval, and at least one callback path against the packaged Core family.
 - `learning-sdl2` or an equivalent real consumer can run against the internal-feed Core wave without falling back to source/project references.
 
-### Stage 2 — SDL_syswm full union + satellite sweep + `external/sdl2-cs` retirement
+### Stage 2 — SDL_syswm full union + SDL2 satellite sweep + final `external/sdl2-cs` retirement
 
-**Goal:** complete the SDL2 surface — typed `SDL_SysWMinfo`/`SDL_SysWMmsg` union layout for every platform branch — and extend the production generator across every in-scope SDL2 satellite, then retire `external/sdl2-cs` from the production binding surface.
+**Goal:** complete the SDL2 surface — typed `SDL_SysWMinfo`/`SDL_SysWMmsg` union layout for every platform branch — and extend the production generator across every in-scope SDL2 satellite, then retire the remaining `external/sdl2-cs` production binding surface.
 
 **Scope:**
 
@@ -856,7 +861,7 @@ This is **not** the implementation plan. It is the stage outline the Phase 4 pla
 - Add duplicate-core-type validation so satellites fail generation if they redeclare core-owned symbols or degrade them to untyped fallbacks.
 - Land Layer 3 reference cross-check reports and Layer 4 symbol-existence validation once more than one generated family exists.
 - Extend PackageConsumerSmoke per family so targeted package scopes can exercise only the families in scope.
-- Remove `external/sdl2-cs` from production compile paths. If it remains temporarily, it is a test/reference oracle only, not a shipping source.
+- Remove the remaining `external/sdl2-cs` satellite compile paths. If the submodule remains temporarily, it is a test/reference oracle only, not a shipping source.
 
 **Exit criteria:**
 

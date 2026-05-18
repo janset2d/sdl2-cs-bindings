@@ -154,6 +154,32 @@ public sealed class CppAstToBindingModelTests
     }
 
     [Test]
+    public async Task Translate_Should_Merge_RequiredConstants_Into_Model()
+    {
+        var config = BindingGenerationFixture.Sdl2CoreConfig(
+            requiredConstants:
+            [
+                BindingGenerationFixture.RequiredConstant("SDL_INIT_TIMER"),
+                BindingGenerationFixture.RequiredConstant(
+                    "SDL_INIT_EVERYTHING",
+                    value: "SDL_INIT_TIMER | SDL_INIT_AUDIO",
+                    kind: ConstantKind.Computed),
+            ]);
+
+        var model = CppAstToBindingModel.Translate(
+            [EmptyResult("Neutral")],
+            config,
+            NoRequired);
+
+        await Assert.That(model.Constants.Select(constant => constant.Name).ToArray())
+            .IsEquivalentTo(["SDL_INIT_EVERYTHING", "SDL_INIT_TIMER"]);
+        var computed = model.Constants.Single(constant => constant.Name == "SDL_INIT_EVERYTHING");
+        await Assert.That(computed.Type.ManagedName).IsEqualTo("uint");
+        await Assert.That(computed.Value).IsEqualTo("SDL_INIT_TIMER | SDL_INIT_AUDIO");
+        await Assert.That(computed.Kind).IsEqualTo(ConstantKind.Computed);
+    }
+
+    [Test]
     public async Task Translate_Should_Produce_Deterministic_Output_Under_Concurrent_Invocation()
     {
         // Stage 1 plan Post-Implementation Review P1.5: GenerateBindingsTask uses

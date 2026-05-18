@@ -136,8 +136,9 @@ public sealed class BindingConstantTests
     [Test]
     public async Task Literal_Kind_Should_Emit_Through_Const_Path()
     {
-        // Phase 3E CsConstantEmitter switches on Kind: Literal => public const,
-        // Computed => public static readonly. This test pins the discriminator.
+        // Phase 3E CsConstantEmitter keeps Kind as macro-shape metadata.
+        // Numeric Literal and Computed macro expressions can both emit through
+        // the const path when the RHS is valid C# compile-time syntax.
         var sut = new BindingConstant(
             Name: "SDL_INIT_TIMER",
             Type: BindingTypeRef.Of("uint"),
@@ -148,7 +149,7 @@ public sealed class BindingConstantTests
     }
 
     [Test]
-    public async Task Computed_Kind_Should_Emit_Through_Static_Readonly_Path()
+    public async Task Computed_Kind_Should_Record_Macro_Expression_Shape()
     {
         var sut = new BindingConstant(
             Name: "SDL_INIT_EVERYTHING",

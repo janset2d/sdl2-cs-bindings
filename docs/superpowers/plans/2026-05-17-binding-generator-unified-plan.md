@@ -28,7 +28,7 @@ Deniz decides every commit boundary. The plan suggests checkpoints at phase exit
 | **Phase 3A** | Rider-driven mass rename (Preview → real) | Rider-driven — Deniz executes mass rename, agent prepares rename map |
 | **Phase 3B** | BindingModel extension (5 new categories + BindingTypeRef) | Continues from 3A |
 | **Phase 3C** | TypeMappingPolicy + KnownUnsupportedDeclarationPolicy + CoreOwnedTypeMap | Continues from 3B |
-| **Phase 3C-prime** | Stabilization/foundation corrections from 2026-05-17 review: stable `SDL2Native` raw ABI class contract, class-level unsafe preserved, compile-check diagnostic kept manual, fallback parameter uniqueness, SDL2 `SDL_bool` ABI correction, CppAst fixture matrix, external/native type taxonomy | Continues from 3C before structural emission |
+| **Phase 3C-prime** | Stabilization/foundation corrections from 2026-05-17/18 review: manifest-derived stable raw ABI class contract (`SDLNative` for SDL2 core), class-level unsafe preserved, compile-check diagnostic kept manual until structural output is complete, fallback parameter uniqueness, SDL2 `SDL_bool` ABI correction, CppAst fixture matrix, external/native type taxonomy, constants/enums/macro policy | Continues from 3C before structural emission |
 | **Phase 3D** | CppAst-to-BindingModel translator refactor into named collaborators; generic struct/anonymous-union translation; no `Stage1StructNames` production path | Continues from 3C-prime |
 | **Phase 3E** | 6 per-category emitters + BindingEmitter dispatcher + EmitContext | Continues from 3D |
 | **Phase 3F** | Friendly overloads + dual P/Invoke emit in CsCommandEmitter | Continues from 3E |
@@ -49,19 +49,20 @@ Canonical API-surface decision: [`../../binding-autogen/binding-api-surface-stra
 
 Corrections that override older snippets in this plan:
 
-- Generated raw ABI command classes use one stable internal family class such as `internal static unsafe partial class SDL2Native`; parse-view names (`Neutral`, `MacOS`, etc.) affect file path and `[SupportedOSPlatform]` metadata, not class names. Dropping class-level `unsafe` was a Phase 3A regression; view-specific classes such as `Sdl2_MacOS` are superseded.
-- Public raw `IntPtr` externs are not part of v1 preview. Raw ABI externs stay internal; public surface is typed low-level wrappers plus friendly overloads.
-- Family namespaces are fixed by package/family: SDL2 Core emits under `Janset.SDL2.Core`; satellites use `Janset.SDL2.Gfx`, `Janset.SDL2.Image`, and sibling namespaces.
+- Generated raw ABI command classes use one stable internal family class derived from manifest `primary_class_name`; SDL2 core is `internal static unsafe partial class SDLNative`. Parse-view names (`Neutral`, `MacOS`, etc.) affect file path and `[SupportedOSPlatform]` metadata, not class names. Dropping class-level `unsafe` was a Phase 3A regression; view-specific classes such as `Sdl2_MacOS` are superseded.
+- Public raw `IntPtr` externs are not part of v1 preview. Raw ABI externs stay internal; public surface is typed low-level wrappers plus friendly overloads. SDL2-CS compatibility is best-effort, not the shape to freeze.
+- Family namespaces and public class names are manifest-driven. SDL2 Core emits under `namespace SDL2` with public class `SDL`; satellites use their `binding_generation.managed_namespace` / `primary_class_name` values.
+- String-like SDL macro constants such as `SDL_HINT_*` use canonical `ReadOnlySpan<byte>` UTF-8 literal properties. String ergonomics belongs to method overloads, not duplicate `const string` aliases.
 - SDL2 `SDL_bool` maps to `int` at the raw ABI. SDL3 bool-like values keep a separate 1-byte policy.
 - `KnownUnsupportedDeclarationPolicy` is manifest/type-policy driven; C variadic fmt-only functions are not blanket-filtered. Explicit `va_list` / `FILE*` / non-portable C-runtime APIs must be deferred or mapped by taxonomy.
 - Missing native types are not fixed by empty struct stubs. SDL-owned structs require real layout; external types require explicit emit/map/defer policy.
 - `Stage1StructNames` and `SDL_GameControllerButtonBind` name-specific flattening are scaffolding mistakes, not the production direction. SDL-owned structs/unions are discovered by AST shape, and anonymous unions are modeled generically with deterministic generated sibling types.
 - `SDL_GUID` is represented as `System.Guid` through a named SDL native type substitution policy. This follows SDL2-CS and Alimer; tests pin class/typedef mapping to `Guid` and exclude `SDL_GUID` from generated `BindingStruct` output.
-- Compile-check under `tests\binding-compile-check` is a diagnostic tripwire until generated output is structurally complete. Before any blocking gate, add a non-empty generated-file guard to avoid false green.
+- Compile-check under `tests\binding-compile-check` is a diagnostic tripwire until generated output is structurally complete. Its non-empty generated-file guard is required before any blocking gate to avoid false green.
 
 Immediate execution order before Phase 3D structural emission:
 
-1. Pin output contract: `Janset.SDL2.Core` namespace, public `SDL2`, internal `SDL2Native`, no `Sdl2_<View>` classes.
+1. Pin output contract from manifest: SDL2 Core `namespace SDL2`, public `SDL`, internal `SDLNative`, no `Sdl2_<View>` classes.
 2. Extract `CppAstToBindingModel` into named translation collaborators for functions, neutral merge, declaration policy, structs, and fields.
 3. Remove `Stage1StructNames`; discover SDL-owned structs/unions generically from AST shape.
 4. Model anonymous nested unions generically; use `SDL_GameControllerButtonBind` only as a characterization test.
@@ -1849,8 +1850,8 @@ Files (auto-rename via Rider should follow types):
   Tests/.../Emitting/PreviewBindingModelData.cs       -> Tests/.../Emitting/BindingModelData.cs
 
 Namespaces / class names in emitted output:
-  Janset.Sdl2.Preview                       -> Janset.SDL2.Core
-  Sdl2Preview_<view>                         -> SDL2Native
+  Janset.Sdl2.Preview                       -> SDL2
+  Sdl2Preview_<view>                         -> SDLNative
   internal static unsafe partial class       -> internal static unsafe partial class
     (keep class-level `unsafe`; pointer parameters in generated extern signatures require unsafe context)
 
@@ -1887,10 +1888,10 @@ Expected: green; container smoke produces output (with new class names + namespa
 - [ ] **Step 2: Compare emit output to pre-rename**
 
 Output files (`Platform/Neutral/Commands.g.cs` etc.) should have:
-- `namespace Janset.SDL2.Core;` instead of `namespace Janset.Sdl2.Preview;`
-- `SDL2Native` class instead of `Sdl2Preview_Neutral`, `Sdl2_Neutral`, or any other view-specific raw ABI class
+- `namespace SDL2;` instead of `namespace Janset.Sdl2.Preview;`
+- `SDLNative` class instead of `Sdl2Preview_Neutral`, `Sdl2_Neutral`, or any other view-specific raw ABI class
 - No "preview placeholder" comments
-- `internal static unsafe partial class SDL2Native` on every generated raw command class
+- `internal static unsafe partial class SDLNative` on every generated raw command class
 
 - [ ] **Step 3: Fix any rename misses (P2.14, P2.15, P2.16, P2.17, P2.18, P2.19)**
 
@@ -1916,8 +1917,8 @@ Rider mass rename:
   PreviewParseViewReport            -> BindingParseViewReport
   CppAstToPreviewModel              -> CppAstToBindingModel
   PreviewEmitter                    -> CsCommandEmitter
-  Janset.Sdl2.Preview ns            -> Janset.SDL2.Core
-  Sdl2Preview_<view> class          -> SDL2Native
+  Janset.Sdl2.Preview ns            -> SDL2
+  Sdl2Preview_<view> class          -> SDLNative
 
 Preserve class-level unsafe modifier, strip preview-placeholder comments,
 fix stale doc comments (P2.14-P2.19).
