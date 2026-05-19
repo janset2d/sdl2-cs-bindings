@@ -12,7 +12,7 @@
 
 ## 1. Goal
 
-Add a narrow local generation loop that runs the Cake `GenerateBindings` target inside the pinned `linux-builder` Docker container, produces spike-style placeholder output under `artifacts/generated-bindings-preview/sdl2-core/`, and gives reviewers a real CppAst-output artifact to compare against the existing binding-spike outputs (`tools/binding-spike/cppast-platform/bindings/Generated/*.g.cs`) and peer projects (ppy/SDL3-CS, Alimer.Bindings.SDL).
+Add a narrow local generation loop that runs the Cake `GenerateBindings` target inside the pinned `linux-builder` Docker container, produces spike-style placeholder output under `artifacts/generated-bindings-preview/sdl2-core/`, and gives reviewers a real CppAst-output artifact to compare against historical spike expectations and peer projects (ppy/SDL3-CS, Alimer.Bindings.SDL).
 
 Why this slice exists between Stage 1 Tasks 3 and 4: Tasks 4-6 design the real binding model, merge policy, type mapping, and per-category emitters. Without real CppAst output to iterate against, those tasks design shape blindly — emitter API choices, model record shapes, and translator boundaries lock in without grounded evidence. The local output loop unblocks evidence-driven decisions for the remainder of Stage 1.
 
@@ -359,7 +359,7 @@ First run slow, subsequent runs comfortable. Trade-off accepted per 2026-05-15 d
 
 ### 7.1 Test scope (this slice = infrastructure, not translator semantics)
 
-Per the 2026-05-15 design discussion ("alt yapı test edelim, Task 4 sonrasıyla alakası yok"), this slice tests **infrastructure wiring**: Cake target dispatch, DI registration, fail-closed paths, emitter output shape. Translator semantic correctness is validated by manual `tools.cs generate-bindings` smoke + visual diff against the binding-spike; rigorous translator unit tests land in Task 4 with the real binding model.
+Per the 2026-05-15 design discussion ("alt yapı test edelim, Task 4 sonrasıyla alakası yok"), this slice tests **infrastructure wiring**: Cake target dispatch, DI registration, fail-closed paths, emitter output shape. Translator semantic correctness is validated by manual `tools.cs generate-bindings` smoke + visual diff against historical spike expectations; rigorous translator unit tests land in Task 4 with the real binding model.
 
 Synthetic fixture headers (`sdl2-mini.h` style) are **not** used — over-cautious for a placeholder pipeline that gets replaced in Task 4-5.
 
@@ -410,7 +410,7 @@ dotnet run --file tools.cs -- generate-bindings
 #   artifacts/generated-bindings-preview/sdl2-core/Platform/<View>/Commands.g.cs  (8 files)
 #   artifacts/generated-bindings-preview/sdl2-core/parse-views.json
 # Eyeball-diff against:
-#   tools/binding-spike/cppast-platform/bindings/Generated/SDL2.Platform.*.g.cs
+#   historical platform-pass spike output, now retired from the repository
 #   ppy/SDL3-CS function-only output (for shape comparison)
 ```
 

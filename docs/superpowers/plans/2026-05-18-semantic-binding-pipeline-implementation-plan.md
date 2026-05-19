@@ -8,6 +8,8 @@
 
 **Tech Stack:** .NET 10, C# 14, CppAst, Cake Frosting, TUnit, Microsoft.Testing.Platform, embedded test fixtures, `tools.cs generate-bindings`.
 
+**Translation-rule supersession (2026-05-19):** Current scalar, variadic, struct/union, enum, and macro policy lives in [`../../binding-autogen/binding-translation-contract.md`](../../binding-autogen/binding-translation-contract.md). Use that contract for P0 fix work when this historical plan conflicts with current generated-output review.
+
 ---
 
 ## File Structure
@@ -1586,7 +1588,9 @@ dotnet build tests\binding-compile-check\SDL2.Core.CompileCheck.csproj -c Releas
 
 Expected: scenario tests pass; compile check succeeds against current generated preview or clearly fails because preview needs regeneration. If compile check fails due stale preview, run Task 10 before treating this as a defect.
 
-**Task 9 result:** Done. `parse-views.json` now carries schema version, semantic category counts/names, emitted-file inventory, per-view parse inputs (`PlatformConditionKind`, defines, undefines, supported OS), and function signature evidence. `GenerateBindingsTask` logs semantic category counts before per-view function counts. Generator-internal spike remnants were audited and stale phase comments were rewritten around the current semantic pipeline; transitional `BindingTypeRef`/bridge adapters remain only where still load-bearing for manifest-required functions or legacy tests. Real generation reports 8 views, 866 functions, 74 structs, 56 enums, 10 constants, 17 handles, 19 callbacks, and 14 emitted files. The known dynapi warnings remain `SDL_LogMessageV`, `SDL_RWFromFP`, `SDL_vasprintf`, `SDL_vsnprintf`, and `SDL_vsscanf`.
+**Task 9 result:** Done. `parse-views.json` now carries schema version, semantic category counts/names, emitted-file inventory, per-view parse inputs (`PlatformConditionKind`, defines, undefines, supported OS), and function signature evidence. `GenerateBindingsTask` logs semantic category counts before per-view function counts. Generator-internal spike remnants were audited and stale phase comments were rewritten around the current semantic pipeline; transitional `BindingTypeRef`/bridge adapters remain only where still load-bearing for manifest-required functions or legacy tests. Real generation reports 8 views, 866 functions, 74 structs, 56 enums, 11 constants, 17 handles, 19 callbacks, and 14 emitted files. The known dynapi warnings remain `SDL_LogMessageV`, `SDL_RWFromFP`, `SDL_vasprintf`, `SDL_vsnprintf`, and `SDL_vsscanf`.
+
+**Fixed-array policy result:** Done before the final readiness pass. `FixedArrayEmissionPolicy` keeps primitive supported arrays as C# `fixed` buffers and emits non-fixed-buffer arrays as package-TFM-safe wrapper structs instead of `[InlineArray]`. Platform-specific command attributes are guarded with `NET5_0_OR_GREATER`, and `tests\binding-compile-check\SDL2.Core.CompileCheck.csproj` now builds the generated preview across `$(LibraryTargetFrameworks)` by default (`net10.0`, `net9.0`, `net8.0`, `netstandard2.0`, `net462`). The compile-check project references `System.Memory` so generated `ReadOnlySpan<byte>` constants compile on `netstandard2.0` and `net462`.
 
 ---
 
@@ -1648,7 +1652,7 @@ Run:
 dotnet build tests\binding-compile-check\SDL2.Core.CompileCheck.csproj -c Release
 ```
 
-Expected: build succeeds.
+Expected: build succeeds for every `$(LibraryTargetFrameworks)` target.
 
 - [ ] **Step 5: Run full test suite**
 
@@ -1665,7 +1669,7 @@ Expected: all non-skipped tests pass.
 Run:
 
 ```pwsh
-slopwatch analyze --fail-on warning --exclude "artifacts/**,external/**,vcpkg_installed/**,tools/binding-spike/**,**/bin/**,**/obj/**"
+slopwatch analyze --fail-on warning --exclude "artifacts/**,external/**,vcpkg_installed/**,**/bin/**,**/obj/**"
 ```
 
 Expected: `Scan complete: 0 issue(s) found`.
@@ -1711,6 +1715,8 @@ feat(binding-autogen): rewrite generator around semantic type model
 
 Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
 ```
+
+**Task 10 result:** Done. Clean generation succeeded and wrote 14 files with category summary 8 views / 866 functions / 74 structs / 56 enums / 11 constants / 17 handles / 19 callbacks. Generated output contains `SDL_INIT_TIMER`, `SDL_HINT_RENDER_DRIVER`, `SDL_WindowFlags`, `SDL_Window`, `SDL_AudioCallback`, and `SDL_bool`; compile-check succeeds across `$(LibraryTargetFrameworks)`, and the build-host test suite passes. Remaining SDL2.Core flip work is the production project wiring/dependency surface plus package-consumer smoke, not generator preview compile-safety.
 
 Only commit after explicit approval.
 

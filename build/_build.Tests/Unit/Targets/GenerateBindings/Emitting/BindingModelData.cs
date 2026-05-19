@@ -182,6 +182,35 @@ internal static class BindingModelData
             Callbacks:
             [
                 new BindingCallback("SDL_AudioCallback", BindingGenerationFixture.NativeVoid(), []),
-            ]);
+            ])
+        {
+            MacroReport = new MacroConstantReport(
+                ParsedCount: 1,
+                CandidateCount: 1,
+                EmittedCount: 1,
+                SkippedCount: 0,
+                ExcludedCount: 0,
+                OverriddenCount: 0,
+                DuplicateCoalescedCount: 0,
+                HelperCandidateCount: 0,
+                HelperDuplicateCoalescedCount: 0,
+                UnsupportedCount: 0,
+                ConflictCount: 0,
+                Entries:
+                [
+                    new MacroConstantReportEntry(
+                        Name: "SDL_INIT_TIMER",
+                        SourceHeader: "SDL.h",
+                        ParseViewName: "Neutral",
+                        Disposition: "included",
+                        Reason: "manual-include",
+                        MacroForm: "manual",
+                        Taxonomy: "manual-policy",
+                        OriginalExpression: null,
+                        ComputedValue: null,
+                        EmittedType: "uint",
+                        EmittedValue: "0x00000001u"),
+                ]),
+        };
     }
 }

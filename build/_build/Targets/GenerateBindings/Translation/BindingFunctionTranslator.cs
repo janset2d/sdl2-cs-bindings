@@ -51,7 +51,7 @@ internal sealed class BindingFunctionTranslator
         var sourceHeader = Path.GetFileName(function.SourceFile ?? string.Empty);
         var parameters = function.Parameters
             .Select((parameter, index) => new BindingParameter(
-                _typeClassifier.Classify(parameter.Type, sourceHeader),
+                ClassifyParameter(function.Name, parameter, sourceHeader),
                 TypeMappingPolicy.SafeIdentifier(parameter.Name, index)))
             .ToList();
 
@@ -61,4 +61,9 @@ internal sealed class BindingFunctionTranslator
             Parameters: parameters,
             SourceHeader: sourceHeader);
     }
+
+    private NativeTypeRef ClassifyParameter(string functionName, CppParameter parameter, string? sourceHeader) =>
+        SdlWideStringPointerPolicy.TryParameter(functionName, parameter.Name, parameter.Type, sourceHeader, out var widePointer)
+            ? widePointer
+            : _typeClassifier.Classify(parameter.Type, sourceHeader);
 }

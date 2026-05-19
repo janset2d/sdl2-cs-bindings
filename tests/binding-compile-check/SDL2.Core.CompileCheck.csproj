@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>$(LatestDotNet)</TargetFramework>
-    <TargetFrameworks></TargetFrameworks>
+    <TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
     <AssemblyName>SDL2.Core.CompileCheck</AssemblyName>
     <RootNamespace>Janset.SDL2.CompileCheck</RootNamespace>
     <IsPackable>false</IsPackable>
@@ -17,9 +16,11 @@
     <Compile Include="@(GeneratedBindingCompileInput)" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="System.Memory" />
+  </ItemGroup>
+
   <Target Name="EnsureGeneratedBindingCompileInputs" BeforeTargets="CoreCompile">
-    <Error
-      Condition="'@(GeneratedBindingCompileInput)' == ''"
-      Text="BINDING-COMPILE-CHECK-001: SDL2.Core compile-check found no generated binding .g.cs files under '$(GeneratedBindingsPreviewRoot)'. Run 'dotnet run --file tools.cs -- generate-bindings' before building this project." />
+    <Error Condition="'@(GeneratedBindingCompileInput)' == ''" Text="BINDING-COMPILE-CHECK-001: SDL2.Core compile-check found no generated binding .g.cs files under '$(GeneratedBindingsPreviewRoot)'. Run 'dotnet run --file tools.cs -- generate-bindings' before building this project." />
   </Target>
 </Project>

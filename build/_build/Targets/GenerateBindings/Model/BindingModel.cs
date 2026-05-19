@@ -23,6 +23,14 @@ public sealed record BindingModel(
     IReadOnlyList<BindingCallback> Callbacks)
 {
     /// <summary>
+    /// Report produced by <see cref="Build.Targets.GenerateBindings.Translation.BindingConstantTranslator"/>
+    /// covering all macro candidates seen during the parse phase and the outcome of each.
+    /// Defaults to <see cref="MacroConstantReport.Empty"/> so validators and tests that
+    /// construct <see cref="BindingModel"/> without a full translation pass compile cleanly.
+    /// </summary>
+    public MacroConstantReport MacroReport { get; init; } = MacroConstantReport.Empty;
+
+    /// <summary>
     /// Convenience constructor for tests and narrow validators that only need the
     /// per-view function surface. Production translation populates the semantic
     /// category collections directly.

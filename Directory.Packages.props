@@ -6,7 +6,7 @@
       docs/binding-autogen/binding-autogen-strategy-brief.md "Toolchain commitment + version-trio pin".
       Bump policy: all three package families move together; spike-validate against the new trio before merging.
       Production GenerateBindings is Linux-canonical and build/_build/Build.csproj references only linux-x64 runtimes.
-      Existing win-x64 runtime pins are retained for tracked spike projects under tools/binding-spike.
+      Retired spike projects may leave historical win-x64 runtime pins until a package-management cleanup removes them.
     -->
     <PackageVersion Include="CppAst" Version="0.24.0" />
     <PackageVersion Include="libclang.runtime.linux-x64" Version="20.1.2" />

@@ -91,6 +91,36 @@ public sealed class BindingFunctionTranslatorTests
         await Assert.That(function.Parameters.Single().Type.PointerDepth).IsEqualTo(1);
     }
 
+    [Test]
+    public async Task Extract_Should_Map_Hid_Open_Erased_Wide_String_Parameter_To_Opaque_Pointer()
+    {
+        var translator = CreateTranslator();
+        var compilation = new CppCompilation();
+        var hidOpen = SdlFunction("SDL_hid_open", "SDL_hidapi.h");
+        hidOpen.Parameters.Add(new CppParameter(CppPrimitiveType.UnsignedShort, "vendor_id"));
+        hidOpen.Parameters.Add(new CppParameter(CppPrimitiveType.UnsignedShort, "product_id"));
+        hidOpen.Parameters.Add(new CppParameter(new CppPointerType(CppPrimitiveType.Int), "serial_number"));
+        compilation.Functions.Add(hidOpen);
+
+        var function = translator.Extract([compilation]).Single();
+
+        await Assert.That(function.Parameters.Single(parameter => parameter.Name == "serial_number").Type.ManagedName).IsEqualTo("nint");
+    }
+
+    [Test]
+    public async Task Extract_Should_Not_Map_Arbitrary_Int_Pointer_Parameters_To_Opaque_Pointer()
+    {
+        var translator = CreateTranslator();
+        var compilation = new CppCompilation();
+        var function = SdlFunction("SDL_ReadPixels", "SDL_render.h");
+        function.Parameters.Add(new CppParameter(new CppPointerType(CppPrimitiveType.Int), "pitch"));
+        compilation.Functions.Add(function);
+
+        var translated = translator.Extract([compilation]).Single();
+
+        await Assert.That(translated.Parameters.Single().Type.ManagedName).IsEqualTo("int*");
+    }
+
     private static BindingFunctionTranslator CreateTranslator() =>
         new(new BindableDeclarationPolicy(DefaultConfig, new KnownUnsupportedDeclarationPolicy(DefaultConfig)),
             new NativeTypeClassifier(NativeTypeClassificationContext.FromConfig(DefaultConfig)));
@@ -331,6 +361,37 @@ public sealed class BindingHandleTranslatorTests
     }
 
     [Test]
+    public async Task Extract_Should_Prefer_Public_Typedef_Name_Over_Opaque_Struct_Tag()
+    {
+        var translator = CreateTranslator();
+        var hidTag = new CppClass("SDL_hid_device_")
+        {
+            ClassKind = CppClassKind.Struct,
+            IsDefinition = false,
+            Span = SdlHeaderSpan("SDL_hidapi.h"),
+        };
+        var hidTypedef = new CppTypedef("SDL_hid_device", hidTag)
+        {
+            Span = SdlHeaderSpan("SDL_hidapi.h"),
+        };
+        var semaphoreTag = new CppClass("SDL_semaphore")
+        {
+            ClassKind = CppClassKind.Struct,
+            IsDefinition = false,
+            Span = SdlHeaderSpan("SDL_mutex.h"),
+        };
+        var semaphoreTypedef = new CppTypedef("SDL_sem", semaphoreTag)
+        {
+            Span = SdlHeaderSpan("SDL_mutex.h"),
+        };
+
+        var handles = translator.Extract(new NativeDeclarationCatalog([], [hidTag, semaphoreTag], [], [hidTypedef, semaphoreTypedef]));
+
+        await Assert.That(handles.Select(handle => handle.Name).ToArray())
+            .IsEquivalentTo(["SDL_hid_device", "SDL_sem"]);
+    }
+
+    [Test]
     public async Task Extract_Should_Exclude_Deferred_Handle_Declarations()
     {
         var translator = CreateTranslator();
@@ -466,6 +527,38 @@ public sealed class BindingEnumTranslatorTests
 
         await Assert.That(string.Join(',', enumeration.Members.Select(member => member.Name)))
             .IsEqualTo("SDL_LASTEVENT,SDL_FIRSTEVENT");
+    }
+
+    [Test]
+    public async Task Extract_Should_Force_SDL2_Bool_To_Int_Underlying_Type()
+    {
+        var translator = CreateTranslator();
+        var sdlBool = new CppEnum("SDL_bool")
+        {
+            IntegerType = CppPrimitiveType.UnsignedInt,
+            Span = SdlHeaderSpan("SDL_stdinc.h"),
+        };
+        sdlBool.Items.Add(new CppEnumItem("SDL_FALSE", 0));
+        sdlBool.Items.Add(new CppEnumItem("SDL_TRUE", 1));
+
+        var enumeration = translator.Extract([sdlBool]).Single();
+
+        await Assert.That(enumeration.UnderlyingType.ManagedName).IsEqualTo("int");
+    }
+
+    [Test]
+    public async Task Extract_Should_Mark_Known_SDL_Bitmask_Enums_As_Flags()
+    {
+        var translator = CreateTranslator();
+        var keymod = SdlEnum("SDL_Keymod", "SDL_keycode.h");
+        var glContextFlag = SdlEnum("SDL_GLcontextFlag", "SDL_video.h");
+        var rendererFlip = SdlEnum("SDL_RendererFlip", "SDL_render.h");
+
+        var enumerations = translator.Extract([keymod, glContextFlag, rendererFlip]);
+
+        await Assert.That(enumerations.Single(enumeration => enumeration.Name == "SDL_Keymod").IsFlags).IsTrue();
+        await Assert.That(enumerations.Single(enumeration => enumeration.Name == "SDL_GLcontextFlag").IsFlags).IsTrue();
+        await Assert.That(enumerations.Single(enumeration => enumeration.Name == "SDL_RendererFlip").IsFlags).IsTrue();
     }
 
     [Test]
@@ -699,6 +792,26 @@ public sealed class BindingStructTranslatorTests
         await Assert.That(value.Fields.Select(f => f.FieldOffset).ToArray()).IsEquivalentTo(new int?[] { 0, 0 });
     }
 
+    [Test]
+    public async Task Extract_Should_Not_Emit_SDL_RWops_As_Public_Struct()
+    {
+        var translator = CreateTranslator();
+        var compilation = new CppCompilation();
+        var rwops = new CppClass("SDL_RWops")
+        {
+            ClassKind = CppClassKind.Struct,
+            IsDefinition = true,
+            SizeOf = 88,
+            Span = SdlHeaderSpan("SDL_rwops.h"),
+        };
+        rwops.Fields.Add(new CppField(CppPrimitiveType.Int, "type"));
+        compilation.Classes.Add(rwops);
+
+        var structs = translator.Extract([ParseResult("Neutral", compilation)]);
+
+        await Assert.That(structs.Select(structure => structure.Name).ToArray()).DoesNotContain("SDL_RWops");
+    }
+
     private static BindingStructTranslator CreateTranslator()
     {
         var policy = new BindableDeclarationPolicy(DefaultConfig, new KnownUnsupportedDeclarationPolicy(DefaultConfig));
@@ -803,6 +916,36 @@ public sealed class StructFieldTranslatorTests
         await Assert.That(fixedBuffer.FixedBufferLength).IsEqualTo(16);
         await Assert.That(fixedBuffer.FieldOffset).IsNull();
         await Assert.That(explicitField.FieldOffset).IsEqualTo(4);
+    }
+
+    [Test]
+    public async Task Translate_Should_Map_Hid_Info_Erased_Wide_String_Field_To_Opaque_Pointer()
+    {
+        var translator = CreateTranslator();
+
+        var field = translator.Translate(
+            new CppField(new CppPointerType(CppPrimitiveType.Int), "serial_number"),
+            parentStructName: "SDL_hid_device_info",
+            LayoutKind.Sequential,
+            addNestedStruct: null,
+            sourceHeader: "SDL_hidapi.h");
+
+        await Assert.That(field.Type.ManagedName).IsEqualTo("nint");
+    }
+
+    [Test]
+    public async Task Translate_Should_Not_Map_Arbitrary_Int_Pointer_Fields_To_Opaque_Pointer()
+    {
+        var translator = CreateTranslator();
+
+        var field = translator.Translate(
+            new CppField(new CppPointerType(CppPrimitiveType.Int), "values"),
+            parentStructName: "SDL_Custom",
+            LayoutKind.Sequential,
+            addNestedStruct: null,
+            sourceHeader: "SDL_custom.h");
+
+        await Assert.That(field.Type.ManagedName).IsEqualTo("int*");
     }
 
     private static StructFieldTranslator CreateTranslator() =>

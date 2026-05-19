@@ -6,6 +6,13 @@ namespace Build.Targets.GenerateBindings.Translation;
 
 internal sealed class BindingEnumTranslator
 {
+    private static readonly HashSet<string> KnownFlagsEnumNames = new(StringComparer.Ordinal)
+    {
+        "SDL_Keymod",
+        "SDL_GLcontextFlag",
+        "SDL_RendererFlip",
+    };
+
     private readonly BindableDeclarationPolicy _declarationPolicy;
     private readonly NativeTypeClassifier _typeClassifier;
 
@@ -32,7 +39,9 @@ internal sealed class BindingEnumTranslator
     private BindingEnumeration Translate(CppEnum enumeration)
     {
         var sourceHeader = Path.GetFileName(enumeration.SourceFile ?? string.Empty);
-        var underlyingType = _typeClassifier.Classify(enumeration.IntegerType ?? CppPrimitiveType.Int, sourceHeader);
+        var underlyingType = string.Equals(enumeration.Name, "SDL_bool", StringComparison.Ordinal)
+            ? NativeTypeRef.Primitive("int", "int", NativeAbiShape.Of("int", 4), sourceHeader)
+            : _typeClassifier.Classify(enumeration.IntegerType ?? CppPrimitiveType.Int, sourceHeader);
         var memberNames = enumeration.Items
             .Select(item => item.Name)
             .ToHashSet(StringComparer.Ordinal);
@@ -44,7 +53,8 @@ internal sealed class BindingEnumTranslator
     }
 
     private static bool IsFlagsEnum(CppEnum enumeration) =>
-        enumeration.Name.EndsWith("Flags", StringComparison.Ordinal);
+        enumeration.Name.EndsWith("Flags", StringComparison.Ordinal)
+        || KnownFlagsEnumNames.Contains(enumeration.Name);
 
     private static string FormatValue(CppEnumItem item, HashSet<string> memberNames)
     {

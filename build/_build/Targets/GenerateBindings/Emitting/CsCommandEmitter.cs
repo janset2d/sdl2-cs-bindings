@@ -86,7 +86,9 @@ internal static class CsCommandEmitter
         builder.AppendLf("using System.Runtime.InteropServices;");
         if (view.SupportedOsPlatform is not null)
         {
+            builder.AppendLf("#if NET5_0_OR_GREATER");
             builder.AppendLf("using System.Runtime.Versioning;");
+            builder.AppendLf("#endif");
         }
 
         builder.AppendLf();
@@ -102,9 +104,17 @@ internal static class CsCommandEmitter
         foreach (var function in view.Functions)
         {
             builder.AppendLf();
+            var usesModernCInteger = ModernCIntegerEmissionPolicy.UsesModernCInteger(function);
+            if (usesModernCInteger)
+            {
+                builder.Append("#if ").AppendLf(ModernCIntegerEmissionPolicy.Guard);
+            }
+
             if (view.SupportedOsPlatform is not null)
             {
+                builder.AppendLf("#if NET5_0_OR_GREATER");
                 builder.Append("    [SupportedOSPlatform(\"").Append(view.SupportedOsPlatform).AppendLf("\")]");
+                builder.AppendLf("#endif");
             }
 
             builder.AppendLf("    [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]");
@@ -117,6 +127,11 @@ internal static class CsCommandEmitter
                 .Append('(')
                 .Append(JoinParameters(function.Parameters))
                 .AppendLf(");");
+
+            if (usesModernCInteger)
+            {
+                builder.AppendLf("#endif");
+            }
         }
 
         builder.AppendLf('}');
@@ -162,7 +177,31 @@ internal static class CsCommandEmitter
             SchemaVersion: 1,
             Categories: categories,
             EmittedFiles: emittedFiles,
-            Views: entries);
+            Views: entries,
+            MacroConstants: new BindingMacroConstantsReport(
+                model.MacroReport.ParsedCount,
+                model.MacroReport.CandidateCount,
+                model.MacroReport.EmittedCount,
+                model.MacroReport.SkippedCount,
+                model.MacroReport.ExcludedCount,
+                model.MacroReport.OverriddenCount,
+                model.MacroReport.DuplicateCoalescedCount,
+                model.MacroReport.HelperCandidateCount,
+                model.MacroReport.HelperDuplicateCoalescedCount,
+                model.MacroReport.UnsupportedCount,
+                model.MacroReport.ConflictCount,
+                [.. model.MacroReport.Entries.Select(entry => new BindingMacroConstantReportEntry(
+                    entry.Name,
+                    entry.SourceHeader,
+                    entry.ParseViewName,
+                    entry.Disposition,
+                    entry.Reason,
+                    entry.EmittedType,
+                    entry.EmittedValue,
+                    entry.MacroForm,
+                    entry.Taxonomy,
+                    entry.OriginalExpression,
+                    entry.ComputedValue))]));
         return JsonSerializer.Serialize(report, JsonOptions);
     }
 }

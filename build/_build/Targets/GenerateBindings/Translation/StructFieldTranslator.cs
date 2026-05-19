@@ -50,9 +50,13 @@ internal sealed class StructFieldTranslator
                 FixedBufferLength: null);
         }
 
+        var classifiedType = SdlWideStringPointerPolicy.TryField(parentStructName, field.Name, fieldType, sourceHeader, out var widePointer)
+            ? widePointer
+            : _typeClassifier.Classify(fieldType, sourceHeader);
+
         return new BindingStructField(
             Name: TypeMappingPolicy.SafeIdentifier(field.Name),
-            Type: _typeClassifier.Classify(fieldType, sourceHeader),
+            Type: classifiedType,
             FieldOffset: layout == LayoutKind.Explicit ? checked((int)field.Offset) : null,
             FixedBufferLength: fixedBufferLength);
     }

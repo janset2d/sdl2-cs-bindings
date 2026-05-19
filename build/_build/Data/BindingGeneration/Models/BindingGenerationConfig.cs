@@ -42,13 +42,18 @@ public sealed record BindingGenerationConfig
     /// excluded from the per-header parse loop (currently SDL.h — the umbrella TU is
     /// excluded for failure-isolation reasons documented in friction #7 of
     /// <c>docs/binding-autogen/research/binding-autogen-spike-findings.md</c>).
-    /// SDL2 contributes the 10 <c>SDL_INIT_*</c> macros declared exclusively in SDL.h.
+    /// SDL2 contributes the <c>SDL_INIT_*</c> macros declared exclusively in SDL.h
+    /// plus explicitly promoted string-like macros that Stage 1 treats as core
+    /// API readiness probes.
     /// Optional with empty-default; satellite placeholder entries leave it absent.
     /// Maintenance rationale lives in
     /// <c>docs/playbook/binding-generator-maintenance.md</c> §"Parse-time configuration
     /// surface (per family)" alongside <c>required_functions</c>.
     /// </summary>
     [JsonPropertyName("required_constants")] public ImmutableList<RequiredConstantConfig> RequiredConstants { get; init; } = [];
+
+    [JsonPropertyName("macro_constants")]
+    public MacroConstantPolicyConfig MacroConstants { get; init; } = new();
 
     [JsonPropertyName("deferred_declarations")] public ImmutableDictionary<string, DeferredDeclarationConfig> DeferredDeclarations { get; init; } = ImmutableDictionary<string, DeferredDeclarationConfig>.Empty;
     [JsonPropertyName("validators")] public ImmutableDictionary<string, bool> Validators { get; init; } = ImmutableDictionary<string, bool>.Empty;
@@ -135,6 +140,36 @@ public sealed record RequiredConstantConfig
 
     /// <summary>See <see cref="ConstantKind"/>.</summary>
     [JsonPropertyName("kind")] public required ConstantKind Kind { get; init; }
+
+    [JsonPropertyName("reason")] public string? Reason { get; init; }
+    [JsonPropertyName("allow_stale")] public bool AllowStale { get; init; }
+}
+
+public sealed record MacroConstantPolicyConfig
+{
+    [JsonPropertyName("excluded")]
+    public ImmutableDictionary<string, ManualMacroConstantPolicyEntry> Excluded { get; init; } =
+        ImmutableDictionary<string, ManualMacroConstantPolicyEntry>.Empty;
+
+    [JsonPropertyName("overrides")]
+    public ImmutableDictionary<string, MacroConstantOverrideConfig> Overrides { get; init; } =
+        ImmutableDictionary<string, MacroConstantOverrideConfig>.Empty;
+}
+
+public sealed record ManualMacroConstantPolicyEntry
+{
+    [JsonPropertyName("reason")] public required string Reason { get; init; }
+    [JsonPropertyName("allow_stale")] public bool AllowStale { get; init; }
+}
+
+public sealed record MacroConstantOverrideConfig
+{
+    [JsonPropertyName("type")] public required string Type { get; init; }
+    [JsonPropertyName("value")] public required string Value { get; init; }
+    [JsonPropertyName("source_header")] public required string SourceHeader { get; init; }
+    [JsonPropertyName("kind")] public required ConstantKind Kind { get; init; }
+    [JsonPropertyName("reason")] public required string Reason { get; init; }
+    [JsonPropertyName("allow_stale")] public bool AllowStale { get; init; }
 }
 
 public sealed record DynapiConfig

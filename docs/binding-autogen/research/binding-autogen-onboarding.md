@@ -1,7 +1,7 @@
 # Binding Autogen Workstream — LLM Onboarding
 
 **Audience:** an LLM (or fresh human contributor) picking up the AST binding-generation workstream for Janset.SDL2/SDL3 with no prior conversation context.
-**Date this onboarding reflects:** 2026-05-18.
+**Date this onboarding reflects:** 2026-05-19.
 **Maintainer:** Deniz İrgin (@denizirgin) — hobby project, sets the pace, communicates in Turkish + English.
 
 ## What This Document Is
@@ -22,7 +22,7 @@ The 2026-05-14 draft of the strategy brief was accepted, but four pieces of it w
 
 2. **Linux-canonical determinism contract.** Only `libclang.runtime.linux-x64` + `libClangSharp.runtime.linux-x64` are pinned in the version trio — non-Linux runtime variants are intentionally absent. The `GenerateBindings` Cake target fails closed on any non-`linux-x64` host. Local invocation from Windows/macOS dev hosts routes through `tools.cs generate-bindings`, which provisions the pinned `linux-builder` Docker container automatically. Docker is a hard prerequisite; there is no host-OS fallback. Why: Layer 5 reproducibility (regenerate → byte-identical output) only holds when every parse view runs against the same OS, apt sysroot, and libclang runtime.
 
-3. **Preprocessor-macro switching only — mingw-w64 / Apple SDK stub speculation retracted.** Platform separation uses `--undefine-macro` + `--define-macro` only. No `--target` cross-compile flag, no mingw-w64 cross-toolchain, no Apple SDK header stubs. SDL's public headers carry their own forward declarations for cross-platform opaque types (`typedef struct _NSWindow NSWindow;` at `SDL_syswm.h:86`, `typedef struct ANativeWindow ANativeWindow;` at `:105`, `struct gbm_device;` at `:120`, etc.). Verified against ppy/SDL3-CS Dockerfile + `generate_bindings.py` (WebFetch 2026-05-15) and the local CppAst spike at `tools/binding-spike/cppast/generator/Program.cs:42-72`. Neither uses mingw-w64; ppy's entire stub-header inventory is a single 81-byte `include/process.h` shim. See the brief's HOW §"Multi-pass parsing strategy" + Decision Audit Error 4 row.
+3. **Preprocessor-macro switching only — mingw-w64 / Apple SDK stub speculation retracted.** Platform separation uses `--undefine-macro` + `--define-macro` only. No `--target` cross-compile flag, no mingw-w64 cross-toolchain, no Apple SDK header stubs. SDL's public headers carry their own forward declarations for cross-platform opaque types (`typedef struct _NSWindow NSWindow;` at `SDL_syswm.h:86`, `typedef struct ANativeWindow ANativeWindow;` at `:105`, `struct gbm_device;` at `:120`, etc.). Verified against ppy/SDL3-CS Dockerfile + `generate_bindings.py` (WebFetch 2026-05-15) and the historical local CppAst spike summarized in [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md). Neither uses mingw-w64; ppy's entire stub-header inventory is a single 81-byte `include/process.h` shim. See the brief's HOW §"Multi-pass parsing strategy" + Decision Audit Error 4 row.
 
 4. **`SDL_syswm.h` typed-union layout deferred to Stage 2.** Stage 1 emits `SDL_GetWindowWMInfo` as a function with opaque `nint`-shaped `SDL_SysWMinfo*` parameter; `SDL_SysWMinfo` and `SDL_SysWMmsg` typed-union surface is recorded in `UnsupportedDeclarations.g.json` with category `deferred-to-stage-2`. Stage 2 introduces a small forward-declaration stub library (~15–20 opaque types: `HWND`, `HDC`, `HINSTANCE`, `IInspectable`, `Display*`, `Window`, `wl_display`/`wl_surface`/`xdg_*`, `gbm_device`, `IDirectFB*`, `EGLNativeDisplayType`, `ANativeWindow`) and emits the typed union with `[StructLayout(LayoutKind.Explicit, Size = 64)]` and platform branches at `[FieldOffset(0)]`, honoring the 64-byte size lock from `SDL_syswm.h:346-348`. Why: stub-library work and the typed union are a Stage 2 scope; Stage 1 already proves production-shape at function level (multi-pass orchestration, dedup, fail-closed merge, platform attribution, dual emit, typed handles, friendly overloads, AOT-clean signatures).
 
@@ -80,14 +80,14 @@ These are settled. Don't relitigate.
 ### Where the code lives
 
 - **Spike branch:** `spike/binding-autogen-sdl2-gfx` — both toolchains validated end-to-end with SDL2_gfx; this is the active workstream branch.
-- **Spike artifacts root:** `tools/binding-spike/` (sibling subdirectories per toolchain) — preserved for reference even after Stage 1 lands in `build/_build/Targets/GenerateBindings/`.
+- **Spike artifacts:** retired on 2026-05-19. The findings are preserved in [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md); physical spike projects are no longer kept in the repository.
 - **Production target home (Stage 1 destination):** `build/_build/Targets/GenerateBindings/` + `build/_build/Validation/BindingGeneration/`. Not created yet — that is Stage 1 Task 1 work.
 - **Master branch:** docs only at this point; spike branch carries the code and the doc revisions.
 
-Files of interest (spike snapshot — line counts verified 2026-05-14; will drift):
+Historical spike snapshot (line counts verified 2026-05-14; physical artifacts retired 2026-05-19):
 
 ```text
-tools/binding-spike/
+retired spike root/
 ├── clangsharp/
 │   ├── .config/dotnet-tools.json          ← ClangSharpPInvokeGenerator 21.1.8.3 pinned
 │   ├── generator/sdl2-gfx.rsp              ← 43-line RSP declarative config
@@ -112,7 +112,7 @@ tools/binding-spike/
         └── (no own Program.cs)
 ```
 
-The spike ran on a Windows host with C-stdlib shim headers (`stdint.h`, `stddef.h`, etc. — not platform-OS stubs). When the generator moves into the Linux-canonical Cake host in Stage 1, those C-stdlib shims disappear because the apt sysroot provides them natively. The preprocessor-macro switching pattern in `Program.cs:42-72` is the spike contribution that survived intact.
+The spike ran on a Windows host with C-stdlib shim headers (`stdint.h`, `stddef.h`, etc. — not platform-OS stubs). When the generator moves into the Linux-canonical Cake host in Stage 1, those C-stdlib shims disappear because the apt sysroot provides them natively. The preprocessor-macro switching pattern documented in the spike findings is the contribution that survived intact.
 
 Versioning state (Stage 1 production scope): `Directory.Packages.props` will carry pinned CppAst 0.24.0 + libclang.runtime.linux-x64 20.1.2 + libClangSharp.runtime.linux-x64 20.1.2 (the version-trio coupling per `binding-autogen-spike-findings.md` §7.6). **Non-Linux runtime variants are intentionally absent** per the 2026-05-15 Linux-canonical lock. Don't bump these casually; CppAst 0.24.0 builds against libclang 20.1.x and newer libclang versions cause AST-visit stack-overflow at runtime.
 
@@ -148,7 +148,7 @@ Platform-conditioned parsing is a first-class spike concern. This is not a CppAs
 **Pattern: preprocessor-macro switching only — no `--target`, no mingw-w64, no Apple SDK.** Each pass undefines every SDL platform identification macro, then defines exactly one `(OsCondition, BackendCondition[])` tuple's macros. SDL's public headers carry the cross-platform opaque-type forward declarations the parser needs (`typedef struct _NSWindow NSWindow;` at `SDL_syswm.h:86`, similar for `UIWindow`, `ANativeWindow`, `gbm_device`). Function-level platform surface parses without any hand-written platform stubs. Verified against:
 
 - **ppy/SDL3-CS** Dockerfile + `generate_bindings.py` (WebFetch 2026-05-15) — Ubuntu 24.04 container, no mingw-w64, single 81-byte `include/process.h` shim, preprocessor `--define-macro`/`--undefine-macro` orchestration.
-- **Local CppAst spike** `tools/binding-spike/cppast/generator/Program.cs:42-72` — `Defines`/`Undefines` macro juggling for `_WIN32`/`linux`/`__MACOSX__` triplet, no `--target`, parsed `SDL_system.h` + `SDL_main.h` successfully across all three platforms.
+- **Historical local CppAst spike** — `Defines`/`Undefines` macro juggling for `_WIN32`/`linux`/`__MACOSX__` triplet, no `--target`, parsed `SDL_system.h` + `SDL_main.h` successfully across all three platforms. The physical spike project was retired on 2026-05-19; keep using the summarized evidence in [`binding-autogen-spike-findings.md`](binding-autogen-spike-findings.md).
 
 Stage 1's `PlatformCatalog` is a ~8-entry `(OsCondition, BackendCondition[])` tuple model: Neutral + Windows desktop + WinRT + GDK + Linux + macOS + iOS + Android. Backends compile-enabled on each OS (Linux's X11/Wayland/KMSDRM) are bundled into that OS's pass. DirectFB / Vivante / MIR / OS-2 are documented Stage 1 exclusions. The master "undefine-all-platform-macros" hygiene list (~30 macros) is used per-pass to ensure clean isolation; pass count equals catalog size, not the hygiene list size.
 
@@ -204,7 +204,7 @@ Wait until Stage 1 implementation ships first. The Stage 2 plan is written again
 
 ### If Deniz directs you to more experimentation
 
-The spike branch is live. New experiments under `tools/binding-spike/` are fine, but **don't replicate Stage 1 plan work** — implement Stage 1 in `build/_build/Targets/GenerateBindings/` instead. Useful spike work:
+The spike branch is no longer a place for new throwaway projects. Do **not** recreate the retired spike folder; implement production generator work in `build/_build/Targets/GenerateBindings/` and capture research notes in docs instead. Useful follow-up work:
 
 - **Wrapper layer prototype:** explore `SdlWindow : IDisposable` shape on top of typed handle baseline if there's real consumer pressure (Q7 deferred).
 - **Reference cross-check tool prototype:** sketch the diff tool for Stage 2 (D3 / feasibility §10.4) so the Stage 2 plan inherits a working pattern.

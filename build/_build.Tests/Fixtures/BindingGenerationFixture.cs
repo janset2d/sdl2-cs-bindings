@@ -74,6 +74,7 @@ public static class BindingGenerationFixture
             ExcludedFunctions = ["SDL_main", "SDL_DYNAPI_entry"],
             RequiredFunctions = requiredFunctions is null ? [] : [.. requiredFunctions],
             RequiredConstants = requiredConstants is null ? [] : [.. requiredConstants],
+            MacroConstants = new MacroConstantPolicyConfig(),
             DeferredDeclarations = Sdl2CoreDeferredDeclarations,
             Validators = ImmutableDictionary<string, bool>.Empty
                 .Add("dynapi-coherence", true)

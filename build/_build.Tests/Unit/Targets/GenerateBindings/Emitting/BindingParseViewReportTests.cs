@@ -58,7 +58,34 @@ public sealed class BindingParseViewReportTests
                     [
                         new BindingParseViewReportFunction("SDL_LinuxSetThreadPriority", "SDL_system.h", "int", []),
                     ]),
-            ]);
+            ],
+            MacroConstants: new BindingMacroConstantsReport(
+                ParsedCount: 1,
+                CandidateCount: 1,
+                EmittedCount: 1,
+                SkippedCount: 0,
+                ExcludedCount: 0,
+                OverriddenCount: 0,
+                DuplicateCoalescedCount: 0,
+                HelperCandidateCount: 1,
+                HelperDuplicateCoalescedCount: 0,
+                UnsupportedCount: 0,
+                ConflictCount: 0,
+                Entries:
+                [
+                    new BindingMacroConstantReportEntry(
+                        Name: "SDL_INIT_TIMER",
+                        SourceHeader: "SDL.h",
+                        ParseViewName: "Neutral",
+                        Disposition: "included",
+                        Reason: "manual-include",
+                        MacroForm: "manual",
+                        Taxonomy: "manual-policy",
+                        OriginalExpression: null,
+                        ComputedValue: null,
+                        EmittedType: "uint",
+                        EmittedValue: "0x00000001u"),
+                ]));
 
         var options = new JsonSerializerOptions { WriteIndented = true };
         var json = JsonSerializer.Serialize(original, options);
@@ -76,5 +103,20 @@ public sealed class BindingParseViewReportTests
         await Assert.That(round.Views[1].SupportedOSPlatform).IsEqualTo("linux");
         await Assert.That(round.Views[0].Functions[0].ReturnType).IsEqualTo("int");
         await Assert.That(round.Views[0].Functions[0].Parameters.Single().Type).IsEqualTo("uint");
+        await Assert.That(round.MacroConstants.ParsedCount).IsEqualTo(1);
+        await Assert.That(round.MacroConstants.EmittedCount).IsEqualTo(1);
+        await Assert.That(round.MacroConstants.HelperCandidateCount).IsEqualTo(1);
+        await Assert.That(round.MacroConstants.HelperDuplicateCoalescedCount).IsEqualTo(0);
+        await Assert.That(round.MacroConstants.Entries.Count).IsEqualTo(1);
+        var macroEntry = round.MacroConstants.Entries[0];
+        await Assert.That(macroEntry.Name).IsEqualTo("SDL_INIT_TIMER");
+        await Assert.That(macroEntry.Disposition).IsEqualTo("included");
+        await Assert.That(macroEntry.Reason).IsEqualTo("manual-include");
+        await Assert.That(macroEntry.MacroForm).IsEqualTo("manual");
+        await Assert.That(macroEntry.Taxonomy).IsEqualTo("manual-policy");
+        await Assert.That(macroEntry.OriginalExpression).IsNull();
+        await Assert.That(macroEntry.ComputedValue).IsNull();
+        await Assert.That(macroEntry.EmittedType).IsEqualTo("uint");
+        await Assert.That(macroEntry.EmittedValue).IsEqualTo("0x00000001u");
     }
 }

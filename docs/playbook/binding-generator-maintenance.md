@@ -1,7 +1,7 @@
 # Playbook: Binding Generator Maintenance
 
 **Status:** In progress — Stage 1 SDL2.Core generator is still landing.
-**Last updated:** 2026-05-16
+**Last updated:** 2026-05-19
 
 This playbook covers maintenance work that touches generated bindings, platform macro catalogs, CppAst/libclang versions, and the native hybrid-static inputs those bindings depend on.
 
@@ -133,6 +133,18 @@ Maintenance triggers and procedure:
 2. **New satellite enters scope.** Add the satellite's umbrella header (`SDL_<library>.h`) to "Satellite umbrellas" before that satellite has its own generation slice; otherwise the satellite's `IMG_*`/`Mix_*`/etc. functions will leak into SDL2.Core's output.
 
 3. **Test parity.** Every exclusion category should be exercised by `HeaderSetResolverTests` — keep `ResolveSdl2CoreHeaders_Should_Exclude_Non_Core_Headers` in sync.
+
+## Macro Constants Maintenance
+
+Macro constants are source-first. The generator collects object-like `SDL_*` macros from parsed SDL2.Core public headers, classifies non-API/header-control macros, emits safe string and numeric constants, and writes macro evidence into `parse-views.json`.
+
+`SDL_config*.h` macros are source-visible but not public API. They describe SDL's build-time feature toggles for the parser host / configured target and must stay classified as non-API report evidence rather than emitted constants.
+
+When adding macro parser or evaluator support, start with a real embedded header fixture under `build/_build.Tests/Fixtures/Data/GenerateBindings/`. Constructed `CppMacro` tests may cover policy branches, edge cases, and regression minimization, but they cannot be the only test for a new parser capability.
+
+Use `binding_generation.required_constants` only for constants that are not visible through the per-header parse loop, such as current `SDL_INIT_*` values from excluded `SDL.h`. Use `binding_generation.macro_constants.excluded` only when a generated source-visible macro is intentionally not public binding API. Use `binding_generation.macro_constants.overrides` only when the source-visible value needs an explicit managed shape.
+
+Unused manual includes, excludes, and overrides fail by default. If a stale-tolerant entry is necessary, it must carry `allow_stale: true` and a reason that explains why the entry remains in the manifest.
 
 ## Parser Options Audit Cadence
 

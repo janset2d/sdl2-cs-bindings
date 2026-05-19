@@ -21,11 +21,42 @@ public sealed class BindingCompileCheckProjectTests
         await Assert.That(result.CombinedOutput).Contains("BINDING-COMPILE-CHECK-001", StringComparison.Ordinal);
     }
 
+    [Test]
+    public async Task Build_Should_Reach_Compatibility_TargetFrameworks_By_Default()
+    {
+        using var generatedRoot = new TempDirectory("janset-generated-bindings-tfm-probe-");
+        var repoRoot = FindRepositoryRoot();
+        var projectPath = Path.Combine(repoRoot, "tests", "binding-compile-check", "SDL2.Core.CompileCheck.csproj");
+        await File.WriteAllTextAsync(
+            Path.Combine(generatedRoot.Path, "TfmProbe.g.cs"),
+            """
+            #if NETSTANDARD2_0
+            #error BINDING-COMPILE-CHECK-PROBED-NETSTANDARD2_0
+            #endif
+
+            namespace SDL2;
+
+            public static partial class TfmProbe
+            {
+            }
+            """);
+
+        var result = await RunDotNetBuildAsync(
+            repoRoot,
+            projectPath,
+            $"/p:GeneratedBindingsPreviewRoot={EnsureTrailingSeparator(generatedRoot.Path)}");
+
+        await Assert.That(result.ExitCode).IsNotEqualTo(0);
+        await Assert.That(result.CombinedOutput).Contains("BINDING-COMPILE-CHECK-PROBED-NETSTANDARD2_0", StringComparison.Ordinal);
+    }
+
     private static async Task<ProcessResult> RunDotNetBuildAsync(
         string workingDirectory,
         string projectPath,
-        string generatedBindingsRootProperty)
+        params string[] buildProperties)
     {
+        using var intermediateRoot = new TempDirectory("janset-compile-check-obj-");
+        using var outputRoot = new TempDirectory("janset-compile-check-bin-");
         using var process = new Process();
         process.StartInfo = new ProcessStartInfo
         {
@@ -43,7 +74,12 @@ public sealed class BindingCompileCheckProjectTests
         process.StartInfo.ArgumentList.Add("--disable-build-servers");
         process.StartInfo.ArgumentList.Add("-p:UseSharedCompilation=false");
         process.StartInfo.ArgumentList.Add("-nodeReuse:false");
-        process.StartInfo.ArgumentList.Add(generatedBindingsRootProperty);
+        process.StartInfo.ArgumentList.Add($"/p:BaseIntermediateOutputPath={EnsureTrailingSeparator(intermediateRoot.Path)}");
+        process.StartInfo.ArgumentList.Add($"/p:BaseOutputPath={EnsureTrailingSeparator(outputRoot.Path)}");
+        foreach (var property in buildProperties)
+        {
+            process.StartInfo.ArgumentList.Add(property);
+        }
 
         if (!process.Start())
         {

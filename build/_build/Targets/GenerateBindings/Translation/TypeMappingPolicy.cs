@@ -18,10 +18,10 @@ namespace Build.Targets.GenerateBindings.Translation;
 /// </para>
 /// <para>
 /// Preserved invariants: chain-resolve typedef before SDL-prefix fallback,
-/// <c>Long</c> maps to <c>nint</c> for LP64 correctness, catch-all maps to
-/// <c>IntPtr</c> rather than silently dropping, typedef recursion is capped by
-/// <see cref="MaxTypedefDepth"/>, and <see cref="SafeIdentifier"/> covers C#
-/// reserved/contextual keywords.
+/// C <c>long</c> uses platform-sensitive C integer types, catch-all maps to
+/// <c>IntPtr</c> rather than silently dropping, typedef recursion is capped
+/// by <see cref="MaxTypedefDepth"/>, and <see cref="SafeIdentifier"/> covers
+/// C# reserved/contextual keywords.
 /// </para>
 /// </summary>
 public static class TypeMappingPolicy
@@ -127,11 +127,9 @@ public static class TypeMappingPolicy
     }
 
     /// <summary>
-    /// C primitive → managed primitive. Notable invariant: C <c>long</c> →
-    /// <c>nint</c> (NOT <c>int</c>) because LP64 (Linux/macOS) gives 64-bit
-    /// <c>long</c>, LLP64 (Windows) gives 32-bit, and the CLR's <c>nint</c>
-    /// resolves to the pointer-sized integer on both — round-trips correctly
-    /// across the ABI families our 7-RID matrix covers (P0.2 fix).
+    /// C primitive → managed primitive. C <c>long</c> and
+    /// <c>unsigned long</c> are platform-sensitive ABI integers, so they use
+    /// <c>CLong</c> / <c>CULong</c> instead of pointer-sized integer aliases.
     /// </summary>
     public static BindingTypeRef MapPrimitive(CppPrimitiveType prim)
     {
@@ -151,20 +149,18 @@ public static class TypeMappingPolicy
             CppPrimitiveKind.UnsignedLongLong => "ulong",
             CppPrimitiveKind.Float => "float",
             CppPrimitiveKind.Double => "double",
-            CppPrimitiveKind.Long => "nint",
-            CppPrimitiveKind.UnsignedLong => "nuint",
+            CppPrimitiveKind.Long => "CLong",
+            CppPrimitiveKind.UnsignedLong => "CULong",
             _ => "IntPtr",
         };
         return BindingTypeRef.Of(managedName);
     }
 
     /// <summary>
-    /// Pointer mapping. <b>Phase 3C-temporary heuristic:</b> SDL_-prefixed typedef
-    /// and class pointees emit as <c>IntPtr</c>; non-SDL classes get
-    /// <c>cls.Name + "*"</c>. Phase 3D translator rewrite replaces this with
-    /// structural inspection (empty <c>CppClass</c> ⇒ opaque handle, typed
-    /// fields ⇒ struct pointer) populating <see cref="BindingTypeRef.IsOpaqueHandle"/>
-    /// directly. See unified design spec §8.1.
+    /// Pointer mapping for legacy callers that still consume <see cref="BindingTypeRef"/>.
+    /// SDL_-prefixed typedef and class pointees emit as <c>IntPtr</c>; non-SDL
+    /// classes get <c>cls.Name + "*"</c>. The semantic translators use
+    /// <see cref="NativeTypeClassifier"/> when they need structural inspection.
     /// </summary>
     public static BindingTypeRef MapPointer(CppPointerType node)
     {
@@ -203,7 +199,7 @@ public static class TypeMappingPolicy
     /// chain-resolves through the typedef target so SDL_-prefixed primitive
     /// aliases (<c>SDL_AudioFormat</c> → <c>Uint16</c>, <c>SDL_SpinLock</c> →
     /// <c>int</c>, <c>SDL_GameControllerButton</c> → enum) emit the underlying
-    /// primitive width rather than falling back to <c>IntPtr</c> (P0.1 fix).
+    /// primitive width rather than falling back to <c>IntPtr</c>.
     /// SDL_-prefixed opaque struct typedefs (<c>SDL_Window</c>, <c>SDL_Renderer</c>)
     /// reach the final <c>IntPtr</c> fallback because their target is a
     /// <see cref="CppClass"/> with no primitive resolution path.

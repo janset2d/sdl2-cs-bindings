@@ -9,7 +9,7 @@
 
 > **Decision note (2026-05-14, updated 2026-05-15):** This remains the spike evidence record. The accepted strategy brief and ADR-004 select the CppAst path for Phase 4 planning while preserving ClangSharp as the documented migration path.
 >
-> **Frozen research artifact.** The spike was run on a Windows host with C-stdlib shim headers (`stdint.h`, `stddef.h`, etc.) for cross-host parsing. Stage 1's production generator does NOT replicate that host setup — it runs Linux-canonical inside the pinned `linux-builder` Docker container, where the apt sysroot provides system headers natively and no C-stdlib shims are required. The preprocessor-macro switching pattern in `tools/binding-spike/cppast/generator/Program.cs:42-72` is what survives; the Windows host + stub-include scaffolding does not.
+> **Frozen research artifact.** The spike was run on a Windows host with C-stdlib shim headers (`stdint.h`, `stddef.h`, etc.) for cross-host parsing. Stage 1's production generator does NOT replicate that host setup — it runs Linux-canonical inside the pinned `linux-builder` Docker container, where the apt sysroot provides system headers natively and no C-stdlib shims are required. The preprocessor-macro switching pattern is what survives; the Windows host + stub-include scaffolding does not. Physical spike artifacts were removed from the repository on 2026-05-19, so paths in this document are historical descriptions rather than files to navigate.
 >
 > Other 2026-05-15 strategy-brief corrections that affect how to read this doc:
 >
@@ -49,7 +49,7 @@ This document captures the **hands-on findings from running BOTH the ClangSharp+
 ### Directory structure
 
 ```
-tools/binding-spike/clangsharp/
+retired spike root/clangsharp/
 ├── .config/dotnet-tools.json     # ClangSharpPInvokeGenerator 21.1.8.3 (local)
 ├── generator/
 │   └── sdl2-gfx.rsp               # 43-line declarative config (verified 2026-05-14)
@@ -506,7 +506,7 @@ Parallel spike running CppAst-custom-emitter pipeline on the same SDL2_gfx surfa
 Directory structure (sibling to ClangSharp side under same spike branch):
 
 ```
-tools/binding-spike/cppast/
+retired spike root/cppast/
 ├── generator/
 │   ├── generator.csproj            # net10 console, refs CppAst + native runtime packages
 │   └── Program.cs                  # 261-line custom emitter (parses, walks, emits) — verified 2026-05-14
@@ -581,7 +581,7 @@ public const int SMOOTHING_OFF = 0;
 public const int SMOOTHING_ON = 1;
 ```
 
-**ClangSharp's `--config generate-macro-bindings` captures the same 8 constants** (verified 2026-05-14 against `tools/binding-spike/clangsharp/bindings/Generated/SDL2_gfx.g.cs`). Earlier drafts of this section claimed ClangSharp only captured `SMOOTHING_OFF` + `SMOOTHING_ON` — that was a pre-`generate-macro-bindings` RSP iteration. Once the flag landed in the final RSP, the gap closed.
+**ClangSharp's `--config generate-macro-bindings` captures the same 8 constants** (verified 2026-05-14 against the now-retired ClangSharp spike output). Earlier drafts of this section claimed ClangSharp only captured `SMOOTHING_OFF` + `SMOOTHING_ON` — that was a pre-`generate-macro-bindings` RSP iteration. Once the flag landed in the final RSP, the gap closed.
 
 **Net macro-capture observation:** at SDL2_gfx scope, both toolchains emit identical constant sets out of the box (CppAst via 30 lines of hand-rolled `TryEmitMacroConstant`, ClangSharp via the `generate-macro-bindings` flag). The earlier "CppAst captures more constants" framing is **not supported by the current spike artifacts** and has been retracted. The custom-emission-ceiling argument for CppAst stands on other grounds (multi-TFM dual emit, friendly overloads, platform attribution in a single loop — see §7.8), not on small-scale macro recognition.
 
@@ -737,7 +737,7 @@ The spike capped with a real-runtime test app. Goal: take the bindings off the c
 
 ### 8.1 Test App Architecture
 
-Two test apps under `tools/binding-spike/{clangsharp,cppast}/test/`:
+Two test apps under the retired `clangsharp` and `cppast` spike roots:
 
 ```
 clangsharp/test/Spike.TestApp.SDL2_gfx.csproj
@@ -902,7 +902,7 @@ These surfaced during spike, captured for the Phase 4 implementation plan to res
 - [`binding-autogen-feasibility.md`](binding-autogen-feasibility.md) — 11 emit rules, 7-layer testing strategy, 11 open decisions (D1–D11), 4 pending discussion threads
 - [`../release-strategy.md`](../../release-strategy.md) — Stage 0-5 path, AST-first sequencing, end state at v1.0
 - [`../phases/phase-4-binding-autogen.md`](../../phases/phase-4-binding-autogen.md) — Phase 4 design brief
-- `tools/binding-spike/clangsharp/` — actual spike artifacts (on `spike/binding-autogen-sdl2-gfx` branch)
+- Historical ClangSharp spike artifacts — actual spike artifacts from the `spike/binding-autogen-sdl2-gfx` branch, retired from the repository on 2026-05-19.
 
 ## 11. Stage 1 Task 3.5 — Production Linux-Canonical Findings (2026-05-16)
 
@@ -950,7 +950,7 @@ Same validator, three stages. Cross-stage reuse mirrors the existing build host'
 
 ### 11.3 Retractions to Earlier Assumptions
 
-- **§"Frozen research artifact" banner claim** "the apt sysroot provides system headers natively and no C-stdlib shims are required" — **partially wrong**. The C-stdlib portion is correct (CPATH + apt-installed GCC/glibc resolves `<stddef.h>`, `<stdint.h>`, `<stdarg.h>`, `<sys/types.h>`, etc.). But platform-specific system headers (Windows `<process.h>`/`<windows.h>`, WinRT `<Inspectable.h>`, Apple `<AvailabilityMacros.h>` / `<TargetConditionals.h>`) **are** unavailable on Linux and **do** require shim headers — a different subset from the spike-era stdlib shims, but functionally the same technique. The shim-set retired from `tools/binding-spike/cppast-platform/generator/include/` (stdlib stubs) is genuinely retired; a new shim-set lives under `build/_build/Targets/GenerateBindings/SyntheticHeaders/` (platform stubs).
+- **§"Frozen research artifact" banner claim** "the apt sysroot provides system headers natively and no C-stdlib shims are required" — **partially wrong**. The C-stdlib portion is correct (CPATH + apt-installed GCC/glibc resolves `<stddef.h>`, `<stdint.h>`, `<stdarg.h>`, `<sys/types.h>`, etc.). But platform-specific system headers (Windows `<process.h>`/`<windows.h>`, WinRT `<Inspectable.h>`, Apple `<AvailabilityMacros.h>` / `<TargetConditionals.h>`) **are** unavailable on Linux and **do** require shim headers — a different subset from the spike-era stdlib shims, but functionally the same technique. The retired spike-era stdlib shim-set is genuinely retired; a new shim-set lives under `build/_build/Targets/GenerateBindings/SyntheticHeaders/` (platform stubs).
 - **Stage 1 Task 3.5 mid-iteration claim** "`-U__has_builtin` is gratuitous, drop it" — wrong, per friction #9. Restored.
 - **§7.2 friction #5** "version-trio coupling is real (libclang 21.x crashes CppAst 0.24.0)" — confirmed unchanged; trio still pinned at CppAst 0.24.0 + libclang.runtime 20.1.2 + libClangSharp.runtime 20.1.2 per ADR-004. Stage 1 Task 3.5 added a runtime `clang_getClangVersion()` assertion in `BindingGenerationRunner` for defense-in-depth.
 - **§7 implicit assumption** that one-TU `ParseFiles(allHeaders)` is the natural CppAst API — true for spike-scope (4 headers, narrow transitive includes) but breaks at production scope (88 headers). The peer state-of-the-art is per-header loops (Alimer for CppAst, ppy for ClangSharp); CppAst's `ParseFile` vs `ParseFiles` API choice is **not** the isolating mechanism (both build one libclang TU per call) — the **loop** is.

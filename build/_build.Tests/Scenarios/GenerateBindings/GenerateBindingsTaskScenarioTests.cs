@@ -133,7 +133,7 @@ public sealed class GenerateBindingsTaskScenarioTests
         {
             await Assert.That(world.FileExists(file)).IsTrue();
         }
-        await Assert.That(result.Log.HasMessage(LogLevel.Information, "Model categories: 1 structs, 1 enums, 1 constants, 1 handles, 1 callbacks.")).IsTrue();
+        await Assert.That(result.Log.HasMessage(LogLevel.Information, "Model categories: 1 structs, 1 enums, 2 constants, 1 handles, 1 callbacks.")).IsTrue();
     }
 
     private static TargetTestHost<GenerateBindingsTask> CreateHost(
@@ -181,6 +181,7 @@ public sealed class GenerateBindingsTaskScenarioTests
         compilation.Classes.Add(RectStruct());
         compilation.Enums.Add(EventTypeEnum());
         compilation.Typedefs.Add(AudioCallbackTypedef());
+        compilation.Macros.Add(SdlHintMacro());
         return compilation;
     }
 
@@ -229,6 +230,16 @@ public sealed class GenerateBindingsTaskScenarioTests
         {
             Span = SdlHeaderSpan("SDL_audio.h"),
         };
+    }
+
+    private static CppMacro SdlHintMacro()
+    {
+        var macro = new CppMacro("SDL_HINT_RENDER_DRIVER") { Value = "\"SDL_RENDER_DRIVER\"" };
+        macro.Span = new CppSourceSpan(
+            new CppSourceLocation("C:/vcpkg/installed/x64-linux-hybrid/include/SDL2/SDL_hints.h", 0, 1, 1),
+            new CppSourceLocation("C:/vcpkg/installed/x64-linux-hybrid/include/SDL2/SDL_hints.h", 1, 1, 2));
+        macro.Tokens.Add(new CppToken(CppTokenKind.Literal, "\"SDL_RENDER_DRIVER\""));
+        return macro;
     }
 
     private static CppSourceSpan SdlHeaderSpan(string headerName) =>

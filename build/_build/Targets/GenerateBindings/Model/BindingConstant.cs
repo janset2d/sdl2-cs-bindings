@@ -3,11 +3,12 @@ using Build.Data.BindingGeneration.Models;
 namespace Build.Targets.GenerateBindings.Model;
 
 /// <summary>
-/// Public constant declaration in the binding surface. Drives
-/// <c>CsConstantEmitter</c> at Phase 3E. The translator (Phase 3D) merges
-/// AST-parsed macros with the manifest's <c>binding_generation.required_constants</c>
-/// list (SDL.h-only constants that survive the umbrella exclusion the same way
-/// <c>required_functions</c> recovers SDL.h-only base API).
+/// Public constant declaration in the binding surface. Produced by
+/// <c>BindingConstantTranslator</c> from source-parsed macros (via
+/// <c>MacroCandidateCollector</c> → <c>MacroValueClassifier</c> → <c>MacroConstantMerger</c>),
+/// with required constants from the manifest's <c>binding_generation.required_constants</c>
+/// injected by <c>MacroManualPolicyApplier</c> for headers excluded from the per-header
+/// parse loop (e.g. SDL.h).
 /// </summary>
 /// <param name="Name">Identifier as it appears in C (e.g. <c>SDL_INIT_TIMER</c>).</param>
 /// <param name="Type">Managed type ref (e.g. <c>uint</c>).</param>

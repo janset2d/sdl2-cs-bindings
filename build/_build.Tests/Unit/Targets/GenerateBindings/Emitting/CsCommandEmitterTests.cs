@@ -89,7 +89,9 @@ public sealed class CsCommandEmitterTests
         var fileSet = Emit(model);
 
         var linuxFile = fileSet.Files.Single(f => f.RelativePath == "Platform/Linux/Commands.g.cs");
+        await Assert.That(linuxFile.Content).Contains("#if NET5_0_OR_GREATER");
         await Assert.That(linuxFile.Content).Contains("[SupportedOSPlatform(\"linux\")]");
+        await Assert.That(linuxFile.Content).Contains("#endif");
     }
 
     [Test]
@@ -153,6 +155,52 @@ public sealed class CsCommandEmitterTests
 
         var file = fileSet.Files.Single(f => f.RelativePath == "Platform/Neutral/Commands.g.cs");
         await Assert.That(file.Content).Contains("internal static extern uint SDL_GetTicks();");
+    }
+
+    [Test]
+    public async Task Emit_Should_Guard_CLong_Functions_To_Modern_Tfms()
+    {
+        var model = new BindingModel(
+            [new BindingParseView(
+                "Neutral",
+                null,
+                [new BindingFunction(
+                    "SDL_lround",
+                    NativeTypeRef.Primitive("long", "CLong", NativeAbiShape.Of("CLong")),
+                    [new BindingParameter(NativeTypeRef.Primitive("double", "double", NativeAbiShape.Of("double", 8)), "x")],
+                    "SDL_stdinc.h")])]);
+
+        var fileSet = CsCommandEmitter.Emit(model, new BindingEmissionOptions("SDL2", "SDL"));
+        var commands = fileSet.Files.Single(file => file.RelativePath == "Platform/Neutral/Commands.g.cs").Content;
+
+        await Assert.That(commands).Contains("#if NET6_0_OR_GREATER");
+        await Assert.That(commands).Contains("internal static extern CLong SDL_lround(double x);");
+        await Assert.That(commands).Contains("#endif");
+    }
+
+    [Test]
+    public async Task Emit_Should_Guard_CLong_Pointer_Functions_To_Modern_Tfms()
+    {
+        var cLongPointer = NativeTypeRef.Indirection(
+            NativeTypeRef.Primitive("long", "CLong", NativeAbiShape.Of("CLong")),
+            indirectionDepth: 1,
+            managedName: "CLong*");
+        var model = new BindingModel(
+            [new BindingParseView(
+                "Neutral",
+                null,
+                [new BindingFunction(
+                    "SDL_read_long",
+                    NativeTypeRef.Primitive("int", "int", NativeAbiShape.Of("int", 4)),
+                    [new BindingParameter(cLongPointer, "value")],
+                    "SDL_stdinc.h")])]);
+
+        var fileSet = CsCommandEmitter.Emit(model, new BindingEmissionOptions("SDL2", "SDL"));
+        var commands = fileSet.Files.Single(file => file.RelativePath == "Platform/Neutral/Commands.g.cs").Content;
+
+        await Assert.That(commands).Contains("#if NET6_0_OR_GREATER");
+        await Assert.That(commands).Contains("internal static extern int SDL_read_long(CLong* value);");
+        await Assert.That(commands).Contains("#endif");
     }
 
     [Test]
@@ -220,6 +268,24 @@ public sealed class CsCommandEmitterTests
         await Assert.That(parameters[0].GetProperty("Type").GetString()).IsEqualTo("long");
         await Assert.That(parameters[1].GetProperty("Name").GetString()).IsEqualTo("priority");
         await Assert.That(parameters[1].GetProperty("Type").GetString()).IsEqualTo("int");
+
+        var macroConstants = root.GetProperty("MacroConstants");
+        await Assert.That(macroConstants.GetProperty("ParsedCount").GetInt32()).IsEqualTo(1);
+        await Assert.That(macroConstants.GetProperty("EmittedCount").GetInt32()).IsEqualTo(1);
+        await Assert.That(macroConstants.GetProperty("HelperCandidateCount").GetInt32()).IsEqualTo(0);
+        await Assert.That(macroConstants.GetProperty("HelperDuplicateCoalescedCount").GetInt32()).IsEqualTo(0);
+        var macroEntries = macroConstants.GetProperty("Entries").EnumerateArray().ToArray();
+        await Assert.That(macroEntries.Length).IsEqualTo(1);
+        var timerEntry = macroEntries[0];
+        await Assert.That(timerEntry.GetProperty("Name").GetString()).IsEqualTo("SDL_INIT_TIMER");
+        await Assert.That(timerEntry.GetProperty("Disposition").GetString()).IsEqualTo("included");
+        await Assert.That(timerEntry.GetProperty("Reason").GetString()).IsEqualTo("manual-include");
+        await Assert.That(timerEntry.GetProperty("EmittedType").GetString()).IsEqualTo("uint");
+        await Assert.That(timerEntry.GetProperty("EmittedValue").GetString()).IsEqualTo("0x00000001u");
+        await Assert.That(timerEntry.GetProperty("MacroForm").GetString()).IsEqualTo("manual");
+        await Assert.That(timerEntry.GetProperty("Taxonomy").GetString()).IsEqualTo("manual-policy");
+        await Assert.That(timerEntry.GetProperty("OriginalExpression").ValueKind).IsEqualTo(JsonValueKind.Null);
+        await Assert.That(timerEntry.GetProperty("ComputedValue").ValueKind).IsEqualTo(JsonValueKind.Null);
     }
 
     [Test]
@@ -276,7 +342,7 @@ public sealed class CsCommandEmitterTests
     }
 
     [Test]
-    public async Task Emit_Should_Use_InlineArray_For_Fixed_Array_Elements_That_CSharp_Fixed_Buffers_Do_Not_Support()
+    public async Task Emit_Should_Use_TfmSafe_Wrapper_For_Fixed_Array_Elements_That_CSharp_Fixed_Buffers_Do_Not_Support()
     {
         var model = new BindingModel(
             Views: [],
@@ -299,12 +365,50 @@ public sealed class CsCommandEmitterTests
         var fileSet = Emit(model);
 
         var structsFile = fileSet.Files.Single(f => f.RelativePath == "Types/Structs.g.cs");
-        await Assert.That(structsFile.Content).Contains("using System.Runtime.CompilerServices;");
         await Assert.That(structsFile.Content).Contains("public SDL_ColorScheme_colors colors;");
-        await Assert.That(structsFile.Content).Contains("[InlineArray(5)]");
+        await Assert.That(structsFile.Content).Contains("[StructLayout(LayoutKind.Sequential)]");
         await Assert.That(structsFile.Content).Contains("public partial struct SDL_ColorScheme_colors");
-        await Assert.That(structsFile.Content).Contains("private SDL_MessageBoxColor _element0;");
+        await Assert.That(structsFile.Content).Contains("public SDL_MessageBoxColor Element0;");
+        await Assert.That(structsFile.Content).Contains("public SDL_MessageBoxColor Element4;");
+        await Assert.That(structsFile.Content).DoesNotContain("using System.Runtime.CompilerServices;");
+        await Assert.That(structsFile.Content).DoesNotContain("[InlineArray(5)]");
         await Assert.That(structsFile.Content).DoesNotContain("fixed SDL_MessageBoxColor colors[5];");
+    }
+
+    [Test]
+    public async Task Emit_Should_Mark_FixedArray_Wrapper_Unsafe_When_ElementType_Is_Pointer()
+    {
+        var pointerType = NativeTypeRef.Indirection(
+            NativeTypeRef.Primitive("signed char", "sbyte", NativeAbiShape.Of("sbyte")),
+            indirectionDepth: 1,
+            managedName: "sbyte*");
+        var model = new BindingModel(
+            Views: [],
+            Structs:
+            [
+                new BindingStruct(
+                    Name: "SDL_PointerTable",
+                    Fields:
+                    [
+                        new BindingStructField("entries", pointerType, FieldOffset: null, FixedBufferLength: 2),
+                    ],
+                    Layout: LayoutKind.Sequential,
+                    ExplicitSize: null),
+            ],
+            Enums: [],
+            Constants: [],
+            Handles: [],
+            Callbacks: []);
+
+        var fileSet = Emit(model);
+
+        var structsFile = fileSet.Files.Single(f => f.RelativePath == "Types/Structs.g.cs");
+        await Assert.That(structsFile.Content).Contains("public SDL_PointerTable_entries entries;");
+        await Assert.That(structsFile.Content).Contains("public partial struct SDL_PointerTable\n");
+        await Assert.That(structsFile.Content).DoesNotContain("public unsafe partial struct SDL_PointerTable\n");
+        await Assert.That(structsFile.Content).Contains("public unsafe partial struct SDL_PointerTable_entries");
+        await Assert.That(structsFile.Content).Contains("public sbyte* Element0;");
+        await Assert.That(structsFile.Content).Contains("public sbyte* Element1;");
     }
 
     [Test]

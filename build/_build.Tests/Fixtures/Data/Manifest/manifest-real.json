@@ -211,8 +211,8 @@
           { "name": "SDL_Quit", "return_type": "void", "parameters": [], "source_header": "SDL.h" }
         ],
         "required_constants": [
-          { "name": "SDL_INIT_TIMER",      "type": "uint", "value": "0x00000001u", "source_header": "SDL.h", "kind": "Literal" },
-          { "name": "SDL_INIT_EVERYTHING", "type": "uint", "value": "SDL_INIT_TIMER", "source_header": "SDL.h", "kind": "Computed" }
+          { "name": "SDL_INIT_TIMER",          "type": "uint", "value": "0x00000001u", "source_header": "SDL.h", "kind": "Literal" },
+          { "name": "SDL_INIT_EVERYTHING",     "type": "uint", "value": "SDL_INIT_TIMER", "source_header": "SDL.h", "kind": "Computed" }
         ],
         "deferred_declarations": {
           "SDL_SysWMinfo": { "category": "deferred-to-stage-2", "reason": "Stage 2 typed union." },

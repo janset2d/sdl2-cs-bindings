@@ -4,7 +4,35 @@ internal sealed record BindingParseViewReport(
     int SchemaVersion,
     BindingParseViewReportCategories Categories,
     IReadOnlyList<string> EmittedFiles,
-    IReadOnlyList<BindingParseViewReportEntry> Views);
+    IReadOnlyList<BindingParseViewReportEntry> Views,
+    BindingMacroConstantsReport MacroConstants);
+
+internal sealed record BindingMacroConstantsReport(
+    int ParsedCount,
+    int CandidateCount,
+    int EmittedCount,
+    int SkippedCount,
+    int ExcludedCount,
+    int OverriddenCount,
+    int DuplicateCoalescedCount,
+    int HelperCandidateCount,
+    int HelperDuplicateCoalescedCount,
+    int UnsupportedCount,
+    int ConflictCount,
+    IReadOnlyList<BindingMacroConstantReportEntry> Entries);
+
+internal sealed record BindingMacroConstantReportEntry(
+    string Name,
+    string SourceHeader,
+    string ParseViewName,
+    string Disposition,
+    string Reason,
+    string? EmittedType,
+    string? EmittedValue,
+    string MacroForm,
+    string Taxonomy,
+    string? OriginalExpression,
+    string? ComputedValue);
 
 internal sealed record BindingParseViewReportCategories(
     int ViewCount,

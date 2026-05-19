@@ -288,7 +288,7 @@ Refs: spec §4.1 Model/
 **Files:**
 - Create: `build/_build/Targets/GenerateBindings/Model/CppAstToPreviewModel.cs`
 
-PURE static class. Ports the spike's `MapType` / `MapPrimitive` / `MapPointer` logic (`tools/binding-spike/cppast-platform/generator/Program.cs:345-424`) into a reusable translator. Takes `IReadOnlyList<CppAstParseResult>` (existing record at `build/_build/Targets/GenerateBindings/Parsing/CppAstParseResult.cs`), returns `PreviewBindingModel`.
+PURE static class. Ports the historical spike's `MapType` / `MapPrimitive` / `MapPointer` logic into a reusable translator. Takes `IReadOnlyList<CppAstParseResult>` (existing record at `build/_build/Targets/GenerateBindings/Parsing/CppAstParseResult.cs`), returns `PreviewBindingModel`.
 
 No unit tests — translator semantics validated by manual smoke per spec §7.1.
 
@@ -316,7 +316,7 @@ internal static class CppAstToPreviewModel
 
             // Platform views drop functions that already appeared in the Neutral view.
             // Mirrors the spike's ExcludeNeutralSymbols rule
-            // (tools/binding-spike/cppast-platform/generator/Program.cs:182-189).
+            // (from the historical platform-pass spike helper).
             if (!isNeutral)
             {
                 functions = functions
@@ -504,8 +504,7 @@ Proposed message:
 ```
 feat(build): add CppAst → PreviewBindingModel translator (Stage 1 scratch)
 
-Pure translator ported from the binding-spike platform-pass generator
-(tools/binding-spike/cppast-platform/generator/Program.cs:182-424).
+Pure translator ported from the historical platform-pass spike generator.
 Drops functions seen in Neutral from each platform view (deduplication
 mirrors the spike's ExcludeNeutralSymbols rule). Type mapping covers
 primitive, pointer, typedef, enum, class, qualified, and array shapes
@@ -1996,12 +1995,12 @@ artifacts/generated-bindings-preview/sdl2-core/
 └── parse-views.json
 ```
 
-- [ ] **Step 3: Eyeball-diff against the binding-spike**
+- [ ] **Step 3: Eyeball-diff against historical spike expectations**
 
 Compare:
 ```pwsh
 code artifacts/generated-bindings-preview/sdl2-core/Platform/Neutral/Commands.g.cs
-code tools/binding-spike/cppast-platform/bindings/Generated/SDL2.Platform.Neutral.g.cs
+# The old local spike output has been retired; compare against the current generated preview and peer references instead.
 ```
 
 Confirm the shape matches: bare `[DllImport(LibName, ...)]` stubs, `LibName = "SDL2"`, `[SupportedOSPlatform]` only on platform views, `using System.Runtime.Versioning;` present where attribute used.

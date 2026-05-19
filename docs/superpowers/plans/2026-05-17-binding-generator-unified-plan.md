@@ -10,6 +10,8 @@
 
 **Source spec:** [`../specs/2026-05-16-binding-generator-unified-design.md`](../specs/2026-05-16-binding-generator-unified-design.md).
 
+**Translation-rule supersession (2026-05-19):** This plan is historical execution guidance. Detailed C-to-C# translation rules are superseded by [`../../binding-autogen/binding-translation-contract.md`](../../binding-autogen/binding-translation-contract.md). Any step that maps C `long` / `unsigned long` to `nint` / `nuint` is stale and must not be implemented as current policy.
+
 **Approval-gate reminder (AGENTS.md):** No commit, no `manifest.json` edit, no deployment without explicit Deniz approval. Manifest schema bump in Phase 2A requires explicit "go / apply / proceed / başla / yap" before touching the file. Plan uses 🔒 markers for tasks that need approval before execution.
 
 ---
@@ -3276,8 +3278,7 @@ Compare the regenerated `Commands.g.cs` / `Handles.g.cs` / `Structs.g.cs` agains
 ```pwsh
 # Visual side-by-side
 code --diff external/sdl2-cs/src/SDL2.cs artifacts/generated-bindings-preview/sdl2-core/Commands.g.cs
-code --diff tools/binding-spike/cppast-platform/bindings/Generated/SDL2.Platform.Neutral.g.cs artifacts/generated-bindings-preview/sdl2-core/Platform/Neutral/Commands.g.cs
-# Pull Alimer + ppy outputs for comparison
+# Pull Alimer + ppy outputs for comparison; the old local spike output is now retired.
 ```
 
 Categorize differences as:

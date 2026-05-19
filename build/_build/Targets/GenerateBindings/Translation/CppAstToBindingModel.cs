@@ -34,7 +34,7 @@ internal static class CppAstToBindingModel
             .Extract(declarationCatalog);
         var enums = new BindingEnumTranslator(declarationPolicy, typeClassifier)
             .Extract(declarationCatalog.Enums);
-        var constants = RequiredConstantTranslator.Translate(config.RequiredConstants);
+        var constantTranslation = BindingConstantTranslator.Translate(parseResults, config);
         var handles = new BindingHandleTranslator(declarationPolicy, typeClassifier)
             .Extract(declarationCatalog);
         var callbacks = new BindingCallbackTranslator(declarationPolicy, typeClassifier)
@@ -72,6 +72,9 @@ internal static class CppAstToBindingModel
                 Functions: functions));
         }
 
-        return new BindingModel(views, structs, enums, constants, handles, callbacks);
+        return new BindingModel(views, structs, enums, constantTranslation.Constants, handles, callbacks)
+        {
+            MacroReport = constantTranslation.Report,
+        };
     }
 }

@@ -48,8 +48,9 @@ Phase 3 (SDL2 Complete — samples, meta-package, first prerelease) lives direct
 | Document | Purpose |
 | --- | --- |
 | [binding-autogen/README.md](binding-autogen/README.md) | Workstream index and reading order for Phase 4 binding generator strategy and research |
+| [binding-autogen/binding-translation-contract.md](binding-autogen/binding-translation-contract.md) | Canonical C-to-C# translation contract: function inclusion, variadics, scalar widths, handles, structs/unions, enums, constants/macros, platform views, evidence gates, and current P0 blockers |
 | [binding-autogen/binding-autogen-strategy-brief.md](binding-autogen/binding-autogen-strategy-brief.md) | WHY/HOW/WHAT strategy brief selecting the CppAst direction for Phase 4 planning |
-| [binding-autogen/binding-api-surface-strategy.md](binding-autogen/binding-api-surface-strategy.md) | Canonical generated API surface decision: internal raw ABI, public typed low-level API, friendly overloads, peer matrix, string/span/handle/`SDL_bool` policy |
+| [binding-autogen/binding-api-surface-strategy.md](binding-autogen/binding-api-surface-strategy.md) | Canonical generated API surface decision: internal raw ABI, public typed low-level API, friendly overloads, and peer matrix. Detailed translation rules defer to `binding-translation-contract.md` |
 | [binding-autogen/research/binding-autogen-onboarding.md](binding-autogen/research/binding-autogen-onboarding.md) | Fast onboarding for a fresh contributor or agent picking up the binding-autogen workstream |
 | [binding-autogen/research/binding-autogen-feasibility.md](binding-autogen/research/binding-autogen-feasibility.md) | Emit rules, platform-conditioned parsing model, validation layers, open decisions |
 | [binding-autogen/research/binding-autogen-spike-findings.md](binding-autogen/research/binding-autogen-spike-findings.md) | Hands-on SDL2_gfx spike findings for ClangSharp and CppAst |
@@ -63,6 +64,7 @@ Phase 3 (SDL2 Complete — samples, meta-package, first prerelease) lives direct
 | [playbook/local-validation.md](playbook/local-validation.md) | How do I validate the pipeline end-to-end on my host (`tools ci-sim` / `tools setup`)? |
 | [playbook/adding-new-library.md](playbook/adding-new-library.md) | How do I add a new SDL satellite library? |
 | [playbook/binding-generator-maintenance.md](playbook/binding-generator-maintenance.md) | How do I maintain generated bindings, platform macro catalogs, and stamp coherence? |
+| [playbook/binding-output-oracle-validation.md](playbook/binding-output-oracle-validation.md) | How do I validate generated binding output against official SDL sources, peer bindings, and .NET API evidence? |
 | [playbook/overlay-management.md](playbook/overlay-management.md) | How do I work with vcpkg overlay triplets and ports? |
 | [playbook/vcpkg-update.md](playbook/vcpkg-update.md) | How do I bump the vcpkg baseline and library versions? |
 

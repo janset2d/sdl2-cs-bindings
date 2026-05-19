@@ -29,6 +29,12 @@ internal static class CsCallbackEmitter
 
     private static void AppendCallback(StringBuilder builder, BindingCallback callback)
     {
+        var usesModernCInteger = ModernCIntegerEmissionPolicy.UsesModernCInteger(callback);
+        if (usesModernCInteger)
+        {
+            builder.Append("#if ").AppendLf(ModernCIntegerEmissionPolicy.Guard);
+        }
+
         builder.AppendLf("[UnmanagedFunctionPointer(CallingConvention.Cdecl)]");
         builder
             .Append("public unsafe delegate ")
@@ -38,6 +44,11 @@ internal static class CsCallbackEmitter
             .Append('(')
             .Append(JoinParameters(callback.Parameters))
             .AppendLf(");");
+
+        if (usesModernCInteger)
+        {
+            builder.AppendLf("#endif");
+        }
     }
 
     private static string JoinParameters(IReadOnlyList<BindingParameter> parameters)

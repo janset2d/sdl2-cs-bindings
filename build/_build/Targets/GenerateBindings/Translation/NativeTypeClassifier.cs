@@ -5,13 +5,13 @@ namespace Build.Targets.GenerateBindings.Translation;
 
 /// <summary>
 /// Classifies CppAst types into <see cref="NativeTypeRef"/> semantic descriptors.
-/// This is the entry point for the semantic binding pipeline (Phase 4) — it
-/// replaces ad-hoc string-based heuristics with structural CppAst inspection.
+/// Central semantic type classifier for generated bindings; replaces ad-hoc
+/// string-based heuristics with structural CppAst inspection.
 /// <para>
 /// Responsibilities: opaque handle vs concrete struct discrimination, explicit
 /// typedef recognition (SDL_bool → int), UTF-8 string pointer detection,
 /// void* handling, and unsupported-type diagnostics. Does not touch existing
-/// <see cref="TypeMappingPolicy"/> or the Stage 1 emitters.
+/// <see cref="TypeMappingPolicy"/> or the generated C# emitters.
 /// </para>
 /// </summary>
 internal sealed class NativeTypeClassifier
@@ -75,6 +75,11 @@ internal sealed class NativeTypeClassifier
         {
             return new NativeTypeRef(cls.Name, substitutedManaged, NativeTypeKind.SubstitutedManagedType, 0,
                 owningFamilyId, sourceHeader, NativeAbiShape.Of(substitutedManaged), null, []);
+        }
+
+        if (SdlOpaqueStructPolicy.IsOpaqueStruct(cls.Name))
+        {
+            return NativeTypeRef.OpaqueHandle(cls.Name, cls.Name, owningFamilyId, sourceHeader);
         }
 
         if (!cls.IsDefinition || (cls.SizeOf == 0 && cls.Fields.Count == 0))
@@ -343,6 +348,14 @@ internal sealed class NativeTypeClassifier
                 : NativeTypeRef.Indirection(elementRef, pointerDepth, elementRef.ManagedName + RepeatStars(pointerDepth - 1));
         }
 
+        if (elementRef.NativeName == "wchar_t")
+        {
+            return pointerDepth == 1
+                ? new NativeTypeRef("wchar_t*", "nint", NativeTypeKind.TypedPointer, 1,
+                    elementRef.OwningFamilyId, sourceHeader, NativeAbiShape.Of("nint", IntPtr.Size), elementRef, elementRef.Diagnostics)
+                : NativeTypeRef.Indirection(elementRef, pointerDepth, "nint" + RepeatStars(pointerDepth - 1));
+        }
+
         if (IsCharPrimitive(elementRef))
         {
             if (pointerDepth == 1)
@@ -425,6 +438,7 @@ internal sealed class NativeTypeClassifier
         "int" or "uint" or "float" => 4,
         "long" or "ulong" or "double" => 8,
         "nint" or "nuint" => IntPtr.Size,
+        "CLong" or "CULong" => null,
         _ => null,
     };
 }

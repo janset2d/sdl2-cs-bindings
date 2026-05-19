@@ -1,6 +1,6 @@
 # Binding API Surface Strategy
 
-> **Status (2026-05-18):** Canonical API-surface decision for the SDL2/SDL3 binding generator. This document records the peer-research evidence, rejected alternatives, chosen public shape, overload policy, constants/macros policy, and performance/lifetime implications. The active implementation plan must follow this document when it describes raw externs, typed handles, `SDL_bool`, spans, strings, constants, enums, and friendly overloads.
+> **Status (2026-05-19):** Canonical API-surface decision for the SDL2/SDL3 binding generator. This document records the peer-research evidence, rejected alternatives, chosen public shape, overload policy, and performance/lifetime implications. Detailed C-to-C# translation rules now live in [`binding-translation-contract.md`](binding-translation-contract.md), which supersedes this document for scalar widths, variadics, struct/union layout, enum backing, and macro classification details.
 
 ## Decision Summary
 
@@ -154,7 +154,7 @@ SDL structs/enums/callbacks are also public typed low-level declarations:
 - POD structs: `[StructLayout(LayoutKind.Sequential)]`
 - unions: `[StructLayout(LayoutKind.Explicit)]` with field offsets
 - pointer-bearing structs are emitted with an unsafe struct context
-- fixed-size primitive arrays use C# fixed buffers; fixed-size arrays of non-fixed-buffer-compatible element types use `[InlineArray]` wrapper structs
+- fixed-size primitive arrays use C# fixed buffers; fixed-size arrays of non-fixed-buffer-compatible element types use deterministic generated wrapper structs without `[InlineArray]`
 - flags: `[Flags]` where structural/name heuristics prove flag semantics
 - callbacks: public typed low-level declarations preserve the honest C callback shape. SDL-owned pointer parameters such as `SDL_AssertData*`, `SDL_Event*`, and `byte*` remain typed unsafe pointers in the low-level surface; `void* userdata` remains native-sized (`nint` / `void*`) per the layer being emitted. Do not erase SDL-owned pointer arguments to `IntPtr` just to make the callback look friendlier. Modern peers (ppy/SDL3-CS, Alimer, Silk.NET, bottlenoselabs SDL3-cs) keep typed callback pointers in low-level APIs; SDL2-CS's all-`IntPtr` delegate pattern is compatibility evidence, not the target shape. Friendly managed delegates/events/trampolines belong in the friendly layer, where lifetime and marshaling can be explicit.
 
@@ -164,11 +164,21 @@ Stage 1 currently emits legacy-TFM-friendly `[UnmanagedFunctionPointer(CallingCo
 
 Generated constants preserve the SDL concept while using the C# shape that best matches how callers consume it:
 
+- source-visible object-like `SDL_*` macros are collected from parsed public SDL2.Core headers and classified before emission;
+- `binding_generation.required_constants` is a manual include path for constants that are not source-visible through the per-header parse loop, not the primary source for normal header macros;
+- manual macro excludes/overrides must be consumed or explicitly marked stale-tolerant, otherwise generation fails;
+- unrecognized function-like macros are reported as unsupported macro facts and are not emitted as constants;
+- SDL build-time configuration toggles from `SDL_config*.h` are reported as non-API macro facts and are not emitted as public constants;
 - numeric literal macros, including flag bits such as `SDL_INIT_TIMER`, emit as `public const` with the narrowest correct managed type;
 - composed numeric macros such as `SDL_INIT_EVERYTHING` may still emit as `public const` when the expression is a valid C# compile-time constant over other constants;
+- object-like public expression macros such as `SDL_HAPTIC_*` are emitted only when the evaluator can prove a deterministic integer value from safe literal, identifier, helper-call, arithmetic, shift, and bitwise forms;
+- function-like public macros such as `SDL_BUTTON`, `SDL_VERSION_ATLEAST`, and pixel-format predicates are helper candidates, not constants; they belong to later helper-method lane work;
+- C-only, build-time, or internal macros such as `SDL_ASSERT_LEVEL`, `SDL_PRI*`, `SDL_CACHELINE_SIZE`, and `SDL_REVISION_NUMBER` are skipped with explicit report reasons;
 - runtime-sized or runtime-dependent macros emit as `public static readonly` or a helper method/property, not as fake constants;
 - SDL flag groups emit as `[Flags]` enums when the enum/macro set represents bit composition, including composed aliases such as `SDL_WINDOW_FULLSCREEN_DESKTOP`;
 - string-like SDL macro keys such as `SDL_HINT_RENDER_DRIVER` emit as canonical UTF-8 literal span properties, not as duplicate `const string` aliases.
+
+Every new macro parser/evaluator capability requires real embedded `.h` fixture coverage under the build-host test fixtures before the capability is considered complete. Constructed `CppMacro` tests are useful for edge cases and policy pinning, but they do not replace proof that the parser sees the SDL-style header shape correctly.
 
 Example:
 

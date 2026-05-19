@@ -82,6 +82,10 @@ public sealed class BindingGenerationConfigRepositoryRoundTripTests
         await Assert.That(config.RequiredConstants[0].Value).IsEqualTo("0x00000001u");
         await Assert.That(config.RequiredConstants[1].Name).IsEqualTo("SDL_INIT_EVERYTHING");
         await Assert.That(config.RequiredConstants[1].Kind).IsEqualTo(ConstantKind.Computed);
+        await Assert.That(config.RequiredConstants[0].AllowStale).IsFalse();
+        await Assert.That(config.RequiredConstants[0].Reason).IsNull();
+        await Assert.That(config.MacroConstants.Excluded).IsEmpty();
+        await Assert.That(config.MacroConstants.Overrides).IsEmpty();
         await Assert.That(config.DeferredDeclarations.ContainsKey("SDL_SysWMinfo")).IsTrue();
         await Assert.That(config.DeferredDeclarations["SDL_SysWMinfo"].Category).IsEqualTo("deferred-to-stage-2");
         await Assert.That(config.DeferredDeclarations.ContainsKey("SDL_SysWMmsg")).IsTrue();
@@ -92,6 +96,29 @@ public sealed class BindingGenerationConfigRepositoryRoundTripTests
         await Assert.That(config.Validators["semantic-type-consistency"]).IsTrue();
         await Assert.That(config.Dynapi).IsNotNull();
         await Assert.That(config.Dynapi!.ExportsGlob).IsEqualTo("buildtrees/sdl2/src/*/src/dynapi/SDL2.exports");
+    }
+
+    [Test]
+    public async Task Load_Should_Return_MacroPolicy_Config_When_Manifest_Has_MacroPolicy_Block()
+    {
+        var repo = BuildRepo("Manifest/manifest-with-macro-policy.json");
+
+        var result = repo.Load("sdl2-core");
+
+        await Assert.That(result.IsSuccess).IsTrue();
+        var config = result.Value;
+        await Assert.That(config.MacroConstants.Excluded.ContainsKey("SDL_PRIVATE_HEADER_SWITCH")).IsTrue();
+        await Assert.That(config.MacroConstants.Excluded["SDL_PRIVATE_HEADER_SWITCH"].Reason)
+            .IsEqualTo("Fixture-only non-API macro exclusion.");
+        await Assert.That(config.MacroConstants.Excluded["SDL_PRIVATE_HEADER_SWITCH"].AllowStale).IsTrue();
+        await Assert.That(config.MacroConstants.Overrides.ContainsKey("SDL_FIXTURE_OVERRIDE")).IsTrue();
+        var macroOverride = config.MacroConstants.Overrides["SDL_FIXTURE_OVERRIDE"];
+        await Assert.That(macroOverride.Type).IsEqualTo("uint");
+        await Assert.That(macroOverride.Value).IsEqualTo("42u");
+        await Assert.That(macroOverride.SourceHeader).IsEqualTo("SDL_fixture.h");
+        await Assert.That(macroOverride.Kind).IsEqualTo(ConstantKind.Literal);
+        await Assert.That(macroOverride.Reason).IsEqualTo("Fixture-only override.");
+        await Assert.That(macroOverride.AllowStale).IsFalse();
     }
 
     [Test]

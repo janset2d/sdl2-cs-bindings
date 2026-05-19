@@ -2,6 +2,7 @@
 
 > Status: Draft for review.
 > Scope: Stage 1 SDL2.Core binding-generator architecture rewrite, with an immediate SDL2.Core replacement readiness lane.
+> Translation-rule supersession (2026-05-19): Current scalar, variadic, struct/union, enum, and macro policy lives in [`../../binding-autogen/binding-translation-contract.md`](../../binding-autogen/binding-translation-contract.md). This draft remains architecture background only where it conflicts with that contract.
 
 ## Problem Statement
 
@@ -100,7 +101,7 @@ Generator code owns stable ABI/API semantics:
 - `void*`, `char*`, and `const char*` classifications are type-policy decisions.
 - UTF-8 string overload behavior is policy, not manifest config.
 - pointer depth, arrays, fixed buffers, callbacks, and function pointers are semantic type rules.
-- `nint`/`nuint` platform-width mapping is ABI policy.
+- `nint`/`nuint` are pointer-sized ABI policy for pointer/userdata concepts, not a universal mapping for C `long` / `unsigned long`.
 - public raw externs stay internal.
 
 ### Exception Rule

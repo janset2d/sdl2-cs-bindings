@@ -36,6 +36,24 @@ public sealed class NativeTypeClassifierTests
     }
 
     [Test]
+    public async Task Classify_Should_Treat_SDL_RWops_Definition_As_Opaque_Handle()
+    {
+        var classifier = CreateClassifier();
+        var rwops = new CppClass("SDL_RWops")
+        {
+            ClassKind = CppClassKind.Struct,
+            IsDefinition = true,
+            SizeOf = 88,
+        };
+        rwops.Fields.Add(new CppField(CppPrimitiveType.Int, "type"));
+
+        var sut = classifier.Classify(rwops, sourceHeader: "SDL_rwops.h");
+
+        await Assert.That(sut.Kind).IsEqualTo(NativeTypeKind.OpaqueHandle);
+        await Assert.That(sut.ManagedName).IsEqualTo("SDL_RWops");
+    }
+
+    [Test]
     public async Task Classify_Should_Map_SDL2_Bool_To_Int_Backed_Primitive()
     {
         var classifier = CreateClassifier();
@@ -60,6 +78,20 @@ public sealed class NativeTypeClassifierTests
     }
 
     [Test]
+    public async Task Classify_Should_Preserve_CLong_And_CULong_Primitive_Metadata()
+    {
+        var classifier = CreateClassifier();
+
+        var signedLong = classifier.Classify(CppPrimitiveType.Long, sourceHeader: "SDL_stdinc.h");
+        var unsignedLong = classifier.Classify(CppPrimitiveType.UnsignedLong, sourceHeader: "SDL_stdinc.h");
+
+        await Assert.That(signedLong.NativeName).IsEqualTo("long");
+        await Assert.That(signedLong.ManagedName).IsEqualTo("CLong");
+        await Assert.That(unsignedLong.NativeName).IsEqualTo("unsigned long");
+        await Assert.That(unsignedLong.ManagedName).IsEqualTo("CULong");
+    }
+
+    [Test]
     public async Task Classify_Should_Classify_Const_Char_Pointer_As_Utf8Pointer()
     {
         var classifier = CreateClassifier();
@@ -71,6 +103,19 @@ public sealed class NativeTypeClassifierTests
         await Assert.That(sut.ManagedName).IsEqualTo("byte*");
         await Assert.That(sut.PointerDepth).IsEqualTo(1);
         await Assert.That(sut.ElementType?.NativeName).IsEqualTo("char");
+    }
+
+    [Test]
+    public async Task Classify_Should_Map_WChar_Pointer_To_Opaque_Native_Pointer()
+    {
+        var classifier = CreateClassifier();
+        var pointer = new CppPointerType(CppPrimitiveType.WChar);
+
+        var sut = classifier.Classify(pointer, sourceHeader: "SDL_hidapi.h");
+
+        await Assert.That(sut.NativeName).IsEqualTo("wchar_t*");
+        await Assert.That(sut.ManagedName).IsEqualTo("nint");
+        await Assert.That(sut.PointerDepth).IsEqualTo(1);
     }
 
     [Test]
@@ -282,7 +327,7 @@ public sealed class NativeTypeClassifierTests
                 "SDL_SysWMinfo",
                 new DeferredDeclarationConfig
                 {
-                    Category = "deferred-to-stage-2",
+                    Category = "deferred-platform-union",
                     Reason = "Platform-specific union.",
                 }),
         };

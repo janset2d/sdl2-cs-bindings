@@ -5,22 +5,18 @@ using CppAst;
 namespace Build.Tests.Unit.Targets.GenerateBindings.Translation;
 
 // Targets TypeMappingPolicy.Map / MapPrimitive / MapTypedef / MapPointer +
-// SafeIdentifier. Stage 1 Task 3.5 Post-Implementation Review surfaced wire-format
-// bugs where the previous private-static type-mapping silently emitted IntPtr
-// (8 bytes) for SDL_*-prefixed primitive typedefs and emitted 32-bit `int` for C
-// `long` on LP64 targets (Linux/macOS). The translator's symbol-name validator
-// gate stayed green throughout. Mapping logic is now exercised directly so the
-// same class of bug cannot land undetected again. Phase 3C extraction moved
-// these methods from CppAstToBindingModel inline statics to a dedicated policy
-// class — assertions on the returned BindingTypeRef's ManagedName preserve the
-// pre-extraction string-flow expectation.
+// SafeIdentifier. These tests pin wire-format behavior that symbol-name
+// validation cannot see: SDL primitive typedefs must not collapse to IntPtr,
+// and platform-sensitive C integers must not collapse to fixed-width aliases.
+// Assertions on BindingTypeRef.ManagedName preserve the string-flow contract
+// consumed by older adapters that still use this policy directly.
 //
 // CppPrimitiveType has no public constructor — its instances are static
 // singletons (CppPrimitiveType.Int, CppPrimitiveType.UnsignedShort, etc.).
 // Tests reference those.
 public sealed class TypeMappingPolicyTests
 {
-    // ─── P0.1 — MapTypedef must chain-resolve before SDL_*-prefix fallback ───
+    // ─── Typedef chains resolve before SDL_*-prefix fallback ───
 
     [Test]
     public async Task Map_Should_Resolve_SDL_AudioFormat_Typedef_To_Underlying_Ushort()
@@ -82,23 +78,18 @@ public sealed class TypeMappingPolicyTests
         await Assert.That(TypeMappingPolicy.Map(guidTypedef).ManagedName).IsEqualTo("Guid");
     }
 
-    // ─── P0.2 — Linux `long` width on LP64 ───
+    // ─── Platform-sensitive C long width ───
 
     [Test]
-    public async Task MapPrimitive_Should_Emit_Nint_For_C_Long_To_Round_Trip_LP64_And_LLP64()
+    public async Task MapPrimitive_Should_Emit_CLong_For_C_Long()
     {
-        // C `long` is 64-bit on LP64 (Linux x86_64, Linux arm64, macOS x86_64,
-        // macOS arm64) and 32-bit on LLP64 (Windows). Stage 1 parses Linux
-        // headers; emitting `int` would truncate to 32-bit on the LP64 runtime
-        // ABI and silently corrupt the wire format. `nint` is platform-sized at
-        // CLR runtime, round-trips correctly on both target families.
-        await Assert.That(TypeMappingPolicy.MapPrimitive(CppPrimitiveType.Long).ManagedName).IsEqualTo("nint");
+        await Assert.That(TypeMappingPolicy.MapPrimitive(CppPrimitiveType.Long).ManagedName).IsEqualTo("CLong");
     }
 
     [Test]
-    public async Task MapPrimitive_Should_Emit_Nuint_For_C_Unsigned_Long()
+    public async Task MapPrimitive_Should_Emit_CULong_For_C_Unsigned_Long()
     {
-        await Assert.That(TypeMappingPolicy.MapPrimitive(CppPrimitiveType.UnsignedLong).ManagedName).IsEqualTo("nuint");
+        await Assert.That(TypeMappingPolicy.MapPrimitive(CppPrimitiveType.UnsignedLong).ManagedName).IsEqualTo("CULong");
     }
 
     // ─── Regression guard — fixed-width primitives ───
@@ -164,9 +155,9 @@ public sealed class TypeMappingPolicyTests
     [Test]
     public async Task Map_Should_Emit_IntPtr_For_SDL_Prefixed_Struct_Pointer()
     {
-        // SDL_Window* — opaque handle pointer. Phase 3C-temporary prefix-based
-        // fallback; Phase 3D translator rewrite replaces with structural inspection
-        // (empty CppClass ⇒ opaque handle) populating BindingTypeRef.IsOpaqueHandle.
+        // SDL_Window* — opaque handle pointer. This legacy mapper uses prefix-based
+        // fallback; semantic translators use structural inspection when they need
+        // to distinguish empty opaque classes from concrete structs.
         var sdlWindowStruct = new CppClass("SDL_Window");
         var sdlWindowStar = new CppPointerType(sdlWindowStruct);
         await Assert.That(TypeMappingPolicy.Map(sdlWindowStar).ManagedName).IsEqualTo("IntPtr");

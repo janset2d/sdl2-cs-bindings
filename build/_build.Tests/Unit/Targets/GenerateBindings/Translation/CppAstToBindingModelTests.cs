@@ -178,6 +178,34 @@ public sealed class CppAstToBindingModelTests
         await Assert.That(computed.Type.SourceHeader).IsEqualTo("SDL.h");
         await Assert.That(computed.Value).IsEqualTo("SDL_INIT_TIMER | SDL_INIT_AUDIO");
         await Assert.That(computed.Kind).IsEqualTo(ConstantKind.Computed);
+        // MacroReport should surface both required constants as "included"
+        await Assert.That(model.MacroReport.Entries.All(e => e.Disposition == "included")).IsTrue();
+        await Assert.That(model.MacroReport.Entries.Count).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task Translate_Should_Flow_Source_Macro_SDL_HINT_RENDER_DRIVER_Into_Model()
+    {
+        // SDL_HINT_RENDER_DRIVER is a string hint macro from SDL_hints.h.
+        // When the header is parsed it must reach model.Constants as
+        // ReadOnlySpan<byte> with the "…u8" suffix.
+        var compilation = new CppCompilation();
+        var macro = new CppMacro("SDL_HINT_RENDER_DRIVER") { Value = "\"SDL_RENDER_DRIVER\"" };
+        macro.Span = new CppSourceSpan(
+            new CppSourceLocation("C:/vcpkg/installed/x64-linux-hybrid/include/SDL2/SDL_hints.h", 0, 1, 1),
+            new CppSourceLocation("C:/vcpkg/installed/x64-linux-hybrid/include/SDL2/SDL_hints.h", 1, 1, 2));
+        macro.Tokens.Add(new CppToken(CppTokenKind.Literal, "\"SDL_RENDER_DRIVER\""));
+        compilation.Macros.Add(macro);
+
+        var model = CppAstToBindingModel.Translate(
+            [ParseResult("Neutral", null, compilation)],
+            DefaultConfig,
+            NoRequired);
+
+        var constant = model.Constants.Single(c => c.Name == "SDL_HINT_RENDER_DRIVER");
+        await Assert.That(constant.Type.ManagedName).IsEqualTo("ReadOnlySpan<byte>");
+        await Assert.That(constant.Value).IsEqualTo("\"SDL_RENDER_DRIVER\"u8");
+        await Assert.That(constant.Kind).IsEqualTo(ConstantKind.Literal);
     }
 
     [Test]

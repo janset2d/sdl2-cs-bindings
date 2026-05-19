@@ -69,6 +69,7 @@ internal sealed class BindableDeclarationPolicy
             && cls.Fields.Count > 0
             && (cls.ClassKind is CppClassKind.Struct or CppClassKind.Union)
             && !SdlNativeTypeSubstitutionPolicy.IsSubstitutedValueType(cls.Name)
+            && !SdlOpaqueStructPolicy.IsOpaqueStruct(cls.Name)
             && _config.OwnedPrefixes.Any(prefix => cls.Name.StartsWith(prefix, StringComparison.Ordinal))
             && !_unsupportedPolicy.IsUnsupported(cls.Name, out _);
     }

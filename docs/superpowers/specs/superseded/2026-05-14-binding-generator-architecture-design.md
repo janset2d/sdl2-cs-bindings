@@ -182,7 +182,7 @@ Each parse view is a `CppParserOptions` instance with:
 - The catalog entry's `(OsCondition, BackendCondition[])` macro group defined.
 - The vcpkg-installed canonical SDL header set on the include path, plus the Linux container's apt sysroot for transitive `<stdint.h>`/`<stddef.h>`/`<X11/Xlib.h>`/`<wayland-client.h>`/etc.
 
-**Important — no `--target` cross-compile flag.** Platform separation is **preprocessor-driven only**. The 2026-05-14 draft of this spec implied a sysroot/stub-directory pattern (mingw-w64 for Windows, Apple SDK stubs for macOS); that framing was retracted on 2026-05-15 after ppy/SDL3-CS Dockerfile + `generate_bindings.py` were re-verified by WebFetch and the local CppAst platform-pass spike at `tools/binding-spike/cppast-platform/generator/Program.cs:42-72` was re-read. SDL2's public headers carry their own forward declarations for cross-platform opaque types (`typedef struct _NSWindow NSWindow;`, `typedef struct ANativeWindow ANativeWindow;`, `struct gbm_device;`, etc.), so function-level platform surface parses without any hand-written platform stubs.
+**Important — no `--target` cross-compile flag.** Platform separation is **preprocessor-driven only**. The 2026-05-14 draft of this spec implied a sysroot/stub-directory pattern (mingw-w64 for Windows, Apple SDK stubs for macOS); that framing was retracted on 2026-05-15 after ppy/SDL3-CS Dockerfile + `generate_bindings.py` were re-verified by WebFetch and the historical local CppAst platform-pass spike was re-read. SDL2's public headers carry their own forward declarations for cross-platform opaque types (`typedef struct _NSWindow NSWindow;`, `typedef struct ANativeWindow ANativeWindow;`, `struct gbm_device;`, etc.), so function-level platform surface parses without any hand-written platform stubs.
 
 The exact catalog lives in `PlatformCatalog.cs` as data and is reviewed at Stage 1 plan landing.
 
@@ -203,7 +203,7 @@ The bounded audit found platform risk concentrated in SDL2.Core:
 
 Apple-SDK redistribution concerns do not apply because Apple's non-`__OBJC__` `typedef struct _NSWindow NSWindow;` is provided directly by `SDL_syswm.h:86` (and the equivalent for `UIWindow` at `:94-95`, `ANativeWindow` at `:105`). The Stage 2 stub library is pure forward declarations, not Apple SDK or Windows SDK derivatives.
 
-The 2026-05-14 draft framed `SDL_syswm.h` as a first-class Stage 1 proof target with the instruction "if the generator cannot model it safely, stop and return to design review." That framing was correct for the typed-union work but wrong about its stage placement — the function-level platform-pass spike at `tools/binding-spike/cppast-platform/generator/Program.cs` intentionally deferred the union work, and Stage 1's production-shape proof is already adequate at function level (multi-pass orchestration, dedup, fail-closed merge, platform attribution, dual emit, typed handles, friendly overloads, AOT-clean signatures). The "stop and return to design review" guidance now applies to Stage 2.
+The 2026-05-14 draft framed `SDL_syswm.h` as a first-class Stage 1 proof target with the instruction "if the generator cannot model it safely, stop and return to design review." That framing was correct for the typed-union work but wrong about its stage placement — the historical function-level platform-pass spike intentionally deferred the union work, and Stage 1's production-shape proof is already adequate at function level (multi-pass orchestration, dedup, fail-closed merge, platform attribution, dual emit, typed handles, friendly overloads, AOT-clean signatures). The "stop and return to design review" guidance now applies to Stage 2.
 
 ### Satellite topology
 
@@ -363,4 +363,4 @@ External:
 
 - <https://github.com/amerkoleci/Alimer.Bindings.SDL> — CppAst SDL3 core reference for emitter organization and typed-handle shape.
 - <https://github.com/ppy/SDL3-CS> — ClangSharp SDL3 reference for preprocessor-macro-driven multi-pass orchestration (Dockerfile + `generate_bindings.py`).
-- `tools/binding-spike/cppast-platform/generator/Program.cs` — local CppAst platform-pass spike (Defines/Undefines macro juggling, line 42-72).
+- Historical local CppAst platform-pass spike — Defines/Undefines macro juggling.

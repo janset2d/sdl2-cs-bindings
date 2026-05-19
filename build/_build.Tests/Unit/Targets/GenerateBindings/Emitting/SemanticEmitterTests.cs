@@ -53,4 +53,56 @@ public sealed class SemanticEmitterTests
         await Assert.That(callbacks.Content).Contains("[UnmanagedFunctionPointer(CallingConvention.Cdecl)]");
         await Assert.That(callbacks.Content).Contains("public unsafe delegate int SDL_EventFilter(nint userdata, nint @event);");
     }
+
+    [Test]
+    public async Task Emit_Should_Guard_CULong_Callbacks_To_Modern_Tfms()
+    {
+        var model = new BindingModel(
+            Views: [],
+            Structs: [],
+            Enums: [],
+            Constants: [],
+            Handles: [],
+            Callbacks:
+            [
+                new BindingCallback(
+                    "SDL_malloc_func",
+                    NativeTypeRef.Primitive("void*", "nint", NativeAbiShape.Of("nint")),
+                    [new BindingParameter(NativeTypeRef.Primitive("unsigned long", "CULong", NativeAbiShape.Of("CULong")), "size")]),
+            ]);
+
+        var fileSet = CsCommandEmitter.Emit(model, new BindingEmissionOptions("SDL2", "SDL"));
+        var callbacks = fileSet.Files.Single(file => file.RelativePath == "Types/Callbacks.g.cs").Content;
+
+        await Assert.That(callbacks).Contains("#if NET6_0_OR_GREATER");
+        await Assert.That(callbacks).Contains("public unsafe delegate nint SDL_malloc_func(CULong size);");
+        await Assert.That(callbacks).Contains("#endif");
+    }
+
+    [Test]
+    public async Task Emit_Should_Guard_CLong_Pointer_Callbacks_To_Modern_Tfms()
+    {
+        var element = NativeTypeRef.Primitive("long", "CLong", NativeAbiShape.Of("CLong"));
+        var pointer = NativeTypeRef.Indirection(element, 1, "CLong*");
+        var model = new BindingModel(
+            Views: [],
+            Structs: [],
+            Enums: [],
+            Constants: [],
+            Handles: [],
+            Callbacks:
+            [
+                new BindingCallback(
+                    "SDL_long_callback",
+                    NativeTypeRef.Primitive("int", "int", NativeAbiShape.Of("int", 4)),
+                    [new BindingParameter(pointer, "value")]),
+            ]);
+
+        var fileSet = CsCommandEmitter.Emit(model, new BindingEmissionOptions("SDL2", "SDL"));
+        var callbacks = fileSet.Files.Single(file => file.RelativePath == "Types/Callbacks.g.cs").Content;
+
+        await Assert.That(callbacks).Contains("#if NET6_0_OR_GREATER");
+        await Assert.That(callbacks).Contains("public unsafe delegate int SDL_long_callback(CLong* value);");
+        await Assert.That(callbacks).Contains("#endif");
+    }
 }
