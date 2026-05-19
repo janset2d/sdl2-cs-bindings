@@ -99,7 +99,7 @@ public sealed class ServiceCollectionExtensionsSmokeTests
         // GenerateBindingsTask is discovered by Cake via [TaskName]; AddGenerateBindings
         // registers parser/header collaborators. AddData supplies
         // IBindingGenerationConfigRepository + IDynapiManifestRepository.
-        // AddValidators supplies IEnumerable<IBindingFamilyValidator> (3 family-scoped
+        // AddValidators supplies IEnumerable<IBindingFamilyValidator> (4 family-scoped
         // validators that the task dispatches per manifest opt-in). Production order:
         // AddHostBuildingBlocks -> AddData -> AddValidators -> AddGenerateBindings.
         // CsCommandEmitter is a static utility — not registered.

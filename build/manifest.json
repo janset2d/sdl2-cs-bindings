@@ -250,12 +250,17 @@
           "SDL_SysWMmsg": {
             "category": "deferred-to-stage-2",
             "reason": "Same as SDL_SysWMinfo."
+          },
+          "SDL_DUMMY_ENUM": {
+            "category": "internal-sdl-sentinel",
+            "reason": "SDL_stdinc.h declares this under DOXYGEN_SHOULD_IGNORE_THIS only to assert enum size at compile time; it is not public binding API."
           }
         },
         "validators": {
           "dynapi-coherence": true,
           "neutral-view-non-empty": true,
-          "required-functions-emitted": true
+          "required-functions-emitted": true,
+          "semantic-type-consistency": true
         },
         "dynapi": {
           "exports_glob": "buildtrees/sdl2/src/*/src/dynapi/SDL2.exports"

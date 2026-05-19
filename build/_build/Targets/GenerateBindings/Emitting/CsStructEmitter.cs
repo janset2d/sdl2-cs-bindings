@@ -137,7 +137,7 @@ internal static class CsStructEmitter
     }
 
     private static bool RequiresUnsafe(BindingStruct structure) =>
-        structure.Fields.Any(field => field.Type.IsPointer || (field.FixedBufferLength is not null && CanEmitFixedBuffer(field)));
+        structure.Fields.Any(field => field.Type.PointerDepth > 0 || (field.FixedBufferLength is not null && CanEmitFixedBuffer(field)));
 
     private static List<InlineArrayDeclaration> CollectInlineArrays(IReadOnlyList<BindingStruct> structs)
     {
@@ -171,7 +171,7 @@ internal static class CsStructEmitter
         builder.Append("[InlineArray(").Append(declaration.Length).AppendLf(")]");
         builder
             .Append("public ")
-            .Append(declaration.ElementType.IsPointer ? "unsafe " : string.Empty)
+            .Append(declaration.ElementType.PointerDepth > 0 ? "unsafe " : string.Empty)
             .Append("partial struct ")
             .AppendLf(declaration.Name);
         builder.AppendLf('{');
@@ -193,5 +193,5 @@ internal static class CsStructEmitter
         return parentStructName + "_" + segment;
     }
 
-    private sealed record InlineArrayDeclaration(string Name, BindingTypeRef ElementType, int Length);
+    private sealed record InlineArrayDeclaration(string Name, NativeTypeRef ElementType, int Length);
 }

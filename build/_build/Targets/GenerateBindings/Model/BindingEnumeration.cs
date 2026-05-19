@@ -11,9 +11,9 @@ namespace Build.Targets.GenerateBindings.Model;
 /// </summary>
 public sealed record BindingEnumeration(
     string Name,
-    BindingTypeRef UnderlyingType,
-    IReadOnlyList<BindingEnumMember> Members,
-    bool IsFlags);
+    NativeTypeRef UnderlyingType,
+    bool IsFlags,
+    IReadOnlyList<BindingEnumMember> Members);
 
 /// <summary>
 /// One member of a <see cref="BindingEnumeration"/>. <see cref="Value"/> is the

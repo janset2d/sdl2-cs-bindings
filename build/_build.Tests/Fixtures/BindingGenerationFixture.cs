@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Build.Data.BindingGeneration;
 using Build.Data.BindingGeneration.Models;
 using Build.Results;
@@ -73,6 +74,12 @@ public static class BindingGenerationFixture
             ExcludedFunctions = ["SDL_main", "SDL_DYNAPI_entry"],
             RequiredFunctions = requiredFunctions is null ? [] : [.. requiredFunctions],
             RequiredConstants = requiredConstants is null ? [] : [.. requiredConstants],
+            DeferredDeclarations = Sdl2CoreDeferredDeclarations,
+            Validators = ImmutableDictionary<string, bool>.Empty
+                .Add("dynapi-coherence", true)
+                .Add("neutral-view-non-empty", true)
+                .Add("required-functions-emitted", true)
+                .Add("semantic-type-consistency", true),
             Dynapi = withDynapi ? new DynapiConfig { ExportsGlob = "buildtrees/sdl2/src/*/src/dynapi/SDL2.exports" } : null,
         };
 
@@ -86,6 +93,24 @@ public static class BindingGenerationFixture
             PlatformCatalogId = "sdl2-image",
             OwnedPrefixes = ["IMG_"],
         };
+
+    private static ImmutableDictionary<string, DeferredDeclarationConfig> Sdl2CoreDeferredDeclarations { get; } =
+        ImmutableDictionary<string, DeferredDeclarationConfig>.Empty
+            .Add("SDL_SysWMinfo", new DeferredDeclarationConfig
+            {
+                Category = "deferred-to-stage-2",
+                Reason = "SDL_syswm typed-union layout requires platform-handle forward declarations.",
+            })
+            .Add("SDL_SysWMmsg", new DeferredDeclarationConfig
+            {
+                Category = "deferred-to-stage-2",
+                Reason = "Same as SDL_SysWMinfo.",
+            })
+            .Add("SDL_DUMMY_ENUM", new DeferredDeclarationConfig
+            {
+                Category = "internal-sdl-sentinel",
+                Reason = "SDL compile-time enum-size sentinel, not public API.",
+            });
 
     public static RequiredFunctionConfig RequiredFunction(string name, string sourceHeader = "SDL.h") =>
         new()
@@ -116,7 +141,7 @@ public static class BindingGenerationFixture
             new BindingParseView(
                 Name: "Neutral",
                 SupportedOsPlatform: null,
-                Functions: [.. functionNames.Select(n => new BindingFunction(n, BindingTypeRef.Of("void"), [], "SDL_video.h"))]),
+                Functions: [.. functionNames.Select(n => new BindingFunction(n, NativeVoid(), [], "SDL_video.h"))]),
         ]);
 
     public static BindingModel ModelWithoutNeutralView() =>
@@ -124,7 +149,7 @@ public static class BindingGenerationFixture
             new BindingParseView(
                 Name: "WindowsDesktop",
                 SupportedOsPlatform: "windows",
-                Functions: [new BindingFunction("SDL_RegisterApp", BindingTypeRef.Of("int"), [], "SDL_main.h")]),
+                Functions: [new BindingFunction("SDL_RegisterApp", NativeInt(), [], "SDL_main.h")]),
         ]);
 
     public static BindingModel ModelWithMultipleViews(
@@ -133,12 +158,21 @@ public static class BindingGenerationFixture
         IReadOnlyList<string>? linuxFunctionNames = null) =>
         new([
             new BindingParseView("Neutral", null,
-                [.. neutralFunctionNames.Select(n => new BindingFunction(n, BindingTypeRef.Of("void"), [], "SDL_video.h"))]),
+                [.. neutralFunctionNames.Select(n => new BindingFunction(n, NativeVoid(), [], "SDL_video.h"))]),
             new BindingParseView("WindowsDesktop", "windows",
-                [.. (windowsFunctionNames ?? []).Select(n => new BindingFunction(n, BindingTypeRef.Of("void"), [], "SDL_system.h"))]),
+                [.. (windowsFunctionNames ?? []).Select(n => new BindingFunction(n, NativeVoid(), [], "SDL_system.h"))]),
             new BindingParseView("Linux", "linux",
-                [.. (linuxFunctionNames ?? []).Select(n => new BindingFunction(n, BindingTypeRef.Of("void"), [], "SDL_system.h"))]),
+                [.. (linuxFunctionNames ?? []).Select(n => new BindingFunction(n, NativeVoid(), [], "SDL_system.h"))]),
         ]);
+
+    public static NativeTypeRef NativePrimitive(string nativeName, string managedName) =>
+        NativeTypeRef.Primitive(nativeName, managedName, NativeAbiShape.Of(managedName));
+
+    public static NativeTypeRef NativeUInt() => NativePrimitive("unsigned int", "uint");
+
+    public static NativeTypeRef NativeVoid() => NativePrimitive("void", "void");
+
+    public static NativeTypeRef NativeInt() => NativePrimitive("int", "int");
 }
 
 /// <summary>

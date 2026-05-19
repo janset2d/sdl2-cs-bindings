@@ -1,7 +1,9 @@
 using Build.Data.BindingGeneration.Models;
 using Build.Targets.GenerateBindings.Emitting;
 using Build.Targets.GenerateBindings.Model;
+using Build.Tests.Fixtures;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 
 namespace Build.Tests.Unit.Targets.GenerateBindings.Emitting;
 
@@ -165,6 +167,62 @@ public sealed class CsCommandEmitterTests
     }
 
     [Test]
+    public async Task Emit_Should_Write_Rich_Parse_View_Audit_Report()
+    {
+        var model = BindingModelData.ModelWithRichParseViewEvidence();
+
+        var fileSet = Emit(model);
+
+        using var document = JsonDocument.Parse(fileSet.Files.Single(f => f.RelativePath == "parse-views.json").Content);
+        var root = document.RootElement;
+        await Assert.That(root.GetProperty("SchemaVersion").GetInt32()).IsEqualTo(1);
+
+        var categories = root.GetProperty("Categories");
+        await Assert.That(categories.GetProperty("ViewCount").GetInt32()).IsEqualTo(2);
+        await Assert.That(categories.GetProperty("FunctionCount").GetInt32()).IsEqualTo(3);
+        await Assert.That(categories.GetProperty("StructCount").GetInt32()).IsEqualTo(1);
+        await Assert.That(categories.GetProperty("EnumCount").GetInt32()).IsEqualTo(1);
+        await Assert.That(categories.GetProperty("ConstantCount").GetInt32()).IsEqualTo(1);
+        await Assert.That(categories.GetProperty("HandleCount").GetInt32()).IsEqualTo(1);
+        await Assert.That(categories.GetProperty("CallbackCount").GetInt32()).IsEqualTo(1);
+        await Assert.That(JsonStrings(categories.GetProperty("Structs"))).IsEquivalentTo(["SDL_Rect"]);
+        await Assert.That(JsonStrings(categories.GetProperty("Enums"))).IsEquivalentTo(["SDL_EventType"]);
+        await Assert.That(JsonStrings(categories.GetProperty("Constants"))).IsEquivalentTo(["SDL_INIT_TIMER"]);
+        await Assert.That(JsonStrings(categories.GetProperty("Handles"))).IsEquivalentTo(["SDL_Window"]);
+        await Assert.That(JsonStrings(categories.GetProperty("Callbacks"))).IsEquivalentTo(["SDL_AudioCallback"]);
+
+        await Assert.That(JsonStrings(root.GetProperty("EmittedFiles"))).IsEquivalentTo(
+        [
+            "Platform/Neutral/Commands.g.cs",
+            "Platform/Linux/Commands.g.cs",
+            "Constants.g.cs",
+            "Types/Enums.g.cs",
+            "Types/Handles.g.cs",
+            "Types/Structs.g.cs",
+            "Types/Callbacks.g.cs",
+            "parse-views.json",
+        ]);
+
+        var linux = root.GetProperty("Views").EnumerateArray()
+            .Single(view => view.GetProperty("Name").GetString() == "Linux");
+        await Assert.That(linux.GetProperty("PlatformConditionKind").GetString()).IsEqualTo("OperatingSystem");
+        await Assert.That(linux.GetProperty("SupportedOSPlatform").GetString()).IsEqualTo("linux");
+        await Assert.That(JsonStrings(linux.GetProperty("Defines"))).IsEquivalentTo(["SDL_VIDEO_DRIVER_X11=1"]);
+        await Assert.That(JsonStrings(linux.GetProperty("Undefines"))).IsEquivalentTo(["__WIN32__"]);
+        await Assert.That(linux.GetProperty("FunctionCount").GetInt32()).IsEqualTo(1);
+
+        var function = linux.GetProperty("Functions").EnumerateArray().Single();
+        await Assert.That(function.GetProperty("Name").GetString()).IsEqualTo("SDL_LinuxSetThreadPriority");
+        await Assert.That(function.GetProperty("SourceHeader").GetString()).IsEqualTo("SDL_system.h");
+        await Assert.That(function.GetProperty("ReturnType").GetString()).IsEqualTo("int");
+        var parameters = function.GetProperty("Parameters").EnumerateArray().ToArray();
+        await Assert.That(parameters[0].GetProperty("Name").GetString()).IsEqualTo("threadID");
+        await Assert.That(parameters[0].GetProperty("Type").GetString()).IsEqualTo("long");
+        await Assert.That(parameters[1].GetProperty("Name").GetString()).IsEqualTo("priority");
+        await Assert.That(parameters[1].GetProperty("Type").GetString()).IsEqualTo("int");
+    }
+
+    [Test]
     public async Task Emit_Should_Produce_Structs_File_When_Model_Has_Structs()
     {
         var model = BindingModelData.ModelWithStructs();
@@ -197,7 +255,10 @@ public sealed class CsCommandEmitterTests
                     Name: "SDL_PointerFields",
                     Fields:
                     [
-                        new BindingStructField("name", BindingTypeRef.Of("sbyte*"), FieldOffset: null),
+                        new BindingStructField("name", NativeTypeRef.Indirection(
+                            NativeTypeRef.Primitive("signed char", "sbyte", NativeAbiShape.Of("sbyte")),
+                            indirectionDepth: 1,
+                            managedName: "sbyte*"), FieldOffset: null),
                     ],
                     Layout: LayoutKind.Sequential,
                     ExplicitSize: null),
@@ -225,7 +286,7 @@ public sealed class CsCommandEmitterTests
                     Name: "SDL_ColorScheme",
                     Fields:
                     [
-                        new BindingStructField("colors", BindingTypeRef.Of("SDL_MessageBoxColor"), FieldOffset: null, FixedBufferLength: 5),
+                        new BindingStructField("colors", BindingGenerationFixture.NativePrimitive("SDL_MessageBoxColor", "SDL_MessageBoxColor"), FieldOffset: null, FixedBufferLength: 5),
                     ],
                     Layout: LayoutKind.Sequential,
                     ExplicitSize: null),
@@ -255,9 +316,9 @@ public sealed class CsCommandEmitterTests
             Enums: [],
             Constants:
             [
-                new BindingConstant("SDL_INIT_TIMER", BindingTypeRef.Of("uint"), "0x00000001u", ConstantKind.Literal),
-                new BindingConstant("SDL_INIT_EVERYTHING", BindingTypeRef.Of("uint"), "SDL_INIT_TIMER | SDL_INIT_AUDIO", ConstantKind.Computed),
-                new BindingConstant("SDL_HINT_RENDER_DRIVER", BindingTypeRef.Of("ReadOnlySpan<byte>"), "\"SDL_RENDER_DRIVER\"u8", ConstantKind.Literal),
+                new BindingConstant("SDL_INIT_TIMER", BindingGenerationFixture.NativeUInt(), "0x00000001u", ConstantKind.Literal),
+                new BindingConstant("SDL_INIT_EVERYTHING", BindingGenerationFixture.NativeUInt(), "SDL_INIT_TIMER | SDL_INIT_AUDIO", ConstantKind.Computed),
+                new BindingConstant("SDL_HINT_RENDER_DRIVER", BindingGenerationFixture.NativePrimitive("ReadOnlySpan<byte>", "ReadOnlySpan<byte>"), "\"SDL_RENDER_DRIVER\"u8", ConstantKind.Literal),
             ],
             Handles: [],
             Callbacks: []);
@@ -284,7 +345,8 @@ public sealed class CsCommandEmitterTests
             [
                 new BindingEnumeration(
                     Name: "SDL_WindowFlags",
-                    UnderlyingType: BindingTypeRef.Of("uint"),
+                    UnderlyingType: BindingGenerationFixture.NativeUInt(),
+                    IsFlags: true,
                     Members:
                     [
                         new BindingEnumMember("SDL_WINDOW_FULLSCREEN", "0x00000001u"),
@@ -292,8 +354,7 @@ public sealed class CsCommandEmitterTests
                         new BindingEnumMember("SDL_WINDOW_MOUSE_GRABBED", "0x00000100u"),
                         new BindingEnumMember("SDL_WINDOW_FULLSCREEN_DESKTOP", "SDL_WINDOW_FULLSCREEN | 0x00001000u"),
                         new BindingEnumMember("SDL_WINDOW_INPUT_GRABBED", "SDL_WINDOW_MOUSE_GRABBED"),
-                    ],
-                    IsFlags: true),
+                    ]),
             ],
             Constants: [],
             Handles: [],
@@ -334,5 +395,10 @@ public sealed class CsCommandEmitterTests
             count++;
             startIndex = index + value.Length;
         }
+    }
+
+    private static string[] JsonStrings(JsonElement array)
+    {
+        return [.. array.EnumerateArray().Select(element => element.GetString() ?? string.Empty)];
     }
 }

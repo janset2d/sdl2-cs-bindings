@@ -6,27 +6,22 @@ using CppAst;
 namespace Build.Targets.GenerateBindings.Translation;
 
 /// <summary>
-/// CppAst type → managed <see cref="BindingTypeRef"/> mapping. Per unified spec
-/// §8.1, this policy answers value-type mapping only — primitive widths,
-/// explicit-width SDL2 typedefs, typedef chain resolution, enum-as-int.
+/// Legacy CppAst type → managed <see cref="BindingTypeRef"/> projection. The
+/// semantic pipeline uses <see cref="NativeTypeClassifier"/> for full type
+/// classification; this policy remains as the narrow source of primitive-width,
+/// explicit SDL typedef, and safe-identifier rules.
 /// <para>
-/// <b>Does NOT classify pointers as opaque handles vs struct pointers.</b> The
-/// current <see cref="MapPointer"/> retains the SDL_-prefix → <c>IntPtr</c>
-/// fallback that's load-bearing while Stage 1 emits functions only (every
-/// SDL_-prefixed pointer round-trips correctly as <c>IntPtr</c> at the P/Invoke
-/// boundary). Phase 3D's translator rewrite populates
-/// <see cref="BindingTypeRef.IsOpaqueHandle"/> by structural inspection of the
-/// pointee (<c>CppTypedef.ElementType</c> = empty <c>CppClass</c> ⇒ handle;
-/// primitive-resolving ⇒ value typedef), at which point this fallback retires.
+/// <b>Does NOT classify pointers as opaque handles vs struct pointers.</b>
+/// Production semantic translators rely on <see cref="NativeTypeClassifier"/> for
+/// that decision. The older <see cref="MapPointer"/> fallback remains for legacy
+/// tests and adapters that still consume <see cref="BindingTypeRef"/>.
 /// </para>
 /// <para>
-/// Stage 1 invariants preserved from the previous inline statics on
-/// <see cref="CppAstToBindingModel"/>: P0.1 (chain-resolve typedef before
-/// SDL_-prefix fallback), P0.2 (<c>Long</c> → <c>nint</c>, NOT <c>int</c> — LP64
-/// is 64-bit), P0.3 (catch-all returns <c>IntPtr</c> rather than silently
-/// dropping; the warning-collection contract solidifies in Phase 3D), P2.8
-/// (typedef recursion depth guard at <see cref="MaxTypedefDepth"/>), P2.9
-/// (full C# reserved + contextual keyword set for <see cref="SafeIdentifier"/>).
+/// Preserved invariants: chain-resolve typedef before SDL-prefix fallback,
+/// <c>Long</c> maps to <c>nint</c> for LP64 correctness, catch-all maps to
+/// <c>IntPtr</c> rather than silently dropping, typedef recursion is capped by
+/// <see cref="MaxTypedefDepth"/>, and <see cref="SafeIdentifier"/> covers C#
+/// reserved/contextual keywords.
 /// </para>
 /// </summary>
 public static class TypeMappingPolicy
@@ -38,6 +33,14 @@ public static class TypeMappingPolicy
     /// before any legitimate chain.
     /// </summary>
     public const int MaxTypedefDepth = 16;
+
+    /// <summary>
+    /// Looks up a typedef name in the explicit-width / special-value map
+    /// (e.g. <c>SDL_bool</c> → <c>"int"</c>, <c>Sint8</c> → <c>"sbyte"</c>).
+    /// Returns the managed name via <paramref name="managedName"/> when found.
+    /// </summary>
+    public static bool TryMapExplicitTypedef(string name, out string managedName) =>
+        ExplicitTypedefMap.TryGetValue(name, out managedName!);
 
     private static readonly FrozenDictionary<string, string> ExplicitTypedefMap =
         new Dictionary<string, string>(StringComparer.Ordinal)

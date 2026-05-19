@@ -69,6 +69,8 @@ Unified implementation plan: [superpowers/plans/2026-05-17-binding-generator-uni
 - [ ] **Stage 1 — SDL2.Core generated-core readiness**: finish the Cake-hosted generator for SDL2.Core with manifest-driven `SDL2.SDL` identity, full platform-conditioned function attribution, numeric/string-like constants, `[Flags]` enums, real structs/unions where layout is verified, fixed-array policy, callback translation, compile-check guardrails, and package-consumer smoke; then wire SDL2.Core off `external/sdl2-cs/src/SDL2.cs`. ([#69](https://github.com/janset2d/sdl2-cs-bindings/issues/69))
 - [ ] **Stage 2 — SDL_syswm full union + SDL2 family sweep + sdl2-cs retire**: emit typed `SDL_SysWMinfo`/`SDL_SysWMmsg` with `[StructLayout(LayoutKind.Explicit, Size = 64)]`, introduce small forward-declaration stub library (~15–20 types); generate SDL2.Image / SDL2.Mixer / SDL2.Ttf / SDL2.Gfx / SDL2.Net; Pack-stage `BindingSymbolExistenceValidator`; retire the remaining `external/sdl2-cs` production use after satellites are generated. ([#70](https://github.com/janset2d/sdl2-cs-bindings/issues/70))
 
+Non-blocking polish candidate after the correctness gates: improve enum source-fidelity/readability where it is compile-safe, especially `SDL_KeyCode` members that SDL expresses as `SDL_Scancode | SDLK_SCANCODE_MASK` and small character-code literals such as `SDLK_ESCAPE`. Numeric enum values remain ABI-correct and acceptable as the fallback; this is not a committed Stage 1/2 task.
+
 ### Phase 5 — SDL3 Support
 
 Design brief: [phases/phase-5-sdl3-support.md](phases/phase-5-sdl3-support.md).

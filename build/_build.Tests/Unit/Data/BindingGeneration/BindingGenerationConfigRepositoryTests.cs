@@ -84,7 +84,12 @@ public sealed class BindingGenerationConfigRepositoryRoundTripTests
         await Assert.That(config.RequiredConstants[1].Kind).IsEqualTo(ConstantKind.Computed);
         await Assert.That(config.DeferredDeclarations.ContainsKey("SDL_SysWMinfo")).IsTrue();
         await Assert.That(config.DeferredDeclarations["SDL_SysWMinfo"].Category).IsEqualTo("deferred-to-stage-2");
+        await Assert.That(config.DeferredDeclarations.ContainsKey("SDL_SysWMmsg")).IsTrue();
+        await Assert.That(config.DeferredDeclarations["SDL_SysWMmsg"].Category).IsEqualTo("deferred-to-stage-2");
+        await Assert.That(config.DeferredDeclarations.ContainsKey("SDL_DUMMY_ENUM")).IsTrue();
+        await Assert.That(config.DeferredDeclarations["SDL_DUMMY_ENUM"].Category).IsEqualTo("internal-sdl-sentinel");
         await Assert.That(config.Validators["dynapi-coherence"]).IsTrue();
+        await Assert.That(config.Validators["semantic-type-consistency"]).IsTrue();
         await Assert.That(config.Dynapi).IsNotNull();
         await Assert.That(config.Dynapi!.ExportsGlob).IsEqualTo("buildtrees/sdl2/src/*/src/dynapi/SDL2.exports");
     }

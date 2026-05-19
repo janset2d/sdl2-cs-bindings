@@ -95,6 +95,17 @@ public sealed class DynapiCoherenceValidatorTests
     }
 
     [Test]
+    public async Task ValidateAsync_Should_Ignore_Configured_Excluded_Functions()
+    {
+        var validator = new DynapiCoherenceValidator(new FakeDynapiManifestRepository(Symbols("SDL_Init", "SDL_DYNAPI_entry")));
+        var model = ModelWithNeutralFunctions("SDL_Init");
+
+        var report = await validator.ValidateAsync(model, Sdl2CoreConfig(), CancellationToken.None);
+
+        await Assert.That(report.Count).IsEqualTo(0);
+    }
+
+    [Test]
     public async Task ValidateAsync_Should_Throw_CakeException_When_Dynapi_Manifest_Resolution_Fails()
     {
         var validator = new DynapiCoherenceValidator(

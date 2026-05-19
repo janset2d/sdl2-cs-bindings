@@ -1,16 +1,14 @@
 namespace Build.Targets.GenerateBindings.Model;
 
 /// <summary>
-/// Managed-type reference used by every declaration record in <see cref="BindingModel"/>
-/// (function return types, parameter types, struct fields, enum underlying types,
-/// constant types, callback signatures). Carries enough metadata for emitters to
-/// decide between local declaration vs cross-family qualified reference without
-/// re-walking the CppAst node graph.
+/// Legacy managed-type projection used by the remaining string-based config and
+/// type-mapping helpers. Semantic declaration records use <see cref="NativeTypeRef"/>;
+/// this type stays only where the old projection is still a useful adapter.
 /// </summary>
 /// <param name="ManagedName">
 /// Emitted text, e.g. <c>"int"</c>, <c>"SDL_Surface*"</c>, <c>"ReadOnlySpan&lt;byte&gt;"</c>.
-/// Phase 3D translator rewrite owns the mapping from CppAst types to this value;
-/// Phase 3E per-category emitters consume it directly.
+/// Emitted managed text, e.g. <c>"int"</c>, <c>"SDL_Surface*"</c>,
+/// <c>"ReadOnlySpan&lt;byte&gt;"</c>.
 /// </param>
 /// <param name="OwningFamilyId">
 /// Cross-family ownership marker. <c>null</c> for primitives and managed BCL types;
@@ -35,14 +33,9 @@ public sealed record BindingTypeRef(
     bool IsOpaqueHandle)
 {
     /// <summary>
-    /// Stage 1 bridge factory used by the CppAst translator and test fixtures to
-    /// wrap the existing string-based type-flow into <see cref="BindingTypeRef"/>
-    /// without re-walking the CppAst node graph. Heuristic-driven: pointer detection
-    /// via <c>EndsWith("*")</c>; <c>OwningFamilyId</c> stays <c>null</c> (cross-family
-    /// resolution activates at Stage 2); <c>IsOpaqueHandle</c> stays <c>false</c>
-    /// (handles get the typed-struct treatment when Phase 3E's <c>CsHandleEmitter</c>
-    /// lands). Phase 3D translator rewrite populates the fields directly from CppType
-    /// info instead of post-hoc string inspection.
+    /// Heuristic bridge for string-based config values. Pointer detection is based
+    /// on <c>EndsWith("*")</c>; semantic CppAst translation uses
+    /// <see cref="NativeTypeRef"/> instead of this post-hoc projection.
     /// </summary>
     public static BindingTypeRef Of(string managedName) =>
         new(managedName, OwningFamilyId: null, IsPointer: managedName.EndsWith('*'), IsOpaqueHandle: false);

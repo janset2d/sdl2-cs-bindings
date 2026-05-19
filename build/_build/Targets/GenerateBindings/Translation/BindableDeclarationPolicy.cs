@@ -38,6 +38,27 @@ internal sealed class BindableDeclarationPolicy
             && !_unsupportedPolicy.IsUnsupported(function, out _);
     }
 
+    public bool IsBindableEnum(CppEnum enumeration)
+    {
+        ArgumentNullException.ThrowIfNull(enumeration);
+
+        return IsBindableOwnedType(enumeration.SourceFile, enumeration.Name);
+    }
+
+    public bool IsBindableOwnedType(CppClass cls)
+    {
+        ArgumentNullException.ThrowIfNull(cls);
+
+        return IsBindableOwnedType(cls.SourceFile, cls.Name);
+    }
+
+    public bool IsBindableOwnedType(CppTypedef typedef)
+    {
+        ArgumentNullException.ThrowIfNull(typedef);
+
+        return IsBindableOwnedType(typedef.SourceFile, typedef.Name);
+    }
+
     public bool IsBindableStruct(CppClass cls)
     {
         ArgumentNullException.ThrowIfNull(cls);
@@ -50,5 +71,17 @@ internal sealed class BindableDeclarationPolicy
             && !SdlNativeTypeSubstitutionPolicy.IsSubstitutedValueType(cls.Name)
             && _config.OwnedPrefixes.Any(prefix => cls.Name.StartsWith(prefix, StringComparison.Ordinal))
             && !_unsupportedPolicy.IsUnsupported(cls.Name, out _);
+    }
+
+    private bool IsBindableOwnedType(string? sourceFile, string? nativeName)
+    {
+        if (string.IsNullOrWhiteSpace(nativeName))
+        {
+            return false;
+        }
+
+        return IsSdl2Header(sourceFile)
+            && _config.OwnedPrefixes.Any(prefix => nativeName.StartsWith(prefix, StringComparison.Ordinal))
+            && !_unsupportedPolicy.IsUnsupported(nativeName, out _);
     }
 }

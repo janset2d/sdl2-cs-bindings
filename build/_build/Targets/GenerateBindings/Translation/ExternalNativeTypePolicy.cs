@@ -21,6 +21,20 @@ internal static class ExternalNativeTypePolicy
             ["XTaskQueueHandle"] = "IntPtr",
         }.ToFrozenDictionary(StringComparer.Ordinal);
 
+    private static readonly FrozenDictionary<string, string> ExternalOpaqueTypes =
+        new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["va_list"] = "IntPtr",
+            ["__va_list_tag"] = "IntPtr",
+            ["FILE"] = "IntPtr",
+            ["_IO_FILE"] = "IntPtr",
+            ["SDL_iconv_t"] = "IntPtr",
+            ["_SDL_iconv_t"] = "IntPtr",
+            ["ID3D11Device"] = "IntPtr",
+            ["ID3D12Device"] = "IntPtr",
+            ["IDirect3DDevice9"] = "IntPtr",
+        }.ToFrozenDictionary(StringComparer.Ordinal);
+
     private static readonly FrozenSet<string> DeferredNativeTypes =
         new HashSet<string>(StringComparer.Ordinal)
         {
@@ -43,6 +57,17 @@ internal static class ExternalNativeTypePolicy
         mapped = default!;
         return false;
     }
+
+    /// <summary>
+    /// Name-keyed lookup that returns the managed name string directly, without
+    /// constructing a <see cref="BindingTypeRef"/>. Used by
+    /// <see cref="NativeTypeClassifier"/> during type classification.
+    /// </summary>
+    public static bool TryMapTypedefName(string name, out string managedName) =>
+        MappedTypedefs.TryGetValue(name, out managedName!);
+
+    public static bool TryMapExternalOpaqueName(string name, out string managedName) =>
+        ExternalOpaqueTypes.TryGetValue(name, out managedName!);
 
     public static bool TryMapTypedefPointer(CppTypedef typedef, out BindingTypeRef mapped)
     {

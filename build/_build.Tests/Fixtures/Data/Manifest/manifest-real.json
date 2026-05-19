@@ -215,12 +215,15 @@
           { "name": "SDL_INIT_EVERYTHING", "type": "uint", "value": "SDL_INIT_TIMER", "source_header": "SDL.h", "kind": "Computed" }
         ],
         "deferred_declarations": {
-          "SDL_SysWMinfo": { "category": "deferred-to-stage-2", "reason": "Stage 2 typed union." }
+          "SDL_SysWMinfo": { "category": "deferred-to-stage-2", "reason": "Stage 2 typed union." },
+          "SDL_SysWMmsg": { "category": "deferred-to-stage-2", "reason": "Same as SDL_SysWMinfo." },
+          "SDL_DUMMY_ENUM": { "category": "internal-sdl-sentinel", "reason": "SDL compile-time enum-size sentinel, not public API." }
         },
         "validators": {
           "dynapi-coherence": true,
           "neutral-view-non-empty": true,
-          "required-functions-emitted": true
+          "required-functions-emitted": true,
+          "semantic-type-consistency": true
         },
         "dynapi": {
           "exports_glob": "buildtrees/sdl2/src/*/src/dynapi/SDL2.exports"

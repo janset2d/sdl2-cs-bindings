@@ -11,8 +11,18 @@ internal static class RequiredConstantTranslator
 
         return [.. requiredConstants.Select(required => new BindingConstant(
             required.Name,
-            BindingTypeRef.Of(required.Type),
+            FromRequiredConstant(required),
             required.Value,
             required.Kind))];
     }
+
+    private static NativeTypeRef FromRequiredConstant(RequiredConstantConfig required) => required.Type switch
+    {
+        "uint" => NativeTypeRef.Primitive("unsigned int", "uint", NativeAbiShape.Of("uint", 4), required.SourceHeader),
+        "int" => NativeTypeRef.Primitive("int", "int", NativeAbiShape.Of("int", 4), required.SourceHeader),
+        "ReadOnlySpan<byte>" => new NativeTypeRef(
+            "const char[]", "ReadOnlySpan<byte>", NativeTypeKind.SubstitutedManagedType, 0,
+            null, required.SourceHeader, NativeAbiShape.Of("ReadOnlySpan<byte>", IntPtr.Size * 2, isBlittable: false), null, []),
+        _ => NativeTypeRef.Primitive(required.Type, required.Type, NativeAbiShape.Of(required.Type), required.SourceHeader),
+    };
 }

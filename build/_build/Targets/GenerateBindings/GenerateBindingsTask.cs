@@ -125,19 +125,18 @@ public sealed class GenerateBindingsTask(
 
     /// <summary>
     /// Maps <see cref="BindingGenerationConfig.RequiredFunctions"/> (config record shape
-    /// with string-typed return + parameter types) to <see cref="BindingFunction"/>
-    /// (translator-input shape with <see cref="BindingTypeRef"/>). Phase 3D translator
-    /// rewrite will populate <see cref="BindingFunction"/> directly from CppAst types
-    /// (and also merge <see cref="BindingGenerationConfig.RequiredFunctions"/> internally),
-    /// retiring this bridge entirely.
+    /// with string-typed return + parameter types) to the semantic
+    /// <see cref="BindingFunction"/> shape. This remains a narrow config adapter:
+    /// parsed declarations flow through <see cref="NativeTypeClassifier"/>, while
+    /// manifest-required functions have no CppAst node to classify.
     /// </summary>
     private static IReadOnlyList<BindingFunction> ConvertRequiredFunctions(BindingGenerationConfig config)
     {
         return [.. config.RequiredFunctions.Select(rf =>
             new BindingFunction(
                 Name: rf.Name,
-                ReturnType: BindingTypeRef.Of(rf.ReturnType),
-                Parameters: [.. rf.Parameters.Select(p => new BindingParameter(BindingTypeRef.Of(p.Type), p.Name))],
+                ReturnType: LegacyBindingTypeRefBridge.ToNative(BindingTypeRef.Of(rf.ReturnType)),
+                Parameters: [.. rf.Parameters.Select(p => new BindingParameter(LegacyBindingTypeRefBridge.ToNative(BindingTypeRef.Of(p.Type)), p.Name))],
                 SourceHeader: rf.SourceHeader))];
     }
 
@@ -201,6 +200,14 @@ public sealed class GenerateBindingsTask(
 
     private void LogPerViewCounts(BindingModel model)
     {
+        _log.Information(
+            "Model categories: {0} structs, {1} enums, {2} constants, {3} handles, {4} callbacks.",
+            model.Structs.Count,
+            model.Enums.Count,
+            model.Constants.Count,
+            model.Handles.Count,
+            model.Callbacks.Count);
+
         foreach (var view in model.Views)
         {
             _log.Information("View {0}: {1} functions.", view.Name, view.Functions.Count);

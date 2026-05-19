@@ -1,4 +1,8 @@
+using Build.Data.BindingGeneration.Models;
 using Build.Targets.GenerateBindings.Model;
+using Build.Targets.GenerateBindings.Parsing;
+using Build.Tests.Fixtures;
+using System.Runtime.InteropServices;
 
 namespace Build.Tests.Unit.Targets.GenerateBindings.Emitting;
 
@@ -13,12 +17,12 @@ internal static class BindingModelData
             [
                 new BindingFunction(
                     "SDL_Init",
-                    BindingTypeRef.Of("int"),
-                    [new BindingParameter(BindingTypeRef.Of("uint"), "flags")],
+                    BindingGenerationFixture.NativeInt(),
+                    [new BindingParameter(BindingGenerationFixture.NativeUInt(), "flags")],
                     "SDL.h"),
                 new BindingFunction(
                     "SDL_Quit",
-                    BindingTypeRef.Of("void"),
+                    BindingGenerationFixture.NativeVoid(),
                     [],
                     "SDL.h"),
             ]);
@@ -30,10 +34,10 @@ internal static class BindingModelData
             [
                 new BindingFunction(
                     "SDL_LinuxSetThreadPriority",
-                    BindingTypeRef.Of("int"),
+                    BindingGenerationFixture.NativeInt(),
                     [
-                        new BindingParameter(BindingTypeRef.Of("long"), "threadID"),
-                        new BindingParameter(BindingTypeRef.Of("int"), "priority"),
+                        new BindingParameter(BindingGenerationFixture.NativePrimitive("long", "long"), "threadID"),
+                        new BindingParameter(BindingGenerationFixture.NativeInt(), "priority"),
                     ],
                     "SDL_system.h"),
             ]);
@@ -56,7 +60,7 @@ internal static class BindingModelData
                 SupportedOsPlatform: null,
                 Functions:
                 [
-                    new BindingFunction("SDL_GetTicks", BindingTypeRef.Of("uint"), [], "SDL_timer.h"),
+                    new BindingFunction("SDL_GetTicks", BindingGenerationFixture.NativeUInt(), [], "SDL_timer.h"),
                 ]),
         ]);
     }
@@ -74,7 +78,7 @@ internal static class BindingModelData
                     Name: "SDL_CustomBytes",
                     Fields:
                     [
-                        new BindingStructField("data", BindingTypeRef.Of("byte"), FieldOffset: null, FixedBufferLength: 16),
+                        new BindingStructField("data", BindingGenerationFixture.NativePrimitive("unsigned char", "byte"), FieldOffset: null, FixedBufferLength: 16),
                     ],
                     Layout: System.Runtime.InteropServices.LayoutKind.Sequential,
                     ExplicitSize: null),
@@ -82,8 +86,8 @@ internal static class BindingModelData
                     Name: "SDL_GameControllerButtonBind",
                     Fields:
                     [
-                        new BindingStructField("bindType", BindingTypeRef.Of("int"), FieldOffset: null),
-                        new BindingStructField("@value", BindingTypeRef.Of("SDL_GameControllerButtonBind_value"), FieldOffset: null),
+                        new BindingStructField("bindType", BindingGenerationFixture.NativeInt(), FieldOffset: null),
+                        new BindingStructField("@value", BindingGenerationFixture.NativePrimitive("SDL_GameControllerButtonBind_value", "SDL_GameControllerButtonBind_value"), FieldOffset: null),
                     ],
                     Layout: System.Runtime.InteropServices.LayoutKind.Sequential,
                     ExplicitSize: null),
@@ -91,8 +95,8 @@ internal static class BindingModelData
                     Name: "SDL_GameControllerButtonBind_value",
                     Fields:
                     [
-                        new BindingStructField("button", BindingTypeRef.Of("int"), FieldOffset: 0),
-                        new BindingStructField("axis", BindingTypeRef.Of("int"), FieldOffset: 0),
+                        new BindingStructField("button", BindingGenerationFixture.NativeInt(), FieldOffset: 0),
+                        new BindingStructField("axis", BindingGenerationFixture.NativeInt(), FieldOffset: 0),
                     ],
                     Layout: System.Runtime.InteropServices.LayoutKind.Explicit,
                     ExplicitSize: 8),
@@ -101,5 +105,83 @@ internal static class BindingModelData
             Constants: [],
             Handles: [],
             Callbacks: []);
+    }
+
+    public static BindingModel ModelWithRichParseViewEvidence()
+    {
+        var neutral = new BindingParseView(
+            Name: "Neutral",
+            PlatformConditionKind: nameof(PlatformConditionKind.Neutral),
+            SupportedOsPlatform: null,
+            Defines: ["SDL_DECLSPEC=", "SDL_DISABLE_IMMINTRIN_H=1"],
+            Undefines: ["__has_builtin"],
+            Functions:
+            [
+                new BindingFunction(
+                    "SDL_Init",
+                    BindingGenerationFixture.NativeInt(),
+                    [new BindingParameter(BindingGenerationFixture.NativeUInt(), "flags")],
+                    "SDL.h"),
+                new BindingFunction(
+                    "SDL_Quit",
+                    BindingGenerationFixture.NativeVoid(),
+                    [],
+                    "SDL.h"),
+            ]);
+
+        var linux = new BindingParseView(
+            Name: "Linux",
+            PlatformConditionKind: nameof(PlatformConditionKind.OperatingSystem),
+            SupportedOsPlatform: "linux",
+            Defines: ["SDL_VIDEO_DRIVER_X11=1"],
+            Undefines: ["__WIN32__"],
+            Functions:
+            [
+                new BindingFunction(
+                    "SDL_LinuxSetThreadPriority",
+                    BindingGenerationFixture.NativeInt(),
+                    [
+                        new BindingParameter(BindingGenerationFixture.NativePrimitive("long", "long"), "threadID"),
+                        new BindingParameter(BindingGenerationFixture.NativeInt(), "priority"),
+                    ],
+                    "SDL_system.h"),
+            ]);
+
+        return new BindingModel(
+            Views: [neutral, linux],
+            Structs:
+            [
+                new BindingStruct(
+                    Name: "SDL_Rect",
+                    Fields:
+                    [
+                        new BindingStructField("x", BindingGenerationFixture.NativeInt(), FieldOffset: null),
+                    ],
+                    Layout: LayoutKind.Sequential,
+                    ExplicitSize: null),
+            ],
+            Enums:
+            [
+                new BindingEnumeration(
+                    Name: "SDL_EventType",
+                    UnderlyingType: BindingGenerationFixture.NativeUInt(),
+                    IsFlags: false,
+                    Members:
+                    [
+                        new BindingEnumMember("SDL_QUIT", "0x100"),
+                    ]),
+            ],
+            Constants:
+            [
+                new BindingConstant("SDL_INIT_TIMER", BindingGenerationFixture.NativeUInt(), "0x00000001u", ConstantKind.Literal),
+            ],
+            Handles:
+            [
+                new BindingHandle("SDL_Window", NativeTypeRef.OpaqueHandle("SDL_Window", "SDL_Window", "sdl2-core", "SDL_video.h")),
+            ],
+            Callbacks:
+            [
+                new BindingCallback("SDL_AudioCallback", BindingGenerationFixture.NativeVoid(), []),
+            ]);
     }
 }

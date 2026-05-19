@@ -12,9 +12,9 @@ public sealed class CppAstToBindingModelTests
 {
     // Phase 3C: Translate now takes a BindingGenerationConfig instead of a bare
     // excludedFunctionNames hash set. The fixture's Sdl2CoreConfig() carries
-    // realistic excluded_functions ("SDL_main", "SDL_DYNAPI_entry") + empty
-    // DeferredDeclarations — neither affects the empty-CppCompilation test
-    // surface below, so the existing structural assertions hold.
+    // realistic excluded_functions ("SDL_main", "SDL_DYNAPI_entry") and deferred
+    // SDL2 declarations; neither affects the empty-CppCompilation test surface
+    // below, so the existing structural assertions hold.
     private static readonly BindingGenerationConfig DefaultConfig = BindingGenerationFixture.Sdl2CoreConfig();
     private static readonly IReadOnlyList<BindingFunction> NoRequired = [];
     private static readonly string[] AscendingViewOrder = ["Neutral", "WindowsDesktop", "Linux"];
@@ -138,8 +138,8 @@ public sealed class CppAstToBindingModelTests
         // the top of the file. Parsed-content order-invariance is asserted elsewhere.
         var required = new[]
         {
-            new BindingFunction("SDL_Init", BindingTypeRef.Of("int"), [new BindingParameter(BindingTypeRef.Of("uint"), "flags")], "SDL.h"),
-            new BindingFunction("SDL_Quit", BindingTypeRef.Of("void"), [], "SDL.h"),
+            new BindingFunction("SDL_Init", BindingGenerationFixture.NativeInt(), [new BindingParameter(BindingGenerationFixture.NativeUInt(), "flags")], "SDL.h"),
+            new BindingFunction("SDL_Quit", BindingGenerationFixture.NativeVoid(), [], "SDL.h"),
         };
 
         var model = CppAstToBindingModel.Translate(
@@ -175,6 +175,7 @@ public sealed class CppAstToBindingModelTests
             .IsEquivalentTo(["SDL_INIT_EVERYTHING", "SDL_INIT_TIMER"]);
         var computed = model.Constants.Single(constant => constant.Name == "SDL_INIT_EVERYTHING");
         await Assert.That(computed.Type.ManagedName).IsEqualTo("uint");
+        await Assert.That(computed.Type.SourceHeader).IsEqualTo("SDL.h");
         await Assert.That(computed.Value).IsEqualTo("SDL_INIT_TIMER | SDL_INIT_AUDIO");
         await Assert.That(computed.Kind).IsEqualTo(ConstantKind.Computed);
     }
@@ -199,8 +200,8 @@ public sealed class CppAstToBindingModelTests
         };
         var required = new[]
         {
-            new BindingFunction("SDL_Init", BindingTypeRef.Of("int"), [new BindingParameter(BindingTypeRef.Of("uint"), "flags")], "SDL.h"),
-            new BindingFunction("SDL_Quit", BindingTypeRef.Of("void"), [], "SDL.h"),
+            new BindingFunction("SDL_Init", BindingGenerationFixture.NativeInt(), [new BindingParameter(BindingGenerationFixture.NativeUInt(), "flags")], "SDL.h"),
+            new BindingFunction("SDL_Quit", BindingGenerationFixture.NativeVoid(), [], "SDL.h"),
         };
 
         var tasks = Enumerable.Range(0, 32)
@@ -233,7 +234,7 @@ public sealed class CppAstToBindingModelTests
         // the structural property is sufficient here).
         var required = new[]
         {
-            new BindingFunction("SDL_Init", BindingTypeRef.Of("int"), [new BindingParameter(BindingTypeRef.Of("uint"), "flags")], "SDL.h"),
+            new BindingFunction("SDL_Init", BindingGenerationFixture.NativeInt(), [new BindingParameter(BindingGenerationFixture.NativeUInt(), "flags")], "SDL.h"),
         };
 
         var model = CppAstToBindingModel.Translate(
@@ -501,5 +502,76 @@ public sealed class CppAstToBindingModelTests
         await Assert.That(value.ExplicitSize).IsEqualTo(8);
         await Assert.That(value.Fields.Select(f => f.Name).ToArray()).IsEquivalentTo(["button", "axis"]);
         await Assert.That(value.Fields.Select(f => f.FieldOffset).ToArray()).IsEquivalentTo(new int?[] { 0, 0 });
+    }
+
+    [Test]
+    public async Task Translate_Should_Populate_Semantic_Type_Refs_For_Function_Parameters()
+    {
+        var createWindow = new CppFunction("SDL_CreateWindow")
+        {
+            ReturnType = new CppPointerType(new CppClass("SDL_Window")
+            {
+                ClassKind = CppClassKind.Struct,
+                IsDefinition = false,
+            }),
+            Span = SdlHeaderSpan("SDL_video.h"),
+        };
+        createWindow.Parameters.Add(new CppParameter(
+            new CppPointerType(new CppQualifiedType(CppTypeQualifier.Const, CppPrimitiveType.Char)),
+            "title"));
+
+        var compilation = new CppCompilation();
+        compilation.Functions.Add(createWindow);
+
+        var model = CppAstToBindingModel.Translate(
+            [ParseResult("Neutral", null, compilation)],
+            DefaultConfig,
+            NoRequired);
+
+        var function = model.Views.Single().Functions.Single(f => f.Name == "SDL_CreateWindow");
+        await Assert.That(function.ReturnType.Kind).IsEqualTo(NativeTypeKind.TypedPointer);
+        await Assert.That(function.ReturnType.ManagedName).IsEqualTo("SDL_Window");
+        await Assert.That(function.ReturnType.ElementType?.Kind).IsEqualTo(NativeTypeKind.OpaqueHandle);
+        await Assert.That(function.Parameters.Single().Type.Kind).IsEqualTo(NativeTypeKind.Utf8Pointer);
+    }
+
+    [Test]
+    public async Task Translate_Should_Populate_Enum_Handle_And_Callback_Categories()
+    {
+        var window = new CppClass("SDL_Window")
+        {
+            ClassKind = CppClassKind.Struct,
+            IsDefinition = false,
+            Span = SdlHeaderSpan("SDL_video.h"),
+        };
+        var windowFlags = new CppEnum("SDL_WindowFlags")
+        {
+            IntegerType = CppPrimitiveType.UnsignedInt,
+            Span = SdlHeaderSpan("SDL_video.h"),
+        };
+        windowFlags.Items.Add(new CppEnumItem("SDL_WINDOW_FULLSCREEN", 1));
+        var functionType = new CppFunctionType(CppPrimitiveType.Void);
+        functionType.Parameters.Add(new CppParameter(new CppPointerType(CppPrimitiveType.Void), "userdata"));
+        var audioCallback = new CppTypedef("SDL_AudioCallback", new CppPointerType(functionType))
+        {
+            Span = SdlHeaderSpan("SDL_audio.h"),
+        };
+
+        var compilation = new CppCompilation();
+        compilation.Classes.Add(window);
+        compilation.Enums.Add(windowFlags);
+        compilation.Typedefs.Add(audioCallback);
+
+        var model = CppAstToBindingModel.Translate(
+            [ParseResult("Neutral", null, compilation)],
+            DefaultConfig,
+            NoRequired);
+
+        await Assert.That(model.Handles.Select(handle => handle.Name).ToArray())
+            .IsEquivalentTo(["SDL_Window"]);
+        await Assert.That(model.Enums.Select(enumeration => enumeration.Name).ToArray())
+            .IsEquivalentTo(["SDL_WindowFlags"]);
+        await Assert.That(model.Callbacks.Select(callback => callback.Name).ToArray())
+            .IsEquivalentTo(["SDL_AudioCallback"]);
     }
 }

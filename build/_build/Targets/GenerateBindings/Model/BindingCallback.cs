@@ -10,5 +10,5 @@ namespace Build.Targets.GenerateBindings.Model;
 /// </summary>
 public sealed record BindingCallback(
     string Name,
-    BindingTypeRef ReturnType,
+    NativeTypeRef ReturnType,
     IReadOnlyList<BindingParameter> Parameters);

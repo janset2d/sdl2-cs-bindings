@@ -23,6 +23,6 @@ public sealed record BindingStruct(
 /// </summary>
 public sealed record BindingStructField(
     string Name,
-    BindingTypeRef Type,
+    NativeTypeRef Type,
     int? FieldOffset,
     int? FixedBufferLength = null);

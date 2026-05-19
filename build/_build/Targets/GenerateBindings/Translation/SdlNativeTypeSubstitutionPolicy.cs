@@ -15,6 +15,14 @@ internal static class SdlNativeTypeSubstitutionPolicy
     public static bool IsSubstitutedValueType(string name) =>
         ValueTypeMappings.ContainsKey(name);
 
+    /// <summary>
+    /// Name-keyed lookup that returns the managed name string directly, without
+    /// constructing a <see cref="BindingTypeRef"/>. Used by
+    /// <see cref="NativeTypeClassifier"/> during type classification.
+    /// </summary>
+    public static bool TryMapName(string name, out string managedName) =>
+        ValueTypeMappings.TryGetValue(name, out managedName!);
+
     public static bool TryMap(CppClass cls, out BindingTypeRef mapped)
     {
         ArgumentNullException.ThrowIfNull(cls);

@@ -22,10 +22,10 @@ public sealed class KnownUnsupportedDeclarationPolicyTests
     }
 
     [Test]
-    public async Task IsUnsupported_Function_Should_Return_False_When_Manifest_Has_No_Deferred_Entries()
+    public async Task IsUnsupported_Function_Should_Return_False_When_Manifest_Has_No_Matching_Deferred_Entry()
     {
-        // Fixture config defaults to empty DeferredDeclarations — no SDL_-anything
-        // function should hit the deferred path.
+        // Fixture config carries the live SDL2.Core deferred declarations; an
+        // unrelated SDL function should not hit the deferred path.
         var policy = new KnownUnsupportedDeclarationPolicy(BindingGenerationFixture.Sdl2CoreConfig());
         var function = new CppFunction("SDL_CreateWindow");
 

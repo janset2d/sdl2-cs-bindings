@@ -4,16 +4,24 @@ using CppAst;
 
 namespace Build.Targets.GenerateBindings.Translation;
 
-internal static class StructFieldTranslator
+internal sealed class StructFieldTranslator
 {
-    public static BindingStructField Translate(CppField field, LayoutKind layout) =>
-        Translate(field, parentStructName: null, layout, addNestedStruct: null);
+    private readonly NativeTypeClassifier _typeClassifier;
 
-    public static BindingStructField Translate(
+    public StructFieldTranslator(NativeTypeClassifier typeClassifier)
+    {
+        _typeClassifier = typeClassifier ?? throw new ArgumentNullException(nameof(typeClassifier));
+    }
+
+    public BindingStructField Translate(CppField field, LayoutKind layout) =>
+        Translate(field, parentStructName: null, layout, addNestedStruct: null, sourceHeader: null);
+
+    public BindingStructField Translate(
         CppField field,
         string? parentStructName,
         LayoutKind layout,
-        Action<CppClass, string>? addNestedStruct)
+        Action<CppClass, string>? addNestedStruct,
+        string? sourceHeader = null)
     {
         ArgumentNullException.ThrowIfNull(field);
 
@@ -37,14 +45,14 @@ internal static class StructFieldTranslator
             addNestedStruct(anonymousClass, generatedTypeName);
             return new BindingStructField(
                 Name: TypeMappingPolicy.SafeIdentifier(field.Name),
-                Type: BindingTypeRef.Of(generatedTypeName),
+                Type: NativeTypeRef.ConcreteStruct(generatedTypeName, generatedTypeName, null, sourceHeader),
                 FieldOffset: layout == LayoutKind.Explicit ? checked((int)field.Offset) : null,
                 FixedBufferLength: null);
         }
 
         return new BindingStructField(
             Name: TypeMappingPolicy.SafeIdentifier(field.Name),
-            Type: TypeMappingPolicy.Map(fieldType),
+            Type: _typeClassifier.Classify(fieldType, sourceHeader),
             FieldOffset: layout == LayoutKind.Explicit ? checked((int)field.Offset) : null,
             FixedBufferLength: fixedBufferLength);
     }

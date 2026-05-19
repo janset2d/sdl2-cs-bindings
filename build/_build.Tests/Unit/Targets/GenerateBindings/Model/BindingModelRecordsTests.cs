@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using Build.Data.BindingGeneration.Models;
 using Build.Targets.GenerateBindings.Model;
+using Build.Tests.Fixtures;
 
 namespace Build.Tests.Unit.Targets.GenerateBindings.Model;
 
@@ -68,14 +69,14 @@ public sealed class BindingStructTests
     [Test]
     public async Task Sequential_Layout_Should_Leave_FieldOffset_Null()
     {
-        var field = new BindingStructField("w", BindingTypeRef.Of("int"), FieldOffset: null);
+        var field = new BindingStructField("w", BindingGenerationFixture.NativeInt(), FieldOffset: null);
         await Assert.That(field.FieldOffset).IsNull();
     }
 
     [Test]
     public async Task Fixed_Buffer_Field_Should_Carry_Array_Length()
     {
-        var field = new BindingStructField("data", BindingTypeRef.Of("byte"), FieldOffset: null, FixedBufferLength: 16);
+        var field = new BindingStructField("data", BindingGenerationFixture.NativePrimitive("unsigned char", "byte"), FieldOffset: null, FixedBufferLength: 16);
 
         await Assert.That(field.FixedBufferLength).IsEqualTo(16);
     }
@@ -85,7 +86,7 @@ public sealed class BindingStructTests
     {
         // SDL_SysWMinfo-style typed union: Layout=Explicit + ExplicitSize=64 on the
         // struct, FieldOffset=0 on the union fields (Phase 3E emit shape).
-        var field = new BindingStructField("union_data", BindingTypeRef.Of("IntPtr"), FieldOffset: 0);
+        var field = new BindingStructField("union_data", BindingGenerationFixture.NativePrimitive("void*", "IntPtr"), FieldOffset: 0);
         var sut = new BindingStruct(
             Name: "SDL_SysWMinfo",
             Fields: [field],
@@ -105,9 +106,9 @@ public sealed class BindingEnumerationTests
     {
         var sut = new BindingEnumeration(
             Name: "SDL_WindowFlags",
-            UnderlyingType: BindingTypeRef.Of("uint"),
-            Members: [new BindingEnumMember("SDL_WINDOW_FULLSCREEN", "0x00000001")],
-            IsFlags: true);
+            UnderlyingType: BindingGenerationFixture.NativeUInt(),
+            IsFlags: true,
+            Members: [new BindingEnumMember("SDL_WINDOW_FULLSCREEN", "0x00000001")]);
 
         await Assert.That(sut.IsFlags).IsTrue();
         await Assert.That(sut.Members[0].Value).IsEqualTo("0x00000001");
@@ -118,13 +119,13 @@ public sealed class BindingEnumerationTests
     {
         var sut = new BindingEnumeration(
             Name: "SDL_KeyState",
-            UnderlyingType: BindingTypeRef.Of("byte"),
+            UnderlyingType: BindingGenerationFixture.NativePrimitive("unsigned char", "byte"),
+            IsFlags: false,
             Members:
             [
                 new BindingEnumMember("SDL_RELEASED", "0"),
                 new BindingEnumMember("SDL_PRESSED", "1"),
-            ],
-            IsFlags: false);
+            ]);
 
         await Assert.That(sut.IsFlags).IsFalse();
         await Assert.That(sut.Members.Count).IsEqualTo(2);
@@ -141,7 +142,7 @@ public sealed class BindingConstantTests
         // the const path when the RHS is valid C# compile-time syntax.
         var sut = new BindingConstant(
             Name: "SDL_INIT_TIMER",
-            Type: BindingTypeRef.Of("uint"),
+            Type: BindingGenerationFixture.NativeUInt(),
             Value: "0x00000001u",
             Kind: ConstantKind.Literal);
 
@@ -153,7 +154,7 @@ public sealed class BindingConstantTests
     {
         var sut = new BindingConstant(
             Name: "SDL_INIT_EVERYTHING",
-            Type: BindingTypeRef.Of("uint"),
+            Type: BindingGenerationFixture.NativeUInt(),
             Value: "SDL_INIT_TIMER | SDL_INIT_AUDIO",
             Kind: ConstantKind.Computed);
 
@@ -163,8 +164,8 @@ public sealed class BindingConstantTests
     [Test]
     public async Task Same_Name_Different_Kind_Should_Compare_Unequal()
     {
-        var literal = new BindingConstant("X", BindingTypeRef.Of("uint"), "1u", ConstantKind.Literal);
-        var computed = new BindingConstant("X", BindingTypeRef.Of("uint"), "1u", ConstantKind.Computed);
+        var literal = new BindingConstant("X", BindingGenerationFixture.NativeUInt(), "1u", ConstantKind.Literal);
+        var computed = new BindingConstant("X", BindingGenerationFixture.NativeUInt(), "1u", ConstantKind.Computed);
         await Assert.That(literal).IsNotEqualTo(computed);
     }
 }
@@ -174,9 +175,24 @@ public sealed class BindingHandleTests
     [Test]
     public async Task Records_With_Same_Name_Should_Compare_Equal()
     {
-        var a = new BindingHandle("SDL_Window");
-        var b = new BindingHandle("SDL_Window");
+        var type = NativeTypeRef.OpaqueHandle("SDL_Window", "SDL_Window", null, null);
+        var a = new BindingHandle("SDL_Window", type);
+        var b = new BindingHandle("SDL_Window", type);
         await Assert.That(a).IsEqualTo(b);
+    }
+}
+
+public sealed class BindingModelRecordsTests
+{
+    [Test]
+    public async Task BindingParameter_Should_Carry_Semantic_Native_Type()
+    {
+        var type = NativeTypeRef.OpaqueHandle("SDL_Window", "SDL_Window", "sdl2-core", "SDL_video.h");
+        var sut = new BindingParameter(type, "window");
+
+        await Assert.That(sut.Type.Kind).IsEqualTo(NativeTypeKind.OpaqueHandle);
+        await Assert.That(sut.Type.ManagedName).IsEqualTo("SDL_Window");
+        await Assert.That(sut.Name).IsEqualTo("window");
     }
 }
 
@@ -185,17 +201,21 @@ public sealed class BindingCallbackTests
     [Test]
     public async Task Records_Should_Carry_Signature_For_Phase3E_Emit()
     {
+        var eventPtrType = NativeTypeRef.Indirection(
+            NativeTypeRef.Primitive("SDL_Event", "SDL_Event", NativeAbiShape.Of("SDL_Event")),
+            indirectionDepth: 1,
+            managedName: "SDL_Event*");
         var sut = new BindingCallback(
             Name: "SDL_EventFilter",
-            ReturnType: BindingTypeRef.Of("int"),
+            ReturnType: BindingGenerationFixture.NativeInt(),
             Parameters:
             [
-                new BindingParameter(BindingTypeRef.Of("IntPtr"), "userdata"),
-                new BindingParameter(BindingTypeRef.Of("SDL_Event*"), "event"),
+                new BindingParameter(BindingGenerationFixture.NativePrimitive("void*", "IntPtr"), "userdata"),
+                new BindingParameter(eventPtrType, "event"),
             ]);
 
         await Assert.That(sut.Parameters.Count).IsEqualTo(2);
-        await Assert.That(sut.Parameters[1].Type.IsPointer).IsTrue();
+        await Assert.That(sut.Parameters[1].Type.PointerDepth).IsGreaterThan(0);
     }
 }
 
@@ -219,13 +239,18 @@ public sealed class BindingModelExtendedShapeTests
     [Test]
     public async Task Full_Ctor_Should_Surface_All_Five_New_Collections()
     {
+        var handleType = NativeTypeRef.OpaqueHandle("SDL_Window", "SDL_Window", null, null);
         var sut = new BindingModel(
             Views: [],
             Structs: [new BindingStruct("SDL_Rect", [], LayoutKind.Sequential, null)],
-            Enums: [new BindingEnumeration("SDL_KeyState", BindingTypeRef.Of("byte"), [], false)],
-            Constants: [new BindingConstant("SDL_INIT_TIMER", BindingTypeRef.Of("uint"), "0x1u", ConstantKind.Literal)],
-            Handles: [new BindingHandle("SDL_Window")],
-            Callbacks: [new BindingCallback("SDL_EventFilter", BindingTypeRef.Of("int"), [])]);
+            Enums: [new BindingEnumeration(
+                Name: "SDL_KeyState",
+                UnderlyingType: BindingGenerationFixture.NativePrimitive("unsigned char", "byte"),
+                IsFlags: false,
+                Members: [])],
+            Constants: [new BindingConstant("SDL_INIT_TIMER", BindingGenerationFixture.NativeUInt(), "0x1u", ConstantKind.Literal)],
+            Handles: [new BindingHandle("SDL_Window", handleType)],
+            Callbacks: [new BindingCallback("SDL_EventFilter", BindingGenerationFixture.NativeInt(), [])]);
 
         await Assert.That(sut.Structs.Count).IsEqualTo(1);
         await Assert.That(sut.Enums.Count).IsEqualTo(1);

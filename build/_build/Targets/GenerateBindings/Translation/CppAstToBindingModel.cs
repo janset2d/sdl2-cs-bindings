@@ -22,13 +22,23 @@ internal static class CppAstToBindingModel
 
         var unsupportedPolicy = new KnownUnsupportedDeclarationPolicy(config);
         var declarationPolicy = new BindableDeclarationPolicy(config, unsupportedPolicy);
-        var functionTranslator = new BindingFunctionTranslator(declarationPolicy);
+        var declarationCatalog = new NativeDeclarationCatalogBuilder(declarationPolicy)
+            .Build(parseResults);
+        var classificationContext = NativeTypeClassificationContext.FromConfig(config);
+        var typeClassifier = new NativeTypeClassifier(classificationContext);
+        var functionTranslator = new BindingFunctionTranslator(declarationPolicy, typeClassifier);
         var functionDeduplicator = new BindingFunctionDeduplicator();
         var neutralFunctionNames = new NeutralFunctionSetBuilder(functionTranslator)
             .Build(parseResults, requiredFunctions);
-        var structs = new BindingStructTranslator(declarationPolicy)
-            .Extract(parseResults);
+        var structs = new BindingStructTranslator(declarationPolicy, typeClassifier)
+            .Extract(declarationCatalog);
+        var enums = new BindingEnumTranslator(declarationPolicy, typeClassifier)
+            .Extract(declarationCatalog.Enums);
         var constants = RequiredConstantTranslator.Translate(config.RequiredConstants);
+        var handles = new BindingHandleTranslator(declarationPolicy, typeClassifier)
+            .Extract(declarationCatalog);
+        var callbacks = new BindingCallbackTranslator(declarationPolicy, typeClassifier)
+            .Extract(declarationCatalog.Typedefs);
 
         var views = new List<BindingParseView>(parseResults.Count);
         foreach (var result in parseResults)
@@ -55,10 +65,13 @@ internal static class CppAstToBindingModel
 
             views.Add(new BindingParseView(
                 Name: result.ParseView.Name,
+                PlatformConditionKind: result.ParseView.Kind.ToString(),
                 SupportedOsPlatform: result.ParseView.SupportedOsPlatform,
+                Defines: result.ParseView.Defines,
+                Undefines: result.ParseView.Undefines,
                 Functions: functions));
         }
 
-        return new BindingModel(views, structs, [], constants, [], []);
+        return new BindingModel(views, structs, enums, constants, handles, callbacks);
     }
 }

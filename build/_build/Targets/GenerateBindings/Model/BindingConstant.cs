@@ -17,4 +17,4 @@ namespace Build.Targets.GenerateBindings.Model;
 /// <see cref="ConstantKind.Computed"/>).
 /// </param>
 /// <param name="Kind">C macro-shape metadata. See <see cref="ConstantKind"/>.</param>
-public sealed record BindingConstant(string Name, BindingTypeRef Type, string Value, ConstantKind Kind);
+public sealed record BindingConstant(string Name, NativeTypeRef Type, string Value, ConstantKind Kind);

@@ -23,10 +23,9 @@ public sealed record BindingModel(
     IReadOnlyList<BindingCallback> Callbacks)
 {
     /// <summary>
-    /// Convenience constructor for Stage 1 call sites (translator output, test
-    /// fixtures) that produce a function-only model. Phase 3D translator rewrite
-    /// populates the new category collections directly; this overload retires
-    /// when no call sites depend on the function-only shape.
+    /// Convenience constructor for tests and narrow validators that only need the
+    /// per-view function surface. Production translation populates the semantic
+    /// category collections directly.
     /// </summary>
     public BindingModel(IReadOnlyList<BindingParseView> Views)
         : this(Views, [], [], [], [], [])

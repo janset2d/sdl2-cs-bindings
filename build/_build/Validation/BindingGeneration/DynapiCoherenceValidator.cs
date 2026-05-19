@@ -49,12 +49,17 @@ public sealed class DynapiCoherenceValidator(IDynapiManifestRepository dynapiRep
         }
 
         var manifest = manifestResult.Value;
+        var excludedSymbols = config.ExcludedFunctions.ToHashSet(StringComparer.Ordinal);
         var emittedSymbols = model.Views
             .SelectMany(v => v.Functions)
             .Select(f => f.Name)
+            .Where(symbol => !excludedSymbols.Contains(symbol))
+            .ToHashSet(StringComparer.Ordinal);
+        var expectedExports = manifest.PublicSymbols
+            .Where(symbol => !excludedSymbols.Contains(symbol))
             .ToHashSet(StringComparer.Ordinal);
 
-        if (emittedSymbols.Count == 0 && manifest.PublicSymbols.Count == 0)
+        if (emittedSymbols.Count == 0 && expectedExports.Count == 0)
         {
             return ValidationReport.Empty;
         }
@@ -64,14 +69,14 @@ public sealed class DynapiCoherenceValidator(IDynapiManifestRepository dynapiRep
 
         foreach (var emitted in emittedSymbols.OrderBy(static s => s, StringComparer.Ordinal))
         {
-            if (manifest.PublicSymbols.Contains(emitted)) continue;
+            if (expectedExports.Contains(emitted)) continue;
             checks.Add(new ValidationCheck(
                 Name: FalsePositiveCheckName,
                 Severity: profile.FalsePositiveSeverity,
                 Message: $"Binding emits P/Invoke for '{emitted}' but SDL2's dynapi manifest does not list it as a public export (source: {manifest.Origin} '{manifest.SourcePath}'). Calling it would raise EntryPointNotFoundException; inspect translator inline filter / header exclusion list."));
         }
 
-        foreach (var exported in manifest.PublicSymbols.OrderBy(static s => s, StringComparer.Ordinal))
+        foreach (var exported in expectedExports.OrderBy(static s => s, StringComparer.Ordinal))
         {
             if (emittedSymbols.Contains(exported)) continue;
             checks.Add(new ValidationCheck(

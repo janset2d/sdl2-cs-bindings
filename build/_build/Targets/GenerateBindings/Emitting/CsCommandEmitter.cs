@@ -26,9 +26,9 @@ internal static class CsCommandEmitter
             files.Add(new GeneratedFile(RelativePath: $"Platform/{view.Name}/Commands.g.cs", Content: EmitCommandsFile(view, options, includeLibName: index == libNameViewIndex)));
         }
 
-        if (model.Structs.Count > 0)
+        if (model.Constants.Count > 0)
         {
-            files.Add(CsStructEmitter.Emit(model.Structs, options));
+            files.Add(CsConstantEmitter.Emit(model.Constants, options));
         }
 
         if (model.Enums.Count > 0)
@@ -36,12 +36,25 @@ internal static class CsCommandEmitter
             files.Add(CsEnumEmitter.Emit(model.Enums, options));
         }
 
-        if (model.Constants.Count > 0)
+        if (model.Handles.Count > 0)
         {
-            files.Add(CsConstantEmitter.Emit(model.Constants, options));
+            files.Add(CsHandleEmitter.Emit(model.Handles, options));
         }
 
-        files.Add(new GeneratedFile(RelativePath: "parse-views.json", Content: EmitReportJson(model)));
+        if (model.Structs.Count > 0)
+        {
+            files.Add(CsStructEmitter.Emit(model.Structs, options));
+        }
+
+        if (model.Callbacks.Count > 0)
+        {
+            files.Add(CsCallbackEmitter.Emit(model.Callbacks, options));
+        }
+
+        var emittedFiles = files.Select(file => file.RelativePath)
+            .Append("parse-views.json")
+            .ToList();
+        files.Add(new GeneratedFile(RelativePath: "parse-views.json", Content: EmitReportJson(model, emittedFiles)));
 
         return new GeneratedFileSet(files);
     }
@@ -115,16 +128,41 @@ internal static class CsCommandEmitter
         return string.Join(", ", parameters.Select(p => $"{p.Type.ManagedName} {p.Name}"));
     }
 
-    private static string EmitReportJson(BindingModel model)
+    private static string EmitReportJson(BindingModel model, IReadOnlyList<string> emittedFiles)
     {
         var entries = model.Views.Select(view =>
             new BindingParseViewReportEntry(
                 Name: view.Name,
+                PlatformConditionKind: view.PlatformConditionKind,
                 SupportedOSPlatform: view.SupportedOsPlatform,
+                Defines: view.Defines,
+                Undefines: view.Undefines,
                 FunctionCount: view.Functions.Count,
-                Functions: [.. view.Functions.Select(f => new BindingParseViewReportFunction(f.Name, f.SourceHeader))])).ToList();
+                Functions: [.. view.Functions.Select(f => new BindingParseViewReportFunction(
+                    f.Name,
+                    f.SourceHeader,
+                    f.ReturnType.ManagedName,
+                    [.. f.Parameters.Select(p => new BindingParseViewReportParameter(p.Name, p.Type.ManagedName))]))])).ToList();
 
-        var report = new BindingParseViewReport(entries);
+        var categories = new BindingParseViewReportCategories(
+            ViewCount: model.Views.Count,
+            FunctionCount: model.Views.Sum(view => view.Functions.Count),
+            StructCount: model.Structs.Count,
+            EnumCount: model.Enums.Count,
+            ConstantCount: model.Constants.Count,
+            HandleCount: model.Handles.Count,
+            CallbackCount: model.Callbacks.Count,
+            Structs: [.. model.Structs.Select(s => s.Name)],
+            Enums: [.. model.Enums.Select(e => e.Name)],
+            Constants: [.. model.Constants.Select(c => c.Name)],
+            Handles: [.. model.Handles.Select(h => h.Name)],
+            Callbacks: [.. model.Callbacks.Select(c => c.Name)]);
+
+        var report = new BindingParseViewReport(
+            SchemaVersion: 1,
+            Categories: categories,
+            EmittedFiles: emittedFiles,
+            Views: entries);
         return JsonSerializer.Serialize(report, JsonOptions);
     }
 }

@@ -100,7 +100,8 @@ public static class ManifestFixture
         Validators = ImmutableDictionary<string, bool>.Empty
             .Add("dynapi-coherence", true)
             .Add("neutral-view-non-empty", true)
-            .Add("required-functions-emitted", true),
+            .Add("required-functions-emitted", true)
+            .Add("semantic-type-consistency", true),
         Dynapi = new DynapiConfig { ExportsGlob = "buildtrees/sdl2/src/*/src/dynapi/SDL2.exports" },
     };
 

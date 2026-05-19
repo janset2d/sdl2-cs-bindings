@@ -42,7 +42,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IPackageConsumerSmokePreconditionsValidator, PackageConsumerSmokePreconditionsValidator>();
         services.AddSingleton<IOverlayPortVersionCoherenceValidator, OverlayPortVersionCoherenceValidator>();
 
-        // Binding-generation validators. Three IBindingFamilyValidator implementations
+        // Binding-generation validators. IBindingFamilyValidator implementations
         // share a single registration interface so IEnumerable<IBindingFamilyValidator>
         // resolves to all of them; GenerateBindingsTask filters the IEnumerable by
         // manifest.binding_generation.validators[id] = true per family per run.
@@ -51,6 +51,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IBindingFamilyValidator, DynapiCoherenceValidator>();
         services.AddSingleton<IBindingFamilyValidator, NeutralViewNonEmptyValidator>();
         services.AddSingleton<IBindingFamilyValidator, RequiredFunctionsEmittedValidator>();
+        services.AddSingleton<IBindingFamilyValidator, SemanticTypeConsistencyValidator>();
 
         return services;
     }

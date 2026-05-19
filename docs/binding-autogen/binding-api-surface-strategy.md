@@ -156,7 +156,9 @@ SDL structs/enums/callbacks are also public typed low-level declarations:
 - pointer-bearing structs are emitted with an unsafe struct context
 - fixed-size primitive arrays use C# fixed buffers; fixed-size arrays of non-fixed-buffer-compatible element types use `[InlineArray]` wrapper structs
 - flags: `[Flags]` where structural/name heuristics prove flag semantics
-- callbacks: modern `delegate* unmanaged[Cdecl]<...>` plus legacy delegate shape where old TFMs require it
+- callbacks: public typed low-level declarations preserve the honest C callback shape. SDL-owned pointer parameters such as `SDL_AssertData*`, `SDL_Event*`, and `byte*` remain typed unsafe pointers in the low-level surface; `void* userdata` remains native-sized (`nint` / `void*`) per the layer being emitted. Do not erase SDL-owned pointer arguments to `IntPtr` just to make the callback look friendlier. Modern peers (ppy/SDL3-CS, Alimer, Silk.NET, bottlenoselabs SDL3-cs) keep typed callback pointers in low-level APIs; SDL2-CS's all-`IntPtr` delegate pattern is compatibility evidence, not the target shape. Friendly managed delegates/events/trampolines belong in the friendly layer, where lifetime and marshaling can be explicit.
+
+Stage 1 currently emits legacy-TFM-friendly `[UnmanagedFunctionPointer(CallingConvention.Cdecl)]` delegate declarations in `Types/Callbacks.g.cs` so the generated preview compile-checks across the existing project shape. Stage 2 may split this into internal raw `delegate* unmanaged[Cdecl]<...>` signatures plus public named callback identity/wrapper types for modern TFMs, but the public low-level callback contract still preserves typed pointer arguments.
 
 ### Constants, enums, and C macros
 
@@ -224,6 +226,8 @@ public static bool HasClipboardText()
 ```
 
 This layer is the advanced zero-allocation surface. It can expose unsafe pointers where that is the honest C shape, but it still benefits from typed handles/enums/structs and keeps `[DllImport]` / `[LibraryImport]` internals private.
+
+Callback lifetime is intentionally not hidden in this low-level layer. Callers that pass managed delegates/function pointers must keep them alive for as long as SDL may call them. Friendly callback APIs may later use static `[UnmanagedCallersOnly]` trampolines, `GCHandle`-backed userdata, or owner objects/events to make lifetime safer; those helpers extend the API rather than changing the low-level callback declarations.
 
 ### Layer 4: Friendly overloads
 

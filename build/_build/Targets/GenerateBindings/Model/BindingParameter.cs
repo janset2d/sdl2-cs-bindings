@@ -1,3 +1,3 @@
 namespace Build.Targets.GenerateBindings.Model;
 
-public sealed record BindingParameter(BindingTypeRef Type, string Name);
+public sealed record BindingParameter(NativeTypeRef Type, string Name);

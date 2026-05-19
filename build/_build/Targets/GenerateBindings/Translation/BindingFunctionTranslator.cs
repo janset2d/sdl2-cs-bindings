@@ -6,10 +6,12 @@ namespace Build.Targets.GenerateBindings.Translation;
 internal sealed class BindingFunctionTranslator
 {
     private readonly BindableDeclarationPolicy _declarationPolicy;
+    private readonly NativeTypeClassifier _typeClassifier;
 
-    public BindingFunctionTranslator(BindableDeclarationPolicy declarationPolicy)
+    public BindingFunctionTranslator(BindableDeclarationPolicy declarationPolicy, NativeTypeClassifier typeClassifier)
     {
         _declarationPolicy = declarationPolicy ?? throw new ArgumentNullException(nameof(declarationPolicy));
+        _typeClassifier = typeClassifier ?? throw new ArgumentNullException(nameof(typeClassifier));
     }
 
     public List<BindingFunction> Extract(IReadOnlyList<CppCompilation> compilations)
@@ -44,18 +46,18 @@ internal sealed class BindingFunctionTranslator
             .ToList();
     }
 
-    private static BindingFunction Translate(CppFunction function)
+    private BindingFunction Translate(CppFunction function)
     {
         var sourceHeader = Path.GetFileName(function.SourceFile ?? string.Empty);
         var parameters = function.Parameters
             .Select((parameter, index) => new BindingParameter(
-                TypeMappingPolicy.Map(parameter.Type),
+                _typeClassifier.Classify(parameter.Type, sourceHeader),
                 TypeMappingPolicy.SafeIdentifier(parameter.Name, index)))
             .ToList();
 
         return new BindingFunction(
             Name: function.Name,
-            ReturnType: TypeMappingPolicy.Map(function.ReturnType),
+            ReturnType: _typeClassifier.Classify(function.ReturnType, sourceHeader),
             Parameters: parameters,
             SourceHeader: sourceHeader);
     }
