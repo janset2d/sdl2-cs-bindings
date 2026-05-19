@@ -6,11 +6,10 @@ using Build.Tests.Fixtures;
 namespace Build.Tests.Unit.Targets.GenerateBindings.Model;
 
 /// <summary>
-/// Phase 3B BindingModel extension records — record-shape + value-equality + the
-/// <see cref="BindingTypeRef.Of(string)"/> bridge heuristic. Translator + emitter
-/// behaviour for the new categories lands at Phase 3D / 3E; this suite only pins
-/// the in-memory shape so a future record-redesign that breaks equality contracts
-/// or ctor positional ordering surfaces as a test failure.
+/// BindingModel extension records: record-shape + value-equality + the
+/// <see cref="BindingTypeRef.Of(string)"/> bridge heuristic. This suite pins the
+/// in-memory shape so a future record-redesign that breaks equality contracts or
+/// ctor positional ordering surfaces as a test failure.
 /// </summary>
 public sealed class BindingTypeRefTests
 {
@@ -33,8 +32,8 @@ public sealed class BindingTypeRefTests
     public async Task Of_Should_Set_IsPointer_False_For_IntPtr()
     {
         // IntPtr models a typed opaque handle, not a pointer in the pointer-arithmetic
-        // sense; the heuristic (EndsWith '*') correctly returns false. Phase 3D
-        // translator rewrite can tighten this further by inspecting CppType info.
+        // sense; the heuristic (EndsWith '*') correctly returns false. Translator
+        // structural inspection can tighten this further with CppType info.
         var typeRef = BindingTypeRef.Of("IntPtr");
         await Assert.That(typeRef.IsPointer).IsFalse();
     }
@@ -85,7 +84,7 @@ public sealed class BindingStructTests
     public async Task Explicit_Layout_Should_Carry_ExplicitSize_And_FieldOffset()
     {
         // SDL_SysWMinfo-style typed union: Layout=Explicit + ExplicitSize=64 on the
-        // struct, FieldOffset=0 on the union fields (Phase 3E emit shape).
+        // struct, FieldOffset=0 on the union fields.
         var field = new BindingStructField("union_data", BindingGenerationFixture.NativePrimitive("void*", "IntPtr"), FieldOffset: 0);
         var sut = new BindingStruct(
             Name: "SDL_SysWMinfo",
@@ -137,7 +136,7 @@ public sealed class BindingConstantTests
     [Test]
     public async Task Literal_Kind_Should_Emit_Through_Const_Path()
     {
-        // Phase 3E CsConstantEmitter keeps Kind as macro-shape metadata.
+        // CsConstantEmitter keeps Kind as macro-shape metadata.
         // Numeric Literal and Computed macro expressions can both emit through
         // the const path when the RHS is valid C# compile-time syntax.
         var sut = new BindingConstant(

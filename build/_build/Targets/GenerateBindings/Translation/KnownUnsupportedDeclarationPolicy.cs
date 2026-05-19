@@ -5,22 +5,21 @@ using CppAst;
 namespace Build.Targets.GenerateBindings.Translation;
 
 /// <summary>
-/// Stage 1 declaration-deferral filter. Consumes the
+/// Declaration-deferral filter. Consumes the
 /// <see cref="BindingGenerationConfig.DeferredDeclarations"/> dictionary — entries
-/// like <c>SDL_SysWMinfo</c> that the manifest carves out for Stage 2 typed-union
+/// like <c>SDL_SysWMinfo</c> that the manifest carves out until typed-union
 /// shape, or one-off per-family deferrals with a documented rationale — and the
 /// external native type policy for C runtime internals that must not leak into
 /// generated signatures.
 /// <para>
 /// <b>C-variadic functions are NOT filtered by this policy.</b> Per peer-evidence
-/// review on 2026-05-17 (SDL2-CS, Alimer.Bindings.SDL, ppy/SDL3-CS, c2ffi —
-/// see unified-plan Phase 3C design-intent block + unified-spec §8.2), the
-/// idiomatic SDL-family pattern is to emit variadic functions as fmt-only raw
-/// P/Invoke (the <c>...</c> tail is dropped, the <c>const char* fmt</c>
+/// review of SDL binding peers, the idiomatic SDL-family pattern is to emit
+/// variadic functions as fmt-only raw P/Invoke (the <c>...</c> tail is dropped,
+/// the <c>const char* fmt</c>
 /// parameter survives) and let consumers pre-format with C# string interpolation
-/// or <c>string.Format</c> before calling. Phase 3F adds the SDL2-CS-style
-/// <c>string fmtAndArglist</c> friendly-overload wrapper that makes the
-/// pre-format expectation explicit at the API surface.
+/// or <c>string.Format</c> before calling. A follow-up overload adds the
+/// SDL2-CS-style <c>string fmtAndArglist</c> wrapper that makes the pre-format
+/// expectation explicit at the API surface.
 /// </para>
 /// </summary>
 public sealed class KnownUnsupportedDeclarationPolicy
@@ -34,8 +33,8 @@ public sealed class KnownUnsupportedDeclarationPolicy
     }
 
     /// <summary>
-    /// Returns <c>true</c> when the parsed function is unsupported for Stage 1
-    /// emit per the manifest's <c>deferred_declarations</c> block.
+    /// Returns <c>true</c> when the parsed function is unsupported for the
+    /// current emit per the manifest's <c>deferred_declarations</c> block.
     /// <paramref name="reason"/> carries the audit-log explanation, never
     /// <c>null</c> on the false branch.
     /// </summary>
@@ -59,9 +58,9 @@ public sealed class KnownUnsupportedDeclarationPolicy
     }
 
     /// <summary>
-    /// Name-only overload for type/struct/enum deferral checks (Phase 3D will
-    /// call this for typedef → struct path). Bypasses the variadic branch since
-    /// only functions have a <see cref="CppFunction.IsVariadic"/> flag.
+    /// Name-only overload for type/struct/enum deferral checks. Bypasses the
+    /// variadic branch since only functions have a <see cref="CppFunction.IsVariadic"/>
+    /// flag.
     /// </summary>
     public bool IsUnsupported(string declarationName, out string reason)
     {

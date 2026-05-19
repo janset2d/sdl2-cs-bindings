@@ -4,11 +4,10 @@ using Build.Tests.Fixtures;
 namespace Build.Tests.Unit.Targets.GenerateBindings.Translation;
 
 /// <summary>
-/// Phase 3C extraction: family-scoped identity policy. <see cref="CoreOwnedTypeMap"/>
-/// answers "does family X own identifier Y?" (prefix match against manifest's
+/// Family-scoped identity policy. <see cref="CoreOwnedTypeMap"/> answers "does
+/// family X own identifier Y?" (prefix match against manifest's
 /// <c>owned_prefixes</c>) and builds the cross-family qualified reference for
-/// satellite emit contexts (Stage 2). Identity-vs-category split per unified
-/// design spec §8.1 — these tests pin the identity-axis surface only.
+/// satellite emit contexts. These tests pin the identity-axis surface only.
 /// </summary>
 public sealed class CoreOwnedTypeMapTests
 {
@@ -66,10 +65,9 @@ public sealed class CoreOwnedTypeMapTests
     [Test]
     public async Task QualifiedManagedReference_Should_Prepend_Janset_Plus_Managed_Namespace()
     {
-        // sdl2-core ManagedNamespace = "SDL2" → qualified reference =
-        // "Janset.SDL2.<identifier>" — the prefix Phase 3D satellite translators
-        // emit so satellite source can write Janset.SDL2.SDL_Surface* without
-        // redeclaring the core type.
+        // sdl2-core ManagedNamespace = "SDL2" yields the prefix satellite
+        // translators emit so satellite source can write Janset.SDL2.SDL_Surface*
+        // without redeclaring the core type.
         var map = new CoreOwnedTypeMap(BindingGenerationFixture.Sdl2CoreConfig());
 
         await Assert.That(map.QualifiedManagedReference("SDL_Surface")).IsEqualTo("Janset.SDL2.SDL_Surface");

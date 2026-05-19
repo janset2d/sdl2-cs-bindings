@@ -10,7 +10,7 @@ namespace Build.Tests.Unit.Targets.GenerateBindings.Translation;
 
 public sealed class CppAstToBindingModelTests
 {
-    // Phase 3C: Translate now takes a BindingGenerationConfig instead of a bare
+    // Translate takes a BindingGenerationConfig instead of a bare
     // excludedFunctionNames hash set. The fixture's Sdl2CoreConfig() carries
     // realistic excluded_functions ("SDL_main", "SDL_DYNAPI_entry") and deferred
     // SDL2 declarations; neither affects the empty-CppCompilation test surface

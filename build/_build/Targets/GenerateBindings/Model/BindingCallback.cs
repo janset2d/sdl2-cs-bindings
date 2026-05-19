@@ -6,7 +6,7 @@ namespace Build.Targets.GenerateBindings.Model;
 /// <c>CsCallbackEmitter</c> emits these as
 /// <c>delegate* unmanaged[Cdecl]&lt;...&gt;</c> where representable;
 /// <c>[UnmanagedFunctionPointer]</c> + <c>delegate</c> shapes lend themselves to
-/// legacy-TFM friendly overloads in Phase 3F.
+/// legacy-TFM friendly overloads.
 /// </summary>
 public sealed record BindingCallback(
     string Name,

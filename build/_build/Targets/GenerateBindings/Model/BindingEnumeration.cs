@@ -1,8 +1,8 @@
 namespace Build.Targets.GenerateBindings.Model;
 
 /// <summary>
-/// Public enum declaration in the binding surface. Drives <c>CsEnumEmitter</c>
-/// at Phase 3E. <see cref="IsFlags"/> controls whether <c>[Flags]</c> is emitted;
+/// Public enum declaration in the binding surface. Drives <c>CsEnumEmitter</c>.
+/// <see cref="IsFlags"/> controls whether <c>[Flags]</c> is emitted;
 /// the translator decides via SDL2 naming convention (<c>SDL_*_FLAG</c> /
 /// <c>*_MASK</c>) plus structural inspection (powers-of-two members). Named
 /// <c>BindingEnumeration</c> rather than <c>BindingEnum</c> per CA1711 — the

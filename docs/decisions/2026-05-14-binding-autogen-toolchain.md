@@ -84,10 +84,8 @@ Migration would replace the generator implementation, not the package contract. 
 
 ## 7. References
 
-- [`../binding-autogen/binding-autogen-strategy-brief.md`](../binding-autogen/binding-autogen-strategy-brief.md)
-- [`../binding-autogen/research/binding-autogen-approaches.md`](../binding-autogen/research/binding-autogen-approaches.md)
-- [`../binding-autogen/research/binding-autogen-feasibility.md`](../binding-autogen/research/binding-autogen-feasibility.md)
-- [`../binding-autogen/research/binding-autogen-spike-findings.md`](../binding-autogen/research/binding-autogen-spike-findings.md)
+- [`../binding-autogen/binding-generator-constitution.md`](../binding-autogen/binding-generator-constitution.md)
+- [`../binding-autogen/binding-generator-roadmap.md`](../binding-autogen/binding-generator-roadmap.md)
 - [`../release-strategy.md`](../release-strategy.md)
 - [`../phases/phase-4-binding-autogen.md`](../phases/phase-4-binding-autogen.md)
 - [`2026-05-05-d3seg-and-package-first.md`](2026-05-05-d3seg-and-package-first.md)

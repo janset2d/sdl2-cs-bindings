@@ -1,6 +1,6 @@
 # Phase 4: Binding Auto-Generation
 
-**Status:** Strategy brief + unified design spec + unified implementation plan accepted and revised through 2026-05-18. **Critical path for v1.0** per [`../release-strategy.md`](../release-strategy.md) — lands **before** the first public `-preview.N` wave.
+**Status:** Generated SDL2.Core internal ABI surface stabilized; public typed wrappers, friendly overloads, production flip, and smoke gates remain. **Critical path for v1.0** per [`../release-strategy.md`](../release-strategy.md) — lands **before** the first public `-preview.N` wave.
 
 **Order:** Phase 4 ships before Phase 3. First public preview consumes AST-generated bindings, not the deprecated `external/sdl2-cs` imports. See [`../release-strategy.md`](../release-strategy.md) §Sequencing for the rationale.
 
@@ -10,12 +10,9 @@ This page is a thin pointer to the canonical Phase 4 documents. Do not duplicate
 
 | Doc | Purpose |
 | --- | --- |
-| [`../binding-autogen/binding-autogen-strategy-brief.md`](../binding-autogen/binding-autogen-strategy-brief.md) | Accepted WHY/HOW/WHAT strategy brief (revised through 2026-05-18). Authoritative for toolchain, generator host, parsing strategy, plan shape, open decisions. |
-| [`../binding-autogen/binding-api-surface-strategy.md`](../binding-autogen/binding-api-surface-strategy.md) | Canonical API-surface decision: internal raw ABI, public typed low-level API, friendly overloads, peer matrix, string/span/handle/`SDL_bool` policy. |
-| [`../superpowers/specs/2026-05-16-binding-generator-unified-design.md`](../superpowers/specs/2026-05-16-binding-generator-unified-design.md) | **Active** unified design spec — manifest-driven per-family generator, BindingModel + 6 categories, per-category emitters. Supersedes 2026-05-14 architecture + 2026-05-15 local-output-loop specs. |
-| [`../superpowers/plans/2026-05-17-binding-generator-unified-plan.md`](../superpowers/plans/2026-05-17-binding-generator-unified-plan.md) | **Active** unified implementation plan. Phases 1–3G. Supersedes Stage 1 plan + local-output-loop plan. |
+| [`../binding-autogen/binding-generator-constitution.md`](../binding-autogen/binding-generator-constitution.md) | Canonical ABI/API/translation constitution: internal raw ABI, public typed low-level API, friendly overloads, manifest config vs code-owned policy, evidence gates. |
+| [`../binding-autogen/binding-generator-roadmap.md`](../binding-autogen/binding-generator-roadmap.md) | Canonical future roadmap: SDL2.Core public-surface readiness, SDL2 satellite sweep, SDL3 extension. |
 | [`../decisions/2026-05-14-binding-autogen-toolchain.md`](../decisions/2026-05-14-binding-autogen-toolchain.md) | ADR-004 toolchain decision (CppAst). |
-| [`../binding-autogen/research/binding-autogen-onboarding.md`](../binding-autogen/research/binding-autogen-onboarding.md) | LLM/contributor onboarding (revised 2026-05-15). |
 
 ## What Phase 4 Delivers
 
@@ -32,7 +29,7 @@ The big shape:
 
 ## Stage Sequencing
 
-Per the strategy brief §Plan Shape (and [`../release-strategy.md`](../release-strategy.md) §Sequencing — note the strategy brief subdivides the release-strategy "AST-first" stages further into per-execution-stage scope):
+Per the binding-generator roadmap and [`../release-strategy.md`](../release-strategy.md) §Sequencing:
 
 | Stage | Scope | Public-ship state |
 | --- | --- | --- |
@@ -40,20 +37,17 @@ Per the strategy brief §Plan Shape (and [`../release-strategy.md`](../release-s
 | **Stage 2** | `SDL_SysWMinfo`/`SDL_SysWMmsg` typed-union layout with ~15–20-type forward-declaration stub library; SDL2 satellite sweep (Image, Mixer, Ttf, Gfx, Net); remaining `external/sdl2-cs` production-use retirement; Pack-stage symbol-existence validator. | First public `-preview.N` on nuget.org |
 | **Stage 3** | SDL3 extension (gated on PD-7). Sibling `GenerateSdl3Bindings` Cake target; SDL3-specific ABI rules (1-byte bool wire types, `SDL_IOStream` replacing `SDL_RWops`). | Captured under Phase 5. |
 
-## Exit Criteria — Defer to Strategy Brief
+## Exit Criteria — Defer To Roadmap
 
-Detailed exit criteria per stage live in the strategy brief §Plan Shape. The Phase 4 brief intentionally does not duplicate them — the strategy brief is canonical and revising criteria in two places creates drift. Read [`../binding-autogen/binding-autogen-strategy-brief.md`](../binding-autogen/binding-autogen-strategy-brief.md) §Plan Shape for the per-stage criteria.
+Detailed exit criteria per stage live in [`../binding-autogen/binding-generator-roadmap.md`](../binding-autogen/binding-generator-roadmap.md). The Phase 4 brief intentionally does not duplicate them.
 
 ## Cross-Reference
 
 - [`../release-strategy.md`](../release-strategy.md) — strategic anchor (AST-first sequencing rationale)
 - [`../plan.md`](../plan.md) — tactical roadmap (Phase 4 row)
 - [`../binding-autogen/README.md`](../binding-autogen/README.md) — workstream index and reading order
-- [`../binding-autogen/binding-autogen-strategy-brief.md`](../binding-autogen/binding-autogen-strategy-brief.md) — accepted strategy brief
-- [`../binding-autogen/research/binding-autogen-onboarding.md`](../binding-autogen/research/binding-autogen-onboarding.md) — onboarding for contributors picking up this workstream
-- [`../binding-autogen/research/binding-autogen-feasibility.md`](../binding-autogen/research/binding-autogen-feasibility.md) — feasibility study (pre-2026-05-15; see strategy brief Decision Audit for retractions)
-- [`../binding-autogen/research/binding-autogen-spike-findings.md`](../binding-autogen/research/binding-autogen-spike-findings.md) — hands-on spike validation
-- [`../binding-autogen/research/binding-autogen-approaches.md`](../binding-autogen/research/binding-autogen-approaches.md) — toolchain survey + ppy/Alimer/Silk.NET comparison
+- [`../binding-autogen/binding-generator-constitution.md`](../binding-autogen/binding-generator-constitution.md) — binding-generator constitution
+- [`../binding-autogen/binding-generator-roadmap.md`](../binding-autogen/binding-generator-roadmap.md) — active roadmap
 - [`../decisions/2026-05-14-binding-autogen-toolchain.md`](../decisions/2026-05-14-binding-autogen-toolchain.md) — ADR-004 CppAst toolchain decision
 - [`../decisions/2026-05-05-target-centric-build-host.md`](../decisions/2026-05-05-target-centric-build-host.md) — ADR-002 target-centric build-host pattern (the Cake-host fold inherits this)
 - [`../decisions/2026-05-12-build-host-data-layer.md`](../decisions/2026-05-12-build-host-data-layer.md) — ADR-003 contract-centric data layer (the binding validators extend this)

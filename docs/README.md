@@ -48,12 +48,8 @@ Phase 3 (SDL2 Complete — samples, meta-package, first prerelease) lives direct
 | Document | Purpose |
 | --- | --- |
 | [binding-autogen/README.md](binding-autogen/README.md) | Workstream index and reading order for Phase 4 binding generator strategy and research |
-| [binding-autogen/binding-translation-contract.md](binding-autogen/binding-translation-contract.md) | Canonical C-to-C# translation contract: function inclusion, variadics, scalar widths, handles, structs/unions, enums, constants/macros, platform views, evidence gates, and current P0 blockers |
-| [binding-autogen/binding-autogen-strategy-brief.md](binding-autogen/binding-autogen-strategy-brief.md) | WHY/HOW/WHAT strategy brief selecting the CppAst direction for Phase 4 planning |
-| [binding-autogen/binding-api-surface-strategy.md](binding-autogen/binding-api-surface-strategy.md) | Canonical generated API surface decision: internal raw ABI, public typed low-level API, friendly overloads, and peer matrix. Detailed translation rules defer to `binding-translation-contract.md` |
-| [binding-autogen/research/binding-autogen-onboarding.md](binding-autogen/research/binding-autogen-onboarding.md) | Fast onboarding for a fresh contributor or agent picking up the binding-autogen workstream |
-| [binding-autogen/research/binding-autogen-feasibility.md](binding-autogen/research/binding-autogen-feasibility.md) | Emit rules, platform-conditioned parsing model, validation layers, open decisions |
-| [binding-autogen/research/binding-autogen-spike-findings.md](binding-autogen/research/binding-autogen-spike-findings.md) | Hands-on SDL2_gfx spike findings for ClangSharp and CppAst |
+| [binding-autogen/binding-generator-constitution.md](binding-autogen/binding-generator-constitution.md) | Canonical binding-generator ABI/API constitution: internal raw ABI, public typed layer, friendly overloads, C-to-C# translation, manifest config vs policy, evidence gates |
+| [binding-autogen/binding-generator-roadmap.md](binding-autogen/binding-generator-roadmap.md) | Canonical future roadmap for SDL2.Core generated-source readiness, SDL2 satellites, and SDL3 extension |
 | [decisions/2026-05-14-binding-autogen-toolchain.md](decisions/2026-05-14-binding-autogen-toolchain.md) | ADR-004 toolchain decision for the CppAst binding generator |
 
 ### Playbook (How-To Recipes)

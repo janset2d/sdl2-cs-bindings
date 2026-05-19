@@ -1,49 +1,36 @@
 # Binding Auto-Generation Workstream
 
-**Status (2026-05-19):** active binding-generator workstream. [`binding-translation-contract.md`](binding-translation-contract.md) is now the canonical translation-rule document for C-to-C# ABI surface decisions. Unified design spec + plan remain useful architecture history, but conflicting translation details in them are superseded by the contract. CppAst remains the selected toolchain (ADR-004); the generator is hosted inside the Cake build host; generation runs Linux-canonical from a pinned Docker container; `SDL_syswm.h` typed-union layout is deferred to Stage 2; SDL3 binding generation is gated on PD-7. `build/manifest.json` is the per-family configuration center, including generated namespace/class identity; `GenerateBindingsTask` loops every family with `binding_generation.enabled=true` (`--family X` narrows). ClangSharp remains the documented migration path if CppAst's maintenance trade-off changes.
+**Status (2026-05-20):** active binding-generator workstream. The canonical documents are now the constitution and roadmap below. Historical specs, implementation transcripts, and spike research were folded for unique current facts and removed from active docs; git history remains the archive.
 
-**Local loop (already shipped, commits `0db0e31` + `9a5f59e`):** `dotnet run --file tools.cs -- generate-bindings` runs the Cake `GenerateBindings` target inside the pinned `linux-builder` derived container, producing output under `artifacts/generated-bindings-preview/sdl2-core/` (gitignored). Production-location flag-flip to `src/SDL2.<Family>/Generated/` is a follow-up slice after the unified plan ships. Unified spec + plan: [`../superpowers/specs/2026-05-16-binding-generator-unified-design.md`](../superpowers/specs/2026-05-16-binding-generator-unified-design.md) + [`../superpowers/plans/2026-05-17-binding-generator-unified-plan.md`](../superpowers/plans/2026-05-17-binding-generator-unified-plan.md).
-
-This folder owns the binding auto-generation knowledge base for Phase 4. The root keeps the workstream index and the active strategy brief; historical research and spike evidence live under `research/`. The unified design spec + plan live under `../superpowers/specs/2026-05-16-...` and `../superpowers/plans/2026-05-17-...`; their predecessors (the 2026-05-14 architecture spec, 2026-05-14 Stage 1 plan, 2026-05-15 local-output-loop spec + plan) moved to `../superpowers/specs/superseded/` and `../superpowers/plans/superseded/` once the unified docs absorbed them.
+The generator is hosted inside the Cake build host under `build/_build/Targets/GenerateBindings/`, runs Linux-canonical from the pinned builder container, and is configured per family through `build/manifest.json library_manifests[].binding_generation`. SDL2.Core currently has a generated internal ABI-shaped preview; the next work is public typed wrappers, friendly overloads, production source flip, and package-first smoke.
 
 ## Folder Layout
 
 | Path | Purpose |
 | --- | --- |
 | [`README.md`](README.md) | Workstream index and reading order. |
-| [`binding-autogen-strategy-brief.md`](binding-autogen-strategy-brief.md) | Active WHY/HOW/WHAT strategy brief for the CppAst binding-generator direction (revised through 2026-05-18). |
-| [`binding-translation-contract.md`](binding-translation-contract.md) | Canonical C-to-C# translation contract: function inclusion, variadics, scalar widths, handles, structs/unions, enums, constants/macros, platform views, evidence gates, and current P0 blockers. |
-| [`binding-api-surface-strategy.md`](binding-api-surface-strategy.md) | Canonical API-layer decision: internal raw ABI, public typed low-level API, friendly overloads, and peer matrix. Detailed translation rules defer to the translation contract. |
-| [`research/`](research/) | Research evidence, feasibility analysis, spike findings, and onboarding context that support the strategy brief. |
-| [`../superpowers/specs/2026-05-16-binding-generator-unified-design.md`](../superpowers/specs/2026-05-16-binding-generator-unified-design.md) | **Active** unified design spec — manifest-driven per-family generator; supersedes the 2026-05-14 + 2026-05-15 specs. |
-| [`../superpowers/plans/2026-05-17-binding-generator-unified-plan.md`](../superpowers/plans/2026-05-17-binding-generator-unified-plan.md) | **Active** unified implementation plan — Phases 1–3G; supersedes the Stage 1 plan + local-output-loop plan. |
-| [`../superpowers/specs/superseded/`](../superpowers/specs/superseded/) | Historical specs preserved with banner notes: 2026-05-14 architecture design + 2026-05-15 local-output-loop design. |
-| [`../superpowers/plans/superseded/`](../superpowers/plans/superseded/) | Historical plans preserved with banner notes: 2026-05-14 Stage 1 + 2026-05-15 local-output-loop. |
+| [`binding-generator-constitution.md`](binding-generator-constitution.md) | Canonical binding-generator constitution: internal ABI, public API layers, C-to-C# translation, manifest config vs policy, and evidence gates. |
+| [`binding-generator-roadmap.md`](binding-generator-roadmap.md) | Canonical future roadmap: remaining SDL2.Core work, SDL2 satellite sweep, and SDL3 extension. |
 | [`../playbook/binding-generator-maintenance.md`](../playbook/binding-generator-maintenance.md) | In-progress maintenance playbook for platform macro catalogs, generated stamps, and overlay coupling. |
 | [`../playbook/binding-output-oracle-validation.md`](../playbook/binding-output-oracle-validation.md) | Reusable multi-agent review workflow for validating generated output against official SDL sources, peer bindings, and .NET API evidence. |
+| [`../decisions/2026-05-14-binding-autogen-toolchain.md`](../decisions/2026-05-14-binding-autogen-toolchain.md) | ADR-004 CppAst toolchain decision and migration-door rationale. |
 
 ## Reading Order
 
 | # | Document | Purpose |
 | --- | --- | --- |
-| 1 | [`binding-translation-contract.md`](binding-translation-contract.md) | Current translation law: what generated output may emit and how native SDL declarations map to managed ABI/API shapes. |
-| 2 | [`binding-api-surface-strategy.md`](binding-api-surface-strategy.md) | Canonical API surface: what is internal, what is public, why typed handles beat IntPtr, when string/span overloads apply, and which peer patterns are borrowed/rejected. |
-| 3 | [`binding-autogen-strategy-brief.md`](binding-autogen-strategy-brief.md) | Current strategy brief, decision hypothesis, and 2026-05-17/18 revisions (Cake-host fold, Linux-canonical, API-surface decision, manifest identity, constants/macros policy, unsafe/compile-check stabilization, SDL_bool correction, SysWM Stage 2 deferral, SDL3 PD-7 gating). |
-| 4 | [`research/binding-autogen-onboarding.md`](research/binding-autogen-onboarding.md) | Fast onboarding for a fresh contributor or agent picking up this workstream. |
-| 5 | [`../superpowers/specs/2026-05-16-binding-generator-unified-design.md`](../superpowers/specs/2026-05-16-binding-generator-unified-design.md) | Historical unified design spec. Architecture remains useful; translation details are superseded by `binding-translation-contract.md`. |
-| 6 | [`../superpowers/plans/2026-05-17-binding-generator-unified-plan.md`](../superpowers/plans/2026-05-17-binding-generator-unified-plan.md) | Historical unified implementation plan. Use as execution history; do not treat stale translation rules as current policy. |
-| 7 | [`../playbook/binding-generator-maintenance.md`](../playbook/binding-generator-maintenance.md) | Active maintenance procedure for macro catalogs, stamps, upstream bumps, and hybrid-static overlay coupling. |
-| 8 | [`../playbook/binding-output-oracle-validation.md`](../playbook/binding-output-oracle-validation.md) | Multi-agent output validation workflow: official SDL truth hierarchy, peer-oracle comparison, .NET API evidence, and finding taxonomy. |
-| 9 | [`research/binding-autogen-approaches.md`](research/binding-autogen-approaches.md) | Toolchain survey and comparison across CppAst, ClangSharp, ppy/SDL3-CS, Alimer, SkiaSharp, and Silk.NET patterns. |
-| 10 | [`research/binding-autogen-feasibility.md`](research/binding-autogen-feasibility.md) | Feasibility study: emit rules, platform-conditioned parsing, validation layers, open decisions. |
-| 11 | [`research/binding-autogen-spike-findings.md`](research/binding-autogen-spike-findings.md) | Hands-on SDL2_gfx spike findings for ClangSharp and CppAst. |
+| 1 | [`binding-generator-constitution.md`](binding-generator-constitution.md) | Read first. It defines the binding generator's ABI/API law and evidence gates. |
+| 2 | [`binding-generator-roadmap.md`](binding-generator-roadmap.md) | Read second. It tracks only future work. |
+| 3 | [`../playbook/binding-generator-maintenance.md`](../playbook/binding-generator-maintenance.md) | Operational procedure for parser config, synthetic headers, stamps, upstream bumps, and hybrid-static coupling. |
+| 4 | [`../playbook/binding-output-oracle-validation.md`](../playbook/binding-output-oracle-validation.md) | Output validation workflow against SDL headers, peer bindings, and .NET API evidence. |
+| 5 | [`../decisions/2026-05-14-binding-autogen-toolchain.md`](../decisions/2026-05-14-binding-autogen-toolchain.md) | Toolchain ADR. Read only when reopening CppAst vs ClangSharp or bumping the trio. |
 
-Research docs (8–10) carry pre-2026-05-15 context and have not been retro-edited — the strategy brief's Decision Audit records the corrections that supersede claims in those docs (notably the mingw-w64 / Apple SDK stub speculation, retracted Error 4 row).
+Historical research and task-by-task plans were intentionally removed from active docs. Preserve new durable facts in the constitution or roadmap instead of reviving one-off plan files.
 
 ## Current Decision Posture
 
-- CppAst is the selected Phase 4 planning direction, recorded in the strategy brief and [ADR-004](../decisions/2026-05-14-binding-autogen-toolchain.md).
-- Public API shape is **internal raw ABI externs + public typed low-level API + friendly overloads** per [`binding-api-surface-strategy.md`](binding-api-surface-strategy.md). Translation rules are canonical in [`binding-translation-contract.md`](binding-translation-contract.md). Public raw `IntPtr` externs are not part of v1 preview; typed handles expose native values as the escape hatch. SDL2-CS compatibility is best-effort: useful as an oracle, not the shape to freeze.
+- CppAst remains selected, recorded in [ADR-004](../decisions/2026-05-14-binding-autogen-toolchain.md).
+- Public API shape is **internal raw ABI externs + public typed low-level API + friendly overloads** per [`binding-generator-constitution.md`](binding-generator-constitution.md). Public raw `IntPtr` externs are not part of v1 preview; typed handles expose native values as the escape hatch. SDL2-CS compatibility is best-effort: useful as an oracle, not the shape to freeze.
 - Output class identity is family-based, manifest-driven, and not parse-view-based. SDL2 core currently uses namespace `SDL2`, public class `SDL`, and internal raw ABI class `SDLNative`; parse views produce files/attributes, not `Sdl2_Neutral` or `Sdl2_MacOS` classes.
 - String-like SDL macro constants such as `SDL_HINT_*` use canonical `ReadOnlySpan<byte>` UTF-8 literal properties. String ergonomics is provided by method overloads; do not duplicate every macro as both `const string` and `ReadOnlySpan<byte>`.
 - **Generator lives inside the Cake build host** under `build/_build/Targets/GenerateBindings/` with cross-cutting validators under `build/_build/Validation/BindingGeneration/`. No standalone `src/`-tree console app. Pure emitter code stays Cake-free; the Cake-aware shell owns orchestration.

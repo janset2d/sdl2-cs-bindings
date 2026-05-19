@@ -4,7 +4,7 @@ namespace Build.Targets.GenerateBindings.Model;
 
 /// <summary>
 /// Public struct declaration in the binding surface. Drives
-/// <c>CsStructEmitter</c> at Phase 3E. <see cref="Layout"/> + <see cref="ExplicitSize"/>
+/// <c>CsStructEmitter</c>. <see cref="Layout"/> + <see cref="ExplicitSize"/>
 /// carry the layout policy decision (POD sequential vs explicit-offset union); typed
 /// union types like SDL_syswm's <c>SDL_SysWMinfo</c> use
 /// <see cref="LayoutKind.Explicit"/> with <see cref="ExplicitSize"/> set.

@@ -45,7 +45,7 @@ Backends such as X11, Wayland, KMSDRM, Cocoa, UIKit, Windows video, WinRT video,
 
 ## Trio Pinning
 
-The CppAst + libclang.runtime + libClangSharp.runtime trio moves as a coordinated set per [ADR-004](../decisions/2026-05-14-binding-autogen-toolchain.md). Mismatches surface as runtime stack overflows during AST visit (see [`research/binding-autogen-spike-findings.md`](../binding-autogen/research/binding-autogen-spike-findings.md) §7.2 friction #5).
+The CppAst + libclang.runtime + libClangSharp.runtime trio moves as a coordinated set per [ADR-004](../decisions/2026-05-14-binding-autogen-toolchain.md). Mismatches surface as runtime failures during AST parsing, so never bump one member of the trio independently.
 
 | CppAst | libclang.runtime.* | libClangSharp.runtime.* | Status |
 |---|---|---|---|
@@ -65,7 +65,7 @@ Bump procedure:
 
 ## Post-Stage-1 Trio Revalidation
 
-After the unified plan ships (Phases 1–3G) and the regeneration baseline is stable, attempt to bump the trio to absolute-latest available versions on NuGet. Maintainer comfort note (Deniz, 2026-05-15): "20.1.x içime sinmedi ama şimdilik concern'ümüz olmamalı". Trigger criteria and rationale: historical reference in [`../superpowers/specs/superseded/2026-05-15-binding-generator-local-output-loop-design.md`](../superpowers/specs/superseded/2026-05-15-binding-generator-local-output-loop-design.md) §10.1.
+After Stage 1 production output is stable, attempt to bump the trio to the latest compatible versions on NuGet. Treat this as a deliberate maintenance slice: update package versions, run generation, compare output, run compile-check, and update this table.
 
 ## Local Generation Loop
 
@@ -100,13 +100,13 @@ Maintenance triggers and procedure:
 
 4. **Stub content shape.** Empty `#pragma once` is correct for headers whose only purpose is to make the `#include` line succeed. Typedef stand-ins (`typedef void* HWND;`, `typedef struct _IInspectable IInspectable;`) are appropriate when SDL declares struct fields or function parameters using the type name. Never add business logic, function bodies, or values to a stub — they ship as parser input only and are never compiled into binaries.
 
-5. **Retirement criteria.** All stubs retire if (and only if) the project escalates from single-host Linux-canonical parsing to a multi-runner cross-OS pipeline (`bottlenoselabs/SDL3-cs` pattern documented in [`../binding-autogen/binding-autogen-strategy-brief.md`](../binding-autogen/binding-autogen-strategy-brief.md) §"True multi-OS extraction stays an escalation path"). Until then, treat the stub set as durable maintenance surface — not a workaround.
+5. **Retirement criteria.** All stubs retire if (and only if) the project escalates from single-host Linux-canonical parsing to a multi-runner cross-OS pipeline. Until then, treat the stub set as durable maintenance surface, not a workaround.
 
 Peer baseline: ppy/SDL3-CS ships exactly **one** stub (`process.h`, ~80 bytes) for the non-Windows host case. We ship more because Stage 1 covers eight parse views vs. ppy's narrower platform matrix; we are still well below any "ad-hoc stub explosion" threshold (Silk.NET's contrast is to apt-install clang and resolve `/usr/lib/clang/<ver>/include` programmatically — no stubs, real headers).
 
 ## Header Set Resolver Exclusions Maintenance
 
-`HeaderSetResolver.ExcludedHeaders` filters the `*.h` glob over the SDL2 vcpkg include directory. Once the unified plan Phase 2 lands the manifest-driven config, these categories live in `manifest.library_manifests[].binding_generation.header_set.excluded_headers` + `excluded_header_prefixes`. Current categories (see [`../superpowers/specs/superseded/2026-05-15-binding-generator-local-output-loop-design.md`](../superpowers/specs/superseded/2026-05-15-binding-generator-local-output-loop-design.md) §8.7 for the original full table):
+`HeaderSetResolver` filters the `*.h` glob over the SDL2 vcpkg include directory using `manifest.library_manifests[].binding_generation.header_set.excluded_headers` + `excluded_header_prefixes`. Current categories:
 
 - **Umbrella** — `SDL.h`. Pulls every other SDL2 header transitively.
 - **Scaffolding** — `begin_code.h`, `close_code.h`. Pragma-pack pseudo-headers; `close_code.h` `#error`s standalone.
@@ -148,7 +148,7 @@ Unused manual includes, excludes, and overrides fail by default. If a stale-tole
 
 ## Parser Options Audit Cadence
 
-The per-family `parse_defines` + `clang_args` entries in `build/manifest.json library_manifests[].binding_generation` carry workarounds for SDL header / libclang interaction bugs. They are not free — each entry is a documented mechanism, and adding without justification or keeping after the underlying SDL behaviour changes both create drift. Before the unified plan Phase 2 lands, these values live as `BaseDefines` + `BaseAdditionalArguments` lists in `CppAstParseRunner.cs`; after Phase 2, they live in the manifest and the audit cadence below operates against the manifest entries.
+The per-family `parse_defines` + `clang_args` entries in `build/manifest.json library_manifests[].binding_generation` carry workarounds for SDL header / libclang interaction bugs. They are not free — each entry is a documented mechanism, and adding without justification or keeping after the underlying SDL behaviour changes both create drift. These values now live in the manifest, and the audit cadence below operates against the manifest entries.
 
 Run this audit at every trio bump (CppAst / libclang.runtime / libClangSharp.runtime) and at every SDL2 minor release:
 
@@ -186,13 +186,13 @@ Verified working at SDL2 2.32.10 + CppAst 0.24.0 + libclang 20.1.2.
 
 **`required_functions`:**
 
-5 hand-curated declarations recover the base API functions that survive only in `SDL.h` (`SDL_Init`, `SDL_InitSubSystem`, `SDL_QuitSubSystem`, `SDL_WasInit`, `SDL_Quit`). `SDL.h` is excluded from the per-header parse loop because it's the umbrella header — including it would collapse all ~50 SDL2 headers into one libclang translation unit, re-importing the intrinsic-header-collision and platform-conditioned-path-failure problems documented in `docs/binding-autogen/research/binding-autogen-spike-findings.md` §11 friction #7. Per-header parsing isolates failures: a parse error in any single header doesn't poison the rest of the surface. The 5 base functions cannot be reached through any non-`SDL.h` declaration site, so they're injected hand-curated and merged into the Neutral view by `CppAstToBindingModel.Translate`. Peer evidence: amerkoleci/Alimer.Bindings.SDL (CppAst SDL3) and ppy/SDL3-CS (ClangSharp SDL3) both exclude SDL3.h with the same rationale — this architectural choice transfers Stage 3 unchanged.
+5 hand-curated declarations recover the base API functions that survive only in `SDL.h` (`SDL_Init`, `SDL_InitSubSystem`, `SDL_QuitSubSystem`, `SDL_WasInit`, `SDL_Quit`). `SDL.h` is excluded from the per-header parse loop because it is the umbrella header. Including it would collapse the SDL2 header set into one translation unit and reintroduce intrinsic-header and platform-conditioned parse failures that per-header parsing deliberately avoids. The 5 base functions cannot be reached through any non-`SDL.h` declaration site, so they are injected hand-curated and merged into the Neutral view by `CppAstToBindingModel.Translate`.
 
 **`required_constants`:**
 
 10 hand-curated declarations recover the `SDL_INIT_*` macros declared exclusively in `SDL.h` and not reachable through any other header (9 literals: `SDL_INIT_TIMER` / `SDL_INIT_AUDIO` / `SDL_INIT_VIDEO` / `SDL_INIT_JOYSTICK` / `SDL_INIT_HAPTIC` / `SDL_INIT_GAMECONTROLLER` / `SDL_INIT_EVENTS` / `SDL_INIT_SENSOR` / `SDL_INIT_NOPARACHUTE`; 1 computed compound: `SDL_INIT_EVERYTHING` = bitwise-OR of the individual flags except `NOPARACHUTE`). Same mechanism as `required_functions`: SDL.h umbrella exclusion + Neutral-view merge at translation time. The `kind` discriminator splits the emit shape — `Literal` constants emit as `public const <type> NAME = <value>;` (compile-time literal expression required by C#); `Computed` constants emit as `public static readonly <type> NAME = <value_expr>;` because C# `const` rejects non-literal expressions, and the compound `SDL_INIT_EVERYTHING` references other identifiers rather than embedding their values.
 
-**Drift posture (2026-05-17).** SDL2 has been officially in maintenance mode since SDL 2.28.0 (June 2023) — bug-fix releases only, no new public-API additions. The `SDL_INIT_*` set has not changed since SDL 2.0.0 (2013), and the bug-fix release cadence has slowed sharply (SDL 2.32.10 shipped 2025-09-01; no 2.x release in the 8 months since at the time of writing). Drift risk for this hand-curated list is therefore essentially zero for the maintenance lifetime of SDL2. When a vcpkg SDL2 bump lands (rare), the per-bump diff-review step (the upstream-version-bump checklist below) catches any new entries before they ship missing. If drift detection becomes a real concern in practice, the natural extension is an `IBindingFamilyValidator` that text-greps `vcpkg-installed/.../SDL2/SDL.h` for `^#define SDL_INIT_` patterns and warns when manifest entries are missing — Option C in the unified-plan Phase 3B finding note. Stage 1 stays on Option A (manifest-only); Option C lands if and when needed.
+**Drift posture (2026-05-17).** SDL2 has been officially in maintenance mode since SDL 2.28.0 (June 2023) — bug-fix releases only, no new public-API additions. The `SDL_INIT_*` set has not changed since SDL 2.0.0 (2013), and the bug-fix release cadence has slowed sharply (SDL 2.32.10 shipped 2025-09-01; no 2.x release in the 8 months since at the time of writing). Drift risk for this hand-curated list is therefore essentially zero for the maintenance lifetime of SDL2. When a vcpkg SDL2 bump lands (rare), the per-bump diff-review step (the upstream-version-bump checklist below) catches any new entries before they ship missing. If drift detection becomes a real concern in practice, the natural extension is an `IBindingFamilyValidator` that text-greps `vcpkg-installed/.../SDL2/SDL.h` for `^#define SDL_INIT_` patterns and warns when manifest entries are missing. Until then, manifest-only plus per-bump review is the accepted policy.
 
 #### sdl2-image / sdl2-mixer / sdl2-ttf / sdl2-gfx / sdl2-net
 
@@ -202,7 +202,7 @@ Satellite per-family rationales fill in at Stage 2 when each satellite's `bindin
 
 SDL2 ships `src/dynapi/SDL2.exports` (Watcom-format text manifest, autogenerated by `gendynapi.pl`) listing every public export. Cross-platform single source of truth — Linux/macOS/Windows binaries all export the same symbol set per SDL2's dynapi design. The file lives inside vcpkg's `buildtrees/sdl2/src/<sha>.clean/src/dynapi/SDL2.exports` after `vcpkg install sdl2` completes a real source build.
 
-**Coverage limit — name-only, not signature.** The Watcom DEF-file format records only `++'_NAME'.'SDL2.dll'.'NAME'` entries — function names exporting from the dynamic library, with no argument types, no parameter order, no return-shape. The dynapi cross-check therefore proves "the emit's symbol set ⊆ the SDL2 dynamic library's public exports" but cannot prove "the emit's parameter widths and return-type bytes match the C ABI." Stage 1 Task 3.5's 2026-05-16 production smoke exposed this gap concretely: the validator gate stayed green for 866 name-correct emits while several `MapTypedef`/`MapPrimitive` paths emitted wire-format-wrong primitive widths (e.g. `SDL_AudioFormat` typedef'd to `Uint16` emitting as `IntPtr`; Linux `long` mapped to 32-bit `int` instead of 64-bit). The Stage 2 Pack-stage `BindingSymbolExistenceValidator` inherits the same name-only limitation because binary symbol tables (PE/ELF/Mach-O dynamic exports via `dumpbin` / `nm` / `otool`) are byname dispatch maps — C signatures are not present in those tables. The natural place to catch wire-format ABI mismatch is the per-RID `consumer-smoke` matrix already in `release.yml`, by calling selected functions against the native library and asserting marshalling round-trips. Tracked as an outstanding gap in the binding-autogen strategy brief §"Symbol-existence validation guardrail" and the Stage 1 plan §"Post-Implementation Review Findings 2026-05-16 / Validator wire-format coverage gap".
+**Coverage limit — name-only, not signature.** The Watcom DEF-file format records only `++'_NAME'.'SDL2.dll'.'NAME'` entries: function names exported from the dynamic library, with no argument types, parameter order, or return shape. The dynapi cross-check proves name coverage only. It cannot prove parameter widths or ABI wire shape. The Stage 2 Pack-stage `BindingSymbolExistenceValidator` inherits the same name-only limitation because binary symbol tables are byname dispatch maps. The natural place to catch wire-format ABI mismatch is the per-RID consumer-smoke matrix, by calling selected functions against the native library and asserting marshalling round-trips.
 
 **vcpkg behaviour to keep in mind:** vcpkg's binary cache stores only the compiled install payload — `installed/<triplet>/<port>/` contents. On a binary-cache hit vcpkg unpacks the cached archive directly into `installed/` and **skips source extraction entirely**, so `buildtrees/sdl2/src/` is empty. The dynapi manifest is reachable on a real (cache-miss) build and survives across subsequent runs only if `buildtrees/sdl2/src/` is preserved independently. Reach mechanisms:
 
@@ -322,10 +322,8 @@ Use this checklist when reviewing a generator or SDL update:
 
 ## Related Docs
 
-- `docs/binding-autogen/binding-autogen-strategy-brief.md`
-- `docs/superpowers/specs/2026-05-16-binding-generator-unified-design.md` (active unified design spec)
-- `docs/superpowers/plans/2026-05-17-binding-generator-unified-plan.md` (active unified implementation plan)
-- `docs/superpowers/specs/superseded/` + `docs/superpowers/plans/superseded/` (historical 2026-05-14/05-15 specs+plans)
+- `docs/binding-autogen/binding-generator-constitution.md`
+- `docs/binding-autogen/binding-generator-roadmap.md`
 - `docs/playbook/overlay-management.md`
 - `docs/playbook/vcpkg-update.md`
 - `docs/decisions/2026-05-05-target-centric-build-host.md`

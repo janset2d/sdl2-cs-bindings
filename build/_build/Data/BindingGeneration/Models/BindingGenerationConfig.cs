@@ -39,9 +39,10 @@ public sealed record BindingGenerationConfig
 
     /// <summary>
     /// Hand-curated declarations of public constants that survive only in headers
-    /// excluded from the per-header parse loop (currently SDL.h — the umbrella TU is
-    /// excluded for failure-isolation reasons documented in friction #7 of
-    /// <c>docs/binding-autogen/research/binding-autogen-spike-findings.md</c>).
+    /// excluded from the per-header parse loop. SDL.h is intentionally excluded
+    /// because umbrella parsing collapses the SDL2 header set into one translation
+    /// unit and reintroduces intrinsic-header and platform-conditioned parse failures
+    /// that per-header parsing avoids.
     /// SDL2 contributes the <c>SDL_INIT_*</c> macros declared exclusively in SDL.h
     /// plus explicitly promoted string-like macros that Stage 1 treats as core
     /// API readiness probes.
@@ -114,9 +115,9 @@ public enum ConstantKind
 /// Hand-curated public constant declaration recovered from a header that's
 /// excluded from the per-header parse loop. Mirrors the pattern of
 /// <see cref="RequiredFunctionConfig"/>: the manifest carries the explicit
-/// declaration, the translator merges it into the Neutral view at Phase 3D,
-/// and <c>CsConstantEmitter</c> at Phase 3E uses <see cref="Kind"/> as macro-shape
-/// metadata while selecting the C# output form.
+/// declaration, the translator merges it into the Neutral view, and
+/// <c>CsConstantEmitter</c> uses <see cref="Kind"/> as macro-shape metadata while
+/// selecting the C# output form.
 /// </summary>
 public sealed record RequiredConstantConfig
 {

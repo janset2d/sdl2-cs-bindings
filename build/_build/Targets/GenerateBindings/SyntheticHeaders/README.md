@@ -17,8 +17,6 @@ Peer pattern: ppy/SDL3-CS ships exactly one such stub (`process.h`) for the
 non-Windows host case. We ship a few more because Stage 1 covers eight parse
 views vs. ppy's narrower platform matrix.
 
-Retirement criteria: these retire when a real cross-compile sysroot (or
-ClangSharp's `--include-directory <real-sdk>` for Windows/macOS) replaces the
-"single-host parse + macro defines" approach. That escalation path is the
-`bottlenoselabs/SDL3-cs` pattern documented in
-[`docs/binding-autogen/binding-autogen-strategy-brief.md`](../../../../../docs/binding-autogen/binding-autogen-strategy-brief.md).
+Retirement criteria: these retire when a real cross-compile sysroot or
+multi-runner extraction pipeline replaces the single-host Linux-canonical parse
+approach. Until then, treat the stubs as durable parser input, not generated API.

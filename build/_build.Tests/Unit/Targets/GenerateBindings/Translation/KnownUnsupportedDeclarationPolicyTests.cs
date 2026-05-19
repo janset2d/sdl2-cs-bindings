@@ -7,11 +7,10 @@ using CppAst;
 namespace Build.Tests.Unit.Targets.GenerateBindings.Translation;
 
 /// <summary>
-/// Phase 3C extraction: manifest-driven declaration-deferral policy. C-variadic
-/// functions are intentionally NOT filtered here (per unified spec §8 — SDL2-CS
-/// / Alimer.Bindings.SDL peer pattern emits variadic functions fmt-only and
-/// expects managed-side pre-format; Phase 3F adds the friendly-overload wrapper
-/// that makes the pre-format expectation explicit).
+/// Manifest-driven declaration-deferral policy. C-variadic functions are
+/// intentionally NOT filtered here; SDL2-CS / Alimer.Bindings.SDL peer patterns
+/// emit variadic functions fmt-only and expect managed-side pre-format. A
+/// friendly-overload wrapper makes the pre-format expectation explicit.
 /// </summary>
 public sealed class KnownUnsupportedDeclarationPolicyTests
 {
@@ -73,22 +72,22 @@ public sealed class KnownUnsupportedDeclarationPolicyTests
     public async Task IsUnsupported_Name_Should_Match_Manifest_Deferred_Entry()
     {
         // The string-overload path drives type / struct / enum deferral checks
-        // — e.g. SDL_SysWMinfo deferred to Stage 2 typed-union shape. Pins the
+        // — e.g. SDL_SysWMinfo deferred until typed-union shape is proven. Pins the
         // contract that BOTH overloads consult the same dictionary.
         var policy = new KnownUnsupportedDeclarationPolicy(BindingGenerationFixture.Sdl2CoreConfig() with
         {
             DeferredDeclarations = ImmutableDictionary<string, DeferredDeclarationConfig>.Empty
                 .Add("SDL_SysWMinfo", new DeferredDeclarationConfig
                 {
-                    Category = "deferred-to-stage-2",
-                    Reason = "SDL_syswm typed-union layout — Stage 2.",
+                    Category = "deferred-to-typed-union",
+                    Reason = "SDL_syswm typed-union layout deferred.",
                 }),
         });
 
         var unsupported = policy.IsUnsupported("SDL_SysWMinfo", out var reason);
 
         await Assert.That(unsupported).IsTrue();
-        await Assert.That(reason).Contains("deferred-to-stage-2");
+        await Assert.That(reason).Contains("deferred-to-typed-union");
     }
 
     [Test]
@@ -107,9 +106,10 @@ public sealed class KnownUnsupportedDeclarationPolicyTests
     {
         // Per 2026-05-17 peer-evidence review (SDL2-CS / Alimer / ppy/SDL3-CS),
         // variadic functions are emitted as fmt-only raw P/Invoke — NOT filtered
-        // by this policy. Phase 3F adds the SDL2-CS-style `string fmtAndArglist`
-        // friendly-overload wrapper. This test pins that decision so a future
-        // regression that re-adds variadic filtering surfaces immediately.
+        // by this policy. A follow-up SDL2-CS-style `string fmtAndArglist`
+        // friendly-overload wrapper makes that explicit. This test pins the
+        // policy so a future regression that re-adds variadic filtering surfaces
+        // immediately.
         var policy = new KnownUnsupportedDeclarationPolicy(BindingGenerationFixture.Sdl2CoreConfig());
         var variadic = new CppFunction("SDL_Log") { Flags = CppFunctionFlags.Variadic };
 
