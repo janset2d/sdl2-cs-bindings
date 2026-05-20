@@ -1,7 +1,7 @@
 # Playbook: Binding Generator Maintenance
 
 **Status:** In progress — Stage 1 SDL2.Core generator is still landing.
-**Last updated:** 2026-05-19
+**Last updated:** 2026-05-20
 
 This playbook covers maintenance work that touches generated bindings, platform macro catalogs, CppAst/libclang versions, and the native hybrid-static inputs those bindings depend on.
 
@@ -324,6 +324,7 @@ Use this checklist when reviewing a generator or SDL update:
 
 - `docs/binding-autogen/binding-generator-constitution.md`
 - `docs/binding-autogen/binding-generator-roadmap.md`
+- `docs/binding-autogen/testing-strategy.md`
 - `docs/playbook/overlay-management.md`
 - `docs/playbook/vcpkg-update.md`
 - `docs/decisions/2026-05-05-target-centric-build-host.md`

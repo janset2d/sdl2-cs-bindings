@@ -1,214 +1,429 @@
-# Binding Generator Roadmap
+# Binding Generator Grand Roadmap
 
-> **Status (2026-05-20):** Canonical forward roadmap for the binding generator. Historical task transcripts, spike audits, and completed superpowers plans are intentionally removed from the active roadmap. Code is the current-status authority; this file tracks what remains.
+> **Status (2026-05-20):** Canonical grand roadmap for the binding generator. This document folds the durable facts from temporary design notes, testing research, peer-binding research, and current SDL2.Core generator work into one milestone plan. Code and pinned SDL public headers remain the behavior authority; update this roadmap when the milestone sequence or exit gates change.
 
 ## Goal
 
-Finish the generated SDL2.Core surface, replace the transitional SDL2-CS compile path, generate the remaining SDL2 satellites, then extend the same architecture to SDL3 after SDL2's public release path is real.
+Turn `GenerateBindings` from a successful SDL2.Core spike into the durable generator foundation for:
 
-The generator constitution is [`binding-generator-constitution.md`](binding-generator-constitution.md). It defines what generated output is allowed to mean. This roadmap defines what still needs to be built.
+- SDL2.Core generated public source;
+- SDL2 satellites: Image, Mixer, Ttf, Gfx, and later Net;
+- future SDL3 core and satellites;
+- multi-TFM raw ABI backends;
+- public typed low-level APIs;
+- friendly string/span/ref/out overloads;
+- package-first compile, smoke, oracle, and snapshot evidence.
+
+The target is not a general-purpose ClangSharp clone. The target is a pragmatic CppAst-based SDL binding generator with clean seams, explicit family policy, and enough tests to refactor without gambling.
+
+## Operating Rules
+
+- Work milestone-by-milestone. No big-bang generator rewrite.
+- Use RED/GREEN for behavior changes and bug fixes.
+- Capture current output before refactoring. Snapshot diffs must be intentional and reviewed.
+- Prefer embedded `.h` fixture integration tests for parser/model/emitter behavior over string-only unit tests.
+- Run fast build-host tests inside each refactor slice; run compile/smoke/package gates at milestone boundaries.
+- Move/rename files with `git mv`. Content edits use normal patching.
+- Keep test topology aligned with production topology during refactors.
+- Preserve unique research findings in canonical docs before deleting temporary notes.
+- Manifest carries family facts and explicit exceptions. Generator code owns ABI/API policy.
+- Do not create catch-all `Shared`/`Common` folders, generic `Pipeline`/`Runner` shells, or ceremonial interfaces.
+
+## Canonical References And Research Baseline
+
+Canonical docs are authoritative for their own scope. Peer projects and historical research are evidence, not authority.
+
+| Source | Use |
+| --- | --- |
+| [`binding-generator-constitution.md`](binding-generator-constitution.md) | ABI/API rules, manifest-vs-policy boundary, scalar/struct/macro/platform contracts, evidence gates. |
+| [`testing-strategy.md`](testing-strategy.md) | Canonical test layer model, smoke taxonomy, fixture policy, upstream SDL test adoption guidance. |
+| [`../playbook/binding-output-oracle-validation.md`](../playbook/binding-output-oracle-validation.md) | Multi-oracle generated-output review workflow. |
+| [`../playbook/binding-generator-maintenance.md`](../playbook/binding-generator-maintenance.md) | CppAst/libclang trio, synthetic headers, parse options, dynapi, platform catalog maintenance. |
+| [`../decisions/2026-05-14-binding-autogen-toolchain.md`](../decisions/2026-05-14-binding-autogen-toolchain.md) | ADR-004 CppAst decision and ClangSharp migration door. |
+| Temporary notes promoted in this change | Historical source for typed handles, raw ABI backend split, public/friendly layer strategy, and smoke taxonomy. Unique facts now live in canonical docs. |
+| SkiaSharp generator | CppAst discipline, explicit mappings, verification mindset, dual backend precedent. |
+| Alimer.Bindings.SDL | SDL/C# ergonomics evidence: typed handles, LibraryImport, string/span overload ideas. Not a platform-correctness oracle. |
+| ppy/SDL3-CS | SDL-specific process reference: explicit headers, per-header response overrides, platform-specific files, SDL3 `sdl.json` name checks. |
+| Silk.NET / LibGit2Sharp / Vortice.Windows | Generated/native binding confidence patterns: compile gates, real fixture assets, package/runtime probes, manual samples. |
 
 ## Current Baseline
 
-The following baseline is already in the repo:
+The repo already has the following foundation:
 
 - Cake-hosted `GenerateBindings` target under `build/_build/Targets/GenerateBindings/`.
 - Manifest-driven `binding_generation` configuration in `build/manifest.json` schema `2.2`.
-- SDL2.Core enabled; SDL2_image, SDL2_mixer, SDL2_ttf, and SDL2_gfx placeholders disabled for Stage 2.
+- SDL2.Core enabled; SDL2_image, SDL2_mixer, SDL2_ttf, and SDL2_gfx are disabled Stage 2 placeholders.
 - Linux-canonical generation through `tools.cs generate-bindings` and the pinned Linux builder container.
 - SDL2.Core platform catalog: Neutral, WindowsDesktop, WinRT, GDK, Linux, MacOS, IOS, Android.
 - Semantic model categories: functions, structs, enums, constants, handles, callbacks, and macro report evidence.
 - Source-first macro pipeline with helper-candidate reporting, expression evaluation, manual policy handling, duplicate merge, and parse-view evidence.
 - Internal raw ABI command emission with `SDLNative` identity, class-level `unsafe`, platform attribution, and modern C integer guards.
 - Generated constants, enums, handles, structs, callbacks, and internal commands emitted to `artifacts/generated-bindings-preview/sdl2-core/`.
-- Fixture-backed fixes for the SDL2.Core ABI-sensitive blockers listed in the constitution.
+- Fixture-backed fixes for known SDL2.Core ABI blockers: C `long`, `wchar_t`, `SDL_bool`, opaque handles, callbacks, fixed arrays, and macro leaks.
 - Compile-check project at `tests/binding-compile-check/SDL2.Core.CompileCheck.csproj` for generated preview output across `LibraryTargetFrameworks`.
 
-The current major gap: generated SDL2.Core is ABI-shaped internally, but the public callable wrapper/friendly layers and production source flip are not complete.
+The current major gap is architectural readiness. Generated SDL2.Core is roughly ABI-shaped internally, but the generator layout, policy boundaries, raw-backend split, public wrapper projection, testing strategy, and production flip are not yet on durable foundations.
 
-## Stage 1: SDL2.Core Public-Surface Readiness
+## Milestone 0: Canonical Plan And Research Consolidation
 
-Stage 1 ends when `src/SDL2.Core` can stop compiling `external/sdl2-cs/src/SDL2.cs` and consume committed generated source for the Core package.
+**Goal:** Promote temporary research into current docs so future work does not depend on chat history or untracked notes.
 
-### 1. Public Typed Low-Level Function Wrappers
+**References:** temporary binding and testing notes, peer-binding research, this roadmap, [`testing-strategy.md`](testing-strategy.md), [`binding-generator-constitution.md`](binding-generator-constitution.md).
 
-Add generated public methods on the manifest-driven public class (`SDL2.SDL`) that call internal raw ABI methods.
+**Scope:**
 
-Requirements:
+- Consolidate the grand roadmap into this file.
+- Promote testing research into [`testing-strategy.md`](testing-strategy.md).
+- Keep policy law in the constitution, not this roadmap.
+- Keep operational procedure in playbooks, not this roadmap.
+- Delete temporary notes only after their unique facts are represented in canonical docs.
 
-- Public methods are not extern declarations.
-- Public methods reuse typed handles, enums, structs, callbacks, and constants emitted by the current semantic model.
-- SDL2 bool-like raw `int` returns convert to `bool` where the public method clearly represents a predicate.
-- Unsafe pointer overloads remain available in the low-level layer when that is the honest C shape.
-- Platform-only methods carry the same platform attribution as the internal raw ABI member.
-- Raw `SDLNative` stays internal.
+**Exit evidence:**
 
-Acceptance evidence:
+- Binding auto-generation index points to the canonical docs.
+- Root documentation map points to the canonical docs.
+- Temporary research files are removed or explicitly superseded.
+- `git diff --check` passes.
 
-- Emitter tests prove public methods call the internal raw methods.
-- Compile-check proves the generated public layer builds across `LibraryTargetFrameworks`.
-- A small generated-output inspection verifies no public `[DllImport]` / `[LibraryImport]` methods leak.
+## Milestone 1: Safety Harness And Baseline
 
-### 2. Friendly Overload Layer
+**Goal:** Make the current generator behavior safely refactorable before changing architecture.
 
-Add generated overloads for common C# usage.
+**Detailed plan:** [`milestones/milestone-1-safety-harness-baseline.md`](milestones/milestone-1-safety-harness-baseline.md).
 
-Baseline overload set:
+**References:** [`testing-strategy.md`](testing-strategy.md), [`../playbook/binding-output-oracle-validation.md`](../playbook/binding-output-oracle-validation.md), snapshot testing practice, current generator tests under `build/_build.Tests/Unit/Targets/GenerateBindings/`.
 
-- `string` for UTF-16 caller input encoded to null-terminated UTF-8.
-- `ReadOnlySpan<byte>` for pre-encoded UTF-8, appending a null terminator only when needed.
+**Scope:**
+
+- Capture a reviewed baseline of current generated output, file set, and `parse-views.json` shape.
+- Add compact characterization snapshots for the current generator pipeline.
+- Expand embedded `.h` fixture coverage for high-risk ABI/model cases:
+  - C `long` / `unsigned long` and `CLong` / `CULong` guards;
+  - SDL2 `SDL_bool` int-backed shape;
+  - `wchar_t*` opaque handling;
+  - opaque handles and duplicate typedef/tag canonicalization;
+  - callbacks and function-pointer fields;
+  - fixed arrays and anonymous nested struct/union cases;
+  - macro taxonomy, helper candidates, manual excludes, overrides, and required constants;
+  - platform-only functions and Neutral subtraction.
+- Add or tighten scenario tests that prove task orchestration without requiring real libclang/vcpkg for normal unit runs.
+- Prepare test folder layout for the future production topology without changing behavior.
+
+**Exit evidence:**
+
+- Build-host tests pass with Verify snapshot infrastructure enabled.
+- Reviewed baselines exist for deterministic emitter output, fake task orchestration output, semantic `.h` fixture projections, and opt-in generated-preview file inventory.
+- `dotnet run --file tools.cs -- generate-bindings` succeeds and produces 14 SDL2.Core preview files; current dynapi-coherence warnings for `SDL_LogMessageV`, `SDL_RWFromFP`, `SDL_vasprintf`, `SDL_vsnprintf`, and `SDL_vsscanf` are known existing generator gaps, not M1 harness drift.
+- Generated-preview inventory snapshot passes when `JANSET_VERIFY_GENERATED_PREVIEW=1` is set.
+- Compile-check is run when generated preview exists.
+
+**Non-goals:**
+
+- No raw backend split yet.
+- No public wrapper generation yet.
+- No production source flip.
+
+## Milestone 2: Behavior-Preserving Topology Refactor
+
+**Goal:** Make `GenerateBindings` understandable from the task entrypoint and align production/test layout around real concepts while keeping output stable.
+
+**References:** ADR-002 target-centric build host, ADR-003 data-layer boundary, [`../knowledge-base/extraction-guidelines.md`](../knowledge-base/extraction-guidelines.md), [`../knowledge-base/testing-guidelines.md`](../knowledge-base/testing-guidelines.md).
+
+**Target shape:**
+
+```text
+build/_build/Targets/GenerateBindings/
+  GenerateBindingsTask.cs
+  BindingFamilyGeneration.cs
+  HeaderSet/
+  Parse/
+  PlatformViews/
+  Profiles/
+  Model/
+  ModelBuilding/
+    Declarations/
+    Types/
+    Functions/
+    Macros/
+  Emit/
+    RawAbi/
+    PublicApi/
+    Friendly/
+    Reports/
+    Tfm/
+```
+
+Tests mirror this concept shape under `build/_build.Tests/Unit/Targets/GenerateBindings/` where it adds clarity.
+
+**Scope:**
+
+- Extract a named `BindingFamilyGeneration` collaborator from `GenerateBindingsTask`; do not create a generic `Pipeline` or `Runner`.
+- Keep the task focused on lifecycle orchestration, Linux-canonical guardrails, config selection, and expected-error translation.
+- Split `Translation/` into model-building concepts: declarations, types, functions, and macros.
+- Split `Emitting/` into output-contract concepts: raw ABI, public API, friendly overloads, reports, and TFM policy.
+- Collapse one-line records into cohesive files when they are part of the same concept.
+- Convert static one-method policy helpers to instance collaborators only when composition, testing, or profile selection justifies it.
+- Move/rename files with `git mv`.
+
+**Exit evidence:**
+
+- Snapshot diff is empty except path/name changes that do not alter generated content.
+- Build-host unit/scenario tests pass.
+- Test topology reflects production topology.
+- `GenerateBindingsTask` tells the high-level story without hiding important behavior in anonymous buckets.
+
+**Non-goals:**
+
+- No SDL2 satellite activation.
+- No public wrapper generation.
+- No behavior changes without RED tests.
+
+## Milestone 3: Family Profiles And Manifest Boundary
+
+**Goal:** Localize SDL2/SDL3/satellite policy and keep `build/manifest.json` as family facts plus explicit exceptions, not a policy scripting language.
+
+**References:** constitution section "Manifest Configuration Vs Code-Owned Policy", SkiaSharp mapping discipline, Alimer and ppy hardcoded policy caution.
+
+**Profile direction:**
+
+- `sdl2-core`
+- `sdl2-satellite`
+- `sdl3-core` later
+- `sdl3-satellite` later
+
+**Manifest-owned facts:**
+
+- enabled state;
+- managed namespace;
+- public class name;
+- internal raw ABI class name;
+- native import library name;
+- platform catalog id;
+- header set;
+- owned prefixes;
+- parse defines and clang args;
+- required/deferred declarations;
+- manual macro excludes/overrides;
+- validator opt-ins;
+- dynapi or equivalent external oracle locations.
+
+**Code-owned policy:**
+
+- scalar width mapping;
+- SDL2 vs SDL3 bool wire shape;
+- C `long` strategy;
+- opaque-handle detection;
+- pointer, array, callback, and userdata classification;
+- UTF-8/string/span overload eligibility;
+- C variadic handling;
+- struct/union layout policy;
+- macro taxonomy and safe expression evaluation;
+- platform parse-view merge and attribution rules.
+
+**Exit evidence:**
+
+- SDL2.Core output stays unchanged unless a RED test exposes a bug.
+- Generic model-building/emission code no longer hardcodes `/SDL2/`, `SDL_`, or `SDL2` library identity except through a named profile/config value.
+- Disabled SDL2 satellite placeholder configs can resolve a profile or fail with clear staged errors without enabling generation.
+- Tests prove SDL2.Core profile behavior and at least one satellite-profile boundary condition.
+
+**Non-goals:**
+
+- No giant JSON policy language.
+- No SDL3 implementation before SDL3 becomes a real consumer.
+
+## Milestone 4: Raw ABI Projection And Multi-TFM Backends
+
+**Goal:** Introduce a raw ABI projection that can emit honest `DllImport` and `LibraryImport` backend files from one semantic model.
+
+**References:** temporary backend vision promoted into the constitution, SkiaSharp dual backend precedent, .NET interop docs, current C `long`/`CLong` findings.
+
+**Design direction:**
+
+- Keep `BindingModel` as the CppAst-derived semantic model.
+- Add a backend-ready raw ABI projection that records entry point, managed raw wire type, unsafe requirement, platform attribution, backend compatibility, modern C integer requirement, variadic mapping, and source evidence.
+- Generate file-level backend splits instead of per-function conditional spaghetti:
+  - `Raw/Commands.Common.g.cs`
+  - `Raw/Commands.DllImport.g.cs`
+  - `Raw/Commands.LibraryImport.g.cs`
+- Use `DllImport` for legacy TFMs.
+- Use `LibraryImport` for modern TFMs where source-generated interop is supported.
+- Do not casually polyfill `CLong` / `CULong` on downlevel TFMs. A fake portable struct cannot model Windows LLP64 and Unix LP64 honestly in one portable asset.
+- Compatibility packages such as `System.Memory` are allowed for public/friendly APIs when justified; they are not a license to fake ABI primitives.
+
+**Exit evidence:**
+
+- Emitter tests cover both raw backends.
+- Compile-check covers every supported library TFM.
+- Snapshot diffs are intentional and limited to backend file layout/import syntax.
+- No public `[DllImport]` / `[LibraryImport]` leaks.
+
+**Non-goals:**
+
+- No public friendly overload generation.
+- No owner/disposal wrapper layer.
+
+## Milestone 5: Public Typed Low-Level API Projection
+
+**Goal:** Generate public low-level methods over the internal raw ABI while keeping extern declarations internal.
+
+**References:** constitution layer contract, API design extend-only guidance, PublicApiGenerator/Verify API snapshot pattern.
+
+**Scope:**
+
+- Add public methods on the manifest-driven public class, such as `SDL2.SDL`.
+- Public methods call the internal raw ABI class.
+- Typed handles, enums, structs, callbacks, and constants remain public generated types.
+- Unsafe pointer signatures remain available when that is the honest low-level C shape.
+- SDL2 bool-like raw `int` values convert to `bool` only when a rule proves the public method is predicate-like.
+- Platform-only methods carry the same platform attribution as the raw ABI member.
+- Introduce public API snapshot review before first public preview.
+
+**Exit evidence:**
+
+- Emitter tests prove public methods call internal raw methods.
+- Compile-check passes across all library TFMs.
+- Public API snapshot exists and is reviewed.
+- Source inspection or automated check proves no public raw ABI externs leak.
+
+**Non-goals:**
+
+- No SDL2-CS compatibility freeze.
+- No `SafeHandle` / `IDisposable` owner wrappers.
+- No callback lifetime helper layer beyond preserving low-level callback identity.
+
+## Milestone 6: Friendly Overload Projection
+
+**Goal:** Add ergonomic overloads through explicit, tested projection rules rather than ad hoc emitter special cases.
+
+**References:** constitution friendly overload contract, temporary UTF-8/span notes, Alimer overload evidence, `System.Memory` compatibility package posture.
+
+**Baseline overload patterns:**
+
+- `string` caller input encoded to null-terminated UTF-8.
+- `ReadOnlySpan<byte>` for pre-encoded UTF-8.
 - `ReadOnlySpan<T>` for counted input buffers when SDL does not retain the pointer.
-- `Span<T>` for counted output buffers when SDL writes within caller-provided bounds and does not retain the pointer.
+- `Span<T>` for counted output buffers when SDL writes within caller-provided bounds.
 - `out T` for required single-element output pointers.
 - `ref T` for required single-element in/out pointers.
 - Explicit fmt-only helpers for accepted variadic logging/formatting calls.
 
-Non-goals for Stage 1:
+**Compatibility posture:**
 
-- No owner wrapper layer such as `SdlWindow : IDisposable`.
-- No public raw namespace/package.
-- No `Memory<T>` overloads unless a concrete consumer need appears.
-- No managed callback lifetime helper layer beyond preserving the low-level callback identity.
+- Use `System.Memory` or similar package dependencies for `netstandard2.0` / `net462` when the dependency is deliberate and package-smoke validated.
+- Prefer stack allocation for small UTF-8 buffers and pooled arrays for larger hot-path buffers when the implementation pattern becomes performance-sensitive.
+- Do not infer ownership or lifetime from pointer shape alone.
 
-Acceptance evidence:
+**Exit evidence:**
 
-- Emitter tests cover UTF-8 string/span terminator behavior, out/ref patterns, span eligibility, bool conversion, and fmt-only variadic helpers.
-- Compile-check stays green across all current target frameworks.
-- Generated docs/reporting make allocations and preformatted variadic behavior visible.
+- RED/GREEN tests for every overload pattern.
+- Compile-check passes across all library TFMs.
+- Package-consumer smoke exercises representative string/path/resource pairs.
+- Generated docs/reporting make allocation behavior and fmt-only variadic behavior visible.
 
-### 3. Generated Output Production Flip
+**Non-goals:**
 
-Move SDL2.Core generated output from preview artifacts into the managed project source tree.
+- No giant handwritten wrapper layer.
+- No automatic lifetime-safe callback wrapper until callback pinning/lifetime policy is designed.
+- No owner wrapper layer such as `SdlWindow : IDisposable` in this milestone.
 
-Requirements:
+## Milestone 7: SDL2.Core Production Flip And Reproducibility
+
+**Goal:** Move SDL2.Core from preview artifacts to committed production generated source and retire SDL2-CS production use for Core.
+
+**References:** package-first release strategy, generated stamp contract, old Stage 1 production flip notes.
+
+**Scope:**
 
 - Generate into `src/SDL2.Core/Generated/`.
 - Commit generated `.g.cs` files.
 - Remove the SDL2.Core production compile include for `external/sdl2-cs/src/SDL2.cs`.
-- Keep `external/sdl2-cs` only as a reference oracle until Stage 2 retires remaining production use.
-- Ensure the SDK glob or project file includes generated output without special consumer steps.
+- Keep `external/sdl2-cs` only as a reference oracle until remaining production uses retire.
+- Add `.generated-stamp` with generator/toolchain version, vcpkg state, SDL library version, header-set fingerprint, header count, and parse views.
+- Ensure the stamp has no wall-clock fields.
+- Add stale-generated-output validation before expensive native/package work.
+- Stale-output diagnostics name the family, stale field, and remediation command/workflow.
+- Require regeneration from the same inputs to be diff-clean.
+- Generated output uses stable LF line endings and deterministic ordering.
 
-Acceptance evidence:
+**Exit evidence:**
 
 - `dotnet build src/SDL2.Core/SDL2.Core.csproj` succeeds.
-- `tests/binding-compile-check/SDL2.Core.CompileCheck.csproj` is either repointed to production output or retired if the project build fully replaces its value.
-- Generated output has stable LF line endings and deterministic ordering.
-
-### 4. Stamp And Reproducibility Gate
-
-Turn generated output into a reproducible source contract.
-
-Requirements:
-
-- `.generated-stamp` records generator/toolchain version, vcpkg state, SDL library version, header-set fingerprint, header count, and parse views.
-- The stamp contains no wall-clock fields.
-- A PreFlight validator fails when committed generated output is stale relative to current binding-generation inputs.
-- Regenerating from the same inputs produces a clean diff.
-
-Acceptance evidence:
-
-- Unit tests cover stamp load/save and drift detection.
-- A local generation run followed by a second generation run is diff-clean.
-- PreFlight error text names the family, stale field, and remediation command/workflow.
-
-### 5. SDL2.Core Smoke And Surface Evidence
-
-Prove the generated Core family works as a package-consumed binding.
-
-Requirements:
-
-- Package-consumer smoke exercises at least initialization, quit, error retrieval, window creation/destruction where environment permits, and one callback path.
-- Public API snapshot or equivalent surface review pins intentional public shape before first public preview.
-- Oracle review records known deltas from SDL2-CS as intentional typed-handle/friendly-overload differences or real bugs.
-
-Acceptance evidence:
-
-- Build-host tests pass.
-- Generated source compiles across all target frameworks.
-- Package-first smoke passes from local package feed.
+- Compile-check is repointed or retired only if project build fully replaces its value.
+- Package-first smoke passes from local package feed and covers at least init, quit, error retrieval, environment-permitting window create/destroy, and one deterministic callback path.
 - No production source path uses `external/sdl2-cs/src/SDL2.cs` for SDL2.Core.
 
-## Stage 2: SDL_syswm And SDL2 Satellite Sweep
+## Milestone 8: SDL2 SysWM And Satellite Generation
 
-Stage 2 ends when all in-scope SDL2 families generate bindings and `external/sdl2-cs` is no longer a production source dependency.
+**Goal:** Generate all in-scope SDL2 families and remove remaining production dependency on SDL2-CS.
 
-### 1. `SDL_syswm.h` Full Typed Layout
+**References:** old Stage 2 notes, SDL_image upstream test model, satellite smoke strategy, package family manifest topology.
 
-Emit typed `SDL_SysWMinfo` and `SDL_SysWMmsg` only with platform layout proof.
+**Scope:**
 
-Requirements:
-
-- Add the minimal forward-declaration stub library for platform handle types used by the SysWM unions.
-- Emit explicit-layout union storage with the SDL2 64-byte size lock where required.
-- Validate field offsets and sizes for every platform branch in the catalog.
-- Keep Stage 1 opaque/quarantine behavior until this proof exists.
-
-### 2. SDL2 Satellite Generation
-
-Enable and generate the remaining SDL2 families one at a time.
-
-Families:
-
-- SDL2.Image
-- SDL2.Mixer
-- SDL2.Ttf
-- SDL2.Gfx
-- SDL2.Net after its package family enters `build/manifest.json`
-
-Requirements:
-
+- Implement full typed `SDL_SysWMinfo` and `SDL_SysWMmsg` only with platform layout proof.
+- Add minimal forward-declaration stubs for platform handle types used by SysWM unions.
+- Enable one SDL2 satellite at a time:
+  - SDL2.Image;
+  - SDL2.Mixer;
+  - SDL2.Ttf;
+  - SDL2.Gfx;
+  - SDL2.Net after its package family enters `build/manifest.json`.
+- Each satellite's `binding_generation` config moves from placeholder to full config in the same slice that enables the family.
 - Satellite outputs emit satellite-owned functions and types only.
 - Core-owned `SDL_*` structs, handles, enums, callbacks, and constants are referenced from SDL2.Core, never redeclared.
-- Satellite `binding_generation` config moves from placeholder to full config in the same slice that enables the family.
-- Each satellite gets package-consumer smoke appropriate to its dependency and environment constraints.
+- Add duplicate core-type guard with errors naming the satellite family, offending type, source header, and expected core-owned reference.
+- Add symbol-existence validation after Harvest and before Package using platform-appropriate export tooling.
+- Split package smoke per family when partial-scope smoke support lands.
 
-### 3. Duplicate Core-Type Guard
-
-Add a generation validator that fails when a satellite redeclares or degrades a core-owned type.
-
-Requirements:
-
-- Error messages name the satellite family, offending type, source header, and expected core-owned reference.
-- Tests cover shared types such as `SDL_Surface`, `SDL_Texture`, `SDL_Renderer`, `SDL_RWops`, `SDL_version`, and `SDL_bool`.
-
-### 4. Symbol-Existence Validation
-
-Validate emitted entry points against harvested native binaries before packaging.
-
-Requirements:
-
-- Runs after Harvest and before Package.
-- Uses platform-appropriate export tooling through existing build-host tool wrappers.
-- Reports family, RID, native binary, entry point, and generated source location.
-- Complements dynapi/name validation; it does not claim signature validation.
-
-### 5. Retire SDL2-CS Production Use
-
-Remove remaining managed project compile includes that point at `external/sdl2-cs/src/`.
-
-Acceptance evidence:
+**Exit evidence:**
 
 - Every SDL2 managed family builds from generated source.
-- Full 7-RID native smoke and package-consumer smoke pass for all generated SDL2 families.
+- Full 7-RID native smoke and package-consumer smoke pass for generated SDL2 families.
 - First public SDL2 preview is AST-generated, package-first, and not shaped by SDL2-CS public API inertia.
 
-## Stage 3: SDL3 Extension
+## Milestone 9: Smoke And Asset-Backed Testing Expansion
 
-Stage 3 is gated on PD-7 and SDL2 public-release progress. SDL3 vcpkg/native packaging work is substantial and must not block SDL2 v1.0.
+**Goal:** Turn the testing strategy into durable CI/release confidence without importing upstream SDL wholesale.
 
-Requirements:
+**References:** [`testing-strategy.md`](testing-strategy.md), upstream SDL2 core tests, SDL_image test runner, SDL_mixer/SDL_ttf/SDL_net samples, SkiaSharp/LibGit2Sharp fixture patterns.
+
+**Scope:**
+
+- Create `tests/smoke-tests/assets/` with fixture policy and provenance.
+- Replace root branding image usage in smoke tests with tiny generated fixtures.
+- Add SDL2 core BMP/WAV/RWops real-file checks.
+- Expand SDL_image load checks for mandatory image formats: PNG, JPEG, WebP, TIFF, AVIF, and optional QOI only if promoted.
+- Add SDL_ttf real font open/render checks with a clean-license tiny font.
+- Add SDL_gfx pixel mutation assertions.
+- Add SDL_mixer real-file load checks after the LGPL-free codec contract and MIDI/Timidity story are settled.
+- Keep manual diagnostic apps outside CI gates.
+
+**Exit evidence:**
+
+- CI smoke remains headless and deterministic.
+- Smoke fixtures are tiny, committed, generated or explicitly licensed, and test-owned.
+- Package-consumer smoke validates representative generated API calls, not only native load/init.
+
+## Milestone 10: SDL3 Extension
+
+**Goal:** Add SDL3 as a real second consumer after SDL2 public-release progress and native packaging support exist.
+
+**References:** ADR-004, ppy/SDL3-CS, Alimer SDL3 evidence, SDL3-specific upstream headers and `sdl.json`.
+
+**Scope:**
 
 - Add SDL3 package families and native build support first.
-- Introduce SDL3 generation as a sibling Cake target only when SDL3 becomes a real second consumer.
+- Introduce SDL3 generation only when SDL3 becomes a real second consumer.
 - Promote shared generator code out of SDL2 target-local folders only when ADR-002 reuse criteria are met.
 - Encode SDL3-specific ABI rules instead of copying SDL2 behavior:
-  - 1-byte bool-like values.
-  - `SDL_IOStream` replacing `SDL_RWops`.
-  - SDL3 platform macro model.
-  - SDL3 namespace/library identity.
-- Re-evaluate SDL3 TFM support instead of blindly copying SDL2's legacy `netstandard2.0` / `net462` obligations.
+  - 1-byte bool-like values;
+  - `SDL_IOStream` replacing `SDL_RWops`;
+  - SDL3 platform macro model;
+  - SDL3 namespace and native library identity.
+- Re-evaluate SDL3 TFM support instead of blindly copying SDL2's `netstandard2.0` / `net462` obligations.
 
-Acceptance evidence:
+**Exit evidence:**
 
 - SDL3 Core, Image, Mixer, and Ttf generated output compiles and packages through the internal feed.
 - SDL3 package-consumer smoke proves load and minimal calls per generated family across the supported RID/TFM matrix.
@@ -216,24 +431,24 @@ Acceptance evidence:
 
 ## Continuous Maintenance
 
-These tasks apply throughout all stages:
-
-- Keep `binding-generator-constitution.md` updated with every rule change.
-- Keep `docs/playbook/binding-generator-maintenance.md` updated when operation procedure changes.
-- Keep ADR-004 as the toolchain decision record; only reopen if CppAst maintenance cost becomes a real problem.
-- Keep generated output deterministic and package-first.
+- Keep [`binding-generator-constitution.md`](binding-generator-constitution.md) updated with every generator rule change.
+- Keep [`testing-strategy.md`](testing-strategy.md) updated when test layer boundaries or fixture policy change.
+- Keep [`../playbook/binding-generator-maintenance.md`](../playbook/binding-generator-maintenance.md) updated when operational procedure changes.
+- Keep [`../playbook/binding-output-oracle-validation.md`](../playbook/binding-output-oracle-validation.md) updated when oracle review lanes or evidence sources change.
+- Keep ADR-004 as the toolchain decision record; reopen only if CppAst maintenance cost becomes a real problem.
 - Treat peer bindings as evidence, never authority.
 - Prefer explicit deferral over fake ABI success.
-- Run Slopwatch after code/test/project changes.
+- Run Slopwatch after code/test/project changes. Documentation-only changes do not require Slopwatch unless they alter embedded code or project snippets in a way that should be linted by the tool.
 
 ## Retired Active References
 
-The following sources were folded into this roadmap and the constitution, then removed from active documentation:
+The following were folded into this roadmap, the constitution, and the testing strategy, then removed from active documentation:
 
-- binding-generator superpowers specs and plans;
+- temporary raw ABI / public wrapper / multi-TFM notes under `docs/binding-autogen/temp/temp.txt`;
+- temporary testing strategy notes under `docs/binding-autogen/temp/testing/`;
+- old binding-generator superpowers specs and plans;
 - old local-output-loop and stage-plan transcripts;
 - semantic pipeline, macro constants, macro taxonomy, and P0 fix implementation plans;
-- binding-autogen research/spike notes;
-- the temporary translation contract and separate API/strategy briefs.
+- binding-autogen research/spike notes.
 
 Git history remains the archive for historical audit detail.

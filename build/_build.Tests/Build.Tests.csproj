@@ -15,6 +15,8 @@
 
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <RestoreLockedMode Condition="'$(GITHUB_ACTIONS)' == 'true'">true</RestoreLockedMode>
+    <SolutionDir>$(MSBuildProjectDirectory)\..\..\</SolutionDir>
+    <SolutionName>Janset.SDL2</SolutionName>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,10 +29,16 @@
     <PackageReference Include="TUnit" />
     <PackageReference Include="NSubstitute" />
     <PackageReference Include="Cake.Testing" />
+    <PackageReference Include="Verify.DiffPlex" />
+    <PackageReference Include="Verify.TUnit" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Fixtures\Data\**\*.json" />
     <EmbeddedResource Include="Fixtures\Data\**\*.h" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Remove="VerifyTests" />
   </ItemGroup>
 </Project>

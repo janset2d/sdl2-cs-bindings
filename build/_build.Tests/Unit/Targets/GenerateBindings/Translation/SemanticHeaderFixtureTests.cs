@@ -1,6 +1,6 @@
 using Build.Tests.Fixtures;
+using Build.Tests.Fixtures.GenerateBindings;
 using Build.Targets.GenerateBindings.Model;
-using Build.Targets.GenerateBindings.Parsing;
 using Build.Targets.GenerateBindings.Translation;
 using CppAst;
 
@@ -12,7 +12,7 @@ public sealed class SemanticHeaderFixtureTests
     [Test]
     public async Task Fixtures_Should_Parse_Opaque_And_Concrete_Struct_Shapes()
     {
-        var compilation = ParseFixture("GenerateBindings/SemanticTypes/opaque-and-concrete-structs.h");
+        var compilation = SemanticFixtureParser.ParseFixture("GenerateBindings/SemanticTypes/opaque-and-concrete-structs.h");
 
         var window = compilation.Classes.Single(c => c.Name == "SDL_Window");
         var texture = compilation.Classes.Single(c => c.Name == "SDL_Texture");
@@ -25,7 +25,7 @@ public sealed class SemanticHeaderFixtureTests
     [Test]
     public async Task Fixtures_Should_Parse_Typedef_Chains_And_String_Function_Signatures()
     {
-        var compilation = ParseFixture("GenerateBindings/SemanticTypes/typedefs-bool-and-strings.h");
+        var compilation = SemanticFixtureParser.ParseFixture("GenerateBindings/SemanticTypes/typedefs-bool-and-strings.h");
 
         var sdlBool = compilation.Enums.Single(e => e.Name == "SDL_bool");
         await Assert.That(sdlBool.Items.Select(i => i.Name).ToArray())
@@ -48,7 +48,7 @@ public sealed class SemanticHeaderFixtureTests
     [Test]
     public async Task Fixtures_Should_Parse_Callback_Array_And_Anonymous_Union_Shapes()
     {
-        var compilation = ParseFixture("GenerateBindings/SemanticTypes/callbacks-arrays-and-unions.h");
+        var compilation = SemanticFixtureParser.ParseFixture("GenerateBindings/SemanticTypes/callbacks-arrays-and-unions.h");
 
         var callback = compilation.Typedefs.Single(t => t.Name == "SDL_AudioCallback");
         var callbackPointer = await AssertType<CppPointerType>(callback.ElementType);
@@ -73,7 +73,7 @@ public sealed class SemanticHeaderFixtureTests
     [Test]
     public async Task Fixtures_Should_Parse_Object_Like_And_Function_Like_Macros()
     {
-        var compilation = ParseFixture("GenerateBindings/MacroConstants/macro-constants.h", parseMacros: true);
+        var compilation = SemanticFixtureParser.ParseFixture("GenerateBindings/MacroConstants/macro-constants.h", parseMacros: true);
 
         var renderDriver = compilation.Macros.Single(m => m.Name == "SDL_HINT_RENDER_DRIVER");
         await Assert.That(renderDriver.Value).IsEqualTo("\"SDL_RENDER_DRIVER\"");
@@ -87,7 +87,7 @@ public sealed class SemanticHeaderFixtureTests
     [Test]
     public async Task Fixtures_Should_Parse_Enum_And_Flag_Expression_Members()
     {
-        var compilation = ParseFixture("GenerateBindings/SemanticTypes/enums-and-flags.h");
+        var compilation = SemanticFixtureParser.ParseFixture("GenerateBindings/SemanticTypes/enums-and-flags.h");
 
         var windowFlags = compilation.Enums.Single(e => e.Name == "SDL_WindowFlags");
         await Assert.That(windowFlags.Items.Select(i => i.Name).ToArray())
@@ -104,7 +104,7 @@ public sealed class SemanticHeaderFixtureTests
     [Test]
     public async Task Fixtures_Should_Parse_Macro_Expression_Surface()
     {
-        var compilation = ParseFixture("GenerateBindings/MacroConstants/macro-expressions.h", parseMacros: true);
+        var compilation = SemanticFixtureParser.ParseFixture("GenerateBindings/MacroConstants/macro-expressions.h", parseMacros: true);
 
         var hapticRamp = compilation.Macros.Single(m => m.Name == "SDL_HAPTIC_RAMP");
         await Assert.That(MacroParameters(hapticRamp)).IsEmpty();
@@ -137,12 +137,12 @@ public sealed class SemanticHeaderFixtureTests
     [Test]
     public async Task Fixtures_Should_Translate_Contextual_Macro_Expressions_From_CppAst_Parse()
     {
-        var compilation = ParseFixture(
+        var compilation = SemanticFixtureParser.ParseFixture(
             "GenerateBindings/MacroConstants/macro-expressions.h",
             parseMacros: true,
             parseAsSdl2Header: true);
         var result = BindingConstantTranslator.Translate(
-            [ParseResult("Neutral", compilation)],
+            [SemanticFixtureParser.ParseResult("Neutral", compilation)],
             BindingGenerationFixture.Sdl2CoreConfig());
 
         await Assert.That(result.Constants.Single(c => c.Name == "SDL_BUTTON_LMASK").Value).IsEqualTo("1u");
@@ -159,12 +159,12 @@ public sealed class SemanticHeaderFixtureTests
     [Test]
     public async Task Fixtures_Should_Skip_Platform_Control_Macros()
     {
-        var compilation = ParseFixture(
+        var compilation = SemanticFixtureParser.ParseFixture(
             "GenerateBindings/SemanticTypes/enums-and-platform-control-macros.h",
             parseMacros: true,
             parseAsSdl2Header: true);
         var result = BindingConstantTranslator.Translate(
-            [ParseResult("Neutral", compilation)],
+            [SemanticFixtureParser.ParseResult("Neutral", compilation)],
             BindingGenerationFixture.Sdl2CoreConfig());
 
         await Assert.That(result.Constants.Select(constant => constant.Name).ToArray())
@@ -175,7 +175,7 @@ public sealed class SemanticHeaderFixtureTests
     [Test]
     public async Task Fixtures_Should_Translate_SDL2_Bool_As_Int_Backed_Enum()
     {
-        var model = TranslateFixture("GenerateBindings/SemanticTypes/enums-and-platform-control-macros.h");
+        var model = SemanticFixtureParser.TranslateSdl2CoreFixture("GenerateBindings/SemanticTypes/enums-and-platform-control-macros.h");
 
         var sdlBool = model.Enums.Single(enumeration => enumeration.Name == "SDL_bool");
 
@@ -187,7 +187,7 @@ public sealed class SemanticHeaderFixtureTests
     [Test]
     public async Task Fixtures_Should_Translate_Known_Bitmask_Enums_As_Flags()
     {
-        var model = TranslateFixture("GenerateBindings/SemanticTypes/enums-and-platform-control-macros.h");
+        var model = SemanticFixtureParser.TranslateSdl2CoreFixture("GenerateBindings/SemanticTypes/enums-and-platform-control-macros.h");
 
         await Assert.That(model.Enums.Single(enumeration => enumeration.Name == "SDL_Keymod").IsFlags).IsTrue();
         await Assert.That(model.Enums.Single(enumeration => enumeration.Name == "SDL_GLcontextFlag").IsFlags).IsTrue();
@@ -197,7 +197,7 @@ public sealed class SemanticHeaderFixtureTests
     [Test]
     public async Task Fixtures_Should_Translate_Opaque_Handle_Typedefs_Without_Tag_Leaks()
     {
-        var model = TranslateFixture("GenerateBindings/SemanticTypes/opaque-handle-aliases.h");
+        var model = SemanticFixtureParser.TranslateSdl2CoreFixture("GenerateBindings/SemanticTypes/opaque-handle-aliases.h");
 
         var handleNames = model.Handles.Select(handle => handle.Name).ToArray();
 
@@ -209,7 +209,7 @@ public sealed class SemanticHeaderFixtureTests
     [Test]
     public async Task Fixtures_Should_Translate_C_Long_And_Unsigned_Long_As_Platform_C_Integers()
     {
-        var model = TranslateFixture("GenerateBindings/SemanticTypes/platform-c-integers-and-wide-strings.h");
+        var model = SemanticFixtureParser.TranslateSdl2CoreFixture("GenerateBindings/SemanticTypes/platform-c-integers-and-wide-strings.h");
         var functions = model.Views.Single().Functions;
 
         await Assert.That(functions.Single(function => function.Name == "SDL_lround").ReturnType.ManagedName)
@@ -223,7 +223,7 @@ public sealed class SemanticHeaderFixtureTests
     [Test]
     public async Task Fixtures_Should_Translate_WChar_Pointers_As_Opaque_Pointers()
     {
-        var model = TranslateFixture("GenerateBindings/SemanticTypes/platform-c-integers-and-wide-strings.h");
+        var model = SemanticFixtureParser.TranslateSdl2CoreFixture("GenerateBindings/SemanticTypes/platform-c-integers-and-wide-strings.h");
 
         var hidInfo = model.Structs.Single(structure => structure.Name == "SDL_hid_device_info");
         var serial = hidInfo.Fields.Single(field => field.Name == "serial_number");
@@ -238,7 +238,7 @@ public sealed class SemanticHeaderFixtureTests
     [Test]
     public async Task Fixtures_Should_Translate_Hid_Wide_String_Pointers_As_Opaque_Pointers_When_CppAst_Erases_WChar()
     {
-        var model = TranslateFixture("GenerateBindings/SemanticTypes/hid-wide-string-pointers.h");
+        var model = SemanticFixtureParser.TranslateSdl2CoreFixture("GenerateBindings/SemanticTypes/hid-wide-string-pointers.h");
 
         var hidInfo = model.Structs.Single(structure => structure.Name == "SDL_hid_device_info");
         await Assert.That(hidInfo.Fields.Single(field => field.Name == "serial_number").Type.ManagedName).IsEqualTo("nint");
@@ -255,7 +255,7 @@ public sealed class SemanticHeaderFixtureTests
     [Test]
     public async Task Fixtures_Should_Quarantine_SDL_RWops_False_Full_Layout_As_Opaque_Handle()
     {
-        var model = TranslateFixture("GenerateBindings/SemanticTypes/rwops-platform-conditioned-layout.h");
+        var model = SemanticFixtureParser.TranslateSdl2CoreFixture("GenerateBindings/SemanticTypes/rwops-platform-conditioned-layout.h");
 
         await Assert.That(model.Structs.Select(structure => structure.Name).ToArray()).DoesNotContain("SDL_RWops");
         await Assert.That(model.Structs.Select(structure => structure.Name).ToArray()).DoesNotContain("SDL_RWops_hidden");
@@ -263,62 +263,6 @@ public sealed class SemanticHeaderFixtureTests
 
         var rwFromMem = model.Views.Single().Functions.Single(function => function.Name == "SDL_RWFromMem");
         await Assert.That(rwFromMem.ReturnType.ManagedName).IsEqualTo("SDL_RWops");
-    }
-
-    private static CppAstParseResult ParseResult(string viewName, CppCompilation compilation) =>
-        new(
-            new PlatformParseView(
-                Name: viewName,
-                Kind: PlatformConditionKind.Neutral,
-                SupportedOsPlatform: null,
-                Defines: [],
-                Undefines: []),
-            [compilation]);
-
-    private static BindingModel TranslateFixture(string fixturePath, bool parseMacros = false)
-    {
-        var compilation = ParseFixture(fixturePath, parseMacros, parseAsSdl2Header: true);
-        return CppAstToBindingModel.Translate(
-            [ParseResult("Neutral", compilation)],
-            BindingGenerationFixture.Sdl2CoreConfig(),
-            requiredFunctions: []);
-    }
-
-    private static CppCompilation ParseFixture(
-        string fixturePath,
-        bool parseMacros = false,
-        bool parseAsSdl2Header = false)
-    {
-        var directory = Path.Combine(Path.GetTempPath(), "janset-semantic-fixtures", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(directory);
-        var headerDirectory = parseAsSdl2Header
-            ? Path.Combine(directory, "include", "SDL2")
-            : directory;
-        Directory.CreateDirectory(headerDirectory);
-        var header = Path.Combine(headerDirectory, Path.GetFileName(fixturePath));
-        try
-        {
-            File.WriteAllText(header, FixtureLoader.Load(fixturePath));
-
-            var options = new CppParserOptions
-            {
-                ParserKind = CppParserKind.C,
-                TargetSystem = "linux",
-                ParseMacros = parseMacros,
-            };
-
-            var compilation = CppParser.ParseFile(header, options);
-            if (compilation.HasErrors)
-            {
-                throw new InvalidOperationException(compilation.Diagnostics.ToString());
-            }
-
-            return compilation;
-        }
-        finally
-        {
-            Directory.Delete(directory, recursive: true);
-        }
     }
 
     private static async Task<T> AssertType<T>(CppType type)

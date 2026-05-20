@@ -1,0 +1,34 @@
+﻿{
+  Views: [
+    {
+      Name: Neutral,
+      Functions: [
+        {
+          Name: SDL_AlwaysAvailable,
+          ReturnType: int,
+          Parameters: [
+            {
+              Name: flags,
+              Type: uint
+            }
+          ]
+        }
+      ]
+    },
+    {
+      Name: Linux,
+      Functions: [
+        {
+          Name: SDL_LinuxOnly,
+          ReturnType: int,
+          Parameters: [
+            {
+              Name: flags,
+              Type: uint
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -4,3 +4,8 @@
 # Explicitly ensure patch/diff files are always LF
 *.patch eol=lf
 *.diff eol=lf
+
+# Verify snapshot baselines are reviewed generated text; keep diffs stable.
+*.verified.txt text eol=lf working-tree-encoding=UTF-8
+*.verified.json text eol=lf
+*.verified.md text eol=lf

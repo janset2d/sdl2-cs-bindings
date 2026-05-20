@@ -1,7 +1,7 @@
 # Playbook: Binding Output Oracle Validation
 
 **Status:** In progress — reusable review workflow for Stage 1 SDL2.Core output.
-**Last updated:** 2026-05-19
+**Last updated:** 2026-05-20
 
 This playbook defines how to validate generated binding output using multiple imperfect oracles: official SDL sources, native exports, generated evidence, peer bindings, and .NET API extraction. It is intentionally review-led. Tooling collects evidence; agents and humans decide what the evidence means.
 
@@ -16,7 +16,7 @@ Use this playbook when:
 - peer comparison is needed before promoting generated output toward production source;
 - a vcpkg SDL2 pin bump changes public headers or exports.
 
-Do not use this playbook as a substitute for compile checks, fixture tests, native smoke tests, or package consumer smoke. It complements them by answering a different question: "Does this generated .NET API look like the correct SDL binding surface, not just compilable C#?"
+Do not use this playbook as a substitute for compile checks, fixture tests, native smoke tests, or package consumer smoke. Those layers are defined in [`../binding-autogen/testing-strategy.md`](../binding-autogen/testing-strategy.md). This playbook complements them by answering a different question: "Does this generated .NET API look like the correct SDL binding surface, not just compilable C#?"
 
 ## Principle
 
@@ -413,3 +413,10 @@ Keep the first tool evidence-first. Promote individual checks to fail gates only
 - Flattening all deltas into bugs. Some are intentional typed-handle/string/span/API-shape decisions.
 - Skipping embedded `.h` fixture coverage when changing parser or macro evaluator behavior.
 - Building a large validator before knowing which findings are stable enough to automate.
+
+## Related Docs
+
+- [`../binding-autogen/binding-generator-constitution.md`](../binding-autogen/binding-generator-constitution.md)
+- [`../binding-autogen/binding-generator-roadmap.md`](../binding-autogen/binding-generator-roadmap.md)
+- [`../binding-autogen/testing-strategy.md`](../binding-autogen/testing-strategy.md)
+- [`binding-generator-maintenance.md`](binding-generator-maintenance.md)

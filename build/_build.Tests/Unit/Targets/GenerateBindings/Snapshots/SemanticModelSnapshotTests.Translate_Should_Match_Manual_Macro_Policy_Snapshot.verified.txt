@@ -1,0 +1,90 @@
+﻿{
+  Constants: [
+    {
+      Name: SDL_FIXTURE_OVERRIDE,
+      Type: uint,
+      Value: 42u
+    },
+    {
+      Name: SDL_HINT_TEST_ALPHA,
+      Type: ReadOnlySpan<byte>,
+      Value: "SDL_TEST_ALPHA"u8
+    },
+    {
+      Name: SDL_TEST_COMPUTED_FLAG,
+      Type: uint,
+      Value: 16u,
+      Kind: Computed
+    },
+    {
+      Name: SDL_TEST_REQUIRED,
+      Type: uint,
+      Value: 0x40u
+    }
+  ],
+  Report: [
+    {
+      Name: SDL_ASSERT_LEVEL,
+      Disposition: skipped,
+      Reason: SDL C assertion build-time macro,
+      MacroForm: object-like,
+      Taxonomy: non-api
+    },
+    {
+      Name: SDL_BUTTON,
+      Disposition: helper-candidate,
+      Reason: public helper macro,
+      MacroForm: function-like,
+      Taxonomy: public-helper-candidate
+    },
+    {
+      Name: SDL_FIXTURE_OVERRIDE,
+      Disposition: emitted,
+      Reason: safe macro value,
+      MacroForm: object-like,
+      Taxonomy: public-literal-constant
+    },
+    {
+      Name: SDL_FIXTURE_OVERRIDE,
+      Disposition: overridden,
+      Reason: test manual override,
+      MacroForm: manual,
+      Taxonomy: manual-policy
+    },
+    {
+      Name: SDL_HINT_TEST_ALPHA,
+      Disposition: emitted,
+      Reason: safe macro value,
+      MacroForm: object-like,
+      Taxonomy: public-literal-constant
+    },
+    {
+      Name: SDL_HINT_TEST_BETA,
+      Disposition: emitted,
+      Reason: safe macro value,
+      MacroForm: object-like,
+      Taxonomy: public-literal-constant
+    },
+    {
+      Name: SDL_HINT_TEST_BETA,
+      Disposition: excluded,
+      Reason: test manual exclusion,
+      MacroForm: manual,
+      Taxonomy: manual-policy
+    },
+    {
+      Name: SDL_TEST_COMPUTED_FLAG,
+      Disposition: emitted,
+      Reason: safe integer macro expression,
+      MacroForm: object-like,
+      Taxonomy: public-expression-constant
+    },
+    {
+      Name: SDL_TEST_REQUIRED,
+      Disposition: included,
+      Reason: manual required constant,
+      MacroForm: manual,
+      Taxonomy: manual-policy
+    }
+  ]
+}

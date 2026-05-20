@@ -1,0 +1,72 @@
+﻿[
+  {
+    RelativePath: Constants.g.cs,
+    Length: 26843,
+    Sha256: 5f18f7b82605384b78167a1ea7284c90da3e449254f3dba8eb3f013d10469590
+  },
+  {
+    RelativePath: Platform/Android/Commands.g.cs,
+    Length: 4087,
+    Sha256: 4540d28afc096fe2947a5a1c81c852abe839417411a8cde7fd1151534d58d843
+  },
+  {
+    RelativePath: Platform/GDK/Commands.g.cs,
+    Length: 1436,
+    Sha256: 4cffd88667954a77b4823fecef47d56d4ce4d121897583cd49ff2b6813946814
+  },
+  {
+    RelativePath: Platform/IOS/Commands.g.cs,
+    Length: 1505,
+    Sha256: 09c91f6765384a01d19f90277fbae5350fa484fe0dc92c4a3a3637f62703685b
+  },
+  {
+    RelativePath: Platform/Linux/Commands.g.cs,
+    Length: 888,
+    Sha256: bc7fa6ac1e9f7a056aedf298461cd0c114c34e86c2a3fcceb9a75eb5bac4d0f8
+  },
+  {
+    RelativePath: Platform/MacOS/Commands.g.cs,
+    Length: 227,
+    Sha256: 533d765da8c061a4db1b8e4d46a2cde79c0db6436f9d25b0b835ce62706490c2
+  },
+  {
+    RelativePath: Platform/Neutral/Commands.g.cs,
+    Length: 205440,
+    Sha256: 5e46064168e539b6bef36c54fe68bc70fc723991a598417bead0c74740ddaa4f
+  },
+  {
+    RelativePath: Platform/WinRT/Commands.g.cs,
+    Length: 1482,
+    Sha256: 91840ce55a8b0c3123802a8d0b095782d5a881e7cc9639559a1215d84e854f78
+  },
+  {
+    RelativePath: Platform/WindowsDesktop/Commands.g.cs,
+    Length: 2740,
+    Sha256: 26159b0105644ccff5197531ff89dcc441e59c58d85d18e8934868f37ff70b2f
+  },
+  {
+    RelativePath: Types/Callbacks.g.cs,
+    Length: 2678,
+    Sha256: e58be9c1049c030bc23e7989e9673286fa22ce71e13d3c575f85b2761324a25a
+  },
+  {
+    RelativePath: Types/Enums.g.cs,
+    Length: 35239,
+    Sha256: 83c8de7f9916f6cf27536d4176b2d0e06df60ea0b20095929921c09378042683
+  },
+  {
+    RelativePath: Types/Handles.g.cs,
+    Length: 13953,
+    Sha256: 89de293ef384b761ba38ae6e1f396f17700307439816a1119f9aea7dce640387
+  },
+  {
+    RelativePath: Types/Structs.g.cs,
+    Length: 20741,
+    Sha256: 00e259b7dc1166fc360030718dc00731628639680904ef89f533f91f948c9419
+  },
+  {
+    RelativePath: parse-views.json,
+    Length: 63328185,
+    Sha256: d1d275c9b97b555086d01c6baed1f3d02ec0b247646fc86d925b39ff9acac5e1
+  }
+]

@@ -1,6 +1,6 @@
 # Binding Auto-Generation Workstream
 
-**Status (2026-05-20):** active binding-generator workstream. The canonical documents are now the constitution and roadmap below. Historical specs, implementation transcripts, and spike research were folded for unique current facts and removed from active docs; git history remains the archive.
+**Status (2026-05-20):** active binding-generator workstream. The canonical documents are now the constitution, grand roadmap, and testing strategy below. Historical specs, implementation transcripts, temporary notes, and spike research were folded for unique current facts and removed from active docs; git history remains the archive.
 
 The generator is hosted inside the Cake build host under `build/_build/Targets/GenerateBindings/`, runs Linux-canonical from the pinned builder container, and is configured per family through `build/manifest.json library_manifests[].binding_generation`. SDL2.Core currently has a generated internal ABI-shaped preview; the next work is public typed wrappers, friendly overloads, production source flip, and package-first smoke.
 
@@ -10,7 +10,9 @@ The generator is hosted inside the Cake build host under `build/_build/Targets/G
 | --- | --- |
 | [`README.md`](README.md) | Workstream index and reading order. |
 | [`binding-generator-constitution.md`](binding-generator-constitution.md) | Canonical binding-generator constitution: internal ABI, public API layers, C-to-C# translation, manifest config vs policy, and evidence gates. |
-| [`binding-generator-roadmap.md`](binding-generator-roadmap.md) | Canonical future roadmap: remaining SDL2.Core work, SDL2 satellite sweep, and SDL3 extension. |
+| [`binding-generator-roadmap.md`](binding-generator-roadmap.md) | Canonical grand roadmap: safety harness, architecture refactor, profiles, raw/public/friendly emission, SDL2 production flip, satellites, smoke expansion, and SDL3 extension. |
+| [`testing-strategy.md`](testing-strategy.md) | Canonical generated-binding testing strategy: build-host tests, compile checks, NativeSmoke, PackageConsumerSmoke, asset-backed headless smoke, manual diagnostics, and fixture policy. |
+| [`milestones/milestone-1-safety-harness-baseline.md`](milestones/milestone-1-safety-harness-baseline.md) | Detailed Milestone 1 implementation plan for snapshots, `.h` fixture expansion, fake orchestration snapshots, and generated-preview checkpointing. |
 | [`../playbook/binding-generator-maintenance.md`](../playbook/binding-generator-maintenance.md) | In-progress maintenance playbook for platform macro catalogs, generated stamps, and overlay coupling. |
 | [`../playbook/binding-output-oracle-validation.md`](../playbook/binding-output-oracle-validation.md) | Reusable multi-agent review workflow for validating generated output against official SDL sources, peer bindings, and .NET API evidence. |
 | [`../decisions/2026-05-14-binding-autogen-toolchain.md`](../decisions/2026-05-14-binding-autogen-toolchain.md) | ADR-004 CppAst toolchain decision and migration-door rationale. |
@@ -20,12 +22,14 @@ The generator is hosted inside the Cake build host under `build/_build/Targets/G
 | # | Document | Purpose |
 | --- | --- | --- |
 | 1 | [`binding-generator-constitution.md`](binding-generator-constitution.md) | Read first. It defines the binding generator's ABI/API law and evidence gates. |
-| 2 | [`binding-generator-roadmap.md`](binding-generator-roadmap.md) | Read second. It tracks only future work. |
-| 3 | [`../playbook/binding-generator-maintenance.md`](../playbook/binding-generator-maintenance.md) | Operational procedure for parser config, synthetic headers, stamps, upstream bumps, and hybrid-static coupling. |
-| 4 | [`../playbook/binding-output-oracle-validation.md`](../playbook/binding-output-oracle-validation.md) | Output validation workflow against SDL headers, peer bindings, and .NET API evidence. |
-| 5 | [`../decisions/2026-05-14-binding-autogen-toolchain.md`](../decisions/2026-05-14-binding-autogen-toolchain.md) | Toolchain ADR. Read only when reopening CppAst vs ClangSharp or bumping the trio. |
+| 2 | [`binding-generator-roadmap.md`](binding-generator-roadmap.md) | Read second. It tracks the milestone plan from safety harness through SDL3. |
+| 3 | [`testing-strategy.md`](testing-strategy.md) | Read before changing tests, snapshots, compile checks, smoke tests, fixtures, or manual diagnostics. |
+| 4 | [`milestones/milestone-1-safety-harness-baseline.md`](milestones/milestone-1-safety-harness-baseline.md) | Read when implementing M1. Future milestone plans should live next to it. |
+| 5 | [`../playbook/binding-generator-maintenance.md`](../playbook/binding-generator-maintenance.md) | Operational procedure for parser config, synthetic headers, stamps, upstream bumps, and hybrid-static coupling. |
+| 6 | [`../playbook/binding-output-oracle-validation.md`](../playbook/binding-output-oracle-validation.md) | Output validation workflow against SDL headers, peer bindings, and .NET API evidence. |
+| 7 | [`../decisions/2026-05-14-binding-autogen-toolchain.md`](../decisions/2026-05-14-binding-autogen-toolchain.md) | Toolchain ADR. Read only when reopening CppAst vs ClangSharp or bumping the trio. |
 
-Historical research and task-by-task plans were intentionally removed from active docs. Preserve new durable facts in the constitution or roadmap instead of reviving one-off plan files.
+Historical research and task-by-task plans were intentionally removed from active docs. Preserve new durable facts in the constitution, roadmap, or testing strategy instead of reviving one-off plan files.
 
 ## Current Decision Posture
 
@@ -34,6 +38,7 @@ Historical research and task-by-task plans were intentionally removed from activ
 - Output class identity is family-based, manifest-driven, and not parse-view-based. SDL2 core currently uses namespace `SDL2`, public class `SDL`, and internal raw ABI class `SDLNative`; parse views produce files/attributes, not `Sdl2_Neutral` or `Sdl2_MacOS` classes.
 - String-like SDL macro constants such as `SDL_HINT_*` use canonical `ReadOnlySpan<byte>` UTF-8 literal properties. String ergonomics is provided by method overloads; do not duplicate every macro as both `const string` and `ReadOnlySpan<byte>`.
 - **Generator lives inside the Cake build host** under `build/_build/Targets/GenerateBindings/` with cross-cutting validators under `build/_build/Validation/BindingGeneration/`. No standalone `src/`-tree console app. Pure emitter code stays Cake-free; the Cake-aware shell owns orchestration.
+- **Refactor safety is snapshot- and fixture-first.** Before architectural refactors, capture a generated-output baseline and add embedded `.h` fixture coverage for high-risk ABI/model cases. Move/rename operations use `git mv`, and test topology moves with production topology.
 - **Linux-canonical** generation. Only `libclang.runtime.linux-x64` + `libClangSharp.runtime.linux-x64` are pinned. The `GenerateBindings` Cake target fails closed on non-`linux-x64` hosts. Local invocation routes through `tools.cs generate-bindings`, which orchestrates the pinned `linux-builder` Docker container — Docker is a hard prerequisite, no host-OS fallback.
 - **Preprocessor-macro switching only** for platform passes. No `--target` cross-compile flag, no mingw-w64, no Apple SDK headers. SDL's public headers carry the cross-platform opaque-type forward declarations the parser needs. Verified against ppy/SDL3-CS Dockerfile + `generate_bindings.py` (WebFetch 2026-05-15) and the local CppAst spike.
 - **`SDL_syswm.h` typed-union layout is Stage 2.** Stage 1 emits `SDL_GetWindowWMInfo` as a function with opaque `SDL_SysWMinfo*` parameter. The typed union with `[StructLayout(LayoutKind.Explicit, Size = 64)]` plus the small forward-declaration stub library (~15–20 types) lands in Stage 2.

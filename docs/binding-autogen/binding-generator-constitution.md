@@ -45,6 +45,8 @@ Rules:
 - Raw ABI mistakes are still bugs even though the raw layer is internal.
 - A declaration that cannot be represented honestly is deferred with evidence. Do not emit a success-shaped lie.
 - Typed handles expose native pointer values through `nint`; that does not make `nint` the answer for every native scalar.
+- Raw ABI backends may split into `DllImport` and `LibraryImport` generated files, but both consume the same semantic/projection truth. File-level TFM guards are preferred over per-function conditional sprawl.
+- Compatibility packages such as `System.Memory` are acceptable for public/friendly APIs on `netstandard2.0` and `net462` when package smoke proves the consumer contract. They must not be used to fake ABI primitives whose platform shape is not portable.
 
 ## Generator Home
 
@@ -186,6 +188,7 @@ Contract:
 - Internal raw ABI uses `CLong` / `CULong` where available and guards these members to `NET6_0_OR_GREATER` until a downlevel exact strategy exists.
 - Public typed wrappers may normalize values to stable managed shapes such as `long` / `ulong`, with Windows range checks for input parameters when needed.
 - Typedefs over C `long`, such as `SDL_threadID`, inherit this policy unless a stronger SDL semantic type is introduced.
+- Do not introduce a casual downlevel `CLong` / `CULong` NuGet polyfill. A same-named portable struct backed by `IntPtr`, `int`, or `long` would be wrong for at least one of Windows LLP64 or Unix LP64. Any downlevel strategy must prove exact per-platform ABI shape before removing guards.
 
 High-risk SDL2.Core symbols:
 
