@@ -26,7 +26,7 @@ Current production scope:
 
 - Generator home: `build/_build/Targets/GenerateBindings/`
 - Header input services: `build/_build/Targets/GenerateBindings/HeaderSet/`
-- Parse catalog: `build/_build/Targets/GenerateBindings/Parsing/PlatformCatalog.cs`
+- Parse catalog: `build/_build/Targets/GenerateBindings/PlatformViews/PlatformCatalog.cs`
 - Persisted stamp contract: `build/_build/Data/BindingGeneration/GeneratedStamp.cs`
 - Stamp repository: `build/_build/Data/BindingGeneration/GeneratedStampRepository.cs`
 
@@ -52,14 +52,14 @@ The CppAst + libclang.runtime + libClangSharp.runtime trio moves as a coordinate
 | 0.24.0 (2025-11-20) | 20.1.2 | 20.1.2 | Stage 1 pinned |
 | 0.25+ | TBD | TBD | candidates — see "Post-Stage-1 Trio Revalidation" below |
 
-`BindingGenerationRunner` asserts the resolved libclang version against this table at task entry and fails closed with an actionable diagnostic on mismatch (defensive against future package-restore drift or accidental floating-version regression).
+`LibclangVersionAsserter` asserts the resolved libclang version against this table at task entry and fails closed with an actionable diagnostic on mismatch (defensive against future package-restore drift or accidental floating-version regression).
 
 Bump procedure:
 
 1. Update all three versions in `Directory.Packages.props`.
 2. Run `dotnet restore --force-evaluate` to refresh `packages.lock.json`.
 3. Run `tools.cs generate-bindings` and inspect output for AST regressions.
-4. Update the version assertion constant in `BindingGenerationRunner.cs` (`ExpectedLibclangMajorMinor`).
+4. Update the version assertion pattern and human-readable value in `Parse/LibclangVersionAsserter.cs`.
 5. Update this table.
 6. Update ADR-004 status notes if a major libclang version is involved.
 
@@ -186,7 +186,7 @@ Verified working at SDL2 2.32.10 + CppAst 0.24.0 + libclang 20.1.2.
 
 **`required_functions`:**
 
-5 hand-curated declarations recover the base API functions that survive only in `SDL.h` (`SDL_Init`, `SDL_InitSubSystem`, `SDL_QuitSubSystem`, `SDL_WasInit`, `SDL_Quit`). `SDL.h` is excluded from the per-header parse loop because it is the umbrella header. Including it would collapse the SDL2 header set into one translation unit and reintroduce intrinsic-header and platform-conditioned parse failures that per-header parsing deliberately avoids. The 5 base functions cannot be reached through any non-`SDL.h` declaration site, so they are injected hand-curated and merged into the Neutral view by `CppAstToBindingModel.Translate`.
+5 hand-curated declarations recover the base API functions that survive only in `SDL.h` (`SDL_Init`, `SDL_InitSubSystem`, `SDL_QuitSubSystem`, `SDL_WasInit`, `SDL_Quit`). `SDL.h` is excluded from the per-header parse loop because it is the umbrella header. Including it would collapse the SDL2 header set into one translation unit and reintroduce intrinsic-header and platform-conditioned parse failures that per-header parsing deliberately avoids. The 5 base functions cannot be reached through any non-`SDL.h` declaration site, so they are injected hand-curated and merged into the Neutral view by `BindingModelBuilder.Build`.
 
 **`required_constants`:**
 
@@ -196,7 +196,16 @@ Verified working at SDL2 2.32.10 + CppAst 0.24.0 + libclang 20.1.2.
 
 #### sdl2-image / sdl2-mixer / sdl2-ttf / sdl2-gfx / sdl2-net
 
-Satellite per-family rationales fill in at Stage 2 when each satellite's `binding_generation.enabled` flips to `true`. Most satellites can reuse `sdl2-core`'s `SDL_DECLSPEC=` and the GCC intrinsic-disable family; satellite-specific entries (e.g. `IMG_DISABLE_*` if SDL2_image grows analogous escape hatches in a future release) land here as they are introduced. The `required_constants` slot is available for satellite umbrella-only macros (e.g. `IMG_INIT_PNG` / `IMG_INIT_JPG` / `IMG_INIT_TIF` / `IMG_INIT_WEBP` declared in `SDL_image.h`, which is also excluded from the per-header loop) — same Literal/Computed split.
+Satellite per-family rationales fill in at Stage 2 when each satellite's `binding_generation.enabled` flips to `true`. Most SDL2 satellites can reuse `sdl2-core`'s `SDL_DECLSPEC=` and the GCC intrinsic-disable family; satellite-specific entries (e.g. `IMG_DISABLE_*` if SDL2_image grows analogous escape hatches in a future release) land here as they are introduced. The `required_constants` slot is available for satellite umbrella-only macros (e.g. `IMG_INIT_PNG` / `IMG_INIT_JPG` / `IMG_INIT_TIF` / `IMG_INIT_WEBP` declared in `SDL_image.h`, which is also excluded from the SDL2.Core per-header loop) — same Literal/Computed split.
+
+M3 satellite reconnaissance baseline (installed `vcpkg_installed/x64-windows-hybrid/include/SDL2`, 2026-05-20):
+
+- `SDL_image.h` has 59 `extern DECLSPEC` declarations. It is mostly core-owned pointer traffic (`SDL_Surface*`, `SDL_Texture*`, `SDL_Renderer*`, `SDL_RWops*`, `const char*`) plus owned `IMG_Animation` and `IMG_InitFlags`. Watch `char **xpm` helpers when friendly overloads arrive.
+- `SDL_mixer.h` has 97 `extern DECLSPEC` declarations. It has several callback typedefs and `SDL_bool` returns; owned types are `Mix_Chunk`, `Mix_Music`, `Mix_Fading`, and `Mix_MusicType`.
+- `SDL_ttf.h` has 85 `extern DECLSPEC` declarations. It exercises `TTF_Font` opaque handles, `SDL_Color` by-value parameters, `long` parameters/returns, `SDL_bool`, legacy `const Uint16*` Unicode APIs, and deprecated functions.
+- `SDL2_gfx` is not a `DECLSPEC` satellite. Its public declarations are split across `SDL2_gfxPrimitives.h`, `SDL2_imageFilter.h`, `SDL2_rotozoom.h`, and `SDL2_framerate.h`, and use `SDL2_GFXPRIMITIVES_SCOPE`, `SDL2_IMAGEFILTER_SCOPE`, `SDL2_ROTOZOOM_SCOPE`, and `SDL2_FRAMERATE_SCOPE`. Its owned-prefix list is necessarily mixed because public symbols include `pixelColor`, `rotozoomSurface`, `SDL_imageFilter*`, `SDL_initFramerate`, and `FPSmanager`.
+
+Use `rg --no-ignore` for local audits because `vcpkg_installed/` is gitignored and ordinary file-glob tools may skip it.
 
 ## Dynapi Manifest Cross-Check
 

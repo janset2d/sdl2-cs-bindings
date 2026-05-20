@@ -71,6 +71,7 @@ Rules:
 - Keep those concepts target-local under `Targets/GenerateBindings/` until a second real generator target exists. Do not promote them to root `Shared` or standalone `src/` projects for aesthetic symmetry.
 - M2 may expose an `SdlPolicy` seam while preserving SDL2.Core output. M3 owns the real profile/config boundary for SDL2 core, SDL2 satellites, SDL3 core, and SDL3 satellites.
 - Generic model-building or emission code must not accumulate ad hoc `/SDL2/`, `SDL_`, `SDL2`, or library-name checks once a named policy/profile seam exists. Add a policy collaborator instead.
+- Satellite profiles must be designed against real installed headers before generation is enabled. SDL2.Image / Mixer / Ttf mostly use SDL's `extern DECLSPEC` convention, while SDL2_gfx uses per-header `SDL2_*_SCOPE` export macros and a mixed naming surface; this is profile policy, not a reason to special-case generic CppAst processing.
 
 ## Manifest Configuration Vs Code-Owned Policy
 
@@ -94,6 +95,14 @@ Manifest owns reviewable facts that vary by family:
 - `deferred_declarations`
 - `validators`
 - `dynapi`
+
+Future profile/config work may add reviewable family facts when they genuinely vary by family, such as:
+
+- `raw_abi_class_name`
+- `native_import_library`
+- `core_reference_namespace`
+- `export_macro_names` / declaration visibility strategy
+- `profile_id`
 
 Future profile work may promote additional family identity facts, such as raw ABI class name and native import library name, into explicit config. Until that schema exists, treat them as code-owned/profile-bound seams rather than current manifest facts.
 
@@ -140,6 +149,7 @@ Rules:
 - A generated function must trace to a pinned public header declaration or a required manifest declaration from an intentionally excluded umbrella header.
 - A generated SDL2.Core function name must match dynapi/export evidence unless explicitly excluded or deferred.
 - Dynapi validates names only. It does not prove parameter order, scalar width, struct layout, enum backing type, or ownership semantics.
+- SDL2 satellite function names are validated by a family-specific evidence source because satellites do not ship SDL2.Core's dynapi manifest. For Image/Mixer/Ttf this starts from public `extern DECLSPEC` declarations; for SDL2_gfx it starts from the `SDL2_GFXPRIMITIVES_SCOPE`, `SDL2_IMAGEFILTER_SCOPE`, `SDL2_ROTOZOOM_SCOPE`, and `SDL2_FRAMERATE_SCOPE` declaration macros plus harvested binary symbol evidence when available.
 - Platform-specific declarations stay in the family raw ABI class and receive platform attribution.
 - `SDL_main`, `SDL_DYNAPI_entry`, startup glue, and dynapi internals are not ordinary public binding functions.
 
@@ -203,6 +213,7 @@ Contract:
 - Public typed wrappers may normalize values to stable managed shapes such as `long` / `ulong`, with Windows range checks for input parameters when needed.
 - Typedefs over C `long`, such as `SDL_threadID`, inherit this policy unless a stronger SDL semantic type is introduced.
 - Do not introduce a casual downlevel `CLong` / `CULong` NuGet polyfill. A same-named portable struct backed by `IntPtr`, `int`, or `long` would be wrong for at least one of Windows LLP64 or Unix LP64. Any downlevel strategy must prove exact per-platform ABI shape before removing guards.
+- SDL_ttf already exposes raw C `long` in `TTF_OpenFontIndex*` and `TTF_FontFaces`; satellite profiles must reuse the same C `long` policy rather than treating it as an SDL2.Core-only edge case.
 
 High-risk SDL2.Core symbols:
 

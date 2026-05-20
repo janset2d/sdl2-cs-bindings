@@ -188,10 +188,13 @@ Tests mirror this concept shape under `build/_build.Tests/Unit/Targets/GenerateB
 
 **References:** constitution section "Manifest Configuration Vs Code-Owned Policy", SkiaSharp mapping discipline, Alimer and ppy hardcoded policy caution.
 
+**Approved scope (Option A+, 2026-05-20):** M3 is a behavior-preserving profile-boundary refactor with satellite reconnaissance. It must not enable SDL2.Image / Mixer / Ttf / Gfx generation, but it must design the profile seams against their real installed headers so Stage 2 activation does not force another topology refactor. This is the critical architecture slice; satellites are expected to be simpler than SDL2.Core, but the profile model must know about their different header and export-macro shapes.
+
 **Profile direction:**
 
 - `sdl2-core`
-- `sdl2-satellite`
+- `sdl2-satellite` for SDL2_image / SDL2_mixer / SDL2_ttf / SDL2_net-style satellites
+- `sdl2-gfx` as a special SDL2 satellite profile because its headers use `SDL2_*_SCOPE` export macros and non-umbrella public headers rather than SDL's `DECLSPEC` pattern
 - `sdl3-core` later
 - `sdl3-satellite` later
 
@@ -213,7 +216,9 @@ Tests mirror this concept shape under `build/_build.Tests/Unit/Targets/GenerateB
 - platform catalog id;
 - header set;
 - owned prefixes;
-- core-family reference target for satellites.
+- core-family reference target for satellites;
+- declaration export macro strategy (`DECLSPEC` / satellite-specific scope macros / header-derived exports);
+- staged behavior when a disabled satellite placeholder resolves a profile but generation remains intentionally off.
 
 **Manifest-owned facts:**
 
@@ -251,16 +256,24 @@ Tests mirror this concept shape under `build/_build.Tests/Unit/Targets/GenerateB
 - Result-shaped record names in the generator should stay semantically honest. Repo-wide `Result<T,TError>` is for expected success/failure; macro translation records such as `BindingConstantTranslationResult`, `MacroConstantMergeResult`, and `MacroManualPolicyResult` are output bags. M3 may rename those to `*Output` / `*Translation` for clarity, but should not force them into `Result<T,TError>` unless they start representing expected failures.
 - M3 cleanup must remain behavior-preserving unless a RED test exposes a real ABI/API bug. Generated SDL2.Core output, compile-check behavior, and the M2 safety harness remain the guardrails while policy seams move.
 
+**Satellite reconnaissance findings (installed x64-windows-hybrid headers, 2026-05-20):**
+
+- `SDL_image.h`: 59 `extern DECLSPEC` declarations. Mostly simple wrappers over core-owned `SDL_Surface*`, `SDL_Texture*`, `SDL_Renderer*`, `SDL_RWops*`, `const char*`, plus one owned concrete type `IMG_Animation` and `IMG_InitFlags`. The only early oddity is `char **xpm` in XPM helpers.
+- `SDL_mixer.h`: 97 `extern DECLSPEC` declarations. More callback-heavy than Image (`Mix_MixCallback`, `Mix_MusicFinishedCallback`, `Mix_ChannelFinishedCallback`, `Mix_EffectFunc_t`, `Mix_EffectDone_t`, `Mix_EachSoundFontCallback`) and uses `SDL_bool` return values. Owned concepts are `Mix_Chunk`, `Mix_Music`, `Mix_Fading`, and `Mix_MusicType`; many APIs reference core SDL audio/RWops types.
+- `SDL_ttf.h`: 85 `extern DECLSPEC` declarations. Opaque `TTF_Font`, many `SDL_Color` by-value parameters, several C `long` parameters/returns (`TTF_OpenFontIndex*`, `TTF_FontFaces`), `SDL_bool`, legacy `const Uint16*` Unicode APIs, and deprecated functions. This is the satellite most likely to exercise C `long`, by-value core structs, and deprecation reporting before public wrappers.
+- `SDL2_gfx` headers: public surface is split across `SDL2_gfxPrimitives.h`, `SDL2_imageFilter.h`, `SDL2_rotozoom.h`, and `SDL2_framerate.h`; declarations use `SDL2_GFXPRIMITIVES_SCOPE`, `SDL2_IMAGEFILTER_SCOPE`, `SDL2_ROTOZOOM_SCOPE`, and `SDL2_FRAMERATE_SCOPE` rather than `extern DECLSPEC`. Function names are not uniformly prefixed by one family token (`pixelColor`, `rotozoomSurface`, `SDL_imageFilter*`, `SDL_initFramerate`, etc.), so owned-prefix/profile configuration needs to handle multi-prefix/multi-header families without falling back to SDL2.Core assumptions.
+
 **Exit evidence:**
 
 - SDL2.Core output stays unchanged unless a RED test exposes a bug.
 - Generic model-building/emission code no longer hardcodes `/SDL2/`, `SDL_`, or `SDL2` library identity except through a named profile/config value.
 - Disabled SDL2 satellite placeholder configs can resolve a profile or fail with clear staged errors without enabling generation.
-- Tests prove SDL2.Core profile behavior and at least one satellite-profile boundary condition.
+- Tests prove SDL2.Core profile behavior and satellite-profile boundary conditions for at least Image/Mixer/Ttf plus the Gfx custom-export-macro case.
 
 **Non-goals:**
 
 - No giant JSON policy language.
+- No SDL2 satellite output emission or package source flip in M3.
 - No SDL3 implementation before SDL3 becomes a real consumer.
 
 ## Milestone 4: Raw ABI Projection And Multi-TFM Backends
