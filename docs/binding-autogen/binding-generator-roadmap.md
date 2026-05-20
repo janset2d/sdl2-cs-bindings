@@ -127,6 +127,8 @@ The current major gap is architectural readiness. Generated SDL2.Core is roughly
 
 **Goal:** Make `GenerateBindings` understandable from the task entrypoint and align production/test layout around real concepts while keeping output stable.
 
+**Detailed plan:** [`milestones/milestone-2-behavior-preserving-topology-refactor.md`](milestones/milestone-2-behavior-preserving-topology-refactor.md).
+
 **References:** ADR-002 target-centric build host, ADR-003 data-layer boundary, [`../knowledge-base/extraction-guidelines.md`](../knowledge-base/extraction-guidelines.md), [`../knowledge-base/testing-guidelines.md`](../knowledge-base/testing-guidelines.md).
 
 **Target shape:**
@@ -136,31 +138,33 @@ build/_build/Targets/GenerateBindings/
   GenerateBindingsTask.cs
   BindingFamilyGeneration.cs
   HeaderSet/
+  SyntheticHeaders/
   Parse/
   PlatformViews/
-  Profiles/
   Model/
   ModelBuilding/
     Declarations/
     Types/
     Functions/
     Macros/
+    SdlPolicy/
   Emit/
     RawAbi/
     PublicApi/
-    Friendly/
     Reports/
     Tfm/
 ```
 
 Tests mirror this concept shape under `build/_build.Tests/Unit/Targets/GenerateBindings/` where it adds clarity.
 
+`Profiles/` and `Emit/Friendly/` remain future concepts unless a real M2 type earns those folders; do not create empty architecture placeholders.
+
 **Scope:**
 
 - Extract a named `BindingFamilyGeneration` collaborator from `GenerateBindingsTask`; do not create a generic `Pipeline` or `Runner`.
 - Keep the task focused on lifecycle orchestration, Linux-canonical guardrails, config selection, and expected-error translation.
 - Split `Translation/` into model-building concepts: declarations, types, functions, and macros.
-- Split `Emitting/` into output-contract concepts: raw ABI, public API, friendly overloads, reports, and TFM policy.
+- Split `Emitting/` into output-contract concepts: raw ABI, public generated artifacts, reports, and TFM policy. Friendly overload topology remains future work.
 - Collapse one-line records into cohesive files when they are part of the same concept.
 - Convert static one-method policy helpers to instance collaborators only when composition, testing, or profile selection justifies it.
 - Move/rename files with `git mv`.
@@ -178,9 +182,9 @@ Tests mirror this concept shape under `build/_build.Tests/Unit/Targets/GenerateB
 - No public wrapper generation.
 - No behavior changes without RED tests.
 
-## Milestone 3: Family Profiles And Manifest Boundary
+## Milestone 3: CppAst Engine, Family Profiles, And Manifest Boundary
 
-**Goal:** Localize SDL2/SDL3/satellite policy and keep `build/manifest.json` as family facts plus explicit exceptions, not a policy scripting language.
+**Goal:** Localize SDL2/SDL3/satellite policy, keep the CppAst ABI engine reusable inside the target, and keep `build/manifest.json` as family facts plus explicit exceptions, not a policy scripting language.
 
 **References:** constitution section "Manifest Configuration Vs Code-Owned Policy", SkiaSharp mapping discipline, Alimer and ppy hardcoded policy caution.
 
@@ -191,13 +195,31 @@ Tests mirror this concept shape under `build/_build.Tests/Unit/Targets/GenerateB
 - `sdl3-core` later
 - `sdl3-satellite` later
 
+**Engine-owned concepts:**
+
+- CppAst parse-result normalization.
+- Native declaration catalog construction.
+- Platform parse-view merge and neutral subtraction.
+- Semantic binding model construction.
+- Raw ABI projection inputs that are not SDL-family policy.
+- Deterministic file-set assembly and report generation.
+
+**Profile/config-owned family identity:**
+
+- managed namespace;
+- public class name;
+- internal raw ABI class name;
+- native import library name;
+- platform catalog id;
+- header set;
+- owned prefixes;
+- core-family reference target for satellites.
+
 **Manifest-owned facts:**
 
 - enabled state;
 - managed namespace;
 - public class name;
-- internal raw ABI class name;
-- native import library name;
 - platform catalog id;
 - header set;
 - owned prefixes;

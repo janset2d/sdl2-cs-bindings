@@ -60,6 +60,18 @@ The generator is build infrastructure, not a standalone product project.
 
 The generator is Linux-canonical. It runs inside the pinned Linux container using CppAst/libclang. Non-Linux host execution fails closed; Windows and macOS development flows use Docker through `tools.cs`.
 
+## Generator Engine And SDL Policy
+
+The generator should separate CppAst-to-ABI mechanics from SDL family policy without pretending to be a general binding-generator product.
+
+Rules:
+
+- The core pipeline is a CppAst ABI engine for parsed declarations, native type classification, platform parse-view merge, raw ABI projection, and deterministic file-set emission.
+- SDL-specific decisions live behind named policy/profile concepts: owned prefixes, core-owned type references, SDL2 versus SDL3 bool shape, known opaque structs, string-like macro handling, SysWM layout, and satellite-to-core reference rules.
+- Keep those concepts target-local under `Targets/GenerateBindings/` until a second real generator target exists. Do not promote them to root `Shared` or standalone `src/` projects for aesthetic symmetry.
+- M2 may expose an `SdlPolicy` seam while preserving SDL2.Core output. M3 owns the real profile/config boundary for SDL2 core, SDL2 satellites, SDL3 core, and SDL3 satellites.
+- Generic model-building or emission code must not accumulate ad hoc `/SDL2/`, `SDL_`, `SDL2`, or library-name checks once a named policy/profile seam exists. Add a policy collaborator instead.
+
 ## Manifest Configuration Vs Code-Owned Policy
 
 `build/manifest.json library_manifests[].binding_generation` is per-family configuration. It is not a hidden policy language.
@@ -83,6 +95,8 @@ Manifest owns reviewable facts that vary by family:
 - `validators`
 - `dynapi`
 
+Future profile work may promote additional family identity facts, such as raw ABI class name and native import library name, into explicit config. Until that schema exists, treat them as code-owned/profile-bound seams rather than current manifest facts.
+
 Generator code owns ABI/API policy:
 
 - Scalar width mapping.
@@ -105,7 +119,7 @@ Exception rule:
 
 ## Family Identity
 
-Generated C# identity is family-owned and manifest-driven.
+Generated C# identity is family-owned. The public namespace and primary public class are manifest-driven today; the internal raw ABI class and native import library are intended family identity seams and may be code-derived until M3 profile/config work promotes them explicitly.
 
 | Family | Namespace | Public class | Internal raw ABI class |
 | --- | --- | --- | --- |
