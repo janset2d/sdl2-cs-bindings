@@ -136,7 +136,7 @@ public sealed class BindingConstantTests
     [Test]
     public async Task Literal_Kind_Should_Emit_Through_Const_Path()
     {
-        // CsConstantEmitter keeps Kind as macro-shape metadata.
+        // ConstantEmitter keeps Kind as macro-shape metadata.
         // Numeric Literal and Computed macro expressions can both emit through
         // the const path when the RHS is valid C# compile-time syntax.
         var sut = new BindingConstant(

@@ -242,6 +242,15 @@ Tests mirror this concept shape under `build/_build.Tests/Unit/Targets/GenerateB
 - macro taxonomy and safe expression evaluation;
 - platform parse-view merge and attribution rules.
 
+**M2 review findings to carry into the detailed M3 plan:**
+
+- `TypeMappingPolicy` still mixes generic primitive-width mapping, C# identifier escaping, legacy `BindingTypeRef` projection, and SDL2-specific typedef facts such as `SDL_bool -> int`. M3 should split those responsibilities so SDL2/SDL3 bool shape is selected through an explicit SDL profile/policy seam, while generic C primitive mapping and safe identifier escaping stay engine-owned or move to narrower helpers.
+- `LegacyBindingTypeRefBridge` is a spike-era adapter used only to convert manifest `required_functions` string types into `NativeTypeRef` values. M3 should replace it with a purpose-built required-function adapter or config parser that produces semantic native type descriptors directly, then retire or sharply quarantine `BindingTypeRef` from production flow.
+- `ExternalNativeTypePolicy` is not SDL policy even though it exists because SDL headers mention foreign types. It should be named and placed as an external/foreign ABI policy for C runtime, Vulkan, GDK, and Windows COM handles, then injected or selected by profile only where that profile needs it.
+- `PlatformCatalog.AllPlatformMacros` is SDL2.Core-specific macro hygiene, not a generic platform-view law. M3 should move the macro denylist next to the SDL2.Core catalog/profile data and keep the manifest `platform_catalog` id as a family fact that resolves to a named catalog or fails with a staged, clear error for placeholders.
+- Result-shaped record names in the generator should stay semantically honest. Repo-wide `Result<T,TError>` is for expected success/failure; macro translation records such as `BindingConstantTranslationResult`, `MacroConstantMergeResult`, and `MacroManualPolicyResult` are output bags. M3 may rename those to `*Output` / `*Translation` for clarity, but should not force them into `Result<T,TError>` unless they start representing expected failures.
+- M3 cleanup must remain behavior-preserving unless a RED test exposes a real ABI/API bug. Generated SDL2.Core output, compile-check behavior, and the M2 safety harness remain the guardrails while policy seams move.
+
 **Exit evidence:**
 
 - SDL2.Core output stays unchanged unless a RED test exposes a bug.

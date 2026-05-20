@@ -1,7 +1,8 @@
 using Build.Tests.Fixtures;
 using Build.Targets.GenerateBindings.Model;
-using Build.Targets.GenerateBindings.Parsing;
-using Build.Targets.GenerateBindings.Translation;
+using Build.Targets.GenerateBindings.ModelBuilding;
+using Build.Targets.GenerateBindings.Parse;
+using Build.Targets.GenerateBindings.PlatformViews;
 using CppAst;
 
 namespace Build.Tests.Fixtures.GenerateBindings;
@@ -16,7 +17,7 @@ internal static class SemanticFixtureParser
         IReadOnlyList<string>? undefines = null)
     {
         var compilation = ParseFixture(fixturePath, parseMacros, parseAsSdl2Header: true, defines, undefines);
-        return CppAstToBindingModel.Translate(
+        return new BindingModelBuilder().Build(
             [ParseResult("Neutral", compilation, defines, undefines)],
             BindingGenerationFixture.Sdl2CoreConfig(),
             requiredFunctions ?? []);

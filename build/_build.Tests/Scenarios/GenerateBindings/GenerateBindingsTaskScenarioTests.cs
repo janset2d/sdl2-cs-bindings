@@ -2,8 +2,11 @@ using Build.Data.BindingGeneration;
 using Build.Data.BindingGeneration.Models;
 using Build.Results;
 using Build.Targets.GenerateBindings;
+using Build.Targets.GenerateBindings.Emit;
 using Build.Targets.GenerateBindings.HeaderSet;
-using Build.Targets.GenerateBindings.Parsing;
+using Build.Targets.GenerateBindings.ModelBuilding;
+using Build.Targets.GenerateBindings.Parse;
+using Build.Targets.GenerateBindings.PlatformViews;
 using Build.Tests.Fixtures;
 using Build.Validation.BindingGeneration;
 using Cake.Core;
@@ -81,6 +84,7 @@ public sealed class GenerateBindingsTaskScenarioTests
         {
             ManagedNamespace = "Example.Bindings",
             PrimaryClassName = "ExampleApi",
+            Validators = ImmutableDictionary<string, bool>.Empty,
         };
         world.WithTextFile("vcpkg_installed/x64-linux-hybrid/include/SDL2/SDL_video.h", string.Empty);
         var parser = Substitute.For<ICppAstParseRunner>();
@@ -136,6 +140,49 @@ public sealed class GenerateBindingsTaskScenarioTests
         await Assert.That(result.Log.HasMessage(LogLevel.Information, "Model categories: 1 structs, 1 enums, 2 constants, 1 handles, 1 callbacks.")).IsTrue();
     }
 
+    [Test]
+    public async Task RunAsync_Should_Throw_When_Config_Enables_Unknown_Validator()
+    {
+        var world = FakeCakeWorld.CreateLinux();
+        var config = Sdl2CoreConfig() with
+        {
+            Validators = ImmutableDictionary<string, bool>.Empty.Add("missing-validator", true),
+        };
+        world.WithTextFile("vcpkg_installed/x64-linux-hybrid/include/SDL2/SDL_video.h", string.Empty);
+        var parser = Substitute.For<ICppAstParseRunner>();
+        parser
+            .Parse(Arg.Any<BindingGenerationConfig>(), Arg.Any<ResolvedHeaderSet>(), Arg.Any<PlatformParseView>())
+            .Returns(call => new CppAstParseResult(call.Arg<PlatformParseView>(), []));
+
+        var result = await CreateHost(world, parser: parser, configRepository: CreateEnabledRepository(config), validators: []).RunAsync();
+
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.Exception).IsNotNull();
+        await Assert.That(result.Exception).IsTypeOf<CakeException>();
+        await Assert.That(result.Exception!.Message).Contains("missing-validator");
+    }
+
+    [Test]
+    public async Task RunAsync_Should_Remove_Stale_Generated_Files_When_Regenerating_Family()
+    {
+        var world = FakeCakeWorld.CreateLinux();
+        var config = Sdl2CoreConfig() with
+        {
+            Validators = ImmutableDictionary<string, bool>.Empty,
+        };
+        world.WithTextFile("vcpkg_installed/x64-linux-hybrid/include/SDL2/SDL_video.h", string.Empty);
+        world.WithTextFile("artifacts/generated-bindings-preview/sdl2-core/Types/Obsolete.g.cs", "// stale");
+        var parser = Substitute.For<ICppAstParseRunner>();
+        parser
+            .Parse(Arg.Any<BindingGenerationConfig>(), Arg.Any<ResolvedHeaderSet>(), Arg.Any<PlatformParseView>())
+            .Returns(call => new CppAstParseResult(call.Arg<PlatformParseView>(), []));
+
+        var result = await CreateHost(world, parser: parser, configRepository: CreateEnabledRepository(config)).RunAsync();
+
+        await Assert.That(result.Success).IsTrue();
+        await Assert.That(world.FileExists("artifacts/generated-bindings-preview/sdl2-core/Types/Obsolete.g.cs")).IsFalse();
+    }
+
     private static TargetTestHost<GenerateBindingsTask> CreateHost(
         FakeCakeWorld world,
         ILibclangVersionAsserter? libclangAsserter = null,
@@ -149,6 +196,9 @@ public sealed class GenerateBindingsTaskScenarioTests
             {
                 services.AddSingleton<ParseDiagnosticFormatter>();
                 services.AddSingleton<HeaderSetResolver>();
+                services.AddSingleton<BindingModelBuilder>();
+                services.AddSingleton<BindingEmitter>();
+                services.AddSingleton<BindingFamilyGeneration>();
                 services.AddSingleton(libclangAsserter ?? Substitute.For<ILibclangVersionAsserter>());
                 services.AddSingleton(parser ?? Substitute.For<ICppAstParseRunner>());
                 services.AddSingleton(repo);

@@ -116,7 +116,7 @@ public enum ConstantKind
 /// excluded from the per-header parse loop. Mirrors the pattern of
 /// <see cref="RequiredFunctionConfig"/>: the manifest carries the explicit
 /// declaration, the translator merges it into the Neutral view, and
-/// <c>CsConstantEmitter</c> uses <see cref="Kind"/> as macro-shape metadata while
+/// <c>ConstantEmitter</c> uses <see cref="Kind"/> as macro-shape metadata while
 /// selecting the C# output form.
 /// </summary>
 public sealed record RequiredConstantConfig

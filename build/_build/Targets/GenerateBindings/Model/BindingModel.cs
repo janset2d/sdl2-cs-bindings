@@ -23,7 +23,7 @@ public sealed record BindingModel(
     IReadOnlyList<BindingCallback> Callbacks)
 {
     /// <summary>
-    /// Report produced by <see cref="Build.Targets.GenerateBindings.Translation.BindingConstantTranslator"/>
+    /// Report produced by <see cref="Build.Targets.GenerateBindings.ModelBuilding.Macros.BindingConstantTranslator"/>
     /// covering all macro candidates seen during the parse phase and the outcome of each.
     /// Defaults to <see cref="MacroConstantReport.Empty"/> so validators and tests that
     /// construct <see cref="BindingModel"/> without a full translation pass compile cleanly.

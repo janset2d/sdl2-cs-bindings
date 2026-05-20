@@ -4,8 +4,11 @@ using Build.Data.BindingGeneration;
 using Build.Data.BindingGeneration.Models;
 using Build.Results;
 using Build.Targets.GenerateBindings;
+using Build.Targets.GenerateBindings.Emit;
 using Build.Targets.GenerateBindings.HeaderSet;
-using Build.Targets.GenerateBindings.Parsing;
+using Build.Targets.GenerateBindings.ModelBuilding;
+using Build.Targets.GenerateBindings.Parse;
+using Build.Targets.GenerateBindings.PlatformViews;
 using Build.Tests.Fixtures;
 using Build.Validation.BindingGeneration;
 using Cake.Core.Diagnostics;
@@ -77,6 +80,9 @@ public sealed class GenerateBindingsTaskSnapshotTests
             {
                 services.AddSingleton<ParseDiagnosticFormatter>();
                 services.AddSingleton<HeaderSetResolver>();
+                services.AddSingleton<BindingModelBuilder>();
+                services.AddSingleton<BindingEmitter>();
+                services.AddSingleton<BindingFamilyGeneration>();
                 services.AddSingleton(Substitute.For<ILibclangVersionAsserter>());
                 services.AddSingleton(parser);
                 services.AddSingleton(configRepository);

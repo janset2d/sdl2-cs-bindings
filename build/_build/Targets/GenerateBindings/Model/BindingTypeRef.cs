@@ -24,7 +24,7 @@ namespace Build.Targets.GenerateBindings.Model;
 /// <param name="IsOpaqueHandle">
 /// <c>true</c> when the type is an opaque-handle wrapper (e.g. <c>SDL_Window</c>,
 /// emitted as <c>readonly partial struct SDL_Window(nint value)</c> per Rule 2). Lets
-/// <c>CsHandleEmitter</c> identify handle types without re-checking the prefix table.
+/// <c>HandleEmitter</c> identify handle types without re-checking the prefix table.
 /// </param>
 public sealed record BindingTypeRef(
     string ManagedName,

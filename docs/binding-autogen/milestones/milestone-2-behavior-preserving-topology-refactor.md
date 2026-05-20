@@ -401,16 +401,27 @@ private static async Task WriteAsync(BuildContext context, GeneratedFileSet file
 
 private static void EnsureSafeGeneratedOutputDirectory(ICakeEnvironment environment, DirectoryPath previewRoot, DirectoryPath outputDirectory)
 {
-    var root = previewRoot.MakeAbsolute(environment).FullPath.TrimEnd('/', '\\');
-    var candidate = outputDirectory.MakeAbsolute(environment).FullPath.TrimEnd('/', '\\');
-    if (!candidate.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+    var root = previewRoot.MakeAbsolute(environment);
+    var candidate = outputDirectory.MakeAbsolute(environment);
+    var rootSegments = root.Segments;
+    var candidateSegments = candidate.Segments;
+
+    if (candidateSegments.Length <= rootSegments.Length)
     {
-        throw new CakeException($"Refusing to clear generated bindings output outside '{root}': '{candidate}'.");
+        throw new CakeException($"Refusing to clear generated bindings output outside '{root.FullPath}': '{candidate.FullPath}'.");
+    }
+
+    for (var i = 0; i < rootSegments.Length; i++)
+    {
+        if (!string.Equals(rootSegments[i], candidateSegments[i], StringComparison.OrdinalIgnoreCase))
+        {
+            throw new CakeException($"Refusing to clear generated bindings output outside '{root.FullPath}': '{candidate.FullPath}'.");
+        }
     }
 }
 ```
 
-Use Cake aliases/settings for directory operations. The path check is deliberately boring string normalization: M2 only needs to prevent a miswired recursive delete from escaping `artifacts/generated-bindings-preview/`.
+Use Cake aliases/settings and Cake path segments for directory operations and safety checks. The guard only exists to prevent a miswired recursive delete from escaping `artifacts/generated-bindings-preview/`.
 
 - [ ] **Step 3: Verify the two safety tests pass**
 
@@ -1206,3 +1217,16 @@ Stop for review after each checkpoint before committing:
 6. Docs and final verification.
 
 Commit boundaries are intentionally review checkpoints, not mandatory commits. Deniz decides whether to squash, keep multiple commits, or adjust messages after seeing the final diff.
+
+## M3 Planning Carry-Forward
+
+The M2 review intentionally deferred several valid objections because fixing them inside this milestone would change policy boundaries rather than topology. The canonical M3 planning guidance now lives in [`../binding-generator-roadmap.md`](../binding-generator-roadmap.md) under **Milestone 3: CppAst Engine, Family Profiles, And Manifest Boundary**.
+
+Carry these findings into the M3 detailed plan before touching code:
+
+- SDL2-specific type policy, especially `SDL_bool`, must move behind an explicit SDL profile/policy seam instead of living inside the legacy `TypeMappingPolicy` bucket.
+- Spike-era bridges such as `LegacyBindingTypeRefBridge` and broad `BindingTypeRef` usage should be retired or constrained once required manifest declarations can produce semantic `NativeTypeRef` values directly.
+- Foreign ABI mapping for C runtime, Vulkan, GDK, and Windows COM types should remain separate from SDL policy even when SDL headers are the reason those names appear.
+- SDL2.Core platform macro hygiene should be catalog/profile-owned rather than presented as a generic `PlatformCatalog` law.
+- Repo-wide `Result<T,TError>` remains for expected operation failures; generator output-bag records should be renamed only when it improves clarity, not mechanically converted.
+- Behavior preservation stays mandatory unless a RED test proves an ABI/API bug.
