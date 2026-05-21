@@ -72,6 +72,7 @@ Rules:
 - M2 may expose an `SdlPolicy` seam while preserving SDL2.Core output. M3 owns the real profile/config boundary for SDL2 core, SDL2 satellites, SDL3 core, and SDL3 satellites.
 - Generic model-building or emission code must not accumulate ad hoc `/SDL2/`, `SDL_`, `SDL2`, or library-name checks once a named policy/profile seam exists. Add a policy collaborator instead.
 - Satellite profiles must be designed against real installed headers before generation is enabled. SDL2.Image / Mixer / Ttf mostly use SDL's `extern DECLSPEC` convention, while SDL2_gfx uses per-header `SDL2_*_SCOPE` export macros and a mixed naming surface; this is profile policy, not a reason to special-case generic CppAst processing.
+- `profile_id` is a manifest routing key into code-owned profile policy. It is not a behavior switch that lets JSON redefine ABI rules.
 
 ## Manifest Configuration Vs Code-Owned Policy
 
@@ -80,6 +81,7 @@ Rules:
 Manifest owns reviewable facts that vary by family:
 
 - `enabled`
+- `profile_id`
 - `managed_namespace`
 - `primary_class_name`
 - `platform_catalog`
@@ -96,15 +98,9 @@ Manifest owns reviewable facts that vary by family:
 - `validators`
 - `dynapi`
 
-Future profile/config work may add reviewable family facts when they genuinely vary by family, such as:
+M3 may add `export_macro_names` as declaration-visibility token inventory when tests prove it earns its place. The field lists family-specific macro names; code-owned declaration visibility strategy decides how those names affect parsing, macro suppression, and export evidence.
 
-- `raw_abi_class_name`
-- `native_import_library`
-- `core_reference_namespace`
-- `export_macro_names` / declaration visibility strategy
-- `profile_id`
-
-Future profile work may promote additional family identity facts, such as raw ABI class name and native import library name, into explicit config. Until that schema exists, treat them as code-owned/profile-bound seams rather than current manifest facts.
+Raw ABI class name, native import name, and satellite core-reference identity are derived first from existing manifest facts (`primary_class_name`, `library_manifests[].name`, and `package_families[].depends_on`). Promote them into explicit manifest fields only when a RED test proves the convention is insufficient for a real family.
 
 Generator code owns ABI/API policy:
 
@@ -125,6 +121,7 @@ Exception rule:
 - Silent JSON knobs that change ABI behavior are forbidden.
 - Move behavior into the manifest only when it genuinely varies by family or needs an explicit per-family override.
 - If every family must obey the same rule, keep it in code and tests.
+- A manifest fact may route to a code-owned profile or named exception. It must not encode scalar width, bool wire shape, pointer classification, callback handling, variadic behavior, macro taxonomy, platform merge, or struct/union layout.
 
 ## Family Identity
 

@@ -50,7 +50,7 @@ The CppAst + libclang.runtime + libClangSharp.runtime trio moves as a coordinate
 | CppAst | libclang.runtime.* | libClangSharp.runtime.* | Status |
 |---|---|---|---|
 | 0.24.0 (2025-11-20) | 20.1.2 | 20.1.2 | Stage 1 pinned |
-| 0.25+ | TBD | TBD | candidates — see "Post-Stage-1 Trio Revalidation" below |
+| 0.25+ | unselected | unselected | candidates — see "Post-Stage-1 Trio Revalidation" below |
 
 `LibclangVersionAsserter` asserts the resolved libclang version against this table at task entry and fails closed with an actionable diagnostic on mismatch (defensive against future package-restore drift or accidental floating-version regression).
 
@@ -78,6 +78,34 @@ dotnet run --file tools.cs -- generate-bindings --no-cache        # skip vcpkg b
 Output lands at `artifacts/generated-bindings-preview/sdl2-core/` (gitignored). vcpkg binary cache lives in a named Docker volume; nuke it via `docker volume rm janset-vcpkg-cache` if a fresh full vcpkg install is needed.
 
 Production-location flag-flip to `src/SDL2.<Family>/Generated/` is a Stage 1 Task 7 concern, not a maintenance operation.
+
+## Profile Boundary Maintenance
+
+M3 introduces explicit binding-generation profiles. Treat `binding_generation.profile_id` as a routing key into code-owned profile policy, not as a JSON behavior switch.
+
+When adding or enabling a satellite family:
+
+1. Verify the manifest carries the family identity facts: `profile_id`, namespace, primary class, platform catalog id, owned prefixes, and any accepted export macro token inventory.
+2. Resolve the satellite's core dependency from `package_families[].depends_on`; do not duplicate it under `binding_generation` unless a RED test proves the existing relationship is insufficient.
+3. Add or update manifest integration fixtures for both disabled-placeholder resolution and enabled-generation prerequisites.
+4. Add focused `.h` fixtures when touching parse/model behavior such as SDL2_gfx scope macros, SDL2 satellite declaration tokens, callbacks, C `long`, SDL2 `SDL_bool`, by-value core structs, or pointer-to-pointer cases.
+5. Keep disabled satellites non-emitting until the satellite generation milestone explicitly enables them.
+
+For Linux/libclang/vcpkg-installed-header checks, prefer focused command overrides against the binding-generator image instead of full generation when full generation is not the behavior under test:
+
+```pwsh
+$repo = (Get-Location).Path
+docker build -f docker/binding-generator.Dockerfile -t janset-binding-generator:focal-latest .
+docker run --rm --entrypoint bash `
+  -v "${repo}:/workspace" `
+  -w /workspace `
+  -e REPO_ROOT=/workspace `
+  -e RID=linux-x64 `
+  janset-binding-generator:focal-latest `
+  -lc "dotnet test --project /workspace/build/_build.Tests/Build.Tests.csproj -c Release --framework net10.0 --filter 'FullyQualifiedName~RealHeaderReadiness'"
+```
+
+This command builds or refreshes the local `janset-binding-generator:focal-latest` image tag from `docker/binding-generator.Dockerfile`, mounts the current checkout at `/workspace`, bypasses the image entrypoint, and runs only the requested test command.
 
 ## Synthetic Headers Maintenance
 

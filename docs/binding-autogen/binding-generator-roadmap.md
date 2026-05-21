@@ -186,6 +186,8 @@ Tests mirror this concept shape under `build/_build.Tests/Unit/Targets/GenerateB
 
 **Goal:** Localize SDL2/SDL3/satellite policy, keep the CppAst ABI engine reusable inside the target, and keep `build/manifest.json` as family facts plus explicit exceptions, not a policy scripting language.
 
+**Detailed plan:** [`milestone-3-profile-boundary.md`](milestones/milestone-3-profile-boundary.md).
+
 **References:** constitution section "Manifest Configuration Vs Code-Owned Policy", SkiaSharp mapping discipline, Alimer and ppy hardcoded policy caution.
 
 **Approved scope (Option A+, 2026-05-20):** M3 is a behavior-preserving profile-boundary refactor with satellite reconnaissance. It must not enable SDL2.Image / Mixer / Ttf / Gfx generation, but it must design the profile seams against their real installed headers so Stage 2 activation does not force another topology refactor. This is the critical architecture slice; satellites are expected to be simpler than SDL2.Core, but the profile model must know about their different header and export-macro shapes.
@@ -207,27 +209,24 @@ Tests mirror this concept shape under `build/_build.Tests/Unit/Targets/GenerateB
 - Raw ABI projection inputs that are not SDL-family policy.
 - Deterministic file-set assembly and report generation.
 
-**Profile/config-owned family identity:**
+**Authority split:**
 
-- managed namespace;
-- public class name;
-- internal raw ABI class name;
-- native import library name;
-- platform catalog id;
-- header set;
-- owned prefixes;
-- core-family reference target for satellites;
-- declaration export macro strategy (`DECLSPEC` / satellite-specific scope macros / header-derived exports);
-- staged behavior when a disabled satellite placeholder resolves a profile but generation remains intentionally off.
+- Manifest owns reviewable family facts and explicit declaration exceptions.
+- Profile code owns defaults, interpretation, and SDL-family policy selection.
+- Engine code owns ABI mechanics and C-to-C# translation semantics.
+- `profile_id` is a manifest routing key into code-owned profile policy, not a JSON behavior switch.
+- Raw ABI class name, native import name, and satellite core-reference identity are derived first from existing manifest facts; they become new manifest fields only when a RED test proves convention insufficient.
 
 **Manifest-owned facts:**
 
 - enabled state;
+- profile id;
 - managed namespace;
 - public class name;
 - platform catalog id;
 - header set;
 - owned prefixes;
+- export macro token inventory if M3 tests prove `export_macro_names` earns its place;
 - parse defines and clang args;
 - required/deferred declarations;
 - manual macro excludes/overrides;
@@ -250,7 +249,7 @@ Tests mirror this concept shape under `build/_build.Tests/Unit/Targets/GenerateB
 **M2 review findings to carry into the detailed M3 plan:**
 
 - `TypeMappingPolicy` still mixes generic primitive-width mapping, C# identifier escaping, legacy `BindingTypeRef` projection, and SDL2-specific typedef facts such as `SDL_bool -> int`. M3 should split those responsibilities so SDL2/SDL3 bool shape is selected through an explicit SDL profile/policy seam, while generic C primitive mapping and safe identifier escaping stay engine-owned or move to narrower helpers.
-- `LegacyBindingTypeRefBridge` is a spike-era adapter used only to convert manifest `required_functions` string types into `NativeTypeRef` values. M3 should replace it with a purpose-built required-function adapter or config parser that produces semantic native type descriptors directly, then retire or sharply quarantine `BindingTypeRef` from production flow.
+- `LegacyBindingTypeRefBridge` is a spike-era adapter used only to convert manifest `required_functions` string types into `NativeTypeRef` values. M3 must replace it with a purpose-built required-function adapter or config parser that produces semantic native type descriptors directly, then remove the bridge. There is no backward-compatibility requirement for this internal spike remnant.
 - `ExternalNativeTypePolicy` is not SDL policy even though it exists because SDL headers mention foreign types. It should be named and placed as an external/foreign ABI policy for C runtime, Vulkan, GDK, and Windows COM handles, then injected or selected by profile only where that profile needs it.
 - `PlatformCatalog.AllPlatformMacros` is SDL2.Core-specific macro hygiene, not a generic platform-view law. M3 should move the macro denylist next to the SDL2.Core catalog/profile data and keep the manifest `platform_catalog` id as a family fact that resolves to a named catalog or fails with a staged, clear error for placeholders.
 - Result-shaped record names in the generator should stay semantically honest. Repo-wide `Result<T,TError>` is for expected success/failure; macro translation records such as `BindingConstantTranslationResult`, `MacroConstantMergeResult`, and `MacroManualPolicyResult` are output bags. M3 may rename those to `*Output` / `*Translation` for clarity, but should not force them into `Result<T,TError>` unless they start representing expected failures.
@@ -269,6 +268,9 @@ Tests mirror this concept shape under `build/_build.Tests/Unit/Targets/GenerateB
 - Generic model-building/emission code no longer hardcodes `/SDL2/`, `SDL_`, or `SDL2` library identity except through a named profile/config value.
 - Disabled SDL2 satellite placeholder configs can resolve a profile or fail with clear staged errors without enabling generation.
 - Tests prove SDL2.Core profile behavior and satellite-profile boundary conditions for at least Image/Mixer/Ttf plus the Gfx custom-export-macro case.
+- Manifest integration fixtures cover enabled core, disabled satellite placeholders, unknown profiles, enabled families missing generation prerequisites, core-dependency derivation, profile mismatches, and unknown validator ids.
+- Linux-specific header/readiness checks use the binding-generator image with focused command overrides where practical, rather than running full generation for narrow audits.
+- `LegacyBindingTypeRefBridge` is removed.
 
 **Non-goals:**
 
