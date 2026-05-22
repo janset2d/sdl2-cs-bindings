@@ -12,7 +12,7 @@ namespace SDL2
         SDL_LASTERROR,
     }
 
-    public static unsafe partial class SDLNative
+    internal static unsafe partial class SDLNative
     {
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern int SDL_SetError([NativeTypeName("const char *")] byte* fmt);

@@ -89,7 +89,7 @@ namespace SDL2
         public IntPtr SendEffect;
     }
 
-    public static unsafe partial class SDLNative
+    internal static unsafe partial class SDLNative
     {
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern void SDL_LockJoysticks();

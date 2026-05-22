@@ -98,7 +98,7 @@ namespace SDL2
         public SDL_MessageBoxColorScheme* colorScheme;
     }
 
-    public static unsafe partial class SDLNative
+    internal static unsafe partial class SDLNative
     {
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern int SDL_ShowMessageBox([NativeTypeName("const SDL_MessageBoxData *")] SDL_MessageBoxData* messageboxdata, int* buttonid);

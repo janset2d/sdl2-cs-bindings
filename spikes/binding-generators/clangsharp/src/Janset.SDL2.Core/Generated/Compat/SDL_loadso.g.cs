@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 
 namespace SDL2
 {
-    public static unsafe partial class SDLNative
+    internal static unsafe partial class SDLNative
     {
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("void*")]

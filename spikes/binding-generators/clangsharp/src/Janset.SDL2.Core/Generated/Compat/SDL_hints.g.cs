@@ -13,7 +13,7 @@ namespace SDL2
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public unsafe delegate void SDL_HintCallback([NativeTypeName("void*")] nint userdata, [NativeTypeName("const char *")] byte* name, [NativeTypeName("const char *")] byte* oldValue, [NativeTypeName("const char *")] byte* newValue);
 
-    public static unsafe partial class SDLNative
+    internal static unsafe partial class SDLNative
     {
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern SDL_bool SDL_SetHintWithPriority([NativeTypeName("const char *")] byte* name, [NativeTypeName("const char *")] byte* value, SDL_HintPriority priority);

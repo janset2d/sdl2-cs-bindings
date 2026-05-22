@@ -62,6 +62,8 @@ Three-layer SDL2 binding API per Constitution Layer Contract (L34-50):
 └─────────────────────────────────────────┘
 ```
 
+The raw ABI boundary is container-level: `SDLNative` / `SDL_imageNative` must be internal. Generated methods may remain lexically public inside those internal containers because C# containing-type accessibility keeps them out of the public package API. See the constitution's `Internal Raw ABI: Why / How / What` section before changing this policy.
+
 **Multi-TFM target** (Constitution L379, evidence gate):
 
 - `net10.0`, `net9.0`, `net8.0` — Modern codegen output, `[LibraryImport]`, source-generated marshalling, modern C# (InlineArray, ReadOnlySpan u8 literal, nint/nuint, delegate*<...>)
@@ -273,6 +275,16 @@ Verification from this session:
 ### What is still not solved
 
 The Windows-local ClangSharp spike cannot honestly claim final platform-view support yet. Defining non-Windows macros is not enough because SDL2 headers then include platform system headers that do not exist in the Windows-local vcpkg/header context. The explicit shim flag is acceptable for local iteration, but not a replacement for native platform generation.
+
+The current oracle report also defines the next repair queue. These are not vague TODOs; they are evidence-backed gaps from `output/reports/oracle-evidence-clangsharp.md`:
+
+| Priority | Gap group | What to fix next |
+| --- | --- | --- |
+| A | Raw ABI visibility and SDL2_image family identity | Make generated raw ABI containers internal via ClangSharp class-level access specifiers and fix Image namespace drift from `SDL2` to `SDL2.Image`. Raw imports inside an internal container are not public API leaks; the oracle should check effective visibility. This is the next recommended implementation slice because it cleans the generated API shape before adding more symbols. |
+| B | Missing required `SDL.h` functions and constants | Recover `SDL_Init`, `SDL_InitSubSystem`, `SDL_Quit`, `SDL_QuitSubSystem`, `SDL_WasInit`, and the ten `SDL_INIT_*` constants without parsing `SDL.h` as a normal umbrella translation unit. |
+| C | Deferred layouts and platform-sensitive scalar mappings | Address `SDL_RWops`, `SDL_SysWMinfo`, `SDL_SysWMmsg`, `wchar_t`, and C `long` risks as a separate ABI research slice. This includes ClangSharp type emission behavior, SDL2 platform-condition handling, and native layout/scalar-width proof. Do not treat it as a simple cosmetic postprocess. |
+
+A-slice design lives at [`../../../docs/superpowers/specs/2026-05-22-clangsharp-raw-abi-visibility-design.md`](../../../docs/superpowers/specs/2026-05-22-clangsharp-raw-abi-visibility-design.md). Do not start implementation until that design has been reviewed and the implementation plan has been written.
 
 Observed diagnostics from the no-shim regenerated full run (`C:\Users\deniz\.local\share\opencode\tool-output\tool_e4c9292a5001KOvtZbM0U9r7AM`):
 

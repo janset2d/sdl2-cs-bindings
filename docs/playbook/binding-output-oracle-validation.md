@@ -58,8 +58,8 @@ Remote peer sources may be consulted during review, but record URLs and refs in 
 These checks are good candidates for fail gates once they are stable:
 
 - generated preview compiles across `net10.0`, `net9.0`, `net8.0`, `netstandard2.0`, and `net462`;
-- no public `[DllImport]` or `[LibraryImport]` declarations leak into generated public API;
-- no public raw ABI class such as `SDLNative` is exposed;
+- no effectively public `[DllImport]` or `[LibraryImport]` declarations leak into generated public API;
+- no public raw ABI class such as `SDLNative` is exposed. Lexically public generated methods inside an internal raw container are not public API leaks;
 - no function emitted by the generator is absent from the SDL2 dynapi manifest, excluding explicit configured exclusions;
 - generated function names are present in actual packaged native binary exports at Pack stage;
 - `parse-views.json` exists, has the expected schema, and lists all generated files;
@@ -239,7 +239,7 @@ Compile-check project: tests/binding-compile-check/SDL2.Core.CompileCheck.csproj
 Use any practical evidence method: source scan, reflection on compiled assemblies, PublicApiGenerator, Roslyn analysis, or parse-views.json.
 
 Check:
-- no public raw ABI externs, public SDLNative class, public DllImport/LibraryImport, or unexpected public IntPtr-heavy API;
+- no public raw ABI container, effectively public SDLNative externs, effectively public DllImport/LibraryImport, or unexpected public IntPtr-heavy API;
 - handles, structs, enums, callbacks, constants, and platform command files match the API surface strategy;
 - TFM-specific public differences are intentional;
 - platform attributes appear where platform-specific functions are emitted;
@@ -310,7 +310,7 @@ Use existing evidence sources first. Build custom tooling only after repeated re
 | `dotnet build tests/binding-compile-check/...` | Multi-TFM compile proof | Does not prove correct ABI or API intent. |
 | Reflection over compiled assemblies | Actual public API surface | Needs per-TFM handling and unsafe type interpretation. |
 | PublicApiGenerator | Reviewable API snapshots | Useful evidence; noisy while surface is still moving. |
-| Roslyn analysis | Source-level policies such as public raw extern leaks | More work; best for narrow checks. |
+| Roslyn analysis | Source-level policies such as effective public raw extern leaks | More work; best for narrow checks. |
 | ApiCompat | Future breaking-change baseline checks | Premature before stable baseline/package API exists. |
 | Verify snapshots | Future approved API/report baselines | Avoid until churn is low enough to make snapshot diffs meaningful. |
 
@@ -398,7 +398,7 @@ Build a small internal report tool only when at least two review runs repeat the
 
 - load `parse-views.json` and emit compact category/platform/macro summaries;
 - extract public API from compiled generated assemblies per TFM into JSON;
-- run Roslyn source checks for public raw extern leaks;
+- run Roslyn source checks for public raw container and effective public extern leaks;
 - join generated functions with dynapi and binary export facts;
 - produce a markdown report that agents can review.
 

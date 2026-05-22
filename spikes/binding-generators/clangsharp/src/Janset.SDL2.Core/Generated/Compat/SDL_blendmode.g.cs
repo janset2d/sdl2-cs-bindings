@@ -35,7 +35,7 @@ namespace SDL2
         SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA = 0xA,
     }
 
-    public static partial class SDLNative
+    internal static partial class SDLNative
     {
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern SDL_BlendMode SDL_ComposeCustomBlendMode(SDL_BlendFactor srcColorFactor, SDL_BlendFactor dstColorFactor, SDL_BlendOperation colorOperation, SDL_BlendFactor srcAlphaFactor, SDL_BlendFactor dstAlphaFactor, SDL_BlendOperation alphaOperation);

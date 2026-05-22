@@ -214,7 +214,7 @@ namespace SDL2
         public SDL_PixelFormat* next;
     }
 
-    public static unsafe partial class SDLNative
+    internal static unsafe partial class SDLNative
     {
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("const char *")]

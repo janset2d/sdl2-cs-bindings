@@ -23,7 +23,7 @@ namespace SDL2
         SDL_WINRT_DEVICEFAMILY_XBOX,
     }
 
-    public static unsafe partial class SDLNative
+    internal static unsafe partial class SDLNative
     {
 
         #if NET5_0_OR_GREATER

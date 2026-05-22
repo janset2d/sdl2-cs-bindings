@@ -13,7 +13,7 @@
 
 The grand-plan output contract from [`docs/binding-autogen/binding-generator-constitution.md`](../../../docs/binding-autogen/binding-generator-constitution.md) Layer Contract section is unchanged:
 
-- internal raw ABI surface only; no public raw extern class;
+- internal raw ABI surface only; no public raw extern class. Generated methods may remain lexically public inside an internal raw container because they are not effectively public package API;
 - public generated handles/enums/structs/callbacks/constants;
 - opaque SDL handles as strongly typed `readonly` structs over `nint`, not raw `IntPtr` public API;
 - multi-TFM raw ABI path, with `[DllImport]` + `[LibraryImport]` file split per Constitution L48;

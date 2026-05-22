@@ -36,7 +36,7 @@ namespace SDL2
         SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA = 0xA,
     }
 
-    public static partial class SDLNative
+    internal static partial class SDLNative
     {
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]

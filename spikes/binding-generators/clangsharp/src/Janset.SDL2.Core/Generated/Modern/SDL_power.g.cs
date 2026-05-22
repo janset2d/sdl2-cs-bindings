@@ -12,7 +12,7 @@ namespace SDL2
         SDL_POWERSTATE_CHARGED,
     }
 
-    public static unsafe partial class SDLNative
+    internal static unsafe partial class SDLNative
     {
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]

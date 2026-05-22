@@ -38,12 +38,16 @@ def read_scope(scope_file: pathlib.Path) -> list[str]:
 
 FAMILY_CONFIG = {
     "core": {
+        "namespace": "SDL2",
+        "raw_class": "SDLNative",
         "rsp": "sdl2-core.rsp",
         "bootstrap_scope": "bootstrap-sdl2-core.headers.txt",
         "full_scope": "sdl2-core.headers.txt",
         "library_dir": "Janset.SDL2.Core",
     },
     "image": {
+        "namespace": "SDL2.Image",
+        "raw_class": "SDL_imageNative",
         "rsp": "sdl2-image.rsp",
         "bootstrap_scope": "bootstrap-sdl2-image.headers.txt",
         "full_scope": "sdl2-image.headers.txt",
@@ -244,6 +248,8 @@ def platform_command_for_header(
     command.extend([
         f"@{rsp_root / 'base.rsp'}",
         f"@{rsp_root / FAMILY_CONFIG[family]['rsp']}",
+        "--namespace", FAMILY_CONFIG[family]["namespace"],
+        "--with-access-specifier", f"{FAMILY_CONFIG[family]['raw_class']}=Internal",
         "--include-directory", str(include_root),
     ])
     if use_platform_header_shims:
@@ -371,6 +377,8 @@ def command_for_header(
     command.extend([
         f"@{rsp_root / 'base.rsp'}",
         f"@{rsp_root / FAMILY_CONFIG[family]['rsp']}",
+        "--namespace", FAMILY_CONFIG[family]["namespace"],
+        "--with-access-specifier", f"{FAMILY_CONFIG[family]['raw_class']}=Internal",
         "--include-directory", str(include_root),
     ])
     if use_platform_header_shims and header in PLATFORM_SENSITIVE_HEADERS.get(family, []):

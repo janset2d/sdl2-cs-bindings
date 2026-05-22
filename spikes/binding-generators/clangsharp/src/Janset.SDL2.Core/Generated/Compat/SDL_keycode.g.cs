@@ -272,7 +272,7 @@ namespace SDL2
         KMOD_RESERVED = KMOD_SCROLL,
     }
 
-    public static partial class SDLNative
+    internal static partial class SDLNative
     {
         [NativeTypeName("#define SDLK_SCANCODE_MASK (1<<30)")]
         public const int SDLK_SCANCODE_MASK = (1 << 30);

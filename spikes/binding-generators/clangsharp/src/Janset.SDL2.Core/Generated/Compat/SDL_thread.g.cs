@@ -28,7 +28,7 @@ namespace SDL2
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate void SDL_TLSDestructorCallback([NativeTypeName("void*")] nint param0);
 
-    public static unsafe partial class SDLNative
+    internal static unsafe partial class SDLNative
     {
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("const char *")]

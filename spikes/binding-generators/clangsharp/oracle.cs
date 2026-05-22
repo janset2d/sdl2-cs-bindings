@@ -367,6 +367,16 @@ internal static class SelfTests
         Expect(checks.Any(c => c.CheckId == "raw-abi-public-import"), "flags public raw import methods", failures);
         Expect(checks.Any(c => c.CheckId == "deferred-layout-sdl-rwops"), "flags SDL_RWops layout emission", failures);
 
+        var internalRawEvidence = CSharpEvidenceExtractor.Extract("internal-raw-fixture.g.cs", Fixtures.InternalRawAbiVisibilitySource, ["NET5_0_OR_GREATER"]);
+        var internalRawChecks = RawAbiChecks.Run(FamilyConfigs.Sdl2Core, internalRawEvidence, RequiredSurface.Empty);
+        Expect(!internalRawChecks.Any(c => c.CheckId == "raw-abi-public-class"), "does not flag internal raw ABI class as public", failures);
+        Expect(!internalRawChecks.Any(c => c.CheckId == "raw-abi-public-import"), "does not flag public raw imports when the raw ABI class is internal", failures);
+
+        var nestedInternalRawEvidence = CSharpEvidenceExtractor.Extract("nested-internal-raw-fixture.g.cs", Fixtures.NestedInternalRawAbiVisibilitySource, ["NET5_0_OR_GREATER"]);
+        var nestedInternalRawChecks = RawAbiChecks.Run(FamilyConfigs.Sdl2Core, nestedInternalRawEvidence, RequiredSurface.Empty);
+        Expect(!nestedInternalRawChecks.Any(c => c.CheckId == "raw-abi-public-class"), "does not flag public raw ABI class nested in internal containing type", failures);
+        Expect(!nestedInternalRawChecks.Any(c => c.CheckId == "raw-abi-public-import"), "does not flag public raw imports nested in internal containing type", failures);
+
         var requiredChecks = RawAbiChecks.Run(
             FamilyConfigs.Sdl2Core,
             evidence,
@@ -635,6 +645,40 @@ namespace SDL2
 }
 """;
 
+    public const string InternalRawAbiVisibilitySource = """
+using System.Runtime.InteropServices;
+
+namespace SDL2
+{
+    internal static unsafe partial class SDLNative
+    {
+        [DllImport("SDL2")]
+        public static extern int SDL_Init(uint flags);
+    }
+
+    public static class SDL
+    {
+        public static int Init(uint flags) => SDLNative.SDL_Init(flags);
+    }
+}
+""";
+
+    public const string NestedInternalRawAbiVisibilitySource = """
+using System.Runtime.InteropServices;
+
+namespace SDL2
+{
+    internal static class Outer
+    {
+        public static unsafe partial class SDLNative
+        {
+            [DllImport("SDL2")]
+            public static extern int SDL_Init(uint flags);
+        }
+    }
+}
+""";
+
     public static readonly IReadOnlyList<RawAbiCheck> DuplicateFirstRawAbiChecks =
     [
         new("raw-abi-public-class", "error", "Hard Bug", "A", "duplicate", "a.cs"),
@@ -671,6 +715,8 @@ internal sealed record FunctionEvidence(
     string ImportKind,
     string Accessibility,
     string ContainingType,
+    string ContainingTypePath,
+    IReadOnlyList<string> ContainingTypeAccessibilities,
     string NamespaceName,
     string SourcePath,
     string ReturnType,
@@ -679,7 +725,7 @@ internal sealed record FunctionEvidence(
 
 internal sealed record ParameterEvidence(string Name, string Type, string NativeTypeName);
 internal sealed record ConstantEvidence(string Name, string Kind, string ContainingType, string NamespaceName, string SourcePath);
-internal sealed record TypeEvidence(string Name, string Kind, string Accessibility, string NamespaceName, string SourcePath, bool HasFields, bool HasNestedFields);
+internal sealed record TypeEvidence(string Name, string Kind, string Accessibility, string ContainingTypePath, IReadOnlyList<string> ContainingTypeAccessibilities, string NamespaceName, string SourcePath, bool HasFields, bool HasNestedFields);
 internal sealed record RequiredSurface(SourceStatus Status, IReadOnlySet<string> RequiredFunctions, IReadOnlySet<string> RequiredConstants)
 {
     public static RequiredSurface Empty { get; } = new(SourceStatus.NotApplicable, EmptySet(), EmptySet());
@@ -1011,13 +1057,17 @@ internal static class RawAbiChecks
     public static IReadOnlyList<RawAbiCheck> Run(FamilyConfig config, CSharpEvidence evidence, RequiredSurface required)
     {
         var checks = new List<RawAbiCheck>();
+        var publicRawContainers = evidence.Types
+            .Where(type => IsExpectedRawClass(config, type) && IsEffectivelyPublic(type.Accessibility, type.ContainingTypeAccessibilities))
+            .Select(type => (type.NamespaceName, type.ContainingTypePath))
+            .ToHashSet();
 
-        foreach (var type in evidence.Types.Where(type => type.Kind == "Class" && type.Name == config.ExpectedRawClassName && type.Accessibility == "public"))
+        foreach (var type in evidence.Types.Where(type => IsExpectedRawClass(config, type) && IsEffectivelyPublic(type.Accessibility, type.ContainingTypeAccessibilities)))
         {
             checks.Add(HardBug("raw-abi-public-class", type.Name, "Raw ABI class is public; generated raw extern containers must be internal.", type.SourcePath));
         }
 
-        foreach (var function in evidence.Functions.Where(function => IsRawImport(config, function) && function.Accessibility == "public"))
+        foreach (var function in evidence.Functions.Where(function => IsRawImport(config, function, publicRawContainers) && IsEffectivelyPublic(function.Accessibility, function.ContainingTypeAccessibilities)))
         {
             checks.Add(HardBug("raw-abi-public-import", function.ManagedName, "Raw native import method is public; generated raw externs must be internal.", function.SourcePath));
         }
@@ -1092,9 +1142,18 @@ internal static class RawAbiChecks
         }
     }
 
-    private static bool IsRawImport(FamilyConfig config, FunctionEvidence function)
+    private static bool IsExpectedRawClass(FamilyConfig config, TypeEvidence type)
+        => type.Kind == "Class"
+            && type.Name == config.ExpectedRawClassName;
+
+    private static bool IsRawImport(FamilyConfig config, FunctionEvidence function, IReadOnlySet<(string NamespaceName, string ContainingTypePath)> publicRawContainers)
         => IsNativeImport(function)
-            && function.ContainingType == config.ExpectedRawClassName;
+            && function.ContainingType == config.ExpectedRawClassName
+            && publicRawContainers.Contains((function.NamespaceName, function.ContainingTypePath));
+
+    private static bool IsEffectivelyPublic(string accessibility, IReadOnlyList<string> containingTypeAccessibilities)
+        => accessibility == "public"
+            && containingTypeAccessibilities.All(accessibility => accessibility == "public");
 
     private static bool IsNativeImport(FunctionEvidence function)
         => function.ImportKind.Length > 0;
@@ -1369,6 +1428,8 @@ internal static class CSharpEvidenceExtractor
             import.Kind,
             GetAccessibility(method.Modifiers),
             GetContainingType(method),
+            GetContainingTypePath(method),
+            GetContainingTypeAccessibilities(method),
             GetNamespaceName(method),
             method.SyntaxTree.FilePath,
             method.ReturnType.ToString(),
@@ -1411,6 +1472,8 @@ internal static class CSharpEvidenceExtractor
                 @class.Identifier.ValueText,
                 "Class",
                 GetAccessibility(@class.Modifiers),
+                GetContainingTypePath(@class),
+                GetContainingTypeAccessibilities(@class),
                 GetNamespaceName(@class),
                 @class.SyntaxTree.FilePath,
                 HasDirectFields(@class),
@@ -1419,6 +1482,8 @@ internal static class CSharpEvidenceExtractor
                 structure.Identifier.ValueText,
                 "Struct",
                 GetAccessibility(structure.Modifiers),
+                GetContainingTypePath(structure),
+                GetContainingTypeAccessibilities(structure),
                 GetNamespaceName(structure),
                 structure.SyntaxTree.FilePath,
                 HasDirectFields(structure),
@@ -1427,6 +1492,8 @@ internal static class CSharpEvidenceExtractor
                 enumeration.Identifier.ValueText,
                 "Enum",
                 GetAccessibility(enumeration.Modifiers),
+                GetContainingTypePath(enumeration),
+                GetContainingTypeAccessibilities(enumeration),
                 GetNamespaceName(enumeration),
                 enumeration.SyntaxTree.FilePath,
                 false,
@@ -1598,6 +1665,20 @@ internal static class CSharpEvidenceExtractor
 
     private static string GetContainingType(SyntaxNode node)
         => node.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault()?.Identifier.ValueText ?? "";
+
+    private static string GetContainingTypePath(SyntaxNode node)
+    {
+        var containingTypes = node.Ancestors().OfType<TypeDeclarationSyntax>().Reverse();
+        if (node is TypeDeclarationSyntax type)
+        {
+            containingTypes = containingTypes.Append(type);
+        }
+
+        return string.Join(".", containingTypes.Select(type => type.Identifier.ValueText));
+    }
+
+    private static IReadOnlyList<string> GetContainingTypeAccessibilities(SyntaxNode node)
+        => node.Ancestors().OfType<TypeDeclarationSyntax>().Reverse().Select(type => GetAccessibility(type.Modifiers)).ToArray();
 
     private static string GetNamespaceName(SyntaxNode node)
         => string.Join(".", node.Ancestors().OfType<BaseNamespaceDeclarationSyntax>().Reverse().Select(ns => ns.Name.ToString()));

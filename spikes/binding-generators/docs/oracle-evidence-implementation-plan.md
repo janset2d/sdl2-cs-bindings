@@ -398,7 +398,7 @@ Add a fixture using `Fixtures.MixedGeneratedSource` and expected checks:
 ```csharp
 var checks = RawAbiChecks.Run(FamilyConfigs.Sdl2Core, evidence, RequiredSurface.Empty);
 Expect(checks.Any(c => c.CheckId == "raw-abi-public-class"), "flags public raw ABI class", failures);
-Expect(checks.Any(c => c.CheckId == "raw-abi-public-import"), "flags public raw import methods", failures);
+Expect(checks.Any(c => c.CheckId == "raw-abi-public-import"), "flags effectively public raw import methods", failures);
 Expect(checks.Any(c => c.CheckId == "deferred-layout-sdl-rwops"), "flags SDL_RWops layout emission", failures);
 ```
 
@@ -429,7 +429,7 @@ internal sealed record RawAbiCheck(string CheckId, string Severity, string Class
 Implement these checks:
 
 - `raw-abi-public-class`: raw class is public.
-- `raw-abi-public-import`: raw import method is public.
+- `raw-abi-public-import`: raw import method is effectively public because its raw ABI container is public. Lexically public imports inside an internal container are not public API leaks.
 - `required-function-missing`: manifest required function is absent from ClangSharp generated evidence for Core.
 - `required-constant-missing`: manifest required constant is absent from ClangSharp generated evidence for Core.
 - `deferred-layout-sdl-rwops`: `SDL_RWops` struct has fields/nested fields in ClangSharp output.

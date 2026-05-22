@@ -19,7 +19,7 @@ namespace SDL2
         SDL_SENSOR_GYRO_R,
     }
 
-    public static unsafe partial class SDLNative
+    internal static unsafe partial class SDLNative
     {
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]

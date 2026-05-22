@@ -16,7 +16,7 @@ namespace SDL2
         public uint unused;
     }
 
-    public static unsafe partial class SDLNative
+    internal static unsafe partial class SDLNative
     {
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern SDL_Window* SDL_GetKeyboardFocus();

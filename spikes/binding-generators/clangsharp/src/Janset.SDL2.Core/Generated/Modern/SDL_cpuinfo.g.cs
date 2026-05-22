@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace SDL2
 {
-    public static partial class SDLNative
+    internal static partial class SDLNative
     {
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]

@@ -182,7 +182,7 @@ The first implementation should include focused checks that explain the current 
 
 ### Public Raw ABI Leak
 
-Flag public raw ABI classes and public raw import methods.
+Flag public raw ABI classes and effectively public raw import methods. Generated import methods may remain lexically public inside an internal raw ABI container; C# containing-type accessibility keeps those methods out of the public package API.
 
 Expected examples today:
 

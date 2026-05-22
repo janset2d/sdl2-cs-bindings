@@ -45,6 +45,24 @@ What this prototype does NOT do (out of spike scope; belongs in Roadmap M7+):
 - Oracle evidence: `dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --family sdl2-core --family sdl2-image --write-report` writes [`../output/reports/oracle-evidence-clangsharp.md`](../output/reports/oracle-evidence-clangsharp.md). Current snapshot reports SDL2 Core + SDL2 Image surface counts and raw ABI constitution-risk buckets; see the report for full findings.
 - Known platform caveat: `--use-platform-header-shims` supplies minimal `endian.h`, `AvailabilityMacros.h`, and `TargetConditionals.h` from `clangsharp/shims/platform-headers/`. Use it for Windows-local spike iteration only; production evidence still needs native Linux/macOS generation.
 
+## Oracle Repair Queue — 2026-05-22
+
+The family-aware oracle report documents three concrete gap groups. Treat the report as the detailed evidence source and this section as the working queue for the next spike slices.
+
+| Priority | Gap group | Current evidence | Why this order |
+| --- | --- | --- | --- |
+| A | Raw ABI visibility and SDL2_image family identity | Core leaks public `SDLNative` containers; Image leaks public `SDL_imageNative` containers and is generated under namespace `SDL2` instead of `SDL2.Image`. Public raw imports are leaks only while their raw containers are public. | Smallest high-signal cleanup. It aligns the generated shape with the constitution before adding more public surface. |
+| B | Missing required `SDL.h` functions and constants | Manifest-required `SDL_Init`, `SDL_InitSubSystem`, `SDL_Quit`, `SDL_QuitSubSystem`, `SDL_WasInit`, and the ten `SDL_INIT_*` constants are absent from ClangSharp evidence because `SDL.h` is an umbrella header excluded from per-header parsing. | Makes the spike useful for minimum SDL initialization, but should land after A so new declarations do not enter through the wrong public/raw shape. |
+| C | Deferred layouts and platform-sensitive scalar mappings | `SDL_RWops`, `SDL_SysWMinfo`, and `SDL_SysWMmsg` layouts are emitted even though the constitution quarantines them for Stage 1; `wchar_t` and C `long` are mapped to platform-sensitive raw C# types in ClangSharp output. | Highest ABI-correctness risk, but also the most research-heavy. It crosses ClangSharp emitted type policy, SDL2 platform headers/macros, and native ABI layout proof, so it should be its own focused slice. |
+
+Repair posture:
+
+- Start with **A**: make raw ABI containers internal via ClangSharp class-level access specifiers and make SDL2_image emit under the expected family namespace. Raw import methods inside an internal raw container are not public API leaks; the oracle checks effective visibility rather than lexical member modifiers.
+- Then do **B**: recover the `SDL.h` required initialization surface without re-including the umbrella header as a normal parse unit.
+- Then do **C**: treat ClangSharp scalar/layout behavior as an ABI research slice, not a quick postprocess cleanup.
+
+A-slice design: [`../../../docs/superpowers/specs/2026-05-22-clangsharp-raw-abi-visibility-design.md`](../../../docs/superpowers/specs/2026-05-22-clangsharp-raw-abi-visibility-design.md).
+
 ## Slices
 
 

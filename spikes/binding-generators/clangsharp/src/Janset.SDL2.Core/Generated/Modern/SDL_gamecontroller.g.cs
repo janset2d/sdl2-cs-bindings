@@ -102,7 +102,7 @@ namespace SDL2
         SDL_CONTROLLER_BUTTON_MAX,
     }
 
-    public static unsafe partial class SDLNative
+    internal static unsafe partial class SDLNative
     {
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]

@@ -331,7 +331,7 @@ Tests mirror this concept shape under `build/_build.Tests/Unit/Targets/GenerateB
 - Emitter tests prove public methods call internal raw methods.
 - Compile-check passes across all library TFMs.
 - Public API snapshot exists and is reviewed.
-- Source inspection or automated check proves no public raw ABI externs leak.
+- Source inspection or automated check proves no public raw ABI container or effectively public raw extern leaks.
 
 **Non-goals:**
 

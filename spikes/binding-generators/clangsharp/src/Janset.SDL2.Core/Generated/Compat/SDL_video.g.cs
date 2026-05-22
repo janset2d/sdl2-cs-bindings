@@ -174,7 +174,7 @@ namespace SDL2
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public unsafe delegate SDL_HitTestResult SDL_HitTest(SDL_Window* win, [NativeTypeName("const SDL_Point *")] SDL_Point* area, [NativeTypeName("void*")] nint data);
 
-    public static unsafe partial class SDLNative
+    internal static unsafe partial class SDLNative
     {
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern int SDL_GetNumVideoDrivers();

@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 
 namespace SDL2
 {
-    public static partial class SDLNative
+    internal static partial class SDLNative
     {
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern SDL_bool SDL_IsTablet();

@@ -37,7 +37,7 @@ namespace SDL2
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public unsafe delegate SDL_AssertState SDL_AssertionHandler([NativeTypeName("const SDL_AssertData *")] SDL_AssertData* data, [NativeTypeName("void*")] nint userdata);
 
-    public static unsafe partial class SDLNative
+    internal static unsafe partial class SDLNative
     {
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern SDL_AssertState SDL_ReportAssertion(SDL_AssertData* param0, [NativeTypeName("const char *")] byte* param1, [NativeTypeName("const char *")] byte* param2, int param3);

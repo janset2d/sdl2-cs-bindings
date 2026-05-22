@@ -9,7 +9,7 @@ namespace SDL2
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate void SDL_iOSAnimationCallback([NativeTypeName("void*")] nint param0);
 
-    public static unsafe partial class SDLNative
+    internal static unsafe partial class SDLNative
     {
         #if NET5_0_OR_GREATER
         [SupportedOSPlatform("ios")]

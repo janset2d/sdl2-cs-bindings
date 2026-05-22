@@ -29,7 +29,7 @@ namespace SDL2
         SDL_MOUSEWHEEL_FLIPPED,
     }
 
-    public static unsafe partial class SDLNative
+    internal static unsafe partial class SDLNative
     {
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern SDL_Window* SDL_GetMouseFocus();

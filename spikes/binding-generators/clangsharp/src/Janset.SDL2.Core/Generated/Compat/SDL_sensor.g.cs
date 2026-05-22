@@ -18,7 +18,7 @@ namespace SDL2
         SDL_SENSOR_GYRO_R,
     }
 
-    public static unsafe partial class SDLNative
+    internal static unsafe partial class SDLNative
     {
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern void SDL_LockSensors();

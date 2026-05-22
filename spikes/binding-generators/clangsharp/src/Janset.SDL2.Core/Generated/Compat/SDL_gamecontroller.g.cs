@@ -101,7 +101,7 @@ namespace SDL2
         SDL_CONTROLLER_BUTTON_MAX,
     }
 
-    public static unsafe partial class SDLNative
+    internal static unsafe partial class SDLNative
     {
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern int SDL_GameControllerAddMappingsFromRW(SDL_RWops* rw, int freerw);

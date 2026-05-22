@@ -97,7 +97,7 @@ namespace SDL2
         }
     }
 
-    public static partial class SDLNative
+    internal static partial class SDLNative
     {
         [NativeTypeName("#define SDL_METALVIEW_TAG 255")]
         public const int SDL_METALVIEW_TAG = 255;

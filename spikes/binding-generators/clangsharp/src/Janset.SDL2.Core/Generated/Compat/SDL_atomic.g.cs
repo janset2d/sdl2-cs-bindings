@@ -7,7 +7,7 @@ namespace SDL2
         public int value;
     }
 
-    public static unsafe partial class SDLNative
+    internal static unsafe partial class SDLNative
     {
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern SDL_bool SDL_AtomicTryLock([NativeTypeName("SDL_SpinLock *")] int* @lock);

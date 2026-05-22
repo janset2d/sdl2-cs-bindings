@@ -851,7 +851,7 @@ namespace SDL2
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public unsafe delegate int SDL_EventFilter([NativeTypeName("void*")] nint userdata, SDL_Event* @event);
 
-    public static unsafe partial class SDLNative
+    internal static unsafe partial class SDLNative
     {
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern void SDL_PumpEvents();

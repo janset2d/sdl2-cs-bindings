@@ -7,7 +7,7 @@ namespace SDL2
     [return: NativeTypeName("Uint32")]
     public delegate uint SDL_TimerCallback([NativeTypeName("Uint32")] uint interval, [NativeTypeName("void*")] nint param1);
 
-    public static partial class SDLNative
+    internal static partial class SDLNative
     {
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("Uint32")]

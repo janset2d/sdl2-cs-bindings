@@ -38,6 +38,14 @@ Generated bindings use three layers:
 2. **Public typed low-level layer**: generated handles, enums, structs, callbacks, constants, and thin public methods that call the internal raw layer without exposing extern declarations.
 3. **Public friendly overload layer**: generated conveniences for `string`, `ReadOnlySpan<byte>`, `Span<T>`, `ReadOnlySpan<T>`, `out`, `ref`, bool conversions, and explicit preformatted variadic helpers.
 
+### Internal Raw ABI: Why / How / What
+
+**Why:** Generated native imports are volatile implementation detail, not the user-facing compatibility contract. Keeping them internal lets the generator fix C `long`, `wchar_t`, bool wire shape, struct layout, platform attribution, and `DllImport` / `LibraryImport` backend choices without turning every correction into a public breaking change. Public raw bindings are a valid product choice for TerraFX/Silk.NET-style raw catalogs; this project is a stable SDL platform layer with typed low-level APIs and friendly overloads on top.
+
+**How:** The raw ABI container type is internal. Generated members may remain lexically `public` when produced by upstream emitters, but they are not effectively public API when their containing type is internal. Public low-level APIs call the internal raw container and expose honest typed handles, `nint` values, spans, pointers, and unsafe overloads where SDL requires them.
+
+**What:** The main package exposes a typed, low-allocation SDL API plus friendly overloads. It does not expose generated `[DllImport]` / `[LibraryImport]` classes as the blessed user-facing API. Escape hatches belong in typed handles, `DangerousGetHandle()` / `nint`, span/pointer overloads, and deliberately unsafe APIs. If demand appears later, a separate raw package or raw namespace can be designed with an explicit different compatibility promise.
+
 Rules:
 
 - Public raw `IntPtr` externs are not part of v1 preview.
@@ -377,7 +385,7 @@ Current SDL2.Core views:
 No generated preview should be promoted toward production source unless these gates pass or have documented deferrals:
 
 - Generated preview compiles across `net10.0`, `net9.0`, `net8.0`, `netstandard2.0`, and `net462`.
-- No public raw externs or public raw ABI class leak.
+- No public raw ABI class or effectively public raw extern leak. Lexically public generated members inside an internal raw container are acceptable because the containing type blocks public API exposure.
 - Function-name set matches dynapi/export evidence after accepted exclusions.
 - High-risk type translations have fixture coverage: C `long`, `wchar_t`, SDL2 `SDL_bool`, `size_t`, callbacks, and pointer types.
 - Public struct layouts have size/offset proof where layout is platform-conditioned.

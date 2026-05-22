@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
-namespace SDL2
+namespace SDL2.Image
 {
     public enum IMG_InitFlags
     {
@@ -26,7 +26,7 @@ namespace SDL2
         public int* delays;
     }
 
-    public static unsafe partial class SDL_imageNative
+    internal static unsafe partial class SDL_imageNative
     {
         [LibraryImport("SDL2_image")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]

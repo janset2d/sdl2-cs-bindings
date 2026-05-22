@@ -1,6 +1,6 @@
 namespace SDL2
 {
-    public static partial class SDLNative
+    internal static partial class SDLNative
     {
         [NativeTypeName("#define SDL_LIL_ENDIAN 1234")]
         public const int SDL_LIL_ENDIAN = 1234;

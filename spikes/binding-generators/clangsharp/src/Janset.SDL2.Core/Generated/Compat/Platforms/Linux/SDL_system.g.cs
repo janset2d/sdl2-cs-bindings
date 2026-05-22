@@ -5,7 +5,7 @@ using System.Runtime.Versioning;
 
 namespace SDL2
 {
-    public static partial class SDLNative
+    internal static partial class SDLNative
     {
         #if NET5_0_OR_GREATER
         [SupportedOSPlatform("linux")]

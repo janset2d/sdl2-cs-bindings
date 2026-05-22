@@ -89,7 +89,7 @@ namespace SDL2
         public delegate* unmanaged[Cdecl]<nint, nint, int, int> SendEffect;
     }
 
-    public static unsafe partial class SDLNative
+    internal static unsafe partial class SDLNative
     {
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
