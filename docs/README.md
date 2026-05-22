@@ -89,6 +89,10 @@ See [decisions/README.md](decisions/README.md) for the index.
 
 [`research/`](research/) holds dated design rationale, comparative analyses, and historical research notes. Active binding-generation workstream material lives in [`binding-autogen/`](binding-autogen/). Verify against current code before acting on any individual note.
 
+| Document | Topic |
+| --- | --- |
+| [research/semantic-abi-type-classification-research.md](research/semantic-abi-type-classification-research.md) | Targeted 2026-05-22 fact-check on SDL semantic ABI classification: C `long`, `wchar_t`, opaque handles, deferred layouts, ClangSharp spike evidence, and .NET interop guidance. |
+
 ## Conflict Resolution
 
 When docs disagree:
