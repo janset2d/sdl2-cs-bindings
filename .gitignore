@@ -69,6 +69,9 @@ project.lock.json
 project.fragment.lock.json
 artifacts/
 
+# Local spike reference clones; keep upstream repos out of this repository.
+spikes/binding-generators/references/
+
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
 
@@ -91,6 +94,8 @@ StyleCopReport.xml
 *.rsp
 # but not Directory.Build.rsp, as it configures directory-level build defaults
 !Directory.Build.rsp
+# Spike ClangSharp response files are source inputs, not compiler response artifacts.
+!spikes/binding-generators/clangsharp/rsp/*.rsp
 *.sbr
 *.tlb
 *.tli

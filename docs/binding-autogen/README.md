@@ -17,6 +17,7 @@ The generator is hosted inside the Cake build host under `build/_build/Targets/G
 | [`../playbook/binding-generator-maintenance.md`](../playbook/binding-generator-maintenance.md) | In-progress maintenance playbook for platform macro catalogs, generated stamps, and overlay coupling. |
 | [`../playbook/binding-output-oracle-validation.md`](../playbook/binding-output-oracle-validation.md) | Reusable multi-agent review workflow for validating generated output against official SDL sources, peer bindings, and .NET API evidence. |
 | [`../decisions/2026-05-14-binding-autogen-toolchain.md`](../decisions/2026-05-14-binding-autogen-toolchain.md) | ADR-004 CppAst toolchain decision and migration-door rationale. |
+| [`../../spikes/binding-generators/docs/generator-spike-goals.md`](../../spikes/binding-generators/docs/generator-spike-goals.md) | Active spike charter for comparing Alimer-style CppAst and ppy-style ClangSharp generation against SDL2.Core plus SDL2_image. |
 
 ## Reading Order
 
@@ -30,6 +31,7 @@ The generator is hosted inside the Cake build host under `build/_build/Targets/G
 | 6 | [`../playbook/binding-generator-maintenance.md`](../playbook/binding-generator-maintenance.md) | Operational procedure for parser config, synthetic headers, stamps, upstream bumps, and hybrid-static coupling. |
 | 7 | [`../playbook/binding-output-oracle-validation.md`](../playbook/binding-output-oracle-validation.md) | Output validation workflow against SDL headers, peer bindings, and .NET API evidence. |
 | 8 | [`../decisions/2026-05-14-binding-autogen-toolchain.md`](../decisions/2026-05-14-binding-autogen-toolchain.md) | Toolchain ADR. Read only when reopening CppAst vs ClangSharp or bumping the trio. |
+| 9 | [`../../spikes/binding-generators/docs/generator-spike-goals.md`](../../spikes/binding-generators/docs/generator-spike-goals.md) | Read when working on the active generator toolchain spike; it defines the spike's goal, methodology, and comparison rules. |
 
 Historical research and task-by-task plans were intentionally removed from active docs. Preserve new durable facts in the constitution, roadmap, or testing strategy instead of reviving one-off plan files.
 

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+    <RootNamespace>Janset.SDL2.PostProcess</RootNamespace>
+  </PropertyGroup>
+
+  <!-- VersionOverride keeps Microsoft.CodeAnalysis.CSharp out of the root
+       Directory.Packages.props so spike-only Roslyn tooling does not leak
+       into production package versioning. -->
+  <ItemGroup>
+    <!-- slopwatch-ignore: SW006 Spike-only Roslyn tool version is intentionally isolated from production CPM. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="4.12.0" />
+  </ItemGroup>
+
+</Project>

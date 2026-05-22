@@ -1,0 +1,132 @@
+--libraryPath
+SDL2
+
+--methodClassName
+SDLNative
+
+# SDL2.Core enum underlying type. SDL2 distinguishes the enum tag
+# SDL_PixelFormatEnum from the SDL_PixelFormat struct (Uint32 typedef in SDL2,
+# vs collapsed enum in SDL3 — ppy's `SDL_PixelFormat=uint` RSP would break SDL2).
+--with-type
+SDL_PixelFormatEnum=uint
+
+# Map opaque platform pointer types to nint:
+# - C stdio FILE pointer (Windows _iobuf, Unix _IO_FILE) — SDL_RWops.stdio.fp.
+# - Windows handle pointer types — SDL_SysWMinfo Windows union fields.
+# Combined with the deferral excludes below, this removes the platform-handle
+# dependencies without quarantining the structs whose fields reference them.
+--remap
+_iobuf*=nint
+_IO_FILE*=nint
+FILE*=nint
+HWND__*=nint
+HDC__*=nint
+HINSTANCE__*=nint
+
+# Cross-cutting deferrals — constitution §"Current accepted deferrals" +
+# manifest.json:245-258 deferred_declarations. Note: SDL_SysWMinfo and
+# SDL_SysWMmsg structs themselves are NOT excluded — they are emitted as
+# opaque struct stubs so SDL_SysWMEvent.msg (SDL_SysWMmsg*) can resolve.
+# Only the FUNCTION that exposes the typed union is excluded.
+--exclude
+SDL_GetWindowWMInfo
+SDL_RWFromFP
+SDL_DUMMY_ENUM
+SDL_LogMessageV
+SDL_vsnprintf
+SDL_vsscanf
+SDL_vasprintf
+
+# SDL_assert.h — compiler-magic macros (__FUNCTION__ / __FILE__ / __LINE__
+# expansions are unrepresentable in portable C#) and assert-family helpers
+# that have no public binding meaning.
+SDL_FUNCTION
+SDL_FILE
+SDL_LINE
+SDL_NULL_WHILE_LOOP_CONDITION
+SDL_ASSERT_LEVEL
+SDL_TriggerBreakpoint
+SDL_AssertBreakpoint
+SDL_assert
+SDL_assert_release
+SDL_assert_paranoid
+SDL_assert_always
+SDL_disabled_assert
+SDL_enabled_assert
+__debugbreak
+
+# SDL_stdinc.h — varargs we don't expose (constitution §"Current accepted
+# deferrals"), overflow-check helpers that branch Windows vs Unix, and the
+# clang/gcc intrinsic externs ClangSharp wrongly emits as DllImports.
+# Both the *_check_overflow (modern codegen) and *_overflow (compatible
+# codegen) names are excluded — ClangSharp emits one or the other depending
+# on whether the __has_builtin neutralization succeeded.
+SDL_size_mul_check_overflow
+SDL_size_add_check_overflow
+SDL_size_mul_overflow
+SDL_size_add_overflow
+SDL_SIZE_MAX
+SDL_PRIs64
+SDL_PRIu64
+SDL_PRIx64
+SDL_PRIX64
+SDL_memset4
+SDL_memcpy4
+_SDL_size_mul_overflow_builtin
+_SDL_size_add_overflow_builtin
+__builtin_mul_overflow
+__builtin_add_overflow
+
+# SDL_endian.h — inline byte-swap helpers ClangSharp tries to port verbatim
+# (with C-style nested struct-in-function syntax that isn't valid C#) and
+# their backing compiler intrinsics. Public byte-order surface is the
+# SDL_LIL_ENDIAN / SDL_BIG_ENDIAN / SDL_BYTEORDER constants only.
+SDL_Swap16
+SDL_Swap32
+SDL_Swap64
+SDL_SwapFloat
+SDL_SwapLE16
+SDL_SwapLE32
+SDL_SwapLE64
+SDL_SwapBE16
+SDL_SwapBE32
+SDL_SwapBE64
+_m_prefetch
+__builtin_prefetch
+__builtin_bswap16
+__builtin_bswap32
+__builtin_bswap64
+
+# SDL_bits.h — inline MSVC-intrinsic helpers. No public binding API needed
+# from this header; consumers can use System.Numerics.BitOperations.
+SDL_MostSignificantBitIndex32
+SDL_HasExactlyOneBitSet32
+_BitScanReverse
+
+# SDL_cpuinfo.h — cache-line padding constant is C-only (manifest defers it
+# implicitly via MacroApiPolicy classification).
+SDL_CACHELINE_SIZE
+
+# SDL_thread.h — Windows-path inline wrappers and macro aliases around CRT
+# _beginthreadex / _endthreadex. The portable SDL_CreateThread_runtime
+# extern stays. SDL_beginthread/SDL_endthread are #define aliases that
+# ClangSharp emits as function-pointer assignments to the CRT symbols.
+SDL_CreateThread
+SDL_CreateThreadWithStackSize
+SDL_beginthread
+SDL_endthread
+_beginthreadex
+_endthreadex
+
+# Function-pointer macro aliases that ClangSharp emits as
+# `public static readonly IntPtr X = &Func;` — fine on net5+ but unmappable
+# on netstandard2.0/net462 (CS8812: can't convert &method group to IntPtr).
+# These are #define shortcuts; consumers can call the underlying function
+# directly.
+SDL_BlitSurface
+SDL_BlitScaled
+
+# SDL_main.h — `#define main SDL_main` alias that ClangSharp expands into
+# `public static readonly IntPtr main = &SDL_main;` and which causes the
+# same CS8812 on legacy TFMs. SDL_main itself stays generated.
+main

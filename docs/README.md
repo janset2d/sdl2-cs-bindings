@@ -52,6 +52,7 @@ Phase 3 (SDL2 Complete — samples, meta-package, first prerelease) lives direct
 | [binding-autogen/binding-generator-roadmap.md](binding-autogen/binding-generator-roadmap.md) | Canonical grand roadmap for safety harness, generator architecture, family profiles, raw/public/friendly emission, SDL2 production flip, satellites, smoke expansion, and SDL3 extension |
 | [binding-autogen/testing-strategy.md](binding-autogen/testing-strategy.md) | Canonical generated-binding testing strategy: build-host tests, compile checks, NativeSmoke, PackageConsumerSmoke, asset fixtures, manual diagnostics, and upstream adoption policy |
 | [binding-autogen/milestones/milestone-1-safety-harness-baseline.md](binding-autogen/milestones/milestone-1-safety-harness-baseline.md) | Detailed Milestone 1 implementation plan for safety harness snapshots, fixture expansion, fake orchestration snapshots, and generated-preview checkpointing |
+| [../spikes/binding-generators/docs/generator-spike-goals.md](../spikes/binding-generators/docs/generator-spike-goals.md) | Active spike charter for comparing Alimer-style CppAst and ppy-style ClangSharp SDL2 generator approaches |
 | [decisions/2026-05-14-binding-autogen-toolchain.md](decisions/2026-05-14-binding-autogen-toolchain.md) | ADR-004 toolchain decision for the CppAst binding generator |
 
 ### Playbook (How-To Recipes)

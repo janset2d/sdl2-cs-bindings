@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net10.0;net9.0;net8.0;netstandard2.0;net462</TargetFrameworks>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <LangVersion>preview</LangVersion>
+    <Nullable>enable</Nullable>
+    <RootNamespace>SDL2</RootNamespace>
+  </PropertyGroup>
+
+  <!-- TFM-split generated source: Compat (compatible-codegen) for legacy frameworks,
+       Modern (latest-codegen, postprocessed in Slice 2 to [LibraryImport]) for net8+. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net462'">
+    <Compile Include="Generated/Compat/**/*.cs" />
+    <Compile Include="Support/**/*.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' != 'netstandard2.0' And '$(TargetFramework)' != 'net462'">
+    <Compile Include="Generated/Modern/**/*.cs" />
+    <Compile Include="Support/**/*.cs" />
+  </ItemGroup>
+
+  <!-- System.Memory polyfill for ReadOnlySpan<T> on legacy TFMs (Constitution L46). -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net462'">
+    <PackageReference Include="System.Memory" />
+  </ItemGroup>
+
+</Project>

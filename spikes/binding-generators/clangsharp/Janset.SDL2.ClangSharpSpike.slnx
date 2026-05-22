@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/postprocess/">
+    <Project Path="postprocess/Janset.SDL2.PostProcess.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Janset.SDL2.Core/Janset.SDL2.Core.csproj" />
+    <Project Path="src/Janset.SDL2.Image/Janset.SDL2.Image.csproj" />
+  </Folder>
+</Solution>
