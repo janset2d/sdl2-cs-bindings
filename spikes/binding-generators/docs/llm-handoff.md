@@ -266,7 +266,7 @@ Verification from this session:
 - `dotnet build spikes/binding-generators/clangsharp/postprocess/Janset.SDL2.PostProcess.csproj -c Release` succeeds with 0 warnings / 0 errors.
 - `python spikes/binding-generators/clangsharp/generate_bindings.py --scope full --codegen both --execute --clean-output --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims` is the Windows-local spike command when validating synthetic platform views. Latest run wrote `clangsharp-full.md` with `Platform header shims: enabled` and no empty generated outputs.
 - `dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Janset.SDL2.Image.csproj -c Release` succeeds across `net462`, `netstandard2.0`, `net8.0`, `net9.0`, and `net10.0` with 0 warnings / 0 errors.
-- `python spikes/binding-generators/clangsharp/compare_oracle.py --approach clangsharp` writes `output/reports/oracle-comparison-clangsharp.md`: 859 Core spike functions, 831/845 dynapi functions emitted, and 8 Cake-oracle functions still missing from the spike output.
+- `dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --family sdl2-core --family sdl2-image --write-report` writes [`output/reports/oracle-evidence-clangsharp.md`](../output/reports/oracle-evidence-clangsharp.md): family-aware raw ABI evidence for SDL2 Core and SDL2 Image, including surface counts, Cake/SDL2-CS/dynapi comparison, and constitution-risk buckets.
 - `git diff --check` reports no whitespace errors; Git may still print CRLF normalization warnings for regenerated files.
 - `slopwatch analyze --fail-on warning --exclude "artifacts/**,external/**,vcpkg_installed/**,spikes/binding-generators/references/**,**/bin/**,**/obj/**"` reports 0 issues. The extra `references/**` exclude is required because those local peer-project clones are gitignored evidence inputs, not repo code.
 
@@ -360,6 +360,9 @@ dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Janset.S
 
 # Compare against Cake oracle + dynapi
 python spikes/binding-generators/clangsharp/compare_oracle.py --approach clangsharp
+
+# Raw ABI oracle/evidence report (Roslyn, family-aware)
+dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --family sdl2-core --family sdl2-image --write-report
 
 # Just rerun postprocess on existing output (no regen)
 dotnet run --project spikes/binding-generators/clangsharp/postprocess/Janset.SDL2.PostProcess.csproj -c Release -- libraryimport spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern

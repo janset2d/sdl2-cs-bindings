@@ -42,7 +42,7 @@ What this prototype does NOT do (out of spike scope; belongs in Roadmap M7+):
 - Regeneration result: writes `clangsharp-full.md` with `Platform header shims: enabled` and no empty generated outputs. The shims unblock Windows-local synthetic platform parsing, but they are a spike-only substitute for native Linux/macOS SDK headers.
 - Build command: `dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Janset.SDL2.Image.csproj -c Release`.
 - Build result: Core + Image compile clean across `net462`, `netstandard2.0`, `net8.0`, `net9.0`, `net10.0` with 0 warnings / 0 errors.
-- Oracle comparison: `output/reports/oracle-comparison-clangsharp.md` reports 859 Core spike functions, 831/845 dynapi functions emitted, and 8 Cake-oracle functions still missing from the spike output.
+- Oracle evidence: `dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --family sdl2-core --family sdl2-image --write-report` writes [`../output/reports/oracle-evidence-clangsharp.md`](../output/reports/oracle-evidence-clangsharp.md). Current snapshot reports SDL2 Core + SDL2 Image surface counts and raw ABI constitution-risk buckets; see the report for full findings.
 - Known platform caveat: `--use-platform-header-shims` supplies minimal `endian.h`, `AvailabilityMacros.h`, and `TargetConditionals.h` from `clangsharp/shims/platform-headers/`. Use it for Windows-local spike iteration only; production evidence still needs native Linux/macOS generation.
 
 ## Slices

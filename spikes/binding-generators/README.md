@@ -10,6 +10,8 @@ This folder hosts the SDL2 binding-generator prototypes that feed Phase 4 (bindi
 | **`docs/llm-handoff.md`** | **LLM-to-LLM handoff — read this first.** Self-contained context dump: decision history, code map, slice progress, current sticking point, working preferences. |
 | `docs/generator-spike-goals.md` | Spike charter — original goals, what got tested, and the recorded decision. |
 | `docs/next-iteration-plan.md` | Active slice plan (1–5) covering the `clangsharp/` layout, multi-TFM postprocess, multi-OS pass, and satellite enablement. |
+| `docs/oracle-evidence-design.md` | Spike-local design for replacing regex oracle comparison with a Roslyn/file-based-app evidence matrix. |
+| `docs/oracle-evidence-implementation-plan.md` | Task-by-task implementation plan for the Roslyn/file-based-app oracle evidence slice. |
 | `output/reports/iteration-2-comparison.md` | Decision-quality evidence: function counts, dynapi coherence, multi-TFM build trajectory, multi-OS gap. |
 | `output/reports/clangsharp-failure-buckets.md` | Per-header failure bucket map + RSP delta history (8 RSP-fix cycles → compile-clean). |
 | `docs/reference-clones.md` | Local clone commands for `ppy/SDL3-CS` and `amerkoleci/Alimer.Bindings.SDL`. References, not vendored deps. |
@@ -42,6 +44,8 @@ spikes/binding-generators/
 ├── docs/
 │   ├── generator-spike-goals.md                     # charter + recorded decision
 │   ├── next-iteration-plan.md                       # active slice plan
+│   ├── oracle-evidence-design.md                    # Roslyn/file-based oracle evidence design
+│   ├── oracle-evidence-implementation-plan.md       # oracle evidence task plan
 │   └── reference-clones.md                          # local clone commands for upstream refs
 ├── scope/
 │   ├── sdl2-core.headers.txt                        # full SDL2.Core header inventory (51 entries)
@@ -51,6 +55,7 @@ spikes/binding-generators/
 ├── clangsharp/                                      # ACTIVE — ppy-style ClangSharp prototype
 │   ├── generate_bindings.py                         # multi-pass orchestrator (codegen × family; multi-OS pass)
 │   ├── compare_oracle.py                            # Cake-preview / dynapi comparison validator
+│   ├── oracle.cs                                    # Roslyn/file-based raw ABI evidence reporter
 │   └── rsp/
 │       ├── base.rsp                                 # cross-cutting policy (defines, remaps, with-types, clang_args)
 │       ├── sdl2-core.rsp                            # family identity + exclusions for SDL2.Core
@@ -70,6 +75,7 @@ spikes/binding-generators/
 │       ├── clangsharp-full.md                       # per-header generation report (full scope)
 │       ├── oracle-comparison-clangsharp.md          # ClangSharp vs Cake preview + dynapi
 │       ├── oracle-comparison-alimer.md              # Alimer vs Cake preview + dynapi
+│       ├── oracle-evidence-clangsharp.md            # family-aware raw ABI evidence report
 │       ├── alimer-full.md                           # Alimer per-header generation report
 │       └── clangsharp-bootstrap.md                  # bootstrap-scope generation report
 └── references/                                      # GITIGNORED — local clones for evidence
@@ -88,6 +94,9 @@ dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Janset.S
 
 # Oracle comparison + dynapi coherence
 python spikes/binding-generators/clangsharp/compare_oracle.py --approach clangsharp
+
+# Raw ABI oracle/evidence report (Roslyn, family-aware)
+dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --family sdl2-core --family sdl2-image --write-report
 ```
 
 `--use-platform-header-shims` keeps Windows-local spike generation moving by supplying minimal synthetic C headers for platform SDK includes that are unavailable on Windows (`endian.h`, `AvailabilityMacros.h`, `TargetConditionals.h`). This is intentionally scoped to spike evidence; production platform evidence still comes from native Linux/macOS generation.
@@ -109,5 +118,6 @@ python spikes/binding-generators/clangsharp/compare_oracle.py --approach clangsh
 1. `docs/generator-spike-goals.md` for the original charter + recorded toolchain decision.
 2. `docs/next-iteration-plan.md` for the active slice plan (1–5).
 3. `output/reports/iteration-2-comparison.md` for the evidence base.
-4. `references/ppy-SDL3-CS/SDL3-CS/generate_bindings.py` (lines 232-365, 386-434) for the north-star orchestrator patterns.
-5. Open `clangsharp/Janset.SDL2.ClangSharpSpike.slnx` in your IDE.
+4. `output/reports/oracle-evidence-clangsharp.md` for the current family-aware raw ABI evidence snapshot.
+5. `references/ppy-SDL3-CS/SDL3-CS/generate_bindings.py` (lines 232-365, 386-434) for the north-star orchestrator patterns.
+6. Open `clangsharp/Janset.SDL2.ClangSharpSpike.slnx` in your IDE.
