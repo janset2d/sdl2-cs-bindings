@@ -6,7 +6,7 @@
 
 | Family | Headers | Commands | Generated Files |
 | --- | ---: | ---: | ---: |
-| core | 51 | 130 | 102 |
+| core | 51 | 130 | 104 |
 | image | 1 | 2 | 2 |
 
 ## Selection

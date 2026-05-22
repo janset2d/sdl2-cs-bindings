@@ -1,4 +1,5 @@
 import argparse
+import json
 import pathlib
 import re
 import shutil
@@ -12,6 +13,38 @@ class EmptyGeneratedOutput:
     header_path: pathlib.Path
     output_path: pathlib.Path
     command_line: str
+
+
+@dataclass(frozen=True)
+class RequiredSurfaceAllowlist:
+    family: str
+    header: str
+    functions: tuple[str, ...]
+    constants: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class RequiredParameter:
+    native_type: str
+    managed_type: str
+    name: str
+
+
+@dataclass(frozen=True)
+class RequiredFunction:
+    name: str
+    native_return_type: str
+    managed_return_type: str
+    parameters: tuple[RequiredParameter, ...]
+
+
+@dataclass(frozen=True)
+class RequiredConstant:
+    name: str
+    raw_value: str
+    managed_value: str
+    kind: str
+    native_type_name: str
 
 
 def platform_header_shim_root(repo: pathlib.Path) -> pathlib.Path:
@@ -34,6 +67,204 @@ def read_scope(scope_file: pathlib.Path) -> list[str]:
             continue
         headers.append(stripped)
     return headers
+
+
+def read_required_surface_allowlist(path: pathlib.Path) -> RequiredSurfaceAllowlist:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return RequiredSurfaceAllowlist(
+        family=str(data["family"]),
+        header=str(data["header"]),
+        functions=tuple(str(name) for name in data["functions"]),
+        constants=tuple(str(name) for name in data["constants"]),
+    )
+
+
+def read_manifest_required_sdlh_names(repo: pathlib.Path) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    data = json.loads((repo / "build" / "manifest.json").read_text(encoding="utf-8"))
+    for library in data["library_manifests"]:
+        if library.get("name") == "SDL2" and library.get("core_lib") is True:
+            binding_generation = library["binding_generation"]
+            functions = tuple(
+                str(function["name"])
+                for function in binding_generation["required_functions"]
+                if function.get("source_header") == "SDL.h"
+            )
+            constants = tuple(
+                str(constant["name"])
+                for constant in binding_generation["required_constants"]
+                if constant.get("source_header") == "SDL.h"
+            )
+            return functions, constants
+
+    raise RuntimeError("SDL2 Core binding_generation manifest entry was not found")
+
+
+def validate_required_surface_names(
+    manifest_functions: tuple[str, ...],
+    manifest_constants: tuple[str, ...],
+    allowlist: RequiredSurfaceAllowlist,
+) -> None:
+    spike_functions = tuple(allowlist.functions)
+    if spike_functions != manifest_functions:
+        raise RuntimeError(
+            f"SDL.h required function manifest parity mismatch: spike={list(spike_functions)} manifest={list(manifest_functions)}"
+        )
+
+    spike_constants = tuple(allowlist.constants)
+    if spike_constants != manifest_constants:
+        raise RuntimeError(
+            f"SDL.h required constant manifest parity mismatch: spike={list(spike_constants)} manifest={list(manifest_constants)}"
+        )
+
+
+def validate_required_surface_against_manifest(repo: pathlib.Path, allowlist: RequiredSurfaceAllowlist) -> None:
+    manifest_functions, manifest_constants = read_manifest_required_sdlh_names(repo)
+    validate_required_surface_names(manifest_functions, manifest_constants, allowlist)
+
+
+def should_validate_required_sdlh_surface(execute: bool, selected: list[str], scope: str) -> bool:
+    return execute and "core" in selected and scope == "full"
+
+
+FUNCTION_DECLARATION_PATTERN = re.compile(
+    r"^extern\s+DECLSPEC\s+(?P<return_type>.+?)\s+SDLCALL\s+(?P<name>SDL_\w+)\((?P<parameters>.*?)\);$"
+)
+MACRO_PATTERN = re.compile(r"^#define\s+(?P<name>SDL_INIT_\w+)\s+(?P<value>.+)$")
+
+
+def parse_required_sdlh_surface(
+    header_path: pathlib.Path,
+    allowlist: RequiredSurfaceAllowlist,
+) -> tuple[list[RequiredFunction], list[RequiredConstant]]:
+    text = header_path.read_text(encoding="utf-8")
+    return (
+        parse_required_sdlh_functions(text, allowlist.functions),
+        parse_required_sdlh_constants(text, allowlist.constants),
+    )
+
+
+def parse_required_sdlh_functions(text: str, allowed_names: tuple[str, ...]) -> list[RequiredFunction]:
+    allowed = set(allowed_names)
+    discovered: dict[str, RequiredFunction] = {}
+    direct_function_names: set[str] = set()
+
+    for line in text.splitlines():
+        match = FUNCTION_DECLARATION_PATTERN.match(line.strip())
+        if match is None:
+            continue
+
+        name = match.group("name")
+        direct_function_names.add(name)
+        if name not in allowed:
+            continue
+
+        native_return_type = match.group("return_type")
+        discovered[name] = RequiredFunction(
+            name=name,
+            native_return_type=native_return_type,
+            managed_return_type=map_sdlh_type(native_return_type),
+            parameters=parse_required_parameters(match.group("parameters")),
+        )
+
+    extra = sorted(direct_function_names - allowed)
+    if extra:
+        raise RuntimeError(f"SDL.h declares unexpected direct functions: {', '.join(extra)}")
+
+    missing = [name for name in allowed_names if name not in discovered]
+    if missing:
+        raise RuntimeError(f"SDL.h is missing required functions: {', '.join(missing)}")
+
+    return [discovered[name] for name in allowed_names]
+
+
+def parse_required_parameters(parameters_text: str) -> tuple[RequiredParameter, ...]:
+    stripped = parameters_text.strip()
+    if stripped == "void" or not stripped:
+        return ()
+
+    parameters: list[RequiredParameter] = []
+    for parameter_text in stripped.split(","):
+        parts = parameter_text.strip().split()
+        if len(parts) != 2:
+            raise RuntimeError(f"Unsupported SDL.h parameter declaration: {parameter_text}")
+
+        native_type, name = parts
+        parameters.append(RequiredParameter(native_type, map_sdlh_type(native_type), name))
+
+    return tuple(parameters)
+
+
+def parse_required_sdlh_constants(text: str, allowed_names: tuple[str, ...]) -> list[RequiredConstant]:
+    allowed = set(allowed_names)
+    discovered: dict[str, RequiredConstant] = {}
+    direct_macro_names: set[str] = set()
+
+    for logical_line in join_macro_continuations(text):
+        match = MACRO_PATTERN.match(logical_line.strip())
+        if match is None:
+            continue
+
+        name = match.group("name")
+        direct_macro_names.add(name)
+        if name not in allowed:
+            continue
+
+        value = normalize_macro_value(match.group("value"))
+        discovered[name] = RequiredConstant(
+            name=name,
+            raw_value=value,
+            managed_value=value,
+            kind="Computed" if "|" in value else "Literal",
+            native_type_name=f"#define {name} {value}",
+        )
+
+    extra = sorted(direct_macro_names - allowed)
+    if extra:
+        raise RuntimeError(f"SDL.h declares unexpected SDL_INIT macros: {', '.join(extra)}")
+
+    missing = [name for name in allowed_names if name not in discovered]
+    if missing:
+        raise RuntimeError(f"SDL.h is missing required SDL_INIT macros: {', '.join(missing)}")
+
+    return [discovered[name] for name in allowed_names]
+
+
+def join_macro_continuations(text: str) -> list[str]:
+    lines: list[str] = []
+    pending = ""
+
+    for line in text.splitlines():
+        stripped = line.rstrip()
+        if stripped.endswith("\\"):
+            pending += stripped[:-1].strip() + " "
+            continue
+
+        if pending:
+            lines.append(pending + stripped.strip())
+            pending = ""
+        else:
+            lines.append(stripped)
+
+    if pending:
+        lines.append(pending.strip())
+
+    return lines
+
+
+def normalize_macro_value(value: str) -> str:
+    value_without_comments = re.sub(r"/\*.*?\*/", "", value)
+    normalized = " ".join(value_without_comments.strip().split())
+    if normalized.startswith("(") and normalized.endswith(")"):
+        normalized = normalized[1:-1].strip()
+    return re.sub(r"\b(0x[0-9A-Fa-f]+)u\b", lambda match: match.group(1) + "U", normalized)
+
+
+def map_sdlh_type(native_type: str) -> str:
+    return {
+        "void": "void",
+        "int": "int",
+        "Uint32": "uint",
+    }.get(native_type, native_type)
 
 
 FAMILY_CONFIG = {
@@ -210,6 +441,79 @@ def platform_output_path(repo: pathlib.Path, codegen: str, family: str, header: 
         repo / "spikes" / "binding-generators" / "clangsharp" / "src" / library_dir
         / "Generated" / subdir / "Platforms" / view_name / (pathlib.Path(header).stem + ".g.cs")
     )
+
+
+def output_path_for_required_surface(repo: pathlib.Path, codegen: str, family: str) -> pathlib.Path:
+    subdir = "Compat" if codegen == "compat" else "Modern"
+    library_dir = FAMILY_CONFIG[family]["library_dir"]
+    return repo / "spikes" / "binding-generators" / "clangsharp" / "src" / library_dir / "Generated" / subdir / "SDL_required.g.cs"
+
+
+def render_required_parameter(parameter: RequiredParameter) -> str:
+    prefix = ""
+    if parameter.native_type != parameter.managed_type:
+        prefix = f'[NativeTypeName("{parameter.native_type}")] '
+    return f"{prefix}{parameter.managed_type} {parameter.name}"
+
+
+def render_required_surface(
+    namespace: str,
+    raw_class: str,
+    functions: list[RequiredFunction],
+    constants: list[RequiredConstant],
+) -> str:
+    lines = [
+        "using System.Runtime.InteropServices;",
+        "",
+        f"namespace {namespace}",
+        "{",
+        f"    internal static unsafe partial class {raw_class}",
+        "    {",
+    ]
+
+    for constant in constants:
+        lines.append(f'        [NativeTypeName("{constant.native_type_name}")]')
+        lines.append(f"        public const uint {constant.name} = {constant.managed_value};")
+        lines.append("")
+
+    for index, function in enumerate(functions):
+        lines.append('        [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]')
+        if function.native_return_type != function.managed_return_type:
+            lines.append(f'        [return: NativeTypeName("{function.native_return_type}")]')
+        rendered_parameters = ", ".join(render_required_parameter(parameter) for parameter in function.parameters)
+        lines.append(f"        public static extern {function.managed_return_type} {function.name}({rendered_parameters});")
+        if index != len(functions) - 1:
+            lines.append("")
+
+    lines.extend([
+        "    }",
+        "}",
+        "",
+    ])
+    return "\n".join(lines)
+
+
+def generate_required_sdlh_surface(repo: pathlib.Path, triplet: str, codegen: str, scope_root: pathlib.Path) -> int:
+    allowlist = read_required_surface_allowlist(scope_root / "sdl2-core-sdlh-required.json")
+    if allowlist.family != "sdl2-core":
+        raise RuntimeError(f"SDL.h required surface only supports family sdl2-core, not {allowlist.family}")
+
+    validate_required_surface_against_manifest(repo, allowlist)
+
+    header_path = repo / "vcpkg_installed" / triplet / "include" / "SDL2" / allowlist.header
+    functions, constants = parse_required_sdlh_surface(header_path, allowlist)
+    output_path = output_path_for_required_surface(repo, codegen, "core")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(
+        render_required_surface(
+            FAMILY_CONFIG["core"]["namespace"],
+            FAMILY_CONFIG["core"]["raw_class"],
+            functions,
+            constants,
+        ),
+        encoding="utf-8",
+    )
+    return 1
 
 
 def platform_command_for_header(
@@ -466,6 +770,120 @@ def write_report(
     report_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def run_self_tests() -> int:
+    allowlist = RequiredSurfaceAllowlist(
+        "sdl2-core",
+        "SDL.h",
+        ("SDL_Init", "SDL_InitSubSystem", "SDL_QuitSubSystem", "SDL_WasInit", "SDL_Quit"),
+        (
+            "SDL_INIT_TIMER",
+            "SDL_INIT_AUDIO",
+            "SDL_INIT_VIDEO",
+            "SDL_INIT_JOYSTICK",
+            "SDL_INIT_HAPTIC",
+            "SDL_INIT_GAMECONTROLLER",
+            "SDL_INIT_EVENTS",
+            "SDL_INIT_SENSOR",
+            "SDL_INIT_NOPARACHUTE",
+            "SDL_INIT_EVERYTHING",
+        ),
+    )
+    fixture = r"""
+#define SDL_INIT_TIMER          0x00000001u
+#define SDL_INIT_AUDIO          0x00000010u
+#define SDL_INIT_VIDEO          0x00000020u /**< SDL_INIT_VIDEO implies SDL_INIT_EVENTS */
+#define SDL_INIT_JOYSTICK       0x00000200u /* joystick support */
+#define SDL_INIT_HAPTIC         0x00001000u
+#define SDL_INIT_GAMECONTROLLER 0x00002000u /**< game controller support */
+#define SDL_INIT_EVENTS         0x00004000u
+#define SDL_INIT_SENSOR         0x00008000u
+#define SDL_INIT_NOPARACHUTE    0x00100000u /**< compatibility; this flag is ignored. */
+#define SDL_INIT_EVERYTHING ( \
+                SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS | \
+                SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC | SDL_INIT_GAMECONTROLLER | SDL_INIT_SENSOR \
+            )
+extern DECLSPEC int SDLCALL SDL_Init(Uint32 flags);
+extern DECLSPEC int SDLCALL SDL_InitSubSystem(Uint32 flags);
+extern DECLSPEC void SDLCALL SDL_QuitSubSystem(Uint32 flags);
+extern DECLSPEC Uint32 SDLCALL SDL_WasInit(Uint32 flags);
+extern DECLSPEC void SDLCALL SDL_Quit(void);
+"""
+    failures: list[str] = []
+
+    functions = parse_required_sdlh_functions(fixture, allowlist.functions)
+    if [function.name for function in functions] != list(allowlist.functions):
+        failures.append("function order did not match allowlist")
+    if functions[0].parameters != (RequiredParameter("Uint32", "uint", "flags"),):
+        failures.append("Uint32 flags parameter was not mapped to uint flags")
+    if functions[3].managed_return_type != "uint":
+        failures.append("Uint32 return type was not mapped to uint")
+
+    constants = parse_required_sdlh_constants(fixture, allowlist.constants)
+    if [constant.name for constant in constants] != list(allowlist.constants):
+        failures.append("constant order did not match allowlist")
+    if constants[-1].kind != "Computed":
+        failures.append("SDL_INIT_EVERYTHING was not parsed as computed")
+    if "SDL_INIT_GAMECONTROLLER" not in constants[-1].managed_value:
+        failures.append("SDL_INIT_EVERYTHING did not retain identifier text")
+    constants_by_name = {constant.name: constant for constant in constants}
+    if constants_by_name["SDL_INIT_VIDEO"].managed_value != "0x00000020U":
+        failures.append("SDL_INIT_VIDEO comment text was not stripped before numeric normalization")
+    for name in ("SDL_INIT_VIDEO", "SDL_INIT_JOYSTICK", "SDL_INIT_GAMECONTROLLER", "SDL_INIT_NOPARACHUTE"):
+        if "/*" in constants_by_name[name].managed_value or "*/" in constants_by_name[name].managed_value:
+            failures.append(f"{name} managed value retained block comment text")
+
+    rendered = render_required_surface("SDL2", "SDLNative", functions, constants)
+    if "internal static unsafe partial class SDLNative" not in rendered:
+        failures.append("rendered output did not contain the SDLNative raw class declaration")
+    if "public const uint SDL_INIT_EVERYTHING" not in rendered:
+        failures.append("rendered output did not contain computed SDL_INIT_EVERYTHING")
+    if "[DllImport(\"SDL2\", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]" not in rendered:
+        failures.append("rendered output did not contain the SDL2 DllImport attribute")
+    if "public static extern int SDL_Init([NativeTypeName(\"Uint32\")] uint flags);" not in rendered:
+        failures.append("rendered output did not contain the SDL_Init extern signature")
+
+    wrong_order = RequiredSurfaceAllowlist(
+        "sdl2-core",
+        "SDL.h",
+        tuple(reversed(allowlist.functions)),
+        allowlist.constants,
+    )
+    try:
+        validate_required_surface_names(allowlist.functions, allowlist.constants, wrong_order)
+        failures.append("manifest parity validation did not reject reordered required functions")
+    except RuntimeError:
+        pass
+
+    if not should_validate_required_sdlh_surface(True, ["core"], "full"):
+        failures.append("required SDL.h manifest parity validation was not enabled for executed full core generation")
+    if should_validate_required_sdlh_surface(False, ["core"], "full"):
+        failures.append("required SDL.h manifest parity validation was enabled during dry-run")
+    if should_validate_required_sdlh_surface(True, ["core"], "bootstrap"):
+        failures.append("required SDL.h manifest parity validation was enabled outside full scope")
+    if should_validate_required_sdlh_surface(True, ["image"], "full"):
+        failures.append("required SDL.h manifest parity validation was enabled without core selected")
+
+    try:
+        parse_required_sdlh_functions(fixture + "extern DECLSPEC int SDLCALL SDL_Unexpected(void);\n", allowlist.functions)
+        failures.append("unexpected direct SDL.h functions were not rejected")
+    except RuntimeError:
+        pass
+
+    try:
+        parse_required_sdlh_constants(fixture + "#define SDL_INIT_SURPRISE 0x80000000u\n", allowlist.constants)
+        failures.append("unexpected SDL_INIT macros were not rejected")
+    except RuntimeError:
+        pass
+
+    if failures:
+        for failure in failures:
+            print(f"self-test: FAIL: {failure}")
+        return 1
+
+    print("self-test: PASS")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="ppy-style ClangSharp spike orchestrator")
     parser.add_argument("--vcpkg-triplet", default="x64-windows-hybrid")
@@ -480,7 +898,11 @@ def main() -> int:
         action="store_true",
         help="Add spike-only shim headers for Windows-local synthetic Linux/macOS/iOS platform parses",
     )
+    parser.add_argument("--self-test", action="store_true", help="Run generator parser self-tests and exit")
     args = parser.parse_args()
+
+    if args.self_test:
+        return run_self_tests()
 
     repo = find_repository_root()
     spike_root = repo / "spikes" / "binding-generators"
@@ -505,6 +927,10 @@ def main() -> int:
         stats[family]["headers"] = len(headers)
 
     codegen_passes = ["compat", "modern"] if args.codegen == "both" else [args.codegen]
+
+    if should_validate_required_sdlh_surface(args.execute, selected, args.scope):
+        allowlist = read_required_surface_allowlist(scope_root / "sdl2-core-sdlh-required.json")
+        validate_required_surface_against_manifest(repo, allowlist)
 
     if args.clean_output and args.execute:
         for family in selected:
@@ -546,6 +972,12 @@ def main() -> int:
 
                     if result.returncode != 0:
                         failures.append((repo / "vcpkg_installed" / args.vcpkg_triplet / "include" / "SDL2" / header, command_line, result.returncode))
+
+    if should_validate_required_sdlh_surface(args.execute, selected, args.scope):
+        print("--- required SDL.h surface ---")
+        for codegen in codegen_passes:
+            generated_count = generate_required_sdlh_surface(repo, args.vcpkg_triplet, codegen, scope_root)
+            stats["core"]["generated_files"] += generated_count
 
     # Multi-OS pass for the SDL2 headers whose public API genuinely splits per
     # platform (SDL_main, SDL_system — Explore-agent scan 2026-05-21). Adapted

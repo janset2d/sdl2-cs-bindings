@@ -346,6 +346,7 @@ internal static class SelfTests
         Expect(evidence.Functions.Any(f => f.ManagedName == "SDL_Quit" && f.NamespaceName == "SDL2.Image"), "extracts nested block namespace names", failures);
         Expect(evidence.Functions.Any(f => f.ManagedName == "IMG_Quit" && f.NativeLibrary == "SDL2_image" && f.ImportKind == "DllImport"), "resolves duplicate const-backed import names from the containing type scope", failures);
         Expect(evidence.Constants.Any(c => c.Name == "SDL_INIT_VIDEO" && c.Kind == "Field"), "extracts const fields", failures);
+        Expect(evidence.Constants.Any(c => c.Name == "SDL_INIT_EVERYTHING" && c.Kind == "Field"), "extracts const computed required constants", failures);
         Expect(evidence.Constants.Any(c => c.Name == "SDL_HINT_RENDER_DRIVER" && c.Kind == "Property"), "extracts expression-bodied UTF-8 span properties", failures);
         Expect(evidence.Types.Any(t => t.Name == "SDL_RWops" && t.Kind == "Struct"), "extracts structs", failures);
         Expect(evidence.Types.Any(t => t.Name == "SDL_bool" && t.Kind == "Enum"), "extracts enums", failures);
@@ -572,7 +573,17 @@ namespace SDL2
 
     public static unsafe partial class SDLNative
     {
+        [NativeTypeName("#define SDL_INIT_TIMER 0x00000001u")]
+        public const uint SDL_INIT_TIMER = 0x00000001u;
+
+        [NativeTypeName("#define SDL_INIT_AUDIO 0x00000010u")]
+        public const uint SDL_INIT_AUDIO = 0x00000010u;
+
         public const uint SDL_INIT_VIDEO = 0x00000020u;
+
+        [NativeTypeName("#define SDL_INIT_EVERYTHING SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO")]
+        public const uint SDL_INIT_EVERYTHING = SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO;
+
         public static ReadOnlySpan<byte> SDL_HINT_RENDER_DRIVER => "SDL_RENDER_DRIVER"u8;
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl)]

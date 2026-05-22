@@ -101,7 +101,7 @@ namespace SDL2
     internal static unsafe partial class SDLNative
     {
         public const uint SDL_INIT_TIMER = 0x00000001u;
-        public static readonly uint SDL_INIT_EVERYTHING = SDL_INIT_TIMER | /* ... */;
+        public const uint SDL_INIT_EVERYTHING = SDL_INIT_TIMER | /* ... */;
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern int SDL_Init(uint flags);

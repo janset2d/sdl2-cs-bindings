@@ -7,8 +7,8 @@ This spike report is evidence, not a correctness certificate. Raw ABI constituti
 | Family | Source | Path | Status | Functions | Constants | Types |
 | --- | --- | --- | --- | ---: | ---: | ---: |
 | sdl2-core | Cake Preview | `artifacts/generated-bindings-preview/sdl2-core` | present | 854 | 351 | 152 |
-| sdl2-core | ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Compat` | present | 866 | 352 | 223 |
-| sdl2-core | ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern` | present | 866 | 352 | 239 |
+| sdl2-core | ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Compat` | present | 871 | 362 | 224 |
+| sdl2-core | ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern` | present | 871 | 362 | 240 |
 | sdl2-core | SDL2 Dynapi | `external/vcpkg or vcpkg_installed` | present | 872 | 0 | 0 |
 | sdl2-core | Manifest Required Surface | `build/manifest.json` | present | 5 | 10 | 0 |
 | sdl2-core | SDL2-CS | `external/sdl2-cs/src/SDL2.cs` | present | 789 | 292 | 131 |
@@ -30,8 +30,8 @@ This spike report is evidence, not a correctness certificate. Raw ABI constituti
 | Source | Path | Status | Functions | Constants | Types |
 | --- | --- | --- | ---: | ---: | ---: |
 | Cake Preview | `artifacts/generated-bindings-preview/sdl2-core` | present | 854 | 351 | 152 |
-| ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Compat` | present | 866 | 352 | 223 |
-| ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern` | present | 866 | 352 | 239 |
+| ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Compat` | present | 871 | 362 | 224 |
+| ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern` | present | 871 | 362 | 240 |
 | SDL2 Dynapi | `external/vcpkg or vcpkg_installed` | present | 872 | 0 | 0 |
 | Manifest Required Surface | `build/manifest.json` | present | 5 | 10 | 0 |
 | SDL2-CS | `external/sdl2-cs/src/SDL2.cs` | present | 789 | 292 | 131 |
@@ -40,7 +40,7 @@ This spike report is evidence, not a correctness certificate. Raw ABI constituti
 
 | Surface | Functions | Constants | Types |
 | --- | ---: | ---: | ---: |
-| Generated ClangSharp | 1732 | 704 | 462 |
+| Generated ClangSharp | 1742 | 724 | 464 |
 | Cake Preview | 854 | 351 | 152 |
 | SDL2-CS | 789 | 292 | 131 |
 | Dynapi | 872 | 0 | 0 |
@@ -99,31 +99,6 @@ This spike report is evidence, not a correctness certificate. Raw ABI constituti
   - `SDL_SysWMmsg`
   - Example: `SDL_SysWMmsg` - SDL_SysWMmsg layout is deferred but ClangSharp emitted fields. (`spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Compat/SDL_syswm.g.cs`)
   - Example: `SDL_SysWMmsg` - SDL_SysWMmsg layout is deferred but ClangSharp emitted fields. (`spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern/SDL_syswm.g.cs`)
-- Missing SDL.h required constants (`required-constant-missing`): 10 finding(s), 10 symbol(s).
-  - Symbols:
-  - `SDL_INIT_AUDIO`
-  - `SDL_INIT_EVENTS`
-  - `SDL_INIT_EVERYTHING`
-  - `SDL_INIT_GAMECONTROLLER`
-  - `SDL_INIT_HAPTIC`
-  - `SDL_INIT_JOYSTICK`
-  - `SDL_INIT_NOPARACHUTE`
-  - `SDL_INIT_SENSOR`
-  - `SDL_INIT_TIMER`
-  - `SDL_INIT_VIDEO`
-  - Example: `SDL_INIT_AUDIO` - Manifest-required SDL2 constant is absent from ClangSharp generated evidence. (`manifest`)
-  - Example: `SDL_INIT_EVENTS` - Manifest-required SDL2 constant is absent from ClangSharp generated evidence. (`manifest`)
-  - Example: `SDL_INIT_EVERYTHING` - Manifest-required SDL2 constant is absent from ClangSharp generated evidence. (`manifest`)
-- Missing SDL.h required functions (`required-function-missing`): 5 finding(s), 5 symbol(s).
-  - Symbols:
-  - `SDL_Init`
-  - `SDL_InitSubSystem`
-  - `SDL_Quit`
-  - `SDL_QuitSubSystem`
-  - `SDL_WasInit`
-  - Example: `SDL_Init` - Manifest-required SDL2 function is absent from ClangSharp generated evidence. (`manifest`)
-  - Example: `SDL_InitSubSystem` - Manifest-required SDL2 function is absent from ClangSharp generated evidence. (`manifest`)
-  - Example: `SDL_Quit` - Manifest-required SDL2 function is absent from ClangSharp generated evidence. (`manifest`)
 
 ### Function Matrix
 
@@ -183,21 +158,7 @@ This spike report is evidence, not a correctness certificate. Raw ABI constituti
 
 ### Evidence Gaps
 
-- Evidence Missing: Missing SDL.h required constants - `SDL_INIT_AUDIO`.
-- Evidence Missing: Missing SDL.h required constants - `SDL_INIT_EVENTS`.
-- Evidence Missing: Missing SDL.h required constants - `SDL_INIT_EVERYTHING`.
-- Evidence Missing: Missing SDL.h required constants - `SDL_INIT_GAMECONTROLLER`.
-- Evidence Missing: Missing SDL.h required constants - `SDL_INIT_HAPTIC`.
-- Evidence Missing: Missing SDL.h required constants - `SDL_INIT_JOYSTICK`.
-- Evidence Missing: Missing SDL.h required constants - `SDL_INIT_NOPARACHUTE`.
-- Evidence Missing: Missing SDL.h required constants - `SDL_INIT_SENSOR`.
-- Evidence Missing: Missing SDL.h required constants - `SDL_INIT_TIMER`.
-- Evidence Missing: Missing SDL.h required constants - `SDL_INIT_VIDEO`.
-- Evidence Missing: Missing SDL.h required functions - `SDL_Init`.
-- Evidence Missing: Missing SDL.h required functions - `SDL_InitSubSystem`.
-- Evidence Missing: Missing SDL.h required functions - `SDL_Quit`.
-- Evidence Missing: Missing SDL.h required functions - `SDL_QuitSubSystem`.
-- Evidence Missing: Missing SDL.h required functions - `SDL_WasInit`.
+No evidence gaps were detected for loaded sources and manifest-required checks.
 
 
 ## Family: sdl2-image
