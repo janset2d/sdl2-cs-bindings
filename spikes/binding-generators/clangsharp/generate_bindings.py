@@ -5,6 +5,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 
 
@@ -49,6 +50,29 @@ class RequiredConstant:
 
 def platform_header_shim_root(repo: pathlib.Path) -> pathlib.Path:
     return repo / "spikes" / "binding-generators" / "clangsharp" / "shims" / "platform-headers"
+
+
+def per_header_rsp_path(repo: pathlib.Path, header_name: str) -> pathlib.Path | None:
+    """Return path to per-header RSP if it exists, else None.
+
+    header_name is the SDL header filename like 'SDL_audio.h'. Looks under
+    spikes/binding-generators/clangsharp/rsp/per-header/<basename>.rsp where
+    <basename> is the header name with the .h extension stripped.
+
+    Implements the third RSP tier in Decision 4 of the Priority C semantic-ABI
+    design (docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md
+    — see "Decision 4 — Per-Header RSP Organization (ppy Alignment)"). Mirrors
+    the per-header RSP pattern used by ppy/SDL3-CS generate_bindings.py:318-320.
+
+    Returning the path lets callers feed it through the @<path> response-file
+    syntax that ClangSharp already accepts for base.rsp and the family RSP.
+    """
+    basename = pathlib.Path(header_name).stem
+    candidate = (
+        repo / "spikes" / "binding-generators" / "clangsharp"
+        / "rsp" / "per-header" / f"{basename}.rsp"
+    )
+    return candidate if candidate.is_file() else None
 
 
 def find_repository_root() -> pathlib.Path:
@@ -552,6 +576,11 @@ def platform_command_for_header(
     command.extend([
         f"@{rsp_root / 'base.rsp'}",
         f"@{rsp_root / FAMILY_CONFIG[family]['rsp']}",
+    ])
+    per_header_rsp = per_header_rsp_path(repo, header)
+    if per_header_rsp is not None:
+        command.append(f"@{per_header_rsp}")
+    command.extend([
         "--namespace", FAMILY_CONFIG[family]["namespace"],
         "--with-access-specifier", f"{FAMILY_CONFIG[family]['raw_class']}=Internal",
         "--include-directory", str(include_root),
@@ -681,6 +710,11 @@ def command_for_header(
     command.extend([
         f"@{rsp_root / 'base.rsp'}",
         f"@{rsp_root / FAMILY_CONFIG[family]['rsp']}",
+    ])
+    per_header_rsp = per_header_rsp_path(repo, header)
+    if per_header_rsp is not None:
+        command.append(f"@{per_header_rsp}")
+    command.extend([
         "--namespace", FAMILY_CONFIG[family]["namespace"],
         "--with-access-specifier", f"{FAMILY_CONFIG[family]['raw_class']}=Internal",
         "--include-directory", str(include_root),
@@ -874,6 +908,34 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
         failures.append("unexpected SDL_INIT macros were not rejected")
     except RuntimeError:
         pass
+
+    # Per-header RSP lookup — Decision 4 (Priority C semantic-ABI design). The
+    # helper returns the absolute RSP path when a per-header file exists under
+    # spikes/binding-generators/clangsharp/rsp/per-header/<basename>.rsp, and
+    # None when it does not. Strips the .h extension from the header name so
+    # 'SDL_audio.h' maps to 'SDL_audio.rsp'.
+    with tempfile.TemporaryDirectory() as raw_tmp:
+        tmp = pathlib.Path(raw_tmp)
+        per_header_dir = tmp / "spikes" / "binding-generators" / "clangsharp" / "rsp" / "per-header"
+        per_header_dir.mkdir(parents=True)
+        (per_header_dir / "SDL_audio.rsp").write_text("# fixture\n", encoding="utf-8")
+
+        resolved = per_header_rsp_path(tmp, "SDL_audio.h")
+        if resolved is None:
+            failures.append("per_header_rsp_path returned None for an existing SDL_audio.rsp fixture")
+        elif resolved != per_header_dir / "SDL_audio.rsp":
+            failures.append(f"per_header_rsp_path returned unexpected path: {resolved}")
+
+        missing = per_header_rsp_path(tmp, "SDL_video.h")
+        if missing is not None:
+            failures.append(f"per_header_rsp_path returned non-None for a missing header: {missing}")
+
+        # Verifies basename derivation strips the .h extension correctly even
+        # for header names that contain dots or extra characters.
+        (per_header_dir / "SDL_hidapi.rsp").write_text("# fixture\n", encoding="utf-8")
+        hidapi = per_header_rsp_path(tmp, "SDL_hidapi.h")
+        if hidapi != per_header_dir / "SDL_hidapi.rsp":
+            failures.append(f"per_header_rsp_path basename derivation failed: {hidapi}")
 
     if failures:
         for failure in failures:
