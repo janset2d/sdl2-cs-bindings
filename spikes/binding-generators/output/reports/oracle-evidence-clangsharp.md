@@ -50,6 +50,21 @@ This spike report is evidence, not a correctness certificate. Raw ABI constituti
 
 #### Compatibility Risk
 
+- Duplicate tag/typedef pairs (`duplicate-tag-typedef`): 20 finding(s), 10 symbol(s).
+  - Symbols:
+  - `VkInstance_T`
+  - `VkSurfaceKHR_T`
+  - `XTaskQueueObject`
+  - `XUser`
+  - `_SDL_AudioStream`
+  - `_SDL_GameController`
+  - `_SDL_Haptic`
+  - `_SDL_Joystick`
+  - `_SDL_Sensor`
+  - `_SDL_iconv_t`
+  - Example: `VkInstance_T` - Struct 'VkInstance_T' is referenced via [NativeTypeName("VkInstance *")] - tag/typedef pair detected; canonicalize via per-header RSP --remap (Constitution L262-277). (`spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Compat/SDL_vulkan.g.cs`)
+  - Example: `VkInstance_T` - Struct 'VkInstance_T' is referenced via [NativeTypeName("VkInstance *")] - tag/typedef pair detected; canonicalize via per-header RSP --remap (Constitution L262-277). (`spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Compat/SDL_vulkan.g.cs`)
+  - Example: `VkSurfaceKHR_T` - Struct 'VkSurfaceKHR_T' is referenced via [NativeTypeName("VkSurfaceKHR *")] - tag/typedef pair detected; canonicalize via per-header RSP --remap (Constitution L262-277). (`spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Compat/SDL_vulkan.g.cs`)
 - Platform-sensitive scalar risks (`platform-sensitive-wchar`): 30 finding(s), 15 symbol(s).
   - Symbols:
   - `SDL_WinRTGetFSPathUNICODE`

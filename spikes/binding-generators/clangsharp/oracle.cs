@@ -396,6 +396,17 @@ internal static class SelfTests
         Expect(edgeChecks.Any(c => c.CheckId == "platform-sensitive-long"), "flags platform-sensitive C long mappings", failures);
         Expect(edgeChecks.Any(c => c.CheckId == "platform-sensitive-wchar"), "flags platform-sensitive wchar_t mappings", failures);
 
+        var duplicateTagEvidence = CSharpEvidenceExtractor.Extract("duplicate-tag-fixture.g.cs", Fixtures.DuplicateTagTypedefSource, ["NET5_0_OR_GREATER"]);
+        var duplicateTagChecks = RawAbiChecks.Run(FamilyConfigs.Sdl2Core, duplicateTagEvidence, RequiredSurface.Empty);
+        var duplicateTagFindings = duplicateTagChecks.Where(c => c.CheckId == "duplicate-tag-typedef").ToArray();
+        Expect(duplicateTagFindings.Length == 1, "flags exactly one duplicate tag/typedef pair (SDL_hid_device_ vs SDL_hid_device)", failures);
+        Expect(duplicateTagFindings.Any(c => c.Symbol == "SDL_hid_device_" && c.Message.Contains("SDL_hid_device *", StringComparison.Ordinal)), "names the tag struct symbol and references the typedef canonical name in the message", failures);
+        Expect(duplicateTagFindings.All(c => c.Classification == "Compatibility Risk" && c.Severity == "warning"), "classifies duplicate tag/typedef findings as Compatibility Risk warnings", failures);
+
+        var canonicalTagEvidence = CSharpEvidenceExtractor.Extract("canonical-tag-fixture.g.cs", Fixtures.CanonicalTagTypedefSource, ["NET5_0_OR_GREATER"]);
+        var canonicalTagChecks = RawAbiChecks.Run(FamilyConfigs.Sdl2Core, canonicalTagEvidence, RequiredSurface.Empty);
+        Expect(!canonicalTagChecks.Any(c => c.CheckId == "duplicate-tag-typedef"), "does not flag canonical tag/typedef state (post-remap baseline)", failures);
+
         var sampledCheckIds = RawAbiCheckSampler.Sample(Fixtures.DuplicateFirstRawAbiChecks, 4).Select(check => check.CheckId).ToArray();
         Expect(sampledCheckIds.Distinct(StringComparer.Ordinal).Count() > 1, "samples varied raw ABI check categories before truncating", failures);
 
@@ -712,6 +723,72 @@ namespace SDL2
     }
 }
 """;
+
+    // Mirrors the pre-remap ClangSharp output for SDL_hidapi.h: the C tag `SDL_hid_device_`
+    // is emitted as an empty partial struct, and functions reference it via the typedef
+    // `SDL_hid_device` through [NativeTypeName] annotations. The adjacent `SDL_hid_device_info`
+    // declaration exercises the false-positive guard (legitimately different public type).
+    public const string DuplicateTagTypedefSource = """
+using System;
+using System.Runtime.InteropServices;
+
+namespace SDL2
+{
+    public partial struct SDL_hid_device_
+    {
+    }
+
+    public unsafe partial struct SDL_hid_device_info
+    {
+        public int interface_number;
+    }
+
+    public static unsafe partial class SDLNative
+    {
+        [DllImport("SDL2")]
+        [return: NativeTypeName("SDL_hid_device *")]
+        public static extern SDL_hid_device_* SDL_hid_open([NativeTypeName("unsigned short")] ushort vendor_id);
+
+        [DllImport("SDL2")]
+        public static extern void SDL_hid_close([NativeTypeName("SDL_hid_device *")] SDL_hid_device_* dev);
+
+        [DllImport("SDL2")]
+        public static extern SDL_hid_device_info* SDL_hid_enumerate([NativeTypeName("unsigned short")] ushort vendor_id);
+    }
+}
+""";
+
+    // Mirrors the post-remap canonical state: empty struct named after the public typedef,
+    // every reference uses the same name, no [NativeTypeName] mismatch. Includes the
+    // adjacent `SDL_hid_device_info` type to confirm the guard suppresses unrelated names.
+    public const string CanonicalTagTypedefSource = """
+using System;
+using System.Runtime.InteropServices;
+
+namespace SDL2
+{
+    public partial struct SDL_hid_device
+    {
+    }
+
+    public unsafe partial struct SDL_hid_device_info
+    {
+        public int interface_number;
+    }
+
+    public static unsafe partial class SDLNative
+    {
+        [DllImport("SDL2")]
+        public static extern SDL_hid_device* SDL_hid_open([NativeTypeName("unsigned short")] ushort vendor_id);
+
+        [DllImport("SDL2")]
+        public static extern void SDL_hid_close(SDL_hid_device* dev);
+
+        [DllImport("SDL2")]
+        public static extern SDL_hid_device_info* SDL_hid_enumerate([NativeTypeName("unsigned short")] ushort vendor_id);
+    }
+}
+""";
 }
 
 internal sealed record CSharpEvidence(
@@ -995,6 +1072,7 @@ internal static class MarkdownReportRenderer
             "required-constant-missing" => "Missing SDL.h required constants",
             "deferred-layout-sdl-rwops" or "deferred-layout-sdl-syswminfo" or "deferred-layout-sdl-syswmmsg" => "Deferred layout violations",
             "platform-sensitive-long" or "platform-sensitive-wchar" => "Platform-sensitive scalar risks",
+            "duplicate-tag-typedef" => "Duplicate tag/typedef pairs",
             "family-namespace-drift" => "Image namespace drift",
             _ => checkId
         };
@@ -1105,6 +1183,8 @@ internal static class RawAbiChecks
         AddDeferredLayoutChecks(checks, evidence, "SDL_SysWMinfo", "deferred-layout-sdl-syswminfo", includeNestedFields: false);
         AddDeferredLayoutChecks(checks, evidence, "SDL_SysWMmsg", "deferred-layout-sdl-syswmmsg", includeNestedFields: false);
 
+        AddDuplicateTagTypedefChecks(checks, evidence);
+
         foreach (var function in evidence.Functions.Where(IsNativeImport))
         {
             if (IsPlatformSensitiveLong(function.ReturnNativeTypeName, function.ReturnType)
@@ -1152,6 +1232,87 @@ internal static class RawAbiChecks
             checks.Add(HardBug(checkId, type.Name, $"{typeName} layout is deferred but ClangSharp emitted fields.", type.SourcePath));
         }
     }
+
+    private static void AddDuplicateTagTypedefChecks(List<RawAbiCheck> checks, CSharpEvidence evidence)
+    {
+        var declaredStructNames = evidence.Types
+            .Where(type => type.Kind == "Struct")
+            .Select(type => type.Name)
+            .ToHashSet(StringComparer.Ordinal);
+
+        var emptyStructs = evidence.Types
+            .Where(type => type.Kind == "Struct" && !type.HasFields && !type.HasNestedFields)
+            .ToArray();
+
+        foreach (var structEvidence in emptyStructs)
+        {
+            var reported = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var (annotationCanonical, sourcePath) in EnumerateMismatchedReferences(structEvidence.Name, evidence.Functions))
+            {
+                if (declaredStructNames.Contains(annotationCanonical) || !reported.Add(annotationCanonical))
+                {
+                    continue;
+                }
+
+                checks.Add(new RawAbiCheck(
+                    "duplicate-tag-typedef",
+                    "warning",
+                    "Compatibility Risk",
+                    structEvidence.Name,
+                    $"Struct '{structEvidence.Name}' is referenced via [NativeTypeName(\"{annotationCanonical} *\")] - tag/typedef pair detected; canonicalize via per-header RSP --remap (Constitution L262-277).",
+                    sourcePath));
+            }
+        }
+    }
+
+    private static IEnumerable<(string AnnotationCanonical, string SourcePath)> EnumerateMismatchedReferences(string structName, IReadOnlyList<FunctionEvidence> functions)
+    {
+        foreach (var function in functions)
+        {
+            if (ReferencesManagedType(function.ReturnType, structName))
+            {
+                var canonical = TryCanonicalizeNativeTypeName(function.ReturnNativeTypeName);
+                if (canonical is not null && !canonical.Equals(structName, StringComparison.Ordinal))
+                {
+                    yield return (canonical, function.SourcePath);
+                }
+            }
+
+            foreach (var parameter in function.Parameters)
+            {
+                if (!ReferencesManagedType(parameter.Type, structName))
+                {
+                    continue;
+                }
+
+                var canonical = TryCanonicalizeNativeTypeName(parameter.NativeTypeName);
+                if (canonical is not null && !canonical.Equals(structName, StringComparison.Ordinal))
+                {
+                    yield return (canonical, function.SourcePath);
+                }
+            }
+        }
+    }
+
+    private static bool ReferencesManagedType(string managedType, string structName)
+        => StripPointerAndWhitespace(managedType).Equals(structName, StringComparison.Ordinal);
+
+    private static string? TryCanonicalizeNativeTypeName(string nativeTypeName)
+    {
+        if (nativeTypeName.Length == 0)
+        {
+            return null;
+        }
+
+        var canonical = nativeTypeName
+            .Replace("const ", "", StringComparison.Ordinal)
+            .Replace("struct ", "", StringComparison.Ordinal);
+        canonical = StripPointerAndWhitespace(canonical);
+        return canonical.Length == 0 ? null : canonical;
+    }
+
+    private static string StripPointerAndWhitespace(string text)
+        => text.Replace("*", "", StringComparison.Ordinal).Trim();
 
     private static bool IsExpectedRawClass(FamilyConfig config, TypeEvidence type)
         => type.Kind == "Class"
