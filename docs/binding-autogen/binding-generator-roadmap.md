@@ -303,6 +303,8 @@ Tests mirror this concept shape under `build/_build.Tests/Unit/Targets/GenerateB
 
 **Goal:** Introduce a raw ABI projection that can emit honest `DllImport` and `LibraryImport` backend files from one semantic model. The active ClangSharp spike has demonstrated one shape of this through dual-codegen passes (`compatible-codegen` for legacy TFMs, `latest-codegen` for modern) plus Roslyn postprocess; an Alimer-style CppAst single-pass emitter would express this through TFM-conditioned emission rules in the engine. Either approach must satisfy the contract below.
 
+**Priority C closure** (active 2026-05-24): [`docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md`](../superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md) finishes Layer 1 raw ABI honesty on the active ClangSharp spike — C `long` hybrid strategy (drop convenience helpers + dual-dispatch `SDL_threadID`), shared `wchar_t*` opaque via RSP `--remap` fix, typed handle struct (Pattern B) uniformly for all opaque handles including the previously-deferred `SDL_RWops` / `SDL_SysWMinfo` / `SDL_SysWMmsg`, tag/typedef canonicalization via per-header RSP, and `SDL_GUID -> System.Guid` substitution. Toolchain-neutral policy decisions feed back into the constitution; implementation lives on the active spike pending the ADR-004 amendment.
+
 **References:** temporary backend vision promoted into the constitution, SkiaSharp dual backend precedent, .NET interop docs, current C `long`/`CLong` findings, spike multi-TFM compile evidence under `spikes/binding-generators/output/reports/`.
 
 **Design direction:**

@@ -276,15 +276,15 @@ Verification from this session:
 
 The Windows-local ClangSharp spike cannot honestly claim final platform-view support yet. Defining non-Windows macros is not enough because SDL2 headers then include platform system headers that do not exist in the Windows-local vcpkg/header context. The explicit shim flag is acceptable for local iteration, but not a replacement for native platform generation.
 
-The current oracle report also defines the next repair queue. These are not vague TODOs; they are evidence-backed gaps from `output/reports/oracle-evidence-clangsharp.md`:
+Oracle report repair queue status (evidence-backed gaps from `output/reports/oracle-evidence-clangsharp.md`):
 
-| Priority | Gap group | What to fix next |
+| Priority | Gap group | Status |
 | --- | --- | --- |
-| A | Raw ABI visibility and SDL2_image family identity | Make generated raw ABI containers internal via ClangSharp class-level access specifiers and fix Image namespace drift from `SDL2` to `SDL2.Image`. Raw imports inside an internal container are not public API leaks; the oracle should check effective visibility. This is the next recommended implementation slice because it cleans the generated API shape before adding more symbols. |
-| B | Missing required `SDL.h` functions and constants | Recover `SDL_Init`, `SDL_InitSubSystem`, `SDL_Quit`, `SDL_QuitSubSystem`, `SDL_WasInit`, and the ten `SDL_INIT_*` constants without parsing `SDL.h` as a normal umbrella translation unit. |
-| C | Deferred layouts and platform-sensitive scalar mappings | Address `SDL_RWops`, `SDL_SysWMinfo`, `SDL_SysWMmsg`, `wchar_t`, and C `long` risks as a separate ABI research slice. This includes ClangSharp type emission behavior, SDL2 platform-condition handling, and native layout/scalar-width proof. Do not treat it as a simple cosmetic postprocess. |
+| A | Raw ABI visibility and SDL2_image family identity | **Done.** Commit `92b893b` made generated raw ABI containers internal via ClangSharp class-level access specifiers and fixed Image namespace drift. |
+| B | Missing required `SDL.h` functions and constants | **Done.** Commit `444fada` recovered `SDL_Init`, `SDL_InitSubSystem`, `SDL_Quit`, `SDL_QuitSubSystem`, `SDL_WasInit`, and the ten `SDL_INIT_*` constants without parsing `SDL.h` as a normal umbrella translation unit. |
+| C | Deferred layouts and platform-sensitive scalar mappings (`SDL_RWops`, `SDL_SysWMinfo`, `SDL_SysWMmsg`, `wchar_t`, C `long`, tag/typedef canonicalization, `SDL_GUID`) | **Design landed 2026-05-24** — see [`../../../docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md`](../../../docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md). Three slices (C-C handle canonicalization + SDL_GUID → C-A scalars → C-B uniform Pattern B opaque handles). Constitution policy updated with WHY/HOW/WHAT cross-references. Implementation plan pending `writing-plans` transition. |
 
-A-slice design lives at [`../../../docs/superpowers/specs/2026-05-22-clangsharp-raw-abi-visibility-design.md`](../../../docs/superpowers/specs/2026-05-22-clangsharp-raw-abi-visibility-design.md). Do not start implementation until that design has been reviewed and the implementation plan has been written.
+Priority C design at [`../../../docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md`](../../../docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md). Do not start implementation until the writing-plans transition produces an executable plan.
 
 Observed diagnostics from the no-shim regenerated full run (`C:\Users\deniz\.local\share\opencode\tool-output\tool_e4c9292a5001KOvtZbM0U9r7AM`):
 

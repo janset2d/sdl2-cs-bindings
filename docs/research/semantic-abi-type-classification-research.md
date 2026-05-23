@@ -382,6 +382,93 @@ These are candidate evidence gates, not accepted implementation requirements yet
 
 The project already has most of the correct **policy** answers in its constitution and proved them feasible through the sunset Cake-hosted CppAst implementation. The active ClangSharp spike re-proves the same policy on a different toolchain and remains valuable evidence because it exposes what goes wrong when raw AST syntax is treated as final API shape. Whichever toolchain the spike under [`spikes/binding-generators/`](../../spikes/binding-generators/) selects (ADR-004 Reopened 2026-05-23), the production implementation must satisfy the same constitution policy.
 
+---
+
+## Appendix — 2026-05-24 Brainstorm Follow-Up Research
+
+**Context:** The Priority C semantic-ABI closure design at [`../superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md`](../superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md) was preceded by a brainstorm session (2026-05-24) that dispatched parallel research agents to verify intervention surfaces, peer patterns, and ABI claims before locking design decisions. The following findings extended the 2026-05-22 research above and directly inform the Priority C design's WHY sections.
+
+### Finding 6 — Typed-Handle-By-Value at the P/Invoke Boundary Is ABI-Equivalent
+
+A `readonly partial struct X(nint value)` with a single pointer-sized field passed by value at the P/Invoke boundary is bit-identical to passing `IntPtr` directly. Confirmed against:
+
+- Microsoft [Native interop best practices](https://learn.microsoft.com/en-us/dotnet/standard/native-interop/best-practices) — blittable single-field struct, no marshal copy, no transform.
+- Microsoft [Blittable and Non-Blittable Types](https://learn.microsoft.com/en-us/dotnet/framework/interop/blittable-and-non-blittable-types) — formatted value types containing only blittable fields are blittable; passed without conversion.
+- Microsoft [LibraryImport StructMarshalling design](https://github.com/dotnet/runtime/blob/main/docs/design/libraries/LibraryImportGenerator/StructMarshalling.md) — user-defined blittable structs flow as-is, no `[MarshalAs]` required.
+- SysV x64 ABI — composite type ≤ 8 bytes with single integer-class field classified as INTEGER, passed in same GPR as bare `intptr_t`.
+- Arm [AAPCS64](https://github.com/ARM-software/abi-aa/blob/main/aapcs64/aapcs64.rst) and [MSVC ARM64 ABI conventions](https://learn.microsoft.com/en-us/cpp/build/arm64-windows-abi-conventions) — composite ≤ 16 bytes rounded up to 8-byte multiples, passed in `x0`–`x7` identical to `intptr_t`.
+- x86 cdecl/stdcall — single 4-byte field pushed on stack identically to `int32`/pointer.
+
+Peer adopters (P/Invoke signatures using typed-handle-by-value):
+
+- Cake `RawAbiCommandEmitter` — `internal static extern SDL_Window SDL_CreateWindow(...)`.
+- Alimer.Bindings.SDL — `public static partial void SDL_DestroyWindow(SDL_Window window)` with `readonly partial struct SDL_Window(nint value) : IEquatable<SDL_Window>` at `Handles.cs:1437`.
+- TerraFX.Interop.Windows — `readonly unsafe partial struct HWND` over `void*`, same ABI.
+- Silk.NET — `unsafe partial struct Instance { public nint Handle; }` (non-readonly variant), still passes by value.
+
+The "use IntPtr only at the P/Invoke boundary" advice in older interop literature predates `nint` (C# 9), `readonly struct` (C# 7.2 with multi-TFM IL compatibility back to net462), and `LibraryImport` (.NET 7+). It never reflected an ABI constraint — only a marshaller-maturity concern resolved over a decade ago.
+
+Multi-TFM compatibility verified for `netstandard2.0` / `net462` with `<LangVersion>12</LangVersion>` and explicit `[StructLayout(LayoutKind.Sequential)]`. No runtime pitfalls; `nint` keyword lowers to `System.IntPtr` IL on all TFMs.
+
+### Finding 7 — `--remap` byte-exact textual lookup (ClangSharp internals)
+
+The `wchar_t*=nint` entry in `base.rsp` did not fire because ClangSharp's `--remap` flag uses `QualifiedNameComparer` for byte-exact textual lookup (only `::` ↔ `.` collapsing). Libclang's type printer renders struct field types with a space (`wchar_t *`), parameter types sometimes without (`void*`). The remap key must match the libclang spelling byte-exact.
+
+Concrete fix verified by ppy SDL3-CS pattern: `--remap "wchar_t *=IntPtr"` (quoted, with space). Same pattern applies to our `nint` target.
+
+### Finding 8 — C `long` peer survey: drop-and-document is the dominant pattern
+
+Surveyed approaches on legacy TFMs (where `CLong` / `CULong` are unavailable):
+
+- **SDL2-CS** — drops all C-`long`-touching surface entirely. `SDL_stdinc.h` helpers, `SDL_thread.h` thread API. Zero hits in 8966-line file. Has shipped this posture for 10+ years without consumer complaint.
+- **Silk.NET** — `unsigned long` only appears in Windows-only namespaces (DXGI, Direct3D9, Direct3D12) where `DWORD = 32-bit`. Their cross-platform APIs (Vulkan, OpenGL, OpenAL) use sized C types and sidestep the issue entirely.
+- **SkiaSharp** — same as Silk.NET; upstream uses `int32_t` / `int64_t` / `IntPtr` directly. Skia is not a useful peer because the problem never arises.
+- **LibGit2Sharp** — targets `net472` + `net8.0` only; deliberately skipped `netstandard2.0`. libgit2's `git_time_t` is typedef'd to `int64_t` explicitly, dodging C `long`.
+- **Microsoft official guidance** ([cross-platform data types](https://learn.microsoft.com/en-us/dotnet/standard/native-interop/best-practices)) — recommends dual-DllImport with `RuntimeInformation.IsOSPlatform` dispatch when the symbol must remain accessible.
+
+Native shim approach (per-RID compat `.so`/`.dll` re-exporting `long`-returning functions with explicit-width returns) was considered and rejected: no peer ships such a shim; the cost/value ratio is wildly disproportionate for SDL2.Core's six convenience helpers.
+
+`SDL_lround`, `SDL_lroundf`, `SDL_ltoa`, `SDL_ultoa`, `SDL_strtol`, `SDL_strtoul` are convenience helpers SDL ships because some embedded/console platforms lack a full libc. `.NET` callers have BCL equivalents. The SDL2 wiki does not document them as user-facing API. Drop-all-TFM is the dominant peer posture.
+
+`SDL_threadID` family is structural (different ID space from `Thread.CurrentThread.ManagedThreadId`); cannot be dropped without losing thread-identification capability. Hybrid emit (modern: `CULong` + `#if NET6_0_OR_GREATER`; legacy: Microsoft's dual-DllImport + `RuntimeInformation.IsOSPlatform` dispatch) is the path forward.
+
+### Finding 9 — `wchar_t*` cross-library peer survey: opaque-or-avoid
+
+Surveyed `wchar_t*` handling across major .NET binding libraries:
+
+- **SDL2-CS** — drops the entire `SDL_hid_*` API (the only place SDL2 has shared `wchar_t*`). Zero hits for `wchar_t` / `wcs` / `hid_*` in 8966-line file.
+- **Silk.NET** — generator typemap declares `"wchar_t": "char"`. Emits `char* SerialNumber` for `wchar_t* serial_number` (e.g., `Silk.NET.SDL/Structs/HidDeviceInfo.gen.cs`). Windows-correct, Linux/macOS silently wrong. Anti-pattern.
+- **SkiaSharp** — generator declares `// TODO: long double, wchar_t ?`. No `wchar_t` in public C API (UTF-8 everywhere). Sidesteps the question.
+- **Vortice.Windows** — Windows-only library; no cross-platform constraint.
+- **LibGit2Sharp** — libgit2 uses UTF-8 `char*` everywhere for paths (intentional cross-platform design). Binding never sees `wchar_t`.
+
+Microsoft BCL `[MarshalAs(UnmanagedType.LPWStr)]` / `CharSet.Unicode` / `StringMarshalling.Utf16` are **all hardcoded 16-bit on every platform** per [interop charset docs](https://learn.microsoft.com/en-us/dotnet/standard/native-interop/charset). They do not track POSIX's 32-bit `wchar_t`. There is no portable BCL helper for `wchar_t*` cross-platform interop. `CLong` exists; `CWideChar` does not.
+
+The only ABI-honest pattern observed: bind raw as opaque `nint` / `IntPtr` and decode at the high-level wrapper layer. ppy SDL3-CS (`generate_bindings.py:278` — `"wchar_t *=IntPtr"`) and the sunset Cake generator (per [`docs/binding-autogen/binding-generator-constitution.md`](../binding-autogen/binding-generator-constitution.md) §"`wchar_t`") both use this pattern.
+
+### Finding 10 — Opaque struct patterns peer survey
+
+Surveyed opaque struct handling across major .NET binding libraries:
+
+| Library | Pattern | Platform-conditioned union? |
+| --- | --- | --- |
+| SDL2-CS | **C** (`IntPtr` everywhere; SDL_RWops truncated with comment, SDL_SysWMinfo brute-force union of 12 platform variants under `[FieldOffset(0)]`) | Brute-force union (sized to worst case) |
+| ppy SDL3-CS (`.g.cs`) | **A** (empty struct + typed `*` pointer) | N/A (SDL3 dropped SysWMinfo) |
+| ppy SDL3-CS (curated `.cs`) | **B** (`readonly partial struct(nint)`) | N/A |
+| Alimer.Bindings.SDL | **B** uniformly; CppAst-detected via `cppClass.SizeOf == 0` | N/A |
+| Silk.NET | **D** (`partial struct { nint Handle; }`, mutable, non-readonly) | N/A |
+| SkiaSharp | **C** raw + managed class wrappers | N/A |
+| LibGit2Sharp | **D** (`SafeHandle` subclass per type) | N/A |
+| Vortice.Windows | **D'** (COM `class : ComObject`) | N/A |
+
+**None** of these libraries solves the platform-conditioned-union problem portably for the SDL2 `SDL_RWops` / `SDL_SysWMinfo` shape. SDL2-CS brute-forces it (worst-case union); everyone else benefits from upstream ABIs that already chose opaque pointers. The cleanest answer for Stage 1 of a fresh SDL2 binding is to quarantine to an opaque shape (Pattern B per Decision 1 of the Priority C design) until per-RID layout proof exists.
+
+Alimer's auto-detection criterion (`cppClass.SizeOf == 0` → typed handle) is the right ClangSharp/CppAst signal — forward-declared incomplete types become handles automatically. `SDL_RWops` / `SDL_SysWMinfo` / `SDL_SysWMmsg` fail that filter (they have a size in the current translation unit), so they need an explicit force-opaque override list (Cake's `SdlOpaqueStructPolicy` pattern).
+
+### Cross-cutting note on these findings
+
+Findings 6-10 collectively justify the Priority C design's four policy decisions. Each Constitution section that previously had only "Why / How" added a "What" or "Priority C mechanism" subsection cross-referencing the design and the supporting evidence above. The brainstorm preserved this research at canonical-doc level rather than leaving it in chat history.
+
 The durable lesson is to make semantic ABI type classification the center of the next design discussion. Deferred layouts, opaque handles, `wchar_t`, C `long`, enum flags, and public handle escape hatches should be reviewed as one taxonomy. Implementation can still be sliced narrowly, but the decisions share one root: do not emit a success-shaped C# declaration unless the native ABI shape is honestly represented across the supported RIDs and TFMs.
 
 Short version: compilation success is not ABI correctness; AST syntax is not semantic API.

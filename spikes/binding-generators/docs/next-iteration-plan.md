@@ -61,7 +61,7 @@ Repair posture:
 - Then do **B**: recover the `SDL.h` required initialization surface without re-including the umbrella header as a normal parse unit.
 - Then do **C**: treat ClangSharp scalar/layout behavior as an ABI research slice, not a quick postprocess cleanup.
 
-A-slice design: [`../../../docs/superpowers/specs/2026-05-22-clangsharp-raw-abi-visibility-design.md`](../../../docs/superpowers/specs/2026-05-22-clangsharp-raw-abi-visibility-design.md).
+A-slice and B-slice designs were retired with their respective commits (`92b893b`, `444fada`). **C-slice design (active 2026-05-24):** [`../../../docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md`](../../../docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md).
 
 ## Slices
 
