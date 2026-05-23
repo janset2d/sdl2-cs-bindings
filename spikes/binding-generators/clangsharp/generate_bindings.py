@@ -55,9 +55,13 @@ def platform_header_shim_root(repo: pathlib.Path) -> pathlib.Path:
 def per_header_rsp_path(repo: pathlib.Path, header_name: str) -> pathlib.Path | None:
     """Return path to per-header RSP if it exists, else None.
 
-    header_name is the SDL header filename like 'SDL_audio.h'. Looks under
+    header_name MUST be a bare basename like 'SDL_audio.h' (no directory
+    component). Looks under
     spikes/binding-generators/clangsharp/rsp/per-header/<basename>.rsp where
-    <basename> is the header name with the .h extension stripped.
+    <basename> is the header name with the .h extension stripped, so
+    'SDL_audio.h' maps to 'SDL_audio.rsp'. Passing a path-qualified header
+    name (e.g. 'foo/SDL_audio.h') would silently still resolve via
+    pathlib.Path.stem and mask a caller mistake, so it is rejected up front.
 
     Implements the third RSP tier in Decision 4 of the Priority C semantic-ABI
     design (docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md
@@ -67,12 +71,44 @@ def per_header_rsp_path(repo: pathlib.Path, header_name: str) -> pathlib.Path | 
     Returning the path lets callers feed it through the @<path> response-file
     syntax that ClangSharp already accepts for base.rsp and the family RSP.
     """
+    assert "/" not in header_name and "\\" not in header_name, (
+        f"header_name must be a bare basename, got: {header_name}"
+    )
     basename = pathlib.Path(header_name).stem
     candidate = (
         repo / "spikes" / "binding-generators" / "clangsharp"
         / "rsp" / "per-header" / f"{basename}.rsp"
     )
     return candidate if candidate.is_file() else None
+
+
+def extend_rsp_arguments(
+    command: list[str],
+    repo: pathlib.Path,
+    family: str,
+    header: str,
+) -> None:
+    """Append the three-tier RSP @-arguments to the ClangSharp command.
+
+    Loads, in order, base.rsp (cross-cutting policy), the family RSP (family
+    identity), and the per-header RSP if one exists. RSP precedence under
+    ClangSharp is "last write wins for keyed entries; lists like --exclude
+    accumulate", so the order base → family → per-header lets per-header
+    files override family-level keyed entries when needed.
+
+    Consolidates the wiring shared by `command_for_header` and
+    `platform_command_for_header` into a single place so future RSP-policy
+    changes (additional tiers, ordering tweaks) are made once. Decision 4 of
+    the Priority C semantic-ABI design (docs/superpowers/specs/
+    2026-05-24-clangsharp-priority-c-semantic-abi-design.md) drives the
+    three-tier organization.
+    """
+    rsp_root = repo / "spikes" / "binding-generators" / "clangsharp" / "rsp"
+    command.append(f"@{rsp_root / 'base.rsp'}")
+    command.append(f"@{rsp_root / FAMILY_CONFIG[family]['rsp']}")
+    per_header_rsp = per_header_rsp_path(repo, header)
+    if per_header_rsp is not None:
+        command.append(f"@{per_header_rsp}")
 
 
 def find_repository_root() -> pathlib.Path:
@@ -563,7 +599,6 @@ def platform_command_for_header(
     include_root = repo / "vcpkg_installed" / triplet / "include" / "SDL2"
     input_file = include_root / header
     output_path = platform_output_path(repo, codegen, family, header, view_name)
-    rsp_root = repo / "spikes" / "binding-generators" / "clangsharp" / "rsp"
 
     defined_names = {value.split("=", 1)[0] for value in view_defines}
     undefines = [macro for macro in ALL_PLATFORM_MACROS if macro not in defined_names]
@@ -573,13 +608,7 @@ def platform_command_for_header(
         "--config",
     ]
     command.extend(CODEGEN_CONFIG[codegen])
-    command.extend([
-        f"@{rsp_root / 'base.rsp'}",
-        f"@{rsp_root / FAMILY_CONFIG[family]['rsp']}",
-    ])
-    per_header_rsp = per_header_rsp_path(repo, header)
-    if per_header_rsp is not None:
-        command.append(f"@{per_header_rsp}")
+    extend_rsp_arguments(command, repo, family, header)
     command.extend([
         "--namespace", FAMILY_CONFIG[family]["namespace"],
         "--with-access-specifier", f"{FAMILY_CONFIG[family]['raw_class']}=Internal",
@@ -700,20 +729,13 @@ def command_for_header(
     include_root = repo / "vcpkg_installed" / triplet / "include" / "SDL2"
     input_file = include_root / header
     output_path = output_path_for_header(repo, codegen, family, header)
-    rsp_root = repo / "spikes" / "binding-generators" / "clangsharp" / "rsp"
 
     command: list[str] = [
         "dotnet", "tool", "run", "ClangSharpPInvokeGenerator",
         "--config",
     ]
     command.extend(CODEGEN_CONFIG[codegen])
-    command.extend([
-        f"@{rsp_root / 'base.rsp'}",
-        f"@{rsp_root / FAMILY_CONFIG[family]['rsp']}",
-    ])
-    per_header_rsp = per_header_rsp_path(repo, header)
-    if per_header_rsp is not None:
-        command.append(f"@{per_header_rsp}")
+    extend_rsp_arguments(command, repo, family, header)
     command.extend([
         "--namespace", FAMILY_CONFIG[family]["namespace"],
         "--with-access-specifier", f"{FAMILY_CONFIG[family]['raw_class']}=Internal",
@@ -916,7 +938,8 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
     # 'SDL_audio.h' maps to 'SDL_audio.rsp'.
     with tempfile.TemporaryDirectory() as raw_tmp:
         tmp = pathlib.Path(raw_tmp)
-        per_header_dir = tmp / "spikes" / "binding-generators" / "clangsharp" / "rsp" / "per-header"
+        rsp_dir = tmp / "spikes" / "binding-generators" / "clangsharp" / "rsp"
+        per_header_dir = rsp_dir / "per-header"
         per_header_dir.mkdir(parents=True)
         (per_header_dir / "SDL_audio.rsp").write_text("# fixture\n", encoding="utf-8")
 
@@ -936,6 +959,45 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
         hidapi = per_header_rsp_path(tmp, "SDL_hidapi.h")
         if hidapi != per_header_dir / "SDL_hidapi.rsp":
             failures.append(f"per_header_rsp_path basename derivation failed: {hidapi}")
+
+        # The input contract rejects path-qualified header names so a caller
+        # bug surfaces immediately rather than silently resolving to the wrong
+        # basename via pathlib.Path.stem.
+        try:
+            per_header_rsp_path(tmp, "foo/SDL_audio.h")
+            failures.append("per_header_rsp_path did not reject a path-qualified header name with a forward slash")
+        except AssertionError:
+            pass
+        try:
+            per_header_rsp_path(tmp, "foo\\SDL_audio.h")
+            failures.append("per_header_rsp_path did not reject a path-qualified header name with a backslash")
+        except AssertionError:
+            pass
+
+        # Wiring-level self-test for extend_rsp_arguments: the shared helper
+        # MUST emit base.rsp and family RSP @-arguments unconditionally, and
+        # MUST emit a per-header @-argument iff the per-header file exists on
+        # disk. Exercises the actual code path used by both command_for_header
+        # and platform_command_for_header.
+        expected_base = f"@{rsp_dir / 'base.rsp'}"
+        expected_family = f"@{rsp_dir / FAMILY_CONFIG['core']['rsp']}"
+        expected_per_header = f"@{per_header_dir / 'SDL_audio.rsp'}"
+
+        with_per_header: list[str] = []
+        extend_rsp_arguments(with_per_header, tmp, "core", "SDL_audio.h")
+        if with_per_header != [expected_base, expected_family, expected_per_header]:
+            failures.append(
+                "extend_rsp_arguments did not emit base + family + per-header @-arguments in order; "
+                f"got: {with_per_header}"
+            )
+
+        without_per_header: list[str] = []
+        extend_rsp_arguments(without_per_header, tmp, "core", "SDL_video.h")
+        if without_per_header != [expected_base, expected_family]:
+            failures.append(
+                "extend_rsp_arguments emitted unexpected arguments when no per-header RSP exists; "
+                f"got: {without_per_header}"
+            )
 
     if failures:
         for failure in failures:
