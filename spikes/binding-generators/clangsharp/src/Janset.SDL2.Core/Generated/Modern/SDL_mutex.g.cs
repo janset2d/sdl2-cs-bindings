@@ -7,7 +7,7 @@ namespace SDL2
     {
     }
 
-    public partial struct SDL_semaphore
+    public partial struct SDL_sem
     {
     }
 
@@ -39,33 +39,32 @@ namespace SDL2
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        [return: NativeTypeName("SDL_sem *")]
-        public static partial SDL_semaphore* SDL_CreateSemaphore([NativeTypeName("Uint32")] uint initial_value);
+        public static partial SDL_sem* SDL_CreateSemaphore([NativeTypeName("Uint32")] uint initial_value);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_DestroySemaphore([NativeTypeName("SDL_sem *")] SDL_semaphore* sem);
+        public static partial void SDL_DestroySemaphore(SDL_sem* sem);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_SemWait([NativeTypeName("SDL_sem *")] SDL_semaphore* sem);
+        public static partial int SDL_SemWait(SDL_sem* sem);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_SemTryWait([NativeTypeName("SDL_sem *")] SDL_semaphore* sem);
+        public static partial int SDL_SemTryWait(SDL_sem* sem);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_SemWaitTimeout([NativeTypeName("SDL_sem *")] SDL_semaphore* sem, [NativeTypeName("Uint32")] uint timeout);
+        public static partial int SDL_SemWaitTimeout(SDL_sem* sem, [NativeTypeName("Uint32")] uint timeout);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_SemPost([NativeTypeName("SDL_sem *")] SDL_semaphore* sem);
+        public static partial int SDL_SemPost(SDL_sem* sem);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("Uint32")]
-        public static partial uint SDL_SemValue([NativeTypeName("SDL_sem *")] SDL_semaphore* sem);
+        public static partial uint SDL_SemValue(SDL_sem* sem);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]

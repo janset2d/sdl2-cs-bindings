@@ -1,0 +1,8 @@
+# Per-header overrides for SDL_mutex.h.
+#
+# R6 tag/typedef canonicalization (Constitution L262-277): rename the
+# private C struct tag `SDL_semaphore` to the public typedef name
+# `SDL_sem` everywhere.
+
+--remap
+SDL_semaphore=SDL_sem

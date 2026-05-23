@@ -6,7 +6,7 @@ namespace SDL2
     {
     }
 
-    public partial struct SDL_semaphore
+    public partial struct SDL_sem
     {
     }
 
@@ -32,27 +32,26 @@ namespace SDL2
         public static extern void SDL_DestroyMutex(SDL_mutex* mutex);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("SDL_sem *")]
-        public static extern SDL_semaphore* SDL_CreateSemaphore([NativeTypeName("Uint32")] uint initial_value);
+        public static extern SDL_sem* SDL_CreateSemaphore([NativeTypeName("Uint32")] uint initial_value);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void SDL_DestroySemaphore([NativeTypeName("SDL_sem *")] SDL_semaphore* sem);
+        public static extern void SDL_DestroySemaphore(SDL_sem* sem);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_SemWait([NativeTypeName("SDL_sem *")] SDL_semaphore* sem);
+        public static extern int SDL_SemWait(SDL_sem* sem);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_SemTryWait([NativeTypeName("SDL_sem *")] SDL_semaphore* sem);
+        public static extern int SDL_SemTryWait(SDL_sem* sem);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_SemWaitTimeout([NativeTypeName("SDL_sem *")] SDL_semaphore* sem, [NativeTypeName("Uint32")] uint timeout);
+        public static extern int SDL_SemWaitTimeout(SDL_sem* sem, [NativeTypeName("Uint32")] uint timeout);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_SemPost([NativeTypeName("SDL_sem *")] SDL_semaphore* sem);
+        public static extern int SDL_SemPost(SDL_sem* sem);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("Uint32")]
-        public static extern uint SDL_SemValue([NativeTypeName("SDL_sem *")] SDL_semaphore* sem);
+        public static extern uint SDL_SemValue(SDL_sem* sem);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern SDL_cond* SDL_CreateCond();
