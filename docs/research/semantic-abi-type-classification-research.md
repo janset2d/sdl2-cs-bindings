@@ -364,7 +364,7 @@ These are not answered by this research document:
 1. Should the Cake preview handle emitter remove `implicit operator nint` before the first public API snapshot, or keep it as an explicit ergonomics tradeoff?
 2. Should handle `Value` be a public get-only property instead of a public readonly field before API freeze?
 3. Should `DangerousGetHandle()` be emitted for every public low-level handle, or only for handles that commonly cross foreign APIs?
-4. Should the ClangSharp spike implement temporary semantic rewrites, or should it remain evidence-only now that CppAst is the selected production path?
+4. Should the ClangSharp spike implement semantic-ABI rewrites as part of closing its near-ABI-compatible Layer 2 surface (the current intent), and how much of that work belongs in Roslyn postprocess versus the orchestrator's input model? The toolchain selection is open (ADR-004 Reopened 2026-05-23); the spike must produce evidence-quality output regardless of whether it ships as production.
 5. What exact downlevel strategy, if any, should expose raw C `long` APIs to `net462` / `netstandard2.0` consumers?
 6. How much dynapi delta classification belongs in the oracle before it becomes distracting report polish?
 
@@ -380,7 +380,7 @@ These are candidate evidence gates, not accepted implementation requirements yet
 
 ## Bottom Line
 
-The project already has most of the correct production answers in its CppAst generator and constitution. The ClangSharp spike remains valuable as evidence because it exposes what goes wrong when raw AST syntax is treated as final API shape.
+The project already has most of the correct **policy** answers in its constitution and proved them feasible through the sunset Cake-hosted CppAst implementation. The active ClangSharp spike re-proves the same policy on a different toolchain and remains valuable evidence because it exposes what goes wrong when raw AST syntax is treated as final API shape. Whichever toolchain the spike under [`spikes/binding-generators/`](../../spikes/binding-generators/) selects (ADR-004 Reopened 2026-05-23), the production implementation must satisfy the same constitution policy.
 
 The durable lesson is to make semantic ABI type classification the center of the next design discussion. Deferred layouts, opaque handles, `wchar_t`, C `long`, enum flags, and public handle escape hatches should be reviewed as one taxonomy. Implementation can still be sliced narrowly, but the decisions share one root: do not emit a success-shaped C# declaration unless the native ABI shape is honestly represented across the supported RIDs and TFMs.
 

@@ -1,7 +1,21 @@
 # ADR-004: Binding Auto-Generation Toolchain
 
-- **Status:** Accepted
-- **Date:** 2026-05-14
+- **Status:** Reopened (re-evaluation underway 2026-05-23)
+- **Date:** 2026-05-14 (original); 2026-05-23 (reopened)
+
+> **Re-evaluation note (2026-05-23):** The binding-autogen toolchain decision
+> is under active re-evaluation in [`spikes/binding-generators/`](../../spikes/binding-generators/).
+> Both **ClangSharp + Roslyn postprocess** and **Alimer-style single-pass CppAst**
+> are being measured against the same evidence matrix (multi-TFM compile, multi-OS
+> parse, dynapi coherence, semantic ABI correctness across the 7-RID surface).
+> Either selected path implies **replacing** the current Cake-hosted implementation
+> under `build/_build/Targets/GenerateBindings/` — that pipeline is in sunset
+> regardless of which toolchain wins. This ADR remains historical evidence of
+> the 2026-05-14 reasoning but does not bind current work until the spike
+> concludes; consult the spike outputs (`spikes/binding-generators/output/reports/`)
+> for the active comparison evidence.
+>
+> Original content unchanged below.
 
 ## 1. Context
 

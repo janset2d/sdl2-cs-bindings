@@ -1,6 +1,8 @@
 # Binding Generator Constitution
 
-> **Status (2026-05-20):** Canonical binding-generator constitution. This document is the source of truth for generated SDL binding surface decisions: internal ABI, public API layering, C-to-C# translation, manifest responsibilities, and evidence gates. Code and pinned SDL public headers remain the north star; update this document in the same change when a generator rule changes.
+> **Status (2026-05-23):** Canonical binding-generator constitution. This document is the source of truth for generated SDL binding surface decisions: internal ABI, public API layering, C-to-C# translation, manifest responsibilities, and evidence gates. Code and pinned SDL public headers remain the north star; update this document in the same change when a generator rule changes.
+>
+> **Toolchain re-evaluation (2026-05-23):** The binding-autogen toolchain decision recorded in [ADR-004](../decisions/2026-05-14-binding-autogen-toolchain.md) is under active re-evaluation in [`spikes/binding-generators/`](../../spikes/binding-generators/). The **policy** in this document is binding regardless of which toolchain ships; **implementation-specific language** below (Cake paths, "CppAst engine" references, `tools.cs generate-bindings` invocation) describes the sunset Cake-hosted implementation under `build/_build/Targets/GenerateBindings/` and will be replaced when the spike concludes. Either path (ClangSharp + Roslyn postprocess or Alimer-style single-pass CppAst) implies a new implementation; the current Cake pipeline is in sunset regardless.
 
 ## Purpose
 
@@ -9,9 +11,9 @@ The generator must answer two questions without mixing them:
 1. Which SDL declarations belong in a generated binding family?
 2. How does each native declaration become ABI-correct, stable C#?
 
-The current SDL2.Core generator has crossed the spike boundary. It has a Cake-hosted `GenerateBindings` target, manifest-driven family configuration, semantic type classification, source-first macro collection, generated handles/enums/structs/callbacks/constants, internal raw ABI command emission, dynapi name validation, and fixture-backed tests for the ABI-sensitive SDL2.Core blockers found on 2026-05-19.
+The internal ABI policy below is the durable contract for any generator implementation. Earlier work under a Cake-hosted `GenerateBindings` target (CppAst-based, ADR-004) implemented this contract end-to-end for SDL2.Core: manifest-driven family configuration, semantic type classification, source-first macro collection, generated handles/enums/structs/callbacks/constants, internal raw ABI command emission, dynapi name validation, and fixture-backed tests for the ABI-sensitive SDL2.Core blockers found on 2026-05-19. That implementation is in sunset pending the toolchain re-evaluation under `spikes/binding-generators/`; the policy resolutions catalogued in §"Current SDL2.Core ABI Status" remain binding requirements any compliant successor implementation must honor.
 
-The remaining Stage 1 work is public surface completion and production flip, not re-proving the internal ABI constitution from scratch.
+The remaining Stage 1 work is public surface completion and production flip on whichever implementation the spike selects, not re-proving the internal ABI constitution from scratch.
 
 ## Authority Order
 
@@ -21,11 +23,11 @@ sources disagree, use this order:
 
 1. Pinned SDL public headers from the exact vcpkg version.
 2. Actual packaged native binary exports.
-3. `build/_build/Targets/GenerateBindings/` implementation and tests for current behavior.
+3. Current generator implementation and tests for actual behavior — during toolchain re-evaluation that means the spike under `spikes/binding-generators/`; the sunset Cake-hosted implementation under `build/_build/Targets/GenerateBindings/` remains historical evidence.
 4. SDL dynapi manifests for function-name coverage only.
 5. This constitution for intended policy.
 6. `docs/binding-autogen/binding-generator-roadmap.md` for future work sequencing.
-7. ADR-004 for the CppAst toolchain decision.
+7. ADR-004 for the recorded 2026-05-14 CppAst toolchain reasoning (currently Reopened — see spike under `spikes/binding-generators/`).
 8. Peer bindings and old research as evidence only.
 
 Historical plans, spike reports, and superpowers specs are not policy. If they disagree with this document, this document wins. If the implementation disagrees with this document, treat it as code/docs drift to investigate, not as permission to ignore either source.
@@ -58,23 +60,24 @@ Rules:
 
 ## Generator Home
 
-The generator is build infrastructure, not a standalone product project.
+The generator is build infrastructure, not a standalone product project. Whichever toolchain the active spike (`spikes/binding-generators/`) selects, the production implementation must satisfy these contracts:
 
-- Home: `build/_build/Targets/GenerateBindings/`.
-- Tests: `build/_build.Tests/Unit/Targets/GenerateBindings/` plus fixture headers under `build/_build.Tests/Fixtures/Data/GenerateBindings/`.
-- Cross-cutting validators: `build/_build/Validation/BindingGeneration/`.
-- Persisted binding-generation data contracts: `build/_build/Data/BindingGeneration/`.
-- Local invocation: `dotnet run --file tools.cs -- generate-bindings`, which runs generation inside the pinned Linux builder container.
+- Produce committed `.g.cs` source consumed by managed family csprojs. Generation never runs in consumer builds.
+- Reproducible output anchored by a per-family `.generated-stamp` with no wall-clock fields.
+- Cross-cutting validators reachable from the build host's PreFlight and Pack stages.
+- Persisted binding-generation data contracts reachable from the build host's Data layer.
+- Local invocation routed through `tools.cs` so day-to-day developers do not handle generator orchestration directly.
+- Linux-canonical parsing for ABI correctness across the 7-RID surface unless the spike proves a different model is equivalent.
 
-The generator is Linux-canonical. It runs inside the pinned Linux container using CppAst/libclang. Non-Linux host execution fails closed; Windows and macOS development flows use Docker through `tools.cs`.
+The sunset Cake-hosted CppAst implementation lived at `build/_build/Targets/GenerateBindings/` with tests under `build/_build.Tests/Unit/Targets/GenerateBindings/`, validators under `build/_build/Validation/BindingGeneration/`, data contracts under `build/_build/Data/BindingGeneration/`, and local invocation through `dotnet run --file tools.cs -- generate-bindings` inside a pinned Linux builder container. Those paths remain in the tree as historical reference but are not the path-of-record while the spike runs.
 
 ## Generator Engine And SDL Policy
 
-The generator should separate CppAst-to-ABI mechanics from SDL family policy without pretending to be a general binding-generator product.
+The generator should separate parser/ABI mechanics from SDL family policy without pretending to be a general binding-generator product.
 
 Rules:
 
-- The core pipeline is a CppAst ABI engine for parsed declarations, native type classification, platform parse-view merge, raw ABI projection, and deterministic file-set emission.
+- The core pipeline is an ABI engine for parsed declarations, native type classification, platform parse-view merge, raw ABI projection, and deterministic file-set emission. ClangSharp orchestrator + Roslyn postprocess and CppAst single-pass emitter are both viable engine shapes; the active spike under `spikes/binding-generators/` is selecting between them.
 - SDL-specific decisions live behind named policy/profile concepts: owned prefixes, core-owned type references, SDL2 versus SDL3 bool shape, known opaque structs, string-like macro handling, SysWM layout, and satellite-to-core reference rules.
 - Keep those concepts target-local under `Targets/GenerateBindings/` until a second real generator target exists. Do not promote them to root `Shared` or standalone `src/` projects for aesthetic symmetry.
 - M2 may expose an `SdlPolicy` seam while preserving SDL2.Core output. M3 owns the real profile/config boundary for SDL2 core, SDL2 satellites, SDL3 core, and SDL3 satellites.
@@ -395,7 +398,7 @@ No generated preview should be promoted toward production source unless these ga
 
 ## Current SDL2.Core ABI Status
 
-The 2026-05-19 P0 translation blockers were addressed with fixture-backed generator tests.
+The 2026-05-19 P0 translation blockers were addressed at the policy level and proven feasible by the sunset Cake-hosted CppAst implementation under fixture-backed generator tests. Whichever toolchain the active spike selects, the policy resolutions below remain binding. The spike's ClangSharp + postprocess output currently re-proves a subset (raw ABI visibility, SDL.h required surface, dynapi coherence at ~98%) and carries a known Priority C gap around C `long` width, `wchar_t*` opaque shape, and `SDL_RWops` / `SDL_SysWMinfo` / `SDL_SysWMmsg` deferred layouts (see `spikes/binding-generators/output/reports/oracle-evidence-clangsharp.md`).
 
 Resolved or intentionally quarantined categories:
 

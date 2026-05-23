@@ -1,7 +1,7 @@
 # Playbook: Binding Generator Maintenance
 
-**Status:** In progress — Stage 1 SDL2.Core generator is still landing.
-**Last updated:** 2026-05-20
+**Status:** Sunset reference. Operational procedures below describe the Cake-hosted CppAst implementation under `build/_build/Targets/GenerateBindings/`, which is in sunset pending the toolchain re-evaluation in [`../../spikes/binding-generators/`](../../spikes/binding-generators/) (ADR-004 Reopened 2026-05-23). Either successor toolchain (ClangSharp + Roslyn postprocess or Alimer-style single-pass CppAst) will require its own maintenance playbook for trio pinning, parser-options audit, macro/header-set hygiene, and dynapi cross-check. This playbook is preserved for procedural intent and historical reference until the successor lands.
+**Last updated:** 2026-05-23 (sunset banner added); operational content as of 2026-05-20.
 
 This playbook covers maintenance work that touches generated bindings, platform macro catalogs, CppAst/libclang versions, and the native hybrid-static inputs those bindings depend on.
 

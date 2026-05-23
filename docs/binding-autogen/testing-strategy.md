@@ -1,6 +1,8 @@
 # Binding Generator Testing Strategy
 
-> **Status (2026-05-20):** Canonical testing strategy for generated SDL bindings. This document promotes the temporary testing research from `docs/binding-autogen/temp/testing/` into active docs. Update it when test layer boundaries, fixture policy, or smoke expansion sequencing changes.
+> **Status (2026-05-23):** Canonical testing strategy for generated SDL bindings. This document promotes the temporary testing research from `docs/binding-autogen/temp/testing/` into active docs. Update it when test layer boundaries, fixture policy, or smoke expansion sequencing changes.
+>
+> **Toolchain re-evaluation (2026-05-23):** Implementation-specific references below (`build/_build.Tests/Unit/Targets/GenerateBindings/`, `tools.cs generate-bindings`, "Linux-only CppAst fixture tests", Verify snapshots under the sunset Cake-impl test tree) describe the sunset Cake-hosted implementation. The **testing layer model** (build-host unit, compile checks, NativeSmoke, PackageConsumerSmoke, asset-backed headless, manual diagnostics) is toolchain-neutral and binding regardless of the spike's selection. Path and harness specifics will be revised once the spike under [`../../spikes/binding-generators/`](../../spikes/binding-generators/) selects a toolchain.
 
 ## Purpose
 

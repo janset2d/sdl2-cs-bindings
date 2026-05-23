@@ -1,7 +1,7 @@
 # Playbook: Binding Output Oracle Validation
 
-**Status:** In progress — reusable review workflow for Stage 1 SDL2.Core output.
-**Last updated:** 2026-05-20
+**Status:** Workflow is toolchain-neutral and remains active; specific commands and paths below assume the sunset Cake-hosted implementation. See [`../../spikes/binding-generators/output/reports/`](../../spikes/binding-generators/output/reports/) for the active spike's oracle evidence (the spike runs its own `oracle.cs` Roslyn-based evidence reporter producing `oracle-evidence-clangsharp.md`).
+**Last updated:** 2026-05-23 (toolchain re-evaluation note); workflow as of 2026-05-20.
 
 This playbook defines how to validate generated binding output using multiple imperfect oracles: official SDL sources, native exports, generated evidence, peer bindings, and .NET API extraction. It is intentionally review-led. Tooling collects evidence; agents and humans decide what the evidence means.
 

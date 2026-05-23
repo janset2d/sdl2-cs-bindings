@@ -197,7 +197,7 @@ Earlier in the session, we ran a full comparison spike: Alimer-style CppAst vs p
 
 **Alimer scaffold retained** under `alimer-style/`. Don't delete. Reference only.
 
-**ADR-004 not invalidated**. ADR-004 selects CppAst for the production Cake `GenerateBindings`. The spike does not invalidate it. Production flip is Roadmap M7 work and requires a separate ADR amendment.
+**ADR-004 Reopened (2026-05-23)**. ADR-004 was originally accepted on 2026-05-14 selecting CppAst and was Reopened on 2026-05-23 pending this spike's evidence. The sunset Cake-hosted CppAst implementation under `build/_build/Targets/GenerateBindings/` is in sunset regardless of which toolchain wins — either ClangSharp + Roslyn postprocess (this spike's active prototype) or an Alimer-style single-pass CppAst replaces it. Production flip is Roadmap M7 work and requires an ADR amendment or supersession.
 
 ## Slice progress
 

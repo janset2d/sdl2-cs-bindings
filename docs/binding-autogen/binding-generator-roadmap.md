@@ -1,10 +1,12 @@
 # Binding Generator Grand Roadmap
 
-> **Status (2026-05-20):** Canonical grand roadmap for the binding generator. This document folds the durable facts from temporary design notes, testing research, peer-binding research, and current SDL2.Core generator work into one milestone plan. Code and pinned SDL public headers remain the behavior authority; update this roadmap when the milestone sequence or exit gates change.
+> **Status (2026-05-23):** Canonical grand roadmap for the binding generator. This document folds the durable facts from temporary design notes, testing research, peer-binding research, and prior SDL2.Core generator work into one milestone plan. Code and pinned SDL public headers remain the behavior authority; update this roadmap when the milestone sequence or exit gates change.
+>
+> **Toolchain re-evaluation (2026-05-23):** This roadmap was written against the CppAst + Cake-hosted `build/_build/Targets/GenerateBindings/` implementation (ADR-004, accepted 2026-05-14). That ADR is **Reopened** as of 2026-05-23; the implementation is in sunset pending the spike under [`spikes/binding-generators/`](../../spikes/binding-generators/). Milestones **M0–M2 were completed against the sunset Cake implementation** — their detailed plans are archived under [`../parking-lot/binding-autogen-cake-implementation/`](../parking-lot/binding-autogen-cake-implementation/). **M3 (CppAst engine, family profiles)** was paused before implementation and is now subsumed by the spike's toolchain selection work. **M4–M10 describe toolchain-neutral policy work** (raw ABI projection, public typed API, friendly overloads, production flip, satellites, smoke expansion, SDL3) that survives whichever toolchain the spike selects; path/engine specifics below will be revised when the spike concludes.
 
 ## Goal
 
-Turn `GenerateBindings` from a successful SDL2.Core spike into the durable generator foundation for:
+Land a durable generator foundation for:
 
 - SDL2.Core generated public source;
 - SDL2 satellites: Image, Mixer, Ttf, Gfx, and later Net;
@@ -14,7 +16,7 @@ Turn `GenerateBindings` from a successful SDL2.Core spike into the durable gener
 - friendly string/span/ref/out overloads;
 - package-first compile, smoke, oracle, and snapshot evidence.
 
-The target is not a general-purpose ClangSharp clone. The target is a pragmatic CppAst-based SDL binding generator with clean seams, explicit family policy, and enough tests to refactor without gambling.
+The target is not a general-purpose binding-generator product. The target is a pragmatic SDL binding generator with clean seams, explicit family policy, and enough tests to refactor without gambling. The selected toolchain (ClangSharp orchestrator + Roslyn postprocess, or single-pass CppAst emitter) lands when the spike under `spikes/binding-generators/` concludes.
 
 ## Operating Rules
 
@@ -39,7 +41,8 @@ Canonical docs are authoritative for their own scope. Peer projects and historic
 | [`testing-strategy.md`](testing-strategy.md) | Canonical test layer model, smoke taxonomy, fixture policy, upstream SDL test adoption guidance. |
 | [`../playbook/binding-output-oracle-validation.md`](../playbook/binding-output-oracle-validation.md) | Multi-oracle generated-output review workflow. |
 | [`../playbook/binding-generator-maintenance.md`](../playbook/binding-generator-maintenance.md) | CppAst/libclang trio, synthetic headers, parse options, dynapi, platform catalog maintenance. |
-| [`../decisions/2026-05-14-binding-autogen-toolchain.md`](../decisions/2026-05-14-binding-autogen-toolchain.md) | ADR-004 CppAst decision and ClangSharp migration door. |
+| [`../decisions/2026-05-14-binding-autogen-toolchain.md`](../decisions/2026-05-14-binding-autogen-toolchain.md) | ADR-004 — original CppAst decision (2026-05-14, Reopened 2026-05-23). See spike for active re-evaluation. |
+| [`../../spikes/binding-generators/`](../../spikes/binding-generators/) | Active toolchain spike comparing ClangSharp + Roslyn postprocess against Alimer-style single-pass CppAst. Outputs under `output/reports/`. |
 | Temporary notes promoted in this change | Historical source for typed handles, raw ABI backend split, public/friendly layer strategy, and smoke taxonomy. Unique facts now live in canonical docs. |
 | SkiaSharp generator | CppAst discipline, explicit mappings, verification mindset, dual backend precedent. |
 | Alimer.Bindings.SDL | SDL/C# ergonomics evidence: typed handles, LibraryImport, string/span overload ideas. Not a platform-correctness oracle. |
@@ -48,11 +51,12 @@ Canonical docs are authoritative for their own scope. Peer projects and historic
 
 ## Current Baseline
 
-The repo already has the following foundation:
+The repo has two implementation surfaces during the toolchain re-evaluation:
 
-- Cake-hosted `GenerateBindings` target under `build/_build/Targets/GenerateBindings/`.
+**Sunset Cake-hosted CppAst implementation** under `build/_build/Targets/GenerateBindings/` (frozen, M0–M2 completed against it):
+
 - Manifest-driven `binding_generation` configuration in `build/manifest.json` schema `2.2`.
-- SDL2.Core enabled; SDL2_image, SDL2_mixer, SDL2_ttf, and SDL2_gfx are disabled Stage 2 placeholders.
+- SDL2.Core enabled; SDL2_image, SDL2_mixer, SDL2_ttf, and SDL2_gfx as disabled Stage 2 placeholders.
 - Linux-canonical generation through `tools.cs generate-bindings` and the pinned Linux builder container.
 - SDL2.Core platform catalog: Neutral, WindowsDesktop, WinRT, GDK, Linux, MacOS, IOS, Android.
 - Semantic model categories: functions, structs, enums, constants, handles, callbacks, and macro report evidence.
@@ -62,7 +66,17 @@ The repo already has the following foundation:
 - Fixture-backed fixes for known SDL2.Core ABI blockers: C `long`, `wchar_t`, `SDL_bool`, opaque handles, callbacks, fixed arrays, and macro leaks.
 - Compile-check project at `tests/binding-compile-check/SDL2.Core.CompileCheck.csproj` for generated preview output across `LibraryTargetFrameworks`.
 
-The current major gap is architectural readiness. Generated SDL2.Core is roughly ABI-shaped internally, but the generator layout, policy boundaries, raw-backend split, public wrapper projection, testing strategy, and production flip are not yet on durable foundations.
+**Active spike implementation** under `spikes/binding-generators/clangsharp/` (ClangSharp + Roslyn postprocess, near-ABI-compatible state):
+
+- ~889 functions emitted across compat (netstandard2.0/net462) and modern (net8+) codegen passes (~98.1% dynapi coherence).
+- Internal raw ABI containers (raw visibility A-slice landed).
+- SDL.h required surface recovered (B-slice landed): `SDL_Init`, `SDL_Quit`, `SDL_INIT_*` constants.
+- Multi-TFM compile clean across all 5 TFMs (net10/net9/net8/netstandard2.0/net462).
+- DllImport↔LibraryImport postprocess transform working.
+- Multi-OS platform pass for `SDL_main.h` / `SDL_system.h` with `[SupportedOSPlatform]` attribution.
+- Known Priority C gap: C `long` width, `wchar_t*` opaque shape, `SDL_RWops` / `SDL_SysWMinfo` / `SDL_SysWMmsg` deferred layouts — semantic-ABI work in progress (see `spikes/binding-generators/output/reports/oracle-evidence-clangsharp.md`).
+
+A second comparable evidence pass through Alimer-style single-pass CppAst is the next gate before the spike's toolchain selection lands. The remaining cross-cutting gap (true for either toolchain) is architectural durability: generator layout, policy boundaries, raw-backend split, public wrapper projection, testing strategy, and production flip are not yet on durable foundations.
 
 ## Milestone 0: Canonical Plan And Research Consolidation
 
@@ -87,9 +101,11 @@ The current major gap is architectural readiness. Generated SDL2.Core is roughly
 
 ## Milestone 1: Safety Harness And Baseline
 
-**Goal:** Make the current generator behavior safely refactorable before changing architecture.
+> **Status (2026-05-23):** Completed against the sunset Cake implementation; superseded by the active spike's safety evidence (per-header generation report, oracle comparison, multi-TFM compile-check, dynapi coherence). Original detailed plan archived under [`../parking-lot/binding-autogen-cake-implementation/milestone-1-safety-harness-baseline.md`](../parking-lot/binding-autogen-cake-implementation/milestone-1-safety-harness-baseline.md). The exit-evidence ideas below remain useful as a checklist for whichever successor implementation lands.
 
-**Detailed plan:** [`milestones/milestone-1-safety-harness-baseline.md`](milestones/milestone-1-safety-harness-baseline.md).
+**Goal:** Make the generator behavior safely refactorable before changing architecture.
+
+**Detailed plan (archived):** [`../parking-lot/binding-autogen-cake-implementation/milestone-1-safety-harness-baseline.md`](../parking-lot/binding-autogen-cake-implementation/milestone-1-safety-harness-baseline.md).
 
 **References:** [`testing-strategy.md`](testing-strategy.md), [`../playbook/binding-output-oracle-validation.md`](../playbook/binding-output-oracle-validation.md), snapshot testing practice, current generator tests under `build/_build.Tests/Unit/Targets/GenerateBindings/`.
 
@@ -125,9 +141,11 @@ The current major gap is architectural readiness. Generated SDL2.Core is roughly
 
 ## Milestone 2: Behavior-Preserving Topology Refactor
 
-**Goal:** Make `GenerateBindings` understandable from the task entrypoint and align production/test layout around real concepts while keeping output stable.
+> **Status (2026-05-23):** Completed against the sunset Cake implementation. The Cake-internal `Targets/GenerateBindings/<concept>/` topology this milestone introduced is in sunset; whichever toolchain the spike selects will need its own topology pass. Original detailed plan archived under [`../parking-lot/binding-autogen-cake-implementation/milestone-2-behavior-preserving-topology-refactor.md`](../parking-lot/binding-autogen-cake-implementation/milestone-2-behavior-preserving-topology-refactor.md).
 
-**Detailed plan:** [`milestones/milestone-2-behavior-preserving-topology-refactor.md`](milestones/milestone-2-behavior-preserving-topology-refactor.md).
+**Goal:** Make the generator understandable from the task entrypoint and align production/test layout around real concepts while keeping output stable.
+
+**Detailed plan (archived):** [`../parking-lot/binding-autogen-cake-implementation/milestone-2-behavior-preserving-topology-refactor.md`](../parking-lot/binding-autogen-cake-implementation/milestone-2-behavior-preserving-topology-refactor.md).
 
 **References:** ADR-002 target-centric build host, ADR-003 data-layer boundary, [`../knowledge-base/extraction-guidelines.md`](../knowledge-base/extraction-guidelines.md), [`../knowledge-base/testing-guidelines.md`](../knowledge-base/testing-guidelines.md).
 
@@ -182,11 +200,13 @@ Tests mirror this concept shape under `build/_build.Tests/Unit/Targets/GenerateB
 - No public wrapper generation.
 - No behavior changes without RED tests.
 
-## Milestone 3: CppAst Engine, Family Profiles, And Manifest Boundary
+## Milestone 3: ABI Engine, Family Profiles, And Manifest Boundary
 
-**Goal:** Localize SDL2/SDL3/satellite policy, keep the CppAst ABI engine reusable inside the target, and keep `build/manifest.json` as family facts plus explicit exceptions, not a policy scripting language.
+> **Status (2026-05-23):** Paused before implementation; subsumed by the spike's toolchain selection work. The original CppAst-specific detailed plan is archived under [`../parking-lot/binding-autogen-cake-implementation/milestone-3-profile-boundary.md`](../parking-lot/binding-autogen-cake-implementation/milestone-3-profile-boundary.md). The toolchain-neutral *intent* of M3 (separate ABI engine from SDL family policy, keep manifest as facts not policy script) is durable and will apply to whichever successor implementation lands.
 
-**Detailed plan:** [`milestone-3-profile-boundary.md`](milestones/milestone-3-profile-boundary.md).
+**Goal:** Localize SDL2/SDL3/satellite policy, keep the ABI engine reusable inside the target, and keep `build/manifest.json` as family facts plus explicit exceptions, not a policy scripting language.
+
+**Detailed plan (archived):** [`../parking-lot/binding-autogen-cake-implementation/milestone-3-profile-boundary.md`](../parking-lot/binding-autogen-cake-implementation/milestone-3-profile-boundary.md).
 
 **References:** constitution section "Manifest Configuration Vs Code-Owned Policy", SkiaSharp mapping discipline, Alimer and ppy hardcoded policy caution.
 
@@ -281,13 +301,13 @@ Tests mirror this concept shape under `build/_build.Tests/Unit/Targets/GenerateB
 
 ## Milestone 4: Raw ABI Projection And Multi-TFM Backends
 
-**Goal:** Introduce a raw ABI projection that can emit honest `DllImport` and `LibraryImport` backend files from one semantic model.
+**Goal:** Introduce a raw ABI projection that can emit honest `DllImport` and `LibraryImport` backend files from one semantic model. The active ClangSharp spike has demonstrated one shape of this through dual-codegen passes (`compatible-codegen` for legacy TFMs, `latest-codegen` for modern) plus Roslyn postprocess; an Alimer-style CppAst single-pass emitter would express this through TFM-conditioned emission rules in the engine. Either approach must satisfy the contract below.
 
-**References:** temporary backend vision promoted into the constitution, SkiaSharp dual backend precedent, .NET interop docs, current C `long`/`CLong` findings.
+**References:** temporary backend vision promoted into the constitution, SkiaSharp dual backend precedent, .NET interop docs, current C `long`/`CLong` findings, spike multi-TFM compile evidence under `spikes/binding-generators/output/reports/`.
 
 **Design direction:**
 
-- Keep `BindingModel` as the CppAst-derived semantic model.
+- Keep a semantic model (CppAst-derived or ClangSharp+postprocess-derived) as the source of truth.
 - Add a backend-ready raw ABI projection that records entry point, managed raw wire type, unsafe requirement, platform attribution, backend compatibility, modern C integer requirement, variadic mapping, and source evidence.
 - Generate file-level backend splits instead of per-function conditional spaghetti:
   - `Raw/Commands.Common.g.cs`
@@ -482,7 +502,7 @@ Tests mirror this concept shape under `build/_build.Tests/Unit/Targets/GenerateB
 - Keep [`testing-strategy.md`](testing-strategy.md) updated when test layer boundaries or fixture policy change.
 - Keep [`../playbook/binding-generator-maintenance.md`](../playbook/binding-generator-maintenance.md) updated when operational procedure changes.
 - Keep [`../playbook/binding-output-oracle-validation.md`](../playbook/binding-output-oracle-validation.md) updated when oracle review lanes or evidence sources change.
-- Keep ADR-004 as the toolchain decision record; reopen only if CppAst maintenance cost becomes a real problem.
+- ADR-004 (Reopened 2026-05-23) holds the original toolchain decision record; the active selection happens through the spike under `spikes/binding-generators/`. Update ADR-004's status or supersede it with a follow-up ADR once the spike concludes.
 - Treat peer bindings as evidence, never authority.
 - Prefer explicit deferral over fake ABI success.
 - Run Slopwatch after code/test/project changes. Documentation-only changes do not require Slopwatch unless they alter embedded code or project snippets in a way that should be linted by the tool.

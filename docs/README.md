@@ -51,9 +51,9 @@ Phase 3 (SDL2 Complete — samples, meta-package, first prerelease) lives direct
 | [binding-autogen/binding-generator-constitution.md](binding-autogen/binding-generator-constitution.md) | Canonical binding-generator ABI/API constitution: internal raw ABI, public typed layer, friendly overloads, C-to-C# translation, manifest config vs policy, evidence gates |
 | [binding-autogen/binding-generator-roadmap.md](binding-autogen/binding-generator-roadmap.md) | Canonical grand roadmap for safety harness, generator architecture, family profiles, raw/public/friendly emission, SDL2 production flip, satellites, smoke expansion, and SDL3 extension |
 | [binding-autogen/testing-strategy.md](binding-autogen/testing-strategy.md) | Canonical generated-binding testing strategy: build-host tests, compile checks, NativeSmoke, PackageConsumerSmoke, asset fixtures, manual diagnostics, and upstream adoption policy |
-| [binding-autogen/milestones/milestone-1-safety-harness-baseline.md](binding-autogen/milestones/milestone-1-safety-harness-baseline.md) | Detailed Milestone 1 implementation plan for safety harness snapshots, fixture expansion, fake orchestration snapshots, and generated-preview checkpointing |
-| [../spikes/binding-generators/docs/generator-spike-goals.md](../spikes/binding-generators/docs/generator-spike-goals.md) | Active spike charter for comparing Alimer-style CppAst and ppy-style ClangSharp SDL2 generator approaches |
-| [decisions/2026-05-14-binding-autogen-toolchain.md](decisions/2026-05-14-binding-autogen-toolchain.md) | ADR-004 toolchain decision for the CppAst binding generator |
+| [parking-lot/binding-autogen-cake-implementation/](parking-lot/binding-autogen-cake-implementation/) | Archived M1/M2/M3 implementation plans for the sunset Cake-hosted CppAst generator. Preserved for git-history continuity and architectural-intent reference. |
+| [../spikes/binding-generators/](../spikes/binding-generators/) | **Active toolchain re-evaluation spike** — ClangSharp + Roslyn postprocess vs Alimer-style single-pass CppAst. Either path replaces the sunset Cake implementation. |
+| [decisions/2026-05-14-binding-autogen-toolchain.md](decisions/2026-05-14-binding-autogen-toolchain.md) | ADR-004 toolchain decision (Reopened 2026-05-23) — original CppAst reasoning; current selection happens in the spike. |
 
 ### Playbook (How-To Recipes)
 
