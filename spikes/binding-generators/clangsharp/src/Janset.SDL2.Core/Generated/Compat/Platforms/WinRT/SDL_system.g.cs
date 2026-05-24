@@ -32,7 +32,7 @@ namespace SDL2
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("const wchar_t *")]
-        public static extern ushort* SDL_WinRTGetFSPathUNICODE(SDL_WinRT_Path pathType);
+        public static extern nint SDL_WinRTGetFSPathUNICODE(SDL_WinRT_Path pathType);
 
         #if NET5_0_OR_GREATER
         [SupportedOSPlatform("windows10.0.10240.0")]

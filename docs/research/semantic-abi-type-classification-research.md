@@ -414,7 +414,7 @@ Multi-TFM compatibility verified for `netstandard2.0` / `net462` with `<LangVers
 
 The `wchar_t*=nint` entry in `base.rsp` did not fire because ClangSharp's `--remap` flag uses `QualifiedNameComparer` for byte-exact textual lookup (only `::` ↔ `.` collapsing). Libclang's type printer renders struct field types with a space (`wchar_t *`), parameter types sometimes without (`void*`). The remap key must match the libclang spelling byte-exact.
 
-Concrete fix verified by ppy SDL3-CS pattern: `--remap "wchar_t *=IntPtr"` (quoted, with space). Same pattern applies to our `nint` target.
+Concrete fix verified by ppy SDL3-CS pattern: `--remap "wchar_t *=IntPtr"` — the shell-level quotes protect the space across argv boundaries when ClangSharp is invoked directly. **Equivalent for our RSP-based config (verified 2026-05-24, ClangSharp 17.0.1 / libclang 17.0.4):** put `wchar_t *=nint` and `const wchar_t *=nint` on their own lines in `base.rsp`, *unquoted*. ClangSharp's RSP parser (System.CommandLine) takes each non-empty line as one argv element verbatim; surrounding quotes would be included literally in the key and break the byte-exact match. Quoted (`"wchar_t *"=nint`) and escaped-space (`wchar_t\ *=nint`) RSP forms were both tested and confirmed non-firing.
 
 ### Finding 8 — C `long` peer survey: drop-and-document is the dominant pattern
 

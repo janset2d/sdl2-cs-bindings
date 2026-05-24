@@ -144,35 +144,35 @@ namespace SDL2
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("size_t")]
-        public static extern UIntPtr SDL_wcslen([NativeTypeName("const wchar_t *")] ushort* wstr);
+        public static extern UIntPtr SDL_wcslen([NativeTypeName("const wchar_t *")] nint wstr);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("size_t")]
-        public static extern UIntPtr SDL_wcslcpy([NativeTypeName("wchar_t *")] ushort* dst, [NativeTypeName("const wchar_t *")] ushort* src, [NativeTypeName("size_t")] UIntPtr maxlen);
+        public static extern UIntPtr SDL_wcslcpy([NativeTypeName("wchar_t *")] nint dst, [NativeTypeName("const wchar_t *")] nint src, [NativeTypeName("size_t")] UIntPtr maxlen);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("size_t")]
-        public static extern UIntPtr SDL_wcslcat([NativeTypeName("wchar_t *")] ushort* dst, [NativeTypeName("const wchar_t *")] ushort* src, [NativeTypeName("size_t")] UIntPtr maxlen);
+        public static extern UIntPtr SDL_wcslcat([NativeTypeName("wchar_t *")] nint dst, [NativeTypeName("const wchar_t *")] nint src, [NativeTypeName("size_t")] UIntPtr maxlen);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("wchar_t *")]
-        public static extern ushort* SDL_wcsdup([NativeTypeName("const wchar_t *")] ushort* wstr);
+        public static extern nint SDL_wcsdup([NativeTypeName("const wchar_t *")] nint wstr);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("wchar_t *")]
-        public static extern ushort* SDL_wcsstr([NativeTypeName("const wchar_t *")] ushort* haystack, [NativeTypeName("const wchar_t *")] ushort* needle);
+        public static extern nint SDL_wcsstr([NativeTypeName("const wchar_t *")] nint haystack, [NativeTypeName("const wchar_t *")] nint needle);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_wcscmp([NativeTypeName("const wchar_t *")] ushort* str1, [NativeTypeName("const wchar_t *")] ushort* str2);
+        public static extern int SDL_wcscmp([NativeTypeName("const wchar_t *")] nint str1, [NativeTypeName("const wchar_t *")] nint str2);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_wcsncmp([NativeTypeName("const wchar_t *")] ushort* str1, [NativeTypeName("const wchar_t *")] ushort* str2, [NativeTypeName("size_t")] UIntPtr maxlen);
+        public static extern int SDL_wcsncmp([NativeTypeName("const wchar_t *")] nint str1, [NativeTypeName("const wchar_t *")] nint str2, [NativeTypeName("size_t")] UIntPtr maxlen);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_wcscasecmp([NativeTypeName("const wchar_t *")] ushort* str1, [NativeTypeName("const wchar_t *")] ushort* str2);
+        public static extern int SDL_wcscasecmp([NativeTypeName("const wchar_t *")] nint str1, [NativeTypeName("const wchar_t *")] nint str2);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_wcsncasecmp([NativeTypeName("const wchar_t *")] ushort* str1, [NativeTypeName("const wchar_t *")] ushort* str2, [NativeTypeName("size_t")] UIntPtr len);
+        public static extern int SDL_wcsncasecmp([NativeTypeName("const wchar_t *")] nint str1, [NativeTypeName("const wchar_t *")] nint str2, [NativeTypeName("size_t")] UIntPtr len);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("size_t")]

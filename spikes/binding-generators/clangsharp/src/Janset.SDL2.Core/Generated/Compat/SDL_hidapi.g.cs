@@ -19,16 +19,16 @@ namespace SDL2
         public ushort product_id;
 
         [NativeTypeName("wchar_t *")]
-        public ushort* serial_number;
+        public nint serial_number;
 
         [NativeTypeName("unsigned short")]
         public ushort release_number;
 
         [NativeTypeName("wchar_t *")]
-        public ushort* manufacturer_string;
+        public nint manufacturer_string;
 
         [NativeTypeName("wchar_t *")]
-        public ushort* product_string;
+        public nint product_string;
 
         [NativeTypeName("unsigned short")]
         public ushort usage_page;
@@ -67,7 +67,7 @@ namespace SDL2
         public static extern void SDL_hid_free_enumeration(SDL_hid_device_info* devs);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_hid_device* SDL_hid_open([NativeTypeName("unsigned short")] ushort vendor_id, [NativeTypeName("unsigned short")] ushort product_id, [NativeTypeName("const wchar_t *")] ushort* serial_number);
+        public static extern SDL_hid_device* SDL_hid_open([NativeTypeName("unsigned short")] ushort vendor_id, [NativeTypeName("unsigned short")] ushort product_id, [NativeTypeName("const wchar_t *")] nint serial_number);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern SDL_hid_device* SDL_hid_open_path([NativeTypeName("const char *")] byte* path, int bExclusive);
@@ -94,16 +94,16 @@ namespace SDL2
         public static extern void SDL_hid_close(SDL_hid_device* dev);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_hid_get_manufacturer_string(SDL_hid_device* dev, [NativeTypeName("wchar_t *")] ushort* @string, [NativeTypeName("size_t")] UIntPtr maxlen);
+        public static extern int SDL_hid_get_manufacturer_string(SDL_hid_device* dev, [NativeTypeName("wchar_t *")] nint @string, [NativeTypeName("size_t")] UIntPtr maxlen);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_hid_get_product_string(SDL_hid_device* dev, [NativeTypeName("wchar_t *")] ushort* @string, [NativeTypeName("size_t")] UIntPtr maxlen);
+        public static extern int SDL_hid_get_product_string(SDL_hid_device* dev, [NativeTypeName("wchar_t *")] nint @string, [NativeTypeName("size_t")] UIntPtr maxlen);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_hid_get_serial_number_string(SDL_hid_device* dev, [NativeTypeName("wchar_t *")] ushort* @string, [NativeTypeName("size_t")] UIntPtr maxlen);
+        public static extern int SDL_hid_get_serial_number_string(SDL_hid_device* dev, [NativeTypeName("wchar_t *")] nint @string, [NativeTypeName("size_t")] UIntPtr maxlen);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_hid_get_indexed_string(SDL_hid_device* dev, int string_index, [NativeTypeName("wchar_t *")] ushort* @string, [NativeTypeName("size_t")] UIntPtr maxlen);
+        public static extern int SDL_hid_get_indexed_string(SDL_hid_device* dev, int string_index, [NativeTypeName("wchar_t *")] nint @string, [NativeTypeName("size_t")] UIntPtr maxlen);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern void SDL_hid_ble_scan(SDL_bool active);

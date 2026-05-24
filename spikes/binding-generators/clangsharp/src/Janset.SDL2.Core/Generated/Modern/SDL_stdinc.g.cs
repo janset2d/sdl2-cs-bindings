@@ -161,43 +161,43 @@ namespace SDL2
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("size_t")]
-        public static partial nuint SDL_wcslen([NativeTypeName("const wchar_t *")] ushort* wstr);
+        public static partial nuint SDL_wcslen([NativeTypeName("const wchar_t *")] nint wstr);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("size_t")]
-        public static partial nuint SDL_wcslcpy([NativeTypeName("wchar_t *")] ushort* dst, [NativeTypeName("const wchar_t *")] ushort* src, [NativeTypeName("size_t")] nuint maxlen);
+        public static partial nuint SDL_wcslcpy([NativeTypeName("wchar_t *")] nint dst, [NativeTypeName("const wchar_t *")] nint src, [NativeTypeName("size_t")] nuint maxlen);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("size_t")]
-        public static partial nuint SDL_wcslcat([NativeTypeName("wchar_t *")] ushort* dst, [NativeTypeName("const wchar_t *")] ushort* src, [NativeTypeName("size_t")] nuint maxlen);
+        public static partial nuint SDL_wcslcat([NativeTypeName("wchar_t *")] nint dst, [NativeTypeName("const wchar_t *")] nint src, [NativeTypeName("size_t")] nuint maxlen);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("wchar_t *")]
-        public static partial ushort* SDL_wcsdup([NativeTypeName("const wchar_t *")] ushort* wstr);
+        public static partial nint SDL_wcsdup([NativeTypeName("const wchar_t *")] nint wstr);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("wchar_t *")]
-        public static partial ushort* SDL_wcsstr([NativeTypeName("const wchar_t *")] ushort* haystack, [NativeTypeName("const wchar_t *")] ushort* needle);
+        public static partial nint SDL_wcsstr([NativeTypeName("const wchar_t *")] nint haystack, [NativeTypeName("const wchar_t *")] nint needle);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_wcscmp([NativeTypeName("const wchar_t *")] ushort* str1, [NativeTypeName("const wchar_t *")] ushort* str2);
+        public static partial int SDL_wcscmp([NativeTypeName("const wchar_t *")] nint str1, [NativeTypeName("const wchar_t *")] nint str2);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_wcsncmp([NativeTypeName("const wchar_t *")] ushort* str1, [NativeTypeName("const wchar_t *")] ushort* str2, [NativeTypeName("size_t")] nuint maxlen);
+        public static partial int SDL_wcsncmp([NativeTypeName("const wchar_t *")] nint str1, [NativeTypeName("const wchar_t *")] nint str2, [NativeTypeName("size_t")] nuint maxlen);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_wcscasecmp([NativeTypeName("const wchar_t *")] ushort* str1, [NativeTypeName("const wchar_t *")] ushort* str2);
+        public static partial int SDL_wcscasecmp([NativeTypeName("const wchar_t *")] nint str1, [NativeTypeName("const wchar_t *")] nint str2);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_wcsncasecmp([NativeTypeName("const wchar_t *")] ushort* str1, [NativeTypeName("const wchar_t *")] ushort* str2, [NativeTypeName("size_t")] nuint len);
+        public static partial int SDL_wcsncasecmp([NativeTypeName("const wchar_t *")] nint str1, [NativeTypeName("const wchar_t *")] nint str2, [NativeTypeName("size_t")] nuint len);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]

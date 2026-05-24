@@ -19,16 +19,16 @@ namespace SDL2
         public ushort product_id;
 
         [NativeTypeName("wchar_t *")]
-        public ushort* serial_number;
+        public nint serial_number;
 
         [NativeTypeName("unsigned short")]
         public ushort release_number;
 
         [NativeTypeName("wchar_t *")]
-        public ushort* manufacturer_string;
+        public nint manufacturer_string;
 
         [NativeTypeName("wchar_t *")]
-        public ushort* product_string;
+        public nint product_string;
 
         [NativeTypeName("unsigned short")]
         public ushort usage_page;
@@ -73,7 +73,7 @@ namespace SDL2
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_hid_device* SDL_hid_open([NativeTypeName("unsigned short")] ushort vendor_id, [NativeTypeName("unsigned short")] ushort product_id, [NativeTypeName("const wchar_t *")] ushort* serial_number);
+        public static partial SDL_hid_device* SDL_hid_open([NativeTypeName("unsigned short")] ushort vendor_id, [NativeTypeName("unsigned short")] ushort product_id, [NativeTypeName("const wchar_t *")] nint serial_number);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
@@ -109,19 +109,19 @@ namespace SDL2
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_hid_get_manufacturer_string(SDL_hid_device* dev, [NativeTypeName("wchar_t *")] ushort* @string, [NativeTypeName("size_t")] nuint maxlen);
+        public static partial int SDL_hid_get_manufacturer_string(SDL_hid_device* dev, [NativeTypeName("wchar_t *")] nint @string, [NativeTypeName("size_t")] nuint maxlen);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_hid_get_product_string(SDL_hid_device* dev, [NativeTypeName("wchar_t *")] ushort* @string, [NativeTypeName("size_t")] nuint maxlen);
+        public static partial int SDL_hid_get_product_string(SDL_hid_device* dev, [NativeTypeName("wchar_t *")] nint @string, [NativeTypeName("size_t")] nuint maxlen);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_hid_get_serial_number_string(SDL_hid_device* dev, [NativeTypeName("wchar_t *")] ushort* @string, [NativeTypeName("size_t")] nuint maxlen);
+        public static partial int SDL_hid_get_serial_number_string(SDL_hid_device* dev, [NativeTypeName("wchar_t *")] nint @string, [NativeTypeName("size_t")] nuint maxlen);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_hid_get_indexed_string(SDL_hid_device* dev, int string_index, [NativeTypeName("wchar_t *")] ushort* @string, [NativeTypeName("size_t")] nuint maxlen);
+        public static partial int SDL_hid_get_indexed_string(SDL_hid_device* dev, int string_index, [NativeTypeName("wchar_t *")] nint @string, [NativeTypeName("size_t")] nuint maxlen);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]

@@ -17,7 +17,8 @@ SDL_DISABLE_ALLOCA
 --remap
 void*=nint
 char=byte
-wchar_t*=nint
+wchar_t *=nint
+const wchar_t *=nint
 Sint8=sbyte
 Uint8=byte
 Sint16=short

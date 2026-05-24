@@ -893,7 +893,7 @@ Expected: matches showing `[NativeTypeName("wchar_t *")] public ushort*` — the
 
 - [ ] **Step 8.2: Edit base.rsp**
 
-Replace the dead `wchar_t*=nint` with quoted variants. Open `spikes/binding-generators/clangsharp/rsp/base.rsp` and change:
+Replace the dead `wchar_t*=nint` with space-containing variants on their own lines. Open `spikes/binding-generators/clangsharp/rsp/base.rsp` and change:
 
 ```
 --remap
@@ -908,11 +908,11 @@ to:
 --remap
 void*=nint
 char=byte
-"wchar_t *"=nint
-"const wchar_t *"=nint
+wchar_t *=nint
+const wchar_t *=nint
 ```
 
-The quoted, space-containing variants match libclang's actual type spelling (research Finding 7 — ClangSharp `--remap` is byte-exact textual lookup; field types are rendered with space).
+The space-containing variants match libclang's actual type spelling (research Finding 7 — ClangSharp `--remap` is byte-exact textual lookup; field types are rendered with space). Note the **unquoted** form: ClangSharp's RSP parser (System.CommandLine) treats each non-empty line as one argv element verbatim, so surrounding quotes (`"wchar_t *"=nint`) get included literally in the key and break the match. ppy SDL3-CS's argv-passing pattern (`--remap "wchar_t *=IntPtr"`) is shell-level quoting protecting the space across argv boundaries, not RSP file syntax.
 
 - [ ] **Step 8.3: Regenerate**
 
@@ -933,9 +933,11 @@ Expected:
 - Third grep: annotations preserved on the nint fields.
 
 If first grep still shows matches, the remap didn't fire. Possible causes:
-1. Quoted parsing in RSP failed — try `--remap wchar_t\ *=nint` (escaped space) instead.
+1. Surrounding quotes accidentally included in the line — System.CommandLine takes each RSP line as one argv element verbatim; remove the quotes (use plain `wchar_t *=nint`).
 2. The field is via a typedef chain that bypasses pointer remap — fallback: also add `wchar_t=byte` pointee remap.
 3. If RSP path completely doesn't work, proceed to Task 8.5 (postprocess fallback rewriter).
+
+Implementation note (2026-05-24): the originally documented quoted form (`"wchar_t *"=nint`) and the escaped-space form (`wchar_t\ *=nint`) both failed in this environment (ClangSharp 17.0.1, libclang 17.0.4). The working syntax is unquoted with a literal space, one entry per line. ppy/SDL3-CS does not use an RSP file for this remap (it argv-passes `--remap` directly), which is why their `"wchar_t *=IntPtr"` form works for them and does not translate directly to our RSP-based config.
 
 - [ ] **Step 8.5 (CONDITIONAL — only if Step 8.4 RSP fix failed): Create WcharStarToNintRewriter fallback**
 

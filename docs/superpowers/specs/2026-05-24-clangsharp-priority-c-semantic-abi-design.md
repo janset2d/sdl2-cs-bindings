@@ -173,15 +173,15 @@ Caller-side surface is uniform `ulong` (on modern: `(ulong)((CULong)native()).Va
 
 This is **not** a Layer 3 friendly-wrapper repair of a "broken ABI" — opaque `nint` IS the ABI-correct shape because no honest non-opaque shape exists across the target platforms.
 
-**HOW.** RSP-level remap in `base.rsp` (cross-cutting, both quoted variants for libclang spelling byte-exact match — research probe identified the original `wchar_t*=nint` entry was a dead-letter because libclang renders the field type as `wchar_t *` with a space):
+**HOW.** RSP-level remap in `base.rsp` (cross-cutting, both space-containing variants for libclang spelling byte-exact match — research probe identified the original `wchar_t*=nint` entry was a dead-letter because libclang renders the field type as `wchar_t *` with a space):
 
 ```text
 --remap
-"wchar_t *"=nint
-"const wchar_t *"=nint
+wchar_t *=nint
+const wchar_t *=nint
 ```
 
-Old `wchar_t*=nint` (no-space, dead entry) is removed.
+Old `wchar_t*=nint` (no-space, dead entry) is removed. The entries are **unquoted**: ClangSharp's RSP parser (System.CommandLine) treats each non-empty line as one argv element verbatim, so surrounding quotes get included literally in the key and break the byte-exact match (verified at implementation time, 2026-05-24, against ClangSharp 17.0.1 / libclang 17.0.4). ppy SDL3-CS's argv-passing pattern (`--remap "wchar_t *=IntPtr"`) is shell-level quoting that protects the space across argv boundaries, not RSP file syntax.
 
 Windows-only API exception: `SDL_WinRTGetFSPathUNICODE` already emits in `Platforms/WinRT/SDL_system.g.cs` with `[SupportedOSPlatform("windows")]` attribution from earlier slices. The remap applies to it too (it becomes `nint`); platform attribution remains. (Future Layer 3 wrappers for WinRT-only consumers may add a `Marshal.PtrToStringUni`-based decoder; out of Priority C scope.)
 
@@ -325,7 +325,7 @@ Each slice is independently testable but the three are sequenced by dependency. 
 
 1. **R1 RSP fix** — Decision 3 mechanism. Edit `base.rsp`:
    - Remove dead `wchar_t*=nint` (no-space) entry.
-   - Add `"wchar_t *"=nint` and `"const wchar_t *"=nint` (quoted, with space).
+   - Add `wchar_t *=nint` and `const wchar_t *=nint` (unquoted, with space, one per line).
    - Regenerate, verify HIDAPI + wcs* + WinRT outputs all show `nint`.
    - If verification fails: activate the `WcharStarToNintRewriter` postprocess fallback.
 
@@ -423,7 +423,7 @@ All three slices closed. The spike state transitions from "near-ABI-compatible L
 
 | File | New / Modified | Content |
 | --- | --- | --- |
-| `spikes/binding-generators/clangsharp/rsp/base.rsp` | Modified | Remove dead `wchar_t*=nint`; add `"wchar_t *"=nint` and `"const wchar_t *"=nint` |
+| `spikes/binding-generators/clangsharp/rsp/base.rsp` | Modified | Remove dead `wchar_t*=nint`; add `wchar_t *=nint` and `const wchar_t *=nint` (unquoted, one per line — System.CommandLine RSP parser treats each line as one argv element verbatim) |
 | `spikes/binding-generators/clangsharp/rsp/per-header/SDL_stdinc.rsp` | New | `--exclude` 6 stdinc helpers |
 | `spikes/binding-generators/clangsharp/rsp/per-header/SDL_hidapi.rsp` | New | `--remap SDL_hid_device_=SDL_hid_device` |
 | `spikes/binding-generators/clangsharp/rsp/per-header/SDL_mutex.rsp` | New | `--remap SDL_semaphore=SDL_sem` |

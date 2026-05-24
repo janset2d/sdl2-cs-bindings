@@ -32,7 +32,7 @@ namespace SDL2
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("const wchar_t *")]
-        public static partial ushort* SDL_WinRTGetFSPathUNICODE(SDL_WinRT_Path pathType);
+        public static partial nint SDL_WinRTGetFSPathUNICODE(SDL_WinRT_Path pathType);
 
         #if NET5_0_OR_GREATER
         [SupportedOSPlatform("windows10.0.10240.0")]
