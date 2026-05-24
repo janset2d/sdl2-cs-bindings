@@ -20,17 +20,57 @@ namespace Janset.SDL2.PostProcess;
 // Mechanism:
 //   1. Remove `partial struct SDL_GUID { ... }` declaration entirely.
 //   2. Rewrite every reference (parameter/return/field type) `SDL_GUID` -> `Guid`.
-//   3. Caller (Program.cs) ensures `using System;` is present in any file the
-//      rewriter touched via EnsureSystemUsing, so `Guid` resolves without
-//      fully-qualified spellings cluttering signatures.
+//   3. VisitCompilationUnit ensures `using System;` is present in any file
+//      where step 2 actually substituted an identifier, so `Guid` resolves
+//      without fully-qualified spellings cluttering signatures. Mirrors
+//      DllImportToLibraryImportRewriter's `_needsCompilerServicesUsing` pattern
+//      so all rewriters handle using-insertion internally rather than via
+//      mode-specific special-cases in Program.cs.
 //
 // Refs: docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md
 // Slice C-C SDL_GUID; docs/binding-autogen/README.md Current Decision Posture.
 internal sealed class GuidSubstitutionRewriter : CSharpSyntaxRewriter
 {
+    private bool _needsSystemUsing;
+
     public bool AnyChanges { get; private set; }
 
-    public void Reset() => AnyChanges = false;
+    public void Reset()
+    {
+        _needsSystemUsing = false;
+        AnyChanges = false;
+    }
+
+    public override SyntaxNode? VisitCompilationUnit(CompilationUnitSyntax node)
+    {
+        // Roslyn visits depth-first, so by the time we return to the compilation
+        // unit `_needsSystemUsing` reflects every identifier substitution in the
+        // subtree. Guard on the flag rather than `AnyChanges` so a file whose
+        // only change is struct removal (no remaining Guid reference) doesn't
+        // grow a stray using. With current SDL2 headers every file touched by
+        // the rewriter also references Guid afterwards, but the flag keeps the
+        // invariant honest if a future header ever decouples the two.
+        var result = (CompilationUnitSyntax)base.VisitCompilationUnit(node)!;
+        if (!_needsSystemUsing)
+        {
+            return result;
+        }
+
+        if (result.Usings.Any(u => u.Name?.ToString() == "System"))
+        {
+            return result;
+        }
+
+        var systemUsing = SyntaxFactory
+            .UsingDirective(SyntaxFactory.IdentifierName("System"))
+            .NormalizeWhitespace()
+            .WithTrailingTrivia(SyntaxFactory.LineFeed);
+
+        // Insert at index 0 rather than DllImport's AddUsings (which appends)
+        // to preserve the conventional "System first" ordering in the resulting
+        // file. Matches the original output from when this lived in Program.cs.
+        return result.WithUsings(result.Usings.Insert(0, systemUsing));
+    }
 
     public override SyntaxNode? VisitStructDeclaration(StructDeclarationSyntax node)
     {
@@ -52,30 +92,10 @@ internal sealed class GuidSubstitutionRewriter : CSharpSyntaxRewriter
         if (node.Identifier.ValueText == "SDL_GUID")
         {
             AnyChanges = true;
+            _needsSystemUsing = true;
             return SyntaxFactory.IdentifierName("Guid").WithTriviaFrom(node);
         }
 
         return base.VisitIdentifierName(node);
-    }
-
-    // Inserts `using System;` at the top of the compilation unit when absent.
-    // Caller (Program.cs) invokes this on the rewritten root after Visit when
-    // any change was applied, so files that now reference Guid pick up the
-    // System namespace without forcing every untouched file to grow a using
-    // it doesn't need.
-    public static CompilationUnitSyntax EnsureSystemUsing(CompilationUnitSyntax root)
-    {
-        var hasSystemUsing = root.Usings.Any(u => u.Name?.ToString() == "System");
-        if (hasSystemUsing)
-        {
-            return root;
-        }
-
-        var systemUsing = SyntaxFactory
-            .UsingDirective(SyntaxFactory.IdentifierName("System"))
-            .NormalizeWhitespace()
-            .WithTrailingTrivia(SyntaxFactory.LineFeed);
-
-        return root.WithUsings(root.Usings.Insert(0, systemUsing));
     }
 }

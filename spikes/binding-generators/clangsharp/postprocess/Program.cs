@@ -95,14 +95,6 @@ foreach (var file in Directory.EnumerateFiles(inputDir, "*.g.cs", SearchOption.A
     var rewritten = (CompilationUnitSyntax)rewriter.Visit(root)!;
     processed++;
 
-    if (mode == "guid-substitute" && hasChanges())
-    {
-        // SDL_GUID -> Guid substitution only resolves once the file pulls in
-        // System; do it once per touched file rather than blindly inserting
-        // the using into files that didn't actually mention SDL_GUID.
-        rewritten = GuidSubstitutionRewriter.EnsureSystemUsing(rewritten);
-    }
-
     if (!hasChanges())
     {
         if (!string.Equals(inputDir, outputDir, StringComparison.OrdinalIgnoreCase))
