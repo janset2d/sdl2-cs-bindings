@@ -1259,7 +1259,7 @@ internal static class RawAbiChecks
                     "warning",
                     "Compatibility Risk",
                     structEvidence.Name,
-                    $"Struct '{structEvidence.Name}' is referenced via [NativeTypeName(\"{annotationCanonical} *\")] - tag/typedef pair detected; canonicalize via per-header RSP --remap (Constitution L262-277).",
+                    $"Struct '{structEvidence.Name}' is referenced via [NativeTypeName(\"{annotationCanonical} *\")] - tag/typedef pair detected; canonicalize via per-header RSP --remap (Constitution section \"Opaque Handles\").",
                     sourcePath));
             }
         }
