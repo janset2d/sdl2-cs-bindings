@@ -32,4 +32,13 @@
     <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" />
   </ItemGroup>
 
+  <!-- Layer 1 raw ABI escape valve for the AbiTests smoke project. Exposes the
+       internal SDLNative class so per-TFM runtime evidence can call SDL_ThreadID()
+       directly without promoting SDLNative to public. Constitution Layer Contract
+       (Layer 1 = internal raw ABI) preserved — only this specific test assembly
+       receives access. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Janset.SDL2.AbiTests" />
+  </ItemGroup>
+
 </Project>

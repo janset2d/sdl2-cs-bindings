@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Per-TFM ABI smoke for the ClangSharp spike's rewriter output. References
+    the spike's Janset.SDL2.Core ProjectReference directly (not the published
+    NuGet) and exercises Layer 1 internals via InternalsVisibleTo. Build +
+    test evidence per executable TFM verifies the ThreadIdDualDispatchRewriter
+    produces valid code for both Compat (net462) and Modern (net8+) outputs.
+  -->
+  <PropertyGroup>
+    <!--
+      TFMs hardcoded per spike sibling convention (Core/Image both hardcode).
+      The spike's Directory.Build.props does not import the repo-root one, so
+      $(ExecutableTargetFrameworks) is empty here. Dropped netstandard2.0
+      because this is an executable test project.
+    -->
+    <TargetFrameworks>net10.0;net9.0;net8.0;net462</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+
+    <AssemblyName>Janset.SDL2.AbiTests</AssemblyName>
+    <RootNamespace>Janset.SDL2.AbiTests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Janset.SDL2.Core\Janset.SDL2.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="TUnit" />
+    <PackageReference Include="PolySharp" PrivateAssets="all" IncludeAssets="runtime;build;native;contentfiles;analyzers;buildtransitive" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net462'">
+    <PackageReference Include="System.Memory" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
+  </ItemGroup>
+
+  <!--
+    Copy SDL2 native binary from the repo-root vcpkg_installed dir into the
+    test output so the runtime loader can resolve SDL2.dll. Host triplet
+    (x64-windows-hybrid) only — CI RID matrix overrides this for other RIDs.
+    Path is relative to spikes/binding-generators/clangsharp/tests/abi-tests/.
+  -->
+  <ItemGroup>
+    <None Include="..\..\..\..\..\vcpkg_installed\x64-windows-hybrid\bin\SDL2.dll"
+          CopyToOutputDirectory="PreserveNewest"
+          Visible="false" />
+  </ItemGroup>
+</Project>

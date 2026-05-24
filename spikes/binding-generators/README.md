@@ -121,3 +121,7 @@ dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --family sdl
 4. `output/reports/oracle-evidence-clangsharp.md` for the current family-aware raw ABI evidence snapshot.
 5. `references/ppy-SDL3-CS/SDL3-CS/generate_bindings.py` (lines 232-365, 386-434) for the north-star orchestrator patterns.
 6. Open `clangsharp/Janset.SDL2.ClangSharpSpike.slnx` in your IDE.
+
+## Per-TFM ABI runtime smoke
+
+**AbiTests (per-TFM ABI runtime smoke):** The `spikes/binding-generators/clangsharp/tests/abi-tests` project exercises Layer 1 `SDLNative.SDL_ThreadID()` runtime evidence per executable TFM (net462, net8.0, net9.0, net10.0). Host-side this covers Win32 32-bit `uint` and CULong+LibraryImport paths. Unix64 (Linux x64/arm64, macOS x64/arm64) `nint` returns must be exercised on the CI per-RID matrix by overriding the SDL2 native source path.
