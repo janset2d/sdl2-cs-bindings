@@ -18,10 +18,6 @@ namespace SDL2
         public nint driverdata;
     }
 
-    public partial struct SDL_Window
-    {
-    }
-
     public enum SDL_WindowFlags
     {
         SDL_WINDOW_FULLSCREEN = 0x00000001,
@@ -250,251 +246,251 @@ namespace SDL2
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_GetWindowDisplayIndex(SDL_Window* window);
+        public static partial int SDL_GetWindowDisplayIndex(SDL_Window window);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_SetWindowDisplayMode(SDL_Window* window, [NativeTypeName("const SDL_DisplayMode *")] SDL_DisplayMode* mode);
+        public static partial int SDL_SetWindowDisplayMode(SDL_Window window, [NativeTypeName("const SDL_DisplayMode *")] SDL_DisplayMode* mode);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_GetWindowDisplayMode(SDL_Window* window, SDL_DisplayMode* mode);
+        public static partial int SDL_GetWindowDisplayMode(SDL_Window window, SDL_DisplayMode* mode);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("void*")]
-        public static partial nint SDL_GetWindowICCProfile(SDL_Window* window, [NativeTypeName("size_t *")] nuint* size);
+        public static partial nint SDL_GetWindowICCProfile(SDL_Window window, [NativeTypeName("size_t *")] nuint* size);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("Uint32")]
-        public static partial uint SDL_GetWindowPixelFormat(SDL_Window* window);
+        public static partial uint SDL_GetWindowPixelFormat(SDL_Window window);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_Window* SDL_CreateWindow([NativeTypeName("const char *")] byte* title, int x, int y, int w, int h, [NativeTypeName("Uint32")] uint flags);
+        public static partial SDL_Window SDL_CreateWindow([NativeTypeName("const char *")] byte* title, int x, int y, int w, int h, [NativeTypeName("Uint32")] uint flags);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_Window* SDL_CreateWindowFrom([NativeTypeName("const void *")] nint data);
-
-        [LibraryImport("SDL2")]
-        [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        [return: NativeTypeName("Uint32")]
-        public static partial uint SDL_GetWindowID(SDL_Window* window);
-
-        [LibraryImport("SDL2")]
-        [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_Window* SDL_GetWindowFromID([NativeTypeName("Uint32")] uint id);
+        public static partial SDL_Window SDL_CreateWindowFrom([NativeTypeName("const void *")] nint data);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("Uint32")]
-        public static partial uint SDL_GetWindowFlags(SDL_Window* window);
+        public static partial uint SDL_GetWindowID(SDL_Window window);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_SetWindowTitle(SDL_Window* window, [NativeTypeName("const char *")] byte* title);
+        public static partial SDL_Window SDL_GetWindowFromID([NativeTypeName("Uint32")] uint id);
+
+        [LibraryImport("SDL2")]
+        [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+        [return: NativeTypeName("Uint32")]
+        public static partial uint SDL_GetWindowFlags(SDL_Window window);
+
+        [LibraryImport("SDL2")]
+        [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+        public static partial void SDL_SetWindowTitle(SDL_Window window, [NativeTypeName("const char *")] byte* title);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("const char *")]
-        public static partial byte* SDL_GetWindowTitle(SDL_Window* window);
+        public static partial byte* SDL_GetWindowTitle(SDL_Window window);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_SetWindowIcon(SDL_Window* window, SDL_Surface* icon);
-
-        [LibraryImport("SDL2")]
-        [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        [return: NativeTypeName("void*")]
-        public static partial nint SDL_SetWindowData(SDL_Window* window, [NativeTypeName("const char *")] byte* name, [NativeTypeName("void*")] nint userdata);
+        public static partial void SDL_SetWindowIcon(SDL_Window window, SDL_Surface* icon);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("void*")]
-        public static partial nint SDL_GetWindowData(SDL_Window* window, [NativeTypeName("const char *")] byte* name);
+        public static partial nint SDL_SetWindowData(SDL_Window window, [NativeTypeName("const char *")] byte* name, [NativeTypeName("void*")] nint userdata);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_SetWindowPosition(SDL_Window* window, int x, int y);
+        [return: NativeTypeName("void*")]
+        public static partial nint SDL_GetWindowData(SDL_Window window, [NativeTypeName("const char *")] byte* name);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_GetWindowPosition(SDL_Window* window, int* x, int* y);
+        public static partial void SDL_SetWindowPosition(SDL_Window window, int x, int y);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_SetWindowSize(SDL_Window* window, int w, int h);
+        public static partial void SDL_GetWindowPosition(SDL_Window window, int* x, int* y);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_GetWindowSize(SDL_Window* window, int* w, int* h);
+        public static partial void SDL_SetWindowSize(SDL_Window window, int w, int h);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_GetWindowBordersSize(SDL_Window* window, int* top, int* left, int* bottom, int* right);
+        public static partial void SDL_GetWindowSize(SDL_Window window, int* w, int* h);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_GetWindowSizeInPixels(SDL_Window* window, int* w, int* h);
+        public static partial int SDL_GetWindowBordersSize(SDL_Window window, int* top, int* left, int* bottom, int* right);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_SetWindowMinimumSize(SDL_Window* window, int min_w, int min_h);
+        public static partial void SDL_GetWindowSizeInPixels(SDL_Window window, int* w, int* h);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_GetWindowMinimumSize(SDL_Window* window, int* w, int* h);
+        public static partial void SDL_SetWindowMinimumSize(SDL_Window window, int min_w, int min_h);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_SetWindowMaximumSize(SDL_Window* window, int max_w, int max_h);
+        public static partial void SDL_GetWindowMinimumSize(SDL_Window window, int* w, int* h);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_GetWindowMaximumSize(SDL_Window* window, int* w, int* h);
+        public static partial void SDL_SetWindowMaximumSize(SDL_Window window, int max_w, int max_h);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_SetWindowBordered(SDL_Window* window, SDL_bool bordered);
+        public static partial void SDL_GetWindowMaximumSize(SDL_Window window, int* w, int* h);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_SetWindowResizable(SDL_Window* window, SDL_bool resizable);
+        public static partial void SDL_SetWindowBordered(SDL_Window window, SDL_bool bordered);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_SetWindowAlwaysOnTop(SDL_Window* window, SDL_bool on_top);
+        public static partial void SDL_SetWindowResizable(SDL_Window window, SDL_bool resizable);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_ShowWindow(SDL_Window* window);
+        public static partial void SDL_SetWindowAlwaysOnTop(SDL_Window window, SDL_bool on_top);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_HideWindow(SDL_Window* window);
+        public static partial void SDL_ShowWindow(SDL_Window window);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_RaiseWindow(SDL_Window* window);
+        public static partial void SDL_HideWindow(SDL_Window window);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_MaximizeWindow(SDL_Window* window);
+        public static partial void SDL_RaiseWindow(SDL_Window window);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_MinimizeWindow(SDL_Window* window);
+        public static partial void SDL_MaximizeWindow(SDL_Window window);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_RestoreWindow(SDL_Window* window);
+        public static partial void SDL_MinimizeWindow(SDL_Window window);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_SetWindowFullscreen(SDL_Window* window, [NativeTypeName("Uint32")] uint flags);
+        public static partial void SDL_RestoreWindow(SDL_Window window);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_bool SDL_HasWindowSurface(SDL_Window* window);
+        public static partial int SDL_SetWindowFullscreen(SDL_Window window, [NativeTypeName("Uint32")] uint flags);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_Surface* SDL_GetWindowSurface(SDL_Window* window);
+        public static partial SDL_bool SDL_HasWindowSurface(SDL_Window window);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_UpdateWindowSurface(SDL_Window* window);
+        public static partial SDL_Surface* SDL_GetWindowSurface(SDL_Window window);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_UpdateWindowSurfaceRects(SDL_Window* window, [NativeTypeName("const SDL_Rect *")] SDL_Rect* rects, int numrects);
+        public static partial int SDL_UpdateWindowSurface(SDL_Window window);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_DestroyWindowSurface(SDL_Window* window);
+        public static partial int SDL_UpdateWindowSurfaceRects(SDL_Window window, [NativeTypeName("const SDL_Rect *")] SDL_Rect* rects, int numrects);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_SetWindowGrab(SDL_Window* window, SDL_bool grabbed);
+        public static partial int SDL_DestroyWindowSurface(SDL_Window window);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_SetWindowKeyboardGrab(SDL_Window* window, SDL_bool grabbed);
+        public static partial void SDL_SetWindowGrab(SDL_Window window, SDL_bool grabbed);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_SetWindowMouseGrab(SDL_Window* window, SDL_bool grabbed);
+        public static partial void SDL_SetWindowKeyboardGrab(SDL_Window window, SDL_bool grabbed);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_bool SDL_GetWindowGrab(SDL_Window* window);
+        public static partial void SDL_SetWindowMouseGrab(SDL_Window window, SDL_bool grabbed);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_bool SDL_GetWindowKeyboardGrab(SDL_Window* window);
+        public static partial SDL_bool SDL_GetWindowGrab(SDL_Window window);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_bool SDL_GetWindowMouseGrab(SDL_Window* window);
+        public static partial SDL_bool SDL_GetWindowKeyboardGrab(SDL_Window window);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_Window* SDL_GetGrabbedWindow();
+        public static partial SDL_bool SDL_GetWindowMouseGrab(SDL_Window window);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_SetWindowMouseRect(SDL_Window* window, [NativeTypeName("const SDL_Rect *")] SDL_Rect* rect);
+        public static partial SDL_Window SDL_GetGrabbedWindow();
+
+        [LibraryImport("SDL2")]
+        [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+        public static partial int SDL_SetWindowMouseRect(SDL_Window window, [NativeTypeName("const SDL_Rect *")] SDL_Rect* rect);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("const SDL_Rect *")]
-        public static partial SDL_Rect* SDL_GetWindowMouseRect(SDL_Window* window);
+        public static partial SDL_Rect* SDL_GetWindowMouseRect(SDL_Window window);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_SetWindowBrightness(SDL_Window* window, float brightness);
+        public static partial int SDL_SetWindowBrightness(SDL_Window window, float brightness);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial float SDL_GetWindowBrightness(SDL_Window* window);
+        public static partial float SDL_GetWindowBrightness(SDL_Window window);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_SetWindowOpacity(SDL_Window* window, float opacity);
+        public static partial int SDL_SetWindowOpacity(SDL_Window window, float opacity);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_GetWindowOpacity(SDL_Window* window, float* out_opacity);
+        public static partial int SDL_GetWindowOpacity(SDL_Window window, float* out_opacity);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_SetWindowModalFor(SDL_Window* modal_window, SDL_Window* parent_window);
+        public static partial int SDL_SetWindowModalFor(SDL_Window modal_window, SDL_Window parent_window);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_SetWindowInputFocus(SDL_Window* window);
+        public static partial int SDL_SetWindowInputFocus(SDL_Window window);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_SetWindowGammaRamp(SDL_Window* window, [NativeTypeName("const Uint16 *")] ushort* red, [NativeTypeName("const Uint16 *")] ushort* green, [NativeTypeName("const Uint16 *")] ushort* blue);
+        public static partial int SDL_SetWindowGammaRamp(SDL_Window window, [NativeTypeName("const Uint16 *")] ushort* red, [NativeTypeName("const Uint16 *")] ushort* green, [NativeTypeName("const Uint16 *")] ushort* blue);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_GetWindowGammaRamp(SDL_Window* window, [NativeTypeName("Uint16 *")] ushort* red, [NativeTypeName("Uint16 *")] ushort* green, [NativeTypeName("Uint16 *")] ushort* blue);
+        public static partial int SDL_GetWindowGammaRamp(SDL_Window window, [NativeTypeName("Uint16 *")] ushort* red, [NativeTypeName("Uint16 *")] ushort* green, [NativeTypeName("Uint16 *")] ushort* blue);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_SetWindowHitTest(SDL_Window* window, [NativeTypeName("SDL_HitTest")] delegate* unmanaged[Cdecl]<SDL_Window*, SDL_Point*, nint, SDL_HitTestResult> callback, [NativeTypeName("void*")] nint callback_data);
+        public static partial int SDL_SetWindowHitTest(SDL_Window window, [NativeTypeName("SDL_HitTest")] delegate* unmanaged[Cdecl]<SDL_Window*, SDL_Point*, nint, SDL_HitTestResult> callback, [NativeTypeName("void*")] nint callback_data);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_FlashWindow(SDL_Window* window, SDL_FlashOperation operation);
+        public static partial int SDL_FlashWindow(SDL_Window window, SDL_FlashOperation operation);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_DestroyWindow(SDL_Window* window);
+        public static partial void SDL_DestroyWindow(SDL_Window window);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
@@ -540,15 +536,15 @@ namespace SDL2
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("SDL_GLContext")]
-        public static partial nint SDL_GL_CreateContext(SDL_Window* window);
+        public static partial nint SDL_GL_CreateContext(SDL_Window window);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_GL_MakeCurrent(SDL_Window* window, [NativeTypeName("SDL_GLContext")] nint context);
+        public static partial int SDL_GL_MakeCurrent(SDL_Window window, [NativeTypeName("SDL_GLContext")] nint context);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_Window* SDL_GL_GetCurrentWindow();
+        public static partial SDL_Window SDL_GL_GetCurrentWindow();
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
@@ -557,7 +553,7 @@ namespace SDL2
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_GL_GetDrawableSize(SDL_Window* window, int* w, int* h);
+        public static partial void SDL_GL_GetDrawableSize(SDL_Window window, int* w, int* h);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
@@ -569,7 +565,7 @@ namespace SDL2
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_GL_SwapWindow(SDL_Window* window);
+        public static partial void SDL_GL_SwapWindow(SDL_Window window);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]

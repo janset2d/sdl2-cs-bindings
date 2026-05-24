@@ -15,7 +15,7 @@ namespace SDL2
         [SupportedOSPlatform("ios")]
         #endif
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_iPhoneSetAnimationCallback(SDL_Window* window, int interval, [NativeTypeName("SDL_iOSAnimationCallback")] IntPtr callback, [NativeTypeName("void*")] nint callbackParam);
+        public static extern int SDL_iPhoneSetAnimationCallback(SDL_Window window, int interval, [NativeTypeName("SDL_iOSAnimationCallback")] IntPtr callback, [NativeTypeName("void*")] nint callbackParam);
 
         #if NET5_0_OR_GREATER
         [SupportedOSPlatform("ios")]

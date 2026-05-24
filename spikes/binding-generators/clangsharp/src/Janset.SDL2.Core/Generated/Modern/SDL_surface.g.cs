@@ -3,10 +3,6 @@ using System.Runtime.CompilerServices;
 
 namespace SDL2
 {
-    public partial struct SDL_BlitMap
-    {
-    }
-
     public unsafe partial struct SDL_Surface
     {
         [NativeTypeName("Uint32")]
@@ -33,7 +29,8 @@ namespace SDL2
 
         public SDL_Rect clip_rect;
 
-        public SDL_BlitMap* map;
+        [NativeTypeName("SDL_BlitMap*")]
+        public nint map;
 
         public int refcount;
     }
@@ -82,11 +79,11 @@ namespace SDL2
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_Surface* SDL_LoadBMP_RW(SDL_RWops* src, int freesrc);
+        public static partial SDL_Surface* SDL_LoadBMP_RW(SDL_RWops src, int freesrc);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_SaveBMP_RW(SDL_Surface* surface, SDL_RWops* dst, int freedst);
+        public static partial int SDL_SaveBMP_RW(SDL_Surface* surface, SDL_RWops dst, int freedst);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]

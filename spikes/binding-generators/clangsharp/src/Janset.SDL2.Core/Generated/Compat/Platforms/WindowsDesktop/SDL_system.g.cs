@@ -30,7 +30,7 @@ namespace SDL2
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("IDirect3DDevice9*")]
-        public static extern nint SDL_RenderGetD3D9Device(SDL_Renderer* renderer);
+        public static extern nint SDL_RenderGetD3D9Device(SDL_Renderer renderer);
 
         #if NET5_0_OR_GREATER
         [SupportedOSPlatform("windows")]
@@ -38,7 +38,7 @@ namespace SDL2
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("ID3D11Device*")]
-        public static extern nint SDL_RenderGetD3D11Device(SDL_Renderer* renderer);
+        public static extern nint SDL_RenderGetD3D11Device(SDL_Renderer renderer);
 
         #if NET5_0_OR_GREATER
         [SupportedOSPlatform("windows")]
@@ -46,7 +46,7 @@ namespace SDL2
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("ID3D12Device*")]
-        public static extern nint SDL_RenderGetD3D12Device(SDL_Renderer* renderer);
+        public static extern nint SDL_RenderGetD3D12Device(SDL_Renderer renderer);
 
         #if NET5_0_OR_GREATER
         [SupportedOSPlatform("windows")]

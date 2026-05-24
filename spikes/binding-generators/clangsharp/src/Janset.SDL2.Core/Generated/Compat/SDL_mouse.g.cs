@@ -2,9 +2,6 @@ using System.Runtime.InteropServices;
 
 namespace SDL2
 {
-    public partial struct SDL_Cursor
-    {
-    }
 
     public enum SDL_SystemCursor
     {
@@ -32,7 +29,7 @@ namespace SDL2
     internal static unsafe partial class SDLNative
     {
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_Window* SDL_GetMouseFocus();
+        public static extern SDL_Window SDL_GetMouseFocus();
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("Uint32")]
@@ -47,7 +44,7 @@ namespace SDL2
         public static extern uint SDL_GetRelativeMouseState(int* x, int* y);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void SDL_WarpMouseInWindow(SDL_Window* window, int x, int y);
+        public static extern void SDL_WarpMouseInWindow(SDL_Window window, int x, int y);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern int SDL_WarpMouseGlobal(int x, int y);
@@ -62,25 +59,25 @@ namespace SDL2
         public static extern SDL_bool SDL_GetRelativeMouseMode();
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_Cursor* SDL_CreateCursor([NativeTypeName("const Uint8 *")] byte* data, [NativeTypeName("const Uint8 *")] byte* mask, int w, int h, int hot_x, int hot_y);
+        public static extern SDL_Cursor SDL_CreateCursor([NativeTypeName("const Uint8 *")] byte* data, [NativeTypeName("const Uint8 *")] byte* mask, int w, int h, int hot_x, int hot_y);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_Cursor* SDL_CreateColorCursor(SDL_Surface* surface, int hot_x, int hot_y);
+        public static extern SDL_Cursor SDL_CreateColorCursor(SDL_Surface* surface, int hot_x, int hot_y);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_Cursor* SDL_CreateSystemCursor(SDL_SystemCursor id);
+        public static extern SDL_Cursor SDL_CreateSystemCursor(SDL_SystemCursor id);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void SDL_SetCursor(SDL_Cursor* cursor);
+        public static extern void SDL_SetCursor(SDL_Cursor cursor);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_Cursor* SDL_GetCursor();
+        public static extern SDL_Cursor SDL_GetCursor();
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_Cursor* SDL_GetDefaultCursor();
+        public static extern SDL_Cursor SDL_GetDefaultCursor();
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void SDL_FreeCursor(SDL_Cursor* cursor);
+        public static extern void SDL_FreeCursor(SDL_Cursor cursor);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern int SDL_ShowCursor(int toggle);

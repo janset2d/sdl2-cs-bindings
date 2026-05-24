@@ -72,6 +72,10 @@ if (mode == "platform-delta")
 CSharpSyntaxRewriter rewriter;
 Func<bool> hasChanges;
 Action resetRewriter;
+// uniform-opaque carries the canonical handle name set out of the switch so the
+// post-loop block (orchestrator phase) can emit a consolidated Handles.g.cs in
+// owner directories.
+HashSet<string>? uniformOpaqueHandleNames = null;
 switch (mode)
 {
     case "strip-varargs":
@@ -110,9 +114,25 @@ switch (mode)
     }
     case "uniform-opaque":
     {
-        var discovered = OpaqueHandleEmitRewriter.DiscoverAutoDetectedHandles(inputDir);
-        Console.WriteLine($"uniform-opaque: discovered {discovered.Count} auto-detect handles + 3 force-opaque");
-        var r = new OpaqueHandleEmitRewriter(discovered);
+        // Resolve roster path: walk inputDir ancestors until we find the spike policy dir.
+        var rosterPath = ResolveOpaqueHandleRosterPath(inputDir);
+        var (rosterAutoDetect, rosterForceOpaque) = OpaqueHandleEmitRewriter.LoadRoster(rosterPath);
+
+        // Syntactic discovery acts as a watchdog against the roster (the policy authority).
+        var syntacticDetect = OpaqueHandleEmitRewriter.DiscoverAutoDetectedHandles(inputDir);
+        OpaqueHandleEmitRewriter.ReportDrift(syntacticDetect, rosterAutoDetect);
+
+        // Combined handle set: rewriter removes any partial struct declaration with
+        // one of these names and rewrites SDL_X* -> SDL_X at param/return positions.
+        var handleNames = new HashSet<string>(rosterAutoDetect, StringComparer.Ordinal);
+        foreach (var n in rosterForceOpaque)
+        {
+            handleNames.Add(n);
+        }
+
+        Console.WriteLine($"uniform-opaque: applying {rosterAutoDetect.Count} auto-detect + {rosterForceOpaque.Count} force-opaque handles from {Path.GetFileName(rosterPath)} (syntactic discovery: {syntacticDetect.Count})");
+        uniformOpaqueHandleNames = handleNames;
+        var r = new OpaqueHandleEmitRewriter(handleNames);
         rewriter = r;
         hasChanges = () => r.AnyChanges;
         resetRewriter = r.Reset;
@@ -154,4 +174,57 @@ foreach (var file in Directory.EnumerateFiles(inputDir, "*.g.cs", SearchOption.A
 }
 
 Console.WriteLine($"{mode}: {processed} files scanned, {transformed} files transformed");
+
+// Slice C-B Phase 2 (orchestrator pass): owner directories receive a single
+// consolidated Handles.g.cs holding the canonical Pattern B body for every
+// handle in the roster. Consumer directories (e.g. Janset.SDL2.Image, which
+// references Core handles via ProjectReference and nested namespace lookup)
+// skip the write — they only need the partial-struct removal + pointer
+// rewrite that the loop above already performed.
+if (mode == "uniform-opaque" && uniformOpaqueHandleNames is not null)
+{
+    var isOwner = IsOpaqueHandleOwnerDirectory(outputDir);
+    if (isOwner)
+    {
+        var handlesFilePath = Path.Combine(outputDir, "Handles.g.cs");
+        var sortedNames = uniformOpaqueHandleNames.OrderBy(s => s, StringComparer.Ordinal).ToList();
+        var content = OpaqueHandleEmitRewriter.BuildHandlesFileContent(sortedNames);
+        Directory.CreateDirectory(outputDir);
+        File.WriteAllText(handlesFilePath, content);
+        Console.WriteLine($"uniform-opaque: wrote {handlesFilePath} with {sortedNames.Count} handles (owner mode)");
+    }
+    else
+    {
+        Console.WriteLine($"uniform-opaque: consumer directory ({Path.GetFileName(outputDir)}); skipped Handles.g.cs emit");
+    }
+}
+
 return 0;
+
+// Detect handle-owner directories by path. Janset.SDL2.Core declares the
+// Pattern B bodies; Janset.SDL2.Image and any future satellite consume them
+// via ProjectReference + shared SDL2 namespace nesting. Path-based detection
+// keeps the rewriter agnostic of the project layout; the only assumption is
+// that owner directories live somewhere under a path segment named
+// `Janset.SDL2.Core`.
+static bool IsOpaqueHandleOwnerDirectory(string dir)
+{
+    return dir.Replace('\\', '/').Contains("/Janset.SDL2.Core/", StringComparison.OrdinalIgnoreCase);
+}
+
+static string ResolveOpaqueHandleRosterPath(string inputDir)
+{
+    var dir = new DirectoryInfo(Path.GetFullPath(inputDir));
+    while (dir != null)
+    {
+        var candidate = Path.Combine(dir.FullName, "spikes", "binding-generators", "clangsharp", "policy", "opaque-handle-roster.json");
+        if (File.Exists(candidate))
+        {
+            return candidate;
+        }
+        dir = dir.Parent;
+    }
+    throw new FileNotFoundException(
+        $"Could not locate opaque-handle-roster.json by walking ancestors of '{inputDir}'. " +
+        "Expected at <repo>/spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json.");
+}

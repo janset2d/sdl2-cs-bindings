@@ -2,10 +2,6 @@ using System.Runtime.InteropServices;
 
 namespace SDL2
 {
-    public partial struct SDL_BlitMap
-    {
-    }
-
     public unsafe partial struct SDL_Surface
     {
         [NativeTypeName("Uint32")]
@@ -32,7 +28,8 @@ namespace SDL2
 
         public SDL_Rect clip_rect;
 
-        public SDL_BlitMap* map;
+        [NativeTypeName("SDL_BlitMap*")]
+        public nint map;
 
         public int refcount;
     }
@@ -75,10 +72,10 @@ namespace SDL2
         public static extern void SDL_UnlockSurface(SDL_Surface* surface);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_Surface* SDL_LoadBMP_RW(SDL_RWops* src, int freesrc);
+        public static extern SDL_Surface* SDL_LoadBMP_RW(SDL_RWops src, int freesrc);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_SaveBMP_RW(SDL_Surface* surface, SDL_RWops* dst, int freedst);
+        public static extern int SDL_SaveBMP_RW(SDL_Surface* surface, SDL_RWops dst, int freedst);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern int SDL_SetSurfaceRLE(SDL_Surface* surface, int flag);

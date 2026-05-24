@@ -3,92 +3,81 @@ using System.Runtime.CompilerServices;
 
 namespace SDL2
 {
-    public partial struct SDL_mutex
-    {
-    }
-
-    public partial struct SDL_sem
-    {
-    }
-
-    public partial struct SDL_cond
-    {
-    }
 
     internal static unsafe partial class SDLNative
     {
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_mutex* SDL_CreateMutex();
+        public static partial SDL_mutex SDL_CreateMutex();
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_LockMutex(SDL_mutex* mutex);
+        public static partial int SDL_LockMutex(SDL_mutex mutex);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_TryLockMutex(SDL_mutex* mutex);
+        public static partial int SDL_TryLockMutex(SDL_mutex mutex);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_UnlockMutex(SDL_mutex* mutex);
+        public static partial int SDL_UnlockMutex(SDL_mutex mutex);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_DestroyMutex(SDL_mutex* mutex);
+        public static partial void SDL_DestroyMutex(SDL_mutex mutex);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_sem* SDL_CreateSemaphore([NativeTypeName("Uint32")] uint initial_value);
+        public static partial SDL_sem SDL_CreateSemaphore([NativeTypeName("Uint32")] uint initial_value);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_DestroySemaphore(SDL_sem* sem);
+        public static partial void SDL_DestroySemaphore(SDL_sem sem);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_SemWait(SDL_sem* sem);
+        public static partial int SDL_SemWait(SDL_sem sem);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_SemTryWait(SDL_sem* sem);
+        public static partial int SDL_SemTryWait(SDL_sem sem);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_SemWaitTimeout(SDL_sem* sem, [NativeTypeName("Uint32")] uint timeout);
+        public static partial int SDL_SemWaitTimeout(SDL_sem sem, [NativeTypeName("Uint32")] uint timeout);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_SemPost(SDL_sem* sem);
+        public static partial int SDL_SemPost(SDL_sem sem);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("Uint32")]
-        public static partial uint SDL_SemValue(SDL_sem* sem);
+        public static partial uint SDL_SemValue(SDL_sem sem);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_cond* SDL_CreateCond();
+        public static partial SDL_cond SDL_CreateCond();
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_DestroyCond(SDL_cond* cond);
+        public static partial void SDL_DestroyCond(SDL_cond cond);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_CondSignal(SDL_cond* cond);
+        public static partial int SDL_CondSignal(SDL_cond cond);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_CondBroadcast(SDL_cond* cond);
+        public static partial int SDL_CondBroadcast(SDL_cond cond);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_CondWait(SDL_cond* cond, SDL_mutex* mutex);
+        public static partial int SDL_CondWait(SDL_cond cond, SDL_mutex mutex);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_CondWaitTimeout(SDL_cond* cond, SDL_mutex* mutex, [NativeTypeName("Uint32")] uint ms);
+        public static partial int SDL_CondWaitTimeout(SDL_cond cond, SDL_mutex mutex, [NativeTypeName("Uint32")] uint ms);
 
         [NativeTypeName("#define SDL_MUTEX_TIMEDOUT 1")]
         public const int SDL_MUTEX_TIMEDOUT = 1;

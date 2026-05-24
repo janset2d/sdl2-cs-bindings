@@ -15,12 +15,12 @@ namespace SDL2
         public static extern void SDL_Vulkan_UnloadLibrary();
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_bool SDL_Vulkan_GetInstanceExtensions(SDL_Window* window, [NativeTypeName("unsigned int *")] uint* pCount, [NativeTypeName("const char **")] byte** pNames);
+        public static extern SDL_bool SDL_Vulkan_GetInstanceExtensions(SDL_Window window, [NativeTypeName("unsigned int *")] uint* pCount, [NativeTypeName("const char **")] byte** pNames);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_bool SDL_Vulkan_CreateSurface(SDL_Window* window, [NativeTypeName("VkInstance")] nint instance, [NativeTypeName("VkSurfaceKHR *")] nint* surface);
+        public static extern SDL_bool SDL_Vulkan_CreateSurface(SDL_Window window, [NativeTypeName("VkInstance")] nint instance, [NativeTypeName("VkSurfaceKHR *")] nint* surface);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void SDL_Vulkan_GetDrawableSize(SDL_Window* window, int* w, int* h);
+        public static extern void SDL_Vulkan_GetDrawableSize(SDL_Window window, int* w, int* h);
     }
 }

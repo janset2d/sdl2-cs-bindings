@@ -21,7 +21,7 @@ namespace SDL2
     {
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_Window* SDL_GetKeyboardFocus();
+        public static partial SDL_Window SDL_GetKeyboardFocus();
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
@@ -98,6 +98,6 @@ namespace SDL2
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_bool SDL_IsScreenKeyboardShown(SDL_Window* window);
+        public static partial SDL_bool SDL_IsScreenKeyboardShown(SDL_Window window);
     }
 }

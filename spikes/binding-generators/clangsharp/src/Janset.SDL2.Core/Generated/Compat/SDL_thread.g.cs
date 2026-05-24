@@ -3,9 +3,6 @@ using System.Runtime.InteropServices;
 
 namespace SDL2
 {
-    public partial struct SDL_Thread
-    {
-    }
 
     public enum SDL_ThreadPriority
     {
@@ -32,7 +29,7 @@ namespace SDL2
     {
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("const char *")]
-        public static extern byte* SDL_GetThreadName(SDL_Thread* thread);
+        public static extern byte* SDL_GetThreadName(SDL_Thread thread);
 
         [return: NativeTypeName("SDL_threadID")]
         public static ulong SDL_ThreadID()
@@ -49,7 +46,7 @@ namespace SDL2
         private static extern nint SDL_ThreadID_Unix64();
 
         [return: NativeTypeName("SDL_threadID")]
-        public static ulong SDL_GetThreadID(SDL_Thread* thread)
+        public static ulong SDL_GetThreadID(SDL_Thread thread)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 return SDL_GetThreadID_Win32(thread);
@@ -57,19 +54,19 @@ namespace SDL2
         }
 
         [DllImport("SDL2", EntryPoint = "SDL_GetThreadID", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        private static extern uint SDL_GetThreadID_Win32(SDL_Thread* thread);
+        private static extern uint SDL_GetThreadID_Win32(SDL_Thread thread);
 
         [DllImport("SDL2", EntryPoint = "SDL_GetThreadID", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        private static extern nint SDL_GetThreadID_Unix64(SDL_Thread* thread);
+        private static extern nint SDL_GetThreadID_Unix64(SDL_Thread thread);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern int SDL_SetThreadPriority(SDL_ThreadPriority priority);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void SDL_WaitThread(SDL_Thread* thread, int* status);
+        public static extern void SDL_WaitThread(SDL_Thread thread, int* status);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void SDL_DetachThread(SDL_Thread* thread);
+        public static extern void SDL_DetachThread(SDL_Thread thread);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("SDL_TLSID")]

@@ -31,16 +31,16 @@ namespace SDL2
     internal static unsafe partial class SDLNative
     {
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_Window* SDL_CreateShapedWindow([NativeTypeName("const char *")] byte* title, [NativeTypeName("unsigned int")] uint x, [NativeTypeName("unsigned int")] uint y, [NativeTypeName("unsigned int")] uint w, [NativeTypeName("unsigned int")] uint h, [NativeTypeName("Uint32")] uint flags);
+        public static extern SDL_Window SDL_CreateShapedWindow([NativeTypeName("const char *")] byte* title, [NativeTypeName("unsigned int")] uint x, [NativeTypeName("unsigned int")] uint y, [NativeTypeName("unsigned int")] uint w, [NativeTypeName("unsigned int")] uint h, [NativeTypeName("Uint32")] uint flags);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_bool SDL_IsShapedWindow([NativeTypeName("const SDL_Window *")] SDL_Window* window);
+        public static extern SDL_bool SDL_IsShapedWindow([NativeTypeName("const SDL_Window *")] SDL_Window window);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_SetWindowShape(SDL_Window* window, SDL_Surface* shape, SDL_WindowShapeMode* shape_mode);
+        public static extern int SDL_SetWindowShape(SDL_Window window, SDL_Surface* shape, SDL_WindowShapeMode* shape_mode);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_GetShapedWindowMode(SDL_Window* window, SDL_WindowShapeMode* shape_mode);
+        public static extern int SDL_GetShapedWindowMode(SDL_Window window, SDL_WindowShapeMode* shape_mode);
 
         [NativeTypeName("#define SDL_NONSHAPEABLE_WINDOW -1")]
         public const int SDL_NONSHAPEABLE_WINDOW = -1;

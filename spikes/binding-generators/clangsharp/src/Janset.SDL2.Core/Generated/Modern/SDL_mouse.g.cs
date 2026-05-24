@@ -3,9 +3,6 @@ using System.Runtime.CompilerServices;
 
 namespace SDL2
 {
-    public partial struct SDL_Cursor
-    {
-    }
 
     public enum SDL_SystemCursor
     {
@@ -34,7 +31,7 @@ namespace SDL2
     {
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_Window* SDL_GetMouseFocus();
+        public static partial SDL_Window SDL_GetMouseFocus();
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
@@ -53,7 +50,7 @@ namespace SDL2
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_WarpMouseInWindow(SDL_Window* window, int x, int y);
+        public static partial void SDL_WarpMouseInWindow(SDL_Window window, int x, int y);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
@@ -73,31 +70,31 @@ namespace SDL2
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_Cursor* SDL_CreateCursor([NativeTypeName("const Uint8 *")] byte* data, [NativeTypeName("const Uint8 *")] byte* mask, int w, int h, int hot_x, int hot_y);
+        public static partial SDL_Cursor SDL_CreateCursor([NativeTypeName("const Uint8 *")] byte* data, [NativeTypeName("const Uint8 *")] byte* mask, int w, int h, int hot_x, int hot_y);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_Cursor* SDL_CreateColorCursor(SDL_Surface* surface, int hot_x, int hot_y);
+        public static partial SDL_Cursor SDL_CreateColorCursor(SDL_Surface* surface, int hot_x, int hot_y);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_Cursor* SDL_CreateSystemCursor(SDL_SystemCursor id);
+        public static partial SDL_Cursor SDL_CreateSystemCursor(SDL_SystemCursor id);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_SetCursor(SDL_Cursor* cursor);
+        public static partial void SDL_SetCursor(SDL_Cursor cursor);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_Cursor* SDL_GetCursor();
+        public static partial SDL_Cursor SDL_GetCursor();
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_Cursor* SDL_GetDefaultCursor();
+        public static partial SDL_Cursor SDL_GetDefaultCursor();
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_FreeCursor(SDL_Cursor* cursor);
+        public static partial void SDL_FreeCursor(SDL_Cursor cursor);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]

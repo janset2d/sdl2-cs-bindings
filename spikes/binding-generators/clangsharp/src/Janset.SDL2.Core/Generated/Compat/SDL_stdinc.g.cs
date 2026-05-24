@@ -408,21 +408,6 @@ namespace SDL2
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern float SDL_tanf(float x);
 
-        [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("SDL_iconv_t")]
-        public static extern SDL_iconv_t* SDL_iconv_open([NativeTypeName("const char *")] byte* tocode, [NativeTypeName("const char *")] byte* fromcode);
-
-        [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_iconv_close([NativeTypeName("SDL_iconv_t")] SDL_iconv_t* cd);
-
-        [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("size_t")]
-        public static extern UIntPtr SDL_iconv([NativeTypeName("SDL_iconv_t")] SDL_iconv_t* cd, [NativeTypeName("const char **")] byte** inbuf, [NativeTypeName("size_t *")] UIntPtr* inbytesleft, [NativeTypeName("char **")] byte** outbuf, [NativeTypeName("size_t *")] UIntPtr* outbytesleft);
-
-        [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("char *")]
-        public static extern byte* SDL_iconv_string([NativeTypeName("const char *")] byte* tocode, [NativeTypeName("const char *")] byte* fromcode, [NativeTypeName("const char *")] byte* inbuf, [NativeTypeName("size_t")] UIntPtr inbytesleft);
-
         [NativeTypeName("#define SDL_MAX_SINT8 ((Sint8)0x7F)")]
         public const sbyte SDL_MAX_SINT8 = ((sbyte)(0x7F));
 

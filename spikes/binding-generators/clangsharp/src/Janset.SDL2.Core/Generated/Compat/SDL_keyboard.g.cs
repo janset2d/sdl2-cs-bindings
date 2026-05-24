@@ -19,7 +19,7 @@ namespace SDL2
     internal static unsafe partial class SDLNative
     {
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_Window* SDL_GetKeyboardFocus();
+        public static extern SDL_Window SDL_GetKeyboardFocus();
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("const Uint8 *")]
@@ -78,6 +78,6 @@ namespace SDL2
         public static extern SDL_bool SDL_HasScreenKeyboardSupport();
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_bool SDL_IsScreenKeyboardShown(SDL_Window* window);
+        public static extern SDL_bool SDL_IsScreenKeyboardShown(SDL_Window window);
     }
 }

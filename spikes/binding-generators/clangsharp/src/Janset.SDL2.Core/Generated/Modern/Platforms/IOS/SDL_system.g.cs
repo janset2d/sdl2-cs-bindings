@@ -13,7 +13,7 @@ namespace SDL2
         #endif
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_iPhoneSetAnimationCallback(SDL_Window* window, int interval, [NativeTypeName("SDL_iOSAnimationCallback")] delegate* unmanaged[Cdecl]<nint, void> callback, [NativeTypeName("void*")] nint callbackParam);
+        public static partial int SDL_iPhoneSetAnimationCallback(SDL_Window window, int interval, [NativeTypeName("SDL_iOSAnimationCallback")] delegate* unmanaged[Cdecl]<nint, void> callback, [NativeTypeName("void*")] nint callbackParam);
 
         #if NET5_0_OR_GREATER
         [SupportedOSPlatform("ios")]

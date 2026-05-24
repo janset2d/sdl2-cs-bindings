@@ -99,10 +99,6 @@ namespace SDL2
         SDL_AUDIO_PAUSED,
     }
 
-    public partial struct SDL_AudioStream
-    {
-    }
-
     internal static unsafe partial class SDLNative
     {
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
@@ -155,7 +151,7 @@ namespace SDL2
         public static extern void SDL_PauseAudioDevice([NativeTypeName("SDL_AudioDeviceID")] uint dev, int pause_on);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_AudioSpec* SDL_LoadWAV_RW(SDL_RWops* src, int freesrc, SDL_AudioSpec* spec, [NativeTypeName("Uint8 **")] byte** audio_buf, [NativeTypeName("Uint32 *")] uint* audio_len);
+        public static extern SDL_AudioSpec* SDL_LoadWAV_RW(SDL_RWops src, int freesrc, SDL_AudioSpec* spec, [NativeTypeName("Uint8 **")] byte** audio_buf, [NativeTypeName("Uint32 *")] uint* audio_len);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern void SDL_FreeWAV([NativeTypeName("Uint8 *")] byte* audio_buf);
@@ -167,25 +163,25 @@ namespace SDL2
         public static extern int SDL_ConvertAudio(SDL_AudioCVT* cvt);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_AudioStream* SDL_NewAudioStream([NativeTypeName("const SDL_AudioFormat")] ushort src_format, [NativeTypeName("const Uint8")] byte src_channels, [NativeTypeName("const int")] int src_rate, [NativeTypeName("const SDL_AudioFormat")] ushort dst_format, [NativeTypeName("const Uint8")] byte dst_channels, [NativeTypeName("const int")] int dst_rate);
+        public static extern SDL_AudioStream SDL_NewAudioStream([NativeTypeName("const SDL_AudioFormat")] ushort src_format, [NativeTypeName("const Uint8")] byte src_channels, [NativeTypeName("const int")] int src_rate, [NativeTypeName("const SDL_AudioFormat")] ushort dst_format, [NativeTypeName("const Uint8")] byte dst_channels, [NativeTypeName("const int")] int dst_rate);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_AudioStreamPut(SDL_AudioStream* stream, [NativeTypeName("const void *")] nint buf, int len);
+        public static extern int SDL_AudioStreamPut(SDL_AudioStream stream, [NativeTypeName("const void *")] nint buf, int len);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_AudioStreamGet(SDL_AudioStream* stream, [NativeTypeName("void*")] nint buf, int len);
+        public static extern int SDL_AudioStreamGet(SDL_AudioStream stream, [NativeTypeName("void*")] nint buf, int len);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_AudioStreamAvailable(SDL_AudioStream* stream);
+        public static extern int SDL_AudioStreamAvailable(SDL_AudioStream stream);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_AudioStreamFlush(SDL_AudioStream* stream);
+        public static extern int SDL_AudioStreamFlush(SDL_AudioStream stream);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void SDL_AudioStreamClear(SDL_AudioStream* stream);
+        public static extern void SDL_AudioStreamClear(SDL_AudioStream stream);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void SDL_FreeAudioStream(SDL_AudioStream* stream);
+        public static extern void SDL_FreeAudioStream(SDL_AudioStream stream);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern void SDL_MixAudio([NativeTypeName("Uint8 *")] byte* dst, [NativeTypeName("const Uint8 *")] byte* src, [NativeTypeName("Uint32")] uint len, int volume);

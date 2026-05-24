@@ -30,7 +30,7 @@ namespace SDL2
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("IDirect3DDevice9*")]
-        public static partial nint SDL_RenderGetD3D9Device(SDL_Renderer* renderer);
+        public static partial nint SDL_RenderGetD3D9Device(SDL_Renderer renderer);
 
         #if NET5_0_OR_GREATER
         [SupportedOSPlatform("windows")]
@@ -39,7 +39,7 @@ namespace SDL2
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("ID3D11Device*")]
-        public static partial nint SDL_RenderGetD3D11Device(SDL_Renderer* renderer);
+        public static partial nint SDL_RenderGetD3D11Device(SDL_Renderer renderer);
 
         #if NET5_0_OR_GREATER
         [SupportedOSPlatform("windows")]
@@ -48,7 +48,7 @@ namespace SDL2
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("ID3D12Device*")]
-        public static partial nint SDL_RenderGetD3D12Device(SDL_Renderer* renderer);
+        public static partial nint SDL_RenderGetD3D12Device(SDL_Renderer renderer);
 
         #if NET5_0_OR_GREATER
         [SupportedOSPlatform("windows")]

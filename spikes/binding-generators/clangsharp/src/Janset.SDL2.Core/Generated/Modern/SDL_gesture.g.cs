@@ -11,14 +11,14 @@ namespace SDL2
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_SaveAllDollarTemplates(SDL_RWops* dst);
+        public static partial int SDL_SaveAllDollarTemplates(SDL_RWops dst);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_SaveDollarTemplate([NativeTypeName("SDL_GestureID")] long gestureId, SDL_RWops* dst);
+        public static partial int SDL_SaveDollarTemplate([NativeTypeName("SDL_GestureID")] long gestureId, SDL_RWops dst);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_LoadDollarTemplates([NativeTypeName("SDL_TouchID")] long touchId, SDL_RWops* src);
+        public static partial int SDL_LoadDollarTemplates([NativeTypeName("SDL_TouchID")] long touchId, SDL_RWops src);
     }
 }

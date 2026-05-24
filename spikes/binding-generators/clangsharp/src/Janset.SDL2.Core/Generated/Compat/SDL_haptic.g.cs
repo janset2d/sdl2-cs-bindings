@@ -2,9 +2,6 @@ using System.Runtime.InteropServices;
 
 namespace SDL2
 {
-    public partial struct SDL_Haptic
-    {
-    }
 
     public unsafe partial struct SDL_HapticDirection
     {
@@ -265,89 +262,89 @@ namespace SDL2
         public static extern byte* SDL_HapticName(int device_index);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_Haptic* SDL_HapticOpen(int device_index);
+        public static extern SDL_Haptic SDL_HapticOpen(int device_index);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern int SDL_HapticOpened(int device_index);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_HapticIndex(SDL_Haptic* haptic);
+        public static extern int SDL_HapticIndex(SDL_Haptic haptic);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern int SDL_MouseIsHaptic();
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_Haptic* SDL_HapticOpenFromMouse();
+        public static extern SDL_Haptic SDL_HapticOpenFromMouse();
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_JoystickIsHaptic(SDL_Joystick* joystick);
+        public static extern int SDL_JoystickIsHaptic(SDL_Joystick joystick);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_Haptic* SDL_HapticOpenFromJoystick(SDL_Joystick* joystick);
+        public static extern SDL_Haptic SDL_HapticOpenFromJoystick(SDL_Joystick joystick);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void SDL_HapticClose(SDL_Haptic* haptic);
+        public static extern void SDL_HapticClose(SDL_Haptic haptic);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_HapticNumEffects(SDL_Haptic* haptic);
+        public static extern int SDL_HapticNumEffects(SDL_Haptic haptic);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_HapticNumEffectsPlaying(SDL_Haptic* haptic);
+        public static extern int SDL_HapticNumEffectsPlaying(SDL_Haptic haptic);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("unsigned int")]
-        public static extern uint SDL_HapticQuery(SDL_Haptic* haptic);
+        public static extern uint SDL_HapticQuery(SDL_Haptic haptic);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_HapticNumAxes(SDL_Haptic* haptic);
+        public static extern int SDL_HapticNumAxes(SDL_Haptic haptic);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_HapticEffectSupported(SDL_Haptic* haptic, SDL_HapticEffect* effect);
+        public static extern int SDL_HapticEffectSupported(SDL_Haptic haptic, SDL_HapticEffect* effect);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_HapticNewEffect(SDL_Haptic* haptic, SDL_HapticEffect* effect);
+        public static extern int SDL_HapticNewEffect(SDL_Haptic haptic, SDL_HapticEffect* effect);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_HapticUpdateEffect(SDL_Haptic* haptic, int effect, SDL_HapticEffect* data);
+        public static extern int SDL_HapticUpdateEffect(SDL_Haptic haptic, int effect, SDL_HapticEffect* data);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_HapticRunEffect(SDL_Haptic* haptic, int effect, [NativeTypeName("Uint32")] uint iterations);
+        public static extern int SDL_HapticRunEffect(SDL_Haptic haptic, int effect, [NativeTypeName("Uint32")] uint iterations);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_HapticStopEffect(SDL_Haptic* haptic, int effect);
+        public static extern int SDL_HapticStopEffect(SDL_Haptic haptic, int effect);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void SDL_HapticDestroyEffect(SDL_Haptic* haptic, int effect);
+        public static extern void SDL_HapticDestroyEffect(SDL_Haptic haptic, int effect);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_HapticGetEffectStatus(SDL_Haptic* haptic, int effect);
+        public static extern int SDL_HapticGetEffectStatus(SDL_Haptic haptic, int effect);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_HapticSetGain(SDL_Haptic* haptic, int gain);
+        public static extern int SDL_HapticSetGain(SDL_Haptic haptic, int gain);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_HapticSetAutocenter(SDL_Haptic* haptic, int autocenter);
+        public static extern int SDL_HapticSetAutocenter(SDL_Haptic haptic, int autocenter);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_HapticPause(SDL_Haptic* haptic);
+        public static extern int SDL_HapticPause(SDL_Haptic haptic);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_HapticUnpause(SDL_Haptic* haptic);
+        public static extern int SDL_HapticUnpause(SDL_Haptic haptic);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_HapticStopAll(SDL_Haptic* haptic);
+        public static extern int SDL_HapticStopAll(SDL_Haptic haptic);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_HapticRumbleSupported(SDL_Haptic* haptic);
+        public static extern int SDL_HapticRumbleSupported(SDL_Haptic haptic);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_HapticRumbleInit(SDL_Haptic* haptic);
+        public static extern int SDL_HapticRumbleInit(SDL_Haptic haptic);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_HapticRumblePlay(SDL_Haptic* haptic, float strength, [NativeTypeName("Uint32")] uint length);
+        public static extern int SDL_HapticRumblePlay(SDL_Haptic haptic, float strength, [NativeTypeName("Uint32")] uint length);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_HapticRumbleStop(SDL_Haptic* haptic);
+        public static extern int SDL_HapticRumbleStop(SDL_Haptic haptic);
 
         [NativeTypeName("#define SDL_HAPTIC_CONSTANT (1u<<0)")]
         public const uint SDL_HAPTIC_CONSTANT = (1U << 0);

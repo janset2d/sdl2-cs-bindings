@@ -3,9 +3,6 @@ using System.Runtime.CompilerServices;
 
 namespace SDL2
 {
-    public partial struct SDL_Thread
-    {
-    }
 
     public enum SDL_ThreadPriority
     {
@@ -20,7 +17,7 @@ namespace SDL2
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("const char *")]
-        public static partial byte* SDL_GetThreadName(SDL_Thread* thread);
+        public static partial byte* SDL_GetThreadName(SDL_Thread thread);
 
         [LibraryImport("SDL2", EntryPoint = "SDL_ThreadID")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
@@ -30,7 +27,7 @@ namespace SDL2
         [LibraryImport("SDL2", EntryPoint = "SDL_GetThreadID")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("SDL_threadID")]
-        public static partial CULong SDL_GetThreadID(SDL_Thread* thread);
+        public static partial CULong SDL_GetThreadID(SDL_Thread thread);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
@@ -38,11 +35,11 @@ namespace SDL2
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_WaitThread(SDL_Thread* thread, int* status);
+        public static partial void SDL_WaitThread(SDL_Thread thread, int* status);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_DetachThread(SDL_Thread* thread);
+        public static partial void SDL_DetachThread(SDL_Thread thread);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]

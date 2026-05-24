@@ -504,25 +504,6 @@ namespace SDL2
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         public static partial float SDL_tanf(float x);
 
-        [LibraryImport("SDL2")]
-        [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        [return: NativeTypeName("SDL_iconv_t")]
-        public static partial SDL_iconv_t* SDL_iconv_open([NativeTypeName("const char *")] byte* tocode, [NativeTypeName("const char *")] byte* fromcode);
-
-        [LibraryImport("SDL2")]
-        [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_iconv_close([NativeTypeName("SDL_iconv_t")] SDL_iconv_t* cd);
-
-        [LibraryImport("SDL2")]
-        [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        [return: NativeTypeName("size_t")]
-        public static partial nuint SDL_iconv([NativeTypeName("SDL_iconv_t")] SDL_iconv_t* cd, [NativeTypeName("const char **")] byte** inbuf, [NativeTypeName("size_t *")] nuint* inbytesleft, [NativeTypeName("char **")] byte** outbuf, [NativeTypeName("size_t *")] nuint* outbytesleft);
-
-        [LibraryImport("SDL2")]
-        [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        [return: NativeTypeName("char *")]
-        public static partial byte* SDL_iconv_string([NativeTypeName("const char *")] byte* tocode, [NativeTypeName("const char *")] byte* fromcode, [NativeTypeName("const char *")] byte* inbuf, [NativeTypeName("size_t")] nuint inbytesleft);
-
         [NativeTypeName("#define SDL_MAX_SINT8 ((Sint8)0x7F)")]
         public const sbyte SDL_MAX_SINT8 = ((sbyte)(0x7F));
 

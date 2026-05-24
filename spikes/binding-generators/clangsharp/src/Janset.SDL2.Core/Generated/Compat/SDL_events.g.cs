@@ -724,10 +724,6 @@ namespace SDL2
         public nint data2;
     }
 
-    public partial struct SDL_SysWMmsg
-    {
-    }
-
     public unsafe partial struct SDL_SysWMEvent
     {
         [NativeTypeName("Uint32")]

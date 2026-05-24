@@ -8,7 +8,15 @@
 # (field-scope-only opaques drop to nint via --remap; Pattern B reserved
 # for handle types reachable via public API param/return positions):
 #   --exclude SDL_BlitMap : drop the empty struct emit entirely
-#   --remap SDL_BlitMap *=nint : SDL_Surface.map field type becomes nint
+#   --remap SDL_BlitMap*=nint : SDL_Surface.map field type becomes nint
+#
+# Remap-key spelling note: libclang renders pointer-to-tag types without a
+# space (canonical form `SDL_BlitMap*`), whereas pointer-to-builtin types
+# render with a space (`wchar_t *`). Verified by regen against ClangSharp
+# 17.0.1 / libclang 17.0.4 — output carries the field as
+# `[NativeTypeName("SDL_BlitMap*")] public nint map;`. The `void*=nint`
+# and `_iobuf*=nint` entries in base.rsp / sdl2-core.rsp follow the same
+# no-space tag/intrinsic-pointer convention.
 #
 # Peer evidence: SDL2-CS, Chroma-2D, flibit-SDL3 all use `IntPtr map`.
 
@@ -16,4 +24,4 @@
 SDL_BlitMap
 
 --remap
-SDL_BlitMap *=nint
+SDL_BlitMap*=nint
