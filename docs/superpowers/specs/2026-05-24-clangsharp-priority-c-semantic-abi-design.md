@@ -137,31 +137,36 @@ SDL_strtol
 SDL_strtoul
 ```
 
-For the structural symbols — postprocess rewriter `ThreadIdDualDispatchRewriter` walks `[NativeTypeName("SDL_threadID")]` / `[NativeTypeName("unsigned long")]` annotations on SDL thread-API return positions and emits both TFM branches:
+For the structural symbols — postprocess rewriter `ThreadIdDualDispatchRewriter` walks `[NativeTypeName("SDL_threadID")]` / `[NativeTypeName("unsigned long")]` annotations on SDL thread-API return positions and emits mode-aware output. TFM gating happens via the project's csproj `<Compile Include>` conditional (`Generated/Compat/**/*.cs` → `netstandard2.0` + `net462`; `Generated/Modern/**/*.cs` → `net6+`); the rewriter emits a single branch per output, so no `#if NET6_0_OR_GREATER` directives are needed. The mode is detected from the input directory's `Compat` / `Modern` path segment, mirroring `PlatformDeltaPostProcessor`. This is the same Compat-vs-Modern split the existing `libraryimport` postprocess uses (Compat keeps `[DllImport]`; Modern is rewritten to `[LibraryImport]`).
+
+Modern emit (single form, requires net6+):
 
 ```csharp
-#if NET6_0_OR_GREATER
 [LibraryImport("SDL2", EntryPoint = "SDL_ThreadID")]
-internal static partial CULong SDL_ThreadID();
-#endif
+[UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+[return: NativeTypeName("SDL_threadID")]
+public static partial CULong SDL_ThreadID();
+```
 
-#if !NET6_0_OR_GREATER
-internal static ulong SDL_ThreadID()
+Compat emit (single form, `netstandard2.0` / `net462`): managed wrapper + `RuntimeInformation.IsOSPlatform` dispatching between two private DllImports — `uint` return on Windows LLP64 (C `unsigned long` = 32-bit) and `nint` return on Unix LP64 (C `unsigned long` = 64-bit):
+
+```csharp
+[return: NativeTypeName("SDL_threadID")]
+public static ulong SDL_ThreadID()
 {
     if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         return SDL_ThreadID_Win32();
     return (ulong)SDL_ThreadID_Unix64();
 }
 
-[DllImport("SDL2", EntryPoint = "SDL_ThreadID")]
-private static extern uint SDL_ThreadID_Win32();   // C unsigned long = 32-bit on Windows
+[DllImport("SDL2", EntryPoint = "SDL_ThreadID", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+private static extern uint SDL_ThreadID_Win32();
 
-[DllImport("SDL2", EntryPoint = "SDL_ThreadID")]
-private static extern nint SDL_ThreadID_Unix64();  // C unsigned long = 64-bit on Unix LP64
-#endif
+[DllImport("SDL2", EntryPoint = "SDL_ThreadID", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+private static extern nint SDL_ThreadID_Unix64();
 ```
 
-Caller-side surface is uniform `ulong` (on modern: `(ulong)((CULong)native()).Value`; on legacy: directly via the wrapper). Constitution L220 evidence requirement ("any downlevel strategy must prove exact per-platform ABI shape") is satisfied by a per-RID runtime ABI smoke test (Slice C-A exit gate).
+Caller-side surface diverges by TFM at the Layer 1 raw ABI by design — Modern callers see `CULong` directly (Layer 2 typed wrappers normalize to `ulong`); legacy callers see `ulong` from the managed wrapper. Constitution L220 evidence requirement ("any downlevel strategy must prove exact per-platform ABI shape") is satisfied by a per-RID runtime ABI smoke test (Slice C-A exit gate).
 
 **WHAT.** SDL_stdinc helpers gone from every TFM. Thread-API symbols available on every TFM via TFM-conditional emit. Constitution L223-228's "high-risk SDL2.Core symbols" list updates to reflect the drop (`SDL_lround`/`SDL_lroundf`/`SDL_ltoa`/`SDL_ultoa`/`SDL_strtol`/`SDL_strtoul` → "deferred — BCL equivalent; use `Math.Round`/`long.Parse`/`ToString()`"; `SDL_threadID`/`SDL_ThreadID`/`SDL_GetThreadID` → "kept on all TFMs via hybrid CLong + dual-dispatch").
 
@@ -338,7 +343,7 @@ Each slice is independently testable but the three are sequenced by dependency. 
 - `oracle.cs` `platform-sensitive-wchar` finding count: 0.
 - `oracle.cs` `platform-sensitive-long` finding count: 0.
 - Generated output grep for `SDL_lround`/`SDL_lroundf`/`SDL_ltoa`/`SDL_ultoa`/`SDL_strtol`/`SDL_strtoul`: 0 matches.
-- Generated output for `SDL_ThreadID`/`SDL_GetThreadID` shows both `#if NET6_0_OR_GREATER` (with `CULong`) and `#if !NET6_0_OR_GREATER` (with `RuntimeInformation.IsOSPlatform` dispatch) branches.
+- Generated `Generated/Modern/SDL_thread.g.cs` contains the single `[LibraryImport]` + `CULong SDL_ThreadID()` / `SDL_GetThreadID()` form; `Generated/Compat/SDL_thread.g.cs` contains the single `RuntimeInformation.IsOSPlatform` dispatch wrapper + private Win32 / Unix64 DllImports form. No `#if NET6_0_OR_GREATER` directives in either output (csproj `<Compile Include>` already gates the trees to the right TFM range).
 - **Per-RID runtime ABI smoke test** — new `tests/smoke-tests/abi-tests/ThreadIdAbiTests.cs` (or extend existing `PackageConsumer.Smoke`) that calls `SDL_GetThreadID()` and asserts a non-zero result on each of the 7 RIDs. Constitution L220 evidence.
 - `dotnet build` clean across 5 TFMs.
 

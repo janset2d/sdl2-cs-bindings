@@ -23,11 +23,15 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 //                     bit-identical (both 16 bytes); see GuidSubstitutionRewriter
 //                     for the ABI trade-off rationale.
 // threadid-dispatch : Slice C-A R2 structural — replaces the SDL_ThreadID /
-//                     SDL_GetThreadID single P/Invoke with a TFM-conditional
-//                     pair: CLong/CULong on net6+, Microsoft's documented dual
-//                     DllImport + RuntimeInformation dispatch on legacy TFMs.
-//                     Applied to both Compat and Modern after the LibraryImport
-//                     pass so the emitted block can carry both shapes.
+//                     SDL_GetThreadID single P/Invoke with a mode-aware emit:
+//                     Modern (net6+) gets [LibraryImport] + CULong; Compat
+//                     (netstandard2.0/net462) gets Microsoft's documented dual
+//                     DllImport + RuntimeInformation dispatch. Mode is detected
+//                     from the input directory path segment (Compat vs Modern),
+//                     mirroring PlatformDeltaPostProcessor; no #if directives
+//                     are emitted because the csproj already routes
+//                     Generated/Compat to legacy TFMs and Generated/Modern to
+//                     net6+ via conditional <Compile Include>.
 //
 // Default behavior is in-place edit; pass an explicit output directory to
 // write to a different location.
@@ -86,7 +90,9 @@ switch (mode)
     }
     case "threadid-dispatch":
     {
-        var r = new ThreadIdDualDispatchRewriter();
+        var threadIdMode = ThreadIdDualDispatchRewriter.DetectMode(inputDir);
+        Console.WriteLine($"threadid-dispatch: mode={threadIdMode}");
+        var r = new ThreadIdDualDispatchRewriter(threadIdMode);
         rewriter = r;
         hasChanges = () => r.AnyChanges;
         resetRewriter = r.Reset;

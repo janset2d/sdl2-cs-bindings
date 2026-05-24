@@ -34,49 +34,33 @@ namespace SDL2
         [return: NativeTypeName("const char *")]
         public static extern byte* SDL_GetThreadName(SDL_Thread* thread);
 
-#if NET6_0_OR_GREATER
-        [global::System.Runtime.InteropServices.LibraryImport("SDL2", EntryPoint = "SDL_ThreadID")]
-        [global::System.Runtime.InteropServices.UnmanagedCallConv(CallConvs = new[] { typeof(global::System.Runtime.CompilerServices.CallConvCdecl) })]
-        [return: NativeTypeName("SDL_threadID")]
-        public static partial global::System.Runtime.InteropServices.CULong SDL_ThreadID();
-#endif
-#if !NET6_0_OR_GREATER
         [return: NativeTypeName("SDL_threadID")]
         public static ulong SDL_ThreadID()
         {
-            if (global::System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(global::System.Runtime.InteropServices.OSPlatform.Windows))
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 return SDL_ThreadID_Win32();
             return (ulong)SDL_ThreadID_Unix64();
         }
 
-        [global::System.Runtime.InteropServices.DllImport("SDL2", EntryPoint = "SDL_ThreadID", CallingConvention = global::System.Runtime.InteropServices.CallingConvention.Cdecl, ExactSpelling = true)]
+        [DllImport("SDL2", EntryPoint = "SDL_ThreadID", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern uint SDL_ThreadID_Win32();
 
-        [global::System.Runtime.InteropServices.DllImport("SDL2", EntryPoint = "SDL_ThreadID", CallingConvention = global::System.Runtime.InteropServices.CallingConvention.Cdecl, ExactSpelling = true)]
+        [DllImport("SDL2", EntryPoint = "SDL_ThreadID", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern nint SDL_ThreadID_Unix64();
-#endif
 
-#if NET6_0_OR_GREATER
-        [global::System.Runtime.InteropServices.LibraryImport("SDL2", EntryPoint = "SDL_GetThreadID")]
-        [global::System.Runtime.InteropServices.UnmanagedCallConv(CallConvs = new[] { typeof(global::System.Runtime.CompilerServices.CallConvCdecl) })]
-        [return: NativeTypeName("SDL_threadID")]
-        public static partial global::System.Runtime.InteropServices.CULong SDL_GetThreadID(SDL_Thread* thread);
-#endif
-#if !NET6_0_OR_GREATER
         [return: NativeTypeName("SDL_threadID")]
         public static ulong SDL_GetThreadID(SDL_Thread* thread)
         {
-            if (global::System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(global::System.Runtime.InteropServices.OSPlatform.Windows))
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 return SDL_GetThreadID_Win32(thread);
             return (ulong)SDL_GetThreadID_Unix64(thread);
         }
 
-        [global::System.Runtime.InteropServices.DllImport("SDL2", EntryPoint = "SDL_GetThreadID", CallingConvention = global::System.Runtime.InteropServices.CallingConvention.Cdecl, ExactSpelling = true)]
+        [DllImport("SDL2", EntryPoint = "SDL_GetThreadID", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern uint SDL_GetThreadID_Win32(SDL_Thread* thread);
 
-        [global::System.Runtime.InteropServices.DllImport("SDL2", EntryPoint = "SDL_GetThreadID", CallingConvention = global::System.Runtime.InteropServices.CallingConvention.Cdecl, ExactSpelling = true)]
+        [DllImport("SDL2", EntryPoint = "SDL_GetThreadID", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern nint SDL_GetThreadID_Unix64(SDL_Thread* thread);
-#endif
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern int SDL_SetThreadPriority(SDL_ThreadPriority priority);

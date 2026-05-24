@@ -1149,7 +1149,9 @@ Run: `grep -n "SDL_ThreadID\|SDL_GetThreadID\|SDL_threadID" spikes/binding-gener
 
 Expected: matches showing methods with `[return: NativeTypeName("SDL_threadID")]` and managed return type `uint` (wrong on Unix LP64).
 
-- [ ] **Step 10.2: Create the rewriter**
+- [ ] **Step 10.2: Create the rewriter (mode-aware Compat/Modern emit)**
+
+The rewriter is mode-aware: it inspects the input directory's path segment (`Compat` or `Modern`) and emits the single TFM-appropriate form per output. The csproj's conditional `<Compile Include>` items route `Generated/Compat/**/*.cs` to `netstandard2.0` + `net462` only and `Generated/Modern/**/*.cs` to `net6+` only, so no `#if NET6_0_OR_GREATER` directives are needed in the emitted code (each file already compiles under exactly one TFM range). This mirrors the existing `libraryimport` postprocess pattern (Compat keeps `[DllImport]`; Modern is rewritten to `[LibraryImport]`) and `PlatformDeltaPostProcessor`'s path-based mode detection.
 
 ```csharp
 // spikes/binding-generators/clangsharp/postprocess/ThreadIdDualDispatchRewriter.cs
@@ -1158,245 +1160,85 @@ using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Text;
 
 namespace Janset.SDL2.PostProcess;
 
 /// <summary>
-/// R2 structural-symbol hybrid emit for SDL_threadID family.
+/// R2 structural-symbol hybrid emit for SDL_threadID family, mode-aware.
 ///
 /// Sensor: methods whose return is marked [return: NativeTypeName("SDL_threadID")]
 /// or [return: NativeTypeName("unsigned long")] AND the method name matches
 /// SDL_(ThreadID|GetThreadID).
 ///
-/// Emit pattern (replaces the single method declaration with a TFM-conditional
-/// block containing modern + legacy emits):
-///   #if NET6_0_OR_GREATER
+/// Modern emit (single form, requires net6+):
 ///   [LibraryImport(LibName, EntryPoint = "SDL_ThreadID")]
-///   internal static partial CULong SDL_ThreadID();
-///   #endif
+///   [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+///   [return: NativeTypeName("SDL_threadID")]
+///   public static partial CULong SDL_ThreadID();
 ///
-///   #if !NET6_0_OR_GREATER
-///   internal static ulong SDL_ThreadID()
+/// Compat emit (single form, netstandard2.0/net462 only):
+///   [return: NativeTypeName("SDL_threadID")]
+///   public static ulong SDL_ThreadID()
 ///   {
 ///       if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 ///           return SDL_ThreadID_Win32();
 ///       return (ulong)SDL_ThreadID_Unix64();
 ///   }
-///   [DllImport(LibName, EntryPoint = "SDL_ThreadID")]
+///   [DllImport(LibName, EntryPoint = "SDL_ThreadID", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
 ///   private static extern uint SDL_ThreadID_Win32();
-///   [DllImport(LibName, EntryPoint = "SDL_ThreadID")]
+///   [DllImport(LibName, EntryPoint = "SDL_ThreadID", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
 ///   private static extern nint SDL_ThreadID_Unix64();
-///   #endif
 ///
-/// Microsoft documented dual-DllImport pattern for cross-platform C long
-/// on legacy TFMs that lack CLong/CULong.
+/// Microsoft's documented dual-DllImport pattern for cross-platform C long
+/// on legacy TFMs that lack CLong/CULong. Mode is detected from the input
+/// directory's `Compat` / `Modern` path segment (mirrors PlatformDeltaPostProcessor);
+/// missing both throws so a mis-pointed CLI fails loudly.
 /// </summary>
 internal sealed class ThreadIdDualDispatchRewriter : CSharpSyntaxRewriter
 {
-    private static readonly HashSet<string> AffectedMethodNames = new(StringComparer.Ordinal)
+    internal enum Mode { Compat, Modern }
+
+    public static Mode DetectMode(string inputDir)
     {
-        "SDL_ThreadID",
-        "SDL_GetThreadID",
-    };
+        // Walk path segments right-to-left; return Compat or Modern when
+        // matched. Throw if neither is present so a mis-pointed CLI fails
+        // loudly rather than silently emitting the wrong shape.
+    }
+
+    public ThreadIdDualDispatchRewriter(Mode mode) { _mode = mode; }
 
     public bool AnyChanges { get; private set; }
+    public void Reset() { /* clear AnyChanges + pending substitutions */ }
 
-    public void Reset() => AnyChanges = false;
+    // Detect SDL_(ThreadID|GetThreadID) methods with
+    // [return: NativeTypeName("SDL_threadID")] or ("unsigned long"). For each
+    // hit, stage a text-level substitution targeting node.FullSpan with a
+    // pre-rendered replacement block.
+    public override SyntaxNode? VisitMethodDeclaration(MethodDeclarationSyntax node) { /* ... */ }
 
-    public override SyntaxNode? VisitMethodDeclaration(MethodDeclarationSyntax node)
-    {
-        var name = node.Identifier.ValueText;
-        if (!AffectedMethodNames.Contains(name))
-        {
-            return base.VisitMethodDeclaration(node);
-        }
+    // Apply staged substitutions in reverse order against the source text,
+    // then re-parse so ToFullString() emits the verbatim replacement.
+    // (Roslyn's tree mutation can't emit multiple sibling members cleanly in
+    // one pass; text-level substitution sidesteps that. The original
+    // implementation hit `#if` strip-on-parse issues — no longer relevant
+    // now that we emit a single branch, but the text approach is retained
+    // for cleanly inserting the Compat case's 3 members per source method.)
+    public override SyntaxNode? VisitCompilationUnit(CompilationUnitSyntax node) { /* ... */ }
 
-        // Verify the return type is annotated as SDL_threadID or unsigned long
-        var returnNativeType = ExtractReturnNativeTypeName(node);
-        if (returnNativeType is not ("SDL_threadID" or "unsigned long"))
-        {
-            return base.VisitMethodDeclaration(node);
-        }
+    // Modern: single [LibraryImport] + CULong form (no #if).
+    private static string BuildModernReplacement(...) { /* ... */ }
 
-        AnyChanges = true;
-
-        // Find the library path from the existing [DllImport]/[LibraryImport]
-        var libPath = ExtractLibraryPath(node) ?? "SDL2";
-
-        // Build the parameter list as a string (for embedding in raw text)
-        var paramList = node.ParameterList.ToString();
-
-        // Generate the replacement IL-level text
-        var replacement = $@"#if NET6_0_OR_GREATER
-        [global::System.Runtime.InteropServices.LibraryImport(""{libPath}"", EntryPoint = ""{name}"")]
-        [return: NativeTypeName(""{returnNativeType}"")]
-        internal static partial global::System.Runtime.InteropServices.CULong {name}{paramList};
-#endif
-
-#if !NET6_0_OR_GREATER
-        [return: NativeTypeName(""{returnNativeType}"")]
-        internal static ulong {name}{paramList}
-        {{
-            if (global::System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(global::System.Runtime.InteropServices.OSPlatform.Windows))
-                return {name}_Win32{paramList};
-            return (ulong){name}_Unix64{paramList};
-        }}
-
-        [global::System.Runtime.InteropServices.DllImport(""{libPath}"", EntryPoint = ""{name}"")]
-        private static extern uint {name}_Win32{paramList};
-
-        [global::System.Runtime.InteropServices.DllImport(""{libPath}"", EntryPoint = ""{name}"")]
-        private static extern nint {name}_Unix64{paramList};
-#endif
-";
-
-        // Parse the replacement text as syntax and return as a member list
-        var parsedMembers = SyntaxFactory.ParseSyntaxTree(
-            $@"class __Wrapper {{ {replacement} }}").GetRoot()
-            .DescendantNodes()
-            .OfType<MemberDeclarationSyntax>()
-            .Where(m => m is MethodDeclarationSyntax or IfDirectiveTriviaSyntax)
-            .ToList();
-
-        // For simplicity, replace the original method declaration trivia-wise
-        // by attaching the rendered replacement as a leading trivia replacement.
-        // (Roslyn doesn't easily handle inserting multiple top-level members from
-        // a single VisitMethodDeclaration return; alternative: visit the parent
-        // class declaration and rewrite the members list there. See Step 10.3.)
-        // For now, mark as changed and let the parent-visit handle list rewrite.
-
-        return node;  // No-op; actual rewrite happens in parent visit below.
-    }
-
-    public override SyntaxNode? VisitClassDeclaration(ClassDeclarationSyntax node)
-    {
-        var rewriter = this;
-        var newMembers = new List<MemberDeclarationSyntax>();
-        var anyAffected = false;
-
-        foreach (var member in node.Members)
-        {
-            if (member is MethodDeclarationSyntax method &&
-                AffectedMethodNames.Contains(method.Identifier.ValueText))
-            {
-                var returnNativeType = ExtractReturnNativeTypeName(method);
-                if (returnNativeType is "SDL_threadID" or "unsigned long")
-                {
-                    var libPath = ExtractLibraryPath(method) ?? "SDL2";
-                    var name = method.Identifier.ValueText;
-                    var paramList = method.ParameterList.ToString();
-
-                    // Build the replacement members block as parsed syntax
-                    var replacementText = BuildReplacementMembersBlock(name, libPath, returnNativeType, paramList);
-                    var parsedClass = SyntaxFactory.ParseCompilationUnit(
-                        $"class __W {{ {replacementText} }}");
-                    var replacementMembers = ((ClassDeclarationSyntax)parsedClass.Members[0]).Members;
-
-                    newMembers.AddRange(replacementMembers);
-                    anyAffected = true;
-                    rewriter.AnyChanges = true;
-                    continue;
-                }
-            }
-            newMembers.Add(member);
-        }
-
-        if (!anyAffected)
-        {
-            return base.VisitClassDeclaration(node);
-        }
-
-        return node.WithMembers(SyntaxFactory.List(newMembers));
-    }
-
-    private static string BuildReplacementMembersBlock(
-        string name, string libPath, string returnNativeType, string paramList)
-    {
-        var sb = new StringBuilder();
-        sb.AppendLine();
-        sb.AppendLine("#if NET6_0_OR_GREATER");
-        sb.AppendLine($"        [global::System.Runtime.InteropServices.LibraryImport(\"{libPath}\", EntryPoint = \"{name}\")]");
-        sb.AppendLine($"        [return: NativeTypeName(\"{returnNativeType}\")]");
-        sb.AppendLine($"        internal static partial global::System.Runtime.InteropServices.CULong {name}{paramList};");
-        sb.AppendLine("#endif");
-        sb.AppendLine();
-        sb.AppendLine("#if !NET6_0_OR_GREATER");
-        sb.AppendLine($"        [return: NativeTypeName(\"{returnNativeType}\")]");
-        sb.AppendLine($"        internal static ulong {name}{paramList}");
-        sb.AppendLine("        {");
-        sb.AppendLine("            if (global::System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(global::System.Runtime.InteropServices.OSPlatform.Windows))");
-        sb.AppendLine($"                return {name}_Win32{StripParamTypes(paramList)};");
-        sb.AppendLine($"            return (ulong){name}_Unix64{StripParamTypes(paramList)};");
-        sb.AppendLine("        }");
-        sb.AppendLine();
-        sb.AppendLine($"        [global::System.Runtime.InteropServices.DllImport(\"{libPath}\", EntryPoint = \"{name}\")]");
-        sb.AppendLine($"        private static extern uint {name}_Win32{paramList};");
-        sb.AppendLine();
-        sb.AppendLine($"        [global::System.Runtime.InteropServices.DllImport(\"{libPath}\", EntryPoint = \"{name}\")]");
-        sb.AppendLine($"        private static extern nint {name}_Unix64{paramList};");
-        sb.AppendLine("#endif");
-        return sb.ToString();
-    }
-
-    /// <summary>
-    /// Strip type names from a parameter list so it can be reused as an argument list.
-    /// e.g., "(SDL_Thread* thread)" -> "(thread)"
-    /// </summary>
-    private static string StripParamTypes(string paramList)
-    {
-        // Trim outer parens
-        var inner = paramList.Trim('(', ')').Trim();
-        if (string.IsNullOrEmpty(inner)) return "()";
-
-        var args = inner.Split(',')
-            .Select(p => p.Trim().Split(' ', '*').Last().TrimStart('@'))
-            .Where(s => !string.IsNullOrWhiteSpace(s));
-        return $"({string.Join(", ", args)})";
-    }
-
-    private static string? ExtractReturnNativeTypeName(MethodDeclarationSyntax method)
-    {
-        foreach (var al in method.AttributeLists)
-        {
-            if (al.Target?.Identifier.ValueText != "return") continue;
-            foreach (var attr in al.Attributes)
-            {
-                if (attr.Name.ToString() != "NativeTypeName") continue;
-                var arg = attr.ArgumentList?.Arguments.FirstOrDefault();
-                if (arg?.Expression is LiteralExpressionSyntax lit)
-                {
-                    return lit.Token.ValueText;
-                }
-            }
-        }
-        return null;
-    }
-
-    private static string? ExtractLibraryPath(MethodDeclarationSyntax method)
-    {
-        foreach (var al in method.AttributeLists)
-        {
-            foreach (var attr in al.Attributes)
-            {
-                var name = attr.Name.ToString();
-                if (name is "DllImport" or "LibraryImport")
-                {
-                    var firstArg = attr.ArgumentList?.Arguments.FirstOrDefault();
-                    if (firstArg?.Expression is LiteralExpressionSyntax lit)
-                    {
-                        return lit.Token.ValueText;
-                    }
-                }
-            }
-        }
-        return null;
-    }
+    // Compat: single managed wrapper + 2 private [DllImport] form (no #if).
+    private static string BuildCompatReplacement(...) { /* ... */ }
 }
 ```
 
+Full implementation lives at `spikes/binding-generators/clangsharp/postprocess/ThreadIdDualDispatchRewriter.cs`.
+
 - [ ] **Step 10.3: Wire into Program.cs**
 
-Add `threadid-dispatch` to the mode list and switch in `Program.cs` (same pattern as Task 5 Step 5.3).
+Add `threadid-dispatch` to the mode list and switch in `Program.cs` (same pattern as Task 5 Step 5.3). The switch case calls `ThreadIdDualDispatchRewriter.DetectMode(inputDir)` to choose Compat vs Modern from the input directory's path segment, then passes the mode to the rewriter's constructor. Logs the selected mode for traceability (mirrors `PlatformDeltaPostProcessor`'s pattern). No new CLI flag.
 
 - [ ] **Step 10.4: Build the postprocess project**
 
@@ -1414,24 +1256,30 @@ dotnet run --project spikes/binding-generators/clangsharp/postprocess/Janset.SDL
 
 Expected: SDL_thread.g.cs in both directories transformed.
 
-- [ ] **Step 10.6: Verify both TFM branches present**
+- [ ] **Step 10.6: Verify each output has a single TFM-appropriate branch and no `#if` directives**
 
-Run: `grep -n "#if NET6_0_OR_GREATER\|#if !NET6_0_OR_GREATER\|SDL_ThreadID_Win32\|SDL_ThreadID_Unix64" spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern/SDL_thread.g.cs | head -20`
+Run:
+```bash
+grep -n "#if\|SDL_ThreadID_Win32\|SDL_ThreadID_Unix64\|CULong SDL_ThreadID" spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern/SDL_thread.g.cs
+grep -n "#if\|SDL_ThreadID_Win32\|SDL_ThreadID_Unix64\|CULong SDL_ThreadID" spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Compat/SDL_thread.g.cs
+```
 
 Expected:
-- `#if NET6_0_OR_GREATER` block with `CULong SDL_ThreadID()`.
-- `#if !NET6_0_OR_GREATER` block with managed wrapper + Win32/Unix64 DllImports.
-- Same for `SDL_GetThreadID`.
+- Modern: single `[LibraryImport]` + `public static partial CULong SDL_ThreadID()` (and the same for `SDL_GetThreadID`). Zero `#if` matches. Zero `_Win32` / `_Unix64` matches.
+- Compat: single `public static ulong SDL_ThreadID()` managed wrapper + private `_Win32` / `_Unix64` `[DllImport]` pair (and the same for `SDL_GetThreadID`). Zero `#if` matches. Zero `CULong` matches.
 
-- [ ] **Step 10.7: Verify multi-TFM compile (critical gate — both branches must compile)**
+TFM gating is handled by the csproj's conditional `<Compile Include>` (Compat tree → `netstandard2.0` + `net462`; Modern tree → `net6+`), so each file only compiles under one TFM range and `#if` directives would be dead code.
+
+- [ ] **Step 10.7: Verify multi-TFM compile (critical gate — each branch must compile under its targeted TFMs)**
 
 Run: `dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Janset.SDL2.Image.csproj -c Release`
 
-Expected: 0 errors. Both modern (net8/net9/net10) and legacy (netstandard2.0/net462) TFMs compile.
+Expected: 0 errors, 0 warnings. Modern (net8/net9/net10) and legacy (netstandard2.0/net462) TFMs both build.
 
 If errors:
-- Modern TFM error around `CULong`/`CULong`: ensure `using System.Runtime.InteropServices;` is in the file. Add it via the rewriter or as a post-step.
-- Legacy TFM error around `RuntimeInformation`: ensure `using System.Runtime.InteropServices;` is in the file.
+- Modern TFM error around `CULong`: ensure `using System.Runtime.InteropServices;` is in the file (the libraryimport postprocess already inserts it; the threadid-dispatch emit relies on that).
+- Legacy TFM error around `RuntimeInformation` / `OSPlatform`: ensure `using System.Runtime.InteropServices;` is in the Compat output (ClangSharp emits it for files that already contain DllImport, which SDL_thread.g.cs does).
+- Legacy TFM error around `RuntimeInformation` on net462 only: the `System.Runtime.InteropServices.RuntimeInformation` OOB package is gated in the Core csproj's `net462` `ItemGroup` — verify the conditional is intact.
 
 - [ ] **Step 10.8: Wire into the orchestrator pipeline**
 
@@ -1450,13 +1298,21 @@ git add spikes/binding-generators/clangsharp/postprocess/ spikes/binding-generat
 git commit -m "$(cat <<'EOF'
 feat(binding-spike): ThreadIdDualDispatchRewriter for SDL_ThreadID family
 
-R2 structural-symbol hybrid emit. SDL_ThreadID / SDL_GetThreadID are
-structural (different ID space from Thread.CurrentThread.ManagedThreadId)
-and cannot be dropped. Modern TFMs (net6+) use CLong/CULong with
-#if NET6_0_OR_GREATER guard; legacy TFMs use Microsoft's documented
-dual-DllImport pattern with RuntimeInformation.IsOSPlatform dispatch
-(uint return on Windows = 32-bit C unsigned long; nint return on Unix
-LP64 = 64-bit). Caller-side surface uniform ulong.
+R2 structural-symbol hybrid emit, mode-aware. SDL_ThreadID / SDL_GetThreadID
+are structural (different ID space from Thread.CurrentThread.ManagedThreadId)
+and cannot be dropped. The csproj routes Generated/Compat to
+netstandard2.0+net462 and Generated/Modern to net6+ via conditional
+<Compile Include>, so the rewriter emits a single branch per output (no
+#if directives, mirroring the libraryimport postprocess split):
+
+- Modern output (single branch): [LibraryImport] + CULong return.
+- Compat output (single branch): managed ulong wrapper +
+  RuntimeInformation.IsOSPlatform dispatch + 2 private [DllImport] with
+  uint (Windows LLP64) / nint (Unix LP64) returns — Microsoft's
+  documented cross-platform C-long pattern.
+
+Mode detected from the input directory's Compat/Modern path segment
+(mirrors PlatformDeltaPostProcessor); no Program.cs CLI flag change.
 
 Sensor: [return: NativeTypeName("SDL_threadID")] on SDL_(ThreadID|GetThreadID)
 method names. Wired into orchestrator postprocess pipeline.

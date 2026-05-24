@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace Janset.SDL2.PostProcess;
 
-// R2 structural-symbol hybrid emit for the SDL_threadID family.
+// R2 structural-symbol hybrid emit for the SDL_threadID family, mode-aware.
 //
 // SDL_ThreadID / SDL_GetThreadID return the OS-level thread identifier (C
 // `unsigned long`, typedef'd to SDL_threadID). It is structurally different
@@ -17,17 +17,27 @@ namespace Janset.SDL2.PostProcess;
 // [return: NativeTypeName("unsigned long")] whose identifier is on the allow
 // list (SDL_ThreadID / SDL_GetThreadID).
 //
-// Emit (replaces the single P/Invoke method with a TFM-conditional block of
-// members inside the same SDLNative partial class):
+// Mode-aware emit. The project's csproj routes Generated/Compat to
+// netstandard2.0 + net462 only, and Generated/Modern to net6+ only via
+// conditional <Compile Include>. Each output file therefore only ever
+// compiles under one TFM range. We emit a single branch matching the
+// destination — no `#if` directives are needed, mirroring the existing
+// `libraryimport` postprocess pattern (Compat keeps [DllImport]; Modern
+// gets [LibraryImport]).
 //
-//   #if NET6_0_OR_GREATER
+// Modern emit (single form, requires net6+):
+//
 //   [LibraryImport("SDL2", EntryPoint = "SDL_ThreadID")]
 //   [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
 //   [return: NativeTypeName("SDL_threadID")]
 //   public static partial CULong SDL_ThreadID();
-//   #endif
 //
-//   #if !NET6_0_OR_GREATER
+// Compat emit (single form, legacy TFMs only): managed wrapper +
+// RuntimeInformation.IsOSPlatform dispatch between two private DllImports
+// returning uint (Windows LLP64: C unsigned long = 32-bit) and nint
+// (Unix LP64: C unsigned long = 64-bit). Microsoft's documented
+// cross-platform C-long pattern.
+//
 //   [return: NativeTypeName("SDL_threadID")]
 //   public static ulong SDL_ThreadID()
 //   {
@@ -41,29 +51,42 @@ namespace Janset.SDL2.PostProcess;
 //
 //   [DllImport("SDL2", EntryPoint = "SDL_ThreadID", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
 //   private static extern nint SDL_ThreadID_Unix64();
-//   #endif
 //
-// Mechanism: the rewriter cannot use Roslyn's syntax-tree mutation to inject
-// the multi-branch block because the CSharp parser strips one of the #if
-// branches during parse — only the currently-active preprocessor branch
-// survives. Instead we collect detected methods during the syntax walk, then
-// rewrite at the source-text level in VisitCompilationUnit by computing each
-// method's text span and substituting the verbatim raw block. The compilation
-// unit returned is a re-parse of the substituted text, so ToFullString() emits
-// both branches as literal text.
+// Mode is auto-detected from the input directory path (mirrors
+// PlatformDeltaPostProcessor's pattern); a path segment of `Compat`
+// selects Compat, `Modern` selects Modern. Missing both throws.
+//
+// Mechanism: the rewriter cannot rely on Roslyn's syntax-tree mutation to
+// inject the replacement attribute lists + extra member declarations cleanly
+// in one pass (multiple members per source method), so we stay with the
+// source-text substitution approach — collect detected methods during the
+// syntax walk, then rewrite at the source-text level in VisitCompilationUnit
+// by computing each method's text span and substituting a verbatim raw block.
 //
 // Refs: docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md
 // Decision 2 — C `long` Hybrid Strategy; Constitution §"C `long` And `unsigned long`"
 // Priority C hybrid strategy.
 internal sealed class ThreadIdDualDispatchRewriter : CSharpSyntaxRewriter
 {
+    internal enum Mode
+    {
+        Compat,
+        Modern,
+    }
+
     private static readonly HashSet<string> AffectedMethodNames = new(StringComparer.Ordinal)
     {
         "SDL_ThreadID",
         "SDL_GetThreadID",
     };
 
+    private readonly Mode _mode;
     private readonly List<(TextSpan FullSpan, string Replacement)> _pending = new();
+
+    public ThreadIdDualDispatchRewriter(Mode mode)
+    {
+        _mode = mode;
+    }
 
     public bool AnyChanges { get; private set; }
 
@@ -71,6 +94,29 @@ internal sealed class ThreadIdDualDispatchRewriter : CSharpSyntaxRewriter
     {
         AnyChanges = false;
         _pending.Clear();
+    }
+
+    // Inspect the input directory's path segments and choose the emit mode.
+    // Mirrors PlatformDeltaPostProcessor.GetPlatformName — defensive throw if
+    // neither segment is present so a mis-pointed CLI fails loudly rather
+    // than silently producing the wrong shape.
+    public static Mode DetectMode(string inputDir)
+    {
+        var parts = inputDir.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        for (var i = parts.Length - 1; i >= 0; i--)
+        {
+            if (string.Equals(parts[i], "Compat", StringComparison.Ordinal))
+            {
+                return Mode.Compat;
+            }
+            if (string.Equals(parts[i], "Modern", StringComparison.Ordinal))
+            {
+                return Mode.Modern;
+            }
+        }
+
+        throw new InvalidOperationException(
+            $"threadid-dispatch: input directory must contain a 'Compat' or 'Modern' path segment to select emit mode: {inputDir}");
     }
 
     public override SyntaxNode? VisitMethodDeclaration(MethodDeclarationSyntax node)
@@ -91,13 +137,13 @@ internal sealed class ThreadIdDualDispatchRewriter : CSharpSyntaxRewriter
         var name = node.Identifier.ValueText;
         var paramList = node.ParameterList.ToString();
         var indent = ExtractLeadingIndentation(node);
-        var replacement = BuildReplacementMembersBlock(
-            name, libPath, accessModifier, returnNativeType, paramList, indent);
+        var replacement = _mode == Mode.Modern
+            ? BuildModernReplacement(name, libPath, accessModifier, returnNativeType, paramList, indent)
+            : BuildCompatReplacement(name, libPath, accessModifier, returnNativeType, paramList, indent);
 
         // Stage a text-level substitution. We use FullSpan (which includes
         // leading trivia: blank line + indentation) so the replacement controls
-        // its own preamble whitespace and the #if directive lines stay at
-        // column 0 instead of inheriting the original method's indentation.
+        // its own preamble whitespace.
         _pending.Add((node.FullSpan, replacement));
         AnyChanges = true;
         return node;
@@ -126,7 +172,7 @@ internal sealed class ThreadIdDualDispatchRewriter : CSharpSyntaxRewriter
         return rewrittenTree.GetCompilationUnitRoot();
     }
 
-    private static string BuildReplacementMembersBlock(
+    private static string BuildModernReplacement(
         string name,
         string libPath,
         string accessModifier,
@@ -134,32 +180,47 @@ internal sealed class ThreadIdDualDispatchRewriter : CSharpSyntaxRewriter
         string paramList,
         string indent)
     {
-        // Preamble: blank line + indent — matches the leading trivia the
-        // original method declaration would have had after the previous member,
-        // since we replace via FullSpan (which swallowed the original trivia).
+        // Single LibraryImport + CULong form. Mirrors the post-libraryimport
+        // output shape so the file remains visually consistent with the
+        // surrounding members. `using System.Runtime.InteropServices;` is
+        // already present in every Modern output (DllImportToLibraryImportRewriter
+        // ensures it), so unqualified names work without extra using insertion.
         var sb = new StringBuilder();
         sb.AppendLine();
-        sb.AppendLine("#if NET6_0_OR_GREATER");
-        sb.Append(indent).AppendLine($"[global::System.Runtime.InteropServices.LibraryImport(\"{libPath}\", EntryPoint = \"{name}\")]");
-        sb.Append(indent).AppendLine("[global::System.Runtime.InteropServices.UnmanagedCallConv(CallConvs = new[] { typeof(global::System.Runtime.CompilerServices.CallConvCdecl) })]");
+        sb.Append(indent).AppendLine($"[LibraryImport(\"{libPath}\", EntryPoint = \"{name}\")]");
+        sb.Append(indent).AppendLine("[UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]");
         sb.Append(indent).AppendLine($"[return: NativeTypeName(\"{returnNativeType}\")]");
-        sb.Append(indent).AppendLine($"{accessModifier} static partial global::System.Runtime.InteropServices.CULong {name}{paramList};");
-        sb.AppendLine("#endif");
-        sb.AppendLine("#if !NET6_0_OR_GREATER");
+        sb.Append(indent).Append($"{accessModifier} static partial CULong {name}{paramList};").AppendLine();
+        return sb.ToString();
+    }
+
+    private static string BuildCompatReplacement(
+        string name,
+        string libPath,
+        string accessModifier,
+        string returnNativeType,
+        string paramList,
+        string indent)
+    {
+        // Managed dispatch wrapper + 2 private DllImports. RuntimeInformation /
+        // OSPlatform / DllImport / CallingConvention all live under
+        // System.Runtime.InteropServices — the Compat outputs already `using`
+        // that namespace (ClangSharp emits it), so unqualified spellings work.
+        var sb = new StringBuilder();
+        sb.AppendLine();
         sb.Append(indent).AppendLine($"[return: NativeTypeName(\"{returnNativeType}\")]");
         sb.Append(indent).AppendLine($"{accessModifier} static ulong {name}{paramList}");
         sb.Append(indent).AppendLine("{");
-        sb.Append(indent).AppendLine("    if (global::System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(global::System.Runtime.InteropServices.OSPlatform.Windows))");
+        sb.Append(indent).AppendLine("    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))");
         sb.Append(indent).AppendLine($"        return {name}_Win32{StripParamTypes(paramList)};");
         sb.Append(indent).AppendLine($"    return (ulong){name}_Unix64{StripParamTypes(paramList)};");
         sb.Append(indent).AppendLine("}");
         sb.AppendLine();
-        sb.Append(indent).AppendLine($"[global::System.Runtime.InteropServices.DllImport(\"{libPath}\", EntryPoint = \"{name}\", CallingConvention = global::System.Runtime.InteropServices.CallingConvention.Cdecl, ExactSpelling = true)]");
+        sb.Append(indent).AppendLine($"[DllImport(\"{libPath}\", EntryPoint = \"{name}\", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]");
         sb.Append(indent).AppendLine($"private static extern uint {name}_Win32{paramList};");
         sb.AppendLine();
-        sb.Append(indent).AppendLine($"[global::System.Runtime.InteropServices.DllImport(\"{libPath}\", EntryPoint = \"{name}\", CallingConvention = global::System.Runtime.InteropServices.CallingConvention.Cdecl, ExactSpelling = true)]");
-        sb.Append(indent).AppendLine($"private static extern nint {name}_Unix64{paramList};");
-        sb.AppendLine("#endif");
+        sb.Append(indent).AppendLine($"[DllImport(\"{libPath}\", EntryPoint = \"{name}\", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]");
+        sb.Append(indent).Append($"private static extern nint {name}_Unix64{paramList};").AppendLine();
         return sb.ToString();
     }
 
