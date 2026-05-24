@@ -28,7 +28,7 @@
 
 ## Design Reference
 
-- Accepted design spec: `docs/superpowers/specs/2026-05-20-m3-binding-profile-boundary-design.md`
+- Accepted design: this parking-lot plan preserves the retired M3 profile-boundary design; the original `docs/superpowers` spec file no longer exists.
 - Canonical roadmap section: `docs/binding-autogen/binding-generator-roadmap.md` §Milestone 3
 - Binding-generator constitution: `docs/binding-autogen/binding-generator-constitution.md`
 - Maintenance playbook: `docs/playbook/binding-generator-maintenance.md`
@@ -109,7 +109,7 @@ Existing files expected to change:
 ## Task 1: Baseline Verification
 
 **Files:**
-- Read: `docs/superpowers/specs/2026-05-20-m3-binding-profile-boundary-design.md`
+- Read: this parking-lot plan's Design Reference and roadmap context above.
 - Read: `build/_build/Targets/GenerateBindings/**`
 - Read: `build/_build.Tests/Unit/Data/BindingGeneration/BindingGenerationConfigRepositoryTests.cs`
 
@@ -1564,7 +1564,6 @@ Expected: PASS. Opt-in Linux readiness tests remain skipped unless the environme
 - Modify: `docs/binding-autogen/binding-generator-roadmap.md`
 - Modify: `docs/binding-autogen/binding-generator-constitution.md`
 - Modify: `docs/playbook/binding-generator-maintenance.md`
-- Modify: `docs/superpowers/specs/2026-05-20-m3-binding-profile-boundary-design.md`
 
 - [ ] **Step 1: Update roadmap M3 section**
 

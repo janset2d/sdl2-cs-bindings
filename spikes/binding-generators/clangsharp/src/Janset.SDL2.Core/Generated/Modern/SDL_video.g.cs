@@ -482,7 +482,7 @@ namespace SDL2
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_SetWindowHitTest(SDL_Window window, [NativeTypeName("SDL_HitTest")] delegate* unmanaged[Cdecl]<SDL_Window*, SDL_Point*, nint, SDL_HitTestResult> callback, [NativeTypeName("void*")] nint callback_data);
+        public static partial int SDL_SetWindowHitTest(SDL_Window window, [NativeTypeName("SDL_HitTest")] delegate* unmanaged[Cdecl]<SDL_Window, SDL_Point*, nint, SDL_HitTestResult> callback, [NativeTypeName("void*")] nint callback_data);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]

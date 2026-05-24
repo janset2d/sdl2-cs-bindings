@@ -50,9 +50,60 @@ What this prototype does NOT do (out of spike scope; belongs in Roadmap M7+):
 - Build command: `dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Janset.SDL2.Image.csproj -c Release`.
 - Build result: Core + Image compile clean across `net462`, `netstandard2.0`, `net8.0`, `net9.0`, `net10.0` with 0 warnings / 0 errors. AbiTests harness builds clean across `net462`, `net8.0`, `net9.0`, `net10.0` (netstandard2.0 is library-only).
 - Oracle evidence: `dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --family sdl2-core --family sdl2-image --write-report` writes [`../output/reports/oracle-evidence-clangsharp.md`](../output/reports/oracle-evidence-clangsharp.md). **0 findings** across `platform-sensitive-wchar` / `platform-sensitive-long` / `deferred-layout-sdl-rwops` / `deferred-layout-sdl-syswminfo` / `deferred-layout-sdl-syswmmsg` / `duplicate-tag-typedef`. Hard Bug + Evidence Gaps sections absent for both families.
-- Runtime ABI smoke: AbiTests `SDL_ThreadID` returns non-zero OS thread identifier on Windows x64 (net10/9/8/462; 4/4) + Linux x64 (focal docker, net10).
+- Runtime ABI smoke: AbiTests cover `SDL_ThreadID` non-zero plus `SDL_GetThreadID(SDL_Thread.Null)` current-thread equivalence on local host paths. The original closure run covered Windows x64 (net10/9/8/462; 4/4) + Linux x64 (focal docker, net10); full 7-RID proof remains a production CI gate.
 - Slopwatch: `slopwatch analyze --fail-on warning --exclude "artifacts/**,external/**,vcpkg_installed/**,spikes/binding-generators/references/**,**/bin/**,**/obj/**"` reports 0 issues.
 - Known platform caveat: `--use-platform-header-shims` supplies minimal `endian.h`, `AvailabilityMacros.h`, and `TargetConditionals.h` from `clangsharp/shims/platform-headers/`. Use for Windows-local spike iteration; production Linux evidence comes from the binding-generator docker container (`docker/binding-generator.Dockerfile`).
+
+## Review Follow-up Backlog — 2026-05-25
+
+Eight read-only reviewer reports were triaged after the Priority C closure record. Those reports are useful raw evidence, but this section is the durable backlog sink so follow-ups do not disappear into temporary review files. Items below do not reopen the settled Layer 1 design direction unless explicitly marked as a handoff blocker.
+
+### Handoff Blockers
+
+Fix before treating the outgoing Spike C branch as clean handoff material.
+
+| Item | Why it matters | Status |
+| --- | --- | --- |
+| Fail ClangSharp generation when any invocation fails | `generate_bindings.py` records ClangSharp failures but can still return success, so stale generated files can masquerade as a good run. | Fixed 2026-05-25: generation exit-code policy now returns 2 when any ClangSharp invocation fails; self-test covers the policy. The committed `clangsharp-full.md` still records the prior failed run until the next clean regeneration. |
+| Rewrite Pattern B handles inside callback function-pointer signatures, or lower raw callback slots to `nint` deliberately | Modern `SDL_SetWindowHitTest` exposed `delegate* unmanaged[Cdecl]<SDL_Window*, ...>` after `SDL_Window*` method parameters were rewritten to by-value Pattern B handles. That is pointer-sized at the wire level but semantically invites pointer-to-wrapper confusion. | Fixed 2026-05-25: `OpaqueHandleEmitRewriter` now rewrites function-pointer parameter/return slots; Modern `SDL_SetWindowHitTest` emits `delegate* unmanaged[Cdecl]<SDL_Window, ...>`. |
+| Remove broken `docs/superpowers/...` references from durable docs and code comments | The Priority C design content now lives inline in the Constitution and closure docs; links to deleted/absent `docs/superpowers` files make future agents chase phantom authority. | Fixed 2026-05-25 for durable docs and code comments. Temporary review reports under `docs/temp/` intentionally keep their original reviewer text. |
+| Correct evidence wording around runtime ABI coverage | The closure evidence covers ABI-family smoke, not full 7-RID proof. | Fixed 2026-05-25: AbiTests now include `SDL_GetThreadID(SDL_Thread.Null)` host coverage; docs say "ABI-family smoke now; 7-RID proof before production flip". |
+
+### Production Flip Gates
+
+These are not required to keep iterating on Layer 2, but they must be closed or consciously deferred before the generator becomes production source.
+
+| Item | Why it matters | Target / evidence |
+| --- | --- | --- |
+| 7-RID runtime ABI matrix for retained C `long` symbols | The product contract is all supported RIDs, not only local Windows/Linux x64. Include `SDL_ThreadID` and `SDL_GetThreadID`; prefer a width/sign-sensitive assertion or native sentinel where practical. | `clangsharp/tests/abi-tests`; per-RID CI integration. |
+| `SDL_GUID` ABI/value roundtrip smoke | `System.Guid` is sequential and 16 bytes on current .NET, but SDL GUID byte ordering and string semantics are user-visible. | Add `SDL_GUIDToString` / `SDL_GUIDFromString` roundtrip test and keep the Constitution note clear that `Guid.ToString()` is not SDL raw hex rendering. |
+| Cross-assembly Pattern B runtime smoke through SDL_image | Compile proves `[DisableRuntimeMarshalling]` accepts Core-owned Pattern B handles in Image signatures, but one runtime satellite call would strengthen evidence. | `IMG_Init` / a low-risk Image function under AbiTests or a future package smoke. |
+| Postprocess standalone/idempotency hardening | Several rewriters are correct for the current full pipeline but depend on ordering or source-text details. | Make `ThreadIdDualDispatchRewriter` self-contained for usings, replace `PlatformDeltaPostProcessor` source-text using insertion, and add a run-twice idempotency harness. |
+| Validate `opaque-handle-roster.json` SDL2 version against the active manifest | The roster is version-keyed by policy, but the postprocess does not enforce that the active SDL2 version matches. | Compare roster `sdl2_version` to `build/manifest.json` before owner-mode `uniform-opaque`; allow an explicit spike-only mismatch override if needed. |
+| Correct RSP precedence docs and probe duplicate-key behavior | Current comments imply keyed `--remap` / `--with-type` entries can be overridden by later RSP tiers, but ClangSharp rejects duplicate keys. | `generate_bindings.py` comments/self-test and `rsp/per-header/README.md`; describe keyed entries as additive-only unless proven otherwise. |
+| Improve evidence report UX | Oracle and generation reports should show failure/check counts directly instead of requiring inference from prose. | Render watched raw ABI checks as explicit `0 finding(s)` rows; derive generated-file counts from actual output; include failure count as a top-level field. |
+| Audit Windows pointer-sized callback typedefs | `SDL_SetWindowsMessageHook` currently emits `uint, ulong, long` callback parameters; `WPARAM` / `LPARAM` are pointer-sized and win-x86 is in scope. | Add a platform-width sensor/follow-up before production flip. |
+| Emit explicit enum backing for ABI-sensitive enums | `SDL_bool` is currently ABI-correct because C# enum default backing is `int`, but the Constitution says it must be int-backed. | Emit `public enum SDL_bool : int`; consider a general explicit-backing policy for generated enums where native backing is known. |
+
+### Layer 2 / Layer 3 Follow-ups
+
+These belong after the Layer 1 raw ABI fix queue, mostly in public typed API or friendly-overload work.
+
+| Item | Why it matters | Target / evidence |
+| --- | --- | --- |
+| Document Stage 1 `SDL_RWops` and `SDL_SysWM*` limitations in consumer-facing docs | Pattern B quarantine is the safe Stage 1 choice, but users need to know custom RWops and native window-manager info are deferred. | Preview docs / release notes / Layer 2 API docs. |
+| Add HIDAPI wide-string decoders | Raw `wchar_t* -> nint` is ABI-honest, but consumers need platform-aware decoding helpers to read HID strings safely. | Layer 3 helper: Windows UTF-16, POSIX UTF-32 transcode. |
+| Plan Stage 2 typed layout or helper strategy for `SDL_RWops` | Opaque Stage 1 blocks custom managed-backed RWops setup. | Either verified per-platform layout or a managed/native helper such as an `RWops` builder. |
+| Guard future `SDL_GetWindowWMInfo` activation | `SDL_SysWMinfo` is not a pointer-like opaque object for that API; it requires caller-allocated concrete layout. | No `SDL_GetWindowWMInfo` emission unless the layout is verified per platform or projected through a deliberate platform-specific wrapper. |
+
+### Accepted Tradeoffs / No Action
+
+| Item | Decision |
+| --- | --- |
+| Explicit-only Pattern B handle conversion | Keep. This is deliberate type safety; implicit conversion can be added later if preview feedback shows real friction. |
+| `VkSurfaceKHR` mapped through `nint` at the foreign boundary | Keep. This is the correct SDL/Vulkan boundary shape for the current raw signature. |
+| `SDL_RWops`, `SDL_SysWMinfo`, `SDL_SysWMmsg` Pattern B quarantine | Keep for Stage 1. It avoids false cross-platform layouts. |
+| `CallConvCdecl` on POSIX | Keep. It is the portable source-generated P/Invoke spelling for platform C ABI; add docs only if future reviewers keep tripping over the name. |
 
 ## Oracle Repair Queue — Status as of 2026-05-24
 
@@ -264,10 +315,9 @@ Out of scope for this active plan document. Will be added after Slice 5 stabilis
 - [`../output/reports/iteration-2-comparison.md`](../output/reports/iteration-2-comparison.md) — decision evidence (function counts, dynapi coherence, multi-TFM trajectory).
 - [`../output/reports/clangsharp-failure-buckets.md`](../output/reports/clangsharp-failure-buckets.md) — RSP delta history from the 8 fix iterations.
 - [`../output/reports/oracle-evidence-clangsharp.md`](../output/reports/oracle-evidence-clangsharp.md) — current family-aware raw ABI evidence snapshot (0 findings across the six Priority C risk categories).
+- `Review Follow-up Backlog — 2026-05-25` in this file — durable sink distilled from the eight read-only reviewer reports.
 - [`../../../docs/binding-autogen/binding-generator-constitution.md`](../../../docs/binding-autogen/binding-generator-constitution.md) — Layer Contract L34-50 (three-layer API + DllImport/LibraryImport split), Opaque Handles L325-363 (Pattern B + cross-assembly contract), BCL-Replaceable Helper Exclusion Policy L169-208, C `long` L246-283, wchar_t L300-323, Structs And Unions L416-425, Foreign Type Boundary Policy L365-400, Evidence Gates L376-388, Macro pipeline L324-348.
 - [`../../../docs/binding-autogen/binding-generator-roadmap.md`](../../../docs/binding-autogen/binding-generator-roadmap.md) — M4 (multi-TFM backends), M5 (public typed — **next slice target**), M6 (friendly overloads), M7 (production flip).
-- [`../../../docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md`](../../../docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md) — Priority C design spec (Decisions 1/2/3 + SDL_GUID + Foreign Type Boundary Policy).
-- [`../../../docs/superpowers/plans/2026-05-24-clangsharp-priority-c-semantic-abi.md`](../../../docs/superpowers/plans/2026-05-24-clangsharp-priority-c-semantic-abi.md) — 19-task Priority C implementation plan.
 - [`../../../docs/research/semantic-abi-type-classification-research.md`](../../../docs/research/semantic-abi-type-classification-research.md) (2026-05-22) — semantic ABI classification research backing for the six risks.
 - [`../clangsharp/policy/opaque-handle-roster.json`](../clangsharp/policy/opaque-handle-roster.json) — single source of truth for the 14 auto-detect + 3 force-opaque + 11 excluded-candidate handle enumeration.
 - ppy `references/ppy-SDL3-CS/SDL3-CS/generate_bindings.py` — north star for the orchestrator.

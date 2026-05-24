@@ -63,9 +63,8 @@ namespace Janset.SDL2.PostProcess;
 // syntax walk, then rewrite at the source-text level in VisitCompilationUnit
 // by computing each method's text span and substituting a verbatim raw block.
 //
-// Refs: docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md
-// Decision 2 — C `long` Hybrid Strategy; Constitution §"C `long` And `unsigned long`"
-// Priority C hybrid strategy.
+// Refs: Constitution §"C `long` And `unsigned long`" Priority C hybrid
+// strategy and Priority C closure summary R2.
 internal sealed class ThreadIdDualDispatchRewriter : CSharpSyntaxRewriter
 {
     internal enum Mode

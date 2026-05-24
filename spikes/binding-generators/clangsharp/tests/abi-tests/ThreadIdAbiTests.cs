@@ -22,12 +22,36 @@ public sealed class ThreadIdAbiTests
     [Category("AbiSmoke")]
     public async Task SDL_ThreadID_Returns_NonZero_On_Host_Platform()
     {
-#if NET6_0_OR_GREATER
-        ulong threadId = (ulong)SDLNative.SDL_ThreadID().Value;
-#else
-        ulong threadId = SDLNative.SDL_ThreadID();
-#endif
+        ulong threadId = GetCurrentThreadId();
 
         await Assert.That(threadId).IsNotEqualTo(0UL);
+    }
+
+    [Test]
+    [Category("AbiSmoke")]
+    public async Task SDLGetThreadID_Should_Return_Current_Thread_Id_When_Thread_Is_Null()
+    {
+        ulong currentThreadId = GetCurrentThreadId();
+        ulong queriedThreadId = GetThreadId(SDL_Thread.Null);
+
+        await Assert.That(queriedThreadId).IsEqualTo(currentThreadId);
+    }
+
+    private static ulong GetCurrentThreadId()
+    {
+#if NET6_0_OR_GREATER
+        return (ulong)SDLNative.SDL_ThreadID().Value;
+#else
+        return SDLNative.SDL_ThreadID();
+#endif
+    }
+
+    private static ulong GetThreadId(SDL_Thread thread)
+    {
+#if NET6_0_OR_GREATER
+        return (ulong)SDLNative.SDL_GetThreadID(thread).Value;
+#else
+        return SDLNative.SDL_GetThreadID(thread);
+#endif
     }
 }

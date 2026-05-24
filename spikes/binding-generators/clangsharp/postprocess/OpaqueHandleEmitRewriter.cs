@@ -28,11 +28,12 @@ namespace Janset.SDL2.PostProcess;
 ///       removing all of them prevents partial-class member collision when
 ///       the consolidated Handles.g.cs declares the canonical body.
 ///     * REWRITE pointer references SDL_X* -> SDL_X at method parameter,
-///       method return-type, and struct field-type positions (single-pointer
-///       only; double-pointer SDL_X** and `out SDL_X` are preserved by the
-///       structural pattern match). Field-position rewrite is ABI-safe
-///       because Pattern B carries a single `nint` field whose layout is
-///       bit-identical to a pointer at the corresponding C field offset.
+///       method return-type, struct field-type, and function-pointer
+///       parameter/return positions (single-pointer only; double-pointer
+///       SDL_X** and `out SDL_X` are preserved by the structural pattern
+///       match). Field-position rewrite is ABI-safe because Pattern B carries
+///       a single `nint` field whose layout is bit-identical to a pointer at
+///       the corresponding C field offset.
 ///
 ///   Phase 2 (orchestrator pass, Program.cs):
 ///     * In owner mode (handle definitions live here, e.g. Janset.SDL2.Core),
@@ -68,8 +69,9 @@ namespace Janset.SDL2.PostProcess;
 /// `obj is X other` already null-safe-shorts when obj is null.
 ///
 /// Reference rewrite: every X* in raw ABI signatures rewrites to X by-value
-/// at method parameter, method return-type, and struct field-type positions.
-/// Double-pointer X** and `out X` positions are preserved.
+/// at method parameter, method return-type, struct field-type, and nested
+/// function-pointer parameter/return positions. Double-pointer X** and
+/// `out X` positions are preserved.
 /// </summary>
 internal sealed class OpaqueHandleEmitRewriter : CSharpSyntaxRewriter
 {
@@ -156,6 +158,25 @@ internal sealed class OpaqueHandleEmitRewriter : CSharpSyntaxRewriter
     }
 
     /// <summary>
+    /// Rewrite single-pointer callback slots `delegate*<SDL_X*, ...>` ->
+    /// `delegate*<SDL_X, ...>` when X is a known handle. Function pointer
+    /// parameters include the return type as the final list item, so this covers
+    /// callback parameters and callback return values with one structural rule.
+    /// </summary>
+    public override SyntaxNode? VisitFunctionPointerParameter(FunctionPointerParameterSyntax node)
+    {
+        if (node.Type is PointerTypeSyntax ptr &&
+            ptr.ElementType is IdentifierNameSyntax id &&
+            _handleNames.Contains(id.Identifier.ValueText))
+        {
+            AnyChanges = true;
+            return node.WithType(id.WithTriviaFrom(ptr));
+        }
+
+        return base.VisitFunctionPointerParameter(node);
+    }
+
+    /// <summary>
     /// Syntactic auto-detect: scan every <c>.g.cs</c> file under <paramref name="inputDir"/>
     /// for (a) names declared as empty <c>public partial struct SDL_X { }</c> and
     /// (b) names used as pointer type <c>SDL_X*</c> at any raw ABI signature position
@@ -193,6 +214,16 @@ internal sealed class OpaqueHandleEmitRewriter : CSharpSyntaxRewriter
                 }
 
                 foreach (var param in method.ParameterList.Parameters)
+                {
+                    if (param.Type is PointerTypeSyntax paramPtr &&
+                        paramPtr.ElementType is IdentifierNameSyntax paramId &&
+                        paramId.Identifier.ValueText.StartsWith("SDL_", StringComparison.Ordinal))
+                    {
+                        pointerUses.Add(paramId.Identifier.ValueText);
+                    }
+                }
+
+                foreach (var param in method.DescendantNodes().OfType<FunctionPointerParameterSyntax>())
                 {
                     if (param.Type is PointerTypeSyntax paramPtr &&
                         paramPtr.ElementType is IdentifierNameSyntax paramId &&

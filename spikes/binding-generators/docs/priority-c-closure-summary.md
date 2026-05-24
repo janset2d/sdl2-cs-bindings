@@ -3,7 +3,7 @@
 **Date:** 2026-05-24
 **Status:** Closed — six known semantic-ABI risks resolved + foreign-type boundary policy + Pattern B uniform handle emit.
 **Branch:** `spike/binding-autogen-sdl2-gfx`
-**Closure commit chain:** Slice C-A (`adb64d0`), Slice C-B (`45fdab6`), Slice C-C (`docs/superpowers/plans/2026-05-24-clangsharp-priority-c-semantic-abi.md` Task 7 exit gate), DisableRuntimeMarshalling Constitution policy (`d0016de`), this closure summary.
+**Closure commit chain:** Slice C-A (`adb64d0`), Slice C-B (`45fdab6`), Slice C-C (`bb638f9` + follow-up closure work), DisableRuntimeMarshalling Constitution policy (`d0016de`), this closure summary.
 
 ## Original Six Risks
 
@@ -18,7 +18,7 @@
 
 ## Additional Resolutions
 
-- **SDL_GUID → System.Guid substitution.** `GuidSubstitutionRewriter` walks `[NativeTypeName("SDL_GUID")]` annotations and rewrites the managed type to `System.Guid` (commit `bb638f9`, Slice C-C Task 5). Spec-Decision-aligned: see [`docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md`](../../../docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md) §"SDL_GUID Substitution".
+- **SDL_GUID → System.Guid substitution.** `GuidSubstitutionRewriter` walks `[NativeTypeName("SDL_GUID")]` annotations and rewrites the managed type to `System.Guid` (commit `bb638f9`, Slice C-C). The policy is captured in the Constitution §"Current SDL2.Core ABI Status" and the substitution rationale in `GuidSubstitutionRewriter.cs`.
 - **Foreign Type Boundary Policy.** Constitution §"Foreign Type Boundary Policy" (L365-400) codifies the SDL2-CS-aligned IntPtr-at-foreign-boundary pattern for non-SDL-owned types: Vulkan / D3D / GDK active via per-header RSP `--remap`, Win32 / Android JNI / C stdlib already covered by base/sdl2-core RSP; Linux X11/Wayland/KMSDRM + macOS Cocoa + iOS UIKit + WinRT deferred behind future `SDL_syswm.h` multi-OS pass activation.
 - **BCL-Replaceable Helper Exclusion Policy.** Constitution §"BCL-Replaceable Helper Exclusion Policy" (L169-208) codifies the three-condition rule (BCL equivalent exists; SDL2-CS does not expose; no transitive SDL dependency). Standing exclusions: SDL_lround/SDL_lroundf/SDL_ltoa/SDL_ultoa/SDL_strtol/SDL_strtoul + SDL_iconv_* family.
 - **Pattern B uniform 3-position rewrite.** `OpaqueHandleEmitRewriter` rewrites single-pointer `SDL_X*` → by-value `SDL_X` at all three raw-ABI positions: method parameter, method return, and **struct field**. Double-pointer (`X**`) and `out X` positions preserved. ABI invariant holds because a Pattern B struct is exactly one `nint` field — bit-identical to a pointer at the corresponding C struct field offset.
@@ -71,7 +71,9 @@ Hard Bug section absent from `spikes/binding-generators/output/reports/oracle-ev
 | Windows x64 | net462 | 1/1 passed | 1.6 s |
 | Linux x64 (focal docker) | net10.0 | 1/1 passed | 320 ms |
 
-All TFM/platform pairs confirm `SDL_ThreadID` returns a non-zero OS thread identifier — validates both Modern (`CULong` + `LibraryImport`) and Compat (managed wrapper + `RuntimeInformation.IsOSPlatform` dispatch + Win32 `[DllImport]`) emit paths. Linux native lib resolution via `vcpkg_installed/x64-linux/lib/libSDL2-2.0.so.0` symlink-aware dispatch.
+All TFM/platform pairs confirm `SDL_ThreadID` returns a non-zero OS thread identifier — validates both Modern (`CULong` + `LibraryImport`) and Compat (managed wrapper + `RuntimeInformation.IsOSPlatform` dispatch + Win32 `[DllImport]`) emit paths. Linux native lib resolution via `vcpkg_installed/x64-linux-hybrid/lib/libSDL2-2.0.so.0` symlink-aware dispatch.
+
+Post-review note (2026-05-25): AbiTests now also call `SDL_GetThreadID(SDL_Thread.Null)` and assert it matches `SDL_ThreadID()` on the host path. The closure-run table above remains historical; full 7-RID runtime proof remains a production CI gate.
 
 ### Slopwatch (Step B.6)
 
@@ -98,8 +100,8 @@ Output diff with `--ignore-cr-at-eol`: empty (pipeline is byte-stable across reg
 ## References
 
 - **Constitution:** [`docs/binding-autogen/binding-generator-constitution.md`](../../../docs/binding-autogen/binding-generator-constitution.md) — §"Opaque Handles", §"C `long` And `unsigned long`", §"wchar_t", §"BCL-Replaceable Helper Exclusion Policy", §"Structs And Unions", §"Foreign Type Boundary Policy".
-- **Design spec:** [`docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md`](../../../docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md) — Decisions 1 (Pattern B), 2 (C `long` hybrid), 3 (`wchar_t*` opaque) + SDL_GUID substitution + Foreign Type Boundary Policy.
-- **Implementation plan:** [`docs/superpowers/plans/2026-05-24-clangsharp-priority-c-semantic-abi.md`](../../../docs/superpowers/plans/2026-05-24-clangsharp-priority-c-semantic-abi.md) — 19-task plan covering all three slices.
+- **Durable policy:** [`docs/binding-autogen/binding-generator-constitution.md`](../../../docs/binding-autogen/binding-generator-constitution.md) — Pattern B, C `long` hybrid, `wchar_t*` opaque, SDL_GUID substitution, BCL helper exclusion, and Foreign Type Boundary Policy.
+- **Active follow-up plan:** [`next-iteration-plan.md`](next-iteration-plan.md) — Layer 2 next scope plus the 2026-05-25 review follow-up backlog.
 - **Research:** [`docs/research/semantic-abi-type-classification-research.md`](../../../docs/research/semantic-abi-type-classification-research.md) (2026-05-22) — semantic ABI classification backing for the six risks.
 - **Oracle evidence:** [`spikes/binding-generators/output/reports/oracle-evidence-clangsharp.md`](../output/reports/oracle-evidence-clangsharp.md) — current run, 2026-05-24.
 - **Roster JSON:** [`spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json`](../clangsharp/policy/opaque-handle-roster.json) — single source of truth for the 14 auto-detect + 3 force-opaque + 11 excluded-candidate enumeration.

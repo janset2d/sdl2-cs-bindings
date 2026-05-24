@@ -5,7 +5,7 @@ This folder hosts the SDL2 binding-generator prototypes that feed Phase 4 (bindi
 ## Status — 2026-05-24
 
 - **Priority C semantic-ABI: CLOSED.** All six known platform-sensitive ABI risks resolved (R1 `wchar_t*`, R2 C `long`/`unsigned long`, R3 `SDL_RWops`, R4 `SDL_SysWMinfo`, R5 `SDL_SysWMmsg`, R6 opaque-handle tag leak). Foreign Type Boundary Policy + BCL-Replaceable Helper Exclusion Policy + Cross-Assembly Pattern B contract (`[assembly: DisableRuntimeMarshalling]`) codified in the Constitution. Authoritative closure record: [`docs/priority-c-closure-summary.md`](docs/priority-c-closure-summary.md).
-- **Evidence baseline.** Oracle reports 0 findings across all six Priority C risk categories; multi-TFM compile clean for Core (5 TFMs) + Image (5 TFMs) + AbiTests (4 TFMs); runtime ABI smoke (`SDL_ThreadID` non-zero) passes on Windows x64 net10/9/8/462 + Linux x64 net10 docker.
+- **Evidence baseline.** Oracle reports 0 findings across all six Priority C risk categories; multi-TFM compile clean for Core (5 TFMs) + Image (5 TFMs) + AbiTests (4 TFMs); runtime ABI smoke covers `SDL_ThreadID` plus `SDL_GetThreadID(SDL_Thread.Null)` on the local host paths, with full 7-RID proof deferred to the production CI matrix.
 - **Next forward scope:** **Layer 2 typed low-level public API** (Constitution Layer Contract L34-50; Roadmap M5). Layer 1 raw ABI is stable enough — Pattern B handle shape, scalar widths, foreign-type boundary all settled.
 - **Branch:** `spike/binding-autogen-sdl2-gfx`, 35+ commits ahead of remote. Push gate pending Plan Task 19 (final code review + finishing-branch decision per AGENTS.md §Approval Gate).
 
@@ -17,7 +17,7 @@ This folder hosts the SDL2 binding-generator prototypes that feed Phase 4 (bindi
 | **`docs/llm-handoff.md`** | **LLM-to-LLM handoff — read this first.** Self-contained context dump: decision history, code map, slice progress, current sticking point, working preferences. |
 | **`docs/priority-c-closure-summary.md`** | **Priority C closure record** (2026-05-24). Six-risks resolution table, verification evidence, Foreign Type Boundary Policy, Cross-Assembly Pattern B contract. Read after the LLM handoff. |
 | `docs/generator-spike-goals.md` | Spike charter — original goals, what got tested, and the recorded decision. |
-| `docs/next-iteration-plan.md` | Slice plan with current status; Slices 1–4 and Oracle Priorities A/B/C all closed; Slice 5 deferred; Layer 2 typed API next. |
+| `docs/next-iteration-plan.md` | Slice plan with current status; Slices 1–4 and Oracle Priorities A/B/C all closed; Slice 5 deferred; Layer 2 typed API next. Also owns the `Review Follow-up Backlog — 2026-05-25` triage sink distilled from the read-only reviewer reports. |
 | `docs/oracle-evidence-design.md` | Spike-local design for replacing regex oracle comparison with a Roslyn/file-based-app evidence matrix. |
 | `docs/oracle-evidence-implementation-plan.md` | Task-by-task implementation plan for the Roslyn/file-based-app oracle evidence slice. |
 | `output/reports/iteration-2-comparison.md` | Decision-quality evidence: function counts, dynapi coherence, multi-TFM build trajectory, multi-OS gap. |
@@ -153,7 +153,7 @@ The 6-step postprocess pipeline lands all Priority C semantic-ABI policy in a si
 
 ## Per-TFM ABI runtime smoke
 
-**AbiTests (per-TFM ABI runtime smoke):** The `spikes/binding-generators/clangsharp/tests/abi-tests` project exercises Layer 1 `SDLNative.SDL_ThreadID()` runtime evidence per executable TFM (net462, net8.0, net9.0, net10.0). The csproj OS-dispatches the native lib copy: Windows pulls `vcpkg_installed/x64-windows-hybrid/bin/SDL2.dll`; Linux pulls `vcpkg_installed/x64-linux-hybrid/lib/libSDL2-2.0.so.0` (also copied as `libSDL2.so` so the .NET name fallback resolves it without ldconfig).
+**AbiTests (per-TFM ABI runtime smoke):** The `spikes/binding-generators/clangsharp/tests/abi-tests` project exercises Layer 1 `SDLNative.SDL_ThreadID()` and `SDLNative.SDL_GetThreadID(SDL_Thread.Null)` runtime evidence per executable TFM (net462, net8.0, net9.0, net10.0). The csproj OS-dispatches the native lib copy: Windows pulls `vcpkg_installed/x64-windows-hybrid/bin/SDL2.dll`; Linux pulls `vcpkg_installed/x64-linux-hybrid/lib/libSDL2-2.0.so.0` (also copied as `libSDL2.so` so the .NET name fallback resolves it without ldconfig).
 
 Host-side Windows run covers Win32 32-bit `uint` (Compat / net462) and 32-bit CULong+LibraryImport (Modern / net8+) paths.
 

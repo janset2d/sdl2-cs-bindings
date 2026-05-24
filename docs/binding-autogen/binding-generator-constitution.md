@@ -263,7 +263,7 @@ Contract:
 - Do not introduce a casual downlevel `CLong` / `CULong` NuGet polyfill. A same-named portable struct backed by `IntPtr`, `int`, or `long` would be wrong for at least one of Windows LLP64 or Unix LP64. Any downlevel strategy must prove exact per-platform ABI shape before removing guards.
 - SDL_ttf already exposes raw C `long` in `TTF_OpenFontIndex*` and `TTF_FontFaces`; satellite profiles must reuse the same C `long` policy rather than treating it as an SDL2.Core-only edge case.
 
-Priority C hybrid strategy (per [`docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md`](../superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md) Decision 2):
+Priority C hybrid strategy:
 
 **Why:** SDL2's `long`-using API splits into two categories. SDL_stdinc convenience helpers (`SDL_lround`, `SDL_lroundf`, `SDL_ltoa`, `SDL_ultoa`, `SDL_strtol`, `SDL_strtoul`) have direct BCL equivalents (`Math.Round`, `long.Parse`, `ToString()`); SDL2-CS dropped them entirely 10+ years ago without consumer impact, and the SDL2 wiki does not document them as user-facing API. Structural symbols (`SDL_threadID` typedef plus `SDL_ThreadID` / `SDL_GetThreadID` functions) identify OS threads; `System.Threading.Thread.ManagedThreadId` is not equivalent (different ID space).
 
@@ -271,7 +271,7 @@ Priority C hybrid strategy (per [`docs/superpowers/specs/2026-05-24-clangsharp-p
 
 - Convenience helpers (SDL_stdinc family) are excluded from raw ABI emission on every TFM via per-header RSP `--exclude`; consumers use the BCL equivalents.
 - Structural thread API symbols use the hybrid emit, mode-split across the two generated trees: `Generated/Modern/**/*.cs` (compiled for `net6.0+` via csproj `<Compile Include>` conditional) gets `[LibraryImport]` with `CLong` / `CULong` return type; `Generated/Compat/**/*.cs` (compiled for `netstandard2.0` / `net462` only) gets a managed wrapper with `RuntimeInformation.IsOSPlatform(OSPlatform.Windows)` dispatching between `[DllImport]` with `uint` return (Windows: C `unsigned long` = 32-bit) and `[DllImport]` with `nint` return (Unix LP64: C `unsigned long` = 64-bit), normalized to `ulong` at the caller surface — Microsoft's [documented cross-platform `long` dispatch pattern](https://learn.microsoft.com/en-us/dotnet/standard/native-interop/best-practices). Each output emits the single TFM-appropriate form (no `#if NET6_0_OR_GREATER` directives); TFM gating happens via the csproj's conditional `<Compile Include>` items, mirroring the existing `libraryimport` postprocess split (Compat keeps `[DllImport]`; Modern is rewritten to `[LibraryImport]`).
-- The "any downlevel strategy must prove exact per-platform ABI shape" requirement above is satisfied by a per-RID runtime ABI smoke test calling each retained symbol and asserting non-zero bit-pattern on each of the 7 supported RIDs.
+- The "any downlevel strategy must prove exact per-platform ABI shape" requirement above is satisfied before production source promotion by a per-RID runtime ABI smoke test calling each retained symbol and asserting non-zero bit-pattern on each of the 7 supported RIDs. The Spike C local evidence covers Windows x64 + Linux x64 ABI-family smoke; remaining RID proof joins through the production CI matrix.
 
 **What:** Six SDL_stdinc convenience symbols deferred all-TFM. Three SDL_thread symbols (the `SDL_ThreadID` / `SDL_GetThreadID` functions and the `SDL_threadID` typedef they return) preserved on every TFM via the hybrid emit. Satellite C `long` surface (SDL_ttf `TTF_OpenFontIndex*` / `TTF_FontFaces`) reuses this same hybrid pattern when those satellites enter generation.
 
@@ -314,7 +314,7 @@ Contract:
 - Low-level raw shape uses opaque pointer representation unless a platform-specific helper is generated.
 - Friendly APIs may decode wide strings only through platform-aware helpers with tests.
 
-Priority C mechanism (per [`docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md`](../superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md) Decision 3):
+Priority C mechanism:
 
 **Why:** Opaque `nint` at the raw ABI layer is the ABI-correct mapping for shared `wchar_t*`, not a Layer 3 friendly-wrapper repair of a "broken" ABI. No portable C# primitive maps correctly across the target RID set; Microsoft's BCL has no portable `wchar_t` story (`[MarshalAs(UnmanagedType.LPWStr)]` and `CharSet.Unicode` are hardcoded 16-bit even on Linux, mismatching POSIX's 32-bit `wchar_t`). Peer evidence: Silk.NET's `wchar_t -> char` is silently wrong on POSIX (anti-pattern); SDL2-CS dropped the entire `SDL_hid_*` API rather than bind it incorrectly; ppy SDL3-CS uses opaque `IntPtr` raw. Opaque pointer is the only ABI-honest mapping at Layer 1.
 
@@ -339,7 +339,7 @@ Resolved examples:
 - `SDL_hid_device_` must not be emitted alongside canonical `SDL_hid_device`.
 - `SDL_semaphore` must not be emitted alongside canonical `SDL_sem`.
 
-Public typed handle struct shape (per [`docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md`](../superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md) Decision 1):
+Public typed handle struct shape:
 
 **Why:** A `readonly partial struct X(nint value)` with a single pointer-sized field is ABI-equivalent to passing a bare `IntPtr` at the P/Invoke boundary — verified against the SysV x64, AAPCS64, MSVC ARM64, and x86 ABI specs (a single-integer-field composite is classified identically to that integer in every calling convention this repo targets). It is blittable; `LibraryImport` source-generated marshalling supports it without `[MarshalAs]`; `DllImport` legacy marshaller uses the blittable fast path. Cake's `RawAbiCommandEmitter`, Alimer.Bindings.SDL, TerraFX.Interop.Windows, and Silk.NET (non-readonly variant) all emit P/Invoke signatures using typed-handle-by-value. The "use IntPtr only at the P/Invoke boundary" advice in older interop literature predates modern .NET features and never reflected an ABI constraint.
 
@@ -420,13 +420,13 @@ Rules:
 `SDL_RWops` contract:
 
 - `SDL_RWops` is public SDL header surface, but its `hidden` union is platform-conditioned.
-- Stage 1 keeps `SDL_RWops` opaque/quarantined rather than exposing a false full layout. Per [`docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md`](../superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md), the quarantine emits as a typed handle struct following the public Opaque Handles shape above (`readonly partial struct SDL_RWops(nint value)`), referenced by value in raw ABI signatures rather than as `SDL_RWops*` pointer.
+- Stage 1 keeps `SDL_RWops` opaque/quarantined rather than exposing a false full layout. The quarantine emits as a typed handle struct following the public Opaque Handles shape above (`readonly partial struct SDL_RWops(nint value)`), referenced by value in raw ABI signatures rather than as `SDL_RWops*` pointer.
 - Full typed layout requires later platform-specific size/offset proof.
 
 `SDL_syswm.h` contract:
 
 - Full typed `SDL_SysWMinfo` / `SDL_SysWMmsg` union layout remains Stage 2.
-- Stage 1 may keep those declarations deferred or opaque as documented. Per [`docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md`](../superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md), Stage 1 quarantine emits both as typed handle structs following the public Opaque Handles shape, referenced by value in raw ABI signatures.
+- Stage 1 may keep those declarations deferred or opaque as documented. Stage 1 quarantine emits both as typed handle structs following the public Opaque Handles shape, referenced by value in raw ABI signatures.
 
 Function-pointer fields:
 
@@ -522,7 +522,7 @@ No generated preview should be promoted toward production source unless these ga
 
 ## Current SDL2.Core ABI Status
 
-The 2026-05-19 P0 translation blockers were addressed at the policy level and proven feasible by the sunset Cake-hosted CppAst implementation under fixture-backed generator tests. Whichever toolchain the active spike selects, the policy resolutions below remain binding. The spike's ClangSharp + postprocess output currently re-proves a subset (raw ABI visibility, SDL.h required surface, dynapi coherence at ~98%); the **Priority C closure design** at [`docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md`](../superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md) covers the remaining gap (C `long` hybrid strategy, shared `wchar_t*` opaque, SDL_RWops / SDL_SysWMinfo / SDL_SysWMmsg as typed handle structs, tag/typedef canonicalization, SDL_GUID substitution) — the implementation lands on the active spike under `spikes/binding-generators/` and the toolchain-neutral policy decisions feed back into this constitution via the WHY/HOW/WHAT subsections in §"C `long`", §"wchar_t", and §"Opaque Handles".
+The 2026-05-19 P0 translation blockers were addressed at the policy level and proven feasible by the sunset Cake-hosted CppAst implementation under fixture-backed generator tests. Whichever toolchain the active spike selects, the policy resolutions below remain binding. The spike's ClangSharp + postprocess output currently re-proves raw ABI visibility, SDL.h required surface, dynapi coherence at ~98%, and the Priority C semantic-ABI closure: C `long` hybrid strategy, shared `wchar_t*` opaque, SDL_RWops / SDL_SysWMinfo / SDL_SysWMmsg as typed handle structs, tag/typedef canonicalization, and SDL_GUID substitution. The implementation lives under `spikes/binding-generators/`; the toolchain-neutral policy decisions are captured directly in this constitution via the WHY/HOW/WHAT subsections in §"C `long`", §"wchar_t", and §"Opaque Handles".
 
 Resolved or intentionally quarantined categories:
 

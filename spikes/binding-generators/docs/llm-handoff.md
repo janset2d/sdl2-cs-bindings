@@ -428,8 +428,8 @@ dotnet run --project spikes/binding-generators/clangsharp/postprocess/Janset.SDL
 | ABI/API policy | `docs/binding-autogen/binding-generator-constitution.md` |
 | Milestone plan | `docs/binding-autogen/binding-generator-roadmap.md` |
 | Priority C closure record | `spikes/binding-generators/docs/priority-c-closure-summary.md` (six risks resolved + Foreign Type Boundary Policy + Cross-Assembly Pattern B contract, 2026-05-24) |
-| Priority C design spec | `docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md` |
-| Priority C implementation plan | `docs/superpowers/plans/2026-05-24-clangsharp-priority-c-semantic-abi.md` |
+| Priority C durable policy | `docs/binding-autogen/binding-generator-constitution.md` |
+| Priority C follow-up backlog | `spikes/binding-generators/docs/next-iteration-plan.md` §"Review Follow-up Backlog — 2026-05-25" |
 | Semantic ABI research | `docs/research/semantic-abi-type-classification-research.md` (2026-05-22) |
 | Opaque-handle roster (single source of truth) | `spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json` (sdl2_version 2.32.10) |
 | Toolchain ADR | `docs/decisions/2026-05-14-binding-autogen-toolchain.md` |

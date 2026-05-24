@@ -63,10 +63,8 @@ def per_header_rsp_path(repo: pathlib.Path, header_name: str) -> pathlib.Path | 
     name (e.g. 'foo/SDL_audio.h') would silently still resolve via
     pathlib.Path.stem and mask a caller mistake, so it is rejected up front.
 
-    Implements the third RSP tier in Decision 4 of the Priority C semantic-ABI
-    design (docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md
-    — see "Decision 4 — Per-Header RSP Organization (ppy Alignment)"). Mirrors
-    the per-header RSP pattern used by ppy/SDL3-CS generate_bindings.py:318-320.
+    Implements the third RSP tier used by the Priority C semantic-ABI closure.
+    Mirrors the per-header RSP pattern used by ppy/SDL3-CS generate_bindings.py:318-320.
 
     Returning the path lets callers feed it through the @<path> response-file
     syntax that ClangSharp already accepts for base.rsp and the family RSP.
@@ -98,10 +96,9 @@ def extend_rsp_arguments(
 
     Consolidates the wiring shared by `command_for_header` and
     `platform_command_for_header` into a single place so future RSP-policy
-    changes (additional tiers, ordering tweaks) are made once. Decision 4 of
-    the Priority C semantic-ABI design (docs/superpowers/specs/
-    2026-05-24-clangsharp-priority-c-semantic-abi-design.md) drives the
-    three-tier organization.
+    changes (additional tiers, ordering tweaks) are made once. The Priority C
+    semantic-ABI closure uses this three-tier organization for per-header
+    excludes, remaps, and foreign-boundary overrides.
     """
     rsp_root = repo / "spikes" / "binding-generators" / "clangsharp" / "rsp"
     command.append(f"@{rsp_root / 'base.rsp'}")
@@ -787,6 +784,20 @@ def scope_file_name(scope: str, family: str) -> str:
     return FAMILY_CONFIG[family][key]
 
 
+def generation_exit_code(
+    failures: list[tuple[pathlib.Path, str, int]],
+    empty_outputs: list[EmptyGeneratedOutput],
+    postprocess_failures: int,
+) -> int:
+    if failures:
+        return 2
+    if postprocess_failures:
+        return 3
+    if empty_outputs:
+        return 4
+    return 0
+
+
 def write_report(
     reports_root: pathlib.Path,
     scope: str,
@@ -1016,6 +1027,16 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
                 "extend_rsp_arguments emitted unexpected arguments when no per-header RSP exists; "
                 f"got: {without_per_header}"
             )
+
+    clangsharp_failure = (pathlib.Path("SDL_video.h"), "clangsharp SDL_video.h", 1)
+    if generation_exit_code([clangsharp_failure], [], 0) != 2:
+        failures.append("ClangSharp invocation failures did not produce exit code 2")
+    if generation_exit_code([], [], 1) != 3:
+        failures.append("postprocess failures did not produce exit code 3")
+    if generation_exit_code([], [EmptyGeneratedOutput(pathlib.Path("SDL_video.h"), pathlib.Path("SDL_video.g.cs"), "clangsharp")], 0) != 4:
+        failures.append("empty generated outputs did not produce exit code 4")
+    if generation_exit_code([], [], 0) != 0:
+        failures.append("clean generation did not produce exit code 0")
 
     if failures:
         for failure in failures:
@@ -1264,15 +1285,21 @@ def main() -> int:
         args.use_platform_header_shims,
     )
 
+    exit_code = generation_exit_code(failures, empty_outputs, postprocess_failures)
+
+    if failures:
+        print(f"ERROR: {len(failures)} ClangSharp command(s) failed")
+        return exit_code
+
     if postprocess_failures:
         print(f"ERROR: {postprocess_failures} postprocess command(s) failed")
-        return 3
+        return exit_code
 
     if empty_outputs:
         print(f"ERROR: {len(empty_outputs)} generated output file(s) were empty")
-        return 4
+        return exit_code
 
-    return 0
+    return exit_code
 
 
 if __name__ == "__main__":

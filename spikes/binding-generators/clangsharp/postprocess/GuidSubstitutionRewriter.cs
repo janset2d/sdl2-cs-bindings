@@ -27,8 +27,8 @@ namespace Janset.SDL2.PostProcess;
 //      so all rewriters handle using-insertion internally rather than via
 //      mode-specific special-cases in Program.cs.
 //
-// Refs: docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md
-// Slice C-C SDL_GUID; docs/binding-autogen/README.md Current Decision Posture.
+// Refs: Constitution §"Current SDL2.Core ABI Status" and Priority C closure
+// summary §"Additional Resolutions".
 internal sealed class GuidSubstitutionRewriter : CSharpSyntaxRewriter
 {
     private bool _needsSystemUsing;

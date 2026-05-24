@@ -262,15 +262,13 @@ Three options. **Talk to Deniz before committing to which one.**
 2. `CLAUDE.md` — relay to AGENTS.md (sanity).
 3. **`spikes/binding-generators/docs/priority-c-closure-summary.md`** — authoritative Priority C closure record; six-risks resolution table + evidence + architecture snapshot. **Read this before anything else spike-related.**
 4. `docs/binding-autogen/binding-generator-constitution.md` — canonical policy. Sections: Layer Contract (L34-50), BCL-Replaceable Helper Exclusion Policy, Function Surface, Scalar Type Translation, Opaque Handles, Foreign Type Boundary Policy, Structs And Unions.
-5. `docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md` — design spec. Decision 1 (Pattern B), Decision 2 (C long hybrid), Decision 3 (wchar_t opaque), Decision 4 (per-header RSP), Decision 5 (foreign type boundary).
-6. `docs/superpowers/plans/2026-05-24-clangsharp-priority-c-semantic-abi.md` — implementation plan; 19 tasks, all closed.
-7. `docs/research/semantic-abi-type-classification-research.md` — research evidence backing Priority C decisions; Appendix A findings 6-10 (typed handle ABI verification, ClangSharp --remap, C long peer survey, wchar_t cross-library survey, opaque struct patterns); Appendix B findings 11-18 (foreign-type boundary survey).
-8. `spikes/binding-generators/README.md` — spike-level status + quick-start.
-9. `spikes/binding-generators/docs/llm-handoff.md` — LLM-to-LLM handoff doc (cross-references the closure summary).
-10. `spikes/binding-generators/docs/next-iteration-plan.md` — slice plan with Priority C closed, Layer 2 next.
-11. `spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json` — canonical policy data (read end-to-end; the `excluded_candidates` rationale explains many edge cases).
-12. `spikes/binding-generators/output/reports/oracle-evidence-clangsharp.md` — current oracle baseline (0 findings across Priority C categories).
-13. `docs/decisions/2026-05-14-binding-autogen-toolchain.md` — ADR-004 (Reopened).
+5. `docs/research/semantic-abi-type-classification-research.md` — research evidence backing Priority C decisions; Appendix A findings 6-10 (typed handle ABI verification, ClangSharp --remap, C long peer survey, wchar_t cross-library survey, opaque struct patterns); Appendix B findings 11-18 (foreign-type boundary survey).
+6. `spikes/binding-generators/README.md` — spike-level status + quick-start.
+7. `spikes/binding-generators/docs/llm-handoff.md` — LLM-to-LLM handoff doc (cross-references the closure summary).
+8. `spikes/binding-generators/docs/next-iteration-plan.md` — slice plan with Priority C closed, Layer 2 next, and the 2026-05-25 review follow-up backlog.
+9. `spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json` — canonical policy data (read end-to-end; the `excluded_candidates` rationale explains many edge cases).
+10. `spikes/binding-generators/output/reports/oracle-evidence-clangsharp.md` — current oracle baseline (0 findings across Priority C categories).
+11. `docs/decisions/2026-05-14-binding-autogen-toolchain.md` — ADR-004 (Reopened).
 
 Code to inspect (in order of importance for Layer 2 work):
 
