@@ -8,6 +8,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 //   dotnet run --project postprocess -- platform-delta     <input-dir> [<output-dir>]
 //   dotnet run --project postprocess -- guid-substitute    <input-dir> [<output-dir>]
 //   dotnet run --project postprocess -- threadid-dispatch  <input-dir> [<output-dir>]
+//   dotnet run --project postprocess -- uniform-opaque     <input-dir> [<output-dir>]
 //
 // strip-varargs     : Constitution L162-176 fmt-only policy — drops `__arglist`
 //                     parameter from variadic P/Invokes (applied to both Compat
@@ -32,13 +33,22 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 //                     are emitted because the csproj already routes
 //                     Generated/Compat to legacy TFMs and Generated/Modern to
 //                     net6+ via conditional <Compile Include>.
+// uniform-opaque    : Slice C-B Pattern B uniform opaque handle emit. Two
+//                     channels: (1) auto-detect — empty `partial struct SDL_X {}`
+//                     declarations referenced via [NativeTypeName("X *")]
+//                     elsewhere; (2) force-opaque — Constitution-bound allow-list
+//                     (SDL_RWops, SDL_SysWMinfo, SDL_SysWMmsg). Both channels
+//                     emit the same Pattern B shape (readonly partial struct
+//                     wrapping nint with IEquatable<T>, explicit operators only)
+//                     and rewrite single-pointer X* references in raw ABI
+//                     signatures to by-value X (double-pointer / out preserved).
 //
 // Default behavior is in-place edit; pass an explicit output directory to
 // write to a different location.
 
-if (args.Length < 2 || args[0] is not ("strip-varargs" or "libraryimport" or "platform-delta" or "guid-substitute" or "threadid-dispatch"))
+if (args.Length < 2 || args[0] is not ("strip-varargs" or "libraryimport" or "platform-delta" or "guid-substitute" or "threadid-dispatch" or "uniform-opaque"))
 {
-    Console.Error.WriteLine("usage: dotnet run --project postprocess -- <strip-varargs|libraryimport|platform-delta|guid-substitute|threadid-dispatch> <input-dir> [<output-dir>]");
+    Console.Error.WriteLine("usage: dotnet run --project postprocess -- <strip-varargs|libraryimport|platform-delta|guid-substitute|threadid-dispatch|uniform-opaque> <input-dir> [<output-dir>]");
     return 1;
 }
 
@@ -93,6 +103,16 @@ switch (mode)
         var threadIdMode = ThreadIdDualDispatchRewriter.DetectMode(inputDir);
         Console.WriteLine($"threadid-dispatch: mode={threadIdMode}");
         var r = new ThreadIdDualDispatchRewriter(threadIdMode);
+        rewriter = r;
+        hasChanges = () => r.AnyChanges;
+        resetRewriter = r.Reset;
+        break;
+    }
+    case "uniform-opaque":
+    {
+        var discovered = OpaqueHandleEmitRewriter.DiscoverAutoDetectedHandles(inputDir);
+        Console.WriteLine($"uniform-opaque: discovered {discovered.Count} auto-detect handles + 3 force-opaque");
+        var r = new OpaqueHandleEmitRewriter(discovered);
         rewriter = r;
         hasChanges = () => r.AnyChanges;
         resetRewriter = r.Reset;

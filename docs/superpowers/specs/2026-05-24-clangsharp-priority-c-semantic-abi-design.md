@@ -104,6 +104,8 @@ public static partial void SDL_DestroyWindow(SDL_Window window);
 
 Old style (`SDL_Window*` pointer references) is rewritten to by-value at every single-pointer occurrence. Double-pointer (`SDL_Window**`) and `out` parameter positions are preserved.
 
+Postprocess realization: the `OpaqueHandleEmitRewriter` ([`spikes/binding-generators/clangsharp/postprocess/OpaqueHandleEmitRewriter.cs`](../../../spikes/binding-generators/clangsharp/postprocess/OpaqueHandleEmitRewriter.cs)) implements this HOW. Its `DiscoverAutoDetectedHandles(inputDir)` static helper drives the auto-detect channel (empty-struct + `[NativeTypeName("X *")]` cross-reference); its `ForceOpaqueNames` static allow-list drives the force-opaque channel and stays single-sourced against Constitution §"Opaque Handles". Wired into `postprocess/Program.cs` as the `uniform-opaque` mode.
+
 **WHAT.** All opaque handles in the Layer 1 raw ABI surface emit as typed handle structs. Affected sets:
 
 - **Auto-detected from existing empty structs** (~12 names — list verified by research probe): `SDL_Window`, `SDL_Renderer`, `SDL_Texture`, `SDL_AudioStream`, `SDL_Cursor`, `SDL_Joystick`, `SDL_GameController`, `SDL_hid_device` (canonical, after R6), `SDL_mutex`, `SDL_cond`, `SDL_sem` (canonical, after R6), `SDL_Thread`. Detection rule: `public partial struct X { }` with empty body AND a `[NativeTypeName("X *")]` annotation referencing it as pointer.
