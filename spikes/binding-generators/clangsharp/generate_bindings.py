@@ -697,7 +697,14 @@ def modern_root_for_family(repo: pathlib.Path, family: str) -> pathlib.Path:
     return generated_root_for_family(repo, family) / "Modern"
 
 
-def run_postprocess(repo: pathlib.Path, family: str, spike_root: pathlib.Path, mode: str, codegen: str) -> int:
+def run_postprocess(
+    repo: pathlib.Path,
+    family: str,
+    spike_root: pathlib.Path,
+    mode: str,
+    codegen: str,
+    extra_args: list[str] | None = None,
+) -> int:
     """Invoke the Microsoft.CodeAnalysis postprocess. mode is one of:
     - 'strip-varargs'     drops __arglist per Constitution L162-176 fmt-only policy
     - 'libraryimport'     promotes DllImport -> LibraryImport per Constitution L48 backend split
@@ -705,7 +712,12 @@ def run_postprocess(repo: pathlib.Path, family: str, spike_root: pathlib.Path, m
     - 'guid-substitute'   Slice C-C: SDL_GUID -> System.Guid (16-byte wire-identical)
     - 'threadid-dispatch' Slice C-A R2 structural: SDL_threadID family hybrid TFM emit
     - 'uniform-opaque'    Slice C-B Pattern B opaque handle emit + pointer-to-by-value rewrites
-    codegen selects the Generated/<Codegen>/ subtree to operate on."""
+    codegen selects the Generated/<Codegen>/ subtree to operate on.
+
+    extra_args, if provided, are appended to the postprocess CLI after the
+    target directory. The uniform-opaque mode uses this to pass an explicit
+    --owner-mode owner|consumer flag instead of relying on the substring-based
+    fallback inside Program.cs."""
     subdir = "Compat" if codegen == "compat" else "Modern"
     target_dir = generated_root_for_family(repo, family) / subdir
     if not target_dir.is_dir():
@@ -717,6 +729,8 @@ def run_postprocess(repo: pathlib.Path, family: str, spike_root: pathlib.Path, m
         "-c", "Release",
         "--", mode, str(target_dir),
     ]
+    if extra_args:
+        cmd.extend(extra_args)
     print(" ".join(cmd))
     result = subprocess.run(cmd, cwd=spike_root)
     return result.returncode
@@ -1217,12 +1231,23 @@ def main() -> int:
     # roster handle; consumer mode (Janset.SDL2.Image/Generated/*) only removes
     # any partial struct declarations + applies pointer-to-by-value rewrites,
     # since Core's Handles.g.cs is referenced via ProjectReference + the shared
-    # SDL2 namespace. Owner/consumer detection is path-based inside Program.cs.
+    # SDL2 namespace.
+    #
+    # Owner/consumer is declared here explicitly via --owner-mode rather than
+    # detected by Program.cs substring-matching Janset.SDL2.Core: a future
+    # project rename would silently flip every directory to consumer mode under
+    # the substring check, losing the Handles.g.cs emit without diagnostic. The
+    # `core` family is the canonical owner; every other family (image and any
+    # future satellite) consumes Core's Handles.g.cs via ProjectReference.
     if args.execute:
         print("--- postprocess: uniform-opaque (all codegens) ---")
         for codegen in codegen_passes:
             for family in selected:
-                exit_code = run_postprocess(repo, family, spike_root, "uniform-opaque", codegen)
+                owner_mode = "owner" if family == "core" else "consumer"
+                exit_code = run_postprocess(
+                    repo, family, spike_root, "uniform-opaque", codegen,
+                    extra_args=["--owner-mode", owner_mode],
+                )
                 if exit_code != 0:
                     postprocess_failures += 1
                     print(f"WARNING: uniform-opaque postprocess for {family}/{codegen} returned exit {exit_code}")

@@ -8,7 +8,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 //   dotnet run --project postprocess -- platform-delta     <input-dir> [<output-dir>]
 //   dotnet run --project postprocess -- guid-substitute    <input-dir> [<output-dir>]
 //   dotnet run --project postprocess -- threadid-dispatch  <input-dir> [<output-dir>]
-//   dotnet run --project postprocess -- uniform-opaque     <input-dir> [<output-dir>]
+//   dotnet run --project postprocess -- uniform-opaque     <input-dir> [<output-dir>] [--owner-mode owner|consumer]
 //
 // strip-varargs     : Constitution L162-176 fmt-only policy — drops `__arglist`
 //                     parameter from variadic P/Invokes (applied to both Compat
@@ -54,7 +54,14 @@ if (args.Length < 2 || args[0] is not ("strip-varargs" or "libraryimport" or "pl
 
 var mode = args[0];
 var inputDir = Path.GetFullPath(args[1]);
-var outputDir = args.Length >= 3 ? Path.GetFullPath(args[2]) : inputDir;
+// args[2] is an optional output directory unless it starts with `--`, in which
+// case the third positional is omitted and args[2..] are CLI flags (e.g.
+// `--owner-mode owner`). Without this guard a flag would be misparsed as the
+// output directory and the postprocess would write Handles.g.cs into a path
+// named `--owner-mode/`.
+var outputDir = args.Length >= 3 && !args[2].StartsWith("--", StringComparison.Ordinal)
+    ? Path.GetFullPath(args[2])
+    : inputDir;
 
 if (!Directory.Exists(inputDir))
 {
@@ -76,6 +83,10 @@ Action resetRewriter;
 // post-loop block (orchestrator phase) can emit a consolidated Handles.g.cs in
 // owner directories.
 HashSet<string>? uniformOpaqueHandleNames = null;
+// uniform-opaque owner/consumer resolution: explicit --owner-mode flag wins
+// over the substring-based fallback. Resolved before the switch so the
+// post-loop block uses the same value the switch case logged.
+bool? uniformOpaqueIsOwner = null;
 switch (mode)
 {
     case "strip-varargs":
@@ -130,6 +141,12 @@ switch (mode)
             handleNames.Add(n);
         }
 
+        // Owner/consumer mode resolution. Prefer the explicit --owner-mode CLI
+        // flag (set by generate_bindings.py per family identity). Fall back to
+        // the substring-based detection with a deprecation warning so a missing
+        // orchestrator wire-up does not silently corrupt the emit.
+        uniformOpaqueIsOwner = UniformOpaqueOwnerMode.Resolve(args, outputDir);
+
         Console.WriteLine($"uniform-opaque: applying {rosterAutoDetect.Count} auto-detect + {rosterForceOpaque.Count} force-opaque handles from {Path.GetFileName(rosterPath)} (syntactic discovery: {syntacticDetect.Count})");
         uniformOpaqueHandleNames = handleNames;
         var r = new OpaqueHandleEmitRewriter(handleNames);
@@ -180,37 +197,12 @@ Console.WriteLine($"{mode}: {processed} files scanned, {transformed} files trans
 // handle in the roster. Consumer directories (e.g. Janset.SDL2.Image, which
 // references Core handles via ProjectReference and nested namespace lookup)
 // skip the write — they only need the partial-struct removal + pointer
-// rewrite that the loop above already performed.
-if (mode == "uniform-opaque" && uniformOpaqueHandleNames is not null)
-{
-    var isOwner = IsOpaqueHandleOwnerDirectory(outputDir);
-    if (isOwner)
-    {
-        var handlesFilePath = Path.Combine(outputDir, "Handles.g.cs");
-        var sortedNames = uniformOpaqueHandleNames.OrderBy(s => s, StringComparer.Ordinal).ToList();
-        var content = OpaqueHandleEmitRewriter.BuildHandlesFileContent(sortedNames);
-        Directory.CreateDirectory(outputDir);
-        File.WriteAllText(handlesFilePath, content);
-        Console.WriteLine($"uniform-opaque: wrote {handlesFilePath} with {sortedNames.Count} handles (owner mode)");
-    }
-    else
-    {
-        Console.WriteLine($"uniform-opaque: consumer directory ({Path.GetFileName(outputDir)}); skipped Handles.g.cs emit");
-    }
-}
+// rewrite that the loop above already performed. See UniformOpaqueOwnerMode
+// for the owner/consumer resolution path (extracted to keep <Main>$ inside
+// the CA1502 cyclomatic-complexity ceiling).
+UniformOpaqueOwnerMode.EmitConsolidatedHandlesFileIfOwner(mode, outputDir, uniformOpaqueHandleNames, uniformOpaqueIsOwner);
 
 return 0;
-
-// Detect handle-owner directories by path. Janset.SDL2.Core declares the
-// Pattern B bodies; Janset.SDL2.Image and any future satellite consume them
-// via ProjectReference + shared SDL2 namespace nesting. Path-based detection
-// keeps the rewriter agnostic of the project layout; the only assumption is
-// that owner directories live somewhere under a path segment named
-// `Janset.SDL2.Core`.
-static bool IsOpaqueHandleOwnerDirectory(string dir)
-{
-    return dir.Replace('\\', '/').Contains("/Janset.SDL2.Core/", StringComparison.OrdinalIgnoreCase);
-}
 
 static string ResolveOpaqueHandleRosterPath(string inputDir)
 {
