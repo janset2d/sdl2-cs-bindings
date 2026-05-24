@@ -1327,29 +1327,64 @@ EOF
 
 ---
 
-### Task 11: Per-RID ABI Smoke Test for SDL_threadID
+### Task 11: Per-TFM ABI Smoke Test for SDL_threadID (Runtime Evidence via InternalsVisibleTo)
+
+**Scope upgrade (2026-05-24):** original plan placeholdered the test with `Assert.That(true).IsTrue()` and deferred the real SDL call to Layer 2. Per the "no workarounds, no shortcuts" hard rule we upgrade now: expose Layer 1 `SDLNative` to the test assembly via `InternalsVisibleTo` and exercise `SDL_ThreadID()` for real. The host-side dispatch path (Win Compat → Win32 dual-DllImport; Win Modern → CULong+LibraryImport) is verified at `dotnet test` time. Unix64 nint path stays on the CI RID matrix.
 
 **Files:**
+- Modify: `spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Janset.SDL2.Core.csproj` (add `<InternalsVisibleTo>` item)
 - Create: `tests/smoke-tests/abi-tests/AbiTests.csproj`
 - Create: `tests/smoke-tests/abi-tests/ThreadIdAbiTests.cs`
 
-- [ ] **Step 11.1: Inspect the existing smoke-test layout**
+- [ ] **Step 11.1: Inspect existing smoke-test conventions**
 
-Run: `ls tests/smoke-tests/ && ls tests/smoke-tests/package-smoke/`
+Run: `ls tests/smoke-tests/ && cat tests/smoke-tests/Directory.Build.props` and read `tests/smoke-tests/package-smoke/PackageConsumer.Smoke/PackageConsumer.Smoke.csproj` + `PackageSmokeTests.cs`.
 
-Expected: existing `package-smoke/` directory with TUnit-based xUnit-like consumer tests. Use the same conventions for the new ABI test project.
+Expected findings (confirmed during plan revision):
+- `tests/smoke-tests/Directory.Build.props` imports root `Directory.Build.props` + `build/msbuild/Janset.Smoke.props`. Smoke csprojs inherit CPM, analyzer posture, TFM policy.
+- `$(ExecutableTargetFrameworks)` = `net10.0;net9.0;net8.0;net462` (drops netstandard2.0 — not executable).
+- TUnit + Microsoft Testing Platform apphost pattern → `OutputType=Exe`, `IsTestProject=true`.
+- PolySharp is required for net462 (modern-attribute polyfills for TUnit's source-generated bootstrap).
+- net462 ItemGroup needs `System.Memory` + `System.Runtime.CompilerServices.Unsafe`.
+- Native-touching tests use `[NotInParallel]`.
 
-- [ ] **Step 11.2: Create the project file**
+Mirror these conventions exactly. Do not redefine CPM-managed package versions.
+
+- [ ] **Step 11.2: Add `InternalsVisibleTo` to `Janset.SDL2.Core.csproj`**
+
+Add (or extend) an `ItemGroup` in `spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Janset.SDL2.Core.csproj`:
 
 ```xml
-<!-- tests/smoke-tests/abi-tests/AbiTests.csproj -->
+<ItemGroup>
+  <InternalsVisibleTo Include="Janset.SDL2.AbiTests" />
+</ItemGroup>
+```
+
+This exposes the internal `SDLNative` class (Layer 1 raw ABI container) to the AbiTests assembly only. The assembly name must match exactly — the AbiTests project sets `<AssemblyName>Janset.SDL2.AbiTests</AssemblyName>` in Step 11.3.
+
+Constitution Layer Contract (Layer 1 = internal raw ABI) is preserved: `SDLNative` stays internal; only this specific test assembly gets access.
+
+- [ ] **Step 11.3: Create `AbiTests.csproj`**
+
+`tests/smoke-tests/abi-tests/AbiTests.csproj`:
+
+```xml
 <Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Per-TFM ABI smoke for the ClangSharp spike's rewriter output. References
+    the spike's Janset.SDL2.Core ProjectReference directly (not the published
+    NuGet) and exercises Layer 1 internals via InternalsVisibleTo. Build +
+    test evidence per executable TFM verifies the ThreadIdDualDispatchRewriter
+    produces valid code for both Compat (net462) and Modern (net8+) outputs.
+  -->
   <PropertyGroup>
-    <TargetFrameworks>net10.0;net9.0;net8.0;netstandard2.0;net462</TargetFrameworks>
-    <LangVersion>12</LangVersion>
-    <IsPackable>false</IsPackable>
+    <TargetFrameworks>$(ExecutableTargetFrameworks)</TargetFrameworks>
     <OutputType>Exe</OutputType>
-    <Nullable>enable</Nullable>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+
+    <AssemblyName>Janset.SDL2.AbiTests</AssemblyName>
+    <RootNamespace>Janset.SDL2.AbiTests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -1358,102 +1393,133 @@ Expected: existing `package-smoke/` directory with TUnit-based xUnit-like consum
 
   <ItemGroup>
     <PackageReference Include="TUnit" />
+    <PackageReference Include="PolySharp" PrivateAssets="all" IncludeAssets="runtime;build;native;contentfiles;analyzers;buildtransitive" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net462'">
+    <PackageReference Include="System.Memory" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
+  </ItemGroup>
+
+  <!--
+    Copy SDL2 native binary from the spike's vcpkg_installed dir into the test
+    output so the runtime loader can resolve SDL2.dll. Host triplet only — CI
+    RID matrix overrides this for other RIDs.
+  -->
+  <ItemGroup>
+    <None Include="..\..\..\spikes\binding-generators\clangsharp\vcpkg_installed\x64-windows-hybrid\x64-windows-hybrid\bin\SDL2.dll"
+          CopyToOutputDirectory="PreserveNewest"
+          Visible="false" />
   </ItemGroup>
 </Project>
 ```
 
-Adjust `PackageReference` versions per repo's Central Package Management (CPM) via `dotnet add ... package TUnit` if needed.
+If the vcpkg native path differs (no `x64-windows-hybrid/x64-windows-hybrid/bin/SDL2.dll`), fall back to whichever `vcpkg_installed/<triplet>/bin/SDL2.dll` exists in the spike checkout. STOP and report BLOCKED if you can't locate the file.
 
-- [ ] **Step 11.3: Create the smoke test**
+If CPM is missing entries for `TUnit`, `PolySharp`, `System.Memory`, or `System.Runtime.CompilerServices.Unsafe`, do NOT add them to `Directory.Packages.props` unilaterally — STOP and report BLOCKED so the orchestrator can confirm with the user. (PackageConsumer.Smoke already references these, so the entries almost certainly exist; just don't invent versions.)
+
+- [ ] **Step 11.4: Create `ThreadIdAbiTests.cs`**
+
+`tests/smoke-tests/abi-tests/ThreadIdAbiTests.cs`:
 
 ```csharp
-// tests/smoke-tests/abi-tests/ThreadIdAbiTests.cs
-
-using System;
-using System.Runtime.InteropServices;
-using TUnit.Core;
+using SDL2;
 
 namespace Janset.SDL2.AbiTests;
 
+/// <summary>
+/// Layer 1 raw ABI smoke for the SDL_ThreadID family. Exercises the
+/// ThreadIdDualDispatchRewriter's per-mode output:
+///   - Modern TFMs (net8+): CULong return via [LibraryImport].
+///   - Compat TFM (net462): managed ulong wrapper + RuntimeInformation
+///     dispatch + dual private [DllImport] (Win32 uint / Unix64 nint).
+///
+/// On Windows host, both modes dispatch through the 32-bit Win32 branch.
+/// The Unix64 nint path is exercised by the CI per-RID matrix. The build
+/// itself (per-TFM compile of this project against Janset.SDL2.Core) is
+/// also evidence — if the rewriter's output were invalid on net462 where
+/// CULong does not exist, the build would fail.
+/// </summary>
+[NotInParallel]
 public sealed class ThreadIdAbiTests
 {
     [Test]
-    public async Task SDL_GetThreadID_Should_Return_NonZero_For_Null_Current_Thread()
+    [Category("AbiSmoke")]
+    public async Task SDL_ThreadID_Returns_NonZero_On_Host_Platform()
     {
-        // SDL_GetThreadID(null) returns the calling thread's ID.
-        // This call exercises:
-        //   - On net6+: CULong return marshalling
-        //   - On legacy TFMs: RuntimeInformation.IsOSPlatform dispatch
-        //   - Per-RID native ABI: C unsigned long width (32-bit Win, 64-bit Unix)
+#if NET6_0_OR_GREATER
+        ulong threadId = (ulong)SDLNative.SDL_ThreadID().Value;
+#else
+        ulong threadId = SDLNative.SDL_ThreadID();
+#endif
 
-        // Use reflection-friendly path through the public SDL2.SDL class
-        // once Layer 2 is in place. For now, call the internal raw container
-        // via InternalsVisibleTo or via a temporary public wrapper.
-        //
-        // Until Layer 2 exists, this test verifies the wrapper compiles and
-        // can be invoked; once Layer 2 lands, replace with the public method.
-
-        // Placeholder: the actual call will look like:
-        //   var threadId = SDL2.SDL.SDL_GetThreadID(IntPtr.Zero);
-        //   await Assert.That(threadId).IsNotEqualTo(0UL);
-
-        // For Priority C scope, the compile-check below is sufficient evidence.
-        // The runtime smoke is exercised via the broader PackageConsumer.Smoke
-        // matrix in CI.
-
-        await Assert.That(true).IsTrue();
-    }
-
-    [Test]
-    public async Task ThreadId_DualDispatch_Should_Compile_On_All_TFMs()
-    {
-        // This test exists purely to ensure the rewriter's output compiles
-        // on every TFM. Build-host CI runs `dotnet build` across the matrix;
-        // if this project compiles on netstandard2.0/net462 (where CULong
-        // doesn't exist), the rewriter's legacy branch is valid.
-        await Assert.That(true).IsTrue();
+        await Assert.That(threadId).IsNotEqualTo(0UL);
     }
 }
 ```
 
-Note: the actual SDL native invocation must wait for Layer 2 public method projection. For Priority C, the compile-evidence across TFMs is the gate. The runtime invocation joins later when Layer 2's `SDL2.SDL.SDL_GetThreadID` exists.
+Notes:
+- The `#if NET6_0_OR_GREATER` directive is in the **test code**, not the rewriter output. The test project compiles per-TFM and adapts to the surface that Janset.SDL2.Core exposes on each TFM (CULong on net6+, ulong on legacy). This is the correct place for a `#if` — the test bridges two valid Layer 1 surfaces. Contrast Task 10's removed `#if` which was inside generated code that the csproj already file-routes per-TFM.
+- The `using SDL2;` brings the `SDLNative` internal type into scope (allowed by InternalsVisibleTo).
+- `[NotInParallel]` because the test calls into a native runtime singleton.
 
-- [ ] **Step 11.4: Build the abi-tests project (compile evidence per TFM)**
+- [ ] **Step 11.5: Build the AbiTests project (per-TFM compile evidence)**
 
 Run: `dotnet build tests/smoke-tests/abi-tests/AbiTests.csproj -c Release`
 
-Expected: 0 errors across all 5 TFMs. This verifies the spike's Janset.SDL2.Core (with the ThreadIdDualDispatchRewriter applied) compiles when referenced by a multi-TFM consumer — the critical multi-TFM Pattern verification.
+Expected: 0 errors and 0 warnings across `net10.0;net9.0;net8.0;net462`. This verifies:
+1. The spike's Janset.SDL2.Core (with rewriter output) compiles in a multi-TFM consumer.
+2. `InternalsVisibleTo` correctly exposes `SDLNative` to the test assembly.
+3. PolySharp polyfills are sufficient for net462 TUnit bootstrap.
 
-- [ ] **Step 11.5: Run the smoke test (TUnit)**
+- [ ] **Step 11.6: Run the smoke (runtime evidence on host)**
 
-Run: `dotnet test tests/smoke-tests/abi-tests/AbiTests.csproj -c Release --framework net10.0`
-
-Expected: tests pass. (Two placeholder tests; actual runtime SDL call deferred to Layer 2.)
-
-- [ ] **Step 11.6: Add a CI matrix note**
-
-Open the spike's `README.md` or a relevant doc and add a note that this test project should be exercised in CI on all 7 RIDs once Layer 2 lands. For now, build-only is the evidence.
-
-- [ ] **Step 11.7: Commit**
+Run on Windows host:
 
 ```bash
-git add tests/smoke-tests/abi-tests/
+dotnet test tests/smoke-tests/abi-tests/AbiTests.csproj -c Release --framework net10.0
+dotnet test tests/smoke-tests/abi-tests/AbiTests.csproj -c Release --framework net8.0
+dotnet test tests/smoke-tests/abi-tests/AbiTests.csproj -c Release --framework net462
+```
+
+Expected: 1/1 test passes per TFM. The net10/net8 invocations exercise the CULong + LibraryImport path. The net462 invocation exercises the managed `ulong` wrapper + RuntimeInformation dispatch + Win32 32-bit `uint` DllImport path.
+
+If `SDL_ThreadID()` returns 0 on any TFM, STOP and report BLOCKED. A returned 0 means the dispatch or marshalling is broken — Layer 1 must report a non-zero current thread ID per SDL2 semantics.
+
+If `DllNotFoundException` fires, the vcpkg native lookup in Step 11.3 failed — STOP and report BLOCKED with the resolved path.
+
+- [ ] **Step 11.7: Add a CI matrix note**
+
+Append to `spikes/binding-generators/README.md` (or wherever the spike's CI guidance lives) a short note:
+
+> The `tests/smoke-tests/abi-tests` project exercises Layer 1 `SDLNative.SDL_ThreadID()` runtime evidence per executable TFM (net462, net8.0, net9.0, net10.0). Host-side this covers Win32 32-bit `uint` and CULong+LibraryImport paths. Unix64 (Linux x64/arm64, macOS x64/arm64) `nint` returns must be exercised on the CI per-RID matrix by overriding the SDL2 native source path.
+
+- [ ] **Step 11.8: Commit**
+
+```bash
+git add spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Janset.SDL2.Core.csproj \
+        tests/smoke-tests/abi-tests/ \
+        spikes/binding-generators/README.md
 git commit -m "$(cat <<'EOF'
-test(binding-spike): per-TFM ABI compile-evidence for SDL_threadID dual-dispatch
+test(binding-spike): per-TFM ABI runtime smoke for SDL_threadID dispatch
 
-New tests/smoke-tests/abi-tests/AbiTests.csproj targets all 5 TFMs (net10,
-net9, net8, netstandard2.0, net462) and references Janset.SDL2.Core. The
-build itself is the Priority C evidence — if the spike's
-ThreadIdDualDispatchRewriter output compiles in this consumer across
-legacy TFMs where CULong does not exist, the legacy branch is valid.
+New tests/smoke-tests/abi-tests/AbiTests.csproj targets executable TFMs
+(net462, net8.0, net9.0, net10.0) and references Janset.SDL2.Core via
+ProjectReference. Layer 1 raw ABI access enabled via
+`<InternalsVisibleTo Include="Janset.SDL2.AbiTests" />` on Core.
 
-Placeholder runtime tests join when Layer 2 lands a public
-SDL2.SDL.SDL_GetThreadID method; per-RID runtime smoke joins the broader
-PackageConsumer.Smoke matrix.
+ThreadIdAbiTests.SDL_ThreadID_Returns_NonZero_On_Host_Platform exercises:
+  - net8+ (Modern output): CULong return via [LibraryImport].
+  - net462 (Compat output): managed ulong wrapper + RuntimeInformation
+    dispatch + Win32 32-bit `uint` [DllImport].
 
-Constitution L220 evidence: per-RID ABI shape verified at build time
-across the supported TFM matrix; runtime per-RID assertion deferred to
-Layer 2.
+Build evidence on all 4 executable TFMs + runtime evidence on Windows
+host. Unix64 nint path stays on the CI per-RID matrix per
+spikes/binding-generators/README.md note.
+
+Constitution L220 evidence: per-RID ABI shape verified at runtime where
+the host RID is exercisable; the matrix completes when CI runs the
+remaining RIDs.
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 EOF
