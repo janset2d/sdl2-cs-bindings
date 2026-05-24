@@ -1172,6 +1172,22 @@ def main() -> int:
                 postprocess_failures += 1
                 print(f"WARNING: libraryimport postprocess for {family} returned exit {exit_code}")
 
+    # Slice C-C SDL_GUID substitution: removes the generated `partial struct
+    # SDL_GUID` (Uint8 data[16]) and rewrites every reference to System.Guid
+    # (also 16 bytes; wire-identical). Workstream README Current Decision
+    # Posture pins SDL_GUID -> System.Guid; Cake's SdlNativeTypeSubstitutionPolicy
+    # applies the same substitution. Applied to both Compat and Modern after
+    # the LibraryImport pass so the rewrite operates on the final attribute
+    # shape and the `using System;` insertion lands once per touched file.
+    if args.execute:
+        print("--- postprocess: guid-substitute (all codegens) ---")
+        for codegen in codegen_passes:
+            for family in selected:
+                exit_code = run_postprocess(repo, family, spike_root, "guid-substitute", codegen)
+                if exit_code != 0:
+                    postprocess_failures += 1
+                    print(f"WARNING: guid-substitute postprocess for {family}/{codegen} returned exit {exit_code}")
+
     write_report(
         reports_root,
         args.scope,

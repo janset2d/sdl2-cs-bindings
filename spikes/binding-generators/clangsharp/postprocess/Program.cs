@@ -6,23 +6,28 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 //   dotnet run --project postprocess -- strip-varargs   <input-dir> [<output-dir>]
 //   dotnet run --project postprocess -- libraryimport   <input-dir> [<output-dir>]
 //   dotnet run --project postprocess -- platform-delta  <input-dir> [<output-dir>]
+//   dotnet run --project postprocess -- guid-substitute <input-dir> [<output-dir>]
 //
-// strip-varargs : Constitution L162-176 fmt-only policy — drops `__arglist`
-//                 parameter from variadic P/Invokes (applied to both Compat
-//                 and Modern output before libraryimport).
-// libraryimport : Constitution L48 backend split — promotes [DllImport] to
-//                 [LibraryImport] + [UnmanagedCallConv] + partial (applied to
-//                 Modern output only; Compat keeps DllImport for legacy TFMs).
-// platform-delta: SDL2 platform-view pass cleanup — removes declarations that
-//                 already exist in neutral/earlier platform output and adds
-//                 guarded [SupportedOSPlatform] attributes by Platforms/<View>.
+// strip-varargs  : Constitution L162-176 fmt-only policy — drops `__arglist`
+//                  parameter from variadic P/Invokes (applied to both Compat
+//                  and Modern output before libraryimport).
+// libraryimport  : Constitution L48 backend split — promotes [DllImport] to
+//                  [LibraryImport] + [UnmanagedCallConv] + partial (applied to
+//                  Modern output only; Compat keeps DllImport for legacy TFMs).
+// platform-delta : SDL2 platform-view pass cleanup — removes declarations that
+//                  already exist in neutral/earlier platform output and adds
+//                  guarded [SupportedOSPlatform] attributes by Platforms/<View>.
+// guid-substitute: Slice C-C — removes the generated `partial struct SDL_GUID`
+//                  and rewrites every reference to System.Guid. Wire size is
+//                  bit-identical (both 16 bytes); see GuidSubstitutionRewriter
+//                  for the ABI trade-off rationale.
 //
 // Default behavior is in-place edit; pass an explicit output directory to
 // write to a different location.
 
-if (args.Length < 2 || args[0] is not ("strip-varargs" or "libraryimport" or "platform-delta"))
+if (args.Length < 2 || args[0] is not ("strip-varargs" or "libraryimport" or "platform-delta" or "guid-substitute"))
 {
-    Console.Error.WriteLine("usage: dotnet run --project postprocess -- <strip-varargs|libraryimport|platform-delta> <input-dir> [<output-dir>]");
+    Console.Error.WriteLine("usage: dotnet run --project postprocess -- <strip-varargs|libraryimport|platform-delta|guid-substitute> <input-dir> [<output-dir>]");
     return 1;
 }
 
@@ -64,6 +69,14 @@ switch (mode)
         resetRewriter = r.Reset;
         break;
     }
+    case "guid-substitute":
+    {
+        var r = new GuidSubstitutionRewriter();
+        rewriter = r;
+        hasChanges = () => r.AnyChanges;
+        resetRewriter = r.Reset;
+        break;
+    }
     default:
         throw new InvalidOperationException($"unknown mode: {mode}");
 }
@@ -81,6 +94,14 @@ foreach (var file in Directory.EnumerateFiles(inputDir, "*.g.cs", SearchOption.A
     resetRewriter();
     var rewritten = (CompilationUnitSyntax)rewriter.Visit(root)!;
     processed++;
+
+    if (mode == "guid-substitute" && hasChanges())
+    {
+        // SDL_GUID -> Guid substitution only resolves once the file pulls in
+        // System; do it once per touched file rather than blindly inserting
+        // the using into files that didn't actually mention SDL_GUID.
+        rewritten = GuidSubstitutionRewriter.EnsureSystemUsing(rewritten);
+    }
 
     if (!hasChanges())
     {

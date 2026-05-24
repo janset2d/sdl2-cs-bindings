@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.InteropServices;
 
 namespace SDL2
@@ -118,7 +119,7 @@ namespace SDL2
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("char *")]
-        public static extern byte* SDL_GameControllerMappingForGUID([NativeTypeName("SDL_JoystickGUID")] SDL_GUID guid);
+        public static extern byte* SDL_GameControllerMappingForGUID([NativeTypeName("SDL_JoystickGUID")] Guid guid);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("char *")]

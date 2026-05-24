@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
@@ -124,7 +125,7 @@ namespace SDL2
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("char *")]
-        public static partial byte* SDL_GameControllerMappingForGUID([NativeTypeName("SDL_JoystickGUID")] SDL_GUID guid);
+        public static partial byte* SDL_GameControllerMappingForGUID([NativeTypeName("SDL_JoystickGUID")] Guid guid);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
