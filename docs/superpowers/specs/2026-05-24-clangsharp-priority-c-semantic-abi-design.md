@@ -86,6 +86,8 @@ public readonly partial struct SDL_Window : IEquatable<SDL_Window>
 }
 ```
 
+> **Emit convention.** The example above shows the canonical Pattern B shape with nullable annotation on `Equals(object?)` per modern .NET convention. The actual rewriter emit (`OpaqueHandleEmitRewriter.BuildPatternBStructText` in `Handles.g.cs`) drops the `?` annotation because generated `.g.cs` files do not carry a `#nullable enable` directive — this matches ClangSharp's own emit convention for the rest of the generated tree (CS8669 fix during Task 14). The `obj is X other` pattern is null-safe regardless of the annotation (short-circuits to `false` on null), so semantics are identical. The spec example is illustrative; consult the rewriter source for the authoritative emit form.
+
 Notes on the shape:
 - `[StructLayout(LayoutKind.Sequential)]` is explicit (no reliance on language defaults).
 - Explicit (not implicit) `operator nint` per research Finding 3 — implicit conversion weakens the type safety the struct provides; `DangerousGetHandle()` is the documented escape hatch.
