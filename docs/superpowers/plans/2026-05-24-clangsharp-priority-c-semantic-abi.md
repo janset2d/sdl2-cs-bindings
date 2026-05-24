@@ -1331,7 +1331,9 @@ EOF
 
 **Scope upgrade (2026-05-24):** original plan placeholdered the test with `Assert.That(true).IsTrue()` and deferred the real SDL call to Layer 2. Per the "no workarounds, no shortcuts" hard rule we upgrade now: expose Layer 1 `SDLNative` to the test assembly via `InternalsVisibleTo` and exercise `SDL_ThreadID()` for real. The host-side dispatch path (Win Compat → Win32 dual-DllImport; Win Modern → CULong+LibraryImport) is verified at `dotnet test` time. Unix64 nint path stays on the CI RID matrix.
 
-**Location upgrade (2026-05-24):** the project lives next to the spike at `spikes/binding-generators/clangsharp/tests/abi-tests/`, NOT under `tests/smoke-tests/`. The smoke-tests hierarchy enforces a package-consumer contract (`build/msbuild/Janset.Smoke.props` requires `LocalPackageFeed` + `JansetSmokeSdl2Families` declarations) that conflicts with a `ProjectReference`-based design. Hosting under the spike preserves the "test lives with the code it tests" principle and lets the test graduate to a production location when the spike itself graduates. The spike has no `Directory.Build.props` chain so the AbiTests csproj inherits only the repo-root `Directory.Build.props` (CPM + `$(ExecutableTargetFrameworks)`).
+**Location upgrade (2026-05-24):** the project lives next to the spike at `spikes/binding-generators/clangsharp/tests/abi-tests/`, NOT under `tests/smoke-tests/`. The smoke-tests hierarchy enforces a package-consumer contract (`build/msbuild/Janset.Smoke.props` requires `LocalPackageFeed` + `JansetSmokeSdl2Families` declarations) that conflicts with a `ProjectReference`-based design. Hosting under the spike preserves the "test lives with the code it tests" principle and lets the test graduate to a production location when the spike itself graduates.
+
+**MSBuild inheritance correction (2026-05-24):** `spikes/binding-generators/Directory.Build.props` exists (LangVersion=preview, Nullable=enable, ImplicitUsings=enable, AllowUnsafeBlocks=true, TreatWarningsAsErrors=true, CPM=true) but does NOT `<Import>` the repo-root `Directory.Build.props`. MSBuild's nearest-ancestor lookup stops there, so `$(ExecutableTargetFrameworks)` from the repo root never reaches the spike's projects. The sibling projects (`Janset.SDL2.Core.csproj`, `Janset.SDL2.Image.csproj`) **hardcode** their TFM lists in response. The AbiTests csproj follows the same convention: hardcode `net10.0;net9.0;net8.0;net462` literally (drops netstandard2.0 because the test project is executable).
 
 **Files:**
 - Modify: `spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Janset.SDL2.Core.csproj` (add `<InternalsVisibleTo>` item)
@@ -1381,7 +1383,13 @@ Constitution Layer Contract (Layer 1 = internal raw ABI) is preserved: `SDLNativ
     produces valid code for both Compat (net462) and Modern (net8+) outputs.
   -->
   <PropertyGroup>
-    <TargetFrameworks>$(ExecutableTargetFrameworks)</TargetFrameworks>
+    <!--
+      TFMs hardcoded per spike sibling convention (Core/Image both hardcode).
+      The spike's Directory.Build.props does not import the repo-root one, so
+      $(ExecutableTargetFrameworks) is empty here. Dropped netstandard2.0
+      because this is an executable test project.
+    -->
+    <TargetFrameworks>net10.0;net9.0;net8.0;net462</TargetFrameworks>
     <OutputType>Exe</OutputType>
     <IsTestProject>true</IsTestProject>
     <IsPackable>false</IsPackable>
