@@ -166,6 +166,46 @@ Current accepted deferrals:
 - `FILE`, `_IO_FILE`, `va_list`, and `__va_list_tag` APIs are deferred unless a portable mapping is deliberately designed.
 - `SDL_RWFromFP`, `SDL_LogMessageV`, `SDL_vsnprintf`, `SDL_vsscanf`, and `SDL_vasprintf` are Stage 1 accepted deferrals.
 
+## BCL-Replaceable Helper Exclusion Policy
+
+SDL2 ships convenience helpers that duplicate functionality already in the
+.NET Base Class Library (BCL). SDL provides these because libsdl targets
+platforms with incomplete or missing libc primitives; .NET runtimes always
+carry the BCL, so re-binding these helpers is ceremony with **negative**
+ergonomic payoff (caller learns a second API to do what BCL already does,
+plus an extra P/Invoke hop).
+
+**Rule.** A symbol or function family is excluded from the Janset.SDL2 surface
+when **all three** conditions hold:
+
+1. A direct BCL equivalent exists with equal or better ergonomics
+   (`System.Math.Round` for `SDL_lround`; `long.Parse` for `SDL_strtol`;
+   `System.Text.Encoding` for `SDL_iconv_*`).
+2. SDL2-CS (the reference binding) does not expose the symbol/family.
+3. No other SDL2 symbol transitively depends on the excluded symbol
+   (verified by grep across `vcpkg_installed/<triplet>/include/SDL2/*.h`).
+
+**Mechanism.** `--exclude <symbol>` in the relevant per-header RSP
+(`spikes/binding-generators/clangsharp/rsp/per-header/<header>.rsp`).
+The RSP comment block above the exclude block records the rule's three
+conditions and the BCL equivalent.
+
+**Standing exclusions (Priority C):**
+
+- `SDL_lround`, `SDL_lroundf`, `SDL_ltoa`, `SDL_ultoa`, `SDL_strtol`,
+  `SDL_strtoul` (SDL_stdinc.h) — Decision 2 Step 9. BCL: `Math.Round`,
+  `long.Parse`, `ToString()`, `ulong.Parse`.
+- `SDL_iconv_open`, `SDL_iconv_close`, `SDL_iconv`, `SDL_iconv_string`
+  (SDL_stdinc.h) — Slice C-B drift resolution. BCL: `System.Text.Encoding`
+  family. Also implicitly excludes `SDL_iconv_t` opaque type at call-site
+  scope (no remaining function references it).
+
+**Non-rule.** Excluding `--exclude SDL_X` does NOT cascade through dependent
+typedefs automatically. The `SDL_iconv_t` type stays declared (empty struct)
+unless explicitly excluded too — but with no remaining function consuming it,
+the empty struct is harmless residue. Document the residue in the roster
+JSON's `excluded_candidates` field for audit-trail.
+
 ## C Variadics
 
 C ellipsis functions are not exactly representable in portable C# P/Invoke.
@@ -307,7 +347,7 @@ Public typed handle struct shape (per [`docs/superpowers/specs/2026-05-24-clangs
 
 The struct is lexically `public` (so Layer 2 public methods can use it in their signatures) but appears in `internal` raw ABI signatures inside the internal `SDLNative` / family raw container — visibility-wise public, effectively internal API because the containing raw class is internal (Layer Contract §"Internal Raw ABI: Why / How / What"). Raw signatures pass by value: `internal static partial SDL_Window SDL_CreateWindow(...)`, not `internal static partial SDL_Window* SDL_CreateWindow(...)`. Single-pointer references rewrite to by-value; double-pointer (`X**`) and `out X` parameter positions are preserved as-is.
 
-**What:** Every SDL opaque concept emits one typed handle struct of this shape. Both auto-detected empty-body opaques (15 names — canonical enumeration at `spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json` `auto_detect_well_known` field: SDL_Window, SDL_Renderer, SDL_Texture, SDL_AudioStream, SDL_GameController, SDL_Joystick, SDL_Haptic, SDL_Sensor, SDL_Cursor, SDL_Thread, SDL_mutex, SDL_sem, SDL_cond, SDL_hid_device, SDL_BlitMap) and force-opaque types from a Constitution-bound allow-list (SDL_RWops, SDL_SysWMinfo, SDL_SysWMmsg per §"Structs And Unions") use the same shape uniformly. The Layer 2 public typed low-level slice that follows reuses these handle types in its public method projection — no Layer 2 work for the handle types themselves.
+**What:** Every SDL opaque concept emits one typed handle struct of this shape. Both auto-detected empty-body opaques (14 names — canonical enumeration lives in `spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json` `auto_detect_well_known` field: SDL_Window, SDL_Renderer, SDL_Texture, SDL_AudioStream, SDL_GameController, SDL_Joystick, SDL_Haptic, SDL_Sensor, SDL_Cursor, SDL_Thread, SDL_mutex, SDL_sem, SDL_cond, SDL_hid_device) and force-opaque types from a Constitution-bound allow-list (SDL_RWops, SDL_SysWMinfo, SDL_SysWMmsg per §"Structs And Unions") use the same shape uniformly. The Layer 2 public typed low-level slice that follows reuses these handle types in its public method projection — no Layer 2 work for the handle types themselves.
 
 **Implementation mechanism (ClangSharp + Roslyn postprocess):** The `OpaqueHandleEmitRewriter` ([`spikes/binding-generators/clangsharp/postprocess/OpaqueHandleEmitRewriter.cs`](../../spikes/binding-generators/clangsharp/postprocess/OpaqueHandleEmitRewriter.cs), invoked via the `uniform-opaque` postprocess mode) realizes this policy across two input channels — auto-detect and a force-opaque allow-list — both feeding the same Pattern B template `BuildPatternBStruct(name)` and emitting the struct shape verbatim per the **How** clause above. The rewriter also rewrites single-pointer references in raw ABI signatures to by-value (double-pointer `X**` and `out X` positions are preserved).
 

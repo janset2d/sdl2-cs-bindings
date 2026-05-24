@@ -107,15 +107,6 @@
       "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_hid_device",
       "wiki_evidence": "not_found",
       "wiki_corroboration": "Header comment on the typedef itself reads '/**< opaque hidapi structure */'."
-    },
-    {
-      "name": "SDL_BlitMap",
-      "header": "SDL_surface.h",
-      "header_decl": "typedef struct SDL_BlitMap SDL_BlitMap;  /* this is an opaque type. */",
-      "header_note": "Header comment explicitly states 'this is an opaque type.' This handle is internal to SDL_Surface and is not user-constructible, but it satisfies the forward-decl + empty-struct-emit triangulation and must be Pattern B for safety.",
-      "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_BlitMap",
-      "wiki_evidence": "not_found",
-      "wiki_corroboration": "Header comment on the typedef itself reads '/* this is an opaque type. */'."
     }
   ],
   "force_opaque_exceptions": [
@@ -142,6 +133,14 @@
     }
   ],
   "excluded_candidates": [
+    {
+      "name": "SDL_BlitMap",
+      "reason": "Field-scope only (SDL_Surface.map private field), no public API consumes or returns it. Header tags it as opaque + Private. SDL3 removed it entirely (replaced with `void* reserved`). Peer convention: SDL2-CS, Chroma-2D, flibit-SDL3 all use `IntPtr map` at the field. Per Constitution §\"Opaque Handles\" Implementation mechanism: field-scope-only opaques drop to nint via RSP --remap instead of Pattern B. See rsp/per-header/SDL_surface.rsp."
+    },
+    {
+      "name": "SDL_iconv_t",
+      "reason": "BCL-Replaceable Helper Exclusion Policy (Constitution §\"BCL-Replaceable Helper Exclusion Policy\"): SDL_iconv_open/close/iconv/iconv_string excluded because System.Text.Encoding provides BCL-idiomatic equivalent. SDL2-CS and Silk.NET both skip the entire family. No remaining function consumes SDL_iconv_t after the function exclusions; the empty struct emit becomes harmless residue. See rsp/per-header/SDL_stdinc.rsp."
+    },
     {
       "name": "SDL_GLContext",
       "header": "SDL_video.h",

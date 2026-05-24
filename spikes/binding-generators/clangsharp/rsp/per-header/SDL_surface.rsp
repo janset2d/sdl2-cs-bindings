@@ -1,0 +1,19 @@
+# Per-header RSP for SDL_surface.h.
+#
+# SDL_BlitMap (line 64 of SDL_surface.h): /* this is an opaque type. */
+#   Field-scope only at SDL_Surface.map (private). No public API consumes or
+#   returns SDL_BlitMap*. SDL3 removed it entirely (void* reserved).
+#
+# Resolution per Constitution §"Opaque Handles" Implementation mechanism
+# (field-scope-only opaques drop to nint via --remap; Pattern B reserved
+# for handle types reachable via public API param/return positions):
+#   --exclude SDL_BlitMap : drop the empty struct emit entirely
+#   --remap SDL_BlitMap *=nint : SDL_Surface.map field type becomes nint
+#
+# Peer evidence: SDL2-CS, Chroma-2D, flibit-SDL3 all use `IntPtr map`.
+
+--exclude
+SDL_BlitMap
+
+--remap
+SDL_BlitMap *=nint

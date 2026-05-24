@@ -1055,6 +1055,8 @@ EOF
 
 ### Task 9: SDL_stdinc.rsp Excludes (R2 Convenience Helpers Drop)
 
+This task is governed by Constitution §"BCL-Replaceable Helper Exclusion Policy" — the six SDL_stdinc convenience helpers below satisfy all three policy conditions (BCL equivalents exist, SDL2-CS skips them, no transitive SDL dependency) and are listed under that section's standing exclusions.
+
 **Files:**
 - Create: `spikes/binding-generators/clangsharp/rsp/per-header/SDL_stdinc.rsp`
 
@@ -1881,6 +1883,13 @@ Before running the rewriter on output, revise `OpaqueHandleEmitRewriter` to matc
 
 After this step the rewriter is policy-aligned. Subsequent steps run it against the spike output.
 
+**Drift resolution note.** The first revised-rewriter run surfaced two real drift entries against the original 15-name roster. Both resolved structurally in the BCL-Replaceable Helper Exclusion Policy commit that precedes the rewriter apply:
+
+- `SDL_iconv_t` — excluded via `SDL_stdinc.rsp` per Constitution §"BCL-Replaceable Helper Exclusion Policy". `System.Text.Encoding` is the BCL equivalent for the four `SDL_iconv_*` functions; with no function consuming `SDL_iconv_t`, the empty struct emit is harmless residue (Constitution Non-rule).
+- `SDL_BlitMap` — excluded via new `SDL_surface.rsp` (`--exclude SDL_BlitMap` + `--remap SDL_BlitMap *=nint`). Field-scope-only at `SDL_Surface.map` (private), no public API consumes it, SDL3 removed it entirely, peer convention is `IntPtr map`. Per Constitution §"Opaque Handles" Implementation mechanism, field-scope-only opaques drop to `nint` via RSP `--remap` rather than entering Pattern B.
+
+After the policy commit lands, the auto-detect roster shrinks from 15 to 14 and the rewriter's syntactic discovery converges with the roster (drift count: 0).
+
 - [ ] **Step 14.1: One-shot run on Modern output**
 
 Run: `dotnet run --project spikes/binding-generators/clangsharp/postprocess/Janset.SDL2.PostProcess.csproj -c Release -- uniform-opaque spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern`
@@ -2068,9 +2077,9 @@ Verify in the report:
 
 Run:
 ```bash
-# Roster: 15 auto_detect_well_known + 3 force_opaque_exceptions = 18 entries.
+# Roster: 14 auto_detect_well_known + 3 force_opaque_exceptions = 17 entries.
 # Source: spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json
-expected_handles=("SDL_Window" "SDL_Renderer" "SDL_Texture" "SDL_AudioStream" "SDL_GameController" "SDL_Joystick" "SDL_Haptic" "SDL_Sensor" "SDL_Cursor" "SDL_Thread" "SDL_mutex" "SDL_sem" "SDL_cond" "SDL_hid_device" "SDL_BlitMap" "SDL_RWops" "SDL_SysWMinfo" "SDL_SysWMmsg")
+expected_handles=("SDL_Window" "SDL_Renderer" "SDL_Texture" "SDL_AudioStream" "SDL_GameController" "SDL_Joystick" "SDL_Haptic" "SDL_Sensor" "SDL_Cursor" "SDL_Thread" "SDL_mutex" "SDL_sem" "SDL_cond" "SDL_hid_device" "SDL_RWops" "SDL_SysWMinfo" "SDL_SysWMmsg")
 for h in "${expected_handles[@]}"; do
     count=$(grep -rn "public readonly partial struct $h\b" spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern/ | wc -l)
     if [ "$count" -ne 1 ]; then

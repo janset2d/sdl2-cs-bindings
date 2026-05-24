@@ -110,7 +110,7 @@ The canonical roster of opaque handles lives at [`spikes/binding-generators/clan
 
 **WHAT.** All opaque handles in the Layer 1 raw ABI surface emit as typed handle structs. Affected sets:
 
-- **Auto-detected from existing empty structs** (15 names — canonical roster at `spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json`, three-source triangulated against SDL2 2.32.10): `SDL_Window`, `SDL_Renderer`, `SDL_Texture`, `SDL_AudioStream`, `SDL_GameController`, `SDL_Joystick`, `SDL_Haptic`, `SDL_Sensor`, `SDL_Cursor`, `SDL_Thread`, `SDL_mutex`, `SDL_sem` (canonical, after R6), `SDL_cond`, `SDL_hid_device` (canonical, after R6), `SDL_BlitMap` (non-user-facing internal — referenced via `SDL_Surface.map`; Pattern B emit safe because no user code reads its fields). Detection rule: `public partial struct X { }` with empty body AND `SDL_X*` pointer usage in at least one raw ABI parameter/return position (purely syntactic — no dependency on `[NativeTypeName]` annotations, which ClangSharp omits when C and C# names match).
+- **Auto-detected from existing empty structs** (14 names — canonical roster at `spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json`, three-source triangulated against SDL2 2.32.10): `SDL_Window`, `SDL_Renderer`, `SDL_Texture`, `SDL_AudioStream`, `SDL_GameController`, `SDL_Joystick`, `SDL_Haptic`, `SDL_Sensor`, `SDL_Cursor`, `SDL_Thread`, `SDL_mutex`, `SDL_sem` (canonical, after R6), `SDL_cond`, `SDL_hid_device` (canonical, after R6). Detection rule: `public partial struct X { }` with empty body AND `SDL_X*` pointer usage in at least one raw ABI parameter/return position (purely syntactic — no dependency on `[NativeTypeName]` annotations, which ClangSharp omits when C and C# names match).
 - **Force-opaque allow-list** (3 names — Constitution-bound): `SDL_RWops`, `SDL_SysWMinfo`, `SDL_SysWMmsg`. These have body in headers but Constitution L293-302 requires Stage 1 quarantine. The rewriter clears the body and emits the typed handle shape.
 
 Constitution L262-277 already requires "public readonly value types wrapping `nint`"; this design specifies the exact shape and applies it uniformly in Layer 1.
@@ -127,6 +127,8 @@ Constitution L262-277 already requires "public readonly value types wrapping `ni
 Microsoft's official guidance for C `long` on `netstandard2.0`/`net462` ([cross-platform data types](https://learn.microsoft.com/en-us/dotnet/standard/native-interop/best-practices)) recommends **dual-DllImport with `RuntimeInformation.IsOSPlatform` dispatch** when the symbol must remain accessible. Cake's `ModernCIntegerEmissionPolicy` + `RawAbiCommandEmitter:49-76` `#if NET6_0_OR_GREATER`-guards entire member emit on legacy TFMs (drop strategy). The hybrid combines both: drop where BCL equivalents exist, dual-dispatch where the symbol is structural.
 
 **HOW.**
+
+The convenience-helper drops below follow Constitution §"BCL-Replaceable Helper Exclusion Policy" — the explicit policy section that codifies the three-condition rule (BCL equivalent exists, SDL2-CS skips, no transitive SDL dependency) and lists these standing exclusions alongside the SDL_iconv_* family.
 
 For the convenience helpers — RSP-level exclusion in a per-header RSP file:
 
