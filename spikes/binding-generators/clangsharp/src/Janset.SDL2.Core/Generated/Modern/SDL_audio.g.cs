@@ -93,7 +93,7 @@ namespace SDL2
         SDL_AUDIO_PAUSED,
     }
 
-    public partial struct _SDL_AudioStream
+    public partial struct SDL_AudioStream
     {
     }
 
@@ -181,32 +181,31 @@ namespace SDL2
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        [return: NativeTypeName("SDL_AudioStream *")]
-        public static partial _SDL_AudioStream* SDL_NewAudioStream([NativeTypeName("const SDL_AudioFormat")] ushort src_format, [NativeTypeName("const Uint8")] byte src_channels, [NativeTypeName("const int")] int src_rate, [NativeTypeName("const SDL_AudioFormat")] ushort dst_format, [NativeTypeName("const Uint8")] byte dst_channels, [NativeTypeName("const int")] int dst_rate);
+        public static partial SDL_AudioStream* SDL_NewAudioStream([NativeTypeName("const SDL_AudioFormat")] ushort src_format, [NativeTypeName("const Uint8")] byte src_channels, [NativeTypeName("const int")] int src_rate, [NativeTypeName("const SDL_AudioFormat")] ushort dst_format, [NativeTypeName("const Uint8")] byte dst_channels, [NativeTypeName("const int")] int dst_rate);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_AudioStreamPut([NativeTypeName("SDL_AudioStream *")] _SDL_AudioStream* stream, [NativeTypeName("const void *")] nint buf, int len);
+        public static partial int SDL_AudioStreamPut(SDL_AudioStream* stream, [NativeTypeName("const void *")] nint buf, int len);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_AudioStreamGet([NativeTypeName("SDL_AudioStream *")] _SDL_AudioStream* stream, [NativeTypeName("void*")] nint buf, int len);
+        public static partial int SDL_AudioStreamGet(SDL_AudioStream* stream, [NativeTypeName("void*")] nint buf, int len);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_AudioStreamAvailable([NativeTypeName("SDL_AudioStream *")] _SDL_AudioStream* stream);
+        public static partial int SDL_AudioStreamAvailable(SDL_AudioStream* stream);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_AudioStreamFlush([NativeTypeName("SDL_AudioStream *")] _SDL_AudioStream* stream);
+        public static partial int SDL_AudioStreamFlush(SDL_AudioStream* stream);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_AudioStreamClear([NativeTypeName("SDL_AudioStream *")] _SDL_AudioStream* stream);
+        public static partial void SDL_AudioStreamClear(SDL_AudioStream* stream);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_FreeAudioStream([NativeTypeName("SDL_AudioStream *")] _SDL_AudioStream* stream);
+        public static partial void SDL_FreeAudioStream(SDL_AudioStream* stream);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]

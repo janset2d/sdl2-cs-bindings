@@ -7,14 +7,6 @@ using System.Runtime.Versioning;
 namespace SDL2
 {
 
-    public partial struct XTaskQueueObject
-    {
-    }
-
-    public partial struct XUser
-    {
-    }
-
     internal static unsafe partial class SDLNative
     {
 
@@ -23,13 +15,13 @@ namespace SDL2
         #endif
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_GDKGetTaskQueue([NativeTypeName("XTaskQueueHandle *")] XTaskQueueObject** outTaskQueue);
+        public static extern int SDL_GDKGetTaskQueue([NativeTypeName("XTaskQueueHandle *")] nint* outTaskQueue);
 
         #if NET5_0_OR_GREATER
         [SupportedOSPlatform("windows")]
         #endif
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_GDKGetDefaultUser([NativeTypeName("XUserHandle *")] XUser** outUserHandle);
+        public static extern int SDL_GDKGetDefaultUser([NativeTypeName("XUserHandle *")] nint* outUserHandle);
     }
 }

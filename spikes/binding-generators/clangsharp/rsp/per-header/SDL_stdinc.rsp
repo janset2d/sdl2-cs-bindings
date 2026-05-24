@@ -1,0 +1,11 @@
+# Per-header overrides for SDL_stdinc.h.
+#
+# R6 tag/typedef canonicalization (Constitution L262-277): rename the
+# private C struct tag `_SDL_iconv_t` to the public typedef name
+# `SDL_iconv_t` everywhere (struct declaration + every reference).
+#
+# Task 9 will later append --exclude entries for the C-long helpers
+# (SDL_lround/SDL_lroundf/SDL_ltoa/SDL_strtol/SDL_strtoul/SDL_ultoa).
+
+--remap
+_SDL_iconv_t=SDL_iconv_t

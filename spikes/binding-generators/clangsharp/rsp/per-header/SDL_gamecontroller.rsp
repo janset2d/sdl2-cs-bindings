@@ -1,0 +1,15 @@
+# Per-header overrides for SDL_gamecontroller.h.
+#
+# R6 tag/typedef canonicalization (Constitution L262-277): rename the
+# private C struct tag `_SDL_GameController` to the public typedef name
+# `SDL_GameController` everywhere (struct declaration + every reference).
+#
+# `_SDL_Joystick` is repeated here because SDL_gamecontroller.h returns
+# `SDL_Joystick *` from SDL_GameControllerGetJoystick. ClangSharp
+# --remap is byte-exact and only applies to the header currently being
+# parsed, so each header that surfaces a foreign tag must repeat the
+# remap. The canonical mapping lives in SDL_joystick.rsp.
+
+--remap
+_SDL_GameController=SDL_GameController
+_SDL_Joystick=SDL_Joystick

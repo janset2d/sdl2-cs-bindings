@@ -10,7 +10,7 @@ namespace SDL2
         SDL_TRUE = 1,
     }
 
-    public partial struct _SDL_iconv_t
+    public partial struct SDL_iconv_t
     {
     }
 
@@ -537,16 +537,16 @@ namespace SDL2
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("SDL_iconv_t")]
-        public static partial _SDL_iconv_t* SDL_iconv_open([NativeTypeName("const char *")] byte* tocode, [NativeTypeName("const char *")] byte* fromcode);
+        public static partial SDL_iconv_t* SDL_iconv_open([NativeTypeName("const char *")] byte* tocode, [NativeTypeName("const char *")] byte* fromcode);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_iconv_close([NativeTypeName("SDL_iconv_t")] _SDL_iconv_t* cd);
+        public static partial int SDL_iconv_close([NativeTypeName("SDL_iconv_t")] SDL_iconv_t* cd);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("size_t")]
-        public static partial nuint SDL_iconv([NativeTypeName("SDL_iconv_t")] _SDL_iconv_t* cd, [NativeTypeName("const char **")] byte** inbuf, [NativeTypeName("size_t *")] nuint* inbytesleft, [NativeTypeName("char **")] byte** outbuf, [NativeTypeName("size_t *")] nuint* outbytesleft);
+        public static partial nuint SDL_iconv([NativeTypeName("SDL_iconv_t")] SDL_iconv_t* cd, [NativeTypeName("const char **")] byte** inbuf, [NativeTypeName("size_t *")] nuint* inbytesleft, [NativeTypeName("char **")] byte** outbuf, [NativeTypeName("size_t *")] nuint* outbytesleft);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]

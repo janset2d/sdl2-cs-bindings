@@ -9,18 +9,6 @@ namespace SDL2
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate void SDL_WindowsMessageHook([NativeTypeName("void*")] nint userdata, [NativeTypeName("void*")] nint hWnd, [NativeTypeName("unsigned int")] uint message, [NativeTypeName("Uint64")] ulong wParam, [NativeTypeName("Sint64")] long lParam);
 
-    public partial struct IDirect3DDevice9
-    {
-    }
-
-    public partial struct ID3D11Device
-    {
-    }
-
-    public partial struct ID3D12Device
-    {
-    }
-
     internal static unsafe partial class SDLNative
     {
         #if NET5_0_OR_GREATER
@@ -41,21 +29,24 @@ namespace SDL2
         #endif
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern IDirect3DDevice9* SDL_RenderGetD3D9Device(SDL_Renderer* renderer);
+        [return: NativeTypeName("IDirect3DDevice9*")]
+        public static extern nint SDL_RenderGetD3D9Device(SDL_Renderer* renderer);
 
         #if NET5_0_OR_GREATER
         [SupportedOSPlatform("windows")]
         #endif
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern ID3D11Device* SDL_RenderGetD3D11Device(SDL_Renderer* renderer);
+        [return: NativeTypeName("ID3D11Device*")]
+        public static extern nint SDL_RenderGetD3D11Device(SDL_Renderer* renderer);
 
         #if NET5_0_OR_GREATER
         [SupportedOSPlatform("windows")]
         #endif
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern ID3D12Device* SDL_RenderGetD3D12Device(SDL_Renderer* renderer);
+        [return: NativeTypeName("ID3D12Device*")]
+        public static extern nint SDL_RenderGetD3D12Device(SDL_Renderer* renderer);
 
         #if NET5_0_OR_GREATER
         [SupportedOSPlatform("windows")]

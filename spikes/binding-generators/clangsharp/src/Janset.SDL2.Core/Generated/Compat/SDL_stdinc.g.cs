@@ -27,7 +27,7 @@ namespace SDL2
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate int SDL_CompareCallback([NativeTypeName("const void *")] nint param0, [NativeTypeName("const void *")] nint param1);
 
-    public partial struct _SDL_iconv_t
+    public partial struct SDL_iconv_t
     {
     }
 
@@ -434,14 +434,14 @@ namespace SDL2
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("SDL_iconv_t")]
-        public static extern _SDL_iconv_t* SDL_iconv_open([NativeTypeName("const char *")] byte* tocode, [NativeTypeName("const char *")] byte* fromcode);
+        public static extern SDL_iconv_t* SDL_iconv_open([NativeTypeName("const char *")] byte* tocode, [NativeTypeName("const char *")] byte* fromcode);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_iconv_close([NativeTypeName("SDL_iconv_t")] _SDL_iconv_t* cd);
+        public static extern int SDL_iconv_close([NativeTypeName("SDL_iconv_t")] SDL_iconv_t* cd);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("size_t")]
-        public static extern UIntPtr SDL_iconv([NativeTypeName("SDL_iconv_t")] _SDL_iconv_t* cd, [NativeTypeName("const char **")] byte** inbuf, [NativeTypeName("size_t *")] UIntPtr* inbytesleft, [NativeTypeName("char **")] byte** outbuf, [NativeTypeName("size_t *")] UIntPtr* outbytesleft);
+        public static extern UIntPtr SDL_iconv([NativeTypeName("SDL_iconv_t")] SDL_iconv_t* cd, [NativeTypeName("const char **")] byte** inbuf, [NativeTypeName("size_t *")] UIntPtr* inbytesleft, [NativeTypeName("char **")] byte** outbuf, [NativeTypeName("size_t *")] UIntPtr* outbytesleft);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("char *")]

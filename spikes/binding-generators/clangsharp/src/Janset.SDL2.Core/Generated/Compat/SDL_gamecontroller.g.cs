@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace SDL2
 {
-    public partial struct _SDL_GameController
+    public partial struct SDL_GameController
     {
     }
 
@@ -123,7 +123,7 @@ namespace SDL2
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("char *")]
-        public static extern byte* SDL_GameControllerMapping([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller);
+        public static extern byte* SDL_GameControllerMapping(SDL_GameController* gamecontroller);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern SDL_bool SDL_IsGameController(int joystick_index);
@@ -144,64 +144,60 @@ namespace SDL2
         public static extern byte* SDL_GameControllerMappingForDeviceIndex(int joystick_index);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("SDL_GameController *")]
-        public static extern _SDL_GameController* SDL_GameControllerOpen(int joystick_index);
+        public static extern SDL_GameController* SDL_GameControllerOpen(int joystick_index);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("SDL_GameController *")]
-        public static extern _SDL_GameController* SDL_GameControllerFromInstanceID([NativeTypeName("SDL_JoystickID")] int joyid);
+        public static extern SDL_GameController* SDL_GameControllerFromInstanceID([NativeTypeName("SDL_JoystickID")] int joyid);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("SDL_GameController *")]
-        public static extern _SDL_GameController* SDL_GameControllerFromPlayerIndex(int player_index);
+        public static extern SDL_GameController* SDL_GameControllerFromPlayerIndex(int player_index);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("const char *")]
-        public static extern byte* SDL_GameControllerName([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller);
+        public static extern byte* SDL_GameControllerName(SDL_GameController* gamecontroller);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("const char *")]
-        public static extern byte* SDL_GameControllerPath([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller);
+        public static extern byte* SDL_GameControllerPath(SDL_GameController* gamecontroller);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_GameControllerType SDL_GameControllerGetType([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller);
+        public static extern SDL_GameControllerType SDL_GameControllerGetType(SDL_GameController* gamecontroller);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_GameControllerGetPlayerIndex([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller);
+        public static extern int SDL_GameControllerGetPlayerIndex(SDL_GameController* gamecontroller);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void SDL_GameControllerSetPlayerIndex([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller, int player_index);
-
-        [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("Uint16")]
-        public static extern ushort SDL_GameControllerGetVendor([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller);
+        public static extern void SDL_GameControllerSetPlayerIndex(SDL_GameController* gamecontroller, int player_index);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("Uint16")]
-        public static extern ushort SDL_GameControllerGetProduct([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller);
+        public static extern ushort SDL_GameControllerGetVendor(SDL_GameController* gamecontroller);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("Uint16")]
-        public static extern ushort SDL_GameControllerGetProductVersion([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller);
+        public static extern ushort SDL_GameControllerGetProduct(SDL_GameController* gamecontroller);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("Uint16")]
-        public static extern ushort SDL_GameControllerGetFirmwareVersion([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller);
+        public static extern ushort SDL_GameControllerGetProductVersion(SDL_GameController* gamecontroller);
+
+        [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("Uint16")]
+        public static extern ushort SDL_GameControllerGetFirmwareVersion(SDL_GameController* gamecontroller);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("const char *")]
-        public static extern byte* SDL_GameControllerGetSerial([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller);
+        public static extern byte* SDL_GameControllerGetSerial(SDL_GameController* gamecontroller);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("Uint64")]
-        public static extern ulong SDL_GameControllerGetSteamHandle([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller);
+        public static extern ulong SDL_GameControllerGetSteamHandle(SDL_GameController* gamecontroller);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_bool SDL_GameControllerGetAttached([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller);
+        public static extern SDL_bool SDL_GameControllerGetAttached(SDL_GameController* gamecontroller);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("SDL_Joystick *")]
-        public static extern _SDL_Joystick* SDL_GameControllerGetJoystick([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller);
+        public static extern SDL_Joystick* SDL_GameControllerGetJoystick(SDL_GameController* gamecontroller);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern int SDL_GameControllerEventState(int state);
@@ -217,14 +213,14 @@ namespace SDL2
         public static extern byte* SDL_GameControllerGetStringForAxis(SDL_GameControllerAxis axis);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_GameControllerButtonBind SDL_GameControllerGetBindForAxis([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller, SDL_GameControllerAxis axis);
+        public static extern SDL_GameControllerButtonBind SDL_GameControllerGetBindForAxis(SDL_GameController* gamecontroller, SDL_GameControllerAxis axis);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_bool SDL_GameControllerHasAxis([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller, SDL_GameControllerAxis axis);
+        public static extern SDL_bool SDL_GameControllerHasAxis(SDL_GameController* gamecontroller, SDL_GameControllerAxis axis);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("Sint16")]
-        public static extern short SDL_GameControllerGetAxis([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller, SDL_GameControllerAxis axis);
+        public static extern short SDL_GameControllerGetAxis(SDL_GameController* gamecontroller, SDL_GameControllerAxis axis);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern SDL_GameControllerButton SDL_GameControllerGetButtonFromString([NativeTypeName("const char *")] byte* str);
@@ -234,72 +230,72 @@ namespace SDL2
         public static extern byte* SDL_GameControllerGetStringForButton(SDL_GameControllerButton button);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_GameControllerButtonBind SDL_GameControllerGetBindForButton([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller, SDL_GameControllerButton button);
+        public static extern SDL_GameControllerButtonBind SDL_GameControllerGetBindForButton(SDL_GameController* gamecontroller, SDL_GameControllerButton button);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_bool SDL_GameControllerHasButton([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller, SDL_GameControllerButton button);
+        public static extern SDL_bool SDL_GameControllerHasButton(SDL_GameController* gamecontroller, SDL_GameControllerButton button);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("Uint8")]
-        public static extern byte SDL_GameControllerGetButton([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller, SDL_GameControllerButton button);
+        public static extern byte SDL_GameControllerGetButton(SDL_GameController* gamecontroller, SDL_GameControllerButton button);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_GameControllerGetNumTouchpads([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller);
+        public static extern int SDL_GameControllerGetNumTouchpads(SDL_GameController* gamecontroller);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_GameControllerGetNumTouchpadFingers([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller, int touchpad);
+        public static extern int SDL_GameControllerGetNumTouchpadFingers(SDL_GameController* gamecontroller, int touchpad);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_GameControllerGetTouchpadFinger([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller, int touchpad, int finger, [NativeTypeName("Uint8 *")] byte* state, float* x, float* y, float* pressure);
+        public static extern int SDL_GameControllerGetTouchpadFinger(SDL_GameController* gamecontroller, int touchpad, int finger, [NativeTypeName("Uint8 *")] byte* state, float* x, float* y, float* pressure);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_bool SDL_GameControllerHasSensor([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller, SDL_SensorType type);
+        public static extern SDL_bool SDL_GameControllerHasSensor(SDL_GameController* gamecontroller, SDL_SensorType type);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_GameControllerSetSensorEnabled([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller, SDL_SensorType type, SDL_bool enabled);
+        public static extern int SDL_GameControllerSetSensorEnabled(SDL_GameController* gamecontroller, SDL_SensorType type, SDL_bool enabled);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_bool SDL_GameControllerIsSensorEnabled([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller, SDL_SensorType type);
+        public static extern SDL_bool SDL_GameControllerIsSensorEnabled(SDL_GameController* gamecontroller, SDL_SensorType type);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern float SDL_GameControllerGetSensorDataRate([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller, SDL_SensorType type);
+        public static extern float SDL_GameControllerGetSensorDataRate(SDL_GameController* gamecontroller, SDL_SensorType type);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_GameControllerGetSensorData([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller, SDL_SensorType type, float* data, int num_values);
+        public static extern int SDL_GameControllerGetSensorData(SDL_GameController* gamecontroller, SDL_SensorType type, float* data, int num_values);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_GameControllerGetSensorDataWithTimestamp([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller, SDL_SensorType type, [NativeTypeName("Uint64 *")] ulong* timestamp, float* data, int num_values);
+        public static extern int SDL_GameControllerGetSensorDataWithTimestamp(SDL_GameController* gamecontroller, SDL_SensorType type, [NativeTypeName("Uint64 *")] ulong* timestamp, float* data, int num_values);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_GameControllerRumble([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller, [NativeTypeName("Uint16")] ushort low_frequency_rumble, [NativeTypeName("Uint16")] ushort high_frequency_rumble, [NativeTypeName("Uint32")] uint duration_ms);
+        public static extern int SDL_GameControllerRumble(SDL_GameController* gamecontroller, [NativeTypeName("Uint16")] ushort low_frequency_rumble, [NativeTypeName("Uint16")] ushort high_frequency_rumble, [NativeTypeName("Uint32")] uint duration_ms);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_GameControllerRumbleTriggers([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller, [NativeTypeName("Uint16")] ushort left_rumble, [NativeTypeName("Uint16")] ushort right_rumble, [NativeTypeName("Uint32")] uint duration_ms);
+        public static extern int SDL_GameControllerRumbleTriggers(SDL_GameController* gamecontroller, [NativeTypeName("Uint16")] ushort left_rumble, [NativeTypeName("Uint16")] ushort right_rumble, [NativeTypeName("Uint32")] uint duration_ms);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_bool SDL_GameControllerHasLED([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller);
+        public static extern SDL_bool SDL_GameControllerHasLED(SDL_GameController* gamecontroller);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_bool SDL_GameControllerHasRumble([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller);
+        public static extern SDL_bool SDL_GameControllerHasRumble(SDL_GameController* gamecontroller);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern SDL_bool SDL_GameControllerHasRumbleTriggers([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller);
+        public static extern SDL_bool SDL_GameControllerHasRumbleTriggers(SDL_GameController* gamecontroller);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_GameControllerSetLED([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller, [NativeTypeName("Uint8")] byte red, [NativeTypeName("Uint8")] byte green, [NativeTypeName("Uint8")] byte blue);
+        public static extern int SDL_GameControllerSetLED(SDL_GameController* gamecontroller, [NativeTypeName("Uint8")] byte red, [NativeTypeName("Uint8")] byte green, [NativeTypeName("Uint8")] byte blue);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_GameControllerSendEffect([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller, [NativeTypeName("const void *")] nint data, int size);
+        public static extern int SDL_GameControllerSendEffect(SDL_GameController* gamecontroller, [NativeTypeName("const void *")] nint data, int size);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void SDL_GameControllerClose([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller);
-
-        [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("const char *")]
-        public static extern byte* SDL_GameControllerGetAppleSFSymbolsNameForButton([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller, SDL_GameControllerButton button);
+        public static extern void SDL_GameControllerClose(SDL_GameController* gamecontroller);
 
         [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("const char *")]
-        public static extern byte* SDL_GameControllerGetAppleSFSymbolsNameForAxis([NativeTypeName("SDL_GameController *")] _SDL_GameController* gamecontroller, SDL_GameControllerAxis axis);
+        public static extern byte* SDL_GameControllerGetAppleSFSymbolsNameForButton(SDL_GameController* gamecontroller, SDL_GameControllerButton button);
+
+        [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("const char *")]
+        public static extern byte* SDL_GameControllerGetAppleSFSymbolsNameForAxis(SDL_GameController* gamecontroller, SDL_GameControllerAxis axis);
     }
 }

@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace SDL2
 {
-    public partial struct _SDL_Sensor
+    public partial struct SDL_Sensor
     {
     }
 
@@ -53,43 +53,41 @@ namespace SDL2
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        [return: NativeTypeName("SDL_Sensor *")]
-        public static partial _SDL_Sensor* SDL_SensorOpen(int device_index);
+        public static partial SDL_Sensor* SDL_SensorOpen(int device_index);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        [return: NativeTypeName("SDL_Sensor *")]
-        public static partial _SDL_Sensor* SDL_SensorFromInstanceID([NativeTypeName("SDL_SensorID")] int instance_id);
+        public static partial SDL_Sensor* SDL_SensorFromInstanceID([NativeTypeName("SDL_SensorID")] int instance_id);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("const char *")]
-        public static partial byte* SDL_SensorGetName([NativeTypeName("SDL_Sensor *")] _SDL_Sensor* sensor);
+        public static partial byte* SDL_SensorGetName(SDL_Sensor* sensor);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_SensorType SDL_SensorGetType([NativeTypeName("SDL_Sensor *")] _SDL_Sensor* sensor);
+        public static partial SDL_SensorType SDL_SensorGetType(SDL_Sensor* sensor);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_SensorGetNonPortableType([NativeTypeName("SDL_Sensor *")] _SDL_Sensor* sensor);
+        public static partial int SDL_SensorGetNonPortableType(SDL_Sensor* sensor);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("SDL_SensorID")]
-        public static partial int SDL_SensorGetInstanceID([NativeTypeName("SDL_Sensor *")] _SDL_Sensor* sensor);
+        public static partial int SDL_SensorGetInstanceID(SDL_Sensor* sensor);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_SensorGetData([NativeTypeName("SDL_Sensor *")] _SDL_Sensor* sensor, float* data, int num_values);
+        public static partial int SDL_SensorGetData(SDL_Sensor* sensor, float* data, int num_values);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_SensorGetDataWithTimestamp([NativeTypeName("SDL_Sensor *")] _SDL_Sensor* sensor, [NativeTypeName("Uint64 *")] ulong* timestamp, float* data, int num_values);
+        public static partial int SDL_SensorGetDataWithTimestamp(SDL_Sensor* sensor, [NativeTypeName("Uint64 *")] ulong* timestamp, float* data, int num_values);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_SensorClose([NativeTypeName("SDL_Sensor *")] _SDL_Sensor* sensor);
+        public static partial void SDL_SensorClose(SDL_Sensor* sensor);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]

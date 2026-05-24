@@ -1,0 +1,16 @@
+# Per-header overrides for SDL_haptic.h.
+#
+# R6 tag/typedef canonicalization (Constitution L262-277): rename the
+# private C struct tag `_SDL_Haptic` to the public typedef name
+# `SDL_Haptic` everywhere (struct declaration + every reference).
+#
+# `_SDL_Joystick` is repeated here because SDL_haptic.h references the
+# joystick tag at parameter positions (SDL_JoystickIsHaptic /
+# SDL_HapticOpenFromJoystick). ClangSharp --remap is byte-exact and only
+# applies to the header currently being parsed, so each header that
+# surfaces a foreign tag must repeat the remap. The canonical mapping
+# lives in SDL_joystick.rsp.
+
+--remap
+_SDL_Haptic=SDL_Haptic
+_SDL_Joystick=SDL_Joystick

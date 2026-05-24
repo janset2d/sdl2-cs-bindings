@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace SDL2
 {
-    public partial struct _SDL_Haptic
+    public partial struct SDL_Haptic
     {
     }
 
@@ -311,8 +311,7 @@ namespace SDL2
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        [return: NativeTypeName("SDL_Haptic *")]
-        public static partial _SDL_Haptic* SDL_HapticOpen(int device_index);
+        public static partial SDL_Haptic* SDL_HapticOpen(int device_index);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
@@ -320,7 +319,7 @@ namespace SDL2
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_HapticIndex([NativeTypeName("SDL_Haptic *")] _SDL_Haptic* haptic);
+        public static partial int SDL_HapticIndex(SDL_Haptic* haptic);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
@@ -328,102 +327,100 @@ namespace SDL2
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        [return: NativeTypeName("SDL_Haptic *")]
-        public static partial _SDL_Haptic* SDL_HapticOpenFromMouse();
+        public static partial SDL_Haptic* SDL_HapticOpenFromMouse();
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_JoystickIsHaptic([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick);
+        public static partial int SDL_JoystickIsHaptic(SDL_Joystick* joystick);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        [return: NativeTypeName("SDL_Haptic *")]
-        public static partial _SDL_Haptic* SDL_HapticOpenFromJoystick([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick);
+        public static partial SDL_Haptic* SDL_HapticOpenFromJoystick(SDL_Joystick* joystick);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_HapticClose([NativeTypeName("SDL_Haptic *")] _SDL_Haptic* haptic);
+        public static partial void SDL_HapticClose(SDL_Haptic* haptic);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_HapticNumEffects([NativeTypeName("SDL_Haptic *")] _SDL_Haptic* haptic);
+        public static partial int SDL_HapticNumEffects(SDL_Haptic* haptic);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_HapticNumEffectsPlaying([NativeTypeName("SDL_Haptic *")] _SDL_Haptic* haptic);
+        public static partial int SDL_HapticNumEffectsPlaying(SDL_Haptic* haptic);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("unsigned int")]
-        public static partial uint SDL_HapticQuery([NativeTypeName("SDL_Haptic *")] _SDL_Haptic* haptic);
+        public static partial uint SDL_HapticQuery(SDL_Haptic* haptic);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_HapticNumAxes([NativeTypeName("SDL_Haptic *")] _SDL_Haptic* haptic);
+        public static partial int SDL_HapticNumAxes(SDL_Haptic* haptic);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_HapticEffectSupported([NativeTypeName("SDL_Haptic *")] _SDL_Haptic* haptic, SDL_HapticEffect* effect);
+        public static partial int SDL_HapticEffectSupported(SDL_Haptic* haptic, SDL_HapticEffect* effect);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_HapticNewEffect([NativeTypeName("SDL_Haptic *")] _SDL_Haptic* haptic, SDL_HapticEffect* effect);
+        public static partial int SDL_HapticNewEffect(SDL_Haptic* haptic, SDL_HapticEffect* effect);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_HapticUpdateEffect([NativeTypeName("SDL_Haptic *")] _SDL_Haptic* haptic, int effect, SDL_HapticEffect* data);
+        public static partial int SDL_HapticUpdateEffect(SDL_Haptic* haptic, int effect, SDL_HapticEffect* data);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_HapticRunEffect([NativeTypeName("SDL_Haptic *")] _SDL_Haptic* haptic, int effect, [NativeTypeName("Uint32")] uint iterations);
+        public static partial int SDL_HapticRunEffect(SDL_Haptic* haptic, int effect, [NativeTypeName("Uint32")] uint iterations);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_HapticStopEffect([NativeTypeName("SDL_Haptic *")] _SDL_Haptic* haptic, int effect);
+        public static partial int SDL_HapticStopEffect(SDL_Haptic* haptic, int effect);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_HapticDestroyEffect([NativeTypeName("SDL_Haptic *")] _SDL_Haptic* haptic, int effect);
+        public static partial void SDL_HapticDestroyEffect(SDL_Haptic* haptic, int effect);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_HapticGetEffectStatus([NativeTypeName("SDL_Haptic *")] _SDL_Haptic* haptic, int effect);
+        public static partial int SDL_HapticGetEffectStatus(SDL_Haptic* haptic, int effect);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_HapticSetGain([NativeTypeName("SDL_Haptic *")] _SDL_Haptic* haptic, int gain);
+        public static partial int SDL_HapticSetGain(SDL_Haptic* haptic, int gain);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_HapticSetAutocenter([NativeTypeName("SDL_Haptic *")] _SDL_Haptic* haptic, int autocenter);
+        public static partial int SDL_HapticSetAutocenter(SDL_Haptic* haptic, int autocenter);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_HapticPause([NativeTypeName("SDL_Haptic *")] _SDL_Haptic* haptic);
+        public static partial int SDL_HapticPause(SDL_Haptic* haptic);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_HapticUnpause([NativeTypeName("SDL_Haptic *")] _SDL_Haptic* haptic);
+        public static partial int SDL_HapticUnpause(SDL_Haptic* haptic);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_HapticStopAll([NativeTypeName("SDL_Haptic *")] _SDL_Haptic* haptic);
+        public static partial int SDL_HapticStopAll(SDL_Haptic* haptic);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_HapticRumbleSupported([NativeTypeName("SDL_Haptic *")] _SDL_Haptic* haptic);
+        public static partial int SDL_HapticRumbleSupported(SDL_Haptic* haptic);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_HapticRumbleInit([NativeTypeName("SDL_Haptic *")] _SDL_Haptic* haptic);
+        public static partial int SDL_HapticRumbleInit(SDL_Haptic* haptic);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_HapticRumblePlay([NativeTypeName("SDL_Haptic *")] _SDL_Haptic* haptic, float strength, [NativeTypeName("Uint32")] uint length);
+        public static partial int SDL_HapticRumblePlay(SDL_Haptic* haptic, float strength, [NativeTypeName("Uint32")] uint length);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_HapticRumbleStop([NativeTypeName("SDL_Haptic *")] _SDL_Haptic* haptic);
+        public static partial int SDL_HapticRumbleStop(SDL_Haptic* haptic);
 
         [NativeTypeName("#define SDL_HAPTIC_CONSTANT (1u<<0)")]
         public const uint SDL_HAPTIC_CONSTANT = (1U << 0);

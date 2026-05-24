@@ -6,7 +6,6 @@ using System.Runtime.Versioning;
 
 namespace SDL2
 {
-
     public enum SDL_WinRT_Path
     {
         SDL_WINRT_PATH_INSTALLED_LOCATION,

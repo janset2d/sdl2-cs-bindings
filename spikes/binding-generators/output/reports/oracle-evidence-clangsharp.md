@@ -7,8 +7,8 @@ This spike report is evidence, not a correctness certificate. Raw ABI constituti
 | Family | Source | Path | Status | Functions | Constants | Types |
 | --- | --- | --- | --- | ---: | ---: | ---: |
 | sdl2-core | Cake Preview | `artifacts/generated-bindings-preview/sdl2-core` | present | 854 | 351 | 152 |
-| sdl2-core | ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Compat` | present | 871 | 362 | 224 |
-| sdl2-core | ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern` | present | 871 | 362 | 240 |
+| sdl2-core | ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Compat` | present | 871 | 362 | 216 |
+| sdl2-core | ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern` | present | 871 | 362 | 231 |
 | sdl2-core | SDL2 Dynapi | `external/vcpkg or vcpkg_installed` | present | 872 | 0 | 0 |
 | sdl2-core | Manifest Required Surface | `build/manifest.json` | present | 5 | 10 | 0 |
 | sdl2-core | SDL2-CS | `external/sdl2-cs/src/SDL2.cs` | present | 789 | 292 | 131 |
@@ -30,8 +30,8 @@ This spike report is evidence, not a correctness certificate. Raw ABI constituti
 | Source | Path | Status | Functions | Constants | Types |
 | --- | --- | --- | ---: | ---: | ---: |
 | Cake Preview | `artifacts/generated-bindings-preview/sdl2-core` | present | 854 | 351 | 152 |
-| ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Compat` | present | 871 | 362 | 224 |
-| ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern` | present | 871 | 362 | 240 |
+| ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Compat` | present | 871 | 362 | 216 |
+| ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern` | present | 871 | 362 | 231 |
 | SDL2 Dynapi | `external/vcpkg or vcpkg_installed` | present | 872 | 0 | 0 |
 | Manifest Required Surface | `build/manifest.json` | present | 5 | 10 | 0 |
 | SDL2-CS | `external/sdl2-cs/src/SDL2.cs` | present | 789 | 292 | 131 |
@@ -40,7 +40,7 @@ This spike report is evidence, not a correctness certificate. Raw ABI constituti
 
 | Surface | Functions | Constants | Types |
 | --- | ---: | ---: | ---: |
-| Generated ClangSharp | 1742 | 724 | 464 |
+| Generated ClangSharp | 1742 | 724 | 447 |
 | Cake Preview | 854 | 351 | 152 |
 | SDL2-CS | 789 | 292 | 131 |
 | Dynapi | 872 | 0 | 0 |
@@ -50,21 +50,6 @@ This spike report is evidence, not a correctness certificate. Raw ABI constituti
 
 #### Compatibility Risk
 
-- Duplicate tag/typedef pairs (`duplicate-tag-typedef`): 20 finding(s), 10 symbol(s).
-  - Symbols:
-  - `VkInstance_T`
-  - `VkSurfaceKHR_T`
-  - `XTaskQueueObject`
-  - `XUser`
-  - `_SDL_AudioStream`
-  - `_SDL_GameController`
-  - `_SDL_Haptic`
-  - `_SDL_Joystick`
-  - `_SDL_Sensor`
-  - `_SDL_iconv_t`
-  - Example: `VkInstance_T` - Struct 'VkInstance_T' is referenced via [NativeTypeName("VkInstance *")] - tag/typedef pair detected; canonicalize via per-header RSP --remap (Constitution L262-277). (`spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Compat/SDL_vulkan.g.cs`)
-  - Example: `VkInstance_T` - Struct 'VkInstance_T' is referenced via [NativeTypeName("VkInstance *")] - tag/typedef pair detected; canonicalize via per-header RSP --remap (Constitution L262-277). (`spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Compat/SDL_vulkan.g.cs`)
-  - Example: `VkSurfaceKHR_T` - Struct 'VkSurfaceKHR_T' is referenced via [NativeTypeName("VkSurfaceKHR *")] - tag/typedef pair detected; canonicalize via per-header RSP --remap (Constitution L262-277). (`spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Compat/SDL_vulkan.g.cs`)
 - Platform-sensitive scalar risks (`platform-sensitive-wchar`): 30 finding(s), 15 symbol(s).
   - Symbols:
   - `SDL_WinRTGetFSPathUNICODE`

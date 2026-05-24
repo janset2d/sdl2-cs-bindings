@@ -1,0 +1,8 @@
+# Per-header overrides for SDL_sensor.h.
+#
+# R6 tag/typedef canonicalization (Constitution L262-277): rename the
+# private C struct tag `_SDL_Sensor` to the public typedef name
+# `SDL_Sensor` everywhere (struct declaration + every reference).
+
+--remap
+_SDL_Sensor=SDL_Sensor

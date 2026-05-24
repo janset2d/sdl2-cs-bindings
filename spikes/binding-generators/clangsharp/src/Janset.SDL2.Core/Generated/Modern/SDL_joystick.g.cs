@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace SDL2
 {
-    public partial struct _SDL_Joystick
+    public partial struct SDL_Joystick
     {
     }
 
@@ -149,18 +149,15 @@ namespace SDL2
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        [return: NativeTypeName("SDL_Joystick *")]
-        public static partial _SDL_Joystick* SDL_JoystickOpen(int device_index);
+        public static partial SDL_Joystick* SDL_JoystickOpen(int device_index);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        [return: NativeTypeName("SDL_Joystick *")]
-        public static partial _SDL_Joystick* SDL_JoystickFromInstanceID([NativeTypeName("SDL_JoystickID")] int instance_id);
+        public static partial SDL_Joystick* SDL_JoystickFromInstanceID([NativeTypeName("SDL_JoystickID")] int instance_id);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        [return: NativeTypeName("SDL_Joystick *")]
-        public static partial _SDL_Joystick* SDL_JoystickFromPlayerIndex(int player_index);
+        public static partial SDL_Joystick* SDL_JoystickFromPlayerIndex(int player_index);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
@@ -180,67 +177,67 @@ namespace SDL2
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_JoystickSetVirtualAxis([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick, int axis, [NativeTypeName("Sint16")] short value);
+        public static partial int SDL_JoystickSetVirtualAxis(SDL_Joystick* joystick, int axis, [NativeTypeName("Sint16")] short value);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_JoystickSetVirtualButton([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick, int button, [NativeTypeName("Uint8")] byte value);
+        public static partial int SDL_JoystickSetVirtualButton(SDL_Joystick* joystick, int button, [NativeTypeName("Uint8")] byte value);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_JoystickSetVirtualHat([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick, int hat, [NativeTypeName("Uint8")] byte value);
-
-        [LibraryImport("SDL2")]
-        [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        [return: NativeTypeName("const char *")]
-        public static partial byte* SDL_JoystickName([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick);
+        public static partial int SDL_JoystickSetVirtualHat(SDL_Joystick* joystick, int hat, [NativeTypeName("Uint8")] byte value);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("const char *")]
-        public static partial byte* SDL_JoystickPath([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick);
+        public static partial byte* SDL_JoystickName(SDL_Joystick* joystick);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_JoystickGetPlayerIndex([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick);
+        [return: NativeTypeName("const char *")]
+        public static partial byte* SDL_JoystickPath(SDL_Joystick* joystick);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_JoystickSetPlayerIndex([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick, int player_index);
+        public static partial int SDL_JoystickGetPlayerIndex(SDL_Joystick* joystick);
+
+        [LibraryImport("SDL2")]
+        [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+        public static partial void SDL_JoystickSetPlayerIndex(SDL_Joystick* joystick, int player_index);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("SDL_JoystickGUID")]
-        public static partial Guid SDL_JoystickGetGUID([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick);
+        public static partial Guid SDL_JoystickGetGUID(SDL_Joystick* joystick);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("Uint16")]
-        public static partial ushort SDL_JoystickGetVendor([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick);
+        public static partial ushort SDL_JoystickGetVendor(SDL_Joystick* joystick);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("Uint16")]
-        public static partial ushort SDL_JoystickGetProduct([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick);
+        public static partial ushort SDL_JoystickGetProduct(SDL_Joystick* joystick);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("Uint16")]
-        public static partial ushort SDL_JoystickGetProductVersion([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick);
+        public static partial ushort SDL_JoystickGetProductVersion(SDL_Joystick* joystick);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("Uint16")]
-        public static partial ushort SDL_JoystickGetFirmwareVersion([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick);
+        public static partial ushort SDL_JoystickGetFirmwareVersion(SDL_Joystick* joystick);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("const char *")]
-        public static partial byte* SDL_JoystickGetSerial([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick);
+        public static partial byte* SDL_JoystickGetSerial(SDL_Joystick* joystick);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_JoystickType SDL_JoystickGetType([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick);
+        public static partial SDL_JoystickType SDL_JoystickGetType(SDL_Joystick* joystick);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
@@ -257,28 +254,28 @@ namespace SDL2
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_bool SDL_JoystickGetAttached([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick);
+        public static partial SDL_bool SDL_JoystickGetAttached(SDL_Joystick* joystick);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("SDL_JoystickID")]
-        public static partial int SDL_JoystickInstanceID([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick);
+        public static partial int SDL_JoystickInstanceID(SDL_Joystick* joystick);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_JoystickNumAxes([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick);
+        public static partial int SDL_JoystickNumAxes(SDL_Joystick* joystick);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_JoystickNumBalls([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick);
+        public static partial int SDL_JoystickNumBalls(SDL_Joystick* joystick);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_JoystickNumHats([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick);
+        public static partial int SDL_JoystickNumHats(SDL_Joystick* joystick);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_JoystickNumButtons([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick);
+        public static partial int SDL_JoystickNumButtons(SDL_Joystick* joystick);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
@@ -291,61 +288,61 @@ namespace SDL2
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("Sint16")]
-        public static partial short SDL_JoystickGetAxis([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick, int axis);
+        public static partial short SDL_JoystickGetAxis(SDL_Joystick* joystick, int axis);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_bool SDL_JoystickGetAxisInitialState([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick, int axis, [NativeTypeName("Sint16 *")] short* state);
-
-        [LibraryImport("SDL2")]
-        [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        [return: NativeTypeName("Uint8")]
-        public static partial byte SDL_JoystickGetHat([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick, int hat);
-
-        [LibraryImport("SDL2")]
-        [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_JoystickGetBall([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick, int ball, int* dx, int* dy);
+        public static partial SDL_bool SDL_JoystickGetAxisInitialState(SDL_Joystick* joystick, int axis, [NativeTypeName("Sint16 *")] short* state);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("Uint8")]
-        public static partial byte SDL_JoystickGetButton([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick, int button);
+        public static partial byte SDL_JoystickGetHat(SDL_Joystick* joystick, int hat);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_JoystickRumble([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick, [NativeTypeName("Uint16")] ushort low_frequency_rumble, [NativeTypeName("Uint16")] ushort high_frequency_rumble, [NativeTypeName("Uint32")] uint duration_ms);
+        public static partial int SDL_JoystickGetBall(SDL_Joystick* joystick, int ball, int* dx, int* dy);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_JoystickRumbleTriggers([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick, [NativeTypeName("Uint16")] ushort left_rumble, [NativeTypeName("Uint16")] ushort right_rumble, [NativeTypeName("Uint32")] uint duration_ms);
+        [return: NativeTypeName("Uint8")]
+        public static partial byte SDL_JoystickGetButton(SDL_Joystick* joystick, int button);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_bool SDL_JoystickHasLED([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick);
+        public static partial int SDL_JoystickRumble(SDL_Joystick* joystick, [NativeTypeName("Uint16")] ushort low_frequency_rumble, [NativeTypeName("Uint16")] ushort high_frequency_rumble, [NativeTypeName("Uint32")] uint duration_ms);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_bool SDL_JoystickHasRumble([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick);
+        public static partial int SDL_JoystickRumbleTriggers(SDL_Joystick* joystick, [NativeTypeName("Uint16")] ushort left_rumble, [NativeTypeName("Uint16")] ushort right_rumble, [NativeTypeName("Uint32")] uint duration_ms);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_bool SDL_JoystickHasRumbleTriggers([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick);
+        public static partial SDL_bool SDL_JoystickHasLED(SDL_Joystick* joystick);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_JoystickSetLED([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick, [NativeTypeName("Uint8")] byte red, [NativeTypeName("Uint8")] byte green, [NativeTypeName("Uint8")] byte blue);
+        public static partial SDL_bool SDL_JoystickHasRumble(SDL_Joystick* joystick);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial int SDL_JoystickSendEffect([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick, [NativeTypeName("const void *")] nint data, int size);
+        public static partial SDL_bool SDL_JoystickHasRumbleTriggers(SDL_Joystick* joystick);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial void SDL_JoystickClose([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick);
+        public static partial int SDL_JoystickSetLED(SDL_Joystick* joystick, [NativeTypeName("Uint8")] byte red, [NativeTypeName("Uint8")] byte green, [NativeTypeName("Uint8")] byte blue);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_JoystickPowerLevel SDL_JoystickCurrentPowerLevel([NativeTypeName("SDL_Joystick *")] _SDL_Joystick* joystick);
+        public static partial int SDL_JoystickSendEffect(SDL_Joystick* joystick, [NativeTypeName("const void *")] nint data, int size);
+
+        [LibraryImport("SDL2")]
+        [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+        public static partial void SDL_JoystickClose(SDL_Joystick* joystick);
+
+        [LibraryImport("SDL2")]
+        [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+        public static partial SDL_JoystickPowerLevel SDL_JoystickCurrentPowerLevel(SDL_Joystick* joystick);
 
         [NativeTypeName("#define SDL_IPHONE_MAX_GFORCE 5.0")]
         public const double SDL_IPHONE_MAX_GFORCE = 5.0;

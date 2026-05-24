@@ -6,18 +6,6 @@ using System.Runtime.Versioning;
 
 namespace SDL2
 {
-    public partial struct IDirect3DDevice9
-    {
-    }
-
-    public partial struct ID3D11Device
-    {
-    }
-
-    public partial struct ID3D12Device
-    {
-    }
-
     internal static unsafe partial class SDLNative
     {
         #if NET5_0_OR_GREATER
@@ -41,7 +29,8 @@ namespace SDL2
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial IDirect3DDevice9* SDL_RenderGetD3D9Device(SDL_Renderer* renderer);
+        [return: NativeTypeName("IDirect3DDevice9*")]
+        public static partial nint SDL_RenderGetD3D9Device(SDL_Renderer* renderer);
 
         #if NET5_0_OR_GREATER
         [SupportedOSPlatform("windows")]
@@ -49,7 +38,8 @@ namespace SDL2
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial ID3D11Device* SDL_RenderGetD3D11Device(SDL_Renderer* renderer);
+        [return: NativeTypeName("ID3D11Device*")]
+        public static partial nint SDL_RenderGetD3D11Device(SDL_Renderer* renderer);
 
         #if NET5_0_OR_GREATER
         [SupportedOSPlatform("windows")]
@@ -57,7 +47,8 @@ namespace SDL2
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial ID3D12Device* SDL_RenderGetD3D12Device(SDL_Renderer* renderer);
+        [return: NativeTypeName("ID3D12Device*")]
+        public static partial nint SDL_RenderGetD3D12Device(SDL_Renderer* renderer);
 
         #if NET5_0_OR_GREATER
         [SupportedOSPlatform("windows")]
