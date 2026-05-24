@@ -124,4 +124,16 @@ dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --family sdl
 
 ## Per-TFM ABI runtime smoke
 
-**AbiTests (per-TFM ABI runtime smoke):** The `spikes/binding-generators/clangsharp/tests/abi-tests` project exercises Layer 1 `SDLNative.SDL_ThreadID()` runtime evidence per executable TFM (net462, net8.0, net9.0, net10.0). Host-side this covers Win32 32-bit `uint` and CULong+LibraryImport paths. Unix64 (Linux x64/arm64, macOS x64/arm64) `nint` returns must be exercised on the CI per-RID matrix by overriding the SDL2 native source path.
+**AbiTests (per-TFM ABI runtime smoke):** The `spikes/binding-generators/clangsharp/tests/abi-tests` project exercises Layer 1 `SDLNative.SDL_ThreadID()` runtime evidence per executable TFM (net462, net8.0, net9.0, net10.0). The csproj OS-dispatches the native lib copy: Windows pulls `vcpkg_installed/x64-windows-hybrid/bin/SDL2.dll`; Linux pulls `vcpkg_installed/x64-linux-hybrid/lib/libSDL2-2.0.so.0` (also copied as `libSDL2.so` so the .NET name fallback resolves it without ldconfig).
+
+Host-side Windows run covers Win32 32-bit `uint` (Compat / net462) and 32-bit CULong+LibraryImport (Modern / net8+) paths.
+
+Linux x64 64-bit CULong+LibraryImport path is exercised locally via the binding-generator Docker container (which bakes vcpkg_installed/x64-linux-hybrid into the image; see `docker/binding-generator.Dockerfile` and `tools.cs:GenerateBindingsCommand` for the build args). Command override pattern (image already built):
+
+```bash
+docker run --rm --entrypoint sh janset-binding-generator:focal-latest \
+  -c "cd /workspace/spikes/binding-generators/clangsharp/tests/abi-tests && \
+      dotnet test --project AbiTests.csproj -c Release --framework net10.0"
+```
+
+`net8.0` / `net9.0` runtimes are not present in the container today (Dockerfile Layer A installs only the SDK pinned by `global.json` plus its bundled runtime). The Modern path is single-source so `net10.0` runtime evidence covers it. Linux ARM64, macOS x64, and macOS ARM64 RID coverage joins on the CI per-RID matrix.

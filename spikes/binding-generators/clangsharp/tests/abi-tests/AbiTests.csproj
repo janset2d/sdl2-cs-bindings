@@ -37,13 +37,29 @@
   </ItemGroup>
 
   <!--
-    Copy SDL2 native binary from the repo-root vcpkg_installed dir into the
-    test output so the runtime loader can resolve SDL2.dll. Host triplet
-    (x64-windows-hybrid) only — CI RID matrix overrides this for other RIDs.
-    Path is relative to spikes/binding-generators/clangsharp/tests/abi-tests/.
+    Copy the platform-appropriate SDL2 native binary from the repo-root
+    vcpkg_installed/<triplet> directory into the test output so the runtime
+    loader can resolve SDL2 via DllImport("SDL2"). Triplet is OS-dispatched:
+    Windows -> x64-windows-hybrid/bin/SDL2.dll
+    Linux   -> x64-linux-hybrid/lib/libSDL2-2.0.so.0 (also copied as libSDL2.so
+               so the .NET DllImport name fallback resolves it locally without
+               needing system ldconfig entries).
+    macOS is not yet exercised — when an arm64-osx-hybrid path is needed, mirror
+    the Linux branch with the dylib SONAME pattern.
+    Paths are relative to spikes/binding-generators/clangsharp/tests/abi-tests/.
   -->
-  <ItemGroup>
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
     <None Include="..\..\..\..\..\vcpkg_installed\x64-windows-hybrid\bin\SDL2.dll"
+          CopyToOutputDirectory="PreserveNewest"
+          Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+    <None Include="..\..\..\..\..\vcpkg_installed\x64-linux-hybrid\lib\libSDL2-2.0.so.0"
+          CopyToOutputDirectory="PreserveNewest"
+          Visible="false" />
+    <None Include="..\..\..\..\..\vcpkg_installed\x64-linux-hybrid\lib\libSDL2-2.0.so.0"
+          Link="libSDL2.so"
           CopyToOutputDirectory="PreserveNewest"
           Visible="false" />
   </ItemGroup>
