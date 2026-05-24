@@ -4,24 +4,29 @@
 # Direct3D COM interfaces under the Windows pass and two GDK handle types
 # under the GDK pass. All are foreign-boundary types owned by external
 # .NET bindings (Vortice.Direct3D{9,11,12} for D3D; future XGameRuntime
-# binding for GDK). Emit as IntPtr at parameter/return positions for
+# binding for GDK). Emit as nint at parameter/return positions for
 # friction-free interop.
 #
 # Precedent: SDL2-CS uses IntPtr for IDirect3DDevice9 / ID3D11Device with
 # `// Refers to an IDirect3DDevice9*` annotation (SDL2.cs:8747-8748).
 # SDL2-CS omits SDL_GDKGetTaskQueue / SDL_GDKGetDefaultUser entirely; we
-# emit them with IntPtr per Decision 5.
+# emit them with nint per Decision 5 (matches base.rsp void*=nint /
+# wchar_t*=nint cross-cutting style; `nint` is a C# alias for IntPtr).
 
 --remap
+# Direct3D COM (Windows pass)
 IDirect3DDevice9*=nint
 ID3D11Device*=nint
 ID3D12Device*=nint
+# GDK (GDK pass)
 XTaskQueueObject*=nint
 XUser*=nint
 
 --exclude
+# Direct3D COM
 IDirect3DDevice9
 ID3D11Device
 ID3D12Device
+# GDK
 XTaskQueueObject
 XUser

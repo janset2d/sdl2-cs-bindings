@@ -1,6 +1,6 @@
 # Per-header overrides for SDL_stdinc.h.
 #
-# R6 tag/typedef canonicalization (Constitution L262-277): rename the
+# R6 tag/typedef canonicalization (Constitution section "Opaque Handles"): rename the
 # private C struct tag `_SDL_iconv_t` to the public typedef name
 # `SDL_iconv_t` everywhere (struct declaration + every reference).
 #

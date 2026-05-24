@@ -1,6 +1,6 @@
 # Per-header overrides for SDL_haptic.h.
 #
-# R6 tag/typedef canonicalization (Constitution L262-277): rename the
+# R6 tag/typedef canonicalization (Constitution section "Opaque Handles"): rename the
 # private C struct tag `_SDL_Haptic` to the public typedef name
 # `SDL_Haptic` everywhere (struct declaration + every reference).
 #

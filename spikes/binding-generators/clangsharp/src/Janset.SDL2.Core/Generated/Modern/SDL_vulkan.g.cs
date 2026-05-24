@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
@@ -25,7 +24,7 @@ namespace SDL2
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        public static partial SDL_bool SDL_Vulkan_CreateSurface(SDL_Window* window, [NativeTypeName("VkInstance")] IntPtr instance, [NativeTypeName("VkSurfaceKHR *")] IntPtr* surface);
+        public static partial SDL_bool SDL_Vulkan_CreateSurface(SDL_Window* window, [NativeTypeName("VkInstance")] nint instance, [NativeTypeName("VkSurfaceKHR *")] nint* surface);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]

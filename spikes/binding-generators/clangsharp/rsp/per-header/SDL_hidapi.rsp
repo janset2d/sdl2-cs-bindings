@@ -1,6 +1,6 @@
 # Per-header overrides for SDL_hidapi.h.
 #
-# R6 tag/typedef canonicalization (Constitution L262-277): rename the
+# R6 tag/typedef canonicalization (Constitution section "Opaque Handles"): rename the
 # private C struct tag `SDL_hid_device_` to the public typedef name
 # `SDL_hid_device` everywhere (struct declaration + every reference).
 # ClangSharp byte-exact remap follows ppy/SDL3-CS pattern at

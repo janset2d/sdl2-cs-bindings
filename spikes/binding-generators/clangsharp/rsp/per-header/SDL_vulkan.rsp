@@ -2,26 +2,29 @@
 #
 # Decision 5 (Foreign Type Boundary Policy) per
 # docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md
-# and Constitution §"Foreign Type Boundary Policy":
+# and Constitution section "Foreign Type Boundary Policy":
 # VkInstance / VkSurfaceKHR are owned by the user's external Vulkan binding
 # (Silk.NET.Vulkan, Vortice.Vulkan, TerraFX). SDL2 references them at
 # SDL_Vulkan_CreateSurface parameter sites only (SDL_vulkan.h:187-188).
-# Emit as IntPtr / IntPtr* so users pass handle values from external Vulkan
+# Emit as nint / nint* so users pass handle values from external Vulkan
 # bindings directly without explicit-conversion friction.
 #
 # Precedent: SDL2-CS uses IntPtr for VkInstance and `out ulong` for
-# VkSurfaceKHR (external/sdl2-cs/src/SDL2.cs:2452-2456).
+# VkSurfaceKHR (external/sdl2-cs/src/SDL2.cs:2452-2456). We standardize on
+# `nint` project-wide to match base.rsp cross-cutting style (void*=nint,
+# wchar_t*=nint). `nint` is a C# language alias for System.IntPtr -- IL is
+# identical, only the generated source spelling differs.
 #
-# Note on byte-exact matching: the plan-suggested `"VkSurfaceKHR *"=IntPtr*`
+# Note on byte-exact matching: the plan-suggested `"VkSurfaceKHR *"=nint*`
 # (quoted, with space) did not fire because the C declaration is
 # `VkSurfaceKHR* surface` (no space; SDL_vulkan.h:188). The bare
-# `VkSurfaceKHR=IntPtr` form matches the typedef name and lets ClangSharp's
-# own pointer-suffix logic produce `IntPtr*` — the alternative the plan
+# `VkSurfaceKHR=nint` form matches the typedef name and lets ClangSharp's
+# own pointer-suffix logic produce `nint*` -- the alternative the plan
 # explicitly suggested in "When You're in Over Your Head".
 
 --remap
-VkInstance=IntPtr
-VkSurfaceKHR=IntPtr
+VkInstance=nint
+VkSurfaceKHR=nint
 
 --exclude
 VkInstance_T
