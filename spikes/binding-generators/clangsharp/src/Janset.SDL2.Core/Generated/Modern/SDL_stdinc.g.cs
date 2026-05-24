@@ -287,16 +287,6 @@ namespace SDL2
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         [return: NativeTypeName("char *")]
-        public static partial byte* SDL_ltoa([NativeTypeName("long")] int value, [NativeTypeName("char *")] byte* str, int radix);
-
-        [LibraryImport("SDL2")]
-        [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        [return: NativeTypeName("char *")]
-        public static partial byte* SDL_ultoa([NativeTypeName("unsigned long")] uint value, [NativeTypeName("char *")] byte* str, int radix);
-
-        [LibraryImport("SDL2")]
-        [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        [return: NativeTypeName("char *")]
         public static partial byte* SDL_lltoa([NativeTypeName("Sint64")] long value, [NativeTypeName("char *")] byte* str, int radix);
 
         [LibraryImport("SDL2")]
@@ -311,16 +301,6 @@ namespace SDL2
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         public static partial double SDL_atof([NativeTypeName("const char *")] byte* str);
-
-        [LibraryImport("SDL2")]
-        [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        [return: NativeTypeName("long")]
-        public static partial int SDL_strtol([NativeTypeName("const char *")] byte* str, [NativeTypeName("char **")] byte** endp, int @base);
-
-        [LibraryImport("SDL2")]
-        [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        [return: NativeTypeName("unsigned long")]
-        public static partial uint SDL_strtoul([NativeTypeName("const char *")] byte* str, [NativeTypeName("char **")] byte** endp, int @base);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
@@ -491,16 +471,6 @@ namespace SDL2
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         public static partial float SDL_roundf(float x);
-
-        [LibraryImport("SDL2")]
-        [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        [return: NativeTypeName("long")]
-        public static partial int SDL_lround(double x);
-
-        [LibraryImport("SDL2")]
-        [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-        [return: NativeTypeName("long")]
-        public static partial int SDL_lroundf(float x);
 
         [LibraryImport("SDL2")]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
