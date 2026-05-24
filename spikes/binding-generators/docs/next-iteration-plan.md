@@ -1,7 +1,7 @@
 # Spike Next-Iteration Plan — ppy-Style ClangSharp Production Prototype
 
-**Date:** 2026-05-21; updated 2026-05-22
-**Status:** Active spike plan. Slice 3/4 implementation exists and builds. Windows-local ClangSharp can now use explicit spike-only platform header shims for synthetic Linux/macOS/iOS views, but shim-enabled output is still not final production platform evidence. Do not make a final ClangSharp-vs-CppAst recommendation until comparable CppAst/Alimer-style evidence exists.
+**Date:** 2026-05-21; updated 2026-05-24 (Priority C closure)
+**Status:** Active spike plan. Priority A (`92b893b`), Priority B (`444fada`), and **Priority C semantic-ABI completion all closed 2026-05-24** — see [`priority-c-closure-summary.md`](priority-c-closure-summary.md). Six known semantic-ABI risks resolved + Foreign Type Boundary Policy + BCL-Replaceable Helper Exclusion Policy + Cross-Assembly Pattern B contract codified. **Next forward scope: Layer 2 typed low-level public API** (Constitution Layer Contract L34-50; Roadmap M5). Slice 5 (ppy orchestrator feature parity) remains deferred — per-header `.rsp` lookup landed during Priority C; companion-file manual-symbol feedback + dynapi validation still open but not on the critical path. Windows-local ClangSharp uses `--use-platform-header-shims` for synthetic Linux/macOS/iOS views; native generation already wired for `x64-linux-hybrid` via the binding-generator docker container. Do not make a final ClangSharp-vs-CppAst recommendation until comparable CppAst/Alimer-style evidence exists.
 
 ## Direction
 
@@ -30,38 +30,41 @@ What this prototype does NOT do (out of spike scope; belongs in Roadmap M7+):
 | Slice | Status | Notes |
 | --- | --- | --- |
 | 1 — Layout restructure + library projects | ✅ done 2026-05-21 | `clangsharp/` folder + `.slnx` + `Janset.SDL2.Core` and `Janset.SDL2.Image` classlibs (5 TFMs each) + Generated moved into each library's `Generated/{Compat,Modern}/`. Multi-TFM build clean. |
-| 2 — Microsoft.CodeAnalysis postprocess: DllImport → LibraryImport | ✅ done 2026-05-21 | `postprocess/Janset.SDL2.PostProcess.csproj` console app + `DllImportToLibraryImportRewriter`. Modern output gets `[LibraryImport]` + `[UnmanagedCallConv]` + `partial`. Includes `StripVarargsRewriter` enforcing Constitution L162-176 `__arglist` rejection — variadic methods drop `...` tail so both Compat and Modern emit fmt-only signatures. Python script orchestrates: regen (compat+modern) → strip-varargs (both) → libraryimport (modern). Multi-TFM build clean. |
-| 3 — Multi-OS parse pass | 🔄 partial 2026-05-22 | `SDL_main.h` / `SDL_system.h` platform pass exists. Neutral/platform duplicate removal works. Windows-local non-Windows views still need system-header strategy before platform support is complete. |
+| 2 — Microsoft.CodeAnalysis postprocess: DllImport → LibraryImport | ✅ done 2026-05-21 | `postprocess/Janset.SDL2.PostProcess.csproj` console app + `DllImportToLibraryImportRewriter`. Modern output gets `[LibraryImport]` + `[UnmanagedCallConv]` + `partial`. Includes `StripVarargsRewriter` enforcing Constitution L162-176 `__arglist` rejection — variadic methods drop `...` tail so both Compat and Modern emit fmt-only signatures. Python script orchestrates: regen (compat+modern) → postprocess pipeline. Multi-TFM build clean. |
+| 3 — Multi-OS parse pass | ✅ done 2026-05-22 | `SDL_main.h` / `SDL_system.h` platform pass landed. Neutral/platform duplicate removal works via `PlatformDeltaPostProcessor`. `--use-platform-header-shims` unblocks Windows-local synthetic platform parsing; native Linux generation wired via the binding-generator docker container. |
 | 4 — SupportedOSPlatform `#if NET5_0_OR_GREATER` guards | ✅ folded into Slice 3 2026-05-22 | `PlatformDeltaPostProcessor` adds guarded `using System.Runtime.Versioning;` and guarded `[SupportedOSPlatform(...)]` by `Platforms/<View>` path. |
-| 5 — ppy orchestrator feature parity | ⏳ later | Per-header `.rsp`, manual-symbol feedback, dynapi validation. |
-| 6+ — Public typed projection + friendly overloads | ⏳ M5/M6 work | Out of current spike scope. |
+| Oracle Priority A — Raw ABI visibility + Image namespace | ✅ done 2026-05-23 (`92b893b`) | Generated raw ABI containers internal via ClangSharp class-level access specifiers; Image namespace drift fixed. |
+| Oracle Priority B — Required `SDL.h` surface | ✅ done 2026-05-24 (`444fada`) | Recovered `SDL_Init`, `SDL_InitSubSystem`, `SDL_Quit`, `SDL_QuitSubSystem`, `SDL_WasInit`, and ten `SDL_INIT_*` constants without re-parsing the umbrella header. |
+| **Oracle Priority C — Slice C-A (R1 wchar_t + R2 C long)** | ✅ closed 2026-05-24 (`adb64d0`) | R1: `wchar_t *=nint` + `const wchar_t *=nint` literal-space `--remap` entries in `rsp/base.rsp`. R2: hybrid — `rsp/per-header/SDL_stdinc.rsp` excludes BCL-replaceable helpers (`SDL_lround`/`SDL_lroundf`/`SDL_ltoa`/`SDL_ultoa`/`SDL_strtol`/`SDL_strtoul`); `ThreadIdDualDispatchRewriter` mode-aware emit (Modern `CULong` + `LibraryImport` vs. Compat managed wrapper + `RuntimeInformation.IsOSPlatform` dispatch). Per-RID AbiTests harness proves `SDL_ThreadID` non-zero on Win net10/9/8/462 + Linux x64 net10 docker. |
+| **Oracle Priority C — Slice C-B (R3/R4/R5 Pattern B uniform opaque)** | ✅ closed 2026-05-24 (`45fdab6`) | `OpaqueHandleEmitRewriter` consolidates 17 handles in `Generated/<Codegen>/Handles.g.cs` (14 auto-detected + 3 force-opaque `SDL_RWops` / `SDL_SysWMinfo` / `SDL_SysWMmsg`). Pattern B by-value struct (single `nint` field) rewrites `SDL_X*` → `SDL_X` at all 3 raw-ABI positions: parameter, return, **struct field**. Driven by `policy/opaque-handle-roster.json`. Cross-assembly contract via `[assembly: DisableRuntimeMarshalling]` in Core + Image (`Support/DisableRuntimeMarshalling.cs`, commit `4b87037`). Constitution policy codified at `d0016de`. |
+| **Oracle Priority C — Slice C-C (R6 tag canonicalization + SDL_GUID)** | ✅ closed 2026-05-24 | Per-header RSP canonicalization: `SDL_hid_device_=SDL_hid_device` in `rsp/per-header/SDL_hidapi.rsp`; `SDL_semaphore=SDL_sem` in `rsp/per-header/SDL_mutex.rsp`. `GuidSubstitutionRewriter` walks `[NativeTypeName("SDL_GUID")]` annotations and rewrites managed type to `System.Guid` (16-byte wire-identical, commit `bb638f9`). Cross-header `_SDL_Joystick` audit confirmed clean. |
+| **Oracle Priority C — Overall closure** | ✅ **CLOSED 2026-05-24** (`e62bf92`) | All six risks resolved. Oracle reports 0 findings across `platform-sensitive-wchar`, `platform-sensitive-long`, `deferred-layout-sdl-rwops`, `deferred-layout-sdl-syswminfo`, `deferred-layout-sdl-syswmmsg`, `duplicate-tag-typedef`. Full evidence + verification table in [`priority-c-closure-summary.md`](priority-c-closure-summary.md). Foreign Type Boundary Policy + BCL-Replaceable Helper Exclusion Policy + Cross-Assembly Pattern B contract codified. |
+| 5 — ppy orchestrator feature parity | ⏳ deferred | Per-header `.rsp` lookup landed during Priority C (`rsp/per-header/*.rsp` overlays now feed the orchestrator). Companion-file manual-symbol exclusion feedback regex (`[Constant]` / `[Typedef]` markers) and full dynapi validation pass still open. Not on the critical path for Layer 2 next slice. |
+| **Next — Layer 2 typed public API** | ⏳ Roadmap M5 | Public typed `SDL2.SDL` projection over the now-stable Layer 1 raw ABI. Handle shape (Pattern B by-value structs in `Handles.g.cs`), scalar widths (C `long` hybrid emit; wchar_t opaque), and foreign-type boundary (Vulkan/D3D/GDK via per-header RSP `--remap`) all settled. Detailed slice plan TBD. |
+| 6+ — Friendly overloads | ⏳ Roadmap M6 | Out of scope until Layer 2 lands. |
 
-## Current Evidence Snapshot — 2026-05-22
+## Current Evidence Snapshot — 2026-05-24 (Priority C closure)
 
-- Regeneration command: `python spikes/binding-generators/clangsharp/generate_bindings.py --scope full --codegen both --execute --clean-output --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims`.
-- Regeneration result: writes `clangsharp-full.md` with `Platform header shims: enabled` and no empty generated outputs. The shims unblock Windows-local synthetic platform parsing, but they are a spike-only substitute for native Linux/macOS SDK headers.
+- Regeneration command: `python spikes/binding-generators/clangsharp/generate_bindings.py --scope full --codegen both --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims`.
+- Regeneration result: byte-stable across regens (`git diff --ignore-cr-at-eol` empty); only CRLF write-noise appears in the working tree and reverts cleanly. 6-step postprocess pipeline: `platform-delta` → `strip-varargs` → `libraryimport` (Modern only) → `guid-substitute` → `threadid-dispatch` → `uniform-opaque`.
 - Build command: `dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Janset.SDL2.Image.csproj -c Release`.
-- Build result: Core + Image compile clean across `net462`, `netstandard2.0`, `net8.0`, `net9.0`, `net10.0` with 0 warnings / 0 errors.
-- Oracle evidence: `dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --family sdl2-core --family sdl2-image --write-report` writes [`../output/reports/oracle-evidence-clangsharp.md`](../output/reports/oracle-evidence-clangsharp.md). Current snapshot reports SDL2 Core + SDL2 Image surface counts and raw ABI constitution-risk buckets; see the report for full findings.
-- Known platform caveat: `--use-platform-header-shims` supplies minimal `endian.h`, `AvailabilityMacros.h`, and `TargetConditionals.h` from `clangsharp/shims/platform-headers/`. Use it for Windows-local spike iteration only; production evidence still needs native Linux/macOS generation.
+- Build result: Core + Image compile clean across `net462`, `netstandard2.0`, `net8.0`, `net9.0`, `net10.0` with 0 warnings / 0 errors. AbiTests harness builds clean across `net462`, `net8.0`, `net9.0`, `net10.0` (netstandard2.0 is library-only).
+- Oracle evidence: `dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --family sdl2-core --family sdl2-image --write-report` writes [`../output/reports/oracle-evidence-clangsharp.md`](../output/reports/oracle-evidence-clangsharp.md). **0 findings** across `platform-sensitive-wchar` / `platform-sensitive-long` / `deferred-layout-sdl-rwops` / `deferred-layout-sdl-syswminfo` / `deferred-layout-sdl-syswmmsg` / `duplicate-tag-typedef`. Hard Bug + Evidence Gaps sections absent for both families.
+- Runtime ABI smoke: AbiTests `SDL_ThreadID` returns non-zero OS thread identifier on Windows x64 (net10/9/8/462; 4/4) + Linux x64 (focal docker, net10).
+- Slopwatch: `slopwatch analyze --fail-on warning --exclude "artifacts/**,external/**,vcpkg_installed/**,spikes/binding-generators/references/**,**/bin/**,**/obj/**"` reports 0 issues.
+- Known platform caveat: `--use-platform-header-shims` supplies minimal `endian.h`, `AvailabilityMacros.h`, and `TargetConditionals.h` from `clangsharp/shims/platform-headers/`. Use for Windows-local spike iteration; production Linux evidence comes from the binding-generator docker container (`docker/binding-generator.Dockerfile`).
 
-## Oracle Repair Queue — 2026-05-22
+## Oracle Repair Queue — Status as of 2026-05-24
 
-The family-aware oracle report documents three concrete gap groups. Treat the report as the detailed evidence source and this section as the working queue for the next spike slices.
+The family-aware oracle report originally documented three concrete gap groups. All three closed.
 
-| Priority | Gap group | Current evidence | Why this order |
-| --- | --- | --- | --- |
-| A | Raw ABI visibility and SDL2_image family identity | Core leaks public `SDLNative` containers; Image leaks public `SDL_imageNative` containers and is generated under namespace `SDL2` instead of `SDL2.Image`. Public raw imports are leaks only while their raw containers are public. | Smallest high-signal cleanup. It aligns the generated shape with the constitution before adding more public surface. |
-| B | Missing required `SDL.h` functions and constants | Manifest-required `SDL_Init`, `SDL_InitSubSystem`, `SDL_Quit`, `SDL_QuitSubSystem`, `SDL_WasInit`, and the ten `SDL_INIT_*` constants are absent from ClangSharp evidence because `SDL.h` is an umbrella header excluded from per-header parsing. | Makes the spike useful for minimum SDL initialization, but should land after A so new declarations do not enter through the wrong public/raw shape. |
-| C | Deferred layouts and platform-sensitive scalar mappings | `SDL_RWops`, `SDL_SysWMinfo`, and `SDL_SysWMmsg` layouts are emitted even though the constitution quarantines them for Stage 1; `wchar_t` and C `long` are mapped to platform-sensitive raw C# types in ClangSharp output. | Highest ABI-correctness risk, but also the most research-heavy. It crosses ClangSharp emitted type policy, SDL2 platform headers/macros, and native ABI layout proof, so it should be its own focused slice. |
+| Priority | Gap group | Status |
+| --- | --- | --- |
+| A | Raw ABI visibility and SDL2_image family identity | ✅ **Done** (`92b893b`). Core/Image raw ABI containers internal; Image emits under `SDL2.Image` namespace. |
+| B | Missing required `SDL.h` functions and constants | ✅ **Done** (`444fada`). `SDL_Init`, `SDL_InitSubSystem`, `SDL_Quit`, `SDL_QuitSubSystem`, `SDL_WasInit`, and the ten `SDL_INIT_*` constants recovered without parsing the umbrella header. |
+| C | Deferred layouts and platform-sensitive scalar mappings (`SDL_RWops`, `SDL_SysWMinfo`, `SDL_SysWMmsg`, `wchar_t`, C `long`, tag/typedef canonicalization, `SDL_GUID`) | ✅ **CLOSED 2026-05-24** (`e62bf92`). All six risks resolved across Slice C-A scalars + Slice C-B Pattern B uniform opaque + Slice C-C tag canonicalization + SDL_GUID. Closure record in [`priority-c-closure-summary.md`](priority-c-closure-summary.md) with full risk-resolution table, commit chain, and verification evidence. |
 
-Repair posture:
-
-- Start with **A**: make raw ABI containers internal via ClangSharp class-level access specifiers and make SDL2_image emit under the expected family namespace. Raw import methods inside an internal raw container are not public API leaks; the oracle checks effective visibility rather than lexical member modifiers.
-- Then do **B**: recover the `SDL.h` required initialization surface without re-including the umbrella header as a normal parse unit.
-- Then do **C**: treat ClangSharp scalar/layout behavior as an ABI research slice, not a quick postprocess cleanup.
-
-A-slice and B-slice designs were retired with their respective commits (`92b893b`, `444fada`). **C-slice design (active 2026-05-24):** [`../../../docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md`](../../../docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md).
+A-slice, B-slice, and C-slice designs all retired with their respective commits (`92b893b`, `444fada`, `e62bf92`). The Priority C closure summary doc is the authoritative record going forward.
 
 ## Slices
 
@@ -143,9 +146,11 @@ spikes/binding-generators/clangsharp/
 - Multi-TFM build still succeeds (LibraryImport requires `net7.0+`, but compat-codegen output covers legacy TFMs separately).
 - Modern-codegen build target framework gets the source-generated marshalling perf benefit.
 
-### Slice 3 — Multi-OS parse pass
+### Slice 3 — Multi-OS parse pass (CLOSED 2026-05-22)
 
-**Goal:** ClangSharp's single neutral parse currently misses platform-only SDL2 functions (Cake oracle has 37 platform-specific functions our output skips). Adopt ppy's `generate_platform_specific_headers` pattern adapted for SDL2 macros, scoped tight by header-level evidence.
+**Status:** Closed. `SDL_main.h` / `SDL_system.h` platform pass + `PlatformDeltaPostProcessor` dedupe + guarded `[SupportedOSPlatform]` all landed. Native Linux generation wired via the binding-generator docker container.
+
+**Goal (historical):** ClangSharp's single neutral parse misses platform-only SDL2 functions (Cake oracle has 37 platform-specific functions our output skips). Adopt ppy's `generate_platform_specific_headers` pattern adapted for SDL2 macros, scoped tight by header-level evidence.
 
 **Evidence-based immediate scope (Explore agent scan, 2026-05-21; corrected 2026-05-22):**
 
@@ -254,10 +259,16 @@ Out of scope for this active plan document. Will be added after Slice 5 stabilis
 
 ## Cross-references
 
+- [`priority-c-closure-summary.md`](priority-c-closure-summary.md) — **authoritative Priority C closure record** (2026-05-24): six risks resolution table, Foreign Type Boundary Policy, BCL-Replaceable Helper Exclusion Policy, Cross-Assembly Pattern B contract, full verification evidence.
 - [`generator-spike-goals.md`](generator-spike-goals.md) — original charter and recorded decision.
 - [`../output/reports/iteration-2-comparison.md`](../output/reports/iteration-2-comparison.md) — decision evidence (function counts, dynapi coherence, multi-TFM trajectory).
 - [`../output/reports/clangsharp-failure-buckets.md`](../output/reports/clangsharp-failure-buckets.md) — RSP delta history from the 8 fix iterations.
-- [`../../../docs/binding-autogen/binding-generator-constitution.md`](../../../docs/binding-autogen/binding-generator-constitution.md) — Layer Contract L48 (DllImport/LibraryImport split), Evidence Gates L379 (multi-TFM compile), Macro pipeline L324-348.
-- [`../../../docs/binding-autogen/binding-generator-roadmap.md`](../../../docs/binding-autogen/binding-generator-roadmap.md) — M4 (multi-TFM backends), M5 (public typed), M6 (friendly overloads), M7 (production flip).
+- [`../output/reports/oracle-evidence-clangsharp.md`](../output/reports/oracle-evidence-clangsharp.md) — current family-aware raw ABI evidence snapshot (0 findings across the six Priority C risk categories).
+- [`../../../docs/binding-autogen/binding-generator-constitution.md`](../../../docs/binding-autogen/binding-generator-constitution.md) — Layer Contract L34-50 (three-layer API + DllImport/LibraryImport split), Opaque Handles L325-363 (Pattern B + cross-assembly contract), BCL-Replaceable Helper Exclusion Policy L169-208, C `long` L246-283, wchar_t L300-323, Structs And Unions L416-425, Foreign Type Boundary Policy L365-400, Evidence Gates L376-388, Macro pipeline L324-348.
+- [`../../../docs/binding-autogen/binding-generator-roadmap.md`](../../../docs/binding-autogen/binding-generator-roadmap.md) — M4 (multi-TFM backends), M5 (public typed — **next slice target**), M6 (friendly overloads), M7 (production flip).
+- [`../../../docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md`](../../../docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md) — Priority C design spec (Decisions 1/2/3 + SDL_GUID + Foreign Type Boundary Policy).
+- [`../../../docs/superpowers/plans/2026-05-24-clangsharp-priority-c-semantic-abi.md`](../../../docs/superpowers/plans/2026-05-24-clangsharp-priority-c-semantic-abi.md) — 19-task Priority C implementation plan.
+- [`../../../docs/research/semantic-abi-type-classification-research.md`](../../../docs/research/semantic-abi-type-classification-research.md) (2026-05-22) — semantic ABI classification research backing for the six risks.
+- [`../clangsharp/policy/opaque-handle-roster.json`](../clangsharp/policy/opaque-handle-roster.json) — single source of truth for the 14 auto-detect + 3 force-opaque + 11 excluded-candidate handle enumeration.
 - ppy `references/ppy-SDL3-CS/SDL3-CS/generate_bindings.py` — north star for the orchestrator.
 - ppy `references/ppy-SDL3-CS/SDL3-CS.SourceGeneration/FriendlyOverloadGenerator.cs` — reference for postprocess Syntax API patterns (note: ppy uses Roslyn SG; we use standalone console). Different runtime, same API surface.

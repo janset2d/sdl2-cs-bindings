@@ -1,14 +1,15 @@
 # LLM-to-LLM Handoff — Janset.SDL2 Binding Generator Spike
 
-**Date:** 2026-05-21; updated 2026-05-22
+**Date:** 2026-05-21; updated 2026-05-24 (Priority C closure)
 **Audience:** The next LLM picking up this spike. Read this **before** writing code or making decisions. The previous LLM hit a concrete sticking point and recorded the full context here so you don't redo work or relitigate decisions.
 
 ## TL;DR — 60-second status
 
 - **Project**: ClangSharp-based SDL2 binding generator spike under `spikes/binding-generators/clangsharp/`. Ultimately produces multi-TFM, multi-OS, source-generated `Janset.SDL2.Core` + `Janset.SDL2.Image` library packages.
 - **Toolchain evidence**: ppy-style ClangSharp orchestrator (Python) + Microsoft.CodeAnalysis postprocess (C# console app) is the active evidence path. Do **not** relitigate ClangSharp vs CppAst yet; finish the ClangSharp evidence, then build comparable CppAst/Alimer-style evidence before recommending direction.
-- **Active slice**: Slice 3/4 merged in practice — multi-OS parse pass for `SDL_main.h` and `SDL_system.h`, plus Roslyn `platform-delta` postprocess that deduplicates neutral/platform declarations and adds guarded `[SupportedOSPlatform]` attributes.
-- **Current blocker/caveat**: duplicate platform attributes are fixed and the generated projects build across all five TFMs. Windows-local platform passes can use `--use-platform-header-shims` to supply missing foreign system headers (`endian.h`, `AvailabilityMacros.h`, `TargetConditionals.h`), but shim-enabled output is local spike evidence only; final platform evidence still needs native Linux/macOS generation. See §"Current status and blockers".
+- **Priority C semantic-ABI: CLOSED 2026-05-24.** All six known platform-sensitive ABI risks (R1 `wchar_t*`, R2 C `long`/`unsigned long`, R3 `SDL_RWops`, R4 `SDL_SysWMinfo`, R5 `SDL_SysWMmsg`, R6 opaque-handle tag leak) resolved; six oracle gap categories at 0 findings. Full evidence + verification table in [`priority-c-closure-summary.md`](priority-c-closure-summary.md) (commit `e62bf92`). Cross-assembly Pattern B contract codified via `[assembly: DisableRuntimeMarshalling]` in Core + Image (commit `4b87037`); Constitution policy at `d0016de`. SDL_GUID → System.Guid substitution + Foreign Type Boundary Policy + BCL-Replaceable Helper Exclusion Policy all landed in scope.
+- **Next scope**: **Layer 2 typed low-level public API slice** (Constitution Layer Contract L34-50; Roadmap M5). The Layer 1 raw ABI surface is now stable enough — handle shape, scalar widths, foreign-type boundary all settled — that the typed `SDL2.SDL` projection can be built on top of it without churn. Slice 5 (ppy orchestrator feature parity) remains deferred.
+- **Branch state**: 35+ commits ahead of `origin/spike/binding-autogen-sdl2-gfx`; push gate pending Plan Task 19 (final code review + finishing branch decision per AGENTS.md §Approval Gate). Branch is `spike/binding-autogen-sdl2-gfx`.
 
 If you are starting fresh, skip to §"Reading order".
 
@@ -17,13 +18,14 @@ If you are starting fresh, skip to §"Reading order".
 | # | Document | Why |
 | --- | --- | --- |
 | 1 | This file | Handoff. You are here. |
-| 2 | [`spikes/binding-generators/docs/next-iteration-plan.md`](next-iteration-plan.md) | Active slice plan (1–5). Slice progress table at the top; Slice 3 currently has partial platform evidence. |
-| 3 | [`spikes/binding-generators/docs/generator-spike-goals.md`](generator-spike-goals.md) | Original charter + current evidence status. |
-| 4 | [`spikes/binding-generators/output/reports/iteration-2-comparison.md`](../output/reports/iteration-2-comparison.md) | Decision evidence — comparison table, multi-TFM trajectory, dynapi coherence. |
-| 5 | [`spikes/binding-generators/output/reports/clangsharp-failure-buckets.md`](../output/reports/clangsharp-failure-buckets.md) | History of the 8 RSP-fix iterations that took us from 161 errors → 0. Useful when adding new exclude rules. |
-| 6 | [`docs/binding-autogen/binding-generator-constitution.md`](../../../docs/binding-autogen/binding-generator-constitution.md) | **Authority** for ABI/API policy. Layer Contract (L34-50), C `long` policy (§"Scalar Type Translation"), C variadics fmt-only policy (L158-180), evidence gates (L376-388). Cited heavily below. |
-| 7 | [`docs/binding-autogen/binding-generator-roadmap.md`](../../../docs/binding-autogen/binding-generator-roadmap.md) | Milestone plan. M4 = multi-TFM backends, M5 = public typed, M6 = friendly overloads, M7 = production flip. Slices 6+ of the active plan correspond to M5/M6. |
-| 8 | ppy local clone at `spikes/binding-generators/references/ppy-SDL3-CS/` — see §"Reference projects". | North-star orchestrator. Patterns adapted, not copied. |
+| 2 | [`priority-c-closure-summary.md`](priority-c-closure-summary.md) | **Authoritative closure record** for the Priority C semantic-ABI slice (six risks resolved + Foreign Type Boundary Policy + Cross-Assembly Pattern B contract). Read this immediately after the TL;DR to anchor on the current evidence baseline before touching anything. |
+| 3 | [`spikes/binding-generators/docs/next-iteration-plan.md`](next-iteration-plan.md) | Slice plan (1–5). Slices 1–4 + Oracle Priorities A/B/C all closed; Slice 5 (ppy orchestrator feature parity) deferred. Layer 2 typed API is the next forward scope. |
+| 4 | [`spikes/binding-generators/docs/generator-spike-goals.md`](generator-spike-goals.md) | Original charter + current evidence status. |
+| 5 | [`spikes/binding-generators/output/reports/iteration-2-comparison.md`](../output/reports/iteration-2-comparison.md) | Decision evidence — comparison table, multi-TFM trajectory, dynapi coherence. |
+| 6 | [`spikes/binding-generators/output/reports/clangsharp-failure-buckets.md`](../output/reports/clangsharp-failure-buckets.md) | History of the 8 RSP-fix iterations that took us from 161 errors → 0. Useful when adding new exclude rules. |
+| 7 | [`docs/binding-autogen/binding-generator-constitution.md`](../../../docs/binding-autogen/binding-generator-constitution.md) | **Authority** for ABI/API policy. Layer Contract (L34-50), Opaque Handles (L325-363, cross-assembly Pattern B clause from `d0016de`), C `long` policy (L246-283), wchar_t (L300-323), BCL-Replaceable Helper Exclusion Policy (L169-208), Foreign Type Boundary Policy (L365-400), Structs And Unions (L416-425), evidence gates (L376-388). Cited heavily below. |
+| 8 | [`docs/binding-autogen/binding-generator-roadmap.md`](../../../docs/binding-autogen/binding-generator-roadmap.md) | Milestone plan. M4 = multi-TFM backends, M5 = public typed, M6 = friendly overloads, M7 = production flip. Next slice corresponds to M5. |
+| 9 | ppy local clone at `spikes/binding-generators/references/ppy-SDL3-CS/` — see §"Reference projects". | North-star orchestrator. Patterns adapted, not copied. |
 
 ## Working preferences (read this — saves you grief)
 
@@ -90,37 +92,56 @@ spikes/binding-generators/
 │   ├── sdl2-image.headers.txt         # 1 SDL2_image header
 │   └── bootstrap-*.headers.txt        # bring-up slices (mostly unused now)
 ├── clangsharp/                        # ← THE ACTIVE PROTOTYPE
-│   ├── Janset.SDL2.ClangSharpSpike.slnx    # solution: postprocess + Core + Image
-│   ├── generate_bindings.py           # Python orchestrator (~470 LOC)
+│   ├── Janset.SDL2.ClangSharpSpike.slnx    # solution: postprocess + Core + Image + AbiTests
+│   ├── generate_bindings.py           # Python orchestrator (~1250 LOC)
 │   ├── compare_oracle.py              # Cake-preview / dynapi comparison validator
+│   ├── oracle.cs                      # Roslyn/file-based raw ABI evidence reporter
 │   ├── rsp/
-│   │   ├── base.rsp                   # cross-cutting policy (defines, remaps, --with-type SDL_bool=int, -fdeclspec, -U__has_builtin)
+│   │   ├── base.rsp                   # cross-cutting policy (defines, remaps incl. wchar_t* → nint, --with-type SDL_bool=int, -fdeclspec, -U__has_builtin)
 │   │   ├── sdl2-core.rsp              # SDL2.Core family identity + exclude lists
-│   │   └── sdl2-image.rsp             # SDL2_image family identity
+│   │   ├── sdl2-image.rsp             # SDL2_image family identity
+│   │   └── per-header/                # Priority C: per-header RSP overlays (ppy pattern)
+│   │       ├── SDL_hidapi.rsp         # SDL_hid_device_=SDL_hid_device tag canonicalization (R6)
+│   │       ├── SDL_mutex.rsp          # SDL_semaphore=SDL_sem tag canonicalization (R6)
+│   │       ├── SDL_stdinc.rsp         # BCL-replaceable helper excludes (SDL_lround/SDL_ltoa/SDL_strtol/...)
+│   │       ├── SDL_vulkan.rsp         # Foreign Type Boundary: VkInstance/VkSurfaceKHR → IntPtr
+│   │       └── SDL_{audio,gamecontroller,haptic,joystick,sensor,surface,system}.rsp
+│   ├── policy/
+│   │   └── opaque-handle-roster.json  # Pattern B handle roster (14 auto + 3 force-opaque + 11 excluded), sdl2_version-keyed
 │   ├── shims/platform-headers/        # Windows-local parse shims only (endian.h, AvailabilityMacros.h, TargetConditionals.h)
 │   ├── postprocess/                   # Microsoft.CodeAnalysis console app
 │   │   ├── Janset.SDL2.PostProcess.csproj  # net10.0, VersionOverride MS.CodeAnalysis 4.12.0
-│   │   ├── Program.cs                 # CLI: strip-varargs | libraryimport | platform-delta
+│   │   ├── Program.cs                 # CLI: platform-delta | strip-varargs | libraryimport | guid-substitute | threadid-dispatch | uniform-opaque
 │   │   ├── DllImportToLibraryImportRewriter.cs   # Slice 2 rewriter
 │   │   ├── PlatformDeltaPostProcessor.cs         # Slice 3/4 dedupe + guarded SupportedOSPlatform
-│   │   └── StripVarargsRewriter.cs    # Constitution L162-176 fmt-only policy enforcer
+│   │   ├── StripVarargsRewriter.cs    # Constitution L162-176 fmt-only policy enforcer
+│   │   ├── GuidSubstitutionRewriter.cs           # Slice C-C: SDL_GUID → System.Guid
+│   │   ├── ThreadIdDualDispatchRewriter.cs       # Slice C-A R2: SDL_threadID hybrid TFM emit (Modern CULong / Compat RuntimeInformation dispatch)
+│   │   └── OpaqueHandleEmitRewriter.cs           # Slice C-B Pattern B: emits Handles.g.cs + rewrites SDL_X* → SDL_X at 3 positions (param/return/field)
+│   ├── tests/abi-tests/               # Per-TFM ABI runtime smoke (net10/net9/net8/net462) — InternalsVisibleTo Core
 │   └── src/
 │       ├── Janset.SDL2.Core/
 │       │   ├── Janset.SDL2.Core.csproj       # 5 TFMs, Compile Include conditional on TFM
-│       │   ├── Support/NativeTypeNameAttribute.cs   # internal attribute used by [NativeTypeName(...)]
+│       │   ├── Support/
+│       │   │   ├── NativeTypeNameAttribute.cs       # internal attribute used by [NativeTypeName(...)]
+│       │   │   └── DisableRuntimeMarshalling.cs     # [assembly: DisableRuntimeMarshalling] NET7_0_OR_GREATER (Pattern B SYSLIB1051 resolution)
 │       │   └── Generated/
 │       │       ├── Compat/             # ClangSharp --config compatible-codegen output (netstandard2.0/net462)
-│       │       │   ├── SDL_assert.g.cs, SDL_audio.g.cs, ... (51 file)
-│       │       │   └── Platforms/      # ← Slice 3 output (partial — see current blockers)
+│       │       │   ├── Handles.g.cs    # 17 Pattern B handle structs (canonical home, byte-identical to Modern)
+│       │       │   ├── SDL_assert.g.cs, SDL_audio.g.cs, ... (51 files)
+│       │       │   └── Platforms/      # ← Slice 3 output
 │       │       │       └── {WindowsDesktop, WinRT, GDK, Linux, MacOS, IOS, Android}/
 │       │       │           ├── SDL_main.g.cs
 │       │       │           └── SDL_system.g.cs
 │       │       └── Modern/             # ClangSharp --config latest-codegen output (net8+)
+│       │           ├── Handles.g.cs    # 17 Pattern B handle structs (byte-identical to Compat)
 │       │           ├── SDL_*.g.cs       # postprocessed to [LibraryImport]
 │       │           └── Platforms/.../   # same shape, modern-flavour
 │       └── Janset.SDL2.Image/
-│           ├── Janset.SDL2.Image.csproj   # ProjectReference -> Core
-│           ├── Support/NativeTypeNameAttribute.cs
+│           ├── Janset.SDL2.Image.csproj   # ProjectReference -> Core (consumer mode for Pattern B handles)
+│           ├── Support/
+│           │   ├── NativeTypeNameAttribute.cs
+│           │   └── DisableRuntimeMarshalling.cs    # [assembly: DisableRuntimeMarshalling] (cross-assembly Pattern B)
 │           └── Generated/
 │               ├── Compat/SDL_image.g.cs
 │               └── Modern/SDL_image.g.cs  # postprocessed to [LibraryImport]
@@ -205,10 +226,14 @@ Earlier in the session, we ran a full comparison spike: Alimer-style CppAst vs p
 | --- | --- | --- |
 | 1 — Layout restructure + library projects | ✅ done | `clangsharp/` folder, `.slnx`, `Janset.SDL2.Core` + `Janset.SDL2.Image` classlibs (5 TFMs each), Generated moved into each library's `Generated/{Compat,Modern}/`. Multi-TFM build clean. |
 | 2 — Microsoft.CodeAnalysis postprocess: DllImport → LibraryImport | ✅ done | `postprocess/Janset.SDL2.PostProcess.csproj` console app with `DllImportToLibraryImportRewriter` + `StripVarargsRewriter`. Modern output uses `[LibraryImport]` + `[UnmanagedCallConv]` + `partial`. Constitution L162-176 enforced (variadic `__arglist` stripped, fmt-only fixed-prefix calls). Python pipeline orchestrates the whole flow. |
-| 3 — Multi-OS parse pass | 🔄 active, partial | `SDL_main.h` / `SDL_system.h` platform pass exists and `platform-delta` removes neutral/platform duplicates. Windows-local non-Windows views can use explicit spike-only header shims; native Linux/macOS generation remains the production evidence target. |
+| 3 — Multi-OS parse pass | ✅ done 2026-05-22 | `SDL_main.h` / `SDL_system.h` platform pass + `platform-delta` dedupe + guarded `[SupportedOSPlatform]`. `--use-platform-header-shims` unblocks Windows-local synthetic platform parsing; native Linux/macOS generation remains the production evidence target. |
 | 4 — `[SupportedOSPlatform]` `#if NET5_0_OR_GREATER` guard postprocess | ✅ folded into Slice 3 | `PlatformDeltaPostProcessor` adds `#if NET5_0_OR_GREATER`-guarded `using System.Runtime.Versioning;` and guarded `[SupportedOSPlatform(...)]` by `Platforms/<View>` path. |
-| 5 — ppy orchestrator feature parity | ⏳ later | Per-header `.rsp` lookup, manual-symbol exclusion feedback regex (`[Constant]` / `[Typedef]` markers in companion .cs files), dynapi validation pass. ppy `generate_bindings.py:232-329` is the reference. |
-| 6+ — Public typed projection + friendly overloads | ⏳ Roadmap M5/M6 | Out of current spike scope. |
+| **Priority A** — Raw ABI visibility + Image namespace | ✅ done (`92b893b`) | Generated raw ABI containers internal via ClangSharp class-level access specifiers; Image namespace drift fixed. |
+| **Priority B** — Required `SDL.h` surface | ✅ done (`444fada`) | Recovered `SDL_Init`, `SDL_InitSubSystem`, `SDL_Quit`, `SDL_QuitSubSystem`, `SDL_WasInit`, and ten `SDL_INIT_*` constants without re-parsing the umbrella header. |
+| **Priority C** — Semantic-ABI completion (six risks) | ✅ **CLOSED 2026-05-24** | See [`priority-c-closure-summary.md`](priority-c-closure-summary.md). Slice C-A scalars (`adb64d0`) + Slice C-B Pattern B uniform opaque (`45fdab6`) + Slice C-C handle canonicalization + SDL_GUID. R1 wchar_t opaque, R2 C `long` hybrid, R3/R4/R5 deferred-layout force-opaque, R6 tag-typedef canonicalization. Foreign Type Boundary Policy + BCL-Replaceable Helper Exclusion Policy + Cross-Assembly Pattern B contract codified. Oracle 0/0/0/0/0/0 findings across the six risk categories; AbiTests 4/4 TFMs Windows + Linux x64 net10 docker. |
+| 5 — ppy orchestrator feature parity | ⏳ deferred | Per-header `.rsp` lookup landed (used by Priority C); manual-symbol exclusion feedback regex (`[Constant]` / `[Typedef]` markers in companion .cs files) and full dynapi validation pass still deferred. ppy `generate_bindings.py:232-329` is the reference. Not on the critical path for the Layer 2 next scope. |
+| **Next — Layer 2 typed public API** | ⏳ Roadmap M5 | Public typed `SDL2.SDL` projection over the now-stable Layer 1 raw ABI. Handle shape (Pattern B by-value structs), scalar widths, and foreign-type boundary are all settled, so Layer 2 can land without churn on Layer 1. |
+| 6+ — Friendly overloads | ⏳ Roadmap M6 | Out of current spike scope until Layer 2 lands. |
 
 ## What got built and why — slice-by-slice rationale
 
@@ -282,18 +307,14 @@ Oracle report repair queue status (evidence-backed gaps from `output/reports/ora
 | --- | --- | --- |
 | A | Raw ABI visibility and SDL2_image family identity | **Done.** Commit `92b893b` made generated raw ABI containers internal via ClangSharp class-level access specifiers and fixed Image namespace drift. |
 | B | Missing required `SDL.h` functions and constants | **Done.** Commit `444fada` recovered `SDL_Init`, `SDL_InitSubSystem`, `SDL_Quit`, `SDL_QuitSubSystem`, `SDL_WasInit`, and the ten `SDL_INIT_*` constants without parsing `SDL.h` as a normal umbrella translation unit. |
-| C | Deferred layouts and platform-sensitive scalar mappings (`SDL_RWops`, `SDL_SysWMinfo`, `SDL_SysWMmsg`, `wchar_t`, C `long`, tag/typedef canonicalization, `SDL_GUID`) | **Design landed 2026-05-24** — see [`../../../docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md`](../../../docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md). Three slices (C-C handle canonicalization + SDL_GUID → C-A scalars → C-B uniform Pattern B opaque handles). Constitution policy updated with WHY/HOW/WHAT cross-references. Implementation plan pending `writing-plans` transition. |
+| C | Deferred layouts and platform-sensitive scalar mappings (`SDL_RWops`, `SDL_SysWMinfo`, `SDL_SysWMmsg`, `wchar_t`, C `long`, tag/typedef canonicalization, `SDL_GUID`) | **CLOSED 2026-05-24.** All six risks resolved + Foreign Type Boundary Policy + BCL-Replaceable Helper Exclusion Policy + Cross-Assembly Pattern B contract via `[assembly: DisableRuntimeMarshalling]`. Oracle reports 0 findings across all six risk categories. Full evidence + verification table + commit chain (Slice C-A `adb64d0`, Slice C-B `45fdab6`, DisableRuntimeMarshalling `d0016de`, closure summary `e62bf92`) at [`priority-c-closure-summary.md`](priority-c-closure-summary.md). |
 
-Priority C design at [`../../../docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md`](../../../docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md). Do not start implementation until the writing-plans transition produces an executable plan.
+Remaining items to watch (none of these block the Layer 2 next slice):
 
-Observed diagnostics from the no-shim regenerated full run (`C:\Users\deniz\.local\share\opencode\tool-output\tool_e4c9292a5001KOvtZbM0U9r7AM`):
-
-- Linux `SDL_system.h`: `SDL_endian.h:60:10: fatal error: 'endian.h' file not found`.
-- macOS/iOS `SDL_main.h` / `SDL_system.h`: `SDL_platform.h:75:10: fatal error: 'AvailabilityMacros.h' file not found`.
-- Several Windows/Android views still return ClangSharp's known warning-like non-zero `CXError_Failure` around `declspec` but leave usable output. Do not treat exit code alone as semantic failure; inspect output and oracle deltas.
-- GDK-only APIs currently receive `[SupportedOSPlatform("windows")]` because .NET has no first-class GDK platform token. Treat that as a coarse analyzer guard, not proof the APIs are callable from ordinary Windows desktop apps.
-
-Latest shim-enabled regenerated full run: `C:\Users\deniz\.local\share\opencode\tool-output\tool_e4e72a0b0001CEHg58z1Vuqe8z`. It removes the empty-output blocker but still records ClangSharp's warning-like `CXError_Failure` exits around `declspec`; inspect generated files and oracle deltas instead of treating those exit codes alone as semantic failure.
+- Windows-local non-Windows views still require `--use-platform-header-shims`. The shim flag is local-iteration evidence only; production Linux/macOS evidence must come from native generation (already wired for `x64-linux-hybrid` via the binding-generator docker container; remaining RIDs join on the per-RID CI matrix).
+- ClangSharp's `CXError_Failure` non-zero exit around `declspec` for several Windows/Android views still happens but leaves usable output. Inspect output and oracle deltas; do not treat exit code alone as semantic failure.
+- GDK-only APIs currently receive `[SupportedOSPlatform("windows")]` because .NET has no first-class GDK platform token. Coarse analyzer guard, not proof of callability from ordinary Windows desktop apps.
+- Multi-OS `SDL_system.h` platform-pass parse warnings (`declspec` parse error on iOS/macOS/Android views) are pre-existing and unrelated to Priority C scope; the ABI surface is sourced from the Windows-canonical neutral pass.
 
 Concrete generated evidence:
 
@@ -319,9 +340,11 @@ Carry these headers into roadmap/planning before production claims platform corr
 
 ### Recommended next moves
 
-1. Use `--use-platform-header-shims` for Windows-local ClangSharp iteration when platform-view parse coverage matters. Keep native Linux/macOS generation as the production evidence target.
-2. Keep the explicit empty-platform-output guard. An empty `.g.cs` from a fatal ClangSharp run should stay a hard evidence item, not something the build can silently accept.
-3. Build comparable CppAst/Alimer-style evidence against the same multi-TFM/platform/oracle checklist before making any final toolchain recommendation.
+1. **Layer 2 typed low-level public API slice.** The Layer 1 raw ABI surface is now stable (handle shape, scalar widths, foreign-type boundary, cross-assembly Pattern B contract all settled). Sketch the typed `SDL2.SDL` projection over `SDLNative` — typed handles already exist as Pattern B by-value structs in `Generated/<Codegen>/Handles.g.cs`, so Layer 2 calls become `SDLNative.SDL_DestroyWindow(window.Value)` style. See Constitution Layer Contract L34-50 and Roadmap M5 for the target shape; Cake oracle's `Types/Handles.g.cs` + `Constants.g.cs` + `Emit/PublicTyped/` is a reference for the structural projection (do not copy code, just the shape).
+2. **Plan Task 19 — final code review + finishing branch decision.** Per AGENTS.md §Approval Gate, push to remote requires Deniz approval. Branch is 35+ commits ahead of remote; this is the gate before any Layer 2 work starts.
+3. Use `--use-platform-header-shims` for Windows-local ClangSharp iteration when platform-view parse coverage matters. Keep native Linux/macOS generation as the production evidence target.
+4. Keep the explicit empty-platform-output guard. An empty `.g.cs` from a fatal ClangSharp run should stay a hard evidence item, not something the build can silently accept.
+5. Build comparable CppAst/Alimer-style evidence against the same multi-TFM/platform/oracle checklist before making any final toolchain recommendation. ClangSharp won Iteration 2 but the bake-off lane stays open.
 
 ## Notable patterns to keep using
 
@@ -364,8 +387,9 @@ Don't trust "0 errors on net10.0" — that's a 1/5 result. Always build the full
 ### Commands you'll run constantly
 
 ```pwsh
-# Regenerate everything (compat + modern + multi-OS pass + postprocess)
-python spikes/binding-generators/clangsharp/generate_bindings.py --scope full --codegen both --execute --clean-output --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
+# Regenerate everything: compat + modern × per-family + multi-OS pass + 6-step postprocess pipeline
+# Postprocess order (see generate_bindings.py): platform-delta → strip-varargs → libraryimport (Modern only) → guid-substitute → threadid-dispatch → uniform-opaque
+python spikes/binding-generators/clangsharp/generate_bindings.py --scope full --codegen both --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
 
 # Build all 5 TFMs (the truth gate)
 dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Janset.SDL2.Image.csproj -c Release
@@ -373,12 +397,16 @@ dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Janset.S
 # Compare against Cake oracle + dynapi
 python spikes/binding-generators/clangsharp/compare_oracle.py --approach clangsharp
 
-# Raw ABI oracle/evidence report (Roslyn, family-aware)
+# Raw ABI oracle/evidence report (Roslyn, family-aware) — the authoritative six-risks oracle
 dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --family sdl2-core --family sdl2-image --write-report
 
-# Just rerun postprocess on existing output (no regen)
+# Per-TFM ABI runtime smoke (proves SDL_ThreadID dispatch works on real native lib)
+dotnet test spikes/binding-generators/clangsharp/tests/abi-tests/AbiTests.csproj -c Release --framework net10.0
+# Linux x64 net10 via docker (see README §"Per-TFM ABI runtime smoke")
+
+# Just rerun a single postprocess step on existing output (no regen)
 dotnet run --project spikes/binding-generators/clangsharp/postprocess/Janset.SDL2.PostProcess.csproj -c Release -- libraryimport spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern
-dotnet run --project spikes/binding-generators/clangsharp/postprocess/Janset.SDL2.PostProcess.csproj -c Release -- strip-varargs spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Compat
+dotnet run --project spikes/binding-generators/clangsharp/postprocess/Janset.SDL2.PostProcess.csproj -c Release -- uniform-opaque spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern
 ```
 
 ## Anti-patterns I fell into (don't repeat)
@@ -399,12 +427,18 @@ dotnet run --project spikes/binding-generators/clangsharp/postprocess/Janset.SDL
 | --- | --- |
 | ABI/API policy | `docs/binding-autogen/binding-generator-constitution.md` |
 | Milestone plan | `docs/binding-autogen/binding-generator-roadmap.md` |
+| Priority C closure record | `spikes/binding-generators/docs/priority-c-closure-summary.md` (six risks resolved + Foreign Type Boundary Policy + Cross-Assembly Pattern B contract, 2026-05-24) |
+| Priority C design spec | `docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md` |
+| Priority C implementation plan | `docs/superpowers/plans/2026-05-24-clangsharp-priority-c-semantic-abi.md` |
+| Semantic ABI research | `docs/research/semantic-abi-type-classification-research.md` (2026-05-22) |
+| Opaque-handle roster (single source of truth) | `spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json` (sdl2_version 2.32.10) |
 | Toolchain ADR | `docs/decisions/2026-05-14-binding-autogen-toolchain.md` |
 | Build host pattern | `docs/decisions/2026-05-05-target-centric-build-host.md` |
 | Active slice plan | `spikes/binding-generators/docs/next-iteration-plan.md` |
 | Spike charter | `spikes/binding-generators/docs/generator-spike-goals.md` |
 | Decision evidence | `spikes/binding-generators/output/reports/iteration-2-comparison.md` |
 | RSP fix history | `spikes/binding-generators/output/reports/clangsharp-failure-buckets.md` |
+| Family-aware raw ABI evidence | `spikes/binding-generators/output/reports/oracle-evidence-clangsharp.md` |
 | User memory | `C:\Users\deniz\.claude\projects\E--repos-my-projects-janset2d-sdl2-cs-bindings\memory\MEMORY.md` |
 | Agent contract | `AGENTS.md` (root) |
 
