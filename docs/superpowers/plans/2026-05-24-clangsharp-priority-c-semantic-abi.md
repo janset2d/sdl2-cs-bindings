@@ -1562,10 +1562,10 @@ Verify in the report:
 Run:
 ```bash
 dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Janset.SDL2.Image.csproj -c Release
-dotnet build tests/smoke-tests/abi-tests/AbiTests.csproj -c Release
+dotnet build spikes/binding-generators/clangsharp/tests/abi-tests/AbiTests.csproj -c Release
 ```
 
-Expected: 0 errors, 0 warnings across all 5 TFMs in both projects.
+Expected: 0 errors, 0 warnings. Janset.SDL2.Image targets all 5 TFMs (net10/net9/net8/netstandard2.0/net462); AbiTests targets 4 executable TFMs (net10/net9/net8/net462).
 
 - [ ] **Step 12.4: Slopwatch check**
 

@@ -7,8 +7,8 @@ This spike report is evidence, not a correctness certificate. Raw ABI constituti
 | Family | Source | Path | Status | Functions | Constants | Types |
 | --- | --- | --- | --- | ---: | ---: | ---: |
 | sdl2-core | Cake Preview | `artifacts/generated-bindings-preview/sdl2-core` | present | 854 | 351 | 152 |
-| sdl2-core | ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Compat` | present | 871 | 362 | 216 |
-| sdl2-core | ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern` | present | 871 | 362 | 231 |
+| sdl2-core | ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Compat` | present | 869 | 362 | 216 |
+| sdl2-core | ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern` | present | 865 | 362 | 231 |
 | sdl2-core | SDL2 Dynapi | `external/vcpkg or vcpkg_installed` | present | 872 | 0 | 0 |
 | sdl2-core | Manifest Required Surface | `build/manifest.json` | present | 5 | 10 | 0 |
 | sdl2-core | SDL2-CS | `external/sdl2-cs/src/SDL2.cs` | present | 789 | 292 | 131 |
@@ -30,8 +30,8 @@ This spike report is evidence, not a correctness certificate. Raw ABI constituti
 | Source | Path | Status | Functions | Constants | Types |
 | --- | --- | --- | ---: | ---: | ---: |
 | Cake Preview | `artifacts/generated-bindings-preview/sdl2-core` | present | 854 | 351 | 152 |
-| ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Compat` | present | 871 | 362 | 216 |
-| ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern` | present | 871 | 362 | 231 |
+| ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Compat` | present | 869 | 362 | 216 |
+| ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern` | present | 865 | 362 | 231 |
 | SDL2 Dynapi | `external/vcpkg or vcpkg_installed` | present | 872 | 0 | 0 |
 | Manifest Required Surface | `build/manifest.json` | present | 5 | 10 | 0 |
 | SDL2-CS | `external/sdl2-cs/src/SDL2.cs` | present | 789 | 292 | 131 |
@@ -40,47 +40,13 @@ This spike report is evidence, not a correctness certificate. Raw ABI constituti
 
 | Surface | Functions | Constants | Types |
 | --- | ---: | ---: | ---: |
-| Generated ClangSharp | 1742 | 724 | 447 |
+| Generated ClangSharp | 1734 | 724 | 447 |
 | Cake Preview | 854 | 351 | 152 |
 | SDL2-CS | 789 | 292 | 131 |
 | Dynapi | 872 | 0 | 0 |
 | Manifest Required Surface | 5 | 10 | 0 |
 
 ### Raw ABI Constitution Checks
-
-#### Compatibility Risk
-
-- Platform-sensitive scalar risks (`platform-sensitive-wchar`): 30 finding(s), 15 symbol(s).
-  - Symbols:
-  - `SDL_WinRTGetFSPathUNICODE`
-  - `SDL_hid_get_indexed_string`
-  - `SDL_hid_get_manufacturer_string`
-  - `SDL_hid_get_product_string`
-  - `SDL_hid_get_serial_number_string`
-  - `SDL_hid_open`
-  - `SDL_wcscasecmp`
-  - `SDL_wcscmp`
-  - `SDL_wcsdup`
-  - `SDL_wcslcat`
-  - `SDL_wcslcpy`
-  - `SDL_wcslen`
-  - `SDL_wcsncasecmp`
-  - `SDL_wcsncmp`
-  - `SDL_wcsstr`
-  - Example: `SDL_WinRTGetFSPathUNICODE` - wchar_t is mapped to ushort*, which is platform-sensitive outside Windows. (`spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Compat/Platforms/WinRT/SDL_system.g.cs`)
-  - Example: `SDL_WinRTGetFSPathUNICODE` - wchar_t is mapped to ushort*, which is platform-sensitive outside Windows. (`spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern/Platforms/WinRT/SDL_system.g.cs`)
-  - Example: `SDL_hid_get_indexed_string` - wchar_t is mapped to ushort*, which is platform-sensitive outside Windows. (`spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Compat/SDL_hidapi.g.cs`)
-- Platform-sensitive scalar risks (`platform-sensitive-long`): 12 finding(s), 6 symbol(s).
-  - Symbols:
-  - `SDL_lround`
-  - `SDL_lroundf`
-  - `SDL_ltoa`
-  - `SDL_strtol`
-  - `SDL_strtoul`
-  - `SDL_ultoa`
-  - Example: `SDL_lround` - C long/unsigned long is mapped to int/uint, which is width-sensitive across supported platforms. (`spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Compat/SDL_stdinc.g.cs`)
-  - Example: `SDL_lround` - C long/unsigned long is mapped to int/uint, which is width-sensitive across supported platforms. (`spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern/SDL_stdinc.g.cs`)
-  - Example: `SDL_lroundf` - C long/unsigned long is mapped to int/uint, which is width-sensitive across supported platforms. (`spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Compat/SDL_stdinc.g.cs`)
 
 #### Hard Bug
 
