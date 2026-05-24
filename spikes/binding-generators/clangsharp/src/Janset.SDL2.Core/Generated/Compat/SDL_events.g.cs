@@ -732,7 +732,7 @@ namespace SDL2
         [NativeTypeName("Uint32")]
         public uint timestamp;
 
-        public SDL_SysWMmsg* msg;
+        public SDL_SysWMmsg msg;
     }
 
     [StructLayout(LayoutKind.Explicit)]

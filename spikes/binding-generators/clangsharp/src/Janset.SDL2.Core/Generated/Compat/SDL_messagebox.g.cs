@@ -81,7 +81,7 @@ namespace SDL2
         [NativeTypeName("Uint32")]
         public uint flags;
 
-        public SDL_Window* window;
+        public SDL_Window window;
 
         [NativeTypeName("const char *")]
         public byte* title;

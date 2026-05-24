@@ -27,9 +27,12 @@ namespace Janset.SDL2.PostProcess;
 ///       SDL_SysWMmsg appears in both SDL_events.g.cs and SDL_syswm.g.cs);
 ///       removing all of them prevents partial-class member collision when
 ///       the consolidated Handles.g.cs declares the canonical body.
-///     * REWRITE pointer references SDL_X* -> SDL_X at method parameter and
-///       return-type positions (single-pointer only; double-pointer SDL_X**
-///       and `out SDL_X` are preserved by the structural pattern match).
+///     * REWRITE pointer references SDL_X* -> SDL_X at method parameter,
+///       method return-type, and struct field-type positions (single-pointer
+///       only; double-pointer SDL_X** and `out SDL_X` are preserved by the
+///       structural pattern match). Field-position rewrite is ABI-safe
+///       because Pattern B carries a single `nint` field whose layout is
+///       bit-identical to a pointer at the corresponding C field offset.
 ///
 ///   Phase 2 (orchestrator pass, Program.cs):
 ///     * In owner mode (handle definitions live here, e.g. Janset.SDL2.Core),
@@ -64,7 +67,8 @@ namespace Janset.SDL2.PostProcess;
 /// so the nullable-reference annotation would trigger CS8669. The pattern
 /// `obj is X other` already null-safe-shorts when obj is null.
 ///
-/// Reference rewrite: every X* in raw ABI signatures rewrites to X by-value.
+/// Reference rewrite: every X* in raw ABI signatures rewrites to X by-value
+/// at method parameter, method return-type, and struct field-type positions.
 /// Double-pointer X** and `out X` positions are preserved.
 /// </summary>
 internal sealed class OpaqueHandleEmitRewriter : CSharpSyntaxRewriter
@@ -126,6 +130,29 @@ internal sealed class OpaqueHandleEmitRewriter : CSharpSyntaxRewriter
             node = node.WithReturnType(id.WithTriviaFrom(ptr));
         }
         return base.VisitMethodDeclaration(node);
+    }
+
+    /// <summary>
+    /// Rewrite single-pointer struct field type `SDL_X* field` -> by-value
+    /// `SDL_X field` when X is a known handle. Pattern B struct's single-nint
+    /// layout is bit-identical to a pointer at the corresponding C field offset,
+    /// so this is a pure C# API ergonomics improvement (caller avoids explicit
+    /// dereference) with zero ABI change. Double-pointer `SDL_X**` fields are
+    /// preserved because their `ElementType` is `PointerTypeSyntax`, not
+    /// `IdentifierNameSyntax`, and fail the structural match.
+    /// </summary>
+    public override SyntaxNode? VisitFieldDeclaration(FieldDeclarationSyntax node)
+    {
+        var declaration = node.Declaration;
+        if (declaration.Type is PointerTypeSyntax ptr &&
+            ptr.ElementType is IdentifierNameSyntax id &&
+            _handleNames.Contains(id.Identifier.ValueText))
+        {
+            AnyChanges = true;
+            var newType = id.WithTriviaFrom(ptr);
+            return node.WithDeclaration(declaration.WithType(newType));
+        }
+        return base.VisitFieldDeclaration(node);
     }
 
     /// <summary>
