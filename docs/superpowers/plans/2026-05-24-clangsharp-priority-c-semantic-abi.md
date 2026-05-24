@@ -1869,23 +1869,51 @@ EOF
 
 ### Task 14: Apply Pattern B to Auto-Detected Handles
 
+- [ ] **Step 14.0: Revise rewriter to syntactic auto-detect + roster JSON load**
+
+Before running the rewriter on output, revise `OpaqueHandleEmitRewriter` to match the policy realization documented in Constitution §"Opaque Handles" → Implementation mechanism and Spec Decision 1 → Postprocess realization (both updated in the doc-only commit that landed the roster JSON):
+
+- **`DiscoverAutoDetectedHandles(inputDir)` becomes syntactic.** Walk every `.g.cs` file under `inputDir` for one TFM view; collect (a) the set of names `N` declared as empty `public partial struct SDL_X { }` and (b) the set of names `P` used as pointer type `SDL_X*` at any raw ABI signature position (method parameter type or return type). Auto-detect roster = `N ∩ P`. The earlier `[NativeTypeName("X *")]` cross-reference is **dropped** — ClangSharp omits `NativeTypeName` when the C and C# names match (the common case for opaque handles), so the annotation heuristic under-detected.
+- **Load the canonical roster.** Read `spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json` at startup. Resolve the path from `inputDir` upward to the repo root (convention: `<repo>/spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json`), or accept an explicit `--roster <path>` argument from `Program.cs`. Parse the `auto_detect_well_known` and `force_opaque_exceptions` arrays into `HashSet<string>` instances.
+- **Drift handling (warning, not failure).** Compute the symmetric difference between the syntactic discovery set and the roster's `auto_detect_well_known` set. On mismatch, emit a single stderr line of the form `uniform-opaque: drift! In code but not roster: [<names>]; In roster but not code: [<names>]` and continue with the union (or the syntactic set, whichever is safer for Pattern B emit — document the choice in source). Do NOT fail the run. SDL2 upstream additions thereby surface visibly without blocking regeneration.
+- **Force-opaque list is roster-driven.** Remove the hard-coded `ForceOpaqueNames` `HashSet<string>` literal from `OpaqueHandleEmitRewriter.cs`. The force-opaque allow-list is loaded from the roster JSON's `force_opaque_exceptions` array. Constitution §"Opaque Handles" prose remains authoritative for *why* each force-opaque type is listed; the JSON carries the *what*.
+- **Program.cs wiring.** The `uniform-opaque` mode in `postprocess/Program.cs` resolves the roster JSON path (default: convention path from `inputDir`) and passes both the path and the input directory into the rewriter. No new CLI surface required for the default case; an optional `--roster <path>` argument may be added for testing if needed.
+
+After this step the rewriter is policy-aligned. Subsequent steps run it against the spike output.
+
 - [ ] **Step 14.1: One-shot run on Modern output**
 
 Run: `dotnet run --project spikes/binding-generators/clangsharp/postprocess/Janset.SDL2.PostProcess.csproj -c Release -- uniform-opaque spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern`
 
-Expected: stdout reports "discovered ~12 auto-detect handles + 3 force-opaque". Multiple files transformed.
+Expected: stdout reports `uniform-opaque: discovered 15 syntactic handles + 3 force-opaque (roster cross-check: 0 drift entries)`. (The 15 number matches the roster's `auto_detect_well_known` length; the 3 number matches `force_opaque_exceptions`. Drift count 0 in the nominal case — any nonzero count surfaces as a `drift!` stderr line and requires investigation before proceeding.) Multiple files transformed.
 
-- [ ] **Step 14.2: Verify Pattern B emit for one expected handle**
+- [ ] **Step 14.2: Verify Pattern B emit across multiple roster handles**
 
 Run: `head -30 spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern/SDL_video.g.cs`
 
 Expected: see `public readonly partial struct SDL_Window : IEquatable<SDL_Window>` with the full Pattern B shape, replacing the old empty struct.
+
+Then verify at least three more roster handles emit Pattern B (spread across distinct headers to confirm uniform application):
+
+```bash
+for handle in SDL_Renderer SDL_AudioStream SDL_GameController SDL_mutex; do
+    grep -rn "public readonly partial struct $handle\b" spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern/ || echo "MISSING: $handle"
+done
+```
+
+Expected: each handle declared exactly once with the Pattern B `: IEquatable<X>` signature. No `MISSING` lines.
 
 - [ ] **Step 14.3: Verify reference rewrites in signatures**
 
 Run: `grep -n "SDL_Window\*\|SDL_Window " spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern/SDL_video.g.cs | head -10`
 
 Expected: no `SDL_Window*` parameters/returns remain (they're now `SDL_Window` by-value); double-pointer cases `SDL_Window**` preserved.
+
+Spot-check another roster handle's reference rewrite to confirm uniformity:
+
+Run: `grep -n "SDL_Renderer\*\|SDL_Renderer " spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern/SDL_render.g.cs | head -10`
+
+Expected: same pattern — single-pointer references rewritten to by-value; double-pointer preserved.
 
 - [ ] **Step 14.4: Compile-check Modern TFMs**
 
@@ -1912,16 +1940,24 @@ If errors:
 - [ ] **Step 14.7: Commit**
 
 ```bash
-git add spikes/binding-generators/clangsharp/src/
+git add spikes/binding-generators/clangsharp/postprocess/ spikes/binding-generators/clangsharp/src/
 git commit -m "$(cat <<'EOF'
 feat(binding-spike): apply Pattern B uniform opaque handle emit (Task 14)
 
-Rewriter applied to auto-detected handles (~12 names: SDL_Window,
-SDL_Renderer, SDL_Texture, SDL_AudioStream, SDL_Cursor, SDL_Joystick,
-SDL_GameController, SDL_hid_device, SDL_mutex, SDL_cond, SDL_sem,
-SDL_Thread) plus force-opaque allow-list (SDL_RWops, SDL_SysWMinfo,
-SDL_SysWMmsg). Raw signature references rewritten to by-value at every
-single-pointer occurrence.
+OpaqueHandleEmitRewriter revised to syntactic auto-detect (empty
+public partial struct + SDL_X* pointer-use intersection over raw ABI
+signatures) and roster-driven force-opaque allow-list. Canonical roster
+loaded from spikes/binding-generators/clangsharp/policy/
+opaque-handle-roster.json (sdl2 2.32.10); roster cross-check emits a
+warning on drift but does not fail the run.
+
+Rewriter applied to auto-detected handles (15 names per roster:
+SDL_Window, SDL_Renderer, SDL_Texture, SDL_AudioStream,
+SDL_GameController, SDL_Joystick, SDL_Haptic, SDL_Sensor, SDL_Cursor,
+SDL_Thread, SDL_mutex, SDL_sem, SDL_cond, SDL_hid_device, SDL_BlitMap)
+plus force-opaque allow-list (SDL_RWops, SDL_SysWMinfo, SDL_SysWMmsg).
+Raw signature references rewritten to by-value at every single-pointer
+occurrence.
 
 Critical multi-TFM gate satisfied: netstandard2.0 + net462 + net8/9/10
 all compile with `readonly partial struct X(nint value)` shape. Pattern B
