@@ -1331,24 +1331,27 @@ EOF
 
 **Scope upgrade (2026-05-24):** original plan placeholdered the test with `Assert.That(true).IsTrue()` and deferred the real SDL call to Layer 2. Per the "no workarounds, no shortcuts" hard rule we upgrade now: expose Layer 1 `SDLNative` to the test assembly via `InternalsVisibleTo` and exercise `SDL_ThreadID()` for real. The host-side dispatch path (Win Compat → Win32 dual-DllImport; Win Modern → CULong+LibraryImport) is verified at `dotnet test` time. Unix64 nint path stays on the CI RID matrix.
 
+**Location upgrade (2026-05-24):** the project lives next to the spike at `spikes/binding-generators/clangsharp/tests/abi-tests/`, NOT under `tests/smoke-tests/`. The smoke-tests hierarchy enforces a package-consumer contract (`build/msbuild/Janset.Smoke.props` requires `LocalPackageFeed` + `JansetSmokeSdl2Families` declarations) that conflicts with a `ProjectReference`-based design. Hosting under the spike preserves the "test lives with the code it tests" principle and lets the test graduate to a production location when the spike itself graduates. The spike has no `Directory.Build.props` chain so the AbiTests csproj inherits only the repo-root `Directory.Build.props` (CPM + `$(ExecutableTargetFrameworks)`).
+
 **Files:**
 - Modify: `spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Janset.SDL2.Core.csproj` (add `<InternalsVisibleTo>` item)
-- Create: `tests/smoke-tests/abi-tests/AbiTests.csproj`
-- Create: `tests/smoke-tests/abi-tests/ThreadIdAbiTests.cs`
+- Create: `spikes/binding-generators/clangsharp/tests/abi-tests/AbiTests.csproj`
+- Create: `spikes/binding-generators/clangsharp/tests/abi-tests/ThreadIdAbiTests.cs`
 
-- [ ] **Step 11.1: Inspect existing smoke-test conventions**
+- [ ] **Step 11.1: Inspect existing smoke-test conventions (reference only — do NOT inherit the smoke contract)**
 
-Run: `ls tests/smoke-tests/ && cat tests/smoke-tests/Directory.Build.props` and read `tests/smoke-tests/package-smoke/PackageConsumer.Smoke/PackageConsumer.Smoke.csproj` + `PackageSmokeTests.cs`.
+Read `tests/smoke-tests/package-smoke/PackageConsumer.Smoke/PackageConsumer.Smoke.csproj` + `PackageSmokeTests.cs` for TUnit + apphost + PolySharp conventions.
 
-Expected findings (confirmed during plan revision):
-- `tests/smoke-tests/Directory.Build.props` imports root `Directory.Build.props` + `build/msbuild/Janset.Smoke.props`. Smoke csprojs inherit CPM, analyzer posture, TFM policy.
-- `$(ExecutableTargetFrameworks)` = `net10.0;net9.0;net8.0;net462` (drops netstandard2.0 — not executable).
+**Do NOT host the AbiTests project under `tests/smoke-tests/`** — that hierarchy's `Directory.Build.props` forces `JansetSmokeSdl2Families` + `LocalPackageFeed` declarations (errors `JNSMK001` / `JNSMK009`) which conflict with the ProjectReference-only design here. The AbiTests project lives at `spikes/binding-generators/clangsharp/tests/abi-tests/` and inherits only the repo-root `Directory.Build.props`.
+
+Expected conventions to mirror (from PackageConsumer.Smoke):
+- `$(ExecutableTargetFrameworks)` = `net10.0;net9.0;net8.0;net462` (root `Directory.Build.props`; drops netstandard2.0 — not executable).
 - TUnit + Microsoft Testing Platform apphost pattern → `OutputType=Exe`, `IsTestProject=true`.
 - PolySharp is required for net462 (modern-attribute polyfills for TUnit's source-generated bootstrap).
 - net462 ItemGroup needs `System.Memory` + `System.Runtime.CompilerServices.Unsafe`.
 - Native-touching tests use `[NotInParallel]`.
 
-Mirror these conventions exactly. Do not redefine CPM-managed package versions.
+Do not redefine CPM-managed package versions. CPM entries for TUnit, PolySharp, System.Memory, System.Runtime.CompilerServices.Unsafe already exist in `Directory.Packages.props`.
 
 - [ ] **Step 11.2: Add `InternalsVisibleTo` to `Janset.SDL2.Core.csproj`**
 
@@ -1366,7 +1369,7 @@ Constitution Layer Contract (Layer 1 = internal raw ABI) is preserved: `SDLNativ
 
 - [ ] **Step 11.3: Create `AbiTests.csproj`**
 
-`tests/smoke-tests/abi-tests/AbiTests.csproj`:
+`spikes/binding-generators/clangsharp/tests/abi-tests/AbiTests.csproj`:
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
@@ -1388,7 +1391,7 @@ Constitution Layer Contract (Layer 1 = internal raw ABI) is preserved: `SDLNativ
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\spikes\binding-generators\clangsharp\src\Janset.SDL2.Core\Janset.SDL2.Core.csproj" />
+    <ProjectReference Include="..\..\src\Janset.SDL2.Core\Janset.SDL2.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -1402,25 +1405,26 @@ Constitution Layer Contract (Layer 1 = internal raw ABI) is preserved: `SDLNativ
   </ItemGroup>
 
   <!--
-    Copy SDL2 native binary from the spike's vcpkg_installed dir into the test
-    output so the runtime loader can resolve SDL2.dll. Host triplet only — CI
-    RID matrix overrides this for other RIDs.
+    Copy SDL2 native binary from the repo-root vcpkg_installed dir into the
+    test output so the runtime loader can resolve SDL2.dll. Host triplet
+    (x64-windows-hybrid) only — CI RID matrix overrides this for other RIDs.
+    Path is relative to spikes/binding-generators/clangsharp/tests/abi-tests/.
   -->
   <ItemGroup>
-    <None Include="..\..\..\spikes\binding-generators\clangsharp\vcpkg_installed\x64-windows-hybrid\x64-windows-hybrid\bin\SDL2.dll"
+    <None Include="..\..\..\..\..\vcpkg_installed\x64-windows-hybrid\bin\SDL2.dll"
           CopyToOutputDirectory="PreserveNewest"
           Visible="false" />
   </ItemGroup>
 </Project>
 ```
 
-If the vcpkg native path differs (no `x64-windows-hybrid/x64-windows-hybrid/bin/SDL2.dll`), fall back to whichever `vcpkg_installed/<triplet>/bin/SDL2.dll` exists in the spike checkout. STOP and report BLOCKED if you can't locate the file.
+The canonical host-triplet path is `vcpkg_installed/x64-windows-hybrid/bin/SDL2.dll` at the repo root (confirmed during plan revision; populated by `external/vcpkg/vcpkg install --triplet x64-windows-hybrid --overlay-triplets=vcpkg-overlay-triplets`). If the file doesn't exist on a fresh checkout, the implementer must run vcpkg install first per `docs/playbook/local-development.md` (Step 2 "Install Native Dependencies via vcpkg"). STOP and report BLOCKED if the file genuinely doesn't materialize.
 
 If CPM is missing entries for `TUnit`, `PolySharp`, `System.Memory`, or `System.Runtime.CompilerServices.Unsafe`, do NOT add them to `Directory.Packages.props` unilaterally — STOP and report BLOCKED so the orchestrator can confirm with the user. (PackageConsumer.Smoke already references these, so the entries almost certainly exist; just don't invent versions.)
 
 - [ ] **Step 11.4: Create `ThreadIdAbiTests.cs`**
 
-`tests/smoke-tests/abi-tests/ThreadIdAbiTests.cs`:
+`spikes/binding-generators/clangsharp/tests/abi-tests/ThreadIdAbiTests.cs`:
 
 ```csharp
 using SDL2;
@@ -1465,7 +1469,7 @@ Notes:
 
 - [ ] **Step 11.5: Build the AbiTests project (per-TFM compile evidence)**
 
-Run: `dotnet build tests/smoke-tests/abi-tests/AbiTests.csproj -c Release`
+Run: `dotnet build spikes/binding-generators/clangsharp/tests/abi-tests/AbiTests.csproj -c Release`
 
 Expected: 0 errors and 0 warnings across `net10.0;net9.0;net8.0;net462`. This verifies:
 1. The spike's Janset.SDL2.Core (with rewriter output) compiles in a multi-TFM consumer.
@@ -1477,9 +1481,9 @@ Expected: 0 errors and 0 warnings across `net10.0;net9.0;net8.0;net462`. This ve
 Run on Windows host:
 
 ```bash
-dotnet test tests/smoke-tests/abi-tests/AbiTests.csproj -c Release --framework net10.0
-dotnet test tests/smoke-tests/abi-tests/AbiTests.csproj -c Release --framework net8.0
-dotnet test tests/smoke-tests/abi-tests/AbiTests.csproj -c Release --framework net462
+dotnet test spikes/binding-generators/clangsharp/tests/abi-tests/AbiTests.csproj -c Release --framework net10.0
+dotnet test spikes/binding-generators/clangsharp/tests/abi-tests/AbiTests.csproj -c Release --framework net8.0
+dotnet test spikes/binding-generators/clangsharp/tests/abi-tests/AbiTests.csproj -c Release --framework net462
 ```
 
 Expected: 1/1 test passes per TFM. The net10/net8 invocations exercise the CULong + LibraryImport path. The net462 invocation exercises the managed `ulong` wrapper + RuntimeInformation dispatch + Win32 32-bit `uint` DllImport path.
@@ -1492,21 +1496,24 @@ If `DllNotFoundException` fires, the vcpkg native lookup in Step 11.3 failed —
 
 Append to `spikes/binding-generators/README.md` (or wherever the spike's CI guidance lives) a short note:
 
-> The `tests/smoke-tests/abi-tests` project exercises Layer 1 `SDLNative.SDL_ThreadID()` runtime evidence per executable TFM (net462, net8.0, net9.0, net10.0). Host-side this covers Win32 32-bit `uint` and CULong+LibraryImport paths. Unix64 (Linux x64/arm64, macOS x64/arm64) `nint` returns must be exercised on the CI per-RID matrix by overriding the SDL2 native source path.
+> The `spikes/binding-generators/clangsharp/tests/abi-tests` project exercises Layer 1 `SDLNative.SDL_ThreadID()` runtime evidence per executable TFM (net462, net8.0, net9.0, net10.0). Host-side this covers Win32 32-bit `uint` and CULong+LibraryImport paths. Unix64 (Linux x64/arm64, macOS x64/arm64) `nint` returns must be exercised on the CI per-RID matrix by overriding the SDL2 native source path.
 
 - [ ] **Step 11.8: Commit**
 
 ```bash
 git add spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Janset.SDL2.Core.csproj \
-        tests/smoke-tests/abi-tests/ \
+        spikes/binding-generators/clangsharp/tests/abi-tests/ \
         spikes/binding-generators/README.md
 git commit -m "$(cat <<'EOF'
 test(binding-spike): per-TFM ABI runtime smoke for SDL_threadID dispatch
 
-New tests/smoke-tests/abi-tests/AbiTests.csproj targets executable TFMs
-(net462, net8.0, net9.0, net10.0) and references Janset.SDL2.Core via
-ProjectReference. Layer 1 raw ABI access enabled via
-`<InternalsVisibleTo Include="Janset.SDL2.AbiTests" />` on Core.
+New spikes/binding-generators/clangsharp/tests/abi-tests/AbiTests.csproj
+targets executable TFMs (net462, net8.0, net9.0, net10.0) and references
+Janset.SDL2.Core via ProjectReference. Layer 1 raw ABI access enabled via
+`<InternalsVisibleTo Include="Janset.SDL2.AbiTests" />` on Core. Project
+lives next to the spike (not under tests/smoke-tests/) because that
+hierarchy enforces a package-consumer contract incompatible with the
+ProjectReference-only design here.
 
 ThreadIdAbiTests.SDL_ThreadID_Returns_NonZero_On_Host_Platform exercises:
   - net8+ (Modern output): CULong return via [LibraryImport].
