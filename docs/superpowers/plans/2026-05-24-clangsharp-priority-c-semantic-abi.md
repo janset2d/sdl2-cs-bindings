@@ -1981,23 +1981,33 @@ EOF
 
 ### Task 15: Wire OpaqueHandleEmitRewriter Into Orchestrator Pipeline
 
-- [ ] **Step 15.1: Add postprocess step to `generate_bindings.py`**
+- [x] **Step 15.1: Add postprocess step to `generate_bindings.py`**
 
-Following Task 5 Step 5.8 / Task 10 Step 10.8 pattern, invoke `uniform-opaque` after the other postprocess steps for both Compat and Modern output directories.
+Following Task 5 Step 5.8 / Task 10 Step 10.8 pattern, invoke `uniform-opaque` after the other postprocess steps. Reuse the existing `for codegen in codegen_passes: for family in selected:` loop so the step fans out across the 4 generated directories (Core/Compat, Core/Modern, Image/Compat, Image/Modern). Order: place the new step **after** `threadid-dispatch` so it operates on the final method signatures.
 
 ```python
-# After existing postprocess steps:
-run_postprocess(repo, compat_output_dir, "uniform-opaque")
-run_postprocess(repo, modern_output_dir, "uniform-opaque")
+# After threadid-dispatch:
+if args.execute:
+    print("--- postprocess: uniform-opaque (all codegens) ---")
+    for codegen in codegen_passes:
+        for family in selected:
+            exit_code = run_postprocess(repo, family, spike_root, "uniform-opaque", codegen)
+            if exit_code != 0:
+                postprocess_failures += 1
+                print(f"WARNING: uniform-opaque postprocess for {family}/{codegen} returned exit {exit_code}")
 ```
 
-- [ ] **Step 15.2: Verify full regeneration round-trip**
+Owner/consumer mode detection is path-based inside `postprocess/Program.cs` (commit `4b87037`): Janset.SDL2.Core directories emit `Handles.g.cs`; satellite directories (Janset.SDL2.Image) only apply the signature rewrites and reference Core's `Handles.g.cs` via ProjectReference + shared SDL2 namespace.
+
+- [x] **Step 15.2: Verify full regeneration round-trip**
 
 Run: `python spikes/binding-generators/clangsharp/generate_bindings.py --scope full --codegen both --execute --clean-output --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims`
 
 Expected: regeneration succeeds; uniform-opaque pipeline step runs; final output has typed handle structs in place of empty structs and force-opaque structs.
 
-- [ ] **Step 15.3: Verify a force-opaque struct (was full-layout, now Pattern B)**
+Result: pipeline step fires 4 invocations (Core/Compat, Image/Compat, Core/Modern, Image/Modern). Owner directories report `wrote ...\Handles.g.cs with 17 handles (owner mode)`; consumer directories report `consumer directory (Compat|Modern); skipped Handles.g.cs emit`. Step log line: `uniform-opaque: applying 14 auto-detect + 3 force-opaque handles from opaque-handle-roster.json (syntactic discovery: 14)`. No drift warnings; regen is idempotent (second run produces zero functional diff modulo CRLF noise).
+
+- [x] **Step 15.3: Verify a force-opaque struct (was full-layout, now Pattern B)**
 
 Run: `head -40 spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern/SDL_rwops.g.cs`
 
@@ -2007,13 +2017,13 @@ Run: `grep -n "_hidden_e__Union\|delegate\*" spikes/binding-generators/clangshar
 
 Expected: 0 matches (the platform-conditioned union and function-pointer slots are removed).
 
-- [ ] **Step 15.4: Verify reference rewrites in satellite (SDL2.Image)**
+- [x] **Step 15.4: Verify reference rewrites in satellite (SDL2.Image)**
 
 Run: `grep -n "SDL_RWops" spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Generated/Modern/SDL_image.g.cs | head -10`
 
 Expected: signatures use `SDL_RWops` by-value (e.g., `IMG_Load_RW(SDL_RWops src, ...)`); no `SDL_RWops*` pointer parameters remain.
 
-- [ ] **Step 15.5: Compile-check both projects across all TFMs**
+- [x] **Step 15.5: Compile-check both projects across all TFMs**
 
 Run:
 ```bash
@@ -2024,7 +2034,7 @@ dotnet build spikes/binding-generators/clangsharp/tests/abi-tests/AbiTests.cspro
 
 Expected: 0 errors, 0 warnings across all 5 TFMs in all three projects.
 
-- [ ] **Step 15.6: Commit**
+- [x] **Step 15.6: Commit**
 
 ```bash
 git add spikes/binding-generators/clangsharp/generate_bindings.py spikes/binding-generators/clangsharp/src/

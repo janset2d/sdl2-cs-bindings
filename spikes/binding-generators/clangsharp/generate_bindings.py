@@ -704,6 +704,7 @@ def run_postprocess(repo: pathlib.Path, family: str, spike_root: pathlib.Path, m
     - 'platform-delta'    SDL2 platform-view pass cleanup
     - 'guid-substitute'   Slice C-C: SDL_GUID -> System.Guid (16-byte wire-identical)
     - 'threadid-dispatch' Slice C-A R2 structural: SDL_threadID family hybrid TFM emit
+    - 'uniform-opaque'    Slice C-B Pattern B opaque handle emit + pointer-to-by-value rewrites
     codegen selects the Generated/<Codegen>/ subtree to operate on."""
     subdir = "Compat" if codegen == "compat" else "Modern"
     target_dir = generated_root_for_family(repo, family) / subdir
@@ -1207,6 +1208,24 @@ def main() -> int:
                 if exit_code != 0:
                     postprocess_failures += 1
                     print(f"WARNING: threadid-dispatch postprocess for {family}/{codegen} returned exit {exit_code}")
+
+    # Slice C-B Pattern B uniform opaque handle emit. Applied last so it operates
+    # on the final signature shape after threadid-dispatch has rewritten the
+    # SDL_threadID family. Per Constitution §"Opaque Handles" Implementation
+    # mechanism: owner mode (Janset.SDL2.Core/Generated/*) writes a single
+    # consolidated Handles.g.cs with the full Pattern B struct body for every
+    # roster handle; consumer mode (Janset.SDL2.Image/Generated/*) only removes
+    # any partial struct declarations + applies pointer-to-by-value rewrites,
+    # since Core's Handles.g.cs is referenced via ProjectReference + the shared
+    # SDL2 namespace. Owner/consumer detection is path-based inside Program.cs.
+    if args.execute:
+        print("--- postprocess: uniform-opaque (all codegens) ---")
+        for codegen in codegen_passes:
+            for family in selected:
+                exit_code = run_postprocess(repo, family, spike_root, "uniform-opaque", codegen)
+                if exit_code != 0:
+                    postprocess_failures += 1
+                    print(f"WARNING: uniform-opaque postprocess for {family}/{codegen} returned exit {exit_code}")
 
     write_report(
         reports_root,
