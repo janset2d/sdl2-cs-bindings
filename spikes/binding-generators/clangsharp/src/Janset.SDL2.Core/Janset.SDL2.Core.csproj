@@ -25,4 +25,11 @@
     <PackageReference Include="System.Memory" />
   </ItemGroup>
 
+  <!-- RuntimeInformation polyfill for net462: needed by the SDL_ThreadID family
+       dual-dispatch wrapper (Slice C-A R2 structural emit). netstandard2.0 already
+       includes RuntimeInformation; net462 needs the OOB package. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net462'">
+    <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" />
+  </ItemGroup>
+
 </Project>

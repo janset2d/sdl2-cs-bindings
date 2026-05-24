@@ -37,6 +37,10 @@
     <PackageVersion Include="System.CommandLine.NamingConventionBinder" Version="2.0.0-beta4.22272.1" />
     <PackageVersion Include="System.Memory" Version="4.6.3" />
     <PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
+    <!-- Polyfill for System.Runtime.InteropServices.RuntimeInformation on net462.
+         Used by the SDL_ThreadID dual-dispatch wrapper (Slice C-A R2 structural emit)
+         to select between Windows (uint) and Unix LP64 (nint) DllImport pairs. -->
+    <PackageVersion Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.3.0" />
     <!-- used by repo-root tools.cs (file-based dev-orchestration script) -->
     <PackageVersion Include="Spectre.Console" Version="0.55.2" />
     <PackageVersion Include="Spectre.Console.Cli" Version="0.55.0" />

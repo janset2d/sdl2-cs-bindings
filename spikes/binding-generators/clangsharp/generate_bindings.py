@@ -698,9 +698,12 @@ def modern_root_for_family(repo: pathlib.Path, family: str) -> pathlib.Path:
 
 
 def run_postprocess(repo: pathlib.Path, family: str, spike_root: pathlib.Path, mode: str, codegen: str) -> int:
-    """Invoke the Microsoft.CodeAnalysis postprocess. mode = 'strip-varargs' (drops
-    __arglist per Constitution L162-176 fmt-only policy) or 'libraryimport'
-    (promotes DllImport → LibraryImport per Constitution L48 backend split).
+    """Invoke the Microsoft.CodeAnalysis postprocess. mode is one of:
+    - 'strip-varargs'     drops __arglist per Constitution L162-176 fmt-only policy
+    - 'libraryimport'     promotes DllImport -> LibraryImport per Constitution L48 backend split
+    - 'platform-delta'    SDL2 platform-view pass cleanup
+    - 'guid-substitute'   Slice C-C: SDL_GUID -> System.Guid (16-byte wire-identical)
+    - 'threadid-dispatch' Slice C-A R2 structural: SDL_threadID family hybrid TFM emit
     codegen selects the Generated/<Codegen>/ subtree to operate on."""
     subdir = "Compat" if codegen == "compat" else "Modern"
     target_dir = generated_root_for_family(repo, family) / subdir
@@ -1187,6 +1190,23 @@ def main() -> int:
                 if exit_code != 0:
                     postprocess_failures += 1
                     print(f"WARNING: guid-substitute postprocess for {family}/{codegen} returned exit {exit_code}")
+
+    # Slice C-A R2 structural SDL_threadID hybrid dispatch: replaces the
+    # single uint-returning SDL_ThreadID / SDL_GetThreadID P/Invoke with a
+    # TFM-conditional pair — CLong/CULong + LibraryImport on net6+, and
+    # Microsoft's documented dual-DllImport + RuntimeInformation.IsOSPlatform
+    # dispatch on legacy TFMs (uint return on Windows = 32-bit C unsigned long;
+    # nint return on Unix LP64 = 64-bit). Caller-side surface uniform ulong.
+    # Applied to both Compat and Modern after guid-substitute so the rewrite
+    # sees the final attribute shape across both codegen trees.
+    if args.execute:
+        print("--- postprocess: threadid-dispatch (all codegens) ---")
+        for codegen in codegen_passes:
+            for family in selected:
+                exit_code = run_postprocess(repo, family, spike_root, "threadid-dispatch", codegen)
+                if exit_code != 0:
+                    postprocess_failures += 1
+                    print(f"WARNING: threadid-dispatch postprocess for {family}/{codegen} returned exit {exit_code}")
 
     write_report(
         reports_root,

@@ -3,31 +3,38 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 // Usage:
-//   dotnet run --project postprocess -- strip-varargs   <input-dir> [<output-dir>]
-//   dotnet run --project postprocess -- libraryimport   <input-dir> [<output-dir>]
-//   dotnet run --project postprocess -- platform-delta  <input-dir> [<output-dir>]
-//   dotnet run --project postprocess -- guid-substitute <input-dir> [<output-dir>]
+//   dotnet run --project postprocess -- strip-varargs      <input-dir> [<output-dir>]
+//   dotnet run --project postprocess -- libraryimport      <input-dir> [<output-dir>]
+//   dotnet run --project postprocess -- platform-delta     <input-dir> [<output-dir>]
+//   dotnet run --project postprocess -- guid-substitute    <input-dir> [<output-dir>]
+//   dotnet run --project postprocess -- threadid-dispatch  <input-dir> [<output-dir>]
 //
-// strip-varargs  : Constitution L162-176 fmt-only policy — drops `__arglist`
-//                  parameter from variadic P/Invokes (applied to both Compat
-//                  and Modern output before libraryimport).
-// libraryimport  : Constitution L48 backend split — promotes [DllImport] to
-//                  [LibraryImport] + [UnmanagedCallConv] + partial (applied to
-//                  Modern output only; Compat keeps DllImport for legacy TFMs).
-// platform-delta : SDL2 platform-view pass cleanup — removes declarations that
-//                  already exist in neutral/earlier platform output and adds
-//                  guarded [SupportedOSPlatform] attributes by Platforms/<View>.
-// guid-substitute: Slice C-C — removes the generated `partial struct SDL_GUID`
-//                  and rewrites every reference to System.Guid. Wire size is
-//                  bit-identical (both 16 bytes); see GuidSubstitutionRewriter
-//                  for the ABI trade-off rationale.
+// strip-varargs     : Constitution L162-176 fmt-only policy — drops `__arglist`
+//                     parameter from variadic P/Invokes (applied to both Compat
+//                     and Modern output before libraryimport).
+// libraryimport     : Constitution L48 backend split — promotes [DllImport] to
+//                     [LibraryImport] + [UnmanagedCallConv] + partial (applied to
+//                     Modern output only; Compat keeps DllImport for legacy TFMs).
+// platform-delta    : SDL2 platform-view pass cleanup — removes declarations that
+//                     already exist in neutral/earlier platform output and adds
+//                     guarded [SupportedOSPlatform] attributes by Platforms/<View>.
+// guid-substitute   : Slice C-C — removes the generated `partial struct SDL_GUID`
+//                     and rewrites every reference to System.Guid. Wire size is
+//                     bit-identical (both 16 bytes); see GuidSubstitutionRewriter
+//                     for the ABI trade-off rationale.
+// threadid-dispatch : Slice C-A R2 structural — replaces the SDL_ThreadID /
+//                     SDL_GetThreadID single P/Invoke with a TFM-conditional
+//                     pair: CLong/CULong on net6+, Microsoft's documented dual
+//                     DllImport + RuntimeInformation dispatch on legacy TFMs.
+//                     Applied to both Compat and Modern after the LibraryImport
+//                     pass so the emitted block can carry both shapes.
 //
 // Default behavior is in-place edit; pass an explicit output directory to
 // write to a different location.
 
-if (args.Length < 2 || args[0] is not ("strip-varargs" or "libraryimport" or "platform-delta" or "guid-substitute"))
+if (args.Length < 2 || args[0] is not ("strip-varargs" or "libraryimport" or "platform-delta" or "guid-substitute" or "threadid-dispatch"))
 {
-    Console.Error.WriteLine("usage: dotnet run --project postprocess -- <strip-varargs|libraryimport|platform-delta|guid-substitute> <input-dir> [<output-dir>]");
+    Console.Error.WriteLine("usage: dotnet run --project postprocess -- <strip-varargs|libraryimport|platform-delta|guid-substitute|threadid-dispatch> <input-dir> [<output-dir>]");
     return 1;
 }
 
@@ -72,6 +79,14 @@ switch (mode)
     case "guid-substitute":
     {
         var r = new GuidSubstitutionRewriter();
+        rewriter = r;
+        hasChanges = () => r.AnyChanges;
+        resetRewriter = r.Reset;
+        break;
+    }
+    case "threadid-dispatch":
+    {
+        var r = new ThreadIdDualDispatchRewriter();
         rewriter = r;
         hasChanges = () => r.AnyChanges;
         resetRewriter = r.Reset;
