@@ -235,6 +235,56 @@ Future Layer 2/3 slices route their per-header concerns into the same `per-heade
 
 ---
 
+### Decision 5 — Foreign Type Boundary Policy
+
+**WHY.** SDL2 references types owned by external native libraries (Vulkan, Direct3D / DXGI, Microsoft GDK, Linux X11 / Wayland / KMSDRM, macOS Cocoa / UIKit / Metal, WinRT, etc.) at parameter positions in its public API. Users obtain these from dedicated .NET bindings (`Silk.NET.Vulkan`, `Vortice.Windows`, `Silk.NET.OpenGL`, etc.). Wrapping foreign types in our own Pattern B typed handle structs (e.g., emitting `readonly partial struct VkInstance(nint)`) forces every cross-binding call site to construct our wrapper: `new VkInstance(silkInstance.Handle)`. SDL2-CS's 10+ years of shipped precedent uses `IntPtr` / `nint` at foreign parameter positions, which interoperates frictionlessly with any .NET binding that exposes a pointer-sized handle. Distinguishing SDL-owned from foreign types is a manual policy decision — no automatic mechanism exists. The §"Opaque Handles" Pattern B policy binds **SDL-owned** types only; foreign types are not ours to own, rename, or wrap.
+
+The user's real-world interop example (provided 2026-05-24) — SDL2-CS + `Silk.NET.OpenGL` via `GL.GetApi(proc => SDL_GL_GetProcAddress(proc))` — confirms the practical shape: SDL-owned `SDL_GLContext` never crosses into Silk.NET (only re-enters SDL functions), while function-pointer interop happens via delegate factories returning raw pointers. The pattern generalizes: SDL-owned typed handles stay typed; foreign typed handles surface as `nint` for unforced interop.
+
+Peer evidence (2026-05-24 research probes):
+
+- **SDL2-CS:** `IntPtr` everywhere for foreign types (`HWND`, `IDirect3DDevice9`, `VkInstance`, `NSWindow`, `wl_display`, `JNIEnv*`, `XTaskQueueHandle`, `IInspectable`). Comments like `/* IntPtr refers to an HWND */` carry provenance.
+- **ppy/SDL3-CS:** keeps raw tag-pointers (`VkInstance_T*`, `XTaskQueueObject**`) with `[NativeTypeName(...)]` annotations. Counter-evidence to auto-canonicalization, but high friction with Silk.NET / Vortice / TerraFX consumers.
+- **Silk.NET.Vulkan / Vortice.Vulkan / TerraFX.Interop.Windows:** all expose foreign handles as wrappers around `nint`/`ulong` with `.Handle` accessors returning pointer-sized values — friction with SDL2-CS-style `IntPtr` is zero.
+- **Alimer.Bindings.SDL:** flattens Vulkan to raw `nint` / `ulong**` (defers typed Vulkan to external binding).
+
+**HOW.** Foreign types at SDL parameter positions emit as opaque `nint` / `IntPtr`. The `[NativeTypeName(...)]` annotation preserves provenance for documentation and downstream postprocess sensors. Mechanism:
+
+- ClangSharp-style: per-header RSP `--remap` with byte-exact textual match (`--remap "VkInstance *"=nint*`) plus `--exclude` to suppress the parser tag struct emission (`--exclude VkInstance_T`).
+- CppAst-style (future): equivalent type-classifier rule plus a foreign-type allow-list (Cake's `ExternalNativeTypePolicy` precedent).
+
+The allow-list is **manually curated** and lives in per-header RSP files close to the SDL header that references the foreign type. Each entry's leading comment cites the SDL header source line of the typedef and the upstream owner library (Vulkan / Win32 / GDK / etc.). No automatic foreign-type detection sweep — additions are deliberate.
+
+**WHAT.** The Priority C survey identifies the foreign-type categories below. Active rows land in this slice; deferred rows are not currently emitted by the spike's multi-OS pass and earn their RSP entries when the corresponding pass is activated.
+
+| Category | Foreign types | Source | Disposition | RSP location |
+| --- | --- | --- | --- | --- |
+| **Vulkan** | `VkInstance` (= `VkInstance_T *`), `VkSurfaceKHR` (= `VkSurfaceKHR_T *` on 64-bit) | `SDL_vulkan.h:52-53,187-188` | **Active — Task 6** | new `rsp/per-header/SDL_vulkan.rsp` |
+| **Direct3D COM** | `IDirect3DDevice9 *`, `ID3D11Device *`, `ID3D12Device *` | `SDL_system.h:77,93,113` (Windows pass) | **Active — Task 6** | new `rsp/per-header/SDL_system.rsp` (Windows-conditioned) |
+| **Microsoft GDK** | `XTaskQueueHandle` (= `XTaskQueueObject *`), `XUserHandle` (= `XUser *`) | `SDL_system.h:600-601,616,630` (GDK pass) | **Active — Task 6** | new `rsp/per-header/SDL_system.rsp` (GDK-conditioned) or split GDK file |
+| Win32 handles | `HWND` (= `HWND__ *`), `HDC` (= `HDC__ *`), `HINSTANCE` (= `HINSTANCE__ *`) | `SDL_syswm.h:165,235-237` | Already handled | `rsp/sdl2-core.rsp:22-24` |
+| Android JNI | `JNIEnv *`, `jobject` | `SDL_system.h:258-294` (SDL pre-erased to `void *`) | Already handled | `rsp/base.rsp:18` `void*=nint` |
+| C stdlib | `FILE *`, `va_list`, `_iobuf *`, `_IO_FILE *` | `SDL_rwops.h`, `SDL_log.h`, `SDL_stdinc.h` | Already handled | `rsp/sdl2-core.rsp:18-24,31-38` |
+| Metal | `void *` (SDL deliberately exposes `CAMetalLayer *` / `MTLCommandEncoder` as `void *`) | `SDL_render.h:1890-1911`, `SDL_metal.h` | Already handled | `rsp/base.rsp` `void*=nint` |
+| Linux X11 | `Display *`, `Window`, `XEvent *` | `SDL_syswm.h:173,249-250` | **Deferred** | `SDL_syswm.h` not in multi-OS pass yet |
+| Linux Wayland | `wl_display *`, `wl_surface *`, `wl_egl_window *`, `xdg_*` | `SDL_syswm.h:295-302` | **Deferred** | same |
+| Linux KMSDRM | `gbm_device *` | `SDL_syswm.h:342` | **Deferred** | same |
+| macOS Cocoa | `NSWindow *` | `SDL_syswm.h:266-271` (Apple pass) | **Deferred** | Apple multi-OS pass not enabled |
+| iOS UIKit | `UIWindow *`, `UIViewController *` | `SDL_syswm.h:280-289` (iOS pass) | **Deferred** | same |
+| WinRT | `IInspectable *` | `SDL_syswm.h:243` (WinRT pass) | **Deferred** | gated behind excluded `SDL_GetWindowWMInfo` |
+| OpenGL / EGL / GLES | Khronos types from `SDL_opengl*.h`, `SDL_egl.h` | not in scope | **Not in scope** | `scope/sdl2-core.headers.txt` excludes the entire header set. `SDL_GLContext` is **SDL-owned** (`typedef void *`), not foreign |
+| DirectFB / Mir / Vivante / OS/2 | various | `SDL_syswm.h` | **Excluded** | Constitution L367 Stage 1 exclusion; never emitted |
+
+Constitution L161-164's accepted deferrals (`SDL_RWFromFP`, `SDL_LogMessageV`, `SDL_vsnprintf`, `SDL_vsscanf`, `SDL_vasprintf`) cover the C variadic surface independently of this foreign-type allow-list.
+
+Cross-references:
+- Constitution §"Foreign Type Boundary Policy" carries the same allow-list as canonical policy beyond Priority C.
+- Research evidence: `docs/research/semantic-abi-type-classification-research.md` Appendix B (2026-05-24 foreign-type surveys).
+
+This decision **revises** the earlier "canonicalize all 10 R6 pairs" stance from the Task 4 oracle discovery: the 6 SDL-owned R6 pairs canonicalize via Slice C-C as planned; the 4 foreign-type pairs (`VkInstance_T`/`VkSurfaceKHR_T`/`XTaskQueueObject`/`XUser`) instead emit as `nint` per this Decision 5 policy. The oracle's `duplicate-tag-typedef` finding for these 4 pairs naturally clears once the tag structs are excluded.
+
+---
+
 ## Slices
 
 Each slice is independently testable but the three are sequenced by dependency. See "Sequencing" below.

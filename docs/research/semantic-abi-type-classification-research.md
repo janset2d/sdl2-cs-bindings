@@ -472,3 +472,80 @@ Findings 6-10 collectively justify the Priority C design's four policy decisions
 The durable lesson is to make semantic ABI type classification the center of the next design discussion. Deferred layouts, opaque handles, `wchar_t`, C `long`, enum flags, and public handle escape hatches should be reviewed as one taxonomy. Implementation can still be sliced narrowly, but the decisions share one root: do not emit a success-shaped C# declaration unless the native ABI shape is honestly represented across the supported RIDs and TFMs.
 
 Short version: compilation success is not ABI correctness; AST syntax is not semantic API.
+
+---
+
+## Appendix B — 2026-05-24 Foreign-Type Boundary Survey
+
+**Context:** During Plan Task 4 implementation (oracle duplicate-tag-typedef detection lane), 10 candidate R6 canonicalization pairs surfaced — 6 SDL-owned plus 4 foreign-boundary types (Vulkan, Microsoft GDK). The user raised a real interop concern: wrapping foreign types in our own typed handle structs would force every cross-binding call site (e.g., `Silk.NET.Vulkan` instance passed to SDL's `SDL_Vulkan_CreateSurface`) to construct our wrapper via `new VkInstance(silkInstance.Handle)`. Six parallel research agents (2026-05-24) surveyed all foreign types in SDL2 public API to inform Decision 5 (Foreign Type Boundary Policy) of the Priority C design spec.
+
+### Finding 11 — Vulkan foreign-type inventory
+
+SDL2's Vulkan surface is exactly two symbols: `VkInstance` (= `struct VkInstance_T *`) and `VkSurfaceKHR` (= `struct VkSurfaceKHR_T *` on 64-bit). Both surface as parameters to `SDL_Vulkan_CreateSurface`:
+
+- Source: `vcpkg_installed/x64-windows-hybrid/include/SDL2/SDL_vulkan.h:52-53` (typedefs), `:187-188` (parameter sites).
+- Current spike emission: empty `partial struct VkInstance_T { }` / `VkSurfaceKHR_T { }` (Compat + Modern), parameters use `VkInstance_T*` / `VkSurfaceKHR_T**`.
+- SDL2-CS precedent: `IntPtr instance` / `out ulong surface` at `external/sdl2-cs/src/SDL2.cs:2452-2456`. Zero-friction with `Silk.NET.Vulkan.Instance.Handle` / `Vortice.Vulkan.VkInstance.Handle`.
+- ppy/SDL3-CS: keeps raw tag-pointers (`VkInstance_T*`, `VkSurfaceKHR_T**`) with `[NativeTypeName("VkInstance")]` annotation. Counter-evidence to canonicalization but high friction with consumer Vulkan bindings.
+
+**Recommendation:** new `rsp/per-header/SDL_vulkan.rsp` with `--remap` of `VkInstance` / `VkSurfaceKHR *` to `IntPtr` / `IntPtr*`; tag structs `VkInstance_T` / `VkSurfaceKHR_T` left to emit harmlessly as empty stubs (no reference sites remain after the remap).
+
+### Finding 12 — OpenGL / EGL / GLES are not foreign concerns
+
+`SDL_GLContext` is **SDL-owned**, not foreign — `typedef void *SDL_GLContext;` at `SDL_video.h:221`. It flows only through SDL functions (`SDL_GL_CreateContext`, `SDL_GL_MakeCurrent`, `SDL_GL_DeleteContext`), never crosses to external GL bindings. The user's real-world `SDL2-CS + Silk.NET.OpenGL` interop example confirms: function-pointer interop happens via delegate factories (`GL.GetApi(proc => SDL_GL_GetProcAddress(proc))`), not via typed GL handles. SDL_GLContext can safely use Pattern B per Constitution §"Opaque Handles".
+
+Foreign GL/EGL/GLES types from `SDL_opengl*.h`, `SDL_egl.h`, etc. are **excluded from the spike's parse scope** via `spikes/binding-generators/scope/sdl2-core.headers.txt` (50 headers listed; none are Khronos re-exports). Constitution L367 Stage 1 exclusion mechanism. **No RSP work needed for GL.**
+
+### Finding 13 — Windows native (Win32 + Direct3D COM) foreign types
+
+Win32 handles (`HWND`, `HDC`, `HINSTANCE`) are **already handled** by `rsp/sdl2-core.rsp:22-24` remaps of `HWND__* / HDC__* / HINSTANCE__* = nint`. These exploit the Win32 convention `typedef struct HWND__ *HWND;` where the underlying tag-struct pointer remap propagates to the typedef.
+
+Direct3D COM interfaces (`IDirect3DDevice9`, `ID3D11Device`, `ID3D12Device`) **are NOT handled** by existing remaps because SDL forward-declares them with `typedef struct IDirect3DDevice9 IDirect3DDevice9;` (no `__` tag indirection) at `SDL_system.h:77`. Current spike emits empty `partial struct IDirect3DDevice9 / ID3D11Device / ID3D12Device` and returns them as typed pointers from `SDL_RenderGetD3D{9,11,12}Device`. SDL2-CS precedent (`external/sdl2-cs/src/SDL2.cs:8747-8748`): all D3D interfaces return `IntPtr` with `// Refers to an IDirect3DDevice9*` annotation. Vortice.Direct3D11 / TerraFX.Interop.Windows consumers expose `ID3D11Device` with `.NativePointer` returning `IntPtr` — zero-friction with the IntPtr return.
+
+**Recommendation:** new `rsp/per-header/SDL_system.rsp` with `--remap IDirect3DDevice9*=nint`, `ID3D11Device*=nint`, `ID3D12Device*=nint` + `--exclude` of the three tag structs.
+
+Note `MSG` / `tagMSG` is NOT in SDL2's public surface — SDL2's `SDL_WindowsMessageHook` takes `void* hWnd, unsigned int message, Uint64 wParam, Sint64 lParam` (no MSG struct exposure). That's an SDL3 addition. No work needed for SDL2.
+
+### Finding 14 — Apple (Cocoa/UIKit/Metal) foreign types — currently deferred
+
+`SDL_syswm.h` Apple variants (`NSWindow *`, `UIWindow *`, `UIViewController *`) appear at `:266-289` but **are not emitted by the current spike** because `SDL_syswm.h` is not in `PLATFORM_SENSITIVE_HEADERS` (Constitution L292-294 Stage 1 quarantine; only `SDL_main.h` + `SDL_system.h` get the multi-OS pass). Generated output has zero Apple references in `Platforms/MacOS/` and `Platforms/IOS/`.
+
+Metal entry points (`SDL_RenderGetMetalLayer`, `SDL_RenderGetMetalCommandEncoder`, `SDL_Metal_*`) already use `void *` returns at `SDL_render.h:1879-1911` and `SDL_metal.h` — SDL's deliberate "headers don't need to include Metal" design. Already handled by `void*=nint`. No new work needed.
+
+SDL2-CS precedent for the hypothetical Apple `SDL_syswm.h` activation: `INTERNAL_cocoa_wminfo.window = IntPtr; // Refers to an NSWindow*`; `INTERNAL_uikit_wminfo.window = IntPtr; // Refers to a UIWindow*` (at `external/sdl2-cs/src/SDL2.cs:8695-8707`). Per-header RSP entries for `NSWindow`/`UIWindow`/`UIViewController` activate when `SDL_syswm.h` enters the Apple multi-OS pass — **deferred** to a future slice.
+
+### Finding 15 — Linux X11/Wayland/KMSDRM foreign types — currently deferred
+
+Same structural finding as Apple: `SDL_syswm.h` Linux variants (`Display *`, `Window`, `XEvent *`, `wl_display *`, `wl_surface *`, `gbm_device *`, etc.) at `:173,249-302,342` are present in the header but **not emitted** because `SDL_syswm.h` is Stage 1 quarantined. Constitution L367 additionally excludes DirectFB / Mir / Vivante / OS/2 unconditionally.
+
+When SDL_syswm.h enters the Linux multi-OS pass:
+- ppy precedent (`SDL_system.Linux.rsp`): `--exclude _XEvent` + `--remap _XEvent*=IntPtr` — minimalist pattern.
+- SDL2-CS precedent (`external/sdl2-cs/src/SDL2.cs:8680-8786`): all X11/Wayland/KMSDRM pointers as `IntPtr` with annotated comments.
+- **Deferred** to the slice that activates the Linux SysWM pass.
+
+### Finding 16 — Microsoft GDK foreign types — active
+
+`XTaskQueueHandle` (= `XTaskQueueObject *`) and `XUserHandle` (= `XUser *`) at `SDL_system.h:599-630` (GDK pass) **are currently emitted** in `Platforms/GDK/SDL_system.g.cs:10-35` as empty stub structs with `XTaskQueueObject **` / `XUser **` out-parameter signatures. ppy/SDL3-CS keeps the same tag-preserving pattern.
+
+SDL2-CS skips the GDK functions entirely (`SDL_GDKGetTaskQueue`, `SDL_GDKGetDefaultUser` absent from the binding). No SDL2-CS GDK precedent.
+
+**Recommendation:** new RSP entries for `XTaskQueueObject *` / `XUser *` → `nint` per Decision 5. Either share `rsp/per-header/SDL_system.rsp` (with platform-conditioned comments) or split into `rsp/per-header/SDL_system.GDK.rsp` if cleaner. **Active in Task 6 scope.**
+
+### Finding 17 — Android JNI types pre-erased upstream
+
+SDL deliberately pre-erases JNI types to `void *` at the header level (`SDL_system.h:262,278` — "SDL headers avoid including `jni.h`"). Returns of `SDL_AndroidGetJNIEnv` / `SDL_AndroidGetActivity` already surface as `void *` in the header. Spike output uses `nint` with `[NativeTypeName("void*")]`. **Already handled by `base.rsp:18` `void*=nint`. No additional RSP work needed.**
+
+`jobject` / `jstring` / `jclass` / `jint` etc. never appear in SDL2 public API.
+
+### Finding 18 — WinRT IInspectable currently moot
+
+`IInspectable *` appears at `SDL_syswm.h:243` (WinRT union arm), but is gated behind `SDL_GetWindowWMInfo` which is currently excluded via `rsp/sdl2-core.rsp:32`. **Deferred** until SDL_GetWindowWMInfo is un-deferred.
+
+### Cross-cutting synthesis of foreign-type surveys
+
+1. **Most foreign types are dormant.** `SDL_syswm.h`'s entire Linux/macOS/iOS/WinRT/DirectFB union is unreachable in the current spike — only the Windows variant + nothing else. This means the Priority C scope for Decision 5 is genuinely limited to Vulkan + Direct3D + GDK.
+2. **Peer consensus on the IntPtr-at-boundary pattern is strong** except for ppy/SDL3-CS, which preserves tag-pointers across-the-board (consistent with their philosophy of minimal RSP overrides).
+3. **The user's interop concern is empirically valid.** Silk.NET, Vortice, TerraFX all expose foreign handles via `.Handle` returning pointer-sized integers — friction with `IntPtr` is zero, friction with a typed `VkInstance(nint)` wrapper is one explicit construction per call site.
+4. **Manual curation is unavoidable.** No automatic mechanism distinguishes SDL-owned from foreign types. The Decision 5 allow-list grows deliberately in per-header RSPs, citing source-line evidence.
+
+Decision 5 of the Priority C design spec carries these conclusions as binding policy. Constitution §"Foreign Type Boundary Policy" mirrors the policy at canonical-doc level beyond Priority C.

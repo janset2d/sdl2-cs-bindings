@@ -309,6 +309,43 @@ The struct is lexically `public` (so Layer 2 public methods can use it in their 
 
 **What:** Every SDL opaque concept emits one typed handle struct of this shape. Both auto-detected empty-body opaques (SDL_Window, SDL_Renderer, SDL_Texture, SDL_AudioStream, SDL_Cursor, SDL_Joystick, SDL_GameController, SDL_hid_device, SDL_mutex, SDL_cond, SDL_sem, SDL_Thread) and force-opaque types from a Constitution-bound allow-list (SDL_RWops, SDL_SysWMinfo, SDL_SysWMmsg per §"Structs And Unions") use the same shape uniformly. The Layer 2 public typed low-level slice that follows reuses these handle types in its public method projection — no Layer 2 work for the handle types themselves.
 
+## Foreign Type Boundary Policy
+
+SDL2 references types owned by **external native libraries** (Vulkan, Direct3D / DXGI, Microsoft GDK, Linux X11 / Wayland / KMSDRM, macOS Cocoa / UIKit / Metal, etc.) at parameter positions in its public API. Consumers obtain these from dedicated .NET bindings (`Silk.NET.Vulkan`, `Vortice.Windows`, `Silk.NET.OpenGL`, etc.). The Janset.SDL2 binding must let those external typed handles cross the SDL boundary without explicit-conversion friction.
+
+**Why:** Wrapping foreign types in our own typed handle structs (Pattern B per §"Opaque Handles") forces users to write `new VkInstance(silkInstance.Handle)` at every cross-binding call site. SDL2-CS's pragmatic precedent — `IntPtr` / `nint` at foreign parameter positions — ships zero-friction interop with any .NET binding that exposes a pointer-sized handle. The §"Opaque Handles" typed-handle policy is binding for **SDL-owned** types only; foreign types are not ours to own, rename, or wrap. The active spike's research probes (2026-05-24) confirmed peer convergence on the IntPtr-at-foreign-boundary pattern: SDL2-CS uses `IntPtr` for `VkInstance` / `HWND` / `IDirect3DDevice9` / `JNIEnv*`; ppy/SDL3-CS keeps raw tag-pointers (counter-evidence but workable); Silk.NET / Vortice / TerraFX consumers all expose `.Handle` accessors returning `IntPtr` / `nint`. Distinguishing SDL-owned from foreign types is a manual policy decision — no automatic mechanism exists.
+
+**How:** Foreign types at SDL parameter positions emit as opaque `nint` / `IntPtr`. The `[NativeTypeName("VkInstance")]` annotation (or equivalent for the toolchain) preserves provenance for documentation and downstream postprocess sensors. Mechanism varies by generator toolchain:
+
+- **ClangSharp-style:** per-header RSP `--remap` with byte-exact textual match for the typedef / pointer spelling, plus `--exclude` to suppress the parser tag struct emission.
+- **CppAst-style:** equivalent type-classifier rule plus a foreign-type allow-list policy (Cake's `ExternalNativeTypePolicy` precedent).
+
+The allow-list lives in per-header configuration close to the header that references the foreign type, with comments citing the SDL header source line of the typedef and the upstream owner library (Vulkan / Win32 / GDK / etc.).
+
+**What:** The Priority C survey identifies these foreign-type categories in SDL2 public API. The first three are active in the current spike scope; the rest are deferred until their corresponding `SDL_syswm.h` platform-view passes are activated.
+
+| Category | Foreign types in SDL2 public API | Location | Disposition |
+| --- | --- | --- | --- |
+| Vulkan | `VkInstance` (= `VkInstance_T *`), `VkSurfaceKHR` (= `VkSurfaceKHR_T *` on 64-bit) | `SDL_vulkan.h:52-53,187-188` | **Active** — `rsp/per-header/SDL_vulkan.rsp` |
+| Direct3D COM | `IDirect3DDevice9 *`, `ID3D11Device *`, `ID3D12Device *` | `SDL_system.h:77-127` (Windows pass) | **Active** — `rsp/per-header/SDL_system.rsp` (Windows-conditioned) |
+| Microsoft GDK | `XTaskQueueHandle` (= `XTaskQueueObject *`), `XUserHandle` (= `XUser *`) | `SDL_system.h:599-630` (GDK pass) | **Active** — `rsp/per-header/SDL_system.rsp` (GDK-conditioned) |
+| Win32 handles | `HWND`, `HDC`, `HINSTANCE` | `SDL_syswm.h:165,235-237` | **Already handled** — `rsp/sdl2-core.rsp:22-24` remap `HWND__* / HDC__* / HINSTANCE__* = nint` |
+| Android JNI | `JNIEnv *`, `jobject` | `SDL_system.h:258-294` (pre-erased to `void*` by SDL) | **Already handled** — `rsp/base.rsp:18` `void*=nint` covers |
+| C stdlib | `FILE *`, `va_list` | `SDL_rwops.h`, `SDL_log.h`, `SDL_stdinc.h` | **Already handled** — `rsp/sdl2-core.rsp:21,31-38` (FILE* remap + variadic-deferral excludes) |
+| Linux X11 | `Display *`, `Window`, `XEvent *` | `SDL_syswm.h:173,249-250` | **Deferred** — `SDL_syswm.h` not yet in multi-OS pass |
+| Linux Wayland | `wl_display *`, `wl_surface *`, `wl_egl_window *`, `xdg_*` | `SDL_syswm.h:295-302` | **Deferred** — same |
+| Linux KMSDRM | `gbm_device *` | `SDL_syswm.h:342` | **Deferred** — same |
+| macOS Cocoa | `NSWindow *` | `SDL_syswm.h:266-271` (Apple pass) | **Deferred** — Apple multi-OS pass not enabled |
+| iOS UIKit | `UIWindow *`, `UIViewController *` | `SDL_syswm.h:280-289` (iOS pass) | **Deferred** — same |
+| Metal | `void *` (already opaque upstream) | `SDL_render.h:1890-1911`, `SDL_metal.h` | **Already handled** — `void*=nint` covers; SDL deliberately exposes `CAMetalLayer*` / `MTLCommandEncoder` as `void*` |
+| WinRT | `IInspectable *` | `SDL_syswm.h:243` (WinRT pass) | **Deferred** — gated behind `SDL_GetWindowWMInfo` which is currently excluded |
+| OpenGL / EGL / GLES | `EGL*`, `GL*` (Khronos types) | `SDL_opengl*.h`, `SDL_egl.h` | **Not in scope** — entire header set excluded from parse via `scope/sdl2-core.headers.txt`. `SDL_GLContext` is SDL-owned (`typedef void *` in `SDL_video.h:221`), not foreign |
+| DirectFB / Mir / Vivante / OS/2 | various | `SDL_syswm.h` | **Excluded** — Constitution L367 Stage 1 exclusions; never emitted |
+
+Constitution L161-164's accepted deferrals (`SDL_RWFromFP`, `SDL_LogMessageV`, `SDL_vsnprintf`, `SDL_vsscanf`, `SDL_vasprintf`, `FILE`, `_IO_FILE`, `va_list`, `__va_list_tag`) cover the C variadic / file-pointer surface independently of this foreign-type allow-list.
+
+When future slices activate additional platform passes (`SDL_syswm.h` Linux variant, Apple variant, WinRT variant), the corresponding deferred rows above transition to **active** and earn their own per-header RSP entries. The allow-list is grown deliberately; no auto-detection sweep silently expands it.
+
 ## Structs And Unions
 
 Structs and unions are public only when the emitted layout is honest.

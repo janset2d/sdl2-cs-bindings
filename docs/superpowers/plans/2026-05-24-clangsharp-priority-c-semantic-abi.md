@@ -607,56 +607,220 @@ EOF
 
 ---
 
-### Task 6: Audit for Additional Tag/Typedef Pairs
+### Task 6: Apply R6 Canonicalization + Foreign-Type Boundary Policy
+
+**Background:** Task 4's oracle duplicate-tag-typedef lane surfaced 10 candidate pairs (beyond the 2 in Tasks 2-3). 2026-05-24 brainstorm + 6 parallel research probes (see `docs/research/semantic-abi-type-classification-research.md` Appendix B) classified them into two groups:
+
+1. **6 SDL-owned pairs** — apply R6 canonicalization (tag → public typedef) per Decision 1 of the design spec.
+2. **4 foreign-boundary pairs (Vulkan + GDK)** — apply **Decision 5 Foreign Type Boundary Policy** (foreign types emit as `IntPtr` / `nint`, not Pattern B wrappers, for zero-friction interop with `Silk.NET.Vulkan`, `Vortice.Windows`, etc.). Plus 3 Direct3D COM types from `SDL_system.h` Windows pass that surfaced in the foreign-type survey but weren't in the oracle finding (they have no tag/typedef pair — just empty stub structs leaking).
+
+The Constitution gained a new §"Foreign Type Boundary Policy" section with the canonical allow-list; the design spec's Decision 5 carries the slice-scoped specifics.
 
 **Files:**
-- Potentially: additional per-header RSP files
+- Create: `spikes/binding-generators/clangsharp/rsp/per-header/SDL_audio.rsp` (R6: `_SDL_AudioStream` → `SDL_AudioStream`)
+- Create: `spikes/binding-generators/clangsharp/rsp/per-header/SDL_gamecontroller.rsp` (R6: `_SDL_GameController` → `SDL_GameController`)
+- Create: `spikes/binding-generators/clangsharp/rsp/per-header/SDL_haptic.rsp` (R6: `_SDL_Haptic` → `SDL_Haptic`)
+- Create: `spikes/binding-generators/clangsharp/rsp/per-header/SDL_joystick.rsp` (R6: `_SDL_Joystick` → `SDL_Joystick`)
+- Create: `spikes/binding-generators/clangsharp/rsp/per-header/SDL_sensor.rsp` (R6: `_SDL_Sensor` → `SDL_Sensor`)
+- Create: `spikes/binding-generators/clangsharp/rsp/per-header/SDL_vulkan.rsp` (Decision 5: `VkInstance` / `VkSurfaceKHR *` → IntPtr; exclude tag structs)
+- Create: `spikes/binding-generators/clangsharp/rsp/per-header/SDL_system.rsp` (Decision 5: Direct3D COM → IntPtr; GDK `XTaskQueueObject` / `XUser` → IntPtr; exclude tag structs)
+- Modify: `spikes/binding-generators/clangsharp/rsp/per-header/SDL_stdinc.rsp` already exists from Task 9 plan; if Task 6 runs first, create the file with the `_SDL_iconv_t` remap only and let Task 9 append `--exclude` entries later. (Alternatively, defer `SDL_iconv_t` to Task 9 and combine.)
 
-- [ ] **Step 6.1: Run the oracle with the new duplicate-detect lane**
+- [ ] **Step 6.1: Run the oracle to confirm starting state**
 
 Run: `dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --family sdl2-core --family sdl2-image --write-report`
 
 Read `spikes/binding-generators/output/reports/oracle-evidence-clangsharp.md` Compatibility Risk → duplicate-tag-typedef section.
 
-Expected: 0 findings (SDL_hid_device_ and SDL_semaphore are resolved by Tasks 2 and 3).
+Expected: 10 findings / pairs reported (post-Task-5 state) — 6 SDL pairs + 4 foreign pairs.
 
-- [ ] **Step 6.2: Investigate any new findings**
+- [ ] **Step 6.2: Apply the 6 SDL R6 canonicalizations**
 
-If the oracle reports additional pairs, for each finding:
-1. Read the source SDL2 header to identify the C typedef vs tag.
-2. Identify the correct canonical (public typedef) name.
-3. Determine which per-header RSP file owns the symbol (which `.h` it lives in).
-4. Add `--remap TAG=TYPEDEF` to the appropriate `rsp/per-header/<header>.rsp` (create the file if it doesn't exist).
-5. Regenerate, verify the finding is gone.
+For each SDL-owned pair below, create the per-header RSP file mirroring `SDL_hidapi.rsp` / `SDL_mutex.rsp` structure (comment block citing Constitution L262-277 + ppy precedent + `--remap` line).
 
-Common candidates to check explicitly:
-- `SDL_GameController` (typedef) vs `_SDL_GameController` (tag) — unlikely but verify.
-- `SDL_Joystick` vs tag — verify.
-- `SDL_Cursor` vs tag — verify.
+| Pair | RSP file |
+| --- | --- |
+| `_SDL_AudioStream=SDL_AudioStream` | `SDL_audio.rsp` |
+| `_SDL_GameController=SDL_GameController` | `SDL_gamecontroller.rsp` |
+| `_SDL_Haptic=SDL_Haptic` | `SDL_haptic.rsp` |
+| `_SDL_Joystick=SDL_Joystick` | `SDL_joystick.rsp` |
+| `_SDL_Sensor=SDL_Sensor` | `SDL_sensor.rsp` |
+| `_SDL_iconv_t=SDL_iconv_t` | `SDL_stdinc.rsp` (new file; Task 9 will later append `--exclude` for the C-long helpers) |
 
-Use: `grep -rn "partial struct \(SDL_\w*_\|SDL_\w*\)$" spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern/ | head -20`
+Each RSP file structure (use `SDL_hidapi.rsp` as the template, swap the symbol):
 
-- [ ] **Step 6.3: Re-run oracle until 0 findings**
+```
+# Per-header overrides for <header>.h.
+#
+# R6 tag/typedef canonicalization (Constitution L262-277): rename the
+# private C struct tag `_SDL_X` to the public typedef name `SDL_X`
+# everywhere (struct declaration + every reference).
 
-After each per-header RSP addition, re-regenerate + re-run oracle.
+--remap
+_SDL_X=SDL_X
+```
 
-- [ ] **Step 6.4: Verify multi-TFM compile**
+- [ ] **Step 6.3: Apply Decision 5 — foreign-type IntPtr-emit for Vulkan**
+
+Create `spikes/binding-generators/clangsharp/rsp/per-header/SDL_vulkan.rsp`:
+
+```
+# Per-header overrides for SDL_vulkan.h.
+#
+# Decision 5 (Foreign Type Boundary Policy) per
+# docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md
+# and Constitution §"Foreign Type Boundary Policy":
+# VkInstance / VkSurfaceKHR are owned by the user's external Vulkan binding
+# (Silk.NET.Vulkan, Vortice.Vulkan, TerraFX). SDL2 references them at
+# SDL_Vulkan_CreateSurface parameter sites only (SDL_vulkan.h:187-188).
+# Emit as IntPtr / IntPtr* so users pass handle values from external Vulkan
+# bindings directly without explicit-conversion friction.
+#
+# Precedent: SDL2-CS uses IntPtr for VkInstance and `out ulong` for
+# VkSurfaceKHR (external/sdl2-cs/src/SDL2.cs:2452-2456).
+
+--remap
+VkInstance=IntPtr
+"VkSurfaceKHR *"=IntPtr*
+
+--exclude
+VkInstance_T
+VkSurfaceKHR_T
+```
+
+Note: ClangSharp `--remap` is byte-exact textual lookup. `VkInstance` typedef appears as plain `VkInstance instance` in `SDL_vulkan.h:187` (the typedef already buries the `*`), so the bare-name remap is correct. `VkSurfaceKHR *surface` (the C out-param at `:188`) needs the quoted-with-space form for byte-exact match.
+
+- [ ] **Step 6.4: Apply Decision 5 — foreign-type IntPtr-emit for Direct3D + GDK in SDL_system.h**
+
+Create `spikes/binding-generators/clangsharp/rsp/per-header/SDL_system.rsp`:
+
+```
+# Per-header overrides for SDL_system.h.
+#
+# Decision 5 (Foreign Type Boundary Policy): SDL_system.h surfaces three
+# Direct3D COM interfaces under the Windows pass and two GDK handle types
+# under the GDK pass. All are foreign-boundary types owned by external
+# .NET bindings (Vortice.Direct3D{9,11,12} for D3D; future XGameRuntime
+# binding for GDK). Emit as IntPtr at parameter/return positions for
+# friction-free interop.
+#
+# Precedent: SDL2-CS uses IntPtr for IDirect3DDevice9 / ID3D11Device with
+# `// Refers to an IDirect3DDevice9*` annotation (SDL2.cs:8747-8748).
+# SDL2-CS omits SDL_GDKGetTaskQueue / SDL_GDKGetDefaultUser entirely; we
+# emit them with IntPtr per Decision 5.
+
+--remap
+IDirect3DDevice9*=nint
+ID3D11Device*=nint
+ID3D12Device*=nint
+XTaskQueueObject*=nint
+XUser*=nint
+
+--exclude
+IDirect3DDevice9
+ID3D11Device
+ID3D12Device
+XTaskQueueObject
+XUser
+```
+
+- [ ] **Step 6.5: Regenerate**
+
+Run: `python spikes/binding-generators/clangsharp/generate_bindings.py --scope full --codegen both --execute --clean-output --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims`
+
+Expected: regeneration completes; new per-header RSPs loaded for each affected header.
+
+- [ ] **Step 6.6: Verify R6 canonicalizations took effect**
+
+For each SDL pair, grep for the tag absence in both Compat and Modern outputs:
+
+```bash
+for tag in _SDL_AudioStream _SDL_GameController _SDL_Haptic _SDL_Joystick _SDL_Sensor _SDL_iconv_t; do
+    count=$(grep -rn "$tag\b" spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/ | wc -l)
+    if [ "$count" -ne 0 ]; then
+        echo "WARN: $tag still has $count references"
+    fi
+done
+```
+
+Expected: 0 matches each.
+
+- [ ] **Step 6.7: Verify Decision 5 foreign-type IntPtr emit**
+
+```bash
+grep -n "VkInstance_T\|VkSurfaceKHR_T" spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern/SDL_vulkan.g.cs
+grep -n "IntPtr\b" spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern/SDL_vulkan.g.cs | head -5
+grep -rn "IDirect3DDevice9\|ID3D11Device\|ID3D12Device" spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern/Platforms/WindowsDesktop/ 2>/dev/null
+grep -rn "XTaskQueueObject\|XUser\b" spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern/Platforms/GDK/ 2>/dev/null
+```
+
+Expected:
+- `VkInstance_T` / `VkSurfaceKHR_T` struct declarations gone (tag structs excluded)
+- `IntPtr` references appear in SDL_vulkan.g.cs parameter positions
+- Direct3D struct declarations gone from WindowsDesktop platform output
+- GDK tag struct declarations gone from GDK platform output
+
+- [ ] **Step 6.8: Re-run oracle, confirm 0 duplicate-tag-typedef findings**
+
+Run: `dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --family sdl2-core --family sdl2-image --write-report`
+
+Expected: report shows 0 `duplicate-tag-typedef` findings under Compatibility Risk. All 10 pairs from Step 6.1 are now resolved — 6 via canonicalization, 4 via tag-exclusion under Decision 5.
+
+- [ ] **Step 6.9: Verify multi-TFM compile**
 
 Run: `dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Janset.SDL2.Image.csproj -c Release`
 
-Expected: 0 errors, 0 warnings.
+Expected: 0 errors, 0 warnings across all 5 TFMs.
 
-- [ ] **Step 6.5: Commit (only if new RSP files were added in Step 6.2)**
+- [ ] **Step 6.10: Slopwatch**
 
-If Task 6 found additional pairs:
+Run: `slopwatch analyze --fail-on warning --exclude "artifacts/**,external/**,vcpkg_installed/**,spikes/binding-generators/references/**,**/bin/**,**/obj/**"`
+
+Expected: 0 issues.
+
+- [ ] **Step 6.11: Commit**
+
+CRLF-only churn on platform-view files should be excluded as in earlier tasks.
+
 ```bash
-git add spikes/binding-generators/clangsharp/rsp/per-header/ spikes/binding-generators/clangsharp/src/
-git commit -m "feat(binding-spike): canonicalize additional tag/typedef pairs via per-header RSP
+git add spikes/binding-generators/clangsharp/rsp/per-header/ spikes/binding-generators/clangsharp/src/ spikes/binding-generators/output/
+git commit -m "$(cat <<'EOF'
+feat(binding-spike): R6 canonicalization + Decision 5 foreign-type IntPtr-emit
 
-Audit-driven additions from oracle duplicate-detect lane. See per-header
-RSP files for the specific tag=typedef remaps added.
+Task 6 closes the 10 duplicate-tag-typedef findings from Task 4's oracle
+discovery:
 
-Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
+- 6 SDL-owned pairs canonicalized via R6 (--remap TAG=TYPEDEF):
+  _SDL_AudioStream / _SDL_GameController / _SDL_Haptic / _SDL_Joystick /
+  _SDL_Sensor / _SDL_iconv_t -> SDL_AudioStream / SDL_GameController /
+  SDL_Haptic / SDL_Joystick / SDL_Sensor / SDL_iconv_t.
+
+- 4 foreign-boundary pairs handled via Decision 5 Foreign Type Boundary
+  Policy (emit as IntPtr / nint, exclude tag structs):
+  VkInstance_T / VkSurfaceKHR_T (Vulkan, SDL_vulkan.rsp)
+  XTaskQueueObject / XUser (GDK, SDL_system.rsp)
+  Plus 3 Direct3D COM interfaces surfaced by the foreign-type survey:
+  IDirect3DDevice9 / ID3D11Device / ID3D12Device (SDL_system.rsp).
+
+User's interop friction concern preserved: foreign types stay as IntPtr
+at SDL boundary so Silk.NET.Vulkan / Vortice.Windows / etc. consumers
+pass values without explicit-conversion ceremony. SDL2-CS pragmatic
+precedent (IntPtr + comment-annotated provenance) applies.
+
+Oracle duplicate-tag-typedef findings: 10 -> 0. Multi-TFM compile clean
+across 5 TFMs.
+
+Refs:
+- docs/binding-autogen/binding-generator-constitution.md
+  §"Foreign Type Boundary Policy"
+- docs/superpowers/specs/2026-05-24-clangsharp-priority-c-semantic-abi-design.md
+  Decision 5
+- docs/research/semantic-abi-type-classification-research.md
+  Appendix B (Findings 11-18, 2026-05-24 surveys)
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+EOF
+)"
 ```
 
 If no additional pairs were found, skip this commit and note in the audit log.
