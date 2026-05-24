@@ -26,7 +26,7 @@ Each slice's mechanism mixes ClangSharp RSP-level fixes (preferred per "RSP-firs
 - `spikes/binding-generators/clangsharp/postprocess/GuidSubstitutionRewriter.cs` — SDL_GUID → System.Guid
 - `spikes/binding-generators/clangsharp/postprocess/ThreadIdDualDispatchRewriter.cs` — R2 structural dual-emit
 - `spikes/binding-generators/clangsharp/postprocess/OpaqueHandleEmitRewriter.cs` — Slice C-B main rewriter
-- `tests/smoke-tests/abi-tests/AbiTests.csproj` + `tests/smoke-tests/abi-tests/ThreadIdAbiTests.cs` — per-RID smoke test for SDL_threadID
+- `spikes/binding-generators/clangsharp/tests/abi-tests/AbiTests.csproj` + `spikes/binding-generators/clangsharp/tests/abi-tests/ThreadIdAbiTests.cs` — per-TFM ABI smoke for SDL_threadID dispatch
 
 **Modify:**
 
@@ -2010,7 +2010,7 @@ Run:
 ```bash
 dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Janset.SDL2.Core.csproj -c Release
 dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Janset.SDL2.Image.csproj -c Release
-dotnet build tests/smoke-tests/abi-tests/AbiTests.csproj -c Release
+dotnet build spikes/binding-generators/clangsharp/tests/abi-tests/AbiTests.csproj -c Release
 ```
 
 Expected: 0 errors, 0 warnings across all 5 TFMs in all three projects.
@@ -2032,7 +2032,7 @@ platform-conditioned unions and function-pointer fields entirely;
 references rewrite to by-value across both Core and Image satellites.
 
 Multi-TFM compile clean across 5 TFMs in Janset.SDL2.Core,
-Janset.SDL2.Image, and tests/smoke-tests/abi-tests.
+Janset.SDL2.Image, and spikes/binding-generators/clangsharp/tests/abi-tests.
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 EOF
@@ -2068,7 +2068,9 @@ Verify in the report:
 
 Run:
 ```bash
-expected_handles=("SDL_Window" "SDL_Renderer" "SDL_Texture" "SDL_AudioStream" "SDL_Cursor" "SDL_Joystick" "SDL_GameController" "SDL_hid_device" "SDL_mutex" "SDL_cond" "SDL_sem" "SDL_Thread" "SDL_RWops" "SDL_SysWMinfo" "SDL_SysWMmsg")
+# Roster: 15 auto_detect_well_known + 3 force_opaque_exceptions = 18 entries.
+# Source: spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json
+expected_handles=("SDL_Window" "SDL_Renderer" "SDL_Texture" "SDL_AudioStream" "SDL_GameController" "SDL_Joystick" "SDL_Haptic" "SDL_Sensor" "SDL_Cursor" "SDL_Thread" "SDL_mutex" "SDL_sem" "SDL_cond" "SDL_hid_device" "SDL_BlitMap" "SDL_RWops" "SDL_SysWMinfo" "SDL_SysWMmsg")
 for h in "${expected_handles[@]}"; do
     count=$(grep -rn "public readonly partial struct $h\b" spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern/ | wc -l)
     if [ "$count" -ne 1 ]; then
@@ -2086,7 +2088,7 @@ Run:
 ```bash
 dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Janset.SDL2.Core.csproj -c Release
 dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Janset.SDL2.Image.csproj -c Release
-dotnet build tests/smoke-tests/abi-tests/AbiTests.csproj -c Release
+dotnet build spikes/binding-generators/clangsharp/tests/abi-tests/AbiTests.csproj -c Release
 ```
 
 Expected: 0 errors, 0 warnings across all 5 TFMs in all three projects.
@@ -2152,7 +2154,7 @@ Run:
 ```bash
 dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Janset.SDL2.Core.csproj -c Release
 dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Janset.SDL2.Image.csproj -c Release
-dotnet build tests/smoke-tests/abi-tests/AbiTests.csproj -c Release
+dotnet build spikes/binding-generators/clangsharp/tests/abi-tests/AbiTests.csproj -c Release
 ```
 
 Expected: 0 errors, 0 warnings across all 5 TFMs in all three projects.

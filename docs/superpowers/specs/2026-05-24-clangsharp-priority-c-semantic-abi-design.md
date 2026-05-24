@@ -110,7 +110,7 @@ The canonical roster of opaque handles lives at [`spikes/binding-generators/clan
 
 **WHAT.** All opaque handles in the Layer 1 raw ABI surface emit as typed handle structs. Affected sets:
 
-- **Auto-detected from existing empty structs** (~12 names — list verified by research probe): `SDL_Window`, `SDL_Renderer`, `SDL_Texture`, `SDL_AudioStream`, `SDL_Cursor`, `SDL_Joystick`, `SDL_GameController`, `SDL_hid_device` (canonical, after R6), `SDL_mutex`, `SDL_cond`, `SDL_sem` (canonical, after R6), `SDL_Thread`. Detection rule: `public partial struct X { }` with empty body AND a `[NativeTypeName("X *")]` annotation referencing it as pointer.
+- **Auto-detected from existing empty structs** (15 names — canonical roster at `spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json`, three-source triangulated against SDL2 2.32.10): `SDL_Window`, `SDL_Renderer`, `SDL_Texture`, `SDL_AudioStream`, `SDL_GameController`, `SDL_Joystick`, `SDL_Haptic`, `SDL_Sensor`, `SDL_Cursor`, `SDL_Thread`, `SDL_mutex`, `SDL_sem` (canonical, after R6), `SDL_cond`, `SDL_hid_device` (canonical, after R6), `SDL_BlitMap` (non-user-facing internal — referenced via `SDL_Surface.map`; Pattern B emit safe because no user code reads its fields). Detection rule: `public partial struct X { }` with empty body AND `SDL_X*` pointer usage in at least one raw ABI parameter/return position (purely syntactic — no dependency on `[NativeTypeName]` annotations, which ClangSharp omits when C and C# names match).
 - **Force-opaque allow-list** (3 names — Constitution-bound): `SDL_RWops`, `SDL_SysWMinfo`, `SDL_SysWMmsg`. These have body in headers but Constitution L293-302 requires Stage 1 quarantine. The rewriter clears the body and emits the typed handle shape.
 
 Constitution L262-277 already requires "public readonly value types wrapping `nint`"; this design specifies the exact shape and applies it uniformly in Layer 1.
@@ -348,7 +348,7 @@ Each slice is independently testable but the three are sequenced by dependency. 
 - `oracle.cs` `platform-sensitive-long` finding count: 0.
 - Generated output grep for `SDL_lround`/`SDL_lroundf`/`SDL_ltoa`/`SDL_ultoa`/`SDL_strtol`/`SDL_strtoul`: 0 matches.
 - Generated `Generated/Modern/SDL_thread.g.cs` contains the single `[LibraryImport]` + `CULong SDL_ThreadID()` / `SDL_GetThreadID()` form; `Generated/Compat/SDL_thread.g.cs` contains the single `RuntimeInformation.IsOSPlatform` dispatch wrapper + private Win32 / Unix64 DllImports form. No `#if NET6_0_OR_GREATER` directives in either output (csproj `<Compile Include>` already gates the trees to the right TFM range).
-- **Per-RID runtime ABI smoke test** — new `tests/smoke-tests/abi-tests/ThreadIdAbiTests.cs` (or extend existing `PackageConsumer.Smoke`) that calls `SDL_GetThreadID()` and asserts a non-zero result on each of the 7 RIDs. Constitution L220 evidence.
+- **Per-RID runtime ABI smoke test** — `spikes/binding-generators/clangsharp/tests/abi-tests/ThreadIdAbiTests.cs` calls `SDLNative.SDL_ThreadID()` and asserts a non-zero result on each executable TFM (Layer 1 raw ABI access via `InternalsVisibleTo`). Host-side Win + Linux runtime coverage landed; remaining RIDs join on the CI per-RID matrix. Constitution L220 evidence.
 - `dotnet build` clean across 5 TFMs.
 
 ---
@@ -459,7 +459,7 @@ All three slices closed. The spike state transitions from "near-ABI-compatible L
 | File | Change |
 | --- | --- |
 | `spikes/binding-generators/clangsharp/oracle.cs` | Add "duplicate tag/typedef" detection lane (Slice C-C). Optionally a "typed handle inventory" lane for Slice C-B verification. |
-| `tests/smoke-tests/abi-tests/ThreadIdAbiTests.cs` | New. Slice C-A exit gate. Per-RID `SDL_GetThreadID()` non-zero assertion. |
+| `spikes/binding-generators/clangsharp/tests/abi-tests/ThreadIdAbiTests.cs` | Slice C-A exit gate. Per-TFM `SDLNative.SDL_ThreadID()` non-zero assertion via `InternalsVisibleTo`. |
 
 **Doc updates (Task #21 — happens alongside spec write):**
 
