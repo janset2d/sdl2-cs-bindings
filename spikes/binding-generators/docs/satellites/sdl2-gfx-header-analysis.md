@@ -13,9 +13,11 @@ SDL2_gfx is the ONLY satellite library that uses **per-header custom export macr
 | Header | Scope Macro | Functions |
 |---|---|---|
 | `SDL2_framerate.h` | `SDL2_FRAMERATE_SCOPE` | 5 |
-| `SDL2_gfxPrimitives.h` | `SDL2_GFXPRIMITIVES_SCOPE` | ~56 |
-| `SDL2_imageFilter.h` | `SDL2_IMAGEFILTER_SCOPE` | ~27 |
-| `SDL2_rotozoom.h` | `SDL2_ROTOZOOM_SCOPE` | ~8 |
+| `SDL2_gfxPrimitives.h` | `SDL2_GFXPRIMITIVES_SCOPE` | 59 |
+| `SDL2_imageFilter.h` | `SDL2_IMAGEFILTER_SCOPE` | 30 |
+| `SDL2_rotozoom.h` | `SDL2_ROTOZOOM_SCOPE` | 8 |
+
+**Total: 102 scoped function declarations across 4 functional headers.**
 
 ### Preprocessor Resolution
 
@@ -68,31 +70,29 @@ SDL2_IMAGEFILTER_SCOPE=extern
 | `SDL_getFramecount` | int | `FPSmanager* manager` |
 | `SDL_framerateDelay` | Uint32 | `FPSmanager* manager` |
 
-### SDL2_gfxPrimitives.h — ~56 functions (ALL bare names, NO `SDL_` prefix)
+### SDL2_gfxPrimitives.h — 59 functions (ALL bare names, NO `SDL_` prefix)
 
-**Drawing primitives (each has `*Color` and `*RGBA` variant, 28 pairs = 56 functions):**
+**Drawing primitives (59 functions total, most in `*Color`/`*RGBA` pairs):**
 
 Pixel (2): `pixelColor`, `pixelRGBA`
-Line (6): `hlineColor/RGBA`, `vlineColor/RGBA`, `lineColor/RGBA`, `aalineColor/RGBA`, `thickLineColor/RGBA`
-Rectangle (6): `rectangleColor/RGBA`, `roundedRectangleColor/RGBA`, `boxColor/RGBA`, `roundedBoxColor/RGBA`
-Circle (6): `circleColor/RGBA`, `aacircleColor/RGBA`, `filledCircleColor/RGBA`, `arcColor/RGBA`
+Line (10): `hlineColor/RGBA`, `vlineColor/RGBA`, `lineColor/RGBA`, `aalineColor/RGBA`, `thickLineColor/RGBA`
+Rectangle (8): `rectangleColor/RGBA`, `roundedRectangleColor/RGBA`, `boxColor/RGBA`, `roundedBoxColor/RGBA`
+Circle (8): `circleColor/RGBA`, `aacircleColor/RGBA`, `filledCircleColor/RGBA`, `arcColor/RGBA`
 Ellipse (6): `ellipseColor/RGBA`, `aaellipseColor/RGBA`, `filledEllipseColor/RGBA`
 Pie (4): `pieColor/RGBA`, `filledPieColor/RGBA`
 Trigon (6): `trigonColor/RGBA`, `aatrigonColor/RGBA`, `filledTrigonColor/RGBA`
-Polygon (8): `polygonColor/RGBA`, `aapolygonColor/RGBA`, `filledPolygonColor/RGBA`, `texturedPolygon`
+Polygon (7): `polygonColor/RGBA`, `aapolygonColor/RGBA`, `filledPolygonColor/RGBA`, `texturedPolygon`
 Bezier (2): `bezierColor/RGBA`
-Font/String (4): `gfxPrimitivesSetFont`, `gfxPrimitivesSetFontRotation`, `characterColor/RGBA`, `stringColor/RGBA`
+Font/String (6): `gfxPrimitivesSetFont`, `gfxPrimitivesSetFontRotation`, `characterColor/RGBA`, `stringColor/RGBA`
 
 Parameter pattern: `*Color` functions take `SDL_Renderer*` + coordinates (`Sint16`) + `Uint32 color`. `*RGBA` functions take `SDL_Renderer*` + coordinates + `Uint8 r, g, b, a`.
 
-### SDL2_imageFilter.h — ~27 functions (ALL `SDL_` prefix)
+### SDL2_imageFilter.h — 30 functions (ALL `SDL_` prefix)
 
-Two-input filters (11): `SDL_imageFilterAdd/Mean/Sub/AbsDiff/Mult/MultNor/MultDivby2/MultDivby4/BitAnd/BitOr/Div`
-Single-input + constant (13): `SDL_imageFilterBitNegation/AddByte/AddUint/AddByteToHalf/SubByte/SubUint/ShiftRight/ShiftRightUint/MultByByte/ShiftRightAndMultByByte/ShiftLeftByte/ShiftLeftUint/ShiftLeft`
-Advanced (3): `SDL_imageFilterBinarizeUsingThreshold/ClipToRange/NormalizeLinear`
-MMX control (3): `SDL_imageFilterMMXdetect/MMXoff/MMXon`
-
-All take `unsigned char*` buffers, return `int` (0 = success, -1 = error).
+Two-input filters (11): `SDL_imageFilterAdd/Mean/Sub/AbsDiff/Mult/MultNor/MultDivby2/MultDivby4/BitAnd/BitOr/Div` — all take `unsigned char* Src1, unsigned char* Src2, unsigned char* Dest, unsigned int length`, return `int` (0 = success, -1 = error).
+Single-input + constant (13): `SDL_imageFilterBitNegation/AddByte/AddUint/AddByteToHalf/SubByte/SubUint/ShiftRight/ShiftRightUint/MultByByte/ShiftRightAndMultByByte/ShiftLeftByte/ShiftLeftUint/ShiftLeft` — take `unsigned char* Src1, unsigned char* Dest, unsigned int length` + constant.
+Advanced (3): `SDL_imageFilterBinarizeUsingThreshold/ClipToRange/NormalizeLinear`.
+MMX control (3): `SDL_imageFilterMMXdetect` returns `int` (SDL2_imageFilter.h:61). **`SDL_imageFilterMMXoff` and `SDL_imageFilterMMXon` return `void` and take no parameters** (SDL2_imageFilter.h:64-65) — they do NOT follow the `unsigned char*` buffer pattern.
 
 ### SDL2_rotozoom.h — 8 functions (ALL bare names, NO `SDL_` prefix)
 
@@ -146,7 +146,7 @@ Unlike TTF (`TTF_Font`) and Mixer (`Mix_Music`), GFX has zero opaque handle type
 | Risk | Severity | Analysis |
 |---|---|---|
 | **Export macro recognition** | **MEDIUM** | The big one. Clean resolution via insurance `--define-macro`. |
-| **Mixed naming surface** | LOW | ~56 bare-name + ~32 `SDL_`-prefixed functions. Layer 1 raw ABI: no issue. Layer 3 ergonomic concern. |
+| **Mixed naming surface** | LOW | 67 bare-name functions (SDL2_gfxPrimitives.h 59 + SDL2_rotozoom.h 8) and 35 `SDL_`-prefixed functions (SDL2_framerate.h 5 + SDL2_imageFilter.h 30). Layer 1 raw ABI: no issue. Layer 3 ergonomic concern. |
 | **C `long` / `unsigned long`** | **NONE** | Exclusively fixed-width SDL typedefs or `int`. |
 | **`wchar_t`** | **NONE** | No wide-character surface. |
 | **Variadics** | **NONE** | No `...` functions. |
@@ -172,7 +172,7 @@ Unlike TTF (`TTF_Font`) and Mixer (`Mix_Music`), GFX has zero opaque handle type
 ### SDL2_rotozoom.h
 `SMOOTHING_OFF` (0), `SMOOTHING_ON` (1), `M_PI` (conditional).
 
-All simple integer literals — handled by ClangSharp's `--generate-macro-bindings`.
+All are integer literals except `M_PI`, which is a floating-point literal (`3.1415926535897932384626433832795`) defined conditionally in both `SDL2_gfxPrimitives.h:34-35` and `SDL2_rotozoom.h:40-41`. Since `M_PI` appears in two headers, it may produce duplicate emission — it should be excluded or explicitly skipped rather than left to accidental macro emission.
 
 ---
 
@@ -202,7 +202,9 @@ SDL2_IMAGEFILTER_SCOPE=extern
 ```
 
 ### Per-Header RSP: None needed initially
-No foreign types, no platform-conditioned declarations, no excludes in the first pass.
+No foreign types, no platform-conditioned declarations.
+
+**Note:** `M_PI` appears in two headers (`SDL2_gfxPrimitives.h:34-35` and `SDL2_rotozoom.h:40-41`) and may produce duplicate emission. It should be excluded via family RSP or explicitly skipped rather than left to accidental macro emission. Add `--exclude M_PI` to the family RSP if ClangSharp's `--generate-macro-bindings` attempts to emit it in both files.
 
 ### Scope Files
 
@@ -283,3 +285,5 @@ No logic changes. No new postprocess modes. No include directory changes. No new
 4. **Does ClangSharp correctly emit `unsigned char*` as `byte*`?** In C, `unsigned char` is a single byte. C# `byte` is unsigned 8-bit. ClangSharp's built-in type mapping handles this.
 
 5. **Should GFX be prioritized ahead of TTF and Mixer?** **Yes.** GFX is objectively the lowest-risk satellite: no C `long`, no callbacks, no opaque handles, no platform-conditioned code. The export macro quirk has a clean resolution. Do GFX first as a quick win to validate multi-satellite pipeline infrastructure before tackling TTF (C `long` risk) and Mixer (callback risk).
+
+6. **Production binary symbol validation.** Header declarations are sufficient for the spike, but the Constitution requires harvested binary symbol evidence for SDL2_gfx at `binding-generator-constitution.md:157-160`. Before production flip, the 102 header-declared function names should be validated against actual native export symbols from the built GFX binary.

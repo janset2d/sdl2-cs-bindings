@@ -14,10 +14,11 @@
 
 | Risk | Count | Names |
 |---|---|---|
-| **Callback params** | 8 functions | `Mix_SetPostMix`, `Mix_HookMusic`, `Mix_HookMusicFinished`, `Mix_ChannelFinished`, `Mix_RegisterEffect` (x2 callbacks), `Mix_UnregisterEffect`, `Mix_EachSoundFont` |
+| **Callback params** | 7 functions, 8 callback-typed parameters | `Mix_SetPostMix`, `Mix_HookMusic`, `Mix_HookMusicFinished`, `Mix_ChannelFinished`, `Mix_RegisterEffect` (two callback parameters at SDL_mixer.h:1367), `Mix_UnregisterEffect`, `Mix_EachSoundFont` |
 | **`double` return** | 5 functions | `Mix_GetMusicPosition`, `Mix_MusicDuration`, `Mix_GetMusicLoopStartTime`, `Mix_GetMusicLoopEndTime`, `Mix_GetMusicLoopLengthTime` |
 | **`double` param** | 2 functions | `Mix_FadeInMusicPos`, `Mix_SetMusicPosition` |
-| **`const char*`** | 14 functions | UTF-8 string params — handled by base.rsp `char=byte` |
+| **`const char*` params** | 8 functions | `Mix_OpenAudioDevice`, `Mix_LoadWAV`, `Mix_LoadMUS`, `Mix_HasChunkDecoder`, `Mix_HasMusicDecoder`, `Mix_SetMusicCMD`, `Mix_SetSoundFonts`, `Mix_SetTimidityCfg` — handled by base.rsp `char=byte` |
+| **`const char*` returns** | 9 functions | `Mix_GetChunkDecoder`, `Mix_GetMusicDecoder`, `Mix_GetMusicTitle`, `Mix_GetMusicTitleTag`, `Mix_GetMusicArtistTag`, `Mix_GetMusicAlbumTag`, `Mix_GetMusicCopyrightTag`, `Mix_GetSoundFonts`, `Mix_GetTimidityCfg` — return `byte*` after remap |
 | **`SDL_bool` return** | 2 functions | `Mix_HasChunkDecoder`, `Mix_HasMusicDecoder` — base.rsp `--with-type SDL_bool=int` |
 
 **Zero instances of:** C `long`, `unsigned long`, `wchar_t`, variadic (`...`), `FILE*`.
@@ -182,6 +183,15 @@ MIX_VERSION
 ### Per-Header RSP: None needed
 No foreign types, no platform-conditioned declarations.
 
+### Version Helper Macros (Layer 2/3 — not excluded, but must be skipped/reported)
+
+The following function-like and computed macros should be explicitly handled in the report rather than left to accidental emission:
+- `SDL_MIXER_VERSION(X)` (SDL_mixer.h:55-60) — function-like, fills SDL_version struct. Should be skipped/reported.
+- `SDL_MIXER_COMPILEDVERSION` (SDL_mixer.h:79-80) — computed value macro via `SDL_VERSIONNUM`. Image already emits the matching `SDL_IMAGE_COMPILEDVERSION` as `const int` at `SDL_image.g.cs:277-278`. Should be kept/auto-emitted if ClangSharp resolves it (same pattern as Image).
+- `SDL_MIXER_VERSION_ATLEAST(X,Y,Z)` (SDL_mixer.h:86-89) — function-like comparison. Should be skipped/reported.
+
+ClangSharp's `--generate-macro-bindings` handles value macros only, so the two function-like macros should be naturally skipped. However, they should appear in the generation report under a "version helpers" category rather than being silently absent.
+
 ---
 
 ## 7. Family Config
@@ -198,7 +208,7 @@ No foreign types, no platform-conditioned declarations.
 ```
 
 Scope file: single entry `SDL_mixer.h`.
-Consumer mode for `uniform-opaque` (no change needed from default).
+Default consumer mode for `uniform-opaque` is **insufficient** until satellite-owned handle emission exists — `Mix_Music` at SDL_mixer.h:269 is a Mixer-owned opaque handle, and the current consumer mode only handles Core-owned handles. See §8 critical gap below.
 
 ---
 

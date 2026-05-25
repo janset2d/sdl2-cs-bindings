@@ -8,7 +8,7 @@
 
 ## 1. Function Inventory
 
-**Total: 87 public function declarations** (each `extern DECLSPEC ... SDLCALL` occurrence).
+**Total: 88 public function declarations** (all `extern DECLSPEC` occurrences, including `extern SDL_DEPRECATED DECLSPEC` variants).
 
 ### Lifecycle (3)
 
@@ -85,11 +85,19 @@ Same surface as Solid but with `_LCD` suffix.
 
 ### Kerning (3)
 
-Note: `TTF_GetFontKerningSize` is DEPRECATED — uses raw FreeType font indices, missing `SDLCALL`.
+Note: `TTF_GetFontKerningSize` is DEPRECATED — uses raw FreeType font indices, and is the only deprecated function that lacks `SDLCALL` (`extern SDL_DEPRECATED DECLSPEC int` without `SDLCALL` at SDL_ttf.h:2145).
 
 ### Text Shaping / HarfBuzz (4)
 
-`TTF_SetDirection` (DEPRECATED), `TTF_SetScript` (DEPRECATED), `TTF_SetFontDirection`, `TTF_SetFontScriptName`
+`TTF_SetDirection` (DEPRECATED, HAS `SDLCALL` at SDL_ttf.h:2268), `TTF_SetScript` (DEPRECATED, HAS `SDLCALL` at SDL_ttf.h:2291), `TTF_SetFontDirection`, `TTF_SetFontScriptName`
+
+### Non-SDLCALL Functions (4 non-deprecated)
+
+These four functions lack the `SDLCALL` calling-convention macro (`extern DECLSPEC` without `SDLCALL` at SDL_ttf.h:2168, 2185, 2204, 2217). They require an explicit bind/exclude decision — do not silently lose them because they don't match the usual `extern DECLSPEC ... SDLCALL` regex:
+- `TTF_GetFontKerningSizeGlyphs` (line 2168)
+- `TTF_GetFontKerningSizeGlyphs32` (line 2185)
+- `TTF_SetFontSDF` (line 2204)
+- `TTF_GetFontSDF` (line 2217)
 
 ### Miscellaneous (2)
 
@@ -102,6 +110,7 @@ Note: `TTF_GetFontKerningSize` is DEPRECATED — uses raw FreeType font indices,
 | C `long` parameter | 4 | `TTF_OpenFontIndex`, `TTF_OpenFontIndexRW`, `TTF_OpenFontIndexDPI`, `TTF_OpenFontIndexDPIRW` |
 | C `long` return | 1 | `TTF_FontFaces` |
 | Deprecated (exclude candidates) | 3 | `TTF_GetFontKerningSize`, `TTF_SetDirection`, `TTF_SetScript` |
+| No SDLCALL (non-deprecated — needs bind/exclude decision) | 4 | `TTF_GetFontKerningSizeGlyphs`, `TTF_GetFontKerningSizeGlyphs32`, `TTF_SetFontSDF`, `TTF_GetFontSDF` |
 | Macro-wrapped cross-family (exclude) | 2 | `TTF_SetError`, `TTF_GetError` |
 | `wchar_t` / `wchar_t*` | **0** | None |
 | Variadic (`...`) | **0** | None |
@@ -131,7 +140,7 @@ The Constitution L264 already calls this out explicitly.
 |---|---|---|---|
 | `TTF_Font` | `typedef struct TTF_Font TTF_Font;` | **Pattern B** | `SDL2.Ttf` (this family is the owner) |
 
-`TTF_Font` is satellite-owned — NOT in Core's `opaque-handle-roster.json`. The `uniform-opaque` postprocess needs owner mode for TTF. Core handles consumed via `ProjectReference`: `SDL_RWops` (4 functions use it), `SDL_Surface` (all 24 rendering functions return it).
+`TTF_Font` is satellite-owned — NOT in Core's `opaque-handle-roster.json`. The `uniform-opaque` postprocess needs owner mode for TTF. Core handles consumed via `ProjectReference`: `SDL_RWops` (4 functions use it), `SDL_Surface` (all 32 rendering functions return it — 4 render groups × 8 functions each).
 
 ### Transparent Structs
 
@@ -164,7 +173,7 @@ Only one enum. Not `[Flags]`.
 
 ### Risk 2: Deprecated Functions (LOW)
 
-3 functions deprecated in SDL_ttf 2.24.0. Two miss `SDLCALL` (potential ABI mismatch on Windows x86).
+3 functions deprecated in SDL_ttf 2.24.0. Only `TTF_GetFontKerningSize` lacks `SDLCALL` (ABI risk on Windows x86 — at SDL_ttf.h:2145 it uses `extern SDL_DEPRECATED DECLSPEC int` without `SDLCALL`). `TTF_SetDirection` (line 2268) and `TTF_SetScript` (line 2291) both include `SDLCALL` despite being deprecated.
 **Mitigation:** `--exclude` all 3 in family RSP.
 
 ### Risk 3: Cross-family Macro Aliases (LOW)
@@ -172,7 +181,12 @@ Only one enum. Not `[Flags]`.
 `TTF_SetError`/`TTF_GetError` are macros expanding to `SDL_SetError`/`SDL_GetError`.
 **Mitigation:** `--exclude` (same as Image's `IMG_SetError`/`IMG_GetError`).
 
-### Risk 4: No Platform-Conditioned Code
+### Risk 4: Non-Deprecated No-SDLCALL Functions (MEDIUM)
+
+4 non-deprecated functions lack `SDLCALL`: `TTF_GetFontKerningSizeGlyphs`, `TTF_GetFontKerningSizeGlyphs32`, `TTF_SetFontSDF`, `TTF_GetFontSDF` (SDL_ttf.h:2168, 2185, 2204, 2217). SDL's `SDLCALL` explicitly maps to `__cdecl` on Windows at `begin_code.h:77-80`; without it, the native declaration has no explicit calling-convention annotation. The real risk is ClangSharp/.NET P/Invoke import emission defaulting incorrectly — not that the native default is `__stdcall`. Generated `[DllImport]`/`[LibraryImport]` must force or verify `CallingConvention.Cdecl`.
+**Mitigation:** Explicit bind/exclude decision needed. Cannot silently include them without verifying the calling convention matches. These are modern, recommended API functions (replacements for deprecated variants) — they should be bound, but the calling convention must be explicitly handled.
+
+### Risk 5: No Platform-Conditioned Code
 
 **Verified:** Only `#if` blocks are version-gated `SDL_TTF_COMPILEDVERSION` and `SDL_DEPRECATED` fallback definition. No platform-conditioned function availability or struct layout.
 
@@ -226,9 +240,9 @@ TTF_SetScript
 
 **Not needed initially.** Single-header library with no foreign-type boundaries and no platform-conditioned API.
 
-### Base RSP — No changes needed
+### Base RSP — Covers generic scalar remaps only
 
-Existing `base.rsp` remaps (`char=byte`, `void*=nint`, `wchar_t *=nint`, `SDL_bool=int`) cover all TTF needs.
+Existing `base.rsp` remaps (`char=byte`, `void*=nint`, `wchar_t *=nint`, `SDL_bool=int`) cover generic scalar translation. TTF-specific concerns (C `long` dispatch, no-SDLCALL calling convention, and satellite-owned `TTF_Font`) require postprocess and family-policy work beyond base RSP coverage.
 
 ---
 
@@ -246,7 +260,7 @@ Existing `base.rsp` remaps (`char=byte`, `void*=nint`, `wchar_t *=nint`, `SDL_bo
 ```
 
 Scope file: single entry `SDL_ttf.h`.
-Owner mode for `uniform-opaque`: `owner_mode = "owner" if family in ("core", "ttf") else "consumer"`.
+Owner mode for `uniform-opaque`: `owner_mode = "owner" if family in ("core", "ttf") else "consumer"`. **This alone is insufficient.** The `OpaqueHandleEmitRewriter` auto-detects empty structs by name prefix `StartsWith("SDL_")` at `OpaqueHandleEmitRewriter.cs:200`. `TTF_Font` won't match — it starts with `TTF_`. The rewriter also emits handles into `namespace SDL2` at `OpaqueHandleEmitRewriter.cs:336-337`, which is wrong for satellite-owned handles that should go in `SDL2.Ttf`. A family-aware handle discovery and emit path is needed. See §8 postprocess notes for the required changes.
 
 ---
 
@@ -260,12 +274,18 @@ Owner mode for `uniform-opaque`: `owner_mode = "owner" if family in ("core", "tt
 | `libraryimport` | Yes | Standard Modern pass |
 | `platform-delta` | No | No platform-sensitive headers |
 | `guid-substitute` | No | No `SDL_GUID` types |
-| `threadid-dispatch` | Yes — extended | Rename to `clong-dispatch`, add 5 TTF function names |
-| `uniform-opaque` | Yes — owner mode | Emits `TTF_Font` Pattern B handle in `Handles.g.cs` |
+| `threadid-dispatch` | Yes — significant extension needed | The current rewriter is hardcoded to `SDL_ThreadID`/`SDL_GetThreadID` at `ThreadIdDualDispatchRewriter.cs:76-80`, and only inspects return-type native type names at L128-132. TTF needs 4 `long` parameter positions plus 1 `long` return. The rewriter must handle C `long` at parameter positions (not just return type) and accept an expanded name set. |
+| `uniform-opaque` | Yes — family-aware handle path needed | The current rewriter discovers opaque handles by `StartsWith("SDL_")` at `OpaqueHandleEmitRewriter.cs:200` and hardcodes emit namespace to `SDL2` at L336-337. Needs a family-aware path: discover handles per-family, emit into the correct namespace (`SDL2.Ttf`), and handle non-`SDL_`-prefixed names (`TTF_Font`). |
 
-### New/Extended Rewriter: `clong-dispatch`
+### Extended Rewriter: C `long` dispatch
 
-Rename `threadid-dispatch` to `clong-dispatch`, extend name match set to include 5 TTF C `long` functions. Same structural transform — no new rewriter logic needed.
+The existing `ThreadIdDualDispatchRewriter` is hardcoded to 2 method names (`SDL_ThreadID`, `SDL_GetThreadID`) at `ThreadIdDualDispatchRewriter.cs:76-80` and only checks return-type native type names at L128-132. Extending it for TTF requires:
+
+1. Expanding the `AffectedMethodNames` set to include the 5 TTF functions
+2. Adding parameter-position rewrite logic (the current rewriter only rewrites the return type): `TTF_OpenFontIndex*` functions need `long index` → `CLong index` on Modern, dual-DllImport dispatch on Compat
+3. The rewriter should be renamed to `ClongDualDispatchRewriter` to reflect its generalized role
+
+This is more than a "same logic" extension — the parameter-position handling is new code.
 
 ---
 
@@ -288,10 +308,10 @@ Need a small, redistributable `.ttf` font file committed to `tests/`. DejaVu San
 
 ## 10. Open Questions
 
-1. **TTF_Font ownership in uniform-opaque:** TTF is an owner family — needs `owner_mode = "owner" if family in ("core", "ttf") else "consumer"` (one-line change in generate_bindings.py L1268).
+1. **TTF_Font ownership in uniform-opaque:** TTF is an owner family. However, `owner_mode = "owner"` on the CLI is insufficient — the `OpaqueHandleEmitRewriter` hardcodes `StartsWith("SDL_")` for auto-discovery at `OpaqueHandleEmitRewriter.cs:200` and emits handles into hardcoded `namespace SDL2` at L336-337. Required changes: (a) accept a family-aware handle discovery path that doesn't depend on `SDL_` prefix, (b) emit handles into the correct per-family namespace (`SDL2.Ttf` for `TTF_Font`), (c) handle dual ownership: a satellite needs its own local handle (`TTF_Font`) while also consuming Core handles (`SDL_RWops`, `SDL_Surface`) by value via ProjectReference.
 
-2. **Should deprecated functions emit `[Obsolete]` instead of being excluded?** Recommendation: Exclude. Two of three miss `SDLCALL` (ABI risk). SDL2-CS never emitted them.
+2. **Should deprecated functions emit `[Obsolete]` instead of being excluded?** Recommendation: Exclude. Only `TTF_GetFontKerningSize` lacks `SDLCALL` (ABI risk). `TTF_SetDirection` and `TTF_SetScript` have `SDLCALL` but take raw HarfBuzz types cast to `int` — not a typed API. SDL2-CS never emitted these.
 
-3. **`const TTF_Font *` in getter functions:** Does `uniform-opaque` handle `const` pointer-to-by-value? Yes — ClangSharp strips C `const`, rewriter sees `TTF_Font*` pattern.
+3. **No-SDLCALL non-deprecated functions:** `TTF_GetFontKerningSizeGlyphs`, `TTF_GetFontKerningSizeGlyphs32`, `TTF_SetFontSDF`, `TTF_GetFontSDF` — these are modern recommended API but lack `SDLCALL`. SDL's `SDLCALL` maps to `__cdecl` on Windows at `begin_code.h:77-80`; without it, the declaration carries no explicit calling-convention annotation. Generated P/Invoke imports must force `CallingConvention.Cdecl` rather than relying on ClangSharp's default emission.
 
-4. **Extend `threadid-dispatch` or create new rewriter?** Recommend extending (rename to `clong-dispatch`). Same structural transform pattern, avoid code duplication.
+4. **Extend `threadid-dispatch` or create new rewriter?** Extend (rename to `ClongDualDispatchRewriter`). However, this is more than adding names — the current rewriter only rewrites return types (`ThreadIdDualDispatchRewriter.cs:128-132`). TTF's `long index` parameters need parameter-position dispatch logic, which is new code.

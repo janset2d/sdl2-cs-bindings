@@ -22,10 +22,10 @@
 | Generic load | 3 | `IMG_Load`, `IMG_Load_RW`, `IMG_LoadTyped_RW` |
 | Texture load | 3 | `IMG_LoadTexture`, `IMG_LoadTexture_RW`, `IMG_LoadTextureTyped_RW` |
 | Format detection (is*) | 18 | `IMG_isBMP` through `IMG_isWEBP` |
-| Format-specific load | 19 | `IMG_LoadBMP_RW` through `IMG_LoadWEBP_RW` (includes TGA, SVG, SizedSVG) |
+| Format-specific load | 20 | `IMG_LoadAVIF_RW` through `IMG_LoadWEBP_RW` (19 format-specific) + `IMG_LoadSizedSVG_RW` |
 | Save | 4 | `IMG_SavePNG`, `IMG_SavePNG_RW`, `IMG_SaveJPG`, `IMG_SaveJPG_RW` |
 | XPM from array | 2 | `IMG_ReadXPMFromArray`, `IMG_ReadXPMFromArrayToRGB888` |
-| Animation | 5 | `IMG_LoadAnimation`, `IMG_LoadAnimation_RW`, `IMG_LoadAnimationTyped_RW`, `IMG_FreeAnimation`, `IMG_LoadGIFAnimation_RW`, `IMG_LoadWEBPAnimation_RW` |
+| Animation | 6 | `IMG_LoadAnimation`, `IMG_LoadAnimation_RW`, `IMG_LoadAnimationTyped_RW`, `IMG_FreeAnimation`, `IMG_LoadGIFAnimation_RW`, `IMG_LoadWEBPAnimation_RW` |
 
 **Risk flags: ALL CLEAN.** Zero C `long`, zero `wchar_t`, zero variadics, zero `FILE*`, zero platform-conditioned code (the `#if SDL_VERSION_ATLEAST(2,0,0)` guard on texture functions is always true for SDL2).
 
@@ -40,7 +40,7 @@ Image exclusively consumes handles from SDL2.Core:
 - `SDL_Texture` — Pattern B auto-detected, used by-value
 
 ### Transparent Structs
-- `IMG_Animation` — 4 fields (`w`, `h`, `count`, `frames`, `delays`), fully blittable
+- `IMG_Animation` — 5 fields (`w`, `h`, `count`, `frames`, `delays`), fully blittable
 
 ### Enums
 - `IMG_InitFlags` — bitmask enum, 6 values (JPG=0x01, PNG=0x02, TIF=0x04, WEBP=0x08, JXL=0x10, AVIF=0x20)
@@ -110,7 +110,7 @@ public enum IMG_InitFlags  // ← MISSING [Flags]
 ```
 
 ### Impact
-Without `[Flags]`, .NET consumers calling `IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG).ToString()` get the numeric value `3` instead of `"IMG_INIT_JPG, IMG_INIT_PNG"`. Also affects `Enum.HasFlag()` behavior in some edge cases.
+Without `[Flags]`, .NET consumers calling `IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG).ToString()` get the numeric value `3` instead of `"IMG_INIT_JPG, IMG_INIT_PNG"`. Debugging display and enum formatting are affected. **Note:** `Enum.HasFlag()` does NOT require `[Flags]` — it works correctly on any enum regardless of the attribute. The concrete impact is formatting and debuggability only.
 
 ### Constitution Authority
 §"Enums" L446-448: "Add `[Flags]` when header comments, composed aliases, bit values, or API docs prove bitmask semantics."
@@ -133,11 +133,12 @@ Low — metadata annotation only. ABI and values are correct. Fix pre-NuGet-ship
 
 ## 7. Cross-Family `[Flags]` Risk
 
-The same `[Flags]` gap likely exists in:
-- Mixer: `MIX_InitFlags` (also a power-of-two bitmask enum)
-- Potentially GFX and TTF
+The same `[Flags]` gap is **confirmed** in:
+- Mixer: `MIX_InitFlags` — power-of-two bitmask values at SDL_mixer.h:109-118, documentation at L131 says "one or more flags OR'd together". Same pattern as `IMG_InitFlags`.
+- GFX: No enums (uses `#define` constants only). Not affected.
+- TTF: `TTF_Direction` is NOT a bitmask (exclusive values LTR/RTL/TTB/BTT). Not affected.
 
-A systematic audit of all satellite enum declarations is recommended before the next generation run. This could be a targeted follow-up rather than blocking satellite expansion.
+A systematic `[Flags]` detection postprocess or a targeted fix for both `IMG_InitFlags` and `MIX_InitFlags` is recommended before the next generation run.
 
 ---
 
