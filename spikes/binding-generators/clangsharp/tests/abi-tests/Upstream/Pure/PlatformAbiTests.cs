@@ -12,6 +12,38 @@ public sealed class PlatformAbiTests
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.Pure)]
     [Category(AbiCategories.SdlPlatform)]
+    [UpstreamSdlTest("test/testautomation_platform.c", "platform_testTypes")]
+    public async Task SDLTypeAliases_Should_Match_Expected_Primitive_Sizes()
+    {
+        int uint8Size = sizeof(byte);
+        int uint16Size = sizeof(ushort);
+        int uint32Size = sizeof(uint);
+        int uint64Size = sizeof(ulong);
+
+        await Assert.That(uint8Size).IsEqualTo(1);
+        await Assert.That(uint16Size).IsEqualTo(2);
+        await Assert.That(uint32Size).IsEqualTo(4);
+        await Assert.That(uint64Size).IsEqualTo(8);
+    }
+
+    [Test]
+    [Category(AbiCategories.HeaderCoverage)]
+    [Category(AbiCategories.Pure)]
+    [Category(AbiCategories.SdlPlatform)]
+    public async Task SDLEndianConstants_Should_Match_Current_Runtime_Byte_Order()
+    {
+        int expectedByteOrder = BitConverter.IsLittleEndian ? SDL_LIL_ENDIAN : SDL_BIG_ENDIAN;
+        int actualByteOrder = SDL_BYTEORDER;
+        int actualFloatWordOrder = SDL_FLOATWORDORDER;
+
+        await Assert.That(actualByteOrder).IsEqualTo(expectedByteOrder);
+        await Assert.That(actualFloatWordOrder).IsEqualTo(actualByteOrder);
+    }
+
+    [Test]
+    [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Pure)]
+    [Category(AbiCategories.SdlPlatform)]
     [UpstreamSdlTest("test/testautomation_platform.c", "platform_testGetFunctions")]
     public async Task SDLGetPlatform_Should_Return_NonEmpty_String()
     {
@@ -79,6 +111,71 @@ public sealed class PlatformAbiTests
         bool revisionIsNotNull = IsRevisionPointerNotNull();
 
         await Assert.That(revisionIsNotNull).IsTrue();
+    }
+
+    [Test]
+    [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Pure)]
+    [Category(AbiCategories.SdlPlatform)]
+    [UpstreamSdlTest("test/testautomation_platform.c", "platform_testGetFunctions")]
+    public async Task SDLGetCPUCount_Should_Return_Positive_Count()
+    {
+        int cpuCount = SDL_GetCPUCount();
+
+        await Assert.That(cpuCount).IsGreaterThan(0);
+    }
+
+    [Test]
+    [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Pure)]
+    [Category(AbiCategories.SdlPlatform)]
+    [UpstreamSdlTest("test/testautomation_platform.c", "platform_testGetFunctions")]
+    public async Task SDLGetCPUCacheLineSize_Should_Return_NonNegative_Size()
+    {
+        int cacheLineSize = SDL_GetCPUCacheLineSize();
+
+        await Assert.That(cacheLineSize).IsGreaterThanOrEqualTo(0);
+    }
+
+    [Test]
+    [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Pure)]
+    [Category(AbiCategories.SdlPlatform)]
+    [UpstreamSdlTest("test/testautomation_platform.c", "platform_testHasFunctions")]
+    public async Task SDLHasCpuFeatureFunctions_Should_Return_Boolean_Values()
+    {
+        SDL_bool[] results =
+        [
+            SDL_HasRDTSC(),
+            SDL_HasAltiVec(),
+            SDL_HasMMX(),
+            SDL_Has3DNow(),
+            SDL_HasSSE(),
+            SDL_HasSSE2(),
+            SDL_HasSSE3(),
+            SDL_HasSSE41(),
+            SDL_HasSSE42(),
+            SDL_HasAVX(),
+        ];
+
+        foreach (SDL_bool result in results)
+        {
+            await Assert.That(result is SDL_bool.SDL_FALSE or SDL_bool.SDL_TRUE).IsTrue();
+        }
+    }
+
+    [Test]
+    [Category(AbiCategories.HeaderCoverage)]
+    [Category(AbiCategories.Pure)]
+    [Category(AbiCategories.SdlPlatform)]
+    public async Task SDLSimdAndSystemRamQueries_Should_Return_Defined_NonNegative_Values()
+    {
+        int systemRamMb = SDL_GetSystemRAM();
+        ulong simdAlignment = (ulong)SDL_SIMDGetAlignment();
+
+        await Assert.That(systemRamMb).IsGreaterThanOrEqualTo(0);
+        await Assert.That(simdAlignment).IsGreaterThan(0UL);
+        await Assert.That((simdAlignment & (simdAlignment - 1)) == 0).IsTrue();
     }
 
     [Test]

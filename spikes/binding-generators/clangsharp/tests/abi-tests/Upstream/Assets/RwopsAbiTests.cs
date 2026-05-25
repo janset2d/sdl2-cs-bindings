@@ -172,6 +172,44 @@ public sealed class RwopsAbiTests
     }
 
     [Test]
+    [Category(AbiCategories.HeaderCoverage)]
+    [Category(AbiCategories.Assets)]
+    [Category(AbiCategories.SdlRwops)]
+    public async Task SDLRwSizeAndTell_Should_Report_Size_Position_And_Eof_For_Const_Memory()
+    {
+        SizeTellEofResult result = TestConstMemorySizeTellAndEof();
+
+        await Assert.That(result.Size).IsEqualTo(HelloWorld.Length);
+        await Assert.That(result.InitialTell).IsEqualTo(0L);
+        await Assert.That(result.ReadObjects).IsEqualTo((ulong)HelloWorld.Length);
+        await Assert.That(result.Text).IsEqualTo(HelloWorld);
+        await Assert.That(result.EofReadObjects).IsEqualTo(0UL);
+        await Assert.That(result.FinalTell).IsEqualTo(HelloWorld.Length);
+        await SdlAssert.Success(result.CloseResult, "SDL_RWclose");
+    }
+
+    [Test]
+    [Category(AbiCategories.Smoke)]
+    [Category(AbiCategories.Assets)]
+    [Category(AbiCategories.SdlRwops)]
+    public async Task SDLRwFromFile_Should_Append_Writes_When_Mode_Is_Append_Update()
+    {
+        using AbiTempDirectory temp = new();
+        string path = temp.GetFilePath("rwops-append.bin");
+        File.WriteAllText(path, "start", Encoding.ASCII);
+
+        AppendUpdateResult result = TestFileAppendUpdateMode(path);
+
+        await Assert.That(result.WrittenObjects).IsEqualTo(3UL);
+        await Assert.That(result.SizeAfterWrite).IsEqualTo(8L);
+        await Assert.That(result.SeekPosition).IsEqualTo(0L);
+        await Assert.That(result.ReadObjects).IsEqualTo(8UL);
+        await Assert.That(result.Text).IsEqualTo("startend");
+        await Assert.That(File.ReadAllText(path, Encoding.ASCII)).IsEqualTo("startend");
+        await SdlAssert.Success(result.CloseResult, "SDL_RWclose");
+    }
+
+    [Test]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.Assets)]
     [Category(AbiCategories.SdlRwops)]
@@ -475,6 +513,97 @@ public sealed class RwopsAbiTests
         }
     }
 
+    private static unsafe SizeTellEofResult TestConstMemorySizeTellAndEof()
+    {
+        byte[] payload = Encoding.ASCII.GetBytes(HelloWorld);
+        byte[] readBuffer = new byte[payload.Length];
+        byte eofByte = 0;
+
+        fixed (byte* payloadPointer = payload)
+        fixed (byte* readPointer = readBuffer)
+        {
+            SDL_RWops rwops = SDL_RWFromConstMem((nint)payloadPointer, payload.Length);
+            if (rwops.IsNull)
+            {
+                throw new InvalidOperationException($"SDL_RWFromConstMem failed: {SdlError.Current}");
+            }
+
+            long size = -1;
+            long initialTell = -1;
+            ulong read = 0;
+            ulong eofRead = 0;
+            long finalTell = -1;
+            int closeResult;
+
+            try
+            {
+                size = SDL_RWsize(rwops);
+                initialTell = SDL_RWtell(rwops);
+                read = ToUInt64(SDL_RWread(rwops, (nint)readPointer, NativeSize(1), NativeSize(readBuffer.Length)));
+                eofRead = ToUInt64(SDL_RWread(rwops, (nint)(&eofByte), NativeSize(1), NativeSize(1)));
+                finalTell = SDL_RWtell(rwops);
+            }
+            finally
+            {
+                closeResult = SDL_RWclose(rwops);
+            }
+
+            return new SizeTellEofResult(
+                size,
+                initialTell,
+                read,
+                Encoding.ASCII.GetString(readBuffer),
+                eofRead,
+                finalTell,
+                closeResult);
+        }
+    }
+
+    private static unsafe AppendUpdateResult TestFileAppendUpdateMode(string path)
+    {
+        byte[] payload = Encoding.ASCII.GetBytes("end");
+        byte[] readBuffer = new byte[8];
+
+        using PinnedUtf8 pinnedPath = SdlUtf8.Pin(path);
+        using PinnedUtf8 pinnedMode = SdlUtf8.Pin("ab+");
+
+        fixed (byte* payloadPointer = payload)
+        fixed (byte* readPointer = readBuffer)
+        {
+            SDL_RWops rwops = SDL_RWFromFile(pinnedPath.Pointer, pinnedMode.Pointer);
+            if (rwops.IsNull)
+            {
+                throw new InvalidOperationException($"SDL_RWFromFile failed: {SdlError.Current}");
+            }
+
+            ulong written = 0;
+            long sizeAfterWrite = -1;
+            long seekPosition = -1;
+            ulong read = 0;
+            int closeResult;
+
+            try
+            {
+                written = ToUInt64(SDL_RWwrite(rwops, (nint)payloadPointer, NativeSize(1), NativeSize(payload.Length)));
+                sizeAfterWrite = SDL_RWsize(rwops);
+                seekPosition = SDL_RWseek(rwops, 0, RW_SEEK_SET);
+                read = ToUInt64(SDL_RWread(rwops, (nint)readPointer, NativeSize(1), NativeSize(readBuffer.Length)));
+            }
+            finally
+            {
+                closeResult = SDL_RWclose(rwops);
+            }
+
+            return new AppendUpdateResult(
+                written,
+                sizeAfterWrite,
+                seekPosition,
+                read,
+                Encoding.ASCII.GetString(readBuffer),
+                closeResult);
+        }
+    }
+
     private static unsafe CompareResult[] CompareMemoryAndFileReads(string path)
     {
         byte[] alphabet = Encoding.ASCII.GetBytes(Alphabet);
@@ -677,6 +806,23 @@ public sealed class RwopsAbiTests
         long SeekCurrentPosition,
         long SeekEndPosition,
         long InvalidWhencePosition,
+        int CloseResult);
+
+    private sealed record SizeTellEofResult(
+        long Size,
+        long InitialTell,
+        ulong ReadObjects,
+        string Text,
+        ulong EofReadObjects,
+        long FinalTell,
+        int CloseResult);
+
+    private sealed record AppendUpdateResult(
+        ulong WrittenObjects,
+        long SizeAfterWrite,
+        long SeekPosition,
+        ulong ReadObjects,
+        string Text,
         int CloseResult);
 
     private sealed record CompareResult(
