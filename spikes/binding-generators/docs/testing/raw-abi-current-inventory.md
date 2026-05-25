@@ -13,12 +13,12 @@ dotnet test --project spikes/binding-generators/clangsharp/tests/abi-tests/AbiTe
 
 Result:
 
-- `total: 576`
+- `total: 608`
 - `failed: 0`
-- `succeeded: 576`
+- `succeeded: 608`
 - `skipped: 0`
 - executable TFMs: `net10.0`, `net9.0`, `net8.0`, `net462`
-- unique tests discovered per executable TFM: `144`
+- unique tests discovered per executable TFM: `152`
 - explicit `net462` check: `dotnet test --project spikes/binding-generators/clangsharp/tests/abi-tests/AbiTests.csproj -c Release --framework net462` → `144/144` passed
 
 ## Current Files
@@ -32,7 +32,7 @@ Result:
 | `Upstream/Pure/PlatformAbiTests.cs` | 3 | Platform/version/error string behavior. | Split error-state keyed parallelism; expand platform/endian cases. |
 | `Upstream/Pure/PixelsAbiTests.cs` | 89 | Pixel format names/allocation, palette allocation, and gamma ramp upstream ports. | Add color mapping/conversion cases after deciding breadth vs generated macro/header guardrails. |
 | `Upstream/Assets/RwopsAbiTests.cs` | 11 | Memory/file/const-memory/endian/alloc RWops upstream ports with temp assets. | `SDL_RWFromFP` remains deferred; add any missing negative close/error cases only if generator exposes needed surface. |
-| `Upstream/Assets/SurfaceAbiTests.cs` | 1 | BMP load/save smoke. | Expand enabled software-surface and BMP cases. |
+| `Upstream/Assets/SurfaceAbiTests.cs` | 9 | BMP save/reload, missing-load failure, surface conversion/header smoke, overflow/pitch checks, and blend-none header smoke. | Deferred: upstream fixture-comparison blit/conversion cases, upstream-disabled blend modes, and 32-bit-only overflow path until a real 32-bit/native lane exists. |
 | `Upstream/Assets/WavAbiTests.cs` | 1 | WAV load/free smoke. | Keep; expand with audio conversion/load cases where stable. |
 | `Upstream/GlobalState/HintsAbiTests.cs` | 1 | Custom hint round-trip. | Expand upstream hints and callbacks. |
 | `Upstream/GlobalState/EventsAbiTests.cs` | 2 | Event queue and event watch callback smoke. | Expand event queue/filter/watch coverage. |
