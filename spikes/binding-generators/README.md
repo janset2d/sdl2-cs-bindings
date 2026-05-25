@@ -2,12 +2,12 @@
 
 This folder hosts the SDL2 binding-generator prototypes that feed Phase 4 (binding auto-generation). The decision spike completed on 2026-05-21; the active prototype now follows **ppy-style ClangSharp + Microsoft.CodeAnalysis postprocess** with production-shaped multi-TFM library projects. See `output/reports/iteration-2-comparison.md` for the evidence and `docs/next-iteration-plan.md` for the slice-by-slice plan.
 
-## Status — 2026-05-24
+## Status — 2026-05-25
 
 - **Priority C semantic-ABI: CLOSED.** All six known platform-sensitive ABI risks resolved (R1 `wchar_t*`, R2 C `long`/`unsigned long`, R3 `SDL_RWops`, R4 `SDL_SysWMinfo`, R5 `SDL_SysWMmsg`, R6 opaque-handle tag leak). Foreign Type Boundary Policy + BCL-Replaceable Helper Exclusion Policy + Cross-Assembly Pattern B contract (`[assembly: DisableRuntimeMarshalling]`) codified in the Constitution. Authoritative closure record: [`docs/priority-c-closure-summary.md`](docs/priority-c-closure-summary.md).
-- **Evidence baseline.** Oracle reports 0 findings across all six Priority C risk categories; multi-TFM compile clean for Core (5 TFMs) + Image (5 TFMs) + AbiTests (4 TFMs); runtime ABI smoke covers `SDL_ThreadID` plus `SDL_GetThreadID(SDL_Thread.Null)` on the local host paths, with full 7-RID proof deferred to the production CI matrix.
-- **Next forward scope:** **Layer 2 typed low-level public API** (Constitution Layer Contract L34-50; Roadmap M5). Layer 1 raw ABI is stable enough — Pattern B handle shape, scalar widths, foreign-type boundary all settled.
-- **Branch:** `spike/binding-autogen-sdl2-gfx`, 35+ commits ahead of remote. Push gate pending Plan Task 19 (final code review + finishing-branch decision per AGENTS.md §Approval Gate).
+- **Evidence baseline.** Oracle reports 0 findings across all six Priority C risk categories; multi-TFM compile clean for Core (5 TFMs) + Image (5 TFMs) + AbiTests (4 TFMs); runtime ABI smoke covers `SDL_ThreadID` plus `SDL_GetThreadID(SDL_Thread.Null)` on the local host paths, with full 7-RID proof deferred to the production CI matrix. Test suite expanded post-closure with upstream raw ABI coverage (bootstrap, surface, platform, hints, events).
+- **Next forward scope:** **Remaining satellite families Layer 1 completion** — SDL2_ttf, SDL2_mixer, SDL2_gfx. Layer 2 typed public API defers until all five families have stable Layer 1 raw ABI, providing a holistic view before designing the public projection. ppy reference analysis recorded in [`docs/ppy-reference-analysis-2026-05-25.md`](docs/ppy-reference-analysis-2026-05-25.md).
+- **Branch:** `spike/binding-autogen-sdl2-gfx`, ~43 commits ahead of remote. Push gate pending Deniz approval per AGENTS.md §Approval Gate.
 
 ## Read first
 
@@ -16,6 +16,7 @@ This folder hosts the SDL2 binding-generator prototypes that feed Phase 4 (bindi
 | **`.github/prompts/binding-generator-spike-handoff.prompt.md`** | **Reusable priming prompt** for a new LLM/agent entering both the repo and this spike. Use this when starting a fresh assistant session. |
 | **`docs/llm-handoff.md`** | **LLM-to-LLM handoff — read this first.** Self-contained context dump: decision history, code map, slice progress, current sticking point, working preferences. |
 | **`docs/priority-c-closure-summary.md`** | **Priority C closure record** (2026-05-24). Six-risks resolution table, verification evidence, Foreign Type Boundary Policy, Cross-Assembly Pattern B contract. Read after the LLM handoff. |
+| **`docs/ppy-reference-analysis-2026-05-25.md`** | **ppy/SDL3-CS reference analysis** (2026-05-25). Satellite generation architecture, companion class layer mapping, adaptation recommendations. |
 | `docs/generator-spike-goals.md` | Spike charter — original goals, what got tested, and the recorded decision. |
 | `docs/next-iteration-plan.md` | Slice plan with current status; Slices 1–4 and Oracle Priorities A/B/C all closed; Slice 5 deferred; Layer 2 typed API next. Also owns the `Review Follow-up Backlog — 2026-05-25` triage sink distilled from the read-only reviewer reports. |
 | `docs/testing/raw-abi-upstream-testing-spec.md` | Slice-local testing design for expanding the single `AbiTests.csproj` with curated SDL2 upstream pure, asset-backed, dummy-driver, and manual diagnostic coverage. |
