@@ -369,7 +369,7 @@ Item 1 does **not** create:
 | 7 | `ClongDualDispatchRewriter` produces output for Core's `SDL_ThreadID`/`SDL_GetThreadID` byte-identical to current `ThreadIdDualDispatchRewriter` output (modulo Roslyn `SyntaxFactory` formatting normalization, which must be a single one-time churn committed alongside the refactor). Parameter-position rewrite is exercised by a synthetic test input with a `[NativeTypeName("long")] long index` parameter. | Postprocess self-test + Core regen diff. |
 | 8 | `FlagsAttributeRewriter` adds `[Flags]` to `IMG_InitFlags` in both Generated/Compat/SDL_image.g.cs and Generated/Modern/SDL_image.g.cs after regen. (Item 2 success criterion #1 — Item 1 ships the rewriter; Item 2 ships the regen and the bug closure.) | Image regen diff after Item 1 + Item 2 land. |
 | 9 | Slopwatch clean: `slopwatch analyze --fail-on warning --exclude "artifacts/**,external/**,vcpkg_installed/**,spikes/binding-generators/references/**,**/bin/**,**/obj/**"` reports 0 issues. | Slopwatch report. |
-| 10 | `compare_oracle.py` removed; no remaining references in repo doc or code. | `grep -r "compare_oracle"` returns 0 matches outside historical commits. |
+| 10 | `compare_oracle.py` removed; no active code/build/user-command references remain. Item 1 removal notes may mention the filename until the temporary execution plan retires after S1-7. | Grep returns 0 matches in code/build file types and no active README/prompt command references; remaining markdown matches are Item 1 removal notes only. |
 
 ---
 
@@ -381,7 +381,7 @@ Item 1 lands these alongside the pipeline changes:
 |---|---|
 | Remove `spikes/binding-generators/clangsharp/compare_oracle.py`. | Sunset per roadmap §Cross-Cutting; `oracle.cs` is the active reporter. |
 | **Keep** `spikes/binding-generators/scope/sdl2-core-sdlh-required.json`. | Load-bearing for `generate_bindings.py:554` required-surface validation. Roadmap's "if unused" note is incorrect — this spec corrects it. |
-| **Keep** `comparison-report-template.md` if it exists in the tree. | Verify against tree state during plan execution; remove only if confirmed unreferenced. |
+| Remove `comparison-report-template.md` if it exists and is unreferenced. | Sunset Cake-preview comparison artifacts alongside `compare_oracle.py`; keep only if a live caller is found during plan execution. |
 | Confirm `policy/opaque-handle-roster.json` stays Core-only. | Satellite-owned handles are structural, not roster-listed. |
 | Confirm `shims/platform-headers/` is untouched. | No new platform views in Item 1. |
 

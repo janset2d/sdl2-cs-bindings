@@ -8,7 +8,7 @@
 
 Build a spike-local oracle/evidence loop that keeps the ClangSharp raw ABI output honest while preserving the ppy-style Python generation path.
 
-The first implementation target is a .NET 10 file-based app at `spikes/binding-generators/clangsharp/oracle.cs`. It replaces the fragile C# regex extraction in `compare_oracle.py` with Roslyn-based structured evidence, then reports family-first raw ABI gaps across ClangSharp output, Cake preview output, SDL2-CS compatibility declarations, and SDL2 dynapi exports.
+The first implementation target is a .NET 10 file-based app at `spikes/binding-generators/clangsharp/oracle.cs`. It replaces the fragile C# regex extraction used by the legacy Python oracle-comparison path with Roslyn-based structured evidence, then reports family-first raw ABI gaps across ClangSharp output, Cake preview output, SDL2-CS compatibility declarations, and SDL2 dynapi exports.
 
 ## Non-Goals
 
@@ -30,7 +30,7 @@ The ClangSharp spike currently proves that Core and Image generated output can b
 - C `long` and `unsigned long` are emitted with Windows-local shapes in shared output.
 - `wchar_t*` is emitted as Windows-local `ushort*` in shared output.
 - SDL2_image output currently uses `namespace SDL2` instead of the constitution target `SDL2.Image`.
-- `compare_oracle.py` is Core-only, regex-based, and misses modern C# syntax shapes such as `[LibraryImport]` methods and expression-bodied UTF-8 span constants.
+- The legacy Python oracle-comparison path is Core-only, regex-based, and misses modern C# syntax shapes such as `[LibraryImport]` methods and expression-bodied UTF-8 span constants.
 
 The oracle needs to become the dashboard for this raw ABI stabilization loop, not merely a one-off count comparison.
 
@@ -268,11 +268,11 @@ For the oracle slice, verification should include:
 ## Open Design Questions
 
 1. Should the first implementation emit both JSON and Markdown, or Markdown only with JSON added once tests exist?
-2. Should `compare_oracle.py` be deleted immediately, or retained as a legacy report until `oracle.cs` reaches equivalent coverage?
+2. Resolved by Item 1 S1-1: retire the legacy Python oracle-comparison path once `oracle.cs` is the active evidence reporter.
 3. Should native export discovery be a report-only lane first, or should missing local native export evidence fail the oracle command?
 
 Current recommendation:
 
 - Emit Markdown first and keep the in-memory model structured enough to add JSON without redesign.
-- Retain `compare_oracle.py` until `oracle.cs` report proves equal-or-better coverage.
+- Item 1 S1-1 retires the legacy Python oracle-comparison path; `oracle.cs` is the active evidence reporter.
 - Treat native exports as non-fatal evidence availability in the first slice.

@@ -53,7 +53,7 @@ Constitution grew from 542 → 623 lines (+81). **All 5 edits sit uncommitted (`
 
 **3 changes in `spikes/binding-generators/docs/satellite-expansion-roadmap.md`** (the roadmap itself was created in this branch and is `??` untracked):
 
-- **E1**: §Cross-Cutting → `sdl2-core-sdlh-required.json` keep note ("load-bearing for generate_bindings.py:554"); `comparison-report-template.md` conditional removal.
+- **E1**: §Cross-Cutting → `sdl2-core-sdlh-required.json` keep note ("load-bearing for generate_bindings.py:554"); stale comparison-report template conditional removal.
 - **E2**: §Item 1 → `[Flags]` direction — replace power-of-two heuristic with alimer-style name-suffix + family-keyed roster allow-list.
 - **E3**: §Cross-Cutting → `policy/` paragraph — opaque-handle-roster family-keyed (not Core-only); new flags-enum-roster.json with same disipline.
 
@@ -68,7 +68,7 @@ Roadmap §Implementation Order & Dependencies graph updated to show Iteration 1 
 | Slice | Goal | Approx. tasks |
 |---|---|---|
 | S1-0 | Land doc artifacts — 3 commits (Constitution / roadmap / spec+plan) | 5 tasks (verification + 3 commits + sanity check) |
-| S1-1 | Cross-cutting cleanup (retire compare_oracle.py; verify load-bearing files) | 7 tasks |
+| S1-1 | Cross-cutting cleanup (retire the legacy Python oracle-comparison script; verify load-bearing files) | 7 tasks |
 | S1-2 | Orchestrator family-agnostic refactor (FAMILY_CONFIG entries; selected-driven stats/write_report; --family CLI; owner-mode wiring) | 16 tasks |
 | S1-3 | Oracle multi-family extension (data-only `FamilyConfig` additions) | 10 tasks |
 | S1-4 | OpaqueHandleEmitRewriter family-blind + roster family-keyed migration + cross-family handle pull | 16 tasks |
@@ -116,7 +116,6 @@ The plan grew from 3388 → 4218 lines (+830, +24%) in the fix pass.
 spikes/binding-generators/clangsharp/
 ├── generate_bindings.py             # Python orchestrator
 ├── oracle.cs                        # Roslyn raw ABI evidence reporter
-├── compare_oracle.py                # SUNSET — retired in S1-1
 ├── rsp/                             # Three-tier RSP (base + family + per-header)
 ├── policy/
 │   ├── opaque-handle-roster.json    # Pattern B handle policy — schema 1.0 today; S1-4 migrates to schema 2.0 family-keyed
@@ -214,7 +213,7 @@ Three options. **Talk to Deniz before committing to which one.** Default and rec
 - Each commit's message body enumerates the changes per the plan's Step 0.2.2 / Step 0.3.2 / Step 0.4.2 heredocs.
 - Exit evidence: working tree clean for `docs/` + `spikes/binding-generators/docs/`; `git log --oneline -5` shows the 3 S1-0 commits.
 
-**After S1-0**: pause for Deniz approval. The next slice S1-1 is a small file-removal slice (retire compare_oracle.py) — another tight loop. Subsequent slices (S1-2 through S1-6) are larger and may span multiple sessions each.
+**After S1-0**: pause for Deniz approval. The next slice S1-1 is a small file-removal slice (retire the legacy Python oracle-comparison script) — another tight loop. Subsequent slices (S1-2 through S1-6) are larger and may span multiple sessions each.
 
 **Acceptance criteria for "Item 1 closed"** (S1-7 exit gate, defined in the plan):
 - `--family all` byte-identical to HEAD EXCEPT audited `[Flags]` additions (carve-out enumerated in plan §6 #1).

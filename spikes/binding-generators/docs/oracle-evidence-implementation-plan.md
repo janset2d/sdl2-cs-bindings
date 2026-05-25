@@ -29,7 +29,6 @@
 **Do Not Touch In This Plan**
 
 - `spikes/binding-generators/clangsharp/generate_bindings.py`
-- `spikes/binding-generators/clangsharp/compare_oracle.py`
 - `build/manifest.json`
 - Any `.csproj`, `.sln`, `.slnx`, `Directory.Build.props`, `Directory.Packages.props`
 - Git commits. Per `AGENTS.md`, present summary and proposed commit message before any commit.
@@ -41,7 +40,7 @@
 - Keep the app self-contained. Do not create a project file for the first slice.
 - Use a built-in `--self-test` mode instead of adding test project infrastructure in the first slice.
 - Keep native export extraction report-only / `not-wired` in this first slice.
-- Retain `compare_oracle.py` until `oracle.cs` has equal-or-better coverage.
+- Retain the legacy Python oracle-comparison path only until `oracle.cs` has equal-or-better coverage. Item 1 retires that path once `oracle.cs` is the active evidence reporter.
 
 ## Task 1: Bootstrap `oracle.cs` With CLI And Self-Test Harness
 

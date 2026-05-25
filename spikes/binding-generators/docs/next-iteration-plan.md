@@ -130,7 +130,6 @@ A-slice, B-slice, and C-slice designs all retired with their respective commits 
 ```text
 spikes/binding-generators/clangsharp/
 ├── generate_bindings.py                    # moved from clangsharp-style/
-├── compare_oracle.py                       # moved from clangsharp-style/
 ├── rsp/                                    # moved from clangsharp-style/rsp/
 │   ├── base.rsp
 │   ├── sdl2-core.rsp
@@ -159,7 +158,7 @@ spikes/binding-generators/clangsharp/
 **Steps:**
 
 1. `mkdir spikes/binding-generators/clangsharp/`.
-2. `git mv` the existing `clangsharp-style/{generate_bindings.py,compare_oracle.py,rsp/}` into `clangsharp/` (preserves history).
+2. `git mv` the existing `clangsharp-style/{generate_bindings.py,rsp/}` into `clangsharp/` (preserves history).
 3. `dotnet new sln --name Janset.SDL2.ClangSharpSpike --output spikes/binding-generators/clangsharp/`.
 4. `dotnet new classlib --name Janset.SDL2.Core --output spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/` — multi-TFM (`net10.0;net9.0;net8.0;netstandard2.0;net462`), `<AllowUnsafeBlocks>true</AllowUnsafeBlocks>`, `<EnableDefaultCompileItems>false</EnableDefaultCompileItems>`, `Compile Include` filtered by `Generated/Compat/` for legacy TFMs and `Generated/Modern/` for modern. `PackageReference System.Memory` for legacy TFMs (Constitution L46).
 5. `dotnet new classlib --name Janset.SDL2.Image --output spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/` — same multi-TFM shape, plus `<ProjectReference Include="../Janset.SDL2.Core/Janset.SDL2.Core.csproj" />` so satellite code refers to core types instead of redeclaring them.
@@ -234,7 +233,7 @@ ppy SDL3 applies `generate_platform_specific_headers` to `SDL_main.h` and `SDL_s
 
 - `SDL_AndroidGetActivity` lands in `Platforms/Android/SDL_system.g.cs` with guarded `[SupportedOSPlatform("android")]`; modern output has `[LibraryImport]` + `[UnmanagedCallConv]` without duplicated platform attributes.
 - Multi-TFM build is clean across all 5 TFMs because platform attributes are `#if NET5_0_OR_GREATER` guarded.
-- Oracle comparison is improved but still incomplete: `compare_oracle.py --approach clangsharp` currently reports 859 Core spike functions, 831/845 dynapi exports emitted, and 8 Cake-oracle functions still missing from the spike output.
+- Legacy oracle comparison was improved but still incomplete: the previous report showed 859 Core spike functions, 831/845 dynapi exports emitted, and 8 Cake-oracle functions still missing from the spike output.
 - Empty platform output is now a hard generator result: generation exits 4 whenever ClangSharp leaves zero-byte platform files after a fatal parse.
 - Windows-local Linux/macOS/iOS views may use spike-only header shims. This is acceptable for local iteration, but the production exit gate still requires native platform generation without these shims.
 
@@ -286,7 +285,7 @@ ppy SDL3 applies `generate_platform_specific_headers` to `SDL_main.h` and `SDL_s
 
 **Steps:**
 
-1. **sdl.json source**: SDL2 has a similar mechanism via `gendynapi.pl` producing `SDL2.exports`. Our `compare_oracle.py` already parses the exports file (`external/vcpkg/buildtrees/sdl2/src/*/src/dynapi/SDL2.exports`). Decide: either move that parser inline into `generate_bindings.py`, or call SDL2's gendynapi to produce a real `sdl2.json` for parity with ppy.
+1. **sdl.json source**: SDL2 has a similar mechanism via `gendynapi.pl` producing `SDL2.exports`. The legacy oracle-comparison path already parsed the exports file (`external/vcpkg/buildtrees/sdl2/src/*/src/dynapi/SDL2.exports`). Decide: either move that parser inline into `generate_bindings.py`, or call SDL2's gendynapi to produce a real `sdl2.json` for parity with ppy.
 2. **Per-header `.rsp` lookup**: For header `SDL_pixels.h`, if `rsp/SDL_pixels.rsp` exists, append it after `base.rsp` + `<family>.rsp`. ppy `Header.rsp_files()` pattern.
 3. **Manual-symbol exclusion feedback**: Companion `.cs` files (one per header that needs hand-written constants/typedefs) live alongside generated output. Python regex `\[Constant]\s*public (const|static readonly) \w+ (\w+_\w+) = ` (ppy verbatim) extracts symbols → feeds `--exclude`. Typedef regex `\[Typedef]\s*public enum (\w+_\w+)` → `--remap Foo=Foo`.
 4. **Post-gen validation**: After each header generation, call equivalent of ppy `check_generated_functions` against the SDL2 dynapi list. Emit `[⚠️ Warning] Function X not found in generated file` warnings to the report.

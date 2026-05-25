@@ -67,7 +67,6 @@ spikes/binding-generators/
 │   └── bootstrap-sdl2-image.headers.txt             # bring-up slice (1 image header)
 ├── clangsharp/                                      # ACTIVE — ppy-style ClangSharp prototype
 │   ├── generate_bindings.py                         # multi-pass orchestrator (codegen × family; multi-OS pass; 6-step postprocess)
-│   ├── compare_oracle.py                            # Cake-preview / dynapi comparison validator
 │   ├── oracle.cs                                    # Roslyn/file-based raw ABI evidence reporter
 │   ├── Janset.SDL2.ClangSharpSpike.slnx             # IDE solution (postprocess + Core + Image + AbiTests)
 │   ├── rsp/
@@ -91,8 +90,8 @@ spikes/binding-generators/
 │       ├── iteration-2-comparison.md                # comparison + decision-quality signal
 │       ├── clangsharp-failure-buckets.md            # bucket map + RSP delta history
 │       ├── clangsharp-full.md                       # per-header generation report (full scope)
-│       ├── oracle-comparison-clangsharp.md          # ClangSharp vs Cake preview + dynapi
-│       ├── oracle-comparison-alimer.md              # Alimer vs Cake preview + dynapi
+│       ├── oracle-comparison-clangsharp.md          # legacy ClangSharp vs Cake preview report (not regenerated)
+│       ├── oracle-comparison-alimer.md              # legacy Alimer vs Cake preview report (not regenerated)
 │       ├── oracle-evidence-clangsharp.md            # family-aware raw ABI evidence report
 │       ├── alimer-full.md                           # Alimer per-header generation report
 │       └── clangsharp-bootstrap.md                  # bootstrap-scope generation report
@@ -111,9 +110,6 @@ python spikes/binding-generators/clangsharp/generate_bindings.py --scope full --
 
 # Multi-TFM compile-check (all 5 TFMs)
 dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Janset.SDL2.Image.csproj -c Release
-
-# Oracle comparison + dynapi coherence
-python spikes/binding-generators/clangsharp/compare_oracle.py --approach clangsharp
 
 # Raw ABI oracle/evidence report (Roslyn, family-aware) — six-risks check
 dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --family sdl2-core --family sdl2-image --write-report

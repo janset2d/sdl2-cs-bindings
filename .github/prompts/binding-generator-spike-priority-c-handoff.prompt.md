@@ -120,7 +120,6 @@ Plus the broader pattern: SDL2 has **17 opaque handle types** (`SDL_Window`, `SD
 spikes/binding-generators/clangsharp/
 ├── generate_bindings.py             # Python orchestrator; 6-step postprocess pipeline
 ├── oracle.cs                        # Roslyn-based raw ABI evidence reporter
-├── compare_oracle.py                # Cake-preview / dynapi comparison validator
 ├── rsp/
 │   ├── base.rsp                     # Cross-cutting: --remap wchar_t* → nint, --define-macro, --additional
 │   ├── sdl2-core.rsp                # Family identity + family-wide excludes

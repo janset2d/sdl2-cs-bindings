@@ -94,7 +94,6 @@ spikes/binding-generators/
 ├── clangsharp/                        # ← THE ACTIVE PROTOTYPE
 │   ├── Janset.SDL2.ClangSharpSpike.slnx    # solution: postprocess + Core + Image + AbiTests
 │   ├── generate_bindings.py           # Python orchestrator (~1250 LOC)
-│   ├── compare_oracle.py              # Cake-preview / dynapi comparison validator
 │   ├── oracle.cs                      # Roslyn/file-based raw ABI evidence reporter
 │   ├── rsp/
 │   │   ├── base.rsp                   # cross-cutting policy (defines, remaps incl. wchar_t* → nint, --with-type SDL_bool=int, -fdeclspec, -U__has_builtin)
@@ -152,7 +151,7 @@ spikes/binding-generators/
 │       ├── iteration-2-comparison.md  # toolchain decision report
 │       ├── clangsharp-failure-buckets.md   # 8 RSP-fix iteration history
 │       ├── clangsharp-full.md         # per-header generation report (auto-written by generate_bindings.py)
-│       ├── oracle-comparison-clangsharp.md   # ClangSharp vs Cake preview (auto-written by compare_oracle.py)
+│       ├── oracle-comparison-clangsharp.md   # Legacy ClangSharp vs Cake preview report (not regenerated)
 │       └── oracle-comparison-alimer.md       # Alimer vs Cake preview (final state, not regenerated)
 └── references/                        # GITIGNORED — local clones for evidence only
     ├── ppy-SDL3-CS/                   # ★ north star — see §"Reference projects"
@@ -393,9 +392,6 @@ python spikes/binding-generators/clangsharp/generate_bindings.py --scope full --
 
 # Build all 5 TFMs (the truth gate)
 dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Janset.SDL2.Image.csproj -c Release
-
-# Compare against Cake oracle + dynapi
-python spikes/binding-generators/clangsharp/compare_oracle.py --approach clangsharp
 
 # Raw ABI oracle/evidence report (Roslyn, family-aware) — the authoritative six-risks oracle
 dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --family sdl2-core --family sdl2-image --write-report

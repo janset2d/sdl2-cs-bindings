@@ -463,12 +463,12 @@ Verify with `slopwatch --version`. Expected: any version string. If install fail
 
 **Files:**
 
-- Conditional delete: `spikes/binding-generators/docs/comparison-report-template.md` (only if present AND unreferenced).
+- Conditional delete: `spikes/binding-generators/scope/comparison-report-template.md` (only if present AND unreferenced).
 
 - [ ] **Step 1.4.1: Check existence**
 
   ```pwsh
-  Test-Path spikes/binding-generators/docs/comparison-report-template.md
+  Test-Path spikes/binding-generators/scope/comparison-report-template.md
   ```
 
   - If `False`: skip Steps 1.4.2 and 1.4.3.
@@ -486,7 +486,7 @@ Verify with `slopwatch --version`. Expected: any version string. If install fail
 - [ ] **Step 1.4.3: Remove if unreferenced**
 
   ```pwsh
-  git rm spikes/binding-generators/docs/comparison-report-template.md
+  git rm spikes/binding-generators/scope/comparison-report-template.md
   ```
 
 ### Task 1.5: Sanity build to confirm nothing broke
