@@ -1,7 +1,7 @@
 # Raw ABI Current Test Inventory
 
 **Date:** 2026-05-25
-**Scope:** Current ClangSharp spike `AbiTests.csproj` state after infrastructure normalization, the P0 pure/RWops expansion, and SDL2 Core hints/events global-state coverage expansion.
+**Scope:** Current ClangSharp spike `AbiTests.csproj` state after infrastructure normalization, the P0 pure/RWops expansion, SDL2 Core hints/events global-state coverage expansion, and dummy audio/video/software-render coverage expansion.
 
 ## Baseline Verification
 
@@ -13,13 +13,13 @@ dotnet test --project spikes/binding-generators/clangsharp/tests/abi-tests/AbiTe
 
 Result:
 
-- `total: 640`
+- `total: 692`
 - `failed: 0`
-- `succeeded: 640`
+- `succeeded: 692`
 - `skipped: 0`
 - executable TFMs: `net10.0`, `net9.0`, `net8.0`, `net462`
-- unique tests discovered per executable TFM: `160`
-- explicit `net462` coverage is included in the multi-target run above: `160/160` passed
+- unique tests discovered per executable TFM: `173`
+- explicit `net462` coverage is included in the multi-target run above: `173/173` passed
 
 ## Current Files
 
@@ -36,9 +36,9 @@ Result:
 | `Upstream/Assets/WavAbiTests.cs` | 1 | WAV load/free smoke. | Keep; expand with audio conversion/load cases where stable. |
 | `Upstream/GlobalState/HintsAbiTests.cs` | 3 | Mixed coverage: one custom hint round-trip smoke plus upstream environment/default/override/reset and hint callback reset/delete ports. | Deferred: full `_HintsEnum` sweep until generated string-like macro null-termination/header-coverage policy is explicit. |
 | `Upstream/GlobalState/EventsAbiTests.cs` | 3 | Event queue, NULL-userdata watch, and userdata watch upstream ports with delete verification. | Keep event queue/filter/watch coverage headless and keyed by global event state. |
-| `Upstream/DummyDrivers/AudioAbiTests.cs` | 1 | Dummy audio open/close smoke. | Keep dummy-driver category; normalize driver probes and parallel key. |
-| `Upstream/DummyDrivers/VideoAbiTests.cs` | 1 | Dummy window lifecycle smoke. | Keep; expand dummy-safe video subset. |
-| `Upstream/DummyDrivers/RenderAbiTests.cs` | 1 | Dummy/software renderer lifecycle smoke. | Keep; expand enabled software-render subset after helper normalization. |
+| `Upstream/DummyDrivers/AudioAbiTests.cs` | 5 | Dummy audio upstream ports for driver init/quit, open/close, global status, device status, and lock/unlock. | Deferred: callback pause/unpause timing and conversion/resample cases until stable callback/capability policy exists for all TFMs. |
+| `Upstream/DummyDrivers/VideoAbiTests.cs` | 6 | Dummy video upstream ports for window lifecycle, flags, ID lookup, pixel format, size, and window-surface/renderer interaction. | Deferred: display-mode, brightness/gamma, position, min/max-size sweep, window-data, centered-on-display, syswm, and WM/event-sensitive cases that are not dummy-portable or need broader generated surface. |
+| `Upstream/DummyDrivers/RenderAbiTests.cs` | 5 | Dummy/software render coverage for render-driver enumeration, renderer lifecycle/clear, primitive draw calls, texture query/copy, and texture color modulation. | Deferred: upstream image-comparison blit suites and disabled blend/alpha suites until asset/reference comparison policy is explicit for raw ABI dummy runs. |
 
 ## Current Infrastructure
 
