@@ -15,6 +15,7 @@ public sealed class HintsAbiTests
     [Test]
     [NotInParallel(AbiParallelKeys.Hints)]
     [Category(AbiCategories.Smoke)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.GlobalState)]
     [Category(AbiCategories.SdlHints)]
     public async Task SDLSetHint_Should_RoundTrip_Custom_Test_Hint()
@@ -27,6 +28,7 @@ public sealed class HintsAbiTests
     [Test]
     [NotInParallel(AbiParallelKeys.Hints)]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.GlobalState)]
     [Category(AbiCategories.SdlHints)]
     [UpstreamSdlTest("test/testautomation_hints.c", "hints_setHint")]
@@ -67,6 +69,7 @@ public sealed class HintsAbiTests
     [Test]
     [NotInParallel(AbiParallelKeys.Hints)]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.GlobalState)]
     [Category(AbiCategories.SdlHints)]
     [UpstreamSdlTest("test/testautomation_hints.c", "hints_setHint")]

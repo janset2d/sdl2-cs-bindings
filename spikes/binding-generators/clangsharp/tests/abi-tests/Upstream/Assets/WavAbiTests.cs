@@ -9,10 +9,10 @@ namespace Janset.SDL2.AbiTests.Upstream.Assets;
 public sealed class WavAbiTests
 {
     [Test]
-    [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Smoke)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Assets)]
     [Category(AbiCategories.SdlAudio)]
-    [UpstreamSdlTest("test/loopwave.c", "SDL_LoadWAV")]
     public async Task SDLLoadWavRw_Should_Load_Upstream_Sample_Wav()
     {
         string samplePath = UpstreamSdlAsset.Path("sample.wav");
@@ -28,6 +28,7 @@ public sealed class WavAbiTests
 
     [Test]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Assets)]
     [Category(AbiCategories.SdlAudio)]
     [UpstreamSdlTest("test/testautomation_audio.c", "audio_buildAudioCVT")]
@@ -42,6 +43,7 @@ public sealed class WavAbiTests
 
     [Test]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Assets)]
     [Category(AbiCategories.SdlAudio)]
     [UpstreamSdlTest("test/testautomation_audio.c", "audio_buildAudioCVT")]
@@ -60,6 +62,7 @@ public sealed class WavAbiTests
     [Test]
     [NotInParallel(AbiParallelKeys.Error)]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Assets)]
     [Category(AbiCategories.SdlAudio)]
     [Category(AbiCategories.SdlError)]
@@ -74,6 +77,7 @@ public sealed class WavAbiTests
 
     [Test]
     [Category(AbiCategories.Smoke)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Assets)]
     [Category(AbiCategories.SdlAudio)]
     public async Task SDLConvertAudio_Should_Convert_Small_Buffer_When_Cvt_Is_Built()
@@ -89,6 +93,7 @@ public sealed class WavAbiTests
 
     [Test]
     [Category(AbiCategories.Smoke)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Assets)]
     [Category(AbiCategories.SdlAudio)]
     public async Task SDLAudioStream_Should_Round_Trip_And_Clear_Buffer_When_Format_Does_Not_Change()

@@ -15,6 +15,7 @@ public sealed class RwopsAbiTests
 
     [Test]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Assets)]
     [Category(AbiCategories.SdlRwops)]
     [UpstreamSdlTest("test/testautomation_rwops.c", "rwops_testParamNegative")]
@@ -35,10 +36,10 @@ public sealed class RwopsAbiTests
     }
 
     [Test]
-    [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Smoke)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Assets)]
     [Category(AbiCategories.SdlRwops)]
-    [UpstreamSdlTest("test/testautomation_rwops.c", "rwops_testMem")]
     public async Task SDLRwFromMem_Should_Write_And_Read_Pinned_Memory()
     {
         RwopsResult result = WriteAndReadMemory();
@@ -52,6 +53,7 @@ public sealed class RwopsAbiTests
 
     [Test]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Assets)]
     [Category(AbiCategories.SdlRwops)]
     [UpstreamSdlTest("test/testautomation_rwops.c", "rwops_testMem")]
@@ -71,10 +73,10 @@ public sealed class RwopsAbiTests
     }
 
     [Test]
-    [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Smoke)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Assets)]
     [Category(AbiCategories.SdlRwops)]
-    [UpstreamSdlTest("test/testautomation_rwops.c", "rwops_testConstMem")]
     public async Task SDLRwFromConstMem_Should_Read_Pinned_Memory()
     {
         RwopsResult result = ReadConstMemory();
@@ -87,6 +89,7 @@ public sealed class RwopsAbiTests
 
     [Test]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Assets)]
     [Category(AbiCategories.SdlRwops)]
     [UpstreamSdlTest("test/testautomation_rwops.c", "rwops_testConstMem")]
@@ -107,6 +110,7 @@ public sealed class RwopsAbiTests
 
     [Test]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Assets)]
     [Category(AbiCategories.SdlRwops)]
     [UpstreamSdlTest("test/testautomation_rwops.c", "rwops_testFileRead")]
@@ -130,10 +134,10 @@ public sealed class RwopsAbiTests
     }
 
     [Test]
-    [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Smoke)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Assets)]
     [Category(AbiCategories.SdlRwops)]
-    [UpstreamSdlTest("test/testautomation_rwops.c", "rwops_testFileWrite")]
     public async Task SDLRwFromFile_Should_Write_And_Read_Temp_File()
     {
         using AbiTempDirectory temp = new();
@@ -151,6 +155,7 @@ public sealed class RwopsAbiTests
 
     [Test]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Assets)]
     [Category(AbiCategories.SdlRwops)]
     [UpstreamSdlTest("test/testautomation_rwops.c", "rwops_testFileWrite")]
@@ -173,6 +178,7 @@ public sealed class RwopsAbiTests
 
     [Test]
     [Category(AbiCategories.HeaderCoverage)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Assets)]
     [Category(AbiCategories.SdlRwops)]
     public async Task SDLRwSizeAndTell_Should_Report_Size_Position_And_Eof_For_Const_Memory()
@@ -190,6 +196,7 @@ public sealed class RwopsAbiTests
 
     [Test]
     [Category(AbiCategories.Smoke)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Assets)]
     [Category(AbiCategories.SdlRwops)]
     public async Task SDLRwFromFile_Should_Append_Writes_When_Mode_Is_Append_Update()
@@ -211,6 +218,7 @@ public sealed class RwopsAbiTests
 
     [Test]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Assets)]
     [Category(AbiCategories.SdlRwops)]
     [UpstreamSdlTest("test/testautomation_rwops.c", "rwops_testCompareRWFromMemWithRWFromFile")]
@@ -237,6 +245,7 @@ public sealed class RwopsAbiTests
 
     [Test]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Assets)]
     [Category(AbiCategories.SdlRwops)]
     [UpstreamSdlTest("test/testautomation_rwops.c", "rwops_testFileWriteReadEndian")]
@@ -268,6 +277,7 @@ public sealed class RwopsAbiTests
 
     [Test]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Assets)]
     [Category(AbiCategories.SdlRwops)]
     [UpstreamSdlTest("test/testautomation_rwops.c", "rwops_testAllocFree")]

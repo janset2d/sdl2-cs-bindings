@@ -18,6 +18,7 @@ public sealed class RectAbiTests
     [Arguments(1, 0)]
     [Arguments(1, 1)]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Pure)]
     [Category(AbiCategories.SdlRect)]
     [UpstreamSdlTest("test/testautomation_rect.c", "rect_testHasIntersectionPoint")]
@@ -33,6 +34,7 @@ public sealed class RectAbiTests
 
     [Test]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Pure)]
     [Category(AbiCategories.SdlRect)]
     [UpstreamSdlTest("test/testautomation_rect.c", "rect_testHasIntersectionInside")]
@@ -67,6 +69,7 @@ public sealed class RectAbiTests
 
     [Test]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Pure)]
     [Category(AbiCategories.SdlRect)]
     [UpstreamSdlTest("test/testautomation_rect.c", "rect_testIntersectRectInside")]
@@ -109,6 +112,7 @@ public sealed class RectAbiTests
 
     [Test]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Pure)]
     [Category(AbiCategories.SdlRect)]
     [UpstreamSdlTest("test/testautomation_rect.c", "rect_testUnionRectInside")]
@@ -138,6 +142,7 @@ public sealed class RectAbiTests
 
     [Test]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Pure)]
     [Category(AbiCategories.SdlRect)]
     [UpstreamSdlTest("test/testautomation_rect.c", "rect_testEnclosePoints")]
@@ -181,6 +186,7 @@ public sealed class RectAbiTests
 
     [Test]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Pure)]
     [Category(AbiCategories.SdlRect)]
     [UpstreamSdlTest("test/testautomation_rect.c", "rect_testIntersectRectAndLine")]
@@ -218,6 +224,7 @@ public sealed class RectAbiTests
 
     [Test]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Pure)]
     [Category(AbiCategories.SdlRect)]
     [UpstreamSdlTest("test/testautomation_rect.c", "rect_testHasIntersectionF")]
@@ -245,6 +252,7 @@ public sealed class RectAbiTests
 
     [Test]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Pure)]
     [Category(AbiCategories.SdlRect)]
     [UpstreamSdlTest("test/testautomation_rect.c", "rect_testIntersectFRect")]
@@ -275,6 +283,7 @@ public sealed class RectAbiTests
 
     [Test]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Pure)]
     [Category(AbiCategories.SdlRect)]
     [UpstreamSdlTest("test/testautomation_rect.c", "rect_testUnionFRect")]
@@ -298,6 +307,7 @@ public sealed class RectAbiTests
 
     [Test]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Pure)]
     [Category(AbiCategories.SdlRect)]
     [UpstreamSdlTest("test/testautomation_rect.c", "rect_testEncloseFPoints")]
@@ -332,6 +342,7 @@ public sealed class RectAbiTests
 
     [Test]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Pure)]
     [Category(AbiCategories.SdlRect)]
     [UpstreamSdlTest("test/testautomation_rect.c", "rect_testIntersectFRectAndLine")]

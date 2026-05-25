@@ -14,6 +14,7 @@ public sealed class RenderAbiTests
     [NotInParallel(AbiParallelKeys.Video)]
     [RequiresVideoDummyDriver]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.DummyDriver)]
     [Category(AbiCategories.SdlRender)]
     [UpstreamSdlTest("test/testautomation_render.c", "render_testGetNumRenderDrivers")]
@@ -27,10 +28,10 @@ public sealed class RenderAbiTests
     [Test]
     [NotInParallel(AbiParallelKeys.Video)]
     [RequiresVideoDummyDriver]
-    [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Smoke)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.DummyDriver)]
     [Category(AbiCategories.SdlRender)]
-    [UpstreamSdlTest("test/testautomation_render.c", "render_testPrimitives")]
     public async Task SDLCreateRenderer_Should_Create_Software_Renderer_For_Dummy_Window()
     {
         RenderResult result = CreateAndClearSoftwareRenderer();
@@ -44,10 +45,10 @@ public sealed class RenderAbiTests
     [Test]
     [NotInParallel(AbiParallelKeys.Video)]
     [RequiresVideoDummyDriver]
-    [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Smoke)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.DummyDriver)]
     [Category(AbiCategories.SdlRender)]
-    [UpstreamSdlTest("test/testautomation_render.c", "render_testPrimitives")]
     public async Task SDLRenderPrimitives_Should_Draw_With_Software_Renderer_For_Dummy_Window()
     {
         RenderPrimitivesResult result = DrawSoftwareRendererPrimitives();
@@ -68,6 +69,7 @@ public sealed class RenderAbiTests
     [NotInParallel(AbiParallelKeys.Video)]
     [RequiresVideoDummyDriver]
     [Category(AbiCategories.Smoke)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.DummyDriver)]
     [Category(AbiCategories.SdlRender)]
     public async Task SDLCreateTextureFromSurface_Should_Query_And_Copy_Texture_With_Software_Renderer()
@@ -89,6 +91,7 @@ public sealed class RenderAbiTests
     [NotInParallel(AbiParallelKeys.Video)]
     [RequiresVideoDummyDriver]
     [Category(AbiCategories.Smoke)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.DummyDriver)]
     [Category(AbiCategories.SdlRender)]
     public async Task SDLSetTextureColorMod_Should_Modulate_And_Copy_Texture_With_Software_Renderer()

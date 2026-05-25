@@ -7,6 +7,7 @@ public sealed class TimerAbiTests
 {
     [Test]
     [Category(AbiCategories.HeaderCoverage)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Pure)]
     [Category(AbiCategories.SdlTimer)]
     public async Task SDLGetTicks_Should_Return_Value_Not_Greater_Than_64Bit_Ticks()
@@ -19,6 +20,7 @@ public sealed class TimerAbiTests
 
     [Test]
     [Category(AbiCategories.Smoke)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Pure)]
     [Category(AbiCategories.SdlTimer)]
     public async Task SDLGetTicks64_Should_Not_Move_Backward_Between_Immediate_Reads()
@@ -31,6 +33,7 @@ public sealed class TimerAbiTests
 
     [Test]
     [Category(AbiCategories.Smoke)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Pure)]
     [Category(AbiCategories.SdlTimer)]
     public async Task SDLGetPerformanceCounter_Should_Not_Move_Backward_Between_Immediate_Reads()
@@ -43,6 +46,7 @@ public sealed class TimerAbiTests
 
     [Test]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Pure)]
     [Category(AbiCategories.SdlTimer)]
     [UpstreamSdlTest("test/testautomation_timer.c", "timer_getPerformanceCounter")]
@@ -55,6 +59,7 @@ public sealed class TimerAbiTests
 
     [Test]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Pure)]
     [Category(AbiCategories.SdlTimer)]
     [UpstreamSdlTest("test/testautomation_timer.c", "timer_getPerformanceFrequency")]

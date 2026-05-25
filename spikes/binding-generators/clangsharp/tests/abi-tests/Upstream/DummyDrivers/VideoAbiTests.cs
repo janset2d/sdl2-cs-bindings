@@ -13,10 +13,10 @@ public sealed class VideoAbiTests
     [Test]
     [NotInParallel(AbiParallelKeys.Video)]
     [RequiresVideoDummyDriver]
-    [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Smoke)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.DummyDriver)]
     [Category(AbiCategories.SdlVideo)]
-    [UpstreamSdlTest("test/testautomation_video.c", "video_createWindowVariousFlags")]
     public async Task SDLCreateWindow_Should_Create_And_Destroy_Dummy_Window()
     {
         WindowResult result = CreateAndDestroyDummyWindow();
@@ -28,6 +28,7 @@ public sealed class VideoAbiTests
     [NotInParallel(AbiParallelKeys.Video)]
     [RequiresVideoDummyDriver]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.DummyDriver)]
     [Category(AbiCategories.SdlVideo)]
     [UpstreamSdlTest("test/testautomation_video.c", "video_getWindowFlags")]
@@ -43,6 +44,7 @@ public sealed class VideoAbiTests
     [NotInParallel(AbiParallelKeys.Video)]
     [RequiresVideoDummyDriver]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.DummyDriver)]
     [Category(AbiCategories.SdlVideo)]
     [UpstreamSdlTest("test/testautomation_video.c", "video_getWindowId")]
@@ -60,6 +62,7 @@ public sealed class VideoAbiTests
     [NotInParallel(AbiParallelKeys.Video)]
     [RequiresVideoDummyDriver]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.DummyDriver)]
     [Category(AbiCategories.SdlVideo)]
     [UpstreamSdlTest("test/testautomation_video.c", "video_getWindowPixelFormat")]
@@ -74,10 +77,10 @@ public sealed class VideoAbiTests
     [Test]
     [NotInParallel(AbiParallelKeys.Video)]
     [RequiresVideoDummyDriver]
-    [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Smoke)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.DummyDriver)]
     [Category(AbiCategories.SdlVideo)]
-    [UpstreamSdlTest("test/testautomation_video.c", "video_getSetWindowSize")]
     public async Task SDLSetWindowSize_Should_Set_And_Get_Dummy_Window_Size()
     {
         WindowSizeResult result = SetAndGetDummyWindowSize();
@@ -91,6 +94,7 @@ public sealed class VideoAbiTests
     [NotInParallel(AbiParallelKeys.Video)]
     [RequiresVideoDummyDriver]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.DummyDriver)]
     [Category(AbiCategories.SdlVideo)]
     [UpstreamSdlTest("test/testautomation_video.c", "video_getWindowSurface")]

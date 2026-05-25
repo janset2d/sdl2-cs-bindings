@@ -11,6 +11,7 @@ public sealed class SurfaceAbiTests
 {
     [Test]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Assets)]
     [Category(AbiCategories.SdlSurface)]
     [UpstreamSdlTest("test/testautomation_surface.c", "surface_testSaveLoadBitmap")]
@@ -34,10 +35,10 @@ public sealed class SurfaceAbiTests
     }
 
     [Test]
-    [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Smoke)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Assets)]
     [Category(AbiCategories.SdlSurface)]
-    [UpstreamSdlTest("test/testautomation_surface.c", "surface_testLoadFailure")]
     public async Task SDLLoadBmpRw_Should_Return_Null_When_Bmp_File_Does_Not_Exist()
     {
         using AbiTempDirectory temp = new();
@@ -51,6 +52,7 @@ public sealed class SurfaceAbiTests
 
     [Test]
     [Category(AbiCategories.HeaderCoverage)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Assets)]
     [Category(AbiCategories.SdlSurface)]
     public async Task SDLConvertSurface_Should_Preserve_Dimensions_And_Use_Target_Format()
@@ -68,6 +70,7 @@ public sealed class SurfaceAbiTests
     [Test]
     [NotInParallel(AbiParallelKeys.Error)]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.GlobalState)]
     [Category(AbiCategories.SdlSurface)]
     [UpstreamSdlTest("test/testautomation_surface.c", "surface_testOverflow")]
@@ -85,6 +88,7 @@ public sealed class SurfaceAbiTests
 
     [Test]
     [Category(AbiCategories.HeaderCoverage)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Pure)]
     [Category(AbiCategories.SdlSurface)]
     public async Task SDLSetSurfaceBlendMode_And_SDLUpperBlit_Should_Copy_Source_Pixels_When_Blend_None()

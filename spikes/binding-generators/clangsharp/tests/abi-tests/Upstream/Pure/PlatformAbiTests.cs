@@ -9,10 +9,9 @@ namespace Janset.SDL2.AbiTests.Upstream.Pure;
 public sealed class PlatformAbiTests
 {
     [Test]
-    [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Pure)]
     [Category(AbiCategories.SdlPlatform)]
-    [UpstreamSdlTest("test/testautomation_platform.c", "platform_testTypes")]
     public async Task SDLTypeAliases_Should_Match_Expected_Primitive_Sizes()
     {
         int uint8Size = sizeof(byte);
@@ -28,6 +27,7 @@ public sealed class PlatformAbiTests
 
     [Test]
     [Category(AbiCategories.HeaderCoverage)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Pure)]
     [Category(AbiCategories.SdlPlatform)]
     public async Task SDLEndianConstants_Should_Match_Current_Runtime_Byte_Order()
@@ -42,6 +42,7 @@ public sealed class PlatformAbiTests
 
     [Test]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Pure)]
     [Category(AbiCategories.SdlPlatform)]
     [UpstreamSdlTest("test/testautomation_platform.c", "platform_testGetFunctions")]
@@ -54,6 +55,7 @@ public sealed class PlatformAbiTests
 
     [Test]
     [Category(AbiCategories.HeaderCoverage)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Pure)]
     [Category(AbiCategories.SdlPlatform)]
     public async Task SDLGetPlatform_Should_Return_Current_Os_Platform_String()
@@ -65,6 +67,7 @@ public sealed class PlatformAbiTests
 
     [Test]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Pure)]
     [Category(AbiCategories.SdlPlatform)]
     [UpstreamSdlTest("test/testautomation_platform.c", "platform_testGetVersion")]
@@ -78,6 +81,7 @@ public sealed class PlatformAbiTests
 
     [Test]
     [Category(AbiCategories.HeaderCoverage)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Pure)]
     [Category(AbiCategories.SdlPlatform)]
     public async Task SDLGetVersion_Should_Match_Generated_Version_Constants()
@@ -103,6 +107,7 @@ public sealed class PlatformAbiTests
 
     [Test]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Pure)]
     [Category(AbiCategories.SdlPlatform)]
     [UpstreamSdlTest("test/testautomation_platform.c", "platform_testGetFunctions")]
@@ -115,6 +120,7 @@ public sealed class PlatformAbiTests
 
     [Test]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Pure)]
     [Category(AbiCategories.SdlPlatform)]
     [UpstreamSdlTest("test/testautomation_platform.c", "platform_testGetFunctions")]
@@ -127,6 +133,7 @@ public sealed class PlatformAbiTests
 
     [Test]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Pure)]
     [Category(AbiCategories.SdlPlatform)]
     [UpstreamSdlTest("test/testautomation_platform.c", "platform_testGetFunctions")]
@@ -139,6 +146,7 @@ public sealed class PlatformAbiTests
 
     [Test]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Pure)]
     [Category(AbiCategories.SdlPlatform)]
     [UpstreamSdlTest("test/testautomation_platform.c", "platform_testHasFunctions")]
@@ -166,6 +174,7 @@ public sealed class PlatformAbiTests
 
     [Test]
     [Category(AbiCategories.HeaderCoverage)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Pure)]
     [Category(AbiCategories.SdlPlatform)]
     public async Task SDLSimdAndSystemRamQueries_Should_Return_Defined_NonNegative_Values()
@@ -181,6 +190,7 @@ public sealed class PlatformAbiTests
     [Test]
     [NotInParallel(AbiParallelKeys.Error)]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.GlobalState)]
     [Category(AbiCategories.SdlPlatform)]
     [Category(AbiCategories.SdlError)]
@@ -203,6 +213,7 @@ public sealed class PlatformAbiTests
     [Test]
     [NotInParallel(AbiParallelKeys.Error)]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.GlobalState)]
     [Category(AbiCategories.SdlPlatform)]
     [Category(AbiCategories.SdlError)]

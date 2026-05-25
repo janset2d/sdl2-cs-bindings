@@ -12,10 +12,10 @@ public sealed class AudioAbiTests
     [Test]
     [NotInParallel(AbiParallelKeys.Audio)]
     [RequiresAudioDummyDriver]
-    [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Smoke)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.DummyDriver)]
     [Category(AbiCategories.SdlAudio)]
-    [UpstreamSdlTest("test/testautomation_audio.c", "audio_initQuitAudio")]
     public async Task SDLAudioInit_Should_Init_And_Quit_Dummy_Driver()
     {
         int result = InitAndQuitDummyAudioDriver();
@@ -26,10 +26,10 @@ public sealed class AudioAbiTests
     [Test]
     [NotInParallel(AbiParallelKeys.Audio)]
     [RequiresAudioDummyDriver]
-    [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Smoke)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.DummyDriver)]
     [Category(AbiCategories.SdlAudio)]
-    [UpstreamSdlTest("test/testautomation_audio.c", "audio_openCloseAudioDevice")]
     public async Task SDLOpenAudioDevice_Should_Open_And_Close_Dummy_Device()
     {
         AudioDeviceResult result = OpenAndCloseDummyAudioDevice();
@@ -43,6 +43,7 @@ public sealed class AudioAbiTests
     [NotInParallel(AbiParallelKeys.Audio)]
     [RequiresAudioDummyDriver]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.DummyDriver)]
     [Category(AbiCategories.SdlAudio)]
     [UpstreamSdlTest("test/testautomation_audio.c", "audio_getAudioStatus")]
@@ -57,6 +58,7 @@ public sealed class AudioAbiTests
     [NotInParallel(AbiParallelKeys.Audio)]
     [RequiresAudioDummyDriver]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.DummyDriver)]
     [Category(AbiCategories.SdlAudio)]
     [UpstreamSdlTest("test/testautomation_audio.c", "audio_openCloseAndGetAudioStatus")]
@@ -73,6 +75,7 @@ public sealed class AudioAbiTests
     [NotInParallel(AbiParallelKeys.Audio)]
     [RequiresAudioDummyDriver]
     [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.DummyDriver)]
     [Category(AbiCategories.SdlAudio)]
     [UpstreamSdlTest("test/testautomation_audio.c", "audio_lockUnlockOpenAudioDevice")]

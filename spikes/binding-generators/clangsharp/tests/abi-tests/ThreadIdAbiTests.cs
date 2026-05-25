@@ -20,6 +20,7 @@ public sealed class ThreadIdAbiTests
 {
     [Test]
     [Category(AbiCategories.Smoke)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.SdlThread)]
     public async Task SDL_ThreadID_Returns_NonZero_On_Host_Platform()
     {
@@ -30,6 +31,7 @@ public sealed class ThreadIdAbiTests
 
     [Test]
     [Category(AbiCategories.Smoke)]
+    [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.SdlThread)]
     public async Task SDLGetThreadID_Should_Return_Current_Thread_Id_When_Thread_Is_Null()
     {

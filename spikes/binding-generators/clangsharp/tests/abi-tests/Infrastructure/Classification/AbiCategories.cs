@@ -6,6 +6,7 @@ internal static class AbiCategories
     public const string UpstreamPort = "AbiUpstreamPort";
     public const string HeaderCoverage = "AbiHeaderCoverage";
     public const string Mechanical = "AbiMechanical";
+    public const string BehaviorCoverage = "AbiBehaviorCoverage";
     public const string Pure = "AbiPure";
     public const string Assets = "AbiAssets";
     public const string GlobalState = "AbiGlobalState";
