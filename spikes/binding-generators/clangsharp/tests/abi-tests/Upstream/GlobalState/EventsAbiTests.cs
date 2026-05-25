@@ -1,8 +1,7 @@
 #if !NET462
-using Janset.SDL2.AbiTests.Infrastructure.Sdl.Callbacks;
-#else
-using Janset.SDL2.AbiTests.Infrastructure.Callbacks;
+using System.Runtime.CompilerServices;
 #endif
+using System.Runtime.InteropServices;
 using Janset.SDL2.AbiTests.Infrastructure.Classification;
 using Janset.SDL2.AbiTests.Infrastructure.Sdl.Scopes;
 using SDL2;
@@ -34,12 +33,31 @@ public sealed class EventsAbiTests
     [Category(AbiCategories.GlobalState)]
     [Category(AbiCategories.SdlEvents)]
     [UpstreamSdlTest("test/testautomation_events.c", "events_addDelEventWatch")]
-    public async Task SDLAddEventWatch_Should_Invoke_Callback_For_User_Event()
+    public async Task SDLAddEventWatch_Should_Invoke_Callback_With_Null_Userdata_And_Stop_After_Delete()
     {
         EventWatchResult result = PushUserEventThroughWatch();
 
-        await Assert.That(result.PushResult).IsEqualTo(1);
-        await Assert.That(result.WatchCount).IsEqualTo(1);
+        await Assert.That(result.FirstPushResult).IsEqualTo(1);
+        await Assert.That(result.FirstWatchCount).IsEqualTo(1);
+        await Assert.That(result.SecondPushResult).IsEqualTo(1);
+        await Assert.That(result.SecondWatchCount).IsEqualTo(0);
+    }
+
+    [Test]
+    [NotInParallel(AbiParallelKeys.Events)]
+    [Category(AbiCategories.UpstreamPort)]
+    [Category(AbiCategories.GlobalState)]
+    [Category(AbiCategories.SdlEvents)]
+    [UpstreamSdlTest("test/testautomation_events.c", "events_addDelEventWatchWithUserdata")]
+    public async Task SDLAddEventWatch_Should_Invoke_Callback_With_Userdata_And_Stop_After_Delete()
+    {
+        EventWatchWithUserdataResult result = PushUserEventThroughUserdataWatch();
+
+        await Assert.That(result.FirstPushResult).IsEqualTo(1);
+        await Assert.That(result.FirstWatchCount).IsEqualTo(1);
+        await Assert.That(result.ObservedUserdataValue).IsEqualTo(7);
+        await Assert.That(result.SecondPushResult).IsEqualTo(1);
+        await Assert.That(result.SecondWatchCount).IsEqualTo(0);
     }
 
     private static unsafe EventPollResult PushAndReadUserEvent()
@@ -67,21 +85,161 @@ public sealed class EventsAbiTests
         uint userEventType = (uint)SDL_EventType.SDL_USEREVENT;
         SDL_FlushEvents(userEventType, userEventType);
 
-        using SdlEventWatchCounter watchCounter = SdlEventWatchCounter.ForUserEvents();
-        int pushResult;
+        NullUserdataWatchCount = 0;
 
         try
         {
-            SDL_Event pushed = CreateUserEvent(24);
-            pushResult = SDL_PushEvent(&pushed);
+            AddNullUserdataEventWatch();
+
+            SDL_Event firstEvent = CreateUserEvent(24);
+            int firstPushResult = SDL_PushEvent(&firstEvent);
+            SDL_PumpEvents();
+            SDL_FlushEvents(userEventType, userEventType);
+
+            int firstWatchCount = NullUserdataWatchCount;
+
+            DeleteNullUserdataEventWatch();
+            NullUserdataWatchCount = 0;
+
+            SDL_Event secondEvent = CreateUserEvent(24);
+            int secondPushResult = SDL_PushEvent(&secondEvent);
+            SDL_PumpEvents();
+            SDL_FlushEvents(userEventType, userEventType);
+
+            return new EventWatchResult(firstPushResult, firstWatchCount, secondPushResult, NullUserdataWatchCount);
         }
         finally
         {
+            DeleteNullUserdataEventWatch();
+            NullUserdataWatchCount = 0;
             SDL_FlushEvents(userEventType, userEventType);
         }
-
-        return new EventWatchResult(pushResult, watchCounter.Count);
     }
+
+    private static unsafe EventWatchWithUserdataResult PushUserEventThroughUserdataWatch()
+    {
+        using SdlSubsystemScope events = new(SDL_INIT_EVENTS);
+
+        uint userEventType = (uint)SDL_EventType.SDL_USEREVENT;
+        SDL_FlushEvents(userEventType, userEventType);
+
+        EventWatchUserdataState state = new(7);
+        GCHandle stateHandle = GCHandle.Alloc(state);
+        nint userdata = GCHandle.ToIntPtr(stateHandle);
+
+        try
+        {
+            AddUserdataEventWatch(userdata);
+
+            SDL_Event firstEvent = CreateUserEvent(7);
+            int firstPushResult = SDL_PushEvent(&firstEvent);
+            SDL_PumpEvents();
+            SDL_FlushEvents(userEventType, userEventType);
+
+            int firstWatchCount = state.WatchCount;
+            int? observedUserdataValue = state.ObservedUserdataValue;
+
+            DeleteUserdataEventWatch(userdata);
+            state.Reset();
+
+            SDL_Event secondEvent = CreateUserEvent(7);
+            int secondPushResult = SDL_PushEvent(&secondEvent);
+            SDL_PumpEvents();
+            SDL_FlushEvents(userEventType, userEventType);
+
+            return new EventWatchWithUserdataResult(
+                firstPushResult,
+                firstWatchCount,
+                observedUserdataValue,
+                secondPushResult,
+                state.WatchCount);
+        }
+        finally
+        {
+            DeleteUserdataEventWatch(userdata);
+            stateHandle.Free();
+            SDL_FlushEvents(userEventType, userEventType);
+        }
+    }
+
+    private static unsafe void AddUserdataEventWatch(nint userdata)
+    {
+#if NET462
+        SDL_AddEventWatch(UserdataEventWatchCallbackPointer, userdata);
+#else
+        SDL_AddEventWatch(&UserdataEventWatchCallback, userdata);
+#endif
+    }
+
+    private static unsafe void DeleteUserdataEventWatch(nint userdata)
+    {
+#if NET462
+        SDL_DelEventWatch(UserdataEventWatchCallbackPointer, userdata);
+        GC.KeepAlive(UserdataEventWatchCallbackDelegate);
+#else
+        SDL_DelEventWatch(&UserdataEventWatchCallback, userdata);
+#endif
+    }
+
+    private static unsafe void AddNullUserdataEventWatch()
+    {
+#if NET462
+        SDL_AddEventWatch(NullUserdataEventWatchCallbackPointer, 0);
+#else
+        SDL_AddEventWatch(&NullUserdataEventWatchCallback, 0);
+#endif
+    }
+
+    private static unsafe void DeleteNullUserdataEventWatch()
+    {
+#if NET462
+        SDL_DelEventWatch(NullUserdataEventWatchCallbackPointer, 0);
+        GC.KeepAlive(NullUserdataEventWatchCallbackDelegate);
+#else
+        SDL_DelEventWatch(&NullUserdataEventWatchCallback, 0);
+#endif
+    }
+
+#if NET462
+    private static readonly Delegate NullUserdataEventWatchCallbackDelegate = CreateNullUserdataEventWatchCallbackDelegate();
+    private static readonly IntPtr NullUserdataEventWatchCallbackPointer = Marshal.GetFunctionPointerForDelegate(NullUserdataEventWatchCallbackDelegate);
+
+    private static unsafe Delegate CreateNullUserdataEventWatchCallbackDelegate() => (SDL_EventFilter)NullUserdataEventWatchCallback;
+#else
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+#endif
+    private static unsafe int NullUserdataEventWatchCallback(nint userdata, SDL_Event* @event)
+    {
+        if (userdata == 0 && @event->type == (uint)SDL_EventType.SDL_USEREVENT)
+        {
+            NullUserdataWatchCount++;
+        }
+
+        return 0;
+    }
+
+#if NET462
+    private static readonly Delegate UserdataEventWatchCallbackDelegate = CreateUserdataEventWatchCallbackDelegate();
+    private static readonly IntPtr UserdataEventWatchCallbackPointer = Marshal.GetFunctionPointerForDelegate(UserdataEventWatchCallbackDelegate);
+
+    private static unsafe Delegate CreateUserdataEventWatchCallbackDelegate() => (SDL_EventFilter)UserdataEventWatchCallback;
+#else
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+#endif
+    private static unsafe int UserdataEventWatchCallback(nint userdata, SDL_Event* @event)
+    {
+        if (@event->type == (uint)SDL_EventType.SDL_USEREVENT)
+        {
+            GCHandle handle = GCHandle.FromIntPtr(userdata);
+            EventWatchUserdataState state = (EventWatchUserdataState)handle.Target!;
+            state.WatchCount++;
+            state.ObservedUserdataValue = state.ExpectedUserdataValue;
+        }
+
+        return 0;
+    }
+
+    private static int NullUserdataWatchCount { get; set; }
 
     private static SDL_Event CreateUserEvent(int code)
     {
@@ -96,5 +254,31 @@ public sealed class EventsAbiTests
 
     private sealed record EventPollResult(int PushResult, int PeepResult, uint EventType, int Code);
 
-    private sealed record EventWatchResult(int PushResult, int WatchCount);
+    private sealed record EventWatchResult(
+        int FirstPushResult,
+        int FirstWatchCount,
+        int SecondPushResult,
+        int SecondWatchCount);
+
+    private sealed record EventWatchWithUserdataResult(
+        int FirstPushResult,
+        int FirstWatchCount,
+        int? ObservedUserdataValue,
+        int SecondPushResult,
+        int SecondWatchCount);
+
+    private sealed class EventWatchUserdataState(int expectedUserdataValue)
+    {
+        public int ExpectedUserdataValue { get; } = expectedUserdataValue;
+
+        public int WatchCount { get; set; }
+
+        public int? ObservedUserdataValue { get; set; }
+
+        public void Reset()
+        {
+            WatchCount = 0;
+            ObservedUserdataValue = null;
+        }
+    }
 }

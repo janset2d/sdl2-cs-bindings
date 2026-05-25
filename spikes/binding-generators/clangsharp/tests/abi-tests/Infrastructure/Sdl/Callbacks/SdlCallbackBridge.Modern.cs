@@ -33,7 +33,7 @@ internal sealed unsafe class SdlEventWatchCounter : IDisposable
         _disposed = true;
     }
 
-    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     private static int EventWatchCallback(nint userdata, SDL_Event* @event)
     {
         if (@event->type == (uint)SDL_EventType.SDL_USEREVENT)
