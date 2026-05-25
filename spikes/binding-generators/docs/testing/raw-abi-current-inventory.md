@@ -13,13 +13,13 @@ dotnet test --project spikes/binding-generators/clangsharp/tests/abi-tests/AbiTe
 
 Result:
 
-- `total: 608`
+- `total: 628`
 - `failed: 0`
-- `succeeded: 608`
+- `succeeded: 628`
 - `skipped: 0`
 - executable TFMs: `net10.0`, `net9.0`, `net8.0`, `net462`
-- unique tests discovered per executable TFM: `152`
-- explicit `net462` check: `dotnet test --project spikes/binding-generators/clangsharp/tests/abi-tests/AbiTests.csproj -c Release --framework net462` → `144/144` passed
+- unique tests discovered per executable TFM: `157`
+- explicit `net462` coverage is included in the multi-target run above: `157/157` passed
 
 ## Current Files
 
@@ -29,7 +29,7 @@ Result:
 | `Upstream/Pure/RectAbiTests.cs` | 18 | Deterministic integer/float rect upstream ports with const-input guard checks. | Add parameter-negative cases when null-pointer coverage policy is ready. |
 | `Upstream/Pure/GuidAbiTests.cs` | 11 | GUID parse/string variants with raw SDL byte-order checks. | Keep; expand joystick GUID aliases if needed. |
 | `Upstream/Pure/TimerAbiTests.cs` | 2 | Performance counter/frequency smoke. | Move or mark as global-state when adding delay/timer callback cases. |
-| `Upstream/Pure/PlatformAbiTests.cs` | 3 | Platform/version/error string behavior. | Split error-state keyed parallelism; expand platform/endian cases. |
+| `Upstream/Pure/PlatformAbiTests.cs` | 8 | Faithful platform/version/revision/error upstream ports plus separate exact platform/version generated-header consistency coverage. | Deferred: `SDL_VERSION` upstream macro port until an actual generated/accessibly exposed macro equivalent exists; endian/swap, CPU feature probes, power-info, `SDL_GetErrorMsg`, and function-like version macro helpers (`SDL_VERSIONNUM`, `SDL_VERSION_ATLEAST`) until their generator/test-local macro policy is explicit and upstream coverage is portable. |
 | `Upstream/Pure/PixelsAbiTests.cs` | 89 | Pixel format names/allocation, palette allocation, and gamma ramp upstream ports. | Add color mapping/conversion cases after deciding breadth vs generated macro/header guardrails. |
 | `Upstream/Assets/RwopsAbiTests.cs` | 11 | Memory/file/const-memory/endian/alloc RWops upstream ports with temp assets. | `SDL_RWFromFP` remains deferred; add any missing negative close/error cases only if generator exposes needed surface. |
 | `Upstream/Assets/SurfaceAbiTests.cs` | 9 | BMP save/reload, missing-load failure, surface conversion/header smoke, overflow/pitch checks, and blend-none header smoke. | Deferred: upstream fixture-comparison blit/conversion cases, upstream-disabled blend modes, and 32-bit-only overflow path until a real 32-bit/native lane exists. |
@@ -76,3 +76,4 @@ Result:
 - `SDL_syswm` upstream automation remains deferred until `SDL_SysWMinfo` / `SDL_SysWMmsg` typed union generation and `SDL_GetWindowWMInfo` are available.
 - Thread creation runtime tests remain deferred until `SDL_CreateThread` macro/REAL entrypoint handling is intentionally supported.
 - Function-like SDL macros need generated or test-local helper policy before direct upstream ports are clean.
+- `SDL_GetErrorMsg` is generated in the raw ABI, but local SDL2 upstream test sources do not exercise it; keep it deferred rather than inventing behavior outside upstream evidence.
