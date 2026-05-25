@@ -1,3 +1,4 @@
+using Janset.SDL2.AbiTests.Infrastructure.Classification;
 using SDL2;
 
 namespace Janset.SDL2.AbiTests;
@@ -15,11 +16,11 @@ namespace Janset.SDL2.AbiTests;
 /// also evidence — if the rewriter's output were invalid on net462 where
 /// CULong does not exist, the build would fail.
 /// </summary>
-[NotInParallel]
 public sealed class ThreadIdAbiTests
 {
     [Test]
-    [Category("AbiSmoke")]
+    [Category(AbiCategories.Smoke)]
+    [Category(AbiCategories.SdlThread)]
     public async Task SDL_ThreadID_Returns_NonZero_On_Host_Platform()
     {
         ulong threadId = GetCurrentThreadId();
@@ -28,7 +29,8 @@ public sealed class ThreadIdAbiTests
     }
 
     [Test]
-    [Category("AbiSmoke")]
+    [Category(AbiCategories.Smoke)]
+    [Category(AbiCategories.SdlThread)]
     public async Task SDLGetThreadID_Should_Return_Current_Thread_Id_When_Thread_Is_Null()
     {
         ulong currentThreadId = GetCurrentThreadId();

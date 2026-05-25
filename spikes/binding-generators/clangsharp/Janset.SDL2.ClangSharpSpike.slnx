@@ -6,4 +6,7 @@
     <Project Path="src/Janset.SDL2.Core/Janset.SDL2.Core.csproj" />
     <Project Path="src/Janset.SDL2.Image/Janset.SDL2.Image.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/abi-tests/AbiTests.csproj" />
+  </Folder>
 </Solution>

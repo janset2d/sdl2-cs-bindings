@@ -15,7 +15,7 @@ Janset.SDL testing has multiple jobs that must stay separate:
 - exercise real asset workflows for file/image/audio/font APIs;
 - provide manual SDL apps for visual/audio/input confidence outside CI.
 
-The strategy is not to port all upstream SDL tests. The strategy is to curate deterministic tests that catch Janset.SDL-specific risks: native dependency closure, NuGet asset layout, ABI wire correctness, resource lifetime, string/path marshalling, and wrapper behavior.
+The strategy is not to blindly clone every upstream SDL test. The strategy is to curate deterministic tests that catch Janset.SDL-specific risks: native dependency closure, NuGet asset layout, ABI wire correctness, resource lifetime, string/path marshalling, and wrapper behavior. For generated raw ABI coverage, this still means porting most upstream SDL2 automation cases that are headless-safe, while adding Janset-owned header guardrails for generated surface breadth.
 
 ## Current Baseline
 
@@ -36,6 +36,8 @@ Root `assets/` is for repository documentation and NuGet package identity assets
 | --- | --- | --- | --- |
 | Build-host unit tests | Cake/generator/build policy | Yes | Synthetic fixtures mostly |
 | Binding compile checks | Generated source compiles and has expected TFM shape | Yes | No |
+| Generated raw ABI runtime tests | Generated raw binding ABI correctness, ownership, callbacks, layouts, and upstream behavior | Yes by default | Yes for file/media APIs |
+| Mechanical header guardrails | Symbol, constant, layout, macro, and callback surface breadth | Yes | No |
 | NativeSmoke | Native feature set and dependency closure | Yes by default | Yes |
 | PackageConsumerSmoke | NuGet assets, native load, ABI calls, wrappers | Yes by default | Yes |
 | Asset-backed headless functional smoke | Real file/media workflows without hardware | Yes | Yes |
@@ -128,6 +130,67 @@ Future additions:
 - synthetic generated-source samples for raw ABI backend split;
 - public API snapshots once public low-level methods exist;
 - checks that no public `[DllImport]` / `[LibraryImport]` declarations leak.
+
+## Generated Raw ABI Runtime Tests
+
+Current spike home:
+
+- `spikes/binding-generators/clangsharp/tests/abi-tests/AbiTests.csproj`
+
+Future production home after generator promotion:
+
+- a root test project under `tests/` with a production name chosen during promotion.
+
+Purpose:
+
+- prove generated raw `SDLNative` calls marshal correctly against real native payloads;
+- catch wrong integer widths, struct layouts, explicit-layout union shapes, callback signatures, UTF-8 string handling, path marshalling, and ownership mistakes;
+- port most upstream SDL2 `testautomation_*.c` cases that are deterministic and headless-safe;
+- add Janset-owned header-based tests where upstream coverage does not cover generated binding risks.
+
+Ground rules:
+
+- keep the spike in one test project until promotion;
+- build reusable infrastructure before broad subsystem ports;
+- keep default runs headless-safe;
+- use dummy video/audio drivers and software renderers only behind explicit capability probes;
+- use keyed TUnit non-parallel groups for SDL process-global state rather than serializing the whole assembly;
+- defer real display, real speaker playback, hardware input, haptic, GL/GLES/Vulkan, syswm, and other manual/backend-sensitive tests unless a capability-gated lane is deliberately added;
+- use TUnit/MTP `--treenode-filter` for category runs, not stale VSTest `--filter` examples.
+
+Coverage target after the spike feasibility review:
+
+- `260-280` stable default headless runtime tests is the practical target before production promotion;
+- `300+` total runtime tests is feasible with capability-gated/backend-sensitive lanes;
+- mechanical header guardrails should pursue as-close-to-full generated surface coverage as practical for symbols, constants, layouts, callbacks, and macro policy.
+
+High-value upstream sources:
+
+- P0/P1: `testautomation_rect.c`, `testautomation_rwops.c`, `testautomation_surface.c`, `testautomation_pixels.c`, `testautomation_guid.c`, `testautomation_platform.c`, `testautomation_timer.c`, `testautomation_hints.c`, `testautomation_events.c`, `testautomation_audio.c`, dummy-safe `testautomation_video.c`, enabled software-render `testautomation_render.c`, `testautomation_keyboard.c`, dummy-safe `testautomation_mouse.c`, `testautomation_math.c`, `testautomation_stdlib.c`, `testautomation_main.c`, `testautomation_subsystems.c`, and virtual-joystick paths from `testautomation_joystick.c` when supported.
+
+Known generated-surface blockers:
+
+- `SDL_syswm` tests wait for typed `SDL_SysWMinfo` / `SDL_SysWMmsg` union generation and `SDL_GetWindowWMInfo`;
+- thread creation tests wait for explicit handling of `SDL_CreateThread` macro/REAL entrypoints;
+- common function-like SDL macros need either generated helpers or test-local helper policy before direct upstream ports are clean.
+
+## Mechanical Header Guardrails
+
+Purpose:
+
+- complement runtime tests with breadth checks across the generated raw surface;
+- prevent a false sense of coverage from hand-authored runtime tests alone;
+- make header-by-header omissions visible before packaging or release validation.
+
+Recommended guardrails:
+
+- generated extern declarations versus native exports where feasible;
+- enum, flag, and macro constant snapshots by header;
+- struct size, field offset, fixed-buffer, and explicit-layout union checks;
+- callback signature and TFM-conditional ABI bridge checks;
+- macro policy classification: emitted helper, test helper, unsupported, or intentionally skipped.
+
+These guardrails belong near the generated raw ABI runtime suite during the spike and can move to the production test topology with it after generator promotion.
 
 ## NativeSmoke
 

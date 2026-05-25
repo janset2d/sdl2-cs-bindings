@@ -18,6 +18,8 @@ This folder hosts the SDL2 binding-generator prototypes that feed Phase 4 (bindi
 | **`docs/priority-c-closure-summary.md`** | **Priority C closure record** (2026-05-24). Six-risks resolution table, verification evidence, Foreign Type Boundary Policy, Cross-Assembly Pattern B contract. Read after the LLM handoff. |
 | `docs/generator-spike-goals.md` | Spike charter — original goals, what got tested, and the recorded decision. |
 | `docs/next-iteration-plan.md` | Slice plan with current status; Slices 1–4 and Oracle Priorities A/B/C all closed; Slice 5 deferred; Layer 2 typed API next. Also owns the `Review Follow-up Backlog — 2026-05-25` triage sink distilled from the read-only reviewer reports. |
+| `docs/testing/raw-abi-upstream-testing-spec.md` | Slice-local testing design for expanding the single `AbiTests.csproj` with curated SDL2 upstream pure, asset-backed, dummy-driver, and manual diagnostic coverage. |
+| `docs/testing/raw-abi-upstream-testing-plan.md` | Task plan for implementing the raw ABI upstream testing stages inside the existing ClangSharp spike test project. |
 | `docs/oracle-evidence-design.md` | Spike-local design for replacing regex oracle comparison with a Roslyn/file-based-app evidence matrix. |
 | `docs/oracle-evidence-implementation-plan.md` | Task-by-task implementation plan for the Roslyn/file-based-app oracle evidence slice. |
 | `output/reports/iteration-2-comparison.md` | Decision-quality evidence: function counts, dynapi coherence, multi-TFM build trajectory, multi-OS gap. |
@@ -53,6 +55,7 @@ spikes/binding-generators/
 ├── docs/
 │   ├── generator-spike-goals.md                     # charter + recorded decision
 │   ├── next-iteration-plan.md                       # active slice plan
+│   ├── testing/                                      # slice-local raw ABI testing spec + plan
 │   ├── oracle-evidence-design.md                    # Roslyn/file-based oracle evidence design
 │   ├── oracle-evidence-implementation-plan.md       # oracle evidence task plan
 │   └── reference-clones.md                          # local clone commands for upstream refs
