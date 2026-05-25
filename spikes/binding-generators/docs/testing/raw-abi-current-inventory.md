@@ -1,7 +1,7 @@
 # Raw ABI Current Test Inventory
 
 **Date:** 2026-05-25
-**Scope:** Current ClangSharp spike `AbiTests.csproj` state after infrastructure normalization, the P0 pure/RWops expansion, SDL2 Core hints/events global-state coverage expansion, and dummy audio/video/software-render coverage expansion.
+**Scope:** Current ClangSharp spike `AbiTests.csproj` state after infrastructure normalization, the P0 pure/RWops expansion, SDL2 Core hints/events global-state coverage expansion, dummy audio/video/software-render coverage expansion, and SDL2 Core WAV/audio-conversion/audio-stream coverage expansion.
 
 ## Baseline Verification
 
@@ -13,13 +13,13 @@ dotnet test --project spikes/binding-generators/clangsharp/tests/abi-tests/AbiTe
 
 Result:
 
-- `total: 692`
+- `total: 712`
 - `failed: 0`
-- `succeeded: 692`
+- `succeeded: 712`
 - `skipped: 0`
 - executable TFMs: `net10.0`, `net9.0`, `net8.0`, `net462`
-- unique tests discovered per executable TFM: `173`
-- explicit `net462` coverage is included in the multi-target run above: `173/173` passed
+- unique tests discovered per executable TFM: `178`
+- explicit `net462` coverage is included in the multi-target run above: `178/178` passed
 
 ## Current Files
 
@@ -33,7 +33,7 @@ Result:
 | `Upstream/Pure/PixelsAbiTests.cs` | 89 | Pixel format names/allocation, palette allocation, and gamma ramp upstream ports. | Add color mapping/conversion cases after deciding breadth vs generated macro/header guardrails. |
 | `Upstream/Assets/RwopsAbiTests.cs` | 11 | Memory/file/const-memory/endian/alloc RWops upstream ports with temp assets. | `SDL_RWFromFP` remains deferred; add any missing negative close/error cases only if generator exposes needed surface. |
 | `Upstream/Assets/SurfaceAbiTests.cs` | 9 | BMP save/reload, missing-load failure, surface conversion/header smoke, overflow/pitch checks, and blend-none header smoke. | Deferred: upstream fixture-comparison blit/conversion cases, upstream-disabled blend modes, and 32-bit-only overflow path until a real 32-bit/native lane exists. |
-| `Upstream/Assets/WavAbiTests.cs` | 1 | WAV load/free smoke. | Keep; expand with audio conversion/load cases where stable. |
+| `Upstream/Assets/WavAbiTests.cs` | 6 | WAV load/free upstream port, deterministic `SDL_BuildAudioCVT` upstream ports, narrow `SDL_ConvertAudio` smoke, and same-format `SDL_AudioStream` put/flush/get/available/clear/free smoke. | Deferred: real-device loop/playback paths, queued-device playback, upstream-disabled randomized `SDL_ConvertAudio` sweep, and signal-to-noise resample-loss assertions; keep audio-stream coverage as smoke unless upstream adds portable automation. |
 | `Upstream/GlobalState/HintsAbiTests.cs` | 3 | Mixed coverage: one custom hint round-trip smoke plus upstream environment/default/override/reset and hint callback reset/delete ports. | Deferred: full `_HintsEnum` sweep until generated string-like macro null-termination/header-coverage policy is explicit. |
 | `Upstream/GlobalState/EventsAbiTests.cs` | 3 | Event queue, NULL-userdata watch, and userdata watch upstream ports with delete verification. | Keep event queue/filter/watch coverage headless and keyed by global event state. |
 | `Upstream/DummyDrivers/AudioAbiTests.cs` | 5 | Dummy audio upstream ports for driver init/quit, open/close, global status, device status, and lock/unlock. | Deferred: callback pause/unpause timing and conversion/resample cases until stable callback/capability policy exists for all TFMs. |
