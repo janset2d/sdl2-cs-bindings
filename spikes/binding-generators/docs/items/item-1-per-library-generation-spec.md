@@ -12,12 +12,12 @@
 
 Make `generate_bindings.py` + the 6-step postprocess pipeline + `oracle.cs` per-family invocation deterministic and family-agnostic, so that Items 3–5 (GFX/TTF/Mixer) can plug in by adding data only (scope files, RSPs, csprojs) rather than by editing pipeline logic.
 
-The Item 1 deliverable is **infrastructure**, not new family output. Successful exit leaves Core + Image generation byte-identical (CRLF aside) to current HEAD, while:
+The Item 1 deliverable is **infrastructure**, not new family output. Successful exit leaves Core + Image generation byte-identical (CRLF aside) to current HEAD except for the audited `[Flags]` additions required by §5.4, while:
 
 - `FAMILY_CONFIG`, the `--family` CLI choice list, `PLATFORM_SENSITIVE_HEADERS`, the `stats` dict, and `write_report` all enumerate families dynamically.
 - `OpaqueHandleEmitRewriter` discovers satellite-owned handles (`TTF_Font`, `Mix_Music`) without a name-prefix gate and emits `Handles.g.cs` into the family's namespace.
 - `ThreadIdDualDispatchRewriter` is renamed `ClongDualDispatchRewriter`, expanded to handle parameter-position C `long` (TTF surface), and uses true Roslyn node-level mutation.
-- A new 7th postprocess step adds `[Flags]` to bitmask enums via power-of-two heuristic (Item 2 then verifies on `IMG_InitFlags`).
+- A new 7th postprocess step adds `[Flags]` to bitmask enums via name-suffix detection plus a family-keyed allow-list (Item 2 then verifies on `IMG_InitFlags`).
 - `oracle.cs FamilyConfigs` carries `Sdl2Ttf`, `Sdl2Mixer`, `Sdl2Gfx` entries; the family-parameterized `RawAbiChecks` engine ingests them without code changes.
 
 GFX/TTF/Mixer remain **dormant in `--family all`** until their expansion items (Items 3/4/5) activate them.
@@ -397,7 +397,7 @@ Item 1 lands these alongside the pipeline changes:
 | "OpaqueHandleEmitRewriter auto-detection without prefix matching is sufficient" | **Confirmed.** Structural test (empty struct ∩ pointer-use) discovers `TTF_Font` and `Mix_Music` correctly per `ppy-reference-analysis-2026-05-25.md` §4. |
 | "ClongDualDispatchRewriter — name-based matching is the right selection mechanism" | **Confirmed.** Name-based `AffectedMethodNames` is correct; the structural sensor (return + parameter native type names) protects against accidental matches. |
 | "Compat dual-DllImport pattern works identically for parameter positions as it does for return positions" | **Conditionally confirmed.** Mechanism works; the spec calls for true Roslyn node-level mutation (vs current text substitution) so the parameter-rewrite path inherits Roslyn formatting normalization rather than re-implementing it via string templates. |
-| "power-of-two detection is sufficient for SDL2's flag enums" | **Confirmed** per Image cross-check §7. Mixer's `MIX_InitFlags` validated separately by Item 5 regen. |
+| "power-of-two detection is sufficient for SDL2's flag enums" | **Rejected.** Constitution §"Enums" is the authority: detection is name-suffix plus family-keyed allow-list only. Power-of-two value heuristics are intentionally avoided because `SDL_bool` can false-positive and peer evidence favors the alimer-style suffix/allow-list model. |
 
 ---
 
@@ -406,7 +406,7 @@ Item 1 lands these alongside the pipeline changes:
 | Risk | Severity | Mitigation |
 |---|---|---|
 | Roslyn `SyntaxFactory` formatting differs from current text-substitution output → one-time formatting churn on Core regen | Low | Single regen-and-commit alongside the refactor; plan doc carries the diff inspection step. Acceptable churn because it's confined to one file pattern. |
-| Power-of-two `[Flags]` heuristic produces false positives in some future SDL2 enum | Low | Image cross-check §7 audit confirms zero false positives in current SDL2. If a future enum trips the heuristic, the rewriter accepts an excluded-name allow-list (deferred until first false positive is observed). |
+| `[Flags]` roster misses a future bitmask enum that lacks the `Flags` suffix | Low | The rewriter is intentionally value-pattern-blind per Constitution §"Enums". Add audited enum names to the family-keyed allow-list when header/docs evidence proves bitmask semantics. |
 | Satellite-owned handle in a future SDL2 release breaks structural auto-detect (e.g., struct gets fields added upstream) | Low | Drift report already exists for the Core roster; extend `ReportDrift` semantics to also warn when an owner-mode satellite directory produces zero auto-detected handles unexpectedly. Deferred to Items 4/5 as part of their exit gates. |
 | `selected`-driven `stats` and `write_report` enumeration silently breaks parity with current hardcoded loops | Low | Success criterion #1 (byte-identical output) catches any behavior delta. |
 | `compare_oracle.py` removal breaks a hidden caller | Low | `grep -r "compare_oracle"` confirms zero non-historical references before removal. |

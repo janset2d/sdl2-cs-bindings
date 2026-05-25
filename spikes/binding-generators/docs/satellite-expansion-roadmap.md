@@ -49,7 +49,7 @@ Before or alongside Item 1, these directories and tools get standardized:
 
 ### Success Criteria
 
-1. `generate_bindings.py --family all --scope full --codegen both --execute` produces identical Core/Image `.g.cs` output to current HEAD (diff with `--ignore-cr-at-eol` is empty).
+1. `generate_bindings.py --family all --scope full --codegen both --execute` produces identical Core/Image `.g.cs` output to current HEAD except audited `[Flags]` additions required by Constitution §"Enums" (diff with `--ignore-cr-at-eol` contains only those additions).
 2. `generate_bindings.py --family core` + `--family image` run sequentially produces identical output to `--family all`.
 3. Multi-TFM build: `dotnet build Janset.SDL2.Image.csproj -c Release` — 0 warnings, 0 errors across all 5 TFMs.
 4. `oracle.cs --family sdl2-core --family sdl2-image --write-report` — 0 findings across Priority C categories (no regression).
