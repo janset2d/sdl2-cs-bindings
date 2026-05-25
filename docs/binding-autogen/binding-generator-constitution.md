@@ -85,6 +85,70 @@ Rules:
 - Satellite profiles must be designed against real installed headers before generation is enabled. SDL2.Image / Mixer / Ttf mostly use SDL's `extern DECLSPEC` convention, while SDL2_gfx uses per-header `SDL2_*_SCOPE` export macros and a mixed naming surface; this is profile policy, not a reason to special-case generic CppAst processing.
 - `profile_id` is a manifest routing key into code-owned profile policy. It is not a behavior switch that lets JSON redefine ABI rules.
 
+## Generation Determinism Contract
+
+The generator pipeline (ClangSharp/CppAst engine + Roslyn postprocess + per-family orchestration) is a **deterministic function** from a pinned input set to committed `.g.cs` output. Determinism is not a quality-of-life property; it is policy. The following invariants are binding regardless of which toolchain ships.
+
+### Determinism Inputs (the pin set)
+
+Every output byte is determined by these inputs alone. Output reproducibility means: same pin set → byte-identical output (CRLF aside on Windows).
+
+1. **Vcpkg-installed native headers**, pinned via `build/manifest.json library_manifests[].vcpkg_version` per family (SDL2 Core 2.32.10, SDL2_image 2.8.8, SDL2_ttf 2.24.0, SDL2_mixer 2.8.1, SDL2_gfx 1.0.4 at the audit date above). Manifest is the single source of truth for which native headers exist.
+2. **Vcpkg triplet** (e.g. `x64-windows-hybrid`). CI matrix pins one triplet per RID.
+3. **Generation engine version** — ClangSharp tool version (`dotnet-tools.json`) when the spike selects ClangSharp + Roslyn postprocess; equivalent CppAst version anchor when the spike selects the CppAst single-pass alternative.
+4. **RSP files** (cross-cutting `rsp/base.rsp` + family `rsp/sdl2-<family>.rsp` + per-header `rsp/per-header/<header>.rsp`). All versionable text in git.
+5. **Scope header lists** (`scope/sdl2-<family>.headers.txt` + bootstrap variants).
+6. **Roster JSON files** — `policy/opaque-handle-roster.json` (Pattern B handles, family-keyed schema 2.0) and `policy/flags-enum-roster.json` (`[Flags]` allow-list, family-keyed schema 2.0). Both are auditable single sources of truth for postprocess data input.
+7. **Postprocess code** — the rewriter implementations under `postprocess/` (or equivalent under the selected toolchain).
+8. **Orchestrator code** — `generate_bindings.py` (`FAMILY_CONFIG`, `PLATFORM_SENSITIVE_HEADERS`, `selected_families`, pipeline order).
+
+If none of these change, regeneration produces byte-identical output. Wall-clock fields, machine identifiers, build timestamps, or environment-derived values are **forbidden** in any committed `.g.cs` or in the per-family `.generated-stamp` (deferred to Roadmap M7 production flip).
+
+### Family Isolation
+
+The pipeline guarantees three simultaneous properties:
+
+1. **Targeted-family-only writes.** `--family X --execute --clean-output` regenerates **only** `Janset.SDL2.<X>/Generated/`. Other families' directories are byte-untouched (`git status` reports zero changes outside the targeted family). `--clean-output` deletes only the selected families' Generated trees, never others.
+2. **Per-family equivalence.** Running each family individually produces the same `.g.cs` output as running `--family all` (modulo the `selected_families("all")` activation set; dormant families remain dormant on both paths).
+3. **Independent postprocess execution.** Each family's postprocess pipeline executes against that family's own Generated tree only. It never reads cross-family `.g.cs` files. The only cross-family data flow at postprocess execution time is the roster JSON pull described under §"Opaque Handles" Cross-family handle name resolution — a **data-only** pull from the single roster file, not a cross-directory file read.
+
+### Dependency Direction
+
+Two distinct dependencies, not to be conflated:
+
+- **Generation → postprocess (forward, runtime).** Generation writes `.g.cs`; postprocess reads `.g.cs`. Generation is independent of postprocess; postprocess depends on generation's output. Raw generation output is itself deterministic and idempotent — postprocess transforms it but does not feed back into generation.
+- **Build-time Core ← Image (ProjectReference).** Image's compiled `.dll` resolves Core-owned type names (`SDL_Renderer`, `SDL_RWops`, ...) against Core's `Handles.g.cs` via ProjectReference. This is a **C# compile-time** dependency; the generator pipeline never reads cross-family `.g.cs` files at generation or postprocess execution time. Core can be regenerated before, after, or independently of Image — the generation pipeline imposes no execution-time ordering. The only ordering constraint is on the **consumer build** of the produced packages, not on their generation.
+
+A satellite's regeneration consumes Core's `binding_generation.required_constants` / `required_functions` only at the manifest level (configuration shared via `build/manifest.json`); it does not consume Core's generated `.g.cs` artifacts.
+
+### Native Header Resolution Scope
+
+The generation engine's `--include-directory` (ClangSharp) or equivalent (CppAst) exposes the entire SDL2 native header tree to every per-family parse invocation. The `--file` flag scopes **emit** to one header at a time; `#include`'d type declarations from other headers are **resolved for correctness but never emitted** in the family's output. Concretely:
+
+- A satellite's `IMG_LoadTexture(SDL_Renderer*, ...)` parse resolves `SDL_Renderer` via Core's `SDL_render.h` (visible through `--include-directory`) but emits the signature only into the satellite's family-owned `.g.cs` file.
+- Across the entire generated output for all five families, every public C type is defined exactly **once** (in its owning family's `.g.cs`); satellite `.g.cs` files reference Core types by name and rely on ProjectReference + nested namespace resolution at C# compile time.
+- Duplicate emission of a Core type across families is a **generator bug**, not a coexistence pattern.
+
+### Pure-Inputs Discipline
+
+Generation is not allowed to consume environment-derived inputs beyond the pin set above. Specifically:
+
+- **No machine-local paths** in committed output (paths under `--include-directory` are only used for parse; they do not leak into emitted attribute arguments).
+- **No timestamps**, build dates, machine names, user names, or CI run identifiers in committed `.g.cs` content.
+- **No conditional behavior on host OS** at generation time except via the explicit platform-view pass (`PLATFORM_SENSITIVE_HEADERS` + ClangSharp `--define-macro`/`--undefine-macro` semantics). Synthetic platform header shims (`shims/platform-headers/`) are spike-only iteration aids for Windows-local generation; production generation runs against native platform headers via the binding-generator docker container or per-RID CI.
+- **No network access** at generation time. All inputs must be local files reproducible from the pin set.
+
+### Verification Contract
+
+Every Item-1+ slice that touches generation or postprocess MUST verify the determinism contract in its exit evidence:
+
+- **Idempotency:** regenerate twice with identical inputs; second `git diff --ignore-cr-at-eol` is empty.
+- **Family isolation:** `--family <one>` regen leaves other families' `Generated/` byte-untouched (`git status` per family directory).
+- **Per-family equivalence:** `--family all` byte-equivalent to the union of per-family runs (modulo dormant set).
+- **Cross-family handle pull preserved:** satellite output continues to rewrite Core-owned pointer types to by-value (e.g. `SDL_Renderer*` → `SDL_Renderer` in `Janset.SDL2.Image/Generated/`).
+
+Slices that change the determinism contract itself (e.g. add a new pin-set input, change family isolation semantics) must update **this section** in the same change set, with rationale and the new verification step. Drift between the contract and the implementation is treated as a hard bug.
+
 ## Manifest Configuration Vs Code-Owned Policy
 
 `build/manifest.json library_manifests[].binding_generation` is per-family configuration. It is not a hidden policy language.
@@ -351,16 +415,25 @@ The struct is lexically `public` (so Layer 2 public methods can use it in their 
 
 **Implementation mechanism (ClangSharp + Roslyn postprocess):** The `OpaqueHandleEmitRewriter` ([`spikes/binding-generators/clangsharp/postprocess/OpaqueHandleEmitRewriter.cs`](../../spikes/binding-generators/clangsharp/postprocess/OpaqueHandleEmitRewriter.cs), invoked via the `uniform-opaque` postprocess mode) realizes this policy across two input channels — auto-detect and a force-opaque allow-list — both feeding the same Pattern B template `BuildPatternBStruct(name)` and emitting the struct shape verbatim per the **How** clause above. The rewriter also rewrites single-pointer references to handle types throughout the raw ABI surface — method parameter positions, method return positions, and **struct field positions** — to by-value. Double-pointer `X**` and `out X` positions are preserved as-is. The ABI invariant holds because Pattern B structs carry exactly one `nint` field; their layout is bit-identical to a pointer at the corresponding position. Field-position rewrite improves API ergonomics (caller avoids explicit dereferencing) without changing native C struct layout: an `SDL_SysWMmsg* msg` C field reads as a `SDL_SysWMmsg msg` C# field with the same 8/4-byte slot.
 
-**Auto-detect criterion (syntactic).** A type is auto-detected as a Pattern B candidate iff (1) its generated declaration is an empty `public partial struct SDL_X { }` (no body members) **and** (2) the same name `SDL_X` appears as a pointer type (`SDL_X*`) in at least one raw ABI signature position — parameter type or return type — anywhere in the generated output for the same TFM view. Detection is purely syntactic over the post-ClangSharp output: it does not depend on `[NativeTypeName("X *")]` annotations, because ClangSharp omits `NativeTypeName` when the C tag/typedef name matches the emitted C# name (the common case for opaque handles such as `SDL_Window`). The intersection of the two sets — empty-struct declarations and pointer-use sites — is the canonical auto-detect roster.
+**Auto-detect criterion (syntactic).** A type is auto-detected as a Pattern B candidate iff (1) its generated declaration is an empty `public partial struct X { }` (no body members) **and** (2) the same name `X` appears as a pointer type (`X*`) in at least one raw ABI signature position — parameter type or return type — anywhere in the generated output for the same TFM view. Detection is purely syntactic over the post-ClangSharp output: it does not depend on `[NativeTypeName("X *")]` annotations, because ClangSharp omits `NativeTypeName` when the C tag/typedef name matches the emitted C# name (the common case for opaque handles such as `SDL_Window` or satellite-owned handles such as `TTF_Font` and `Mix_Music`). The intersection of the two sets — empty-struct declarations and pointer-use sites — is the canonical auto-detect roster. **The criterion is family-blind:** SDL2.Core handles (`SDL_*` prefix) and satellite-owned handles (`TTF_Font`, `Mix_Music`) satisfy the same structural test; the rewriter does not gate on a name prefix.
 
-**Canonical roster (machine-readable).** The version-keyed roster lives at [`spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json`](../../spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json). It is the single source of truth for both `auto_detect_well_known` and `force_opaque_exceptions` lists:
+**Canonical roster (machine-readable).** The family-keyed roster lives at [`spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json`](../../spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json). It is the single source of truth for every family's `auto_detect_well_known`, `force_opaque_exceptions`, and `excluded_candidates` lists. The schema treats each family as a peer entry; no family is privileged at the policy layer:
 
-- The roster is keyed on `sdl2_version` (currently `2.32.10`) and re-audited per upstream SDL2 release.
-- Audit method is **three-source triangulation**: SDL2 release headers (forward-decl evidence), wiki.libsdl.org pages (opacity phrasing where present), and ClangSharp Modern output (empty-struct emit). All three sources must agree before a name enters `auto_detect_well_known`; wiki evidence may be `not_found` when sources 1 and 3 agree (corroboration from create-function pages or header comments accepted where recorded).
-- Constitution prose (this section) explains policy and criteria; the JSON file carries the enumerated names. Both surfaces must move together for any roster change.
-- Drift between the rewriter's syntactic discovery and the roster surfaces as a build-time **warning**, not a failure: SDL2 upstream additions become visible without forcing immediate Constitution patches, and an upstream rename or removal is flagged for human triage rather than silently breaking emit.
+- The roster is family-keyed under a top-level `families` object with one entry per family (`core`, `image`, `ttf`, `mixer`, `gfx`). Each entry carries the family's `library_version` (`2.32.10` for Core, `2.8.8` for Image, `2.24.0` for TTF, `2.8.1` for Mixer, `1.0.4` for GFX), `last_audited` date, and three name lists (`auto_detect_well_known`, `force_opaque_exceptions`, `excluded_candidates`).
+- Audit method per family is **three-source triangulation**: family-pinned release headers (forward-decl evidence), wiki / project documentation pages (opacity phrasing where present), and ClangSharp Modern output (empty-struct emit). All three sources must agree before a name enters `auto_detect_well_known`; wiki evidence may be `not_found` when sources 1 and 3 agree (corroboration from create-function pages or header comments accepted where recorded).
+- Constitution prose (this section) explains policy and criteria; the JSON file carries the enumerated names per family. Both surfaces must move together for any roster change.
+- Drift between the rewriter's syntactic discovery and each family's roster section surfaces as a build-time **warning**, not a failure: each family's owner directory (`Janset.SDL2.{Core,Ttf,Mixer}/Generated/<Codegen>/`) is checked against its own roster section. Consumer directories (`Janset.SDL2.{Image,Gfx}/Generated/<Codegen>/`) skip drift reporting because they declare no local handle types. Satellite-owned handles such as `TTF_Font` and `Mix_Music` enter their family's `auto_detect_well_known` list and participate in the same drift-watchdog discipline as Core's 14 entries. **No asymmetry**: every family follows the same disciplines (audit triangulation, drift warning, roster surface).
 
-**Force-opaque allow-list delegation.** The three force-opaque names enumerated above (`SDL_RWops`, `SDL_SysWMinfo`, `SDL_SysWMmsg`) and the rationale documented in §"Structs And Unions" (header body declared but unsafe to expose — function-pointer subclass state for `SDL_RWops`; platform-conditioned `#if defined(SDL_VIDEO_DRIVER_*)` union for the two `SDL_SysWM*`) remain authoritative as policy prose. The machine-readable enumeration of those same names lives in the roster JSON's `force_opaque_exceptions` field. Changes to either prose or JSON must update both sides in the same commit.
+**Cross-family force-opaque scope.** The Stage 1 force-opaque names enumerated in §"Structs And Unions" (`SDL_RWops`, `SDL_SysWMinfo`, `SDL_SysWMmsg`) live exclusively in the **Core** family's `force_opaque_exceptions` list. Satellite consumers reference them by-value via ProjectReference + nested-namespace resolution (`SDL2.Image` → `SDL2` resolves Core handle names unqualified); satellite `force_opaque_exceptions` lists start empty and are only populated if a satellite ships its own platform-dependent struct whose body is unsafe to expose (none do as of the audit dates above).
+
+**Cross-family handle name resolution (rewriter input set).** A satellite's `uniform-opaque` postprocess pass must know which names are handle types — not just satellite-owned ones (`TTF_Font`, `Mix_Music`) but also Core-owned ones (`SDL_Renderer`, `SDL_Texture`, `SDL_RWops`, ...) that the satellite consumes by-value at its `[LibraryImport]` surface. The roster loader implements this with a single contract:
+
+- **Core's** loader returns Core's own `auto_detect_well_known` ∪ Core's `force_opaque_exceptions`.
+- **Each satellite's** loader returns the satellite's own `auto_detect_well_known` ∪ the satellite's `force_opaque_exceptions` ∪ **Core's `auto_detect_well_known`** ∪ **Core's `force_opaque_exceptions`**.
+
+This preserves Pattern B's uniform by-value semantic at every raw ABI position regardless of which family owns the handle. The pull is **data-only**: satellite postprocess execution still does not read cross-family `.g.cs` files. **Drift watchdog stays per-family** — `ReportDrift` only compares syntactic discovery against the family's own `auto_detect_well_known` section, not the cross-family pull.
+
+**Force-opaque allow-list delegation.** The three Stage 1 force-opaque names (`SDL_RWops`, `SDL_SysWMinfo`, `SDL_SysWMmsg`) and the rationale documented in §"Structs And Unions" (header body declared but unsafe to expose — function-pointer subclass state for `SDL_RWops`; platform-conditioned `#if defined(SDL_VIDEO_DRIVER_*)` union for the two `SDL_SysWM*`) remain authoritative as policy prose. The machine-readable enumeration of those same names lives at `families.core.force_opaque_exceptions` in the roster JSON. Changes to either prose or JSON must update both sides in the same commit.
 
 **Cross-assembly Pattern B contract (`[assembly: DisableRuntimeMarshalling]`).** The modern `[LibraryImport]` source generator (net7+) emits SYSLIB1051 when a satellite assembly's P/Invoke surface uses a Pattern B handle struct by value that is defined in a *referenced* assembly. The struct is blittable by construction (`readonly partial struct X { nint Value; }` — single pointer-sized field, layout bit-identical to a raw pointer per Decision 1 above), but the source generator inspects cross-assembly types through metadata rather than source declarations and falls back to a conservative "user-defined struct requires runtime marshalling opt-in" path. The documented Microsoft resolution per the [P/Invoke source generator design](https://learn.microsoft.com/en-us/dotnet/standard/native-interop/pinvoke-source-generation) and the peer convention in [Alimer.Bindings.SDL](https://github.com/amerkoleci/Alimer.Bindings) is to apply `[assembly: DisableRuntimeMarshalling]` to every assembly that exposes `[LibraryImport]` declarations consuming Pattern B handles. The attribute (1) suppresses SYSLIB1051 for blittable cross-assembly Pattern B, (2) guarantees the whole assembly uses only blittable types at every P/Invoke position, and (3) is conditional on `NET7_0_OR_GREATER` because the attribute itself doesn't exist on legacy TFMs (and the legacy `[DllImport]` backend used by the Compat tree doesn't trip the source-gen diagnostic).
 
@@ -443,11 +516,20 @@ Rules:
 - Use explicit C# underlying types.
 - C enums default to `int` unless header evidence or existing strategy proves a different storage concept.
 - SDL2 `SDL_bool` is int-backed.
-- Add `[Flags]` when header comments, composed aliases, bit values, or API docs prove bitmask semantics.
 - Keep alias/composed enum values when they are part of public SDL source compatibility.
-- Do not invent `[Flags]` solely because values are powers of two if the SDL concept is not a bitmask.
 
-Known Stage 1 flags include `SDL_Keymod`, `SDL_GLcontextFlag`, and `SDL_RendererFlip`.
+`[Flags]` auto-decoration policy:
+
+- A postprocess step adds `[Flags]` to an enum iff **(a)** the enum's name ends with the `Flags` suffix (case-sensitive — catches naming conventions across Core and satellites: `SDL_RendererFlags`, `IMG_InitFlags`, `MIX_InitFlags`, `TTF_FontStyleFlags`, etc.), **or (b)** the enum's name appears in the family-keyed allow-list at [`spikes/binding-generators/clangsharp/policy/flags-enum-roster.json`](../../spikes/binding-generators/clangsharp/policy/flags-enum-roster.json). The roster follows the same family-keyed schema discipline as the opaque-handle roster (per-family `library_version`, `last_audited`, and per-family `allow_list`), audited per SDL2/satellite release.
+- **Heuristics over bit values alone are rejected.** Enums whose values happen to be powers of two are not automatically decorated — `SDL_bool` (`SDL_FALSE = 0`, `SDL_TRUE = 1`) would otherwise false-positive and break the int-backed bool contract above.
+- Composed alias values (`KMOD_CTRL = KMOD_LCTRL | KMOD_RCTRL`) are preserved as enum members; the bitmask semantics flow from the allow-list entry, not from value analysis. The auto-decoration policy can decorate `SDL_Keymod` because the family's allow-list lists it, not because the postprocess parses the OR expression.
+
+Known Stage 1 flag enums:
+
+- **SDL2.Core** (decorated by allow-list match): `SDL_Keymod`, `SDL_BlendMode`, `SDL_GLcontextFlag`, `SDL_RendererFlip`, `SDL_TextureModulate`.
+- **SDL2.Image** (decorated by `Flags` suffix): `IMG_InitFlags`.
+- **SDL2.Mixer** (decorated by `Flags` suffix): `MIX_InitFlags`.
+- **SDL2.Ttf**, **SDL2.Gfx**: no Stage 1 flag enums known at audit date.
 
 ## Constants And Macros
 
@@ -532,7 +614,7 @@ Resolved or intentionally quarantined categories:
 4. `wchar_t*` and CppAst-erased HID wide-string pointers map to opaque `nint` storage rather than false `int*` / `char*` signatures.
 5. `SDL_WINAPI_FAMILY_PHONE` is classified as a platform-control macro and is not emitted as public API.
 6. SDL2 `SDL_bool` is int-backed.
-7. Known bitmask enums such as `SDL_Keymod`, `SDL_GLcontextFlag`, and `SDL_RendererFlip` emit with `[Flags]`.
+7. Known bitmask enums — `SDL_Keymod`, `SDL_BlendMode`, `SDL_GLcontextFlag`, `SDL_RendererFlip`, `SDL_TextureModulate` — are designated for `[Flags]` decoration per §"Enums" auto-decoration policy. Emission is delivered by Item 1's `flags-detect` postprocess step (see [`spikes/binding-generators/docs/items/item-1-per-library-generation-spec.md`](../../spikes/binding-generators/docs/items/item-1-per-library-generation-spec.md) §5.4 and the Roadmap §Item 1).
 
 Variadic fmt-only imports are not a P0 ABI blocker when clearly documented and reported as mapped variadics, but they remain a policy/reporting cleanup item before production flip.
 
