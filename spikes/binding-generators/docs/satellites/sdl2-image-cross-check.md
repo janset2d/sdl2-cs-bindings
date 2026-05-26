@@ -80,7 +80,7 @@ All 4 version constants generated with correct values. Backwards-compat `IMAGE_*
 ### 4F. RSP Correctness: **CORRECT**
 - `--libraryPath SDL2_image` ✓
 - `--methodClassName SDL_imageNative` ✓
-- `--exclude IMG_SetError IMG_GetError` ✓
+- `--exclude IMG_SetError IMG_GetError` ✓ (see also [sdl2-satellite-error-function-consolidation.md](sdl2-satellite-error-function-consolidation.md) for cross-family analysis)
 - No missing excludes ✓
 - Three-tier RSP wiring correct ✓
 

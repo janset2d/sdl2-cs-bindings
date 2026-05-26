@@ -177,9 +177,9 @@ Only one enum. Not `[Flags]`.
 **Mitigation:** `--exclude` all 3 in family RSP.
 
 ### Risk 3: Cross-family Macro Aliases (LOW)
-
 `TTF_SetError`/`TTF_GetError` are macros expanding to `SDL_SetError`/`SDL_GetError`.
-**Mitigation:** `--exclude` (same as Image's `IMG_SetError`/`IMG_GetError`).
+
+**Mitigation:** `--exclude` (same as Image's `IMG_SetError`/`IMG_GetError`). See [sdl2-satellite-error-function-consolidation.md](sdl2-satellite-error-function-consolidation.md) for full cross-family analysis, peer comparison, and companion-helper policy path.
 
 ### Risk 4: Non-Deprecated No-SDLCALL Functions (MEDIUM)
 

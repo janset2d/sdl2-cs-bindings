@@ -140,7 +140,7 @@ Only include guards, C++ extern wrappers, and version-gated defines. No platform
 ## 4. Constants and Macros
 
 ### Error Macros (exclude from raw ABI)
-`Mix_SetError`, `Mix_GetError`, `Mix_ClearError`, `Mix_OutOfMemory` — `#define` shortcuts to SDL core functions. Cannot cross `methodClassName` boundary. Exclude.
+`Mix_SetError`, `Mix_GetError`, `Mix_ClearError`, `Mix_OutOfMemory` — `#define` shortcuts to SDL core functions. Cannot cross `methodClassName` boundary. Exclude. See [sdl2-satellite-error-function-consolidation.md](sdl2-satellite-error-function-consolidation.md) for full cross-family analysis, peer comparison, and companion-helper policy path.
 
 ### Legacy Compatibility Aliases (exclude)
 `MIX_MAJOR_VERSION`, `MIX_MINOR_VERSION`, `MIX_PATCHLEVEL`, `MIX_VERSION(X)` — backward-compat aliases. RHS is token references, not literals. Exclude.

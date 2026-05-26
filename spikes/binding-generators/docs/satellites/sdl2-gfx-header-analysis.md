@@ -4,6 +4,8 @@
 **Target:** SDL2_gfx (installed headers from `vcpkg_installed/x64-windows-hybrid/include/SDL2/`, 4 functional headers + 1 data-only header)
 **Status:** Research artifact. No code written.
 
+> **Error function note:** SDL2_gfx has no error macros — uses return-code-based error reporting. See [sdl2-satellite-error-function-consolidation.md](sdl2-satellite-error-function-consolidation.md) for cross-family error function analysis.
+
 ---
 
 ## 1. Export Macro Analysis — The GFX-Specific Risk
