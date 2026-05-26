@@ -10,6 +10,30 @@ This folder hosts the SDL2 binding-generator prototypes that feed Phase 4 (bindi
 - **Next forward scope:** **Iteration 2 config surface unification**, then Items 2–5 satellite Layer 1 completion (Image verification, GFX, TTF, Mixer). Layer 2 typed public API defers until all five families have stable Layer 1 raw ABI, providing a holistic view before designing the public projection. ppy reference analysis recorded in [`docs/ppy-reference-analysis-2026-05-25.md`](docs/ppy-reference-analysis-2026-05-25.md).
 - **Branch:** `spike/binding-autogen-sdl2-gfx`. Push gate pending Deniz approval per AGENTS.md §Approval Gate.
 
+## Endgame Vision (read before making design decisions)
+
+The spike is a **temporary proving ground**, not the final home. Once the ClangSharp + Roslyn postprocess pattern is proven across all 5 satellite families with solid Layer 1+2+3 + tests, the spike retires. Its production-worthy pieces are candidates for migration into the Cake build host pending separate M7 approval:
+
+```
+SPIKE (Python + C# console app)           →   PRODUCTION (unified Cake C# target)
+────────────────────────────────────          ──────────────────────────────────
+generate_bindings.py                         Unified Cake GenerateBindings target
+  (Python orchestrator)              →         • ClangSharp tool wrapper (C#)
+                                               • Postprocess rewriters inline
+postprocess/Program.cs (CLI shell)   →         (same C# rewriter classes)
+config/family-config.json            →       build/manifest.json
+                                               (config absorbed, schema expanded)
+rsp/*.rsp                            →       rsp/*.rsp (same files, same paths)
+```
+
+**Implications for spike work today:**
+- Python code is transitional — don't over-invest in its architecture. It orchestrates ClangSharp; that's its only job.
+- C# rewriter classes (postprocess) are durable — they are the strongest candidates for promotion into a Cake target. Invest in their design.
+- Config decisions should anticipate manifest absorption as a candidate direction. `family-config.json` is data for a future M7 manifest-design review.
+- Spike config that mirrors manifest shape is **intentional**, not redundant. It provides evidence for the schema before touching the production manifest.
+- The old Cake `GenerateBindings` target (CppAst-based) is already sunset; its replacement is a deferred M7 decision.
+
+
 ## Read first
 
 | Doc | Why |

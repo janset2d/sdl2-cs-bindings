@@ -98,7 +98,7 @@ Every output byte is determined by these inputs alone. Output reproducibility me
 3. **Generation engine version** — ClangSharp tool version (`dotnet-tools.json`) when the spike selects ClangSharp + Roslyn postprocess; equivalent CppAst version anchor when the spike selects the CppAst single-pass alternative.
 4. **RSP files** (cross-cutting `rsp/base.rsp` + family `rsp/sdl2-<family>.rsp` + per-header `rsp/per-header/<header>.rsp`). All versionable text in git.
 5. **Production per-family header lists** — one complete header set per active family, currently represented by `FAMILY_CONFIG[family]["headers"]` in the ClangSharp spike. Bootstrap/header-subset lists are not production inputs.
-6. **Roster JSON files** — `policy/opaque-handle-roster.json` (Pattern B handles, family-keyed schema 2.0) and `policy/flags-enum-roster.json` (`[Flags]` allow-list, family-keyed schema 2.0). Both are auditable single sources of truth for postprocess data input.
+6. **Config file** — `config/family-config.json` (per-family identity, opaque handles, flags enums, C long method lists, platform views, header inventories, required surface). All auditable single sources of truth for generator and postprocess data input.
 7. **Postprocess code** — the rewriter implementations under `postprocess/` (or equivalent under the selected toolchain).
 8. **Orchestrator code** — `generate_bindings.py` (`FAMILY_CONFIG`, `PLATFORM_SENSITIVE_HEADERS`, `selected_families`, pipeline order).
 
@@ -199,6 +199,23 @@ Exception rule:
 - Move behavior into the manifest only when it genuinely varies by family or needs an explicit per-family override.
 - If every family must obey the same rule, keep it in code and tests.
 - A manifest fact may route to a code-owned profile or named exception. It must not encode scalar width, bool wire shape, pointer classification, callback handling, variadic behavior, macro taxonomy, platform merge, or struct/union layout.
+
+### Configurable Scope Vs Policy Mechanism
+
+The binding generator has two kinds of configuration, separated by the question each answers:
+
+- **Config owns the application scope** — answers **"which"** and **"what"**. Which families exist, which headers belong to them, which methods are affected by C `long` dispatch, which enum names get `[Flags]`, which families own opaque handles. These are per-family facts that change when a family is added, an SDL version introduces new types, or an audit expands coverage. They belong in auditable config files, not buried in code. Config is data; it must not encode *how* the policy operates.
+
+- **Code owns the policy mechanism** — answers **"how"**. How a C `long` return gets emitted as `CULong` + `LibraryImport` on Modern versus `RuntimeInformation` dispatch on Compat. How the suffix rule and allow-list combine to decorate `[Flags]`. How Pattern B handle structs are templated from `nint` fields. How `SDL_GUID` maps to `System.Guid`. These are invariant across families — adding a new family does not change the mechanism. They belong in code and tests; they must not be driven by JSON boolean flags that silently alter ABI behavior.
+
+Rules:
+
+- Per-family data that answers "which symbols / which families" goes in config (e.g. `clong_methods`, `flags_enums.allow_list`, `opaque_handles.force_opaque_exceptions`).
+- Cross-family constants that are mechanically derived from SDL2 source headers (platform view definitions, platform macro enumeration) are config data, not code.
+- Code that transforms generated `.g.cs` output (rewriter implementations, pipeline orchestration) is policy mechanism and stays in code.
+- Config is reviewable data read by both the generator orchestrator and the postprocess toolchain. Both consumers read the same file for their relevant sections — no per-consumer parallel copies of the same fact.
+- Before moving a fact into config, ask: "does this vary by family, or could it vary by family?" If yes, it belongs in config. If the answer is "no, this is the same for every family forever" and it concerns *how* a transform operates, it stays in code.
+- When in doubt, prefer config for "which" facts that would need updating if a new satellite library were added to the generator scope.
 
 ## Family Identity
 
@@ -419,7 +436,7 @@ The struct is lexically `public` (so Layer 2 public methods can use it in their 
 
 **Auto-detect criterion (syntactic).** A type is auto-detected as a Pattern B candidate iff (1) its generated declaration is an empty `public partial struct X { }` (no body members) **and** (2) the same name `X` appears as a pointer type (`X*`) in at least one raw ABI signature position — parameter type or return type — anywhere in the generated output for the same TFM view. Detection is purely syntactic over the post-ClangSharp output: it does not depend on `[NativeTypeName("X *")]` annotations, because ClangSharp omits `NativeTypeName` when the C tag/typedef name matches the emitted C# name (the common case for opaque handles such as `SDL_Window` or satellite-owned handles such as `TTF_Font` and `Mix_Music`). The intersection of the two sets — empty-struct declarations and pointer-use sites — is the canonical auto-detect roster. **The criterion is family-blind:** SDL2.Core handles (`SDL_*` prefix) and satellite-owned handles (`TTF_Font`, `Mix_Music`) satisfy the same structural test; the rewriter does not gate on a name prefix.
 
-**Canonical roster (machine-readable).** The family-keyed roster lives at [`spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json`](../../spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json). It is the single source of truth for every family's `auto_detect_well_known`, `force_opaque_exceptions`, and `excluded_candidates` lists. The schema treats each family as a peer entry; no family is privileged at the policy layer:
+**Canonical roster (machine-readable).** The family-keyed roster lives within `family-config.json` at `config/family-config.json`. It is the single source of truth for every family's `auto_detect_well_known`, `force_opaque_exceptions`, and `excluded_candidates` lists. The schema treats each family as a peer entry; no family is privileged at the policy layer:
 
 - The roster is family-keyed under a top-level `families` object with one entry per family (`core`, `image`, `ttf`, `mixer`, `gfx`). Each entry carries the family's `library_version` (`2.32.10` for Core, `2.8.8` for Image, `2.24.0` for TTF, `2.8.1` for Mixer, `1.0.4` for GFX), `last_audited` date, and three name lists (`auto_detect_well_known`, `force_opaque_exceptions`, `excluded_candidates`).
 - Audit method per family is **three-source triangulation**: family-pinned release headers (forward-decl evidence), wiki / project documentation pages (opacity phrasing where present), and ClangSharp Modern output (empty-struct emit). All three sources must agree before a name enters `auto_detect_well_known`; wiki evidence may be `not_found` when sources 1 and 3 agree (corroboration from create-function pages or header comments accepted where recorded).
@@ -522,7 +539,7 @@ Rules:
 
 `[Flags]` auto-decoration policy:
 
-- A postprocess step adds `[Flags]` to an enum iff **(a)** the enum's name ends with the `Flags` suffix (case-sensitive — catches naming conventions across Core and satellites: `SDL_RendererFlags`, `IMG_InitFlags`, `MIX_InitFlags`, `TTF_FontStyleFlags`, etc.), **or (b)** the enum's name appears in the family-keyed allow-list at [`spikes/binding-generators/clangsharp/policy/flags-enum-roster.json`](../../spikes/binding-generators/clangsharp/policy/flags-enum-roster.json). The roster follows the same family-keyed schema discipline as the opaque-handle roster (per-family `library_version`, `last_audited`, and per-family `allow_list`), audited per SDL2/satellite release.
+- A postprocess step adds `[Flags]` to an enum iff **(a)** the enum's name ends with the `Flags` suffix (case-sensitive — catches naming conventions across Core and satellites: `SDL_RendererFlags`, `IMG_InitFlags`, `MIX_InitFlags`, `TTF_FontStyleFlags`, etc.), **or (b)** the enum's name appears in the family-keyed allow-list within `family-config.json`. The allow-list follows the same family-keyed schema discipline as the opaque-handle roster, audited per SDL2/satellite release.
 - **Heuristics over bit values alone are rejected.** Enums whose values happen to be powers of two are not automatically decorated — `SDL_bool` (`SDL_FALSE = 0`, `SDL_TRUE = 1`) would otherwise false-positive and break the int-backed bool contract above.
 - Composed alias values (`KMOD_CTRL = KMOD_LCTRL | KMOD_RCTRL`) are preserved as enum members; the bitmask semantics flow from the allow-list entry, not from value analysis. The auto-decoration policy can decorate `SDL_Keymod` because the family's allow-list lists it, not because the postprocess parses the OR expression.
 
