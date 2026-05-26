@@ -1,4 +1,4 @@
-﻿namespace Janset.SDL2.AbiTests.Infrastructure;
+namespace Janset.SDL2.AbiTests.Infrastructure;
 
 internal static class SdlHelpers
 {

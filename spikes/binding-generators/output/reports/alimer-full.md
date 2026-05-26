@@ -1,4 +1,4 @@
-﻿# Alimer-Style CppAst Full Report
+# Alimer-Style CppAst Full Report
 
 **Triplet:** x64-windows-hybrid
 **Mode:** emit

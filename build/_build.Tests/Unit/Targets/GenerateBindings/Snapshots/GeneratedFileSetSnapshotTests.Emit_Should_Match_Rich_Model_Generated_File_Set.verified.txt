@@ -1,4 +1,4 @@
-﻿[
+[
   {
     RelativePath: Constants.g.cs,
     Content:

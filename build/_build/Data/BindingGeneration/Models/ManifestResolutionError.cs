@@ -1,4 +1,4 @@
-﻿namespace Build.Data.BindingGeneration.Models;
+namespace Build.Data.BindingGeneration.Models;
 
 /// <summary>
 /// Failure modes when resolving the dynapi manifest. Each carries an actionable

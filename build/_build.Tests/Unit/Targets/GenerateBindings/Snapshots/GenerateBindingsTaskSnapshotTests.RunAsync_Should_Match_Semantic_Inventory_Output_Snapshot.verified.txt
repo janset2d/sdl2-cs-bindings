@@ -1,4 +1,4 @@
-﻿{
+{
   Files: [
     Constants.g.cs,
     Platform/Android/Commands.g.cs,
