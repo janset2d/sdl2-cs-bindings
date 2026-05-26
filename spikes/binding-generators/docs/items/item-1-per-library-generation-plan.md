@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make `generate_bindings.py` + the 7-step postprocess pipeline + `oracle.cs` per-family invocation deterministic and family-agnostic, so Items 3–5 can plug in by adding data only (scope files, RSPs, csprojs) rather than by editing pipeline logic.
+**Goal:** Make `generate_bindings.py` + the 7-step postprocess pipeline + `oracle.cs` per-family invocation deterministic and family-agnostic, so Items 3–5 can plug in by adding data only (production header lists, RSPs, csprojs) rather than by editing pipeline logic.
 
 **Architecture:** Seven commit-sized slices: cross-cutting cleanup → orchestrator family-agnostic → oracle multi-family → opaque rewriter family-blind + roster migration → ClongDualDispatchRewriter Roslyn refactor → FlagsAttributeRewriter alimer-style + new flags-detect step → final exit verification. Each slice is independently testable; no slice ships output regression on Core + Image (modulo audited `[Flags]` additions per spec §6 success criterion #1 carve-out).
 
@@ -61,14 +61,14 @@ Every code-touching slice (S1-2 through S1-6) ends with these mandatory verifica
 
 **Constitution authority:** §"Generation Determinism Contract" §Verification Contract.
 
-**Ordering rationale.** D.1 (idempotency) requires two consecutive regen runs compared TO EACH OTHER (not to HEAD — code-touching slices have expected drift from HEAD by design). D.2/D.3 (family isolation) run after D.1 with `--clean-output` to reset state. D.4 restores the `--family all` baseline (since D.2+D.3 leave Core/Image in non-`all` state) and reverifies per-family equivalence. D.5 runs AFTER D.4 has the `--family all` baseline in place. **Execute steps in numerical order.**
+**Ordering rationale.** D.1 (idempotency) requires two consecutive regen runs compared TO EACH OTHER (not to HEAD — code-touching slices have expected drift from HEAD by design). Execute mode always cleans the selected family/families' `Generated/` roots before generating. D.4 restores the `--family all` baseline (since D.2+D.3 leave Core/Image in non-`all` state) and reverifies per-family equivalence. D.5 runs AFTER D.4 has the `--family all` baseline in place. **Execute steps in numerical order.**
 
 - [ ] **Step D.1: Idempotency — true two-run diff**
   Run regeneration TWICE, snapshot between runs, diff the two outputs against each other:
 
   ```pwsh
   # First regen
-  python spikes/binding-generators/clangsharp/generate_bindings.py --family all --scope full --codegen both --execute --clean-output --use-platform-header-shims --vcpkg-triplet x64-windows-hybrid
+  python spikes/binding-generators/clangsharp/generate_bindings.py --family all --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
 
   # Snapshot
   $snap = Join-Path $env:TEMP "item1-idempotency-$(Get-Date -Format yyyyMMddHHmmss)"
@@ -76,7 +76,7 @@ Every code-touching slice (S1-2 through S1-6) ends with these mandatory verifica
   Copy-Item -Recurse "spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Generated/" "$snap/Image/"
 
   # Second regen
-  python spikes/binding-generators/clangsharp/generate_bindings.py --family all --scope full --codegen both --execute --clean-output --use-platform-header-shims --vcpkg-triplet x64-windows-hybrid
+  python spikes/binding-generators/clangsharp/generate_bindings.py --family all --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
 
   # Diff snapshot vs current regen (NOT against HEAD)
   git diff --ignore-cr-at-eol --no-index "$snap/Core/"  "spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/"  | Measure-Object -Line
@@ -88,20 +88,20 @@ Every code-touching slice (S1-2 through S1-6) ends with these mandatory verifica
   Expected: both `Measure-Object -Line` outputs are 0. Two consecutive regens with identical inputs MUST produce byte-identical output. Non-zero → generator has nondeterministic input (wall-clock timestamps, machine identifiers, etc.) — Constitution §"Generation Determinism Contract" §Pure-Inputs Discipline violation. Investigate before commit.
 
 - [ ] **Step D.2: Family isolation — Core-only run**
-  Verify `--family core --clean-output` does NOT modify Image's Generated/:
+  Verify `--family core --execute` does NOT modify Image's Generated/:
 
   ```pwsh
-  python spikes/binding-generators/clangsharp/generate_bindings.py --family core --clean-output --execute --use-platform-header-shims --vcpkg-triplet x64-windows-hybrid
+  python spikes/binding-generators/clangsharp/generate_bindings.py --family core --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
   git status --short spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Generated/
   ```
 
   Expected: 0 lines output (Image untouched). If any output, isolation is broken — investigate.
 
 - [ ] **Step D.3: Family isolation — Image-only run**
-  Verify `--family image --clean-output` does NOT modify Core's Generated/:
+  Verify `--family image --execute` does NOT modify Core's Generated/:
 
   ```pwsh
-  python spikes/binding-generators/clangsharp/generate_bindings.py --family image --clean-output --execute --use-platform-header-shims --vcpkg-triplet x64-windows-hybrid
+  python spikes/binding-generators/clangsharp/generate_bindings.py --family image --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
   git status --short spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/
   ```
 
@@ -112,7 +112,7 @@ Every code-touching slice (S1-2 through S1-6) ends with these mandatory verifica
 
   ```pwsh
   # Restore --family all baseline
-  python spikes/binding-generators/clangsharp/generate_bindings.py --family all --scope full --codegen both --execute --clean-output --use-platform-header-shims --vcpkg-triplet x64-windows-hybrid
+  python spikes/binding-generators/clangsharp/generate_bindings.py --family all --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
 
   # Snapshot baseline
   $allSnap = Join-Path $env:TEMP "item1-family-all-$(Get-Date -Format yyyyMMddHHmmss)"
@@ -120,15 +120,15 @@ Every code-touching slice (S1-2 through S1-6) ends with these mandatory verifica
   Copy-Item -Recurse "spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Generated/" "$allSnap/Image/"
 
   # Per-family sequential
-  python spikes/binding-generators/clangsharp/generate_bindings.py --family core  --scope full --codegen both --execute --clean-output --use-platform-header-shims --vcpkg-triplet x64-windows-hybrid
-  python spikes/binding-generators/clangsharp/generate_bindings.py --family image --scope full --codegen both --execute --clean-output --use-platform-header-shims --vcpkg-triplet x64-windows-hybrid
+  python spikes/binding-generators/clangsharp/generate_bindings.py --family core --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
+  python spikes/binding-generators/clangsharp/generate_bindings.py --family image --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
 
   # Diff baseline vs per-family
   git diff --ignore-cr-at-eol --no-index "$allSnap/Core/"  "spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/"  | Measure-Object -Line
   git diff --ignore-cr-at-eol --no-index "$allSnap/Image/" "spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Generated/" | Measure-Object -Line
 
   # Restore --family all baseline for D.5
-  python spikes/binding-generators/clangsharp/generate_bindings.py --family all --scope full --codegen both --execute --clean-output --use-platform-header-shims --vcpkg-triplet x64-windows-hybrid
+  python spikes/binding-generators/clangsharp/generate_bindings.py --family all --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
 
   Remove-Item -Recurse -Force $allSnap
   ```
@@ -618,7 +618,7 @@ See "Per-slice common requirements" §Common: Slopwatch.
               failures.append(f"FAMILY_CONFIG missing entry for new family '{family}'")
               continue
           entry = FAMILY_CONFIG[family]
-          for key in ("namespace", "raw_class", "rsp", "bootstrap_scope", "full_scope", "library_dir"):
+          for key in ("namespace", "raw_class", "rsp", "headers", "library_dir"):
               if key not in entry:
                   failures.append(f"FAMILY_CONFIG[{family!r}] missing key {key!r}")
           if family not in PLATFORM_SENSITIVE_HEADERS:
@@ -636,11 +636,11 @@ See "Per-slice common requirements" §Common: Slopwatch.
 
       # New families must be valid --family CLI choices (orchestrator argparse accepts them)
       argparser_choices = ("core", "image", "ttf", "mixer", "gfx", "all")
-      # Verified by direct probe: scope-file resolution should not crash for ttf
+      # Verified by direct probe: production header-list resolution should not crash for ttf
       try:
-          scope_file_name("full", "ttf")
+          production_header_list_file_name("ttf")
       except KeyError as exc:
-          failures.append(f"scope_file_name('full', 'ttf') raised KeyError: {exc}")
+          failures.append(f"production_header_list_file_name('ttf') raised KeyError: {exc}")
 
       # Owner-mode wiring: ttf/mixer should be owner; image/gfx consumer
       def _owner_mode(family: str) -> str:
@@ -683,13 +683,12 @@ See "Per-slice common requirements" §Common: Slopwatch.
           "namespace": "SDL2.Ttf",
           "raw_class": "SDL_ttfNative",
           "rsp": "sdl2-ttf.rsp",
-          "bootstrap_scope": "bootstrap-sdl2-ttf.headers.txt",
-          "full_scope": "sdl2-ttf.headers.txt",
+          "headers": "sdl2-ttf.headers.txt",
           "library_dir": "Janset.SDL2.Ttf",
       },
   ```
 
-  Note: the referenced `sdl2-ttf.rsp` and scope files do not yet exist — Item 4 creates them. Item 1 only adds the FAMILY_CONFIG metadata.
+  Note: the referenced `sdl2-ttf.rsp` and header list do not yet exist — Item 4 creates them. Item 1 only adds the FAMILY_CONFIG metadata.
 
 ### Task 2.3: Add mixer entry to FAMILY_CONFIG
 
@@ -706,8 +705,7 @@ See "Per-slice common requirements" §Common: Slopwatch.
           "namespace": "SDL2.Mixer",
           "raw_class": "SDL_mixerNative",
           "rsp": "sdl2-mixer.rsp",
-          "bootstrap_scope": "bootstrap-sdl2-mixer.headers.txt",
-          "full_scope": "sdl2-mixer.headers.txt",
+          "headers": "sdl2-mixer.headers.txt",
           "library_dir": "Janset.SDL2.Mixer",
       },
   ```
@@ -727,8 +725,7 @@ See "Per-slice common requirements" §Common: Slopwatch.
           "namespace": "SDL2.Gfx",
           "raw_class": "SDL2_gfxNative",
           "rsp": "sdl2-gfx.rsp",
-          "bootstrap_scope": "bootstrap-sdl2-gfx.headers.txt",
-          "full_scope": "sdl2-gfx.headers.txt",
+          "headers": "sdl2-gfx.headers.txt",
           "library_dir": "Janset.SDL2.Gfx",
       },
   ```
@@ -989,10 +986,10 @@ The stats refactor is a behavior change that the spec §6 #1 byte-identical chec
 - [ ] **Step 2.12.1: Run full regen**
 
   ```pwsh
-  python spikes/binding-generators/clangsharp/generate_bindings.py --family all --scope full --codegen both --execute --use-platform-header-shims --vcpkg-triplet x64-windows-hybrid
+  python spikes/binding-generators/clangsharp/generate_bindings.py --family all --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
   ```
 
-  Expected: exits 0, writes `clangsharp-full.md` report.
+  Expected: exits 0, writes `clangsharp-production.md` report.
 
 - [ ] **Step 2.12.2: Diff against HEAD**
 
@@ -1006,9 +1003,9 @@ The stats refactor is a behavior change that the spec §6 #1 byte-identical chec
 
 **Files:**
 
-- Modify: `spikes/binding-generators/clangsharp/generate_bindings.py` (`run_self_tests` + `read_scope`)
+- Modify: `spikes/binding-generators/clangsharp/generate_bindings.py` (`run_self_tests` + `read_header_list`)
 
-This task delivers spec §6 success criterion #5: "`--family ttf` exits with `generation_exit_code` 2 or 4 (missing scope/RSP/headers) — not a Python KeyError or unhandled exception." Per the plan preamble's TDD discipline, this is a failing-test → implement → passing-test sequence (not a manual probe).
+This task delivers spec §6 success criterion #5: "`--family ttf` exits with `generation_exit_code` 2 or 4 (missing RSP/headers/project support) — not a Python KeyError or unhandled exception." Per the plan preamble's TDD discipline, this is a failing-test → implement → passing-test sequence (not a manual probe).
 
 - [ ] **Step 2.13.1: Add failing test asserting the friendly error message**
 
@@ -1016,25 +1013,25 @@ This task delivers spec §6 success criterion #5: "`--family ttf` exits with `ge
 
   ```python
       # Spec §6 #5: --family ttf must exit with a clear error pointing at the missing
-      # scope file, NOT a KeyError or generic FileNotFoundError. Probes read_scope
+      # production header list, NOT a KeyError or generic FileNotFoundError. Probes read_header_list
       # directly to keep the test in-process (avoids subprocess overhead).
       try:
-          read_scope(scope_root / "sdl2-ttf.headers.txt")
-          failures.append("read_scope did not raise for missing sdl2-ttf.headers.txt")
+          read_header_list(scope_root / "sdl2-ttf.headers.txt")
+          failures.append("read_header_list did not raise for missing sdl2-ttf.headers.txt")
       except FileNotFoundError as exc:
           message = str(exc)
           if "For new families" not in message:
               failures.append(
-                  f"read_scope FileNotFoundError lacks 'For new families' hint; got: {message}"
+                  f"read_header_list FileNotFoundError lacks 'For new families' hint; got: {message}"
               )
           if "spikes/binding-generators/scope" not in message.replace("\\", "/"):
               failures.append(
-                  f"read_scope FileNotFoundError lacks scope directory hint; got: {message}"
+                  f"read_header_list FileNotFoundError lacks scope directory hint; got: {message}"
               )
       except KeyError as exc:
-          failures.append(f"read_scope raised KeyError instead of friendly FileNotFoundError: {exc}")
+          failures.append(f"read_header_list raised KeyError instead of friendly FileNotFoundError: {exc}")
       except Exception as exc:
-          failures.append(f"read_scope raised unexpected exception type {type(exc).__name__}: {exc}")
+          failures.append(f"read_header_list raised unexpected exception type {type(exc).__name__}: {exc}")
   ```
 
   Where `scope_root` is the variable already in scope inside `run_self_tests` (resolved from `find_repository_root() / "spikes" / "binding-generators" / "scope"`). If `scope_root` is not yet in scope, derive it at the top of the new block:
@@ -1052,26 +1049,26 @@ This task delivers spec §6 success criterion #5: "`--family ttf` exits with `ge
   Expected failure line:
 
   ```
-  self-test: FAIL: read_scope FileNotFoundError lacks 'For new families' hint; got: [Errno 2] No such file or directory: '...sdl2-ttf.headers.txt'
+  self-test: FAIL: read_header_list FileNotFoundError lacks 'For new families' hint; got: [Errno 2] No such file or directory: '...sdl2-ttf.headers.txt'
   ```
 
   This is the bare BCL `FileNotFoundError` message — clear about WHAT is missing but not WHY a fresh agent would expect it.
 
-- [ ] **Step 2.13.3: Implement the friendly error in `read_scope`**
+- [ ] **Step 2.13.3: Implement the friendly error in `read_header_list`**
 
-  At `generate_bindings.py:119-126`, replace `read_scope`:
+  At `generate_bindings.py:119-126`, replace `read_header_list`:
 
   ```python
-  def read_scope(scope_file: pathlib.Path) -> list[str]:
-      if not scope_file.is_file():
+  def read_header_list(header_list_file: pathlib.Path) -> list[str]:
+      if not header_list_file.is_file():
           raise FileNotFoundError(
-              f"Scope file not found: {scope_file}. "
-              f"For new families, create the scope file in spikes/binding-generators/scope/ "
+              f"Header list file not found: {header_list_file}. "
+              f"For new families, create the header list file in spikes/binding-generators/scope/ "
               f"(see Items 3/4/5 in spikes/binding-generators/docs/satellite-expansion-roadmap.md "
               f"for examples)."
           )
       headers: list[str] = []
-      for line in scope_file.read_text(encoding="utf-8").splitlines():
+      for line in header_list_file.read_text(encoding="utf-8").splitlines():
           stripped = line.strip()
           if not stripped or stripped.startswith("#"):
               continue
@@ -1093,7 +1090,7 @@ This task delivers spec §6 success criterion #5: "`--family ttf` exits with `ge
   python spikes/binding-generators/clangsharp/generate_bindings.py --family ttf 2>&1
   ```
 
-  Expected exit code: non-zero. Expected stderr contains: `Scope file not found:` AND `For new families` AND `spikes/binding-generators/scope/`. Spec §6 #5 satisfied.
+  Expected exit code: non-zero. Expected combined output contains: `Header list file not found:` AND `For new families` AND `spikes/binding-generators/scope/`. Spec §6 #5 satisfied.
 
 ### Task 2.14: Common: Determinism Contract Verification
 
@@ -1502,7 +1499,7 @@ See "Per-slice common requirements" §Common: Slopwatch. No file deletions in th
 
 - Modify: `spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json`
 
-**⚠ Sequencing warning.** Between Task 4.2 (JSON migrated to schema 2.0) and Task 4.5 (LoadRoster updated to parse schema 2.0), the legacy `LoadRoster` reads `root.GetProperty("auto_detect_well_known")` at the file root — but the migrated JSON has that field under `root.families.core` instead. **Do NOT run `python generate_bindings.py --execute` between Task 4.2 and Task 4.5** — any postprocess invocation during this window crashes with `KeyNotFoundException`. Treat Tasks 4.2 → 4.5 as a single non-divisible working-tree edit (two commits per Task 4.16, but no `--execute` runs in between).
+**⚠ Sequencing warning.** Between Task 4.2 (JSON migrated to schema 2.0) and Task 4.5 (LoadRoster updated to parse schema 2.0), the legacy `LoadRoster` reads `root.GetProperty("auto_detect_well_known")` at the file root — but the migrated JSON has that field under `root.families.core` instead. **Do NOT run `python generate_bindings.py --family all --execute` between Task 4.2 and Task 4.5** — any postprocess invocation during this window crashes with `KeyNotFoundException`. Treat Tasks 4.2 → 4.5 as a single non-divisible working-tree edit (two commits per Task 4.16, but no `--execute` runs in between).
 
 - [ ] **Step 4.2.1: Migrate the schema**
 
@@ -1825,7 +1822,7 @@ Use Option A.
   - If invoked against Image's output, it loads Core's roster instead of pulling cross-family — Image still rewrites `SDL_Renderer*` → `SDL_Renderer` because Core's auto-detect list contains the name; this happens to work for the current Core+Image surface.
   - BUT the LoadRoster contract (cross-family pull when `family != "core"`) is not yet exercised, and D.5 in this intermediate state would falsely PASS without actually testing the pull logic.
 
-  Do NOT run any `generate_bindings.py --execute` invocation or any D.1–D.5 Determinism Contract Verification between Task 4.5 and Task 4.10. Treat Tasks 4.5 → 4.10 as a single working-tree edit. The Common: Determinism Contract Verification at Task 4.14 runs only after Task 4.10 (family resolution) lands.
+  Do NOT run any `generate_bindings.py --family all --execute` invocation or any D.1–D.5 Determinism Contract Verification between Task 4.5 and Task 4.10. Treat Tasks 4.5 → 4.10 as a single working-tree edit. The Common: Determinism Contract Verification at Task 4.14 runs only after Task 4.10 (family resolution) lands.
 
 - [ ] **Step 4.5.4: Run the self-test, verify Tests 1–4 PASS**
 
@@ -2254,10 +2251,10 @@ Use Option A.
 - [ ] **Step 4.12.1: Regenerate --family all**
 
   ```pwsh
-  python spikes/binding-generators/clangsharp/generate_bindings.py --family all --scope full --codegen both --execute --use-platform-header-shims --vcpkg-triplet x64-windows-hybrid
+  python spikes/binding-generators/clangsharp/generate_bindings.py --family all --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
   ```
 
-  Expected: exits 0, writes `clangsharp-full.md`.
+  Expected: exits 0, writes `clangsharp-production.md`.
 
 - [ ] **Step 4.12.2: Diff Core Generated/ against HEAD**
 
@@ -3021,7 +3018,7 @@ Two-commit shape for clarity:
 - [ ] **Step 5.12.1: Regenerate --family all**
 
   ```pwsh
-  python spikes/binding-generators/clangsharp/generate_bindings.py --family all --scope full --codegen both --execute --use-platform-header-shims --vcpkg-triplet x64-windows-hybrid
+  python spikes/binding-generators/clangsharp/generate_bindings.py --family all --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
   ```
 
   Expected: exits 0.
@@ -3664,7 +3661,7 @@ Only if Task 5.12.2 reported a pure formatting diff in Core Generated/.
 - [ ] **Step 6.8.1: Regenerate --family all**
 
   ```pwsh
-  python spikes/binding-generators/clangsharp/generate_bindings.py --family all --scope full --codegen both --execute --use-platform-header-shims --vcpkg-triplet x64-windows-hybrid
+  python spikes/binding-generators/clangsharp/generate_bindings.py --family all --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
   ```
 
   Expected: exits 0.
@@ -3893,7 +3890,7 @@ See "Per-slice common requirements" §Common: Slopwatch. No file deletions in th
    - Enum with no allow-list family loaded → only suffix rule fires.
 
 5. **Core regen check** — confirm the expected `[Flags]` additions and nothing else:
-   - Regen: `python generate_bindings.py --family all --scope full --codegen both --execute --use-platform-header-shims`.
+   - Regen: `python generate_bindings.py --family all --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims`.
    - Expected Core diff (both `Generated/Compat/` and `Generated/Modern/`):
      - `SDL_render.g.cs`: `[Flags]` added to `SDL_RendererFlags` (suffix), `SDL_RendererFlip` (allow-list), `SDL_TextureModulate` (allow-list).
      - `SDL_keycode.g.cs`: `[Flags]` added to `SDL_Keymod` (allow-list).
@@ -3931,10 +3928,10 @@ See "Per-slice common requirements" §Common: Slopwatch. No file deletions in th
 - [ ] **Step 7.1.1: Clean output + regenerate all families**
 
   ```pwsh
-  python spikes/binding-generators/clangsharp/generate_bindings.py --family all --scope full --codegen both --execute --clean-output --use-platform-header-shims --vcpkg-triplet x64-windows-hybrid
+  python spikes/binding-generators/clangsharp/generate_bindings.py --family all --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
   ```
 
-  Expected: exits 0; writes `clangsharp-full.md` report; deletes and regenerates `Janset.SDL2.Core/Generated/` and `Janset.SDL2.Image/Generated/` from scratch.
+  Expected: exits 0; writes `clangsharp-production.md` report; deletes and regenerates `Janset.SDL2.Core/Generated/` and `Janset.SDL2.Image/Generated/` from scratch.
 
 - [ ] **Step 7.1.2: Capture pre-comparison snapshot**
 
@@ -3955,8 +3952,8 @@ See "Per-slice common requirements" §Common: Slopwatch. No file deletions in th
 - [ ] **Step 7.2.2: Run per-family sequential**
 
   ```pwsh
-  python spikes/binding-generators/clangsharp/generate_bindings.py --family core --clean-output --execute --use-platform-header-shims --vcpkg-triplet x64-windows-hybrid
-  python spikes/binding-generators/clangsharp/generate_bindings.py --family image --clean-output --execute --use-platform-header-shims --vcpkg-triplet x64-windows-hybrid
+  python spikes/binding-generators/clangsharp/generate_bindings.py --family core --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
+  python spikes/binding-generators/clangsharp/generate_bindings.py --family image --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
   ```
 
 - [ ] **Step 7.2.3: Compare per-family output to stashed --family all**
@@ -3982,7 +3979,7 @@ See "Per-slice common requirements" §Common: Slopwatch. No file deletions in th
 - [ ] **Step 7.3.1: --family core does NOT touch Image**
 
   ```pwsh
-  python spikes/binding-generators/clangsharp/generate_bindings.py --family core --clean-output --execute --use-platform-header-shims --vcpkg-triplet x64-windows-hybrid
+  python spikes/binding-generators/clangsharp/generate_bindings.py --family core --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
   git status --short spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Generated/
   ```
 
@@ -3991,7 +3988,7 @@ See "Per-slice common requirements" §Common: Slopwatch. No file deletions in th
 - [ ] **Step 7.3.2: --family image does NOT touch Core**
 
   ```pwsh
-  python spikes/binding-generators/clangsharp/generate_bindings.py --family image --clean-output --execute --use-platform-header-shims --vcpkg-triplet x64-windows-hybrid
+  python spikes/binding-generators/clangsharp/generate_bindings.py --family image --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
   git status --short spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/
   ```
 
@@ -4000,7 +3997,7 @@ See "Per-slice common requirements" §Common: Slopwatch. No file deletions in th
 - [ ] **Step 7.3.3: Re-run --family all to restore the committed regen state**
 
   ```pwsh
-  python spikes/binding-generators/clangsharp/generate_bindings.py --family all --clean-output --execute --use-platform-header-shims --vcpkg-triplet x64-windows-hybrid
+  python spikes/binding-generators/clangsharp/generate_bindings.py --family all --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
   ```
 
 ### Task 7.4: Multi-TFM build across the full spike solution

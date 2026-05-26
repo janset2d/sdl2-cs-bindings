@@ -13,15 +13,14 @@ Every item below describes the **current best understanding** and the **preferre
 
 ---
 
-## Cross-Cutting: Scope, Policy, Shims, Oracle Standardization
+## Cross-Cutting: Header Lists, Policy, Shims, Oracle Standardization
 
 Before or alongside Item 1, these directories and tools get standardized:
 
 ### `spikes/binding-generators/scope/`
 
-- Per-family header scope files: `sdl2-core.headers.txt`, `sdl2-image.headers.txt`, `sdl2-ttf.headers.txt`, `sdl2-mixer.headers.txt`, `sdl2-gfx.headers.txt`
-- Bootstrap variants (small subsets for quick iteration): `bootstrap-sdl2-*.headers.txt`
-- Remove stale artifacts: `comparison-report-template.md` (if present). **Keep** `sdl2-core-sdlh-required.json` — it is load-bearing for `generate_bindings.py:554` required-surface validation on `--family core --scope full` runs (manifest parity check against `build/manifest.json`).
+- Per-family production header list files: `sdl2-core.headers.txt`, `sdl2-image.headers.txt`, `sdl2-ttf.headers.txt`, `sdl2-mixer.headers.txt`, `sdl2-gfx.headers.txt`.
+- Remove stale artifacts: bootstrap header-list subsets and `comparison-report-template.md` (if present). **Keep** `sdl2-core-sdlh-required.json` — it is load-bearing for execute-mode core generation's required-surface validation (manifest parity check against `build/manifest.json`).
 
 ### `spikes/binding-generators/clangsharp/policy/`
 
@@ -49,8 +48,8 @@ Before or alongside Item 1, these directories and tools get standardized:
 
 ### Success Criteria
 
-1. `generate_bindings.py --family all --scope full --codegen both --execute` produces identical Core/Image `.g.cs` output to current HEAD except audited `[Flags]` additions required by Constitution §"Enums" (diff with `--ignore-cr-at-eol` contains only those additions).
-2. `generate_bindings.py --family core` + `--family image` run sequentially produces identical output to `--family all`.
+1. `generate_bindings.py --family all --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims` produces identical Core/Image `.g.cs` output to current HEAD except audited `[Flags]` additions required by Constitution §"Enums" (diff with `--ignore-cr-at-eol` contains only those additions).
+2. `generate_bindings.py --family core --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims` + `generate_bindings.py --family image --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims` run sequentially produce identical output to `--family all`.
 3. Multi-TFM build: `dotnet build Janset.SDL2.Image.csproj -c Release` — 0 warnings, 0 errors across all 5 TFMs.
 4. `oracle.cs --family sdl2-core --family sdl2-image --write-report` — 0 findings across Priority C categories (no regression).
 5. GFX, TTF, Mixer FAMILY_CONFIG entries exist in `generate_bindings.py` but are NOT yet wired in `selected_families("all")` — they're dormant until their respective expansion items activate them.
@@ -136,7 +135,7 @@ External config files (9):
 
 | # | Source type | Path | Content | Family-keyed |
 |---|---|---|---|---|
-| 1 | Scope `.txt` | `scope/sdl2-<family>.headers.txt` + bootstrap variants | Native headers parsed per family | per-family |
+| 1 | Header list `.txt` | `scope/sdl2-<family>.headers.txt` | Native headers parsed per family | per-family |
 | 2 | Required-surface `.json` | `scope/sdl2-core-sdlh-required.json` | Core SDL.h required functions + SDL_INIT_* constants (manifest parity check) | Core-only |
 | 3 | Platform shim `.h` | `clangsharp/shims/platform-headers/{endian,AvailabilityMacros,TargetConditionals}.h` | Windows-local synthetic Linux/macOS/iOS parse shims | Cross-family |
 | 4 | Opaque-handle roster `.json` | `clangsharp/policy/opaque-handle-roster.json` | Pattern B auto-detect + force-opaque + excluded-candidates | per-family schema 2.0 |
@@ -220,7 +219,7 @@ The following are open questions that belong to Iteration 2's spec + plan, not t
 
 ### Success Criteria
 
-1. `generate_bindings.py --family gfx --scope full --codegen both --execute` produces `.g.cs` files under `src/Janset.SDL2.Gfx/Generated/{Compat,Modern}/`.
+1. `generate_bindings.py --family gfx --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims` produces `.g.cs` files under `src/Janset.SDL2.Gfx/Generated/{Compat,Modern}/`.
 2. `dotnet build Janset.SDL2.Gfx.csproj -c Release` — 0 warnings, 0 errors across 5 TFMs.
 3. `dotnet build Janset.SDL2.Image.csproj -c Release` — still 0/0 across 5 TFMs (no regression from adding a new family to the solution).
 4. `oracle.cs --family sdl2-gfx --write-report` — family evidence report produced.
@@ -260,7 +259,6 @@ The following are open questions that belong to Iteration 2's spec + plan, not t
 
 - `rsp/sdl2-gfx.rsp` — family RSP with 4 `--define-macro` entries + `--exclude M_PI`
 - `scope/sdl2-gfx.headers.txt` — 4 functional headers
-- `scope/bootstrap-sdl2-gfx.headers.txt` — `SDL2_framerate.h` only
 - `src/Janset.SDL2.Gfx/Janset.SDL2.Gfx.csproj` — multi-TFM, ProjectReference→Core
 - `src/Janset.SDL2.Gfx/Support/DisableRuntimeMarshalling.cs` — cross-assembly Pattern B contract
 
@@ -272,7 +270,7 @@ The following are open questions that belong to Iteration 2's spec + plan, not t
 
 ### Success Criteria
 
-1. `generate_bindings.py --family ttf --scope full --codegen both --execute` produces `.g.cs` files including `Handles.g.cs` with `TTF_Font` Pattern B struct in `namespace SDL2.Ttf` (owner mode).
+1. `generate_bindings.py --family ttf --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims` produces `.g.cs` files including `Handles.g.cs` with `TTF_Font` Pattern B struct in `namespace SDL2.Ttf` (owner mode).
 2. `dotnet build Janset.SDL2.Ttf.csproj -c Release` — 0/0 across 5 TFMs.
 3. C `long` functions (`TTF_OpenFontIndex*`, `TTF_FontFaces`) use CLong/dual-dispatch pattern in generated output.
 4. No-SDLCALL functions (`TTF_GetFontKerningSizeGlyphs*`, `TTF_SetFontSDF`, `TTF_GetFontSDF`) correctly bound with explicit `CallingConvention.Cdecl`.
@@ -313,7 +311,6 @@ The following are open questions that belong to Iteration 2's spec + plan, not t
 - `rsp/sdl2-ttf.rsp` — family RSP with 5 `--exclude` entries (3 deprecated + 2 error macros)
 - `rsp/per-header/SDL_ttf.rsp` — per-header RSP for no-SDLCALL calling convention overrides (if needed)
 - `scope/sdl2-ttf.headers.txt` — `SDL_ttf.h`
-- `scope/bootstrap-sdl2-ttf.headers.txt` — `SDL_ttf.h`
 - `src/Janset.SDL2.Ttf/Janset.SDL2.Ttf.csproj` — multi-TFM, ProjectReference→Core
 - `src/Janset.SDL2.Ttf/Support/DisableRuntimeMarshalling.cs`
 
@@ -325,7 +322,7 @@ The following are open questions that belong to Iteration 2's spec + plan, not t
 
 ### Success Criteria
 
-1. `generate_bindings.py --family mixer --scope full --codegen both --execute` produces `.g.cs` files including `Handles.g.cs` with `Mix_Music` Pattern B struct in `namespace SDL2.Mixer` (owner mode).
+1. `generate_bindings.py --family mixer --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims` produces `.g.cs` files including `Handles.g.cs` with `Mix_Music` Pattern B struct in `namespace SDL2.Mixer` (owner mode).
 2. `dotnet build Janset.SDL2.Mixer.csproj -c Release` — 0/0 across 5 TFMs.
 3. All 6 callback typedefs emit with correct `[UnmanagedFunctionPointer(CallingConvention.Cdecl)]` on Compat, correct `delegate* unmanaged[Cdecl]<...>` on Modern.
 4. `Mix_Chunk` struct layout verified (no union — plain 4-field POD).
@@ -365,7 +362,6 @@ The following are open questions that belong to Iteration 2's spec + plan, not t
 
 - `rsp/sdl2-mixer.rsp` — family RSP with 8 `--exclude` entries (4 error macros + 4 legacy compat aliases)
 - `scope/sdl2-mixer.headers.txt` — `SDL_mixer.h`
-- `scope/bootstrap-sdl2-mixer.headers.txt` — `SDL_mixer.h`
 - `src/Janset.SDL2.Mixer/Janset.SDL2.Mixer.csproj` — multi-TFM, ProjectReference→Core
 - `src/Janset.SDL2.Mixer/Support/DisableRuntimeMarshalling.cs`
 
@@ -375,7 +371,7 @@ The following are open questions that belong to Iteration 2's spec + plan, not t
 
 ```
 Iteration 1: Item 1 (per-library infra)
-  ├── Cross-cutting (scope/policy/shims/oracle standardization)
+  ├── Cross-cutting (header-list/policy/shims/oracle standardization)
   └── Enables Iteration 2: Config Surface Unification
        └── Enables Item 2 (Image bug fix) ── quick validation
             (also partially delivered by Item 1 S1-6 flags-detect side-effect)

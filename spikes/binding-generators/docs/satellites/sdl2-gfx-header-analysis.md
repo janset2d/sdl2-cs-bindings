@@ -212,8 +212,7 @@ No foreign types, no platform-conditioned declarations.
 
 ### Scope Files
 
-**Bootstrap:** `SDL2_framerate.h` (simplest header, 5 functions, 1 struct)
-**Full:** `SDL2_framerate.h`, `SDL2_gfxPrimitives.h`, `SDL2_imageFilter.h`, `SDL2_rotozoom.h` (4 functional headers; font data header excluded)
+**Production header list:** `SDL2_framerate.h`, `SDL2_gfxPrimitives.h`, `SDL2_imageFilter.h`, `SDL2_rotozoom.h` (4 functional headers; font data header excluded)
 
 ---
 
@@ -224,8 +223,7 @@ No foreign types, no platform-conditioned declarations.
     "namespace": "SDL2.Gfx",
     "raw_class": "SDL2_gfxNative",
     "rsp": "sdl2-gfx.rsp",
-    "bootstrap_scope": "bootstrap-sdl2-gfx.headers.txt",
-    "full_scope": "sdl2-gfx.headers.txt",
+    "headers": "sdl2-gfx.headers.txt",
     "library_dir": "Janset.SDL2.Gfx",
 },
 ```
@@ -280,7 +278,7 @@ No logic changes. No new postprocess modes. No include directory changes. No new
 
 ## 12. Open Questions
 
-1. **Will ClangSharp definitely recognize `extern int pixelColor(...)` after scope macro is resolved?** Based on ClangSharp docs: yes. Verify with bootstrap dry-run.
+1. **Will ClangSharp definitely recognize `extern int pixelColor(...)` after scope macro is resolved?** Based on ClangSharp docs: yes. Verify with a GFX dry-run.
 
 2. **Does `--define-macro SDL2_GFXPRIMITIVES_SCOPE=extern` in the RSP preempt the header's own `#ifndef` correctly?** The header's `#ifndef` check will be false (already defined), so our `--define-macro` applies. Should work.
 

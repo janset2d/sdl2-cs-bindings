@@ -62,11 +62,9 @@ spikes/binding-generators/
 │   └── reference-clones.md                          # local clone commands for upstream refs
 ├── scope/
 │   ├── sdl2-core.headers.txt                        # full SDL2.Core header inventory (51 entries)
-│   ├── sdl2-image.headers.txt                       # full SDL2_image header inventory
-│   ├── bootstrap-sdl2-core.headers.txt              # bring-up slice (5 representative core headers)
-│   └── bootstrap-sdl2-image.headers.txt             # bring-up slice (1 image header)
+│   └── sdl2-image.headers.txt                       # full SDL2_image header inventory
 ├── clangsharp/                                      # ACTIVE — ppy-style ClangSharp prototype
-│   ├── generate_bindings.py                         # multi-pass orchestrator (codegen × family; multi-OS pass; 6-step postprocess)
+│   ├── generate_bindings.py                         # complete-family orchestrator (Compat + Modern; multi-OS pass; 6-step postprocess)
 │   ├── oracle.cs                                    # Roslyn/file-based raw ABI evidence reporter
 │   ├── Janset.SDL2.ClangSharpSpike.slnx             # IDE solution (postprocess + Core + Image + AbiTests)
 │   ├── rsp/
@@ -89,12 +87,11 @@ spikes/binding-generators/
 │   └── reports/                                     # evidence + decision artifacts
 │       ├── iteration-2-comparison.md                # comparison + decision-quality signal
 │       ├── clangsharp-failure-buckets.md            # bucket map + RSP delta history
-│       ├── clangsharp-full.md                       # per-header generation report (full scope)
+│       ├── clangsharp-production.md                 # per-header production generation report
 │       ├── oracle-comparison-clangsharp.md          # legacy ClangSharp vs Cake preview report (not regenerated)
 │       ├── oracle-comparison-alimer.md              # legacy Alimer vs Cake preview report (not regenerated)
 │       ├── oracle-evidence-clangsharp.md            # family-aware raw ABI evidence report
-│       ├── alimer-full.md                           # Alimer per-header generation report
-│       └── clangsharp-bootstrap.md                  # bootstrap-scope generation report
+│       └── alimer-full.md                           # Alimer per-header generation report
 └── references/                                      # GITIGNORED — local clones for evidence
     ├── ppy-SDL3-CS/                                 # north star for orchestrator pattern
     └── alimer-bindings-sdl/                         # CppAst reference patterns
@@ -103,10 +100,10 @@ spikes/binding-generators/
 ## Quick commands
 
 ```pwsh
-# Single-command full-scope generation: ClangSharp (compat + modern) × per-family + multi-OS pass + 6-step postprocess pipeline.
+# Single-command production generation: ClangSharp (compat + modern) × per-family + multi-OS pass + 6-step postprocess pipeline.
 # Postprocess order (wired in generate_bindings.py): platform-delta → strip-varargs → libraryimport (Modern only) → guid-substitute → threadid-dispatch → uniform-opaque.
 # Outputs land under src/Janset.SDL2.<Family>/Generated/{Compat,Modern}/ including the canonical Handles.g.cs (Pattern B).
-python spikes/binding-generators/clangsharp/generate_bindings.py --scope full --codegen both --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
+python spikes/binding-generators/clangsharp/generate_bindings.py --family all --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
 
 # Multi-TFM compile-check (all 5 TFMs)
 dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Janset.SDL2.Image.csproj -c Release

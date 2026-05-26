@@ -1,4 +1,4 @@
-# ClangSharp bootstrap Report
+# ClangSharp production Report
 
 **Triplet:** x64-windows-hybrid
 **Mode:** dry-run
@@ -6,12 +6,12 @@
 
 | Family | Headers | Commands | Generated Files |
 | --- | ---: | ---: | ---: |
-| core | 5 | 5 | 0 |
-| image | 0 | 0 | 0 |
+| core | 51 | 102 | 0 |
+| image | 1 | 2 | 0 |
 
 ## Selection
 
-Selected families: core
+Selected families: core, image
 
 ## Failures
 
@@ -20,3 +20,11 @@ No failures recorded.
 ## Empty Generated Outputs
 
 No empty generated outputs recorded.
+
+## No-op Generated Outputs
+
+No no-op generated outputs recorded.
+
+## Accepted Warning-Only ClangSharp Exits
+
+No accepted warning-only ClangSharp exits recorded.

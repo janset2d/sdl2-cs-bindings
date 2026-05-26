@@ -10,7 +10,7 @@
 
 ## 1. Goal
 
-Make `generate_bindings.py` + the 6-step postprocess pipeline + `oracle.cs` per-family invocation deterministic and family-agnostic, so that Items 3–5 (GFX/TTF/Mixer) can plug in by adding data only (scope files, RSPs, csprojs) rather than by editing pipeline logic.
+Make `generate_bindings.py` + the 6-step postprocess pipeline + `oracle.cs` per-family invocation deterministic and family-agnostic, so that Items 3–5 (GFX/TTF/Mixer) can plug in by adding data only (production header lists, RSPs, csprojs) rather than by editing pipeline logic.
 
 The Item 1 deliverable is **infrastructure**, not new family output. Successful exit leaves Core + Image generation byte-identical (CRLF aside) to current HEAD except for the audited `[Flags]` additions required by §5.4, while:
 
@@ -129,7 +129,7 @@ This is the template every new family mirrors. Item 1 does **not** create new fa
 
 ### 4.7 Cross-cutting status
 
-- `spikes/binding-generators/scope/`: 4 files (`sdl2-core.headers.txt`, `sdl2-image.headers.txt` + bootstrap pairs). `sdl2-core-sdlh-required.json` exists and is consumed by `generate_bindings.py:554` for `--family core --scope full` required-surface validation. **Do not retire** — it's load-bearing, not stale (the roadmap text "if unused" is incorrect; this spec corrects it).
+- `spikes/binding-generators/scope/`: production per-family header lists (`sdl2-core.headers.txt`, `sdl2-image.headers.txt`, and future satellite lists). `sdl2-core-sdlh-required.json` exists and is consumed by execute-mode `--family core` generation for required-surface validation. **Do not retire** — it's load-bearing, not stale.
 - `spikes/binding-generators/clangsharp/policy/`: roster JSON only. Per-family policy JSONs are **not** assumed needed; deep-dive of TTF/Mixer/GFX headers shows no force-opaque allow-list needed beyond Core's.
 - `spikes/binding-generators/clangsharp/shims/platform-headers/`: 3 files (`endian.h`, `AvailabilityMacros.h`, `TargetConditionals.h`). Untouched.
 - `spikes/binding-generators/clangsharp/compare_oracle.py`: **Retire.** Sunset per roadmap §Cross-Cutting; `oracle.cs` supersedes it.
@@ -138,7 +138,7 @@ This is the template every new family mirrors. Item 1 does **not** create new fa
 
 ## 5. Decisions
 
-### 5.1 Dormant `all` scope (matches roadmap Item 1 success criterion 5)
+### 5.1 Dormant `all` activation set (matches roadmap Item 1 success criterion 5)
 
 `selected_families("all")` stays `["core", "image"]` after Item 1 ships. New families are reachable per-family via `--family ttf|mixer|gfx` (CLI choices extended), but `all` does not regenerate them.
 
@@ -147,6 +147,12 @@ This is the template every new family mirrors. Item 1 does **not** create new fa
 **How:** The roadmap's success criterion #5 is binding: "GFX, TTF, Mixer FAMILY_CONFIG entries exist in `generate_bindings.py` but are NOT yet wired in `selected_families('all')` — they're dormant until their respective expansion items activate them."
 
 **Activation contract:** Items 3/4/5 each include, as part of their slice, a single-line change to `selected_families("all")` adding their family identifier. That activation is gated by the same item's exit evidence (multi-TFM build clean, oracle clean) — not a separate slice.
+
+### 5.1.1 CLI unit amendment — complete family artifact
+
+`generate_bindings.py` operates at the complete family artifact level. The public generation controls are `--family`, `--execute`, `--vcpkg-triplet`, and `--use-platform-header-shims`; `Compat` and `Modern` are internal backends that always run together in production order. Execute mode cleans the selected family's `Generated/` root before generation; dry-run prints the compat + modern ClangSharp commands without deleting output.
+
+Bootstrap/full header-subset selection is retired bring-up/debug surface. Each family has one production header list in `FAMILY_CONFIG[family]["headers"]`, and required SDL.h surface validation runs for execute-mode Core generation because there is no longer a bootstrap/full distinction.
 
 ### 5.2 Family-blind opaque auto-detection
 
@@ -342,19 +348,19 @@ public static readonly FamilyConfig Sdl2Gfx = new(
 
 **Exit evidence per family:** for satellites whose generation directories don't yet exist (TTF/Mixer/GFX before Items 3/4/5 ship), `CSharpEvidenceLoader.LoadPath` returns `SourceStatus.Missing` rather than failing — the existing `LoadOptionalCSharpEvidence` path already handles this for `CakePreviewRelativePath` and `Sdl2CsRelativePath`. Item 1's oracle exit gate is "0 findings across Priority C categories **for sdl2-core + sdl2-image**" — same as current HEAD. TTF/Mixer/GFX generated rows appear in the report as missing/zero, while SDL2-CS rows load existing peer evidence where the source exists.
 
-### 5.7 Per-family scope/RSP/csproj/Support — defer creation to Items 3/4/5
+### 5.7 Per-family header lists/RSP/csproj/Support — defer creation to Items 3/4/5
 
 Item 1 does **not** create:
-- `scope/sdl2-ttf.headers.txt`, `scope/bootstrap-sdl2-ttf.headers.txt` (Item 4).
-- `scope/sdl2-mixer.headers.txt`, `scope/bootstrap-sdl2-mixer.headers.txt` (Item 5).
-- `scope/sdl2-gfx.headers.txt`, `scope/bootstrap-sdl2-gfx.headers.txt` (Item 3).
+- `scope/sdl2-ttf.headers.txt` (Item 4).
+- `scope/sdl2-mixer.headers.txt` (Item 5).
+- `scope/sdl2-gfx.headers.txt` (Item 3).
 - `rsp/sdl2-ttf.rsp`, `rsp/sdl2-mixer.rsp`, `rsp/sdl2-gfx.rsp`.
 - `src/Janset.SDL2.{Ttf,Mixer,Gfx}/Janset.SDL2.{Ttf,Mixer,Gfx}.csproj`.
 - `src/Janset.SDL2.{Ttf,Mixer,Gfx}/Support/DisableRuntimeMarshalling.cs`.
 
 **Why:** Item 1 is infrastructure for these families' arrival; the data files belong to the items that bring the families to life. Adding empty stubs invites drift between stub and final shape.
 
-**Consequence:** Items 3/4/5 each carry the corresponding scope + RSP + csproj + Support creation as part of their slice. The Item 1 plan doc only ensures `FAMILY_CONFIG` entries reference paths that **will** exist by the time the corresponding expansion item activates `selected_families("all")`.
+**Consequence:** Items 3/4/5 each carry the corresponding header list + RSP + csproj + Support creation as part of their slice. The Item 1 plan doc only ensures `FAMILY_CONFIG` entries reference paths that **will** exist by the time the corresponding expansion item activates `selected_families("all")`.
 
 ---
 
@@ -362,11 +368,11 @@ Item 1 does **not** create:
 
 | # | Criterion | Verification |
 |---|---|---|
-| 1 | `generate_bindings.py --family all --scope full --codegen both --execute --use-platform-header-shims` produces Core + Image `.g.cs` output byte-identical (CRLF aside) to current HEAD **EXCEPT for `[Flags]` attribute additions on Core enums newly qualified by §5.4** (`SDL_RendererFlags` via suffix; `SDL_Keymod`, `SDL_BlendMode`, `SDL_GLcontextFlag`, `SDL_RendererFlip`, `SDL_TextureModulate` via Core allow-list). This is intentional Constitution §"Enums" alignment (Stage 1 bitmask enums were policy-mandated for `[Flags]` decoration but never emitted pre-Item 1), not a regression. The exact `[Flags]`-addition delta is enumerated in the S1-6 slice commit. | `git diff --ignore-cr-at-eol` shows only `[Flags]` attribute additions on the enumerated set; no other content changes. |
-| 2 | **Family-isolation determinism.** Three properties hold simultaneously: (a) `generate_bindings.py --family core` and `generate_bindings.py --family image` run sequentially produce identical output to `--family all`; (b) `generate_bindings.py --family image --clean-output --execute` regenerates ONLY `spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Generated/` — Core's `Generated/` directory and `Handles.g.cs` remain byte-untouched (`git status` shows no Core changes after Image-only run); (c) symmetric guarantee for `--family core --clean-output --execute` — Image's `Generated/` remains byte-untouched. | Sequential regen + `git diff --ignore-cr-at-eol` empty; per-family isolation check: `git status --short spikes/binding-generators/clangsharp/src/Janset.SDL2.{Core,Image}/Generated/` after each per-family run shows changes only in the targeted family's directory. |
+| 1 | `generate_bindings.py --family all --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims` produces Core + Image `.g.cs` output byte-identical (CRLF aside) to current HEAD **EXCEPT for `[Flags]` attribute additions on Core enums newly qualified by §5.4** (`SDL_RendererFlags` via suffix; `SDL_Keymod`, `SDL_BlendMode`, `SDL_GLcontextFlag`, `SDL_RendererFlip`, `SDL_TextureModulate` via Core allow-list). This is intentional Constitution §"Enums" alignment (Stage 1 bitmask enums were policy-mandated for `[Flags]` decoration but never emitted pre-Item 1), not a regression. The exact `[Flags]`-addition delta is enumerated in the S1-6 slice commit. | `git diff --ignore-cr-at-eol` shows only `[Flags]` attribute additions on the enumerated set; no other content changes. |
+| 2 | **Family-isolation determinism.** Three properties hold simultaneously: (a) `generate_bindings.py --family core --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims` and `generate_bindings.py --family image --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims` run sequentially produce identical output to `--family all`; (b) Image-only execute regenerates ONLY `spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Generated/` — Core's `Generated/` directory and `Handles.g.cs` remain byte-untouched (`git status` shows no Core changes after Image-only run); (c) symmetric guarantee for Core-only execute — Image's `Generated/` remains byte-untouched. | Sequential regen + `git diff --ignore-cr-at-eol` empty; per-family isolation check: `git status --short spikes/binding-generators/clangsharp/src/Janset.SDL2.{Core,Image}/Generated/` after each per-family run shows changes only in the targeted family's directory. |
 | 3 | Multi-TFM build clean: `dotnet build spikes/binding-generators/clangsharp/Janset.SDL2.ClangSharpSpike.sln -c Release` — 0 warnings / 0 errors across all 5 TFMs for Core + Image. | Build log. |
 | 4 | `dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --family sdl2-core --family sdl2-image --family sdl2-ttf --family sdl2-mixer --family sdl2-gfx --write-report` produces a 5-family evidence report; **0 findings** across Priority C categories for sdl2-core + sdl2-image (no regression). TTF/Mixer/GFX generated rows show `SourceStatus.Missing` with zero counts (expected — not yet generated); SDL2-CS rows load existing peer evidence where the source exists. | Report at `spikes/binding-generators/output/reports/oracle-evidence-clangsharp.md`. |
-| 5 | `FAMILY_CONFIG` entries exist for `ttf`, `mixer`, `gfx` and the `--family` CLI accepts them. `selected_families("all")` returns `["core", "image"]` only. Running `python generate_bindings.py --family ttf` exits with `generation_exit_code` 2 or 4 (missing scope/RSP/headers) — not a Python KeyError or unhandled exception. | Self-test + manual smoke. |
+| 5 | `FAMILY_CONFIG` entries exist for `ttf`, `mixer`, `gfx` and the `--family` CLI accepts them. `selected_families("all")` returns `["core", "image"]` only. Running `python generate_bindings.py --family ttf` exits with `generation_exit_code` 2 or 4 (missing RSP/headers/project support) — not a Python KeyError or unhandled exception. | Self-test + manual smoke. |
 | 6 | `OpaqueHandleEmitRewriter.DiscoverAutoDetectedHandles` returns `TTF_Font` and `Mix_Music` when run against synthetic test input containing empty `partial struct TTF_Font {}` + `TTF_Font*` use; returns the existing 14 SDL_* names when run against Core. | Postprocess self-test fixture. |
 | 7 | `ClongDualDispatchRewriter` produces output for Core's `SDL_ThreadID`/`SDL_GetThreadID` byte-identical to current `ThreadIdDualDispatchRewriter` output (modulo Roslyn `SyntaxFactory` formatting normalization, which must be a single one-time churn committed alongside the refactor). Parameter-position rewrite is exercised by a synthetic test input with a `[NativeTypeName("long")] long index` parameter. | Postprocess self-test + Core regen diff. |
 | 8 | `FlagsAttributeRewriter` adds `[Flags]` to `IMG_InitFlags` in both Generated/Compat/SDL_image.g.cs and Generated/Modern/SDL_image.g.cs after regen. (Item 2 success criterion #1 — Item 1 ships the rewriter; Item 2 ships the regen and the bug closure.) | Image regen diff after Item 1 + Item 2 land. |

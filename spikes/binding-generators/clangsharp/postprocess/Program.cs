@@ -1,6 +1,5 @@
 using Janset.SDL2.PostProcess;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 // Usage:
 //   dotnet run --project postprocess -- strip-varargs      <input-dir> [<output-dir>]
@@ -46,9 +45,14 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 // Default behavior is in-place edit; pass an explicit output directory to
 // write to a different location.
 
+if (args is ["--self-test"])
+{
+    return PostProcessSelfTests.Run();
+}
+
 if (args.Length < 2 || args[0] is not ("strip-varargs" or "libraryimport" or "platform-delta" or "guid-substitute" or "threadid-dispatch" or "uniform-opaque"))
 {
-    Console.Error.WriteLine("usage: dotnet run --project postprocess -- <strip-varargs|libraryimport|platform-delta|guid-substitute|threadid-dispatch|uniform-opaque> <input-dir> [<output-dir>]");
+    Console.Error.WriteLine("usage: dotnet run --project postprocess -- <strip-varargs|libraryimport|platform-delta|guid-substitute|threadid-dispatch|uniform-opaque> <input-dir> [<output-dir>] or --self-test");
     return 1;
 }
 
@@ -59,14 +63,19 @@ var inputDir = Path.GetFullPath(args[1]);
 // `--owner-mode owner`). Without this guard a flag would be misparsed as the
 // output directory and the postprocess would write Handles.g.cs into a path
 // named `--owner-mode/`.
-var outputDir = args.Length >= 3 && !args[2].StartsWith("--", StringComparison.Ordinal)
-    ? Path.GetFullPath(args[2])
-    : inputDir;
+var outputDir = PostProcessCli.ResolveOutputDirectory(args, inputDir);
 
 if (!Directory.Exists(inputDir))
 {
     Console.Error.WriteLine($"input directory not found: {inputDir}");
     return 2;
+}
+
+var modeInputError = PostProcessCli.ValidateModeInput(mode, inputDir);
+if (modeInputError is not null)
+{
+    Console.Error.WriteLine(modeInputError);
+    return 3;
 }
 
 if (mode == "platform-delta")
@@ -162,33 +171,7 @@ switch (mode)
 var processed = 0;
 var transformed = 0;
 
-foreach (var file in Directory.EnumerateFiles(inputDir, "*.g.cs", SearchOption.AllDirectories))
-{
-    var relative = Path.GetRelativePath(inputDir, file);
-    var source = File.ReadAllText(file);
-    var tree = CSharpSyntaxTree.ParseText(source);
-    var root = tree.GetCompilationUnitRoot();
-
-    resetRewriter();
-    var rewritten = (CompilationUnitSyntax)rewriter.Visit(root)!;
-    processed++;
-
-    if (!hasChanges())
-    {
-        if (!string.Equals(inputDir, outputDir, StringComparison.OrdinalIgnoreCase))
-        {
-            var passthrough = Path.Combine(outputDir, relative);
-            Directory.CreateDirectory(Path.GetDirectoryName(passthrough)!);
-            File.WriteAllText(passthrough, source);
-        }
-        continue;
-    }
-
-    var destination = Path.Combine(outputDir, relative);
-    Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-    File.WriteAllText(destination, rewritten.ToFullString());
-    transformed++;
-}
+PostProcessCli.ProcessDirectory(inputDir, outputDir, rewriter, hasChanges, resetRewriter, ref processed, ref transformed);
 
 Console.WriteLine($"{mode}: {processed} files scanned, {transformed} files transformed");
 

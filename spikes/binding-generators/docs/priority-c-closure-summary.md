@@ -86,7 +86,7 @@ slopwatch analyze --fail-on warning --exclude "artifacts/**,external/**,vcpkg_in
 ### Regen idempotency (Step B.1)
 
 ```
-python spikes/binding-generators/clangsharp/generate_bindings.py --scope full --codegen both --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
+python spikes/binding-generators/clangsharp/generate_bindings.py --family all --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
 ```
 
 Output diff with `--ignore-cr-at-eol`: empty (pipeline is byte-stable across regens; only CRLF-write noise appears in working tree and reverts cleanly). Multi-OS `SDL_system.h` platform-pass parse warnings are pre-existing and unrelated to Priority C scope (declspec parse error on iOS/macOS/Android views; ABI surface is sourced from the Windows-canonical neutral pass).

@@ -135,15 +135,15 @@ def find_repository_root() -> pathlib.Path:
     raise RuntimeError("Repository root was not found from generate_bindings.py")
 
 
-def read_scope(scope_file: pathlib.Path) -> list[str]:
-    if not scope_file.is_file():
+def read_header_list(header_list_file: pathlib.Path) -> list[str]:
+    if not header_list_file.is_file():
         raise FileNotFoundError(
-            f"Scope file not found: {scope_file}. "
-            "For new families, create the scope file in spikes/binding-generators/scope/."
+            f"Header list file not found: {header_list_file}. "
+            "For new families, create the header list file in spikes/binding-generators/scope/."
         )
 
     headers: list[str] = []
-    for line in scope_file.read_text(encoding="utf-8").splitlines():
+    for line in header_list_file.read_text(encoding="utf-8").splitlines():
         stripped = line.strip()
         if not stripped or stripped.startswith("#"):
             continue
@@ -204,8 +204,8 @@ def validate_required_surface_against_manifest(repo: pathlib.Path, allowlist: Re
     validate_required_surface_names(manifest_functions, manifest_constants, allowlist)
 
 
-def should_validate_required_sdlh_surface(execute: bool, selected: list[str], scope: str) -> bool:
-    return execute and "core" in selected and scope == "full"
+def should_validate_required_sdlh_surface(execute: bool, selected: list[str]) -> bool:
+    return execute and "core" in selected
 
 
 FUNCTION_DECLARATION_PATTERN = re.compile(
@@ -366,40 +366,35 @@ FAMILY_CONFIG = {
         "namespace": "SDL2",
         "raw_class": "SDLNative",
         "rsp": "sdl2-core.rsp",
-        "bootstrap_scope": "bootstrap-sdl2-core.headers.txt",
-        "full_scope": "sdl2-core.headers.txt",
+        "headers": "sdl2-core.headers.txt",
         "library_dir": "Janset.SDL2.Core",
     },
     "image": {
         "namespace": "SDL2.Image",
         "raw_class": "SDL_imageNative",
         "rsp": "sdl2-image.rsp",
-        "bootstrap_scope": "bootstrap-sdl2-image.headers.txt",
-        "full_scope": "sdl2-image.headers.txt",
+        "headers": "sdl2-image.headers.txt",
         "library_dir": "Janset.SDL2.Image",
     },
     "ttf": {
         "namespace": "SDL2.Ttf",
         "raw_class": "SDL_ttfNative",
         "rsp": "sdl2-ttf.rsp",
-        "bootstrap_scope": "bootstrap-sdl2-ttf.headers.txt",
-        "full_scope": "sdl2-ttf.headers.txt",
+        "headers": "sdl2-ttf.headers.txt",
         "library_dir": "Janset.SDL2.Ttf",
     },
     "mixer": {
         "namespace": "SDL2.Mixer",
         "raw_class": "SDL_mixerNative",
         "rsp": "sdl2-mixer.rsp",
-        "bootstrap_scope": "bootstrap-sdl2-mixer.headers.txt",
-        "full_scope": "sdl2-mixer.headers.txt",
+        "headers": "sdl2-mixer.headers.txt",
         "library_dir": "Janset.SDL2.Mixer",
     },
     "gfx": {
         "namespace": "SDL2.Gfx",
         "raw_class": "SDL2_gfxNative",
         "rsp": "sdl2-gfx.rsp",
-        "bootstrap_scope": "bootstrap-sdl2-gfx.headers.txt",
-        "full_scope": "sdl2-gfx.headers.txt",
+        "headers": "sdl2-gfx.headers.txt",
         "library_dir": "Janset.SDL2.Gfx",
     },
 }
@@ -417,6 +412,8 @@ CODEGEN_CONFIG = {
     "compat": ["compatible-codegen", "windows-types", "generate-macro-bindings"],
     "modern": ["latest-codegen", "windows-types", "generate-macro-bindings"],
 }
+
+PRODUCTION_CODEGEN_PASSES = ("compat", "modern")
 
 
 # Adapted verbatim from
@@ -968,9 +965,28 @@ def owner_mode_for_family(family: str) -> str:
     return "owner" if family in ("core", "ttf", "mixer") else "consumer"
 
 
-def scope_file_name(scope: str, family: str) -> str:
-    key = "bootstrap_scope" if scope == "bootstrap" else "full_scope"
-    return FAMILY_CONFIG[family][key]
+def production_header_list_file_name(family: str) -> str:
+    return FAMILY_CONFIG[family]["headers"]
+
+
+def postprocess_steps_for_codegen(codegen: str) -> tuple[str, ...]:
+    common_steps = (
+        "platform-delta",
+        "strip-varargs",
+        "guid-substitute",
+        "threadid-dispatch",
+        "uniform-opaque",
+    )
+    if codegen == "modern":
+        return (
+            "platform-delta",
+            "strip-varargs",
+            "libraryimport",
+            "guid-substitute",
+            "threadid-dispatch",
+            "uniform-opaque",
+        )
+    return common_steps
 
 
 def generation_exit_code(
@@ -990,7 +1006,7 @@ def generation_exit_code(
 
 def write_report(
     reports_root: pathlib.Path,
-    scope: str,
+    header_set_label: str,
     triplet: str,
     mode: str,
     selected: list[str],
@@ -1002,9 +1018,9 @@ def write_report(
     use_platform_header_shims: bool,
 ) -> None:
     reports_root.mkdir(parents=True, exist_ok=True)
-    report_path = reports_root / f"clangsharp-{scope}.md"
+    report_path = reports_root / f"clangsharp-{header_set_label}.md"
     lines = [
-        f"# ClangSharp {scope} Report",
+        f"# ClangSharp {header_set_label} Report",
         "",
         f"**Triplet:** {triplet}",
         f"**Mode:** {mode}",
@@ -1077,7 +1093,8 @@ def write_report(
     while lines and lines[-1] == "":
         lines.pop()
 
-    report_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    with report_path.open("w", encoding="utf-8", newline="\n") as report:
+        report.write("\n".join(lines) + "\n")
 
 
 def run_self_tests() -> int:
@@ -1164,14 +1181,32 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
     except RuntimeError:
         pass
 
-    if not should_validate_required_sdlh_surface(True, ["core"], "full"):
-        failures.append("required SDL.h manifest parity validation was not enabled for executed full core generation")
-    if should_validate_required_sdlh_surface(False, ["core"], "full"):
+    if not should_validate_required_sdlh_surface(True, ["core"]):
+        failures.append("required SDL.h manifest parity validation was not enabled for executed core generation")
+    if should_validate_required_sdlh_surface(False, ["core"]):
         failures.append("required SDL.h manifest parity validation was enabled during dry-run")
-    if should_validate_required_sdlh_surface(True, ["core"], "bootstrap"):
-        failures.append("required SDL.h manifest parity validation was enabled outside full scope")
-    if should_validate_required_sdlh_surface(True, ["image"], "full"):
+    if should_validate_required_sdlh_surface(True, ["image"]):
         failures.append("required SDL.h manifest parity validation was enabled without core selected")
+
+    with tempfile.TemporaryDirectory() as raw_tmp:
+        reports_root = pathlib.Path(raw_tmp)
+        report_stats = {"core": {"headers": 1, "commands": 2, "generated_files": 0}}
+        write_report(
+            reports_root,
+            "production",
+            "x64-windows-hybrid",
+            "dry-run",
+            ["core"],
+            report_stats,
+            [],
+            [],
+            [],
+            [],
+            True,
+        )
+        report_bytes = (reports_root / "clangsharp-production.md").read_bytes()
+        if b"\r\n" in report_bytes:
+            failures.append("write_report emitted CRLF line endings")
 
     try:
         parse_required_sdlh_functions(fixture + "extern DECLSPEC int SDLCALL SDL_Unexpected(void);\n", allowlist.functions)
@@ -1550,41 +1585,79 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
         if generation_exit_code([], [], 0, [accepted_warning_exit]) != 0:
             failures.append("accepted warning-only exits were counted as generation failures")
 
+    if "PRODUCTION_CODEGEN_PASSES" not in globals():
+        failures.append("PRODUCTION_CODEGEN_PASSES constant is missing")
+    elif PRODUCTION_CODEGEN_PASSES != ("compat", "modern"):
+        failures.append(f"production codegen passes must be exactly ('compat', 'modern'); got {PRODUCTION_CODEGEN_PASSES!r}")
+
     expected_family_config = {
+        "core": {
+            "namespace": "SDL2",
+            "raw_class": "SDLNative",
+            "rsp": "sdl2-core.rsp",
+            "headers": "sdl2-core.headers.txt",
+            "library_dir": "Janset.SDL2.Core",
+        },
+        "image": {
+            "namespace": "SDL2.Image",
+            "raw_class": "SDL_imageNative",
+            "rsp": "sdl2-image.rsp",
+            "headers": "sdl2-image.headers.txt",
+            "library_dir": "Janset.SDL2.Image",
+        },
         "ttf": {
             "namespace": "SDL2.Ttf",
             "raw_class": "SDL_ttfNative",
             "rsp": "sdl2-ttf.rsp",
-            "bootstrap_scope": "bootstrap-sdl2-ttf.headers.txt",
-            "full_scope": "sdl2-ttf.headers.txt",
+            "headers": "sdl2-ttf.headers.txt",
             "library_dir": "Janset.SDL2.Ttf",
         },
         "mixer": {
             "namespace": "SDL2.Mixer",
             "raw_class": "SDL_mixerNative",
             "rsp": "sdl2-mixer.rsp",
-            "bootstrap_scope": "bootstrap-sdl2-mixer.headers.txt",
-            "full_scope": "sdl2-mixer.headers.txt",
+            "headers": "sdl2-mixer.headers.txt",
             "library_dir": "Janset.SDL2.Mixer",
         },
         "gfx": {
             "namespace": "SDL2.Gfx",
             "raw_class": "SDL2_gfxNative",
             "rsp": "sdl2-gfx.rsp",
-            "bootstrap_scope": "bootstrap-sdl2-gfx.headers.txt",
-            "full_scope": "sdl2-gfx.headers.txt",
+            "headers": "sdl2-gfx.headers.txt",
             "library_dir": "Janset.SDL2.Gfx",
         },
     }
     for family, expected in expected_family_config.items():
         if FAMILY_CONFIG.get(family) != expected:
             failures.append(f"FAMILY_CONFIG[{family!r}] did not match expected S1-2 identity")
-        if PLATFORM_SENSITIVE_HEADERS.get(family) != []:
+        if family != "core" and PLATFORM_SENSITIVE_HEADERS.get(family) != []:
             failures.append(f"PLATFORM_SENSITIVE_HEADERS[{family!r}] expected empty list")
         try:
-            scope_file_name("full", family)
+            if production_header_list_file_name(family) != expected["headers"]:
+                failures.append(f"production_header_list_file_name({family!r}) did not return the production header list")
         except KeyError as exc:
-            failures.append(f"scope_file_name('full', {family!r}) raised KeyError: {exc}")
+            failures.append(f"production_header_list_file_name({family!r}) raised KeyError: {exc}")
+
+    for family, config in FAMILY_CONFIG.items():
+        if "headers" not in config:
+            failures.append(f"FAMILY_CONFIG[{family!r}] does not expose the production headers field")
+        stale_keys = sorted(set(config) & {"bootstrap_scope", "full_scope"})
+        if stale_keys:
+            failures.append(f"FAMILY_CONFIG[{family!r}] retained stale scope fields: {stale_keys}")
+
+    stale_helpers = [name for name in ("scope_file_name", "production_header_scope_file_name") if name in globals()]
+    if stale_helpers:
+        failures.append(f"stale scope helper(s) still exist: {stale_helpers}")
+
+    if "postprocess_steps_for_codegen" not in globals():
+        failures.append("postprocess_steps_for_codegen helper is missing")
+    else:
+        compat_steps = postprocess_steps_for_codegen("compat")
+        modern_steps = postprocess_steps_for_codegen("modern")
+        if "libraryimport" in compat_steps:
+            failures.append(f"compat postprocess steps included modern-only libraryimport: {compat_steps!r}")
+        if "libraryimport" not in modern_steps:
+            failures.append(f"modern postprocess steps did not include libraryimport: {modern_steps!r}")
 
     if selected_families("all") != ["core", "image"]:
         failures.append(f"selected_families('all') must stay dormant as ['core', 'image']; got {selected_families('all')!r}")
@@ -1602,7 +1675,7 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
         try:
             write_report(
                 report_root,
-                "bootstrap",
+                "production",
                 "x64-windows-hybrid",
                 "dry-run",
                 ["ttf"],
@@ -1613,7 +1686,7 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
                 [],
                 False,
             )
-            report_text = (report_root / "clangsharp-bootstrap.md").read_text(encoding="utf-8")
+            report_text = (report_root / "clangsharp-production.md").read_text(encoding="utf-8")
             if "| ttf | 1 | 2 | 3 |" not in report_text:
                 failures.append("write_report did not emit the selected ttf stats row")
             if "| core |" in report_text or "| image |" in report_text:
@@ -1629,7 +1702,7 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
             )
             write_report(
                 report_root,
-                "bootstrap",
+                "production",
                 "x64-windows-hybrid",
                 "execute",
                 ["mixer"],
@@ -1640,7 +1713,7 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
                 [accepted_warning_exit],
                 False,
             )
-            report_text = (report_root / "clangsharp-bootstrap.md").read_text(encoding="utf-8")
+            report_text = (report_root / "clangsharp-production.md").read_text(encoding="utf-8")
             if "## Accepted Warning-Only ClangSharp Exits" not in report_text:
                 failures.append("write_report did not include accepted warning-only exits section")
             if "SDL_MIXER_VERSION, SDL_MIXER_VERSION_ATLEAST" not in report_text:
@@ -1661,7 +1734,7 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
             else:
                 write_report(
                     report_root,
-                    "bootstrap",
+                    "production",
                     "x64-windows-hybrid",
                     "execute",
                     ["core"],
@@ -1672,7 +1745,7 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
                     [empty_warning_exit],
                     False,
                 )
-                report_text = (report_root / "clangsharp-bootstrap.md").read_text(encoding="utf-8")
+                report_text = (report_root / "clangsharp-production.md").read_text(encoding="utf-8")
                 if "- Output: `SDL_quit.g.cs`" not in report_text:
                     failures.append("write_report did not include accepted warning-only output paths")
                 if "- Output status: empty (accepted warning-only)" not in report_text:
@@ -1693,7 +1766,7 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
             else:
                 write_report(
                     report_root,
-                    "bootstrap",
+                    "production",
                     "x64-windows-hybrid",
                     "execute",
                     ["mixer"],
@@ -1704,7 +1777,7 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
                     [builtin_warning_exit],
                     False,
                 )
-                report_text = (report_root / "clangsharp-bootstrap.md").read_text(encoding="utf-8")
+                report_text = (report_root / "clangsharp-production.md").read_text(encoding="utf-8")
                 if "warning: undefining builtin macro [-Wbuiltin-macro-redefined]" not in report_text:
                     failures.append("write_report did not surface accepted non-macro diagnostic warnings")
 
@@ -1712,7 +1785,7 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
                 try:
                     write_report(
                         report_root,
-                        "bootstrap",
+                        "production",
                         "x64-windows-hybrid",
                         "execute",
                         ["core"],
@@ -1731,7 +1804,7 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
                 except TypeError:
                     failures.append("write_report must accept report-visible no-op generated outputs")
                 else:
-                    report_text = (report_root / "clangsharp-bootstrap.md").read_text(encoding="utf-8")
+                    report_text = (report_root / "clangsharp-production.md").read_text(encoding="utf-8")
                     if "## No-op Generated Outputs" not in report_text:
                         failures.append("write_report did not include no-op generated outputs section")
                     if "SDL_bits.g.cs" not in report_text:
@@ -1779,18 +1852,18 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
     scope_root = find_repository_root() / "spikes" / "binding-generators" / "scope"
     missing_scope_file = scope_root / "__self-test-missing-scope-sentinel__.headers.txt"
     try:
-        read_scope(missing_scope_file)
-        failures.append("read_scope did not raise for missing sentinel scope file")
+        read_header_list(missing_scope_file)
+        failures.append("read_header_list did not raise for missing sentinel header-list file")
     except FileNotFoundError as exc:
         message = str(exc)
         if "For new families" not in message:
-            failures.append(f"read_scope FileNotFoundError lacks 'For new families' hint; got: {message}")
+            failures.append(f"read_header_list FileNotFoundError lacks 'For new families' hint; got: {message}")
         if "spikes/binding-generators/scope" not in message.replace("\\", "/"):
-            failures.append(f"read_scope FileNotFoundError lacks scope directory hint; got: {message}")
+            failures.append(f"read_header_list FileNotFoundError lacks scope directory hint; got: {message}")
     except KeyError as exc:
-        failures.append(f"read_scope raised KeyError instead of friendly FileNotFoundError: {exc}")
+        failures.append(f"read_header_list raised KeyError instead of friendly FileNotFoundError: {exc}")
     except Exception as exc:
-        failures.append(f"read_scope raised unexpected exception type {type(exc).__name__}: {exc}")
+        failures.append(f"read_header_list raised unexpected exception type {type(exc).__name__}: {exc}")
 
     if failures:
         for failure in failures:
@@ -1804,12 +1877,8 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
 def main() -> int:
     parser = argparse.ArgumentParser(description="ppy-style ClangSharp spike orchestrator")
     parser.add_argument("--vcpkg-triplet", default="x64-windows-hybrid")
-    parser.add_argument("--scope", choices=["bootstrap", "full"], default="bootstrap")
     parser.add_argument("--family", choices=["core", "image", "ttf", "mixer", "gfx", "all"], default="all")
-    parser.add_argument("--codegen", choices=["compat", "modern", "both"], default="modern",
-                        help="compat = compatible-codegen (netstandard2.0/net462); modern = latest-codegen (.NET 8+); both = run two passes")
     parser.add_argument("--execute", action="store_true", help="Actually run ClangSharp; absent means print commands only")
-    parser.add_argument("--clean-output", action="store_true", help="Delete generated ClangSharp output before generating")
     parser.add_argument(
         "--use-platform-header-shims",
         action="store_true",
@@ -1836,7 +1905,7 @@ def main() -> int:
 
     try:
         headers_by_family = {
-            family: read_scope(scope_root / scope_file_name(args.scope, family))
+            family: read_header_list(scope_root / production_header_list_file_name(family))
             for family in selected
         }
     except FileNotFoundError as exc:
@@ -1846,13 +1915,13 @@ def main() -> int:
     for family, headers in headers_by_family.items():
         stats[family]["headers"] = len(headers)
 
-    codegen_passes = ["compat", "modern"] if args.codegen == "both" else [args.codegen]
+    codegen_passes = list(PRODUCTION_CODEGEN_PASSES)
 
-    if should_validate_required_sdlh_surface(args.execute, selected, args.scope):
+    if should_validate_required_sdlh_surface(args.execute, selected):
         allowlist = read_required_surface_allowlist(scope_root / "sdl2-core-sdlh-required.json")
         validate_required_surface_against_manifest(repo, allowlist)
 
-    if args.clean_output and args.execute:
+    if args.execute:
         for family in selected:
             family_generated_root = generated_root_for_family(repo, family)
             if family_generated_root.exists():
@@ -1862,7 +1931,6 @@ def main() -> int:
         print("ppy-style ClangSharp spike scaffold")
         print(f"Repository root: {repo}")
         print(f"Triplet: {args.vcpkg_triplet}")
-        print(f"Scope: {args.scope}")
         print(f"Codegen passes: {codegen_passes}")
         print(f"Mode: {mode}")
         print(f"Platform header shims: {'enabled' if args.use_platform_header_shims else 'disabled'}")
@@ -1873,7 +1941,7 @@ def main() -> int:
         for family in selected:
             headers = headers_by_family[family]
             if args.execute:
-                print(f"{family}: {len(headers)} scoped headers")
+                print(f"{family}: {len(headers)} production headers")
             for header in headers:
                 command, output_path = command_for_header(
                     repo, args.vcpkg_triplet, codegen, family, header, args.use_platform_header_shims
@@ -1919,7 +1987,7 @@ def main() -> int:
                     elif should_record_empty_generated_output(output_path, accepted, result.returncode):
                         empty_outputs.append(EmptyGeneratedOutput(header_path, output_path, command_line))
 
-    if should_validate_required_sdlh_surface(args.execute, selected, args.scope):
+    if should_validate_required_sdlh_surface(args.execute, selected):
         print("--- required SDL.h surface ---")
         for codegen in codegen_passes:
             generated_count = generate_required_sdlh_surface(repo, args.vcpkg_triplet, codegen, scope_root)
@@ -1938,8 +2006,7 @@ def main() -> int:
                 in_scope = set(headers_by_family[family])
                 for header in platform_headers:
                     if header not in in_scope:
-                        # Header not in the current scope file — bootstrap
-                        # mode for example does not include SDL_system.
+                        # Header not in the selected production header list.
                         continue
                     print(f"  multi-OS: {family}/{codegen}/{header}")
                     commands_run, platform_failures, platform_empty_outputs, platform_no_op_outputs, platform_accepted_warnings = generate_platform_specific_headers(
@@ -2057,7 +2124,7 @@ def main() -> int:
 
     write_report(
         reports_root,
-        args.scope,
+        "production",
         args.vcpkg_triplet,
         mode,
         selected,

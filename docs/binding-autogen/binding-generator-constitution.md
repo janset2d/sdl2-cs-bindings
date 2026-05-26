@@ -97,18 +97,20 @@ Every output byte is determined by these inputs alone. Output reproducibility me
 2. **Vcpkg triplet** (e.g. `x64-windows-hybrid`). CI matrix pins one triplet per RID.
 3. **Generation engine version** — ClangSharp tool version (`dotnet-tools.json`) when the spike selects ClangSharp + Roslyn postprocess; equivalent CppAst version anchor when the spike selects the CppAst single-pass alternative.
 4. **RSP files** (cross-cutting `rsp/base.rsp` + family `rsp/sdl2-<family>.rsp` + per-header `rsp/per-header/<header>.rsp`). All versionable text in git.
-5. **Scope header lists** (`scope/sdl2-<family>.headers.txt` + bootstrap variants).
+5. **Production per-family header lists** — one complete header set per active family, currently represented by `FAMILY_CONFIG[family]["headers"]` in the ClangSharp spike. Bootstrap/header-subset lists are not production inputs.
 6. **Roster JSON files** — `policy/opaque-handle-roster.json` (Pattern B handles, family-keyed schema 2.0) and `policy/flags-enum-roster.json` (`[Flags]` allow-list, family-keyed schema 2.0). Both are auditable single sources of truth for postprocess data input.
 7. **Postprocess code** — the rewriter implementations under `postprocess/` (or equivalent under the selected toolchain).
 8. **Orchestrator code** — `generate_bindings.py` (`FAMILY_CONFIG`, `PLATFORM_SENSITIVE_HEADERS`, `selected_families`, pipeline order).
 
-If none of these change, regeneration produces byte-identical output. Wall-clock fields, machine identifiers, build timestamps, or environment-derived values are **forbidden** in any committed `.g.cs` or in the per-family `.generated-stamp` (deferred to Roadmap M7 production flip).
+If none of these change, regeneration produces byte-identical output. The determinism unit is the complete selected family artifact: that family's `Generated/` root, including Compat and Modern backend projections plus every postprocess output written under that root. Wall-clock fields, machine identifiers, build timestamps, or environment-derived values are **forbidden** in any committed `.g.cs` or in the per-family `.generated-stamp` (deferred to Roadmap M7 production flip).
+
+Compat and Modern are internal backend projections of the same family artifact. Production generation always runs them together in order, not as separate CLI generation units. `libraryimport` is a Modern-only postprocess implementation detail inside that complete-family run. Production generation must not write partial bootstrap/header-subset output into committed `Generated/` roots.
 
 ### Family Isolation
 
 The pipeline guarantees three simultaneous properties:
 
-1. **Targeted-family-only writes.** `--family X --execute --clean-output` regenerates **only** `Janset.SDL2.<X>/Generated/`. Other families' directories are byte-untouched (`git status` reports zero changes outside the targeted family). `--clean-output` deletes only the selected families' Generated trees, never others.
+1. **Targeted-family-only writes.** `--family X --execute` cleans and regenerates **only** `Janset.SDL2.<X>/Generated/`. Other families' directories are byte-untouched (`git status` reports zero changes outside the targeted family). Execute-mode cleanup deletes only the selected families' Generated trees, never others.
 2. **Per-family equivalence.** Running each family individually produces the same `.g.cs` output as running `--family all` (modulo the `selected_families("all")` activation set; dormant families remain dormant on both paths).
 3. **Independent postprocess execution.** Each family's postprocess pipeline executes against that family's own Generated tree only. It never reads cross-family `.g.cs` files. The only cross-family data flow at postprocess execution time is the roster JSON pull described under §"Opaque Handles" Cross-family handle name resolution — a **data-only** pull from the single roster file, not a cross-directory file read.
 
@@ -142,9 +144,9 @@ Generation is not allowed to consume environment-derived inputs beyond the pin s
 
 Every Item-1+ slice that touches generation or postprocess MUST verify the determinism contract in its exit evidence:
 
-- **Idempotency:** regenerate twice with identical inputs; second `git diff --ignore-cr-at-eol` is empty.
-- **Family isolation:** `--family <one>` regen leaves other families' `Generated/` byte-untouched (`git status` per family directory).
-- **Per-family equivalence:** `--family all` byte-equivalent to the union of per-family runs (modulo dormant set).
+- **Complete-family idempotency:** regenerate the selected complete family artifact twice with identical inputs; second `git diff --ignore-cr-at-eol` is empty across the family's whole `Generated/` root, including Compat, Modern, and postprocess output.
+- **Family isolation:** `--family <one> --execute` cleans/regenerates only that family's complete `Generated/` root and leaves other families' roots byte-untouched (`git status` per family directory).
+- **Per-family equivalence:** `--family all` byte-equivalent to the union of per-family complete-artifact runs (modulo dormant set).
 - **Cross-family handle pull preserved:** satellite output continues to rewrite Core-owned pointer types to by-value (e.g. `SDL_Renderer*` → `SDL_Renderer` in `Janset.SDL2.Image/Generated/`).
 
 Slices that change the determinism contract itself (e.g. add a new pin-set input, change family isolation semantics) must update **this section** in the same change set, with rationale and the new verification step. Drift between the contract and the implementation is treated as a hard bug.

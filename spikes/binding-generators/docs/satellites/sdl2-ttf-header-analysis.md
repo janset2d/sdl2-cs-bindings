@@ -253,13 +253,12 @@ Existing `base.rsp` remaps (`char=byte`, `void*=nint`, `wchar_t *=nint`, `SDL_bo
     "namespace": "SDL2.Ttf",
     "raw_class": "SDL_ttfNative",
     "rsp": "sdl2-ttf.rsp",
-    "bootstrap_scope": "bootstrap-sdl2-ttf.headers.txt",
-    "full_scope": "sdl2-ttf.headers.txt",
+    "headers": "sdl2-ttf.headers.txt",
     "library_dir": "Janset.SDL2.Ttf",
 },
 ```
 
-Scope file: single entry `SDL_ttf.h`.
+Production header list: single entry `SDL_ttf.h`.
 Owner mode for `uniform-opaque`: `owner_mode = "owner" if family in ("core", "ttf") else "consumer"`. **This alone is insufficient.** The `OpaqueHandleEmitRewriter` auto-detects empty structs by name prefix `StartsWith("SDL_")` at `OpaqueHandleEmitRewriter.cs:200`. `TTF_Font` won't match — it starts with `TTF_`. The rewriter also emits handles into `namespace SDL2` at `OpaqueHandleEmitRewriter.cs:336-337`, which is wrong for satellite-owned handles that should go in `SDL2.Ttf`. A family-aware handle discovery and emit path is needed. See §8 postprocess notes for the required changes.
 
 ---

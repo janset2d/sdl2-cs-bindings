@@ -46,7 +46,7 @@ What this prototype does NOT do (out of spike scope; belongs in Roadmap M7+):
 
 ## Current Evidence Snapshot — 2026-05-24 (Priority C closure)
 
-- Regeneration command: `python spikes/binding-generators/clangsharp/generate_bindings.py --scope full --codegen both --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims`.
+- Regeneration command: `python spikes/binding-generators/clangsharp/generate_bindings.py --family all --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims`.
 - Regeneration result: byte-stable across regens (`git diff --ignore-cr-at-eol` empty); only CRLF write-noise appears in the working tree and reverts cleanly. 6-step postprocess pipeline: `platform-delta` → `strip-varargs` → `libraryimport` (Modern only) → `guid-substitute` → `threadid-dispatch` → `uniform-opaque`.
 - Build command: `dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Janset.SDL2.Image.csproj -c Release`.
 - Build result: Core + Image compile clean across `net462`, `netstandard2.0`, `net8.0`, `net9.0`, `net10.0` with 0 warnings / 0 errors. AbiTests harness builds clean across `net462`, `net8.0`, `net9.0`, `net10.0` (netstandard2.0 is library-only).
@@ -65,7 +65,7 @@ Fix before treating the outgoing Spike C branch as clean handoff material.
 
 | Item | Why it matters | Status |
 | --- | --- | --- |
-| Fail ClangSharp generation when any invocation fails | `generate_bindings.py` records ClangSharp failures but can still return success, so stale generated files can masquerade as a good run. | Fixed 2026-05-25: generation exit-code policy now returns 2 when any ClangSharp invocation fails; self-test covers the policy. The committed `clangsharp-full.md` still records the prior failed run until the next clean regeneration. |
+| Fail ClangSharp generation when any invocation fails | `generate_bindings.py` records ClangSharp failures but can still return success, so stale generated files can masquerade as a good run. | Fixed 2026-05-25: generation exit-code policy now returns 2 when any ClangSharp invocation fails; self-test covers the policy. The committed generation report is refreshed on the next clean regeneration. |
 | Rewrite Pattern B handles inside callback function-pointer signatures, or lower raw callback slots to `nint` deliberately | Modern `SDL_SetWindowHitTest` exposed `delegate* unmanaged[Cdecl]<SDL_Window*, ...>` after `SDL_Window*` method parameters were rewritten to by-value Pattern B handles. That is pointer-sized at the wire level but semantically invites pointer-to-wrapper confusion. | Fixed 2026-05-25: `OpaqueHandleEmitRewriter` now rewrites function-pointer parameter/return slots; Modern `SDL_SetWindowHitTest` emits `delegate* unmanaged[Cdecl]<SDL_Window, ...>`. |
 | Remove broken `docs/superpowers/...` references from durable docs and code comments | The Priority C design content now lives inline in the Constitution and closure docs; links to deleted/absent `docs/superpowers` files make future agents chase phantom authority. | Fixed 2026-05-25 for durable docs and code comments. Temporary review reports under `docs/temp/` intentionally keep their original reviewer text. |
 | Correct evidence wording around runtime ABI coverage | The closure evidence covers ABI-family smoke, not full 7-RID proof. | Fixed 2026-05-25: AbiTests now include `SDL_GetThreadID(SDL_Thread.Null)` host coverage; docs say "ABI-family smoke now; 7-RID proof before production flip". |
@@ -171,7 +171,7 @@ spikes/binding-generators/clangsharp/
 **Exit evidence:**
 
 - `dotnet build spikes/binding-generators/clangsharp/Janset.SDL2.ClangSharpSpike.sln -c Release` succeeds across all 5 TFMs for both Core and Image.
-- `python spikes/binding-generators/clangsharp/generate_bindings.py --scope full --codegen both --execute --clean-output` regenerates into the new locations.
+- `python spikes/binding-generators/clangsharp/generate_bindings.py --family all --execute` regenerates into the new locations and cleans selected `Generated/` roots first.
 - `git log --follow` works on the moved files.
 
 ### Slice 2 — Microsoft.CodeAnalysis postprocess: `[DllImport]` → `[LibraryImport]`

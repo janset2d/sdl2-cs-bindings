@@ -201,13 +201,12 @@ ClangSharp's `--generate-macro-bindings` handles value macros only, so the two f
     "namespace": "SDL2.Mixer",
     "raw_class": "SDL_mixerNative",
     "rsp": "sdl2-mixer.rsp",
-    "bootstrap_scope": "bootstrap-sdl2-mixer.headers.txt",
-    "full_scope": "sdl2-mixer.headers.txt",
+    "headers": "sdl2-mixer.headers.txt",
     "library_dir": "Janset.SDL2.Mixer",
 },
 ```
 
-Scope file: single entry `SDL_mixer.h`.
+Production header list: single entry `SDL_mixer.h`.
 Default consumer mode for `uniform-opaque` is **insufficient** until satellite-owned handle emission exists — `Mix_Music` at SDL_mixer.h:269 is a Mixer-owned opaque handle, and the current consumer mode only handles Core-owned handles. See §8 critical gap below.
 
 ---

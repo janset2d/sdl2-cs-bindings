@@ -89,8 +89,7 @@ spikes/binding-generators/
 │   └── reference-clones.md            # how to clone ppy + alimer references
 ├── scope/
 │   ├── sdl2-core.headers.txt          # 51 SDL2.Core headers
-│   ├── sdl2-image.headers.txt         # 1 SDL2_image header
-│   └── bootstrap-*.headers.txt        # bring-up slices (mostly unused now)
+│   └── sdl2-image.headers.txt         # 1 SDL2_image header
 ├── clangsharp/                        # ← THE ACTIVE PROTOTYPE
 │   ├── Janset.SDL2.ClangSharpSpike.slnx    # solution: postprocess + Core + Image + AbiTests
 │   ├── generate_bindings.py           # Python orchestrator (~1250 LOC)
@@ -150,7 +149,7 @@ spikes/binding-generators/
 │   └── reports/                       # evidence artifacts (NOT generated outputs)
 │       ├── iteration-2-comparison.md  # toolchain decision report
 │       ├── clangsharp-failure-buckets.md   # 8 RSP-fix iteration history
-│       ├── clangsharp-full.md         # per-header generation report (auto-written by generate_bindings.py)
+│       ├── clangsharp-production.md   # per-header production generation report (auto-written by generate_bindings.py)
 │       ├── oracle-comparison-clangsharp.md   # Legacy ClangSharp vs Cake preview report (not regenerated)
 │       └── oracle-comparison-alimer.md       # Alimer vs Cake preview (final state, not regenerated)
 └── references/                        # GITIGNORED — local clones for evidence only
@@ -290,7 +289,7 @@ The previous duplicate modern attributes are fixed in `DllImportToLibraryImportR
 Verification from this session:
 
 - `dotnet build spikes/binding-generators/clangsharp/postprocess/Janset.SDL2.PostProcess.csproj -c Release` succeeds with 0 warnings / 0 errors.
-- `python spikes/binding-generators/clangsharp/generate_bindings.py --scope full --codegen both --execute --clean-output --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims` is the Windows-local spike command when validating synthetic platform views. Latest run wrote `clangsharp-full.md` with `Platform header shims: enabled` and no empty generated outputs.
+- `python spikes/binding-generators/clangsharp/generate_bindings.py --family all --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims` is the Windows-local spike command when validating synthetic platform views. Execute mode cleans selected `Generated/` roots first and writes `clangsharp-production.md` with `Platform header shims: enabled`.
 - `dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Janset.SDL2.Image.csproj -c Release` succeeds across `net462`, `netstandard2.0`, `net8.0`, `net9.0`, and `net10.0` with 0 warnings / 0 errors.
 - `dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --family sdl2-core --family sdl2-image --write-report` writes [`output/reports/oracle-evidence-clangsharp.md`](../output/reports/oracle-evidence-clangsharp.md): family-aware raw ABI evidence for SDL2 Core and SDL2 Image, including surface counts, Cake/SDL2-CS/dynapi comparison, and constitution-risk buckets.
 - `git diff --check` reports no whitespace errors; Git may still print CRLF normalization warnings for regenerated files.
@@ -388,7 +387,7 @@ Don't trust "0 errors on net10.0" — that's a 1/5 result. Always build the full
 ```pwsh
 # Regenerate everything: compat + modern × per-family + multi-OS pass + 6-step postprocess pipeline
 # Postprocess order (see generate_bindings.py): platform-delta → strip-varargs → libraryimport (Modern only) → guid-substitute → threadid-dispatch → uniform-opaque
-python spikes/binding-generators/clangsharp/generate_bindings.py --scope full --codegen both --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
+python spikes/binding-generators/clangsharp/generate_bindings.py --family all --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
 
 # Build all 5 TFMs (the truth gate)
 dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Janset.SDL2.Image.csproj -c Release

@@ -3,7 +3,7 @@
 **Date:** 2026-05-21
 **Inputs:**
 
-- `output/reports/clangsharp-full.md` (21 failed headers, exit codes 1–21, plus two crashes)
+- Retired pre-cleanup full-scope report (21 failed headers, exit codes 1–21, plus two crashes; summarized below after the report file was removed during the family-artifact CLI cleanup)
 - `output/clangsharp/Generated/core/*.g.cs` (partial outputs from the failed run)
 - `artifacts/generated-bindings-preview/sdl2-core/` (Cake CppAst oracle, known-good shape)
 - `build/_build/Targets/GenerateBindings/ModelBuilding/` (the policy that produced the oracle)
