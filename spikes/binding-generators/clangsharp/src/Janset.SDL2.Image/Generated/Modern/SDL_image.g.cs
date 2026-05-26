@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace SDL2.Image
 {
+    [System.Flags]
     public enum IMG_InitFlags
     {
         IMG_INIT_JPG = 0x00000001,

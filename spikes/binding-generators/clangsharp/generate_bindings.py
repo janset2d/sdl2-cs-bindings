@@ -882,6 +882,7 @@ def run_postprocess(
     - 'libraryimport'     promotes DllImport -> LibraryImport per Constitution L48 backend split
     - 'platform-delta'    SDL2 platform-view pass cleanup
     - 'guid-substitute'   Slice C-C: SDL_GUID -> System.Guid (16-byte wire-identical)
+    - 'flags-detect'      adds [Flags] by name suffix + family-keyed allow-list
     - 'clong-dispatch'    C long / unsigned long hybrid TFM emit
     - 'uniform-opaque'    Slice C-B Pattern B opaque handle emit + pointer-to-by-value rewrites
     codegen selects the Generated/<Codegen>/ subtree to operate on.
@@ -989,6 +990,7 @@ def postprocess_steps_for_codegen(codegen: str) -> tuple[str, ...]:
     common_steps = (
         "platform-delta",
         "strip-varargs",
+        "flags-detect",
         "guid-substitute",
         "clong-dispatch",
         "uniform-opaque",
@@ -998,6 +1000,7 @@ def postprocess_steps_for_codegen(codegen: str) -> tuple[str, ...]:
             "platform-delta",
             "strip-varargs",
             "libraryimport",
+            "flags-detect",
             "guid-substitute",
             "clong-dispatch",
             "uniform-opaque",
@@ -1683,6 +1686,10 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
             failures.append(f"compat postprocess steps included modern-only libraryimport: {compat_steps!r}")
         if "libraryimport" not in modern_steps:
             failures.append(f"modern postprocess steps did not include libraryimport: {modern_steps!r}")
+        if compat_steps.index("flags-detect") != compat_steps.index("strip-varargs") + 1:
+            failures.append(f"compat postprocess steps did not place flags-detect after strip-varargs: {compat_steps!r}")
+        if modern_steps.index("flags-detect") != modern_steps.index("libraryimport") + 1:
+            failures.append(f"modern postprocess steps did not place flags-detect after libraryimport: {modern_steps!r}")
 
     if selected_families("all") != ["core", "image"]:
         failures.append(f"selected_families('all') must stay dormant as ['core', 'image']; got {selected_families('all')!r}")
@@ -2102,6 +2109,19 @@ def main() -> int:
             if exit_code != 0:
                 postprocess_failures += 1
                 print(f"WARNING: libraryimport postprocess for {family} returned exit {exit_code}")
+
+    # Item 1 S1-6 [Flags] auto-decoration: name-suffix + family-keyed roster
+    # allow-list. Applied to both Compat and Modern because [Flags] is enum
+    # metadata, not codegen-specific. Runs after libraryimport so Modern sees the
+    # final attribute shape; runs before guid-substitute for readability.
+    if args.execute:
+        print("--- postprocess: flags-detect (all codegens) ---")
+        for codegen in codegen_passes:
+            for family in selected:
+                exit_code = run_postprocess(repo, family, spike_root, "flags-detect", codegen)
+                if exit_code != 0:
+                    postprocess_failures += 1
+                    print(f"WARNING: flags-detect postprocess for {family}/{codegen} returned exit {exit_code}")
 
     # Slice C-C SDL_GUID substitution: removes the generated `partial struct
     # SDL_GUID` (Uint8 data[16]) and rewrites every reference to System.Guid

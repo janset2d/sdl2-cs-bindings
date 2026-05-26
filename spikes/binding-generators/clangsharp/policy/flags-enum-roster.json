@@ -1,0 +1,63 @@
+{
+  "schema_version": "2.0",
+  "last_audited": "2026-05-26",
+  "audit_method": "Name-suffix + manual allow-list per Constitution \"Enums\" auto-decoration policy. Power-of-two value heuristic rejected because it can false-positive SDL_bool and is not peer-validated.",
+  "families": {
+    "core": {
+      "library_version": "2.32.10",
+      "last_audited": "2026-05-26",
+      "source": "SDL2 release headers + Constitution enum policy + alimer-bindings-sdl hardcoded bitmask precedent",
+      "allow_list": [
+        {
+          "name": "SDL_Keymod",
+          "header": "SDL_keycode.h",
+          "reason": "Composite-alias bitmask; KMOD_CTRL combines KMOD_LCTRL and KMOD_RCTRL."
+        },
+        {
+          "name": "SDL_BlendMode",
+          "header": "SDL_blendmode.h",
+          "reason": "Bitmask values aligned with alimer-bindings-sdl precedent."
+        },
+        {
+          "name": "SDL_GLcontextFlag",
+          "header": "SDL_video.h",
+          "reason": "Bitmask context flags; included by policy allow-list for predictability."
+        },
+        {
+          "name": "SDL_RendererFlip",
+          "header": "SDL_render.h",
+          "reason": "Composable renderer flip flags."
+        },
+        {
+          "name": "SDL_TextureModulate",
+          "header": "SDL_render.h",
+          "reason": "Composable texture modulation flags."
+        }
+      ]
+    },
+    "image": {
+      "library_version": "2.8.8",
+      "last_audited": "2026-05-26",
+      "source": "SDL2_image release headers; IMG_InitFlags is intentionally covered by suffix rule, not allow-list",
+      "allow_list": []
+    },
+    "ttf": {
+      "library_version": "2.24.0",
+      "last_audited": "2026-05-26",
+      "source": "SDL2_ttf release headers; no non-suffix flag enum allow-list entries identified for this slice",
+      "allow_list": []
+    },
+    "mixer": {
+      "library_version": "2.8.1",
+      "last_audited": "2026-05-26",
+      "source": "SDL2_mixer release headers; MIX_InitFlags is intentionally covered by suffix rule, not allow-list",
+      "allow_list": []
+    },
+    "gfx": {
+      "library_version": "1.0.4",
+      "last_audited": "2026-05-26",
+      "source": "SDL2_gfx release headers; no non-suffix flag enum allow-list entries identified for this slice",
+      "allow_list": []
+    }
+  }
+}

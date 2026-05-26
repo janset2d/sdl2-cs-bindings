@@ -250,6 +250,7 @@ namespace SDL2
         SDLK_ENDCALL = (SDL_SCANCODE_ENDCALL | (1 << 30)),
     }
 
+    [System.Flags]
     public enum SDL_Keymod
     {
         KMOD_NONE = 0x0000,

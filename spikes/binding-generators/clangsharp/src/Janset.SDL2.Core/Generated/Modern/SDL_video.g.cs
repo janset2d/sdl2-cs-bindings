@@ -18,6 +18,7 @@ namespace SDL2
         public nint driverdata;
     }
 
+    [System.Flags]
     public enum SDL_WindowFlags
     {
         SDL_WINDOW_FULLSCREEN = 0x00000001,
@@ -133,6 +134,7 @@ namespace SDL2
         SDL_GL_CONTEXT_PROFILE_ES = 0x0004,
     }
 
+    [System.Flags]
     public enum SDL_GLcontextFlag
     {
         SDL_GL_CONTEXT_DEBUG_FLAG = 0x0001,

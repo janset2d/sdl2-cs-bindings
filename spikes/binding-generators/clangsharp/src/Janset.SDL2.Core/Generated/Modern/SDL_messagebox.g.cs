@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace SDL2
 {
+    [System.Flags]
     public enum SDL_MessageBoxFlags
     {
         SDL_MESSAGEBOX_ERROR = 0x00000010,
@@ -12,6 +13,7 @@ namespace SDL2
         SDL_MESSAGEBOX_BUTTONS_RIGHT_TO_LEFT = 0x00000100,
     }
 
+    [System.Flags]
     public enum SDL_MessageBoxButtonFlags
     {
         SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT = 0x00000001,

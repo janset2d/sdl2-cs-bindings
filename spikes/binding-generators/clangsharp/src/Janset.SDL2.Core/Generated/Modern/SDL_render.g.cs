@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace SDL2
 {
+    [System.Flags]
     public enum SDL_RendererFlags
     {
         SDL_RENDERER_SOFTWARE = 0x00000001,
@@ -59,6 +60,7 @@ namespace SDL2
         SDL_TEXTUREACCESS_TARGET,
     }
 
+    [System.Flags]
     public enum SDL_TextureModulate
     {
         SDL_TEXTUREMODULATE_NONE = 0x00000000,
@@ -66,6 +68,7 @@ namespace SDL2
         SDL_TEXTUREMODULATE_ALPHA = 0x00000002,
     }
 
+    [System.Flags]
     public enum SDL_RendererFlip
     {
         SDL_FLIP_NONE = 0x00000000,

@@ -528,6 +528,7 @@ Rules:
 
 Known Stage 1 flag enums:
 
+- **SDL2.Core** (decorated by `Flags` suffix): `SDL_MessageBoxFlags`, `SDL_MessageBoxButtonFlags`, `SDL_RendererFlags`, `SDL_WindowFlags`.
 - **SDL2.Core** (decorated by allow-list match): `SDL_Keymod`, `SDL_BlendMode`, `SDL_GLcontextFlag`, `SDL_RendererFlip`, `SDL_TextureModulate`.
 - **SDL2.Image** (decorated by `Flags` suffix): `IMG_InitFlags`.
 - **SDL2.Mixer** (decorated by `Flags` suffix): `MIX_InitFlags`.
@@ -617,7 +618,7 @@ Resolved or intentionally quarantined categories:
 4. `wchar_t*` and CppAst-erased HID wide-string pointers map to opaque `nint` storage rather than false `int*` / `char*` signatures.
 5. `SDL_WINAPI_FAMILY_PHONE` is classified as a platform-control macro and is not emitted as public API.
 6. SDL2 `SDL_bool` is int-backed.
-7. Known bitmask enums — `SDL_Keymod`, `SDL_BlendMode`, `SDL_GLcontextFlag`, `SDL_RendererFlip`, `SDL_TextureModulate` — are designated for `[Flags]` decoration per §"Enums" auto-decoration policy. Emission is delivered by Item 1's `flags-detect` postprocess step (see [`spikes/binding-generators/docs/items/item-1-per-library-generation-spec.md`](../../spikes/binding-generators/docs/items/item-1-per-library-generation-spec.md) §5.4 and the Roadmap §Item 1).
+7. Known bitmask enums qualified by the `Flags` suffix or family allow-list are designated for `[Flags]` decoration per §"Enums" auto-decoration policy. Emission is delivered by Item 1's `flags-detect` postprocess step (see [`spikes/binding-generators/docs/items/item-1-per-library-generation-spec.md`](../../spikes/binding-generators/docs/items/item-1-per-library-generation-spec.md) §5.4 and the Roadmap §Item 1).
 
 Variadic fmt-only imports are not a P0 ABI blocker when clearly documented and reported as mapped variadics, but they remain a policy/reporting cleanup item before production flip.
 

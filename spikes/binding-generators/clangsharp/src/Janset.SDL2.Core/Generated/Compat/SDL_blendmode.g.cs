@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 
 namespace SDL2
 {
+    [System.Flags]
     public enum SDL_BlendMode
     {
         SDL_BLENDMODE_NONE = 0x00000000,

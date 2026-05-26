@@ -6,6 +6,7 @@ using Microsoft.CodeAnalysis.CSharp;
 //   dotnet run --project postprocess -- libraryimport      <input-dir> [<output-dir>]
 //   dotnet run --project postprocess -- platform-delta     <input-dir> [<output-dir>]
 //   dotnet run --project postprocess -- guid-substitute    <input-dir> [<output-dir>]
+//   dotnet run --project postprocess -- flags-detect       <input-dir> [<output-dir>]
 //   dotnet run --project postprocess -- clong-dispatch     <input-dir> [<output-dir>]
 //   dotnet run --project postprocess -- uniform-opaque     <input-dir> [<output-dir>] [--owner-mode owner|consumer] [--handles-namespace namespace]
 //
@@ -22,6 +23,10 @@ using Microsoft.CodeAnalysis.CSharp;
 //                     and rewrites every reference to System.Guid. Wire size is
 //                     bit-identical (both 16 bytes); see GuidSubstitutionRewriter
 //                     for the ABI trade-off rationale.
+// flags-detect      : Item 1 S1-6 — adds [System.Flags] to enum declarations
+//                     matching the name-suffix rule (EndsWith("Flags")) or the
+//                     family-keyed allow-list in policy/flags-enum-roster.json.
+//                     Value-pattern blind by design; SDL_bool must not qualify.
 // clong-dispatch    : Roslyn node-level emit for C `long` / `unsigned long` raw ABI
 //                     signatures. Covers SDL_ThreadID family (Core) and TTF C `long`
 //                     surface (dormant until Item 4 activates TTF in --family all).
@@ -47,9 +52,9 @@ if (args is ["--self-test"])
     return PostProcessSelfTests.Run();
 }
 
-if (args.Length < 2 || args[0] is not ("strip-varargs" or "libraryimport" or "platform-delta" or "guid-substitute" or "clong-dispatch" or "uniform-opaque"))
+if (args.Length < 2 || args[0] is not ("strip-varargs" or "libraryimport" or "platform-delta" or "guid-substitute" or "flags-detect" or "clong-dispatch" or "uniform-opaque"))
 {
-    Console.Error.WriteLine("usage: dotnet run --project postprocess -- <strip-varargs|libraryimport|platform-delta|guid-substitute|clong-dispatch|uniform-opaque> <input-dir> [<output-dir>] or --self-test");
+    Console.Error.WriteLine("usage: dotnet run --project postprocess -- <strip-varargs|libraryimport|platform-delta|guid-substitute|flags-detect|clong-dispatch|uniform-opaque> <input-dir> [<output-dir>] or --self-test");
     return 1;
 }
 
@@ -117,6 +122,18 @@ switch (mode)
     case "guid-substitute":
     {
         var r = new GuidSubstitutionRewriter();
+        rewriter = r;
+        hasChanges = () => r.AnyChanges;
+        resetRewriter = r.Reset;
+        break;
+    }
+    case "flags-detect":
+    {
+        var rosterPath = FlagsEnumRosterLoader.ResolveRosterPath();
+        var family = ResolveFamilyFromOutputDir(outputDir);
+        var allowList = FlagsEnumRosterLoader.LoadForFamily(rosterPath, family);
+        Console.WriteLine($"flags-detect: family={family}, allow-list size={allowList.Count}");
+        var r = new FlagsAttributeRewriter(allowList);
         rewriter = r;
         hasChanges = () => r.AnyChanges;
         resetRewriter = r.Reset;
@@ -216,6 +233,33 @@ static string ResolveOpaqueHandleRosterPath(string inputDir)
     throw new FileNotFoundException(
         $"Could not locate opaque-handle-roster.json by walking ancestors of '{inputDir}'. " +
         "Expected at <repo>/spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json.");
+}
+
+static string ResolveFamilyFromOutputDir(string outputDir)
+{
+    var directory = new DirectoryInfo(Path.GetFullPath(outputDir));
+    while (directory is not null)
+    {
+        var family = directory.Name switch
+        {
+            "Janset.SDL2.Core" => "core",
+            "Janset.SDL2.Image" => "image",
+            "Janset.SDL2.Ttf" => "ttf",
+            "Janset.SDL2.Mixer" => "mixer",
+            "Janset.SDL2.Gfx" => "gfx",
+            _ => null,
+        };
+
+        if (family is not null)
+        {
+            return family;
+        }
+
+        directory = directory.Parent;
+    }
+
+    throw new InvalidOperationException(
+        $"Could not resolve SDL2 family from output directory '{outputDir}'. Expected path to contain one of Janset.SDL2.Core/Image/Ttf/Mixer/Gfx.");
 }
 
 static string? ParseOptionValue(string[] arguments, string optionName)

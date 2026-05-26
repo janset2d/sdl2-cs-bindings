@@ -3180,7 +3180,7 @@ Only if Task 5.12.2 reported a pure formatting diff in Core Generated/.
 
 ## S1-6 — FlagsAttributeRewriter (new 7th pipeline step)
 
-**Goal:** New `FlagsAttributeRewriter` adds `[Flags]` to enums by **name-suffix + family-keyed allow-list** (alimer-style; spec §5.4). New `flags-detect` pipeline step lands between `libraryimport` and `guid-substitute`. New `policy/flags-enum-roster.json` carries the family-keyed allow-list. Core regen gains `[Flags]` on 5 Stage 1 bitmask enums (intentional Constitution alignment, see §6 success criterion #1 carve-out). Image regen gains `[Flags]` on `IMG_InitFlags` (delivers Item 2 success criterion #1 as side effect). **`SDL_bool` MUST NOT gain `[Flags]`** — this is the headline test that validates Option B rejection of value-pattern heuristics.
+**Goal:** New `FlagsAttributeRewriter` adds `[Flags]` to enums by **name-suffix + family-keyed allow-list** (alimer-style; spec §5.4). New `flags-detect` pipeline step lands between `libraryimport` and `guid-substitute`. New `policy/flags-enum-roster.json` carries the family-keyed allow-list. Core regen gains `[Flags]` on every Core enum qualified by §5.4: `SDL_MessageBoxFlags`, `SDL_MessageBoxButtonFlags`, `SDL_RendererFlags`, and `SDL_WindowFlags` via suffix rule; `SDL_Keymod`, `SDL_BlendMode`, `SDL_GLcontextFlag`, `SDL_RendererFlip`, and `SDL_TextureModulate` via allow-list. Image regen gains `[Flags]` on `IMG_InitFlags` (delivers Item 2 success criterion #1 as side effect). **`SDL_bool` MUST NOT gain `[Flags]`** — this is the headline test that validates Option B rejection of value-pattern heuristics.
 
 **Spec sections:** §5.4 (`[Flags]` detection — new 7th postprocess step), §6 success criterion #1 (carve-out for `[Flags]` additions).
 **Constitution sections:** §"Enums" (auto-decoration policy: name-suffix + allow-list; heuristics over bit values alone rejected); §"Generation Determinism Contract" §Determinism Inputs (roster JSON is single source of truth for postprocess data input).
@@ -3669,11 +3669,14 @@ Only if Task 5.12.2 reported a pure formatting diff in Core Generated/.
 - [ ] **Step 6.8.2: Inspect Core diff — expected [Flags] additions**
 
   ```pwsh
-  git diff --ignore-cr-at-eol spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/ | Select-String -Pattern "^\+.*\[Flags\]" | ForEach-Object { $_.Line }
+  git diff --ignore-cr-at-eol spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/ | Select-String -Pattern "^\+.*\[(System\.)?Flags\]" | ForEach-Object { $_.Line }
   ```
 
-  Expected output: exactly the `[Flags]` additions on these enums (each appears in both Compat and Modern trees, so 10 lines total):
+  Expected output: exactly the `[Flags]` additions on these Core enums (each appears in both Compat and Modern trees, so 18 lines total):
+  - `SDL_MessageBoxFlags` (suffix rule) — `SDL_messagebox.g.cs`
+  - `SDL_MessageBoxButtonFlags` (suffix rule) — `SDL_messagebox.g.cs`
   - `SDL_RendererFlags` (suffix rule) — `SDL_render.g.cs`
+  - `SDL_WindowFlags` (suffix rule) — `SDL_video.g.cs`
   - `SDL_Keymod` (allow-list) — `SDL_keycode.g.cs`
   - `SDL_BlendMode` (allow-list) — `SDL_blendmode.g.cs`
   - `SDL_GLcontextFlag` (allow-list) — `SDL_video.g.cs`
@@ -3686,12 +3689,12 @@ Only if Task 5.12.2 reported a pure formatting diff in Core Generated/.
   git diff --ignore-cr-at-eol spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/ | Select-String -Pattern "SDL_bool" -Context 3,3
   ```
 
-  Expected: 0 matches OR matches only show context lines without any `+[Flags]` line on or adjacent to `SDL_bool`. If `+[Flags]` appears near `SDL_bool` — **CRITICAL BUG**, the heuristic incorrectly decorated SDL_bool. Investigate immediately.
+  Expected: 0 matches OR matches only show context lines without any `+[Flags]` / `+[System.Flags]` line on or adjacent to `SDL_bool`. If either appears near `SDL_bool` — **CRITICAL BUG**, the heuristic incorrectly decorated SDL_bool. Investigate immediately.
 
 - [ ] **Step 6.8.4: Confirm no other content changes**
 
   ```pwsh
-  git diff --ignore-cr-at-eol spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/ | Select-String -Pattern "^\+" | Where-Object { $_ -notmatch "\[Flags\]" -and $_ -notmatch "^\+\+\+" }
+  git diff --ignore-cr-at-eol spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/ | Select-String -Pattern "^\+" | Where-Object { $_ -notmatch "\[(System\.)?Flags\]" -and $_ -notmatch "^\+\+\+" }
   ```
 
   Expected: 0 lines (no other added content). If any: the rewriter is touching unintended areas — investigate.
@@ -3704,7 +3707,7 @@ Only if Task 5.12.2 reported a pure formatting diff in Core Generated/.
   git diff --ignore-cr-at-eol spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Generated/
   ```
 
-  Expected: exactly 2 `+[Flags]` additions on `IMG_InitFlags` (one in `Generated/Compat/SDL_image.g.cs`, one in `Generated/Modern/SDL_image.g.cs`). No other content changes.
+  Expected: exactly 2 `+[Flags]` / `+[System.Flags]` additions on `IMG_InitFlags` (one in `Generated/Compat/SDL_image.g.cs`, one in `Generated/Modern/SDL_image.g.cs`). No other content changes.
 
   This delivers Item 2 success criterion #1 (`IMG_InitFlags` emits with `[Flags]` in both Compat and Modern) as a side effect of Item 1.
 
@@ -3757,8 +3760,11 @@ See "Per-slice common requirements" §Common: Slopwatch. No file deletions in th
 
   Audited [Flags] attribute additions per spec §6 success criterion #1 carve-out:
 
-  Core (5 enums; both Compat + Modern trees):
+  Core (9 enums; both Compat + Modern trees):
+  - SDL_MessageBoxFlags (suffix rule)
+  - SDL_MessageBoxButtonFlags (suffix rule)
   - SDL_RendererFlags (suffix rule)
+  - SDL_WindowFlags (suffix rule)
   - SDL_Keymod (allow-list — composite-alias bitmask)
   - SDL_BlendMode (allow-list — alimer-precedent)
   - SDL_GLcontextFlag (allow-list — Stage 1 flag)
@@ -3785,134 +3791,13 @@ See "Per-slice common requirements" §Common: Slopwatch. No file deletions in th
 - ✓ `policy/flags-enum-roster.json` valid family-keyed schema 2.0.
 - ✓ `FlagsAttributeRewriter.cs` + `FlagsEnumRosterLoader.cs` created.
 - ✓ Program.cs `case "flags-detect"` wired; generate_bindings.py pipeline updated.
-- ✓ 7 self-test fixtures PASS (suffix, allow-list, SDL_bool blocked, sequential blocked, idempotent, case-sensitivity).
-- ✓ Core regen adds `[Flags]` to exactly 5 enums (suffix + 4 allow-list); no other content changes.
+- ✓ 8 self-test fixtures PASS (suffix, allow-list, SDL_bool blocked, sequential blocked, idempotent, trivia preservation, case-sensitivity, image empty allow-list).
+- ✓ Core regen adds `[Flags]` to exactly 9 enums (4 suffix + 5 allow-list); no other content changes.
 - ✓ Image regen adds `[Flags]` to `IMG_InitFlags` (delivers Item 2 criterion #1).
 - ✓ `SDL_bool` did NOT gain `[Flags]` (Option B safety verified).
 - ✓ Determinism Contract D.1–D.5 PASS.
 - ✓ Slopwatch clean.
 - ✓ Two commits (rewriter+pipeline; regen with [Flags] additions).
-
-   ```json
-   {
-     "schema_version": "2.0",
-     "last_audited": "2026-05-25",
-     "audit_method": "Name-suffix + manual allow-list per Constitution §\"Enums\" auto-decoration policy. Power-of-two value heuristic rejected (Constitution L448 friction; SDL_bool false-positive; no peer validation).",
-     "families": {
-       "core": {
-         "library_version": "2.32.10",
-         "allow_list": [
-           {"name": "SDL_Keymod", "header": "SDL_keycode.h",
-            "reason": "Composite-alias bitmask (KMOD_CTRL = KMOD_LCTRL | KMOD_RCTRL); Constitution Stage 1 flag."},
-           {"name": "SDL_BlendMode", "header": "SDL_blendmode.h",
-            "reason": "Bitmask via SDL_BLENDMODE_* values; aligned with alimer-bindings-sdl precedent."},
-           {"name": "SDL_GLcontextFlag", "header": "SDL_video.h",
-            "reason": "Pure power-of-two bitmask but caught by allow-list for predictability; Constitution Stage 1 flag."},
-           {"name": "SDL_RendererFlip", "header": "SDL_render.h",
-            "reason": "Bitwise composable flip flags; Constitution Stage 1 flag."},
-           {"name": "SDL_TextureModulate", "header": "SDL_render.h",
-            "reason": "Bitmask via SDL_TEXTUREMODULATE_NONE/COLOR/ALPHA — composable color+alpha modulation."}
-         ]
-       },
-       "image": { "library_version": "2.8.8", "allow_list": [] },
-       "ttf":   { "library_version": "2.24.0", "allow_list": [] },
-       "mixer": { "library_version": "2.8.1", "allow_list": [] },
-       "gfx":   { "library_version": "1.0.4", "allow_list": [] }
-     }
-   }
-   ```
-
-1. **Create `spikes/binding-generators/clangsharp/postprocess/FlagsAttributeRewriter.cs`:**
-
-   ```csharp
-   internal sealed class FlagsAttributeRewriter : CSharpSyntaxRewriter
-   {
-       private readonly HashSet<string> _allowList;
-
-       public FlagsAttributeRewriter(HashSet<string> allowList)
-       {
-           _allowList = new HashSet<string>(allowList, StringComparer.Ordinal);
-       }
-
-       public bool AnyChanges { get; private set; }
-       public void Reset() => AnyChanges = false;
-
-       public override SyntaxNode? VisitEnumDeclaration(EnumDeclarationSyntax node)
-       {
-           if (AlreadyHasFlags(node)) return node;
-           var name = node.Identifier.ValueText;
-           var qualifies = name.EndsWith("Flags", StringComparison.Ordinal) || _allowList.Contains(name);
-           if (!qualifies) return node;
-
-           AnyChanges = true;
-           return node.AddAttributeLists(BuildFlagsAttributeList());
-       }
-
-       private static bool AlreadyHasFlags(EnumDeclarationSyntax node) =>
-           node.AttributeLists
-               .SelectMany(al => al.Attributes)
-               .Any(attr => attr.Name.ToString() is "Flags" or "FlagsAttribute" or "System.FlagsAttribute");
-
-       // BuildFlagsAttributeList: emits `[Flags]` via SyntaxFactory.AttributeList(...).
-       // Roster loading via static FlagsEnumRosterLoader.LoadForFamily(rosterPath, family) — mirrors
-       // OpaqueHandleEmitRewriter.LoadRoster shape (family-keyed parse).
-   }
-   ```
-
-   The rewriter is value-pattern-blind: no `ExtractExplicitNumericValues`, no power-of-two test, no rule #5 about distinct non-zero values. Detection is purely on `node.Identifier.ValueText` against `EndsWith("Flags")` ∪ allow-list.
-
-2. **Wire into `Program.cs`:**
-   - Add `"flags-detect"` to the mode allowlist at L49 + the usage banner at L51.
-   - Add a `case "flags-detect"` block: resolve roster path via the same ancestor-walk as `uniform-opaque`'s `ResolveOpaqueHandleRosterPath`; load family-scoped allow-list via `FlagsEnumRosterLoader.LoadForFamily(rosterPath, family)`. Family is detected from the input directory path (`/Janset.SDL2.{Core,Image,Ttf,Mixer,Gfx}/`).
-
-3. **Wire into `generate_bindings.py` pipeline order** — insert after `libraryimport` (applies to both Compat and Modern; `[Flags]` is enum metadata, not codegen-specific):
-
-   ```python
-   if args.execute:
-       print("--- postprocess: flags-detect (all codegens) ---")
-       for codegen in codegen_passes:
-           for family in selected:
-               exit_code = run_postprocess(repo, family, spike_root, "flags-detect", codegen)
-               if exit_code != 0:
-                   postprocess_failures += 1
-                   print(f"WARNING: flags-detect postprocess for {family}/{codegen} returned exit {exit_code}")
-   ```
-
-   Position: after `libraryimport` block (L1206-1212), before `guid-substitute` block (L1221-1228).
-
-4. **Self-test fixture cases** (postprocess project self-test or manual smoke):
-   - `IMG_InitFlags` enum → gets `[Flags]` via **suffix rule** (regardless of value pattern).
-   - `MIX_InitFlags` enum → gets `[Flags]` via **suffix rule**.
-   - `SDL_Keymod` enum with composite-alias members (`KMOD_CTRL = KMOD_LCTRL | KMOD_RCTRL`) → gets `[Flags]` via **allow-list rule** (Core entry).
-   - `SDL_bool` enum (`SDL_FALSE = 0, SDL_TRUE = 1`) → does NOT get `[Flags]` (no suffix match; not in allow-list). **Critical** — this is the test that validates the Option B rejection of value-pattern heuristics.
-   - Sequential int enum (`SDL_HitTestResult` with `SDL_HITTEST_NORMAL`, `_DRAGGABLE`, etc., no explicit values) → does NOT get `[Flags]` (no suffix; not in allow-list).
-   - Already-`[Flags]` enum → unchanged (idempotent).
-   - Enum with no allow-list family loaded → only suffix rule fires.
-
-5. **Core regen check** — confirm the expected `[Flags]` additions and nothing else:
-   - Regen: `python generate_bindings.py --family all --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims`.
-   - Expected Core diff (both `Generated/Compat/` and `Generated/Modern/`):
-     - `SDL_render.g.cs`: `[Flags]` added to `SDL_RendererFlags` (suffix), `SDL_RendererFlip` (allow-list), `SDL_TextureModulate` (allow-list).
-     - `SDL_keycode.g.cs`: `[Flags]` added to `SDL_Keymod` (allow-list).
-     - `SDL_video.g.cs`: `[Flags]` added to `SDL_GLcontextFlag` (allow-list).
-     - `SDL_blendmode.g.cs`: `[Flags]` added to `SDL_BlendMode` (allow-list).
-     - **No `[Flags]` added to `SDL_bool`** (validates Option B safety) — verify by grepping the diff.
-     - No other diff content (verify byte-equivalence outside the `[Flags]` lines).
-   - Expected Image diff: `[Flags]` added to `IMG_InitFlags` in both `Generated/Compat/SDL_image.g.cs` and `Generated/Modern/SDL_image.g.cs`. Delivers Item 2 success criterion #1.
-
-**Exit evidence:**
-
-- `dotnet build spikes/binding-generators/clangsharp/postprocess/Janset.SDL2.PostProcess.csproj -c Release` clean.
-- Self-test fixtures pass (7 cases above).
-- `policy/flags-enum-roster.json` valid JSON, schema_version 2.0, family-keyed.
-- Core regen diff matches the enumerated Stage 1 `[Flags]` additions; no other changes. `git diff` filtered through `grep -E "^\+.*\[Flags\]"` enumerates exactly the expected lines.
-- Image regen diff shows `[Flags]` on `IMG_InitFlags` only.
-- `SDL_bool` regen diff is empty — heuristic does NOT decorate it.
-
-**Commit message shape:**
-
-- Commit 1: `feat(spike): add FlagsAttributeRewriter + flags-detect postprocess step (name-suffix + family-keyed roster allow-list)`.
-- Commit 2: `chore(spike): regenerate Core+Image after flags-detect (Stage 1 bitmask enums gain [Flags])` — covers the audited regen delta; closes Item 2 success criterion #1.
 
 ---
 
@@ -4156,7 +4041,8 @@ Choose Option A (matches memory `project_refactoring_doc_lifecycle`).
   All 7 slices (S1-1 through S1-7) shipped. Spec §6 success criteria evidence:
 
   #1  --family all byte-identical EXCEPT audited [Flags] additions per §5.4
-        (SDL_RendererFlags, SDL_Keymod, SDL_BlendMode, SDL_GLcontextFlag,
+        (SDL_MessageBoxFlags, SDL_MessageBoxButtonFlags, SDL_RendererFlags,
+         SDL_WindowFlags, SDL_Keymod, SDL_BlendMode, SDL_GLcontextFlag,
          SDL_RendererFlip, SDL_TextureModulate, IMG_InitFlags) — PASS
   #2  --family core + --family image sequential == --family all  — PASS
   #3  Multi-TFM build clean (5 TFMs × 4 projects)                — PASS
@@ -4206,7 +4092,7 @@ Choose Option A (matches memory `project_refactoring_doc_lifecycle`).
 ```
 | Success criterion | Verification | Status |
 |---|---|---|
-| #1 --family all byte-identical to HEAD (EXCEPT audited [Flags] additions per §5.4) | git diff --ignore-cr-at-eol shows ONLY [Flags] attribute additions on SDL_RendererFlags / SDL_Keymod / SDL_BlendMode / SDL_GLcontextFlag / SDL_RendererFlip / SDL_TextureModulate / IMG_InitFlags; no other content changes | ☐ |
+| #1 --family all byte-identical to HEAD (EXCEPT audited [Flags] additions per §5.4) | git diff --ignore-cr-at-eol shows ONLY [Flags] attribute additions on SDL_MessageBoxFlags / SDL_MessageBoxButtonFlags / SDL_RendererFlags / SDL_WindowFlags / SDL_Keymod / SDL_BlendMode / SDL_GLcontextFlag / SDL_RendererFlip / SDL_TextureModulate / IMG_InitFlags; no other content changes | ☐ |
 | #2 --family core + --family image == --family all | sequential regen diff empty | ☐ |
 | #3 Multi-TFM build clean | dotnet build → 0/0 across 5 TFMs | ☐ |
 | #4 Oracle 5-family report, 0 findings on core+image | report attached | ☐ |

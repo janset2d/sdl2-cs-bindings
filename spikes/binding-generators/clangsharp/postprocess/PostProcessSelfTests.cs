@@ -32,6 +32,7 @@ internal static unsafe partial class SDLNative
         CheckClongParameterDispatch(failures);
         CheckClongSignedReturnDispatch(failures);
         CheckClongThreadIdStructuralDispatch(failures);
+        CheckFlagsAttributeDetection(failures);
 
         if (failures.Count > 0)
         {
@@ -614,6 +615,143 @@ namespace SDL2.Ttf
         if (!handlesContent.Contains("public readonly partial struct TTF_Font", StringComparison.Ordinal))
         {
             failures.Add("BuildHandlesFileContent did not emit Pattern B struct for TTF_Font");
+        }
+    }
+
+    private static void CheckFlagsAttributeDetection(List<string> failures)
+    {
+        var coreAllowList = FlagsEnumRosterLoader.LoadForFamily(
+            FlagsEnumRosterLoader.ResolveRosterPath(),
+            "core");
+
+        AssertFlagsDecoration(
+            "IMG_InitFlags",
+            "        IMG_INIT_JPG = 0x00000001,\n        IMG_INIT_PNG = 0x00000002,",
+            new HashSet<string>(StringComparer.Ordinal),
+            expectFlags: true,
+            "FlagsAttributeRewriter suffix rule: IMG_InitFlags",
+            failures);
+
+        AssertFlagsDecoration(
+            "SDL_Keymod",
+            "        KMOD_NONE = 0x0000,\n        KMOD_LSHIFT = 0x0001,\n        KMOD_CTRL = KMOD_LCTRL | KMOD_RCTRL,",
+            coreAllowList,
+            expectFlags: true,
+            "FlagsAttributeRewriter allow-list rule: SDL_Keymod",
+            failures);
+
+        AssertFlagsDecoration(
+            "SDL_bool",
+            "        SDL_FALSE = 0,\n        SDL_TRUE = 1,",
+            coreAllowList,
+            expectFlags: false,
+            "FlagsAttributeRewriter blocked enum: SDL_bool",
+            failures);
+
+        AssertFlagsDecoration(
+            "SDL_HitTestResult",
+            "        SDL_HITTEST_NORMAL,\n        SDL_HITTEST_DRAGGABLE,",
+            coreAllowList,
+            expectFlags: false,
+            "FlagsAttributeRewriter blocked enum: SDL_HitTestResult",
+            failures);
+
+        var prefixedInput = """
+namespace SDL2
+{
+    [System.Flags]
+    public enum SDL_RendererFlags
+    {
+        SDL_RENDERER_SOFTWARE = 0x1,
+    }
+}
+""";
+        var prefixedRewriter = new FlagsAttributeRewriter(coreAllowList);
+        var prefixedRoot = (CompilationUnitSyntax)prefixedRewriter.Visit(CSharpSyntaxTree.ParseText(prefixedInput).GetCompilationUnitRoot())!;
+        var prefixedOutput = prefixedRoot.ToFullString();
+        var flagsCount = System.Text.RegularExpressions.Regex.Matches(prefixedOutput, @"\[(?:System\.)?Flags(?:Attribute)?\]").Count;
+        if (flagsCount != 1)
+        {
+            failures.Add($"FlagsAttributeRewriter idempotence: expected exactly 1 Flags attribute, got {flagsCount}. Output:\n{prefixedOutput}");
+        }
+
+        var separatedInput = """
+namespace SDL2
+{
+    public enum PreludeEnum
+    {
+        Value,
+    }
+
+    public enum SDL_TextureModulate
+    {
+        SDL_TEXTUREMODULATE_NONE = 0x00000000,
+        SDL_TEXTUREMODULATE_COLOR = 0x00000001,
+        SDL_TEXTUREMODULATE_ALPHA = 0x00000002,
+    }
+}
+""";
+        var separatedRewriter = new FlagsAttributeRewriter(coreAllowList);
+        var separatedRoot = (CompilationUnitSyntax)separatedRewriter.Visit(CSharpSyntaxTree.ParseText(separatedInput).GetCompilationUnitRoot())!;
+        var separatedOutput = separatedRoot.ToFullString();
+        if (!separatedOutput.Contains("[System.Flags]\n    public enum SDL_TextureModulate", StringComparison.Ordinal))
+        {
+            failures.Add($"FlagsAttributeRewriter trivia: expected attribute to sit directly above enum declaration. Output:\n{separatedOutput}");
+        }
+
+        AssertFlagsDecoration(
+            "SDL_someflags",
+            "        VALUE_A = 0x1,\n        VALUE_B = 0x2,",
+            coreAllowList,
+            expectFlags: false,
+            "FlagsAttributeRewriter suffix case-sensitivity: lowercase flags",
+            failures);
+
+        var imageAllowList = FlagsEnumRosterLoader.LoadForFamily(
+            FlagsEnumRosterLoader.ResolveRosterPath(),
+            "image");
+        if (imageAllowList.Count != 0)
+        {
+            failures.Add($"FlagsEnumRosterLoader image allow-list: expected empty, got {imageAllowList.Count} entries");
+        }
+
+        AssertFlagsDecoration(
+            "IMG_InitFlags",
+            "        IMG_INIT_JPG = 0x00000001,\n        IMG_INIT_PNG = 0x00000002,",
+            imageAllowList,
+            expectFlags: true,
+            "FlagsAttributeRewriter image family: empty allow-list + IMG_InitFlags suffix",
+            failures);
+    }
+
+    private static void AssertFlagsDecoration(
+        string enumName,
+        string members,
+        HashSet<string> allowList,
+        bool expectFlags,
+        string testId,
+        List<string> failures)
+    {
+        var input = $$"""
+namespace SDL2
+{
+    public enum {{enumName}}
+    {
+{{members}}
+    }
+}
+""";
+        var rewriter = new FlagsAttributeRewriter(allowList);
+        var root = (CompilationUnitSyntax)rewriter.Visit(CSharpSyntaxTree.ParseText(input).GetCompilationUnitRoot())!;
+        var output = root.ToFullString();
+        var hasFlags =
+            output.Contains("[Flags]", StringComparison.Ordinal) ||
+            output.Contains("[FlagsAttribute]", StringComparison.Ordinal) ||
+            output.Contains("[System.Flags]", StringComparison.Ordinal) ||
+            output.Contains("[System.FlagsAttribute]", StringComparison.Ordinal);
+        if (hasFlags != expectFlags)
+        {
+            failures.Add($"{testId}: expected Flags={expectFlags} on {enumName}, got {hasFlags}. Output:\n{output}");
         }
     }
 

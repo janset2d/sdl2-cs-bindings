@@ -17,6 +17,7 @@ This folder hosts the SDL2 binding-generator prototypes that feed Phase 4 (bindi
 | **`docs/llm-handoff.md`** | **LLM-to-LLM handoff — read this first.** Self-contained context dump: decision history, code map, slice progress, current sticking point, working preferences. |
 | **`docs/priority-c-closure-summary.md`** | **Priority C closure record** (2026-05-24). Six-risks resolution table, verification evidence, Foreign Type Boundary Policy, Cross-Assembly Pattern B contract. Read after the LLM handoff. |
 | **`docs/ppy-reference-analysis-2026-05-25.md`** | **ppy/SDL3-CS reference analysis** (2026-05-25). Satellite generation architecture, companion class layer mapping, adaptation recommendations. |
+| **`docs/satellites/sdl2-satellite-error-function-consolidation.md`** | **Satellite error function consolidation** (2026-05-26). Cross-family analysis of `#define` error macros, per-peer comparison, `.rsp` exclude table, companion-helper policy path. |
 | `docs/generator-spike-goals.md` | Spike charter — original goals, what got tested, and the recorded decision. |
 | `docs/next-iteration-plan.md` | Slice plan with current status; Slices 1–4 and Oracle Priorities A/B/C all closed; Slice 5 deferred; Layer 2 typed API next. Also owns the `Review Follow-up Backlog — 2026-05-25` triage sink distilled from the read-only reviewer reports. |
 | `docs/testing/raw-abi-upstream-testing-spec.md` | Slice-local testing design for expanding the single `AbiTests.csproj` with curated SDL2 upstream pure, asset-backed, dummy-driver, and manual diagnostic coverage. |
