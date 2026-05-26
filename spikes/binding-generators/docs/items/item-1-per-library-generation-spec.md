@@ -51,6 +51,8 @@ This spec **does not reopen** settled decisions from §"Settled Strategic Decisi
 - **No SDL2_net.** Out of scope for this expansion wave.
 - **No `compare_oracle.py` evolution.** The script retires (Cake-hosted CppAst comparison approach is sunset per `satellite-expansion-roadmap.md` §Cross-Cutting); `oracle.cs` is the active evidence reporter.
 - **No companion `[Constant]`/`[Typedef]` regex feedback loop (ppy Slice 5 parity).** Roadmap §Slice 5 stays deferred.
+- **No function-like public macro helper completion.** SDL helper macros such as `SDL_MIXER_VERSION(X)` / `SDL_MIXER_VERSION_ATLEAST(X,Y,Z)` are not Layer 1 raw ABI and are not constants. S1-2 only keeps ClangSharp warning-only exits diagnostic and report-visible; approved helper methods require a later explicit companion-helper policy or manual implementation.
+- **No generated no-op file cleanup.** Some current Core outputs are intentionally zero-byte because ClangSharp exits 0 after finding no Layer 1 declarations, or because a platform view has no remaining declarations after neutral-symbol exclusion. S1-2 reports these as no-op generated outputs; missing outputs and non-accepted empty outputs remain failures.
 
 ---
 

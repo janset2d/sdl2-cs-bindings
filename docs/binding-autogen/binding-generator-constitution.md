@@ -541,8 +541,9 @@ Rules:
 - `binding_generation.required_constants` is a manual seed/include path, not the primary source for normal header macros.
 - Literal numeric/string/character macros may emit when the managed type and value are deterministic.
 - Deterministic object-like integer expressions may emit only when the evaluator can prove the value from safe syntax.
-- Function-like public macros are helper candidates, not constants.
-- Unknown function-like macros are reported and skipped.
+- Function-like public SDL macros are Layer 2 / friendly companion-helper candidates. They are not Layer 1 raw ABI declarations and must not be emitted as constants.
+- Approved function-like macro helpers are manually authored or generated from an explicit companion-helper policy. ClangSharp does not emit them.
+- Unknown function-like macros are reported and skipped. During the ClangSharp Layer 1 spike, the warning-only non-zero-exit classifier is temporary diagnostic glue: accepted macro names must stay visible in generation reports so the public-surface gap is reviewable rather than silently swallowed.
 - C-only, build-time, compiler, include-guard, printf annotation, format, assertion, revision, cast-helper, and platform-control macros are skipped with explicit reasons.
 - String-like SDL macro keys emit as canonical `ReadOnlySpan<byte>` UTF-8 literal properties. Do not duplicate every key as both `const string` and UTF-8 span.
 - Runtime-sized or runtime-dependent macros must not emit as fake constants.

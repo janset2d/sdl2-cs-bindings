@@ -17,6 +17,25 @@ class EmptyGeneratedOutput:
 
 
 @dataclass(frozen=True)
+class NoOpGeneratedOutput:
+    header_path: pathlib.Path
+    output_path: pathlib.Path
+    command_line: str
+    reason: str
+
+
+@dataclass(frozen=True)
+class AcceptedClangSharpWarnings:
+    header_path: pathlib.Path
+    output_path: pathlib.Path
+    command_line: str
+    exit_code: int
+    macros: tuple[str, ...]
+    diagnostics: tuple[str, ...]
+    output_empty: bool
+
+
+@dataclass(frozen=True)
 class RequiredSurfaceAllowlist:
     family: str
     header: str
@@ -117,6 +136,12 @@ def find_repository_root() -> pathlib.Path:
 
 
 def read_scope(scope_file: pathlib.Path) -> list[str]:
+    if not scope_file.is_file():
+        raise FileNotFoundError(
+            f"Scope file not found: {scope_file}. "
+            "For new families, create the scope file in spikes/binding-generators/scope/."
+        )
+
     headers: list[str] = []
     for line in scope_file.read_text(encoding="utf-8").splitlines():
         stripped = line.strip()
@@ -187,6 +212,18 @@ FUNCTION_DECLARATION_PATTERN = re.compile(
     r"^extern\s+DECLSPEC\s+(?P<return_type>.+?)\s+SDLCALL\s+(?P<name>SDL_\w+)\((?P<parameters>.*?)\);$"
 )
 MACRO_PATTERN = re.compile(r"^#define\s+(?P<name>SDL_INIT_\w+)\s+(?P<value>.+)$")
+FUNCTION_LIKE_MACRO_WARNING_PATTERN = re.compile(
+    r"^Warning \([^)]*\bLine\b[^)]*,\s*\bColumn\b[^)]*\): "
+    r"Function like macro definition records are not supported: '(?P<name>[^']+)'. "
+    r"Generated bindings may be incomplete\.$"
+)
+DIAGNOSTICS_FOR_INPUT_PATTERN = re.compile(r"^Diagnostics for '[^']+':$")
+PROCESSING_INPUT_PATTERN = re.compile(r"^Processing '[^']+'$")
+DIAGNOSTICS_FOR_BINDING_GENERATION_PATTERN = re.compile(r"^Diagnostics for binding generation of .+:$")
+BUILTIN_MACRO_REDEFINED_WARNINGS = {
+    "warning: redefining builtin macro [-Wbuiltin-macro-redefined]",
+    "warning: undefining builtin macro [-Wbuiltin-macro-redefined]",
+}
 
 
 def parse_required_sdlh_surface(
@@ -341,6 +378,30 @@ FAMILY_CONFIG = {
         "full_scope": "sdl2-image.headers.txt",
         "library_dir": "Janset.SDL2.Image",
     },
+    "ttf": {
+        "namespace": "SDL2.Ttf",
+        "raw_class": "SDL_ttfNative",
+        "rsp": "sdl2-ttf.rsp",
+        "bootstrap_scope": "bootstrap-sdl2-ttf.headers.txt",
+        "full_scope": "sdl2-ttf.headers.txt",
+        "library_dir": "Janset.SDL2.Ttf",
+    },
+    "mixer": {
+        "namespace": "SDL2.Mixer",
+        "raw_class": "SDL_mixerNative",
+        "rsp": "sdl2-mixer.rsp",
+        "bootstrap_scope": "bootstrap-sdl2-mixer.headers.txt",
+        "full_scope": "sdl2-mixer.headers.txt",
+        "library_dir": "Janset.SDL2.Mixer",
+    },
+    "gfx": {
+        "namespace": "SDL2.Gfx",
+        "raw_class": "SDL2_gfxNative",
+        "rsp": "sdl2-gfx.rsp",
+        "bootstrap_scope": "bootstrap-sdl2-gfx.headers.txt",
+        "full_scope": "sdl2-gfx.headers.txt",
+        "library_dir": "Janset.SDL2.Gfx",
+    },
 }
 
 # ClangSharp config presets per codegen target. compatible-codegen produces
@@ -452,6 +513,9 @@ PLATFORM_SENSITIVE_HEADERS: dict[str, list[str]] = {
         "SDL_system.h",
     ],
     "image": [],
+    "ttf": [],
+    "mixer": [],
+    "gfx": [],
 }
 
 
@@ -487,8 +551,88 @@ def is_empty_generated_output(output_path: pathlib.Path) -> bool:
     return output_path.is_file() and output_path.stat().st_size == 0
 
 
+def is_non_empty_generated_output(output_path: pathlib.Path) -> bool:
+    return output_path.is_file() and output_path.stat().st_size > 0
+
+
+def should_record_no_op_generated_output(
+    output_path: pathlib.Path,
+    accepted_warning: AcceptedClangSharpWarnings | None,
+    exit_code: int,
+) -> bool:
+    return accepted_warning is None and exit_code == 0 and is_empty_generated_output(output_path)
+
+
+def should_record_empty_generated_output(
+    output_path: pathlib.Path,
+    accepted_warning: AcceptedClangSharpWarnings | None,
+    exit_code: int,
+) -> bool:
+    return (
+        accepted_warning is None
+        and not should_record_no_op_generated_output(output_path, accepted_warning, exit_code)
+        and not is_non_empty_generated_output(output_path)
+    )
+
+
+def has_known_declspec_parse_diagnostic(output: str) -> bool:
+    return (
+        "Parsing failed for 'declspec' due to 'CXError_Failure'" in output
+        and "Skipping 'declspec' due to one or more errors listed above." in output
+    )
+
+
 def had_fatal_parse_failure(output: str, input_file: pathlib.Path) -> bool:
     return "fatal error:" in output or f"Skipping '{input_file}' due to one or more errors listed above." in output
+
+
+def classify_warning_only_clangsharp_exit(
+    header_path: pathlib.Path,
+    output_path: pathlib.Path,
+    command_line: str,
+    exit_code: int,
+    diagnostic_output: str,
+) -> AcceptedClangSharpWarnings | None:
+    if exit_code == 0:
+        return None
+    if had_fatal_parse_failure(diagnostic_output, header_path) or has_known_declspec_parse_diagnostic(diagnostic_output):
+        return None
+    if not output_path.is_file():
+        return None
+
+    macros: list[str] = []
+    diagnostics: list[str] = []
+    for line in diagnostic_output.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if (
+            DIAGNOSTICS_FOR_INPUT_PATTERN.match(stripped) is not None
+            or PROCESSING_INPUT_PATTERN.match(stripped) is not None
+            or DIAGNOSTICS_FOR_BINDING_GENERATION_PATTERN.match(stripped) is not None
+        ):
+            continue
+        if stripped in BUILTIN_MACRO_REDEFINED_WARNINGS:
+            diagnostics.append(stripped)
+            continue
+
+        match = FUNCTION_LIKE_MACRO_WARNING_PATTERN.match(stripped)
+        if match is None:
+            return None
+        macros.append(match.group("name"))
+
+    if not macros:
+        return None
+
+    return AcceptedClangSharpWarnings(
+        header_path,
+        output_path,
+        command_line,
+        exit_code,
+        tuple(macros),
+        tuple(diagnostics),
+        is_empty_generated_output(output_path),
+    )
 
 
 def platform_output_path(repo: pathlib.Path, codegen: str, family: str, header: str, view_name: str) -> pathlib.Path:
@@ -588,8 +732,8 @@ def platform_command_for_header(
     triple. Mirrors ppy's `generate_platform_specific_headers` shape:
       * base/family RSP for shared policy
       * per-view --define-macro block
-      * cross-contamination --additional --undefine-macro for every macro in
-        ALL_PLATFORM_MACROS that this view does NOT define
+      * cross-contamination --additional=--undefine-macro=<macro> for every
+        macro in ALL_PLATFORM_MACROS that this view does NOT define
       * --exclude for every symbol the neutral pass already produced
     SupportedOSPlatform attribution is intentionally not passed to ClangSharp.
     The Roslyn postprocess owns path-based platform annotation and TFM guards."""
@@ -621,9 +765,8 @@ def platform_command_for_header(
     command.extend(view_defines)
 
     if undefines:
-        command.append("--additional")
         for macro in undefines:
-            command.append(f"--undefine-macro={macro}")
+            command.append(f"--additional=--undefine-macro={macro}")
 
     if neutral_symbols:
         command.append("--exclude")
@@ -640,7 +783,13 @@ def generate_platform_specific_headers(
     header: str,
     spike_root: pathlib.Path,
     use_platform_header_shims: bool,
-) -> tuple[int, list[tuple[pathlib.Path, str, int]], list[EmptyGeneratedOutput]]:
+) -> tuple[
+    int,
+    list[tuple[pathlib.Path, str, int]],
+    list[EmptyGeneratedOutput],
+    list[NoOpGeneratedOutput],
+    list[AcceptedClangSharpWarnings],
+]:
     """Adapt of ppy/SDL3-CS generate_bindings.py:341-365 for SDL2 macros.
     Runs one ClangSharp invocation per platform view after the true-neutral
     pass has emitted Generated/<Codegen>/SDL_<header>.g.cs. The per-view output
@@ -654,6 +803,8 @@ def generate_platform_specific_headers(
     commands_run = 0
     failures: list[tuple[pathlib.Path, str, int]] = []
     empty_outputs: list[EmptyGeneratedOutput] = []
+    no_op_outputs: list[NoOpGeneratedOutput] = []
+    accepted_warnings: list[AcceptedClangSharpWarnings] = []
 
     for view_name, supported_os, defines in SDL2_PLATFORM_VIEWS:
         command, output_path = platform_command_for_header(
@@ -667,16 +818,34 @@ def generate_platform_specific_headers(
         print(command_line)
         result = subprocess.run(command, cwd=spike_root, capture_output=True, text=True)
         diagnostic_output = "\n".join(part for part in [result.stdout, result.stderr] if part)
+        accepted: AcceptedClangSharpWarnings | None = None
         if result.returncode != 0:
-            failures.append((input_file, command_line, result.returncode))
-            if result.stdout:
-                print(f"  STDOUT ({view_name}):\n{result.stdout.rstrip()}")
-            if result.stderr:
-                print(f"  STDERR ({view_name}):\n{result.stderr.rstrip()}")
-        if is_empty_generated_output(output_path) and had_fatal_parse_failure(diagnostic_output, input_file):
+            accepted = classify_warning_only_clangsharp_exit(
+                input_file,
+                output_path,
+                command_line,
+                result.returncode,
+                diagnostic_output,
+            )
+            if accepted is not None:
+                accepted_warnings.append(accepted)
+            else:
+                failures.append((input_file, command_line, result.returncode))
+                if result.stdout:
+                    print(f"  STDOUT ({view_name}):\n{result.stdout.rstrip()}")
+                if result.stderr:
+                    print(f"  STDERR ({view_name}):\n{result.stderr.rstrip()}")
+        if should_record_no_op_generated_output(output_path, accepted, result.returncode):
+            no_op_outputs.append(NoOpGeneratedOutput(
+                input_file,
+                output_path,
+                command_line,
+                "Platform view emitted no declarations after neutral symbol excludes.",
+            ))
+        elif should_record_empty_generated_output(output_path, accepted, result.returncode):
             empty_outputs.append(EmptyGeneratedOutput(input_file, output_path, command_line))
 
-    return commands_run, failures, empty_outputs
+    return commands_run, failures, empty_outputs, no_op_outputs, accepted_warnings
 
 
 def output_path_for_header(repo: pathlib.Path, codegen: str, family: str, header: str) -> pathlib.Path:
@@ -763,9 +932,8 @@ def command_for_header(
         "--output", str(output_path),
     ])
     if header in PLATFORM_SENSITIVE_HEADERS.get(family, []):
-        command.append("--additional")
         for macro in ALL_PLATFORM_MACROS:
-            command.append(f"--undefine-macro={macro}")
+            command.append(f"--additional=--undefine-macro={macro}")
     return command, output_path
 
 
@@ -774,9 +942,30 @@ def format_command(command: list[str]) -> str:
 
 
 def selected_families(family: str) -> list[str]:
+    # "all" intentionally covers only families that already have complete scope,
+    # response-file, project, and postprocess support. New family metadata can be
+    # CLI-addressable before it is safe to include in aggregate generation.
     if family == "all":
         return ["core", "image"]
     return [family]
+
+
+def create_generation_stats(selected: list[str]) -> dict[str, dict[str, int]]:
+    return {family: {"headers": 0, "commands": 0, "generated_files": 0} for family in selected}
+
+
+def refresh_generated_file_counts(
+    repo: pathlib.Path,
+    selected: list[str],
+    stats: dict[str, dict[str, int]],
+) -> None:
+    for family in selected:
+        family_root = generated_root_for_family(repo, family)
+        stats[family]["generated_files"] = sum(1 for path in family_root.rglob("*.g.cs") if path.is_file())
+
+
+def owner_mode_for_family(family: str) -> str:
+    return "owner" if family in ("core", "ttf", "mixer") else "consumer"
 
 
 def scope_file_name(scope: str, family: str) -> str:
@@ -788,6 +977,7 @@ def generation_exit_code(
     failures: list[tuple[pathlib.Path, str, int]],
     empty_outputs: list[EmptyGeneratedOutput],
     postprocess_failures: int,
+    accepted_warnings: list[AcceptedClangSharpWarnings] | None = None,
 ) -> int:
     if failures:
         return 2
@@ -807,6 +997,8 @@ def write_report(
     stats: dict[str, dict[str, int]],
     failures: list[tuple[pathlib.Path, str, int]],
     empty_outputs: list[EmptyGeneratedOutput],
+    no_op_outputs: list[NoOpGeneratedOutput],
+    accepted_warnings: list[AcceptedClangSharpWarnings],
     use_platform_header_shims: bool,
 ) -> None:
     reports_root.mkdir(parents=True, exist_ok=True)
@@ -822,7 +1014,7 @@ def write_report(
         "| --- | ---: | ---: | ---: |",
     ]
 
-    for family in ["core", "image"]:
+    for family in selected:
         family_stats = stats[family]
         lines.append(
             f"| {family} | {family_stats['headers']} | {family_stats['commands']} | {family_stats['generated_files']} |"
@@ -851,6 +1043,39 @@ def write_report(
             lines.append("")
     else:
         lines.append("No empty generated outputs recorded.")
+
+    lines.extend(["", "## No-op Generated Outputs", ""])
+    if no_op_outputs:
+        for no_op_output in no_op_outputs:
+            lines.extend([
+                f"- Header: `{no_op_output.header_path}`",
+                f"- Output: `{no_op_output.output_path}`",
+                f"- Reason: {no_op_output.reason}",
+                f"- Command: `{no_op_output.command_line}`",
+            ])
+            lines.append("")
+    else:
+        lines.append("No no-op generated outputs recorded.")
+
+    lines.extend(["", "## Accepted Warning-Only ClangSharp Exits", ""])
+    if accepted_warnings:
+        for accepted in accepted_warnings:
+            lines.extend([
+                f"- Header: `{accepted.header_path}`",
+                f"- Output: `{accepted.output_path}`",
+                f"- Output status: {'empty (accepted warning-only)' if accepted.output_empty else 'non-empty'}",
+                f"- Exit code: `{accepted.exit_code}`",
+                f"- Macros: {', '.join(accepted.macros)}",
+            ])
+            if accepted.diagnostics:
+                lines.append(f"- Accepted diagnostics: {'; '.join(accepted.diagnostics)}")
+            lines.append(f"- Command: `{accepted.command_line}`")
+            lines.append("")
+    else:
+        lines.append("No accepted warning-only ClangSharp exits recorded.")
+
+    while lines and lines[-1] == "":
+        lines.pop()
 
     report_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -1028,6 +1253,279 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
                 f"got: {without_per_header}"
             )
 
+    with tempfile.TemporaryDirectory() as raw_tmp:
+        tmp = pathlib.Path(raw_tmp)
+        rsp_dir = tmp / "spikes" / "binding-generators" / "clangsharp" / "rsp"
+        rsp_dir.mkdir(parents=True)
+        include_root = tmp / "vcpkg_installed" / "x64-windows-hybrid" / "include" / "SDL2"
+        include_root.mkdir(parents=True)
+        input_file = include_root / "SDL_system.h"
+        input_file.write_text("/* fixture */\n", encoding="utf-8")
+
+        command, _ = platform_command_for_header(
+            tmp,
+            "x64-windows-hybrid",
+            "compat",
+            "core",
+            "SDL_system.h",
+            "Linux",
+            ["linux=1", "__linux=1", "__linux__=1", "__LINUX__=1"],
+            [],
+            True,
+        )
+        if "--additional" in command:
+            failures.append("platform command emitted standalone --additional for platform undefines")
+
+        defined_names = {"linux", "__linux", "__linux__", "__LINUX__"}
+        expected_undefines = [macro for macro in ALL_PLATFORM_MACROS if macro not in defined_names]
+        expected_additional_undefines = [
+            f"--additional=--undefine-macro={macro}"
+            for macro in expected_undefines
+        ]
+        actual_additional_undefines = [
+            token for token in command
+            if token.startswith("--additional=--undefine-macro=")
+        ]
+        if actual_additional_undefines != expected_additional_undefines:
+            failures.append(
+                "platform command did not emit every platform undefine as attached --additional=--undefine-macro tokens; "
+                f"got: {actual_additional_undefines}"
+            )
+        if "--exclude" in command:
+            failures.append(f"platform command excluded function-like macros dynamically: {command!r}")
+
+        neutral_command, _ = command_for_header(
+            tmp,
+            "x64-windows-hybrid",
+            "compat",
+            "core",
+            "SDL_system.h",
+            True,
+        )
+        if "--additional" in neutral_command:
+            failures.append("neutral platform-sensitive command emitted standalone --additional for platform undefines")
+        expected_neutral_undefines = [
+            f"--additional=--undefine-macro={macro}"
+            for macro in ALL_PLATFORM_MACROS
+        ]
+        actual_neutral_undefines = [
+            token for token in neutral_command
+            if token.startswith("--additional=--undefine-macro=")
+        ]
+        if actual_neutral_undefines != expected_neutral_undefines:
+            failures.append(
+                "neutral platform-sensitive command did not emit every undefine as attached --additional=--undefine-macro tokens; "
+                f"got: {actual_neutral_undefines}"
+            )
+        if "--exclude" in neutral_command:
+            failures.append(f"neutral command excluded function-like macros dynamically: {neutral_command!r}")
+
+        platform_neutral_command, _ = platform_command_for_header(
+            tmp,
+            "x64-windows-hybrid",
+            "compat",
+            "core",
+            "SDL_system.h",
+            "Linux",
+            ["linux=1", "__linux=1", "__linux__=1", "__LINUX__=1"],
+            ["SDL_SystemTheme", "SDL_FunctionLike"],
+            True,
+        )
+        if "--exclude" not in platform_neutral_command:
+            failures.append(f"platform command did not preserve neutral symbol excludes: {platform_neutral_command!r}")
+        else:
+            exclude_index = platform_neutral_command.index("--exclude")
+            platform_neutral_excludes = platform_neutral_command[exclude_index + 1:]
+            if platform_neutral_excludes != ["SDL_SystemTheme", "SDL_FunctionLike"]:
+                failures.append(
+                    "platform command did not preserve neutral symbol excludes exactly; "
+                    f"got: {platform_neutral_excludes!r}"
+                )
+
+        if "classify_warning_only_clangsharp_exit" not in globals():
+            failures.append("classify_warning_only_clangsharp_exit helper is missing")
+        else:
+            output_path = tmp / "SDL_mixer.g.cs"
+            output_path.write_text("public static partial class SDL_mixerNative {}\n", encoding="utf-8")
+            accepted_warning = (
+                "Warning (Line 86, Column 9): Function like macro definition records are not supported: "
+                "'SDL_MIXER_VERSION_ATLEAST'. Generated bindings may be incomplete."
+            )
+            accepted_with_path = (
+                "Warning (C:/vcpkg/include/SDL2/SDL_mixer.h: Line 55, Column 9): Function like macro definition "
+                "records are not supported: 'SDL_MIXER_VERSION'. Generated bindings may be incomplete."
+            )
+            accepted = classify_warning_only_clangsharp_exit(
+                input_file,
+                output_path,
+                "clangsharp SDL_mixer.h",
+                1,
+                accepted_warning + "\n" + accepted_with_path,
+            )
+            if accepted is None:
+                failures.append("warning-only classifier rejected known function-like macro warnings with non-empty output")
+            elif accepted.macros != ("SDL_MIXER_VERSION_ATLEAST", "SDL_MIXER_VERSION"):
+                failures.append(
+                    "warning-only classifier did not preserve accepted macro names in order; "
+                    f"got: {accepted.macros!r}"
+                )
+
+            accepted_with_framing = classify_warning_only_clangsharp_exit(
+                input_file,
+                output_path,
+                "clangsharp SDL_mixer.h",
+                1,
+                "\n".join(
+                    [
+                        "Diagnostics for 'C:/vcpkg/include/SDL2/SDL_mixer.h':",
+                        "Processing 'C:/vcpkg/include/SDL2/SDL_mixer.h'",
+                        "Diagnostics for binding generation of SDL_mixer.h:",
+                        "warning: redefining builtin macro [-Wbuiltin-macro-redefined]",
+                        "warning: undefining builtin macro [-Wbuiltin-macro-redefined]",
+                        accepted_warning,
+                    ]
+                ),
+            )
+            if accepted_with_framing is None:
+                failures.append("warning-only classifier rejected function-like macro warnings with allowed framing")
+            elif accepted_with_framing.macros != ("SDL_MIXER_VERSION_ATLEAST",):
+                failures.append(
+                    "warning-only classifier did not preserve macro names when allowed framing is present; "
+                    f"got: {accepted_with_framing.macros!r}"
+                )
+            elif getattr(accepted_with_framing, "diagnostics", ()) != (
+                "warning: redefining builtin macro [-Wbuiltin-macro-redefined]",
+                "warning: undefining builtin macro [-Wbuiltin-macro-redefined]",
+            ):
+                failures.append(
+                    "warning-only classifier did not preserve accepted builtin macro diagnostics; "
+                    f"got: {getattr(accepted_with_framing, 'diagnostics', None)!r}"
+                )
+
+            unsupported_attribute = classify_warning_only_clangsharp_exit(
+                input_file,
+                output_path,
+                "clangsharp SDL_assert.h",
+                1,
+                "\n".join(
+                    [
+                        "Diagnostics for 'C:/vcpkg/include/SDL2/SDL_assert.h':",
+                        "Processing 'C:/vcpkg/include/SDL2/SDL_assert.h'",
+                        "Diagnostics for binding generation of SDL_assert.h:",
+                        "Warning (Line 120, Column 18): Unsupported attribute: 'AnalyzerNoReturn'.",
+                        accepted_warning,
+                    ]
+                ),
+            )
+            if unsupported_attribute is not None:
+                failures.append("warning-only classifier accepted unsupported AnalyzerNoReturn attribute warning")
+
+            other_lowercase_warning = classify_warning_only_clangsharp_exit(
+                input_file,
+                output_path,
+                "clangsharp SDL_mixer.h",
+                1,
+                "\n".join(
+                    [
+                        "Diagnostics for binding generation of SDL_mixer.h:",
+                        "warning: something else happened [-Wexample]",
+                        accepted_warning,
+                    ]
+                ),
+            )
+            if other_lowercase_warning is not None:
+                failures.append("warning-only classifier accepted an unknown lower-case warning")
+
+            mixed = classify_warning_only_clangsharp_exit(
+                input_file,
+                output_path,
+                "clangsharp SDL_mixer.h",
+                1,
+                accepted_warning + "\nWarning (Line 1, Column 1): Something else happened.",
+            )
+            if mixed is not None:
+                failures.append("warning-only classifier accepted mixed warning text")
+
+            no_warnings = classify_warning_only_clangsharp_exit(
+                input_file,
+                output_path,
+                "clangsharp SDL_mixer.h",
+                1,
+                "",
+            )
+            if no_warnings is not None:
+                failures.append("warning-only classifier accepted an empty diagnostic stream")
+
+            output_path.write_text("", encoding="utf-8")
+            empty = classify_warning_only_clangsharp_exit(
+                input_file,
+                output_path,
+                "clangsharp SDL_mixer.h",
+                1,
+                accepted_warning,
+            )
+            if empty is None:
+                failures.append("warning-only classifier rejected empty output with only function-like macro warnings")
+            elif empty.macros != ("SDL_MIXER_VERSION_ATLEAST",):
+                failures.append(
+                    "warning-only classifier did not preserve macro names for empty warning-only output; "
+                    f"got: {empty.macros!r}"
+                )
+
+            if "should_record_empty_generated_output" not in globals():
+                failures.append("should_record_empty_generated_output helper is missing for zero-byte output gating")
+            elif empty is not None:
+                try:
+                    zero_exit_empty = should_record_empty_generated_output(output_path, None, 0)
+                    accepted_empty = should_record_empty_generated_output(output_path, empty, 1)
+                except TypeError:
+                    failures.append("should_record_empty_generated_output must include the ClangSharp exit code")
+                else:
+                    if zero_exit_empty:
+                        failures.append("exit-zero zero-byte output was incorrectly gated as unexpected empty output")
+                    if accepted_empty:
+                        failures.append("accepted warning-only zero-byte output was incorrectly gated as empty")
+                if "should_record_no_op_generated_output" not in globals():
+                    failures.append("should_record_no_op_generated_output helper is missing for exit-zero zero-byte output reporting")
+                elif not should_record_no_op_generated_output(output_path, None, 0):
+                    failures.append("exit-zero zero-byte output was not reported as a no-op generated output")
+
+                if "NoOpGeneratedOutput" not in globals():
+                    failures.append("NoOpGeneratedOutput dataclass is missing for report-visible no-op outputs")
+                elif "should_record_no_op_generated_output" in globals() and should_record_no_op_generated_output(output_path, empty, 1):
+                    failures.append("accepted warning-only zero-byte output was incorrectly gated as empty")
+
+            missing_output_path = tmp / "SDL_missing.g.cs"
+            if missing_output_path.exists():
+                missing_output_path.unlink()
+            missing_warning_only = classify_warning_only_clangsharp_exit(
+                input_file,
+                missing_output_path,
+                "clangsharp SDL_missing.h",
+                1,
+                accepted_warning,
+            )
+            if missing_warning_only is not None:
+                failures.append("warning-only classifier accepted diagnostics with a missing output file")
+            try:
+                missing_is_empty = should_record_empty_generated_output(missing_output_path, None, 0)
+            except TypeError:
+                pass
+            else:
+                if not missing_is_empty:
+                    failures.append("missing output without accepted warning-only diagnostics was not gated as empty")
+
+    base_rsp_text = (
+        find_repository_root()
+        / "spikes" / "binding-generators" / "clangsharp" / "rsp" / "base.rsp"
+    ).read_text(encoding="utf-8")
+    if "--additional\n--undefine-macro=__has_builtin\n-fdeclspec" in base_rsp_text:
+        failures.append("base.rsp retained ambiguous standalone --additional sequence for __has_builtin/-fdeclspec")
+    if "--additional=-fdeclspec" not in base_rsp_text:
+        failures.append("base.rsp did not emit -fdeclspec using attached --additional=-fdeclspec form")
+    if "__has_feature(x)=0" not in base_rsp_text:
+        failures.append("base.rsp did not define __has_feature(x)=0")
+
     clangsharp_failure = (pathlib.Path("SDL_video.h"), "clangsharp SDL_video.h", 1)
     if generation_exit_code([clangsharp_failure], [], 0) != 2:
         failures.append("ClangSharp invocation failures did not produce exit code 2")
@@ -1037,6 +1535,262 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
         failures.append("empty generated outputs did not produce exit code 4")
     if generation_exit_code([], [], 0) != 0:
         failures.append("clean generation did not produce exit code 0")
+    if "AcceptedClangSharpWarnings" not in globals():
+        failures.append("AcceptedClangSharpWarnings dataclass is missing")
+    else:
+        accepted_warning_exit = AcceptedClangSharpWarnings(
+            pathlib.Path("SDL_mixer.h"),
+            pathlib.Path("SDL_mixer.g.cs"),
+            "clangsharp SDL_mixer.h",
+            1,
+            ("SDL_MIXER_VERSION",),
+            (),
+            False,
+        )
+        if generation_exit_code([], [], 0, [accepted_warning_exit]) != 0:
+            failures.append("accepted warning-only exits were counted as generation failures")
+
+    expected_family_config = {
+        "ttf": {
+            "namespace": "SDL2.Ttf",
+            "raw_class": "SDL_ttfNative",
+            "rsp": "sdl2-ttf.rsp",
+            "bootstrap_scope": "bootstrap-sdl2-ttf.headers.txt",
+            "full_scope": "sdl2-ttf.headers.txt",
+            "library_dir": "Janset.SDL2.Ttf",
+        },
+        "mixer": {
+            "namespace": "SDL2.Mixer",
+            "raw_class": "SDL_mixerNative",
+            "rsp": "sdl2-mixer.rsp",
+            "bootstrap_scope": "bootstrap-sdl2-mixer.headers.txt",
+            "full_scope": "sdl2-mixer.headers.txt",
+            "library_dir": "Janset.SDL2.Mixer",
+        },
+        "gfx": {
+            "namespace": "SDL2.Gfx",
+            "raw_class": "SDL2_gfxNative",
+            "rsp": "sdl2-gfx.rsp",
+            "bootstrap_scope": "bootstrap-sdl2-gfx.headers.txt",
+            "full_scope": "sdl2-gfx.headers.txt",
+            "library_dir": "Janset.SDL2.Gfx",
+        },
+    }
+    for family, expected in expected_family_config.items():
+        if FAMILY_CONFIG.get(family) != expected:
+            failures.append(f"FAMILY_CONFIG[{family!r}] did not match expected S1-2 identity")
+        if PLATFORM_SENSITIVE_HEADERS.get(family) != []:
+            failures.append(f"PLATFORM_SENSITIVE_HEADERS[{family!r}] expected empty list")
+        try:
+            scope_file_name("full", family)
+        except KeyError as exc:
+            failures.append(f"scope_file_name('full', {family!r}) raised KeyError: {exc}")
+
+    if selected_families("all") != ["core", "image"]:
+        failures.append(f"selected_families('all') must stay dormant as ['core', 'image']; got {selected_families('all')!r}")
+
+    if "create_generation_stats" not in globals():
+        failures.append("create_generation_stats helper is missing for selected-driven stats initialization")
+    else:
+        expected_ttf_stats = {"ttf": {"headers": 0, "commands": 0, "generated_files": 0}}
+        actual_ttf_stats = create_generation_stats(["ttf"])
+        if actual_ttf_stats != expected_ttf_stats:
+            failures.append(f"selected-driven stats for ['ttf'] had unexpected shape: {actual_ttf_stats!r}")
+
+    with tempfile.TemporaryDirectory() as raw_tmp:
+        report_root = pathlib.Path(raw_tmp)
+        try:
+            write_report(
+                report_root,
+                "bootstrap",
+                "x64-windows-hybrid",
+                "dry-run",
+                ["ttf"],
+                {"ttf": {"headers": 1, "commands": 2, "generated_files": 3}},
+                [],
+                [],
+                [],
+                [],
+                False,
+            )
+            report_text = (report_root / "clangsharp-bootstrap.md").read_text(encoding="utf-8")
+            if "| ttf | 1 | 2 | 3 |" not in report_text:
+                failures.append("write_report did not emit the selected ttf stats row")
+            if "| core |" in report_text or "| image |" in report_text:
+                failures.append("write_report emitted unselected hardcoded family rows")
+            accepted_warning_exit = AcceptedClangSharpWarnings(
+                pathlib.Path("SDL_mixer.h"),
+                pathlib.Path("SDL_mixer.g.cs"),
+                "clangsharp SDL_mixer.h",
+                1,
+                ("SDL_MIXER_VERSION", "SDL_MIXER_VERSION_ATLEAST"),
+                (),
+                False,
+            )
+            write_report(
+                report_root,
+                "bootstrap",
+                "x64-windows-hybrid",
+                "execute",
+                ["mixer"],
+                {"mixer": {"headers": 1, "commands": 1, "generated_files": 1}},
+                [],
+                [],
+                [],
+                [accepted_warning_exit],
+                False,
+            )
+            report_text = (report_root / "clangsharp-bootstrap.md").read_text(encoding="utf-8")
+            if "## Accepted Warning-Only ClangSharp Exits" not in report_text:
+                failures.append("write_report did not include accepted warning-only exits section")
+            if "SDL_MIXER_VERSION, SDL_MIXER_VERSION_ATLEAST" not in report_text:
+                failures.append("write_report did not list accepted warning-only macro names")
+
+            try:
+                empty_warning_exit = AcceptedClangSharpWarnings(
+                    pathlib.Path("SDL_quit.h"),
+                    pathlib.Path("SDL_quit.g.cs"),
+                    "clangsharp SDL_quit.h",
+                    1,
+                    ("SDL_QuitRequested",),
+                    (),
+                    True,
+                )
+            except TypeError:
+                failures.append("AcceptedClangSharpWarnings must carry output path and empty-output status")
+            else:
+                write_report(
+                    report_root,
+                    "bootstrap",
+                    "x64-windows-hybrid",
+                    "execute",
+                    ["core"],
+                    {"core": {"headers": 1, "commands": 1, "generated_files": 0}},
+                    [],
+                    [],
+                    [],
+                    [empty_warning_exit],
+                    False,
+                )
+                report_text = (report_root / "clangsharp-bootstrap.md").read_text(encoding="utf-8")
+                if "- Output: `SDL_quit.g.cs`" not in report_text:
+                    failures.append("write_report did not include accepted warning-only output paths")
+                if "- Output status: empty (accepted warning-only)" not in report_text:
+                    failures.append("write_report did not flag accepted empty warning-only outputs")
+
+            try:
+                builtin_warning_exit = AcceptedClangSharpWarnings(
+                    pathlib.Path("SDL_mixer.h"),
+                    pathlib.Path("SDL_mixer.g.cs"),
+                    "clangsharp SDL_mixer.h",
+                    1,
+                    ("SDL_MIXER_VERSION",),
+                    ("warning: undefining builtin macro [-Wbuiltin-macro-redefined]",),
+                    False,
+                )
+            except TypeError:
+                failures.append("AcceptedClangSharpWarnings must carry accepted diagnostic warning text")
+            else:
+                write_report(
+                    report_root,
+                    "bootstrap",
+                    "x64-windows-hybrid",
+                    "execute",
+                    ["mixer"],
+                    {"mixer": {"headers": 1, "commands": 1, "generated_files": 1}},
+                    [],
+                    [],
+                    [],
+                    [builtin_warning_exit],
+                    False,
+                )
+                report_text = (report_root / "clangsharp-bootstrap.md").read_text(encoding="utf-8")
+                if "warning: undefining builtin macro [-Wbuiltin-macro-redefined]" not in report_text:
+                    failures.append("write_report did not surface accepted non-macro diagnostic warnings")
+
+            if "NoOpGeneratedOutput" in globals():
+                try:
+                    write_report(
+                        report_root,
+                        "bootstrap",
+                        "x64-windows-hybrid",
+                        "execute",
+                        ["core"],
+                        {"core": {"headers": 1, "commands": 1, "generated_files": 1}},
+                        [],
+                        [],
+                        [NoOpGeneratedOutput(
+                            pathlib.Path("SDL_bits.h"),
+                            pathlib.Path("SDL_bits.g.cs"),
+                            "clangsharp SDL_bits.h",
+                            "ClangSharp exited 0 with no Layer 1 declarations emitted.",
+                        )],
+                        [],
+                        False,
+                    )
+                except TypeError:
+                    failures.append("write_report must accept report-visible no-op generated outputs")
+                else:
+                    report_text = (report_root / "clangsharp-bootstrap.md").read_text(encoding="utf-8")
+                    if "## No-op Generated Outputs" not in report_text:
+                        failures.append("write_report did not include no-op generated outputs section")
+                    if "SDL_bits.g.cs" not in report_text:
+                        failures.append("write_report did not list no-op generated output paths")
+        except KeyError as exc:
+            failures.append(f"write_report was not selected-driven and raised KeyError: {exc}")
+
+    if "refresh_generated_file_counts" not in globals():
+        failures.append("refresh_generated_file_counts helper is missing for final report file counts")
+    else:
+        with tempfile.TemporaryDirectory() as raw_tmp:
+            temp_repo = pathlib.Path(raw_tmp)
+            core_generated = generated_root_for_family(temp_repo, "core")
+            (core_generated / "Compat" / "SDL.h.g.cs").parent.mkdir(parents=True, exist_ok=True)
+            (core_generated / "Compat" / "SDL.h.g.cs").write_text("// compat\n", encoding="utf-8")
+            (core_generated / "Modern" / "Platforms" / "Windows" / "SDL_system.g.cs").parent.mkdir(parents=True, exist_ok=True)
+            (core_generated / "Modern" / "Platforms" / "Windows" / "SDL_system.g.cs").write_text("// platform\n", encoding="utf-8")
+            (core_generated / "Modern" / "ignore.txt").parent.mkdir(parents=True, exist_ok=True)
+            (core_generated / "Modern" / "ignore.txt").write_text("not generated\n", encoding="utf-8")
+
+            stats = {
+                "core": {"headers": 1, "commands": 2, "generated_files": 999},
+                "image": {"headers": 1, "commands": 2, "generated_files": 999},
+            }
+            refresh_generated_file_counts(temp_repo, ["core", "image"], stats)
+            if stats["core"]["generated_files"] != 2:
+                failures.append(f"refresh_generated_file_counts did not count recursive .g.cs files; got {stats['core']['generated_files']}")
+            if stats["image"]["generated_files"] != 0:
+                failures.append(f"refresh_generated_file_counts did not reset missing family counts; got {stats['image']['generated_files']}")
+
+    if "owner_mode_for_family" not in globals():
+        failures.append("owner_mode_for_family helper is missing for S1-2 owner-mode policy")
+    else:
+        for family, expected in (
+            ("core", "owner"),
+            ("ttf", "owner"),
+            ("mixer", "owner"),
+            ("image", "consumer"),
+            ("gfx", "consumer"),
+        ):
+            actual = owner_mode_for_family(family)
+            if actual != expected:
+                failures.append(f"owner-mode wiring for {family!r}: expected {expected!r}, got {actual!r}")
+
+    scope_root = find_repository_root() / "spikes" / "binding-generators" / "scope"
+    missing_scope_file = scope_root / "__self-test-missing-scope-sentinel__.headers.txt"
+    try:
+        read_scope(missing_scope_file)
+        failures.append("read_scope did not raise for missing sentinel scope file")
+    except FileNotFoundError as exc:
+        message = str(exc)
+        if "For new families" not in message:
+            failures.append(f"read_scope FileNotFoundError lacks 'For new families' hint; got: {message}")
+        if "spikes/binding-generators/scope" not in message.replace("\\", "/"):
+            failures.append(f"read_scope FileNotFoundError lacks scope directory hint; got: {message}")
+    except KeyError as exc:
+        failures.append(f"read_scope raised KeyError instead of friendly FileNotFoundError: {exc}")
+    except Exception as exc:
+        failures.append(f"read_scope raised unexpected exception type {type(exc).__name__}: {exc}")
 
     if failures:
         for failure in failures:
@@ -1051,7 +1805,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="ppy-style ClangSharp spike orchestrator")
     parser.add_argument("--vcpkg-triplet", default="x64-windows-hybrid")
     parser.add_argument("--scope", choices=["bootstrap", "full"], default="bootstrap")
-    parser.add_argument("--family", choices=["core", "image", "all"], default="all")
+    parser.add_argument("--family", choices=["core", "image", "ttf", "mixer", "gfx", "all"], default="all")
     parser.add_argument("--codegen", choices=["compat", "modern", "both"], default="modern",
                         help="compat = compatible-codegen (netstandard2.0/net462); modern = latest-codegen (.NET 8+); both = run two passes")
     parser.add_argument("--execute", action="store_true", help="Actually run ClangSharp; absent means print commands only")
@@ -1074,17 +1828,20 @@ def main() -> int:
     mode = "execute" if args.execute else "dry-run"
     failures: list[tuple[pathlib.Path, str, int]] = []
     empty_outputs: list[EmptyGeneratedOutput] = []
+    no_op_outputs: list[NoOpGeneratedOutput] = []
+    accepted_warnings: list[AcceptedClangSharpWarnings] = []
     postprocess_failures = 0
-    stats = {
-        "core": {"headers": 0, "commands": 0, "generated_files": 0},
-        "image": {"headers": 0, "commands": 0, "generated_files": 0},
-    }
-
     selected = selected_families(args.family)
-    headers_by_family = {
-        family: read_scope(scope_root / scope_file_name(args.scope, family))
-        for family in selected
-    }
+    stats = create_generation_stats(selected)
+
+    try:
+        headers_by_family = {
+            family: read_scope(scope_root / scope_file_name(args.scope, family))
+            for family in selected
+        }
+    except FileNotFoundError as exc:
+        print(f"ERROR: {exc}")
+        return 2
 
     for family, headers in headers_by_family.items():
         stats[family]["headers"] = len(headers)
@@ -1129,12 +1886,38 @@ def main() -> int:
                     if output_path.exists():
                         output_path.unlink()
 
-                    result = subprocess.run(command, cwd=spike_root)
+                    result = subprocess.run(command, cwd=spike_root, capture_output=True, text=True)
+                    diagnostic_output = "\n".join(part for part in [result.stdout, result.stderr] if part)
+                    header_path = repo / "vcpkg_installed" / args.vcpkg_triplet / "include" / "SDL2" / header
+                    accepted: AcceptedClangSharpWarnings | None = None
                     if output_path.is_file():
                         stats[family]["generated_files"] += 1
 
                     if result.returncode != 0:
-                        failures.append((repo / "vcpkg_installed" / args.vcpkg_triplet / "include" / "SDL2" / header, command_line, result.returncode))
+                        accepted = classify_warning_only_clangsharp_exit(
+                            header_path,
+                            output_path,
+                            command_line,
+                            result.returncode,
+                            diagnostic_output,
+                        )
+                        if accepted is not None:
+                            accepted_warnings.append(accepted)
+                        else:
+                            failures.append((header_path, command_line, result.returncode))
+                            if result.stdout:
+                                print(f"  STDOUT:\n{result.stdout.rstrip()}")
+                            if result.stderr:
+                                print(f"  STDERR:\n{result.stderr.rstrip()}")
+                    if should_record_no_op_generated_output(output_path, accepted, result.returncode):
+                        no_op_outputs.append(NoOpGeneratedOutput(
+                            header_path,
+                            output_path,
+                            command_line,
+                            "ClangSharp exited 0 with no Layer 1 declarations emitted.",
+                        ))
+                    elif should_record_empty_generated_output(output_path, accepted, result.returncode):
+                        empty_outputs.append(EmptyGeneratedOutput(header_path, output_path, command_line))
 
     if should_validate_required_sdlh_surface(args.execute, selected, args.scope):
         print("--- required SDL.h surface ---")
@@ -1159,7 +1942,7 @@ def main() -> int:
                         # mode for example does not include SDL_system.
                         continue
                     print(f"  multi-OS: {family}/{codegen}/{header}")
-                    commands_run, platform_failures, platform_empty_outputs = generate_platform_specific_headers(
+                    commands_run, platform_failures, platform_empty_outputs, platform_no_op_outputs, platform_accepted_warnings = generate_platform_specific_headers(
                         repo, args.vcpkg_triplet, codegen, family, header, spike_root, args.use_platform_header_shims
                     )
                     stats[family]["commands"] += commands_run
@@ -1172,6 +1955,10 @@ def main() -> int:
                     if platform_empty_outputs:
                         empty_outputs.extend(platform_empty_outputs)
                         print(f"ERROR: {len(platform_empty_outputs)} empty platform output file(s) produced for {family}/{codegen}/{header}")
+                    if platform_no_op_outputs:
+                        no_op_outputs.extend(platform_no_op_outputs)
+                    if platform_accepted_warnings:
+                        accepted_warnings.extend(platform_accepted_warnings)
 
     # SDL2 platform views need two cleanups after ClangSharp emits per-view
     # files: remove neutral/earlier-platform duplicates, then annotate the
@@ -1244,27 +2031,20 @@ def main() -> int:
                     postprocess_failures += 1
                     print(f"WARNING: threadid-dispatch postprocess for {family}/{codegen} returned exit {exit_code}")
 
-    # Slice C-B Pattern B uniform opaque handle emit. Applied last so it operates
-    # on the final signature shape after threadid-dispatch has rewritten the
-    # SDL_threadID family. Per Constitution §"Opaque Handles" Implementation
-    # mechanism: owner mode (Janset.SDL2.Core/Generated/*) writes a single
-    # consolidated Handles.g.cs with the full Pattern B struct body for every
-    # roster handle; consumer mode (Janset.SDL2.Image/Generated/*) only removes
-    # any partial struct declarations + applies pointer-to-by-value rewrites,
-    # since Core's Handles.g.cs is referenced via ProjectReference + the shared
-    # SDL2 namespace.
+    # Uniform opaque handle emit runs last so it sees the final signature shape.
+    # Owner-mode families emit their local opaque handle bodies into Handles.g.cs;
+    # consumer-mode families only remove local placeholder declarations and
+    # rewrite pointer use to the owner-provided handle types they reference.
     #
     # Owner/consumer is declared here explicitly via --owner-mode rather than
-    # detected by Program.cs substring-matching Janset.SDL2.Core: a future
-    # project rename would silently flip every directory to consumer mode under
-    # the substring check, losing the Handles.g.cs emit without diagnostic. The
-    # `core` family is the canonical owner; every other family (image and any
-    # future satellite) consumes Core's Handles.g.cs via ProjectReference.
+    # detected from directory names: owners are families with local opaque
+    # handles, while image/gfx-style families consume handles from referenced
+    # owner assemblies instead of emitting their own Handles.g.cs file.
     if args.execute:
         print("--- postprocess: uniform-opaque (all codegens) ---")
         for codegen in codegen_passes:
             for family in selected:
-                owner_mode = "owner" if family == "core" else "consumer"
+                owner_mode = owner_mode_for_family(family)
                 exit_code = run_postprocess(
                     repo, family, spike_root, "uniform-opaque", codegen,
                     extra_args=["--owner-mode", owner_mode],
@@ -1272,6 +2052,8 @@ def main() -> int:
                 if exit_code != 0:
                     postprocess_failures += 1
                     print(f"WARNING: uniform-opaque postprocess for {family}/{codegen} returned exit {exit_code}")
+
+        refresh_generated_file_counts(repo, selected, stats)
 
     write_report(
         reports_root,
@@ -1282,10 +2064,12 @@ def main() -> int:
         stats,
         failures,
         empty_outputs,
+        no_op_outputs,
+        accepted_warnings,
         args.use_platform_header_shims,
     )
 
-    exit_code = generation_exit_code(failures, empty_outputs, postprocess_failures)
+    exit_code = generation_exit_code(failures, empty_outputs, postprocess_failures, accepted_warnings)
 
     if failures:
         print(f"ERROR: {len(failures)} ClangSharp command(s) failed")
