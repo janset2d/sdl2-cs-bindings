@@ -1,3 +1,6 @@
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+
 namespace Janset.SDL2.PostProcess;
 
 internal static class PostProcessSelfTests
@@ -5,6 +8,7 @@ internal static class PostProcessSelfTests
     public static int Run()
     {
         var failures = new List<string>();
+        CheckClongAttributeArgumentParsing(failures);
         const string source = """
 using System.Runtime.InteropServices;
 
@@ -25,6 +29,9 @@ internal static unsafe partial class SDLNative
         CheckLibraryImportModeValidation(failures);
         CheckUniformOpaqueFamilyIdentity(failures);
         CheckOpaqueHandleFamilyAwareness(failures);
+        CheckClongParameterDispatch(failures);
+        CheckClongSignedReturnDispatch(failures);
+        CheckClongThreadIdStructuralDispatch(failures);
 
         if (failures.Count > 0)
         {
@@ -65,6 +72,254 @@ internal static unsafe partial class SDLNative
         if (rewritten.Contains("DllImport", StringComparison.Ordinal) || rewritten.Contains(" extern ", StringComparison.Ordinal))
         {
             failures.Add("DllImport rewriter left DllImport or extern in the transformed output");
+        }
+    }
+
+    private static void CheckClongAttributeArgumentParsing(List<string> failures)
+    {
+        try
+        {
+            var libraryImportArgs = SyntaxFactory.ParseAttributeArgumentList("(\"SDL2\", EntryPoint = \"SDL_ThreadID\")")!;
+            if (libraryImportArgs.Arguments.Count != 2)
+            {
+                failures.Add($"ParseAttributeArgumentList(LibraryImport) expected 2 args, got {libraryImportArgs.Arguments.Count}");
+            }
+
+            var callConvArgs = SyntaxFactory.ParseAttributeArgumentList("(CallConvs = new[] { typeof(CallConvCdecl) })")!;
+            if (callConvArgs.Arguments.Count != 1)
+            {
+                failures.Add($"ParseAttributeArgumentList(UnmanagedCallConv) expected 1 arg, got {callConvArgs.Arguments.Count}");
+            }
+
+            if (!callConvArgs.ToFullString().Contains("typeof(CallConvCdecl)", StringComparison.Ordinal))
+            {
+                failures.Add($"ParseAttributeArgumentList stripped typeof(CallConvCdecl); got: {callConvArgs.ToFullString()}");
+            }
+        }
+        catch (Exception exc)
+        {
+            failures.Add($"SyntaxFactory.ParseAttributeArgumentList dry-run threw: {exc.GetType().Name}: {exc.Message}");
+        }
+    }
+
+    private static void CheckClongParameterDispatch(List<string> failures)
+    {
+        var clongFixture = """
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
+namespace SDL2.Ttf
+{
+    internal static unsafe partial class SDL_ttfNative
+    {
+        [DllImport("SDL2_ttf", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern TTF_Font TTF_OpenFontIndex(byte* file, int ptsize, [NativeTypeName("long")] long index);
+    }
+}
+""";
+
+        var modernRewriter = new ClongDualDispatchRewriter(ClongDualDispatchRewriter.Mode.Modern);
+        var modernTree = CSharpSyntaxTree.ParseText(clongFixture);
+        var modernRoot = (CompilationUnitSyntax)modernRewriter.Visit(modernTree.GetCompilationUnitRoot())!;
+        var modernOutput = modernRoot.ToFullString();
+        if (!modernOutput.Contains("CLong index", StringComparison.Ordinal))
+        {
+            failures.Add("ClongDualDispatchRewriter Modern: did not rewrite `long index` parameter to `CLong index`");
+        }
+
+        if (!modernOutput.Contains("[LibraryImport", StringComparison.Ordinal))
+        {
+            failures.Add("ClongDualDispatchRewriter Modern: did not emit [LibraryImport] attribute");
+        }
+
+        var compatRewriter = new ClongDualDispatchRewriter(ClongDualDispatchRewriter.Mode.Compat);
+        var compatTree = CSharpSyntaxTree.ParseText(clongFixture);
+        var compatRoot = (CompilationUnitSyntax)compatRewriter.Visit(compatTree.GetCompilationUnitRoot())!;
+        var compatOutput = compatRoot.ToFullString();
+        if (!compatOutput.Contains("RuntimeInformation.IsOSPlatform", StringComparison.Ordinal))
+        {
+            failures.Add("ClongDualDispatchRewriter Compat: dispatcher missing RuntimeInformation.IsOSPlatform branch");
+        }
+
+        if (!compatOutput.Contains("_Win32", StringComparison.Ordinal))
+        {
+            failures.Add("ClongDualDispatchRewriter Compat: Win32 helper DllImport not emitted");
+        }
+
+        if (!compatOutput.Contains("_Unix64", StringComparison.Ordinal))
+        {
+            failures.Add("ClongDualDispatchRewriter Compat: Unix64 helper DllImport not emitted");
+        }
+
+        if (!compatOutput.Contains("(int)index", StringComparison.Ordinal))
+        {
+            failures.Add("ClongDualDispatchRewriter Compat: Win32 dispatcher did not cast `long index` to `int`");
+        }
+
+        if (!compatOutput.Contains("(nint)index", StringComparison.Ordinal))
+        {
+            failures.Add("ClongDualDispatchRewriter Compat: Unix64 dispatcher did not cast `long index` to `nint`");
+        }
+    }
+
+    private static void CheckClongSignedReturnDispatch(List<string> failures)
+    {
+        var signedReturnFixture = """
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
+namespace SDL2.Ttf
+{
+    internal static unsafe partial class SDL_ttfNative
+    {
+        [DllImport("SDL2_ttf", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("long")]
+        public static extern long TTF_FontFaces(TTF_Font font);
+    }
+}
+""";
+
+        var modernRewriter = new ClongDualDispatchRewriter(ClongDualDispatchRewriter.Mode.Modern);
+        var modernTree = CSharpSyntaxTree.ParseText(signedReturnFixture);
+        var modernRoot = (CompilationUnitSyntax)modernRewriter.Visit(modernTree.GetCompilationUnitRoot())!;
+        var modernOutput = modernRoot.ToFullString();
+        if (!modernOutput.Contains("CLong TTF_FontFaces", StringComparison.Ordinal))
+        {
+            failures.Add("ClongDualDispatchRewriter Modern: did not rewrite signed `long` return to `CLong TTF_FontFaces`");
+        }
+
+        if (!modernOutput.Contains("[LibraryImport", StringComparison.Ordinal))
+        {
+            failures.Add("ClongDualDispatchRewriter Modern: did not emit [LibraryImport] for signed `long` return");
+        }
+
+        var compatRewriter = new ClongDualDispatchRewriter(ClongDualDispatchRewriter.Mode.Compat);
+        var compatTree = CSharpSyntaxTree.ParseText(signedReturnFixture);
+        var compatRoot = (CompilationUnitSyntax)compatRewriter.Visit(compatTree.GetCompilationUnitRoot())!;
+        var compatOutput = compatRoot.ToFullString();
+        if (!compatOutput.Contains("RuntimeInformation.IsOSPlatform", StringComparison.Ordinal))
+        {
+            failures.Add("ClongDualDispatchRewriter Compat: signed `long` return dispatcher missing RuntimeInformation.IsOSPlatform branch");
+        }
+
+        if (!compatOutput.Contains("_Win32", StringComparison.Ordinal) || !compatOutput.Contains("_Unix64", StringComparison.Ordinal))
+        {
+            failures.Add("ClongDualDispatchRewriter Compat: signed `long` return helper DllImports not emitted");
+        }
+
+        if (!compatOutput.Contains("long TTF_FontFaces", StringComparison.Ordinal))
+        {
+            failures.Add("ClongDualDispatchRewriter Compat: signed `long` return dispatcher did not use `long TTF_FontFaces`");
+        }
+
+        if (!compatOutput.Contains("int TTF_FontFaces_Win32", StringComparison.Ordinal))
+        {
+            failures.Add("ClongDualDispatchRewriter Compat: signed `long` Win32 helper did not use `int TTF_FontFaces_Win32`");
+        }
+
+        if (!compatOutput.Contains("nint TTF_FontFaces_Unix64", StringComparison.Ordinal))
+        {
+            failures.Add("ClongDualDispatchRewriter Compat: signed `long` Unix64 helper did not use `nint TTF_FontFaces_Unix64`");
+        }
+    }
+
+    private static void CheckClongThreadIdStructuralDispatch(List<string> failures)
+    {
+        var threadIdFixture = """
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
+namespace SDL2
+{
+    internal static unsafe partial class SDLNative
+    {
+        [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("SDL_threadID")]
+        public static extern ulong SDL_ThreadID();
+
+        [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("SDL_threadID")]
+        public static extern ulong SDL_GetThreadID(SDL_Thread thread);
+    }
+}
+""";
+
+        var modernRewriter = new ClongDualDispatchRewriter(ClongDualDispatchRewriter.Mode.Modern);
+        var modernTree = CSharpSyntaxTree.ParseText(threadIdFixture);
+        var modernRoot = (CompilationUnitSyntax)modernRewriter.Visit(modernTree.GetCompilationUnitRoot())!;
+        var modernOutput = modernRoot.ToFullString();
+        if (!modernOutput.Contains("CULong SDL_ThreadID", StringComparison.Ordinal))
+        {
+            failures.Add("ClongDualDispatchRewriter Modern: SDL_ThreadID did not use `CULong SDL_ThreadID`");
+        }
+
+        if (!modernOutput.Contains("[LibraryImport(\"SDL2\", EntryPoint = \"SDL_ThreadID\")]", StringComparison.Ordinal))
+        {
+            failures.Add("ClongDualDispatchRewriter Modern: SDL_ThreadID did not emit expected LibraryImport attribute");
+        }
+
+        if (!modernOutput.Contains("[return: NativeTypeName(\"SDL_threadID\")]", StringComparison.Ordinal))
+        {
+            failures.Add("ClongDualDispatchRewriter Modern: SDL_ThreadID did not preserve return NativeTypeName");
+        }
+
+        if (!modernOutput.Contains("\n        [UnmanagedCallConv", StringComparison.Ordinal) ||
+            !modernOutput.Contains("\n        public static partial CULong SDL_ThreadID", StringComparison.Ordinal))
+        {
+            failures.Add("ClongDualDispatchRewriter Modern: rewritten member lines did not preserve class-member indentation");
+        }
+
+        var compatRewriter = new ClongDualDispatchRewriter(ClongDualDispatchRewriter.Mode.Compat);
+        var compatTree = CSharpSyntaxTree.ParseText(threadIdFixture);
+        var compatRoot = (CompilationUnitSyntax)compatRewriter.Visit(compatTree.GetCompilationUnitRoot())!;
+        var compatOutput = compatRoot.ToFullString();
+        if (!compatOutput.Contains("ulong SDL_ThreadID", StringComparison.Ordinal))
+        {
+            failures.Add("ClongDualDispatchRewriter Compat: SDL_ThreadID dispatcher did not use `ulong SDL_ThreadID`");
+        }
+
+        if (!compatOutput.Contains("private static extern uint SDL_ThreadID_Win32", StringComparison.Ordinal))
+        {
+            failures.Add("ClongDualDispatchRewriter Compat: SDL_ThreadID Win32 helper did not use private `uint SDL_ThreadID_Win32`");
+        }
+
+        if (!compatOutput.Contains("private static extern nint SDL_ThreadID_Unix64", StringComparison.Ordinal))
+        {
+            failures.Add("ClongDualDispatchRewriter Compat: SDL_ThreadID Unix64 helper did not use private `nint SDL_ThreadID_Unix64`");
+        }
+
+        if (!compatOutput.Contains("RuntimeInformation.IsOSPlatform", StringComparison.Ordinal))
+        {
+            failures.Add("ClongDualDispatchRewriter Compat: SDL_ThreadID dispatcher missing RuntimeInformation.IsOSPlatform branch");
+        }
+
+        if (!compatOutput.Contains("\n        public static ulong SDL_ThreadID", StringComparison.Ordinal) ||
+            !compatOutput.Contains("\n        private static extern uint SDL_ThreadID_Win32", StringComparison.Ordinal) ||
+            !compatOutput.Contains("\n        private static extern nint SDL_ThreadID_Unix64", StringComparison.Ordinal))
+        {
+            failures.Add("ClongDualDispatchRewriter Compat: rewritten member lines did not preserve class-member indentation");
+        }
+
+        if (modernOutput.Contains("();[LibraryImport", StringComparison.Ordinal))
+        {
+            failures.Add("ClongDualDispatchRewriter Modern: adjacent rewritten methods were concatenated without trivia");
+        }
+
+        if (compatOutput.Contains("();[DllImport", StringComparison.Ordinal) ||
+            compatOutput.Contains("();[return:", StringComparison.Ordinal) ||
+            compatOutput.Contains("}[DllImport", StringComparison.Ordinal))
+        {
+            failures.Add("ClongDualDispatchRewriter Compat: rewritten members were concatenated without trivia");
+        }
+
+        if (!modernOutput.Contains("public static partial CULong SDL_ThreadID();\n\n        [LibraryImport(\"SDL2\", EntryPoint = \"SDL_GetThreadID\")]", StringComparison.Ordinal))
+        {
+            failures.Add("ClongDualDispatchRewriter Modern: replacement group did not preserve blank line before next rewritten method");
+        }
+
+        if (!compatOutput.Contains("private static extern nint SDL_ThreadID_Unix64();\n\n        [return: NativeTypeName(\"SDL_threadID\")]", StringComparison.Ordinal))
+        {
+            failures.Add("ClongDualDispatchRewriter Compat: replacement group did not preserve blank line before next rewritten method");
         }
     }
 

@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.CSharp;
 //   dotnet run --project postprocess -- libraryimport      <input-dir> [<output-dir>]
 //   dotnet run --project postprocess -- platform-delta     <input-dir> [<output-dir>]
 //   dotnet run --project postprocess -- guid-substitute    <input-dir> [<output-dir>]
-//   dotnet run --project postprocess -- threadid-dispatch  <input-dir> [<output-dir>]
+//   dotnet run --project postprocess -- clong-dispatch     <input-dir> [<output-dir>]
 //   dotnet run --project postprocess -- uniform-opaque     <input-dir> [<output-dir>] [--owner-mode owner|consumer] [--handles-namespace namespace]
 //
 // strip-varargs     : Constitution L162-176 fmt-only policy — drops `__arglist`
@@ -22,16 +22,13 @@ using Microsoft.CodeAnalysis.CSharp;
 //                     and rewrites every reference to System.Guid. Wire size is
 //                     bit-identical (both 16 bytes); see GuidSubstitutionRewriter
 //                     for the ABI trade-off rationale.
-// threadid-dispatch : Slice C-A R2 structural — replaces the SDL_ThreadID /
-//                     SDL_GetThreadID single P/Invoke with a mode-aware emit:
-//                     Modern (net6+) gets [LibraryImport] + CULong; Compat
-//                     (netstandard2.0/net462) gets Microsoft's documented dual
-//                     DllImport + RuntimeInformation dispatch. Mode is detected
-//                     from the input directory path segment (Compat vs Modern),
-//                     mirroring PlatformDeltaPostProcessor; no #if directives
-//                     are emitted because the csproj already routes
-//                     Generated/Compat to legacy TFMs and Generated/Modern to
-//                     net6+ via conditional <Compile Include>.
+// clong-dispatch    : Roslyn node-level emit for C `long` / `unsigned long` raw ABI
+//                     signatures. Covers SDL_ThreadID family (Core) and TTF C `long`
+//                     surface (dormant until Item 4 activates TTF in --family all).
+//                     Modern emits [LibraryImport] + CLong/CULong; Compat emits a
+//                     managed wrapper + RuntimeInformation.IsOSPlatform dispatch to
+//                     per-RID [DllImport] helpers (uint on Win, nint on Unix64).
+//                     Mode is auto-detected from inputDir path (Compat / Modern).
 // uniform-opaque    : Slice C-B Pattern B uniform opaque handle emit. Two
 //                     channels: (1) auto-detect — empty `partial struct X {}`
 //                     declarations referenced via [NativeTypeName("X *")]
@@ -50,9 +47,9 @@ if (args is ["--self-test"])
     return PostProcessSelfTests.Run();
 }
 
-if (args.Length < 2 || args[0] is not ("strip-varargs" or "libraryimport" or "platform-delta" or "guid-substitute" or "threadid-dispatch" or "uniform-opaque"))
+if (args.Length < 2 || args[0] is not ("strip-varargs" or "libraryimport" or "platform-delta" or "guid-substitute" or "clong-dispatch" or "uniform-opaque"))
 {
-    Console.Error.WriteLine("usage: dotnet run --project postprocess -- <strip-varargs|libraryimport|platform-delta|guid-substitute|threadid-dispatch|uniform-opaque> <input-dir> [<output-dir>] or --self-test");
+    Console.Error.WriteLine("usage: dotnet run --project postprocess -- <strip-varargs|libraryimport|platform-delta|guid-substitute|clong-dispatch|uniform-opaque> <input-dir> [<output-dir>] or --self-test");
     return 1;
 }
 
@@ -125,11 +122,11 @@ switch (mode)
         resetRewriter = r.Reset;
         break;
     }
-    case "threadid-dispatch":
+    case "clong-dispatch":
     {
-        var threadIdMode = ThreadIdDualDispatchRewriter.DetectMode(inputDir);
-        Console.WriteLine($"threadid-dispatch: mode={threadIdMode}");
-        var r = new ThreadIdDualDispatchRewriter(threadIdMode);
+        var clongMode = ClongDualDispatchRewriter.DetectMode(inputDir);
+        Console.WriteLine($"clong-dispatch: mode={clongMode}");
+        var r = new ClongDualDispatchRewriter(clongMode);
         rewriter = r;
         hasChanges = () => r.AnyChanges;
         resetRewriter = r.Reset;

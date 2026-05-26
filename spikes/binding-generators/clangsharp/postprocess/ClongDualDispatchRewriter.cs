@@ -1,71 +1,23 @@
-using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Text;
 
 namespace Janset.SDL2.PostProcess;
 
-// R2 structural-symbol hybrid emit for the SDL_threadID family, mode-aware.
+// Roslyn-level emit for C `long` and `unsigned long` raw ABI signatures, mode-aware.
 //
-// SDL_ThreadID / SDL_GetThreadID return the OS-level thread identifier (C
-// `unsigned long`, typedef'd to SDL_threadID). It is structurally different
-// from System.Threading.Thread.ManagedThreadId — they live in different ID
-// spaces — and so cannot be dropped from the binding surface on legacy TFMs.
+// Two channels: structural SDL_ThreadID/SDL_GetThreadID family (Constitution §"C `long`"
+// Priority C closure R2) AND satellite C `long` surface (SDL_ttf's TTF_OpenFontIndex*,
+// TTF_FontFaces - dormant until Item 4 activates TTF).
 //
-// Sensor: methods with [return: NativeTypeName("SDL_threadID")] or
-// [return: NativeTypeName("unsigned long")] whose identifier is on the allow
-// list (SDL_ThreadID / SDL_GetThreadID).
+// Mutation strategy: true Roslyn node-level via VisitClassDeclaration returning a
+// mutated Members list (one matched method expands to 1 dispatcher + 2 helper
+// DllImports on Compat; one [LibraryImport] partial on Modern). SyntaxFactory builds
+// attribute lists, parameter lists, body blocks, then preserves source member
+// boundary trivia so generated output remains deterministic and readable.
 //
-// Mode-aware emit. The project's csproj routes Generated/Compat to
-// netstandard2.0 + net462 only, and Generated/Modern to net6+ only via
-// conditional <Compile Include>. Each output file therefore only ever
-// compiles under one TFM range. We emit a single branch matching the
-// destination — no `#if` directives are needed, mirroring the existing
-// `libraryimport` postprocess pattern (Compat keeps [DllImport]; Modern
-// gets [LibraryImport]).
-//
-// Modern emit (single form, requires net6+):
-//
-//   [LibraryImport("SDL2", EntryPoint = "SDL_ThreadID")]
-//   [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-//   [return: NativeTypeName("SDL_threadID")]
-//   public static partial CULong SDL_ThreadID();
-//
-// Compat emit (single form, legacy TFMs only): managed wrapper +
-// RuntimeInformation.IsOSPlatform dispatch between two private DllImports
-// returning uint (Windows LLP64: C unsigned long = 32-bit) and nint
-// (Unix LP64: C unsigned long = 64-bit). Microsoft's documented
-// cross-platform C-long pattern.
-//
-//   [return: NativeTypeName("SDL_threadID")]
-//   public static ulong SDL_ThreadID()
-//   {
-//       if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-//           return SDL_ThreadID_Win32();
-//       return (ulong)SDL_ThreadID_Unix64();
-//   }
-//
-//   [DllImport("SDL2", EntryPoint = "SDL_ThreadID", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-//   private static extern uint SDL_ThreadID_Win32();
-//
-//   [DllImport("SDL2", EntryPoint = "SDL_ThreadID", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-//   private static extern nint SDL_ThreadID_Unix64();
-//
-// Mode is auto-detected from the input directory path (mirrors
-// PlatformDeltaPostProcessor's pattern); a path segment of `Compat`
-// selects Compat, `Modern` selects Modern. Missing both throws.
-//
-// Mechanism: the rewriter cannot rely on Roslyn's syntax-tree mutation to
-// inject the replacement attribute lists + extra member declarations cleanly
-// in one pass (multiple members per source method), so we stay with the
-// source-text substitution approach — collect detected methods during the
-// syntax walk, then rewrite at the source-text level in VisitCompilationUnit
-// by computing each method's text span and substituting a verbatim raw block.
-//
-// Refs: Constitution §"C `long` And `unsigned long`" Priority C hybrid
-// strategy and Priority C closure summary R2.
-internal sealed class ThreadIdDualDispatchRewriter : CSharpSyntaxRewriter
+// See Constitution §"C `long` And `unsigned long`" Priority C hybrid strategy.
+internal sealed class ClongDualDispatchRewriter : CSharpSyntaxRewriter
 {
     internal enum Mode
     {
@@ -77,12 +29,18 @@ internal sealed class ThreadIdDualDispatchRewriter : CSharpSyntaxRewriter
     {
         "SDL_ThreadID",
         "SDL_GetThreadID",
+        // Dormant until Item 4 activates TTF in selected_families("all").
+        // Constitution §"C `long` And `unsigned long`" (TTF satellite C `long` surface clause).
+        "TTF_OpenFontIndex",
+        "TTF_OpenFontIndexRW",
+        "TTF_OpenFontIndexDPI",
+        "TTF_OpenFontIndexDPIRW",
+        "TTF_FontFaces",
     };
 
     private readonly Mode _mode;
-    private readonly List<(TextSpan FullSpan, string Replacement)> _pending = new();
 
-    public ThreadIdDualDispatchRewriter(Mode mode)
+    public ClongDualDispatchRewriter(Mode mode)
     {
         _mode = mode;
     }
@@ -92,11 +50,10 @@ internal sealed class ThreadIdDualDispatchRewriter : CSharpSyntaxRewriter
     public void Reset()
     {
         AnyChanges = false;
-        _pending.Clear();
     }
 
     // Inspect the input directory's path segments and choose the emit mode.
-    // Mirrors PlatformDeltaPostProcessor.GetPlatformName — defensive throw if
+    // Mirrors PlatformDeltaPostProcessor.GetPlatformName - defensive throw if
     // neither segment is present so a mis-pointed CLI fails loudly rather
     // than silently producing the wrong shape.
     public static Mode DetectMode(string inputDir)
@@ -115,135 +72,279 @@ internal sealed class ThreadIdDualDispatchRewriter : CSharpSyntaxRewriter
         }
 
         throw new InvalidOperationException(
-            $"threadid-dispatch: input directory must contain a 'Compat' or 'Modern' path segment to select emit mode: {inputDir}");
+            $"clong-dispatch: input directory must contain a 'Compat' or 'Modern' path segment to select emit mode: {inputDir}");
     }
 
-    public override SyntaxNode? VisitMethodDeclaration(MethodDeclarationSyntax node)
+    public override SyntaxNode? VisitClassDeclaration(ClassDeclarationSyntax node)
     {
-        if (!AffectedMethodNames.Contains(node.Identifier.ValueText))
+        var newMembers = new List<MemberDeclarationSyntax>();
+        var changed = false;
+
+        foreach (var member in node.Members)
         {
-            return node;
+            if (member is MethodDeclarationSyntax method && IsAffectedMethod(method))
+            {
+                var replacement = _mode == Mode.Modern
+                    ? BuildModernMembers(method)
+                    : BuildCompatMembers(method);
+                newMembers.AddRange(AttachReplacementTrivia(method, replacement));
+                changed = true;
+            }
+            else
+            {
+                newMembers.Add(member);
+            }
         }
 
-        var returnNativeType = ExtractReturnNativeTypeName(node);
-        if (returnNativeType is not ("SDL_threadID" or "unsigned long"))
+        if (!changed)
         {
-            return node;
+            return base.VisitClassDeclaration(node);
         }
 
-        var libPath = ExtractLibraryPath(node) ?? "SDL2";
-        var accessModifier = ExtractAccessModifier(node);
-        var name = node.Identifier.ValueText;
-        var paramList = node.ParameterList.ToString();
-        var indent = ExtractLeadingIndentation(node);
-        var replacement = _mode == Mode.Modern
-            ? BuildModernReplacement(name, libPath, accessModifier, returnNativeType, paramList, indent)
-            : BuildCompatReplacement(name, libPath, accessModifier, returnNativeType, paramList, indent);
-
-        // Stage a text-level substitution. We use FullSpan (which includes
-        // leading trivia: blank line + indentation) so the replacement controls
-        // its own preamble whitespace.
-        _pending.Add((node.FullSpan, replacement));
         AnyChanges = true;
-        return node;
+        return node.WithMembers(SyntaxFactory.List(newMembers));
     }
 
-    public override SyntaxNode? VisitCompilationUnit(CompilationUnitSyntax node)
+    private static bool IsAffectedMethod(MethodDeclarationSyntax method)
     {
-        // Visit first so VisitMethodDeclaration populates _pending.
-        var visited = (CompilationUnitSyntax)base.VisitCompilationUnit(node)!;
-        if (_pending.Count == 0)
+        if (!AffectedMethodNames.Contains(method.Identifier.ValueText))
         {
-            return visited;
+            return false;
         }
 
-        var source = node.SyntaxTree.GetText();
-        // Apply substitutions in reverse order so earlier spans aren't
-        // invalidated by edits at later offsets.
-        var sb = new StringBuilder(source.ToString());
-        foreach (var (span, replacement) in _pending.OrderByDescending(p => p.FullSpan.Start))
+        var returnNativeType = ExtractReturnNativeTypeName(method);
+        if (returnNativeType is "SDL_threadID" or "unsigned long" or "long")
         {
-            sb.Remove(span.Start, span.Length);
-            sb.Insert(span.Start, replacement);
+            return true;
         }
 
-        var rewrittenTree = CSharpSyntaxTree.ParseText(sb.ToString());
-        return rewrittenTree.GetCompilationUnitRoot();
+        return method.ParameterList.Parameters.Any(HasClongAnnotation);
     }
 
-    private static string BuildModernReplacement(
-        string name,
-        string libPath,
-        string accessModifier,
-        string returnNativeType,
-        string paramList,
-        string indent)
+    private static IEnumerable<MemberDeclarationSyntax> BuildModernMembers(MethodDeclarationSyntax method)
     {
-        // Single LibraryImport + CULong form. Mirrors the post-libraryimport
-        // output shape so the file remains visually consistent with the
-        // surrounding members. `using System.Runtime.InteropServices;` is
-        // already present in every Modern output (DllImportToLibraryImportRewriter
-        // ensures it), so unqualified names work without extra using insertion.
-        var sb = new StringBuilder();
-        sb.AppendLine();
-        sb.Append(indent).AppendLine($"[LibraryImport(\"{libPath}\", EntryPoint = \"{name}\")]");
-        sb.Append(indent).AppendLine("[UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]");
-        sb.Append(indent).AppendLine($"[return: NativeTypeName(\"{returnNativeType}\")]");
-        sb.Append(indent).Append($"{accessModifier} static partial CULong {name}{paramList};").AppendLine();
-        return sb.ToString();
-    }
+        var libPath = ExtractLibraryPath(method) ?? "SDL2";
+        var name = method.Identifier.ValueText;
+        var returnNativeType = ExtractReturnNativeTypeName(method);
+        var clongReturnType = GetClongManagedTypeName(returnNativeType);
 
-    private static string BuildCompatReplacement(
-        string name,
-        string libPath,
-        string accessModifier,
-        string returnNativeType,
-        string paramList,
-        string indent)
-    {
-        // Managed dispatch wrapper + 2 private DllImports. RuntimeInformation /
-        // OSPlatform / DllImport / CallingConvention all live under
-        // System.Runtime.InteropServices — the Compat outputs already `using`
-        // that namespace (ClangSharp emits it), so unqualified spellings work.
-        var sb = new StringBuilder();
-        sb.AppendLine();
-        sb.Append(indent).AppendLine($"[return: NativeTypeName(\"{returnNativeType}\")]");
-        sb.Append(indent).AppendLine($"{accessModifier} static ulong {name}{paramList}");
-        sb.Append(indent).AppendLine("{");
-        sb.Append(indent).AppendLine("    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))");
-        sb.Append(indent).AppendLine($"        return {name}_Win32{StripParamTypes(paramList)};");
-        sb.Append(indent).AppendLine($"    return (ulong){name}_Unix64{StripParamTypes(paramList)};");
-        sb.Append(indent).AppendLine("}");
-        sb.AppendLine();
-        sb.Append(indent).AppendLine($"[DllImport(\"{libPath}\", EntryPoint = \"{name}\", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]");
-        sb.Append(indent).AppendLine($"private static extern uint {name}_Win32{paramList};");
-        sb.AppendLine();
-        sb.Append(indent).AppendLine($"[DllImport(\"{libPath}\", EntryPoint = \"{name}\", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]");
-        sb.Append(indent).Append($"private static extern nint {name}_Unix64{paramList};").AppendLine();
-        return sb.ToString();
-    }
+        var newParams = method.ParameterList.Parameters.Select(p =>
+            GetNativeTypeName(p) is { } nativeType && GetClongManagedTypeName(nativeType) is { } parameterType
+                ? p.WithType(SyntaxFactory.IdentifierName(parameterType))
+                : p);
 
-    // Strip type names from a parameter list so it can be reused as an argument list.
-    // e.g., "(SDL_Thread* thread)" -> "(thread)"; "()" stays "()".
-    private static string StripParamTypes(string paramList)
-    {
-        var inner = paramList.Trim('(', ')').Trim();
-        if (string.IsNullOrEmpty(inner)) return "()";
+        var returnType = clongReturnType is null
+            ? method.ReturnType
+            : SyntaxFactory.IdentifierName(clongReturnType);
 
-        var args = inner.Split(',')
-            .Select(p => p.Trim().Split(' ', '*').Last().TrimStart('@'))
-            .Where(s => !string.IsNullOrWhiteSpace(s));
-        return $"({string.Join(", ", args)})";
-    }
-
-    private static string? ExtractReturnNativeTypeName(MethodDeclarationSyntax method)
-    {
-        foreach (var al in method.AttributeLists)
+        var attributes = SyntaxFactory.List(new[]
         {
-            if (al.Target?.Identifier.ValueText != "return") continue;
+            SyntaxFactory.AttributeList(SyntaxFactory.SingletonSeparatedList(
+                SyntaxFactory.Attribute(SyntaxFactory.ParseName("LibraryImport"))
+                    .WithArgumentList(SyntaxFactory.ParseAttributeArgumentList(
+                        $"(\"{libPath}\", EntryPoint = \"{name}\")")))),
+            SyntaxFactory.AttributeList(SyntaxFactory.SingletonSeparatedList(
+                SyntaxFactory.Attribute(SyntaxFactory.ParseName("UnmanagedCallConv"))
+                    .WithArgumentList(SyntaxFactory.ParseAttributeArgumentList(
+                        "(CallConvs = new[] { typeof(CallConvCdecl) })")))),
+        });
+
+        if (returnNativeType is { Length: > 0 })
+        {
+            attributes = attributes.Add(SyntaxFactory.AttributeList(
+                    SyntaxFactory.SingletonSeparatedList(
+                        SyntaxFactory.Attribute(SyntaxFactory.ParseName("NativeTypeName"))
+                            .WithArgumentList(SyntaxFactory.ParseAttributeArgumentList($"(\"{returnNativeType}\")"))))
+                .WithTarget(SyntaxFactory.AttributeTargetSpecifier(SyntaxFactory.Token(SyntaxKind.ReturnKeyword))));
+        }
+
+        var modifiers = method.Modifiers.Any(SyntaxKind.PartialKeyword)
+            ? method.Modifiers
+            : method.Modifiers.Add(SyntaxFactory.Token(SyntaxKind.PartialKeyword));
+        modifiers = SyntaxFactory.TokenList(modifiers.Where(m => !m.IsKind(SyntaxKind.ExternKeyword)));
+
+        yield return (MemberDeclarationSyntax)SyntaxFactory.MethodDeclaration(returnType, name)
+            .WithAttributeLists(attributes)
+            .WithModifiers(modifiers)
+            .WithParameterList(SyntaxFactory.ParameterList(SyntaxFactory.SeparatedList(newParams)))
+            .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
+            .NormalizeWhitespace();
+    }
+
+    private static IEnumerable<MemberDeclarationSyntax> BuildCompatMembers(MethodDeclarationSyntax method)
+    {
+        var libPath = ExtractLibraryPath(method) ?? "SDL2";
+        var name = method.Identifier.ValueText;
+        var returnNativeType = ExtractReturnNativeTypeName(method);
+        var returnIsUnsignedLong = returnNativeType is "SDL_threadID" or "unsigned long";
+        var returnIsClong = returnIsUnsignedLong || returnNativeType is "long";
+        var dispatcherReturnType = returnIsClong
+            ? SyntaxFactory.IdentifierName(returnIsUnsignedLong ? "ulong" : "long")
+            : method.ReturnType;
+        var winReturnType = returnIsClong
+            ? returnIsUnsignedLong ? "uint" : "int"
+            : method.ReturnType.ToString();
+        var unixReturnType = returnIsClong ? "nint" : method.ReturnType.ToString();
+
+        ParameterListSyntax BuildHelperParams(string signedLongType, string unsignedLongType) =>
+            SyntaxFactory.ParameterList(SyntaxFactory.SeparatedList(
+                method.ParameterList.Parameters.Select(p => GetNativeTypeName(p) switch
+                {
+                    "SDL_threadID" or "unsigned long" => p.WithType(SyntaxFactory.IdentifierName(unsignedLongType)),
+                    "long" => p.WithType(SyntaxFactory.IdentifierName(signedLongType)),
+                    _ => p,
+                })));
+
+        var winArgList = BuildCallArgumentList("int", "uint");
+        var unixArgList = BuildCallArgumentList("nint", "nint");
+        var unixCall = returnIsClong
+            ? $"return ({dispatcherReturnType}){name}_Unix64({unixArgList});"
+            : $"return {name}_Unix64({unixArgList});";
+        var dispatcherBody = SyntaxFactory.ParseStatement($$"""
+            {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    return {{name}}_Win32({{winArgList}});
+                {{unixCall}}
+            }
+            """);
+
+        var dispatcherModifiers = SyntaxFactory.TokenList(method.Modifiers.Where(m =>
+            !m.IsKind(SyntaxKind.ExternKeyword) &&
+            !m.IsKind(SyntaxKind.PartialKeyword)));
+        var dispatcher = SyntaxFactory.MethodDeclaration(dispatcherReturnType, name)
+            .WithAttributeLists(BuildReturnAttributeList(returnNativeType))
+            .WithModifiers(dispatcherModifiers)
+            .WithParameterList(method.ParameterList)
+            .WithBody((BlockSyntax)dispatcherBody);
+
+        yield return (MemberDeclarationSyntax)dispatcher.NormalizeWhitespace();
+        yield return BuildHelperDllImport("Win32", winReturnType, BuildHelperParams("int", "uint"));
+        yield return BuildHelperDllImport("Unix64", unixReturnType, BuildHelperParams("nint", "nint"));
+
+        string BuildCallArgumentList(string signedLongType, string unsignedLongType) =>
+            string.Join(", ", method.ParameterList.Parameters.Select(p => GetNativeTypeName(p) switch
+            {
+                "SDL_threadID" or "unsigned long" => $"({unsignedLongType}){p.Identifier.ValueText}",
+                "long" => $"({signedLongType}){p.Identifier.ValueText}",
+                _ => p.Identifier.ValueText,
+            }));
+
+        MemberDeclarationSyntax BuildHelperDllImport(string suffix, string ridReturnType, ParameterListSyntax parameterList)
+        {
+            var dllImportAttr = SyntaxFactory.AttributeList(SyntaxFactory.SingletonSeparatedList(
+                SyntaxFactory.Attribute(SyntaxFactory.ParseName("DllImport"))
+                    .WithArgumentList(SyntaxFactory.ParseAttributeArgumentList(
+                        $"(\"{libPath}\", EntryPoint = \"{name}\", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)"))));
+
+            return (MemberDeclarationSyntax)SyntaxFactory.MethodDeclaration(SyntaxFactory.ParseTypeName(ridReturnType), $"{name}_{suffix}")
+                .WithAttributeLists(SyntaxFactory.SingletonList(dllImportAttr))
+                .WithModifiers(SyntaxFactory.TokenList(
+                    SyntaxFactory.Token(SyntaxKind.PrivateKeyword),
+                    SyntaxFactory.Token(SyntaxKind.StaticKeyword),
+                    SyntaxFactory.Token(SyntaxKind.ExternKeyword)))
+                .WithParameterList(parameterList)
+                .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
+                .NormalizeWhitespace();
+        }
+    }
+
+    private static SyntaxList<AttributeListSyntax> BuildReturnAttributeList(string? returnNativeType)
+    {
+        if (returnNativeType is not { Length: > 0 })
+        {
+            return default;
+        }
+
+        return SyntaxFactory.SingletonList(SyntaxFactory.AttributeList(
+                SyntaxFactory.SingletonSeparatedList(
+                    SyntaxFactory.Attribute(SyntaxFactory.ParseName("NativeTypeName"))
+                        .WithArgumentList(SyntaxFactory.ParseAttributeArgumentList($"(\"{returnNativeType}\")"))))
+            .WithTarget(SyntaxFactory.AttributeTargetSpecifier(SyntaxFactory.Token(SyntaxKind.ReturnKeyword))));
+    }
+
+    private static IEnumerable<MemberDeclarationSyntax> AttachReplacementTrivia(
+        MethodDeclarationSyntax originalMethod,
+        IEnumerable<MemberDeclarationSyntax> replacementMembers)
+    {
+        var members = replacementMembers.ToList();
+        var indentation = ExtractMemberIndentation(originalMethod);
+
+        for (var i = 0; i < members.Count; i++)
+        {
+            var member = IndentMemberLines(members[i], indentation);
+            var leadingTrivia = i == 0
+                ? originalMethod.GetLeadingTrivia()
+                : SyntaxFactory.TriviaList(
+                    SyntaxFactory.EndOfLine("\n"),
+                    SyntaxFactory.EndOfLine("\n"),
+                    SyntaxFactory.Whitespace(indentation));
+
+            if (i == members.Count - 1)
+            {
+                member = member.WithTrailingTrivia(originalMethod.GetTrailingTrivia());
+            }
+
+            yield return member.WithLeadingTrivia(leadingTrivia);
+        }
+    }
+
+    private static string ExtractMemberIndentation(MethodDeclarationSyntax method)
+    {
+        var leadingText = method.GetLeadingTrivia().ToFullString();
+        var lastNewline = leadingText.LastIndexOf('\n');
+        var indentation = lastNewline >= 0 ? leadingText[(lastNewline + 1)..] : leadingText;
+        return indentation.All(char.IsWhiteSpace) && indentation.Length > 0 ? indentation : "        ";
+    }
+
+    private static MemberDeclarationSyntax IndentMemberLines(MemberDeclarationSyntax member, string indentation)
+    {
+        return (MemberDeclarationSyntax)new MemberLineIndentationRewriter(indentation).Visit(member)!;
+    }
+
+    private sealed class MemberLineIndentationRewriter(string indentation) : CSharpSyntaxRewriter
+    {
+        public override SyntaxToken VisitToken(SyntaxToken token)
+        {
+            return token
+                .WithLeadingTrivia(IndentAfterLineFeeds(token.LeadingTrivia))
+                .WithTrailingTrivia(IndentAfterLineFeeds(token.TrailingTrivia));
+        }
+
+        private SyntaxTriviaList IndentAfterLineFeeds(SyntaxTriviaList trivia)
+        {
+            if (!trivia.Any(t => t.IsKind(SyntaxKind.EndOfLineTrivia)))
+            {
+                return trivia;
+            }
+
+            var adjusted = new List<SyntaxTrivia>(trivia.Count + 2);
+            foreach (var item in trivia)
+            {
+                adjusted.Add(item);
+                if (item.IsKind(SyntaxKind.EndOfLineTrivia))
+                {
+                    adjusted.Add(SyntaxFactory.Whitespace(indentation));
+                }
+            }
+
+            return SyntaxFactory.TriviaList(adjusted);
+        }
+    }
+
+    private static bool HasClongAnnotation(ParameterSyntax param) =>
+        GetNativeTypeName(param) is "long" or "unsigned long" or "SDL_threadID";
+
+    private static string? GetNativeTypeName(ParameterSyntax param)
+    {
+        foreach (var al in param.AttributeLists)
+        {
             foreach (var attr in al.Attributes)
             {
-                if (attr.Name.ToString() != "NativeTypeName") continue;
+                if (attr.Name.ToString() != "NativeTypeName")
+                {
+                    continue;
+                }
+
                 var arg = attr.ArgumentList?.Arguments.FirstOrDefault();
                 if (arg?.Expression is LiteralExpressionSyntax lit)
                 {
@@ -251,6 +352,41 @@ internal sealed class ThreadIdDualDispatchRewriter : CSharpSyntaxRewriter
                 }
             }
         }
+
+        return null;
+    }
+
+    private static string? GetClongManagedTypeName(string? nativeType) => nativeType switch
+    {
+        "SDL_threadID" or "unsigned long" => "CULong",
+        "long" => "CLong",
+        _ => null,
+    };
+
+    private static string? ExtractReturnNativeTypeName(MethodDeclarationSyntax method)
+    {
+        foreach (var al in method.AttributeLists)
+        {
+            if (al.Target?.Identifier.ValueText != "return")
+            {
+                continue;
+            }
+
+            foreach (var attr in al.Attributes)
+            {
+                if (attr.Name.ToString() != "NativeTypeName")
+                {
+                    continue;
+                }
+
+                var arg = attr.ArgumentList?.Arguments.FirstOrDefault();
+                if (arg?.Expression is LiteralExpressionSyntax lit)
+                {
+                    return lit.Token.ValueText;
+                }
+            }
+        }
+
         return null;
     }
 
@@ -271,30 +407,7 @@ internal sealed class ThreadIdDualDispatchRewriter : CSharpSyntaxRewriter
                 }
             }
         }
+
         return null;
-    }
-
-    // Preserve the original method's access modifier (public/internal) so the
-    // rewritten emit matches the rest of the SDLNative container's surface.
-    private static string ExtractAccessModifier(MethodDeclarationSyntax method)
-    {
-        foreach (var modifier in method.Modifiers)
-        {
-            if (modifier.IsKind(SyntaxKind.PublicKeyword)) return "public";
-            if (modifier.IsKind(SyntaxKind.InternalKeyword)) return "internal";
-            if (modifier.IsKind(SyntaxKind.PrivateKeyword)) return "private";
-            if (modifier.IsKind(SyntaxKind.ProtectedKeyword)) return "protected";
-        }
-        return "public";
-    }
-
-    // Pull the indentation prefix from the original method's leading trivia
-    // so the rendered replacement lines up with surrounding members.
-    private static string ExtractLeadingIndentation(MethodDeclarationSyntax method)
-    {
-        var leadingText = method.GetLeadingTrivia().ToFullString();
-        var lastNewline = leadingText.LastIndexOfAny(['\n', '\r']);
-        var indent = lastNewline >= 0 ? leadingText[(lastNewline + 1)..] : leadingText;
-        return indent.All(char.IsWhiteSpace) && indent.Length > 0 ? indent : "        ";
     }
 }

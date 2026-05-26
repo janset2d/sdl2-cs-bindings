@@ -3,7 +3,7 @@
     Per-TFM ABI smoke for the ClangSharp spike's rewriter output. References
     the spike's Janset.SDL2.Core ProjectReference directly (not the published
     NuGet) and exercises Layer 1 internals via InternalsVisibleTo. Build +
-    test evidence per executable TFM verifies the ThreadIdDualDispatchRewriter
+    test evidence per executable TFM verifies the ClongDualDispatchRewriter
     produces valid code for both Compat (net462) and Modern (net8+) outputs.
   -->
   <PropertyGroup>

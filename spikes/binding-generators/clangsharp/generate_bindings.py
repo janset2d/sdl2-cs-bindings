@@ -882,7 +882,7 @@ def run_postprocess(
     - 'libraryimport'     promotes DllImport -> LibraryImport per Constitution L48 backend split
     - 'platform-delta'    SDL2 platform-view pass cleanup
     - 'guid-substitute'   Slice C-C: SDL_GUID -> System.Guid (16-byte wire-identical)
-    - 'threadid-dispatch' Slice C-A R2 structural: SDL_threadID family hybrid TFM emit
+    - 'clong-dispatch'    C long / unsigned long hybrid TFM emit
     - 'uniform-opaque'    Slice C-B Pattern B opaque handle emit + pointer-to-by-value rewrites
     codegen selects the Generated/<Codegen>/ subtree to operate on.
 
@@ -990,7 +990,7 @@ def postprocess_steps_for_codegen(codegen: str) -> tuple[str, ...]:
         "platform-delta",
         "strip-varargs",
         "guid-substitute",
-        "threadid-dispatch",
+        "clong-dispatch",
         "uniform-opaque",
     )
     if codegen == "modern":
@@ -999,7 +999,7 @@ def postprocess_steps_for_codegen(codegen: str) -> tuple[str, ...]:
             "strip-varargs",
             "libraryimport",
             "guid-substitute",
-            "threadid-dispatch",
+            "clong-dispatch",
             "uniform-opaque",
         )
     return common_steps
@@ -2119,22 +2119,22 @@ def main() -> int:
                     postprocess_failures += 1
                     print(f"WARNING: guid-substitute postprocess for {family}/{codegen} returned exit {exit_code}")
 
-    # Slice C-A R2 structural SDL_threadID hybrid dispatch: replaces the
-    # single uint-returning SDL_ThreadID / SDL_GetThreadID P/Invoke with a
-    # TFM-conditional pair — CLong/CULong + LibraryImport on net6+, and
-    # Microsoft's documented dual-DllImport + RuntimeInformation.IsOSPlatform
-    # dispatch on legacy TFMs (uint return on Windows = 32-bit C unsigned long;
-    # nint return on Unix LP64 = 64-bit). Caller-side surface uniform ulong.
-    # Applied to both Compat and Modern after guid-substitute so the rewrite
-    # sees the final attribute shape across both codegen trees.
+    # Slice C-A R2 + Item 1 S1-5: Roslyn node-level C `long` / unsigned long hybrid
+    # dispatch. Covers SDL_ThreadID family (Core, active) and TTF C `long` surface
+    # (TTF_OpenFontIndex*, TTF_FontFaces - dormant until Item 4 activates TTF in
+    # --family all). Modern emits [LibraryImport] + CLong/CULong; Compat emits
+    # managed wrapper + RuntimeInformation.IsOSPlatform dispatch to per-RID
+    # [DllImport] helpers (uint on Win, nint on Unix64). Applied to both Compat and
+    # Modern after guid-substitute so the rewrite sees the final attribute shape
+    # across both codegen trees.
     if args.execute:
-        print("--- postprocess: threadid-dispatch (all codegens) ---")
+        print("--- postprocess: clong-dispatch (all codegens) ---")
         for codegen in codegen_passes:
             for family in selected:
-                exit_code = run_postprocess(repo, family, spike_root, "threadid-dispatch", codegen)
+                exit_code = run_postprocess(repo, family, spike_root, "clong-dispatch", codegen)
                 if exit_code != 0:
                     postprocess_failures += 1
-                    print(f"WARNING: threadid-dispatch postprocess for {family}/{codegen} returned exit {exit_code}")
+                    print(f"WARNING: clong-dispatch postprocess for {family}/{codegen} returned exit {exit_code}")
 
     # Uniform opaque handle emit runs last so it sees the final signature shape.
     # Owner-mode families emit their local opaque handle bodies into Handles.g.cs;
