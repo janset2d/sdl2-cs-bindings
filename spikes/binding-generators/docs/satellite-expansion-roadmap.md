@@ -229,6 +229,7 @@ The following are open questions that belong to Iteration 2's spec + plan, not t
 ### Current Understanding
 
 - **102 functions** across 4 headers: `SDL2_framerate.h` (5, `SDL_`-prefixed), `SDL2_gfxPrimitives.h` (59, bare names), `SDL2_imageFilter.h` (30, `SDL_`-prefixed), `SDL2_rotozoom.h` (8, bare names). `SDL2_gfxPrimitives_font.h` excluded (data-only).
+- **SDL2-CS compatibility baseline exists:** `external/sdl2-cs/src/SDL2_gfx.cs` gives us a real GFX oracle comparison source for validating generated Layer 1 output. This improves compatibility evidence only; it does not change GFX's ABI risk profile.
 - **Export macro risk:** Per-header scope macros (`SDL2_GFXPRIMITIVES_SCOPE` etc.). Each header's `#ifndef` fallback resolves to `extern` in consuming scenarios. Insurance `--define-macro` entries in `rsp/sdl2-gfx.rsp` guarantee ClangSharp recognition.
 - **No satellite-owned opaque handles.** Consumer mode. No `uniform-opaque` owner-mode changes needed for GFX.
 - **No C `long`, no callbacks, no unions, no platform-conditioned code.** FPSmanager is the only struct — transparent, 20 bytes, fully blittable.

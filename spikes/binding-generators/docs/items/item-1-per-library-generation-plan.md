@@ -1312,7 +1312,7 @@ See "Per-slice common requirements" §Common: Slopwatch. No file deletions in th
           null,
           "spikes/binding-generators/clangsharp/src/Janset.SDL2.Gfx/Generated/Compat",
           "spikes/binding-generators/clangsharp/src/Janset.SDL2.Gfx/Generated/Modern",
-          null,                                                               // SDL2-CS has no SDL2_gfx wrapper
+          "external/sdl2-cs/src/SDL2_gfx.cs",
           false);
   ```
 
@@ -1386,6 +1386,7 @@ See "Per-slice common requirements" §Common: Slopwatch. No file deletions in th
   Verify:
   - sdl2-ttf, sdl2-mixer, sdl2-gfx sections present.
   - ClangSharp Compat + ClangSharp Modern sources show `Status: missing`, `Functions: 0`, `Constants: 0`, `Types: 0`.
+  - SDL2-CS source rows load existing peer evidence where the source exists, including `external/sdl2-cs/src/SDL2_gfx.cs`.
   - No unhandled-exception or `OutOfScope` entries.
   - No `family-namespace-drift` findings.
 

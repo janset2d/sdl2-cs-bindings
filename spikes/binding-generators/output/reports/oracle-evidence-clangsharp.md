@@ -12,12 +12,30 @@ This spike report is evidence, not a correctness certificate. Raw ABI constituti
 | sdl2-core | SDL2 Dynapi | `external/vcpkg or vcpkg_installed` | present | 872 | 0 | 0 |
 | sdl2-core | Manifest Required Surface | `build/manifest.json` | present | 5 | 10 | 0 |
 | sdl2-core | SDL2-CS | `external/sdl2-cs/src/SDL2.cs` | present | 789 | 292 | 131 |
+| sdl2-gfx | Cake Preview | `n/a` | n/a | 0 | 0 | 0 |
+| sdl2-gfx | ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Gfx/Generated/Compat` | missing | 0 | 0 | 0 |
+| sdl2-gfx | ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Gfx/Generated/Modern` | missing | 0 | 0 | 0 |
+| sdl2-gfx | SDL2 Dynapi | `external/vcpkg or vcpkg_installed` | n/a | 0 | 0 | 0 |
+| sdl2-gfx | Manifest Required Surface | `build/manifest.json` | n/a | 0 | 0 | 0 |
+| sdl2-gfx | SDL2-CS | `external/sdl2-cs/src/SDL2_gfx.cs` | present | 102 | 10 | 2 |
 | sdl2-image | Cake Preview | `n/a` | n/a | 0 | 0 | 0 |
 | sdl2-image | ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Generated/Compat` | present | 59 | 4 | 3 |
 | sdl2-image | ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Generated/Modern` | present | 59 | 4 | 3 |
 | sdl2-image | SDL2 Dynapi | `external/vcpkg or vcpkg_installed` | n/a | 0 | 0 | 0 |
 | sdl2-image | Manifest Required Surface | `build/manifest.json` | n/a | 0 | 0 | 0 |
 | sdl2-image | SDL2-CS | `external/sdl2-cs/src/SDL2_image.cs` | present | 29 | 4 | 3 |
+| sdl2-mixer | Cake Preview | `n/a` | n/a | 0 | 0 | 0 |
+| sdl2-mixer | ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Mixer/Generated/Compat` | missing | 0 | 0 | 0 |
+| sdl2-mixer | ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Mixer/Generated/Modern` | missing | 0 | 0 | 0 |
+| sdl2-mixer | SDL2 Dynapi | `external/vcpkg or vcpkg_installed` | n/a | 0 | 0 | 0 |
+| sdl2-mixer | Manifest Required Surface | `build/manifest.json` | n/a | 0 | 0 | 0 |
+| sdl2-mixer | SDL2-CS | `external/sdl2-cs/src/SDL2_mixer.cs` | present | 104 | 9 | 5 |
+| sdl2-ttf | Cake Preview | `n/a` | n/a | 0 | 0 | 0 |
+| sdl2-ttf | ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Ttf/Generated/Compat` | missing | 0 | 0 | 0 |
+| sdl2-ttf | ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Ttf/Generated/Modern` | missing | 0 | 0 | 0 |
+| sdl2-ttf | SDL2 Dynapi | `external/vcpkg or vcpkg_installed` | n/a | 0 | 0 | 0 |
+| sdl2-ttf | Manifest Required Surface | `build/manifest.json` | n/a | 0 | 0 | 0 |
+| sdl2-ttf | SDL2-CS | `external/sdl2-cs/src/SDL2_ttf.cs` | present | 82 | 16 | 1 |
 
 ## Family: sdl2-core
 
@@ -111,6 +129,99 @@ No raw ABI constitution checks were produced.
 No evidence gaps were detected for loaded sources and manifest-required checks.
 
 
+## Family: sdl2-gfx
+
+- Display name: SDL2 GFX
+- Expected namespace: `SDL2.Gfx`
+- Expected raw class: `SDL2_gfxNative`
+
+### Source Status
+
+| Source | Path | Status | Functions | Constants | Types |
+| --- | --- | --- | ---: | ---: | ---: |
+| Cake Preview | `n/a` | n/a | 0 | 0 | 0 |
+| ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Gfx/Generated/Compat` | missing | 0 | 0 | 0 |
+| ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Gfx/Generated/Modern` | missing | 0 | 0 | 0 |
+| SDL2 Dynapi | `external/vcpkg or vcpkg_installed` | n/a | 0 | 0 | 0 |
+| Manifest Required Surface | `build/manifest.json` | n/a | 0 | 0 | 0 |
+| SDL2-CS | `external/sdl2-cs/src/SDL2_gfx.cs` | present | 102 | 10 | 2 |
+
+### Surface Counts
+
+| Surface | Functions | Constants | Types |
+| --- | ---: | ---: | ---: |
+| Generated ClangSharp | 0 | 0 | 0 |
+| Cake Preview | 0 | 0 | 0 |
+| SDL2-CS | 102 | 10 | 2 |
+| Dynapi | 0 | 0 | 0 |
+| Manifest Required Surface | 0 | 0 | 0 |
+
+### Raw ABI Constitution Checks
+
+No raw ABI constitution checks were produced.
+
+### Function Matrix
+
+| Function | Generated | Cake | SDL2-CS | Dynapi |
+| --- | --- | --- | --- | --- |
+| `SDL_framerateDelay` | no | n/a | yes | n/a |
+| `SDL_getFramecount` | no | n/a | yes | n/a |
+| `SDL_getFramerate` | no | n/a | yes | n/a |
+| `SDL_imageFilterAbsDiff` | no | n/a | yes | n/a |
+| `SDL_imageFilterAdd` | no | n/a | yes | n/a |
+| `SDL_imageFilterAddByte` | no | n/a | yes | n/a |
+| `SDL_imageFilterAddByteToHalf` | no | n/a | yes | n/a |
+| `SDL_imageFilterAddUint` | no | n/a | yes | n/a |
+| `SDL_imageFilterBinarizeUsingThreshold` | no | n/a | yes | n/a |
+| `SDL_imageFilterBitAnd` | no | n/a | yes | n/a |
+| `SDL_imageFilterBitNegation` | no | n/a | yes | n/a |
+| `SDL_imageFilterBitOr` | no | n/a | yes | n/a |
+| `SDL_imageFilterClipToRange` | no | n/a | yes | n/a |
+| `SDL_imageFilterDiv` | no | n/a | yes | n/a |
+| `SDL_imageFilterMMXdetect` | no | n/a | yes | n/a |
+| `SDL_imageFilterMMXoff` | no | n/a | yes | n/a |
+| `SDL_imageFilterMMXon` | no | n/a | yes | n/a |
+| `SDL_imageFilterMean` | no | n/a | yes | n/a |
+| `SDL_imageFilterMult` | no | n/a | yes | n/a |
+| `SDL_imageFilterMultByByte` | no | n/a | yes | n/a |
+| `SDL_imageFilterMultDivby2` | no | n/a | yes | n/a |
+| `SDL_imageFilterMultDivby4` | no | n/a | yes | n/a |
+| `SDL_imageFilterMultNor` | no | n/a | yes | n/a |
+| `SDL_imageFilterNormalizeLinear` | no | n/a | yes | n/a |
+| `SDL_imageFilterShiftLeft` | no | n/a | yes | n/a |
+| `SDL_imageFilterShiftLeftByte` | no | n/a | yes | n/a |
+| `SDL_imageFilterShiftLeftUint` | no | n/a | yes | n/a |
+| `SDL_imageFilterShiftRight` | no | n/a | yes | n/a |
+| `SDL_imageFilterShiftRightAndMultByByte` | no | n/a | yes | n/a |
+| `SDL_imageFilterShiftRightUint` | no | n/a | yes | n/a |
+| `SDL_imageFilterSub` | no | n/a | yes | n/a |
+| `SDL_imageFilterSubByte` | no | n/a | yes | n/a |
+| `SDL_imageFilterSubUint` | no | n/a | yes | n/a |
+| `SDL_initFramerate` | no | n/a | yes | n/a |
+| `SDL_setFramerate` | no | n/a | yes | n/a |
+| `aacircleColor` | no | n/a | yes | n/a |
+| `aacircleRGBA` | no | n/a | yes | n/a |
+| `aaellipseColor` | no | n/a | yes | n/a |
+| `aaellipseRGBA` | no | n/a | yes | n/a |
+| `aalineColor` | no | n/a | yes | n/a |
+| `aalineRGBA` | no | n/a | yes | n/a |
+| `aapolygonColor` | no | n/a | yes | n/a |
+| `aapolygonRGBA` | no | n/a | yes | n/a |
+| `aatrigonColor` | no | n/a | yes | n/a |
+| `aatrigonRGBA` | no | n/a | yes | n/a |
+| `arcColor` | no | n/a | yes | n/a |
+| `arcRGBA` | no | n/a | yes | n/a |
+| `bezierColor` | no | n/a | yes | n/a |
+| `bezierRGBA` | no | n/a | yes | n/a |
+| `boxColor` | no | n/a | yes | n/a |
+| ... | 52 additional sorted function(s) omitted for readability. |  |  |  |
+
+### Evidence Gaps
+
+- Evidence Missing: ClangSharp Compat at `spikes/binding-generators/clangsharp/src/Janset.SDL2.Gfx/Generated/Compat`.
+- Evidence Missing: ClangSharp Modern at `spikes/binding-generators/clangsharp/src/Janset.SDL2.Gfx/Generated/Modern`.
+
+
 ## Family: sdl2-image
 
 - Display name: SDL2 Image
@@ -201,4 +312,190 @@ No raw ABI constitution checks were produced.
 ### Evidence Gaps
 
 No evidence gaps were detected for loaded sources and manifest-required checks.
+
+
+## Family: sdl2-mixer
+
+- Display name: SDL2 Mixer
+- Expected namespace: `SDL2.Mixer`
+- Expected raw class: `SDL_mixerNative`
+
+### Source Status
+
+| Source | Path | Status | Functions | Constants | Types |
+| --- | --- | --- | ---: | ---: | ---: |
+| Cake Preview | `n/a` | n/a | 0 | 0 | 0 |
+| ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Mixer/Generated/Compat` | missing | 0 | 0 | 0 |
+| ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Mixer/Generated/Modern` | missing | 0 | 0 | 0 |
+| SDL2 Dynapi | `external/vcpkg or vcpkg_installed` | n/a | 0 | 0 | 0 |
+| Manifest Required Surface | `build/manifest.json` | n/a | 0 | 0 | 0 |
+| SDL2-CS | `external/sdl2-cs/src/SDL2_mixer.cs` | present | 104 | 9 | 5 |
+
+### Surface Counts
+
+| Surface | Functions | Constants | Types |
+| --- | ---: | ---: | ---: |
+| Generated ClangSharp | 0 | 0 | 0 |
+| Cake Preview | 0 | 0 | 0 |
+| SDL2-CS | 104 | 9 | 5 |
+| Dynapi | 0 | 0 | 0 |
+| Manifest Required Surface | 0 | 0 | 0 |
+
+### Raw ABI Constitution Checks
+
+No raw ABI constitution checks were produced.
+
+### Function Matrix
+
+| Function | Generated | Cake | SDL2-CS | Dynapi |
+| --- | --- | --- | --- | --- |
+| `MIX_Linked_Version` | no | n/a | yes | n/a |
+| `Mix_AllocateChannels` | no | n/a | yes | n/a |
+| `Mix_ChannelFinished` | no | n/a | yes | n/a |
+| `Mix_CloseAudio` | no | n/a | yes | n/a |
+| `Mix_EachSoundFont` | no | n/a | yes | n/a |
+| `Mix_ExpireChannel` | no | n/a | yes | n/a |
+| `Mix_FadeInChannelTimed` | no | n/a | yes | n/a |
+| `Mix_FadeInMusic` | no | n/a | yes | n/a |
+| `Mix_FadeInMusicPos` | no | n/a | yes | n/a |
+| `Mix_FadeOutChannel` | no | n/a | yes | n/a |
+| `Mix_FadeOutGroup` | no | n/a | yes | n/a |
+| `Mix_FadeOutMusic` | no | n/a | yes | n/a |
+| `Mix_FadingChannel` | no | n/a | yes | n/a |
+| `Mix_FadingMusic` | no | n/a | yes | n/a |
+| `Mix_FreeChunk` | no | n/a | yes | n/a |
+| `Mix_FreeMusic` | no | n/a | yes | n/a |
+| `Mix_GetChunk` | no | n/a | yes | n/a |
+| `Mix_GetChunkDecoder` | no | n/a | yes | n/a |
+| `Mix_GetMusicAlbumTag` | no | n/a | yes | n/a |
+| `Mix_GetMusicArtistTag` | no | n/a | yes | n/a |
+| `Mix_GetMusicCopyrightTag` | no | n/a | yes | n/a |
+| `Mix_GetMusicDecoder` | no | n/a | yes | n/a |
+| `Mix_GetMusicHookData` | no | n/a | yes | n/a |
+| `Mix_GetMusicLoopEndTime` | no | n/a | yes | n/a |
+| `Mix_GetMusicLoopLengthTime` | no | n/a | yes | n/a |
+| `Mix_GetMusicLoopStartTime` | no | n/a | yes | n/a |
+| `Mix_GetMusicPosition` | no | n/a | yes | n/a |
+| `Mix_GetMusicTitle` | no | n/a | yes | n/a |
+| `Mix_GetMusicTitleTag` | no | n/a | yes | n/a |
+| `Mix_GetMusicType` | no | n/a | yes | n/a |
+| `Mix_GetNumChunkDecoders` | no | n/a | yes | n/a |
+| `Mix_GetNumMusicDecoders` | no | n/a | yes | n/a |
+| `Mix_GetSoundFonts` | no | n/a | yes | n/a |
+| `Mix_GetSynchroValue` | no | n/a | yes | n/a |
+| `Mix_GetTimidityCfg` | no | n/a | yes | n/a |
+| `Mix_GetVolumeMusicStream` | no | n/a | yes | n/a |
+| `Mix_GroupAvailable` | no | n/a | yes | n/a |
+| `Mix_GroupChannel` | no | n/a | yes | n/a |
+| `Mix_GroupChannels` | no | n/a | yes | n/a |
+| `Mix_GroupCount` | no | n/a | yes | n/a |
+| `Mix_GroupNewer` | no | n/a | yes | n/a |
+| `Mix_GroupOldest` | no | n/a | yes | n/a |
+| `Mix_HaltChannel` | no | n/a | yes | n/a |
+| `Mix_HaltGroup` | no | n/a | yes | n/a |
+| `Mix_HaltMusic` | no | n/a | yes | n/a |
+| `Mix_HookMusic` | no | n/a | yes | n/a |
+| `Mix_HookMusicFinished` | no | n/a | yes | n/a |
+| `Mix_Init` | no | n/a | yes | n/a |
+| `Mix_LoadMUS` | no | n/a | yes | n/a |
+| `Mix_LoadWAV_RW` | no | n/a | yes | n/a |
+| ... | 34 additional sorted function(s) omitted for readability. |  |  |  |
+
+### Evidence Gaps
+
+- Evidence Missing: ClangSharp Compat at `spikes/binding-generators/clangsharp/src/Janset.SDL2.Mixer/Generated/Compat`.
+- Evidence Missing: ClangSharp Modern at `spikes/binding-generators/clangsharp/src/Janset.SDL2.Mixer/Generated/Modern`.
+
+
+## Family: sdl2-ttf
+
+- Display name: SDL2 TTF
+- Expected namespace: `SDL2.Ttf`
+- Expected raw class: `SDL_ttfNative`
+
+### Source Status
+
+| Source | Path | Status | Functions | Constants | Types |
+| --- | --- | --- | ---: | ---: | ---: |
+| Cake Preview | `n/a` | n/a | 0 | 0 | 0 |
+| ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Ttf/Generated/Compat` | missing | 0 | 0 | 0 |
+| ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Ttf/Generated/Modern` | missing | 0 | 0 | 0 |
+| SDL2 Dynapi | `external/vcpkg or vcpkg_installed` | n/a | 0 | 0 | 0 |
+| Manifest Required Surface | `build/manifest.json` | n/a | 0 | 0 | 0 |
+| SDL2-CS | `external/sdl2-cs/src/SDL2_ttf.cs` | present | 82 | 16 | 1 |
+
+### Surface Counts
+
+| Surface | Functions | Constants | Types |
+| --- | ---: | ---: | ---: |
+| Generated ClangSharp | 0 | 0 | 0 |
+| Cake Preview | 0 | 0 | 0 |
+| SDL2-CS | 82 | 16 | 1 |
+| Dynapi | 0 | 0 | 0 |
+| Manifest Required Surface | 0 | 0 | 0 |
+
+### Raw ABI Constitution Checks
+
+No raw ABI constitution checks were produced.
+
+### Function Matrix
+
+| Function | Generated | Cake | SDL2-CS | Dynapi |
+| --- | --- | --- | --- | --- |
+| `SDL_GetFontKerningSize` | no | n/a | yes | n/a |
+| `TTF_ByteSwappedUNICODE` | no | n/a | yes | n/a |
+| `TTF_CloseFont` | no | n/a | yes | n/a |
+| `TTF_FontAscent` | no | n/a | yes | n/a |
+| `TTF_FontDescent` | no | n/a | yes | n/a |
+| `TTF_FontFaceFamilyName` | no | n/a | yes | n/a |
+| `TTF_FontFaceIsFixedWidth` | no | n/a | yes | n/a |
+| `TTF_FontFaceStyleName` | no | n/a | yes | n/a |
+| `TTF_FontFaces` | no | n/a | yes | n/a |
+| `TTF_FontHeight` | no | n/a | yes | n/a |
+| `TTF_FontLineSkip` | no | n/a | yes | n/a |
+| `TTF_GetFontHinting` | no | n/a | yes | n/a |
+| `TTF_GetFontKerning` | no | n/a | yes | n/a |
+| `TTF_GetFontKerningSizeGlyphs` | no | n/a | yes | n/a |
+| `TTF_GetFontKerningSizeGlyphs32` | no | n/a | yes | n/a |
+| `TTF_GetFontOutline` | no | n/a | yes | n/a |
+| `TTF_GetFontStyle` | no | n/a | yes | n/a |
+| `TTF_GlyphIsProvided` | no | n/a | yes | n/a |
+| `TTF_GlyphIsProvided32` | no | n/a | yes | n/a |
+| `TTF_GlyphMetrics` | no | n/a | yes | n/a |
+| `TTF_GlyphMetrics32` | no | n/a | yes | n/a |
+| `TTF_Init` | no | n/a | yes | n/a |
+| `TTF_LinkedVersion` | no | n/a | yes | n/a |
+| `TTF_MeasureText` | no | n/a | yes | n/a |
+| `TTF_MeasureUNICODE` | no | n/a | yes | n/a |
+| `TTF_MeasureUTF8` | no | n/a | yes | n/a |
+| `TTF_OpenFont` | no | n/a | yes | n/a |
+| `TTF_OpenFontIndex` | no | n/a | yes | n/a |
+| `TTF_OpenFontIndexRW` | no | n/a | yes | n/a |
+| `TTF_OpenFontRW` | no | n/a | yes | n/a |
+| `TTF_Quit` | no | n/a | yes | n/a |
+| `TTF_RenderGlyph32_Blended` | no | n/a | yes | n/a |
+| `TTF_RenderGlyph32_Shaded` | no | n/a | yes | n/a |
+| `TTF_RenderGlyph32_Solid` | no | n/a | yes | n/a |
+| `TTF_RenderGlyph_Blended` | no | n/a | yes | n/a |
+| `TTF_RenderGlyph_Shaded` | no | n/a | yes | n/a |
+| `TTF_RenderGlyph_Solid` | no | n/a | yes | n/a |
+| `TTF_RenderText_Blended` | no | n/a | yes | n/a |
+| `TTF_RenderText_Blended_Wrapped` | no | n/a | yes | n/a |
+| `TTF_RenderText_Shaded` | no | n/a | yes | n/a |
+| `TTF_RenderText_Shaded_Wrapped` | no | n/a | yes | n/a |
+| `TTF_RenderText_Solid` | no | n/a | yes | n/a |
+| `TTF_RenderText_Solid_Wrapped` | no | n/a | yes | n/a |
+| `TTF_RenderUNICODE_Blended` | no | n/a | yes | n/a |
+| `TTF_RenderUNICODE_Blended_Wrapped` | no | n/a | yes | n/a |
+| `TTF_RenderUNICODE_Shaded` | no | n/a | yes | n/a |
+| `TTF_RenderUNICODE_Shaded_Wrapped` | no | n/a | yes | n/a |
+| `TTF_RenderUNICODE_Solid` | no | n/a | yes | n/a |
+| `TTF_RenderUNICODE_Solid_Wrapped` | no | n/a | yes | n/a |
+| `TTF_RenderUTF8_Blended` | no | n/a | yes | n/a |
+| ... | 16 additional sorted function(s) omitted for readability. |  |  |  |
+
+### Evidence Gaps
+
+- Evidence Missing: ClangSharp Compat at `spikes/binding-generators/clangsharp/src/Janset.SDL2.Ttf/Generated/Compat`.
+- Evidence Missing: ClangSharp Modern at `spikes/binding-generators/clangsharp/src/Janset.SDL2.Ttf/Generated/Modern`.
 

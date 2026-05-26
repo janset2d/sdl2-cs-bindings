@@ -60,6 +60,10 @@ SDL2_IMAGEFILTER_SCOPE=extern
 
 ## 2. Function Inventory
 
+### SDL2-CS Compatibility Baseline
+
+`external/sdl2-cs/src/SDL2_gfx.cs` exists and should be used as comparison evidence when validating generated Layer 1 output. The current oracle report observes SDL2-CS GFX evidence as present with 102 functions, 10 constants, and 2 types. This is a compatibility baseline, not an ABI-risk change: GFX still has no opaque handles, no C `long`, no callbacks, no unions, and no platform-conditioned public API shapes.
+
 ### SDL2_framerate.h — 5 functions (ALL `SDL_` prefix)
 
 | Function | Return | Parameters |

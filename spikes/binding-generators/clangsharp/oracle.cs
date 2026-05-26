@@ -180,6 +180,39 @@ internal static class FamilyConfigs
         "spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Generated/Modern",
         "external/sdl2-cs/src/SDL2_image.cs",
         false);
+
+    public static readonly FamilyConfig Sdl2Ttf = new(
+        "sdl2-ttf",
+        "SDL2 TTF",
+        "SDL2.Ttf",
+        "SDL_ttfNative",
+        null,
+        "spikes/binding-generators/clangsharp/src/Janset.SDL2.Ttf/Generated/Compat",
+        "spikes/binding-generators/clangsharp/src/Janset.SDL2.Ttf/Generated/Modern",
+        "external/sdl2-cs/src/SDL2_ttf.cs",
+        false);
+
+    public static readonly FamilyConfig Sdl2Mixer = new(
+        "sdl2-mixer",
+        "SDL2 Mixer",
+        "SDL2.Mixer",
+        "SDL_mixerNative",
+        null,
+        "spikes/binding-generators/clangsharp/src/Janset.SDL2.Mixer/Generated/Compat",
+        "spikes/binding-generators/clangsharp/src/Janset.SDL2.Mixer/Generated/Modern",
+        "external/sdl2-cs/src/SDL2_mixer.cs",
+        false);
+
+    public static readonly FamilyConfig Sdl2Gfx = new(
+        "sdl2-gfx",
+        "SDL2 GFX",
+        "SDL2.Gfx",
+        "SDL2_gfxNative",
+        null,
+        "spikes/binding-generators/clangsharp/src/Janset.SDL2.Gfx/Generated/Compat",
+        "spikes/binding-generators/clangsharp/src/Janset.SDL2.Gfx/Generated/Modern",
+        "external/sdl2-cs/src/SDL2_gfx.cs",
+        false);
 }
 
 internal static class OracleRunner
@@ -187,7 +220,10 @@ internal static class OracleRunner
     private static readonly FamilyConfig[] KnownFamilies =
     [
         FamilyConfigs.Sdl2Core,
-        FamilyConfigs.Sdl2Image
+        FamilyConfigs.Sdl2Image,
+        FamilyConfigs.Sdl2Ttf,
+        FamilyConfigs.Sdl2Mixer,
+        FamilyConfigs.Sdl2Gfx,
     ];
 
     public static int Run(OracleOptions options)
@@ -414,6 +450,8 @@ internal static class SelfTests
         var imageChecks = RawAbiChecks.Run(FamilyConfigs.Sdl2Image, imageEvidence, RequiredSurface.Empty);
         Expect(imageChecks.Any(c => c.CheckId == "family-namespace-drift"), "flags SDL2_image namespace drift", failures);
 
+        ExpectSatelliteFamilyConfigs(failures);
+
         var sourceEvidence = CSharpEvidenceLoader.Load("fixture.g.cs", Fixtures.MixedGeneratedSource);
         Expect(sourceEvidence.Status == SourceStatus.Present && sourceEvidence.Evidence.Functions.Count == 5, "loads present C# evidence text", failures);
 
@@ -446,6 +484,8 @@ internal static class SelfTests
         Expect(rendererMarkdown.Contains("`src/core.g.cs`", StringComparison.Ordinal), "renders repo-relative source paths", failures);
         Expect(MarkdownReportRenderer.FormatReportPath(rendererSelfTestReport.RepoRoot, Path.Combine(rendererSelfTestReport.RepoRoot, "src", "core.g.cs")) == "src/core.g.cs", "formats repo-local paths as repo-relative markdown paths", failures);
         Expect(!rendererMarkdown.Contains("Generated UTC", StringComparison.Ordinal), "omits volatile generated timestamp", failures);
+        Expect(rendererMarkdown.Contains('\n'), "renders markdown with line breaks", failures);
+        Expect(!rendererMarkdown.Contains("\r\n", StringComparison.Ordinal), "renders markdown with LF-only line endings", failures);
 
         if (failures.Count == 0)
         {
@@ -469,6 +509,83 @@ internal static class SelfTests
             failures.Add(message);
         }
     }
+
+    private static void ExpectSatelliteFamilyConfigs(List<string> failures)
+    {
+        var expectedFamilies = new[]
+        {
+            new ExpectedFamilyIdentity("sdl2-ttf", "SDL2.Ttf", "SDL_ttfNative", "external/sdl2-cs/src/SDL2_ttf.cs"),
+            new ExpectedFamilyIdentity("sdl2-mixer", "SDL2.Mixer", "SDL_mixerNative", "external/sdl2-cs/src/SDL2_mixer.cs"),
+            new ExpectedFamilyIdentity("sdl2-gfx", "SDL2.Gfx", "SDL2_gfxNative", "external/sdl2-cs/src/SDL2_gfx.cs"),
+        };
+
+        foreach (var family in expectedFamilies)
+        {
+            ExpectKnownFamily(family.FamilyId, failures);
+            ExpectFamilyConfig(family, failures);
+        }
+    }
+
+    private static void ExpectKnownFamily(string familyId, List<string> failures)
+    {
+        var dispatchOptions = OracleOptions.Parse(["--family", familyId]);
+        if (dispatchOptions.ParseError is not null)
+        {
+            failures.Add($"oracle --family {familyId} unexpectedly produced a parse error: {dispatchOptions.ParseError}");
+            return;
+        }
+
+        var knownFamiliesField = typeof(OracleRunner).GetField(
+            "KnownFamilies",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+
+        if (knownFamiliesField?.GetValue(null) is not FamilyConfig[] knownFamilies)
+        {
+            failures.Add("OracleRunner.KnownFamilies reflection probe failed");
+            return;
+        }
+
+        if (!knownFamilies.Any(config => config.FamilyId == familyId))
+        {
+            failures.Add($"OracleRunner.KnownFamilies missing {familyId} entry");
+        }
+    }
+
+    private static void ExpectFamilyConfig(ExpectedFamilyIdentity family, List<string> failures)
+    {
+        var config = typeof(FamilyConfigs)
+            .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            .Select(field => field.GetValue(null) as FamilyConfig)
+            .FirstOrDefault(config => config?.FamilyId == family.FamilyId);
+
+        if (config is null)
+        {
+            failures.Add($"FamilyConfigs missing static record for {family.FamilyId}");
+            return;
+        }
+
+        if (config.ExpectedNamespace != family.Namespace)
+        {
+            failures.Add($"FamilyConfigs.{family.FamilyId} namespace: expected {family.Namespace}, got {config.ExpectedNamespace}");
+        }
+
+        if (config.ExpectedRawClassName != family.RawClass)
+        {
+            failures.Add($"FamilyConfigs.{family.FamilyId} raw class: expected {family.RawClass}, got {config.ExpectedRawClassName}");
+        }
+
+        if (config.UsesSdl2Dynapi)
+        {
+            failures.Add($"FamilyConfigs.{family.FamilyId} should NOT consume sdl2 dynapi (satellite)");
+        }
+
+        if (config.Sdl2CsRelativePath != family.Sdl2CsRelativePath)
+        {
+            failures.Add($"FamilyConfigs.{family.FamilyId} SDL2-CS path: expected {family.Sdl2CsRelativePath}, got {config.Sdl2CsRelativePath ?? "null"}");
+        }
+    }
+
+    private sealed record ExpectedFamilyIdentity(string FamilyId, string Namespace, string RawClass, string Sdl2CsRelativePath);
 
     private static OracleReport CreateRendererSelfTestReport()
     {
@@ -883,7 +1000,7 @@ internal static class MarkdownReportRenderer
             AppendFamily(builder, report.RepoRoot, family);
         }
 
-        return builder.ToString();
+        return builder.ToString().ReplaceLineEndings("\n");
     }
 
     private static void AppendFamily(StringBuilder builder, string repoRoot, FamilyReport family)
