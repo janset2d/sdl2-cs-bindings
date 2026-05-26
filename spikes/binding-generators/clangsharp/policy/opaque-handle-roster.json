@@ -1,211 +1,287 @@
 {
-  "schema_version": "1.0",
-  "sdl2_version": "2.32.10",
-  "source": "SDL2 release headers (vcpkg_installed/x64-windows-hybrid/include/SDL2/) + wiki.libsdl.org cross-validation + ClangSharp Modern output empty-struct verification",
-  "last_audited": "2026-05-24",
-  "audit_method": "Three-source triangulation: SDL2 forward-decl headers, official wiki opaque-handle phrasing, ClangSharp empty-struct emit",
-  "notes": "auto_detect_well_known entries are types where (1) the SDL2 header exposes only a forward declaration (no struct body visible to public consumers) AND (2) ClangSharp Modern emits the type as an empty 'public partial struct'. Wiki evidence is corroborating only — many SDL2 wiki pages do not exist for opaque handle types (404), so 'wiki_evidence: not_found' is acceptable when sources 1 and 3 agree. force_opaque_exceptions are types whose header DOES declare a full struct body (and ClangSharp emits members), but Constitution L293-302 mandates Pattern B because the body is unsafe to expose (function-pointer subclass state or platform-dependent union).",
-  "auto_detect_well_known": [
-    {
-      "name": "SDL_Window",
-      "header": "SDL_video.h",
-      "header_decl": "typedef struct SDL_Window SDL_Window;",
-      "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Window",
-      "wiki_evidence": "The opaque type used to identify a window."
+  "schema_version": "2.0",
+  "last_audited": "2026-05-26",
+  "audit_method": "Three-source triangulation per family: family-pinned release headers (forward-decl evidence), wiki / project documentation pages (opacity phrasing where present), and ClangSharp Modern output (empty-struct emit). All three sources must agree before a name enters auto_detect_well_known; wiki evidence may be 'not_found' when sources 1 and 3 agree.",
+  "notes": "Family-keyed roster for uniform Pattern B opaque handle postprocess. Core-owned handles are pulled into satellite postprocess runs as data so consumers rewrite Core pointers by value without reading Core generated files.",
+  "families": {
+    "core": {
+      "library_version": "2.32.10",
+      "last_audited": "2026-05-26",
+      "source": "SDL2 release headers (vcpkg_installed/x64-windows-hybrid/include/SDL2/) + wiki.libsdl.org cross-validation + ClangSharp Modern output empty-struct verification",
+      "auto_detect_well_known": [
+        {
+          "name": "SDL_Window",
+          "header": "SDL_video.h",
+          "header_decl": "typedef struct SDL_Window SDL_Window;",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Window",
+          "wiki_evidence": "The opaque type used to identify a window."
+        },
+        {
+          "name": "SDL_Renderer",
+          "header": "SDL_render.h",
+          "header_decl": "typedef struct SDL_Renderer SDL_Renderer;",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Renderer",
+          "wiki_evidence": "A structure representing rendering state"
+        },
+        {
+          "name": "SDL_Texture",
+          "header": "SDL_render.h",
+          "header_decl": "typedef struct SDL_Texture SDL_Texture;",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Texture",
+          "wiki_evidence": "An efficient driver-specific representation of pixel data"
+        },
+        {
+          "name": "SDL_AudioStream",
+          "header": "SDL_audio.h",
+          "header_decl": "typedef struct _SDL_AudioStream SDL_AudioStream;",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_AudioStream",
+          "wiki_evidence": "An opaque structure that buffers, converts, resamples, and generally streams audio data."
+        },
+        {
+          "name": "SDL_GameController",
+          "header": "SDL_gamecontroller.h",
+          "header_decl": "typedef struct _SDL_GameController SDL_GameController;",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_GameController",
+          "wiki_evidence": "not_found"
+        },
+        {
+          "name": "SDL_Joystick",
+          "header": "SDL_joystick.h",
+          "header_decl": "typedef struct _SDL_Joystick SDL_Joystick;",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Joystick",
+          "wiki_evidence": "not_found"
+        },
+        {
+          "name": "SDL_Haptic",
+          "header": "SDL_haptic.h",
+          "header_decl": "typedef struct _SDL_Haptic SDL_Haptic;",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Haptic",
+          "wiki_evidence": "not_found"
+        },
+        {
+          "name": "SDL_Sensor",
+          "header": "SDL_sensor.h",
+          "header_decl": "typedef struct _SDL_Sensor SDL_Sensor;",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Sensor",
+          "wiki_evidence": "not_found"
+        },
+        {
+          "name": "SDL_Cursor",
+          "header": "SDL_mouse.h",
+          "header_decl": "typedef struct SDL_Cursor SDL_Cursor;   /**< Implementation dependent */",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Cursor",
+          "wiki_evidence": "not_found"
+        },
+        {
+          "name": "SDL_Thread",
+          "header": "SDL_thread.h",
+          "header_decl": "typedef struct SDL_Thread SDL_Thread;",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Thread",
+          "wiki_evidence": "not_found",
+          "wiki_corroboration": "SDL_CreateThread documents its return value as 'an opaque pointer to the new thread object' (https://wiki.libsdl.org/SDL2/SDL_CreateThread)."
+        },
+        {
+          "name": "SDL_mutex",
+          "header": "SDL_mutex.h",
+          "header_decl": "typedef struct SDL_mutex SDL_mutex;",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_mutex",
+          "wiki_evidence": "not_found"
+        },
+        {
+          "name": "SDL_sem",
+          "header": "SDL_mutex.h",
+          "header_decl": "typedef struct SDL_semaphore SDL_sem;",
+          "header_note": "Struct tag is SDL_semaphore but the typedef (and ClangSharp emit name) is SDL_sem. Roster records the typedef name because that is what OpaqueHandleEmitRewriter matches on in the generated C# output.",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_sem",
+          "wiki_evidence": "not_found"
+        },
+        {
+          "name": "SDL_cond",
+          "header": "SDL_mutex.h",
+          "header_decl": "typedef struct SDL_cond SDL_cond;",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_cond",
+          "wiki_evidence": "not_found"
+        },
+        {
+          "name": "SDL_hid_device",
+          "header": "SDL_hidapi.h",
+          "header_decl": "typedef struct SDL_hid_device_ SDL_hid_device; /**< opaque hidapi structure */",
+          "header_note": "Struct tag is SDL_hid_device_ (with trailing underscore) but the typedef (and ClangSharp emit name) is SDL_hid_device. Header comment explicitly states 'opaque hidapi structure'.",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_hid_device",
+          "wiki_evidence": "not_found",
+          "wiki_corroboration": "Header comment on the typedef itself reads '/**< opaque hidapi structure */'."
+        }
+      ],
+      "force_opaque_exceptions": [
+        {
+          "name": "SDL_RWops",
+          "header": "SDL_rwops.h",
+          "reason": "Header declares full struct body with function-pointer fields (size/seek/read/write/close) plus subclass state (FileRWops, MemoryRWops, custom user implementations). Field offsets are unsafe to expose because the actual layout depends on the runtime subclass. Constitution L293-302 mandates opaque emit.",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_RWops",
+          "wiki_evidence": "This is the read/write operation structure -- very basic."
+        },
+        {
+          "name": "SDL_SysWMinfo",
+          "header": "SDL_syswm.h",
+          "reason": "Platform-dependent union (X11, Wayland, Cocoa, Win32, KMSDRM, ...). The union layout varies by build platform via #if defined(SDL_VIDEO_DRIVER_*) and is unsafe to expose in a cross-platform binding because the active member depends on runtime platform, not on the .NET caller's compile-time selection. Constitution L293-302 mandates opaque emit.",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_SysWMinfo",
+          "wiki_evidence": "The custom window manager information structure."
+        },
+        {
+          "name": "SDL_SysWMmsg",
+          "header": "SDL_syswm.h",
+          "reason": "Platform-dependent union mirroring SDL_SysWMinfo (same #if defined(SDL_VIDEO_DRIVER_*) layout variance). Same opaque rationale: cross-platform binding cannot safely expose platform-conditional union members. Constitution L293-302 mandates opaque emit.",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_SysWMmsg",
+          "wiki_evidence": "The custom event structure."
+        }
+      ],
+      "excluded_candidates": [
+        {
+          "name": "SDL_BlitMap",
+          "reason": "Field-scope only (SDL_Surface.map private field), no public API consumes or returns it. Header tags it as opaque + Private. SDL3 removed it entirely (replaced with `void* reserved`). Peer convention: SDL2-CS, Chroma-2D, flibit-SDL3 all use `IntPtr map` at the field. Per Constitution §\"Opaque Handles\" Implementation mechanism: field-scope-only opaques drop to nint via RSP --remap instead of Pattern B. See rsp/per-header/SDL_surface.rsp."
+        },
+        {
+          "name": "SDL_iconv_t",
+          "reason": "BCL-Replaceable Helper Exclusion Policy (Constitution §\"BCL-Replaceable Helper Exclusion Policy\"): SDL_iconv_open/close/iconv/iconv_string excluded because System.Text.Encoding provides BCL-idiomatic equivalent. SDL2-CS and Silk.NET both skip the entire family. No remaining function consumes SDL_iconv_t after the function exclusions; the empty struct emit becomes harmless residue. See rsp/per-header/SDL_stdinc.rsp."
+        },
+        {
+          "name": "SDL_GLContext",
+          "header": "SDL_video.h",
+          "header_decl": "typedef void *SDL_GLContext;",
+          "reason": "Pointer typedef (typedef void* SDL_GLContext). ClangSharp emits this as void*/nint, not as a struct type. Pattern B does not apply — it is already a by-value pointer at the C# level."
+        },
+        {
+          "name": "SDL_MetalView",
+          "header": "SDL_metal.h",
+          "header_decl": "typedef void *SDL_MetalView;",
+          "reason": "Pointer typedef (typedef void* SDL_MetalView). ClangSharp emits this as void*/nint, not as a struct type. Pattern B does not apply."
+        },
+        {
+          "name": "SDL_TimerID",
+          "header": "SDL_timer.h",
+          "header_decl": "typedef int SDL_TimerID;",
+          "reason": "Value-type alias for int. ClangSharp emits this as int. Not a handle."
+        },
+        {
+          "name": "SDL_TLSID",
+          "header": "SDL_thread.h",
+          "header_decl": "typedef unsigned int SDL_TLSID;",
+          "reason": "Value-type alias for unsigned int. ClangSharp emits this as uint. Not a handle."
+        },
+        {
+          "name": "SDL_threadID",
+          "header": "SDL_thread.h",
+          "header_decl": "typedef unsigned long SDL_threadID;",
+          "reason": "Value-type alias for unsigned long. Handled separately by the ThreadIdDualDispatchRewriter for Win/POSIX width differences. Not an opaque struct handle."
+        },
+        {
+          "name": "SDL_AudioDeviceID",
+          "header": "SDL_audio.h",
+          "header_decl": "typedef Uint32 SDL_AudioDeviceID;",
+          "reason": "Value-type alias for Uint32. ClangSharp emits this as uint. Not a handle."
+        },
+        {
+          "name": "SDL_JoystickID",
+          "header": "SDL_joystick.h",
+          "header_decl": "typedef Sint32 SDL_JoystickID;",
+          "reason": "Value-type alias for Sint32. ClangSharp emits this as int. Not a handle (numeric instance identifier paired with the SDL_Joystick handle)."
+        },
+        {
+          "name": "SDL_SensorID",
+          "header": "SDL_sensor.h",
+          "header_decl": "typedef Sint32 SDL_SensorID;",
+          "reason": "Value-type alias for Sint32. ClangSharp emits this as int. Not a handle (numeric instance identifier paired with the SDL_Sensor handle)."
+        },
+        {
+          "name": "SDL_TouchID",
+          "header": "SDL_touch.h",
+          "header_decl": "typedef Sint64 SDL_TouchID;",
+          "reason": "Value-type alias for Sint64. ClangSharp emits this as long. Not a handle."
+        },
+        {
+          "name": "SDL_FingerID",
+          "header": "SDL_touch.h",
+          "header_decl": "typedef Sint64 SDL_FingerID;",
+          "reason": "Value-type alias for Sint64. ClangSharp emits this as long. Not a handle."
+        },
+        {
+          "name": "SDL_GestureID",
+          "header": "SDL_gesture.h",
+          "header_decl": "typedef Sint64 SDL_GestureID;",
+          "reason": "Value-type alias for Sint64. ClangSharp emits this as long. Not a handle."
+        }
+      ]
     },
-    {
-      "name": "SDL_Renderer",
-      "header": "SDL_render.h",
-      "header_decl": "typedef struct SDL_Renderer SDL_Renderer;",
-      "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Renderer",
-      "wiki_evidence": "A structure representing rendering state"
+    "image": {
+      "library_version": "2.8.8",
+      "last_audited": "2026-05-26",
+      "source": "SDL2_image release headers + ClangSharp Modern output verification; Image owns no local opaque handles at this audit date.",
+      "auto_detect_well_known": [],
+      "force_opaque_exceptions": [],
+      "excluded_candidates": [
+        {
+          "name": "IMG_Animation",
+          "header": "SDL_image.h",
+          "header_decl": "typedef struct IMG_Animation { int w, h; int count; SDL_Surface **frames; int *delays; } IMG_Animation;",
+          "reason": "SDL2_image-owned public full struct with exposed POD-like fields and explicit animation payload pointers. It is used by pointer in load/free APIs, but it is not an opaque forward declaration and has no platform-dependent union, function-pointer subclass state, or private-layout marker that would justify Pattern B force-opaque quarantine."
+        }
+      ]
     },
-    {
-      "name": "SDL_Texture",
-      "header": "SDL_render.h",
-      "header_decl": "typedef struct SDL_Texture SDL_Texture;",
-      "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Texture",
-      "wiki_evidence": "An efficient driver-specific representation of pixel data"
+    "ttf": {
+      "library_version": "2.24.0",
+      "last_audited": "2026-05-26",
+      "source": "SDL2_ttf release headers + wiki.libsdl.org cross-validation + ClangSharp Modern output empty-struct verification",
+      "auto_detect_well_known": [
+        {
+          "name": "TTF_Font",
+          "header": "SDL_ttf.h",
+          "header_decl": "typedef struct TTF_Font TTF_Font;",
+          "wiki_url": "https://wiki.libsdl.org/SDL2_ttf/TTF_Font",
+          "wiki_evidence": "The internal structure containing font information. Remarks: Opaque data!",
+          "header_note": "Satellite-owned Pattern B handle. Emitted into namespace SDL2.Ttf by uniform-opaque owner mode."
+        }
+      ],
+      "force_opaque_exceptions": [],
+      "excluded_candidates": []
     },
-    {
-      "name": "SDL_AudioStream",
-      "header": "SDL_audio.h",
-      "header_decl": "typedef struct _SDL_AudioStream SDL_AudioStream;",
-      "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_AudioStream",
-      "wiki_evidence": "An opaque structure that buffers, converts, resamples, and generally streams audio data."
+    "mixer": {
+      "library_version": "2.8.1",
+      "last_audited": "2026-05-26",
+      "source": "SDL2_mixer release headers + wiki.libsdl.org cross-validation + ClangSharp Modern output empty-struct verification",
+      "auto_detect_well_known": [
+        {
+          "name": "Mix_Music",
+          "header": "SDL_mixer.h",
+          "header_decl": "typedef struct Mix_Music Mix_Music;",
+          "wiki_url": "https://wiki.libsdl.org/SDL2_mixer/Mix_Music",
+          "wiki_evidence": "The internal format for a music chunk interpreted via codecs",
+          "header_note": "Satellite-owned Pattern B handle. Emitted into namespace SDL2.Mixer by uniform-opaque owner mode."
+        }
+      ],
+      "force_opaque_exceptions": [],
+      "excluded_candidates": [
+        {
+          "name": "Mix_Chunk",
+          "header": "SDL_mixer.h",
+          "header_decl": "typedef struct Mix_Chunk { int allocated; Uint8 *abuf; Uint32 alen; Uint8 volume; } Mix_Chunk;",
+          "reason": "SDL2_mixer-owned public full struct with simple exposed fields. It is pointer-used by chunk load/play/free APIs, but it is not an opaque forward declaration and has no platform-dependent union, function-pointer subclass state, or private-layout marker that would justify Pattern B force-opaque quarantine."
+        }
+      ]
     },
-    {
-      "name": "SDL_GameController",
-      "header": "SDL_gamecontroller.h",
-      "header_decl": "typedef struct _SDL_GameController SDL_GameController;",
-      "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_GameController",
-      "wiki_evidence": "not_found"
-    },
-    {
-      "name": "SDL_Joystick",
-      "header": "SDL_joystick.h",
-      "header_decl": "typedef struct _SDL_Joystick SDL_Joystick;",
-      "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Joystick",
-      "wiki_evidence": "not_found"
-    },
-    {
-      "name": "SDL_Haptic",
-      "header": "SDL_haptic.h",
-      "header_decl": "typedef struct _SDL_Haptic SDL_Haptic;",
-      "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Haptic",
-      "wiki_evidence": "not_found"
-    },
-    {
-      "name": "SDL_Sensor",
-      "header": "SDL_sensor.h",
-      "header_decl": "typedef struct _SDL_Sensor SDL_Sensor;",
-      "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Sensor",
-      "wiki_evidence": "not_found"
-    },
-    {
-      "name": "SDL_Cursor",
-      "header": "SDL_mouse.h",
-      "header_decl": "typedef struct SDL_Cursor SDL_Cursor;   /**< Implementation dependent */",
-      "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Cursor",
-      "wiki_evidence": "not_found"
-    },
-    {
-      "name": "SDL_Thread",
-      "header": "SDL_thread.h",
-      "header_decl": "typedef struct SDL_Thread SDL_Thread;",
-      "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Thread",
-      "wiki_evidence": "not_found",
-      "wiki_corroboration": "SDL_CreateThread documents its return value as 'an opaque pointer to the new thread object' (https://wiki.libsdl.org/SDL2/SDL_CreateThread)."
-    },
-    {
-      "name": "SDL_mutex",
-      "header": "SDL_mutex.h",
-      "header_decl": "typedef struct SDL_mutex SDL_mutex;",
-      "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_mutex",
-      "wiki_evidence": "not_found"
-    },
-    {
-      "name": "SDL_sem",
-      "header": "SDL_mutex.h",
-      "header_decl": "typedef struct SDL_semaphore SDL_sem;",
-      "header_note": "Struct tag is SDL_semaphore but the typedef (and ClangSharp emit name) is SDL_sem. Roster records the typedef name because that is what OpaqueHandleEmitRewriter matches on in the generated C# output.",
-      "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_sem",
-      "wiki_evidence": "not_found"
-    },
-    {
-      "name": "SDL_cond",
-      "header": "SDL_mutex.h",
-      "header_decl": "typedef struct SDL_cond SDL_cond;",
-      "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_cond",
-      "wiki_evidence": "not_found"
-    },
-    {
-      "name": "SDL_hid_device",
-      "header": "SDL_hidapi.h",
-      "header_decl": "typedef struct SDL_hid_device_ SDL_hid_device; /**< opaque hidapi structure */",
-      "header_note": "Struct tag is SDL_hid_device_ (with trailing underscore) but the typedef (and ClangSharp emit name) is SDL_hid_device. Header comment explicitly states 'opaque hidapi structure'.",
-      "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_hid_device",
-      "wiki_evidence": "not_found",
-      "wiki_corroboration": "Header comment on the typedef itself reads '/**< opaque hidapi structure */'."
+    "gfx": {
+      "library_version": "1.0.4",
+      "last_audited": "2026-05-26",
+      "source": "SDL2_gfx release headers + ClangSharp Modern output verification; GFX owns no local opaque handles at this audit date.",
+      "auto_detect_well_known": [],
+      "force_opaque_exceptions": [],
+      "excluded_candidates": [
+        {
+          "name": "FPSmanager",
+          "header": "SDL2_framerate.h",
+          "header_decl": "typedef struct { Uint32 framecount; float rateticks; Uint32 baseticks; Uint32 lastticks; Uint32 rate; } FPSmanager;",
+          "reason": "SDL2_gfx-owned public full POD struct used by pointer in framerate APIs. It is not an opaque forward declaration and has no platform-dependent union, function-pointer subclass state, or private-layout marker that would justify Pattern B force-opaque quarantine."
+        }
+      ]
     }
-  ],
-  "force_opaque_exceptions": [
-    {
-      "name": "SDL_RWops",
-      "header": "SDL_rwops.h",
-      "reason": "Header declares full struct body with function-pointer fields (size/seek/read/write/close) plus subclass state (FileRWops, MemoryRWops, custom user implementations). Field offsets are unsafe to expose because the actual layout depends on the runtime subclass. Constitution L293-302 mandates opaque emit.",
-      "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_RWops",
-      "wiki_evidence": "This is the read/write operation structure -- very basic."
-    },
-    {
-      "name": "SDL_SysWMinfo",
-      "header": "SDL_syswm.h",
-      "reason": "Platform-dependent union (X11, Wayland, Cocoa, Win32, KMSDRM, ...). The union layout varies by build platform via #if defined(SDL_VIDEO_DRIVER_*) and is unsafe to expose in a cross-platform binding because the active member depends on runtime platform, not on the .NET caller's compile-time selection. Constitution L293-302 mandates opaque emit.",
-      "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_SysWMinfo",
-      "wiki_evidence": "The custom window manager information structure."
-    },
-    {
-      "name": "SDL_SysWMmsg",
-      "header": "SDL_syswm.h",
-      "reason": "Platform-dependent union mirroring SDL_SysWMinfo (same #if defined(SDL_VIDEO_DRIVER_*) layout variance). Same opaque rationale: cross-platform binding cannot safely expose platform-conditional union members. Constitution L293-302 mandates opaque emit.",
-      "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_SysWMmsg",
-      "wiki_evidence": "The custom event structure."
-    }
-  ],
-  "excluded_candidates": [
-    {
-      "name": "SDL_BlitMap",
-      "reason": "Field-scope only (SDL_Surface.map private field), no public API consumes or returns it. Header tags it as opaque + Private. SDL3 removed it entirely (replaced with `void* reserved`). Peer convention: SDL2-CS, Chroma-2D, flibit-SDL3 all use `IntPtr map` at the field. Per Constitution §\"Opaque Handles\" Implementation mechanism: field-scope-only opaques drop to nint via RSP --remap instead of Pattern B. See rsp/per-header/SDL_surface.rsp."
-    },
-    {
-      "name": "SDL_iconv_t",
-      "reason": "BCL-Replaceable Helper Exclusion Policy (Constitution §\"BCL-Replaceable Helper Exclusion Policy\"): SDL_iconv_open/close/iconv/iconv_string excluded because System.Text.Encoding provides BCL-idiomatic equivalent. SDL2-CS and Silk.NET both skip the entire family. No remaining function consumes SDL_iconv_t after the function exclusions; the empty struct emit becomes harmless residue. See rsp/per-header/SDL_stdinc.rsp."
-    },
-    {
-      "name": "SDL_GLContext",
-      "header": "SDL_video.h",
-      "header_decl": "typedef void *SDL_GLContext;",
-      "reason": "Pointer typedef (typedef void* SDL_GLContext). ClangSharp emits this as void*/nint, not as a struct type. Pattern B does not apply — it is already a by-value pointer at the C# level."
-    },
-    {
-      "name": "SDL_MetalView",
-      "header": "SDL_metal.h",
-      "header_decl": "typedef void *SDL_MetalView;",
-      "reason": "Pointer typedef (typedef void* SDL_MetalView). ClangSharp emits this as void*/nint, not as a struct type. Pattern B does not apply."
-    },
-    {
-      "name": "SDL_TimerID",
-      "header": "SDL_timer.h",
-      "header_decl": "typedef int SDL_TimerID;",
-      "reason": "Value-type alias for int. ClangSharp emits this as int. Not a handle."
-    },
-    {
-      "name": "SDL_TLSID",
-      "header": "SDL_thread.h",
-      "header_decl": "typedef unsigned int SDL_TLSID;",
-      "reason": "Value-type alias for unsigned int. ClangSharp emits this as uint. Not a handle."
-    },
-    {
-      "name": "SDL_threadID",
-      "header": "SDL_thread.h",
-      "header_decl": "typedef unsigned long SDL_threadID;",
-      "reason": "Value-type alias for unsigned long. Handled separately by the ThreadIdDualDispatchRewriter for Win/POSIX width differences. Not an opaque struct handle."
-    },
-    {
-      "name": "SDL_AudioDeviceID",
-      "header": "SDL_audio.h",
-      "header_decl": "typedef Uint32 SDL_AudioDeviceID;",
-      "reason": "Value-type alias for Uint32. ClangSharp emits this as uint. Not a handle."
-    },
-    {
-      "name": "SDL_JoystickID",
-      "header": "SDL_joystick.h",
-      "header_decl": "typedef Sint32 SDL_JoystickID;",
-      "reason": "Value-type alias for Sint32. ClangSharp emits this as int. Not a handle (numeric instance identifier paired with the SDL_Joystick handle)."
-    },
-    {
-      "name": "SDL_SensorID",
-      "header": "SDL_sensor.h",
-      "header_decl": "typedef Sint32 SDL_SensorID;",
-      "reason": "Value-type alias for Sint32. ClangSharp emits this as int. Not a handle (numeric instance identifier paired with the SDL_Sensor handle)."
-    },
-    {
-      "name": "SDL_TouchID",
-      "header": "SDL_touch.h",
-      "header_decl": "typedef Sint64 SDL_TouchID;",
-      "reason": "Value-type alias for Sint64. ClangSharp emits this as long. Not a handle."
-    },
-    {
-      "name": "SDL_FingerID",
-      "header": "SDL_touch.h",
-      "header_decl": "typedef Sint64 SDL_FingerID;",
-      "reason": "Value-type alias for Sint64. ClangSharp emits this as long. Not a handle."
-    },
-    {
-      "name": "SDL_GestureID",
-      "header": "SDL_gesture.h",
-      "header_decl": "typedef Sint64 SDL_GestureID;",
-      "reason": "Value-type alias for Sint64. ClangSharp emits this as long. Not a handle."
-    }
-  ]
+  }
 }

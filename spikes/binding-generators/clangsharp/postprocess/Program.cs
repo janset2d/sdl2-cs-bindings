@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis.CSharp;
 //   dotnet run --project postprocess -- platform-delta     <input-dir> [<output-dir>]
 //   dotnet run --project postprocess -- guid-substitute    <input-dir> [<output-dir>]
 //   dotnet run --project postprocess -- threadid-dispatch  <input-dir> [<output-dir>]
-//   dotnet run --project postprocess -- uniform-opaque     <input-dir> [<output-dir>] [--owner-mode owner|consumer]
+//   dotnet run --project postprocess -- uniform-opaque     <input-dir> [<output-dir>] [--owner-mode owner|consumer] [--handles-namespace namespace]
 //
 // strip-varargs     : Constitution L162-176 fmt-only policy — drops `__arglist`
 //                     parameter from variadic P/Invokes (applied to both Compat
@@ -33,7 +33,7 @@ using Microsoft.CodeAnalysis.CSharp;
 //                     Generated/Compat to legacy TFMs and Generated/Modern to
 //                     net6+ via conditional <Compile Include>.
 // uniform-opaque    : Slice C-B Pattern B uniform opaque handle emit. Two
-//                     channels: (1) auto-detect — empty `partial struct SDL_X {}`
+//                     channels: (1) auto-detect — empty `partial struct X {}`
 //                     declarations referenced via [NativeTypeName("X *")]
 //                     elsewhere; (2) force-opaque — Constitution-bound allow-list
 //                     (SDL_RWops, SDL_SysWMinfo, SDL_SysWMmsg). Both channels
@@ -93,9 +93,12 @@ Action resetRewriter;
 // owner directories.
 HashSet<string>? uniformOpaqueHandleNames = null;
 // uniform-opaque owner/consumer resolution: explicit --owner-mode flag wins
-// over the substring-based fallback. Resolved before the switch so the
+// over the substring-based fallback. Declared before the switch so the
 // post-loop block uses the same value the switch case logged.
 bool? uniformOpaqueIsOwner = null;
+// Namespace for owner-mode Handles.g.cs emission. Defaults to Core's namespace
+// when the new flag is absent to preserve direct CLI behavior.
+string? uniformOpaqueHandlesNamespace = null;
 switch (mode)
 {
     case "strip-varargs":
@@ -136,11 +139,10 @@ switch (mode)
     {
         // Resolve roster path: walk inputDir ancestors until we find the spike policy dir.
         var rosterPath = ResolveOpaqueHandleRosterPath(inputDir);
-        var (rosterAutoDetect, rosterForceOpaque) = OpaqueHandleEmitRewriter.LoadRoster(rosterPath);
-
-        // Syntactic discovery acts as a watchdog against the roster (the policy authority).
-        var syntacticDetect = OpaqueHandleEmitRewriter.DiscoverAutoDetectedHandles(inputDir);
-        OpaqueHandleEmitRewriter.ReportDrift(syntacticDetect, rosterAutoDetect);
+        uniformOpaqueHandlesNamespace = ParseOptionValue(args, "--handles-namespace") ?? "SDL2";
+        var family = UniformOpaqueFamilyIdentity.Resolve(outputDir, uniformOpaqueHandlesNamespace);
+        var (rosterAutoDetect, rosterForceOpaque) = OpaqueHandleEmitRewriter.LoadRoster(rosterPath, family);
+        var (familyAutoDetect, familyForceOpaque) = OpaqueHandleEmitRewriter.LoadFamilyOwnedRoster(rosterPath, family);
 
         // Combined handle set: rewriter removes any partial struct declaration with
         // one of these names and rewrites SDL_X* -> SDL_X at param/return positions.
@@ -150,14 +152,24 @@ switch (mode)
             handleNames.Add(n);
         }
 
+        // Syntactic discovery acts as a watchdog against the roster (the policy authority).
+        var syntacticDetect = OpaqueHandleEmitRewriter.DiscoverAutoDetectedHandles(inputDir);
+        OpaqueHandleEmitRewriter.ReportDrift(syntacticDetect, familyAutoDetect, handleNames, family);
+
+        var ownerHandleNames = new HashSet<string>(familyAutoDetect, StringComparer.Ordinal);
+        foreach (var n in familyForceOpaque)
+        {
+            ownerHandleNames.Add(n);
+        }
+
         // Owner/consumer mode resolution. Prefer the explicit --owner-mode CLI
         // flag (set by generate_bindings.py per family identity). Fall back to
         // the substring-based detection with a deprecation warning so a missing
         // orchestrator wire-up does not silently corrupt the emit.
         uniformOpaqueIsOwner = UniformOpaqueOwnerMode.Resolve(args, outputDir);
 
-        Console.WriteLine($"uniform-opaque: applying {rosterAutoDetect.Count} auto-detect + {rosterForceOpaque.Count} force-opaque handles from {Path.GetFileName(rosterPath)} (syntactic discovery: {syntacticDetect.Count})");
-        uniformOpaqueHandleNames = handleNames;
+        Console.WriteLine($"uniform-opaque: applying {rosterAutoDetect.Count} auto-detect + {rosterForceOpaque.Count} force-opaque handles from {Path.GetFileName(rosterPath)} for family '{family}' (syntactic discovery: {syntacticDetect.Count})");
+        uniformOpaqueHandleNames = ownerHandleNames;
         var r = new OpaqueHandleEmitRewriter(handleNames);
         rewriter = r;
         hasChanges = () => r.AnyChanges;
@@ -183,7 +195,12 @@ Console.WriteLine($"{mode}: {processed} files scanned, {transformed} files trans
 // rewrite that the loop above already performed. See UniformOpaqueOwnerMode
 // for the owner/consumer resolution path (extracted to keep <Main>$ inside
 // the CA1502 cyclomatic-complexity ceiling).
-UniformOpaqueOwnerMode.EmitConsolidatedHandlesFileIfOwner(mode, outputDir, uniformOpaqueHandleNames, uniformOpaqueIsOwner);
+UniformOpaqueOwnerMode.EmitConsolidatedHandlesFileIfOwner(
+    mode,
+    outputDir,
+    uniformOpaqueHandleNames,
+    uniformOpaqueIsOwner,
+    uniformOpaqueHandlesNamespace ?? "SDL2");
 
 return 0;
 
@@ -202,4 +219,17 @@ static string ResolveOpaqueHandleRosterPath(string inputDir)
     throw new FileNotFoundException(
         $"Could not locate opaque-handle-roster.json by walking ancestors of '{inputDir}'. " +
         "Expected at <repo>/spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json.");
+}
+
+static string? ParseOptionValue(string[] arguments, string optionName)
+{
+    for (int i = 0; i < arguments.Length - 1; i++)
+    {
+        if (arguments[i] == optionName)
+        {
+            return arguments[i + 1];
+        }
+    }
+
+    return null;
 }

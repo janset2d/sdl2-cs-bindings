@@ -974,6 +974,13 @@ def owner_mode_for_family(family: str) -> str:
     return "owner" if family in ("core", "ttf", "mixer") else "consumer"
 
 
+def uniform_opaque_extra_args_for_family(family: str) -> list[str]:
+    return [
+        "--owner-mode", owner_mode_for_family(family),
+        "--handles-namespace", FAMILY_CONFIG[family]["namespace"],
+    ]
+
+
 def production_header_list_file_name(family: str) -> str:
     return FAMILY_CONFIG[family]["headers"]
 
@@ -1867,6 +1874,19 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
             if actual != expected:
                 failures.append(f"owner-mode wiring for {family!r}: expected {expected!r}, got {actual!r}")
 
+    if "uniform_opaque_extra_args_for_family" not in globals():
+        failures.append("uniform_opaque_extra_args_for_family helper is missing for S1-4 handles namespace plumbing")
+    else:
+        ttf_args = uniform_opaque_extra_args_for_family("ttf")
+        expected_ttf_args = ["--owner-mode", "owner", "--handles-namespace", "SDL2.Ttf"]
+        if ttf_args != expected_ttf_args:
+            failures.append(f"uniform-opaque args for 'ttf': expected {expected_ttf_args!r}, got {ttf_args!r}")
+
+        image_args = uniform_opaque_extra_args_for_family("image")
+        expected_image_args = ["--owner-mode", "consumer", "--handles-namespace", "SDL2.Image"]
+        if image_args != expected_image_args:
+            failures.append(f"uniform-opaque args for 'image': expected {expected_image_args!r}, got {image_args!r}")
+
     scope_root = find_repository_root() / "spikes" / "binding-generators" / "scope"
     missing_scope_file = scope_root / "__self-test-missing-scope-sentinel__.headers.txt"
     try:
@@ -2129,10 +2149,9 @@ def main() -> int:
         print("--- postprocess: uniform-opaque (all codegens) ---")
         for codegen in codegen_passes:
             for family in selected:
-                owner_mode = owner_mode_for_family(family)
                 exit_code = run_postprocess(
                     repo, family, spike_root, "uniform-opaque", codegen,
-                    extra_args=["--owner-mode", owner_mode],
+                    extra_args=uniform_opaque_extra_args_for_family(family),
                 )
                 if exit_code != 0:
                     postprocess_failures += 1
