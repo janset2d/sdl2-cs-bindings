@@ -19,7 +19,9 @@ internal static unsafe partial class SDLNative
 
         var rewritten = PostProcessCli.RewriteWithDllImportToLibraryImport(source);
         CheckDllImportRewrite(rewritten, failures);
+        CheckLfFileWriting(failures);
         CheckPathHandlingAndDirectoryRewrite(source, failures);
+        CheckPlatformDeltaPassthroughLf(failures);
         CheckLibraryImportModeValidation(failures);
 
         if (failures.Count > 0)
@@ -107,6 +109,49 @@ internal static unsafe partial class SDLNative
         if (!File.Exists(outputFile) || !File.ReadAllText(outputFile).Contains("LibraryImport", StringComparison.Ordinal))
         {
             failures.Add("directory rewrite did not write transformed LibraryImport output to the explicit output directory");
+        }
+
+        if (File.Exists(outputFile) && File.ReadAllBytes(outputFile).Contains((byte)'\r'))
+        {
+            failures.Add("directory rewrite emitted CR bytes in transformed output");
+        }
+    }
+
+    private static void CheckLfFileWriting(List<string> failures)
+    {
+        using var tempRoot = new TemporaryDirectory();
+        var outputPath = Path.Combine(tempRoot.Path, "lf.txt");
+
+        PostProcessCli.WriteAllTextLf(outputPath, "alpha\r\nbeta\rgamma\n");
+
+        if (File.ReadAllBytes(outputPath).Contains((byte)'\r'))
+        {
+            failures.Add("WriteAllTextLf emitted CR bytes");
+        }
+    }
+
+    private static void CheckPlatformDeltaPassthroughLf(List<string> failures)
+    {
+        using var tempRoot = new TemporaryDirectory();
+        var inputDir = Path.Combine(tempRoot.Path, "input", "Generated", "Compat");
+        var outputDir = Path.Combine(tempRoot.Path, "output", "Generated", "Compat");
+        Directory.CreateDirectory(inputDir);
+        File.WriteAllText(
+            Path.Combine(inputDir, "SDL_neutral.g.cs"),
+            "namespace SDL2\r\n{\r\n    internal static partial class SDLNative { }\r\n}\r\n");
+
+        new PlatformDeltaPostProcessor().Process(inputDir, outputDir);
+
+        var outputFile = Path.Combine(outputDir, "SDL_neutral.g.cs");
+        if (!File.Exists(outputFile))
+        {
+            failures.Add("platform-delta passthrough did not copy neutral output to explicit output directory");
+            return;
+        }
+
+        if (File.ReadAllBytes(outputFile).Contains((byte)'\r'))
+        {
+            failures.Add("platform-delta passthrough emitted CR bytes in copied output");
         }
     }
 

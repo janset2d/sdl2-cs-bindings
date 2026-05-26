@@ -68,7 +68,7 @@ internal sealed class PlatformDeltaPostProcessor
             {
                 var destination = Path.Combine(outputDir, relative);
                 Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-                File.WriteAllText(destination, output);
+                PostProcessCli.WriteAllTextLf(destination, output);
             }
 
             if (rewriter.AnyChanges)
@@ -91,7 +91,7 @@ internal sealed class PlatformDeltaPostProcessor
         var relative = Path.GetRelativePath(inputDir, file.FullName);
         var destination = Path.Combine(outputDir, relative);
         Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-        File.Copy(file.FullName, destination, overwrite: true);
+        PostProcessCli.WriteAllTextLf(destination, File.ReadAllText(file.FullName));
     }
 
     private static IEnumerable<FileInfo> EnumerateNeutralFiles(DirectoryInfo generatedRoot)

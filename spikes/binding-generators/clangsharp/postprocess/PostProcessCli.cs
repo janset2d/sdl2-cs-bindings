@@ -5,6 +5,16 @@ namespace Janset.SDL2.PostProcess;
 
 internal static class PostProcessCli
 {
+    public static string NormalizeLineEndings(string content)
+    {
+        return content.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
+    }
+
+    public static void WriteAllTextLf(string path, string content)
+    {
+        File.WriteAllText(path, NormalizeLineEndings(content));
+    }
+
     public static string ResolveOutputDirectory(string[] arguments, string inputDir)
     {
         return arguments.Length >= 3 && !arguments[2].StartsWith("--", StringComparison.Ordinal)
@@ -48,7 +58,7 @@ internal static class PostProcessCli
                 {
                     var passthrough = Path.Combine(outputDir, relative);
                     Directory.CreateDirectory(Path.GetDirectoryName(passthrough)!);
-                    File.WriteAllText(passthrough, source);
+                    WriteAllTextLf(passthrough, source);
                 }
 
                 continue;
@@ -56,7 +66,7 @@ internal static class PostProcessCli
 
             var destination = Path.Combine(outputDir, relative);
             Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-            File.WriteAllText(destination, rewritten.ToFullString());
+            WriteAllTextLf(destination, rewritten.ToFullString());
             transformed++;
         }
     }

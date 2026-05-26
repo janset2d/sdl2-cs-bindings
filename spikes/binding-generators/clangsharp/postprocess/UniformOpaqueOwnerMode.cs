@@ -100,7 +100,7 @@ internal static class UniformOpaqueOwnerMode
             var sortedNames = handleNames.OrderBy(s => s, StringComparer.Ordinal).ToList();
             var content = OpaqueHandleEmitRewriter.BuildHandlesFileContent(sortedNames);
             Directory.CreateDirectory(outputDirectory);
-            File.WriteAllText(handlesFilePath, content);
+            PostProcessCli.WriteAllTextLf(handlesFilePath, content);
             Console.WriteLine($"uniform-opaque: wrote {handlesFilePath} with {sortedNames.Count} handles (owner mode)");
         }
         else

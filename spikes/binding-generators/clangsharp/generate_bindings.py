@@ -151,6 +151,15 @@ def read_header_list(header_list_file: pathlib.Path) -> list[str]:
     return headers
 
 
+def normalize_line_endings(content: str) -> str:
+    return content.replace("\r\n", "\n").replace("\r", "\n")
+
+
+def write_text_lf(path: pathlib.Path, content: str) -> None:
+    with path.open("w", encoding="utf-8", newline="\n") as output:
+        output.write(normalize_line_endings(content))
+
+
 def read_required_surface_allowlist(path: pathlib.Path) -> RequiredSurfaceAllowlist:
     data = json.loads(path.read_text(encoding="utf-8"))
     return RequiredSurfaceAllowlist(
@@ -702,14 +711,14 @@ def generate_required_sdlh_surface(repo: pathlib.Path, triplet: str, codegen: st
     functions, constants = parse_required_sdlh_surface(header_path, allowlist)
     output_path = output_path_for_required_surface(repo, codegen, "core")
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(
+    write_text_lf(
+        output_path,
         render_required_surface(
             FAMILY_CONFIG["core"]["namespace"],
             FAMILY_CONFIG["core"]["raw_class"],
             functions,
             constants,
         ),
-        encoding="utf-8",
     )
     return 1
 
@@ -1093,8 +1102,7 @@ def write_report(
     while lines and lines[-1] == "":
         lines.pop()
 
-    with report_path.open("w", encoding="utf-8", newline="\n") as report:
-        report.write("\n".join(lines) + "\n")
+    write_text_lf(report_path, "\n".join(lines) + "\n")
 
 
 def run_self_tests() -> int:
@@ -1187,6 +1195,16 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
         failures.append("required SDL.h manifest parity validation was enabled during dry-run")
     if should_validate_required_sdlh_surface(True, ["image"]):
         failures.append("required SDL.h manifest parity validation was enabled without core selected")
+
+    normalized = normalize_line_endings("alpha\r\nbeta\rgamma\n")
+    if normalized != "alpha\nbeta\ngamma\n":
+        failures.append(f"normalize_line_endings returned unexpected output: {normalized!r}")
+
+    with tempfile.TemporaryDirectory() as raw_tmp:
+        lf_file = pathlib.Path(raw_tmp) / "lf.txt"
+        write_text_lf(lf_file, "alpha\r\nbeta\rgamma\n")
+        if b"\r" in lf_file.read_bytes():
+            failures.append("write_text_lf emitted CR bytes")
 
     with tempfile.TemporaryDirectory() as raw_tmp:
         reports_root = pathlib.Path(raw_tmp)
