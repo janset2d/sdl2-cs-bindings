@@ -140,7 +140,7 @@ The Constitution L264 already calls this out explicitly.
 |---|---|---|---|
 | `TTF_Font` | `typedef struct TTF_Font TTF_Font;` | **Pattern B** | `SDL2.Ttf` (this family is the owner) |
 
-`TTF_Font` is satellite-owned — NOT in Core's `opaque-handle-roster.json`. The `uniform-opaque` postprocess needs owner mode for TTF. Core handles consumed via `ProjectReference`: `SDL_RWops` (4 functions use it), `SDL_Surface` (all 32 rendering functions return it — 4 render groups × 8 functions each).
+`TTF_Font` is satellite-owned and listed under the `ttf` family in `opaque-handle-roster.json` schema 2.0, not under Core's family entry. Item 1 provides owner mode for TTF; Item 4 validates it against real generated output. Core handles consumed via `ProjectReference`: `SDL_RWops` (4 functions use it), `SDL_Surface` (all 32 rendering functions return it — 4 render groups × 8 functions each).
 
 ### Transparent Structs
 
@@ -169,7 +169,7 @@ Only one enum. Not `[Flags]`.
 ### Risk 1: C `long` (HIGH — 5 functions)
 
 **Impact:** All 7 RIDs. Reuses existing Slice C-A hybrid CLong/dual-dispatch pattern.
-**Mitigation:** Extend `threadid-dispatch` postprocess to `clong-dispatch` covering both Core's `SDL_threadID` family and TTF's 5 `long` functions.
+**Mitigation:** Item 1 extends `clong-dispatch` (`ClongDualDispatchRewriter`) to cover both Core's `SDL_threadID` family and TTF's 5 dormant C `long` functions.
 
 ### Risk 2: Deprecated Functions (LOW)
 
@@ -259,7 +259,7 @@ Existing `base.rsp` remaps (`char=byte`, `void*=nint`, `wchar_t *=nint`, `SDL_bo
 ```
 
 Production header list: single entry `SDL_ttf.h`.
-Owner mode for `uniform-opaque`: `owner_mode = "owner" if family in ("core", "ttf") else "consumer"`. **This alone is insufficient.** The `OpaqueHandleEmitRewriter` auto-detects empty structs by name prefix `StartsWith("SDL_")` at `OpaqueHandleEmitRewriter.cs:200`. `TTF_Font` won't match — it starts with `TTF_`. The rewriter also emits handles into `namespace SDL2` at `OpaqueHandleEmitRewriter.cs:336-337`, which is wrong for satellite-owned handles that should go in `SDL2.Ttf`. A family-aware handle discovery and emit path is needed. See §8 postprocess notes for the required changes.
+Owner mode for `uniform-opaque`: `owner_mode = "owner" if family in ("core", "ttf", "mixer") else "consumer"`. Item 1 removes the old `SDL_` prefix dependency, passes the family namespace through the postprocess CLI, and loads `TTF_Font` from the family-keyed roster. Item 4's job is to prove this path against real TTF generation rather than design the infrastructure from scratch.
 
 ---
 
@@ -273,16 +273,17 @@ Owner mode for `uniform-opaque`: `owner_mode = "owner" if family in ("core", "tt
 | `libraryimport` | Yes | Standard Modern pass |
 | `platform-delta` | No | No platform-sensitive headers |
 | `guid-substitute` | No | No `SDL_GUID` types |
-| `threadid-dispatch` | Yes — significant extension needed | The current rewriter is hardcoded to `SDL_ThreadID`/`SDL_GetThreadID` at `ThreadIdDualDispatchRewriter.cs:76-80`, and only inspects return-type native type names at L128-132. TTF needs 4 `long` parameter positions plus 1 `long` return. The rewriter must handle C `long` at parameter positions (not just return type) and accept an expanded name set. |
-| `uniform-opaque` | Yes — family-aware handle path needed | The current rewriter discovers opaque handles by `StartsWith("SDL_")` at `OpaqueHandleEmitRewriter.cs:200` and hardcodes emit namespace to `SDL2` at L336-337. Needs a family-aware path: discover handles per-family, emit into the correct namespace (`SDL2.Ttf`), and handle non-`SDL_`-prefixed names (`TTF_Font`). |
+| `flags-detect` | No TTF enum currently qualifies | `TTF_Direction` is exclusive, not `[Flags]`. |
+| `clong-dispatch` | Yes — Item 1 infrastructure exists, Item 4 validates | `ClongDualDispatchRewriter` includes the 5 dormant TTF C `long` functions and handles return and parameter native type names. |
+| `uniform-opaque` | Yes — Item 1 infrastructure exists, Item 4 validates | Family-keyed roster + owner mode should emit `TTF_Font` into `SDL2.Ttf` and continue consuming Core-owned handles by value. |
 
 ### Extended Rewriter: C `long` dispatch
 
-The existing `ThreadIdDualDispatchRewriter` is hardcoded to 2 method names (`SDL_ThreadID`, `SDL_GetThreadID`) at `ThreadIdDualDispatchRewriter.cs:76-80` and only checks return-type native type names at L128-132. Extending it for TTF requires:
+Item 1 renames and generalizes the old thread-id-specific rewriter to `ClongDualDispatchRewriter`. The TTF expansion should verify these dormant entries against generated TTF output:
 
 1. Expanding the `AffectedMethodNames` set to include the 5 TTF functions
-2. Adding parameter-position rewrite logic (the current rewriter only rewrites the return type): `TTF_OpenFontIndex*` functions need `long index` → `CLong index` on Modern, dual-DllImport dispatch on Compat
-3. The rewriter should be renamed to `ClongDualDispatchRewriter` to reflect its generalized role
+2. Rewriting `TTF_OpenFontIndex*` `long index` parameters to `CLong index` on Modern
+3. Emitting dual-DllImport dispatch on Compat for both parameter-position and return-position C `long`
 
 This is more than a "same logic" extension — the parameter-position handling is new code.
 
@@ -307,10 +308,10 @@ Need a small, redistributable `.ttf` font file committed to `tests/`. DejaVu San
 
 ## 10. Open Questions
 
-1. **TTF_Font ownership in uniform-opaque:** TTF is an owner family. However, `owner_mode = "owner"` on the CLI is insufficient — the `OpaqueHandleEmitRewriter` hardcodes `StartsWith("SDL_")` for auto-discovery at `OpaqueHandleEmitRewriter.cs:200` and emits handles into hardcoded `namespace SDL2` at L336-337. Required changes: (a) accept a family-aware handle discovery path that doesn't depend on `SDL_` prefix, (b) emit handles into the correct per-family namespace (`SDL2.Ttf` for `TTF_Font`), (c) handle dual ownership: a satellite needs its own local handle (`TTF_Font`) while also consuming Core handles (`SDL_RWops`, `SDL_Surface`) by value via ProjectReference.
+1. **TTF_Font ownership in uniform-opaque:** Item 1 provides the family-aware handle path (`TTF_Font` in the `ttf` roster entry, owner mode, namespace parameter, Core data-only roster pull). Item 4 must validate dual ownership in real output: TTF emits its own local handle while consuming Core handles (`SDL_RWops`, `SDL_Surface`) by value via ProjectReference.
 
 2. **Should deprecated functions emit `[Obsolete]` instead of being excluded?** Recommendation: Exclude. Only `TTF_GetFontKerningSize` lacks `SDLCALL` (ABI risk). `TTF_SetDirection` and `TTF_SetScript` have `SDLCALL` but take raw HarfBuzz types cast to `int` — not a typed API. SDL2-CS never emitted these.
 
 3. **No-SDLCALL non-deprecated functions:** `TTF_GetFontKerningSizeGlyphs`, `TTF_GetFontKerningSizeGlyphs32`, `TTF_SetFontSDF`, `TTF_GetFontSDF` — these are modern recommended API but lack `SDLCALL`. SDL's `SDLCALL` maps to `__cdecl` on Windows at `begin_code.h:77-80`; without it, the declaration carries no explicit calling-convention annotation. Generated P/Invoke imports must force `CallingConvention.Cdecl` rather than relying on ClangSharp's default emission.
 
-4. **Extend `threadid-dispatch` or create new rewriter?** Extend (rename to `ClongDualDispatchRewriter`). However, this is more than adding names — the current rewriter only rewrites return types (`ThreadIdDualDispatchRewriter.cs:128-132`). TTF's `long index` parameters need parameter-position dispatch logic, which is new code.
+4. **Validate `clong-dispatch` on TTF:** Item 1 added the dormant TTF method names and parameter-position dispatch logic. Item 4 must verify the generated `TTF_OpenFontIndex*` and `TTF_FontFaces` shapes in both Compat and Modern output.

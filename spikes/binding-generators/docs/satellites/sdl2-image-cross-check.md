@@ -86,7 +86,7 @@ All 4 version constants generated with correct values. Backwards-compat `IMAGE_*
 
 ---
 
-## 5. Bug Found: `IMG_InitFlags` missing `[Flags]`
+## 5. Bug Found and Fixed: `IMG_InitFlags` missing `[Flags]`
 
 ### Evidence
 **Header** (SDL_image.h L95-103):
@@ -100,7 +100,7 @@ typedef enum IMG_InitFlags {
 
 **Documentation** (L112): "Flags should be one or more flags from IMG_InitFlags OR'd together."
 
-**Generated output** (both Modern and Compat):
+**Pre-Item 1 generated output** (both Modern and Compat):
 ```csharp
 public enum IMG_InitFlags  // ← MISSING [Flags]
 {
@@ -116,7 +116,7 @@ Without `[Flags]`, .NET consumers calling `IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG)
 §"Enums" L446-448: "Add `[Flags]` when header comments, composed aliases, bit values, or API docs prove bitmask semantics."
 
 ### Fix
-Add `[Flags]` to the enum declaration. Could be a targeted manual fix (2 lines — one per codegen tree) or a systematic `[Flags]` detection postprocess.
+Item 1 S1-6 adds the systematic `flags-detect` postprocess step. `IMG_InitFlags` is decorated by the `Flags` suffix rule in both Modern and Compat output; Item 2 remains as an explicit Image-targeted regression/closure check.
 
 ### Severity
 Low — metadata annotation only. ABI and values are correct. Fix pre-NuGet-ship.
@@ -138,7 +138,7 @@ The same `[Flags]` gap is **confirmed** in:
 - GFX: No enums (uses `#define` constants only). Not affected.
 - TTF: `TTF_Direction` is NOT a bitmask (exclusive values LTR/RTL/TTB/BTT). Not affected.
 
-A systematic `[Flags]` detection postprocess or a targeted fix for both `IMG_InitFlags` and `MIX_InitFlags` is recommended before the next generation run.
+Item 1's systematic `[Flags]` detection postprocess now covers `IMG_InitFlags` and should also cover `MIX_InitFlags` when Mixer generation activates.
 
 ---
 
@@ -156,4 +156,4 @@ A systematic `[Flags]` detection postprocess or a targeted fix for both `IMG_Ini
 | Import style (Modern/Compat) | ✓ |
 | RSP correctness | ✓ |
 | Cross-assembly contract | ✓ |
-| **`[Flags]` on `IMG_InitFlags`** | **✗ BUG** |
+| **`[Flags]` on `IMG_InitFlags`** | **✓ fixed by Item 1 S1-6 `flags-detect`** |

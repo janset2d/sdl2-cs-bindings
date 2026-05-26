@@ -1,7 +1,7 @@
 # Item 1 — Per-Library Generation Infrastructure (Spec)
 
 **Date:** 2026-05-25
-**Status:** Spec — durable design decisions for Roadmap Item 1. Approval gate per [`AGENTS.md`](../../../../AGENTS.md) §"Approval Gate" applies before any code change.
+**Status:** Closed 2026-05-26 — durable design decisions and exit criteria for Roadmap Item 1. Approval gate per [`AGENTS.md`](../../../../AGENTS.md) §"Approval Gate" applies before any future code change.
 **Branch:** `spike/binding-autogen-sdl2-gfx`
 **Parent roadmap:** [`satellite-expansion-roadmap.md`](../satellite-expansion-roadmap.md) §Item 1.
 **Successor plan:** [`item-1-per-library-generation-plan.md`](item-1-per-library-generation-plan.md) — ordered execution slices + exit evidence.
@@ -10,7 +10,7 @@
 
 ## 1. Goal
 
-Make `generate_bindings.py` + the 6-step postprocess pipeline + `oracle.cs` per-family invocation deterministic and family-agnostic, so that Items 3–5 (GFX/TTF/Mixer) can plug in by adding data only (production header lists, RSPs, csprojs) rather than by editing pipeline logic.
+Make `generate_bindings.py` + the 7-step postprocess pipeline + `oracle.cs` per-family invocation deterministic and family-agnostic, so that Items 3–5 (GFX/TTF/Mixer) can plug in by adding data only (production header lists, RSPs, csprojs) rather than by editing pipeline logic.
 
 The Item 1 deliverable is **infrastructure**, not new family output. Successful exit leaves Core + Image generation byte-identical (CRLF aside) to current HEAD except for the audited `[Flags]` additions required by §5.4, while:
 
@@ -81,20 +81,20 @@ Verified against the source tree at branch `spike/binding-autogen-sdl2-gfx` HEAD
 | 1 | `platform-delta` | `PlatformDeltaPostProcessor` | Untouched. |
 | 2 | `strip-varargs` | `StripVarargsRewriter` | Untouched. |
 | 3 | `libraryimport` | `DllImportToLibraryImportRewriter` | Untouched. |
-| 4 | `guid-substitute` | `GuidSubstitutionRewriter` | Untouched. |
-| 5 | `threadid-dispatch` | `ThreadIdDualDispatchRewriter` | **Rename + refactor + extend.** |
-| 6 | `uniform-opaque` | `OpaqueHandleEmitRewriter` + `UniformOpaqueOwnerMode` | **Drop SDL_ prefix gate; parameterize namespace.** |
-| 7 (**new**) | `flags-detect` | `FlagsAttributeRewriter` | **New** — Item 1 deliverable. |
+| 4 | `flags-detect` | `FlagsAttributeRewriter` | **New** — Item 1 deliverable. |
+| 5 | `guid-substitute` | `GuidSubstitutionRewriter` | Untouched. |
+| 6 | `clong-dispatch` | `ClongDualDispatchRewriter` | **Rename + refactor + extend.** |
+| 7 | `uniform-opaque` | `OpaqueHandleEmitRewriter` + `UniformOpaqueOwnerMode` | **Drop SDL_ prefix gate; parameterize namespace.** |
 
-### 4.3 OpaqueHandleEmitRewriter shape (current)
+### 4.3 OpaqueHandleEmitRewriter shape (pre-Item 1 baseline)
 
 - Constructor accepts `HashSet<string> handleNames` (`OpaqueHandleEmitRewriter.cs:80-83`). The rewriter itself is already name-agnostic for the **rewrite** step — `_handleNames` drives `VisitStructDeclaration`, `VisitParameter`, `VisitMethodDeclaration`, `VisitFieldDeclaration`, `VisitFunctionPointerParameter` uniformly.
 - The two gates that prevent satellite-owned handles today:
   1. **`DiscoverAutoDetectedHandles`** (L186-247) gates by `StartsWith("SDL_", StringComparison.Ordinal)` at L200, L211, L220, L230. `TTF_Font`/`Mix_Music` are not detected.
   2. **`BuildHandlesFileContent`** (L324-352) hardcodes `namespace SDL2` at L336. Satellite `Handles.g.cs` (TTF/Mixer in owner mode) would land in the wrong namespace.
-- The roster JSON (`policy/opaque-handle-roster.json`) is Core-only and **stays Core-only**. Satellite-owned handles are discovered structurally, not roster-listed. Force-opaque exceptions (`SDL_RWops`/`SDL_SysWMinfo`/`SDL_SysWMmsg`) are Constitution-bound Core surface and do not generalize.
+- Baseline before Item 1 used a Core-only roster JSON. Item 1 S1-4 migrates `policy/opaque-handle-roster.json` to family-keyed schema 2.0: satellite-owned handles are explicitly rostered under their family sections, while Core force-opaque exceptions (`SDL_RWops`/`SDL_SysWMinfo`/`SDL_SysWMmsg`) remain under `families.core` and are pulled data-only by satellite postprocess runs.
 
-### 4.4 ThreadIdDualDispatchRewriter shape (current)
+### 4.4 ThreadIdDualDispatchRewriter shape (pre-Item 1 baseline)
 
 - Inherits from `CSharpSyntaxRewriter` — Roslyn-based for **detection** (visits `MethodDeclarationSyntax`, reads `[return: NativeTypeName(...)]` via `AttributeListSyntax`).
 - **Mutation is text-level**, not syntax-tree-level. `VisitMethodDeclaration` (L121-148) stages `(TextSpan, string)` pairs into `_pending` and returns the node unchanged; `VisitCompilationUnit` (L151-172) does StringBuilder `Remove`/`Insert` on the full source text, then re-parses with `CSharpSyntaxTree.ParseText`.
@@ -370,7 +370,7 @@ Item 1 does **not** create:
 |---|---|---|
 | 1 | `generate_bindings.py --family all --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims` produces Core + Image `.g.cs` output byte-identical (CRLF aside) to current HEAD **EXCEPT for `[Flags]` attribute additions on enums newly qualified by §5.4**. Core suffix-rule additions: `SDL_MessageBoxFlags`, `SDL_MessageBoxButtonFlags`, `SDL_RendererFlags`, `SDL_WindowFlags`. Core allow-list additions: `SDL_Keymod`, `SDL_BlendMode`, `SDL_GLcontextFlag`, `SDL_RendererFlip`, `SDL_TextureModulate`. Image suffix-rule addition: `IMG_InitFlags`. This is intentional Constitution §"Enums" alignment, not a regression. The exact `[Flags]`-addition delta is enumerated in the S1-6 slice commit. | `git diff --ignore-cr-at-eol` shows only `[Flags]` attribute additions on the enumerated set; no other content changes. |
 | 2 | **Family-isolation determinism.** Three properties hold simultaneously: (a) `generate_bindings.py --family core --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims` and `generate_bindings.py --family image --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims` run sequentially produce identical output to `--family all`; (b) Image-only execute regenerates ONLY `spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Generated/` — Core's `Generated/` directory and `Handles.g.cs` remain byte-untouched (`git status` shows no Core changes after Image-only run); (c) symmetric guarantee for Core-only execute — Image's `Generated/` remains byte-untouched. | Sequential regen + `git diff --ignore-cr-at-eol` empty; per-family isolation check: `git status --short spikes/binding-generators/clangsharp/src/Janset.SDL2.{Core,Image}/Generated/` after each per-family run shows changes only in the targeted family's directory. |
-| 3 | Multi-TFM build clean: `dotnet build spikes/binding-generators/clangsharp/Janset.SDL2.ClangSharpSpike.sln -c Release` — 0 warnings / 0 errors across all 5 TFMs for Core + Image. | Build log. |
+| 3 | Multi-TFM build clean: `dotnet build spikes/binding-generators/clangsharp/Janset.SDL2.ClangSharpSpike.slnx -c Release` — 0 warnings / 0 errors across all 5 TFMs for Core + Image. | Build log. |
 | 4 | `dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --family sdl2-core --family sdl2-image --family sdl2-ttf --family sdl2-mixer --family sdl2-gfx --write-report` produces a 5-family evidence report; **0 findings** across Priority C categories for sdl2-core + sdl2-image (no regression). TTF/Mixer/GFX generated rows show `SourceStatus.Missing` with zero counts (expected — not yet generated); SDL2-CS rows load existing peer evidence where the source exists. | Report at `spikes/binding-generators/output/reports/oracle-evidence-clangsharp.md`. |
 | 5 | `FAMILY_CONFIG` entries exist for `ttf`, `mixer`, `gfx` and the `--family` CLI accepts them. `selected_families("all")` returns `["core", "image"]` only. Running `python generate_bindings.py --family ttf` exits with `generation_exit_code` 2 or 4 (missing RSP/headers/project support) — not a Python KeyError or unhandled exception. | Self-test + manual smoke. |
 | 6 | `OpaqueHandleEmitRewriter.DiscoverAutoDetectedHandles` returns `TTF_Font` and `Mix_Music` when run against synthetic test input containing empty `partial struct TTF_Font {}` + `TTF_Font*` use; returns the existing 14 SDL_* names when run against Core. | Postprocess self-test fixture. |
@@ -390,7 +390,7 @@ Item 1 lands these alongside the pipeline changes:
 | Remove `spikes/binding-generators/clangsharp/compare_oracle.py`. | Sunset per roadmap §Cross-Cutting; `oracle.cs` is the active reporter. |
 | **Keep** `spikes/binding-generators/scope/sdl2-core-sdlh-required.json`. | Load-bearing for `generate_bindings.py:554` required-surface validation. Roadmap's "if unused" note is incorrect — this spec corrects it. |
 | Remove `comparison-report-template.md` if it exists and is unreferenced. | Sunset Cake-preview comparison artifacts alongside `compare_oracle.py`; keep only if a live caller is found during plan execution. |
-| Confirm `policy/opaque-handle-roster.json` stays Core-only. | Satellite-owned handles are structural, not roster-listed. |
+| Confirm `policy/opaque-handle-roster.json` is family-keyed schema 2.0. | Satellite-owned handles are explicitly rostered under their family sections; Core force-opaque exceptions remain in `families.core` for data-only cross-family pull. |
 | Confirm `shims/platform-headers/` is untouched. | No new platform views in Item 1. |
 
 ---
@@ -453,10 +453,10 @@ Item 1 lands these alongside the pipeline changes:
 - `spikes/binding-generators/clangsharp/generate_bindings.py` — `FAMILY_CONFIG` L327-344, `selected_families` L776-779, `PLATFORM_SENSITIVE_HEADERS` L449-455, `stats` init L1078-1081, `write_report` loop L825, owner-mode wiring L1267, `extend_rsp_arguments` L83-108, `generation_exit_code` L787-798.
 - `spikes/binding-generators/clangsharp/postprocess/Program.cs` — pipeline dispatch L49-160; `uniform-opaque` mode L126-157.
 - `spikes/binding-generators/clangsharp/postprocess/OpaqueHandleEmitRewriter.cs` — `DiscoverAutoDetectedHandles` L186-247; `BuildHandlesFileContent` L324-352; `_handleNames`-driven rewrite L94-177.
-- `spikes/binding-generators/clangsharp/postprocess/ThreadIdDualDispatchRewriter.cs` — `AffectedMethodNames` L76-80; `VisitMethodDeclaration` L121-148; `VisitCompilationUnit` L151-172; `BuildModernReplacement`/`BuildCompatReplacement` L174-224.
+- `spikes/binding-generators/clangsharp/postprocess/ClongDualDispatchRewriter.cs` — `AffectedMethodNames`; Roslyn node-level C `long` / `unsigned long` mutation for Core and dormant TTF surfaces.
 - `spikes/binding-generators/clangsharp/postprocess/UniformOpaqueOwnerMode.cs` — owner-mode CLI resolution + `EmitConsolidatedHandlesFileIfOwner`.
 - `spikes/binding-generators/clangsharp/oracle.cs` — `FamilyConfigs` L160-183; `OracleRunner.KnownFamilies` L187-191; `RawAbiChecks.Run` L1146+.
-- `spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json` — Core-only auto-detect (14) + force-opaque (3) + excluded-candidates (12).
+- `spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json` — family-keyed schema 2.0 Pattern B auto-detect + force-opaque + excluded-candidates lists.
 - `spikes/binding-generators/clangsharp/rsp/base.rsp` — cross-cutting remaps + SDL_bool=int.
 - `spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/` — reference satellite shape (csproj 5-TFM split, Generated/{Compat,Modern}/, Support/DisableRuntimeMarshalling.cs).
 

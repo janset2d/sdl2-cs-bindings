@@ -236,15 +236,16 @@ Consumer mode for `uniform-opaque` (automatic — no code change needed).
 
 ## 9. Postprocess Notes
 
-All six postprocess steps are GFX-safe with zero changes needed:
+All seven conceptual postprocess steps are GFX-safe with zero GFX-specific changes needed:
 
 | Step | Effect on GFX | Risk |
 |---|---|---|
 | `platform-delta` | No-op (no platform-sensitive headers) | None |
 | `strip-varargs` | No-op (no variadic functions) | None |
 | `libraryimport` | Standard Modern pass | None |
+| `flags-detect` | No-op unless a future GFX enum ends with `Flags` or is allow-listed | None |
 | `guid-substitute` | No-op (no `SDL_GUID` types) | None |
-| `threadid-dispatch` | No-op (no `SDL_threadID` types) | None |
+| `clong-dispatch` | No-op (no C `long` surface) | None |
 | `uniform-opaque` (consumer) | Removes partial struct stubs; no opaque handles to rewrite | Low |
 
 **No new postprocess steps needed for GFX.** The existing pipeline covers it completely. GFX has no opaque handles of its own and no satellite-owned handle gap to solve.

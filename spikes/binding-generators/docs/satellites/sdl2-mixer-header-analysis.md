@@ -65,7 +65,7 @@
 ```c
 typedef struct Mix_Music Mix_Music;
 ```
-Forward-declared only — no struct body. Pattern B opaque handle. **Satellite-owned** (NOT in Core's `opaque-handle-roster.json`). The `uniform-opaque` postprocess needs to handle satellite-owned opaque handles in consumer mode — a new requirement not present in Image.
+Forward-declared only — no struct body. Pattern B opaque handle. **Satellite-owned** and listed under the `mixer` family in `opaque-handle-roster.json` schema 2.0, not under Core's family entry. Item 1 provides the owner-mode infrastructure; Item 5 validates it against real Mixer generation.
 
 ### 2B. Transparent Struct: `Mix_Chunk`
 
@@ -207,7 +207,7 @@ ClangSharp's `--generate-macro-bindings` handles value macros only, so the two f
 ```
 
 Production header list: single entry `SDL_mixer.h`.
-Default consumer mode for `uniform-opaque` is **insufficient** until satellite-owned handle emission exists — `Mix_Music` at SDL_mixer.h:269 is a Mixer-owned opaque handle, and the current consumer mode only handles Core-owned handles. See §8 critical gap below.
+Mixer uses owner mode for `uniform-opaque` because `Mix_Music` at SDL_mixer.h:269 is a Mixer-owned opaque handle. Item 1 provides the family-keyed roster and namespace-aware owner-mode path; Item 5 validates the generated output.
 
 ---
 
@@ -220,17 +220,15 @@ Default consumer mode for `uniform-opaque` is **insufficient** until satellite-o
 | `libraryimport` | Yes | Standard Modern pass |
 | `platform-delta` | No | No platform-sensitive headers |
 | `guid-substitute` | No | No `SDL_GUID` types |
-| `threadid-dispatch` | No | No `SDL_threadID` types |
-| `uniform-opaque` | Yes — consumer mode | `Mix_Music` is satellite-owned opaque — needs handling |
+| `flags-detect` | Yes | `MIX_InitFlags` is caught by suffix rule. |
+| `clong-dispatch` | No | No C `long` surface. |
+| `uniform-opaque` | Yes — owner mode | Emits `Mix_Music` locally and consumes Core-owned handles by value when present. |
 
-### Critical Gap: Satellite-Owned Opaque Handles
-`Mix_Music` is a satellite-owned opaque handle NOT in Core's roster. The consumer-mode `uniform-opaque` currently doesn't handle this case (Image has no satellite-owned opaques). Options:
-- **A:** Add to Core roster (wrong — violates separation)
-- **B:** Consumer mode emits local `Handles.g.cs` for satellite-owned handles (recommended)
-- **C:** Separate rewriter pass for satellite-owned opaques
+### Satellite-Owned Opaque Handles
+`Mix_Music` is a satellite-owned opaque handle, so the correct owner is `SDL2.Mixer`. Do not add it to Core's family entry. Item 1's family-keyed roster + owner-mode path is the intended mechanism.
 
 ### `MIX_InitFlags` — `[Flags]` Annotation
-ClangSharp doesn't auto-detect `[Flags]`. Manual fixup or postprocess convention needed (Layer 2 concern).
+Handled by Item 1's `flags-detect` postprocess step via the `Flags` suffix rule; Item 5 should verify the generated enum stays decorated.
 
 ### No New Postprocess Steps Needed
 Callback function pointers are handled natively by ClangSharp codegen. No postprocess rewriter needed for delegate types.
@@ -253,7 +251,7 @@ For Compat TFMs: delegate + `Marshal.GetFunctionPointerForDelegate()` + `GC.Keep
 
 ## 10. Open Questions
 
-1. **`Mix_Music` opaque handle ownership:** Who owns the Pattern B struct? Satellite-owned handle category needs infrastructure gap fix. Bootstrap with empty partial struct works for compilation; Pattern B before NuGet ship.
+1. **`Mix_Music` opaque handle ownership:** Owner is `SDL2.Mixer`. Item 1 provides the Pattern B infrastructure; Item 5 must validate the real generated `Handles.g.cs` and runtime handle roundtrip before NuGet ship.
 
 2. **`MIX_EFFECTSMAXSPEED` string macro:** Does ClangSharp's `--generate-macro-bindings` handle string `#define`s? If not, exclude it.
 

@@ -3957,7 +3957,7 @@ See "Per-slice common requirements" §Common: Slopwatch. No file deletions in th
 
   Expected: `Scan complete: 0 issue(s) found`.
 
-### Task 7.8: Repo hygiene grep
+### Task 7.8: Repo hygiene grep + durable doc sweep
 
 - [ ] **Step 7.8.1: Verify no leftover compare_oracle references**
 
@@ -3975,7 +3975,23 @@ See "Per-slice common requirements" §Common: Slopwatch. No file deletions in th
 
   Use the Grep tool with pattern `ThreadIdDualDispatchRewriter`, path repository root.
 
-  Expected: docs only. **Zero** matches in `.cs` files.
+  Expected: historical docs only. **Zero** matches in `.cs` files. Active handoff docs should prefer `ClongDualDispatchRewriter` unless the old name is explicitly historical.
+
+- [ ] **Step 7.8.4: Durable doc consistency sweep**
+
+  Sweep the active slice and handoff docs for Item 1 closure drift. Include at minimum:
+
+  - `docs/binding-autogen/binding-generator-constitution.md`
+  - `spikes/binding-generators/README.md`
+  - `spikes/binding-generators/docs/items/item-1-per-library-generation-spec.md`
+  - `spikes/binding-generators/docs/items/item-1-per-library-generation-plan.md`
+  - `spikes/binding-generators/docs/satellite-expansion-roadmap.md`
+  - `spikes/binding-generators/docs/next-iteration-plan.md`
+  - `spikes/binding-generators/docs/satellites/*.md` when they directly reference Item 1 facts.
+
+  Check for stale active references to: `6-step`, `threadid-dispatch`, `ThreadIdDualDispatchRewriter`, Core-only opaque roster wording, missing `flags-detect`, missing `flags-enum-roster`, stale `IMG_InitFlags` bug wording, and incorrect `selected_families("all")` activation expectations.
+
+  Expected current facts: the postprocess pipeline has 7 conceptual steps (`platform-delta`, `strip-varargs`, `libraryimport` for Modern only, `flags-detect`, `guid-substitute`, `clong-dispatch`, `uniform-opaque`); `opaque-handle-roster.json` and `flags-enum-roster.json` are separate family-keyed schema 2.0 files; `SDL_bool` remains undecorated; Item 1 leaves TTF/Mixer/GFX dormant in `selected_families("all")`; the Constitution already matches or is updated in the same change if drift is found.
 
 ### Task 7.9: Doc updates — closure record
 
@@ -3983,6 +3999,8 @@ See "Per-slice common requirements" §Common: Slopwatch. No file deletions in th
 
 - Modify: `spikes/binding-generators/docs/next-iteration-plan.md` (add Item 1 closed row).
 - Modify: `spikes/binding-generators/docs/satellite-expansion-roadmap.md` §Implementation Order & Dependencies (mark Item 1 closed).
+- Verify/update: `docs/binding-autogen/binding-generator-constitution.md` (7-step pipeline, family-keyed opaque/flags rosters, `clong-dispatch` naming, `SDL_bool` undecorated, Stage 1 flag enum list).
+- Verify/update as needed: `spikes/binding-generators/README.md`, `spikes/binding-generators/docs/items/item-1-per-library-generation-spec.md`, and satellite analysis docs with direct Item 1 facts.
 
 - [ ] **Step 7.9.1: Update next-iteration-plan.md slice progress table**
 

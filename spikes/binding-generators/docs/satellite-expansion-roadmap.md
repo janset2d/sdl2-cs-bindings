@@ -44,44 +44,46 @@ Before or alongside Item 1, these directories and tools get standardized:
 
 ## Item 1: Per-Library Generation Infrastructure
 
+**Status:** Closed 2026-05-26. Items 2–5 are unblocked, with Iteration 2 config surface unification intentionally scheduled before expansion work.
+
 **Goal:** `generate_bindings.py` + postprocess pipeline supports per-family invocation deterministically. `--family all` output is byte-identical (CRLF aside) to `--family core` + `--family image` run separately. Existing Core + Image output is REGRESSION-FREE.
 
 ### Success Criteria
 
 1. `generate_bindings.py --family all --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims` produces identical Core/Image `.g.cs` output to current HEAD except audited `[Flags]` additions required by Constitution §"Enums" (diff with `--ignore-cr-at-eol` contains only those additions).
 2. `generate_bindings.py --family core --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims` + `generate_bindings.py --family image --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims` run sequentially produce identical output to `--family all`.
-3. Multi-TFM build: `dotnet build Janset.SDL2.Image.csproj -c Release` — 0 warnings, 0 errors across all 5 TFMs.
-4. `oracle.cs --family sdl2-core --family sdl2-image --write-report` — 0 findings across Priority C categories (no regression).
+3. Multi-TFM build: `dotnet build spikes/binding-generators/clangsharp/Janset.SDL2.ClangSharpSpike.slnx -c Release` — 0 warnings, 0 errors across the spike solution.
+4. `oracle.cs --family sdl2-core --family sdl2-image --family sdl2-ttf --family sdl2-mixer --family sdl2-gfx --write-report` — 0 findings across Priority C categories for Core + Image; dormant TTF/Mixer/GFX generated rows report missing without hard bugs.
 5. GFX, TTF, Mixer FAMILY_CONFIG entries exist in `generate_bindings.py` but are NOT yet wired in `selected_families("all")` — they're dormant until their respective expansion items activate them.
 
 ### Current Understanding (assumptions flagged)
 
-**FAMILY_CONFIG routing:** Extend the existing `FAMILY_CONFIG` dict with `ttf`, `mixer`, `gfx` entries. `selected_families()` already supports `--family` filtering. `PLATFORM_SENSITIVE_HEADERS` gets per-family entries (GFX: `[]`, TTF: `[]`, Mixer: `[]`). `stats` dict gets new keys. `write_report()` loop extended. `--family` CLI choices extended. **Assumption:** no logic changes needed beyond data entries. Deep-dive may find edge cases.
+**FAMILY_CONFIG routing:** Item 1 extends `FAMILY_CONFIG` with `ttf`, `mixer`, `gfx` entries and keeps `selected_families("all")` dormant at `['core', 'image']` until each expansion item activates its family. `PLATFORM_SENSITIVE_HEADERS`, `stats`, `write_report()`, and `--family` choices are family-aware.
 
 **Include directory wiring:** All satellite headers live flat under `vcpkg_installed/<triplet>/include/SDL2/` alongside Core headers. The existing `--include-directory` already points there — **Assumption:** no new include directories are needed. Verified by header listing; deep-dive reconfirms per family.
 
-**Postprocess pipeline — per-family independence:** Each of the 6 postprocess steps (`strip-varargs`, `libraryimport`, `platform-delta`, `guid-substitute`, `threadid-dispatch`/`clong-dispatch`, `uniform-opaque`) operates on one family's `Generated/{Compat,Modern}/` tree. The `generate_bindings.py` orchestrator invokes postprocess per-family via `run_postprocess(family, ...)`. **Assumption:** no cross-family postprocess coupling. Deep-dive verifies.
+**Postprocess pipeline — per-family independence:** Each of the 7 conceptual postprocess steps (`platform-delta`, `strip-varargs`, `libraryimport` for Modern only, `flags-detect`, `guid-substitute`, `clong-dispatch`, `uniform-opaque`) operates on one family's `Generated/{Compat,Modern}/` tree. The `generate_bindings.py` orchestrator invokes postprocess per-family via `run_postprocess(family, ...)`; the only cross-family flow is the data-only roster pull defined by the Constitution.
 
-**OpaqueHandleEmitRewriter — family-blind auto-detection (preferred direction):**
+**OpaqueHandleEmitRewriter — family-keyed owner/consumer mode (landed in Item 1):**
 
-- Remove `StartsWith("SDL_")` gate at `OpaqueHandleEmitRewriter.cs:200`. Auto-detect criterion becomes purely structural: "empty partial struct" + "pointer use at any ABI signature position." `TTF_Font` and `Mix_Music` are then detected without prefix matching.
-- Remove hardcoded `namespace SDL2` at `OpaqueHandleEmitRewriter.cs:336-337`. Read the namespace from the `.g.cs` file being processed. Emit `Handles.g.cs` into the same namespace.
-- `force_opaque_exceptions` (SDL_RWops, SDL_SysWMinfo, SDL_SysWMmsg) remain in `opaque-handle-roster.json` — Core-only, as they are today. Satellite-owned handles are auto-detected; no roster entries needed.
-- `--owner-mode` flag determines which families emit their own `Handles.g.cs`. Currently: `"owner" if family == "core" else "consumer"`. Extend to: `"owner" if family in ("core", "ttf", "mixer") else "consumer"`. GFX and Image have no satellite-owned handles — consumer mode.
-- **Assumption:** auto-detection without prefix matching is sufficient for all known SDL2 opaque handle patterns. Deep-dive validates against TTF_Font and Mix_Music specifically.
+- Auto-detection is structural: empty partial struct + pointer use at any ABI signature position. It does not require the `SDL_` prefix, so satellite-owned `TTF_Font` and `Mix_Music` are covered when their families activate.
+- The rewriter reads the namespace from the `.g.cs` file being processed and emits `Handles.g.cs` into that namespace.
+- `force_opaque_exceptions` (`SDL_RWops`, `SDL_SysWMinfo`, `SDL_SysWMmsg`) remain under `families.core` in `opaque-handle-roster.json`. Satellite-owned handles (`TTF_Font`, `Mix_Music`) are listed under their owning family sections and are still structurally drift-checked by owner-mode runs.
+- `--owner-mode` determines which families emit their own `Handles.g.cs`: owner mode for `core`, `ttf`, and `mixer`; consumer mode for `image` and `gfx`.
+- Structural auto-detection without prefix matching is the accepted Item 1 policy for known SDL2 opaque handle patterns.
 
-**ClongDualDispatchRewriter (formerly ThreadIdDualDispatchRewriter):**
+**ClongDualDispatchRewriter:**
 
-- Rename from `threadid-dispatch` to `clong-dispatch`.
-- Expand `AffectedMethodNames` from `{"SDL_ThreadID", "SDL_GetThreadID"}` to also include TTF's 5 C `long` functions (4 index params + 1 FontFaces return). **Assumption:** name-based matching is the right selection mechanism. Deep-dive evaluates.
-- Add parameter-position rewrite logic. Current rewriter only inspects return-type native type names at `ThreadIdDualDispatchRewriter.cs:128-132`. TTF's `long index` parameters need equivalent dispatch. **Assumption:** the Compat dual-DllImport pattern works identically for parameter positions as it does for return positions. Deep-dive validates.
+- Current mode key is `clong-dispatch`.
+- `AffectedMethodNames` covers `SDL_ThreadID`, `SDL_GetThreadID`, and TTF's 5 C `long` functions (4 index params + 1 FontFaces return).
+- Parameter-position rewrite logic is present. `ClongDualDispatchRewriter` inspects return and parameter native type names so TTF's dormant `long index` parameters receive the same platform-sensitive dispatch as Core's return-position C `long` surface.
 - The rewriter remains applied per-family — it skips families with no matching function names (no-op for Image, GFX, Mixer).
 
 **`[Flags]` detection:**
 
-- `IMG_InitFlags` and `MIX_InitFlags` are confirmed bitmask enums (power-of-two values, documentation says "OR'd together"). Generated output lacks `[Flags]`.
+- `IMG_InitFlags` and `MIX_InitFlags` are confirmed bitmask enums (power-of-two values, documentation says "OR'd together"). Pre-Item 1 generated output lacked `[Flags]`; S1-6 fixes Image and the same suffix rule should cover Mixer when it activates.
 - **Resolved direction:** Item 1 adds a `flags-detect` postprocess step using **name-suffix + family-keyed roster allow-list** per Constitution §"Enums" auto-decoration policy. Power-of-two value heuristic was considered and rejected: Constitution L448 friction; `SDL_bool` (`SDL_FALSE=0`, `SDL_TRUE=1`) would false-positive under a naive heuristic; no peer validation — only alimer-bindings-sdl auto-detects in production, and it uses the same name-suffix + hardcoded allow-list approach we adopt. ppy/SDL3-CS uses manual companion files (incompatible with our "no magic companion" philosophy); Silk.NET 2.X drops `[Flags]` entirely.
-- **What lands in Item 1:** name-suffix detection (`EndsWith("Flags")` — catches `IMG_InitFlags`, `MIX_InitFlags`, `SDL_RendererFlags`, etc.) + family-keyed allow-list for composite-alias-bearing enums (`SDL_Keymod`, `SDL_BlendMode`, `SDL_GLcontextFlag`, `SDL_RendererFlip`, `SDL_TextureModulate`). See Item 1 spec §5.4.
+- **Item 1 landed policy:** name-suffix detection (`EndsWith("Flags")` — catches `IMG_InitFlags`, `MIX_InitFlags`, `SDL_RendererFlags`, etc.) + family-keyed allow-list for composite-alias-bearing enums (`SDL_Keymod`, `SDL_BlendMode`, `SDL_GLcontextFlag`, `SDL_RendererFlip`, `SDL_TextureModulate`). See Item 1 spec §5.4.
 
 ### Reference Docs
 
@@ -98,14 +100,14 @@ Before or alongside Item 1, these directories and tools get standardized:
 
 - `spikes/binding-generators/clangsharp/generate_bindings.py` — orchestrator (FAMILY_CONFIG, command_for_header, extend_rsp_arguments, run_postprocess, main)
 - `spikes/binding-generators/clangsharp/postprocess/OpaqueHandleEmitRewriter.cs:190-210, 330-340` — current auto-detect gate + namespace emit
-- `spikes/binding-generators/clangsharp/postprocess/ThreadIdDualDispatchRewriter.cs:70-90, 120-140` — current hardcoded name set + return-type-only rewrite
+- `spikes/binding-generators/clangsharp/postprocess/ClongDualDispatchRewriter.cs` — current Core + dormant TTF C `long` method set and return/parameter rewrite logic
 - `spikes/binding-generators/clangsharp/postprocess/UniformOpaqueOwnerMode.cs` — CLI flag parsing
 - `spikes/binding-generators/clangsharp/postprocess/Program.cs` — postprocess CLI dispatch
 - `spikes/binding-generators/clangsharp/rsp/base.rsp` — cross-cutting remaps
 - `spikes/binding-generators/clangsharp/rsp/sdl2-image.rsp` — reference family RSP pattern
 - `spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/` — reference satellite csproj + Generated + Support
 - `spikes/binding-generators/clangsharp/oracle.cs:160-183` — FamilyConfigs hardcoding
-- `spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json` — current Core-only roster
+- `spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json` — family-keyed Pattern B handle roster
 
 ---
 
@@ -194,11 +196,11 @@ The following are open questions that belong to Iteration 2's spec + plan, not t
 
 ### Current Understanding
 
-- `IMG_InitFlags` at `SDL_image.h:95-103` has power-of-two values (JPG=0x01, PNG=0x02, TIF=0x04, WEBP=0x08, JXL=0x10, AVIF=0x20). Documentation at L112 says "OR'd together." Constitution §"Enums" L446-448 mandates `[Flags]`.
-- Generated Modern output at `SDL_image.g.cs:6` has `public enum IMG_InitFlags` without `[Flags]`. Same in Compat at `SDL_image.g.cs:5`.
+- `IMG_InitFlags` at `SDL_image.h:95-103` has power-of-two values (JPG=0x01, PNG=0x02, TIF=0x04, WEBP=0x08, JXL=0x10, AVIF=0x20). Documentation at L112 says "OR'd together." Constitution §"Enums" mandates `[Flags]`.
+- Item 1 S1-6 fixes generated Modern and Compat output through the `flags-detect` postprocess step. Item 2 remains useful as an explicit Image-targeted regression/closure check, not as the first implementation of the attribute.
 - `Enum.HasFlag()` does NOT require `[Flags]` — the concrete impact is `ToString()` formatting and debugging display only. Severity: low.
 - Same bug confirmed in Mixer's `MIX_InitFlags` — handled under Item 5.
-- **Assumption:** the `[Flags]` detection mechanism built in Item 1 handles this automatically. If not, a targeted two-line manual fix is acceptable as fallback.
+- Item 2 can close as a targeted verification slice because S1-7 preserved the S1-6 `IMG_InitFlags` output.
 
 ### Reference Docs
 
@@ -207,8 +209,8 @@ The following are open questions that belong to Iteration 2's spec + plan, not t
 
 ### Reference Code
 
-- `spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Generated/Modern/SDL_image.g.cs:6`
-- `spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Generated/Compat/SDL_image.g.cs:5`
+- `spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Generated/Modern/SDL_image.g.cs` — `IMG_InitFlags` `[System.Flags]`
+- `spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Generated/Compat/SDL_image.g.cs` — `IMG_InitFlags` `[System.Flags]`
 - `vcpkg_installed/x64-windows-hybrid/include/SDL2/SDL_image.h:95-103, 112`
 
 ---
@@ -285,7 +287,7 @@ The following are open questions that belong to Iteration 2's spec + plan, not t
 - **No-SDLCALL functions:** 4 non-deprecated functions lack `SDLCALL` (`TTF_GetFontKerningSizeGlyphs`, `TTF_GetFontKerningSizeGlyphs32`, `TTF_SetFontSDF`, `TTF_GetFontSDF`). SDL's `SDLCALL` maps to `__cdecl` on Windows at `begin_code.h:77-80`; without it, the native declaration carries no explicit annotation. Generated P/Invoke must force `CallingConvention.Cdecl`. **Assumption:** a per-header RSP or postprocess step can add the calling convention. Deep-dive determines mechanism.
 - **Deprecated functions:** 3 to exclude (`TTF_GetFontKerningSize`, `TTF_SetDirection`, `TTF_SetScript`). Only the first lacks `SDLCALL`.
 - **Error macros:** `TTF_SetError`/`TTF_GetError` excluded (cross-family aliases to Core). See [satellites/sdl2-satellite-error-function-consolidation.md](satellites/sdl2-satellite-error-function-consolidation.md) for full cross-family analysis.
-- **Function-like helpers:** `TTF_VERSION(X)` / `TTF_VERSION_ATLEAST(X,Y,Z)`-style public macros, if present in the pinned header, are not Item 1/S1-2 Layer 1 output. They remain follow-up Layer 2 / friendly helper candidates governed by an explicit companion-helper policy.
+- **Function-like helpers:** `TTF_VERSION(X)` / `TTF_VERSION_ATLEAST(X,Y,Z)`-style public macros, if present in the pinned header, are not Item 1/S1-2 Layer 1 output. They remain follow-up Layer 2 / friendly helper candidates governed by an explicit companion-helper policy. See [satellites/sdl2-function-like-macro-consolidation.md](satellites/sdl2-function-like-macro-consolidation.md) for the full cross-family function-like macro catalog.
 - **No callbacks, no unions, no platform-conditioned code.**
 - **Assumption:** 32 rendering functions returning `SDL_Surface*` all resolve correctly via Core ProjectReference. Core Pattern B handles (SDL_RWops) resolved by-value via consumer-side uniform-opaque.
 
@@ -338,7 +340,7 @@ The following are open questions that belong to Iteration 2's spec + plan, not t
 - **Mix_Chunk:** Plain 4-field POD struct. NO union (confirmed — contradicting earlier speculation). `[StructLayout(LayoutKind.Sequential)]`. No explicit layout needed.
 - **`[Flags]` gap:** `MIX_InitFlags` — same bitmask pattern as `IMG_InitFlags`. Handled by Item 1's `[Flags]` detection mechanism.
 - **Error macros:** 4 to exclude (`Mix_SetError`, `Mix_GetError`, `Mix_ClearError`, `Mix_OutOfMemory`). Legacy compat aliases also excluded. See [satellites/sdl2-satellite-error-function-consolidation.md](satellites/sdl2-satellite-error-function-consolidation.md) for full cross-family analysis.
-- **Version macros:** `SDL_MIXER_COMPILEDVERSION` should be kept/auto-emitted (same pattern as Image's `SDL_IMAGE_COMPILEDVERSION`). `SDL_MIXER_VERSION(X)` and `SDL_MIXER_VERSION_ATLEAST(X,Y,Z)` are function-like — skipped/reported in Layer 1 and tracked as follow-up Layer 2 / friendly helper candidates, not complete in S1-2.
+- **Version macros:** `SDL_MIXER_COMPILEDVERSION` should be kept/auto-emitted (same pattern as Image's `SDL_IMAGE_COMPILEDVERSION`). `SDL_MIXER_VERSION(X)` and `SDL_MIXER_VERSION_ATLEAST(X,Y,Z)` are function-like — skipped/reported in Layer 1 and tracked as follow-up Layer 2 / friendly helper candidates, not complete in S1-2. See [satellites/sdl2-function-like-macro-consolidation.md](satellites/sdl2-function-like-macro-consolidation.md) for the full cross-family function-like macro catalog.
 - **Callback lifecycle risk:** Callbacks persist across audio frames. Layer 2 must handle delegate rooting. Layer 1 only needs correct signatures — but AbiTests must include callback roundtrip smoke.
 - **Assumption:** 7 functions with 8 callback-typed parameters (Mix_RegisterEffect has two callbacks). All use `SDLCALL` → `__cdecl`.
 
@@ -370,7 +372,7 @@ The following are open questions that belong to Iteration 2's spec + plan, not t
 ## Implementation Order & Dependencies
 
 ```
-Iteration 1: Item 1 (per-library infra)
+Iteration 1: Item 1 (per-library infra) ✅ closed
   ├── Cross-cutting (header-list/policy/shims/oracle standardization)
   └── Enables Iteration 2: Config Surface Unification
        └── Enables Item 2 (Image bug fix) ── quick validation

@@ -1,15 +1,16 @@
 # LLM-to-LLM Handoff — Janset.SDL2 Binding Generator Spike
 
-**Date:** 2026-05-21; updated 2026-05-24 (Priority C closure)
-**Audience:** The next LLM picking up this spike. Read this **before** writing code or making decisions. The previous LLM hit a concrete sticking point and recorded the full context here so you don't redo work or relitigate decisions.
+**Date:** 2026-05-21; updated 2026-05-26 (Item 1 closure)
+**Audience:** The next LLM picking up this spike. Read this **before** writing code or making decisions. This handoff records the current spike state so you don't redo work or relitigate decisions.
 
 ## TL;DR — 60-second status
 
 - **Project**: ClangSharp-based SDL2 binding generator spike under `spikes/binding-generators/clangsharp/`. Ultimately produces multi-TFM, multi-OS, source-generated `Janset.SDL2.Core` + `Janset.SDL2.Image` library packages.
 - **Toolchain evidence**: ppy-style ClangSharp orchestrator (Python) + Microsoft.CodeAnalysis postprocess (C# console app) is the active evidence path. Do **not** relitigate ClangSharp vs CppAst yet; finish the ClangSharp evidence, then build comparable CppAst/Alimer-style evidence before recommending direction.
 - **Priority C semantic-ABI: CLOSED 2026-05-24.** All six known platform-sensitive ABI risks (R1 `wchar_t*`, R2 C `long`/`unsigned long`, R3 `SDL_RWops`, R4 `SDL_SysWMinfo`, R5 `SDL_SysWMmsg`, R6 opaque-handle tag leak) resolved; six oracle gap categories at 0 findings. Full evidence + verification table in [`priority-c-closure-summary.md`](priority-c-closure-summary.md) (commit `e62bf92`). Cross-assembly Pattern B contract codified via `[assembly: DisableRuntimeMarshalling]` in Core + Image (commit `4b87037`); Constitution policy at `d0016de`. SDL_GUID → System.Guid substitution + Foreign Type Boundary Policy + BCL-Replaceable Helper Exclusion Policy all landed in scope.
-- **Next scope**: **Layer 2 typed low-level public API slice** (Constitution Layer Contract L34-50; Roadmap M5). The Layer 1 raw ABI surface is now stable enough — handle shape, scalar widths, foreign-type boundary all settled — that the typed `SDL2.SDL` projection can be built on top of it without churn. Slice 5 (ppy orchestrator feature parity) remains deferred.
-- **Branch state**: 35+ commits ahead of `origin/spike/binding-autogen-sdl2-gfx`; push gate pending Plan Task 19 (final code review + finishing branch decision per AGENTS.md §Approval Gate). Branch is `spike/binding-autogen-sdl2-gfx`.
+- **Item 1 per-library generation infrastructure: CLOSED 2026-05-26.** Family-keyed opaque/flags rosters, `flags-detect`, `clong-dispatch`, and five-family oracle wiring are in place. `selected_families("all")` still runs only Core+Image; TTF/Mixer/GFX generated output remains dormant/missing until their expansion items activate.
+- **Next scope**: **Iteration 2 config surface unification**, then Items 2–5 satellite Layer 1 completion. Layer 2 typed public API remains deferred until all five SDL2 families have stable Layer 1 raw ABI.
+- **Branch state**: push gate pending Deniz approval per AGENTS.md §Approval Gate. Branch is `spike/binding-autogen-sdl2-gfx`.
 
 If you are starting fresh, skip to §"Reading order".
 
@@ -19,12 +20,12 @@ If you are starting fresh, skip to §"Reading order".
 | --- | --- | --- |
 | 1 | This file | Handoff. You are here. |
 | 2 | [`priority-c-closure-summary.md`](priority-c-closure-summary.md) | **Authoritative closure record** for the Priority C semantic-ABI slice (six risks resolved + Foreign Type Boundary Policy + Cross-Assembly Pattern B contract). Read this immediately after the TL;DR to anchor on the current evidence baseline before touching anything. |
-| 3 | [`spikes/binding-generators/docs/next-iteration-plan.md`](next-iteration-plan.md) | Slice plan (1–5). Slices 1–4 + Oracle Priorities A/B/C all closed; Slice 5 (ppy orchestrator feature parity) deferred. Layer 2 typed API is the next forward scope. |
+| 3 | [`spikes/binding-generators/docs/next-iteration-plan.md`](next-iteration-plan.md) | Active spike plan. Priority A/B/C and Item 1 are closed; Iteration 2 config surface unification is next; Items 2–5 satellite Layer 1 completion are queued. |
 | 4 | [`spikes/binding-generators/docs/generator-spike-goals.md`](generator-spike-goals.md) | Original charter + current evidence status. |
 | 5 | [`spikes/binding-generators/output/reports/iteration-2-comparison.md`](../output/reports/iteration-2-comparison.md) | Decision evidence — comparison table, multi-TFM trajectory, dynapi coherence. |
 | 6 | [`spikes/binding-generators/output/reports/clangsharp-failure-buckets.md`](../output/reports/clangsharp-failure-buckets.md) | History of the 8 RSP-fix iterations that took us from 161 errors → 0. Useful when adding new exclude rules. |
 | 7 | [`docs/binding-autogen/binding-generator-constitution.md`](../../../docs/binding-autogen/binding-generator-constitution.md) | **Authority** for ABI/API policy. Layer Contract (L34-50), Opaque Handles (L325-363, cross-assembly Pattern B clause from `d0016de`), C `long` policy (L246-283), wchar_t (L300-323), BCL-Replaceable Helper Exclusion Policy (L169-208), Foreign Type Boundary Policy (L365-400), Structs And Unions (L416-425), evidence gates (L376-388). Cited heavily below. |
-| 8 | [`docs/binding-autogen/binding-generator-roadmap.md`](../../../docs/binding-autogen/binding-generator-roadmap.md) | Milestone plan. M4 = multi-TFM backends, M5 = public typed, M6 = friendly overloads, M7 = production flip. Next slice corresponds to M5. |
+| 8 | [`docs/binding-autogen/binding-generator-roadmap.md`](../../../docs/binding-autogen/binding-generator-roadmap.md) | Milestone plan. M4 = multi-TFM backends, M5 = public typed, M6 = friendly overloads, M7 = production flip. Public typed work stays deferred until SDL2 family Layer 1 is stable. |
 | 9 | ppy local clone at `spikes/binding-generators/references/ppy-SDL3-CS/` — see §"Reference projects". | North-star orchestrator. Patterns adapted, not copied. |
 
 ## Working preferences (read this — saves you grief)
@@ -105,16 +106,18 @@ spikes/binding-generators/
 │   │       ├── SDL_vulkan.rsp         # Foreign Type Boundary: VkInstance/VkSurfaceKHR → IntPtr
 │   │       └── SDL_{audio,gamecontroller,haptic,joystick,sensor,surface,system}.rsp
 │   ├── policy/
-│   │   └── opaque-handle-roster.json  # Pattern B handle roster (14 auto + 3 force-opaque + 11 excluded), sdl2_version-keyed
+│   │   ├── opaque-handle-roster.json  # Pattern B handle roster, family-keyed schema 2.0
+│   │   └── flags-enum-roster.json     # [Flags] allow-list, family-keyed schema 2.0
 │   ├── shims/platform-headers/        # Windows-local parse shims only (endian.h, AvailabilityMacros.h, TargetConditionals.h)
 │   ├── postprocess/                   # Microsoft.CodeAnalysis console app
 │   │   ├── Janset.SDL2.PostProcess.csproj  # net10.0, VersionOverride MS.CodeAnalysis 4.12.0
-│   │   ├── Program.cs                 # CLI: platform-delta | strip-varargs | libraryimport | guid-substitute | threadid-dispatch | uniform-opaque
+│   │   ├── Program.cs                 # CLI: platform-delta | strip-varargs | libraryimport | flags-detect | guid-substitute | clong-dispatch | uniform-opaque
 │   │   ├── DllImportToLibraryImportRewriter.cs   # Slice 2 rewriter
 │   │   ├── PlatformDeltaPostProcessor.cs         # Slice 3/4 dedupe + guarded SupportedOSPlatform
 │   │   ├── StripVarargsRewriter.cs    # Constitution L162-176 fmt-only policy enforcer
+│   │   ├── FlagsAttributeRewriter.cs   # Item 1 S1-6: [Flags] suffix + allow-list emission
 │   │   ├── GuidSubstitutionRewriter.cs           # Slice C-C: SDL_GUID → System.Guid
-│   │   ├── ThreadIdDualDispatchRewriter.cs       # Slice C-A R2: SDL_threadID hybrid TFM emit (Modern CULong / Compat RuntimeInformation dispatch)
+│   │   ├── ClongDualDispatchRewriter.cs          # C long / unsigned long hybrid TFM emit (Modern CULong/CLong / Compat RuntimeInformation dispatch)
 │   │   └── OpaqueHandleEmitRewriter.cs           # Slice C-B Pattern B: emits Handles.g.cs + rewrites SDL_X* → SDL_X at 3 positions (param/return/field)
 │   ├── tests/abi-tests/               # Per-TFM ABI runtime smoke (net10/net9/net8/net462) — InternalsVisibleTo Core
 │   └── src/
@@ -230,7 +233,9 @@ Earlier in the session, we ran a full comparison spike: Alimer-style CppAst vs p
 | **Priority B** — Required `SDL.h` surface | ✅ done (`444fada`) | Recovered `SDL_Init`, `SDL_InitSubSystem`, `SDL_Quit`, `SDL_QuitSubSystem`, `SDL_WasInit`, and ten `SDL_INIT_*` constants without re-parsing the umbrella header. |
 | **Priority C** — Semantic-ABI completion (six risks) | ✅ **CLOSED 2026-05-24** | See [`priority-c-closure-summary.md`](priority-c-closure-summary.md). Slice C-A scalars (`adb64d0`) + Slice C-B Pattern B uniform opaque (`45fdab6`) + Slice C-C handle canonicalization + SDL_GUID. R1 wchar_t opaque, R2 C `long` hybrid, R3/R4/R5 deferred-layout force-opaque, R6 tag-typedef canonicalization. Foreign Type Boundary Policy + BCL-Replaceable Helper Exclusion Policy + Cross-Assembly Pattern B contract codified. Oracle 0/0/0/0/0/0 findings across the six risk categories; AbiTests 4/4 TFMs Windows + Linux x64 net10 docker. |
 | 5 — ppy orchestrator feature parity | ⏳ deferred | Per-header `.rsp` lookup landed (used by Priority C); manual-symbol exclusion feedback regex (`[Constant]` / `[Typedef]` markers in companion .cs files) and full dynapi validation pass still deferred. ppy `generate_bindings.py:232-329` is the reference. Not on the critical path for the Layer 2 next scope. |
-| **Next — Layer 2 typed public API** | ⏳ Roadmap M5 | Public typed `SDL2.SDL` projection over the now-stable Layer 1 raw ABI. Handle shape (Pattern B by-value structs), scalar widths, and foreign-type boundary are all settled, so Layer 2 can land without churn on Layer 1. |
+| **Item 1 — Per-Library Generation Infrastructure** | ✅ closed 2026-05-26 | Family-keyed opaque/flags rosters, `flags-detect`, `clong-dispatch`, five-family oracle, deterministic per-family generation, and durable doc sweep are complete. TTF/Mixer/GFX generated output remains dormant/missing until expansion items activate those families. |
+| **Next — Iteration 2 config surface unification** | ⏭ next | Consolidate the 18-source config surface without touching `build/manifest.json`; preserve determinism and family isolation. |
+| **Items 2–5 satellite Layer 1 completion** | ⏳ queued | Item 2 verifies Image `[Flags]`; Item 3 adds GFX; Item 4 adds TTF; Item 5 adds Mixer. |
 | 6+ — Friendly overloads | ⏳ Roadmap M6 | Out of current spike scope until Layer 2 lands. |
 
 ## What got built and why — slice-by-slice rationale
@@ -338,11 +343,12 @@ Carry these headers into roadmap/planning before production claims platform corr
 
 ### Recommended next moves
 
-1. **Layer 2 typed low-level public API slice.** The Layer 1 raw ABI surface is now stable (handle shape, scalar widths, foreign-type boundary, cross-assembly Pattern B contract all settled). Sketch the typed `SDL2.SDL` projection over `SDLNative` — typed handles already exist as Pattern B by-value structs in `Generated/<Codegen>/Handles.g.cs`, so Layer 2 calls become `SDLNative.SDL_DestroyWindow(window.Value)` style. See Constitution Layer Contract L34-50 and Roadmap M5 for the target shape; Cake oracle's `Types/Handles.g.cs` + `Constants.g.cs` + `Emit/PublicTyped/` is a reference for the structural projection (do not copy code, just the shape).
-2. **Plan Task 19 — final code review + finishing branch decision.** Per AGENTS.md §Approval Gate, push to remote requires Deniz approval. Branch is 35+ commits ahead of remote; this is the gate before any Layer 2 work starts.
-3. Use `--use-platform-header-shims` for Windows-local ClangSharp iteration when platform-view parse coverage matters. Keep native Linux/macOS generation as the production evidence target.
-4. Keep the explicit empty-platform-output guard. An empty `.g.cs` from a fatal ClangSharp run should stay a hard evidence item, not something the build can silently accept.
-5. Build comparable CppAst/Alimer-style evidence against the same multi-TFM/platform/oracle checklist before making any final toolchain recommendation. ClangSharp won Iteration 2 but the bake-off lane stays open.
+1. **Iteration 2 config surface unification.** Consolidate the 18-source config surface identified in `satellite-expansion-roadmap.md` without touching `build/manifest.json`; preserve the Constitution determinism contract.
+2. **Item 2 Image verification.** Confirm the S1-6 `IMG_InitFlags` `[Flags]` output through an Image-targeted regen/build/oracle closure.
+3. **Items 3–5 satellite Layer 1 expansion.** Add GFX first, then TTF, then Mixer; keep Layer 2 typed public API deferred until all five families have stable Layer 1 output.
+4. Use `--use-platform-header-shims` for Windows-local ClangSharp iteration when platform-view parse coverage matters. Keep native Linux/macOS generation as the production evidence target.
+5. Keep the explicit empty-platform-output guard. An empty `.g.cs` from a fatal ClangSharp run should stay a hard evidence item, not something the build can silently accept.
+6. Build comparable CppAst/Alimer-style evidence against the same multi-TFM/platform/oracle checklist before making any final toolchain recommendation.
 
 ## Notable patterns to keep using
 
@@ -385,18 +391,18 @@ Don't trust "0 errors on net10.0" — that's a 1/5 result. Always build the full
 ### Commands you'll run constantly
 
 ```pwsh
-# Regenerate everything: compat + modern × per-family + multi-OS pass + 6-step postprocess pipeline
-# Postprocess order (see generate_bindings.py): platform-delta → strip-varargs → libraryimport (Modern only) → guid-substitute → threadid-dispatch → uniform-opaque
+# Regenerate everything: compat + modern × per-family + multi-OS pass + 7-step conceptual postprocess pipeline
+# Postprocess order (see generate_bindings.py): platform-delta → strip-varargs → libraryimport (Modern only) → flags-detect → guid-substitute → clong-dispatch → uniform-opaque
 python spikes/binding-generators/clangsharp/generate_bindings.py --family all --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
 
 # Build all 5 TFMs (the truth gate)
-dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Janset.SDL2.Image.csproj -c Release
+dotnet build spikes/binding-generators/clangsharp/Janset.SDL2.ClangSharpSpike.slnx -c Release
 
 # Raw ABI oracle/evidence report (Roslyn, family-aware) — the authoritative six-risks oracle
-dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --family sdl2-core --family sdl2-image --write-report
+dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --family sdl2-core --family sdl2-image --family sdl2-ttf --family sdl2-mixer --family sdl2-gfx --write-report
 
 # Per-TFM ABI runtime smoke (proves SDL_ThreadID dispatch works on real native lib)
-dotnet test spikes/binding-generators/clangsharp/tests/abi-tests/AbiTests.csproj -c Release --framework net10.0
+dotnet test --project spikes/binding-generators/clangsharp/tests/abi-tests/AbiTests.csproj -c Release
 # Linux x64 net10 via docker (see README §"Per-TFM ABI runtime smoke")
 
 # Just rerun a single postprocess step on existing output (no regen)

@@ -192,3 +192,7 @@ The following are open decisions that companion-helper policy should resolve:
 - **Working implementations:**
   - `rsp/sdl2-image.rsp:7-13` — current exclude pattern with inline rationale
   - `src/Janset.SDL2.Core/Generated/{Compat,Modern}/SDL_error.g.cs` — generated `SDL_SetError`/`SDL_GetError`/`SDL_ClearError`/`SDL_Error`/`SDL_GetErrorMsg`
+
+## See Also
+
+- [sdl2-function-like-macro-consolidation.md](sdl2-function-like-macro-consolidation.md) — broader function-like macro taxonomy (error macros are a sub-topic within Type B)

@@ -172,7 +172,7 @@
           "name": "SDL_threadID",
           "header": "SDL_thread.h",
           "header_decl": "typedef unsigned long SDL_threadID;",
-          "reason": "Value-type alias for unsigned long. Handled separately by the ThreadIdDualDispatchRewriter for Win/POSIX width differences. Not an opaque struct handle."
+          "reason": "Value-type alias for unsigned long. Handled separately by ClongDualDispatchRewriter for Win/POSIX width differences. Not an opaque struct handle."
         },
         {
           "name": "SDL_AudioDeviceID",
