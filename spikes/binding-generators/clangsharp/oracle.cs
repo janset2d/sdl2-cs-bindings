@@ -1304,8 +1304,10 @@ internal static class RawAbiChecks
 
         foreach (var function in evidence.Functions.Where(IsNativeImport))
         {
-            if (IsPlatformSensitiveLong(function.ReturnNativeTypeName, function.ReturnType)
+            if (!IsClongDualDispatchHelper(function)
+                && (IsPlatformSensitiveLong(function.ReturnNativeTypeName, function.ReturnType)
                 || function.Parameters.Any(parameter => IsPlatformSensitiveLong(parameter.NativeTypeName, parameter.Type)))
+               )
             {
                 checks.Add(new RawAbiCheck(
                     "platform-sensitive-long",
@@ -1446,6 +1448,11 @@ internal static class RawAbiChecks
 
     private static bool IsNativeImport(FunctionEvidence function)
         => function.ImportKind.Length > 0;
+
+    private static bool IsClongDualDispatchHelper(FunctionEvidence function)
+        => function.Accessibility == "private"
+            && (function.ManagedName.EndsWith("_Win32", StringComparison.Ordinal)
+                || function.ManagedName.EndsWith("_Unix64", StringComparison.Ordinal));
 
     private static bool IsPlatformSensitiveLong(string nativeTypeName, string managedType)
         => (nativeTypeName == "long" && managedType == "int")

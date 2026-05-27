@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net10.0;net9.0;net8.0;netstandard2.0;net462</TargetFrameworks>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <LangVersion>preview</LangVersion>
+    <Nullable>enable</Nullable>
+    <RootNamespace>SDL2</RootNamespace>
+  </PropertyGroup>
+
+  <!-- Core-owned SDL types (SDL_Surface*, SDL_RWops*, SDL_Color, etc.) come
+       from Janset.SDL2.Core so satellite output does not redeclare them. -->
+  <ItemGroup>
+    <ProjectReference Include="../Janset.SDL2.Core/Janset.SDL2.Core.csproj" />
+  </ItemGroup>
+
+  <!-- TFM-split generated source (matches Janset.SDL2.Core layout). -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net462'">
+    <Compile Include="Generated/Compat/**/*.cs" />
+    <Compile Include="Support/**/*.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' != 'netstandard2.0' And '$(TargetFramework)' != 'net462'">
+    <Compile Include="Generated/Modern/**/*.cs" />
+    <Compile Include="Support/**/*.cs" />
+  </ItemGroup>
+
+  <!-- System.Memory polyfill for ReadOnlySpan<T> on legacy TFMs (Constitution L46). -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net462'">
+    <PackageReference Include="System.Memory" />
+  </ItemGroup>
+
+</Project>

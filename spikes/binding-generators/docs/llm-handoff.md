@@ -1,6 +1,6 @@
 # LLM-to-LLM Handoff — Janset.SDL2 Binding Generator Spike
 
-**Date:** 2026-05-21; updated 2026-05-26 (Item 1 closure)
+**Date:** 2026-05-21; updated 2026-05-27 (Item 4 closure)
 **Audience:** The next LLM picking up this spike. Read this **before** writing code or making decisions. This handoff records the current spike state so you don't redo work or relitigate decisions.
 
 ## TL;DR — 60-second status
@@ -8,8 +8,8 @@
 - **Project**: ClangSharp-based SDL2 binding generator spike under `spikes/binding-generators/clangsharp/`. Ultimately produces multi-TFM, multi-OS, source-generated `Janset.SDL2.Core` + `Janset.SDL2.Image` library packages.
 - **Toolchain evidence**: ppy-style ClangSharp orchestrator (Python) + Microsoft.CodeAnalysis postprocess (C# console app) is the active evidence path. Do **not** relitigate ClangSharp vs CppAst yet; finish the ClangSharp evidence, then build comparable CppAst/Alimer-style evidence before recommending direction.
 - **Priority C semantic-ABI: CLOSED 2026-05-24.** All six known platform-sensitive ABI risks (R1 `wchar_t*`, R2 C `long`/`unsigned long`, R3 `SDL_RWops`, R4 `SDL_SysWMinfo`, R5 `SDL_SysWMmsg`, R6 opaque-handle tag leak) resolved; six oracle gap categories at 0 findings. Full evidence + verification table in [`priority-c-closure-summary.md`](priority-c-closure-summary.md) (commit `e62bf92`). Cross-assembly Pattern B contract codified via `[assembly: DisableRuntimeMarshalling]` in Core + Image (commit `4b87037`); Constitution policy at `d0016de`. SDL_GUID → System.Guid substitution + Foreign Type Boundary Policy + BCL-Replaceable Helper Exclusion Policy all landed in scope.
-- **Item 1 per-library generation infrastructure: CLOSED 2026-05-26.** Family-keyed opaque/flags rosters, `flags-detect`, `clong-dispatch`, and five-family oracle wiring are in place. `selected_families("all")` still runs only Core+Image; TTF/Mixer/GFX generated output remains dormant/missing until their expansion items activate.
-- **Next scope**: **Iteration 2 config surface unification**, then Items 2–5 satellite Layer 1 completion. Layer 2 typed public API remains deferred until all five SDL2 families have stable Layer 1 raw ABI.
+- **Item 4 SDL2_ttf Layer 1: CLOSED 2026-05-27.** Core + Image + GFX + TTF are active in `selected_families("all")`; Mixer remains next. TTF generated from one header (`SDL_ttf.h`), owner-mode `Handles.g.cs` emits `TTF_Font`, C `long` is ABI-correct (`CLong` Modern, Win32/Unix64 dual-dispatch Compat), no-SDLCALL functions use Cdecl, deprecated functions/error macro aliases are excluded.
+- **Next scope**: **Item 5 SDL2_mixer Layer 1 completion**. Layer 2 typed public API remains deferred until all five SDL2 families have stable Layer 1 raw ABI.
 - **Branch state**: push gate pending Deniz approval per AGENTS.md §Approval Gate. Branch is `spike/binding-autogen-sdl2-gfx`.
 
 If you are starting fresh, skip to §"Reading order".
@@ -233,10 +233,12 @@ Earlier in the session, we ran a full comparison spike: Alimer-style CppAst vs p
 | **Priority B** — Required `SDL.h` surface | ✅ done (`444fada`) | Recovered `SDL_Init`, `SDL_InitSubSystem`, `SDL_Quit`, `SDL_QuitSubSystem`, `SDL_WasInit`, and ten `SDL_INIT_*` constants without re-parsing the umbrella header. |
 | **Priority C** — Semantic-ABI completion (six risks) | ✅ **CLOSED 2026-05-24** | See [`priority-c-closure-summary.md`](priority-c-closure-summary.md). Slice C-A scalars (`adb64d0`) + Slice C-B Pattern B uniform opaque (`45fdab6`) + Slice C-C handle canonicalization + SDL_GUID. R1 wchar_t opaque, R2 C `long` hybrid, R3/R4/R5 deferred-layout force-opaque, R6 tag-typedef canonicalization. Foreign Type Boundary Policy + BCL-Replaceable Helper Exclusion Policy + Cross-Assembly Pattern B contract codified. Oracle 0/0/0/0/0/0 findings across the six risk categories; AbiTests 4/4 TFMs Windows + Linux x64 net10 docker. |
 | 5 — ppy orchestrator feature parity | ⏳ deferred | Per-header `.rsp` lookup landed (used by Priority C); manual-symbol exclusion feedback regex (`[Constant]` / `[Typedef]` markers in companion .cs files) and full dynapi validation pass still deferred. ppy `generate_bindings.py:232-329` is the reference. Not on the critical path for the Layer 2 next scope. |
-| **Item 1 — Per-Library Generation Infrastructure** | ✅ closed 2026-05-26 | Family-keyed opaque/flags rosters, `flags-detect`, `clong-dispatch`, five-family oracle, deterministic per-family generation, and durable doc sweep are complete. TTF/Mixer/GFX generated output remains dormant/missing until expansion items activate those families. |
+| **Item 1 — Per-Library Generation Infrastructure** | ✅ closed 2026-05-26 | Family-keyed opaque/flags rosters, `flags-detect`, `clong-dispatch`, five-family oracle, deterministic per-family generation, and durable doc sweep are complete. Later expansion items activate dormant satellite output one family at a time. |
 | **Iteration 2 — config surface unification** | ✅ closed 2026-05-27 | `config/family-config.json` (743 lines, schema 1.0, 5 families). Python orchestrator + C# postprocess read unified config; 5 source files retired; RSP identity duplication removed. |
 | **Item 2 — SDL_image verification** | ✅ closed 2026-05-27 | All criteria satisfied by Item 1 S1-6 flags-detect + Iteration 2 closure runs. Documentation-only close — no code work. |
-| **Items 3–5 satellite Layer 1 completion** | ⏳ queued | Item 3 adds GFX; Item 4 adds TTF; Item 5 adds Mixer. |
+| **Item 3 — SDL2_gfx Layer 1** | ✅ closed 2026-05-27 | GFX generated and active in aggregate output. `FPSmanager` layout and no-SDLCALL Cdecl behavior verified; closure evidence clean. |
+| **Item 4 — SDL2_ttf Layer 1** | ✅ closed 2026-05-27 | TTF generated and active in aggregate output. One header (`SDL_ttf.h`), owner-mode `TTF_Font` in `Handles.g.cs`, C `long` via `CLong`/dual-dispatch, no-SDLCALL Cdecl verified, deprecated/error macro symbols absent. Evidence: solution build 0/0; oracle TTF raw ABI checks 0 after the private helper false-positive fix; Python self-test PASS; C# postprocess self-test PASS; Slopwatch 0 issues. |
+| **Item 5 — SDL2_mixer Layer 1** | next | Add Mixer callbacks + `Mix_Music` owner-mode handle. Last SDL2 satellite Layer 1 slice before Layer 2 planning. |
 | 6+ — Friendly overloads | ⏳ Roadmap M6 | Out of current spike scope until Layer 2 lands. |
 
 ## What got built and why — slice-by-slice rationale
@@ -344,9 +346,9 @@ Carry these headers into roadmap/planning before production claims platform corr
 
 ### Recommended next moves
 
-1. **Iteration 2 config surface unification.** Consolidate the 18-source config surface identified in `satellite-expansion-roadmap.md` without touching `build/manifest.json`; preserve the Constitution determinism contract.
-2. **Item 2 Image verification.** Confirm the S1-6 `IMG_InitFlags` `[Flags]` output through an Image-targeted regen/build/oracle closure.
-3. **Items 3–5 satellite Layer 1 expansion.** Add GFX first, then TTF, then Mixer; keep Layer 2 typed public API deferred until all five families have stable Layer 1 output.
+1. **Item 5 Mixer Layer 1 expansion.** Add `SDL_mixer.h`, `Mix_Music` owner-mode handle, callback signature verification, `MIX_InitFlags`, and the expected error macro exclusions.
+2. **Layer 2 typed public API planning.** Start only after Mixer closes so the public projection can account for Core + Image + GFX + TTF + Mixer together.
+3. **TTF runtime smoke follow-up.** Add only when a redistributable font asset and native dependency copy strategy are in scope; do not reopen Layer 1 closure for this.
 4. Use `--use-platform-header-shims` for Windows-local ClangSharp iteration when platform-view parse coverage matters. Keep native Linux/macOS generation as the production evidence target.
 5. Keep the explicit empty-platform-output guard. An empty `.g.cs` from a fatal ClangSharp run should stay a hard evidence item, not something the build can silently accept.
 6. Build comparable CppAst/Alimer-style evidence against the same multi-TFM/platform/oracle checklist before making any final toolchain recommendation.

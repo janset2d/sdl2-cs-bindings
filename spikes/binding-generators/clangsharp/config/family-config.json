@@ -635,7 +635,9 @@
       "rsp": "rsp/sdl2-ttf.rsp",
       "project_dir": "Janset.SDL2.Ttf",
       "owner_mode": true,
-      "headers": [],
+      "headers": [
+        { "order": 10, "name": "SDL_ttf.h" }
+      ],
       "platform_sensitive_headers": [],
       "required_surface": null,
       "opaque_handles": {

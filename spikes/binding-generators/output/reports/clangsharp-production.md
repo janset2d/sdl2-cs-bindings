@@ -9,10 +9,11 @@
 | core | 51 | 130 | 134 |
 | image | 1 | 2 | 2 |
 | gfx | 4 | 8 | 8 |
+| ttf | 1 | 2 | 4 |
 
 ## Selection
 
-Selected families: core, image, gfx
+Selected families: core, image, gfx, ttf
 
 ## Failures
 
@@ -231,6 +232,14 @@ No empty generated outputs recorded.
 - Accepted diagnostics: warning: redefining builtin macro [-Wbuiltin-macro-redefined]; warning: undefining builtin macro [-Wbuiltin-macro-redefined]
 - Command: `dotnet tool run ClangSharpPInvokeGenerator --config compatible-codegen windows-types generate-macro-bindings @E:\repos\my-projects\janset2d\sdl2-cs-bindings\spikes\binding-generators\clangsharp\rsp\base.rsp @E:\repos\my-projects\janset2d\sdl2-cs-bindings\spikes\binding-generators\clangsharp\rsp\sdl2-image.rsp --methodClassName SDL_imageNative --libraryPath SDL2_image --namespace SDL2.Image --with-access-specifier SDL_imageNative=Internal --include-directory E:\repos\my-projects\janset2d\sdl2-cs-bindings\vcpkg_installed\x64-windows-hybrid\include\SDL2 --file E:\repos\my-projects\janset2d\sdl2-cs-bindings\vcpkg_installed\x64-windows-hybrid\include\SDL2\SDL_image.h --output E:\repos\my-projects\janset2d\sdl2-cs-bindings\spikes\binding-generators\clangsharp\src\Janset.SDL2.Image\Generated\Compat\SDL_image.g.cs`
 
+- Header: `E:\repos\my-projects\janset2d\sdl2-cs-bindings\vcpkg_installed\x64-windows-hybrid\include\SDL2\SDL_ttf.h`
+- Output: `E:\repos\my-projects\janset2d\sdl2-cs-bindings\spikes\binding-generators\clangsharp\src\Janset.SDL2.Ttf\Generated\Compat\SDL_ttf.g.cs`
+- Output status: non-empty
+- Exit code: `6`
+- Macros: SDL_TTF_VERSION, TTF_VERSION, SDL_TTF_VERSION_ATLEAST, TTF_RenderText, TTF_RenderUTF8, TTF_RenderUNICODE
+- Accepted diagnostics: warning: redefining builtin macro [-Wbuiltin-macro-redefined]; warning: undefining builtin macro [-Wbuiltin-macro-redefined]
+- Command: `dotnet tool run ClangSharpPInvokeGenerator --config compatible-codegen windows-types generate-macro-bindings @E:\repos\my-projects\janset2d\sdl2-cs-bindings\spikes\binding-generators\clangsharp\rsp\base.rsp @E:\repos\my-projects\janset2d\sdl2-cs-bindings\spikes\binding-generators\clangsharp\rsp\sdl2-ttf.rsp --methodClassName SDL_ttfNative --libraryPath SDL2_ttf --namespace SDL2.Ttf --with-access-specifier SDL_ttfNative=Internal --include-directory E:\repos\my-projects\janset2d\sdl2-cs-bindings\vcpkg_installed\x64-windows-hybrid\include\SDL2 --file E:\repos\my-projects\janset2d\sdl2-cs-bindings\vcpkg_installed\x64-windows-hybrid\include\SDL2\SDL_ttf.h --output E:\repos\my-projects\janset2d\sdl2-cs-bindings\spikes\binding-generators\clangsharp\src\Janset.SDL2.Ttf\Generated\Compat\SDL_ttf.g.cs`
+
 - Header: `E:\repos\my-projects\janset2d\sdl2-cs-bindings\vcpkg_installed\x64-windows-hybrid\include\SDL2\SDL_atomic.h`
 - Output: `E:\repos\my-projects\janset2d\sdl2-cs-bindings\spikes\binding-generators\clangsharp\src\Janset.SDL2.Core\Generated\Modern\SDL_atomic.g.cs`
 - Output status: non-empty
@@ -374,6 +383,14 @@ No empty generated outputs recorded.
 - Macros: SDL_IMAGE_VERSION, SDL_IMAGE_VERSION_ATLEAST
 - Accepted diagnostics: warning: redefining builtin macro [-Wbuiltin-macro-redefined]; warning: undefining builtin macro [-Wbuiltin-macro-redefined]
 - Command: `dotnet tool run ClangSharpPInvokeGenerator --config latest-codegen windows-types generate-macro-bindings @E:\repos\my-projects\janset2d\sdl2-cs-bindings\spikes\binding-generators\clangsharp\rsp\base.rsp @E:\repos\my-projects\janset2d\sdl2-cs-bindings\spikes\binding-generators\clangsharp\rsp\sdl2-image.rsp --methodClassName SDL_imageNative --libraryPath SDL2_image --namespace SDL2.Image --with-access-specifier SDL_imageNative=Internal --include-directory E:\repos\my-projects\janset2d\sdl2-cs-bindings\vcpkg_installed\x64-windows-hybrid\include\SDL2 --file E:\repos\my-projects\janset2d\sdl2-cs-bindings\vcpkg_installed\x64-windows-hybrid\include\SDL2\SDL_image.h --output E:\repos\my-projects\janset2d\sdl2-cs-bindings\spikes\binding-generators\clangsharp\src\Janset.SDL2.Image\Generated\Modern\SDL_image.g.cs`
+
+- Header: `E:\repos\my-projects\janset2d\sdl2-cs-bindings\vcpkg_installed\x64-windows-hybrid\include\SDL2\SDL_ttf.h`
+- Output: `E:\repos\my-projects\janset2d\sdl2-cs-bindings\spikes\binding-generators\clangsharp\src\Janset.SDL2.Ttf\Generated\Modern\SDL_ttf.g.cs`
+- Output status: non-empty
+- Exit code: `6`
+- Macros: SDL_TTF_VERSION, TTF_VERSION, SDL_TTF_VERSION_ATLEAST, TTF_RenderText, TTF_RenderUTF8, TTF_RenderUNICODE
+- Accepted diagnostics: warning: redefining builtin macro [-Wbuiltin-macro-redefined]; warning: undefining builtin macro [-Wbuiltin-macro-redefined]
+- Command: `dotnet tool run ClangSharpPInvokeGenerator --config latest-codegen windows-types generate-macro-bindings @E:\repos\my-projects\janset2d\sdl2-cs-bindings\spikes\binding-generators\clangsharp\rsp\base.rsp @E:\repos\my-projects\janset2d\sdl2-cs-bindings\spikes\binding-generators\clangsharp\rsp\sdl2-ttf.rsp --methodClassName SDL_ttfNative --libraryPath SDL2_ttf --namespace SDL2.Ttf --with-access-specifier SDL_ttfNative=Internal --include-directory E:\repos\my-projects\janset2d\sdl2-cs-bindings\vcpkg_installed\x64-windows-hybrid\include\SDL2 --file E:\repos\my-projects\janset2d\sdl2-cs-bindings\vcpkg_installed\x64-windows-hybrid\include\SDL2\SDL_ttf.h --output E:\repos\my-projects\janset2d\sdl2-cs-bindings\spikes\binding-generators\clangsharp\src\Janset.SDL2.Ttf\Generated\Modern\SDL_ttf.g.cs`
 
 - Header: `E:\repos\my-projects\janset2d\sdl2-cs-bindings\vcpkg_installed\x64-windows-hybrid\include\SDL2\SDL_system.h`
 - Output: `E:\repos\my-projects\janset2d\sdl2-cs-bindings\spikes\binding-generators\clangsharp\src\Janset.SDL2.Core\Generated\Compat\Platforms\IOS\SDL_system.g.cs`

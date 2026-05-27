@@ -879,7 +879,7 @@ def selected_families(family: str) -> list[str]:
     # response-file, project, and postprocess support. New family metadata can be
     # CLI-addressable before it is safe to include in aggregate generation.
     if family == "all":
-        return ["core", "image", "gfx"]
+        return ["core", "image", "gfx", "ttf"]
     return [family]
 
 
@@ -1575,8 +1575,8 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
         if modern_steps.index("flags-detect") != modern_steps.index("libraryimport") + 1:
             failures.append(f"modern postprocess steps did not place flags-detect after libraryimport: {modern_steps!r}")
 
-    if selected_families("all") != ["core", "image", "gfx"]:
-        failures.append(f"selected_families('all') must be ['core', 'image', 'gfx']; got {selected_families('all')!r}")
+    if selected_families("all") != ["core", "image", "gfx", "ttf"]:
+        failures.append(f"selected_families('all') must be ['core', 'image', 'gfx', 'ttf']; got {selected_families('all')!r}")
 
     if "create_generation_stats" not in globals():
         failures.append("create_generation_stats helper is missing for selected-driven stats initialization")

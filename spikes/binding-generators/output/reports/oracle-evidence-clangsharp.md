@@ -31,8 +31,8 @@ This spike report is evidence, not a correctness certificate. Raw ABI constituti
 | sdl2-mixer | Manifest Required Surface | `build/manifest.json` | n/a | 0 | 0 | 0 |
 | sdl2-mixer | SDL2-CS | `external/sdl2-cs/src/SDL2_mixer.cs` | present | 104 | 9 | 5 |
 | sdl2-ttf | Cake Preview | `n/a` | n/a | 0 | 0 | 0 |
-| sdl2-ttf | ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Ttf/Generated/Compat` | missing | 0 | 0 | 0 |
-| sdl2-ttf | ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Ttf/Generated/Modern` | missing | 0 | 0 | 0 |
+| sdl2-ttf | ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Ttf/Generated/Compat` | present | 99 | 25 | 3 |
+| sdl2-ttf | ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Ttf/Generated/Modern` | present | 89 | 25 | 3 |
 | sdl2-ttf | SDL2 Dynapi | `external/vcpkg or vcpkg_installed` | n/a | 0 | 0 | 0 |
 | sdl2-ttf | Manifest Required Surface | `build/manifest.json` | n/a | 0 | 0 | 0 |
 | sdl2-ttf | SDL2-CS | `external/sdl2-cs/src/SDL2_ttf.cs` | present | 82 | 16 | 1 |
@@ -417,8 +417,8 @@ No raw ABI constitution checks were produced.
 | Source | Path | Status | Functions | Constants | Types |
 | --- | --- | --- | ---: | ---: | ---: |
 | Cake Preview | `n/a` | n/a | 0 | 0 | 0 |
-| ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Ttf/Generated/Compat` | missing | 0 | 0 | 0 |
-| ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Ttf/Generated/Modern` | missing | 0 | 0 | 0 |
+| ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Ttf/Generated/Compat` | present | 99 | 25 | 3 |
+| ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Ttf/Generated/Modern` | present | 89 | 25 | 3 |
 | SDL2 Dynapi | `external/vcpkg or vcpkg_installed` | n/a | 0 | 0 | 0 |
 | Manifest Required Surface | `build/manifest.json` | n/a | 0 | 0 | 0 |
 | SDL2-CS | `external/sdl2-cs/src/SDL2_ttf.cs` | present | 82 | 16 | 1 |
@@ -427,7 +427,7 @@ No raw ABI constitution checks were produced.
 
 | Surface | Functions | Constants | Types |
 | --- | ---: | ---: | ---: |
-| Generated ClangSharp | 0 | 0 | 0 |
+| Generated ClangSharp | 188 | 50 | 6 |
 | Cake Preview | 0 | 0 | 0 |
 | SDL2-CS | 82 | 16 | 1 |
 | Dynapi | 0 | 0 | 0 |
@@ -442,59 +442,58 @@ No raw ABI constitution checks were produced.
 | Function | Generated | Cake | SDL2-CS | Dynapi |
 | --- | --- | --- | --- | --- |
 | `SDL_GetFontKerningSize` | no | n/a | yes | n/a |
-| `TTF_ByteSwappedUNICODE` | no | n/a | yes | n/a |
-| `TTF_CloseFont` | no | n/a | yes | n/a |
-| `TTF_FontAscent` | no | n/a | yes | n/a |
-| `TTF_FontDescent` | no | n/a | yes | n/a |
-| `TTF_FontFaceFamilyName` | no | n/a | yes | n/a |
-| `TTF_FontFaceIsFixedWidth` | no | n/a | yes | n/a |
-| `TTF_FontFaceStyleName` | no | n/a | yes | n/a |
-| `TTF_FontFaces` | no | n/a | yes | n/a |
-| `TTF_FontHeight` | no | n/a | yes | n/a |
-| `TTF_FontLineSkip` | no | n/a | yes | n/a |
-| `TTF_GetFontHinting` | no | n/a | yes | n/a |
-| `TTF_GetFontKerning` | no | n/a | yes | n/a |
-| `TTF_GetFontKerningSizeGlyphs` | no | n/a | yes | n/a |
-| `TTF_GetFontKerningSizeGlyphs32` | no | n/a | yes | n/a |
-| `TTF_GetFontOutline` | no | n/a | yes | n/a |
-| `TTF_GetFontStyle` | no | n/a | yes | n/a |
-| `TTF_GlyphIsProvided` | no | n/a | yes | n/a |
-| `TTF_GlyphIsProvided32` | no | n/a | yes | n/a |
-| `TTF_GlyphMetrics` | no | n/a | yes | n/a |
-| `TTF_GlyphMetrics32` | no | n/a | yes | n/a |
-| `TTF_Init` | no | n/a | yes | n/a |
+| `TTF_ByteSwappedUNICODE` | yes | n/a | yes | n/a |
+| `TTF_CloseFont` | yes | n/a | yes | n/a |
+| `TTF_FontAscent` | yes | n/a | yes | n/a |
+| `TTF_FontDescent` | yes | n/a | yes | n/a |
+| `TTF_FontFaceFamilyName` | yes | n/a | yes | n/a |
+| `TTF_FontFaceIsFixedWidth` | yes | n/a | yes | n/a |
+| `TTF_FontFaceStyleName` | yes | n/a | yes | n/a |
+| `TTF_FontFaces` | yes | n/a | yes | n/a |
+| `TTF_FontHeight` | yes | n/a | yes | n/a |
+| `TTF_FontLineSkip` | yes | n/a | yes | n/a |
+| `TTF_GetFontHinting` | yes | n/a | yes | n/a |
+| `TTF_GetFontKerning` | yes | n/a | yes | n/a |
+| `TTF_GetFontKerningSizeGlyphs` | yes | n/a | yes | n/a |
+| `TTF_GetFontKerningSizeGlyphs32` | yes | n/a | yes | n/a |
+| `TTF_GetFontOutline` | yes | n/a | yes | n/a |
+| `TTF_GetFontSDF` | yes | n/a | no | n/a |
+| `TTF_GetFontStyle` | yes | n/a | yes | n/a |
+| `TTF_GetFontWrappedAlign` | yes | n/a | no | n/a |
+| `TTF_GetFreeTypeVersion` | yes | n/a | no | n/a |
+| `TTF_GetHarfBuzzVersion` | yes | n/a | no | n/a |
+| `TTF_GlyphIsProvided` | yes | n/a | yes | n/a |
+| `TTF_GlyphIsProvided32` | yes | n/a | yes | n/a |
+| `TTF_GlyphMetrics` | yes | n/a | yes | n/a |
+| `TTF_GlyphMetrics32` | yes | n/a | yes | n/a |
+| `TTF_Init` | yes | n/a | yes | n/a |
 | `TTF_LinkedVersion` | no | n/a | yes | n/a |
-| `TTF_MeasureText` | no | n/a | yes | n/a |
-| `TTF_MeasureUNICODE` | no | n/a | yes | n/a |
-| `TTF_MeasureUTF8` | no | n/a | yes | n/a |
-| `TTF_OpenFont` | no | n/a | yes | n/a |
-| `TTF_OpenFontIndex` | no | n/a | yes | n/a |
-| `TTF_OpenFontIndexRW` | no | n/a | yes | n/a |
-| `TTF_OpenFontRW` | no | n/a | yes | n/a |
-| `TTF_Quit` | no | n/a | yes | n/a |
-| `TTF_RenderGlyph32_Blended` | no | n/a | yes | n/a |
-| `TTF_RenderGlyph32_Shaded` | no | n/a | yes | n/a |
-| `TTF_RenderGlyph32_Solid` | no | n/a | yes | n/a |
-| `TTF_RenderGlyph_Blended` | no | n/a | yes | n/a |
-| `TTF_RenderGlyph_Shaded` | no | n/a | yes | n/a |
-| `TTF_RenderGlyph_Solid` | no | n/a | yes | n/a |
-| `TTF_RenderText_Blended` | no | n/a | yes | n/a |
-| `TTF_RenderText_Blended_Wrapped` | no | n/a | yes | n/a |
-| `TTF_RenderText_Shaded` | no | n/a | yes | n/a |
-| `TTF_RenderText_Shaded_Wrapped` | no | n/a | yes | n/a |
-| `TTF_RenderText_Solid` | no | n/a | yes | n/a |
-| `TTF_RenderText_Solid_Wrapped` | no | n/a | yes | n/a |
-| `TTF_RenderUNICODE_Blended` | no | n/a | yes | n/a |
-| `TTF_RenderUNICODE_Blended_Wrapped` | no | n/a | yes | n/a |
-| `TTF_RenderUNICODE_Shaded` | no | n/a | yes | n/a |
-| `TTF_RenderUNICODE_Shaded_Wrapped` | no | n/a | yes | n/a |
-| `TTF_RenderUNICODE_Solid` | no | n/a | yes | n/a |
-| `TTF_RenderUNICODE_Solid_Wrapped` | no | n/a | yes | n/a |
-| `TTF_RenderUTF8_Blended` | no | n/a | yes | n/a |
-| ... | 16 additional sorted function(s) omitted for readability. |  |  |  |
+| `TTF_Linked_Version` | yes | n/a | no | n/a |
+| `TTF_MeasureText` | yes | n/a | yes | n/a |
+| `TTF_MeasureUNICODE` | yes | n/a | yes | n/a |
+| `TTF_MeasureUTF8` | yes | n/a | yes | n/a |
+| `TTF_OpenFont` | yes | n/a | yes | n/a |
+| `TTF_OpenFontDPI` | yes | n/a | no | n/a |
+| `TTF_OpenFontDPIRW` | yes | n/a | no | n/a |
+| `TTF_OpenFontIndex` | yes | n/a | yes | n/a |
+| `TTF_OpenFontIndexDPI` | yes | n/a | no | n/a |
+| `TTF_OpenFontIndexDPIRW` | yes | n/a | no | n/a |
+| `TTF_OpenFontIndexRW` | yes | n/a | yes | n/a |
+| `TTF_OpenFontRW` | yes | n/a | yes | n/a |
+| `TTF_Quit` | yes | n/a | yes | n/a |
+| `TTF_RenderGlyph32_Blended` | yes | n/a | yes | n/a |
+| `TTF_RenderGlyph32_LCD` | yes | n/a | no | n/a |
+| `TTF_RenderGlyph32_Shaded` | yes | n/a | yes | n/a |
+| `TTF_RenderGlyph32_Solid` | yes | n/a | yes | n/a |
+| `TTF_RenderGlyph_Blended` | yes | n/a | yes | n/a |
+| `TTF_RenderGlyph_LCD` | yes | n/a | no | n/a |
+| `TTF_RenderGlyph_Shaded` | yes | n/a | yes | n/a |
+| `TTF_RenderGlyph_Solid` | yes | n/a | yes | n/a |
+| `TTF_RenderText_Blended` | yes | n/a | yes | n/a |
+| `TTF_RenderText_Blended_Wrapped` | yes | n/a | yes | n/a |
+| ... | 39 additional sorted function(s) omitted for readability. |  |  |  |
 
 ### Evidence Gaps
 
-- Evidence Missing: ClangSharp Compat at `spikes/binding-generators/clangsharp/src/Janset.SDL2.Ttf/Generated/Compat`.
-- Evidence Missing: ClangSharp Modern at `spikes/binding-generators/clangsharp/src/Janset.SDL2.Ttf/Generated/Modern`.
+No evidence gaps were detected for loaded sources and manifest-required checks.
 

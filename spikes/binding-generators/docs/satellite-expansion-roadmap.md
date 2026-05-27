@@ -265,23 +265,34 @@ The following are open questions that belong to Iteration 2's spec + plan, not t
 
 ## Item 4: Expansion — SDL2_ttf
 
+**Status:** Closed 2026-05-27 for Layer 1 raw ABI generation. TTF is active in `--family all`; `SDL_ttf.h` is the only TTF header; owner-mode `Handles.g.cs` emits `TTF_Font`; Modern C `long` signatures use `CLong`; Compat C `long` signatures use Win32/Unix64 dual-dispatch; no-SDLCALL functions emit Cdecl; deprecated functions and error macro aliases are excluded. Runtime font-asset smoke remains a follow-up, not a Layer 1 closure blocker.
+
 **Goal:** Full Layer 1 raw ABI for SDL2_ttf. First family with satellite-owned opaque handle (TTF_Font) and C `long` surface — exercises the two most significant infrastructure gaps.
 
 ### Success Criteria
 
-1. `generate_bindings.py --family ttf --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims` produces `.g.cs` files including `Handles.g.cs` with `TTF_Font` Pattern B struct in `namespace SDL2.Ttf` (owner mode).
-2. `dotnet build Janset.SDL2.Ttf.csproj -c Release` — 0/0 across 5 TFMs.
+1. `generate_bindings.py --family ttf --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims` produced `.g.cs` files including `Handles.g.cs` with `TTF_Font` Pattern B struct in `namespace SDL2.Ttf` (owner mode).
+2. `dotnet build spikes/binding-generators/clangsharp/Janset.SDL2.ClangSharpSpike.slnx -c Release` completed with 0 warnings / 0 errors across the spike solution.
 3. C `long` functions (`TTF_OpenFontIndex*`, `TTF_FontFaces`) use CLong/dual-dispatch pattern in generated output.
-4. No-SDLCALL functions (`TTF_GetFontKerningSizeGlyphs*`, `TTF_SetFontSDF`, `TTF_GetFontSDF`) correctly bound with explicit `CallingConvention.Cdecl`.
-5. `dotnet build Janset.SDL2.{Core,Image,Gfx}.csproj` — still 0/0 (no regression from adding TTF).
-6. AbiTests: `TTF_Init`/`TTF_Quit` lifecycle + `TTF_OpenFont` handle roundtrip + `TTF_OpenFontIndex(0)` C `long` smoke.
+4. No-SDLCALL functions (`TTF_GetFontKerningSizeGlyphs*`, `TTF_SetFontSDF`, `TTF_GetFontSDF`) bind with explicit Cdecl (`CallingConvention.Cdecl` in Compat and `CallConvCdecl` in Modern).
+5. `dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --family sdl2-ttf --write-report` reported 0 raw ABI findings after the oracle helper false-positive fix.
+6. Python self-test and C# postprocess self-test both passed; Slopwatch reported 0 issues.
+7. Runtime AbiTests for `TTF_Init`/`TTF_Quit`, font handle roundtrip, and C `long` smoke are deferred until a redistributable font asset and native copy strategy are introduced.
+
+### Peer Visual Notes
+
+- SDL2-CS (`external/sdl2-cs/src/SDL2_ttf.cs`) uses `IntPtr` for `TTF_Font`; Janset intentionally emits the typed Pattern B `TTF_Font` handle in TTF owner mode.
+- SDL2-CS binds `TTF_OpenFontIndex*` with C# `long` and `TTF_FontFaces` as `IntPtr` with a comment that this ignores Win64. Janset intentionally diverges with ABI-correct `CLong` / Win32-vs-Unix64 dual-dispatch handling.
+- SDL2-CS includes the no-SDLCALL glyph kerning functions with Cdecl but omits the newer SDF functions; Janset generated all four no-SDLCALL functions with Cdecl.
+- Janset excludes the three deprecated Layer 1 functions (`TTF_GetFontKerningSize`, `TTF_SetDirection`, `TTF_SetScript`) and excludes `TTF_SetError` / `TTF_GetError` macro aliases; SDL2-CS keeps deprecated functions and implements the error macros as manual redirects to Core SDL error APIs.
+- `Silk.NET.SDL` exists and is a real core SDL package, but it is not useful SDL2_ttf peer evidence: the 2.23.0 NuGet package XML contains 0 `TTF_` / `SDL_ttf` / `TTF_Font` symbols and its native dependency is `Ultz.Native.SDL`, not an SDL_ttf satellite native package. GitHub code search likewise found no official Silk.NET SDL_ttf binding source; hits were downstream app code or unrelated references.
 
 ### Current Understanding
 
 - **88 functions**, single header. 5 C `long` surface (4 index params + 1 FontFaces return).
 - **Satellite-owned opaque:** `TTF_Font` — no `SDL_` prefix. Depends on Item 1's family-blind auto-detection. Owner mode emits `Handles.g.cs` in `namespace SDL2.Ttf`.
 - **C `long` dispatch:** Depends on Item 1's `ClongDualDispatchRewriter` extension (add 5 TTF function names + parameter-position rewrite logic).
-- **No-SDLCALL functions:** 4 non-deprecated functions lack `SDLCALL` (`TTF_GetFontKerningSizeGlyphs`, `TTF_GetFontKerningSizeGlyphs32`, `TTF_SetFontSDF`, `TTF_GetFontSDF`). SDL's `SDLCALL` maps to `__cdecl` on Windows at `begin_code.h:77-80`; without it, the native declaration carries no explicit annotation. Generated P/Invoke must force `CallingConvention.Cdecl`. **Assumption:** a per-header RSP or postprocess step can add the calling convention. Deep-dive determines mechanism.
+- **No-SDLCALL functions:** 4 non-deprecated functions lack `SDLCALL` (`TTF_GetFontKerningSizeGlyphs`, `TTF_GetFontKerningSizeGlyphs32`, `TTF_SetFontSDF`, `TTF_GetFontSDF`). SDL's `SDLCALL` maps to `__cdecl` on Windows at `begin_code.h:77-80`; ClangSharp emitted Cdecl for these normal C functions without requiring a per-header RSP.
 - **Deprecated functions:** 3 to exclude (`TTF_GetFontKerningSize`, `TTF_SetDirection`, `TTF_SetScript`). Only the first lacks `SDLCALL`.
 - **Error macros:** `TTF_SetError`/`TTF_GetError` excluded (cross-family aliases to Core). See [satellites/sdl2-satellite-error-function-consolidation.md](satellites/sdl2-satellite-error-function-consolidation.md) for full cross-family analysis.
 - **Function-like helpers:** `TTF_VERSION(X)` / `TTF_VERSION_ATLEAST(X,Y,Z)`-style public macros, if present in the pinned header, are not Item 1/S1-2 Layer 1 output. They remain follow-up Layer 2 / friendly helper candidates governed by an explicit companion-helper policy. See [satellites/sdl2-function-like-macro-consolidation.md](satellites/sdl2-function-like-macro-consolidation.md) for the full cross-family function-like macro catalog.
@@ -308,7 +319,7 @@ The following are open questions that belong to Iteration 2's spec + plan, not t
 ### New Files to Create
 
 - `rsp/sdl2-ttf.rsp` — family RSP with 5 `--exclude` entries (3 deprecated + 2 error macros)
-- `rsp/per-header/SDL_ttf.rsp` — per-header RSP for no-SDLCALL calling convention overrides (if needed)
+- No `rsp/per-header/SDL_ttf.rsp` was needed; no-SDLCALL Cdecl output was verified from generated code.
 - `src/Janset.SDL2.Ttf/Janset.SDL2.Ttf.csproj` — multi-TFM, ProjectReference→Core
 - `src/Janset.SDL2.Ttf/Support/DisableRuntimeMarshalling.cs`
 - Update `config/family-config.json` `families.ttf.headers[]` with the single header (Iteration 2 retired `scope/sdl2-ttf.headers.txt`)
