@@ -8,10 +8,11 @@
 | --- | ---: | ---: | ---: |
 | core | 51 | 130 | 134 |
 | image | 1 | 2 | 2 |
+| gfx | 4 | 8 | 8 |
 
 ## Selection
 
-Selected families: core, image
+Selected families: core, image, gfx
 
 ## Failures
 

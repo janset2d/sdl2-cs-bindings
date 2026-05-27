@@ -716,7 +716,12 @@
       "rsp": "rsp/sdl2-gfx.rsp",
       "project_dir": "Janset.SDL2.Gfx",
       "owner_mode": false,
-      "headers": [],
+      "headers": [
+        { "order": 10, "name": "SDL2_framerate.h" },
+        { "order": 20, "name": "SDL2_gfxPrimitives.h" },
+        { "order": 30, "name": "SDL2_imageFilter.h" },
+        { "order": 40, "name": "SDL2_rotozoom.h" }
+      ],
       "platform_sensitive_headers": [],
       "required_surface": null,
       "opaque_handles": {

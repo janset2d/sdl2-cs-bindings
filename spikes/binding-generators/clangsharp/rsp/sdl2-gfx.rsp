@@ -1,0 +1,15 @@
+# SDL2_gfx uses per-header export macros instead of extern DECLSPEC.
+# Insurance: explicitly define each scope macro to extern so ClangSharp
+# resolves function declarations regardless of host preprocessor state.
+--define-macro
+SDL2_GFXPRIMITIVES_SCOPE=extern
+SDL2_ROTOZOOM_SCOPE=extern
+SDL2_FRAMERATE_SCOPE=extern
+SDL2_IMAGEFILTER_SCOPE=extern
+
+# M_PI appears conditionally in SDL2_gfxPrimitives.h and SDL2_rotozoom.h
+# (both guarded by #ifndef M_PI). Host compiler pre-defines it on Windows
+# so ClangSharp never emits it there; cross-platform determinism requires
+# an explicit exclude. BCL provides System.Math.PI.
+--exclude
+M_PI

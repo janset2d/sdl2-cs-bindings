@@ -13,8 +13,8 @@ This spike report is evidence, not a correctness certificate. Raw ABI constituti
 | sdl2-core | Manifest Required Surface | `build/manifest.json` | present | 5 | 10 | 0 |
 | sdl2-core | SDL2-CS | `external/sdl2-cs/src/SDL2.cs` | present | 789 | 292 | 131 |
 | sdl2-gfx | Cake Preview | `n/a` | n/a | 0 | 0 | 0 |
-| sdl2-gfx | ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Gfx/Generated/Compat` | missing | 0 | 0 | 0 |
-| sdl2-gfx | ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Gfx/Generated/Modern` | missing | 0 | 0 | 0 |
+| sdl2-gfx | ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Gfx/Generated/Compat` | present | 102 | 8 | 5 |
+| sdl2-gfx | ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Gfx/Generated/Modern` | present | 102 | 8 | 5 |
 | sdl2-gfx | SDL2 Dynapi | `external/vcpkg or vcpkg_installed` | n/a | 0 | 0 | 0 |
 | sdl2-gfx | Manifest Required Surface | `build/manifest.json` | n/a | 0 | 0 | 0 |
 | sdl2-gfx | SDL2-CS | `external/sdl2-cs/src/SDL2_gfx.cs` | present | 102 | 10 | 2 |
@@ -140,8 +140,8 @@ No evidence gaps were detected for loaded sources and manifest-required checks.
 | Source | Path | Status | Functions | Constants | Types |
 | --- | --- | --- | ---: | ---: | ---: |
 | Cake Preview | `n/a` | n/a | 0 | 0 | 0 |
-| ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Gfx/Generated/Compat` | missing | 0 | 0 | 0 |
-| ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Gfx/Generated/Modern` | missing | 0 | 0 | 0 |
+| ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Gfx/Generated/Compat` | present | 102 | 8 | 5 |
+| ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Gfx/Generated/Modern` | present | 102 | 8 | 5 |
 | SDL2 Dynapi | `external/vcpkg or vcpkg_installed` | n/a | 0 | 0 | 0 |
 | Manifest Required Surface | `build/manifest.json` | n/a | 0 | 0 | 0 |
 | SDL2-CS | `external/sdl2-cs/src/SDL2_gfx.cs` | present | 102 | 10 | 2 |
@@ -150,7 +150,7 @@ No evidence gaps were detected for loaded sources and manifest-required checks.
 
 | Surface | Functions | Constants | Types |
 | --- | ---: | ---: | ---: |
-| Generated ClangSharp | 0 | 0 | 0 |
+| Generated ClangSharp | 204 | 16 | 10 |
 | Cake Preview | 0 | 0 | 0 |
 | SDL2-CS | 102 | 10 | 2 |
 | Dynapi | 0 | 0 | 0 |
@@ -164,62 +164,61 @@ No raw ABI constitution checks were produced.
 
 | Function | Generated | Cake | SDL2-CS | Dynapi |
 | --- | --- | --- | --- | --- |
-| `SDL_framerateDelay` | no | n/a | yes | n/a |
-| `SDL_getFramecount` | no | n/a | yes | n/a |
-| `SDL_getFramerate` | no | n/a | yes | n/a |
-| `SDL_imageFilterAbsDiff` | no | n/a | yes | n/a |
-| `SDL_imageFilterAdd` | no | n/a | yes | n/a |
-| `SDL_imageFilterAddByte` | no | n/a | yes | n/a |
-| `SDL_imageFilterAddByteToHalf` | no | n/a | yes | n/a |
-| `SDL_imageFilterAddUint` | no | n/a | yes | n/a |
-| `SDL_imageFilterBinarizeUsingThreshold` | no | n/a | yes | n/a |
-| `SDL_imageFilterBitAnd` | no | n/a | yes | n/a |
-| `SDL_imageFilterBitNegation` | no | n/a | yes | n/a |
-| `SDL_imageFilterBitOr` | no | n/a | yes | n/a |
-| `SDL_imageFilterClipToRange` | no | n/a | yes | n/a |
-| `SDL_imageFilterDiv` | no | n/a | yes | n/a |
-| `SDL_imageFilterMMXdetect` | no | n/a | yes | n/a |
-| `SDL_imageFilterMMXoff` | no | n/a | yes | n/a |
-| `SDL_imageFilterMMXon` | no | n/a | yes | n/a |
-| `SDL_imageFilterMean` | no | n/a | yes | n/a |
-| `SDL_imageFilterMult` | no | n/a | yes | n/a |
-| `SDL_imageFilterMultByByte` | no | n/a | yes | n/a |
-| `SDL_imageFilterMultDivby2` | no | n/a | yes | n/a |
-| `SDL_imageFilterMultDivby4` | no | n/a | yes | n/a |
-| `SDL_imageFilterMultNor` | no | n/a | yes | n/a |
-| `SDL_imageFilterNormalizeLinear` | no | n/a | yes | n/a |
-| `SDL_imageFilterShiftLeft` | no | n/a | yes | n/a |
-| `SDL_imageFilterShiftLeftByte` | no | n/a | yes | n/a |
-| `SDL_imageFilterShiftLeftUint` | no | n/a | yes | n/a |
-| `SDL_imageFilterShiftRight` | no | n/a | yes | n/a |
-| `SDL_imageFilterShiftRightAndMultByByte` | no | n/a | yes | n/a |
-| `SDL_imageFilterShiftRightUint` | no | n/a | yes | n/a |
-| `SDL_imageFilterSub` | no | n/a | yes | n/a |
-| `SDL_imageFilterSubByte` | no | n/a | yes | n/a |
-| `SDL_imageFilterSubUint` | no | n/a | yes | n/a |
-| `SDL_initFramerate` | no | n/a | yes | n/a |
-| `SDL_setFramerate` | no | n/a | yes | n/a |
-| `aacircleColor` | no | n/a | yes | n/a |
-| `aacircleRGBA` | no | n/a | yes | n/a |
-| `aaellipseColor` | no | n/a | yes | n/a |
-| `aaellipseRGBA` | no | n/a | yes | n/a |
-| `aalineColor` | no | n/a | yes | n/a |
-| `aalineRGBA` | no | n/a | yes | n/a |
-| `aapolygonColor` | no | n/a | yes | n/a |
-| `aapolygonRGBA` | no | n/a | yes | n/a |
-| `aatrigonColor` | no | n/a | yes | n/a |
-| `aatrigonRGBA` | no | n/a | yes | n/a |
-| `arcColor` | no | n/a | yes | n/a |
-| `arcRGBA` | no | n/a | yes | n/a |
-| `bezierColor` | no | n/a | yes | n/a |
-| `bezierRGBA` | no | n/a | yes | n/a |
-| `boxColor` | no | n/a | yes | n/a |
+| `SDL_framerateDelay` | yes | n/a | yes | n/a |
+| `SDL_getFramecount` | yes | n/a | yes | n/a |
+| `SDL_getFramerate` | yes | n/a | yes | n/a |
+| `SDL_imageFilterAbsDiff` | yes | n/a | yes | n/a |
+| `SDL_imageFilterAdd` | yes | n/a | yes | n/a |
+| `SDL_imageFilterAddByte` | yes | n/a | yes | n/a |
+| `SDL_imageFilterAddByteToHalf` | yes | n/a | yes | n/a |
+| `SDL_imageFilterAddUint` | yes | n/a | yes | n/a |
+| `SDL_imageFilterBinarizeUsingThreshold` | yes | n/a | yes | n/a |
+| `SDL_imageFilterBitAnd` | yes | n/a | yes | n/a |
+| `SDL_imageFilterBitNegation` | yes | n/a | yes | n/a |
+| `SDL_imageFilterBitOr` | yes | n/a | yes | n/a |
+| `SDL_imageFilterClipToRange` | yes | n/a | yes | n/a |
+| `SDL_imageFilterDiv` | yes | n/a | yes | n/a |
+| `SDL_imageFilterMMXdetect` | yes | n/a | yes | n/a |
+| `SDL_imageFilterMMXoff` | yes | n/a | yes | n/a |
+| `SDL_imageFilterMMXon` | yes | n/a | yes | n/a |
+| `SDL_imageFilterMean` | yes | n/a | yes | n/a |
+| `SDL_imageFilterMult` | yes | n/a | yes | n/a |
+| `SDL_imageFilterMultByByte` | yes | n/a | yes | n/a |
+| `SDL_imageFilterMultDivby2` | yes | n/a | yes | n/a |
+| `SDL_imageFilterMultDivby4` | yes | n/a | yes | n/a |
+| `SDL_imageFilterMultNor` | yes | n/a | yes | n/a |
+| `SDL_imageFilterNormalizeLinear` | yes | n/a | yes | n/a |
+| `SDL_imageFilterShiftLeft` | yes | n/a | yes | n/a |
+| `SDL_imageFilterShiftLeftByte` | yes | n/a | yes | n/a |
+| `SDL_imageFilterShiftLeftUint` | yes | n/a | yes | n/a |
+| `SDL_imageFilterShiftRight` | yes | n/a | yes | n/a |
+| `SDL_imageFilterShiftRightAndMultByByte` | yes | n/a | yes | n/a |
+| `SDL_imageFilterShiftRightUint` | yes | n/a | yes | n/a |
+| `SDL_imageFilterSub` | yes | n/a | yes | n/a |
+| `SDL_imageFilterSubByte` | yes | n/a | yes | n/a |
+| `SDL_imageFilterSubUint` | yes | n/a | yes | n/a |
+| `SDL_initFramerate` | yes | n/a | yes | n/a |
+| `SDL_setFramerate` | yes | n/a | yes | n/a |
+| `aacircleColor` | yes | n/a | yes | n/a |
+| `aacircleRGBA` | yes | n/a | yes | n/a |
+| `aaellipseColor` | yes | n/a | yes | n/a |
+| `aaellipseRGBA` | yes | n/a | yes | n/a |
+| `aalineColor` | yes | n/a | yes | n/a |
+| `aalineRGBA` | yes | n/a | yes | n/a |
+| `aapolygonColor` | yes | n/a | yes | n/a |
+| `aapolygonRGBA` | yes | n/a | yes | n/a |
+| `aatrigonColor` | yes | n/a | yes | n/a |
+| `aatrigonRGBA` | yes | n/a | yes | n/a |
+| `arcColor` | yes | n/a | yes | n/a |
+| `arcRGBA` | yes | n/a | yes | n/a |
+| `bezierColor` | yes | n/a | yes | n/a |
+| `bezierRGBA` | yes | n/a | yes | n/a |
+| `boxColor` | yes | n/a | yes | n/a |
 | ... | 52 additional sorted function(s) omitted for readability. |  |  |  |
 
 ### Evidence Gaps
 
-- Evidence Missing: ClangSharp Compat at `spikes/binding-generators/clangsharp/src/Janset.SDL2.Gfx/Generated/Compat`.
-- Evidence Missing: ClangSharp Modern at `spikes/binding-generators/clangsharp/src/Janset.SDL2.Gfx/Generated/Modern`.
+No evidence gaps were detected for loaded sources and manifest-required checks.
 
 
 ## Family: sdl2-image
