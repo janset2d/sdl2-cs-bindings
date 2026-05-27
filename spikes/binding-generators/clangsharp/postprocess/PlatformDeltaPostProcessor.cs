@@ -7,28 +7,14 @@ namespace Janset.SDL2.PostProcess;
 
 internal sealed class PlatformDeltaPostProcessor
 {
-    private static readonly string[] PlatformOrder =
-    [
-        "WindowsDesktop",
-        "WinRT",
-        "GDK",
-        "Linux",
-        "MacOS",
-        "IOS",
-        "Android",
-    ];
+    private readonly string[] _platformOrder;
+    private readonly IReadOnlyDictionary<string, string> _supportedOsByPlatform;
 
-    private static readonly IReadOnlyDictionary<string, string> SupportedOsByPlatform =
-        new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["WindowsDesktop"] = "windows",
-            ["WinRT"] = "windows10.0.10240.0",
-            ["GDK"] = "windows",
-            ["Linux"] = "linux",
-            ["MacOS"] = "macos",
-            ["IOS"] = "ios",
-            ["Android"] = "android",
-        };
+    public PlatformDeltaPostProcessor(IReadOnlyList<Config.PlatformView> views)
+    {
+        _platformOrder = views.Select(v => v.Name).ToArray();
+        _supportedOsByPlatform = views.ToDictionary(v => v.Name, v => v.SupportedOs, StringComparer.Ordinal);
+    }
 
     public PlatformDeltaResult Process(string inputDir, string outputDir)
     {
@@ -51,7 +37,7 @@ internal sealed class PlatformDeltaPostProcessor
             var relative = Path.GetRelativePath(inputDir, file.FullName);
             var source = File.ReadAllText(file.FullName);
             var platformName = GetPlatformName(relative);
-            var supportedOs = SupportedOsByPlatform[platformName];
+            var supportedOs = _supportedOsByPlatform[platformName];
 
             var tree = CSharpSyntaxTree.ParseText(source);
             var root = tree.GetCompilationUnitRoot();
@@ -103,7 +89,7 @@ internal sealed class PlatformDeltaPostProcessor
                 .Contains("Platforms", StringComparer.Ordinal));
     }
 
-    private static IEnumerable<FileInfo> EnumeratePlatformFiles(DirectoryInfo generatedRoot)
+    private IEnumerable<FileInfo> EnumeratePlatformFiles(DirectoryInfo generatedRoot)
     {
         var platformRoot = new DirectoryInfo(Path.Combine(generatedRoot.FullName, "Platforms"));
         if (!platformRoot.Exists)
@@ -111,7 +97,7 @@ internal sealed class PlatformDeltaPostProcessor
             return [];
         }
 
-        return PlatformOrder
+        return _platformOrder
             .SelectMany(platform => platformRoot
                 .EnumerateFiles("*.g.cs", SearchOption.AllDirectories)
                 .Where(file => Path.GetRelativePath(platformRoot.FullName, file.FullName)

@@ -1,9 +1,3 @@
---libraryPath
-SDL2_image
-
---methodClassName
-SDL_imageNative
-
 # IMG_SetError / IMG_GetError are macro shortcuts that point at SDL_SetError
 # / SDL_GetError in the core class. ClangSharp can't cross the family
 # methodClassName boundary, so emit them as part of the SDL2_image friendly

@@ -25,29 +25,23 @@ internal sealed class ClongDualDispatchRewriter : CSharpSyntaxRewriter
         Modern,
     }
 
-    private static readonly HashSet<string> AffectedMethodNames = new(StringComparer.Ordinal)
-    {
-        "SDL_ThreadID",
-        "SDL_GetThreadID",
-        // Dormant until Item 4 activates TTF in selected_families("all").
-        // Constitution §"C `long` And `unsigned long`" (TTF satellite C `long` surface clause).
-        "TTF_OpenFontIndex",
-        "TTF_OpenFontIndexRW",
-        "TTF_OpenFontIndexDPI",
-        "TTF_OpenFontIndexDPIRW",
-        "TTF_FontFaces",
-    };
-
+    private readonly HashSet<string> _affectedMethodNames;
     private readonly Mode _mode;
 
-    public ClongDualDispatchRewriter(Mode mode)
+    public ClongDualDispatchRewriter(Mode mode, IEnumerable<string> affectedMethodNames)
     {
         _mode = mode;
+        _affectedMethodNames = new HashSet<string>(affectedMethodNames, StringComparer.Ordinal);
     }
 
     public bool AnyChanges { get; private set; }
 
     public void Reset()
+    {
+        ResetState();
+    }
+
+    private void ResetState()
     {
         AnyChanges = false;
     }
@@ -105,9 +99,9 @@ internal sealed class ClongDualDispatchRewriter : CSharpSyntaxRewriter
         return node.WithMembers(SyntaxFactory.List(newMembers));
     }
 
-    private static bool IsAffectedMethod(MethodDeclarationSyntax method)
+    private bool IsAffectedMethod(MethodDeclarationSyntax method)
     {
-        if (!AffectedMethodNames.Contains(method.Identifier.ValueText))
+        if (!_affectedMethodNames.Contains(method.Identifier.ValueText))
         {
             return false;
         }

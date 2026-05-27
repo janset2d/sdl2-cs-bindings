@@ -13,19 +13,14 @@ Every item below describes the **current best understanding** and the **preferre
 
 ---
 
-## Cross-Cutting: Header Lists, Policy, Shims, Oracle Standardization
+## Cross-Cutting: Configuration, Policy, Shims, Oracle Standardization
 
-Before or alongside Item 1, these directories and tools get standardized:
+Iteration 2 consolidated all family header lists, required surfaces, and policy rosters into a single config file:
 
-### `spikes/binding-generators/scope/`
+### `spikes/binding-generators/clangsharp/config/family-config.json`
 
-- Per-family production header list files: `sdl2-core.headers.txt`, `sdl2-image.headers.txt`, `sdl2-ttf.headers.txt`, `sdl2-mixer.headers.txt`, `sdl2-gfx.headers.txt`.
-- Remove stale artifacts: bootstrap header-list subsets and `comparison-report-template.md` (if present). **Keep** `sdl2-core-sdlh-required.json` — it is load-bearing for execute-mode core generation's required-surface validation (manifest parity check against `build/manifest.json`).
-
-### `spikes/binding-generators/clangsharp/policy/`
-
-- `opaque-handle-roster.json`: **family-keyed** under schema 2.0 (migrated from Core-only flat schema in Item 1 S1-4). Top-level `families` object with one entry per family (`core`, `image`, `ttf`, `mixer`, `gfx`); each entry carries `library_version`, `last_audited`, and three name lists (`auto_detect_well_known`, `force_opaque_exceptions`, `excluded_candidates`). Satellite-owned handles (`TTF_Font`, `Mix_Music`) are listed explicitly in their family's `auto_detect_well_known` and participate in the same drift-watchdog discipline as Core's 14 entries. **No asymmetry** between Core and satellites — every family follows the same audit triangulation + drift warning + roster surface contract. Cross-family `force_opaque_exceptions` (`SDL_RWops`, `SDL_SysWMinfo`, `SDL_SysWMmsg`) live exclusively in `families.core` per Constitution §"Opaque Handles" Cross-family force-opaque scope.
-- `flags-enum-roster.json`: **new family-keyed allow-list** (Item 1 deliverable, S1-6). Same schema discipline as the opaque roster. Lists per-family enum names that must receive `[Flags]` despite not matching the `Flags` suffix rule (Core entries: `SDL_Keymod`, `SDL_BlendMode`, `SDL_GLcontextFlag`, `SDL_RendererFlip`, `SDL_TextureModulate`).
+- **Unified Configuration Surface:** Single source of truth for the entire binding-generator scope. Holds per-family identities, header lists, opaque-handle and flags-enum rosters, clong methods lists, and global platform views.
+- **Removed files:** Stale roster JSONs, required-surface JSONs, and `.headers.txt` scope files are retired and deleted.
 
 ### `spikes/binding-generators/clangsharp/shims/`
 
@@ -68,7 +63,7 @@ Before or alongside Item 1, these directories and tools get standardized:
 
 - Auto-detection is structural: empty partial struct + pointer use at any ABI signature position. It does not require the `SDL_` prefix, so satellite-owned `TTF_Font` and `Mix_Music` are covered when their families activate.
 - The rewriter reads the namespace from the `.g.cs` file being processed and emits `Handles.g.cs` into that namespace.
-- `force_opaque_exceptions` (`SDL_RWops`, `SDL_SysWMinfo`, `SDL_SysWMmsg`) remain under `families.core` in `opaque-handle-roster.json`. Satellite-owned handles (`TTF_Font`, `Mix_Music`) are listed under their owning family sections and are still structurally drift-checked by owner-mode runs.
+- `force_opaque_exceptions` (`SDL_RWops`, `SDL_SysWMinfo`, `SDL_SysWMmsg`) remain under `families.core` in `family-config.json`. Satellite-owned handles (`TTF_Font`, `Mix_Music`) are listed under their owning family sections and are still structurally drift-checked by owner-mode runs.
 - `--owner-mode` determines which families emit their own `Handles.g.cs`: owner mode for `core`, `ttf`, and `mixer`; consumer mode for `image` and `gfx`.
 - Structural auto-detection without prefix matching is the accepted Item 1 policy for known SDL2 opaque handle patterns.
 
@@ -107,14 +102,14 @@ Before or alongside Item 1, these directories and tools get standardized:
 - `spikes/binding-generators/clangsharp/rsp/sdl2-image.rsp` — reference family RSP pattern
 - `spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/` — reference satellite csproj + Generated + Support
 - `spikes/binding-generators/clangsharp/oracle.cs:160-183` — FamilyConfigs hardcoding
-- `spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json` — family-keyed Pattern B handle roster
+- `spikes/binding-generators/clangsharp/config/family-config.json` — unified family configuration (family identity, handle rosters, flags allow-list, etc.)
 
 ---
 
 ## Iteration 2 — Config Surface Unification
 
-**Status:** Roadmap placeholder — problem statement + inventory only. **No solution proposal yet.** Detailed spec + plan ships as its own iteration after Item 1 (Iteration 1) closes.
-**Branch:** TBD (post-Item 1).
+**Status:** Closed 2026-05-27. Config surface consolidated into single `config/family-config.json`. Full spec + plan at `docs/items/iteration-2-config-surface-unification-spec.md` and `-plan.md`. See §"What changed" below for migration summary.
+**Branch:** `spike/binding-autogen-sdl2-gfx` (landing commit TBD).
 **Position:** Immediately after Item 1, before Item 2 onwards. Iteration 1 = Item 1 (per-library infra); Iteration 2 = this config unification; subsequent iterations = expansion items (2–5).
 
 ### Binding constraints (set now, not in the spec/plan iteration)
@@ -260,9 +255,9 @@ The following are open questions that belong to Iteration 2's spec + plan, not t
 ### New Files to Create
 
 - `rsp/sdl2-gfx.rsp` — family RSP with 4 `--define-macro` entries + `--exclude M_PI`
-- `scope/sdl2-gfx.headers.txt` — 4 functional headers
 - `src/Janset.SDL2.Gfx/Janset.SDL2.Gfx.csproj` — multi-TFM, ProjectReference→Core
 - `src/Janset.SDL2.Gfx/Support/DisableRuntimeMarshalling.cs` — cross-assembly Pattern B contract
+- Update `config/family-config.json` `families.gfx.headers[]` with the 4 functional headers (Iteration 2 retired `scope/sdl2-gfx.headers.txt`)
 
 ---
 
@@ -312,9 +307,9 @@ The following are open questions that belong to Iteration 2's spec + plan, not t
 
 - `rsp/sdl2-ttf.rsp` — family RSP with 5 `--exclude` entries (3 deprecated + 2 error macros)
 - `rsp/per-header/SDL_ttf.rsp` — per-header RSP for no-SDLCALL calling convention overrides (if needed)
-- `scope/sdl2-ttf.headers.txt` — `SDL_ttf.h`
 - `src/Janset.SDL2.Ttf/Janset.SDL2.Ttf.csproj` — multi-TFM, ProjectReference→Core
 - `src/Janset.SDL2.Ttf/Support/DisableRuntimeMarshalling.cs`
+- Update `config/family-config.json` `families.ttf.headers[]` with the single header (Iteration 2 retired `scope/sdl2-ttf.headers.txt`)
 
 ---
 
@@ -363,9 +358,9 @@ The following are open questions that belong to Iteration 2's spec + plan, not t
 ### New Files to Create
 
 - `rsp/sdl2-mixer.rsp` — family RSP with 8 `--exclude` entries (4 error macros + 4 legacy compat aliases)
-- `scope/sdl2-mixer.headers.txt` — `SDL_mixer.h`
 - `src/Janset.SDL2.Mixer/Janset.SDL2.Mixer.csproj` — multi-TFM, ProjectReference→Core
 - `src/Janset.SDL2.Mixer/Support/DisableRuntimeMarshalling.cs`
+- Update `config/family-config.json` `families.mixer.headers[]` with the single header (Iteration 2 retired `scope/sdl2-mixer.headers.txt`)
 
 ---
 

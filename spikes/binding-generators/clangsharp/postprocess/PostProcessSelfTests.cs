@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Janset.SDL2.PostProcess.Config;
 
 namespace Janset.SDL2.PostProcess;
 
@@ -119,7 +120,8 @@ namespace SDL2.Ttf
 }
 """;
 
-        var modernRewriter = new ClongDualDispatchRewriter(ClongDualDispatchRewriter.Mode.Modern);
+        var clongMethods = new[] { "TTF_OpenFontIndex" };
+        var modernRewriter = new ClongDualDispatchRewriter(ClongDualDispatchRewriter.Mode.Modern, clongMethods);
         var modernTree = CSharpSyntaxTree.ParseText(clongFixture);
         var modernRoot = (CompilationUnitSyntax)modernRewriter.Visit(modernTree.GetCompilationUnitRoot())!;
         var modernOutput = modernRoot.ToFullString();
@@ -133,7 +135,7 @@ namespace SDL2.Ttf
             failures.Add("ClongDualDispatchRewriter Modern: did not emit [LibraryImport] attribute");
         }
 
-        var compatRewriter = new ClongDualDispatchRewriter(ClongDualDispatchRewriter.Mode.Compat);
+        var compatRewriter = new ClongDualDispatchRewriter(ClongDualDispatchRewriter.Mode.Compat, clongMethods);
         var compatTree = CSharpSyntaxTree.ParseText(clongFixture);
         var compatRoot = (CompilationUnitSyntax)compatRewriter.Visit(compatTree.GetCompilationUnitRoot())!;
         var compatOutput = compatRoot.ToFullString();
@@ -180,7 +182,8 @@ namespace SDL2.Ttf
 }
 """;
 
-        var modernRewriter = new ClongDualDispatchRewriter(ClongDualDispatchRewriter.Mode.Modern);
+        var clongMethods = new[] { "TTF_FontFaces" };
+        var modernRewriter = new ClongDualDispatchRewriter(ClongDualDispatchRewriter.Mode.Modern, clongMethods);
         var modernTree = CSharpSyntaxTree.ParseText(signedReturnFixture);
         var modernRoot = (CompilationUnitSyntax)modernRewriter.Visit(modernTree.GetCompilationUnitRoot())!;
         var modernOutput = modernRoot.ToFullString();
@@ -194,7 +197,7 @@ namespace SDL2.Ttf
             failures.Add("ClongDualDispatchRewriter Modern: did not emit [LibraryImport] for signed `long` return");
         }
 
-        var compatRewriter = new ClongDualDispatchRewriter(ClongDualDispatchRewriter.Mode.Compat);
+        var compatRewriter = new ClongDualDispatchRewriter(ClongDualDispatchRewriter.Mode.Compat, clongMethods);
         var compatTree = CSharpSyntaxTree.ParseText(signedReturnFixture);
         var compatRoot = (CompilationUnitSyntax)compatRewriter.Visit(compatTree.GetCompilationUnitRoot())!;
         var compatOutput = compatRoot.ToFullString();
@@ -245,7 +248,8 @@ namespace SDL2
 }
 """;
 
-        var modernRewriter = new ClongDualDispatchRewriter(ClongDualDispatchRewriter.Mode.Modern);
+        var clongMethods = new[] { "SDL_ThreadID", "SDL_GetThreadID" };
+        var modernRewriter = new ClongDualDispatchRewriter(ClongDualDispatchRewriter.Mode.Modern, clongMethods);
         var modernTree = CSharpSyntaxTree.ParseText(threadIdFixture);
         var modernRoot = (CompilationUnitSyntax)modernRewriter.Visit(modernTree.GetCompilationUnitRoot())!;
         var modernOutput = modernRoot.ToFullString();
@@ -270,7 +274,7 @@ namespace SDL2
             failures.Add("ClongDualDispatchRewriter Modern: rewritten member lines did not preserve class-member indentation");
         }
 
-        var compatRewriter = new ClongDualDispatchRewriter(ClongDualDispatchRewriter.Mode.Compat);
+        var compatRewriter = new ClongDualDispatchRewriter(ClongDualDispatchRewriter.Mode.Compat, clongMethods);
         var compatTree = CSharpSyntaxTree.ParseText(threadIdFixture);
         var compatRoot = (CompilationUnitSyntax)compatRewriter.Visit(compatTree.GetCompilationUnitRoot())!;
         var compatOutput = compatRoot.ToFullString();
@@ -398,7 +402,8 @@ namespace SDL2
             Path.Combine(inputDir, "SDL_neutral.g.cs"),
             "namespace SDL2\r\n{\r\n    internal static partial class SDLNative { }\r\n}\r\n");
 
-        new PlatformDeltaPostProcessor().Process(inputDir, outputDir);
+        var config = FamilyConfig.Load();
+        new PlatformDeltaPostProcessor(config.PlatformViews()).Process(inputDir, outputDir);
 
         var outputFile = Path.Combine(outputDir, "SDL_neutral.g.cs");
         if (!File.Exists(outputFile))
@@ -447,19 +452,20 @@ namespace SDL2
     private static void CheckUniformOpaqueFamilyIdentity(List<string> failures)
     {
         using var tempRoot = new TemporaryDirectory();
+        var config = FamilyConfig.Load();
 
-        if (UniformOpaqueFamilyIdentity.Resolve(Path.Combine(tempRoot.Path, "scratch"), "SDL2") != "core")
+        if (UniformOpaqueFamilyIdentity.Resolve(Path.Combine(tempRoot.Path, "scratch"), "SDL2", config) != "core")
         {
             failures.Add("uniform-opaque family resolver did not default namespace SDL2 to core");
         }
 
-        if (UniformOpaqueFamilyIdentity.Resolve(Path.Combine(tempRoot.Path, "scratch"), "SDL2.Ttf") != "ttf")
+        if (UniformOpaqueFamilyIdentity.Resolve(Path.Combine(tempRoot.Path, "scratch"), "SDL2.Ttf", config) != "ttf")
         {
             failures.Add("uniform-opaque family resolver did not resolve namespace SDL2.Ttf to ttf");
         }
 
         var mixerOutput = Path.Combine(tempRoot.Path, "Janset.SDL2.Mixer", "Generated", "Modern");
-        if (UniformOpaqueFamilyIdentity.Resolve(mixerOutput, "SDL2") != "mixer")
+        if (UniformOpaqueFamilyIdentity.Resolve(mixerOutput, "SDL2", config) != "mixer")
         {
             failures.Add("uniform-opaque family resolver did not prefer output path family over namespace fallback");
         }
@@ -467,65 +473,65 @@ namespace SDL2
 
     private static void CheckOpaqueHandleFamilyAwareness(List<string> failures)
     {
-        var rosterPath = ResolveRosterPath();
+        var config = FamilyConfig.Load();
 
-        var (coreAuto, coreForce) = OpaqueHandleEmitRewriter.LoadRoster(rosterPath, "core");
+        var (coreAuto, coreForce) = config.OpaqueHandles("core", includeCoreHandles: true);
         if (coreAuto.Count != 14)
         {
-            failures.Add($"LoadRoster('core') auto-detect count: expected 14, got {coreAuto.Count}");
+            failures.Add($"OpaqueHandles('core') auto-detect count: expected 14, got {coreAuto.Count}");
         }
 
         if (coreForce.Count != 3)
         {
-            failures.Add($"LoadRoster('core') force-opaque count: expected 3, got {coreForce.Count}");
+            failures.Add($"OpaqueHandles('core') force-opaque count: expected 3, got {coreForce.Count}");
         }
 
         if (!coreAuto.Contains("SDL_Window"))
         {
-            failures.Add("LoadRoster('core') missing SDL_Window");
+            failures.Add("OpaqueHandles('core') missing SDL_Window");
         }
 
         if (!coreForce.Contains("SDL_RWops"))
         {
-            failures.Add("LoadRoster('core') missing SDL_RWops");
+            failures.Add("OpaqueHandles('core') missing SDL_RWops");
         }
 
-        var (imageAuto, imageForce) = OpaqueHandleEmitRewriter.LoadRoster(rosterPath, "image");
+        var (imageAuto, imageForce) = config.OpaqueHandles("image", includeCoreHandles: true);
         if (!imageAuto.Contains("SDL_Renderer"))
         {
-            failures.Add("LoadRoster('image') cross-family pull missing SDL_Renderer");
+            failures.Add("OpaqueHandles('image') cross-family pull missing SDL_Renderer");
         }
 
         if (!imageForce.Contains("SDL_RWops"))
         {
-            failures.Add("LoadRoster('image') cross-family pull missing SDL_RWops");
+            failures.Add("OpaqueHandles('image') cross-family pull missing SDL_RWops");
         }
 
-        var (ttfAuto, ttfForce) = OpaqueHandleEmitRewriter.LoadRoster(rosterPath, "ttf");
+        var (ttfAuto, ttfForce) = config.OpaqueHandles("ttf", includeCoreHandles: true);
         if (!ttfAuto.Contains("TTF_Font"))
         {
-            failures.Add("LoadRoster('ttf') missing TTF_Font");
+            failures.Add("OpaqueHandles('ttf') missing TTF_Font");
         }
 
         if (!ttfAuto.Contains("SDL_Renderer"))
         {
-            failures.Add("LoadRoster('ttf') cross-family pull missing SDL_Renderer");
+            failures.Add("OpaqueHandles('ttf') cross-family pull missing SDL_Renderer");
         }
 
         if (!ttfForce.Contains("SDL_RWops"))
         {
-            failures.Add("LoadRoster('ttf') cross-family pull missing SDL_RWops");
+            failures.Add("OpaqueHandles('ttf') cross-family pull missing SDL_RWops");
         }
 
-        var (ttfOwnedAuto, ttfOwnedForce) = OpaqueHandleEmitRewriter.LoadFamilyOwnedRoster(rosterPath, "ttf");
+        var (ttfOwnedAuto, ttfOwnedForce) = config.OpaqueHandles("ttf", includeCoreHandles: false);
         if (!ttfOwnedAuto.Contains("TTF_Font"))
         {
-            failures.Add("LoadFamilyOwnedRoster('ttf') missing TTF_Font");
+            failures.Add("OpaqueHandles('ttf', false) missing TTF_Font");
         }
 
         if (ttfOwnedAuto.Contains("SDL_Renderer") || ttfOwnedForce.Contains("SDL_RWops"))
         {
-            failures.Add("LoadFamilyOwnedRoster('ttf') included pulled Core handles");
+            failures.Add("OpaqueHandles('ttf', false) included pulled Core handles");
         }
 
         var ttfAppliedHandles = new HashSet<string>(ttfAuto, StringComparer.Ordinal);
@@ -577,10 +583,10 @@ namespace SDL2
             }
         }
 
-        var (mixerAuto, _) = OpaqueHandleEmitRewriter.LoadRoster(rosterPath, "mixer");
+        var (mixerAuto, _) = config.OpaqueHandles("mixer", includeCoreHandles: true);
         if (!mixerAuto.Contains("Mix_Music"))
         {
-            failures.Add("LoadRoster('mixer') missing Mix_Music");
+            failures.Add("OpaqueHandles('mixer') missing Mix_Music");
         }
 
         using var tempRoot = new TemporaryDirectory();
@@ -620,9 +626,8 @@ namespace SDL2.Ttf
 
     private static void CheckFlagsAttributeDetection(List<string> failures)
     {
-        var coreAllowList = FlagsEnumRosterLoader.LoadForFamily(
-            FlagsEnumRosterLoader.ResolveRosterPath(),
-            "core");
+        var config = FamilyConfig.Load();
+        var coreAllowList = config.FlagsAllowList("core");
 
         AssertFlagsDecoration(
             "IMG_InitFlags",
@@ -707,12 +712,10 @@ namespace SDL2
             "FlagsAttributeRewriter suffix case-sensitivity: lowercase flags",
             failures);
 
-        var imageAllowList = FlagsEnumRosterLoader.LoadForFamily(
-            FlagsEnumRosterLoader.ResolveRosterPath(),
-            "image");
+        var imageAllowList = config.FlagsAllowList("image");
         if (imageAllowList.Count != 0)
         {
-            failures.Add($"FlagsEnumRosterLoader image allow-list: expected empty, got {imageAllowList.Count} entries");
+            failures.Add($"config image allow-list: expected empty, got {imageAllowList.Count} entries");
         }
 
         AssertFlagsDecoration(
@@ -753,29 +756,6 @@ namespace SDL2
         {
             failures.Add($"{testId}: expected Flags={expectFlags} on {enumName}, got {hasFlags}. Output:\n{output}");
         }
-    }
-
-    private static string ResolveRosterPath()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory is not null)
-        {
-            var candidate = Path.Combine(
-                directory.FullName,
-                "spikes",
-                "binding-generators",
-                "clangsharp",
-                "policy",
-                "opaque-handle-roster.json");
-            if (File.Exists(candidate))
-            {
-                return candidate;
-            }
-
-            directory = directory.Parent;
-        }
-
-        throw new FileNotFoundException("Could not locate opaque-handle-roster.json by walking ancestors.");
     }
 
     private static string CaptureConsoleError(Action action)

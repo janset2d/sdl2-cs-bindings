@@ -119,9 +119,9 @@ def extend_rsp_arguments(
     semantic-ABI closure uses this three-tier organization for per-header
     excludes, remaps, and foreign-boundary overrides.
     """
-    rsp_root = repo / "spikes" / "binding-generators" / "clangsharp" / "rsp"
-    command.append(f"@{rsp_root / 'base.rsp'}")
-    command.append(f"@{rsp_root / FAMILY_CONFIG[family]['rsp']}")
+    clangsharp_root = repo / "spikes" / "binding-generators" / "clangsharp"
+    command.append(f"@{clangsharp_root / global_base_rsp()}")
+    command.append(f"@{clangsharp_root / family_rsp_relpath(family)}")
     per_header_rsp = per_header_rsp_path(repo, header)
     if per_header_rsp is not None:
         command.append(f"@{per_header_rsp}")
@@ -135,22 +135,6 @@ def find_repository_root() -> pathlib.Path:
     raise RuntimeError("Repository root was not found from generate_bindings.py")
 
 
-def read_header_list(header_list_file: pathlib.Path) -> list[str]:
-    if not header_list_file.is_file():
-        raise FileNotFoundError(
-            f"Header list file not found: {header_list_file}. "
-            "For new families, create the header list file in spikes/binding-generators/scope/."
-        )
-
-    headers: list[str] = []
-    for line in header_list_file.read_text(encoding="utf-8").splitlines():
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#"):
-            continue
-        headers.append(stripped)
-    return headers
-
-
 def normalize_line_endings(content: str) -> str:
     return content.replace("\r\n", "\n").replace("\r", "\n")
 
@@ -158,16 +142,6 @@ def normalize_line_endings(content: str) -> str:
 def write_text_lf(path: pathlib.Path, content: str) -> None:
     with path.open("w", encoding="utf-8", newline="\n") as output:
         output.write(normalize_line_endings(content))
-
-
-def read_required_surface_allowlist(path: pathlib.Path) -> RequiredSurfaceAllowlist:
-    data = json.loads(path.read_text(encoding="utf-8"))
-    return RequiredSurfaceAllowlist(
-        family=str(data["family"]),
-        header=str(data["header"]),
-        functions=tuple(str(name) for name in data["functions"]),
-        constants=tuple(str(name) for name in data["constants"]),
-    )
 
 
 def read_manifest_required_sdlh_names(repo: pathlib.Path) -> tuple[tuple[str, ...], tuple[str, ...]]:
@@ -370,43 +344,89 @@ def map_sdlh_type(native_type: str) -> str:
     }.get(native_type, native_type)
 
 
-FAMILY_CONFIG = {
-    "core": {
-        "namespace": "SDL2",
-        "raw_class": "SDLNative",
-        "rsp": "sdl2-core.rsp",
-        "headers": "sdl2-core.headers.txt",
-        "library_dir": "Janset.SDL2.Core",
-    },
-    "image": {
-        "namespace": "SDL2.Image",
-        "raw_class": "SDL_imageNative",
-        "rsp": "sdl2-image.rsp",
-        "headers": "sdl2-image.headers.txt",
-        "library_dir": "Janset.SDL2.Image",
-    },
-    "ttf": {
-        "namespace": "SDL2.Ttf",
-        "raw_class": "SDL_ttfNative",
-        "rsp": "sdl2-ttf.rsp",
-        "headers": "sdl2-ttf.headers.txt",
-        "library_dir": "Janset.SDL2.Ttf",
-    },
-    "mixer": {
-        "namespace": "SDL2.Mixer",
-        "raw_class": "SDL_mixerNative",
-        "rsp": "sdl2-mixer.rsp",
-        "headers": "sdl2-mixer.headers.txt",
-        "library_dir": "Janset.SDL2.Mixer",
-    },
-    "gfx": {
-        "namespace": "SDL2.Gfx",
-        "raw_class": "SDL2_gfxNative",
-        "rsp": "sdl2-gfx.rsp",
-        "headers": "sdl2-gfx.headers.txt",
-        "library_dir": "Janset.SDL2.Gfx",
-    },
-}
+_CONFIG_CACHE: dict | None = None
+
+
+def config_path(repo: pathlib.Path) -> pathlib.Path:
+    return repo / "spikes" / "binding-generators" / "clangsharp" / "config" / "family-config.json"
+
+
+def load_config() -> dict:
+    global _CONFIG_CACHE
+    if _CONFIG_CACHE is None:
+        path = config_path(find_repository_root())
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if data.get("schema_version") != "1.0":
+            raise ValueError(
+                f"Unsupported config schema version: '{data.get('schema_version')}', expected '1.0'"
+            )
+        _CONFIG_CACHE = data
+    return _CONFIG_CACHE
+
+
+def family_include_subdir(family: str) -> str:
+    return family_section(family)["include_subdir"]
+
+
+def global_base_rsp() -> str:
+    return load_config()["global"]["base_rsp"]
+
+
+def required_surface_allowlist_from_config() -> RequiredSurfaceAllowlist:
+    surface = family_section("core")["required_surface"]
+    return RequiredSurfaceAllowlist(
+        family="sdl2-core",
+        header="SDL.h",
+        functions=tuple(surface["functions"]),
+        constants=tuple(surface["constants"]),
+    )
+
+
+def family_section(family: str) -> dict:
+    return load_config()["families"][family]
+
+
+def family_namespace(family: str) -> str:
+    return family_section(family)["namespace"]
+
+
+def family_raw_class(family: str) -> str:
+    return family_section(family)["raw_class"]
+
+
+def family_rsp_relpath(family: str) -> str:
+    # Stored relative to the config file (e.g. "rsp/sdl2-core.rsp"); callers
+    # join against the clangsharp root, which is the config file's parent's parent.
+    return family_section(family)["rsp"]
+
+
+def family_library_dir(family: str) -> str:
+    return family_section(family)["project_dir"]
+
+
+def family_library_name(family: str) -> str:
+    return family_section(family)["library_name"]
+
+
+def family_header_names(family: str) -> list[str]:
+    headers = sorted(family_section(family)["headers"], key=lambda h: h["order"])
+    return [h["name"] for h in headers]
+
+
+def family_platform_sensitive_headers(family: str) -> list[str]:
+    return list(family_section(family)["platform_sensitive_headers"])
+
+
+def platform_views() -> list[tuple[str, str, list[str]]]:
+    return [(v["name"], v["supported_os"], list(v["defines"])) for v in load_config()["global"]["platform_views"]]
+
+
+def all_platform_macros() -> list[str]:
+    return list(load_config()["global"]["all_platform_macros"])
+
+
+def owner_mode_for_family(family: str) -> str:
+    return "owner" if family_section(family)["owner_mode"] else "consumer"
 
 # ClangSharp config presets per codegen target. compatible-codegen produces
 # netstandard2.0-compatible output (no InlineArray, no UTF-8 u8 literal, no
@@ -425,104 +445,6 @@ CODEGEN_CONFIG = {
 PRODUCTION_CODEGEN_PASSES = ("compat", "modern")
 
 
-# Adapted verbatim from
-# build/_build/Targets/GenerateBindings/PlatformViews/PlatformCatalog.cs:18-47
-# (Cake `AllPlatformMacros`). Every per-platform parse pass must undefine the
-# macros that don't belong to its view so the SDL2 headers don't pick up the
-# host parse target's defaults (the spike runs against `x64-windows-hybrid`,
-# which would otherwise leak `_WIN32` into every view including Linux/Android).
-ALL_PLATFORM_MACROS = [
-    "_WIN32",
-    "WIN32",
-    "__WIN32__",
-    "__WINDOWS__",
-    "__WINRT__",
-    "__GDK__",
-    "__WINGDK__",
-    "linux",
-    "__linux",
-    "__linux__",
-    "__LINUX__",
-    "__APPLE__",
-    "__MACOSX__",
-    "__IPHONEOS__",
-    "__ANDROID__",
-    "SDL_VIDEO_DRIVER_WINDOWS",
-    "SDL_VIDEO_DRIVER_WINRT",
-    "SDL_VIDEO_DRIVER_X11",
-    "SDL_VIDEO_DRIVER_WAYLAND",
-    "SDL_VIDEO_DRIVER_KMSDRM",
-    "SDL_VIDEO_DRIVER_COCOA",
-    "SDL_VIDEO_DRIVER_UIKIT",
-    "SDL_VIDEO_DRIVER_ANDROID",
-    "SDL_VIDEO_DRIVER_DIRECTFB",
-    "SDL_VIDEO_DRIVER_VIVANTE",
-    "SDL_VIDEO_DRIVER_MIR",
-    "SDL_VIDEO_DRIVER_OS2",
-]
-
-
-# Adapted from PlatformCatalog.CreateSdl2Catalog() at the same path. Each tuple
-# is (view_name, supported_os_platform_string, defines_with_values). The
-# undefine set is derived as (ALL_PLATFORM_MACROS minus the macros named in
-# `defines`). Suffix strings are canonical .NET [SupportedOSPlatform] tokens
-# from Microsoft.NET.SupportedPlatforms — see PlatformCatalog.cs comments for
-# why "windows10.0.10240.0" is used for WinRT and not "winrt".
-SDL2_PLATFORM_VIEWS: list[tuple[str, str, list[str]]] = [
-    ("WindowsDesktop", "windows", [
-        "_WIN32=1", "WIN32=1", "__WIN32__=1", "__WINDOWS__=1",
-        "SDL_VIDEO_DRIVER_WINDOWS=1",
-    ]),
-    ("WinRT", "windows10.0.10240.0", [
-        "_WIN32=1", "__WINRT__=1", "SDL_VIDEO_DRIVER_WINRT=1",
-    ]),
-    ("GDK", "windows", [
-        "_WIN32=1", "__GDK__=1", "__WINGDK__=1",
-        "SDL_VIDEO_DRIVER_WINDOWS=1",
-    ]),
-    ("Linux", "linux", [
-        "linux=1", "__linux=1", "__linux__=1", "__LINUX__=1",
-        "SDL_VIDEO_DRIVER_X11=1", "SDL_VIDEO_DRIVER_WAYLAND=1",
-        "SDL_VIDEO_DRIVER_KMSDRM=1",
-    ]),
-    ("MacOS", "macos", [
-        "__APPLE__=1", "__MACOSX__=1",
-        # SDL_platform.h requires Mac OS X >= 10.7 — encode the deployment
-        # target define here so the synthetic parse satisfies the #error
-        # check that real Apple toolchains would satisfy via
-        # <AvailabilityMacros.h>.
-        "MAC_OS_X_VERSION_MIN_REQUIRED=1070",
-        "SDL_VIDEO_DRIVER_COCOA=1",
-    ]),
-    ("IOS", "ios", [
-        "__APPLE__=1", "__IPHONEOS__=1",
-        # TARGET_OS_IPHONE=1 routes SDL_platform.h into the iOS branch
-        # which self-defines __IPHONEOS__ and skips the macOS deployment
-        # target #error.
-        "TARGET_OS_IPHONE=1",
-        "SDL_VIDEO_DRIVER_UIKIT=1",
-    ]),
-    ("Android", "android", [
-        "__ANDROID__=1", "SDL_VIDEO_DRIVER_ANDROID=1",
-    ]),
-]
-
-
-# Header subset that needs the multi-OS pass. The Explore-agent scan
-# (2026-05-21) of every SDL2.Core header showed only these two have public
-# function or struct shapes that differ per platform. SDL_syswm.h is Stage 1
-# quarantined (Constitution L292-294); SDL_platform.h is macro-only. Every
-# other header is platform-neutral at the public API surface.
-PLATFORM_SENSITIVE_HEADERS: dict[str, list[str]] = {
-    "core": [
-        "SDL_main.h",
-        "SDL_system.h",
-    ],
-    "image": [],
-    "ttf": [],
-    "mixer": [],
-    "gfx": [],
-}
 
 
 # Captures top-level SDL_* declaration names from true-neutral output. Platform
@@ -643,7 +565,7 @@ def classify_warning_only_clangsharp_exit(
 
 def platform_output_path(repo: pathlib.Path, codegen: str, family: str, header: str, view_name: str) -> pathlib.Path:
     subdir = "Compat" if codegen == "compat" else "Modern"
-    library_dir = FAMILY_CONFIG[family]["library_dir"]
+    library_dir = family_library_dir(family)
     return (
         repo / "spikes" / "binding-generators" / "clangsharp" / "src" / library_dir
         / "Generated" / subdir / "Platforms" / view_name / (pathlib.Path(header).stem + ".g.cs")
@@ -652,7 +574,7 @@ def platform_output_path(repo: pathlib.Path, codegen: str, family: str, header: 
 
 def output_path_for_required_surface(repo: pathlib.Path, codegen: str, family: str) -> pathlib.Path:
     subdir = "Compat" if codegen == "compat" else "Modern"
-    library_dir = FAMILY_CONFIG[family]["library_dir"]
+    library_dir = family_library_dir(family)
     return repo / "spikes" / "binding-generators" / "clangsharp" / "src" / library_dir / "Generated" / subdir / "SDL_required.g.cs"
 
 
@@ -701,21 +623,21 @@ def render_required_surface(
 
 
 def generate_required_sdlh_surface(repo: pathlib.Path, triplet: str, codegen: str, scope_root: pathlib.Path) -> int:
-    allowlist = read_required_surface_allowlist(scope_root / "sdl2-core-sdlh-required.json")
+    allowlist = required_surface_allowlist_from_config()
     if allowlist.family != "sdl2-core":
         raise RuntimeError(f"SDL.h required surface only supports family sdl2-core, not {allowlist.family}")
 
     validate_required_surface_against_manifest(repo, allowlist)
 
-    header_path = repo / "vcpkg_installed" / triplet / "include" / "SDL2" / allowlist.header
+    header_path = repo / "vcpkg_installed" / triplet / "include" / family_include_subdir("core") / allowlist.header
     functions, constants = parse_required_sdlh_surface(header_path, allowlist)
     output_path = output_path_for_required_surface(repo, codegen, "core")
     output_path.parent.mkdir(parents=True, exist_ok=True)
     write_text_lf(
         output_path,
         render_required_surface(
-            FAMILY_CONFIG["core"]["namespace"],
-            FAMILY_CONFIG["core"]["raw_class"],
+            family_namespace("core"),
+            family_raw_class("core"),
             functions,
             constants,
         ),
@@ -743,12 +665,12 @@ def platform_command_for_header(
       * --exclude for every symbol the neutral pass already produced
     SupportedOSPlatform attribution is intentionally not passed to ClangSharp.
     The Roslyn postprocess owns path-based platform annotation and TFM guards."""
-    include_root = repo / "vcpkg_installed" / triplet / "include" / "SDL2"
+    include_root = repo / "vcpkg_installed" / triplet / "include" / family_include_subdir(family)
     input_file = include_root / header
     output_path = platform_output_path(repo, codegen, family, header, view_name)
 
     defined_names = {value.split("=", 1)[0] for value in view_defines}
-    undefines = [macro for macro in ALL_PLATFORM_MACROS if macro not in defined_names]
+    undefines = [macro for macro in all_platform_macros() if macro not in defined_names]
 
     command: list[str] = [
         "dotnet", "tool", "run", "ClangSharpPInvokeGenerator",
@@ -757,8 +679,10 @@ def platform_command_for_header(
     command.extend(CODEGEN_CONFIG[codegen])
     extend_rsp_arguments(command, repo, family, header)
     command.extend([
-        "--namespace", FAMILY_CONFIG[family]["namespace"],
-        "--with-access-specifier", f"{FAMILY_CONFIG[family]['raw_class']}=Internal",
+        "--methodClassName", family_raw_class(family),
+        "--libraryPath", family_library_name(family),
+        "--namespace", family_namespace(family),
+        "--with-access-specifier", f"{family_raw_class(family)}=Internal",
         "--include-directory", str(include_root),
     ])
     if use_platform_header_shims:
@@ -803,7 +727,7 @@ def generate_platform_specific_headers(
     """
     neutral_path = output_path_for_header(repo, codegen, family, header)
     neutral_symbols = extract_neutral_symbols(neutral_path)
-    include_root = repo / "vcpkg_installed" / triplet / "include" / "SDL2"
+    include_root = repo / "vcpkg_installed" / triplet / "include" / family_include_subdir(family)
     input_file = include_root / header
 
     commands_run = 0
@@ -812,7 +736,7 @@ def generate_platform_specific_headers(
     no_op_outputs: list[NoOpGeneratedOutput] = []
     accepted_warnings: list[AcceptedClangSharpWarnings] = []
 
-    for view_name, supported_os, defines in SDL2_PLATFORM_VIEWS:
+    for view_name, supported_os, defines in platform_views():
         command, output_path = platform_command_for_header(
             repo, triplet, codegen, family, header, view_name, defines, neutral_symbols, use_platform_header_shims
         )
@@ -856,12 +780,12 @@ def generate_platform_specific_headers(
 
 def output_path_for_header(repo: pathlib.Path, codegen: str, family: str, header: str) -> pathlib.Path:
     subdir = "Compat" if codegen == "compat" else "Modern"
-    library_dir = FAMILY_CONFIG[family]["library_dir"]
+    library_dir = family_library_dir(family)
     return repo / "spikes" / "binding-generators" / "clangsharp" / "src" / library_dir / "Generated" / subdir / (pathlib.Path(header).stem + ".g.cs")
 
 
 def generated_root_for_family(repo: pathlib.Path, family: str) -> pathlib.Path:
-    library_dir = FAMILY_CONFIG[family]["library_dir"]
+    library_dir = family_library_dir(family)
     return repo / "spikes" / "binding-generators" / "clangsharp" / "src" / library_dir / "Generated"
 
 
@@ -917,7 +841,7 @@ def command_for_header(
     header: str,
     use_platform_header_shims: bool,
 ) -> tuple[list[str], pathlib.Path]:
-    include_root = repo / "vcpkg_installed" / triplet / "include" / "SDL2"
+    include_root = repo / "vcpkg_installed" / triplet / "include" / family_include_subdir(family)
     input_file = include_root / header
     output_path = output_path_for_header(repo, codegen, family, header)
 
@@ -928,18 +852,20 @@ def command_for_header(
     command.extend(CODEGEN_CONFIG[codegen])
     extend_rsp_arguments(command, repo, family, header)
     command.extend([
-        "--namespace", FAMILY_CONFIG[family]["namespace"],
-        "--with-access-specifier", f"{FAMILY_CONFIG[family]['raw_class']}=Internal",
+        "--methodClassName", family_raw_class(family),
+        "--libraryPath", family_library_name(family),
+        "--namespace", family_namespace(family),
+        "--with-access-specifier", f"{family_raw_class(family)}=Internal",
         "--include-directory", str(include_root),
     ])
-    if use_platform_header_shims and header in PLATFORM_SENSITIVE_HEADERS.get(family, []):
+    if use_platform_header_shims and header in family_platform_sensitive_headers(family):
         command.extend(["--include-directory", str(platform_header_shim_root(repo))])
     command.extend([
         "--file", str(input_file),
         "--output", str(output_path),
     ])
-    if header in PLATFORM_SENSITIVE_HEADERS.get(family, []):
-        for macro in ALL_PLATFORM_MACROS:
+    if header in family_platform_sensitive_headers(family):
+        for macro in all_platform_macros():
             command.append(f"--additional=--undefine-macro={macro}")
     return command, output_path
 
@@ -971,19 +897,11 @@ def refresh_generated_file_counts(
         stats[family]["generated_files"] = sum(1 for path in family_root.rglob("*.g.cs") if path.is_file())
 
 
-def owner_mode_for_family(family: str) -> str:
-    return "owner" if family in ("core", "ttf", "mixer") else "consumer"
-
-
 def uniform_opaque_extra_args_for_family(family: str) -> list[str]:
     return [
         "--owner-mode", owner_mode_for_family(family),
-        "--handles-namespace", FAMILY_CONFIG[family]["namespace"],
+        "--handles-namespace", family_namespace(family),
     ]
-
-
-def production_header_list_file_name(family: str) -> str:
-    return FAMILY_CONFIG[family]["headers"]
 
 
 def postprocess_steps_for_codegen(codegen: str) -> tuple[str, ...]:
@@ -1296,8 +1214,9 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
         # MUST emit a per-header @-argument iff the per-header file exists on
         # disk. Exercises the actual code path used by both command_for_header
         # and platform_command_for_header.
-        expected_base = f"@{rsp_dir / 'base.rsp'}"
-        expected_family = f"@{rsp_dir / FAMILY_CONFIG['core']['rsp']}"
+        clangsharp_root = tmp / "spikes" / "binding-generators" / "clangsharp"
+        expected_base = f"@{clangsharp_root / 'rsp' / 'base.rsp'}"
+        expected_family = f"@{clangsharp_root / family_rsp_relpath('core')}"
         expected_per_header = f"@{per_header_dir / 'SDL_audio.rsp'}"
 
         with_per_header: list[str] = []
@@ -1320,7 +1239,7 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
         tmp = pathlib.Path(raw_tmp)
         rsp_dir = tmp / "spikes" / "binding-generators" / "clangsharp" / "rsp"
         rsp_dir.mkdir(parents=True)
-        include_root = tmp / "vcpkg_installed" / "x64-windows-hybrid" / "include" / "SDL2"
+        include_root = tmp / "vcpkg_installed" / "x64-windows-hybrid" / "include" / family_include_subdir("core")
         include_root.mkdir(parents=True)
         input_file = include_root / "SDL_system.h"
         input_file.write_text("/* fixture */\n", encoding="utf-8")
@@ -1340,7 +1259,7 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
             failures.append("platform command emitted standalone --additional for platform undefines")
 
         defined_names = {"linux", "__linux", "__linux__", "__LINUX__"}
-        expected_undefines = [macro for macro in ALL_PLATFORM_MACROS if macro not in defined_names]
+        expected_undefines = [macro for macro in all_platform_macros() if macro not in defined_names]
         expected_additional_undefines = [
             f"--additional=--undefine-macro={macro}"
             for macro in expected_undefines
@@ -1369,7 +1288,7 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
             failures.append("neutral platform-sensitive command emitted standalone --additional for platform undefines")
         expected_neutral_undefines = [
             f"--additional=--undefine-macro={macro}"
-            for macro in ALL_PLATFORM_MACROS
+            for macro in all_platform_macros()
         ]
         actual_neutral_undefines = [
             token for token in neutral_command
@@ -1618,62 +1537,27 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
     elif PRODUCTION_CODEGEN_PASSES != ("compat", "modern"):
         failures.append(f"production codegen passes must be exactly ('compat', 'modern'); got {PRODUCTION_CODEGEN_PASSES!r}")
 
-    expected_family_config = {
-        "core": {
-            "namespace": "SDL2",
-            "raw_class": "SDLNative",
-            "rsp": "sdl2-core.rsp",
-            "headers": "sdl2-core.headers.txt",
-            "library_dir": "Janset.SDL2.Core",
-        },
-        "image": {
-            "namespace": "SDL2.Image",
-            "raw_class": "SDL_imageNative",
-            "rsp": "sdl2-image.rsp",
-            "headers": "sdl2-image.headers.txt",
-            "library_dir": "Janset.SDL2.Image",
-        },
-        "ttf": {
-            "namespace": "SDL2.Ttf",
-            "raw_class": "SDL_ttfNative",
-            "rsp": "sdl2-ttf.rsp",
-            "headers": "sdl2-ttf.headers.txt",
-            "library_dir": "Janset.SDL2.Ttf",
-        },
-        "mixer": {
-            "namespace": "SDL2.Mixer",
-            "raw_class": "SDL_mixerNative",
-            "rsp": "sdl2-mixer.rsp",
-            "headers": "sdl2-mixer.headers.txt",
-            "library_dir": "Janset.SDL2.Mixer",
-        },
-        "gfx": {
-            "namespace": "SDL2.Gfx",
-            "raw_class": "SDL2_gfxNative",
-            "rsp": "sdl2-gfx.rsp",
-            "headers": "sdl2-gfx.headers.txt",
-            "library_dir": "Janset.SDL2.Gfx",
-        },
+    expected_identity = {
+        "core": ("SDL2", "SDLNative", "Janset.SDL2.Core"),
+        "image": ("SDL2.Image", "SDL_imageNative", "Janset.SDL2.Image"),
+        "ttf": ("SDL2.Ttf", "SDL_ttfNative", "Janset.SDL2.Ttf"),
+        "mixer": ("SDL2.Mixer", "SDL_mixerNative", "Janset.SDL2.Mixer"),
+        "gfx": ("SDL2.Gfx", "SDL2_gfxNative", "Janset.SDL2.Gfx"),
     }
-    for family, expected in expected_family_config.items():
-        if FAMILY_CONFIG.get(family) != expected:
-            failures.append(f"FAMILY_CONFIG[{family!r}] did not match expected S1-2 identity")
-        if family != "core" and PLATFORM_SENSITIVE_HEADERS.get(family) != []:
-            failures.append(f"PLATFORM_SENSITIVE_HEADERS[{family!r}] expected empty list")
-        try:
-            if production_header_list_file_name(family) != expected["headers"]:
-                failures.append(f"production_header_list_file_name({family!r}) did not return the production header list")
-        except KeyError as exc:
-            failures.append(f"production_header_list_file_name({family!r}) raised KeyError: {exc}")
+    for family, (ns, raw, proj) in expected_identity.items():
+        actual = (family_namespace(family), family_raw_class(family), family_library_dir(family))
+        if actual != (ns, raw, proj):
+            failures.append(f"config identity for {family!r}: expected {(ns, raw, proj)!r}, got {actual!r}")
+        if family != "core" and family_platform_sensitive_headers(family) != []:
+            failures.append(f"platform_sensitive_headers[{family!r}] expected empty list")
+    if family_platform_sensitive_headers("core") != ["SDL_main.h", "SDL_system.h"]:
+        failures.append("core platform_sensitive_headers regressed")
+    expected_library_names = {"core": "SDL2", "image": "SDL2_image", "ttf": "SDL2_ttf", "mixer": "SDL2_mixer", "gfx": "SDL2_gfx"}
+    for family, lib in expected_library_names.items():
+        if family_library_name(family) != lib:
+            failures.append(f"library_name for {family!r}: expected {lib!r}, got {family_library_name(family)!r}")
 
-    for family, config in FAMILY_CONFIG.items():
-        if "headers" not in config:
-            failures.append(f"FAMILY_CONFIG[{family!r}] does not expose the production headers field")
-        stale_keys = sorted(set(config) & {"bootstrap_scope", "full_scope"})
-        if stale_keys:
-            failures.append(f"FAMILY_CONFIG[{family!r}] retained stale scope fields: {stale_keys}")
-
-    stale_helpers = [name for name in ("scope_file_name", "production_header_scope_file_name") if name in globals()]
+    stale_helpers = [name for name in ("scope_file_name", "production_header_scope_file_name", "production_header_list_file_name") if name in globals()]
     if stale_helpers:
         failures.append(f"stale scope helper(s) still exist: {stale_helpers}")
 
@@ -1894,22 +1778,6 @@ extern DECLSPEC void SDLCALL SDL_Quit(void);
         if image_args != expected_image_args:
             failures.append(f"uniform-opaque args for 'image': expected {expected_image_args!r}, got {image_args!r}")
 
-    scope_root = find_repository_root() / "spikes" / "binding-generators" / "scope"
-    missing_scope_file = scope_root / "__self-test-missing-scope-sentinel__.headers.txt"
-    try:
-        read_header_list(missing_scope_file)
-        failures.append("read_header_list did not raise for missing sentinel header-list file")
-    except FileNotFoundError as exc:
-        message = str(exc)
-        if "For new families" not in message:
-            failures.append(f"read_header_list FileNotFoundError lacks 'For new families' hint; got: {message}")
-        if "spikes/binding-generators/scope" not in message.replace("\\", "/"):
-            failures.append(f"read_header_list FileNotFoundError lacks scope directory hint; got: {message}")
-    except KeyError as exc:
-        failures.append(f"read_header_list raised KeyError instead of friendly FileNotFoundError: {exc}")
-    except Exception as exc:
-        failures.append(f"read_header_list raised unexpected exception type {type(exc).__name__}: {exc}")
-
     if failures:
         for failure in failures:
             print(f"self-test: FAIL: {failure}")
@@ -1948,14 +1816,20 @@ def main() -> int:
     selected = selected_families(args.family)
     stats = create_generation_stats(selected)
 
-    try:
-        headers_by_family = {
-            family: read_header_list(scope_root / production_header_list_file_name(family))
-            for family in selected
-        }
-    except FileNotFoundError as exc:
-        print(f"ERROR: {exc}")
-        return 2
+    for family in selected:
+        if not family_header_names(family):
+            # A dormant family (ttf/mixer/gfx) has no headers in config yet.
+            # selected_families("all") never includes them, so this only fires
+            # for an explicit `--family ttf|mixer|gfx`. Fail loudly — do NOT
+            # let an explicitly-selected family silently no-op to success
+            # (preserves the pre-config FileNotFoundError behavior).
+            print(f"ERROR: family '{family}' is dormant — no headers configured "
+                  f"in family-config.json yet; it is activated in its expansion item.")
+            return 2
+    headers_by_family = {
+        family: family_header_names(family)
+        for family in selected
+    }
 
     for family, headers in headers_by_family.items():
         stats[family]["headers"] = len(headers)
@@ -1963,7 +1837,7 @@ def main() -> int:
     codegen_passes = list(PRODUCTION_CODEGEN_PASSES)
 
     if should_validate_required_sdlh_surface(args.execute, selected):
-        allowlist = read_required_surface_allowlist(scope_root / "sdl2-core-sdlh-required.json")
+        allowlist = required_surface_allowlist_from_config()
         validate_required_surface_against_manifest(repo, allowlist)
 
     if args.execute:
@@ -2001,7 +1875,7 @@ def main() -> int:
 
                     result = subprocess.run(command, cwd=spike_root, capture_output=True, text=True)
                     diagnostic_output = "\n".join(part for part in [result.stdout, result.stderr] if part)
-                    header_path = repo / "vcpkg_installed" / args.vcpkg_triplet / "include" / "SDL2" / header
+                    header_path = repo / "vcpkg_installed" / args.vcpkg_triplet / "include" / family_include_subdir(family) / header
                     accepted: AcceptedClangSharpWarnings | None = None
                     if output_path.is_file():
                         stats[family]["generated_files"] += 1
@@ -2047,7 +1921,7 @@ def main() -> int:
         print("--- multi-OS pass (SDL_main.h, SDL_system.h) ---")
         for codegen in codegen_passes:
             for family in selected:
-                platform_headers = PLATFORM_SENSITIVE_HEADERS.get(family, [])
+                platform_headers = family_platform_sensitive_headers(family)
                 in_scope = set(headers_by_family[family])
                 for header in platform_headers:
                     if header not in in_scope:

@@ -1,9 +1,3 @@
---libraryPath
-SDL2
-
---methodClassName
-SDLNative
-
 # SDL2.Core enum underlying type. SDL2 distinguishes the enum tag
 # SDL_PixelFormatEnum from the SDL_PixelFormat struct (Uint32 typedef in SDL2,
 # vs collapsed enum in SDL3 — ppy's `SDL_PixelFormat=uint` RSP would break SDL2).

@@ -243,66 +243,6 @@ internal sealed class OpaqueHandleEmitRewriter : CSharpSyntaxRewriter
     }
 
     /// <summary>
-    /// Parse the canonical family-keyed opaque-handle roster JSON. Returns the
-    /// <c>auto_detect_well_known</c> and <c>force_opaque_exceptions</c> name sets
-    /// for the requested family. Satellite families also pull Core's handle names
-    /// as data so their pointer references can rewrite by value without reading
-    /// Core generated files.
-    /// </summary>
-    public static (HashSet<string> AutoDetect, HashSet<string> ForceOpaque) LoadRoster(
-        string rosterPath,
-        string family,
-        bool includeCoreHandles = true)
-    {
-        if (!File.Exists(rosterPath))
-        {
-            throw new FileNotFoundException(
-                $"Opaque-handle roster not found at: {rosterPath}. " +
-                "Expected at <repo>/spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json.",
-                rosterPath);
-        }
-
-        using var doc = JsonDocument.Parse(File.ReadAllText(rosterPath));
-        var root = doc.RootElement;
-        var families = root.GetProperty("families");
-
-        var autoDetect = new HashSet<string>(StringComparer.Ordinal);
-        var forceOpaque = new HashSet<string>(StringComparer.Ordinal);
-
-        AppendFamilyEntries(families.GetProperty(family), autoDetect, forceOpaque);
-
-        if (includeCoreHandles && !family.Equals("core", StringComparison.Ordinal))
-        {
-            AppendFamilyEntries(families.GetProperty("core"), autoDetect, forceOpaque);
-        }
-
-        return (autoDetect, forceOpaque);
-    }
-
-    public static (HashSet<string> AutoDetect, HashSet<string> ForceOpaque) LoadFamilyOwnedRoster(
-        string rosterPath,
-        string family)
-    {
-        return LoadRoster(rosterPath, family, includeCoreHandles: false);
-    }
-
-    private static void AppendFamilyEntries(
-        JsonElement familyEntry,
-        HashSet<string> autoDetect,
-        HashSet<string> forceOpaque)
-    {
-        foreach (var entry in familyEntry.GetProperty("auto_detect_well_known").EnumerateArray())
-        {
-            autoDetect.Add(entry.GetProperty("name").GetString()!);
-        }
-
-        foreach (var entry in familyEntry.GetProperty("force_opaque_exceptions").EnumerateArray())
-        {
-            forceOpaque.Add(entry.GetProperty("name").GetString()!);
-        }
-    }
-
-    /// <summary>
     /// Compare the syntactic discovery set against the family's own
     /// <c>auto_detect_well_known</c> roster section while allowing pulled handle
     /// names that are used as rewrite data. On mismatch, write a single stderr
@@ -339,7 +279,7 @@ internal sealed class OpaqueHandleEmitRewriter : CSharpSyntaxRewriter
             {
                 Console.Error.WriteLine($"  In roster but not code: {string.Join(", ", inRosterNotCode.OrderBy(s => s, StringComparer.Ordinal))}");
             }
-            Console.Error.WriteLine($"  Resolution: audit spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json families.{family} section and update either the JSON or the auto-detect logic to converge.");
+            Console.Error.WriteLine($"  Resolution: audit spikes/binding-generators/clangsharp/config/family-config.json families.{family} section and update either the JSON or the auto-detect logic to converge.");
         }
     }
 

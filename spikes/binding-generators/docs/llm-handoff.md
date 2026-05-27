@@ -89,8 +89,8 @@ spikes/binding-generators/
 │   ├── next-iteration-plan.md         # active slice plan
 │   └── reference-clones.md            # how to clone ppy + alimer references
 ├── scope/
-│   ├── sdl2-core.headers.txt          # 51 SDL2.Core headers
-│   └── sdl2-image.headers.txt         # 1 SDL2_image header
+│   ├── sdl2-core.headers.txt          # 51 SDL2.Core headers (retired — absorbed into config/family-config.json)
+│   └── sdl2-image.headers.txt         # 1 SDL2_image header (retired — absorbed into config/family-config.json)
 ├── clangsharp/                        # ← THE ACTIVE PROTOTYPE
 │   ├── Janset.SDL2.ClangSharpSpike.slnx    # solution: postprocess + Core + Image + AbiTests
 │   ├── generate_bindings.py           # Python orchestrator (~1250 LOC)
@@ -106,7 +106,7 @@ spikes/binding-generators/
 │   │       ├── SDL_vulkan.rsp         # Foreign Type Boundary: VkInstance/VkSurfaceKHR → IntPtr
 │   │       └── SDL_{audio,gamecontroller,haptic,joystick,sensor,surface,system}.rsp
 │   ├── policy/
-│   │   ├── opaque-handle-roster.json  # Pattern B handle roster, family-keyed schema 2.0
+│   │   ├── opaque-handle-roster.json  # Pattern B handle roster, family-keyed schema 2.0 (retired — absorbed into config/family-config.json)
 │   │   └── flags-enum-roster.json     # [Flags] allow-list, family-keyed schema 2.0
 │   ├── shims/platform-headers/        # Windows-local parse shims only (endian.h, AvailabilityMacros.h, TargetConditionals.h)
 │   ├── postprocess/                   # Microsoft.CodeAnalysis console app
@@ -432,7 +432,7 @@ dotnet run --project spikes/binding-generators/clangsharp/postprocess/Janset.SDL
 | Priority C durable policy | `docs/binding-autogen/binding-generator-constitution.md` |
 | Priority C follow-up backlog | `spikes/binding-generators/docs/next-iteration-plan.md` §"Review Follow-up Backlog — 2026-05-25" |
 | Semantic ABI research | `docs/research/semantic-abi-type-classification-research.md` (2026-05-22) |
-| Opaque-handle roster (single source of truth) | `spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json` (sdl2_version 2.32.10) |
+| Opaque-handle roster (single source of truth) | `spikes/binding-generators/clangsharp/config/family-config.json` `families.<family>.opaque_handles` (sdl2_version per-family) |
 | Toolchain ADR | `docs/decisions/2026-05-14-binding-autogen-toolchain.md` |
 | Build host pattern | `docs/decisions/2026-05-05-target-centric-build-host.md` |
 | Active slice plan | `spikes/binding-generators/docs/next-iteration-plan.md` |

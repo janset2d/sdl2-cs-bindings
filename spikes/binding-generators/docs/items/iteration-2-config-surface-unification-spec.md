@@ -1,7 +1,7 @@
 # Iteration 2 — Config Surface Unification: Design Spec
 
-**Date:** 2026-05-26  
-**Status:** Draft / proposed — awaiting approval  
+**Date:** 2026-05-26 (Amended 2026-05-27)  
+**Status:** Approved — spec/plan reconciled (oracle-derivation deferred; dormant headers empty; delta 5 required_surface order corrected; delta 7 library_name mapped)  
 **Branch:** `spike/binding-autogen-sdl2-gfx`  
 **Depends on:** Item 1 (per-library generation infrastructure) — closed  
 **Unblocks:** Items 2–5 (satellite Layer 1 expansion)  
@@ -49,8 +49,8 @@ Three-agent parallel sweep (2026-05-26) verified the 18-source roadmap inventory
 | 14 | Owner directory detection | `UniformOpaqueOwnerMode.cs:76` | Replace with config-driven `owner_mode` |
 | 15 | `owner_mode_for_family()` | `generate_bindings.py:974-975` | Move to per-family `owner_mode` |
 | 16 | Platform views (C# copy) | `PlatformDeltaPostProcessor.cs:10-31` | Derive from `global.platform_views` |
-| 17 | `oracle.cs FamilyConfigs` | `oracle.cs:162-215` | Derive from config, eliminate parallel copy |
-| 18 | `oracle.cs KnownFamilies` | `oracle.cs:220-227` | Derive from config families list |
+| 17 | `oracle.cs FamilyConfigs` | `oracle.cs:162-215` | **Deferred (2026-05-27 Deniz decision)** — oracle retains its own FamilyConfigs this iteration |
+| 18 | `oracle.cs KnownFamilies` | `oracle.cs:220-227` | **Deferred (2026-05-27 Deniz decision)** — oracle retains its own KnownFamilies this iteration |
 | 19 | Postprocess default namespace fallback | `Program.cs:103,216-217` | Derive from config family section |
 
 ### 2.2 Not moving (stays as-is)
@@ -95,7 +95,7 @@ Three-agent parallel sweep (2026-05-26) verified the 18-source roadmap inventory
 
 **Format:** Pure JSON (no JSONC). Comments are not needed — audit metadata fields (`reason`, `source`, `notes`, `last_audited`) serve the same role and are tool-validatable. Both Python (`json.load`) and C# (`System.Text.Json`) read pure JSON with zero dependency overhead.
 
-**Consumers:** Python `generate_bindings.py` + C# `postprocess/Program.cs` + C# `oracle.cs` — all read the same file, each picks its relevant sections.
+**Consumers:** Python `generate_bindings.py` + C# `postprocess/Program.cs` — all read the same file, each picks its relevant sections (C# `oracle.cs` is deferred this iteration).
 
 ### 4.1 Schema
 
@@ -216,8 +216,8 @@ The schema below shows structure and field naming. Values are representative, no
       "platform_sensitive_headers": ["SDL_main.h", "SDL_system.h"],
       "required_surface": {
         "functions": [
-          "SDL_Init", "SDL_InitSubSystem", "SDL_Quit",
-          "SDL_QuitSubSystem", "SDL_WasInit"
+          "SDL_Init", "SDL_InitSubSystem", "SDL_QuitSubSystem",
+          "SDL_WasInit", "SDL_Quit"
         ],
         "constants": [
           "SDL_INIT_TIMER", "SDL_INIT_AUDIO", "SDL_INIT_VIDEO",
@@ -761,7 +761,7 @@ Family RSP files (`sdl2-core.rsp`, `sdl2-image.rsp`, and future TTF/Mixer/GFX) p
 | `spikes/binding-generators/clangsharp/postprocess/ClongDualDispatchRewriter.cs` | Remove hardcoded `AffectedMethodNames` HashSet; read `clong_methods[]` from config per-family. Native type name classification (`"SDL_threadID"`, `"unsigned long"`, `"long"`) stays in code. |
 | `spikes/binding-generators/clangsharp/postprocess/PlatformDeltaPostProcessor.cs` | Remove `PlatformOrder` array and `SupportedOsByPlatform` dictionary; derive from `global.platform_views` |
 | `spikes/binding-generators/clangsharp/postprocess/FlagsAttributeRewriter.cs` | Config path change only (roster → config section); rewriter logic unchanged |
-| `spikes/binding-generators/clangsharp/oracle.cs` | Remove `FamilyConfigs` static records and `KnownFamilies` array; derive from config families |
+| `spikes/binding-generators/clangsharp/oracle.cs` | **Deferred (2026-05-27 Deniz decision)** — oracle retains its own FamilyConfigs this iteration |
 | `spikes/binding-generators/clangsharp/postprocess/PostProcessSelfTests.cs` | Update test assertions to use config-derived data instead of hardcoded counts; update config-path references |
 | `spikes/binding-generators/clangsharp/tests/` | Update any test that references old file paths or hardcoded family data |
 
@@ -829,12 +829,12 @@ Before any old config file is deleted, the implementation must:
 
 Iteration 2 is closed when:
 
-1. `family-config.json` exists at `clangsharp/config/family-config.json` with all 5 families fully populated, **mechanically seeded** from current files/code and diff-reviewed.
+1. `family-config.json` exists at `clangsharp/config/family-config.json` with all 5 families fully populated, **mechanically seeded** from current files/code and diff-reviewed (dormant families seeded with `headers: []` and `required_surface: null`, as no live source exists; Items 3–5 populate them).
 2. All 8 parity validation assertions pass (see §8.3).
 3. Python `generate_bindings.py` loads all per-family and global config from this file; no hardcoded `FAMILY_CONFIG`, `PLATFORM_SENSITIVE_HEADERS`, `ALL_PLATFORM_MACROS`, or `SDL2_PLATFORM_VIEWS` remain.
 4. C# postprocess derives all family identity (namespace, project_dir, owner_mode) from config; all hardcoded switch/if-chain family resolution is eliminated from `Program.cs`, `UniformOpaqueFamilyIdentity.cs`, and `UniformOpaqueOwnerMode.cs`.
 5. C# `ClongDualDispatchRewriter.cs` reads `clong_methods[]` from config; no hardcoded `AffectedMethodNames` HashSet remains. Native type name classification stays in code per §3.
-6. C# `oracle.cs` derives `FamilyConfigs` from config; no hardcoded per-family records remain.
+6. **Deferred (2026-05-27 Deniz decision)** — C# `oracle.cs` derives `FamilyConfigs` from config; no hardcoded per-family records remain.
 7. `PlatformDeltaPostProcessor` derives platform views from `global.platform_views`; no hardcoded `PlatformOrder`/`SupportedOsByPlatform` remain.
 8. All 5 retired files are deleted (headers.txt × 2, required.json, roster.json × 2) — only after parity validation passes.
 9. All determinism and family-isolation gates pass (see §8.1, §8.2).

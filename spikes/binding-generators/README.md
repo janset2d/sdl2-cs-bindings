@@ -87,21 +87,17 @@ spikes/binding-generators/
 │   ├── oracle-evidence-design.md                    # Roslyn/file-based oracle evidence design
 │   ├── oracle-evidence-implementation-plan.md       # oracle evidence task plan
 │   └── reference-clones.md                          # local clone commands for upstream refs
-├── scope/
-│   ├── sdl2-core.headers.txt                        # full SDL2.Core header inventory (51 entries)
-│   └── sdl2-image.headers.txt                       # full SDL2_image header inventory
 ├── clangsharp/                                      # ACTIVE — ppy-style ClangSharp prototype
 │   ├── generate_bindings.py                         # complete-family orchestrator (Compat + Modern; multi-OS pass; 7-step postprocess)
 │   ├── oracle.cs                                    # Roslyn/file-based raw ABI evidence reporter
 │   ├── Janset.SDL2.ClangSharpSpike.slnx             # IDE solution (postprocess + Core + Image + AbiTests)
+│   ├── config/
+│   │   └── family-config.json                       # unified family configuration (identity, rosters, platform views, required surface)
 │   ├── rsp/
 │   │   ├── base.rsp                                 # cross-cutting policy (defines, remaps incl. wchar_t* → nint, with-types, clang_args)
 │   │   ├── sdl2-core.rsp                            # family identity + exclusions for SDL2.Core
 │   │   ├── sdl2-image.rsp                           # family identity + exclusions for SDL2_image
 │   │   └── per-header/                              # ppy-pattern per-header RSP overlays (R6 tag remaps, BCL helper excludes, foreign-type boundary)
-│   ├── policy/
-│   │   ├── opaque-handle-roster.json                # Pattern B handle roster, family-keyed schema 2.0
-│   │   └── flags-enum-roster.json                   # [Flags] allow-list, family-keyed schema 2.0
 │   ├── postprocess/                                 # Microsoft.CodeAnalysis console app — 7 postprocess steps
 │   ├── shims/platform-headers/                      # Windows-local synthetic platform parse shims only
 │   ├── tests/abi-tests/                             # Per-TFM ABI runtime smoke (net10/9/8/462, Win + Linux x64 docker)

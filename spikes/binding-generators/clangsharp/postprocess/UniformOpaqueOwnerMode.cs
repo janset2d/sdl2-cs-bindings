@@ -1,3 +1,5 @@
+using Janset.SDL2.PostProcess.Config;
+
 namespace Janset.SDL2.PostProcess;
 
 /// <summary>
@@ -8,10 +10,9 @@ namespace Janset.SDL2.PostProcess;
 /// functions does not roll up into the <c>&lt;Main&gt;$</c> CA1502 budget. The
 /// orchestrator (<c>generate_bindings.py</c>) passes
 /// <c>--owner-mode owner|consumer</c> explicitly per family identity; the
-/// substring-based fallback inside <see cref="IsOwnerDirectoryByPath"/> exists
-/// only as a deprecation safety net so a missing flag does not silently flip
-/// an owner directory to consumer mode (which would lose the
-/// <c>Handles.g.cs</c> emit).
+/// fallback inside config owner_mode exists only as a deprecation safety net so a
+/// missing flag does not silently flip an owner directory to consumer mode (which
+/// would lose the <c>Handles.g.cs</c> emit).
 /// </remarks>
 internal static class UniformOpaqueOwnerMode
 {
@@ -39,12 +40,10 @@ internal static class UniformOpaqueOwnerMode
 
     /// <summary>
     /// Resolve uniform-opaque owner/consumer mode for the current invocation:
-    /// explicit <c>--owner-mode</c> wins; otherwise fall back to substring
-    /// detection on the output directory and log a deprecation warning so the
-    /// missing orchestrator wire-up is visible in the build log instead of
-    /// silently corrupting the emit.
+    /// explicit <c>--owner-mode</c> wins; otherwise fall back to config
+    /// owner_mode and log a warning.
     /// </summary>
-    public static bool Resolve(string[] arguments, string outputDirectory)
+    public static bool Resolve(string[] arguments, string outputDirectory, FamilyConfig config, string family)
     {
         var flag = ParseFlag(arguments);
         if (flag is { } explicitMode)
@@ -53,27 +52,10 @@ internal static class UniformOpaqueOwnerMode
             return explicitMode;
         }
 
-        Console.WriteLine("uniform-opaque: WARNING — --owner-mode flag not provided; falling back to substring detection. Pass --owner-mode owner|consumer explicitly.");
-        var fallback = IsOwnerDirectoryByPath(outputDirectory);
-        Console.WriteLine($"uniform-opaque: owner-mode={(fallback ? "owner" : "consumer")} (substring fallback)");
+        Console.WriteLine("uniform-opaque: WARNING — --owner-mode flag not provided; falling back to config owner_mode.");
+        var fallback = config.OwnerMode(family);
+        Console.WriteLine($"uniform-opaque: owner-mode={(fallback ? "owner" : "consumer")} (config fallback)");
         return fallback;
-    }
-
-    /// <summary>
-    /// Path-based handle-owner detection. <c>Janset.SDL2.Core</c> declares the
-    /// Pattern B bodies; <c>Janset.SDL2.Image</c> and any future satellite
-    /// consume them via ProjectReference + shared SDL2 namespace nesting.
-    /// </summary>
-    /// <remarks>
-    /// Kept as a fallback only. A future project rename (e.g.,
-    /// <c>Janset.SDL2.Core</c> -> <c>Janset.SDL2.SDL2</c>) would silently flip
-    /// every directory to consumer mode under this check, which is why the
-    /// orchestrator now wires <c>--owner-mode</c> explicitly. Remove once
-    /// every caller is confirmed to pass the flag.
-    /// </remarks>
-    public static bool IsOwnerDirectoryByPath(string directory)
-    {
-        return directory.Replace('\\', '/').Contains("/Janset.SDL2.Core/", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

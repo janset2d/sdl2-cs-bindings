@@ -1,4 +1,5 @@
 using Janset.SDL2.PostProcess;
+using Janset.SDL2.PostProcess.Config;
 using Microsoft.CodeAnalysis.CSharp;
 
 // Usage:
@@ -66,6 +67,7 @@ var inputDir = Path.GetFullPath(args[1]);
 // output directory and the postprocess would write Handles.g.cs into a path
 // named `--owner-mode/`.
 var outputDir = PostProcessCli.ResolveOutputDirectory(args, inputDir);
+var familyConfig = FamilyConfig.Load(inputDir);
 
 if (!Directory.Exists(inputDir))
 {
@@ -82,7 +84,7 @@ if (modeInputError is not null)
 
 if (mode == "platform-delta")
 {
-    var result = new PlatformDeltaPostProcessor().Process(inputDir, outputDir);
+    var result = new PlatformDeltaPostProcessor(familyConfig.PlatformViews()).Process(inputDir, outputDir);
     Console.WriteLine($"platform-delta: {result.ProcessedFiles} platform files scanned, {result.TransformedFiles} files transformed, {result.RemovedDeclarations} duplicate declarations removed");
     return 0;
 }
@@ -129,9 +131,8 @@ switch (mode)
     }
     case "flags-detect":
     {
-        var rosterPath = FlagsEnumRosterLoader.ResolveRosterPath();
-        var family = ResolveFamilyFromOutputDir(outputDir);
-        var allowList = FlagsEnumRosterLoader.LoadForFamily(rosterPath, family);
+        var family = ResolveFamilyFromOutputDir(outputDir, familyConfig);
+        var allowList = familyConfig.FlagsAllowList(family);
         Console.WriteLine($"flags-detect: family={family}, allow-list size={allowList.Count}");
         var r = new FlagsAttributeRewriter(allowList);
         rewriter = r;
@@ -142,8 +143,10 @@ switch (mode)
     case "clong-dispatch":
     {
         var clongMode = ClongDualDispatchRewriter.DetectMode(inputDir);
-        Console.WriteLine($"clong-dispatch: mode={clongMode}");
-        var r = new ClongDualDispatchRewriter(clongMode);
+        var family = ResolveFamilyFromOutputDir(outputDir, familyConfig);
+        var clongMethods = familyConfig.ClongMethods(family);
+        Console.WriteLine($"clong-dispatch: mode={clongMode}, family={family}, methods={clongMethods.Count}");
+        var r = new ClongDualDispatchRewriter(clongMode, clongMethods);
         rewriter = r;
         hasChanges = () => r.AnyChanges;
         resetRewriter = r.Reset;
@@ -151,12 +154,10 @@ switch (mode)
     }
     case "uniform-opaque":
     {
-        // Resolve roster path: walk inputDir ancestors until we find the spike policy dir.
-        var rosterPath = ResolveOpaqueHandleRosterPath(inputDir);
         uniformOpaqueHandlesNamespace = ParseOptionValue(args, "--handles-namespace") ?? "SDL2";
-        var family = UniformOpaqueFamilyIdentity.Resolve(outputDir, uniformOpaqueHandlesNamespace);
-        var (rosterAutoDetect, rosterForceOpaque) = OpaqueHandleEmitRewriter.LoadRoster(rosterPath, family);
-        var (familyAutoDetect, familyForceOpaque) = OpaqueHandleEmitRewriter.LoadFamilyOwnedRoster(rosterPath, family);
+        var family = UniformOpaqueFamilyIdentity.Resolve(outputDir, uniformOpaqueHandlesNamespace, familyConfig);
+        var (rosterAutoDetect, rosterForceOpaque) = familyConfig.OpaqueHandles(family, includeCoreHandles: true);
+        var (familyAutoDetect, familyForceOpaque) = familyConfig.OpaqueHandles(family, includeCoreHandles: false);
 
         // Combined handle set: rewriter removes any partial struct declaration with
         // one of these names and rewrites SDL_X* -> SDL_X at param/return positions.
@@ -180,9 +181,9 @@ switch (mode)
         // flag (set by generate_bindings.py per family identity). Fall back to
         // the substring-based detection with a deprecation warning so a missing
         // orchestrator wire-up does not silently corrupt the emit.
-        uniformOpaqueIsOwner = UniformOpaqueOwnerMode.Resolve(args, outputDir);
+        uniformOpaqueIsOwner = UniformOpaqueOwnerMode.Resolve(args, outputDir, familyConfig, family);
 
-        Console.WriteLine($"uniform-opaque: applying {rosterAutoDetect.Count} auto-detect + {rosterForceOpaque.Count} force-opaque handles from {Path.GetFileName(rosterPath)} for family '{family}' (syntactic discovery: {syntacticDetect.Count})");
+        Console.WriteLine($"uniform-opaque: applying {rosterAutoDetect.Count} auto-detect + {rosterForceOpaque.Count} force-opaque handles from family-config.json for family '{family}' (syntactic discovery: {syntacticDetect.Count})");
         uniformOpaqueHandleNames = ownerHandleNames;
         var r = new OpaqueHandleEmitRewriter(handleNames);
         rewriter = r;
@@ -218,48 +219,22 @@ UniformOpaqueOwnerMode.EmitConsolidatedHandlesFileIfOwner(
 
 return 0;
 
-static string ResolveOpaqueHandleRosterPath(string inputDir)
+static string ResolveFamilyFromOutputDir(string outputDir, FamilyConfig config)
 {
-    var dir = new DirectoryInfo(Path.GetFullPath(inputDir));
-    while (dir != null)
-    {
-        var candidate = Path.Combine(dir.FullName, "spikes", "binding-generators", "clangsharp", "policy", "opaque-handle-roster.json");
-        if (File.Exists(candidate))
-        {
-            return candidate;
-        }
-        dir = dir.Parent;
-    }
-    throw new FileNotFoundException(
-        $"Could not locate opaque-handle-roster.json by walking ancestors of '{inputDir}'. " +
-        "Expected at <repo>/spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json.");
-}
-
-static string ResolveFamilyFromOutputDir(string outputDir)
-{
+    var map = config.ProjectDirToFamily();
     var directory = new DirectoryInfo(Path.GetFullPath(outputDir));
     while (directory is not null)
     {
-        var family = directory.Name switch
-        {
-            "Janset.SDL2.Core" => "core",
-            "Janset.SDL2.Image" => "image",
-            "Janset.SDL2.Ttf" => "ttf",
-            "Janset.SDL2.Mixer" => "mixer",
-            "Janset.SDL2.Gfx" => "gfx",
-            _ => null,
-        };
-
-        if (family is not null)
+        if (map.TryGetValue(directory.Name, out var family))
         {
             return family;
         }
-
         directory = directory.Parent;
     }
 
     throw new InvalidOperationException(
-        $"Could not resolve SDL2 family from output directory '{outputDir}'. Expected path to contain one of Janset.SDL2.Core/Image/Ttf/Mixer/Gfx.");
+        $"Could not resolve SDL2 family from output directory '{outputDir}'. " +
+        $"Expected a path segment matching a config project_dir: {string.Join(", ", map.Keys)}.");
 }
 
 static string? ParseOptionValue(string[] arguments, string optionName)
