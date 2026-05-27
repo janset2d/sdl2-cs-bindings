@@ -180,6 +180,8 @@ The following are open questions that belong to Iteration 2's spec + plan, not t
 
 ## Item 2: SDL_image Bug Fixes
 
+**Status:** Closed 2026-05-27. All success criteria satisfied as a side effect of Item 1 S1-6 (flags-detect) and Iteration 2 config unification. No code work remains — closure is documentation-only.
+
 **Goal:** Fix the single confirmed bug in existing SDL_image bindings. Prove the per-library infrastructure can make targeted fixes without regressing Core.
 
 ### Success Criteria
