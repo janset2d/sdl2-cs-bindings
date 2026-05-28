@@ -25,8 +25,8 @@ This spike report is evidence, not a correctness certificate. Raw ABI constituti
 | sdl2-image | Manifest Required Surface | `build/manifest.json` | n/a | 0 | 0 | 0 |
 | sdl2-image | SDL2-CS | `external/sdl2-cs/src/SDL2_image.cs` | present | 29 | 4 | 3 |
 | sdl2-mixer | Cake Preview | `n/a` | n/a | 0 | 0 | 0 |
-| sdl2-mixer | ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Mixer/Generated/Compat` | missing | 0 | 0 | 0 |
-| sdl2-mixer | ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Mixer/Generated/Modern` | missing | 0 | 0 | 0 |
+| sdl2-mixer | ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Mixer/Generated/Compat` | present | 101 | 17 | 6 |
+| sdl2-mixer | ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Mixer/Generated/Modern` | present | 101 | 17 | 6 |
 | sdl2-mixer | SDL2 Dynapi | `external/vcpkg or vcpkg_installed` | n/a | 0 | 0 | 0 |
 | sdl2-mixer | Manifest Required Surface | `build/manifest.json` | n/a | 0 | 0 | 0 |
 | sdl2-mixer | SDL2-CS | `external/sdl2-cs/src/SDL2_mixer.cs` | present | 104 | 9 | 5 |
@@ -324,8 +324,8 @@ No evidence gaps were detected for loaded sources and manifest-required checks.
 | Source | Path | Status | Functions | Constants | Types |
 | --- | --- | --- | ---: | ---: | ---: |
 | Cake Preview | `n/a` | n/a | 0 | 0 | 0 |
-| ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Mixer/Generated/Compat` | missing | 0 | 0 | 0 |
-| ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Mixer/Generated/Modern` | missing | 0 | 0 | 0 |
+| ClangSharp Compat | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Mixer/Generated/Compat` | present | 101 | 17 | 6 |
+| ClangSharp Modern | `spikes/binding-generators/clangsharp/src/Janset.SDL2.Mixer/Generated/Modern` | present | 101 | 17 | 6 |
 | SDL2 Dynapi | `external/vcpkg or vcpkg_installed` | n/a | 0 | 0 | 0 |
 | Manifest Required Surface | `build/manifest.json` | n/a | 0 | 0 | 0 |
 | SDL2-CS | `external/sdl2-cs/src/SDL2_mixer.cs` | present | 104 | 9 | 5 |
@@ -334,7 +334,7 @@ No evidence gaps were detected for loaded sources and manifest-required checks.
 
 | Surface | Functions | Constants | Types |
 | --- | ---: | ---: | ---: |
-| Generated ClangSharp | 0 | 0 | 0 |
+| Generated ClangSharp | 202 | 34 | 12 |
 | Cake Preview | 0 | 0 | 0 |
 | SDL2-CS | 104 | 9 | 5 |
 | Dynapi | 0 | 0 | 0 |
@@ -349,61 +349,60 @@ No raw ABI constitution checks were produced.
 | Function | Generated | Cake | SDL2-CS | Dynapi |
 | --- | --- | --- | --- | --- |
 | `MIX_Linked_Version` | no | n/a | yes | n/a |
-| `Mix_AllocateChannels` | no | n/a | yes | n/a |
-| `Mix_ChannelFinished` | no | n/a | yes | n/a |
-| `Mix_CloseAudio` | no | n/a | yes | n/a |
-| `Mix_EachSoundFont` | no | n/a | yes | n/a |
-| `Mix_ExpireChannel` | no | n/a | yes | n/a |
-| `Mix_FadeInChannelTimed` | no | n/a | yes | n/a |
-| `Mix_FadeInMusic` | no | n/a | yes | n/a |
-| `Mix_FadeInMusicPos` | no | n/a | yes | n/a |
-| `Mix_FadeOutChannel` | no | n/a | yes | n/a |
-| `Mix_FadeOutGroup` | no | n/a | yes | n/a |
-| `Mix_FadeOutMusic` | no | n/a | yes | n/a |
-| `Mix_FadingChannel` | no | n/a | yes | n/a |
-| `Mix_FadingMusic` | no | n/a | yes | n/a |
-| `Mix_FreeChunk` | no | n/a | yes | n/a |
-| `Mix_FreeMusic` | no | n/a | yes | n/a |
-| `Mix_GetChunk` | no | n/a | yes | n/a |
-| `Mix_GetChunkDecoder` | no | n/a | yes | n/a |
-| `Mix_GetMusicAlbumTag` | no | n/a | yes | n/a |
-| `Mix_GetMusicArtistTag` | no | n/a | yes | n/a |
-| `Mix_GetMusicCopyrightTag` | no | n/a | yes | n/a |
-| `Mix_GetMusicDecoder` | no | n/a | yes | n/a |
-| `Mix_GetMusicHookData` | no | n/a | yes | n/a |
-| `Mix_GetMusicLoopEndTime` | no | n/a | yes | n/a |
-| `Mix_GetMusicLoopLengthTime` | no | n/a | yes | n/a |
-| `Mix_GetMusicLoopStartTime` | no | n/a | yes | n/a |
-| `Mix_GetMusicPosition` | no | n/a | yes | n/a |
-| `Mix_GetMusicTitle` | no | n/a | yes | n/a |
-| `Mix_GetMusicTitleTag` | no | n/a | yes | n/a |
-| `Mix_GetMusicType` | no | n/a | yes | n/a |
-| `Mix_GetNumChunkDecoders` | no | n/a | yes | n/a |
-| `Mix_GetNumMusicDecoders` | no | n/a | yes | n/a |
-| `Mix_GetSoundFonts` | no | n/a | yes | n/a |
-| `Mix_GetSynchroValue` | no | n/a | yes | n/a |
-| `Mix_GetTimidityCfg` | no | n/a | yes | n/a |
+| `Mix_AllocateChannels` | yes | n/a | yes | n/a |
+| `Mix_ChannelFinished` | yes | n/a | yes | n/a |
+| `Mix_CloseAudio` | yes | n/a | yes | n/a |
+| `Mix_EachSoundFont` | yes | n/a | yes | n/a |
+| `Mix_ExpireChannel` | yes | n/a | yes | n/a |
+| `Mix_FadeInChannel` | yes | n/a | no | n/a |
+| `Mix_FadeInChannelTimed` | yes | n/a | yes | n/a |
+| `Mix_FadeInMusic` | yes | n/a | yes | n/a |
+| `Mix_FadeInMusicPos` | yes | n/a | yes | n/a |
+| `Mix_FadeOutChannel` | yes | n/a | yes | n/a |
+| `Mix_FadeOutGroup` | yes | n/a | yes | n/a |
+| `Mix_FadeOutMusic` | yes | n/a | yes | n/a |
+| `Mix_FadingChannel` | yes | n/a | yes | n/a |
+| `Mix_FadingMusic` | yes | n/a | yes | n/a |
+| `Mix_FreeChunk` | yes | n/a | yes | n/a |
+| `Mix_FreeMusic` | yes | n/a | yes | n/a |
+| `Mix_GetChunk` | yes | n/a | yes | n/a |
+| `Mix_GetChunkDecoder` | yes | n/a | yes | n/a |
+| `Mix_GetMusicAlbumTag` | yes | n/a | yes | n/a |
+| `Mix_GetMusicArtistTag` | yes | n/a | yes | n/a |
+| `Mix_GetMusicCopyrightTag` | yes | n/a | yes | n/a |
+| `Mix_GetMusicDecoder` | yes | n/a | yes | n/a |
+| `Mix_GetMusicHookData` | yes | n/a | yes | n/a |
+| `Mix_GetMusicLoopEndTime` | yes | n/a | yes | n/a |
+| `Mix_GetMusicLoopLengthTime` | yes | n/a | yes | n/a |
+| `Mix_GetMusicLoopStartTime` | yes | n/a | yes | n/a |
+| `Mix_GetMusicPosition` | yes | n/a | yes | n/a |
+| `Mix_GetMusicTitle` | yes | n/a | yes | n/a |
+| `Mix_GetMusicTitleTag` | yes | n/a | yes | n/a |
+| `Mix_GetMusicType` | yes | n/a | yes | n/a |
+| `Mix_GetMusicVolume` | yes | n/a | no | n/a |
+| `Mix_GetNumChunkDecoders` | yes | n/a | yes | n/a |
+| `Mix_GetNumMusicDecoders` | yes | n/a | yes | n/a |
+| `Mix_GetNumTracks` | yes | n/a | no | n/a |
+| `Mix_GetSoundFonts` | yes | n/a | yes | n/a |
+| `Mix_GetSynchroValue` | yes | n/a | yes | n/a |
+| `Mix_GetTimidityCfg` | yes | n/a | yes | n/a |
 | `Mix_GetVolumeMusicStream` | no | n/a | yes | n/a |
-| `Mix_GroupAvailable` | no | n/a | yes | n/a |
-| `Mix_GroupChannel` | no | n/a | yes | n/a |
-| `Mix_GroupChannels` | no | n/a | yes | n/a |
-| `Mix_GroupCount` | no | n/a | yes | n/a |
-| `Mix_GroupNewer` | no | n/a | yes | n/a |
-| `Mix_GroupOldest` | no | n/a | yes | n/a |
-| `Mix_HaltChannel` | no | n/a | yes | n/a |
-| `Mix_HaltGroup` | no | n/a | yes | n/a |
-| `Mix_HaltMusic` | no | n/a | yes | n/a |
-| `Mix_HookMusic` | no | n/a | yes | n/a |
-| `Mix_HookMusicFinished` | no | n/a | yes | n/a |
-| `Mix_Init` | no | n/a | yes | n/a |
-| `Mix_LoadMUS` | no | n/a | yes | n/a |
-| `Mix_LoadWAV_RW` | no | n/a | yes | n/a |
-| ... | 34 additional sorted function(s) omitted for readability. |  |  |  |
+| `Mix_GroupAvailable` | yes | n/a | yes | n/a |
+| `Mix_GroupChannel` | yes | n/a | yes | n/a |
+| `Mix_GroupChannels` | yes | n/a | yes | n/a |
+| `Mix_GroupCount` | yes | n/a | yes | n/a |
+| `Mix_GroupNewer` | yes | n/a | yes | n/a |
+| `Mix_GroupOldest` | yes | n/a | yes | n/a |
+| `Mix_HaltChannel` | yes | n/a | yes | n/a |
+| `Mix_HaltGroup` | yes | n/a | yes | n/a |
+| `Mix_HaltMusic` | yes | n/a | yes | n/a |
+| `Mix_HasChunkDecoder` | yes | n/a | no | n/a |
+| `Mix_HasMusicDecoder` | yes | n/a | no | n/a |
+| ... | 49 additional sorted function(s) omitted for readability. |  |  |  |
 
 ### Evidence Gaps
 
-- Evidence Missing: ClangSharp Compat at `spikes/binding-generators/clangsharp/src/Janset.SDL2.Mixer/Generated/Compat`.
-- Evidence Missing: ClangSharp Modern at `spikes/binding-generators/clangsharp/src/Janset.SDL2.Mixer/Generated/Modern`.
+No evidence gaps were detected for loaded sources and manifest-required checks.
 
 
 ## Family: sdl2-ttf

@@ -62,9 +62,11 @@
 ## 2. Type Inventory
 
 ### 2A. Opaque Handle: `Mix_Music`
+
 ```c
 typedef struct Mix_Music Mix_Music;
 ```
+
 Forward-declared only — no struct body. Pattern B opaque handle. **Satellite-owned** and listed under the `mixer` family in `opaque-handle-roster.json` schema 2.0, not under Core's family entry. Item 1 provides the owner-mode infrastructure; Item 5 validates it against real Mixer generation.
 
 ### 2B. Transparent Struct: `Mix_Chunk`
@@ -87,7 +89,7 @@ typedef struct Mix_Chunk {
 | `alen` | `Uint32` | `uint` | 8 | 16 | 4 |
 | `volume` | `Uint8` | `byte` | 12 | 20 | 1 |
 
-Total: 12 bytes (x86), 20 bytes (x64) with trailing padding. `[StructLayout(LayoutKind.Sequential)]` — no explicit layout needed. Standard POD struct.
+Total: 16 bytes (x86), 24 bytes (x64) with trailing padding. `[StructLayout(LayoutKind.Sequential)]` — no explicit layout needed. Standard POD struct.
 
 ### 2C. Enums
 
@@ -111,9 +113,11 @@ Total: 12 bytes (x86), 20 bytes (x64) with trailing padding. `[StructLayout(Layo
 All 6 use `SDLCALL` which resolves to `__cdecl` on Windows. Modern codegen emits `delegate* unmanaged[Cdecl]<...>`, Compat emits delegate types with `[UnmanagedFunctionPointer(CallingConvention.Cdecl)]`.
 
 ### 2E. No Structs with Function-Pointer Fields
+
 Unlike `SDL_RWops`, Mixer has no structs containing function pointer fields. All callbacks pass as parameters.
 
 ### 2F. No Unions
+
 **Verified:** Zero unions in SDL_mixer.h.
 
 ---
@@ -121,18 +125,23 @@ Unlike `SDL_RWops`, Mixer has no structs containing function pointer fields. All
 ## 3. ABI Risk Assessment
 
 ### Risk 1: Callback Delegate Contracts (HIGH but well-understood)
+
 All 6 callback typedefs use `SDLCALL` → `__cdecl`. Required interop attributes well-documented. ClangSharp handles callback typedefs natively — `compatible-codegen` emits delegate types, `latest-codegen` emits `delegate*` function pointers. No postprocess step needed.
 
 ### Risk 2: Mix_Chunk Layout (NEGLIGIBLE)
+
 No union. Clean POD struct. ClangSharp handles directly.
 
 ### Risk 3: `double` Parameters/Returns (NEGLIGIBLE)
+
 `double` is blittable and IEEE 754 identical across platforms.
 
 ### Risk 4: C `long` (ZERO)
+
 None found in any function signature.
 
 ### Risk 5: Platform-Conditioned Code (ZERO)
+
 Only include guards, C++ extern wrappers, and version-gated defines. No platform-macro `#if` blocks.
 
 ---
@@ -140,15 +149,21 @@ Only include guards, C++ extern wrappers, and version-gated defines. No platform
 ## 4. Constants and Macros
 
 ### Error Macros (exclude from raw ABI)
+
 `Mix_SetError`, `Mix_GetError`, `Mix_ClearError`, `Mix_OutOfMemory` — `#define` shortcuts to SDL core functions. Cannot cross `methodClassName` boundary. Exclude. See [sdl2-satellite-error-function-consolidation.md](sdl2-satellite-error-function-consolidation.md) for full cross-family analysis, peer comparison, and companion-helper policy path.
 
-### Legacy Compatibility Aliases (exclude)
-`MIX_MAJOR_VERSION`, `MIX_MINOR_VERSION`, `MIX_PATCHLEVEL`, `MIX_VERSION(X)` — backward-compat aliases. RHS is token references, not literals. Exclude.
+### Legacy Compatibility Aliases (keep where value-like)
+
+`MIX_MAJOR_VERSION`, `MIX_MINOR_VERSION`, `MIX_PATCHLEVEL` — backward-compat value aliases over `SDL_MIXER_*` version macros. Keep them when ClangSharp resolves them, matching the SDL2_ttf alias precedent.
+
+`MIX_VERSION(X)` is function-like and should be skipped/reported with the other version helper macros rather than excluded in the family RSP.
 
 ### Version Macros (keep)
+
 `SDL_MIXER_MAJOR_VERSION` (2), `SDL_MIXER_MINOR_VERSION` (8), `SDL_MIXER_PATCHLEVEL` (1).
 
 ### Other Constants (auto-emit)
+
 `MIX_CHANNELS` (8), `MIX_DEFAULT_FREQUENCY` (44100), `MIX_DEFAULT_FORMAT`, `MIX_DEFAULT_CHANNELS` (2), `MIX_MAX_VOLUME` (128), `MIX_CHANNEL_POST` (-2), `MIX_EFFECTSMAXSPEED` (string literal).
 
 ---
@@ -162,6 +177,7 @@ Includes only SDL2 core headers: `SDL_stdinc.h`, `SDL_rwops.h`, `SDL_audio.h`, `
 ## 6. RSP Recommendations
 
 ### Family RSP: `rsp/sdl2-mixer.rsp`
+
 ```
 --libraryPath
 SDL2_mixer
@@ -174,23 +190,22 @@ Mix_SetError
 Mix_GetError
 Mix_ClearError
 Mix_OutOfMemory
-MIX_MAJOR_VERSION
-MIX_MINOR_VERSION
-MIX_PATCHLEVEL
-MIX_VERSION
 ```
 
 ### Per-Header RSP: None needed
+
 No foreign types, no platform-conditioned declarations.
 
 ### Version Helper Macros (Layer 2/3 — not excluded, but must be skipped/reported)
 
 The following function-like and computed macros should be explicitly handled in the report rather than left to accidental emission:
+
 - `SDL_MIXER_VERSION(X)` (SDL_mixer.h:55-60) — function-like, fills SDL_version struct. Should be skipped/reported.
+- `MIX_VERSION(X)` (SDL_mixer.h:66) — backward-compat function-like alias over `SDL_MIXER_VERSION(X)`. Should be skipped/reported.
 - `SDL_MIXER_COMPILEDVERSION` (SDL_mixer.h:79-80) — computed value macro via `SDL_VERSIONNUM`. Image already emits the matching `SDL_IMAGE_COMPILEDVERSION` as `const int` at `SDL_image.g.cs:277-278`. Should be kept/auto-emitted if ClangSharp resolves it (same pattern as Image).
 - `SDL_MIXER_VERSION_ATLEAST(X,Y,Z)` (SDL_mixer.h:86-89) — function-like comparison. Should be skipped/reported.
 
-ClangSharp's `--generate-macro-bindings` handles value macros only, so the two function-like macros should be naturally skipped. However, they should appear in the generation report under a "version helpers" category rather than being silently absent.
+ClangSharp's `--generate-macro-bindings` handles value macros only, so the function-like macros should be naturally skipped. However, they should appear in the generation report under a "version helpers" category rather than being silently absent.
 
 ---
 
@@ -214,6 +229,7 @@ Mixer uses owner mode for `uniform-opaque` because `Mix_Music` at SDL_mixer.h:26
 ## 8. Postprocess Notes
 
 ### Existing Rewriters Coverage
+
 | Rewriter | Needed? | Notes |
 |---|---|---|
 | `strip-varargs` | No | No variadic functions |
@@ -225,12 +241,15 @@ Mixer uses owner mode for `uniform-opaque` because `Mix_Music` at SDL_mixer.h:26
 | `uniform-opaque` | Yes — owner mode | Emits `Mix_Music` locally and consumes Core-owned handles by value when present. |
 
 ### Satellite-Owned Opaque Handles
+
 `Mix_Music` is a satellite-owned opaque handle, so the correct owner is `SDL2.Mixer`. Do not add it to Core's family entry. Item 1's family-keyed roster + owner-mode path is the intended mechanism.
 
 ### `MIX_InitFlags` — `[Flags]` Annotation
+
 Handled by Item 1's `flags-detect` postprocess step via the `Flags` suffix rule; Item 5 should verify the generated enum stays decorated.
 
 ### No New Postprocess Steps Needed
+
 Callback function pointers are handled natively by ClangSharp codegen. No postprocess rewriter needed for delegate types.
 
 ---
@@ -245,6 +264,7 @@ Callback function pointers are handled natively by ClangSharp codegen. No postpr
 6. **`double` return functions** — `Mix_GetMusicPosition`, `Mix_MusicDuration` — verify double precision across P/Invoke
 
 ### Callback Smoke Design
+
 For Compat TFMs: delegate + `Marshal.GetFunctionPointerForDelegate()` + `GC.KeepAlive()` (per Microsoft P/Invoke best practices). For Modern TFMs: `[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]` static methods.
 
 ---
@@ -253,10 +273,10 @@ For Compat TFMs: delegate + `Marshal.GetFunctionPointerForDelegate()` + `GC.Keep
 
 1. **`Mix_Music` opaque handle ownership:** Owner is `SDL2.Mixer`. Item 1 provides the Pattern B infrastructure; Item 5 must validate the real generated `Handles.g.cs` and runtime handle roundtrip before NuGet ship.
 
-2. **`MIX_EFFECTSMAXSPEED` string macro:** Does ClangSharp's `--generate-macro-bindings` handle string `#define`s? If not, exclude it.
+2. **`MIX_EFFECTSMAXSPEED` string macro:** ClangSharp emits it as the canonical UTF-8 span shape in both Compat and Modern output.
 
-3. **`MIX_DEFAULT_FORMAT = AUDIO_S16SYS`:** Cross-header macro resolution — ClangSharp may not resolve the token from `SDL_audio.h`. Non-blocking cosmetic issue.
+3. **`MIX_DEFAULT_FORMAT = AUDIO_S16SYS`:** ClangSharp resolves the cross-header token to the generation-host value (`0x8010` on little-endian Windows-local generation). This is broader endian/platform-computed macro policy work; see [sdl2-endian-platform-macro-consolidation.md](sdl2-endian-platform-macro-consolidation.md).
 
-4. **`MIX_MAX_VOLUME = SDL_MIX_MAXVOLUME`:** Same cross-header resolution concern.
+4. **`MIX_MAX_VOLUME = SDL_MIX_MAXVOLUME`:** ClangSharp resolves this cross-header value to `128` in both Compat and Modern output.
 
 5. **`Mix_Linked_Version` returns `const SDL_version *`:** No special handling needed — consumer reads through pointer without freeing.

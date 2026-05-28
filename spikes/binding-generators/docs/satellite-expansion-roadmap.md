@@ -328,17 +328,19 @@ The following are open questions that belong to Iteration 2's spec + plan, not t
 
 ## Item 5: Expansion — SDL2_mixer
 
+**Status:** Closed 2026-05-28 for Layer 1 raw ABI generation. Mixer is active in `--family all`; `SDL_mixer.h` is the only Mixer header; owner-mode `Handles.g.cs` emits `Mix_Music`; `Mix_Chunk` remains transparent with `byte* abuf`; all six callback typedefs and the seven callback-consuming functions compile in Compat and Modern output; `MIX_InitFlags` has `[Flags]`; `Mix_Fading` and `Mix_MusicType` remain plain enums; error macro aliases are excluded; value-like legacy version aliases (`MIX_MAJOR_VERSION`, `MIX_MINOR_VERSION`, `MIX_PATCHLEVEL`) are kept. Runtime callback/audio smoke remains a Layer 2/Layer 3 follow-up, not a Layer 1 closure blocker.
+
 **Goal:** Full Layer 1 raw ABI for SDL2_mixer. Highest runtime risk due to callback delegates — last expansion item after infrastructure is battle-tested.
 
 ### Success Criteria
 
-1. `generate_bindings.py --family mixer --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims` produces `.g.cs` files including `Handles.g.cs` with `Mix_Music` Pattern B struct in `namespace SDL2.Mixer` (owner mode).
-2. `dotnet build Janset.SDL2.Mixer.csproj -c Release` — 0/0 across 5 TFMs.
-3. All 6 callback typedefs emit with correct `[UnmanagedFunctionPointer(CallingConvention.Cdecl)]` on Compat, correct `delegate* unmanaged[Cdecl]<...>` on Modern.
-4. `Mix_Chunk` struct layout verified (no union — plain 4-field POD).
-5. `[Flags]` on `MIX_InitFlags` (same fix as `IMG_InitFlags` from Item 2).
-6. `dotnet build Janset.SDL2.{Core,Image,Gfx,Ttf}.csproj` — still 0/0 (no regression).
-7. AbiTests: `Mix_OpenAudio`/`Mix_CloseAudio` lifecycle + `Mix_LoadWAV`/`Mix_PlayChannel` chunk playback + callback roundtrip smoke (`Mix_SetPostMix`).
+1. `generate_bindings.py --family mixer --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims` produced `.g.cs` files including `Handles.g.cs` with `Mix_Music` Pattern B struct in `namespace SDL2.Mixer` (owner mode).
+2. `dotnet build spikes/binding-generators/clangsharp/Janset.SDL2.ClangSharpSpike.slnx -c Release` completed with 0 warnings / 0 errors across the spike solution.
+3. All 6 callback typedefs emit with `[UnmanagedFunctionPointer(CallingConvention.Cdecl)]` on Compat; callback-consuming Modern functions use `delegate* unmanaged[Cdecl]<...>`.
+4. `Mix_Chunk` struct shape verified as a plain 4-field POD (`allocated`, `byte* abuf`, `alen`, `volume`), not an opaque handle or union.
+5. `[Flags]` on `MIX_InitFlags`; no `[Flags]` on `Mix_Fading` or `Mix_MusicType`.
+6. Aggregate generation kept Core/Image/GFX/TTF generated diffs empty with `git diff --ignore-cr-at-eol`.
+7. Python self-test, C# postprocess self-test, five-family oracle, and Slopwatch all passed.
 
 ### Current Understanding
 
@@ -347,10 +349,27 @@ The following are open questions that belong to Iteration 2's spec + plan, not t
 - **Callback typedefs:** 6 total. ClangSharp handles them natively — Compat emits delegate types with `[UnmanagedFunctionPointer]`, Modern emits `delegate*` function pointers. No postprocess changes needed for syntax-level emission. **Assumption:** ClangSharp's native callback handling is sufficient for all 6 typedefs. Deep-dive verifies.
 - **Mix_Chunk:** Plain 4-field POD struct. NO union (confirmed — contradicting earlier speculation). `[StructLayout(LayoutKind.Sequential)]`. No explicit layout needed.
 - **`[Flags]` gap:** `MIX_InitFlags` — same bitmask pattern as `IMG_InitFlags`. Handled by Item 1's `[Flags]` detection mechanism.
-- **Error macros:** 4 to exclude (`Mix_SetError`, `Mix_GetError`, `Mix_ClearError`, `Mix_OutOfMemory`). Legacy compat aliases also excluded. See [satellites/sdl2-satellite-error-function-consolidation.md](satellites/sdl2-satellite-error-function-consolidation.md) for full cross-family analysis.
-- **Version macros:** `SDL_MIXER_COMPILEDVERSION` should be kept/auto-emitted (same pattern as Image's `SDL_IMAGE_COMPILEDVERSION`). `SDL_MIXER_VERSION(X)` and `SDL_MIXER_VERSION_ATLEAST(X,Y,Z)` are function-like — skipped/reported in Layer 1 and tracked as follow-up Layer 2 / friendly helper candidates, not complete in S1-2. See [satellites/sdl2-function-like-macro-consolidation.md](satellites/sdl2-function-like-macro-consolidation.md) for the full cross-family function-like macro catalog.
-- **Callback lifecycle risk:** Callbacks persist across audio frames. Layer 2 must handle delegate rooting. Layer 1 only needs correct signatures — but AbiTests must include callback roundtrip smoke.
+- **Error macros:** 4 excluded (`Mix_SetError`, `Mix_GetError`, `Mix_ClearError`, `Mix_OutOfMemory`). See [satellites/sdl2-satellite-error-function-consolidation.md](satellites/sdl2-satellite-error-function-consolidation.md) for full cross-family analysis.
+- **Version macros:** `SDL_MIXER_COMPILEDVERSION` is kept/auto-emitted (same pattern as Image's `SDL_IMAGE_COMPILEDVERSION`). Value-like legacy aliases `MIX_MAJOR_VERSION`, `MIX_MINOR_VERSION`, and `MIX_PATCHLEVEL` are kept. `SDL_MIXER_VERSION(X)`, `MIX_VERSION(X)`, and `SDL_MIXER_VERSION_ATLEAST(X,Y,Z)` are function-like — skipped/reported in Layer 1 and tracked as follow-up Layer 2 / friendly helper candidates, not complete in S1-2. See [satellites/sdl2-function-like-macro-consolidation.md](satellites/sdl2-function-like-macro-consolidation.md) for the full cross-family function-like macro catalog.
+- **Callback lifecycle risk:** Callbacks persist across audio frames. Layer 1 only needs correct raw signatures; delegate rooting/lifetime policy and deterministic runtime callback smoke are deferred follow-up work.
 - **Assumption:** 7 functions with 8 callback-typed parameters (Mix_RegisterEffect has two callbacks). All use `SDLCALL` → `__cdecl`.
+
+### Deferred Follow-up: Mixer Callback Lifetime Smoke
+
+Mixer callback APIs (`Mix_SetPostMix`, `Mix_HookMusic`, `Mix_HookMusicFinished`, `Mix_ChannelFinished`, `Mix_RegisterEffect`, `Mix_UnregisterEffect`, and `Mix_EachSoundFont`) need a dedicated callback lifetime/rooting policy before they become runtime-smoke gates. That policy should define how Compat delegates stay rooted for the full native registration lifetime, how Modern `delegate* unmanaged[Cdecl]` callbacks are authored, and how deterministic dummy-audio smoke proves the bridge without depending on real audio hardware.
+
+This follow-up is not an Item 5 Layer 1 closure gate. Item 5 closes when generated callback typedefs and callback-typed function parameters are ABI-correct in Compat and Modern output. Runtime smoke candidates remain `Mix_OpenAudio`/`Mix_CloseAudio`, `Mix_LoadWAV`/`Mix_PlayChannel`, and at least one callback roundtrip after the lifetime policy exists.
+
+### Peer Visual Notes
+
+- SDL2-CS uses `IntPtr` for `Mix_Music`; Janset intentionally emits the typed Pattern B `SDL2.Mixer.Mix_Music` handle in Mixer owner mode.
+- SDL2-CS `MIX_Chunk` is equivalent at the ABI level but uses `IntPtr abuf`; Janset generated transparent `Mix_Chunk` with `byte* abuf`.
+- Compat callbacks use `[UnmanagedFunctionPointer(CallingConvention.Cdecl)]`; Modern callback-consuming functions use `delegate* unmanaged[Cdecl]<...>`.
+- SDL2-CS marks `MIX_InitFlags` with `[Flags]`; Janset does the same. `Mix_Fading` and `Mix_MusicType` remain undecorated.
+- Error macros are excluded from Janset raw output; SDL2-CS redirects `Mix_SetError`, `Mix_GetError`, and `Mix_ClearError` manually to SDL core helpers.
+- SDL2-CS constants are older; Janset follows pinned SDL2_mixer 2.8.1 and keeps value-like legacy aliases `MIX_MAJOR_VERSION`, `MIX_MINOR_VERSION`, and `MIX_PATCHLEVEL`.
+- ppy/SDL3-CS was useful only for ClangSharp callback shape. SDL3_mixer is not an SDL2_mixer API oracle.
+- No useful Silk.NET SDL2_mixer peer surface was found for Item 5 visual comparison.
 
 ### Family Identity (per Constitution L145)
 
@@ -370,7 +389,7 @@ The following are open questions that belong to Iteration 2's spec + plan, not t
 
 ### New Files to Create
 
-- `rsp/sdl2-mixer.rsp` — family RSP with 8 `--exclude` entries (4 error macros + 4 legacy compat aliases)
+- `rsp/sdl2-mixer.rsp` — family RSP with 4 `--exclude` entries for error macros only
 - `src/Janset.SDL2.Mixer/Janset.SDL2.Mixer.csproj` — multi-TFM, ProjectReference→Core
 - `src/Janset.SDL2.Mixer/Support/DisableRuntimeMarshalling.cs`
 - Update `config/family-config.json` `families.mixer.headers[]` with the single header (Iteration 2 retired `scope/sdl2-mixer.headers.txt`)

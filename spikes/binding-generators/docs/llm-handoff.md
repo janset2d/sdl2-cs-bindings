@@ -1,6 +1,6 @@
 # LLM-to-LLM Handoff — Janset.SDL2 Binding Generator Spike
 
-**Date:** 2026-05-21; updated 2026-05-27 (Item 4 closure)
+**Date:** 2026-05-21; updated 2026-05-28 (Item 5 closure)
 **Audience:** The next LLM picking up this spike. Read this **before** writing code or making decisions. This handoff records the current spike state so you don't redo work or relitigate decisions.
 
 ## TL;DR — 60-second status
@@ -8,8 +8,8 @@
 - **Project**: ClangSharp-based SDL2 binding generator spike under `spikes/binding-generators/clangsharp/`. Ultimately produces multi-TFM, multi-OS, source-generated `Janset.SDL2.Core` + `Janset.SDL2.Image` library packages.
 - **Toolchain evidence**: ppy-style ClangSharp orchestrator (Python) + Microsoft.CodeAnalysis postprocess (C# console app) is the active evidence path. Do **not** relitigate ClangSharp vs CppAst yet; finish the ClangSharp evidence, then build comparable CppAst/Alimer-style evidence before recommending direction.
 - **Priority C semantic-ABI: CLOSED 2026-05-24.** All six known platform-sensitive ABI risks (R1 `wchar_t*`, R2 C `long`/`unsigned long`, R3 `SDL_RWops`, R4 `SDL_SysWMinfo`, R5 `SDL_SysWMmsg`, R6 opaque-handle tag leak) resolved; six oracle gap categories at 0 findings. Full evidence + verification table in [`priority-c-closure-summary.md`](priority-c-closure-summary.md) (commit `e62bf92`). Cross-assembly Pattern B contract codified via `[assembly: DisableRuntimeMarshalling]` in Core + Image (commit `4b87037`); Constitution policy at `d0016de`. SDL_GUID → System.Guid substitution + Foreign Type Boundary Policy + BCL-Replaceable Helper Exclusion Policy all landed in scope.
-- **Item 4 SDL2_ttf Layer 1: CLOSED 2026-05-27.** Core + Image + GFX + TTF are active in `selected_families("all")`; Mixer remains next. TTF generated from one header (`SDL_ttf.h`), owner-mode `Handles.g.cs` emits `TTF_Font`, C `long` is ABI-correct (`CLong` Modern, Win32/Unix64 dual-dispatch Compat), no-SDLCALL functions use Cdecl, deprecated functions/error macro aliases are excluded.
-- **Next scope**: **Item 5 SDL2_mixer Layer 1 completion**. Layer 2 typed public API remains deferred until all five SDL2 families have stable Layer 1 raw ABI.
+- **Item 5 SDL2_mixer Layer 1: CLOSED 2026-05-28.** Core + Image + GFX + TTF + Mixer are active in `selected_families("all")`. Mixer generated from one header (`SDL_mixer.h`), owner-mode `Handles.g.cs` emits `Mix_Music`, `Mix_Chunk` stays transparent, callback typedef/function-pointer shape is generated, `MIX_InitFlags` has `[Flags]`, `Mix_Fading` and `Mix_MusicType` remain plain enums, error macro aliases are excluded, and value-like legacy aliases `MIX_MAJOR_VERSION`, `MIX_MINOR_VERSION`, and `MIX_PATCHLEVEL` are kept.
+- **Next scope**: **Layer 2 public typed low-level API planning** across Core, Image, GFX, TTF, and Mixer. Callback lifetime/rooting policy belongs there or in Layer 3 follow-up, not in Layer 1 raw ABI closure.
 - **Branch state**: push gate pending Deniz approval per AGENTS.md §Approval Gate. Branch is `spike/binding-autogen-sdl2-gfx`.
 
 If you are starting fresh, skip to §"Reading order".
@@ -20,7 +20,7 @@ If you are starting fresh, skip to §"Reading order".
 | --- | --- | --- |
 | 1 | This file | Handoff. You are here. |
 | 2 | [`priority-c-closure-summary.md`](priority-c-closure-summary.md) | **Authoritative closure record** for the Priority C semantic-ABI slice (six risks resolved + Foreign Type Boundary Policy + Cross-Assembly Pattern B contract). Read this immediately after the TL;DR to anchor on the current evidence baseline before touching anything. |
-| 3 | [`spikes/binding-generators/docs/next-iteration-plan.md`](next-iteration-plan.md) | Active spike plan. Priority A/B/C and Item 1 are closed; Iteration 2 config surface unification is next; Items 2–5 satellite Layer 1 completion are queued. |
+| 3 | [`spikes/binding-generators/docs/next-iteration-plan.md`](next-iteration-plan.md) | Active spike plan. Priority A/B/C, Item 1, Iteration 2, and Items 2–5 satellite Layer 1 completion are closed; Layer 2 public typed API planning is next. |
 | 4 | [`spikes/binding-generators/docs/generator-spike-goals.md`](generator-spike-goals.md) | Original charter + current evidence status. |
 | 5 | [`spikes/binding-generators/output/reports/iteration-2-comparison.md`](../output/reports/iteration-2-comparison.md) | Decision evidence — comparison table, multi-TFM trajectory, dynapi coherence. |
 | 6 | [`spikes/binding-generators/output/reports/clangsharp-failure-buckets.md`](../output/reports/clangsharp-failure-buckets.md) | History of the 8 RSP-fix iterations that took us from 161 errors → 0. Useful when adding new exclude rules. |
@@ -238,7 +238,7 @@ Earlier in the session, we ran a full comparison spike: Alimer-style CppAst vs p
 | **Item 2 — SDL_image verification** | ✅ closed 2026-05-27 | All criteria satisfied by Item 1 S1-6 flags-detect + Iteration 2 closure runs. Documentation-only close — no code work. |
 | **Item 3 — SDL2_gfx Layer 1** | ✅ closed 2026-05-27 | GFX generated and active in aggregate output. `FPSmanager` layout and no-SDLCALL Cdecl behavior verified; closure evidence clean. |
 | **Item 4 — SDL2_ttf Layer 1** | ✅ closed 2026-05-27 | TTF generated and active in aggregate output. One header (`SDL_ttf.h`), owner-mode `TTF_Font` in `Handles.g.cs`, C `long` via `CLong`/dual-dispatch, no-SDLCALL Cdecl verified, deprecated/error macro symbols absent. Evidence: solution build 0/0; oracle TTF raw ABI checks 0 after the private helper false-positive fix; Python self-test PASS; C# postprocess self-test PASS; Slopwatch 0 issues. |
-| **Item 5 — SDL2_mixer Layer 1** | next | Add Mixer callbacks + `Mix_Music` owner-mode handle. Last SDL2 satellite Layer 1 slice before Layer 2 planning. |
+| **Item 5 — SDL2_mixer Layer 1** | ✅ closed 2026-05-28 | Mixer generated and active in aggregate output. One header (`SDL_mixer.h`), owner-mode `Mix_Music` in `Handles.g.cs`, transparent `Mix_Chunk` with `byte* abuf`, callback typedef/function-pointer ABI shape verified, `MIX_InitFlags` decorated, `Mix_Fading` / `Mix_MusicType` undecorated, error macro aliases absent, value-like legacy version aliases kept. Runtime callback/audio smoke is deferred. |
 | 6+ — Friendly overloads | ⏳ Roadmap M6 | Out of current spike scope until Layer 2 lands. |
 
 ## What got built and why — slice-by-slice rationale
@@ -285,6 +285,20 @@ The 7 platform views (`WindowsDesktop`, `WinRT`, `GDK`, `Linux`, `MacOS`, `IOS`,
 ## Current status and blockers
 
 ### What is now fixed
+
+Item 5 closes the SDL2 satellite Layer 1 expansion wave for Core + Image + GFX + TTF + Mixer. Mixer evidence from the 2026-05-28 closure run:
+
+- `python spikes/binding-generators/clangsharp/generate_bindings.py --family all --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims` completed and generated all five active families.
+- Existing family generated diff stayed empty for Core/Image/GFX/TTF with `git diff --ignore-cr-at-eol`.
+- Mixer generated `MIX_MAJOR_VERSION`, `MIX_MINOR_VERSION`, and `MIX_PATCHLEVEL`; `MIX_VERSION(X)` remains function-like and is skipped/reported naturally rather than explicitly excluded.
+- Mixer raw output excludes `Mix_SetError`, `Mix_GetError`, `Mix_ClearError`, and `Mix_OutOfMemory`.
+- `dotnet build spikes/binding-generators/clangsharp/Janset.SDL2.ClangSharpSpike.slnx -c Release` passed with 0 warnings / 0 errors.
+- Python self-test, C# postprocess self-test, five-family oracle, and Slopwatch all passed.
+- Peer notes: SDL2-CS uses `IntPtr` for `Mix_Music`; Janset emits typed `SDL2.Mixer.Mix_Music`. SDL2-CS `MIX_Chunk` is ABI-equivalent but uses `IntPtr abuf`; Janset emits `byte* abuf`. Compat callbacks use `[UnmanagedFunctionPointer(CallingConvention.Cdecl)]`; Modern callback-consuming functions use `delegate* unmanaged[Cdecl]<...>`. ppy/SDL3-CS was used only for ClangSharp callback shape; SDL3_mixer is not an SDL2_mixer API oracle. No useful Silk.NET SDL2_mixer peer surface was found.
+
+Known tradeoff: Mixer runtime callback/audio smoke is intentionally deferred. A safe runtime gate needs explicit Compat delegate rooting, Modern `delegate* unmanaged[Cdecl]` authoring rules, dummy-audio setup, and cleanup/unregistration policy.
+
+Known macro-policy follow-up: ClangSharp value-macro generation evaluates through the current generation host rather than preserving source expressions. On Windows-local little-endian generation this emits `AUDIO_S16SYS = 0x8010`, `MIX_DEFAULT_FORMAT = 0x8010`, `SDL_BYTEORDER = SDL_LIL_ENDIAN`, and little-endian `SDL_PIXELFORMAT_*32` aliases. This is correct for today's supported RIDs, all of which are little-endian, but it is not source-semantic portable. The detailed research lives in [satellites/sdl2-endian-platform-macro-consolidation.md](satellites/sdl2-endian-platform-macro-consolidation.md).
 
 `clangsharp/generate_bindings.py` now runs a true-neutral pass for `SDL_main.h` / `SDL_system.h`, then one platform-view pass per Cake SDL2 view. It deliberately does **not** use ClangSharp `--with-attribute`; `PlatformDeltaPostProcessor` owns dedupe and path-based platform attribution.
 
@@ -346,8 +360,8 @@ Carry these headers into roadmap/planning before production claims platform corr
 
 ### Recommended next moves
 
-1. **Item 5 Mixer Layer 1 expansion.** Add `SDL_mixer.h`, `Mix_Music` owner-mode handle, callback signature verification, `MIX_InitFlags`, and the expected error macro exclusions.
-2. **Layer 2 typed public API planning.** Start only after Mixer closes so the public projection can account for Core + Image + GFX + TTF + Mixer together.
+1. **Layer 2 typed public API planning.** Start from the now-stable five-family Layer 1 surface so the public projection can account for Core + Image + GFX + TTF + Mixer together.
+2. **Mixer callback lifetime/rooting policy.** Design before any deterministic callback/audio runtime smoke. Do not retrofit rooting helpers into raw Layer 1.
 3. **TTF runtime smoke follow-up.** Add only when a redistributable font asset and native dependency copy strategy are in scope; do not reopen Layer 1 closure for this.
 4. Use `--use-platform-header-shims` for Windows-local ClangSharp iteration when platform-view parse coverage matters. Keep native Linux/macOS generation as the production evidence target.
 5. Keep the explicit empty-platform-output guard. An empty `.g.cs` from a fatal ClangSharp run should stay a hard evidence item, not something the build can silently accept.

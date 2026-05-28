@@ -46,6 +46,7 @@
 ### Task 0.1: Freeze Manual Scope
 
 **Files:**
+
 - Modify: `spikes/binding-generators/docs/testing/raw-abi-upstream-testing-spec.md`
 - Modify: `spikes/binding-generators/docs/testing/raw-abi-upstream-testing-plan.md`
 
@@ -56,6 +57,7 @@
 ### Task 0.2: Capture Current Test Inventory
 
 **Files:**
+
 - Create: `spikes/binding-generators/docs/testing/raw-abi-current-inventory.md`
 
 - [ ] List current test files under `Infrastructure/`, `Upstream/Pure/`, `Upstream/Assets/`, and `Upstream/DummyDrivers/`.
@@ -78,6 +80,7 @@ Expected: existing automated tests pass or failures are recorded in `raw-abi-cur
 ### Task 1.1: Add Category And Parallel-Key Constants
 
 **Files:**
+
 - Create: `spikes/binding-generators/clangsharp/tests/abi-tests/Infrastructure/Classification/AbiCategories.cs`
 - Create: `spikes/binding-generators/clangsharp/tests/abi-tests/Infrastructure/Classification/AbiParallelKeys.cs`
 - Modify: existing tests under `spikes/binding-generators/clangsharp/tests/abi-tests/`
@@ -90,6 +93,7 @@ Expected: existing automated tests pass or failures are recorded in `raw-abi-cur
 ### Task 1.2: Add Runtime Probe And Capability Skips
 
 **Files:**
+
 - Create: `spikes/binding-generators/clangsharp/tests/abi-tests/Infrastructure/Runtime/SdlRuntimeProbe.cs`
 - Modify: `RequiresVideoDummyDriverAttribute.cs`
 - Modify: `RequiresAudioDummyDriverAttribute.cs`
@@ -102,6 +106,7 @@ Expected: existing automated tests pass or failures are recorded in `raw-abi-cur
 ### Task 1.3: Add Callback Bridge Helpers
 
 **Files:**
+
 - Create: `spikes/binding-generators/clangsharp/tests/abi-tests/Infrastructure/Callbacks/SdlCallbackBridge.Modern.cs`
 - Create: `spikes/binding-generators/clangsharp/tests/abi-tests/Infrastructure/Callbacks/SdlCallbackBridge.Compat.cs`
 - Modify: existing callback tests under `Upstream/DummyDrivers/EventsAbiTests.cs`
@@ -113,6 +118,7 @@ Expected: existing automated tests pass or failures are recorded in `raw-abi-cur
 ### Task 1.4: Add Macro Helper Surface
 
 **Files:**
+
 - Create: `spikes/binding-generators/clangsharp/tests/abi-tests/Infrastructure/Macros/SdlMacro.cs`
 
 - [ ] Add only helpers required by current or next planned ports: BMP load/save macro equivalents, blit macro equivalent, centered-window position helper, endian swap helpers, and checked `size_t` overflow helpers.
@@ -122,6 +128,7 @@ Expected: existing automated tests pass or failures are recorded in `raw-abi-cur
 ### Task 1.5: Normalize Existing Tests
 
 **Files:**
+
 - Modify: `ThreadIdAbiTests.cs`
 - Modify: `Upstream/Pure/*.cs`
 - Modify: `Upstream/Assets/*.cs`

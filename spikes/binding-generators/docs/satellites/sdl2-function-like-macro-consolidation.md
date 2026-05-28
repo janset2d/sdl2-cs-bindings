@@ -156,6 +156,8 @@ Token-pasting, platform ASM, compile-time constructs, or pointer-output semantic
 
 **Error macros** (`Mix_SetError`/`Mix_GetError`/`Mix_ClearError`/`Mix_OutOfMemory`) are covered in the error consolidation doc.
 
+Object-like endian/platform-computed macros such as `MIX_DEFAULT_FORMAT` are covered separately in [sdl2-endian-platform-macro-consolidation.md](sdl2-endian-platform-macro-consolidation.md).
+
 ### 3.7 SDL2_gfx
 
 No function-like macros beyond `M_PI` guard define (simple math constant) and visibility-scope helpers (`SDL2_GFXPRIMITIVES_SCOPE`, etc.). GFX operates entirely through function calls.

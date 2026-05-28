@@ -677,7 +677,9 @@
       "rsp": "rsp/sdl2-mixer.rsp",
       "project_dir": "Janset.SDL2.Mixer",
       "owner_mode": true,
-      "headers": [],
+      "headers": [
+        { "order": 10, "name": "SDL_mixer.h" }
+      ],
       "platform_sensitive_headers": [],
       "required_surface": null,
       "opaque_handles": {
