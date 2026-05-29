@@ -11,10 +11,10 @@ using Microsoft.CodeAnalysis.CSharp;
 //   dotnet run --project postprocess -- clong-dispatch     <input-dir> [<output-dir>]
 //   dotnet run --project postprocess -- uniform-opaque     <input-dir> [<output-dir>] [--owner-mode owner|consumer] [--handles-namespace namespace]
 //
-// strip-varargs     : Constitution L162-176 fmt-only policy — drops `__arglist`
+// strip-varargs     : Constitution §"C Variadics" fmt-only policy — drops `__arglist`
 //                     parameter from variadic P/Invokes (applied to both Compat
 //                     and Modern output before libraryimport).
-// libraryimport     : Constitution L48 backend split — promotes [DllImport] to
+// libraryimport     : Constitution §"Internal Raw ABI" backend split — promotes [DllImport] to
 //                     [LibraryImport] + [UnmanagedCallConv] + partial (applied to
 //                     Modern output only; Compat keeps DllImport for legacy TFMs).
 // platform-delta    : SDL2 platform-view pass cleanup — removes declarations that

@@ -2,12 +2,11 @@
 
 This folder hosts the SDL2 binding-generator prototypes that feed Phase 4 (binding auto-generation). The decision spike completed on 2026-05-21; the active prototype now follows **ppy-style ClangSharp + Microsoft.CodeAnalysis postprocess** with production-shaped multi-TFM library projects. See `output/reports/iteration-2-comparison.md` for the evidence and `docs/next-iteration-plan.md` for the slice-by-slice plan.
 
-## Status — 2026-05-26
+## Status — 2026-05-28
 
-- **Priority C semantic-ABI: CLOSED.** All six known platform-sensitive ABI risks resolved (R1 `wchar_t*`, R2 C `long`/`unsigned long`, R3 `SDL_RWops`, R4 `SDL_SysWMinfo`, R5 `SDL_SysWMmsg`, R6 opaque-handle tag leak). Foreign Type Boundary Policy + BCL-Replaceable Helper Exclusion Policy + Cross-Assembly Pattern B contract (`[assembly: DisableRuntimeMarshalling]`) codified in the Constitution. Authoritative closure record: [`docs/priority-c-closure-summary.md`](docs/priority-c-closure-summary.md).
-- **Item 1 per-library generation infrastructure: CLOSED 2026-05-26.** `--family all`, `--family core`, and `--family image` regenerate byte-stable Core/Image output; `selected_families("all")` intentionally stays `['core', 'image']`; TTF/Mixer/GFX metadata exists but generated output remains dormant/missing until Items 3/4/5 activate those families.
-- **Evidence baseline.** Five-family oracle report has Core/Image clean and TTF/Mixer/GFX missing as expected; multi-TFM solution build clean; ABI smoke covers `SDL_ThreadID` plus `SDL_GetThreadID(SDL_Thread.Null)` across Windows `net462`/`net8.0`/`net9.0`/`net10.0`, with full 7-RID proof deferred to the production CI matrix.
-- **Next forward scope:** **Iteration 2 config surface unification**, then Items 2–5 satellite Layer 1 completion (Image verification, GFX, TTF, Mixer). Layer 2 typed public API defers until all five families have stable Layer 1 raw ABI, providing a holistic view before designing the public projection. ppy reference analysis recorded in [`docs/ppy-reference-analysis-2026-05-25.md`](docs/ppy-reference-analysis-2026-05-25.md).
+- **SDL2 Layer 1 raw ABI: CLOSED across Core / Image / GFX / TTF / Mixer** on the active ClangSharp + Roslyn postprocess implementation under `clangsharp/`. Multi-TFM compile clean across 5 TFMs. Five-family oracle report at `output/reports/oracle-evidence-clangsharp.md`.
+- **Canonical policy + roadmap + testing strategy + maintenance + implementation notes** moved into `docs/canonical/` during the spike → production-flip transition. Restores to `docs/binding-autogen/` at Production Flip per roadmap §"Production Flip — SDL2.Core Reproducibility".
+- **Next forward scope:** Layer 2 typed public API. See `docs/canonical/binding-generator-roadmap.md` §"Layer 2 — Typed Public API Projection" + `docs/next-iteration-plan.md` for active iteration tracking.
 - **Branch:** `spike/binding-autogen-sdl2-gfx`. Push gate pending Deniz approval per AGENTS.md §Approval Gate.
 
 ## Endgame Vision (read before making design decisions)
@@ -38,22 +37,20 @@ rsp/*.rsp                            →       rsp/*.rsp (same files, same paths
 
 | Doc | Why |
 | --- | --- |
-| **`.github/prompts/binding-generator-spike-handoff.prompt.md`** | **Reusable priming prompt** for a new LLM/agent entering both the repo and this spike. Use this when starting a fresh assistant session. |
-| **`docs/llm-handoff.md`** | **LLM-to-LLM handoff — read this first.** Self-contained context dump: decision history, code map, slice progress, current sticking point, working preferences. |
-| **`docs/priority-c-closure-summary.md`** | **Priority C closure record** (2026-05-24). Six-risks resolution table, verification evidence, Foreign Type Boundary Policy, Cross-Assembly Pattern B contract. Read after the LLM handoff. |
-| **`docs/ppy-reference-analysis-2026-05-25.md`** | **ppy/SDL3-CS reference analysis** (2026-05-25). Satellite generation architecture, companion class layer mapping, adaptation recommendations. |
-| **`docs/satellites/sdl2-satellite-error-function-consolidation.md`** | **Satellite error function consolidation** (2026-05-26). Cross-family analysis of `#define` error macros, per-peer comparison, `.rsp` exclude table, companion-helper policy path. |
-| **`docs/satellites/sdl2-function-like-macro-consolidation.md`** | **Function-like macro consolidation** (2026-05-26). Catalog of ~115 function-like C macros across all 6 families, Type A/B/C taxonomy, per-peer comparison, companion-helper policy recommendations. |
-| `docs/generator-spike-goals.md` | Spike charter — original goals, what got tested, and the recorded decision. |
-| `docs/next-iteration-plan.md` | Active spike plan; Priority A/B/C and Item 1 are closed; Iteration 2 config surface unification is next; Items 2–5 satellite Layer 1 completion are queued. Also owns the `Review Follow-up Backlog — 2026-05-25` triage sink distilled from the read-only reviewer reports. |
-| `docs/testing/raw-abi-upstream-testing-spec.md` | Slice-local testing design for expanding the single `AbiTests.csproj` with curated SDL2 upstream pure, asset-backed, dummy-driver, and manual diagnostic coverage. |
-| `docs/testing/raw-abi-upstream-testing-plan.md` | Task plan for implementing the raw ABI upstream testing stages inside the existing ClangSharp spike test project. |
-| `docs/oracle-evidence-design.md` | Spike-local design for replacing regex oracle comparison with a Roslyn/file-based-app evidence matrix. |
-| `docs/oracle-evidence-implementation-plan.md` | Task-by-task implementation plan for the Roslyn/file-based-app oracle evidence slice. |
-| `output/reports/iteration-2-comparison.md` | Decision-quality evidence: function counts, dynapi coherence, multi-TFM build trajectory, multi-OS gap. |
-| `output/reports/oracle-evidence-clangsharp.md` | Family-aware raw ABI evidence snapshot — Core/Image clean; dormant TTF/Mixer/GFX generated rows missing as expected. |
-| `output/reports/clangsharp-failure-buckets.md` | Per-header failure bucket map + RSP delta history (8 RSP-fix cycles → compile-clean). |
-| `docs/reference-clones.md` | Local clone commands for `ppy/SDL3-CS` and `amerkoleci/Alimer.Bindings.SDL`. References, not vendored deps. |
+| **`docs/canonical/README.md`** | **Canonical workstream index.** Read first to navigate the canonical/ tree. |
+| **`docs/canonical/binding-generator-constitution.md`** | ABI/API/translation policy (pure principles). |
+| **`docs/canonical/binding-generator-roadmap.md`** | Layer-based forward milestones. |
+| **`docs/canonical/testing-strategy.md`** | Testing layer model + smoke + raw ABI upstream port backlog. |
+| **`docs/canonical/binding-generator-implementation-notes.md`** | Mechanism + classification labels + hardcoding rules. |
+| **`docs/canonical/binding-generator-maintenance.md`** | Version-bump procedures + family-config.json schema + RSP maintenance. |
+| **`docs/canonical/binding-output-oracle-validation.md`** | Multi-oracle review workflow. |
+| **`docs/canonical/satellites/`** | Per-family + cross-family satellite analyses. |
+| **`docs/canonical/references/ppy-reference-analysis-2026-05-25.md`** | ppy/SDL3-CS reference analysis. |
+| `docs/next-iteration-plan.md` | Active spike plan (Layer 2 iteration + forward backlog). |
+| `docs/reference-clones.md` | Local clone commands for ppy + Alimer reference projects. |
+| `output/reports/iteration-2-comparison.md` | Decision evidence (function counts, dynapi coherence, multi-TFM trajectory). |
+| `output/reports/oracle-evidence-clangsharp.md` | Active family-aware raw ABI evidence. |
+| `output/reports/clangsharp-failure-buckets.md` | 8 RSP-fix iteration history. |
 
 ## Decision recorded — 2026-05-21
 
@@ -81,29 +78,41 @@ spikes/binding-generators/
 ├── BindingGeneratorSpikes.slnx                      # IDE solution covering current spike projects
 ├── Directory.Build.props                            # spike-local build defaults (CPM enabled, no production multi-TFM inheritance)
 ├── docs/
-│   ├── generator-spike-goals.md                     # charter + recorded decision
-│   ├── next-iteration-plan.md                       # active slice plan
-│   ├── testing/                                      # slice-local raw ABI testing spec + plan
-│   ├── oracle-evidence-design.md                    # Roslyn/file-based oracle evidence design
-│   ├── oracle-evidence-implementation-plan.md       # oracle evidence task plan
-│   └── reference-clones.md                          # local clone commands for upstream refs
+│   ├── next-iteration-plan.md                       # active spike iteration + forward backlog
+│   ├── reference-clones.md                          # local clone commands for upstream refs
+│   └── canonical/                                   # canonical workstream tree (restores to docs/binding-autogen/ at Production Flip)
+│       ├── README.md                                # canonical workstream index
+│       ├── binding-generator-constitution.md        # ABI/API/translation policy (pure principles)
+│       ├── binding-generator-roadmap.md             # layer-based forward milestones
+│       ├── testing-strategy.md                      # testing layer model + smoke + raw ABI upstream port backlog
+│       ├── binding-generator-implementation-notes.md # mechanism + classification labels + hardcoding rules
+│       ├── binding-generator-maintenance.md         # version-bump + family-config.json schema + RSP maintenance
+│       ├── binding-output-oracle-validation.md      # multi-oracle review workflow
+│       ├── satellites/                              # per-family + cross-family satellite analyses
+│       └── references/                              # ppy/SDL3-CS reference analysis
 ├── clangsharp/                                      # ACTIVE — ppy-style ClangSharp prototype
 │   ├── generate_bindings.py                         # complete-family orchestrator (Compat + Modern; multi-OS pass; 7-step postprocess)
 │   ├── oracle.cs                                    # Roslyn/file-based raw ABI evidence reporter
-│   ├── Janset.SDL2.ClangSharpSpike.slnx             # IDE solution (postprocess + Core + Image + AbiTests)
+│   ├── Janset.SDL2.ClangSharpSpike.slnx             # IDE solution (postprocess + 5-family src + AbiTests)
 │   ├── config/
 │   │   └── family-config.json                       # unified family configuration (identity, rosters, platform views, required surface)
 │   ├── rsp/
 │   │   ├── base.rsp                                 # cross-cutting policy (defines, remaps incl. wchar_t* → nint, with-types, clang_args)
 │   │   ├── sdl2-core.rsp                            # family identity + exclusions for SDL2.Core
 │   │   ├── sdl2-image.rsp                           # family identity + exclusions for SDL2_image
+│   │   ├── sdl2-gfx.rsp                             # family identity + exclusions for SDL2_gfx
+│   │   ├── sdl2-ttf.rsp                             # family identity + exclusions for SDL2_ttf
+│   │   ├── sdl2-mixer.rsp                           # family identity + exclusions for SDL2_mixer
 │   │   └── per-header/                              # ppy-pattern per-header RSP overlays (R6 tag remaps, BCL helper excludes, foreign-type boundary)
 │   ├── postprocess/                                 # Microsoft.CodeAnalysis console app — 7 postprocess steps
 │   ├── shims/platform-headers/                      # Windows-local synthetic platform parse shims only
 │   ├── tests/abi-tests/                             # Per-TFM ABI runtime smoke (net10/9/8/462, Win + Linux x64 docker)
 │   └── src/
 │       ├── Janset.SDL2.Core/                        # 5 TFMs; Support/DisableRuntimeMarshalling.cs; Generated/{Compat,Modern}/Handles.g.cs canonical home
-│       └── Janset.SDL2.Image/                       # 5 TFMs; ProjectReference -> Core; consumer mode for Pattern B handles
+│       ├── Janset.SDL2.Image/                       # 5 TFMs; ProjectReference -> Core; consumer mode for Pattern B handles
+│       ├── Janset.SDL2.GFX/                         # 5 TFMs; ProjectReference -> Core
+│       ├── Janset.SDL2.TTF/                         # 5 TFMs; ProjectReference -> Core
+│       └── Janset.SDL2.Mixer/                       # 5 TFMs; ProjectReference -> Core
 ├── alimer-style/                                    # RETAINED reference — single-pass CppAst raw ABI emitter
 │   └── src/Janset.Sdl2.AlimerSpike.Generator/
 ├── output/
@@ -112,8 +121,6 @@ spikes/binding-generators/
 │       ├── iteration-2-comparison.md                # comparison + decision-quality signal
 │       ├── clangsharp-failure-buckets.md            # bucket map + RSP delta history
 │       ├── clangsharp-production.md                 # per-header production generation report
-│       ├── oracle-comparison-clangsharp.md          # legacy ClangSharp vs Cake preview report (not regenerated)
-│       ├── oracle-comparison-alimer.md              # legacy Alimer vs Cake preview report (not regenerated)
 │       ├── oracle-evidence-clangsharp.md            # family-aware raw ABI evidence report
 │       └── alimer-full.md                           # Alimer per-header generation report
 └── references/                                      # GITIGNORED — local clones for evidence
@@ -132,7 +139,7 @@ python spikes/binding-generators/clangsharp/generate_bindings.py --family all --
 # Multi-TFM compile-check (all spike projects / TFMs)
 dotnet build spikes/binding-generators/clangsharp/Janset.SDL2.ClangSharpSpike.slnx -c Release
 
-# Raw ABI oracle/evidence report (Roslyn, family-aware) — six-risks check
+# Raw ABI oracle/evidence report (Roslyn, family-aware) — five-family
 dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --family sdl2-core --family sdl2-image --family sdl2-ttf --family sdl2-mixer --family sdl2-gfx --write-report
 
 # Per-TFM ABI runtime smoke
@@ -163,15 +170,14 @@ The 7-step postprocess pipeline lands all Priority C semantic-ABI policy in a si
 
 ## How a new agent should pick this up
 
-**Start with [`.github/prompts/binding-generator-spike-handoff.prompt.md`](../../.github/prompts/binding-generator-spike-handoff.prompt.md)** when launching a fresh agent/session. Then read [`docs/llm-handoff.md`](docs/llm-handoff.md) for the full spike-specific context dump covering decision history, slice progress, current sticking point, working preferences, and pointers to every other doc + code path. After reading the handoff:
-
-1. `docs/priority-c-closure-summary.md` for the **authoritative Priority C closure record** — six-risks resolution table, verification evidence, Foreign Type Boundary Policy, Cross-Assembly Pattern B contract. This anchors the current Layer 1 evidence baseline.
-2. `docs/generator-spike-goals.md` for the original charter + recorded toolchain decision.
-3. `docs/next-iteration-plan.md` for the active spike plan; Iteration 2 config surface unification is next, with Items 2–5 satellite Layer 1 completion queued after it.
-4. `output/reports/iteration-2-comparison.md` for the evidence base.
-5. `output/reports/oracle-evidence-clangsharp.md` for the current family-aware raw ABI evidence snapshot; Core/Image are clean and dormant TTF/Mixer/GFX generated rows are missing as expected.
-6. `references/ppy-SDL3-CS/SDL3-CS/generate_bindings.py` (lines 232-365, 386-434) for the north-star orchestrator patterns.
-7. Open `clangsharp/Janset.SDL2.ClangSharpSpike.slnx` in your IDE.
+1. `docs/canonical/README.md` — canonical workstream index and reading order.
+2. `docs/canonical/binding-generator-constitution.md` — ABI/API policy.
+3. `docs/canonical/binding-generator-roadmap.md` — layer-based forward milestones.
+4. `docs/canonical/binding-generator-implementation-notes.md` — mechanism rationale.
+5. `docs/canonical/binding-generator-maintenance.md` — operational procedures.
+6. `docs/next-iteration-plan.md` — active iteration + forward backlog.
+7. `output/reports/iteration-2-comparison.md` + `oracle-evidence-clangsharp.md` — evidence.
+8. `references/ppy-SDL3-CS/SDL3-CS/generate_bindings.py` (gitignored clone) — north-star orchestrator.
 
 ## Per-TFM ABI runtime smoke
 

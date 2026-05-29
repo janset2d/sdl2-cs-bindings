@@ -1,19 +1,9 @@
 # ADR-004: Binding Auto-Generation Toolchain
 
-- **Status:** Reopened (re-evaluation underway 2026-05-23)
+- **Status:** Reopened (re-evaluation underway since 2026-05-23; Layer 1 closure on ClangSharp + Roslyn postprocess spike completed 2026-05-28 for SDL2 Core/Image/GFX/TTF/Mixer; formal amendment deferred pending Layer 2 closure)
 - **Date:** 2026-05-14 (original); 2026-05-23 (reopened)
 
-> **Re-evaluation note (2026-05-23):** The binding-autogen toolchain decision
-> is under active re-evaluation in [`spikes/binding-generators/`](../../spikes/binding-generators/).
-> Both **ClangSharp + Roslyn postprocess** and **Alimer-style single-pass CppAst**
-> are being measured against the same evidence matrix (multi-TFM compile, multi-OS
-> parse, dynapi coherence, semantic ABI correctness across the 7-RID surface).
-> Either selected path implies **replacing** the current Cake-hosted implementation
-> under `build/_build/Targets/GenerateBindings/` — that pipeline is in sunset
-> regardless of which toolchain wins. This ADR remains historical evidence of
-> the 2026-05-14 reasoning but does not bind current work until the spike
-> concludes; consult the spike outputs (`spikes/binding-generators/output/reports/`)
-> for the active comparison evidence.
+> **Re-evaluation note (updated 2026-05-28):** The binding-autogen toolchain decision is under active re-evaluation in [`spikes/binding-generators/`](../../spikes/binding-generators/). The active spike implementation is **ClangSharp + Roslyn postprocess** with canonical policy at [`spikes/binding-generators/docs/canonical/`](../../spikes/binding-generators/docs/canonical/) and Layer 1 raw ABI closure evidence at [`spikes/binding-generators/output/reports/`](../../spikes/binding-generators/output/reports/). Either successor toolchain implies replacing the sunset Cake implementation under `build/_build/Targets/GenerateBindings/`. This ADR remains historical evidence of the 2026-05-14 reasoning; formal amendment is deferred to post-Layer-2 closure.
 >
 > Original content unchanged below.
 
@@ -98,8 +88,11 @@ Migration would replace the generator implementation, not the package contract. 
 
 ## 7. References
 
-- [`../binding-autogen/binding-generator-constitution.md`](../binding-autogen/binding-generator-constitution.md)
-- [`../binding-autogen/binding-generator-roadmap.md`](../binding-autogen/binding-generator-roadmap.md)
+- [`../../spikes/binding-generators/docs/canonical/binding-generator-constitution.md`](../../spikes/binding-generators/docs/canonical/binding-generator-constitution.md)
+- [`../../spikes/binding-generators/docs/canonical/binding-generator-roadmap.md`](../../spikes/binding-generators/docs/canonical/binding-generator-roadmap.md)
+- [`../../spikes/binding-generators/docs/canonical/binding-generator-implementation-notes.md`](../../spikes/binding-generators/docs/canonical/binding-generator-implementation-notes.md)
+- [`../../spikes/binding-generators/docs/canonical/binding-generator-maintenance.md`](../../spikes/binding-generators/docs/canonical/binding-generator-maintenance.md)
+- [`../../spikes/binding-generators/`](../../spikes/binding-generators/) — active spike implementation
 - [`../release-strategy.md`](../release-strategy.md)
 - [`../phases/phase-4-binding-autogen.md`](../phases/phase-4-binding-autogen.md)
 - [`2026-05-05-d3seg-and-package-first.md`](2026-05-05-d3seg-and-package-first.md)

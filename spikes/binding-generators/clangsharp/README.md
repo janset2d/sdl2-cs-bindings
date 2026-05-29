@@ -1,6 +1,6 @@
 # ppy-Style ClangSharp Spike
 
-This spike tests whether ClangSharpPInvokeGenerator plus thin orchestration can produce the desired SDL2.Core plus SDL2_image binding shape with less owned code.
+This spike tests whether ClangSharpPInvokeGenerator plus thin orchestration can produce the desired multi-TFM, multi-OS, source-generated `Janset.SDL2.Core` + `Janset.SDL2.Image` + `Janset.SDL2.GFX` + `Janset.SDL2.TTF` + `Janset.SDL2.Mixer` library packages.
 
 Commands:
 
