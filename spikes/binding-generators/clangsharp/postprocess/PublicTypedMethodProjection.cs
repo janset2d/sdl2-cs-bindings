@@ -9,9 +9,14 @@ internal static class PublicTypedMethodProjection
 {
     private static readonly HashSet<string> SuppressedConstNames = new(StringComparer.Ordinal)
     {
+        "SDL_AUDIO_MASK_ENDIAN",
+        "SDL_BIG_ENDIAN",
         "SDL_BYTEORDER",
         "SDL_FLOATWORDORDER",
+        "SDL_LIL_ENDIAN",
         "MIX_DEFAULT_FORMAT",
+        "WIN32",
+        "_WIN32",
     };
 
     public sealed record DiscoveredMembers(
@@ -427,7 +432,13 @@ internal static class PublicTypedMethodProjection
 
     private static bool IsSuppressedConst(string name)
         => SuppressedConstNames.Contains(name) ||
-           (name.StartsWith("AUDIO_", StringComparison.Ordinal) && name.EndsWith("SYS", StringComparison.Ordinal));
+           name.StartsWith("__", StringComparison.Ordinal) ||
+           name.StartsWith("HAVE_", StringComparison.Ordinal) ||
+           name.StartsWith("WINAPI_", StringComparison.Ordinal) ||
+           (name.StartsWith("AUDIO_", StringComparison.Ordinal) &&
+            (name.EndsWith("SYS", StringComparison.Ordinal) ||
+             name.EndsWith("LSB", StringComparison.Ordinal) ||
+             name.EndsWith("MSB", StringComparison.Ordinal)));
 
     private static bool IsFunctionPointer(TypeSyntax type)
         => type is FunctionPointerTypeSyntax;

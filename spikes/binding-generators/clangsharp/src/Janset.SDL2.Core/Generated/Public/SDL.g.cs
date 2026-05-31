@@ -10,20 +10,11 @@ namespace SDL2;
 public static unsafe partial class SDL
 {
     public const int AUDIO_F32 = 0x8120;
-    public const int AUDIO_F32LSB = 0x8120;
-    public const int AUDIO_F32MSB = 0x9120;
     public const int AUDIO_S16 = 0x8010;
-    public const int AUDIO_S16LSB = 0x8010;
-    public const int AUDIO_S16MSB = 0x9010;
     public const int AUDIO_S32 = 0x8020;
-    public const int AUDIO_S32LSB = 0x8020;
-    public const int AUDIO_S32MSB = 0x9020;
     public const int AUDIO_S8 = 0x8008;
     public const int AUDIO_U16 = 0x0010;
-    public const int AUDIO_U16LSB = 0x0010;
-    public const int AUDIO_U16MSB = 0x1010;
     public const int AUDIO_U8 = 0x0008;
-    public const int HAVE_WINAPIFAMILY_H = 1;
     public const int RW_SEEK_CUR = 1;
     public const int RW_SEEK_END = 2;
     public const int RW_SEEK_SET = 0;
@@ -40,9 +31,7 @@ public static unsafe partial class SDL
     public const int SDL_AUDIO_ALLOW_SAMPLES_CHANGE = 0x00000008;
     public const int SDL_AUDIO_MASK_BITSIZE = (0xFF);
     public const int SDL_AUDIO_MASK_DATATYPE = (1 << 8);
-    public const int SDL_AUDIO_MASK_ENDIAN = (1 << 12);
     public const int SDL_AUDIO_MASK_SIGNED = (1 << 15);
-    public const int SDL_BIG_ENDIAN = 4321;
     public const int SDL_BUTTON_LEFT = 1;
     public const int SDL_BUTTON_LMASK = (1 << ((1) - 1));
     public const int SDL_BUTTON_MIDDLE = 2;
@@ -103,7 +92,6 @@ public static unsafe partial class SDL
     public const double SDL_IPHONE_MAX_GFORCE = 5.0;
     public const int SDL_JOYSTICK_AXIS_MAX = 32767;
     public const int SDL_JOYSTICK_AXIS_MIN = -32768;
-    public const int SDL_LIL_ENDIAN = 1234;
     public const int SDL_MAJOR_VERSION = 2;
     public const int SDL_MAX_LOG_MESSAGE = 4096;
     public const short SDL_MAX_SINT16 = ((short)(0x7FFF));
@@ -155,9 +143,6 @@ public static unsafe partial class SDL
     public const uint SDL_WINDOWPOS_UNDEFINED = (0x1FFF0000U | (0));
     public const uint SDL_WINDOWPOS_UNDEFINED_MASK = 0x1FFF0000U;
     public const int SDL_WINDOW_LACKS_SHAPE = -3;
-    public const bool WINAPI_FAMILY_WINRT = (!((100 == 100)) && ((100 == 100 || 100 == 2 || 100 == 3)));
-    public const int __WIN32__ = 1;
-    public const int __WINDOWS__ = 1;
     public static ReadOnlySpan<byte> SDL_HINT_ACCELEROMETER_AS_JOYSTICK => "SDL_ACCELEROMETER_AS_JOYSTICK"u8;
     public static ReadOnlySpan<byte> SDL_HINT_ALLOW_ALT_TAB_WHILE_GRABBED => "SDL_ALLOW_ALT_TAB_WHILE_GRABBED"u8;
     public static ReadOnlySpan<byte> SDL_HINT_ALLOW_TOPMOST => "SDL_ALLOW_TOPMOST"u8;
