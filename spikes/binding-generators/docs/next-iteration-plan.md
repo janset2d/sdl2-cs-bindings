@@ -11,7 +11,17 @@ See [`canonical/binding-generator-roadmap.md`](canonical/binding-generator-roadm
 
 ## Active Iteration
 
-To be filled by the Layer 2 brainstorm/spec/plan cycle. This section tracks the current iteration's active work items.
+Layer 2 typed public API — **design complete, implementation PARKED 2026-05-30** (postpone decision). Artifacts produced this cycle:
+
+- **Phase A peer mapping:** [`canonical/references/2026-05-29-layer-2-peer-mapping.md`](canonical/references/2026-05-29-layer-2-peer-mapping.md) — ppy / Alimer / Silk / SDL2-CS mapped to our L1/L2/L3 under Litmus A.
+- **Cross-family requirements matrix:** [`canonical/references/2026-05-30-layer-2-cross-family-requirements.md`](canonical/references/2026-05-30-layer-2-cross-family-requirements.md) — per-pass × per-family + the satellite-only exceptions a Core-first design forgets (library-agnostic invariants).
+- **Design spec (approved):** `docs/superpowers/specs/2026-05-29-binding-autogen-layer-2-typed-public-api-design.md` — Litmus A seam, Safe-Alternative Guarantee, `T?`-collapse, separate string + `ReadOnlySpan<byte>`, `SDL_bool`=typed-enum (D6), function-like-macro strategy #3, family-blind invariants (§10B), 8-item Constitution amendment queue (§12).
+- **Implementation plan:** `docs/superpowers/plans/2026-05-30-binding-autogen-layer-2-core-foundation.md` — Core L2 foundation (family-blind projection + universal StructLayout + clong both-paths + public-API snapshot).
+- **Expert reviews (×2, 2026-05-30):** (1) unbiased P/Invoke + modern-C# lens; (2) context-full, peer-benchmarked (CsWin32 / ClangSharp `PInvokeGenerator` / TerraFX / Vortice / csbindgen / rust-bindgen + the SDL peers). Verdict **proceed fixes-first**; architecture + ratified decisions ecosystem-validated (internal-raw + public-forwarder, `[NativeTypeName]`-drop, clong dual-path, deterministic sort, snapshot = best-in-class). The dual lens caught **two legacy-TFM compile blockers a single review missed**: `delegate*`-param Modern/Compat divergence (~25 methods) and `[SupportedOSPlatform]` unconditional emit (absent on netstandard2.0/net462). **All must-fixes integrated into the plan.** Design call (Deniz, 2026-05-30): **single public surface** — uniform signatures + `#if`-pragma bodies + verbatim attribute-trivia copy, NOT a TFM-split.
+
+- **Forward-scope ledger (everything beyond the foundation plan — single resume anchor):** [`canonical/references/2026-05-30-layer-2-design-and-deferred-scope.md`](canonical/references/2026-05-30-layer-2-design-and-deferred-scope.md) — ratified design decisions, deferred slices + activation sequence, Layer 3 scope, the 8 pending Constitution amendments, and deferred review findings, each pointing to its authoritative source.
+
+**To resume:** the plan is corrected + ready (must-fixes integrated; clong `(nint)` not `(int)`; public consts re-emitted; compile-check fixture; platform/obsolete attribute trivia preserved). Execute subagent-driven. Constitution amendments (spec §12) land with the Layer 2 changeset. Deferred should-fixes are in the plan's "Deferred review findings" section.
 
 ## Forward Backlog
 
@@ -67,6 +77,7 @@ Items belonging to Layer 2 typed public API + Layer 3 friendly overloads work.
 | ppy orchestrator feature parity (deferred from Slice 5) | Per-header `.rsp` lookup landed during Priority C. Remaining ppy-pattern parity: companion-file manual-symbol exclusion feedback regex (`[Constant]` / `[Typedef]` markers) and full dynapi validation pass. Not on the critical path for Layer 2 expansion. | Layer 2/Layer 3 orchestrator enhancement once Layer 2 typed API patterns reveal what companion-helper feedback is required. |
 | Function-like SDL macros (helper-class policy) | `TTF_VERSION(X)`, `TTF_VERSION_ATLEAST(X,Y,Z)`, `SDL_MIXER_VERSION(X)`, `MIX_VERSION(X)`, `SDL_MIXER_VERSION_ATLEAST(X,Y,Z)`, and similar function-like macros are not Layer 1 raw ABI output. Generation report classifies them as helper candidates. | Layer 2 / Layer 3 helper strategy; see [`canonical/satellites/sdl2-function-like-macro-consolidation.md`](canonical/satellites/sdl2-function-like-macro-consolidation.md). |
 | Drift-watchdog extension for owner-mode satellites | Current drift report covers Core-owned handles; satellite-owned-handle owner-mode (TTF / Mixer) should extend the watchdog to detect zero-handle scenarios that imply a roster/code drift. | `OpaqueHandleEmitRewriter` drift report extension. |
+| `SDL_bool` bool affordance at Layer 3 | D6 keeps `SDL_bool` as the typed int-backed enum at L2 (ABI-honest), but every peer (Silk / SDL2-CS / ppy) gives consumers a bool path; `if (x == SDL_bool.SDL_TRUE)` is verbose. Expert review (2026-05-30) flagged "no peer does this" as real consumer friction — to be revisited. | Layer 3: add a non-overloading `bool ToBoolean(this SDL_bool)` / `IsTrue` extension (no implicit conversion, no return-type overload). Not an L2 blocker. |
 
 ### Accepted Tradeoffs / No Action
 
