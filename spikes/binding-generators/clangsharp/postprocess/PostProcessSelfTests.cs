@@ -35,6 +35,7 @@ internal static unsafe partial class SDLNative
         CheckClongSignedReturnDispatch(failures);
         CheckClongThreadIdStructuralDispatch(failures);
         CheckFlagsAttributeDetection(failures);
+        CheckStructLayoutSequential(failures);
 
         if (failures.Count > 0)
         {
@@ -746,6 +747,112 @@ namespace SDL2
             expectFlags: true,
             "FlagsAttributeRewriter image family: empty allow-list + IMG_InitFlags suffix",
             failures);
+    }
+
+    private static void CheckStructLayoutSequential(List<string> failures)
+    {
+        var barePodOutput = RewriteStructLayout("""
+namespace SDL2
+{
+    public partial struct SDL_Rect
+    {
+        public int x;
+        public int y;
+        public int w;
+        public int h;
+    }
+}
+""");
+
+        if (!barePodOutput.Contains("using System.Runtime.InteropServices;", StringComparison.Ordinal))
+        {
+            failures.Add("StructLayoutSequentialRewriter: bare POD struct did not add System.Runtime.InteropServices using");
+        }
+
+        if (!barePodOutput.Contains("    [StructLayout(LayoutKind.Sequential)]\n    public partial struct SDL_Rect", StringComparison.Ordinal))
+        {
+            failures.Add($"StructLayoutSequentialRewriter: bare POD struct did not add sequential layout with class-member indentation. Output:\n{barePodOutput}");
+        }
+
+        var explicitOutput = RewriteStructLayout("""
+using System.Runtime.InteropServices;
+
+namespace SDL2
+{
+    [StructLayout(LayoutKind.Explicit)]
+    public partial struct SDL_Event
+    {
+    }
+}
+""");
+
+        var explicitLayoutKindCount = CountOccurrences(explicitOutput, "LayoutKind.");
+        if (explicitLayoutKindCount != 1 || explicitOutput.Contains("LayoutKind.Sequential", StringComparison.Ordinal))
+        {
+            failures.Add($"StructLayoutSequentialRewriter: explicit-layout struct was modified. LayoutKind count={explicitLayoutKindCount}. Output:\n{explicitOutput}");
+        }
+
+        var existingSequentialOutput = RewriteStructLayout("""
+using System.Runtime.InteropServices;
+
+namespace SDL2
+{
+    [StructLayout(LayoutKind.Sequential)]
+    public readonly partial struct SDL_Window
+    {
+        private readonly nint _handle;
+    }
+}
+""");
+
+        var existingSequentialCount = CountOccurrences(existingSequentialOutput, "StructLayout(LayoutKind.Sequential)");
+        if (existingSequentialCount != 1)
+        {
+            failures.Add($"StructLayoutSequentialRewriter: existing sequential readonly partial struct was double-decorated. Count={existingSequentialCount}. Output:\n{existingSequentialOutput}");
+        }
+
+        var partialGuardOutput = RewriteStructLayout("""
+using System.Runtime.InteropServices;
+
+namespace SDL2
+{
+    [StructLayout(LayoutKind.Explicit)]
+    public partial struct SDL_Partial
+    {
+    }
+
+    public partial struct SDL_Partial
+    {
+        public int Value;
+    }
+}
+""");
+
+        var partialGuardLayoutKindCount = CountOccurrences(partialGuardOutput, "LayoutKind.");
+        if (partialGuardLayoutKindCount != 1 || partialGuardOutput.Contains("LayoutKind.Sequential", StringComparison.Ordinal))
+        {
+            failures.Add($"StructLayoutSequentialRewriter: partial-type guard added a conflicting layout. LayoutKind count={partialGuardLayoutKindCount}. Output:\n{partialGuardOutput}");
+        }
+    }
+
+    private static string RewriteStructLayout(string source)
+    {
+        var rewriter = new StructLayoutSequentialRewriter();
+        var root = CSharpSyntaxTree.ParseText(source).GetCompilationUnitRoot();
+        return ((CompilationUnitSyntax)rewriter.Visit(root)!).ToFullString();
+    }
+
+    private static int CountOccurrences(string haystack, string needle)
+    {
+        var count = 0;
+        var index = 0;
+        while ((index = haystack.IndexOf(needle, index, StringComparison.Ordinal)) >= 0)
+        {
+            count++;
+            index += needle.Length;
+        }
+
+        return count;
     }
 
     private static void AssertFlagsDecoration(

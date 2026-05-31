@@ -10,6 +10,7 @@ using Microsoft.CodeAnalysis.CSharp;
 //   dotnet run --project postprocess -- flags-detect       <input-dir> [<output-dir>]
 //   dotnet run --project postprocess -- clong-dispatch     <input-dir> [<output-dir>]
 //   dotnet run --project postprocess -- uniform-opaque     <input-dir> [<output-dir>] [--owner-mode owner|consumer] [--handles-namespace namespace]
+//   dotnet run --project postprocess -- struct-layout      <input-dir> [<output-dir>]
 //
 // strip-varargs     : Constitution §"C Variadics" fmt-only policy — drops `__arglist`
 //                     parameter from variadic P/Invokes (applied to both Compat
@@ -44,6 +45,10 @@ using Microsoft.CodeAnalysis.CSharp;
 //                     wrapping nint with IEquatable<T>, explicit operators only)
 //                     and rewrite single-pointer X* references in raw ABI
 //                     signatures to by-value X (double-pointer / out preserved).
+// struct-layout     : Layer 2 universal layout pass — adds
+//                     [StructLayout(LayoutKind.Sequential)] to layout-free
+//                     structs while leaving Explicit unions and already-laid-out
+//                     Pattern B handles untouched.
 //
 // Default behavior is in-place edit; pass an explicit output directory to
 // write to a different location.
@@ -53,9 +58,9 @@ if (args is ["--self-test"])
     return PostProcessSelfTests.Run();
 }
 
-if (args.Length < 2 || args[0] is not ("strip-varargs" or "libraryimport" or "platform-delta" or "guid-substitute" or "flags-detect" or "clong-dispatch" or "uniform-opaque"))
+if (args.Length < 2 || args[0] is not ("strip-varargs" or "libraryimport" or "platform-delta" or "guid-substitute" or "flags-detect" or "clong-dispatch" or "uniform-opaque" or "struct-layout"))
 {
-    Console.Error.WriteLine("usage: dotnet run --project postprocess -- <strip-varargs|libraryimport|platform-delta|guid-substitute|flags-detect|clong-dispatch|uniform-opaque> <input-dir> [<output-dir>] or --self-test");
+    Console.Error.WriteLine("usage: dotnet run --project postprocess -- <strip-varargs|libraryimport|platform-delta|guid-substitute|flags-detect|clong-dispatch|uniform-opaque|struct-layout> <input-dir> [<output-dir>] or --self-test");
     return 1;
 }
 
@@ -186,6 +191,14 @@ switch (mode)
         Console.WriteLine($"uniform-opaque: applying {rosterAutoDetect.Count} auto-detect + {rosterForceOpaque.Count} force-opaque handles from family-config.json for family '{family}' (syntactic discovery: {syntacticDetect.Count})");
         uniformOpaqueHandleNames = ownerHandleNames;
         var r = new OpaqueHandleEmitRewriter(handleNames);
+        rewriter = r;
+        hasChanges = () => r.AnyChanges;
+        resetRewriter = r.Reset;
+        break;
+    }
+    case "struct-layout":
+    {
+        var r = new StructLayoutSequentialRewriter();
         rewriter = r;
         hasChanges = () => r.AnyChanges;
         resetRewriter = r.Reset;
