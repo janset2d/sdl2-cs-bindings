@@ -950,6 +950,7 @@ internal static unsafe partial class SDLNative
     public const short AUDIO_S16SYS = unchecked((short)0x9010);
     public const int AUDIO_S32SYS = unchecked((int)0x9020);
     public const uint AUDIO_F32SYS = 0x8120;
+    public const ushort MIX_DEFAULT_FORMAT = AUDIO_S16SYS;
     public static ReadOnlySpan<byte> SDL_HINT_RENDER_SCALE_QUALITY => "SDL_RENDER_SCALE_QUALITY"u8;
 
     public static byte* SDL_GetError() => null;
@@ -1023,6 +1024,7 @@ internal static unsafe partial class SDLNative
         AssertNotContains(output, "AUDIO_S16SYS", "PublicTypedMethodProjection: AUDIO_S16SYS should be suppressed", failures);
         AssertNotContains(output, "AUDIO_S32SYS", "PublicTypedMethodProjection: AUDIO_S32SYS should be suppressed", failures);
         AssertNotContains(output, "AUDIO_F32SYS", "PublicTypedMethodProjection: AUDIO_F32SYS should be suppressed", failures);
+        AssertNotContains(output, "MIX_DEFAULT_FORMAT", "PublicTypedMethodProjection: MIX_DEFAULT_FORMAT should be suppressed as a deferred endian alias", failures);
         AssertNotContains(output, "IgnoredEnum", "PublicTypedMethodProjection: namespace enum leaked", failures);
         AssertNotContains(output, "IgnoredDelegate", "PublicTypedMethodProjection: namespace delegate leaked", failures);
         AssertNotContains(output, "SDL_ShouldNotAppear", "PublicTypedMethodProjection: non-configured raw class leaked", failures);

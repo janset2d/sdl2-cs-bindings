@@ -11,6 +11,7 @@ internal static class PublicTypedMethodProjection
     {
         "SDL_BYTEORDER",
         "SDL_FLOATWORDORDER",
+        "MIX_DEFAULT_FORMAT",
     };
 
     public sealed record DiscoveredMembers(
