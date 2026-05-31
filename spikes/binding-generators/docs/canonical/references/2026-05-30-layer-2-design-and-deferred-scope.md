@@ -24,9 +24,9 @@ Full text + rationale: [`../../../../docs/superpowers/specs/2026-05-29-binding-a
 | D10 | Cross-family calls | Core-owned public **types** shared via nested-namespace + ProjectReference (no IVT); Core L2 lands before any satellite L2. |
 | — | **Library-agnostic invariants** | Spec §10B: family-blind rewriters, no-op tolerance, universal `[StructLayout(Sequential)]`, clong both paths, cross-family type/alias resolution, sequencing, zero name-normalization. |
 
-## 2. Pending Constitution amendments (authoritative: spec §12)
+## 2. Constitution amendments (authoritative: Constitution + spec §12)
 
-Eight amendments land with the Layer 2 changeset (Constitution Maintenance Rule): (1) Litmus A in §"Layer Contract"; (2) Safe-Alternative Guarantee; (3) breadth + `T?`-collapse; (4) string axis; (5) function-like-macro #3 + "ClangSharp doesn't surface function-like macros"; (6) cross-family error routing; (7) endian L2 runtime-alias; (8) family-blind mechanism / no-op tolerance / universal StructLayout. Plus the §"SDL_bool" clarification (typed enum at all public positions). **ADR-004 amendment** (toolchain) remains deferred to Layer 2 closure per the roadmap; this cycle's evidence reinforces the ClangSharp choice (committed-postprocess, raw-only PInvokeGenerator).
+The Core foundation changeset records the durable policy items that govern the executed slice: Litmus A in §"Layer Contract"; Safe-Alternative Guarantee as a public-preview/release gate; the string axis; function-like-macro roster/emitter strategy with emission deferred; endian/runtime alias deferral with no public `const` freeze for `SDL_BYTEORDER`, `SDL_FLOATWORDORDER`, or `AUDIO_*SYS`; callback-shaped L2 signatures as uniform `nint` / `nint*`; and family-blind / no-op-tolerant mechanisms. Cross-family error routing, `T?` friendly optional-pointer collapse, and full runtime-endian alias emission remain later-slice implementation work. **ADR-004 amendment** (toolchain) remains deferred to Layer 2 closure per the roadmap; this cycle's evidence reinforces the ClangSharp choice (committed-postprocess, raw-only PInvokeGenerator).
 
 ## 3. Deferred implementation slices + sequence (authoritative: cross-family matrix §4 + roadmap §Layer 2)
 

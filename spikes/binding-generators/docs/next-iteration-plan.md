@@ -11,7 +11,7 @@ See [`canonical/binding-generator-roadmap.md`](canonical/binding-generator-roadm
 
 ## Active Iteration
 
-Layer 2 typed public API — **design complete, implementation PARKED 2026-05-30** (postpone decision). Artifacts produced this cycle:
+Layer 2 typed public API — **Core foundation implementation active**. Design remains complete; the current slice activates SDL2.Core public typed output only, with satellite activation and deeper friendly APIs following in later slices. Artifacts produced this cycle:
 
 - **Phase A peer mapping:** [`canonical/references/2026-05-29-layer-2-peer-mapping.md`](canonical/references/2026-05-29-layer-2-peer-mapping.md) — ppy / Alimer / Silk / SDL2-CS mapped to our L1/L2/L3 under Litmus A.
 - **Cross-family requirements matrix:** [`canonical/references/2026-05-30-layer-2-cross-family-requirements.md`](canonical/references/2026-05-30-layer-2-cross-family-requirements.md) — per-pass × per-family + the satellite-only exceptions a Core-first design forgets (library-agnostic invariants).
@@ -19,9 +19,9 @@ Layer 2 typed public API — **design complete, implementation PARKED 2026-05-30
 - **Implementation plan:** `docs/superpowers/plans/2026-05-30-binding-autogen-layer-2-core-foundation.md` — Core L2 foundation (family-blind projection + universal StructLayout + clong both-paths + public-API snapshot).
 - **Expert reviews (×2, 2026-05-30 + follow-up ×4, 2026-05-31):** initial reviews (unbiased P/Invoke + context-full peer-benchmarked) validated the architecture and caught legacy-TFM compile blockers. The 2026-05-31 parallel review added required plan fixes before implementation: callback type-shape coverage beyond direct `delegate*` params (`delegate*`, `delegate* *`, callback returns), guarded platform-attribute usings, public macro/value member classification (ordinary consts + string-like `ReadOnlySpan<byte>` properties + endian const suppression), Core-only `public-typed` orchestrator activation, stronger attribute filtering, public-API policy assertions, and a small public-L2 smoke through the existing ABI test project. Design call remains: **single public surface** — uniform signatures + `#if`-pragma bodies + verbatim attribute-trivia copy, NOT a TFM-split.
 
-- **Forward-scope ledger (everything beyond the foundation plan — single resume anchor):** [`canonical/references/2026-05-30-layer-2-design-and-deferred-scope.md`](canonical/references/2026-05-30-layer-2-design-and-deferred-scope.md) — ratified design decisions, deferred slices + activation sequence, Layer 3 scope, the 8 pending Constitution amendments, and deferred review findings, each pointing to its authoritative source.
+- **Forward-scope ledger (everything beyond the foundation plan — single resume anchor):** [`canonical/references/2026-05-30-layer-2-design-and-deferred-scope.md`](canonical/references/2026-05-30-layer-2-design-and-deferred-scope.md) — ratified design decisions, deferred slices + activation sequence, Layer 3 scope, Constitution policy reconciliation, and deferred review findings, each pointing to its authoritative source.
 
-**To resume:** the plan is corrected + ready after the 2026-05-31 review sweep. Execute subagent-driven, but preserve the added gates: callback direct/pointer/return compile fixtures, public macro/member classification, no public endian-const freeze, Core-only public output, existing `abi-tests` public-L2 smoke, Modern/Compat projectable-member parity review, and Constitution/spec reconciliation in the Layer 2 changeset. Deferred should-fixes are in the plan's "Deferred review findings" section.
+**Current execution gates:** preserve callback direct/pointer/return compile fixtures, public macro/member classification, no public endian-const freeze, Core-only public output, existing `abi-tests` public-L2 smoke, Modern/Compat projectable-member parity review, and Constitution/spec reconciliation in the Layer 2 changeset. Function-like macro helpers, runtime/endian aliases, satellite public output, and callback lifetime/rooting policy remain deferred should-fixes or later slices.
 
 ## Forward Backlog
 
