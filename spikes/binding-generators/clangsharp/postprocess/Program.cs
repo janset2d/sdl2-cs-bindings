@@ -11,6 +11,7 @@ using Microsoft.CodeAnalysis.CSharp;
 //   dotnet run --project postprocess -- clong-dispatch     <input-dir> [<output-dir>]
 //   dotnet run --project postprocess -- uniform-opaque     <input-dir> [<output-dir>] [--owner-mode owner|consumer] [--handles-namespace namespace]
 //   dotnet run --project postprocess -- struct-layout      <input-dir> [<output-dir>]
+//   dotnet run --project postprocess -- public-typed       <input-dir>
 //
 // strip-varargs     : Constitution §"C Variadics" fmt-only policy — drops `__arglist`
 //                     parameter from variadic P/Invokes (applied to both Compat
@@ -49,6 +50,9 @@ using Microsoft.CodeAnalysis.CSharp;
 //                     [StructLayout(LayoutKind.Sequential)] to layout-free
 //                     structs while leaving Explicit unions and already-laid-out
 //                     Pattern B handles untouched.
+// public-typed      : Layer 2 public low-level API projection. Reads final
+//                     Generated/Modern raw ABI signatures and emits one
+//                     TFM-shared Generated/Public/{public_class}.g.cs file.
 //
 // Default behavior is in-place edit; pass an explicit output directory to
 // write to a different location.
@@ -58,9 +62,9 @@ if (args is ["--self-test"])
     return PostProcessSelfTests.Run();
 }
 
-if (args.Length < 2 || args[0] is not ("strip-varargs" or "libraryimport" or "platform-delta" or "guid-substitute" or "flags-detect" or "clong-dispatch" or "uniform-opaque" or "struct-layout"))
+if (args.Length < 2 || args[0] is not ("strip-varargs" or "libraryimport" or "platform-delta" or "guid-substitute" or "flags-detect" or "clong-dispatch" or "uniform-opaque" or "struct-layout" or "public-typed"))
 {
-    Console.Error.WriteLine("usage: dotnet run --project postprocess -- <strip-varargs|libraryimport|platform-delta|guid-substitute|flags-detect|clong-dispatch|uniform-opaque|struct-layout> <input-dir> [<output-dir>] or --self-test");
+    Console.Error.WriteLine("usage: dotnet run --project postprocess -- <strip-varargs|libraryimport|platform-delta|guid-substitute|flags-detect|clong-dispatch|uniform-opaque|struct-layout|public-typed> <input-dir> [<output-dir>] or --self-test");
     return 1;
 }
 
@@ -91,6 +95,28 @@ if (mode == "platform-delta")
 {
     var result = new PlatformDeltaPostProcessor(familyConfig.PlatformViews()).Process(inputDir, outputDir);
     Console.WriteLine($"platform-delta: {result.ProcessedFiles} platform files scanned, {result.TransformedFiles} files transformed, {result.RemovedDeclarations} duplicate declarations removed");
+    return 0;
+}
+
+if (mode == "public-typed")
+{
+    var family = ResolveFamilyFromOutputDir(inputDir, familyConfig);
+    var modernParent = Path.GetDirectoryName(inputDir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))
+        ?? throw new InvalidOperationException($"Could not resolve Generated parent for input directory '{inputDir}'.");
+    var publicDir = Path.Combine(modernParent, "Public");
+    var publicClass = familyConfig.PublicClass(family);
+    var rawClass = familyConfig.RawClass(family);
+    var members = PublicTypedMethodProjection.Discover(inputDir, rawClass);
+    var content = PublicTypedMethodProjection.BuildPublicClassContent(
+        members,
+        publicClass,
+        rawClass,
+        familyConfig.Namespace(family),
+        new HashSet<string>(familyConfig.ClongMethods(family), StringComparer.Ordinal));
+    Directory.CreateDirectory(publicDir);
+    var destination = Path.Combine(publicDir, publicClass + ".g.cs");
+    PostProcessCli.WriteAllTextLf(destination, content);
+    Console.WriteLine($"public-typed: family={family}, {members.Constants.Count + members.Properties.Count + members.Methods.Count} members -> {destination}");
     return 0;
 }
 
