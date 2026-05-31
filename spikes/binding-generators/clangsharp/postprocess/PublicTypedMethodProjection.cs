@@ -435,10 +435,9 @@ internal static class PublicTypedMethodProjection
            name.StartsWith("__", StringComparison.Ordinal) ||
            name.StartsWith("HAVE_", StringComparison.Ordinal) ||
            name.StartsWith("WINAPI_", StringComparison.Ordinal) ||
+           name.StartsWith("SDL_WINAPI_", StringComparison.Ordinal) ||
            (name.StartsWith("AUDIO_", StringComparison.Ordinal) &&
-            (name.EndsWith("SYS", StringComparison.Ordinal) ||
-             name.EndsWith("LSB", StringComparison.Ordinal) ||
-             name.EndsWith("MSB", StringComparison.Ordinal)));
+            name.EndsWith("SYS", StringComparison.Ordinal));
 
     private static bool IsFunctionPointer(TypeSyntax type)
         => type is FunctionPointerTypeSyntax;

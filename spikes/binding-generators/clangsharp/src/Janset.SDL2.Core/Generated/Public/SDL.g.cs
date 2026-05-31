@@ -10,10 +10,18 @@ namespace SDL2;
 public static unsafe partial class SDL
 {
     public const int AUDIO_F32 = 0x8120;
+    public const int AUDIO_F32LSB = 0x8120;
+    public const int AUDIO_F32MSB = 0x9120;
     public const int AUDIO_S16 = 0x8010;
+    public const int AUDIO_S16LSB = 0x8010;
+    public const int AUDIO_S16MSB = 0x9010;
     public const int AUDIO_S32 = 0x8020;
+    public const int AUDIO_S32LSB = 0x8020;
+    public const int AUDIO_S32MSB = 0x9020;
     public const int AUDIO_S8 = 0x8008;
     public const int AUDIO_U16 = 0x0010;
+    public const int AUDIO_U16LSB = 0x0010;
+    public const int AUDIO_U16MSB = 0x1010;
     public const int AUDIO_U8 = 0x0008;
     public const int RW_SEEK_CUR = 1;
     public const int RW_SEEK_END = 2;
@@ -137,7 +145,6 @@ public static unsafe partial class SDL
     public const int SDL_TEXTINPUTEVENT_TEXT_SIZE = (32);
     public const uint SDL_TOUCH_MOUSEID = unchecked((uint)(-1));
     public const int SDL_VIRTUAL_JOYSTICK_DESC_VERSION = 1;
-    public const bool SDL_WINAPI_FAMILY_PHONE = (100 == 3);
     public const uint SDL_WINDOWPOS_CENTERED = (0x2FFF0000U | (0));
     public const uint SDL_WINDOWPOS_CENTERED_MASK = 0x2FFF0000U;
     public const uint SDL_WINDOWPOS_UNDEFINED = (0x1FFF0000U | (0));

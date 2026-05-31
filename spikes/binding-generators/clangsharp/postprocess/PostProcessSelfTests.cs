@@ -950,11 +950,16 @@ internal static unsafe partial class SDLNative
     public const int WIN32 = 1;
     public const int HAVE_WINAPIFAMILY_H = 1;
     public const int WINAPI_FAMILY_WINRT = 1;
+    public const int SDL_WINAPI_FAMILY_PHONE = 2;
     public const int SDL_AUDIO_MASK_ENDIAN = (1 << 12);
     public const int SDL_BIG_ENDIAN = 4321;
     public const int SDL_BYTEORDER = 1234;
     public const int SDL_FLOATWORDORDER = 4321;
     public const int SDL_LIL_ENDIAN = 1234;
+    public const ushort AUDIO_U16LSB = 0x0010;
+    public const short AUDIO_S16LSB = unchecked((short)0x8010);
+    public const ushort AUDIO_U16MSB = 0x1010;
+    public const short AUDIO_S16MSB = unchecked((short)0x9010);
     public const int AUDIO_F32LSB = 0x8120;
     public const int AUDIO_F32MSB = 0x9120;
     public const ushort AUDIO_U16SYS = 0x8010;
@@ -1032,6 +1037,12 @@ internal static unsafe partial class SDLNative
         AssertLegacyBranchNotContains(output, "SDL_GetDefaultAssertionHandler", "delegate*", failures);
 
         AssertContains(output, "public const int SDL_ALPHA_OPAQUE = 255;", "PublicTypedMethodProjection: public const re-emit missing", failures);
+        AssertContains(output, "public const ushort AUDIO_U16LSB = 0x0010;", "PublicTypedMethodProjection: stable little-endian audio constant AUDIO_U16LSB should be emitted", failures);
+        AssertContains(output, "public const short AUDIO_S16LSB = unchecked((short)0x8010);", "PublicTypedMethodProjection: stable little-endian audio constant AUDIO_S16LSB should be emitted", failures);
+        AssertContains(output, "public const ushort AUDIO_U16MSB = 0x1010;", "PublicTypedMethodProjection: stable big-endian audio constant AUDIO_U16MSB should be emitted", failures);
+        AssertContains(output, "public const short AUDIO_S16MSB = unchecked((short)0x9010);", "PublicTypedMethodProjection: stable big-endian audio constant AUDIO_S16MSB should be emitted", failures);
+        AssertContains(output, "public const int AUDIO_F32LSB = 0x8120;", "PublicTypedMethodProjection: stable little-endian audio constant AUDIO_F32LSB should be emitted", failures);
+        AssertContains(output, "public const int AUDIO_F32MSB = 0x9120;", "PublicTypedMethodProjection: stable big-endian audio constant AUDIO_F32MSB should be emitted", failures);
         AssertContains(output, "public static ReadOnlySpan<byte> SDL_HINT_RENDER_SCALE_QUALITY => \"SDL_RENDER_SCALE_QUALITY\"u8;", "PublicTypedMethodProjection: string-like macro property re-emit missing", failures);
         AssertNotContains(output, "__WIN32__", "PublicTypedMethodProjection: compiler/platform macro __WIN32__ should be suppressed", failures);
         AssertNotContains(output, "__WINDOWS__", "PublicTypedMethodProjection: compiler/platform macro __WINDOWS__ should be suppressed", failures);
@@ -1039,13 +1050,12 @@ internal static unsafe partial class SDLNative
         AssertNotContains(output, "WIN32", "PublicTypedMethodProjection: compiler/platform macro WIN32 should be suppressed", failures);
         AssertNotContains(output, "HAVE_WINAPIFAMILY_H", "PublicTypedMethodProjection: shim macro HAVE_WINAPIFAMILY_H should be suppressed", failures);
         AssertNotContains(output, "WINAPI_FAMILY_WINRT", "PublicTypedMethodProjection: platform macro WINAPI_FAMILY_WINRT should be suppressed", failures);
+        AssertNotContains(output, "SDL_WINAPI_FAMILY_PHONE", "PublicTypedMethodProjection: platform macro SDL_WINAPI_FAMILY_PHONE should be suppressed", failures);
         AssertNotContains(output, "SDL_AUDIO_MASK_ENDIAN", "PublicTypedMethodProjection: SDL_AUDIO_MASK_ENDIAN should be suppressed", failures);
         AssertNotContains(output, "SDL_BIG_ENDIAN", "PublicTypedMethodProjection: SDL_BIG_ENDIAN should be suppressed", failures);
         AssertNotContains(output, "SDL_BYTEORDER", "PublicTypedMethodProjection: SDL_BYTEORDER should be suppressed", failures);
         AssertNotContains(output, "SDL_FLOATWORDORDER", "PublicTypedMethodProjection: SDL_FLOATWORDORDER should be suppressed", failures);
         AssertNotContains(output, "SDL_LIL_ENDIAN", "PublicTypedMethodProjection: SDL_LIL_ENDIAN should be suppressed", failures);
-        AssertNotContains(output, "AUDIO_F32LSB", "PublicTypedMethodProjection: AUDIO_F32LSB should be suppressed", failures);
-        AssertNotContains(output, "AUDIO_F32MSB", "PublicTypedMethodProjection: AUDIO_F32MSB should be suppressed", failures);
         AssertNotContains(output, "AUDIO_U16SYS", "PublicTypedMethodProjection: AUDIO_U16SYS should be suppressed", failures);
         AssertNotContains(output, "AUDIO_S16SYS", "PublicTypedMethodProjection: AUDIO_S16SYS should be suppressed", failures);
         AssertNotContains(output, "AUDIO_S32SYS", "PublicTypedMethodProjection: AUDIO_S32SYS should be suppressed", failures);
