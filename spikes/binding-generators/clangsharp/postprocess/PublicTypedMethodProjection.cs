@@ -222,7 +222,7 @@ internal static class PublicTypedMethodProjection
         var type = parameter.Type ?? SyntaxFactory.ParseTypeName("object");
         var publicType = BuildPublicType(type, isClongMethod, isReturn: false);
         return new ParameterModel(
-            parameter.Identifier.ValueText,
+            parameter.Identifier.Text,
             publicType.PublicType,
             type.ToString(),
             parameter.AttributeLists,

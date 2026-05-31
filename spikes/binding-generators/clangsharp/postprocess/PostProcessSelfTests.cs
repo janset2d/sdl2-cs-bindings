@@ -955,6 +955,7 @@ internal static unsafe partial class SDLNative
 
     public static byte* SDL_GetError() => null;
     public static int SDL_LockSurface(SDL_Surface* surface) => 0;
+    public static int SDL_PollEvent(SDL_Event* @event) => 0;
     public static int SDL_Apple() => 0;
     public static int SDL_Zebra() => 0;
     public static CLong TTF_FontFaces(TTF_Font font) => default;
@@ -987,6 +988,7 @@ internal static unsafe partial class SDLNative
         AssertContains(output, "public static unsafe partial class SDL", "PublicTypedMethodProjection: public class shape missing", failures);
         AssertContains(output, "public static byte* SDL_GetError() => SDLNative.SDL_GetError();", "PublicTypedMethodProjection: plain pointer-return forwarder missing", failures);
         AssertContains(output, "public static int SDL_LockSurface(SDL_Surface* surface) => SDLNative.SDL_LockSurface(surface);", "PublicTypedMethodProjection: plain pointer-parameter forwarder missing", failures);
+        AssertContains(output, "public static int SDL_PollEvent(SDL_Event* @event) => SDLNative.SDL_PollEvent(@event);", "PublicTypedMethodProjection: escaped keyword parameter was not preserved", failures);
         AssertNotContains(output, "NativeTypeName", "PublicTypedMethodProjection: NativeTypeName leaked", failures);
 
         AssertContains(output, "public static long TTF_FontFaces(TTF_Font font)", "PublicTypedMethodProjection: signed clong return signature missing", failures);
@@ -1114,6 +1116,7 @@ internal static unsafe partial class SDLNative
     public static ReadOnlySpan<byte> SDL_HINT_RENDER_SCALE_QUALITY => "SDL_RENDER_SCALE_QUALITY"u8;
     public static byte* SDL_GetError() => null;
     public static int SDL_LockSurface(SDL_Surface* surface) => 0;
+    public static int SDL_PollEvent(SDL_Event* @event) => 0;
     public static CULong SDL_ThreadID() => default;
     public static CLong TTF_FontFaces(TTF_Font font) => default;
     public static int TTF_OpenFontIndex(TTF_Font font, CLong index, CULong value) => 0;
@@ -1148,6 +1151,7 @@ internal static unsafe partial class SDLNative
     public static ReadOnlySpan<byte> SDL_HINT_RENDER_SCALE_QUALITY => "SDL_RENDER_SCALE_QUALITY"u8;
     public static byte* SDL_GetError() => null;
     public static int SDL_LockSurface(SDL_Surface* surface) => 0;
+    public static int SDL_PollEvent(SDL_Event* @event) => 0;
     public static ulong SDL_ThreadID() => 0;
     public static long TTF_FontFaces(TTF_Font font) => 0;
     public static int TTF_OpenFontIndex(TTF_Font font, long index, ulong value) => 0;
