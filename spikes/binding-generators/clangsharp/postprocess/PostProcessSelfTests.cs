@@ -833,6 +833,73 @@ namespace SDL2
         {
             failures.Add($"StructLayoutSequentialRewriter: partial-type guard added a conflicting layout. LayoutKind count={partialGuardLayoutKindCount}. Output:\n{partialGuardOutput}");
         }
+
+        var nestedBareOutput = RewriteStructLayout("""
+namespace SDL2
+{
+    public partial struct SDL_Outer
+    {
+        public partial struct SDL_Inner
+        {
+            public int Value;
+        }
+    }
+}
+""");
+
+        var nestedBareSequentialCount = CountOccurrences(nestedBareOutput, "StructLayout(LayoutKind.Sequential)");
+        if (nestedBareSequentialCount != 2)
+        {
+            failures.Add($"StructLayoutSequentialRewriter: bare containing struct and nested bare struct were not both decorated. Count={nestedBareSequentialCount}. Output:\n{nestedBareOutput}");
+        }
+
+        var explicitOuterNestedBareOutput = RewriteStructLayout("""
+using System.Runtime.InteropServices;
+
+namespace SDL2
+{
+    [StructLayout(LayoutKind.Explicit)]
+    public partial struct SDL_ExplicitOuter
+    {
+        public partial struct SDL_Inner
+        {
+            public int Value;
+        }
+    }
+}
+""");
+
+        var explicitOuterLayoutKindCount = CountOccurrences(explicitOuterNestedBareOutput, "LayoutKind.");
+        if (explicitOuterLayoutKindCount != 2 || !explicitOuterNestedBareOutput.Contains("LayoutKind.Explicit", StringComparison.Ordinal) || !explicitOuterNestedBareOutput.Contains("LayoutKind.Sequential", StringComparison.Ordinal))
+        {
+            failures.Add($"StructLayoutSequentialRewriter: explicit containing struct blocked nested bare struct decoration. LayoutKind count={explicitOuterLayoutKindCount}. Output:\n{explicitOuterNestedBareOutput}");
+        }
+
+        var sameSimpleNameNestedOutput = RewriteStructLayout("""
+using System.Runtime.InteropServices;
+
+namespace SDL2
+{
+    [StructLayout(LayoutKind.Explicit)]
+    public partial struct SDL_SameName
+    {
+    }
+
+    public partial struct SDL_Container
+    {
+        public partial struct SDL_SameName
+        {
+            public int Value;
+        }
+    }
+}
+""");
+
+        var sameSimpleNameLayoutKindCount = CountOccurrences(sameSimpleNameNestedOutput, "LayoutKind.");
+        if (sameSimpleNameLayoutKindCount != 3 || CountOccurrences(sameSimpleNameNestedOutput, "LayoutKind.Sequential") != 2)
+        {
+            failures.Add($"StructLayoutSequentialRewriter: same simple-name guard suppressed unrelated nested struct. LayoutKind count={sameSimpleNameLayoutKindCount}. Output:\n{sameSimpleNameNestedOutput}");
+        }
     }
 
     private static string RewriteStructLayout(string source)

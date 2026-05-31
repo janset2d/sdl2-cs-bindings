@@ -24,7 +24,7 @@ internal sealed class StructLayoutSequentialRewriter : CSharpSyntaxRewriter
         {
             if (HasStructLayout(structDeclaration))
             {
-                _structsWithLayout.Add(structDeclaration.Identifier.ValueText);
+                _structsWithLayout.Add(GetStructKey(structDeclaration));
             }
         }
 
@@ -44,15 +44,16 @@ internal sealed class StructLayoutSequentialRewriter : CSharpSyntaxRewriter
 
     public override SyntaxNode? VisitStructDeclaration(StructDeclarationSyntax node)
     {
-        if (HasStructLayout(node) || _structsWithLayout.Contains(node.Identifier.ValueText))
+        var result = (StructDeclarationSyntax)base.VisitStructDeclaration(node)!;
+        if (HasStructLayout(result) || _structsWithLayout.Contains(GetStructKey(result)))
         {
-            return node;
+            return result;
         }
 
         AnyChanges = true;
         _needsInteropUsing = true;
-        var leadingTrivia = node.GetLeadingTrivia();
-        return node
+        var leadingTrivia = result.GetLeadingTrivia();
+        return result
             .WithLeadingTrivia(ExtractIndentation(leadingTrivia))
             .AddAttributeLists(BuildStructLayoutAttributeList(leadingTrivia));
     }
@@ -69,6 +70,26 @@ internal sealed class StructLayoutSequentialRewriter : CSharpSyntaxRewriter
 
     private static bool HasInteropUsing(CompilationUnitSyntax node) =>
         node.Usings.Any(u => u.Name?.ToString() == "System.Runtime.InteropServices");
+
+    private static string GetStructKey(StructDeclarationSyntax node)
+    {
+        var parts = new List<string>();
+        foreach (var ancestor in node.Ancestors().Reverse())
+        {
+            switch (ancestor)
+            {
+                case BaseNamespaceDeclarationSyntax namespaceDeclaration:
+                    parts.Add(namespaceDeclaration.Name.ToString());
+                    break;
+                case TypeDeclarationSyntax typeDeclaration:
+                    parts.Add(typeDeclaration.Identifier.ValueText);
+                    break;
+            }
+        }
+
+        parts.Add(node.Identifier.ValueText);
+        return string.Join('.', parts);
+    }
 
     private static AttributeListSyntax BuildStructLayoutAttributeList(SyntaxTriviaList leadingTrivia)
     {
