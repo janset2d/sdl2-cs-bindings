@@ -9,6 +9,7 @@ internal static class PostProcessSelfTests
     public static int Run()
     {
         var failures = new List<string>();
+        CheckFamilyClassConfig(failures);
         CheckClongAttributeArgumentParsing(failures);
         const string source = """
 using System.Runtime.InteropServices;
@@ -47,6 +48,26 @@ internal static unsafe partial class SDLNative
 
         Console.WriteLine("self-test: PASS");
         return 0;
+    }
+
+    private static void CheckFamilyClassConfig(List<string> failures)
+    {
+        var config = FamilyConfig.Load();
+
+        if (!string.Equals(config.PublicClass("core"), "SDL", StringComparison.Ordinal))
+        {
+            failures.Add("FamilyConfig.PublicClass(core) did not return SDL");
+        }
+
+        if (!string.Equals(config.RawClass("core"), "SDLNative", StringComparison.Ordinal))
+        {
+            failures.Add("FamilyConfig.RawClass(core) did not return SDLNative");
+        }
+
+        if (!string.Equals(config.PublicClass("gfx"), "SDL2_gfx", StringComparison.Ordinal))
+        {
+            failures.Add("FamilyConfig.PublicClass(gfx) did not return SDL2_gfx");
+        }
     }
 
     private static void CheckDllImportRewrite(string rewritten, List<string> failures)
