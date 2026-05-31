@@ -18,8 +18,11 @@ public sealed class PublicLayerAbiTests
     }
 
     [Test]
+    [NotInParallel(AbiParallelKeys.Error)]
     [Category(AbiCategories.Smoke)]
     [Category(AbiCategories.Mechanical)]
+    [Category(AbiCategories.GlobalState)]
+    [Category(AbiCategories.SdlError)]
     public async Task SDLClearError_Should_Clear_Current_Error_Through_Public_Layer()
     {
         SDL.SDL_ClearError();
