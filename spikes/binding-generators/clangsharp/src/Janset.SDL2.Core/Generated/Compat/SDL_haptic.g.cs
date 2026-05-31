@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 namespace SDL2
 {
 
+    [StructLayout(LayoutKind.Sequential)]
     public unsafe partial struct SDL_HapticDirection
     {
         [NativeTypeName("Uint8")]
@@ -12,6 +13,7 @@ namespace SDL2
         public fixed int dir[3];
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_HapticConstant
     {
         [NativeTypeName("Uint16")]
@@ -47,6 +49,7 @@ namespace SDL2
         public ushort fade_level;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_HapticPeriodic
     {
         [NativeTypeName("Uint16")]
@@ -91,6 +94,7 @@ namespace SDL2
         public ushort fade_level;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public unsafe partial struct SDL_HapticCondition
     {
         [NativeTypeName("Uint16")]
@@ -129,6 +133,7 @@ namespace SDL2
         public fixed short center[3];
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_HapticRamp
     {
         [NativeTypeName("Uint16")]
@@ -167,6 +172,7 @@ namespace SDL2
         public ushort fade_level;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_HapticLeftRight
     {
         [NativeTypeName("Uint16")]
@@ -182,6 +188,7 @@ namespace SDL2
         public ushort small_magnitude;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public unsafe partial struct SDL_HapticCustom
     {
         [NativeTypeName("Uint16")]

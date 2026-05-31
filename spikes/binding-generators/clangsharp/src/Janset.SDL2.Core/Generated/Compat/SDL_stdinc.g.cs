@@ -27,6 +27,7 @@ namespace SDL2
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate int SDL_CompareCallback([NativeTypeName("const void *")] nint param0, [NativeTypeName("const void *")] nint param1);
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_iconv_t
     {
     }

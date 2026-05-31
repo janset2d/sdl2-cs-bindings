@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace SDL2
 {
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_version
     {
         [NativeTypeName("Uint8")]

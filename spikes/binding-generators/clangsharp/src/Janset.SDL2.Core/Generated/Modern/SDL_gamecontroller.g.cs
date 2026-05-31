@@ -32,6 +32,7 @@ namespace SDL2
         SDL_CONTROLLER_BINDTYPE_HAT,
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_GameControllerButtonBind
     {
         public SDL_GameControllerBindType bindType;
@@ -52,6 +53,7 @@ namespace SDL2
             [NativeTypeName("__AnonymousRecord_SDL_gamecontroller_L100_C9")]
             public _hat_e__Struct hat;
 
+            [StructLayout(LayoutKind.Sequential)]
             public partial struct _hat_e__Struct
             {
                 public int hat;

@@ -11,6 +11,7 @@ namespace SDL2
         SDL_TOUCH_DEVICE_INDIRECT_RELATIVE,
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_Finger
     {
         [NativeTypeName("SDL_FingerID")]

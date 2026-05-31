@@ -30,6 +30,7 @@ namespace SDL2
         SDL_JOYSTICK_POWER_MAX,
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public unsafe partial struct SDL_VirtualJoystickDesc
     {
         [NativeTypeName("Uint16")]

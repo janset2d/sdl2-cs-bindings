@@ -68,6 +68,7 @@ namespace SDL2
         SDL_LASTEVENT = 0xFFFF,
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_CommonEvent
     {
         [NativeTypeName("Uint32")]
@@ -77,6 +78,7 @@ namespace SDL2
         public uint timestamp;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_DisplayEvent
     {
         [NativeTypeName("Uint32")]
@@ -104,6 +106,7 @@ namespace SDL2
         public int data1;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_WindowEvent
     {
         [NativeTypeName("Uint32")]
@@ -134,6 +137,7 @@ namespace SDL2
         public int data2;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_KeyboardEvent
     {
         [NativeTypeName("Uint32")]
@@ -160,6 +164,7 @@ namespace SDL2
         public SDL_Keysym keysym;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_TextEditingEvent
     {
         [NativeTypeName("Uint32")]
@@ -179,14 +184,16 @@ namespace SDL2
 
         [NativeTypeName("Sint32")]
         public int length;
-
         [InlineArray(32)]
+
+        [StructLayout(LayoutKind.Sequential)]
         public partial struct _text_e__FixedBuffer
         {
             public byte e0;
         }
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public unsafe partial struct SDL_TextEditingExtEvent
     {
         [NativeTypeName("Uint32")]
@@ -208,6 +215,7 @@ namespace SDL2
         public int length;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_TextInputEvent
     {
         [NativeTypeName("Uint32")]
@@ -221,14 +229,16 @@ namespace SDL2
 
         [NativeTypeName("char[32]")]
         public _text_e__FixedBuffer text;
-
         [InlineArray(32)]
+
+        [StructLayout(LayoutKind.Sequential)]
         public partial struct _text_e__FixedBuffer
         {
             public byte e0;
         }
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_MouseMotionEvent
     {
         [NativeTypeName("Uint32")]
@@ -259,6 +269,7 @@ namespace SDL2
         public int yrel;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_MouseButtonEvent
     {
         [NativeTypeName("Uint32")]
@@ -292,6 +303,7 @@ namespace SDL2
         public int y;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_MouseWheelEvent
     {
         [NativeTypeName("Uint32")]
@@ -326,6 +338,7 @@ namespace SDL2
         public int mouseY;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_JoyAxisEvent
     {
         [NativeTypeName("Uint32")]
@@ -356,6 +369,7 @@ namespace SDL2
         public ushort padding4;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_JoyBallEvent
     {
         [NativeTypeName("Uint32")]
@@ -386,6 +400,7 @@ namespace SDL2
         public short yrel;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_JoyHatEvent
     {
         [NativeTypeName("Uint32")]
@@ -410,6 +425,7 @@ namespace SDL2
         public byte padding2;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_JoyButtonEvent
     {
         [NativeTypeName("Uint32")]
@@ -434,6 +450,7 @@ namespace SDL2
         public byte padding2;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_JoyDeviceEvent
     {
         [NativeTypeName("Uint32")]
@@ -446,6 +463,7 @@ namespace SDL2
         public int which;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_JoyBatteryEvent
     {
         [NativeTypeName("Uint32")]
@@ -460,6 +478,7 @@ namespace SDL2
         public SDL_JoystickPowerLevel level;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_ControllerAxisEvent
     {
         [NativeTypeName("Uint32")]
@@ -490,6 +509,7 @@ namespace SDL2
         public ushort padding4;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_ControllerButtonEvent
     {
         [NativeTypeName("Uint32")]
@@ -514,6 +534,7 @@ namespace SDL2
         public byte padding2;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_ControllerDeviceEvent
     {
         [NativeTypeName("Uint32")]
@@ -526,6 +547,7 @@ namespace SDL2
         public int which;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_ControllerTouchpadEvent
     {
         [NativeTypeName("Uint32")]
@@ -550,6 +572,7 @@ namespace SDL2
         public float pressure;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_ControllerSensorEvent
     {
         [NativeTypeName("Uint32")]
@@ -569,14 +592,16 @@ namespace SDL2
 
         [NativeTypeName("Uint64")]
         public ulong timestamp_us;
-
         [InlineArray(3)]
+
+        [StructLayout(LayoutKind.Sequential)]
         public partial struct _data_e__FixedBuffer
         {
             public float e0;
         }
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_AudioDeviceEvent
     {
         [NativeTypeName("Uint32")]
@@ -601,6 +626,7 @@ namespace SDL2
         public byte padding3;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_TouchFingerEvent
     {
         [NativeTypeName("Uint32")]
@@ -629,6 +655,7 @@ namespace SDL2
         public uint windowID;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_MultiGestureEvent
     {
         [NativeTypeName("Uint32")]
@@ -655,6 +682,7 @@ namespace SDL2
         public ushort padding;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_DollarGestureEvent
     {
         [NativeTypeName("Uint32")]
@@ -679,6 +707,7 @@ namespace SDL2
         public float y;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public unsafe partial struct SDL_DropEvent
     {
         [NativeTypeName("Uint32")]
@@ -694,6 +723,7 @@ namespace SDL2
         public uint windowID;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_SensorEvent
     {
         [NativeTypeName("Uint32")]
@@ -710,14 +740,16 @@ namespace SDL2
 
         [NativeTypeName("Uint64")]
         public ulong timestamp_us;
-
         [InlineArray(6)]
+
+        [StructLayout(LayoutKind.Sequential)]
         public partial struct _data_e__FixedBuffer
         {
             public float e0;
         }
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_QuitEvent
     {
         [NativeTypeName("Uint32")]
@@ -727,6 +759,7 @@ namespace SDL2
         public uint timestamp;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_UserEvent
     {
         [NativeTypeName("Uint32")]
@@ -748,6 +781,7 @@ namespace SDL2
         public nint data2;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public unsafe partial struct SDL_SysWMEvent
     {
         [NativeTypeName("Uint32")]
@@ -859,8 +893,9 @@ namespace SDL2
         [FieldOffset(0)]
         [NativeTypeName("Uint8[56]")]
         public _padding_e__FixedBuffer padding;
-
         [InlineArray(56)]
+
+        [StructLayout(LayoutKind.Sequential)]
         public partial struct _padding_e__FixedBuffer
         {
             public byte e0;

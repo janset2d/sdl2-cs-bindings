@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 namespace SDL2
 {
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_HapticDirection
     {
         [NativeTypeName("Uint8")]
@@ -11,14 +12,16 @@ namespace SDL2
 
         [NativeTypeName("Sint32[3]")]
         public _dir_e__FixedBuffer dir;
-
         [InlineArray(3)]
+
+        [StructLayout(LayoutKind.Sequential)]
         public partial struct _dir_e__FixedBuffer
         {
             public int e0;
         }
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_HapticConstant
     {
         [NativeTypeName("Uint16")]
@@ -54,6 +57,7 @@ namespace SDL2
         public ushort fade_level;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_HapticPeriodic
     {
         [NativeTypeName("Uint16")]
@@ -98,6 +102,7 @@ namespace SDL2
         public ushort fade_level;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_HapticCondition
     {
         [NativeTypeName("Uint16")]
@@ -134,44 +139,51 @@ namespace SDL2
 
         [NativeTypeName("Sint16[3]")]
         public _center_e__FixedBuffer center;
-
         [InlineArray(3)]
+
+        [StructLayout(LayoutKind.Sequential)]
         public partial struct _right_sat_e__FixedBuffer
         {
             public ushort e0;
         }
-
         [InlineArray(3)]
+
+        [StructLayout(LayoutKind.Sequential)]
         public partial struct _left_sat_e__FixedBuffer
         {
             public ushort e0;
         }
-
         [InlineArray(3)]
+
+        [StructLayout(LayoutKind.Sequential)]
         public partial struct _right_coeff_e__FixedBuffer
         {
             public short e0;
         }
-
         [InlineArray(3)]
+
+        [StructLayout(LayoutKind.Sequential)]
         public partial struct _left_coeff_e__FixedBuffer
         {
             public short e0;
         }
-
         [InlineArray(3)]
+
+        [StructLayout(LayoutKind.Sequential)]
         public partial struct _deadband_e__FixedBuffer
         {
             public ushort e0;
         }
-
         [InlineArray(3)]
+
+        [StructLayout(LayoutKind.Sequential)]
         public partial struct _center_e__FixedBuffer
         {
             public short e0;
         }
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_HapticRamp
     {
         [NativeTypeName("Uint16")]
@@ -210,6 +222,7 @@ namespace SDL2
         public ushort fade_level;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_HapticLeftRight
     {
         [NativeTypeName("Uint16")]
@@ -225,6 +238,7 @@ namespace SDL2
         public ushort small_magnitude;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public unsafe partial struct SDL_HapticCustom
     {
         [NativeTypeName("Uint16")]

@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace SDL2
 {
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_Point
     {
         public int x;
@@ -11,6 +12,7 @@ namespace SDL2
         public int y;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_FPoint
     {
         public float x;
@@ -18,6 +20,7 @@ namespace SDL2
         public float y;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_Rect
     {
         public int x;
@@ -29,6 +32,7 @@ namespace SDL2
         public int h;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_FRect
     {
         public float x;

@@ -12,6 +12,7 @@ namespace SDL2
         SDL_ASSERTION_ALWAYS_IGNORE,
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public unsafe partial struct SDL_AssertData
     {
         public int always_ignore;

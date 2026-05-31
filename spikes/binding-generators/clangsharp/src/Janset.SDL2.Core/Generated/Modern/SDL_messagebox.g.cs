@@ -20,6 +20,7 @@ namespace SDL2
         SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT = 0x00000002,
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public unsafe partial struct SDL_MessageBoxButtonData
     {
         [NativeTypeName("Uint32")]
@@ -31,6 +32,7 @@ namespace SDL2
         public byte* text;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_MessageBoxColor
     {
         [NativeTypeName("Uint8")]
@@ -53,18 +55,21 @@ namespace SDL2
         SDL_MESSAGEBOX_COLOR_MAX,
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_MessageBoxColorScheme
     {
         [NativeTypeName("SDL_MessageBoxColor[5]")]
         public _colors_e__FixedBuffer colors;
-
         [InlineArray(5)]
+
+        [StructLayout(LayoutKind.Sequential)]
         public partial struct _colors_e__FixedBuffer
         {
             public SDL_MessageBoxColor e0;
         }
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public unsafe partial struct SDL_MessageBoxData
     {
         [NativeTypeName("Uint32")]

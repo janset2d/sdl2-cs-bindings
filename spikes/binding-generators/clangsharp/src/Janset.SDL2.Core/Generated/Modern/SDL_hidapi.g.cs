@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 namespace SDL2
 {
 
+    [StructLayout(LayoutKind.Sequential)]
     public unsafe partial struct SDL_hid_device_info
     {
         [NativeTypeName("char *")]

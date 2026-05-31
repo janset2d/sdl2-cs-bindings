@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 
 namespace SDL2
 {
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_Keysym
     {
         public SDL_Scancode scancode;

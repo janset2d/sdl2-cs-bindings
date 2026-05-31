@@ -44,7 +44,10 @@ internal static class PublicTypedMethodProjection
 
     public static DiscoveredMembers DiscoverFromSource(string source, string rawClass)
     {
-        var root = CSharpSyntaxTree.ParseText(source).GetCompilationUnitRoot();
+        var root = CSharpSyntaxTree.ParseText(
+            source,
+            CSharpParseOptions.Default.WithPreprocessorSymbols("NET5_0_OR_GREATER", "NET6_0_OR_GREATER"))
+            .GetCompilationUnitRoot();
         var constants = new List<ConstMember>();
         var properties = new List<PropertyDeclarationSyntax>();
         var methods = new List<MethodDeclarationSyntax>();
@@ -341,9 +344,8 @@ internal static class PublicTypedMethodProjection
 
     private static void AppendAttributeLists(StringBuilder sb, SyntaxList<AttributeListSyntax> attributeLists, string indentation)
     {
-        foreach (var list in FilterAttributeLists(attributeLists))
+        foreach (var text in RenderFilteredAttributeLists(attributeLists))
         {
-            var text = list.ToFullString().TrimEnd('\r', '\n');
             foreach (var line in text.Split('\n'))
             {
                 var trimmed = line.Trim();
@@ -364,6 +366,24 @@ internal static class PublicTypedMethodProjection
     {
         var rendered = string.Concat(FilterAttributeLists(attributeLists).Select(a => a.ToFullString().Trim() + " "));
         return rendered;
+    }
+
+    private static IEnumerable<string> RenderFilteredAttributeLists(SyntaxList<AttributeListSyntax> attributeLists)
+    {
+        foreach (var list in attributeLists)
+        {
+            var attributes = list.Attributes.Where(a => !IsRawAbiAttribute(a)).ToArray();
+            if (attributes.Length > 0)
+            {
+                yield return list.WithAttributes(SyntaxFactory.SeparatedList(attributes)).ToFullString().TrimEnd('\r', '\n');
+                continue;
+            }
+
+            foreach (var directiveLine in list.ToFullString().Split('\n').Where(line => line.Trim().StartsWith("#", StringComparison.Ordinal)))
+            {
+                yield return directiveLine.TrimEnd('\r', '\n');
+            }
+        }
     }
 
     private static IEnumerable<AttributeListSyntax> FilterAttributeLists(SyntaxList<AttributeListSyntax> attributeLists)

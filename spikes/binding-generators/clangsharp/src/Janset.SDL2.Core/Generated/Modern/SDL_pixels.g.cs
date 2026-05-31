@@ -130,6 +130,7 @@ namespace SDL2
         SDL_PIXELFORMAT_EXTERNAL_OES = (unchecked(((uint)((byte)('O')) << 0) | ((uint)((byte)('E')) << 8) | ((uint)((byte)('S')) << 16) | ((uint)((byte)(' ')) << 24))),
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_Color
     {
         [NativeTypeName("Uint8")]
@@ -145,6 +146,7 @@ namespace SDL2
         public byte a;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public unsafe partial struct SDL_Palette
     {
         public int ncolors;
@@ -157,6 +159,7 @@ namespace SDL2
         public int refcount;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public unsafe partial struct SDL_PixelFormat
     {
         [NativeTypeName("Uint32")]
@@ -213,8 +216,9 @@ namespace SDL2
 
         [NativeTypeName("struct SDL_PixelFormat *")]
         public SDL_PixelFormat* next;
-
         [InlineArray(2)]
+
+        [StructLayout(LayoutKind.Sequential)]
         public partial struct _padding_e__FixedBuffer
         {
             public byte e0;

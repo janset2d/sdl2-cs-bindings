@@ -2051,6 +2051,26 @@ def main() -> int:
                     postprocess_failures += 1
                     print(f"WARNING: uniform-opaque postprocess for {family}/{codegen} returned exit {exit_code}")
 
+        # Layer 2: universal struct-layout (both codegens, after uniform-opaque so Pattern B
+        # handles already carry [StructLayout] and are skipped) + public-typed projection
+        # (Modern only -> Generated/Public/{public_class}.g.cs, single TFM-shared file).
+        print("--- postprocess: struct-layout (all codegens) ---")
+        for codegen in codegen_passes:
+            for family in selected:
+                exit_code = run_postprocess(repo, family, spike_root, "struct-layout", codegen)
+                if exit_code != 0:
+                    postprocess_failures += 1
+                    print(f"WARNING: struct-layout postprocess for {family}/{codegen} returned exit {exit_code}")
+
+        print("--- postprocess: public-typed (Core Modern -> Generated/Public) ---")
+        for family in selected:
+            if family != "core":
+                continue
+            exit_code = run_postprocess(repo, family, spike_root, "public-typed", "modern")
+            if exit_code != 0:
+                postprocess_failures += 1
+                print(f"WARNING: public-typed postprocess for {family} returned exit {exit_code}")
+
         refresh_generated_file_counts(repo, selected, stats)
 
     write_report(

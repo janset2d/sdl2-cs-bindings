@@ -6,6 +6,7 @@ namespace SDL2
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public unsafe delegate void SDL_AudioCallback([NativeTypeName("void*")] nint userdata, [NativeTypeName("Uint8 *")] byte* stream, int len);
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_AudioSpec
     {
         public int freq;
@@ -38,6 +39,7 @@ namespace SDL2
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public unsafe delegate void SDL_AudioFilter([NativeTypeName("struct SDL_AudioCVT *")] SDL_AudioCVT* cvt, [NativeTypeName("SDL_AudioFormat")] ushort format);
 
+    [StructLayout(LayoutKind.Sequential)]
     public unsafe partial struct SDL_AudioCVT
     {
         public int needed;
@@ -66,6 +68,7 @@ namespace SDL2
 
         public int filter_index;
 
+        [StructLayout(LayoutKind.Sequential)]
         public partial struct _filters_e__FixedBuffer
         {
             public IntPtr e0;

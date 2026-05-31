@@ -964,6 +964,7 @@ internal static unsafe partial class SDLNative
 #if NET5_0_OR_GREATER
     [SupportedOSPlatform("android")]
 #endif
+    [LibraryImport("SDL2")]
     [Obsolete("use something else")]
     public static void SDL_PlatformOnly() { }
     public static void SDL_SetEventFilter(delegate* unmanaged[Cdecl]<nint, SDL_Event*, int> filter, nint userdata) { }
@@ -1005,6 +1006,7 @@ internal static unsafe partial class SDLNative
         AssertContains(output, "value > uint.MaxValue", "PublicTypedMethodProjection: unsigned clong range helper missing uint.MaxValue", failures);
 
         AssertContains(output, "#if NET5_0_OR_GREATER\n    [SupportedOSPlatform(\"android\")]\n#endif", "PublicTypedMethodProjection: guarded platform attribute was not preserved", failures);
+        AssertContains(output, "#if NET5_0_OR_GREATER\n    [SupportedOSPlatform(\"android\")]\n#endif\n    [Obsolete(\"use something else\")]", "PublicTypedMethodProjection: platform guard endif was not preserved when raw ABI attributes were dropped", failures);
         AssertContains(output, "#if NET5_0_OR_GREATER\nusing System.Runtime.Versioning;\n#endif", "PublicTypedMethodProjection: guarded Versioning using missing", failures);
         AssertContains(output, "[Obsolete(\"use something else\")]", "PublicTypedMethodProjection: Obsolete attribute missing", failures);
 
