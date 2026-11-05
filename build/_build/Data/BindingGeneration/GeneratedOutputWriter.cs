@@ -1,3 +1,4 @@
+using Build.Data.BindingGeneration.Models;
 using Build.Host.Cake;
 using Cake.Common.IO;
 using Cake.Core;
@@ -12,7 +13,7 @@ public sealed class GeneratedOutputWriter(ICakeContext context)
     public async Task WriteAsync(
         DirectoryPath root,
         DirectoryPath outputDirectory,
-        IReadOnlyList<(string RelativePath, string Content)> files,
+        IReadOnlyList<GeneratedFile> files,
         CancellationToken ct = default)
     {
         EnsureSafeGeneratedOutputDirectory(_context.Environment, root, outputDirectory);
@@ -38,6 +39,7 @@ public sealed class GeneratedOutputWriter(ICakeContext context)
         var files = context.GetFiles($"{outputDirectory.FullPath}/**/*")
             .Concat(context.GetFiles($"{outputDirectory.FullPath}/*"))
             .DistinctBy(file => file.FullPath);
+
         foreach (var file in files)
         {
             context.DeleteFile(file);
@@ -48,6 +50,7 @@ public sealed class GeneratedOutputWriter(ICakeContext context)
             .DistinctBy(directory => directory.FullPath)
             .OrderByDescending(directory => directory.Segments.Length)
             .ThenByDescending(directory => directory.FullPath, StringComparer.Ordinal);
+
         foreach (var directory in directories)
         {
             context.DeleteDirectory(directory, new DeleteDirectorySettings
