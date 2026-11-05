@@ -12,6 +12,7 @@ namespace SDL2
         SDL_RENDERER_TARGETTEXTURE = 0x00000008,
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public unsafe partial struct SDL_RendererInfo
     {
         [NativeTypeName("const char *")]
@@ -29,14 +30,16 @@ namespace SDL2
         public int max_texture_width;
 
         public int max_texture_height;
-
         [InlineArray(16)]
+
+        [StructLayout(LayoutKind.Sequential)]
         public partial struct _texture_formats_e__FixedBuffer
         {
             public uint e0;
         }
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_Vertex
     {
         public SDL_FPoint position;

@@ -39,6 +39,8 @@ internal sealed class FamilyConfig
     }
 
     public string Namespace(string family) => Family(family).GetProperty("namespace").GetString()!;
+    public string PublicClass(string family) => Family(family).GetProperty("public_class").GetString()!;
+    public string RawClass(string family) => Family(family).GetProperty("raw_class").GetString()!;
     public string ProjectDir(string family) => Family(family).GetProperty("project_dir").GetString()!;
     public bool OwnerMode(string family) => Family(family).GetProperty("owner_mode").GetBoolean();
 

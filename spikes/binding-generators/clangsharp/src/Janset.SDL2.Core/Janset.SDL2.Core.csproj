@@ -20,6 +20,11 @@
     <Compile Include="Support/**/*.cs" />
   </ItemGroup>
 
+  <!-- Layer 2 public surface is TFM-shared; backend divergences are guarded inside generated files. -->
+  <ItemGroup>
+    <Compile Include="Generated/Public/**/*.cs" />
+  </ItemGroup>
+
   <!-- System.Memory polyfill for ReadOnlySpan<T> on legacy TFMs (Constitution L46). -->
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net462'">
     <PackageReference Include="System.Memory" />

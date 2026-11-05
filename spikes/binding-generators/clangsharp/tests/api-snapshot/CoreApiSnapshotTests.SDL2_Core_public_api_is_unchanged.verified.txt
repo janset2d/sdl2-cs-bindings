@@ -1,0 +1,3475 @@
+﻿[assembly: System.Runtime.CompilerServices.DisableRuntimeMarshalling]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Janset.SDL2.AbiTests")]
+[assembly: System.Runtime.Versioning.TargetFramework(".NETCoreApp,Version=v8.0", FrameworkDisplayName=".NET 8.0")]
+namespace SDL2
+{
+    public static class SDL
+    {
+        public const int AUDIO_F32 = 33056;
+        public const int AUDIO_F32LSB = 33056;
+        public const int AUDIO_F32MSB = 37152;
+        public const int AUDIO_S16 = 32784;
+        public const int AUDIO_S16LSB = 32784;
+        public const int AUDIO_S16MSB = 36880;
+        public const int AUDIO_S32 = 32800;
+        public const int AUDIO_S32LSB = 32800;
+        public const int AUDIO_S32MSB = 36896;
+        public const int AUDIO_S8 = 32776;
+        public const int AUDIO_U16 = 16;
+        public const int AUDIO_U16LSB = 16;
+        public const int AUDIO_U16MSB = 4112;
+        public const int AUDIO_U8 = 8;
+        public const int RW_SEEK_CUR = 1;
+        public const int RW_SEEK_END = 2;
+        public const int RW_SEEK_SET = 0;
+        public const int SDLK_SCANCODE_MASK = 1073741824;
+        public const int SDL_ALPHA_OPAQUE = 255;
+        public const int SDL_ALPHA_TRANSPARENT = 0;
+        public const int SDL_ANDROID_EXTERNAL_STORAGE_READ = 1;
+        public const int SDL_ANDROID_EXTERNAL_STORAGE_WRITE = 2;
+        public const int SDL_AUDIOCVT_MAX_FILTERS = 9;
+        public const int SDL_AUDIO_ALLOW_ANY_CHANGE = 15;
+        public const int SDL_AUDIO_ALLOW_CHANNELS_CHANGE = 4;
+        public const int SDL_AUDIO_ALLOW_FORMAT_CHANGE = 2;
+        public const int SDL_AUDIO_ALLOW_FREQUENCY_CHANGE = 1;
+        public const int SDL_AUDIO_ALLOW_SAMPLES_CHANGE = 8;
+        public const int SDL_AUDIO_MASK_BITSIZE = 255;
+        public const int SDL_AUDIO_MASK_DATATYPE = 256;
+        public const int SDL_AUDIO_MASK_SIGNED = 32768;
+        public const int SDL_BUTTON_LEFT = 1;
+        public const int SDL_BUTTON_LMASK = 1;
+        public const int SDL_BUTTON_MIDDLE = 2;
+        public const int SDL_BUTTON_MMASK = 2;
+        public const int SDL_BUTTON_RIGHT = 3;
+        public const int SDL_BUTTON_RMASK = 4;
+        public const int SDL_BUTTON_X1 = 4;
+        public const int SDL_BUTTON_X1MASK = 8;
+        public const int SDL_BUTTON_X2 = 5;
+        public const int SDL_BUTTON_X2MASK = 16;
+        public const int SDL_COMPILEDVERSION = 5210;
+        public const int SDL_DISABLE = 0;
+        public const int SDL_DONTFREE = 4;
+        public const int SDL_ENABLE = 1;
+        public const float SDL_FLT_EPSILON = 1.1920929E-07F;
+        public const uint SDL_HAPTIC_AUTOCENTER = 8192u;
+        public const int SDL_HAPTIC_CARTESIAN = 1;
+        public const uint SDL_HAPTIC_CONSTANT = 1u;
+        public const uint SDL_HAPTIC_CUSTOM = 2048u;
+        public const uint SDL_HAPTIC_DAMPER = 256u;
+        public const uint SDL_HAPTIC_FRICTION = 1024u;
+        public const uint SDL_HAPTIC_GAIN = 4096u;
+        public const uint SDL_HAPTIC_INERTIA = 512u;
+        public const uint SDL_HAPTIC_INFINITY = 4294967295u;
+        public const uint SDL_HAPTIC_LEFTRIGHT = 4u;
+        public const uint SDL_HAPTIC_PAUSE = 32768u;
+        public const int SDL_HAPTIC_POLAR = 0;
+        public const uint SDL_HAPTIC_RAMP = 64u;
+        public const uint SDL_HAPTIC_SAWTOOTHDOWN = 32u;
+        public const uint SDL_HAPTIC_SAWTOOTHUP = 16u;
+        public const uint SDL_HAPTIC_SINE = 2u;
+        public const int SDL_HAPTIC_SPHERICAL = 2;
+        public const uint SDL_HAPTIC_SPRING = 128u;
+        public const uint SDL_HAPTIC_STATUS = 16384u;
+        public const int SDL_HAPTIC_STEERING_AXIS = 3;
+        public const uint SDL_HAPTIC_TRIANGLE = 8u;
+        public const int SDL_HAT_CENTERED = 0;
+        public const int SDL_HAT_DOWN = 4;
+        public const int SDL_HAT_LEFT = 8;
+        public const int SDL_HAT_LEFTDOWN = 12;
+        public const int SDL_HAT_LEFTUP = 9;
+        public const int SDL_HAT_RIGHT = 2;
+        public const int SDL_HAT_RIGHTDOWN = 6;
+        public const int SDL_HAT_RIGHTUP = 3;
+        public const int SDL_HAT_UP = 1;
+        public const int SDL_IGNORE = 0;
+        public const uint SDL_INIT_AUDIO = 16u;
+        public const uint SDL_INIT_EVENTS = 16384u;
+        public const uint SDL_INIT_EVERYTHING = 62001u;
+        public const uint SDL_INIT_GAMECONTROLLER = 8192u;
+        public const uint SDL_INIT_HAPTIC = 4096u;
+        public const uint SDL_INIT_JOYSTICK = 512u;
+        public const uint SDL_INIT_NOPARACHUTE = 1048576u;
+        public const uint SDL_INIT_SENSOR = 32768u;
+        public const uint SDL_INIT_TIMER = 1u;
+        public const uint SDL_INIT_VIDEO = 32u;
+        public const int SDL_INVALID_SHAPE_ARGUMENT = -2;
+        public const double SDL_IPHONE_MAX_GFORCE = 5D;
+        public const int SDL_JOYSTICK_AXIS_MAX = 32767;
+        public const int SDL_JOYSTICK_AXIS_MIN = -32768;
+        public const int SDL_MAJOR_VERSION = 2;
+        public const int SDL_MAX_LOG_MESSAGE = 4096;
+        public const short SDL_MAX_SINT16 = 32767;
+        public const int SDL_MAX_SINT32 = 2147483647;
+        public const long SDL_MAX_SINT64 = 9223372036854775807;
+        public const sbyte SDL_MAX_SINT8 = 127;
+        public const ushort SDL_MAX_UINT16 = 65535;
+        public const uint SDL_MAX_UINT32 = 4294967295u;
+        public const ulong SDL_MAX_UINT64 = 18446744073709551615ul;
+        public const byte SDL_MAX_UINT8 = 255;
+        public const int SDL_METALVIEW_TAG = 255;
+        public const int SDL_MINOR_VERSION = 32;
+        public const short SDL_MIN_SINT16 = -32768;
+        public const int SDL_MIN_SINT32 = -2147483648;
+        public const long SDL_MIN_SINT64 = -9223372036854775808;
+        public const sbyte SDL_MIN_SINT8 = -128;
+        public const ushort SDL_MIN_UINT16 = 0;
+        public const uint SDL_MIN_UINT32 = 0u;
+        public const ulong SDL_MIN_UINT64 = 0ul;
+        public const byte SDL_MIN_UINT8 = 0;
+        public const int SDL_MIX_MAXVOLUME = 128;
+        public const long SDL_MOUSE_TOUCHID = -1;
+        public const uint SDL_MUTEX_MAXWAIT = 4294967295u;
+        public const int SDL_MUTEX_TIMEDOUT = 1;
+        public const int SDL_NONSHAPEABLE_WINDOW = -1;
+        public const int SDL_PATCHLEVEL = 10;
+        public const int SDL_PREALLOC = 1;
+        public const int SDL_PRESSED = 1;
+        public const int SDL_QUERY = -1;
+        public const int SDL_RELEASED = 0;
+        public const int SDL_REVISION_NUMBER = 0;
+        public const int SDL_RLEACCEL = 2;
+        public const uint SDL_RWOPS_JNIFILE = 3u;
+        public const uint SDL_RWOPS_MEMORY = 4u;
+        public const uint SDL_RWOPS_MEMORY_RO = 5u;
+        public const uint SDL_RWOPS_STDFILE = 2u;
+        public const uint SDL_RWOPS_UNKNOWN = 0u;
+        public const uint SDL_RWOPS_WINFILE = 1u;
+        public const int SDL_SIMD_ALIGNED = 8;
+        public const float SDL_STANDARD_GRAVITY = 9.80665F;
+        public const int SDL_SWSURFACE = 0;
+        public const int SDL_TEXTEDITINGEVENT_TEXT_SIZE = 32;
+        public const int SDL_TEXTINPUTEVENT_TEXT_SIZE = 32;
+        public const uint SDL_TOUCH_MOUSEID = 4294967295u;
+        public const int SDL_VIRTUAL_JOYSTICK_DESC_VERSION = 1;
+        public const uint SDL_WINDOWPOS_CENTERED = 805240832u;
+        public const uint SDL_WINDOWPOS_CENTERED_MASK = 805240832u;
+        public const uint SDL_WINDOWPOS_UNDEFINED = 536805376u;
+        public const uint SDL_WINDOWPOS_UNDEFINED_MASK = 536805376u;
+        public const int SDL_WINDOW_LACKS_SHAPE = -3;
+        public static System.ReadOnlySpan<byte> SDL_HINT_ACCELEROMETER_AS_JOYSTICK { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_ALLOW_ALT_TAB_WHILE_GRABBED { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_ALLOW_TOPMOST { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_ANDROID_APK_EXPANSION_MAIN_FILE_VERSION { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_ANDROID_APK_EXPANSION_PATCH_FILE_VERSION { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_ANDROID_BLOCK_ON_PAUSE { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_ANDROID_BLOCK_ON_PAUSE_PAUSEAUDIO { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_ANDROID_TRAP_BACK_BUTTON { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_APPLE_RWFROMFILE_USE_RESOURCES { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_APPLE_TV_CONTROLLER_UI_EVENTS { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_APPLE_TV_REMOTE_ALLOW_ROTATION { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_APP_NAME { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_AUDIODRIVER { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_AUDIO_CATEGORY { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_AUDIO_DEVICE_APP_NAME { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_AUDIO_DEVICE_STREAM_NAME { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_AUDIO_DEVICE_STREAM_ROLE { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_AUDIO_INCLUDE_MONITORS { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_AUDIO_RESAMPLING_MODE { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_AUTO_UPDATE_JOYSTICKS { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_AUTO_UPDATE_SENSORS { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_BMP_SAVE_LEGACY_FORMAT { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_DIRECTINPUT_ENABLED { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_DISPLAY_USABLE_BOUNDS { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_EMSCRIPTEN_ASYNCIFY { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_EMSCRIPTEN_KEYBOARD_ELEMENT { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_ENABLE_SCREEN_KEYBOARD { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_EVENT_LOGGING { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_FORCE_RAISEWINDOW { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_FRAMEBUFFER_ACCELERATION { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_GAMECONTROLLERCONFIG { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_GAMECONTROLLERCONFIG_FILE { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_GAMECONTROLLERTYPE { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_GAMECONTROLLER_IGNORE_DEVICES { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_GAMECONTROLLER_IGNORE_DEVICES_EXCEPT { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_GAMECONTROLLER_USE_BUTTON_LABELS { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_GRAB_KEYBOARD { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_HIDAPI_IGNORE_DEVICES { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_IDLE_TIMER_DISABLED { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_IME_INTERNAL_EDITING { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_IME_SHOW_UI { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_IME_SUPPORT_EXTENDED_TEXT { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_IOS_HIDE_HOME_INDICATOR { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_ARCADESTICK_DEVICES { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_ARCADESTICK_DEVICES_EXCLUDED { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_BLACKLIST_DEVICES { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_BLACKLIST_DEVICES_EXCLUDED { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_DEVICE { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_FLIGHTSTICK_DEVICES { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_FLIGHTSTICK_DEVICES_EXCLUDED { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_GAMECUBE_DEVICES { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_GAMECUBE_DEVICES_EXCLUDED { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_GAMECUBE_RUMBLE_BRAKE { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HAPTIC_AXES { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HIDAPI { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HIDAPI_COMBINE_JOY_CONS { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HIDAPI_GAMECUBE { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HIDAPI_JOYCON_HOME_LED { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HIDAPI_JOY_CONS { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HIDAPI_LUNA { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HIDAPI_NINTENDO_CLASSIC { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HIDAPI_PS3 { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HIDAPI_PS4 { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HIDAPI_PS4_RUMBLE { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HIDAPI_PS5 { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HIDAPI_PS5_PLAYER_LED { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HIDAPI_PS5_RUMBLE { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HIDAPI_SHIELD { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HIDAPI_STADIA { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HIDAPI_STEAM { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HIDAPI_STEAMDECK { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HIDAPI_SWITCH { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HIDAPI_SWITCH_HOME_LED { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HIDAPI_SWITCH_PLAYER_LED { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HIDAPI_VERTICAL_JOY_CONS { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HIDAPI_WII { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HIDAPI_WII_PLAYER_LED { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HIDAPI_XBOX { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HIDAPI_XBOX_360 { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HIDAPI_XBOX_360_PLAYER_LED { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HIDAPI_XBOX_360_WIRELESS { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HIDAPI_XBOX_ONE { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_HIDAPI_XBOX_ONE_HOME_LED { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_IOKIT { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_MFI { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_RAWINPUT { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_RAWINPUT_CORRELATE_XINPUT { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_ROG_CHAKRAM { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_THREAD { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_THROTTLE_DEVICES { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_THROTTLE_DEVICES_EXCLUDED { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_WGI { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_WHEEL_DEVICES { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_WHEEL_DEVICES_EXCLUDED { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_JOYSTICK_ZERO_CENTERED_DEVICES { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_KMSDRM_DEVICE_INDEX { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_KMSDRM_REQUIRE_DRM_MASTER { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_LINUX_DIGITAL_HATS { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_LINUX_HAT_DEADZONES { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_LINUX_JOYSTICK_CLASSIC { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_LINUX_JOYSTICK_DEADZONES { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_LOGGING { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_MAC_BACKGROUND_APP { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_MAC_OPENGL_ASYNC_DISPATCH { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_MOUSE_AUTO_CAPTURE { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_MOUSE_DOUBLE_CLICK_RADIUS { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_MOUSE_DOUBLE_CLICK_TIME { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_MOUSE_NORMAL_SPEED_SCALE { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_MOUSE_RELATIVE_CURSOR_VISIBLE { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_MOUSE_RELATIVE_MODE_CENTER { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_MOUSE_RELATIVE_MODE_WARP { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_MOUSE_RELATIVE_SCALING { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_MOUSE_RELATIVE_SPEED_SCALE { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_MOUSE_RELATIVE_SYSTEM_SCALE { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_MOUSE_RELATIVE_WARP_MOTION { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_MOUSE_TOUCH_EVENTS { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_NO_SIGNAL_HANDLERS { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_OPENGL_ES_DRIVER { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_ORIENTATIONS { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_POLL_SENTINEL { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_PREFERRED_LOCALES { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_PS2_DYNAMIC_VSYNC { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_QTWAYLAND_CONTENT_ORIENTATION { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_QTWAYLAND_WINDOW_FLAGS { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_QUIT_ON_LAST_WINDOW_CLOSE { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_RENDER_BATCHING { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_RENDER_DIRECT3D11_DEBUG { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_RENDER_DIRECT3D_THREADSAFE { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_RENDER_DRIVER { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_RENDER_LINE_METHOD { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_RENDER_LOGICAL_SIZE_MODE { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_RENDER_METAL_PREFER_LOW_POWER_DEVICE { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_RENDER_OPENGL_SHADERS { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_RENDER_SCALE_QUALITY { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_RENDER_VSYNC { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_RETURN_KEY_HIDES_IME { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_ROG_GAMEPAD_MICE { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_ROG_GAMEPAD_MICE_EXCLUDED { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_RPI_VIDEO_LAYER { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_SCREENSAVER_INHIBIT_ACTIVITY_NAME { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_SHUTDOWN_DBUS_ON_QUIT { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_THREAD_FORCE_REALTIME_TIME_CRITICAL { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_THREAD_PRIORITY_POLICY { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_THREAD_STACK_SIZE { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_TIMER_RESOLUTION { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_TOUCH_MOUSE_EVENTS { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_TRACKPAD_IS_TOUCH_ONLY { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_TV_REMOTE_AS_JOYSTICK { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_VIDEODRIVER { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_VIDEO_ALLOW_SCREENSAVER { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_VIDEO_DOUBLE_BUFFER { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_VIDEO_EGL_ALLOW_TRANSPARENCY { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_VIDEO_EXTERNAL_CONTEXT { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_VIDEO_FOREIGN_WINDOW_OPENGL { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_VIDEO_FOREIGN_WINDOW_VULKAN { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_VIDEO_HIGHDPI_DISABLED { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_VIDEO_MAC_FULLSCREEN_SPACES { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_VIDEO_WAYLAND_ALLOW_LIBDECOR { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_VIDEO_WAYLAND_EMULATE_MOUSE_WARP { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_VIDEO_WAYLAND_MODE_EMULATION { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_VIDEO_WAYLAND_PREFER_LIBDECOR { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_VIDEO_WINDOW_SHARE_PIXEL_FORMAT { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_VIDEO_WIN_D3DCOMPILER { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_VIDEO_X11_FORCE_EGL { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_VIDEO_X11_NET_WM_PING { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_VIDEO_X11_WINDOW_VISUALID { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_VIDEO_X11_XINERAMA { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_VIDEO_X11_XRANDR { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_VIDEO_X11_XVIDMODE { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_VITA_TOUCH_MOUSE_DEVICE { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_WAVE_FACT_CHUNK { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_WAVE_RIFF_CHUNK_SIZE { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_WAVE_TRUNCATION { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_WINDOWS_DISABLE_THREAD_NAMING { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_WINDOWS_DPI_AWARENESS { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_WINDOWS_DPI_SCALING { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_WINDOWS_ENABLE_MENU_MNEMONICS { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_WINDOWS_ENABLE_MESSAGELOOP { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_WINDOWS_FORCE_MUTEX_CRITICAL_SECTIONS { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_WINDOWS_FORCE_SEMAPHORE_KERNEL { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_WINDOWS_INTRESOURCE_ICON { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_WINDOWS_INTRESOURCE_ICON_SMALL { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_WINDOWS_NO_CLOSE_ON_ALT_F4 { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_WINDOWS_USE_D3D9EX { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_WINDOW_FRAME_USABLE_WHILE_CURSOR_HIDDEN { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_WINDOW_NO_ACTIVATION_WHEN_SHOWN { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_WINRT_HANDLE_BACK_BUTTON { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_WINRT_PRIVACY_POLICY_LABEL { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_WINRT_PRIVACY_POLICY_URL { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_X11_FORCE_OVERRIDE_REDIRECT { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_X11_WINDOW_TYPE { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_XINPUT_ENABLED { get; }
+        public static System.ReadOnlySpan<byte> SDL_HINT_XINPUT_USE_OLD_JOYSTICK_MAPPING { get; }
+        public static System.ReadOnlySpan<byte> SDL_PRIX32 { get; }
+        public static System.ReadOnlySpan<byte> SDL_PRIs32 { get; }
+        public static System.ReadOnlySpan<byte> SDL_PRIu32 { get; }
+        public static System.ReadOnlySpan<byte> SDL_PRIx32 { get; }
+        public static System.ReadOnlySpan<byte> SDL_REVISION { get; }
+        public static void SDL_AddEventWatch(nint filter, nint userdata) { }
+        public static unsafe void SDL_AddHintCallback(byte* name, nint callback, nint userdata) { }
+        public static int SDL_AddTimer(uint interval, nint callback, nint param2) { }
+        public static unsafe SDL2.SDL_PixelFormat* SDL_AllocFormat(uint pixel_format) { }
+        public static unsafe SDL2.SDL_Palette* SDL_AllocPalette(int ncolors) { }
+        public static SDL2.SDL_RWops SDL_AllocRW() { }
+        [System.Runtime.Versioning.SupportedOSPlatform("android")]
+        public static void SDL_AndroidBackButton() { }
+        [System.Runtime.Versioning.SupportedOSPlatform("android")]
+        public static nint SDL_AndroidGetActivity() { }
+        [System.Runtime.Versioning.SupportedOSPlatform("android")]
+        public static unsafe byte* SDL_AndroidGetExternalStoragePath() { }
+        [System.Runtime.Versioning.SupportedOSPlatform("android")]
+        public static int SDL_AndroidGetExternalStorageState() { }
+        [System.Runtime.Versioning.SupportedOSPlatform("android")]
+        public static unsafe byte* SDL_AndroidGetInternalStoragePath() { }
+        [System.Runtime.Versioning.SupportedOSPlatform("android")]
+        public static nint SDL_AndroidGetJNIEnv() { }
+        [System.Runtime.Versioning.SupportedOSPlatform("android")]
+        public static unsafe SDL2.SDL_bool SDL_AndroidRequestPermission(byte* permission) { }
+        [System.Runtime.Versioning.SupportedOSPlatform("android")]
+        public static int SDL_AndroidSendMessage(uint command, int param1) { }
+        [System.Runtime.Versioning.SupportedOSPlatform("android")]
+        public static unsafe int SDL_AndroidShowToast(byte* message, int duration, int gravity, int xoffset, int yoffset) { }
+        public static unsafe int SDL_AtomicAdd(SDL2.SDL_atomic_t* a, int v) { }
+        public static unsafe SDL2.SDL_bool SDL_AtomicCAS(SDL2.SDL_atomic_t* a, int oldval, int newval) { }
+        public static unsafe SDL2.SDL_bool SDL_AtomicCASPtr(System.IntPtr* a, nint oldval, nint newval) { }
+        public static unsafe int SDL_AtomicGet(SDL2.SDL_atomic_t* a) { }
+        public static unsafe System.IntPtr SDL_AtomicGetPtr(System.IntPtr* a) { }
+        public static unsafe void SDL_AtomicLock(int* @lock) { }
+        public static unsafe int SDL_AtomicSet(SDL2.SDL_atomic_t* a, int v) { }
+        public static unsafe System.IntPtr SDL_AtomicSetPtr(System.IntPtr* a, nint v) { }
+        public static unsafe SDL2.SDL_bool SDL_AtomicTryLock(int* @lock) { }
+        public static unsafe void SDL_AtomicUnlock(int* @lock) { }
+        public static unsafe int SDL_AudioInit(byte* driver_name) { }
+        public static void SDL_AudioQuit() { }
+        public static int SDL_AudioStreamAvailable(SDL2.SDL_AudioStream stream) { }
+        public static void SDL_AudioStreamClear(SDL2.SDL_AudioStream stream) { }
+        public static int SDL_AudioStreamFlush(SDL2.SDL_AudioStream stream) { }
+        public static int SDL_AudioStreamGet(SDL2.SDL_AudioStream stream, nint buf, int len) { }
+        public static int SDL_AudioStreamPut(SDL2.SDL_AudioStream stream, nint buf, int len) { }
+        public static unsafe int SDL_BuildAudioCVT(SDL2.SDL_AudioCVT* cvt, ushort src_format, byte src_channels, int src_rate, ushort dst_format, byte dst_channels, int dst_rate) { }
+        public static unsafe void SDL_CalculateGammaRamp(float gamma, ushort* ramp) { }
+        public static int SDL_CaptureMouse(SDL2.SDL_bool enabled) { }
+        public static void SDL_ClearComposition() { }
+        public static void SDL_ClearError() { }
+        public static void SDL_ClearHints() { }
+        public static void SDL_ClearQueuedAudio(uint dev) { }
+        public static void SDL_CloseAudio() { }
+        public static void SDL_CloseAudioDevice(uint dev) { }
+        public static SDL2.SDL_BlendMode SDL_ComposeCustomBlendMode(SDL2.SDL_BlendFactor srcColorFactor, SDL2.SDL_BlendFactor dstColorFactor, SDL2.SDL_BlendOperation colorOperation, SDL2.SDL_BlendFactor srcAlphaFactor, SDL2.SDL_BlendFactor dstAlphaFactor, SDL2.SDL_BlendOperation alphaOperation) { }
+        public static int SDL_CondBroadcast(SDL2.SDL_cond cond) { }
+        public static int SDL_CondSignal(SDL2.SDL_cond cond) { }
+        public static int SDL_CondWait(SDL2.SDL_cond cond, SDL2.SDL_mutex mutex) { }
+        public static int SDL_CondWaitTimeout(SDL2.SDL_cond cond, SDL2.SDL_mutex mutex, uint ms) { }
+        public static unsafe int SDL_ConvertAudio(SDL2.SDL_AudioCVT* cvt) { }
+        public static int SDL_ConvertPixels(int width, int height, uint src_format, nint src, int src_pitch, uint dst_format, nint dst, int dst_pitch) { }
+        public static unsafe SDL2.SDL_Surface* SDL_ConvertSurface(SDL2.SDL_Surface* src, SDL2.SDL_PixelFormat* fmt, uint flags) { }
+        public static unsafe SDL2.SDL_Surface* SDL_ConvertSurfaceFormat(SDL2.SDL_Surface* src, uint pixel_format, uint flags) { }
+        public static unsafe SDL2.SDL_Cursor SDL_CreateColorCursor(SDL2.SDL_Surface* surface, int hot_x, int hot_y) { }
+        public static SDL2.SDL_cond SDL_CreateCond() { }
+        public static unsafe SDL2.SDL_Cursor SDL_CreateCursor(byte* data, byte* mask, int w, int h, int hot_x, int hot_y) { }
+        public static SDL2.SDL_mutex SDL_CreateMutex() { }
+        public static unsafe SDL2.SDL_Surface* SDL_CreateRGBSurface(uint flags, int width, int height, int depth, uint Rmask, uint Gmask, uint Bmask, uint Amask) { }
+        public static unsafe SDL2.SDL_Surface* SDL_CreateRGBSurfaceFrom(nint pixels, int width, int height, int depth, int pitch, uint Rmask, uint Gmask, uint Bmask, uint Amask) { }
+        public static unsafe SDL2.SDL_Surface* SDL_CreateRGBSurfaceWithFormat(uint flags, int width, int height, int depth, uint format) { }
+        public static unsafe SDL2.SDL_Surface* SDL_CreateRGBSurfaceWithFormatFrom(nint pixels, int width, int height, int depth, int pitch, uint format) { }
+        public static SDL2.SDL_Renderer SDL_CreateRenderer(SDL2.SDL_Window window, int index, uint flags) { }
+        public static SDL2.SDL_sem SDL_CreateSemaphore(uint initial_value) { }
+        public static unsafe SDL2.SDL_Window SDL_CreateShapedWindow(byte* title, uint x, uint y, uint w, uint h, uint flags) { }
+        public static unsafe SDL2.SDL_Renderer SDL_CreateSoftwareRenderer(SDL2.SDL_Surface* surface) { }
+        public static SDL2.SDL_Cursor SDL_CreateSystemCursor(SDL2.SDL_SystemCursor id) { }
+        public static SDL2.SDL_Texture SDL_CreateTexture(SDL2.SDL_Renderer renderer, uint format, int access, int w, int h) { }
+        public static unsafe SDL2.SDL_Texture SDL_CreateTextureFromSurface(SDL2.SDL_Renderer renderer, SDL2.SDL_Surface* surface) { }
+        public static unsafe SDL2.SDL_Window SDL_CreateWindow(byte* title, int x, int y, int w, int h, uint flags) { }
+        public static unsafe int SDL_CreateWindowAndRenderer(int width, int height, uint window_flags, SDL2.SDL_Window** window, SDL2.SDL_Renderer** renderer) { }
+        public static SDL2.SDL_Window SDL_CreateWindowFrom(nint data) { }
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        public static unsafe SDL2.SDL_bool SDL_DXGIGetOutputInfo(int displayIndex, int* adapterIndex, int* outputIndex) { }
+        public static void SDL_DelEventWatch(nint filter, nint userdata) { }
+        public static unsafe void SDL_DelHintCallback(byte* name, nint callback, nint userdata) { }
+        public static void SDL_Delay(uint ms) { }
+        public static uint SDL_DequeueAudio(uint dev, nint data, uint len) { }
+        public static void SDL_DestroyCond(SDL2.SDL_cond cond) { }
+        public static void SDL_DestroyMutex(SDL2.SDL_mutex mutex) { }
+        public static void SDL_DestroyRenderer(SDL2.SDL_Renderer renderer) { }
+        public static void SDL_DestroySemaphore(SDL2.SDL_sem sem) { }
+        public static void SDL_DestroyTexture(SDL2.SDL_Texture texture) { }
+        public static void SDL_DestroyWindow(SDL2.SDL_Window window) { }
+        public static int SDL_DestroyWindowSurface(SDL2.SDL_Window window) { }
+        public static void SDL_DetachThread(SDL2.SDL_Thread thread) { }
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        public static int SDL_Direct3D9GetAdapterIndex(int displayIndex) { }
+        public static void SDL_DisableScreenSaver() { }
+        public static unsafe SDL2.SDL_Surface* SDL_DuplicateSurface(SDL2.SDL_Surface* surface) { }
+        public static void SDL_EnableScreenSaver() { }
+        public static unsafe SDL2.SDL_bool SDL_EncloseFPoints(SDL2.SDL_FPoint* points, int count, SDL2.SDL_FRect* clip, SDL2.SDL_FRect* result) { }
+        public static unsafe SDL2.SDL_bool SDL_EnclosePoints(SDL2.SDL_Point* points, int count, SDL2.SDL_Rect* clip, SDL2.SDL_Rect* result) { }
+        public static int SDL_Error(SDL2.SDL_errorcode code) { }
+        public static byte SDL_EventState(uint type, int state) { }
+        public static unsafe SDL2.SDL_bool SDL_FRectEmpty(SDL2.SDL_FRect* r) { }
+        public static unsafe SDL2.SDL_bool SDL_FRectEquals(SDL2.SDL_FRect* a, SDL2.SDL_FRect* b) { }
+        public static unsafe SDL2.SDL_bool SDL_FRectEqualsEpsilon(SDL2.SDL_FRect* a, SDL2.SDL_FRect* b, float epsilon) { }
+        public static unsafe int SDL_FillRect(SDL2.SDL_Surface* dst, SDL2.SDL_Rect* rect, uint color) { }
+        public static unsafe int SDL_FillRects(SDL2.SDL_Surface* dst, SDL2.SDL_Rect* rects, int count, uint color) { }
+        public static void SDL_FilterEvents(nint filter, nint userdata) { }
+        public static int SDL_FlashWindow(SDL2.SDL_Window window, SDL2.SDL_FlashOperation operation) { }
+        public static void SDL_FlushEvent(uint type) { }
+        public static void SDL_FlushEvents(uint minType, uint maxType) { }
+        public static void SDL_FreeAudioStream(SDL2.SDL_AudioStream stream) { }
+        public static void SDL_FreeCursor(SDL2.SDL_Cursor cursor) { }
+        public static unsafe void SDL_FreeFormat(SDL2.SDL_PixelFormat* format) { }
+        public static unsafe void SDL_FreePalette(SDL2.SDL_Palette* palette) { }
+        public static void SDL_FreeRW(SDL2.SDL_RWops area) { }
+        public static unsafe void SDL_FreeSurface(SDL2.SDL_Surface* surface) { }
+        public static unsafe void SDL_FreeWAV(byte* audio_buf) { }
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        public static unsafe int SDL_GDKGetDefaultUser(System.IntPtr* outUserHandle) { }
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        public static unsafe int SDL_GDKGetTaskQueue(System.IntPtr* outTaskQueue) { }
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        public static int SDL_GDKRunApp(nint mainFunction, nint reserved) { }
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        public static void SDL_GDKSuspendComplete() { }
+        public static unsafe int SDL_GL_BindTexture(SDL2.SDL_Texture texture, float* texw, float* texh) { }
+        public static nint SDL_GL_CreateContext(SDL2.SDL_Window window) { }
+        public static void SDL_GL_DeleteContext(nint context) { }
+        public static unsafe SDL2.SDL_bool SDL_GL_ExtensionSupported(byte* extension) { }
+        public static unsafe int SDL_GL_GetAttribute(SDL2.SDL_GLattr attr, int* value) { }
+        public static nint SDL_GL_GetCurrentContext() { }
+        public static SDL2.SDL_Window SDL_GL_GetCurrentWindow() { }
+        public static unsafe void SDL_GL_GetDrawableSize(SDL2.SDL_Window window, int* w, int* h) { }
+        public static unsafe System.IntPtr SDL_GL_GetProcAddress(byte* proc) { }
+        public static int SDL_GL_GetSwapInterval() { }
+        public static unsafe int SDL_GL_LoadLibrary(byte* path) { }
+        public static int SDL_GL_MakeCurrent(SDL2.SDL_Window window, nint context) { }
+        public static void SDL_GL_ResetAttributes() { }
+        public static int SDL_GL_SetAttribute(SDL2.SDL_GLattr attr, int value) { }
+        public static int SDL_GL_SetSwapInterval(int interval) { }
+        public static void SDL_GL_SwapWindow(SDL2.SDL_Window window) { }
+        public static int SDL_GL_UnbindTexture(SDL2.SDL_Texture texture) { }
+        public static void SDL_GL_UnloadLibrary() { }
+        public static unsafe System.Guid SDL_GUIDFromString(byte* pchGUID) { }
+        public static unsafe void SDL_GUIDToString(System.Guid guid, byte* pszGUID, int cbGUID) { }
+        public static unsafe int SDL_GameControllerAddMapping(byte* mappingString) { }
+        public static int SDL_GameControllerAddMappingsFromRW(SDL2.SDL_RWops rw, int freerw) { }
+        public static void SDL_GameControllerClose(SDL2.SDL_GameController gamecontroller) { }
+        public static int SDL_GameControllerEventState(int state) { }
+        public static SDL2.SDL_GameController SDL_GameControllerFromInstanceID(int joyid) { }
+        public static SDL2.SDL_GameController SDL_GameControllerFromPlayerIndex(int player_index) { }
+        public static unsafe byte* SDL_GameControllerGetAppleSFSymbolsNameForAxis(SDL2.SDL_GameController gamecontroller, SDL2.SDL_GameControllerAxis axis) { }
+        public static unsafe byte* SDL_GameControllerGetAppleSFSymbolsNameForButton(SDL2.SDL_GameController gamecontroller, SDL2.SDL_GameControllerButton button) { }
+        public static SDL2.SDL_bool SDL_GameControllerGetAttached(SDL2.SDL_GameController gamecontroller) { }
+        public static short SDL_GameControllerGetAxis(SDL2.SDL_GameController gamecontroller, SDL2.SDL_GameControllerAxis axis) { }
+        public static unsafe SDL2.SDL_GameControllerAxis SDL_GameControllerGetAxisFromString(byte* str) { }
+        public static SDL2.SDL_GameControllerButtonBind SDL_GameControllerGetBindForAxis(SDL2.SDL_GameController gamecontroller, SDL2.SDL_GameControllerAxis axis) { }
+        public static SDL2.SDL_GameControllerButtonBind SDL_GameControllerGetBindForButton(SDL2.SDL_GameController gamecontroller, SDL2.SDL_GameControllerButton button) { }
+        public static byte SDL_GameControllerGetButton(SDL2.SDL_GameController gamecontroller, SDL2.SDL_GameControllerButton button) { }
+        public static unsafe SDL2.SDL_GameControllerButton SDL_GameControllerGetButtonFromString(byte* str) { }
+        public static ushort SDL_GameControllerGetFirmwareVersion(SDL2.SDL_GameController gamecontroller) { }
+        public static SDL2.SDL_Joystick SDL_GameControllerGetJoystick(SDL2.SDL_GameController gamecontroller) { }
+        public static int SDL_GameControllerGetNumTouchpadFingers(SDL2.SDL_GameController gamecontroller, int touchpad) { }
+        public static int SDL_GameControllerGetNumTouchpads(SDL2.SDL_GameController gamecontroller) { }
+        public static int SDL_GameControllerGetPlayerIndex(SDL2.SDL_GameController gamecontroller) { }
+        public static ushort SDL_GameControllerGetProduct(SDL2.SDL_GameController gamecontroller) { }
+        public static ushort SDL_GameControllerGetProductVersion(SDL2.SDL_GameController gamecontroller) { }
+        public static unsafe int SDL_GameControllerGetSensorData(SDL2.SDL_GameController gamecontroller, SDL2.SDL_SensorType type, float* data, int num_values) { }
+        public static float SDL_GameControllerGetSensorDataRate(SDL2.SDL_GameController gamecontroller, SDL2.SDL_SensorType type) { }
+        public static unsafe int SDL_GameControllerGetSensorDataWithTimestamp(SDL2.SDL_GameController gamecontroller, SDL2.SDL_SensorType type, ulong* timestamp, float* data, int num_values) { }
+        public static unsafe byte* SDL_GameControllerGetSerial(SDL2.SDL_GameController gamecontroller) { }
+        public static ulong SDL_GameControllerGetSteamHandle(SDL2.SDL_GameController gamecontroller) { }
+        public static unsafe byte* SDL_GameControllerGetStringForAxis(SDL2.SDL_GameControllerAxis axis) { }
+        public static unsafe byte* SDL_GameControllerGetStringForButton(SDL2.SDL_GameControllerButton button) { }
+        public static unsafe int SDL_GameControllerGetTouchpadFinger(SDL2.SDL_GameController gamecontroller, int touchpad, int finger, byte* state, float* x, float* y, float* pressure) { }
+        public static SDL2.SDL_GameControllerType SDL_GameControllerGetType(SDL2.SDL_GameController gamecontroller) { }
+        public static ushort SDL_GameControllerGetVendor(SDL2.SDL_GameController gamecontroller) { }
+        public static SDL2.SDL_bool SDL_GameControllerHasAxis(SDL2.SDL_GameController gamecontroller, SDL2.SDL_GameControllerAxis axis) { }
+        public static SDL2.SDL_bool SDL_GameControllerHasButton(SDL2.SDL_GameController gamecontroller, SDL2.SDL_GameControllerButton button) { }
+        public static SDL2.SDL_bool SDL_GameControllerHasLED(SDL2.SDL_GameController gamecontroller) { }
+        public static SDL2.SDL_bool SDL_GameControllerHasRumble(SDL2.SDL_GameController gamecontroller) { }
+        public static SDL2.SDL_bool SDL_GameControllerHasRumbleTriggers(SDL2.SDL_GameController gamecontroller) { }
+        public static SDL2.SDL_bool SDL_GameControllerHasSensor(SDL2.SDL_GameController gamecontroller, SDL2.SDL_SensorType type) { }
+        public static SDL2.SDL_bool SDL_GameControllerIsSensorEnabled(SDL2.SDL_GameController gamecontroller, SDL2.SDL_SensorType type) { }
+        public static unsafe byte* SDL_GameControllerMapping(SDL2.SDL_GameController gamecontroller) { }
+        public static unsafe byte* SDL_GameControllerMappingForDeviceIndex(int joystick_index) { }
+        public static unsafe byte* SDL_GameControllerMappingForGUID(System.Guid guid) { }
+        public static unsafe byte* SDL_GameControllerMappingForIndex(int mapping_index) { }
+        public static unsafe byte* SDL_GameControllerName(SDL2.SDL_GameController gamecontroller) { }
+        public static unsafe byte* SDL_GameControllerNameForIndex(int joystick_index) { }
+        public static int SDL_GameControllerNumMappings() { }
+        public static SDL2.SDL_GameController SDL_GameControllerOpen(int joystick_index) { }
+        public static unsafe byte* SDL_GameControllerPath(SDL2.SDL_GameController gamecontroller) { }
+        public static unsafe byte* SDL_GameControllerPathForIndex(int joystick_index) { }
+        public static int SDL_GameControllerRumble(SDL2.SDL_GameController gamecontroller, ushort low_frequency_rumble, ushort high_frequency_rumble, uint duration_ms) { }
+        public static int SDL_GameControllerRumbleTriggers(SDL2.SDL_GameController gamecontroller, ushort left_rumble, ushort right_rumble, uint duration_ms) { }
+        public static int SDL_GameControllerSendEffect(SDL2.SDL_GameController gamecontroller, nint data, int size) { }
+        public static int SDL_GameControllerSetLED(SDL2.SDL_GameController gamecontroller, byte red, byte green, byte blue) { }
+        public static void SDL_GameControllerSetPlayerIndex(SDL2.SDL_GameController gamecontroller, int player_index) { }
+        public static int SDL_GameControllerSetSensorEnabled(SDL2.SDL_GameController gamecontroller, SDL2.SDL_SensorType type, SDL2.SDL_bool enabled) { }
+        public static SDL2.SDL_GameControllerType SDL_GameControllerTypeForIndex(int joystick_index) { }
+        public static void SDL_GameControllerUpdate() { }
+        [System.Runtime.Versioning.SupportedOSPlatform("android")]
+        public static int SDL_GetAndroidSDKVersion() { }
+        public static unsafe System.IntPtr SDL_GetAssertionHandler(System.IntPtr* puserdata) { }
+        public static unsafe SDL2.SDL_AssertData* SDL_GetAssertionReport() { }
+        public static unsafe byte* SDL_GetAudioDeviceName(int index, int iscapture) { }
+        public static unsafe int SDL_GetAudioDeviceSpec(int index, int iscapture, SDL2.SDL_AudioSpec* spec) { }
+        public static SDL2.SDL_AudioStatus SDL_GetAudioDeviceStatus(uint dev) { }
+        public static unsafe byte* SDL_GetAudioDriver(int index) { }
+        public static SDL2.SDL_AudioStatus SDL_GetAudioStatus() { }
+        public static unsafe byte* SDL_GetBasePath() { }
+        public static int SDL_GetCPUCacheLineSize() { }
+        public static int SDL_GetCPUCount() { }
+        public static unsafe void SDL_GetClipRect(SDL2.SDL_Surface* surface, SDL2.SDL_Rect* rect) { }
+        public static unsafe byte* SDL_GetClipboardText() { }
+        public static unsafe SDL2.SDL_DisplayMode* SDL_GetClosestDisplayMode(int displayIndex, SDL2.SDL_DisplayMode* mode, SDL2.SDL_DisplayMode* closest) { }
+        public static unsafe int SDL_GetColorKey(SDL2.SDL_Surface* surface, uint* key) { }
+        public static unsafe byte* SDL_GetCurrentAudioDriver() { }
+        public static unsafe int SDL_GetCurrentDisplayMode(int displayIndex, SDL2.SDL_DisplayMode* mode) { }
+        public static unsafe byte* SDL_GetCurrentVideoDriver() { }
+        public static SDL2.SDL_Cursor SDL_GetCursor() { }
+        public static nint SDL_GetDefaultAssertionHandler() { }
+        public static unsafe int SDL_GetDefaultAudioInfo(byte** name, SDL2.SDL_AudioSpec* spec, int iscapture) { }
+        public static SDL2.SDL_Cursor SDL_GetDefaultCursor() { }
+        public static unsafe int SDL_GetDesktopDisplayMode(int displayIndex, SDL2.SDL_DisplayMode* mode) { }
+        public static unsafe int SDL_GetDisplayBounds(int displayIndex, SDL2.SDL_Rect* rect) { }
+        public static unsafe int SDL_GetDisplayDPI(int displayIndex, float* ddpi, float* hdpi, float* vdpi) { }
+        public static unsafe int SDL_GetDisplayMode(int displayIndex, int modeIndex, SDL2.SDL_DisplayMode* mode) { }
+        public static unsafe byte* SDL_GetDisplayName(int displayIndex) { }
+        public static SDL2.SDL_DisplayOrientation SDL_GetDisplayOrientation(int displayIndex) { }
+        public static unsafe int SDL_GetDisplayUsableBounds(int displayIndex, SDL2.SDL_Rect* rect) { }
+        public static unsafe byte* SDL_GetError() { }
+        public static unsafe byte* SDL_GetErrorMsg(byte* errstr, int maxlen) { }
+        public static unsafe SDL2.SDL_bool SDL_GetEventFilter(System.IntPtr* filter, System.IntPtr* userdata) { }
+        public static unsafe uint SDL_GetGlobalMouseState(int* x, int* y) { }
+        public static SDL2.SDL_Window SDL_GetGrabbedWindow() { }
+        public static unsafe byte* SDL_GetHint(byte* name) { }
+        public static unsafe SDL2.SDL_bool SDL_GetHintBoolean(byte* name, SDL2.SDL_bool default_value) { }
+        public static unsafe void SDL_GetJoystickGUIDInfo(System.Guid guid, ushort* vendor, ushort* product, ushort* version, ushort* crc16) { }
+        public static unsafe int SDL_GetKeyFromName(byte* name) { }
+        public static int SDL_GetKeyFromScancode(SDL2.SDL_Scancode scancode) { }
+        public static unsafe byte* SDL_GetKeyName(int key) { }
+        public static SDL2.SDL_Window SDL_GetKeyboardFocus() { }
+        public static unsafe byte* SDL_GetKeyboardState(int* numkeys) { }
+        public static unsafe void SDL_GetMemoryFunctions(System.IntPtr* malloc_func, System.IntPtr* calloc_func, System.IntPtr* realloc_func, System.IntPtr* free_func) { }
+        public static SDL2.SDL_Keymod SDL_GetModState() { }
+        public static SDL2.SDL_Window SDL_GetMouseFocus() { }
+        public static unsafe uint SDL_GetMouseState(int* x, int* y) { }
+        public static int SDL_GetNumAllocations() { }
+        public static int SDL_GetNumAudioDevices(int iscapture) { }
+        public static int SDL_GetNumAudioDrivers() { }
+        public static int SDL_GetNumDisplayModes(int displayIndex) { }
+        public static int SDL_GetNumRenderDrivers() { }
+        public static int SDL_GetNumTouchDevices() { }
+        public static int SDL_GetNumTouchFingers(long touchID) { }
+        public static int SDL_GetNumVideoDisplays() { }
+        public static int SDL_GetNumVideoDrivers() { }
+        public static unsafe void SDL_GetOriginalMemoryFunctions(System.IntPtr* malloc_func, System.IntPtr* calloc_func, System.IntPtr* realloc_func, System.IntPtr* free_func) { }
+        public static ulong SDL_GetPerformanceCounter() { }
+        public static ulong SDL_GetPerformanceFrequency() { }
+        public static unsafe byte* SDL_GetPixelFormatName(uint format) { }
+        public static unsafe byte* SDL_GetPlatform() { }
+        public static unsafe int SDL_GetPointDisplayIndex(SDL2.SDL_Point* point) { }
+        public static unsafe SDL2.SDL_PowerState SDL_GetPowerInfo(int* seconds, int* percent) { }
+        public static unsafe byte* SDL_GetPrefPath(byte* org, byte* app) { }
+        public static unsafe SDL2.SDL_Locale* SDL_GetPreferredLocales() { }
+        public static unsafe byte* SDL_GetPrimarySelectionText() { }
+        public static uint SDL_GetQueuedAudioSize(uint dev) { }
+        public static unsafe void SDL_GetRGB(uint pixel, SDL2.SDL_PixelFormat* format, byte* r, byte* g, byte* b) { }
+        public static unsafe void SDL_GetRGBA(uint pixel, SDL2.SDL_PixelFormat* format, byte* r, byte* g, byte* b, byte* a) { }
+        public static unsafe int SDL_GetRectDisplayIndex(SDL2.SDL_Rect* rect) { }
+        public static SDL2.SDL_bool SDL_GetRelativeMouseMode() { }
+        public static unsafe uint SDL_GetRelativeMouseState(int* x, int* y) { }
+        public static unsafe int SDL_GetRenderDrawBlendMode(SDL2.SDL_Renderer renderer, SDL2.SDL_BlendMode* blendMode) { }
+        public static unsafe int SDL_GetRenderDrawColor(SDL2.SDL_Renderer renderer, byte* r, byte* g, byte* b, byte* a) { }
+        public static unsafe int SDL_GetRenderDriverInfo(int index, SDL2.SDL_RendererInfo* info) { }
+        public static SDL2.SDL_Texture SDL_GetRenderTarget(SDL2.SDL_Renderer renderer) { }
+        public static SDL2.SDL_Renderer SDL_GetRenderer(SDL2.SDL_Window window) { }
+        public static unsafe int SDL_GetRendererInfo(SDL2.SDL_Renderer renderer, SDL2.SDL_RendererInfo* info) { }
+        public static unsafe int SDL_GetRendererOutputSize(SDL2.SDL_Renderer renderer, int* w, int* h) { }
+        public static unsafe byte* SDL_GetRevision() { }
+        [System.Obsolete]
+        public static int SDL_GetRevisionNumber() { }
+        public static SDL2.SDL_Scancode SDL_GetScancodeFromKey(int key) { }
+        public static unsafe SDL2.SDL_Scancode SDL_GetScancodeFromName(byte* name) { }
+        public static unsafe byte* SDL_GetScancodeName(SDL2.SDL_Scancode scancode) { }
+        public static unsafe int SDL_GetShapedWindowMode(SDL2.SDL_Window window, SDL2.SDL_WindowShapeMode* shape_mode) { }
+        public static unsafe int SDL_GetSurfaceAlphaMod(SDL2.SDL_Surface* surface, byte* alpha) { }
+        public static unsafe int SDL_GetSurfaceBlendMode(SDL2.SDL_Surface* surface, SDL2.SDL_BlendMode* blendMode) { }
+        public static unsafe int SDL_GetSurfaceColorMod(SDL2.SDL_Surface* surface, byte* r, byte* g, byte* b) { }
+        public static int SDL_GetSystemRAM() { }
+        public static unsafe int SDL_GetTextureAlphaMod(SDL2.SDL_Texture texture, byte* alpha) { }
+        public static unsafe int SDL_GetTextureBlendMode(SDL2.SDL_Texture texture, SDL2.SDL_BlendMode* blendMode) { }
+        public static unsafe int SDL_GetTextureColorMod(SDL2.SDL_Texture texture, byte* r, byte* g, byte* b) { }
+        public static unsafe int SDL_GetTextureScaleMode(SDL2.SDL_Texture texture, SDL2.SDL_ScaleMode* scaleMode) { }
+        public static nint SDL_GetTextureUserData(SDL2.SDL_Texture texture) { }
+        public static ulong SDL_GetThreadID(SDL2.SDL_Thread thread) { }
+        public static unsafe byte* SDL_GetThreadName(SDL2.SDL_Thread thread) { }
+        public static uint SDL_GetTicks() { }
+        public static ulong SDL_GetTicks64() { }
+        public static long SDL_GetTouchDevice(int index) { }
+        public static SDL2.SDL_TouchDeviceType SDL_GetTouchDeviceType(long touchID) { }
+        public static unsafe SDL2.SDL_Finger* SDL_GetTouchFinger(long touchID, int index) { }
+        public static unsafe byte* SDL_GetTouchName(int index) { }
+        public static unsafe void SDL_GetVersion(SDL2.SDL_version* ver) { }
+        public static unsafe byte* SDL_GetVideoDriver(int index) { }
+        public static unsafe int SDL_GetWindowBordersSize(SDL2.SDL_Window window, int* top, int* left, int* bottom, int* right) { }
+        public static float SDL_GetWindowBrightness(SDL2.SDL_Window window) { }
+        public static unsafe System.IntPtr SDL_GetWindowData(SDL2.SDL_Window window, byte* name) { }
+        public static int SDL_GetWindowDisplayIndex(SDL2.SDL_Window window) { }
+        public static unsafe int SDL_GetWindowDisplayMode(SDL2.SDL_Window window, SDL2.SDL_DisplayMode* mode) { }
+        public static uint SDL_GetWindowFlags(SDL2.SDL_Window window) { }
+        public static SDL2.SDL_Window SDL_GetWindowFromID(uint id) { }
+        public static unsafe int SDL_GetWindowGammaRamp(SDL2.SDL_Window window, ushort* red, ushort* green, ushort* blue) { }
+        public static SDL2.SDL_bool SDL_GetWindowGrab(SDL2.SDL_Window window) { }
+        public static unsafe System.IntPtr SDL_GetWindowICCProfile(SDL2.SDL_Window window, System.UIntPtr* size) { }
+        public static uint SDL_GetWindowID(SDL2.SDL_Window window) { }
+        public static SDL2.SDL_bool SDL_GetWindowKeyboardGrab(SDL2.SDL_Window window) { }
+        public static unsafe void SDL_GetWindowMaximumSize(SDL2.SDL_Window window, int* w, int* h) { }
+        public static unsafe void SDL_GetWindowMinimumSize(SDL2.SDL_Window window, int* w, int* h) { }
+        public static SDL2.SDL_bool SDL_GetWindowMouseGrab(SDL2.SDL_Window window) { }
+        public static unsafe SDL2.SDL_Rect* SDL_GetWindowMouseRect(SDL2.SDL_Window window) { }
+        public static unsafe int SDL_GetWindowOpacity(SDL2.SDL_Window window, float* out_opacity) { }
+        public static uint SDL_GetWindowPixelFormat(SDL2.SDL_Window window) { }
+        public static unsafe void SDL_GetWindowPosition(SDL2.SDL_Window window, int* x, int* y) { }
+        public static unsafe void SDL_GetWindowSize(SDL2.SDL_Window window, int* w, int* h) { }
+        public static unsafe void SDL_GetWindowSizeInPixels(SDL2.SDL_Window window, int* w, int* h) { }
+        public static unsafe SDL2.SDL_Surface* SDL_GetWindowSurface(SDL2.SDL_Window window) { }
+        public static unsafe byte* SDL_GetWindowTitle(SDL2.SDL_Window window) { }
+        public static SDL2.SDL_YUV_CONVERSION_MODE SDL_GetYUVConversionMode() { }
+        public static SDL2.SDL_YUV_CONVERSION_MODE SDL_GetYUVConversionModeForResolution(int width, int height) { }
+        public static void SDL_HapticClose(SDL2.SDL_Haptic haptic) { }
+        public static void SDL_HapticDestroyEffect(SDL2.SDL_Haptic haptic, int effect) { }
+        public static unsafe int SDL_HapticEffectSupported(SDL2.SDL_Haptic haptic, SDL2.SDL_HapticEffect* effect) { }
+        public static int SDL_HapticGetEffectStatus(SDL2.SDL_Haptic haptic, int effect) { }
+        public static int SDL_HapticIndex(SDL2.SDL_Haptic haptic) { }
+        public static unsafe byte* SDL_HapticName(int device_index) { }
+        public static unsafe int SDL_HapticNewEffect(SDL2.SDL_Haptic haptic, SDL2.SDL_HapticEffect* effect) { }
+        public static int SDL_HapticNumAxes(SDL2.SDL_Haptic haptic) { }
+        public static int SDL_HapticNumEffects(SDL2.SDL_Haptic haptic) { }
+        public static int SDL_HapticNumEffectsPlaying(SDL2.SDL_Haptic haptic) { }
+        public static SDL2.SDL_Haptic SDL_HapticOpen(int device_index) { }
+        public static SDL2.SDL_Haptic SDL_HapticOpenFromJoystick(SDL2.SDL_Joystick joystick) { }
+        public static SDL2.SDL_Haptic SDL_HapticOpenFromMouse() { }
+        public static int SDL_HapticOpened(int device_index) { }
+        public static int SDL_HapticPause(SDL2.SDL_Haptic haptic) { }
+        public static uint SDL_HapticQuery(SDL2.SDL_Haptic haptic) { }
+        public static int SDL_HapticRumbleInit(SDL2.SDL_Haptic haptic) { }
+        public static int SDL_HapticRumblePlay(SDL2.SDL_Haptic haptic, float strength, uint length) { }
+        public static int SDL_HapticRumbleStop(SDL2.SDL_Haptic haptic) { }
+        public static int SDL_HapticRumbleSupported(SDL2.SDL_Haptic haptic) { }
+        public static int SDL_HapticRunEffect(SDL2.SDL_Haptic haptic, int effect, uint iterations) { }
+        public static int SDL_HapticSetAutocenter(SDL2.SDL_Haptic haptic, int autocenter) { }
+        public static int SDL_HapticSetGain(SDL2.SDL_Haptic haptic, int gain) { }
+        public static int SDL_HapticStopAll(SDL2.SDL_Haptic haptic) { }
+        public static int SDL_HapticStopEffect(SDL2.SDL_Haptic haptic, int effect) { }
+        public static int SDL_HapticUnpause(SDL2.SDL_Haptic haptic) { }
+        public static unsafe int SDL_HapticUpdateEffect(SDL2.SDL_Haptic haptic, int effect, SDL2.SDL_HapticEffect* data) { }
+        public static SDL2.SDL_bool SDL_Has3DNow() { }
+        public static SDL2.SDL_bool SDL_HasARMSIMD() { }
+        public static SDL2.SDL_bool SDL_HasAVX() { }
+        public static SDL2.SDL_bool SDL_HasAVX2() { }
+        public static SDL2.SDL_bool SDL_HasAVX512F() { }
+        public static SDL2.SDL_bool SDL_HasAltiVec() { }
+        public static SDL2.SDL_bool SDL_HasClipboardText() { }
+        public static unsafe SDL2.SDL_bool SDL_HasColorKey(SDL2.SDL_Surface* surface) { }
+        public static SDL2.SDL_bool SDL_HasEvent(uint type) { }
+        public static SDL2.SDL_bool SDL_HasEvents(uint minType, uint maxType) { }
+        public static unsafe SDL2.SDL_bool SDL_HasIntersection(SDL2.SDL_Rect* A, SDL2.SDL_Rect* B) { }
+        public static unsafe SDL2.SDL_bool SDL_HasIntersectionF(SDL2.SDL_FRect* A, SDL2.SDL_FRect* B) { }
+        public static SDL2.SDL_bool SDL_HasLASX() { }
+        public static SDL2.SDL_bool SDL_HasLSX() { }
+        public static SDL2.SDL_bool SDL_HasMMX() { }
+        public static SDL2.SDL_bool SDL_HasNEON() { }
+        public static SDL2.SDL_bool SDL_HasPrimarySelectionText() { }
+        public static SDL2.SDL_bool SDL_HasRDTSC() { }
+        public static SDL2.SDL_bool SDL_HasSSE() { }
+        public static SDL2.SDL_bool SDL_HasSSE2() { }
+        public static SDL2.SDL_bool SDL_HasSSE3() { }
+        public static SDL2.SDL_bool SDL_HasSSE41() { }
+        public static SDL2.SDL_bool SDL_HasSSE42() { }
+        public static SDL2.SDL_bool SDL_HasScreenKeyboardSupport() { }
+        public static unsafe SDL2.SDL_bool SDL_HasSurfaceRLE(SDL2.SDL_Surface* surface) { }
+        public static SDL2.SDL_bool SDL_HasWindowSurface(SDL2.SDL_Window window) { }
+        public static void SDL_HideWindow(SDL2.SDL_Window window) { }
+        public static int SDL_Init(uint flags) { }
+        public static int SDL_InitSubSystem(uint flags) { }
+        public static unsafe SDL2.SDL_bool SDL_IntersectFRect(SDL2.SDL_FRect* A, SDL2.SDL_FRect* B, SDL2.SDL_FRect* result) { }
+        public static unsafe SDL2.SDL_bool SDL_IntersectFRectAndLine(SDL2.SDL_FRect* rect, float* X1, float* Y1, float* X2, float* Y2) { }
+        public static unsafe SDL2.SDL_bool SDL_IntersectRect(SDL2.SDL_Rect* A, SDL2.SDL_Rect* B, SDL2.SDL_Rect* result) { }
+        public static unsafe SDL2.SDL_bool SDL_IntersectRectAndLine(SDL2.SDL_Rect* rect, int* X1, int* Y1, int* X2, int* Y2) { }
+        [System.Runtime.Versioning.SupportedOSPlatform("android")]
+        public static SDL2.SDL_bool SDL_IsAndroidTV() { }
+        [System.Runtime.Versioning.SupportedOSPlatform("android")]
+        public static SDL2.SDL_bool SDL_IsChromebook() { }
+        [System.Runtime.Versioning.SupportedOSPlatform("android")]
+        public static SDL2.SDL_bool SDL_IsDeXMode() { }
+        public static SDL2.SDL_bool SDL_IsGameController(int joystick_index) { }
+        public static SDL2.SDL_bool SDL_IsScreenKeyboardShown(SDL2.SDL_Window window) { }
+        public static SDL2.SDL_bool SDL_IsScreenSaverEnabled() { }
+        public static SDL2.SDL_bool SDL_IsShapedWindow(SDL2.SDL_Window window) { }
+        public static SDL2.SDL_bool SDL_IsTablet() { }
+        public static SDL2.SDL_bool SDL_IsTextInputActive() { }
+        public static SDL2.SDL_bool SDL_IsTextInputShown() { }
+        public static int SDL_JoystickAttachVirtual(SDL2.SDL_JoystickType type, int naxes, int nbuttons, int nhats) { }
+        public static unsafe int SDL_JoystickAttachVirtualEx(SDL2.SDL_VirtualJoystickDesc* desc) { }
+        public static void SDL_JoystickClose(SDL2.SDL_Joystick joystick) { }
+        public static SDL2.SDL_JoystickPowerLevel SDL_JoystickCurrentPowerLevel(SDL2.SDL_Joystick joystick) { }
+        public static int SDL_JoystickDetachVirtual(int device_index) { }
+        public static int SDL_JoystickEventState(int state) { }
+        public static SDL2.SDL_Joystick SDL_JoystickFromInstanceID(int instance_id) { }
+        public static SDL2.SDL_Joystick SDL_JoystickFromPlayerIndex(int player_index) { }
+        public static SDL2.SDL_bool SDL_JoystickGetAttached(SDL2.SDL_Joystick joystick) { }
+        public static short SDL_JoystickGetAxis(SDL2.SDL_Joystick joystick, int axis) { }
+        public static unsafe SDL2.SDL_bool SDL_JoystickGetAxisInitialState(SDL2.SDL_Joystick joystick, int axis, short* state) { }
+        public static unsafe int SDL_JoystickGetBall(SDL2.SDL_Joystick joystick, int ball, int* dx, int* dy) { }
+        public static byte SDL_JoystickGetButton(SDL2.SDL_Joystick joystick, int button) { }
+        public static System.Guid SDL_JoystickGetDeviceGUID(int device_index) { }
+        public static int SDL_JoystickGetDeviceInstanceID(int device_index) { }
+        public static int SDL_JoystickGetDevicePlayerIndex(int device_index) { }
+        public static ushort SDL_JoystickGetDeviceProduct(int device_index) { }
+        public static ushort SDL_JoystickGetDeviceProductVersion(int device_index) { }
+        public static SDL2.SDL_JoystickType SDL_JoystickGetDeviceType(int device_index) { }
+        public static ushort SDL_JoystickGetDeviceVendor(int device_index) { }
+        public static ushort SDL_JoystickGetFirmwareVersion(SDL2.SDL_Joystick joystick) { }
+        public static System.Guid SDL_JoystickGetGUID(SDL2.SDL_Joystick joystick) { }
+        public static unsafe System.Guid SDL_JoystickGetGUIDFromString(byte* pchGUID) { }
+        public static unsafe void SDL_JoystickGetGUIDString(System.Guid guid, byte* pszGUID, int cbGUID) { }
+        public static byte SDL_JoystickGetHat(SDL2.SDL_Joystick joystick, int hat) { }
+        public static int SDL_JoystickGetPlayerIndex(SDL2.SDL_Joystick joystick) { }
+        public static ushort SDL_JoystickGetProduct(SDL2.SDL_Joystick joystick) { }
+        public static ushort SDL_JoystickGetProductVersion(SDL2.SDL_Joystick joystick) { }
+        public static unsafe byte* SDL_JoystickGetSerial(SDL2.SDL_Joystick joystick) { }
+        public static SDL2.SDL_JoystickType SDL_JoystickGetType(SDL2.SDL_Joystick joystick) { }
+        public static ushort SDL_JoystickGetVendor(SDL2.SDL_Joystick joystick) { }
+        public static SDL2.SDL_bool SDL_JoystickHasLED(SDL2.SDL_Joystick joystick) { }
+        public static SDL2.SDL_bool SDL_JoystickHasRumble(SDL2.SDL_Joystick joystick) { }
+        public static SDL2.SDL_bool SDL_JoystickHasRumbleTriggers(SDL2.SDL_Joystick joystick) { }
+        public static int SDL_JoystickInstanceID(SDL2.SDL_Joystick joystick) { }
+        public static int SDL_JoystickIsHaptic(SDL2.SDL_Joystick joystick) { }
+        public static SDL2.SDL_bool SDL_JoystickIsVirtual(int device_index) { }
+        public static unsafe byte* SDL_JoystickName(SDL2.SDL_Joystick joystick) { }
+        public static unsafe byte* SDL_JoystickNameForIndex(int device_index) { }
+        public static int SDL_JoystickNumAxes(SDL2.SDL_Joystick joystick) { }
+        public static int SDL_JoystickNumBalls(SDL2.SDL_Joystick joystick) { }
+        public static int SDL_JoystickNumButtons(SDL2.SDL_Joystick joystick) { }
+        public static int SDL_JoystickNumHats(SDL2.SDL_Joystick joystick) { }
+        public static SDL2.SDL_Joystick SDL_JoystickOpen(int device_index) { }
+        public static unsafe byte* SDL_JoystickPath(SDL2.SDL_Joystick joystick) { }
+        public static unsafe byte* SDL_JoystickPathForIndex(int device_index) { }
+        public static int SDL_JoystickRumble(SDL2.SDL_Joystick joystick, ushort low_frequency_rumble, ushort high_frequency_rumble, uint duration_ms) { }
+        public static int SDL_JoystickRumbleTriggers(SDL2.SDL_Joystick joystick, ushort left_rumble, ushort right_rumble, uint duration_ms) { }
+        public static int SDL_JoystickSendEffect(SDL2.SDL_Joystick joystick, nint data, int size) { }
+        public static int SDL_JoystickSetLED(SDL2.SDL_Joystick joystick, byte red, byte green, byte blue) { }
+        public static void SDL_JoystickSetPlayerIndex(SDL2.SDL_Joystick joystick, int player_index) { }
+        public static int SDL_JoystickSetVirtualAxis(SDL2.SDL_Joystick joystick, int axis, short value) { }
+        public static int SDL_JoystickSetVirtualButton(SDL2.SDL_Joystick joystick, int button, byte value) { }
+        public static int SDL_JoystickSetVirtualHat(SDL2.SDL_Joystick joystick, int hat, byte value) { }
+        public static void SDL_JoystickUpdate() { }
+        [System.Runtime.Versioning.SupportedOSPlatform("linux")]
+        public static int SDL_LinuxSetThreadPriority(long threadID, int priority) { }
+        [System.Runtime.Versioning.SupportedOSPlatform("linux")]
+        public static int SDL_LinuxSetThreadPriorityAndPolicy(long threadID, int sdlPriority, int schedPolicy) { }
+        public static unsafe SDL2.SDL_Surface* SDL_LoadBMP_RW(SDL2.SDL_RWops src, int freesrc) { }
+        public static int SDL_LoadDollarTemplates(long touchId, SDL2.SDL_RWops src) { }
+        public static unsafe System.IntPtr SDL_LoadFile(byte* file, System.UIntPtr* datasize) { }
+        public static unsafe System.IntPtr SDL_LoadFile_RW(SDL2.SDL_RWops src, System.UIntPtr* datasize, int freesrc) { }
+        public static unsafe System.IntPtr SDL_LoadFunction(nint handle, byte* name) { }
+        public static unsafe System.IntPtr SDL_LoadObject(byte* sofile) { }
+        public static unsafe SDL2.SDL_AudioSpec* SDL_LoadWAV_RW(SDL2.SDL_RWops src, int freesrc, SDL2.SDL_AudioSpec* spec, byte** audio_buf, uint* audio_len) { }
+        public static void SDL_LockAudio() { }
+        public static void SDL_LockAudioDevice(uint dev) { }
+        public static void SDL_LockJoysticks() { }
+        public static int SDL_LockMutex(SDL2.SDL_mutex mutex) { }
+        public static void SDL_LockSensors() { }
+        public static unsafe int SDL_LockSurface(SDL2.SDL_Surface* surface) { }
+        public static unsafe int SDL_LockTexture(SDL2.SDL_Texture texture, SDL2.SDL_Rect* rect, System.IntPtr* pixels, int* pitch) { }
+        public static unsafe int SDL_LockTextureToSurface(SDL2.SDL_Texture texture, SDL2.SDL_Rect* rect, SDL2.SDL_Surface** surface) { }
+        public static unsafe void SDL_Log(byte* fmt) { }
+        public static unsafe void SDL_LogCritical(int category, byte* fmt) { }
+        public static unsafe void SDL_LogDebug(int category, byte* fmt) { }
+        public static unsafe void SDL_LogError(int category, byte* fmt) { }
+        public static unsafe void SDL_LogGetOutputFunction(System.IntPtr* callback, System.IntPtr* userdata) { }
+        public static SDL2.SDL_LogPriority SDL_LogGetPriority(int category) { }
+        public static unsafe void SDL_LogInfo(int category, byte* fmt) { }
+        public static unsafe void SDL_LogMessage(int category, SDL2.SDL_LogPriority priority, byte* fmt) { }
+        public static void SDL_LogResetPriorities() { }
+        public static void SDL_LogSetAllPriority(SDL2.SDL_LogPriority priority) { }
+        public static void SDL_LogSetOutputFunction(nint callback, nint userdata) { }
+        public static void SDL_LogSetPriority(int category, SDL2.SDL_LogPriority priority) { }
+        public static unsafe void SDL_LogVerbose(int category, byte* fmt) { }
+        public static unsafe void SDL_LogWarn(int category, byte* fmt) { }
+        public static unsafe int SDL_LowerBlit(SDL2.SDL_Surface* src, SDL2.SDL_Rect* srcrect, SDL2.SDL_Surface* dst, SDL2.SDL_Rect* dstrect) { }
+        public static unsafe int SDL_LowerBlitScaled(SDL2.SDL_Surface* src, SDL2.SDL_Rect* srcrect, SDL2.SDL_Surface* dst, SDL2.SDL_Rect* dstrect) { }
+        public static unsafe uint SDL_MapRGB(SDL2.SDL_PixelFormat* format, byte r, byte g, byte b) { }
+        public static unsafe uint SDL_MapRGBA(SDL2.SDL_PixelFormat* format, byte r, byte g, byte b, byte a) { }
+        public static uint SDL_MasksToPixelFormatEnum(int bpp, uint Rmask, uint Gmask, uint Bmask, uint Amask) { }
+        public static void SDL_MaximizeWindow(SDL2.SDL_Window window) { }
+        public static void SDL_MemoryBarrierAcquireFunction() { }
+        public static void SDL_MemoryBarrierReleaseFunction() { }
+        public static nint SDL_Metal_CreateView(SDL2.SDL_Window window) { }
+        public static void SDL_Metal_DestroyView(nint view) { }
+        public static unsafe void SDL_Metal_GetDrawableSize(SDL2.SDL_Window window, int* w, int* h) { }
+        public static nint SDL_Metal_GetLayer(nint view) { }
+        public static void SDL_MinimizeWindow(SDL2.SDL_Window window) { }
+        public static unsafe void SDL_MixAudio(byte* dst, byte* src, uint len, int volume) { }
+        public static unsafe void SDL_MixAudioFormat(byte* dst, byte* src, ushort format, uint len, int volume) { }
+        public static int SDL_MouseIsHaptic() { }
+        public static SDL2.SDL_AudioStream SDL_NewAudioStream(ushort src_format, byte src_channels, int src_rate, ushort dst_format, byte dst_channels, int dst_rate) { }
+        public static int SDL_NumHaptics() { }
+        public static int SDL_NumJoysticks() { }
+        public static int SDL_NumSensors() { }
+        public static void SDL_OnApplicationDidBecomeActive() { }
+        [System.Runtime.Versioning.SupportedOSPlatform("ios")]
+        public static void SDL_OnApplicationDidChangeStatusBarOrientation() { }
+        public static void SDL_OnApplicationDidEnterBackground() { }
+        public static void SDL_OnApplicationDidReceiveMemoryWarning() { }
+        public static void SDL_OnApplicationWillEnterForeground() { }
+        public static void SDL_OnApplicationWillResignActive() { }
+        public static void SDL_OnApplicationWillTerminate() { }
+        public static unsafe int SDL_OpenAudio(SDL2.SDL_AudioSpec* desired, SDL2.SDL_AudioSpec* obtained) { }
+        public static unsafe uint SDL_OpenAudioDevice(byte* device, int iscapture, SDL2.SDL_AudioSpec* desired, SDL2.SDL_AudioSpec* obtained, int allowed_changes) { }
+        public static unsafe int SDL_OpenURL(byte* url) { }
+        public static void SDL_PauseAudio(int pause_on) { }
+        public static void SDL_PauseAudioDevice(uint dev, int pause_on) { }
+        public static unsafe int SDL_PeepEvents(SDL2.SDL_Event* events, int numevents, SDL2.SDL_eventaction action, uint minType, uint maxType) { }
+        public static unsafe SDL2.SDL_bool SDL_PixelFormatEnumToMasks(uint format, int* bpp, uint* Rmask, uint* Gmask, uint* Bmask, uint* Amask) { }
+        public static unsafe SDL2.SDL_bool SDL_PointInFRect(SDL2.SDL_FPoint* p, SDL2.SDL_FRect* r) { }
+        public static unsafe SDL2.SDL_bool SDL_PointInRect(SDL2.SDL_Point* p, SDL2.SDL_Rect* r) { }
+        public static unsafe int SDL_PollEvent(SDL2.SDL_Event* @event) { }
+        public static int SDL_PremultiplyAlpha(int width, int height, uint src_format, nint src, int src_pitch, uint dst_format, nint dst, int dst_pitch) { }
+        public static void SDL_PumpEvents() { }
+        public static unsafe int SDL_PushEvent(SDL2.SDL_Event* @event) { }
+        public static unsafe int SDL_QueryTexture(SDL2.SDL_Texture texture, uint* format, int* access, int* w, int* h) { }
+        public static int SDL_QueueAudio(uint dev, nint data, uint len) { }
+        public static void SDL_Quit() { }
+        public static void SDL_QuitSubSystem(uint flags) { }
+        public static SDL2.SDL_RWops SDL_RWFromConstMem(nint mem, int size) { }
+        public static unsafe SDL2.SDL_RWops SDL_RWFromFile(byte* file, byte* mode) { }
+        public static SDL2.SDL_RWops SDL_RWFromMem(nint mem, int size) { }
+        public static int SDL_RWclose(SDL2.SDL_RWops context) { }
+        public static nuint SDL_RWread(SDL2.SDL_RWops context, nint ptr, nuint size, nuint maxnum) { }
+        public static long SDL_RWseek(SDL2.SDL_RWops context, long offset, int whence) { }
+        public static long SDL_RWsize(SDL2.SDL_RWops context) { }
+        public static long SDL_RWtell(SDL2.SDL_RWops context) { }
+        public static nuint SDL_RWwrite(SDL2.SDL_RWops context, nint ptr, nuint size, nuint num) { }
+        public static void SDL_RaiseWindow(SDL2.SDL_Window window) { }
+        public static ushort SDL_ReadBE16(SDL2.SDL_RWops src) { }
+        public static uint SDL_ReadBE32(SDL2.SDL_RWops src) { }
+        public static ulong SDL_ReadBE64(SDL2.SDL_RWops src) { }
+        public static ushort SDL_ReadLE16(SDL2.SDL_RWops src) { }
+        public static uint SDL_ReadLE32(SDL2.SDL_RWops src) { }
+        public static ulong SDL_ReadLE64(SDL2.SDL_RWops src) { }
+        public static byte SDL_ReadU8(SDL2.SDL_RWops src) { }
+        public static int SDL_RecordGesture(long touchId) { }
+        public static unsafe SDL2.SDL_bool SDL_RectEmpty(SDL2.SDL_Rect* r) { }
+        public static unsafe SDL2.SDL_bool SDL_RectEquals(SDL2.SDL_Rect* a, SDL2.SDL_Rect* b) { }
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        public static unsafe int SDL_RegisterApp(byte* name, uint style, nint hInst) { }
+        public static uint SDL_RegisterEvents(int numevents) { }
+        public static SDL2.SDL_bool SDL_RemoveTimer(int id) { }
+        public static int SDL_RenderClear(SDL2.SDL_Renderer renderer) { }
+        public static unsafe int SDL_RenderCopy(SDL2.SDL_Renderer renderer, SDL2.SDL_Texture texture, SDL2.SDL_Rect* srcrect, SDL2.SDL_Rect* dstrect) { }
+        public static unsafe int SDL_RenderCopyEx(SDL2.SDL_Renderer renderer, SDL2.SDL_Texture texture, SDL2.SDL_Rect* srcrect, SDL2.SDL_Rect* dstrect, double angle, SDL2.SDL_Point* center, SDL2.SDL_RendererFlip flip) { }
+        public static unsafe int SDL_RenderCopyExF(SDL2.SDL_Renderer renderer, SDL2.SDL_Texture texture, SDL2.SDL_Rect* srcrect, SDL2.SDL_FRect* dstrect, double angle, SDL2.SDL_FPoint* center, SDL2.SDL_RendererFlip flip) { }
+        public static unsafe int SDL_RenderCopyF(SDL2.SDL_Renderer renderer, SDL2.SDL_Texture texture, SDL2.SDL_Rect* srcrect, SDL2.SDL_FRect* dstrect) { }
+        public static int SDL_RenderDrawLine(SDL2.SDL_Renderer renderer, int x1, int y1, int x2, int y2) { }
+        public static int SDL_RenderDrawLineF(SDL2.SDL_Renderer renderer, float x1, float y1, float x2, float y2) { }
+        public static unsafe int SDL_RenderDrawLines(SDL2.SDL_Renderer renderer, SDL2.SDL_Point* points, int count) { }
+        public static unsafe int SDL_RenderDrawLinesF(SDL2.SDL_Renderer renderer, SDL2.SDL_FPoint* points, int count) { }
+        public static int SDL_RenderDrawPoint(SDL2.SDL_Renderer renderer, int x, int y) { }
+        public static int SDL_RenderDrawPointF(SDL2.SDL_Renderer renderer, float x, float y) { }
+        public static unsafe int SDL_RenderDrawPoints(SDL2.SDL_Renderer renderer, SDL2.SDL_Point* points, int count) { }
+        public static unsafe int SDL_RenderDrawPointsF(SDL2.SDL_Renderer renderer, SDL2.SDL_FPoint* points, int count) { }
+        public static unsafe int SDL_RenderDrawRect(SDL2.SDL_Renderer renderer, SDL2.SDL_Rect* rect) { }
+        public static unsafe int SDL_RenderDrawRectF(SDL2.SDL_Renderer renderer, SDL2.SDL_FRect* rect) { }
+        public static unsafe int SDL_RenderDrawRects(SDL2.SDL_Renderer renderer, SDL2.SDL_Rect* rects, int count) { }
+        public static unsafe int SDL_RenderDrawRectsF(SDL2.SDL_Renderer renderer, SDL2.SDL_FRect* rects, int count) { }
+        public static unsafe int SDL_RenderFillRect(SDL2.SDL_Renderer renderer, SDL2.SDL_Rect* rect) { }
+        public static unsafe int SDL_RenderFillRectF(SDL2.SDL_Renderer renderer, SDL2.SDL_FRect* rect) { }
+        public static unsafe int SDL_RenderFillRects(SDL2.SDL_Renderer renderer, SDL2.SDL_Rect* rects, int count) { }
+        public static unsafe int SDL_RenderFillRectsF(SDL2.SDL_Renderer renderer, SDL2.SDL_FRect* rects, int count) { }
+        public static int SDL_RenderFlush(SDL2.SDL_Renderer renderer) { }
+        public static unsafe int SDL_RenderGeometry(SDL2.SDL_Renderer renderer, SDL2.SDL_Texture texture, SDL2.SDL_Vertex* vertices, int num_vertices, int* indices, int num_indices) { }
+        public static unsafe int SDL_RenderGeometryRaw(SDL2.SDL_Renderer renderer, SDL2.SDL_Texture texture, float* xy, int xy_stride, SDL2.SDL_Color* color, int color_stride, float* uv, int uv_stride, int num_vertices, nint indices, int num_indices, int size_indices) { }
+        public static unsafe void SDL_RenderGetClipRect(SDL2.SDL_Renderer renderer, SDL2.SDL_Rect* rect) { }
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        public static nint SDL_RenderGetD3D11Device(SDL2.SDL_Renderer renderer) { }
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        public static nint SDL_RenderGetD3D12Device(SDL2.SDL_Renderer renderer) { }
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        public static nint SDL_RenderGetD3D9Device(SDL2.SDL_Renderer renderer) { }
+        public static SDL2.SDL_bool SDL_RenderGetIntegerScale(SDL2.SDL_Renderer renderer) { }
+        public static unsafe void SDL_RenderGetLogicalSize(SDL2.SDL_Renderer renderer, int* w, int* h) { }
+        public static nint SDL_RenderGetMetalCommandEncoder(SDL2.SDL_Renderer renderer) { }
+        public static nint SDL_RenderGetMetalLayer(SDL2.SDL_Renderer renderer) { }
+        public static unsafe void SDL_RenderGetScale(SDL2.SDL_Renderer renderer, float* scaleX, float* scaleY) { }
+        public static unsafe void SDL_RenderGetViewport(SDL2.SDL_Renderer renderer, SDL2.SDL_Rect* rect) { }
+        public static SDL2.SDL_Window SDL_RenderGetWindow(SDL2.SDL_Renderer renderer) { }
+        public static SDL2.SDL_bool SDL_RenderIsClipEnabled(SDL2.SDL_Renderer renderer) { }
+        public static unsafe void SDL_RenderLogicalToWindow(SDL2.SDL_Renderer renderer, float logicalX, float logicalY, int* windowX, int* windowY) { }
+        public static void SDL_RenderPresent(SDL2.SDL_Renderer renderer) { }
+        public static unsafe int SDL_RenderReadPixels(SDL2.SDL_Renderer renderer, SDL2.SDL_Rect* rect, uint format, nint pixels, int pitch) { }
+        public static unsafe int SDL_RenderSetClipRect(SDL2.SDL_Renderer renderer, SDL2.SDL_Rect* rect) { }
+        public static int SDL_RenderSetIntegerScale(SDL2.SDL_Renderer renderer, SDL2.SDL_bool enable) { }
+        public static int SDL_RenderSetLogicalSize(SDL2.SDL_Renderer renderer, int w, int h) { }
+        public static int SDL_RenderSetScale(SDL2.SDL_Renderer renderer, float scaleX, float scaleY) { }
+        public static int SDL_RenderSetVSync(SDL2.SDL_Renderer renderer, int vsync) { }
+        public static unsafe int SDL_RenderSetViewport(SDL2.SDL_Renderer renderer, SDL2.SDL_Rect* rect) { }
+        public static SDL2.SDL_bool SDL_RenderTargetSupported(SDL2.SDL_Renderer renderer) { }
+        public static unsafe void SDL_RenderWindowToLogical(SDL2.SDL_Renderer renderer, int windowX, int windowY, float* logicalX, float* logicalY) { }
+        public static unsafe SDL2.SDL_AssertState SDL_ReportAssertion(SDL2.SDL_AssertData* param0, byte* param1, byte* param2, int param3) { }
+        public static void SDL_ResetAssertionReport() { }
+        public static unsafe SDL2.SDL_bool SDL_ResetHint(byte* name) { }
+        public static void SDL_ResetHints() { }
+        public static void SDL_ResetKeyboard() { }
+        public static void SDL_RestoreWindow(SDL2.SDL_Window window) { }
+        public static nint SDL_SIMDAlloc(nuint len) { }
+        public static void SDL_SIMDFree(nint ptr) { }
+        public static nuint SDL_SIMDGetAlignment() { }
+        public static nint SDL_SIMDRealloc(nint mem, nuint len) { }
+        public static int SDL_SaveAllDollarTemplates(SDL2.SDL_RWops dst) { }
+        public static unsafe int SDL_SaveBMP_RW(SDL2.SDL_Surface* surface, SDL2.SDL_RWops dst, int freedst) { }
+        public static int SDL_SaveDollarTemplate(long gestureId, SDL2.SDL_RWops dst) { }
+        public static int SDL_SemPost(SDL2.SDL_sem sem) { }
+        public static int SDL_SemTryWait(SDL2.SDL_sem sem) { }
+        public static uint SDL_SemValue(SDL2.SDL_sem sem) { }
+        public static int SDL_SemWait(SDL2.SDL_sem sem) { }
+        public static int SDL_SemWaitTimeout(SDL2.SDL_sem sem, uint timeout) { }
+        public static void SDL_SensorClose(SDL2.SDL_Sensor sensor) { }
+        public static SDL2.SDL_Sensor SDL_SensorFromInstanceID(int instance_id) { }
+        public static unsafe int SDL_SensorGetData(SDL2.SDL_Sensor sensor, float* data, int num_values) { }
+        public static unsafe int SDL_SensorGetDataWithTimestamp(SDL2.SDL_Sensor sensor, ulong* timestamp, float* data, int num_values) { }
+        public static int SDL_SensorGetDeviceInstanceID(int device_index) { }
+        public static unsafe byte* SDL_SensorGetDeviceName(int device_index) { }
+        public static int SDL_SensorGetDeviceNonPortableType(int device_index) { }
+        public static SDL2.SDL_SensorType SDL_SensorGetDeviceType(int device_index) { }
+        public static int SDL_SensorGetInstanceID(SDL2.SDL_Sensor sensor) { }
+        public static unsafe byte* SDL_SensorGetName(SDL2.SDL_Sensor sensor) { }
+        public static int SDL_SensorGetNonPortableType(SDL2.SDL_Sensor sensor) { }
+        public static SDL2.SDL_SensorType SDL_SensorGetType(SDL2.SDL_Sensor sensor) { }
+        public static SDL2.SDL_Sensor SDL_SensorOpen(int device_index) { }
+        public static void SDL_SensorUpdate() { }
+        public static void SDL_SetAssertionHandler(nint handler, nint userdata) { }
+        public static unsafe SDL2.SDL_bool SDL_SetClipRect(SDL2.SDL_Surface* surface, SDL2.SDL_Rect* rect) { }
+        public static unsafe int SDL_SetClipboardText(byte* text) { }
+        public static unsafe int SDL_SetColorKey(SDL2.SDL_Surface* surface, int flag, uint key) { }
+        public static void SDL_SetCursor(SDL2.SDL_Cursor cursor) { }
+        public static unsafe int SDL_SetError(byte* fmt) { }
+        public static void SDL_SetEventFilter(nint filter, nint userdata) { }
+        public static unsafe SDL2.SDL_bool SDL_SetHint(byte* name, byte* value) { }
+        public static unsafe SDL2.SDL_bool SDL_SetHintWithPriority(byte* name, byte* value, SDL2.SDL_HintPriority priority) { }
+        public static void SDL_SetMainReady() { }
+        public static int SDL_SetMemoryFunctions(nint malloc_func, nint calloc_func, nint realloc_func, nint free_func) { }
+        public static void SDL_SetModState(SDL2.SDL_Keymod modstate) { }
+        public static unsafe int SDL_SetPaletteColors(SDL2.SDL_Palette* palette, SDL2.SDL_Color* colors, int firstcolor, int ncolors) { }
+        public static unsafe int SDL_SetPixelFormatPalette(SDL2.SDL_PixelFormat* format, SDL2.SDL_Palette* palette) { }
+        public static unsafe int SDL_SetPrimarySelectionText(byte* text) { }
+        public static int SDL_SetRelativeMouseMode(SDL2.SDL_bool enabled) { }
+        public static int SDL_SetRenderDrawBlendMode(SDL2.SDL_Renderer renderer, SDL2.SDL_BlendMode blendMode) { }
+        public static int SDL_SetRenderDrawColor(SDL2.SDL_Renderer renderer, byte r, byte g, byte b, byte a) { }
+        public static int SDL_SetRenderTarget(SDL2.SDL_Renderer renderer, SDL2.SDL_Texture texture) { }
+        public static unsafe int SDL_SetSurfaceAlphaMod(SDL2.SDL_Surface* surface, byte alpha) { }
+        public static unsafe int SDL_SetSurfaceBlendMode(SDL2.SDL_Surface* surface, SDL2.SDL_BlendMode blendMode) { }
+        public static unsafe int SDL_SetSurfaceColorMod(SDL2.SDL_Surface* surface, byte r, byte g, byte b) { }
+        public static unsafe int SDL_SetSurfacePalette(SDL2.SDL_Surface* surface, SDL2.SDL_Palette* palette) { }
+        public static unsafe int SDL_SetSurfaceRLE(SDL2.SDL_Surface* surface, int flag) { }
+        public static unsafe void SDL_SetTextInputRect(SDL2.SDL_Rect* rect) { }
+        public static int SDL_SetTextureAlphaMod(SDL2.SDL_Texture texture, byte alpha) { }
+        public static int SDL_SetTextureBlendMode(SDL2.SDL_Texture texture, SDL2.SDL_BlendMode blendMode) { }
+        public static int SDL_SetTextureColorMod(SDL2.SDL_Texture texture, byte r, byte g, byte b) { }
+        public static int SDL_SetTextureScaleMode(SDL2.SDL_Texture texture, SDL2.SDL_ScaleMode scaleMode) { }
+        public static int SDL_SetTextureUserData(SDL2.SDL_Texture texture, nint userdata) { }
+        public static int SDL_SetThreadPriority(SDL2.SDL_ThreadPriority priority) { }
+        public static void SDL_SetWindowAlwaysOnTop(SDL2.SDL_Window window, SDL2.SDL_bool on_top) { }
+        public static void SDL_SetWindowBordered(SDL2.SDL_Window window, SDL2.SDL_bool bordered) { }
+        public static int SDL_SetWindowBrightness(SDL2.SDL_Window window, float brightness) { }
+        public static unsafe System.IntPtr SDL_SetWindowData(SDL2.SDL_Window window, byte* name, nint userdata) { }
+        public static unsafe int SDL_SetWindowDisplayMode(SDL2.SDL_Window window, SDL2.SDL_DisplayMode* mode) { }
+        public static int SDL_SetWindowFullscreen(SDL2.SDL_Window window, uint flags) { }
+        public static unsafe int SDL_SetWindowGammaRamp(SDL2.SDL_Window window, ushort* red, ushort* green, ushort* blue) { }
+        public static void SDL_SetWindowGrab(SDL2.SDL_Window window, SDL2.SDL_bool grabbed) { }
+        public static int SDL_SetWindowHitTest(SDL2.SDL_Window window, nint callback, nint callback_data) { }
+        public static unsafe void SDL_SetWindowIcon(SDL2.SDL_Window window, SDL2.SDL_Surface* icon) { }
+        public static int SDL_SetWindowInputFocus(SDL2.SDL_Window window) { }
+        public static void SDL_SetWindowKeyboardGrab(SDL2.SDL_Window window, SDL2.SDL_bool grabbed) { }
+        public static void SDL_SetWindowMaximumSize(SDL2.SDL_Window window, int max_w, int max_h) { }
+        public static void SDL_SetWindowMinimumSize(SDL2.SDL_Window window, int min_w, int min_h) { }
+        public static int SDL_SetWindowModalFor(SDL2.SDL_Window modal_window, SDL2.SDL_Window parent_window) { }
+        public static void SDL_SetWindowMouseGrab(SDL2.SDL_Window window, SDL2.SDL_bool grabbed) { }
+        public static unsafe int SDL_SetWindowMouseRect(SDL2.SDL_Window window, SDL2.SDL_Rect* rect) { }
+        public static int SDL_SetWindowOpacity(SDL2.SDL_Window window, float opacity) { }
+        public static void SDL_SetWindowPosition(SDL2.SDL_Window window, int x, int y) { }
+        public static void SDL_SetWindowResizable(SDL2.SDL_Window window, SDL2.SDL_bool resizable) { }
+        public static unsafe int SDL_SetWindowShape(SDL2.SDL_Window window, SDL2.SDL_Surface* shape, SDL2.SDL_WindowShapeMode* shape_mode) { }
+        public static void SDL_SetWindowSize(SDL2.SDL_Window window, int w, int h) { }
+        public static unsafe void SDL_SetWindowTitle(SDL2.SDL_Window window, byte* title) { }
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        public static void SDL_SetWindowsMessageHook(nint callback, nint userdata) { }
+        public static void SDL_SetYUVConversionMode(SDL2.SDL_YUV_CONVERSION_MODE mode) { }
+        public static int SDL_ShowCursor(int toggle) { }
+        public static unsafe int SDL_ShowMessageBox(SDL2.SDL_MessageBoxData* messageboxdata, int* buttonid) { }
+        public static unsafe int SDL_ShowSimpleMessageBox(uint flags, byte* title, byte* message, SDL2.SDL_Window window) { }
+        public static void SDL_ShowWindow(SDL2.SDL_Window window) { }
+        public static unsafe int SDL_SoftStretch(SDL2.SDL_Surface* src, SDL2.SDL_Rect* srcrect, SDL2.SDL_Surface* dst, SDL2.SDL_Rect* dstrect) { }
+        public static unsafe int SDL_SoftStretchLinear(SDL2.SDL_Surface* src, SDL2.SDL_Rect* srcrect, SDL2.SDL_Surface* dst, SDL2.SDL_Rect* dstrect) { }
+        public static void SDL_StartTextInput() { }
+        public static void SDL_StopTextInput() { }
+        public static void SDL_TLSCleanup() { }
+        public static uint SDL_TLSCreate() { }
+        public static nint SDL_TLSGet(uint id) { }
+        public static int SDL_TLSSet(uint id, nint value, nint destructor) { }
+        public static ulong SDL_ThreadID() { }
+        public static int SDL_TryLockMutex(SDL2.SDL_mutex mutex) { }
+        [System.Runtime.Versioning.SupportedOSPlatform("ios")]
+        public static unsafe int SDL_UIKitRunApp(int argc, byte** argv, nint mainFunction) { }
+        public static unsafe void SDL_UnionFRect(SDL2.SDL_FRect* A, SDL2.SDL_FRect* B, SDL2.SDL_FRect* result) { }
+        public static unsafe void SDL_UnionRect(SDL2.SDL_Rect* A, SDL2.SDL_Rect* B, SDL2.SDL_Rect* result) { }
+        public static void SDL_UnloadObject(nint handle) { }
+        public static void SDL_UnlockAudio() { }
+        public static void SDL_UnlockAudioDevice(uint dev) { }
+        public static void SDL_UnlockJoysticks() { }
+        public static int SDL_UnlockMutex(SDL2.SDL_mutex mutex) { }
+        public static void SDL_UnlockSensors() { }
+        public static unsafe void SDL_UnlockSurface(SDL2.SDL_Surface* surface) { }
+        public static void SDL_UnlockTexture(SDL2.SDL_Texture texture) { }
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        public static void SDL_UnregisterApp() { }
+        public static unsafe int SDL_UpdateNVTexture(SDL2.SDL_Texture texture, SDL2.SDL_Rect* rect, byte* Yplane, int Ypitch, byte* UVplane, int UVpitch) { }
+        public static unsafe int SDL_UpdateTexture(SDL2.SDL_Texture texture, SDL2.SDL_Rect* rect, nint pixels, int pitch) { }
+        public static int SDL_UpdateWindowSurface(SDL2.SDL_Window window) { }
+        public static unsafe int SDL_UpdateWindowSurfaceRects(SDL2.SDL_Window window, SDL2.SDL_Rect* rects, int numrects) { }
+        public static unsafe int SDL_UpdateYUVTexture(SDL2.SDL_Texture texture, SDL2.SDL_Rect* rect, byte* Yplane, int Ypitch, byte* Uplane, int Upitch, byte* Vplane, int Vpitch) { }
+        public static unsafe int SDL_UpperBlit(SDL2.SDL_Surface* src, SDL2.SDL_Rect* srcrect, SDL2.SDL_Surface* dst, SDL2.SDL_Rect* dstrect) { }
+        public static unsafe int SDL_UpperBlitScaled(SDL2.SDL_Surface* src, SDL2.SDL_Rect* srcrect, SDL2.SDL_Surface* dst, SDL2.SDL_Rect* dstrect) { }
+        public static unsafe int SDL_VideoInit(byte* driver_name) { }
+        public static void SDL_VideoQuit() { }
+        public static unsafe SDL2.SDL_bool SDL_Vulkan_CreateSurface(SDL2.SDL_Window window, nint instance, System.IntPtr* surface) { }
+        public static unsafe void SDL_Vulkan_GetDrawableSize(SDL2.SDL_Window window, int* w, int* h) { }
+        public static unsafe SDL2.SDL_bool SDL_Vulkan_GetInstanceExtensions(SDL2.SDL_Window window, uint* pCount, byte** pNames) { }
+        public static nint SDL_Vulkan_GetVkGetInstanceProcAddr() { }
+        public static unsafe int SDL_Vulkan_LoadLibrary(byte* path) { }
+        public static void SDL_Vulkan_UnloadLibrary() { }
+        public static unsafe int SDL_WaitEvent(SDL2.SDL_Event* @event) { }
+        public static unsafe int SDL_WaitEventTimeout(SDL2.SDL_Event* @event, int timeout) { }
+        public static unsafe void SDL_WaitThread(SDL2.SDL_Thread thread, int* status) { }
+        public static int SDL_WarpMouseGlobal(int x, int y) { }
+        public static void SDL_WarpMouseInWindow(SDL2.SDL_Window window, int x, int y) { }
+        public static uint SDL_WasInit(uint flags) { }
+        [System.Runtime.Versioning.SupportedOSPlatform("windows10.0.10240.0")]
+        public static SDL2.SDL_WinRT_DeviceFamily SDL_WinRTGetDeviceFamily() { }
+        [System.Runtime.Versioning.SupportedOSPlatform("windows10.0.10240.0")]
+        public static nint SDL_WinRTGetFSPathUNICODE(SDL2.SDL_WinRT_Path pathType) { }
+        [System.Runtime.Versioning.SupportedOSPlatform("windows10.0.10240.0")]
+        public static unsafe byte* SDL_WinRTGetFSPathUTF8(SDL2.SDL_WinRT_Path pathType) { }
+        [System.Runtime.Versioning.SupportedOSPlatform("windows10.0.10240.0")]
+        public static int SDL_WinRTRunApp(nint mainFunction, nint reserved) { }
+        public static nuint SDL_WriteBE16(SDL2.SDL_RWops dst, ushort value) { }
+        public static nuint SDL_WriteBE32(SDL2.SDL_RWops dst, uint value) { }
+        public static nuint SDL_WriteBE64(SDL2.SDL_RWops dst, ulong value) { }
+        public static nuint SDL_WriteLE16(SDL2.SDL_RWops dst, ushort value) { }
+        public static nuint SDL_WriteLE32(SDL2.SDL_RWops dst, uint value) { }
+        public static nuint SDL_WriteLE64(SDL2.SDL_RWops dst, ulong value) { }
+        public static nuint SDL_WriteU8(SDL2.SDL_RWops dst, byte value) { }
+        public static int SDL_abs(int x) { }
+        public static double SDL_acos(double x) { }
+        public static float SDL_acosf(float x) { }
+        public static double SDL_asin(double x) { }
+        public static float SDL_asinf(float x) { }
+        public static unsafe int SDL_asprintf(byte** strp, byte* fmt) { }
+        public static double SDL_atan(double x) { }
+        public static double SDL_atan2(double y, double x) { }
+        public static float SDL_atan2f(float y, float x) { }
+        public static float SDL_atanf(float x) { }
+        public static unsafe double SDL_atof(byte* str) { }
+        public static unsafe int SDL_atoi(byte* str) { }
+        public static nint SDL_bsearch(nint key, nint @base, nuint nmemb, nuint size, nint compare) { }
+        public static nint SDL_calloc(nuint nmemb, nuint size) { }
+        public static double SDL_ceil(double x) { }
+        public static float SDL_ceilf(float x) { }
+        public static double SDL_copysign(double x, double y) { }
+        public static float SDL_copysignf(float x, float y) { }
+        public static double SDL_cos(double x) { }
+        public static float SDL_cosf(float x) { }
+        public static ushort SDL_crc16(ushort crc, nint data, nuint len) { }
+        public static uint SDL_crc32(uint crc, nint data, nuint len) { }
+        public static double SDL_exp(double x) { }
+        public static float SDL_expf(float x) { }
+        public static double SDL_fabs(double x) { }
+        public static float SDL_fabsf(float x) { }
+        public static double SDL_floor(double x) { }
+        public static float SDL_floorf(float x) { }
+        public static double SDL_fmod(double x, double y) { }
+        public static float SDL_fmodf(float x, float y) { }
+        public static void SDL_free(nint mem) { }
+        public static unsafe byte* SDL_getenv(byte* name) { }
+        public static void SDL_hid_ble_scan(SDL2.SDL_bool active) { }
+        public static void SDL_hid_close(SDL2.SDL_hid_device dev) { }
+        public static uint SDL_hid_device_change_count() { }
+        public static unsafe SDL2.SDL_hid_device_info* SDL_hid_enumerate(ushort vendor_id, ushort product_id) { }
+        public static int SDL_hid_exit() { }
+        public static unsafe void SDL_hid_free_enumeration(SDL2.SDL_hid_device_info* devs) { }
+        public static unsafe int SDL_hid_get_feature_report(SDL2.SDL_hid_device dev, byte* data, nuint length) { }
+        public static int SDL_hid_get_indexed_string(SDL2.SDL_hid_device dev, int string_index, nint @string, nuint maxlen) { }
+        public static int SDL_hid_get_manufacturer_string(SDL2.SDL_hid_device dev, nint @string, nuint maxlen) { }
+        public static int SDL_hid_get_product_string(SDL2.SDL_hid_device dev, nint @string, nuint maxlen) { }
+        public static int SDL_hid_get_serial_number_string(SDL2.SDL_hid_device dev, nint @string, nuint maxlen) { }
+        public static int SDL_hid_init() { }
+        public static SDL2.SDL_hid_device SDL_hid_open(ushort vendor_id, ushort product_id, nint serial_number) { }
+        public static unsafe SDL2.SDL_hid_device SDL_hid_open_path(byte* path, int bExclusive) { }
+        public static unsafe int SDL_hid_read(SDL2.SDL_hid_device dev, byte* data, nuint length) { }
+        public static unsafe int SDL_hid_read_timeout(SDL2.SDL_hid_device dev, byte* data, nuint length, int milliseconds) { }
+        public static unsafe int SDL_hid_send_feature_report(SDL2.SDL_hid_device dev, byte* data, nuint length) { }
+        public static int SDL_hid_set_nonblocking(SDL2.SDL_hid_device dev, int nonblock) { }
+        public static unsafe int SDL_hid_write(SDL2.SDL_hid_device dev, byte* data, nuint length) { }
+        [System.Runtime.Versioning.SupportedOSPlatform("ios")]
+        public static int SDL_iPhoneSetAnimationCallback(SDL2.SDL_Window window, int interval, nint callback, nint callbackParam) { }
+        [System.Runtime.Versioning.SupportedOSPlatform("ios")]
+        public static void SDL_iPhoneSetEventPump(SDL2.SDL_bool enabled) { }
+        public static int SDL_isalnum(int x) { }
+        public static int SDL_isalpha(int x) { }
+        public static int SDL_isblank(int x) { }
+        public static int SDL_iscntrl(int x) { }
+        public static int SDL_isdigit(int x) { }
+        public static int SDL_isgraph(int x) { }
+        public static int SDL_islower(int x) { }
+        public static int SDL_isprint(int x) { }
+        public static int SDL_ispunct(int x) { }
+        public static int SDL_isspace(int x) { }
+        public static int SDL_isupper(int x) { }
+        public static int SDL_isxdigit(int x) { }
+        public static unsafe byte* SDL_itoa(int value, byte* str, int radix) { }
+        public static unsafe byte* SDL_lltoa(long value, byte* str, int radix) { }
+        public static double SDL_log(double x) { }
+        public static double SDL_log10(double x) { }
+        public static float SDL_log10f(float x) { }
+        public static float SDL_logf(float x) { }
+        public static unsafe int SDL_main(int argc, byte** argv) { }
+        public static nint SDL_malloc(nuint size) { }
+        public static int SDL_memcmp(nint s1, nint s2, nuint len) { }
+        public static nint SDL_memcpy(nint dst, nint src, nuint len) { }
+        public static nint SDL_memmove(nint dst, nint src, nuint len) { }
+        public static nint SDL_memset(nint dst, int c, nuint len) { }
+        public static double SDL_pow(double x, double y) { }
+        public static float SDL_powf(float x, float y) { }
+        public static void SDL_qsort(nint @base, nuint nmemb, nuint size, nint compare) { }
+        public static nint SDL_realloc(nint mem, nuint size) { }
+        public static double SDL_round(double x) { }
+        public static float SDL_roundf(float x) { }
+        public static double SDL_scalbn(double x, int n) { }
+        public static float SDL_scalbnf(float x, int n) { }
+        public static unsafe int SDL_setenv(byte* name, byte* value, int overwrite) { }
+        public static double SDL_sin(double x) { }
+        public static float SDL_sinf(float x) { }
+        public static unsafe int SDL_snprintf(byte* text, nuint maxlen, byte* fmt) { }
+        public static double SDL_sqrt(double x) { }
+        public static float SDL_sqrtf(float x) { }
+        public static unsafe int SDL_sscanf(byte* text, byte* fmt) { }
+        public static unsafe int SDL_strcasecmp(byte* str1, byte* str2) { }
+        public static unsafe byte* SDL_strcasestr(byte* haystack, byte* needle) { }
+        public static unsafe byte* SDL_strchr(byte* str, int c) { }
+        public static unsafe int SDL_strcmp(byte* str1, byte* str2) { }
+        public static unsafe byte* SDL_strdup(byte* str) { }
+        public static unsafe System.UIntPtr SDL_strlcat(byte* dst, byte* src, nuint maxlen) { }
+        public static unsafe System.UIntPtr SDL_strlcpy(byte* dst, byte* src, nuint maxlen) { }
+        public static unsafe System.UIntPtr SDL_strlen(byte* str) { }
+        public static unsafe byte* SDL_strlwr(byte* str) { }
+        public static unsafe int SDL_strncasecmp(byte* str1, byte* str2, nuint len) { }
+        public static unsafe int SDL_strncmp(byte* str1, byte* str2, nuint maxlen) { }
+        public static unsafe byte* SDL_strrchr(byte* str, int c) { }
+        public static unsafe byte* SDL_strrev(byte* str) { }
+        public static unsafe byte* SDL_strstr(byte* haystack, byte* needle) { }
+        public static unsafe double SDL_strtod(byte* str, byte** endp) { }
+        public static unsafe byte* SDL_strtokr(byte* s1, byte* s2, byte** saveptr) { }
+        public static unsafe long SDL_strtoll(byte* str, byte** endp, int @base) { }
+        public static unsafe ulong SDL_strtoull(byte* str, byte** endp, int @base) { }
+        public static unsafe byte* SDL_strupr(byte* str) { }
+        public static double SDL_tan(double x) { }
+        public static float SDL_tanf(float x) { }
+        public static int SDL_tolower(int x) { }
+        public static int SDL_toupper(int x) { }
+        public static double SDL_trunc(double x) { }
+        public static float SDL_truncf(float x) { }
+        public static unsafe byte* SDL_uitoa(uint value, byte* str, int radix) { }
+        public static unsafe byte* SDL_ulltoa(ulong value, byte* str, int radix) { }
+        public static unsafe System.UIntPtr SDL_utf8strlcpy(byte* dst, byte* src, nuint dst_bytes) { }
+        public static unsafe System.UIntPtr SDL_utf8strlen(byte* str) { }
+        public static unsafe System.UIntPtr SDL_utf8strnlen(byte* str, nuint bytes) { }
+        public static int SDL_wcscasecmp(nint str1, nint str2) { }
+        public static int SDL_wcscmp(nint str1, nint str2) { }
+        public static nint SDL_wcsdup(nint wstr) { }
+        public static nuint SDL_wcslcat(nint dst, nint src, nuint maxlen) { }
+        public static nuint SDL_wcslcpy(nint dst, nint src, nuint maxlen) { }
+        public static nuint SDL_wcslen(nint wstr) { }
+        public static int SDL_wcsncasecmp(nint str1, nint str2, nuint len) { }
+        public static int SDL_wcsncmp(nint str1, nint str2, nuint maxlen) { }
+        public static nint SDL_wcsstr(nint haystack, nint needle) { }
+    }
+    public enum SDL_ArrayOrder
+    {
+        SDL_ARRAYORDER_NONE = 0,
+        SDL_ARRAYORDER_RGB = 1,
+        SDL_ARRAYORDER_RGBA = 2,
+        SDL_ARRAYORDER_ARGB = 3,
+        SDL_ARRAYORDER_BGR = 4,
+        SDL_ARRAYORDER_BGRA = 5,
+        SDL_ARRAYORDER_ABGR = 6,
+    }
+    public struct SDL_AssertData
+    {
+        public int always_ignore;
+        public unsafe byte* condition;
+        public unsafe byte* filename;
+        public unsafe byte* function;
+        public int linenum;
+        public unsafe SDL2.SDL_AssertData* next;
+        public uint trigger_count;
+    }
+    public enum SDL_AssertState
+    {
+        SDL_ASSERTION_RETRY = 0,
+        SDL_ASSERTION_BREAK = 1,
+        SDL_ASSERTION_ABORT = 2,
+        SDL_ASSERTION_IGNORE = 3,
+        SDL_ASSERTION_ALWAYS_IGNORE = 4,
+    }
+    public struct SDL_AudioCVT
+    {
+        public unsafe byte* buf;
+        public ushort dst_format;
+        public int filter_index;
+        public SDL2.SDL_AudioCVT._filters_e__FixedBuffer filters;
+        public int len;
+        public int len_cvt;
+        public int len_mult;
+        public double len_ratio;
+        public int needed;
+        public double rate_incr;
+        public ushort src_format;
+        public struct _filters_e__FixedBuffer
+        {
+            public method e0;
+            public method e1;
+            public method e2;
+            public method e3;
+            public method e4;
+            public method e5;
+            public method e6;
+            public method e7;
+            public method e8;
+            public method e9;
+            public method& this[int index] { get; }
+        }
+    }
+    public struct SDL_AudioDeviceEvent
+    {
+        public byte iscapture;
+        public byte padding1;
+        public byte padding2;
+        public byte padding3;
+        public uint timestamp;
+        public uint type;
+        public uint which;
+    }
+    public struct SDL_AudioSpec
+    {
+        public method callback;
+        public byte channels;
+        public ushort format;
+        public int freq;
+        public ushort padding;
+        public ushort samples;
+        public byte silence;
+        public uint size;
+        public System.IntPtr userdata;
+    }
+    public enum SDL_AudioStatus
+    {
+        SDL_AUDIO_STOPPED = 0,
+        SDL_AUDIO_PLAYING = 1,
+        SDL_AUDIO_PAUSED = 2,
+    }
+    public readonly struct SDL_AudioStream : System.IEquatable<SDL2.SDL_AudioStream>
+    {
+        public SDL_AudioStream(nint value) { }
+        public bool IsNotNull { get; }
+        public bool IsNull { get; }
+        public System.IntPtr Value { get; }
+        public static SDL2.SDL_AudioStream Null { get; }
+        public nint DangerousGetHandle() { }
+        public bool Equals(SDL2.SDL_AudioStream other) { }
+        public override bool Equals(object obj) { }
+        public override int GetHashCode() { }
+        public static nint op_Explicit(SDL2.SDL_AudioStream value) { }
+        public static SDL2.SDL_AudioStream op_Explicit(nint value) { }
+        public static bool operator !=(SDL2.SDL_AudioStream left, SDL2.SDL_AudioStream right) { }
+        public static bool operator ==(SDL2.SDL_AudioStream left, SDL2.SDL_AudioStream right) { }
+    }
+    public enum SDL_BitmapOrder
+    {
+        SDL_BITMAPORDER_NONE = 0,
+        SDL_BITMAPORDER_4321 = 1,
+        SDL_BITMAPORDER_1234 = 2,
+    }
+    public enum SDL_BlendFactor
+    {
+        SDL_BLENDFACTOR_ZERO = 1,
+        SDL_BLENDFACTOR_ONE = 2,
+        SDL_BLENDFACTOR_SRC_COLOR = 3,
+        SDL_BLENDFACTOR_ONE_MINUS_SRC_COLOR = 4,
+        SDL_BLENDFACTOR_SRC_ALPHA = 5,
+        SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA = 6,
+        SDL_BLENDFACTOR_DST_COLOR = 7,
+        SDL_BLENDFACTOR_ONE_MINUS_DST_COLOR = 8,
+        SDL_BLENDFACTOR_DST_ALPHA = 9,
+        SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA = 10,
+    }
+    [System.Flags]
+    public enum SDL_BlendMode
+    {
+        SDL_BLENDMODE_NONE = 0,
+        SDL_BLENDMODE_BLEND = 1,
+        SDL_BLENDMODE_ADD = 2,
+        SDL_BLENDMODE_MOD = 4,
+        SDL_BLENDMODE_MUL = 8,
+        SDL_BLENDMODE_INVALID = 2147483647,
+    }
+    public enum SDL_BlendOperation
+    {
+        SDL_BLENDOPERATION_ADD = 1,
+        SDL_BLENDOPERATION_SUBTRACT = 2,
+        SDL_BLENDOPERATION_REV_SUBTRACT = 3,
+        SDL_BLENDOPERATION_MINIMUM = 4,
+        SDL_BLENDOPERATION_MAXIMUM = 5,
+    }
+    public struct SDL_Color
+    {
+        public byte a;
+        public byte b;
+        public byte g;
+        public byte r;
+    }
+    public struct SDL_CommonEvent
+    {
+        public uint timestamp;
+        public uint type;
+    }
+    public struct SDL_ControllerAxisEvent
+    {
+        public byte axis;
+        public byte padding1;
+        public byte padding2;
+        public byte padding3;
+        public ushort padding4;
+        public uint timestamp;
+        public uint type;
+        public short value;
+        public int which;
+    }
+    public struct SDL_ControllerButtonEvent
+    {
+        public byte button;
+        public byte padding1;
+        public byte padding2;
+        public byte state;
+        public uint timestamp;
+        public uint type;
+        public int which;
+    }
+    public struct SDL_ControllerDeviceEvent
+    {
+        public uint timestamp;
+        public uint type;
+        public int which;
+    }
+    public struct SDL_ControllerSensorEvent
+    {
+        public SDL2.SDL_ControllerSensorEvent._data_e__FixedBuffer data;
+        public int sensor;
+        public uint timestamp;
+        public ulong timestamp_us;
+        public uint type;
+        public int which;
+        [System.Runtime.CompilerServices.InlineArray(3)]
+        public struct _data_e__FixedBuffer
+        {
+            public float e0;
+        }
+    }
+    public struct SDL_ControllerTouchpadEvent
+    {
+        public int finger;
+        public float pressure;
+        public uint timestamp;
+        public int touchpad;
+        public uint type;
+        public int which;
+        public float x;
+        public float y;
+    }
+    public readonly struct SDL_Cursor : System.IEquatable<SDL2.SDL_Cursor>
+    {
+        public SDL_Cursor(nint value) { }
+        public bool IsNotNull { get; }
+        public bool IsNull { get; }
+        public System.IntPtr Value { get; }
+        public static SDL2.SDL_Cursor Null { get; }
+        public nint DangerousGetHandle() { }
+        public bool Equals(SDL2.SDL_Cursor other) { }
+        public override bool Equals(object obj) { }
+        public override int GetHashCode() { }
+        public static nint op_Explicit(SDL2.SDL_Cursor value) { }
+        public static SDL2.SDL_Cursor op_Explicit(nint value) { }
+        public static bool operator !=(SDL2.SDL_Cursor left, SDL2.SDL_Cursor right) { }
+        public static bool operator ==(SDL2.SDL_Cursor left, SDL2.SDL_Cursor right) { }
+    }
+    public struct SDL_DisplayEvent
+    {
+        public int data1;
+        public uint display;
+        public byte @event;
+        public byte padding1;
+        public byte padding2;
+        public byte padding3;
+        public uint timestamp;
+        public uint type;
+    }
+    public enum SDL_DisplayEventID
+    {
+        SDL_DISPLAYEVENT_NONE = 0,
+        SDL_DISPLAYEVENT_ORIENTATION = 1,
+        SDL_DISPLAYEVENT_CONNECTED = 2,
+        SDL_DISPLAYEVENT_DISCONNECTED = 3,
+        SDL_DISPLAYEVENT_MOVED = 4,
+    }
+    public struct SDL_DisplayMode
+    {
+        public System.IntPtr driverdata;
+        public uint format;
+        public int h;
+        public int refresh_rate;
+        public int w;
+    }
+    public enum SDL_DisplayOrientation
+    {
+        SDL_ORIENTATION_UNKNOWN = 0,
+        SDL_ORIENTATION_LANDSCAPE = 1,
+        SDL_ORIENTATION_LANDSCAPE_FLIPPED = 2,
+        SDL_ORIENTATION_PORTRAIT = 3,
+        SDL_ORIENTATION_PORTRAIT_FLIPPED = 4,
+    }
+    public struct SDL_DollarGestureEvent
+    {
+        public float error;
+        public long gestureId;
+        public uint numFingers;
+        public uint timestamp;
+        public long touchId;
+        public uint type;
+        public float x;
+        public float y;
+    }
+    public struct SDL_DropEvent
+    {
+        public unsafe byte* file;
+        public uint timestamp;
+        public uint type;
+        public uint windowID;
+    }
+    public struct SDL_Event
+    {
+        public SDL2.SDL_AudioDeviceEvent adevice;
+        public SDL2.SDL_MouseButtonEvent button;
+        public SDL2.SDL_ControllerAxisEvent caxis;
+        public SDL2.SDL_ControllerButtonEvent cbutton;
+        public SDL2.SDL_ControllerDeviceEvent cdevice;
+        public SDL2.SDL_CommonEvent common;
+        public SDL2.SDL_ControllerSensorEvent csensor;
+        public SDL2.SDL_ControllerTouchpadEvent ctouchpad;
+        public SDL2.SDL_DollarGestureEvent dgesture;
+        public SDL2.SDL_DisplayEvent display;
+        public SDL2.SDL_DropEvent drop;
+        public SDL2.SDL_TextEditingEvent edit;
+        public SDL2.SDL_TextEditingExtEvent editExt;
+        public SDL2.SDL_JoyAxisEvent jaxis;
+        public SDL2.SDL_JoyBallEvent jball;
+        public SDL2.SDL_JoyBatteryEvent jbattery;
+        public SDL2.SDL_JoyButtonEvent jbutton;
+        public SDL2.SDL_JoyDeviceEvent jdevice;
+        public SDL2.SDL_JoyHatEvent jhat;
+        public SDL2.SDL_KeyboardEvent key;
+        public SDL2.SDL_MultiGestureEvent mgesture;
+        public SDL2.SDL_MouseMotionEvent motion;
+        public SDL2.SDL_Event._padding_e__FixedBuffer padding;
+        public SDL2.SDL_QuitEvent quit;
+        public SDL2.SDL_SensorEvent sensor;
+        public SDL2.SDL_SysWMEvent syswm;
+        public SDL2.SDL_TextInputEvent text;
+        public SDL2.SDL_TouchFingerEvent tfinger;
+        public uint type;
+        public SDL2.SDL_UserEvent user;
+        public SDL2.SDL_MouseWheelEvent wheel;
+        public SDL2.SDL_WindowEvent window;
+        [System.Runtime.CompilerServices.InlineArray(56)]
+        public struct _padding_e__FixedBuffer
+        {
+            public byte e0;
+        }
+    }
+    public enum SDL_EventType
+    {
+        SDL_FIRSTEVENT = 0,
+        SDL_QUIT = 256,
+        SDL_APP_TERMINATING = 257,
+        SDL_APP_LOWMEMORY = 258,
+        SDL_APP_WILLENTERBACKGROUND = 259,
+        SDL_APP_DIDENTERBACKGROUND = 260,
+        SDL_APP_WILLENTERFOREGROUND = 261,
+        SDL_APP_DIDENTERFOREGROUND = 262,
+        SDL_LOCALECHANGED = 263,
+        SDL_DISPLAYEVENT = 336,
+        SDL_WINDOWEVENT = 512,
+        SDL_SYSWMEVENT = 513,
+        SDL_KEYDOWN = 768,
+        SDL_KEYUP = 769,
+        SDL_TEXTEDITING = 770,
+        SDL_TEXTINPUT = 771,
+        SDL_KEYMAPCHANGED = 772,
+        SDL_TEXTEDITING_EXT = 773,
+        SDL_MOUSEMOTION = 1024,
+        SDL_MOUSEBUTTONDOWN = 1025,
+        SDL_MOUSEBUTTONUP = 1026,
+        SDL_MOUSEWHEEL = 1027,
+        SDL_JOYAXISMOTION = 1536,
+        SDL_JOYBALLMOTION = 1537,
+        SDL_JOYHATMOTION = 1538,
+        SDL_JOYBUTTONDOWN = 1539,
+        SDL_JOYBUTTONUP = 1540,
+        SDL_JOYDEVICEADDED = 1541,
+        SDL_JOYDEVICEREMOVED = 1542,
+        SDL_JOYBATTERYUPDATED = 1543,
+        SDL_CONTROLLERAXISMOTION = 1616,
+        SDL_CONTROLLERBUTTONDOWN = 1617,
+        SDL_CONTROLLERBUTTONUP = 1618,
+        SDL_CONTROLLERDEVICEADDED = 1619,
+        SDL_CONTROLLERDEVICEREMOVED = 1620,
+        SDL_CONTROLLERDEVICEREMAPPED = 1621,
+        SDL_CONTROLLERTOUCHPADDOWN = 1622,
+        SDL_CONTROLLERTOUCHPADMOTION = 1623,
+        SDL_CONTROLLERTOUCHPADUP = 1624,
+        SDL_CONTROLLERSENSORUPDATE = 1625,
+        SDL_CONTROLLERUPDATECOMPLETE_RESERVED_FOR_SDL3 = 1626,
+        SDL_CONTROLLERSTEAMHANDLEUPDATED = 1627,
+        SDL_FINGERDOWN = 1792,
+        SDL_FINGERUP = 1793,
+        SDL_FINGERMOTION = 1794,
+        SDL_DOLLARGESTURE = 2048,
+        SDL_DOLLARRECORD = 2049,
+        SDL_MULTIGESTURE = 2050,
+        SDL_CLIPBOARDUPDATE = 2304,
+        SDL_DROPFILE = 4096,
+        SDL_DROPTEXT = 4097,
+        SDL_DROPBEGIN = 4098,
+        SDL_DROPCOMPLETE = 4099,
+        SDL_AUDIODEVICEADDED = 4352,
+        SDL_AUDIODEVICEREMOVED = 4353,
+        SDL_SENSORUPDATE = 4608,
+        SDL_RENDER_TARGETS_RESET = 8192,
+        SDL_RENDER_DEVICE_RESET = 8193,
+        SDL_POLLSENTINEL = 32512,
+        SDL_USEREVENT = 32768,
+        SDL_LASTEVENT = 65535,
+    }
+    public struct SDL_FPoint
+    {
+        public float x;
+        public float y;
+    }
+    public struct SDL_FRect
+    {
+        public float h;
+        public float w;
+        public float x;
+        public float y;
+    }
+    public struct SDL_Finger
+    {
+        public long id;
+        public float pressure;
+        public float x;
+        public float y;
+    }
+    public enum SDL_FlashOperation
+    {
+        SDL_FLASH_CANCEL = 0,
+        SDL_FLASH_BRIEFLY = 1,
+        SDL_FLASH_UNTIL_FOCUSED = 2,
+    }
+    public enum SDL_GLContextResetNotification
+    {
+        SDL_GL_CONTEXT_RESET_NO_NOTIFICATION = 0,
+        SDL_GL_CONTEXT_RESET_LOSE_CONTEXT = 1,
+    }
+    public enum SDL_GLattr
+    {
+        SDL_GL_RED_SIZE = 0,
+        SDL_GL_GREEN_SIZE = 1,
+        SDL_GL_BLUE_SIZE = 2,
+        SDL_GL_ALPHA_SIZE = 3,
+        SDL_GL_BUFFER_SIZE = 4,
+        SDL_GL_DOUBLEBUFFER = 5,
+        SDL_GL_DEPTH_SIZE = 6,
+        SDL_GL_STENCIL_SIZE = 7,
+        SDL_GL_ACCUM_RED_SIZE = 8,
+        SDL_GL_ACCUM_GREEN_SIZE = 9,
+        SDL_GL_ACCUM_BLUE_SIZE = 10,
+        SDL_GL_ACCUM_ALPHA_SIZE = 11,
+        SDL_GL_STEREO = 12,
+        SDL_GL_MULTISAMPLEBUFFERS = 13,
+        SDL_GL_MULTISAMPLESAMPLES = 14,
+        SDL_GL_ACCELERATED_VISUAL = 15,
+        SDL_GL_RETAINED_BACKING = 16,
+        SDL_GL_CONTEXT_MAJOR_VERSION = 17,
+        SDL_GL_CONTEXT_MINOR_VERSION = 18,
+        SDL_GL_CONTEXT_EGL = 19,
+        SDL_GL_CONTEXT_FLAGS = 20,
+        SDL_GL_CONTEXT_PROFILE_MASK = 21,
+        SDL_GL_SHARE_WITH_CURRENT_CONTEXT = 22,
+        SDL_GL_FRAMEBUFFER_SRGB_CAPABLE = 23,
+        SDL_GL_CONTEXT_RELEASE_BEHAVIOR = 24,
+        SDL_GL_CONTEXT_RESET_NOTIFICATION = 25,
+        SDL_GL_CONTEXT_NO_ERROR = 26,
+        SDL_GL_FLOATBUFFERS = 27,
+    }
+    [System.Flags]
+    public enum SDL_GLcontextFlag
+    {
+        SDL_GL_CONTEXT_DEBUG_FLAG = 1,
+        SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG = 2,
+        SDL_GL_CONTEXT_ROBUST_ACCESS_FLAG = 4,
+        SDL_GL_CONTEXT_RESET_ISOLATION_FLAG = 8,
+    }
+    public enum SDL_GLcontextReleaseFlag
+    {
+        SDL_GL_CONTEXT_RELEASE_BEHAVIOR_NONE = 0,
+        SDL_GL_CONTEXT_RELEASE_BEHAVIOR_FLUSH = 1,
+    }
+    public enum SDL_GLprofile
+    {
+        SDL_GL_CONTEXT_PROFILE_CORE = 1,
+        SDL_GL_CONTEXT_PROFILE_COMPATIBILITY = 2,
+        SDL_GL_CONTEXT_PROFILE_ES = 4,
+    }
+    public readonly struct SDL_GameController : System.IEquatable<SDL2.SDL_GameController>
+    {
+        public SDL_GameController(nint value) { }
+        public bool IsNotNull { get; }
+        public bool IsNull { get; }
+        public System.IntPtr Value { get; }
+        public static SDL2.SDL_GameController Null { get; }
+        public nint DangerousGetHandle() { }
+        public bool Equals(SDL2.SDL_GameController other) { }
+        public override bool Equals(object obj) { }
+        public override int GetHashCode() { }
+        public static nint op_Explicit(SDL2.SDL_GameController value) { }
+        public static SDL2.SDL_GameController op_Explicit(nint value) { }
+        public static bool operator !=(SDL2.SDL_GameController left, SDL2.SDL_GameController right) { }
+        public static bool operator ==(SDL2.SDL_GameController left, SDL2.SDL_GameController right) { }
+    }
+    public enum SDL_GameControllerAxis
+    {
+        SDL_CONTROLLER_AXIS_INVALID = -1,
+        SDL_CONTROLLER_AXIS_LEFTX = 0,
+        SDL_CONTROLLER_AXIS_LEFTY = 1,
+        SDL_CONTROLLER_AXIS_RIGHTX = 2,
+        SDL_CONTROLLER_AXIS_RIGHTY = 3,
+        SDL_CONTROLLER_AXIS_TRIGGERLEFT = 4,
+        SDL_CONTROLLER_AXIS_TRIGGERRIGHT = 5,
+        SDL_CONTROLLER_AXIS_MAX = 6,
+    }
+    public enum SDL_GameControllerBindType
+    {
+        SDL_CONTROLLER_BINDTYPE_NONE = 0,
+        SDL_CONTROLLER_BINDTYPE_BUTTON = 1,
+        SDL_CONTROLLER_BINDTYPE_AXIS = 2,
+        SDL_CONTROLLER_BINDTYPE_HAT = 3,
+    }
+    public enum SDL_GameControllerButton
+    {
+        SDL_CONTROLLER_BUTTON_INVALID = -1,
+        SDL_CONTROLLER_BUTTON_A = 0,
+        SDL_CONTROLLER_BUTTON_B = 1,
+        SDL_CONTROLLER_BUTTON_X = 2,
+        SDL_CONTROLLER_BUTTON_Y = 3,
+        SDL_CONTROLLER_BUTTON_BACK = 4,
+        SDL_CONTROLLER_BUTTON_GUIDE = 5,
+        SDL_CONTROLLER_BUTTON_START = 6,
+        SDL_CONTROLLER_BUTTON_LEFTSTICK = 7,
+        SDL_CONTROLLER_BUTTON_RIGHTSTICK = 8,
+        SDL_CONTROLLER_BUTTON_LEFTSHOULDER = 9,
+        SDL_CONTROLLER_BUTTON_RIGHTSHOULDER = 10,
+        SDL_CONTROLLER_BUTTON_DPAD_UP = 11,
+        SDL_CONTROLLER_BUTTON_DPAD_DOWN = 12,
+        SDL_CONTROLLER_BUTTON_DPAD_LEFT = 13,
+        SDL_CONTROLLER_BUTTON_DPAD_RIGHT = 14,
+        SDL_CONTROLLER_BUTTON_MISC1 = 15,
+        SDL_CONTROLLER_BUTTON_PADDLE1 = 16,
+        SDL_CONTROLLER_BUTTON_PADDLE2 = 17,
+        SDL_CONTROLLER_BUTTON_PADDLE3 = 18,
+        SDL_CONTROLLER_BUTTON_PADDLE4 = 19,
+        SDL_CONTROLLER_BUTTON_TOUCHPAD = 20,
+        SDL_CONTROLLER_BUTTON_MAX = 21,
+    }
+    public struct SDL_GameControllerButtonBind
+    {
+        public SDL2.SDL_GameControllerBindType bindType;
+        public SDL2.SDL_GameControllerButtonBind._value_e__Union value;
+        public struct _value_e__Union
+        {
+            public int axis;
+            public int button;
+            public SDL2.SDL_GameControllerButtonBind._value_e__Union._hat_e__Struct hat;
+            public struct _hat_e__Struct
+            {
+                public int hat;
+                public int hat_mask;
+            }
+        }
+    }
+    public enum SDL_GameControllerType
+    {
+        SDL_CONTROLLER_TYPE_UNKNOWN = 0,
+        SDL_CONTROLLER_TYPE_XBOX360 = 1,
+        SDL_CONTROLLER_TYPE_XBOXONE = 2,
+        SDL_CONTROLLER_TYPE_PS3 = 3,
+        SDL_CONTROLLER_TYPE_PS4 = 4,
+        SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_PRO = 5,
+        SDL_CONTROLLER_TYPE_VIRTUAL = 6,
+        SDL_CONTROLLER_TYPE_PS5 = 7,
+        SDL_CONTROLLER_TYPE_AMAZON_LUNA = 8,
+        SDL_CONTROLLER_TYPE_GOOGLE_STADIA = 9,
+        SDL_CONTROLLER_TYPE_NVIDIA_SHIELD = 10,
+        SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_LEFT = 11,
+        SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_RIGHT = 12,
+        SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_PAIR = 13,
+        SDL_CONTROLLER_TYPE_MAX = 14,
+    }
+    public readonly struct SDL_Haptic : System.IEquatable<SDL2.SDL_Haptic>
+    {
+        public SDL_Haptic(nint value) { }
+        public bool IsNotNull { get; }
+        public bool IsNull { get; }
+        public System.IntPtr Value { get; }
+        public static SDL2.SDL_Haptic Null { get; }
+        public nint DangerousGetHandle() { }
+        public bool Equals(SDL2.SDL_Haptic other) { }
+        public override bool Equals(object obj) { }
+        public override int GetHashCode() { }
+        public static nint op_Explicit(SDL2.SDL_Haptic value) { }
+        public static SDL2.SDL_Haptic op_Explicit(nint value) { }
+        public static bool operator !=(SDL2.SDL_Haptic left, SDL2.SDL_Haptic right) { }
+        public static bool operator ==(SDL2.SDL_Haptic left, SDL2.SDL_Haptic right) { }
+    }
+    public struct SDL_HapticCondition
+    {
+        public ushort button;
+        public SDL2.SDL_HapticCondition._center_e__FixedBuffer center;
+        public SDL2.SDL_HapticCondition._deadband_e__FixedBuffer deadband;
+        public ushort delay;
+        public SDL2.SDL_HapticDirection direction;
+        public ushort interval;
+        public SDL2.SDL_HapticCondition._left_coeff_e__FixedBuffer left_coeff;
+        public SDL2.SDL_HapticCondition._left_sat_e__FixedBuffer left_sat;
+        public uint length;
+        public SDL2.SDL_HapticCondition._right_coeff_e__FixedBuffer right_coeff;
+        public SDL2.SDL_HapticCondition._right_sat_e__FixedBuffer right_sat;
+        public ushort type;
+        [System.Runtime.CompilerServices.InlineArray(3)]
+        public struct _center_e__FixedBuffer
+        {
+            public short e0;
+        }
+        [System.Runtime.CompilerServices.InlineArray(3)]
+        public struct _deadband_e__FixedBuffer
+        {
+            public ushort e0;
+        }
+        [System.Runtime.CompilerServices.InlineArray(3)]
+        public struct _left_coeff_e__FixedBuffer
+        {
+            public short e0;
+        }
+        [System.Runtime.CompilerServices.InlineArray(3)]
+        public struct _left_sat_e__FixedBuffer
+        {
+            public ushort e0;
+        }
+        [System.Runtime.CompilerServices.InlineArray(3)]
+        public struct _right_coeff_e__FixedBuffer
+        {
+            public short e0;
+        }
+        [System.Runtime.CompilerServices.InlineArray(3)]
+        public struct _right_sat_e__FixedBuffer
+        {
+            public ushort e0;
+        }
+    }
+    public struct SDL_HapticConstant
+    {
+        public ushort attack_length;
+        public ushort attack_level;
+        public ushort button;
+        public ushort delay;
+        public SDL2.SDL_HapticDirection direction;
+        public ushort fade_length;
+        public ushort fade_level;
+        public ushort interval;
+        public uint length;
+        public short level;
+        public ushort type;
+    }
+    public struct SDL_HapticCustom
+    {
+        public ushort attack_length;
+        public ushort attack_level;
+        public ushort button;
+        public byte channels;
+        public unsafe ushort* data;
+        public ushort delay;
+        public SDL2.SDL_HapticDirection direction;
+        public ushort fade_length;
+        public ushort fade_level;
+        public ushort interval;
+        public uint length;
+        public ushort period;
+        public ushort samples;
+        public ushort type;
+    }
+    public struct SDL_HapticDirection
+    {
+        public SDL2.SDL_HapticDirection._dir_e__FixedBuffer dir;
+        public byte type;
+        [System.Runtime.CompilerServices.InlineArray(3)]
+        public struct _dir_e__FixedBuffer
+        {
+            public int e0;
+        }
+    }
+    public struct SDL_HapticEffect
+    {
+        public SDL2.SDL_HapticCondition condition;
+        public SDL2.SDL_HapticConstant constant;
+        public SDL2.SDL_HapticCustom custom;
+        public SDL2.SDL_HapticLeftRight leftright;
+        public SDL2.SDL_HapticPeriodic periodic;
+        public SDL2.SDL_HapticRamp ramp;
+        public ushort type;
+    }
+    public struct SDL_HapticLeftRight
+    {
+        public ushort large_magnitude;
+        public uint length;
+        public ushort small_magnitude;
+        public ushort type;
+    }
+    public struct SDL_HapticPeriodic
+    {
+        public ushort attack_length;
+        public ushort attack_level;
+        public ushort button;
+        public ushort delay;
+        public SDL2.SDL_HapticDirection direction;
+        public ushort fade_length;
+        public ushort fade_level;
+        public ushort interval;
+        public uint length;
+        public short magnitude;
+        public short offset;
+        public ushort period;
+        public ushort phase;
+        public ushort type;
+    }
+    public struct SDL_HapticRamp
+    {
+        public ushort attack_length;
+        public ushort attack_level;
+        public ushort button;
+        public ushort delay;
+        public SDL2.SDL_HapticDirection direction;
+        public short end;
+        public ushort fade_length;
+        public ushort fade_level;
+        public ushort interval;
+        public uint length;
+        public short start;
+        public ushort type;
+    }
+    public enum SDL_HintPriority
+    {
+        SDL_HINT_DEFAULT = 0,
+        SDL_HINT_NORMAL = 1,
+        SDL_HINT_OVERRIDE = 2,
+    }
+    public enum SDL_HitTestResult
+    {
+        SDL_HITTEST_NORMAL = 0,
+        SDL_HITTEST_DRAGGABLE = 1,
+        SDL_HITTEST_RESIZE_TOPLEFT = 2,
+        SDL_HITTEST_RESIZE_TOP = 3,
+        SDL_HITTEST_RESIZE_TOPRIGHT = 4,
+        SDL_HITTEST_RESIZE_RIGHT = 5,
+        SDL_HITTEST_RESIZE_BOTTOMRIGHT = 6,
+        SDL_HITTEST_RESIZE_BOTTOM = 7,
+        SDL_HITTEST_RESIZE_BOTTOMLEFT = 8,
+        SDL_HITTEST_RESIZE_LEFT = 9,
+    }
+    public struct SDL_JoyAxisEvent
+    {
+        public byte axis;
+        public byte padding1;
+        public byte padding2;
+        public byte padding3;
+        public ushort padding4;
+        public uint timestamp;
+        public uint type;
+        public short value;
+        public int which;
+    }
+    public struct SDL_JoyBallEvent
+    {
+        public byte ball;
+        public byte padding1;
+        public byte padding2;
+        public byte padding3;
+        public uint timestamp;
+        public uint type;
+        public int which;
+        public short xrel;
+        public short yrel;
+    }
+    public struct SDL_JoyBatteryEvent
+    {
+        public SDL2.SDL_JoystickPowerLevel level;
+        public uint timestamp;
+        public uint type;
+        public int which;
+    }
+    public struct SDL_JoyButtonEvent
+    {
+        public byte button;
+        public byte padding1;
+        public byte padding2;
+        public byte state;
+        public uint timestamp;
+        public uint type;
+        public int which;
+    }
+    public struct SDL_JoyDeviceEvent
+    {
+        public uint timestamp;
+        public uint type;
+        public int which;
+    }
+    public struct SDL_JoyHatEvent
+    {
+        public byte hat;
+        public byte padding1;
+        public byte padding2;
+        public uint timestamp;
+        public uint type;
+        public byte value;
+        public int which;
+    }
+    public readonly struct SDL_Joystick : System.IEquatable<SDL2.SDL_Joystick>
+    {
+        public SDL_Joystick(nint value) { }
+        public bool IsNotNull { get; }
+        public bool IsNull { get; }
+        public System.IntPtr Value { get; }
+        public static SDL2.SDL_Joystick Null { get; }
+        public nint DangerousGetHandle() { }
+        public bool Equals(SDL2.SDL_Joystick other) { }
+        public override bool Equals(object obj) { }
+        public override int GetHashCode() { }
+        public static nint op_Explicit(SDL2.SDL_Joystick value) { }
+        public static SDL2.SDL_Joystick op_Explicit(nint value) { }
+        public static bool operator !=(SDL2.SDL_Joystick left, SDL2.SDL_Joystick right) { }
+        public static bool operator ==(SDL2.SDL_Joystick left, SDL2.SDL_Joystick right) { }
+    }
+    public enum SDL_JoystickPowerLevel
+    {
+        SDL_JOYSTICK_POWER_UNKNOWN = -1,
+        SDL_JOYSTICK_POWER_EMPTY = 0,
+        SDL_JOYSTICK_POWER_LOW = 1,
+        SDL_JOYSTICK_POWER_MEDIUM = 2,
+        SDL_JOYSTICK_POWER_FULL = 3,
+        SDL_JOYSTICK_POWER_WIRED = 4,
+        SDL_JOYSTICK_POWER_MAX = 5,
+    }
+    public enum SDL_JoystickType
+    {
+        SDL_JOYSTICK_TYPE_UNKNOWN = 0,
+        SDL_JOYSTICK_TYPE_GAMECONTROLLER = 1,
+        SDL_JOYSTICK_TYPE_WHEEL = 2,
+        SDL_JOYSTICK_TYPE_ARCADE_STICK = 3,
+        SDL_JOYSTICK_TYPE_FLIGHT_STICK = 4,
+        SDL_JOYSTICK_TYPE_DANCE_PAD = 5,
+        SDL_JOYSTICK_TYPE_GUITAR = 6,
+        SDL_JOYSTICK_TYPE_DRUM_KIT = 7,
+        SDL_JOYSTICK_TYPE_ARCADE_PAD = 8,
+        SDL_JOYSTICK_TYPE_THROTTLE = 9,
+    }
+    public enum SDL_KeyCode
+    {
+        SDLK_UNKNOWN = 0,
+        SDLK_RETURN = 13,
+        SDLK_ESCAPE = 27,
+        SDLK_BACKSPACE = 8,
+        SDLK_TAB = 9,
+        SDLK_SPACE = 32,
+        SDLK_EXCLAIM = 33,
+        SDLK_QUOTEDBL = 34,
+        SDLK_HASH = 35,
+        SDLK_PERCENT = 37,
+        SDLK_DOLLAR = 36,
+        SDLK_AMPERSAND = 38,
+        SDLK_QUOTE = 39,
+        SDLK_LEFTPAREN = 40,
+        SDLK_RIGHTPAREN = 41,
+        SDLK_ASTERISK = 42,
+        SDLK_PLUS = 43,
+        SDLK_COMMA = 44,
+        SDLK_MINUS = 45,
+        SDLK_PERIOD = 46,
+        SDLK_SLASH = 47,
+        SDLK_0 = 48,
+        SDLK_1 = 49,
+        SDLK_2 = 50,
+        SDLK_3 = 51,
+        SDLK_4 = 52,
+        SDLK_5 = 53,
+        SDLK_6 = 54,
+        SDLK_7 = 55,
+        SDLK_8 = 56,
+        SDLK_9 = 57,
+        SDLK_COLON = 58,
+        SDLK_SEMICOLON = 59,
+        SDLK_LESS = 60,
+        SDLK_EQUALS = 61,
+        SDLK_GREATER = 62,
+        SDLK_QUESTION = 63,
+        SDLK_AT = 64,
+        SDLK_LEFTBRACKET = 91,
+        SDLK_BACKSLASH = 92,
+        SDLK_RIGHTBRACKET = 93,
+        SDLK_CARET = 94,
+        SDLK_UNDERSCORE = 95,
+        SDLK_BACKQUOTE = 96,
+        SDLK_a = 97,
+        SDLK_b = 98,
+        SDLK_c = 99,
+        SDLK_d = 100,
+        SDLK_e = 101,
+        SDLK_f = 102,
+        SDLK_g = 103,
+        SDLK_h = 104,
+        SDLK_i = 105,
+        SDLK_j = 106,
+        SDLK_k = 107,
+        SDLK_l = 108,
+        SDLK_m = 109,
+        SDLK_n = 110,
+        SDLK_o = 111,
+        SDLK_p = 112,
+        SDLK_q = 113,
+        SDLK_r = 114,
+        SDLK_s = 115,
+        SDLK_t = 116,
+        SDLK_u = 117,
+        SDLK_v = 118,
+        SDLK_w = 119,
+        SDLK_x = 120,
+        SDLK_y = 121,
+        SDLK_z = 122,
+        SDLK_CAPSLOCK = 1073741881,
+        SDLK_F1 = 1073741882,
+        SDLK_F2 = 1073741883,
+        SDLK_F3 = 1073741884,
+        SDLK_F4 = 1073741885,
+        SDLK_F5 = 1073741886,
+        SDLK_F6 = 1073741887,
+        SDLK_F7 = 1073741888,
+        SDLK_F8 = 1073741889,
+        SDLK_F9 = 1073741890,
+        SDLK_F10 = 1073741891,
+        SDLK_F11 = 1073741892,
+        SDLK_F12 = 1073741893,
+        SDLK_PRINTSCREEN = 1073741894,
+        SDLK_SCROLLLOCK = 1073741895,
+        SDLK_PAUSE = 1073741896,
+        SDLK_INSERT = 1073741897,
+        SDLK_HOME = 1073741898,
+        SDLK_PAGEUP = 1073741899,
+        SDLK_DELETE = 127,
+        SDLK_END = 1073741901,
+        SDLK_PAGEDOWN = 1073741902,
+        SDLK_RIGHT = 1073741903,
+        SDLK_LEFT = 1073741904,
+        SDLK_DOWN = 1073741905,
+        SDLK_UP = 1073741906,
+        SDLK_NUMLOCKCLEAR = 1073741907,
+        SDLK_KP_DIVIDE = 1073741908,
+        SDLK_KP_MULTIPLY = 1073741909,
+        SDLK_KP_MINUS = 1073741910,
+        SDLK_KP_PLUS = 1073741911,
+        SDLK_KP_ENTER = 1073741912,
+        SDLK_KP_1 = 1073741913,
+        SDLK_KP_2 = 1073741914,
+        SDLK_KP_3 = 1073741915,
+        SDLK_KP_4 = 1073741916,
+        SDLK_KP_5 = 1073741917,
+        SDLK_KP_6 = 1073741918,
+        SDLK_KP_7 = 1073741919,
+        SDLK_KP_8 = 1073741920,
+        SDLK_KP_9 = 1073741921,
+        SDLK_KP_0 = 1073741922,
+        SDLK_KP_PERIOD = 1073741923,
+        SDLK_APPLICATION = 1073741925,
+        SDLK_POWER = 1073741926,
+        SDLK_KP_EQUALS = 1073741927,
+        SDLK_F13 = 1073741928,
+        SDLK_F14 = 1073741929,
+        SDLK_F15 = 1073741930,
+        SDLK_F16 = 1073741931,
+        SDLK_F17 = 1073741932,
+        SDLK_F18 = 1073741933,
+        SDLK_F19 = 1073741934,
+        SDLK_F20 = 1073741935,
+        SDLK_F21 = 1073741936,
+        SDLK_F22 = 1073741937,
+        SDLK_F23 = 1073741938,
+        SDLK_F24 = 1073741939,
+        SDLK_EXECUTE = 1073741940,
+        SDLK_HELP = 1073741941,
+        SDLK_MENU = 1073741942,
+        SDLK_SELECT = 1073741943,
+        SDLK_STOP = 1073741944,
+        SDLK_AGAIN = 1073741945,
+        SDLK_UNDO = 1073741946,
+        SDLK_CUT = 1073741947,
+        SDLK_COPY = 1073741948,
+        SDLK_PASTE = 1073741949,
+        SDLK_FIND = 1073741950,
+        SDLK_MUTE = 1073741951,
+        SDLK_VOLUMEUP = 1073741952,
+        SDLK_VOLUMEDOWN = 1073741953,
+        SDLK_KP_COMMA = 1073741957,
+        SDLK_KP_EQUALSAS400 = 1073741958,
+        SDLK_ALTERASE = 1073741977,
+        SDLK_SYSREQ = 1073741978,
+        SDLK_CANCEL = 1073741979,
+        SDLK_CLEAR = 1073741980,
+        SDLK_PRIOR = 1073741981,
+        SDLK_RETURN2 = 1073741982,
+        SDLK_SEPARATOR = 1073741983,
+        SDLK_OUT = 1073741984,
+        SDLK_OPER = 1073741985,
+        SDLK_CLEARAGAIN = 1073741986,
+        SDLK_CRSEL = 1073741987,
+        SDLK_EXSEL = 1073741988,
+        SDLK_KP_00 = 1073742000,
+        SDLK_KP_000 = 1073742001,
+        SDLK_THOUSANDSSEPARATOR = 1073742002,
+        SDLK_DECIMALSEPARATOR = 1073742003,
+        SDLK_CURRENCYUNIT = 1073742004,
+        SDLK_CURRENCYSUBUNIT = 1073742005,
+        SDLK_KP_LEFTPAREN = 1073742006,
+        SDLK_KP_RIGHTPAREN = 1073742007,
+        SDLK_KP_LEFTBRACE = 1073742008,
+        SDLK_KP_RIGHTBRACE = 1073742009,
+        SDLK_KP_TAB = 1073742010,
+        SDLK_KP_BACKSPACE = 1073742011,
+        SDLK_KP_A = 1073742012,
+        SDLK_KP_B = 1073742013,
+        SDLK_KP_C = 1073742014,
+        SDLK_KP_D = 1073742015,
+        SDLK_KP_E = 1073742016,
+        SDLK_KP_F = 1073742017,
+        SDLK_KP_XOR = 1073742018,
+        SDLK_KP_POWER = 1073742019,
+        SDLK_KP_PERCENT = 1073742020,
+        SDLK_KP_LESS = 1073742021,
+        SDLK_KP_GREATER = 1073742022,
+        SDLK_KP_AMPERSAND = 1073742023,
+        SDLK_KP_DBLAMPERSAND = 1073742024,
+        SDLK_KP_VERTICALBAR = 1073742025,
+        SDLK_KP_DBLVERTICALBAR = 1073742026,
+        SDLK_KP_COLON = 1073742027,
+        SDLK_KP_HASH = 1073742028,
+        SDLK_KP_SPACE = 1073742029,
+        SDLK_KP_AT = 1073742030,
+        SDLK_KP_EXCLAM = 1073742031,
+        SDLK_KP_MEMSTORE = 1073742032,
+        SDLK_KP_MEMRECALL = 1073742033,
+        SDLK_KP_MEMCLEAR = 1073742034,
+        SDLK_KP_MEMADD = 1073742035,
+        SDLK_KP_MEMSUBTRACT = 1073742036,
+        SDLK_KP_MEMMULTIPLY = 1073742037,
+        SDLK_KP_MEMDIVIDE = 1073742038,
+        SDLK_KP_PLUSMINUS = 1073742039,
+        SDLK_KP_CLEAR = 1073742040,
+        SDLK_KP_CLEARENTRY = 1073742041,
+        SDLK_KP_BINARY = 1073742042,
+        SDLK_KP_OCTAL = 1073742043,
+        SDLK_KP_DECIMAL = 1073742044,
+        SDLK_KP_HEXADECIMAL = 1073742045,
+        SDLK_LCTRL = 1073742048,
+        SDLK_LSHIFT = 1073742049,
+        SDLK_LALT = 1073742050,
+        SDLK_LGUI = 1073742051,
+        SDLK_RCTRL = 1073742052,
+        SDLK_RSHIFT = 1073742053,
+        SDLK_RALT = 1073742054,
+        SDLK_RGUI = 1073742055,
+        SDLK_MODE = 1073742081,
+        SDLK_AUDIONEXT = 1073742082,
+        SDLK_AUDIOPREV = 1073742083,
+        SDLK_AUDIOSTOP = 1073742084,
+        SDLK_AUDIOPLAY = 1073742085,
+        SDLK_AUDIOMUTE = 1073742086,
+        SDLK_MEDIASELECT = 1073742087,
+        SDLK_WWW = 1073742088,
+        SDLK_MAIL = 1073742089,
+        SDLK_CALCULATOR = 1073742090,
+        SDLK_COMPUTER = 1073742091,
+        SDLK_AC_SEARCH = 1073742092,
+        SDLK_AC_HOME = 1073742093,
+        SDLK_AC_BACK = 1073742094,
+        SDLK_AC_FORWARD = 1073742095,
+        SDLK_AC_STOP = 1073742096,
+        SDLK_AC_REFRESH = 1073742097,
+        SDLK_AC_BOOKMARKS = 1073742098,
+        SDLK_BRIGHTNESSDOWN = 1073742099,
+        SDLK_BRIGHTNESSUP = 1073742100,
+        SDLK_DISPLAYSWITCH = 1073742101,
+        SDLK_KBDILLUMTOGGLE = 1073742102,
+        SDLK_KBDILLUMDOWN = 1073742103,
+        SDLK_KBDILLUMUP = 1073742104,
+        SDLK_EJECT = 1073742105,
+        SDLK_SLEEP = 1073742106,
+        SDLK_APP1 = 1073742107,
+        SDLK_APP2 = 1073742108,
+        SDLK_AUDIOREWIND = 1073742109,
+        SDLK_AUDIOFASTFORWARD = 1073742110,
+        SDLK_SOFTLEFT = 1073742111,
+        SDLK_SOFTRIGHT = 1073742112,
+        SDLK_CALL = 1073742113,
+        SDLK_ENDCALL = 1073742114,
+    }
+    public struct SDL_KeyboardEvent
+    {
+        public SDL2.SDL_Keysym keysym;
+        public byte padding2;
+        public byte padding3;
+        public byte repeat;
+        public byte state;
+        public uint timestamp;
+        public uint type;
+        public uint windowID;
+    }
+    [System.Flags]
+    public enum SDL_Keymod
+    {
+        KMOD_NONE = 0,
+        KMOD_LSHIFT = 1,
+        KMOD_RSHIFT = 2,
+        KMOD_LCTRL = 64,
+        KMOD_RCTRL = 128,
+        KMOD_LALT = 256,
+        KMOD_RALT = 512,
+        KMOD_LGUI = 1024,
+        KMOD_RGUI = 2048,
+        KMOD_NUM = 4096,
+        KMOD_CAPS = 8192,
+        KMOD_MODE = 16384,
+        KMOD_SCROLL = 32768,
+        KMOD_CTRL = 192,
+        KMOD_SHIFT = 3,
+        KMOD_ALT = 768,
+        KMOD_GUI = 3072,
+        KMOD_RESERVED = 32768,
+    }
+    public struct SDL_Keysym
+    {
+        public ushort mod;
+        public SDL2.SDL_Scancode scancode;
+        public int sym;
+        public uint unused;
+    }
+    public struct SDL_Locale
+    {
+        public unsafe byte* country;
+        public unsafe byte* language;
+    }
+    public enum SDL_LogCategory
+    {
+        SDL_LOG_CATEGORY_APPLICATION = 0,
+        SDL_LOG_CATEGORY_ERROR = 1,
+        SDL_LOG_CATEGORY_ASSERT = 2,
+        SDL_LOG_CATEGORY_SYSTEM = 3,
+        SDL_LOG_CATEGORY_AUDIO = 4,
+        SDL_LOG_CATEGORY_VIDEO = 5,
+        SDL_LOG_CATEGORY_RENDER = 6,
+        SDL_LOG_CATEGORY_INPUT = 7,
+        SDL_LOG_CATEGORY_TEST = 8,
+        SDL_LOG_CATEGORY_RESERVED1 = 9,
+        SDL_LOG_CATEGORY_RESERVED2 = 10,
+        SDL_LOG_CATEGORY_RESERVED3 = 11,
+        SDL_LOG_CATEGORY_RESERVED4 = 12,
+        SDL_LOG_CATEGORY_RESERVED5 = 13,
+        SDL_LOG_CATEGORY_RESERVED6 = 14,
+        SDL_LOG_CATEGORY_RESERVED7 = 15,
+        SDL_LOG_CATEGORY_RESERVED8 = 16,
+        SDL_LOG_CATEGORY_RESERVED9 = 17,
+        SDL_LOG_CATEGORY_RESERVED10 = 18,
+        SDL_LOG_CATEGORY_CUSTOM = 19,
+    }
+    public enum SDL_LogPriority
+    {
+        SDL_LOG_PRIORITY_VERBOSE = 1,
+        SDL_LOG_PRIORITY_DEBUG = 2,
+        SDL_LOG_PRIORITY_INFO = 3,
+        SDL_LOG_PRIORITY_WARN = 4,
+        SDL_LOG_PRIORITY_ERROR = 5,
+        SDL_LOG_PRIORITY_CRITICAL = 6,
+        SDL_NUM_LOG_PRIORITIES = 7,
+    }
+    public struct SDL_MessageBoxButtonData
+    {
+        public int buttonid;
+        public uint flags;
+        public unsafe byte* text;
+    }
+    [System.Flags]
+    public enum SDL_MessageBoxButtonFlags
+    {
+        SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT = 1,
+        SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT = 2,
+    }
+    public struct SDL_MessageBoxColor
+    {
+        public byte b;
+        public byte g;
+        public byte r;
+    }
+    public struct SDL_MessageBoxColorScheme
+    {
+        public SDL2.SDL_MessageBoxColorScheme._colors_e__FixedBuffer colors;
+        [System.Runtime.CompilerServices.InlineArray(5)]
+        public struct _colors_e__FixedBuffer
+        {
+            public SDL2.SDL_MessageBoxColor e0;
+        }
+    }
+    public enum SDL_MessageBoxColorType
+    {
+        SDL_MESSAGEBOX_COLOR_BACKGROUND = 0,
+        SDL_MESSAGEBOX_COLOR_TEXT = 1,
+        SDL_MESSAGEBOX_COLOR_BUTTON_BORDER = 2,
+        SDL_MESSAGEBOX_COLOR_BUTTON_BACKGROUND = 3,
+        SDL_MESSAGEBOX_COLOR_BUTTON_SELECTED = 4,
+        SDL_MESSAGEBOX_COLOR_MAX = 5,
+    }
+    public struct SDL_MessageBoxData
+    {
+        public unsafe SDL2.SDL_MessageBoxButtonData* buttons;
+        public unsafe SDL2.SDL_MessageBoxColorScheme* colorScheme;
+        public uint flags;
+        public unsafe byte* message;
+        public int numbuttons;
+        public unsafe byte* title;
+        public SDL2.SDL_Window window;
+    }
+    [System.Flags]
+    public enum SDL_MessageBoxFlags
+    {
+        SDL_MESSAGEBOX_ERROR = 16,
+        SDL_MESSAGEBOX_WARNING = 32,
+        SDL_MESSAGEBOX_INFORMATION = 64,
+        SDL_MESSAGEBOX_BUTTONS_LEFT_TO_RIGHT = 128,
+        SDL_MESSAGEBOX_BUTTONS_RIGHT_TO_LEFT = 256,
+    }
+    public struct SDL_MouseButtonEvent
+    {
+        public byte button;
+        public byte clicks;
+        public byte padding1;
+        public byte state;
+        public uint timestamp;
+        public uint type;
+        public uint which;
+        public uint windowID;
+        public int x;
+        public int y;
+    }
+    public struct SDL_MouseMotionEvent
+    {
+        public uint state;
+        public uint timestamp;
+        public uint type;
+        public uint which;
+        public uint windowID;
+        public int x;
+        public int xrel;
+        public int y;
+        public int yrel;
+    }
+    public enum SDL_MouseWheelDirection
+    {
+        SDL_MOUSEWHEEL_NORMAL = 0,
+        SDL_MOUSEWHEEL_FLIPPED = 1,
+    }
+    public struct SDL_MouseWheelEvent
+    {
+        public uint direction;
+        public int mouseX;
+        public int mouseY;
+        public float preciseX;
+        public float preciseY;
+        public uint timestamp;
+        public uint type;
+        public uint which;
+        public uint windowID;
+        public int x;
+        public int y;
+    }
+    public struct SDL_MultiGestureEvent
+    {
+        public float dDist;
+        public float dTheta;
+        public ushort numFingers;
+        public ushort padding;
+        public uint timestamp;
+        public long touchId;
+        public uint type;
+        public float x;
+        public float y;
+    }
+    public enum SDL_PackedLayout
+    {
+        SDL_PACKEDLAYOUT_NONE = 0,
+        SDL_PACKEDLAYOUT_332 = 1,
+        SDL_PACKEDLAYOUT_4444 = 2,
+        SDL_PACKEDLAYOUT_1555 = 3,
+        SDL_PACKEDLAYOUT_5551 = 4,
+        SDL_PACKEDLAYOUT_565 = 5,
+        SDL_PACKEDLAYOUT_8888 = 6,
+        SDL_PACKEDLAYOUT_2101010 = 7,
+        SDL_PACKEDLAYOUT_1010102 = 8,
+    }
+    public enum SDL_PackedOrder
+    {
+        SDL_PACKEDORDER_NONE = 0,
+        SDL_PACKEDORDER_XRGB = 1,
+        SDL_PACKEDORDER_RGBX = 2,
+        SDL_PACKEDORDER_ARGB = 3,
+        SDL_PACKEDORDER_RGBA = 4,
+        SDL_PACKEDORDER_XBGR = 5,
+        SDL_PACKEDORDER_BGRX = 6,
+        SDL_PACKEDORDER_ABGR = 7,
+        SDL_PACKEDORDER_BGRA = 8,
+    }
+    public struct SDL_Palette
+    {
+        public unsafe SDL2.SDL_Color* colors;
+        public int ncolors;
+        public int refcount;
+        public uint version;
+    }
+    public struct SDL_PixelFormat
+    {
+        public byte Aloss;
+        public uint Amask;
+        public byte Ashift;
+        public byte BitsPerPixel;
+        public byte Bloss;
+        public uint Bmask;
+        public byte Bshift;
+        public byte BytesPerPixel;
+        public byte Gloss;
+        public uint Gmask;
+        public byte Gshift;
+        public byte Rloss;
+        public uint Rmask;
+        public byte Rshift;
+        public uint format;
+        public unsafe SDL2.SDL_PixelFormat* next;
+        public SDL2.SDL_PixelFormat._padding_e__FixedBuffer padding;
+        public unsafe SDL2.SDL_Palette* palette;
+        public int refcount;
+        [System.Runtime.CompilerServices.InlineArray(2)]
+        public struct _padding_e__FixedBuffer
+        {
+            public byte e0;
+        }
+    }
+    public enum SDL_PixelFormatEnum : uint
+    {
+        SDL_PIXELFORMAT_UNKNOWN = 0u,
+        SDL_PIXELFORMAT_INDEX1LSB = 286261504u,
+        SDL_PIXELFORMAT_INDEX1MSB = 287310080u,
+        SDL_PIXELFORMAT_INDEX2LSB = 470811136u,
+        SDL_PIXELFORMAT_INDEX2MSB = 471859712u,
+        SDL_PIXELFORMAT_INDEX4LSB = 303039488u,
+        SDL_PIXELFORMAT_INDEX4MSB = 304088064u,
+        SDL_PIXELFORMAT_INDEX8 = 318769153u,
+        SDL_PIXELFORMAT_RGB332 = 336660481u,
+        SDL_PIXELFORMAT_XRGB4444 = 353504258u,
+        SDL_PIXELFORMAT_RGB444 = 353504258u,
+        SDL_PIXELFORMAT_XBGR4444 = 357698562u,
+        SDL_PIXELFORMAT_BGR444 = 357698562u,
+        SDL_PIXELFORMAT_XRGB1555 = 353570562u,
+        SDL_PIXELFORMAT_RGB555 = 353570562u,
+        SDL_PIXELFORMAT_XBGR1555 = 357764866u,
+        SDL_PIXELFORMAT_BGR555 = 357764866u,
+        SDL_PIXELFORMAT_ARGB4444 = 355602434u,
+        SDL_PIXELFORMAT_RGBA4444 = 356651010u,
+        SDL_PIXELFORMAT_ABGR4444 = 359796738u,
+        SDL_PIXELFORMAT_BGRA4444 = 360845314u,
+        SDL_PIXELFORMAT_ARGB1555 = 355667970u,
+        SDL_PIXELFORMAT_RGBA5551 = 356782082u,
+        SDL_PIXELFORMAT_ABGR1555 = 359862274u,
+        SDL_PIXELFORMAT_BGRA5551 = 360976386u,
+        SDL_PIXELFORMAT_RGB565 = 353701890u,
+        SDL_PIXELFORMAT_BGR565 = 357896194u,
+        SDL_PIXELFORMAT_RGB24 = 386930691u,
+        SDL_PIXELFORMAT_BGR24 = 390076419u,
+        SDL_PIXELFORMAT_XRGB8888 = 370546692u,
+        SDL_PIXELFORMAT_RGB888 = 370546692u,
+        SDL_PIXELFORMAT_RGBX8888 = 371595268u,
+        SDL_PIXELFORMAT_XBGR8888 = 374740996u,
+        SDL_PIXELFORMAT_BGR888 = 374740996u,
+        SDL_PIXELFORMAT_BGRX8888 = 375789572u,
+        SDL_PIXELFORMAT_ARGB8888 = 372645892u,
+        SDL_PIXELFORMAT_RGBA8888 = 373694468u,
+        SDL_PIXELFORMAT_ABGR8888 = 376840196u,
+        SDL_PIXELFORMAT_BGRA8888 = 377888772u,
+        SDL_PIXELFORMAT_ARGB2101010 = 372711428u,
+        SDL_PIXELFORMAT_RGBA32 = 376840196u,
+        SDL_PIXELFORMAT_ARGB32 = 377888772u,
+        SDL_PIXELFORMAT_BGRA32 = 372645892u,
+        SDL_PIXELFORMAT_ABGR32 = 373694468u,
+        SDL_PIXELFORMAT_RGBX32 = 374740996u,
+        SDL_PIXELFORMAT_XRGB32 = 375789572u,
+        SDL_PIXELFORMAT_BGRX32 = 370546692u,
+        SDL_PIXELFORMAT_XBGR32 = 371595268u,
+        SDL_PIXELFORMAT_YV12 = 842094169u,
+        SDL_PIXELFORMAT_IYUV = 1448433993u,
+        SDL_PIXELFORMAT_YUY2 = 844715353u,
+        SDL_PIXELFORMAT_UYVY = 1498831189u,
+        SDL_PIXELFORMAT_YVYU = 1431918169u,
+        SDL_PIXELFORMAT_NV12 = 842094158u,
+        SDL_PIXELFORMAT_NV21 = 825382478u,
+        SDL_PIXELFORMAT_EXTERNAL_OES = 542328143u,
+    }
+    public enum SDL_PixelType
+    {
+        SDL_PIXELTYPE_UNKNOWN = 0,
+        SDL_PIXELTYPE_INDEX1 = 1,
+        SDL_PIXELTYPE_INDEX4 = 2,
+        SDL_PIXELTYPE_INDEX8 = 3,
+        SDL_PIXELTYPE_PACKED8 = 4,
+        SDL_PIXELTYPE_PACKED16 = 5,
+        SDL_PIXELTYPE_PACKED32 = 6,
+        SDL_PIXELTYPE_ARRAYU8 = 7,
+        SDL_PIXELTYPE_ARRAYU16 = 8,
+        SDL_PIXELTYPE_ARRAYU32 = 9,
+        SDL_PIXELTYPE_ARRAYF16 = 10,
+        SDL_PIXELTYPE_ARRAYF32 = 11,
+        SDL_PIXELTYPE_INDEX2 = 12,
+    }
+    public struct SDL_Point
+    {
+        public int x;
+        public int y;
+    }
+    public enum SDL_PowerState
+    {
+        SDL_POWERSTATE_UNKNOWN = 0,
+        SDL_POWERSTATE_ON_BATTERY = 1,
+        SDL_POWERSTATE_NO_BATTERY = 2,
+        SDL_POWERSTATE_CHARGING = 3,
+        SDL_POWERSTATE_CHARGED = 4,
+    }
+    public struct SDL_QuitEvent
+    {
+        public uint timestamp;
+        public uint type;
+    }
+    public readonly struct SDL_RWops : System.IEquatable<SDL2.SDL_RWops>
+    {
+        public SDL_RWops(nint value) { }
+        public bool IsNotNull { get; }
+        public bool IsNull { get; }
+        public System.IntPtr Value { get; }
+        public static SDL2.SDL_RWops Null { get; }
+        public nint DangerousGetHandle() { }
+        public bool Equals(SDL2.SDL_RWops other) { }
+        public override bool Equals(object obj) { }
+        public override int GetHashCode() { }
+        public static nint op_Explicit(SDL2.SDL_RWops value) { }
+        public static SDL2.SDL_RWops op_Explicit(nint value) { }
+        public static bool operator !=(SDL2.SDL_RWops left, SDL2.SDL_RWops right) { }
+        public static bool operator ==(SDL2.SDL_RWops left, SDL2.SDL_RWops right) { }
+    }
+    public struct SDL_Rect
+    {
+        public int h;
+        public int w;
+        public int x;
+        public int y;
+    }
+    public readonly struct SDL_Renderer : System.IEquatable<SDL2.SDL_Renderer>
+    {
+        public SDL_Renderer(nint value) { }
+        public bool IsNotNull { get; }
+        public bool IsNull { get; }
+        public System.IntPtr Value { get; }
+        public static SDL2.SDL_Renderer Null { get; }
+        public nint DangerousGetHandle() { }
+        public bool Equals(SDL2.SDL_Renderer other) { }
+        public override bool Equals(object obj) { }
+        public override int GetHashCode() { }
+        public static nint op_Explicit(SDL2.SDL_Renderer value) { }
+        public static SDL2.SDL_Renderer op_Explicit(nint value) { }
+        public static bool operator !=(SDL2.SDL_Renderer left, SDL2.SDL_Renderer right) { }
+        public static bool operator ==(SDL2.SDL_Renderer left, SDL2.SDL_Renderer right) { }
+    }
+    [System.Flags]
+    public enum SDL_RendererFlags
+    {
+        SDL_RENDERER_SOFTWARE = 1,
+        SDL_RENDERER_ACCELERATED = 2,
+        SDL_RENDERER_PRESENTVSYNC = 4,
+        SDL_RENDERER_TARGETTEXTURE = 8,
+    }
+    [System.Flags]
+    public enum SDL_RendererFlip
+    {
+        SDL_FLIP_NONE = 0,
+        SDL_FLIP_HORIZONTAL = 1,
+        SDL_FLIP_VERTICAL = 2,
+    }
+    public struct SDL_RendererInfo
+    {
+        public uint flags;
+        public int max_texture_height;
+        public int max_texture_width;
+        public unsafe byte* name;
+        public uint num_texture_formats;
+        public SDL2.SDL_RendererInfo._texture_formats_e__FixedBuffer texture_formats;
+        [System.Runtime.CompilerServices.InlineArray(16)]
+        public struct _texture_formats_e__FixedBuffer
+        {
+            public uint e0;
+        }
+    }
+    public enum SDL_SYSWM_TYPE
+    {
+        SDL_SYSWM_UNKNOWN = 0,
+        SDL_SYSWM_WINDOWS = 1,
+        SDL_SYSWM_X11 = 2,
+        SDL_SYSWM_DIRECTFB = 3,
+        SDL_SYSWM_COCOA = 4,
+        SDL_SYSWM_UIKIT = 5,
+        SDL_SYSWM_WAYLAND = 6,
+        SDL_SYSWM_MIR = 7,
+        SDL_SYSWM_WINRT = 8,
+        SDL_SYSWM_ANDROID = 9,
+        SDL_SYSWM_VIVANTE = 10,
+        SDL_SYSWM_OS2 = 11,
+        SDL_SYSWM_HAIKU = 12,
+        SDL_SYSWM_KMSDRM = 13,
+        SDL_SYSWM_RISCOS = 14,
+    }
+    public enum SDL_ScaleMode
+    {
+        SDL_ScaleModeNearest = 0,
+        SDL_ScaleModeLinear = 1,
+        SDL_ScaleModeBest = 2,
+    }
+    public enum SDL_Scancode
+    {
+        SDL_SCANCODE_UNKNOWN = 0,
+        SDL_SCANCODE_A = 4,
+        SDL_SCANCODE_B = 5,
+        SDL_SCANCODE_C = 6,
+        SDL_SCANCODE_D = 7,
+        SDL_SCANCODE_E = 8,
+        SDL_SCANCODE_F = 9,
+        SDL_SCANCODE_G = 10,
+        SDL_SCANCODE_H = 11,
+        SDL_SCANCODE_I = 12,
+        SDL_SCANCODE_J = 13,
+        SDL_SCANCODE_K = 14,
+        SDL_SCANCODE_L = 15,
+        SDL_SCANCODE_M = 16,
+        SDL_SCANCODE_N = 17,
+        SDL_SCANCODE_O = 18,
+        SDL_SCANCODE_P = 19,
+        SDL_SCANCODE_Q = 20,
+        SDL_SCANCODE_R = 21,
+        SDL_SCANCODE_S = 22,
+        SDL_SCANCODE_T = 23,
+        SDL_SCANCODE_U = 24,
+        SDL_SCANCODE_V = 25,
+        SDL_SCANCODE_W = 26,
+        SDL_SCANCODE_X = 27,
+        SDL_SCANCODE_Y = 28,
+        SDL_SCANCODE_Z = 29,
+        SDL_SCANCODE_1 = 30,
+        SDL_SCANCODE_2 = 31,
+        SDL_SCANCODE_3 = 32,
+        SDL_SCANCODE_4 = 33,
+        SDL_SCANCODE_5 = 34,
+        SDL_SCANCODE_6 = 35,
+        SDL_SCANCODE_7 = 36,
+        SDL_SCANCODE_8 = 37,
+        SDL_SCANCODE_9 = 38,
+        SDL_SCANCODE_0 = 39,
+        SDL_SCANCODE_RETURN = 40,
+        SDL_SCANCODE_ESCAPE = 41,
+        SDL_SCANCODE_BACKSPACE = 42,
+        SDL_SCANCODE_TAB = 43,
+        SDL_SCANCODE_SPACE = 44,
+        SDL_SCANCODE_MINUS = 45,
+        SDL_SCANCODE_EQUALS = 46,
+        SDL_SCANCODE_LEFTBRACKET = 47,
+        SDL_SCANCODE_RIGHTBRACKET = 48,
+        SDL_SCANCODE_BACKSLASH = 49,
+        SDL_SCANCODE_NONUSHASH = 50,
+        SDL_SCANCODE_SEMICOLON = 51,
+        SDL_SCANCODE_APOSTROPHE = 52,
+        SDL_SCANCODE_GRAVE = 53,
+        SDL_SCANCODE_COMMA = 54,
+        SDL_SCANCODE_PERIOD = 55,
+        SDL_SCANCODE_SLASH = 56,
+        SDL_SCANCODE_CAPSLOCK = 57,
+        SDL_SCANCODE_F1 = 58,
+        SDL_SCANCODE_F2 = 59,
+        SDL_SCANCODE_F3 = 60,
+        SDL_SCANCODE_F4 = 61,
+        SDL_SCANCODE_F5 = 62,
+        SDL_SCANCODE_F6 = 63,
+        SDL_SCANCODE_F7 = 64,
+        SDL_SCANCODE_F8 = 65,
+        SDL_SCANCODE_F9 = 66,
+        SDL_SCANCODE_F10 = 67,
+        SDL_SCANCODE_F11 = 68,
+        SDL_SCANCODE_F12 = 69,
+        SDL_SCANCODE_PRINTSCREEN = 70,
+        SDL_SCANCODE_SCROLLLOCK = 71,
+        SDL_SCANCODE_PAUSE = 72,
+        SDL_SCANCODE_INSERT = 73,
+        SDL_SCANCODE_HOME = 74,
+        SDL_SCANCODE_PAGEUP = 75,
+        SDL_SCANCODE_DELETE = 76,
+        SDL_SCANCODE_END = 77,
+        SDL_SCANCODE_PAGEDOWN = 78,
+        SDL_SCANCODE_RIGHT = 79,
+        SDL_SCANCODE_LEFT = 80,
+        SDL_SCANCODE_DOWN = 81,
+        SDL_SCANCODE_UP = 82,
+        SDL_SCANCODE_NUMLOCKCLEAR = 83,
+        SDL_SCANCODE_KP_DIVIDE = 84,
+        SDL_SCANCODE_KP_MULTIPLY = 85,
+        SDL_SCANCODE_KP_MINUS = 86,
+        SDL_SCANCODE_KP_PLUS = 87,
+        SDL_SCANCODE_KP_ENTER = 88,
+        SDL_SCANCODE_KP_1 = 89,
+        SDL_SCANCODE_KP_2 = 90,
+        SDL_SCANCODE_KP_3 = 91,
+        SDL_SCANCODE_KP_4 = 92,
+        SDL_SCANCODE_KP_5 = 93,
+        SDL_SCANCODE_KP_6 = 94,
+        SDL_SCANCODE_KP_7 = 95,
+        SDL_SCANCODE_KP_8 = 96,
+        SDL_SCANCODE_KP_9 = 97,
+        SDL_SCANCODE_KP_0 = 98,
+        SDL_SCANCODE_KP_PERIOD = 99,
+        SDL_SCANCODE_NONUSBACKSLASH = 100,
+        SDL_SCANCODE_APPLICATION = 101,
+        SDL_SCANCODE_POWER = 102,
+        SDL_SCANCODE_KP_EQUALS = 103,
+        SDL_SCANCODE_F13 = 104,
+        SDL_SCANCODE_F14 = 105,
+        SDL_SCANCODE_F15 = 106,
+        SDL_SCANCODE_F16 = 107,
+        SDL_SCANCODE_F17 = 108,
+        SDL_SCANCODE_F18 = 109,
+        SDL_SCANCODE_F19 = 110,
+        SDL_SCANCODE_F20 = 111,
+        SDL_SCANCODE_F21 = 112,
+        SDL_SCANCODE_F22 = 113,
+        SDL_SCANCODE_F23 = 114,
+        SDL_SCANCODE_F24 = 115,
+        SDL_SCANCODE_EXECUTE = 116,
+        SDL_SCANCODE_HELP = 117,
+        SDL_SCANCODE_MENU = 118,
+        SDL_SCANCODE_SELECT = 119,
+        SDL_SCANCODE_STOP = 120,
+        SDL_SCANCODE_AGAIN = 121,
+        SDL_SCANCODE_UNDO = 122,
+        SDL_SCANCODE_CUT = 123,
+        SDL_SCANCODE_COPY = 124,
+        SDL_SCANCODE_PASTE = 125,
+        SDL_SCANCODE_FIND = 126,
+        SDL_SCANCODE_MUTE = 127,
+        SDL_SCANCODE_VOLUMEUP = 128,
+        SDL_SCANCODE_VOLUMEDOWN = 129,
+        SDL_SCANCODE_KP_COMMA = 133,
+        SDL_SCANCODE_KP_EQUALSAS400 = 134,
+        SDL_SCANCODE_INTERNATIONAL1 = 135,
+        SDL_SCANCODE_INTERNATIONAL2 = 136,
+        SDL_SCANCODE_INTERNATIONAL3 = 137,
+        SDL_SCANCODE_INTERNATIONAL4 = 138,
+        SDL_SCANCODE_INTERNATIONAL5 = 139,
+        SDL_SCANCODE_INTERNATIONAL6 = 140,
+        SDL_SCANCODE_INTERNATIONAL7 = 141,
+        SDL_SCANCODE_INTERNATIONAL8 = 142,
+        SDL_SCANCODE_INTERNATIONAL9 = 143,
+        SDL_SCANCODE_LANG1 = 144,
+        SDL_SCANCODE_LANG2 = 145,
+        SDL_SCANCODE_LANG3 = 146,
+        SDL_SCANCODE_LANG4 = 147,
+        SDL_SCANCODE_LANG5 = 148,
+        SDL_SCANCODE_LANG6 = 149,
+        SDL_SCANCODE_LANG7 = 150,
+        SDL_SCANCODE_LANG8 = 151,
+        SDL_SCANCODE_LANG9 = 152,
+        SDL_SCANCODE_ALTERASE = 153,
+        SDL_SCANCODE_SYSREQ = 154,
+        SDL_SCANCODE_CANCEL = 155,
+        SDL_SCANCODE_CLEAR = 156,
+        SDL_SCANCODE_PRIOR = 157,
+        SDL_SCANCODE_RETURN2 = 158,
+        SDL_SCANCODE_SEPARATOR = 159,
+        SDL_SCANCODE_OUT = 160,
+        SDL_SCANCODE_OPER = 161,
+        SDL_SCANCODE_CLEARAGAIN = 162,
+        SDL_SCANCODE_CRSEL = 163,
+        SDL_SCANCODE_EXSEL = 164,
+        SDL_SCANCODE_KP_00 = 176,
+        SDL_SCANCODE_KP_000 = 177,
+        SDL_SCANCODE_THOUSANDSSEPARATOR = 178,
+        SDL_SCANCODE_DECIMALSEPARATOR = 179,
+        SDL_SCANCODE_CURRENCYUNIT = 180,
+        SDL_SCANCODE_CURRENCYSUBUNIT = 181,
+        SDL_SCANCODE_KP_LEFTPAREN = 182,
+        SDL_SCANCODE_KP_RIGHTPAREN = 183,
+        SDL_SCANCODE_KP_LEFTBRACE = 184,
+        SDL_SCANCODE_KP_RIGHTBRACE = 185,
+        SDL_SCANCODE_KP_TAB = 186,
+        SDL_SCANCODE_KP_BACKSPACE = 187,
+        SDL_SCANCODE_KP_A = 188,
+        SDL_SCANCODE_KP_B = 189,
+        SDL_SCANCODE_KP_C = 190,
+        SDL_SCANCODE_KP_D = 191,
+        SDL_SCANCODE_KP_E = 192,
+        SDL_SCANCODE_KP_F = 193,
+        SDL_SCANCODE_KP_XOR = 194,
+        SDL_SCANCODE_KP_POWER = 195,
+        SDL_SCANCODE_KP_PERCENT = 196,
+        SDL_SCANCODE_KP_LESS = 197,
+        SDL_SCANCODE_KP_GREATER = 198,
+        SDL_SCANCODE_KP_AMPERSAND = 199,
+        SDL_SCANCODE_KP_DBLAMPERSAND = 200,
+        SDL_SCANCODE_KP_VERTICALBAR = 201,
+        SDL_SCANCODE_KP_DBLVERTICALBAR = 202,
+        SDL_SCANCODE_KP_COLON = 203,
+        SDL_SCANCODE_KP_HASH = 204,
+        SDL_SCANCODE_KP_SPACE = 205,
+        SDL_SCANCODE_KP_AT = 206,
+        SDL_SCANCODE_KP_EXCLAM = 207,
+        SDL_SCANCODE_KP_MEMSTORE = 208,
+        SDL_SCANCODE_KP_MEMRECALL = 209,
+        SDL_SCANCODE_KP_MEMCLEAR = 210,
+        SDL_SCANCODE_KP_MEMADD = 211,
+        SDL_SCANCODE_KP_MEMSUBTRACT = 212,
+        SDL_SCANCODE_KP_MEMMULTIPLY = 213,
+        SDL_SCANCODE_KP_MEMDIVIDE = 214,
+        SDL_SCANCODE_KP_PLUSMINUS = 215,
+        SDL_SCANCODE_KP_CLEAR = 216,
+        SDL_SCANCODE_KP_CLEARENTRY = 217,
+        SDL_SCANCODE_KP_BINARY = 218,
+        SDL_SCANCODE_KP_OCTAL = 219,
+        SDL_SCANCODE_KP_DECIMAL = 220,
+        SDL_SCANCODE_KP_HEXADECIMAL = 221,
+        SDL_SCANCODE_LCTRL = 224,
+        SDL_SCANCODE_LSHIFT = 225,
+        SDL_SCANCODE_LALT = 226,
+        SDL_SCANCODE_LGUI = 227,
+        SDL_SCANCODE_RCTRL = 228,
+        SDL_SCANCODE_RSHIFT = 229,
+        SDL_SCANCODE_RALT = 230,
+        SDL_SCANCODE_RGUI = 231,
+        SDL_SCANCODE_MODE = 257,
+        SDL_SCANCODE_AUDIONEXT = 258,
+        SDL_SCANCODE_AUDIOPREV = 259,
+        SDL_SCANCODE_AUDIOSTOP = 260,
+        SDL_SCANCODE_AUDIOPLAY = 261,
+        SDL_SCANCODE_AUDIOMUTE = 262,
+        SDL_SCANCODE_MEDIASELECT = 263,
+        SDL_SCANCODE_WWW = 264,
+        SDL_SCANCODE_MAIL = 265,
+        SDL_SCANCODE_CALCULATOR = 266,
+        SDL_SCANCODE_COMPUTER = 267,
+        SDL_SCANCODE_AC_SEARCH = 268,
+        SDL_SCANCODE_AC_HOME = 269,
+        SDL_SCANCODE_AC_BACK = 270,
+        SDL_SCANCODE_AC_FORWARD = 271,
+        SDL_SCANCODE_AC_STOP = 272,
+        SDL_SCANCODE_AC_REFRESH = 273,
+        SDL_SCANCODE_AC_BOOKMARKS = 274,
+        SDL_SCANCODE_BRIGHTNESSDOWN = 275,
+        SDL_SCANCODE_BRIGHTNESSUP = 276,
+        SDL_SCANCODE_DISPLAYSWITCH = 277,
+        SDL_SCANCODE_KBDILLUMTOGGLE = 278,
+        SDL_SCANCODE_KBDILLUMDOWN = 279,
+        SDL_SCANCODE_KBDILLUMUP = 280,
+        SDL_SCANCODE_EJECT = 281,
+        SDL_SCANCODE_SLEEP = 282,
+        SDL_SCANCODE_APP1 = 283,
+        SDL_SCANCODE_APP2 = 284,
+        SDL_SCANCODE_AUDIOREWIND = 285,
+        SDL_SCANCODE_AUDIOFASTFORWARD = 286,
+        SDL_SCANCODE_SOFTLEFT = 287,
+        SDL_SCANCODE_SOFTRIGHT = 288,
+        SDL_SCANCODE_CALL = 289,
+        SDL_SCANCODE_ENDCALL = 290,
+        SDL_NUM_SCANCODES = 512,
+    }
+    public readonly struct SDL_Sensor : System.IEquatable<SDL2.SDL_Sensor>
+    {
+        public SDL_Sensor(nint value) { }
+        public bool IsNotNull { get; }
+        public bool IsNull { get; }
+        public System.IntPtr Value { get; }
+        public static SDL2.SDL_Sensor Null { get; }
+        public nint DangerousGetHandle() { }
+        public bool Equals(SDL2.SDL_Sensor other) { }
+        public override bool Equals(object obj) { }
+        public override int GetHashCode() { }
+        public static nint op_Explicit(SDL2.SDL_Sensor value) { }
+        public static SDL2.SDL_Sensor op_Explicit(nint value) { }
+        public static bool operator !=(SDL2.SDL_Sensor left, SDL2.SDL_Sensor right) { }
+        public static bool operator ==(SDL2.SDL_Sensor left, SDL2.SDL_Sensor right) { }
+    }
+    public struct SDL_SensorEvent
+    {
+        public SDL2.SDL_SensorEvent._data_e__FixedBuffer data;
+        public uint timestamp;
+        public ulong timestamp_us;
+        public uint type;
+        public int which;
+        [System.Runtime.CompilerServices.InlineArray(6)]
+        public struct _data_e__FixedBuffer
+        {
+            public float e0;
+        }
+    }
+    public enum SDL_SensorType
+    {
+        SDL_SENSOR_INVALID = -1,
+        SDL_SENSOR_UNKNOWN = 0,
+        SDL_SENSOR_ACCEL = 1,
+        SDL_SENSOR_GYRO = 2,
+        SDL_SENSOR_ACCEL_L = 3,
+        SDL_SENSOR_GYRO_L = 4,
+        SDL_SENSOR_ACCEL_R = 5,
+        SDL_SENSOR_GYRO_R = 6,
+    }
+    public struct SDL_Surface
+    {
+        public SDL2.SDL_Rect clip_rect;
+        public uint flags;
+        public unsafe SDL2.SDL_PixelFormat* format;
+        public int h;
+        public System.IntPtr list_blitmap;
+        public int locked;
+        public System.IntPtr map;
+        public int pitch;
+        public System.IntPtr pixels;
+        public int refcount;
+        public System.IntPtr userdata;
+        public int w;
+    }
+    public struct SDL_SysWMEvent
+    {
+        public SDL2.SDL_SysWMmsg msg;
+        public uint timestamp;
+        public uint type;
+    }
+    public readonly struct SDL_SysWMinfo : System.IEquatable<SDL2.SDL_SysWMinfo>
+    {
+        public SDL_SysWMinfo(nint value) { }
+        public bool IsNotNull { get; }
+        public bool IsNull { get; }
+        public System.IntPtr Value { get; }
+        public static SDL2.SDL_SysWMinfo Null { get; }
+        public nint DangerousGetHandle() { }
+        public bool Equals(SDL2.SDL_SysWMinfo other) { }
+        public override bool Equals(object obj) { }
+        public override int GetHashCode() { }
+        public static nint op_Explicit(SDL2.SDL_SysWMinfo value) { }
+        public static SDL2.SDL_SysWMinfo op_Explicit(nint value) { }
+        public static bool operator !=(SDL2.SDL_SysWMinfo left, SDL2.SDL_SysWMinfo right) { }
+        public static bool operator ==(SDL2.SDL_SysWMinfo left, SDL2.SDL_SysWMinfo right) { }
+    }
+    public readonly struct SDL_SysWMmsg : System.IEquatable<SDL2.SDL_SysWMmsg>
+    {
+        public SDL_SysWMmsg(nint value) { }
+        public bool IsNotNull { get; }
+        public bool IsNull { get; }
+        public System.IntPtr Value { get; }
+        public static SDL2.SDL_SysWMmsg Null { get; }
+        public nint DangerousGetHandle() { }
+        public bool Equals(SDL2.SDL_SysWMmsg other) { }
+        public override bool Equals(object obj) { }
+        public override int GetHashCode() { }
+        public static nint op_Explicit(SDL2.SDL_SysWMmsg value) { }
+        public static SDL2.SDL_SysWMmsg op_Explicit(nint value) { }
+        public static bool operator !=(SDL2.SDL_SysWMmsg left, SDL2.SDL_SysWMmsg right) { }
+        public static bool operator ==(SDL2.SDL_SysWMmsg left, SDL2.SDL_SysWMmsg right) { }
+    }
+    public enum SDL_SystemCursor
+    {
+        SDL_SYSTEM_CURSOR_ARROW = 0,
+        SDL_SYSTEM_CURSOR_IBEAM = 1,
+        SDL_SYSTEM_CURSOR_WAIT = 2,
+        SDL_SYSTEM_CURSOR_CROSSHAIR = 3,
+        SDL_SYSTEM_CURSOR_WAITARROW = 4,
+        SDL_SYSTEM_CURSOR_SIZENWSE = 5,
+        SDL_SYSTEM_CURSOR_SIZENESW = 6,
+        SDL_SYSTEM_CURSOR_SIZEWE = 7,
+        SDL_SYSTEM_CURSOR_SIZENS = 8,
+        SDL_SYSTEM_CURSOR_SIZEALL = 9,
+        SDL_SYSTEM_CURSOR_NO = 10,
+        SDL_SYSTEM_CURSOR_HAND = 11,
+        SDL_NUM_SYSTEM_CURSORS = 12,
+    }
+    public struct SDL_TextEditingEvent
+    {
+        public int length;
+        public int start;
+        public SDL2.SDL_TextEditingEvent._text_e__FixedBuffer text;
+        public uint timestamp;
+        public uint type;
+        public uint windowID;
+        [System.Runtime.CompilerServices.InlineArray(32)]
+        public struct _text_e__FixedBuffer
+        {
+            public byte e0;
+        }
+    }
+    public struct SDL_TextEditingExtEvent
+    {
+        public int length;
+        public int start;
+        public unsafe byte* text;
+        public uint timestamp;
+        public uint type;
+        public uint windowID;
+    }
+    public struct SDL_TextInputEvent
+    {
+        public SDL2.SDL_TextInputEvent._text_e__FixedBuffer text;
+        public uint timestamp;
+        public uint type;
+        public uint windowID;
+        [System.Runtime.CompilerServices.InlineArray(32)]
+        public struct _text_e__FixedBuffer
+        {
+            public byte e0;
+        }
+    }
+    public readonly struct SDL_Texture : System.IEquatable<SDL2.SDL_Texture>
+    {
+        public SDL_Texture(nint value) { }
+        public bool IsNotNull { get; }
+        public bool IsNull { get; }
+        public System.IntPtr Value { get; }
+        public static SDL2.SDL_Texture Null { get; }
+        public nint DangerousGetHandle() { }
+        public bool Equals(SDL2.SDL_Texture other) { }
+        public override bool Equals(object obj) { }
+        public override int GetHashCode() { }
+        public static nint op_Explicit(SDL2.SDL_Texture value) { }
+        public static SDL2.SDL_Texture op_Explicit(nint value) { }
+        public static bool operator !=(SDL2.SDL_Texture left, SDL2.SDL_Texture right) { }
+        public static bool operator ==(SDL2.SDL_Texture left, SDL2.SDL_Texture right) { }
+    }
+    public enum SDL_TextureAccess
+    {
+        SDL_TEXTUREACCESS_STATIC = 0,
+        SDL_TEXTUREACCESS_STREAMING = 1,
+        SDL_TEXTUREACCESS_TARGET = 2,
+    }
+    [System.Flags]
+    public enum SDL_TextureModulate
+    {
+        SDL_TEXTUREMODULATE_NONE = 0,
+        SDL_TEXTUREMODULATE_COLOR = 1,
+        SDL_TEXTUREMODULATE_ALPHA = 2,
+    }
+    public readonly struct SDL_Thread : System.IEquatable<SDL2.SDL_Thread>
+    {
+        public SDL_Thread(nint value) { }
+        public bool IsNotNull { get; }
+        public bool IsNull { get; }
+        public System.IntPtr Value { get; }
+        public static SDL2.SDL_Thread Null { get; }
+        public nint DangerousGetHandle() { }
+        public bool Equals(SDL2.SDL_Thread other) { }
+        public override bool Equals(object obj) { }
+        public override int GetHashCode() { }
+        public static nint op_Explicit(SDL2.SDL_Thread value) { }
+        public static SDL2.SDL_Thread op_Explicit(nint value) { }
+        public static bool operator !=(SDL2.SDL_Thread left, SDL2.SDL_Thread right) { }
+        public static bool operator ==(SDL2.SDL_Thread left, SDL2.SDL_Thread right) { }
+    }
+    public enum SDL_ThreadPriority
+    {
+        SDL_THREAD_PRIORITY_LOW = 0,
+        SDL_THREAD_PRIORITY_NORMAL = 1,
+        SDL_THREAD_PRIORITY_HIGH = 2,
+        SDL_THREAD_PRIORITY_TIME_CRITICAL = 3,
+    }
+    public enum SDL_TouchDeviceType
+    {
+        SDL_TOUCH_DEVICE_INVALID = -1,
+        SDL_TOUCH_DEVICE_DIRECT = 0,
+        SDL_TOUCH_DEVICE_INDIRECT_ABSOLUTE = 1,
+        SDL_TOUCH_DEVICE_INDIRECT_RELATIVE = 2,
+    }
+    public struct SDL_TouchFingerEvent
+    {
+        public float dx;
+        public float dy;
+        public long fingerId;
+        public float pressure;
+        public uint timestamp;
+        public long touchId;
+        public uint type;
+        public uint windowID;
+        public float x;
+        public float y;
+    }
+    public struct SDL_UserEvent
+    {
+        public int code;
+        public System.IntPtr data1;
+        public System.IntPtr data2;
+        public uint timestamp;
+        public uint type;
+        public uint windowID;
+    }
+    public struct SDL_Vertex
+    {
+        public SDL2.SDL_Color color;
+        public SDL2.SDL_FPoint position;
+        public SDL2.SDL_FPoint tex_coord;
+    }
+    public struct SDL_VirtualJoystickDesc
+    {
+        public method Rumble;
+        public method RumbleTriggers;
+        public method SendEffect;
+        public method SetLED;
+        public method SetPlayerIndex;
+        public method Update;
+        public uint axis_mask;
+        public uint button_mask;
+        public unsafe byte* name;
+        public ushort naxes;
+        public ushort nbuttons;
+        public ushort nhats;
+        public ushort padding;
+        public ushort product_id;
+        public ushort type;
+        public System.IntPtr userdata;
+        public ushort vendor_id;
+        public ushort version;
+    }
+    public enum SDL_WinRT_DeviceFamily
+    {
+        SDL_WINRT_DEVICEFAMILY_UNKNOWN = 0,
+        SDL_WINRT_DEVICEFAMILY_DESKTOP = 1,
+        SDL_WINRT_DEVICEFAMILY_MOBILE = 2,
+        SDL_WINRT_DEVICEFAMILY_XBOX = 3,
+    }
+    public enum SDL_WinRT_Path
+    {
+        SDL_WINRT_PATH_INSTALLED_LOCATION = 0,
+        SDL_WINRT_PATH_LOCAL_FOLDER = 1,
+        SDL_WINRT_PATH_ROAMING_FOLDER = 2,
+        SDL_WINRT_PATH_TEMP_FOLDER = 3,
+    }
+    public readonly struct SDL_Window : System.IEquatable<SDL2.SDL_Window>
+    {
+        public SDL_Window(nint value) { }
+        public bool IsNotNull { get; }
+        public bool IsNull { get; }
+        public System.IntPtr Value { get; }
+        public static SDL2.SDL_Window Null { get; }
+        public nint DangerousGetHandle() { }
+        public bool Equals(SDL2.SDL_Window other) { }
+        public override bool Equals(object obj) { }
+        public override int GetHashCode() { }
+        public static nint op_Explicit(SDL2.SDL_Window value) { }
+        public static SDL2.SDL_Window op_Explicit(nint value) { }
+        public static bool operator !=(SDL2.SDL_Window left, SDL2.SDL_Window right) { }
+        public static bool operator ==(SDL2.SDL_Window left, SDL2.SDL_Window right) { }
+    }
+    public struct SDL_WindowEvent
+    {
+        public int data1;
+        public int data2;
+        public byte @event;
+        public byte padding1;
+        public byte padding2;
+        public byte padding3;
+        public uint timestamp;
+        public uint type;
+        public uint windowID;
+    }
+    public enum SDL_WindowEventID
+    {
+        SDL_WINDOWEVENT_NONE = 0,
+        SDL_WINDOWEVENT_SHOWN = 1,
+        SDL_WINDOWEVENT_HIDDEN = 2,
+        SDL_WINDOWEVENT_EXPOSED = 3,
+        SDL_WINDOWEVENT_MOVED = 4,
+        SDL_WINDOWEVENT_RESIZED = 5,
+        SDL_WINDOWEVENT_SIZE_CHANGED = 6,
+        SDL_WINDOWEVENT_MINIMIZED = 7,
+        SDL_WINDOWEVENT_MAXIMIZED = 8,
+        SDL_WINDOWEVENT_RESTORED = 9,
+        SDL_WINDOWEVENT_ENTER = 10,
+        SDL_WINDOWEVENT_LEAVE = 11,
+        SDL_WINDOWEVENT_FOCUS_GAINED = 12,
+        SDL_WINDOWEVENT_FOCUS_LOST = 13,
+        SDL_WINDOWEVENT_CLOSE = 14,
+        SDL_WINDOWEVENT_TAKE_FOCUS = 15,
+        SDL_WINDOWEVENT_HIT_TEST = 16,
+        SDL_WINDOWEVENT_ICCPROF_CHANGED = 17,
+        SDL_WINDOWEVENT_DISPLAY_CHANGED = 18,
+    }
+    [System.Flags]
+    public enum SDL_WindowFlags
+    {
+        SDL_WINDOW_FULLSCREEN = 1,
+        SDL_WINDOW_OPENGL = 2,
+        SDL_WINDOW_SHOWN = 4,
+        SDL_WINDOW_HIDDEN = 8,
+        SDL_WINDOW_BORDERLESS = 16,
+        SDL_WINDOW_RESIZABLE = 32,
+        SDL_WINDOW_MINIMIZED = 64,
+        SDL_WINDOW_MAXIMIZED = 128,
+        SDL_WINDOW_MOUSE_GRABBED = 256,
+        SDL_WINDOW_INPUT_FOCUS = 512,
+        SDL_WINDOW_MOUSE_FOCUS = 1024,
+        SDL_WINDOW_FULLSCREEN_DESKTOP = 4097,
+        SDL_WINDOW_FOREIGN = 2048,
+        SDL_WINDOW_ALLOW_HIGHDPI = 8192,
+        SDL_WINDOW_MOUSE_CAPTURE = 16384,
+        SDL_WINDOW_ALWAYS_ON_TOP = 32768,
+        SDL_WINDOW_SKIP_TASKBAR = 65536,
+        SDL_WINDOW_UTILITY = 131072,
+        SDL_WINDOW_TOOLTIP = 262144,
+        SDL_WINDOW_POPUP_MENU = 524288,
+        SDL_WINDOW_KEYBOARD_GRABBED = 1048576,
+        SDL_WINDOW_VULKAN = 268435456,
+        SDL_WINDOW_METAL = 536870912,
+        SDL_WINDOW_INPUT_GRABBED = 256,
+    }
+    public struct SDL_WindowShapeMode
+    {
+        public SDL2.WindowShapeMode mode;
+        public SDL2.SDL_WindowShapeParams parameters;
+    }
+    public struct SDL_WindowShapeParams
+    {
+        public byte binarizationCutoff;
+        public SDL2.SDL_Color colorKey;
+    }
+    public enum SDL_YUV_CONVERSION_MODE
+    {
+        SDL_YUV_CONVERSION_JPEG = 0,
+        SDL_YUV_CONVERSION_BT601 = 1,
+        SDL_YUV_CONVERSION_BT709 = 2,
+        SDL_YUV_CONVERSION_AUTOMATIC = 3,
+    }
+    public struct SDL_atomic_t
+    {
+        public int value;
+    }
+    public enum SDL_bool
+    {
+        SDL_FALSE = 0,
+        SDL_TRUE = 1,
+    }
+    public readonly struct SDL_cond : System.IEquatable<SDL2.SDL_cond>
+    {
+        public SDL_cond(nint value) { }
+        public bool IsNotNull { get; }
+        public bool IsNull { get; }
+        public System.IntPtr Value { get; }
+        public static SDL2.SDL_cond Null { get; }
+        public nint DangerousGetHandle() { }
+        public bool Equals(SDL2.SDL_cond other) { }
+        public override bool Equals(object obj) { }
+        public override int GetHashCode() { }
+        public static nint op_Explicit(SDL2.SDL_cond value) { }
+        public static SDL2.SDL_cond op_Explicit(nint value) { }
+        public static bool operator !=(SDL2.SDL_cond left, SDL2.SDL_cond right) { }
+        public static bool operator ==(SDL2.SDL_cond left, SDL2.SDL_cond right) { }
+    }
+    public enum SDL_errorcode
+    {
+        SDL_ENOMEM = 0,
+        SDL_EFREAD = 1,
+        SDL_EFWRITE = 2,
+        SDL_EFSEEK = 3,
+        SDL_UNSUPPORTED = 4,
+        SDL_LASTERROR = 5,
+    }
+    public enum SDL_eventaction
+    {
+        SDL_ADDEVENT = 0,
+        SDL_PEEKEVENT = 1,
+        SDL_GETEVENT = 2,
+    }
+    public readonly struct SDL_hid_device : System.IEquatable<SDL2.SDL_hid_device>
+    {
+        public SDL_hid_device(nint value) { }
+        public bool IsNotNull { get; }
+        public bool IsNull { get; }
+        public System.IntPtr Value { get; }
+        public static SDL2.SDL_hid_device Null { get; }
+        public nint DangerousGetHandle() { }
+        public bool Equals(SDL2.SDL_hid_device other) { }
+        public override bool Equals(object obj) { }
+        public override int GetHashCode() { }
+        public static nint op_Explicit(SDL2.SDL_hid_device value) { }
+        public static SDL2.SDL_hid_device op_Explicit(nint value) { }
+        public static bool operator !=(SDL2.SDL_hid_device left, SDL2.SDL_hid_device right) { }
+        public static bool operator ==(SDL2.SDL_hid_device left, SDL2.SDL_hid_device right) { }
+    }
+    public struct SDL_hid_device_info
+    {
+        public int interface_class;
+        public int interface_number;
+        public int interface_protocol;
+        public int interface_subclass;
+        public System.IntPtr manufacturer_string;
+        public unsafe SDL2.SDL_hid_device_info* next;
+        public unsafe byte* path;
+        public ushort product_id;
+        public System.IntPtr product_string;
+        public ushort release_number;
+        public System.IntPtr serial_number;
+        public ushort usage;
+        public ushort usage_page;
+        public ushort vendor_id;
+    }
+    public struct SDL_iconv_t { }
+    public readonly struct SDL_mutex : System.IEquatable<SDL2.SDL_mutex>
+    {
+        public SDL_mutex(nint value) { }
+        public bool IsNotNull { get; }
+        public bool IsNull { get; }
+        public System.IntPtr Value { get; }
+        public static SDL2.SDL_mutex Null { get; }
+        public nint DangerousGetHandle() { }
+        public bool Equals(SDL2.SDL_mutex other) { }
+        public override bool Equals(object obj) { }
+        public override int GetHashCode() { }
+        public static nint op_Explicit(SDL2.SDL_mutex value) { }
+        public static SDL2.SDL_mutex op_Explicit(nint value) { }
+        public static bool operator !=(SDL2.SDL_mutex left, SDL2.SDL_mutex right) { }
+        public static bool operator ==(SDL2.SDL_mutex left, SDL2.SDL_mutex right) { }
+    }
+    public readonly struct SDL_sem : System.IEquatable<SDL2.SDL_sem>
+    {
+        public SDL_sem(nint value) { }
+        public bool IsNotNull { get; }
+        public bool IsNull { get; }
+        public System.IntPtr Value { get; }
+        public static SDL2.SDL_sem Null { get; }
+        public nint DangerousGetHandle() { }
+        public bool Equals(SDL2.SDL_sem other) { }
+        public override bool Equals(object obj) { }
+        public override int GetHashCode() { }
+        public static nint op_Explicit(SDL2.SDL_sem value) { }
+        public static SDL2.SDL_sem op_Explicit(nint value) { }
+        public static bool operator !=(SDL2.SDL_sem left, SDL2.SDL_sem right) { }
+        public static bool operator ==(SDL2.SDL_sem left, SDL2.SDL_sem right) { }
+    }
+    public struct SDL_version
+    {
+        public byte major;
+        public byte minor;
+        public byte patch;
+    }
+    public enum WindowShapeMode
+    {
+        ShapeModeDefault = 0,
+        ShapeModeBinarizeAlpha = 1,
+        ShapeModeReverseBinarizeAlpha = 2,
+        ShapeModeColorKey = 3,
+    }
+}

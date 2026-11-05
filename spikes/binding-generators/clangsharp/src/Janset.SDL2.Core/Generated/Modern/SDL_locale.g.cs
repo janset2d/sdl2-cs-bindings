@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace SDL2
 {
+    [StructLayout(LayoutKind.Sequential)]
     public unsafe partial struct SDL_Locale
     {
         [NativeTypeName("const char *")]

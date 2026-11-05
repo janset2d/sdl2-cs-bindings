@@ -38,6 +38,10 @@ Generated bindings use three layers:
 2. **Public typed low-level layer**: generated handles, enums, structs, callbacks, constants, and thin public methods that call the internal raw layer without exposing extern declarations.
 3. **Public friendly overload layer**: generated conveniences for `string`, `ReadOnlySpan<byte>`, `Span<T>`, `ReadOnlySpan<T>`, `out`, `ref`, bool conversions, and explicit preformatted variadic helpers.
 
+The operational seam between Layer 2 and Layer 3 is **Litmus A**: if a public method allocates, changes arity, or changes call-shape versus the raw C signature, it belongs in Layer 3; otherwise it may live in Layer 2. Type substitution that preserves arity and wire shape, such as typed handles/enums or public `long`/`ulong` normalization over C `long`/`unsigned long`, remains Layer 2. String/span overloads, `out`/`ref`/`in` conveniences, nullable optional-struct forms, and lifetime-safe callback helpers are Layer 3.
+
+The public-release surface must satisfy the **Safe-Alternative Guarantee**: no public function may force the caller into `unsafe` as the only available path. Layer 2 may expose pointer-preserving zero-overhead forms before Layer 3 exists, but the guarantee is a public-preview/release gate, not a requirement for an internal Layer 2-only slice.
+
 ### Internal Raw ABI
 
 **Why:** Generated native imports are volatile implementation detail, not the user-facing compatibility contract. Keeping them internal lets the generator fix C `long`, `wchar_t`, bool wire shape, struct layout, platform attribution, and backend choices without turning every correction into a public breaking change. Public raw bindings are a valid product choice for raw-catalog products; this project is a stable SDL platform layer with typed low-level APIs and friendly overloads on top.
@@ -55,6 +59,8 @@ Rules:
 - Typed handles expose native pointer values through `nint`; that does not make `nint` the answer for every native scalar.
 - Raw ABI backends may split into `DllImport` and `LibraryImport` generated files, but both consume the same semantic/projection truth. File-level TFM guards are preferred over per-function conditional sprawl.
 - Compatibility packages such as `System.Memory` are acceptable for public/friendly APIs on `netstandard2.0` and `net462` when package smoke proves the consumer contract. They must not be used to fake ABI primitives whose platform shape is not portable.
+- Layer 2 callback-shaped public signatures use uniform `nint` / `nint*` for direct function-pointer parameters, pointer-to-function-pointer parameters, and function-pointer returns. Typed delegate ergonomics, callback rooting, and registration lifetime policy are Layer 3 or dedicated callback-policy work.
+- Layer 3 string ergonomics use an explicit two-axis model: `string` for managed text and `ReadOnlySpan<byte>` for caller-owned UTF-8. Do not introduce a unifying `Utf8String` ref-struct, do not add `ReadOnlySpan<char>` overloads for SDL UTF-8 APIs, and do not rename public methods to `Unsafe_` merely to make room for friendly overloads.
 
 ## Generator Home
 
@@ -158,6 +164,7 @@ These are toolchain-neutral correctness contracts any compliant successor implem
 - **Validator-id integrity.** Enabled validator ids unknown to the registered validator set MUST fail closed with the unknown id named in the error message. Silent no-op on unknown ids is forbidden.
 - **Cleanup safety.** Per-family regeneration MUST clean prior output before writing new files; the cleanup MUST be bounded by a path-prefix guard pinning it to the family's generated-output root. Cleanup that can wander outside the family root is a process bug.
 - **Disabled-family side-effect isolation.** Disabled binding-generation families MUST be resolvable through config/profile checks without invoking parse, model build, emit, validator run, output cleanup, compile-check, or smoke side effects. The audit-plan resolution path exists precisely to enable disabled-satellite manifest hygiene without enabling generation.
+- **Family-blind transform tolerance.** Cross-family postprocess transforms must be config-driven and no-op tolerant. Empty per-family work sets, such as no clong methods, no error redirects, no callback registrations, or no flag enums, must complete without injecting dead code or failing spuriously. Core may be the first activated public typed family, but mechanisms must be tested with satellite-shaped fixtures before satellite output is enabled.
 
 ### Configurable Scope Vs Policy Mechanism
 
@@ -448,11 +455,13 @@ Rules:
 - Literal numeric/string/character macros may emit when the managed type and value are deterministic.
 - Deterministic object-like integer expressions may emit only when the evaluator can prove the value from safe syntax.
 - Function-like public SDL macros are Layer 2 / friendly companion-helper candidates. They are not Layer 1 raw ABI declarations and must not be emitted as constants.
-- Approved function-like macro helpers are manually authored or generated from an explicit companion-helper policy. ClangSharp does not emit them.
+- Approved function-like macro helpers are manually authored or generated from an explicit companion-helper policy: a curated roster names the macro and kind, while code-owned emitters implement the strategy. ClangSharp does not surface function-like macros, so parser-output-only projection cannot be the mechanism.
+- Function-like macro helper emission is deferred until its dedicated slice. Type-A pure-evaluable helpers may become Layer 2; Type-B delegating helpers belong in Layer 3; irregular Type-C helpers are hand-authored or skipped with rationale.
 - Unknown function-like macros are reported and skipped. Accepted macro names must stay visible in generation reports so the public-surface gap is reviewable rather than silently swallowed.
 - C-only, build-time, compiler, include-guard, printf annotation, format, assertion, revision, cast-helper, and platform-control macros are skipped with explicit reasons.
 - String-like SDL macro keys emit as canonical `ReadOnlySpan<byte>` UTF-8 literal properties. Do not duplicate every key as both `const string` and UTF-8 span.
 - Runtime-sized or runtime-dependent macros must not emit as fake constants.
+- Endian/runtime-dependent aliases such as `SDL_BYTEORDER`, `SDL_FLOATWORDORDER`, `AUDIO_*SYS`, and cross-family aliases such as `MIX_DEFAULT_FORMAT` are deferred until a runtime-aware alias emitter owns their first public shape. Stable explicit LSB/MSB constants may remain public constants; do not freeze runtime aliases as public `const` values.
 
 Current macro helper-candidate lane: `SDL_BUTTON`, `SDL_VERSION`, `SDL_VERSIONNUM`, `SDL_VERSION_ATLEAST`, `SDL_WINDOWPOS_*`, `SDL_DEFINE_PIXEL*`, `SDL_PIXELTYPE`, `SDL_PIXELORDER`, `SDL_PIXELLAYOUT`, `SDL_BITSPERPIXEL`, `SDL_BYTESPERPIXEL`, `SDL_ISPIXELFORMAT_*`.
 

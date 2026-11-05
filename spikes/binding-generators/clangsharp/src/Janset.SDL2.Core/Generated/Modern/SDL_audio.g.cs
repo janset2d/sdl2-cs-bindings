@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace SDL2
 {
+    [StructLayout(LayoutKind.Sequential)]
     public unsafe partial struct SDL_AudioSpec
     {
         public int freq;
@@ -32,6 +33,7 @@ namespace SDL2
         public nint userdata;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public unsafe partial struct SDL_AudioCVT
     {
         public int needed;
@@ -60,6 +62,7 @@ namespace SDL2
 
         public int filter_index;
 
+        [StructLayout(LayoutKind.Sequential)]
         public unsafe partial struct _filters_e__FixedBuffer
         {
             public delegate* unmanaged[Cdecl]<SDL_AudioCVT*, ushort, void> e0;

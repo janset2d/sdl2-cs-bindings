@@ -10,6 +10,7 @@ namespace SDL2
         SDL_TRUE = 1,
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_iconv_t
     {
     }

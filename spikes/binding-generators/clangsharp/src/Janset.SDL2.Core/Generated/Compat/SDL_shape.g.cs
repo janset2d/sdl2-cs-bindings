@@ -21,6 +21,7 @@ namespace SDL2
         public SDL_Color colorKey;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct SDL_WindowShapeMode
     {
         public WindowShapeMode mode;
