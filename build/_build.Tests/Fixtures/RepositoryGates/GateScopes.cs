@@ -20,9 +20,16 @@ internal static class GateScopes
             return false;
         if (!RepositoryFiles.Tracked.Contains(path) || RepositoryFiles.Submodules.Contains(path))
             return false;
-        using var stream = File.OpenRead(Path.Combine(RepositoryFiles.Root, path));
-        Span<byte> prefix = stackalloc byte[8192];
-        var count = stream.ReadAtLeast(prefix, prefix.Length, throwOnEndOfStream: false);
-        return !prefix[..count].Contains((byte)0);
+        try
+        {
+            using var stream = File.OpenRead(Path.Combine(RepositoryFiles.Root, path));
+            Span<byte> prefix = stackalloc byte[8192];
+            var count = stream.ReadAtLeast(prefix, prefix.Length, throwOnEndOfStream: false);
+            return !prefix[..count].Contains((byte)0);
+        }
+        catch (IOException error) when (error is FileNotFoundException or DirectoryNotFoundException)
+        {
+            return false;
+        }
     }
 }

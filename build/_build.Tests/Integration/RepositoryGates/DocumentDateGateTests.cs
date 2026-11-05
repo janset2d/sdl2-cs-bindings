@@ -24,7 +24,7 @@ public sealed partial class DocumentDateGateTests
     }
 
     private static string[] MissingDates() => RepositoryFiles.Tracked.Where(path => GateScopes.RequiresDate(path)
-        && !RepositoryFiles.ReadText(path).Split('\n').Take(10).Any(line => DateLine().IsMatch(line)))
+        && RepositoryFiles.ReadText(path)?.Split('\n').Take(10).Any(line => DateLine().IsMatch(line)) == false)
         .Order(StringComparer.Ordinal).ToArray();
 
     [GeneratedRegex(@"^Date: \d{4}-\d{2}-\d{2}\s*$", RegexOptions.None, 1000)]

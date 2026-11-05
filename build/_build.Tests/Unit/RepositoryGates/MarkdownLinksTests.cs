@@ -6,6 +6,13 @@ namespace Build.Tests.Unit.RepositoryGates;
 public sealed class MarkdownLinksTests
 {
     [Test]
+    public async Task Extract_Should_Not_Open_Fence_When_Backtick_Info_String_Contains_Backtick()
+    {
+        var links = MarkdownLinks.Extract("```x``` see\n[b](y.md)\n");
+        await Assert.That(links.Select(l => l.Target)).IsEquivalentTo(["y.md"], CollectionOrdering.Matching);
+    }
+
+    [Test]
     public async Task Extract_Should_Skip_Links_Inside_Fenced_Code()
     {
         var links = MarkdownLinks.Extract("```\n[a](x.md)\n```\n~~~text\n[c](z.md)\n~~~\n[b](y.md)\n");

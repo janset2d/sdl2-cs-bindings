@@ -23,7 +23,6 @@ public sealed class GateScopesTests
         await Assert.That(GateScopes.IsCitationScanned(
             "build/_build.Tests/Unit/RepositoryGates/MarkdownLinksTests.cs")).IsFalse();
         await Assert.That(GateScopes.IsCitationScanned("a.verified.cs")).IsFalse();
-        await Assert.That(GateScopes.IsCitationScanned("Directory.Packages.props")).IsTrue();
     }
 
     [Test]

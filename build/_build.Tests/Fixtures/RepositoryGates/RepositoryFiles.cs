@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Text;
 
 namespace Build.Tests.Fixtures.RepositoryGates;
 
@@ -40,7 +41,17 @@ internal static class RepositoryFiles
         || Tracked.Any(path => path.StartsWith(repoPath.TrimEnd('/') + "/", StringComparison.Ordinal))
         || Submodules.Any(path => repoPath.StartsWith(path + "/", StringComparison.Ordinal));
 
-    public static string ReadText(string repoPath) => File.ReadAllText(Path.Combine(Root, repoPath));
+    public static string? ReadText(string repoPath)
+    {
+        try
+        {
+            return File.ReadAllText(Path.Combine(Root, repoPath));
+        }
+        catch (IOException error) when (error is FileNotFoundException or DirectoryNotFoundException)
+        {
+            return null;
+        }
+    }
 
     private static string Git(params string[] arguments)
     {
@@ -50,15 +61,25 @@ internal static class RepositoryFiles
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8,
         };
         foreach (var argument in arguments)
             startInfo.ArgumentList.Add(argument);
-        using var process = Process.Start(startInfo) ?? throw new InvalidOperationException("Could not start git.");
+        using var process = new Process { StartInfo = startInfo };
+        var stderr = new StringBuilder();
+        process.ErrorDataReceived += (_, e) =>
+        {
+            if (e.Data is not null)
+                stderr.AppendLine(e.Data);
+        };
+        if (!process.Start())
+            throw new InvalidOperationException("Could not start git.");
+        process.BeginErrorReadLine();
         var stdout = process.StandardOutput.ReadToEnd();
-        var stderr = process.StandardError.ReadToEnd();
         process.WaitForExit();
         if (process.ExitCode != 0)
-            throw new InvalidOperationException(stderr);
+            throw new InvalidOperationException(stderr.ToString());
         return stdout;
     }
 }

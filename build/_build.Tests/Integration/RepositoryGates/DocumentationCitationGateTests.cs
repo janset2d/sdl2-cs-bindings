@@ -24,7 +24,7 @@ public sealed partial class DocumentationCitationGateTests
     }
 
     private static string[] Citations() => RepositoryFiles.Tracked.Where(GateScopes.IsCitationScanned)
-        .SelectMany(path => Citation().Matches(RepositoryFiles.ReadText(path)).Select(match => $"{path}|{match.Value}"))
+        .SelectMany(path => Citation().Matches(RepositoryFiles.ReadText(path) ?? string.Empty).Select(match => $"{path}|{match.Value}"))
         .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
 
     [GeneratedRegex("(?<![\\w./\\\\-])(?:docs[/\\\\][^\\s\"'<>)\\]]+|AGENTS\\.md|GLOSSARY\\.md)", RegexOptions.None, 1000)]

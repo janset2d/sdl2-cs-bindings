@@ -36,7 +36,7 @@ public sealed class MarkdownLinkGateTests
         var broken = new List<(string Entry, string Diagnostic)>();
         foreach (var source in RepositoryFiles.Tracked.Where(GateScopes.IsLinkScanned).Order(StringComparer.Ordinal))
         {
-            foreach (var link in MarkdownLinks.Extract(RepositoryFiles.ReadText(source)))
+            foreach (var link in MarkdownLinks.Extract(RepositoryFiles.ReadText(source) ?? string.Empty))
             {
                 var target = MarkdownLinks.ToRepositoryPath(source, link.Target);
                 if (target is null || RepositoryFiles.Resolves(target))

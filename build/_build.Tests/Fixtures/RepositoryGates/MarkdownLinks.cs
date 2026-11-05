@@ -15,7 +15,8 @@ internal static partial class MarkdownLinks
         {
             var line = lines[index].TrimEnd('\r');
             var marker = Fence().Match(line);
-            if (marker.Success)
+            if (marker.Success && (fence.Length != 0 || marker.Groups["fence"].Value[0] != '`'
+                || !line[marker.Length..].Contains('`', StringComparison.Ordinal)))
             {
                 var run = marker.Groups["fence"].Value;
                 if (fence.Length == 0)
