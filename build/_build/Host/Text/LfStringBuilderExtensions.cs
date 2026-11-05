@@ -9,10 +9,7 @@ namespace Build.Host.Text;
 /// <see cref="Environment.NewLine"/>, breaking byte-identity for generated
 /// artifacts and content hashes consumed cross-host).
 ///
-/// Used by the binding generator's emitter (.g.cs output) and header-set
-/// fingerprint calculator (SHA-256 input). Any other build-host code that
-/// emits text consumed cross-host (Windows dev → Linux container → CI runner)
-/// should prefer this over the BCL <c>AppendLine</c> for the same reason.
+/// Used by the header-set fingerprint calculator for stable SHA-256 input.
 /// </summary>
 internal static class LfStringBuilderExtensions
 {

@@ -17,12 +17,12 @@ The strategy is not to blindly clone every upstream SDL test. The strategy is to
 
 The repository already has the right broad shape:
 
-- a build-host unit-test project for the binding generator validates generator behavior without native runtime dependency.
-- a binding-compile-check project compiles generated preview source across library target frameworks.
+- the build-host unit-test project validates dormant header/config/stamp repositories, output safeguards, validator IDs, LF text and dynapi symbol coherence without a native runtime dependency.
+- the active ClangSharp spike solution compiles generated source across library target frameworks, with ApiSnapshot, AbiTests and Python/oracle/postprocess self-tests.
 - `tests/smoke-tests/native-smoke` is a C/CMake harness that validates the native SDL2 stack directly.
 - `tests/smoke-tests/package-smoke/PackageConsumer.Smoke` is a TUnit consumer project that restores real packages from a local feed and validates native asset landing plus representative managed calls.
 
-The main gap is depth and layering, not existence. Current smoke coverage is mostly package-load/init oriented. It should grow into curated, real-asset, headless functional coverage while generator refactors stay protected by fast fixture and snapshot tests.
+The main gap is depth and layering, not existence. Current smoke coverage is mostly package-load/init oriented. It should grow into curated, real-asset, headless functional coverage while the spike's compile/API/ABI/self-test gates protect generation work.
 
 Root `assets/` is for repository documentation and NuGet package identity assets. Smoke fixtures should live under a test-owned root such as `tests/smoke-tests/assets/`.
 
@@ -30,8 +30,8 @@ Root `assets/` is for repository documentation and NuGet package identity assets
 
 | Layer | Validates | Should Be Headless? | Uses Real Assets? |
 | --- | --- | --- | --- |
-| Build-host unit tests | Generator and build policy | Yes | Synthetic fixtures mostly |
-| Binding compile checks | Generated source compiles and has expected TFM shape | Yes | No |
+| Build-host unit tests | Dormant generation safeguards and build policy | Yes | Fake filesystem and config fixtures |
+| Spike compile checks | Generated source compiles and has expected TFM shape | Yes | No |
 | Generated raw ABI runtime tests | Generated raw binding ABI correctness, ownership, callbacks, layouts, and upstream behavior | Yes by default | Yes for file/media APIs |
 | Mechanical header guardrails | Symbol, constant, layout, macro, and callback surface breadth | Yes | No |
 | NativeSmoke | Native feature set and dependency closure | Yes by default | Yes |
@@ -44,20 +44,20 @@ Root `assets/` is for repository documentation and NuGet package identity assets
 
 Purpose:
 
-- validate manifest/config adapters, header resolution, parse views, semantic translation, validators, and emitters;
-- pin generator behavior during refactors;
+- validate retained manifest/config adapters, header resolution/fingerprints, stamp serialization, output safeguards and native-symbol validation;
+- pin the dormant salvage behavior until a production generator consumes it;
 - keep normal feedback fast and native-free.
 
 Recommended emphasis:
 
-- prefer small embedded `.h` fixtures for parser/model behavior;
+- use FakeCakeWorld for retained IO boundaries;
 - use constructed objects only for narrow policy branches;
 - snapshot complex generated output only after a baseline has been reviewed;
 - do not require Docker/libclang/vcpkg for ordinary refactor unit tests.
 
-### GenerateBindings Snapshot Conventions
+### Snapshot Conventions
 
-The build-host unit-test project owns Verify snapshots for the generator safety harness. Tests that own snapshot inputs live near the generator concept they cover (emission, translation, generated-preview, end-to-end scenarios).
+The old build-host parser/model/emitter/scenario/preview snapshots and compile-check harness are removed with their generator as an approved retirement, not a snapshot re-approval. The active spike owns its independent ApiSnapshot baseline; retained build-host units have direct tests.
 
 Rules:
 
@@ -65,11 +65,9 @@ Rules:
 - never commit `*.received.*` files;
 - keep generated source snapshots line-ending normalized to `\n`;
 - keep ordinary build-host test runs native-free;
-- run host-restricted semantic fixture snapshots on the required host (or inside an exact-SDK Linux container) when approving baselines;
-- gate generated-preview snapshot execution behind an opt-in env-var convention so normal test runs never depend on Docker or generated artifacts;
-- for filtered runs that intentionally select only skipped tests on Windows, pass MTP `--ignore-exit-code 8`; full-suite runs still pass normally because non-skipped tests execute.
+- keep spike API snapshots independent of native ABI runs.
 
-High-value characterization fixtures:
+Future production generator characterization fixtures:
 
 - C `long` / `unsigned long` and `CLong` / `CULong` guard behavior;
 - SDL2 `SDL_bool` int-backed mapping;
@@ -83,7 +81,7 @@ High-value characterization fixtures:
 
 ### Refactor Safety Harness Pattern
 
-Generator refactors land behind a layered safety harness. The harness is a refactor gate, not just snapshot housekeeping. Any successor implementation reproducing the binding generator must satisfy this pattern before topology changes:
+Future production generator integration needs a layered safety harness, not just snapshot housekeeping. The following are requirements for that future harness, not four currently live build-host snapshot lanes:
 
 - **Snapshot the deterministic generated file set** as a RED gate before any topology change. The snapshot pins the relative path, ordinal ordering, and content of every generated file the engine would write for a representative model. Failing snapshots block the refactor until the change is either reviewed or reverted.
 - **Snapshot the orchestration output** (the fake-task-host equivalent: log lines, emitted file names, exit ordering) so that workflow-level refactors do not silently drop steps or reorder side effects. Pair with substitute parser/runner collaborators to keep these tests native-free.
@@ -91,7 +89,7 @@ Generator refactors land behind a layered safety harness. The harness is a refac
 - **Opt-in real-preview inventory hashes** keep the end-to-end generated output honest without requiring Docker/libclang for ordinary refactor unit tests. Hash the per-family generated artifact tree and commit the inventory snapshot. The opt-in env-var gates execution so default test runs stay native-free; the gated lane runs after a real generator invocation produces fresh output.
 - **Source-control hygiene**: commit `.verified.*` baselines; never commit `.received.*` files; add `.gitignore` rule for `*.received.*`; add `.gitattributes` `text eol=lf` for `*.verified.*` so cross-OS contributors do not churn line endings.
 
-The four snapshot families (deterministic file-set, orchestration, embedded-fixture semantic model, opt-in real-preview hash inventory) compose into the refactor gate. Topology changes must hold all four invariant before merging.
+These four snapshot families describe future refactor safety goals. Today the active spike uses compile checks, ApiSnapshot, AbiTests and the Python/oracle/postprocess self-tests instead of the retired host harness.
 
 ## Binding Compile Checks
 
@@ -107,11 +105,11 @@ Limits:
 - compile checks do not prove native asset landing;
 - compile checks do not prove wrapper ownership or runtime lifetime behavior.
 
-Future additions:
+Current spike checks:
 
-- synthetic generated-source samples for raw ABI backend split;
-- public API snapshots once public low-level methods exist;
-- checks that no public `[DllImport]` / `[LibraryImport]` declarations leak.
+- the spike solution compiles raw/public generated source across its library TFMs;
+- ApiSnapshot pins the public API;
+- postprocess self-tests check projection policy, including public/raw layering.
 
 ## Generated Raw ABI Runtime Tests
 
@@ -720,7 +718,7 @@ Use the lightest gate that answers the question for the current roadmap stage.
 
 | Roadmap Stage | Primary Gate | Secondary Gate |
 | --- | --- | --- |
-| Layer 1 (Done) | Build-host unit/scenario tests, snapshots, oracle | Compile-check across TFMs |
+| Layer 1 (Done) | Spike oracle and postprocess/Python self-tests | Spike compile/API/ABI checks; dormant salvage unit tests |
 | Layer 2 — Typed Public API Projection | API snapshot, compile-check | Package smoke minimal generated calls |
 | Layer 3 — Friendly Overload Projection | Pattern tests, compile-check | Package smoke string/path/resource pairs |
 | Production Flip | Project build, stamp tests | Package-first smoke |

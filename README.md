@@ -93,7 +93,7 @@ The native packages are pulled in transitively — you never need to reference `
 | Cross-platform smoke validation | Done — `tools ci-sim` on host RID, 7-RID matrix in CI |
 | Release pipeline publish | PublishStaging live (GitHub Packages internal feed); PublishPublic pending Phase 2b PD-7 (nuget.org promotion via Trusted Publishing OIDC) |
 | SDL2_net support | Phase 3 — manifest entry retired pending binding skeleton (#58) |
-| Binding auto-generation (CppAst) | Phase 4 |
+| Binding auto-generation (ClangSharp + Roslyn postprocess) | Active spike; sunset host generator removed, tested salvage dormant |
 | SDL3 support | Phase 5 |
 | Samples | Phase 3 (#60) |
 

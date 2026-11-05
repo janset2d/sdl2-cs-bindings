@@ -90,7 +90,7 @@ Items deliberately accepted as-is.
 | `SDL_RWops`, `SDL_SysWMinfo`, `SDL_SysWMmsg` Pattern B quarantine | Keep for Stage 1. It avoids false cross-platform layouts. |
 | `CallConvCdecl` on POSIX | Keep. It is the portable source-generated P/Invoke spelling for platform C ABI; add docs only if future reviewers keep tripping over the name. |
 | SDL2_net bindings | Out of scope for the Layer 1 expansion wave. Reconsider if/when there is concrete user demand and a maintained native package. |
-| Alimer-style CppAst comparison evidence | Out of scope as a separate slice per ADR-004. Reopened ADR may revisit if Layer 2 work surfaces a real CppAst advantage; otherwise the ClangSharp toolchain stands. |
+| Alimer-style comparison evidence | Historical evidence in `output/reports/iteration-2-comparison.md`; the scaffold is removed, not retained as a fallback implementation. |
 
 ## Cross-References
 

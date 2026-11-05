@@ -74,6 +74,7 @@ Final unless Deniz explicitly reopens.
 | Validator uses vcpkg metadata | No manually maintained expected-deps lists; binary closure walker output is ground truth |
 | Package-first consumer contract | Smoke / sample / sandbox csprojs consume packages via local folder feed; `Janset.Local.props` carries family versions |
 | Binding autogen replaces SDL2-CS | Phase 4 replaces SDL2-CS imports with AST-generated bindings. Active implementation: **ClangSharp + Roslyn postprocess** under [`spikes/binding-generators/clangsharp/`](spikes/binding-generators/clangsharp/) with canonical policy at [`spikes/binding-generators/docs/canonical/`](spikes/binding-generators/docs/canonical/). SDL2 Layer 1 raw ABI closed 2026-05-28 across Core / Image / GFX / TTF / Mixer; Layer 2 typed public API + Layer 3 friendly overloads + production flip remain. ADR-004 status is **Reopened** pending formal amendment after Layer 2 closure. Generated API shape (internal raw ABI + public typed low-level API + friendly overloads) is policy in [`canonical/binding-generator-constitution.md`](spikes/binding-generators/docs/canonical/binding-generator-constitution.md). SDL2-CS compatibility is best-effort, not the design target. |
+| Dormant generator salvage | The sunset host generator is removed. Its retained safeguards, header/config/stamp repositories and symbol validator stay tested and unused at their existing paths until production integration; this is an explicit exception to immediate reuse. Do not add a generation target now. |
 | String-like SDL macro constants | `SDL_HINT_*` and similar string-like macro keys emit as canonical `ReadOnlySpan<byte>` UTF-8 literal properties. String ergonomics belongs to method overloads; do not duplicate every key as both `const string` and UTF-8 span. |
 | `external/sdl2-cs` is transitional | Untrusted for production testing; retires when the AST-generated binding surface ships |
 | C++ native smoke test | CMake/vcpkg IDE-debuggable harness for OS-level hybrid validation |
@@ -163,6 +164,7 @@ dotnet run --file tools.cs -- build --target Info      # Cake forwarder (passthr
 dotnet run --file tools.cs -- build --tree
 dotnet run --file tools.cs -- setup                    # local-dev feed bootstrap (--source=local|remote-github|remote-nuget)
 dotnet run --file tools.cs -- ci-sim                   # mini CI replay (9-step pipeline, per-step logs)
+dotnet run --file tools.cs -- build-binding-generator-image # Linux x64 ABI-test image only
 
 # Direct Cake invocations (CI debugging / target discovery only):
 dotnet run --project build/_build -- --tree

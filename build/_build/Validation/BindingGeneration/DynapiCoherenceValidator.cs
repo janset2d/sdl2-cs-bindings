@@ -1,26 +1,17 @@
 using Build.Data.BindingGeneration;
 using Build.Data.BindingGeneration.Models;
 using Build.Results;
-using Build.Targets.GenerateBindings.Model;
 using Cake.Core;
 
 namespace Build.Validation.BindingGeneration;
 
 /// <summary>
 /// Cross-checks emitted binding symbol names against SDL2's dynapi manifest
-/// (<c>src/dynapi/SDL2.exports</c>). Family-scoped sibling of the older
-/// <see cref="BindingPublicApiCoherenceValidator"/> — same logical check, fits
-/// the <see cref="IBindingFamilyValidator"/> dispatch model that
-/// <see cref="Build.Targets.GenerateBindings.GenerateBindingsTask"/> migrates
-/// to in Phase 2D. The older validator is retained until that migration lands;
-/// the two coexist by design during the transition.
+/// (<c>src/dynapi/SDL2.exports</c>).
 /// <para>
 /// Returns <see cref="ValidationReport.Empty"/> when <see cref="BindingGenerationConfig.Dynapi"/>
 /// is null — that's the structural opt-out for families without a dynapi manifest
-/// (SDL2 satellites + SDL3 retired the dynapi system entirely). The manifest's
-/// <c>binding_generation.validators["dynapi-coherence"]</c> flag is a separate
-/// per-family opt-in checked by the dispatch loop in
-/// <see cref="Build.Targets.GenerateBindings.GenerateBindingsTask"/>.
+/// (SDL2 satellites + SDL3 retired the dynapi system entirely).
 /// </para>
 /// </summary>
 public sealed class DynapiCoherenceValidator(IDynapiManifestRepository dynapiRepo) : IBindingFamilyValidator
@@ -32,9 +23,9 @@ public sealed class DynapiCoherenceValidator(IDynapiManifestRepository dynapiRep
 
     public string ValidatorId => "dynapi-coherence";
 
-    public async Task<ValidationReport> ValidateAsync(BindingModel model, BindingGenerationConfig config, CancellationToken ct)
+    public async Task<ValidationReport> ValidateAsync(IReadOnlySet<string> emittedEntryPoints, BindingGenerationConfig config, CancellationToken ct)
     {
-        ArgumentNullException.ThrowIfNull(model);
+        ArgumentNullException.ThrowIfNull(emittedEntryPoints);
         ArgumentNullException.ThrowIfNull(config);
 
         if (config.Dynapi is null)
@@ -50,9 +41,7 @@ public sealed class DynapiCoherenceValidator(IDynapiManifestRepository dynapiRep
 
         var manifest = manifestResult.Value;
         var excludedSymbols = config.ExcludedFunctions.ToHashSet(StringComparer.Ordinal);
-        var emittedSymbols = model.Views
-            .SelectMany(v => v.Functions)
-            .Select(f => f.Name)
+        var emittedSymbols = emittedEntryPoints
             .Where(symbol => !excludedSymbols.Contains(symbol))
             .ToHashSet(StringComparer.Ordinal);
         var expectedExports = manifest.PublicSymbols

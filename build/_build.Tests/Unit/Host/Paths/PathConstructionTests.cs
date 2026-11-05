@@ -206,25 +206,4 @@ public class PathConstructionTests
         await Assert.That(glob).IsEqualTo("/repo/external/vcpkg/buildtrees/sdl2/src/*/src/dynapi/SDL2.exports");
     }
 
-    [Test]
-    public async Task GenerateBindingsPreviewRoot_Should_Be_Under_Artifacts()
-    {
-        var svc = CreatePathService("/repo");
-        await Assert.That(svc.GenerateBindingsPreviewRoot.FullPath).IsEqualTo("/repo/artifacts/generated-bindings-preview");
-    }
-
-    [Test]
-    public async Task GetGenerateBindingsPreviewFamilyRoot_Should_Combine_Family_Slug()
-    {
-        var svc = CreatePathService("/repo");
-        var familyRoot = svc.GetGenerateBindingsPreviewFamilyRoot("sdl2-core");
-        await Assert.That(familyRoot.FullPath).IsEqualTo("/repo/artifacts/generated-bindings-preview/sdl2-core");
-    }
-
-    [Test]
-    public void GetGenerateBindingsPreviewFamilyRoot_Should_Throw_When_Family_Is_Whitespace()
-    {
-        var svc = CreatePathService("/repo");
-        Assert.Throws<ArgumentException>(() => svc.GetGenerateBindingsPreviewFamilyRoot("   "));
-    }
 }

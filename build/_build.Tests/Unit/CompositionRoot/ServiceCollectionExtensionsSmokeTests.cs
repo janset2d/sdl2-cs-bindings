@@ -2,7 +2,6 @@
 
 using Build.Data;
 using Build.Targets.ConsolidateHarvest;
-using Build.Targets.GenerateBindings;
 using Build.Targets.Harvest;
 using Build.Targets.NativeSmoke;
 using Build.Targets.PackageConsumerSmoke;
@@ -91,23 +90,6 @@ public sealed class ServiceCollectionExtensionsSmokeTests
         // PublishStagingTask is discovered by Cake; AddPublishStaging registers
         // INuGetFeedClient itself and the publish-stage collaborators it owns.
         await AssertAllRegisteredTypesResolve(services => services.AddPublishStaging());
-    }
-
-    [Test]
-    public async Task AddGenerateBindings_Should_Register_All_Collaborator_Types()
-    {
-        // GenerateBindingsTask is discovered by Cake via [TaskName]; AddGenerateBindings
-        // registers the per-family generation collaborator plus parser/header collaborators. AddData supplies
-        // IBindingGenerationConfigRepository + IDynapiManifestRepository.
-        // AddValidators supplies IEnumerable<IBindingFamilyValidator> (4 family-scoped
-        // validators that the task dispatches per manifest opt-in). Production order:
-        // AddHostBuildingBlocks -> AddData -> AddValidators -> AddGenerateBindings.
-        await AssertAllRegisteredTypesResolve(services =>
-        {
-            services.AddData();
-            services.AddValidators();
-            services.AddGenerateBindings();
-        });
     }
 
     [Test]

@@ -9,8 +9,8 @@ public sealed record GeneratedStamp(
     string Family,
     [property: JsonPropertyName("generator_assembly")]
     string GeneratorAssembly,
-    [property: JsonPropertyName("cppast_version")]
-    string CppAstVersion,
+    [property: JsonPropertyName("generator_version")]
+    string GeneratorVersion,
     [property: JsonPropertyName("libclang_version")]
     string LibClangVersion,
     [property: JsonPropertyName("vcpkg_triplet")]

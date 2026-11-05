@@ -20,7 +20,7 @@ Active execution ledger: [phases/phase-2-adaptation-plan.md](phases/phase-2-adap
 
 ## Roadmap
 
-> **Phase sequencing reordered per [`release-strategy.md`](release-strategy.md):** Phase 4 binding auto-generation is **critical path for v1.0** and lands **before** the first public `-preview.N` wave (Phase 2b PD-7). **Toolchain selection under re-evaluation** in [`../spikes/binding-generators/`](../spikes/binding-generators/) as of 2026-05-23: ADR-004 (Reopened) recorded the 2026-05-14 CppAst direction; either ClangSharp + Roslyn postprocess or Alimer-style single-pass CppAst replaces the sunset Cake-hosted implementation. Strategic rationale + stages + promotion gates live in [`release-strategy.md`](release-strategy.md); this file remains the tactical roadmap.
+> **Phase sequencing reordered per [`release-strategy.md`](release-strategy.md):** Phase 4 binding auto-generation is **critical path for v1.0** and lands **before** the first public `-preview.N` wave (Phase 2b PD-7). The active implementation is ClangSharp + Roslyn postprocess in [`../spikes/binding-generators/`](../spikes/binding-generators/); the sunset host generator and alternative scaffold are removed, with tested salvage dormant at its existing paths pending production integration. Strategic rationale + stages + promotion gates live in [`release-strategy.md`](release-strategy.md); this file remains the tactical roadmap.
 
 ### Phase 2b — Public release tail
 

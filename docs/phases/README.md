@@ -35,7 +35,7 @@ A phase is DONE when its exit criteria are met. Phases can pause and resume (Pha
 
 A planned phase document stays in `phases/` only if it carries **design-level content that `plan.md` cannot absorb**:
 
-- Alternative analysis tables (e.g., "CppAst vs ClangSharp vs c2ffi" in Phase 4)
+- Alternative analysis tables (e.g., generator architecture or ABI design choices)
 - Pipeline / topology diagrams specific to the phase
 - Vendor availability matrices (e.g., SDL3 per-library vcpkg availability + features + blockers in Phase 5)
 - Known-blocker catalogs that `plan.md` rotation cannot hold

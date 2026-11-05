@@ -1,6 +1,6 @@
 # Binding Generator Maintenance Playbook
 
-> **Status:** Canonical maintenance playbook for the ClangSharp + Roslyn postprocess binding generator under `spikes/binding-generators/clangsharp/`. Replaces the sunset Cake-hosted CppAst maintenance playbook. Restores to `docs/playbook/` at Production Flip (see roadmap §"Production Flip — SDL2.Core Reproducibility").
+> **Status:** Canonical maintenance playbook for the ClangSharp + Roslyn postprocess binding generator under `spikes/binding-generators/clangsharp/`. The former Cake-hosted CppAst generator is removed; tested salvage stays dormant at its existing paths. Restores to `docs/playbook/` at Production Flip (see roadmap §"Production Flip — SDL2.Core Reproducibility").
 
 Operational procedures for maintaining generated bindings, the `family-config.json` schema, the three-tier RSP file organization, the seven-step Roslyn postprocess pipeline, and the version-coherent toolchain pin set. Generated bindings are public API; the generator is build infrastructure that produces a contract consumers depend on. Treat every maintenance change as a public-API change until proven otherwise via the drift detection workflow in §"Drift Detection Between Versions".
 
@@ -45,7 +45,7 @@ Verification at the entry of `generate_bindings.py --execute`: confirm the manif
 
 ### 2.2 libclang.runtime.* (transitive)
 
-ClangSharp 17.x ships `libclang.runtime.*` 20.x as a transitive dependency. The new playbook does not pin `libclang.runtime.*` directly; the ClangSharp tool pin is the single source of truth. This differs from the sunset Cake-hosted toolchain, which pinned the `CppAst` + `libclang.runtime.*` + `libClangSharp.runtime.*` trio independently in `Directory.Packages.props`.
+ClangSharp 17.x ships `libclang.runtime.*` 20.x as a transitive dependency. This playbook does not pin `libclang.runtime.*` directly; the ClangSharp tool pin is the single source of truth. The former Cake-hosted toolchain and its independent package pins are removed.
 
 When investigating a parse regression after a bump, the resolved libclang version is the relevant evidence: run `dotnet tool list` against the spike manifest to see the ClangSharp version, then check the ClangSharp release notes for which `libclang.runtime.*` major it bundles.
 
@@ -325,7 +325,7 @@ Four procedures, each as a numbered checklist. The drift-detection gate (§"Drif
 
 > **Consolidated Maintenance Checklist.** The sunset playbook's flat 13-item checklist is decomposed in this playbook into procedure-specific checklists: §6.1 (SDL2 Version Bump, 12 steps) + §6.2 (ClangSharp Tool Version Bump) + §6.3 (Microsoft.CodeAnalysis Postprocess Version Bump) + §6.4 (vcpkg Triplet Bump, 5 binding-specific checks) + §7 (Adding A New SDL Satellite Family, 14 steps) + §8 (Drift Detection, 5 stages). Together these subsume the sunset's flat list with finer per-trigger scoping.
 >
-> **Note on `.generated-stamp` and reproducible-state.** The `.generated-stamp` discipline (per-family stamp recording generator version + vcpkg state + SDL library version + header-set fingerprint, with no wall-clock fields) is part of the Production Flip layer (see roadmap §"Production Flip — SDL2.Core Reproducibility") and lives in the Cake host data layer per ADR-003. It is NOT part of the current spike-host ClangSharp orchestrator surface; it re-engages at Production Flip when generated source moves from `spikes/binding-generators/clangsharp/src/Janset.SDL2.<Family>/Generated/` to `src/Janset.SDL2.<Family>/Generated/`.
+> **Note on `.generated-stamp` and reproducible-state.** The `.generated-stamp` discipline (per-family stamp recording generator version + vcpkg state + SDL library version + header-set fingerprint, with no wall-clock fields) is part of the Production Flip layer (see roadmap §"Production Flip — SDL2.Core Reproducibility"). The Cake host stamp repository is tested but dormant; no production consumer emits it. It is NOT part of the current spike-host ClangSharp orchestrator surface; production integration remains future work.
 
 ### 6.1 SDL2 Version Bump (e.g. 2.32.10 → 2.x.y)
 
@@ -574,7 +574,7 @@ Zero issues required before commit.
 
 ## 9. Linux-Canonical Generation
 
-Production-evidence generation is **native Linux** via the binding-generator Docker container. The container bakes vcpkg's `x64-linux-hybrid` triplet at image build time so the generator runs against the real Linux SDL2 headers, not Windows-host shims.
+The image-only `build-binding-generator-image` verb builds the Linux x64 ABI-test image with baked vcpkg state; it does not generate bindings or start a container. Explicit spike commands can use the real Linux SDL2 headers, not Windows-host shims.
 
 Dockerfile: `docker/binding-generator.Dockerfile`. Image tag: `janset-binding-generator:focal-latest`.
 
@@ -592,28 +592,40 @@ docker run --rm --entrypoint sh janset-binding-generator:focal-latest \
 
 Shim retirement criteria: shims retire if (and only if) the project escalates from single-host Linux-canonical parsing to a multi-runner cross-OS pipeline. Until then, treat the shim set as durable maintenance surface, not a workaround.
 
-### 9.3 M3 Focused-Docker-Override Pattern
+### 9.3 Focused Baked-Image Test Pattern
 
-When proving narrow Linux / libclang / vcpkg-installed-header readiness facts, prefer a **focused command override** against the binding-generator image over running full generation:
+For Linux ABI evidence, provision Core.Native with linux-x64 assets in the feed/version named by `build/msbuild/Janset.Local.props`, rebuild the image after source changes, then copy the package feed into a disposable container. The workspace and vcpkg state remain baked in the image:
 
 ```pwsh
-$repo = (Get-Location).Path
-docker run --rm --entrypoint bash `
-  -v "${repo}:/workspace" `
-  -w /workspace `
-  janset-binding-generator:focal-latest `
-  -lc "<focused test filter>"
+dotnet run --file tools.cs -- build-binding-generator-image
+if ($LASTEXITCODE -ne 0) { throw 'Image build failed.' }
+if (-not (Test-Path build/msbuild/Janset.Local.props -PathType Leaf)) {
+    throw 'Local package properties file is missing. Provision Core.Native through local setup first.'
+}
+[xml]$local = Get-Content build/msbuild/Janset.Local.props -Raw
+$feed = [string]$local.Project.PropertyGroup.LocalPackageFeed
+$version = [string]$local.Project.PropertyGroup.JansetSdl2CorePackageVersion
+if ([string]::IsNullOrWhiteSpace($feed) -or [string]::IsNullOrWhiteSpace($version)) {
+    throw 'LocalPackageFeed and JansetSdl2CorePackageVersion must both be non-empty.'
+}
+if (-not (Test-Path -LiteralPath $feed -PathType Container)) {
+    throw 'LocalPackageFeed folder does not exist. Provision Core.Native through local setup first.'
+}
+$container = docker create --entrypoint sh janset-binding-generator:focal-latest -c "cd /workspace/spikes/binding-generators/clangsharp/tests/abi-tests && dotnet test --project AbiTests.csproj -c Release --framework net10.0 -p:LocalPackageFeed=/feed -p:JansetSdl2CorePackageVersion=$version"
+if ($LASTEXITCODE -ne 0) { throw 'Could not create ABI test container.' }
+try {
+    docker cp "$feed/." "${container}:/feed"
+    if ($LASTEXITCODE -ne 0) { throw 'Could not copy package feed.' }
+    docker start --attach $container
+    $testExit = docker inspect --format '{{.State.ExitCode}}' $container
+    if ($LASTEXITCODE -ne 0 -or $testExit -ne '0') { throw 'ABI test container failed.' }
+}
+finally {
+    docker rm $container
+}
 ```
 
-For example, to run just the AbiTests project against the Linux container:
-
-```bash
-docker run --rm --entrypoint sh janset-binding-generator:focal-latest \
-  -c "cd /workspace/spikes/binding-generators/clangsharp/tests/abi-tests && \
-      dotnet test --project AbiTests.csproj -c Release --framework net10.0"
-```
-
-The pattern mounts the current checkout at `/workspace`, bypasses the image entrypoint, and runs only the requested command. This is build-host plumbing wisdom that survives toolchain transitions: when full generation is not the behaviour under test, do not pay the full-generation cost.
+The explicit shell command is independent of inherited image entrypoint metadata. No checkout bind mount or generation target is used.
 
 ### 9.4 Cross-OS Container-Mount Discipline
 

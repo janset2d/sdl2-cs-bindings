@@ -25,12 +25,8 @@ internal sealed class HeaderSetFingerprintCalculator(ICakeContext context)
 
         var builder = new StringBuilder();
 
-        // Synthetic headers ship under build/_build/Targets/GenerateBindings/SyntheticHeaders/
-        // and feed libclang's resolver before vcpkg's include root. They are part
-        // of the parse input contract; an edit to a stub changes the AST surface
-        // even though the SDL2 headers stay byte-identical. The fingerprint must
-        // cover them or stale stamps will say "no regen needed" after a stub
-        // change. Order by relative path under SyntheticIncludeRoot for stability.
+        // Caller-supplied supplemental headers are inputs too: changing one must
+        // invalidate the fingerprint even when selected family headers are unchanged.
         var syntheticHeaders = _context.GetFiles($"{headerSet.SyntheticIncludeRoot.FullPath}/*.h")
             .OrderBy(file => file.FullPath, StringComparer.OrdinalIgnoreCase)
             .ToList();

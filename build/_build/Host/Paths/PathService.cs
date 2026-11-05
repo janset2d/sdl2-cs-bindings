@@ -94,29 +94,6 @@ public interface IPathService
     DirectoryPath GetInspectOutputLibraryDir(string rid, string libraryName);
 
     /// <summary>
-    /// artifacts/generated-bindings-preview/ — Stage 1 scratch loop output root.
-    /// Temporary scaffolding; retires when Task 5/7 of the Stage 1 plan lands real
-    /// emitters and the production-location flag-flip to src/SDL2.{Family}/Generated/.
-    /// Do not consume outside build/_build/Targets/GenerateBindings/ or
-    /// tools.cs generate-bindings.
-    /// </summary>
-    DirectoryPath GenerateBindingsPreviewRoot { get; }
-
-    /// <summary>
-    /// artifacts/generated-bindings-preview/{family}/ — per-family scratch loop output.
-    /// See <see cref="GenerateBindingsPreviewRoot"/> for retirement criteria.
-    /// </summary>
-    DirectoryPath GetGenerateBindingsPreviewFamilyRoot(string family);
-
-    /// <summary>
-    /// build/_build/Targets/GenerateBindings/SyntheticHeaders/ — empty stub system
-    /// headers added to the parser's SystemIncludeFolders so SDL2 headers that
-    /// reference Windows / Apple / WinRT system headers parse cleanly on Linux.
-    /// See the README in that directory for retirement criteria.
-    /// </summary>
-    DirectoryPath BindingGeneratorSyntheticHeadersRoot { get; }
-
-    /// <summary>
     /// artifacts/matrix/
     /// </summary>
     DirectoryPath MatrixOutputRoot { get; }
@@ -397,18 +374,6 @@ public sealed class PathService : IPathService
         ArgumentException.ThrowIfNullOrWhiteSpace(libraryName);
         return GetInspectOutputRidDir(rid).Combine(libraryName);
     }
-
-    public DirectoryPath GenerateBindingsPreviewRoot
-        => ArtifactsDir.Combine("generated-bindings-preview");
-
-    public DirectoryPath GetGenerateBindingsPreviewFamilyRoot(string family)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(family);
-        return GenerateBindingsPreviewRoot.Combine(family);
-    }
-
-    public DirectoryPath BindingGeneratorSyntheticHeadersRoot
-        => RepoRoot.Combine("build/_build/Targets/GenerateBindings/SyntheticHeaders");
 
     public DirectoryPath MatrixOutputRoot => ArtifactsDir.Combine("matrix");
 

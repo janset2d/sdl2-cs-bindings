@@ -1,6 +1,6 @@
 # Reusable workflow: build, test, and publish the Cake host once per caller workflow.
 #
-# Called by `release.yml` and `regenerate-bindings.yml` (and any future pipeline that
+# Called by `release.yml` (and any future pipeline that
 # fans out to multiple Cake target invocations). Uploads the framework-dependent host
 # publish output as the `cake-host` artifact so downstream jobs can
 # `actions/download-artifact@v8 with: name: cake-host` and invoke

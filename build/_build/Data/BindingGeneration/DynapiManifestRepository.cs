@@ -14,16 +14,12 @@ namespace Build.Data.BindingGeneration;
 /// vcpkg's binary cache stores compiled artifacts only — <c>installed/&lt;triplet&gt;/&lt;port&gt;/</c>
 /// contents. On a binary-cache hit vcpkg unpacks the archive directly and skips source
 /// extraction, so <c>buildtrees/sdl2/src/</c> is empty on the run that consumes the cache.
-/// The Janset binding generator therefore relies on three reach mechanisms to keep
-/// <c>SDL2.exports</c> available regardless of cache state:
+/// The manifest source must be preserved separately from the binary cache:
 /// </para>
 /// <list type="bullet">
 ///   <item><description><b>Local container (binding-generator image):</b> <c>vcpkg install</c>
 ///   runs at image build time in a dedicated Docker layer; buildtrees lives inside the image.
 ///   Docker layer cache invalidates on vcpkg.json / overlay / submodule changes.</description></item>
-///   <item><description><b>CI (regenerate-bindings.yml workflow):</b> <c>vcpkg-setup</c>
-///   action's <c>actions/cache@v5</c> multi-path covers both the binary cache and
-///   <c>external/vcpkg/buildtrees/sdl2/src</c>.</description></item>
 ///   <item><description><b>Host dev machine:</b> <c>tools.cs setup</c> (or any
 ///   <c>vcpkg install sdl2</c> flow) populates buildtrees once; subsequent invocations
 ///   preserve it.</description></item>

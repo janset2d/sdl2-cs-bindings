@@ -47,9 +47,8 @@ public sealed record BindingGenerationConfig
     /// plus explicitly promoted string-like macros that Stage 1 treats as core
     /// API readiness probes.
     /// Optional with empty-default; satellite placeholder entries leave it absent.
-    /// Maintenance rationale lives in
-    /// <c>docs/playbook/binding-generator-maintenance.md</c> §"Parse-time configuration
-    /// surface (per family)" alongside <c>required_functions</c>.
+    /// These declarations preserve the required surface even when a header is
+    /// deliberately excluded from parsing.
     /// </summary>
     [JsonPropertyName("required_constants")] public ImmutableList<RequiredConstantConfig> RequiredConstants { get; init; } = [];
 
@@ -115,9 +114,8 @@ public enum ConstantKind
 /// Hand-curated public constant declaration recovered from a header that's
 /// excluded from the per-header parse loop. Mirrors the pattern of
 /// <see cref="RequiredFunctionConfig"/>: the manifest carries the explicit
-/// declaration, the translator merges it into the Neutral view, and
-/// <c>ConstantEmitter</c> uses <see cref="Kind"/> as macro-shape metadata while
-/// selecting the C# output form.
+/// declaration, including its managed type, value, and source header.
+/// <see cref="Kind"/> describes the macro shape for selecting the C# output form.
 /// </summary>
 public sealed record RequiredConstantConfig
 {

@@ -2,13 +2,11 @@ using System.Collections.Immutable;
 using Build.Data.BindingGeneration;
 using Build.Data.BindingGeneration.Models;
 using Build.Results;
-using Build.Targets.GenerateBindings.Model;
 
 namespace Build.Tests.Fixtures;
 
 /// <summary>
-/// Lightweight builders for <see cref="BindingGenerationConfig"/> +
-/// <see cref="BindingModel"/> shapes used by validator tests. Keep
+/// Lightweight builders for <see cref="BindingGenerationConfig"/> used by validator tests. Keep
 /// surface narrow — fixture grows when validator coverage grows.
 /// </summary>
 public static class BindingGenerationFixture
@@ -137,43 +135,6 @@ public static class BindingGenerationFixture
             Kind = kind,
         };
 
-    public static BindingModel ModelWithNeutralFunctions(params string[] functionNames) =>
-        new([
-            new BindingParseView(
-                Name: "Neutral",
-                SupportedOsPlatform: null,
-                Functions: [.. functionNames.Select(n => new BindingFunction(n, NativeVoid(), [], "SDL_video.h"))]),
-        ]);
-
-    public static BindingModel ModelWithoutNeutralView() =>
-        new([
-            new BindingParseView(
-                Name: "WindowsDesktop",
-                SupportedOsPlatform: "windows",
-                Functions: [new BindingFunction("SDL_RegisterApp", NativeInt(), [], "SDL_main.h")]),
-        ]);
-
-    public static BindingModel ModelWithMultipleViews(
-        IReadOnlyList<string> neutralFunctionNames,
-        IReadOnlyList<string>? windowsFunctionNames = null,
-        IReadOnlyList<string>? linuxFunctionNames = null) =>
-        new([
-            new BindingParseView("Neutral", null,
-                [.. neutralFunctionNames.Select(n => new BindingFunction(n, NativeVoid(), [], "SDL_video.h"))]),
-            new BindingParseView("WindowsDesktop", "windows",
-                [.. (windowsFunctionNames ?? []).Select(n => new BindingFunction(n, NativeVoid(), [], "SDL_system.h"))]),
-            new BindingParseView("Linux", "linux",
-                [.. (linuxFunctionNames ?? []).Select(n => new BindingFunction(n, NativeVoid(), [], "SDL_system.h"))]),
-        ]);
-
-    public static NativeTypeRef NativePrimitive(string nativeName, string managedName) =>
-        NativeTypeRef.Primitive(nativeName, managedName, NativeAbiShape.Of(managedName));
-
-    public static NativeTypeRef NativeUInt() => NativePrimitive("unsigned int", "uint");
-
-    public static NativeTypeRef NativeVoid() => NativePrimitive("void", "void");
-
-    public static NativeTypeRef NativeInt() => NativePrimitive("int", "int");
 }
 
 /// <summary>
