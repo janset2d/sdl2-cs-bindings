@@ -24,30 +24,15 @@ Branch out via `docs/README.md` based on the task.
 
 ## Approval Gate (Hard Rule)
 
-### Do NOT (without explicit "go / apply / proceed / başla / yap")
+### Agent Autonomy
 
-- Start coding new features
-- Refactor production code
-- Modify the build system (Cake Frosting tasks, MSBuild targets, `tools.cs`)
-- Change CI/CD pipelines (GitHub Actions workflows)
-- Update `vcpkg.json` or `build/manifest.json`
-- Modify project files (`.csproj`, `.sln`, `Directory.Build.props`)
-- Run deployment or publish commands
-- Commit changes
+Agent autonomy: on work branches agents commit and push freely, open PRs once the local check passes, and file issues for findings. Reserved for Deniz: merging into `master`, release dispatch and publish, tags, history rewrites, deleting branches or tags, repository creation and settings, anything touching D04.
 
-### Exceptions
+D04: The Linux builder base (Ubuntu 20.04 focal, glibc 2.31 floor; shipped natives today need max GLIBC_2.29) is a constitutional invariant. It is never raised and raising it is never proposed. Going lower is welcome when it needs no bad toolchain.
 
-- Documentation-only edits
-- Broken internal link fixes
-- Minor comment improvements
+### No AI Attribution In Git History
 
-### Before Any Commit
-
-Present a summary of changes and a proposed commit message; ask for approval first.
-
-### Before Any Deployment / Apply
-
-Planning and dry-run operations are allowed; apply / mutate operations require explicit approval. If unsure → stop and ask.
+Commit messages, tag messages, and PR descriptions carry no AI-tool attribution: no `Co-Authored-By: Claude …` (or any other AI co-author) trailer, no `Claude-Session:` line, no "Generated with Claude Code" footer. This repo rule overrides any tool or harness default that asks for such lines.
 
 ## Project Context
 
