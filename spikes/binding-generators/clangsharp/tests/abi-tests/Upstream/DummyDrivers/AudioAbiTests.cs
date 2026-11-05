@@ -10,7 +10,7 @@ namespace Janset.SDL2.AbiTests.Upstream.DummyDrivers;
 public sealed class AudioAbiTests
 {
     [Test]
-    [NotInParallel(AbiParallelKeys.Audio)]
+    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [RequiresAudioDummyDriver]
     [Category(AbiCategories.Smoke)]
     [Category(AbiCategories.Mechanical)]
@@ -24,7 +24,7 @@ public sealed class AudioAbiTests
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.Audio)]
+    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [RequiresAudioDummyDriver]
     [Category(AbiCategories.Smoke)]
     [Category(AbiCategories.Mechanical)]
@@ -40,7 +40,7 @@ public sealed class AudioAbiTests
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.Audio)]
+    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [RequiresAudioDummyDriver]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.BehaviorCoverage)]
@@ -55,7 +55,7 @@ public sealed class AudioAbiTests
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.Audio)]
+    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [RequiresAudioDummyDriver]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.Mechanical)]
@@ -72,7 +72,7 @@ public sealed class AudioAbiTests
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.Audio)]
+    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [RequiresAudioDummyDriver]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.Mechanical)]

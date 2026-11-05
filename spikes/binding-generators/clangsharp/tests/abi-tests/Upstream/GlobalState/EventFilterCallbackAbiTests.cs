@@ -15,7 +15,7 @@ public sealed class EventFilterCallbackAbiTests
     private const int RejectedUserEventCode = 1002;
 
     [Test]
-    [NotInParallel(AbiParallelKeys.Events)]
+    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [Category(AbiCategories.Smoke)]
     [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.GlobalState)]
