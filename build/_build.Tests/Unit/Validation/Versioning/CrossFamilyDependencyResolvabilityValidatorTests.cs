@@ -192,6 +192,11 @@ public sealed class CrossFamilyDependencyResolvabilityValidatorTests
                         new PrimaryBinary { Os = "Linux", Patterns = ["libSDL2_ttf*"] },
                         new PrimaryBinary { Os = "OSX", Patterns = ["libSDL2_ttf*.dylib"] },
                     ],
+                    BindingGeneration = ManifestFixture.CreateTestSatellitePlaceholderBindingGeneration(
+                        managedNamespace: "SDL2.Ttf",
+                        primaryClassName: "SDL_ttf",
+                        platformCatalog: "sdl2-ttf",
+                        ownedPrefix: "TTF_"),
                 },
             ],
         };

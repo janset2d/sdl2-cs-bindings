@@ -1,0 +1,14 @@
+# TTF_SetError / TTF_GetError are macro shortcuts that point at SDL_SetError
+# / SDL_GetError in the core class. ClangSharp can't cross the family
+# methodClassName boundary, so emit them as part of the SDL2_ttf friendly
+# wrapper layer later rather than as raw bindings.
+#
+# The three deprecated functions are excluded from Layer 1 rather than emitted
+# as raw imports. TTF_GetFontKerningSize also lacks SDLCALL, while
+# TTF_SetDirection / TTF_SetScript are superseded by per-font APIs.
+--exclude
+TTF_SetError
+TTF_GetError
+TTF_GetFontKerningSize
+TTF_SetDirection
+TTF_SetScript

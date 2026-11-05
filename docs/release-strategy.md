@@ -12,7 +12,7 @@ For project framing, glossary, and non-goals, read [`onboarding.md`](onboarding.
 
 - **Pride-driven, not deadline-driven.** Hobby project, but the v1.0 launch is a "fame and glory" milestone — quality bar over delivery date. Don't ship until the maintainer is willing to put their name on it publicly.
 - **Full SDL coverage at v1.0.** Stable carries SDL2 + SDL3 families with all in-scope satellites. Partial coverage is preview territory.
-- **AST-generated bindings.** Manually maintained P/Invoke imports do not scale to SDL3 (no upstream `SDL3-CS` covering the satellite set we ship) and are unsustainable across 11K+ lines of bindings. The CppAst-based generator (Phase 4 per [`phases/phase-4-binding-autogen.md`](phases/phase-4-binding-autogen.md) and [`research/binding-autogen-approaches.md`](research/binding-autogen-approaches.md)) is **critical path for v1.0** — not a post-launch nice-to-have.
+- **AST-generated bindings.** Manually maintained P/Invoke imports do not scale to SDL3 (no upstream `SDL3-CS` covering the satellite set we ship) and are unsustainable across 11K+ lines of bindings. The binding auto-generation workstream (Phase 4 per [`phases/phase-4-binding-autogen.md`](phases/phase-4-binding-autogen.md) and canonical docs at [`../spikes/binding-generators/docs/canonical/`](../spikes/binding-generators/docs/canonical/)) is **critical path for v1.0** — not a post-launch nice-to-have. Active implementation: **ClangSharp + Roslyn postprocess** under [`../spikes/binding-generators/clangsharp/`](../spikes/binding-generators/clangsharp/). The sunset host generator is removed; tested salvage stays dormant at its existing paths pending future production integration. ADR-004 is Reopened pending formal amendment after Layer 2 closure. The AST-first sequencing rationale below is independent of the implementation toolchain.
 - **Maintainer accepts the post-launch treadmill.** Once stable ships, SDL upstream version bumps drive regenerate-and-release-wave cycles. NativeSmoke + ConsumerSmoke matrices catch mechanical regressions; semantic / API-drift regressions need occasional manual play-test passes.
 
 ## End State at v1.0
@@ -34,9 +34,9 @@ The roadmap **reorders the phase sequence in [`plan.md`](plan.md)**: AST landing
 | Stage | Phase mapping | Focus | Public-ship state |
 | --- | --- | --- | --- |
 | **Stage 0 — Current** | Phase 2b tail | CI/CD hardening; PD-7 / PD-8 prerequisites; pipeline scope-assumption gaps (#2 / #3 / #4) | Internal feed only |
-| **Stage 1 — AST proof-of-life** | Phase 4 (start) | CppAst generator R&D; SDL2.Core AST-generated end-to-end; learning-sdl2 validates output | Internal feed only |
-| **Stage 2 — SDL2 AST sweep** | Phase 4 (close) + Phase 3 | All SDL2 satellites AST-generated; `external/sdl2-cs` retired; samples + meta-package; **first `-preview.N` on nuget.org** | nuget.org `-preview.N` |
-| **Stage 3 — SDL3 extension** | Phase 5 | SDL3 family added; AST generator extended for SDL3 headers; SDL3 prereleases ship alongside SDL2 | nuget.org `-preview.N` for SDL2 + SDL3 |
+| **Stage 1 — SDL2.Core generated-core readiness** | Phase 4 (start) | SDL2.Core AST-generated in production shape; Linux-canonical parsing; manifest-driven `SDL2.SDL` identity; internal raw ABI + public typed low-level + friendly overloads; constants/enums/structs/fixed arrays/callbacks/critical functions sufficient to remove the Core dependency on `external/sdl2-cs/src/SDL2.cs`. `SDL_syswm.h` typed-union layout remains Stage 2. | Internal feed only |
+| **Stage 2 — SDL2 family AST sweep** | Phase 4 (close) + Phase 3 | `SDL_syswm.h` typed-union layout with forward-declaration stub library; all SDL2 satellites AST-generated; remaining `external/sdl2-cs` production use retired; Pack-stage symbol-existence validator; samples + meta-package; **first `-preview.N` on nuget.org**. Closes PD-7 prerequisites. | nuget.org `-preview.N` |
+| **Stage 3 — SDL3 extension** | Phase 5 | SDL3 family added; AST generator extended for SDL3 headers via a sibling SDL3 generation target; SDL3-specific ABI rules (1-byte bool wire types, `SDL_IOStream` replacing `SDL_RWops`); SDL3 prereleases ship alongside SDL2. **Gated on PD-7 completion** — SDL3 vcpkg port + overlay triplet + transitive dependency closure work is its own substantial scope and must not block SDL2 v1.0 stable. | nuget.org `-preview.N` for SDL2 + SDL3 |
 | **Stage 4 — Stabilization** | 2027 Stabilization | Real-consumer feedback intake; deferred-decision revisits; v1.0 launch wave preparation | nuget.org `-rc.N` near launch |
 | **Stage 5 — v1.0 Big Bang** | Stable launch | Stable cut of all in-scope families. Blog post, documentation site, sample apps. SDL2 + SDL3 brand launch event. | nuget.org stable |
 
@@ -55,7 +55,7 @@ Estimates calibrated against [Alimer.Bindings.SDL](https://github.com/amerkoleci
 
 | Stage | Focused-work effort | Calendar (hobby cadence) |
 | --- | --- | --- |
-| Stage 1 — proof-of-life | 1–2 weeks | 1–2 months |
+| Stage 1 — SDL2.Core generated-core readiness | 1–2 weeks | 1–2 months |
 | Stage 2 — SDL2 sweep | 2–3 weeks | 2–3 months |
 | Stage 3 — SDL3 extension | 2–3 weeks | 2–3 months |
 | Stage 4 — Stabilization | 2–4 weeks spread + calendar wait for feedback | 3–6 months |
@@ -142,7 +142,9 @@ Currently: ≥2 weeks per wave. Open to revision if real-consumer feedback signa
 - [`onboarding.md`](onboarding.md) — project framing, glossary, non-goals
 - [`phases/phase-4-binding-autogen.md`](phases/phase-4-binding-autogen.md) — AST generator design brief
 - [`phases/phase-5-sdl3-support.md`](phases/phase-5-sdl3-support.md) — SDL3 monorepo + bindings design brief
-- [`research/binding-autogen-approaches.md`](research/binding-autogen-approaches.md) — CppAst vs alternatives, decision matrix
+- [`../spikes/binding-generators/docs/canonical/`](../spikes/binding-generators/docs/canonical/) — binding generator workstream canonical docs (constitution, roadmap, testing strategy, implementation notes, maintenance playbook, oracle validation, per-family satellite analyses)
 - [`decisions/2026-05-05-d3seg-and-package-first.md`](decisions/2026-05-05-d3seg-and-package-first.md) — ADR-001 D-3seg + package-first consumer contract
+- [`decisions/2026-05-14-binding-autogen-toolchain.md`](decisions/2026-05-14-binding-autogen-toolchain.md) — ADR-004 binding-generator toolchain decision (Reopened 2026-05-23 — see spike)
+- [`../spikes/binding-generators/`](../spikes/binding-generators/) — Active toolchain re-evaluation spike
 - [`parking-lot/package-topology/`](parking-lot/package-topology/) — deferred topology research
 - [`parking-lot.md`](parking-lot.md) — other deferred ideas

@@ -1,0 +1,9 @@
+# Mix_SetError / Mix_GetError / Mix_ClearError / Mix_OutOfMemory are
+# macro shortcuts that point at SDL core error helpers. ClangSharp can't
+# cross the family methodClassName boundary, so emit these as part of a
+# later SDL2_mixer public helper layer rather than as raw bindings.
+--exclude
+Mix_SetError
+Mix_GetError
+Mix_ClearError
+Mix_OutOfMemory

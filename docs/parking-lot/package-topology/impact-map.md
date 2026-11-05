@@ -873,7 +873,7 @@ Today's playbook assumes 2-package families. After refactor: add a "Step N — C
 
 SDL3 must start on the new topology. Update brief to reference role meta + bindings + native triplet.
 
-### H. Retire / promote docs/superpowers/package-topology/
+### H. Retire / promote package-topology working docs
 
 After Phase 6 completes, `strategy-brief.md` + `impact-map.md` content fully promoted to ADRs, knowledge-base, playbook. Per the refactoring-doc lifecycle convention this repo follows (durable architecture rules live in ADRs and `docs/knowledge-base/`; per-slice working drafts retire after promotion), both working drafts are removed in the final commit of Phase 6.
 

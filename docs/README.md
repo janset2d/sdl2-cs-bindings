@@ -43,6 +43,17 @@
 
 Phase 3 (SDL2 Complete — samples, meta-package, first prerelease) lives directly in [plan.md](plan.md) per the [phases/README.md](phases/README.md) retention test.
 
+### Binding Auto-Generation Workstream
+
+| Document | Purpose |
+| --- | --- |
+| [../spikes/binding-generators/docs/canonical/README.md](../spikes/binding-generators/docs/canonical/README.md) | Workstream index and reading order for binding generator strategy and research |
+| [../spikes/binding-generators/docs/canonical/binding-generator-constitution.md](../spikes/binding-generators/docs/canonical/binding-generator-constitution.md) | Canonical binding-generator ABI/API constitution: internal raw ABI, public typed layer, friendly overloads, C-to-C# translation, manifest config vs policy, evidence gates |
+| [../spikes/binding-generators/docs/canonical/binding-generator-roadmap.md](../spikes/binding-generators/docs/canonical/binding-generator-roadmap.md) | Canonical roadmap for generated layers, production flip, satellites, smoke expansion, and SDL3 extension |
+| [../spikes/binding-generators/docs/canonical/testing-strategy.md](../spikes/binding-generators/docs/canonical/testing-strategy.md) | Canonical generated-binding testing strategy: dormant build-host salvage, spike compile/API/ABI gates, NativeSmoke and PackageConsumerSmoke |
+| [../spikes/binding-generators/](../spikes/binding-generators/) | **Active ClangSharp + Roslyn postprocess spike**; the sunset host generator is removed, with tested salvage dormant at its existing paths. |
+| [decisions/2026-05-14-binding-autogen-toolchain.md](decisions/2026-05-14-binding-autogen-toolchain.md) | Historical/reopened toolchain decision; current implementation is the ClangSharp spike. |
+
 ### Playbook (How-To Recipes)
 
 | Document | Question It Answers |
@@ -50,6 +61,8 @@ Phase 3 (SDL2 Complete — samples, meta-package, first prerelease) lives direct
 | [playbook/local-development.md](playbook/local-development.md) | How do I clone, build, and develop locally? |
 | [playbook/local-validation.md](playbook/local-validation.md) | How do I validate the pipeline end-to-end on my host (`tools ci-sim` / `tools setup`)? |
 | [playbook/adding-new-library.md](playbook/adding-new-library.md) | How do I add a new SDL satellite library? |
+| [../spikes/binding-generators/docs/canonical/binding-generator-maintenance.md](../spikes/binding-generators/docs/canonical/binding-generator-maintenance.md) | How do I maintain generated bindings, platform macro catalogs, and stamp coherence? |
+| [../spikes/binding-generators/docs/canonical/binding-output-oracle-validation.md](../spikes/binding-generators/docs/canonical/binding-output-oracle-validation.md) | How do I validate generated binding output against official SDL sources, peer bindings, and .NET API evidence? |
 | [playbook/overlay-management.md](playbook/overlay-management.md) | How do I work with vcpkg overlay triplets and ports? |
 | [playbook/vcpkg-update.md](playbook/vcpkg-update.md) | How do I bump the vcpkg baseline and library versions? |
 
@@ -73,7 +86,11 @@ See [decisions/README.md](decisions/README.md) for the index.
 
 ### Research (Dated Findings)
 
-[`research/`](research/) holds dated design rationale, comparative analyses, and historical research notes. Verify against current code before acting on any individual note.
+[`research/`](research/) holds dated design rationale, comparative analyses, and historical research notes. Active binding-generation workstream material lives in [`binding-autogen/`](binding-autogen/). Verify against current code before acting on any individual note.
+
+| Document | Topic |
+| --- | --- |
+| [research/semantic-abi-type-classification-research.md](research/semantic-abi-type-classification-research.md) | Targeted 2026-05-22 fact-check on SDL semantic ABI classification: C `long`, `wchar_t`, opaque handles, deferred layouts, ClangSharp spike evidence, and .NET interop guidance. |
 
 ## Conflict Resolution
 

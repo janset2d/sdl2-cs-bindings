@@ -1,5 +1,5 @@
 {
-  "schema_version": "2.1",
+  "schema_version": "2.2",
 
   "packaging_config": {
     "validation_mode": "Strict",
@@ -54,7 +54,18 @@
         { "os": "Windows", "patterns": ["SDL2.dll"] },
         { "os": "Linux", "patterns": ["libSDL2*"] },
         { "os": "OSX", "patterns": ["libSDL2*.dylib"] }
-      ]
+      ],
+      "binding_generation": {
+        "enabled": true,
+        "managed_namespace": "SDL2",
+        "primary_class_name": "SDL",
+        "platform_catalog": "sdl2-core",
+        "owned_prefixes": ["SDL_", "SDLK_", "SDL_HINT_", "SDL_INIT_"],
+        "header_set": {
+          "include_dir_glob": "include/SDL2",
+          "header_glob": "*.h"
+        }
+      }
     },
     {
       "name": "SDL2_image",
@@ -67,7 +78,14 @@
         { "os": "Windows", "patterns": ["SDL2_image.dll"] },
         { "os": "Linux", "patterns": ["libSDL2_image*"] },
         { "os": "OSX", "patterns": ["libSDL2_image*.dylib"] }
-      ]
+      ],
+      "binding_generation": {
+        "enabled": false,
+        "managed_namespace": "SDL2.Image",
+        "primary_class_name": "SDL_image",
+        "platform_catalog": "sdl2-image",
+        "owned_prefixes": ["IMG_"]
+      }
     }
   ]
 }

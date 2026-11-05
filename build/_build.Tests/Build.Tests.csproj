@@ -15,6 +15,8 @@
 
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <RestoreLockedMode Condition="'$(GITHUB_ACTIONS)' == 'true'">true</RestoreLockedMode>
+    <SolutionDir>$(MSBuildProjectDirectory)\..\..\</SolutionDir>
+    <SolutionName>Janset.SDL2</SolutionName>
   </PropertyGroup>
 
   <ItemGroup>
@@ -32,4 +34,5 @@
   <ItemGroup>
     <EmbeddedResource Include="Fixtures\Data\**\*.json" />
   </ItemGroup>
+
 </Project>

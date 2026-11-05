@@ -2,6 +2,7 @@ using Build.Validation.Harvesting;
 using Build.Validation.Manifest;
 using Build.Validation.NativeSmoke;
 using Build.Validation.Packaging;
+using Build.Validation.Vcpkg;
 using Build.Validation.Versioning;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -38,6 +39,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IHarvestPreconditionsValidator, HarvestPreconditionsValidator>();
         services.AddSingleton<INativeSmokePreconditionsValidator, NativeSmokePreconditionsValidator>();
         services.AddSingleton<IPackageConsumerSmokePreconditionsValidator, PackageConsumerSmokePreconditionsValidator>();
+        services.AddSingleton<IOverlayPortVersionCoherenceValidator, OverlayPortVersionCoherenceValidator>();
 
         return services;
     }

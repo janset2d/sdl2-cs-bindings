@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [master, 'spike/**']
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  workflow-lint:
+    name: Workflow lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker://rhysd/actionlint:1.7.12
+        with:
+          args: -color
+
+  cake-host:
+    name: Cake host (${{ matrix.runner }})
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, windows-latest, macos-latest]
+    uses: ./.github/workflows/build-cake-host.yml
+    with:
+      runner: ${{ matrix.runner }}
+      publish-artifact: false
+
+  spike:
+    name: Spike (${{ matrix.runner }})
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, windows-latest, macos-latest]
+    uses: ./.github/workflows/spike-checks.yml
+    with:
+      runner: ${{ matrix.runner }}

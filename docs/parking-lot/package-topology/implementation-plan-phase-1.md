@@ -65,7 +65,7 @@ namespace Build.Tests.Fixtures;
 /// <remarks>
 /// Phase 1 of the package-topology refactor registers the target-state assertions as
 /// skipped tests so they live in the codebase as an executable spec. Implementing slices
-/// remove the attribute (per <c>docs/superpowers/package-topology/impact-map.md</c> §9.H)
+/// remove the attribute (per <c>docs/parking-lot/package-topology/impact-map.md</c> §9.H)
 /// rather than relying on global feature flags or env-var-driven predicates.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
@@ -101,7 +101,7 @@ test(topology): add TopologyRefactorTarget skip attribute
 SkipAttribute-derived marker for Phase 1 characterization tests that
 describe target-state behavior. Unconditional skip with a phase tag in
 the reason; implementing slices remove the attribute to activate per
-docs/superpowers/package-topology/impact-map.md §9.H.
+docs/parking-lot/package-topology/impact-map.md §9.H.
 
 refs #61
 EOF
@@ -137,7 +137,7 @@ namespace Build.Tests.Scenarios.Characterization;
 /// Phase 2a-4 slices. Source of truth for "what changes" during this refactor.
 /// </summary>
 /// <remarks>
-/// See <c>docs/superpowers/package-topology/implementation-plan-phase-1.md</c> for plan context,
+/// See <c>docs/parking-lot/package-topology/implementation-plan-phase-1.md</c> for plan context,
 /// <c>impact-map.md</c> §9.H for the test inventory, and <c>impact-map.md</c> §4.C for the
 /// cross-family lower-bound bug captured here as a positive assertion.
 ///

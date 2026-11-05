@@ -197,4 +197,13 @@ public class PathConstructionTests
         var file = svc.GetVcpkgPackageCopyrightFile("x64-windows-hybrid", "sdl2");
         await Assert.That(file.FullPath).IsEqualTo("/repo/vcpkg_installed/x64-windows-hybrid/share/sdl2/copyright");
     }
+
+    [Test]
+    public async Task GetSdl2DynapiExportsGlob_Should_Compose_From_Vcpkg_Buildtrees()
+    {
+        var svc = CreatePathService("/repo");
+        var glob = svc.GetSdl2DynapiExportsGlob();
+        await Assert.That(glob).IsEqualTo("/repo/external/vcpkg/buildtrees/sdl2/src/*/src/dynapi/SDL2.exports");
+    }
+
 }

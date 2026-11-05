@@ -24,30 +24,15 @@ Branch out via `docs/README.md` based on the task.
 
 ## Approval Gate (Hard Rule)
 
-### Do NOT (without explicit "go / apply / proceed / başla / yap")
+### Agent Autonomy
 
-- Start coding new features
-- Refactor production code
-- Modify the build system (Cake Frosting tasks, MSBuild targets, `tools.cs`)
-- Change CI/CD pipelines (GitHub Actions workflows)
-- Update `vcpkg.json` or `build/manifest.json`
-- Modify project files (`.csproj`, `.sln`, `Directory.Build.props`)
-- Run deployment or publish commands
-- Commit changes
+Agent autonomy: on work branches agents commit and push freely, open PRs once the local check passes, and file issues for findings. Reserved for Deniz: merging into `master`, release dispatch and publish, tags, history rewrites, deleting branches or tags, repository creation and settings, anything touching D04.
 
-### Exceptions
+D04: The Linux builder base (Ubuntu 20.04 focal, glibc 2.31 floor; shipped natives today need max GLIBC_2.29) is a constitutional invariant. It is never raised and raising it is never proposed. Going lower is welcome when it needs no bad toolchain.
 
-- Documentation-only edits
-- Broken internal link fixes
-- Minor comment improvements
+### No AI Attribution In Git History
 
-### Before Any Commit
-
-Present a summary of changes and a proposed commit message; ask for approval first.
-
-### Before Any Deployment / Apply
-
-Planning and dry-run operations are allowed; apply / mutate operations require explicit approval. If unsure → stop and ask.
+Commit messages, tag messages, and PR descriptions carry no AI-tool attribution: no `Co-Authored-By: Claude …` (or any other AI co-author) trailer, no `Claude-Session:` line, no "Generated with Claude Code" footer. This repo rule overrides any tool or harness default that asks for such lines.
 
 ## Project Context
 
@@ -88,12 +73,14 @@ Final unless Deniz explicitly reopens.
 | Hybrid-static encoded by triplets | Triplet names encode the build model; `manifest.runtimes[].strategy` field retired in S11 (2026-05-08); PreFlight validates triplet→overlay coherence via `HybridStaticOverlayValidator` (G16). No `--strategy` CLI flag |
 | Validator uses vcpkg metadata | No manually maintained expected-deps lists; binary closure walker output is ground truth |
 | Package-first consumer contract | Smoke / sample / sandbox csprojs consume packages via local folder feed; `Janset.Local.props` carries family versions |
-| CppAst for binding autogen | Phase 4 — replaces SDL2-CS imports |
-| `external/sdl2-cs` is transitional | Untrusted for production testing; retires when CppAst generator ships |
+| Binding autogen replaces SDL2-CS | Phase 4 replaces SDL2-CS imports with AST-generated bindings. Active implementation: **ClangSharp + Roslyn postprocess** under [`spikes/binding-generators/clangsharp/`](spikes/binding-generators/clangsharp/) with canonical policy at [`spikes/binding-generators/docs/canonical/`](spikes/binding-generators/docs/canonical/). SDL2 Layer 1 raw ABI closed 2026-05-28 across Core / Image / GFX / TTF / Mixer; Layer 2 typed public API + Layer 3 friendly overloads + production flip remain. ADR-004 status is **Reopened** pending formal amendment after Layer 2 closure. Generated API shape (internal raw ABI + public typed low-level API + friendly overloads) is policy in [`canonical/binding-generator-constitution.md`](spikes/binding-generators/docs/canonical/binding-generator-constitution.md). SDL2-CS compatibility is best-effort, not the design target. |
+| Dormant generator salvage | The sunset host generator is removed. Its retained safeguards, header/config/stamp repositories and symbol validator stay tested and unused at their existing paths until production integration; this is an explicit exception to immediate reuse. Do not add a generation target now. |
+| String-like SDL macro constants | `SDL_HINT_*` and similar string-like macro keys emit as canonical `ReadOnlySpan<byte>` UTF-8 literal properties. String ergonomics belongs to method overloads; do not duplicate every key as both `const string` and UTF-8 span. |
+| `external/sdl2-cs` is transitional | Untrusted for production testing; retires when the AST-generated binding surface ships |
 | C++ native smoke test | CMake/vcpkg IDE-debuggable harness for OS-level hybrid validation |
 | TUnit + MTP for testing | Microsoft.Testing.Platform; characterization tests before refactoring |
 | Release shape | Big-bang v1.0 covering SDL2 + SDL3 + all in-scope satellites, reached iteratively via internal feed → `-preview.N` → `-rc.N` → stable. See [`docs/release-strategy.md`](docs/release-strategy.md). |
-| AST-first prioritization | Phase 4 (CppAst binding generator) lands **before** Phase 3 ship — first public `-preview.N` wave carries AST-generated bindings, not `external/sdl2-cs` imports. See [`docs/release-strategy.md`](docs/release-strategy.md) §Sequencing. |
+| AST-first prioritization | Phase 4 binding auto-generation lands **before** Phase 3 ship — first public `-preview.N` wave carries AST-generated bindings, not `external/sdl2-cs` imports. See [`docs/release-strategy.md`](docs/release-strategy.md) §Sequencing. |
 | Package topology refactor (3-tier role-meta + `.Bindings` + `.Native`) | **DEFERRED.** Research preserved in [`docs/parking-lot/package-topology/`](docs/parking-lot/package-topology/); unpark triggers in [`docs/release-strategy.md`](docs/release-strategy.md) §Deferred Decisions. |
 
 ## Test Naming Convention (TUnit)
@@ -177,6 +164,7 @@ dotnet run --file tools.cs -- build --target Info      # Cake forwarder (passthr
 dotnet run --file tools.cs -- build --tree
 dotnet run --file tools.cs -- setup                    # local-dev feed bootstrap (--source=local|remote-github|remote-nuget)
 dotnet run --file tools.cs -- ci-sim                   # mini CI replay (9-step pipeline, per-step logs)
+dotnet run --file tools.cs -- build-binding-generator-image # Linux x64 ABI-test image only
 
 # Direct Cake invocations (CI debugging / target discovery only):
 dotnet run --project build/_build -- --tree
@@ -317,7 +305,7 @@ Delegate when scope or analysis depth warrants it:
 - `dotnet-concurrency-specialist` — racy tests, deadlocks, async timing bugs
 - `dotnet-performance-analyst` — profiler/benchmark interpretation, regression detection
 - `dotnet-benchmark-designer` — designing new BenchmarkDotNet suites
-- `roslyn-incremental-generator-specialist` — Phase 4 CppAst binding generator
+- `roslyn-incremental-generator-specialist` — Phase 4 source-generation work if the selected binding toolchain needs Roslyn-based friendly overloads or post-processing
 - `Explore` — broad codebase search (>3 query rounds)
 - `Plan` — implementation strategy design
 

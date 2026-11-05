@@ -1,5 +1,5 @@
 {
-  "schema_version": "2.1",
+  "schema_version": "2.2",
   "packaging_config": {
     "validation_mode": "Strict",
     "core_library": "sdl2"
@@ -46,7 +46,18 @@
         {"os": "windows", "patterns": ["SDL2.dll"]},
         {"os": "linux", "patterns": ["libSDL2-2.0.so*"]},
         {"os": "osx", "patterns": ["libSDL2-2.0*.dylib"]}
-      ]
+      ],
+      "binding_generation": {
+        "enabled": true,
+        "managed_namespace": "SDL2",
+        "primary_class_name": "SDL",
+        "platform_catalog": "sdl2-core",
+        "owned_prefixes": ["SDL_", "SDLK_", "SDL_HINT_", "SDL_INIT_"],
+        "header_set": {
+          "include_dir_glob": "include/SDL2",
+          "header_glob": "*.h"
+        }
+      }
     }
   ]
 }

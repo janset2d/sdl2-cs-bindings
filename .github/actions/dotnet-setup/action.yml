@@ -1,0 +1,20 @@
+name: .NET Setup
+description: Install the repository SDK, optional extra SDK channels, and the NuGet cache.
+
+inputs:
+  extra-versions:
+    description: Newline-separated extra SDK channels to install alongside global.json.
+    default: ''
+  nuget-cache:
+    description: Restore and save the NuGet cache ('true' or 'false').
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-dotnet@v6
+      with:
+        global-json-file: global.json
+        dotnet-version: ${{ inputs.extra-versions }}
+    - uses: ./.github/actions/nuget-cache
+      if: inputs.nuget-cache == 'true'

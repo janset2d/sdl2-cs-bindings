@@ -1,0 +1,290 @@
+using Janset.SDL2.PostProcess;
+using Janset.SDL2.PostProcess.Config;
+using Microsoft.CodeAnalysis.CSharp;
+
+// Usage:
+//   dotnet run --project postprocess -- strip-varargs      <input-dir> [<output-dir>]
+//   dotnet run --project postprocess -- libraryimport      <input-dir> [<output-dir>]
+//   dotnet run --project postprocess -- platform-delta     <input-dir> [<output-dir>]
+//   dotnet run --project postprocess -- guid-substitute    <input-dir> [<output-dir>]
+//   dotnet run --project postprocess -- flags-detect       <input-dir> [<output-dir>]
+//   dotnet run --project postprocess -- clong-dispatch     <input-dir> [<output-dir>]
+//   dotnet run --project postprocess -- uniform-opaque     <input-dir> [<output-dir>] [--owner-mode owner|consumer] [--handles-namespace namespace]
+//   dotnet run --project postprocess -- struct-layout      <input-dir> [<output-dir>]
+//   dotnet run --project postprocess -- public-typed       <input-dir>
+//
+// strip-varargs     : Constitution §"C Variadics" fmt-only policy — drops `__arglist`
+//                     parameter from variadic P/Invokes (applied to both Compat
+//                     and Modern output before libraryimport).
+// libraryimport     : Constitution §"Internal Raw ABI" backend split — promotes [DllImport] to
+//                     [LibraryImport] + [UnmanagedCallConv] + partial (applied to
+//                     Modern output only; Compat keeps DllImport for legacy TFMs).
+// platform-delta    : SDL2 platform-view pass cleanup — removes declarations that
+//                     already exist in neutral/earlier platform output and adds
+//                     guarded [SupportedOSPlatform] attributes by Platforms/<View>.
+// guid-substitute   : Slice C-C — removes the generated `partial struct SDL_GUID`
+//                     and rewrites every reference to System.Guid. Wire size is
+//                     bit-identical (both 16 bytes); see GuidSubstitutionRewriter
+//                     for the ABI trade-off rationale.
+// flags-detect      : Item 1 S1-6 — adds [System.Flags] to enum declarations
+//                     matching the name-suffix rule (EndsWith("Flags")) or the
+//                     family-keyed allow-list in policy/flags-enum-roster.json.
+//                     Value-pattern blind by design; SDL_bool must not qualify.
+// clong-dispatch    : Roslyn node-level emit for C `long` / `unsigned long` raw ABI
+//                     signatures. Covers SDL_ThreadID family (Core) and TTF C `long`
+//                     surface (dormant until Item 4 activates TTF in --family all).
+//                     Modern emits [LibraryImport] + CLong/CULong; Compat emits a
+//                     managed wrapper + RuntimeInformation.IsOSPlatform dispatch to
+//                     per-RID [DllImport] helpers (uint on Win, nint on Unix64).
+//                     Mode is auto-detected from inputDir path (Compat / Modern).
+// uniform-opaque    : Slice C-B Pattern B uniform opaque handle emit. Two
+//                     channels: (1) auto-detect — empty `partial struct X {}`
+//                     declarations referenced via [NativeTypeName("X *")]
+//                     elsewhere; (2) force-opaque — Constitution-bound allow-list
+//                     (SDL_RWops, SDL_SysWMinfo, SDL_SysWMmsg). Both channels
+//                     emit the same Pattern B shape (readonly partial struct
+//                     wrapping nint with IEquatable<T>, explicit operators only)
+//                     and rewrite single-pointer X* references in raw ABI
+//                     signatures to by-value X (double-pointer / out preserved).
+// struct-layout     : Layer 2 universal layout pass — adds
+//                     [StructLayout(LayoutKind.Sequential)] to layout-free
+//                     structs while leaving Explicit unions and already-laid-out
+//                     Pattern B handles untouched.
+// public-typed      : Layer 2 public low-level API projection. Reads final
+//                     Generated/Modern raw ABI signatures and emits one
+//                     TFM-shared Generated/Public/{public_class}.g.cs file.
+//
+// Default behavior is in-place edit; pass an explicit output directory to
+// write to a different location.
+
+if (args is ["--self-test"])
+{
+    return PostProcessSelfTests.Run();
+}
+
+if (args.Length < 2 || args[0] is not ("strip-varargs" or "libraryimport" or "platform-delta" or "guid-substitute" or "flags-detect" or "clong-dispatch" or "uniform-opaque" or "struct-layout" or "public-typed"))
+{
+    Console.Error.WriteLine("usage: dotnet run --project postprocess -- <strip-varargs|libraryimport|platform-delta|guid-substitute|flags-detect|clong-dispatch|uniform-opaque|struct-layout|public-typed> <input-dir> [<output-dir>] or --self-test");
+    return 1;
+}
+
+var mode = args[0];
+var inputDir = Path.GetFullPath(args[1]);
+// args[2] is an optional output directory unless it starts with `--`, in which
+// case the third positional is omitted and args[2..] are CLI flags (e.g.
+// `--owner-mode owner`). Without this guard a flag would be misparsed as the
+// output directory and the postprocess would write Handles.g.cs into a path
+// named `--owner-mode/`.
+var outputDir = PostProcessCli.ResolveOutputDirectory(args, inputDir);
+var familyConfig = FamilyConfig.Load(inputDir);
+
+if (!Directory.Exists(inputDir))
+{
+    Console.Error.WriteLine($"input directory not found: {inputDir}");
+    return 2;
+}
+
+var modeInputError = PostProcessCli.ValidateModeInput(mode, inputDir);
+if (modeInputError is not null)
+{
+    Console.Error.WriteLine(modeInputError);
+    return 3;
+}
+
+if (mode == "platform-delta")
+{
+    var result = new PlatformDeltaPostProcessor(familyConfig.PlatformViews()).Process(inputDir, outputDir);
+    Console.WriteLine($"platform-delta: {result.ProcessedFiles} platform files scanned, {result.TransformedFiles} files transformed, {result.RemovedDeclarations} duplicate declarations removed");
+    return 0;
+}
+
+if (mode == "public-typed")
+{
+    var family = ResolveFamilyFromOutputDir(inputDir, familyConfig);
+    var modernParent = Path.GetDirectoryName(inputDir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))
+        ?? throw new InvalidOperationException($"Could not resolve Generated parent for input directory '{inputDir}'.");
+    var publicDir = Path.Combine(modernParent, "Public");
+    var publicClass = familyConfig.PublicClass(family);
+    var rawClass = familyConfig.RawClass(family);
+    var members = PublicTypedMethodProjection.Discover(inputDir, rawClass);
+    var content = PublicTypedMethodProjection.BuildPublicClassContent(
+        members,
+        publicClass,
+        rawClass,
+        familyConfig.Namespace(family),
+        new HashSet<string>(familyConfig.ClongMethods(family), StringComparer.Ordinal));
+    Directory.CreateDirectory(publicDir);
+    var destination = Path.Combine(publicDir, publicClass + ".g.cs");
+    PostProcessCli.WriteAllTextLf(destination, content);
+    Console.WriteLine($"public-typed: family={family}, {members.Constants.Count + members.Properties.Count + members.Methods.Count} members -> {destination}");
+    return 0;
+}
+
+CSharpSyntaxRewriter rewriter;
+Func<bool> hasChanges;
+Action resetRewriter;
+// uniform-opaque carries the canonical handle name set out of the switch so the
+// post-loop block (orchestrator phase) can emit a consolidated Handles.g.cs in
+// owner directories.
+HashSet<string>? uniformOpaqueHandleNames = null;
+// uniform-opaque owner/consumer resolution: explicit --owner-mode flag wins
+// over the substring-based fallback. Declared before the switch so the
+// post-loop block uses the same value the switch case logged.
+bool? uniformOpaqueIsOwner = null;
+// Namespace for owner-mode Handles.g.cs emission. Defaults to Core's namespace
+// when the new flag is absent to preserve direct CLI behavior.
+string? uniformOpaqueHandlesNamespace = null;
+switch (mode)
+{
+    case "strip-varargs":
+    {
+        var r = new StripVarargsRewriter();
+        rewriter = r;
+        hasChanges = () => r.AnyChanges;
+        resetRewriter = r.Reset;
+        break;
+    }
+    case "libraryimport":
+    {
+        var r = new DllImportToLibraryImportRewriter();
+        rewriter = r;
+        hasChanges = () => r.AnyChanges;
+        resetRewriter = r.Reset;
+        break;
+    }
+    case "guid-substitute":
+    {
+        var r = new GuidSubstitutionRewriter();
+        rewriter = r;
+        hasChanges = () => r.AnyChanges;
+        resetRewriter = r.Reset;
+        break;
+    }
+    case "flags-detect":
+    {
+        var family = ResolveFamilyFromOutputDir(outputDir, familyConfig);
+        var allowList = familyConfig.FlagsAllowList(family);
+        Console.WriteLine($"flags-detect: family={family}, allow-list size={allowList.Count}");
+        var r = new FlagsAttributeRewriter(allowList);
+        rewriter = r;
+        hasChanges = () => r.AnyChanges;
+        resetRewriter = r.Reset;
+        break;
+    }
+    case "clong-dispatch":
+    {
+        var clongMode = ClongDualDispatchRewriter.DetectMode(inputDir);
+        var family = ResolveFamilyFromOutputDir(outputDir, familyConfig);
+        var clongMethods = familyConfig.ClongMethods(family);
+        Console.WriteLine($"clong-dispatch: mode={clongMode}, family={family}, methods={clongMethods.Count}");
+        var r = new ClongDualDispatchRewriter(clongMode, clongMethods);
+        rewriter = r;
+        hasChanges = () => r.AnyChanges;
+        resetRewriter = r.Reset;
+        break;
+    }
+    case "uniform-opaque":
+    {
+        uniformOpaqueHandlesNamespace = ParseOptionValue(args, "--handles-namespace") ?? "SDL2";
+        var family = UniformOpaqueFamilyIdentity.Resolve(outputDir, uniformOpaqueHandlesNamespace, familyConfig);
+        var (rosterAutoDetect, rosterForceOpaque) = familyConfig.OpaqueHandles(family, includeCoreHandles: true);
+        var (familyAutoDetect, familyForceOpaque) = familyConfig.OpaqueHandles(family, includeCoreHandles: false);
+
+        // Combined handle set: rewriter removes any partial struct declaration with
+        // one of these names and rewrites SDL_X* -> SDL_X at param/return positions.
+        var handleNames = new HashSet<string>(rosterAutoDetect, StringComparer.Ordinal);
+        foreach (var n in rosterForceOpaque)
+        {
+            handleNames.Add(n);
+        }
+
+        // Syntactic discovery acts as a watchdog against the roster (the policy authority).
+        var syntacticDetect = OpaqueHandleEmitRewriter.DiscoverAutoDetectedHandles(inputDir);
+        OpaqueHandleEmitRewriter.ReportDrift(syntacticDetect, familyAutoDetect, handleNames, family);
+
+        var ownerHandleNames = new HashSet<string>(familyAutoDetect, StringComparer.Ordinal);
+        foreach (var n in familyForceOpaque)
+        {
+            ownerHandleNames.Add(n);
+        }
+
+        // Owner/consumer mode resolution. Prefer the explicit --owner-mode CLI
+        // flag (set by generate_bindings.py per family identity). Fall back to
+        // the substring-based detection with a deprecation warning so a missing
+        // orchestrator wire-up does not silently corrupt the emit.
+        uniformOpaqueIsOwner = UniformOpaqueOwnerMode.Resolve(args, outputDir, familyConfig, family);
+
+        Console.WriteLine($"uniform-opaque: applying {rosterAutoDetect.Count} auto-detect + {rosterForceOpaque.Count} force-opaque handles from family-config.json for family '{family}' (syntactic discovery: {syntacticDetect.Count})");
+        uniformOpaqueHandleNames = ownerHandleNames;
+        var r = new OpaqueHandleEmitRewriter(handleNames);
+        rewriter = r;
+        hasChanges = () => r.AnyChanges;
+        resetRewriter = r.Reset;
+        break;
+    }
+    case "struct-layout":
+    {
+        var r = new StructLayoutSequentialRewriter();
+        rewriter = r;
+        hasChanges = () => r.AnyChanges;
+        resetRewriter = r.Reset;
+        break;
+    }
+    default:
+        throw new InvalidOperationException($"unknown mode: {mode}");
+}
+
+var processed = 0;
+var transformed = 0;
+
+PostProcessCli.ProcessDirectory(inputDir, outputDir, rewriter, hasChanges, resetRewriter, ref processed, ref transformed);
+
+Console.WriteLine($"{mode}: {processed} files scanned, {transformed} files transformed");
+
+// Slice C-B Phase 2 (orchestrator pass): owner directories receive a single
+// consolidated Handles.g.cs holding the canonical Pattern B body for every
+// handle in the roster. Consumer directories (e.g. Janset.SDL2.Image, which
+// references Core handles via ProjectReference and nested namespace lookup)
+// skip the write — they only need the partial-struct removal + pointer
+// rewrite that the loop above already performed. See UniformOpaqueOwnerMode
+// for the owner/consumer resolution path (extracted to keep <Main>$ inside
+// the CA1502 cyclomatic-complexity ceiling).
+UniformOpaqueOwnerMode.EmitConsolidatedHandlesFileIfOwner(
+    mode,
+    outputDir,
+    uniformOpaqueHandleNames,
+    uniformOpaqueIsOwner,
+    uniformOpaqueHandlesNamespace ?? "SDL2");
+
+return 0;
+
+static string ResolveFamilyFromOutputDir(string outputDir, FamilyConfig config)
+{
+    var map = config.ProjectDirToFamily();
+    var directory = new DirectoryInfo(Path.GetFullPath(outputDir));
+    while (directory is not null)
+    {
+        if (map.TryGetValue(directory.Name, out var family))
+        {
+            return family;
+        }
+        directory = directory.Parent;
+    }
+
+    throw new InvalidOperationException(
+        $"Could not resolve SDL2 family from output directory '{outputDir}'. " +
+        $"Expected a path segment matching a config project_dir: {string.Join(", ", map.Keys)}.");
+}
+
+static string? ParseOptionValue(string[] arguments, string optionName)
+{
+    for (int i = 0; i < arguments.Length - 1; i++)
+    {
+        if (arguments[i] == optionName)
+        {
+            return arguments[i + 1];
+        }
+    }
+
+    return null;
+}

@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net10.0;net9.0;net8.0;netstandard2.0;net462</TargetFrameworks>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <Nullable>enable</Nullable>
+    <RootNamespace>SDL2</RootNamespace>
+  </PropertyGroup>
+
+  <!-- TFM-split generated source: Compat (compatible-codegen) for legacy frameworks,
+       Modern (latest-codegen, postprocessed in Slice 2 to [LibraryImport]) for net8+. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net462'">
+    <Compile Include="Generated/Compat/**/*.cs" />
+    <Compile Include="Support/**/*.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' != 'netstandard2.0' And '$(TargetFramework)' != 'net462'">
+    <Compile Include="Generated/Modern/**/*.cs" />
+    <Compile Include="Support/**/*.cs" />
+  </ItemGroup>
+
+  <!-- Layer 2 public surface is TFM-shared; backend divergences are guarded inside generated files. -->
+  <ItemGroup>
+    <Compile Include="Generated/Public/**/*.cs" />
+  </ItemGroup>
+
+  <!-- System.Memory polyfill for ReadOnlySpan<T> on legacy TFMs (Constitution L46). -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net462'">
+    <PackageReference Include="System.Memory" />
+  </ItemGroup>
+
+  <!-- RuntimeInformation polyfill for net462: needed by the SDL_ThreadID family
+       dual-dispatch wrapper (Slice C-A R2 structural emit). netstandard2.0 already
+       includes RuntimeInformation; net462 needs the OOB package. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net462'">
+    <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" />
+  </ItemGroup>
+
+  <!-- Layer 1 raw ABI escape valve for the AbiTests smoke project. Exposes the
+       internal SDLNative class so per-TFM runtime evidence can call SDL_ThreadID()
+       directly without promoting SDLNative to public. Constitution Layer Contract
+       (Layer 1 = internal raw ABI) preserved — only this specific test assembly
+       receives access. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Janset.SDL2.AbiTests" />
+  </ItemGroup>
+
+</Project>

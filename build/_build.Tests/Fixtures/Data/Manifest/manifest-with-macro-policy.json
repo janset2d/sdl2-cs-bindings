@@ -1,0 +1,61 @@
+{
+  "schema_version": "2.2",
+  "packaging_config": {
+    "validation_mode": "strict",
+    "core_library": "sdl2"
+  },
+  "runtimes": [
+    { "rid": "win-x64", "triplet": "x64-windows-hybrid", "runner": "windows-2025-vs2026", "container_image": null }
+  ],
+  "package_families": [
+    {
+      "name": "sdl2-core",
+      "tag_prefix": "sdl2-core",
+      "managed_project": "src/SDL2.Core/SDL2.Core.csproj",
+      "native_project": "src/native/SDL2.Core.Native/SDL2.Core.Native.csproj",
+      "library_ref": "SDL2",
+      "depends_on": [],
+      "change_paths": ["src/SDL2.Core/**"]
+    }
+  ],
+  "system_exclusions": {
+    "windows": { "system_dlls": [] },
+    "linux": { "system_libraries": [] },
+    "osx": { "system_libraries": [] }
+  },
+  "library_manifests": [
+    {
+      "name": "SDL2",
+      "vcpkg_name": "sdl2",
+      "vcpkg_version": "2.32.10",
+      "vcpkg_port_version": 0,
+      "native_lib_name": "SDL2.Core.Native",
+      "core_lib": true,
+      "primary_binaries": [],
+      "binding_generation": {
+        "enabled": true,
+        "managed_namespace": "SDL2",
+        "primary_class_name": "SDL",
+        "platform_catalog": "sdl2-core",
+        "owned_prefixes": ["SDL_"],
+        "macro_constants": {
+          "excluded": {
+            "SDL_PRIVATE_HEADER_SWITCH": {
+              "reason": "Fixture-only non-API macro exclusion.",
+              "allow_stale": true
+            }
+          },
+          "overrides": {
+            "SDL_FIXTURE_OVERRIDE": {
+              "type": "uint",
+              "value": "42u",
+              "source_header": "SDL_fixture.h",
+              "kind": "Literal",
+              "reason": "Fixture-only override."
+            }
+          }
+        }
+      }
+    }
+  ]
+}

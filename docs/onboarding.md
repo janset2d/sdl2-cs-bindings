@@ -74,7 +74,7 @@ For settled strategic decisions (versioning, packaging strategy, hybrid-static, 
 ## Non-Goals
 
 - **Not a game engine**: this is a binding/packaging layer. Engine logic belongs in Janset2D (separate future repo).
-- **Not a high-level SDL wrapper**: raw P/Invoke bindings, no OOP abstraction.
+- **Not a high-level SDL wrapper**: generated low-level bindings with typed handles and friendly overloads; no game-object OOP abstraction. Raw ABI externs are internal implementation detail.
 - **Not a tutorial project**: production infrastructure, samples will exist but documentation isn't a learning resource.
 - **Not cross-language**: C#/.NET only. No C++, Rust, or Python bindings.
 

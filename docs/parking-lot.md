@@ -14,6 +14,7 @@
 | Subdirectory | Topic | Unpark policy |
 | --- | --- | --- |
 | [`parking-lot/package-topology/`](parking-lot/package-topology/) | 3-tier role-metapackage refactor (`.<Role>` + `.Bindings` + `.Native`) | Triggers documented in [`release-strategy.md`](release-strategy.md) §Deferred Decisions; subdirectory README links to salvageable carve-outs already extracted |
+| [`parking-lot/validator-shape-standardization/`](parking-lot/validator-shape-standardization/) | `ValidationReport` vs custom `<Topic>Validation/Check/Status` split across 17 validators in `build/_build/Validation/**` | Triggers in subdirectory README; resume when a new validator needs to pick a camp, PreFlight reporter is touched, or ADR-002 validator-contract sweep opens |
 
 ## Status Legend
 

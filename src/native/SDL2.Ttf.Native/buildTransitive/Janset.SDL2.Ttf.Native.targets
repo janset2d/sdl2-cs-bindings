@@ -1,4 +1,4 @@
-﻿<Project>
+<Project>
   <!--
     Thin wrapper: contribute this package to @(_JansetSdlNativePayload) with its
     PackageRoot metadata, then import the shared common.targets that ships alongside

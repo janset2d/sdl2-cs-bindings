@@ -20,7 +20,7 @@ Active execution ledger: [phases/phase-2-adaptation-plan.md](phases/phase-2-adap
 
 ## Roadmap
 
-> **Phase sequencing reordered per [`release-strategy.md`](release-strategy.md):** Phase 4 (CppAst binding generator) is **critical path for v1.0** and lands **before** the first public `-preview.N` wave (Phase 2b PD-7). Strategic rationale + stages + promotion gates live in [`release-strategy.md`](release-strategy.md); this file remains the tactical roadmap.
+> **Phase sequencing reordered per [`release-strategy.md`](release-strategy.md):** Phase 4 binding auto-generation is **critical path for v1.0** and lands **before** the first public `-preview.N` wave (Phase 2b PD-7). The active implementation is ClangSharp + Roslyn postprocess in [`../spikes/binding-generators/`](../spikes/binding-generators/); the sunset host generator and alternative scaffold are removed, with tested salvage dormant at its existing paths pending production integration. Strategic rationale + stages + promotion gates live in [`release-strategy.md`](release-strategy.md); this file remains the tactical roadmap.
 
 ### Phase 2b — Public release tail
 
@@ -59,13 +59,23 @@ No separate phase doc per [phases/README.md](phases/README.md) retention test �
 ### Phase 4 — Binding Auto-Generation
 
 Design brief: [phases/phase-4-binding-autogen.md](phases/phase-4-binding-autogen.md).
+Binding generator constitution: [../spikes/binding-generators/docs/canonical/binding-generator-constitution.md](../spikes/binding-generators/docs/canonical/binding-generator-constitution.md) (canonical ABI/API/translation contract and manifest config-vs-policy rules).
+Binding generator roadmap: [../spikes/binding-generators/docs/canonical/binding-generator-roadmap.md](../spikes/binding-generators/docs/canonical/binding-generator-roadmap.md) (layer-based forward milestones: Layer 2 typed public API, Layer 3 friendly overloads, Production Flip, SysWM Layout + Satellite Sweep Close, Smoke Expansion, SDL3 Extension).
+Binding generator implementation notes: [../spikes/binding-generators/docs/canonical/binding-generator-implementation-notes.md](../spikes/binding-generators/docs/canonical/binding-generator-implementation-notes.md) (mechanism + classification labels + hardcoding rules).
+Binding generator maintenance: [../spikes/binding-generators/docs/canonical/binding-generator-maintenance.md](../spikes/binding-generators/docs/canonical/binding-generator-maintenance.md) (ClangSharp + Roslyn postprocess maintenance playbook).
 
-- [ ] Implement CppAst-based binding generator ([#69](https://github.com/janset2d/sdl2-cs-bindings/issues/69))
-- [ ] Migrate SDL2 bindings from imported SDL2-CS files to generated code ([#70](https://github.com/janset2d/sdl2-cs-bindings/issues/70))
+**Status (2026-05-28):** SDL2 Layer 1 raw ABI closed across Core / Image / GFX / TTF / Mixer on the active ClangSharp + Roslyn postprocess implementation at `spikes/binding-generators/clangsharp/`. Layer 2 typed public API is next. Multi-TFM compile clean (5 TFMs); five-family oracle report clean across Priority C categories. Toolchain selection effectively decided pending formal ADR-004 amendment after Layer 2 closure. `SDL_syswm.h` typed-union layout remains under the SysWM Layout milestone. SDL3 binding generation gated on PD-7.
+
+- [ ] **Stage 1 — SDL2.Core generated-core readiness**: Layer 1 raw ABI closed (current state); Layer 2 typed public API + production flip retiring `external/sdl2-cs/src/SDL2.cs` remain. ([#69](https://github.com/janset2d/sdl2-cs-bindings/issues/69))
+- [ ] **Stage 2 — SDL_syswm full union + SDL2 family sweep close + sdl2-cs retire**: SysWM Layout typed-union layout + remaining `external/sdl2-cs` production-use retirement + Pack-stage symbol-existence validator + SDL2_net addition. Satellite Layer 1 already closed for Image / GFX / TTF / Mixer. ([#70](https://github.com/janset2d/sdl2-cs-bindings/issues/70))
+
+Non-blocking polish candidate after the correctness gates: improve enum source-fidelity/readability where it is compile-safe, especially `SDL_KeyCode` members that SDL expresses as `SDL_Scancode | SDLK_SCANCODE_MASK` and small character-code literals such as `SDLK_ESCAPE`. Numeric enum values remain ABI-correct and acceptable as the fallback; this is not a committed Stage 1/2 task.
 
 ### Phase 5 — SDL3 Support
 
 Design brief: [phases/phase-5-sdl3-support.md](phases/phase-5-sdl3-support.md).
+
+**Gated on PD-7** (SDL2 real-public-release) per the binding-generator roadmap's SDL3 extension stage. The SDL3 vcpkg port + overlay triplet + transitive dependency closure work is its own substantial scope and must not block SDL2 v1.0 stable. Phase 5 plan starts after Phase 4 Stage 2 ships and PD-7 lands.
 
 - [ ] Add SDL3 bindings and native packages to monorepo ([#71](https://github.com/janset2d/sdl2-cs-bindings/issues/71))
 - [ ] Extend CI and packaging flow for SDL3 prereleases ([#72](https://github.com/janset2d/sdl2-cs-bindings/issues/72))
