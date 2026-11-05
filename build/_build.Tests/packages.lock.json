@@ -105,34 +105,6 @@
           "TUnit.Engine": "1.43.11"
         }
       },
-      "Verify.DiffPlex": {
-        "type": "Direct",
-        "requested": "[3.1.2, )",
-        "resolved": "3.1.2",
-        "contentHash": "ySaQ+MffcDfGWzBXB9UHppEGBqzl0L+2CxZcT04xQ3gugsN5AAjBPHkt75Ca61PlAeZCyty/p/Q9ZwaQjNOoTg==",
-        "dependencies": {
-          "DiffPlex": "1.7.2",
-          "Verify": "27.0.0"
-        }
-      },
-      "Verify.TUnit": {
-        "type": "Direct",
-        "requested": "[31.16.3, )",
-        "resolved": "31.16.3",
-        "contentHash": "mY5Y/LRuJt83ny5uk4G4ySWt1gikwEF02kuEsWG0tyQx8bLlJI7BrmIfhJzplX3QFIBg7R2syxqS6a6oP4mluw==",
-        "dependencies": {
-          "Argon": "0.33.5",
-          "DiffEngine": "19.2.0",
-          "SimpleInfoName": "3.2.0",
-          "TUnit.Core": "1.43.11",
-          "Verify": "31.16.3"
-        }
-      },
-      "Argon": {
-        "type": "Transitive",
-        "resolved": "0.33.5",
-        "contentHash": "J6821zxO+EqMzO9C/V5uiWc2eBGyzN7Z8Z0xq3Q1/e6IxYcHDA32OgiZX5/7/f8rVPQQa7aYtm6f0UfnrgKNBg=="
-      },
       "Autofac": {
         "type": "Transitive",
         "resolved": "9.0.0",
@@ -196,60 +168,10 @@
           "System.Diagnostics.EventLog": "6.0.0"
         }
       },
-      "ClangSharp": {
-        "type": "Transitive",
-        "resolved": "20.1.2.4",
-        "contentHash": "XtObZyqqU26yazgoUCxQLw8AFjiZLY/mc10FtEHIY/Go+pvgSFGx+Ai5IlpxolIvxlQ+WWcPA2wLvULL+L7mVA==",
-        "dependencies": {
-          "ClangSharp.Interop": "20.1.2.4"
-        }
-      },
-      "ClangSharp.Interop": {
-        "type": "Transitive",
-        "resolved": "20.1.2.4",
-        "contentHash": "OxvJ9rxNM8Uq3WNLfUh/rq+8LBnK5GVrPJsQ9kR41upX3kWhIiKgoZC3XFQzhu2HTUp86jOu9RlnAaO82s9bWg==",
-        "dependencies": {
-          "libClang": "20.1.2",
-          "libClangSharp": "20.1.2"
-        }
-      },
-      "DiffEngine": {
-        "type": "Transitive",
-        "resolved": "19.2.0",
-        "contentHash": "T6LKWC+YPNswK8hgZ+kYqsIeS75qd2loAFbyopOoLwN0zK/MIEGjKMdIIF46slQfDIveZU5Rj8Ur4lUxnXdahQ==",
-        "dependencies": {
-          "EmptyFiles": "8.18.1"
-        }
-      },
-      "DiffPlex": {
-        "type": "Transitive",
-        "resolved": "1.7.2",
-        "contentHash": "qJEjdxEDBWSFZGB8paBB9HDeJXHGlHlOXeGX3kbTuXWuOsgv2iSAEOOzo5V1/B39Vcxr9IVVrNKewRcX+rsn4g=="
-      },
-      "EmptyFiles": {
-        "type": "Transitive",
-        "resolved": "8.18.1",
-        "contentHash": "5gA7ICU+CafaHJLbrL/lOEABwkmXS6089WoCbn+NkIul2ATAGGzQsD4cXOFmYmQp6b9Jd/f4bb2EK+14dY75Pw=="
-      },
       "EnumerableAsyncProcessor": {
         "type": "Transitive",
         "resolved": "3.8.4",
         "contentHash": "KlbpupRCz3Kf+P7gsiDvFXJ980i/9lfihMZFmmxIk0Gf6mopEjy74OTJZmdaKDQpE29eQDBnMZB5khyW3eugrg=="
-      },
-      "Irony": {
-        "type": "Transitive",
-        "resolved": "1.5.3",
-        "contentHash": "wy0LlNq9Bhqy2C9O5burGCJPB9CyWuWf/JHwcnaxnM5wapPEc7uW6MBBzkymrV/pS2UwETK/0nJXzhh5Y6wv4Q=="
-      },
-      "libclang": {
-        "type": "Transitive",
-        "resolved": "20.1.2",
-        "contentHash": "1A3NeS7Ko3KOZG14BuZv0ajii1y7yBEozKgYwZSG4xzGUc8kyKyVaX0KkzVHY+/jSPKvOgUuLONGDuJn0lGfsA=="
-      },
-      "libClangSharp": {
-        "type": "Transitive",
-        "resolved": "20.1.2",
-        "contentHash": "/716OBKj0Pg3RVh9D1gTggCF0fvTJy3KtmommelcEtycqJ9tOkMKSVwHh57tADMFrxKA/b2fxXIDyoKknjhh2w=="
       },
       "LibGit2Sharp": {
         "type": "Transitive",
@@ -428,11 +350,6 @@
           "NuGet.Protocol": "7.3.0"
         }
       },
-      "SimpleInfoName": {
-        "type": "Transitive",
-        "resolved": "3.2.0",
-        "contentHash": "K8ivHRbPWfncijk62Dan/r/z55gwq3aFzqB6yFlD9X0bbpIaacHyHH2cpcIdz0FECUpERUZTwxts0z4gRWpQpA=="
-      },
       "Spectre.Console.Ansi": {
         "type": "Transitive",
         "resolved": "0.55.2",
@@ -470,32 +387,19 @@
           "TUnit.Core": "1.43.11"
         }
       },
-      "Verify": {
-        "type": "Transitive",
-        "resolved": "31.16.3",
-        "contentHash": "LFnFMnVq1l3YFGSFTYxvbwLVK/OZUZMjloHJ/hlezdXGLKBC77uZ9XK51lQJF/7wkyJoQ2xWil1OUoGEkp3HQw==",
-        "dependencies": {
-          "Argon": "0.33.5",
-          "DiffEngine": "19.2.0",
-          "SimpleInfoName": "3.2.0"
-        }
-      },
       "build": {
         "type": "Project",
         "dependencies": {
           "Cake.CMake": "[1.4.0, )",
           "Cake.Frosting": "[6.1.0, )",
           "Cake.Frosting.Git": "[5.0.1, )",
-          "CppAst": "[0.24.0, )",
           "NuGet.Frameworks": "[7.3.1, )",
           "NuGet.Protocol": "[7.3.1, )",
           "NuGet.Versioning": "[7.3.1, )",
           "Spectre.Console": "[0.55.2, )",
           "Spectre.Console.Cli": "[0.55.0, )",
           "System.CommandLine": "[2.0.0-beta4.22272.1, )",
-          "System.CommandLine.NamingConventionBinder": "[2.0.0-beta4.22272.1, )",
-          "libClangSharp.runtime.linux-x64": "[20.1.2, )",
-          "libclang.runtime.linux-x64": "[20.1.2, )"
+          "System.CommandLine.NamingConventionBinder": "[2.0.0-beta4.22272.1, )"
         }
       },
       "Cake.CMake": {
@@ -540,28 +444,6 @@
           "Cake.Core": "5.0.0",
           "LibGit2Sharp": "0.30.0"
         }
-      },
-      "CppAst": {
-        "type": "CentralTransitive",
-        "requested": "[0.24.0, )",
-        "resolved": "0.24.0",
-        "contentHash": "bKMZlo2LaLFsLOfDSBbVsu+1fI09jqmp5zIHRo0HClc+wb+Sxu0zXb5zidQhmUAlp0/ajlCsKmhLp/JRW7nRdQ==",
-        "dependencies": {
-          "ClangSharp": "20.1.2.4",
-          "Irony": "1.5.3"
-        }
-      },
-      "libclang.runtime.linux-x64": {
-        "type": "CentralTransitive",
-        "requested": "[20.1.2, )",
-        "resolved": "20.1.2",
-        "contentHash": "TslnqZKmXE17oqUSG70eJdRlI18MgxlYCu0VUTbklHJfS/WZ5PZqi3T5UlrBM/Wdavq6UpY/uN+cQc1Z0KRuHw=="
-      },
-      "libClangSharp.runtime.linux-x64": {
-        "type": "CentralTransitive",
-        "requested": "[20.1.2, )",
-        "resolved": "20.1.2",
-        "contentHash": "oxucHzVToB46VtOS9VzWrhBbFzChc28EgK+68nQNP+gxJyuyf4ccte9FNe6E+qmdUFvtATYLt004ZDQXuTuksw=="
       },
       "NuGet.Frameworks": {
         "type": "CentralTransitive",

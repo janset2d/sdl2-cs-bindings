@@ -29,16 +29,10 @@
     <PackageReference Include="TUnit" />
     <PackageReference Include="NSubstitute" />
     <PackageReference Include="Cake.Testing" />
-    <PackageReference Include="Verify.DiffPlex" />
-    <PackageReference Include="Verify.TUnit" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Fixtures\Data\**\*.json" />
-    <EmbeddedResource Include="Fixtures\Data\**\*.h" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Using Remove="VerifyTests" />
-  </ItemGroup>
 </Project>

@@ -1,4 +1,3 @@
-using Build.Data.BindingGeneration;
 using Build.Data.Harvest;
 using Build.Data.Manifest;
 using Build.Data.NativePackageMetadata;
@@ -33,10 +32,6 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IHarvestStatusRepository, HarvestStatusRepository>();
         services.AddSingleton<IHarvestManifestRepository, HarvestManifestRepository>();
         services.AddSingleton<INativePackageMetadataRepository, NativePackageMetadataRepository>();
-        services.AddSingleton<IGeneratedStampRepository, GeneratedStampRepository>();
-        services.AddSingleton<IDynapiManifestRepository, DynapiManifestRepository>();
-
-        services.AddSingleton<IBindingGenerationConfigRepository, BindingGenerationConfigRepository>();
 
         return services;
     }

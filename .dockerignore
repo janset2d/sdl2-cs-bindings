@@ -29,9 +29,6 @@ artifacts/
 vcpkg_installed/
 external/vcpkg/
 
-# Generated binding preview output — write-only bind-mount target.
-artifacts/generated-bindings-preview/
-
 # .git/ — not needed by the binding-generator image. Layer C clones vcpkg
 # directly with a pinned commit; Layer F's full repo COPY consumes only the
 # working tree.

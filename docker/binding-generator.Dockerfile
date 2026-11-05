@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 #
-# Janset SDL2 bindings — Stage 1 binding generator image.
+# Janset SDL2 — Linux x64 ABI-test image with baked vcpkg state.
 #
 # Derived from linux-builder:focal-latest (sourced via ARG BASE_IMAGE from
 # build/manifest.json runtimes[linux-x64].container_image). Bakes vcpkg state
@@ -12,7 +12,7 @@
 #   * Layer D — vcpkg manifest + overlays COPY (Layer E's full input set)
 #   * Layer E — `vcpkg install` (bakes vcpkg_installed/ + buildtrees/<port>/src/
 #               into the image; binary cache mount accelerates subsequent rebuilds)
-#   * Layer F — full repo source COPY + entrypoint registration
+#   * Layer F — full repo source COPY for explicit test commands
 #
 # Layer cache invalidation discipline matches vcpkg's own ABI key:
 #   - VCPKG_COMMIT bump  → Layer C re-runs (full vcpkg toolchain refresh)
@@ -21,9 +21,7 @@
 #   - manifest.json change → Layer D re-runs (RID/triplet metadata) → Layer E re-runs
 #   - Repo code edit     → only Layer F re-runs (vcpkg state preserved)
 #
-# Output artifact lands via bind-mount at run time (not baked into image).
-# vcpkg binary cache for run-time vcpkg invocations is not needed because the
-# container does not re-run vcpkg install at run time — see entrypoint.
+# Run explicit test commands against the workspace copied into the image.
 
 ARG BASE_IMAGE
 FROM ${BASE_IMAGE}
@@ -39,15 +37,7 @@ ENV DOTNET_ROOT=/usr/share/dotnet
 ENV DOTNET_CLI_TELEMETRY_OPTOUT=1
 ENV DOTNET_NOLOGO=1
 
-# CPATH env-var contract for libclang. NuGet libclang.runtime.linux-x64 ships
-# only libclang.so — no clang resource directory, no default sysroot detection.
-# libclang reads CPATH natively (same mechanism as the clang CLI). Paths:
-#   1. /usr/lib/gcc/x86_64-linux-gnu/11/include : compiler-shipped headers
-#      (stddef.h, stdint.h, stdarg.h, GCC SSE/AVX intrinsics — SDL2's
-#      SDL_DISABLE_*_H defines short-circuit the intrinsic-include chain
-#      so SDL_cpuinfo.h never reaches them under generator parses).
-#   2. /usr/include/x86_64-linux-gnu : glibc multiarch headers.
-#   3. /usr/include : generic system header tree.
+# Preserve compiler and system include search paths for explicit header diagnostics.
 ENV CPATH="/usr/lib/gcc/x86_64-linux-gnu/11/include:/usr/include/x86_64-linux-gnu:/usr/include"
 
 # Layer B — NuGet restore. Rebuilds only when csproj / CPM / lock / global.json change.
@@ -91,12 +81,9 @@ COPY vcpkg-overlay-triplets/ /workspace/vcpkg-overlay-triplets/
 # filesystem. There is no Docker analogue.
 #
 # DYNAPI MANIFEST REACH:
-# DynapiCoherenceValidator (post-emit Stage 1 validator) reads
-# buildtrees/sdl2/src/<dir>/src/dynapi/SDL2.exports — that file is part of
-# SDL2's extracted source tree. vcpkg writes the extracted source to
-# buildtrees/sdl2/src/<hash>.clean/ ONLY when it builds SDL2 from source. On a
-# binary-cache hit, vcpkg restores compiled artifacts to installed/ and skips
-# extraction entirely — buildtrees stays empty.
+# SDL2's extracted source supplies SDL2.exports for diagnostics and the oracle.
+# Binary-cache hits restore compiled artifacts without extracting source, so
+# preserve a manifest-pinned source tree even when buildtrees starts empty.
 #
 # Two-step solution:
 #   (1) vcpkg install runs against the binary cache (read+write). Cold cache →
@@ -161,8 +148,3 @@ RUN echo "=== dotnet ===" \
 # .github/, .claude/.
 COPY . /workspace
 WORKDIR /workspace
-
-RUN cp /workspace/docker/binding-generator-entrypoint.sh /usr/local/bin/binding-generator \
- && chmod +x /usr/local/bin/binding-generator
-
-ENTRYPOINT ["/usr/local/bin/binding-generator"]

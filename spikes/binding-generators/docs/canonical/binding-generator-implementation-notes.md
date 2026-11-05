@@ -6,7 +6,7 @@
 
 The constitution states **what** the binding generator must do — the durable ABI/API policy that any compliant implementation must honor. This document captures **how** the current implementation realizes that policy. The split exists for three reasons:
 
-- **Constitution must survive toolchain swaps.** Pure principles (e.g. "C `long` is platform-sensitive; do not collapse to `nint`/`nuint` in shared signatures") remain binding regardless of whether generation runs on ClangSharp + Roslyn postprocess, single-pass CppAst, or a future engine. Mechanism narratives (rewriter class names, RSP file paths, `family-config.json` field names) belong with the implementation, not the policy contract.
+- **Constitution must survive toolchain swaps.** Pure principles (e.g. "C `long` is platform-sensitive; do not collapse to `nint`/`nuint` in shared signatures") remain binding regardless of whether generation runs on ClangSharp + Roslyn postprocess or a future engine. Mechanism narratives (rewriter class names, RSP file paths, `family-config.json` field names) belong with the implementation, not the policy contract.
 - **Mechanism evolves on each iteration.** Iteration 2's config-surface unification (2026-05-27) consolidated 18 dispersed config sources into a single `family-config.json`; iteration N+1 will land further changes. Updating mechanism without re-litigating policy keeps the policy authority stable.
 - **Evidence is fact, not contract.** Peer-binding catalogs (ppy/SDL3-CS, Silk.NET, SDL2-CS, Alimer.Bindings.SDL), pin-set verification commands, and per-toolchain failure modes are durable for diagnostic and historical reasons but do not bind future implementations.
 

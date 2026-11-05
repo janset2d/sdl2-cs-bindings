@@ -14,9 +14,13 @@ public sealed class DynapiCoherenceValidatorTests
         var method = typeof(DynapiCoherenceValidator).GetMethod("ValidateAsync", signature);
         await Assert.That(method).IsNotNull();
         await Assert.That(method!.GetParameters().Select(parameter => parameter.ParameterType).ToArray()).IsEquivalentTo(signature, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        var interfaceMethod = typeof(IBindingFamilyValidator).GetMethod("ValidateAsync", signature);
+        await Assert.That(interfaceMethod).IsNotNull();
+        await Assert.That(interfaceMethod!.GetParameters().Select(parameter => parameter.ParameterType).ToArray())
+            .IsEquivalentTo(signature, TUnit.Assertions.Enums.CollectionOrdering.Matching);
         var validator = new DynapiCoherenceValidator(new FakeDynapiManifestRepository(Symbols("SDL_ZMissing", "SDL_Init", "SDL_AMissing")));
-        var report = await (Task<Build.Results.ValidationReport>)method.Invoke(validator,
-            [Symbols("SDL_ZLeak", "SDL_Init", "SDL_ALeak"), Sdl2CoreConfig(), CancellationToken.None])!;
+        var report = await ((IBindingFamilyValidator)validator).ValidateAsync(
+            Symbols("SDL_ZLeak", "SDL_Init", "SDL_ALeak"), Sdl2CoreConfig(), CancellationToken.None);
         var expected = new[]
         {
             ("Emitted binding references unexported symbol", Build.Results.ValidationSeverity.Error,
@@ -45,11 +49,11 @@ public sealed class DynapiCoherenceValidatorTests
     }
 
     [Test]
-    public async Task ValidateAsync_Should_Throw_When_Model_Is_Null()
+    public async Task ValidateAsync_Should_Throw_When_Emitted_Entry_Points_Are_Null()
     {
         var validator = new DynapiCoherenceValidator(new FakeDynapiManifestRepository(null));
 
-        await Assert.That(async () => await validator.ValidateAsync((Build.Targets.GenerateBindings.Model.BindingModel)null!, Sdl2CoreConfig(), CancellationToken.None))
+        await Assert.That(async () => await validator.ValidateAsync(null!, Sdl2CoreConfig(), CancellationToken.None))
             .Throws<ArgumentNullException>();
     }
 
@@ -58,7 +62,7 @@ public sealed class DynapiCoherenceValidatorTests
     {
         var validator = new DynapiCoherenceValidator(new FakeDynapiManifestRepository(null));
 
-        await Assert.That(async () => await validator.ValidateAsync(ModelWithNeutralFunctions("SDL_Init"), null!, CancellationToken.None))
+        await Assert.That(async () => await validator.ValidateAsync(Symbols("SDL_Init"), null!, CancellationToken.None))
             .Throws<ArgumentNullException>();
     }
 
@@ -69,7 +73,7 @@ public sealed class DynapiCoherenceValidatorTests
         // opts out via config.Dynapi == null and doesn't even consult the repository.
         var validator = new DynapiCoherenceValidator(new FakeDynapiManifestRepository(null));
         var config = Sdl2CoreConfig(withDynapi: false);
-        var model = ModelWithNeutralFunctions("IMG_Load");
+        var model = Symbols("IMG_Load");
 
         var report = await validator.ValidateAsync(model, config, CancellationToken.None);
 
@@ -81,7 +85,7 @@ public sealed class DynapiCoherenceValidatorTests
     public async Task ValidateAsync_Should_Pass_When_Emitted_Matches_Dynapi_Exports_Exactly()
     {
         var validator = new DynapiCoherenceValidator(new FakeDynapiManifestRepository(Symbols("SDL_Init", "SDL_Quit")));
-        var model = ModelWithNeutralFunctions("SDL_Init", "SDL_Quit");
+        var model = Symbols("SDL_Init", "SDL_Quit");
 
         var report = await validator.ValidateAsync(model, Sdl2CoreConfig(), CancellationToken.None);
 
@@ -96,7 +100,7 @@ public sealed class DynapiCoherenceValidatorTests
         // False-positive (SDL_LeakySymbol emitted but not exported) → Error under
         // Stage1Generator severity profile.
         var validator = new DynapiCoherenceValidator(new FakeDynapiManifestRepository(Symbols("SDL_Init")));
-        var model = ModelWithNeutralFunctions("SDL_Init", "SDL_LeakySymbol");
+        var model = Symbols("SDL_Init", "SDL_LeakySymbol");
 
         var report = await validator.ValidateAsync(model, Sdl2CoreConfig(), CancellationToken.None);
 
@@ -111,7 +115,7 @@ public sealed class DynapiCoherenceValidatorTests
         // False-negative (manifest declares SDL_OrphanExport, emit doesn't have it)
         // → Warning under Stage1Generator severity profile (tuning iteration tolerance).
         var validator = new DynapiCoherenceValidator(new FakeDynapiManifestRepository(Symbols("SDL_Init", "SDL_OrphanExport")));
-        var model = ModelWithNeutralFunctions("SDL_Init");
+        var model = Symbols("SDL_Init");
 
         var report = await validator.ValidateAsync(model, Sdl2CoreConfig(), CancellationToken.None);
 
@@ -124,7 +128,7 @@ public sealed class DynapiCoherenceValidatorTests
     public async Task ValidateAsync_Should_Ignore_Configured_Excluded_Functions()
     {
         var validator = new DynapiCoherenceValidator(new FakeDynapiManifestRepository(Symbols("SDL_Init", "SDL_DYNAPI_entry")));
-        var model = ModelWithNeutralFunctions("SDL_Init");
+        var model = Symbols("SDL_Init");
 
         var report = await validator.ValidateAsync(model, Sdl2CoreConfig(), CancellationToken.None);
 
@@ -139,7 +143,7 @@ public sealed class DynapiCoherenceValidatorTests
                 publicSymbols: null,
                 error: ManifestResolutionError.NotFound("/fake/glob")));
 
-        await Assert.That(async () => await validator.ValidateAsync(ModelWithNeutralFunctions("SDL_Init"), Sdl2CoreConfig(), CancellationToken.None))
+        await Assert.That(async () => await validator.ValidateAsync(Symbols("SDL_Init"), Sdl2CoreConfig(), CancellationToken.None))
             .Throws<Cake.Core.CakeException>();
     }
 }

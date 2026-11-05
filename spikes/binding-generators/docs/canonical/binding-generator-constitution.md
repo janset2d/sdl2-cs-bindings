@@ -86,7 +86,7 @@ Rules:
 - Keep those concepts target-local until a second real generator target exists. Do not promote them to root `Shared` or standalone `src/` projects for aesthetic symmetry.
 - M2 may expose an `SdlPolicy` seam while preserving SDL2.Core output. M3 owns the real profile/config boundary for SDL2 core, SDL2 satellites, SDL3 core, and SDL3 satellites.
 - Generic model-building or emission code must not accumulate ad hoc `/SDL2/`, `SDL_`, `SDL2`, or library-name checks once a named policy/profile seam exists. Add a policy collaborator instead.
-- Satellite profiles must be designed against real installed headers before generation is enabled. SDL2.Image / Mixer / Ttf mostly use SDL's `extern DECLSPEC` convention, while SDL2_gfx uses per-header `SDL2_*_SCOPE` export macros and a mixed naming surface; this is profile policy, not a reason to special-case generic CppAst processing.
+- Satellite profiles must be designed against real installed headers before generation is enabled. SDL2.Image / Mixer / Ttf mostly use SDL's `extern DECLSPEC` convention, while SDL2_gfx uses per-header `SDL2_*_SCOPE` export macros and a mixed naming surface; this is profile policy, not a reason to special-case generic AST processing.
 - `profile_id` is a manifest routing key into code-owned profile policy. It is not a behavior switch that lets JSON redefine ABI rules.
 
 ## Generation Determinism Contract

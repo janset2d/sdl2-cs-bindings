@@ -16,7 +16,7 @@ The spike is a **temporary proving ground**, not the final home. Once the ClangS
 ```
 SPIKE (Python + C# console app)           →   PRODUCTION (unified Cake C# target)
 ────────────────────────────────────          ──────────────────────────────────
-generate_bindings.py                         Unified Cake GenerateBindings target
+generate_bindings.py                         Future production generation target
   (Python orchestrator)              →         • ClangSharp tool wrapper (C#)
                                                • Postprocess rewriters inline
 postprocess/Program.cs (CLI shell)   →         (same C# rewriter classes)
@@ -30,7 +30,7 @@ rsp/*.rsp                            →       rsp/*.rsp (same files, same paths
 - C# rewriter classes (postprocess) are durable — they are the strongest candidates for promotion into a Cake target. Invest in their design.
 - Config decisions should anticipate manifest absorption as a candidate direction. `family-config.json` is data for a future M7 manifest-design review.
 - Spike config that mirrors manifest shape is **intentional**, not redundant. It provides evidence for the schema before touching the production manifest.
-- The old Cake `GenerateBindings` target (CppAst-based) is already sunset; its replacement is a deferred M7 decision.
+- The old Cake generation target is removed. Tested salvage stays dormant at its existing paths; production integration remains a separate decision.
 
 
 ## Read first
@@ -56,15 +56,14 @@ rsp/*.rsp                            →       rsp/*.rsp (same files, same paths
 
 **Direction:** ppy-style ClangSharp orchestrator (Python) **+** Microsoft.CodeAnalysis post-processor (C# console app) **+** production-shaped library projects (`Janset.SDL2.Core`, `Janset.SDL2.Image`, …) all under one `.sln`.
 
-**Why ppy-style ClangSharp over Alimer-style CppAst** (both reached compile-clean output during the spike — see comparison report):
+**Why ppy-style ClangSharp** (the dated comparison is preserved in `output/reports/iteration-2-comparison.md`):
 
 - Multi-TFM dual codegen (`compatible-codegen` + `latest-codegen`) drove the legacy-TFM gap from 474 errors to 0 in a single Python flag.
-- Owned generator surface stays small (1 Python orchestrator + 3 RSP files); structural ABI policy is shared with Cake's known-good output via the SDL2.exports dynapi (98.1% match).
-- Cake's `ModelBuilding/` ~30-file CppAst pipeline solved the same problem with much more owned code. The spike showed the same hill can be climbed with a thin wrapper + downstream post-processor.
+- Owned generator surface stays small; the dated report records the output comparison against the now-removed host generator.
 
 **What this prototype is NOT:**
 
-- Not a replacement for Cake's `GenerateBindings` until Phase 4 production flip approves it.
+- Not a production generator integration yet; the former host target is removed.
 - Not a one-script monolith — Phase 4 splits orchestration (Python) from public-API projection (Microsoft.CodeAnalysis).
 - Not Roslyn source generators — the grand plan (Constitution L41, Roadmap M7) calls for committed `.g.cs` files with `.generated-stamp` reproducibility, which is hard-coded build-time emission, not compile-time SG.
 
@@ -128,7 +127,7 @@ spikes/binding-generators/
 ## Quick commands
 
 ```pwsh
-# Single-command production generation: ClangSharp (compat + modern) × per-family + multi-OS pass + 7-step postprocess pipeline.
+# Single-command spike generation: ClangSharp (compat + modern) × per-family + multi-OS pass + 7-step postprocess pipeline.
 # Postprocess order (wired in generate_bindings.py): platform-delta → strip-varargs → libraryimport (Modern only) → flags-detect → guid-substitute → clong-dispatch → uniform-opaque.
 # Outputs land under src/Janset.SDL2.<Family>/Generated/{Compat,Modern}/ including the canonical Handles.g.cs (Pattern B).
 python spikes/binding-generators/clangsharp/generate_bindings.py --family all --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
@@ -178,16 +177,30 @@ The 7-step postprocess pipeline lands all Priority C semantic-ABI policy in a si
 
 ## Per-TFM ABI runtime smoke
 
-**AbiTests (per-TFM ABI runtime smoke):** The `spikes/binding-generators/clangsharp/tests/abi-tests` project exercises Layer 1 `SDLNative.SDL_ThreadID()` and `SDLNative.SDL_GetThreadID(SDL_Thread.Null)` runtime evidence per executable TFM (net462, net8.0, net9.0, net10.0). The csproj OS-dispatches the native lib copy: Windows pulls `vcpkg_installed/x64-windows-hybrid/bin/SDL2.dll`; Linux pulls `vcpkg_installed/x64-linux-hybrid/lib/libSDL2-2.0.so.0` (also copied as `libSDL2.so` so the .NET name fallback resolves it without ldconfig).
+**AbiTests (per-TFM ABI runtime smoke):** The `spikes/binding-generators/clangsharp/tests/abi-tests` project exercises Layer 1 `SDLNative.SDL_ThreadID()` and `SDLNative.SDL_GetThreadID(SDL_Thread.Null)` runtime evidence per executable TFM (net462, net8.0, net9.0, net10.0). It consumes Core.Native through the existing smoke feed/version contract in `build/msbuild/Janset.Local.props`; provision that package with assets for the tested RID first.
 
 Host-side Windows run covers Win32 32-bit `uint` (Compat / net462) and 32-bit CULong+LibraryImport (Modern / net8+) paths.
 
-Linux x64 64-bit CULong+LibraryImport path is exercised locally via the binding-generator Docker container (which bakes vcpkg_installed/x64-linux-hybrid into the image; see `docker/binding-generator.Dockerfile` and `tools.cs:GenerateBindingsCommand` for the build args). Command override pattern (image already built):
+Linux x64 CULong + LibraryImport ABI evidence uses the image built below. Rebuild after source changes. First provision the Core.Native package in the feed/version named by `build/msbuild/Janset.Local.props` through the existing local setup workflow. Copy that package folder into the disposable test container; source and vcpkg state stay baked in the image. No checkout bind mount, generation target or default entrypoint is used.
 
-```bash
-docker run --rm --entrypoint sh janset-binding-generator:focal-latest \
-  -c "cd /workspace/spikes/binding-generators/clangsharp/tests/abi-tests && \
-      dotnet test --project AbiTests.csproj -c Release --framework net10.0"
+```pwsh
+dotnet run --file tools.cs -- build-binding-generator-image
+if ($LASTEXITCODE -ne 0) { throw 'Image build failed.' }
+[xml]$local = Get-Content build/msbuild/Janset.Local.props -Raw
+$feed = [string]$local.Project.PropertyGroup.LocalPackageFeed
+$version = [string]$local.Project.PropertyGroup.JansetSdl2CorePackageVersion
+$container = docker create --entrypoint sh janset-binding-generator:focal-latest -c "cd /workspace/spikes/binding-generators/clangsharp/tests/abi-tests && dotnet test --project AbiTests.csproj -c Release --framework net10.0 -p:LocalPackageFeed=/feed -p:JansetSdl2CorePackageVersion=$version"
+if ($LASTEXITCODE -ne 0) { throw 'Could not create ABI test container.' }
+try {
+    docker cp "$feed/." "${container}:/feed"
+    if ($LASTEXITCODE -ne 0) { throw 'Could not copy package feed.' }
+    docker start --attach $container
+    $testExit = docker inspect --format '{{.State.ExitCode}}' $container
+    if ($LASTEXITCODE -ne 0 -or $testExit -ne '0') { throw 'ABI test container failed.' }
+}
+finally {
+    docker rm $container
+}
 ```
 
 `net8.0` / `net9.0` runtimes are not present in the container today (Dockerfile Layer A installs only the SDK pinned by `global.json` plus its bundled runtime). The Modern path is single-source so `net10.0` runtime evidence covers it. Linux ARM64, macOS x64, and macOS ARM64 RID coverage joins on the CI per-RID matrix.

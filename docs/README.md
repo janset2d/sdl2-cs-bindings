@@ -47,13 +47,12 @@ Phase 3 (SDL2 Complete — samples, meta-package, first prerelease) lives direct
 
 | Document | Purpose |
 | --- | --- |
-| [binding-autogen/README.md](binding-autogen/README.md) | Workstream index and reading order for Phase 4 binding generator strategy and research |
-| [binding-autogen/binding-generator-constitution.md](binding-autogen/binding-generator-constitution.md) | Canonical binding-generator ABI/API constitution: internal raw ABI, public typed layer, friendly overloads, C-to-C# translation, manifest config vs policy, evidence gates |
-| [binding-autogen/binding-generator-roadmap.md](binding-autogen/binding-generator-roadmap.md) | Canonical grand roadmap for safety harness, generator architecture, family profiles, raw/public/friendly emission, SDL2 production flip, satellites, smoke expansion, and SDL3 extension |
-| [binding-autogen/testing-strategy.md](binding-autogen/testing-strategy.md) | Canonical generated-binding testing strategy: build-host tests, compile checks, NativeSmoke, PackageConsumerSmoke, asset fixtures, manual diagnostics, and upstream adoption policy |
-| [parking-lot/binding-autogen-cake-implementation/](parking-lot/binding-autogen-cake-implementation/) | Archived M1/M2/M3 implementation plans for the sunset Cake-hosted CppAst generator. Preserved for git-history continuity and architectural-intent reference. |
-| [../spikes/binding-generators/](../spikes/binding-generators/) | **Active toolchain re-evaluation spike** — ClangSharp + Roslyn postprocess vs Alimer-style single-pass CppAst. Either path replaces the sunset Cake implementation. |
-| [decisions/2026-05-14-binding-autogen-toolchain.md](decisions/2026-05-14-binding-autogen-toolchain.md) | ADR-004 toolchain decision (Reopened 2026-05-23) — original CppAst reasoning; current selection happens in the spike. |
+| [../spikes/binding-generators/docs/canonical/README.md](../spikes/binding-generators/docs/canonical/README.md) | Workstream index and reading order for binding generator strategy and research |
+| [../spikes/binding-generators/docs/canonical/binding-generator-constitution.md](../spikes/binding-generators/docs/canonical/binding-generator-constitution.md) | Canonical binding-generator ABI/API constitution: internal raw ABI, public typed layer, friendly overloads, C-to-C# translation, manifest config vs policy, evidence gates |
+| [../spikes/binding-generators/docs/canonical/binding-generator-roadmap.md](../spikes/binding-generators/docs/canonical/binding-generator-roadmap.md) | Canonical roadmap for generated layers, production flip, satellites, smoke expansion, and SDL3 extension |
+| [../spikes/binding-generators/docs/canonical/testing-strategy.md](../spikes/binding-generators/docs/canonical/testing-strategy.md) | Canonical generated-binding testing strategy: dormant build-host salvage, spike compile/API/ABI gates, NativeSmoke and PackageConsumerSmoke |
+| [../spikes/binding-generators/](../spikes/binding-generators/) | **Active ClangSharp + Roslyn postprocess spike**; the sunset host generator is removed, with tested salvage dormant at its existing paths. |
+| [decisions/2026-05-14-binding-autogen-toolchain.md](decisions/2026-05-14-binding-autogen-toolchain.md) | Historical/reopened toolchain decision; current implementation is the ClangSharp spike. |
 
 ### Playbook (How-To Recipes)
 
@@ -62,7 +61,7 @@ Phase 3 (SDL2 Complete — samples, meta-package, first prerelease) lives direct
 | [playbook/local-development.md](playbook/local-development.md) | How do I clone, build, and develop locally? |
 | [playbook/local-validation.md](playbook/local-validation.md) | How do I validate the pipeline end-to-end on my host (`tools ci-sim` / `tools setup`)? |
 | [playbook/adding-new-library.md](playbook/adding-new-library.md) | How do I add a new SDL satellite library? |
-| [playbook/binding-generator-maintenance.md](playbook/binding-generator-maintenance.md) | How do I maintain generated bindings, platform macro catalogs, and stamp coherence? |
+| [../spikes/binding-generators/docs/canonical/binding-generator-maintenance.md](../spikes/binding-generators/docs/canonical/binding-generator-maintenance.md) | How do I maintain generated bindings, platform macro catalogs, and stamp coherence? |
 | [playbook/binding-output-oracle-validation.md](playbook/binding-output-oracle-validation.md) | How do I validate generated binding output against official SDL sources, peer bindings, and .NET API evidence? |
 | [playbook/overlay-management.md](playbook/overlay-management.md) | How do I work with vcpkg overlay triplets and ports? |
 | [playbook/vcpkg-update.md](playbook/vcpkg-update.md) | How do I bump the vcpkg baseline and library versions? |

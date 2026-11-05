@@ -1,7 +1,6 @@
 using Build.Data.BindingGeneration;
 using Build.Data.BindingGeneration.Models;
 using Build.Results;
-using Build.Targets.GenerateBindings.Model;
 using Cake.Core;
 
 namespace Build.Validation.BindingGeneration;
@@ -23,13 +22,6 @@ public sealed class DynapiCoherenceValidator(IDynapiManifestRepository dynapiRep
     private const string FalseNegativeCheckName = "Public SDL2 export missing from emitted bindings";
 
     public string ValidatorId => "dynapi-coherence";
-
-    public async Task<ValidationReport> ValidateAsync(BindingModel model, BindingGenerationConfig config, CancellationToken ct)
-    {
-        ArgumentNullException.ThrowIfNull(model);
-        return await ValidateAsync(model.Views.SelectMany(view => view.Functions).Select(function => function.Name)
-            .ToHashSet(StringComparer.Ordinal), config, ct).ConfigureAwait(false);
-    }
 
     public async Task<ValidationReport> ValidateAsync(IReadOnlySet<string> emittedEntryPoints, BindingGenerationConfig config, CancellationToken ct)
     {

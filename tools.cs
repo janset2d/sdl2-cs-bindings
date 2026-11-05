@@ -46,8 +46,8 @@ app.Configure(config =>
     config.AddCommand<BuildCommand>("build");
     config.AddCommand<SetupCommand>("setup");
     config.AddCommand<CiSimCommand>("ci-sim");
-    config.AddCommand<GenerateBindingsCommand>("generate-bindings")
-        .WithDescription("Generates Stage 1 SDL2.Core preview bindings inside the linux-builder container.");
+    config.AddCommand<BuildBindingGeneratorImageCommand>("build-binding-generator-image")
+        .WithDescription("Builds the Linux x64 ABI-test image with manifest-pinned vcpkg state.");
 });
 return await app.RunAsync(args);
 
@@ -533,31 +533,23 @@ public sealed class CiSimCommand : AsyncCommand<CiSimSettings>
 }
 
 // ──────────────────────────────────────────────────────────────────
-// GenerateBindings command — Stage 1 scratch loop orchestration
+// Linux x64 ABI-test image build
 // ──────────────────────────────────────────────────────────────────
 
-public sealed class GenerateBindingsSettings : CommandSettings
+public sealed class BuildBindingGeneratorImageSettings : CommandSettings
 {
     [CommandOption("--rebuild-image")]
-    [Description("Pass --no-cache to docker build, forcing full image rebuild (re-runs Layer C-F including vcpkg install).")]
+    [Description("Rebuilds all image layers without Docker layer cache.")]
     [DefaultValue(false)]
     public bool RebuildImage { get; init; }
 
-    [CommandOption("--cpus <N>")]
-    [Description("Number of CPUs to dedicate to the container (default: host CPU count). On WSL2 the real ceiling is .wslconfig [wsl2] processors=N — adjust there first if the host VM is the bottleneck.")]
-    public int? Cpus { get; init; }
-
-    [CommandOption("--memory <SIZE>")]
-    [Description("Memory limit for the container (e.g. '8g', '4096m'). Default: unlimited (host max).")]
-    public string? Memory { get; init; }
 }
 
-public sealed class GenerateBindingsCommand : AsyncCommand<GenerateBindingsSettings>
+public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindingGeneratorImageSettings>
 {
     private const string ImageTag = "janset-binding-generator:focal-latest";
-    private const string OutputRelativePath = "artifacts/generated-bindings-preview/sdl2-core";
 
-    protected override async Task<int> ExecuteAsync(CommandContext ctx, GenerateBindingsSettings settings, CancellationToken cancellationToken)
+    protected override async Task<int> ExecuteAsync(CommandContext ctx, BuildBindingGeneratorImageSettings settings, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -596,7 +588,6 @@ public sealed class GenerateBindingsCommand : AsyncCommand<GenerateBindingsSetti
         if (string.IsNullOrWhiteSpace(containerDigest))
         {
             AnsiConsole.MarkupLine("[yellow]Could not capture base image digest; continuing without audit-trail digest.[/]");
-            containerDigest = string.Empty;
         }
         else
         {
@@ -619,7 +610,7 @@ public sealed class GenerateBindingsCommand : AsyncCommand<GenerateBindingsSetti
         // [4c] Read SDL2 version from manifest. The Dockerfile's conditional
         // fallback uses this to git-clone SDL2 upstream source when vcpkg's
         // binary cache hit skips source extraction — the cloned tree provides
-        // src/dynapi/SDL2.exports for DynapiCoherenceValidator. Version must
+        // src/dynapi/SDL2.exports for explicit header diagnostics. Version must
         // match the vcpkg-baked SDL2 binary (same vcpkg_version field), so
         // sourcing it from the same manifest entry keeps them in lockstep.
         var sdl2Version = ReadSdl2VcpkgVersion(repoRoot);
@@ -669,44 +660,7 @@ public sealed class GenerateBindingsCommand : AsyncCommand<GenerateBindingsSetti
             return buildExit;
         }
 
-        // [6] Ensure host bind-mount target exists.
-        var outputDir = Path.Combine(repoRoot, OutputRelativePath);
-        Directory.CreateDirectory(outputDir);
-
-        // [7] docker run. ENTRYPOINT is binding-generator-entrypoint.sh, which
-        // runs only the GenerateBindings Cake target — vcpkg state is already
-        // baked into the image (Layer E). The bind-mount target equals the
-        // path the Cake task writes to inside the container; without matching
-        // paths, writes would land in the ephemeral container filesystem and
-        // never reach the host.
-        AnsiConsole.MarkupLine("[blue]Running GenerateBindings target inside container...[/]");
-        var cpus = settings.Cpus ?? Environment.ProcessorCount;
-        AnsiConsole.MarkupLine($"[blue]Container CPU allocation:[/] [cyan]{cpus}[/]"
-            + (settings.Memory is not null ? $" [blue]memory:[/] [cyan]{Markup.Escape(settings.Memory)}[/]" : string.Empty));
-
-        var runArgs = new List<string>
-        {
-            "run", "--rm",
-            "--cpus", cpus.ToString(CultureInfo.InvariantCulture),
-            "-v", $"{outputDir}:/workspace/{OutputRelativePath.Replace('\\', '/')}",
-            "-e", $"CONTAINER_DIGEST={containerDigest}",
-            "-e", "REPO_ROOT=/workspace",
-            "-e", "RID=linux-x64",
-        };
-        if (!string.IsNullOrWhiteSpace(settings.Memory))
-        {
-            runArgs.AddRange(["--memory", settings.Memory]);
-        }
-        runArgs.Add(ImageTag);
-
-        var runExit = await StreamRunAsync("docker", runArgs, cancellationToken);
-        if (runExit != 0)
-        {
-            AnsiConsole.MarkupLine($"[red]Container run exited with code {runExit}.[/]");
-            return runExit;
-        }
-
-        AnsiConsole.MarkupLine($"[green]Generation complete.[/] Output: [cyan]{Markup.Escape(outputDir)}[/]");
+        AnsiConsole.MarkupLine($"[green]Image build complete:[/] [cyan]{ImageTag}[/]");
         return 0;
     }
 
