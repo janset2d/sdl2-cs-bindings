@@ -66,7 +66,6 @@ public sealed class PlatformAbiTests
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Pure)]
@@ -81,7 +80,6 @@ public sealed class PlatformAbiTests
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [Category(AbiCategories.HeaderCoverage)]
     [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Pure)]
@@ -190,7 +188,7 @@ public sealed class PlatformAbiTests
     }
 
     [Test]
-    [NotInParallel(new[] { AbiParallelKeys.Error, AbiParallelKeys.SdlGlobalState })]
+    [NotInParallel(AbiParallelKeys.Error)]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.GlobalState)]
@@ -213,7 +211,7 @@ public sealed class PlatformAbiTests
     }
 
     [Test]
-    [NotInParallel(new[] { AbiParallelKeys.Error, AbiParallelKeys.SdlGlobalState })]
+    [NotInParallel(AbiParallelKeys.Error)]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.GlobalState)]

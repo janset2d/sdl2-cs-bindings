@@ -11,7 +11,6 @@ namespace Janset.SDL2.AbiTests.Upstream.Assets;
 public sealed class OwnershipFreeAbiTests
 {
     [Test]
-    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [Category(AbiCategories.Smoke)]
     [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Assets)]
@@ -31,7 +30,6 @@ public sealed class OwnershipFreeAbiTests
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [Category(AbiCategories.Smoke)]
     [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Assets)]

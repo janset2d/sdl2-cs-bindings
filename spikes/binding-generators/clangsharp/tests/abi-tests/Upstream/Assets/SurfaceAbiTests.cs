@@ -10,7 +10,6 @@ namespace Janset.SDL2.AbiTests.Upstream.Assets;
 public sealed class SurfaceAbiTests
 {
     [Test]
-    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Assets)]
@@ -36,7 +35,6 @@ public sealed class SurfaceAbiTests
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [Category(AbiCategories.Smoke)]
     [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Assets)]
@@ -53,7 +51,6 @@ public sealed class SurfaceAbiTests
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [Category(AbiCategories.HeaderCoverage)]
     [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Assets)]
@@ -71,7 +68,7 @@ public sealed class SurfaceAbiTests
     }
 
     [Test]
-    [NotInParallel(new[] { AbiParallelKeys.Error, AbiParallelKeys.SdlGlobalState })]
+    [NotInParallel(AbiParallelKeys.Error)]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.GlobalState)]
