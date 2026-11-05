@@ -4,6 +4,10 @@ description: Expose the Actions runtime environment for TUnit HTML report auto-u
 runs:
   using: composite
   steps:
+    # TUnit writes TestResults/{Assembly}-{os}-{tfm}-report.html and uploads it as a
+    # workflow artifact only when these two Actions runtime variables are visible to the
+    # test process, so no separate upload-artifact step is needed. The {os}-{tfm} part
+    # keeps per-RID reports apart in matrix jobs.
     - uses: actions/github-script@v9
       with:
         script: |

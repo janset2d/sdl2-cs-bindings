@@ -42,7 +42,10 @@ on:
     - cron: '0 4 * * 1'
 
 concurrency:
-  group: release-${{ github.ref }}
+  # A gated-off scheduled run gets its own group, so it never replaces a dispatch that
+  # is queued behind a running release; enabled runs share the per-ref group and never
+  # cancel a running release.
+  group: ${{ github.event_name == 'schedule' && vars.RELEASE_SCHEDULE_ENABLED != 'true' && format('release-skip-{0}', github.run_id) || format('release-{0}', github.ref) }}
   cancel-in-progress: false
 
 permissions:
@@ -285,7 +288,10 @@ jobs:
           submodules: recursive
       - uses: ./.github/actions/dotnet-setup
         with:
-          # Consumer smoke executes net9.0 and net8.0 alongside the repository SDK.
+          # The smoke project targets $(ExecutableTargetFrameworks); the global.json SDK
+          # covers net10.0, so the net9.0 and net8.0 TFMs need their SDKs here. net462 runs
+          # natively on Windows, is skipped on Linux and probes for Mono on macOS (Cake's
+          # PackageConsumerSmokeRunner decides); Cake also owns win-x86's x86 runtime bootstrap.
           extra-versions: |
             9.0.x
             8.0.x

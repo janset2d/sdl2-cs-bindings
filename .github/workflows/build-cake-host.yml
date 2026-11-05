@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   build:
-    name: Build + Test Cake Host (${{ inputs.runner }})
+    name: Build + Test Cake Host
     runs-on: ${{ inputs.runner }}
     steps:
       - uses: actions/checkout@v7
