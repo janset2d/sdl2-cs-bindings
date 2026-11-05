@@ -28,5 +28,13 @@ jobs:
           sparse-checkout-cone-mode: false
       - id: read
         run: |
-          echo "utility=$(jq -r '.ci_runners.utility as $rid | .runtimes[] | select(.rid == $rid) | .runner' build/manifest.json)" >> "$GITHUB_OUTPUT"
-          echo "legs=$(jq -c '[.ci_runners.os_legs[] as $rid | .runtimes[] | select(.rid == $rid) | .runner]' build/manifest.json)" >> "$GITHUB_OUTPUT"
+          if ! utility=$(jq -er '.ci_runners.utility as $rid | .runtimes[] | select(.rid == $rid) | .runner' build/manifest.json) || [[ -z "$utility" ]]; then
+            echo "::error::The manifest must resolve a non-empty utility runner."
+            exit 1
+          fi
+          if ! legs=$(jq -ec '[.ci_runners.os_legs[] as $rid | .runtimes[] | select(.rid == $rid) | .runner]' build/manifest.json) || [[ -z "$legs" || "$legs" == '[]' ]]; then
+            echo "::error::The manifest must resolve a non-empty runner legs array."
+            exit 1
+          fi
+          echo "utility=$utility" >> "$GITHUB_OUTPUT"
+          echo "legs=$legs" >> "$GITHUB_OUTPUT"
