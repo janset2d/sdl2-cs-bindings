@@ -9,6 +9,37 @@ namespace Build.Tests.Integration.QualityGates;
 public sealed partial class WorkflowRunnerGateTests
 {
     [Test]
+    public async Task ThirdPartyActions_Should_Be_Pinned_By_Sha()
+    {
+        var references = new List<string>();
+        var violations = new List<string>();
+        foreach (var path in GitHubPaths().Where(path => path.EndsWith(".yml", StringComparison.Ordinal)
+                     || path.EndsWith(".yaml", StringComparison.Ordinal)))
+        {
+            var text = RepositoryFiles.ReadText(path)!;
+            foreach (Match match in ActionUses().Matches(text))
+            {
+                var value = match.Groups["value"].Value;
+                if (value.StartsWith("./", StringComparison.Ordinal) || value.StartsWith("actions/", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var location = $"{path}:{text.AsSpan(0, match.Index).Count('\n') + 1}: {value}";
+                references.Add(location);
+                var pin = value.StartsWith("docker://", StringComparison.Ordinal) ? ImageDigest() : ActionCommit();
+                if (!pin.IsMatch(value))
+                {
+                    violations.Add(location);
+                }
+            }
+        }
+
+        await Assert.That(references).IsNotEmpty();
+        await Assert.That(violations).IsEmpty();
+    }
+
+    [Test]
     public async Task WorkflowRunnerLabels_Should_Be_Manifest_Runners()
     {
         using var manifest = ReadManifest();
@@ -146,6 +177,15 @@ public sealed partial class WorkflowRunnerGateTests
 
     [GeneratedRegex(@"(?m)^[ \t]*(?:-[ \t]+)?(?<key>runs-on|runner):[ \t]*(?<value>\[[^\]]*\]|[^\r\n#]*)", RegexOptions.None, 1000)]
     private static partial Regex RunnerField();
+
+    [GeneratedRegex(@"(?m)^[ \t]*(?:-[ \t]+)?uses:[ \t]*['""]?(?<value>[^ \t\r\n'""#]+)", RegexOptions.None, 1000)]
+    private static partial Regex ActionUses();
+
+    [GeneratedRegex(@"^[^@]+@[0-9a-fA-F]{40}$", RegexOptions.None, 1000)]
+    private static partial Regex ActionCommit();
+
+    [GeneratedRegex(@"^docker://[^@]+@sha256:[0-9a-fA-F]{64}$", RegexOptions.None, 1000)]
+    private static partial Regex ImageDigest();
 
     [GeneratedRegex(@"(?m)^[ \t]+runner:[ \t]*\r?\n(?:[ \t]+(?:type|required):[^\r\n]*\r?\n)*[ \t]+default:[ \t]*(?<value>[^\r\n#]+)", RegexOptions.None, 1000)]
     private static partial Regex RunnerDefault();
