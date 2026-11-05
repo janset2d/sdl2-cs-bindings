@@ -15,7 +15,10 @@ public sealed partial class WorkflowRunnerGateTests
         var runners = manifest.RootElement.GetProperty("runtimes").EnumerateArray()
             .Select(runtime => runtime.GetProperty("runner").GetString()!).ToArray();
 
-        foreach (var label in WorkflowLabels())
+        var labels = WorkflowLabels().ToArray();
+        await Assert.That(labels).IsNotEmpty();
+
+        foreach (var label in labels)
         {
             await Assert.That(runners).Contains(label.Value).Because(label.Key);
         }
@@ -34,21 +37,48 @@ public sealed partial class WorkflowRunnerGateTests
             .Select(label => $"{label.Key}|{label.Value}").ToArray();
         string[] expected = [$".github/workflows/runners.yml|{runner}"];
 
+        await Assert.That(literals).IsNotEmpty();
         await Assert.That(literals).IsEquivalentTo(expected, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     [Test]
     public async Task RunnerLabels_Should_Not_Use_Latest_Aliases()
     {
-        using var manifest = ReadManifest();
-        var labels = WorkflowLabels().Concat(manifest.RootElement.GetProperty("runtimes").EnumerateArray()
-            .Select(runtime => new KeyValuePair<string, string>("build/manifest.json", runtime.GetProperty("runner").GetString()!)));
-
-        foreach (var label in labels)
+        var violations = new List<string>();
+        foreach (var path in GitHubPaths().Append("build/manifest.json"))
         {
-            await Assert.That(label.Value.EndsWith("-latest", StringComparison.Ordinal)).IsFalse()
-                .Because($"{label.Key}: {label.Value}");
+            var text = RepositoryFiles.ReadText(path)!;
+            violations.AddRange(RunnerLabelScan.FindLatestAliases(text)
+                .Select(match => $"{path}:{text.AsSpan(0, match.Index).Count('\n') + 1}: {match.Value}"));
         }
+
+        await Assert.That(violations).IsEmpty();
+    }
+
+    [Test]
+    public async Task ManifestRunnerLabels_Should_Appear_Only_In_The_Runner_Bootstrap()
+    {
+        using var manifest = ReadManifest();
+        var runners = manifest.RootElement.GetProperty("runtimes").EnumerateArray()
+            .Select(runtime => runtime.GetProperty("runner").GetString()!).ToHashSet(StringComparer.Ordinal);
+        var labels = new List<string>();
+        var locations = new List<string>();
+        foreach (var path in GitHubPaths().Where(path => path != ".github/workflows/build-linux-container.yml"))
+        {
+            var text = RepositoryFiles.ReadText(path)!;
+            foreach (var match in RunnerLabelScan.FindManifestLabels(text, runners))
+            {
+                labels.Add($"{path}|{match.Value}");
+                locations.Add($"{path}:{text.AsSpan(0, match.Index).Count('\n') + 1}: {match.Value}");
+            }
+        }
+
+        var utility = manifest.RootElement.GetProperty("ci_runners").GetProperty("utility").GetString();
+        var runner = manifest.RootElement.GetProperty("runtimes").EnumerateArray()
+            .Single(runtime => runtime.GetProperty("rid").GetString() == utility).GetProperty("runner").GetString();
+        string[] expected = [$".github/workflows/runners.yml|{runner}"];
+        await Assert.That(labels).IsEquivalentTo(expected, TUnit.Assertions.Enums.CollectionOrdering.Matching)
+            .Because(string.Join(Environment.NewLine, locations));
     }
 
     [Test]
@@ -62,13 +92,24 @@ public sealed partial class WorkflowRunnerGateTests
 
         await Assert.That(rids).Contains(ci.GetProperty("utility").GetString()!);
 
-        foreach (var leg in ci.GetProperty("os_legs").EnumerateArray())
+        var legs = ci.GetProperty("os_legs").EnumerateArray().Select(leg => leg.GetString()!).ToArray();
+        await Assert.That(legs).IsNotEmpty();
+        await Assert.That(legs.Distinct(StringComparer.Ordinal).Count()).IsEqualTo(legs.Length);
+
+        foreach (var leg in legs)
         {
-            await Assert.That(rids).Contains(leg.GetString()!);
+            await Assert.That(rids).Contains(leg);
         }
+
+        string[] expected = ["linux", "osx", "win"];
+        await Assert.That(legs.Select(leg => leg.Split('-')[0]).Order(StringComparer.Ordinal).ToArray())
+            .IsEquivalentTo(expected, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     private static JsonDocument ReadManifest() => JsonDocument.Parse(RepositoryFiles.ReadText("build/manifest.json")!);
+
+    private static IEnumerable<string> GitHubPaths() => RepositoryFiles.Tracked
+        .Where(path => path.StartsWith(".github/", StringComparison.Ordinal)).Order(StringComparer.Ordinal);
 
     private static IEnumerable<KeyValuePair<string, string>> WorkflowLabels(bool runsOnOnly = false)
     {
@@ -108,4 +149,16 @@ public sealed partial class WorkflowRunnerGateTests
 
     [GeneratedRegex(@"(?m)^[ \t]+runner:[ \t]*\r?\n(?:[ \t]+(?:type|required):[^\r\n]*\r?\n)*[ \t]+default:[ \t]*(?<value>[^\r\n#]+)", RegexOptions.None, 1000)]
     private static partial Regex RunnerDefault();
+}
+
+internal static partial class RunnerLabelScan
+{
+    public static Match[] FindLatestAliases(string text) => LatestAlias().Matches(text).ToArray();
+
+    public static Match[] FindManifestLabels(string text, IReadOnlySet<string> labels) => Regex.Matches(text,
+        @"(?<![A-Za-z0-9.-])(?:" + string.Join('|', labels.Select(Regex.Escape)) + @")(?![A-Za-z0-9.-])",
+        RegexOptions.None, TimeSpan.FromSeconds(1)).ToArray();
+
+    [GeneratedRegex(@"(?i)\b(?:ubuntu|windows|macos)-[A-Za-z0-9.-]*latest[A-Za-z0-9.-]*", RegexOptions.None, 1000)]
+    private static partial Regex LatestAlias();
 }

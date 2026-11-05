@@ -4,6 +4,7 @@
 # and invoke a single Cake target for each behavior boundary.
 #
 # Current flow:
+# - runners reads the utility runner and OS legs from build/manifest.json.
 # - build-cake-host builds, tests, and publishes the Cake host artifact.
 # - resolve-versions writes artifacts/resolve-versions/versions.json.
 # - preflight validates manifest and packaging invariants against that resolved mapping.
