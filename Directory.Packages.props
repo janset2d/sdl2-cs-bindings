@@ -1,4 +1,7 @@
 <Project>
+  <PropertyGroup>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
   <ItemGroup>
     <!-- third-party analyzers -->
     <!--
@@ -24,9 +27,10 @@
     <PackageVersion Include="SecurityCodeScan.VS2019" Version="5.6.7" />
     <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.7.0.110445" />
     <!-- packages -->
-    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
     <PackageVersion Include="Cake.CMake" Version="1.4.0" />
     <PackageVersion Include="Cake.Frosting" Version="6.1.0" />
+    <!-- This pin lifts a vulnerable transitive dependency of Cake.Frosting. -->
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
     <!-- Cake.Frosting.Git: used by PackagePipeline for GitLogTip HEAD-SHA stamping (G55 native metadata). -->
     <PackageVersion Include="Cake.Frosting.Git" Version="5.0.1" />
     <PackageVersion Include="NuGet.Frameworks" Version="7.3.1" />

@@ -4,7 +4,6 @@
     <TargetFrameworks>net10.0;net9.0;net8.0;netstandard2.0;net462</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-    <LangVersion>preview</LangVersion>
     <Nullable>enable</Nullable>
     <RootNamespace>SDL2</RootNamespace>
   </PropertyGroup>
