@@ -13,7 +13,7 @@ public sealed class VcpkgPackageInfoTool(ICakeContext cakeContext) : VcpkgTool<V
     private readonly ICakeLog _log = cakeContext.Log;
 
     /// <summary>
-    /// Executes the 'vcpkg x-package-info' command and returns raw stdout.
+    /// Executes the 'vcpkg x-package-info' command and returns its stdout lines joined with LF on every OS.
     /// </summary>
     /// <param name="settings">The settings.</param>
     /// <param name="package">Package name to get info for.</param>
@@ -45,7 +45,7 @@ public sealed class VcpkgPackageInfoTool(ICakeContext cakeContext) : VcpkgTool<V
             _log.Verbose("Get the output from the command with exit code 1");
         }
 
-        return packageInfoOutputLines.Count > 0 ? string.Join(Environment.NewLine, packageInfoOutputLines) : null;
+        return packageInfoOutputLines.Count > 0 ? string.Join('\n', packageInfoOutputLines) : null;
     }
 
     /// <summary>

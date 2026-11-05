@@ -12,7 +12,7 @@ namespace Janset.SDL2.AbiTests.Upstream.GlobalState;
 public sealed class EventsAbiTests
 {
     [Test]
-    [NotInParallel(AbiParallelKeys.Events)]
+    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.GlobalState)]
@@ -29,7 +29,7 @@ public sealed class EventsAbiTests
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.Events)]
+    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.GlobalState)]
@@ -46,7 +46,7 @@ public sealed class EventsAbiTests
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.Events)]
+    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.GlobalState)]

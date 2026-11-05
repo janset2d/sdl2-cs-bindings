@@ -13,7 +13,7 @@ namespace Janset.SDL2.AbiTests.Upstream.GlobalState;
 public sealed class HintsAbiTests
 {
     [Test]
-    [NotInParallel(AbiParallelKeys.Hints)]
+    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [Category(AbiCategories.Smoke)]
     [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.GlobalState)]
@@ -26,7 +26,7 @@ public sealed class HintsAbiTests
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.Hints)]
+    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.GlobalState)]
@@ -67,7 +67,7 @@ public sealed class HintsAbiTests
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.Hints)]
+    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.GlobalState)]

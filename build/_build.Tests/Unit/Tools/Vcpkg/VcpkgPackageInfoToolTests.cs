@@ -65,6 +65,30 @@ public sealed class VcpkgPackageInfoToolTests
     }
 
     [Test]
+    public async Task GetPackageInfoJson_Should_Join_Output_Lines_With_LineFeed_When_Stdout_Has_Multiple_Lines()
+    {
+        var vcpkgRoot = new DirectoryPath("C:/repo/vcpkg");
+        var vcpkgExe = vcpkgRoot.CombineWithFilePath("vcpkg.exe");
+
+        var world = FakeCakeWorld.CreateWindows()
+            .WithBinaryFile(vcpkgExe, [])
+            .WithToolPath(vcpkgExe)
+            .WithProcessResult("vcpkg.exe", exitCode: 0, stdOut: "{\n  \"results\": {}\n}");
+        var tool = new VcpkgPackageInfoTool(world.CakeContext);
+
+        var settings = new VcpkgPackageInfoSettings(vcpkgRoot)
+        {
+            JsonOutput = true,
+        };
+
+        var output = tool.GetPackageInfoJson(settings, "sdl2:x64-windows-hybrid");
+
+        await Assert.That(output).IsNotNull();
+        await Assert.That(output!.Contains('\r', StringComparison.Ordinal)).IsFalse();
+        await Assert.That(output).IsEqualTo("{\n  \"results\": {}\n}");
+    }
+
+    [Test]
     public async Task GetPackageInfoJson_Should_Return_Null_When_Command_Produces_No_Output()
     {
         var vcpkgRoot = new DirectoryPath("C:/repo/vcpkg");

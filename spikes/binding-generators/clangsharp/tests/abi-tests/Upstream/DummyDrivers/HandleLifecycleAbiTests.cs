@@ -10,7 +10,7 @@ namespace Janset.SDL2.AbiTests.Upstream.DummyDrivers;
 public sealed class HandleLifecycleAbiTests
 {
     [Test]
-    [NotInParallel(AbiParallelKeys.Video)]
+    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [RequiresVideoDummyDriver]
     [Category(AbiCategories.Smoke)]
     [Category(AbiCategories.Mechanical)]
