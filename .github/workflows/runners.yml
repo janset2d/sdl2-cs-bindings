@@ -1,0 +1,32 @@
+# Reads the CI runner labels from build/manifest.json for every workflow that calls it.
+name: Runners (reusable)
+
+on:
+  workflow_call:
+    outputs:
+      utility:
+        value: ${{ jobs.read.outputs.utility }}
+      legs:
+        value: ${{ jobs.read.outputs.legs }}
+
+permissions:
+  contents: read
+
+jobs:
+  read:
+    name: Runner matrix
+    # runs-on is read before any step, so this one label cannot come from the manifest;
+    # WorkflowRunnerGateTests pins it to the runner of ci_runners.utility in build/manifest.json.
+    runs-on: ubuntu-24.04
+    outputs:
+      utility: ${{ steps.read.outputs.utility }}
+      legs: ${{ steps.read.outputs.legs }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: build/manifest.json
+          sparse-checkout-cone-mode: false
+      - id: read
+        run: |
+          echo "utility=$(jq -r '.ci_runners.utility as $rid | .runtimes[] | select(.rid == $rid) | .runner' build/manifest.json)" >> "$GITHUB_OUTPUT"
+          echo "legs=$(jq -c '[.ci_runners.os_legs[] as $rid | .runtimes[] | select(.rid == $rid) | .runner]' build/manifest.json)" >> "$GITHUB_OUTPUT"

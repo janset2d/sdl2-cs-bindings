@@ -56,18 +56,25 @@ env:
   VERSIONS_FILE: artifacts/resolve-versions/versions.json
 
 jobs:
+  runners:
+    if: github.event_name != 'schedule' || vars.RELEASE_SCHEDULE_ENABLED == 'true'
+    uses: ./.github/workflows/runners.yml
+
   build-cake-host:
     # Every downstream job depends on this host build, so the schedule gate skips
     # the full matrix while the repository variable is unset.
     if: github.event_name != 'schedule' || vars.RELEASE_SCHEDULE_ENABLED == 'true'
+    needs: [runners]
     uses: ./.github/workflows/build-cake-host.yml
+    with:
+      runner: ${{ needs.runners.outputs.utility }}
 
   resolve-versions:
     # Emit artifacts/resolve-versions/versions.json once so downstream jobs reuse
     # the same family/version mapping instead of resolving versions independently.
     name: Resolve Versions
-    needs: [build-cake-host]
-    runs-on: ubuntu-24.04
+    needs: [runners, build-cake-host]
+    runs-on: ${{ needs.runners.outputs.utility }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -102,8 +109,8 @@ jobs:
   preflight:
     # Validate manifest and packaging invariants against the resolved version mapping.
     name: PreFlight
-    needs: [build-cake-host, resolve-versions]
-    runs-on: ubuntu-24.04
+    needs: [runners, build-cake-host, resolve-versions]
+    runs-on: ${{ needs.runners.outputs.utility }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -127,8 +134,8 @@ jobs:
     # Emit the RID matrix from build/manifest.json. Harvest and consumer-smoke
     # both consume this output so they stay aligned on runners, triplets, and containers.
     name: Generate Matrix
-    needs: [build-cake-host]
-    runs-on: ubuntu-24.04
+    needs: [runners, build-cake-host]
+    runs-on: ${{ needs.runners.outputs.utility }}
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
@@ -211,8 +218,8 @@ jobs:
     # Download every per-RID harvest artifact, then run ConsolidateHarvest once to
     # merge cross-RID outputs and shared evidence.
     name: ConsolidateHarvest
-    needs: [build-cake-host, harvest]
-    runs-on: ubuntu-24.04
+    needs: [runners, build-cake-host, harvest]
+    runs-on: ${{ needs.runners.outputs.utility }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -242,8 +249,8 @@ jobs:
     # Package the consolidated harvest output with the resolved versions mapping.
     # The resulting nupkgs feed consumer-smoke and the disabled publish stages.
     name: Pack
-    needs: [build-cake-host, consolidate-harvest, resolve-versions]
-    runs-on: ubuntu-24.04
+    needs: [runners, build-cake-host, consolidate-harvest, resolve-versions]
+    runs-on: ${{ needs.runners.outputs.utility }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -325,9 +332,9 @@ jobs:
     # 'packages: read' default. PublishTaskRunner refuses to push 'local.*' prerelease
     # versions so a stray operator dispatch can never leak a local-pack into staging.
     name: Publish (Staging)
-    needs: [consumer-smoke]
+    needs: [runners, consumer-smoke]
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish-staging == true }}
-    runs-on: ubuntu-24.04
+    runs-on: ${{ needs.runners.outputs.utility }}
     permissions:
       contents: read
       packages: write
@@ -360,8 +367,8 @@ jobs:
   # Stays disabled until promotion-to-nuget.org logic lands.
   publish-public:
     name: Publish (Public)
-    needs: [publish-staging]
+    needs: [runners, publish-staging]
     if: false
-    runs-on: ubuntu-24.04
+    runs-on: ${{ needs.runners.outputs.utility }}
     steps:
       - run: echo "publish-public is not yet implemented."
