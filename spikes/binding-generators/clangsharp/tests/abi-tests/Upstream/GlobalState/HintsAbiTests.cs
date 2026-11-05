@@ -26,7 +26,7 @@ public sealed class HintsAbiTests
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
+    [NotInParallel]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.GlobalState)]
@@ -67,7 +67,7 @@ public sealed class HintsAbiTests
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
+    [NotInParallel]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.GlobalState)]
