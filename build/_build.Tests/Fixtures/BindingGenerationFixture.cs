@@ -137,6 +137,7 @@ public static class BindingGenerationFixture
             Kind = kind,
         };
 
+    // Model-only builders are separate from the config builders above and repository fake below.
     public static BindingModel ModelWithNeutralFunctions(params string[] functionNames) =>
         new([
             new BindingParseView(

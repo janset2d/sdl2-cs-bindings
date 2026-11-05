@@ -83,6 +83,7 @@ public sealed class GenerateBindingsTaskSnapshotTests
                 services.AddSingleton<BindingModelBuilder>();
                 services.AddSingleton<BindingEmitter>();
                 services.AddSingleton<BindingFamilyGeneration>();
+                services.AddSingleton<GeneratedOutputWriter>();
                 services.AddSingleton(Substitute.For<ILibclangVersionAsserter>());
                 services.AddSingleton(parser);
                 services.AddSingleton(configRepository);

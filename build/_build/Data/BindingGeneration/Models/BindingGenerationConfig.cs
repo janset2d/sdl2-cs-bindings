@@ -47,9 +47,8 @@ public sealed record BindingGenerationConfig
     /// plus explicitly promoted string-like macros that Stage 1 treats as core
     /// API readiness probes.
     /// Optional with empty-default; satellite placeholder entries leave it absent.
-    /// Maintenance rationale lives in
-    /// <c>docs/playbook/binding-generator-maintenance.md</c> §"Parse-time configuration
-    /// surface (per family)" alongside <c>required_functions</c>.
+    /// These declarations preserve the required surface even when a header is
+    /// deliberately excluded from parsing.
     /// </summary>
     [JsonPropertyName("required_constants")] public ImmutableList<RequiredConstantConfig> RequiredConstants { get; init; } = [];
 

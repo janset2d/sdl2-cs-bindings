@@ -3,11 +3,11 @@ using Build.Results;
 namespace Build.Validation.BindingGeneration;
 
 /// <summary>
-/// Per-stage severity policy for <see cref="BindingPublicApiCoherenceValidator"/>.
+/// Severity policies for binding/native symbol coherence checks.
 /// Different stages of the binding ↔ native coherence pipeline want different
 /// fail-closed behaviour:
 /// <list type="bullet">
-///   <item><description><b>Stage 1 GenerateBindings</b> — emit-time validation.
+///   <item><description><b>Iterative generation</b> — emit-time validation.
 ///   False-positives (sızıntı) are fail-closed (Error); false-negatives are
 ///   warnings (Warning) because Stage 1 iteratively tunes exclusion lists and
 ///   parse-view defines, and a transient under-emit can be expected during
@@ -19,7 +19,7 @@ namespace Build.Validation.BindingGeneration;
 public sealed record SeverityProfile(ValidationSeverity FalsePositiveSeverity, ValidationSeverity FalseNegativeSeverity)
 {
     /// <summary>
-    /// Stage 1 GenerateBindings task profile: fail-closed on bindings emitted
+    /// Iterative generation profile: fail-closed on bindings emitted
     /// for symbols the native does not export; warn on manifest symbols missing
     /// from the bindings.
     /// </summary>

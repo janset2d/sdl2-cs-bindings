@@ -24,6 +24,7 @@ public sealed class BindingFamilyGeneration(
     ICppAstParseRunner parseRunner,
     BindingModelBuilder modelBuilder,
     BindingEmitter emitter,
+    GeneratedOutputWriter outputWriter,
     IEnumerable<IBindingFamilyValidator> validators,
     ICakeLog log)
 {
@@ -96,7 +97,8 @@ public sealed class BindingFamilyGeneration(
         await RunFamilyValidatorsAsync(model, config, ct).ConfigureAwait(false);
 
         var fileSet = _emitter.Emit(model, BindingEmissionOptions.FromConfig(config));
-        await WriteAsync(context, fileSet, outputDirectory, ct).ConfigureAwait(false);
+        await outputWriter.WriteAsync(context.Paths.GenerateBindingsPreviewRoot, outputDirectory,
+            [.. fileSet.Files.Select(file => (file.RelativePath, file.Content))], ct).ConfigureAwait(false);
 
         _log.Information("Wrote {0} files to '{1}'.", fileSet.Files.Count, outputDirectory.FullPath);
     }
@@ -125,20 +127,7 @@ public sealed class BindingFamilyGeneration(
             .Select(kv => kv.Key)
             .ToHashSet(StringComparer.Ordinal);
 
-        var registeredIds = _validators
-            .Select(v => v.ValidatorId)
-            .ToHashSet(StringComparer.Ordinal);
-
-        var unknownIds = enabledIds
-            .Where(id => !registeredIds.Contains(id))
-            .Order(StringComparer.Ordinal)
-            .ToArray();
-        if (unknownIds.Length > 0)
-        {
-            throw new CakeException(
-                $"GenerateBindings family '{config.FamilyId}' enables unknown validator id(s): {string.Join(", ", unknownIds)}. " +
-                "Register the validator or fix build/manifest.json library_manifests[].binding_generation.validators.");
-        }
+        ValidatorIdIntegrityCheck.AssertKnown(config, _validators.Select(v => v.ValidatorId));
 
         var toRun = _validators.Where(v => enabledIds.Contains(v.ValidatorId)).ToList();
 
@@ -182,72 +171,4 @@ public sealed class BindingFamilyGeneration(
         }
     }
 
-    private static async Task WriteAsync(BuildContext context, GeneratedFileSet fileSet, DirectoryPath outputDirectory, CancellationToken ct)
-    {
-        EnsureSafeGeneratedOutputDirectory(context.Environment, context.Paths.GenerateBindingsPreviewRoot, outputDirectory);
-
-        if (context.DirectoryExists(outputDirectory))
-        {
-            ClearDirectoryContents(context, outputDirectory);
-        }
-
-        context.EnsureDirectoryExists(outputDirectory);
-
-        foreach (var file in fileSet.Files)
-        {
-            ct.ThrowIfCancellationRequested();
-
-            var targetPath = outputDirectory.CombineWithFilePath(file.RelativePath);
-            var parent = targetPath.GetDirectory();
-            context.EnsureDirectoryExists(parent);
-
-            await context.WriteAllTextAsync(targetPath, file.Content).ConfigureAwait(false);
-        }
-    }
-
-    private static void ClearDirectoryContents(BuildContext context, DirectoryPath outputDirectory)
-    {
-        var files = context.GetFiles($"{outputDirectory.FullPath}/**/*")
-            .Concat(context.GetFiles($"{outputDirectory.FullPath}/*"))
-            .DistinctBy(file => file.FullPath);
-        foreach (var file in files)
-        {
-            context.DeleteFile(file);
-        }
-
-        var directories = context.GetDirectories($"{outputDirectory.FullPath}/**/*")
-            .Concat(context.GetDirectories($"{outputDirectory.FullPath}/*"))
-            .DistinctBy(directory => directory.FullPath)
-            .OrderByDescending(directory => directory.Segments.Length)
-            .ThenByDescending(directory => directory.FullPath, StringComparer.Ordinal);
-        foreach (var directory in directories)
-        {
-            context.DeleteDirectory(directory, new DeleteDirectorySettings
-            {
-                Recursive = true,
-                Force = true,
-            });
-        }
-    }
-
-    private static void EnsureSafeGeneratedOutputDirectory(ICakeEnvironment environment, DirectoryPath previewRoot, DirectoryPath outputDirectory)
-    {
-        var root = previewRoot.MakeAbsolute(environment);
-        var candidate = outputDirectory.MakeAbsolute(environment);
-        var rootSegments = root.Segments;
-        var candidateSegments = candidate.Segments;
-
-        if (candidateSegments.Length <= rootSegments.Length)
-        {
-            throw new CakeException($"Refusing to clear generated bindings output outside '{root.FullPath}': '{candidate.FullPath}'.");
-        }
-
-        for (var i = 0; i < rootSegments.Length; i++)
-        {
-            if (!string.Equals(rootSegments[i], candidateSegments[i], StringComparison.OrdinalIgnoreCase))
-            {
-                throw new CakeException($"Refusing to clear generated bindings output outside '{root.FullPath}': '{candidate.FullPath}'.");
-            }
-        }
-    }
 }

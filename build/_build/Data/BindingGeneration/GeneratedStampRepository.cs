@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Build.Data.BindingGeneration.Models;
 using Build.Host.Cake;
 using Cake.Core;
@@ -15,6 +16,7 @@ public interface IGeneratedStampRepository
 public sealed class GeneratedStampRepository(ICakeContext context) : IGeneratedStampRepository
 {
     private readonly ICakeContext _context = context ?? throw new ArgumentNullException(nameof(context));
+    private static readonly JsonSerializerOptions StampJsonOptions = new(CakeJsonExtensions.DefaultJsonOptions) { NewLine = "\n" };
 
     public async Task<GeneratedStamp> LoadAsync(DirectoryPath outputDirectory, CancellationToken ct = default)
     {
@@ -34,7 +36,7 @@ public sealed class GeneratedStampRepository(ICakeContext context) : IGeneratedS
         ct.ThrowIfCancellationRequested();
 
         var path = GetStampPath(outputDirectory);
-        var json = _context.SerializeJson(stamp);
+        var json = _context.SerializeJson(stamp, StampJsonOptions);
         await _context.WriteAllTextAsync(path, json).ConfigureAwait(false);
     }
 

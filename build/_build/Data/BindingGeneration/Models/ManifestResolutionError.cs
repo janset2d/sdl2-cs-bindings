@@ -11,8 +11,8 @@ public sealed record ManifestResolutionError(string Reason)
         new(
             $"SDL2 dynapi manifest not found under '{globPath}'. The binding-generator container bakes vcpkg state "
             + "at image build time; CI's vcpkg-setup action caches buildtrees/sdl2/src alongside the binary cache. "
-            + "On a host dev machine the path is populated by any vcpkg install sdl2 flow (tools.cs setup, "
-            + "tools.cs generate-bindings, or direct vcpkg invocation).");
+            + "On a host dev machine the path is populated by any vcpkg install sdl2 flow (tools.cs setup "
+            + "or direct vcpkg invocation).");
 
     public static ManifestResolutionError AmbiguousGlobMatches(string globPath, string foundPaths) =>
         new(

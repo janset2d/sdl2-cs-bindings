@@ -1,4 +1,6 @@
 using Build.Targets.GenerateBindings.Emit;
+using Build.Data.BindingGeneration;
+using Build.Validation.BindingGeneration;
 using Build.Targets.GenerateBindings.HeaderSet;
 using Build.Targets.GenerateBindings.ModelBuilding;
 using Build.Targets.GenerateBindings.Parse;
@@ -18,6 +20,7 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<BindingModelBuilder>();
         services.AddSingleton<BindingEmitter>();
         services.AddSingleton<BindingFamilyGeneration>();
+        services.AddSingleton<GeneratedOutputWriter>();
 
         // Validators (IBindingPublicApiCoherenceValidator + IBindingFamilyValidator
         // implementations) live under Build.Validation.BindingGeneration and register

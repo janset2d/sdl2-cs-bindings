@@ -1,5 +1,6 @@
 using Build.Data.BindingGeneration;
 using Build.Data.BindingGeneration.Models;
+using Build.Tests.Fixtures;
 
 namespace Build.Tests.Unit.Data.BindingGeneration;
 
@@ -9,6 +10,65 @@ public sealed class DynapiManifestRepositoryTests
 
     private static readonly string[] ThreeSymbolsExpected = ["SDL_Init", "SDL_Quit", "SDL_GetError"];
     private static readonly string[] OneSymbolExpected = ["SDL_Init"];
+
+    [Test]
+    public async Task LoadAsync_Should_Return_Manifest_When_Exactly_One_File_Matches()
+    {
+        var world = FakeCakeWorld.CreateLinux().WithTextFile(
+            "external/vcpkg/buildtrees/sdl2/src/one/src/dynapi/SDL2.exports",
+            "++'_SDL_Quit'.'SDL2.dll'.'SDL_Quit'\n++'_SDL_Init'.'SDL2.dll'.'SDL_Init'");
+        var repository = new DynapiManifestRepository(world.CakeContext, world.CreateBuildContext().Paths);
+        var result = await repository.LoadAsync();
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value.PublicSymbols).Contains("SDL_Init");
+        await Assert.That(result.Value.PublicSymbols).Contains("SDL_Quit");
+        await Assert.That(result.Value.PublicSymbols.Count).IsEqualTo(2);
+        await Assert.That(result.Value.SourcePath).IsEqualTo("/repo/external/vcpkg/buildtrees/sdl2/src/one/src/dynapi/SDL2.exports");
+        await Assert.That(result.Value.Origin).IsEqualTo(DynapiManifestOrigin.VcpkgBuildtree);
+    }
+
+    [Test]
+    public async Task LoadAsync_Should_Return_NotFound_When_No_File_Matches()
+    {
+        var world = FakeCakeWorld.CreateLinux();
+        var repository = new DynapiManifestRepository(world.CakeContext, world.CreateBuildContext().Paths);
+        var result = await repository.LoadAsync();
+        await Assert.That(result.IsFailure).IsTrue();
+        await Assert.That(result.Error.Reason).IsEqualTo(
+            "SDL2 dynapi manifest not found under '/repo/external/vcpkg/buildtrees/sdl2/src/*/src/dynapi/SDL2.exports'. " +
+            "The binding-generator container bakes vcpkg state at image build time; CI's vcpkg-setup action caches buildtrees/sdl2/src alongside the binary cache. " +
+            "On a host dev machine the path is populated by any vcpkg install sdl2 flow (tools.cs setup or direct vcpkg invocation).");
+    }
+
+    [Test]
+    public async Task LoadAsync_Should_Return_AmbiguousGlobMatches_When_Two_Files_Match()
+    {
+        var world = FakeCakeWorld.CreateLinux()
+            .WithTextFile("external/vcpkg/buildtrees/sdl2/src/z/src/dynapi/SDL2.exports", "++'_SDL_Quit'.'SDL2.dll'.'SDL_Quit'")
+            .WithTextFile("external/vcpkg/buildtrees/sdl2/src/a/src/dynapi/SDL2.exports", "++'_SDL_Init'.'SDL2.dll'.'SDL_Init'");
+        var repository = new DynapiManifestRepository(world.CakeContext, world.CreateBuildContext().Paths);
+        var result = await repository.LoadAsync();
+        await Assert.That(result.IsFailure).IsTrue();
+        await Assert.That(result.Error.Reason).IsEqualTo(
+            "SDL2 dynapi manifest glob '/repo/external/vcpkg/buildtrees/sdl2/src/*/src/dynapi/SDL2.exports' matched multiple candidates: " +
+            "'/repo/external/vcpkg/buildtrees/sdl2/src/a/src/dynapi/SDL2.exports', '/repo/external/vcpkg/buildtrees/sdl2/src/z/src/dynapi/SDL2.exports'. " +
+            "This usually means a stale buildtree from a previous vcpkg pin was left on disk after a version downgrade. " +
+            "Delete the unwanted directory under external/vcpkg/buildtrees/sdl2/src/ before re-running.");
+    }
+
+    [Test]
+    public async Task LoadAsync_Should_Return_ParseFailure_When_Export_Line_Is_Malformed()
+    {
+        var world = FakeCakeWorld.CreateLinux().WithTextFile(
+            "external/vcpkg/buildtrees/sdl2/src/one/src/dynapi/SDL2.exports", "# comment\n++ malformed line");
+        var repository = new DynapiManifestRepository(world.CakeContext, world.CreateBuildContext().Paths);
+        var result = await repository.LoadAsync();
+        await Assert.That(result.IsFailure).IsTrue();
+        await Assert.That(result.Error.Reason).IsEqualTo(
+            "SDL2 dynapi manifest at '/repo/external/vcpkg/buildtrees/sdl2/src/one/src/dynapi/SDL2.exports' failed to parse: " +
+            "Dynapi manifest '/repo/external/vcpkg/buildtrees/sdl2/src/one/src/dynapi/SDL2.exports' line 2: " +
+            "export line did not match the canonical Watcom format: '++ malformed line'.");
+    }
 
     [Test]
     public async Task Parse_Should_Return_Active_Exports()

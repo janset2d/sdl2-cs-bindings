@@ -199,6 +199,7 @@ public sealed class GenerateBindingsTaskScenarioTests
                 services.AddSingleton<BindingModelBuilder>();
                 services.AddSingleton<BindingEmitter>();
                 services.AddSingleton<BindingFamilyGeneration>();
+                services.AddSingleton<GeneratedOutputWriter>();
                 services.AddSingleton(libclangAsserter ?? Substitute.For<ILibclangVersionAsserter>());
                 services.AddSingleton(parser ?? Substitute.For<ICppAstParseRunner>());
                 services.AddSingleton(repo);

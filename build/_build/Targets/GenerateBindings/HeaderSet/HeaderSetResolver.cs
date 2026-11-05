@@ -5,9 +5,7 @@ using Cake.Core.IO;
 
 namespace Build.Targets.GenerateBindings.HeaderSet;
 
-// Public because GenerateBindingsTask (sibling Cake Frosting Task convention is
-// `public sealed class XxxTask`) takes HeaderSetResolver in its ctor; CS0051
-// blocks the internal flip until the wider Task-visibility convention shifts.
+// Resolves manifest-selected headers and keeps caller-supplied supplemental inputs separate.
 public sealed class HeaderSetResolver(ICakeContext context)
 {
     private readonly ICakeContext _context = context ?? throw new ArgumentNullException(nameof(context));
@@ -19,11 +17,8 @@ public sealed class HeaderSetResolver(ICakeContext context)
     /// the manifest's <c>binding_generation.header_set</c> block is the single source
     /// of truth.
     /// <para>
-    /// The exclusion list documents itself via the manifest entries; the playbook
-    /// (<c>docs/playbook/binding-generator-maintenance.md</c> §"Header Set Resolver
-    /// Exclusions Maintenance") carries the per-category rationale (SDL.h umbrella,
-    /// pragma-pack scaffolding, satellite umbrellas, GL/GLES convenience wrappers,
-    /// SDL_test* scaffolding).
+    /// Exclusions separate family declarations from umbrella headers, pragma-pack
+    /// scaffolding, satellite umbrellas, GL/GLES convenience wrappers and test headers.
     /// </para>
     /// </summary>
     public ResolvedHeaderSet Resolve(
@@ -51,8 +46,7 @@ public sealed class HeaderSetResolver(ICakeContext context)
         // the universal prefix.
         var tripletRoot = vcpkgInstalledDirectory.Combine(triplet);
         var familyIncludeDir = tripletRoot.Combine(headerSet.IncludeDirGlob);
-        // IncludeRoot is the parent (the triplet's include/ directory) — CppAst's
-        // SystemIncludeFolders consumes this as the resolution root for transitive
+        // IncludeRoot is the parent directory used for transitive
         // <SDL2/SDL_video.h>-style header lookups.
         var includeRoot = familyIncludeDir.GetParent();
 
