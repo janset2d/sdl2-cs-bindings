@@ -7,10 +7,10 @@ using static SDL2.SDLNative;
 
 namespace Janset.SDL2.AbiTests.Upstream.DummyDrivers;
 
+[NotInParallel]
 public sealed class HandleLifecycleAbiTests
 {
     [Test]
-    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [RequiresVideoDummyDriver]
     [Category(AbiCategories.Smoke)]
     [Category(AbiCategories.Mechanical)]

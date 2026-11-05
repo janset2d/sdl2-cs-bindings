@@ -7,10 +7,10 @@ using static SDL2.SDLNative;
 
 namespace Janset.SDL2.AbiTests.Upstream.DummyDrivers;
 
+[NotInParallel]
 public sealed class AudioAbiTests
 {
     [Test]
-    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [RequiresAudioDummyDriver]
     [Category(AbiCategories.Smoke)]
     [Category(AbiCategories.Mechanical)]
@@ -24,7 +24,6 @@ public sealed class AudioAbiTests
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [RequiresAudioDummyDriver]
     [Category(AbiCategories.Smoke)]
     [Category(AbiCategories.Mechanical)]
@@ -40,7 +39,6 @@ public sealed class AudioAbiTests
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [RequiresAudioDummyDriver]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.BehaviorCoverage)]
@@ -55,7 +53,6 @@ public sealed class AudioAbiTests
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [RequiresAudioDummyDriver]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.Mechanical)]
@@ -72,7 +69,6 @@ public sealed class AudioAbiTests
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [RequiresAudioDummyDriver]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.Mechanical)]

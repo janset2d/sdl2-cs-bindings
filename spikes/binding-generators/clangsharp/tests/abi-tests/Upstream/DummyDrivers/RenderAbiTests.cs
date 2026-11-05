@@ -8,10 +8,10 @@ using static SDL2.SDLNative;
 
 namespace Janset.SDL2.AbiTests.Upstream.DummyDrivers;
 
+[NotInParallel]
 public sealed class RenderAbiTests
 {
     [Test]
-    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [RequiresVideoDummyDriver]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.BehaviorCoverage)]
@@ -26,7 +26,6 @@ public sealed class RenderAbiTests
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [RequiresVideoDummyDriver]
     [Category(AbiCategories.Smoke)]
     [Category(AbiCategories.Mechanical)]
@@ -43,7 +42,6 @@ public sealed class RenderAbiTests
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [RequiresVideoDummyDriver]
     [Category(AbiCategories.Smoke)]
     [Category(AbiCategories.BehaviorCoverage)]
@@ -66,7 +64,6 @@ public sealed class RenderAbiTests
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [RequiresVideoDummyDriver]
     [Category(AbiCategories.Smoke)]
     [Category(AbiCategories.BehaviorCoverage)]
@@ -88,7 +85,6 @@ public sealed class RenderAbiTests
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [RequiresVideoDummyDriver]
     [Category(AbiCategories.Smoke)]
     [Category(AbiCategories.BehaviorCoverage)]
