@@ -68,7 +68,7 @@ rsp/*.rsp                            →       rsp/*.rsp (same files, same paths
 - Not a one-script monolith — Phase 4 splits orchestration (Python) from public-API projection (Microsoft.CodeAnalysis).
 - Not Roslyn source generators — the grand plan (Constitution L41, Roadmap M7) calls for committed `.g.cs` files with `.generated-stamp` reproducibility, which is hard-coded build-time emission, not compile-time SG.
 
-**Alimer-style scaffold retained under `alimer-style/`** as a reference for CppAst patterns that may be useful if the ClangSharp toolchain hits a wall.
+The Alimer-style scaffold and generated compile-check output are removed; the dated comparison remains in `output/reports/iteration-2-comparison.md`.
 
 ## Layout
 
@@ -113,10 +113,7 @@ spikes/binding-generators/
 │       ├── Janset.SDL2.GFX/                         # 5 TFMs; ProjectReference -> Core
 │       ├── Janset.SDL2.TTF/                         # 5 TFMs; ProjectReference -> Core
 │       └── Janset.SDL2.Mixer/                       # 5 TFMs; ProjectReference -> Core
-├── alimer-style/                                    # RETAINED reference — single-pass CppAst raw ABI emitter
-│   └── src/Janset.Sdl2.AlimerSpike.Generator/
 ├── output/
-│   ├── alimer/                                      # Alimer-style raw ABI compile-check
 │   └── reports/                                     # evidence + decision artifacts
 │       ├── iteration-2-comparison.md                # comparison + decision-quality signal
 │       ├── clangsharp-failure-buckets.md            # bucket map + RSP delta history
