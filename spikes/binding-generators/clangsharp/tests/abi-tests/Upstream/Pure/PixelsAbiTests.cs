@@ -75,6 +75,7 @@ public sealed class PixelsAbiTests
     }
 
     [Test]
+    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [Arguments(InvalidPacked32Abgr1010103)]
     [Arguments(InvalidPacked32Abgr1010104)]
     [Category(AbiCategories.UpstreamPort)]
@@ -183,6 +184,7 @@ public sealed class PixelsAbiTests
     }
 
     [Test]
+    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [Arguments(0)]
     [Arguments(-1)]
     [Arguments(-2)]
@@ -230,6 +232,7 @@ public sealed class PixelsAbiTests
     }
 
     [Test]
+    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Pure)]
@@ -244,6 +247,7 @@ public sealed class PixelsAbiTests
     }
 
     [Test]
+    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Pure)]

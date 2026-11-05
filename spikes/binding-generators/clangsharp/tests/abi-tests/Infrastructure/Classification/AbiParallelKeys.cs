@@ -4,8 +4,8 @@ internal static class AbiParallelKeys
 {
     public const string Error = "SDL.Error";
 
-    // SDL_InitSubSystem, SDL_QuitSubSystem, hints and the SDL_*DRIVER environment variables are
-    // process-wide state, so every test that touches any of them shares one key instead of one per
-    // subsystem.
+    // SDL_InitSubSystem, SDL_QuitSubSystem, hints and the process environment are shared state.
+    // Tests that write the environment and tests whose SDL calls read it or the hint list must
+    // share this key, along with subsystem lifecycle tests.
     public const string SdlGlobalState = "SDL.GlobalState";
 }

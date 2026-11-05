@@ -14,6 +14,7 @@ public sealed class RwopsAbiTests
     private const string Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     [Test]
+    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Assets)]
@@ -52,6 +53,7 @@ public sealed class RwopsAbiTests
     }
 
     [Test]
+    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Assets)]
@@ -88,6 +90,7 @@ public sealed class RwopsAbiTests
     }
 
     [Test]
+    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Assets)]
@@ -109,6 +112,7 @@ public sealed class RwopsAbiTests
     }
 
     [Test]
+    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Assets)]
@@ -134,6 +138,7 @@ public sealed class RwopsAbiTests
     }
 
     [Test]
+    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [Category(AbiCategories.Smoke)]
     [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Assets)]
@@ -154,6 +159,7 @@ public sealed class RwopsAbiTests
     }
 
     [Test]
+    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Assets)]
@@ -195,6 +201,7 @@ public sealed class RwopsAbiTests
     }
 
     [Test]
+    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [Category(AbiCategories.Smoke)]
     [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Assets)]
@@ -217,6 +224,7 @@ public sealed class RwopsAbiTests
     }
 
     [Test]
+    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Assets)]
@@ -244,6 +252,7 @@ public sealed class RwopsAbiTests
     }
 
     [Test]
+    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Assets)]
