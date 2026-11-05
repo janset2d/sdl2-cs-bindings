@@ -1,0 +1,19 @@
+name: Cake Host
+description: Download the published Cake host and optionally print its RID-specific configuration.
+
+inputs:
+  rid:
+    description: Runtime identifier for the optional Cake Info invocation.
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/download-artifact@v8
+      with:
+        name: cake-host
+        path: ./cake-host
+    - name: Cake Info
+      if: inputs.rid != ''
+      shell: bash
+      run: dotnet ./cake-host/Build.dll --target Info --rid ${{ inputs.rid }}

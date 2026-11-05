@@ -1,0 +1,11 @@
+name: TUnit Report
+description: Expose the Actions runtime environment for TUnit HTML report auto-upload.
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/github-script@v9
+      with:
+        script: |
+          core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env['ACTIONS_RUNTIME_TOKEN']);
+          core.exportVariable('ACTIONS_RESULTS_URL', process.env['ACTIONS_RESULTS_URL']);
