@@ -1,5 +1,5 @@
-using SDL2;
 using System.Runtime.InteropServices;
+using SDL2;
 
 namespace PackageConsumer.Smoke;
 

@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.InteropServices;
 using Janset.SDL2.AbiTests.Infrastructure.Classification;
 using SDL2;
