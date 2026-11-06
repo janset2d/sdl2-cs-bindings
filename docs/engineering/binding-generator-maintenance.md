@@ -1,5 +1,7 @@
 # Binding Generator Maintenance Playbook
 
+Date: 2026-11-06
+
 > **Status:** Canonical maintenance playbook for the ClangSharp + Roslyn postprocess binding generator under `spikes/binding-generators/clangsharp/`. The former Cake-hosted CppAst generator is removed; tested salvage stays dormant at its existing paths. Restores to `docs/playbook/` at Production Flip (see roadmap §"Production Flip — SDL2.Core Reproducibility").
 
 Operational procedures for maintaining generated bindings, the `family-config.json` schema, the three-tier RSP file organization, the seven-step Roslyn postprocess pipeline, and the version-coherent toolchain pin set. Generated bindings are public API; the generator is build infrastructure that produces a contract consumers depend on. Treat every maintenance change as a public-API change until proven otherwise via the drift detection workflow in §"Drift Detection Between Versions".
@@ -329,7 +331,7 @@ Four procedures, each as a numbered checklist. The drift-detection gate (§"Drif
 
 ### 6.1 SDL2 Version Bump (e.g. 2.32.10 → 2.x.y)
 
-1. **Update the vcpkg port** (`vcpkg.json` baseline + overlay if needed). See `docs/playbook/vcpkg-update.md` for the vcpkg-side procedure.
+1. **Update the vcpkg port** (baseline + overlay if needed). [Native dependency maintenance](native-dependency-maintenance.md#baseline-and-version-update) owns the vcpkg-side procedure.
 2. **Run `tools.cs setup`** to install the new vcpkg port and refresh `vcpkg_installed/<triplet>/include/SDL2/`.
 3. **Confirm header inventory** with `ls vcpkg_installed/x64-windows-hybrid/include/SDL2/` — diff against the previous pin's listing. New `.h` files that look like real binding surface (have `extern DECLSPEC` declarations) need `headers[]` entries in `family-config.json` (and dependency-order placement); new convenience wrappers or sub-headers (no `extern DECLSPEC`) stay omitted.
 4. **Update `family-config.json`** — bump `families.core.library_version` to the new SDL2 version. **Do not modify satellite `library_version` fields unless the satellite vcpkg port also bumped.** SDL2 satellites (Image, Mixer, TTF, GFX) version independently per upstream release schedule. For an SDL2 *core* bump, only `families.core.library_version` updates. For an SDL2 *satellite* bump, only that satellite's `library_version` updates. A coordinated multi-family bump (e.g., SDL2 core + a satellite both bumped in the same vcpkg baseline update) requires per-family `library_version` edits matching each vcpkg port version.
@@ -673,7 +675,7 @@ Until Production Flip, treat any code that needs production multi-TFM compilatio
 ### Sibling Playbooks
 
 - [`docs/engineering/native-dependency-maintenance.md`](native-dependency-maintenance.md) — vcpkg overlay triplet procedure. Coupled to §"Version-Bump Procedures" 6.4 (Vcpkg Triplet Bump).
-- [`docs/playbook/vcpkg-update.md`](../playbook/vcpkg-update.md) — vcpkg baseline procedure. Coupled to §"Version-Bump Procedures" 6.1 (SDL2 Version Bump).
+- [Native dependency maintenance](native-dependency-maintenance.md#baseline-and-version-update) — vcpkg baseline procedure coupled to the SDL2 Version Bump procedure.
 
 ### ADRs
 

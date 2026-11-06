@@ -65,8 +65,8 @@ exists; dated research is evidence and may hold superseded positions.
 | Cake build host, its tests, [`tools.cs`](tools.cs) | [`build/AGENTS.md`](build/AGENTS.md), [`build-host.md`](docs/architecture/build-host.md), [ADR-0002](docs/adr/0002-target-centric-build-host.md), [ADR-0003](docs/adr/0003-build-host-data-layer.md) |
 | Build, test and slopwatch commands; completion checks; CI | [`quality-gates.md`](docs/engineering/quality-gates.md) |
 | Local setup, local feed, `ci-sim`, cross-OS validation | [`developing.md`](docs/engineering/developing.md) |
-| vcpkg, overlays, triplets, native harvest, Linux builder base | [`native-dependency-maintenance.md`](docs/engineering/native-dependency-maintenance.md) |
-| Manifest, packaging, guardrails, versioning, release | [`packaging-and-release.md`](docs/architecture/packaging-and-release.md), [`release-strategy.md`](docs/release-strategy.md), [ADR-0001](docs/adr/0001-d3seg-and-package-first.md) |
+| vcpkg, overlays, triplets, native harvest, Linux builder base | [`native-build.md`](docs/architecture/native-build.md); procedures in [`native-dependency-maintenance.md`](docs/engineering/native-dependency-maintenance.md) |
+| Manifest, packaging, guardrails, versioning, release | [`packaging-and-release.md`](docs/architecture/packaging-and-release.md), [ADR-0001](docs/adr/0001-d3seg-and-package-first.md) |
 | Binding generator, generated sources, regeneration | [`binding-generation.md`](docs/architecture/binding-generation.md), [`binding-generator-maintenance.md`](docs/engineering/binding-generator-maintenance.md) |
 | Binding API shape, type mapping, naming, ABI | [`binding-abi-policy.md`](docs/architecture/binding-abi-policy.md), ADRs [0006](docs/adr/0006-one-public-class-per-family.md)–[0009](docs/adr/0009-target-frameworks.md) |
 | Binding tests, generated-output review | [`binding-testing.md`](docs/engineering/binding-testing.md), [`binding-output-review.md`](docs/engineering/binding-output-review.md) |

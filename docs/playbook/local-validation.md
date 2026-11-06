@@ -1,5 +1,7 @@
 # Playbook: Local Validation with `tools.cs`
 
+Date: 2026-11-06
+
 > Reference for the `tools.cs` repo-root file-based .NET 10 app — the canonical dev orchestration entry point. Companion to [`developing.md`](../engineering/developing.md) (which covers fresh-clone setup, env vars, and the manual full-build fallback).
 
 ## When to Run What
@@ -86,8 +88,7 @@ Most "it failed" reports in practice are category 1 or 2.
 
 - [`developing.md`](../engineering/developing.md) — fresh-clone setup, manual full-build fallback, env vars, troubleshooting.
 - [`native-dependency-maintenance.md`](../engineering/native-dependency-maintenance.md) — vcpkg overlay triplets + ports.
-- [`vcpkg-update.md`](vcpkg-update.md) — bumping the vcpkg baseline.
-- [`adding-new-library.md`](adding-new-library.md) — adding a new SDL satellite.
+- [Native dependency maintenance](../engineering/native-dependency-maintenance.md) — baseline updates and adding a satellite.
 - [`../architecture/packaging-and-release.md`](../architecture/packaging-and-release.md) — what each pipeline stage validates.
 - `tools.cs` — the canonical implementation.
 - `tests/smoke-tests/native-smoke/README.md` — C++ NativeSmoke harness detail.

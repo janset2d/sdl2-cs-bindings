@@ -10,7 +10,7 @@ This directory contains local overrides for vcpkg ports that have upstream bugs 
 
 - **Why:** The stock vcpkg portfile disables SDL2_mixer's bundled codec alternatives (minimp3, drflac, native-midi) and couples format support to external LGPL libraries. Our LGPL-free strategy needs the bundled alternatives enabled.
 - **Tracking issue:** #84
-- **Based on upstream version:** 2.8.1#2 (vcpkg baseline `0b88aacd`)
+- **Upstream version:** read the [overlay manifest](sdl2-mixer/vcpkg.json) and [root baseline](../vcpkg.json).
 - **Changes from upstream:**
   - **vcpkg.json:** Removed LGPL features (`mpg123`, `fluidsynth`, `libflac`). Removed `libxmp` dependency from `libmodplug` feature. Added `timidity` to available features.
   - **portfile.cmake:** Force-enabled `SDL2MIXER_MP3=ON` and `SDL2MIXER_FLAC=ON` (bundled minimp3/drflac handle these). Set `SDL2MIXER_FLAC_DRFLAC=ON` (was hardcoded OFF). Set `SDL2MIXER_MIDI_NATIVE=ON` (was hardcoded OFF). Disabled LGPL backends: `SDL2MIXER_MP3_MPG123=OFF`, `SDL2MIXER_MIDI_FLUIDSYNTH=OFF`, `SDL2MIXER_MOD_XMP=OFF`.
@@ -34,7 +34,7 @@ This directory contains local overrides for vcpkg ports that have upstream bugs 
 
 - **Why:** SDL2_gfx's public headers only define `__declspec(dllexport)` on MSVC and fall back to bare `extern` on every other compiler. Combined with our hybrid overlay triplets' `-fvisibility=hidden` (set in `vcpkg-overlay-triplets/_hybrid-common.cmake` for both Linux and Darwin), every SDL2_gfx public API symbol is emitted as hidden on `libSDL2_gfx*.so` / `*.dylib`. This breaks the C++ native-smoke link step (`filledCircleRGBA` unresolved) and, more importantly, breaks C# P/Invoke at runtime on Unix — `dlsym` cannot resolve hidden symbols.
 - **Upstream issue:** None. SDL2_gfx 1.0.4 shipped in 2018 and has had no releases since; upstream is effectively abandoned.
-- **Based on upstream version:** 1.0.4#11 (vcpkg baseline `0b88aacd`)
+- **Upstream version:** read the [overlay manifest](sdl2-gfx/vcpkg.json) and [root baseline](../vcpkg.json).
 - **Files changed from upstream:** Only `003-fix-unix-visibility.patch` (new) and `portfile.cmake` (adds the new patch to the `PATCHES` list + Janset overlay comment header). All other files (`vcpkg.json`, `CMakeLists.txt`, `001-lrint-arm64.patch`, `002-use-the-lrintf-intrinsic.patch`) are byte-identical copies of the upstream port.
 - **What the patch does:** Adds a single `#elif defined(__GNUC__) && __GNUC__ >= 4` branch to each of the four public headers (`SDL2_gfxPrimitives.h`, `SDL2_framerate.h`, `SDL2_rotozoom.h`, `SDL2_imageFilter.h`) so the `SDL2_<MODULE>_SCOPE` macro resolves to `extern __attribute__((visibility("default")))` on GCC/Clang. The MSVC branch and the final `#ifndef ... extern` fallback are untouched, so Windows behavior is unchanged and older compilers still get the bare `extern` path. 8 insertions total across 4 files.
 - **Why the patch rather than a per-port triplet exception:** Disabling `-fvisibility=hidden` for sdl2-gfx at the triplet level would also expose every transitive statically-linked symbol on the dynamic satellite's export table, which is the exact failure mode the hybrid strategy's visibility rule is designed to prevent (see `vcpkg-overlay-triplets/_hybrid-common.cmake:17`). The patch is port-local, annotates only the real public API, and matches how the rest of the SDL family handles exports (SDL_image/mixer/ttf/net all use SDL's own `DECLSPEC` which already emits `visibility("default")` on GCC/Clang).
@@ -80,10 +80,8 @@ git apply --check /path/to/vcpkg-overlay-ports/{library}/your-patch.diff
 
 ### On vcpkg baseline bump
 
-1. Compare each overlay against the new upstream port: `diff -r vcpkg-overlay-ports/{port}/ external/vcpkg/ports/{port}/`
-2. If `vcpkg.json` or `portfile.cmake` changed upstream, re-sync the overlay copies
-3. If the source version changed, re-generate patches against the new pristine source using the workflow above
-4. Run `git apply --check` against the new source tarball before pushing
+Follow [Native dependency maintenance — Baseline and version update](../docs/engineering/native-dependency-maintenance.md#baseline-and-version-update).
+That guide owns the shared update procedure; this README owns port-specific differences and patch mechanics.
 
 ### On upstream fix
 
@@ -109,10 +107,9 @@ Use this when adding or updating an overlay:
 
 Keep this README current — it is the canonical registry of why each overlay exists.
 
-## Open Hardening
+## Version coherence
 
-### Overlay version drift detection (PSTH-H)
-
-Every overlay's `vcpkg.json` declares its own `"version"` (and sometimes `"port-version"`). The upstream port at the pinned vcpkg submodule commit has its own version. **No automated check today asserts they match.** When vcpkg submodule bumps advance the upstream port to a new version, our overlay can silently keep pinning the previous one — vcpkg uses the overlay version without warning.
-
-**Landed 2026-05-16.** `OverlayPortVersionCoherenceValidator` under `build/_build/Validation/Vcpkg/` runs at PreFlight, parses every `vcpkg-overlay-ports/<port>/vcpkg.json` + the matching `external/vcpkg/ports/<port>/vcpkg.json`, and fails-closed on version / port-version drift. Guardrail ID **G60** — see [`docs/architecture/packaging-and-release.md`](../docs/architecture/packaging-and-release.md) §2.4 + Stage 1 plan §PSTH-H. Applies to all overlays (`sdl2-mixer`, `sdl2-gfx`, `mpg123`).
+[OverlayPortVersionCoherenceValidator](../build/_build/Validation/Vcpkg/OverlayPortVersionCoherenceValidator.cs)
+runs at preflight and rejects version or port-version drift between each overlay and its upstream
+port at the pinned vcpkg commit. Missing counterparts and invalid manifests fail closed too.
+[Packaging and release](../docs/architecture/packaging-and-release.md#preflight-registry) owns G60.
