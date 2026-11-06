@@ -185,8 +185,8 @@ public sealed partial class DotNetRuntimeEnvironment(ICakeLog log) : IDotNetRunt
             throw new InvalidOperationException(
                 string.Create(
                     CultureInfo.CurrentCulture,
-                    $"DotNetRuntimeEnvironment: x86 runtime install for channel '{channel}' failed with exit code {process.ExitCode}.{Environment.NewLine}") +
-                stdout + Environment.NewLine + stderr);
+                    $"DotNetRuntimeEnvironment: x86 runtime install for channel '{channel}' failed with exit code {process.ExitCode}.{Environment.NewLine}" +
+                    $"{stdout}{Environment.NewLine}{stderr}"));
         }
 
         _log.Verbose(
