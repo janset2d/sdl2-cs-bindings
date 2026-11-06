@@ -7,7 +7,7 @@ namespace Build.Data.Manifest;
 
 public interface IManifestRepository
 {
-    ManifestConfig Load();
+    public ManifestConfig Load();
 }
 
 public sealed class ManifestRepository(ICakeContext context, FilePath manifestPath) : IManifestRepository

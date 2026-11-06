@@ -18,7 +18,7 @@ namespace Build.Validation.Manifest;
 /// </summary>
 public interface ICoreLibraryIdentityValidator
 {
-    CoreLibraryIdentityValidation Validate(ManifestConfig manifest);
+    public CoreLibraryIdentityValidation Validate(ManifestConfig manifest);
 }
 
 /// <inheritdoc />

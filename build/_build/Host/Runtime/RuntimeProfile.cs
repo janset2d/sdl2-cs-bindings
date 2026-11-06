@@ -5,16 +5,16 @@ namespace Build.Host.Runtime;
 
 public interface IRuntimeProfile
 {
-    string Rid { get; }
+    public string Rid { get; }
 
-    string Triplet { get; }
+    public string Triplet { get; }
 
     /// <summary>
     /// Build-host-local OS family for this runtime profile, decoupled from Cake's
     /// <c>PlatformFamily</c>. The runtime concept carries no Cake dependencies; Cake-tier
     /// code such as tools and Cake extensions reads <c>ICakePlatform.Family</c> directly.
     /// </summary>
-    RuntimeFamily Family { get; }
+    public RuntimeFamily Family { get; }
 
     /// <summary>
     /// Whether the binary at <paramref name="fileName"/> matches one of the OS-family
@@ -23,7 +23,7 @@ public interface IRuntimeProfile
     /// should pass <c>path.GetFilename().FullPath</c> here — this method takes a plain
     /// file name to keep the runtime-profile surface Cake-decoupled.
     /// </summary>
-    bool IsSystemFile(string fileName);
+    public bool IsSystemFile(string fileName);
 }
 
 public sealed class RuntimeProfile : IRuntimeProfile

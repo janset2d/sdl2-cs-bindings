@@ -13,7 +13,7 @@ namespace Build.Validation.Packaging;
 /// </summary>
 public interface IReadmeMappingTableValidator
 {
-    ValidationCheck? Validate(
+    public ValidationCheck? Validate(
         PackageFamilyConfig family,
         FilePath readmePath,
         ManifestConfig manifestConfig);

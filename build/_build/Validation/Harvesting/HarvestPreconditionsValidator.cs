@@ -14,7 +14,7 @@ namespace Build.Validation.Harvesting;
 /// </summary>
 public interface IHarvestPreconditionsValidator
 {
-    ValidationReport Validate();
+    public ValidationReport Validate();
 }
 
 public sealed class HarvestPreconditionsValidator(ICakeContext cakeContext, IPathService pathService, IRuntimeProfile runtimeProfile) : IHarvestPreconditionsValidator

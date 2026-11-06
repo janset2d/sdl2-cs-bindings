@@ -24,7 +24,7 @@ public interface IPackageOutputValidator
     /// guardrail ID in <c>Code</c> (e.g. "G21") and a human-readable behavior label in
     /// <c>Name</c>; <c>Code</c> is null for foundational checks (NuspecLoad, ProjectMetadataComplete).
     /// </summary>
-    Task<ValidationReport> ValidateAsync(
+    public Task<ValidationReport> ValidateAsync(
         PackageFamilyConfig family,
         PackageArtifacts artifacts,
         string expectedVersion,
