@@ -58,7 +58,11 @@ public sealed class DynapiCoherenceValidator(IDynapiManifestRepository dynapiRep
 
         foreach (var emitted in emittedSymbols.OrderBy(static s => s, StringComparer.Ordinal))
         {
-            if (expectedExports.Contains(emitted)) continue;
+            if (expectedExports.Contains(emitted))
+            {
+                continue;
+            }
+
             checks.Add(new ValidationCheck(
                 Name: FalsePositiveCheckName,
                 Severity: profile.FalsePositiveSeverity,
@@ -67,7 +71,11 @@ public sealed class DynapiCoherenceValidator(IDynapiManifestRepository dynapiRep
 
         foreach (var exported in expectedExports.OrderBy(static s => s, StringComparer.Ordinal))
         {
-            if (emittedSymbols.Contains(exported)) continue;
+            if (emittedSymbols.Contains(exported))
+            {
+                continue;
+            }
+
             checks.Add(new ValidationCheck(
                 Name: FalseNegativeCheckName,
                 Severity: profile.FalseNegativeSeverity,
