@@ -173,37 +173,7 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
         string vcvarsArg,
         CancellationToken ct)
     {
-        // Shell out to cmd.exe so vcvarsall.bat can set env vars in its own shell scope,
-        // then dump them via `set`. We capture stdout, parse KEY=VALUE, and diff against
-        // the current process env to emit only the delta the caller needs to merge.
-        //
-        // Quoting: outer pair around the full /c argument preserves the inner quoted
-        // vcvarsall.bat path across cmd.exe's argument lexer (classic nested-quoting
-        // trick — see the cmd.exe /s flag docs). `/s` tells cmd to preserve the outer
-        // quotes rather than strip them.
-        var commandLine = new StringBuilder();
-        commandLine
-            .Append("/s /c \"\"")
-            .Append(vcvarsBat.FullPath)
-            .Append("\" ")
-            .Append(vcvarsArg)
-            .Append(" >nul && set\"");
-
-        using var process = new Process
-        {
-            StartInfo = new ProcessStartInfo
-            {
-                FileName = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "cmd.exe"),
-                Arguments = commandLine.ToString(),
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                StandardOutputEncoding = Encoding.UTF8,
-                StandardErrorEncoding = Encoding.UTF8,
-            },
-        };
-
+        using var process = CreateEnvironmentCaptureProcess(vcvarsBat, vcvarsArg);
         process.Start();
         var stdoutTask = process.StandardOutput.ReadToEndAsync(ct);
         var stderrTask = process.StandardError.ReadToEndAsync(ct);
@@ -240,8 +210,7 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
             var key = line[..equalIndex];
             var value = line[(equalIndex + 1)..];
 
-            // Skip pseudo-variables cmd emits (e.g., "=::", "=C:") and keys containing
-            // whitespace which cannot be real env var names.
+            // cmd pseudo-variables and whitespace keys are not environment entries.
             if (key.StartsWith('=') || key.Contains(' ', StringComparison.Ordinal))
             {
                 continue;
@@ -256,5 +225,33 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
         }
 
         return delta;
+    }
+
+    private static Process CreateEnvironmentCaptureProcess(FilePath vcvarsBat, string vcvarsArg)
+    {
+        // The outer quotes preserve the quoted batch path through cmd's argument lexer.
+        var commandLine = new StringBuilder();
+        commandLine
+            .Append("/s /c \"\"")
+            .Append(vcvarsBat.FullPath)
+            .Append("\" ")
+            .Append(vcvarsArg)
+            .Append(" >nul && set\"");
+
+        return new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "cmd.exe"),
+                Arguments = commandLine.ToString(),
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                StandardOutputEncoding = Encoding.UTF8,
+                StandardErrorEncoding = Encoding.UTF8,
+            },
+        };
+
     }
 }
