@@ -157,6 +157,7 @@ public sealed class FakeCakeWorld
             : path;
 
         var dir = FileSystem.GetDirectory(fullPath.GetDirectory());
+
         if (!dir.Exists)
         {
             dir.Create();
@@ -211,6 +212,7 @@ public sealed class FakeCakeWorld
             : path;
 
         var dir = FileSystem.GetDirectory(fullPath.GetDirectory());
+
         if (!dir.Exists)
         {
             dir.Create();
@@ -278,6 +280,7 @@ public sealed class FakeCakeWorld
     public FakeCakeWorld WithToolPath(FilePath toolPath)
     {
         _toolPath = toolPath;
+
         if (!FileSystem.GetFile(toolPath).Exists)
         {
             FileSystem.CreateFile(toolPath);
@@ -296,6 +299,7 @@ public sealed class FakeCakeWorld
         ArgumentException.ThrowIfNullOrWhiteSpace(toolName);
         ArgumentNullException.ThrowIfNull(toolPath);
         _toolPathsByName[toolName] = toolPath;
+
         if (!FileSystem.GetFile(toolPath).Exists)
         {
             FileSystem.CreateFile(toolPath);
@@ -441,6 +445,7 @@ public sealed class FakeCakeWorld
         var runtimeProfile = Substitute.For<IRuntimeProfile>();
         string triplet;
         RuntimeFamily family;
+
         if (_rid.StartsWith("win", StringComparison.OrdinalIgnoreCase))
         {
             triplet = "x64-windows-hybrid";
@@ -530,6 +535,7 @@ public sealed class FakeCakeWorld
             .Returns(call =>
             {
                 var toolName = (string)call[0];
+
                 if (_toolPathsByName.TryGetValue(toolName, out var perTool))
                 {
                     return perTool;
@@ -554,6 +560,7 @@ public sealed class FakeCakeWorld
             .Returns(call =>
             {
                 var names = (IEnumerable<string>)call[0];
+
                 foreach (var n in names)
                 {
                     if (_toolPathsByName.TryGetValue(n, out var perTool))

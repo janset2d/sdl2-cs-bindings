@@ -61,6 +61,7 @@ internal static class NuspecBuilder
     public static byte[] AsNupkgZip(string nuspecEntryName, byte[] nuspecBytes)
     {
         using var memoryStream = new MemoryStream();
+
         using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, leaveOpen: true))
         {
             var entry = archive.CreateEntry(nuspecEntryName, CompressionLevel.Optimal);
