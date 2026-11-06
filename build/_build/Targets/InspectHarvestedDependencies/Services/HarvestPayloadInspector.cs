@@ -106,25 +106,25 @@ public sealed class HarvestPayloadInspector(ICakeContext cakeContext, ICakeLog l
         switch (platform)
         {
             case RuntimeFamily.Windows:
-            {
-                var output = _cakeContext.DumpbinDependents(new DumpbinDependentsSettings(primary.FullPath));
-                _log.Information("[{0}] dumpbin /dependents:{1}{2}", libraryName, Environment.NewLine, output ?? "(no output)");
-                break;
-            }
+                {
+                    var output = _cakeContext.DumpbinDependents(new DumpbinDependentsSettings(primary.FullPath));
+                    _log.Information("[{0}] dumpbin /dependents:{1}{2}", libraryName, Environment.NewLine, output ?? "(no output)");
+                    break;
+                }
 
             case RuntimeFamily.Linux:
-            {
-                var deps = _cakeContext.LddDependencies(new LddSettings(primary));
-                LogDependencyMap(libraryName, "ldd", deps);
-                break;
-            }
+                {
+                    var deps = _cakeContext.LddDependencies(new LddSettings(primary));
+                    LogDependencyMap(libraryName, "ldd", deps);
+                    break;
+                }
 
             case RuntimeFamily.OSX:
-            {
-                var deps = _cakeContext.OtoolDependencies(new OtoolSettings(primary));
-                LogDependencyMap(libraryName, "otool -L", deps);
-                break;
-            }
+                {
+                    var deps = _cakeContext.OtoolDependencies(new OtoolSettings(primary));
+                    LogDependencyMap(libraryName, "otool -L", deps);
+                    break;
+                }
 
             default:
                 throw new CakeException($"Inspect scanner dispatch does not cover platform '{platform}' (library '{libraryName}').");
