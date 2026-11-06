@@ -844,7 +844,7 @@ namespace Tools
             return null;
         }
 
-        /// <summary>Hashes sorted native inputs and the pinned vcpkg commit for cache invalidation.</summary>
+        /// <summary>Mirrors the vcpkg cache key in .github/actions/vcpkg-setup/action.yml.</summary>
         private static async Task<string> ComputeVcpkgCacheKeyAsync(string repoRoot, string vcpkgCommit)
         {
             using var ms = new MemoryStream();

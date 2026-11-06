@@ -29,7 +29,6 @@ public sealed record BindingGenerationConfig
     [JsonPropertyName("platform_catalog")] public required string PlatformCatalogId { get; init; }
     [JsonPropertyName("owned_prefixes")] public required ImmutableList<string> OwnedPrefixes { get; init; }
 
-    /// <summary>Disabled entries omit these optional settings.</summary>
     [JsonPropertyName("parse_defines")] public ImmutableList<string> ParseDefines { get; init; } = [];
     [JsonPropertyName("clang_args")] public ImmutableList<string> ClangArgs { get; init; } = [];
     [JsonPropertyName("excluded_functions")] public ImmutableHashSet<string> ExcludedFunctions { get; init; } = [];
@@ -57,7 +56,6 @@ public sealed record BindingGenerationConfig
     public ImmutableDictionary<string, DeferredDeclarationConfig> DeferredDeclarations { get; init; } = [];
     [JsonPropertyName("validators")] public ImmutableDictionary<string, bool> Validators { get; init; } = [];
 
-    /// <summary>Consumers read these nullable settings only when enabled.</summary>
     [JsonPropertyName("header_set")] public HeaderSetConfig? HeaderSet { get; init; }
     [JsonPropertyName("dynapi")] public DynapiConfig? Dynapi { get; init; }
 }

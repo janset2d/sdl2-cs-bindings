@@ -24,8 +24,10 @@ public sealed class NativePackageMetadataGenerator(IPathService pathService, INa
         ArgumentException.ThrowIfNullOrWhiteSpace(buildCommitSha);
 
         var library = manifestConfig.LibraryManifests.SingleOrDefault(candidate =>
-            string.Equals(candidate.Name, family.LibraryRef, StringComparison.OrdinalIgnoreCase)) ?? throw new InvalidOperationException(
+            string.Equals(candidate.Name, family.LibraryRef, StringComparison.OrdinalIgnoreCase))
+            ?? throw new InvalidOperationException(
                 $"Cannot generate native metadata for family '{family.Name}' because library_ref '{family.LibraryRef}' was not found in manifest library_manifests[].");
+
         var triplets = manifestConfig.Runtimes
             .Select(runtime => runtime.Triplet)
             .Where(triplet => !string.IsNullOrWhiteSpace(triplet))

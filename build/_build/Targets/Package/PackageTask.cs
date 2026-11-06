@@ -117,7 +117,8 @@ public sealed class PackageTask : AsyncFrostingTask<BuildContext>
         {
             var requestedFamily = entry.Family.Value;
             var family = manifestConfig.PackageFamilies.SingleOrDefault(candidate =>
-                string.Equals(candidate.Name, requestedFamily, StringComparison.OrdinalIgnoreCase)) ?? throw new CakeException(
+                string.Equals(candidate.Name, requestedFamily, StringComparison.OrdinalIgnoreCase))
+                ?? throw new CakeException(
                     $"Package task received unknown family '{requestedFamily}'. Add it to build/manifest.json package_families[] or fix the CLI value.");
 
             if (string.IsNullOrWhiteSpace(family.ManagedProject) || string.IsNullOrWhiteSpace(family.NativeProject))
