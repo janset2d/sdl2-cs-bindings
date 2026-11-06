@@ -99,8 +99,8 @@ Upstream prefers external codec dependencies, so bundled-codec changes may not b
 
 1. Add the port, intended features and version override in the root vcpkg manifest. Follow the codec
    policy in [native build](../architecture/native-build.md#codecs-and-attribution).
-2. Add its library metadata and primary-binary patterns to the build manifest. Add a concrete family
-   with managed/native project paths, library reference, change paths and the same-major core dependency.
+2. Add its library metadata and primary-binary patterns to the build manifest. Copy an existing
+   `package_families` entry and adapt every field, including its same-major core dependency.
    Extend the shared hybrid port matcher when a new SDL port needs dynamic linkage.
 3. Create managed and native projects following existing siblings under [src](../../src/) and
    [native](../../src/native/). Use the shared native packaging properties and consumer targets.
