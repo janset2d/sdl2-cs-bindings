@@ -443,6 +443,10 @@ dotnet_diagnostic.MA0202.severity = error
 dotnet_diagnostic.MA0203.severity = error
 
 # SECTION 11: ROSLYNATOR
+# IDE2003 owns blank lines after statement blocks.
+dotnet_diagnostic.RCS0008.severity = none
+# IDE0011 owns braces on every control-flow body.
+dotnet_diagnostic.RCS1007.severity = none
 dotnet_diagnostic.RCS1214.severity = error
 # QM-11: RCS1181 stays at suggestion until "style: collection expressions, sealing, and the remaining revived rules".
 dotnet_diagnostic.RCS1181.severity = suggestion
@@ -457,6 +461,8 @@ dotnet_diagnostic.JNS0001.severity = error
 dotnet_diagnostic.JNS0002.severity = error
 
 # SECTION 12: SONAR
+# IDE0011 owns braces on every control-flow body.
+dotnet_diagnostic.S121.severity = none
 # Unlisted rules use SonarWay defaults, escalated by TreatWarningsAsErrors.
 dotnet_diagnostic.S125.severity = suggestion
 dotnet_diagnostic.S2094.severity = suggestion

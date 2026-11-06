@@ -41,6 +41,7 @@ public sealed class ReadmeMappingTableValidator(IFileSystem fileSystem) : IReadm
         }
 
         string readmeContent;
+
         using (var stream = file.OpenRead())
         using (var reader = new StreamReader(stream))
         {

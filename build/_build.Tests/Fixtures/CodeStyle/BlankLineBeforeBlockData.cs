@@ -38,6 +38,28 @@ internal static class BlankLineBeforeBlockData
         }
     }
 
+    public static IEnumerable<(string Source, string Expected)> BoundaryBlocks()
+    {
+        var switchSection = Prefix + "\n        switch (value) { case 1: value++;\nif (value > 0) { } break; }" + Suffix;
+        var topLevel = "var x = 1;\nif (x > 0) { }";
+        var stackedUsing = Prefix + "using (var first = new System.IO.MemoryStream()) using (var second = new System.IO.MemoryStream()) { }" + Suffix;
+        var region = Prefix + "#region Block\n        if (value > 0) { }\n#endregion" + Suffix;
+        yield return (switchSection, ExpectedAt(switchSection, "if (value > 0)"));
+        yield return (topLevel, ExpectedAt(topLevel, "if (x > 0)"));
+        yield return (stackedUsing, ExpectedAt(stackedUsing, "using (var first"));
+        yield return (region, ExpectedAt(region, "if (value > 0)"));
+    }
+
+    public static IEnumerable<string> BoundaryExemptions() =>
+    [
+        Prefix + "\n        switch (value) { case 1: if (value > 0) { } break; }" + Suffix,
+        Prefix + "lock (gate) value++;" + Suffix,
+        Prefix + "#region Block\n\n        if (value > 0) { }\n#endregion" + Suffix,
+    ];
+
+    private static string ExpectedAt(string source, string marker) => string.Create(CultureInfo.InvariantCulture,
+        $"JNS0002|{source.IndexOf(marker, StringComparison.Ordinal)}|Add a blank line before a block statement");
+
     public const string FirstStatement = """
         public static class Sample
         {

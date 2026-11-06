@@ -102,7 +102,7 @@ public sealed class HarvestTask(
         {
             _statusRepo.Invalidate(library.Name);
 
-            var closure = await BuildClosureAsync(library).ConfigureAwait(false);
+            var closure = await BuildClosureOrFailHarvestAsync(library).ConfigureAwait(false);
 
             var leakReport = _leakValidator.Validate(closure, library, corePackageName, validationMode);
 
@@ -180,7 +180,7 @@ public sealed class HarvestTask(
         _reporter.FinishLibrary(library.Name, statistics);
     }
 
-    private async Task<BinaryClosure> BuildClosureAsync(LibraryManifest library)
+    private async Task<BinaryClosure> BuildClosureOrFailHarvestAsync(LibraryManifest library)
     {
         var result = await _walker.BuildClosureAsync(library).ConfigureAwait(false);
 

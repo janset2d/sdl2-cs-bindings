@@ -252,6 +252,5 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
                 StandardErrorEncoding = Encoding.UTF8,
             },
         };
-
     }
 }
