@@ -106,9 +106,9 @@ The mandatory reference matrix per phase:
 | [`adr/0002-target-centric-build-host.md`](../../adr/0002-target-centric-build-host.md) (ADR-002) | **Always** when touching `build/_build/` | Target-centric architecture is the build-host's canonical shape. New code lives under `Targets/<TargetName>/`, `Validation/`, `Data/`, `Host/`, `Results/`, `Tools/` — not legacy `Features/`, `Shared/`, `Integrations/`. |
 | [`adr/0003-build-host-data-layer.md`](../../adr/0003-build-host-data-layer.md) (ADR-003) | When touching `build/_build/Data/` (manifest models, repositories, version files) | Contract-centric data layer — adapters live under `Data/<Contract>/`. |
 | [`adr/0001-d3seg-and-package-first.md`](../../adr/0001-d3seg-and-package-first.md) (ADR-001) | Phase 4+ (versioning + packaging surface) and Phase 6 (supersede) | D-3seg + family-lock + package-first consumer contract. This refactor preserves D-3seg + family-lock; Phase 6 supersedes ADR-001 with a successor encoding the role-metapackage topology. |
-| [`knowledge-base/release-guardrails.md`](../../knowledge-base/release-guardrails.md) | Whenever touching a guardrail (G-numbered behavior) | Single map of every guardrail this project commits to. Use behavior-first language; final ID assignments happen in Phase 6 against this catalog. |
-| [`knowledge-base/testing-guidelines.md`](../../knowledge-base/testing-guidelines.md) | **Always** when writing tests | Canonical test infra (`FakeCakeWorld`, `TargetTestHost`, `FixtureLoader`), filesystem rule (no `System.IO`, no `AppContext.BaseDirectory` traversal), test data policy (embedded fixtures vs centralized inline), test taxonomy, TUnit rules. |
-| [`knowledge-base/extraction-guidelines.md`](../../knowledge-base/extraction-guidelines.md) | Whenever extracting a collaborator or making interface-vs-class decisions | Private-method decision tree, interface discipline, anti-patterns. |
+| [`architecture/packaging-and-release.md`](../../architecture/packaging-and-release.md) | Whenever touching a guardrail (G-numbered behavior) | Single map of every guardrail this project commits to. Use behavior-first language; final ID assignments happen in Phase 6 against this catalog. |
+| [`engineering/testing-style.md`](../../engineering/testing-style.md) | **Always** when writing tests | Canonical test infra (`FakeCakeWorld`, `TargetTestHost`, `FixtureLoader`), filesystem rule (no `System.IO`, no `AppContext.BaseDirectory` traversal), test data policy (embedded fixtures vs centralized inline), test taxonomy, TUnit rules. |
+| [`engineering/coding-style.md`](../../engineering/coding-style.md) | Whenever extracting a collaborator or making interface-vs-class decisions | Private-method decision tree, interface discipline, anti-patterns. |
 | [`AGENTS.md` §Build-Host Reference Pattern](../../../AGENTS.md) | Whenever modifying Cake task surface | Tasks are not pass-through shells, requests earned but standard, no catch-all Shared, Cake nativeness at build boundaries, behavior-first names not guardrail IDs in code. |
 
 A phase plan that touches both build-host code and tests references ADR-002 + testing-guidelines.md + AGENTS.md as a minimum. Implementing agents are expected to **read those documents before coding**, not after.
@@ -123,7 +123,7 @@ This convention applies retroactively to [`strategy-brief.md`](strategy-brief.md
 - [`../../adr/0002-target-centric-build-host.md`](../../adr/0002-target-centric-build-host.md) — ADR-002 build-host architecture
 - [`../../adr/0003-build-host-data-layer.md`](../../adr/0003-build-host-data-layer.md) — ADR-003 data layer
 - [`../../adr/0001-d3seg-and-package-first.md`](../../adr/0001-d3seg-and-package-first.md) — ADR-001 D-3seg + package-first (to be superseded in Phase 6)
-- [`../../knowledge-base/release-guardrails.md`](../../knowledge-base/release-guardrails.md) — guardrail catalog
-- [`../../knowledge-base/testing-guidelines.md`](../../knowledge-base/testing-guidelines.md) — canonical test infra and fixture data policy
-- [`../../knowledge-base/extraction-guidelines.md`](../../knowledge-base/extraction-guidelines.md) — collaborator extraction policy
+- [`../../architecture/packaging-and-release.md`](../../architecture/packaging-and-release.md) — guardrail catalog
+- [`../../engineering/testing-style.md`](../../engineering/testing-style.md) — canonical test infra and fixture data policy
+- [`../../engineering/coding-style.md`](../../engineering/coding-style.md) — collaborator extraction policy
 - [`../../../AGENTS.md`](../../../AGENTS.md) — operating rules, approval gates, settled decisions, build-host reference pattern

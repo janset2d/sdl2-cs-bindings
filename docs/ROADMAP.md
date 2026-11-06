@@ -16,7 +16,7 @@ Current status:
 
 **Phase 2: CI/CD & Packaging — IN PROGRESS.** Core surface is landed (`release.yml` + Cake build host + `tools.cs`). Phase 2b tail = nuget.org promotion (PD-7), release-recovery playbook (PD-8), and the four scope-assumption gaps surfaced in 2026-05-01 rehearsals.
 
-**Phase X / build-host refactor — CLOSED 2026-05-10.** The settled build-host architecture now lives in [`ADR-002`](adr/0002-target-centric-build-host.md) and [`ADR-003`](adr/0003-build-host-data-layer.md). Durable day-to-day rules live in [`knowledge-base/testing-guidelines.md`](knowledge-base/testing-guidelines.md) and [`knowledge-base/extraction-guidelines.md`](knowledge-base/extraction-guidelines.md). Migration-era notes were retired after test-infrastructure consolidation.
+**Phase X / build-host refactor — CLOSED 2026-05-10.** The settled build-host architecture now lives in [`ADR-002`](adr/0002-target-centric-build-host.md) and [`ADR-003`](adr/0003-build-host-data-layer.md). Durable day-to-day rules live in [`engineering/testing-style.md`](engineering/testing-style.md) and [`engineering/coding-style.md`](engineering/coding-style.md). Migration-era notes were retired after test-infrastructure consolidation.
 
 Active execution ledger: [phases/phase-2-adaptation-plan.md](phases/phase-2-adaptation-plan.md) (Phase 2b).
 
@@ -90,7 +90,7 @@ Design brief: [phases/phase-5-sdl3-support.md](phases/phase-5-sdl3-support.md).
 
 Closed 2026-05-10. The build host now follows [`ADR-002`](adr/0002-target-centric-build-host.md) and [`ADR-003`](adr/0003-build-host-data-layer.md); the remaining work is post-refactor hardening, not architecture migration.
 
-**Canonical docs:** [`adr/0002-target-centric-build-host.md`](adr/0002-target-centric-build-host.md), [`adr/0003-build-host-data-layer.md`](adr/0003-build-host-data-layer.md), [`knowledge-base/testing-guidelines.md`](knowledge-base/testing-guidelines.md), [`knowledge-base/extraction-guidelines.md`](knowledge-base/extraction-guidelines.md).
+**Canonical docs:** [`adr/0002-target-centric-build-host.md`](adr/0002-target-centric-build-host.md), [`adr/0003-build-host-data-layer.md`](adr/0003-build-host-data-layer.md), [`engineering/testing-style.md`](engineering/testing-style.md), [`engineering/coding-style.md`](engineering/coding-style.md).
 
 **Post-refactor hardening:** tracked in [`post-refactor-cleanup-plan.md`](post-refactor-cleanup-plan.md) — correctness gaps, style sweep, deferred extractions, test debt, UX polish. When all checkboxes resolve there, that file retires and any survivors fold back here.
 
@@ -137,7 +137,7 @@ SDL3 vcpkg availability: SDL3 3.4.4, SDL3_image 3.4.2, SDL3_mixer 3.2.0#1, SDL3_
 - **Operating rules**: [`AGENTS.md`](../AGENTS.md), [`docs/onboarding.md`](onboarding.md)
 - **Phase docs**: [phases/](phases/) — Phase 2 active ledger + Phase 4/5 design briefs
 - **Architecture decisions**: [adr/](adr/) — ADR-001 (D-3seg + package-first), ADR-002 (target-centric build-host), ADR-003 (contract-centric data layer)
-- **Guardrails**: [knowledge-base/release-guardrails.md](knowledge-base/release-guardrails.md)
+- **Guardrails**: [architecture/packaging-and-release.md](architecture/packaging-and-release.md)
 - **How-to recipes**: [playbook/](playbook/)
 - **Design rationale**: [research/](research/)
 - **Deferred ideas**: [parking-lot.md](parking-lot.md), [parking-lot/](parking-lot/)

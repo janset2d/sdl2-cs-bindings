@@ -2,7 +2,7 @@
 
 Harness-neutral entry point for coding agents in this repository. It holds the rules that apply
 before task context is known; everything else is reached through Task Routing. Current status,
-open questions and known gaps live in [`docs/plan.md`](docs/plan.md).
+open questions and known gaps live in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Purpose
 
@@ -64,17 +64,17 @@ exists; dated research is evidence and may hold superseded positions.
 |---|---|
 | Cake build host, its tests, [`tools.cs`](tools.cs) | [`build/AGENTS.md`](build/AGENTS.md), [`build-host.md`](docs/architecture/build-host.md), [ADR-0002](docs/adr/0002-target-centric-build-host.md), [ADR-0003](docs/adr/0003-build-host-data-layer.md) |
 | Build, test and slopwatch commands; completion checks; CI | [`quality-gates.md`](docs/engineering/quality-gates.md) |
-| Local setup, local feed, `ci-sim`, cross-OS validation | [`local-development.md`](docs/playbook/local-development.md) |
-| vcpkg, overlays, triplets, native harvest, Linux builder base | [`overlay-management.md`](docs/playbook/overlay-management.md); procedures in the same document |
-| Manifest, packaging, guardrails, versioning, release | [`release-guardrails.md`](docs/knowledge-base/release-guardrails.md), [`release-strategy.md`](docs/release-strategy.md), [ADR-0001](docs/adr/0001-d3seg-and-package-first.md) |
+| Local setup, local feed, `ci-sim`, cross-OS validation | [`developing.md`](docs/engineering/developing.md) |
+| vcpkg, overlays, triplets, native harvest, Linux builder base | [`native-dependency-maintenance.md`](docs/engineering/native-dependency-maintenance.md) |
+| Manifest, packaging, guardrails, versioning, release | [`packaging-and-release.md`](docs/architecture/packaging-and-release.md), [`release-strategy.md`](docs/release-strategy.md), [ADR-0001](docs/adr/0001-d3seg-and-package-first.md) |
 | Binding generator, generated sources, regeneration | [Implementation notes](spikes/binding-generators/docs/canonical/binding-generator-implementation-notes.md), [maintenance](spikes/binding-generators/docs/canonical/binding-generator-maintenance.md) |
 | Binding API shape, type mapping, naming, ABI | [Binding generator constitution](spikes/binding-generators/docs/canonical/binding-generator-constitution.md), ADRs [0006](docs/adr/0006-one-public-class-per-family.md)–[0009](docs/adr/0009-target-frameworks.md) |
 | Binding tests, generated-output review | [Testing strategy](spikes/binding-generators/docs/canonical/testing-strategy.md), [output review](spikes/binding-generators/docs/canonical/binding-output-oracle-validation.md) |
-| Code structure and test design | [Extraction guidelines](docs/knowledge-base/extraction-guidelines.md), [testing guidelines](docs/knowledge-base/testing-guidelines.md) |
+| Code structure and test design | [Coding style](docs/engineering/coding-style.md), [testing style](docs/engineering/testing-style.md) |
 | Documentation, ADRs, repository workflow | [`documentation.md`](docs/engineering/documentation.md), [`workflow.md`](docs/engineering/workflow.md), [Decision records](docs/adr/README.md) |
 | Consumer documentation, [`README.md`](README.md) | [`documentation.md`](docs/engineering/documentation.md) (Consumer documentation) |
 | Domain terms | [Onboarding glossary](docs/onboarding.md#glossary) |
-| Status, next work, open questions, known gaps | [`docs/plan.md`](docs/plan.md), [settled decisions](docs/onboarding.md#settled-strategic-decisions) |
+| Status, next work, open questions, known gaps | [`docs/ROADMAP.md`](docs/ROADMAP.md), [settled decisions](docs/onboarding.md#settled-strategic-decisions) |
 | Research, design history, session pickup | Companion Repository, below |
 
 ## Companion Repository
@@ -90,7 +90,7 @@ without it.
 - Code wins over documentation for what the software does today.
 - [`docs/architecture/`](docs/architecture/) and [`docs/engineering/`](docs/engineering/) own current normative rules;
   [decision records](docs/adr/) explain why each decision was taken; the [onboarding glossary](docs/onboarding.md#glossary)
-  owns domain terms; [`docs/plan.md`](docs/plan.md) is operational and shrinks as work lands.
+  owns domain terms; [`docs/ROADMAP.md`](docs/ROADMAP.md) is operational and shrinks as work lands.
 - `docs/superpowers/` holds temporary per-slice specs and plans; they are deleted when their slice
   ships, after preservation under the [documentation lifecycle](docs/engineering/documentation.md#lifecycle).
 - Repository files and current canon beat memory, plans, dated research and handoffs, including

@@ -33,7 +33,7 @@ A package family is one managed package + one native package, sharing the same v
 | --- | --- | --- |
 | Within-family (e.g. `Janset.SDL2.Image` → `Janset.SDL2.Image.Native`) | minimum range (`>= x.y.z`) | post-pack G21 + G23 (byte-equal version) |
 | Cross-family (e.g. `Janset.SDL2.Image` → `Janset.SDL2.Core`) | minimum + upper bound (`>= x.y.z, < (UpstreamMajor+1).0.0`) | post-pack G56 |
-| Cross-family resolvability at pack time | every declared cross-family dep is in the resolved versions mapping (feed-probe relaxation deferred — `release-guardrails.md` §4.1 gap #2) | Pack stage G58 + PreFlight G58 mirror |
+| Cross-family resolvability at pack time | every declared cross-family dep is in the resolved versions mapping (feed-probe relaxation deferred — [packaging-and-release.md §4.1](../architecture/packaging-and-release.md#41-pipeline-scope-assumption-gaps--operational-implications) gap #2) | Pack stage G58 + PreFlight G58 mirror |
 
 ### Breaking managed API changes
 
@@ -59,7 +59,7 @@ Out of scope for D-3seg. If a binding-only API break is required (e.g., a CppAst
 
 - Public NuGet promotion path (PD-7).
 - Operator manual escape hatch (PD-8).
-- Tag-push workflow fan-out (gap #4 in `release-guardrails.md` §4.1).
+- Tag-push workflow fan-out (gap #4 in [packaging-and-release.md §4.1](../architecture/packaging-and-release.md#41-pipeline-scope-assumption-gaps--operational-implications)).
 
 ## 3. Why this shape
 
@@ -70,7 +70,7 @@ Out of scope for D-3seg. If a binding-only API break is required (e.g., a CppAst
 ## 4. References
 
 - [`build-host.md`](../architecture/build-host.md) — Configuration files and Native packaging pipeline
-- [`docs/knowledge-base/release-guardrails.md`](../knowledge-base/release-guardrails.md) — G54, G55, G56, G57, G58 + dependency contract guardrails
+- [`docs/architecture/packaging-and-release.md`](../architecture/packaging-and-release.md) — G54, G55, G56, G57, G58 + dependency contract guardrails
 - [Manifest](../../build/manifest.json), `library_manifests[].vcpkg_version` — UpstreamMajor.Minor anchor source
 - [ResolveVersionsFromManifest](../../build/_build/Targets/ResolveVersionsFromManifest/) and [ResolveVersionsFromExplicit](../../build/_build/Targets/ResolveVersionsFromExplicit/) — version provider implementations
 - [StageVersionsOptions](../../build/_build/Host/Cli/Options/StageVersionsOptions.cs) — the `--versions-file` option through which stage targets consume resolved versions.

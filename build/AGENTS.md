@@ -1,7 +1,7 @@
 # Build host — scoped agent rules
 
 Rules for [`_build/`](_build/) (Cake Frosting host), [`_build.Tests/`](_build.Tests/) and [`manifest.json`](manifest.json).
-They relay [`build-host.md`](../docs/architecture/build-host.md) and [testing guidelines](../docs/knowledge-base/testing-guidelines.md), which own
+They relay [`build-host.md`](../docs/architecture/build-host.md) and [testing style](../docs/engineering/testing-style.md), which own
 them; read those before a structural change.
 
 - A Cake target lives in [`Targets/`](_build/Targets/) under the PascalCase task name with hyphens removed

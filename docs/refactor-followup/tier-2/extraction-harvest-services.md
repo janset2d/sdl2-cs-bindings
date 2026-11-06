@@ -25,12 +25,12 @@ Two harvest-side methods carry `MA0051` suppressions and either a `CA1031` suppr
 
 - `02-ctor-policy` must land first.
 - Verify post-S14 Harvest scenario tests cover both BFS phases independently before splitting (avoid losing parity).
-- Decide collaborator-vs-private-method per [`extraction-guidelines.md`](../../knowledge-base/extraction-guidelines.md) before promotion.
+- Decide collaborator-vs-private-method per [`coding-style.md`](../../engineering/coding-style.md) before promotion.
 
 ## References
 
 - [ADR-002](../../adr/0002-target-centric-build-host.md) §5 + §8
-- [`extraction-guidelines.md`](../../knowledge-base/extraction-guidelines.md)
+- [`coding-style.md`](../../engineering/coding-style.md)
 - [post-refactor-cleanup-plan.md §5](../../post-refactor-cleanup-plan.md#5-extractions--re-shapes)
 - Reviewer C+D convergent finding at S14 P8 review (statistics phase as pure projection)
 - Reviewer D at S14 P8 (walker BFS split flagged as deferred extraction)

@@ -34,7 +34,7 @@
 
 ## References
 
-- [`knowledge-base/testing-guidelines.md`](../../knowledge-base/testing-guidelines.md) — canonical test infrastructure
+- [`engineering/testing-style.md`](../../engineering/testing-style.md) — canonical test infrastructure
 - [post-refactor-cleanup-plan.md §2](../../post-refactor-cleanup-plan.md#2-ux--cli-surface)
 - [`FakeCakeWorld.cs`](../../../build/_build.Tests/Fixtures/FakeCakeWorld.cs)
 - ADR-002 §14 — test infrastructure consolidation

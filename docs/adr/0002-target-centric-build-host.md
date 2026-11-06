@@ -157,8 +157,8 @@ Tradeoffs:
 ## 4. References
 
 - [`0003-build-host-data-layer.md`](0003-build-host-data-layer.md)
-- [`../knowledge-base/extraction-guidelines.md`](../knowledge-base/extraction-guidelines.md)
-- [`../knowledge-base/testing-guidelines.md`](../knowledge-base/testing-guidelines.md)
-- [`../knowledge-base/release-guardrails.md`](../knowledge-base/release-guardrails.md)
+- [`../engineering/coding-style.md`](../engineering/coding-style.md)
+- [`../engineering/testing-style.md`](../engineering/testing-style.md)
+- [`../architecture/packaging-and-release.md`](../architecture/packaging-and-release.md)
 - [`../../AGENTS.md`](../../AGENTS.md)
 - [`../../tools.cs`](../../tools.cs)

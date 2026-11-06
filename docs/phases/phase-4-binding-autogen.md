@@ -34,7 +34,7 @@ Detailed exit criteria per stage live in [`../../spikes/binding-generators/docs/
 ## Cross-Reference
 
 - [`../release-strategy.md`](../release-strategy.md) — strategic anchor (AST-first sequencing rationale)
-- [`../plan.md`](../plan.md) — tactical roadmap (Phase 4 row)
+- [`../ROADMAP.md`](../ROADMAP.md) — tactical roadmap (Phase 4 row)
 - [`../../spikes/binding-generators/docs/canonical/`](../../spikes/binding-generators/docs/canonical/) — canonical binding-generator docs
 - [`../adr/0004-binding-autogen-toolchain.md`](../adr/0004-binding-autogen-toolchain.md) — ADR-004 toolchain decision (Reopened)
 - [`../adr/0002-target-centric-build-host.md`](../adr/0002-target-centric-build-host.md) — ADR-002 target-centric build-host pattern

@@ -9,7 +9,7 @@ Phase workflow + active phase navigation.
 | 1 | SDL2 Core Bindings + Harvesting | DONE | retired (code + git history are canonical) |
 | 2 | CI/CD & Packaging | **IN PROGRESS** | [phase-2-adaptation-plan.md](phase-2-adaptation-plan.md) |
 | X | Build-Host Modernization | DONE | [../adr/0002-target-centric-build-host.md](../adr/0002-target-centric-build-host.md) |
-| 3 | SDL2 Complete (samples, meta-package, first prerelease) | PLANNED | [plan.md](../plan.md) roadmap |
+| 3 | SDL2 Complete (samples, meta-package, first prerelease) | PLANNED | [ROADMAP.md](../ROADMAP.md) roadmap |
 | 4 | Binding Auto-Generation | PLANNED | [phase-4-binding-autogen.md](phase-4-binding-autogen.md) |
 | 5 | SDL3 Support | PLANNED | [phase-5-sdl3-support.md](phase-5-sdl3-support.md) |
 
@@ -19,7 +19,7 @@ One phase is active:
 
 **Phase 2: CI/CD & Packaging.** Core surface is landed (`release.yml` + Cake build host + `tools.cs`). The remaining tail lives in [phase-2-adaptation-plan.md](phase-2-adaptation-plan.md): nuget.org promotion (PD-7), release-recovery playbook (PD-8), and the four scope-assumption gaps surfaced in the 2026-05-01 tag-push rehearsals.
 
-**Closed stream: Phase X / Build-Host Modernization.** Closed 2026-05-10. Current build-host architecture is captured by [`../adr/0002-target-centric-build-host.md`](../adr/0002-target-centric-build-host.md) and [`../adr/0003-build-host-data-layer.md`](../adr/0003-build-host-data-layer.md). Durable practice lives in [`../knowledge-base/testing-guidelines.md`](../knowledge-base/testing-guidelines.md) and [`../knowledge-base/extraction-guidelines.md`](../knowledge-base/extraction-guidelines.md). Migration-era notes were retired after test-infrastructure consolidation.
+**Closed stream: Phase X / Build-Host Modernization.** Closed 2026-05-10. Current build-host architecture is captured by [`../adr/0002-target-centric-build-host.md`](../adr/0002-target-centric-build-host.md) and [`../adr/0003-build-host-data-layer.md`](../adr/0003-build-host-data-layer.md). Durable practice lives in [`../engineering/testing-style.md`](../engineering/testing-style.md) and [`../engineering/coding-style.md`](../engineering/coding-style.md). Migration-era notes were retired after test-infrastructure consolidation.
 
 ## Phase Lifecycle
 
@@ -45,5 +45,5 @@ If the doc drifts into a roadmap-brief copy of `plan.md`, it retires. The test r
 ## Reading Order
 
 - **Catching up:** start with [phase-2-adaptation-plan.md](phase-2-adaptation-plan.md) for the Phase 2 tail.
-- **Day-to-day:** active phase doc + [`plan.md`](../plan.md).
+- **Day-to-day:** active phase doc + [`ROADMAP.md`](../ROADMAP.md).
 - **Planning ahead:** [phase-4-binding-autogen.md](phase-4-binding-autogen.md), [phase-5-sdl3-support.md](phase-5-sdl3-support.md). Don't start detailed design work until the phase activates.

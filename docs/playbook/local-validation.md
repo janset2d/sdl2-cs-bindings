@@ -1,6 +1,6 @@
 # Playbook: Local Validation with `tools.cs`
 
-> Reference for the `tools.cs` repo-root file-based .NET 10 app — the canonical dev orchestration entry point. Companion to [`local-development.md`](local-development.md) (which covers fresh-clone setup, env vars, and the manual full-build fallback).
+> Reference for the `tools.cs` repo-root file-based .NET 10 app — the canonical dev orchestration entry point. Companion to [`developing.md`](../engineering/developing.md) (which covers fresh-clone setup, env vars, and the manual full-build fallback).
 
 ## When to Run What
 
@@ -76,7 +76,7 @@ A compile-only `netstandard2.0` sanity pass precedes the TFM loop unconditionall
 
 When a step fails, classify before reacting:
 
-1. **Environment** — `dotnet` / `cmake` / tool missing, PATH not exported, `DOTNET_ROOT` absent, submodule not initialised, `freepats` missing on Linux. Fix host, re-run. See [`local-development.md`](local-development.md) for prerequisites and env-var recipes.
+1. **Environment** — `dotnet` / `cmake` / tool missing, PATH not exported, `DOTNET_ROOT` absent, submodule not initialised, `freepats` missing on Linux. Fix host, re-run. See [`developing.md`](../engineering/developing.md) for prerequisites and env-var recipes.
 2. **Stale repo** — `git log --oneline -1` doesn't match the expected HEAD. `git pull`, re-run.
 3. **Code regression** — same commit, clean environment, still fails. Surface with platform + step identifier + exact error text + log filename. This is what `tools ci-sim` exists to catch.
 
@@ -84,10 +84,10 @@ Most "it failed" reports in practice are category 1 or 2.
 
 ## Cross-Reference
 
-- [`local-development.md`](local-development.md) — fresh-clone setup, manual full-build fallback, env vars, troubleshooting.
-- [`overlay-management.md`](overlay-management.md) — vcpkg overlay triplets + ports.
+- [`developing.md`](../engineering/developing.md) — fresh-clone setup, manual full-build fallback, env vars, troubleshooting.
+- [`native-dependency-maintenance.md`](../engineering/native-dependency-maintenance.md) — vcpkg overlay triplets + ports.
 - [`vcpkg-update.md`](vcpkg-update.md) — bumping the vcpkg baseline.
 - [`adding-new-library.md`](adding-new-library.md) — adding a new SDL satellite.
-- [`../knowledge-base/release-guardrails.md`](../knowledge-base/release-guardrails.md) — what each pipeline stage validates.
+- [`../architecture/packaging-and-release.md`](../architecture/packaging-and-release.md) — what each pipeline stage validates.
 - `tools.cs` — the canonical implementation.
 - `tests/smoke-tests/native-smoke/README.md` — C++ NativeSmoke harness detail.

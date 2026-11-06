@@ -402,8 +402,8 @@ Multi-agent review at the user-emphasized stages. Each checkpoint dispatches 2+ 
 
 ### Knowledge-Base
 
-- [`docs/knowledge-base/extraction-guidelines.md`](../../knowledge-base/extraction-guidelines.md) — collaborator extraction discipline; applies to implementation-notes mechanism descriptions where they cite extracted collaborator classes.
-- [`docs/knowledge-base/testing-guidelines.md`](../../knowledge-base/testing-guidelines.md) — canonical TUnit/MTP test infrastructure; testing-strategy purification defers to this for build-host test infrastructure.
+- [`docs/engineering/coding-style.md`](../../engineering/coding-style.md) — collaborator extraction discipline; applies to implementation-notes mechanism descriptions where they cite extracted collaborator classes.
+- [`docs/engineering/testing-style.md`](../../engineering/testing-style.md) — canonical TUnit/MTP test infrastructure; testing-strategy purification defers to this for build-host test infrastructure.
 
 ### Canonical Workstream Docs (Current State Before This Consolidation)
 

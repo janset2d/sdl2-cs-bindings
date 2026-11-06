@@ -443,7 +443,7 @@ Then:
 
 6. **Regenerate the full family corpus** for the affected triplet (vary `--vcpkg-triplet` per RID).
 7. **Run cross-triplet ABI smoke** — execute AbiTests per RID via the Docker container (see §"Linux-Canonical Generation") for non-Windows RIDs.
-8. **Update overlay** if needed (`vcpkg-overlay-triplets/`) and revalidate per `docs/playbook/overlay-management.md`.
+8. **Update overlay** if needed (`vcpkg-overlay-triplets/`) and revalidate per [`native-dependency-maintenance.md`](../../../../docs/engineering/native-dependency-maintenance.md).
 
 ### 6.5 SDL2 Vs SDL3 Maintenance Posture
 
@@ -672,7 +672,7 @@ Until Production Flip, treat any code that needs production multi-TFM compilatio
 
 ### Sibling Playbooks
 
-- [`docs/playbook/overlay-management.md`](../../../../docs/playbook/overlay-management.md) — vcpkg overlay triplet procedure. Coupled to §"Version-Bump Procedures" 6.4 (Vcpkg Triplet Bump).
+- [`docs/engineering/native-dependency-maintenance.md`](../../../../docs/engineering/native-dependency-maintenance.md) — vcpkg overlay triplet procedure. Coupled to §"Version-Bump Procedures" 6.4 (Vcpkg Triplet Bump).
 - [`docs/playbook/vcpkg-update.md`](../../../../docs/playbook/vcpkg-update.md) — vcpkg baseline procedure. Coupled to §"Version-Bump Procedures" 6.1 (SDL2 Version Bump).
 
 ### ADRs
@@ -683,8 +683,8 @@ Until Production Flip, treat any code that needs production multi-TFM compilatio
 
 ### Knowledge-Base
 
-- [`docs/knowledge-base/extraction-guidelines.md`](../../../../docs/knowledge-base/extraction-guidelines.md) — collaborator extraction discipline; applies to postprocess rewriter design.
-- [`docs/knowledge-base/testing-guidelines.md`](../../../../docs/knowledge-base/testing-guidelines.md) — canonical TUnit / MTP test infrastructure; AbiTests follows this for the per-TFM smoke shape.
+- [`docs/engineering/coding-style.md`](../../../../docs/engineering/coding-style.md) — collaborator extraction discipline; applies to postprocess rewriter design.
+- [`docs/engineering/testing-style.md`](../../../../docs/engineering/testing-style.md) — canonical TUnit / MTP test infrastructure; AbiTests follows this for the per-TFM smoke shape.
 
 ### Source Of Truth Artifacts
 

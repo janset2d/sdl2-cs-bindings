@@ -44,7 +44,7 @@ Run explicitly:
 dotnet run --project build/_build/Build.csproj -- --target PostFlight --family sdl2-core --family sdl2-image --family-version <semver>
 ```
 
-Native-smoke's C++ runs today via its own `build.bat` / `cmake --build` flow — see [`native-smoke/README.md`](native-smoke/README.md). Weaving it into Cake `PostFlight` is [docs/plan.md](../../docs/plan.md) 2b work.
+Native-smoke's C++ runs today via its own `build.bat` / `cmake --build` flow — see [`native-smoke/README.md`](native-smoke/README.md). Weaving it into Cake `PostFlight` is [docs/ROADMAP.md](../../docs/ROADMAP.md) 2b work.
 
 For IDE or direct-CLI validation, run `dotnet run --file tools.cs -- setup --source=local` once first. It writes `build/msbuild/Janset.Local.props`, after which `PackageConsumer.Smoke.csproj` restores and builds directly without runner-injected package properties.
 

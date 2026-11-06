@@ -288,4 +288,4 @@ Mirror the consolidation's checkpoint discipline at smaller scale:
 - [`binding-generator-implementation-notes.md`](../../../spikes/binding-generators/docs/canonical/binding-generator-implementation-notes.md) — postprocess pipeline mechanism, classification labels.
 - [`next-iteration-plan.md`](../../../spikes/binding-generators/docs/next-iteration-plan.md) — Forward Backlog (Production Flip gates, L2/L3 follow-ups).
 - ADRs: [`0002-target-centric-build-host.md`](../../adr/0002-target-centric-build-host.md) (ADR-002), [`0003-build-host-data-layer.md`](../../adr/0003-build-host-data-layer.md) (ADR-003), [`0004-binding-autogen-toolchain.md`](../../adr/0004-binding-autogen-toolchain.md) (ADR-004, Reopened — reinforced by §7 ClangSharp evidence).
-- Knowledge base: [`extraction-guidelines.md`](../../../docs/knowledge-base/extraction-guidelines.md), [`testing-guidelines.md`](../../../docs/knowledge-base/testing-guidelines.md).
+- Knowledge base: [`coding-style.md`](../../engineering/coding-style.md), [`testing-style.md`](../../engineering/testing-style.md).

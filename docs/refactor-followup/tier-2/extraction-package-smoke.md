@@ -31,6 +31,6 @@
 ## References
 
 - [ADR-002](../../adr/0002-target-centric-build-host.md) §5 (target-owned story) + §8 (collaborator extraction)
-- [`extraction-guidelines.md`](../../knowledge-base/extraction-guidelines.md) — private-method-vs-collaborator decision tree
+- [`coding-style.md`](../../engineering/coding-style.md) — private-method-vs-collaborator decision tree
 - [post-refactor-cleanup-plan.md §5](../../post-refactor-cleanup-plan.md#5-extractions--re-shapes)
 - Phase 4.11 boss-fight self-review (Deniz accepted the god-service shape per ADR §5 at the time)

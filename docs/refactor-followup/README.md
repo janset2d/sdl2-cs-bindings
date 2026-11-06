@@ -36,7 +36,7 @@
 2. **Promote Tier 2 → Tier 1** when picked: move the file out of `tier-2/`, rename to a numbered prefix (`04-...`, `05-...`), expand outline using the Tier 1 plan template, fill in `## References` git commit refs from `git log -- <touched files>`.
 3. **Execute the slice** using the `superpowers:executing-plans` skill against the Tier 1 plan. Iterate per the plan's `## Scope` section.
 4. **Done.** Flip status to `done` in the index above and add the slice's commit SHA in a trailing column for one grace cycle. After 1–2 weeks fully remove the row.
-5. **Folder retirement.** When zero `pending` / `outline` / `tracked` items remain, retire `docs/refactor-followup/` entirely. Any genuine survivors fold back into [`plan.md`](../plan.md) Phase X or a follow-up phase.
+5. **Folder retirement.** When zero `pending` / `outline` / `tracked` items remain, retire `docs/refactor-followup/` entirely. Any genuine survivors fold back into [`ROADMAP.md`](../ROADMAP.md) Phase X or a follow-up phase.
 
 ## Plan Template (Tier 1)
 
@@ -111,7 +111,7 @@ What this slice explicitly does NOT touch (signals reviewers what to ignore).
 ## Cross-References
 
 - [`../post-refactor-cleanup-plan.md`](../post-refactor-cleanup-plan.md) — canonical task list. Each cohort section links back here in its `Tracked at:` header.
-- [`../plan.md`](../plan.md) Phase X — single pointer to cleanup-plan.
+- [`../ROADMAP.md`](../ROADMAP.md) Phase X — single pointer to cleanup-plan.
 - [`../../AGENTS.md`](../../AGENTS.md) §Skills Used — `superpowers:*` workflow rules apply.
-- [`../knowledge-base/testing-guidelines.md`](../knowledge-base/testing-guidelines.md) — canonical test infrastructure for plan `## Test strategy` sections.
-- [`../knowledge-base/extraction-guidelines.md`](../knowledge-base/extraction-guidelines.md) — canonical extraction decisions for plan `## Scope` sections.
+- [`../engineering/testing-style.md`](../engineering/testing-style.md) — canonical test infrastructure for plan `## Test strategy` sections.
+- [`../engineering/coding-style.md`](../engineering/coding-style.md) — canonical extraction decisions for plan `## Scope` sections.

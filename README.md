@@ -97,7 +97,7 @@ The native packages are pulled in transitively — you never need to reference `
 | SDL3 support | Phase 5 |
 | Samples | Phase 3 (#60) |
 
-See [docs/plan.md](docs/plan.md) for detailed status and roadmap.
+See [docs/ROADMAP.md](https://github.com/janset2d/sdl2-cs-bindings/blob/master/docs/ROADMAP.md) for detailed status and roadmap.
 
 ## Building from Source
 
@@ -133,16 +133,16 @@ cd build/_build
 dotnet run -- --target Harvest --library SDL2 --library SDL2_image --rid linux-x64
 ```
 
-For detailed build instructions, see [docs/playbook/local-development.md](docs/playbook/local-development.md).
+For detailed build instructions, see [docs/engineering/developing.md](https://github.com/janset2d/sdl2-cs-bindings/blob/master/docs/engineering/developing.md).
 
 ## Documentation
 
 | Document | Purpose |
 | --- | --- |
 | [docs/onboarding.md](docs/onboarding.md) | Project overview, glossary, where-to-go pointers |
-| [docs/plan.md](docs/plan.md) | Current status and roadmap |
+| [docs/ROADMAP.md](https://github.com/janset2d/sdl2-cs-bindings/blob/master/docs/ROADMAP.md) | Current status and roadmap |
 | [docs/playbook/](docs/playbook/) | How-to recipes (local dev, validation, adding libraries, vcpkg updates, overlays) |
-| [docs/knowledge-base/release-guardrails.md](docs/knowledge-base/release-guardrails.md) | G-numbered guardrail registry + failure-mode catalog |
+| [docs/architecture/packaging-and-release.md](https://github.com/janset2d/sdl2-cs-bindings/blob/master/docs/architecture/packaging-and-release.md) | G-numbered guardrail registry + failure-mode catalog |
 | [`docs/adr/`](https://github.com/janset2d/sdl2-cs-bindings/tree/master/docs/adr/) | Architecture decision records |
 | [docs/research/](docs/research/) | Design rationale (packaging patterns, autogen approaches, SDL3 analysis, future-research starting points) |
 | [docs/phases/](docs/phases/) | Phase-by-phase execution details |

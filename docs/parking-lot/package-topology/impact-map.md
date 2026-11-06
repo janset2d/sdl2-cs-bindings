@@ -1133,9 +1133,9 @@ Estimated total: **46-68 hours** of focused work. Calendar duration depends on s
 
 - [`strategy-brief.md`](strategy-brief.md) — strategic decisions; this file is mechanical companion
 - [`../../adr/0001-d3seg-and-package-first.md`](../../adr/0001-d3seg-and-package-first.md) — ADR-001 to supersede
-- [`../../knowledge-base/release-guardrails.md`](../../knowledge-base/release-guardrails.md) — G-numbered guardrail catalog
-- [`../../knowledge-base/extraction-guidelines.md`](../../knowledge-base/extraction-guidelines.md) — collaborator extraction policy (applies to normalizer + validator surface changes)
-- [`../../knowledge-base/testing-guidelines.md`](../../knowledge-base/testing-guidelines.md) — characterization test policy, canonical infra
+- [`../../architecture/packaging-and-release.md`](../../architecture/packaging-and-release.md) — G-numbered guardrail catalog
+- [`../../engineering/coding-style.md`](../../engineering/coding-style.md) — collaborator extraction policy (applies to normalizer + validator surface changes)
+- [`../../engineering/testing-style.md`](../../engineering/testing-style.md) — characterization test policy, canonical infra
 - [`../../phases/phase-2-adaptation-plan.md`](../../phases/phase-2-adaptation-plan.md) — Gap #3 partial-scope smoke (co-design dependency)
 - [`../../../AGENTS.md`](../../../AGENTS.md) — Settled Strategic Decisions + Build-Host Reference Pattern
 - [`../../../build/manifest.json`](../../../build/manifest.json) — current schema 2.1 source
