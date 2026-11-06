@@ -806,7 +806,7 @@ public sealed class RwopsAbiTests
 #else
     private static nuint NativeSize(int value) => (nuint)value;
 
-    private static ulong ToUInt64(nuint value) => checked((ulong)value);
+    private static ulong ToUInt64(nuint value) => checked(value);
 #endif
 
     private sealed record RwopsResult(ulong Written, long SeekPosition, ulong Read, string Text, int CloseResult);
