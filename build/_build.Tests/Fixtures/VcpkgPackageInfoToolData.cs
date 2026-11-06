@@ -1,4 +1,4 @@
-namespace Build.Tests.Unit.Tools.Vcpkg;
+namespace Build.Tests.Fixtures;
 internal static class VcpkgPackageInfoToolData
 {
     public const string MultiLineEmptyResults = """

@@ -1,6 +1,6 @@
 using Build.Data.NativePackageMetadata;
 
-namespace Build.Tests.Unit.Data.NativePackageMetadata;
+namespace Build.Tests.Fixtures;
 internal static class NativeMetadataFixture
 {
     public static NativePackageMetadataDocument Create() => new()
