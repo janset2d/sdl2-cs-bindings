@@ -587,7 +587,7 @@ dotnet_diagnostic.RCS0056.severity = none
 dotnet_diagnostic.MA0048.severity = none
 
 # Console hosts have no SynchronizationContext to preserve.
-# Winner: the console-host execution model; CA2007, MA0004 and VSTHRD111 remain enabled for every other file.
+# Winner: console hosts with no SynchronizationContext; CA2007, MA0004 and VSTHRD111 remain enabled for every other non-test file.
 [{build/_build/**.cs,tools.cs}]
 dotnet_diagnostic.CA2007.severity = none
 dotnet_diagnostic.MA0004.severity = none
