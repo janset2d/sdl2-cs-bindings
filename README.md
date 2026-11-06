@@ -143,7 +143,7 @@ For detailed build instructions, see [docs/playbook/local-development.md](docs/p
 | [docs/plan.md](docs/plan.md) | Current status and roadmap |
 | [docs/playbook/](docs/playbook/) | How-to recipes (local dev, validation, adding libraries, vcpkg updates, overlays) |
 | [docs/knowledge-base/release-guardrails.md](docs/knowledge-base/release-guardrails.md) | G-numbered guardrail registry + failure-mode catalog |
-| [Architecture decisions](https://github.com/janset2d/sdl2-cs-bindings/tree/master/docs/adr/) | Architecture decision records |
+| [`docs/adr/`](https://github.com/janset2d/sdl2-cs-bindings/tree/master/docs/adr/) | Architecture decision records |
 | [docs/research/](docs/research/) | Design rationale (packaging patterns, autogen approaches, SDL3 analysis, future-research starting points) |
 | [docs/phases/](docs/phases/) | Phase-by-phase execution details |
 
