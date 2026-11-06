@@ -158,8 +158,8 @@ supported-RID matrix. For managed-only and documentation changes, use the applic
 [quality gates](quality-gates.md); do not start a native flow merely for a managed refactor.
 
 1. Implement and run the appropriate local checks in the development checkout.
-2. Commit the verified change on the work branch under workflow rules. Push only when authorized
-   for the current task.
+2. Commit and push the verified change on the work branch
+   ([workflow](workflow.md#agent-autonomy)).
 3. Bring each validation checkout to that exact commit without discarding unrelated local work.
    Initialize its required submodules and verify its environment, then run ci-sim there.
 4. Capture summary, logs, commit and platform. Compare failures with the passing host. Fix in the
