@@ -65,16 +65,18 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       # Only the managed bindings need their pinned submodule sources.
-      - run: git -c url.https://github.com/.insteadOf=git@github.com: submodule update --init external/sdl2-cs
+      - run: |
+          git -c url.https://github.com/.insteadOf=git@github.com: submodule update --init external/sdl2-cs
       - uses: ./.github/actions/dotnet-setup
       - run: dotnet tool restore
       - run: dotnet tool run slopwatch analyze --fail-on warning --exclude "artifacts/**,external/**,vcpkg_installed/**,**/bin/**,**/obj/**"
       - name: Restore, format check and build each project
         run: |
+          read -r -a format_exclude <<< "$FORMAT_EXCLUDE"
           for p in $LINT_PROJECTS; do
             dotnet restore "$p"
-            dotnet format whitespace "$p" --verify-no-changes --no-restore --exclude $FORMAT_EXCLUDE
-            dotnet format style "$p" --verify-no-changes --no-restore --severity warn --exclude $FORMAT_EXCLUDE
+            dotnet format whitespace "$p" --verify-no-changes --no-restore --exclude "${format_exclude[@]}"
+            dotnet format style "$p" --verify-no-changes --no-restore --severity warn --exclude "${format_exclude[@]}"
             dotnet build "$p" -c Release --no-restore
           done
       - run: dotnet build tools.cs -c Release
