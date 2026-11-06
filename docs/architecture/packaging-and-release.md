@@ -114,7 +114,7 @@ version reset. Package versions remain anchored to their upstream major/minor li
 
 | Distribution | Label | Feed |
 |---|---|---|
-| Local rehearsal | `-local.<timestamp>` | GitHub Packages |
+| Local rehearsal | `-local.<timestamp>` | Local folder feed; never pushed (`PublishStaging` refuses it) |
 | Internal CI wave | `-ci.<run-id>.<attempt>` | GitHub Packages |
 | Public preview | `-preview.N`, incremented per wave | nuget.org |
 | Release candidate | `-rc.N`, incremented per wave | nuget.org |
