@@ -27,7 +27,8 @@ internal sealed class HeaderSetFingerprintCalculator(ICakeContext context)
 
         // Caller-supplied supplemental headers are inputs too: changing one must
         // invalidate the fingerprint even when selected family headers are unchanged.
-        var syntheticHeaders = _context.GetFiles($"{headerSet.SyntheticIncludeRoot.FullPath}/*.h")
+        var syntheticHeaders = _context
+            .GetFiles($"{headerSet.SyntheticIncludeRoot.FullPath}/*.h")
             .OrderBy(file => file.FullPath, StringComparer.OrdinalIgnoreCase)
             .ToList();
 

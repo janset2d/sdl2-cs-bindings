@@ -59,7 +59,8 @@ public sealed class HybridStaticLeakValidator(IRuntimeProfile profile) : IHybrid
             ? ValidationSeverity.Error
             : ValidationSeverity.Warning;
 
-        var checks = violations.Select(v => new ValidationCheck(
+        var checks = violations
+            .Select(v => new ValidationCheck(
             Name: "Hybrid-static transitive leak",
             Severity: severity,
             Message: $"Transitive dep leak: {GetFilenameSegment(v.Path)} (owner: {v.OwnerPackage}, origin: {v.OriginPackage})",
