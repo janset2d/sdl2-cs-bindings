@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Build.Tests" />
+    <AdditionalFiles Include="../../BannedSymbols.Host.txt" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Cake.CMake" />

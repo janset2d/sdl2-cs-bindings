@@ -1,0 +1,11 @@
+T:System.Text.Json.JsonSerializer;Use the ICakeContext JSON extensions
+T:System.IO.File;Use ICakeContext.FileSystem
+T:System.IO.Directory;Use ICakeContext.FileSystem
+M:System.Environment.GetEnvironmentVariable(System.String);Use ICakeEnvironment.GetEnvironmentVariable
+T:System.Diagnostics.Process;Use IHostProcessRunner
+M:System.Threading.Tasks.Task.ConfigureAwait(System.Boolean);Console host with no SynchronizationContext
+M:System.Threading.Tasks.Task`1.ConfigureAwait(System.Boolean);Console host with no SynchronizationContext
+M:System.Threading.Tasks.ValueTask.ConfigureAwait(System.Boolean);Console host with no SynchronizationContext
+M:System.Threading.Tasks.ValueTask`1.ConfigureAwait(System.Boolean);Console host with no SynchronizationContext
+M:System.Threading.Tasks.Task.ConfigureAwait(System.Threading.Tasks.ConfigureAwaitOptions);Console host with no SynchronizationContext
+M:System.Threading.Tasks.Task`1.ConfigureAwait(System.Threading.Tasks.ConfigureAwaitOptions);Console host with no SynchronizationContext
