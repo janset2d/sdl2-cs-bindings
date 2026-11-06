@@ -28,7 +28,7 @@ public sealed class HarvestStatusRepositoryRoundTripTests
             .WithRid(Rid)
             .WithTextFile($"artifacts/harvest_output/{LibraryName}/runtimes/{Rid}/native/SDL2.dll", "fake");
         var ctx = world.CreateBuildContext();
-        var repo = new HarvestStatusRepository(world.CakeContext, ctx.Paths, ctx.Runtime);
+        var repo = new HarvestStatusRepository(world.CakeContext, ctx.Paths, ctx.Runtime, world.Clock);
 
         repo.Invalidate(LibraryName);
 
@@ -43,7 +43,7 @@ public sealed class HarvestStatusRepositoryRoundTripTests
             .WithRid(Rid)
             .WithTextFile($"artifacts/harvest_output/{LibraryName}/rid-status/{Rid}.json", "{}");
         var ctx = world.CreateBuildContext();
-        var repo = new HarvestStatusRepository(world.CakeContext, ctx.Paths, ctx.Runtime);
+        var repo = new HarvestStatusRepository(world.CakeContext, ctx.Paths, ctx.Runtime, world.Clock);
 
         repo.Invalidate(LibraryName);
 
@@ -58,7 +58,7 @@ public sealed class HarvestStatusRepositoryRoundTripTests
             .WithRid(Rid)
             .WithTextFile($"artifacts/harvest_output/{LibraryName}/licenses/{Rid}/zlib/copyright", "MIT");
         var ctx = world.CreateBuildContext();
-        var repo = new HarvestStatusRepository(world.CakeContext, ctx.Paths, ctx.Runtime);
+        var repo = new HarvestStatusRepository(world.CakeContext, ctx.Paths, ctx.Runtime, world.Clock);
 
         repo.Invalidate(LibraryName);
 
@@ -78,7 +78,7 @@ public sealed class HarvestStatusRepositoryRoundTripTests
             .WithTextFile($"artifacts/harvest_output/{LibraryName}/harvest-summary.json", "{}")
             .WithTextFile($"artifacts/harvest_output/{LibraryName}/harvest-summary.tmp.json", "{}");
         var ctx = world.CreateBuildContext();
-        var repo = new HarvestStatusRepository(world.CakeContext, ctx.Paths, ctx.Runtime);
+        var repo = new HarvestStatusRepository(world.CakeContext, ctx.Paths, ctx.Runtime, world.Clock);
 
         repo.Invalidate(LibraryName);
 
@@ -95,7 +95,7 @@ public sealed class HarvestStatusRepositoryRoundTripTests
     {
         var world = FakeCakeWorld.CreateWindows().WithRid(Rid);
         var ctx = world.CreateBuildContext();
-        var repo = new HarvestStatusRepository(world.CakeContext, ctx.Paths, ctx.Runtime);
+        var repo = new HarvestStatusRepository(world.CakeContext, ctx.Paths, ctx.Runtime, world.Clock);
 
         repo.Invalidate(LibraryName);
 
@@ -107,7 +107,7 @@ public sealed class HarvestStatusRepositoryRoundTripTests
     {
         var world = FakeCakeWorld.CreateWindows().WithRid(Rid);
         var ctx = world.CreateBuildContext();
-        var repo = new HarvestStatusRepository(world.CakeContext, ctx.Paths, ctx.Runtime);
+        var repo = new HarvestStatusRepository(world.CakeContext, ctx.Paths, ctx.Runtime, world.Clock);
         var statistics = CreateStatistics(primary: 2, runtime: 5, license: 3, deployed: 4, filtered: 1);
 
         await repo.WriteSuccessAsync(LibraryName, statistics);
@@ -119,6 +119,7 @@ public sealed class HarvestStatusRepositoryRoundTripTests
         await Assert.That(status.LibraryName).IsEqualTo(LibraryName);
         await Assert.That(status.Rid).IsEqualTo(Rid);
         await Assert.That(status.Triplet).IsEqualTo("x64-windows-hybrid");
+        await Assert.That(status.Timestamp).IsEqualTo(FakeCakeWorld.Timestamp);
         await Assert.That(status.ErrorMessage).IsNull();
         await Assert.That(status.Statistics).IsNotNull();
         await Assert.That(status.Statistics!.PrimaryFilesCount).IsEqualTo(2);
@@ -134,7 +135,7 @@ public sealed class HarvestStatusRepositoryRoundTripTests
     {
         var world = FakeCakeWorld.CreateWindows().WithRid(Rid);
         var ctx = world.CreateBuildContext();
-        var repo = new HarvestStatusRepository(world.CakeContext, ctx.Paths, ctx.Runtime);
+        var repo = new HarvestStatusRepository(world.CakeContext, ctx.Paths, ctx.Runtime, world.Clock);
 
         await repo.WriteErrorAsync(LibraryName, "vcpkg cache miss");
 
@@ -143,6 +144,7 @@ public sealed class HarvestStatusRepositoryRoundTripTests
         var status = await world.CakeContext.ToJsonAsync<RidHarvestStatus>(statusFile);
         await Assert.That(status.Success).IsFalse();
         await Assert.That(status.ErrorMessage).IsEqualTo("vcpkg cache miss");
+        await Assert.That(status.Timestamp).IsEqualTo(FakeCakeWorld.Timestamp);
         await Assert.That(status.LibraryName).IsEqualTo(LibraryName);
         await Assert.That(status.Rid).IsEqualTo(Rid);
         await Assert.That(status.Statistics).IsNull();

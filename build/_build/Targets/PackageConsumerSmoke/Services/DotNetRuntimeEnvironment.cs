@@ -1,13 +1,15 @@
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using Build.Host.Processes;
+using Cake.Common.IO;
+using Cake.Core;
 using Cake.Core.Diagnostics;
 
 namespace Build.Targets.PackageConsumerSmoke.Services;
 
 /// <inheritdoc />
-public sealed partial class DotNetRuntimeEnvironment(ICakeLog log) : IDotNetRuntimeEnvironment
+public sealed partial class DotNetRuntimeEnvironment(ICakeContext cakeContext, ICakeLog log, IHostProcessRunner processRunner) : IDotNetRuntimeEnvironment
 {
     private const string WinX86Rid = "win-x86";
     private const string DotNetRootX86 = "DOTNET_ROOT_X86";
@@ -17,6 +19,8 @@ public sealed partial class DotNetRuntimeEnvironment(ICakeLog log) : IDotNetRunt
     private static readonly IReadOnlyDictionary<string, string> Empty = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
+    private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
+    private readonly IHostProcessRunner _processRunner = processRunner ?? throw new ArgumentNullException(nameof(processRunner));
     private readonly ConcurrentDictionary<string, IReadOnlyDictionary<string, string>> _cache = new(StringComparer.OrdinalIgnoreCase);
 
     /// <inheritdoc />
@@ -103,8 +107,8 @@ public sealed partial class DotNetRuntimeEnvironment(ICakeLog log) : IDotNetRunt
         var x86Root = Path.Combine(cacheRoot, "x86");
         var installScriptPath = Path.Combine(cacheRoot, "dotnet-install.ps1");
 
-        Directory.CreateDirectory(cacheRoot);
-        Directory.CreateDirectory(x86Root);
+        _cakeContext.EnsureDirectoryExists(cacheRoot);
+        _cakeContext.EnsureDirectoryExists(x86Root);
 
         await EnsureInstallScriptAsync(installScriptPath, ct);
 
@@ -127,16 +131,16 @@ public sealed partial class DotNetRuntimeEnvironment(ICakeLog log) : IDotNetRunt
         };
     }
 
-    private static async Task EnsureInstallScriptAsync(string installScriptPath, CancellationToken ct)
+    private async Task EnsureInstallScriptAsync(string installScriptPath, CancellationToken ct)
     {
-        if (File.Exists(installScriptPath))
+        if (_cakeContext.FileExists(installScriptPath))
         {
             return;
         }
 
         using var client = new HttpClient();
         await using var input = await client.GetStreamAsync(InstallScriptUri, ct);
-        await using var output = File.Create(installScriptPath);
+        await using var output = _cakeContext.FileSystem.GetFile(installScriptPath).Open(FileMode.Create, FileAccess.Write, FileShare.None);
         await input.CopyToAsync(output, ct);
     }
 
@@ -144,49 +148,18 @@ public sealed partial class DotNetRuntimeEnvironment(ICakeLog log) : IDotNetRunt
     {
         var powershellExecutable = ResolvePowerShellExecutable();
 
-        using var process = new Process
-        {
-            StartInfo = new ProcessStartInfo
-            {
-                FileName = powershellExecutable,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            },
-        };
+        var request = new HostProcessRequest(powershellExecutable,
+            ["-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", installScriptPath,
+                "-Architecture", "x86", "-Channel", channel, "-Runtime", "dotnet", "-InstallDir", installRoot]);
+        var result = await _processRunner.RunAsync(request, ct);
 
-        process.StartInfo.ArgumentList.Add("-NoLogo");
-        process.StartInfo.ArgumentList.Add("-NoProfile");
-        process.StartInfo.ArgumentList.Add("-NonInteractive");
-        process.StartInfo.ArgumentList.Add("-ExecutionPolicy");
-        process.StartInfo.ArgumentList.Add("Bypass");
-        process.StartInfo.ArgumentList.Add("-File");
-        process.StartInfo.ArgumentList.Add(installScriptPath);
-        process.StartInfo.ArgumentList.Add("-Architecture");
-        process.StartInfo.ArgumentList.Add("x86");
-        process.StartInfo.ArgumentList.Add("-Channel");
-        process.StartInfo.ArgumentList.Add(channel);
-        process.StartInfo.ArgumentList.Add("-Runtime");
-        process.StartInfo.ArgumentList.Add("dotnet");
-        process.StartInfo.ArgumentList.Add("-InstallDir");
-        process.StartInfo.ArgumentList.Add(installRoot);
-
-        process.Start();
-        var stdoutTask = process.StandardOutput.ReadToEndAsync(ct);
-        var stderrTask = process.StandardError.ReadToEndAsync(ct);
-
-        await process.WaitForExitAsync(ct);
-        var stdout = await stdoutTask;
-        var stderr = await stderrTask;
-
-        if (process.ExitCode != 0)
+        if (result.ExitCode != 0)
         {
             throw new InvalidOperationException(
                 string.Create(
                     CultureInfo.CurrentCulture,
-                    $"DotNetRuntimeEnvironment: x86 runtime install for channel '{channel}' failed with exit code {process.ExitCode}.{Environment.NewLine}" +
-                    $"{stdout}{Environment.NewLine}{stderr}"));
+                    $"DotNetRuntimeEnvironment: x86 runtime install for channel '{channel}' failed with exit code {result.ExitCode}.{Environment.NewLine}" +
+                    $"{result.StandardOutput}{Environment.NewLine}{result.StandardError}"));
         }
 
         _log.Verbose(
@@ -195,7 +168,7 @@ public sealed partial class DotNetRuntimeEnvironment(ICakeLog log) : IDotNetRunt
             installRoot);
     }
 
-    private static string ResolvePowerShellExecutable()
+    private string ResolvePowerShellExecutable()
     {
         var pwshPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
@@ -203,7 +176,7 @@ public sealed partial class DotNetRuntimeEnvironment(ICakeLog log) : IDotNetRunt
             "7",
             "pwsh.exe");
 
-        return File.Exists(pwshPath) ? pwshPath : "powershell.exe";
+        return _cakeContext.FileExists(pwshPath) ? pwshPath : "powershell.exe";
     }
 
     [GeneratedRegex(

@@ -524,8 +524,11 @@ dotnet_diagnostic.S3267.severity = none
 
 # Git has no fixed install path across supported hosts; PATH selects it and --repo-root bypasses it.
 # Winner: pre-Cake repository discovery; S4036 remains enabled for every other file.
+# Repository discovery and debug detection precede the Cake context.
+# Winner: pre-Cake bootstrap; RS0030 remains enabled for every other file.
 [build/_build/EntryPoint.cs]
 dotnet_diagnostic.S4036.severity = none
+dotnet_diagnostic.RS0030.severity = none
 
 # Frozen generator tools retain their existing SDK analyzer behavior.
 # Winner: generator toolchain freeze; CA1305 remains enabled for every other file.
@@ -695,3 +698,18 @@ dotnet_diagnostic.MA0045.severity = none
 # Winner: the repository-gate inventory contract; MA0045 remains enabled for every other file.
 [build/_build.Tests/Fixtures/RepositoryGates/RepositoryFiles.cs]
 dotnet_diagnostic.MA0045.severity = none
+
+# The Cake JSON extensions are the single serialization seam.
+# Winner: the single JSON seam; RS0030 remains enabled for every other file.
+[build/_build/Host/Cake/CakeJsonExtensions.cs]
+dotnet_diagnostic.RS0030.severity = none
+
+# Cake 6.1's process runner cannot pin stream decoding or wait with cancellation; this is the single raw-process seam.
+# Winner: the host process contract (UTF-8 streams, cancellable wait); RS0030 remains enabled for every other file.
+[build/_build/Host/Processes/HostProcessRunner.cs]
+dotnet_diagnostic.RS0030.severity = none
+
+# The host composition root selects the clock once for injection.
+# Winner: clock composition; RS0030 remains enabled for every other file.
+[build/_build/Host/ServiceCollectionExtensions.cs]
+dotnet_diagnostic.RS0030.severity = none

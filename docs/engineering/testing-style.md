@@ -80,6 +80,8 @@ internal static class VersionsData
 | Target scenario host | `TargetTestHost<TTask>` |
 | ServiceCollection smoke host | `ServiceCollectionTestHost` |
 | Log capture | `TestLog` |
+| UTF-8/cancellable host processes | `FakeCakeWorld.HostProcessRunner` with `WithProcessResult` |
+| Injected clock | `FakeCakeWorld.Clock` |
 
 **Rules:**
 

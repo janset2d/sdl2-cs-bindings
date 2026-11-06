@@ -9,11 +9,16 @@ using Cake.Core.IO;
 namespace Build.Data.Harvest;
 
 /// <inheritdoc />
-public sealed class HarvestStatusRepository(ICakeContext cakeContext, IPathService pathService, IRuntimeProfile runtimeProfile) : IHarvestStatusRepository
+public sealed class HarvestStatusRepository(
+    ICakeContext cakeContext,
+    IPathService pathService,
+    IRuntimeProfile runtimeProfile,
+    TimeProvider timeProvider) : IHarvestStatusRepository
 {
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
     private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
     private readonly IRuntimeProfile _runtimeProfile = runtimeProfile ?? throw new ArgumentNullException(nameof(runtimeProfile));
+    private readonly TimeProvider _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
 
     /// <summary>
     /// Cleans the current RID's payload (runtime tree + status file + RID-scoped license tree)
@@ -49,7 +54,7 @@ public sealed class HarvestStatusRepository(ICakeContext cakeContext, IPathServi
             Triplet = _runtimeProfile.Triplet,
             Success = true,
             ErrorMessage = null,
-            Timestamp = DateTimeOffset.UtcNow,
+            Timestamp = _timeProvider.GetUtcNow(),
             Statistics = new HarvestStatistics
             {
                 PrimaryFilesCount = statistics.PrimaryFiles.Count,
@@ -81,7 +86,7 @@ public sealed class HarvestStatusRepository(ICakeContext cakeContext, IPathServi
             Triplet = _runtimeProfile.Triplet,
             Success = false,
             ErrorMessage = errorMessage,
-            Timestamp = DateTimeOffset.UtcNow,
+            Timestamp = _timeProvider.GetUtcNow(),
             Statistics = null,
         };
 

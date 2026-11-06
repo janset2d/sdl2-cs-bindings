@@ -1,6 +1,7 @@
 using Build.Data.Manifest;
 using Build.Host.Cake;
 using Build.Host.Paths;
+using Build.Host.Processes;
 using Build.Host.Runtime;
 using Cake.Core;
 using Cake.Core.Diagnostics;
@@ -59,6 +60,8 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddSingleton(parsedArgs);
+        services.AddSingleton<IHostProcessRunner, HostProcessRunner>();
+        services.AddSingleton(TimeProvider.System);
 
         return services;
     }

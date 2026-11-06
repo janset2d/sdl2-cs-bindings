@@ -95,6 +95,7 @@ public sealed class ConsolidateHarvestTaskScenarioTests
         await Assert.That(world.FileExists(manifestRelative)).IsTrue();
         var manifest = await world.CakeContext.ToJsonAsync<HarvestManifest>(world.RepoRoot.CombineWithFilePath(manifestRelative));
         await Assert.That(manifest.LibraryName).IsEqualTo(LibraryName);
+        await Assert.That(manifest.GeneratedTimestamp).IsEqualTo(FakeCakeWorld.Timestamp);
         await Assert.That(manifest.Summary.TotalRids).IsEqualTo(2);
         await Assert.That(manifest.Summary.SuccessfulRids).IsEqualTo(2);
         await Assert.That(manifest.Summary.FailedRids).IsEqualTo(0);
