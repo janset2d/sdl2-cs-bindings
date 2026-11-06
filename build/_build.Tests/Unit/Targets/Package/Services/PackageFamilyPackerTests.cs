@@ -98,21 +98,25 @@ public sealed class PackageFamilyPackerTests
         var pathService = Substitute.For<IPathService>();
         pathService.RepoRoot.Returns(new DirectoryPath("C:/repo"));
         pathService.PackagesOutput.Returns(new DirectoryPath("C:/repo/artifacts/packages"));
-        pathService.GetHarvestLibraryDir(Arg.Any<string>())
+        pathService
+            .GetHarvestLibraryDir(Arg.Any<string>())
             .Returns(call => new DirectoryPath($"C:/repo/artifacts/harvest_output/{(string)call[0]}"));
         pathService.GetReadmeFile().Returns(new FilePath("C:/repo/README.md"));
 
         var nativeMetadataGenerator = Substitute.For<INativePackageMetadataGenerator>();
-        nativeMetadataGenerator.GenerateAsync(Arg.Any<ManifestConfig>(), Arg.Any<PackageFamilyConfig>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        nativeMetadataGenerator
+            .GenerateAsync(Arg.Any<ManifestConfig>(), Arg.Any<PackageFamilyConfig>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
 
         var projectMetadataReader = Substitute.For<IProjectMetadataReader>();
-        projectMetadataReader.Read(Arg.Any<FilePath>())
+        projectMetadataReader
+            .Read(Arg.Any<FilePath>())
             .Returns(Result<EvaluatedProjectMetadata, ProjectMetadataError>.Success(
                 new EvaluatedProjectMetadata(["net10.0"], "Authors", "LICENSE", "icon.png")));
 
         var packageOutputValidator = Substitute.For<IPackageOutputValidator>();
-        packageOutputValidator.ValidateAsync(
+        packageOutputValidator
+            .ValidateAsync(
             Arg.Any<PackageFamilyConfig>(),
             Arg.Any<PackageArtifacts>(),
             Arg.Any<string>(),
@@ -123,7 +127,8 @@ public sealed class PackageFamilyPackerTests
             .Returns(outputValidatorReport ?? ValidationReport.Empty);
 
         var harvestReadinessValidator = Substitute.For<IHarvestReadinessValidator>();
-        harvestReadinessValidator.EnsureReadyAsync(Arg.Any<PackageFamilyConfig>(), Arg.Any<CancellationToken>())
+        harvestReadinessValidator
+            .EnsureReadyAsync(Arg.Any<PackageFamilyConfig>(), Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
 
         var normalizer = new DependencyRangeNormalizer(world.CakeContext, world.Log);

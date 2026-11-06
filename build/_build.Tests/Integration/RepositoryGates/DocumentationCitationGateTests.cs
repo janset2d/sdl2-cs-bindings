@@ -18,13 +18,15 @@ public sealed partial class DocumentationCitationGateTests
     [Test]
     public async Task CitationBaseline_Should_List_Only_Citations_Still_Present()
     {
-        var stale = GateBaseline.Load("doc-citations.baseline").Entries.Except(Citations(), StringComparer.Ordinal)
+        var stale = GateBaseline.Load("doc-citations.baseline").Entries
+            .Except(Citations(), StringComparer.Ordinal)
             .Order(StringComparer.Ordinal)
             .ToArray();
         await Assert.That(stale).IsEmpty().Because("Stale baseline entries:\n" + string.Join('\n', stale));
     }
 
-    private static string[] Citations() => RepositoryFiles.Tracked.Where(GateScopes.IsCitationScanned)
+    private static string[] Citations() => RepositoryFiles.Tracked
+        .Where(GateScopes.IsCitationScanned)
         .SelectMany(path => Citation().Matches(RepositoryFiles.ReadText(path) ?? string.Empty).Select(match => $"{path}|{match.Value}"))
         .Distinct(StringComparer.Ordinal)
         .Order(StringComparer.Ordinal)

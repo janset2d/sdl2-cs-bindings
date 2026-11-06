@@ -87,12 +87,13 @@ public sealed class HeaderSetResolverTests
     public async Task Resolve_Should_Throw_When_Include_Directory_Has_No_Matching_Headers()
     {
         var world = FakeCakeWorld.CreateLinux();
-        world.FileSystem.GetDirectory(
-            world.RepoRoot
-                .Combine("vcpkg_installed")
-                .Combine("x64-linux-hybrid")
-                .Combine("include")
-                .Combine("SDL2"))
+        world.FileSystem
+            .GetDirectory(
+                world.RepoRoot
+                    .Combine("vcpkg_installed")
+                    .Combine("x64-linux-hybrid")
+                    .Combine("include")
+                    .Combine("SDL2"))
             .Create();
         var resolver = new HeaderSetResolver(world.CakeContext);
 

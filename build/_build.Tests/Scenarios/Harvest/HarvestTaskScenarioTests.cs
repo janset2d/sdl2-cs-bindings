@@ -68,7 +68,8 @@ public sealed class HarvestTaskScenarioTests
         var world = SeedVcpkgInstall();
 
         var walkerStub = Substitute.For<IBinaryClosureWalker>();
-        walkerStub.BuildClosureAsync(Arg.Any<LibraryManifest>(), Arg.Any<CancellationToken>())
+        walkerStub
+            .BuildClosureAsync(Arg.Any<LibraryManifest>(), Arg.Any<CancellationToken>())
             .Returns(Result<BinaryClosure, ClosureError>.Failure(new ClosureNotFound("vcpkg cache miss for sdl2")));
 
         var result = await CreateHost(world, manifest, walkerOverride: walkerStub).RunAsync();
@@ -121,7 +122,8 @@ public sealed class HarvestTaskScenarioTests
         var world = SeedVcpkgInstall();
 
         var walkerStub = Substitute.For<IBinaryClosureWalker>();
-        walkerStub.BuildClosureAsync(Arg.Any<LibraryManifest>(), Arg.Any<CancellationToken>())
+        walkerStub
+            .BuildClosureAsync(Arg.Any<LibraryManifest>(), Arg.Any<CancellationToken>())
             .Returns<Task<Result<BinaryClosure, ClosureError>>>(_ => throw new OperationCanceledException());
 
         var result = await CreateHost(world, manifest, walkerOverride: walkerStub).RunAsync();
@@ -143,7 +145,8 @@ public sealed class HarvestTaskScenarioTests
         var world = SeedVcpkgInstall();
 
         var walkerStub = Substitute.For<IBinaryClosureWalker>();
-        walkerStub.BuildClosureAsync(Arg.Any<LibraryManifest>(), Arg.Any<CancellationToken>())
+        walkerStub
+            .BuildClosureAsync(Arg.Any<LibraryManifest>(), Arg.Any<CancellationToken>())
             .Returns<Task<Result<BinaryClosure, ClosureError>>>(_ => throw new IOException("disk full"));
 
         var result = await CreateHost(world, manifest, walkerOverride: walkerStub).RunAsync();
@@ -169,7 +172,8 @@ public sealed class HarvestTaskScenarioTests
 
         var walkerStub = StubWalkerSuccess();
         var leakStub = Substitute.For<IHybridStaticLeakValidator>();
-        leakStub.Validate(Arg.Any<BinaryClosure>(), Arg.Any<LibraryManifest>(), Arg.Any<string>(), Arg.Any<ValidationMode>())
+        leakStub
+            .Validate(Arg.Any<BinaryClosure>(), Arg.Any<LibraryManifest>(), Arg.Any<string>(), Arg.Any<ValidationMode>())
             .Returns(new ValidationReport([
                 new ValidationCheck("LeakCheck", ValidationSeverity.Error, "leak: zlib1.dll leaks transitive dep"),
             ]));
@@ -226,7 +230,8 @@ public sealed class HarvestTaskScenarioTests
             new HashSet<string>(StringComparer.Ordinal) { "C:/vcpkg_installed/x64-windows-hybrid/bin/SDL2.dll" },
             [new BinaryNode("C:/vcpkg_installed/x64-windows-hybrid/bin/SDL2.dll", "sdl2", "sdl2")],
             new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "sdl2" });
-        walker.BuildClosureAsync(Arg.Any<LibraryManifest>(), Arg.Any<CancellationToken>())
+        walker
+            .BuildClosureAsync(Arg.Any<LibraryManifest>(), Arg.Any<CancellationToken>())
             .Returns(Result<BinaryClosure, ClosureError>.Success(closure));
         return walker;
     }
@@ -234,7 +239,8 @@ public sealed class HarvestTaskScenarioTests
     private static IHybridStaticLeakValidator StubLeakValidatorClean()
     {
         var leak = Substitute.For<IHybridStaticLeakValidator>();
-        leak.Validate(Arg.Any<BinaryClosure>(), Arg.Any<LibraryManifest>(), Arg.Any<string>(), Arg.Any<ValidationMode>())
+        leak
+            .Validate(Arg.Any<BinaryClosure>(), Arg.Any<LibraryManifest>(), Arg.Any<string>(), Arg.Any<ValidationMode>())
             .Returns(ValidationReport.Empty);
         return leak;
     }
@@ -243,7 +249,8 @@ public sealed class HarvestTaskScenarioTests
     {
         var planner = Substitute.For<IArtifactPlanner>();
         var plan = new DeploymentPlan([], statistics);
-        planner.CreatePlanAsync(Arg.Any<LibraryManifest>(), Arg.Any<BinaryClosure>(), Arg.Any<DirectoryPath>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        planner
+            .CreatePlanAsync(Arg.Any<LibraryManifest>(), Arg.Any<BinaryClosure>(), Arg.Any<DirectoryPath>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(Result<DeploymentPlan, ArtifactPlannerError>.Success(plan));
         return planner;
     }
@@ -251,7 +258,8 @@ public sealed class HarvestTaskScenarioTests
     private static IArtifactDeployer StubDeployerSuccess(DeploymentStatistics statistics)
     {
         var deployer = Substitute.For<IArtifactDeployer>();
-        deployer.DeployArtifactsAsync(Arg.Any<DeploymentPlan>(), Arg.Any<CancellationToken>())
+        deployer
+            .DeployArtifactsAsync(Arg.Any<DeploymentPlan>(), Arg.Any<CancellationToken>())
             .Returns(Result<DeploymentStatistics, CopierError>.Success(statistics));
         return deployer;
     }

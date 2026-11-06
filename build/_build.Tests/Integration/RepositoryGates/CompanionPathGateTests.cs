@@ -10,8 +10,11 @@ public sealed partial class CompanionPathGateTests
     [Test]
     public async Task PublicCanon_Should_Not_Cite_Companion_Repository_Paths()
     {
-        var offenders = RepositoryFiles.Tracked.Where(GateScopes.IsCompanionPathScanned).Order(StringComparer.Ordinal)
-            .SelectMany(path => CompanionPath().Matches(RepositoryFiles.ReadText(path) ?? string.Empty)
+        var offenders = RepositoryFiles.Tracked
+            .Where(GateScopes.IsCompanionPathScanned)
+            .Order(StringComparer.Ordinal)
+            .SelectMany(path => CompanionPath()
+                .Matches(RepositoryFiles.ReadText(path) ?? string.Empty)
                 .Select(match => $"{path} -> {match.Value}"))
             .ToArray();
         await Assert.That(offenders).IsEmpty().Because("\n" + string.Join('\n', offenders));

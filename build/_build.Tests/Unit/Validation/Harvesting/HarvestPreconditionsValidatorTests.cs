@@ -15,7 +15,8 @@ public sealed class HarvestPreconditionsValidatorTests
             .WithTextFile("vcpkg_installed/x64-windows-hybrid/.placeholder", string.Empty);
 
         var pathService = Substitute.For<IPathService>();
-        pathService.GetVcpkgInstalledTripletDir("x64-windows-hybrid")
+        pathService
+            .GetVcpkgInstalledTripletDir("x64-windows-hybrid")
             .Returns(world.RepoRoot.Combine("vcpkg_installed/x64-windows-hybrid"));
 
         var profile = Substitute.For<IRuntimeProfile>();
@@ -35,7 +36,8 @@ public sealed class HarvestPreconditionsValidatorTests
         var world = FakeCakeWorld.CreateWindows();
 
         var pathService = Substitute.For<IPathService>();
-        pathService.GetVcpkgInstalledTripletDir("x64-windows-hybrid")
+        pathService
+            .GetVcpkgInstalledTripletDir("x64-windows-hybrid")
             .Returns(world.RepoRoot.Combine("vcpkg_installed/x64-windows-hybrid"));
 
         var profile = Substitute.For<IRuntimeProfile>();
