@@ -16,15 +16,15 @@ namespace Build.Tests.Unit.Data.Harvest;
 /// </summary>
 public sealed class HarvestStatusRepositoryUnitTests
 {
-    private const string _libraryName = "sdl2-core";
-    private const string _rid = "win-x64";
+    private const string LibraryName = "sdl2-core";
+    private const string Rid = "win-x64";
 
     private static (HarvestStatusRepository Repo, IPathService Paths) CreateRepoWithMocks()
     {
         var ctx = Substitute.For<ICakeContext>();
         var paths = Substitute.For<IPathService>();
         var profile = Substitute.For<IRuntimeProfile>();
-        profile.Rid.Returns(_rid);
+        profile.Rid.Returns(Rid);
         // Default path-service stubs so non-failure paths resolve. Tests that care about specific
         // paths reconfigure these.
         paths.GetHarvestLibraryRidRuntimesDir(Arg.Any<string>(), Arg.Any<string>()).Returns(new DirectoryPath("runtimes"));
@@ -79,15 +79,8 @@ public sealed class HarvestStatusRepositoryUnitTests
         var (repo, _) = CreateRepoWithMocks();
         using var cts = new CancellationTokenSource();
         await cts.CancelAsync();
-        await Assert.That(() => repo.Invalidate(_libraryName, cts.Token)).Throws<OperationCanceledException>();
+        await Assert.That(() => repo.Invalidate(LibraryName, cts.Token)).Throws<OperationCanceledException>();
     }
-
-    // Note: a path-service interaction test (Received(1).GetHarvestLibrary*) was prototyped but
-    // dropped — Cake's ICakeContext extension methods (DirectoryExists/FileExists) traverse
-    // FileSystem/Globber internals that NSubstitute won't auto-stub, and reaching them requires
-    // wiring a Substitute graph that's effectively the FakeCakeWorld. Path-resolution contracts
-    // are locked by the sociable round-trip tests below, which assert on the real file paths
-    // created/deleted via FakeFileSystem — same coverage, less brittle plumbing.
 
     [Test]
     public async Task WriteSuccessAsync_Should_Throw_When_LibraryName_Is_Null_Or_Whitespace()
@@ -102,7 +95,7 @@ public sealed class HarvestStatusRepositoryUnitTests
     public async Task WriteSuccessAsync_Should_Throw_When_Statistics_Are_Null()
     {
         var (repo, _) = CreateRepoWithMocks();
-        await Assert.That(() => repo.WriteSuccessAsync(_libraryName, null!)).Throws<ArgumentNullException>();
+        await Assert.That(() => repo.WriteSuccessAsync(LibraryName, null!)).Throws<ArgumentNullException>();
     }
 
     [Test]
@@ -117,8 +110,8 @@ public sealed class HarvestStatusRepositoryUnitTests
     public async Task WriteErrorAsync_Should_Throw_When_ErrorMessage_Is_Null_Or_Whitespace()
     {
         var (repo, _) = CreateRepoWithMocks();
-        await Assert.That(() => repo.WriteErrorAsync(_libraryName, null!)).Throws<ArgumentException>();
-        await Assert.That(() => repo.WriteErrorAsync(_libraryName, "   ")).Throws<ArgumentException>();
+        await Assert.That(() => repo.WriteErrorAsync(LibraryName, null!)).Throws<ArgumentException>();
+        await Assert.That(() => repo.WriteErrorAsync(LibraryName, "   ")).Throws<ArgumentException>();
     }
 
     private static DeploymentStatistics CreateStats() =>

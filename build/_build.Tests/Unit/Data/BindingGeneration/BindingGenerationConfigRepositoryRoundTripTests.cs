@@ -9,8 +9,7 @@ namespace Build.Tests.Unit.Data.BindingGeneration;
 /// Sociable round-trip coverage for <see cref="BindingGenerationConfigRepository"/>.
 /// Flows through the real <see cref="ManifestRepository"/> + fake filesystem so the
 /// typed deserialization path (manifest v2.2 required binding_generation field) is
-/// exercised end-to-end. Pairs with the unit suite above per the repository-cohort
-/// convention used across <c>Build.Tests.Unit.Data</c>.
+/// exercised end-to-end. Pairs with <see cref="BindingGenerationConfigRepositoryUnitTests"/>.
 /// </summary>
 public sealed class BindingGenerationConfigRepositoryRoundTripTests
 {
