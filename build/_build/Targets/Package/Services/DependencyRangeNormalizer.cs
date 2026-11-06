@@ -81,9 +81,7 @@ public sealed class DependencyRangeNormalizer(ICakeContext cakeContext, ICakeLog
         var nuspecEntry = nuspecCandidates[0];
 
         string nuspecContent;
-#pragma warning disable CA1849, S6966 // ZipArchiveEntry.Open sync used intentionally for small metadata reads
-        using (var reader = new StreamReader(nuspecEntry.Open(), Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: false))
-#pragma warning restore CA1849, S6966
+        using (var reader = new StreamReader(await nuspecEntry.OpenAsync(ct), Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: false))
         {
             nuspecContent = await reader.ReadToEndAsync(ct);
         }
@@ -136,9 +134,7 @@ public sealed class DependencyRangeNormalizer(ICakeContext cakeContext, ICakeLog
             ? document.ToString(SaveOptions.DisableFormatting)
             : string.Concat(document.Declaration, Environment.NewLine, document.ToString(SaveOptions.DisableFormatting));
 
-#pragma warning disable CA1849, S6966 // ZipArchiveEntry.Open sync used intentionally for small metadata writes
-        await using var updatedEntryStream = updatedNuspecEntry.Open();
-#pragma warning restore CA1849, S6966
+        await using var updatedEntryStream = await updatedNuspecEntry.OpenAsync(ct);
         await using var writer = new StreamWriter(updatedEntryStream, new UTF8Encoding(false));
         await writer.WriteAsync(updatedContent);
 

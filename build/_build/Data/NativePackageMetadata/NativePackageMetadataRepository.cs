@@ -88,9 +88,7 @@ public sealed class NativePackageMetadataRepository(ICakeContext cakeContext) : 
 
     private static async Task<string> ReadEntryContentAsync(ZipArchiveEntry entry, CancellationToken ct)
     {
-#pragma warning disable CA1849, S6966 // ZipArchiveEntry.Open sync used intentionally for small package metadata reads.
-        using var stream = entry.Open();
-#pragma warning restore CA1849, S6966
+        await using var stream = await entry.OpenAsync(ct).ConfigureAwait(false);
         using var reader = new StreamReader(stream);
         return await reader.ReadToEndAsync(ct).ConfigureAwait(false);
     }
