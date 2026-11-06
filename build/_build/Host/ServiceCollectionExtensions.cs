@@ -1,4 +1,3 @@
-#pragma warning disable MA0045
 
 using Build.Data.Manifest;
 using Build.Host.Cake;

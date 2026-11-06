@@ -89,7 +89,6 @@ public sealed class CsprojPackContractValidator(IFileSystem fileSystem) : ICspro
     // files. Switching the validator surface to async would propagate Task<...> through ICsprojPack-
     // ContractValidator, IPreflightReporter, PreFlightCheckTask without measurable benefit. MA0045
     // suppression here mirrors the rationale in Program.cs file-level pragma.
-#pragma warning disable MA0045
     private (XElement? Root, CsprojPackContractCheck? Error) LoadCsprojDocument(PackageFamilyConfig family, DirectoryPath repoRoot, string relativePath)
     {
         var fullPath = repoRoot.CombineWithFilePath(relativePath);
@@ -128,7 +127,6 @@ public sealed class CsprojPackContractValidator(IFileSystem fileSystem) : ICspro
                 ErrorMessage: $"Failed to parse csproj '{relativePath}': {ex.Message}"));
         }
     }
-#pragma warning restore MA0045
 
     private static CsprojPackContractCheck CheckManagedPackageId(PackageFamilyConfig family, string relativePath, XElement root)
     {

@@ -1,4 +1,3 @@
-#pragma warning disable S2737, CA1031
 
 using System.Collections.Immutable;
 using Build.Tools.Ldd;
@@ -55,4 +54,3 @@ public sealed class LinuxLddScanner(ICakeContext context) : IRuntimeScanner
     }
 }
 
-#pragma warning restore S2737, CA1031

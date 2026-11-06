@@ -24,8 +24,7 @@ public sealed class DependencyRangeNormalizer(ICakeContext cakeContext, ICakeLog
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
 
-    [SuppressMessage("Design", "MA0051:Method is too long",
-        Justification = "G56 normalization intentionally keeps zip read, nuspec parse, range rewrite, and zip update in one linear path for debuggability.")]
+    
     public async Task NormalizeAsync(
         ManifestConfig manifestConfig,
         PackageFamilyConfig family,

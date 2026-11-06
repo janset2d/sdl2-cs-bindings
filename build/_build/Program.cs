@@ -1,4 +1,3 @@
-# pragma warning disable CA1031, MA0045, MA0051, CA1502, CA1505
 
 using System.CommandLine;
 using System.CommandLine.Invocation;

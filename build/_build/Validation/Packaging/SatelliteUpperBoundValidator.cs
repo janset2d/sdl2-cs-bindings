@@ -8,8 +8,7 @@ namespace Build.Validation.Packaging;
 
 public sealed class SatelliteUpperBoundValidator : ISatelliteUpperBoundValidator
 {
-    [SuppressMessage("Design", "MA0051:Method is too long",
-        Justification = "G56 validation intentionally keeps parse, manifest resolution, and bound checks in one path for full diagnostic context.")]
+    
     public ValidationCheck? Validate(
         PackageFamilyConfig family,
         FilePath managedPackagePath,
