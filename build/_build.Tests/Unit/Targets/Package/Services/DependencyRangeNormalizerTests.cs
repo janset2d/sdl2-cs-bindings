@@ -10,6 +10,21 @@ namespace Build.Tests.Unit.Targets.Package.Services;
 public sealed class DependencyRangeNormalizerTests
 {
     [Test]
+    public async Task NormalizeAsync_Should_Read_Entry_Asynchronously_And_Persist_Rewritten_Range()
+    {
+        var (world, manifest) = WorldWithManifest();
+        var family = manifest.PackageFamilies.Single(f => f.Name == "sdl2-image");
+        var bytes = NuspecBuilder.WithCrossFamilyDependency("Janset.SDL2.Image", "2.8.0", "Janset.SDL2.Core", "2.8.0");
+        var path = world.RepoRoot.CombineWithFilePath("artifacts/packages/Janset.SDL2.Image.2.8.0.nupkg");
+        world.WithAsyncZipEntryReads(path, NuspecBuilder.AsNupkgZip("Janset.SDL2.Image.nuspec", bytes), System.IO.Compression.ZipArchiveMode.Update);
+        var normalizer = new DependencyRangeNormalizer(world.CakeContext, world.Log);
+
+        await Assert.That(() => normalizer.NormalizeAsync(manifest, family, path, "2.8.0", CancellationToken.None)).ThrowsNothing();
+
+        await Assert.That(NuspecReader.GetDependencyVersion(world, path, "Janset.SDL2.Core")).IsEqualTo("[2.8.0, 3.0.0)");
+    }
+
+    [Test]
     public async Task NormalizeAsync_Should_Rewrite_CrossFamily_Dependency_Range_When_DependsOn_Present()
     {
         var (world, manifest) = WorldWithManifest();

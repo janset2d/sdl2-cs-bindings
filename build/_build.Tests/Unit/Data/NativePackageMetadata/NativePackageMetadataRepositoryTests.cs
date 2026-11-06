@@ -65,7 +65,7 @@ public sealed class NativePackageMetadataRepositoryRoundTripTests
         var world = FakeCakeWorld.CreateWindows();
         var packagePath = PackagePath(world);
         var content = FixtureLoader.Load("NativePackageMetadata/native-metadata-valid.json");
-        world.WithAsyncZipEntryReads(packagePath, NuspecBuilder.AsNupkgZip(MetadataEntryName, System.Text.Encoding.UTF8.GetBytes(content)));
+        world.WithAsyncZipEntryReads(packagePath, NuspecBuilder.AsNupkgZip(MetadataEntryName, System.Text.Encoding.UTF8.GetBytes(content)), ZipArchiveMode.Read);
         var repository = new NativePackageMetadataRepository(world.CakeContext);
 
         var result = await repository.ReadFromPackageAsync(packagePath);

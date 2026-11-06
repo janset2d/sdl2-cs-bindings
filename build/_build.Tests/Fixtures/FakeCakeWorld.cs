@@ -166,38 +166,29 @@ public sealed class FakeCakeWorld
         return this;
     }
 
-    public FakeCakeWorld WithAsyncZipEntryReads(FilePath path, byte[] content)
+    public FakeCakeWorld WithAsyncZipEntryReads(FilePath path, byte[] content, System.IO.Compression.ZipArchiveMode mode)
     {
         WithBinaryFile(path, content);
-        var backing = new MemoryStream(content);
-        var stream = Substitute.ForPartsOf<Stream>();
-        stream.CanRead.Returns(true);
-        stream.CanSeek.Returns(true);
-        stream.Length.Returns(backing.Length);
-        stream.Position.Returns(_ => backing.Position);
-        stream.When(value => value.Position = Arg.Any<long>()).Do(call => backing.Position = call.Arg<long>());
-        stream.Seek(Arg.Any<long>(), Arg.Any<SeekOrigin>()).Returns(call => backing.Seek(call.Arg<long>(), call.Arg<SeekOrigin>()));
-        stream.Read(Arg.Any<byte[]>(), Arg.Any<int>(), Arg.Any<int>()).Returns(call =>
-        {
-            if (backing.Position == 0)
-            {
-                throw new IOException("ZIP entry headers must be read asynchronously.");
-            }
-            return backing.Read(call.Arg<byte[]>(), call.ArgAt<int>(1), call.ArgAt<int>(2));
-        });
-        stream.ReadAsync(Arg.Any<byte[]>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
-            .Returns(call => backing.ReadAsync(call.Arg<byte[]>(), call.ArgAt<int>(1), call.ArgAt<int>(2), call.Arg<CancellationToken>()));
-        stream.When(value => value.Close()).Do(_ => backing.Dispose());
-
         var file = Substitute.For<IFile>();
         file.Exists.Returns(true);
         file.Path.Returns(path);
         using var initialRead = file.OpenRead();
-        initialRead.Returns(stream);
+        initialRead.Returns(_ => new AsyncZipEntryReadStream(content, mode, bytes => WithBinaryFile(path, bytes)));
+        file.Open(FileMode.Open, FileAccess.ReadWrite, FileShare.None)
+            .Returns(_ => new AsyncZipEntryReadStream(content, mode, bytes => WithBinaryFile(path, bytes)));
         var fileSystem = Substitute.For<IFileSystem>();
-        fileSystem.GetFile(path).Returns(file);
+        fileSystem.GetFile(Arg.Any<FilePath>()).Returns(call => path.Equals(call.Arg<FilePath>()) ? file : FileSystem.GetFile(call.Arg<FilePath>()));
+        fileSystem.GetDirectory(Arg.Any<DirectoryPath>()).Returns(call => FileSystem.GetDirectory(call.Arg<DirectoryPath>()));
         CakeContext.FileSystem.Returns(fileSystem);
         return this;
+    }
+
+    public FakeCakeWorld WithAsyncZipEntryReads(FilePath path, System.IO.Compression.ZipArchiveMode mode)
+    {
+        using var stream = FileSystem.GetFile(path).OpenRead();
+        using var content = new MemoryStream();
+        stream.CopyTo(content);
+        return WithAsyncZipEntryReads(path, content.ToArray(), mode);
     }
 
     public FakeCakeWorld WithBinaryFile(string relativePath, byte[] content)
