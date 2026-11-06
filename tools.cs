@@ -46,7 +46,8 @@ app.Configure(config =>
     config.AddCommand<BuildCommand>("build");
     config.AddCommand<SetupCommand>("setup");
     config.AddCommand<CiSimCommand>("ci-sim");
-    config.AddCommand<BuildBindingGeneratorImageCommand>("build-binding-generator-image")
+    config
+        .AddCommand<BuildBindingGeneratorImageCommand>("build-binding-generator-image")
         .WithDescription("Builds the Linux x64 ABI-test image with manifest-pinned vcpkg state.");
 });
 return await app.RunAsync(args);
