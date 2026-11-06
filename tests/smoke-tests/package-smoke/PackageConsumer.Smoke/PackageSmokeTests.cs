@@ -81,7 +81,7 @@ public sealed class PackageSmokeTests
     [Category("PackageSmoke")]
     public async Task Image_Png_Fixture_Loads_Successfully()
     {
-        IntPtr surface = IntPtr.Zero;
+        var surface = IntPtr.Zero;
         var imageResult = SDL_image.IMG_Init(SDL_image.IMG_InitFlags.IMG_INIT_PNG);
 
         try
@@ -186,8 +186,8 @@ public sealed class PackageSmokeTests
     {
         ConfigureHeadlessDrivers();
 
-        IntPtr surface = IntPtr.Zero;
-        IntPtr renderer = IntPtr.Zero;
+        var surface = IntPtr.Zero;
+        var renderer = IntPtr.Zero;
 
         var initResult = SDL.SDL_Init(SDL.SDL_INIT_VIDEO);
 
