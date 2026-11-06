@@ -417,8 +417,7 @@ dotnet_diagnostic.MA0078.severity = error
 dotnet_diagnostic.MA0105.severity = error
 dotnet_diagnostic.MA0106.severity = error
 dotnet_diagnostic.MA0111.severity = error
-# QM-19: MA0048 stays at suggestion until "style: one type per file named after it (MA0048 error)".
-dotnet_diagnostic.MA0048.severity = suggestion
+dotnet_diagnostic.MA0048.severity = error
 dotnet_diagnostic.MA0052.severity = error
 # QM-11: MA0053 stays at none until "style: collection expressions, sealing, and the remaining revived rules".
 dotnet_diagnostic.MA0053.severity = none
@@ -586,3 +585,8 @@ dotnet_diagnostic.S3267.severity = none
 # Winner: single-line file-based directives until the suppression cleanup removes them; RCS0056 remains enabled for every other file.
 [/tools.cs]
 dotnet_diagnostic.RCS0056.severity = none
+
+# The file-based entry holds the tool's command types in one SDK compilation unit.
+# Winner: the file-based entry contract; MA0048 remains enabled for every other file.
+[tools.cs]
+dotnet_diagnostic.MA0048.severity = none
