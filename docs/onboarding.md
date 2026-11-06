@@ -93,7 +93,7 @@ Final unless Deniz explicitly reopens.
 | TUnit + MTP for testing | Microsoft.Testing.Platform; characterization tests before refactoring |
 | Release shape | Big-bang v1.0 covering SDL2 + SDL3 + all in-scope satellites, reached iteratively via internal feed → `-preview.N` → `-rc.N` → stable. See [`release-strategy.md`](release-strategy.md). |
 | AST-first prioritization | Phase 4 binding auto-generation lands **before** Phase 3 ship — first public `-preview.N` wave carries AST-generated bindings, not `external/sdl2-cs` imports. See [`release-strategy.md`](release-strategy.md) §Sequencing. |
-| Package topology refactor (3-tier role-meta + `.Bindings` + `.Native`) | **DEFERRED.** Research preserved in [`parking-lot/package-topology/`](parking-lot/package-topology/); unpark triggers in [`release-strategy.md`](release-strategy.md) §Deferred Decisions. |
+| Package topology refactor (3-tier role-meta + `.Bindings` + `.Native`) | **DEFERRED.** Evidence: internal research, 2026-05-12, "Package Topology Refactor Research - DEFERRED"; unpark triggers in [`release-strategy.md`](release-strategy.md) §Deferred Decisions. |
 
 ## Non-Goals
 

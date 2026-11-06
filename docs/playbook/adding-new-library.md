@@ -1,5 +1,7 @@
 # Playbook: Adding a New SDL Satellite Library
 
+Date: 2026-11-06
+
 > Step-by-step recipe for adding a new SDL2 (or SDL3) satellite library to the project.
 
 ## Example: Adding SDL2_net
@@ -25,7 +27,7 @@ If the library has optional features, add them:
 }
 ```
 
-(`mpg123`, `libflac`, `fluidsynth` are deliberately excluded — see [`docs/research/lgpl-free-codec-migration.md`](../research/lgpl-free-codec-migration.md). The `sdl2-mixer` overlay port replaces those with bundled minimp3 / drflac / Timidity.)
+(`mpg123`, `libflac`, `fluidsynth` are deliberately excluded. Evidence: internal research, 2026-04-14, "LGPL-Free Codec Migration - SDL2_mixer". The `sdl2-mixer` overlay port replaces those with bundled minimp3 / drflac / Timidity.)
 
 Add a version override:
 

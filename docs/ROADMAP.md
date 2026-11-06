@@ -92,7 +92,27 @@ Closed 2026-05-10. The build host now follows [`ADR-002`](adr/0002-target-centri
 
 **Canonical docs:** [`adr/0002-target-centric-build-host.md`](adr/0002-target-centric-build-host.md), [`adr/0003-build-host-data-layer.md`](adr/0003-build-host-data-layer.md), [`engineering/testing-style.md`](engineering/testing-style.md), [`engineering/coding-style.md`](engineering/coding-style.md).
 
-**Post-refactor hardening:** tracked in [`post-refactor-cleanup-plan.md`](post-refactor-cleanup-plan.md) — correctness gaps, style sweep, deferred extractions, test debt, UX polish. When all checkboxes resolve there, that file retires and any survivors fold back here.
+**Post-refactor hardening:** tracked by the issue groups below. Completed cancellation plumbing needs no new issue.
+
+| Cleanup group | Tracking |
+|---|---|
+| Correctness gaps | issue #110 |
+| UX and CLI clarity | issue #111 |
+| Style consistency | issue #112 |
+| API and performance refinements | issue #113 |
+| Extractions and model boundaries | issue #114 |
+| Reporter consolidation | issue #115 |
+| Test discipline | issue #116 |
+| Conditional watch list | issue #117 |
+
+Detailed follow-up groups: consumer-smoke extraction — issue #101;
+harvest extraction — issue #87; harvest data and paths — issue #102;
+readiness semantics — issue #103;
+dependency ranges — issue #104;
+reporter design — issue #105; fixture API — issue #106;
+diagnostic UX — issue #107; test oracles — issue #108;
+deferred polish and triggers — issue #109.
+These groups overlap the cleanup table; cross-link them rather than implementing the same work twice.
 
 ### 2027 — Stabilization
 
@@ -112,7 +132,20 @@ Open issues that are not phase-bound:
 - [ ] [#81 Add drift-prevention guardrail for harvest library lists](https://github.com/janset2d/sdl2-cs-bindings/issues/81)
 - [ ] [#87 Reassess HarvestTask extraction boundaries after the pipeline retirement](https://github.com/janset2d/sdl2-cs-bindings/issues/87)
 
-For non-issue-tracked deferred ideas, see [parking-lot.md](parking-lot.md).
+Other deferred work is tracked in issues:
+
+- Known-bad native combinations and expiry: issue #118.
+- Release rollback and recovery: issue #119.
+- Maintenance and feed health checks: issue #120.
+- Invariant-culture logging: issue #121.
+- Optional workflow-owned coverage signal: issue #122.
+- Package-info and dependency-analysis caching: issue #123.
+- Tool reproducibility: issue #124.
+- Release log hygiene: issue #125.
+- Native CI cache audit: issue #126.
+- Windows runner architecture and cache identity: issue #127.
+- SBOM and native symbols: issue #66.
+- Validator output-shape decision: issue #128.
 
 ## Versioning
 
@@ -139,5 +172,15 @@ SDL3 vcpkg availability: SDL3 3.4.4, SDL3_image 3.4.2, SDL3_mixer 3.2.0#1, SDL3_
 - **Architecture decisions**: [adr/](adr/) — ADR-001 (D-3seg + package-first), ADR-002 (target-centric build-host), ADR-003 (contract-centric data layer)
 - **Guardrails**: [architecture/packaging-and-release.md](architecture/packaging-and-release.md)
 - **How-to recipes**: [playbook/](playbook/)
-- **Design rationale**: [research/](research/)
-- **Deferred ideas**: [parking-lot.md](parking-lot.md), [parking-lot/](parking-lot/)
+- **Design evidence** (non-normative):
+  - internal research, 2026-04-11, "Research: Native Library Packaging Patterns in .NET".
+  - internal research, 2026-04-13, "SDL2 Native Dependency License Inventory".
+  - internal research, 2026-04-14, "LGPL-Free Codec Migration - SDL2_mixer".
+  - internal research, 2026-04-14, "Symbol Visibility in Hybrid Static Packaging - Analysis & Strategy".
+  - internal research, 2026-04-16, "Research: Full-Train Release Orchestration".
+  - internal research, 2026-04-16, "Research: Release Recovery + Manual Escape Hatch".
+  - internal research, 2026-04-11, "Research: SDL3 Ecosystem Analysis".
+  - internal research, 2026-04-22, "Unix Native Identity Strategy - vcpkg, SDL2 Family, Overlay Ports, and the Single-File Question".
+  - internal research, 2026-05-22, "Research: Semantic ABI Type Classification For SDL Bindings".
+- **Deferred topology evidence**: internal research, 2026-05-12, "Package Topology Refactor Research - DEFERRED"; unpark triggers remain in [release strategy](release-strategy.md#deferred-decisions).
+- **Deferred ideas**: the issue groups in Hardening Backlog above.
