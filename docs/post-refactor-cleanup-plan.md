@@ -1,6 +1,6 @@
 # Post-Refactor Cleanup Plan
 
-> Phase X / build-host refactor closed 2026-05-10 ([`ADR-002`](decisions/2026-05-05-target-centric-build-host.md), [`ADR-003`](decisions/2026-05-12-build-host-data-layer.md)). This file tracks the time-boxed hardening window — correctness gaps, style consistency, deferred extractions, test debt, and UX polish surfaced during S11–S16 reviewer follow-ups. When all checkboxes resolve, retire this file; any survivors fold back into [`plan.md`](plan.md) Phase X or a follow-up phase.
+> Phase X / build-host refactor closed 2026-05-10 ([`ADR-002`](adr/0002-target-centric-build-host.md), [`ADR-003`](adr/0003-build-host-data-layer.md)). This file tracks the time-boxed hardening window — correctness gaps, style consistency, deferred extractions, test debt, and UX polish surfaced during S11–S16 reviewer follow-ups. When all checkboxes resolve, retire this file; any survivors fold back into [`plan.md`](plan.md) Phase X or a follow-up phase.
 
 ## Execution Surface
 

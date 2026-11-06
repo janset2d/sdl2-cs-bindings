@@ -102,4 +102,4 @@ Items deliberately accepted as-is.
 - [`canonical/satellites/`](canonical/satellites/) — per-family + cross-family satellite analyses.
 - [`../output/reports/oracle-evidence-clangsharp.md`](../output/reports/oracle-evidence-clangsharp.md) — current oracle evidence.
 - [`../output/reports/iteration-2-comparison.md`](../output/reports/iteration-2-comparison.md) — toolchain decision evidence.
-- [`../../../docs/decisions/2026-05-14-binding-autogen-toolchain.md`](../../../docs/decisions/2026-05-14-binding-autogen-toolchain.md) — ADR-004 (Reopened).
+- [`../../../docs/adr/0004-binding-autogen-toolchain.md`](../../../docs/adr/0004-binding-autogen-toolchain.md) — ADR-004 (Reopened).

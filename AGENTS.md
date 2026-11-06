@@ -61,16 +61,16 @@ exists; dated research is evidence and may hold superseded positions.
 
 | Task | Read first |
 |---|---|
-| Cake build host, its tests, [`tools.cs`](tools.cs) | [`build/AGENTS.md`](build/AGENTS.md), [`build-host.md`](docs/architecture/build-host.md), [ADR-0002](docs/decisions/2026-05-05-target-centric-build-host.md), [ADR-0003](docs/decisions/2026-05-12-build-host-data-layer.md) |
+| Cake build host, its tests, [`tools.cs`](tools.cs) | [`build/AGENTS.md`](build/AGENTS.md), [`build-host.md`](docs/architecture/build-host.md), [ADR-0002](docs/adr/0002-target-centric-build-host.md), [ADR-0003](docs/adr/0003-build-host-data-layer.md) |
 | Build, test and slopwatch commands; completion checks; CI | [`quality-gates.md`](docs/engineering/quality-gates.md) |
 | Local setup, local feed, `ci-sim`, cross-OS validation | [`local-development.md`](docs/playbook/local-development.md) |
 | vcpkg, overlays, triplets, native harvest, Linux builder base | [`overlay-management.md`](docs/playbook/overlay-management.md); procedures in the same document |
-| Manifest, packaging, guardrails, versioning, release | [`release-guardrails.md`](docs/knowledge-base/release-guardrails.md), [`release-strategy.md`](docs/release-strategy.md), [ADR-0001](docs/decisions/2026-05-05-d3seg-and-package-first.md) |
+| Manifest, packaging, guardrails, versioning, release | [`release-guardrails.md`](docs/knowledge-base/release-guardrails.md), [`release-strategy.md`](docs/release-strategy.md), [ADR-0001](docs/adr/0001-d3seg-and-package-first.md) |
 | Binding generator, generated sources, regeneration | [Implementation notes](spikes/binding-generators/docs/canonical/binding-generator-implementation-notes.md), [maintenance](spikes/binding-generators/docs/canonical/binding-generator-maintenance.md) |
 | Binding API shape, type mapping, naming, ABI | [Binding generator constitution](spikes/binding-generators/docs/canonical/binding-generator-constitution.md) |
 | Binding tests, generated-output review | [Testing strategy](spikes/binding-generators/docs/canonical/testing-strategy.md), [output review](spikes/binding-generators/docs/canonical/binding-output-oracle-validation.md) |
 | Code structure and test design | [Extraction guidelines](docs/knowledge-base/extraction-guidelines.md), [testing guidelines](docs/knowledge-base/testing-guidelines.md) |
-| Documentation, ADRs, repository workflow | [`documentation.md`](docs/engineering/documentation.md), [`workflow.md`](docs/engineering/workflow.md), [Decision records](docs/decisions/README.md) |
+| Documentation, ADRs, repository workflow | [`documentation.md`](docs/engineering/documentation.md), [`workflow.md`](docs/engineering/workflow.md), [Decision records](docs/adr/README.md) |
 | Consumer documentation, [`README.md`](README.md) | [`documentation.md`](docs/engineering/documentation.md) (Consumer documentation) |
 | Domain terms | [Onboarding glossary](docs/onboarding.md#glossary) |
 | Status, next work, open questions, known gaps | [`docs/plan.md`](docs/plan.md), [settled decisions](docs/onboarding.md#settled-strategic-decisions) |
@@ -88,7 +88,7 @@ without it.
 
 - Code wins over documentation for what the software does today.
 - [`docs/architecture/`](docs/architecture/) and [`docs/engineering/`](docs/engineering/) own current normative rules;
-  [decision records](docs/decisions/) explain why each decision was taken; the [onboarding glossary](docs/onboarding.md#glossary)
+  [decision records](docs/adr/) explain why each decision was taken; the [onboarding glossary](docs/onboarding.md#glossary)
   owns domain terms; [`docs/plan.md`](docs/plan.md) is operational and shrinks as work lands.
 - `docs/superpowers/` holds temporary per-slice specs and plans; they are deleted when their slice
   ships, after preservation under the [documentation lifecycle](docs/engineering/documentation.md#lifecycle).

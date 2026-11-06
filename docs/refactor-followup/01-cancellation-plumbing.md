@@ -46,7 +46,7 @@
 If you're new to this codebase, read these before touching code:
 
 - [`AGENTS.md` §Build-Host Reference Pattern](../../AGENTS.md) — target-centric architecture, `Host/`, `Data/`, `Validation/`, `Tools/` layout.
-- [`docs/decisions/2026-05-05-target-centric-build-host.md`](../decisions/2026-05-05-target-centric-build-host.md) — ADR-002, the architecture this build-host follows.
+- [`docs/adr/0002-target-centric-build-host.md`](../adr/0002-target-centric-build-host.md) — ADR-002, the architecture this build-host follows.
 - [`knowledge-base/testing-guidelines.md`](../knowledge-base/testing-guidelines.md) — canonical test infrastructure (`FakeCakeWorld`, `TargetTestHost<TTask>`).
 
 Background reading on the cancellation pattern (already done during planning):
@@ -591,8 +591,8 @@ We do **not** unit-test the `Console.CancelKeyPress` + `PosixSignalRegistration`
 
 ## References
 
-- [ADR-002](../decisions/2026-05-05-target-centric-build-host.md) §3 (BuildContext shape) + §5 (target-owned orchestration, no pipeline wrappers)
-- [ADR-003](../decisions/2026-05-12-build-host-data-layer.md) — Data layer doesn't directly touch cancellation but the contract-centric data flow informs why ct lives on `BuildContext` not in a separate `ICancellationContext`
+- [ADR-002](../adr/0002-target-centric-build-host.md) §3 (BuildContext shape) + §5 (target-owned orchestration, no pipeline wrappers)
+- [ADR-003](../adr/0003-build-host-data-layer.md) — Data layer doesn't directly touch cancellation but the contract-centric data flow informs why ct lives on `BuildContext` not in a separate `ICancellationContext`
 - [post-refactor-cleanup-plan.md §1 Correctness Gaps](../post-refactor-cleanup-plan.md#1-correctness-gaps) — origin of this slice
 - [knowledge-base/testing-guidelines.md](../knowledge-base/testing-guidelines.md) — `FakeCakeWorld` + `TargetTestHost<TTask>` patterns
 - S15 P9 review reviewer C1+C2+C3 — original finding on dropped ct plumbing

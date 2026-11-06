@@ -30,7 +30,7 @@
 
 ## References
 
-- [ADR-002](../../decisions/2026-05-05-target-centric-build-host.md) §8 — Validation/ layer rules
+- [ADR-002](../../adr/0002-target-centric-build-host.md) §8 — Validation/ layer rules
 - [post-refactor-cleanup-plan.md §5](../../post-refactor-cleanup-plan.md#5-extractions--re-shapes)
 - Reviewer (S13 multi-agent review, T3.2 finding)
 - [`HarvestReadinessValidator.cs`](../../../build/_build/Validation/Packaging/HarvestReadinessValidator.cs)

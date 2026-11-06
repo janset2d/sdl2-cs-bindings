@@ -14,7 +14,7 @@ This page is a thin pointer. Strategy, ABI/API policy, implementation mechanism,
 | [`../../spikes/binding-generators/docs/canonical/binding-generator-roadmap.md`](../../spikes/binding-generators/docs/canonical/binding-generator-roadmap.md) | Layer-based forward milestones. |
 | [`../../spikes/binding-generators/docs/canonical/binding-generator-implementation-notes.md`](../../spikes/binding-generators/docs/canonical/binding-generator-implementation-notes.md) | Mechanism + classification labels. |
 | [`../../spikes/binding-generators/docs/canonical/binding-generator-maintenance.md`](../../spikes/binding-generators/docs/canonical/binding-generator-maintenance.md) | ClangSharp + Roslyn maintenance playbook. |
-| [`../decisions/2026-05-14-binding-autogen-toolchain.md`](../decisions/2026-05-14-binding-autogen-toolchain.md) | ADR-004 (Reopened — amendment deferred). |
+| [`../adr/0004-binding-autogen-toolchain.md`](../adr/0004-binding-autogen-toolchain.md) | ADR-004 (Reopened — amendment deferred). |
 | [`../../spikes/binding-generators/`](../../spikes/binding-generators/) | Active spike. |
 
 ## Stage Sequencing
@@ -36,7 +36,7 @@ Detailed exit criteria per stage live in [`../../spikes/binding-generators/docs/
 - [`../release-strategy.md`](../release-strategy.md) — strategic anchor (AST-first sequencing rationale)
 - [`../plan.md`](../plan.md) — tactical roadmap (Phase 4 row)
 - [`../../spikes/binding-generators/docs/canonical/`](../../spikes/binding-generators/docs/canonical/) — canonical binding-generator docs
-- [`../decisions/2026-05-14-binding-autogen-toolchain.md`](../decisions/2026-05-14-binding-autogen-toolchain.md) — ADR-004 toolchain decision (Reopened)
-- [`../decisions/2026-05-05-target-centric-build-host.md`](../decisions/2026-05-05-target-centric-build-host.md) — ADR-002 target-centric build-host pattern
-- [`../decisions/2026-05-12-build-host-data-layer.md`](../decisions/2026-05-12-build-host-data-layer.md) — ADR-003 contract-centric data layer
+- [`../adr/0004-binding-autogen-toolchain.md`](../adr/0004-binding-autogen-toolchain.md) — ADR-004 toolchain decision (Reopened)
+- [`../adr/0002-target-centric-build-host.md`](../adr/0002-target-centric-build-host.md) — ADR-002 target-centric build-host pattern
+- [`../adr/0003-build-host-data-layer.md`](../adr/0003-build-host-data-layer.md) — ADR-003 contract-centric data layer
 - [`../phases/phase-5-sdl3-support.md`](phase-5-sdl3-support.md) — Phase 5 SDL3 brief (gated on PD-7)

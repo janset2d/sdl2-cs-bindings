@@ -11,7 +11,7 @@ Current rules for documentation ownership, authority, references and lossless ma
 | Agent entry point | [AGENTS.md](../../AGENTS.md) | Universal rules and task routing |
 | Architecture | [Architecture](../architecture/) | Current normative technical rules |
 | Engineering | [Engineering](./) | Current authoring, quality and workflow rules |
-| Decision rationale | [Decision records](../decisions/) | Context, trade-offs and consequences |
+| Decision rationale | [Decision records](../adr/) | Context, trade-offs and consequences |
 | Domain vocabulary | [Onboarding glossary](../onboarding.md#glossary) | Terms and meanings |
 | Operational state | [Project plan](../plan.md) | Now, next, open questions and known gaps |
 | Consumer documentation | [README](../../README.md) | How to use the shipped packages |

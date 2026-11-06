@@ -68,7 +68,7 @@ Cadence variability dominates. Worst case ~2 years calendar; best case ~12 month
 
 ## Versioning Policy
 
-Package versions follow **D-3seg** ([`decisions/2026-05-05-d3seg-and-package-first.md`](decisions/2026-05-05-d3seg-and-package-first.md), ADR-001): `<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>`, with V1 family-lock (managed + native of the same family share a single version per release wave).
+Package versions follow **D-3seg** ([`adr/0001-d3seg-and-package-first.md`](adr/0001-d3seg-and-package-first.md), ADR-001): `<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>`, with V1 family-lock (managed + native of the same family share a single version per release wave).
 
 **Brand-level "v1.0" is a launch moment, not a package version string.** SkiaSharp pattern: every SkiaSharp package is `2.88.x`-style D-3seg-style; the "v1.0 launch" was a project-identity announcement, not a package version reset. Same applies here. At v1.0 launch:
 
@@ -145,8 +145,8 @@ Currently: ≥2 weeks per wave. Open to revision if real-consumer feedback signa
 - [`phases/phase-4-binding-autogen.md`](phases/phase-4-binding-autogen.md) — AST generator design brief
 - [`phases/phase-5-sdl3-support.md`](phases/phase-5-sdl3-support.md) — SDL3 monorepo + bindings design brief
 - [`../spikes/binding-generators/docs/canonical/`](../spikes/binding-generators/docs/canonical/) — binding generator workstream canonical docs (constitution, roadmap, testing strategy, implementation notes, maintenance playbook, oracle validation, per-family satellite analyses)
-- [`decisions/2026-05-05-d3seg-and-package-first.md`](decisions/2026-05-05-d3seg-and-package-first.md) — ADR-001 D-3seg + package-first consumer contract
-- [`decisions/2026-05-14-binding-autogen-toolchain.md`](decisions/2026-05-14-binding-autogen-toolchain.md) — ADR-004 binding-generator toolchain decision (Reopened 2026-05-23 — see spike)
+- [`adr/0001-d3seg-and-package-first.md`](adr/0001-d3seg-and-package-first.md) — ADR-001 D-3seg + package-first consumer contract
+- [`adr/0004-binding-autogen-toolchain.md`](adr/0004-binding-autogen-toolchain.md) — ADR-004 binding-generator toolchain decision (Reopened 2026-05-23 — see spike)
 - [`../spikes/binding-generators/`](../spikes/binding-generators/) — Active toolchain re-evaluation spike
 - [`parking-lot/package-topology/`](parking-lot/package-topology/) — deferred topology research
 - [`parking-lot.md`](parking-lot.md) — other deferred ideas

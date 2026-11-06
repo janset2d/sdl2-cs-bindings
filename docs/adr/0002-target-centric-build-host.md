@@ -155,7 +155,7 @@ Tradeoffs:
 
 ## 4. References
 
-- [`2026-05-12-build-host-data-layer.md`](2026-05-12-build-host-data-layer.md)
+- [`0003-build-host-data-layer.md`](0003-build-host-data-layer.md)
 - [`../knowledge-base/extraction-guidelines.md`](../knowledge-base/extraction-guidelines.md)
 - [`../knowledge-base/testing-guidelines.md`](../knowledge-base/testing-guidelines.md)
 - [`../knowledge-base/release-guardrails.md`](../knowledge-base/release-guardrails.md)

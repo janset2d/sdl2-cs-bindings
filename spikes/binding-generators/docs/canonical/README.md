@@ -43,9 +43,9 @@
 - [`../../../../docs/phases/phase-4-binding-autogen.md`](../../../../docs/phases/phase-4-binding-autogen.md) — Phase 4 design brief.
 - [`../../../../docs/release-strategy.md`](../../../../docs/release-strategy.md) — AST-first sequencing and v1.0 release strategy.
 - [`../../../../docs/plan.md`](../../../../docs/plan.md) — tactical roadmap.
-- [`../../../../docs/decisions/2026-05-05-target-centric-build-host.md`](../../../../docs/decisions/2026-05-05-target-centric-build-host.md) — ADR-002 target-centric build-host pattern.
-- [`../../../../docs/decisions/2026-05-12-build-host-data-layer.md`](../../../../docs/decisions/2026-05-12-build-host-data-layer.md) — ADR-003 contract-centric data layer pattern.
-- [`../../../../docs/decisions/2026-05-14-binding-autogen-toolchain.md`](../../../../docs/decisions/2026-05-14-binding-autogen-toolchain.md) — ADR-004 binding-autogen toolchain (status: Reopened; amendment deferred).
+- [`../../../../docs/adr/0002-target-centric-build-host.md`](../../../../docs/adr/0002-target-centric-build-host.md) — ADR-002 target-centric build-host pattern.
+- [`../../../../docs/adr/0003-build-host-data-layer.md`](../../../../docs/adr/0003-build-host-data-layer.md) — ADR-003 contract-centric data layer pattern.
+- [`../../../../docs/adr/0004-binding-autogen-toolchain.md`](../../../../docs/adr/0004-binding-autogen-toolchain.md) — ADR-004 binding-autogen toolchain (status: Reopened; amendment deferred).
 - [`../../../../docs/knowledge-base/extraction-guidelines.md`](../../../../docs/knowledge-base/extraction-guidelines.md) — collaborator extraction discipline.
 - [`../../../../docs/knowledge-base/testing-guidelines.md`](../../../../docs/knowledge-base/testing-guidelines.md) — TUnit/MTP test infrastructure.
 - [`../../../../AGENTS.md`](../../../../AGENTS.md) — operating rules and settled project decisions.

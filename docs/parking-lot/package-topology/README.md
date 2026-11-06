@@ -52,5 +52,5 @@ Two findings from this research are useful **independent of the refactor** and s
 
 - [`../../release-strategy.md`](../../release-strategy.md) — current release strategy + unpark policy
 - [`../../plan.md`](../../plan.md) — current tactical roadmap
-- [`../../decisions/2026-05-05-d3seg-and-package-first.md`](../../decisions/2026-05-05-d3seg-and-package-first.md) — ADR-001 (would have been superseded)
+- [`../../adr/0001-d3seg-and-package-first.md`](../../adr/0001-d3seg-and-package-first.md) — ADR-001 (would have been superseded)
 - [`../../parking-lot.md`](../../parking-lot.md) — other deferred ideas

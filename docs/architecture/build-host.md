@@ -3,8 +3,8 @@
 Date: 2026-11-06
 
 The [Cake host](../../build/_build/) is target-centric with a contract-centric data layer.
-[The target-centric decision](../decisions/2026-05-05-target-centric-build-host.md) and
-[the data-layer decision](../decisions/2026-05-12-build-host-data-layer.md) record its rationale.
+[The target-centric decision](../adr/0002-target-centric-build-host.md) and
+[the data-layer decision](../adr/0003-build-host-data-layer.md) record its rationale.
 
 ## Cake host and local orchestration
 
