@@ -67,9 +67,3 @@ public sealed class TargetTestHost<TTask> where TTask : class, IFrostingTask
         }
     }
 }
-
-public sealed record TargetRunResult(
-    bool Success,
-    Exception? Exception,
-    TestLog Log
-);

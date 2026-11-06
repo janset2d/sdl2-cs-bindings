@@ -5,13 +5,6 @@ using Cake.Core.IO;
 
 namespace Build.Data.Versions;
 
-public interface IVersionFileRepository
-{
-    public PackageFamilyVersionSet Load(FilePath path);
-
-    public Task SaveAsync(FilePath path, PackageFamilyVersionSet versions);
-}
-
 public sealed class VersionFileRepository(ICakeContext context) : IVersionFileRepository
 {
     private readonly ICakeContext _context = context ?? throw new ArgumentNullException(nameof(context));
