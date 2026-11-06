@@ -317,14 +317,17 @@ public sealed class HarvestTaskScenarioTests
             {
                 services.AddSingleton(walkerOverride);
             }
+
             if (leakValidatorOverride is not null)
             {
                 services.AddSingleton(leakValidatorOverride);
             }
+
             if (plannerOverride is not null)
             {
                 services.AddSingleton(plannerOverride);
             }
+
             if (deployerOverride is not null)
             {
                 services.AddSingleton(deployerOverride);

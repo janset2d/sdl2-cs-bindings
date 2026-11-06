@@ -309,6 +309,7 @@ public sealed class PackageTaskScenarioTests
             {
                 services.Remove(existing);
             }
+
             services.AddSingleton(stubValidator);
         });
     }

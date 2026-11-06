@@ -52,6 +52,7 @@ public sealed class MarkdownLinkGateTests
                 broken.Add((entry, $"{source}:{link.Line} -> {target}\n{entry}"));
             }
         }
+
         return broken;
     }
 }

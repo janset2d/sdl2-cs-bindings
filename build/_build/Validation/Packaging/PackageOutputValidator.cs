@@ -742,6 +742,7 @@ public sealed class PackageOutputValidator(
         {
             missing.Add(wrapperPath);
         }
+
         if (!hasShared)
         {
             missing.Add(sharedPath);
