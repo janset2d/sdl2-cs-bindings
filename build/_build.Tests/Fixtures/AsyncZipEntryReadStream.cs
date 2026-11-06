@@ -9,6 +9,7 @@ internal sealed class AsyncZipEntryReadStream : Stream
     private readonly ZipArchiveMode _mode;
     private readonly int _dataOffset;
     private readonly Action<byte[]> _save;
+    private bool _disposed;
 
     public AsyncZipEntryReadStream(byte[] content, ZipArchiveMode mode, Action<byte[]> save)
     {
@@ -22,7 +23,7 @@ internal sealed class AsyncZipEntryReadStream : Stream
 
     public override bool CanRead => _storage.CanRead;
     public override bool CanSeek => _storage.CanSeek;
-    public override bool CanWrite => _storage.CanWrite;
+    public override bool CanWrite => _mode == ZipArchiveMode.Update && _storage.CanWrite;
     public override long Length => _storage.Length;
     public override long Position { get => _storage.Position; set => _storage.Position = value; }
 
@@ -52,9 +53,14 @@ internal sealed class AsyncZipEntryReadStream : Stream
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing)
+        if (disposing && !_disposed)
         {
-            _save(_storage.ToArray());
+            _disposed = true;
+            if (_mode == ZipArchiveMode.Update)
+            {
+                _save(_storage.ToArray());
+            }
+
             _storage.Dispose();
         }
 

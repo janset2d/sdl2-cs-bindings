@@ -10,6 +10,7 @@ using Build.Tests.Fixtures;
 using Build.Validation.Conventions;
 using Build.Validation.Packaging;
 using Cake.Core.IO;
+using TUnit.Assertions.Enums;
 
 namespace Build.Tests.Unit.Validation.Packaging;
 
@@ -19,26 +20,6 @@ namespace Build.Tests.Unit.Validation.Packaging;
 /// </summary>
 public sealed class PackageOutputValidatorTests
 {
-    [Test]
-    public async Task Validate_Should_Read_Nuspec_Entry_Headers_Asynchronously()
-    {
-        var world = FakeCakeWorld.CreateWindows();
-        var family = GetFamily("sdl2-image");
-        var artifacts = CreateArtifacts(world, family, "1.2.3", authors: "Other authors");
-        world.WithAsyncZipEntryReads(artifacts.ManagedPackage, ZipArchiveMode.Read);
-        var validator = new PackageOutputValidator(world.CakeContext.FileSystem,
-            new NativePackageMetadataValidator(new NativePackageMetadataRepository(world.CakeContext)),
-            new ReadmeMappingTableValidator(world.FileSystem), new SatelliteUpperBoundValidator());
-
-        var report = await ValidateAsync(validator, world, family, artifacts, "1.2.3", DefaultMetadata());
-
-        await Assert.That(report.Errors.Select(check => check.Message)).IsEquivalentTo(
-        [
-            "G27: package 'Janset.SDL2.Image.1.2.3.nupkg' emitted authors 'Other authors', expected 'Janset2D, Deniz İrgin' (resolved from Directory.Build.props).",
-            "G27: package 'Janset.SDL2.Image.Native.1.2.3.nupkg' emitted authors 'Other authors', expected 'Janset2D, Deniz İrgin' (resolved from Directory.Build.props).",
-        ], TUnit.Assertions.Enums.CollectionOrdering.Matching);
-    }
-
     private const string ExpectedAuthors = "Janset2D, Deniz İrgin";
     private const string ExpectedLicenseFile = "LICENSE";
     private const string ExpectedIcon = "janset2d-sdl-min.png";
@@ -52,7 +33,7 @@ public sealed class PackageOutputValidatorTests
 
     private static PackageOutputValidator CreateValidator(FakeCakeWorld world)
         => new(
-            world.FileSystem,
+            world.CakeContext.FileSystem,
             new NativePackageMetadataValidator(new NativePackageMetadataRepository(world.CakeContext)),
             new ReadmeMappingTableValidator(world.FileSystem),
             new SatelliteUpperBoundValidator());
@@ -209,6 +190,24 @@ public sealed class PackageOutputValidatorTests
 
         await Assert.That(report.IsValid).IsFalse();
         await Assert.That(report.Errors.Any(check => check.Code == "G27")).IsTrue();
+    }
+
+    [Test]
+    public async Task Validate_Should_Read_Nuspec_Entry_Headers_Asynchronously()
+    {
+        var world = FakeCakeWorld.CreateWindows();
+        var family = GetFamily("sdl2-image");
+        var artifacts = CreateArtifacts(world, family, "1.2.3", authors: "Other authors");
+        world.WithAsyncZipEntryReads(artifacts.ManagedPackage, ZipArchiveMode.Read);
+        var validator = CreateValidator(world);
+
+        var report = await ValidateAsync(validator, world, family, artifacts, "1.2.3", DefaultMetadata());
+
+        await Assert.That(report.Errors.Select(check => check.Message)).IsEquivalentTo(
+        [
+            $"G27: package 'Janset.SDL2.Image.1.2.3.nupkg' emitted authors 'Other authors', expected '{ExpectedAuthors}' (resolved from Directory.Build.props).",
+            $"G27: package 'Janset.SDL2.Image.Native.1.2.3.nupkg' emitted authors 'Other authors', expected '{ExpectedAuthors}' (resolved from Directory.Build.props).",
+        ], CollectionOrdering.Matching);
     }
 
     [Test]

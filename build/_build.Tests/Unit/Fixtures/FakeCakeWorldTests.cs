@@ -1,4 +1,7 @@
+using System.IO.Compression;
+using System.Text;
 using Build.Tests.Fixtures;
+using Build.Tests.Fixtures.Builders;
 using Cake.Core;
 using Cake.Core.IO;
 
@@ -6,6 +9,72 @@ namespace Build.Tests.Unit.Fixtures;
 
 public sealed class FakeCakeWorldTests
 {
+    [Test]
+    public async Task WithAsyncZipEntryReads_Should_Reopen_Current_File_Bytes()
+    {
+        var world = FakeCakeWorld.CreateWindows();
+        var path = world.RepoRoot.CombineWithFilePath("package.nupkg");
+        world.WithAsyncZipEntryReads(path, NuspecBuilder.AsNupkgZip("package.nuspec", Encoding.UTF8.GetBytes("before")), ZipArchiveMode.Read);
+        world.WithBinaryFile(path, NuspecBuilder.AsNupkgZip("package.nuspec", Encoding.UTF8.GetBytes("after")));
+
+        using var stream = world.CakeContext.FileSystem.GetFile(path).OpenRead();
+        using var archive = new ZipArchive(stream, ZipArchiveMode.Read);
+        await using var entry = await archive.GetEntry("package.nuspec")!.OpenAsync();
+        using var reader = new StreamReader(entry);
+
+        await Assert.That(await reader.ReadToEndAsync()).IsEqualTo("after");
+    }
+
+    [Test]
+    public async Task WithAsyncZipEntryReads_Should_Keep_Earlier_Path_Wrappers()
+    {
+        var world = FakeCakeWorld.CreateWindows();
+        var first = world.RepoRoot.CombineWithFilePath("first.nupkg");
+        var second = world.RepoRoot.CombineWithFilePath("second.nupkg");
+        var bytes = NuspecBuilder.AsNupkgZip("package.nuspec", Encoding.UTF8.GetBytes("content"));
+        world.WithAsyncZipEntryReads(first, bytes, ZipArchiveMode.Read);
+        world.WithAsyncZipEntryReads(second, bytes, ZipArchiveMode.Read);
+
+        using var stream = world.CakeContext.FileSystem.GetFile(first).OpenRead();
+        using var archive = new ZipArchive(stream, ZipArchiveMode.Read);
+
+        await Assert.That(() => archive.GetEntry("package.nuspec")!.Open()).Throws<IOException>();
+    }
+
+    [Test]
+    public async Task OpenAsync_Should_Read_Entry_Data_While_Open_Is_Rejected()
+    {
+        var bytes = NuspecBuilder.AsNupkgZip("package.nuspec", Encoding.UTF8.GetBytes("content"));
+        var saves = 0;
+        using var stream = new AsyncZipEntryReadStream(bytes, ZipArchiveMode.Read, _ => saves++);
+        using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true);
+        var entry = archive.GetEntry("package.nuspec")!;
+
+        await Assert.That(() => entry.Open()).Throws<IOException>();
+        await using var opened = await entry.OpenAsync();
+        using var reader = new StreamReader(opened);
+        await Assert.That(await reader.ReadToEndAsync()).IsEqualTo("content");
+        await Assert.That(stream.CanWrite).IsFalse();
+        await archive.DisposeAsync();
+        await stream.DisposeAsync();
+        await stream.DisposeAsync();
+        await Assert.That(saves).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task DisposeAsync_Should_Save_Updated_Archive_Only_Once()
+    {
+        var bytes = NuspecBuilder.AsNupkgZip("package.nuspec", Encoding.UTF8.GetBytes("content"));
+        var saves = 0;
+        using var stream = new AsyncZipEntryReadStream(bytes, ZipArchiveMode.Update, _ => saves++);
+        await Assert.That(stream.CanWrite).IsTrue();
+
+        await stream.DisposeAsync();
+        await stream.DisposeAsync();
+
+        await Assert.That(saves).IsEqualTo(1);
+    }
+
     // ── fake world tests ──
 
     [Test]

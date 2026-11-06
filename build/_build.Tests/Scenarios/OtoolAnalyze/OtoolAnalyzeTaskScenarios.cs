@@ -27,10 +27,7 @@ public sealed class OtoolAnalyzeTaskScenarios
 
         var result = await CreateHost(world).RunAsync();
 
-        await Assert.That(result.Exception).IsAssignableTo<OperationCanceledException>();
-        await Assert.That(((OperationCanceledException)result.Exception!).CancellationToken).IsEqualTo(cancellation.Token);
-        await Assert.That(result.Success).IsFalse();
-        await Assert.That(world.ProcessInvocations).IsEmpty();
+        await TargetCancellationAssertions.AssertCancelledAsync(result, world, cancellation.Token);
         await Assert.That(world.Log.ErrorCount).IsEqualTo(0);
     }
 

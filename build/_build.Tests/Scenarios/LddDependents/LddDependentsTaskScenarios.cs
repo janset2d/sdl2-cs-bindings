@@ -29,10 +29,7 @@ public sealed class LddDependentsTaskScenarios
 
         var result = await new TargetTestHost<LddDependentsTask>(world).RunAsync();
 
-        await Assert.That(result.Exception).IsAssignableTo<OperationCanceledException>();
-        await Assert.That(((OperationCanceledException)result.Exception!).CancellationToken).IsEqualTo(cancellation.Token);
-        await Assert.That(result.Success).IsFalse();
-        await Assert.That(world.ProcessInvocations).IsEmpty();
+        await TargetCancellationAssertions.AssertCancelledAsync(result, world, cancellation.Token);
     }
 
     [Test]

@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.IO.Compression;
 using Build.Data.Manifest.Models;
 using Build.Targets.Package.Services;
 using Build.Tests.Fixtures;
@@ -16,7 +17,7 @@ public sealed class DependencyRangeNormalizerTests
         var family = manifest.PackageFamilies.Single(f => f.Name == "sdl2-image");
         var bytes = NuspecBuilder.WithCrossFamilyDependency("Janset.SDL2.Image", "2.8.0", "Janset.SDL2.Core", "2.8.0");
         var path = world.RepoRoot.CombineWithFilePath("artifacts/packages/Janset.SDL2.Image.2.8.0.nupkg");
-        world.WithAsyncZipEntryReads(path, NuspecBuilder.AsNupkgZip("Janset.SDL2.Image.nuspec", bytes), System.IO.Compression.ZipArchiveMode.Update);
+        world.WithAsyncZipEntryReads(path, NuspecBuilder.AsNupkgZip("Janset.SDL2.Image.nuspec", bytes), ZipArchiveMode.Update);
         var normalizer = new DependencyRangeNormalizer(world.CakeContext, world.Log);
 
         await Assert.That(() => normalizer.NormalizeAsync(manifest, family, path, "2.8.0", CancellationToken.None)).ThrowsNothing();
