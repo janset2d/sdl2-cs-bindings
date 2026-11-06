@@ -1,0 +1,213 @@
+Suppression ledger: every diagnostic escape is counted.
+
+build-switch: 41
+editorconfig: 120
+generated-code-attribute: 0
+generated-code-header: 16
+globalconfig: 0
+msbuild-warnings-as-messages: 0
+no-error: 0
+no-warn: 1
+nullable: 0
+pragma: 0
+slopwatch-baseline: 13
+slopwatch-ignore: 3
+slopwatch-suppress: 0
+staging-marker: 0
+suppress-message: 0
+warnings-not-as-errors: 0
+
+build-switch Directory.Build.props [ '$(TargetFramework)' != 'net462' And '$(TargetFramework)' != 'netstandard2.0' ] EnableAOTAnalyzer = true
+build-switch Directory.Build.props [ '$(TargetFramework)' != 'net462' And '$(TargetFramework)' != 'netstandard2.0' ] IsAotCompatible = true
+build-switch Directory.Build.props [ '$(TargetFramework)' != 'net462' And '$(TargetFramework)' != 'netstandard2.0' ] IsTrimmable = true
+build-switch Directory.Build.props [!Exists('$(MSBuildThisFileDirectory).git')] EnableSourceControlManagerQueries = false
+build-switch Directory.Build.props [!Exists('$(MSBuildThisFileDirectory).git')] EnableSourceLink = false
+build-switch Directory.Build.props [] AnalysisLevel = 10.0
+build-switch Directory.Build.props [] AnalysisMode = All
+build-switch Directory.Build.props [] CodeAnalysisTreatWarningsAsErrors = true
+build-switch Directory.Build.props [] EnableNETAnalyzers = true
+build-switch Directory.Build.props [] EnforceCodeStyleInBuild = true
+build-switch Directory.Build.props [] MSBuildTreatWarningsAsErrors = true
+build-switch Directory.Build.props [] Nullable = enable
+build-switch Directory.Build.props [] RunAnalyzersDuringBuild = true
+build-switch Directory.Build.props [] RunAnalyzersDuringLiveAnalysis = true
+build-switch Directory.Build.props [] TreatWarningsAsErrors = true
+build-switch build/_build.Tests/Build.Tests.csproj [] EnableAOTAnalyzer = false
+build-switch build/_build.Tests/Build.Tests.csproj [] IsAotCompatible = false
+build-switch build/_build.Tests/Build.Tests.csproj [] IsTrimmable = false
+build-switch build/_build/Build.csproj [] EnableAOTAnalyzer = false
+build-switch build/_build/Build.csproj [] IsAotCompatible = false
+build-switch build/_build/Build.csproj [] IsTrimmable = false
+build-switch build/analyzers/Janset.CodeStyle.Analyzers.Tests/Janset.CodeStyle.Analyzers.Tests.csproj [] EnableAOTAnalyzer = false
+build-switch build/analyzers/Janset.CodeStyle.Analyzers.Tests/Janset.CodeStyle.Analyzers.Tests.csproj [] IsAotCompatible = false
+build-switch build/analyzers/Janset.CodeStyle.Analyzers.Tests/Janset.CodeStyle.Analyzers.Tests.csproj [] IsTrimmable = false
+build-switch build/analyzers/Janset.CodeStyle.Analyzers/Janset.CodeStyle.Analyzers.csproj [] EnableAOTAnalyzer = false
+build-switch build/analyzers/Janset.CodeStyle.Analyzers/Janset.CodeStyle.Analyzers.csproj [] IsAotCompatible = false
+build-switch build/analyzers/Janset.CodeStyle.Analyzers/Janset.CodeStyle.Analyzers.csproj [] IsTrimmable = false
+build-switch build/msbuild/Janset.Smoke.props [Exists('$(MSBuildThisFileDirectory)Janset.Local.props')] Import = $(MSBuildThisFileDirectory)Janset.Local.props
+build-switch build/msbuild/Janset.Smoke.props [] EnableAOTAnalyzer = false
+build-switch build/msbuild/Janset.Smoke.props [] IsAotCompatible = false
+build-switch build/msbuild/Janset.Smoke.props [] IsTrimmable = false
+build-switch spikes/binding-generators/Directory.Build.props [ '$(MSBuildProjectName)' != 'Janset.SDL2.PostProcess' And '$(MSBuildProjectName)' != 'oracle.cs' ] Import = $([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))
+build-switch spikes/binding-generators/Directory.Build.props [ '$(MSBuildProjectName)' == 'Janset.SDL2.PostProcess' Or '$(MSBuildProjectName)' == 'oracle.cs' ] Nullable = enable
+build-switch spikes/binding-generators/Directory.Build.props [ '$(MSBuildProjectName)' == 'Janset.SDL2.PostProcess' Or '$(MSBuildProjectName)' == 'oracle.cs' ] TreatWarningsAsErrors = true
+build-switch spikes/binding-generators/clangsharp/postprocess/Janset.SDL2.PostProcess.csproj [] Nullable = enable
+build-switch src/native/Directory.Build.props [] EnableAOTAnalyzer = false
+build-switch src/native/Directory.Build.props [] EnableNETAnalyzers = false
+build-switch src/native/Directory.Build.props [] IsAotCompatible = false
+build-switch src/native/Directory.Build.props [] IsTrimmable = false
+build-switch src/native/Directory.Build.props [] RunAnalyzersDuringBuild = false
+build-switch tests/smoke-tests/Directory.Build.targets ['$([MSBuild]::GetPathOfFileAbove(Directory.Build.targets, $(MSBuildThisFileDirectory)../))' != ''] Import = $([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))
+editorconfig .editorconfig [**/Generated/**.g.cs] generated_code = true | # SECTION 14: GENERATED CODE # Generated bindings retain their compiler, oracle, snapshot, ABI and drift gates.
+editorconfig .editorconfig [*.cs] MA0004.report = Always | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] MA0011.exclude_tostring_methods = true | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] MA0051.maximum_lines_per_method = 80 | # SECTION 10: MEZIANTOU
+editorconfig .editorconfig [*.cs] MA0051.maximum_statements_per_method = 60 | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] MA0053.public_class_should_be_sealed = true | # Virtual members mark inheritance-by-design, so only the public-class option is enabled.
+editorconfig .editorconfig [*.cs] csharp_prefer_simple_using_statement = true:suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] csharp_style_expression_bodied_accessors = when_on_single_line:suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] csharp_style_expression_bodied_constructors = false:suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] csharp_style_expression_bodied_indexers = when_on_single_line:suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] csharp_style_expression_bodied_lambdas = true:suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] csharp_style_expression_bodied_local_functions = when_on_single_line:suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] csharp_style_expression_bodied_methods = when_on_single_line:suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] csharp_style_expression_bodied_operators = when_on_single_line:suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] csharp_style_expression_bodied_properties = when_on_single_line:suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] csharp_style_prefer_extended_property_pattern = true:suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] csharp_style_prefer_pattern_matching = true:suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] csharp_style_prefer_switch_expression = true:suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_analyzer_diagnostic.category-roslynator.severity = suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_code_quality.CA1822.api_surface = private, internal | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1031.severity = none | # Boundary orchestration catches broadly to report failures.
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1040.severity = suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1054.severity = suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1055.severity = suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1056.severity = suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1308.severity = suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1515.severity = none | # [opinionated] Public tooling types need no consumer-facing internalization policy.
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1812.severity = suggestion | # Reflection and dependency injection instantiate types outside the compiler call graph.
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1819.severity = suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1848.severity = none | # Structured logging templates stay readable at their call sites.
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.CS1591.severity = none | # SECTION 13: COMPILER # Only the shipped library surface is documented.
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.IDE0032.severity = suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.IDE0290.severity = suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0006.severity = suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0018.severity = none | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0038.severity = none | # CA rules own these duplicate checks.
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0041.severity = none | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0180.severity = suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0181.severity = none | # Explicit casts make native ABI conversions visible.
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0182.severity = suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0186.severity = suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0187.severity = none | # This repository has no Blazor component injection.
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0188.severity = suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0189.severity = suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0190.severity = suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0191.severity = suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0192.severity = suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0193.severity = suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0194.severity = suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0197.severity = none | # CS1591 owns the shipped-surface documentation policy.
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0200.severity = suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.RCS1140.severity = suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.RCS1141.severity = suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.S125.severity = suggestion | # SECTION 12: SONAR # Unlisted rules use SonarWay defaults, escalated by TreatWarningsAsErrors.
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.S2094.severity = suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.S2479.severity = suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.S3925.severity = none | # Exception serialization is obsolete on modern .NET.
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.S4457.severity = suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.S6602.severity = none | # Preserve the existing LINQ-based lookup convention.
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.VSTHRD200.severity = suggestion | # SECTION 3: C# FORMATTING
+editorconfig .editorconfig [*.{cs,vb}] dotnet_code_quality_unused_parameters = all | # SECTION 2: C#/VB LANGUAGE
+editorconfig .editorconfig [*.{g.cs,generated.cs,designer.cs}] generated_code = true
+editorconfig .editorconfig [build/_build.Tests/Fixtures/Builders/NuspecBuilder.cs] dotnet_diagnostic.MA0045.severity = none | # ZIP fixtures build bytes in memory through Cake's synchronous fake filesystem; no disk I/O is awaited. # Winner: synchronous fixture arrangement; MA0045 remains enabled for every other file.
+editorconfig .editorconfig [build/_build.Tests/Fixtures/Builders/NuspecReader.cs] dotnet_diagnostic.MA0045.severity = none | # Nuspec assertions synchronously inspect bytes in Cake's fake filesystem, not real disk. # Winner: synchronous in-memory fixture inspection; MA0045 remains enabled for every other file.
+editorconfig .editorconfig [build/_build.Tests/Fixtures/FixtureLoader.cs] dotnet_diagnostic.MA0045.severity = none | # Embedded resources seed synchronous fixture constructors and data-source properties. # Winner: the embedded-fixture loading contract; MA0045 remains enabled for every other file.
+editorconfig .editorconfig [build/_build.Tests/Fixtures/RepositoryGates/GateScopes.cs] dotnet_diagnostic.MA0045.severity = none | # Gate scopes are synchronous predicates and inspect only the file prefix needed for classification. # Winner: the synchronous gate-scope contract; MA0045 remains enabled for every other file.
+editorconfig .editorconfig [build/_build.Tests/Fixtures/RepositoryGates/RepositoryFiles.cs] dotnet_diagnostic.MA0045.severity = none | # Tracked paths load lazily through synchronous properties, and gate predicates read repository text synchronously. # Winner: the repository-gate inventory contract; MA0045 remains enabled for every other file.
+editorconfig .editorconfig [build/_build.Tests/Unit/Fixtures/FakeCakeWorldTests.cs] dotnet_diagnostic.MA0045.severity = none | # These assertions intentionally invoke the synchronous ZIP API to prove that the async-only stream rejects it. # Winner: the synchronous-rejection oracle; MA0045 remains enabled for every other file.
+editorconfig .editorconfig [build/_build.Tests/Unit/Runtime/IsSystemFileTests.cs] dotnet_diagnostic.S4144.severity = none | # Argument rows define distinct named scenarios even when their assertion bodies are identical. # Winner: preservation of named data-driven cases; S4144 remains enabled for every other file.
+editorconfig .editorconfig [build/_build.Tests/Unit/Targets/Harvest/Services/PatternMatchingTests.cs] dotnet_diagnostic.S4144.severity = none | # Argument rows define distinct named scenarios even when their assertion bodies are identical. # Winner: preservation of named data-driven cases; S4144 remains enabled for every other file.
+editorconfig .editorconfig [build/_build/Data/Versions/PackageFamilyVersionSet.cs] dotnet_diagnostic.S3267.severity = none | # FILE-SCOPED ARBITRATION # Duplicate detection mutates the version map; filtering would hide that mutation in a predicate. # Winner: explicit stateful validation; S3267 remains enabled for every other file.
+editorconfig .editorconfig [build/_build/Host/Cake/CakeJsonExtensions.cs] dotnet_diagnostic.RS0030.severity = none | # The Cake JSON extensions are the single serialization seam. # Winner: the single JSON seam; RS0030 remains enabled for every other file.
+editorconfig .editorconfig [build/_build/Host/Processes/HostProcessRunner.cs] dotnet_diagnostic.RS0030.severity = none | # Cake 6.1's process runner cannot pin stream decoding or wait with cancellation; this is the single raw-process seam. # Winner: the host process contract (UTF-8 streams, cancellable wait); RS0030 remains enabled for every other file.
+editorconfig .editorconfig [build/_build/Host/ServiceCollectionExtensions.cs] dotnet_diagnostic.RS0030.severity = none | # The host composition root selects the clock once for injection. # Winner: clock composition; RS0030 remains enabled for every other file.
+editorconfig .editorconfig [build/_build/Program.cs] dotnet_diagnostic.CA1502.severity = none | # The compiler-generated entrypoint aggregates local helpers whose generated names existing composition tests inspect. # Winner: the tested entrypoint and helper contract; CA1502 remains enabled for every other file.
+editorconfig .editorconfig [build/_build/Program.cs] dotnet_diagnostic.MA0045.severity = none | # Cancellation callbacks must finish cancellation before the synchronous signal handler returns. # Winner: synchronous signal handling; MA0045 remains enabled for every other file.
+editorconfig .editorconfig [build/_build/Program.cs] dotnet_diagnostic.RS0030.severity = none | # Repository discovery and debug detection precede the Cake context. # Winner: pre-Cake bootstrap; RS0030 remains enabled for every other file.
+editorconfig .editorconfig [build/_build/Program.cs] dotnet_diagnostic.S4036.severity = none | # Git has no fixed install path across supported hosts; PATH selects it and --repo-root bypasses it. # Winner: pre-Cake repository discovery; S4036 remains enabled for every other file.
+editorconfig .editorconfig [build/_build/Results/Result.cs] dotnet_diagnostic.CA1000.severity = none | # Result factories construct a fully typed success or failure without a publicly invalid state. # Winner: the typed result construction contract; CA1000 remains enabled for every other file.
+editorconfig .editorconfig [build/_build/Results/ValidationReport.cs] dotnet_diagnostic.CA1710.severity = none | # ValidationReport exposes validity and ordered findings, not a general-purpose collection API. # Winner: the validation-report domain name; CA1710 remains enabled for every other file.
+editorconfig .editorconfig [build/_build/Targets/Harvest/Services/ArtifactPlanner.cs] dotnet_diagnostic.MA0051.severity = none | # CreatePlanAsync holds one policy whose split into a named collaborator is a design change tracked in #87. # Winner: collaborator design is settled in #87 before extraction; MA0051 remains enabled for every other file.
+editorconfig .editorconfig [build/_build/Targets/Harvest/Services/BinaryClosureWalker.cs] dotnet_diagnostic.MA0051.severity = none | # BuildClosureAsync holds one policy whose split into a named collaborator is a design change tracked in #87. # Winner: collaborator design is settled in #87 before extraction; MA0051 remains enabled for every other file.
+editorconfig .editorconfig [build/_build/Targets/Package/Services/DependencyRangeNormalizer.cs] dotnet_diagnostic.MA0051.severity = none | # NormalizeAsync holds one policy whose split into a named collaborator is a design change tracked in #114. # Winner: collaborator design is settled in #114 before extraction; MA0051 remains enabled for every other file.
+editorconfig .editorconfig [build/_build/Targets/PackageConsumerSmoke/PackageConsumerSmokeTask.cs] dotnet_diagnostic.MA0051.severity = none | # RunAsync holds one policy whose split into a named collaborator is a design change tracked in #101. # Winner: collaborator design is settled in #101 before extraction; MA0051 remains enabled for every other file.
+editorconfig .editorconfig [build/_build/Targets/PublishStaging/PublishStagingTask.cs] dotnet_diagnostic.S1075.severity = none | # The staging endpoint is the repository's published feed identity, not a machine-specific path. # Winner: the fixed staging-feed contract; S1075 remains enabled for every other file.
+editorconfig .editorconfig [build/_build/Validation/Manifest/CsprojPackContractValidator.cs] dotnet_diagnostic.MA0045.severity = none | # The validator implements a synchronous contract over small Cake-managed project files. # Winner: the synchronous validation contract; MA0045 remains enabled for every other file.
+editorconfig .editorconfig [build/_build/Validation/Packaging/NativePackageMetadataValidator.cs] dotnet_diagnostic.MA0051.severity = none | # ValidateAsync holds one policy whose split into a named collaborator is a design change tracked in #114. # Winner: collaborator design is settled in #114 before extraction; MA0051 remains enabled for every other file.
+editorconfig .editorconfig [build/_build/Validation/Packaging/PackageOutputValidator.cs] dotnet_diagnostic.MA0051.severity = none | # EvaluateDependencyGroups holds one policy whose split into a named collaborator is a design change tracked in #114. # Winner: collaborator design is settled in #114 before extraction; MA0051 remains enabled for every other file.
+editorconfig .editorconfig [external/sdl2-cs/src/**] dotnet_analyzer_diagnostic.severity = none | # Vendored bindings keep their existing analyzer exclusion.
+editorconfig .editorconfig [external/sdl2-cs/src/**] dotnet_diagnostic.CA5392.severity = none | # Vendored bindings keep their existing analyzer exclusion.
+editorconfig .editorconfig [external/sdl2-cs/src/**] generated_code = true | # Vendored bindings keep their existing analyzer exclusion.
+editorconfig .editorconfig [spikes/binding-generators/clangsharp/src/*/Generated/**.cs] dotnet_diagnostic.CA5392.severity = none | # Generated interop is frozen byte-for-byte until the C# generator port, which owns the native search-path policy. # Winner: the generator freeze; CA5392 remains enabled for every other file.
+editorconfig .editorconfig [spikes/binding-generators/clangsharp/tests/abi-tests/**.cs] dotnet_diagnostic.IDE0007.severity = none | # ABI assertions expose native widths through explicit declared types. # Raw native memory is the subject of ABI tests. # Winner: ABI width and memory visibility; IDE0007 and S6640 remain enabled elsewhere; IDE0008 cannot fire while var is preferred globally.
+editorconfig .editorconfig [spikes/binding-generators/clangsharp/tests/abi-tests/**.cs] dotnet_diagnostic.IDE0008.severity = none | # ABI assertions expose native widths through explicit declared types. # Raw native memory is the subject of ABI tests. # Winner: ABI width and memory visibility; IDE0007 and S6640 remain enabled elsewhere; IDE0008 cannot fire while var is preferred globally.
+editorconfig .editorconfig [spikes/binding-generators/clangsharp/tests/abi-tests/**.cs] dotnet_diagnostic.S6640.severity = none | # ABI assertions expose native widths through explicit declared types. # Raw native memory is the subject of ABI tests. # Winner: ABI width and memory visibility; IDE0007 and S6640 remain enabled elsewhere; IDE0008 cannot fire while var is preferred globally.
+editorconfig .editorconfig [spikes/binding-generators/clangsharp/tests/abi-tests/Upstream/Assets/SurfaceAbiTests.cs] dotnet_diagnostic.S3267.severity = none | # Pointer elements cannot be LINQ type arguments; the loop frees what it filters. # Winner: native pointer cleanup; S3267 remains enabled for every other file.
+editorconfig .editorconfig [spikes/binding-generators/clangsharp/tests/abi-tests/Upstream/Pure/PlatformAbiTests.cs] dotnet_diagnostic.IDE0004.severity = none | # SIMD alignment has a native-width return type; its ulong conversion is required on downlevel targets but redundant on modern ones. # Winner: one ABI test source across target frameworks; IDE0004 remains enabled for every other file.
+editorconfig .editorconfig [spikes/binding-generators/clangsharp/tests/abi-tests/{Infrastructure/Sdl/Scopes/SdlEnvironmentScope.cs,Upstream/Pure/PlatformAbiTests.cs}] dotnet_diagnostic.MA0144.severity = none | # OperatingSystem OS checks are unavailable on net462 until Polyfill reaches the spike projects. # Winner: one source across TFMs; MA0144 remains enabled for every other file.
+editorconfig .editorconfig [spikes/binding-generators/clangsharp/{postprocess/**.cs,oracle.cs}] dotnet_diagnostic.CA1305.severity = none | # Frozen generator tools retain their existing SDK analyzer behavior. # Winner: generator toolchain freeze; CA1305, CA1307, CA1859, CA1861 and CA1865 remain enabled for every other file.
+editorconfig .editorconfig [spikes/binding-generators/clangsharp/{postprocess/**.cs,oracle.cs}] dotnet_diagnostic.CA1307.severity = none | # Frozen generator tools retain their existing SDK analyzer behavior. # Winner: generator toolchain freeze; CA1305, CA1307, CA1859, CA1861 and CA1865 remain enabled for every other file.
+editorconfig .editorconfig [spikes/binding-generators/clangsharp/{postprocess/**.cs,oracle.cs}] dotnet_diagnostic.CA1515.severity = none | # Frozen generator tools retain their existing SDK analyzer behavior. # Winner: generator toolchain freeze; CA1305, CA1307, CA1859, CA1861 and CA1865 remain enabled for every other file.
+editorconfig .editorconfig [spikes/binding-generators/clangsharp/{postprocess/**.cs,oracle.cs}] dotnet_diagnostic.CA1859.severity = suggestion | # Frozen generator tools retain their existing SDK analyzer behavior. # Winner: generator toolchain freeze; CA1305, CA1307, CA1859, CA1861 and CA1865 remain enabled for every other file.
+editorconfig .editorconfig [spikes/binding-generators/clangsharp/{postprocess/**.cs,oracle.cs}] dotnet_diagnostic.CA1861.severity = suggestion | # Frozen generator tools retain their existing SDK analyzer behavior. # Winner: generator toolchain freeze; CA1305, CA1307, CA1859, CA1861 and CA1865 remain enabled for every other file.
+editorconfig .editorconfig [spikes/binding-generators/clangsharp/{postprocess/**.cs,oracle.cs}] dotnet_diagnostic.CA1865.severity = suggestion | # Frozen generator tools retain their existing SDK analyzer behavior. # Winner: generator toolchain freeze; CA1305, CA1307, CA1859, CA1861 and CA1865 remain enabled for every other file.
+editorconfig .editorconfig [tests/Sandbox/Program.cs] dotnet_diagnostic.CA1303.severity = none | # Sandbox output is an English-only local smoke instruction, not a localized shipped UI. # Winner: the local sandbox contract; CA1303 remains enabled for every other file.
+editorconfig .editorconfig [tools.cs] dotnet_diagnostic.IL2026.severity = none | # The standalone developer script uses Spectre's reflection-based command dispatch and is not trimmed or AOT-published. # Winner: the non-AOT script contract; IL2026 and IL3050 remain enabled for every other file.
+editorconfig .editorconfig [tools.cs] dotnet_diagnostic.IL3050.severity = none | # The standalone developer script uses Spectre's reflection-based command dispatch and is not trimmed or AOT-published. # Winner: the non-AOT script contract; IL2026 and IL3050 remain enabled for every other file.
+editorconfig .editorconfig [tools.cs] dotnet_diagnostic.MA0045.severity = none | # Line-log callbacks synchronously write under a lock and preserve the caller's ordered Action<string> contract. # Winner: synchronous callback ordering; MA0045 remains enabled for every other file.
+editorconfig .editorconfig [tools.cs] dotnet_diagnostic.MA0048.severity = none | # The file-based entry holds the tool's command types in one SDK compilation unit. # Winner: the file-based entry contract; MA0048 remains enabled for every other file.
+editorconfig .editorconfig [tools.cs] dotnet_diagnostic.S1075.severity = none | # The script's feed URI identifies the repository's staging endpoint, not a machine-specific resource. # Winner: the fixed staging-feed contract; S1075 remains enabled for every other file.
+editorconfig .editorconfig [{build/_build.Tests,build/analyzers/*.Tests,tests,spikes/binding-generators/clangsharp/tests}/**.cs] dotnet_diagnostic.CA1707.severity = none | # Test method names use underscores and their public surface is not shipped.
+editorconfig .editorconfig [{build/_build.Tests,build/analyzers/*.Tests,tests,spikes/binding-generators/clangsharp/tests}/**.cs] dotnet_diagnostic.CA1716.severity = none | # Test namespaces are not a consumer-facing API.
+editorconfig .editorconfig [{build/_build.Tests,build/analyzers/*.Tests,tests,spikes/binding-generators/clangsharp/tests}/**.cs] dotnet_diagnostic.CA2007.severity = none | # Tests have no SynchronizationContext to preserve.
+editorconfig .editorconfig [{build/_build.Tests,build/analyzers/*.Tests,tests,spikes/binding-generators/clangsharp/tests}/**.cs] dotnet_diagnostic.CS1591.severity = none | # SECTION 15: TEST OVERRIDES
+editorconfig .editorconfig [{build/_build.Tests,build/analyzers/*.Tests,tests,spikes/binding-generators/clangsharp/tests}/**.cs] dotnet_diagnostic.MA0004.severity = none | # SECTION 15: TEST OVERRIDES
+editorconfig .editorconfig [{build/_build.Tests,build/analyzers/*.Tests,tests,spikes/binding-generators/clangsharp/tests}/**.cs] dotnet_diagnostic.MA0042.severity = none | # TUnit assertion awaitables are not modeled by this analyzer.
+editorconfig .editorconfig [{build/_build.Tests,build/analyzers/*.Tests,tests,spikes/binding-generators/clangsharp/tests}/**.cs] dotnet_diagnostic.VSTHRD111.severity = none | # SECTION 15: TEST OVERRIDES
+editorconfig .editorconfig [{build/_build/**.cs,tools.cs}] dotnet_diagnostic.CA2007.severity = none | # Console hosts have no SynchronizationContext to preserve. # Winner: the console-host execution model; CA2007, MA0004 and VSTHRD111 remain enabled for every other file.
+editorconfig .editorconfig [{build/_build/**.cs,tools.cs}] dotnet_diagnostic.MA0004.severity = none | # Console hosts have no SynchronizationContext to preserve. # Winner: the console-host execution model; CA2007, MA0004 and VSTHRD111 remain enabled for every other file.
+editorconfig .editorconfig [{build/_build/**.cs,tools.cs}] dotnet_diagnostic.VSTHRD111.severity = none | # Console hosts have no SynchronizationContext to preserve. # Winner: the console-host execution model; CA2007, MA0004 and VSTHRD111 remain enabled for every other file.
+generated-code-header spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Compat [] <auto-generated>
+generated-code-header spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Modern [] <auto-generated>
+generated-code-header spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Public [] <auto-generated>
+generated-code-header spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Support/NativeTypeNameAttribute.cs [] <auto-generated>
+generated-code-header spikes/binding-generators/clangsharp/src/Janset.SDL2.Gfx/Generated/Compat [] <auto-generated>
+generated-code-header spikes/binding-generators/clangsharp/src/Janset.SDL2.Gfx/Generated/Modern [] <auto-generated>
+generated-code-header spikes/binding-generators/clangsharp/src/Janset.SDL2.Gfx/Support/NativeTypeNameAttribute.cs [] <auto-generated>
+generated-code-header spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Generated/Compat [] <auto-generated>
+generated-code-header spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Generated/Modern [] <auto-generated>
+generated-code-header spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Support/NativeTypeNameAttribute.cs [] <auto-generated>
+generated-code-header spikes/binding-generators/clangsharp/src/Janset.SDL2.Mixer/Generated/Compat [] <auto-generated>
+generated-code-header spikes/binding-generators/clangsharp/src/Janset.SDL2.Mixer/Generated/Modern [] <auto-generated>
+generated-code-header spikes/binding-generators/clangsharp/src/Janset.SDL2.Mixer/Support/NativeTypeNameAttribute.cs [] <auto-generated>
+generated-code-header spikes/binding-generators/clangsharp/src/Janset.SDL2.Ttf/Generated/Compat [] <auto-generated>
+generated-code-header spikes/binding-generators/clangsharp/src/Janset.SDL2.Ttf/Generated/Modern [] <auto-generated>
+generated-code-header spikes/binding-generators/clangsharp/src/Janset.SDL2.Ttf/Support/NativeTypeNameAttribute.cs [] <auto-generated>
+no-warn src/native/Directory.Build.props [] NU5128
+slopwatch-baseline .slopwatch/baseline.json [build/_build.Tests/Fixtures/TempDirectory.cs] SW003 = 5ccd2abc5efc8bc9
+slopwatch-baseline .slopwatch/baseline.json [build/msbuild/Janset.Smoke.targets] SW006 = 2f79f8ef4f31ea60
+slopwatch-baseline .slopwatch/baseline.json [build/msbuild/Janset.Smoke.targets] SW006 = 5fd54881b35294e7
+slopwatch-baseline .slopwatch/baseline.json [build/msbuild/Janset.Smoke.targets] SW006 = 7ebcd48a18760e14
+slopwatch-baseline .slopwatch/baseline.json [build/msbuild/Janset.Smoke.targets] SW006 = 929ffbc460182bbf
+slopwatch-baseline .slopwatch/baseline.json [build/msbuild/Janset.Smoke.targets] SW006 = 94ff501af69e1e7c
+slopwatch-baseline .slopwatch/baseline.json [build/msbuild/Janset.Smoke.targets] SW006 = 950e7df61977fa05
+slopwatch-baseline .slopwatch/baseline.json [build/msbuild/Janset.Smoke.targets] SW006 = a48cc078114bab4e
+slopwatch-baseline .slopwatch/baseline.json [build/msbuild/Janset.Smoke.targets] SW006 = ad5d445b27227140
+slopwatch-baseline .slopwatch/baseline.json [build/msbuild/Janset.Smoke.targets] SW006 = de08ba0197cdea4e
+slopwatch-baseline .slopwatch/baseline.json [build/msbuild/Janset.Smoke.targets] SW006 = e7df10e555ef0a54
+slopwatch-baseline .slopwatch/baseline.json [build/msbuild/Janset.Smoke.targets] SW006 = ee119cb8d2752ffd
+slopwatch-baseline .slopwatch/baseline.json [build/msbuild/Janset.Smoke.targets] SW006 = f7114e38b2afe118
+slopwatch-ignore spikes/binding-generators/clangsharp/postprocess/Janset.SDL2.PostProcess.csproj [] SW006 = Spike-only Roslyn tool version is intentionally isolated from production CPM.
+slopwatch-ignore spikes/binding-generators/clangsharp/tests/abi-tests/AbiTests.csproj [] SW006 = Exact local-feed version is supplied by tools setup; CPM cannot own generated native package versions.
+slopwatch-ignore src/native/Directory.Build.props [] SW005 = Native payload packages intentionally have no lib/ref assemblies.
