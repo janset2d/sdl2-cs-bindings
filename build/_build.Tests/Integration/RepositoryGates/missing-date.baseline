@@ -1,5 +1,2 @@
 # Shrinks only. Remove an entry in the change that fixes it.
 docs/engineering/coding-style.md
-docs/phases/README.md
-docs/phases/phase-2-adaptation-plan.md
-docs/phases/phase-5-sdl3-support.md

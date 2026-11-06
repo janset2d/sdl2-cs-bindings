@@ -73,8 +73,8 @@ exists; dated research is evidence and may hold superseded positions.
 | Code structure and test design | [Coding style](docs/engineering/coding-style.md), [testing style](docs/engineering/testing-style.md) |
 | Documentation, ADRs, repository workflow | [`documentation.md`](docs/engineering/documentation.md), [`workflow.md`](docs/engineering/workflow.md), [Decision records](docs/adr/README.md) |
 | Consumer documentation, [`README.md`](README.md) | [`documentation.md`](docs/engineering/documentation.md) (Consumer documentation) |
-| Domain terms | [Onboarding glossary](docs/onboarding.md#glossary) |
-| Status, next work, open questions, known gaps | [`docs/ROADMAP.md`](docs/ROADMAP.md), [settled decisions](docs/onboarding.md#settled-strategic-decisions) |
+| Domain terms | [`GLOSSARY.md`](GLOSSARY.md) |
+| Status, next work, open questions, known gaps | [`docs/ROADMAP.md`](docs/ROADMAP.md) |
 | Research, design history, session pickup | Companion Repository, below |
 
 ## Companion Repository
@@ -89,7 +89,7 @@ without it.
 
 - Code wins over documentation for what the software does today.
 - [`docs/architecture/`](docs/architecture/) and [`docs/engineering/`](docs/engineering/) own current normative rules;
-  [decision records](docs/adr/) explain why each decision was taken; the [onboarding glossary](docs/onboarding.md#glossary)
+  [decision records](docs/adr/) explain why each decision was taken; [GLOSSARY.md](GLOSSARY.md)
   owns domain terms; [`docs/ROADMAP.md`](docs/ROADMAP.md) is operational and shrinks as work lands.
 - `docs/superpowers/` holds temporary per-slice specs and plans; they are deleted when their slice
   ships, after preservation under the [documentation lifecycle](docs/engineering/documentation.md#lifecycle).

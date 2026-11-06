@@ -1,261 +1,145 @@
-# Project Plan — Janset.SDL2 / Janset.SDL3
+# Roadmap — Janset.SDL2 / Janset.SDL3
 
 Date: 2026-11-06
 
-**Maintainer:** Deniz Irgin (@denizirgin)
+Operational summary. Remove completed work; rules belong in architecture, engineering and ADRs.
+Read native versions and runtime coverage from [the manifest](../build/manifest.json), and framework
+values from [build properties](../Directory.Build.props). Issues hold detailed work and acceptance.
 
-> Canonical roadmap. Forward-looking only — historical narrative lives in code + git history. When code and this file disagree, verify against code.
+## Now
 
-## Mission
+The native harvest, family packaging and internal GitHub Packages staging pipeline exist. Lightweight
+managed CI runs separately from the reserved full release matrix. Generated bindings are still a
+[ClangSharp/Roslyn spike](../spikes/binding-generators/clangsharp/); production projects still compile
+vendored SDL2-CS sources. The build host is target-centric; remaining work is hardening and production
+generator integration, not another host architecture migration.
 
-Provide the .NET ecosystem with production-quality, modular SDL2 and SDL3 bindings that include **cross-platform native libraries built from source** — something no other project offers.
+| Workstream | Milestone |
+|---|---|
+| Packaging/publication | [CI/CD & Packaging](https://github.com/janset2d/sdl2-cs-bindings/milestone/10) |
+| SDL2 release completeness | [SDL2 Complete](https://github.com/janset2d/sdl2-cs-bindings/milestone/11) |
+| Generation | [Binding Auto-Generation](https://github.com/janset2d/sdl2-cs-bindings/milestone/12) |
+| SDL3 | [SDL3 Support](https://github.com/janset2d/sdl2-cs-bindings/milestone/13) |
+| Deferred ideas | [Parking Lot](https://github.com/janset2d/sdl2-cs-bindings/milestone/14) |
+| Hardening | [Hardening](https://github.com/janset2d/sdl2-cs-bindings/milestone/15) |
 
-## Current Phase
+## Next
 
-Current status:
+1. **Build-host cleanup and latest packages:** adopt the agreed quality model, refresh toolchain
+   dependencies and framework targets, preserve managed/native separation and cross-OS feedback.
+2. **Generator baseline:** regenerate stale families with the stable toolchain and classify the
+   complete diff. Preserve deterministic file sets, isolation, family equivalence and API evidence.
+3. **Generator into C# tooling:** port the existing orchestration with a byte-identical output oracle;
+   keep the tested host salvage at its current paths until a production consumer replaces it.
+   Revalidate parser/Roslyn upgrades against that baseline after the port.
+4. **Binding surface collapse:** implement the decided one-class binding/friendly tiers, per-member
+   ABI demotion, boolean wrapper, typed callbacks and naming policy. Complete macro helpers,
+   runtime endian aliases and Mixer callback lifetimes. Core public support precedes satellites.
+5. **Linux-canonical generation:** canonical headers come from the unchanged builder; separate the
+   generator runtime from consumer natives and prove drift on every development OS.
+6. **Native pins and glibc research:** exercise the regenerate/classify maintenance loop on native
+   updates. Research a lower glibc floor without raising or proposing to raise the constitutional floor
+   in [ADR-0010](adr/0010-linux-builder-glibc-floor.md).
+7. **Production flip:** promote Core generated source and reproducibility/stale-output checks
+   ([#69](https://github.com/janset2d/sdl2-cs-bindings/issues/69)); close SysWM layout, satellite sweep,
+   duplicate Core-type diagnostics, pack symbol checks and remaining vendored-import retirement
+   ([#70](https://github.com/janset2d/sdl2-cs-bindings/issues/70)). Net needs a concrete managed/native
+   family, manifest re-entry, vcpkg features and harvest proof ([#58](https://github.com/janset2d/sdl2-cs-bindings/issues/58)).
 
-**Phase 2: CI/CD & Packaging — IN PROGRESS.** Core surface is landed (`release.yml` + Cake build host + `tools.cs`). Phase 2b tail = nuget.org promotion (PD-7), release-recovery playbook (PD-8), and the four scope-assumption gaps surfaced in 2026-05-01 rehearsals.
+[Generation promotion gates](architecture/binding-generation.md#promotion-evidence-gates) own the exit
+contract. Optional enum source-fidelity polish (composed keycodes/character literals) follows correctness;
+numeric values remain acceptable when ABI-correct.
 
-**Phase X / build-host refactor — CLOSED 2026-05-10.** The settled build-host architecture now lives in [`ADR-002`](adr/0002-target-centric-build-host.md) and [`ADR-003`](adr/0003-build-host-data-layer.md). Durable day-to-day rules live in [`engineering/testing-style.md`](engineering/testing-style.md) and [`engineering/coding-style.md`](engineering/coding-style.md). Migration-era notes were retired after test-infrastructure consolidation.
+## Release path
 
-Active execution ledger: [phases/phase-2-adaptation-plan.md](phases/phase-2-adaptation-plan.md) (Phase 2b).
+First public previews carry generated bindings, not transitional SDL2-CS imports: avoid imposing a
+second API migration on preview consumers. Complete Core, then SDL2 satellite generation and package
+evidence before the first public wave. SDL3 follows a real SDL2 public release and its own native
+package support; do not make its bring-up block the first SDL2 public release.
+
+The brand v1.0 goal is SDL2 Core/Image/Mixer/Ttf/Gfx/Net plus SDL3 Core/Image/Mixer/Ttf, all generated,
+with native coverage across the supported matrix and stable nuget.org distribution. SDL3 Net and
+shadercross stay deferred until their upstream maturity and packaging are deliberately assessed.
+The brand launch is not a package-version reset. Labels, dwell times, promotion evidence and
+post-launch maintenance are owned by [packaging and release](architecture/packaging-and-release.md).
+The path is internal waves → public previews → release candidates → stable launch with real-consumer
+feedback, samples, documentation and launch artifacts, then Janset2D development on these bindings.
+
+Public promotion and first release metadata are tracked in
+[#63](https://github.com/janset2d/sdl2-cs-bindings/issues/63). Samples
+[#60](https://github.com/janset2d/sdl2-cs-bindings/issues/60), convenience packages
+[#61](https://github.com/janset2d/sdl2-cs-bindings/issues/61), contributor guidance
+[#62](https://github.com/janset2d/sdl2-cs-bindings/issues/62), smoke expansion
+[#59](https://github.com/janset2d/sdl2-cs-bindings/issues/59) and Linux compatibility
+[#64](https://github.com/janset2d/sdl2-cs-bindings/issues/64) remain explicit release work.
+
+## Open questions
+
+| Question | Decision point |
+|---|---|
+| dotnet-affected library versus CLI integration | Feasibility evidence and an ADR before integration |
+| Public orchestration and promotion mechanism | Before first nuget.org prerelease; manual dispatch versus a single release-object event remains a design question, not a return to per-tag fan-out |
+| Recovery/manual operation | Decided: reuse the normal pipeline with an explicit version mapping. Open: an operator runbook with credential provisioning, explicit feed and audit trail, and a decision to implement or defer the family Pack/Smoke/Push helpers ([#119](https://github.com/janset2d/sdl2-cs-bindings/issues/119)) |
+| RID-specific smoke versus framework-dependent resolver coverage | Promote the runtime checkpoint only with Windows/Linux/macOS evidence |
+| Linux MIDI runtime packaging | Before first public Mixer release; Timidity configuration/patch data and native MIDI are distinct contracts |
+| Gfx Unix export regression guard | Next touching baseline/hardening change; compare smoke-time nm/readelf checks, pack checks or both |
+| Shared-native duplicate policy | Reopen only if pure-dynamic packaging returns; dormant under hybrid-static |
+| Ultimate convenience-package versioning | After a real full-train rehearsal; core-anchored, train-anchored and prerelease-only alternatives remain open. Individual package installation must remain clear without a metapackage |
+| Public dwell-time revision | Only with real consumer feedback; packaging canon owns the current rule |
+
+The role-meta/Bindings/Native topology refactor stays parked. Any one trigger reopens it: three or
+more real-consumer issues requesting bindings-only/native-only use; friction from learning-sdl2 or
+another active downstream with the current two-package shape; SDL3 launch planning selects the
+new shape at introduction; or brand-launch planning selects it for that wave. Evidence: internal
+research, 2026-05-12, "Package Topology Refactor Research - DEFERRED". Its dependency-lower-bound
+carve-out is independent work in [#104](https://github.com/janset2d/sdl2-cs-bindings/issues/104), using
+the existing family version set rather than waiting for a topology redesign.
 
 ## Known gaps
 
-Public NuGet.org promotion (`PublishPublic`) is a stub; staging publishes to GitHub Packages only.
-`tools.cs setup --source=remote-nuget` also returns not implemented. Use local setup or the published
-GitHub Packages wave until the public-feed path lands.
-
-- **Generated surface:** committed spike output still has an internal raw container and public
-  forwarders. The one-class binding/friendly-tier policy, ABI-exact boolean struct, uniform typed
-  callback signatures and naming rules are decided policy, not claims that output has caught up.
-  The oracle's raw-public-import checks also reflect the old container policy and must migrate with
-  the output. Existing TFM properties and spike projects still differ from ADR-0009.
+- **Public path:** PublishPublic is a stub; staging publishes to GitHub Packages only. The setup
+  remote-nuget source also returns not implemented. Use local or remote-github setup meanwhile.
+- **Policy versus output:** spike output still uses an internal raw container and public forwarders.
+  The new binding/friendly policy, ABI-exact boolean struct and uniform typed callbacks are not yet
+  implemented throughout. The oracle's public-import checks still reflect the old container policy.
+  [Directory.Build.props](../Directory.Build.props) and spike TFMs differ from [ADR-0009](adr/0009-target-frameworks.md).
 - **API enforcement:** the snapshot covers Core on one TFM; package validation is not enabled.
-- **Tooling and stamps:** orchestration is still Python under the spike. The commands in binding
-  maintenance intentionally describe that executable route until the C# port replaces it. The host's
-  tested header/config/stamp/output-safety and symbol-validation salvage remains dormant with no
-  generation target. A production stamp writer, stale-output gate and integrated pack symbol check
-  still need wiring; no existing dormant class proves those checks ran.
-- **Compatibility compiler:** the earlier Core projection retained one output delta after a
-  CS9363 compiler crash under SDK 10.0.401; revalidate that hazard under the actual pinned SDK
-  before accepting further projection changes.
+- **Tooling:** the executable generator is Python; maintenance intentionally retains those commands.
+  Tested header/config/stamp/output safeguards and symbol validation are dormant salvage. Production
+  stamp writing, stale-output validation and the integrated pack symbol check still need consumers.
+- **Compiler:** the earlier projection hit CS9363 and retained one output delta. Revalidate that
+  hazard under the SDK selected by [global.json](../global.json) before further projection work.
+- **Scope:** G58 requires Core in the same version invocation; feed-probe relaxation must query the
+  actual destination feed. A CI prerelease does not satisfy a stable lower bound. Partial-scope
+  consumer smoke remains an open relaxation; evaluate file count, manifest drift, scope isolation
+  and cross-family coverage before choosing per-family projects.
+- **Publication checks:** planned family/SemVer validation, feed monotonicity, existing-version refusal,
+  smoke-before-publish, staging-before-public and destination Core availability are not established
+  by the old proposed ValidateTask. Preserve these intended safeguards when implementing promotion.
+- **Train/recovery:** checks for unique identities, dependency ordering, partial-train recovery,
+  operator-version agreement with audit tags, explicit destination and who/what/when/hash records
+  are not wired into an operator recovery path.
+- **Linux exports:** hidden-default compiler flags leave explicitly default-visible dependency symbols exposed.
 
-### Binding and test expansion
+## Backlog
 
-Regenerate stale families; port the generator with a byte-identical oracle; revalidate toolchain
-bumps; collapse the binding surface; make output Linux-canonical; then promote generated source.
-Keep these deliverables visible as work, not claims about completed output:
+- **Smoke breadth and fixtures:** expand native/package scenarios and non-CI diagnostics with tiny, test-owned, licensed fixtures ([#59](https://github.com/janset2d/sdl2-cs-bindings/issues/59)).
+- **Upstream-derived ABI coverage:** broaden headless, capability-aware and mechanical proof with source-case traceability; coordinator issue needed.
+- **Linux dependency-symbol hardening:** evaluate per-satellite version scripts, preserve gfx exports and audit Mixer codec parity; coordinator issue needed.
 
-- Complete safe alternatives, reviewed public API and per-pattern friendly tests before preview.
-  Preserve raw pointers without a separate forwarding layer; include string/path/resource pairs.
-- Production Core replaces its vendored compile include, commits the whole generated artifact and
-  reproducibility stamp, and proves package-first init/quit/error/create/free/callback behavior.
-- Prove SysWM union sizes/offsets with minimal foreign forward declarations. Sweep satellites,
-  add Net's concrete package family, retire remaining vendored imports, reject duplicate Core-owned
-  types, and validate generated entry points after harvest and before pack.
-- Expand mechanical header breadth for symbols, constants/macros, sizes/offsets/fixed arrays and
-  callback/TFM shapes. Keep runtime coverage focused on representative behavior and high-risk paths.
-- Complete function-like macro helpers, runtime endian aliases (including Mixer-to-Core aliases),
-  and Mixer callback rooting with separate persistent versus synchronous lifetime policy.
-  Thread-creation ports await macro/REAL entrypoint policy; SysWM ports await typed layouts.
-  SDL_GetErrorMsg needs upstream-backed evidence rather than invented behavior tests.
-- Establish the smoke-owned asset root with provenance/license/generation rules. Replace branding
-  PNG use with a tiny deterministic image. Add BMP/WAV/UTF-8 RWops paths and create/free pairs;
-  PNG/JPEG/WebP/TIFF/AVIF loads; clean-license font render; gfx pixel mutation; WAV then agreed
-  mixer codecs. QOI is optional until deliberately promoted; MIDI awaits the Linux runtime decision.
-- Evaluate per-family smoke projects only with partial-scope support. Add non-CI window/image/
-  font/audio/mixer/sprite/input diagnostics and optional backend/local-network tools separately.
-- Continue deterministic upstream ports after infrastructure normalization: rect, RWops, surfaces,
-  pixels, GUID, platform/error/version, timer, hints/events, dummy audio and software video/render;
-  then math, keyboard/mouse, stdlib, subsystem/log, virtual joystick and deterministic atomic/mutex
-  cases. Clipboard, filesystem/locale/power/loadso, YUV/iconv/geometry and focus remain capability-aware.
-  Record exact upstream cases, destinations, actual counts/skips and deferrals per slice.
-- Historical coverage aspirations were a 70–100-test ABI spine, 80–130 further headless cases and
-  20–40 gated cases, roughly 260–280 stable headless candidates and 300+ only with gated lanes.
-  These are planning estimates, not acceptance thresholds or current totals.
-- SDL3 follows a real SDL2 public release and its own native package support. Establish Core/Image/
-  Mixer/Ttf evidence, one-byte bool, IOStream, platform macros, namespace/import identity and TFM
-  obligations independently; do not copy SDL2 assumptions or block the first SDL2 public release.
-
-- **Partial-scope releases:** G58 requires every dependency in the resolved invocation. Feed-probe
-  relaxation must query the actual publish target (GitHub Packages or nuget.org), not another feed.
-  A `-ci` Core prerelease does not satisfy a stable Core lower bound under NuGet ordering.
-  Consumer smoke requires all concrete families or none; per-family consumer/native smoke projects
-  are candidates, not an approved implementation. Compare scope isolation and file count against
-  manifest/project drift and cross-family interaction coverage before choosing.
-- **Publication safeguards:** the old planned G28–G35 inventory is not implemented by a `ValidateTask`.
-  Preserve the intended checks when designing promotion: family identity and valid SemVer, increasing
-  feed versions, no existing public version, smoke success before publish, staging before public
-  promotion, and a satellite's Core minimum already available on the destination feed.
-- **Train and recovery safeguards:** G40–G45 remain proposals: unique family/tag-prefix identity,
-  dependency order, explicit partial-train recovery, operator version agreement with audit tags,
-  explicit destination feed, and an audit trail (who, what, when and hash). The removed tag-derived
-  G37–G39 are not active contracts. Current dispatch is owned by the release workflow; tags no longer
-  imply one workflow per family. Decide the public-promotion trigger deliberately rather than
-  restoring the retired fan-out mechanism.
-- **Linux exports:** explicit default-visibility annotations in static dependencies can escape the
-  compiler's hidden default. Per-satellite linker version scripts are a candidate hardening step,
-  not a current guarantee. Preserve public API exports while hiding dependency symbols; macOS
-  two-level namespaces make cosmetic leaks a different risk.
-
-## Roadmap
-
-> **Phase sequencing reordered per [`release-strategy.md`](release-strategy.md):** Phase 4 binding auto-generation is **critical path for v1.0** and lands **before** the first public `-preview.N` wave (Phase 2b PD-7). The active implementation is ClangSharp + Roslyn postprocess in [`../spikes/binding-generators/`](../spikes/binding-generators/); the sunset host generator and alternative scaffold are removed, with tested salvage dormant at its existing paths pending production integration. Strategic rationale + stages + promotion gates live in [`release-strategy.md`](release-strategy.md); this file remains the tactical roadmap.
-
-### Phase 2b — Public release tail
-
-Detail in [phases/phase-2-adaptation-plan.md](phases/phase-2-adaptation-plan.md) (PDs, gaps, candidate directions).
-
-- [ ] **PD-7 — Public NuGet promotion**: `PublishPublicTask` real implementation + nuget.org Trusted Publishing OIDC + first prerelease publication ([#63](https://github.com/janset2d/sdl2-cs-bindings/issues/63))
-- [ ] **PD-8 — Release recovery playbook**: `playbook/release-recovery.md` operator runbook + `Pack-Family` / `Smoke-Family` / `Push-Family` Cake helpers (or explicit deferral)
-- [ ] **PD-3 — `dotnet-affected` integration**: NuGet library vs CLI wrapper ADR after the spike
-- [ ] **Pipeline scope-assumption gaps** (rehearsal 2026-05-01; full surface in adaptation plan):
-  - [ ] Gap #2 — G58 feed-probe: cross-family resolvability against the publish target feed
-  - [ ] Gap #3 — ConsumerSmoke partial-scope: per-family smoke csprojs candidate direction
-  - [ ] Gap #4 — Trigger mechanism rework: manual `workflow_dispatch` or GitHub Releases as canonical trigger
-- [ ] Generalize Cake `Pack` stage to all 6 satellites × 7 RIDs (post-ADR-002 target-centric layout)
-- [ ] Harden evidence collection and operator playbooks around the 7-RID consumer-smoke matrix re-entry
-- [ ] Add SDL2_net bindings + native project ([#58](https://github.com/janset2d/sdl2-cs-bindings/issues/58)) — managed csproj + `.Native` csproj + overlay port (if needed) + manifest.json re-entry + vcpkg feature config + harvest validation
-- [ ] Validate SDL2_mixer LGPL-free build across all RIDs (per-RID codec parity audit)
-- [ ] Linux version scripts for symbol visibility (`.map` files per satellite) — lower priority
-- [ ] Resolve **PD-14** Linux end-user MIDI packaging strategy (pre-first-public-Mixer-release)
-- [ ] Resolve **PD-15** SDL2_gfx Unix symbol-export regression guard
-- [ ] Windows local prerequisites guide (VS tooling + dumpbin/vswhere troubleshooting)
-- [ ] Native binaries cleanup from git history ([#56](https://github.com/janset2d/sdl2-cs-bindings/issues/56))
-- [ ] Validate and correct local development playbook ([#57](https://github.com/janset2d/sdl2-cs-bindings/issues/57))
-
-### Phase 3 — SDL2 Complete
-
-No separate phase doc per [phases/README.md](phases/README.md) retention test — items track here.
-
-- [ ] Sample projects under `samples/` ([#60](https://github.com/janset2d/sdl2-cs-bindings/issues/60))
-- [ ] `Janset.SDL2` meta-package ([#61](https://github.com/janset2d/sdl2-cs-bindings/issues/61))
-- [ ] `CONTRIBUTING.md` and contributor workflow guidance ([#62](https://github.com/janset2d/sdl2-cs-bindings/issues/62))
-- [ ] SDL2 smoke test suite + CI coverage ([#59](https://github.com/janset2d/sdl2-cs-bindings/issues/59))
-- [ ] Linux runtime compatibility + minimum glibc docs ([#64](https://github.com/janset2d/sdl2-cs-bindings/issues/64))
-- [ ] NoDependencies native package variant for minimal Linux ([#80](https://github.com/janset2d/sdl2-cs-bindings/issues/80))
-- [ ] linux-musl-x64 + linux-musl-arm64 native asset coverage ([#82](https://github.com/janset2d/sdl2-cs-bindings/issues/82))
-
-### Phase 4 — Binding Auto-Generation
-
-Design brief: [phases/phase-4-binding-autogen.md](phases/phase-4-binding-autogen.md).
-Binding generator constitution: [architecture/binding-abi-policy.md](architecture/binding-abi-policy.md) (canonical ABI/API/translation contract and manifest config-vs-policy rules).
-Binding promotion gates: [Generation](architecture/binding-generation.md#promotion-evidence-gates); forward work is summarized above.
-Binding generator implementation notes: [architecture/binding-generation.md](architecture/binding-generation.md) (mechanism + classification labels + hardcoding rules).
-Binding generator maintenance: [engineering/binding-generator-maintenance.md](engineering/binding-generator-maintenance.md) (ClangSharp + Roslyn postprocess maintenance playbook).
-
-**Status (2026-05-28):** SDL2 Layer 1 raw ABI closed across Core / Image / GFX / TTF / Mixer on the active ClangSharp + Roslyn postprocess implementation at `spikes/binding-generators/clangsharp/`. Layer 2 typed public API is next. Multi-TFM compile clean (5 TFMs); five-family oracle report clean across Priority C categories. Toolchain selection effectively decided pending formal ADR-004 amendment after Layer 2 closure. `SDL_syswm.h` typed-union layout remains under the SysWM Layout milestone. SDL3 binding generation gated on PD-7.
-
-- [ ] **Stage 1 — SDL2.Core generated-core readiness**: Layer 1 raw ABI closed (current state); Layer 2 typed public API + production flip retiring `external/sdl2-cs/src/SDL2.cs` remain. ([#69](https://github.com/janset2d/sdl2-cs-bindings/issues/69))
-- [ ] **Stage 2 — SDL_syswm full union + SDL2 family sweep close + sdl2-cs retire**: SysWM Layout typed-union layout + remaining `external/sdl2-cs` production-use retirement + Pack-stage symbol-existence validator + SDL2_net addition. Satellite Layer 1 already closed for Image / GFX / TTF / Mixer. ([#70](https://github.com/janset2d/sdl2-cs-bindings/issues/70))
-
-Non-blocking polish candidate after the correctness gates: improve enum source-fidelity/readability where it is compile-safe, especially `SDL_KeyCode` members that SDL expresses as `SDL_Scancode | SDLK_SCANCODE_MASK` and small character-code literals such as `SDLK_ESCAPE`. Numeric enum values remain ABI-correct and acceptable as the fallback; this is not a committed Stage 1/2 task.
-
-### Phase 5 — SDL3 Support
-
-Design brief: [phases/phase-5-sdl3-support.md](phases/phase-5-sdl3-support.md).
-
-**Gated on PD-7** (SDL2 real-public-release) per the binding-generator roadmap's SDL3 extension stage. The SDL3 vcpkg port + overlay triplet + transitive dependency closure work is its own substantial scope and must not block SDL2 v1.0 stable. Phase 5 plan starts after Phase 4 Stage 2 ships and PD-7 lands.
-
-- [ ] Add SDL3 bindings and native packages to monorepo ([#71](https://github.com/janset2d/sdl2-cs-bindings/issues/71))
-- [ ] Extend CI and packaging flow for SDL3 prereleases ([#72](https://github.com/janset2d/sdl2-cs-bindings/issues/72))
-
-### Phase X — Build-Host Modernization
-
-Closed 2026-05-10. The build host now follows [`ADR-002`](adr/0002-target-centric-build-host.md) and [`ADR-003`](adr/0003-build-host-data-layer.md); the remaining work is post-refactor hardening, not architecture migration.
-
-**Canonical docs:** [`adr/0002-target-centric-build-host.md`](adr/0002-target-centric-build-host.md), [`adr/0003-build-host-data-layer.md`](adr/0003-build-host-data-layer.md), [`engineering/testing-style.md`](engineering/testing-style.md), [`engineering/coding-style.md`](engineering/coding-style.md).
-
-**Post-refactor hardening:** tracked by the issue groups below. Completed cancellation plumbing needs no new issue.
-
-| Cleanup group | Tracking |
+| Group | Issues |
 |---|---|
-| Correctness gaps | issue #110 |
-| UX and CLI clarity | issue #111 |
-| Style consistency | issue #112 |
-| API and performance refinements | issue #113 |
-| Extractions and model boundaries | issue #114 |
-| Reporter consolidation | issue #115 |
-| Test discipline | issue #116 |
-| Conditional watch list | issue #117 |
+| Correctness, CLI/UX, style, API/performance | [#110](https://github.com/janset2d/sdl2-cs-bindings/issues/110), [#111](https://github.com/janset2d/sdl2-cs-bindings/issues/111), [#112](https://github.com/janset2d/sdl2-cs-bindings/issues/112), [#113](https://github.com/janset2d/sdl2-cs-bindings/issues/113) |
+| Extractions, reporters, tests, conditional watch list | [#114](https://github.com/janset2d/sdl2-cs-bindings/issues/114), [#115](https://github.com/janset2d/sdl2-cs-bindings/issues/115), [#116](https://github.com/janset2d/sdl2-cs-bindings/issues/116), [#117](https://github.com/janset2d/sdl2-cs-bindings/issues/117) |
+| Consumer/harvest boundaries, paths and readiness | [#101](https://github.com/janset2d/sdl2-cs-bindings/issues/101), [#87](https://github.com/janset2d/sdl2-cs-bindings/issues/87), [#102](https://github.com/janset2d/sdl2-cs-bindings/issues/102), [#103](https://github.com/janset2d/sdl2-cs-bindings/issues/103) |
+| Dependency ranges, reporter/fixture API, diagnostics, oracles and deferred triggers | [#104](https://github.com/janset2d/sdl2-cs-bindings/issues/104), [#105](https://github.com/janset2d/sdl2-cs-bindings/issues/105), [#106](https://github.com/janset2d/sdl2-cs-bindings/issues/106), [#107](https://github.com/janset2d/sdl2-cs-bindings/issues/107), [#108](https://github.com/janset2d/sdl2-cs-bindings/issues/108), [#109](https://github.com/janset2d/sdl2-cs-bindings/issues/109) |
+| Bad-native combinations, recovery, feed health and culture | [#118](https://github.com/janset2d/sdl2-cs-bindings/issues/118), [#119](https://github.com/janset2d/sdl2-cs-bindings/issues/119), [#120](https://github.com/janset2d/sdl2-cs-bindings/issues/120), [#121](https://github.com/janset2d/sdl2-cs-bindings/issues/121) |
+| Optional coverage, metadata caching, tool reproducibility, logs and CI caches | [#122](https://github.com/janset2d/sdl2-cs-bindings/issues/122), [#123](https://github.com/janset2d/sdl2-cs-bindings/issues/123), [#124](https://github.com/janset2d/sdl2-cs-bindings/issues/124), [#125](https://github.com/janset2d/sdl2-cs-bindings/issues/125), [#126](https://github.com/janset2d/sdl2-cs-bindings/issues/126), [#127](https://github.com/janset2d/sdl2-cs-bindings/issues/127) |
+| Validator output shape | [#128](https://github.com/janset2d/sdl2-cs-bindings/issues/128) |
+| Package/feed and supply-chain integrity | [#65](https://github.com/janset2d/sdl2-cs-bindings/issues/65), [#66](https://github.com/janset2d/sdl2-cs-bindings/issues/66), [#81](https://github.com/janset2d/sdl2-cs-bindings/issues/81) |
+| Native overrides, dependency-free variant and musl | [#67](https://github.com/janset2d/sdl2-cs-bindings/issues/67), [#80](https://github.com/janset2d/sdl2-cs-bindings/issues/80), [#82](https://github.com/janset2d/sdl2-cs-bindings/issues/82) |
+| History cleanup and local-development validation | [#56](https://github.com/janset2d/sdl2-cs-bindings/issues/56), [#57](https://github.com/janset2d/sdl2-cs-bindings/issues/57) |
+| SDL3 bindings and release support | [#71](https://github.com/janset2d/sdl2-cs-bindings/issues/71), [#72](https://github.com/janset2d/sdl2-cs-bindings/issues/72) |
 
-Detailed follow-up groups: consumer-smoke extraction — issue #101;
-harvest extraction — issue #87; harvest data and paths — issue #102;
-readiness semantics — issue #103;
-dependency ranges — issue #104;
-reporter design — issue #105; fixture API — issue #106;
-diagnostic UX — issue #107; test oracles — issue #108;
-deferred polish and triggers — issue #109.
-These groups overlap the cleanup table; cross-link them rather than implementing the same work twice.
-
-### 2027 — Stabilization
-
-Big-bang v1.0 launch shape + entry criteria per [`release-strategy.md`](release-strategy.md) §End State at v1.0 + §Promotion Gates.
-
-- [ ] Stabilize SDL2 + SDL3 packages (v1.0) — full satellite coverage per release-strategy end-state table
-- [ ] Community feedback incorporation
-- [ ] Begin Janset2D development on top of these bindings
-
-## Hardening Backlog
-
-Open issues that are not phase-bound:
-
-- [ ] [#65 Harden package validation and local feed workflows](https://github.com/janset2d/sdl2-cs-bindings/issues/65)
-- [ ] [#66 Harden supply-chain and release integrity workflows](https://github.com/janset2d/sdl2-cs-bindings/issues/66)
-- [ ] [#67 Implement external native override support](https://github.com/janset2d/sdl2-cs-bindings/issues/67) (parking lot)
-- [ ] [#81 Add drift-prevention guardrail for harvest library lists](https://github.com/janset2d/sdl2-cs-bindings/issues/81)
-- [ ] [#87 Reassess HarvestTask extraction boundaries after the pipeline retirement](https://github.com/janset2d/sdl2-cs-bindings/issues/87)
-
-Other deferred work is tracked in issues:
-
-- Known-bad native combinations and expiry: issue #118.
-- Release rollback and recovery: issue #119.
-- Maintenance and feed health checks: issue #120.
-- Invariant-culture logging: issue #121.
-- Optional workflow-owned coverage signal: issue #122.
-- Package-info and dependency-analysis caching: issue #123.
-- Tool reproducibility: issue #124.
-- Release log hygiene: issue #125.
-- Native CI cache audit: issue #126.
-- Windows runner architecture and cache identity: issue #127.
-- SBOM and native symbols: issue #66.
-- Validator output-shape decision: issue #128.
-
-## Versioning
-
-Per-family version = `<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>` (D-3seg). UpstreamMajor.Minor anchored to `manifest.library_manifests[].vcpkg_version` and enforced by guardrail G54.
-
-Current upstream pins:
-
-| Library | vcpkg Pin | Upstream | Notes |
-| --- | --- | --- | --- |
-| SDL2 | 2.32.10 | 2.32.10 | Current |
-| SDL2_image | 2.8.8#1 | 2.8.10 | Upstream ahead of vcpkg |
-| SDL2_mixer | 2.8.1#1 | 2.8.1 | Current |
-| SDL2_ttf | 2.24.0 | 2.24.0 | Current |
-| SDL2_gfx | 1.0.4#11 | 1.0.4 | Frozen (3rd party) |
-| SDL2_net | 2.2.0#3 | 2.2.0 | Bind pending ([#58](https://github.com/janset2d/sdl2-cs-bindings/issues/58)) |
-
-SDL3 vcpkg availability: SDL3 3.4.4, SDL3_image 3.4.2, SDL3_mixer 3.2.0#1, SDL3_ttf 3.2.2#1. SDL3_net not yet in vcpkg (upstream WIP). SDL3_shadercross 3.0.0-preview2 (preview).
-
-## Cross-Reference
-
-- **Release strategy**: [`release-strategy.md`](release-strategy.md) — strategic anchor (end state, sequencing, labeling, promotion, maintenance)
-- **Operating rules**: [`AGENTS.md`](../AGENTS.md), [`docs/onboarding.md`](onboarding.md)
-- **Phase docs**: [phases/](phases/) — Phase 2 active ledger + Phase 4/5 design briefs
-- **Architecture decisions**: [adr/](adr/) — ADR-001 (D-3seg + package-first), ADR-002 (target-centric build-host), ADR-003 (contract-centric data layer)
-- **Guardrails**: [architecture/packaging-and-release.md](architecture/packaging-and-release.md)
-- **How-to recipes**: [Engineering](engineering/)
-- **Design evidence** (non-normative):
-  - internal research, 2026-04-11, "Research: Native Library Packaging Patterns in .NET".
-  - internal research, 2026-04-13, "SDL2 Native Dependency License Inventory".
-  - internal research, 2026-04-14, "LGPL-Free Codec Migration - SDL2_mixer".
-  - internal research, 2026-04-14, "Symbol Visibility in Hybrid Static Packaging - Analysis & Strategy".
-  - internal research, 2026-04-16, "Research: Full-Train Release Orchestration".
-  - internal research, 2026-04-16, "Research: Release Recovery + Manual Escape Hatch".
-  - internal research, 2026-04-11, "Research: SDL3 Ecosystem Analysis".
-  - internal research, 2026-04-22, "Unix Native Identity Strategy - vcpkg, SDL2 Family, Overlay Ports, and the Single-File Question".
-  - internal research, 2026-05-22, "Research: Semantic ABI Type Classification For SDL Bindings".
-- **Deferred topology evidence**: internal research, 2026-05-12, "Package Topology Refactor Research - DEFERRED"; unpark triggers remain in [release strategy](release-strategy.md#deferred-decisions).
-- **Deferred ideas**: the issue groups in Hardening Backlog above.
+Groups overlap. Cross-link issues rather than implementing the same work twice. Retired historical
+plans and research are preserved in the companion repository; current rules remain public canon.
