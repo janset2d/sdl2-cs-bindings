@@ -4,6 +4,27 @@ namespace Build.Tests.Unit.QualityGates;
 
 public sealed class WorkflowFilesTests
 {
+    [Test]
+    [Arguments("- uses: owner/repo@v1", "owner/repo@v1")]
+    [Arguments("  uses: \"owner/repo@abc\"  # v1", "owner/repo@abc")]
+    [Arguments("  uses: 'owner/repo@abc'", "owner/repo@abc")]
+    [Arguments("  uses: owner/repo@abc # v1", "owner/repo@abc")]
+    [Arguments("    uses: ./.github/workflows/x.yml", "./.github/workflows/x.yml")]
+    [Arguments("- uses: docker://img@sha256:abc", "docker://img@sha256:abc")]
+    public async Task FindActionReferences_Should_Find_Uses_Values(string text, string value)
+    {
+        await Assert.That(WorkflowFiles.FindActionReferences(text))
+            .IsEquivalentTo(new[] { new ActionReference(1, value) }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task FindActionReferences_Should_Return_References_In_Text_Order()
+    {
+        ActionReference[] expected = [new(2, "z/step@v1"), new(4, "a/workflow@v2")];
+        await Assert.That(WorkflowFiles.FindActionReferences("steps:\r\n  - uses: z/step@v1\r\njob:\r\n  uses: a/workflow@v2"))
+            .IsEquivalentTo(expected, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+    }
+
     public static IEnumerable<(string Text, int Line, string Label)> Labels() =>
     [
         ("runs-on:\n  - ubuntu-latest", 2, "ubuntu-latest"),

@@ -8,6 +8,23 @@ namespace Build.Tests.Integration.QualityGates;
 public sealed class WorkflowRunnerGateTests
 {
     [Test]
+    public async Task ThirdPartyActions_Should_Be_Pinned_By_Sha()
+    {
+        var references = WorkflowFiles.Paths.SelectMany(path =>
+            WorkflowFiles.FindActionReferences(RepositoryFiles.ReadText(path)!)
+                .Where(reference => !reference.Value.StartsWith("./", StringComparison.Ordinal)
+                    && !reference.Value.StartsWith("actions/", StringComparison.Ordinal))
+                .Select(reference => (Path: path, Reference: reference))).ToArray();
+        await Assert.That(references).IsNotEmpty();
+        foreach (var (path, reference) in references)
+        {
+            await Assert.That(reference.Value)
+                .Matches(@"\A(?:[A-Za-z0-9_.-]+/[A-Za-z0-9_./-]+@[0-9a-fA-F]{40}|docker://[^\s@]+@sha256:[0-9a-fA-F]{64})\z")
+                .Because($"{path}:{reference.Line}");
+        }
+    }
+
+    [Test]
     public async Task RunnerLabels_Should_Be_Manifest_Runners()
     {
         var runners = WorkflowFiles.ManifestRunners;
