@@ -41,4 +41,14 @@ internal sealed class ChainHeadAnalyzerTests
 
         await Assert.That(diagnostics).IsEmpty();
     }
+
+    [Test]
+    public async Task ChainHeadAnalyzer_Should_Report_When_Receiver_Is_An_Invocation()
+    {
+        var diagnostics = await AnalyzerCompilationFixture.AnalyzeAsync(
+            ChainHeadData.WrappedInvocation, new ChainHeadAnalyzer(), CancellationToken.None);
+
+        await Assert.That(diagnostics)
+            .IsEquivalentTo(ChainHeadData.InvocationDiagnostics, CollectionOrdering.Matching);
+    }
 }
