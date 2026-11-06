@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace Build.Validation.Conventions;
 
 /// <summary>
@@ -59,7 +57,7 @@ public static class FamilyIdentifierConventions
     public static string ManagedPackageId(string familyIdentifier)
     {
         var (sdlMajor, role) = Parse(familyIdentifier);
-        return string.Create(CultureInfo.InvariantCulture, $"Janset.SDL{sdlMajor}.{role}");
+        return $"Janset.SDL{sdlMajor}.{role}";
     }
 
     /// <summary>
@@ -68,7 +66,7 @@ public static class FamilyIdentifierConventions
     public static string NativePackageId(string familyIdentifier)
     {
         var (sdlMajor, role) = Parse(familyIdentifier);
-        return string.Create(CultureInfo.InvariantCulture, $"Janset.SDL{sdlMajor}.{role}.Native");
+        return $"Janset.SDL{sdlMajor}.{role}.Native";
     }
 
     /// <summary>
@@ -84,7 +82,7 @@ public static class FamilyIdentifierConventions
     public static string VersionPropertyName(string familyIdentifier)
     {
         var (sdlMajor, role) = Parse(familyIdentifier);
-        return string.Create(CultureInfo.InvariantCulture, $"JansetSdl{sdlMajor}{role}PackageVersion");
+        return $"JansetSdl{sdlMajor}{role}PackageVersion";
     }
 
     private static string ToPascalCase(string value)

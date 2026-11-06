@@ -1,3 +1,4 @@
+using System.Globalization;
 using Build.Data.Manifest.Models;
 using Build.Results;
 using Cake.Core.IO;
@@ -67,7 +68,9 @@ public sealed class SatelliteUpperBoundValidator : ISatelliteUpperBoundValidator
         }
 
         return Failure($"G56: dependency '{dependencyPackageId}' in managed package '{managedPackagePath.GetFilename().FullPath}' " +
-                       $"must declare explicit upper bound '< {expectedUpper}' (derived from upstream major {dependencyLibraryVersion.Major}). " +
+                       string.Create(
+                           CultureInfo.CurrentCulture,
+                           $"must declare explicit upper bound '< {expectedUpper}' (derived from upstream major {dependencyLibraryVersion.Major}). ") +
                        $"Actual expression: '{dependencyVersionExpression}'.");
 
         static ValidationCheck Failure(string message)

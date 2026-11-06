@@ -36,6 +36,7 @@ public sealed class RuntimeProfile : IRuntimeProfile
         {
             RuntimeFamily.Windows => artefacts.Windows.SystemDlls,
             RuntimeFamily.Linux => artefacts.Linux.SystemLibraries,
+            RuntimeFamily.OSX => artefacts.Osx.SystemLibraries,
             _ => artefacts.Osx.SystemLibraries,
         };
 
