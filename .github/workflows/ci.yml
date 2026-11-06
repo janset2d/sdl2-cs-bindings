@@ -80,3 +80,4 @@ jobs:
             dotnet build "$p" -c Release --no-restore
           done
       - run: dotnet build tools.cs -c Release
+      - run: dotnet test --project build/analyzers/Janset.CodeStyle.Analyzers.Tests/Janset.CodeStyle.Analyzers.Tests.csproj -c Release
