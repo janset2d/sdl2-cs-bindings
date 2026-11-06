@@ -17,7 +17,7 @@ internal static class AnalyzerCompilationFixture
             "Sample",
             trees,
             [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)],
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, allowUnsafe: true));
         var errors = compilation
             .GetDiagnostics(cancellationToken)
             .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)

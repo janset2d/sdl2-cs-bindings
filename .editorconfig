@@ -454,6 +454,7 @@ dotnet_diagnostic.RCS0056.severity = error
 
 # REPOSITORY ANALYZERS
 dotnet_diagnostic.JNS0001.severity = error
+dotnet_diagnostic.JNS0002.severity = error
 
 # SECTION 12: SONAR
 # Unlisted rules use SonarWay defaults, escalated by TreatWarningsAsErrors.
