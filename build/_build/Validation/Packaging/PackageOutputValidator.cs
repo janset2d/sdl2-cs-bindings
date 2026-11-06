@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Xml.Linq;
 using Build.Data.Manifest.Models;
@@ -221,7 +220,6 @@ public sealed class PackageOutputValidator(
         return metadata;
     }
 
-    
     private static void EvaluateCanonicalMetadata(
         List<ValidationCheck> checks,
         FilePath packagePath,
@@ -464,7 +462,6 @@ public sealed class PackageOutputValidator(
         }
     }
 
-    
     private void EvaluateExpectedDependencies(
         List<ValidationCheck> checks,
         PackageFamilyConfig family,

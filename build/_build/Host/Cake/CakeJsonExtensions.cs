@@ -67,7 +67,7 @@ public static class CakeJsonExtensions
             throw new CakeException($"Error reading file {filePath.FullPath}: {ex.Message}", ex);
         }
 
-        if (model == null)
+        if (model is null)
         {
             throw new CakeException(
                 $"Failed to deserialize to {typeof(TModel).FullName} from {filePath.FullPath}. JSON content might be 'null' or deserialization resulted in null.");
@@ -115,7 +115,7 @@ public static class CakeJsonExtensions
             throw new CakeException($"Error reading file {filePath.FullPath}: {ex.Message}", ex);
         }
 
-        if (model == null)
+        if (model is null)
         {
             throw new CakeException(
                 $"Failed to deserialize to {typeof(TModel).FullName} from {filePath.FullPath}. JSON content might be 'null' or deserialization resulted in null.");

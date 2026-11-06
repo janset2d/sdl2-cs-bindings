@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Build.Data.Manifest.Models;
 using Build.Results;
 using Cake.Core.IO;
@@ -8,7 +7,7 @@ namespace Build.Validation.Packaging;
 
 public sealed class SatelliteUpperBoundValidator : ISatelliteUpperBoundValidator
 {
-    
+
     public ValidationCheck? Validate(
         PackageFamilyConfig family,
         FilePath managedPackagePath,

@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Text;
 using System.Xml.Linq;
@@ -24,7 +23,6 @@ public sealed class DependencyRangeNormalizer(ICakeContext cakeContext, ICakeLog
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
     private readonly ICakeLog _log = log ?? throw new ArgumentNullException(nameof(log));
 
-    
     public async Task NormalizeAsync(
         ManifestConfig manifestConfig,
         PackageFamilyConfig family,

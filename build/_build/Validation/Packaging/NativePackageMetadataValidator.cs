@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Build.Data.Manifest.Models;
 using Build.Data.NativePackageMetadata;
 using Build.Results;
@@ -12,7 +11,6 @@ public sealed class NativePackageMetadataValidator(INativePackageMetadataReposit
     private readonly INativePackageMetadataRepository _nativePackageMetadataRepository = nativePackageMetadataRepository
         ?? throw new ArgumentNullException(nameof(nativePackageMetadataRepository));
 
-    
     public async Task<ValidationCheck?> ValidateAsync(
         PackageFamilyConfig family,
         FilePath nativePackagePath,

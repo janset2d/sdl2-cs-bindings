@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Build.Data.Manifest;
 using Build.Data.Manifest.Models;
 using Build.Data.Versions;
@@ -57,7 +56,6 @@ public sealed class PublishStagingTask : AsyncFrostingTask<BuildContext>
         _versionFileRepository = versionFileRepository ?? throw new ArgumentNullException(nameof(versionFileRepository));
     }
 
-    
     public override async Task RunAsync(BuildContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -84,20 +82,20 @@ public sealed class PublishStagingTask : AsyncFrostingTask<BuildContext>
         var concreteFamilies = ResolveConcreteFamiliesInScope(manifest, familyVersions);
         var ct = context.CancellationToken;
 
-        foreach (var family in concreteFamilies)
+        foreach (var familyName in concreteFamilies.Select(family => family.Name))
         {
-            var version = familyVersions.RequireVersion(new PackageFamilyId(family.Name));
-            EnsureNotLocalSuffix(family.Name, version);
+            var version = familyVersions.RequireVersion(new PackageFamilyId(familyName));
+            EnsureNotLocalSuffix(familyName, version);
 
-            var managedPackageId = FamilyIdentifierConventions.ManagedPackageId(family.Name);
-            var nativePackageId = FamilyIdentifierConventions.NativePackageId(family.Name);
+            var managedPackageId = FamilyIdentifierConventions.ManagedPackageId(familyName);
+            var nativePackageId = FamilyIdentifierConventions.NativePackageId(familyName);
 
             var managedNupkg = ResolveAndEnsureNupkg(_pathService.PackagesOutput, managedPackageId, version);
             var nativeNupkg = ResolveAndEnsureNupkg(_pathService.PackagesOutput, nativePackageId, version);
 
             _log.Information(
                 "PublishStaging pushing '{0}' = {1} ({2} + {3}).",
-                family.Name,
+                familyName,
                 version.ToNormalizedString(),
                 managedPackageId,
                 nativePackageId);

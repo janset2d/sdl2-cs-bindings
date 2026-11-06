@@ -1,5 +1,3 @@
-
-using System.Diagnostics.CodeAnalysis;
 using Build.Data.Manifest.Models;
 using Build.Host.Paths;
 using Build.Host.Runtime;
@@ -20,7 +18,6 @@ public sealed class ArtifactPlanner(IRuntimeProfile profile, IPathService pathSe
     private readonly ICakeContext _context = context ?? throw new ArgumentNullException(nameof(context));
     private readonly ICakeLog _log = (context ?? throw new ArgumentNullException(nameof(context))).Log;
 
-    
     public async Task<Result<DeploymentPlan, ArtifactPlannerError>> CreatePlanAsync(
         LibraryManifest current,
         BinaryClosure closure,
