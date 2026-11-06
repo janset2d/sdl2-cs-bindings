@@ -79,7 +79,7 @@ Public promotion and first release metadata are tracked in
 |---|---|
 | dotnet-affected library versus CLI integration | Feasibility evidence and an ADR before integration |
 | Public orchestration and promotion mechanism | Before first nuget.org prerelease; manual dispatch versus a single release-object event remains a design question, not a return to per-tag fan-out |
-| Recovery/manual operation | Write an operator runbook with credential provisioning, explicit feed, versions and audit trail; reuse the normal pipeline, or explicitly defer the proposed family helpers ([#119](https://github.com/janset2d/sdl2-cs-bindings/issues/119)) |
+| Recovery/manual operation | Decided: reuse the normal pipeline with an explicit version mapping. Open: an operator runbook with credential provisioning, explicit feed and audit trail, and a decision to implement or defer the family Pack/Smoke/Push helpers ([#119](https://github.com/janset2d/sdl2-cs-bindings/issues/119)) |
 | RID-specific smoke versus framework-dependent resolver coverage | Promote the runtime checkpoint only with Windows/Linux/macOS evidence |
 | Linux MIDI runtime packaging | Before first public Mixer release; Timidity configuration/patch data and native MIDI are distinct contracts |
 | Gfx Unix export regression guard | Next touching baseline/hardening change; compare smoke-time nm/readelf checks, pack checks or both |
