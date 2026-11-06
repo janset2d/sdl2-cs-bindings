@@ -4,7 +4,7 @@ using Build.Tests.Fixtures;
 
 namespace Build.Tests.Unit.Manifest;
 
-public class RealManifestContractTests
+public sealed class RealManifestContractTests
 {
     [Test]
     public async Task FixtureLoaderLoad_Should_Return_Real_Manifest_Fixture()

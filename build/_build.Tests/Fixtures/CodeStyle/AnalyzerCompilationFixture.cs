@@ -37,11 +37,10 @@ internal static class AnalyzerCompilationFixture
             .WithAnalyzers([analyzer])
             .GetAnalyzerDiagnosticsAsync(cancellationToken);
 
-        return diagnostics
+        return [.. diagnostics
             .OrderBy(static diagnostic => diagnostic.Location.SourceSpan.Start)
             .ThenBy(static diagnostic => diagnostic.Id, StringComparer.Ordinal)
             .Select(static diagnostic => string.Create(CultureInfo.InvariantCulture,
-                $"{diagnostic.Id}|{diagnostic.Location.SourceSpan.Start}|{diagnostic.GetMessage(CultureInfo.InvariantCulture)}"))
-            .ToArray();
+                $"{diagnostic.Id}|{diagnostic.Location.SourceSpan.Start}|{diagnostic.GetMessage(CultureInfo.InvariantCulture)}"))];
     }
 }

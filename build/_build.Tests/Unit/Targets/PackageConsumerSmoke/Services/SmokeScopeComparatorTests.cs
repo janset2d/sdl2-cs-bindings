@@ -2,7 +2,7 @@ using Build.Targets.PackageConsumerSmoke.Services;
 
 namespace Build.Tests.Unit.Targets.PackageConsumerSmoke.Services;
 
-public class SmokeScopeComparatorTests
+public sealed class SmokeScopeComparatorTests
 {
     [Test]
     public async Task Compare_Returns_Match_When_Csproj_References_Exactly_Expected_Set()

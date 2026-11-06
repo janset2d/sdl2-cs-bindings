@@ -5,7 +5,7 @@ using NSubstitute;
 
 namespace Build.Tests.Unit.Host.Paths;
 
-public class PathConstructionTests
+public sealed class PathConstructionTests
 {
     private static PathService CreatePathService(string repoRoot = "/repo")
     {
