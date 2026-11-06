@@ -1,3 +1,4 @@
+using System.Globalization;
 using Cake.Common;
 using Cake.Core;
 using Cake.Core.Diagnostics;
@@ -143,7 +144,7 @@ public sealed class DotNetSmokeRunner(ICakeContext cakeContext, ICakeLog log)
         {
             var combinedOutput = string.Join(Environment.NewLine, standardOutput.Concat(standardError));
             throw new CakeException(
-                $"dotnet {description} failed with exit code {exitCode}.{Environment.NewLine}{combinedOutput}");
+                string.Create(CultureInfo.CurrentCulture, $"dotnet {description} failed with exit code {exitCode}.{Environment.NewLine}{combinedOutput}"));
         }
     }
 }

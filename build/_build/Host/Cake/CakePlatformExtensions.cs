@@ -21,7 +21,8 @@ public static class CakePlatformExtensions
             PlatformFamily.Windows => "win",
             PlatformFamily.Linux => "linux",
             PlatformFamily.OSX => "osx",
-            _ => throw new PlatformNotSupportedException("Cannot determine OS platform for RID."),
+            PlatformFamily.Unknown or PlatformFamily.FreeBSD => throw UnsupportedPlatform(),
+            _ => throw UnsupportedPlatform(),
         };
         var archPart = RuntimeInformation.OSArchitecture switch
         {
@@ -29,9 +30,16 @@ public static class CakePlatformExtensions
             Architecture.Arm64 => "arm64",
             Architecture.X86 => "x86",
             Architecture.Arm => "arm",
-            _ => throw new PlatformNotSupportedException($"Cannot determine OS architecture {RuntimeInformation.OSArchitecture} for RID."),
+            Architecture.Wasm or Architecture.S390x or Architecture.LoongArch64 or Architecture.Armv6
+                or Architecture.Ppc64le or Architecture.RiscV64 => throw UnsupportedArchitecture(),
+            _ => throw UnsupportedArchitecture(),
         };
 
         return $"{osPart}-{archPart}";
     }
+
+    private static PlatformNotSupportedException UnsupportedPlatform() => new("Cannot determine OS platform for RID.");
+
+    private static PlatformNotSupportedException UnsupportedArchitecture() => new(
+        $"Cannot determine OS architecture {RuntimeInformation.OSArchitecture} for RID.");
 }

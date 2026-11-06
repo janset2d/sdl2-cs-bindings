@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IO.Compression;
 using System.Xml.Linq;
 using Build.Data.Manifest.Models;
@@ -174,7 +175,7 @@ public sealed class PackageOutputValidator(
         try
         {
             await using var stream = file.OpenRead();
-            using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
+            await using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
 
             var nuspecEntry = archive.Entries.SingleOrDefault(entry => entry.FullName.EndsWith(".nuspec", StringComparison.OrdinalIgnoreCase));
 
@@ -550,7 +551,9 @@ public sealed class PackageOutputValidator(
         {
             AddCheck(checks, isValid: false, code: "G22", name: "TFM agreement",
                 message:
-                $"G22: managed package '{managedPackagePath.GetFilename().FullPath}' emitted {dependencyContracts.Count} dependencies, expected {expectedDependencyCount}.");
+                string.Create(
+                    CultureInfo.CurrentCulture,
+                    $"G22: managed package '{managedPackagePath.GetFilename().FullPath}' emitted {dependencyContracts.Count} dependencies, expected {expectedDependencyCount}."));
         }
     }
 
@@ -632,7 +635,7 @@ public sealed class PackageOutputValidator(
         try
         {
             await using var stream = file.OpenRead();
-            using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
+            await using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
 
             hasNuspec = archive.Entries.Any(entry => entry.FullName.EndsWith(".nuspec", StringComparison.OrdinalIgnoreCase));
             hasPdb = archive.Entries.Any(entry => entry.FullName.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase));
@@ -672,7 +675,7 @@ public sealed class PackageOutputValidator(
         try
         {
             await using var stream = file.OpenRead();
-            using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
+            await using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
             entries = archive.Entries
                 .Select(entry => entry.FullName.Replace('\\', '/'))
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);

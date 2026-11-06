@@ -1,3 +1,4 @@
+using System.Globalization;
 using Build.Tools.Vcpkg.Settings;
 using Cake.Common;
 using Cake.Core;
@@ -60,6 +61,8 @@ public sealed class VcpkgBootstrapTool(ICakeContext cakeContext)
             (process.GetStandardOutput() ?? []).Concat(process.GetStandardError() ?? []));
 
         throw new CakeException(
-            $"{description} failed with exit code {exitCode}. Command: {fileName} {arguments.RenderSafe()}.{Environment.NewLine}{output}");
+            string.Create(
+                CultureInfo.CurrentCulture,
+                $"{description} failed with exit code {exitCode}. Command: {fileName} {arguments.RenderSafe()}.{Environment.NewLine}{output}"));
     }
 }

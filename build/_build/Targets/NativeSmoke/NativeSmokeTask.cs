@@ -1,3 +1,4 @@
+using System.Globalization;
 using Build.Data.Manifest;
 using Build.Data.Manifest.Models;
 using Build.Host;
@@ -137,7 +138,7 @@ public sealed class NativeSmokeTask(
 
         if (result.ExitCode != 0)
         {
-            throw new CakeException($"NativeSmoke failed with exit code {result.ExitCode} for RID '{rid}'.");
+            throw new CakeException(string.Create(CultureInfo.CurrentCulture, $"NativeSmoke failed with exit code {result.ExitCode} for RID '{rid}'."));
         }
     }
 

@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 using Cake.Common.Tools.VSWhere;
 using Cake.Common.Tools.VSWhere.Latest;
@@ -129,7 +130,7 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
         if (process.ExitCode != 0)
         {
             throw new CakeException(
-                $"MsvcDevEnvironment: 'cmd /c vcvarsall.bat {vcvarsArg}' exited with code {process.ExitCode}. " +
+                string.Create(CultureInfo.CurrentCulture, $"MsvcDevEnvironment: 'cmd /c vcvarsall.bat {vcvarsArg}' exited with code {process.ExitCode}. ") +
                 $"stderr: {stderr.Trim()}");
         }
 

@@ -1,3 +1,4 @@
+using System.Globalization;
 using Build.Data.Manifest.Models;
 using Build.Data.NativePackageMetadata;
 using Build.Results;
@@ -79,7 +80,7 @@ public sealed class NativePackageMetadataValidator(INativePackageMetadataReposit
 
         if (metadata.VcpkgPortVersion != library.VcpkgPortVersion)
         {
-            mismatches.Add($"vcpkg_port_version expected '{library.VcpkgPortVersion}' actual '{metadata.VcpkgPortVersion}'");
+            mismatches.Add(string.Create(CultureInfo.CurrentCulture, $"vcpkg_port_version expected '{library.VcpkgPortVersion}' actual '{metadata.VcpkgPortVersion}'"));
         }
 
         if (!string.Equals(metadata.BuildCommit, expectedCommitSha, StringComparison.OrdinalIgnoreCase))

@@ -94,7 +94,7 @@ public sealed partial class DotNetRuntimeEnvironment(ICakeLog log) : IDotNetRunt
             channels.Add(major);
         }
 
-        return [.. channels.Select(major => $"{major}.0")];
+        return [.. channels.Select(major => string.Create(CultureInfo.CurrentCulture, $"{major}.0"))];
     }
 
     private async Task<IReadOnlyDictionary<string, string>> ResolveCoreAsync(IReadOnlyList<string> runtimeChannels, CancellationToken ct)
@@ -183,7 +183,9 @@ public sealed partial class DotNetRuntimeEnvironment(ICakeLog log) : IDotNetRunt
         if (process.ExitCode != 0)
         {
             throw new InvalidOperationException(
-                $"DotNetRuntimeEnvironment: x86 runtime install for channel '{channel}' failed with exit code {process.ExitCode}.{Environment.NewLine}" +
+                string.Create(
+                    CultureInfo.CurrentCulture,
+                    $"DotNetRuntimeEnvironment: x86 runtime install for channel '{channel}' failed with exit code {process.ExitCode}.{Environment.NewLine}") +
                 stdout + Environment.NewLine + stderr);
         }
 

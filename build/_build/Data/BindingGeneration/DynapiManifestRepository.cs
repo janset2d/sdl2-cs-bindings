@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 using Build.Data.BindingGeneration.Models;
 using Build.Host.Cake;
@@ -100,11 +101,13 @@ public sealed partial class DynapiManifestRepository(ICakeContext context, IPath
                 if (carriesExportMarker)
                 {
                     throw new InvalidOperationException(
-                        $"Dynapi manifest '{sourcePath}' line {lineNumber}: export line did not match the canonical Watcom format: '{line}'.");
+                        string.Create(
+                            CultureInfo.CurrentCulture,
+                            $"Dynapi manifest '{sourcePath}' line {lineNumber}: export line did not match the canonical Watcom format: '{line}'."));
                 }
 
                 throw new InvalidOperationException(
-                    $"Dynapi manifest '{sourcePath}' line {lineNumber}: unexpected non-comment, non-export line '{line}'.");
+                    string.Create(CultureInfo.CurrentCulture, $"Dynapi manifest '{sourcePath}' line {lineNumber}: unexpected non-comment, non-export line '{line}'."));
             }
 
             var name = match.Groups["name"].Value;
@@ -113,7 +116,9 @@ public sealed partial class DynapiManifestRepository(ICakeContext context, IPath
             if (!string.Equals(name, mirror, StringComparison.Ordinal))
             {
                 throw new InvalidOperationException(
-                    $"Dynapi manifest '{sourcePath}' line {lineNumber}: symbol mismatch between underscore-prefix '{name}' and mirror '{mirror}'.");
+                    string.Create(
+                        CultureInfo.CurrentCulture,
+                        $"Dynapi manifest '{sourcePath}' line {lineNumber}: symbol mismatch between underscore-prefix '{name}' and mirror '{mirror}'."));
             }
 
             symbols.Add(name);

@@ -178,7 +178,7 @@ public sealed partial class OtoolRunner : Tool<OtoolSettings>
 
                     for (var i = 0; i < match.Groups.Count; i++)
                     {
-                        _context.Debug($"[DEBUG] Group {i}: '{match.Groups[i].Value}'");
+                        _context.Debug(string.Create(CultureInfo.CurrentCulture, $"[DEBUG] Group {i}: '{match.Groups[i].Value}'"));
                     }
 
                     break;

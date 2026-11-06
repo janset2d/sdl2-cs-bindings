@@ -1,3 +1,4 @@
+using System.Globalization;
 using Build.Results;
 using Build.Targets.Harvest.Models;
 using Cake.Common;
@@ -109,7 +110,7 @@ public sealed class ArtifactDeployer(ICakeContext ctx) : IArtifactDeployer
 
             if (exitCode != 0)
             {
-                var errorMessage = $"tar command failed with exit code {exitCode} while creating archive {action.ArchivePath.FullPath}.";
+                var errorMessage = string.Create(CultureInfo.CurrentCulture, $"tar command failed with exit code {exitCode} while creating archive {action.ArchivePath.FullPath}.");
                 _log.Error(errorMessage);
                 throw new CakeException(errorMessage);
             }

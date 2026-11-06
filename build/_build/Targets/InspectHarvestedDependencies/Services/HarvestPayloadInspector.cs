@@ -1,4 +1,3 @@
-using System.Globalization;
 using Build.Data.Manifest.Models;
 using Build.Host.Paths;
 using Build.Host.Runtime;
@@ -88,7 +87,7 @@ public sealed class HarvestPayloadInspector(ICakeContext cakeContext, ICakeLog l
     {
         foreach (var pattern in patterns)
         {
-            var globExpr = string.Create(CultureInfo.InvariantCulture, $"{inspectedDir.FullPath}/**/{pattern}");
+            var globExpr = $"{inspectedDir.FullPath}/**/{pattern}";
             var matches = _cakeContext.GetFiles(globExpr);
 
             if (matches.Count > 0)
