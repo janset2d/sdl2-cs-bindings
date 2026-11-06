@@ -449,8 +449,7 @@ dotnet_diagnostic.RCS1140.severity = suggestion
 dotnet_diagnostic.RCS1141.severity = suggestion
 roslynator_max_line_length = 180
 dotnet_diagnostic.RCS0054.severity = error
-# QM-5: RCS0056 stays at suggestion until "style: wrap lines over 180 characters (RCS0056 error)".
-dotnet_diagnostic.RCS0056.severity = suggestion
+dotnet_diagnostic.RCS0056.severity = error
 
 # SECTION 12: SONAR
 # Unlisted rules use SonarWay defaults, escalated by TreatWarningsAsErrors.
