@@ -37,9 +37,6 @@ docs/superpowers/specs/2026-05-28-binding-autogen-doc-consolidation-design.md|sp
 docs/superpowers/specs/2026-05-28-binding-autogen-doc-consolidation-design.md|spikes/binding-generators/docs/ppy-reference-analysis-2026-05-25.md
 docs/superpowers/specs/2026-05-28-binding-autogen-doc-consolidation-design.md|spikes/binding-generators/docs/priority-c-closure-summary.md
 docs/superpowers/specs/2026-05-28-binding-autogen-doc-consolidation-design.md|spikes/binding-generators/docs/satellite-expansion-roadmap.md
-docs/architecture/binding-generation.md|spikes/docs/decisions/2026-05-14-binding-autogen-toolchain.md
-docs/architecture/binding-generation.md|spikes/docs/knowledge-base/extraction-guidelines.md
-docs/architecture/binding-generation.md|spikes/docs/knowledge-base/testing-guidelines.md
 spikes/binding-generators/docs/canonical/references/2026-05-30-layer-2-cross-family-requirements.md|spikes/docs/superpowers/specs/2026-05-29-binding-autogen-layer-2-typed-public-api-design.md
 spikes/binding-generators/docs/canonical/references/2026-05-30-layer-2-design-and-deferred-scope.md|spikes/docs/superpowers/plans/2026-05-30-binding-autogen-layer-2-core-foundation.md
 spikes/binding-generators/docs/canonical/references/2026-05-30-layer-2-design-and-deferred-scope.md|spikes/docs/superpowers/specs/2026-05-29-binding-autogen-layer-2-typed-public-api-design.md

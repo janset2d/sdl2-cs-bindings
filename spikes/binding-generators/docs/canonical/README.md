@@ -1,20 +1,25 @@
 # Binding Auto-Generation Workstream
 
-> **Status:** Canonical binding-generator workstream index. Pure-principles policy + mechanism + maintenance + testing + satellite analyses for the active spike implementation under `spikes/binding-generators/clangsharp/`. Restores to `docs/binding-autogen/` at Production Flip (see roadmap §"Production Flip — SDL2.Core Reproducibility").
+> **Status:** This folder retains the spike roadmap, satellite analyses and peer references; durable binding canon lives in the linked documentation homes below.
 
 ## Folder Layout
 
 | Path | Purpose |
 | --- | --- |
 | [`README.md`](README.md) | Workstream index and reading order. |
-| [`binding-abi-policy.md`](../../../../docs/architecture/binding-abi-policy.md) | Canonical ABI/API policy: internal raw ABI, public typed low-level API, friendly overloads, manifest config vs code-owned policy, evidence gates. |
 | [`binding-generator-roadmap.md`](binding-generator-roadmap.md) | Canonical roadmap: SDL2 Layer 1 closure record + Layer 2 / Layer 3 / Production Flip / SysWM + Satellite Sweep / Smoke Expansion / SDL3 Extension. |
+| [`satellites/`](satellites/) | Per-family header analyses + cross-family consolidation analyses. |
+| [`references/`](references/) | Peer reference analyses (ppy/SDL3-CS, etc.). |
+
+## Moved to docs/
+
+| Path | Purpose |
+| --- | --- |
+| [`binding-abi-policy.md`](../../../../docs/architecture/binding-abi-policy.md) | Canonical ABI/API policy: internal raw ABI, public typed low-level API, friendly overloads, manifest config vs code-owned policy, evidence gates. |
 | [`binding-testing.md`](../../../../docs/engineering/binding-testing.md) | Canonical testing strategy: layer model, fixture policy, raw ABI runtime tests, smoke expansion backlog, raw ABI upstream port backlog. |
 | [`binding-generation.md`](../../../../docs/architecture/binding-generation.md) | Mechanism + evidence: postprocess rewriter design, oracle classification labels, hardcoding rules, config surface evolution, postprocess pipeline order. |
 | [`binding-generator-maintenance.md`](../../../../docs/engineering/binding-generator-maintenance.md) | Maintenance playbook: version-bump procedures, RSP file maintenance, family-config.json schema, postprocess pipeline maintenance, drift detection, new-family addition checklist. |
 | [`binding-output-review.md`](../../../../docs/engineering/binding-output-review.md) | Multi-oracle review workflow for validating generated output. |
-| [`satellites/`](satellites/) | Per-family header analyses + cross-family consolidation analyses. |
-| [`references/`](references/) | Peer reference analyses (ppy/SDL3-CS, etc.). |
 
 ## Reading Order
 

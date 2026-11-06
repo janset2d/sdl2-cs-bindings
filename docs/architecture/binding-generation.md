@@ -679,9 +679,9 @@ The `generate_bindings.py` orchestrator wires up the per-step invocation chain; 
 - [`binding-abi-policy.md`](binding-abi-policy.md) — pure policy contract. This document is its mechanism companion.
 - [`binding-generator-maintenance.md`](../engineering/binding-generator-maintenance.md) — version-bump procedures, RSP file maintenance, family-config.json schema maintenance, new-family checklist.
 - [`binding-output-review.md`](../engineering/binding-output-review.md) — multi-oracle review methodology; relationship to §10 oracle.cs classification labels.
-- [ADR-004 — Binding Auto-Generation Toolchain](../../spikes/docs/decisions/2026-05-14-binding-autogen-toolchain.md) — Reopened; formal amendment deferred pending Layer 2 closure per design-spec Q13.
-- [`docs/knowledge-base/extraction-guidelines.md`](../../spikes/docs/knowledge-base/extraction-guidelines.md) — collaborator extraction discipline; applies to rewriter class extraction patterns.
-- [`docs/knowledge-base/testing-guidelines.md`](../../spikes/docs/knowledge-base/testing-guidelines.md) — canonical TUnit/MTP test infrastructure; postprocess self-tests defer to this.
+- [ADR-004 — Binding Auto-Generation Toolchain](../adr/0004-binding-autogen-toolchain.md) — Reopened; formal amendment deferred pending Layer 2 closure per design-spec Q13.
+- [`coding-style.md`](../engineering/coding-style.md) — collaborator extraction discipline; applies to rewriter class extraction patterns.
+- [`testing-style.md`](../engineering/testing-style.md) — canonical TUnit/MTP test infrastructure; postprocess self-tests defer to this.
 - **Postprocess source code:** `spikes/binding-generators/clangsharp/postprocess/` — canonical authority for rewriter behavior. Classes cited in this document: `OpaqueHandleEmitRewriter`, `ClongDualDispatchRewriter`, `DllImportToLibraryImportRewriter`, `FlagsAttributeRewriter`, `GuidSubstitutionRewriter`, `StripVarargsRewriter`, `PlatformDeltaPostProcessor`, `UniformOpaqueFamilyIdentity`, `UniformOpaqueOwnerMode`.
 - **Unified config:** `spikes/binding-generators/clangsharp/config/family-config.json` — canonical authority for per-family identity, opaque handles, flags enums, C long methods, platform views, header inventories, required surface, owner mode.
 - **Generator orchestrator:** `spikes/binding-generators/clangsharp/generate_bindings.py` — canonical authority for pipeline orchestration, family selection, postprocess invocation chain.

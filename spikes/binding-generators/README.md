@@ -5,7 +5,7 @@ This folder hosts the SDL2 binding-generator prototypes that feed Phase 4 (bindi
 ## Status — 2026-05-28
 
 - **SDL2 Layer 1 raw ABI: CLOSED across Core / Image / GFX / TTF / Mixer** on the active ClangSharp + Roslyn postprocess implementation under `clangsharp/`. Multi-TFM compile clean across 5 TFMs. Five-family oracle report at `output/reports/oracle-evidence-clangsharp.md`.
-- **Canonical policy + roadmap + testing strategy + maintenance + implementation notes** moved into `docs/canonical/` during the spike → production-flip transition. Restores to `docs/binding-autogen/` at Production Flip per roadmap §"Production Flip — SDL2.Core Reproducibility".
+- **Durable policy, mechanism, maintenance and testing** live in the architecture and engineering homes linked below. [`docs/canonical/`](docs/canonical/) retains the roadmap, satellites and references.
 - **Next forward scope:** Layer 2 typed public API. See `docs/canonical/binding-generator-roadmap.md` §"Layer 2 — Typed Public API Projection" + `docs/next-iteration-plan.md` for active iteration tracking.
 - **Branch:** `spike/binding-autogen-sdl2-gfx`. Push gate pending Deniz approval per AGENTS.md §Approval Gate.
 
@@ -38,12 +38,12 @@ rsp/*.rsp                            →       rsp/*.rsp (same files, same paths
 | Doc | Why |
 | --- | --- |
 | **`docs/canonical/README.md`** | **Canonical workstream index.** Read first to navigate the canonical/ tree. |
-| **`docs/canonical/binding-generator-constitution.md`** | ABI/API/translation policy (pure principles). |
+| **[`binding-abi-policy.md`](../../docs/architecture/binding-abi-policy.md)** | ABI/API/translation policy (pure principles). |
 | **`docs/canonical/binding-generator-roadmap.md`** | Layer-based forward milestones. |
-| **`docs/canonical/testing-strategy.md`** | Testing layer model + smoke + raw ABI upstream port backlog. |
-| **`docs/canonical/binding-generator-implementation-notes.md`** | Mechanism + classification labels + hardcoding rules. |
-| **`docs/canonical/binding-generator-maintenance.md`** | Version-bump procedures + family-config.json schema + RSP maintenance. |
-| **`docs/canonical/binding-output-oracle-validation.md`** | Multi-oracle review workflow. |
+| **[`binding-testing.md`](../../docs/engineering/binding-testing.md)** | Testing layer model + smoke + raw ABI upstream port backlog. |
+| **[`binding-generation.md`](../../docs/architecture/binding-generation.md)** | Mechanism + classification labels + hardcoding rules. |
+| **[`binding-generator-maintenance.md`](../../docs/engineering/binding-generator-maintenance.md)** | Version-bump procedures + family-config.json schema + RSP maintenance. |
+| **[`binding-output-review.md`](../../docs/engineering/binding-output-review.md)** | Multi-oracle review workflow. |
 | **`docs/canonical/satellites/`** | Per-family + cross-family satellite analyses. |
 | **`docs/canonical/references/ppy-reference-analysis-2026-05-25.md`** | ppy/SDL3-CS reference analysis. |
 | `docs/next-iteration-plan.md` | Active spike plan (Layer 2 iteration + forward backlog). |
@@ -79,14 +79,9 @@ spikes/binding-generators/
 ├── docs/
 │   ├── next-iteration-plan.md                       # active spike iteration + forward backlog
 │   ├── reference-clones.md                          # local clone commands for upstream refs
-│   └── canonical/                                   # canonical workstream tree (restores to docs/binding-autogen/ at Production Flip)
+│   └── canonical/                                   # roadmap, satellites and references
 │       ├── README.md                                # canonical workstream index
-│       ├── binding-generator-constitution.md        # ABI/API/translation policy (pure principles)
 │       ├── binding-generator-roadmap.md             # layer-based forward milestones
-│       ├── testing-strategy.md                      # testing layer model + smoke + raw ABI upstream port backlog
-│       ├── binding-generator-implementation-notes.md # mechanism + classification labels + hardcoding rules
-│       ├── binding-generator-maintenance.md         # version-bump + family-config.json schema + RSP maintenance
-│       ├── binding-output-oracle-validation.md      # multi-oracle review workflow
 │       ├── satellites/                              # per-family + cross-family satellite analyses
 │       └── references/                              # ppy/SDL3-CS reference analysis
 ├── clangsharp/                                      # ACTIVE — ppy-style ClangSharp prototype
@@ -167,13 +162,15 @@ The 7-step postprocess pipeline lands all Priority C semantic-ABI policy in a si
 ## How a new agent should pick this up
 
 1. `docs/canonical/README.md` — canonical workstream index and reading order.
-2. `docs/canonical/binding-generator-constitution.md` — ABI/API policy.
+2. [`binding-abi-policy.md`](../../docs/architecture/binding-abi-policy.md) — ABI/API policy.
 3. `docs/canonical/binding-generator-roadmap.md` — layer-based forward milestones.
-4. `docs/canonical/binding-generator-implementation-notes.md` — mechanism rationale.
-5. `docs/canonical/binding-generator-maintenance.md` — operational procedures.
-6. `docs/next-iteration-plan.md` — active iteration + forward backlog.
-7. `output/reports/iteration-2-comparison.md` + `oracle-evidence-clangsharp.md` — evidence.
-8. `references/ppy-SDL3-CS/SDL3-CS/generate_bindings.py` (gitignored clone) — north-star orchestrator.
+4. [`binding-generation.md`](../../docs/architecture/binding-generation.md) — mechanism rationale.
+5. [`binding-generator-maintenance.md`](../../docs/engineering/binding-generator-maintenance.md) — operational procedures.
+6. [`binding-testing.md`](../../docs/engineering/binding-testing.md) — testing strategy.
+7. [`binding-output-review.md`](../../docs/engineering/binding-output-review.md) — multi-oracle review.
+8. `docs/next-iteration-plan.md` — active iteration + forward backlog.
+9. `output/reports/iteration-2-comparison.md` + `oracle-evidence-clangsharp.md` — evidence.
+10. `references/ppy-SDL3-CS/SDL3-CS/generate_bindings.py` (gitignored clone) — north-star orchestrator.
 
 ## Per-TFM ABI runtime smoke
 

@@ -398,7 +398,7 @@ Four procedures, each as a numbered checklist. The drift-detection gate (§"Drif
     ```
 
     Expected: `Scan complete: 0 issue(s) found`. If new files were added or removed since the last baseline, refresh the baseline with `slopwatch init -f --exclude "artifacts/**,external/**,vcpkg_installed/**,spikes/binding-generators/references/**,**/bin/**,**/obj/**"` per AGENTS.md §"Slopwatch" guidance.
-12. **Commit** under [Repository workflow](../../../../docs/engineering/workflow.md#commits-and-pull-requests).
+12. **Commit** under [Repository workflow](workflow.md#commits-and-pull-requests).
 
 ### 6.2 ClangSharp Tool Version Bump
 
@@ -409,7 +409,7 @@ Four procedures, each as a numbered checklist. The drift-detection gate (§"Drif
 5. **Diff for output drift** (same command as §6.1 step 6). New ClangSharp emit behaviour usually surfaces as changed syntax shape, not new declarations — review carefully.
 6. **Run oracle, AbiTests, Slopwatch** (steps 7, 10, 11 of §6.1).
 7. **Update the toolchain pin table** in §"Toolchain Version Pinning".
-8. **Commit** under [Repository workflow](../../../../docs/engineering/workflow.md#commits-and-pull-requests).
+8. **Commit** under [Repository workflow](workflow.md#commits-and-pull-requests).
 
 ### 6.3 Microsoft.CodeAnalysis Postprocess Version Bump
 
@@ -427,7 +427,7 @@ Four procedures, each as a numbered checklist. The drift-detection gate (§"Drif
 7. **Diff for output drift** (same command as §6.1 step 6). Roslyn API changes can surface as different formatting/whitespace in the rewriter output; review with `--ignore-cr-at-eol`.
 8. **Run AbiTests, Slopwatch** (steps 10, 11 of §6.1).
 9. **Update the toolchain pin table** in §"Toolchain Version Pinning".
-10. **Commit** under [Repository workflow](../../../../docs/engineering/workflow.md#commits-and-pull-requests).
+10. **Commit** under [Repository workflow](workflow.md#commits-and-pull-requests).
 
 ### 6.4 Vcpkg Triplet Bump
 
@@ -443,7 +443,7 @@ Then:
 
 6. **Regenerate the full family corpus** for the affected triplet (vary `--vcpkg-triplet` per RID).
 7. **Run cross-triplet ABI smoke** — execute AbiTests per RID via the Docker container (see §"Linux-Canonical Generation") for non-Windows RIDs.
-8. **Update overlay** if needed (`vcpkg-overlay-triplets/`) and revalidate per [`native-dependency-maintenance.md`](../../../../docs/engineering/native-dependency-maintenance.md).
+8. **Update overlay** if needed (`vcpkg-overlay-triplets/`) and revalidate per [`native-dependency-maintenance.md`](native-dependency-maintenance.md).
 
 ### 6.5 SDL2 Vs SDL3 Maintenance Posture
 
