@@ -1,4 +1,5 @@
 namespace Build.Targets.NativeSmoke.Services;
+
 /// <summary>
 /// Resolves the MSVC developer environment (variables normally set by
 /// <c>vcvarsall.bat</c> / <c>vcvars64.bat</c>) that CMake + Ninja + <c>cl.exe</c>

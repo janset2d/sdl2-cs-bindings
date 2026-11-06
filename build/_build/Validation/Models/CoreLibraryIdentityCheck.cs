@@ -1,5 +1,5 @@
-
 namespace Build.Validation.Models;
+
 public sealed record CoreLibraryIdentityCheck(
     string? ManifestCoreVcpkgName,
     string PackagingConfigCoreLibrary,

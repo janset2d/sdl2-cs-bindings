@@ -1,5 +1,5 @@
-
 namespace Build.Validation.Models;
+
 /// <summary>
 /// Aggregate of per-dependency cross-family checks emitted by
 /// <c>ICrossFamilyDependencyResolvabilityValidator.Validate</c>. Release-guardrails [G58].

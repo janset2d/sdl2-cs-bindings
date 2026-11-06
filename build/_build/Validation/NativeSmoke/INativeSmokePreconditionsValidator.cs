@@ -1,6 +1,7 @@
 using Build.Results;
 
 namespace Build.Validation.NativeSmoke;
+
 /// <summary>
 /// Validates NativeSmoke task preconditions before harness invocation: project directory,
 /// CMakeLists.txt, and CMakePresets.json must all be present in the working tree. Consumers

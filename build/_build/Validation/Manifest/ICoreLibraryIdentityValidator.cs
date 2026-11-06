@@ -2,6 +2,7 @@ using Build.Data.Manifest.Models;
 using Build.Validation.Models;
 
 namespace Build.Validation.Manifest;
+
 /// <summary>
 /// PreFlight guardrail G49: core-library identity consistency.
 /// <para>

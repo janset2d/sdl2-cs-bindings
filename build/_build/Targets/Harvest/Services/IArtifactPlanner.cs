@@ -4,6 +4,7 @@ using Build.Targets.Harvest.Models;
 using Cake.Core.IO;
 
 namespace Build.Targets.Harvest.Services;
+
 public interface IArtifactPlanner
 {
     public Task<Result<DeploymentPlan, ArtifactPlannerError>> CreatePlanAsync(

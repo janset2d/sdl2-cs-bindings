@@ -4,6 +4,7 @@ using Cake.Core;
 using NuGet.Versioning;
 
 namespace Build.Tests.Unit.Data.Versions;
+
 /// <summary>
 /// Sociable round-trip coverage for <see cref="VersionFileRepository"/>. Pairs with
 /// <see cref="VersionFileRepositoryUnitTests"/> per the repository-cohort rule.

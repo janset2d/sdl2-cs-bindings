@@ -2,6 +2,7 @@ using Build.Data.BindingGeneration;
 using Build.Data.Manifest;
 
 namespace Build.Tests.Unit.Data.BindingGeneration;
+
 /// <summary>
 /// Mock-based unit coverage for <see cref="BindingGenerationConfigRepository"/> —
 /// constructor argument validation. Load + EnumerateEnabledFamilies behaviour is

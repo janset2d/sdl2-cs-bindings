@@ -2,6 +2,7 @@ using Build.Results;
 using Cake.Core.IO;
 
 namespace Build.Data.NativePackageMetadata;
+
 public interface INativePackageMetadataRepository
 {
     public Task WriteAsync(FilePath path, NativePackageMetadataDocument metadata, CancellationToken ct = default);

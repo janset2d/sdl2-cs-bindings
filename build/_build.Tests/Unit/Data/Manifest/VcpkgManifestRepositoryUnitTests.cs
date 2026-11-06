@@ -3,6 +3,7 @@ using Cake.Core;
 using NSubstitute;
 
 namespace Build.Tests.Unit.Data.Manifest;
+
 /// <summary>
 /// Mock-based unit coverage for <see cref="VcpkgManifestRepository"/> — argument
 /// validation on both the constructor and the per-call <c>Load</c>. End-to-end load

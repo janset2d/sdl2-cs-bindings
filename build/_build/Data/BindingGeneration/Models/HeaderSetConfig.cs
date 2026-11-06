@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Text.Json.Serialization;
 
 namespace Build.Data.BindingGeneration.Models;
+
 public sealed record HeaderSetConfig
 {
     [JsonPropertyName("include_dir_glob")] public required string IncludeDirGlob { get; init; }

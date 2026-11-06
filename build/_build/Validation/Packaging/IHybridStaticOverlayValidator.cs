@@ -3,6 +3,7 @@ using Build.Data.Manifest.Models;
 using Build.Results;
 
 namespace Build.Validation.Packaging;
+
 /// <summary>
 /// Validates that every runtime entry in <c>manifest.json</c> uses a hybrid overlay triplet:
 /// the triplet name ends with <c>-hybrid</c> AND a corresponding overlay <c>.cmake</c> file

@@ -1,5 +1,5 @@
-
 namespace Build.Validation.Models;
+
 public enum CsprojPackContractCheckKind
 {
     /// <summary>G7 — Native ProjectReference path resolves to manifest's native_project.</summary>

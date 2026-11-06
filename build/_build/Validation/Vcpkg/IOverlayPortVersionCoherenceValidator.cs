@@ -2,6 +2,7 @@ using Build.Validation.Models;
 using Cake.Core.IO;
 
 namespace Build.Validation.Vcpkg;
+
 /// <summary>
 /// Cross-checks every overlay port's declared <c>vcpkg.json</c> version + port-version
 /// against the upstream port's <c>vcpkg.json</c> at the current <c>external/vcpkg</c>

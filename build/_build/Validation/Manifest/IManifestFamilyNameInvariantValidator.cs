@@ -2,6 +2,7 @@ using Build.Data.Manifest.Models;
 using Build.Results;
 
 namespace Build.Validation.Manifest;
+
 /// <summary>
 /// Validates that every <c>package_families[].name</c> is lowercase kebab-case
 /// matching the canonical <c>sdl&lt;major&gt;-&lt;role&gt;</c> pattern. Hand-edited

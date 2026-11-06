@@ -1,6 +1,7 @@
 using Cake.Core.IO;
 
 namespace Build.Targets.Harvest.Models;
+
 /// <summary>
 /// Represents an operation to create an archive (e.g., .tar.gz).
 /// </summary>

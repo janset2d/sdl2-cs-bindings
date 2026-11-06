@@ -1,6 +1,7 @@
 using Cake.Core.IO;
 
 namespace Build.Targets.Harvest.Models;
+
 /// <summary>
 /// Represents a file with its package and deployment location information.
 /// </summary>

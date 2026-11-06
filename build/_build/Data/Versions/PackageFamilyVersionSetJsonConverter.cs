@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using NuGet.Versioning;
 
 namespace Build.Data.Versions;
+
 internal sealed class PackageFamilyVersionSetJsonConverter : JsonConverter<PackageFamilyVersionSet>
 {
     public override PackageFamilyVersionSet Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

@@ -1,5 +1,5 @@
-
 namespace Build.Data.BindingGeneration.Models;
+
 /// <summary>
 /// How the manifest was resolved at task time. Used in diagnostic messages so
 /// failures point at the right path.

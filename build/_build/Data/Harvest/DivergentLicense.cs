@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 
 namespace Build.Data.Harvest;
+
 public record DivergentLicense
 {
     [JsonPropertyName("package")]

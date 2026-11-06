@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 
 namespace Build.Data.Manifest.Models;
+
 public record RuntimeInfo
 {
     [JsonPropertyName("rid")] public required string Rid { get; init; }

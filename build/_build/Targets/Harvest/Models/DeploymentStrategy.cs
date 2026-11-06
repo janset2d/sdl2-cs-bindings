@@ -1,4 +1,5 @@
 namespace Build.Targets.Harvest.Models;
+
 /// <summary>
 /// Indicates how files are being deployed.
 /// </summary>

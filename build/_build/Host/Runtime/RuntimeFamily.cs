@@ -1,4 +1,5 @@
 namespace Build.Host.Runtime;
+
 /// <summary>
 /// Build-host-local OS family enum, decoupled from <c>Cake.Core.PlatformFamily</c>.
 /// The <c>Build.Runtime</c> root concept carries no Cake dependencies — the build

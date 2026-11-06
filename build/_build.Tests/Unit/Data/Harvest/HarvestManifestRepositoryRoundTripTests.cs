@@ -7,6 +7,7 @@ using Cake.Common.IO;
 using Cake.Core;
 
 namespace Build.Tests.Unit.Data.Harvest;
+
 /// <summary>
 /// Sociable round-trip coverage for <see cref="HarvestManifestRepository"/> using Cake
 /// FakeFileSystem and embedded Harvest JSON fixtures.

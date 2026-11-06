@@ -5,6 +5,7 @@ using NSubstitute;
 using NuGet.Versioning;
 
 namespace Build.Tests.Unit.Data.Versions;
+
 /// <summary>
 /// Mock-based unit coverage for <see cref="VersionFileRepository"/> — constructor + argument
 /// validation. End-to-end Load/SaveAsync round-trip against FakeFileSystem lives in

@@ -3,6 +3,7 @@ using Build.Host.Paths;
 using Build.Results;
 
 namespace Build.Data.BindingGeneration;
+
 /// <summary>
 /// Loads SDL2's dynapi manifest (<c>SDL2.exports</c>) from vcpkg's buildtree.
 /// <para>

@@ -1,6 +1,7 @@
 using Build.Targets.Harvest.Models;
 
 namespace Build.Data.Harvest;
+
 /// <summary>
 /// File-backed repository for the per-RID rid-status JSON contract written by HarvestTask
 /// and read by ConsolidateHarvestTask. Owns invalidation of stale per-RID payload + cross-RID

@@ -1,5 +1,5 @@
-
 namespace Build.Validation.Models;
+
 /// <summary>
 /// Outcome of a single cross-family dependency resolvability check (release-guardrails [G58]).
 /// Each satellite family's <c>depends_on</c> entry produces one check; the satellite is

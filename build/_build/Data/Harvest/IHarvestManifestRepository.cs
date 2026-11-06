@@ -1,4 +1,5 @@
 namespace Build.Data.Harvest;
+
 /// <summary>
 /// File-backed repository for the consolidated harvest JSON contracts produced by
 /// ConsolidateHarvest and consumed by Package. Owns rid-status reads plus staged manifest /

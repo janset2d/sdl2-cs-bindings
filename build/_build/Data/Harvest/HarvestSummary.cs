@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 
 namespace Build.Data.Harvest;
+
 /// <summary>
 /// Summary information for the harvest manifest.
 /// </summary>

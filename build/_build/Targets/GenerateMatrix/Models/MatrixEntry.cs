@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 
 namespace Build.Targets.GenerateMatrix.Models;
+
 public sealed record MatrixEntry
 {
     [JsonPropertyName("rid")]

@@ -1,5 +1,5 @@
-
 namespace Build.Validation.Models;
+
 public sealed record CsprojPackContractValidation(IReadOnlyList<CsprojPackContractCheck> Checks)
 {
     public bool HasErrors => Checks.Any(check => check.IsError);

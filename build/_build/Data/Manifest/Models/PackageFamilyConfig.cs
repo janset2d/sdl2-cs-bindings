@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Text.Json.Serialization;
 
 namespace Build.Data.Manifest.Models;
+
 public record PackageFamilyConfig
 {
     [JsonPropertyName("name")] public required string Name { get; init; }

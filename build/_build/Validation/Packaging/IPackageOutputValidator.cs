@@ -5,6 +5,7 @@ using Build.Targets.Package.Models;
 using Cake.Core.IO;
 
 namespace Build.Validation.Packaging;
+
 public interface IPackageOutputValidator
 {
     /// <summary>

@@ -3,6 +3,7 @@ using Build.Results;
 using Cake.Core.IO;
 
 namespace Build.Validation.Packaging;
+
 /// <summary>
 /// Post-pack validator (G57) that asserts the README mapping block currently matches the
 /// manifest-driven generator output. Normalizes line endings for a stable diff. Returns

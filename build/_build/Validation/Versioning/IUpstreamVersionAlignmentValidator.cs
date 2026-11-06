@@ -3,6 +3,7 @@ using Build.Data.Versions;
 using Build.Validation.Models;
 
 namespace Build.Validation.Versioning;
+
 /// <summary>
 /// Upstream version alignment validator (release-guardrails [G54]). Every entry in the
 /// resolved per-family version set must align with the family's upstream library

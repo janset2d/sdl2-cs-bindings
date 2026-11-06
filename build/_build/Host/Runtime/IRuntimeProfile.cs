@@ -1,4 +1,5 @@
 namespace Build.Host.Runtime;
+
 public interface IRuntimeProfile
 {
     public string Rid { get; }

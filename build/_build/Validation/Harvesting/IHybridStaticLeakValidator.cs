@@ -3,6 +3,7 @@ using Build.Results;
 using Build.Targets.Harvest.Models;
 
 namespace Build.Validation.Harvesting;
+
 /// <summary>
 /// Validates that satellite library closures conform to the hybrid-static packaging model.
 /// In hybrid mode, a satellite's closure may contain only its own primary binaries, the core

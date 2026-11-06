@@ -1,6 +1,7 @@
 using Cake.Core.IO;
 
 namespace Build.Targets.Harvest.Models;
+
 /// <summary>
 /// Represents a direct file copy operation.
 /// </summary>

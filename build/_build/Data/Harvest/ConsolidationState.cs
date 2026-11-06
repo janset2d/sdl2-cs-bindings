@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 
 namespace Build.Data.Harvest;
+
 /// <summary>
 /// Consolidation receipt recording the post-H1 license-union work performed by
 /// <c>ConsolidateHarvestTask</c>. Lives inside <see cref="HarvestManifest"/> rather than

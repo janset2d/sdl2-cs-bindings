@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 
 namespace Build.Targets.NativeSmoke.Services;
+
 /// <summary>
 /// RID ↔ <see cref="MsvcTargetArch"/> conversions + <c>vcvarsall.bat</c> arg builder.
 /// Kept target-local so <c>NativeSmokeTask</c> and <c>MsvcDevEnvironment</c> share

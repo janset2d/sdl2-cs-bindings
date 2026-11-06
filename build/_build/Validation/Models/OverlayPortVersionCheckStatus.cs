@@ -1,5 +1,5 @@
-
 namespace Build.Validation.Models;
+
 public enum OverlayPortVersionCheckStatus
 {
     /// <summary>Overlay <c>version</c> + <c>port-version</c> match upstream at the pinned commit.</summary>
