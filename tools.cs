@@ -49,9 +49,9 @@ app.Configure(config =>
 });
 return await app.RunAsync(args);
 
-// ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ──────────────────────────────────────────────────────────────────
 // Settings
-// ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ──────────────────────────────────────────────────────────────────
 
 namespace tools
 {
@@ -81,7 +81,7 @@ namespace tools
         public bool Verbose { get; init; }
     }
 
-    // ReSharper disable once ClassNeverInstantiated.Global ΓÇö instantiated by Spectre DI
+    // ReSharper disable once ClassNeverInstantiated.Global — instantiated by Spectre DI
     public sealed class BuildSettings : CommandSettings { }
 
     public sealed class BuildCommand : AsyncCommand<BuildSettings>
@@ -98,9 +98,9 @@ namespace tools
         }
     }
 
-    // ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    // ──────────────────────────────────────────────────────────────────
     // Commands
-    // ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    // ──────────────────────────────────────────────────────────────────
 
     public sealed class SetupCommand : AsyncCommand<SetupSettings>
     {
@@ -214,15 +214,15 @@ namespace tools
                 if (!versions.TryGetValue(familyName, out var version))
                 {
                     missingPackages.Add($"{familyName}: missing version mapping in versions.json");
-                    AnsiConsole.MarkupLine($"  [red]Γ£ù[/] [cyan]{Markup.Escape(familyName)}[/] ΓÇö missing version mapping");
+                    AnsiConsole.MarkupLine($"  [red]✗[/] [cyan]{Markup.Escape(familyName)}[/] — missing version mapping");
                     continue;
                 }
 
                 var expectedPackages = Shared.ExpectedNupkgPaths(packagesDir, familyName, version);
                 var found = expectedPackages.All(File.Exists);
                 AnsiConsole.MarkupLine(found
-                    ? $"  [green]Γ£ô[/] [cyan]{Markup.Escape(familyName)}[/] [grey]{Markup.Escape(version)}[/]"
-                    : $"  [red]Γ£ù[/] [cyan]{Markup.Escape(familyName)}[/] [grey]{Markup.Escape(version)}[/] ΓÇö exact nupkg missing");
+                    ? $"  [green]✓[/] [cyan]{Markup.Escape(familyName)}[/] [grey]{Markup.Escape(version)}[/]"
+                    : $"  [red]✗[/] [cyan]{Markup.Escape(familyName)}[/] [grey]{Markup.Escape(version)}[/] — exact nupkg missing");
 
                 missingPackages.AddRange(expectedPackages
                     .Where(path => !File.Exists(path))
@@ -231,7 +231,7 @@ namespace tools
 
             if (missingPackages.Count > 0)
             {
-                AnsiConsole.MarkupLine("[red]Some exact nupkgs are missing ΓÇö stale packages will not be accepted.[/]");
+                AnsiConsole.MarkupLine("[red]Some exact nupkgs are missing — stale packages will not be accepted.[/]");
 
                 foreach (var missing in missingPackages)
                 {
@@ -351,11 +351,11 @@ namespace tools
 
             if (exitCode == 0)
             {
-                AnsiConsole.MarkupLine($"[green]OK[/]   ({stopwatch.Elapsed.TotalSeconds:F1}s) ΓåÆ [grey]{Markup.Escape(logPath)}[/]");
+                AnsiConsole.MarkupLine($"[green]OK[/]   ({stopwatch.Elapsed.TotalSeconds:F1}s) → [grey]{Markup.Escape(logPath)}[/]");
             }
             else
             {
-                AnsiConsole.MarkupLine($"[red]FAIL[/] ({stopwatch.Elapsed.TotalSeconds:F1}s) ΓåÆ [cyan]{Markup.Escape(logPath)}[/]");
+                AnsiConsole.MarkupLine($"[red]FAIL[/] ({stopwatch.Elapsed.TotalSeconds:F1}s) → [cyan]{Markup.Escape(logPath)}[/]");
             }
 
             AnsiConsole.WriteLine();
@@ -397,7 +397,7 @@ namespace tools
                         "coherent version set in a future explicit-version flow.");
                 }
 
-                AnsiConsole.MarkupLine($"  [green]Γ£ô[/] [cyan]{Markup.Escape(familyName)}[/] = [yellow]{managedVersion.ToNormalizedString()}[/]");
+                AnsiConsole.MarkupLine($"  [green]✓[/] [cyan]{Markup.Escape(familyName)}[/] = [yellow]{managedVersion.ToNormalizedString()}[/]");
                 await logWriter.WriteLineAsync($"{familyName}={managedVersion.ToNormalizedString()}");
 
                 await DownloadRemotePackageAsync(authToken, managedId, managedVersion, packagesDir, logWriter);
@@ -620,9 +620,9 @@ namespace tools
         }
     }
 
-    // ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    // ──────────────────────────────────────────────────────────────────
     // Linux x64 ABI-test image build
-    // ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    // ──────────────────────────────────────────────────────────────────
 
     public sealed class BuildBindingGeneratorImageSettings : CommandSettings
     {
@@ -674,7 +674,7 @@ namespace tools
 
             // [4b] Resolve vcpkg submodule commit so the Dockerfile clones vcpkg at the
             // repo's pinned ref. Stable across parent-repo commits that don't touch the
-            // submodule ΓÇö keeps Layer C's image cache hot.
+            // submodule — keeps Layer C's image cache hot.
             var vcpkgCommitProbe = await CaptureRunAsync("git", ["rev-parse", "HEAD:external/vcpkg"], cancellationToken, workingDirectory: repoRoot);
 
             if (vcpkgCommitProbe.ExitCode != 0 || string.IsNullOrWhiteSpace(vcpkgCommitProbe.StdOut))
@@ -689,7 +689,7 @@ namespace tools
 
             // [4c] Read SDL2 version from manifest. The Dockerfile's conditional
             // fallback uses this to git-clone SDL2 upstream source when vcpkg's
-            // binary cache hit skips source extraction ΓÇö the cloned tree provides
+            // binary cache hit skips source extraction — the cloned tree provides
             // src/dynapi/SDL2.exports for explicit header diagnostics. Version must
             // match the vcpkg-baked SDL2 binary (same vcpkg_version field), so
             // sourcing it from the same manifest entry keeps them in lockstep.
@@ -708,8 +708,8 @@ namespace tools
             // .github/actions/vcpkg-setup/action.yml's actions/cache@v5 key
             // (vcpkg.json + overlay-triplets + overlay-ports + vcpkg commit) so
             // local Docker invalidation matches CI invalidation exactly. Content
-            // changes in any of those inputs yield a fresh key ΓåÆ new mount ΓåÆ cold
-            // from vcpkg's perspective ΓåÆ full from-source build ΓåÆ image layer
+            // changes in any of those inputs yield a fresh key → new mount → cold
+            // from vcpkg's perspective → full from-source build → image layer
             // captures buildtrees naturally. Without content-derived id, the binary
             // cache mount would retain stale compiled artifacts across vcpkg.json
             // bumps (vcpkg's own ABI hash would reject them but the mount would
@@ -956,15 +956,15 @@ namespace tools
         }
     }
 
-    // ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    // ──────────────────────────────────────────────────────────────────
     // Shared helpers
-    // ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    // ──────────────────────────────────────────────────────────────────
 
     internal static class Shared
     {
         private static readonly JsonSerializerOptions ManifestJsonOptions = new() { PropertyNameCaseInsensitive = true };
         private static readonly JsonSerializerOptions VersionsJsonOptions = new() { WriteIndented = true };
-        // ΓöÇΓöÇ path / identity helpers ΓöÇΓöÇ
+        // ── path / identity helpers ──
 
         public static void CleanArtifacts(string repoRoot)
         {
@@ -985,7 +985,7 @@ namespace tools
             }
         }
 
-        /// <summary>Pure Cake passthrough ΓÇö forwards output directly to the console, no log capture.</summary>
+        /// <summary>Pure Cake passthrough — forwards output directly to the console, no log capture.</summary>
         public static async Task<int> RunCakePassthroughAsync(string[] cakeArgs)
         {
             var repoRoot = await ResolveRepoRootAsync();
@@ -1094,7 +1094,7 @@ namespace tools
             return logDir;
         }
 
-        // ΓöÇΓöÇ manifest reading ΓöÇΓöÇ
+        // ── manifest reading ──
 
         public sealed record PackageFamilyConfig(
             [property: JsonPropertyName("name")] string Name,
@@ -1131,7 +1131,7 @@ namespace tools
             return families;
         }
 
-        // ΓöÇΓöÇ family naming (inline replica of FamilyIdentifierConventions) ΓöÇΓöÇ
+        // ── family naming (inline replica of FamilyIdentifierConventions) ──
 
         public static string ManagedPackageId(string familyIdentifier)
         {
@@ -1197,7 +1197,7 @@ namespace tools
             });
         }
 
-        // ΓöÇΓöÇ Janset.Local.props writing ΓöÇΓöÇ
+        // ── Janset.Local.props writing ──
 
         public static async Task WriteLocalPropsAsync(string repoRoot, string feedPath, IReadOnlyDictionary<string, string> versions)
         {
@@ -1226,7 +1226,7 @@ namespace tools
                 new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
         }
 
-        // ΓöÇΓöÇ versions.json writing / reading ΓöÇΓöÇ
+        // ── versions.json writing / reading ──
 
         public static async Task WriteVersionsJsonAsync(string repoRoot, IReadOnlyDictionary<string, string> versions)
         {
@@ -1286,7 +1286,7 @@ namespace tools
             }
         }
 
-        // ΓöÇΓöÇ Cake process execution (CliWrap) ΓöÇΓöÇ
+        // ── Cake process execution (CliWrap) ──
 
         public sealed record StepResult(string Label, int ExitCode, TimeSpan Duration, string? LogPath = null)
         {
@@ -1390,11 +1390,11 @@ namespace tools
 
             if (stepResult.Succeeded)
             {
-                AnsiConsole.MarkupLine($"[green]OK[/]   ({stopwatch.Elapsed.TotalSeconds:F1}s) ΓåÆ [grey]{Markup.Escape(logPath)}[/]");
+                AnsiConsole.MarkupLine($"[green]OK[/]   ({stopwatch.Elapsed.TotalSeconds:F1}s) → [grey]{Markup.Escape(logPath)}[/]");
             }
             else
             {
-                AnsiConsole.MarkupLine($"[red]FAIL[/] ({stopwatch.Elapsed.TotalSeconds:F1}s) ΓåÆ [cyan]{Markup.Escape(logPath)}[/]");
+                AnsiConsole.MarkupLine($"[red]FAIL[/] ({stopwatch.Elapsed.TotalSeconds:F1}s) → [cyan]{Markup.Escape(logPath)}[/]");
             }
 
             AnsiConsole.WriteLine();
@@ -1415,7 +1415,7 @@ namespace tools
             return fullArgs;
         }
 
-        // ΓöÇΓöÇ NuGet protocol helpers (remote-github source) ΓöÇΓöÇ
+        // ── NuGet protocol helpers (remote-github source) ──
 
         public const string GitHubPackagesFeedUrl = "https://nuget.pkg.github.com/janset2d/index.json";
 
@@ -1516,7 +1516,7 @@ namespace tools
             return $"GitHub Packages {operation} failed for '{packageId}'. Raw error: {message}";
         }
 
-        // ΓöÇΓöÇ UI helpers ΓöÇΓöÇ
+        // ── UI helpers ──
 
         public static void PrintSummaryTable(List<StepResult> results, TimeSpan totalDuration)
         {
@@ -1548,7 +1548,7 @@ namespace tools
             var headerText = failed == 0 ? "All stages passed" : $"{failed} stage(s) failed";
 
             AnsiConsole.Write(new Panel(table)
-                .Header($"[{headerColor}]{headerText}[/] ΓÇö [grey]{passed}/{results.Count} passed ┬╖ total {totalDuration.TotalSeconds:F1}s[/]")
+                .Header($"[{headerColor}]{headerText}[/] — [grey]{passed}/{results.Count} passed · total {totalDuration.TotalSeconds:F1}s[/]")
                 .BorderColor(failed == 0 ? Color.Green : Color.Red));
         }
 
