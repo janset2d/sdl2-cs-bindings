@@ -230,6 +230,7 @@ public sealed class RwopsAbiTests
         CompareResult[] results = CompareMemoryAndFileReads(path);
 
         await Assert.That(results.Length).IsEqualTo(5);
+
         foreach (CompareResult result in results)
         {
             await Assert.That(result.MemoryReadObjects).IsEqualTo(result.FileReadObjects);
@@ -254,6 +255,7 @@ public sealed class RwopsAbiTests
         EndianResult[] results = TestEndianReadWrite(temp.GetFilePath("rwops-endian.bin"));
 
         await Assert.That(results.Length).IsEqualTo(3);
+
         foreach (EndianResult result in results)
         {
             await Assert.That(result.WriteBe16).IsEqualTo(1UL);
@@ -282,6 +284,7 @@ public sealed class RwopsAbiTests
     public async Task SDLAllocRW_Should_Return_Non_Null_Context_That_Can_Be_Freed()
     {
         SDL_RWops rwops = SDL_AllocRW();
+
         try
         {
             await Assert.That(rwops.IsNotNull).IsTrue();
@@ -306,6 +309,7 @@ public sealed class RwopsAbiTests
         fixed (byte* readPointer = readBuffer)
         {
             SDL_RWops rwops = SDL_RWFromMem((nint)bufferPointer, buffer.Length);
+
             if (rwops.IsNull)
             {
                 throw new InvalidOperationException($"SDL_RWFromMem failed: {SdlError.Current}");
@@ -340,6 +344,7 @@ public sealed class RwopsAbiTests
         fixed (byte* readPointer = readBuffer)
         {
             SDL_RWops rwops = SDL_RWFromConstMem((nint)payloadPointer, payload.Length);
+
             if (rwops.IsNull)
             {
                 throw new InvalidOperationException($"SDL_RWFromConstMem failed: {SdlError.Current}");
@@ -375,6 +380,7 @@ public sealed class RwopsAbiTests
         fixed (byte* readPointer = readBuffer)
         {
             SDL_RWops rwops = SDL_RWFromFile(pinnedPath.Pointer, pinnedMode.Pointer);
+
             if (rwops.IsNull)
             {
                 throw new InvalidOperationException($"SDL_RWFromFile failed: {SdlError.Current}");
@@ -430,6 +436,7 @@ public sealed class RwopsAbiTests
         fixed (byte* bufferPointer = buffer)
         {
             SDL_RWops rwops = SDL_RWFromMem((nint)bufferPointer, buffer.Length);
+
             if (rwops.IsNull)
             {
                 throw new InvalidOperationException($"SDL_RWFromMem failed: {SdlError.Current}");
@@ -446,6 +453,7 @@ public sealed class RwopsAbiTests
         fixed (byte* payloadPointer = payload)
         {
             SDL_RWops rwops = SDL_RWFromConstMem((nint)payloadPointer, payload.Length);
+
             if (rwops.IsNull)
             {
                 throw new InvalidOperationException($"SDL_RWFromConstMem failed: {SdlError.Current}");
@@ -461,6 +469,7 @@ public sealed class RwopsAbiTests
         using PinnedUtf8 pinnedMode = SdlUtf8.Pin(mode);
 
         SDL_RWops rwops = SDL_RWFromFile(pinnedPath.Pointer, pinnedMode.Pointer);
+
         if (rwops.IsNull)
         {
             throw new InvalidOperationException($"SDL_RWFromFile failed: {SdlError.Current}");
@@ -503,6 +512,7 @@ public sealed class RwopsAbiTests
             }
 
             ulong expectedWrite = shouldWrite ? 1UL : 0UL;
+
             if (written != expectedWrite)
             {
                 throw new InvalidOperationException($"SDL_RWwrite returned {written}; expected {expectedWrite}.");
@@ -531,6 +541,7 @@ public sealed class RwopsAbiTests
         fixed (byte* readPointer = readBuffer)
         {
             SDL_RWops rwops = SDL_RWFromConstMem((nint)payloadPointer, payload.Length);
+
             if (rwops.IsNull)
             {
                 throw new InvalidOperationException($"SDL_RWFromConstMem failed: {SdlError.Current}");
@@ -579,6 +590,7 @@ public sealed class RwopsAbiTests
         fixed (byte* readPointer = readBuffer)
         {
             SDL_RWops rwops = SDL_RWFromFile(pinnedPath.Pointer, pinnedMode.Pointer);
+
             if (rwops.IsNull)
             {
                 throw new InvalidOperationException($"SDL_RWFromFile failed: {SdlError.Current}");
@@ -640,12 +652,14 @@ public sealed class RwopsAbiTests
         fixed (byte* fileBufferPointer = fileBuffer)
         {
             SDL_RWops memoryRwops = SDL_RWFromMem(alphabetPointer, alphabetLength);
+
             if (memoryRwops.IsNull)
             {
                 throw new InvalidOperationException($"SDL_RWFromMem failed: {SdlError.Current}");
             }
 
             SDL_RWops fileRwops = SDL_RWFromFile(pinnedPath.Pointer, readMode.Pointer);
+
             if (fileRwops.IsNull)
             {
                 SDL_RWclose(memoryRwops);
@@ -694,6 +708,7 @@ public sealed class RwopsAbiTests
         ];
 
         EndianResult[] results = new EndianResult[values.Length];
+
         for (int i = 0; i < values.Length; i++)
         {
             results[i] = TestEndianReadWrite(path, values[i]);
@@ -708,6 +723,7 @@ public sealed class RwopsAbiTests
         using PinnedUtf8 pinnedMode = SdlUtf8.Pin("w+b");
 
         SDL_RWops rwops = SDL_RWFromFile(pinnedPath.Pointer, pinnedMode.Pointer);
+
         if (rwops.IsNull)
         {
             throw new InvalidOperationException($"SDL_RWFromFile failed: {SdlError.Current}");

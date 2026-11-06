@@ -128,6 +128,7 @@ public sealed class RenderAbiTests
             if (window.IsNotNull)
             {
                 renderer = SDL_CreateRenderer(window, -1, (uint)SDL_RendererFlags.SDL_RENDERER_SOFTWARE);
+
                 if (renderer.IsNotNull)
                 {
                     setColorResult = SDL_SetRenderDrawColor(renderer, 1, 2, 3, 255);
@@ -174,6 +175,7 @@ public sealed class RenderAbiTests
             if (window.IsNotNull)
             {
                 renderer = SDL_CreateRenderer(window, -1, (uint)SDL_RendererFlags.SDL_RENDERER_SOFTWARE);
+
                 if (renderer.IsNotNull)
                 {
                     SDL_Rect rect = new() { x = 10, y = 10, w = 20, h = 15 };
@@ -241,15 +243,18 @@ public sealed class RenderAbiTests
             {
                 renderer = SDL_CreateRenderer(window, -1, (uint)SDL_RendererFlags.SDL_RENDERER_SOFTWARE);
                 surface = SDL_CreateRGBSurfaceWithFormat(0, 16, 16, 32, (uint)SDL_PixelFormatEnum.SDL_PIXELFORMAT_RGBA8888);
+
                 if (renderer.IsNotNull && surface is not null)
                 {
                     uint color = SDL_MapRGBA(surface->format, 40, 80, 120, SDL_ALPHA_OPAQUE);
                     fillSurfaceResult = SDL_FillRect(surface, null, color);
                     texture = SDL_CreateTextureFromSurface(renderer, surface);
+
                     if (texture.IsNotNull)
                     {
                         SDL_Rect destination = new() { x = 4, y = 4, w = 16, h = 16 };
                         queryTextureResult = SDL_QueryTexture(texture, &format, &access, &width, &height);
+
                         if (colorMod)
                         {
                             setColorModResult = SDL_SetTextureColorMod(texture, 255, 128, 64);

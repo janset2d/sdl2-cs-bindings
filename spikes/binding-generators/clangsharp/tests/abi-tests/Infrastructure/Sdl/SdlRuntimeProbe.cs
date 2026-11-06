@@ -52,12 +52,14 @@ internal static unsafe class SdlRuntimeProbe
     private static string[] EnumerateDrivers(DriverCountProvider getCount, DriverNameProvider getDriver)
     {
         int count = getCount();
+
         if (count <= 0)
         {
             return [];
         }
 
         var drivers = new string[count];
+
         for (int index = 0; index < count; index++)
         {
             drivers[index] = SdlUtf8.FromNullTerminated(getDriver(index));

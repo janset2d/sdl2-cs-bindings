@@ -110,6 +110,7 @@ public sealed class AudioAbiTests
 
         SDL_AudioSpec obtained = default;
         uint deviceId = SDL_OpenAudioDevice(null, 0, &desired, &obtained, 0);
+
         if (deviceId != 0)
         {
             SDL_CloseAudioDevice(deviceId);
@@ -132,6 +133,7 @@ public sealed class AudioAbiTests
         using SdlSubsystemScope audio = new(SDL_INIT_AUDIO);
 
         int count = SDL_GetNumAudioDevices(0);
+
         if (count <= 0)
         {
             return new AudioDeviceStatusResult(count, 0, SDL_AudioStatus.SDL_AUDIO_STOPPED);
@@ -142,6 +144,7 @@ public sealed class AudioAbiTests
         SDL_AudioSpec obtained = default;
         uint deviceId = SDL_OpenAudioDevice(deviceName, 0, &desired, &obtained, SDL_AUDIO_ALLOW_ANY_CHANGE);
         SDL_AudioStatus status = deviceId == 0 ? SDL_AudioStatus.SDL_AUDIO_STOPPED : SDL_GetAudioDeviceStatus(deviceId);
+
         if (deviceId != 0)
         {
             SDL_CloseAudioDevice(deviceId);
@@ -156,6 +159,7 @@ public sealed class AudioAbiTests
         using SdlSubsystemScope audio = new(SDL_INIT_AUDIO);
 
         int count = SDL_GetNumAudioDevices(0);
+
         if (count <= 0)
         {
             return new AudioDeviceLockResult(count, 0);
@@ -165,6 +169,7 @@ public sealed class AudioAbiTests
         SDL_AudioSpec desired = CreateStandardDesiredSpec();
         SDL_AudioSpec obtained = default;
         uint deviceId = SDL_OpenAudioDevice(deviceName, 0, &desired, &obtained, SDL_AUDIO_ALLOW_ANY_CHANGE);
+
         if (deviceId != 0)
         {
             SDL_LockAudioDevice(deviceId);

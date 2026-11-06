@@ -63,6 +63,7 @@ public sealed class GuidAbiTests
 
         await Assert.That(snapshot.PrefixWasUntouched).IsTrue();
         await Assert.That(snapshot.WrittenSize).IsLessThanOrEqualTo(size);
+
         if (size >= 33)
         {
             await Assert.That(snapshot.Output).IsEqualTo(guidStrings);
@@ -99,6 +100,7 @@ public sealed class GuidAbiTests
 
         byte* buffer = stackalloc byte[bufferSize];
         byte fillChar = (byte)(size + 0xA0);
+
         for (int i = 0; i < bufferSize; i++)
         {
             buffer[i] = fillChar;
@@ -112,6 +114,7 @@ public sealed class GuidAbiTests
             && buffer[2] == fillChar
             && buffer[3] == fillChar;
         int writtenSize = 0;
+
         while (writtenSize < bufferSize - guidStringOffset && output[writtenSize] != fillChar)
         {
             writtenSize++;
@@ -125,6 +128,7 @@ public sealed class GuidAbiTests
     {
         byte[] bytes = new byte[16];
         byte* guidBytes = (byte*)&guid;
+
         for (int i = 0; i < bytes.Length; i++)
         {
             bytes[i] = guidBytes[i];
@@ -149,6 +153,7 @@ public sealed class GuidAbiTests
         }
 
         byte[] bytes = new byte[16];
+
         for (int i = 0; i < bytes.Length; i++)
         {
             bytes[i] = (byte)((HexValue(guidString[i * 2]) << 4) | HexValue(guidString[(i * 2) + 1]));

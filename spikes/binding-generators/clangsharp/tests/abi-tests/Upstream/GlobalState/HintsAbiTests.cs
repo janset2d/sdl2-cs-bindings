@@ -37,6 +37,7 @@ public sealed class HintsAbiTests
         const string testHint = "SDL_AUTOMATED_TEST_HINT";
 
         SdlEnvironmentScope environment = new(testHint, "original");
+
         try
         {
             ResetHint(testHint);
@@ -68,9 +69,11 @@ public sealed class HintsAbiTests
         foreach (string driverHint in new[] { "SDL_VIDEODRIVER", "SDL_AUDIODRIVER" })
         {
             using SdlEnvironmentScope driverEnvironment = new(driverHint, "original");
+
             try
             {
                 ResetHint(driverHint);
+
                 using (SdlDriverScope driver = new(driverHint, "dummy"))
                 {
                     await Assert.That(GetHint(driverHint)).IsEqualTo("dummy");
@@ -100,6 +103,7 @@ public sealed class HintsAbiTests
         const string testHint = "SDL_AUTOMATED_TEST_HINT";
 
         SdlEnvironmentScope environment = new(testHint, "original");
+
         try
         {
             ResetHint(testHint);

@@ -41,6 +41,7 @@ internal sealed class SdlHintScope : IDisposable
         using PinnedUtf8 pinnedValue = SdlUtf8.Pin(value);
 
         SDL_bool result = SDLNative.SDL_SetHint(pinnedName.Pointer, pinnedValue.Pointer);
+
         if (result != SDL_bool.SDL_TRUE)
         {
             throw new InvalidOperationException($"SDL_SetHint failed for {name}: {SdlError.Current}");

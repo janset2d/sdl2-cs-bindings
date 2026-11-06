@@ -11,6 +11,7 @@ internal static unsafe class SdlMacro
         using PinnedUtf8 readMode = SdlUtf8.Pin("rb");
 
         SDL_RWops source = SDL_RWFromFile(pinnedPath.Pointer, readMode.Pointer);
+
         if (source.IsNull)
         {
             throw new InvalidOperationException($"SDL_RWFromFile failed for BMP load: {SdlError.Current}");
@@ -18,6 +19,7 @@ internal static unsafe class SdlMacro
 
         // Mirrors SDL_LoadBMP(file): SDL_LoadBMP_RW(SDL_RWFromFile(file, "rb"), 1).
         SDL_Surface* surface = SDL_LoadBMP_RW(source, 1);
+
         if (surface is null)
         {
             throw new InvalidOperationException($"SDL_LoadBMP_RW failed: {SdlError.Current}");
@@ -32,6 +34,7 @@ internal static unsafe class SdlMacro
         using PinnedUtf8 writeMode = SdlUtf8.Pin("wb");
 
         SDL_RWops destination = SDL_RWFromFile(pinnedPath.Pointer, writeMode.Pointer);
+
         if (destination.IsNull)
         {
             throw new InvalidOperationException($"SDL_RWFromFile failed for BMP save: {SdlError.Current}");
