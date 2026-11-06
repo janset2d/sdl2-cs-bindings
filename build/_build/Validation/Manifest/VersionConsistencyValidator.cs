@@ -11,7 +11,7 @@ namespace Build.Validation.Manifest;
 /// </summary>
 public interface IVersionConsistencyValidator
 {
-    VersionConsistencyValidation Validate(ManifestConfig manifest, VcpkgManifest vcpkgManifest);
+    public VersionConsistencyValidation Validate(ManifestConfig manifest, VcpkgManifest vcpkgManifest);
 }
 
 public sealed class VersionConsistencyValidator : IVersionConsistencyValidator

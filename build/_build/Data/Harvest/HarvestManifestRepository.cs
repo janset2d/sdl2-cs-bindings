@@ -14,11 +14,11 @@ namespace Build.Data.Harvest;
 /// </summary>
 public interface IHarvestManifestRepository
 {
-    Task<IReadOnlyList<RidHarvestStatus>?> LoadRidStatusesAsync(string libraryName, CancellationToken ct = default);
+    public Task<IReadOnlyList<RidHarvestStatus>?> LoadRidStatusesAsync(string libraryName, CancellationToken ct = default);
 
-    Task<HarvestManifest> LoadManifestAsync(string libraryName, CancellationToken ct = default);
+    public Task<HarvestManifest> LoadManifestAsync(string libraryName, CancellationToken ct = default);
 
-    Task WriteManifestTempAsync(string libraryName, HarvestManifest manifest, CancellationToken ct = default);
+    public Task WriteManifestTempAsync(string libraryName, HarvestManifest manifest, CancellationToken ct = default);
 }
 
 /// <inheritdoc />

@@ -7,9 +7,9 @@ namespace Build.Data.Versions;
 
 public interface IVersionFileRepository
 {
-    PackageFamilyVersionSet Load(FilePath path);
+    public PackageFamilyVersionSet Load(FilePath path);
 
-    Task SaveAsync(FilePath path, PackageFamilyVersionSet versions);
+    public Task SaveAsync(FilePath path, PackageFamilyVersionSet versions);
 }
 
 public sealed class VersionFileRepository(ICakeContext context) : IVersionFileRepository

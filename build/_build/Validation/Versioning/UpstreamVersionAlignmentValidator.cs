@@ -14,7 +14,7 @@ namespace Build.Validation.Versioning;
 /// </summary>
 public interface IUpstreamVersionAlignmentValidator
 {
-    UpstreamVersionAlignmentValidation Validate(ManifestConfig manifestConfig, PackageFamilyVersionSet versions);
+    public UpstreamVersionAlignmentValidation Validate(ManifestConfig manifestConfig, PackageFamilyVersionSet versions);
 }
 
 /// <inheritdoc />

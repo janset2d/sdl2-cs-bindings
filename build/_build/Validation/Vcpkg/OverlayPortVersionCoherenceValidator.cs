@@ -16,7 +16,7 @@ namespace Build.Validation.Vcpkg;
 /// </summary>
 public interface IOverlayPortVersionCoherenceValidator
 {
-    OverlayPortVersionCoherenceValidation Validate(DirectoryPath overlayRoot, DirectoryPath upstreamPortsRoot);
+    public OverlayPortVersionCoherenceValidation Validate(DirectoryPath overlayRoot, DirectoryPath upstreamPortsRoot);
 }
 
 /// <inheritdoc cref="IOverlayPortVersionCoherenceValidator"/>

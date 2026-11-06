@@ -21,7 +21,7 @@ namespace Build.Targets.Harvest.Services;
 
 public interface IBinaryClosureWalker
 {
-    Task<Result<BinaryClosure, ClosureError>> BuildClosureAsync(LibraryManifest manifest, CancellationToken ct = default);
+    public Task<Result<BinaryClosure, ClosureError>> BuildClosureAsync(LibraryManifest manifest, CancellationToken ct = default);
 }
 
 public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IRuntimeProfile profile, ICakeContext ctx, IPathService pathService) : IBinaryClosureWalker

@@ -33,7 +33,7 @@ public interface ICsprojPackContractValidator
     /// </summary>
     /// <param name="manifest">Loaded manifest configuration.</param>
     /// <param name="repoRoot">Repository root directory; csproj relative paths are resolved against this.</param>
-    CsprojPackContractValidation Validate(ManifestConfig manifest, DirectoryPath repoRoot);
+    public CsprojPackContractValidation Validate(ManifestConfig manifest, DirectoryPath repoRoot);
 }
 
 /// <inheritdoc />

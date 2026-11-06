@@ -9,9 +9,9 @@ namespace Build.Data.NativePackageMetadata;
 
 public interface INativePackageMetadataRepository
 {
-    Task WriteAsync(FilePath path, NativePackageMetadataDocument metadata, CancellationToken ct = default);
+    public Task WriteAsync(FilePath path, NativePackageMetadataDocument metadata, CancellationToken ct = default);
 
-    Task<Result<NativePackageMetadataDocument, NativePackageMetadataError>> ReadFromPackageAsync(
+    public Task<Result<NativePackageMetadataDocument, NativePackageMetadataError>> ReadFromPackageAsync(
         FilePath nativePackagePath,
         CancellationToken ct = default);
 }

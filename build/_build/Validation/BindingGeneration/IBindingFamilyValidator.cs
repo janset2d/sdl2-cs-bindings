@@ -21,7 +21,7 @@ public interface IBindingFamilyValidator
     /// Stable kebab-case identifier matching the key under
     /// <c>binding_generation.validators</c> in <c>build/manifest.json</c>.
     /// </summary>
-    string ValidatorId { get; }
+    public string ValidatorId { get; }
 
-    Task<ValidationReport> ValidateAsync(IReadOnlySet<string> emittedEntryPoints, BindingGenerationConfig config, CancellationToken ct);
+    public Task<ValidationReport> ValidateAsync(IReadOnlySet<string> emittedEntryPoints, BindingGenerationConfig config, CancellationToken ct);
 }
