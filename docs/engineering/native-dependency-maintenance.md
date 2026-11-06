@@ -91,8 +91,8 @@ byte-identical to upstream. The [overlay README](../../vcpkg-overlay-ports/READM
 registry of why an overlay exists and what differs; update it in the same change.
 
 If upstream removes the need for an overlay, delete that overlay and validate the upstream port with
-the same native and package checks. The setup action conditionally supplies overlay flags; remove a
-type's flag only if no overlays of that type remain and the action is updated consistently.
+the same native and package checks. The setup action supplies each overlay flag while its directory
+exists, even when empty. Remove an empty overlay directory to stop supplying its flag.
 Upstream prefers external codec dependencies, so bundled-codec changes may not be upstreamable.
 
 ## Add a satellite family

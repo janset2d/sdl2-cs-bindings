@@ -2,7 +2,7 @@
 
 This directory contains local overrides for vcpkg ports that have upstream bugs or design mismatches affecting our build matrix or packaging strategy. Overlays are vcpkg's official mechanism for patching ports without forking the vcpkg repo.
 
-**How it works:** The `vcpkg-setup` GitHub Action conditionally passes `--overlay-ports` pointing to this directory (only if the directory exists). When vcpkg encounters a port name that exists here, it uses our version instead of the upstream port.
+**How it works:** When vcpkg encounters a port name that exists here, it uses our version instead of the upstream port. [Native dependency maintenance](../docs/engineering/native-dependency-maintenance.md#add-or-retire-an-overlay-port) owns setup flags and retirement.
 
 ## Active Overlays
 
@@ -85,11 +85,7 @@ That guide owns the shared update procedure; this README owns port-specific diff
 
 ### On upstream fix
 
-When the upstream issue is resolved in a vcpkg commit included in our baseline:
-
-1. Delete the overlay directory
-2. Test that `vcpkg install` works without the overlay
-3. If no overlays remain, the `--overlay-ports` flag is automatically skipped (conditional in `vcpkg-setup` action)
+Follow [Native dependency maintenance — Add or retire an overlay port](../docs/engineering/native-dependency-maintenance.md#add-or-retire-an-overlay-port).
 
 ### On dependency version change
 
@@ -102,7 +98,7 @@ Use this when adding or updating an overlay:
 - [ ] All unchanged files are byte-identical to upstream (`diff` against `external/vcpkg/ports/{port}/`)
 - [ ] Patches generated via `git diff` from pristine source (never hand-written)
 - [ ] `git apply --check` passes against the pristine source tarball
-- [ ] This README updated with: why, upstream issue link, tracking issue, dependency chain, base version
+- [ ] This README updated with: why, upstream issue link, tracking issue, dependency chain
 - [ ] CI passes on all affected platforms
 
 Keep this README current — it is the canonical registry of why each overlay exists.
