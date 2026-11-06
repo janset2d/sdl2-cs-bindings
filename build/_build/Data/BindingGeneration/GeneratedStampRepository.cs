@@ -36,7 +36,7 @@ public sealed class GeneratedStampRepository(ICakeContext context) : IGeneratedS
         ct.ThrowIfCancellationRequested();
 
         var path = GetStampPath(outputDirectory);
-        var json = _context.SerializeJson(stamp, StampJsonOptions);
+        var json = _context.SerializeJson(stamp, StampJsonOptions) + "\n";
         await _context.WriteAllTextAsync(path, json).ConfigureAwait(false);
     }
 

@@ -15,6 +15,7 @@ public static class ValidatorIdIntegrityCheck
             .Where(id => !registered.Contains(id))
             .Order(StringComparer.Ordinal)
             .ToArray();
+
         if (unknownIds.Length > 0)
         {
             throw new CakeException(

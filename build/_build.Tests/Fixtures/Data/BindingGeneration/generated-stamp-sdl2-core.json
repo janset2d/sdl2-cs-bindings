@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "family": "sdl2-core",
+  "generator_assembly": "Build",
+  "generator_version": "0.24.0",
+  "libclang_version": "20.1.2",
+  "vcpkg_triplet": "x64-linux-hybrid",
+  "vcpkg_manifest_hash": "sha256:vcpkg",
+  "vcpkg_baseline": "0b88aacde46a853151730fbe7d0b7ee45f4b6864",
+  "manifest_library_version": "2.32.10",
+  "header_fingerprint": "sha256:abc",
+  "header_count": 54,
+  "parse_views": [
+    "Neutral",
+    "Windows"
+  ]
+}

@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [master, 'spike/**']
+    branches: [master]
   pull_request:
 
 permissions:
@@ -15,7 +15,7 @@ concurrency:
 jobs:
   workflow-lint:
     name: Workflow lint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: docker://rhysd/actionlint:1.7.12
@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner: [ubuntu-latest, windows-latest, macos-latest]
+        runner: [ubuntu-24.04, windows-2025-vs2026, macos-26]
     uses: ./.github/workflows/build-cake-host.yml
     with:
       runner: ${{ matrix.runner }}
@@ -38,7 +38,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner: [ubuntu-latest, windows-latest, macos-latest]
+        runner: [ubuntu-24.04, windows-2025-vs2026, macos-26]
     uses: ./.github/workflows/spike-checks.yml
     with:
       runner: ${{ matrix.runner }}

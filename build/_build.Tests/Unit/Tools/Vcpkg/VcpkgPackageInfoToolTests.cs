@@ -73,7 +73,7 @@ public sealed class VcpkgPackageInfoToolTests
         var world = FakeCakeWorld.CreateWindows()
             .WithBinaryFile(vcpkgExe, [])
             .WithToolPath(vcpkgExe)
-            .WithProcessResult("vcpkg.exe", exitCode: 0, stdOut: "{\n  \"results\": {}\n}");
+            .WithProcessResult("vcpkg.exe", exitCode: 0, stdOut: VcpkgPackageInfoToolData.MultiLineEmptyResults);
         var tool = new VcpkgPackageInfoTool(world.CakeContext);
 
         var settings = new VcpkgPackageInfoSettings(vcpkgRoot)
@@ -85,7 +85,7 @@ public sealed class VcpkgPackageInfoToolTests
 
         await Assert.That(output).IsNotNull();
         await Assert.That(output!.Contains('\r', StringComparison.Ordinal)).IsFalse();
-        await Assert.That(output).IsEqualTo("{\n  \"results\": {}\n}");
+        await Assert.That(output).IsEqualTo(VcpkgPackageInfoToolData.MultiLineEmptyResults);
     }
 
     [Test]
@@ -109,4 +109,13 @@ public sealed class VcpkgPackageInfoToolTests
 
         await Assert.That(output).IsNull();
     }
+}
+
+internal static class VcpkgPackageInfoToolData
+{
+    public const string MultiLineEmptyResults = """
+        {
+          "results": {}
+        }
+        """;
 }

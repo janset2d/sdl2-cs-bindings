@@ -20,7 +20,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <LangVersion>latest</LangVersion>
+    <LangVersion>14.0</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -60,6 +60,7 @@
     <NoError>$(NoError);CS1591;CS1573;CS1572;CS1574</NoError>
 
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(TargetFramework)' != 'net462' And '$(TargetFramework)' != 'netstandard2.0' ">
