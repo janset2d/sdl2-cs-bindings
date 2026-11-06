@@ -13,10 +13,10 @@ internal static class Probe
     /// <summary>
     /// Forces the compiler to resolve each wrapper type through its netstandard2.0
     /// surface. No runtime semantics — <c>typeof</c> is a compile-time operator and
-    /// the property is intentionally unused. The property exists solely so the type
+    /// the field is intentionally unused. The field exists solely so the type
     /// references remain in the compiled metadata.
     /// </summary>
-    public static Type[] Surface { get; } =
+    private static readonly Type[] Surface =
     [
         typeof(SDL.SDL_version),
         typeof(SDL_image),
