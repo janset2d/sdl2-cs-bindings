@@ -19,7 +19,7 @@ namespace PackageConsumer.Smoke;
 [NotInParallel]
 public sealed class PackageSmokeTests
 {
-    private const SDL_mixer.MIX_InitFlags MixInitWavPack = (SDL_mixer.MIX_InitFlags)0x00000080;
+    private const SDL_mixer.MIX_InitFlags _mixInitWavPack = (SDL_mixer.MIX_InitFlags)0x00000080;
 
     [Test]
     [Category("PackageSmoke")]
@@ -81,7 +81,7 @@ public sealed class PackageSmokeTests
     [Category("PackageSmoke")]
     public async Task Image_Png_Fixture_Loads_Successfully()
     {
-        IntPtr surface = IntPtr.Zero;
+        var surface = IntPtr.Zero;
         var imageResult = SDL_image.IMG_Init(SDL_image.IMG_InitFlags.IMG_INIT_PNG);
 
         try
@@ -129,7 +129,7 @@ public sealed class PackageSmokeTests
                 SDL_mixer.MIX_InitFlags.MIX_INIT_OPUS |
                 SDL_mixer.MIX_InitFlags.MIX_INIT_MP3 |
                 SDL_mixer.MIX_InitFlags.MIX_INIT_MOD |
-                MixInitWavPack);
+                _mixInitWavPack);
 
             await Assert.That((mixerResult & (int)SDL_mixer.MIX_InitFlags.MIX_INIT_FLAC) != 0).IsTrue();
             await Assert.That((mixerResult & (int)SDL_mixer.MIX_InitFlags.MIX_INIT_MID) != 0).IsTrue();
@@ -137,7 +137,7 @@ public sealed class PackageSmokeTests
             await Assert.That((mixerResult & (int)SDL_mixer.MIX_InitFlags.MIX_INIT_OPUS) != 0).IsTrue();
             await Assert.That((mixerResult & (int)SDL_mixer.MIX_InitFlags.MIX_INIT_MP3) != 0).IsTrue();
             await Assert.That((mixerResult & (int)SDL_mixer.MIX_InitFlags.MIX_INIT_MOD) != 0).IsTrue();
-            await Assert.That((mixerResult & (int)MixInitWavPack) != 0).IsTrue();
+            await Assert.That((mixerResult & (int)_mixInitWavPack) != 0).IsTrue();
 
             var openAudioResult = SDL_mixer.Mix_OpenAudio(
                 SDL_mixer.MIX_DEFAULT_FREQUENCY,
@@ -186,8 +186,8 @@ public sealed class PackageSmokeTests
     {
         ConfigureHeadlessDrivers();
 
-        IntPtr surface = IntPtr.Zero;
-        IntPtr renderer = IntPtr.Zero;
+        var surface = IntPtr.Zero;
+        var renderer = IntPtr.Zero;
 
         var initResult = SDL.SDL_Init(SDL.SDL_INIT_VIDEO);
 

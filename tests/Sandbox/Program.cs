@@ -9,9 +9,9 @@ namespace Sandbox;
 /// </summary>
 internal static class Program
 {
-    private const string WindowTitle = "Janset.SDL2 Sandbox";
-    private const int WindowWidth = 640;
-    private const int WindowHeight = 480;
+    private const string _windowTitle = "Janset.SDL2 Sandbox";
+    private const int _windowWidth = 640;
+    private const int _windowHeight = 480;
 
     public static int Main()
     {
@@ -22,11 +22,11 @@ internal static class Program
         }
 
         var window = SDL_CreateWindow(
-            WindowTitle,
+            _windowTitle,
             SDL_WINDOWPOS_CENTERED,
             SDL_WINDOWPOS_CENTERED,
-            WindowWidth,
-            WindowHeight,
+            _windowWidth,
+            _windowHeight,
             SDL_WindowFlags.SDL_WINDOW_SHOWN);
 
         if (window == IntPtr.Zero)
