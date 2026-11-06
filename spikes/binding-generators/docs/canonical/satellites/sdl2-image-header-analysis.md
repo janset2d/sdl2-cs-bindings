@@ -113,7 +113,7 @@ public enum IMG_InitFlags  // ← MISSING [Flags]
 Without `[Flags]`, .NET consumers calling `IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG).ToString()` get the numeric value `3` instead of `"IMG_INIT_JPG, IMG_INIT_PNG"`. Debugging display and enum formatting are affected. **Note:** `Enum.HasFlag()` does NOT require `[Flags]` — it works correctly on any enum regardless of the attribute. The concrete impact is formatting and debuggability only.
 
 ### Constitution Authority
-[`binding-generator-constitution.md`](../binding-generator-constitution.md) §"Enums": "Add `[Flags]` when header comments, composed aliases, bit values, or API docs prove bitmask semantics."
+[`binding-abi-policy.md`](../../../../../docs/architecture/binding-abi-policy.md) §"Enums": "Add `[Flags]` when header comments, composed aliases, bit values, or API docs prove bitmask semantics."
 
 ### Fix
 Item 1 S1-6 adds the systematic `flags-detect` postprocess step. `IMG_InitFlags` is decorated by the `Flags` suffix rule in both Modern and Compat output; Item 2 remains as an explicit Image-targeted regression/closure check.

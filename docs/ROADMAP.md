@@ -65,10 +65,10 @@ No separate phase doc per [phases/README.md](phases/README.md) retention test â€
 ### Phase 4 â€” Binding Auto-Generation
 
 Design brief: [phases/phase-4-binding-autogen.md](phases/phase-4-binding-autogen.md).
-Binding generator constitution: [../spikes/binding-generators/docs/canonical/binding-generator-constitution.md](../spikes/binding-generators/docs/canonical/binding-generator-constitution.md) (canonical ABI/API/translation contract and manifest config-vs-policy rules).
+Binding generator constitution: [architecture/binding-abi-policy.md](architecture/binding-abi-policy.md) (canonical ABI/API/translation contract and manifest config-vs-policy rules).
 Binding generator roadmap: [../spikes/binding-generators/docs/canonical/binding-generator-roadmap.md](../spikes/binding-generators/docs/canonical/binding-generator-roadmap.md) (layer-based forward milestones: Layer 2 typed public API, Layer 3 friendly overloads, Production Flip, SysWM Layout + Satellite Sweep Close, Smoke Expansion, SDL3 Extension).
-Binding generator implementation notes: [../spikes/binding-generators/docs/canonical/binding-generator-implementation-notes.md](../spikes/binding-generators/docs/canonical/binding-generator-implementation-notes.md) (mechanism + classification labels + hardcoding rules).
-Binding generator maintenance: [../spikes/binding-generators/docs/canonical/binding-generator-maintenance.md](../spikes/binding-generators/docs/canonical/binding-generator-maintenance.md) (ClangSharp + Roslyn postprocess maintenance playbook).
+Binding generator implementation notes: [architecture/binding-generation.md](architecture/binding-generation.md) (mechanism + classification labels + hardcoding rules).
+Binding generator maintenance: [engineering/binding-generator-maintenance.md](engineering/binding-generator-maintenance.md) (ClangSharp + Roslyn postprocess maintenance playbook).
 
 **Status (2026-05-28):** SDL2 Layer 1 raw ABI closed across Core / Image / GFX / TTF / Mixer on the active ClangSharp + Roslyn postprocess implementation at `spikes/binding-generators/clangsharp/`. Layer 2 typed public API is next. Multi-TFM compile clean (5 TFMs); five-family oracle report clean across Priority C categories. Toolchain selection effectively decided pending formal ADR-004 amendment after Layer 2 closure. `SDL_syswm.h` typed-union layout remains under the SysWM Layout milestone. SDL3 binding generation gated on PD-7.
 

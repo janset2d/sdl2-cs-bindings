@@ -8,7 +8,7 @@ boolean use without a separate predicate-overload layer.
 
 ## Consequences
 
-This supersedes the int-backed enum rule in the [ABI constitution](../../spikes/binding-generators/docs/canonical/binding-generator-constitution.md)
+This supersedes the int-backed enum rule in the [ABI constitution](../architecture/binding-abi-policy.md)
 and the earlier public-projection design's prohibition of boolean conversions.
 Only native `SDL_bool` types receive this meaning; do not infer booleans from arbitrary integer returns.
 Evidence: internal research, 2026-05-29, "Layer 2 typed public API design".

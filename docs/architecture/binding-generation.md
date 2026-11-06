@@ -1,6 +1,6 @@
 # Binding Generator Implementation Notes
 
-> **Status:** Canonical companion to [`binding-generator-constitution.md`](binding-generator-constitution.md). Policy lives in the constitution; this document captures mechanism, evidence, and current implementation specifics for the ClangSharp + Roslyn postprocess spike under `spikes/binding-generators/clangsharp/`.
+> **Status:** Canonical companion to [`binding-abi-policy.md`](binding-abi-policy.md). Policy lives in the constitution; this document captures mechanism, evidence, and current implementation specifics for the ClangSharp + Roslyn postprocess spike under `spikes/binding-generators/clangsharp/`.
 
 ## 1. Purpose
 
@@ -411,7 +411,7 @@ The blittable-clean invariant rationale lives in Constitution §"Opaque Handles"
 
 ### Relationship to oracle-validation playbook
 
-The canonical multi-oracle review playbook ([`binding-output-oracle-validation.md`](binding-output-oracle-validation.md)) defines its own 6-label set: Hard Bug / Likely Bug / Compatibility Risk / Design Signal / Accepted Delta / Follow-up. The two sets share Hard Bug + Likely Bug + Compatibility Risk; oracle.cs uses Accepted Deferral (synonymous with the playbook's Accepted Delta for policy-deferred items) + Evidence Missing + Out Of Scope (mechanical labels not present in the multi-oracle-review playbook). The playbook's Design Signal + Follow-up labels are out of scope for mechanical raw-ABI checks — they apply to human multi-oracle review, not automated evidence extraction.
+The canonical multi-oracle review playbook ([`binding-output-review.md`](../engineering/binding-output-review.md)) defines its own 6-label set: Hard Bug / Likely Bug / Compatibility Risk / Design Signal / Accepted Delta / Follow-up. The two sets share Hard Bug + Likely Bug + Compatibility Risk; oracle.cs uses Accepted Deferral (synonymous with the playbook's Accepted Delta for policy-deferred items) + Evidence Missing + Out Of Scope (mechanical labels not present in the multi-oracle-review playbook). The playbook's Design Signal + Follow-up labels are out of scope for mechanical raw-ABI checks — they apply to human multi-oracle review, not automated evidence extraction.
 
 ### Initial Raw ABI checks
 
@@ -676,12 +676,12 @@ The `generate_bindings.py` orchestrator wires up the per-step invocation chain; 
 
 ## References
 
-- [`binding-generator-constitution.md`](binding-generator-constitution.md) — pure policy contract. This document is its mechanism companion.
-- [`binding-generator-maintenance.md`](binding-generator-maintenance.md) — version-bump procedures, RSP file maintenance, family-config.json schema maintenance, new-family checklist.
-- [`binding-output-oracle-validation.md`](binding-output-oracle-validation.md) — multi-oracle review methodology; relationship to §10 oracle.cs classification labels.
-- [ADR-004 — Binding Auto-Generation Toolchain](../../../docs/decisions/2026-05-14-binding-autogen-toolchain.md) — Reopened; formal amendment deferred pending Layer 2 closure per design-spec Q13.
-- [`docs/knowledge-base/extraction-guidelines.md`](../../../docs/knowledge-base/extraction-guidelines.md) — collaborator extraction discipline; applies to rewriter class extraction patterns.
-- [`docs/knowledge-base/testing-guidelines.md`](../../../docs/knowledge-base/testing-guidelines.md) — canonical TUnit/MTP test infrastructure; postprocess self-tests defer to this.
+- [`binding-abi-policy.md`](binding-abi-policy.md) — pure policy contract. This document is its mechanism companion.
+- [`binding-generator-maintenance.md`](../engineering/binding-generator-maintenance.md) — version-bump procedures, RSP file maintenance, family-config.json schema maintenance, new-family checklist.
+- [`binding-output-review.md`](../engineering/binding-output-review.md) — multi-oracle review methodology; relationship to §10 oracle.cs classification labels.
+- [ADR-004 — Binding Auto-Generation Toolchain](../adr/0004-binding-autogen-toolchain.md) — Reopened; formal amendment deferred pending Layer 2 closure per design-spec Q13.
+- [`coding-style.md`](../engineering/coding-style.md) — collaborator extraction discipline; applies to rewriter class extraction patterns.
+- [`testing-style.md`](../engineering/testing-style.md) — canonical TUnit/MTP test infrastructure; postprocess self-tests defer to this.
 - **Postprocess source code:** `spikes/binding-generators/clangsharp/postprocess/` — canonical authority for rewriter behavior. Classes cited in this document: `OpaqueHandleEmitRewriter`, `ClongDualDispatchRewriter`, `DllImportToLibraryImportRewriter`, `FlagsAttributeRewriter`, `GuidSubstitutionRewriter`, `StripVarargsRewriter`, `PlatformDeltaPostProcessor`, `UniformOpaqueFamilyIdentity`, `UniformOpaqueOwnerMode`.
 - **Unified config:** `spikes/binding-generators/clangsharp/config/family-config.json` — canonical authority for per-family identity, opaque handles, flags enums, C long methods, platform views, header inventories, required surface, owner mode.
 - **Generator orchestrator:** `spikes/binding-generators/clangsharp/generate_bindings.py` — canonical authority for pipeline orchestration, family selection, postprocess invocation chain.

@@ -155,7 +155,7 @@ For `Mix_OutOfMemory`: SDL2-CS does NOT surface this even in the redirect layer,
 
 ## 6. Path to Companion-Helper Policy
 
-This research feeds an eventual **companion-helper policy** document that must be written before Layer 2/3 error redirects land. The [`binding-generator-constitution.md`](../binding-generator-constitution.md) §"Constants And Macros" says:
+This research feeds an eventual **companion-helper policy** document that must be written before Layer 2/3 error redirects land. The [`binding-abi-policy.md`](../../../../../docs/architecture/binding-abi-policy.md) §"Constants And Macros" says:
 
 > *"Approved function-like macro helpers are manually authored or generated from an explicit companion-helper policy. ClangSharp does not emit them."*
 
@@ -180,8 +180,8 @@ The following are open decisions that companion-helper policy should resolve:
   - [`sdl2-mixer-header-analysis.md`](sdl2-mixer-header-analysis.md) — callback typedefs, satellite-owned `Mix_Music`, 4 error macros
   - [`sdl2-gfx-header-analysis.md`](sdl2-gfx-header-analysis.md) — no error macros
 - **Constitution (policy authority):**
-  - [`binding-generator-constitution.md`](../binding-generator-constitution.md) §"Constants And Macros" — companion-helper policy requirement
-  - [`binding-generator-constitution.md`](../binding-generator-constitution.md) §"Layer Contract" — three-layer architecture (internal raw ABI, public typed low-level, friendly overloads)
+  - [`binding-abi-policy.md`](../../../../../docs/architecture/binding-abi-policy.md) §"Constants And Macros" — companion-helper policy requirement
+  - [`binding-abi-policy.md`](../../../../../docs/architecture/binding-abi-policy.md) §"Layer Contract" — three-layer architecture (internal raw ABI, public typed low-level, friendly overloads)
 - **Peer reference:**
   - [`ppy-reference-analysis-2026-05-25.md`](../references/ppy-reference-analysis-2026-05-25.md) §2 — companion class analysis, `[Macro]` pattern
   - `external/sdl2-cs/src/SDL2_image.cs:256-264` — `IMG_GetError`/`IMG_SetError` redirect

@@ -47,6 +47,6 @@ internal research, 2026-05-29, "Layer 2 peer mapping".
   and mixed prefixed/unprefixed names motivate satellite-case evidence before activation.
 
 The class collapse does not justify flattening ABI differences. Per-member hiding remains necessary;
-uniform forwarding wrappers do not. The [ABI constitution](../../spikes/binding-generators/docs/canonical/binding-generator-constitution.md)
+uniform forwarding wrappers do not. The [ABI constitution](../architecture/binding-abi-policy.md)
 owns the detailed string, macro, endian, cross-family and layout rules. The rationale above explains
 those choices rather than defining a second policy home.

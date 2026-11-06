@@ -94,11 +94,11 @@ Items deliberately accepted as-is.
 
 ## Cross-References
 
-- [`canonical/binding-generator-constitution.md`](canonical/binding-generator-constitution.md) — policy authority.
+- [`binding-abi-policy.md`](../../../docs/architecture/binding-abi-policy.md) — policy authority.
 - [`canonical/binding-generator-roadmap.md`](canonical/binding-generator-roadmap.md) — layer-based forward milestones; §"Layer 2 — Typed Public API Projection" is the active milestone scope.
-- [`canonical/binding-generator-implementation-notes.md`](canonical/binding-generator-implementation-notes.md) — mechanism details and classification labels.
-- [`canonical/binding-generator-maintenance.md`](canonical/binding-generator-maintenance.md) — maintenance procedures.
-- [`canonical/binding-output-oracle-validation.md`](canonical/binding-output-oracle-validation.md) — multi-oracle review workflow.
+- [`binding-generation.md`](../../../docs/architecture/binding-generation.md) — mechanism details and classification labels.
+- [`binding-generator-maintenance.md`](../../../docs/engineering/binding-generator-maintenance.md) — maintenance procedures.
+- [`binding-output-review.md`](../../../docs/engineering/binding-output-review.md) — multi-oracle review workflow.
 - [`canonical/satellites/`](canonical/satellites/) — per-family + cross-family satellite analyses.
 - [`../output/reports/oracle-evidence-clangsharp.md`](../output/reports/oracle-evidence-clangsharp.md) — current oracle evidence.
 - [`../output/reports/iteration-2-comparison.md`](../output/reports/iteration-2-comparison.md) — toolchain decision evidence.

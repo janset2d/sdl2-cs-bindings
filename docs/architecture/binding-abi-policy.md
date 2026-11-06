@@ -1,6 +1,6 @@
 # Binding Generator Constitution
 
-> **Status:** Canonical binding-generator constitution. Pure principles — toolchain-neutral ABI/API policy. Mechanism details and current implementation evidence live in [`binding-generator-implementation-notes.md`](binding-generator-implementation-notes.md).
+> **Status:** Canonical binding-generator constitution. Pure principles — toolchain-neutral ABI/API policy. Mechanism details and current implementation evidence live in [`binding-generation.md`](binding-generation.md).
 
 ## Purpose
 
@@ -26,7 +26,7 @@ sources disagree, use this order:
 7. ADR-004 for the recorded 2026-05-14 toolchain reasoning.
 8. Peer bindings and old research as evidence only.
 
-Implementation-mechanism authority (item 3) is captured in [`binding-generator-implementation-notes.md`](binding-generator-implementation-notes.md).
+Implementation-mechanism authority (item 3) is captured in [`binding-generation.md`](binding-generation.md).
 
 Historical plans, spike reports, and superpowers specs are not policy. If they disagree with this document, this document wins. If the implementation disagrees with this document, treat it as code/docs drift to investigate, not as permission to ignore either source.
 
@@ -73,7 +73,7 @@ The generator is build infrastructure, not a standalone product project. The pro
 - Local invocation routed through `tools.cs` so day-to-day developers do not handle generator orchestration directly.
 - Linux-canonical parsing for ABI correctness across the 7-RID surface unless a different model is proven equivalent.
 
-Concrete generator home paths and orchestration entry points: see [`binding-generator-implementation-notes.md`](binding-generator-implementation-notes.md).
+Concrete generator home paths and orchestration entry points: see [`binding-generation.md`](binding-generation.md).
 
 ## Generator Engine And SDL Policy
 
@@ -133,7 +133,7 @@ Generation is not allowed to consume environment-derived inputs beyond the pin s
 
 Every slice that touches generation or postprocess MUST verify the determinism contract in its exit evidence: complete-family idempotency (twice-regenerated diff is empty), family isolation (targeted run leaves others byte-untouched), per-family equivalence (full active-set equals union of per-family runs), and cross-family handle pull preservation (satellite output rewrites Core-owned pointer types to by-value).
 
-Concrete pin-set enumeration, verification commands, and per-toolchain implementation: see [`binding-generator-implementation-notes.md`](binding-generator-implementation-notes.md).
+Concrete pin-set enumeration, verification commands, and per-toolchain implementation: see [`binding-generation.md`](binding-generation.md).
 
 Slices that change the determinism contract itself (e.g. add a new pin-set input, change family isolation semantics) must update **this section** in the same change set, with rationale and the new verification step. Drift between the contract and the implementation is treated as a hard bug.
 
@@ -181,7 +181,7 @@ Rules:
 - Config is read by both the generator orchestrator and the postprocess toolchain from the same file — no per-consumer parallel copies of the same fact.
 - Before moving a fact into config, ask: does this vary by family, or could it vary by family? If yes, config. If "no, same for every family forever" and it concerns *how* a transform operates, code.
 
-Current config field enumeration: see [`binding-generator-implementation-notes.md`](binding-generator-implementation-notes.md) §"Config Surface Evolution".
+Current config field enumeration: see [`binding-generation.md`](binding-generation.md) §"Config Surface Evolution".
 
 ## Family Identity
 
@@ -221,7 +221,7 @@ SDL2 ships convenience helpers that duplicate functionality already in the .NET 
 2. SDL2-CS (the reference binding) does not expose the symbol/family.
 3. No other SDL2 symbol transitively depends on the excluded symbol (verified by grep across pinned SDL headers).
 
-**Mechanism.** Per-header exclusion in the toolchain's per-header configuration, with a comment block recording the rule's three conditions and the BCL equivalent. Per-toolchain exclusion-routing detail and standing-exclusion config evidence: see [`binding-generator-implementation-notes.md`](binding-generator-implementation-notes.md).
+**Mechanism.** Per-header exclusion in the toolchain's per-header configuration, with a comment block recording the rule's three conditions and the BCL equivalent. Per-toolchain exclusion-routing detail and standing-exclusion config evidence: see [`binding-generation.md`](binding-generation.md).
 
 **Standing exclusions (Priority C):**
 
@@ -290,7 +290,7 @@ High-risk SDL2.Core symbols (Priority C disposition):
 - `SDL_strtol`, `SDL_strtoul` — **deferred all-TFM** (BCL equivalent: `long.Parse` / `ulong.Parse`)
 - `SDL_threadID`, `SDL_ThreadID`, `SDL_GetThreadID` — **kept on every TFM** via hybrid `CLong` + dual-dispatch emit
 
-Per-toolchain C `long` mechanism (exclusion routing, TFM-split layout, dispatch wiring): see [`binding-generator-implementation-notes.md`](binding-generator-implementation-notes.md).
+Per-toolchain C `long` mechanism (exclusion routing, TFM-split layout, dispatch wiring): see [`binding-generation.md`](binding-generation.md).
 
 ### `SDL_bool`
 
@@ -325,7 +325,7 @@ Priority C mechanism:
 
 **What:** Shared `wchar_t*` (HIDAPI fields, `SDL_wcs*` functions, ~15 SDL2.Core symbols) emit as `nint` at the raw ABI layer. Layer 3 friendly wrappers (later slice) provide platform-aware decoders (`Marshal.PtrToStringUni` on Windows; UTF-32 transcode on POSIX) — those are ergonomics, not ABI repair.
 
-Per-toolchain wchar_t mechanism (type-classifier rule routing, postprocess fallback wiring): see [`binding-generator-implementation-notes.md`](binding-generator-implementation-notes.md).
+Per-toolchain wchar_t mechanism (type-classifier rule routing, postprocess fallback wiring): see [`binding-generation.md`](binding-generation.md).
 
 ## Opaque Handles
 
@@ -362,7 +362,7 @@ Public typed handle struct shape (Pattern B):
 
 Janset.SDL2's P/Invoke surface is independently blittable-clean by design: strings emit as `byte*` (not `string`), booleans use the `SDL_bool` enum (not `bool`), and aggregate parameters are either pointers or Pattern B structs. The attribute is opt-in formalization of an existing invariant, not a behavior shift.
 
-Implementation mechanism (rewriter wiring, auto-detect criterion realization, canonical roster JSON schema, cross-family loader contract): see [`binding-generator-implementation-notes.md`](binding-generator-implementation-notes.md).
+Implementation mechanism (rewriter wiring, auto-detect criterion realization, canonical roster JSON schema, cross-family loader contract): see [`binding-generation.md`](binding-generation.md).
 
 ## Foreign Type Boundary Policy
 
@@ -372,7 +372,7 @@ SDL2 references types owned by **external native libraries** (Vulkan, Direct3D /
 
 **How:** Foreign types at SDL parameter positions emit as opaque `nint` / `IntPtr`. A `[NativeTypeName("VkInstance")]` annotation (or equivalent for the toolchain) preserves provenance for documentation and downstream postprocess sensors. The mechanism is realized by the toolchain's per-header configuration (byte-exact textual match for the typedef / pointer spelling, plus suppression of the parser tag struct emission). The allow-list lives in per-header configuration close to the header that references the foreign type, with comments citing the SDL header source line of the typedef and the upstream owner library.
 
-**What:** The Priority C survey identifies these foreign-type categories in SDL2 public API. Activation/deferral disposition per category, with per-header source line references and per-toolchain configuration mechanism, lives in [`binding-generator-implementation-notes.md`](binding-generator-implementation-notes.md).
+**What:** The Priority C survey identifies these foreign-type categories in SDL2 public API. Activation/deferral disposition per category, with per-header source line references and per-toolchain configuration mechanism, lives in [`binding-generation.md`](binding-generation.md).
 
 | Category | Owning header |
 | --- | --- |
@@ -442,7 +442,7 @@ Rules:
 - **Heuristics over bit values alone are rejected.** Enums whose values happen to be powers of two are not automatically decorated — `SDL_bool` (`SDL_FALSE = 0`, `SDL_TRUE = 1`) would otherwise false-positive and break the int-backed bool contract above.
 - Composed alias values (`KMOD_CTRL = KMOD_LCTRL | KMOD_RCTRL`) are preserved as enum members; the bitmask semantics flow from the allow-list entry, not from value analysis. The auto-decoration policy can decorate `SDL_Keymod` because the family's allow-list lists it, not because the postprocess parses the OR expression.
 
-Known Stage 1 flag enum data per family (suffix-decorated and allow-list-decorated names): see [`binding-generator-implementation-notes.md`](binding-generator-implementation-notes.md) §"Known Flag Enums Data".
+Known Stage 1 flag enum data per family (suffix-decorated and allow-list-decorated names): see [`binding-generation.md`](binding-generation.md) §"Known Flag Enums Data".
 
 ## Constants And Macros
 

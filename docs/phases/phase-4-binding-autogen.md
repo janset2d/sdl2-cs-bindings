@@ -6,14 +6,14 @@
 
 ## Canonical Docs
 
-This page is a thin pointer. Strategy, ABI/API policy, implementation mechanism, and forward milestones live in the canonical docs under [`../../spikes/binding-generators/docs/canonical/`](../../spikes/binding-generators/docs/canonical/). Do not duplicate them here — it drifts.
+This page is a thin pointer. The table below links the homes of strategy, ABI/API policy, implementation mechanism and forward milestones. Do not duplicate them here — it drifts.
 
 | Doc | Purpose |
 | --- | --- |
-| [`../../spikes/binding-generators/docs/canonical/binding-generator-constitution.md`](../../spikes/binding-generators/docs/canonical/binding-generator-constitution.md) | Canonical ABI/API policy. |
+| [`../architecture/binding-abi-policy.md`](../architecture/binding-abi-policy.md) | Canonical ABI/API policy. |
 | [`../../spikes/binding-generators/docs/canonical/binding-generator-roadmap.md`](../../spikes/binding-generators/docs/canonical/binding-generator-roadmap.md) | Layer-based forward milestones. |
-| [`../../spikes/binding-generators/docs/canonical/binding-generator-implementation-notes.md`](../../spikes/binding-generators/docs/canonical/binding-generator-implementation-notes.md) | Mechanism + classification labels. |
-| [`../../spikes/binding-generators/docs/canonical/binding-generator-maintenance.md`](../../spikes/binding-generators/docs/canonical/binding-generator-maintenance.md) | ClangSharp + Roslyn maintenance playbook. |
+| [`../architecture/binding-generation.md`](../architecture/binding-generation.md) | Mechanism + classification labels. |
+| [`../engineering/binding-generator-maintenance.md`](../engineering/binding-generator-maintenance.md) | ClangSharp + Roslyn maintenance playbook. |
 | [`../adr/0004-binding-autogen-toolchain.md`](../adr/0004-binding-autogen-toolchain.md) | ADR-004 (Reopened — amendment deferred). |
 | [`../../spikes/binding-generators/`](../../spikes/binding-generators/) | Active spike. |
 
@@ -35,7 +35,7 @@ Detailed exit criteria per stage live in [`../../spikes/binding-generators/docs/
 
 - [`../release-strategy.md`](../release-strategy.md) — strategic anchor (AST-first sequencing rationale)
 - [`../ROADMAP.md`](../ROADMAP.md) — tactical roadmap (Phase 4 row)
-- [`../../spikes/binding-generators/docs/canonical/`](../../spikes/binding-generators/docs/canonical/) — canonical binding-generator docs
+- [`../../spikes/binding-generators/docs/canonical/`](../../spikes/binding-generators/docs/canonical/) — spike roadmap, satellites and references
 - [`../adr/0004-binding-autogen-toolchain.md`](../adr/0004-binding-autogen-toolchain.md) — ADR-004 toolchain decision (Reopened)
 - [`../adr/0002-target-centric-build-host.md`](../adr/0002-target-centric-build-host.md) — ADR-002 target-centric build-host pattern
 - [`../adr/0003-build-host-data-layer.md`](../adr/0003-build-host-data-layer.md) — ADR-003 contract-centric data layer

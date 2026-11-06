@@ -398,7 +398,7 @@ Four procedures, each as a numbered checklist. The drift-detection gate (§"Drif
     ```
 
     Expected: `Scan complete: 0 issue(s) found`. If new files were added or removed since the last baseline, refresh the baseline with `slopwatch init -f --exclude "artifacts/**,external/**,vcpkg_installed/**,spikes/binding-generators/references/**,**/bin/**,**/obj/**"` per AGENTS.md §"Slopwatch" guidance.
-12. **Commit** under [Repository workflow](../../../../docs/engineering/workflow.md#commits-and-pull-requests).
+12. **Commit** under [Repository workflow](workflow.md#commits-and-pull-requests).
 
 ### 6.2 ClangSharp Tool Version Bump
 
@@ -409,7 +409,7 @@ Four procedures, each as a numbered checklist. The drift-detection gate (§"Drif
 5. **Diff for output drift** (same command as §6.1 step 6). New ClangSharp emit behaviour usually surfaces as changed syntax shape, not new declarations — review carefully.
 6. **Run oracle, AbiTests, Slopwatch** (steps 7, 10, 11 of §6.1).
 7. **Update the toolchain pin table** in §"Toolchain Version Pinning".
-8. **Commit** under [Repository workflow](../../../../docs/engineering/workflow.md#commits-and-pull-requests).
+8. **Commit** under [Repository workflow](workflow.md#commits-and-pull-requests).
 
 ### 6.3 Microsoft.CodeAnalysis Postprocess Version Bump
 
@@ -427,7 +427,7 @@ Four procedures, each as a numbered checklist. The drift-detection gate (§"Drif
 7. **Diff for output drift** (same command as §6.1 step 6). Roslyn API changes can surface as different formatting/whitespace in the rewriter output; review with `--ignore-cr-at-eol`.
 8. **Run AbiTests, Slopwatch** (steps 10, 11 of §6.1).
 9. **Update the toolchain pin table** in §"Toolchain Version Pinning".
-10. **Commit** under [Repository workflow](../../../../docs/engineering/workflow.md#commits-and-pull-requests).
+10. **Commit** under [Repository workflow](workflow.md#commits-and-pull-requests).
 
 ### 6.4 Vcpkg Triplet Bump
 
@@ -443,7 +443,7 @@ Then:
 
 6. **Regenerate the full family corpus** for the affected triplet (vary `--vcpkg-triplet` per RID).
 7. **Run cross-triplet ABI smoke** — execute AbiTests per RID via the Docker container (see §"Linux-Canonical Generation") for non-Windows RIDs.
-8. **Update overlay** if needed (`vcpkg-overlay-triplets/`) and revalidate per [`native-dependency-maintenance.md`](../../../../docs/engineering/native-dependency-maintenance.md).
+8. **Update overlay** if needed (`vcpkg-overlay-triplets/`) and revalidate per [`native-dependency-maintenance.md`](native-dependency-maintenance.md).
 
 ### 6.5 SDL2 Vs SDL3 Maintenance Posture
 
@@ -664,36 +664,36 @@ Until Production Flip, treat any code that needs production multi-TFM compilatio
 
 ### Canonical Workstream Docs
 
-- [`binding-generator-constitution.md`](binding-generator-constitution.md) — pure-principles policy authority. Cross-references: §"Manifest Configuration Vs Code-Owned Policy", §"Opaque Handles", §"BCL-Replaceable Helper Exclusion Policy", §"C Variadics", §"Scalar Type Translation", §"Foreign Type Boundary Policy".
-- [`binding-generator-implementation-notes.md`](binding-generator-implementation-notes.md) — mechanism and evidence sibling to the constitution. Cross-references: §"Postprocess Pipeline Order", §"Opaque Handles Implementation Mechanism", §"C `long` Hybrid Implementation", §"Configuration Surface Evolution".
-- [`binding-generator-roadmap.md`](binding-generator-roadmap.md) — layer-based forward milestones. Cross-references: §"Production Flip — SDL2.Core Reproducibility", §"SysWM Layout And Satellite Sweep Close", §"SDL3 Extension".
-- [`testing-strategy.md`](testing-strategy.md) — testing layer model and raw ABI upstream port backlog.
-- [`binding-output-oracle-validation.md`](binding-output-oracle-validation.md) — multi-oracle review workflow for generated binding output.
+- [`binding-abi-policy.md`](../architecture/binding-abi-policy.md) — pure-principles policy authority. Cross-references: §"Manifest Configuration Vs Code-Owned Policy", §"Opaque Handles", §"BCL-Replaceable Helper Exclusion Policy", §"C Variadics", §"Scalar Type Translation", §"Foreign Type Boundary Policy".
+- [`binding-generation.md`](../architecture/binding-generation.md) — mechanism and evidence sibling to the constitution. Cross-references: §"Postprocess Pipeline Order", §"Opaque Handles Implementation Mechanism", §"C `long` Hybrid Implementation", §"Configuration Surface Evolution".
+- [`binding-generator-roadmap.md`](../../spikes/binding-generators/docs/canonical/binding-generator-roadmap.md) — layer-based forward milestones. Cross-references: §"Production Flip — SDL2.Core Reproducibility", §"SysWM Layout And Satellite Sweep Close", §"SDL3 Extension".
+- [`binding-testing.md`](binding-testing.md) — testing layer model and raw ABI upstream port backlog.
+- [`binding-output-review.md`](binding-output-review.md) — multi-oracle review workflow for generated binding output.
 
 ### Sibling Playbooks
 
-- [`docs/engineering/native-dependency-maintenance.md`](../../../../docs/engineering/native-dependency-maintenance.md) — vcpkg overlay triplet procedure. Coupled to §"Version-Bump Procedures" 6.4 (Vcpkg Triplet Bump).
-- [`docs/playbook/vcpkg-update.md`](../../../../docs/playbook/vcpkg-update.md) — vcpkg baseline procedure. Coupled to §"Version-Bump Procedures" 6.1 (SDL2 Version Bump).
+- [`docs/engineering/native-dependency-maintenance.md`](native-dependency-maintenance.md) — vcpkg overlay triplet procedure. Coupled to §"Version-Bump Procedures" 6.4 (Vcpkg Triplet Bump).
+- [`docs/playbook/vcpkg-update.md`](../playbook/vcpkg-update.md) — vcpkg baseline procedure. Coupled to §"Version-Bump Procedures" 6.1 (SDL2 Version Bump).
 
 ### ADRs
 
-- [ADR-002 — Target-centric build-host pattern](../../../../docs/adr/0002-target-centric-build-host.md) — Cake-host architectural pattern; binding generator's eventual production landing in the Cake host inherits this.
-- [ADR-003 — Contract-centric data layer](../../../../docs/adr/0003-build-host-data-layer.md) — `build/_build/Data/BindingGeneration/` data contracts (stamp, manifest) extend this pattern.
-- [ADR-004 — Binding Auto-Generation Toolchain](../../../../docs/adr/0004-binding-autogen-toolchain.md) — toolchain selection record; currently Reopened pending Layer 2 closure.
+- [ADR-002 — Target-centric build-host pattern](../adr/0002-target-centric-build-host.md) — Cake-host architectural pattern; binding generator's eventual production landing in the Cake host inherits this.
+- [ADR-003 — Contract-centric data layer](../adr/0003-build-host-data-layer.md) — `build/_build/Data/BindingGeneration/` data contracts (stamp, manifest) extend this pattern.
+- [ADR-004 — Binding Auto-Generation Toolchain](../adr/0004-binding-autogen-toolchain.md) — toolchain selection record; currently Reopened pending Layer 2 closure.
 
 ### Knowledge-Base
 
-- [`docs/engineering/coding-style.md`](../../../../docs/engineering/coding-style.md) — collaborator extraction discipline; applies to postprocess rewriter design.
-- [`docs/engineering/testing-style.md`](../../../../docs/engineering/testing-style.md) — canonical TUnit / MTP test infrastructure; AbiTests follows this for the per-TFM smoke shape.
+- [`docs/engineering/coding-style.md`](coding-style.md) — collaborator extraction discipline; applies to postprocess rewriter design.
+- [`docs/engineering/testing-style.md`](testing-style.md) — canonical TUnit / MTP test infrastructure; AbiTests follows this for the per-TFM smoke shape.
 
 ### Source Of Truth Artifacts
 
-- [`spikes/binding-generators/clangsharp/config/family-config.json`](../../clangsharp/config/family-config.json) — per-family generation contract; the configuration surface mapped in §"Configuration Surface Map".
-- [`spikes/binding-generators/clangsharp/generate_bindings.py`](../../clangsharp/generate_bindings.py) — orchestrator; invocation form documented in §"Configuration Surface Map" 3.1.
-- [`spikes/binding-generators/clangsharp/postprocess/Janset.SDL2.PostProcess.csproj`](../../clangsharp/postprocess/Janset.SDL2.PostProcess.csproj) — Microsoft.CodeAnalysis.CSharp `VersionOverride` location.
-- [`spikes/binding-generators/clangsharp/postprocess/Program.cs`](../../clangsharp/postprocess/Program.cs) — 7-step postprocess CLI dispatch; the pipeline order in §"Postprocess Pipeline Maintenance".
-- [`spikes/binding-generators/clangsharp/oracle.cs`](../../clangsharp/oracle.cs) — evidence reporter; invocation form documented in §"Drift Detection Between Versions" 8.2.
-- [`spikes/binding-generators/clangsharp/rsp/`](../../clangsharp/rsp/) — three-tier RSP organization (base / family / per-header).
-- [`spikes/binding-generators/.config/dotnet-tools.json`](../../.config/dotnet-tools.json) — ClangSharp tool pin location.
-- [`spikes/binding-generators/Directory.Build.props`](../../Directory.Build.props) — spike isolation contract.
-- [`docker/binding-generator.Dockerfile`](../../../../docker/binding-generator.Dockerfile) — Linux production container.
+- [`spikes/binding-generators/clangsharp/config/family-config.json`](../../spikes/binding-generators/clangsharp/config/family-config.json) — per-family generation contract; the configuration surface mapped in §"Configuration Surface Map".
+- [`spikes/binding-generators/clangsharp/generate_bindings.py`](../../spikes/binding-generators/clangsharp/generate_bindings.py) — orchestrator; invocation form documented in §"Configuration Surface Map" 3.1.
+- [`spikes/binding-generators/clangsharp/postprocess/Janset.SDL2.PostProcess.csproj`](../../spikes/binding-generators/clangsharp/postprocess/Janset.SDL2.PostProcess.csproj) — Microsoft.CodeAnalysis.CSharp `VersionOverride` location.
+- [`spikes/binding-generators/clangsharp/postprocess/Program.cs`](../../spikes/binding-generators/clangsharp/postprocess/Program.cs) — 7-step postprocess CLI dispatch; the pipeline order in §"Postprocess Pipeline Maintenance".
+- [`spikes/binding-generators/clangsharp/oracle.cs`](../../spikes/binding-generators/clangsharp/oracle.cs) — evidence reporter; invocation form documented in §"Drift Detection Between Versions" 8.2.
+- [`spikes/binding-generators/clangsharp/rsp/`](../../spikes/binding-generators/clangsharp/rsp/) — three-tier RSP organization (base / family / per-header).
+- [`spikes/binding-generators/.config/dotnet-tools.json`](../../spikes/binding-generators/.config/dotnet-tools.json) — ClangSharp tool pin location.
+- [`spikes/binding-generators/Directory.Build.props`](../../spikes/binding-generators/Directory.Build.props) — spike isolation contract.
+- [`docker/binding-generator.Dockerfile`](../../docker/binding-generator.Dockerfile) — Linux production container.

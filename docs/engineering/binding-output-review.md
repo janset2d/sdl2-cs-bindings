@@ -1,6 +1,6 @@
 # Playbook: Binding Output Oracle Validation
 
-> **Status:** Canonical multi-oracle review workflow. Toolchain-neutral methodology complementing the automated `oracle.cs` evidence extractor under [`spikes/binding-generators/clangsharp/`](../../clangsharp/).
+> **Status:** Canonical multi-oracle review workflow. Toolchain-neutral methodology complementing the automated `oracle.cs` evidence extractor under [`spikes/binding-generators/clangsharp/`](../../spikes/binding-generators/clangsharp/).
 
 This playbook defines how to validate generated binding output using multiple imperfect oracles: official SDL sources, native exports, generated evidence, peer bindings, and .NET API extraction. It is intentionally review-led. Tooling collects evidence; agents and humans decide what the evidence means.
 
@@ -15,7 +15,7 @@ Use this playbook when:
 - peer comparison is needed before promoting generated output toward production source;
 - a vcpkg SDL2 pin bump changes public headers or exports.
 
-Do not use this playbook as a substitute for compile checks, fixture tests, native smoke tests, or package consumer smoke. Those layers are defined in [`testing-strategy.md`](testing-strategy.md). This playbook complements them by answering a different question: "Does this generated .NET API look like the correct SDL binding surface, not just compilable C#?"
+Do not use this playbook as a substitute for compile checks, fixture tests, native smoke tests, or package consumer smoke. Those layers are defined in [`binding-testing.md`](binding-testing.md). This playbook complements them by answering a different question: "Does this generated .NET API look like the correct SDL binding surface, not just compilable C#?"
 
 ## Principle
 
@@ -27,7 +27,7 @@ Use automation as an evidence extractor. Use multi-agent review and maintainer j
 
 ### Relationship To `oracle.cs`
 
-The active automated narrow-fact extractor is [`oracle.cs`](../../clangsharp/oracle.cs), a Roslyn-based evidence reporter that emits [`oracle-evidence-clangsharp.md`](../../output/reports/oracle-evidence-clangsharp.md) covering generated category counts, dynapi coherence, opaque-handle inference, and per-family symbol enumerations. That report is the automated lane; this playbook covers the broader review-led workflow whose evidence inputs include the `oracle.cs` report alongside pinned SDL headers, native exports, peer bindings, and .NET API extraction.
+The active automated narrow-fact extractor is [`oracle.cs`](../../spikes/binding-generators/clangsharp/oracle.cs), a Roslyn-based evidence reporter that emits [`oracle-evidence-clangsharp.md`](../../spikes/binding-generators/output/reports/oracle-evidence-clangsharp.md) covering generated category counts, dynapi coherence, opaque-handle inference, and per-family symbol enumerations. That report is the automated lane; this playbook covers the broader review-led workflow whose evidence inputs include the `oracle.cs` report alongside pinned SDL headers, native exports, peer bindings, and .NET API extraction.
 
 Treat `oracle.cs` output as local-generator provenance, not independent upstream truth (see "Source Hierarchy" rank 7 and "Common Mistakes").
 
@@ -335,7 +335,7 @@ slopwatch analyze --fail-on warning --exclude "spikes/binding-generators/referen
 git --no-pager diff --check
 ```
 
-Run Docker-mounted Linux fixture/parser checks when validating parser/header behavior that Windows skips. Use the spike's Docker image built from [`docker/binding-generator.Dockerfile`](../../../../docker/binding-generator.Dockerfile) and the spike's ABI-tests test filter analogous to what was previously the Cake-host semantic-header fixture filter (confirm the active image tag and test filter from the maintenance playbook before invoking).
+Run Docker-mounted Linux fixture/parser checks when validating parser/header behavior that Windows skips. Use the spike's Docker image built from [`docker/binding-generator.Dockerfile`](../../docker/binding-generator.Dockerfile) and the spike's ABI-tests test filter analogous to what was previously the Cake-host semantic-header fixture filter (confirm the active image tag and test filter from the maintenance playbook before invoking).
 
 ## Report Template
 
@@ -422,7 +422,7 @@ Keep each new tool evidence-first. Promote individual checks to fail gates only 
 
 ## Related Docs
 
-- [`binding-generator-constitution.md`](binding-generator-constitution.md)
-- [`binding-generator-roadmap.md`](binding-generator-roadmap.md)
-- [`testing-strategy.md`](testing-strategy.md)
+- [`binding-abi-policy.md`](../architecture/binding-abi-policy.md)
+- [`binding-generator-roadmap.md`](../../spikes/binding-generators/docs/canonical/binding-generator-roadmap.md)
+- [`binding-testing.md`](binding-testing.md)
 - [`binding-generator-maintenance.md`](binding-generator-maintenance.md)
