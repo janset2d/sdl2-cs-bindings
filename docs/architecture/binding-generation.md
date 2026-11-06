@@ -14,11 +14,11 @@ function names. Current implementation and tests establish actual behavior, not 
 policy. Dynapi proves Core function-name coverage only. Peer bindings and historical reports are
 evidence, not policy. If code and canon disagree, follow [Deviation](../engineering/workflow.md#deviation).
 
-The generator is build infrastructure. It produces committed .g.cs files and deterministic per-family
-stamps; generation never runs in a consumer build or a release pack. Release checks validate the
-stamp. Route local production orchestration through tools.cs, keep contracts in the host data layer,
-and expose cross-cutting validation to preflight and pack. Operational implementation gaps are owned
-by the [roadmap](../ROADMAP.md).
+The generator is build infrastructure. Generation must produce committed `.g.cs` files plus a
+deterministic per-family stamp. It never runs in a consumer build or release pack; release validates
+the stamp and never regenerates. Route local production orchestration through tools.cs, keep contracts
+in the host data layer, and expose cross-cutting validation to preflight and pack. The [roadmap](../ROADMAP.md)'s
+Tooling gap owns the current implementation state.
 
 Separate ABI mechanics from named SDL family policy without creating a general generator product.
 Keep concepts target-local until another real consumer exists. Use actual installed satellite headers
