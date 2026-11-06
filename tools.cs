@@ -24,6 +24,7 @@ using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
 using Spectre.Console;
 using Spectre.Console.Cli;
+using tools;
 
 var app = new CommandApp();
 app.Configure(config =>
@@ -48,670 +49,709 @@ app.Configure(config =>
 });
 return await app.RunAsync(args);
 
-// ──────────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 // Settings
-// ──────────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
-public sealed class SetupSettings : CommandSettings
+namespace tools
 {
-    [CommandOption("-s|--source")]
-    [Description("Artifact source for local setup: local, remote-github, or remote-nuget.")]
-    public string Source { get; init; } = "local";
-
-    [CommandOption("--no-clean")]
-    [Description("Skip CleanArtifacts before setup.")]
-    public bool NoClean { get; init; }
-
-    public override ValidationResult Validate()
+    public sealed class SetupSettings : CommandSettings
     {
-        return string.IsNullOrWhiteSpace(Source)
-            ? ValidationResult.Error("--source cannot be empty. Expected: local, remote-github, remote-nuget.")
-            : ValidationResult.Success();
-    }
-}
+        [CommandOption("-s|--source")]
+        [Description("Artifact source for local setup: local, remote-github, or remote-nuget.")]
+        public string Source { get; init; } = "local";
 
-public sealed class CiSimSettings : CommandSettings
-{
-    [CommandOption("-v|--verbose")]
-    [Description("Tee each Cake step's output to the console while still writing per-step logs.")]
-    [DefaultValue(false)]
-    public bool Verbose { get; init; }
-}
+        [CommandOption("--no-clean")]
+        [Description("Skip CleanArtifacts before setup.")]
+        public bool NoClean { get; init; }
 
-// ReSharper disable once ClassNeverInstantiated.Global — instantiated by Spectre DI
-public sealed class BuildSettings : CommandSettings { }
-
-public sealed class BuildCommand : AsyncCommand<BuildSettings>
-{
-    protected override async Task<int> ExecuteAsync(CommandContext context, BuildSettings settings, CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var remainingRaw = context.Remaining.Raw.ToArray();
-        var cakeArgs = remainingRaw.Length > 0
-            ? remainingRaw
-            : [.. context.Arguments.Skip(1)];
-        return await Shared.RunCakePassthroughAsync(cakeArgs);
-    }
-}
-
-// ──────────────────────────────────────────────────────────────────
-// Commands
-// ──────────────────────────────────────────────────────────────────
-
-public sealed class SetupCommand : AsyncCommand<SetupSettings>
-{
-    protected override async Task<int> ExecuteAsync(CommandContext ctx, SetupSettings settings, CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var source = settings.Source.Trim().ToLowerInvariant();
-        return source switch
+        public override ValidationResult Validate()
         {
-            "local" => await RunLocalAsync(settings.NoClean),
-            "remote-github" => await RunRemoteGitHubAsync(settings.NoClean),
-            "remote-nuget" => RunRemoteNuGetStub(),
-            _ => FailUnknownSource(source),
-        };
+            return string.IsNullOrWhiteSpace(Source)
+                ? ValidationResult.Error("--source cannot be empty. Expected: local, remote-github, remote-nuget.")
+                : ValidationResult.Success();
+        }
     }
 
-    private static int FailUnknownSource(string source)
+    public sealed class CiSimSettings : CommandSettings
     {
-        AnsiConsole.MarkupLine($"[red]Unknown --source value '{Markup.Escape(source)}'. Expected: local, remote-github, remote-nuget.[/]");
-        return 64;
+        [CommandOption("-v|--verbose")]
+        [Description("Tee each Cake step's output to the console while still writing per-step logs.")]
+        [DefaultValue(false)]
+        public bool Verbose { get; init; }
     }
 
-    private static int RunRemoteNuGetStub()
+    // ReSharper disable once ClassNeverInstantiated.Global ΓÇö instantiated by Spectre DI
+    public sealed class BuildSettings : CommandSettings { }
+
+    public sealed class BuildCommand : AsyncCommand<BuildSettings>
     {
-        AnsiConsole.MarkupLine("[yellow]remote-nuget source not yet implemented.[/]");
-        return 64;
+        protected override async Task<int> ExecuteAsync(CommandContext context, BuildSettings settings, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var remainingRaw = context.Remaining.Raw.ToArray();
+            var cakeArgs = remainingRaw.Length > 0
+                ? remainingRaw
+                : [.. context.Arguments.Skip(1)];
+            return await Shared.RunCakePassthroughAsync(cakeArgs);
+        }
     }
 
-    private static async Task<int> RunLocalAsync(bool noClean)
+    // ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    // Commands
+    // ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+
+    public sealed class SetupCommand : AsyncCommand<SetupSettings>
     {
-        var repoRoot = await Shared.ResolveRepoRootAsync();
-        var hostRid = Shared.ResolveHostRid();
-        var families = Shared.GetConcreteFamilies(repoRoot);
-        var suffix = Shared.LocalSuffix();
-        var logDir = Shared.CreateLogDir(repoRoot, "setup-local");
-
-        PrintHeader("setup --source=local", repoRoot, hostRid, logDir);
-
-        var totalStopwatch = Stopwatch.StartNew();
-        var results = new List<Shared.StepResult>();
-
-        if (!noClean)
+        protected override async Task<int> ExecuteAsync(CommandContext context, SetupSettings settings, CancellationToken cancellationToken)
         {
-            AnsiConsole.MarkupLine("[grey]Cleaning artifacts/ ...[/]");
-            Shared.CleanArtifacts(repoRoot);
-        }
-        else
-        {
-            AnsiConsole.MarkupLine("[grey]Skipping CleanArtifacts (--no-clean).[/]");
-        }
+            cancellationToken.ThrowIfCancellationRequested();
 
-        var versionsPath = Path.Combine(repoRoot, "artifacts", "resolve-versions", "versions.json");
-
-        var scopeArgs = families.SelectMany(f => new[] { "--scope", f.Name }).ToArray();
-        var resolveArgs = new List<string> { "--target", "ResolveVersionsFromManifest", $"--suffix={suffix}", "--versions-file", versionsPath };
-        resolveArgs.AddRange(scopeArgs);
-
-        if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "ResolveVersionsFromManifest", resolveArgs, verbose: false))
-        {
-            return FinishSetup(results, totalStopwatch, 1);
-        }
-
-        if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "PreFlightCheck",
-                ["--target", "PreFlightCheck", "--versions-file", versionsPath], verbose: false))
-        {
-            return FinishSetup(results, totalStopwatch, 1);
-        }
-
-        if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "EnsureVcpkgDependencies",
-                ["--target", "EnsureVcpkgDependencies", "--rid", hostRid], verbose: false))
-        {
-            return FinishSetup(results, totalStopwatch, 1);
-        }
-
-        if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "Harvest",
-                ["--target", "Harvest", "--rid", hostRid], verbose: false))
-        {
-            return FinishSetup(results, totalStopwatch, 1);
-        }
-
-        if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "ConsolidateHarvest",
-                ["--target", "ConsolidateHarvest"], verbose: false))
-        {
-            return FinishSetup(results, totalStopwatch, 1);
-        }
-
-        if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "Package",
-                ["--target", "Package", "--versions-file", versionsPath], verbose: false))
-        {
-            return FinishSetup(results, totalStopwatch, 1);
-        }
-
-        AnsiConsole.MarkupLine("[grey]Verifying nupkg outputs...[/]");
-        var packagesDir = Path.Combine(repoRoot, "artifacts", "packages");
-        var versions = await Shared.ReadVersionsFromJsonAsync(versionsPath);
-        var missingPackages = new List<string>();
-
-        foreach (var family in families)
-        {
-            if (!versions.TryGetValue(family.Name, out var version))
+            var source = settings.Source.Trim().ToLowerInvariant();
+            return source switch
             {
-                missingPackages.Add($"{family.Name}: missing version mapping in versions.json");
-                AnsiConsole.MarkupLine($"  [red]✗[/] [cyan]{Markup.Escape(family.Name)}[/] — missing version mapping");
-                continue;
+                "local" => await RunLocalAsync(settings.NoClean),
+                "remote-github" => await RunRemoteGitHubAsync(settings.NoClean),
+                "remote-nuget" => RunRemoteNuGetStub(),
+                _ => FailUnknownSource(source),
+            };
+        }
+
+        private static int FailUnknownSource(string source)
+        {
+            AnsiConsole.MarkupLine($"[red]Unknown --source value '{Markup.Escape(source)}'. Expected: local, remote-github, remote-nuget.[/]");
+            return 64;
+        }
+
+        private static int RunRemoteNuGetStub()
+        {
+            AnsiConsole.MarkupLine("[yellow]remote-nuget source not yet implemented.[/]");
+            return 64;
+        }
+
+        private static async Task<int> RunLocalAsync(bool noClean)
+        {
+            var repoRoot = await Shared.ResolveRepoRootAsync();
+            var hostRid = Shared.ResolveHostRid();
+            var families = await Shared.GetConcreteFamiliesAsync(repoRoot);
+            var suffix = Shared.LocalSuffix();
+            var logDir = Shared.CreateLogDir(repoRoot, "setup-local");
+
+            PrintHeader("setup --source=local", repoRoot, hostRid, logDir);
+
+            var totalStopwatch = Stopwatch.StartNew();
+            var results = new List<Shared.StepResult>();
+
+            if (!noClean)
+            {
+                AnsiConsole.MarkupLine("[grey]Cleaning artifacts/ ...[/]");
+                Shared.CleanArtifacts(repoRoot);
+            }
+            else
+            {
+                AnsiConsole.MarkupLine("[grey]Skipping CleanArtifacts (--no-clean).[/]");
             }
 
-            var expectedPackages = Shared.ExpectedNupkgPaths(packagesDir, family.Name, version);
-            var found = expectedPackages.All(File.Exists);
-            AnsiConsole.MarkupLine(found
-                ? $"  [green]✓[/] [cyan]{Markup.Escape(family.Name)}[/] [grey]{Markup.Escape(version)}[/]"
-                : $"  [red]✗[/] [cyan]{Markup.Escape(family.Name)}[/] [grey]{Markup.Escape(version)}[/] — exact nupkg missing");
+            var versionsPath = Path.Combine(repoRoot, "artifacts", "resolve-versions", "versions.json");
 
-            missingPackages.AddRange(expectedPackages
-                .Where(path => !File.Exists(path))
-                .Select(path => Path.GetFileName(path) ?? path));
-        }
+            var scopeArgs = families.SelectMany(f => new[] { "--scope", f.Name }).ToArray();
+            var resolveArgs = new List<string> { "--target", "ResolveVersionsFromManifest", $"--suffix={suffix}", "--versions-file", versionsPath };
+            resolveArgs.AddRange(scopeArgs);
 
-        if (missingPackages.Count > 0)
-        {
-            AnsiConsole.MarkupLine("[red]Some exact nupkgs are missing — stale packages will not be accepted.[/]");
-
-            foreach (var missing in missingPackages)
+            if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "ResolveVersionsFromManifest", resolveArgs, verbose: false))
             {
-                AnsiConsole.MarkupLine($"  [red]missing[/] [grey]{Markup.Escape(missing)}[/]");
+                return FinishSetup(results, totalStopwatch, 1);
             }
 
-            return FinishSetup(results, totalStopwatch, 1);
-        }
-
-        Shared.WriteLocalProps(repoRoot, packagesDir, versions);
-
-        AnsiConsole.MarkupLine($"[green]Janset.Local.props written to[/] [cyan]build/msbuild/Janset.Local.props[/]");
-        AnsiConsole.MarkupLine($"[green]versions.json produced by ResolveVersions at[/] [cyan]artifacts/resolve-versions/versions.json[/]");
-
-        return FinishSetup(results, totalStopwatch, 0);
-    }
-
-    private static async Task<int> RunRemoteGitHubAsync(bool noClean)
-    {
-        var repoRoot = await Shared.ResolveRepoRootAsync();
-        var hostRid = Shared.ResolveHostRid();
-        var families = Shared.GetConcreteFamilies(repoRoot);
-        var logDir = Shared.CreateLogDir(repoRoot, "setup-remote-github");
-
-        PrintHeader("setup --source=remote-github", repoRoot, hostRid, logDir);
-
-        var authToken = Shared.ResolveGitHubToken();
-
-        if (authToken is null)
-        {
-            AnsiConsole.MarkupLine("[red]GH_TOKEN or GITHUB_TOKEN env var required for --source=remote-github.[/]");
-            AnsiConsole.MarkupLine("[grey]Create a Classic PAT with read:packages scope. Fine-grained PATs are unsupported by GH Packages NuGet.[/]");
-            return 1;
-        }
-
-        var totalStopwatch = Stopwatch.StartNew();
-        var results = new List<Shared.StepResult>();
-
-        if (!noClean)
-        {
-            AnsiConsole.MarkupLine("[grey]Cleaning artifacts/ ...[/]");
-            Shared.CleanArtifacts(repoRoot);
-        }
-        else
-        {
-            AnsiConsole.MarkupLine("[grey]Skipping CleanArtifacts (--no-clean).[/]");
-        }
-
-        var packagesDir = Path.Combine(repoRoot, "artifacts", "packages");
-        var acquisition = await RunRemoteGitHubAcquisitionStepAsync(results, logDir, families, packagesDir, authToken);
-
-        if (!acquisition.Succeeded)
-        {
-            return FinishSetup(results, totalStopwatch, 1);
-        }
-
-        var versions = acquisition.Resolved.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToNormalizedString(), StringComparer.OrdinalIgnoreCase);
-        Shared.WriteLocalProps(repoRoot, packagesDir, versions);
-        Shared.WriteVersionsJson(repoRoot, versions);
-
-        AnsiConsole.MarkupLine($"[green]{acquisition.Resolved.Count} families pulled from GH Packages into[/] [cyan]artifacts/packages/[/]");
-
-        return FinishSetup(results, totalStopwatch, 0);
-    }
-
-    private static async Task<(bool Succeeded, SortedDictionary<string, NuGetVersion> Resolved)> RunRemoteGitHubAcquisitionStepAsync(
-        List<Shared.StepResult> results,
-        string logDir,
-        IReadOnlyList<Shared.PackageFamilyConfig> families,
-        string packagesDir,
-        string authToken)
-    {
-        var stepNumber = results.Count + 1;
-        var label = "RemoteGitHubFeed";
-        var logPath = Shared.BuildStepLogPath(logDir, stepNumber, label);
-        var resolved = new SortedDictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase);
-
-        AnsiConsole.Write(new Rule($"[yellow]{stepNumber:00}. {Markup.Escape(label)}[/]").RuleStyle("grey").LeftJustified());
-        AnsiConsole.MarkupLine($"[grey]feed:[/] [cyan]{Markup.Escape(Shared.GitHubPackagesFeedUrl)}[/]");
-
-        var stopwatch = Stopwatch.StartNew();
-        var exitCode = 0;
-
-        await using var logStream = new FileStream(logPath, FileMode.Create, FileAccess.Write, FileShare.Read);
-        await using var logWriter = new StreamWriter(logStream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-        await logWriter.WriteLineAsync($"# feed={Shared.GitHubPackagesFeedUrl}");
-        await logWriter.WriteLineAsync($"# packages={packagesDir}");
-        await logWriter.WriteLineAsync();
-
-        try
-        {
-            Shared.WipeJansetPackages(packagesDir, message => logWriter.WriteLine(message));
-
-            foreach (var family in families)
+            if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "PreFlightCheck",
+                    ["--target", "PreFlightCheck", "--versions-file", versionsPath], verbose: false))
             {
-                var managedId = Shared.ManagedPackageId(family.Name);
-                var nativeId = Shared.NativePackageId(family.Name);
+                return FinishSetup(results, totalStopwatch, 1);
+            }
 
-                var managedVersion = await GetLatestRemoteVersionAsync(authToken, family.Name, managedId, logWriter);
-                var nativeVersion = await GetLatestRemoteVersionAsync(authToken, family.Name, nativeId, logWriter);
+            if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "EnsureVcpkgDependencies",
+                    ["--target", "EnsureVcpkgDependencies", "--rid", hostRid], verbose: false))
+            {
+                return FinishSetup(results, totalStopwatch, 1);
+            }
+
+            if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "Harvest",
+                    ["--target", "Harvest", "--rid", hostRid], verbose: false))
+            {
+                return FinishSetup(results, totalStopwatch, 1);
+            }
+
+            if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "ConsolidateHarvest",
+                    ["--target", "ConsolidateHarvest"], verbose: false))
+            {
+                return FinishSetup(results, totalStopwatch, 1);
+            }
+
+            if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "Package",
+                    ["--target", "Package", "--versions-file", versionsPath], verbose: false))
+            {
+                return FinishSetup(results, totalStopwatch, 1);
+            }
+
+            if (!await VerifyLocalPackagesAsync(repoRoot, families, versionsPath))
+            {
+                return FinishSetup(results, totalStopwatch, 1);
+            }
+
+            return FinishSetup(results, totalStopwatch, 0);
+        }
+
+        private static async Task<bool> VerifyLocalPackagesAsync(string repoRoot, IReadOnlyList<Shared.PackageFamilyConfig> families, string versionsPath)
+        {
+            AnsiConsole.MarkupLine("[grey]Verifying nupkg outputs...[/]");
+            var packagesDir = Path.Combine(repoRoot, "artifacts", "packages");
+            var versions = await Shared.ReadVersionsFromJsonAsync(versionsPath);
+            var missingPackages = new List<string>();
+
+            foreach (var familyName in families.Select(family => family.Name))
+            {
+                if (!versions.TryGetValue(familyName, out var version))
+                {
+                    missingPackages.Add($"{familyName}: missing version mapping in versions.json");
+                    AnsiConsole.MarkupLine($"  [red]Γ£ù[/] [cyan]{Markup.Escape(familyName)}[/] ΓÇö missing version mapping");
+                    continue;
+                }
+
+                var expectedPackages = Shared.ExpectedNupkgPaths(packagesDir, familyName, version);
+                var found = expectedPackages.All(File.Exists);
+                AnsiConsole.MarkupLine(found
+                    ? $"  [green]Γ£ô[/] [cyan]{Markup.Escape(familyName)}[/] [grey]{Markup.Escape(version)}[/]"
+                    : $"  [red]Γ£ù[/] [cyan]{Markup.Escape(familyName)}[/] [grey]{Markup.Escape(version)}[/] ΓÇö exact nupkg missing");
+
+                missingPackages.AddRange(expectedPackages
+                    .Where(path => !File.Exists(path))
+                    .Select(path => Path.GetFileName(path) ?? path));
+            }
+
+            if (missingPackages.Count > 0)
+            {
+                AnsiConsole.MarkupLine("[red]Some exact nupkgs are missing ΓÇö stale packages will not be accepted.[/]");
+
+                foreach (var missing in missingPackages)
+                {
+                    AnsiConsole.MarkupLine($"  [red]missing[/] [grey]{Markup.Escape(missing)}[/]");
+                }
+
+                return false;
+            }
+
+            await Shared.WriteLocalPropsAsync(repoRoot, packagesDir, versions);
+
+            AnsiConsole.MarkupLine("[green]Janset.Local.props written to[/] [cyan]build/msbuild/Janset.Local.props[/]");
+            AnsiConsole.MarkupLine("[green]versions.json produced by ResolveVersions at[/] [cyan]artifacts/resolve-versions/versions.json[/]");
+
+            return true;
+        }
+
+        private static async Task<int> RunRemoteGitHubAsync(bool noClean)
+        {
+            var repoRoot = await Shared.ResolveRepoRootAsync();
+            var hostRid = Shared.ResolveHostRid();
+            var families = await Shared.GetConcreteFamiliesAsync(repoRoot);
+            var logDir = Shared.CreateLogDir(repoRoot, "setup-remote-github");
+
+            PrintHeader("setup --source=remote-github", repoRoot, hostRid, logDir);
+
+            var authToken = Shared.ResolveGitHubToken();
+
+            if (authToken is null)
+            {
+                AnsiConsole.MarkupLine("[red]GH_TOKEN or GITHUB_TOKEN env var required for --source=remote-github.[/]");
+                AnsiConsole.MarkupLine("[grey]Create a Classic PAT with read:packages scope. Fine-grained PATs are unsupported by GH Packages NuGet.[/]");
+                return 1;
+            }
+
+            var totalStopwatch = Stopwatch.StartNew();
+            var results = new List<Shared.StepResult>();
+
+            if (!noClean)
+            {
+                AnsiConsole.MarkupLine("[grey]Cleaning artifacts/ ...[/]");
+                Shared.CleanArtifacts(repoRoot);
+            }
+            else
+            {
+                AnsiConsole.MarkupLine("[grey]Skipping CleanArtifacts (--no-clean).[/]");
+            }
+
+            var packagesDir = Path.Combine(repoRoot, "artifacts", "packages");
+            var acquisition = await RunRemoteGitHubAcquisitionStepAsync(results, logDir, families, packagesDir, authToken);
+
+            if (!acquisition.Succeeded)
+            {
+                return FinishSetup(results, totalStopwatch, 1);
+            }
+
+            var versions = acquisition.Resolved.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToNormalizedString(), StringComparer.OrdinalIgnoreCase);
+            await Shared.WriteLocalPropsAsync(repoRoot, packagesDir, versions);
+            await Shared.WriteVersionsJsonAsync(repoRoot, versions);
+
+            AnsiConsole.MarkupLine($"[green]{acquisition.Resolved.Count} families pulled from GH Packages into[/] [cyan]artifacts/packages/[/]");
+
+            return FinishSetup(results, totalStopwatch, 0);
+        }
+
+        private static async Task<(bool Succeeded, SortedDictionary<string, NuGetVersion> Resolved)> RunRemoteGitHubAcquisitionStepAsync(
+            List<Shared.StepResult> results,
+            string logDir,
+            IReadOnlyList<Shared.PackageFamilyConfig> families,
+            string packagesDir,
+            string authToken)
+        {
+            var stepNumber = results.Count + 1;
+            var label = "RemoteGitHubFeed";
+            var logPath = Shared.BuildStepLogPath(logDir, stepNumber, label);
+            var resolved = new SortedDictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase);
+
+            AnsiConsole.Write(new Rule($"[yellow]{stepNumber:00}. {Markup.Escape(label)}[/]").RuleStyle("grey").LeftJustified());
+            AnsiConsole.MarkupLine($"[grey]feed:[/] [cyan]{Markup.Escape(Shared.GitHubPackagesFeedUrl)}[/]");
+
+            var stopwatch = Stopwatch.StartNew();
+            var exitCode = 0;
+
+            await using var logStream = new FileStream(logPath, FileMode.Create, FileAccess.Write, FileShare.Read);
+            await using var logWriter = new StreamWriter(logStream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+            await logWriter.WriteLineAsync($"# feed={Shared.GitHubPackagesFeedUrl}");
+            await logWriter.WriteLineAsync($"# packages={packagesDir}");
+            await logWriter.WriteLineAsync();
+
+            try
+            {
+                Shared.WipeJansetPackages(packagesDir, message => logWriter.WriteLine(message));
+                await AcquireRemoteFamiliesAsync(families, packagesDir, authToken, logWriter, resolved);
+            }
+            catch (RemoteGitHubSetupException ex)
+            {
+                exitCode = 1;
+                AnsiConsole.MarkupLine($"[red]{Markup.Escape(ex.Message)}[/]");
+                await logWriter.WriteLineAsync();
+                await logWriter.WriteLineAsync(ex.ToString());
+            }
+            catch (Exception ex)
+            {
+                exitCode = 1;
+                var message = Shared.DescribeNuGetFailure(ex, "GitHub Packages", "query/download");
+                AnsiConsole.MarkupLine($"[red]{Markup.Escape(message)}[/]");
+                await logWriter.WriteLineAsync();
+                await logWriter.WriteLineAsync(ex.ToString());
+            }
+
+            stopwatch.Stop();
+            await logWriter.WriteLineAsync();
+            await logWriter.WriteLineAsync($"# exit={exitCode} finished={DateTimeOffset.UtcNow:O}");
+            await logWriter.FlushAsync();
+
+            results.Add(new Shared.StepResult(label, exitCode, stopwatch.Elapsed, logPath));
+
+            if (exitCode == 0)
+            {
+                AnsiConsole.MarkupLine($"[green]OK[/]   ({stopwatch.Elapsed.TotalSeconds:F1}s) ΓåÆ [grey]{Markup.Escape(logPath)}[/]");
+            }
+            else
+            {
+                AnsiConsole.MarkupLine($"[red]FAIL[/] ({stopwatch.Elapsed.TotalSeconds:F1}s) ΓåÆ [cyan]{Markup.Escape(logPath)}[/]");
+            }
+
+            AnsiConsole.WriteLine();
+
+            return (exitCode == 0, resolved);
+        }
+
+        private static async Task AcquireRemoteFamiliesAsync(
+            IReadOnlyList<Shared.PackageFamilyConfig> families, string packagesDir, string authToken,
+            TextWriter logWriter, SortedDictionary<string, NuGetVersion> resolved)
+        {
+            foreach (var familyName in families.Select(family => family.Name))
+            {
+                var managedId = Shared.ManagedPackageId(familyName);
+                var nativeId = Shared.NativePackageId(familyName);
+
+                var managedVersion = await GetLatestRemoteVersionAsync(authToken, familyName, managedId, logWriter);
+                var nativeVersion = await GetLatestRemoteVersionAsync(authToken, familyName, nativeId, logWriter);
 
                 if (managedVersion is null)
                 {
                     throw new RemoteGitHubSetupException(
-                        $"Family '{family.Name}' has no published managed package '{managedId}' on GitHub Packages. First publish wave has not " +
+                        $"Family '{familyName}' has no published managed package '{managedId}' on GitHub Packages. First publish wave has not " +
                         "shipped yet, or this package was not pushed. Run local setup or publish a coherent staging wave.");
                 }
 
                 if (nativeVersion is null)
                 {
                     throw new RemoteGitHubSetupException(
-                        $"Family '{family.Name}' has no published native package '{nativeId}' on GitHub Packages while managed '{managedId}' is at " +
+                        $"Family '{familyName}' has no published native package '{nativeId}' on GitHub Packages while managed '{managedId}' is at " +
                         $"{managedVersion.ToNormalizedString()}. This looks like a partial publish; re-run the failing publish wave or use local setup.");
                 }
 
                 if (!VersionComparer.Default.Equals(managedVersion, nativeVersion))
                 {
                     throw new RemoteGitHubSetupException(
-                        $"Family '{family.Name}' managed/native versions disagree: {managedId}@{managedVersion.ToNormalizedString()} vs " +
+                        $"Family '{familyName}' managed/native versions disagree: {managedId}@{managedVersion.ToNormalizedString()} vs " +
                         $"{nativeId}@{nativeVersion.ToNormalizedString()}. This is likely a partial publish; repair the internal feed or supply a " +
                         "coherent version set in a future explicit-version flow.");
                 }
 
-                AnsiConsole.MarkupLine($"  [green]✓[/] [cyan]{Markup.Escape(family.Name)}[/] = [yellow]{managedVersion.ToNormalizedString()}[/]");
-                await logWriter.WriteLineAsync($"{family.Name}={managedVersion.ToNormalizedString()}");
+                AnsiConsole.MarkupLine($"  [green]Γ£ô[/] [cyan]{Markup.Escape(familyName)}[/] = [yellow]{managedVersion.ToNormalizedString()}[/]");
+                await logWriter.WriteLineAsync($"{familyName}={managedVersion.ToNormalizedString()}");
 
                 await DownloadRemotePackageAsync(authToken, managedId, managedVersion, packagesDir, logWriter);
                 await DownloadRemotePackageAsync(authToken, nativeId, nativeVersion, packagesDir, logWriter);
 
-                resolved[family.Name] = managedVersion;
+                resolved[familyName] = managedVersion;
             }
         }
-        catch (RemoteGitHubSetupException ex)
-        {
-            exitCode = 1;
-            AnsiConsole.MarkupLine($"[red]{Markup.Escape(ex.Message)}[/]");
-            await logWriter.WriteLineAsync();
-            await logWriter.WriteLineAsync(ex.ToString());
-        }
-        catch (Exception ex)
-        {
-            exitCode = 1;
-            var message = Shared.DescribeNuGetFailure(ex, "GitHub Packages", "query/download");
-            AnsiConsole.MarkupLine($"[red]{Markup.Escape(message)}[/]");
-            await logWriter.WriteLineAsync();
-            await logWriter.WriteLineAsync(ex.ToString());
-        }
 
-        stopwatch.Stop();
-        await logWriter.WriteLineAsync();
-        await logWriter.WriteLineAsync($"# exit={exitCode} finished={DateTimeOffset.UtcNow:O}");
-        await logWriter.FlushAsync();
-
-        results.Add(new Shared.StepResult(label, exitCode, stopwatch.Elapsed, logPath));
-
-        if (exitCode == 0)
+        private static async Task<NuGetVersion?> GetLatestRemoteVersionAsync(
+            string authToken,
+            string familyName,
+            string packageId,
+            TextWriter logWriter)
         {
-            AnsiConsole.MarkupLine($"[green]OK[/]   ({stopwatch.Elapsed.TotalSeconds:F1}s) → [grey]{Markup.Escape(logPath)}[/]");
-        }
-        else
-        {
-            AnsiConsole.MarkupLine($"[red]FAIL[/] ({stopwatch.Elapsed.TotalSeconds:F1}s) → [cyan]{Markup.Escape(logPath)}[/]");
+            await logWriter.WriteLineAsync($"discover {familyName} {packageId}");
+
+            try
+            {
+                return await Shared.GetLatestNuGetVersionAsync(Shared.GitHubPackagesFeedUrl, authToken, packageId);
+            }
+            catch (Exception ex)
+            {
+                throw new RemoteGitHubSetupException(Shared.DescribeNuGetFailure(ex, packageId, "query"), ex);
+            }
         }
 
-        AnsiConsole.WriteLine();
+        private static async Task DownloadRemotePackageAsync(
+            string authToken,
+            string packageId,
+            NuGetVersion version,
+            string packagesDir,
+            TextWriter logWriter)
+        {
+            await logWriter.WriteLineAsync($"download {packageId} {version.ToNormalizedString()}");
 
-        return (exitCode == 0, resolved);
+            try
+            {
+                await Shared.DownloadNuGetPackageAsync(Shared.GitHubPackagesFeedUrl, authToken, packageId, version, packagesDir);
+            }
+            catch (Exception ex)
+            {
+                throw new RemoteGitHubSetupException(Shared.DescribeNuGetFailure(ex, packageId, "download"), ex);
+            }
+        }
+
+        private static int FinishSetup(List<Shared.StepResult> results, Stopwatch totalStopwatch, int exitCode)
+        {
+            totalStopwatch.Stop();
+            Shared.PrintSummaryTable(results, totalStopwatch.Elapsed);
+
+            if (exitCode != 0 && results.LastOrDefault()?.LogPath is { } logPath)
+            {
+                AnsiConsole.MarkupLine($"[yellow]Inspect failing log:[/] [cyan]{Markup.Escape(logPath)}[/]");
+            }
+
+            return exitCode;
+        }
+
+        private static void PrintHeader(string label, string repoRoot, string hostRid, string? logDir = null)
+        {
+            AnsiConsole.Write(new FigletText("tools").Color(Color.Yellow));
+            AnsiConsole.MarkupLine($"[grey]Command:[/] [cyan]{Markup.Escape(label)}[/]");
+            AnsiConsole.MarkupLine($"[grey]Host RID:[/] [cyan]{Markup.Escape(hostRid)}[/]");
+            AnsiConsole.MarkupLine($"[grey]Repo:[/] [cyan]{Markup.Escape(repoRoot)}[/]");
+
+            if (logDir is not null)
+            {
+                AnsiConsole.MarkupLine($"[grey]Logs:[/] [cyan]{Markup.Escape(logDir)}[/]");
+            }
+
+            AnsiConsole.WriteLine();
+        }
+
     }
 
-    private static async Task<NuGetVersion?> GetLatestRemoteVersionAsync(
-        string authToken,
-        string familyName,
-        string packageId,
-        TextWriter logWriter)
+    public sealed class RemoteGitHubSetupException : Exception
     {
-        await logWriter.WriteLineAsync($"discover {familyName} {packageId}");
-
-        try
+        public RemoteGitHubSetupException()
         {
-            return await Shared.GetLatestNuGetVersionAsync(Shared.GitHubPackagesFeedUrl, authToken, packageId);
         }
-        catch (Exception ex)
+
+        public RemoteGitHubSetupException(string message)
+            : base(message)
         {
-            throw new RemoteGitHubSetupException(Shared.DescribeNuGetFailure(ex, packageId, "query"), ex);
+        }
+
+        public RemoteGitHubSetupException(string message, Exception innerException)
+            : base(message, innerException)
+        {
         }
     }
 
-    private static async Task DownloadRemotePackageAsync(
-        string authToken,
-        string packageId,
-        NuGetVersion version,
-        string packagesDir,
-        TextWriter logWriter)
+    public sealed class CiSimCommand : AsyncCommand<CiSimSettings>
     {
-        await logWriter.WriteLineAsync($"download {packageId} {version.ToNormalizedString()}");
-
-        try
+        protected override async Task<int> ExecuteAsync(CommandContext context, CiSimSettings settings, CancellationToken cancellationToken)
         {
-            await Shared.DownloadNuGetPackageAsync(Shared.GitHubPackagesFeedUrl, authToken, packageId, version, packagesDir);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var repoRoot = await Shared.ResolveRepoRootAsync();
+            var hostRid = Shared.ResolveHostRid();
+            var families = await Shared.GetConcreteFamiliesAsync(repoRoot);
+            var suffix = Shared.LocalSuffix();
+            var logDir = PrepareLogDirectory(repoRoot, hostRid, settings.Verbose);
+
+            var totalStopwatch = Stopwatch.StartNew();
+            var results = new List<Shared.StepResult>();
+
+            var scopeArgs = families.SelectMany(f => new[] { "--scope", f.Name }).ToArray();
+
+            // Step 1: CleanArtifacts
+            AnsiConsole.MarkupLine("[grey]Cleaning artifacts/ ...[/]");
+            Shared.CleanArtifacts(repoRoot);
+
+            var versionsPath = Path.Combine(repoRoot, "artifacts", "resolve-versions", "versions.json");
+
+            // Step 2: ResolveVersionsFromManifest
+            var resolveArgs = new List<string> { "--target", "ResolveVersionsFromManifest", $"--suffix={suffix}", "--versions-file", versionsPath };
+            resolveArgs.AddRange(scopeArgs);
+
+            if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "ResolveVersionsFromManifest",
+                    resolveArgs, settings.Verbose))
+            {
+                return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 1);
+            }
+
+            // Step 3: PreFlightCheck
+            if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "PreFlightCheck",
+                    ["--target", "PreFlightCheck", "--versions-file", versionsPath], settings.Verbose))
+            {
+                return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 1);
+            }
+
+            if (!await RunNativeStepsAsync(results, repoRoot, logDir, hostRid, settings.Verbose))
+            {
+                return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 1);
+            }
+
+            // Step 8: Package
+            if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "Package",
+                    ["--target", "Package", "--versions-file", versionsPath], settings.Verbose))
+            {
+                return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 1);
+            }
+
+            // Step 9: PackageConsumerSmoke
+            if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "PackageConsumerSmoke",
+                    ["--target", "PackageConsumerSmoke", "--rid", hostRid, "--versions-file", versionsPath], settings.Verbose))
+            {
+                return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 1);
+            }
+
+            // Refresh Janset.Local.props so IDE-driven smoke restore stays in sync with the
+            // freshly-packed nupkgs. ci-sim's CleanArtifacts step wipes the previous setup
+            // run's packages, so without this rewrite the props would dangle at stale versions.
+            var packagesDir = Path.Combine(repoRoot, "artifacts", "packages");
+            var versions = await Shared.ReadVersionsFromJsonAsync(versionsPath);
+            await Shared.WriteLocalPropsAsync(repoRoot, packagesDir, versions);
+            AnsiConsole.MarkupLine("[green]Janset.Local.props refreshed at[/] [cyan]build/msbuild/Janset.Local.props[/]");
+
+            return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 0);
         }
-        catch (Exception ex)
+
+        private static async Task<bool> RunNativeStepsAsync(List<Shared.StepResult> results, string repoRoot, string logDir, string hostRid, bool verbose)
         {
-            throw new RemoteGitHubSetupException(Shared.DescribeNuGetFailure(ex, packageId, "download"), ex);
+            if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "EnsureVcpkgDependencies",
+                    ["--target", "EnsureVcpkgDependencies", "--rid", hostRid], verbose))
+            {
+                return false;
+            }
+
+            if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "Harvest",
+                    ["--target", "Harvest", "--rid", hostRid], verbose))
+            {
+                return false;
+            }
+
+            if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "NativeSmoke",
+                    ["--target", "NativeSmoke", "--rid", hostRid], verbose))
+            {
+                return false;
+            }
+
+            return await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "ConsolidateHarvest",
+                ["--target", "ConsolidateHarvest"], verbose);
         }
-    }
 
-    private static int FinishSetup(List<Shared.StepResult> results, Stopwatch totalStopwatch, int exitCode)
-    {
-        totalStopwatch.Stop();
-        Shared.PrintSummaryTable(results, totalStopwatch.Elapsed);
-
-        if (exitCode != 0 && results.LastOrDefault()?.LogPath is { } logPath)
+        private static string PrepareLogDirectory(string repoRoot, string hostRid, bool verbose)
         {
-            AnsiConsole.MarkupLine($"[yellow]Inspect failing log:[/] [cyan]{Markup.Escape(logPath)}[/]");
-        }
+            var platform = Shared.ResolvePlatformTag();
+            var runId = DateTimeOffset.UtcNow.ToString("yyyyMMddTHHmmssZ", CultureInfo.InvariantCulture);
+            var logDir = Path.Combine(repoRoot, ".logs", "tools", $"{platform}-ci-sim-{runId}");
 
-        return exitCode;
-    }
+            if (Directory.Exists(logDir))
+            {
+                Directory.Delete(logDir, recursive: true);
+            }
 
-    private static void PrintHeader(string label, string repoRoot, string hostRid, string? logDir = null)
-    {
-        AnsiConsole.Write(new FigletText("tools").Color(Color.Yellow));
-        AnsiConsole.MarkupLine($"[grey]Command:[/] [cyan]{Markup.Escape(label)}[/]");
-        AnsiConsole.MarkupLine($"[grey]Host RID:[/] [cyan]{Markup.Escape(hostRid)}[/]");
-        AnsiConsole.MarkupLine($"[grey]Repo:[/] [cyan]{Markup.Escape(repoRoot)}[/]");
-
-        if (logDir is not null)
-        {
+            Directory.CreateDirectory(logDir);
+            AnsiConsole.Write(new FigletText("tools").Color(Color.Yellow));
+            AnsiConsole.MarkupLine("[grey]Command:[/] [cyan]ci-sim[/]");
+            AnsiConsole.MarkupLine($"[grey]Host RID:[/] [cyan]{Markup.Escape(hostRid)}[/]");
+            AnsiConsole.MarkupLine($"[grey]Repo:[/] [cyan]{Markup.Escape(repoRoot)}[/]");
             AnsiConsole.MarkupLine($"[grey]Logs:[/] [cyan]{Markup.Escape(logDir)}[/]");
+            AnsiConsole.MarkupLine($"[grey]Verbose:[/] {(verbose ? "[yellow]on[/]" : "[grey]off[/]")}");
+            AnsiConsole.WriteLine();
+            return logDir;
         }
 
-        AnsiConsole.WriteLine();
+        private static int FinishCiSim(List<Shared.StepResult> results, TimeSpan totalDuration, string logDir, int exitCode)
+        {
+            Shared.PrintSummaryTable(results, totalDuration);
+
+            if (exitCode != 0)
+            {
+                AnsiConsole.MarkupLine($"[yellow]Inspect failing logs under[/] [cyan]{Markup.Escape(logDir)}[/].");
+            }
+
+            return exitCode;
+        }
     }
 
-}
+    // ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    // Linux x64 ABI-test image build
+    // ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
-public sealed class RemoteGitHubSetupException : Exception
-{
-    public RemoteGitHubSetupException()
+    public sealed class BuildBindingGeneratorImageSettings : CommandSettings
     {
+        [CommandOption("--rebuild-image")]
+        [Description("Rebuilds all image layers without Docker layer cache.")]
+        [DefaultValue(false)]
+        public bool RebuildImage { get; init; }
+
     }
 
-    public RemoteGitHubSetupException(string message)
-        : base(message)
+    public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindingGeneratorImageSettings>
     {
-    }
+        private const string ImageTag = "janset-binding-generator:focal-latest";
 
-    public RemoteGitHubSetupException(string message, Exception innerException)
-        : base(message, innerException)
-    {
-    }
-}
-
-public sealed class CiSimCommand : AsyncCommand<CiSimSettings>
-{
-    protected override async Task<int> ExecuteAsync(CommandContext ctx, CiSimSettings settings, CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var repoRoot = await Shared.ResolveRepoRootAsync();
-        var hostRid = Shared.ResolveHostRid();
-        var families = Shared.GetConcreteFamilies(repoRoot);
-        var suffix = Shared.LocalSuffix();
-        var platform = Shared.ResolvePlatformTag();
-        var runId = DateTimeOffset.UtcNow.ToString("yyyyMMddTHHmmssZ", CultureInfo.InvariantCulture);
-        var logDir = Path.Combine(repoRoot, ".logs", "tools", $"{platform}-ci-sim-{runId}");
-
-        if (Directory.Exists(logDir))
+        protected override async Task<int> ExecuteAsync(CommandContext context, BuildBindingGeneratorImageSettings settings, CancellationToken cancellationToken)
         {
-            Directory.Delete(logDir, recursive: true);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var repoRoot = await Shared.ResolveRepoRootAsync();
+
+            // [1] Validate docker daemon reachable.
+            var dockerProbe = await CaptureRunAsync("docker", ["version", "--format", "{{.Server.Version}}"], cancellationToken);
+
+            if (dockerProbe.ExitCode != 0)
+            {
+                AnsiConsole.MarkupLine("[red]Docker daemon not reachable.[/] Start Docker Desktop / dockerd, then retry.");
+                return 66;
+            }
+
+            AnsiConsole.MarkupLine($"[green]Docker daemon ready[/] (server {Markup.Escape(dockerProbe.StdOut.Trim())}).");
+
+            // [2] Resolve BASE_IMAGE from build/manifest.json runtimes[linux-x64].container_image.
+            var baseImage = await ReadLinuxBaseImageAsync(repoRoot);
+
+            if (string.IsNullOrWhiteSpace(baseImage))
+            {
+                AnsiConsole.MarkupLine("[red]Could not resolve BASE_IMAGE from build/manifest.json runtimes[linux-x64].container_image.[/]");
+                return 1;
+            }
+
+            AnsiConsole.MarkupLine($"[blue]BASE_IMAGE:[/] [cyan]{Markup.Escape(baseImage)}[/]");
+
+            var pullExit = await PullBaseImageAsync(baseImage, cancellationToken);
+
+            if (pullExit != 0)
+            {
+                return pullExit;
+            }
+
+            // [4b] Resolve vcpkg submodule commit so the Dockerfile clones vcpkg at the
+            // repo's pinned ref. Stable across parent-repo commits that don't touch the
+            // submodule ΓÇö keeps Layer C's image cache hot.
+            var vcpkgCommitProbe = await CaptureRunAsync("git", ["rev-parse", "HEAD:external/vcpkg"], cancellationToken, workingDirectory: repoRoot);
+
+            if (vcpkgCommitProbe.ExitCode != 0 || string.IsNullOrWhiteSpace(vcpkgCommitProbe.StdOut))
+            {
+                AnsiConsole.MarkupLine("[red]Failed to resolve vcpkg submodule commit via 'git rev-parse HEAD:external/vcpkg'.[/]");
+                AnsiConsole.MarkupLine($"[red]{Markup.Escape(vcpkgCommitProbe.StdErr.Trim())}[/]");
+                return 1;
+            }
+
+            var vcpkgCommit = vcpkgCommitProbe.StdOut.Trim();
+            AnsiConsole.MarkupLine($"[blue]vcpkg submodule commit:[/] [cyan]{Markup.Escape(vcpkgCommit)}[/]");
+
+            // [4c] Read SDL2 version from manifest. The Dockerfile's conditional
+            // fallback uses this to git-clone SDL2 upstream source when vcpkg's
+            // binary cache hit skips source extraction ΓÇö the cloned tree provides
+            // src/dynapi/SDL2.exports for explicit header diagnostics. Version must
+            // match the vcpkg-baked SDL2 binary (same vcpkg_version field), so
+            // sourcing it from the same manifest entry keeps them in lockstep.
+            var sdl2Version = await ReadSdl2VcpkgVersionAsync(repoRoot);
+
+            if (string.IsNullOrWhiteSpace(sdl2Version))
+            {
+                AnsiConsole.MarkupLine("[red]Could not resolve SDL2 vcpkg_version from build/manifest.json library_manifests[name=SDL2].[/]");
+                return 1;
+            }
+
+            AnsiConsole.MarkupLine($"[blue]SDL2 vcpkg version:[/] [cyan]{Markup.Escape(sdl2Version)}[/]");
+
+            // [4d] Compute a deterministic cache key for the binary cache BuildKit
+            // mount the Dockerfile's Layer E declares. Key composition mirrors
+            // .github/actions/vcpkg-setup/action.yml's actions/cache@v5 key
+            // (vcpkg.json + overlay-triplets + overlay-ports + vcpkg commit) so
+            // local Docker invalidation matches CI invalidation exactly. Content
+            // changes in any of those inputs yield a fresh key ΓåÆ new mount ΓåÆ cold
+            // from vcpkg's perspective ΓåÆ full from-source build ΓåÆ image layer
+            // captures buildtrees naturally. Without content-derived id, the binary
+            // cache mount would retain stale compiled artifacts across vcpkg.json
+            // bumps (vcpkg's own ABI hash would reject them but the mount would
+            // still waste disk).
+            var vcpkgCacheKey = await ComputeVcpkgCacheKeyAsync(repoRoot, vcpkgCommit);
+            AnsiConsole.MarkupLine($"[blue]vcpkg cache key:[/] [cyan]{Markup.Escape(vcpkgCacheKey)}[/]");
+
+            return await BuildImageAsync(repoRoot, baseImage, vcpkgCommit, vcpkgCacheKey, sdl2Version, settings.RebuildImage, cancellationToken);
         }
 
-        Directory.CreateDirectory(logDir);
-
-        AnsiConsole.Write(new FigletText("tools").Color(Color.Yellow));
-        AnsiConsole.MarkupLine($"[grey]Command:[/] [cyan]ci-sim[/]");
-        AnsiConsole.MarkupLine($"[grey]Host RID:[/] [cyan]{Markup.Escape(hostRid)}[/]");
-        AnsiConsole.MarkupLine($"[grey]Repo:[/] [cyan]{Markup.Escape(repoRoot)}[/]");
-        AnsiConsole.MarkupLine($"[grey]Logs:[/] [cyan]{Markup.Escape(logDir)}[/]");
-        AnsiConsole.MarkupLine($"[grey]Verbose:[/] {(settings.Verbose ? "[yellow]on[/]" : "[grey]off[/]")}");
-        AnsiConsole.WriteLine();
-
-        var totalStopwatch = Stopwatch.StartNew();
-        var results = new List<Shared.StepResult>();
-
-        var scopeArgs = families.SelectMany(f => new[] { "--scope", f.Name }).ToArray();
-
-        // Step 1: CleanArtifacts
-        AnsiConsole.MarkupLine("[grey]Cleaning artifacts/ ...[/]");
-        Shared.CleanArtifacts(repoRoot);
-
-        var versionsPath = Path.Combine(repoRoot, "artifacts", "resolve-versions", "versions.json");
-
-        // Step 2: ResolveVersionsFromManifest
-        var resolveArgs = new List<string> { "--target", "ResolveVersionsFromManifest", $"--suffix={suffix}", "--versions-file", versionsPath };
-        resolveArgs.AddRange(scopeArgs);
-
-        if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "ResolveVersionsFromManifest",
-                resolveArgs, settings.Verbose))
+        private static async Task<int> PullBaseImageAsync(string baseImage, CancellationToken cancellationToken)
         {
-            return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 1);
+            AnsiConsole.MarkupLine("[blue]Pulling base image...[/]");
+            var pullExit = await StreamRunAsync("docker", ["pull", baseImage], cancellationToken);
+
+            if (pullExit != 0)
+            {
+                AnsiConsole.MarkupLine($"[red]docker pull failed with exit code {pullExit}.[/]");
+                return pullExit;
+            }
+
+            var inspect = await CaptureRunAsync("docker", ["inspect", "--format={{index .RepoDigests 0}}", baseImage], cancellationToken);
+            var containerDigest = inspect.StdOut.Trim();
+
+            if (string.IsNullOrWhiteSpace(containerDigest))
+            {
+                AnsiConsole.MarkupLine("[yellow]Could not capture base image digest; continuing without audit-trail digest.[/]");
+            }
+            else
+            {
+                AnsiConsole.MarkupLine($"[blue]Base image digest:[/] [cyan]{Markup.Escape(containerDigest)}[/]");
+            }
+
+            return 0;
         }
 
-        // Step 3: PreFlightCheck
-        if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "PreFlightCheck",
-                ["--target", "PreFlightCheck", "--versions-file", versionsPath], settings.Verbose))
+        private static async Task<int> BuildImageAsync(
+            string repoRoot, string baseImage, string vcpkgCommit, string vcpkgCacheKey, string sdl2Version,
+            bool rebuildImage, CancellationToken cancellationToken)
         {
-            return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 1);
-        }
-
-        // Step 4: EnsureVcpkgDependencies
-        if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "EnsureVcpkgDependencies",
-                ["--target", "EnsureVcpkgDependencies", "--rid", hostRid], settings.Verbose))
-        {
-            return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 1);
-        }
-
-        // Step 5: Harvest
-        if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "Harvest",
-                ["--target", "Harvest", "--rid", hostRid], settings.Verbose))
-        {
-            return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 1);
-        }
-
-        // Step 6: NativeSmoke
-        if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "NativeSmoke",
-                ["--target", "NativeSmoke", "--rid", hostRid], settings.Verbose))
-        {
-            return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 1);
-        }
-
-        // Step 7: ConsolidateHarvest
-        if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "ConsolidateHarvest",
-                ["--target", "ConsolidateHarvest"], settings.Verbose))
-        {
-            return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 1);
-        }
-
-        // Step 8: Package
-        if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "Package",
-                ["--target", "Package", "--versions-file", versionsPath], settings.Verbose))
-        {
-            return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 1);
-        }
-
-        // Step 9: PackageConsumerSmoke
-        if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "PackageConsumerSmoke",
-                ["--target", "PackageConsumerSmoke", "--rid", hostRid, "--versions-file", versionsPath], settings.Verbose))
-        {
-            return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 1);
-        }
-
-        // Refresh Janset.Local.props so IDE-driven smoke restore stays in sync with the
-        // freshly-packed nupkgs. ci-sim's CleanArtifacts step wipes the previous setup
-        // run's packages, so without this rewrite the props would dangle at stale versions.
-        var packagesDir = Path.Combine(repoRoot, "artifacts", "packages");
-        var versions = await Shared.ReadVersionsFromJsonAsync(versionsPath);
-        Shared.WriteLocalProps(repoRoot, packagesDir, versions);
-        AnsiConsole.MarkupLine($"[green]Janset.Local.props refreshed at[/] [cyan]build/msbuild/Janset.Local.props[/]");
-
-        return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 0);
-    }
-
-    private static int FinishCiSim(List<Shared.StepResult> results, TimeSpan totalDuration, string logDir, int exitCode)
-    {
-        Shared.PrintSummaryTable(results, totalDuration);
-
-        if (exitCode != 0)
-        {
-            AnsiConsole.MarkupLine($"[yellow]Inspect failing logs under[/] [cyan]{Markup.Escape(logDir)}[/].");
-        }
-
-        return exitCode;
-    }
-}
-
-// ──────────────────────────────────────────────────────────────────
-// Linux x64 ABI-test image build
-// ──────────────────────────────────────────────────────────────────
-
-public sealed class BuildBindingGeneratorImageSettings : CommandSettings
-{
-    [CommandOption("--rebuild-image")]
-    [Description("Rebuilds all image layers without Docker layer cache.")]
-    [DefaultValue(false)]
-    public bool RebuildImage { get; init; }
-
-}
-
-public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindingGeneratorImageSettings>
-{
-    private const string ImageTag = "janset-binding-generator:focal-latest";
-
-    protected override async Task<int> ExecuteAsync(CommandContext ctx, BuildBindingGeneratorImageSettings settings, CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var repoRoot = await Shared.ResolveRepoRootAsync();
-
-        // [1] Validate docker daemon reachable.
-        var dockerProbe = await CaptureRunAsync("docker", ["version", "--format", "{{.Server.Version}}"], cancellationToken);
-
-        if (dockerProbe.ExitCode != 0)
-        {
-            AnsiConsole.MarkupLine("[red]Docker daemon not reachable.[/] Start Docker Desktop / dockerd, then retry.");
-            return 66;
-        }
-
-        AnsiConsole.MarkupLine($"[green]Docker daemon ready[/] (server {Markup.Escape(dockerProbe.StdOut.Trim())}).");
-
-        // [2] Resolve BASE_IMAGE from build/manifest.json runtimes[linux-x64].container_image.
-        var baseImage = ReadLinuxBaseImage(repoRoot);
-
-        if (string.IsNullOrWhiteSpace(baseImage))
-        {
-            AnsiConsole.MarkupLine("[red]Could not resolve BASE_IMAGE from build/manifest.json runtimes[linux-x64].container_image.[/]");
-            return 1;
-        }
-
-        AnsiConsole.MarkupLine($"[blue]BASE_IMAGE:[/] [cyan]{Markup.Escape(baseImage)}[/]");
-
-        // [3] docker pull ${BASE_IMAGE} to refresh mutable tag.
-        AnsiConsole.MarkupLine("[blue]Pulling base image...[/]");
-        var pullExit = await StreamRunAsync("docker", ["pull", baseImage], cancellationToken);
-
-        if (pullExit != 0)
-        {
-            AnsiConsole.MarkupLine($"[red]docker pull failed with exit code {pullExit}.[/]");
-            return pullExit;
-        }
-
-        // [4] docker inspect to capture resolved digest for audit trail.
-        var inspect = await CaptureRunAsync("docker", ["inspect", "--format={{index .RepoDigests 0}}", baseImage], cancellationToken);
-        var containerDigest = inspect.StdOut.Trim();
-
-        if (string.IsNullOrWhiteSpace(containerDigest))
-        {
-            AnsiConsole.MarkupLine("[yellow]Could not capture base image digest; continuing without audit-trail digest.[/]");
-        }
-        else
-        {
-            AnsiConsole.MarkupLine($"[blue]Base image digest:[/] [cyan]{Markup.Escape(containerDigest)}[/]");
-        }
-
-        // [4b] Resolve vcpkg submodule commit so the Dockerfile clones vcpkg at the
-        // repo's pinned ref. Stable across parent-repo commits that don't touch the
-        // submodule — keeps Layer C's image cache hot.
-        var vcpkgCommitProbe = await CaptureRunAsync("git", ["rev-parse", "HEAD:external/vcpkg"], cancellationToken, workingDirectory: repoRoot);
-
-        if (vcpkgCommitProbe.ExitCode != 0 || string.IsNullOrWhiteSpace(vcpkgCommitProbe.StdOut))
-        {
-            AnsiConsole.MarkupLine("[red]Failed to resolve vcpkg submodule commit via 'git rev-parse HEAD:external/vcpkg'.[/]");
-            AnsiConsole.MarkupLine($"[red]{Markup.Escape(vcpkgCommitProbe.StdErr.Trim())}[/]");
-            return 1;
-        }
-
-        var vcpkgCommit = vcpkgCommitProbe.StdOut.Trim();
-        AnsiConsole.MarkupLine($"[blue]vcpkg submodule commit:[/] [cyan]{Markup.Escape(vcpkgCommit)}[/]");
-
-        // [4c] Read SDL2 version from manifest. The Dockerfile's conditional
-        // fallback uses this to git-clone SDL2 upstream source when vcpkg's
-        // binary cache hit skips source extraction — the cloned tree provides
-        // src/dynapi/SDL2.exports for explicit header diagnostics. Version must
-        // match the vcpkg-baked SDL2 binary (same vcpkg_version field), so
-        // sourcing it from the same manifest entry keeps them in lockstep.
-        var sdl2Version = ReadSdl2VcpkgVersion(repoRoot);
-
-        if (string.IsNullOrWhiteSpace(sdl2Version))
-        {
-            AnsiConsole.MarkupLine("[red]Could not resolve SDL2 vcpkg_version from build/manifest.json library_manifests[name=SDL2].[/]");
-            return 1;
-        }
-
-        AnsiConsole.MarkupLine($"[blue]SDL2 vcpkg version:[/] [cyan]{Markup.Escape(sdl2Version)}[/]");
-
-        // [4d] Compute a deterministic cache key for the binary cache BuildKit
-        // mount the Dockerfile's Layer E declares. Key composition mirrors
-        // .github/actions/vcpkg-setup/action.yml's actions/cache@v5 key
-        // (vcpkg.json + overlay-triplets + overlay-ports + vcpkg commit) so
-        // local Docker invalidation matches CI invalidation exactly. Content
-        // changes in any of those inputs yield a fresh key → new mount → cold
-        // from vcpkg's perspective → full from-source build → image layer
-        // captures buildtrees naturally. Without content-derived id, the binary
-        // cache mount would retain stale compiled artifacts across vcpkg.json
-        // bumps (vcpkg's own ABI hash would reject them but the mount would
-        // still waste disk).
-        var vcpkgCacheKey = ComputeVcpkgCacheKey(repoRoot, vcpkgCommit);
-        AnsiConsole.MarkupLine($"[blue]vcpkg cache key:[/] [cyan]{Markup.Escape(vcpkgCacheKey)}[/]");
-
-        // [5] docker build the derived binding-generator image. vcpkg state is
-        // baked at build time (Layer E of binding-generator.Dockerfile).
-        AnsiConsole.MarkupLine("[blue]Building binding-generator image (vcpkg install runs at image build time)...[/]");
-        var buildArgs = new List<string>
+            AnsiConsole.MarkupLine("[blue]Building binding-generator image (vcpkg install runs at image build time)...[/]");
+            var buildArgs = new List<string>
         {
             "build",
             "-t", ImageTag,
@@ -722,835 +762,836 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
             "-f", "docker/binding-generator.Dockerfile",
         };
 
-        if (settings.RebuildImage)
-        {
-            buildArgs.Add("--no-cache");
+            if (rebuildImage)
+            {
+                buildArgs.Add("--no-cache");
+            }
+
+            buildArgs.Add(".");
+            var buildExit = await StreamRunAsync("docker", buildArgs, cancellationToken, workingDirectory: repoRoot);
+
+            if (buildExit != 0)
+            {
+                AnsiConsole.MarkupLine($"[red]docker build failed with exit code {buildExit}.[/]");
+                return buildExit;
+            }
+
+            AnsiConsole.MarkupLine($"[green]Image build complete:[/] [cyan]{ImageTag}[/]");
+            return 0;
         }
 
-        buildArgs.Add(".");
-        var buildExit = await StreamRunAsync("docker", buildArgs, cancellationToken, workingDirectory: repoRoot);
-
-        if (buildExit != 0)
+        private static async Task<string?> ReadLinuxBaseImageAsync(string repoRoot)
         {
-            AnsiConsole.MarkupLine($"[red]docker build failed with exit code {buildExit}.[/]");
-            return buildExit;
-        }
+            var manifestPath = Path.Combine(repoRoot, "build", "manifest.json");
 
-        AnsiConsole.MarkupLine($"[green]Image build complete:[/] [cyan]{ImageTag}[/]");
-        return 0;
-    }
-
-    private static string? ReadLinuxBaseImage(string repoRoot)
-    {
-        var manifestPath = Path.Combine(repoRoot, "build", "manifest.json");
-
-        if (!File.Exists(manifestPath))
-        {
-            return null;
-        }
-
-        try
-        {
-            using var stream = File.OpenRead(manifestPath);
-            using var doc = JsonDocument.Parse(stream);
-
-            if (!doc.RootElement.TryGetProperty("runtimes", out var runtimes))
+            if (!File.Exists(manifestPath))
             {
                 return null;
             }
 
-            foreach (var runtime in runtimes.EnumerateArray())
+            try
             {
-                if (runtime.TryGetProperty("rid", out var rid) &&
-                    rid.GetString() == "linux-x64" &&
-                    runtime.TryGetProperty("container_image", out var image))
+                await using var stream = File.OpenRead(manifestPath);
+                using var doc = await JsonDocument.ParseAsync(stream);
+
+                if (!doc.RootElement.TryGetProperty("runtimes", out var runtimes))
                 {
-                    return image.GetString();
+                    return null;
+                }
+
+                foreach (var runtime in runtimes.EnumerateArray())
+                {
+                    if (runtime.TryGetProperty("rid", out var rid) &&
+                        rid.GetString() == "linux-x64" &&
+                        runtime.TryGetProperty("container_image", out var image))
+                    {
+                        return image.GetString();
+                    }
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            AnsiConsole.MarkupLine($"[red]Manifest parse error:[/] {Markup.Escape(ex.Message)}");
-        }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]Manifest parse error:[/] {Markup.Escape(ex.Message)}");
+            }
 
-        return null;
-    }
-
-    private static string? ReadSdl2VcpkgVersion(string repoRoot)
-    {
-        var manifestPath = Path.Combine(repoRoot, "build", "manifest.json");
-
-        if (!File.Exists(manifestPath))
-        {
             return null;
         }
 
-        try
+        private static async Task<string?> ReadSdl2VcpkgVersionAsync(string repoRoot)
         {
-            using var stream = File.OpenRead(manifestPath);
-            using var doc = JsonDocument.Parse(stream);
+            var manifestPath = Path.Combine(repoRoot, "build", "manifest.json");
 
-            if (!doc.RootElement.TryGetProperty("library_manifests", out var libs))
+            if (!File.Exists(manifestPath))
             {
                 return null;
             }
 
-            foreach (var lib in libs.EnumerateArray())
+            try
             {
-                if (lib.TryGetProperty("name", out var name) &&
-                    name.GetString() == "SDL2" &&
-                    lib.TryGetProperty("vcpkg_version", out var version))
+                await using var stream = File.OpenRead(manifestPath);
+                using var doc = await JsonDocument.ParseAsync(stream);
+
+                if (!doc.RootElement.TryGetProperty("library_manifests", out var libs))
                 {
-                    return version.GetString();
+                    return null;
+                }
+
+                foreach (var lib in libs.EnumerateArray())
+                {
+                    if (lib.TryGetProperty("name", out var name) &&
+                        name.GetString() == "SDL2" &&
+                        lib.TryGetProperty("vcpkg_version", out var version))
+                    {
+                        return version.GetString();
+                    }
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            AnsiConsole.MarkupLine($"[red]Manifest parse error reading SDL2 vcpkg_version:[/] {Markup.Escape(ex.Message)}");
-        }
-
-        return null;
-    }
-
-    // Deterministic cache-key compute for the BuildKit cache mounts in
-    // docker/binding-generator.Dockerfile Layer E. Hash inputs match
-    // .github/actions/vcpkg-setup/action.yml's actions/cache@v5 key composition
-    // (vcpkg.json + overlay-triplets + overlay-ports + vcpkg submodule commit)
-    // so local Docker invalidation behaves identically to CI invalidation.
-    //
-    // Cross-OS determinism notes:
-    //   * Relative paths normalised to forward slashes before hashing.
-    //   * Recursive enumeration sorted Ordinal before hashing so directory
-    //     iteration order on Windows / Linux produces the same digest.
-    //   * Each file's relative path is prefixed into the stream so a file
-    //     content shuffle (renames) busts the cache.
-    //   * SHA-256 truncated to 8 hex chars; collision space (2^32) is comfortably
-    //     larger than any realistic content-edit cardinality in this repo. The
-    //     mount id is also user-facing in `docker buildx du` output so short is good.
-    private static string ComputeVcpkgCacheKey(string repoRoot, string vcpkgCommit)
-    {
-        using var ms = new MemoryStream();
-
-        AppendFileToStream(ms, Path.Combine(repoRoot, "vcpkg.json"), "vcpkg.json");
-        AppendDirectoryToStream(ms, repoRoot, "vcpkg-overlay-ports");
-        AppendDirectoryToStream(ms, repoRoot, "vcpkg-overlay-triplets");
-        ms.Write(Encoding.UTF8.GetBytes($"VCPKG_COMMIT={vcpkgCommit}\n"));
-
-        ms.Position = 0;
-        var digest = SHA256.HashData(ms.ToArray());
-        return Convert.ToHexString(digest)[..8].ToLowerInvariant();
-    }
-
-    private static void AppendFileToStream(Stream output, string filePath, string normalisedRelativePath)
-    {
-        if (!File.Exists(filePath))
-        {
-            return;
-        }
-
-        var header = Encoding.UTF8.GetBytes($"FILE:{normalisedRelativePath}\n");
-        output.Write(header);
-        using var fs = File.OpenRead(filePath);
-        fs.CopyTo(output);
-        output.WriteByte((byte)'\n');
-    }
-
-    private static void AppendDirectoryToStream(Stream output, string repoRoot, string relativeDir)
-    {
-        var absoluteDir = Path.Combine(repoRoot, relativeDir);
-
-        if (!Directory.Exists(absoluteDir))
-        {
-            return;
-        }
-
-        var files = Directory.EnumerateFiles(absoluteDir, "*", SearchOption.AllDirectories)
-            .Select(absolute => Path.GetRelativePath(repoRoot, absolute).Replace('\\', '/'))
-            .OrderBy(rel => rel, StringComparer.Ordinal)
-            .ToList();
-
-        foreach (var rel in files)
-        {
-            AppendFileToStream(output, Path.Combine(repoRoot, rel), rel);
-        }
-    }
-
-    private static async Task<(int ExitCode, string StdOut, string StdErr)> CaptureRunAsync(
-        string executable, IEnumerable<string> args, CancellationToken cancellationToken, string? workingDirectory = null)
-    {
-        var stdOut = new StringBuilder();
-        var stdErr = new StringBuilder();
-        var cmd = Cli.Wrap(executable)
-            .WithArguments(args)
-            .WithValidation(CommandResultValidation.None)
-            .WithStandardOutputPipe(PipeTarget.ToStringBuilder(stdOut))
-            .WithStandardErrorPipe(PipeTarget.ToStringBuilder(stdErr));
-
-        if (workingDirectory is not null)
-        {
-            cmd = cmd.WithWorkingDirectory(workingDirectory);
-        }
-
-        var result = await cmd.ExecuteAsync(cancellationToken);
-        return (result.ExitCode, stdOut.ToString(), stdErr.ToString());
-    }
-
-    private static async Task<int> StreamRunAsync(
-        string executable, IEnumerable<string> args, CancellationToken cancellationToken, string? workingDirectory = null)
-    {
-        var cmd = Cli.Wrap(executable)
-            .WithArguments(args)
-            .WithValidation(CommandResultValidation.None)
-            .WithStandardOutputPipe(PipeTarget.ToDelegate(line => AnsiConsole.WriteLine(line)))
-            .WithStandardErrorPipe(PipeTarget.ToDelegate(line => AnsiConsole.WriteLine(line)));
-
-        if (workingDirectory is not null)
-        {
-            cmd = cmd.WithWorkingDirectory(workingDirectory);
-        }
-
-        var result = await cmd.ExecuteAsync(cancellationToken);
-        return result.ExitCode;
-    }
-}
-
-// ──────────────────────────────────────────────────────────────────
-// Shared helpers
-// ──────────────────────────────────────────────────────────────────
-
-internal static class Shared
-{
-    // ── path / identity helpers ──
-
-    public static void CleanArtifacts(string repoRoot)
-    {
-        var artifactsDir = Path.Combine(repoRoot, "artifacts");
-
-        if (Directory.Exists(artifactsDir))
-        {
-            Directory.Delete(artifactsDir, recursive: true);
-        }
-
-        Directory.CreateDirectory(artifactsDir);
-
-        var nativeSmokeBuildDir = Path.Combine(repoRoot, "tests", "smoke-tests", "native-smoke", "build");
-
-        if (Directory.Exists(nativeSmokeBuildDir))
-        {
-            Directory.Delete(nativeSmokeBuildDir, recursive: true);
-        }
-    }
-
-    /// <summary>Pure Cake passthrough — forwards output directly to the console, no log capture.</summary>
-    public static async Task<int> RunCakePassthroughAsync(string[] cakeArgs)
-    {
-        var repoRoot = await ResolveRepoRootAsync();
-        var fullArgs = BuildCakeArgList(repoRoot, cakeArgs);
-        var displayCommand = "dotnet " + string.Join(' ', fullArgs.Select(QuoteArg));
-        AnsiConsole.MarkupLine($"[grey]cmd:[/] [cyan]{Markup.Escape(displayCommand)}[/]");
-
-        var result = await Cli.Wrap("dotnet")
-            .WithArguments(fullArgs)
-            .WithWorkingDirectory(repoRoot)
-            .WithStandardOutputPipe(PipeTarget.ToDelegate(line => Console.Out.WriteLine(line)))
-            .WithStandardErrorPipe(PipeTarget.ToDelegate(line => Console.Error.WriteLine(line)))
-            .WithValidation(CommandResultValidation.None)
-            .ExecuteAsync();
-
-        return result.ExitCode;
-    }
-
-    public static async Task<string> ResolveRepoRootAsync()
-    {
-        var stdOut = new StringBuilder();
-        var result = await Cli.Wrap("git")
-            .WithArguments(["rev-parse", "--show-toplevel"])
-            .WithStandardOutputPipe(PipeTarget.ToStringBuilder(stdOut))
-            .WithValidation(CommandResultValidation.None)
-            .ExecuteAsync();
-
-        var output = stdOut.ToString().Trim();
-
-        if (result.ExitCode != 0 || string.IsNullOrWhiteSpace(output))
-        {
-            throw new InvalidOperationException("Could not resolve repository root via git. Run from inside the repo.");
-        }
-
-        return output;
-    }
-
-    public static string ResolveHostRid()
-    {
-        string os;
-
-        if (OperatingSystem.IsWindows())
-        {
-            os = "win";
-        }
-        else if (OperatingSystem.IsLinux())
-        {
-            os = "linux";
-        }
-        else if (OperatingSystem.IsMacOS())
-        {
-            os = "osx";
-        }
-        else
-        {
-            throw new PlatformNotSupportedException("Unknown OS for RID derivation.");
-        }
-
-        var arch = RuntimeInformation.OSArchitecture switch
-        {
-            Architecture.X64 => "x64",
-            Architecture.Arm64 => "arm64",
-            Architecture.X86 => "x86",
-            Architecture.Arm => "arm",
-            var other => throw new PlatformNotSupportedException($"Unknown architecture '{other}'."),
-        };
-        return $"{os}-{arch}";
-    }
-
-    public static string ResolvePlatformTag()
-    {
-        if (OperatingSystem.IsWindows())
-        {
-            return "windows";
-        }
-
-        if (OperatingSystem.IsLinux())
-        {
-            return "linux";
-        }
-
-        if (OperatingSystem.IsMacOS())
-        {
-            return "macos";
-        }
-
-        return "unknown";
-    }
-
-    public static string LocalSuffix()
-        => string.Create(CultureInfo.InvariantCulture,
-            $"local.{DateTimeOffset.UtcNow.ToString("yyyyMMddTHHmmss", CultureInfo.InvariantCulture)}");
-
-    public static string CreateLogDir(string repoRoot, string subcommandTag)
-    {
-        var platform = ResolvePlatformTag();
-        var runId = DateTimeOffset.UtcNow.ToString("yyyyMMddTHHmmssZ", CultureInfo.InvariantCulture);
-        var logDir = Path.Combine(repoRoot, ".logs", "tools", $"{platform}-{subcommandTag}-{runId}");
-
-        if (Directory.Exists(logDir))
-        {
-            Directory.Delete(logDir, recursive: true);
-        }
-
-        Directory.CreateDirectory(logDir);
-        return logDir;
-    }
-
-    // ── manifest reading ──
-
-    public sealed record PackageFamilyConfig(
-        [property: JsonPropertyName("name")] string Name,
-        [property: JsonPropertyName("managed_project")] string? ManagedProject,
-        [property: JsonPropertyName("native_project")] string? NativeProject,
-        [property: JsonPropertyName("library_ref")] string LibraryRef);
-
-    public sealed record ManifestConfig(
-        [property: JsonPropertyName("package_families")] List<PackageFamilyConfig> PackageFamilies);
-
-    public static List<PackageFamilyConfig> GetConcreteFamilies(string repoRoot)
-    {
-        var manifestPath = Path.Combine(repoRoot, "build", "manifest.json");
-
-        if (!File.Exists(manifestPath))
-        {
-            throw new InvalidOperationException($"manifest.json not found at '{manifestPath}'.");
-        }
-
-        var json = File.ReadAllText(manifestPath);
-        var manifest = JsonSerializer.Deserialize<ManifestConfig>(json, new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true,
-        }) ?? throw new InvalidOperationException("Failed to deserialize manifest.json.");
-
-        var families = manifest.PackageFamilies
-            .Where(f => !string.IsNullOrWhiteSpace(f.ManagedProject) && !string.IsNullOrWhiteSpace(f.NativeProject))
-            .OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        if (families.Count == 0)
-        {
-            throw new InvalidOperationException("No concrete families found in manifest.json (need both managed_project and native_project).");
-        }
-
-        return families;
-    }
-
-    // ── family naming (inline replica of FamilyIdentifierConventions) ──
-
-    public static string ManagedPackageId(string familyIdentifier)
-    {
-        var (major, role) = ParseFamily(familyIdentifier);
-        return $"Janset.SDL{major}.{role}";
-    }
-
-    public static string NativePackageId(string familyIdentifier)
-    {
-        var (major, role) = ParseFamily(familyIdentifier);
-        return $"Janset.SDL{major}.{role}.Native";
-    }
-
-    public static string VersionPropertyName(string familyIdentifier)
-    {
-        var (major, role) = ParseFamily(familyIdentifier);
-        return $"JansetSdl{major}{role}PackageVersion";
-    }
-
-    private static (string Major, string Role) ParseFamily(string familyIdentifier)
-    {
-        var dashIndex = familyIdentifier.IndexOf('-', StringComparison.Ordinal);
-
-        if (dashIndex <= 0 || dashIndex >= familyIdentifier.Length - 1)
-        {
-            throw new ArgumentException($"Family identifier must follow 'sdl<major>-<role>' format. Got: '{familyIdentifier}'.");
-        }
-
-        var sdlPart = familyIdentifier[..dashIndex];
-        var role = familyIdentifier[(dashIndex + 1)..];
-
-        if (!sdlPart.StartsWith("sdl", StringComparison.OrdinalIgnoreCase) || sdlPart.Length <= 3)
-        {
-            throw new ArgumentException($"Family identifier prefix must be 'sdl<major>'. Got: '{sdlPart}'.");
-        }
-
-        var major = sdlPart[3..];
-
-        if (!major.All(char.IsDigit))
-        {
-            throw new ArgumentException($"SDL major must be all digits. Got: '{major}'.");
-        }
-
-        return (major, ToPascalCase(role));
-    }
-
-    private static string ToPascalCase(string value)
-    {
-        if (string.IsNullOrEmpty(value))
-        {
-            return value;
-        }
-
-        return string.Create(value.Length, value, static (span, source) =>
-        {
-            source.AsSpan().CopyTo(span);
-            span[0] = char.ToUpperInvariant(span[0]);
-
-            for (var i = 1; i < span.Length; i++)
+            catch (Exception ex)
             {
-                span[i] = char.ToLowerInvariant(span[i]);
+                AnsiConsole.MarkupLine($"[red]Manifest parse error reading SDL2 vcpkg_version:[/] {Markup.Escape(ex.Message)}");
             }
-        });
-    }
 
-    // ── Janset.Local.props writing ──
-
-    public static void WriteLocalProps(string repoRoot, string feedPath, IReadOnlyDictionary<string, string> versions)
-    {
-        var propertyGroup = new XElement("PropertyGroup",
-            new XElement("LocalPackageFeed", feedPath));
-
-        foreach (var pair in versions.OrderBy(p => p.Key, StringComparer.OrdinalIgnoreCase))
-        {
-            var propName = VersionPropertyName(pair.Key);
-            propertyGroup.Add(new XElement(propName, pair.Value));
+            return null;
         }
 
-        var document = new XDocument(
-            new XDeclaration("1.0", "utf-8", null),
-            new XElement("Project", propertyGroup));
-
-        var targetPath = Path.Combine(repoRoot, "build", "msbuild", "Janset.Local.props");
-        var targetDir = Path.GetDirectoryName(targetPath)!;
-
-        if (!Directory.Exists(targetDir))
+        // Deterministic cache-key compute for the BuildKit cache mounts in
+        // docker/binding-generator.Dockerfile Layer E. Hash inputs match
+        // .github/actions/vcpkg-setup/action.yml's actions/cache@v5 key composition
+        // (vcpkg.json + overlay-triplets + overlay-ports + vcpkg submodule commit)
+        // so local Docker invalidation behaves identically to CI invalidation.
+        //
+        // Cross-OS determinism notes:
+        //   * Relative paths normalised to forward slashes before hashing.
+        //   * Recursive enumeration sorted Ordinal before hashing so directory
+        //     iteration order on Windows / Linux produces the same digest.
+        //   * Each file's relative path is prefixed into the stream so a file
+        //     content shuffle (renames) busts the cache.
+        //   * SHA-256 truncated to 8 hex chars; collision space (2^32) is comfortably
+        //     larger than any realistic content-edit cardinality in this repo. The
+        //     mount id is also user-facing in `docker buildx du` output so short is good.
+        private static async Task<string> ComputeVcpkgCacheKeyAsync(string repoRoot, string vcpkgCommit)
         {
-            Directory.CreateDirectory(targetDir);
+            using var ms = new MemoryStream();
+
+            await AppendFileToStreamAsync(ms, Path.Combine(repoRoot, "vcpkg.json"), "vcpkg.json");
+            await AppendDirectoryToStreamAsync(ms, repoRoot, "vcpkg-overlay-ports");
+            await AppendDirectoryToStreamAsync(ms, repoRoot, "vcpkg-overlay-triplets");
+            await ms.WriteAsync(Encoding.UTF8.GetBytes($"VCPKG_COMMIT={vcpkgCommit}\n"));
+
+            ms.Position = 0;
+            var digest = SHA256.HashData(ms.ToArray());
+            return Convert.ToHexString(digest)[..8].ToLowerInvariant();
         }
 
-        File.WriteAllText(targetPath, string.Concat(document.Declaration?.ToString(), "\n", document.ToString()),
-            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-    }
-
-    // ── versions.json writing / reading ──
-
-    public static void WriteVersionsJson(string repoRoot, IReadOnlyDictionary<string, string> versions)
-    {
-        var sorted = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var (key, value) in versions)
+        private static async Task AppendFileToStreamAsync(Stream output, string filePath, string normalisedRelativePath)
         {
-            sorted[key] = value;
+            if (!File.Exists(filePath))
+            {
+                return;
+            }
+
+            var header = Encoding.UTF8.GetBytes($"FILE:{normalisedRelativePath}\n");
+            await output.WriteAsync(header);
+            await using var fs = File.OpenRead(filePath);
+            await fs.CopyToAsync(output);
+            output.WriteByte((byte)'\n');
         }
 
-        var targetDir = Path.Combine(repoRoot, "artifacts", "resolve-versions");
-
-        if (!Directory.Exists(targetDir))
+        private static async Task AppendDirectoryToStreamAsync(Stream output, string repoRoot, string relativeDir)
         {
-            Directory.CreateDirectory(targetDir);
+            var absoluteDir = Path.Combine(repoRoot, relativeDir);
+
+            if (!Directory.Exists(absoluteDir))
+            {
+                return;
+            }
+
+            var files = Directory.EnumerateFiles(absoluteDir, "*", SearchOption.AllDirectories)
+                .Select(absolute => Path.GetRelativePath(repoRoot, absolute).Replace('\\', '/'))
+                .OrderBy(rel => rel, StringComparer.Ordinal)
+                .ToList();
+
+            foreach (var rel in files)
+            {
+                await AppendFileToStreamAsync(output, Path.Combine(repoRoot, rel), rel);
+            }
         }
 
-        var targetPath = Path.Combine(targetDir, "versions.json");
-        var json = JsonSerializer.Serialize(sorted, new JsonSerializerOptions { WriteIndented = true });
-        File.WriteAllText(targetPath, json + Environment.NewLine, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        private static async Task<(int ExitCode, string StdOut, string StdErr)> CaptureRunAsync(
+            string executable, IEnumerable<string> args, CancellationToken cancellationToken, string? workingDirectory = null)
+        {
+            var stdOut = new StringBuilder();
+            var stdErr = new StringBuilder();
+            var cmd = Cli.Wrap(executable)
+                .WithArguments(args)
+                .WithValidation(CommandResultValidation.None)
+                .WithStandardOutputPipe(PipeTarget.ToStringBuilder(stdOut))
+                .WithStandardErrorPipe(PipeTarget.ToStringBuilder(stdErr));
+
+            if (workingDirectory is not null)
+            {
+                cmd = cmd.WithWorkingDirectory(workingDirectory);
+            }
+
+            var result = await cmd.ExecuteAsync(cancellationToken);
+            return (result.ExitCode, stdOut.ToString(), stdErr.ToString());
+        }
+
+        private static async Task<int> StreamRunAsync(
+            string executable, IEnumerable<string> args, CancellationToken cancellationToken, string? workingDirectory = null)
+        {
+            var cmd = Cli.Wrap(executable)
+                .WithArguments(args)
+                .WithValidation(CommandResultValidation.None)
+                .WithStandardOutputPipe(PipeTarget.ToDelegate(line => AnsiConsole.WriteLine(line)))
+                .WithStandardErrorPipe(PipeTarget.ToDelegate(line => AnsiConsole.WriteLine(line)));
+
+            if (workingDirectory is not null)
+            {
+                cmd = cmd.WithWorkingDirectory(workingDirectory);
+            }
+
+            var result = await cmd.ExecuteAsync(cancellationToken);
+            return result.ExitCode;
+        }
     }
 
-    public static async Task<IReadOnlyDictionary<string, string>> ReadVersionsFromJsonAsync(string path)
-    {
-        var json = await File.ReadAllTextAsync(path);
-        var versions = JsonSerializer.Deserialize<Dictionary<string, string>>(json)
-                       ?? new Dictionary<string, string>();
-        return new SortedDictionary<string, string>(versions, StringComparer.OrdinalIgnoreCase);
-    }
+    // ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    // Shared helpers
+    // ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
-    public static string[] ExpectedNupkgPaths(string packagesDir, string familyName, string version)
+    internal static class Shared
     {
-        return
-        [
-            Path.Combine(packagesDir, $"{ManagedPackageId(familyName)}.{version}.nupkg"),
+        private static readonly JsonSerializerOptions ManifestJsonOptions = new() { PropertyNameCaseInsensitive = true };
+        private static readonly JsonSerializerOptions VersionsJsonOptions = new() { WriteIndented = true };
+        // ΓöÇΓöÇ path / identity helpers ΓöÇΓöÇ
+
+        public static void CleanArtifacts(string repoRoot)
+        {
+            var artifactsDir = Path.Combine(repoRoot, "artifacts");
+
+            if (Directory.Exists(artifactsDir))
+            {
+                Directory.Delete(artifactsDir, recursive: true);
+            }
+
+            Directory.CreateDirectory(artifactsDir);
+
+            var nativeSmokeBuildDir = Path.Combine(repoRoot, "tests", "smoke-tests", "native-smoke", "build");
+
+            if (Directory.Exists(nativeSmokeBuildDir))
+            {
+                Directory.Delete(nativeSmokeBuildDir, recursive: true);
+            }
+        }
+
+        /// <summary>Pure Cake passthrough ΓÇö forwards output directly to the console, no log capture.</summary>
+        public static async Task<int> RunCakePassthroughAsync(string[] cakeArgs)
+        {
+            var repoRoot = await ResolveRepoRootAsync();
+            var fullArgs = BuildCakeArgList(repoRoot, cakeArgs);
+            var displayCommand = "dotnet " + string.Join(' ', fullArgs.Select(QuoteArg));
+            AnsiConsole.MarkupLine($"[grey]cmd:[/] [cyan]{Markup.Escape(displayCommand)}[/]");
+
+            var result = await Cli.Wrap("dotnet")
+                .WithArguments(fullArgs)
+                .WithWorkingDirectory(repoRoot)
+                .WithStandardOutputPipe(PipeTarget.ToDelegate(line => Console.Out.WriteLine(line)))
+                .WithStandardErrorPipe(PipeTarget.ToDelegate(line => Console.Error.WriteLine(line)))
+                .WithValidation(CommandResultValidation.None)
+                .ExecuteAsync();
+
+            return result.ExitCode;
+        }
+
+        public static async Task<string> ResolveRepoRootAsync()
+        {
+            var stdOut = new StringBuilder();
+            var result = await Cli.Wrap("git")
+                .WithArguments(["rev-parse", "--show-toplevel"])
+                .WithStandardOutputPipe(PipeTarget.ToStringBuilder(stdOut))
+                .WithValidation(CommandResultValidation.None)
+                .ExecuteAsync();
+
+            var output = stdOut.ToString().Trim();
+
+            if (result.ExitCode != 0 || string.IsNullOrWhiteSpace(output))
+            {
+                throw new InvalidOperationException("Could not resolve repository root via git. Run from inside the repo.");
+            }
+
+            return output;
+        }
+
+        public static string ResolveHostRid()
+        {
+            string os;
+
+            if (OperatingSystem.IsWindows())
+            {
+                os = "win";
+            }
+            else if (OperatingSystem.IsLinux())
+            {
+                os = "linux";
+            }
+            else if (OperatingSystem.IsMacOS())
+            {
+                os = "osx";
+            }
+            else
+            {
+                throw new PlatformNotSupportedException("Unknown OS for RID derivation.");
+            }
+
+            var arch = RuntimeInformation.OSArchitecture switch
+            {
+                Architecture.X64 => "x64",
+                Architecture.Arm64 => "arm64",
+                Architecture.X86 => "x86",
+                Architecture.Arm => "arm",
+                var other => throw new PlatformNotSupportedException($"Unknown architecture '{other}'."),
+            };
+            return $"{os}-{arch}";
+        }
+
+        public static string ResolvePlatformTag()
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                return "windows";
+            }
+
+            if (OperatingSystem.IsLinux())
+            {
+                return "linux";
+            }
+
+            if (OperatingSystem.IsMacOS())
+            {
+                return "macos";
+            }
+
+            return "unknown";
+        }
+
+        public static string LocalSuffix()
+            => string.Create(CultureInfo.InvariantCulture,
+                $"local.{DateTimeOffset.UtcNow.ToString("yyyyMMddTHHmmss", CultureInfo.InvariantCulture)}");
+
+        public static string CreateLogDir(string repoRoot, string subcommandTag)
+        {
+            var platform = ResolvePlatformTag();
+            var runId = DateTimeOffset.UtcNow.ToString("yyyyMMddTHHmmssZ", CultureInfo.InvariantCulture);
+            var logDir = Path.Combine(repoRoot, ".logs", "tools", $"{platform}-{subcommandTag}-{runId}");
+
+            if (Directory.Exists(logDir))
+            {
+                Directory.Delete(logDir, recursive: true);
+            }
+
+            Directory.CreateDirectory(logDir);
+            return logDir;
+        }
+
+        // ΓöÇΓöÇ manifest reading ΓöÇΓöÇ
+
+        public sealed record PackageFamilyConfig(
+            [property: JsonPropertyName("name")] string Name,
+            [property: JsonPropertyName("managed_project")] string? ManagedProject,
+            [property: JsonPropertyName("native_project")] string? NativeProject,
+            [property: JsonPropertyName("library_ref")] string LibraryRef);
+
+        public sealed record ManifestConfig(
+            [property: JsonPropertyName("package_families")] List<PackageFamilyConfig> PackageFamilies);
+
+        public static async Task<List<PackageFamilyConfig>> GetConcreteFamiliesAsync(string repoRoot)
+        {
+            var manifestPath = Path.Combine(repoRoot, "build", "manifest.json");
+
+            if (!File.Exists(manifestPath))
+            {
+                throw new InvalidOperationException($"manifest.json not found at '{manifestPath}'.");
+            }
+
+            var json = await File.ReadAllTextAsync(manifestPath);
+            var manifest = JsonSerializer.Deserialize<ManifestConfig>(json, ManifestJsonOptions)
+                ?? throw new InvalidOperationException("Failed to deserialize manifest.json.");
+
+            var families = manifest.PackageFamilies
+                .Where(f => !string.IsNullOrWhiteSpace(f.ManagedProject) && !string.IsNullOrWhiteSpace(f.NativeProject))
+                .OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (families.Count == 0)
+            {
+                throw new InvalidOperationException("No concrete families found in manifest.json (need both managed_project and native_project).");
+            }
+
+            return families;
+        }
+
+        // ΓöÇΓöÇ family naming (inline replica of FamilyIdentifierConventions) ΓöÇΓöÇ
+
+        public static string ManagedPackageId(string familyIdentifier)
+        {
+            var (major, role) = ParseFamily(familyIdentifier);
+            return $"Janset.SDL{major}.{role}";
+        }
+
+        public static string NativePackageId(string familyIdentifier)
+        {
+            var (major, role) = ParseFamily(familyIdentifier);
+            return $"Janset.SDL{major}.{role}.Native";
+        }
+
+        public static string VersionPropertyName(string familyIdentifier)
+        {
+            var (major, role) = ParseFamily(familyIdentifier);
+            return $"JansetSdl{major}{role}PackageVersion";
+        }
+
+        private static (string Major, string Role) ParseFamily(string familyIdentifier)
+        {
+            var dashIndex = familyIdentifier.IndexOf('-', StringComparison.Ordinal);
+
+            if (dashIndex <= 0 || dashIndex >= familyIdentifier.Length - 1)
+            {
+                throw new ArgumentException($"Family identifier must follow 'sdl<major>-<role>' format. Got: '{familyIdentifier}'.", nameof(familyIdentifier));
+            }
+
+            var sdlPart = familyIdentifier[..dashIndex];
+            var role = familyIdentifier[(dashIndex + 1)..];
+
+            if (!sdlPart.StartsWith("sdl", StringComparison.OrdinalIgnoreCase) || sdlPart.Length <= 3)
+            {
+                throw new ArgumentException($"Family identifier prefix must be 'sdl<major>'. Got: '{sdlPart}'.", nameof(familyIdentifier));
+            }
+
+            var major = sdlPart[3..];
+
+            if (!major.All(char.IsDigit))
+            {
+                throw new ArgumentException($"SDL major must be all digits. Got: '{major}'.", nameof(familyIdentifier));
+            }
+
+            return (major, ToPascalCase(role));
+        }
+
+        private static string ToPascalCase(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return value;
+            }
+
+            return string.Create(value.Length, value, static (span, source) =>
+            {
+                source.AsSpan().CopyTo(span);
+                span[0] = char.ToUpperInvariant(span[0]);
+
+                for (var i = 1; i < span.Length; i++)
+                {
+                    span[i] = char.ToLowerInvariant(span[i]);
+                }
+            });
+        }
+
+        // ΓöÇΓöÇ Janset.Local.props writing ΓöÇΓöÇ
+
+        public static async Task WriteLocalPropsAsync(string repoRoot, string feedPath, IReadOnlyDictionary<string, string> versions)
+        {
+            var propertyGroup = new XElement("PropertyGroup",
+                new XElement("LocalPackageFeed", feedPath));
+
+            foreach (var pair in versions.OrderBy(p => p.Key, StringComparer.OrdinalIgnoreCase))
+            {
+                var propName = VersionPropertyName(pair.Key);
+                propertyGroup.Add(new XElement(propName, pair.Value));
+            }
+
+            var document = new XDocument(
+                new XDeclaration("1.0", "utf-8", null),
+                new XElement("Project", propertyGroup));
+
+            var targetPath = Path.Combine(repoRoot, "build", "msbuild", "Janset.Local.props");
+            var targetDir = Path.GetDirectoryName(targetPath)!;
+
+            if (!Directory.Exists(targetDir))
+            {
+                Directory.CreateDirectory(targetDir);
+            }
+
+            await File.WriteAllTextAsync(targetPath, string.Concat(document.Declaration?.ToString(), "\n", document.ToString()),
+                new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        }
+
+        // ΓöÇΓöÇ versions.json writing / reading ΓöÇΓöÇ
+
+        public static async Task WriteVersionsJsonAsync(string repoRoot, IReadOnlyDictionary<string, string> versions)
+        {
+            var sorted = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var (key, value) in versions)
+            {
+                sorted[key] = value;
+            }
+
+            var targetDir = Path.Combine(repoRoot, "artifacts", "resolve-versions");
+
+            if (!Directory.Exists(targetDir))
+            {
+                Directory.CreateDirectory(targetDir);
+            }
+
+            var targetPath = Path.Combine(targetDir, "versions.json");
+            var json = JsonSerializer.Serialize(sorted, VersionsJsonOptions);
+            await File.WriteAllTextAsync(targetPath, json + Environment.NewLine, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        }
+
+        public static async Task<IReadOnlyDictionary<string, string>> ReadVersionsFromJsonAsync(string path)
+        {
+            var json = await File.ReadAllTextAsync(path);
+            var versions = JsonSerializer.Deserialize<Dictionary<string, string>>(json)
+                           ?? new Dictionary<string, string>(StringComparer.Ordinal);
+            return new SortedDictionary<string, string>(versions, StringComparer.OrdinalIgnoreCase);
+        }
+
+        public static string[] ExpectedNupkgPaths(string packagesDir, string familyName, string version)
+        {
+            return
+            [
+                Path.Combine(packagesDir, $"{ManagedPackageId(familyName)}.{version}.nupkg"),
             Path.Combine(packagesDir, $"{NativePackageId(familyName)}.{version}.nupkg"),
         ];
-    }
-
-    public static void WipeJansetPackages(string packagesDir, Action<string> log)
-    {
-        ArgumentNullException.ThrowIfNull(log);
-
-        if (!Directory.Exists(packagesDir))
-        {
-            Directory.CreateDirectory(packagesDir);
-            log($"created {packagesDir}");
-            return;
         }
 
-        var patterns = new[] { "Janset.SDL2.*", "Janset.SDL3.*" };
-
-        foreach (var path in patterns.SelectMany(pattern => Directory.GetFiles(packagesDir, pattern, SearchOption.TopDirectoryOnly)))
+        public static void WipeJansetPackages(string packagesDir, Action<string> log)
         {
-            File.Delete(path);
-            log($"deleted stale package {path}");
-        }
-    }
+            ArgumentNullException.ThrowIfNull(log);
 
-    // ── Cake process execution (CliWrap) ──
-
-    public sealed record StepResult(string Label, int ExitCode, TimeSpan Duration, string? LogPath = null)
-    {
-        public bool Succeeded => ExitCode == 0;
-    }
-
-    /// <summary>Run a Cake target without per-step log persistence (used by setup).</summary>
-    public static async Task<bool> RunCakeStepAsync(
-        List<StepResult> results, string repoRoot, string label, IReadOnlyList<string> cakeArgs, bool verbose)
-    {
-        var stepNumber = results.Count + 1;
-        AnsiConsole.Write(new Rule($"[yellow]{stepNumber:00}. {Markup.Escape(label)}[/]").RuleStyle("grey").LeftJustified());
-
-        var fullArgs = BuildCakeArgList(repoRoot, cakeArgs);
-        var displayCommand = "dotnet " + string.Join(' ', fullArgs.Select(QuoteArg));
-        AnsiConsole.MarkupLine($"[grey]cmd:[/] [cyan]{Markup.Escape(displayCommand)}[/]");
-
-        var stopwatch = Stopwatch.StartNew();
-        CommandResult result;
-
-        if (verbose)
-        {
-            // Per-step log under a run-specific subdir so concurrent setup invocations
-            // never overwrite each other's log files.
-            var runId = DateTimeOffset.UtcNow.ToString("yyyyMMddTHHmmssZ", CultureInfo.InvariantCulture);
-            var logPath = Path.Combine(repoRoot, ".logs", "tools", $"setup-{runId}", $"{stepNumber:00}-{SanitizeForFile(label)}.log");
-            var logDir = Path.GetDirectoryName(logPath)!;
-
-            if (!Directory.Exists(logDir))
+            if (!Directory.Exists(packagesDir))
             {
-                Directory.CreateDirectory(logDir);
+                Directory.CreateDirectory(packagesDir);
+                log($"created {packagesDir}");
+                return;
             }
 
-            result = await Cli.Wrap("dotnet")
+            var patterns = new[] { "Janset.SDL2.*", "Janset.SDL3.*" };
+
+            foreach (var path in patterns.SelectMany(pattern => Directory.GetFiles(packagesDir, pattern, SearchOption.TopDirectoryOnly)))
+            {
+                File.Delete(path);
+                log($"deleted stale package {path}");
+            }
+        }
+
+        // ΓöÇΓöÇ Cake process execution (CliWrap) ΓöÇΓöÇ
+
+        public sealed record StepResult(string Label, int ExitCode, TimeSpan Duration, string? LogPath = null)
+        {
+            public bool Succeeded => ExitCode == 0;
+        }
+
+        /// <summary>Run a Cake target without per-step log persistence (used by setup).</summary>
+        public static async Task<bool> RunCakeStepAsync(
+            List<StepResult> results, string repoRoot, string label, IReadOnlyList<string> cakeArgs, bool verbose)
+        {
+            var stepNumber = results.Count + 1;
+            AnsiConsole.Write(new Rule($"[yellow]{stepNumber:00}. {Markup.Escape(label)}[/]").RuleStyle("grey").LeftJustified());
+
+            var fullArgs = BuildCakeArgList(repoRoot, cakeArgs);
+            var displayCommand = "dotnet " + string.Join(' ', fullArgs.Select(QuoteArg));
+            AnsiConsole.MarkupLine($"[grey]cmd:[/] [cyan]{Markup.Escape(displayCommand)}[/]");
+
+            var stopwatch = Stopwatch.StartNew();
+            CommandResult result;
+
+            if (verbose)
+            {
+                // Per-step log under a run-specific subdir so concurrent setup invocations
+                // never overwrite each other's log files.
+                var runId = DateTimeOffset.UtcNow.ToString("yyyyMMddTHHmmssZ", CultureInfo.InvariantCulture);
+                var logPath = Path.Combine(repoRoot, ".logs", "tools", $"setup-{runId}", $"{stepNumber:00}-{SanitizeForFile(label)}.log");
+                var logDir = Path.GetDirectoryName(logPath)!;
+
+                if (!Directory.Exists(logDir))
+                {
+                    Directory.CreateDirectory(logDir);
+                }
+
+                result = await Cli.Wrap("dotnet")
+                    .WithArguments(fullArgs)
+                    .WithWorkingDirectory(repoRoot)
+                    .WithStandardOutputPipe(CreateLineLogPipe(logPath, Console.Out))
+                    .WithStandardErrorPipe(CreateLineLogPipe(logPath, Console.Error))
+                    .WithValidation(CommandResultValidation.None)
+                    .ExecuteAsync();
+            }
+            else
+            {
+                // Explicit null-stream pipes prevent the child process from deadlocking
+                // when it writes enough stdout/stderr to fill the OS pipe buffer.
+                // CliWrap's default PipeTarget.Null does not open the stream at all,
+                // which is functionally equivalent for most processes but risky for
+                // high-output Cake targets. See https://github.com/Tyrrrz/CliWrap/issues/145.
+                result = await Cli.Wrap("dotnet")
+                    .WithArguments(fullArgs)
+                    .WithWorkingDirectory(repoRoot)
+                    .WithStandardOutputPipe(PipeTarget.ToStream(Stream.Null))
+                    .WithStandardErrorPipe(PipeTarget.ToStream(Stream.Null))
+                    .WithValidation(CommandResultValidation.None)
+                    .ExecuteAsync();
+            }
+
+            stopwatch.Stop();
+            var stepResult = new StepResult(label, result.ExitCode, stopwatch.Elapsed);
+            results.Add(stepResult);
+
+            if (stepResult.Succeeded)
+            {
+                AnsiConsole.MarkupLine($"[green]OK[/]   ({stopwatch.Elapsed.TotalSeconds:F1}s)");
+            }
+            else
+            {
+                AnsiConsole.MarkupLine($"[red]FAIL[/] ({stopwatch.Elapsed.TotalSeconds:F1}s)");
+            }
+
+            AnsiConsole.WriteLine();
+
+            return stepResult.Succeeded;
+        }
+
+        /// <summary>Run a Cake target WITH per-step log. Returns true if step passed.</summary>
+        public static async Task<bool> RunCakeStepWithLogAsync(
+            List<StepResult> results, string repoRoot, string logDir, string label, IReadOnlyList<string> cakeArgs, bool verbose)
+        {
+            var stepNumber = results.Count + 1;
+            var logPath = Path.Combine(logDir, $"{stepNumber:00}-{SanitizeForFile(label)}.log");
+
+            AnsiConsole.Write(new Rule($"[yellow]{stepNumber:00}. {Markup.Escape(label)}[/]").RuleStyle("grey").LeftJustified());
+
+            var fullArgs = BuildCakeArgList(repoRoot, cakeArgs);
+            var displayCommand = "dotnet " + string.Join(' ', fullArgs.Select(QuoteArg));
+            AnsiConsole.MarkupLine($"[grey]cmd:[/] [cyan]{Markup.Escape(displayCommand)}[/]");
+
+            var stopwatch = Stopwatch.StartNew();
+            var result = await Cli.Wrap("dotnet")
                 .WithArguments(fullArgs)
                 .WithWorkingDirectory(repoRoot)
-                .WithStandardOutputPipe(CreateLineLogPipe(logPath, Console.Out))
-                .WithStandardErrorPipe(CreateLineLogPipe(logPath, Console.Error))
+                .WithStandardOutputPipe(CreateLineLogPipe(logPath, verbose ? Console.Out : null))
+                .WithStandardErrorPipe(CreateLineLogPipe(logPath, verbose ? Console.Error : null))
                 .WithValidation(CommandResultValidation.None)
                 .ExecuteAsync();
+            stopwatch.Stop();
+
+            var stepResult = new StepResult(label, result.ExitCode, stopwatch.Elapsed, logPath);
+            results.Add(stepResult);
+
+            if (stepResult.Succeeded)
+            {
+                AnsiConsole.MarkupLine($"[green]OK[/]   ({stopwatch.Elapsed.TotalSeconds:F1}s) ΓåÆ [grey]{Markup.Escape(logPath)}[/]");
+            }
+            else
+            {
+                AnsiConsole.MarkupLine($"[red]FAIL[/] ({stopwatch.Elapsed.TotalSeconds:F1}s) ΓåÆ [cyan]{Markup.Escape(logPath)}[/]");
+            }
+
+            AnsiConsole.WriteLine();
+
+            return stepResult.Succeeded;
         }
-        else
+
+        private static List<string> BuildCakeArgList(string repoRoot, IReadOnlyList<string> cakeArgs)
         {
-            // Explicit null-stream pipes prevent the child process from deadlocking
-            // when it writes enough stdout/stderr to fill the OS pipe buffer.
-            // CliWrap's default PipeTarget.Null does not open the stream at all,
-            // which is functionally equivalent for most processes but risky for
-            // high-output Cake targets. See https://github.com/Tyrrrz/CliWrap/issues/145.
-            result = await Cli.Wrap("dotnet")
-                .WithArguments(fullArgs)
-                .WithWorkingDirectory(repoRoot)
-                .WithStandardOutputPipe(PipeTarget.ToStream(Stream.Null))
-                .WithStandardErrorPipe(PipeTarget.ToStream(Stream.Null))
-                .WithValidation(CommandResultValidation.None)
-                .ExecuteAsync();
-        }
-
-        stopwatch.Stop();
-        var stepResult = new StepResult(label, result.ExitCode, stopwatch.Elapsed);
-        results.Add(stepResult);
-
-        if (stepResult.Succeeded)
-        {
-            AnsiConsole.MarkupLine($"[green]OK[/]   ({stopwatch.Elapsed.TotalSeconds:F1}s)");
-        }
-        else
-        {
-            AnsiConsole.MarkupLine($"[red]FAIL[/] ({stopwatch.Elapsed.TotalSeconds:F1}s)");
-        }
-
-        AnsiConsole.WriteLine();
-
-        return stepResult.Succeeded;
-    }
-
-    /// <summary>Run a Cake target WITH per-step log. Returns true if step passed.</summary>
-    public static async Task<bool> RunCakeStepWithLogAsync(
-        List<StepResult> results, string repoRoot, string logDir, string label, IReadOnlyList<string> cakeArgs, bool verbose)
-    {
-        var stepNumber = results.Count + 1;
-        var logPath = Path.Combine(logDir, $"{stepNumber:00}-{SanitizeForFile(label)}.log");
-
-        AnsiConsole.Write(new Rule($"[yellow]{stepNumber:00}. {Markup.Escape(label)}[/]").RuleStyle("grey").LeftJustified());
-
-        var fullArgs = BuildCakeArgList(repoRoot, cakeArgs);
-        var displayCommand = "dotnet " + string.Join(' ', fullArgs.Select(QuoteArg));
-        AnsiConsole.MarkupLine($"[grey]cmd:[/] [cyan]{Markup.Escape(displayCommand)}[/]");
-
-        var stopwatch = Stopwatch.StartNew();
-        var result = await Cli.Wrap("dotnet")
-            .WithArguments(fullArgs)
-            .WithWorkingDirectory(repoRoot)
-            .WithStandardOutputPipe(CreateLineLogPipe(logPath, verbose ? Console.Out : null))
-            .WithStandardErrorPipe(CreateLineLogPipe(logPath, verbose ? Console.Error : null))
-            .WithValidation(CommandResultValidation.None)
-            .ExecuteAsync();
-        stopwatch.Stop();
-
-        var stepResult = new StepResult(label, result.ExitCode, stopwatch.Elapsed, logPath);
-        results.Add(stepResult);
-
-        if (stepResult.Succeeded)
-        {
-            AnsiConsole.MarkupLine($"[green]OK[/]   ({stopwatch.Elapsed.TotalSeconds:F1}s) → [grey]{Markup.Escape(logPath)}[/]");
-        }
-        else
-        {
-            AnsiConsole.MarkupLine($"[red]FAIL[/] ({stopwatch.Elapsed.TotalSeconds:F1}s) → [cyan]{Markup.Escape(logPath)}[/]");
-        }
-
-        AnsiConsole.WriteLine();
-
-        return stepResult.Succeeded;
-    }
-
-    private static List<string> BuildCakeArgList(string repoRoot, IReadOnlyList<string> cakeArgs)
-    {
-        var fullArgs = new List<string>(7 + cakeArgs.Count)
+            var fullArgs = new List<string>(7 + cakeArgs.Count)
         {
             "run",
             "--project", Path.Combine(repoRoot, "build", "_build", "Build.csproj"),
             "--configuration", "Release",
             "--",
         };
-        fullArgs.AddRange(cakeArgs);
-        return fullArgs;
-    }
+            fullArgs.AddRange(cakeArgs);
+            return fullArgs;
+        }
 
-    // ── NuGet protocol helpers (remote-github source) ──
+        // ΓöÇΓöÇ NuGet protocol helpers (remote-github source) ΓöÇΓöÇ
 
-    public const string GitHubPackagesFeedUrl = "https://nuget.pkg.github.com/janset2d/index.json";
+        public const string GitHubPackagesFeedUrl = "https://nuget.pkg.github.com/janset2d/index.json";
 
-    public static string? ResolveGitHubToken()
-    {
-        foreach (var envVar in new[] { "GH_TOKEN", "GITHUB_TOKEN" })
+        public static string? ResolveGitHubToken()
         {
-            var value = Environment.GetEnvironmentVariable(envVar);
-
-            if (!string.IsNullOrWhiteSpace(value))
+            foreach (var envVar in new[] { "GH_TOKEN", "GITHUB_TOKEN" })
             {
-                return value;
+                var value = Environment.GetEnvironmentVariable(envVar);
+
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    return value;
+                }
+            }
+
+            return null;
+        }
+
+        public static async Task<NuGetVersion?> GetLatestNuGetVersionAsync(string feedUrl, string authToken, string packageId)
+        {
+            var repository = CreateNuGetRepository(feedUrl, authToken);
+            var resource = await repository.GetResourceAsync<FindPackageByIdResource>(CancellationToken.None);
+
+            using var cache = new SourceCacheContext { NoCache = true };
+            var versions = await resource.GetAllVersionsAsync(packageId, cache, NullLogger.Instance, CancellationToken.None);
+
+            return versions
+                .OrderByDescending(v => v, VersionComparer.Default)
+                .FirstOrDefault();
+        }
+
+        public static async Task DownloadNuGetPackageAsync(
+            string feedUrl, string authToken, string packageId, NuGetVersion version, string targetDir)
+        {
+            var repository = CreateNuGetRepository(feedUrl, authToken);
+            var resource = await repository.GetResourceAsync<FindPackageByIdResource>(CancellationToken.None);
+
+            using var cache = new SourceCacheContext { NoCache = true };
+
+            var fileName = $"{packageId}.{version.ToNormalizedString()}.nupkg";
+            var targetPath = Path.Combine(targetDir, fileName);
+
+            if (!Directory.Exists(targetDir))
+            {
+                Directory.CreateDirectory(targetDir);
+            }
+
+            await using var fileStream = new FileStream(targetPath, FileMode.Create, FileAccess.Write, FileShare.None);
+            var copied = await resource.CopyNupkgToStreamAsync(packageId, version, fileStream, cache, NullLogger.Instance, CancellationToken.None);
+
+            if (!copied)
+            {
+                throw new InvalidOperationException(
+                    $"NuGet feed at '{feedUrl}' could not stream '{packageId}' {version.ToNormalizedString()}. Verify the package was published and the " +
+                    "auth token has read:packages scope.");
             }
         }
 
-        return null;
-    }
-
-    public static async Task<NuGetVersion?> GetLatestNuGetVersionAsync(string feedUrl, string authToken, string packageId)
-    {
-        var repository = CreateNuGetRepository(feedUrl, authToken);
-        var resource = await repository.GetResourceAsync<FindPackageByIdResource>(CancellationToken.None);
-
-        using var cache = new SourceCacheContext { NoCache = true };
-        var versions = await resource.GetAllVersionsAsync(packageId, cache, NullLogger.Instance, CancellationToken.None);
-
-        return versions
-            .OrderByDescending(v => v, VersionComparer.Default)
-            .FirstOrDefault();
-    }
-
-    public static async Task DownloadNuGetPackageAsync(
-        string feedUrl, string authToken, string packageId, NuGetVersion version, string targetDir)
-    {
-        var repository = CreateNuGetRepository(feedUrl, authToken);
-        var resource = await repository.GetResourceAsync<FindPackageByIdResource>(CancellationToken.None);
-
-        using var cache = new SourceCacheContext { NoCache = true };
-
-        var fileName = $"{packageId}.{version.ToNormalizedString()}.nupkg";
-        var targetPath = Path.Combine(targetDir, fileName);
-
-        if (!Directory.Exists(targetDir))
+        private static SourceRepository CreateNuGetRepository(string feedUrl, string authToken)
         {
-            Directory.CreateDirectory(targetDir);
-        }
-
-        await using var fileStream = new FileStream(targetPath, FileMode.Create, FileAccess.Write, FileShare.None);
-        var copied = await resource.CopyNupkgToStreamAsync(packageId, version, fileStream, cache, NullLogger.Instance, CancellationToken.None);
-
-        if (!copied)
-        {
-            throw new InvalidOperationException(
-                $"NuGet feed at '{feedUrl}' could not stream '{packageId}' {version.ToNormalizedString()}. Verify the package was published and the " +
-                "auth token has read:packages scope.");
-        }
-    }
-
-    private static SourceRepository CreateNuGetRepository(string feedUrl, string authToken)
-    {
-        var packageSource = new PackageSource(feedUrl)
-        {
-            Credentials = new PackageSourceCredential(
-                source: feedUrl,
-                username: "anonymous",
-                passwordText: authToken,
-                isPasswordClearText: true,
-                validAuthenticationTypesText: null),
-        };
-        return Repository.Factory.GetCoreV3(packageSource);
-    }
-
-    public static string DescribeNuGetFailure(Exception exception, string packageId, string operation)
-    {
-        var exceptions = FlattenExceptions(exception).ToList();
-        var message = string.Join(" | ", exceptions.Select(static ex => ex.Message));
-        var lower = message.ToLowerInvariant();
-
-        if (lower.Contains("401", StringComparison.Ordinal) || lower.Contains("unauthorized", StringComparison.Ordinal)
-            || lower.Contains("403", StringComparison.Ordinal) || lower.Contains("forbidden", StringComparison.Ordinal))
-        {
-            return $"GitHub Packages {operation} failed for '{packageId}': GH_TOKEN/GITHUB_TOKEN is missing read access. " +
-                   $"Use a Classic PAT with read:packages; fine-grained PATs are unsupported by GitHub Packages NuGet. Raw error: {message}";
-        }
-
-        if (lower.Contains("404", StringComparison.Ordinal) || lower.Contains("not found", StringComparison.Ordinal))
-        {
-            return $"GitHub Packages {operation} failed for '{packageId}': package/feed was not found. " +
-                   $"The first publish wave may not have shipped yet, or the package id/feed URL is wrong. Raw error: {message}";
-        }
-
-        if (exceptions.Any(static ex => ex is HttpRequestException or IOException or TimeoutException))
-        {
-            return $"GitHub Packages {operation} failed for '{packageId}': network or feed availability problem. " +
-                   $"Retry, or check connectivity to {GitHubPackagesFeedUrl}. Raw error: {message}";
-        }
-
-        return $"GitHub Packages {operation} failed for '{packageId}'. Raw error: {message}";
-    }
-
-    // ── UI helpers ──
-
-    public static void PrintSummaryTable(List<StepResult> results, TimeSpan totalDuration)
-    {
-        if (results.Count == 0)
-        {
-            return;
-        }
-
-        var table = new Table().RoundedBorder().BorderColor(Color.Grey);
-        table.AddColumn("#");
-        table.AddColumn("Stage");
-        table.AddColumn(new TableColumn("Status").Centered());
-        table.AddColumn(new TableColumn("Duration").RightAligned());
-
-        for (var i = 0; i < results.Count; i++)
-        {
-            var r = results[i];
-            var status = r.Succeeded ? "[green]PASS[/]" : $"[red]FAIL (exit {r.ExitCode})[/]";
-            table.AddRow(
-                (i + 1).ToString(CultureInfo.InvariantCulture),
-                Markup.Escape(r.Label),
-                status,
-                $"{r.Duration.TotalSeconds:F1}s");
-        }
-
-        var failed = results.Count(static r => !r.Succeeded);
-        var passed = results.Count - failed;
-        var headerColor = failed == 0 ? "green" : "red";
-        var headerText = failed == 0 ? "All stages passed" : $"{failed} stage(s) failed";
-
-        AnsiConsole.Write(new Panel(table)
-            .Header($"[{headerColor}]{headerText}[/] — [grey]{passed}/{results.Count} passed · total {totalDuration.TotalSeconds:F1}s[/]")
-            .BorderColor(failed == 0 ? Color.Green : Color.Red));
-    }
-
-    private static string SanitizeForFile(string value)
-    {
-        var sanitized = new StringBuilder(value.Length);
-
-        foreach (var ch in value)
-        {
-            sanitized.Append(char.IsLetterOrDigit(ch) || ch is '-' or '_' ? ch : '-');
-        }
-
-        return sanitized.ToString();
-    }
-
-    private static string QuoteArg(string argument)
-        => argument.Contains(' ', StringComparison.Ordinal) ? $"\"{argument}\"" : argument;
-
-    public static string BuildStepLogPath(string logDir, int stepNumber, string label)
-        => Path.Combine(logDir, $"{stepNumber:00}-{SanitizeForFile(label)}.log");
-
-    private static PipeTarget CreateLineLogPipe(string logPath, TextWriter? consoleWriter)
-    {
-        var sync = LineLogLocks.GetOrAdd(logPath, static _ => new System.Threading.Lock());
-        return PipeTarget.ToDelegate(line =>
-        {
-            lock (sync)
+            var packageSource = new PackageSource(feedUrl)
             {
-                File.AppendAllText(logPath, line + Environment.NewLine, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+                Credentials = new PackageSourceCredential(
+                    source: feedUrl,
+                    username: "anonymous",
+                    passwordText: authToken,
+                    isPasswordClearText: true,
+                    validAuthenticationTypesText: null),
+            };
+            return Repository.Factory.GetCoreV3(packageSource);
+        }
+
+        public static string DescribeNuGetFailure(Exception exception, string packageId, string operation)
+        {
+            var exceptions = FlattenExceptions(exception).ToList();
+            var message = string.Join(" | ", exceptions.Select(static ex => ex.Message));
+            var lower = message.ToLowerInvariant();
+
+            if (lower.Contains("401", StringComparison.Ordinal) || lower.Contains("unauthorized", StringComparison.Ordinal)
+                || lower.Contains("403", StringComparison.Ordinal) || lower.Contains("forbidden", StringComparison.Ordinal))
+            {
+                return $"GitHub Packages {operation} failed for '{packageId}': GH_TOKEN/GITHUB_TOKEN is missing read access. " +
+                       $"Use a Classic PAT with read:packages; fine-grained PATs are unsupported by GitHub Packages NuGet. Raw error: {message}";
             }
 
-            consoleWriter?.WriteLine(line);
-        });
-    }
+            if (lower.Contains("404", StringComparison.Ordinal) || lower.Contains("not found", StringComparison.Ordinal))
+            {
+                return $"GitHub Packages {operation} failed for '{packageId}': package/feed was not found. " +
+                       $"The first publish wave may not have shipped yet, or the package id/feed URL is wrong. Raw error: {message}";
+            }
 
-    private static IEnumerable<Exception> FlattenExceptions(Exception exception)
-    {
-        for (var current = exception; current is not null; current = current.InnerException!)
-        {
-            yield return current;
+            if (exceptions.Any(static ex => ex is HttpRequestException or IOException or TimeoutException))
+            {
+                return $"GitHub Packages {operation} failed for '{packageId}': network or feed availability problem. " +
+                       $"Retry, or check connectivity to {GitHubPackagesFeedUrl}. Raw error: {message}";
+            }
+
+            return $"GitHub Packages {operation} failed for '{packageId}'. Raw error: {message}";
         }
-    }
 
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, System.Threading.Lock> LineLogLocks = new(StringComparer.OrdinalIgnoreCase);
+        // ΓöÇΓöÇ UI helpers ΓöÇΓöÇ
+
+        public static void PrintSummaryTable(List<StepResult> results, TimeSpan totalDuration)
+        {
+            if (results.Count == 0)
+            {
+                return;
+            }
+
+            var table = new Table().RoundedBorder().BorderColor(Color.Grey);
+            table.AddColumn("#");
+            table.AddColumn("Stage");
+            table.AddColumn(new TableColumn("Status").Centered());
+            table.AddColumn(new TableColumn("Duration").RightAligned());
+
+            for (var i = 0; i < results.Count; i++)
+            {
+                var r = results[i];
+                var status = r.Succeeded ? "[green]PASS[/]" : $"[red]FAIL (exit {r.ExitCode})[/]";
+                table.AddRow(
+                    (i + 1).ToString(CultureInfo.InvariantCulture),
+                    Markup.Escape(r.Label),
+                    status,
+                    $"{r.Duration.TotalSeconds:F1}s");
+            }
+
+            var failed = results.Count(static r => !r.Succeeded);
+            var passed = results.Count - failed;
+            var headerColor = failed == 0 ? "green" : "red";
+            var headerText = failed == 0 ? "All stages passed" : $"{failed} stage(s) failed";
+
+            AnsiConsole.Write(new Panel(table)
+                .Header($"[{headerColor}]{headerText}[/] ΓÇö [grey]{passed}/{results.Count} passed ┬╖ total {totalDuration.TotalSeconds:F1}s[/]")
+                .BorderColor(failed == 0 ? Color.Green : Color.Red));
+        }
+
+        private static string SanitizeForFile(string value)
+        {
+            var sanitized = new StringBuilder(value.Length);
+
+            foreach (var ch in value)
+            {
+                sanitized.Append(char.IsLetterOrDigit(ch) || ch is '-' or '_' ? ch : '-');
+            }
+
+            return sanitized.ToString();
+        }
+
+        private static string QuoteArg(string argument)
+            => argument.Contains(' ', StringComparison.Ordinal) ? $"\"{argument}\"" : argument;
+
+        public static string BuildStepLogPath(string logDir, int stepNumber, string label)
+            => Path.Combine(logDir, $"{stepNumber:00}-{SanitizeForFile(label)}.log");
+
+        private static PipeTarget CreateLineLogPipe(string logPath, TextWriter? consoleWriter)
+        {
+            var sync = LineLogLocks.GetOrAdd(logPath, static _ => new System.Threading.Lock());
+            return PipeTarget.ToDelegate(line =>
+            {
+                lock (sync)
+                {
+                    File.AppendAllText(logPath, line + Environment.NewLine, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+                }
+
+                consoleWriter?.WriteLine(line);
+            });
+        }
+
+        private static IEnumerable<Exception> FlattenExceptions(Exception exception)
+        {
+            for (var current = exception; current is not null; current = current.InnerException!)
+            {
+                yield return current;
+            }
+        }
+
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, System.Threading.Lock> LineLogLocks = new(StringComparer.OrdinalIgnoreCase);
+    }
 }
