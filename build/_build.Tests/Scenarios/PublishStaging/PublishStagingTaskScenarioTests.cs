@@ -1,6 +1,6 @@
-using Build.Targets.PublishStaging.Services;
 using Build.Data;
 using Build.Targets.PublishStaging;
+using Build.Targets.PublishStaging.Services;
 using Build.Tests.Fixtures;
 using Cake.Core.IO;
 using Microsoft.Extensions.DependencyInjection;

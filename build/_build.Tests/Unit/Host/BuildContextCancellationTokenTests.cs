@@ -1,4 +1,3 @@
-using Build.Host;
 using Build.Tests.Fixtures;
 
 namespace Build.Tests.Unit.Host;
