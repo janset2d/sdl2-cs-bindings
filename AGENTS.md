@@ -21,7 +21,7 @@ modern, most .NET-friendly SDL binding library; design questions are settled wit
   raised and raising it is never proposed. Going lower is welcome when it needs no bad toolchain.
 - Generated binding sources change only by running the generator; review the complete diff.
 - [`external/`](external/) submodules are read-only upstream evidence. [`external/sdl2-cs`](external/sdl2-cs) is transitional and
-  untrusted for production testing; it retires when the generated binding surface ships.
+  untrusted for production testing.
 - A question asks for an answer, not an unrequested change. When intent is ambiguous, present the
   options, recommend one, and ask.
 - Read the canon and the code a change touches before writing. Take the shape the surrounding code
