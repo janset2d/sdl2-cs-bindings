@@ -471,6 +471,14 @@ dotnet_diagnostic.S6602.severity = none
 # SECTION 13: COMPILER
 # Missing documentation is not enforced until the shipped-source scope is configured.
 dotnet_diagnostic.CS1591.severity = none
+dotnet_diagnostic.CS1570.severity = error
+dotnet_diagnostic.CS1572.severity = error
+dotnet_diagnostic.CS1573.severity = error
+dotnet_diagnostic.CS1574.severity = error
+dotnet_diagnostic.CS1587.severity = error
+
+[src/SDL2.*/**.cs]
+dotnet_diagnostic.CS1591.severity = error
 
 # SECTION 14: GENERATED CODE
 # Generated bindings retain their compiler, oracle, snapshot, ABI and drift gates.
