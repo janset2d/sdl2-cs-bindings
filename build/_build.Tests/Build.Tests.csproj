@@ -24,6 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
     <PackageReference Include="Spectre.Console" />
     <PackageReference Include="Spectre.Console.Testing" />
     <PackageReference Include="TUnit" />

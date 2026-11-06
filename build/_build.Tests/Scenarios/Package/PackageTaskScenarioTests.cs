@@ -240,19 +240,22 @@ public sealed class PackageTaskScenarioTests
         INativePackageMetadataGenerator? nativeMetadataGen = null)
     {
         var metadataReader = Substitute.For<IProjectMetadataReader>();
-        metadataReader.Read(Arg.Any<FilePath>())
+        metadataReader
+            .Read(Arg.Any<FilePath>())
             .Returns(Result<EvaluatedProjectMetadata, ProjectMetadataError>.Success(
                 new EvaluatedProjectMetadata(["net10.0"], "Authors", "LICENSE", "icon.png")));
 
         nativeMetadataGen ??= Substitute.For<INativePackageMetadataGenerator>();
-        nativeMetadataGen.GenerateAsync(Arg.Any<ManifestConfig>(), Arg.Any<PackageFamilyConfig>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        nativeMetadataGen
+            .GenerateAsync(Arg.Any<ManifestConfig>(), Arg.Any<PackageFamilyConfig>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
 
         readmeGen ??= Substitute.For<IReadmeMappingTableGenerator>();
         readmeGen.UpdateAsync(Arg.Any<ManifestConfig>(), Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
 
         var outputValidator = Substitute.For<IPackageOutputValidator>();
-        outputValidator.ValidateAsync(
+        outputValidator
+            .ValidateAsync(
             Arg.Any<PackageFamilyConfig>(),
             Arg.Any<PackageArtifacts>(),
             Arg.Any<string>(),
@@ -289,7 +292,8 @@ public sealed class PackageTaskScenarioTests
             // returning the test-provided report. ServiceCollection takes the last registration
             // for a given service type, so this overrides the AddValidators registration above.
             var stubValidator = Substitute.For<IPackageOutputValidator>();
-            stubValidator.ValidateAsync(
+            stubValidator
+                .ValidateAsync(
                 Arg.Any<PackageFamilyConfig>(),
                 Arg.Any<PackageArtifacts>(),
                 Arg.Any<string>(),

@@ -181,9 +181,11 @@ public sealed class FakeCakeWorld
         var file = Substitute.For<IFile>();
         file.Exists.Returns(true);
         file.Path.Returns(path);
-        file.Open(FileMode.Open, FileAccess.Read, FileShare.Read)
+        file
+            .Open(FileMode.Open, FileAccess.Read, FileShare.Read)
             .Returns(_ => OpenCurrentZip());
-        file.Open(FileMode.Open, FileAccess.ReadWrite, FileShare.None)
+        file
+            .Open(FileMode.Open, FileAccess.ReadWrite, FileShare.None)
             .Returns(_ => OpenCurrentZip());
         var fileSystem = Substitute.For<IFileSystem>();
         fileSystem.GetFile(Arg.Any<FilePath>()).Returns(call => path.Equals(call.Arg<FilePath>()) ? file : previous.GetFile(call.Arg<FilePath>()));
@@ -472,7 +474,8 @@ public sealed class FakeCakeWorld
     private ICakeContext BuildCakeContext()
     {
         var processRunner = Substitute.For<IProcessRunner>();
-        processRunner.Start(Arg.Any<FilePath>(), Arg.Any<ProcessSettings>())
+        processRunner
+            .Start(Arg.Any<FilePath>(), Arg.Any<ProcessSettings>())
             .Returns(call =>
             {
                 var filePath = (FilePath)call[0];
@@ -522,7 +525,8 @@ public sealed class FakeCakeWorld
         var toolLocator = Substitute.For<IToolLocator>();
 
         // Lazy resolution: _toolPath / _defaultToolPath may be configured after construction.
-        toolLocator.Resolve(Arg.Any<string>())
+        toolLocator
+            .Resolve(Arg.Any<string>())
             .Returns(call =>
             {
                 var toolName = (string)call[0];
@@ -545,7 +549,8 @@ public sealed class FakeCakeWorld
                     "Tool path was not configured. " +
                     "Call WithToolPath(name, path) for per-tool, WithToolPath(path) for the legacy global default, or WithDefaultToolPath(path) to accept any unconfigured tool.");
             });
-        toolLocator.Resolve(Arg.Any<IEnumerable<string>>())
+        toolLocator
+            .Resolve(Arg.Any<IEnumerable<string>>())
             .Returns(call =>
             {
                 var names = (IEnumerable<string>)call[0];

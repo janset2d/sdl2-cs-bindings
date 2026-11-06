@@ -48,6 +48,7 @@ COPY build/_build/Build.csproj /workspace/build/_build/
 COPY build/_build/packages.lock.json /workspace/build/_build/
 COPY build/_build.Tests/Build.Tests.csproj /workspace/build/_build.Tests/
 COPY build/_build.Tests/packages.lock.json /workspace/build/_build.Tests/
+COPY build/analyzers/Janset.CodeStyle.Analyzers/Janset.CodeStyle.Analyzers.csproj /workspace/build/analyzers/Janset.CodeStyle.Analyzers/
 RUN dotnet restore /workspace/build/_build/Build.csproj --locked-mode
 
 # Layer C — vcpkg toolchain at submodule-pinned commit.
