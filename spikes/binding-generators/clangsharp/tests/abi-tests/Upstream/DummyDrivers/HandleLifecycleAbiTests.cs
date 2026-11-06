@@ -7,10 +7,10 @@ using static SDL2.SDLNative;
 
 namespace Janset.SDL2.AbiTests.Upstream.DummyDrivers;
 
+[NotInParallel(AbiParallelKeys.SdlGlobalState)]
 public sealed class HandleLifecycleAbiTests
 {
     [Test]
-    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [RequiresVideoDummyDriver]
     [Category(AbiCategories.Smoke)]
     [Category(AbiCategories.Mechanical)]
@@ -30,7 +30,7 @@ public sealed class HandleLifecycleAbiTests
 
     private static unsafe HandleLifecycleResult CreateRoundTripAndDestroyWindowRendererHandles()
     {
-        using SdlEnvironmentScope videoDriver = new("SDL_VIDEODRIVER", "dummy");
+        using SdlDriverScope videoDriver = new("SDL_VIDEODRIVER", "dummy");
         using SdlHintScope renderDriverHint = new("SDL_RENDER_DRIVER", "software");
         using SdlSubsystemScope video = new(SDL_INIT_VIDEO);
 

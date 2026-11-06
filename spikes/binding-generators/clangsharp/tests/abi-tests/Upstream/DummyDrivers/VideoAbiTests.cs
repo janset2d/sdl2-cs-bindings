@@ -8,10 +8,10 @@ using static SDL2.SDLNative;
 
 namespace Janset.SDL2.AbiTests.Upstream.DummyDrivers;
 
+[NotInParallel(AbiParallelKeys.SdlGlobalState)]
 public sealed class VideoAbiTests
 {
     [Test]
-    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [RequiresVideoDummyDriver]
     [Category(AbiCategories.Smoke)]
     [Category(AbiCategories.Mechanical)]
@@ -25,7 +25,6 @@ public sealed class VideoAbiTests
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [RequiresVideoDummyDriver]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.Mechanical)]
@@ -41,7 +40,6 @@ public sealed class VideoAbiTests
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [RequiresVideoDummyDriver]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.Mechanical)]
@@ -59,7 +57,6 @@ public sealed class VideoAbiTests
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [RequiresVideoDummyDriver]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.Mechanical)]
@@ -75,7 +72,6 @@ public sealed class VideoAbiTests
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [RequiresVideoDummyDriver]
     [Category(AbiCategories.Smoke)]
     [Category(AbiCategories.BehaviorCoverage)]
@@ -91,7 +87,6 @@ public sealed class VideoAbiTests
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
     [RequiresVideoDummyDriver]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.Mechanical)]
@@ -115,7 +110,7 @@ public sealed class VideoAbiTests
 
     private static unsafe WindowResult CreateAndDestroyDummyWindow()
     {
-        using SdlEnvironmentScope videoDriver = new("SDL_VIDEODRIVER", "dummy");
+        using SdlDriverScope videoDriver = new("SDL_VIDEODRIVER", "dummy");
         using SdlSubsystemScope video = new(SDL_INIT_VIDEO);
         using PinnedUtf8 title = SdlUtf8.Pin("Janset SDL2 ABI dummy window");
 
@@ -130,7 +125,7 @@ public sealed class VideoAbiTests
 
     private static unsafe WindowFlagsResult GetDummyWindowFlags()
     {
-        using SdlEnvironmentScope videoDriver = new("SDL_VIDEODRIVER", "dummy");
+        using SdlDriverScope videoDriver = new("SDL_VIDEODRIVER", "dummy");
         using SdlSubsystemScope video = new(SDL_INIT_VIDEO);
 
         SDL_WindowFlags expectedFlags = SDL_WindowFlags.SDL_WINDOW_HIDDEN;
@@ -148,7 +143,7 @@ public sealed class VideoAbiTests
 
     private static unsafe WindowIdResult GetDummyWindowByIdAndDestroy()
     {
-        using SdlEnvironmentScope videoDriver = new("SDL_VIDEODRIVER", "dummy");
+        using SdlDriverScope videoDriver = new("SDL_VIDEODRIVER", "dummy");
         using SdlSubsystemScope video = new(SDL_INIT_VIDEO);
 
         SDL_Window window = CreateDummyWindow("Janset SDL2 ABI dummy id", 64, 64, SDL_WindowFlags.SDL_WINDOW_HIDDEN);
@@ -167,7 +162,7 @@ public sealed class VideoAbiTests
 
     private static unsafe WindowPixelFormatResult GetDummyWindowPixelFormat()
     {
-        using SdlEnvironmentScope videoDriver = new("SDL_VIDEODRIVER", "dummy");
+        using SdlDriverScope videoDriver = new("SDL_VIDEODRIVER", "dummy");
         using SdlSubsystemScope video = new(SDL_INIT_VIDEO);
 
         SDL_Window window = CreateDummyWindow("Janset SDL2 ABI dummy pixel format", 64, 64, SDL_WindowFlags.SDL_WINDOW_HIDDEN);
@@ -184,7 +179,7 @@ public sealed class VideoAbiTests
 
     private static unsafe WindowSizeResult SetAndGetDummyWindowSize()
     {
-        using SdlEnvironmentScope videoDriver = new("SDL_VIDEODRIVER", "dummy");
+        using SdlDriverScope videoDriver = new("SDL_VIDEODRIVER", "dummy");
         using SdlSubsystemScope video = new(SDL_INIT_VIDEO);
 
         SDL_Window window = CreateDummyWindow("Janset SDL2 ABI dummy size", 32, 32, SDL_WindowFlags.SDL_WINDOW_HIDDEN);
@@ -208,7 +203,7 @@ public sealed class VideoAbiTests
 
     private static unsafe WindowSurfaceResult ExerciseDummyWindowSurfaceLifecycle()
     {
-        using SdlEnvironmentScope videoDriver = new("SDL_VIDEODRIVER", "dummy");
+        using SdlDriverScope videoDriver = new("SDL_VIDEODRIVER", "dummy");
         using SdlHintScope framebufferAcceleration = new("SDL_FRAMEBUFFER_ACCELERATION", "1");
         using SdlSubsystemScope video = new(SDL_INIT_VIDEO);
 

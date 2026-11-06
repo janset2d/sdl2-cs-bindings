@@ -26,7 +26,7 @@ public sealed class HintsAbiTests
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
+    [NotInParallel]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.GlobalState)]
@@ -64,10 +64,32 @@ public sealed class HintsAbiTests
             environment.Dispose();
             ResetHint(testHint);
         }
+
+        foreach (string driverHint in new[] { "SDL_VIDEODRIVER", "SDL_AUDIODRIVER" })
+        {
+            using SdlEnvironmentScope driverEnvironment = new(driverHint, "original");
+            try
+            {
+                ResetHint(driverHint);
+                using (SdlDriverScope driver = new(driverHint, "dummy"))
+                {
+                    await Assert.That(GetHint(driverHint)).IsEqualTo("dummy");
+                    SetHint(driverHint, "temp");
+                    await Assert.That(GetHint(driverHint)).IsEqualTo("dummy");
+                    await Assert.That(GetEnvironmentValue(driverHint)).IsEqualTo("original");
+                }
+
+                await Assert.That(GetHint(driverHint)).IsEqualTo("original");
+            }
+            finally
+            {
+                ResetHint(driverHint);
+            }
+        }
     }
 
     [Test]
-    [NotInParallel(AbiParallelKeys.SdlGlobalState)]
+    [NotInParallel]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.GlobalState)]
@@ -117,6 +139,14 @@ public sealed class HintsAbiTests
             environment.Dispose();
             ResetHint(testHint);
         }
+    }
+
+    private static unsafe string? GetEnvironmentValue(string name)
+    {
+        using PinnedUtf8 pinnedName = SdlUtf8.Pin(name);
+        byte* value = SDL_getenv(pinnedName.Pointer);
+
+        return value is null ? null : SdlUtf8.FromNullTerminated(value);
     }
 
     private static unsafe string? GetHint(string name)
