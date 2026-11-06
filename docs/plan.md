@@ -1,5 +1,7 @@
 # Project Plan — Janset.SDL2 / Janset.SDL3
 
+Date: 2026-11-06
+
 **Maintainer:** Deniz Irgin (@denizirgin)
 
 > Canonical roadmap. Forward-looking only — historical narrative lives in code + git history. When code and this file disagree, verify against code.
@@ -17,6 +19,10 @@ Current status:
 **Phase X / build-host refactor — CLOSED 2026-05-10.** The settled build-host architecture now lives in [`ADR-002`](decisions/2026-05-05-target-centric-build-host.md) and [`ADR-003`](decisions/2026-05-12-build-host-data-layer.md). Durable day-to-day rules live in [`knowledge-base/testing-guidelines.md`](knowledge-base/testing-guidelines.md) and [`knowledge-base/extraction-guidelines.md`](knowledge-base/extraction-guidelines.md). Migration-era notes were retired after test-infrastructure consolidation.
 
 Active execution ledger: [phases/phase-2-adaptation-plan.md](phases/phase-2-adaptation-plan.md) (Phase 2b).
+
+## Known gaps
+
+Public NuGet.org promotion (`PublishPublic`) is a stub; staging publishes to GitHub Packages only.
 
 ## Roadmap
 

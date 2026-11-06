@@ -7,7 +7,7 @@ Date: 2026-11-06
 Work on a work branch with WIP checkpoints and one squash commit per changeset to `master`.
 A pure `git mv` is its own changeset; only forced links and matching gate-baseline paths change with it.
 Integrate a long-lived branch with a real merge. Merge current `origin/master` into a branch that
-falls behind; do not silently rewrite its history.
+falls behind. Rewriting a pushed branch's history is a reserved action, except the restack below.
 Stack related pull requests when they build on each other. Each has its own squash changeset.
 Restacking unmerged stack branches with `gh stack` and `git push --force-with-lease` is authorized;
 this exception does not permit rewriting `master`.

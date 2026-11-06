@@ -84,6 +84,6 @@ The [release workflow](../../.github/workflows/release.yml) expands the runtime 
    [build properties](../../Directory.Build.props).
 5. **PublishStaging** pushes managed/native pairs to GitHub Packages with NuGet.Protocol.
 
-`PreFlightCheck` runs before the matrix. `PublishPublic` is a stub.
+`PreFlightCheck` runs before the matrix.
 Discover current targets with `--tree`; do not maintain a second target list.
 [Release guardrails](../knowledge-base/release-guardrails.md) own the stage validation map and guardrail registry.

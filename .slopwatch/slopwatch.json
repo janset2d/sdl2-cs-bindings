@@ -8,5 +8,5 @@
     "SW005": { "enabled": true, "severity": "warning" },
     "SW006": { "enabled": true, "severity": "warning" }
   },
-  "exclude": "artifacts/**,external/**,vcpkg_installed/**,**/bin/**,**/obj/**"
+  "exclude": "artifacts/**,external/**,vcpkg_installed/**,spikes/binding-generators/references/**,**/bin/**,**/obj/**"
 }

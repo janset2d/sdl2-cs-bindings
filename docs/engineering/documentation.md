@@ -32,9 +32,11 @@ versions and TFMs from [build properties](../../Directory.Build.props) and [pack
 RIDs and schema version from the [manifest](../../build/manifest.json), test counts from the test run.
 Do not copy those values into prose.
 
-The scoped [build instructions](../../build/AGENTS.md) are the one allowed relay of rule text.
-They keep build-boundary and test rules visible to agents entering that subtree. Their owners
-remain [build-host architecture](../architecture/build-host.md) and [testing guidelines](../knowledge-base/testing-guidelines.md).
+Two files relay rule text because agents load them before any routing:
+[AGENTS.md](../../AGENTS.md) relays universal, reserved-action and attribution rules owned by
+[workflow](workflow.md); [build/AGENTS.md](../../build/AGENTS.md) relays build-boundary and test rules
+owned by [build-host architecture](../architecture/build-host.md) and
+[testing style](../knowledge-base/testing-guidelines.md). A relay changes in the same change as its owner.
 
 ## Dates
 

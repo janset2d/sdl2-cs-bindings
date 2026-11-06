@@ -57,7 +57,8 @@ empty catches, arbitrary test delays and central-package-management bypasses.
 slopwatch analyze --fail-on warning --exclude "artifacts/**,external/**,vcpkg_installed/**,spikes/binding-generators/references/**,**/bin/**,**/obj/**"
 ```
 
-The exclusions cover generated payloads, upstream submodules, installed natives, reference clones
+The exclusions mirror [.slopwatch/slopwatch.json](../../.slopwatch/slopwatch.json).
+They cover generated payloads, upstream submodules, installed natives, reference clones
 and build output. Fix new findings rather than hiding them in the baseline.
 After deleting or moving code, rebuild the baseline to remove stale paths, using the same exclusions:
 

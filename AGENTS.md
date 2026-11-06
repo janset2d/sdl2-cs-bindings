@@ -28,8 +28,9 @@ modern, most .NET-friendly SDL binding library; design questions are settled wit
   already uses and prefer the smallest correct change.
 - When code and canon disagree, stop the affected work and follow Deviation in
   [`workflow.md`](docs/engineering/workflow.md). Only Deniz reopens a decision.
-- Write engineered-enough code: explicit over clever, more edge cases handled rather than fewer,
-  repetition flagged, no workaround that hides an error. Behaviour changes come with tests.
+- Write engineered-enough code: explicit over clever; handle every edge case the change can meet,
+  and add nothing the change does not need. Flag repetition; use no workaround that hides an error.
+  Behaviour changes come with tests.
 - Comments in code, project files and workflows explain local logic; they cite no documentation
   path, plan, phase or ADR number.
 - Documentation changes in the same change as the behaviour it describes. Every current fact has
