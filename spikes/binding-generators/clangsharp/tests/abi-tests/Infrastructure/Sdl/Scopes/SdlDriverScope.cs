@@ -2,7 +2,7 @@ using SDL2;
 
 namespace Janset.SDL2.AbiTests.Infrastructure.Sdl.Scopes;
 
-// Keyed driver tests leave no persistent hint, so reset restores their unset initial state.
+/// <summary>Restores the unset driver hint after keyed tests.</summary>
 internal sealed class SdlDriverScope : IDisposable
 {
     private readonly string _name;

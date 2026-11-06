@@ -84,13 +84,13 @@ namespace Tools
         public bool Verbose { get; init; }
     }
 
-    // ReSharper disable once ClassNeverInstantiated.Global — instantiated by Spectre DI
     public sealed class BuildSettings : CommandSettings { }
 
     public sealed class BuildCommand : AsyncCommand<BuildSettings>
     {
         protected override async Task<int> ExecuteAsync(CommandContext context, BuildSettings settings, CancellationToken cancellationToken)
         {
+            ArgumentNullException.ThrowIfNull(context);
             cancellationToken.ThrowIfCancellationRequested();
 
             var remainingRaw = context.Remaining.Raw.ToArray();
@@ -109,6 +109,7 @@ namespace Tools
     {
         protected override async Task<int> ExecuteAsync(CommandContext context, SetupSettings settings, CancellationToken cancellationToken)
         {
+            ArgumentNullException.ThrowIfNull(settings);
             cancellationToken.ThrowIfCancellationRequested();
 
             var source = settings.Source.Trim().ToLowerInvariant();
@@ -498,6 +499,7 @@ namespace Tools
     {
         protected override async Task<int> ExecuteAsync(CommandContext context, CiSimSettings settings, CancellationToken cancellationToken)
         {
+            ArgumentNullException.ThrowIfNull(settings);
             cancellationToken.ThrowIfCancellationRequested();
 
             var repoRoot = await Shared.ResolveRepoRootAsync();
@@ -637,19 +639,15 @@ namespace Tools
 
         protected override async Task<int> ExecuteAsync(CommandContext context, BuildBindingGeneratorImageSettings settings, CancellationToken cancellationToken)
         {
+            ArgumentNullException.ThrowIfNull(settings);
             cancellationToken.ThrowIfCancellationRequested();
 
             var repoRoot = await Shared.ResolveRepoRootAsync();
 
-            var dockerProbe = await CaptureRunAsync("docker", ["version", "--format", "{{.Server.Version}}"], cancellationToken);
-
-            if (dockerProbe.ExitCode != 0)
+            if (!await CheckDockerDaemonAsync(cancellationToken))
             {
-                AnsiConsole.MarkupLine("[red]Docker daemon not reachable.[/] Start Docker Desktop / dockerd, then retry.");
                 return 66;
             }
-
-            AnsiConsole.MarkupLine($"[green]Docker daemon ready[/] (server {Markup.Escape(dockerProbe.StdOut.Trim())}).");
 
             var baseImage = await ReadLinuxBaseImageAsync(repoRoot);
 
@@ -696,6 +694,20 @@ namespace Tools
             AnsiConsole.MarkupLine($"[blue]vcpkg cache key:[/] [cyan]{Markup.Escape(vcpkgCacheKey)}[/]");
 
             return await BuildImageAsync(repoRoot, baseImage, vcpkgCommit, vcpkgCacheKey, sdl2Version, settings.RebuildImage, cancellationToken);
+        }
+
+        private static async Task<bool> CheckDockerDaemonAsync(CancellationToken cancellationToken)
+        {
+            var dockerProbe = await CaptureRunAsync("docker", ["version", "--format", "{{.Server.Version}}"], cancellationToken);
+
+            if (dockerProbe.ExitCode != 0)
+            {
+                AnsiConsole.MarkupLine("[red]Docker daemon not reachable.[/] Start Docker Desktop / dockerd, then retry.");
+                return false;
+            }
+
+            AnsiConsole.MarkupLine($"[green]Docker daemon ready[/] (server {Markup.Escape(dockerProbe.StdOut.Trim())}).");
+            return true;
         }
 
         private static async Task<int> PullBaseImageAsync(string baseImage, CancellationToken cancellationToken)
@@ -832,21 +844,7 @@ namespace Tools
             return null;
         }
 
-        // Deterministic cache-key compute for the BuildKit cache mounts in
-        // docker/binding-generator.Dockerfile Layer E. Hash inputs match
-        // .github/actions/vcpkg-setup/action.yml's actions/cache@v5 key composition
-        // (vcpkg.json + overlay-triplets + overlay-ports + vcpkg submodule commit)
-        // so local Docker invalidation behaves identically to CI invalidation.
-        //
-        // Cross-OS determinism notes:
-        //   * Relative paths normalised to forward slashes before hashing.
-        //   * Recursive enumeration sorted Ordinal before hashing so directory
-        //     iteration order on Windows / Linux produces the same digest.
-        //   * Each file's relative path is prefixed into the stream so a file
-        //     content shuffle (renames) busts the cache.
-        //   * SHA-256 truncated to 8 hex chars; collision space (2^32) is comfortably
-        //     larger than any realistic content-edit cardinality in this repo. The
-        //     mount id is also user-facing in `docker buildx du` output so short is good.
+        /// <summary>Hashes sorted native inputs and the pinned vcpkg commit for cache invalidation.</summary>
         private static async Task<string> ComputeVcpkgCacheKeyAsync(string repoRoot, string vcpkgCommit)
         {
             using var ms = new MemoryStream();

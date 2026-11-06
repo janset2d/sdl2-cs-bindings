@@ -98,6 +98,6 @@ public sealed class StructLayoutAbiTests
 
     private static int Align(int value, int alignment)
     {
-        return ((value + alignment) - 1) / alignment * alignment;
+        return (value + alignment - 1) / alignment * alignment;
     }
 }
