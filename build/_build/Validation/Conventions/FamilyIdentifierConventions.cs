@@ -27,6 +27,7 @@ public static class FamilyIdentifierConventions
         ArgumentException.ThrowIfNullOrWhiteSpace(familyIdentifier);
 
         var dashIndex = familyIdentifier.IndexOf('-', StringComparison.Ordinal);
+
         if (dashIndex <= 0 || dashIndex >= familyIdentifier.Length - 1)
         {
             throw new ArgumentException(
@@ -43,6 +44,7 @@ public static class FamilyIdentifierConventions
         }
 
         var majorPart = sdlPart[3..];
+
         if (!majorPart.All(char.IsDigit))
         {
             throw new ArgumentException($"Family identifier SDL major must be all digits. Got: '{majorPart}'.", nameof(familyIdentifier));
@@ -96,6 +98,7 @@ public static class FamilyIdentifierConventions
         {
             source.AsSpan().CopyTo(span);
             span[0] = char.ToUpperInvariant(span[0]);
+
             for (var i = 1; i < span.Length; i++)
             {
                 span[i] = char.ToLowerInvariant(span[i]);

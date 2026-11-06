@@ -69,6 +69,7 @@ public class MacOtoolScanner : IRuntimeScanner
         if (!libPath.StartsWith('@'))
         {
             var absolutePath = new FilePath(libPath);
+
             if (!absolutePath.IsRelative)
             {
                 return absolutePath;
@@ -89,6 +90,7 @@ public class MacOtoolScanner : IRuntimeScanner
 
             // Try lib subdirectory
             var libSubDir = binaryDir.Combine("../lib").CombineWithFilePath(relativePath);
+
             if (_context.FileExists(libSubDir))
             {
                 return libSubDir;

@@ -52,6 +52,7 @@ public abstract class VcpkgTool<TSettings> : Tool<TSettings> where TSettings : V
     protected sealed override IEnumerable<FilePath> GetAlternativeToolPaths(TSettings settings)
     {
         var vcpkgRoot = settings.VcpkgRoot;
+
         if (!_cakeContext.DirectoryExists(vcpkgRoot))
         {
             throw new CakeException(

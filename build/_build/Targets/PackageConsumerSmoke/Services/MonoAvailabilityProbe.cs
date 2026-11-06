@@ -19,6 +19,7 @@ public sealed class MonoAvailabilityProbe(ICakeContext cakeContext)
     public bool IsMonoAvailable()
     {
         var pathEnv = _cakeContext.EnvironmentVariable("PATH");
+
         if (string.IsNullOrEmpty(pathEnv))
         {
             return false;
@@ -37,6 +38,7 @@ public sealed class MonoAvailabilityProbe(ICakeContext cakeContext)
             }
 
             FilePath candidate;
+
             try
             {
                 candidate = new DirectoryPath(dir).CombineWithFilePath("mono");

@@ -39,6 +39,7 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IRuntimeProfile
             ArgumentNullException.ThrowIfNull(manifest);
 
             var rootPkgInfoResult = await Task.FromResult(GetPackageInfo(manifest.VcpkgName, ct)).ConfigureAwait(false);
+
             if (rootPkgInfoResult.IsFailure)
             {
                 return Result<BinaryClosure, ClosureError>.Failure(new ClosureNotFound($"vcpkg info for package {manifest.VcpkgName} not found."));
@@ -72,6 +73,7 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IRuntimeProfile
                 ct.ThrowIfCancellationRequested();
 
                 var ownerPkgInfoResult = await Task.FromResult(GetPackageInfo(ownerPackage, ct)).ConfigureAwait(false);
+
                 if (ownerPkgInfoResult.IsFailure)
                 {
                     _log.Warning("Package info not found for dependency {0}, continuing.", ownerPackage);
@@ -83,6 +85,7 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IRuntimeProfile
                     .Select(s => new FilePath(s))
                     .Where(path => IsBinary(path) && !_profile.IsSystemFile(path.GetFilename().FullPath))
                     .ToList();
+
                 foreach (var bin in ownedBinaries)
                 {
                     nodesDict.TryAdd(bin, new BinaryNode(bin.FullPath, ownerPackage, originPackage));
@@ -98,6 +101,7 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IRuntimeProfile
                     }
 
                     var idx = depKey.IndexOf(':', StringComparison.OrdinalIgnoreCase);
+
                     if (idx <= 0)
                     {
                         continue;
@@ -193,6 +197,7 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IRuntimeProfile
         }
 
         var parts = pattern.Split('*');
+
         if (parts.Length != 2)
         {
             return false;

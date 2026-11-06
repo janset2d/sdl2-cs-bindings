@@ -36,6 +36,7 @@ public sealed class ArtifactDeployer(ICakeContext ctx) : IArtifactDeployer
         foreach (var action in plan.Actions)
         {
             ct.ThrowIfCancellationRequested();
+
             try
             {
                 switch (action)
@@ -93,6 +94,7 @@ public sealed class ArtifactDeployer(ICakeContext ctx) : IArtifactDeployer
         _ctx.EnsureDirectoryExists(action.ArchivePath.GetDirectory());
 
         var fileListPath = await CreateArchiveFileListAsync(action.ItemsToArchive, ct).ConfigureAwait(false);
+
         try
         {
             var processSettings = new ProcessSettings

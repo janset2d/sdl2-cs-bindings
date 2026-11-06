@@ -151,6 +151,7 @@ static async Task<DirectoryPath> DetermineRepoRootAsync(DirectoryInfo? repoRootA
 
     var gitOutput = string.Empty;
     var exitCode = -1;
+
     try
     {
         using var process = new Process();
@@ -181,6 +182,7 @@ static async Task<DirectoryPath> DetermineRepoRootAsync(DirectoryInfo? repoRootA
 
     // Fallback: An assumed build project is 2 levels deep from the repo root (e.g., repo/build/_build)
     var fallbackPath = new DirectoryPath(AppContext.BaseDirectory).GetParent()?.GetParent()?.Collapse();
+
     if (fallbackPath != null)
     {
         AnsiConsole.MarkupLine($"[yellow]Warning:[/] Could not determine repo root via git. Assuming relative path: {fallbackPath.FullPath}");
@@ -212,6 +214,7 @@ static string[] GetEffectiveCakeArguments(string[] originalArgs, DirectoryPath r
 
     // Mark indices to skip
     var indicesToSkip = new HashSet<int>();
+
     for (var i = 0; i < originalArgs.Length; i++)
     {
         var arg = originalArgs[i];
@@ -223,6 +226,7 @@ static string[] GetEffectiveCakeArguments(string[] originalArgs, DirectoryPath r
 
         indicesToSkip.Add(i);
         // Mark the next argument for skipping if it's a value (not a flag)
+
         if (i + 1 < originalArgs.Length && !originalArgs[i + 1].StartsWith('-'))
         {
             indicesToSkip.Add(i + 1);

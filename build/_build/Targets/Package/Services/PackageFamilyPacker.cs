@@ -103,6 +103,7 @@ public sealed class PackageFamilyPacker
         await _dependencyRangeNormalizer.NormalizeAsync(manifestConfig, family, artifacts.ManagedPackage, version, ct);
 
         var metadataResult = _projectMetadataReader.Read(managedProjectPath);
+
         if (metadataResult.IsFailure)
         {
             _reporter.ReportProjectMetadataError(family, metadataResult.Error);

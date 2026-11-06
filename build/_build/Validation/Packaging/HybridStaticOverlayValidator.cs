@@ -54,6 +54,7 @@ public sealed class HybridStaticOverlayValidator(ICakeContext cakeContext, IPath
             }
 
             var overlayFile = overlayDir.CombineWithFilePath($"{runtime.Triplet}.cmake");
+
             if (!_cakeContext.FileExists(overlayFile))
             {
                 checks.Add(new ValidationCheck(

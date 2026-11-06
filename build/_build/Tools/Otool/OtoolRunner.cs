@@ -142,6 +142,7 @@ public sealed partial class OtoolRunner : Tool<OtoolSettings>
             }
 
             var dependency = ParseDependencyLine(line);
+
             if (dependency != null)
             {
                 _context.Debug($"[DEBUG] Successfully parsed dependency: {dependency.FullPath}");
@@ -170,11 +171,13 @@ public sealed partial class OtoolRunner : Tool<OtoolSettings>
         var match = regex.Match(line);
 
         _context.Debug($"[DEBUG] Regex match success: {match.Success}");
+
         switch (match.Success)
         {
             case true:
                 {
                     _context.Debug($"[DEBUG] Match groups count: {match.Groups.Count}");
+
                     for (var i = 0; i < match.Groups.Count; i++)
                     {
                         _context.Debug($"[DEBUG] Group {i}: '{match.Groups[i].Value}'");

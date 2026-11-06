@@ -76,6 +76,7 @@ public sealed class DotNetSmokeRunner(ICakeContext cakeContext, ICakeLog log)
 
         process.WaitForExit();
         var exitCode = process.GetExitCode();
+
         if (exitCode != 0)
         {
             _log.Verbose("dotnet build-server shutdown returned exit code {0} (best-effort; run continues).", exitCode);
@@ -137,6 +138,7 @@ public sealed class DotNetSmokeRunner(ICakeContext cakeContext, ICakeLog log)
         }
 
         var exitCode = process.GetExitCode();
+
         if (exitCode != 0)
         {
             var combinedOutput = string.Join(Environment.NewLine, standardOutput.Concat(standardError));

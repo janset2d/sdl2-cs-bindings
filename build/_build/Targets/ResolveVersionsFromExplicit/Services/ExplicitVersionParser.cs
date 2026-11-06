@@ -18,6 +18,7 @@ public static class ExplicitVersionParser
         ArgumentNullException.ThrowIfNull(entries);
 
         var mapping = new Dictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var raw in entries)
         {
             if (string.IsNullOrWhiteSpace(raw))
@@ -78,6 +79,7 @@ public static class ExplicitVersionParser
         foreach (var segment in segments)
         {
             var trimmed = segment.Trim();
+
             if (trimmed.Length > 0)
             {
                 entries.Add(trimmed);

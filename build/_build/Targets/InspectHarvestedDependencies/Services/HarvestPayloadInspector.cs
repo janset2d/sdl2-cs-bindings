@@ -53,6 +53,7 @@ public sealed class HarvestPayloadInspector(ICakeContext cakeContext, ICakeLog l
         }
 
         var destination = _pathService.GetInspectOutputLibraryDir(rid, library.Name);
+
         if (_cakeContext.DirectoryExists(destination))
         {
             _cakeContext.DeleteDirectory(destination, new DeleteDirectorySettings { Recursive = true, Force = true });
@@ -61,6 +62,7 @@ public sealed class HarvestPayloadInspector(ICakeContext cakeContext, ICakeLog l
         _cakeContext.CreateDirectory(destination);
 
         var archive = harvestNativeDir.CombineWithFilePath("native.tar.gz");
+
         if (!_cakeContext.FileExists(archive))
         {
             throw new CakeException(
@@ -88,6 +90,7 @@ public sealed class HarvestPayloadInspector(ICakeContext cakeContext, ICakeLog l
         {
             var globExpr = string.Create(CultureInfo.InvariantCulture, $"{inspectedDir.FullPath}/**/{pattern}");
             var matches = _cakeContext.GetFiles(globExpr);
+
             if (matches.Count > 0)
             {
                 return matches.OrderBy(f => f.FullPath.Length).First();

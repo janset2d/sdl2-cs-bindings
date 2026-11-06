@@ -45,6 +45,7 @@ public sealed class ConsolidateHarvestTask(
         ArgumentNullException.ThrowIfNull(context);
 
         var harvestOutputBase = _pathService.HarvestOutput;
+
         if (!_cakeContext.DirectoryExists(harvestOutputBase))
         {
             throw new CakeException(
@@ -53,6 +54,7 @@ public sealed class ConsolidateHarvestTask(
         }
 
         var libraryDirs = _cakeContext.GetDirectories($"{harvestOutputBase}/*");
+
         if (libraryDirs.Count == 0)
         {
             throw new CakeException(
@@ -63,10 +65,12 @@ public sealed class ConsolidateHarvestTask(
         _reporter.LogStarting(harvestOutputBase.FullPath);
 
         var failures = new List<(string Library, string Message)>();
+
         foreach (var libraryDir in libraryDirs)
         {
             var libraryName = libraryDir.GetDirectoryName();
             var failureMessage = await TryConsolidateLibraryAsync(libraryName).ConfigureAwait(false);
+
             if (failureMessage is not null)
             {
                 failures.Add((libraryName, failureMessage));
@@ -91,6 +95,7 @@ public sealed class ConsolidateHarvestTask(
         try
         {
             var ridStatuses = await _harvestManifestRepository.LoadRidStatusesAsync(libraryName).ConfigureAwait(false);
+
             if (ridStatuses is null)
             {
                 _reporter.SkipLibraryNoRidStatus(libraryName, "No RID status files found");
@@ -165,18 +170,21 @@ public sealed class ConsolidateHarvestTask(
         try
         {
             var consolidatedTemp = _pathService.GetHarvestLibraryConsolidatedLicensesTempDir(libraryName);
+
             if (_cakeContext.DirectoryExists(consolidatedTemp))
             {
                 _cakeContext.DeleteDirectory(consolidatedTemp, new DeleteDirectorySettings { Recursive = true, Force = true });
             }
 
             var manifestTemp = _pathService.GetHarvestLibraryManifestTempFile(libraryName);
+
             if (_cakeContext.FileExists(manifestTemp))
             {
                 _cakeContext.DeleteFile(manifestTemp);
             }
 
             var summaryTemp = _pathService.GetHarvestLibrarySummaryTempFile(libraryName);
+
             if (_cakeContext.FileExists(summaryTemp))
             {
                 _cakeContext.DeleteFile(summaryTemp);

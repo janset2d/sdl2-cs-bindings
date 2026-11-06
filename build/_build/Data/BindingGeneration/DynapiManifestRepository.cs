@@ -110,6 +110,7 @@ public sealed partial class DynapiManifestRepository(ICakeContext context, IPath
             }
 
             var carriesExportMarker = LooksLikeExportLine(trimmed);
+
             if (!carriesExportMarker && trimmed[0] == '#')
             {
                 // Pure textual comment: skip silently.
@@ -117,6 +118,7 @@ public sealed partial class DynapiManifestRepository(ICakeContext context, IPath
             }
 
             var match = regex.Match(line);
+
             if (!match.Success)
             {
                 if (carriesExportMarker)
@@ -131,6 +133,7 @@ public sealed partial class DynapiManifestRepository(ICakeContext context, IPath
 
             var name = match.Groups["name"].Value;
             var mirror = match.Groups["mirror"].Value;
+
             if (!string.Equals(name, mirror, StringComparison.Ordinal))
             {
                 throw new InvalidOperationException(

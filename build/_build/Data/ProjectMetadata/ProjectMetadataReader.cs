@@ -51,6 +51,7 @@ public sealed class ProjectMetadataReader(ICakeContext cakeContext, ICakeLog log
         _log.Verbose("Resolving project metadata for '{0}' via dotnet msbuild -getProperty.", projectPath.FullPath);
 
         var capturedLines = new List<string>();
+
         try
         {
             _cakeContext.DotNetMSBuild(projectPath.FullPath, settings, capturedLines.AddRange);
@@ -93,6 +94,7 @@ public sealed class ProjectMetadataReader(ICakeContext cakeContext, ICakeLog log
         // With multiple GetProperties entries, dotnet msbuild emits a single JSON document
         // across one or more stdout lines: { "Properties": { "<name>": "<value>", ... } }.
         var joined = string.Concat(standardOutputLines).Trim();
+
         if (string.IsNullOrWhiteSpace(joined))
         {
             properties = [];
@@ -101,6 +103,7 @@ public sealed class ProjectMetadataReader(ICakeContext cakeContext, ICakeLog log
         }
 
         JsonDocument document;
+
         try
         {
             document = JsonDocument.Parse(joined);
@@ -126,6 +129,7 @@ public sealed class ProjectMetadataReader(ICakeContext cakeContext, ICakeLog log
             }
 
             var result = new Dictionary<string, string>(StringComparer.Ordinal);
+
             foreach (var property in propertiesElement.EnumerateObject())
             {
                 result[property.Name] = property.Value.ValueKind == JsonValueKind.String
@@ -146,6 +150,7 @@ public sealed class ProjectMetadataReader(ICakeContext cakeContext, ICakeLog log
         out ProjectMetadataError error)
     {
         var multi = GetPropertyOrEmpty(properties, "TargetFrameworks");
+
         if (!string.IsNullOrWhiteSpace(multi))
         {
             targetFrameworks = multi.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -154,6 +159,7 @@ public sealed class ProjectMetadataReader(ICakeContext cakeContext, ICakeLog log
         }
 
         var single = GetPropertyOrEmpty(properties, "TargetFramework");
+
         if (!string.IsNullOrWhiteSpace(single))
         {
             targetFrameworks = [single];

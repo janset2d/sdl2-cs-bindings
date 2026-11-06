@@ -32,6 +32,7 @@ public sealed class PreflightReporter(ICakeContext cakeContext)
         }
 
         Log.Information("");
+
         if (!report.IsValid)
         {
             Log.Error("❌ Pre-flight check FAILED - {0} family name invariant violation(s) detected [G59]", report.Errors.Count);
@@ -83,6 +84,7 @@ public sealed class PreflightReporter(ICakeContext cakeContext)
         }
 
         Log.Information("");
+
         if (validation.HasErrors)
         {
             Log.Error("❌ Pre-flight check FAILED - Found version inconsistencies");
@@ -108,6 +110,7 @@ public sealed class PreflightReporter(ICakeContext cakeContext)
         }
 
         Log.Information("");
+
         if (!report.IsValid)
         {
             Log.Error("❌ Pre-flight check FAILED - {0} hybrid-static overlay violation(s) detected [G16]", report.Errors.Count);
@@ -143,6 +146,7 @@ public sealed class PreflightReporter(ICakeContext cakeContext)
         }
 
         Log.Information("");
+
         if (validation.HasErrors)
         {
             Log.Error("❌ Pre-flight check FAILED - Core library identity drift detected [G49]");
@@ -180,6 +184,7 @@ public sealed class PreflightReporter(ICakeContext cakeContext)
         }
 
         Log.Information("");
+
         if (validation.HasErrors)
         {
             Log.Error("❌ Pre-flight check FAILED - Upstream version alignment violations detected [G54]");
@@ -216,6 +221,7 @@ public sealed class PreflightReporter(ICakeContext cakeContext)
         }
 
         Log.Information("");
+
         if (validation.HasErrors)
         {
             var failedCount = validation.Checks.Count(c => !c.IsValid);
@@ -265,6 +271,7 @@ public sealed class PreflightReporter(ICakeContext cakeContext)
         }
 
         Log.Information("");
+
         if (validation.HasErrors)
         {
             var failedCount = validation.Checks.Count(check => check.IsError);
@@ -318,6 +325,7 @@ public sealed class PreflightReporter(ICakeContext cakeContext)
         }
 
         Log.Information("");
+
         if (validation.HasErrors)
         {
             var failedCount = validation.Checks.Count(c => c.Status != OverlayPortVersionCheckStatus.Match);

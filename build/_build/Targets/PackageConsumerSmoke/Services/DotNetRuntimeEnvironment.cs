@@ -77,6 +77,7 @@ public sealed partial class DotNetRuntimeEnvironment(ICakeLog log) : IDotNetRunt
         }
 
         var runtimeChannels = ResolveRuntimeChannels(targetFrameworks);
+
         if (runtimeChannels.Count == 0)
         {
             _log.Verbose(
@@ -87,6 +88,7 @@ public sealed partial class DotNetRuntimeEnvironment(ICakeLog log) : IDotNetRunt
         }
 
         var cacheKey = string.Join('+', runtimeChannels);
+
         if (_cache.TryGetValue(cacheKey, out var cached))
         {
             return cached;
@@ -102,6 +104,7 @@ public sealed partial class DotNetRuntimeEnvironment(ICakeLog log) : IDotNetRunt
         ArgumentNullException.ThrowIfNull(targetFrameworks);
 
         var channels = new SortedSet<int>();
+
         foreach (var tfm in targetFrameworks)
         {
             if (string.IsNullOrWhiteSpace(tfm))
@@ -116,6 +119,7 @@ public sealed partial class DotNetRuntimeEnvironment(ICakeLog log) : IDotNetRunt
             }
 
             var match = ModernNetTfmRegex().Match(tfm);
+
             if (!match.Success)
             {
                 continue;

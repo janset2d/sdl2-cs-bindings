@@ -54,6 +54,7 @@ public sealed class HarvestTask(
         }
 
         var preReport = _preconditions.Validate();
+
         if (!preReport.IsValid)
         {
             foreach (var error in preReport.Errors)
@@ -69,6 +70,7 @@ public sealed class HarvestTask(
 
         var manifest = _manifestRepository.Load();
         var libraries = ResolveLibrariesToHarvest(manifest, context.Libraries);
+
         if (libraries.Count == 0)
         {
             context.Log.Warning("No libraries found to harvest (either specified or in manifest).");
@@ -79,6 +81,7 @@ public sealed class HarvestTask(
 
         var corePackageName = manifest.CoreLibrary.VcpkgName;
         var validationMode = manifest.PackagingConfig.ValidationMode;
+
         foreach (var library in libraries)
         {
             await ProcessLibraryAsync(library, outputBase, corePackageName, validationMode).ConfigureAwait(false);
@@ -100,6 +103,7 @@ public sealed class HarvestTask(
             _statusRepo.Invalidate(library.Name);
 
             var closureResult = await _walker.BuildClosureAsync(library).ConfigureAwait(false);
+
             if (closureResult.IsFailure)
             {
                 throw await CreateLibraryFailureAsync(library.Name, "Binary closure", closureResult.Error.Message, closureResult.Error.Exception).ConfigureAwait(false);
@@ -108,6 +112,7 @@ public sealed class HarvestTask(
             var closure = closureResult.Value;
 
             var leakReport = _leakValidator.Validate(closure, library, corePackageName, validationMode);
+
             if (!leakReport.IsValid)
             {
                 _reporter.ReportLeakReport(library.Name, leakReport);
@@ -150,6 +155,7 @@ public sealed class HarvestTask(
     private async Task DeployLibraryAsync(LibraryManifest library, BinaryClosure closure, DirectoryPath outputBase, string corePackageName)
     {
         var plannerResult = await _planner.CreatePlanAsync(library, closure, outputBase, corePackageName).ConfigureAwait(false);
+
         if (plannerResult.IsFailure)
         {
             throw await CreateLibraryFailureAsync(library.Name, "Artifact planning", plannerResult.Error.Message, plannerResult.Error.Exception).ConfigureAwait(false);
@@ -157,6 +163,7 @@ public sealed class HarvestTask(
 
         var deploymentPlan = plannerResult.Value;
         var deployerResult = await _deployer.DeployArtifactsAsync(deploymentPlan).ConfigureAwait(false);
+
         if (deployerResult.IsFailure)
         {
             throw await CreateLibraryFailureAsync(library.Name, "Artifact copying", deployerResult.Error.Message, deployerResult.Error.Exception).ConfigureAwait(false);
@@ -197,6 +204,7 @@ public sealed class HarvestTask(
         }
 
         var librariesToHarvest = new List<LibraryManifest>(requestedLibraries.Count);
+
         foreach (var specLibName in requestedLibraries)
         {
             var manifest = allManifestLibraries.SingleOrDefault(m => string.Equals(m.Name, specLibName, StringComparison.OrdinalIgnoreCase))

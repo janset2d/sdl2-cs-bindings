@@ -66,6 +66,7 @@ public sealed class InfoTask(IAnsiConsole console) : AsyncFrostingTask<BuildCont
                     if (exitCode == 0)
                     {
                         var output = process.GetStandardOutput()?.ToList();
+
                         if (output != null && output.Count != 0)
                         {
                             sdkVersion = $"[green]{Markup.Escape(string.Join(' ', output).Trim())}[/]";

@@ -46,6 +46,7 @@ public sealed class NativePackageMetadataValidator(INativePackageMetadataReposit
         var metadataResult = await _nativePackageMetadataRepository
             .ReadFromPackageAsync(nativePackagePath)
             .ConfigureAwait(false);
+
         if (metadataResult.IsFailure)
         {
             return Failure($"G55: {metadataResult.Error.Message}");
