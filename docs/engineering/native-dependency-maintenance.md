@@ -52,10 +52,9 @@ Use this single procedure for a security fix, upstream library release or vcpkg 
    of an update.
 7. Reinstall for each affected triplet with both overlays. If an investigation needs a clean rebuild,
    remove only the affected port's build/package cache and installed triplet after reviewing the paths.
-8. Refresh the README mapping block and resolve versions before preflight:
+8. Resolve versions and run preflight:
 
    ```pwsh
-   dotnet run --file tools.cs -- build --target UpdateMappingTable
    dotnet run --file tools.cs -- build --target ResolveVersionsFromManifest --suffix=local.check --versions-file artifacts/resolve-versions/versions.json
    dotnet run --file tools.cs -- build --target PreFlightCheck --versions-file artifacts/resolve-versions/versions.json
    ```
@@ -64,9 +63,10 @@ Use this single procedure for a security fix, upstream library release or vcpkg 
    [binding maintenance](binding-generator-maintenance.md). An upstream patch may change headers;
    minor releases may add functions. Do not infer compatibility from the version label alone.
 10. Run harvest and native smoke, then the package-first consumer loop in
-    [developing](developing.md). Inspect receipts under `artifacts/harvest_output/` and perform the
-    checks below on every affected OS/architecture. For diagnostic harvest output, pass
-    `--verbosity Diagnostic` through the build forwarder.
+     [developing](developing.md). Inspect receipts under `artifacts/harvest_output/` and perform the
+     checks below on every affected OS/architecture. For diagnostic harvest output, pass
+     `--verbosity Diagnostic` through the build forwarder.
+     The `Package` target regenerates the README mapping block before pack validation; review that diff.
 11. Update the overlay registry's rationale and source references, consumer documentation if format
     coverage changed, and this procedure if mechanics changed. Commit submodule pin, manifests,
     overlays, regenerated outputs and documentation together under [workflow](workflow.md).
@@ -108,8 +108,8 @@ Upstream prefers external codec dependencies, so bundled-codec changes may not b
 4. Add header/config coverage and **run the generator** through
    [binding maintenance](binding-generator-maintenance.md). Do not source declarations from an
    unrelated community file or write P/Invokes by hand. Review all output against ABI policy.
-5. Add the projects to [the solution](../../Janset.SDL2.sln). Refresh the mapping table and run preflight
-   through the baseline procedure above; it owns those shared steps.
+5. Add the projects to [the solution](../../Janset.SDL2.sln). Follow the baseline procedure above for
+   version resolution, preflight and the package-first loop, including mapping-block regeneration.
 6. Install using hybrid triplets and both overlays. Harvest the library on each supported target,
    check the receipt, add native and package consumer smoke coverage, and validate dependency bounds.
 7. Update consumer installation guidance and current coverage in the operational-state document.
