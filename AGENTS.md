@@ -44,7 +44,8 @@ modern, most .NET-friendly SDL binding library; design questions are settled wit
 - Work on a work branch. There, commit and push freely, open a pull request once the local check
   passes, and file GitHub issues for findings. Branch, squash and message conventions:
   [`workflow.md`](docs/engineering/workflow.md).
-- Reserved for Deniz: merging into `master`; release dispatch and publish; tags; history rewrites;
+- Reserved for Deniz: merging into `master`; release dispatch and publish; tags; history rewrites
+  (except restacking unmerged stack branches, see [workflow](docs/engineering/workflow.md));
   deleting branches or tags; repository creation and settings; anything touching the Linux builder
   base or glibc floor. At a reserved action, stop, report the evidence, and wait for his word on
   that action alone.
