@@ -1,7 +1,7 @@
-using Build.Data.Harvest;
-using Build.Host.Cake;
 using Build.Data;
+using Build.Data.Harvest;
 using Build.Data.Manifest.Models;
+using Build.Host.Cake;
 using Build.Results;
 using Build.Targets.Harvest;
 using Build.Targets.Harvest.Models;

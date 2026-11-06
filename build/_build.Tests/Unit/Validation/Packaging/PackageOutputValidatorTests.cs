@@ -1,9 +1,9 @@
 using System.IO.Compression;
 using System.Text.Json;
-using Build.Data.NativePackageMetadata;
-using Build.Host.Cake;
 using Build.Data.Manifest.Models;
+using Build.Data.NativePackageMetadata;
 using Build.Data.ProjectMetadata;
+using Build.Host.Cake;
 using Build.Results;
 using Build.Targets.Package.Models;
 using Build.Tests.Fixtures;

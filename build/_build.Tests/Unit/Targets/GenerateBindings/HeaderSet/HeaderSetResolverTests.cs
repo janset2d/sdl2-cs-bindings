@@ -1,7 +1,6 @@
 using Build.Targets.GenerateBindings.HeaderSet;
 using Build.Tests.Fixtures;
 using Cake.Core;
-using Cake.Core.IO;
 using static Build.Tests.Fixtures.BindingGenerationFixture;
 
 namespace Build.Tests.Unit.Targets.GenerateBindings.HeaderSet;

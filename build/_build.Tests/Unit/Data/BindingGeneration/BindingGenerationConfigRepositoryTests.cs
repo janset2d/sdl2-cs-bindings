@@ -2,8 +2,6 @@ using Build.Data.BindingGeneration;
 using Build.Data.BindingGeneration.Models;
 using Build.Data.Manifest;
 using Build.Tests.Fixtures;
-using Cake.Core.IO;
-using NSubstitute;
 
 namespace Build.Tests.Unit.Data.BindingGeneration;
 
