@@ -159,8 +159,7 @@ roslynator_compiler_diagnostic_fixes.enabled = true
 dotnet_diagnostic.IDE0001.severity = error
 dotnet_diagnostic.IDE0002.severity = error
 dotnet_diagnostic.IDE0003.severity = error
-# QM-20: IDE0004 stays at suggestion until "style: remaining revived rules".
-dotnet_diagnostic.IDE0004.severity = suggestion
+dotnet_diagnostic.IDE0004.severity = error
 dotnet_diagnostic.IDE0005.severity = error
 dotnet_diagnostic.IDE0007.severity = error
 dotnet_diagnostic.IDE0011.severity = error
@@ -184,10 +183,8 @@ dotnet_diagnostic.IDE0043.severity = error
 dotnet_diagnostic.IDE0044.severity = error
 dotnet_diagnostic.IDE0049.severity = error
 dotnet_diagnostic.IDE0051.severity = error
-# QM-20: IDE0052 stays at suggestion until "style: remaining revived rules".
-dotnet_diagnostic.IDE0052.severity = suggestion
-# QM-20: IDE0055 stays at none until "style: remaining revived rules".
-dotnet_diagnostic.IDE0055.severity = none
+dotnet_diagnostic.IDE0052.severity = error
+dotnet_diagnostic.IDE0055.severity = error
 dotnet_diagnostic.IDE0056.severity = error
 dotnet_diagnostic.IDE0057.severity = error
 dotnet_diagnostic.IDE0059.severity = error
@@ -196,8 +193,7 @@ dotnet_diagnostic.IDE0062.severity = error
 dotnet_diagnostic.IDE0065.severity = error
 dotnet_diagnostic.IDE0066.severity = error
 dotnet_diagnostic.IDE0071.severity = error
-# QM-20: IDE0072 stays at suggestion until "style: remaining revived rules".
-dotnet_diagnostic.IDE0072.severity = suggestion
+dotnet_diagnostic.IDE0072.severity = error
 dotnet_diagnostic.IDE0075.severity = error
 dotnet_diagnostic.IDE0078.severity = error
 dotnet_diagnostic.IDE0080.severity = error
@@ -212,8 +208,7 @@ dotnet_style_namespace_match_folder = true
 dotnet_diagnostic.IDE0160.severity = error
 dotnet_diagnostic.IDE0161.severity = error
 dotnet_diagnostic.IDE0180.severity = error
-# QM-20: IDE0200 stays at suggestion until "style: remaining revived rules".
-dotnet_diagnostic.IDE0200.severity = suggestion
+dotnet_diagnostic.IDE0200.severity = error
 dotnet_diagnostic.IDE0240.severity = error
 dotnet_diagnostic.IDE0241.severity = error
 dotnet_diagnostic.IDE0250.severity = error
@@ -391,13 +386,11 @@ dotnet_diagnostic.MA0006.severity = suggestion
 dotnet_diagnostic.MA0011.severity = error
 dotnet_diagnostic.MA0074.severity = error
 dotnet_diagnostic.MA0075.severity = error
-# QM-20: MA0076 stays at suggestion until "style: remaining revived rules".
-dotnet_diagnostic.MA0076.severity = suggestion
+dotnet_diagnostic.MA0076.severity = error
 # Async analyzers retain overlapping coverage of Task and ValueTask operations.
 dotnet_diagnostic.MA0004.severity = error
 dotnet_diagnostic.MA0022.severity = error
-# QM-20: MA0042 stays at suggestion until "style: remaining revived rules".
-dotnet_diagnostic.MA0042.severity = suggestion
+dotnet_diagnostic.MA0042.severity = error
 dotnet_diagnostic.MA0045.severity = error
 dotnet_diagnostic.MA0080.severity = error
 dotnet_diagnostic.MA0089.severity = error
@@ -425,10 +418,8 @@ dotnet_diagnostic.MA0180.severity = suggestion
 dotnet_diagnostic.MA0181.severity = none
 dotnet_diagnostic.MA0182.severity = suggestion
 dotnet_diagnostic.MA0183.severity = error
-# QM-20: MA0184 stays at suggestion until "style: remaining revived rules".
-dotnet_diagnostic.MA0184.severity = suggestion
-# QM-20: MA0185 stays at suggestion until "style: remaining revived rules".
-dotnet_diagnostic.MA0185.severity = suggestion
+dotnet_diagnostic.MA0184.severity = error
+dotnet_diagnostic.MA0185.severity = error
 dotnet_diagnostic.MA0186.severity = suggestion
 # This repository has no Blazor component injection.
 dotnet_diagnostic.MA0187.severity = none
