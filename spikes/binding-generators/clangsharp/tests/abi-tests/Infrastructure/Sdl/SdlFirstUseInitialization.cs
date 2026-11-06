@@ -13,7 +13,7 @@ public static class SdlFirstUseInitialization
     // Applications avoid both by initializing SDL on one thread first; the suite does the same once,
     // before tests run in parallel.
     [Before(HookType.Assembly)]
-    public static void InitializeLazyProcessState(AssemblyHookContext context)
+    public static void InitializeLazyProcessState()
     {
         _ = SDLNative.SDL_GetTicks64();
         SDLNative.SDL_ClearError();

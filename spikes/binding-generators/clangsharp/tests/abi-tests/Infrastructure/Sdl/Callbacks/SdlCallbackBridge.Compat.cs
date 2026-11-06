@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using SDL2;
 using static SDL2.SDLNative;
 
-namespace Janset.SDL2.AbiTests.Infrastructure.Callbacks;
+namespace Janset.SDL2.AbiTests.Infrastructure.Sdl.Callbacks;
 
 internal sealed unsafe class SdlEventWatchCounter : IDisposable
 {

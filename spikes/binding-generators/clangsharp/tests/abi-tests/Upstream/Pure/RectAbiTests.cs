@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Janset.SDL2.AbiTests.Infrastructure;
 using Janset.SDL2.AbiTests.Infrastructure.Classification;
 using SDL2;
@@ -211,10 +212,10 @@ public sealed class RectAbiTests
 
         foreach (LineCase testCase in cases)
         {
-            LineResult result = IntersectRectAndLine(testCase.Rect, testCase.X1, testCase.Y1, testCase.X2, testCase.Y2);
+            LineResult result = IntersectRectAndLine(testCase.Rectangle, testCase.X1, testCase.Y1, testCase.X2, testCase.Y2);
 
             await Assert.That(result.Intersection).IsEqualTo(testCase.ExpectedIntersection);
-            await Assert.That(result.Rect).IsEqualTo(testCase.Rect);
+            await Assert.That(result.Rectangle).IsEqualTo(testCase.Rectangle);
             await Assert.That(result.X1).IsEqualTo(testCase.ExpectedX1);
             await Assert.That(result.Y1).IsEqualTo(testCase.ExpectedY1);
             await Assert.That(result.X2).IsEqualTo(testCase.ExpectedX2);
@@ -357,7 +358,7 @@ public sealed class RectAbiTests
 
         foreach (FLineCase testCase in cases)
         {
-            FLineResult result = IntersectFRectAndLine(testCase.Rect, testCase.P1, testCase.P2);
+            FLineResult result = IntersectFRectAndLine(testCase.Rectangle, testCase.P1, testCase.P2);
 
             await Assert.That(result.Intersection).IsEqualTo(testCase.ExpectedIntersection);
             await SdlAssert.AssertFPoint(result.P1, testCase.ExpectedP1);
@@ -599,14 +600,18 @@ public sealed class RectAbiTests
                && ApproximatelyEqual(actual.h, expected.h);
     }
 
+    [StructLayout(LayoutKind.Auto)]
     private readonly record struct RectBoolCase(SDL_Rect A, SDL_Rect B, SDL_bool Expected);
 
+    [StructLayout(LayoutKind.Auto)]
     private readonly record struct RectIntersectionCase(SDL_Rect A, SDL_Rect B, SDL_bool ExpectedResult, SDL_Rect? ExpectedIntersection);
 
+    [StructLayout(LayoutKind.Auto)]
     private readonly record struct RectResultCase(SDL_Rect A, SDL_Rect B, SDL_Rect Expected);
 
+    [StructLayout(LayoutKind.Auto)]
     private readonly record struct LineCase(
-        SDL_Rect Rect,
+        SDL_Rect Rectangle,
         int X1,
         int Y1,
         int X2,
@@ -617,17 +622,24 @@ public sealed class RectAbiTests
         int ExpectedX2,
         int ExpectedY2);
 
-    private readonly record struct LineResult(SDL_bool Intersection, SDL_Rect Rect, int X1, int Y1, int X2, int Y2);
+    [StructLayout(LayoutKind.Auto)]
+    private readonly record struct LineResult(SDL_bool Intersection, SDL_Rect Rectangle, int X1, int Y1, int X2, int Y2);
 
+    [StructLayout(LayoutKind.Auto)]
     private readonly record struct FRectBoolCase(SDL_FRect A, SDL_FRect B, SDL_bool Expected);
 
+    [StructLayout(LayoutKind.Auto)]
     private readonly record struct FRectIntersectionCase(SDL_FRect A, SDL_FRect B, SDL_bool ExpectedResult, SDL_FRect? ExpectedIntersection);
 
+    [StructLayout(LayoutKind.Auto)]
     private readonly record struct FRectResultCase(SDL_FRect A, SDL_FRect B, SDL_FRect Expected);
 
+    [StructLayout(LayoutKind.Auto)]
     private readonly record struct FEncloseCase(SDL_FRect? Clip, SDL_bool ExpectedResult, SDL_FRect? ExpectedEnclosing);
 
-    private readonly record struct FLineCase(SDL_FRect Rect, SDL_FPoint P1, SDL_FPoint P2, SDL_bool ExpectedIntersection, SDL_FPoint ExpectedP1, SDL_FPoint ExpectedP2);
+    [StructLayout(LayoutKind.Auto)]
+    private readonly record struct FLineCase(SDL_FRect Rectangle, SDL_FPoint P1, SDL_FPoint P2, SDL_bool ExpectedIntersection, SDL_FPoint ExpectedP1, SDL_FPoint ExpectedP2);
 
+    [StructLayout(LayoutKind.Auto)]
     private readonly record struct FLineResult(SDL_bool Intersection, SDL_FPoint P1, SDL_FPoint P2);
 }

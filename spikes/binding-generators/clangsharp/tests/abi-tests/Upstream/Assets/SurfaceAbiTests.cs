@@ -302,7 +302,7 @@ public sealed class SurfaceAbiTests
             }
 
             int setBlendResult = SDL_SetSurfaceBlendMode(source, SDL_BlendMode.SDL_BLENDMODE_NONE);
-            SDL_BlendMode actualBlendMode = 0;
+            SDL_BlendMode actualBlendMode = SDL_BlendMode.SDL_BLENDMODE_BLEND;
             int getBlendResult = SDL_GetSurfaceBlendMode(source, &actualBlendMode);
             int blitResult = SDL_UpperBlit(source, null, destination, null);
 

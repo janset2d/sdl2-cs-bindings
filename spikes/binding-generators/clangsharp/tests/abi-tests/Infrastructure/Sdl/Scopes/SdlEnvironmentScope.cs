@@ -54,8 +54,10 @@ internal sealed class SdlEnvironmentScope : IDisposable
     }
 
     [DllImport("libc", EntryPoint = "setenv", CallingConvention = CallingConvention.Cdecl)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
     private static extern unsafe int SetEnvironmentVariable(byte* name, byte* value, int overwrite);
 
     [DllImport("libc", EntryPoint = "unsetenv", CallingConvention = CallingConvention.Cdecl)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
     private static extern unsafe int UnsetEnvironmentVariable(byte* name);
 }
