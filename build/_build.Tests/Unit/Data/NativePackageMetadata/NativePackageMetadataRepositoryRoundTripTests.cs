@@ -134,5 +134,4 @@ public sealed class NativePackageMetadataRepositoryRoundTripTests
 
     private static FilePath PackagePath(FakeCakeWorld world)
         => world.RepoRoot.CombineWithFilePath("artifacts/packages/Janset.SDL2.Core.Native.2.32.0.nupkg");
-
 }

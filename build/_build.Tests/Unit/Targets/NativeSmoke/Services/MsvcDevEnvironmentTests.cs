@@ -37,7 +37,7 @@ public sealed class MsvcDevEnvironmentTests
         await Assert.That(world.HostProcessInvocations.Count).IsEqualTo(1);
         var invocation = world.HostProcessInvocations[0];
         await Assert.That(invocation.CancellationToken).IsEqualTo(cancellation.Token);
-        await Assert.That(new System.IO.FileInfo(invocation.Request.FileName).Name).IsEqualTo("cmd.exe");
+        await Assert.That(new FileInfo(invocation.Request.FileName).Name).IsEqualTo("cmd.exe");
         await Assert.That(invocation.Request.RawArguments).IsEqualTo(HostEnvironmentData.CaptureCommand);
     }
 
