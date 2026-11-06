@@ -21,7 +21,7 @@ public sealed class LinuxLddScanner(ICakeContext context) : IRuntimeScanner
         try
         {
             var settings = new LddSettings(binary);
-            var dependencies = await Task.Run(() => _context.LddDependencies(settings), ct).ConfigureAwait(false);
+            var dependencies = await Task.Run(() => _context.LddDependencies(settings), ct);
 
             var result = new HashSet<FilePath>();
 

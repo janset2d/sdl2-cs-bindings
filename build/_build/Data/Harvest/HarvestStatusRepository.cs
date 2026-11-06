@@ -61,7 +61,7 @@ public sealed class HarvestStatusRepository(ICakeContext cakeContext, IPathServi
             },
         };
 
-        await WriteStatusAsync(libraryName, record).ConfigureAwait(false);
+        await WriteStatusAsync(libraryName, record);
     }
 
     /// <summary>
@@ -85,7 +85,7 @@ public sealed class HarvestStatusRepository(ICakeContext cakeContext, IPathServi
             Statistics = null,
         };
 
-        await WriteStatusAsync(libraryName, record).ConfigureAwait(false);
+        await WriteStatusAsync(libraryName, record);
     }
 
     private async Task WriteStatusAsync(string libraryName, RidHarvestStatus record)
@@ -94,7 +94,7 @@ public sealed class HarvestStatusRepository(ICakeContext cakeContext, IPathServi
         _cakeContext.EnsureDirectoryExists(statusDir);
 
         var statusFile = _pathService.GetHarvestLibraryRidStatusFile(libraryName, _runtimeProfile.Rid);
-        await _cakeContext.WriteJsonAsync(statusFile, record).ConfigureAwait(false);
+        await _cakeContext.WriteJsonAsync(statusFile, record);
     }
 
     private void CleanCurrentRidPayload(string libraryName)

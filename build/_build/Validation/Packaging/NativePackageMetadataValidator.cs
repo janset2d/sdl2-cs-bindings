@@ -28,8 +28,7 @@ public sealed class NativePackageMetadataValidator(INativePackageMetadataReposit
         ArgumentNullException.ThrowIfNull(manifestConfig);
 
         var metadataResult = await _nativePackageMetadataRepository
-            .ReadFromPackageAsync(nativePackagePath)
-            .ConfigureAwait(false);
+            .ReadFromPackageAsync(nativePackagePath);
 
         if (metadataResult.IsFailure)
         {

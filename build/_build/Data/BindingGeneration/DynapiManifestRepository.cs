@@ -52,7 +52,7 @@ public sealed partial class DynapiManifestRepository(ICakeContext context, IPath
         }
 
         var path = candidates[0];
-        var content = await _context.ReadAllTextAsync(path).ConfigureAwait(false);
+        var content = await _context.ReadAllTextAsync(path);
 
         try
         {

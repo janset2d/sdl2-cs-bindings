@@ -24,7 +24,7 @@ public sealed class WindowsDumpbinScanner(ICakeContext context) : IRuntimeScanne
             },
         };
 
-        var rawOutput = await Task.Run(() => _context.DumpbinDependents(dumpbinSettings) ?? string.Empty, ct).ConfigureAwait(false);
+        var rawOutput = await Task.Run(() => _context.DumpbinDependents(dumpbinSettings) ?? string.Empty, ct);
         var dependentDllNames = ExtractDependentDlls(rawOutput.Split([Environment.NewLine], StringSplitOptions.RemoveEmptyEntries));
 
         var dependentPaths = new HashSet<FilePath>();

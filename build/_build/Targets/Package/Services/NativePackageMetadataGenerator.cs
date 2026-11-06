@@ -50,7 +50,7 @@ public sealed class NativePackageMetadataGenerator(IPathService pathService, INa
         };
 
         var targetPath = _pathService.GetHarvestLibraryNativeMetadataFile(family.LibraryRef);
-        await _nativePackageMetadataRepository.WriteAsync(targetPath, metadata, ct).ConfigureAwait(false);
+        await _nativePackageMetadataRepository.WriteAsync(targetPath, metadata, ct);
 
         ct.ThrowIfCancellationRequested();
     }

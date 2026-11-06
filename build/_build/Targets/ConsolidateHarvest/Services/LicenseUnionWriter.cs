@@ -69,7 +69,7 @@ public sealed class LicenseUnionWriter(ICakeContext cakeContext, IPathService pa
         foreach (var ((package, fileName), candidates) in entries)
         {
             ct.ThrowIfCancellationRequested();
-            var divergence = await WriteConsolidatedEntryAsync(consolidatedTempRoot, package, fileName, candidates, ct).ConfigureAwait(false);
+            var divergence = await WriteConsolidatedEntryAsync(consolidatedTempRoot, package, fileName, candidates, ct);
 
             if (divergence is not null)
             {
@@ -153,7 +153,7 @@ public sealed class LicenseUnionWriter(ICakeContext cakeContext, IPathService pa
 
         foreach (var candidate in candidates)
         {
-            var sha = await ComputeSha256Async(candidate.Path, ct).ConfigureAwait(false);
+            var sha = await ComputeSha256Async(candidate.Path, ct);
             hashed.Add(new HashedLicenseCandidate(candidate.Rid, candidate.Path, sha));
         }
 
@@ -162,7 +162,7 @@ public sealed class LicenseUnionWriter(ICakeContext cakeContext, IPathService pa
         if (distinctHashes == 1)
         {
             var canonicalPath = packageDir.CombineWithFilePath(fileName);
-            await CopyFileAsync(hashed[0].Path, canonicalPath, ct).ConfigureAwait(false);
+            await CopyFileAsync(hashed[0].Path, canonicalPath, ct);
             return null;
         }
 
@@ -182,7 +182,7 @@ public sealed class LicenseUnionWriter(ICakeContext cakeContext, IPathService pa
         {
             var variantName = $"{nameWithoutExtension}.{variant.Rid}{extension}";
             var variantPath = packageDir.CombineWithFilePath(variantName);
-            await CopyFileAsync(variant.Path, variantPath, ct).ConfigureAwait(false);
+            await CopyFileAsync(variant.Path, variantPath, ct);
         }
 
         return new DivergentLicense
@@ -215,7 +215,7 @@ public sealed class LicenseUnionWriter(ICakeContext cakeContext, IPathService pa
         var file = _cakeContext.FileSystem.GetFile(path);
         await using var stream = file.OpenRead();
         using var sha = SHA256.Create();
-        var hash = await sha.ComputeHashAsync(stream, ct).ConfigureAwait(false);
+        var hash = await sha.ComputeHashAsync(stream, ct);
         var sb = new StringBuilder(hash.Length * 2);
 
         foreach (var b in hash)
@@ -233,7 +233,7 @@ public sealed class LicenseUnionWriter(ICakeContext cakeContext, IPathService pa
 
         await using var inputStream = sourceFile.OpenRead();
         await using var outputStream = targetFile.Open(FileMode.Create, FileAccess.Write, FileShare.None);
-        await inputStream.CopyToAsync(outputStream, ct).ConfigureAwait(false);
+        await inputStream.CopyToAsync(outputStream, ct);
     }
 
     private sealed record LicenseCandidate(string Rid, FilePath Path);
