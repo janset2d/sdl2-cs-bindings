@@ -74,14 +74,7 @@ public static class CakeJsonExtensions
         return model;
     }
 
-    /// <summary>
-    /// Cake-native asynchronous JSON read. Mirror of <see cref="ToJson{TModel}"/> backed by
-    /// <see cref="JsonSerializer.DeserializeAsync{TValue}(Stream, JsonSerializerOptions?, ct)"/>.
-    /// Callers pass their own <see cref="JsonSerializerOptions"/> when they need a domain-specific
-    /// shape (naming policy, converters, case-insensitivity); otherwise System.Text.Json defaults
-    /// apply. Wraps I/O and <see cref="JsonException"/> into <see cref="CakeException"/> so the
-    /// build-host fail surface stays Cake-typed.
-    /// </summary>
+    /// <summary>Reads JSON asynchronously through Cake, wrapping I/O and JSON failures in <see cref="CakeException"/>.</summary>
     public static async Task<TModel> ToJsonAsync<TModel>(this ICakeContext cakeContext, FilePath filePath)
     {
         ArgumentNullException.ThrowIfNull(cakeContext);
@@ -166,13 +159,7 @@ public static class CakeJsonExtensions
         }
     }
 
-    /// <summary>
-    /// Cake-native JSON serialization to string. Complements <see cref="WriteJsonAsync{TModel}"/>
-    /// for the in-memory case (logging, CLI argument embedding, inline diagnostics) where no
-    /// file is written. Centralizes all <see cref="JsonSerializer.Serialize"/> usage behind the
-    /// Cake extension surface so every build-host caller produces JSON with the same default
-    /// shape unless it explicitly opts into a domain-specific <see cref="JsonSerializerOptions"/>.
-    /// </summary>
+    /// <summary>Serializes JSON in memory with the build host's shared defaults unless options are supplied.</summary>
 #pragma warning disable IDE0060 // Unused `cakeContext` — kept to enforce the Cake-extension convention repo-wide (no naked JsonSerializer calls).
     public static string SerializeJson<TModel>(
         this ICakeContext cakeContext,

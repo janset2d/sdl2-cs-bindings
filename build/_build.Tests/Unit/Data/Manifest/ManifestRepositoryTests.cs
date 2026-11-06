@@ -6,13 +6,7 @@ using NSubstitute;
 
 namespace Build.Tests.Unit.Data.Manifest;
 
-/// <summary>
-/// Mock-based unit coverage for <see cref="ManifestRepository"/> — constructor argument
-/// validation. Load behavior (JSON deserialization, file-not-found / invalid-JSON failure
-/// surface) is covered end-to-end by <see cref="ManifestRepositoryRoundTripTests"/> against
-/// FakeFileSystem; mocking the <see cref="ICakeContext.ToJson{T}"/> extension chain isn't
-/// productive here and the sociable tests already verify the contract bytewise.
-/// </summary>
+/// <summary>Constructor guards; <see cref="ManifestRepositoryRoundTripTests"/> covers loading through the fake filesystem.</summary>
 public sealed class ManifestRepositoryUnitTests
 {
     [Test]

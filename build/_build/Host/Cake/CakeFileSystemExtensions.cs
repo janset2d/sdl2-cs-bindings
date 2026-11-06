@@ -6,14 +6,7 @@ namespace Build.Host.Cake;
 
 public static class CakeFileSystemExtensions
 {
-    /// <summary>
-    /// Cake-native asynchronous UTF-8 text read. Thin wrapper over
-    /// <see cref="IFileSystem.GetFile(FilePath)"/> + <see cref="StreamReader.ReadToEndAsync()"/>
-    /// that keeps reads off raw <c>System.IO</c> (preserves testability against
-    /// <see cref="Cake.Testing.FakeFileSystem"/>) and surfaces missing-file as a
-    /// <see cref="CakeException"/>. Used for non-JSON text artifacts (harvest status files,
-    /// MSBuild props generation).
-    /// </summary>
+    /// <summary>Reads UTF-8 text through Cake and reports missing files as <see cref="CakeException"/>.</summary>
     public static async Task<string> ReadAllTextAsync(this ICakeContext cakeContext, FilePath filePath)
     {
         ArgumentNullException.ThrowIfNull(cakeContext);
@@ -30,14 +23,7 @@ public static class CakeFileSystemExtensions
         return await reader.ReadToEndAsync();
     }
 
-    /// <summary>
-    /// Cake-native asynchronous UTF-8 text write. Creates the target directory via
-    /// <see cref="DirectoryExtensions.EnsureDirectoryExists"/>, opens a fresh stream with
-    /// <c>FileMode.Create</c> (overwrites existing content), and writes <paramref name="content"/>
-    /// verbatim. For JSON serialization prefer <see cref="CakeJsonExtensions.WriteJsonAsync{TModel}"/>;
-    /// this helper stays for arbitrary strings (MSBuild props, pre-formatted reports, smoke license
-    /// manifests, etc.).
-    /// </summary>
+    /// <summary>Writes UTF-8 text through Cake, creating the parent directory and replacing existing content.</summary>
     public static async Task WriteAllTextAsync(this ICakeContext cakeContext, FilePath filePath, string content)
     {
         ArgumentNullException.ThrowIfNull(cakeContext);
