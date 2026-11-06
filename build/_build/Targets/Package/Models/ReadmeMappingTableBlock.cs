@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Build.Data.Manifest.Models;
 using Build.Validation.Conventions;
 using NuGet.Versioning;
@@ -115,7 +114,6 @@ public static class ReadmeMappingTableBlock
             : normalized.Replace("\n", lineEnding, StringComparison.Ordinal);
     }
 
-    
     private static string DetectLineEnding(string text)
     {
         if (text.Contains("\r\n", StringComparison.Ordinal))

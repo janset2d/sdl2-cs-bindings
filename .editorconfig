@@ -530,6 +530,7 @@ dotnet_diagnostic.MA0042.severity = none
 dotnet_diagnostic.CA2007.severity = none
 dotnet_diagnostic.MA0004.severity = none
 dotnet_diagnostic.VSTHRD111.severity = none
+
 # Test namespaces are not a consumer-facing API.
 dotnet_diagnostic.CA1716.severity = none
 
@@ -588,3 +589,119 @@ dotnet_diagnostic.MA0048.severity = none
 dotnet_diagnostic.CA2007.severity = none
 dotnet_diagnostic.MA0004.severity = none
 dotnet_diagnostic.VSTHRD111.severity = none
+
+# CreatePlanAsync holds one policy whose split into a named collaborator is a design change tracked in #87.
+# Winner: collaborator design is settled in #87 before extraction; MA0051 remains enabled for every other file.
+[build/_build/Targets/Harvest/Services/ArtifactPlanner.cs]
+dotnet_diagnostic.MA0051.severity = none
+
+# BuildClosureAsync holds one policy whose split into a named collaborator is a design change tracked in #87.
+# Winner: collaborator design is settled in #87 before extraction; MA0051 remains enabled for every other file.
+[build/_build/Targets/Harvest/Services/BinaryClosureWalker.cs]
+dotnet_diagnostic.MA0051.severity = none
+
+# RunAsync holds one policy whose split into a named collaborator is a design change tracked in #101.
+# Winner: collaborator design is settled in #101 before extraction; MA0051 remains enabled for every other file.
+[build/_build/Targets/PackageConsumerSmoke/PackageConsumerSmokeTask.cs]
+dotnet_diagnostic.MA0051.severity = none
+
+# NormalizeAsync holds one policy whose split into a named collaborator is a design change tracked in #114.
+# Winner: collaborator design is settled in #114 before extraction; MA0051 remains enabled for every other file.
+[build/_build/Targets/Package/Services/DependencyRangeNormalizer.cs]
+dotnet_diagnostic.MA0051.severity = none
+
+# ValidateAsync holds one policy whose split into a named collaborator is a design change tracked in #114.
+# Winner: collaborator design is settled in #114 before extraction; MA0051 remains enabled for every other file.
+[build/_build/Validation/Packaging/NativePackageMetadataValidator.cs]
+dotnet_diagnostic.MA0051.severity = none
+
+# EvaluateDependencyGroups holds one policy whose split into a named collaborator is a design change tracked in #114.
+# Winner: collaborator design is settled in #114 before extraction; MA0051 remains enabled for every other file.
+[build/_build/Validation/Packaging/PackageOutputValidator.cs]
+dotnet_diagnostic.MA0051.severity = none
+
+# Result factories construct a fully typed success or failure without a publicly invalid state.
+# Winner: the typed result construction contract; CA1000 remains enabled for every other file.
+[build/_build/Results/Result.cs]
+dotnet_diagnostic.CA1000.severity = none
+
+# ValidationReport exposes validity and ordered findings, not a general-purpose collection API.
+# Winner: the validation-report domain name; CA1710 remains enabled for every other file.
+[build/_build/Results/ValidationReport.cs]
+dotnet_diagnostic.CA1710.severity = none
+
+# Cancellation callbacks must finish cancellation before the synchronous signal handler returns.
+# Winner: synchronous signal handling; MA0045 remains enabled for every other file.
+[build/_build/Program.cs]
+dotnet_diagnostic.MA0045.severity = none
+
+# The validator implements a synchronous contract over small Cake-managed project files.
+# Winner: the synchronous validation contract; MA0045 remains enabled for every other file.
+[build/_build/Validation/Manifest/CsprojPackContractValidator.cs]
+dotnet_diagnostic.MA0045.severity = none
+
+# The staging endpoint is the repository's published feed identity, not a machine-specific path.
+# Winner: the fixed staging-feed contract; S1075 remains enabled for every other file.
+[build/_build/Targets/PublishStaging/PublishStagingTask.cs]
+dotnet_diagnostic.S1075.severity = none
+
+# The standalone developer script uses Spectre's reflection-based command dispatch and is not trimmed or AOT-published.
+# Winner: the non-AOT script contract; IL2026 and IL3050 remain enabled for every other file.
+[tools.cs]
+dotnet_diagnostic.IL2026.severity = none
+dotnet_diagnostic.IL3050.severity = none
+
+# Line-log callbacks synchronously write under a lock and preserve the caller's ordered Action<string> contract.
+# Winner: synchronous callback ordering; MA0045 remains enabled for every other file.
+[tools.cs]
+dotnet_diagnostic.MA0045.severity = none
+
+# The script's feed URI identifies the repository's staging endpoint, not a machine-specific resource.
+# Winner: the fixed staging-feed contract; S1075 remains enabled for every other file.
+[tools.cs]
+dotnet_diagnostic.S1075.severity = none
+
+# Sandbox output is an English-only local smoke instruction, not a localized shipped UI.
+# Winner: the local sandbox contract; CA1303 remains enabled for every other file.
+[tests/Sandbox/Program.cs]
+dotnet_diagnostic.CA1303.severity = none
+
+# Argument rows define distinct named scenarios even when their assertion bodies are identical.
+# Winner: preservation of named data-driven cases; S4144 remains enabled for every other file.
+[build/_build.Tests/Unit/Runtime/IsSystemFileTests.cs]
+dotnet_diagnostic.S4144.severity = none
+
+# Argument rows define distinct named scenarios even when their assertion bodies are identical.
+# Winner: preservation of named data-driven cases; S4144 remains enabled for every other file.
+[build/_build.Tests/Unit/Targets/Harvest/Services/PatternMatchingTests.cs]
+dotnet_diagnostic.S4144.severity = none
+
+# These assertions intentionally invoke the synchronous ZIP API to prove that the async-only stream rejects it.
+# Winner: the synchronous-rejection oracle; MA0045 remains enabled for every other file.
+[build/_build.Tests/Unit/Fixtures/FakeCakeWorldTests.cs]
+dotnet_diagnostic.MA0045.severity = none
+
+# ZIP fixtures build bytes in memory through Cake's synchronous fake filesystem; no disk I/O is awaited.
+# Winner: synchronous fixture arrangement; MA0045 remains enabled for every other file.
+[build/_build.Tests/Fixtures/Builders/NuspecBuilder.cs]
+dotnet_diagnostic.MA0045.severity = none
+
+# Nuspec assertions synchronously inspect bytes in Cake's fake filesystem, not real disk.
+# Winner: synchronous in-memory fixture inspection; MA0045 remains enabled for every other file.
+[build/_build.Tests/Fixtures/Builders/NuspecReader.cs]
+dotnet_diagnostic.MA0045.severity = none
+
+# Embedded resources seed synchronous fixture constructors and data-source properties.
+# Winner: the embedded-fixture loading contract; MA0045 remains enabled for every other file.
+[build/_build.Tests/Fixtures/FixtureLoader.cs]
+dotnet_diagnostic.MA0045.severity = none
+
+# Gate scopes are synchronous predicates and inspect only the file prefix needed for classification.
+# Winner: the synchronous gate-scope contract; MA0045 remains enabled for every other file.
+[build/_build.Tests/Fixtures/RepositoryGates/GateScopes.cs]
+dotnet_diagnostic.MA0045.severity = none
+
+# Tracked paths load lazily through synchronous properties, and gate predicates read repository text synchronously.
+# Winner: the repository-gate inventory contract; MA0045 remains enabled for every other file.
+[build/_build.Tests/Fixtures/RepositoryGates/RepositoryFiles.cs]
+dotnet_diagnostic.MA0045.severity = none

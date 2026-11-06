@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Build.Data.Manifest;
 using Build.Data.Manifest.Models;
 using Build.Data.ProjectMetadata;
@@ -70,7 +69,6 @@ public sealed class PackageConsumerSmokeTask : AsyncFrostingTask<BuildContext>
         }
     }
 
-    
     public override async Task RunAsync(BuildContext context)
     {
         ArgumentNullException.ThrowIfNull(context);

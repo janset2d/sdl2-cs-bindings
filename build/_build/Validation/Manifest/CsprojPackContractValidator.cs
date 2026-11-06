@@ -85,10 +85,7 @@ public sealed class CsprojPackContractValidator(IFileSystem fileSystem) : ICspro
                 : $"Native csproj <PackageId> must equal '{expectedNativePackageId}' (canonical Janset.SDL<Major>.<Role>.Native). Actual: '{actualPackageId ?? "<missing>"}'."));
     }
 
-    // Synchronous file read justified: PreFlight runs once per Cake invocation against ~10 small csproj
-    // files. Switching the validator surface to async would propagate Task<...> through ICsprojPack-
-    // ContractValidator, IPreflightReporter, PreFlightCheckTask without measurable benefit. MA0045
-    // suppression here mirrors the rationale in Program.cs file-level pragma.
+    // The synchronous validator reads small project files through Cake's filesystem.
     private (XElement? Root, CsprojPackContractCheck? Error) LoadCsprojDocument(PackageFamilyConfig family, DirectoryPath repoRoot, string relativePath)
     {
         var fullPath = repoRoot.CombineWithFilePath(relativePath);
