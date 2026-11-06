@@ -1,8 +1,8 @@
-using System.Collections.Immutable;
 using System.IO.Compression;
 using Build.Data.NativePackageMetadata;
 using Build.Host.Cake;
 using Build.Tests.Fixtures;
+using Build.Tests.Fixtures.Builders;
 using Cake.Common.IO;
 using Cake.Core.IO;
 using TUnit.Assertions.Enums;
@@ -19,7 +19,7 @@ public sealed class NativePackageMetadataRepositoryRoundTripTests
         var world = FakeCakeWorld.CreateWindows();
         var packagePath = PackagePath(world);
         var content = FixtureLoader.Load("NativePackageMetadata/native-metadata-valid.json");
-        SeedNupkgWithEntries(world, packagePath, [(MetadataEntryName, content)]);
+        NuspecBuilder.SeedEntries(world, packagePath, [(MetadataEntryName, content)]);
         world.WithAsyncZipEntryReads(packagePath, ZipArchiveMode.Read);
         var repository = new NativePackageMetadataRepository(world.CakeContext);
 
@@ -51,7 +51,7 @@ public sealed class NativePackageMetadataRepositoryRoundTripTests
         var world = FakeCakeWorld.CreateWindows();
         var repository = new NativePackageMetadataRepository(world.CakeContext);
         var packagePath = PackagePath(world);
-        SeedNupkgWithEntries(world, packagePath,
+        NuspecBuilder.SeedEntries(world, packagePath,
         [
             (MetadataEntryName, FixtureLoader.Load("NativePackageMetadata/native-metadata-valid.json")),
             ("package.nuspec", "<package />"),
@@ -96,7 +96,7 @@ public sealed class NativePackageMetadataRepositoryRoundTripTests
         var world = FakeCakeWorld.CreateWindows();
         var repository = new NativePackageMetadataRepository(world.CakeContext);
         var packagePath = PackagePath(world);
-        SeedNupkgWithEntries(world, packagePath, [("package.nuspec", "<package />")]);
+        NuspecBuilder.SeedEntries(world, packagePath, [("package.nuspec", "<package />")]);
 
         var result = await repository.ReadFromPackageAsync(packagePath);
 
@@ -110,7 +110,7 @@ public sealed class NativePackageMetadataRepositoryRoundTripTests
         var world = FakeCakeWorld.CreateWindows();
         var repository = new NativePackageMetadataRepository(world.CakeContext);
         var packagePath = PackagePath(world);
-        SeedNupkgWithEntries(world, packagePath, [(MetadataEntryName, FixtureLoader.Load("NativePackageMetadata/native-metadata-invalid.json"))]);
+        NuspecBuilder.SeedEntries(world, packagePath, [(MetadataEntryName, FixtureLoader.Load("NativePackageMetadata/native-metadata-invalid.json"))]);
 
         var result = await repository.ReadFromPackageAsync(packagePath);
 
@@ -124,7 +124,7 @@ public sealed class NativePackageMetadataRepositoryRoundTripTests
         var world = FakeCakeWorld.CreateWindows();
         var repository = new NativePackageMetadataRepository(world.CakeContext);
         var packagePath = PackagePath(world);
-        SeedNupkgWithEntries(world, packagePath, [(MetadataEntryName, FixtureLoader.Load("NativePackageMetadata/native-metadata-null.json"))]);
+        NuspecBuilder.SeedEntries(world, packagePath, [(MetadataEntryName, FixtureLoader.Load("NativePackageMetadata/native-metadata-null.json"))]);
 
         var result = await repository.ReadFromPackageAsync(packagePath);
 
@@ -135,24 +135,4 @@ public sealed class NativePackageMetadataRepositoryRoundTripTests
     private static FilePath PackagePath(FakeCakeWorld world)
         => world.RepoRoot.CombineWithFilePath("artifacts/packages/Janset.SDL2.Core.Native.2.32.0.nupkg");
 
-    private static void SeedNupkgWithEntries(FakeCakeWorld world, FilePath nupkgPath, ImmutableArray<(string Entry, string Content)> entries)
-    {
-        var directory = world.FileSystem.GetDirectory(nupkgPath.GetDirectory());
-
-        if (!directory.Exists)
-        {
-            directory.Create();
-        }
-
-        var file = world.FileSystem.GetFile(nupkgPath);
-        using var stream = file.Open(FileMode.Create, FileAccess.Write, FileShare.None);
-        using var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: false);
-
-        foreach (var (name, content) in entries)
-        {
-            var entry = archive.CreateEntry(name);
-            using var writer = new StreamWriter(entry.Open());
-            writer.Write(content);
-        }
-    }
 }

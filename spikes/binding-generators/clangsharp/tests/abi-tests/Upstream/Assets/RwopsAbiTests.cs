@@ -662,7 +662,7 @@ public sealed class RwopsAbiTests
 
             if (fileRwops.IsNull)
             {
-                SDL_RWclose(memoryRwops);
+                _ = SDL_RWclose(memoryRwops);
                 throw new InvalidOperationException($"SDL_RWFromFile failed: {SdlError.Current}");
             }
 
@@ -795,7 +795,7 @@ public sealed class RwopsAbiTests
             return true;
         }
 
-        SDL_RWclose(rwops);
+        _ = SDL_RWclose(rwops);
         return false;
     }
 

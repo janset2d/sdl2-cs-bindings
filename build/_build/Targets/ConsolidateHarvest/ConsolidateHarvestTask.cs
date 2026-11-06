@@ -2,7 +2,6 @@
 // every failure into a single end-of-run CakeException rather than aborting the whole
 // consolidation run on the first non-operational exception. Each caught Exception's message
 // funnels into the failures list; the operator gets a complete picture across all libraries.
-#pragma warning disable CA1031
 
 using Build.Data.Harvest;
 using Build.Host;

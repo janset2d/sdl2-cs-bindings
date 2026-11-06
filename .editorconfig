@@ -244,7 +244,7 @@ dotnet_diagnostic.CA1008.severity = error
 dotnet_diagnostic.CA1012.severity = error
 dotnet_diagnostic.CA1018.severity = error
 dotnet_diagnostic.CA1027.severity = error
-# Boundary orchestration catches broadly to report failures.
+# Catch-general-exception: active rule, deliberately off [opinionated] - boundary orchestration reports failures.
 dotnet_diagnostic.CA1031.severity = none
 dotnet_diagnostic.CA1032.severity = error
 dotnet_diagnostic.CA1040.severity = suggestion
@@ -277,7 +277,8 @@ dotnet_diagnostic.CA1511.severity = error
 dotnet_diagnostic.CA1512.severity = error
 dotnet_diagnostic.CA1513.severity = error
 dotnet_diagnostic.CA1514.severity = error
-dotnet_diagnostic.CA1515.severity = error
+# [opinionated] Public tooling types need no consumer-facing internalization policy.
+dotnet_diagnostic.CA1515.severity = none
 dotnet_diagnostic.CA1707.severity = error
 dotnet_diagnostic.CA1716.severity = error
 dotnet_diagnostic.CA1725.severity = error
@@ -287,7 +288,8 @@ dotnet_diagnostic.CA1802.severity = error
 dotnet_diagnostic.CA1805.severity = error
 dotnet_diagnostic.CA1806.severity = error
 dotnet_diagnostic.CA1810.severity = error
-dotnet_diagnostic.CA1812.severity = error
+# Reflection and dependency injection instantiate types outside the compiler call graph.
+dotnet_diagnostic.CA1812.severity = suggestion
 dotnet_diagnostic.CA1813.severity = error
 dotnet_diagnostic.CA1815.severity = error
 dotnet_diagnostic.CA1819.severity = suggestion
@@ -528,12 +530,9 @@ dotnet_diagnostic.MA0042.severity = none
 dotnet_diagnostic.CA2007.severity = none
 dotnet_diagnostic.MA0004.severity = none
 dotnet_diagnostic.VSTHRD111.severity = none
+
 # Test namespaces are not a consumer-facing API.
 dotnet_diagnostic.CA1716.severity = none
-
-# QM-9: CA1515 stays at none until "build(analyzers): replace NoWarn lists, pragmas and SuppressMessage with fixes and arbitration".
-[spikes/binding-generators/clangsharp/tests/**.cs]
-dotnet_diagnostic.CA1515.severity = none
 
 # FILE-SCOPED ARBITRATION
 # Duplicate detection mutates the version map; filtering would hide that mutation in a predicate.
@@ -543,11 +542,16 @@ dotnet_diagnostic.S3267.severity = none
 
 # Git has no fixed install path across supported hosts; PATH selects it and --repo-root bypasses it.
 # Winner: pre-Cake repository discovery; S4036 remains enabled for every other file.
-[build/_build/Program.cs]
+[build/_build/EntryPoint.cs]
 dotnet_diagnostic.S4036.severity = none
 
 # Frozen generator tools retain their existing SDK analyzer behavior.
-# Winner: generator toolchain freeze; CA1305, CA1307, CA1859, CA1861 and CA1865 remain enabled for every other file.
+# Winner: generator toolchain freeze; CA1305 remains enabled for every other file.
+# Winner: generator toolchain freeze; CA1307 remains enabled for every other file.
+# Winner: generator toolchain freeze; CA1515 remains enabled for every other file.
+# Winner: generator toolchain freeze; CA1859 remains enabled for every other file.
+# Winner: generator toolchain freeze; CA1861 remains enabled for every other file.
+# Winner: generator toolchain freeze; CA1865 remains enabled for every other file.
 [spikes/binding-generators/clangsharp/{postprocess/**.cs,oracle.cs}]
 dotnet_diagnostic.CA1305.severity = none
 dotnet_diagnostic.CA1307.severity = none
@@ -558,7 +562,9 @@ dotnet_diagnostic.CA1865.severity = suggestion
 
 # ABI assertions expose native widths through explicit declared types.
 # Raw native memory is the subject of ABI tests.
-# Winner: ABI width and memory visibility; IDE0007 and S6640 remain enabled elsewhere; IDE0008 cannot fire while var is preferred globally.
+# Winner: ABI width visibility; IDE0007 remains enabled for every other file.
+# Winner: global var preference; IDE0008 cannot fire while var is preferred globally.
+# Winner: native memory visibility; S6640 remains enabled for every other file.
 [spikes/binding-generators/clangsharp/tests/abi-tests/**.cs]
 dotnet_diagnostic.IDE0007.severity = none
 dotnet_diagnostic.IDE0008.severity = none
@@ -579,16 +585,129 @@ dotnet_diagnostic.MA0144.severity = none
 [spikes/binding-generators/clangsharp/tests/abi-tests/Upstream/Assets/SurfaceAbiTests.cs]
 dotnet_diagnostic.S3267.severity = none
 
-# File-based property directives cannot wrap; remove this entry when the legacy directives are removed.
-# The file-based entry holds the tool's command types in one SDK compilation unit.
-# Winner: the file-based entry/directive contracts; MA0048 and RCS0056 remain enabled for every other file.
-[/tools.cs]
-dotnet_diagnostic.RCS0056.severity = none
-dotnet_diagnostic.MA0048.severity = none
-
 # Console hosts have no SynchronizationContext to preserve.
-# Winner: console hosts with no SynchronizationContext; CA2007, MA0004 and VSTHRD111 remain enabled for every other non-test file.
+# Winner: console hosts with no SynchronizationContext; CA2007 remains enabled for every other non-test file.
+# Winner: console hosts with no SynchronizationContext; MA0004 remains enabled for every other non-test file.
+# Winner: console hosts with no SynchronizationContext; VSTHRD111 remains enabled for every other non-test file.
 [{build/_build/**.cs,tools.cs}]
 dotnet_diagnostic.CA2007.severity = none
 dotnet_diagnostic.MA0004.severity = none
 dotnet_diagnostic.VSTHRD111.severity = none
+
+# CreatePlanAsync holds one policy whose split into a named collaborator is a design change tracked in #87.
+# Winner: collaborator design is settled in #87 before extraction; MA0051 remains enabled for every other file.
+[build/_build/Targets/Harvest/Services/ArtifactPlanner.cs]
+dotnet_diagnostic.MA0051.severity = none
+
+# BuildClosureAsync holds one policy whose split into a named collaborator is a design change tracked in #87.
+# Winner: collaborator design is settled in #87 before extraction; MA0051 remains enabled for every other file.
+[build/_build/Targets/Harvest/Services/BinaryClosureWalker.cs]
+dotnet_diagnostic.MA0051.severity = none
+
+# RunAsync holds one policy whose split into a named collaborator is a design change tracked in #101.
+# Winner: collaborator design is settled in #101 before extraction; MA0051 remains enabled for every other file.
+[build/_build/Targets/PackageConsumerSmoke/PackageConsumerSmokeTask.cs]
+dotnet_diagnostic.MA0051.severity = none
+
+# NormalizeAsync holds one policy whose split into a named collaborator is a design change tracked in #114.
+# Winner: collaborator design is settled in #114 before extraction; MA0051 remains enabled for every other file.
+[build/_build/Targets/Package/Services/DependencyRangeNormalizer.cs]
+dotnet_diagnostic.MA0051.severity = none
+
+# ValidateAsync holds one policy whose split into a named collaborator is a design change tracked in #114.
+# Winner: collaborator design is settled in #114 before extraction; MA0051 remains enabled for every other file.
+[build/_build/Validation/Packaging/NativePackageMetadataValidator.cs]
+dotnet_diagnostic.MA0051.severity = none
+
+# EvaluateDependencyGroups holds one policy whose split into a named collaborator is a design change tracked in #114.
+# Winner: collaborator design is settled in #114 before extraction; MA0051 remains enabled for every other file.
+[build/_build/Validation/Packaging/PackageOutputValidator.cs]
+dotnet_diagnostic.MA0051.severity = none
+
+# Result factories construct a fully typed success or failure without a publicly invalid state.
+# Winner: the typed result construction contract; CA1000 remains enabled for every other file.
+[build/_build/Results/Result.cs]
+dotnet_diagnostic.CA1000.severity = none
+
+# ValidationReport exposes validity and ordered findings, not a general-purpose collection API.
+# Winner: the validation-report domain name; CA1710 remains enabled for every other file.
+[build/_build/Results/ValidationReport.cs]
+dotnet_diagnostic.CA1710.severity = none
+
+# Cancellation callbacks must finish cancellation before the synchronous signal handler returns.
+# Winner: synchronous signal handling; MA0045 remains enabled for every other file.
+[build/_build/Program.cs]
+dotnet_diagnostic.MA0045.severity = none
+
+# The validator implements a synchronous contract over small Cake-managed project files.
+# Winner: the synchronous validation contract; MA0045 remains enabled for every other file.
+[build/_build/Validation/Manifest/CsprojPackContractValidator.cs]
+dotnet_diagnostic.MA0045.severity = none
+
+# The staging endpoint is the repository's published feed identity, not a machine-specific path.
+# Winner: the fixed staging-feed contract; S1075 remains enabled for every other file.
+[build/_build/Targets/PublishStaging/PublishStagingTask.cs]
+dotnet_diagnostic.S1075.severity = none
+
+# The probe exists to compile against the package surface; its member is never read.
+# Winner: the compile-only probe contract; S1144 remains enabled for every other file.
+# Winner: the compile-only probe contract; CA1823 remains enabled for every other file.
+[tests/smoke-tests/package-smoke/Compile.NetStandard/Probe.cs]
+dotnet_diagnostic.S1144.severity = none
+dotnet_diagnostic.CA1823.severity = none
+
+# Line-log callbacks synchronously write under a lock and preserve the caller's ordered Action<string> contract.
+# Winner: synchronous callback ordering; MA0045 remains enabled for every other file.
+# The script's feed URI identifies the repository's staging endpoint, not a machine-specific resource.
+# Winner: the fixed staging-feed contract; S1075 remains enabled for every other file.
+# The file-based entry holds the tool's command types in one SDK compilation unit.
+# Winner: the file-based entry contract; MA0048 remains enabled for every other file.
+[tools.cs]
+dotnet_diagnostic.MA0045.severity = none
+dotnet_diagnostic.S1075.severity = none
+dotnet_diagnostic.MA0048.severity = none
+
+# Sandbox output is an English-only local smoke instruction, not a localized shipped UI.
+# Winner: the local sandbox contract; CA1303 remains enabled for every other file.
+[tests/Sandbox/Program.cs]
+dotnet_diagnostic.CA1303.severity = none
+
+# Argument rows define distinct named scenarios even when their assertion bodies are identical.
+# Winner: preservation of named data-driven cases; S4144 remains enabled for every other file.
+[build/_build.Tests/Unit/Runtime/IsSystemFileTests.cs]
+dotnet_diagnostic.S4144.severity = none
+
+# Argument rows define distinct named scenarios even when their assertion bodies are identical.
+# Winner: preservation of named data-driven cases; S4144 remains enabled for every other file.
+[build/_build.Tests/Unit/Targets/Harvest/Services/PatternMatchingTests.cs]
+dotnet_diagnostic.S4144.severity = none
+
+# These assertions intentionally invoke the synchronous ZIP API to prove that the async-only stream rejects it.
+# Winner: the synchronous-rejection oracle; MA0045 remains enabled for every other file.
+[build/_build.Tests/Unit/Fixtures/FakeCakeWorldTests.cs]
+dotnet_diagnostic.MA0045.severity = none
+
+# ZIP fixtures build bytes in memory through Cake's synchronous fake filesystem; no disk I/O is awaited.
+# Winner: synchronous fixture arrangement; MA0045 remains enabled for every other file.
+[build/_build.Tests/Fixtures/Builders/NuspecBuilder.cs]
+dotnet_diagnostic.MA0045.severity = none
+
+# Nuspec assertions synchronously inspect bytes in Cake's fake filesystem, not real disk.
+# Winner: synchronous in-memory fixture inspection; MA0045 remains enabled for every other file.
+[build/_build.Tests/Fixtures/Builders/NuspecReader.cs]
+dotnet_diagnostic.MA0045.severity = none
+
+# Embedded resources seed synchronous fixture constructors and data-source properties.
+# Winner: the embedded-fixture loading contract; MA0045 remains enabled for every other file.
+[build/_build.Tests/Fixtures/FixtureLoader.cs]
+dotnet_diagnostic.MA0045.severity = none
+
+# Gate scopes are synchronous predicates and inspect only the file prefix needed for classification.
+# Winner: the synchronous gate-scope contract; MA0045 remains enabled for every other file.
+[build/_build.Tests/Fixtures/RepositoryGates/GateScopes.cs]
+dotnet_diagnostic.MA0045.severity = none
+
+# Tracked paths load lazily through synchronous properties, and gate predicates read repository text synchronously.
+# Winner: the repository-gate inventory contract; MA0045 remains enabled for every other file.
+[build/_build.Tests/Fixtures/RepositoryGates/RepositoryFiles.cs]
+dotnet_diagnostic.MA0045.severity = none

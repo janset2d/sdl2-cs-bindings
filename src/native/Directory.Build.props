@@ -4,7 +4,7 @@
   <PropertyGroup>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
-    <!-- Silence "no lib assets" warning NU5128 -->
+    <!-- slopwatch-ignore: SW005 Native payload packages intentionally have no lib/ref assemblies. -->
     <NoWarn>$(NoWarn);NU5128</NoWarn>
 
     <EmbedUntrackedSources>false</EmbedUntrackedSources>

@@ -1,5 +1,3 @@
-#pragma warning disable CA1031
-
 using Build.Data;
 using Build.Targets.ConsolidateHarvest;
 using Build.Targets.Harvest;

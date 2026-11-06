@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Text;
 using System.Xml.Linq;
+using Cake.Core.IO;
 
 namespace Build.Tests.Fixtures.Builders;
 
@@ -70,5 +71,26 @@ internal static class NuspecBuilder
         }
 
         return memoryStream.ToArray();
+    }
+
+    public static void SeedEntries(FakeCakeWorld world, FilePath archivePath, IEnumerable<(string Entry, string Content)> entries)
+    {
+        var directory = world.FileSystem.GetDirectory(archivePath.GetDirectory());
+
+        if (!directory.Exists)
+        {
+            directory.Create();
+        }
+
+        var file = world.FileSystem.GetFile(archivePath);
+        using var stream = file.Open(FileMode.Create, FileAccess.Write, FileShare.None);
+        using var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: false);
+
+        foreach (var (name, content) in entries)
+        {
+            var entry = archive.CreateEntry(name);
+            using var writer = new StreamWriter(entry.Open());
+            writer.Write(content);
+        }
     }
 }

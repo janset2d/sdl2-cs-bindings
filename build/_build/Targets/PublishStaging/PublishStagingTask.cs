@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Build.Data.Manifest;
 using Build.Data.Manifest.Models;
 using Build.Data.Versions;
@@ -26,8 +25,7 @@ namespace Build.Targets.PublishStaging;
 /// </summary>
 [TaskName("PublishStaging")]
 [TaskDescription("Pushes packed nupkgs to the GitHub Packages staging feed.")]
-[SuppressMessage("Minor Code Smell", "S1075:URIs should not be hardcoded",
-    Justification = "Internal feed URL is part of the release-lifecycle contract, not operator-tunable.")]
+
 public sealed class PublishStagingTask : AsyncFrostingTask<BuildContext>
 {
     private const string GitHubPackagesFeedUrl = "https://nuget.pkg.github.com/janset2d/index.json";
@@ -58,8 +56,6 @@ public sealed class PublishStagingTask : AsyncFrostingTask<BuildContext>
         _versionFileRepository = versionFileRepository ?? throw new ArgumentNullException(nameof(versionFileRepository));
     }
 
-    [SuppressMessage("Major Code Smell", "S3267:Loops should be simplified with LINQ expressions",
-        Justification = "Per-family side effects: two awaited pushes, structured logging.")]
     public override async Task RunAsync(BuildContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -86,20 +82,20 @@ public sealed class PublishStagingTask : AsyncFrostingTask<BuildContext>
         var concreteFamilies = ResolveConcreteFamiliesInScope(manifest, familyVersions);
         var ct = context.CancellationToken;
 
-        foreach (var family in concreteFamilies)
+        foreach (var familyName in concreteFamilies.Select(family => family.Name))
         {
-            var version = familyVersions.RequireVersion(new PackageFamilyId(family.Name));
-            EnsureNotLocalSuffix(family.Name, version);
+            var version = familyVersions.RequireVersion(new PackageFamilyId(familyName));
+            EnsureNotLocalSuffix(familyName, version);
 
-            var managedPackageId = FamilyIdentifierConventions.ManagedPackageId(family.Name);
-            var nativePackageId = FamilyIdentifierConventions.NativePackageId(family.Name);
+            var managedPackageId = FamilyIdentifierConventions.ManagedPackageId(familyName);
+            var nativePackageId = FamilyIdentifierConventions.NativePackageId(familyName);
 
             var managedNupkg = ResolveAndEnsureNupkg(_pathService.PackagesOutput, managedPackageId, version);
             var nativeNupkg = ResolveAndEnsureNupkg(_pathService.PackagesOutput, nativePackageId, version);
 
             _log.Information(
                 "PublishStaging pushing '{0}' = {1} ({2} + {3}).",
-                family.Name,
+                familyName,
                 version.ToNormalizedString(),
                 managedPackageId,
                 nativePackageId);

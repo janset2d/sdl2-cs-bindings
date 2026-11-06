@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Cake.Core.Diagnostics;
@@ -8,10 +7,6 @@ using Cake.Core.Diagnostics;
 namespace Build.Targets.PackageConsumerSmoke.Services;
 
 /// <inheritdoc />
-[SuppressMessage(
-    "Minor Code Smell",
-    "S1075:URIs should not be hardcoded",
-    Justification = "Official Microsoft dotnet-install endpoint used deliberately for CI/runtime bootstrap.")]
 public sealed partial class DotNetRuntimeEnvironment(ICakeLog log) : IDotNetRuntimeEnvironment
 {
     private const string WinX86Rid = "win-x86";
