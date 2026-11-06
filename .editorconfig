@@ -450,6 +450,7 @@ dotnet_diagnostic.RCS1141.severity = suggestion
 roslynator_max_line_length = 180
 dotnet_diagnostic.RCS0054.severity = error
 dotnet_diagnostic.RCS0056.severity = error
+dotnet_diagnostic.JNS0001.severity = error
 
 # SECTION 12: SONAR
 # Unlisted rules use SonarWay defaults, escalated by TreatWarningsAsErrors.
@@ -493,7 +494,7 @@ dotnet_analyzer_diagnostic.severity = none
 dotnet_diagnostic.CA5392.severity = none
 
 # SECTION 15: TEST OVERRIDES
-[{build/_build.Tests,tests,spikes/binding-generators/clangsharp/tests}/**.cs]
+[{build/_build.Tests,build/analyzers/*.Tests,tests,spikes/binding-generators/clangsharp/tests}/**.cs]
 # Test method names use underscores and their public surface is not shipped.
 dotnet_diagnostic.CA1707.severity = none
 dotnet_diagnostic.CS1591.severity = none
