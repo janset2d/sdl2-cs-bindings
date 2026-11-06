@@ -12,7 +12,8 @@ public sealed partial class CompanionPathGateTests
     {
         var offenders = RepositoryFiles.Tracked.Where(GateScopes.IsCompanionPathScanned).Order(StringComparer.Ordinal)
             .SelectMany(path => CompanionPath().Matches(RepositoryFiles.ReadText(path) ?? string.Empty)
-                .Select(match => $"{path} -> {match.Value}")).ToArray();
+                .Select(match => $"{path} -> {match.Value}"))
+            .ToArray();
         await Assert.That(offenders).IsEmpty().Because("\n" + string.Join('\n', offenders));
     }
 

@@ -36,7 +36,8 @@ public sealed class GeneratedOutputWriterTests
         var world = FakeCakeWorld.CreateWindows().WithTextFile("generated/family/old/nested.txt", "stale");
         var writer = new GeneratedOutputWriter(world.CakeContext);
         await Assert.That(() => writer.WriteAsync(world.RepoRoot.Combine("Generated"), world.RepoRoot.Combine("generated/family"),
-            [new GeneratedFile("new.txt", "new")])).ThrowsNothing();
+            [new GeneratedFile("new.txt", "new")]))
+            .ThrowsNothing();
         await Assert.That(world.FileExists("generated/family/new.txt")).IsTrue();
         await Assert.That(world.ReadAllText("generated/family/new.txt")).IsEqualTo("new");
         await Assert.That(world.FileExists("generated/family/old/nested.txt")).IsFalse();
@@ -84,7 +85,8 @@ public sealed class GeneratedOutputWriterTests
         var world = FakeCakeWorld.CreateLinux();
         var writer = new GeneratedOutputWriter(world.CakeContext);
         await Assert.That(() => writer.WriteAsync(world.RepoRoot.Combine("Generated"), world.RepoRoot.Combine("Generated/family"),
-            [new GeneratedFile("new.txt", "new")], new CancellationToken(true))).Throws<OperationCanceledException>();
+            [new GeneratedFile("new.txt", "new")], new CancellationToken(true)))
+            .Throws<OperationCanceledException>();
         await Assert.That(world.FileExists("Generated/family/new.txt")).IsFalse();
     }
 

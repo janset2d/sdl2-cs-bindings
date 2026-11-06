@@ -11,7 +11,8 @@ public sealed class MarkdownLinkGateTests
     {
         var baseline = GateBaseline.Load("broken-links.baseline");
         var offenders = BrokenLinks().Where(link => !baseline.Entries.Contains(link.Entry))
-            .Select(link => link.Diagnostic).ToArray();
+            .Select(link => link.Diagnostic)
+            .ToArray();
         await Assert.That(offenders).IsEmpty().Because("\n" + string.Join('\n', offenders));
     }
 
@@ -20,7 +21,8 @@ public sealed class MarkdownLinkGateTests
     {
         var broken = BrokenLinks().Select(link => link.Entry).ToHashSet(StringComparer.Ordinal);
         var stale = GateBaseline.Load("broken-links.baseline").Entries.Except(broken, StringComparer.Ordinal)
-            .Order(StringComparer.Ordinal).ToArray();
+            .Order(StringComparer.Ordinal)
+            .ToArray();
         await Assert.That(stale).IsEmpty().Because("Stale baseline entries:\n" + string.Join('\n', stale));
     }
 

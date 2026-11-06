@@ -48,6 +48,7 @@ public class PlatformDetectionTests
         await Assert.That(() =>
         {
             _ = new RuntimeProfile(runtimeInfo, RuntimeProfileFixture.SystemArtefacts);
-        }).Throws<InvalidOperationException>();
+        })
+            .Throws<InvalidOperationException>();
     }
 }
