@@ -3,9 +3,11 @@ using System.IO.Compression;
 using Build.Data.NativePackageMetadata;
 using Build.Host.Cake;
 using Build.Tests.Fixtures;
+using Build.Tests.Fixtures.Builders;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.IO;
+using TUnit.Assertions.Enums;
 
 namespace Build.Tests.Unit.Data.NativePackageMetadata;
 
@@ -56,6 +58,22 @@ public sealed class NativePackageMetadataRepositoryUnitTests
 public sealed class NativePackageMetadataRepositoryRoundTripTests
 {
     private const string MetadataEntryName = "janset-native-metadata.json";
+
+    [Test]
+    public async Task ReadFromPackageAsync_Should_Read_Entry_Headers_Asynchronously()
+    {
+        var world = FakeCakeWorld.CreateWindows();
+        var packagePath = PackagePath(world);
+        var content = FixtureLoader.Load("NativePackageMetadata/native-metadata-valid.json");
+        world.WithAsyncZipEntryReads(packagePath, NuspecBuilder.AsNupkgZip(MetadataEntryName, System.Text.Encoding.UTF8.GetBytes(content)));
+        var repository = new NativePackageMetadataRepository(world.CakeContext);
+
+        var result = await repository.ReadFromPackageAsync(packagePath);
+
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value.FamilyIdentifier).IsEqualTo("sdl2-core");
+        await Assert.That(result.Value.TripletSet).IsEquivalentTo(["x64-windows-hybrid", "x64-linux-hybrid"], CollectionOrdering.Matching);
+    }
 
     [Test]
     public async Task WriteAsync_Should_Write_Metadata_Json()

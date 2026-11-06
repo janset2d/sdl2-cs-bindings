@@ -821,7 +821,7 @@ dotnet_diagnostic.VSTHRD111.severity = none
 [build/_build/Data/Versions/PackageFamilyVersionSet.cs]
 dotnet_diagnostic.S3267.severity = none
 
-# Repository discovery runs before Cake exists and uses the Git installation selected by the host PATH.
+# Git has no fixed install path across supported hosts; PATH selects it and --repo-root bypasses it.
 # Winner: pre-Cake repository discovery; S4036 remains enabled for every other file.
 [build/_build/Program.cs]
 dotnet_diagnostic.S4036.severity = none

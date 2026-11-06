@@ -50,7 +50,7 @@ public sealed class VcpkgInstallTool(ICakeContext cakeContext)
 
         if (packages != null)
         {
-            foreach (var pkg in packages.Where(pkg => !string.IsNullOrWhiteSpace(pkg)))
+            foreach (var pkg in packages.Where(package => !string.IsNullOrWhiteSpace(package)))
             {
                 builder.Append(pkg);
             }

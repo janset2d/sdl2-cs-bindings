@@ -113,6 +113,32 @@ public sealed class FakeCakeWorld
 
     // ── fluent seeders ──
 
+    public FakeCakeWorld WithOtoolLibrary()
+    {
+        return WithProcessResult("otool", exitCode: 0,
+                stdOut: "/Users/dev/sdl/libSDL2.dylib:\n\t@rpath/libSDL2-2.0.0.dylib (compatibility version 1.0.0, current version 1.0.0)\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1319.100.3)\n")
+            .WithToolPath("/usr/bin/otool")
+            .WithDll("/Users/dev/sdl/libSDL2.dylib")
+            .WithTextFile("/Users/dev/sdl/libSDL2.dylib", "binary");
+    }
+
+    public FakeCakeWorld WithLddLibrary()
+    {
+        return WithProcessResult("ldd", exitCode: 0,
+                stdOut: "    libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f1234560000)\n")
+            .WithToolPath("/usr/bin/ldd")
+            .WithDll("artifacts/libSDL2.so")
+            .WithTextFile("artifacts/libSDL2.so", "binary content");
+    }
+
+    public FakeCakeWorld WithDumpbinLibrary()
+    {
+        return WithProcessResult("dumpbin.exe", exitCode: 0, stdOut: "    libfoo.dll\n    kernel32.dll\n")
+            .WithToolPath("C:/dumpbin/dumpbin.exe")
+            .WithDll("artifacts/SDL2.dll")
+            .WithTextFile("artifacts/SDL2.dll", "binary content");
+    }
+
     public FakeCakeWorld WithTextFile(string relativePath, string content)
     {
         return WithTextFile(new FilePath(relativePath), content);
@@ -137,6 +163,40 @@ public sealed class FakeCakeWorld
         using var stream = file.Open(FileMode.Create, FileAccess.Write, FileShare.None);
         using var writer = new StreamWriter(stream);
         writer.Write(content);
+        return this;
+    }
+
+    public FakeCakeWorld WithAsyncZipEntryReads(FilePath path, byte[] content)
+    {
+        WithBinaryFile(path, content);
+        var backing = new MemoryStream(content);
+        var stream = Substitute.ForPartsOf<Stream>();
+        stream.CanRead.Returns(true);
+        stream.CanSeek.Returns(true);
+        stream.Length.Returns(backing.Length);
+        stream.Position.Returns(_ => backing.Position);
+        stream.When(value => value.Position = Arg.Any<long>()).Do(call => backing.Position = call.Arg<long>());
+        stream.Seek(Arg.Any<long>(), Arg.Any<SeekOrigin>()).Returns(call => backing.Seek(call.Arg<long>(), call.Arg<SeekOrigin>()));
+        stream.Read(Arg.Any<byte[]>(), Arg.Any<int>(), Arg.Any<int>()).Returns(call =>
+        {
+            if (backing.Position == 0)
+            {
+                throw new IOException("ZIP entry headers must be read asynchronously.");
+            }
+            return backing.Read(call.Arg<byte[]>(), call.ArgAt<int>(1), call.ArgAt<int>(2));
+        });
+        stream.ReadAsync(Arg.Any<byte[]>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(call => backing.ReadAsync(call.Arg<byte[]>(), call.ArgAt<int>(1), call.ArgAt<int>(2), call.Arg<CancellationToken>()));
+        stream.When(value => value.Close()).Do(_ => backing.Dispose());
+
+        var file = Substitute.For<IFile>();
+        file.Exists.Returns(true);
+        file.Path.Returns(path);
+        using var initialRead = file.OpenRead();
+        initialRead.Returns(stream);
+        var fileSystem = Substitute.For<IFileSystem>();
+        fileSystem.GetFile(path).Returns(file);
+        CakeContext.FileSystem.Returns(fileSystem);
         return this;
     }
 

@@ -104,7 +104,7 @@ public sealed class OtoolAnalyzeTask(OtoolReporter reporter) : AsyncFrostingTask
                 file.GetFilename(), classified.Count, systemCount, userCount);
         }
 #pragma warning disable CA1031
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
 #pragma warning restore CA1031
         {
             context.Log.Error("Failed to analyze {0}: {1}", file.GetFilename(), ex.Message);

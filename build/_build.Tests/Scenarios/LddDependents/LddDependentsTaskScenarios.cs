@@ -9,12 +9,7 @@ public sealed class LddDependentsTaskScenarios
     [Test]
     public async Task RunAsync_Should_Invoke_Ldd_When_Dll_Is_Provided()
     {
-        var world = FakeCakeWorld.CreateLinux()
-            .WithProcessResult("ldd", exitCode: 0,
-                stdOut: "    libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f1234560000)\n")
-            .WithToolPath("/usr/bin/ldd")
-            .WithDll("artifacts/libSDL2.so")
-            .WithTextFile("artifacts/libSDL2.so", "binary content");
+        var world = FakeCakeWorld.CreateLinux().WithLddLibrary();
 
         var host = new TargetTestHost<LddDependentsTask>(world);
         var result = await host.RunAsync();
@@ -23,6 +18,21 @@ public sealed class LddDependentsTaskScenarios
         await Assert.That(world.ProcessInvocations.Count).IsGreaterThanOrEqualTo(1);
         var lddInv = world.ProcessInvocations[0];
         await Assert.That(lddInv.Command.FullPath).Contains("ldd");
+    }
+
+    [Test]
+    public async Task RunAsync_Should_Cancel_Before_Launching_Ldd()
+    {
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+        var world = FakeCakeWorld.CreateLinux().WithLddLibrary().WithCancellationToken(cancellation.Token);
+
+        var result = await new TargetTestHost<LddDependentsTask>(world).RunAsync();
+
+        await Assert.That(result.Exception).IsAssignableTo<OperationCanceledException>();
+        await Assert.That(((OperationCanceledException)result.Exception!).CancellationToken).IsEqualTo(cancellation.Token);
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(world.ProcessInvocations).IsEmpty();
     }
 
     [Test]
