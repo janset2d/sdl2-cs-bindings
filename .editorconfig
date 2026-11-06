@@ -469,7 +469,7 @@ dotnet_diagnostic.S4457.severity = suggestion
 dotnet_diagnostic.S6602.severity = none
 
 # SECTION 13: COMPILER
-# Missing documentation is not enforced until the shipped-source scope is configured.
+# Only the shipped library surface is documented.
 dotnet_diagnostic.CS1591.severity = none
 dotnet_diagnostic.CS1570.severity = error
 dotnet_diagnostic.CS1572.severity = error
@@ -477,6 +477,7 @@ dotnet_diagnostic.CS1573.severity = error
 dotnet_diagnostic.CS1574.severity = error
 dotnet_diagnostic.CS1587.severity = error
 
+# Hand-written shipped library code documents every public member.
 [src/SDL2.*/**.cs]
 dotnet_diagnostic.CS1591.severity = error
 

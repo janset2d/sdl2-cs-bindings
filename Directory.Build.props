@@ -48,7 +48,7 @@
 
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <MSBuildTreatWarningsAsErrors>true</MSBuildTreatWarningsAsErrors>
-    <!-- Required for IDE0005 (unused usings) in CLI builds; do not remove. -->
+    <!-- Also required for IDE0005 (unused usings) to fire in CLI builds - do not remove -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <RunAnalyzersDuringBuild>true</RunAnalyzersDuringBuild>
     <RunAnalyzersDuringLiveAnalysis>true</RunAnalyzersDuringLiveAnalysis>
