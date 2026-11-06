@@ -31,6 +31,7 @@ GitHub Packages wave until the public-feed path lands.
   callback signatures and naming rules are decided policy, not claims that output has caught up.
   The oracle's raw-public-import checks also reflect the old container policy and must migrate with
   the output. Existing TFM properties and spike projects still differ from ADR-0009.
+- **API enforcement:** the snapshot covers Core on one TFM; package validation is not enabled.
 - **Tooling and stamps:** orchestration is still Python under the spike. The commands in binding
   maintenance intentionally describe that executable route until the C# port replaces it. The host's
   tested header/config/stamp/output-safety and symbol-validation salvage remains dormant with no

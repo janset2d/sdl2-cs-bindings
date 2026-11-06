@@ -25,7 +25,9 @@ misrepresents the ABI merely to claim coverage.
 
 Public namespace and class identity come from family configuration. Parse views are attribution
 metadata, not public class names. Every function has one public signature across TFMs; import
-attributes and implementation details may differ. [ADR-0009](../adr/0009-target-frameworks.md)
+attributes and implementation details may differ.
+Package validation in strict compatible-framework mode plus per-TFM API snapshots enforce one public signature per function.
+[ADR-0009](../adr/0009-target-frameworks.md)
 owns the target-framework policy; read evaluated values from [build properties](../../Directory.Build.props).
 Compatibility packages such as System.Memory are acceptable when package smoke proves their use;
 they must not fake a platform-sensitive ABI primitive.
