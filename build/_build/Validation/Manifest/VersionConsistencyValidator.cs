@@ -98,6 +98,7 @@ public sealed class VersionConsistencyValidator : IVersionConsistencyValidator
         }
 
         var portVersion = vcpkgOverride.PortVersion ?? 0;
+
         if (library.VcpkgPortVersion != portVersion)
         {
             return new LibraryVersionCheck(

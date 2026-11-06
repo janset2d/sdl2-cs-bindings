@@ -29,6 +29,7 @@ public sealed class NativeSmokeRunnerTool(ICakeContext cakeContext)
         ArgumentNullException.ThrowIfNull(settings);
 
         var args = new ProcessArgumentBuilder();
+
         foreach (var argument in settings.Arguments)
         {
             args.Append(argument);

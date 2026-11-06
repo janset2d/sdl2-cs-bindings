@@ -37,12 +37,14 @@ public sealed class InspectHarvestedDependenciesTask(IManifestRepository manifes
     private static List<LibraryManifest> ResolveLibraries(ManifestConfig manifest, IReadOnlyList<string> requested)
     {
         var manifestLibs = manifest.LibraryManifests.ToList();
+
         if (requested.Count == 0)
         {
             return manifestLibs;
         }
 
         var result = new List<LibraryManifest>(requested.Count);
+
         foreach (var name in requested)
         {
             var match = manifestLibs.SingleOrDefault(m => string.Equals(m.Name, name, StringComparison.OrdinalIgnoreCase))

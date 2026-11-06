@@ -26,6 +26,7 @@ public abstract class DumpbinTool(ICakeContext cakeContext)
     protected override IEnumerable<FilePath> GetAlternativeToolPaths(DumpbinSettings settings)
     {
         var developerPromptDumpbin = TryResolveFromDeveloperPrompt();
+
         if (developerPromptDumpbin is not null)
         {
             return [developerPromptDumpbin];
@@ -63,6 +64,7 @@ public abstract class DumpbinTool(ICakeContext cakeContext)
         }
 
         var dumpbin = GetDumpbinCandidates(new DirectoryPath(latestTools.FullName)).FirstOrDefault(cakeContext.FileExists);
+
         if (dumpbin is null)
         {
             throw new FileNotFoundException($"Dumpbin executable not found under MSVC tools directory: {latestTools.FullName}");
@@ -74,12 +76,14 @@ public abstract class DumpbinTool(ICakeContext cakeContext)
     private FilePath? TryResolveFromDeveloperPrompt()
     {
         var vcToolsInstallDir = cakeContext.Environment.GetEnvironmentVariable("VCToolsInstallDir");
+
         if (string.IsNullOrWhiteSpace(vcToolsInstallDir))
         {
             return null;
         }
 
         var vcToolsDir = new DirectoryPath(vcToolsInstallDir);
+
         if (!cakeContext.DirectoryExists(vcToolsDir))
         {
             return null;

@@ -50,6 +50,7 @@ public sealed record PackageFamilyVersionSet : IReadOnlyCollection<PackageFamily
         ArgumentNullException.ThrowIfNull(entries);
 
         _versions = [];
+
         foreach (var entry in entries)
         {
             if (!_versions.TryAdd(entry.Family, entry.Version))
@@ -127,6 +128,7 @@ public sealed record PackageFamilyVersionSet : IReadOnlyCollection<PackageFamily
     public override int GetHashCode()
     {
         var hash = new HashCode();
+
         foreach (var family in Families)
         {
             hash.Add(family);
@@ -170,6 +172,7 @@ internal sealed class PackageFamilyVersionSetJsonConverter : JsonConverter<Packa
             var rawFamily = reader.GetString() ?? throw new JsonException("Family identifier cannot be null.");
 
             PackageFamilyId family;
+
             try
             {
                 family = new PackageFamilyId(rawFamily);
@@ -185,6 +188,7 @@ internal sealed class PackageFamilyVersionSetJsonConverter : JsonConverter<Packa
             }
 
             var rawVersion = reader.GetString();
+
             if (!NuGetVersion.TryParse(rawVersion, out var version))
             {
                 throw new JsonException($"Invalid NuGetVersion '{rawVersion}' for family '{rawFamily}'.");
@@ -202,6 +206,7 @@ internal sealed class PackageFamilyVersionSetJsonConverter : JsonConverter<Packa
         ArgumentNullException.ThrowIfNull(value);
 
         writer.WriteStartObject();
+
         foreach (var family in value.Families)
         {
             writer.WriteString(family.Value, value.RequireVersion(family).ToNormalizedString());

@@ -124,6 +124,7 @@ public sealed class WavAbiTests
             using PinnedUtf8 readMode = SdlUtf8.Pin("rb");
 
             SDL_RWops source = SDL_RWFromFile(pinnedSamplePath.Pointer, readMode.Pointer);
+
             if (source.IsNull)
             {
                 throw new InvalidOperationException($"SDL_RWFromFile failed for sample WAV: {SdlError.Current}");
@@ -132,6 +133,7 @@ public sealed class WavAbiTests
             SDL_AudioSpec spec = default;
             uint audioLength = 0;
             SDL_AudioSpec* loadedSpec = SDL_LoadWAV_RW(source, 1, &spec, &audioBuffer, &audioLength);
+
             if (loadedSpec is null)
             {
                 throw new InvalidOperationException($"SDL_LoadWAV_RW failed: {SdlError.Current}");
@@ -180,12 +182,14 @@ public sealed class WavAbiTests
     {
         SDL_AudioCVT cvt = default;
         int buildResult = SDL_BuildAudioCVT(&cvt, AUDIO_S8, 1, 22050, AUDIO_S16LSB, 2, 44100);
+
         if (buildResult != 1)
         {
             return new AudioConversionResult(buildResult, -1, cvt.len_cvt, 0, cvt.len_ratio);
         }
 
         byte[] buffer = new byte[64 * cvt.len_mult];
+
         for (int i = 0; i < 64; i++)
         {
             buffer[i] = (byte)i;

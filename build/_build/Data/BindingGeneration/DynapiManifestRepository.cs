@@ -110,6 +110,7 @@ public sealed partial class DynapiManifestRepository(ICakeContext context, IPath
             }
 
             var carriesExportMarker = LooksLikeExportLine(trimmed);
+
             if (!carriesExportMarker && trimmed[0] == '#')
             {
                 // Pure textual comment: skip silently.
@@ -117,6 +118,7 @@ public sealed partial class DynapiManifestRepository(ICakeContext context, IPath
             }
 
             var match = regex.Match(line);
+
             if (!match.Success)
             {
                 if (carriesExportMarker)
@@ -124,12 +126,14 @@ public sealed partial class DynapiManifestRepository(ICakeContext context, IPath
                     throw new InvalidOperationException(
                         $"Dynapi manifest '{sourcePath}' line {lineNumber}: export line did not match the canonical Watcom format: '{line}'.");
                 }
+
                 throw new InvalidOperationException(
                     $"Dynapi manifest '{sourcePath}' line {lineNumber}: unexpected non-comment, non-export line '{line}'.");
             }
 
             var name = match.Groups["name"].Value;
             var mirror = match.Groups["mirror"].Value;
+
             if (!string.Equals(name, mirror, StringComparison.Ordinal))
             {
                 throw new InvalidOperationException(
@@ -148,11 +152,13 @@ public sealed partial class DynapiManifestRepository(ICakeContext context, IPath
         {
             return true;
         }
+
         if (trimmed[0] == '#')
         {
             var afterHash = trimmed[1..].TrimStart();
             return afterHash.StartsWith("++", StringComparison.Ordinal);
         }
+
         return false;
     }
 }

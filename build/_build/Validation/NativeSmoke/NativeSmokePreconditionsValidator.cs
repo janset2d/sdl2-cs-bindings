@@ -37,6 +37,7 @@ public sealed class NativeSmokePreconditionsValidator(ICakeContext cakeContext, 
         }
 
         var cmakeListsFile = projectDir.CombineWithFilePath("CMakeLists.txt");
+
         if (!_cakeContext.FileExists(cmakeListsFile))
         {
             checks.Add(new ValidationCheck(
@@ -47,6 +48,7 @@ public sealed class NativeSmokePreconditionsValidator(ICakeContext cakeContext, 
         }
 
         var cmakePresetsFile = projectDir.CombineWithFilePath("CMakePresets.json");
+
         if (!_cakeContext.FileExists(cmakePresetsFile))
         {
             checks.Add(new ValidationCheck(

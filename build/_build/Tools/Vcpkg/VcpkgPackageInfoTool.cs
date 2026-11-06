@@ -20,6 +20,7 @@ public sealed class VcpkgPackageInfoTool(ICakeContext cakeContext) : VcpkgTool<V
     public string? GetPackageInfoJson(VcpkgPackageInfoSettings settings, string package)
     {
         ArgumentNullException.ThrowIfNull(settings);
+
         if (string.IsNullOrWhiteSpace(package))
         {
             throw new ArgumentNullException(nameof(package));
@@ -32,6 +33,7 @@ public sealed class VcpkgPackageInfoTool(ICakeContext cakeContext) : VcpkgTool<V
         List<string> packageInfoOutputLines = [];
         List<string> packageInfoOutputLinesError = [];
         var processSettings = new ProcessSettings { RedirectStandardOutput = true, RedirectStandardError = true, };
+
         try
         {
             Run(settings, builder, processSettings, process =>

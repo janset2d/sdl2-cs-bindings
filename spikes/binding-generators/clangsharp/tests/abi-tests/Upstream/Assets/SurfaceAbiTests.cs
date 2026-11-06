@@ -111,6 +111,7 @@ public sealed class SurfaceAbiTests
         {
             surface = SdlMacro.LoadBmp(samplePath);
             int saveResult = SdlMacro.SaveBmp(surface, savedPath);
+
             if (saveResult != 0)
             {
                 return new SurfaceResult(surface->w, surface->h, surface->pitch, saveResult, 0, 0);
@@ -145,6 +146,7 @@ public sealed class SurfaceAbiTests
         string fileOpenError = SdlError.Current;
 
         SDL_Surface* surface = SDL_LoadBMP_RW(source, 1);
+
         if (surface is not null)
         {
             SDL_FreeSurface(surface);
@@ -162,6 +164,7 @@ public sealed class SurfaceAbiTests
         {
             source = SdlMacro.LoadBmp(samplePath);
             converted = SDL_ConvertSurfaceFormat(source, (uint)SDL_PixelFormatEnum.SDL_PIXELFORMAT_ARGB8888, 0);
+
             if (converted is null)
             {
                 throw new InvalidOperationException($"SDL_ConvertSurfaceFormat failed: {SdlError.Current}");
@@ -247,6 +250,7 @@ public sealed class SurfaceAbiTests
     private static unsafe int CountNullSurfaces(params SDL_Surface*[] surfaces)
     {
         int count = 0;
+
         foreach (SDL_Surface* surface in surfaces)
         {
             if (surface is null)
@@ -265,6 +269,7 @@ public sealed class SurfaceAbiTests
     private static unsafe int CountAllocatedSurfaces(params SDL_Surface*[] surfaces)
     {
         int count = 0;
+
         foreach (SDL_Surface* surface in surfaces)
         {
             if (surface is not null)
@@ -290,12 +295,14 @@ public sealed class SurfaceAbiTests
             uint destinationPixel = SDL_MapRGBA(destination->format, 200, 201, 202, 203);
 
             int fillSourceResult = SDL_FillRect(source, null, sourcePixel);
+
             if (fillSourceResult != 0)
             {
                 throw new InvalidOperationException($"SDL_FillRect source failed: {SdlError.Current}");
             }
 
             int fillDestinationResult = SDL_FillRect(destination, null, destinationPixel);
+
             if (fillDestinationResult != 0)
             {
                 throw new InvalidOperationException($"SDL_FillRect destination failed: {SdlError.Current}");
@@ -326,6 +333,7 @@ public sealed class SurfaceAbiTests
     private static unsafe SDL_Surface* CreateArgbSurface(int width, int height)
     {
         SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(0, width, height, 32, (uint)SDL_PixelFormatEnum.SDL_PIXELFORMAT_ARGB8888);
+
         if (surface is null)
         {
             throw new InvalidOperationException($"SDL_CreateRGBSurfaceWithFormat failed: {SdlError.Current}");
@@ -337,6 +345,7 @@ public sealed class SurfaceAbiTests
     private static unsafe uint ReadFirstPixel(SDL_Surface* surface)
     {
         int lockResult = SDL_LockSurface(surface);
+
         if (lockResult != 0)
         {
             throw new InvalidOperationException($"SDL_LockSurface failed: {SdlError.Current}");

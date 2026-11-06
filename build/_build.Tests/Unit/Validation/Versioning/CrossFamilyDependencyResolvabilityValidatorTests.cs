@@ -117,6 +117,7 @@ public sealed class CrossFamilyDependencyResolvabilityValidatorTests
         await Assert.That(validation.HasErrors).IsFalse();
         // sdl2-image → sdl2-core + sdl2-ttf → sdl2-core = 2 checks
         await Assert.That(validation.Checks.Count).IsEqualTo(2);
+
         foreach (var check in validation.Checks)
         {
             await Assert.That(check.Status).IsEqualTo(CrossFamilyDependencyCheckStatus.InScope);

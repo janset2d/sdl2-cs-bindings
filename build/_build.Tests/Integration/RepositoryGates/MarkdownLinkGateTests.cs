@@ -38,11 +38,13 @@ public sealed class MarkdownLinkGateTests
     private static List<(string Entry, string Diagnostic)> BrokenLinks()
     {
         var broken = new List<(string Entry, string Diagnostic)>();
+
         foreach (var source in RepositoryFiles.Tracked.Where(GateScopes.IsLinkScanned).Order(StringComparer.Ordinal))
         {
             foreach (var link in MarkdownLinks.Extract(RepositoryFiles.ReadText(source) ?? string.Empty))
             {
                 var target = MarkdownLinks.ToRepositoryPath(source, link.Target);
+
                 if (target is null || RepositoryFiles.Resolves(target))
                 {
                     continue;
@@ -52,6 +54,7 @@ public sealed class MarkdownLinkGateTests
                 broken.Add((entry, $"{source}:{link.Line} -> {target}\n{entry}"));
             }
         }
+
         return broken;
     }
 }

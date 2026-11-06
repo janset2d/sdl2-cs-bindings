@@ -103,6 +103,7 @@ public sealed class ArtifactPlanner(IRuntimeProfile profile, IPathService pathSe
                 foreach (var licensePathString in infoResult.Value.OwnedFiles)
                 {
                     var licensePath = new FilePath(licensePathString);
+
                     if (!IsLicense(licensePath))
                     {
                         continue;

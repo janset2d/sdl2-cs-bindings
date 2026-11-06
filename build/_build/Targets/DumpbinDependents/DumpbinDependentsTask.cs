@@ -20,6 +20,7 @@ public sealed class DumpbinDependentsTask : AsyncFrostingTask<BuildContext>
         }
 
         var file = context.File(context.Dlls[0]);
+
         if (!context.FileExists(file))
         {
             context.Warning("File not found: {0}", file.Path);

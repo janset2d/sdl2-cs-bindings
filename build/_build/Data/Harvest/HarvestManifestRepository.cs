@@ -38,12 +38,14 @@ public sealed class HarvestManifestRepository(ICakeContext cakeContext, IPathSer
         ct.ThrowIfCancellationRequested();
 
         var ridStatusDir = _pathService.GetHarvestLibraryRidStatusDir(libraryName);
+
         if (!_cakeContext.DirectoryExists(ridStatusDir))
         {
             return null;
         }
 
         var ridStatusFiles = _cakeContext.GetFiles($"{ridStatusDir}/*.json");
+
         if (ridStatusFiles.Count == 0)
         {
             return null;
@@ -51,6 +53,7 @@ public sealed class HarvestManifestRepository(ICakeContext cakeContext, IPathSer
 
         var ridStatuses = new List<RidHarvestStatus>();
         var invalidStatusFiles = new List<string>();
+
         foreach (var statusFile in ridStatusFiles.OrderBy(file => file.FullPath, StringComparer.OrdinalIgnoreCase))
         {
             ct.ThrowIfCancellationRequested();
@@ -59,6 +62,7 @@ public sealed class HarvestManifestRepository(ICakeContext cakeContext, IPathSer
             {
                 var jsonContent = await _cakeContext.ReadAllTextAsync(statusFile).ConfigureAwait(false);
                 var ridStatus = CakeJsonExtensions.DeserializeJson<RidHarvestStatus>(jsonContent);
+
                 if (ridStatus != null)
                 {
                     ridStatuses.Add(ridStatus);

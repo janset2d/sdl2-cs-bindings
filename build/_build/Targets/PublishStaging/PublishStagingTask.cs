@@ -73,6 +73,7 @@ public sealed class PublishStagingTask : AsyncFrostingTask<BuildContext>
         }
 
         var familyVersions = _versionFileRepository.Load(context.VersionsFilePath);
+
         if (familyVersions.Count == 0)
         {
             throw new CakeException(
@@ -115,6 +116,7 @@ public sealed class PublishStagingTask : AsyncFrostingTask<BuildContext>
         foreach (var envVar in AuthEnvVarChain)
         {
             var value = _cakeContext.EnvironmentVariable(envVar);
+
             if (!string.IsNullOrWhiteSpace(value))
             {
                 return value;
@@ -130,6 +132,7 @@ public sealed class PublishStagingTask : AsyncFrostingTask<BuildContext>
     private static List<PackageFamilyConfig> ResolveConcreteFamiliesInScope(ManifestConfig manifestConfig, PackageFamilyVersionSet versions)
     {
         var selected = new List<PackageFamilyConfig>(versions.Count);
+
         foreach (var entry in versions)
         {
             var familyName = entry.Family.Value;
@@ -147,6 +150,7 @@ public sealed class PublishStagingTask : AsyncFrostingTask<BuildContext>
 
             selected.Add(family);
         }
+
         return selected;
     }
 
@@ -167,12 +171,14 @@ public sealed class PublishStagingTask : AsyncFrostingTask<BuildContext>
     private FilePath ResolveAndEnsureNupkg(DirectoryPath packagesDir, string packageId, NuGetVersion version)
     {
         var nupkgFile = packagesDir.CombineWithFilePath($"{packageId}.{version.ToNormalizedString()}.nupkg");
+
         if (!_cakeContext.FileExists(nupkgFile))
         {
             throw new CakeException(
                 $"PublishStaging expected '{nupkgFile.GetFilename().FullPath}' in '{packagesDir.FullPath}' but it was not found. " +
                 "Run --target Package first or fix the --explicit-version / --versions-file mapping.");
         }
+
         return nupkgFile;
     }
 }

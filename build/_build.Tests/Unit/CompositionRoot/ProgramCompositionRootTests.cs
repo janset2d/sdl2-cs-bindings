@@ -115,6 +115,7 @@ public sealed class ProgramCompositionRootTests
             () => (string[])method.Invoke(null, [originalArgs, repoRoot, invocationContext])!);
 
         await Assert.That(effectiveArgs.Length).IsEqualTo(originalArgs.Length);
+
         for (var i = 0; i < originalArgs.Length; i++)
         {
             await Assert.That(effectiveArgs[i]).IsEqualTo(originalArgs[i]);
@@ -188,6 +189,7 @@ public sealed class ProgramCompositionRootTests
     private static bool HasParameterSignature(MethodInfo method, params Type[] parameterTypes)
     {
         var parameters = method.GetParameters();
+
         if (parameters.Length != parameterTypes.Length)
         {
             return false;
@@ -218,6 +220,7 @@ public sealed class ProgramCompositionRootTests
         lock (EnvironmentVariableLock)
         {
             var previous = Environment.GetEnvironmentVariable("ACTIONS_RUNNER_DEBUG");
+
             try
             {
                 Environment.SetEnvironmentVariable("ACTIONS_RUNNER_DEBUG", value);

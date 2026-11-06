@@ -52,6 +52,7 @@ internal static class Program
     private static void RunEventLoop()
     {
         var running = true;
+
         while (running)
         {
             while (SDL_PollEvent(out var sdlEvent) != 0)
@@ -60,6 +61,7 @@ internal static class Program
                 {
                     continue;
                 }
+
                 running = false;
                 break;
             }

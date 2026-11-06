@@ -124,6 +124,7 @@ public sealed class HarvestReadinessValidator(
             }
 
             var payloadFiles = _cakeContext.GetFiles($"{payloadSource}/**/*");
+
             if (payloadFiles.Count == 0)
             {
                 throw new CakeException(

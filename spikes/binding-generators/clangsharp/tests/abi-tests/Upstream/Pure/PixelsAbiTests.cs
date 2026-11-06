@@ -265,6 +265,7 @@ public sealed class PixelsAbiTests
     private static unsafe PixelFormatSnapshot AllocateFormat(uint format)
     {
         SDL_PixelFormat* allocated = SDL_AllocFormat(format);
+
         if (allocated is null)
         {
             throw new InvalidOperationException($"SDL_AllocFormat failed: {SdlError.Current}");
@@ -289,6 +290,7 @@ public sealed class PixelsAbiTests
         SdlError.Clear();
 
         SDL_PixelFormat* allocated = SDL_AllocFormat(format);
+
         if (allocated is not null)
         {
             SDL_FreeFormat(allocated);
@@ -305,6 +307,7 @@ public sealed class PixelsAbiTests
     private static unsafe PaletteSnapshot AllocatePalette(int colorCount)
     {
         SDL_Palette* palette = SDL_AllocPalette(colorCount);
+
         if (palette is null)
         {
             throw new InvalidOperationException($"SDL_AllocPalette failed: {SdlError.Current}");
@@ -330,6 +333,7 @@ public sealed class PixelsAbiTests
         SdlError.Clear();
 
         SDL_Palette* palette = SDL_AllocPalette(colorCount);
+
         if (palette is not null)
         {
             SDL_FreePalette(palette);
@@ -343,6 +347,7 @@ public sealed class PixelsAbiTests
         const ushort magic = 0xBEEF;
 
         ushort* ramp = stackalloc ushort[256];
+
         for (int i = 0; i < 256; i++)
         {
             ramp[i] = magic;
@@ -351,6 +356,7 @@ public sealed class PixelsAbiTests
         SDL_CalculateGammaRamp(gamma, ramp);
 
         int changedCount = 0;
+
         for (int i = 0; i < 256; i++)
         {
             if (ramp[i] != magic)
@@ -367,6 +373,7 @@ public sealed class PixelsAbiTests
         const ushort magic = 0xBEEF;
 
         ushort* ramp = stackalloc ushort[256];
+
         for (int i = 0; i < 256; i++)
         {
             ramp[i] = magic;
@@ -377,6 +384,7 @@ public sealed class PixelsAbiTests
         SDL_CalculateGammaRamp(-1.0f, ramp);
 
         int changedCount = 0;
+
         for (int i = 0; i < 256; i++)
         {
             if (ramp[i] != magic)

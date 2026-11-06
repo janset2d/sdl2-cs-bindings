@@ -82,6 +82,7 @@ public sealed class DependencyRangeNormalizer(ICakeContext cakeContext, ICakeLog
         var nuspecEntry = nuspecCandidates[0];
 
         string nuspecContent;
+
         using (var reader = new StreamReader(await nuspecEntry.OpenAsync(ct), Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: false))
         {
             nuspecContent = await reader.ReadToEndAsync(ct);
@@ -89,6 +90,7 @@ public sealed class DependencyRangeNormalizer(ICakeContext cakeContext, ICakeLog
 
         var document = XDocument.Parse(nuspecContent, LoadOptions.PreserveWhitespace);
         var root = document.Root;
+
         if (root is null)
         {
             return;
@@ -100,6 +102,7 @@ public sealed class DependencyRangeNormalizer(ICakeContext cakeContext, ICakeLog
             .ToList();
 
         var hasChanges = false;
+
         foreach (var dependencyFamily in family.DependsOn)
         {
             ct.ThrowIfCancellationRequested();
@@ -112,6 +115,7 @@ public sealed class DependencyRangeNormalizer(ICakeContext cakeContext, ICakeLog
                          string.Equals((string?)element.Attribute("id"), dependencyPackageId, StringComparison.OrdinalIgnoreCase)))
             {
                 var currentVersion = (string?)dependencyElement.Attribute("version");
+
                 if (string.Equals(currentVersion, expectedRange, StringComparison.Ordinal))
                 {
                     continue;

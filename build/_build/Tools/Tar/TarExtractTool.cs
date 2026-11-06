@@ -40,6 +40,7 @@ public sealed class TarExtractTool : Tool<TarExtractSettings>
         // the default behaviour on BSD tar (macOS / Win10+ bsdtar) to preserve mode bits + symlinks.
         // Both GNU and BSD tar preserve symlinks in -xzf without extra flags.
         var extractFlags = "-xz";
+
         if (settings.Verbose)
         {
             extractFlags += "v";

@@ -186,6 +186,7 @@ public sealed class PackageOutputValidator(
         string description)
     {
         var file = _fileSystem.GetFile(packagePath);
+
         if (!file.Exists)
         {
             AddCheck(checks, isValid: false, code: null, name: "Nuspec load",
@@ -199,6 +200,7 @@ public sealed class PackageOutputValidator(
             using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
 
             var nuspecEntry = archive.Entries.SingleOrDefault(entry => entry.FullName.EndsWith(".nuspec", StringComparison.OrdinalIgnoreCase));
+
             if (nuspecEntry is null)
             {
                 AddCheck(checks, isValid: false, code: null, name: "Nuspec load",
@@ -231,6 +233,7 @@ public sealed class PackageOutputValidator(
         }
 
         var metadata = nuspec.Document.Root?.Elements().SingleOrDefault(element => string.Equals(element.Name.LocalName, "metadata", StringComparison.Ordinal));
+
         if (metadata is null)
         {
             AddCheck(checks, isValid: false, code: null, name: "Nuspec load",
@@ -271,6 +274,7 @@ public sealed class PackageOutputValidator(
             "(resolved from Directory.Build.props).");
 
         var license = metadata.Elements().SingleOrDefault(element => string.Equals(element.Name.LocalName, "license", StringComparison.Ordinal));
+
         if (license is null)
         {
             AddCanonicalCheck(
@@ -300,6 +304,7 @@ public sealed class PackageOutputValidator(
             $"G27: package '{packagePath.GetFilename().FullPath}' emitted icon '{icon ?? "<missing>"}', expected '{projectMetadata.PackageIcon}'.");
 
         var repository = metadata.Elements().SingleOrDefault(element => string.Equals(element.Name.LocalName, "repository", StringComparison.Ordinal));
+
         if (repository is null)
         {
             AddCanonicalCheck(
@@ -345,6 +350,7 @@ public sealed class PackageOutputValidator(
         ManifestConfig manifestConfig)
     {
         var dependencies = metadata.Elements().SingleOrDefault(element => string.Equals(element.Name.LocalName, "dependencies", StringComparison.Ordinal));
+
         if (dependencies is null)
         {
             AddCheck(checks, isValid: false, code: "G22", name: "TFM agreement",
@@ -365,9 +371,11 @@ public sealed class PackageOutputValidator(
         }
 
         var expectedFrameworks = new HashSet<NuGetFramework>();
+
         foreach (var raw in projectMetadata.TargetFrameworks)
         {
             var parsed = NuGetFramework.ParseFolder(raw);
+
             if (parsed.IsUnsupported)
             {
                 AddCheck(checks, isValid: false, code: "G22", name: "TFM agreement",
@@ -380,9 +388,11 @@ public sealed class PackageOutputValidator(
         }
 
         var actualFrameworksByKey = new List<(XElement Group, NuGetFramework Framework)>();
+
         foreach (var group in groups)
         {
             var tfmAttr = group.Attributes().SingleOrDefault(attr => string.Equals(attr.Name.LocalName, "targetFramework", StringComparison.Ordinal))?.Value?.Trim();
+
             if (string.IsNullOrWhiteSpace(tfmAttr))
             {
                 AddCheck(checks, isValid: false, code: "G22", name: "TFM agreement",
@@ -392,6 +402,7 @@ public sealed class PackageOutputValidator(
             }
 
             var parsedFramework = NuGetFramework.Parse(tfmAttr);
+
             if (parsedFramework.IsUnsupported)
             {
                 AddCheck(checks, isValid: false, code: "G22", name: "TFM agreement",
@@ -406,6 +417,7 @@ public sealed class PackageOutputValidator(
         var actualFrameworks = actualFrameworksByKey.Select(item => item.Framework).ToHashSet();
 
         var frameworksMatch = actualFrameworks.SetEquals(expectedFrameworks);
+
         if (!frameworksMatch)
         {
             var expectedLabel = string.Join(", ", expectedFrameworks.Select(FormatFramework).OrderBy(x => x, StringComparer.OrdinalIgnoreCase));
@@ -564,6 +576,7 @@ public sealed class PackageOutputValidator(
         }
 
         var expectedDependencyCount = 1 + family.DependsOn.Count;
+
         if (dependencyContracts.Count != expectedDependencyCount)
         {
             AddCheck(checks, isValid: false, code: "G22", name: "TFM agreement",
@@ -636,6 +649,7 @@ public sealed class PackageOutputValidator(
         FilePath symbolsPackagePath)
     {
         var file = _fileSystem.GetFile(symbolsPackagePath);
+
         if (!file.Exists)
         {
             AddCheck(checks, isValid: false, code: "G25", name: "Symbol package presence",
@@ -645,6 +659,7 @@ public sealed class PackageOutputValidator(
 
         bool hasNuspec;
         bool hasPdb;
+
         try
         {
             await using var stream = file.OpenRead();
@@ -676,6 +691,7 @@ public sealed class PackageOutputValidator(
         FilePath nativePackagePath)
     {
         var file = _fileSystem.GetFile(nativePackagePath);
+
         if (!file.Exists)
         {
             // Prior NuspecLoad check already recorded this; do not double-report.
@@ -683,6 +699,7 @@ public sealed class PackageOutputValidator(
         }
 
         HashSet<string> entries;
+
         try
         {
             await using var stream = file.OpenRead();
@@ -738,10 +755,12 @@ public sealed class PackageOutputValidator(
         var hasShared = entries.Contains(sharedPath);
 
         var missing = new List<string>();
+
         if (!hasWrapper)
         {
             missing.Add(wrapperPath);
         }
+
         if (!hasShared)
         {
             missing.Add(sharedPath);
@@ -824,6 +843,7 @@ public sealed class PackageOutputValidator(
     private static string? TryGetChildValue(XElement parent, string localName, out bool missing)
     {
         var element = parent.Elements().SingleOrDefault(candidate => string.Equals(candidate.Name.LocalName, localName, StringComparison.Ordinal));
+
         if (element is null)
         {
             missing = true;

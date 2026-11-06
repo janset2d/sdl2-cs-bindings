@@ -119,6 +119,7 @@ public sealed class HarvestStatusRepository(ICakeContext cakeContext, IPathServi
 
         var ridRuntimeRoot = _pathService.GetHarvestLibraryRidRuntimesDir(libraryName, rid);
         EnsureWithinHarvestOutput(ridRuntimeRoot.FullPath);
+
         if (_cakeContext.DirectoryExists(ridRuntimeRoot))
         {
             _cakeContext.DeleteDirectory(ridRuntimeRoot, RecursiveForceDelete);
@@ -126,6 +127,7 @@ public sealed class HarvestStatusRepository(ICakeContext cakeContext, IPathServi
 
         var ridStatusFile = _pathService.GetHarvestLibraryRidStatusFile(libraryName, rid);
         EnsureWithinHarvestOutput(ridStatusFile.FullPath);
+
         if (_cakeContext.FileExists(ridStatusFile))
         {
             _cakeContext.DeleteFile(ridStatusFile);
@@ -133,6 +135,7 @@ public sealed class HarvestStatusRepository(ICakeContext cakeContext, IPathServi
 
         var ridLicenseRoot = _pathService.GetHarvestLibraryRidLicensesDir(libraryName, rid);
         EnsureWithinHarvestOutput(ridLicenseRoot.FullPath);
+
         if (_cakeContext.DirectoryExists(ridLicenseRoot))
         {
             _cakeContext.DeleteDirectory(ridLicenseRoot, RecursiveForceDelete);
@@ -152,6 +155,7 @@ public sealed class HarvestStatusRepository(ICakeContext cakeContext, IPathServi
     private void DeleteIfExists(DirectoryPath path)
     {
         EnsureWithinHarvestOutput(path.FullPath);
+
         if (_cakeContext.DirectoryExists(path))
         {
             _cakeContext.DeleteDirectory(path, RecursiveForceDelete);
@@ -161,6 +165,7 @@ public sealed class HarvestStatusRepository(ICakeContext cakeContext, IPathServi
     private void DeleteIfExists(FilePath path)
     {
         EnsureWithinHarvestOutput(path.FullPath);
+
         if (_cakeContext.FileExists(path))
         {
             _cakeContext.DeleteFile(path);
@@ -176,6 +181,7 @@ public sealed class HarvestStatusRepository(ICakeContext cakeContext, IPathServi
     private void EnsureWithinHarvestOutput(string fullPath)
     {
         var harvestRoot = _pathService.HarvestOutput.FullPath;
+
         if (!fullPath.StartsWith(harvestRoot, StringComparison.OrdinalIgnoreCase))
         {
             throw new CakeException(

@@ -13,6 +13,7 @@ internal static unsafe class SdlUtf8
         }
 
         int length = 0;
+
         while (value[length] != 0)
         {
             length++;

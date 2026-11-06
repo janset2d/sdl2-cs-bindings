@@ -18,6 +18,7 @@ public sealed class WorkflowRunnerGateTests
                     .Select(reference => (Path: path, Reference: reference)))
             .ToArray();
         await Assert.That(references).IsNotEmpty();
+
         foreach (var (path, reference) in references)
         {
             await Assert.That(reference.Value)
@@ -36,6 +37,7 @@ public sealed class WorkflowRunnerGateTests
                     .Select(label => (Path: path, Label: label)))
             .ToArray();
         await Assert.That(labels).IsNotEmpty();
+
         foreach (var (path, label) in labels)
         {
             await Assert.That(runners).Contains(label.Value).Because($"{path}:{label.Line}");

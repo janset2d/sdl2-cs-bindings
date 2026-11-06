@@ -65,6 +65,7 @@ public sealed class HarvestReporter(IAnsiConsole console, ICakeLog log)
         ArgumentException.ThrowIfNullOrWhiteSpace(errorMessage);
 
         _log.Error("{0} failed for '{1}': {2}", phase, libraryName, errorMessage);
+
         if (exception is not null)
         {
             _log.Verbose("Details: {0}", exception);
@@ -81,6 +82,7 @@ public sealed class HarvestReporter(IAnsiConsole console, ICakeLog log)
         if (!report.IsValid)
         {
             _log.Error("Hybrid-static leak validation failed for '{0}': {1} violation(s) detected.", libraryName, report.Errors.Count);
+
             foreach (var error in report.Errors)
             {
                 _log.Error("  - {0}", error.Message);
@@ -93,6 +95,7 @@ public sealed class HarvestReporter(IAnsiConsole console, ICakeLog log)
                 "Hybrid-static leak validation produced {0} warning(s) for '{1}' (non-blocking).",
                 report.Warnings.Count,
                 libraryName);
+
             foreach (var warning in report.Warnings)
             {
                 _log.Warning("  - {0}", warning.Message);

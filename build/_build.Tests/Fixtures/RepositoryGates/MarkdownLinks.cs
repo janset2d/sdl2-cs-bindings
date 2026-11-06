@@ -11,14 +11,17 @@ internal static partial class MarkdownLinks
         var links = new List<MarkdownLink>();
         var fence = string.Empty;
         var lines = markdown.Split('\n');
+
         for (var index = 0; index < lines.Length; index++)
         {
             var line = lines[index].TrimEnd('\r');
             var marker = Fence().Match(line);
+
             if (marker.Success && (fence.Length != 0 || marker.Groups["fence"].Value[0] != '`'
                 || !line[marker.Length..].Contains('`', StringComparison.Ordinal)))
             {
                 var run = marker.Groups["fence"].Value;
+
                 if (fence.Length == 0)
                 {
                     fence = run;
@@ -31,6 +34,7 @@ internal static partial class MarkdownLinks
 
                 continue;
             }
+
             if (fence.Length != 0)
             {
                 continue;
@@ -38,6 +42,7 @@ internal static partial class MarkdownLinks
 
             line = InlineCode().Replace(line, string.Empty);
             var definition = Reference().Match(line);
+
             if (definition.Success)
             {
                 links.Add(new MarkdownLink(index + 1, definition.Groups["target"].Value));
@@ -48,12 +53,14 @@ internal static partial class MarkdownLinks
                 links.Add(new MarkdownLink(index + 1, match.Groups["target"].Value));
             }
         }
+
         return links;
     }
 
     public static string? ToRepositoryPath(string sourceFile, string target)
     {
         var github = GitHubLink().Match(target);
+
         if (github.Success)
         {
             target = "/" + target[github.Length..];
@@ -64,6 +71,7 @@ internal static partial class MarkdownLinks
         }
 
         target = Uri.UnescapeDataString(target.Split(['#', '?'], StringSplitOptions.None)[0]).Replace('\\', '/');
+
         if (DrivePath().IsMatch(target))
         {
             return target;
@@ -73,6 +81,7 @@ internal static partial class MarkdownLinks
         var directory = directoryEnd < 0 ? string.Empty : sourceFile[..(directoryEnd + 1)];
         var combined = target.StartsWith('/') ? target[1..] : directory + target;
         var segments = new List<string>();
+
         foreach (var segment in combined.Split('/'))
         {
             if (segment is "" or ".")
@@ -89,6 +98,7 @@ internal static partial class MarkdownLinks
                 segments.Add(segment);
             }
         }
+
         return segments.Count == 0 ? "." : string.Join('/', segments);
     }
 

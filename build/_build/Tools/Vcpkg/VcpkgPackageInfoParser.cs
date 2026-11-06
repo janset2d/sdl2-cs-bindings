@@ -30,6 +30,7 @@ public static class VcpkgPackageInfoParser
         try
         {
             var vcpkgInstalledOutput = CakeJsonExtensions.DeserializeJson<VcpkgPackageInfoOutput>(jsonOutput);
+
             if (vcpkgInstalledOutput?.Results is null || !vcpkgInstalledOutput.Results.TryGetValue(packageKey, out var packageResult))
             {
                 return Result<VcpkgPackageInfo, VcpkgPackageInfoError>.Failure(

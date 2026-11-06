@@ -13,6 +13,7 @@ public class DumpbinDependentsTool(ICakeContext cakeContext) : DumpbinTool(cakeC
     public string? RunDependents(DumpbinDependentsSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
+
         if (string.IsNullOrWhiteSpace(settings.DependentsPath))
         {
             throw new InvalidOperationException("DependentsPath cannot be null or empty.");

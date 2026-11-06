@@ -45,6 +45,7 @@ public static class CakeJsonExtensions
         }
 
         TModel? model;
+
         try
         {
             var file = cakeContext.FileSystem.GetFile(filePath);
@@ -92,6 +93,7 @@ public static class CakeJsonExtensions
         }
 
         TModel? model;
+
         try
         {
             var file = cakeContext.FileSystem.GetFile(filePath);

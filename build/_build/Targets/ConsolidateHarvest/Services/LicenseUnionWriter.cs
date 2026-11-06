@@ -49,12 +49,14 @@ public sealed class LicenseUnionWriter(ICakeContext cakeContext, IPathService pa
         }
 
         var successfulRids = ridStatuses.Where(s => s.Success).Select(s => s.Rid).ToList();
+
         if (successfulRids.Count == 0)
         {
             return EmptyState();
         }
 
         var entries = CollectLicenseCandidates(licensesRoot, successfulRids);
+
         if (entries.Count == 0)
         {
             return EmptyState();
@@ -63,10 +65,12 @@ public sealed class LicenseUnionWriter(ICakeContext cakeContext, IPathService pa
         _cakeContext.EnsureDirectoryExists(consolidatedTempRoot);
 
         var divergences = new List<DivergentLicense>();
+
         foreach (var ((package, fileName), candidates) in entries)
         {
             ct.ThrowIfCancellationRequested();
             var divergence = await WriteConsolidatedEntryAsync(consolidatedTempRoot, package, fileName, candidates, ct).ConfigureAwait(false);
+
             if (divergence is not null)
             {
                 divergences.Add(divergence);
@@ -103,6 +107,7 @@ public sealed class LicenseUnionWriter(ICakeContext cakeContext, IPathService pa
         foreach (var rid in successfulRids)
         {
             var ridRoot = licensesRoot.Combine(rid);
+
             if (!_cakeContext.DirectoryExists(ridRoot))
             {
                 continue;
@@ -111,6 +116,7 @@ public sealed class LicenseUnionWriter(ICakeContext cakeContext, IPathService pa
             foreach (var licenseFile in _cakeContext.GetFiles($"{ridRoot}/**/*"))
             {
                 var segments = GetRelativePathSegments(ridRoot, licenseFile);
+
                 if (segments.Count < 2)
                 {
                     continue;
@@ -144,6 +150,7 @@ public sealed class LicenseUnionWriter(ICakeContext cakeContext, IPathService pa
         _cakeContext.EnsureDirectoryExists(packageDir);
 
         var hashed = new List<HashedLicenseCandidate>(candidates.Count);
+
         foreach (var candidate in candidates)
         {
             var sha = await ComputeSha256Async(candidate.Path, ct).ConfigureAwait(false);
@@ -151,6 +158,7 @@ public sealed class LicenseUnionWriter(ICakeContext cakeContext, IPathService pa
         }
 
         var distinctHashes = hashed.Select(h => h.Sha).Distinct(StringComparer.Ordinal).Count();
+
         if (distinctHashes == 1)
         {
             var canonicalPath = packageDir.CombineWithFilePath(fileName);
@@ -169,6 +177,7 @@ public sealed class LicenseUnionWriter(ICakeContext cakeContext, IPathService pa
         var fileNamePath = new FilePath(fileName);
         var nameWithoutExtension = fileNamePath.GetFilenameWithoutExtension().FullPath;
         var extension = fileNamePath.GetExtension() ?? string.Empty;
+
         foreach (var variant in hashed)
         {
             var variantName = $"{nameWithoutExtension}.{variant.Rid}{extension}";
@@ -190,6 +199,7 @@ public sealed class LicenseUnionWriter(ICakeContext cakeContext, IPathService pa
         var fileSegments = file.Segments;
 
         var relative = new List<string>();
+
         for (var i = rootSegments.Length; i < fileSegments.Length; i++)
         {
             relative.Add(fileSegments[i]);
@@ -207,6 +217,7 @@ public sealed class LicenseUnionWriter(ICakeContext cakeContext, IPathService pa
         using var sha = SHA256.Create();
         var hash = await sha.ComputeHashAsync(stream, ct).ConfigureAwait(false);
         var sb = new StringBuilder(hash.Length * 2);
+
         foreach (var b in hash)
         {
             sb.Append(b.ToString("x2", CultureInfo.InvariantCulture));
