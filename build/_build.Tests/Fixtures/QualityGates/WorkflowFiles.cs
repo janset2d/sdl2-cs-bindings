@@ -24,15 +24,13 @@ internal static partial class WorkflowFiles
         }
     }
 
-    public static IReadOnlyList<RunnerLabel> FindRunnerLabels(string text) => RunnerToken()
+    public static IReadOnlyList<RunnerLabel> FindRunnerLabels(string text) => [.. RunnerToken()
         .Matches(text)
-        .Select(match => new RunnerLabel(text.AsSpan(0, match.Index).Count('\n') + 1, match.Value))
-        .ToArray();
+        .Select(match => new RunnerLabel(text.AsSpan(0, match.Index).Count('\n') + 1, match.Value))];
 
-    public static IReadOnlyList<ActionReference> FindActionReferences(string text) => ActionToken()
+    public static IReadOnlyList<ActionReference> FindActionReferences(string text) => [.. ActionToken()
         .Matches(text)
-        .Select(match => new ActionReference(text.AsSpan(0, match.Index).Count('\n') + 1, match.Groups["value"].Value))
-        .ToArray();
+        .Select(match => new ActionReference(text.AsSpan(0, match.Index).Count('\n') + 1, match.Groups["value"].Value))];
 
     [GeneratedRegex("""(?m)^[ \t]*(?:-[ \t]+)?uses:[ \t]*(?:"(?<value>[^"\r\n]+)"|'(?<value>[^'\r\n]+)'|(?<value>[^\s#]+))""", RegexOptions.None, 1000)]
     private static partial Regex ActionToken();

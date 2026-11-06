@@ -25,11 +25,10 @@ public sealed partial class DocumentDateGateTests
         await Assert.That(stale).IsEmpty().Because("Stale baseline entries:\n" + string.Join('\n', stale));
     }
 
-    private static string[] MissingDates() => RepositoryFiles.Tracked
+    private static string[] MissingDates() => [.. RepositoryFiles.Tracked
         .Where(path => GateScopes.RequiresDate(path)
         && RepositoryFiles.ReadText(path)?.Split('\n').Take(10).Any(line => DateLine().IsMatch(line)) == false)
-        .Order(StringComparer.Ordinal)
-        .ToArray();
+        .Order(StringComparer.Ordinal)];
 
     [GeneratedRegex(@"^Date: \d{4}-\d{2}-\d{2}\s*$", RegexOptions.None, 1000)]
     private static partial Regex DateLine();

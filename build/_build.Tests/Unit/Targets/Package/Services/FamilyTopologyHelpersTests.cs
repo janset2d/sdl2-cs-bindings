@@ -99,7 +99,7 @@ public sealed class FamilyTopologyHelpersTests
             ManagedProject = $"src/managed/{name}.csproj",
             NativeProject = $"src/native/{name}.Native.csproj",
             LibraryRef = name,
-            DependsOn = (dependsOn ?? Array.Empty<string>()).ToImmutableList(),
+            DependsOn = (dependsOn ?? []).ToImmutableList(),
             ChangePaths = ImmutableList<string>.Empty,
         };
     }
