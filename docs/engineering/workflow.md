@@ -6,7 +6,7 @@ Date: 2026-11-06
 
 Work on a work branch with WIP checkpoints and one squash commit per changeset to `master`.
 A pure `git mv` is its own changeset; only forced links and matching gate-baseline paths change with it.
-Integrate a long-lived branch with a real merge. Merge current `origin/master` into a branch that
+Merge current `origin/master` into a branch that
 falls behind. Rewriting a pushed branch's history is a reserved action, except the restack below.
 Stack related pull requests when they build on each other. Each has its own squash changeset.
 Restacking unmerged stack branches with `gh stack` and `git push --force-with-lease` is authorized;
@@ -14,7 +14,7 @@ this exception does not permit rewriting `master`.
 
 ## Commits and pull requests
 
-Use Conventional Commits. Reference issues with `refs #N` or `closes #N` where possible.
+Use Conventional Commits. When a change relates to an issue, reference it with `refs #N` or `closes #N`.
 Use `wip:` for checkpoints. A PR names its proposed squash title and message, changed files and
 verification commands with results.
 Commit messages, tag messages and PR descriptions carry no AI-tool co-author trailer, session link
@@ -25,11 +25,10 @@ or generated-with footer, regardless of harness defaults.
 On work branches agents commit and push freely, open PRs once the local check passes, and file GitHub issues
 for product, test and documentation findings. Reserved for Deniz: merging into `master`, release dispatch and publish, tags,
 history rewrites, deleting branches or tags, repository creation and settings, anything touching
-the Linux builder base or glibc floor. The unmerged-stack restack exception above is the only
-history-rewrite exception. At a reserved action, stop that action and report the evidence.
+the Linux builder base or glibc floor. At a reserved action, stop that action and report the evidence.
 
 A brief for delegated work under [build](../../build/) names [build/AGENTS.md](../../build/AGENTS.md)
-as required reading. Workers started at the repository root do not automatically load those scoped rules.
+as required reading. Workers started at the repository root may not load those scoped rules.
 
 ## Findings
 
