@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Globalization;
-using System.Text;
+using Build.Host.Processes;
+using Cake.Common.IO;
 using Cake.Common.Tools.VSWhere;
 using Cake.Common.Tools.VSWhere.Latest;
 using Cake.Core;
@@ -22,12 +22,14 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
 
     private readonly ICakeContext _cakeContext;
     private readonly ICakeLog _log;
+    private readonly IHostProcessRunner _processRunner;
     private readonly ConcurrentDictionary<MsvcTargetArch, IReadOnlyDictionary<string, string>> _cache = new();
 
-    public MsvcDevEnvironment(ICakeContext cakeContext, ICakeLog log)
+    public MsvcDevEnvironment(ICakeContext cakeContext, ICakeLog log, IHostProcessRunner processRunner)
     {
         _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
         _log = log ?? throw new ArgumentNullException(nameof(log));
+        _processRunner = processRunner ?? throw new ArgumentNullException(nameof(processRunner));
     }
 
     /// <inheritdoc />
@@ -64,7 +66,7 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
         // introspect. Contract: if you source the parent shell, source it for the arch
         // that matches the RID you intend to build. CI paths never source the parent
         // shell so this fast-path short-circuits only on operator workstations.
-        var vcToolsInstallDir = Environment.GetEnvironmentVariable(VcToolsInstallDirEnvVar);
+        var vcToolsInstallDir = _cakeContext.Environment.GetEnvironmentVariable(VcToolsInstallDirEnvVar);
 
         if (!string.IsNullOrWhiteSpace(vcToolsInstallDir))
         {
@@ -91,7 +93,7 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
 
         var vcvarsBat = vsInstallation.CombineWithFilePath(new FilePath(VcvarsAllRelativePath));
 
-        if (!File.Exists(vcvarsBat.FullPath))
+        if (!_cakeContext.FileExists(vcvarsBat))
         {
             throw new CakeException(
                 $"MsvcDevEnvironment: vcvarsall.bat not found at '{vcvarsBat.FullPath}' under Visual Studio installation '{vsInstallation.FullPath}'. " +
@@ -113,30 +115,27 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
         return delta;
     }
 
-    private static async Task<Dictionary<string, string>> CaptureEnvironmentDeltaAsync(
+    private async Task<Dictionary<string, string>> CaptureEnvironmentDeltaAsync(
         FilePath vcvarsBat,
         string vcvarsArg,
         CancellationToken ct)
     {
-        using var process = CreateEnvironmentCaptureProcess(vcvarsBat, vcvarsArg);
-        process.Start();
-        var stdoutTask = process.StandardOutput.ReadToEndAsync(ct);
-        var stderrTask = process.StandardError.ReadToEndAsync(ct);
+        var request = new HostProcessRequest(
+            System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "cmd.exe"),
+            [],
+            RawArguments: $"/s /c \"\"{vcvarsBat.FullPath}\" {vcvarsArg} >nul && set\"");
+        var result = await _processRunner.RunAsync(request, ct);
 
-        await process.WaitForExitAsync(ct);
-        var stdout = await stdoutTask;
-        var stderr = await stderrTask;
-
-        if (process.ExitCode != 0)
+        if (result.ExitCode != 0)
         {
             throw new CakeException(
                 string.Create(CultureInfo.CurrentCulture,
-                    $"MsvcDevEnvironment: 'cmd /c vcvarsall.bat {vcvarsArg}' exited with code {process.ExitCode}. stderr: {stderr.Trim()}"));
+                    $"MsvcDevEnvironment: 'cmd /c vcvarsall.bat {vcvarsArg}' exited with code {result.ExitCode}. stderr: {result.StandardError.Trim()}"));
         }
 
         var delta = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var rawLine in stdout.Split('\n'))
+        foreach (var rawLine in result.StandardOutput.Split('\n'))
         {
             var line = rawLine.TrimEnd('\r');
 
@@ -161,7 +160,7 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
                 continue;
             }
 
-            var current = Environment.GetEnvironmentVariable(key);
+            var current = _cakeContext.Environment.GetEnvironmentVariable(key);
 
             if (current is null || !string.Equals(current, value, StringComparison.Ordinal))
             {
@@ -172,30 +171,4 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
         return delta;
     }
 
-    private static Process CreateEnvironmentCaptureProcess(FilePath vcvarsBat, string vcvarsArg)
-    {
-        // The outer quotes preserve the quoted batch path through cmd's argument lexer.
-        var commandLine = new StringBuilder();
-        commandLine
-            .Append("/s /c \"\"")
-            .Append(vcvarsBat.FullPath)
-            .Append("\" ")
-            .Append(vcvarsArg)
-            .Append(" >nul && set\"");
-
-        return new Process
-        {
-            StartInfo = new ProcessStartInfo
-            {
-                FileName = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "cmd.exe"),
-                Arguments = commandLine.ToString(),
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                StandardOutputEncoding = Encoding.UTF8,
-                StandardErrorEncoding = Encoding.UTF8,
-            },
-        };
-    }
 }

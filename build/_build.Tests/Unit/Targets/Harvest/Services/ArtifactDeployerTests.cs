@@ -21,6 +21,22 @@ public sealed class ArtifactDeployerTests
     }
 
     [Test]
+    public async Task DeployArtifactsAsync_Should_Write_The_Ordered_Tar_List_Through_Cake_And_Remove_It()
+    {
+        var contents = string.Empty;
+        _world.WithProcessResult("tar", 0, "").WithProcessSideEffect("tar", world => contents = ArchiveDeploymentData.ReadFileList(world));
+        var plan = new DeploymentPlan([ArchiveDeploymentData.Action], CreateStatistics("SDL2"));
+
+        var result = await new ArtifactDeployer(_ctx).DeployArtifactsAsync(plan);
+
+        await Assert.That(result.TryGetError(out var error) ? error.Message : string.Empty).IsEqualTo(string.Empty);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(contents).IsEqualTo(ArchiveDeploymentData.ExpectedFileList);
+        await Assert.That(_ctx.Globber.GetFiles(ArchiveDeploymentData.FileListGlob)).IsEmpty();
+        await Assert.That(_world.ProcessInvocations.Single().Command.FullPath).IsEqualTo("tar");
+    }
+
+    [Test]
     public async Task DeployArtifactsAsync_Should_Return_Success_When_No_Actions()
     {
         var deployer = new ArtifactDeployer(_ctx);
