@@ -101,6 +101,6 @@ public sealed class PackageConsumerSmokePreconditionsValidatorTests
     public void Constructor_Should_Throw_When_CakeContext_Null()
     {
         Assert.Throws<ArgumentNullException>(() =>
-            new PackageConsumerSmokePreconditionsValidator(cakeContext: null!));
+            _ = new PackageConsumerSmokePreconditionsValidator(cakeContext: null!));
     }
 }

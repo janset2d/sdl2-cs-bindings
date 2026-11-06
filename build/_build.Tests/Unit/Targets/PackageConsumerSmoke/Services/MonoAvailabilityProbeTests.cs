@@ -57,6 +57,6 @@ public sealed class MonoAvailabilityProbeTests
     public void Constructor_Should_Throw_When_CakeContext_Null()
     {
         Assert.Throws<ArgumentNullException>(() =>
-            new MonoAvailabilityProbe(cakeContext: null!));
+            _ = new MonoAvailabilityProbe(cakeContext: null!));
     }
 }

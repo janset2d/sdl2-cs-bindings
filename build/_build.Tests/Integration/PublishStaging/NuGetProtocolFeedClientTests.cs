@@ -22,9 +22,9 @@ public sealed class NuGetProtocolFeedClientTests
     public async Task GetLatestVersionAsync_Should_Return_Highest_Version_When_IncludePrerelease_True()
     {
         using var feed = new TempDirectory("janset-temp-feed-");
-        WriteMinimalNupkg(feed.Path, "Test.Pkg", "1.0.0");
-        WriteMinimalNupkg(feed.Path, "Test.Pkg", "2.0.0-preview.1");
-        WriteMinimalNupkg(feed.Path, "Test.Pkg", "1.5.0");
+        await WriteMinimalNupkgAsync(feed.Path, "Test.Pkg", "1.0.0");
+        await WriteMinimalNupkgAsync(feed.Path, "Test.Pkg", "2.0.0-preview.1");
+        await WriteMinimalNupkgAsync(feed.Path, "Test.Pkg", "1.5.0");
 
         var client = CreateRealClient();
 
@@ -38,8 +38,8 @@ public sealed class NuGetProtocolFeedClientTests
     public async Task GetLatestVersionAsync_Should_Skip_Prereleases_When_IncludePrerelease_False()
     {
         using var feed = new TempDirectory("janset-temp-feed-");
-        WriteMinimalNupkg(feed.Path, "Test.Pkg", "1.0.0");
-        WriteMinimalNupkg(feed.Path, "Test.Pkg", "2.0.0-preview.1");
+        await WriteMinimalNupkgAsync(feed.Path, "Test.Pkg", "1.0.0");
+        await WriteMinimalNupkgAsync(feed.Path, "Test.Pkg", "2.0.0-preview.1");
 
         var client = CreateRealClient();
 
@@ -53,7 +53,7 @@ public sealed class NuGetProtocolFeedClientTests
     public async Task GetLatestVersionAsync_Should_Return_Null_When_Package_Not_In_Feed()
     {
         using var feed = new TempDirectory("janset-temp-feed-");
-        WriteMinimalNupkg(feed.Path, "Test.Pkg", "1.0.0");
+        await WriteMinimalNupkgAsync(feed.Path, "Test.Pkg", "1.0.0");
 
         var client = CreateRealClient();
 
@@ -66,7 +66,7 @@ public sealed class NuGetProtocolFeedClientTests
     public async Task DownloadAsync_Should_Write_Nupkg_To_Target_Directory_Through_CakeContext_FileSystem()
     {
         using var feed = new TempDirectory("janset-temp-feed-");
-        var sourcePath = WriteMinimalNupkg(feed.Path, "Test.Pkg", "1.0.0");
+        var sourcePath = await WriteMinimalNupkgAsync(feed.Path, "Test.Pkg", "1.0.0");
         var sourceBytes = await File.ReadAllBytesAsync(sourcePath);
 
         using var targetDir = new TempDirectory("janset-temp-target-");
@@ -90,7 +90,7 @@ public sealed class NuGetProtocolFeedClientTests
     public async Task DownloadAsync_Should_Truncate_Stale_Partial_File_From_Prior_Failed_Download()
     {
         using var feed = new TempDirectory("janset-temp-feed-");
-        var sourcePath = WriteMinimalNupkg(feed.Path, "Test.Pkg", "1.0.0");
+        var sourcePath = await WriteMinimalNupkgAsync(feed.Path, "Test.Pkg", "1.0.0");
         var sourceBytes = await File.ReadAllBytesAsync(sourcePath);
 
         using var targetDir = new TempDirectory("janset-temp-target-");
@@ -116,7 +116,7 @@ public sealed class NuGetProtocolFeedClientTests
         using var feed = new TempDirectory("janset-temp-feed-");
         using var sourceDir = new TempDirectory("janset-temp-source-");
 
-        var sourcePath = WriteMinimalNupkg(sourceDir.Path, "Test.Pkg", "1.0.0");
+        var sourcePath = await WriteMinimalNupkgAsync(sourceDir.Path, "Test.Pkg", "1.0.0");
         var sourceBytes = await File.ReadAllBytesAsync(sourcePath);
 
         var client = CreateRealClient();
@@ -158,16 +158,16 @@ public sealed class NuGetProtocolFeedClientTests
         return new NuGetProtocolFeedClient(context, new FakeLog());
     }
 
-    private static string WriteMinimalNupkg(string feedDir, string packageId, string version)
+    private static async Task<string> WriteMinimalNupkgAsync(string feedDir, string packageId, string version)
     {
         var nupkgPath = System.IO.Path.Combine(feedDir, $"{packageId}.{version}.nupkg");
-        using var fs = File.Create(nupkgPath);
-        using var archive = new ZipArchive(fs, ZipArchiveMode.Create);
+        await using var fs = File.Create(nupkgPath);
+        await using var archive = new ZipArchive(fs, ZipArchiveMode.Create);
 
         var nuspecEntry = archive.CreateEntry($"{packageId}.nuspec");
-        using var nuspecStream = nuspecEntry.Open();
-        using var writer = new StreamWriter(nuspecStream);
-        writer.Write(string.Format(
+        await using var nuspecStream = await nuspecEntry.OpenAsync();
+        await using var writer = new StreamWriter(nuspecStream);
+        await writer.WriteAsync(string.Format(
             CultureInfo.InvariantCulture,
             "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
             "<package xmlns=\"http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd\">" +

@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.IO.Compression;
 using System.Text.Json;
 using Build.Data.Manifest.Models;
 using Build.Data.NativePackageMetadata;
@@ -197,23 +196,5 @@ public sealed class NativePackageMetadataValidatorTests
     }
 
     private static void SeedNupkgWithEntries(FakeCakeWorld world, FilePath nupkgPath, ImmutableArray<(string Entry, string Content)> entries)
-    {
-        var dir = world.FileSystem.GetDirectory(nupkgPath.GetDirectory());
-
-        if (!dir.Exists)
-        {
-            dir.Create();
-        }
-
-        var file = world.FileSystem.GetFile(nupkgPath);
-        using var stream = file.Open(FileMode.Create, FileAccess.Write, FileShare.None);
-        using var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: false);
-
-        foreach (var (name, content) in entries)
-        {
-            var entry = archive.CreateEntry(name);
-            using var writer = new StreamWriter(entry.Open());
-            writer.Write(content);
-        }
-    }
+        => Build.Tests.Fixtures.Builders.NuspecBuilder.SeedEntries(world, nupkgPath, entries);
 }

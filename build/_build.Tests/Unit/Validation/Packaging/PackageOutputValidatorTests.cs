@@ -580,23 +580,5 @@ public sealed class PackageOutputValidatorTests
     }
 
     private static void WriteZip(FakeCakeWorld world, FilePath archivePath, params (string EntryName, string Content)[] entries)
-    {
-        var directory = world.FileSystem.GetDirectory(archivePath.GetDirectory());
-
-        if (!directory.Exists)
-        {
-            directory.Create();
-        }
-
-        var file = world.FileSystem.GetFile(archivePath);
-        using var stream = file.Open(FileMode.Create, FileAccess.Write, FileShare.None);
-        using var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: false);
-
-        foreach (var (entryName, content) in entries)
-        {
-            var entry = archive.CreateEntry(entryName);
-            using var writer = new StreamWriter(entry.Open());
-            writer.Write(content);
-        }
-    }
+        => Build.Tests.Fixtures.Builders.NuspecBuilder.SeedEntries(world, archivePath, entries);
 }

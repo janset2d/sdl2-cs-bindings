@@ -282,25 +282,30 @@ public sealed class RenderAbiTests
         }
         finally
         {
-            if (texture.IsNotNull)
-            {
-                SDL_DestroyTexture(texture);
-            }
+            DestroyTextureResources(texture, surface, renderer, window);
+        }
+    }
 
-            if (surface is not null)
-            {
-                SDL_FreeSurface(surface);
-            }
+    private static unsafe void DestroyTextureResources(SDL_Texture texture, SDL_Surface* surface, SDL_Renderer renderer, SDL_Window window)
+    {
+        if (texture.IsNotNull)
+        {
+            SDL_DestroyTexture(texture);
+        }
 
-            if (renderer.IsNotNull)
-            {
-                SDL_DestroyRenderer(renderer);
-            }
+        if (surface is not null)
+        {
+            SDL_FreeSurface(surface);
+        }
 
-            if (window.IsNotNull)
-            {
-                SDL_DestroyWindow(window);
-            }
+        if (renderer.IsNotNull)
+        {
+            SDL_DestroyRenderer(renderer);
+        }
+
+        if (window.IsNotNull)
+        {
+            SDL_DestroyWindow(window);
         }
     }
 
