@@ -64,7 +64,7 @@ its verification in the same change.
 ## Configuration owns scope; code owns mechanism
 
 The [spike config](../../spikes/binding-generators/clangsharp/config/family-config.json) is read by the
-orchestrator and postprocess. The [production manifest models](../../build/_build/Data/Manifest/Models/ManifestConfigModels.cs)
+orchestrator and postprocess. The [production manifest models](../../build/_build/Data/Manifest/Models/)
 describe the separate host contract. Read each actual schema from its source; do not merge their
 field names into a fictional common schema.
 
