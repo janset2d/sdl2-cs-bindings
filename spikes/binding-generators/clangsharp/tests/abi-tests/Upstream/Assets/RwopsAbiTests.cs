@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Text;
 using Janset.SDL2.AbiTests.Infrastructure;
 using Janset.SDL2.AbiTests.Infrastructure.Assets;
@@ -842,6 +843,7 @@ public sealed class RwopsAbiTests
         int MemoryCloseResult,
         int FileCloseResult);
 
+    [StructLayout(LayoutKind.Sequential)]
     private readonly record struct EndianValues(ushort Be16, uint Be32, ulong Be64, ushort Le16, uint Le32, ulong Le64);
 
     private sealed record EndianResult(

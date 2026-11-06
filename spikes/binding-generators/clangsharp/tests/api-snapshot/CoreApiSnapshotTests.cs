@@ -48,11 +48,11 @@ public sealed partial class CoreApiSnapshotTests
         await Assert.That(PublicConstPattern("MIX_DEFAULT_FORMAT").IsMatch(publicApi)).IsFalse();
     }
 
-    [GeneratedRegex(@"\bpublic\s+const\s+[^;=]+\s+AUDIO_[A-Z0-9]+SYS\s*=", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"\bpublic\s+const\s+[^;=]+\s+AUDIO_[A-Z0-9]+SYS\s*=", RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
     private static partial Regex PublicAudioSysConstPattern();
 
     private static Regex PublicConstPattern(string name)
     {
-        return new Regex(@"\bpublic\s+const\s+[^;=]+\s+" + Regex.Escape(name) + @"\s*=", RegexOptions.CultureInvariant);
+        return new Regex(@"\bpublic\s+const\s+[^;=]+\s+" + Regex.Escape(name) + @"\s*=", RegexOptions.CultureInvariant | RegexOptions.NonBacktracking);
     }
 }

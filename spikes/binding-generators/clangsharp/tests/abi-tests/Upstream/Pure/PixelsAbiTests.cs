@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Janset.SDL2.AbiTests.Infrastructure.Classification;
 using Janset.SDL2.AbiTests.Infrastructure.Sdl;
 using SDL2;
@@ -387,12 +388,14 @@ public sealed class PixelsAbiTests
         return new GammaRampFailureSnapshot(changedCount, SdlError.Current);
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     private readonly record struct PixelFormatSnapshot(uint Format, byte BitsPerPixel, byte BytesPerPixel, uint CombinedMasks);
 
     private readonly record struct PaletteSnapshot(int ColorCount, bool ColorsPointerIsNonNull, byte Red, byte Green, byte Blue);
 
     private readonly record struct AllocationFailureSnapshot(bool Allocated, string Error);
 
+    [StructLayout(LayoutKind.Sequential)]
     private readonly record struct GammaRampSnapshot(int ChangedCount, ushort Sample);
 
     private readonly record struct GammaRampFailureSnapshot(int ChangedCount, string Error);
