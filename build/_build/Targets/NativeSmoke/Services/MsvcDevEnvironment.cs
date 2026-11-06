@@ -122,7 +122,8 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
     {
         var request = new HostProcessRequest(
             System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "cmd.exe"),
-            ["/s", "/c", "call", vcvarsBat.FullPath, vcvarsArg, ">nul", "&&", "set"]);
+            [],
+            RawArguments: $"/s /c \"\"{vcvarsBat.FullPath}\" {vcvarsArg} >nul && set\"");
         var result = await _processRunner.RunAsync(request, ct);
 
         if (result.ExitCode != 0)

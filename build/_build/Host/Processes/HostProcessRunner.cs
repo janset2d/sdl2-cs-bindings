@@ -20,9 +20,16 @@ public sealed class HostProcessRunner : IHostProcessRunner
             StandardErrorEncoding = Encoding.UTF8,
         };
 
-        foreach (var argument in request.Arguments)
+        if (request.RawArguments is not null)
         {
-            startInfo.ArgumentList.Add(argument);
+            startInfo.Arguments = request.RawArguments;
+        }
+        else
+        {
+            foreach (var argument in request.Arguments)
+            {
+                startInfo.ArgumentList.Add(argument);
+            }
         }
 
         if (request.WorkingDirectory is not null)

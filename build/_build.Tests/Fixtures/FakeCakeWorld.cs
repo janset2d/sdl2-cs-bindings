@@ -87,11 +87,7 @@ public sealed class FakeCakeWorld
             cancellationToken.ThrowIfCancellationRequested();
             var command = new FilePath(request.FileName).GetFilename().FullPath;
 
-            if (!_processResults.TryGetValue(command, out var result))
-            {
-                throw new InvalidOperationException($"Host process '{command}' was not configured.");
-            }
-
+            var result = ResolveProcessResult(command, request.RawArguments ?? string.Join(' ', request.Arguments));
             return Task.FromResult(new HostProcessResult(result.ExitCode, result.StdOut, result.StdErr));
         });
     }
@@ -530,39 +526,45 @@ public sealed class FakeCakeWorld
                     settings.RedirectStandardError,
                     settings.Silent));
 
-                if (_processExceptions.TryGetValue(command, out var exception))
-                {
-                    throw exception;
-                }
-
-                if (_processSideEffects.TryGetValue(command, out var sideEffect))
-                {
-                    sideEffect(this);
-                }
-
-                if (_processResultsByArguments.TryGetValue((command, arguments), out var exactResult))
-                {
-                    return CreateFakeProcess(exactResult.ExitCode, exactResult.StdOut, exactResult.StdErr);
-                }
-
-                if (_processResults.TryGetValue(command, out var result))
-                {
-                    return CreateFakeProcess(result.ExitCode, result.StdOut, result.StdErr);
-                }
-
-                if (_defaultProcessResult is { } def)
-                {
-                    return CreateFakeProcess(def.ExitCode, def.StdOut, def.StdErr);
-                }
-
-                var renderedArgs = string.IsNullOrWhiteSpace(arguments) ? "" : $" {arguments}";
-                throw new InvalidOperationException(
-                    $"Process '{command}{renderedArgs}' was not configured. " +
-                    $"Call WithProcessResult(\"{command}\", exitCode: 0, stdOut: \"...\") to seed the result, " +
-                    "or WithDefaultProcessResult(...) to accept any unconfigured command.");
+                var result = ResolveProcessResult(command, arguments);
+                return CreateFakeProcess(result.ExitCode, result.StdOut, result.StdErr);
             });
 
         return processRunner;
+    }
+
+    private (int ExitCode, string StdOut, string StdErr) ResolveProcessResult(string command, string arguments)
+    {
+        if (_processExceptions.TryGetValue(command, out var exception))
+        {
+            throw exception;
+        }
+
+        if (_processSideEffects.TryGetValue(command, out var sideEffect))
+        {
+            sideEffect(this);
+        }
+
+        if (_processResultsByArguments.TryGetValue((command, arguments), out var exactResult))
+        {
+            return exactResult;
+        }
+
+        if (_processResults.TryGetValue(command, out var result))
+        {
+            return result;
+        }
+
+        if (_defaultProcessResult is { } fallback)
+        {
+            return fallback;
+        }
+
+        var renderedArgs = string.IsNullOrWhiteSpace(arguments) ? "" : $" {arguments}";
+        throw new InvalidOperationException(
+            $"Process '{command}{renderedArgs}' was not configured. " +
+            $"Call WithProcessResult(\"{command}\", exitCode: 0, stdOut: \"...\") to seed the result, " +
+            "or WithDefaultProcessResult(...) to accept any unconfigured command.");
     }
 
     private IToolLocator CreateToolLocator()

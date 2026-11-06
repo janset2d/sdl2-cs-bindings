@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text;
+using Build.Host.Processes;
 using Build.Tests.Fixtures;
 using Build.Tests.Fixtures.Builders;
 using Cake.Core;
@@ -9,6 +10,53 @@ namespace Build.Tests.Unit.Fixtures;
 
 public sealed class FakeCakeWorldTests
 {
+    [Test]
+    public async Task HostProcess_Should_Propagate_Configured_Exception()
+    {
+        var expected = new IOException("start failed");
+        var world = FakeCakeWorld.Create().WithProcessResult("app", 0, "unused").WithProcessException("app", expected);
+
+        var error = await Assert.That(async () => await world.HostProcessRunner.RunAsync(new HostProcessRequest("app", []), CancellationToken.None)).Throws<IOException>();
+
+        await Assert.That(error).IsSameReferenceAs(expected);
+    }
+
+    [Test]
+    public async Task HostProcess_Should_Apply_Configured_Side_Effect()
+    {
+        var world = FakeCakeWorld.Create()
+            .WithTextFile("effect.txt", "before")
+            .WithProcessResult("app", 0, "output")
+            .WithProcessSideEffect("app", current => current.WithTextFile("effect.txt", "created"));
+
+        var result = await world.HostProcessRunner.RunAsync(new HostProcessRequest("app", []), CancellationToken.None);
+
+        await Assert.That(world.ReadAllText("effect.txt")).IsEqualTo("created");
+        await Assert.That(result).IsEqualTo(new HostProcessResult(0, "output", ""));
+    }
+
+    [Test]
+    public async Task HostProcess_Should_Prefer_The_Argument_Specific_Result()
+    {
+        var world = FakeCakeWorld.Create()
+            .WithProcessResult("app", 9, "fallback")
+            .WithProcessResult("app", "--version", 0, "specific", "diagnostic");
+
+        var result = await world.HostProcessRunner.RunAsync(new HostProcessRequest("app", ["--version"]), CancellationToken.None);
+
+        await Assert.That(result).IsEqualTo(new HostProcessResult(0, "specific", "diagnostic"));
+    }
+
+    [Test]
+    public async Task HostProcess_Should_Use_The_Default_Result()
+    {
+        var world = FakeCakeWorld.Create().WithDefaultProcessResult(3, "default", "error");
+
+        var result = await world.HostProcessRunner.RunAsync(new HostProcessRequest("app", []), CancellationToken.None);
+
+        await Assert.That(result).IsEqualTo(new HostProcessResult(3, "default", "error"));
+    }
+
     [Test]
     public async Task WithAsyncZipEntryReads_Should_Reopen_Current_File_Bytes()
     {

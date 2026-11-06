@@ -711,5 +711,5 @@ dotnet_diagnostic.RS0030.severity = none
 
 # The host composition root selects the clock once for injection.
 # Winner: clock composition; RS0030 remains enabled for every other file.
-[build/_build/Host/ServiceCollectionExtensions.cs]
+[build/_build/Host/Clock/SystemClockRegistration.cs]
 dotnet_diagnostic.RS0030.severity = none
