@@ -14,16 +14,6 @@ using Cake.Core.IO;
 
 namespace Build.Targets.Harvest.Services;
 
-public interface IArtifactPlanner
-{
-    public Task<Result<DeploymentPlan, ArtifactPlannerError>> CreatePlanAsync(
-        LibraryManifest current,
-        BinaryClosure closure,
-        DirectoryPath outRoot,
-        string corePackageName,
-        CancellationToken ct = default);
-}
-
 public sealed class ArtifactPlanner(IRuntimeProfile profile, IPathService pathService, ICakeContext context) : IArtifactPlanner
 {
     private readonly IRuntimeProfile _profile = profile ?? throw new ArgumentNullException(nameof(profile));

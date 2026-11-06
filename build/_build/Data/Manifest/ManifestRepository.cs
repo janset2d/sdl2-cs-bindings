@@ -5,11 +5,6 @@ using Cake.Core.IO;
 
 namespace Build.Data.Manifest;
 
-public interface IManifestRepository
-{
-    public ManifestConfig Load();
-}
-
 public sealed class ManifestRepository(ICakeContext context, FilePath manifestPath) : IManifestRepository
 {
     private readonly ICakeContext _context = context ?? throw new ArgumentNullException(nameof(context));

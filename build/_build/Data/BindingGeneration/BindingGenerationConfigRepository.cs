@@ -5,12 +5,6 @@ using Build.Results;
 
 namespace Build.Data.BindingGeneration;
 
-public interface IBindingGenerationConfigRepository
-{
-    public Result<BindingGenerationConfig, BindingGenerationConfigError> Load(string familyId);
-    public IReadOnlyList<string> EnumerateEnabledFamilies();
-}
-
 /// <summary>
 /// Per-family binding-generation config resolver. Sits one layer above
 /// <see cref="IManifestRepository"/> — the manifest is deserialized once by
