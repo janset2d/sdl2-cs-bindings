@@ -35,8 +35,7 @@ public sealed class BlankLineBeforeBlockAnalyzer : DiagnosticAnalyzer
     {
         var statement = (StatementSyntax)context.Node;
 
-        if (statement is UsingStatementSyntax { Statement: not BlockSyntax }
-            or LockStatementSyntax { Statement: not BlockSyntax } or FixedStatementSyntax { Statement: not BlockSyntax })
+        if (statement is UsingStatementSyntax or LockStatementSyntax or FixedStatementSyntax && !HasBlockBody(statement))
         {
             return;
         }
@@ -61,7 +60,11 @@ public sealed class BlankLineBeforeBlockAnalyzer : DiagnosticAnalyzer
 
         foreach (var trivia in previous.TrailingTrivia.Concat(first.LeadingTrivia))
         {
-            if (trivia.IsKind(SyntaxKind.EndOfLineTrivia))
+            if (trivia.IsDirective)
+            {
+                afterNewLine = true;
+            }
+            else if (trivia.IsKind(SyntaxKind.EndOfLineTrivia))
             {
                 if (afterNewLine)
                 {
@@ -78,4 +81,13 @@ public sealed class BlankLineBeforeBlockAnalyzer : DiagnosticAnalyzer
 
         context.ReportDiagnostic(Diagnostic.Create(Rule, first.GetLocation()));
     }
+
+    private static bool HasBlockBody(StatementSyntax statement) => statement switch
+    {
+        UsingStatementSyntax embedded => HasBlockBody(embedded.Statement),
+        LockStatementSyntax embedded => HasBlockBody(embedded.Statement),
+        FixedStatementSyntax embedded => HasBlockBody(embedded.Statement),
+        BlockSyntax => true,
+        _ => false,
+    };
 }
