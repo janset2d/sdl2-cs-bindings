@@ -7,7 +7,7 @@
 
 Layer 2 takes the stable Layer 1 raw ABI surface and projects a public typed low-level API across the five SDL2 families (Core, Image, GFX, TTF, Mixer). Public methods on the manifest-driven public class (for example `SDL2.SDL`) call the internal raw ABI class. Typed handles, enums, structs, callbacks, and constants remain public generated types per Constitution §"Layer Contract".
 
-See [`canonical/binding-generator-roadmap.md`](canonical/binding-generator-roadmap.md) §"Layer 2 — Typed Public API Projection" for full scope, exit evidence, and non-goals.
+See [Binding promotion gates](../../../docs/architecture/binding-generation.md#promotion-evidence-gates) for current scope and exit evidence.
 
 ## Active Iteration
 
@@ -95,7 +95,7 @@ Items deliberately accepted as-is.
 ## Cross-References
 
 - [`binding-abi-policy.md`](../../../docs/architecture/binding-abi-policy.md) — policy authority.
-- [`canonical/binding-generator-roadmap.md`](canonical/binding-generator-roadmap.md) — layer-based forward milestones; §"Layer 2 — Typed Public API Projection" is the active milestone scope.
+- [Binding promotion gates](../../../docs/architecture/binding-generation.md#promotion-evidence-gates) — current generated-source evidence requirements.
 - [`binding-generation.md`](../../../docs/architecture/binding-generation.md) — mechanism details and classification labels.
 - [`binding-generator-maintenance.md`](../../../docs/engineering/binding-generator-maintenance.md) — maintenance procedures.
 - [`binding-output-review.md`](../../../docs/engineering/binding-output-review.md) — multi-oracle review workflow.

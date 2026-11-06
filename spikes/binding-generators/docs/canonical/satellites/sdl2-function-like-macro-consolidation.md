@@ -272,7 +272,7 @@ No function-like macros beyond `M_PI` guard define (simple math constant) and vi
 | Doc | What it says |
 |---|---|
 | [`next-iteration-plan.md`](../../next-iteration-plan.md) §"Layer 2 / Layer 3 Follow-ups" | Companion-helper policy (delegate rooting / Modern UnmanagedCallersOnly authoring rules / version + error-macro redirect catalog) deferred to Layer 2 / Layer 3 forward backlog. TTF + Mixer version macros remain follow-up Layer 2 / friendly helper candidates governed by an explicit companion-helper policy. |
-| [`binding-generator-roadmap.md`](../binding-generator-roadmap.md) §"Layer 2 — Typed Public API Projection" + §"Layer 3 — Friendly Overload Projection" | Layer 2 typed public API + Layer 3 friendly overloads are the forward layer destinations for the macro helper surface. |
+| [Binding ABI policy](../../../../../docs/architecture/binding-abi-policy.md#enums-constants-and-macros) | Current binding/friendly macro-helper contract. |
 | [`sdl2-satellite-error-function-consolidation.md`](sdl2-satellite-error-function-consolidation.md) §6 | Error macros are one category within the broader companion-helper policy; open decisions listed |
 
 ---

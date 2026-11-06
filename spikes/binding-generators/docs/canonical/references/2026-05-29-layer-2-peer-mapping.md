@@ -145,7 +145,7 @@ This stays consistent with §"Manifest Configuration Vs Code-Owned Policy": **wh
 
 **Policy (authority):**
 - [`binding-abi-policy.md`](../../../../../docs/architecture/binding-abi-policy.md) — §"Layer Contract", §"Opaque Handles", §"Enums", §"Constants And Macros", §"Foreign Type Boundary Policy", §"C Variadics", §"SDL_bool", §"Generation Determinism Contract", §"Manifest Configuration Vs Code-Owned Policy", §"Evidence Gates".
-- [`binding-generator-roadmap.md`](../binding-generator-roadmap.md) — §"Layer 2 — Typed Public API Projection", §"Layer 3 — Friendly Overload Projection".
+- [Binding promotion gates](../../../../../docs/architecture/binding-generation.md#promotion-evidence-gates) — current binding/friendly evidence requirements.
 
 **Prior consolidation (this doc extends, does not redo):**
 - [`../satellites/sdl2-function-like-macro-consolidation.md`](../satellites/sdl2-function-like-macro-consolidation.md) — macro taxonomy (Type A/B/C), per-peer comparison.

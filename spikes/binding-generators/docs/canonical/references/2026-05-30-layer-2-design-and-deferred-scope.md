@@ -57,4 +57,4 @@ Follow-up parallel review (2026-05-31, P/Invoke ABI + ClangSharp/Roslyn + SDL pe
 - Cross-family requirements matrix: [`2026-05-30-layer-2-cross-family-requirements.md`](2026-05-30-layer-2-cross-family-requirements.md)
 - Phase A peer mapping: [`2026-05-29-layer-2-peer-mapping.md`](2026-05-29-layer-2-peer-mapping.md)
 - Backlog tracking: [`../../next-iteration-plan.md`](../../next-iteration-plan.md) (Active Iteration + Forward Backlog)
-- Policy: [`binding-abi-policy.md`](../../../../../docs/architecture/binding-abi-policy.md), [`../binding-generator-roadmap.md`](../binding-generator-roadmap.md) §"Layer 2"
+- Policy: [Binding ABI policy](../../../../../docs/architecture/binding-abi-policy.md), [promotion gates](../../../../../docs/architecture/binding-generation.md#promotion-evidence-gates).

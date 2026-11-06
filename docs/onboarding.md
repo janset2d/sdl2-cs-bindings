@@ -78,8 +78,6 @@ Final unless Deniz explicitly reopens.
 | Decision | Detail |
 | --- | --- |
 | Dual SDL support | SDL2 and SDL3 in the same monorepo; SDL2 priority |
-| Dormant generator salvage | The sunset host generator is removed. Its retained safeguards, header/config/stamp repositories and symbol validator stay tested and unused at their existing paths until production integration; this is an explicit exception to immediate reuse. Do not add a generation target now. |
-| String-like SDL macro constants | `SDL_HINT_*` and similar string-like macro keys emit as canonical `ReadOnlySpan<byte>` UTF-8 literal properties. String ergonomics belongs to method overloads; do not duplicate every key as both `const string` and UTF-8 span. |
 | `external/sdl2-cs` is transitional | Untrusted for production testing; retires when the AST-generated binding surface ships |
 | Release shape | Big-bang v1.0 covering SDL2 + SDL3 + all in-scope satellites, reached iteratively via internal feed → `-preview.N` → `-rc.N` → stable. See [`release-strategy.md`](release-strategy.md). |
 | AST-first prioritization | Phase 4 binding auto-generation lands **before** Phase 3 ship — first public `-preview.N` wave carries AST-generated bindings, not `external/sdl2-cs` imports. See [`release-strategy.md`](release-strategy.md) §Sequencing. |

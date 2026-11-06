@@ -1,5 +1,4 @@
 # Shrinks only. Remove an entry in the change that fixes it.
 spikes/binding-generators/docs/canonical/references/ppy-reference-analysis-2026-05-25.md|spikes/binding-generators/docs/binding-autogen/binding-generator-constitution.md
-spikes/binding-generators/docs/canonical/references/ppy-reference-analysis-2026-05-25.md|spikes/binding-generators/docs/binding-autogen/binding-generator-roadmap.md
 spikes/binding-generators/docs/canonical/references/ppy-reference-analysis-2026-05-25.md|spikes/binding-generators/docs/canonical/references/next-iteration-plan.md
 spikes/binding-generators/docs/canonical/references/ppy-reference-analysis-2026-05-25.md|spikes/binding-generators/docs/canonical/references/priority-c-closure-summary.md
