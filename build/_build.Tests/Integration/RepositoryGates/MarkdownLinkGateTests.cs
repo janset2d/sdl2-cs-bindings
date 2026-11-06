@@ -52,7 +52,7 @@ public sealed class MarkdownLinkGateTests
                 }
 
                 var entry = $"{source}|{target}";
-                broken.Add((entry, string.Create(CultureInfo.CurrentCulture, $"{source}:{link.Line} -> {target}\n{entry}")));
+                broken.Add((entry, string.Create(CultureInfo.InvariantCulture, $"{source}:{link.Line} -> {target}\n{entry}")));
             }
         }
 

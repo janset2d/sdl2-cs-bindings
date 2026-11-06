@@ -180,7 +180,7 @@ public sealed class PlatformAbiTests
     public async Task SDLSimdAndSystemRamQueries_Should_Return_Defined_NonNegative_Values()
     {
         int systemRamMb = SDL_GetSystemRAM();
-        ulong simdAlignment = (ulong)SDL_SIMDGetAlignment();
+        ulong simdAlignment = NativeSizeConversion.ToUInt64(SDL_SIMDGetAlignment());
 
         await Assert.That(systemRamMb).IsGreaterThanOrEqualTo(0);
         await Assert.That(simdAlignment).IsGreaterThan(0UL);

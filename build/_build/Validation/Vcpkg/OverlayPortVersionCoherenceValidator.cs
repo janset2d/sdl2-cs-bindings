@@ -104,10 +104,10 @@ public sealed class OverlayPortVersionCoherenceValidator(ICakeContext context, I
                 UpstreamPortVersion: upstreamPortVersion,
                 Status: OverlayPortVersionCheckStatus.VersionDrift,
                 ErrorMessage:
-                string.Create(CultureInfo.CurrentCulture, $"[G60] overlay port '{portName}' version '{overlay.Version}#{overlayPortVersion}' does not match ") +
-                string.Create(CultureInfo.CurrentCulture, $"upstream '{upstream.Version}#{upstreamPortVersion}' at the current vcpkg submodule pin. ") +
-                "Re-sync the overlay against external/vcpkg/ports/" + portName + "/ per " +
-                "vcpkg-overlay-ports/README.md §'Maintenance Rules'.");
+                string.Create(CultureInfo.CurrentCulture,
+                    $"[G60] overlay port '{portName}' version '{overlay.Version}#{overlayPortVersion}' does not match " +
+                    $"upstream '{upstream.Version}#{upstreamPortVersion}' at the current vcpkg submodule pin. " +
+                    $"Re-sync the overlay against external/vcpkg/ports/{portName}/ per vcpkg-overlay-ports/README.md §'Maintenance Rules'."));
         }
 
         return new OverlayPortVersionCheck(
