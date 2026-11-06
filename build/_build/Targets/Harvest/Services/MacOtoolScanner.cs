@@ -1,4 +1,3 @@
-#pragma warning disable S2737, CA1031
 
 using System.Collections.Immutable;
 using Build.Tools.Otool;
@@ -127,4 +126,3 @@ public class MacOtoolScanner : IRuntimeScanner
     }
 }
 
-#pragma warning restore S2737, CA1031

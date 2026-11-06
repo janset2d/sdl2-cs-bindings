@@ -115,8 +115,6 @@
     test assertions that look unused to analyzers, etc.).
   -->
   <PropertyGroup>
-    <NoWarn>$(NoWarn);CA1050;CA1515;CA1707;CA1806;CA2007;MA0045;MA0047;MA0051;S4144;S2699</NoWarn>
-    <NoError>$(NoError);CA1050;CA1515;CA1707;CA1806;CA2007;MA0045;MA0047;MA0051;S4144;S2699</NoError>
 
     <IsAotCompatible>false</IsAotCompatible>
     <IsTrimmable>false</IsTrimmable>

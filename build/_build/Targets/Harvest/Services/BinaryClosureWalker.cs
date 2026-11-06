@@ -3,7 +3,6 @@
 // task surface stays Result<T,TError>-typed. Narrowing to operational types (IOException /
 // JsonException / UnauthorizedAccessException / etc., mirroring HarvestTask.IsOperationalHarvestException)
 // would tighten the diagnostic surface but changes pre-migration behavior; deferred to a follow-up slice.
-#pragma warning disable CA1031, MA0051
 
 using Build.Data.Manifest.Models;
 using Build.Host.Paths;

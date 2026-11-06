@@ -17,12 +17,6 @@ namespace Build.Results;
 /// <see cref="Failure"/>.
 /// </remarks>
 [StructLayout(LayoutKind.Auto)]
-[SuppressMessage(
-    "Design",
-    "CA1000:Do not declare static members on generic types",
-    Justification =
-        "Factory methods on a generic value type match the .NET BCL pattern (ImmutableArray<T>.Create, Nullable<T> helpers). The non-generic " +
-        "alternative would force Result.Failure<int, string>(\"err\") at every call site, where Result<int, string>.Failure(\"err\") reads cleaner.")]
 public readonly record struct Result<T, TError>
 {
     private readonly T _value;

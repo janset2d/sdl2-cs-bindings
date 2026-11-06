@@ -9,10 +9,6 @@ namespace Build.Results;
 /// consuming task class translates an invalid report into a <c>CakeException</c> at
 /// the task boundary so failure logging stays in one place.
 /// </summary>
-[SuppressMessage("Naming", "CA1710:Identifiers should have correct suffix",
-    Justification = "The type's identity is 'a report of validation findings' — its public surface (IsValid, HasWarnings, Errors/Warnings " +
-    "projections, Combine) reads as report behavior, not collection operations. CA1710's suggested suffixes (Collection/Set/etc.) describe " +
-    "data-structure shape and would obscure that role.")]
 public sealed class ValidationReport : IReadOnlyCollection<ValidationCheck>
 {
     public static ValidationReport Empty { get; } = new([]);

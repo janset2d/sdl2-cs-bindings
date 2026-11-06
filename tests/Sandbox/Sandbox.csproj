@@ -19,8 +19,6 @@
     <JansetSmokeSdl2Families>Core</JansetSmokeSdl2Families>
 
     <!-- Scratch tooling: string-literals in Console.WriteLine do not need resource lookup. -->
-    <NoWarn>$(NoWarn);CA1303</NoWarn>
-    <NoError>$(NoError);CA1303</NoError>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net462'">

@@ -277,7 +277,8 @@ dotnet_diagnostic.CA1511.severity = error
 dotnet_diagnostic.CA1512.severity = error
 dotnet_diagnostic.CA1513.severity = error
 dotnet_diagnostic.CA1514.severity = error
-dotnet_diagnostic.CA1515.severity = error
+# [opinionated] Public tooling types need no consumer-facing internalization policy.
+dotnet_diagnostic.CA1515.severity = none
 dotnet_diagnostic.CA1707.severity = error
 dotnet_diagnostic.CA1716.severity = error
 dotnet_diagnostic.CA1725.severity = error
@@ -287,7 +288,8 @@ dotnet_diagnostic.CA1802.severity = error
 dotnet_diagnostic.CA1805.severity = error
 dotnet_diagnostic.CA1806.severity = error
 dotnet_diagnostic.CA1810.severity = error
-dotnet_diagnostic.CA1812.severity = error
+# Reflection and dependency injection instantiate types outside the compiler call graph.
+dotnet_diagnostic.CA1812.severity = suggestion
 dotnet_diagnostic.CA1813.severity = error
 dotnet_diagnostic.CA1815.severity = error
 dotnet_diagnostic.CA1819.severity = suggestion
@@ -531,10 +533,6 @@ dotnet_diagnostic.VSTHRD111.severity = none
 # Test namespaces are not a consumer-facing API.
 dotnet_diagnostic.CA1716.severity = none
 
-# QM-9: CA1515 stays at none until "build(analyzers): replace NoWarn lists, pragmas and SuppressMessage with fixes and arbitration".
-[spikes/binding-generators/clangsharp/tests/**.cs]
-dotnet_diagnostic.CA1515.severity = none
-
 # FILE-SCOPED ARBITRATION
 # Duplicate detection mutates the version map; filtering would hide that mutation in a predicate.
 # Winner: explicit stateful validation; S3267 remains enabled for every other file.
@@ -579,11 +577,9 @@ dotnet_diagnostic.MA0144.severity = none
 [spikes/binding-generators/clangsharp/tests/abi-tests/Upstream/Assets/SurfaceAbiTests.cs]
 dotnet_diagnostic.S3267.severity = none
 
-# File-based property directives cannot wrap; remove this entry when the legacy directives are removed.
 # The file-based entry holds the tool's command types in one SDK compilation unit.
-# Winner: the file-based entry/directive contracts; MA0048 and RCS0056 remain enabled for every other file.
+# Winner: the file-based entry contract; MA0048 remains enabled for every other file.
 [/tools.cs]
-dotnet_diagnostic.RCS0056.severity = none
 dotnet_diagnostic.MA0048.severity = none
 
 # Console hosts have no SynchronizationContext to preserve.

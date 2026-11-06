@@ -26,8 +26,7 @@ namespace Build.Targets.PublishStaging;
 /// </summary>
 [TaskName("PublishStaging")]
 [TaskDescription("Pushes packed nupkgs to the GitHub Packages staging feed.")]
-[SuppressMessage("Minor Code Smell", "S1075:URIs should not be hardcoded",
-    Justification = "Internal feed URL is part of the release-lifecycle contract, not operator-tunable.")]
+
 public sealed class PublishStagingTask : AsyncFrostingTask<BuildContext>
 {
     private const string GitHubPackagesFeedUrl = "https://nuget.pkg.github.com/janset2d/index.json";
@@ -58,8 +57,7 @@ public sealed class PublishStagingTask : AsyncFrostingTask<BuildContext>
         _versionFileRepository = versionFileRepository ?? throw new ArgumentNullException(nameof(versionFileRepository));
     }
 
-    [SuppressMessage("Major Code Smell", "S3267:Loops should be simplified with LINQ expressions",
-        Justification = "Per-family side effects: two awaited pushes, structured logging.")]
+    
     public override async Task RunAsync(BuildContext context)
     {
         ArgumentNullException.ThrowIfNull(context);

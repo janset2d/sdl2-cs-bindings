@@ -57,11 +57,9 @@ public sealed class TargetTestHost<TTask> where TTask : class, IFrostingTask
             await task.RunAsync(buildContext);
             return new TargetRunResult(true, null, _world.Log);
         }
-#pragma warning disable CA1031
         // Test harness intentionally captures all exception types so scenario
         // tests can assert on failure modes without losing the log.
         catch (Exception ex)
-#pragma warning restore CA1031
         {
             return new TargetRunResult(false, ex, _world.Log);
         }
