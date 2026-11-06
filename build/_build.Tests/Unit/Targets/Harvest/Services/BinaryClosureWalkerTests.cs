@@ -69,7 +69,8 @@ public sealed class BinaryClosureWalkerTests
         await Assert.That(result.Value.Packages).Contains("sdl2");
         await Assert.That(result.Value.Packages).Contains("zlib");
         await Assert.That(_world.ProcessInvocations.Any(invocation =>
-            invocation.Arguments.Contains("zlib:x64-windows-hybrid", StringComparison.Ordinal))).IsTrue();
+            invocation.Arguments.Contains("zlib:x64-windows-hybrid", StringComparison.Ordinal)))
+            .IsTrue();
     }
 
     [Test]
