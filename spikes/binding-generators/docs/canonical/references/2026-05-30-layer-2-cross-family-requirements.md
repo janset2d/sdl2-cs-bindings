@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-30
 **Status:** Analysis artifact feeding the **library-agnostic** Layer 2 implementation plan. Ensures the L2 postprocess rewriters handle **every** SDL2 family's cases from the start (config-driven), so Core-first implementation does not forget satellite cases.
-**Built on:** the Layer 2 design spec ([`../../../../docs/superpowers/specs/2026-05-29-binding-autogen-layer-2-typed-public-api-design.md`](../../../../docs/superpowers/specs/2026-05-29-binding-autogen-layer-2-typed-public-api-design.md)), the Phase A peer mapping ([`2026-05-29-layer-2-peer-mapping.md`](2026-05-29-layer-2-peer-mapping.md)), and five per-family requirement profiles (Core authored from config + generated output; Image/TTF/Mixer/GFX from parallel grounded analysis 2026-05-30).
+**Built on:** internal research, 2026-05-29, "Binding Autogen - Layer 2 Typed Public API Projection (Design Spec)"; the Phase A peer mapping ([`2026-05-29-layer-2-peer-mapping.md`](2026-05-29-layer-2-peer-mapping.md)); and five per-family requirement profiles (Core authored from config + generated output; Image/TTF/Mixer/GFX from parallel grounded analysis 2026-05-30).
 **Motivation:** *"Library-agnostic olmalı altyapımız… böyle şeyler unutulur."* The clong example crystallized it — Core's clong methods are RETURN-only, so a Core-first design forgets TTF's clong **INPUT-param** Windows range-check. This matrix surfaces every such "Core-shaped assumption breaks on a satellite" case.
 
 ---
@@ -80,7 +80,7 @@ The plan stays **Core-first for implementation/test**, but the rewriters are **d
 ## 5. References
 
 - [`2026-05-29-layer-2-peer-mapping.md`](2026-05-29-layer-2-peer-mapping.md) — Phase A peer mapping.
-- Layer 2 design spec — [`../../../../docs/superpowers/specs/2026-05-29-binding-autogen-layer-2-typed-public-api-design.md`](../../../../docs/superpowers/specs/2026-05-29-binding-autogen-layer-2-typed-public-api-design.md).
+- Layer 2 design evidence: internal research, 2026-05-29, "Binding Autogen - Layer 2 Typed Public API Projection (Design Spec)".
 - [`binding-abi-policy.md`](../../../../../docs/architecture/binding-abi-policy.md) — §"C long" (L262 range-check), §"Manifest Configuration Vs Code-Owned Policy", §"Opaque Handles", §"Structs And Unions".
 - Satellite analyses: [`../satellites/sdl2-image-header-analysis.md`](../satellites/sdl2-image-header-analysis.md), [`sdl2-ttf-header-analysis.md`](../satellites/sdl2-ttf-header-analysis.md), [`sdl2-mixer-header-analysis.md`](../satellites/sdl2-mixer-header-analysis.md), [`sdl2-gfx-header-analysis.md`](../satellites/sdl2-gfx-header-analysis.md), [`sdl2-endian-platform-macro-consolidation.md`](../satellites/sdl2-endian-platform-macro-consolidation.md), [`sdl2-satellite-error-function-consolidation.md`](../satellites/sdl2-satellite-error-function-consolidation.md), [`sdl2-function-like-macro-consolidation.md`](../satellites/sdl2-function-like-macro-consolidation.md).
 - [`../../next-iteration-plan.md`](../../next-iteration-plan.md) — Forward Backlog (StructLayout pass, Mixer callback 4-element policy, endian aliases).

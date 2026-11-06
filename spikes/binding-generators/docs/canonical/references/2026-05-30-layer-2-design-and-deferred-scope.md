@@ -2,13 +2,13 @@
 
 **Date:** 2026-05-30
 **Status:** Consolidation / resume anchor. Captures **everything from the Layer 2 design cycle that is NOT in the Core L2 foundation implementation plan** — design decisions, deferred slices, Layer 3 scope, deferred review findings, and the pending Constitution amendments. One durable canonical place so nothing is lost at session close. Summaries only — each item names its **authoritative source**; this doc does not restate full content (no-duplication discipline).
-**What IS in the foundation plan (not here):** the Core L2 implementation tasks + all integrated must-fixes — [`../../../../docs/superpowers/plans/2026-05-30-binding-autogen-layer-2-core-foundation.md`](../../../../docs/superpowers/plans/2026-05-30-binding-autogen-layer-2-core-foundation.md).
+**What IS in the foundation plan (not here):** the Core L2 implementation tasks + all integrated must-fixes — internal research, 2026-05-31, "Layer 2 Core Foundation Implementation Plan".
 
 ---
 
 ## 1. Ratified design decisions (authoritative: design spec)
 
-Full text + rationale: [`../../../../docs/superpowers/specs/2026-05-29-binding-autogen-layer-2-typed-public-api-design.md`](../../../../docs/superpowers/specs/2026-05-29-binding-autogen-layer-2-typed-public-api-design.md).
+Full text + rationale: internal research, 2026-05-29, "Binding Autogen - Layer 2 Typed Public API Projection (Design Spec)".
 
 | # | Decision | Summary |
 | --- | --- | --- |
@@ -52,8 +52,8 @@ Follow-up parallel review (2026-05-31, P/Invoke ABI + ClangSharp/Roslyn + SDL pe
 
 ## 6. Cross-references
 
-- Design spec (full design): [`../../../../docs/superpowers/specs/2026-05-29-binding-autogen-layer-2-typed-public-api-design.md`](../../../../docs/superpowers/specs/2026-05-29-binding-autogen-layer-2-typed-public-api-design.md)
-- Core foundation plan (impl): [`../../../../docs/superpowers/plans/2026-05-30-binding-autogen-layer-2-core-foundation.md`](../../../../docs/superpowers/plans/2026-05-30-binding-autogen-layer-2-core-foundation.md)
+- Design evidence: internal research, 2026-05-29, "Binding Autogen - Layer 2 Typed Public API Projection (Design Spec)".
+- Foundation implementation evidence: internal research, 2026-05-31, "Layer 2 Core Foundation Implementation Plan".
 - Cross-family requirements matrix: [`2026-05-30-layer-2-cross-family-requirements.md`](2026-05-30-layer-2-cross-family-requirements.md)
 - Phase A peer mapping: [`2026-05-29-layer-2-peer-mapping.md`](2026-05-29-layer-2-peer-mapping.md)
 - Backlog tracking: [`../../next-iteration-plan.md`](../../next-iteration-plan.md) (Active Iteration + Forward Backlog)

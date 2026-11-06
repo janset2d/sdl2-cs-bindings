@@ -113,7 +113,7 @@ Strategic decisions intentionally not addressed before v1.0. Each carries explic
 
 ### Package Topology Refactor (3-tier role-meta + `.Bindings` + `.Native` split)
 
-Research complete, parked. Full analysis lives in [`parking-lot/package-topology/`](parking-lot/package-topology/).
+Research complete, parked. Evidence: internal research, 2026-05-12, "Package Topology Refactor Research - DEFERRED".
 
 **Unpark trigger conditions** (any one suffices):
 
@@ -149,5 +149,5 @@ Currently: ≥2 weeks per wave. Open to revision if real-consumer feedback signa
 - [`adr/0001-d3seg-and-package-first.md`](adr/0001-d3seg-and-package-first.md) — ADR-001 D-3seg + package-first consumer contract
 - [`adr/0004-binding-autogen-toolchain.md`](adr/0004-binding-autogen-toolchain.md) — ADR-004 binding-generator toolchain decision (Reopened 2026-05-23 — see spike)
 - [`../spikes/binding-generators/`](../spikes/binding-generators/) — Active toolchain re-evaluation spike
-- [`parking-lot/package-topology/`](parking-lot/package-topology/) — deferred topology research
-- [`parking-lot.md`](parking-lot.md) — other deferred ideas
+- Deferred topology evidence: internal research, 2026-05-12, "Package Topology Refactor Research - DEFERRED".
+- Deferred supply-chain work is tracked in issue #66; validator output shapes in issue #{{31-validator-shape-standardization}}; recovery procedures in issue #{{20-release-recovery}}.

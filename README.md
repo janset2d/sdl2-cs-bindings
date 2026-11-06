@@ -144,7 +144,7 @@ For detailed build instructions, see [docs/engineering/developing.md](https://gi
 | [docs/playbook/](docs/playbook/) | How-to recipes (local dev, validation, adding libraries, vcpkg updates, overlays) |
 | [docs/architecture/packaging-and-release.md](https://github.com/janset2d/sdl2-cs-bindings/blob/master/docs/architecture/packaging-and-release.md) | G-numbered guardrail registry + failure-mode catalog |
 | [`docs/adr/`](https://github.com/janset2d/sdl2-cs-bindings/tree/master/docs/adr/) | Architecture decision records |
-| [docs/research/](docs/research/) | Design rationale (packaging patterns, autogen approaches, SDL3 analysis, future-research starting points) |
+| Design evidence | Internal research, 2026-04-11, "Research: Native Library Packaging Patterns in .NET"; internal research, 2026-05-22, "Research: Semantic ABI Type Classification For SDL Bindings"; internal research, 2026-04-11, "Research: SDL3 Ecosystem Analysis" |
 | [docs/phases/](docs/phases/) | Phase-by-phase execution details |
 
 ## Architecture
