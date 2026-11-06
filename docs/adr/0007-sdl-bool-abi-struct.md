@@ -12,3 +12,5 @@ This supersedes the int-backed enum rule in the [ABI constitution](../../spikes/
 and the earlier public-projection design's prohibition of boolean conversions.
 Only native `SDL_bool` types receive this meaning; do not infer booleans from arbitrary integer returns.
 Evidence: internal research, 2026-05-29, "Layer 2 typed public API design".
+The reversal follows peer evidence for ABI-exact boolean wrappers: internal research, 2026-10-12,
+"How peer .NET binding libraries layer their API surface, and what it means for the Janset.SDL2 collapse proposal".

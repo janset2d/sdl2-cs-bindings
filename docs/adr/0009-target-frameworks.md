@@ -8,6 +8,6 @@ Drop `net8.0` and `net9.0` as support ends on 2026-11-10, and replace `net462` w
 
 ## Consequences
 
-[Directory.Build.props](../../Directory.Build.props) owns the executable framework values.
+[Directory.Build.props](../../Directory.Build.props) owns the framework values through
+`LibraryTargetFrameworks` and `ExecutableTargetFrameworks`.
 This is the decided target policy; those properties and generated outputs still require migration.
-Do not interpret this decision as evidence that every target already builds or runs.

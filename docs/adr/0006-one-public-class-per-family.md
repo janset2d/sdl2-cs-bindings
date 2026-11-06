@@ -23,25 +23,30 @@ internal research, 2026-05-29, "Layer 2 peer mapping".
 
 ## Consequences
 
-- The `string?` return form owns the C name; the byte-pointer form uses `<CName>Ptr`.
+- The managed string form owns the C name; the `byte*` form, parameter or return, uses `<CName>Ptr`.
 - Two overloads with the same name and arity must not both accept `null` at the same position.
 - Generation fails if an emitted name collides with a native symbol. Native names otherwise remain unchanged.
-- String inputs have separate `string` and `ReadOnlySpan<byte>` overloads, not a unified UTF-8 wrapper
-  or UTF-16 span. Byte spans are zero-copy when already null-terminated; otherwise append a terminator
-  in a bounded stack or pooled copy without reading past the span.
-- Friendly forms convert eligible parameters together, rather than emitting a cartesian overload set.
-  Optional struct pointers use nullable value types with defaults. Public release requires a safe
-  alternative to caller-held pointer forms; opt-in string conveniences may allocate.
-- Function-like macros use a family config roster for which symbols and kinds exist, with code-owned
-  per-kind emitters for how they work. Irregular forms require an explicit last-resort rationale.
-- Differential endian parsing seeds an audited roster. Standalone aliases use runtime byte order;
-  endian-conditioned `PIXELFORMAT_*32` enum members remain little-endian for the supported platforms.
-- Satellite error macros derive redirects by convention to Core's public surface. Satellites consume,
-  rather than duplicate, Core's public types; internal visibility is for tests only.
-- Mechanisms are family-blind and accept empty work sets without injecting dead machinery. Test both
-  return and input C `long` paths, cross-family handle/struct resolution, aliases and unprefixed names
-  before enabling satellites. Every family receives explicit sequential layout on applicable data structs.
+- Separate managed-text and pre-encoded UTF-8 forms keep allocation visible, without a unifying wrapper
+  or a low-value UTF-16 span conversion. A `ReadOnlySpan<byte>` sibling applies only to parameters that
+  are non-nullable in C. Recognizing an existing terminator avoids a copy; a bounded copy otherwise
+  supplies the terminator without reading past caller-owned memory.
+- Converting eligible parameters together avoids a cartesian overload set. Nullable value-type defaults
+  cover optional struct-pointer combinations without heap allocation. This makes safe alternatives
+  practical without charging pointer callers for opt-in string conveniences.
+- ClangSharp does not emit function-like macro bodies. A curated symbol/kind roster and reusable
+  per-kind emitters separate family facts from policy; irregular hand-authored forms remain a last resort.
+- Preprocessing erases endian conditionals. Differential parsing recovers an auditable roster;
+  runtime aliases retain byte-order meaning, while enum members need fixed values. The supported
+  little-endian platforms make the `PIXELFORMAT_*32` enum choice valid.
+- Satellite error macros already alias Core functions, so convention-derived redirects avoid a second
+  mapping roster. Satellites call Core's public surface; `InternalsVisibleTo` is granted only to test assemblies.
+  Sharing Core-owned types avoids competing handle and struct identities.
+- Family-blind mechanisms avoid Core-only assumptions. Empty work sets occur in real satellites and
+  should add no machinery. Core's return-only C `long` cases cannot prove TTF's input range checks;
+  Gfx's structs expose missing layout attributes. Cross-family handles, struct pointers, endian aliases
+  and mixed prefixed/unprefixed names motivate satellite-case evidence before activation.
 
 The class collapse does not justify flattening ABI differences. Per-member hiding remains necessary;
 uniform forwarding wrappers do not. The [ABI constitution](../../spikes/binding-generators/docs/canonical/binding-generator-constitution.md)
-is the policy home for detailed mappings as it is reconciled with this decision.
+owns the detailed string, macro, endian, cross-family and layout rules. The rationale above explains
+those choices rather than defining a second policy home.

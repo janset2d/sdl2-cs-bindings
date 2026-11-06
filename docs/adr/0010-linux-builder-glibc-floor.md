@@ -11,7 +11,7 @@ The [builder Dockerfile](../../docker/linux-builder.Dockerfile) records the orig
 glibc 2.28 plan. Buster's end of life in August 2022 and move to archived mirrors in March 2024
 made that maintenance route unsuitable. Focal was adopted on 2026-04-22 for maintained mirrors and
 the support horizon recorded there, through 2030. The reach loss for RHEL 8, AlmaLinux 8 and
-Debian 10 consumers on glibc 2.28 was accepted rather than silently raising consumer requirements later.
+Debian 10 consumers on glibc 2.28 was accepted in exchange for live security patches on monthly rebuilds.
 
 ## Consequences
 
@@ -20,5 +20,4 @@ builder. Its newer glibc must never reach consumer natives. Builder and generato
 are separate contracts.
 
 AlmaLinux 8 / glibc 2.28 is a research lane for a lower floor, not permission to raise this one.
-The Dockerfile retains its self-contained local explanation. Changes touching the base or floor,
-including this decision's merge, require Deniz's review.
+The Dockerfile retains its self-contained local explanation.
