@@ -7,12 +7,7 @@
     produces valid code for both Compat (net462) and Modern (net8+) outputs.
   -->
   <PropertyGroup>
-    <!--
-      TFMs hardcoded per spike sibling convention (Core/Image both hardcode).
-      The spike's Directory.Build.props does not import the repo-root one, so
-      $(ExecutableTargetFrameworks) is empty here. Dropped netstandard2.0
-      because this is an executable test project.
-    -->
+    <!-- Keep the executable TFM matrix explicit until the shared TFM policy is adopted. -->
     <TargetFrameworks>net10.0;net9.0;net8.0;net462</TargetFrameworks>
     <OutputType>Exe</OutputType>
     <IsTestProject>true</IsTestProject>

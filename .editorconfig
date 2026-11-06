@@ -533,3 +533,9 @@ dotnet_diagnostic.CA1515.severity = none
 dotnet_diagnostic.CA1859.severity = suggestion
 dotnet_diagnostic.CA1861.severity = suggestion
 dotnet_diagnostic.CA1865.severity = suggestion
+
+# ABI assertions expose native widths through explicit declared types.
+# Winner: ABI width visibility; IDE0007 and IDE0008 remain enabled for every other file.
+[spikes/binding-generators/clangsharp/tests/abi-tests/**.cs]
+dotnet_diagnostic.IDE0007.severity = none
+dotnet_diagnostic.IDE0008.severity = none
