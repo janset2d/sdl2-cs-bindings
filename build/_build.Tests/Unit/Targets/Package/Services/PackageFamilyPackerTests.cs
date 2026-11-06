@@ -1,9 +1,9 @@
 using System.Collections.Immutable;
-using Build.Targets.Package.Models;
-using Build.Host.Paths;
-using Build.Data.ProjectMetadata;
 using Build.Data.Manifest.Models;
+using Build.Data.ProjectMetadata;
+using Build.Host.Paths;
 using Build.Results;
+using Build.Targets.Package.Models;
 using Build.Targets.Package.Reporting;
 using Build.Targets.Package.Services;
 using Build.Tests.Fixtures;

@@ -1,5 +1,3 @@
-using Build.Host;
-using Cake.Core;
 using Cake.Core.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;

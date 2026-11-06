@@ -1,10 +1,8 @@
-using Build;
 using Build.Data.Manifest;
 using Build.Data.Manifest.Models;
 using Build.Host;
 using Build.Host.Runtime;
 using Build.Tests.Fixtures;
-using Cake.Core;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 

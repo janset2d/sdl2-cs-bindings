@@ -1,4 +1,3 @@
-using Build.Data.Manifest;
 using Build.Data.Manifest.Models;
 
 namespace Build.Tests.Unit.Validation.Manifest;

@@ -1,8 +1,8 @@
-using Build.Targets.PackageConsumerSmoke.Services;
-using Build.Data.ProjectMetadata;
 using Build.Data;
+using Build.Data.ProjectMetadata;
 using Build.Results;
 using Build.Targets.PackageConsumerSmoke;
+using Build.Targets.PackageConsumerSmoke.Services;
 using Build.Tests.Fixtures;
 using Build.Validation;
 using Cake.Core.IO;

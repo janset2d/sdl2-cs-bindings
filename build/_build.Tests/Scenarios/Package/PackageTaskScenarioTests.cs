@@ -1,14 +1,14 @@
-using Build.Data.ProjectMetadata;
-using Build.Targets.Package.Models;
 using Build.Data;
 using Build.Data.Manifest.Models;
+using Build.Data.ProjectMetadata;
+using Build.Data.Versions;
 using Build.Results;
 using Build.Targets.Package;
+using Build.Targets.Package.Models;
 using Build.Targets.Package.Services;
 using Build.Tests.Fixtures;
 using Build.Validation;
 using Build.Validation.Packaging;
-using Build.Data.Versions;
 using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;

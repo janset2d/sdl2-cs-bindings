@@ -1,6 +1,6 @@
 using Build.Data.Harvest;
-using Build.Host.Paths;
 using Build.Data.Manifest.Models;
+using Build.Host.Paths;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.Diagnostics;

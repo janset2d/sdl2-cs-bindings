@@ -1,8 +1,8 @@
 using System.Text.Json;
 using Build.Data.Harvest;
 using Build.Data.Manifest;
-using Build.Host;
 using Build.Data.Manifest.Models;
+using Build.Host;
 using Build.Targets.Harvest.Models;
 using Build.Targets.Harvest.Reporting;
 using Build.Targets.Harvest.Services;
