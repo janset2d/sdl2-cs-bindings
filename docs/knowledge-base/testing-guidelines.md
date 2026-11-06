@@ -1,5 +1,7 @@
 # Testing Guidelines — Build-Host Tests
 
+Date: 2026-11-06
+
 Canonical reference for writing and maintaining tests in `build/_build.Tests/`. This knowledge-base copy is the durable home now that the ADR-002 refactor is closed.
 
 ## The rule in one sentence
@@ -240,5 +242,5 @@ var world = FakeCakeWorld.CreateWindows().With...;
 
 - [ADR-002 §12 (Testing model)](../decisions/2026-05-05-target-centric-build-host.md) — taxonomy and FakeFileSystem rule
 - [Extraction guidelines](extraction-guidelines.md) — private method extraction and collaborator design (sister document)
-- [AGENTS.md](../../AGENTS.md) — test naming convention and slopwatch
+- [Quality gates](../engineering/quality-gates.md) — slopwatch and verification commands
 - [Homeruntech reference](https://github.com/homeruntech/dotnet-backend-monorepo-tool/tree/master/tests/Homerun.Dotnet.MonoRepoTools.Tests) — embedded fixture pattern inspiration

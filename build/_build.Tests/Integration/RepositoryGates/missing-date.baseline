@@ -1,14 +1,10 @@
 # Shrinks only. Remove an entry in the change that fixes it.
-docs/README.md
-docs/decisions/2026-05-05-d3seg-and-package-first.md
 docs/decisions/2026-05-05-target-centric-build-host.md
 docs/decisions/2026-05-12-build-host-data-layer.md
 docs/decisions/2026-05-14-binding-autogen-toolchain.md
 docs/decisions/README.md
 docs/knowledge-base/extraction-guidelines.md
 docs/knowledge-base/release-guardrails.md
-docs/knowledge-base/testing-guidelines.md
-docs/onboarding.md
 docs/parking-lot.md
 docs/parking-lot/package-topology/README.md
 docs/parking-lot/package-topology/impact-map.md
@@ -22,8 +18,6 @@ docs/phases/phase-4-binding-autogen.md
 docs/phases/phase-5-sdl3-support.md
 docs/plan.md
 docs/playbook/adding-new-library.md
-docs/playbook/cross-platform-smoke-validation.md
-docs/playbook/local-development.md
 docs/playbook/local-validation.md
 docs/playbook/overlay-management.md
 docs/playbook/vcpkg-update.md
@@ -40,7 +34,6 @@ docs/refactor-followup/tier-2/harvest-readiness-gate-decision.md
 docs/refactor-followup/tier-2/reporter-cohort.md
 docs/refactor-followup/tier-2/test-discipline-cluster.md
 docs/refactor-followup/tier-3-deferred.md
-docs/release-strategy.md
 docs/research/full-train-release-orchestration.md
 docs/research/lgpl-free-codec-migration.md
 docs/research/license-inventory.md

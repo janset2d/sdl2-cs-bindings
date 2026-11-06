@@ -1,5 +1,7 @@
 # Playbook: Local Development Setup
 
+Date: 2026-11-06
+
 > How to clone, build, and develop Janset.SDL2 on your local machine.
 >
 > Dev orchestration lives in the repo-root `tools.cs` script (file-based .NET 10 app), not the Cake host. `tools setup --source=local` is the canonical fresh-clone path (package-first consumer contract — smoke / sample / sandbox csprojs consume packages via a local folder feed). `--source=remote-github` pulls the latest published nupkgs from the GitHub Packages internal feed and exercises the same consumer surface. `--source=remote-nuget` is stubbed pending Phase 2b PD-7 (public-feed promotion). The manual vcpkg + Harvest + Package flow below stays as a fallback / debug route.
@@ -312,7 +314,7 @@ Direct `dotnet pack` on a managed csproj (e.g. for a quick isolated pack test) i
 dotnet pack src/SDL2.Core/SDL2.Core.csproj -o ./artifacts/packages/ -p:PackageVersion=2.32.0-local.1
 ```
 
-> Versions like `0.1.0-local.1` or `1.0.0-local.1` violate D-3seg (UpstreamMajor.UpstreamMinor not anchored to SDL2 2.32.x). G54 will reject them at PreFlight. See `AGENTS.md` "Settled Strategic Decisions" for D-3seg context.
+> Versions like `0.1.0-local.1` or `1.0.0-local.1` violate D-3seg (UpstreamMajor.UpstreamMinor not anchored to SDL2 2.32.x). G54 will reject them at PreFlight. See [Settled Strategic Decisions](../onboarding.md#settled-strategic-decisions) for D-3seg context.
 
 ## Troubleshooting
 
