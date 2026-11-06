@@ -94,7 +94,7 @@ public sealed partial class DotNetRuntimeEnvironment(ICakeLog log) : IDotNetRunt
             channels.Add(major);
         }
 
-        return channels.Select(major => $"{major}.0").ToArray();
+        return [.. channels.Select(major => $"{major}.0")];
     }
 
     private async Task<IReadOnlyDictionary<string, string>> ResolveCoreAsync(IReadOnlyList<string> runtimeChannels, CancellationToken ct)

@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Build.Data.Manifest.Models;
 
-public record ManifestConfig
+public sealed record ManifestConfig
 {
     [JsonPropertyName("schema_version")] public required string SchemaVersion { get; init; }
     [JsonPropertyName("packaging_config")] public required PackagingConfig PackagingConfig { get; init; }

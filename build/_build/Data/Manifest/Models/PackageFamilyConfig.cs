@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Build.Data.Manifest.Models;
 
-public record PackageFamilyConfig
+public sealed record PackageFamilyConfig
 {
     [JsonPropertyName("name")] public required string Name { get; init; }
     [JsonPropertyName("tag_prefix")] public required string TagPrefix { get; init; }

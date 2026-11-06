@@ -152,23 +152,15 @@ public sealed class DependencyRangeNormalizer(ICakeContext cakeContext, ICakeLog
         ArgumentException.ThrowIfNullOrWhiteSpace(dependencyFamily);
 
         var dependencyFamilyConfig = manifestConfig.PackageFamilies.SingleOrDefault(candidate =>
-            string.Equals(candidate.Name, dependencyFamily, StringComparison.OrdinalIgnoreCase));
-
-        if (dependencyFamilyConfig is null)
-        {
-            throw new CakeException(
+            string.Equals(candidate.Name, dependencyFamily, StringComparison.OrdinalIgnoreCase))
+            ?? throw new CakeException(
                 $"Cannot resolve cross-family dependency range for '{dependencyFamily}' because it does not exist in manifest package_families[].");
-        }
 
         var dependencyLibrary = manifestConfig.LibraryManifests.SingleOrDefault(candidate =>
-            string.Equals(candidate.Name, dependencyFamilyConfig.LibraryRef, StringComparison.OrdinalIgnoreCase));
-
-        if (dependencyLibrary is null)
-        {
-            throw new CakeException(
+            string.Equals(candidate.Name, dependencyFamilyConfig.LibraryRef, StringComparison.OrdinalIgnoreCase))
+            ?? throw new CakeException(
                 $"Cannot resolve cross-family dependency range for '{dependencyFamily}' because library_ref '{dependencyFamilyConfig.LibraryRef}' " +
                 "does not exist in manifest library_manifests[].");
-        }
 
         if (!NuGetVersion.TryParse(dependencyLibrary.VcpkgVersion, out var upstreamVersion))
         {

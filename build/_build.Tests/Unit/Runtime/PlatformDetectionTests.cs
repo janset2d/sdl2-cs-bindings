@@ -4,7 +4,7 @@ using Build.Tests.Fixtures;
 
 namespace Build.Tests.Unit.Runtime;
 
-public class PlatformDetectionTests
+public sealed class PlatformDetectionTests
 {
     [Test]
     [Arguments("win-x64", RuntimeFamily.Windows)]
@@ -16,6 +16,7 @@ public class PlatformDetectionTests
     [Arguments("osx-arm64", RuntimeFamily.OSX)]
     public async Task RuntimeProfile_Should_Detect_Correct_Platform_Family(string rid, RuntimeFamily expected)
     {
+        ArgumentNullException.ThrowIfNull(rid);
         var profile = rid switch
         {
             var r when r.StartsWith("win-", StringComparison.Ordinal) => RuntimeProfileFixture.CreateWindows(rid: r),

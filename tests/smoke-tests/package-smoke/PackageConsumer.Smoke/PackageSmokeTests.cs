@@ -306,12 +306,11 @@ public sealed class PackageSmokeTests
     private static string[] EnumerateOutputFileNames()
     {
         var baseDirectory = AppContext.BaseDirectory;
-        return Directory
+        return [.. Directory
             .EnumerateFiles(baseDirectory, "*", SearchOption.AllDirectories)
             .Select(path => Path.GetFileName(path) ?? string.Empty)
             .Where(name => !string.IsNullOrWhiteSpace(name))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
+            .Distinct(StringComparer.OrdinalIgnoreCase)];
     }
 
     private static bool IsCoreNativeAsset(string fileName)
@@ -390,11 +389,10 @@ public sealed class PackageSmokeTests
 
     private static List<string> EnumerateMusicDecoders()
     {
-        return Enumerable
+        return [.. Enumerable
             .Range(0, SDL_mixer.Mix_GetNumMusicDecoders())
             .Select(SDL_mixer.Mix_GetMusicDecoder)
-            .Where(decoder => !string.IsNullOrWhiteSpace(decoder))
-            .ToList();
+            .Where(decoder => !string.IsNullOrWhiteSpace(decoder))];
     }
 
     private static bool ContainsDecoder(IEnumerable<string> decoders, string expectedFragment)

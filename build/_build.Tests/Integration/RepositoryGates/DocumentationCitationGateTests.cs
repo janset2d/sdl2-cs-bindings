@@ -25,12 +25,11 @@ public sealed partial class DocumentationCitationGateTests
         await Assert.That(stale).IsEmpty().Because("Stale baseline entries:\n" + string.Join('\n', stale));
     }
 
-    private static string[] Citations() => RepositoryFiles.Tracked
+    private static string[] Citations() => [.. RepositoryFiles.Tracked
         .Where(GateScopes.IsCitationScanned)
         .SelectMany(path => Citation().Matches(RepositoryFiles.ReadText(path) ?? string.Empty).Select(match => $"{path}|{match.Value}"))
         .Distinct(StringComparer.Ordinal)
-        .Order(StringComparer.Ordinal)
-        .ToArray();
+        .Order(StringComparer.Ordinal)];
 
     [GeneratedRegex("(?<![\\w./\\\\-])(?:docs[/\\\\][^\\s\"'<>)\\]]+|AGENTS\\.md|GLOSSARY\\.md)", RegexOptions.None, 1000)]
     private static partial Regex Citation();

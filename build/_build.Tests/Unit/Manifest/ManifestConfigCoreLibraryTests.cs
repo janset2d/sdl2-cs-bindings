@@ -3,7 +3,7 @@ using Build.Tests.Fixtures;
 
 namespace Build.Tests.Unit.Manifest;
 
-public class ManifestConfigCoreLibraryTests
+public sealed class ManifestConfigCoreLibraryTests
 {
     [Test]
     public async Task CoreLibrary_Returns_The_Single_Core_Library_Entry()

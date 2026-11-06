@@ -5,7 +5,7 @@ namespace Build.Tools.Vcpkg.Settings;
 /// <summary>
 /// Contains settings specific to the 'vcpkg install' command.
 /// </summary>
-public class VcpkgInstallSettings : VcpkgSettings
+public sealed class VcpkgInstallSettings : VcpkgSettings
 {
     public VcpkgInstallSettings(DirectoryPath vcpkgRoot) : base(vcpkgRoot)
     {

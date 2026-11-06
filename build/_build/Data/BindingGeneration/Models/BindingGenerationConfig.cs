@@ -29,9 +29,6 @@ public sealed record BindingGenerationConfig
     [JsonPropertyName("platform_catalog")] public required string PlatformCatalogId { get; init; }
     [JsonPropertyName("owned_prefixes")] public required ImmutableList<string> OwnedPrefixes { get; init; }
 
-    // Optional with empty defaults — only meaningful when Enabled=true; satellite
-    // placeholders (Enabled=false) skip these so the manifest stays compact for
-    // stage-2-placeholder entries.
     [JsonPropertyName("parse_defines")] public ImmutableList<string> ParseDefines { get; init; } = [];
     [JsonPropertyName("clang_args")] public ImmutableList<string> ClangArgs { get; init; } = [];
     [JsonPropertyName("excluded_functions")] public ImmutableHashSet<string> ExcludedFunctions { get; init; } = [];
@@ -56,11 +53,9 @@ public sealed record BindingGenerationConfig
     public MacroConstantPolicyConfig MacroConstants { get; init; } = new();
 
     [JsonPropertyName("deferred_declarations")]
-    public ImmutableDictionary<string, DeferredDeclarationConfig> DeferredDeclarations { get; init; } = ImmutableDictionary<string, DeferredDeclarationConfig>.Empty;
-    [JsonPropertyName("validators")] public ImmutableDictionary<string, bool> Validators { get; init; } = ImmutableDictionary<string, bool>.Empty;
+    public ImmutableDictionary<string, DeferredDeclarationConfig> DeferredDeclarations { get; init; } = [];
+    [JsonPropertyName("validators")] public ImmutableDictionary<string, bool> Validators { get; init; } = [];
 
-    // Nullable — only present when Enabled=true. Consumer short-circuits on Enabled
-    // before reading these, so null-on-disabled is the natural shape.
     [JsonPropertyName("header_set")] public HeaderSetConfig? HeaderSet { get; init; }
     [JsonPropertyName("dynapi")] public DynapiConfig? Dynapi { get; init; }
 }

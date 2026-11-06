@@ -753,7 +753,7 @@ public sealed class PackageOutputValidator(
         // and forward-slashed after the Replace we applied during hydration.
         var ridRoots = entries
             .Where(entry => entry.StartsWith("runtimes/", StringComparison.Ordinal))
-            .Select(entry => entry[("runtimes/".Length)..])
+            .Select(entry => entry["runtimes/".Length..])
             .Where(entry => entry.Contains("/native/", StringComparison.Ordinal))
             .Select(entry => entry[..entry.IndexOf("/native/", StringComparison.Ordinal)])
             .ToHashSet(StringComparer.OrdinalIgnoreCase);

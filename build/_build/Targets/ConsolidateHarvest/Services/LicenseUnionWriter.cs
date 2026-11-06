@@ -189,7 +189,7 @@ public sealed class LicenseUnionWriter(ICakeContext cakeContext, IPathService pa
         {
             Package = package,
             FileName = fileName,
-            Rids = hashed.Select(h => h.Rid).OrderBy(rid => rid, StringComparer.OrdinalIgnoreCase).ToList(),
+            Rids = [.. hashed.Select(h => h.Rid).OrderBy(rid => rid, StringComparer.OrdinalIgnoreCase)],
         };
     }
 

@@ -62,8 +62,7 @@ public sealed record PackageFamilyVersionSet : IReadOnlyCollection<PackageFamily
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    // Custom equality so two sets with the same contents in different input order are equal.
-    // The default record-class equality compares the underlying dictionary by reference.
+    /// <summary>Compares dictionary contents independently of input order.</summary>
     public bool Equals(PackageFamilyVersionSet? other)
     {
         if (other is null)

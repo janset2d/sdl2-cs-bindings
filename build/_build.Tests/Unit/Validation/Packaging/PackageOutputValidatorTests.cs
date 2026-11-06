@@ -26,10 +26,10 @@ public sealed class PackageOutputValidatorTests
     private const string ExpectedIcon = "janset2d-sdl-min.png";
     private const string ExpectedCommit = "0123456789abcdef0123456789abcdef01234567";
 
-    // Long-form TFMs emitted in nuspec dependency groups (what `dotnet pack` writes).
+    /// <summary>Long-form TFMs emitted by dotnet pack.</summary>
     private static readonly string[] NuspecFrameworkGroups = [".NETFramework4.6.2", ".NETStandard2.0", "net8.0", "net9.0", "net10.0"];
 
-    // Short-form TFMs as resolved from MSBuild -getProperty:TargetFrameworks (what the reader returns).
+    /// <summary>Short-form TFMs returned by the MSBuild reader.</summary>
     private static readonly string[] CsprojTargetFrameworks = ["net10.0", "net9.0", "net8.0", "netstandard2.0", "net462"];
 
     private static PackageOutputValidator CreateValidator(FakeCakeWorld world)
@@ -523,11 +523,10 @@ public sealed class PackageOutputValidatorTests
             UpstreamLibrary = library.VcpkgName,
             UpstreamVersion = library.VcpkgVersion,
             VcpkgPortVersion = library.VcpkgPortVersion,
-            TripletSet = manifest.Runtimes
+            TripletSet = [.. manifest.Runtimes
                 .Select(runtime => runtime.Triplet)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(triplet => triplet, StringComparer.OrdinalIgnoreCase)
-                .ToList(),
+                .OrderBy(triplet => triplet, StringComparer.OrdinalIgnoreCase)],
             BuildCommit = commit,
         };
 

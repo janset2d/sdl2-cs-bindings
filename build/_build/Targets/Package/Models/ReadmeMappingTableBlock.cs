@@ -67,7 +67,7 @@ public static class ReadmeMappingTableBlock
             return false;
         }
 
-        var length = (endIndex + EndMarker.Length) - startIndex;
+        var length = endIndex + EndMarker.Length - startIndex;
         block = readmeContent.Substring(startIndex, length);
         return true;
     }

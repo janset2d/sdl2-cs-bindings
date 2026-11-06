@@ -5,7 +5,7 @@ namespace Build.Data.Harvest;
 /// <summary>
 /// Summary information for the harvest manifest.
 /// </summary>
-public record HarvestSummary
+public sealed record HarvestSummary
 {
     [JsonPropertyName("total_rids")]
     public required int TotalRids { get; init; }
