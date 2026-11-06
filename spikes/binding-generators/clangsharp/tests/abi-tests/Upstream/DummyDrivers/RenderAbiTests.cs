@@ -8,7 +8,7 @@ using static SDL2.SDLNative;
 
 namespace Janset.SDL2.AbiTests.Upstream.DummyDrivers;
 
-[NotInParallel]
+[NotInParallel(AbiParallelKeys.SdlGlobalState)]
 public sealed class RenderAbiTests
 {
     [Test]
@@ -104,7 +104,7 @@ public sealed class RenderAbiTests
 
     private static int GetDummyRenderDriverCount()
     {
-        using SdlEnvironmentScope videoDriver = new("SDL_VIDEODRIVER", "dummy");
+        using SdlDriverScope videoDriver = new("SDL_VIDEODRIVER", "dummy");
         using SdlHintScope renderDriverHint = new("SDL_RENDER_DRIVER", "software");
         using SdlSubsystemScope video = new(SDL_INIT_VIDEO);
 
@@ -113,7 +113,7 @@ public sealed class RenderAbiTests
 
     private static unsafe RenderResult CreateAndClearSoftwareRenderer()
     {
-        using SdlEnvironmentScope videoDriver = new("SDL_VIDEODRIVER", "dummy");
+        using SdlDriverScope videoDriver = new("SDL_VIDEODRIVER", "dummy");
         using SdlHintScope renderDriverHint = new("SDL_RENDER_DRIVER", "software");
         using SdlSubsystemScope video = new(SDL_INIT_VIDEO);
         using PinnedUtf8 title = SdlUtf8.Pin("Janset SDL2 ABI dummy renderer");
@@ -153,7 +153,7 @@ public sealed class RenderAbiTests
 
     private static unsafe RenderPrimitivesResult DrawSoftwareRendererPrimitives()
     {
-        using SdlEnvironmentScope videoDriver = new("SDL_VIDEODRIVER", "dummy");
+        using SdlDriverScope videoDriver = new("SDL_VIDEODRIVER", "dummy");
         using SdlHintScope renderDriverHint = new("SDL_RENDER_DRIVER", "software");
         using SdlSubsystemScope video = new(SDL_INIT_VIDEO);
         using PinnedUtf8 title = SdlUtf8.Pin("Janset SDL2 ABI dummy renderer primitives");
@@ -217,7 +217,7 @@ public sealed class RenderAbiTests
 
     private static unsafe RenderTextureResult CreateQueryAndCopySoftwareTexture(bool colorMod)
     {
-        using SdlEnvironmentScope videoDriver = new("SDL_VIDEODRIVER", "dummy");
+        using SdlDriverScope videoDriver = new("SDL_VIDEODRIVER", "dummy");
         using SdlHintScope renderDriverHint = new("SDL_RENDER_DRIVER", "software");
         using SdlSubsystemScope video = new(SDL_INIT_VIDEO);
         using PinnedUtf8 title = SdlUtf8.Pin("Janset SDL2 ABI dummy renderer texture");

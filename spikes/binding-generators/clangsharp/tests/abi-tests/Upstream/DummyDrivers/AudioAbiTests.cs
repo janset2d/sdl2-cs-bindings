@@ -7,7 +7,7 @@ using static SDL2.SDLNative;
 
 namespace Janset.SDL2.AbiTests.Upstream.DummyDrivers;
 
-[NotInParallel]
+[NotInParallel(AbiParallelKeys.SdlGlobalState)]
 public sealed class AudioAbiTests
 {
     [Test]
@@ -85,7 +85,7 @@ public sealed class AudioAbiTests
 
     private static unsafe int InitAndQuitDummyAudioDriver()
     {
-        using SdlEnvironmentScope audioDriver = new("SDL_AUDIODRIVER", "dummy");
+        using SdlDriverScope audioDriver = new("SDL_AUDIODRIVER", "dummy");
         using PinnedUtf8 driverName = SdlUtf8.Pin("dummy");
 
         SDL_QuitSubSystem(SDL_INIT_AUDIO);
@@ -97,7 +97,7 @@ public sealed class AudioAbiTests
 
     private static unsafe AudioDeviceResult OpenAndCloseDummyAudioDevice()
     {
-        using SdlEnvironmentScope audioDriver = new("SDL_AUDIODRIVER", "dummy");
+        using SdlDriverScope audioDriver = new("SDL_AUDIODRIVER", "dummy");
         using SdlSubsystemScope audio = new(SDL_INIT_AUDIO);
 
         SDL_AudioSpec desired = new()
@@ -120,7 +120,7 @@ public sealed class AudioAbiTests
 
     private static SDL_AudioStatus GetDummyAudioStatus()
     {
-        using SdlEnvironmentScope audioDriver = new("SDL_AUDIODRIVER", "dummy");
+        using SdlDriverScope audioDriver = new("SDL_AUDIODRIVER", "dummy");
         using SdlSubsystemScope audio = new(SDL_INIT_AUDIO);
 
         return SDL_GetAudioStatus();
@@ -128,7 +128,7 @@ public sealed class AudioAbiTests
 
     private static unsafe AudioDeviceStatusResult OpenDummyAudioDeviceAndGetStatus()
     {
-        using SdlEnvironmentScope audioDriver = new("SDL_AUDIODRIVER", "dummy");
+        using SdlDriverScope audioDriver = new("SDL_AUDIODRIVER", "dummy");
         using SdlSubsystemScope audio = new(SDL_INIT_AUDIO);
 
         int count = SDL_GetNumAudioDevices(0);
@@ -152,7 +152,7 @@ public sealed class AudioAbiTests
 
     private static unsafe AudioDeviceLockResult LockAndUnlockDummyAudioDevice()
     {
-        using SdlEnvironmentScope audioDriver = new("SDL_AUDIODRIVER", "dummy");
+        using SdlDriverScope audioDriver = new("SDL_AUDIODRIVER", "dummy");
         using SdlSubsystemScope audio = new(SDL_INIT_AUDIO);
 
         int count = SDL_GetNumAudioDevices(0);
