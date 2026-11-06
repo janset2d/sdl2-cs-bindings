@@ -1386,17 +1386,20 @@ internal static class Shared
         if (lower.Contains("401", StringComparison.Ordinal) || lower.Contains("unauthorized", StringComparison.Ordinal)
             || lower.Contains("403", StringComparison.Ordinal) || lower.Contains("forbidden", StringComparison.Ordinal))
         {
-            return $"GitHub Packages {operation} failed for '{packageId}': GH_TOKEN/GITHUB_TOKEN is missing read access. Use a Classic PAT with read:packages; fine-grained PATs are unsupported by GitHub Packages NuGet. Raw error: {message}";
+            return $"GitHub Packages {operation} failed for '{packageId}': GH_TOKEN/GITHUB_TOKEN is missing read access. " +
+                   $"Use a Classic PAT with read:packages; fine-grained PATs are unsupported by GitHub Packages NuGet. Raw error: {message}";
         }
 
         if (lower.Contains("404", StringComparison.Ordinal) || lower.Contains("not found", StringComparison.Ordinal))
         {
-            return $"GitHub Packages {operation} failed for '{packageId}': package/feed was not found. The first publish wave may not have shipped yet, or the package id/feed URL is wrong. Raw error: {message}";
+            return $"GitHub Packages {operation} failed for '{packageId}': package/feed was not found. " +
+                   $"The first publish wave may not have shipped yet, or the package id/feed URL is wrong. Raw error: {message}";
         }
 
         if (exceptions.Any(static ex => ex is HttpRequestException or IOException or TimeoutException))
         {
-            return $"GitHub Packages {operation} failed for '{packageId}': network or feed availability problem. Retry, or check connectivity to {GitHubPackagesFeedUrl}. Raw error: {message}";
+            return $"GitHub Packages {operation} failed for '{packageId}': network or feed availability problem. " +
+                   $"Retry, or check connectivity to {GitHubPackagesFeedUrl}. Raw error: {message}";
         }
 
         return $"GitHub Packages {operation} failed for '{packageId}'. Raw error: {message}";
