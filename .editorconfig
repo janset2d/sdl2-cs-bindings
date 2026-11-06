@@ -634,9 +634,11 @@ dotnet_diagnostic.S1075.severity = none
 # The probe exists to compile against the package surface; its member is never read.
 # Winner: the compile-only probe contract; S1144 remains enabled for every other file.
 # Winner: the compile-only probe contract; CA1823 remains enabled for every other file.
+# Winner: the compile-only probe contract; IDE0052 remains enabled for every other file.
 [tests/smoke-tests/package-smoke/Compile.NetStandard/Probe.cs]
 dotnet_diagnostic.S1144.severity = none
 dotnet_diagnostic.CA1823.severity = none
+dotnet_diagnostic.IDE0052.severity = none
 
 # Line-log callbacks synchronously write under a lock and preserve the caller's ordered Action<string> contract.
 # Winner: synchronous callback ordering; MA0045 remains enabled for every other file.
