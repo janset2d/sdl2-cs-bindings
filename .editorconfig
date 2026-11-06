@@ -449,8 +449,7 @@ dotnet_diagnostic.RCS1140.severity = suggestion
 dotnet_diagnostic.RCS1141.severity = suggestion
 roslynator_max_line_length = 180
 dotnet_diagnostic.RCS0054.severity = error
-# QM-5: RCS0056 stays at suggestion until "style: wrap lines over 180 characters (RCS0056 error)".
-dotnet_diagnostic.RCS0056.severity = suggestion
+dotnet_diagnostic.RCS0056.severity = error
 
 # SECTION 12: SONAR
 # Unlisted rules use SonarWay defaults, escalated by TreatWarningsAsErrors.
@@ -554,3 +553,8 @@ dotnet_diagnostic.MA0144.severity = none
 # Winner: native pointer cleanup; S3267 remains enabled for every other file.
 [spikes/binding-generators/clangsharp/tests/abi-tests/Upstream/Assets/SurfaceAbiTests.cs]
 dotnet_diagnostic.S3267.severity = none
+
+# File-based property directives cannot wrap; remove this entry when the legacy directives are removed.
+# Winner: single-line file-based directives until the suppression cleanup removes them; RCS0056 remains enabled for every other file.
+[/tools.cs]
+dotnet_diagnostic.RCS0056.severity = none

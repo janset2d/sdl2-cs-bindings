@@ -320,19 +320,23 @@ public sealed class SetupCommand : AsyncCommand<SetupSettings>
                 if (managedVersion is null)
                 {
                     throw new RemoteGitHubSetupException(
-                        $"Family '{family.Name}' has no published managed package '{managedId}' on GitHub Packages. First publish wave has not shipped yet, or this package was not pushed. Run local setup or publish a coherent staging wave.");
+                        $"Family '{family.Name}' has no published managed package '{managedId}' on GitHub Packages. First publish wave has not " +
+                        "shipped yet, or this package was not pushed. Run local setup or publish a coherent staging wave.");
                 }
 
                 if (nativeVersion is null)
                 {
                     throw new RemoteGitHubSetupException(
-                        $"Family '{family.Name}' has no published native package '{nativeId}' on GitHub Packages while managed '{managedId}' is at {managedVersion.ToNormalizedString()}. This looks like a partial publish; re-run the failing publish wave or use local setup.");
+                        $"Family '{family.Name}' has no published native package '{nativeId}' on GitHub Packages while managed '{managedId}' is at " +
+                        $"{managedVersion.ToNormalizedString()}. This looks like a partial publish; re-run the failing publish wave or use local setup.");
                 }
 
                 if (!VersionComparer.Default.Equals(managedVersion, nativeVersion))
                 {
                     throw new RemoteGitHubSetupException(
-                        $"Family '{family.Name}' managed/native versions disagree: {managedId}@{managedVersion.ToNormalizedString()} vs {nativeId}@{nativeVersion.ToNormalizedString()}. This is likely a partial publish; repair the internal feed or supply a coherent version set in a future explicit-version flow.");
+                        $"Family '{family.Name}' managed/native versions disagree: {managedId}@{managedVersion.ToNormalizedString()} vs " +
+                        $"{nativeId}@{nativeVersion.ToNormalizedString()}. This is likely a partial publish; repair the internal feed or supply a " +
+                        "coherent version set in a future explicit-version flow.");
                 }
 
                 AnsiConsole.MarkupLine($"  [green]✓[/] [cyan]{Markup.Escape(family.Name)}[/] = [yellow]{managedVersion.ToNormalizedString()}[/]");
@@ -1359,7 +1363,8 @@ internal static class Shared
         if (!copied)
         {
             throw new InvalidOperationException(
-                $"NuGet feed at '{feedUrl}' could not stream '{packageId}' {version.ToNormalizedString()}. Verify the package was published and the auth token has read:packages scope.");
+                $"NuGet feed at '{feedUrl}' could not stream '{packageId}' {version.ToNormalizedString()}. Verify the package was published and the " +
+                "auth token has read:packages scope.");
         }
     }
 
@@ -1386,17 +1391,20 @@ internal static class Shared
         if (lower.Contains("401", StringComparison.Ordinal) || lower.Contains("unauthorized", StringComparison.Ordinal)
             || lower.Contains("403", StringComparison.Ordinal) || lower.Contains("forbidden", StringComparison.Ordinal))
         {
-            return $"GitHub Packages {operation} failed for '{packageId}': GH_TOKEN/GITHUB_TOKEN is missing read access. Use a Classic PAT with read:packages; fine-grained PATs are unsupported by GitHub Packages NuGet. Raw error: {message}";
+            return $"GitHub Packages {operation} failed for '{packageId}': GH_TOKEN/GITHUB_TOKEN is missing read access. " +
+                   $"Use a Classic PAT with read:packages; fine-grained PATs are unsupported by GitHub Packages NuGet. Raw error: {message}";
         }
 
         if (lower.Contains("404", StringComparison.Ordinal) || lower.Contains("not found", StringComparison.Ordinal))
         {
-            return $"GitHub Packages {operation} failed for '{packageId}': package/feed was not found. The first publish wave may not have shipped yet, or the package id/feed URL is wrong. Raw error: {message}";
+            return $"GitHub Packages {operation} failed for '{packageId}': package/feed was not found. " +
+                   $"The first publish wave may not have shipped yet, or the package id/feed URL is wrong. Raw error: {message}";
         }
 
         if (exceptions.Any(static ex => ex is HttpRequestException or IOException or TimeoutException))
         {
-            return $"GitHub Packages {operation} failed for '{packageId}': network or feed availability problem. Retry, or check connectivity to {GitHubPackagesFeedUrl}. Raw error: {message}";
+            return $"GitHub Packages {operation} failed for '{packageId}': network or feed availability problem. " +
+                   $"Retry, or check connectivity to {GitHubPackagesFeedUrl}. Raw error: {message}";
         }
 
         return $"GitHub Packages {operation} failed for '{packageId}'. Raw error: {message}";

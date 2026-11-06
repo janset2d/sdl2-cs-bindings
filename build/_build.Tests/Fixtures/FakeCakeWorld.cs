@@ -27,7 +27,8 @@ public sealed record ProcessInvocation(FilePath Command, string Arguments, bool 
 public sealed class FakeCakeWorld
 {
     private readonly Dictionary<string, (int ExitCode, string StdOut, string StdErr)> _processResults = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<(string Command, string Arguments), (int ExitCode, string StdOut, string StdErr)> _processResultsByArguments = new(ProcessResultArgumentsComparer.Instance);
+    private readonly Dictionary<(string Command, string Arguments), (int ExitCode, string StdOut, string StdErr)> _processResultsByArguments = new(
+        ProcessResultArgumentsComparer.Instance);
     private readonly Dictionary<string, Exception> _processExceptions = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Action<FakeCakeWorld>> _processSideEffects = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<ProcessInvocation> _processInvocations = [];
@@ -117,7 +118,8 @@ public sealed class FakeCakeWorld
     public FakeCakeWorld WithOtoolLibrary()
     {
         return WithProcessResult("otool", exitCode: 0,
-                stdOut: "/Users/dev/sdl/libSDL2.dylib:\n\t@rpath/libSDL2-2.0.0.dylib (compatibility version 1.0.0, current version 1.0.0)\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1319.100.3)\n")
+                stdOut: "/Users/dev/sdl/libSDL2.dylib:\n\t@rpath/libSDL2-2.0.0.dylib (compatibility version 1.0.0, current version " +
+                "1.0.0)\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1319.100.3)\n")
             .WithToolPath("/usr/bin/otool")
             .WithDll("/Users/dev/sdl/libSDL2.dylib")
             .WithTextFile("/Users/dev/sdl/libSDL2.dylib", "binary");

@@ -18,7 +18,8 @@ public sealed class ResolveVersionsFromExplicitTask(
 {
     private readonly IManifestRepository _manifestRepository = manifestRepository ?? throw new ArgumentNullException(nameof(manifestRepository));
     private readonly IVersionFileRepository _versionFileRepository = versionFileRepository ?? throw new ArgumentNullException(nameof(versionFileRepository));
-    private readonly IUpstreamVersionAlignmentValidator _upstreamVersionAlignmentValidator = upstreamVersionAlignmentValidator ?? throw new ArgumentNullException(nameof(upstreamVersionAlignmentValidator));
+    private readonly IUpstreamVersionAlignmentValidator _upstreamVersionAlignmentValidator = upstreamVersionAlignmentValidator
+        ?? throw new ArgumentNullException(nameof(upstreamVersionAlignmentValidator));
 
     public override async Task RunAsync(BuildContext context)
     {

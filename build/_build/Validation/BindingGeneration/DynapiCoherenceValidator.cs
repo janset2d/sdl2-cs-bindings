@@ -66,7 +66,9 @@ public sealed class DynapiCoherenceValidator(IDynapiManifestRepository dynapiRep
             checks.Add(new ValidationCheck(
                 Name: FalsePositiveCheckName,
                 Severity: profile.FalsePositiveSeverity,
-                Message: $"Binding emits P/Invoke for '{emitted}' but SDL2's dynapi manifest does not list it as a public export (source: {manifest.Origin} '{manifest.SourcePath}'). Calling it would raise EntryPointNotFoundException; inspect translator inline filter / header exclusion list."));
+                Message: $"Binding emits P/Invoke for '{emitted}' but SDL2's dynapi manifest does not list it as a public export (source: " +
+                $"{manifest.Origin} '{manifest.SourcePath}'). Calling it would raise EntryPointNotFoundException; inspect translator inline filter / " +
+                "header exclusion list."));
         }
 
         foreach (var exported in expectedExports.OrderBy(static s => s, StringComparer.Ordinal))
@@ -79,7 +81,9 @@ public sealed class DynapiCoherenceValidator(IDynapiManifestRepository dynapiRep
             checks.Add(new ValidationCheck(
                 Name: FalseNegativeCheckName,
                 Severity: profile.FalseNegativeSeverity,
-                Message: $"SDL2 dynapi manifest lists '{exported}' as a public export but the generator did not emit it (source: {manifest.Origin} '{manifest.SourcePath}'). Likely cause: header exclusion list too aggressive, parse-view defines missing a platform, or AST inline filter over-classifying."));
+                Message: $"SDL2 dynapi manifest lists '{exported}' as a public export but the generator did not emit it (source: {manifest.Origin} " +
+                $"'{manifest.SourcePath}'). Likely cause: header exclusion list too aggressive, parse-view defines missing a platform, or AST inline " +
+                "filter over-classifying."));
         }
 
         return new ValidationReport(checks);

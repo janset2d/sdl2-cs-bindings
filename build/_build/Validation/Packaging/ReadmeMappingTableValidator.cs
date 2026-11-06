@@ -50,7 +50,8 @@ public sealed class ReadmeMappingTableValidator(IFileSystem fileSystem) : IReadm
         if (!ReadmeMappingTableBlock.TryExtractBlock(readmeContent, out var actualBlock))
         {
             return Failure(
-                $"G57: README '{readmePath.GetFilename().FullPath}' is missing mapping table markers '{ReadmeMappingTableBlock.StartMarker}' and/or '{ReadmeMappingTableBlock.EndMarker}'.");
+                $"G57: README '{readmePath.GetFilename().FullPath}' is missing mapping table markers '{ReadmeMappingTableBlock.StartMarker}' and/or " +
+                $"'{ReadmeMappingTableBlock.EndMarker}'.");
         }
 
         var lineEnding = readmeContent.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";

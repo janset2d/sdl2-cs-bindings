@@ -56,7 +56,8 @@ public sealed class UpstreamVersionAlignmentValidator : IUpstreamVersionAlignmen
                 UpstreamVersion: null,
                 Status: UpstreamVersionAlignmentCheckStatus.DuplicateFamilyName,
                 ErrorMessage:
-                $"[G54] manifest package_families[] contains duplicate family name '{group.Key}' (matched case-insensitively). Family names must be unique before upstream version alignment can run.")));
+                $"[G54] manifest package_families[] contains duplicate family name '{group.Key}' (matched case-insensitively). Family names must be " +
+                "unique before upstream version alignment can run.")));
 
         checks.AddRange(manifestConfig.LibraryManifests
             .Where(library => !string.IsNullOrWhiteSpace(library.Name))
@@ -69,7 +70,8 @@ public sealed class UpstreamVersionAlignmentValidator : IUpstreamVersionAlignmen
                 UpstreamVersion: null,
                 Status: UpstreamVersionAlignmentCheckStatus.DuplicateLibraryName,
                 ErrorMessage:
-                $"[G54] manifest library_manifests[] contains duplicate library name '{group.Key}' (matched case-insensitively). Library names must be unique before upstream version alignment can run.")));
+                $"[G54] manifest library_manifests[] contains duplicate library name '{group.Key}' (matched case-insensitively). Library names must " +
+                "be unique before upstream version alignment can run.")));
 
         return checks;
     }
@@ -128,7 +130,8 @@ public sealed class UpstreamVersionAlignmentValidator : IUpstreamVersionAlignmen
                 UpstreamVersion: library.VcpkgVersion,
                 Status: UpstreamVersionAlignmentCheckStatus.VersionMismatch,
                 ErrorMessage:
-                $"[G54] family '{family.Name}' version '{parsedFamilyVersion}' major ({parsedFamilyVersion.Major}) does not match upstream '{library.VcpkgVersion}' major ({upstreamVersion.Major}).");
+                $"[G54] family '{family.Name}' version '{parsedFamilyVersion}' major ({parsedFamilyVersion.Major}) does not match upstream " +
+                $"'{library.VcpkgVersion}' major ({upstreamVersion.Major}).");
         }
 
         if (parsedFamilyVersion.Minor != upstreamVersion.Minor)
@@ -140,7 +143,8 @@ public sealed class UpstreamVersionAlignmentValidator : IUpstreamVersionAlignmen
                 UpstreamVersion: library.VcpkgVersion,
                 Status: UpstreamVersionAlignmentCheckStatus.VersionMismatch,
                 ErrorMessage:
-                $"[G54] family '{family.Name}' version '{parsedFamilyVersion}' minor ({parsedFamilyVersion.Minor}) does not match upstream '{library.VcpkgVersion}' minor ({upstreamVersion.Minor}).");
+                $"[G54] family '{family.Name}' version '{parsedFamilyVersion}' minor ({parsedFamilyVersion.Minor}) does not match upstream " +
+                $"'{library.VcpkgVersion}' minor ({upstreamVersion.Minor}).");
         }
 
         return new UpstreamVersionAlignmentCheck(

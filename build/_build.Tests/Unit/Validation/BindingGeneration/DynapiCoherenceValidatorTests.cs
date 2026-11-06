@@ -13,7 +13,8 @@ public sealed class DynapiCoherenceValidatorTests
         var signature = new[] { typeof(IReadOnlySet<string>), typeof(BindingGenerationConfig), typeof(CancellationToken) };
         var method = typeof(DynapiCoherenceValidator).GetMethod("ValidateAsync", signature);
         await Assert.That(method).IsNotNull();
-        await Assert.That(method!.GetParameters().Select(parameter => parameter.ParameterType).ToArray()).IsEquivalentTo(signature, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(method!.GetParameters().Select(parameter => parameter.ParameterType).ToArray())
+            .IsEquivalentTo(signature, TUnit.Assertions.Enums.CollectionOrdering.Matching);
         var interfaceMethod = typeof(IBindingFamilyValidator).GetMethod("ValidateAsync", signature);
         await Assert.That(interfaceMethod).IsNotNull();
         await Assert.That(interfaceMethod!.GetParameters().Select(parameter => parameter.ParameterType).ToArray())
@@ -24,17 +25,26 @@ public sealed class DynapiCoherenceValidatorTests
         var expected = new[]
         {
             ("Emitted binding references unexported symbol", Build.Results.ValidationSeverity.Error,
-                "Binding emits P/Invoke for 'SDL_ALeak' but SDL2's dynapi manifest does not list it as a public export (source: VcpkgBuildtree '/fake/SDL2.exports'). Calling it would raise EntryPointNotFoundException; inspect translator inline filter / header exclusion list."),
+                "Binding emits P/Invoke for 'SDL_ALeak' but SDL2's dynapi manifest does not list it as a public export (source: VcpkgBuildtree " +
+                "'/fake/SDL2.exports'). Calling it would raise EntryPointNotFoundException; inspect translator inline filter / header exclusion list."),
             ("Emitted binding references unexported symbol", Build.Results.ValidationSeverity.Error,
-                "Binding emits P/Invoke for 'SDL_ZLeak' but SDL2's dynapi manifest does not list it as a public export (source: VcpkgBuildtree '/fake/SDL2.exports'). Calling it would raise EntryPointNotFoundException; inspect translator inline filter / header exclusion list."),
+                "Binding emits P/Invoke for 'SDL_ZLeak' but SDL2's dynapi manifest does not list it as a public export (source: VcpkgBuildtree " +
+                "'/fake/SDL2.exports'). Calling it would raise EntryPointNotFoundException; inspect translator inline filter / header exclusion list."),
             ("Public SDL2 export missing from emitted bindings", Build.Results.ValidationSeverity.Warning,
-                "SDL2 dynapi manifest lists 'SDL_AMissing' as a public export but the generator did not emit it (source: VcpkgBuildtree '/fake/SDL2.exports'). Likely cause: header exclusion list too aggressive, parse-view defines missing a platform, or AST inline filter over-classifying."),
+                "SDL2 dynapi manifest lists 'SDL_AMissing' as a public export but the generator did not emit it (source: VcpkgBuildtree " +
+                "'/fake/SDL2.exports'). Likely cause: header exclusion list too aggressive, parse-view defines missing a platform, or AST inline " +
+                "filter over-classifying."),
             ("Public SDL2 export missing from emitted bindings", Build.Results.ValidationSeverity.Warning,
-                "SDL2 dynapi manifest lists 'SDL_ZMissing' as a public export but the generator did not emit it (source: VcpkgBuildtree '/fake/SDL2.exports'). Likely cause: header exclusion list too aggressive, parse-view defines missing a platform, or AST inline filter over-classifying."),
+                "SDL2 dynapi manifest lists 'SDL_ZMissing' as a public export but the generator did not emit it (source: VcpkgBuildtree " +
+                "'/fake/SDL2.exports'). Likely cause: header exclusion list too aggressive, parse-view defines missing a platform, or AST inline " +
+                "filter over-classifying."),
         };
-        await Assert.That(report.Select(check => (check.Name, check.Severity, check.Message)).ToArray()).IsEquivalentTo(expected, TUnit.Assertions.Enums.CollectionOrdering.Matching);
-        await Assert.That(report.Errors.Select(check => (check.Name, check.Severity, check.Message)).ToArray()).IsEquivalentTo(expected[..2], TUnit.Assertions.Enums.CollectionOrdering.Matching);
-        await Assert.That(report.Warnings.Select(check => (check.Name, check.Severity, check.Message)).ToArray()).IsEquivalentTo(expected[2..], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(report.Select(check => (check.Name, check.Severity, check.Message)).ToArray())
+            .IsEquivalentTo(expected, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(report.Errors.Select(check => (check.Name, check.Severity, check.Message)).ToArray())
+            .IsEquivalentTo(expected[..2], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(report.Warnings.Select(check => (check.Name, check.Severity, check.Message)).ToArray())
+            .IsEquivalentTo(expected[2..], TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     private static HashSet<string> Symbols(params string[] names)

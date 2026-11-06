@@ -77,7 +77,8 @@ public sealed class ConsolidateHarvestTask(
         {
             var summary = string.Join("; ", failures.Select(failure => $"{failure.Library}: {failure.Message}"));
             throw new CakeException(
-                $"ConsolidateHarvest failed for {failures.Count} library/libraries — {summary}. Stale receipts (if any) were not overwritten; re-run Harvest + ConsolidateHarvest after resolving the underlying errors.");
+                $"ConsolidateHarvest failed for {failures.Count} library/libraries — {summary}. Stale receipts (if any) were not overwritten; re-run " +
+                "Harvest + ConsolidateHarvest after resolving the underlying errors.");
         }
 
         _reporter.LogCompleted();
