@@ -50,6 +50,7 @@ public sealed class StringUtf8AbiTests
         using PinnedUtf8 pinned = SdlUtf8.Pin(value);
 
         byte* duplicate = SDL_strdup(pinned.Pointer);
+
         try
         {
             return duplicate is null

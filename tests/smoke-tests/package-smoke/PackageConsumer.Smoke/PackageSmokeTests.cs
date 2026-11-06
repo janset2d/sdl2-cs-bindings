@@ -64,6 +64,7 @@ public sealed class PackageSmokeTests
     public async Task SDL_Init_Cycle_Succeeds()
     {
         var initResult = SDL.SDL_Init(0);
+
         try
         {
             await Assert.That(initResult).IsEqualTo(0);
@@ -107,6 +108,7 @@ public sealed class PackageSmokeTests
 
         // Core load is enough here; Mix_OpenAudio below exercises the packaged audio path.
         var initResult = SDL.SDL_Init(0);
+
         try
         {
             await Assert.That(initResult).IsEqualTo(0);
@@ -165,6 +167,7 @@ public sealed class PackageSmokeTests
     public async Task Ttf_Init_Succeeds()
     {
         var initResult = SDL_ttf.TTF_Init();
+
         try
         {
             await Assert.That(initResult).IsEqualTo(0);
@@ -185,6 +188,7 @@ public sealed class PackageSmokeTests
         IntPtr renderer = IntPtr.Zero;
 
         var initResult = SDL.SDL_Init(SDL.SDL_INIT_VIDEO);
+
         try
         {
             await Assert.That(initResult).IsEqualTo(0);
@@ -220,6 +224,7 @@ public sealed class PackageSmokeTests
     {
         // Initialize to force the native libraries to load before querying versions.
         SDL.SDL_Init(0);
+
         try
         {
             SDL.SDL_GetVersion(out var coreVersion);
@@ -413,9 +418,11 @@ public sealed class PackageSmokeTests
     private static bool IsDummyAudioDriverRegistered()
     {
         var count = SDL.SDL_GetNumAudioDrivers();
+
         for (var i = 0; i < count; i++)
         {
             var name = SDL.SDL_GetAudioDriver(i);
+
             if (!string.IsNullOrEmpty(name) && string.Equals(name, "dummy", StringComparison.OrdinalIgnoreCase))
             {
                 return true;
