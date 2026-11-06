@@ -20,7 +20,7 @@ public sealed class DynapiCoherenceValidatorTests
         await Assert.That(interfaceMethod!.GetParameters().Select(parameter => parameter.ParameterType).ToArray())
             .IsEquivalentTo(signature, TUnit.Assertions.Enums.CollectionOrdering.Matching);
         var validator = new DynapiCoherenceValidator(new FakeDynapiManifestRepository(Symbols("SDL_ZMissing", "SDL_Init", "SDL_AMissing")));
-        var report = await ((IBindingFamilyValidator)validator).ValidateAsync(
+        var report = await validator.ValidateAsync(
             Symbols("SDL_ZLeak", "SDL_Init", "SDL_ALeak"), Sdl2CoreConfig(), CancellationToken.None);
         var expected = new[]
         {

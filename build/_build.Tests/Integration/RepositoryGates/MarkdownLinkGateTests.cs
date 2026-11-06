@@ -1,3 +1,4 @@
+using System.Globalization;
 using Build.Tests.Fixtures;
 using Build.Tests.Fixtures.RepositoryGates;
 
@@ -51,7 +52,7 @@ public sealed class MarkdownLinkGateTests
                 }
 
                 var entry = $"{source}|{target}";
-                broken.Add((entry, $"{source}:{link.Line} -> {target}\n{entry}"));
+                broken.Add((entry, string.Create(CultureInfo.CurrentCulture, $"{source}:{link.Line} -> {target}\n{entry}")));
             }
         }
 
