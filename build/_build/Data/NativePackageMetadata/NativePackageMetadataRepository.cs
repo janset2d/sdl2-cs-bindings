@@ -19,7 +19,7 @@ public sealed class NativePackageMetadataRepository(ICakeContext cakeContext) : 
         ArgumentNullException.ThrowIfNull(metadata);
         ct.ThrowIfCancellationRequested();
 
-        await _cakeContext.WriteJsonAsync(path, metadata).ConfigureAwait(false);
+        await _cakeContext.WriteJsonAsync(path, metadata);
         ct.ThrowIfCancellationRequested();
     }
 
@@ -53,7 +53,7 @@ public sealed class NativePackageMetadataRepository(ICakeContext cakeContext) : 
 
             ct.ThrowIfCancellationRequested();
 
-            var metadataContent = await ReadEntryContentAsync(metadataEntry, ct).ConfigureAwait(false);
+            var metadataContent = await ReadEntryContentAsync(metadataEntry, ct);
             var metadata = CakeJsonExtensions.DeserializeJson<NativePackageMetadataDocument>(metadataContent);
 
             if (metadata is null)
@@ -80,9 +80,9 @@ public sealed class NativePackageMetadataRepository(ICakeContext cakeContext) : 
 
     private static async Task<string> ReadEntryContentAsync(ZipArchiveEntry entry, CancellationToken ct)
     {
-        await using var stream = await entry.OpenAsync(ct).ConfigureAwait(false);
+        await using var stream = await entry.OpenAsync(ct);
         using var reader = new StreamReader(stream);
-        return await reader.ReadToEndAsync(ct).ConfigureAwait(false);
+        return await reader.ReadToEndAsync(ct);
     }
 
     private static Result<NativePackageMetadataDocument, NativePackageMetadataError> Failure(string message, Exception? exception = null)

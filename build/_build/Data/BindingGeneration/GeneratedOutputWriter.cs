@@ -30,7 +30,7 @@ public sealed class GeneratedOutputWriter(ICakeContext context)
             ct.ThrowIfCancellationRequested();
             var targetPath = outputDirectory.CombineWithFilePath(file.RelativePath);
             _context.EnsureDirectoryExists(targetPath.GetDirectory());
-            await _context.WriteAllTextAsync(targetPath, file.Content).ConfigureAwait(false);
+            await _context.WriteAllTextAsync(targetPath, file.Content);
         }
     }
 

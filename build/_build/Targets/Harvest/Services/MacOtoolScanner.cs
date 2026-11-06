@@ -27,7 +27,7 @@ public class MacOtoolScanner : IRuntimeScanner
         try
         {
             var settings = new OtoolSettings(binary);
-            var dependencies = await Task.Run(() => _context.OtoolDependencies(settings), ct).ConfigureAwait(false);
+            var dependencies = await Task.Run(() => _context.OtoolDependencies(settings), ct);
 
             var result = new HashSet<FilePath>();
 

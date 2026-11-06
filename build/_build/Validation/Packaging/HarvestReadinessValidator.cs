@@ -33,7 +33,7 @@ public sealed class HarvestReadinessValidator(
                 $"ConsolidateHarvest for library '{family.LibraryRef}' first.");
         }
 
-        var harvestManifest = await _harvestManifestRepository.LoadManifestAsync(family.LibraryRef, ct).ConfigureAwait(false);
+        var harvestManifest = await _harvestManifestRepository.LoadManifestAsync(family.LibraryRef, ct);
         ct.ThrowIfCancellationRequested();
 
         AssertConsolidationReceiptValid(family, manifestPath, harvestManifest);
