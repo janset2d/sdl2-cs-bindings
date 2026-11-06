@@ -11,6 +11,18 @@ public sealed class MsvcDevEnvironmentTests
 {
     [Test]
     [WindowsOnly]
+    public async Task ResolveAsync_Should_Preserve_The_Raw_Batch_Command_Line()
+    {
+        var world = HostEnvironmentData.MsvcWorld();
+        var resolver = new MsvcDevEnvironment(world.CakeContext, world.Log, world.HostProcessRunner);
+
+        await resolver.ResolveAsync(MsvcTargetArch.X64);
+
+        await Assert.That(world.HostProcessInvocations.Single().Request.RawArguments).IsEqualTo(HostEnvironmentData.CaptureCommand);
+    }
+
+    [Test]
+    [WindowsOnly]
     public async Task ResolveAsync_Should_Read_Cake_Environment_And_Cache_The_Delta()
     {
         var world = HostEnvironmentData.MsvcWorld();
@@ -26,7 +38,7 @@ public sealed class MsvcDevEnvironmentTests
         var invocation = world.HostProcessInvocations[0];
         await Assert.That(invocation.CancellationToken).IsEqualTo(cancellation.Token);
         await Assert.That(new System.IO.FileInfo(invocation.Request.FileName).Name).IsEqualTo("cmd.exe");
-        await Assert.That(invocation.Request.Arguments).IsEquivalentTo(["/s", "/c", "call", HostEnvironmentData.Batch, "x64", ">nul", "&&", "set"], CollectionOrdering.Matching);
+        await Assert.That(invocation.Request.RawArguments).IsEqualTo(HostEnvironmentData.CaptureCommand);
     }
 
     [Test]
