@@ -18,8 +18,8 @@ public sealed class DynapiCoherenceValidator(IDynapiManifestRepository dynapiRep
 {
     private readonly IDynapiManifestRepository _dynapiRepo = dynapiRepo ?? throw new ArgumentNullException(nameof(dynapiRepo));
 
-    private const string FalsePositiveCheckName = "Emitted binding references unexported symbol";
-    private const string FalseNegativeCheckName = "Public SDL2 export missing from emitted bindings";
+    private const string _falsePositiveCheckName = "Emitted binding references unexported symbol";
+    private const string _falseNegativeCheckName = "Public SDL2 export missing from emitted bindings";
 
     public string ValidatorId => "dynapi-coherence";
 
@@ -65,7 +65,7 @@ public sealed class DynapiCoherenceValidator(IDynapiManifestRepository dynapiRep
             }
 
             checks.Add(new ValidationCheck(
-                Name: FalsePositiveCheckName,
+                Name: _falsePositiveCheckName,
                 Severity: profile.FalsePositiveSeverity,
                 Message: $"Binding emits P/Invoke for '{emitted}' but SDL2's dynapi manifest does not list it as a public export (source: " +
                 $"{manifest.Origin} '{manifest.SourcePath}'). Calling it would raise EntryPointNotFoundException; inspect translator inline filter / " +
@@ -80,7 +80,7 @@ public sealed class DynapiCoherenceValidator(IDynapiManifestRepository dynapiRep
             }
 
             checks.Add(new ValidationCheck(
-                Name: FalseNegativeCheckName,
+                Name: _falseNegativeCheckName,
                 Severity: profile.FalseNegativeSeverity,
                 Message: $"SDL2 dynapi manifest lists '{exported}' as a public export but the generator did not emit it (source: {manifest.Origin} " +
                 $"'{manifest.SourcePath}'). Likely cause: header exclusion list too aggressive, parse-view defines missing a platform, or AST inline " +

@@ -68,9 +68,9 @@ public interface IMsvcDevEnvironment
 /// <inheritdoc />
 public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
 {
-    private const string VsToolsRequirement = "Microsoft.VisualStudio.Component.VC.Tools.x86.x64";
-    private const string VcvarsAllRelativePath = "VC/Auxiliary/Build/vcvarsall.bat";
-    private const string VcToolsInstallDirEnvVar = "VCToolsInstallDir";
+    private const string _vsToolsRequirement = "Microsoft.VisualStudio.Component.VC.Tools.x86.x64";
+    private const string _vcvarsAllRelativePath = "VC/Auxiliary/Build/vcvarsall.bat";
+    private const string _vcToolsInstallDirEnvVar = "VCToolsInstallDir";
 
     private static readonly IReadOnlyDictionary<string, string> Empty =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -119,13 +119,13 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
         // introspect. Contract: if you source the parent shell, source it for the arch
         // that matches the RID you intend to build. CI paths never source the parent
         // shell so this fast-path short-circuits only on operator workstations.
-        var vcToolsInstallDir = Environment.GetEnvironmentVariable(VcToolsInstallDirEnvVar);
+        var vcToolsInstallDir = Environment.GetEnvironmentVariable(_vcToolsInstallDirEnvVar);
 
         if (!string.IsNullOrWhiteSpace(vcToolsInstallDir))
         {
             _log.Verbose(
                 "MsvcDevEnvironment: parent shell already has MSVC sourced ({0}={1}); no override needed for target '{2}'.",
-                VcToolsInstallDirEnvVar,
+                _vcToolsInstallDirEnvVar,
                 vcToolsInstallDir,
                 targetArch);
             return Empty;
@@ -133,7 +133,7 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
 
         var vsInstallation = _cakeContext.VSWhereLatest(new VSWhereLatestSettings
         {
-            Requires = VsToolsRequirement,
+            Requires = _vsToolsRequirement,
             ReturnProperty = "installationPath",
         });
 
@@ -144,7 +144,7 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
                 "Install VS Build Tools 2022+ with that workload, or invoke Cake from a Developer PowerShell for VS 2022 so VCToolsInstallDir is already set.");
         }
 
-        var vcvarsBat = vsInstallation.CombineWithFilePath(new FilePath(VcvarsAllRelativePath));
+        var vcvarsBat = vsInstallation.CombineWithFilePath(new FilePath(_vcvarsAllRelativePath));
 
         if (!File.Exists(vcvarsBat.FullPath))
         {

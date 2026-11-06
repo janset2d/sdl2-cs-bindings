@@ -30,8 +30,8 @@ namespace Build.Targets.PublishStaging;
     Justification = "Internal feed URL is part of the release-lifecycle contract, not operator-tunable.")]
 public sealed class PublishStagingTask : AsyncFrostingTask<BuildContext>
 {
-    private const string GitHubPackagesFeedUrl = "https://nuget.pkg.github.com/janset2d/index.json";
-    private const string LocalSuffixPrefix = "local.";
+    private const string _gitHubPackagesFeedUrl = "https://nuget.pkg.github.com/janset2d/index.json";
+    private const string _localSuffixPrefix = "local.";
 
     private static readonly string[] AuthEnvVarChain = ["GH_TOKEN", "GITHUB_TOKEN"];
 
@@ -104,11 +104,11 @@ public sealed class PublishStagingTask : AsyncFrostingTask<BuildContext>
                 managedPackageId,
                 nativePackageId);
 
-            await _feedClient.PushAsync(GitHubPackagesFeedUrl, authToken, managedNupkg, ct);
-            await _feedClient.PushAsync(GitHubPackagesFeedUrl, authToken, nativeNupkg, ct);
+            await _feedClient.PushAsync(_gitHubPackagesFeedUrl, authToken, managedNupkg, ct);
+            await _feedClient.PushAsync(_gitHubPackagesFeedUrl, authToken, nativeNupkg, ct);
         }
 
-        _log.Information("PublishStaging pushed {0} family/families to '{1}'.", concreteFamilies.Count, GitHubPackagesFeedUrl);
+        _log.Information("PublishStaging pushed {0} family/families to '{1}'.", concreteFamilies.Count, _gitHubPackagesFeedUrl);
     }
 
     private string ResolveAuthToken()
@@ -160,7 +160,7 @@ public sealed class PublishStagingTask : AsyncFrostingTask<BuildContext>
         // versions. Refusing to push these prevents an operator stumbling --target
         // PublishStaging after a local pack and shipping ephemeral local builds to the
         // staging feed.
-        if (version.IsPrerelease && version.Release.StartsWith(LocalSuffixPrefix, StringComparison.OrdinalIgnoreCase))
+        if (version.IsPrerelease && version.Release.StartsWith(_localSuffixPrefix, StringComparison.OrdinalIgnoreCase))
         {
             throw new CakeException(
                 $"PublishStaging refused to push '{familyName}' at version '{version.ToNormalizedString()}': prerelease label starts with 'local.'. " +
