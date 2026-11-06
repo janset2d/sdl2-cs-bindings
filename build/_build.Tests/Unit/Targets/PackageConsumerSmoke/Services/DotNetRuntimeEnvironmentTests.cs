@@ -23,13 +23,42 @@ public sealed class DotNetRuntimeEnvironmentTests
             .IsEquivalentTo([("DOTNET_ROOT_X86", HostEnvironmentData.RuntimeRoot), ("DOTNET_ROOT(x86)", HostEnvironmentData.RuntimeRoot)], CollectionOrdering.Matching);
         await Assert.That(cached).IsSameReferenceAs(result);
         await Assert.That(world.HostProcessInvocations.Count).IsEqualTo(2);
-        await Assert.That(world.HostProcessInvocations.Select(call => call.Request.Arguments[10])).IsEquivalentTo(["8.0", "10.0"], CollectionOrdering.Matching);
+        await Assert.That(world.HostProcessInvocations.Select(call => call.Request.Arguments.SkipWhile(argument => argument != "-Channel").Skip(1).First()))
+            .IsEquivalentTo(["8.0", "10.0"], CollectionOrdering.Matching);
         var invocation = world.HostProcessInvocations[0];
         await Assert.That(invocation.CancellationToken).IsEqualTo(cancellation.Token);
         await Assert.That(invocation.Request.FileName).IsEqualTo(HostEnvironmentData.PowerShell);
         await Assert.That(invocation.Request.Arguments).IsEquivalentTo([
             "-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", HostEnvironmentData.InstallScript,
             "-Architecture", "x86", "-Channel", "8.0", "-Runtime", "dotnet", "-InstallDir", HostEnvironmentData.RuntimeRoot], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [WindowsOnly]
+    public async Task ResolveAsync_Should_Create_The_Cache_And_Runtime_Directories()
+    {
+        var world = HostEnvironmentData.RuntimeWorld();
+        var resolver = new DotNetRuntimeEnvironment(world.CakeContext, world.Log, world.HostProcessRunner);
+        await Assert.That(world.FileSystem.GetDirectory(HostEnvironmentData.RuntimeRoot).Exists).IsFalse();
+
+        await resolver.ResolveAsync("win-x86", ["net10.0"]);
+
+        await Assert.That(world.FileSystem.GetDirectory(HostEnvironmentData.CacheRoot).Exists).IsTrue();
+        await Assert.That(world.FileSystem.GetDirectory(HostEnvironmentData.RuntimeRoot).Exists).IsTrue();
+    }
+
+    [Test]
+    [WindowsOnly]
+    public async Task ResolveAsync_Should_Use_Windows_PowerShell_When_Pwsh_Is_Missing()
+    {
+        var world = HostEnvironmentData.RuntimeWorld();
+        world.FileSystem.GetFile(HostEnvironmentData.PowerShell).Delete();
+        world.WithProcessResult("powershell.exe", 0, "");
+        var resolver = new DotNetRuntimeEnvironment(world.CakeContext, world.Log, world.HostProcessRunner);
+
+        await resolver.ResolveAsync("win-x86", ["net10.0"]);
+
+        await Assert.That(world.HostProcessInvocations.Single().Request.FileName).IsEqualTo("powershell.exe");
     }
 
     [Test]

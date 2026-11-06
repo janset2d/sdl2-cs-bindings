@@ -3,6 +3,8 @@ using Build.Data;
 using Build.Data.Harvest;
 using Build.Host.Cake;
 using Build.Targets.ConsolidateHarvest;
+using Build.Targets.ConsolidateHarvest.Reporting;
+using Build.Targets.ConsolidateHarvest.Services;
 using Build.Tests.Fixtures;
 using Cake.Core.Diagnostics;
 
@@ -21,6 +23,21 @@ public sealed class ConsolidateHarvestTaskScenarioTests
     private const string LibraryName = "sdl2-core";
     private const string RidWindows = "win-x64";
     private const string RidLinux = "linux-x64";
+
+    [Test]
+    public async Task Constructor_Should_Throw_When_TimeProvider_Is_Null()
+    {
+        var world = FakeCakeWorld.CreateWindows();
+        var paths = world.CreateBuildContext().Paths;
+
+        var error = await Assert.That(() => new ConsolidateHarvestTask(
+            new HarvestManifestRepository(world.CakeContext, paths), new LicenseUnionWriter(world.CakeContext, paths),
+            new StagedArtifactSwapper(world.CakeContext), new ConsolidateHarvestReporter(world.AnsiConsole, world.Log),
+            world.CakeContext, paths, null!))
+            .Throws<ArgumentNullException>();
+
+        await Assert.That(error!.ParamName).IsEqualTo("timeProvider");
+    }
 
     [Test]
     public async Task RunAsync_Should_Throw_When_Harvest_Output_Root_Is_Missing()
@@ -95,7 +112,7 @@ public sealed class ConsolidateHarvestTaskScenarioTests
         await Assert.That(world.FileExists(manifestRelative)).IsTrue();
         var manifest = await world.CakeContext.ToJsonAsync<HarvestManifest>(world.RepoRoot.CombineWithFilePath(manifestRelative));
         await Assert.That(manifest.LibraryName).IsEqualTo(LibraryName);
-        await Assert.That(manifest.GeneratedTimestamp).IsEqualTo(FakeCakeWorld.Timestamp);
+        await Assert.That(manifest.GeneratedTimestamp).IsEqualTo(ClockData.Timestamp);
         await Assert.That(manifest.Summary.TotalRids).IsEqualTo(2);
         await Assert.That(manifest.Summary.SuccessfulRids).IsEqualTo(2);
         await Assert.That(manifest.Summary.FailedRids).IsEqualTo(0);
