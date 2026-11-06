@@ -26,7 +26,7 @@ dotnet test --project build/_build.Tests/Build.Tests.csproj -c Release
 dotnet build src/SDL2.Core/SDL2.Core.csproj
 ```
 
-`setup` selects its feed with `--source=local|remote-github|remote-nuget`.
+`setup` selects its feed with `--source=local|remote-github`.
 `build-binding-generator-image` builds the Linux x64 ABI-test image only.
 Tests use TUnit on Microsoft.Testing.Platform; [global.json](../../global.json) selects the MTP runner.
 Use `--treenode-filter`, not VSTest `--filter`, for a focused run:
