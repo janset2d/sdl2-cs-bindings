@@ -34,6 +34,13 @@ public sealed class BlankLineBeforeBlockAnalyzer : DiagnosticAnalyzer
     private static void Analyze(SyntaxNodeAnalysisContext context)
     {
         var statement = (StatementSyntax)context.Node;
+
+        if (statement is UsingStatementSyntax { Statement: not BlockSyntax }
+            or LockStatementSyntax { Statement: not BlockSyntax } or FixedStatementSyntax { Statement: not BlockSyntax })
+        {
+            return;
+        }
+
         var followsStatement = statement.Parent switch
         {
             BlockSyntax block => block.Statements.IndexOf(statement) > 0,
@@ -43,8 +50,7 @@ public sealed class BlankLineBeforeBlockAnalyzer : DiagnosticAnalyzer
             _ => false
         };
 
-        if (!followsStatement || statement is UsingStatementSyntax { Statement: not BlockSyntax }
-            or LockStatementSyntax { Statement: not BlockSyntax } or FixedStatementSyntax { Statement: not BlockSyntax })
+        if (!followsStatement)
         {
             return;
         }
