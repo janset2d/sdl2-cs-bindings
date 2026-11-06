@@ -16,11 +16,6 @@
     { "rid": "osx-arm64", "triplet": "arm64-osx-hybrid", "runner": "macos-26", "container_image": null }
   ],
 
-  "ci_runners": {
-    "utility": "linux-x64",
-    "os_legs": [ "linux-x64", "win-x64", "osx-arm64" ]
-  },
-
   "package_families": [
     {
       "name": "sdl2-core",

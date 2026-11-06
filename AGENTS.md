@@ -187,7 +187,6 @@ vcpkg.json                    ← What vcpkg builds (deps + features)
 build/manifest.json           ← Single source of truth (schema v2.1):
     ├── packaging_config      ← validation mode, core library
     ├── runtimes[]            ← RID ↔ triplet ↔ CI runner ↔ container image
-    ├── ci_runners            ← utility RID + OS-leg RIDs for CI workflows
     ├── package_families[]    ← family identity (managed_project, native_project, library_ref, depends_on)
     ├── system_exclusions     ← OS libraries excluded from packages
     └── library_manifests[]   ← library versions, binary patterns

@@ -20,7 +20,6 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <!-- Pinned: 'latest' moves with the SDK. Bump in the change that adopts the next SDK major. -->
     <LangVersion>14.0</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
