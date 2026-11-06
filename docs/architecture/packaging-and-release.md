@@ -37,7 +37,8 @@ New executable invariants ship with tests that prove refusal at the owning bound
 
 ### Preflight registry
 
-Each row names the current enforcement owner, not a proposed class. Retired IDs are not reused.
+Each row names the current enforcement owner, not a proposed class.
+New IDs continue after the highest ID ever assigned; IDs are never reused.
 
 | ID | Invariant | Owner |
 |---|---|---|
@@ -86,7 +87,7 @@ Its schema is owned by [NativePackageMetadataDocument](../../build/_build/Data/N
 shape checks. It is not a production pack path. Normal packs pass `NativePayloadSource` from harvest.
 Do not add another bypass to make an invalid payload pass.
 
-## 4. Operational principles
+## Operational principles
 
 Preflight runs before native matrix work. PackageTask packs a family pair at one resolved version;
 post-pack validation independently compares the two emitted versions. The
@@ -96,7 +97,7 @@ Resolved version mappings are produced by
 [ResolveVersionsFromExplicit](../../build/_build/Targets/ResolveVersionsFromExplicit/).
 Stage targets consume them through `--versions-file`, not a tag-trigger assumption.
 
-### 4.1 Pipeline Scope-Assumption Gaps — Operational Implications
+### Release scope requirements
 
 G58 requires dependencies in the same invocation; it does not query a feed to satisfy missing Core.
 [PackageConsumerSmokePreconditionsValidator](../../build/_build/Validation/Packaging/PackageConsumerSmokePreconditionsValidator.cs)
@@ -111,13 +112,13 @@ Apply [ADR-0001](../adr/0001-d3seg-and-package-first.md), including its rule for
 a managed-only breaking change needs a transition plan. The brand's v1.0 launch is not a package
 version reset. Package versions remain anchored to their upstream major/minor line.
 
-| Distribution | Label |
-|---|---|
-| Local rehearsal | `-local.<timestamp>` |
-| Internal CI wave | `-ci.<run-id>.<attempt>` |
-| Public preview | `-preview.N`, incremented per wave |
-| Release candidate | `-rc.N`, incremented per wave |
-| Stable | No prerelease suffix |
+| Distribution | Label | Feed |
+|---|---|---|
+| Local rehearsal | `-local.<timestamp>` | GitHub Packages |
+| Internal CI wave | `-ci.<run-id>.<attempt>` | GitHub Packages |
+| Public preview | `-preview.N`, incremented per wave | nuget.org |
+| Release candidate | `-rc.N`, incremented per wave | nuget.org |
+| Stable | No prerelease suffix | nuget.org |
 
 Skip an alpha label: internal builds already serve the untrusted-development role. Public previews
 are expected to work even though their API may still move. Never promote merely because time passed.
