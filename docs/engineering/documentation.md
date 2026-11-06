@@ -90,6 +90,9 @@ The root [README](../../README.md) is packed into every NuGet package. It must s
 Its `JANSET:MAPPING-TABLE` marker block is generated and checked by `ReadmeMappingTableValidator`;
 preserve the block when editing surrounding prose. Use absolute GitHub blob URLs on `master` for
 repository links in the README, so they work on nuget.org and the link gate checks them.
+The README may restate the supported RID set and Linux glibc floor for consumers.
+The [manifest](../../build/manifest.json) owns the RID set; ADR-0010 owns the floor.
+A change to either updates the README in the same change.
 
 ## Repository gates
 
