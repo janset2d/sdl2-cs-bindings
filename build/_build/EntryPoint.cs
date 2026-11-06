@@ -26,7 +26,7 @@ internal static class EntryPoint
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(parsedArgs);
 
-        services.AddSingleton<IAnsiConsole>(AnsiConsole.Console);
+        services.AddSingleton(AnsiConsole.Console);
         services
             .AddHostBuildingBlocks(parsedArgs, repoRootPath)
             .AddData()

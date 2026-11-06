@@ -193,5 +193,4 @@ public sealed class NativePackageMetadataValidatorTests
             ("package.nuspec", "<package />"),
         ]);
     }
-
 }
