@@ -89,7 +89,9 @@ make every component MIT-licensed.
 Thanks to Ethan Lee and SDL2-CS for the transitional managed bindings, the SDL maintainers, Microsoft
 vcpkg, Cake Frosting, and the SkiaSharp/LibGit2Sharp packaging precedents.
 
-Contributors: start with [AGENTS.md](https://github.com/janset2d/sdl2-cs-bindings/blob/master/AGENTS.md)
+## Contributing
+
+Start with [AGENTS.md](https://github.com/janset2d/sdl2-cs-bindings/blob/master/AGENTS.md)
 and the [development guide](https://github.com/janset2d/sdl2-cs-bindings/blob/master/docs/engineering/developing.md).
 
 ## Version mapping
