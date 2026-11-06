@@ -17,9 +17,15 @@ internal static class GateScopes
             || path.StartsWith("build/_build.Tests/Integration/RepositoryGates/", StringComparison.Ordinal)
             || path.StartsWith("build/_build.Tests/Unit/RepositoryGates/", StringComparison.Ordinal)
             || path.StartsWith("build/_build.Tests/Fixtures/RepositoryGates/", StringComparison.Ordinal))
+        {
             return false;
+        }
+
         if (!RepositoryFiles.Tracked.Contains(path) || RepositoryFiles.Submodules.Contains(path))
+        {
             return false;
+        }
+
         try
         {
             using var stream = File.OpenRead(Path.Combine(RepositoryFiles.Root, path));

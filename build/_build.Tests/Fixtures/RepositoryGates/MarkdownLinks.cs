@@ -20,20 +20,33 @@ internal static partial class MarkdownLinks
             {
                 var run = marker.Groups["fence"].Value;
                 if (fence.Length == 0)
+                {
                     fence = run;
+                }
                 else if (run[0] == fence[0] && run.Length >= fence.Length
                     && string.IsNullOrWhiteSpace(line[(marker.Index + marker.Length)..]))
+                {
                     fence = string.Empty;
+                }
+
                 continue;
             }
             if (fence.Length != 0)
+            {
                 continue;
+            }
+
             line = InlineCode().Replace(line, string.Empty);
             var definition = Reference().Match(line);
             if (definition.Success)
+            {
                 links.Add(new MarkdownLink(index + 1, definition.Groups["target"].Value));
+            }
+
             foreach (Match match in InlineLink().Matches(line))
+            {
                 links.Add(new MarkdownLink(index + 1, match.Groups["target"].Value));
+            }
         }
         return links;
     }
@@ -42,12 +55,20 @@ internal static partial class MarkdownLinks
     {
         var github = GitHubLink().Match(target);
         if (github.Success)
+        {
             target = "/" + target[github.Length..];
+        }
         else if (target.StartsWith('#') || Scheme().IsMatch(target))
+        {
             return null;
+        }
+
         target = Uri.UnescapeDataString(target.Split(['#', '?'], StringSplitOptions.None)[0]).Replace('\\', '/');
         if (DrivePath().IsMatch(target))
+        {
             return target;
+        }
+
         var directoryEnd = sourceFile.LastIndexOf('/');
         var directory = directoryEnd < 0 ? string.Empty : sourceFile[..(directoryEnd + 1)];
         var combined = target.StartsWith('/') ? target[1..] : directory + target;
@@ -55,11 +76,18 @@ internal static partial class MarkdownLinks
         foreach (var segment in combined.Split('/'))
         {
             if (segment is "" or ".")
+            {
                 continue;
+            }
+
             if (segment == ".." && segments.Count > 0 && segments[^1] != "..")
+            {
                 segments.RemoveAt(segments.Count - 1);
+            }
             else
+            {
                 segments.Add(segment);
+            }
         }
         return segments.Count == 0 ? "." : string.Join('/', segments);
     }

@@ -144,8 +144,7 @@ dotnet_diagnostic.IDE0004.severity = suggestion
 dotnet_diagnostic.IDE0005.severity = none
 # QM-8: IDE0007 stays at suggestion until "style: naming, var, this. and predefined types".
 dotnet_diagnostic.IDE0007.severity = suggestion
-# QM-3: IDE0011 stays at none until "style: braces on every control-flow body (IDE0011 error)".
-dotnet_diagnostic.IDE0011.severity = none
+dotnet_diagnostic.IDE0011.severity = error
 dotnet_diagnostic.IDE0017.severity = error
 dotnet_diagnostic.IDE0018.severity = error
 dotnet_diagnostic.IDE0019.severity = error
