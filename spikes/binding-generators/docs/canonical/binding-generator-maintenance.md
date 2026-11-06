@@ -443,7 +443,7 @@ Then:
 
 6. **Regenerate the full family corpus** for the affected triplet (vary `--vcpkg-triplet` per RID).
 7. **Run cross-triplet ABI smoke** — execute AbiTests per RID via the Docker container (see §"Linux-Canonical Generation") for non-Windows RIDs.
-8. **Update overlay** if needed (`vcpkg-overlay-triplets/`) and revalidate per `docs/playbook/overlay-management.md`.
+8. **Update overlay** if needed (`vcpkg-overlay-triplets/`) and revalidate per [`native-dependency-maintenance.md`](../../../../docs/engineering/native-dependency-maintenance.md).
 
 ### 6.5 SDL2 Vs SDL3 Maintenance Posture
 
