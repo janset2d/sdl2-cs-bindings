@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -12,12 +13,17 @@ namespace Build.Tests.Fixtures.QualityGates;
 internal static partial class SuppressionLedger
 {
     public const string BaselinePath = "build/_build.Tests/Integration/QualityGates/suppression-ledger.baseline";
+    private const string AttributeSuffix = "Attribute";
+    private const string GeneratedDirectorySegment = "/Generated/";
+    private const int RegexTimeoutMilliseconds = 1000;
+    private static readonly string[] WarningLists = ["NoWarn", "NoError", "WarningsNotAsErrors", "MSBuildWarningsAsMessages"];
+    private static readonly string[] TaskWarningParameters = [.. WarningLists, "DisabledWarnings"];
 
     private static readonly string[] Channels =
     [
         "pragma", "nullable", "suppress-message", "slopwatch-suppress", "slopwatch-ignore", "slopwatch-baseline", "editorconfig", "globalconfig",
         "no-warn", "warnings-not-as-errors", "msbuild-warnings-as-messages", "generated-code-header", "generated-code-attribute", "build-switch",
-        "no-error", "staging-marker",
+        "no-error", "staging-marker", "slopwatch",
     ];
 
     private static readonly string[] BuildSwitches =
@@ -39,10 +45,15 @@ internal static partial class SuppressionLedger
 
         foreach (var (path, content) in files)
         {
-            if (path.EndsWith(".cs", StringComparison.Ordinal))
+            if (path.StartsWith(".slopwatch/", StringComparison.Ordinal))
             {
-                ReadCode(path, content, entries);
-                ReadGeneratedHeader(path, content, entries, generatedDirectories);
+                ReadSlopwatch(path, content, entries);
+            }
+            else if (path.EndsWith(".cs", StringComparison.Ordinal))
+            {
+                var root = CSharpSyntaxTree.ParseText(content).GetCompilationUnitRoot();
+                ReadCode(path, root, entries);
+                ReadGeneratedHeader(path, root, entries, generatedDirectories);
                 ReadFileProperties(path, content, entries);
             }
             else if (path.EndsWith(".editorconfig", StringComparison.Ordinal) || path.EndsWith(".globalconfig", StringComparison.Ordinal))
@@ -53,10 +64,6 @@ internal static partial class SuppressionLedger
                 || path.EndsWith(".targets", StringComparison.Ordinal) || path.EndsWith(".ruleset", StringComparison.OrdinalIgnoreCase))
             {
                 ReadProject(path, content, entries);
-            }
-            else if (path == ".slopwatch/baseline.json")
-            {
-                ReadSlopwatchBaseline(path, content, entries);
             }
             else
             {
@@ -70,7 +77,8 @@ internal static partial class SuppressionLedger
     public static string Render(IReadOnlyList<string> entries)
     {
         ArgumentNullException.ThrowIfNull(entries);
-        var text = new StringBuilder("Suppression ledger: every diagnostic escape is counted.\n\n");
+        var text = new StringBuilder("Suppression ledger: every diagnostic escape is counted.\n" +
+            "Every conditional import and explicit Slopwatch severity assignment is inventoried.\n\n");
 
         foreach (var channel in Channels.Order(StringComparer.Ordinal))
         {
@@ -99,23 +107,17 @@ internal static partial class SuppressionLedger
         .Split('\n')
         .Where(line => Channels.Any(channel => line.StartsWith(channel + " ", StringComparison.Ordinal)));
 
-    public static IEnumerable<string> StagingMarkers(string text) => text
-        .ReplaceLineEndings("\n")
-        .Split('\n')
-        .Where(line => line.StartsWith("# QM-", StringComparison.Ordinal));
-
     private static bool IsScanned(string path) => path.EndsWith(".cs", StringComparison.Ordinal)
         || path.EndsWith(".csproj", StringComparison.Ordinal) || path.EndsWith(".props", StringComparison.Ordinal) || path.EndsWith(".targets", StringComparison.Ordinal)
         || path.EndsWith(".editorconfig", StringComparison.Ordinal) || path.EndsWith(".globalconfig", StringComparison.Ordinal)
-        || path == ".slopwatch/baseline.json" || path.EndsWith(".ruleset", StringComparison.OrdinalIgnoreCase)
+        || path.StartsWith(".slopwatch/", StringComparison.Ordinal) || path.EndsWith(".ruleset", StringComparison.OrdinalIgnoreCase)
         || (path.StartsWith(".github/", StringComparison.Ordinal) && (path.EndsWith(".yml", StringComparison.Ordinal) || path.EndsWith(".yaml", StringComparison.Ordinal)));
 
     private static string Entry(string channel, string path, string scope, string rule, string value = "") =>
         $"{channel} {path} [{scope}] {rule}" + (value.Length == 0 ? "" : " = " + value);
 
-    private static void ReadCode(string path, string content, List<string> entries)
+    private static void ReadCode(string path, CompilationUnitSyntax root, List<string> entries)
     {
-        var root = CSharpSyntaxTree.ParseText(content).GetCompilationUnitRoot();
         var aliases = root.Usings
             .Where(directive => directive.Alias is not null && directive.Name is not null)
             .ToDictionary(directive => directive.Alias!.Name.Identifier.ValueText, directive => SimpleName(directive.Name!), StringComparer.Ordinal);
@@ -143,9 +145,10 @@ internal static partial class SuppressionLedger
         {
             if (trivia.IsKind(SyntaxKind.DisabledTextTrivia))
             {
-                ReadCode(path, trivia.ToFullString(), entries);
+                ReadCode(path, CSharpSyntaxTree.ParseText(trivia.ToFullString()).GetCompilationUnitRoot(), entries);
             }
-            else if (trivia.IsKind(SyntaxKind.SingleLineCommentTrivia) || trivia.IsKind(SyntaxKind.MultiLineCommentTrivia))
+            else if (trivia.IsKind(SyntaxKind.SingleLineCommentTrivia) || trivia.IsKind(SyntaxKind.MultiLineCommentTrivia)
+                || trivia.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) || trivia.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia))
             {
                 ReadIgnores(path, trivia.ToFullString(), entries);
             }
@@ -156,7 +159,7 @@ internal static partial class SuppressionLedger
     {
         var name = SimpleName(attribute.Name);
         name = aliases.GetValueOrDefault(name, name);
-        name = name.EndsWith("Attribute", StringComparison.Ordinal) ? name[..^9] : name;
+        name = name.EndsWith(AttributeSuffix, StringComparison.Ordinal) ? name[..^AttributeSuffix.Length] : name;
 
         if (name == "GeneratedCode")
         {
@@ -164,6 +167,14 @@ internal static partial class SuppressionLedger
         }
         else if (name is "SuppressMessage" or "UnconditionalSuppressMessage" or "SlopwatchSuppress")
         {
+            if (attribute.Parent is AttributeListSyntax { Target: { } target }
+                && (target.Identifier.IsKind(SyntaxKind.AssemblyKeyword) || target.Identifier.IsKind(SyntaxKind.ModuleKeyword)))
+            {
+                const string reason = "is an assembly- or module-level suppression; the ledger reads only suppressions on the code they sit on.";
+                throw new InvalidOperationException(string.Create(CultureInfo.InvariantCulture,
+                    $"{path}:{attribute.GetLocation().GetLineSpan().StartLinePosition.Line + 1}: [{attribute.ToString()}] {reason}"));
+            }
+
             var position = name == "SlopwatchSuppress" ? 0 : 1;
             var parameter = name == "SlopwatchSuppress" ? "ruleId" : "checkId";
             var arguments = attribute.ArgumentList?.Arguments ?? default;
@@ -189,10 +200,9 @@ internal static partial class SuppressionLedger
         _ => "",
     };
 
-    private static void ReadGeneratedHeader(string path, string content, List<string> entries, HashSet<string> directories)
+    private static void ReadGeneratedHeader(string path, CompilationUnitSyntax root, List<string> entries, HashSet<string> directories)
     {
-        var marker = path.IndexOf("/Generated/", StringComparison.Ordinal);
-        var root = CSharpSyntaxTree.ParseText(content).GetCompilationUnitRoot();
+        var marker = path.IndexOf(GeneratedDirectorySegment, StringComparison.Ordinal);
 
         if (!(marker >= 0 && path.EndsWith(".g.cs", StringComparison.Ordinal))
             && !root.GetLeadingTrivia().Any(trivia => trivia.IsKind(SyntaxKind.SingleLineCommentTrivia)
@@ -201,7 +211,7 @@ internal static partial class SuppressionLedger
             return;
         }
 
-        var origin = marker < 0 ? path : path[..(marker + 11)] + path[(marker + 11)..].Split('/')[0];
+        var origin = marker < 0 ? path : path[..(marker + GeneratedDirectorySegment.Length)] + path[(marker + GeneratedDirectorySegment.Length)..].Split('/')[0];
 
         if (directories.Add(origin))
         {
@@ -211,14 +221,24 @@ internal static partial class SuppressionLedger
 
     private static void ReadConfig(string path, string content, List<string> entries)
     {
-        var channel = path.EndsWith(".globalconfig", StringComparison.Ordinal) || content.Contains("is_global", StringComparison.Ordinal) ? "globalconfig" : "editorconfig";
+        var isGlobal = path.EndsWith(".globalconfig", StringComparison.OrdinalIgnoreCase);
+        var lowered = new List<(string Scope, string Key, string Value, string Reason)>();
         var scope = "";
         var comments = new List<string>();
         var sectionComments = "";
 
-        foreach (var raw in content.ReplaceLineEndings("\n").Split('\n'))
+        var lines = content.ReplaceLineEndings("\n").Split('\n');
+
+        for (var index = 0; index < lines.Length; index++)
         {
-            var line = raw.Trim();
+            var line = lines[index].Trim();
+
+            if (line.Length == 0)
+            {
+                comments.Clear();
+                sectionComments = "";
+                continue;
+            }
 
             if (line.StartsWith("# QM-", StringComparison.Ordinal))
             {
@@ -227,41 +247,69 @@ internal static partial class SuppressionLedger
 
             if (line.StartsWith('#') || line.StartsWith(';'))
             {
-                comments.Add(line);
+                ReadConfigComment(line, comments);
                 continue;
             }
 
-            if (line.StartsWith('[') && line.EndsWith(']'))
+            var section = ConfigSection().Match(line);
+
+            if (section.Success)
             {
-                scope = line[1..^1];
+                scope = section.Groups["name"].Value;
                 sectionComments = string.Join(' ', comments);
                 comments.Clear();
                 continue;
             }
 
-            var separator = line.IndexOfAny(['=', ':']);
+            var property = ConfigProperty().Match(line);
 
-            if (separator >= 0)
+            if (!property.Success)
             {
-                var key = line[..separator].Trim();
-                var value = line[(separator + 1)..].Trim();
-
-                if (LowersDiagnostic(key, value))
-                {
-                    var reason = comments.Count > 0 ? string.Join(' ', comments) : sectionComments;
-                    entries.Add(Entry(channel, path, scope, key, value) + (reason.Length > 0 ? " | " + reason : ""));
-                }
-
-                comments.Clear();
+                throw new InvalidOperationException(string.Create(CultureInfo.InvariantCulture,
+                    $"{path}:{index + 1} is not a section, a property or a comment: '{line}'."));
             }
+
+            var key = property.Groups["key"].Value;
+            var value = property.Groups["value"].Value;
+            isGlobal |= scope.Length == 0 && string.Equals(key, "is_global", StringComparison.OrdinalIgnoreCase);
+
+            if (LowersDiagnostic(key, value))
+            {
+                var reason = comments.Count > 0 ? string.Join(' ', comments) : sectionComments;
+                lowered.Add((scope, key, value, reason));
+            }
+
+            comments.Clear();
+        }
+
+        var channel = isGlobal ? "globalconfig" : "editorconfig";
+
+        foreach (var item in lowered)
+        {
+            entries.Add(Entry(channel, path, item.Scope, item.Key, item.Value) + (item.Reason.Length > 0 ? " | " + item.Reason : ""));
+        }
+    }
+
+    private static void ReadConfigComment(string line, List<string> comments)
+    {
+        if (ConfigBanner().IsMatch(line))
+        {
+            comments.Clear();
+        }
+        else
+        {
+            comments.Add(line);
         }
     }
 
     private static bool LowersDiagnostic(string key, string value) =>
-        (key.EndsWith(".severity", StringComparison.OrdinalIgnoreCase) && value.ToLowerInvariant() is "none" or "suggestion" or "silent" or "refactoring")
-        || value.EndsWith(":suggestion", StringComparison.OrdinalIgnoreCase) || value.EndsWith(":none", StringComparison.OrdinalIgnoreCase)
-        || (key == "generated_code" && value == "true") || (key == "roslynator_analyzers.enabled_by_default" && value == "false")
+        (key.EndsWith(".severity", StringComparison.OrdinalIgnoreCase) && IsLowSeverity(value))
+        || (value.LastIndexOf(':') is var suffix && suffix >= 0 && IsLowSeverity(value[(suffix + 1)..]))
+        || (string.Equals(key, "generated_code", StringComparison.OrdinalIgnoreCase) && string.Equals(value, "true", StringComparison.OrdinalIgnoreCase))
+        || (string.Equals(key, "roslynator_analyzers.enabled_by_default", StringComparison.OrdinalIgnoreCase) && string.Equals(value, "false", StringComparison.OrdinalIgnoreCase))
         || RuleOption().IsMatch(key);
+
+    private static bool IsLowSeverity(string value) => value.Trim().ToLowerInvariant() is "none" or "silent" or "refactoring" or "suggestion";
 
     private static void ReadProject(string path, string content, List<string> entries)
     {
@@ -272,25 +320,50 @@ internal static partial class SuppressionLedger
 
         var document = XDocument.Parse(content);
 
-        foreach (var property in document.Descendants().Where(element => element.Parent?.Name.LocalName == "PropertyGroup"))
+        foreach (var property in document.Descendants())
         {
-            var scope = string.Join(" and ", property
-                .AncestorsAndSelf()
-                .Reverse()
-                .Select(element => (string?)element.Attribute("Condition"))
-                .OfType<string>());
-            ReadProperty(path, property.Name.LocalName, property.Value, scope, entries);
+            var name = property.Name.LocalName;
+
+            if (!string.Equals(property.Parent?.Name.LocalName, "PropertyGroup", StringComparison.OrdinalIgnoreCase))
+            {
+                if (WarningLists.Contains(name, StringComparer.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException(
+                        $"{path}: <{name}> outside a PropertyGroup (item metadata) is a warning list the suppression ledger does not read; set it as a property.");
+                }
+            }
+            else
+            {
+                ReadProjectProperty(path, property, entries);
+            }
+
+            if (property.Attributes().FirstOrDefault(attribute => TaskWarningParameters.Contains(attribute.Name.LocalName, StringComparer.OrdinalIgnoreCase)) is { } warnings)
+            {
+                throw new InvalidOperationException(
+                    $"{path}: <{name} {warnings.Name.LocalName}=\"…\"> is a warning list on an item or a task, which the suppression ledger does not read; set NoWarn as a property.");
+            }
         }
 
         foreach (var import in document.Descendants("Import").Where(element => element.Attribute("Condition") is not null))
         {
-            entries.Add(Entry("build-switch", path, (string?)import.Attribute("Condition") ?? "", "Import", (string?)import.Attribute("Project") ?? ""));
+            var reason = import.PreviousNode is XComment comment ? " | " + string.Join(' ', comment.Value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)) : "";
+            entries.Add(Entry("build-switch", path, (string?)import.Attribute("Condition") ?? "", "Import", (string?)import.Attribute("Project") ?? "") + reason);
         }
 
         foreach (var comment in document.DescendantNodes().OfType<XComment>())
         {
             ReadIgnores(path, comment.Value, entries);
         }
+    }
+
+    private static void ReadProjectProperty(string path, XElement property, List<string> entries)
+    {
+        var scope = string.Join(" and ", property
+            .AncestorsAndSelf()
+            .Reverse()
+            .Select(element => (string?)element.Attribute("Condition"))
+            .OfType<string>());
+        ReadProperty(path, property.Name.LocalName, property.Value, scope, entries);
     }
 
     private static void ReadProperty(string path, string name, string value, string scope, List<string> entries)
@@ -348,7 +421,20 @@ internal static partial class SuppressionLedger
     {
         foreach (Match match in SlopwatchIgnore().Matches(text))
         {
-            entries.Add(Entry("slopwatch-ignore", path, "", match.Groups["rule"].Value, match.Groups["reason"].Value.Trim().TrimEnd('-', '>').Trim()));
+            var reason = match.Groups["reason"].Value.Trim();
+            const string xmlCommentEnd = "-->";
+            const string blockCommentEnd = "*/";
+
+            if (reason.EndsWith(xmlCommentEnd, StringComparison.Ordinal))
+            {
+                reason = reason[..^xmlCommentEnd.Length].TrimEnd();
+            }
+            else if (reason.EndsWith(blockCommentEnd, StringComparison.Ordinal))
+            {
+                reason = reason[..^blockCommentEnd.Length].TrimEnd();
+            }
+
+            entries.Add(Entry("slopwatch-ignore", path, "", match.Groups["rule"].Value.ToUpperInvariant()) + (reason.Length > 0 ? " | " + reason : ""));
         }
     }
 
@@ -363,16 +449,77 @@ internal static partial class SuppressionLedger
         }
     }
 
-    [GeneratedRegex(@"^(?:[A-Za-z]{1,8}[0-9]{3,5}|dotnet_code_quality)[._]", RegexOptions.CultureInvariant, 1000)]
+    private static void ReadSlopwatch(string path, string content, List<string> entries)
+    {
+        switch (path)
+        {
+            case ".slopwatch/baseline.json":
+                ReadSlopwatchBaseline(path, content, entries);
+                break;
+            case ".slopwatch/slopwatch.json":
+                ReadSlopwatchConfiguration(path, content, entries);
+                break;
+            case ".slopwatch/config.json.example":
+                break;
+            default:
+                throw new InvalidOperationException($"{path}: unknown Slopwatch configuration is not an inventoried suppression channel.");
+        }
+    }
+
+    private static void ReadSlopwatchConfiguration(string path, string content, List<string> entries)
+    {
+        using var document = JsonDocument.Parse(content);
+        var root = document.RootElement;
+
+        if (root.TryGetProperty("rules", out var rules))
+        {
+            foreach (var rule in rules.EnumerateObject())
+            {
+                if (rule.Value.TryGetProperty("enabled", out var enabled) && enabled.ValueKind == JsonValueKind.False)
+                {
+                    entries.Add(Entry("slopwatch", path, rule.Name, "enabled", "false"));
+                }
+
+                if (rule.Value.TryGetProperty("severity", out var severity))
+                {
+                    entries.Add(Entry("slopwatch", path, rule.Name, "severity", severity.GetString()!));
+                }
+            }
+        }
+
+        if (root.TryGetProperty("minSeverity", out var minimum))
+        {
+            entries.Add(Entry("slopwatch", path, "", "minSeverity", minimum.GetString()!));
+        }
+
+        if (root.TryGetProperty("exclude", out var excludes))
+        {
+            foreach (var glob in excludes.GetString()!.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+            {
+                entries.Add(Entry("slopwatch", path, "", "exclude", glob));
+            }
+        }
+    }
+
+    [GeneratedRegex(@"^\[(?<name>(?:[^#;]|\\#|\\;)+)\]\s*(?:[#;].*)?$", RegexOptions.CultureInvariant, RegexTimeoutMilliseconds)]
+    private static partial Regex ConfigSection();
+
+    [GeneratedRegex(@"^[#;]\s*SECTION\s+\d+:", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, RegexTimeoutMilliseconds)]
+    private static partial Regex ConfigBanner();
+
+    [GeneratedRegex(@"^(?<key>[\w.\-]+)\s*[=:]\s*(?<value>.*?)\s*(?:[#;].*)?$", RegexOptions.CultureInvariant, RegexTimeoutMilliseconds)]
+    private static partial Regex ConfigProperty();
+
+    [GeneratedRegex(@"^(?:[A-Za-z]{1,8}[0-9]{3,5}|dotnet_code_quality)[._]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, RegexTimeoutMilliseconds)]
     private static partial Regex RuleOption();
 
     [GeneratedRegex(@"(?:^|\s)(?:-p:|/p:|--property:|-property:)(?<name>[A-Za-z]+)=(?<value>\$\{\{[^}]*\}\}|""[^""]*""|'[^']*'|\S+)",
-        RegexOptions.Multiline | RegexOptions.CultureInvariant, 1000)]
+        RegexOptions.Multiline | RegexOptions.CultureInvariant, RegexTimeoutMilliseconds)]
     private static partial Regex CommandProperty();
 
-    [GeneratedRegex(@"^#:property\s+(?<name>[A-Za-z]+)\s*=(?<value>.*)$", RegexOptions.Multiline | RegexOptions.CultureInvariant, 1000)]
+    [GeneratedRegex(@"^#:property\s+(?<name>[A-Za-z]+)\s*=(?<value>.*)$", RegexOptions.Multiline | RegexOptions.CultureInvariant, RegexTimeoutMilliseconds)]
     private static partial Regex FileProperty();
 
-    [GeneratedRegex(@"slopwatch-ignore(?:-start)?\s*:\s*(?<rule>SW\d{3})\s*(?<reason>[^\r\n]*)", RegexOptions.CultureInvariant, 1000)]
+    [GeneratedRegex(@"slopwatch-ignore(?:-start)?\s*:\s*(?<rule>SW\d{3})\s*(?<reason>[^\r\n]*)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, RegexTimeoutMilliseconds)]
     private static partial Regex SlopwatchIgnore();
 }
