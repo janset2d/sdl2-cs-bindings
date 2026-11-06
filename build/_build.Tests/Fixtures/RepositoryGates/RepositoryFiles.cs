@@ -65,21 +65,32 @@ internal static class RepositoryFiles
             StandardErrorEncoding = Encoding.UTF8,
         };
         foreach (var argument in arguments)
+        {
             startInfo.ArgumentList.Add(argument);
+        }
+
         using var process = new Process { StartInfo = startInfo };
         var stderr = new StringBuilder();
         process.ErrorDataReceived += (_, e) =>
         {
             if (e.Data is not null)
+            {
                 stderr.AppendLine(e.Data);
+            }
         };
         if (!process.Start())
+        {
             throw new InvalidOperationException("Could not start git.");
+        }
+
         process.BeginErrorReadLine();
         var stdout = process.StandardOutput.ReadToEnd();
         process.WaitForExit();
         if (process.ExitCode != 0)
+        {
             throw new InvalidOperationException(stderr.ToString());
+        }
+
         return stdout;
     }
 }

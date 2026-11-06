@@ -524,9 +524,21 @@ public sealed class FakeCakeWorld
             .Returns(call =>
             {
                 var toolName = (string)call[0];
-                if (_toolPathsByName.TryGetValue(toolName, out var perTool)) return perTool;
-                if (_toolPath is not null) return _toolPath;
-                if (_defaultToolPath is not null) return _defaultToolPath;
+                if (_toolPathsByName.TryGetValue(toolName, out var perTool))
+                {
+                    return perTool;
+                }
+
+                if (_toolPath is not null)
+                {
+                    return _toolPath;
+                }
+
+                if (_defaultToolPath is not null)
+                {
+                    return _defaultToolPath;
+                }
+
                 throw new InvalidOperationException(
                     "Tool path was not configured. " +
                     "Call WithToolPath(name, path) for per-tool, WithToolPath(path) for the legacy global default, or WithDefaultToolPath(path) to accept any unconfigured tool.");
@@ -537,10 +549,21 @@ public sealed class FakeCakeWorld
                 var names = (IEnumerable<string>)call[0];
                 foreach (var n in names)
                 {
-                    if (_toolPathsByName.TryGetValue(n, out var perTool)) return perTool;
+                    if (_toolPathsByName.TryGetValue(n, out var perTool))
+                    {
+                        return perTool;
+                    }
                 }
-                if (_toolPath is not null) return _toolPath;
-                if (_defaultToolPath is not null) return _defaultToolPath;
+                if (_toolPath is not null)
+                {
+                    return _toolPath;
+                }
+
+                if (_defaultToolPath is not null)
+                {
+                    return _defaultToolPath;
+                }
+
                 throw new InvalidOperationException(
                     "Tool path was not configured. " +
                     "Call WithToolPath(name, path) for per-tool, WithToolPath(path) for the legacy global default, or WithDefaultToolPath(path) to accept any unconfigured tool.");

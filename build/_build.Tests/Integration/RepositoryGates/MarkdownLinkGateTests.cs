@@ -40,7 +40,10 @@ public sealed class MarkdownLinkGateTests
             {
                 var target = MarkdownLinks.ToRepositoryPath(source, link.Target);
                 if (target is null || RepositoryFiles.Resolves(target))
+                {
                     continue;
+                }
+
                 var entry = $"{source}|{target}";
                 broken.Add((entry, $"{source}:{link.Line} -> {target}\n{entry}"));
             }
