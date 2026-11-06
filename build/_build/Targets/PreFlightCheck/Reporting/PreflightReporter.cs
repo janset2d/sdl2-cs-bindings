@@ -14,7 +14,8 @@ public sealed class PreflightReporter(ICakeContext cakeContext)
     public void ReportRunStart()
     {
         Log.Information("🔍 Running pre-flight checks...");
-        Log.Information("ℹ️ Scope: version consistency + hybrid-static overlay coherence + core identity + manifest family name invariants + csproj pack contract + upstream version alignment + cross-family dependency resolvability.");
+        Log.Information("ℹ️ Scope: version consistency + hybrid-static overlay coherence + core identity + manifest family name invariants " +
+                        "+ csproj pack contract + upstream version alignment + cross-family dependency resolvability.");
         // Dynamic matrix and CI artifact-flow gates are checked downstream in the CI pipeline.
     }
 

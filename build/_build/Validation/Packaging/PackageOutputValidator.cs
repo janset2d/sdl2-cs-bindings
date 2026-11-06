@@ -42,9 +42,12 @@ public sealed class PackageOutputValidator(
     ISatelliteUpperBoundValidator satelliteUpperBoundValidator) : IPackageOutputValidator
 {
     private readonly IFileSystem _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
-    private readonly INativePackageMetadataValidator _nativePackageMetadataValidator = nativePackageMetadataValidator ?? throw new ArgumentNullException(nameof(nativePackageMetadataValidator));
-    private readonly IReadmeMappingTableValidator _readmeMappingTableValidator = readmeMappingTableValidator ?? throw new ArgumentNullException(nameof(readmeMappingTableValidator));
-    private readonly ISatelliteUpperBoundValidator _satelliteUpperBoundValidator = satelliteUpperBoundValidator ?? throw new ArgumentNullException(nameof(satelliteUpperBoundValidator));
+    private readonly INativePackageMetadataValidator _nativePackageMetadataValidator = nativePackageMetadataValidator
+        ?? throw new ArgumentNullException(nameof(nativePackageMetadataValidator));
+    private readonly IReadmeMappingTableValidator _readmeMappingTableValidator = readmeMappingTableValidator
+        ?? throw new ArgumentNullException(nameof(readmeMappingTableValidator));
+    private readonly ISatelliteUpperBoundValidator _satelliteUpperBoundValidator = satelliteUpperBoundValidator
+        ?? throw new ArgumentNullException(nameof(satelliteUpperBoundValidator));
 
     /// <inheritdoc />
     public async Task<ValidationReport> ValidateAsync(

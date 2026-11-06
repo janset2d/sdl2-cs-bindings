@@ -46,12 +46,14 @@ public sealed class SatelliteUpperBoundValidator : ISatelliteUpperBoundValidator
 
         if (string.IsNullOrWhiteSpace(dependencyVersionExpression))
         {
-            return Failure($"G56: managed package '{managedPackagePath.GetFilename().FullPath}' is missing cross-family dependency '{dependencyPackageId}' required by depends_on '{dependencyFamily}'.");
+            return Failure($"G56: managed package '{managedPackagePath.GetFilename().FullPath}' is missing cross-family dependency " +
+                           $"'{dependencyPackageId}' required by depends_on '{dependencyFamily}'.");
         }
 
         if (!VersionRange.TryParse(dependencyVersionExpression, out var range))
         {
-            return Failure($"G56: dependency '{dependencyPackageId}' in '{managedPackagePath.GetFilename().FullPath}' has non-parseable version range '{dependencyVersionExpression}'.");
+            return Failure(
+                $"G56: dependency '{dependencyPackageId}' in '{managedPackagePath.GetFilename().FullPath}' has non-parseable version range '{dependencyVersionExpression}'.");
         }
 
         var dependencyFamilyConfig = manifestConfig.PackageFamilies.SingleOrDefault(
@@ -67,7 +69,8 @@ public sealed class SatelliteUpperBoundValidator : ISatelliteUpperBoundValidator
 
         if (dependencyLibrary is null)
         {
-            return Failure($"G56: dependency family '{dependencyFamily}' maps to library_ref '{dependencyFamilyConfig.LibraryRef}' that does not exist in manifest library_manifests[].");
+            return Failure(
+                $"G56: dependency family '{dependencyFamily}' maps to library_ref '{dependencyFamilyConfig.LibraryRef}' that does not exist in manifest library_manifests[].");
         }
 
         if (!NuGetVersion.TryParse(dependencyLibrary.VcpkgVersion, out var dependencyLibraryVersion))
@@ -86,7 +89,9 @@ public sealed class SatelliteUpperBoundValidator : ISatelliteUpperBoundValidator
             return null;
         }
 
-        return Failure($"G56: dependency '{dependencyPackageId}' in managed package '{managedPackagePath.GetFilename().FullPath}' must declare explicit upper bound '< {expectedUpper}' (derived from upstream major {dependencyLibraryVersion.Major}). Actual expression: '{dependencyVersionExpression}'.");
+        return Failure($"G56: dependency '{dependencyPackageId}' in managed package '{managedPackagePath.GetFilename().FullPath}' " +
+                       $"must declare explicit upper bound '< {expectedUpper}' (derived from upstream major {dependencyLibraryVersion.Major}). " +
+                       $"Actual expression: '{dependencyVersionExpression}'.");
 
         static ValidationCheck Failure(string message)
             => new("Cross-family upper bound", ValidationSeverity.Error, message, Code: "G56");

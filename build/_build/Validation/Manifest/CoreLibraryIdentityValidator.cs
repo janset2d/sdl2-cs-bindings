@@ -35,7 +35,8 @@ public sealed class CoreLibraryIdentityValidator : ICoreLibraryIdentityValidator
         {
             var errorMessage = cores.Count == 0
                 ? "manifest.json library_manifests[] does not declare any entry with core_lib=true; exactly one is required."
-                : $"manifest.json library_manifests[] declares {cores.Count} entries with core_lib=true ({string.Join(", ", cores.Select(c => c.VcpkgName))}); exactly one is required.";
+                : $"manifest.json library_manifests[] declares {cores.Count} entries with core_lib=true " +
+                  $"({string.Join(", ", cores.Select(c => c.VcpkgName))}); exactly one is required.";
 
             return new CoreLibraryIdentityValidation(new CoreLibraryIdentityCheck(
                 ManifestCoreVcpkgName: null,

@@ -39,7 +39,13 @@ public sealed class WindowsDumpbinScanner(ICakeContext context) : IRuntimeScanne
             }
             else
             {
-                _context.Log.Write(Verbosity.Verbose, LogLevel.Verbose, "Runtime dependency \"{0}\" listed by dumpbin for \"{1}\" not found at \"{2}\".", depDllName, binary.GetFilename(), depDllPath);
+                _context.Log.Write(
+                    Verbosity.Verbose,
+                    LogLevel.Verbose,
+                    "Runtime dependency \"{0}\" listed by dumpbin for \"{1}\" not found at \"{2}\".",
+                    depDllName,
+                    binary.GetFilename(),
+                    depDllPath);
             }
         }
 
