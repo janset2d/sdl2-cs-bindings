@@ -17,11 +17,14 @@ public sealed class GateScopesTests
     {
         await Assert.That(GateScopes.IsCitationScanned("a.md")).IsFalse();
         await Assert.That(GateScopes.IsCitationScanned(
-            "build/_build.Tests/Integration/RepositoryGates/doc-citations.baseline")).IsFalse();
+            "build/_build.Tests/Integration/RepositoryGates/doc-citations.baseline"))
+            .IsFalse();
         await Assert.That(GateScopes.IsCitationScanned(
-            "build/_build.Tests/Fixtures/RepositoryGates/MarkdownLinks.cs")).IsFalse();
+            "build/_build.Tests/Fixtures/RepositoryGates/MarkdownLinks.cs"))
+            .IsFalse();
         await Assert.That(GateScopes.IsCitationScanned(
-            "build/_build.Tests/Unit/RepositoryGates/MarkdownLinksTests.cs")).IsFalse();
+            "build/_build.Tests/Unit/RepositoryGates/MarkdownLinksTests.cs"))
+            .IsFalse();
         await Assert.That(GateScopes.IsCitationScanned("a.verified.cs")).IsFalse();
     }
 

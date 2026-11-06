@@ -113,7 +113,8 @@ public sealed class HarvestTask(
                     library.Name,
                     "Hybrid-static leak validation",
                     $"{leakReport.Errors.Count} violation(s) detected.",
-                    exception: null).ConfigureAwait(false);
+                    exception: null)
+                    .ConfigureAwait(false);
             }
             if (leakReport.HasWarnings)
             {
@@ -141,11 +142,8 @@ public sealed class HarvestTask(
             // post-check ensures no downstream consumer ingests a rid-status=true with zero primaries.
             if (statistics.PrimaryFiles.Count == 0)
             {
-                throw await CreateLibraryFailureAsync(
-                    library.Name,
-                    "Harvest",
-                    $"Harvest produced zero primary binaries for '{library.Name}'. Closure walker and planner returned success but no primary files were deployed. Inspect vcpkg install output and manifest primary_binaries patterns.",
-                    exception: null).ConfigureAwait(false);
+                throw await CreateEmptyHarvestFailureAsync(library.Name)
+                    .ConfigureAwait(false);
             }
 
             await _statusRepo.WriteSuccessAsync(library.Name, statistics).ConfigureAwait(false);
@@ -167,9 +165,16 @@ public sealed class HarvestTask(
                 library.Name,
                 "Harvest",
                 $"Unexpected operational error during harvest of {library.Name}: {ex.Message}",
-                ex).ConfigureAwait(false);
+                ex)
+                .ConfigureAwait(false);
         }
     }
+
+    private Task<CakeException> CreateEmptyHarvestFailureAsync(string libraryName) => CreateLibraryFailureAsync(
+        libraryName,
+        "Harvest",
+        $"Harvest produced zero primary binaries for '{libraryName}'. Closure walker and planner returned success but no primary files were deployed. Inspect vcpkg install output and manifest primary_binaries patterns.",
+        exception: null);
 
     private async Task<CakeException> CreateLibraryFailureAsync(string libraryName, string phase, string message, Exception? exception)
     {

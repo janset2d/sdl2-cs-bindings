@@ -55,7 +55,8 @@ public sealed class PackageFamilyVersionSetTests
         [
             new PackageFamilyVersion(Sdl2Core, V232),
             new PackageFamilyVersion(Sdl2Core, V280),
-        ])).Throws<ArgumentException>();
+        ]))
+            .Throws<ArgumentException>();
     }
 
     // ───────────────────────────────────────────────────────────────────────
