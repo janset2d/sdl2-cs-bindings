@@ -20,10 +20,10 @@ namespace Build.Tests.Unit.Validation.Packaging;
 /// </summary>
 public sealed class PackageOutputValidatorTests
 {
-    private const string ExpectedAuthors = "Janset2D, Deniz İrgin";
-    private const string ExpectedLicenseFile = "LICENSE";
-    private const string ExpectedIcon = "janset2d-sdl-min.png";
-    private const string ExpectedCommit = "0123456789abcdef0123456789abcdef01234567";
+    private const string _expectedAuthors = "Janset2D, Deniz İrgin";
+    private const string _expectedLicenseFile = "LICENSE";
+    private const string _expectedIcon = "janset2d-sdl-min.png";
+    private const string _expectedCommit = "0123456789abcdef0123456789abcdef01234567";
 
     // Long-form TFMs emitted in nuspec dependency groups (what `dotnet pack` writes).
     private static readonly string[] NuspecFrameworkGroups = [".NETFramework4.6.2", ".NETStandard2.0", "net8.0", "net9.0", "net10.0"];
@@ -208,8 +208,8 @@ public sealed class PackageOutputValidatorTests
 
         await Assert.That(report.Errors.Select(check => check.Message)).IsEquivalentTo(
         [
-            $"G27: package 'Janset.SDL2.Image.1.2.3.nupkg' emitted authors 'Other authors', expected '{ExpectedAuthors}' (resolved from Directory.Build.props).",
-            $"G27: package 'Janset.SDL2.Image.Native.1.2.3.nupkg' emitted authors 'Other authors', expected '{ExpectedAuthors}' (resolved from Directory.Build.props).",
+            $"G27: package 'Janset.SDL2.Image.1.2.3.nupkg' emitted authors 'Other authors', expected '{_expectedAuthors}' (resolved from Directory.Build.props).",
+            $"G27: package 'Janset.SDL2.Image.Native.1.2.3.nupkg' emitted authors 'Other authors', expected '{_expectedAuthors}' (resolved from Directory.Build.props).",
         ], CollectionOrdering.Matching);
     }
 
@@ -301,9 +301,9 @@ public sealed class PackageOutputValidatorTests
 
         var metadata = new EvaluatedProjectMetadata(
             TargetFrameworks: CsprojTargetFrameworks,
-            Authors: ExpectedAuthors,
+            Authors: _expectedAuthors,
             PackageLicenseFile: string.Empty,
-            PackageIcon: ExpectedIcon);
+            PackageIcon: _expectedIcon);
 
         var report = await ValidateAsync(validator, world, family, artifacts, "1.2.3", metadata);
 
@@ -319,9 +319,9 @@ public sealed class PackageOutputValidatorTests
     {
         return new EvaluatedProjectMetadata(
             TargetFrameworks: targetFrameworks ?? CsprojTargetFrameworks,
-            Authors: authors ?? ExpectedAuthors,
-            PackageLicenseFile: licenseFile ?? ExpectedLicenseFile,
-            PackageIcon: icon ?? ExpectedIcon);
+            Authors: authors ?? _expectedAuthors,
+            PackageLicenseFile: licenseFile ?? _expectedLicenseFile,
+            PackageIcon: icon ?? _expectedIcon);
     }
 
     private static PackageFamilyConfig GetFamily(string familyName)
@@ -344,7 +344,7 @@ public sealed class PackageOutputValidatorTests
             family,
             artifacts,
             expectedVersion,
-            ExpectedCommit,
+            _expectedCommit,
             metadata,
             manifest,
             readmePath);
@@ -396,16 +396,16 @@ public sealed class PackageOutputValidatorTests
                 family,
                 version,
                 dependencyGroups,
-                commit ?? ExpectedCommit,
-                authors ?? ExpectedAuthors)));
+                commit ?? _expectedCommit,
+                authors ?? _expectedAuthors)));
 
         var nativeEntries = new List<(string EntryName, string Content)>
         {
             ("package.nuspec", CreateNativeNuspec(
                 family,
                 nativePackageVersion ?? version,
-                commit ?? ExpectedCommit,
-                authors ?? ExpectedAuthors)),
+                commit ?? _expectedCommit,
+                authors ?? _expectedAuthors)),
             ($"runtimes/linux-x64/native/{nativeLinuxTarballFileName ?? $"{nativePackageId}.tar.gz"}", "linux-tarball"),
             ($"runtimes/osx-x64/native/{nativePackageId}.tar.gz", "osx-tarball"),
         };
@@ -429,7 +429,7 @@ public sealed class PackageOutputValidatorTests
 
         if (nativeIncludeMetadataFile)
         {
-            nativeEntries.Add(("janset-native-metadata.json", CreateNativeMetadataJson(family, version, commit ?? ExpectedCommit)));
+            nativeEntries.Add(("janset-native-metadata.json", CreateNativeMetadataJson(family, version, commit ?? _expectedCommit)));
         }
 
         nativeEntries.Add(("runtimes/win-x64/native/SDL2.dll", "win-x64-dll"));

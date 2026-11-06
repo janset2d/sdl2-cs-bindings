@@ -6,7 +6,7 @@ namespace Build.Tests.Unit.Data.BindingGeneration;
 
 public sealed class DynapiManifestRepositoryTests
 {
-    private const string SamplePath = "/workspace/external/vcpkg/buildtrees/sdl2/src/se-2.32.10-3b143ac573.clean/src/dynapi/SDL2.exports";
+    private const string _samplePath = "/workspace/external/vcpkg/buildtrees/sdl2/src/se-2.32.10-3b143ac573.clean/src/dynapi/SDL2.exports";
 
     private static readonly string[] ThreeSymbolsExpected = ["SDL_Init", "SDL_Quit", "SDL_GetError"];
     private static readonly string[] OneSymbolExpected = ["SDL_Init"];
@@ -81,11 +81,11 @@ public sealed class DynapiManifestRepositoryTests
 ++'_SDL_GetError'.'SDL2.dll'.'SDL_GetError'
 """;
 
-        var manifest = DynapiManifestRepository.Parse(content, SamplePath);
+        var manifest = DynapiManifestRepository.Parse(content, _samplePath);
 
         await Assert.That(manifest.PublicSymbols).IsEquivalentTo(ThreeSymbolsExpected);
         await Assert.That(manifest.Origin).IsEqualTo(DynapiManifestOrigin.VcpkgBuildtree);
-        await Assert.That(manifest.SourcePath).IsEqualTo(SamplePath);
+        await Assert.That(manifest.SourcePath).IsEqualTo(_samplePath);
     }
 
     [Test]
@@ -105,7 +105,7 @@ public sealed class DynapiManifestRepositoryTests
 ++'_SDL_Quit'.'SDL2.dll'.'SDL_Quit'
 """;
 
-        var manifest = DynapiManifestRepository.Parse(content, SamplePath);
+        var manifest = DynapiManifestRepository.Parse(content, _samplePath);
 
         await Assert.That(manifest.PublicSymbols).Contains("SDL_Init");
         await Assert.That(manifest.PublicSymbols).Contains("SDL_Quit");
@@ -123,7 +123,7 @@ public sealed class DynapiManifestRepositoryTests
 ++'_SDL_Init'.'SDL2.dll'.'SDL_Init'
 """;
 
-        var manifest = DynapiManifestRepository.Parse(content, SamplePath);
+        var manifest = DynapiManifestRepository.Parse(content, _samplePath);
 
         await Assert.That(manifest.PublicSymbols).IsEquivalentTo(OneSymbolExpected);
     }
@@ -133,7 +133,7 @@ public sealed class DynapiManifestRepositoryTests
     {
         const string content = "\r\n++'_SDL_Init'.'SDL2.dll'.'SDL_Init'\r\n\r\n";
 
-        var manifest = DynapiManifestRepository.Parse(content, SamplePath);
+        var manifest = DynapiManifestRepository.Parse(content, _samplePath);
 
         await Assert.That(manifest.PublicSymbols).IsEquivalentTo(OneSymbolExpected);
     }
@@ -146,7 +146,7 @@ public sealed class DynapiManifestRepositoryTests
 # Header line two
 """;
 
-        var manifest = DynapiManifestRepository.Parse(content, SamplePath);
+        var manifest = DynapiManifestRepository.Parse(content, _samplePath);
 
         await Assert.That(manifest.PublicSymbols).IsEmpty();
     }
@@ -157,7 +157,7 @@ public sealed class DynapiManifestRepositoryTests
         const string content = "++ malformed line";
 
         var ex = Assert.Throws<InvalidOperationException>(
-            () => DynapiManifestRepository.Parse(content, SamplePath));
+            () => DynapiManifestRepository.Parse(content, _samplePath));
 
         await Assert.That(ex.Message).Contains("export line did not match");
     }
@@ -168,7 +168,7 @@ public sealed class DynapiManifestRepositoryTests
         const string content = "# ++ malformed line";
 
         var ex = Assert.Throws<InvalidOperationException>(
-            () => DynapiManifestRepository.Parse(content, SamplePath));
+            () => DynapiManifestRepository.Parse(content, _samplePath));
 
         await Assert.That(ex.Message).Contains("export line did not match");
     }
@@ -179,7 +179,7 @@ public sealed class DynapiManifestRepositoryTests
         const string content = "++'_SDL_Init'.'SDL2.dll'.'SDL_Something'";
 
         var ex = Assert.Throws<InvalidOperationException>(
-            () => DynapiManifestRepository.Parse(content, SamplePath));
+            () => DynapiManifestRepository.Parse(content, _samplePath));
 
         await Assert.That(ex.Message).Contains("symbol mismatch");
     }
@@ -190,7 +190,7 @@ public sealed class DynapiManifestRepositoryTests
         const string content = "some unexpected text line";
 
         var ex = Assert.Throws<InvalidOperationException>(
-            () => DynapiManifestRepository.Parse(content, SamplePath));
+            () => DynapiManifestRepository.Parse(content, _samplePath));
 
         await Assert.That(ex.Message).Contains("unexpected non-comment, non-export line");
     }
