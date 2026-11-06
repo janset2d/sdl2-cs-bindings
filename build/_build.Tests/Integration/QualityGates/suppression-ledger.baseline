@@ -11,7 +11,7 @@ no-error: 0
 no-warn: 1
 nullable: 0
 pragma: 0
-slopwatch: 12
+slopwatch: 13
 slopwatch-baseline: 13
 slopwatch-ignore: 3
 slopwatch-suppress: 0
@@ -212,6 +212,7 @@ slopwatch .slopwatch/slopwatch.json [] exclude = **/bin/**
 slopwatch .slopwatch/slopwatch.json [] exclude = **/obj/**
 slopwatch .slopwatch/slopwatch.json [] exclude = artifacts/**
 slopwatch .slopwatch/slopwatch.json [] exclude = external/**
+slopwatch .slopwatch/slopwatch.json [] exclude = spikes/binding-generators/references/**
 slopwatch .slopwatch/slopwatch.json [] exclude = vcpkg_installed/**
 slopwatch .slopwatch/slopwatch.json [] minSeverity = warning
 slopwatch-baseline .slopwatch/baseline.json [build/_build.Tests/Fixtures/TempDirectory.cs] SW003 = 5ccd2abc5efc8bc9
