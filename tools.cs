@@ -222,12 +222,13 @@ public sealed class SetupCommand : AsyncCommand<SetupSettings>
 
         if (missingPackages.Count > 0)
         {
-            AnsiConsole.MarkupLine("[red]Some exact nupkgs are missing - stale packages will not be accepted.[/]");
+            AnsiConsole.MarkupLine("[red]Some exact nupkgs are missing — stale packages will not be accepted.[/]");
 
             foreach (var missing in missingPackages)
             {
                 AnsiConsole.MarkupLine($"  [red]missing[/] [grey]{Markup.Escape(missing)}[/]");
             }
+
             return FinishSetup(results, totalStopwatch, 1);
         }
 
@@ -385,6 +386,7 @@ public sealed class SetupCommand : AsyncCommand<SetupSettings>
         {
             AnsiConsole.MarkupLine($"[red]FAIL[/] ({stopwatch.Elapsed.TotalSeconds:F1}s) → [cyan]{Markup.Escape(logPath)}[/]");
         }
+
         AnsiConsole.WriteLine();
 
         return (exitCode == 0, resolved);
@@ -436,6 +438,7 @@ public sealed class SetupCommand : AsyncCommand<SetupSettings>
         {
             AnsiConsole.MarkupLine($"[yellow]Inspect failing log:[/] [cyan]{Markup.Escape(logPath)}[/]");
         }
+
         return exitCode;
     }
 
@@ -450,6 +453,7 @@ public sealed class SetupCommand : AsyncCommand<SetupSettings>
         {
             AnsiConsole.MarkupLine($"[grey]Logs:[/] [cyan]{Markup.Escape(logDir)}[/]");
         }
+
         AnsiConsole.WriteLine();
     }
 
@@ -490,6 +494,7 @@ public sealed class CiSimCommand : AsyncCommand<CiSimSettings>
         {
             Directory.Delete(logDir, recursive: true);
         }
+
         Directory.CreateDirectory(logDir);
 
         AnsiConsole.Write(new FigletText("tools").Color(Color.Yellow));
@@ -589,6 +594,7 @@ public sealed class CiSimCommand : AsyncCommand<CiSimSettings>
         {
             AnsiConsole.MarkupLine($"[yellow]Inspect failing logs under[/] [cyan]{Markup.Escape(logDir)}[/].");
         }
+
         return exitCode;
     }
 }
@@ -624,6 +630,7 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
             AnsiConsole.MarkupLine("[red]Docker daemon not reachable.[/] Start Docker Desktop / dockerd, then retry.");
             return 66;
         }
+
         AnsiConsole.MarkupLine($"[green]Docker daemon ready[/] (server {Markup.Escape(dockerProbe.StdOut.Trim())}).");
 
         // [2] Resolve BASE_IMAGE from build/manifest.json runtimes[linux-x64].container_image.
@@ -634,6 +641,7 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
             AnsiConsole.MarkupLine("[red]Could not resolve BASE_IMAGE from build/manifest.json runtimes[linux-x64].container_image.[/]");
             return 1;
         }
+
         AnsiConsole.MarkupLine($"[blue]BASE_IMAGE:[/] [cyan]{Markup.Escape(baseImage)}[/]");
 
         // [3] docker pull ${BASE_IMAGE} to refresh mutable tag.
@@ -670,6 +678,7 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
             AnsiConsole.MarkupLine($"[red]{Markup.Escape(vcpkgCommitProbe.StdErr.Trim())}[/]");
             return 1;
         }
+
         var vcpkgCommit = vcpkgCommitProbe.StdOut.Trim();
         AnsiConsole.MarkupLine($"[blue]vcpkg submodule commit:[/] [cyan]{Markup.Escape(vcpkgCommit)}[/]");
 
@@ -686,6 +695,7 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
             AnsiConsole.MarkupLine("[red]Could not resolve SDL2 vcpkg_version from build/manifest.json library_manifests[name=SDL2].[/]");
             return 1;
         }
+
         AnsiConsole.MarkupLine($"[blue]SDL2 vcpkg version:[/] [cyan]{Markup.Escape(sdl2Version)}[/]");
 
         // [4d] Compute a deterministic cache key for the binary cache BuildKit
@@ -720,6 +730,7 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
         {
             buildArgs.Add("--no-cache");
         }
+
         buildArgs.Add(".");
         var buildExit = await StreamRunAsync("docker", buildArgs, cancellationToken, workingDirectory: repoRoot);
 
@@ -766,6 +777,7 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
         {
             AnsiConsole.MarkupLine($"[red]Manifest parse error:[/] {Markup.Escape(ex.Message)}");
         }
+
         return null;
     }
 
@@ -802,6 +814,7 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
         {
             AnsiConsole.MarkupLine($"[red]Manifest parse error reading SDL2 vcpkg_version:[/] {Markup.Escape(ex.Message)}");
         }
+
         return null;
     }
 
@@ -840,6 +853,7 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
         {
             return;
         }
+
         var header = Encoding.UTF8.GetBytes($"FILE:{normalisedRelativePath}\n");
         output.Write(header);
         using var fs = File.OpenRead(filePath);
@@ -855,6 +869,7 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
         {
             return;
         }
+
         var files = Directory.EnumerateFiles(absoluteDir, "*", SearchOption.AllDirectories)
             .Select(absolute => Path.GetRelativePath(repoRoot, absolute).Replace('\\', '/'))
             .OrderBy(rel => rel, StringComparer.Ordinal)
@@ -881,6 +896,7 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
         {
             cmd = cmd.WithWorkingDirectory(workingDirectory);
         }
+
         var result = await cmd.ExecuteAsync(cancellationToken).ConfigureAwait(false);
         return (result.ExitCode, stdOut.ToString(), stdErr.ToString());
     }
@@ -898,6 +914,7 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
         {
             cmd = cmd.WithWorkingDirectory(workingDirectory);
         }
+
         var result = await cmd.ExecuteAsync(cancellationToken).ConfigureAwait(false);
         return result.ExitCode;
     }
@@ -919,6 +936,7 @@ internal static class Shared
         {
             Directory.Delete(artifactsDir, recursive: true);
         }
+
         Directory.CreateDirectory(artifactsDir);
 
         var nativeSmokeBuildDir = Path.Combine(repoRoot, "tests", "smoke-tests", "native-smoke", "build");
@@ -1015,6 +1033,7 @@ internal static class Shared
         {
             return "macos";
         }
+
         return "unknown";
     }
 
@@ -1129,6 +1148,7 @@ internal static class Shared
         {
             return value;
         }
+
         return string.Create(value.Length, value, static (span, source) =>
         {
             source.AsSpan().CopyTo(span);
@@ -1180,6 +1200,7 @@ internal static class Shared
         {
             sorted[key] = value;
         }
+
         var targetDir = Path.Combine(repoRoot, "artifacts", "resolve-versions");
 
         if (!Directory.Exists(targetDir))
@@ -1299,6 +1320,7 @@ internal static class Shared
         {
             AnsiConsole.MarkupLine($"[red]FAIL[/] ({stopwatch.Elapsed.TotalSeconds:F1}s)");
         }
+
         AnsiConsole.WriteLine();
 
         return stepResult.Succeeded;
@@ -1338,6 +1360,7 @@ internal static class Shared
         {
             AnsiConsole.MarkupLine($"[red]FAIL[/] ({stopwatch.Elapsed.TotalSeconds:F1}s) → [cyan]{Markup.Escape(logPath)}[/]");
         }
+
         AnsiConsole.WriteLine();
 
         return stepResult.Succeeded;
@@ -1371,6 +1394,7 @@ internal static class Shared
                 return value;
             }
         }
+
         return null;
     }
 
@@ -1500,6 +1524,7 @@ internal static class Shared
         {
             sanitized.Append(char.IsLetterOrDigit(ch) || ch is '-' or '_' ? ch : '-');
         }
+
         return sanitized.ToString();
     }
 
