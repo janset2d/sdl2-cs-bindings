@@ -500,12 +500,11 @@ dotnet_diagnostic.VSTHRD111.severity = none
 # Test namespaces are not a consumer-facing API.
 dotnet_diagnostic.CA1716.severity = none
 
-# FILE-SCOPED ARBITRATION
-# Spike executables have not adopted the root application-surface rule yet.
-[spikes/binding-generators/clangsharp/tests/**.cs]
 # QM-9: CA1515 stays at none until "build(analyzers): replace NoWarn lists, pragmas and SuppressMessage with fixes and arbitration".
+[spikes/binding-generators/clangsharp/tests/**.cs]
 dotnet_diagnostic.CA1515.severity = none
 
+# FILE-SCOPED ARBITRATION
 # Duplicate detection mutates the version map; filtering would hide that mutation in a predicate.
 # Winner: explicit stateful validation; S3267 remains enabled for every other file.
 [build/_build/Data/Versions/PackageFamilyVersionSet.cs]
@@ -517,7 +516,7 @@ dotnet_diagnostic.S3267.severity = none
 dotnet_diagnostic.S4036.severity = none
 
 # Frozen generator tools retain their existing SDK analyzer behavior.
-# Winner: generator toolchain freeze; CA1305, CA1307, CA1515, CA1859, CA1861 and CA1865 remain enabled for every other file.
+# Winner: generator toolchain freeze; CA1305, CA1307, CA1859, CA1861 and CA1865 remain enabled for every other file.
 [spikes/binding-generators/clangsharp/{postprocess/**.cs,oracle.cs}]
 dotnet_diagnostic.CA1305.severity = none
 dotnet_diagnostic.CA1307.severity = none

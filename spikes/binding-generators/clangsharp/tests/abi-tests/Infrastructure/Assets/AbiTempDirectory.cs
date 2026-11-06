@@ -14,17 +14,19 @@ internal sealed class AbiTempDirectory : IDisposable
 
     public string GetFilePath(string fileName) => System.IO.Path.Combine(Path, fileName);
 
-    public Task WriteAsciiFileAsync(string fileName, string content) => WriteBytesAsync(fileName, Encoding.ASCII.GetBytes(content));
+    public Task<string> WriteAsciiFileAsync(string fileName, string content) => WriteBytesAsync(fileName, Encoding.ASCII.GetBytes(content));
 
-    public async Task WriteBytesAsync(string fileName, byte[] content)
+    public async Task<string> WriteBytesAsync(string fileName, byte[] content)
     {
+        string path = GetFilePath(fileName);
 #if NETFRAMEWORK
-        using FileStream stream = new(GetFilePath(fileName), FileMode.Create, FileAccess.Write, FileShare.None, 4096, useAsync: true);
+        using FileStream stream = new(path, FileMode.Create, FileAccess.Write, FileShare.None, 4096, useAsync: true);
         await stream.WriteAsync(content, 0, content.Length);
         await stream.FlushAsync();
 #else
-        await File.WriteAllBytesAsync(GetFilePath(fileName), content);
+        await File.WriteAllBytesAsync(path, content);
 #endif
+        return path;
     }
 
     public async Task<string> ReadAsciiAsync(string fileName)

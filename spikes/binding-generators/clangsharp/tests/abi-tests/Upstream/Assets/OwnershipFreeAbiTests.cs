@@ -19,8 +19,7 @@ public sealed class OwnershipFreeAbiTests
     {
         using AbiTempDirectory temp = new();
         byte[] expected = Encoding.ASCII.GetBytes("owned by SDL");
-        string path = temp.GetFilePath("load-file-rw.bin");
-        await temp.WriteBytesAsync("load-file-rw.bin", expected);
+        string path = await temp.WriteBytesAsync("load-file-rw.bin", expected);
 
         LoadFileResult result = LoadFileWithTransferredSource(path, expected.Length);
 
