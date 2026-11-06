@@ -10,23 +10,18 @@ namespace Build.Tests.Unit.Data.BindingGeneration;
 public sealed class GeneratedOutputWriterTests
 {
     [Test]
-    [Arguments("root")]
-    [Arguments("outputDirectory")]
-    [Arguments("files")]
-    public async Task WriteAsync_Should_Reject_Null_Inputs_Before_Clearing(string parameter)
+    [MethodDataSource(typeof(GeneratedOutputWriterData), nameof(GeneratedOutputWriterData.NullInputs))]
+    public async Task WriteAsync_Should_Reject_Null_Inputs_Before_Clearing(
+        DirectoryPath? root, DirectoryPath? output, IReadOnlyList<GeneratedFile>? files, string parameter)
     {
         var world = FakeCakeWorld.CreateLinux().WithTextFile("Generated/family/keep.txt", "keep");
-        var root = world.RepoRoot.Combine("Generated");
-        var output = root.Combine("family");
         var writer = new GeneratedOutputWriter(world.CakeContext);
-        var exception = await Assert.That(() => writer.WriteAsync(
-                parameter == "root" ? null! : root,
-                parameter == "outputDirectory" ? null! : output,
-                parameter == "files" ? null! : []))
+        var exception = await Assert.That(() => writer.WriteAsync(root!, output!, files!))
             .Throws<ArgumentNullException>();
 
         await Assert.That(exception!.ParamName).IsEqualTo(parameter);
-        await Assert.That(Inventory(world, root)).IsEquivalentTo(["/repo/Generated/family/keep.txt"], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(Inventory(world, world.RepoRoot.Combine("Generated")))
+            .IsEquivalentTo(["/repo/Generated/family/keep.txt"], TUnit.Assertions.Enums.CollectionOrdering.Matching);
         await Assert.That(world.ReadAllText("Generated/family/keep.txt")).IsEqualTo("keep");
     }
 
