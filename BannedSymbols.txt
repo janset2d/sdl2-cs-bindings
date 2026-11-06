@@ -1,0 +1,3 @@
+P:System.DateTime.Now;Use the injected TimeProvider (src) or DateTime.UtcNow (tests)
+P:System.DateTimeOffset.Now;Use the injected TimeProvider (src) or DateTimeOffset.UtcNow (tests)
+P:System.DateTimeOffset.DateTime;Use System.DateTimeOffset.UtcDateTime instead
