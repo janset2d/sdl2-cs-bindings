@@ -10,7 +10,6 @@ using Build.Targets.Package.Services;
 using Build.Targets.PackageConsumerSmoke.Services;
 using Build.Tests.Fixtures;
 using Build.Validation.Packaging;
-using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 using Microsoft.Extensions.DependencyInjection;
