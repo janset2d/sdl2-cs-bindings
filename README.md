@@ -141,7 +141,7 @@ For detailed build instructions, see [docs/engineering/developing.md](https://gi
 | --- | --- |
 | [docs/onboarding.md](docs/onboarding.md) | Project overview, glossary, where-to-go pointers |
 | [docs/ROADMAP.md](https://github.com/janset2d/sdl2-cs-bindings/blob/master/docs/ROADMAP.md) | Current status and roadmap |
-| [docs/playbook/](docs/playbook/) | How-to recipes (local dev, validation, adding libraries, vcpkg updates, overlays) |
+| [Development guide](https://github.com/janset2d/sdl2-cs-bindings/blob/master/docs/engineering/developing.md) | Local setup and validation; native procedures are routed from there |
 | [docs/architecture/packaging-and-release.md](https://github.com/janset2d/sdl2-cs-bindings/blob/master/docs/architecture/packaging-and-release.md) | G-numbered guardrail registry + failure-mode catalog |
 | [`docs/adr/`](https://github.com/janset2d/sdl2-cs-bindings/tree/master/docs/adr/) | Architecture decision records |
 | Design evidence | Internal research, 2026-04-11, "Research: Native Library Packaging Patterns in .NET"; internal research, 2026-05-22, "Research: Semantic ABI Type Classification For SDL Bindings"; internal research, 2026-04-11, "Research: SDL3 Ecosystem Analysis" |
