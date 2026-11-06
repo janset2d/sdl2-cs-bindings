@@ -67,6 +67,7 @@ internal static class NuspecBuilder
             using var entryStream = entry.Open();
             entryStream.Write(nuspecBytes, 0, nuspecBytes.Length);
         }
+
         return memoryStream.ToArray();
     }
 }

@@ -31,6 +31,7 @@ internal static partial class MarkdownLinks
 
                 continue;
             }
+
             if (fence.Length != 0)
             {
                 continue;
@@ -48,6 +49,7 @@ internal static partial class MarkdownLinks
                 links.Add(new MarkdownLink(index + 1, match.Groups["target"].Value));
             }
         }
+
         return links;
     }
 
@@ -89,6 +91,7 @@ internal static partial class MarkdownLinks
                 segments.Add(segment);
             }
         }
+
         return segments.Count == 0 ? "." : string.Join('/', segments);
     }
 

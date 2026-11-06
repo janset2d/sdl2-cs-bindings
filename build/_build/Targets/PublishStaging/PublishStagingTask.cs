@@ -147,6 +147,7 @@ public sealed class PublishStagingTask : AsyncFrostingTask<BuildContext>
 
             selected.Add(family);
         }
+
         return selected;
     }
 
@@ -173,6 +174,7 @@ public sealed class PublishStagingTask : AsyncFrostingTask<BuildContext>
                 $"PublishStaging expected '{nupkgFile.GetFilename().FullPath}' in '{packagesDir.FullPath}' but it was not found. " +
                 "Run --target Package first or fix the --explicit-version / --versions-file mapping.");
         }
+
         return nupkgFile;
     }
 }

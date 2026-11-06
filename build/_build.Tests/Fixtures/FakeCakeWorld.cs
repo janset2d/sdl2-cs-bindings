@@ -561,6 +561,7 @@ public sealed class FakeCakeWorld
                         return perTool;
                     }
                 }
+
                 if (_toolPath is not null)
                 {
                     return _toolPath;

@@ -2,11 +2,9 @@ using Cake.Core.Tooling;
 
 namespace Build.Tools.Dumpbin;
 
-
 public class DumpbinSettings : ToolSettings
 {
 }
-
 
 public class DumpbinDependentsSettings : DumpbinSettings
 {

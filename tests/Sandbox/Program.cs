@@ -60,6 +60,7 @@ internal static class Program
                 {
                     continue;
                 }
+
                 running = false;
                 break;
             }

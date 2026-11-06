@@ -263,6 +263,7 @@ public sealed class PackageConsumerSmokeTask : AsyncFrostingTask<BuildContext>
             {
                 details.Add($"missing PackageReference(s): {string.Join(", ", comparison.Missing)}");
             }
+
             if (comparison.Unexpected.Count > 0)
             {
                 details.Add($"unexpected Janset.SDL.* PackageReference(s): {string.Join(", ", comparison.Unexpected)}");

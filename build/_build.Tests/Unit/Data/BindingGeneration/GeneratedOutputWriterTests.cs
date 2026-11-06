@@ -103,6 +103,7 @@ public sealed class GeneratedOutputWriterTests
         {
             await Assert.That(world.ReadAllText(world.RepoRoot.GetRelativePath(new FilePath(before[i])).FullPath)).IsEqualTo(contents[i]);
         }
+
         var sentinel = before.Single(path => path.EndsWith("/keep.txt", StringComparison.Ordinal));
         await Assert.That(world.ReadAllText(world.RepoRoot.GetRelativePath(new FilePath(sentinel)).FullPath)).IsEqualTo("keep");
     }

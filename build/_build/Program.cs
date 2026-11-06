@@ -76,9 +76,11 @@ static async Task<int> RunCakeHostAsync(InvocationContext context, ParsedArgumen
         {
             return;
         }
+
         e.Cancel = true;
         cts.Cancel();
     }
+
     Console.CancelKeyPress += OnCancelKeyPress;
 
     // PosixSignalRegistration handles SIGTERM on Unix (kill <pid>, container stop, etc.).

@@ -104,6 +104,7 @@ public sealed class HarvestTask(
             {
                 throw await CreateLibraryFailureAsync(library.Name, "Binary closure", closureResult.Error.Message, closureResult.Error.Exception).ConfigureAwait(false);
             }
+
             var closure = closureResult.Value;
 
             var leakReport = _leakValidator.Validate(closure, library, corePackageName, validationMode);
@@ -117,6 +118,7 @@ public sealed class HarvestTask(
                     exception: null)
                     .ConfigureAwait(false);
             }
+
             if (leakReport.HasWarnings)
             {
                 _reporter.ReportLeakReport(library.Name, leakReport);

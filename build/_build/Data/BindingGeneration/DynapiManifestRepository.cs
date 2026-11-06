@@ -124,6 +124,7 @@ public sealed partial class DynapiManifestRepository(ICakeContext context, IPath
                     throw new InvalidOperationException(
                         $"Dynapi manifest '{sourcePath}' line {lineNumber}: export line did not match the canonical Watcom format: '{line}'.");
                 }
+
                 throw new InvalidOperationException(
                     $"Dynapi manifest '{sourcePath}' line {lineNumber}: unexpected non-comment, non-export line '{line}'.");
             }
@@ -148,11 +149,13 @@ public sealed partial class DynapiManifestRepository(ICakeContext context, IPath
         {
             return true;
         }
+
         if (trimmed[0] == '#')
         {
             var afterHash = trimmed[1..].TrimStart();
             return afterHash.StartsWith("++", StringComparison.Ordinal);
         }
+
         return false;
     }
 }
