@@ -102,14 +102,7 @@ public sealed class HarvestTask(
         {
             _statusRepo.Invalidate(library.Name);
 
-            var closureResult = await _walker.BuildClosureAsync(library).ConfigureAwait(false);
-
-            if (closureResult.IsFailure)
-            {
-                throw await CreateLibraryFailureAsync(library.Name, "Binary closure", closureResult.Error.Message, closureResult.Error.Exception).ConfigureAwait(false);
-            }
-
-            var closure = closureResult.Value;
+            var closure = await BuildClosureAsync(library).ConfigureAwait(false);
 
             var leakReport = _leakValidator.Validate(closure, library, corePackageName, validationMode);
 
@@ -185,6 +178,18 @@ public sealed class HarvestTask(
 
         await _statusRepo.WriteSuccessAsync(library.Name, statistics).ConfigureAwait(false);
         _reporter.FinishLibrary(library.Name, statistics);
+    }
+
+    private async Task<BinaryClosure> BuildClosureAsync(LibraryManifest library)
+    {
+        var result = await _walker.BuildClosureAsync(library).ConfigureAwait(false);
+
+        if (result.IsFailure)
+        {
+            throw await CreateLibraryFailureAsync(library.Name, "Binary closure", result.Error.Message, result.Error.Exception).ConfigureAwait(false);
+        }
+
+        return result.Value;
     }
 
     private async Task<CakeException> CreateLibraryFailureAsync(string libraryName, string phase, string message, Exception? exception)
