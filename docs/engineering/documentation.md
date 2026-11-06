@@ -42,14 +42,14 @@ remain [build-host architecture](../architecture/build-host.md) and [testing gui
 ## Dates
 
 Every hand-written document under this documentation tree carries `Date: YYYY-MM-DD` on its own
-line within the first ten lines, except temporary [specs and plans](../superpowers/).
+line within the first ten lines, except temporary specs and plans under `docs/superpowers/`.
 For current-state and operational documents, it is the latest substantive update.
 For an ADR, it is the decision date; a material revision moves it, an editorial link fix does not.
 For a historical snapshot, an editorial correction does not rewrite its date.
 
 ## Lifecycle
 
-Per-slice specs and plans live temporarily in [specs](../superpowers/specs/) and [plans](../superpowers/plans/).
+Per-slice specs and plans live temporarily in `docs/superpowers/specs/` and `docs/superpowers/plans/`.
 When the slice ships, move durable insight to canon or an ADR, copy the temporary files
 byte-identically to the companion archive, then delete the public copies.
 Sentences that change when work completes belong in the operational-state document, not evergreen canon.
@@ -59,7 +59,7 @@ Keep documentation current in the same change as the behaviour it describes.
 
 References point one way: documentation may cite code; code artifacts never cite documentation.
 Code, project and workflow comments explain local logic, without doc paths, plan or ADR numbers.
-Every repository path used as a reference is a Markdown link, so the link gate checks it.
+An empty-at-rest output directory is named as a code span; every other path is a checked Markdown link.
 Use section names rather than line-number ranges for references to prose.
 Canon cites private evidence inline as `internal research, YYYY-MM-DD, "Title"`, never by path
 or internal numbering. Canon never points at roadmap content; naming its role is routing only.

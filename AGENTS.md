@@ -88,7 +88,7 @@ without it.
 - [`docs/architecture/`](docs/architecture/) and [`docs/engineering/`](docs/engineering/) own current normative rules;
   [decision records](docs/decisions/) explain why each decision was taken; the [onboarding glossary](docs/onboarding.md#glossary)
   owns domain terms; [`docs/plan.md`](docs/plan.md) is operational and shrinks as work lands.
-- [`docs/superpowers/`](docs/superpowers/) holds temporary per-slice specs and plans; they are deleted when their slice
+- `docs/superpowers/` holds temporary per-slice specs and plans; they are deleted when their slice
   ships, after preservation under the [documentation lifecycle](docs/engineering/documentation.md#lifecycle).
 - Repository files and current canon beat memory, plans, dated research and handoffs, including
   the companion repository. If two canonical sources disagree, follow Deviation; do not pick one
