@@ -1,197 +1,101 @@
-# Janset.SDL2 / Janset.SDL3 — Modular C# Bindings with Native Libraries
+# Janset.SDL2 / Janset.SDL3
 
-**Modern, modular C# bindings for SDL2 and SDL3, bundled with cross-platform native libraries built from source via vcpkg.**
+Modular C# bindings for SDL and its satellite libraries, bundled with Windows, Linux and macOS
+native libraries built from source through vcpkg. The packages are an independent foundation for
+Janset2D, not a game engine or a high-level game-object wrapper.
 
-This project provides comprehensive C# bindings for SDL2 (and upcoming SDL3) along with their satellite libraries (SDL_image, SDL_mixer, SDL_ttf, SDL_gfx, SDL_net), distributed as NuGet packages with pre-compiled native binaries for Windows, Linux, and macOS.
+## Status
 
-[![Release](https://github.com/janset2d/sdl2-cs-bindings/actions/workflows/release.yml/badge.svg?branch=master)](https://github.com/janset2d/sdl2-cs-bindings/actions/workflows/release.yml)
+**Under development; the first public NuGet preview has not shipped.** Internal package waves are
+used for validation. Production bindings still use SDL2-CS while generated replacements are being
+prepared. SDL3, SDL2.Net and convenience metapackages are planned, not available packages.
+See the [roadmap](https://github.com/janset2d/sdl2-cs-bindings/blob/master/docs/ROADMAP.md) for current
+coverage and release work. Do not treat an internal wave as a stable public API.
 
-## Why This Project?
+## Why these bindings?
 
-The .NET SDL ecosystem has a gap. Existing binding projects provide C# P/Invoke declarations but expect you to source native libraries yourself. This project is different:
+- **Bindings and natives together.** Reference the managed family package; its `.Native` dependency
+  supplies the corresponding native binaries. You do not need to find a separate SDL binary bundle.
+- **Source-built native stack.** Pinned vcpkg inputs and explicit features make native builds auditable.
+  SDL libraries stay dynamic; non-system dependencies are incorporated statically into satellites.
+- **Unix identity preserved.** Package-specific tar.gz archives and consumer build targets preserve
+  Linux/macOS symlink identities instead of losing them in NuGet's ZIP format.
+- **Choose the capabilities you need.** Core, image, mixer, font and graphics packages are separate
+  families, each with coherent managed/native versions.
 
-1. **C# Bindings** — Currently based on [SDL2-CS](https://github.com/flibitijibibo/SDL2-CS), with auto-generated bindings planned
-2. **Native libraries built from source** — Reproducible builds via [vcpkg](https://github.com/microsoft/vcpkg) with explicit feature flags
-3. **Cross-platform NuGet packages** — Proper `runtimes/{rid}/native/` layout for 7+ platforms
-4. **Symlink preservation** — tar.gz archives for Linux/macOS with MSBuild extraction targets
-
-**No other project in the ecosystem does all four.**
-
-These packages are the independent binding/packaging foundation for Janset2D, not a game engine
-or a high-level game-object wrapper. The consumer surface is C#/.NET; native build tooling is not
-a cross-language binding product. SDL2 Core, Image, Mixer, Ttf, Gfx and Net are the intended SDL2
-scope; SDL3 Core, Image, Mixer and Ttf follow SDL2's public-release work. Net and convenience
-metapackages remain planned. Users select managed family packages and receive natives transitively.
-Production quality takes precedence over tutorial-style coverage; samples are separate work.
+The product is C#/.NET bindings and packaging, not cross-language bindings or a tutorial framework.
+Samples are separate work. Low-level SDL semantics and resource ownership remain explicit.
 
 ## Packages
 
-### SDL2 (Available Now)
+| Managed package | Capability |
+|---|---|
+| Janset.SDL2.Core | Windowing, input, events, rendering and core SDL APIs |
+| Janset.SDL2.Image | Image decoding, including PNG, JPEG, WebP, TIFF and AVIF |
+| Janset.SDL2.Mixer | Audio mixing and the LGPL-free codec stack |
+| Janset.SDL2.Ttf | Font rendering and HarfBuzz text shaping |
+| Janset.SDL2.Gfx | Graphics primitives and rotozoom |
 
-| Package | Description | Status |
-| --- | --- | --- |
-| `Janset.SDL2.Core` | Core SDL2 bindings (windowing, input, events, rendering) | Functional |
-| `Janset.SDL2.Image` | SDL2_image bindings (JPEG, PNG, WebP, AVIF, TIFF) | Functional |
-| `Janset.SDL2.Mixer` | SDL2_mixer bindings (MP3, FLAC, OGG, Opus, MOD, MIDI) | In Progress |
-| `Janset.SDL2.Ttf` | SDL2_ttf bindings (TrueType + Harfbuzz text shaping) | In Progress |
-| `Janset.SDL2.Gfx` | SDL2_gfx bindings (primitives, rotozoom) | Functional |
-| `Janset.SDL2.Net` | SDL2_net bindings (TCP/UDP networking) | Planned |
-| `Janset.SDL2` | Meta-package (pulls everything) | Planned |
+These are the implemented package families, not a claim that they are published on nuget.org.
+SDL2.Net will add networking. Planned SDL3 coverage is Core, Image, Mixer and Ttf; it will coexist
+with SDL2 rather than replacing the SDL2 package identities.
 
-### SDL3 (Planned)
+## Platform support
 
-| Package | Description | Status |
-| --- | --- | --- |
-| `Janset.SDL3.Core` | SDL3 bindings (GPU API, new audio, camera, dialogs) | Planned |
-| `Janset.SDL3.Image` | SDL3_image bindings | Planned |
-| `Janset.SDL3.Mixer` | SDL3_mixer bindings | Planned |
-| `Janset.SDL3.Ttf` | SDL3_ttf bindings (+ SVG/emoji support) | Planned |
-| `Janset.SDL3` | Meta-package | Planned |
+The native build matrix covers seven desktop RIDs:
 
-## Platform Support
+| Platform | Native RIDs |
+|---|---|
+| Windows | win-x64, win-x86, win-arm64 |
+| Linux | linux-x64, linux-arm64 |
+| macOS | osx-x64, osx-arm64 |
 
-Native binaries are built for all major desktop platforms:
+**Linux requires glibc 2.31 or newer.** musl-based systems such as Alpine are not covered by these
+Linux assets. The host must also provide the normal OS libraries required by SDL; bundled codecs
+do not remove all operating-system dependencies.
 
-| Platform | Architectures | Status |
-| --- | --- | --- |
-| Windows | x64, x86, ARM64 | Functional (7-RID green via `release.yml`) |
-| Linux | x64, ARM64 | Functional (GHCR-hosted `linux-builder:focal-latest` image) |
-| macOS | x64 (Intel), ARM64 (Apple Silicon) | Functional |
+The [manifest](https://github.com/janset2d/sdl2-cs-bindings/blob/master/build/manifest.json) owns the
+native matrix and exact upstream versions. Managed framework targets are defined in
+[build properties](https://github.com/janset2d/sdl2-cs-bindings/blob/master/Directory.Build.props).
+Use package metadata for the framework assets in a specific published wave.
 
-All native libraries are compiled from source using vcpkg via custom `*-hybrid` overlay triplets — transitive deps are statically baked into satellite shared libs while the SDL2 core stays dynamic (single source-of-truth instance across the package set). Active feature set:
+## Getting started
 
-- **SDL2**: Vulkan, X11, Wayland, ALSA, D-Bus, IBus, libsamplerate
-- **SDL2_image**: AVIF, JPEG (libjpeg-turbo), WebP, TIFF, PNG
-- **SDL2_mixer**: MP3 (minimp3 — LGPL-free), FLAC (drflac), Opus, WavPack, OGG Vorbis, MOD (libmodplug), MIDI (bundled Timidity + freepats on Linux/CI)
-- **SDL2_ttf**: FreeType, Harfbuzz (advanced text shaping)
-- **SDL2_gfx**: primitives, rotozoom
-
-LGPL-licensed codecs (mpg123, libxmp, FluidSynth) are deliberately not in the active feature set per the project's LGPL-free codec policy — see [Native build](https://github.com/janset2d/sdl2-cs-bindings/blob/master/docs/architecture/native-build.md#codecs-and-attribution).
-
-## Getting Started
-
-Once packages are published:
+Once the public preview is published, select the managed family packages you need:
 
 ```bash
-# Everything at once
-dotnet add package Janset.SDL2
-
-# Or pick what you need
-dotnet add package Janset.SDL2.Core
-dotnet add package Janset.SDL2.Image
+dotnet add package Janset.SDL2.Core --prerelease
+dotnet add package Janset.SDL2.Image --prerelease
 ```
 
-The native packages are pulled in transitively — you never need to reference `.Native` packages directly.
+Native dependencies are pulled transitively; do not add a separate `.Native` reference for ordinary
+use. Use a coherent release wave for related families. There is no all-in-one metapackage to install
+yet. Until public previews exist, developer dogfooding uses the local/internal package procedure in
+the [development guide](https://github.com/janset2d/sdl2-cs-bindings/blob/master/docs/engineering/developing.md).
 
-**Target Frameworks**: net10.0, net9.0, net8.0, netstandard2.0, net462
+Mixer intentionally excludes LGPL backends such as mpg123, libxmp and FluidSynth. MIDI uses native
+OS support on Windows/macOS; Linux Timidity needs configuration and patch data on the consuming
+machine. MP3 or OGG avoids that MIDI-specific setup. The
+[codec registry](https://github.com/janset2d/sdl2-cs-bindings/blob/master/vcpkg-overlay-ports/README.md#sdl2-mixer)
+owns backend and license details.
 
-## Project Status
+## Licensing and acknowledgements
 
-**Actively under development.** Resuming after a hiatus — core infrastructure is solid, now completing the packaging pipeline.
+Repository-authored code is [MIT-licensed](https://github.com/janset2d/sdl2-cs-bindings/blob/master/LICENSE).
+SDL, satellite libraries and bundled dependencies retain their own licenses; native packages include
+third-party attribution. Keep those notices when redistributing. An LGPL-free codec choice does not
+make every component MIT-licensed.
 
-| Area | Status |
-| --- | --- |
-| C# bindings (5 SDL2 libraries) | Done |
-| Cake Frosting build host (feature-oriented vertical slices) | Done |
-| Native binary harvesting pipeline (7-RID hybrid-static) | Done |
-| Cross-platform CI workflow (`release.yml`, 10 jobs) | Done |
-| NuGet package creation (5 family × 3 nupkg) | Done |
-| Build-host test suite (TUnit) | Done |
-| Cross-platform smoke validation | Done — `tools ci-sim` on host RID, 7-RID matrix in CI |
-| Release pipeline publish | PublishStaging live (GitHub Packages internal feed); PublishPublic pending Phase 2b PD-7 (nuget.org promotion via Trusted Publishing OIDC) |
-| SDL2_net support | Phase 3 — manifest entry retired pending binding skeleton (#58) |
-| Binding auto-generation (ClangSharp + Roslyn postprocess) | Active spike; sunset host generator removed, tested salvage dormant |
-| SDL3 support | Phase 5 |
-| Samples | Phase 3 (#60) |
+Thanks to Ethan Lee and SDL2-CS for the transitional managed bindings, the SDL maintainers, Microsoft
+vcpkg, Cake Frosting, and the SkiaSharp/LibGit2Sharp packaging precedents.
 
-See [docs/ROADMAP.md](https://github.com/janset2d/sdl2-cs-bindings/blob/master/docs/ROADMAP.md) for detailed status and roadmap.
+Contributors: start with [AGENTS.md](https://github.com/janset2d/sdl2-cs-bindings/blob/master/AGENTS.md)
+and the [development guide](https://github.com/janset2d/sdl2-cs-bindings/blob/master/docs/engineering/developing.md).
 
-## Building from Source
+## Version mapping
 
-```bash
-# Clone with submodules (vcpkg + SDL2-CS)
-git clone --recursive https://github.com/janset2d/sdl2-cs-bindings.git
-cd sdl2-cs-bindings
-
-# Canonical local setup: prepare local feed + smoke override in one step
-dotnet run --file tools.cs -- setup --source=local
-
-# Build managed bindings directly (fast managed-only path)
-dotnet build src/SDL2.Core/SDL2.Core.csproj
-dotnet build src/SDL2.Image/SDL2.Image.csproj
-
-# Optional: build-host regression suite
-dotnet test --project build/_build.Tests/Build.Tests.csproj -c Release --framework net10.0
-
-# Note: the root solution intentionally keeps smoke projects.
-# If build/msbuild/Janset.Local.props is missing or stale,
-# solution-level build can fail on smoke package restore:
-# dotnet build Janset.SDL2.sln
-
-# To build native libraries locally:
-# 1. Bootstrap vcpkg
-./external/vcpkg/bootstrap-vcpkg.sh  # or .bat on Windows
-
-# 2. Install native dependencies for your platform
-./external/vcpkg/vcpkg install --triplet x64-linux-hybrid --overlay-triplets=vcpkg-overlay-triplets
-
-# 3. Run the harvest pipeline
-cd build/_build
-dotnet run -- --target Harvest --library SDL2 --library SDL2_image --rid linux-x64
-```
-
-For detailed build instructions, see [docs/engineering/developing.md](https://github.com/janset2d/sdl2-cs-bindings/blob/master/docs/engineering/developing.md).
-
-## Documentation
-
-| Document | Purpose |
-| --- | --- |
-| [GLOSSARY.md](https://github.com/janset2d/sdl2-cs-bindings/blob/master/GLOSSARY.md) | Project-specific language |
-| [docs/ROADMAP.md](https://github.com/janset2d/sdl2-cs-bindings/blob/master/docs/ROADMAP.md) | Current status and roadmap |
-| [Development guide](https://github.com/janset2d/sdl2-cs-bindings/blob/master/docs/engineering/developing.md) | Local setup and validation; native procedures are routed from there |
-| [docs/architecture/packaging-and-release.md](https://github.com/janset2d/sdl2-cs-bindings/blob/master/docs/architecture/packaging-and-release.md) | G-numbered guardrail registry + failure-mode catalog |
-| [`docs/adr/`](https://github.com/janset2d/sdl2-cs-bindings/tree/master/docs/adr/) | Architecture decision records |
-| Design evidence | Internal research, 2026-04-11, "Research: Native Library Packaging Patterns in .NET"; internal research, 2026-05-22, "Research: Semantic ABI Type Classification For SDL Bindings"; internal research, 2026-04-11, "Research: SDL3 Ecosystem Analysis" |
-
-## Architecture
-
-```text
-User's .csproj
-  └── references Janset.SDL2.Core (managed bindings)
-        └── depends on Janset.SDL2.Core.Native (native binaries)
-              └── runtimes/win-x64/native/SDL2.dll
-              └── runtimes/linux-x64/native/libSDL2-2.0.so.0
-              └── runtimes/osx-arm64/native/libSDL2.dylib
-```
-
-Native libraries are built via a Cake Frosting pipeline that:
-
-1. Compiles SDL2 from source using vcpkg
-2. Walks the binary dependency closure (dumpbin/ldd/otool)
-3. Filters out OS-provided libraries
-4. Packages binaries into NuGet-compatible `runtimes/{rid}/native/` layout
-5. Preserves Linux/macOS symlinks via tar.gz archives
-
-## Motivation
-
-This project is the foundation for **Janset2D**, a cross-platform 2D game framework (named after my daughter, Janset). While these bindings are integral to Janset2D (which will be open-sourced separately), they are designed as a standalone, community-facing contribution.
-
-## Acknowledgements
-
-- C# bindings based on [SDL2-CS](https://github.com/flibitijibibo/SDL2-CS) by Ethan Lee
-- Native libraries built using [vcpkg](https://github.com/microsoft/vcpkg) by Microsoft
-- Build automation powered by [Cake Frosting](https://cakebuild.net/)
-- Inspired by the packaging patterns of [SkiaSharp](https://github.com/mono/SkiaSharp) and [LibGit2Sharp](https://github.com/libgit2/libgit2sharp)
-
-## Contributing
-
-Contributions will be welcome once the initial release and CI/CD pipeline are stabilized. A `CONTRIBUTING.md` will be added at that time.
-
-## License
-
-This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
-
-## Version Mapping
+Family versions track the upstream major/minor line with a repository-owned patch counter. The
+generated table records exact upstream patch and port metadata; it is not a publication inventory.
 
 <!-- JANSET:MAPPING-TABLE-START -->
 | Family | Version | Upstream | vcpkg Port |
