@@ -2,8 +2,6 @@ using System.Text.RegularExpressions;
 
 namespace Build.Tests.Fixtures.RepositoryGates;
 
-internal sealed record MarkdownLink(int Line, string Target);
-
 internal static partial class MarkdownLinks
 {
     public static IReadOnlyList<MarkdownLink> Extract(string markdown)

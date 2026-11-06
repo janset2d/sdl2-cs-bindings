@@ -15,14 +15,6 @@ using Spectre.Console.Testing;
 
 namespace Build.Tests.Fixtures;
 
-public enum FakeRepoPlatform
-{
-    Windows,
-    Unix,
-}
-
-public sealed record ProcessInvocation(FilePath Command, string Arguments, bool RedirectStandardOutput, bool RedirectStandardError, bool Silent);
-
 public sealed class FakeCakeWorld
 {
     private readonly Dictionary<string, (int ExitCode, string StdOut, string StdErr)> _processResults = new(StringComparer.OrdinalIgnoreCase);
