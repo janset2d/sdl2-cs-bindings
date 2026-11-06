@@ -1,6 +1,6 @@
 # Playbook: Cross-Platform Smoke Validation
 
-Date: 2026-11-06
+Date: 2026-05-08
 
 > Recipe for running `tools.cs ci-sim` on the three host families (Windows, WSL/Linux, macOS) after a build-host change. Companion to [`local-development.md`](local-development.md) (managed dev surface) and [`local-validation.md`](local-validation.md) (`tools.cs` reference).
 
@@ -128,5 +128,5 @@ When WSL or macOS ci-sim fails:
 - [`local-validation.md`](local-validation.md) — `tools.cs` reference (ci-sim, setup, build passthrough)
 - [`overlay-management.md`](overlay-management.md) — vcpkg overlay triplets
 - [`../knowledge-base/release-guardrails.md`](../knowledge-base/release-guardrails.md) — what each pipeline stage validates
-- [`../../AGENTS.md`](../../AGENTS.md) — approval gate
+- [`../../AGENTS.md`](../../AGENTS.md) — reserved actions
 - [`../onboarding.md`](../onboarding.md) — settled strategic decisions

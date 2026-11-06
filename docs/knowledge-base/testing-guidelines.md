@@ -1,6 +1,6 @@
 # Testing Guidelines — Build-Host Tests
 
-Date: 2026-11-06
+Date: 2026-11-05
 
 Canonical reference for writing and maintaining tests in `build/_build.Tests/`. This knowledge-base copy is the durable home now that the ADR-002 refactor is closed.
 

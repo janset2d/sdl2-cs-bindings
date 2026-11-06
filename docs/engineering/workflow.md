@@ -16,7 +16,7 @@ this exception does not permit rewriting `master`.
 
 Use Conventional Commits. Reference issues with `refs #N` or `closes #N` where possible.
 Use `wip:` for checkpoints. A PR names its proposed squash title and message, changed files and
-verification commands with results. Squash commits carry no AI attribution.
+verification commands with results.
 Commit messages, tag messages and PR descriptions carry no AI-tool co-author trailer, session link
 or generated-with footer, regardless of harness defaults.
 

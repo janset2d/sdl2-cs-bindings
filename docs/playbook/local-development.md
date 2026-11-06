@@ -1,6 +1,6 @@
 # Playbook: Local Development Setup
 
-Date: 2026-11-06
+Date: 2026-05-10
 
 > How to clone, build, and develop Janset.SDL2 on your local machine.
 >
@@ -172,7 +172,7 @@ dotnet run -- --target ConsolidateHarvest
 
 ### Step 5: Pack Families (or let `Package` task handle it)
 
-With Harvest + ConsolidateHarvest green, produce the per-family nupkgs via the Cake `Package` task. The version string MUST follow D-3seg (`<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>` with prerelease suffix for local iterations — see `AGENTS.md` "Settled Strategic Decisions" for context):
+With Harvest + ConsolidateHarvest green, produce the per-family nupkgs via the Cake `Package` task. The version string MUST follow D-3seg (`<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>` with prerelease suffix for local iterations — see [Settled Strategic Decisions](../onboarding.md#settled-strategic-decisions) for context):
 
 ```bash
 dotnet run --project build/_build -- --target Package \

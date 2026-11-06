@@ -17,9 +17,6 @@ Current rules for documentation ownership, authority, references and lossless ma
 | Consumer documentation | [README](../../README.md) | How to use the shipped packages |
 | Research and session operations | Private companion repository | Non-normative evidence and handoffs |
 
-The domain vocabulary and operational state are moving to a root glossary and a concise roadmap.
-Use the linked current homes until those replacements exist.
-
 ## Companion repository
 
 Research, finished plans and specs, handoffs and host notes live in the private repository
@@ -51,7 +48,7 @@ For a historical snapshot, an editorial correction does not rewrite its date.
 
 Per-slice specs and plans live temporarily in `docs/superpowers/specs/` and `docs/superpowers/plans/`.
 When the slice ships, move durable insight to canon or an ADR, copy the temporary files
-byte-identically to the companion archive, then delete the public copies.
+byte-identically to `docs/archive/superpowers/` in the companion repository, then delete the public copies.
 Sentences that change when work completes belong in the operational-state document, not evergreen canon.
 Keep documentation current in the same change as the behaviour it describes.
 
@@ -62,7 +59,8 @@ Code, project and workflow comments explain local logic, without doc paths, plan
 An empty-at-rest output directory is named as a code span; every other path is a checked Markdown link.
 Use section names rather than line-number ranges for references to prose.
 Canon cites private evidence inline as `internal research, YYYY-MM-DD, "Title"`, never by path
-or internal numbering. Canon never points at roadmap content; naming its role is routing only.
+or internal numbering. Canon never cites roadmap content; naming the roadmap as the home of operational state
+is routing and is allowed.
 
 ## Moves
 
@@ -73,9 +71,16 @@ Run `git mv` before editing. A pure move is its own changeset: renames, forced l
 baseline-path changes only. Verify rename detection at 90% similarity before handing it over.
 
 Copy departing material byte-identically before public deletion. Run byte copies in bash, not PowerShell
-redirection. Research retains its relative path in the companion repository. Other documents go under
-its archive with the documentation-root prefix removed; files outside that root retain their full
-repository-relative path under the archive. Compare Git blob hashes to prove byte identity.
+redirection. Use this companion mapping:
+
+| Public path | Companion destination |
+|---|---|
+| `docs/research/<f>` | `docs/research/<f>` |
+| Any other `docs/<p>` | `docs/archive/<p>` |
+| Non-`docs/` path `<p>` | `docs/archive/<p>` |
+| Temporary specs and plans | `docs/archive/superpowers/` |
+
+Compare Git blob hashes to prove byte identity.
 
 ## Consumer documentation
 

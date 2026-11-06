@@ -17,7 +17,7 @@ owns commands; [workflow](../engineering/workflow.md#isolated-checkouts) owns ch
 
 | Concept | Rule |
 |---|---|
-| [Targets](../../build/_build/Targets/) | Primary navigation unit; each folder uses its Cake target name from `[TaskName]` |
+| [Targets](../../build/_build/Targets/) | Primary navigation unit; folders use the PascalCase task name with hyphens removed (`Dumpbin-Dependents` → [`DumpbinDependents/`](../../build/_build/Targets/DumpbinDependents/)) |
 | Task class | Owns orchestration, input validation, request construction, expected-error reporting and `CakeException` translation |
 | Request DTO | Immutable collaborator input when useful; never replaces `RunAsync(BuildContext context)` |
 | Target collaborators | Extract named behaviour when complexity, reuse, testing, dependencies or change reasons justify it |
@@ -28,6 +28,7 @@ owns commands; [workflow](../engineering/workflow.md#isolated-checkouts) owns ch
 
 New code starts target-local or in one of these named root concepts. There is no catch-all shared
 layer, integration layer or host-configuration layer.
+[`GenerateBindings/`](../../build/_build/Targets/GenerateBindings/) holds dormant tested salvage with no task.
 
 ## Rules
 
@@ -83,6 +84,6 @@ The [release workflow](../../.github/workflows/release.yml) expands the runtime 
    [build properties](../../Directory.Build.props).
 5. **PublishStaging** pushes managed/native pairs to GitHub Packages with NuGet.Protocol.
 
-`PreFlightCheck` runs before the matrix. Public publishing remains gated on its implementation and
-promotion approval. Discover current targets with `--tree`; do not maintain a second target list.
+`PreFlightCheck` runs before the matrix. `PublishPublic` is a stub.
+Discover current targets with `--tree`; do not maintain a second target list.
 [Release guardrails](../knowledge-base/release-guardrails.md) own the stage validation map and guardrail registry.
