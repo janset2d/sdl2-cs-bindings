@@ -22,10 +22,6 @@ or generated-with footer, regardless of harness defaults.
 
 ## Agent autonomy
 
-Write engineered-enough code: explicit over clever; handle every edge case the change can meet,
-and add nothing the change does not need. Flag repetition; use no workaround that hides an error.
-Behaviour changes come with tests. The root [agent instructions](../../AGENTS.md) relay this rule.
-
 On work branches agents commit and push freely, open PRs once the local check passes, and file issues
 for findings. Reserved for Deniz: merging into `master`, release dispatch and publish, tags,
 history rewrites, deleting branches or tags, repository creation and settings, anything touching
