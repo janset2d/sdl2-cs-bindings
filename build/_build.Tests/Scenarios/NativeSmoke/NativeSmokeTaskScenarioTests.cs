@@ -162,6 +162,7 @@ public sealed class NativeSmokeTaskScenarioTests
         IMsvcDevEnvironment? msvcOverride = null)
     {
         var host = new TargetTestHost<NativeSmokeTask>(world);
+
         if (manifest is not null)
         {
             host.WithManifest(manifest);

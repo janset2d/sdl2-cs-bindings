@@ -178,6 +178,7 @@ public sealed class BinaryClosureWalkerTests
     private void SeedPackageInfo(string name, string[] ownedFiles, string[] dependencies)
     {
         var basePath = _pathService.GetVcpkgInstalledDir.Combine("x64-windows-hybrid");
+
         foreach (var relativePath in ownedFiles)
         {
             _fakeFs.CreateFile(basePath.CombineWithFilePath(relativePath));

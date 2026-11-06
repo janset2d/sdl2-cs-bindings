@@ -125,11 +125,13 @@ public sealed class ServiceCollectionExtensionsSmokeTests
         using var provider = services.BuildServiceProvider();
 
         var unresolved = new List<string>();
+
         foreach (var descriptor in addedDescriptors)
         {
             try
             {
                 var resolved = provider.GetService(descriptor.ServiceType);
+
                 if (resolved is null)
                 {
                     unresolved.Add(descriptor.ServiceType.FullName ?? descriptor.ServiceType.Name);

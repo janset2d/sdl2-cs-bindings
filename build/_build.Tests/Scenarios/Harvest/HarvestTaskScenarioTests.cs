@@ -293,6 +293,7 @@ public sealed class HarvestTaskScenarioTests
         IArtifactDeployer? deployerOverride = null)
     {
         var host = new TargetTestHost<HarvestTask>(world);
+
         if (manifest is not null)
         {
             host.WithManifest(manifest);
