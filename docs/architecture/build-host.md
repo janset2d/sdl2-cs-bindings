@@ -43,6 +43,7 @@ layer, integration layer or host-configuration layer.
 - Keep interfaces for multiple implementations, independent change axes, expensive seams or important
   task contracts. Avoid ceremonial single-implementation interface/class pairs.
 - At build boundaries use Cake aliases and addins first, then `Tool<TSettings>`, then named API adapters.
+  Check existing Cake aliases, addins and abstractions before wrapping an external tool; state why they do not fit.
   Raw BCL IO or raw process invocation requires a stated review justification.
 - Pure policies, algorithms and value objects stay Cake-free when domain values suffice.
 - Guardrail IDs belong in reports, logs, test data and documentation mappings. Code names describe behaviour.
@@ -50,7 +51,6 @@ layer, integration layer or host-configuration layer.
 - [tools.cs](../../tools.cs) stays standalone. It may parse the [manifest](../../build/manifest.json)
   itself but references no build-host internals.
 - Prefer immutable records, value objects and pattern matching when they clarify the domain.
-- Check existing Cake aliases, addins and abstractions before wrapping an external tool. State why they do not fit.
 - Warning suppressions are a last resort, local and justified; broad warning-disabling pragmas are not a default.
 - Expected failures use `Result<T, TError>`. Multi-check validation uses `ValidationReport` and `ValidationCheck`.
   Avoid OneOf-style result hierarchies.
