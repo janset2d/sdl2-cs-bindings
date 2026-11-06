@@ -31,7 +31,7 @@ Six reporters now share a recurring shape (`LogStarting`, `StartLibrary`, `Finis
 
 ## References
 
-- [ADR-002](../../decisions/2026-05-05-target-centric-build-host.md) §15 (risk register, reporter method-count ceiling) + §8 (collaborator extraction)
+- [ADR-002](../../adr/0002-target-centric-build-host.md) §15 (risk register, reporter method-count ceiling) + §8 (collaborator extraction)
 - [post-refactor-cleanup-plan.md §6](../../post-refactor-cleanup-plan.md#6-reporter-cohort-consolidation)
 - S12 P6 PreFlight migration — `PreflightReporter` IAnsiConsole deferral
 - All six reporter files under `build/_build/Targets/<X>/Reporting/`

@@ -677,9 +677,9 @@ Until Production Flip, treat any code that needs production multi-TFM compilatio
 
 ### ADRs
 
-- [ADR-002 — Target-centric build-host pattern](../../../../docs/decisions/2026-05-05-target-centric-build-host.md) — Cake-host architectural pattern; binding generator's eventual production landing in the Cake host inherits this.
-- [ADR-003 — Contract-centric data layer](../../../../docs/decisions/2026-05-12-build-host-data-layer.md) — `build/_build/Data/BindingGeneration/` data contracts (stamp, manifest) extend this pattern.
-- [ADR-004 — Binding Auto-Generation Toolchain](../../../../docs/decisions/2026-05-14-binding-autogen-toolchain.md) — toolchain selection record; currently Reopened pending Layer 2 closure.
+- [ADR-002 — Target-centric build-host pattern](../../../../docs/adr/0002-target-centric-build-host.md) — Cake-host architectural pattern; binding generator's eventual production landing in the Cake host inherits this.
+- [ADR-003 — Contract-centric data layer](../../../../docs/adr/0003-build-host-data-layer.md) — `build/_build/Data/BindingGeneration/` data contracts (stamp, manifest) extend this pattern.
+- [ADR-004 — Binding Auto-Generation Toolchain](../../../../docs/adr/0004-binding-autogen-toolchain.md) — toolchain selection record; currently Reopened pending Layer 2 closure.
 
 ### Knowledge-Base
 

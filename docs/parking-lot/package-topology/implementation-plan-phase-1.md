@@ -15,7 +15,7 @@
 Per the authoring convention in [`phase-planning-methodology.md`](phase-planning-methodology.md) §Authoring Convention: Reference Discipline. Read these before writing any code:
 
 - [`../../../AGENTS.md`](../../../AGENTS.md) §Approval Gate (this Phase produces tests + 1 attribute; documentation-edit exceptions do NOT cover test code — explicit "go" required before `dotnet test` runs implementation code), §Test Naming Convention (`<MethodName>_Should_<Verb>_<optional When/If/Given>`), §Build-Host Reference Pattern.
-- [`../../decisions/2026-05-05-target-centric-build-host.md`](../../decisions/2026-05-05-target-centric-build-host.md) (ADR-002) — test files live under `Scenarios/<TargetName>/` or `Unit/Targets/<TargetName>/`. Characterization tests for the package-topology refactor live under `Scenarios/Characterization/` per the new sub-folder; this matches the existing test taxonomy in [`../../knowledge-base/testing-guidelines.md`](../../knowledge-base/testing-guidelines.md) §Test taxonomy.
+- [`../../adr/0002-target-centric-build-host.md`](../../adr/0002-target-centric-build-host.md) (ADR-002) — test files live under `Scenarios/<TargetName>/` or `Unit/Targets/<TargetName>/`. Characterization tests for the package-topology refactor live under `Scenarios/Characterization/` per the new sub-folder; this matches the existing test taxonomy in [`../../knowledge-base/testing-guidelines.md`](../../knowledge-base/testing-guidelines.md) §Test taxonomy.
 - [`../../knowledge-base/testing-guidelines.md`](../../knowledge-base/testing-guidelines.md) — canonical test infra (`FakeCakeWorld`, `TargetTestHost`, `FixtureLoader`, `TestLog`), filesystem rule (no `System.IO`, no `AppContext.BaseDirectory` traversal), test data policy (embedded fixtures via `FixtureLoader` vs centralized inline constants), TUnit rules.
 - [`../../knowledge-base/extraction-guidelines.md`](../../knowledge-base/extraction-guidelines.md) — if a characterization helper grows beyond test-class-local complexity, extract per the private-method decision tree. For Phase 1 the helpers stay test-class-local (no separate collaborator file).
 - [`strategy-brief.md`](strategy-brief.md) §V1 family-lock + §HOW Package layers — strategic anchor for what the target tests describe.
@@ -606,8 +606,8 @@ Phase 1 deliberately scopes to `DependencyRangeNormalizer` because (a) it has th
 - [`phase-planning-methodology.md`](phase-planning-methodology.md) — methodology, phase status, authoring convention
 - [`strategy-brief.md`](strategy-brief.md) — strategic decisions
 - [`impact-map.md`](impact-map.md) §4.C, §9.H — normalizer extension + characterization test inventory
-- [`../../decisions/2026-05-05-target-centric-build-host.md`](../../decisions/2026-05-05-target-centric-build-host.md) (ADR-002) — test file location convention
-- [`../../decisions/2026-05-12-build-host-data-layer.md`](../../decisions/2026-05-12-build-host-data-layer.md) (ADR-003) — `PackageFamilyVersionSet` lives under `Build.Data.Versions` per the contract-centric data layer
+- [`../../adr/0002-target-centric-build-host.md`](../../adr/0002-target-centric-build-host.md) (ADR-002) — test file location convention
+- [`../../adr/0003-build-host-data-layer.md`](../../adr/0003-build-host-data-layer.md) (ADR-003) — `PackageFamilyVersionSet` lives under `Build.Data.Versions` per the contract-centric data layer
 - [`../../knowledge-base/testing-guidelines.md`](../../knowledge-base/testing-guidelines.md) — canonical test infra, fixture data policy, TUnit rules
 - [`../../knowledge-base/release-guardrails.md`](../../knowledge-base/release-guardrails.md) — G56 (cross-family upper bound), the rule whose lower-bound source this Phase characterizes
 - [`../../../AGENTS.md`](../../../AGENTS.md) — operating rules, approval gate, test naming convention, Tier 1 slopwatch mandate

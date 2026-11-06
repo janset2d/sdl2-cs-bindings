@@ -3099,9 +3099,9 @@ Run this checklist before declaring the plan complete:
 ## References
 
 - [Design spec](../specs/2026-05-28-binding-autogen-doc-consolidation-design.md) — full decision rationale and topology design.
-- [ADR-002 Target-centric build-host](../../decisions/2026-05-05-target-centric-build-host.md).
-- [ADR-003 Contract-centric data layer](../../decisions/2026-05-12-build-host-data-layer.md).
-- [ADR-004 Binding-autogen toolchain](../../decisions/2026-05-14-binding-autogen-toolchain.md) — Reopened pending Layer 2 closure.
+- [ADR-002 Target-centric build-host](../../adr/0002-target-centric-build-host.md).
+- [ADR-003 Contract-centric data layer](../../adr/0003-build-host-data-layer.md).
+- [ADR-004 Binding-autogen toolchain](../../adr/0004-binding-autogen-toolchain.md) — Reopened pending Layer 2 closure.
 - [Knowledge-base extraction guidelines](../../knowledge-base/extraction-guidelines.md).
 - [Knowledge-base testing guidelines](../../knowledge-base/testing-guidelines.md).
 - [AGENTS.md](../../../AGENTS.md) — operating rules and approval gates.

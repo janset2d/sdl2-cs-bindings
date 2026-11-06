@@ -1132,7 +1132,7 @@ Estimated total: **46-68 hours** of focused work. Calendar duration depends on s
 ## 14. Cross-References
 
 - [`strategy-brief.md`](strategy-brief.md) — strategic decisions; this file is mechanical companion
-- [`../../decisions/2026-05-05-d3seg-and-package-first.md`](../../decisions/2026-05-05-d3seg-and-package-first.md) — ADR-001 to supersede
+- [`../../adr/0001-d3seg-and-package-first.md`](../../adr/0001-d3seg-and-package-first.md) — ADR-001 to supersede
 - [`../../knowledge-base/release-guardrails.md`](../../knowledge-base/release-guardrails.md) — G-numbered guardrail catalog
 - [`../../knowledge-base/extraction-guidelines.md`](../../knowledge-base/extraction-guidelines.md) — collaborator extraction policy (applies to normalizer + validator surface changes)
 - [`../../knowledge-base/testing-guidelines.md`](../../knowledge-base/testing-guidelines.md) — characterization test policy, canonical infra

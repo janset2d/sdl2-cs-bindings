@@ -396,9 +396,9 @@ Multi-agent review at the user-emphasized stages. Each checkpoint dispatches 2+ 
 
 ### ADRs
 
-- [ADR-002 — Target-centric build-host pattern](../../decisions/2026-05-05-target-centric-build-host.md) — the Cake-host fold inherits this pattern; the new ClangSharp+Roslyn implementation will need its own equivalent architectural ADR when production-flip lands.
-- [ADR-003 — Contract-centric data layer](../../decisions/2026-05-12-build-host-data-layer.md) — binding-generation data contracts under `build/_build/Data/BindingGeneration/` extend this pattern.
-- [ADR-004 — Binding Auto-Generation Toolchain](../../decisions/2026-05-14-binding-autogen-toolchain.md) — currently Reopened; this consolidation refreshes its status banner but defers formal amendment per user direction.
+- [ADR-002 — Target-centric build-host pattern](../../adr/0002-target-centric-build-host.md) — the Cake-host fold inherits this pattern; the new ClangSharp+Roslyn implementation will need its own equivalent architectural ADR when production-flip lands.
+- [ADR-003 — Contract-centric data layer](../../adr/0003-build-host-data-layer.md) — binding-generation data contracts under `build/_build/Data/BindingGeneration/` extend this pattern.
+- [ADR-004 — Binding Auto-Generation Toolchain](../../adr/0004-binding-autogen-toolchain.md) — currently Reopened; this consolidation refreshes its status banner but defers formal amendment per user direction.
 
 ### Knowledge-Base
 

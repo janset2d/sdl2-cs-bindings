@@ -103,9 +103,9 @@ The mandatory reference matrix per phase:
 | Document | When to reference | Why |
 | --- | --- | --- |
 | [`AGENTS.md`](../../../AGENTS.md) | **Always** | Operating rules, approval gate ("Do not start coding new features without explicit go"), settled strategic decisions, test naming convention, build-host reference pattern. |
-| [`decisions/2026-05-05-target-centric-build-host.md`](../../decisions/2026-05-05-target-centric-build-host.md) (ADR-002) | **Always** when touching `build/_build/` | Target-centric architecture is the build-host's canonical shape. New code lives under `Targets/<TargetName>/`, `Validation/`, `Data/`, `Host/`, `Results/`, `Tools/` — not legacy `Features/`, `Shared/`, `Integrations/`. |
-| [`decisions/2026-05-12-build-host-data-layer.md`](../../decisions/2026-05-12-build-host-data-layer.md) (ADR-003) | When touching `build/_build/Data/` (manifest models, repositories, version files) | Contract-centric data layer — adapters live under `Data/<Contract>/`. |
-| [`decisions/2026-05-05-d3seg-and-package-first.md`](../../decisions/2026-05-05-d3seg-and-package-first.md) (ADR-001) | Phase 4+ (versioning + packaging surface) and Phase 6 (supersede) | D-3seg + family-lock + package-first consumer contract. This refactor preserves D-3seg + family-lock; Phase 6 supersedes ADR-001 with a successor encoding the role-metapackage topology. |
+| [`adr/0002-target-centric-build-host.md`](../../adr/0002-target-centric-build-host.md) (ADR-002) | **Always** when touching `build/_build/` | Target-centric architecture is the build-host's canonical shape. New code lives under `Targets/<TargetName>/`, `Validation/`, `Data/`, `Host/`, `Results/`, `Tools/` — not legacy `Features/`, `Shared/`, `Integrations/`. |
+| [`adr/0003-build-host-data-layer.md`](../../adr/0003-build-host-data-layer.md) (ADR-003) | When touching `build/_build/Data/` (manifest models, repositories, version files) | Contract-centric data layer — adapters live under `Data/<Contract>/`. |
+| [`adr/0001-d3seg-and-package-first.md`](../../adr/0001-d3seg-and-package-first.md) (ADR-001) | Phase 4+ (versioning + packaging surface) and Phase 6 (supersede) | D-3seg + family-lock + package-first consumer contract. This refactor preserves D-3seg + family-lock; Phase 6 supersedes ADR-001 with a successor encoding the role-metapackage topology. |
 | [`knowledge-base/release-guardrails.md`](../../knowledge-base/release-guardrails.md) | Whenever touching a guardrail (G-numbered behavior) | Single map of every guardrail this project commits to. Use behavior-first language; final ID assignments happen in Phase 6 against this catalog. |
 | [`knowledge-base/testing-guidelines.md`](../../knowledge-base/testing-guidelines.md) | **Always** when writing tests | Canonical test infra (`FakeCakeWorld`, `TargetTestHost`, `FixtureLoader`), filesystem rule (no `System.IO`, no `AppContext.BaseDirectory` traversal), test data policy (embedded fixtures vs centralized inline), test taxonomy, TUnit rules. |
 | [`knowledge-base/extraction-guidelines.md`](../../knowledge-base/extraction-guidelines.md) | Whenever extracting a collaborator or making interface-vs-class decisions | Private-method decision tree, interface discipline, anti-patterns. |
@@ -120,9 +120,9 @@ This convention applies retroactively to [`strategy-brief.md`](strategy-brief.md
 - [`strategy-brief.md`](strategy-brief.md) — strategic decisions (V1 family-lock, 3-tier topology, deferred ultimate meta)
 - [`impact-map.md`](impact-map.md) — mechanical surface map (file paths, classes, methods, schemas, slice sequence)
 - [`implementation-plan-phase-1.md`](implementation-plan-phase-1.md) — currently active phase plan
-- [`../../decisions/2026-05-05-target-centric-build-host.md`](../../decisions/2026-05-05-target-centric-build-host.md) — ADR-002 build-host architecture
-- [`../../decisions/2026-05-12-build-host-data-layer.md`](../../decisions/2026-05-12-build-host-data-layer.md) — ADR-003 data layer
-- [`../../decisions/2026-05-05-d3seg-and-package-first.md`](../../decisions/2026-05-05-d3seg-and-package-first.md) — ADR-001 D-3seg + package-first (to be superseded in Phase 6)
+- [`../../adr/0002-target-centric-build-host.md`](../../adr/0002-target-centric-build-host.md) — ADR-002 build-host architecture
+- [`../../adr/0003-build-host-data-layer.md`](../../adr/0003-build-host-data-layer.md) — ADR-003 data layer
+- [`../../adr/0001-d3seg-and-package-first.md`](../../adr/0001-d3seg-and-package-first.md) — ADR-001 D-3seg + package-first (to be superseded in Phase 6)
 - [`../../knowledge-base/release-guardrails.md`](../../knowledge-base/release-guardrails.md) — guardrail catalog
 - [`../../knowledge-base/testing-guidelines.md`](../../knowledge-base/testing-guidelines.md) — canonical test infra and fixture data policy
 - [`../../knowledge-base/extraction-guidelines.md`](../../knowledge-base/extraction-guidelines.md) — collaborator extraction policy

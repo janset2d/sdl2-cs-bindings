@@ -4,7 +4,7 @@
 
 ## Purpose
 
-This document tracks the remaining work for Phase 2 (CI/CD & Packaging). It does not re-derive policy or roadmap — those live in [`plan.md`](../plan.md) and (when ADRs land) under [`docs/decisions/`](../decisions/).
+This document tracks the remaining work for Phase 2 (CI/CD & Packaging). It does not re-derive policy or roadmap — those live in [`plan.md`](../plan.md) and (when ADRs land) under [`docs/adr/`](../adr/).
 
 For canonical guardrail surface, see [`release-guardrails.md`](../knowledge-base/release-guardrails.md).
 

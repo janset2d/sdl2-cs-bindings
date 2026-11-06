@@ -30,8 +30,8 @@ Three layering problems compound in the harvest data path: `Build.Data.Harvest.I
 
 ## References
 
-- [ADR-003](../../decisions/2026-05-12-build-host-data-layer.md) — contract-centric data layer
-- [ADR-002](../../decisions/2026-05-05-target-centric-build-host.md) §4 (Models/ subfolder vocabulary) + §8
+- [ADR-003](../../adr/0003-build-host-data-layer.md) — contract-centric data layer
+- [ADR-002](../../adr/0002-target-centric-build-host.md) §4 (Models/ subfolder vocabulary) + §8
 - [post-refactor-cleanup-plan.md §5](../../post-refactor-cleanup-plan.md#5-extractions--re-shapes)
 - Reviewer A/B/C/D convergent finding at S14 P8 review (`DeploymentStatistics` cross-namespace dep)
 - Reviewer D-S3 at S14 (`HarvestStatusRepository` naming)

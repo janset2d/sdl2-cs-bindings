@@ -155,7 +155,7 @@ This stays consistent with §"Manifest Configuration Vs Code-Owned Policy": **wh
 
 **Active tracking & decisions:**
 - [`../../next-iteration-plan.md`](../../next-iteration-plan.md) — Layer 2 framing + Forward Backlog.
-- [`../../../../../docs/decisions/2026-05-14-binding-autogen-toolchain.md`](../../../../../docs/decisions/2026-05-14-binding-autogen-toolchain.md) — ADR-004 (Reopened); this mapping reinforces the ClangSharp choice (dim 8).
+- [`../../../../../docs/adr/0004-binding-autogen-toolchain.md`](../../../../../docs/adr/0004-binding-autogen-toolchain.md) — ADR-004 (Reopened); this mapping reinforces the ClangSharp choice (dim 8).
 
 **Peer sources (file:line evidence in the per-peer research; clones under `spikes/binding-generators/references/`, `external/sdl2-cs/`):**
 - ppy/SDL3-CS — `SDL3-CS.SourceGeneration/FriendlyOverloadGenerator.cs`, `SDL3-CS/Utf8String.cs`, companion `.cs`, `generate_bindings.py`.

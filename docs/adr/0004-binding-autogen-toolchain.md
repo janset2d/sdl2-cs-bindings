@@ -95,4 +95,4 @@ Migration would replace the generator implementation, not the package contract. 
 - [`../../spikes/binding-generators/`](../../spikes/binding-generators/) — active spike implementation
 - [`../release-strategy.md`](../release-strategy.md)
 - [`../phases/phase-4-binding-autogen.md`](../phases/phase-4-binding-autogen.md)
-- [`2026-05-05-d3seg-and-package-first.md`](2026-05-05-d3seg-and-package-first.md)
+- [`0001-d3seg-and-package-first.md`](0001-d3seg-and-package-first.md)

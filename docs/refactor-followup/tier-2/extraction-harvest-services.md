@@ -29,7 +29,7 @@ Two harvest-side methods carry `MA0051` suppressions and either a `CA1031` suppr
 
 ## References
 
-- [ADR-002](../../decisions/2026-05-05-target-centric-build-host.md) §5 + §8
+- [ADR-002](../../adr/0002-target-centric-build-host.md) §5 + §8
 - [`extraction-guidelines.md`](../../knowledge-base/extraction-guidelines.md)
 - [post-refactor-cleanup-plan.md §5](../../post-refactor-cleanup-plan.md#5-extractions--re-shapes)
 - Reviewer C+D convergent finding at S14 P8 review (statistics phase as pure projection)
