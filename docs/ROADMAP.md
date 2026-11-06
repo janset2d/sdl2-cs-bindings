@@ -110,34 +110,22 @@ the existing family version set rather than waiting for a topology redesign.
 - **Compiler:** the earlier projection hit CS9363 and retained one output delta. Revalidate that
   hazard under the SDK selected by [global.json](../global.json) before further projection work.
 - **Scope:** G58 requires Core in the same version invocation; feed-probe relaxation must query the
-  actual destination feed. A CI prerelease does not satisfy a stable lower bound. Consumer smoke
-  requires all concrete families or no selection. Per-family projects are candidates; evaluate file
-  count, manifest drift, scope isolation and cross-family coverage before choosing.
+  actual destination feed. A CI prerelease does not satisfy a stable lower bound. Partial-scope
+  consumer smoke remains an open relaxation; evaluate file count, manifest drift, scope isolation
+  and cross-family coverage before choosing per-family projects.
 - **Publication checks:** planned family/SemVer validation, feed monotonicity, existing-version refusal,
   smoke-before-publish, staging-before-public and destination Core availability are not established
   by the old proposed ValidateTask. Preserve these intended safeguards when implementing promotion.
-- **Train/recovery:** unique identities, dependency ordering, explicit partial-train recovery,
+- **Train/recovery:** checks for unique identities, dependency ordering, partial-train recovery,
   operator-version agreement with audit tags, explicit destination and who/what/when/hash records
-  remain design requirements to wire, not proof that every proposed check exists.
-- **Linux exports:** hidden-default compiler flags do not hide symbols explicitly marked default.
-  Per-satellite version scripts are candidate hardening, not a current guarantee. Preserve gfx's public
-  exports and audit Mixer codec parity across the supported native matrix.
-- **Assets and breadth:** establish smoke-owned provenance/licensing and replace branding PNG use
-  with tiny fixtures. Add BMP/WAV/UTF-8 RWops/resource pairs, mandatory image loads, clean-license font
-  render, gfx pixel mutations and agreed mixer codecs. QOI remains optional; MIDI waits for its runtime
-  decision. Manual window/image/font/audio/mixer/sprite/input/backend/network diagnostics stay outside CI.
-- **Upstream ports:** continue deterministic rect/RWops/surface/pixel/GUID/platform/error/version,
-  timer/hints/events, dummy audio and software-render work; then math, keyboard/mouse, stdlib,
-  subsystem/log, virtual joystick and deterministic atomic/mutex cases. Capability-aware clipboard,
-  filesystem/locale/power/loadso, YUV/iconv/geometry and focus need separate evidence. Thread creation
-  awaits macro/REAL entrypoint policy; SysWM awaits proven unions; SDL_GetErrorMsg needs upstream-backed
-  behavior evidence. Keep exact source cases, actual counts/skips and deferrals per slice.
-- **Planning estimates:** historical aspirations were a 70–100-test spine, 80–130 further headless
-  cases and 20–40 gated cases, roughly 260–280 stable candidates and 300+ only with gated lanes.
-  These are neither current counts nor acceptance thresholds. Broaden mechanical symbol/constant/
-  layout/callback/macro coverage separately from representative runtime cases.
+  are not wired into an operator recovery path.
+- **Linux exports:** hidden-default compiler flags leave explicitly default-visible dependency symbols exposed.
 
 ## Backlog
+
+- **Smoke breadth and fixtures:** expand native/package scenarios and non-CI diagnostics with tiny, test-owned, licensed fixtures ([#59](https://github.com/janset2d/sdl2-cs-bindings/issues/59)).
+- **Upstream-derived ABI coverage:** broaden headless, capability-aware and mechanical proof with source-case traceability; coordinator issue needed.
+- **Linux dependency-symbol hardening:** evaluate per-satellite version scripts, preserve gfx exports and audit Mixer codec parity; coordinator issue needed.
 
 | Group | Issues |
 |---|---|
