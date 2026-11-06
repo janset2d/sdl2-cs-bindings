@@ -10,8 +10,8 @@
     <PackageVersion Include="Roslynator.Formatting.Analyzers" Version="5.0.1" />
     <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.35.0.4138" />
     <PackageVersion Include="NSubstitute.Analyzers.CSharp" Version="1.0.17" />
-    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.403" />
     <!-- packages -->
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.403" />
     <PackageVersion Include="Cake.CMake" Version="1.4.0" />
     <PackageVersion Include="Cake.Frosting" Version="6.1.0" />
     <!-- Lifts Cake.Frosting's vulnerable Pkcs 10.0.3 (GHSA-846f-f764-76mx, GHSA-2fmv-rv2c-59x7).
