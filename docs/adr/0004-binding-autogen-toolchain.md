@@ -1,11 +1,8 @@
 # ADR-004: Binding Auto-Generation Toolchain
 
-- **Status:** Reopened (re-evaluation underway since 2026-05-23; Layer 1 closure on ClangSharp + Roslyn postprocess spike completed 2026-05-28 for SDL2 Core/Image/GFX/TTF/Mixer; formal amendment deferred pending Layer 2 closure)
-- **Date:** 2026-05-14 (original); 2026-05-23 (reopened)
+Date: 2026-05-14
 
-> **Re-evaluation note (updated 2026-05-28):** The binding-autogen toolchain decision is under active re-evaluation in [`spikes/binding-generators/`](../../spikes/binding-generators/). The active spike implementation is **ClangSharp + Roslyn postprocess** with canonical policy at [`spikes/binding-generators/docs/canonical/`](../../spikes/binding-generators/docs/canonical/) and Layer 1 raw ABI closure evidence at [`spikes/binding-generators/output/reports/`](../../spikes/binding-generators/output/reports/). Either successor toolchain implies replacing the sunset Cake implementation under `build/_build/Targets/GenerateBindings/`. This ADR remains historical evidence of the 2026-05-14 reasoning; formal amendment is deferred to post-Layer-2 closure.
->
-> Original content unchanged below.
+Status: superseded by [ADR-0005](0005-clangsharp-generator-in-csharp-tooling.md)
 
 ## 1. Context
 

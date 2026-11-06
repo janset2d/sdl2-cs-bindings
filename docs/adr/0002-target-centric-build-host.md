@@ -1,7 +1,8 @@
 # ADR-002: Target-Centric Cake Build Host Architecture
 
-- **Status:** Accepted
-- **Date:** 2026-05-05
+Date: 2026-05-05
+
+Status: accepted
 - **Revised:** 2026-05-12
 - **Notes:** This cleaned-up version preserves the normative decisions still active in code. Migration sequencing, slice-by-slice execution notes, and review history were deliberately removed from the ADR and belong in historical records or git history.
 
