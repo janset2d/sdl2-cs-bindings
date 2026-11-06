@@ -1,6 +1,6 @@
 # Shrinks only. Remove an entry in the change that fixes it.
-docs/knowledge-base/extraction-guidelines.md
-docs/knowledge-base/release-guardrails.md
+docs/engineering/coding-style.md
+docs/architecture/packaging-and-release.md
 docs/parking-lot.md
 docs/parking-lot/package-topology/README.md
 docs/parking-lot/package-topology/impact-map.md
@@ -14,7 +14,7 @@ docs/phases/phase-4-binding-autogen.md
 docs/phases/phase-5-sdl3-support.md
 docs/playbook/adding-new-library.md
 docs/playbook/local-validation.md
-docs/playbook/overlay-management.md
+docs/engineering/native-dependency-maintenance.md
 docs/playbook/vcpkg-update.md
 docs/post-refactor-cleanup-plan.md
 docs/refactor-followup/01-cancellation-plumbing.md

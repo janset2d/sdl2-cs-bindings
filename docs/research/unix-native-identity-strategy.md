@@ -5,7 +5,7 @@
 **Date:** 2026-04-22
 **Status:** Research complete, recommendation ready; no canonical repo decision applied yet
 **Audience:** Maintainer / future contributors evaluating whether to keep the current tar.gz symlink-preserving strategy or replace it with single-file Unix outputs
-**Related:** [`../onboarding.md`](../onboarding.md), [`../plan.md`](../plan.md)
+**Related:** [`../onboarding.md`](../onboarding.md), [`../ROADMAP.md`](../ROADMAP.md)
 
 ## 1. Executive Summary
 
@@ -636,7 +636,7 @@ The most important things to remember from this research are:
 ### Repo-Local
 
 - [../onboarding.md](../onboarding.md)
-- [../plan.md](../plan.md)
+- [../ROADMAP.md](../ROADMAP.md)
 - [symlink-handling.md](symlink-handling.md)
 - [native-packaging-comparative-analysis-2026-04-13.md](native-packaging-comparative-analysis-2026-04-13.md)
 - [packaging-strategy-hybrid-static-2026-04-13.md](packaging-strategy-hybrid-static-2026-04-13.md)

@@ -132,7 +132,7 @@ Use the hybrid-static overlay triplet for your platform (all 7 RIDs now ship und
 ./external/vcpkg/vcpkg install --triplet arm64-osx-hybrid --overlay-triplets=vcpkg-overlay-triplets
 ```
 
-> **Retired triplets (pre-2026-04-14):** `x64-windows-release`, `x64-linux-dynamic`, `arm64-osx-dynamic`, etc. Do not use — the hybrid overlay triplets replace them. See [overlay-management.md](overlay-management.md) and [vcpkg-update.md](vcpkg-update.md).
+> **Retired triplets (pre-2026-04-14):** `x64-windows-release`, `x64-linux-dynamic`, `arm64-osx-dynamic`, etc. Do not use — the hybrid overlay triplets replace them. See [native-dependency-maintenance.md](native-dependency-maintenance.md) and [vcpkg-update.md](../playbook/vcpkg-update.md).
 
 This compiles SDL2 and its dependencies from source. First run takes 15-30 minutes; subsequent runs use binary caching.
 
@@ -185,7 +185,7 @@ dotnet run --project build/_build -- --target Package \
 
 Each `--explicit-version <family>=<semver>` entry must follow D-3seg (`<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>` per family — anchored to the family's `library_manifests[].vcpkg_version` via G54). The legacy `--family` / `--family-version` flags are retired; the CLI surface is now provider-strict via `ExplicitVersionProvider`. For a stable release you would tag the commit (`git tag sdl2-core-2.32.0`) and let `GitTagVersionProvider` resolve the mapping from the tag — see `build/_build/Targets/{ResolveVersionsFromManifest,ResolveVersionsFromExplicit,StageVersions}/` for the version-source provider implementations.
 
-> **G58 cross-family scope rule.** If you `--explicit-version` a satellite family (e.g., `sdl2-image`) without also supplying its `depends_on` core (e.g., `sdl2-core`) at a satisfying version, Pack stops at G58. The example above includes all 5 concrete families precisely so that every satellite's cross-family dep on `sdl2-core` is in scope. For a single-family local rehearsal, either pack core in addition (lightest workaround) or use the family member that has no cross-family deps (`sdl2-core`). The same constraint applies to CI tag-push releases — see [release-guardrails.md §4.1](../knowledge-base/release-guardrails.md).
+> **G58 cross-family scope rule.** If you `--explicit-version` a satellite family (e.g., `sdl2-image`) without also supplying its `depends_on` core (e.g., `sdl2-core`) at a satisfying version, Pack stops at G58. The example above includes all 5 concrete families precisely so that every satellite's cross-family dep on `sdl2-core` is in scope. For a single-family local rehearsal, either pack core in addition (lightest workaround) or use the family member that has no cross-family deps (`sdl2-core`). The same constraint applies to CI tag-push releases — see [packaging-and-release.md §4.1](../architecture/packaging-and-release.md).
 >
 > **Manual per-satellite copy is retired.** The pre-2026-04-18 "copy `artifacts/harvest_output/.../runtimes/<rid>/native/*` into `src/native/<Lib>.Native/runtimes/<rid>/native/`" step no longer applies — the native csproj packs from `$(NativePayloadSource)` (handed in by Cake, `artifacts/harvest_output/<Lib>/` root), never from the `src/` tree. Guardrail G46 hard-fails direct `dotnet pack` of a `.Native` csproj without `$(NativePayloadSource)`.
 
@@ -229,7 +229,7 @@ dotnet run -- --target Harvest --verbosity Diagnostic
 | --- | --- | --- |
 | `VCPKG_ROOT` | vcpkg installation path | `external/vcpkg/` |
 | `VCPKG_DEFAULT_TRIPLET` | Default build triplet | Auto-detected from OS |
-| `DOTNET_ROOT` | .NET runtime root (required on WSL/macOS when dotnet is not in standard system paths) | Not set (see [cross-platform smoke validation](cross-platform-smoke-validation.md#per-platform-environment-setup)) |
+| `DOTNET_ROOT` | .NET runtime root (required on WSL/macOS when dotnet is not in standard system paths) | Not set (see [cross-platform smoke validation](../playbook/cross-platform-smoke-validation.md#per-platform-environment-setup)) |
 | `GH_TOKEN` | GitHub Packages auth for `tools setup --source=remote-github`. Falls back to `GITHUB_TOKEN` if unset. | Not set (see "GitHub Packages auth" below) |
 | `DOTNET_CLI_TELEMETRY_OPTOUT` | Disable .NET telemetry | Not set |
 
@@ -349,4 +349,4 @@ The build host's Windows dependency scanner expects Visual Studio C++ tooling.
 
 ## Cross-Platform Validation
 
-After significant build-host changes, run the full smoke matrix across Windows, WSL/Linux, and macOS to verify cross-platform correctness. See [cross-platform-smoke-validation.md](cross-platform-smoke-validation.md) for the complete matrix definition, per-platform environment setup, and command reference.
+After significant build-host changes, run the full smoke matrix across Windows, WSL/Linux, and macOS to verify cross-platform correctness. See [cross-platform-smoke-validation.md](../playbook/cross-platform-smoke-validation.md) for the complete matrix definition, per-platform environment setup, and command reference.

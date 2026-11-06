@@ -51,6 +51,6 @@ Two findings from this research are useful **independent of the refactor** and s
 ## Cross-Reference
 
 - [`../../release-strategy.md`](../../release-strategy.md) — current release strategy + unpark policy
-- [`../../plan.md`](../../plan.md) — current tactical roadmap
+- [`../../ROADMAP.md`](../../ROADMAP.md) — current tactical roadmap
 - [`../../adr/0001-d3seg-and-package-first.md`](../../adr/0001-d3seg-and-package-first.md) — ADR-001 (would have been superseded)
 - [`../../parking-lot.md`](../../parking-lot.md) — other deferred ideas

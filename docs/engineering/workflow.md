@@ -62,7 +62,7 @@ Worktrees and isolated checkouts run managed builds, tests and target discovery 
 Do not initialize submodules or run vcpkg and native flows merely to verify a managed refactor.
 Run harvest and the `setup` and `ci-sim` commands on validation hosts in their provisioned main checkout
 at the commit under validation.
-The [development guide](../playbook/local-development.md) owns the local procedures.
+The [development guide](developing.md) owns the local procedures.
 
 ## Dependency refresh
 

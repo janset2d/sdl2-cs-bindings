@@ -2,7 +2,7 @@
 
 Date: 2026-05-08
 
-> Recipe for running `tools.cs ci-sim` on the three host families (Windows, WSL/Linux, macOS) after a build-host change. Companion to [`local-development.md`](local-development.md) (managed dev surface) and [`local-validation.md`](local-validation.md) (`tools.cs` reference).
+> Recipe for running `tools.cs ci-sim` on the three host families (Windows, WSL/Linux, macOS) after a build-host change. Companion to [`developing.md`](../engineering/developing.md) (managed dev surface) and [`local-validation.md`](local-validation.md) (`tools.cs` reference).
 
 ## Why
 
@@ -124,9 +124,9 @@ When WSL or macOS ci-sim fails:
 
 ## Cross-Reference
 
-- [`local-development.md`](local-development.md) — fresh-clone setup, managed-only build, system-wide SDL2 install
+- [`developing.md`](../engineering/developing.md) — fresh-clone setup, managed-only build, system-wide SDL2 install
 - [`local-validation.md`](local-validation.md) — `tools.cs` reference (ci-sim, setup, build passthrough)
-- [`overlay-management.md`](overlay-management.md) — vcpkg overlay triplets
-- [`../knowledge-base/release-guardrails.md`](../knowledge-base/release-guardrails.md) — what each pipeline stage validates
+- [`native-dependency-maintenance.md`](../engineering/native-dependency-maintenance.md) — vcpkg overlay triplets
+- [`../architecture/packaging-and-release.md`](../architecture/packaging-and-release.md) — what each pipeline stage validates
 - [`../../AGENTS.md`](../../AGENTS.md) — reserved actions
 - [`../onboarding.md`](../onboarding.md) — settled strategic decisions

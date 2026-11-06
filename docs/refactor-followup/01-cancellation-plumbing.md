@@ -12,7 +12,7 @@
 
 **Architecture:** `Program.cs.RunCakeHostAsync` creates a `CancellationTokenSource`, subscribes to `Console.CancelKeyPress` (Ctrl+C, all platforms) and `PosixSignalRegistration` for `SIGTERM` (Unix; Windows ignores). The CTS Token is registered as a DI singleton. `BuildContext` accepts a `CancellationToken` ctor parameter and exposes it as a typed property (parallel to `Paths`, `Runtime`, `BuildConfiguration`). Tasks read `var ct = context.CancellationToken;` at the top of `RunAsync` and forward to async collaborators. No interface signatures change — all target collaborators already accept `CancellationToken ct = default` (verified during planning).
 
-**Tech Stack:** .NET 10 / C# 14, Cake Frosting 6.1.0, Microsoft.Extensions.DependencyInjection, TUnit on Microsoft.Testing.Platform, NSubstitute, `FakeCakeWorld` + `TargetTestHost<TTask>` test harness per [`knowledge-base/testing-guidelines.md`](../knowledge-base/testing-guidelines.md).
+**Tech Stack:** .NET 10 / C# 14, Cake Frosting 6.1.0, Microsoft.Extensions.DependencyInjection, TUnit on Microsoft.Testing.Platform, NSubstitute, `FakeCakeWorld` + `TargetTestHost<TTask>` test harness per [`engineering/testing-style.md`](../engineering/testing-style.md).
 
 ---
 
@@ -47,7 +47,7 @@ If you're new to this codebase, read these before touching code:
 
 - [`AGENTS.md` §Build-Host Reference Pattern](../../AGENTS.md) — target-centric architecture, `Host/`, `Data/`, `Validation/`, `Tools/` layout.
 - [`docs/adr/0002-target-centric-build-host.md`](../adr/0002-target-centric-build-host.md) — ADR-002, the architecture this build-host follows.
-- [`knowledge-base/testing-guidelines.md`](../knowledge-base/testing-guidelines.md) — canonical test infrastructure (`FakeCakeWorld`, `TargetTestHost<TTask>`).
+- [`engineering/testing-style.md`](../engineering/testing-style.md) — canonical test infrastructure (`FakeCakeWorld`, `TargetTestHost<TTask>`).
 
 Background reading on the cancellation pattern (already done during planning):
 
@@ -594,7 +594,7 @@ We do **not** unit-test the `Console.CancelKeyPress` + `PosixSignalRegistration`
 - [ADR-002](../adr/0002-target-centric-build-host.md) §3 (BuildContext shape) + §5 (target-owned orchestration, no pipeline wrappers)
 - [ADR-003](../adr/0003-build-host-data-layer.md) — Data layer doesn't directly touch cancellation but the contract-centric data flow informs why ct lives on `BuildContext` not in a separate `ICancellationContext`
 - [post-refactor-cleanup-plan.md §1 Correctness Gaps](../post-refactor-cleanup-plan.md#1-correctness-gaps) — origin of this slice
-- [knowledge-base/testing-guidelines.md](../knowledge-base/testing-guidelines.md) — `FakeCakeWorld` + `TargetTestHost<TTask>` patterns
+- [engineering/testing-style.md](../engineering/testing-style.md) — `FakeCakeWorld` + `TargetTestHost<TTask>` patterns
 - S15 P9 review reviewer C1+C2+C3 — original finding on dropped ct plumbing
 - Cake Frosting 6.1 — `AsyncFrostingTask<TContext>.RunAsync(TContext context)` has no ct overload; verified via NuGet API browser
 - [Meziantou — Handling CancelKeyPress using a CancellationToken](https://www.meziantou.net/handling-cancelkeypress-using-a-cancellationtoken.htm) — canonical .NET pattern reference

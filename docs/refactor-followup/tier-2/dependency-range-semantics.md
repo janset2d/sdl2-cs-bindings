@@ -10,7 +10,7 @@
 
 ## Open questions
 
-- What is G56's stated intent in [`release-guardrails.md`](../../knowledge-base/release-guardrails.md)? Is "satellite's version as core lower bound" a deliberate G56 policy or an accidental implementation detail?
+- What is G56's stated intent in [`packaging-and-release.md`](../../architecture/packaging-and-release.md)? Is "satellite's version as core lower bound" a deliberate G56 policy or an accidental implementation detail?
 - If accidental: switching to "dependency family's resolved version" as the lower bound changes package output. Behavior risk — any downstream consumer that pinned via the current range would see a different lower bound on republish.
 - If deliberate: what's the rationale? (Suggested theory: "the satellite version was tested against *at least* this core version, so use it as the minimum supported core.") Document the rationale inline so future readers don't reopen the question.
 - Does the consumer-smoke matrix actually exercise the range constraint, or are versions always pinned in `Janset.Local.props` / explicit `--versions-file` so the dep range is never the deciding factor?
@@ -30,7 +30,7 @@
 
 ## References
 
-- [`release-guardrails.md`](../../knowledge-base/release-guardrails.md) §G56 (cross-family dependency range)
+- [`packaging-and-release.md`](../../architecture/packaging-and-release.md) §G56 (cross-family dependency range)
 - [post-refactor-cleanup-plan.md §4](../../post-refactor-cleanup-plan.md#4-api--performance-refinements)
 - Reviewer 2 at S13 P7 review (T3.1 finding — verified-intent flag)
 - [`DependencyRangeNormalizer.cs`](../../../build/_build/Targets/Package/Services/DependencyRangeNormalizer.cs)

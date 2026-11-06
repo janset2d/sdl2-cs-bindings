@@ -62,14 +62,14 @@ Same shape for SDL3 when it lands (Phase 5).
 | --- | --- |
 | LLM/agent entering for the first time | [AGENTS.md](../AGENTS.md) — operating rules + reserved actions + task routing |
 | Asking how this project ships (end state, sequencing, labeling) | [release-strategy.md](release-strategy.md) — strategic anchor for the v1.0 path |
-| Contributor wanting current status / roadmap | [plan.md](plan.md) |
+| Contributor wanting current status / roadmap | [ROADMAP.md](ROADMAP.md) |
 | Working on the active phase | [phases/phase-2-adaptation-plan.md](phases/phase-2-adaptation-plan.md) |
 | Exploring how the project is organized | [AGENTS.md](../AGENTS.md#task-routing) — task-to-canon routing |
-| Setting up locally | [playbook/local-development.md](playbook/local-development.md) |
+| Setting up locally | [engineering/developing.md](engineering/developing.md) |
 | Adding a new SDL satellite | [playbook/adding-new-library.md](playbook/adding-new-library.md) |
-| Touching vcpkg overlays | [playbook/overlay-management.md](playbook/overlay-management.md) |
+| Touching vcpkg overlays | [engineering/native-dependency-maintenance.md](engineering/native-dependency-maintenance.md) |
 | Bumping vcpkg baseline | [playbook/vcpkg-update.md](playbook/vcpkg-update.md) |
-| Validating against guardrails | [knowledge-base/release-guardrails.md](knowledge-base/release-guardrails.md) |
+| Validating against guardrails | [architecture/packaging-and-release.md](architecture/packaging-and-release.md) |
 
 ## Settled Strategic Decisions
 

@@ -2,7 +2,7 @@
 
 Date: 2026-11-05
 
-> Strategic anchor for how this project ships. AGENTS.md, plan.md, phase docs, ADRs, and research notes all point here for shape-level decisions (what counts as "v1.0", when do we go public, how do we label prereleases). Tactical roadmap lives in [`plan.md`](plan.md); detailed phase scope lives in [`phases/`](phases/).
+> Strategic anchor for how this project ships. AGENTS.md, plan.md, phase docs, ADRs, and research notes all point here for shape-level decisions (what counts as "v1.0", when do we go public, how do we label prereleases). Tactical roadmap lives in [`ROADMAP.md`](ROADMAP.md); detailed phase scope lives in [`phases/`](phases/).
 
 ## Mission Recap
 
@@ -31,7 +31,7 @@ Stable big-bang launch shape:
 
 ## Sequencing — AST-First Path to Big Bang
 
-The roadmap **reorders the phase sequence in [`plan.md`](plan.md)**: AST landing (Phase 4) lands **before** first public prerelease (Phase 3 ship). Rationale below.
+The roadmap **reorders the phase sequence in [`ROADMAP.md`](ROADMAP.md)**: AST landing (Phase 4) lands **before** first public prerelease (Phase 3 ship). Rationale below.
 
 | Stage | Phase mapping | Focus | Public-ship state |
 | --- | --- | --- | --- |
@@ -44,7 +44,7 @@ The roadmap **reorders the phase sequence in [`plan.md`](plan.md)**: AST landing
 
 ### Why AST-First, Not Public-Prerelease-First
 
-The current [`plan.md`](plan.md) phase ordering (Phase 3 first prerelease → Phase 4 AST replacement later) would publish preview packages built on `external/sdl2-cs` — a deprecated POC import marked in [`AGENTS.md`](../AGENTS.md) as "untrusted for production testing." That has two costs:
+The current [`ROADMAP.md`](ROADMAP.md) phase ordering (Phase 3 first prerelease → Phase 4 AST replacement later) would publish preview packages built on `external/sdl2-cs` — a deprecated POC import marked in [`AGENTS.md`](../AGENTS.md) as "untrusted for production testing." That has two costs:
 
 1. **API churn for preview consumers.** Public API surface is the most expensive thing to break. AST output is *the* API definition for the bindings package; rev-bumping the entire surface in v2 after preview consumers adopt v1-preview creates avoidable migration pain.
 2. **SDL3 cannot ship without AST anyway.** No upstream `SDL3-CS` covers the satellite set we ship. If v1.0 includes SDL3, the AST generator is critical path; deferring it past Phase 3 ship only pushes the same critical-path work into a worse calendar position.
@@ -140,7 +140,7 @@ Currently: ≥2 weeks per wave. Open to revision if real-consumer feedback signa
 ## Cross-Reference
 
 - [`../AGENTS.md`](../AGENTS.md) — operating rules, reserved actions
-- [`plan.md`](plan.md) — tactical roadmap, current status, hardening backlog
+- [`ROADMAP.md`](ROADMAP.md) — tactical roadmap, current status, hardening backlog
 - [`onboarding.md`](onboarding.md) — project framing, settled strategic decisions, glossary, non-goals
 - [`phases/phase-4-binding-autogen.md`](phases/phase-4-binding-autogen.md) — AST generator design brief
 - [`phases/phase-5-sdl3-support.md`](phases/phase-5-sdl3-support.md) — SDL3 monorepo + bindings design brief

@@ -4,9 +4,9 @@
 
 ## Purpose
 
-This document tracks the remaining work for Phase 2 (CI/CD & Packaging). It does not re-derive policy or roadmap — those live in [`plan.md`](../plan.md) and (when ADRs land) under [`docs/adr/`](../adr/).
+This document tracks the remaining work for Phase 2 (CI/CD & Packaging). It does not re-derive policy or roadmap — those live in [`ROADMAP.md`](../ROADMAP.md) and (when ADRs land) under [`docs/adr/`](../adr/).
 
-For canonical guardrail surface, see [`release-guardrails.md`](../knowledge-base/release-guardrails.md).
+For canonical guardrail surface, see [`packaging-and-release.md`](../architecture/packaging-and-release.md).
 
 ## Phase 2b Tail (open work)
 
@@ -61,6 +61,6 @@ Closed PDs: PD-1, PD-2, PD-4, PD-5, PD-6, PD-9, PD-11, PD-12, PD-13.
 
 ## Cross-Reference
 
-- **Roadmap + status:** [`plan.md`](../plan.md)
-- **Pipeline + guardrails:** `.github/workflows/release.yml`, `build/_build/Targets/`, [`release-guardrails.md`](../knowledge-base/release-guardrails.md)
-- **Local dev:** [`local-development.md`](../playbook/local-development.md)
+- **Roadmap + status:** [`ROADMAP.md`](../ROADMAP.md)
+- **Pipeline + guardrails:** `.github/workflows/release.yml`, `build/_build/Targets/`, [`packaging-and-release.md`](../architecture/packaging-and-release.md)
+- **Local dev:** [`developing.md`](../engineering/developing.md)

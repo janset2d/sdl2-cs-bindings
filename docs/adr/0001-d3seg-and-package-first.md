@@ -70,7 +70,7 @@ Out of scope for D-3seg. If a binding-only API break is required (e.g., a CppAst
 ## 4. References
 
 - [`build-host.md`](../architecture/build-host.md) — Configuration files and Native packaging pipeline
-- [`docs/knowledge-base/release-guardrails.md`](../knowledge-base/release-guardrails.md) — G54, G55, G56, G57, G58 + dependency contract guardrails
+- [`docs/architecture/packaging-and-release.md`](../architecture/packaging-and-release.md) — G54, G55, G56, G57, G58 + dependency contract guardrails
 - [Manifest](../../build/manifest.json), `library_manifests[].vcpkg_version` — UpstreamMajor.Minor anchor source
 - [ResolveVersionsFromManifest](../../build/_build/Targets/ResolveVersionsFromManifest/) and [ResolveVersionsFromExplicit](../../build/_build/Targets/ResolveVersionsFromExplicit/) — version provider implementations
 - [StageVersionsOptions](../../build/_build/Host/Cli/Options/StageVersionsOptions.cs) — the `--versions-file` option through which stage targets consume resolved versions.

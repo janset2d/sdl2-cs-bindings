@@ -56,8 +56,8 @@ layer, integration layer or host-configuration layer.
   Avoid OneOf-style result hierarchies.
 - Enforce design through review and current canon, not architecture-police tests.
 
-[Extraction guidelines](../knowledge-base/extraction-guidelines.md) own private-method, collaborator and
-interface decisions. [Testing guidelines](../knowledge-base/testing-guidelines.md) own fixture data,
+[Coding style](../engineering/coding-style.md) owns private-method, collaborator and
+interface decisions. [Testing style](../engineering/testing-style.md) owns fixture data,
 filesystem rules and test taxonomy. `ResolveVersionsFromManifestTask` and `ResolveVersionsFromExplicitTask`
 show task-owned orchestration without generic pipelines.
 
@@ -86,4 +86,4 @@ The [release workflow](../../.github/workflows/release.yml) expands the runtime 
 
 `PreFlightCheck` runs before the matrix.
 Discover current targets with `--tree`; do not maintain a second target list.
-[Release guardrails](../knowledge-base/release-guardrails.md) own the stage validation map and guardrail registry.
+[Packaging and release](packaging-and-release.md) owns the stage validation map and guardrail registry.

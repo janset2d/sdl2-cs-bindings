@@ -5,7 +5,7 @@
 ## How To Use This File
 
 - Items here are worth preserving but not in the active phase.
-- Promote items into [`plan.md`](plan.md), a phase doc, a playbook, or a knowledge-base doc when work actually starts.
+- Promote items into [`ROADMAP.md`](ROADMAP.md), a phase doc, a playbook, or a knowledge-base doc when work actually starts.
 - Remove items only when they are clearly rejected or superseded — record why.
 - For **multi-file research** that's too large to inline (complete strategic + mechanical analyses), see [`parking-lot/`](parking-lot/) sibling directory. Each subdirectory carries its own README with unpark triggers.
 
@@ -145,6 +145,6 @@
 
 Retired material disappears only after the useful parts are either:
 
-- moved into canonical docs ([`plan.md`](plan.md), phase docs, playbook, knowledge-base, [`post-refactor-cleanup-plan.md`](post-refactor-cleanup-plan.md)), or
+- moved into canonical docs ([`ROADMAP.md`](ROADMAP.md), phase docs, playbook, knowledge-base, [`post-refactor-cleanup-plan.md`](post-refactor-cleanup-plan.md)), or
 - preserved here as an intentionally parked thread, or
 - explicitly rejected (with the why captured).

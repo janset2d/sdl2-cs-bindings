@@ -35,6 +35,6 @@ S13 + S15 multi-agent reviews surfaced specific test gaps in scenarios, coverage
 ## References
 
 - [post-refactor-cleanup-plan.md §7](../../post-refactor-cleanup-plan.md#7-test-discipline--coverage)
-- [`knowledge-base/testing-guidelines.md`](../../knowledge-base/testing-guidelines.md) — canonical test patterns
+- [`engineering/testing-style.md`](../../engineering/testing-style.md) — canonical test patterns
 - S13 multi-agent review (7 reviewers; QA test specialist Tier 5 findings)
 - S15 multi-agent review (Reviewer E test discipline cluster)
