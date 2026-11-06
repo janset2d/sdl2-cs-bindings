@@ -159,6 +159,7 @@ public sealed class SetupCommand : AsyncCommand<SetupSettings>
         var scopeArgs = families.SelectMany(f => new[] { "--scope", f.Name }).ToArray();
         var resolveArgs = new List<string> { "--target", "ResolveVersionsFromManifest", $"--suffix={suffix}", "--versions-file", versionsPath };
         resolveArgs.AddRange(scopeArgs);
+
         if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "ResolveVersionsFromManifest", resolveArgs, verbose: false))
         {
             return FinishSetup(results, totalStopwatch, 1);
@@ -198,6 +199,7 @@ public sealed class SetupCommand : AsyncCommand<SetupSettings>
         var packagesDir = Path.Combine(repoRoot, "artifacts", "packages");
         var versions = await Shared.ReadVersionsFromJsonAsync(versionsPath);
         var missingPackages = new List<string>();
+
         foreach (var family in families)
         {
             if (!versions.TryGetValue(family.Name, out var version))
@@ -220,7 +222,8 @@ public sealed class SetupCommand : AsyncCommand<SetupSettings>
 
         if (missingPackages.Count > 0)
         {
-            AnsiConsole.MarkupLine("[red]Some exact nupkgs are missing — stale packages will not be accepted.[/]");
+            AnsiConsole.MarkupLine("[red]Some exact nupkgs are missing - stale packages will not be accepted.[/]");
+
             foreach (var missing in missingPackages)
             {
                 AnsiConsole.MarkupLine($"  [red]missing[/] [grey]{Markup.Escape(missing)}[/]");
@@ -246,6 +249,7 @@ public sealed class SetupCommand : AsyncCommand<SetupSettings>
         PrintHeader("setup --source=remote-github", repoRoot, hostRid, logDir);
 
         var authToken = Shared.ResolveGitHubToken();
+
         if (authToken is null)
         {
             AnsiConsole.MarkupLine("[red]GH_TOKEN or GITHUB_TOKEN env var required for --source=remote-github.[/]");
@@ -268,6 +272,7 @@ public sealed class SetupCommand : AsyncCommand<SetupSettings>
 
         var packagesDir = Path.Combine(repoRoot, "artifacts", "packages");
         var acquisition = await RunRemoteGitHubAcquisitionStepAsync(results, logDir, families, packagesDir, authToken);
+
         if (!acquisition.Succeeded)
         {
             return FinishSetup(results, totalStopwatch, 1);
@@ -371,6 +376,7 @@ public sealed class SetupCommand : AsyncCommand<SetupSettings>
         await logWriter.FlushAsync();
 
         results.Add(new Shared.StepResult(label, exitCode, stopwatch.Elapsed, logPath));
+
         if (exitCode == 0)
         {
             AnsiConsole.MarkupLine($"[green]OK[/]   ({stopwatch.Elapsed.TotalSeconds:F1}s) → [grey]{Markup.Escape(logPath)}[/]");
@@ -391,6 +397,7 @@ public sealed class SetupCommand : AsyncCommand<SetupSettings>
         TextWriter logWriter)
     {
         await logWriter.WriteLineAsync($"discover {familyName} {packageId}");
+
         try
         {
             return await Shared.GetLatestNuGetVersionAsync(Shared.GitHubPackagesFeedUrl, authToken, packageId);
@@ -409,6 +416,7 @@ public sealed class SetupCommand : AsyncCommand<SetupSettings>
         TextWriter logWriter)
     {
         await logWriter.WriteLineAsync($"download {packageId} {version.ToNormalizedString()}");
+
         try
         {
             await Shared.DownloadNuGetPackageAsync(Shared.GitHubPackagesFeedUrl, authToken, packageId, version, packagesDir);
@@ -423,6 +431,7 @@ public sealed class SetupCommand : AsyncCommand<SetupSettings>
     {
         totalStopwatch.Stop();
         Shared.PrintSummaryTable(results, totalStopwatch.Elapsed);
+
         if (exitCode != 0 && results.LastOrDefault()?.LogPath is { } logPath)
         {
             AnsiConsole.MarkupLine($"[yellow]Inspect failing log:[/] [cyan]{Markup.Escape(logPath)}[/]");
@@ -436,6 +445,7 @@ public sealed class SetupCommand : AsyncCommand<SetupSettings>
         AnsiConsole.MarkupLine($"[grey]Command:[/] [cyan]{Markup.Escape(label)}[/]");
         AnsiConsole.MarkupLine($"[grey]Host RID:[/] [cyan]{Markup.Escape(hostRid)}[/]");
         AnsiConsole.MarkupLine($"[grey]Repo:[/] [cyan]{Markup.Escape(repoRoot)}[/]");
+
         if (logDir is not null)
         {
             AnsiConsole.MarkupLine($"[grey]Logs:[/] [cyan]{Markup.Escape(logDir)}[/]");
@@ -504,6 +514,7 @@ public sealed class CiSimCommand : AsyncCommand<CiSimSettings>
         // Step 2: ResolveVersionsFromManifest
         var resolveArgs = new List<string> { "--target", "ResolveVersionsFromManifest", $"--suffix={suffix}", "--versions-file", versionsPath };
         resolveArgs.AddRange(scopeArgs);
+
         if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "ResolveVersionsFromManifest",
                 resolveArgs, settings.Verbose))
         {
@@ -573,6 +584,7 @@ public sealed class CiSimCommand : AsyncCommand<CiSimSettings>
     private static int FinishCiSim(List<Shared.StepResult> results, TimeSpan totalDuration, string logDir, int exitCode)
     {
         Shared.PrintSummaryTable(results, totalDuration);
+
         if (exitCode != 0)
         {
             AnsiConsole.MarkupLine($"[yellow]Inspect failing logs under[/] [cyan]{Markup.Escape(logDir)}[/].");
@@ -606,6 +618,7 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
 
         // [1] Validate docker daemon reachable.
         var dockerProbe = await CaptureRunAsync("docker", ["version", "--format", "{{.Server.Version}}"], cancellationToken);
+
         if (dockerProbe.ExitCode != 0)
         {
             AnsiConsole.MarkupLine("[red]Docker daemon not reachable.[/] Start Docker Desktop / dockerd, then retry.");
@@ -615,6 +628,7 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
 
         // [2] Resolve BASE_IMAGE from build/manifest.json runtimes[linux-x64].container_image.
         var baseImage = ReadLinuxBaseImage(repoRoot);
+
         if (string.IsNullOrWhiteSpace(baseImage))
         {
             AnsiConsole.MarkupLine("[red]Could not resolve BASE_IMAGE from build/manifest.json runtimes[linux-x64].container_image.[/]");
@@ -625,6 +639,7 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
         // [3] docker pull ${BASE_IMAGE} to refresh mutable tag.
         AnsiConsole.MarkupLine("[blue]Pulling base image...[/]");
         var pullExit = await StreamRunAsync("docker", ["pull", baseImage], cancellationToken);
+
         if (pullExit != 0)
         {
             AnsiConsole.MarkupLine($"[red]docker pull failed with exit code {pullExit}.[/]");
@@ -634,6 +649,7 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
         // [4] docker inspect to capture resolved digest for audit trail.
         var inspect = await CaptureRunAsync("docker", ["inspect", "--format={{index .RepoDigests 0}}", baseImage], cancellationToken);
         var containerDigest = inspect.StdOut.Trim();
+
         if (string.IsNullOrWhiteSpace(containerDigest))
         {
             AnsiConsole.MarkupLine("[yellow]Could not capture base image digest; continuing without audit-trail digest.[/]");
@@ -647,6 +663,7 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
         // repo's pinned ref. Stable across parent-repo commits that don't touch the
         // submodule — keeps Layer C's image cache hot.
         var vcpkgCommitProbe = await CaptureRunAsync("git", ["rev-parse", "HEAD:external/vcpkg"], cancellationToken, workingDirectory: repoRoot);
+
         if (vcpkgCommitProbe.ExitCode != 0 || string.IsNullOrWhiteSpace(vcpkgCommitProbe.StdOut))
         {
             AnsiConsole.MarkupLine("[red]Failed to resolve vcpkg submodule commit via 'git rev-parse HEAD:external/vcpkg'.[/]");
@@ -663,6 +680,7 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
         // match the vcpkg-baked SDL2 binary (same vcpkg_version field), so
         // sourcing it from the same manifest entry keeps them in lockstep.
         var sdl2Version = ReadSdl2VcpkgVersion(repoRoot);
+
         if (string.IsNullOrWhiteSpace(sdl2Version))
         {
             AnsiConsole.MarkupLine("[red]Could not resolve SDL2 vcpkg_version from build/manifest.json library_manifests[name=SDL2].[/]");
@@ -697,12 +715,14 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
             "--build-arg", $"SDL2_VERSION={sdl2Version}",
             "-f", "docker/binding-generator.Dockerfile",
         };
+
         if (settings.RebuildImage)
         {
             buildArgs.Add("--no-cache");
         }
         buildArgs.Add(".");
         var buildExit = await StreamRunAsync("docker", buildArgs, cancellationToken, workingDirectory: repoRoot);
+
         if (buildExit != 0)
         {
             AnsiConsole.MarkupLine($"[red]docker build failed with exit code {buildExit}.[/]");
@@ -716,6 +736,7 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
     private static string? ReadLinuxBaseImage(string repoRoot)
     {
         var manifestPath = Path.Combine(repoRoot, "build", "manifest.json");
+
         if (!File.Exists(manifestPath))
         {
             return null;
@@ -725,10 +746,12 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
         {
             using var stream = File.OpenRead(manifestPath);
             using var doc = JsonDocument.Parse(stream);
+
             if (!doc.RootElement.TryGetProperty("runtimes", out var runtimes))
             {
                 return null;
             }
+
             foreach (var runtime in runtimes.EnumerateArray())
             {
                 if (runtime.TryGetProperty("rid", out var rid) &&
@@ -749,6 +772,7 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
     private static string? ReadSdl2VcpkgVersion(string repoRoot)
     {
         var manifestPath = Path.Combine(repoRoot, "build", "manifest.json");
+
         if (!File.Exists(manifestPath))
         {
             return null;
@@ -758,10 +782,12 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
         {
             using var stream = File.OpenRead(manifestPath);
             using var doc = JsonDocument.Parse(stream);
+
             if (!doc.RootElement.TryGetProperty("library_manifests", out var libs))
             {
                 return null;
             }
+
             foreach (var lib in libs.EnumerateArray())
             {
                 if (lib.TryGetProperty("name", out var name) &&
@@ -824,6 +850,7 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
     private static void AppendDirectoryToStream(Stream output, string repoRoot, string relativeDir)
     {
         var absoluteDir = Path.Combine(repoRoot, relativeDir);
+
         if (!Directory.Exists(absoluteDir))
         {
             return;
@@ -832,6 +859,7 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
             .Select(absolute => Path.GetRelativePath(repoRoot, absolute).Replace('\\', '/'))
             .OrderBy(rel => rel, StringComparer.Ordinal)
             .ToList();
+
         foreach (var rel in files)
         {
             AppendFileToStream(output, Path.Combine(repoRoot, rel), rel);
@@ -848,6 +876,7 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
             .WithValidation(CommandResultValidation.None)
             .WithStandardOutputPipe(PipeTarget.ToStringBuilder(stdOut))
             .WithStandardErrorPipe(PipeTarget.ToStringBuilder(stdErr));
+
         if (workingDirectory is not null)
         {
             cmd = cmd.WithWorkingDirectory(workingDirectory);
@@ -864,6 +893,7 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
             .WithValidation(CommandResultValidation.None)
             .WithStandardOutputPipe(PipeTarget.ToDelegate(line => AnsiConsole.WriteLine(line)))
             .WithStandardErrorPipe(PipeTarget.ToDelegate(line => AnsiConsole.WriteLine(line)));
+
         if (workingDirectory is not null)
         {
             cmd = cmd.WithWorkingDirectory(workingDirectory);
@@ -884,6 +914,7 @@ internal static class Shared
     public static void CleanArtifacts(string repoRoot)
     {
         var artifactsDir = Path.Combine(repoRoot, "artifacts");
+
         if (Directory.Exists(artifactsDir))
         {
             Directory.Delete(artifactsDir, recursive: true);
@@ -891,6 +922,7 @@ internal static class Shared
         Directory.CreateDirectory(artifactsDir);
 
         var nativeSmokeBuildDir = Path.Combine(repoRoot, "tests", "smoke-tests", "native-smoke", "build");
+
         if (Directory.Exists(nativeSmokeBuildDir))
         {
             Directory.Delete(nativeSmokeBuildDir, recursive: true);
@@ -926,6 +958,7 @@ internal static class Shared
             .ExecuteAsync();
 
         var output = stdOut.ToString().Trim();
+
         if (result.ExitCode != 0 || string.IsNullOrWhiteSpace(output))
         {
             throw new InvalidOperationException("Could not resolve repository root via git. Run from inside the repo.");
@@ -937,6 +970,7 @@ internal static class Shared
     public static string ResolveHostRid()
     {
         string os;
+
         if (OperatingSystem.IsWindows())
         {
             os = "win";
@@ -1017,6 +1051,7 @@ internal static class Shared
     public static List<PackageFamilyConfig> GetConcreteFamilies(string repoRoot)
     {
         var manifestPath = Path.Combine(repoRoot, "build", "manifest.json");
+
         if (!File.Exists(manifestPath))
         {
             throw new InvalidOperationException($"manifest.json not found at '{manifestPath}'.");
@@ -1064,6 +1099,7 @@ internal static class Shared
     private static (string Major, string Role) ParseFamily(string familyIdentifier)
     {
         var dashIndex = familyIdentifier.IndexOf('-', StringComparison.Ordinal);
+
         if (dashIndex <= 0 || dashIndex >= familyIdentifier.Length - 1)
         {
             throw new ArgumentException($"Family identifier must follow 'sdl<major>-<role>' format. Got: '{familyIdentifier}'.");
@@ -1078,6 +1114,7 @@ internal static class Shared
         }
 
         var major = sdlPart[3..];
+
         if (!major.All(char.IsDigit))
         {
             throw new ArgumentException($"SDL major must be all digits. Got: '{major}'.");
@@ -1096,6 +1133,7 @@ internal static class Shared
         {
             source.AsSpan().CopyTo(span);
             span[0] = char.ToUpperInvariant(span[0]);
+
             for (var i = 1; i < span.Length; i++)
             {
                 span[i] = char.ToLowerInvariant(span[i]);
@@ -1122,6 +1160,7 @@ internal static class Shared
 
         var targetPath = Path.Combine(repoRoot, "build", "msbuild", "Janset.Local.props");
         var targetDir = Path.GetDirectoryName(targetPath)!;
+
         if (!Directory.Exists(targetDir))
         {
             Directory.CreateDirectory(targetDir);
@@ -1136,11 +1175,13 @@ internal static class Shared
     public static void WriteVersionsJson(string repoRoot, IReadOnlyDictionary<string, string> versions)
     {
         var sorted = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var (key, value) in versions)
         {
             sorted[key] = value;
         }
         var targetDir = Path.Combine(repoRoot, "artifacts", "resolve-versions");
+
         if (!Directory.Exists(targetDir))
         {
             Directory.CreateDirectory(targetDir);
@@ -1180,6 +1221,7 @@ internal static class Shared
         }
 
         var patterns = new[] { "Janset.SDL2.*", "Janset.SDL3.*" };
+
         foreach (var path in patterns.SelectMany(pattern => Directory.GetFiles(packagesDir, pattern, SearchOption.TopDirectoryOnly)))
         {
             File.Delete(path);
@@ -1207,6 +1249,7 @@ internal static class Shared
 
         var stopwatch = Stopwatch.StartNew();
         CommandResult result;
+
         if (verbose)
         {
             // Per-step log under a run-specific subdir so concurrent setup invocations
@@ -1214,6 +1257,7 @@ internal static class Shared
             var runId = DateTimeOffset.UtcNow.ToString("yyyyMMddTHHmmssZ", CultureInfo.InvariantCulture);
             var logPath = Path.Combine(repoRoot, ".logs", "tools", $"setup-{runId}", $"{stepNumber:00}-{SanitizeForFile(label)}.log");
             var logDir = Path.GetDirectoryName(logPath)!;
+
             if (!Directory.Exists(logDir))
             {
                 Directory.CreateDirectory(logDir);
@@ -1321,6 +1365,7 @@ internal static class Shared
         foreach (var envVar in new[] { "GH_TOKEN", "GITHUB_TOKEN" })
         {
             var value = Environment.GetEnvironmentVariable(envVar);
+
             if (!string.IsNullOrWhiteSpace(value))
             {
                 return value;
@@ -1450,6 +1495,7 @@ internal static class Shared
     private static string SanitizeForFile(string value)
     {
         var sanitized = new StringBuilder(value.Length);
+
         foreach (var ch in value)
         {
             sanitized.Append(char.IsLetterOrDigit(ch) || ch is '-' or '_' ? ch : '-');
