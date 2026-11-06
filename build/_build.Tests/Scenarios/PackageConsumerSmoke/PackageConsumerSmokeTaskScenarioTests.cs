@@ -37,7 +37,9 @@ public sealed class PackageConsumerSmokeTaskScenarioTests
             .ToList();
 
         // Expect: 1 compile-sanity build + 1 test (single net10.0 TFM) + multiple build-server-shutdowns.
-        await Assert.That(dotnetInvocations.Any(p => p.Arguments.Contains("build", StringComparison.Ordinal) && p.Arguments.Contains("Compile.NetStandard", StringComparison.OrdinalIgnoreCase))).IsTrue();
+        await Assert.That(dotnetInvocations.Any(p => p.Arguments.Contains("build", StringComparison.Ordinal)
+            && p.Arguments.Contains("Compile.NetStandard", StringComparison.OrdinalIgnoreCase)))
+            .IsTrue();
         await Assert.That(dotnetInvocations.Any(p => p.Arguments.Contains("test", StringComparison.Ordinal) && p.Arguments.Contains("net10.0", StringComparison.Ordinal))).IsTrue();
     }
 

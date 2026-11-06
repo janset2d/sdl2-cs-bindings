@@ -454,7 +454,8 @@ public sealed class PackageOutputValidatorTests
 
         foreach (var dependencyFamily in family.DependsOn)
         {
-            dependencyMap[FamilyIdentifierConventions.ManagedPackageId(dependencyFamily)] = coreVersion ?? throw new InvalidOperationException("Expected a cross-family dependency version.");
+            dependencyMap[FamilyIdentifierConventions.ManagedPackageId(dependencyFamily)] = coreVersion
+                ?? throw new InvalidOperationException("Expected a cross-family dependency version.");
         }
 
         return dependencyMap;
