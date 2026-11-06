@@ -4,5 +4,5 @@ namespace Build.Targets.Harvest.Services;
 
 public interface IRuntimeScanner
 {
-    Task<IReadOnlySet<FilePath>> ScanAsync(FilePath binary, CancellationToken ct = default);
+    public Task<IReadOnlySet<FilePath>> ScanAsync(FilePath binary, CancellationToken ct = default);
 }

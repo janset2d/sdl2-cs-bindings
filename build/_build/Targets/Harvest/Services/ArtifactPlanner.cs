@@ -16,7 +16,7 @@ namespace Build.Targets.Harvest.Services;
 
 public interface IArtifactPlanner
 {
-    Task<Result<DeploymentPlan, ArtifactPlannerError>> CreatePlanAsync(
+    public Task<Result<DeploymentPlan, ArtifactPlannerError>> CreatePlanAsync(
         LibraryManifest current,
         BinaryClosure closure,
         DirectoryPath outRoot,

@@ -19,7 +19,7 @@ namespace Build.Validation.Packaging;
 /// </remarks>
 public interface IHybridStaticOverlayValidator
 {
-    ValidationReport Validate(IImmutableList<RuntimeInfo> runtimes);
+    public ValidationReport Validate(IImmutableList<RuntimeInfo> runtimes);
 }
 
 /// <inheritdoc />

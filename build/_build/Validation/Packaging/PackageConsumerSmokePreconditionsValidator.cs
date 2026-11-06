@@ -13,7 +13,7 @@ namespace Build.Validation.Packaging;
 /// </summary>
 public interface IPackageConsumerSmokePreconditionsValidator
 {
-    ValidationReport Validate(FilePath smokeCsproj, FilePath compileSanityCsproj, DirectoryPath feedPath);
+    public ValidationReport Validate(FilePath smokeCsproj, FilePath compileSanityCsproj, DirectoryPath feedPath);
 }
 
 /// <inheritdoc />

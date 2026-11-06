@@ -8,31 +8,31 @@ namespace Build.Host.Paths;
 /// </summary>
 public interface IPathService
 {
-    DirectoryPath RepoRoot { get; }
-    DirectoryPath BuildDir { get; }
-    DirectoryPath BuildProjectDir { get; }
-    FilePath BuildProjectFile { get; }
-    DirectoryPath ArtifactsDir { get; }
-    DirectoryPath HarvestOutput { get; }
-    DirectoryPath PackagesOutput { get; }
-    DirectoryPath PackageConsumerSmokeOutput { get; }
-    DirectoryPath SmokeTestResultsOutput { get; }
-    FilePath GetPackageOutputFile(string packageId, string version);
-    DirectoryPath SrcDir { get; }
-    DirectoryPath VcpkgRoot { get; }
-    DirectoryPath VcpkgOverlayPortsDir { get; }
-    DirectoryPath VcpkgOverlayTripletsDir { get; }
-    FilePath VcpkgWindowsExecutableFile { get; }
-    FilePath VcpkgUnixExecutableFile { get; }
-    FilePath VcpkgBootstrapBatchScript { get; }
-    FilePath VcpkgBootstrapShellScript { get; }
-    DirectoryPath GetVcpkgInstalledDir { get; }
-    DirectoryPath GetVcpkgInstalledTripletDir(string triplet);
-    DirectoryPath GetVcpkgInstalledBinDir(string triplet);
-    DirectoryPath GetVcpkgInstalledLibDir(string triplet);
-    DirectoryPath GetVcpkgInstalledShareDir(string triplet);
-    DirectoryPath GetVcpkgPackageShareDir(string triplet, string packageName);
-    FilePath GetVcpkgPackageCopyrightFile(string triplet, string packageName);
+    public DirectoryPath RepoRoot { get; }
+    public DirectoryPath BuildDir { get; }
+    public DirectoryPath BuildProjectDir { get; }
+    public FilePath BuildProjectFile { get; }
+    public DirectoryPath ArtifactsDir { get; }
+    public DirectoryPath HarvestOutput { get; }
+    public DirectoryPath PackagesOutput { get; }
+    public DirectoryPath PackageConsumerSmokeOutput { get; }
+    public DirectoryPath SmokeTestResultsOutput { get; }
+    public FilePath GetPackageOutputFile(string packageId, string version);
+    public DirectoryPath SrcDir { get; }
+    public DirectoryPath VcpkgRoot { get; }
+    public DirectoryPath VcpkgOverlayPortsDir { get; }
+    public DirectoryPath VcpkgOverlayTripletsDir { get; }
+    public FilePath VcpkgWindowsExecutableFile { get; }
+    public FilePath VcpkgUnixExecutableFile { get; }
+    public FilePath VcpkgBootstrapBatchScript { get; }
+    public FilePath VcpkgBootstrapShellScript { get; }
+    public DirectoryPath GetVcpkgInstalledDir { get; }
+    public DirectoryPath GetVcpkgInstalledTripletDir(string triplet);
+    public DirectoryPath GetVcpkgInstalledBinDir(string triplet);
+    public DirectoryPath GetVcpkgInstalledLibDir(string triplet);
+    public DirectoryPath GetVcpkgInstalledShareDir(string triplet);
+    public DirectoryPath GetVcpkgPackageShareDir(string triplet, string packageName);
+    public FilePath GetVcpkgPackageCopyrightFile(string triplet, string packageName);
 
     /// <summary>
     /// Glob pattern that matches SDL2's dynapi manifest under vcpkg's buildtree.
@@ -48,65 +48,65 @@ public interface IPathService
     /// right shape, not a parameterized version of this one.
     /// </para>
     /// </summary>
-    string GetSdl2DynapiExportsGlob();
+    public string GetSdl2DynapiExportsGlob();
 
-    DirectoryPath GetHarvestStageDir(string libraryName, string rid);
-    DirectoryPath GetHarvestStageNativeDir(string libraryName, string rid);
-    DirectoryPath GetHarvestStageLicensesDir(string libraryName, string rid);
-    FilePath GetHarvestManifestFile(string libraryName, string rid);
-    FilePath GetManifestFile();
-    FilePath GetVcpkgManifestFile();
-    FilePath SolutionFile { get; }
+    public DirectoryPath GetHarvestStageDir(string libraryName, string rid);
+    public DirectoryPath GetHarvestStageNativeDir(string libraryName, string rid);
+    public DirectoryPath GetHarvestStageLicensesDir(string libraryName, string rid);
+    public FilePath GetHarvestManifestFile(string libraryName, string rid);
+    public FilePath GetManifestFile();
+    public FilePath GetVcpkgManifestFile();
+    public FilePath SolutionFile { get; }
 
     /// <summary>
     /// tests/smoke-tests/native-smoke
     /// </summary>
-    DirectoryPath NativeSmokeProjectDir { get; }
+    public DirectoryPath NativeSmokeProjectDir { get; }
 
     /// <summary>
     /// tests/smoke-tests/native-smoke/build
     /// </summary>
-    DirectoryPath NativeSmokeBuildRoot { get; }
+    public DirectoryPath NativeSmokeBuildRoot { get; }
 
     /// <summary>
     /// tests/smoke-tests/native-smoke/build/{preset}
     /// </summary>
-    DirectoryPath GetNativeSmokeBuildPresetDir(string preset);
+    public DirectoryPath GetNativeSmokeBuildPresetDir(string preset);
 
     /// <summary>
     /// tests/smoke-tests/native-smoke/build/{preset}/native-smoke(.exe)
     /// </summary>
-    FilePath GetNativeSmokeExecutableFile(string preset);
+    public FilePath GetNativeSmokeExecutableFile(string preset);
 
     /// <summary>
     /// artifacts/temp/inspect
     /// </summary>
-    DirectoryPath InspectOutputRoot { get; }
+    public DirectoryPath InspectOutputRoot { get; }
 
     /// <summary>
     /// artifacts/temp/inspect/{rid}
     /// </summary>
-    DirectoryPath GetInspectOutputRidDir(string rid);
+    public DirectoryPath GetInspectOutputRidDir(string rid);
 
     /// <summary>
     /// artifacts/temp/inspect/{rid}/{library}
     /// </summary>
-    DirectoryPath GetInspectOutputLibraryDir(string rid, string libraryName);
+    public DirectoryPath GetInspectOutputLibraryDir(string rid, string libraryName);
 
     /// <summary>
     /// artifacts/matrix/
     /// </summary>
-    DirectoryPath MatrixOutputRoot { get; }
+    public DirectoryPath MatrixOutputRoot { get; }
 
     /// <summary>
     /// artifacts/matrix/runtimes.json
     /// </summary>
-    FilePath GetMatrixOutputFile();
+    public FilePath GetMatrixOutputFile();
 
     /// <summary>
     /// artifacts/harvest-staging/ — ephemeral per-RID pack staging root.
     /// </summary>
-    DirectoryPath HarvestStagingRoot { get; }
+    public DirectoryPath HarvestStagingRoot { get; }
 
     // Per-library harvest output surface. Single source of truth for every per-library
     // path under artifacts/harvest_output/{library}/. Tasks that read or write these
@@ -115,70 +115,70 @@ public interface IPathService
     // drift like the pre-H1 library-flat licenses layout that confused the pack gate.
 
     /// <summary>artifacts/harvest_output/{libraryName}/</summary>
-    DirectoryPath GetHarvestLibraryDir(string libraryName);
+    public DirectoryPath GetHarvestLibraryDir(string libraryName);
 
     /// <summary>artifacts/harvest_output/{libraryName}/runtimes/</summary>
-    DirectoryPath GetHarvestLibraryRuntimesDir(string libraryName);
+    public DirectoryPath GetHarvestLibraryRuntimesDir(string libraryName);
 
     /// <summary>artifacts/harvest_output/{libraryName}/runtimes/{rid}/ — the per-RID directory Harvest cleans on re-run.</summary>
-    DirectoryPath GetHarvestLibraryRidRuntimesDir(string libraryName, string rid);
+    public DirectoryPath GetHarvestLibraryRidRuntimesDir(string libraryName, string rid);
 
     /// <summary>artifacts/harvest_output/{libraryName}/licenses/ — parent of per-RID evidence AND the consolidated subtree.</summary>
-    DirectoryPath GetHarvestLibraryLicensesDir(string libraryName);
+    public DirectoryPath GetHarvestLibraryLicensesDir(string libraryName);
 
     /// <summary>artifacts/harvest_output/{libraryName}/licenses/{rid}/ — per-RID license evidence (post-H1 RID-scoped layout).</summary>
-    DirectoryPath GetHarvestLibraryRidLicensesDir(string libraryName, string rid);
+    public DirectoryPath GetHarvestLibraryRidLicensesDir(string libraryName, string rid);
 
     /// <summary>artifacts/harvest_output/{libraryName}/licenses/_consolidated/ — the pack-side input consumed by the native csproj.</summary>
-    DirectoryPath GetHarvestLibraryConsolidatedLicensesDir(string libraryName);
+    public DirectoryPath GetHarvestLibraryConsolidatedLicensesDir(string libraryName);
 
     /// <summary>artifacts/harvest_output/{libraryName}/licenses/_consolidated.tmp/ — Phase 1 staging target for the staged-replace swap.</summary>
-    DirectoryPath GetHarvestLibraryConsolidatedLicensesTempDir(string libraryName);
+    public DirectoryPath GetHarvestLibraryConsolidatedLicensesTempDir(string libraryName);
 
     /// <summary>artifacts/harvest_output/{libraryName}/rid-status/ — per-RID harvest status directory.</summary>
-    DirectoryPath GetHarvestLibraryRidStatusDir(string libraryName);
+    public DirectoryPath GetHarvestLibraryRidStatusDir(string libraryName);
 
     /// <summary>artifacts/harvest_output/{libraryName}/rid-status/{rid}.json — per-RID harvest status file.</summary>
-    FilePath GetHarvestLibraryRidStatusFile(string libraryName, string rid);
+    public FilePath GetHarvestLibraryRidStatusFile(string libraryName, string rid);
 
     /// <summary>artifacts/harvest_output/{libraryName}/harvest-manifest.json — cross-RID consolidation receipt.</summary>
-    FilePath GetHarvestLibraryManifestFile(string libraryName);
+    public FilePath GetHarvestLibraryManifestFile(string libraryName);
 
     /// <summary>artifacts/harvest_output/{libraryName}/harvest-manifest.tmp.json — Phase 1 temp receipt for staged-replace.</summary>
-    FilePath GetHarvestLibraryManifestTempFile(string libraryName);
+    public FilePath GetHarvestLibraryManifestTempFile(string libraryName);
 
     /// <summary>artifacts/harvest_output/{libraryName}/harvest-summary.json — operator-facing consolidation summary.</summary>
-    FilePath GetHarvestLibrarySummaryFile(string libraryName);
+    public FilePath GetHarvestLibrarySummaryFile(string libraryName);
 
     /// <summary>artifacts/harvest_output/{libraryName}/harvest-summary.tmp.json — Phase 1 temp summary for staged-replace.</summary>
-    FilePath GetHarvestLibrarySummaryTempFile(string libraryName);
+    public FilePath GetHarvestLibrarySummaryTempFile(string libraryName);
 
     /// <summary>
     /// artifacts/harvest_output/{libraryName}/janset-native-metadata.json — per-family
     /// machine-readable upstream/version provenance generated before native pack.
     /// </summary>
-    FilePath GetHarvestLibraryNativeMetadataFile(string libraryName);
+    public FilePath GetHarvestLibraryNativeMetadataFile(string libraryName);
 
     /// <summary>
     /// Repository root README used by the generated upstream mapping table guardrail.
     /// </summary>
-    FilePath GetReadmeFile();
+    public FilePath GetReadmeFile();
 
     /// <summary>
     /// Root for the smoke / example consumer surface. Individual smoke projects live under
     /// a family-scoped subdirectory (<c>package-smoke/</c> today, <c>examples/</c> future).
     /// </summary>
-    DirectoryPath SmokeTestsRoot { get; }
+    public DirectoryPath SmokeTestsRoot { get; }
 
     /// <summary>
     /// Consumer-side TUnit smoke project exercised by <c>PackageConsumerSmoke</c>.
     /// </summary>
-    FilePath PackageConsumerSmokeProject { get; }
+    public FilePath PackageConsumerSmokeProject { get; }
 
     /// <summary>
     /// Compile-only sanity project that validates the netstandard2.0 consumer surface.
     /// </summary>
-    FilePath CompileSanityProject { get; }
+    public FilePath CompileSanityProject { get; }
 }
 
 /// <inheritdoc />

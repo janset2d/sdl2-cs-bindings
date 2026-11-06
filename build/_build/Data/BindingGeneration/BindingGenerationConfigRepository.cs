@@ -7,8 +7,8 @@ namespace Build.Data.BindingGeneration;
 
 public interface IBindingGenerationConfigRepository
 {
-    Result<BindingGenerationConfig, BindingGenerationConfigError> Load(string familyId);
-    IReadOnlyList<string> EnumerateEnabledFamilies();
+    public Result<BindingGenerationConfig, BindingGenerationConfigError> Load(string familyId);
+    public IReadOnlyList<string> EnumerateEnabledFamilies();
 }
 
 /// <summary>

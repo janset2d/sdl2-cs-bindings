@@ -17,7 +17,7 @@ namespace Build.Validation.Packaging;
 /// </summary>
 public interface ISatelliteUpperBoundValidator
 {
-    ValidationCheck? Validate(
+    public ValidationCheck? Validate(
         PackageFamilyConfig family,
         FilePath managedPackagePath,
         string dependencyFamily,

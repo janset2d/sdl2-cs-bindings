@@ -14,7 +14,7 @@ namespace Build.Targets.Package.Services;
 /// </summary>
 public interface IReadmeMappingTableGenerator
 {
-    Task UpdateAsync(ManifestConfig manifestConfig, CancellationToken ct = default);
+    public Task UpdateAsync(ManifestConfig manifestConfig, CancellationToken ct = default);
 }
 
 /// <inheritdoc />

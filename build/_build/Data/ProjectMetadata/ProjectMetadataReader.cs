@@ -16,7 +16,7 @@ public interface IProjectMetadataReader
     /// <see cref="Result{TValue,TError}"/> carrying either the resolved <see cref="EvaluatedProjectMetadata"/>
     /// or a <see cref="ProjectMetadataError"/> describing the MSBuild or parse failure.
     /// </summary>
-    Result<EvaluatedProjectMetadata, ProjectMetadataError> Read(FilePath projectPath);
+    public Result<EvaluatedProjectMetadata, ProjectMetadataError> Read(FilePath projectPath);
 }
 
 public sealed class ProjectMetadataReader(ICakeContext cakeContext, ICakeLog log) : IProjectMetadataReader

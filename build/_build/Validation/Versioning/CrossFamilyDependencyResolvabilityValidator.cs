@@ -19,7 +19,7 @@ public interface ICrossFamilyDependencyResolvabilityValidator
     /// </summary>
     /// <param name="versions">Resolved per-family version set (scope = the set's families).</param>
     /// <param name="manifest">Manifest config providing <c>depends_on</c> graph.</param>
-    CrossFamilyDependencyValidation Validate(PackageFamilyVersionSet versions, ManifestConfig manifest);
+    public CrossFamilyDependencyValidation Validate(PackageFamilyVersionSet versions, ManifestConfig manifest);
 }
 
 /// <inheritdoc />

@@ -11,7 +11,7 @@ namespace Build.Targets.Package.Services;
 /// </summary>
 public interface INativePackageMetadataGenerator
 {
-    Task GenerateAsync(
+    public Task GenerateAsync(
         ManifestConfig manifestConfig,
         PackageFamilyConfig family,
         string familyVersion,

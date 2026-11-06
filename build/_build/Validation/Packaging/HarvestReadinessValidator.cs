@@ -17,7 +17,7 @@ namespace Build.Validation.Packaging;
 /// </summary>
 public interface IHarvestReadinessValidator
 {
-    Task EnsureReadyAsync(PackageFamilyConfig family, CancellationToken ct);
+    public Task EnsureReadyAsync(PackageFamilyConfig family, CancellationToken ct);
 }
 
 /// <inheritdoc />
