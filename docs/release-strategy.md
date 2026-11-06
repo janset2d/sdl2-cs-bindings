@@ -1,6 +1,6 @@
 # Release Strategy — Janset.SDL2 / Janset.SDL3
 
-Date: 2026-11-05
+Date: 2026-11-06
 
 > Strategic anchor for how this project ships. AGENTS.md, plan.md, phase docs, ADRs, and research notes all point here for shape-level decisions (what counts as "v1.0", when do we go public, how do we label prereleases). Tactical roadmap lives in [`ROADMAP.md`](ROADMAP.md); detailed phase scope lives in [`phases/`](phases/).
 
@@ -68,44 +68,7 @@ Cadence variability dominates. Worst case ~2 years calendar; best case ~12 month
 
 ## Versioning Policy
 
-Package versions follow **D-3seg** ([`adr/0001-d3seg-and-package-first.md`](adr/0001-d3seg-and-package-first.md), ADR-001): `<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>`, with V1 family-lock (managed + native of the same family share a single version per release wave).
-
-**Brand-level "v1.0" is a launch moment, not a package version string.** SkiaSharp pattern: every SkiaSharp package is `2.88.x`-style D-3seg-style; the "v1.0 launch" was a project-identity announcement, not a package version reset. Same applies here. At v1.0 launch:
-
-- `Janset.SDL2.Core 2.32.0` (or whatever D-3seg resolves to at the launch commit) is the stable package version.
-- "Janset SDL Bindings v1.0" is the **brand launch event** — captured in blog post + documentation site + GitHub release notes, not in any package version string.
-
-## NuGet Labeling Convention
-
-| Stage | NuGet labels | Feed |
-| --- | --- | --- |
-| Stage 0–1 (internal-only, AST not yet stable) | No public label; internal-feed builds use `-local.<timestamp>` / `-ci.<run-id>.<attempt>` | GitHub Packages internal feed |
-| Stage 2–3 (AST shipped, public preview) | `-preview.N` (incrementing N per public wave) | nuget.org |
-| Stage 4 (stabilization, near launch) | `-rc.N` (incrementing N) | nuget.org |
-| Stage 5 (v1.0 launch and onward) | Stable (no prerelease suffix) | nuget.org |
-
-**Skip `-alpha`.** The internal feed already carries the "we don't trust this for outside use" semantic. Once anything ships publicly, the message should be "preview, expected to work, edges may still move" — not "alpha, expect breakage." Aligns with the pride-driven framing.
-
-## Promotion Gates
-
-Each feed-to-feed promotion has explicit entry criteria. No silent promotion based on time-elapsed alone.
-
-| Promotion | Entry criteria |
-| --- | --- |
-| **Internal feed → nuget.org `-preview.N`** | (a) AST-generated bindings cover the SDL family being promoted; (b) learning-sdl2 (or equivalent real downstream) runs against the wave without breakage; (c) full 7-RID matrix green; (d) NativeSmoke + ConsumerSmoke all-green for ≥1 internal-feed wave |
-| **`-preview.N` → `-rc.N`** | (a) All in-scope SDL families have published at least one `-preview.N` wave; (b) no `-preview` consumer-reported defect open for ≥2 weeks; (c) AST regeneration against an upstream version bump validated at least once |
-| **`-rc.N` → stable v1.0** | (a) Brand launch artifacts ready (blog post, docs site, sample projects); (b) `-rc` wave validated against learning-sdl2's production scenario; (c) maintainer explicit commit to post-launch maintenance cadence |
-
-**Minimum dwell times.** Each public feed surface stays alive ≥2 weeks per wave so real-consumer drift can surface. Stable doesn't "rush past" any wave count without consumer-side evidence.
-
-## Maintenance Commitment Post-v1.0
-
-Best-effort hobby cadence. Specifically:
-
-- **AST regeneration on upstream bumps.** When SDL2.32.x → 2.33.0 or SDL3.4.x → 3.5.0 lands in vcpkg, regenerate AST output + release wave (`<NewUpstreamMinor>.0` D-3seg). Aim: ≤4 weeks from upstream stable release to Janset release. No formal SLA.
-- **Bug response.** GitHub issues triaged best-effort. No formal SLA. CRITICAL P/Invoke / runtime payload bugs prioritized; cosmetic / nice-to-have at maintainer discretion.
-- **Smoke matrix as the primary confidence layer.** NativeSmoke + ConsumerSmoke catch mechanical regressions (P/Invoke signature drift, missing runtime payload, `DllNotFoundException` paths). Semantic regressions (API still compiles, behavior changed) need occasional manual play-test passes — frequency at maintainer discretion.
-- **No commitment to backports.** Latest stable is the supported version. If a consumer pins to `2.32.x` and SDL upstream ships `2.34.x`, the Janset package follows upstream — no `2.32.x` backport branch.
+Versioning, labels, promotion gates and maintenance are owned by [packaging and release](architecture/packaging-and-release.md).
 
 ## Deferred Decisions
 

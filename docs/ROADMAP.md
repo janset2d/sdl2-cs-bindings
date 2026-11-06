@@ -24,6 +24,27 @@ Active execution ledger: [phases/phase-2-adaptation-plan.md](phases/phase-2-adap
 
 Public NuGet.org promotion (`PublishPublic`) is a stub; staging publishes to GitHub Packages only.
 
+- **Partial-scope releases:** G58 requires every dependency in the resolved invocation. Feed-probe
+  relaxation must query the actual publish target (GitHub Packages or nuget.org), not another feed.
+  A `-ci` Core prerelease does not satisfy a stable Core lower bound under NuGet ordering.
+  Consumer smoke requires all concrete families or none; per-family consumer/native smoke projects
+  are candidates, not an approved implementation. Compare scope isolation and file count against
+  manifest/project drift and cross-family interaction coverage before choosing.
+- **Publication safeguards:** the old planned G28–G35 inventory is not implemented by a `ValidateTask`.
+  Preserve the intended checks when designing promotion: family identity and valid SemVer, increasing
+  feed versions, no existing public version, smoke success before publish, staging before public
+  promotion, and a satellite's Core minimum already available on the destination feed.
+- **Train and recovery safeguards:** G40–G45 remain proposals: unique family/tag-prefix identity,
+  dependency order, explicit partial-train recovery, operator version agreement with audit tags,
+  explicit destination feed, and an audit trail (who, what, when and hash). The removed tag-derived
+  G37–G39 are not active contracts. Current dispatch is owned by the release workflow; tags no longer
+  imply one workflow per family. Decide the public-promotion trigger deliberately rather than
+  restoring the retired fan-out mechanism.
+- **Linux exports:** explicit default-visibility annotations in static dependencies can escape the
+  compiler's hidden default. Per-satellite linker version scripts are a candidate hardening step,
+  not a current guarantee. Preserve public API exports while hiding dependency symbols; macOS
+  two-level namespaces make cosmetic leaks a different risk.
+
 ## Roadmap
 
 > **Phase sequencing reordered per [`release-strategy.md`](release-strategy.md):** Phase 4 binding auto-generation is **critical path for v1.0** and lands **before** the first public `-preview.N` wave (Phase 2b PD-7). The active implementation is ClangSharp + Roslyn postprocess in [`../spikes/binding-generators/`](../spikes/binding-generators/); the sunset host generator and alternative scaffold are removed, with tested salvage dormant at its existing paths pending production integration. Strategic rationale + stages + promotion gates live in [`release-strategy.md`](release-strategy.md); this file remains the tactical roadmap.
