@@ -64,7 +64,7 @@ public sealed class OwnershipFreeAbiTests
         {
             buffer = SDL_LoadFile_RW(rwops, &dataSize, 1);
             ulong actualSize = ToUInt64(dataSize);
-            byte[] bytes = Array.Empty<byte>();
+            byte[] bytes = [];
 
             if (buffer != 0 && actualSize >= (ulong)expectedLength)
             {
