@@ -15,6 +15,9 @@ on:
       publish-artifact:
         type: boolean
         default: true
+      run-analyzers:
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -35,12 +38,13 @@ jobs:
         # currently carries only Build + Build.Tests but future additions (extra test
         # projects, samples) would pull in work we don't want here. Build.Tests
         # ProjectReference'es Build.csproj so its restore graph covers the Cake host.
-        run: dotnet restore build/_build.Tests/Build.Tests.csproj
+        run: dotnet restore build/_build.Tests/Build.Tests.csproj -p:RunAnalyzers=${{ inputs.run-analyzers }}
       - name: Test Cake host
         run: >
           dotnet test --project build/_build.Tests/Build.Tests.csproj
           --configuration Release
           --no-restore
+          -p:RunAnalyzers=${{ inputs.run-analyzers }}
       - name: Publish Cake host (FDD, cross-OS)
         if: inputs.publish-artifact
         run: >
