@@ -109,13 +109,8 @@
     <RestoreAdditionalProjectSources>$(RestoreAdditionalProjectSources);$(LocalPackageFeed)</RestoreAdditionalProjectSources>
   </PropertyGroup>
 
-  <!--
-    Analyzer posture for smoke / probe code: same relaxations used by Build.Tests because
-    smoke projects are test-shaped (they intentionally contain probe-style no-op code,
-    test assertions that look unused to analyzers, etc.).
-  -->
+  <!-- Smoke executables are neither trimmed nor published with NativeAOT. -->
   <PropertyGroup>
-
     <IsAotCompatible>false</IsAotCompatible>
     <IsTrimmable>false</IsTrimmable>
     <EnableAOTAnalyzer>false</EnableAOTAnalyzer>

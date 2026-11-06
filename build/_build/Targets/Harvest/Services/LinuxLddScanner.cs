@@ -1,4 +1,3 @@
-
 using System.Collections.Immutable;
 using Build.Tools.Ldd;
 using Cake.Common.IO;

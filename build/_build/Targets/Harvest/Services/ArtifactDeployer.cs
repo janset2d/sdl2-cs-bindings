@@ -1,4 +1,3 @@
-
 using Build.Results;
 using Build.Targets.Harvest.Models;
 using Cake.Common;

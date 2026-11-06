@@ -7,7 +7,6 @@ namespace Build.Validation.Packaging;
 
 public sealed class SatelliteUpperBoundValidator : ISatelliteUpperBoundValidator
 {
-
     public ValidationCheck? Validate(
         PackageFamilyConfig family,
         FilePath managedPackagePath,

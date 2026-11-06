@@ -7,7 +7,6 @@ using Cake.Core.Diagnostics;
 namespace Build.Targets.PackageConsumerSmoke.Services;
 
 /// <inheritdoc />
-
 public sealed partial class DotNetRuntimeEnvironment(ICakeLog log) : IDotNetRuntimeEnvironment
 {
     private const string WinX86Rid = "win-x86";
