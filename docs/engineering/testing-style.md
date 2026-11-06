@@ -245,7 +245,7 @@ var world = FakeCakeWorld.CreateWindows().With...;
 
 ## References
 
-- [ADR-002 §12 (Testing model)](../adr/0002-target-centric-build-host.md) — taxonomy and FakeFileSystem rule
+- [ADR-0002 — Testing model](../adr/0002-target-centric-build-host.md#27-testing-model) — taxonomy and FakeFileSystem rule
 - [Coding style](coding-style.md) — private method extraction and collaborator design (sister document)
 - [Quality gates](quality-gates.md) — slopwatch and verification commands
 - [Homeruntech reference](https://github.com/homeruntech/dotnet-backend-monorepo-tool/tree/master/tests/Homerun.Dotnet.MonoRepoTools.Tests) — embedded fixture pattern inspiration
