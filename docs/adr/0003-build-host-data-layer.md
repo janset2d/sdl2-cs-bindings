@@ -1,7 +1,8 @@
 # ADR-003: Contract-Centric Build Host Data Layer
 
+Date: 2026-05-12
+
 - **Status:** Accepted
-- **Date:** 2026-05-12
 
 ## 1. Context
 

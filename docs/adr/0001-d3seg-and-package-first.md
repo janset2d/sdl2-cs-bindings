@@ -3,7 +3,6 @@
 Date: 2026-05-05
 
 - **Status:** Accepted
-- **Date:** 2026-05-05
 - **Supersedes:** an earlier 2026-04-18 ADR-001 retired during the 2026-05-04 docs cleanup. The earlier version covered three concerns; the third (`IArtifactSourceResolver` Cake abstraction) was retired in Phase Y when feed preparation moved to repo-root `tools.cs setup`. This lightweight version preserves the two normative decisions still active in code.
 
 ## 1. Versioning — D-3seg
@@ -70,8 +69,9 @@ Out of scope for D-3seg. If a binding-only API break is required (e.g., a CppAst
 
 ## 4. References
 
-- [`docs/onboarding.md`](../onboarding.md) "Settled Strategic Decisions" + [`build-host.md`](../architecture/build-host.md) "Configuration files" + "Native packaging pipeline"
+- [`build-host.md`](../architecture/build-host.md) — Configuration files and Native packaging pipeline
 - [`docs/knowledge-base/release-guardrails.md`](../knowledge-base/release-guardrails.md) — G54, G55, G56, G57, G58 + dependency contract guardrails
-- `build/manifest.json library_manifests[].vcpkg_version` — UpstreamMajor.Minor anchor source
-- `build/_build/Targets/{ResolveVersionsFromManifest,ResolveVersionsFromExplicit,StageVersions}/` — version provider implementations
-- `tools.cs` — feed preparation orchestration
+- [Manifest](../../build/manifest.json), `library_manifests[].vcpkg_version` — UpstreamMajor.Minor anchor source
+- [ResolveVersionsFromManifest](../../build/_build/Targets/ResolveVersionsFromManifest/) and [ResolveVersionsFromExplicit](../../build/_build/Targets/ResolveVersionsFromExplicit/) — version provider implementations
+- [StageVersionsOptions](../../build/_build/Host/Cli/Options/StageVersionsOptions.cs) groups the stage-input CLI options; it is not a Cake target
+- [tools.cs](../../tools.cs) — feed preparation orchestration

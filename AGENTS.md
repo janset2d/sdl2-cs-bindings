@@ -18,7 +18,8 @@ modern, most .NET-friendly SDL binding library; design questions are settled wit
 - Every change is correct on Windows, Linux and macOS. vcpkg and Cake Frosting are the build
   backbone; proposals work inside them.
 - The Linux builder base (Ubuntu 20.04 focal, glibc 2.31) is a constitutional floor: it is never
-  raised and raising it is never proposed. Going lower is welcome when it needs no bad toolchain.
+  raised and raising it is never proposed. Going lower is welcome when it needs no bad toolchain
+  ([ADR-0010](docs/adr/0010-linux-builder-glibc-floor.md)).
 - Generated binding sources change only by running the generator; review the complete diff.
 - [`external/`](external/) submodules are read-only upstream evidence. [`external/sdl2-cs`](external/sdl2-cs) is transitional and
   untrusted for production testing.
@@ -67,7 +68,7 @@ exists; dated research is evidence and may hold superseded positions.
 | vcpkg, overlays, triplets, native harvest, Linux builder base | [`overlay-management.md`](docs/playbook/overlay-management.md); procedures in the same document |
 | Manifest, packaging, guardrails, versioning, release | [`release-guardrails.md`](docs/knowledge-base/release-guardrails.md), [`release-strategy.md`](docs/release-strategy.md), [ADR-0001](docs/adr/0001-d3seg-and-package-first.md) |
 | Binding generator, generated sources, regeneration | [Implementation notes](spikes/binding-generators/docs/canonical/binding-generator-implementation-notes.md), [maintenance](spikes/binding-generators/docs/canonical/binding-generator-maintenance.md) |
-| Binding API shape, type mapping, naming, ABI | [Binding generator constitution](spikes/binding-generators/docs/canonical/binding-generator-constitution.md) |
+| Binding API shape, type mapping, naming, ABI | [Binding generator constitution](spikes/binding-generators/docs/canonical/binding-generator-constitution.md), ADRs [0006](docs/adr/0006-one-public-class-per-family.md)–[0009](docs/adr/0009-target-frameworks.md) |
 | Binding tests, generated-output review | [Testing strategy](spikes/binding-generators/docs/canonical/testing-strategy.md), [output review](spikes/binding-generators/docs/canonical/binding-output-oracle-validation.md) |
 | Code structure and test design | [Extraction guidelines](docs/knowledge-base/extraction-guidelines.md), [testing guidelines](docs/knowledge-base/testing-guidelines.md) |
 | Documentation, ADRs, repository workflow | [`documentation.md`](docs/engineering/documentation.md), [`workflow.md`](docs/engineering/workflow.md), [Decision records](docs/adr/README.md) |
