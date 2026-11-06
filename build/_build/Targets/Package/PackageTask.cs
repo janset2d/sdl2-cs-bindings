@@ -44,7 +44,8 @@ public sealed class PackageTask : AsyncFrostingTask<BuildContext>
         _versionFileRepository = versionFileRepository ?? throw new ArgumentNullException(nameof(versionFileRepository));
         _manifestRepository = manifestRepository ?? throw new ArgumentNullException(nameof(manifestRepository));
         _readmeMappingTableGenerator = readmeMappingTableGenerator ?? throw new ArgumentNullException(nameof(readmeMappingTableGenerator));
-        _crossFamilyDependencyResolvabilityValidator = crossFamilyDependencyResolvabilityValidator ?? throw new ArgumentNullException(nameof(crossFamilyDependencyResolvabilityValidator));
+        _crossFamilyDependencyResolvabilityValidator = crossFamilyDependencyResolvabilityValidator
+            ?? throw new ArgumentNullException(nameof(crossFamilyDependencyResolvabilityValidator));
         _packer = packer ?? throw new ArgumentNullException(nameof(packer));
         _reporter = reporter ?? throw new ArgumentNullException(nameof(reporter));
 

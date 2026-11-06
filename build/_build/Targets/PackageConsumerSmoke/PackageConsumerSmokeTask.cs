@@ -415,7 +415,8 @@ public sealed class PackageConsumerSmokeTask : AsyncFrostingTask<BuildContext>
             return true;
         }
 
-        reason = $"TFM '{tfm}' runtime execution is skipped on Linux: Mono 6.12 cannot host TUnit (MissingMethodException in Microsoft Testing Platform discovery). Compile-time coverage of net462 still runs via Microsoft.NETFramework.ReferenceAssemblies.";
+        reason = $"TFM '{tfm}' runtime execution is skipped on Linux: Mono 6.12 cannot host TUnit (MissingMethodException in Microsoft Testing Platform discovery). " +
+                 "Compile-time coverage of net462 still runs via Microsoft.NETFramework.ReferenceAssemblies.";
         return true;
     }
 

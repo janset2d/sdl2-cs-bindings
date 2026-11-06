@@ -55,7 +55,8 @@ public sealed record BindingGenerationConfig
     [JsonPropertyName("macro_constants")]
     public MacroConstantPolicyConfig MacroConstants { get; init; } = new();
 
-    [JsonPropertyName("deferred_declarations")] public ImmutableDictionary<string, DeferredDeclarationConfig> DeferredDeclarations { get; init; } = ImmutableDictionary<string, DeferredDeclarationConfig>.Empty;
+    [JsonPropertyName("deferred_declarations")] public ImmutableDictionary<string, DeferredDeclarationConfig> DeferredDeclarations { get; init; }
+        = ImmutableDictionary<string, DeferredDeclarationConfig>.Empty;
     [JsonPropertyName("validators")] public ImmutableDictionary<string, bool> Validators { get; init; } = ImmutableDictionary<string, bool>.Empty;
 
     // Nullable — only present when Enabled=true. Consumer short-circuits on Enabled
