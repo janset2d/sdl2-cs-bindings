@@ -70,7 +70,7 @@ jobs:
           git -c url.https://github.com/.insteadOf=git@github.com: submodule update --init external/sdl2-cs
       - uses: ./.github/actions/dotnet-setup
       - run: dotnet tool restore
-      - run: dotnet tool run slopwatch analyze --fail-on warning --exclude "artifacts/**,external/**,vcpkg_installed/**,**/bin/**,**/obj/**"
+      - run: dotnet tool run slopwatch analyze --fail-on warning --exclude "artifacts/**,external/**,vcpkg_installed/**,spikes/binding-generators/references/**,.nuget/**,**/bin/**,**/obj/**"
       - name: Restore, format check and build each project
         run: |
           read -r -a format_exclude <<< "$FORMAT_EXCLUDE"
