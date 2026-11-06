@@ -71,9 +71,9 @@ internal static unsafe class SdlRuntimeProbe
         return drivers.Any(driver => string.Equals(driver, driverName, StringComparison.OrdinalIgnoreCase));
     }
 
-    private static string MissingDriverMessage(string driverKind, string driverName, IReadOnlyList<string> availableDrivers)
+    private static string MissingDriverMessage(string driverKind, string driverName, string[] availableDrivers)
     {
-        string available = availableDrivers.Count == 0 ? "<none>" : string.Join(", ", availableDrivers);
+        string available = availableDrivers.Length == 0 ? "<none>" : string.Join(", ", availableDrivers);
         return $"SDL {driverKind} driver '{driverName}' is not available. Available {driverKind} drivers: {available}.";
     }
 }

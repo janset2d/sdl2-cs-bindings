@@ -117,8 +117,7 @@ public sealed class RwopsAbiTests
     public async Task SDLRwFromFile_Should_Match_Upstream_Read_Mode_Read_Only_And_Seek_Semantics()
     {
         using AbiTempDirectory temp = new();
-        string path = temp.GetFilePath("rwops-read.bin");
-        File.WriteAllText(path, HelloWorld, Encoding.ASCII);
+        string path = await temp.WriteAsciiFileAsync("rwops-read.bin", HelloWorld);
 
         GenericRwopsResult result = TestFileGenericSemantics(path, "rb");
 
@@ -202,8 +201,7 @@ public sealed class RwopsAbiTests
     public async Task SDLRwFromFile_Should_Append_Writes_When_Mode_Is_Append_Update()
     {
         using AbiTempDirectory temp = new();
-        string path = temp.GetFilePath("rwops-append.bin");
-        File.WriteAllText(path, "start", Encoding.ASCII);
+        string path = await temp.WriteAsciiFileAsync("rwops-append.bin", "start");
 
         AppendUpdateResult result = TestFileAppendUpdateMode(path);
 
@@ -212,7 +210,7 @@ public sealed class RwopsAbiTests
         await Assert.That(result.SeekPosition).IsEqualTo(0L);
         await Assert.That(result.ReadObjects).IsEqualTo(8UL);
         await Assert.That(result.Text).IsEqualTo("startend");
-        await Assert.That(File.ReadAllText(path, Encoding.ASCII)).IsEqualTo("startend");
+        await Assert.That(await temp.ReadAsciiAsync(path)).IsEqualTo("startend");
         await SdlAssert.Success(result.CloseResult, "SDL_RWclose");
     }
 
@@ -226,8 +224,7 @@ public sealed class RwopsAbiTests
     {
         using AbiTempDirectory temp = new();
 
-        string path = temp.GetFilePath("rwops-alphabet.bin");
-        File.WriteAllText(path, Alphabet, Encoding.ASCII);
+        string path = await temp.WriteAsciiFileAsync("rwops-alphabet.bin", Alphabet);
 
         CompareResult[] results = CompareMemoryAndFileReads(path);
 

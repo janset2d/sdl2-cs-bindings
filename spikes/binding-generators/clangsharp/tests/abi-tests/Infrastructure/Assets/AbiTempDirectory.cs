@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Janset.SDL2.AbiTests.Infrastructure.Assets;
 
 internal sealed class AbiTempDirectory : IDisposable
@@ -11,6 +13,32 @@ internal sealed class AbiTempDirectory : IDisposable
     public string Path { get; }
 
     public string GetFilePath(string fileName) => System.IO.Path.Combine(Path, fileName);
+
+    public Task<string> WriteAsciiFileAsync(string fileName, string content) => WriteBytesAsync(fileName, Encoding.ASCII.GetBytes(content));
+
+    public async Task<string> WriteBytesAsync(string fileName, byte[] content)
+    {
+        string path = GetFilePath(fileName);
+#if NETFRAMEWORK
+        using FileStream stream = new(path, FileMode.Create, FileAccess.Write, FileShare.None, 4096, useAsync: true);
+        await stream.WriteAsync(content, 0, content.Length);
+        await stream.FlushAsync();
+#else
+        await File.WriteAllBytesAsync(path, content);
+#endif
+        return path;
+    }
+
+    public async Task<string> ReadAsciiAsync(string fileName)
+    {
+#if NETFRAMEWORK
+        using FileStream stream = new(GetFilePath(fileName), FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true);
+        using StreamReader reader = new(stream, Encoding.ASCII);
+        return await reader.ReadToEndAsync();
+#else
+        return await File.ReadAllTextAsync(GetFilePath(fileName), Encoding.ASCII);
+#endif
+    }
 
     public void Dispose()
     {
