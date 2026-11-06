@@ -7,6 +7,7 @@ Date: 2026-11-06
 Build native libraries from source through [vcpkg](../../external/vcpkg/). Do not substitute downloaded
 binary bundles. [vcpkg.json](../../vcpkg.json) owns dependencies, features, overrides and the baseline;
 the [manifest](../../build/manifest.json) owns library metadata and the RID/triplet/runner matrix.
+Every manifest runtime is built and validated; the RID matrix is not reduced to unblock a release.
 The managed package brings its family's separate `.Native` package transitively.
 [Packaging and release](packaging-and-release.md) owns the package contract.
 Evidence: internal research, 2026-04-11, "Research: Native Library Packaging Patterns in .NET".
@@ -20,7 +21,8 @@ This keeps the native payload small without embedding a separate SDL core in eve
 The [hybrid triplets](../../vcpkg-overlay-triplets/) encode the model in their names.
 Their [shared fragment](../../vcpkg-overlay-triplets/_hybrid-common.cmake) owns linkage and visibility
 settings: default static linkage, dynamic CRT, and a dynamic override for SDL ports.
-Unix builds hide dependency symbols; Linux also fixes ELF rpaths. Windows builds release artifacts.
+Unix builds hide dependency symbols; Linux also fixes ELF rpaths.
+Windows triplets build only the release configuration.
 Runtime rows have no strategy field; there is no strategy CLI switch.
 
 Harvest derives the binary closure from actual binaries and vcpkg metadata. It does not use a
@@ -34,7 +36,7 @@ rejects non-system transitive shared-library leaks.
 Use the LGPL-free codec stack. The [mixer overlay registry](../../vcpkg-overlay-ports/README.md#sdl2-mixer)
 owns backend choices, licenses and differences from upstream. The overlay enables bundled permissive
 alternatives that the stock port disables, and removes the LGPL backends.
-Evidence: internal research, 2026-04-14, "LGPL-Free Codec Migration - SDL2_mixer";
+Evidence: internal research, 2026-04-14, "LGPL-Free Codec Migration — SDL2_mixer";
 internal research, 2026-04-13, "SDL2 Native Dependency License Inventory".
 
 Native MIDI uses the OS on Windows and macOS. Linux Timidity needs a configuration and GUS patches
@@ -54,7 +56,7 @@ Evidence: internal research, 2026-04-22, "Unix Native Identity Strategy — vcpk
 can still expose them. Windows PE exports are opt-in; macOS two-level namespaces isolate symbol lookup;
 Linux's flat ELF scope can interpose symbols from the first loaded library.
 The [gfx overlay registry](../../vcpkg-overlay-ports/README.md#sdl2-gfx) owns its public-export patch.
-Evidence: internal research, 2026-04-14, "Symbol Visibility in Hybrid Static Packaging - Analysis & Strategy".
+Evidence: internal research, 2026-04-14, "Symbol Visibility in Hybrid Static Packaging — Analysis & Strategy".
 
 ## Builder and validation boundaries
 
