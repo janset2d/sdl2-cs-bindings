@@ -20,6 +20,12 @@ public sealed class SuppressionLedgerTests(SuppressionLedgerSession session)
     }
 
     [Test]
+    public async Task Ledger_Should_Match_The_Complete_Rendered_Baseline()
+    {
+        await Assert.That(session.Baseline.ReplaceLineEndings("\n")).IsEqualTo(SuppressionLedger.Render(session.Entries));
+    }
+
+    [Test]
     public async Task StagingMarkers_Should_Be_Gone()
     {
         var markers = session.Entries.Where(entry => entry.StartsWith("staging-marker ", StringComparison.Ordinal));

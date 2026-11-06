@@ -14,11 +14,12 @@ public sealed class SuppressionLedgerParserTests
     }
 
     [Test]
-    public async Task Read_Should_Keep_The_Adjacent_Conditional_Import_Reason()
+    [MethodDataSource(typeof(SuppressionLedgerParserData), nameof(SuppressionLedgerParserData.ConditionalImports))]
+    public async Task Read_Should_Keep_The_Adjacent_Conditional_Import_Reason(string content, string expected)
     {
-        var entries = SuppressionLedger.Read([("z.props", SuppressionLedgerParserData.ConditionalImport)]);
+        var entries = SuppressionLedger.Read([("z.props", content)]);
 
-        await Assert.That(entries).IsEquivalentTo([SuppressionLedgerParserData.ExpectedConditionalImport], CollectionOrdering.Matching);
+        await Assert.That(entries).IsEquivalentTo([expected], CollectionOrdering.Matching);
     }
 
     [Test]
@@ -47,7 +48,24 @@ public sealed class SuppressionLedgerParserTests
     }
 
     [Test]
-    public async Task Ledger_Should_Count_All_Channels_In_Ordinal_Order()
+    [MethodDataSource(typeof(SuppressionLedgerParserData), nameof(SuppressionLedgerParserData.UnknownSlopwatchProperties))]
+    public async Task Read_Should_Refuse_Unknown_Slopwatch_Properties(string content, string expected)
+    {
+        var error = await Assert.That(() => SuppressionLedger.Read([(".slopwatch/slopwatch.json", content)])).Throws<InvalidOperationException>();
+
+        await Assert.That(error!.Message).IsEqualTo(expected);
+    }
+
+    [Test]
+    public async Task Read_Should_Count_A_Namespace_Scoped_Attribute_Alias()
+    {
+        var entries = SuppressionLedger.Read([("z.cs", SuppressionLedgerParserData.NamespaceScopedAlias)]);
+
+        await Assert.That(entries).IsEquivalentTo([SuppressionLedgerParserData.ExpectedNamespaceScopedAlias], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Read_Should_Count_All_Channels_In_Ordinal_Order()
     {
         var entries = SuppressionLedger.Read(SuppressionLedgerData.Files);
 
@@ -55,7 +73,7 @@ public sealed class SuppressionLedgerParserTests
     }
 
     [Test]
-    public async Task Ledger_Should_Render_Channel_Totals_And_Duplicate_Counts()
+    public async Task Render_Should_Render_Channel_Totals_And_Duplicate_Counts()
     {
         var rendered = SuppressionLedger.Render(SuppressionLedgerData.DuplicateEntries);
 
@@ -63,7 +81,7 @@ public sealed class SuppressionLedgerParserTests
     }
 
     [Test]
-    public async Task Ledger_Should_Read_Conditional_Imports_And_Command_Line_Switches()
+    public async Task Read_Should_Read_Conditional_Imports_And_Command_Line_Switches()
     {
         var entries = SuppressionLedger.Read(SuppressionLedgerData.SwitchFiles);
 
@@ -71,7 +89,7 @@ public sealed class SuppressionLedgerParserTests
     }
 
     [Test]
-    public async Task Ledger_Should_Distinguish_CSharp_Trivia_From_String_Data()
+    public async Task Read_Should_Distinguish_CSharp_Trivia_From_String_Data()
     {
         var entries = SuppressionLedger.Read(SuppressionLedgerData.SourceFiles);
 
@@ -79,7 +97,7 @@ public sealed class SuppressionLedgerParserTests
     }
 
     [Test]
-    public async Task Ledger_Should_Count_Generated_Directories_Even_Without_A_Header()
+    public async Task Read_Should_Count_Generated_Directories_Even_Without_A_Header()
     {
         var entries = SuppressionLedger.Read(SuppressionLedgerData.HeaderlessFiles);
 
@@ -93,6 +111,14 @@ public sealed class SuppressionLedgerParserTests
         var entries = SuppressionLedger.Read([(".editorconfig", content)]);
 
         await Assert.That(entries).IsEquivalentTo([expected], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Read_Should_Attach_Only_The_Winner_That_Names_Each_Rule()
+    {
+        var entries = SuppressionLedger.Read([(".editorconfig", SuppressionLedgerParserData.MultiRuleConfig)]);
+
+        await Assert.That(entries).IsEquivalentTo(SuppressionLedgerParserData.ExpectedMultiRuleEntries, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -111,5 +137,22 @@ public sealed class SuppressionLedgerParserTests
         var error = await Assert.That(() => SuppressionLedger.Read([("z.csproj", content)])).Throws<InvalidOperationException>();
 
         await Assert.That(error!.Message).IsEqualTo(expected);
+    }
+
+    [Test]
+    [MethodDataSource(typeof(SuppressionLedgerParserData), nameof(SuppressionLedgerParserData.Refusals))]
+    public async Task Read_Should_Refuse_Uninventoried_Suppression_Forms(string path, string content, string expected)
+    {
+        var error = await Assert.That(() => SuppressionLedger.Read([(path, content)])).Throws<InvalidOperationException>();
+
+        await Assert.That(error!.Message).IsEqualTo(expected);
+    }
+
+    [Test]
+    public async Task Read_Should_Limit_File_Directives_To_Headers_And_Normalize_Conditions()
+    {
+        var entries = SuppressionLedger.Read(SuppressionLedgerParserData.HeaderAndConditions);
+
+        await Assert.That(entries).IsEquivalentTo(SuppressionLedgerParserData.ExpectedHeaderAndConditions, CollectionOrdering.Matching);
     }
 }

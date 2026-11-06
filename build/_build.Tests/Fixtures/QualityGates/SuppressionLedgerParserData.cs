@@ -7,6 +7,35 @@ internal static class SuppressionLedgerParserData
     public const string ExpectedConditionalImport = "build-switch z.props ['$(Frozen)' != 'true'] Import = root.props | " +
         "Frozen tooling imports root analyzers only after integration.";
 
+    public static IEnumerable<(string Content, string Expected)> ConditionalImports() =>
+    [
+        (ConditionalImport, ExpectedConditionalImport),
+        ("""
+            <Project>
+              <!-- Postprocess and the oracle keep their own build settings until they move into build/_build. -->
+              <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" Condition=" '$(MSBuildProjectName)' != 'Janset.SDL2.PostProcess' And '$(MSBuildProjectName)' != 'oracle.cs' " />
+            </Project>
+            """,
+            "build-switch z.props ['$(MSBuildProjectName)' != 'Janset.SDL2.PostProcess' And '$(MSBuildProjectName)' != 'oracle.cs'] " +
+            "Import = $([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../')) | " +
+            "Postprocess and the oracle keep their own build settings until they move into build/_build."),
+        ("<Project><Import Project=\"root.props\" Condition=\"  '$(Frozen)'  !=  'true'  \" /></Project>",
+            "build-switch z.props ['$(Frozen)' != 'true'] Import = root.props"),
+    ];
+
+    public static IReadOnlyList<(string Path, string Content)> HeaderAndConditions =>
+    [
+        ("tool.cs", "#!/usr/bin/env dotnet\n// header\n\n#:property RunAnalyzers=false\nclass Z {}\n#:property NoWarn=CA1000\n"),
+        ("z.props", "<Project><PropertyGroup Condition=\"  '$(A)'  ==  'true' \" >" +
+            "<RunAnalyzers Condition=\" '$(B)' !=  'false'  \">false</RunAnalyzers></PropertyGroup></Project>"),
+    ];
+
+    public static IReadOnlyList<string> ExpectedHeaderAndConditions =>
+    [
+        "build-switch tool.cs [file-based header] RunAnalyzers = false",
+        "build-switch z.props ['$(A)' == 'true' and '$(B)' != 'false'] RunAnalyzers = false",
+    ];
+
     public static IEnumerable<(string Content, string Expected)> ConfigEntries() => [.. LowSeverityConfigs(), .. ConfigReasons(), .. GlobalConfigPreambles()];
 
     public static IEnumerable<(string Content, string Expected)> GlobalConfigPreambles() =>
@@ -50,6 +79,18 @@ internal static class SuppressionLedgerParserData
         "slopwatch .slopwatch/slopwatch.json [] minSeverity = warning",
     ];
 
+    public static IEnumerable<(string Content, string Expected)> UnknownSlopwatchProperties() =>
+    [
+        ("{\"suppressions\":[]}", ".slopwatch/slopwatch.json: unknown root property 'suppressions' is not an inventoried suppression channel."),
+        ("{\"globalSuppressions\":[]}", ".slopwatch/slopwatch.json: unknown root property 'globalSuppressions' is not an inventoried suppression channel."),
+        ("{\"custom\":true}", ".slopwatch/slopwatch.json: unknown root property 'custom' is not an inventoried suppression channel."),
+        ("{\"rules\":{\"SW002\":{\"custom\":true}}}", ".slopwatch/slopwatch.json: unknown SW002 property 'custom' is not an inventoried suppression channel."),
+    ];
+
+    public const string NamespaceScopedAlias = "namespace N { using Ignore = System.Diagnostics.CodeAnalysis.SuppressMessageAttribute; " +
+        "[Ignore(\"Design\", \"CA1000\")] class Z {} }";
+    public const string ExpectedNamespaceScopedAlias = "suppress-message z.cs [] CA1000";
+
     public static IEnumerable<(string Content, string Expected)> ConfigReasons() =>
     [
         ("# unrelated\n\n[a.cs]\ndotnet_diagnostic.CA1000.severity = none\n",
@@ -62,6 +103,20 @@ internal static class SuppressionLedgerParserData
             "editorconfig .editorconfig [a.cs] dotnet_diagnostic.CA1000.severity = none | # key reason"),
         ("# section reason\n[a.cs]\n\ndotnet_diagnostic.CA1000.severity = none\n",
             "editorconfig .editorconfig [a.cs] dotnet_diagnostic.CA1000.severity = none"),
+        ("# FILE-SCOPED ARBITRATION\n[a.cs]\ndotnet_diagnostic.CA1000.severity = none\n",
+            "editorconfig .editorconfig [a.cs] dotnet_diagnostic.CA1000.severity = none"),
+        ("# REPOSITORY ANALYZERS\n# section reason\n[a.cs]\ndotnet_diagnostic.CA1000.severity = none\n",
+            "editorconfig .editorconfig [a.cs] dotnet_diagnostic.CA1000.severity = none | # section reason"),
+    ];
+
+    public const string MultiRuleConfig = "# shared reason\n# Winner: first policy; CA1000 remains enabled elsewhere.\n" +
+        "# Winner: second policy; CA1001 remains enabled elsewhere.\n[a.cs]\n" +
+        "dotnet_diagnostic.CA1001.severity = none\ndotnet_diagnostic.CA1000.severity = none\n";
+
+    public static IReadOnlyList<string> ExpectedMultiRuleEntries =>
+    [
+        "editorconfig .editorconfig [a.cs] dotnet_diagnostic.CA1000.severity = none | # shared reason # Winner: first policy; CA1000 remains enabled elsewhere.",
+        "editorconfig .editorconfig [a.cs] dotnet_diagnostic.CA1001.severity = none | # shared reason # Winner: second policy; CA1001 remains enabled elsewhere.",
     ];
 
     public static IEnumerable<string> BroadSuppressions() =>
@@ -96,6 +151,25 @@ internal static class SuppressionLedgerParserData
             "editorconfig .editorconfig [a.cs] ROSLYNATOR_ANALYZERS.ENABLED_BY_DEFAULT = FALSE"),
         ("[a.cs]\nDOTNET_CODE_QUALITY.CA1000.api_surface = public\n",
             "editorconfig .editorconfig [a.cs] DOTNET_CODE_QUALITY.CA1000.api_surface = public"),
+        ("[a.cs]\nDOTNET_DIAGNOSTIC.CA1000.SEVERITY = NoNe\n",
+            "editorconfig .editorconfig [a.cs] DOTNET_DIAGNOSTIC.CA1000.SEVERITY = NoNe"),
+        ("[a.cs]\nCSHARP_STYLE_VAR_ELSEWHERE = true:SuGgEsTiOn\n",
+            "editorconfig .editorconfig [a.cs] CSHARP_STYLE_VAR_ELSEWHERE = true:SuGgEsTiOn"),
+        ("[a.cs]\nca1000.api_surface = public\n", "editorconfig .editorconfig [a.cs] ca1000.api_surface = public"),
+        ("[a.cs]\ndotnet_diagnostic.CA1000.severity = warning\ndotnet_diagnostic.CA1001.severity = error\n" +
+            "csharp_style_var_elsewhere = true:warning\ncsharp_style_var_for_built_in_types = true:error\n" +
+            "generated_code = false\nroslynator_analyzers.enabled_by_default = true\nunrelated_option = false\n" +
+            "dotnet_diagnostic.CA1002.severity = none\n",
+            "editorconfig .editorconfig [a.cs] dotnet_diagnostic.CA1002.severity = none"),
+    ];
+
+    public static IEnumerable<(string Path, string Content, string Expected)> Refusals() =>
+    [
+        ("z.ruleset", "<RuleSet />", "z.ruleset: rule sets are not an inventoried suppression channel."),
+        ("z.cs", "[SuppressMessage(\"Design\", Rule)] class Z {}",
+            "z.cs: suppression rule must be a string literal: SuppressMessage(\"Design\", Rule)"),
+        ("z.csproj", "<Project><PropertyGroup><NoWarn>$(OtherWarnings)</NoWarn></PropertyGroup></Project>",
+            "z.csproj: NoWarn takes hidden IDs from $(OtherWarnings)."),
     ];
 
     public static IEnumerable<(string Content, string Expected)> InvalidConfigs() =>

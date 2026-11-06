@@ -78,7 +78,9 @@ internal static partial class SuppressionLedger
     {
         ArgumentNullException.ThrowIfNull(entries);
         var text = new StringBuilder("Suppression ledger: every diagnostic escape is counted.\n" +
-            "Every conditional import and explicit Slopwatch severity assignment is inventoried.\n\n");
+            "Every conditional import and explicit Slopwatch severity assignment is inventoried.\n" +
+            "Scans tracked C#, project XML, analyzer configs, Slopwatch files and workflows.\n" +
+            "Does not scan rsp files, Dockerfiles or analyzer-config items.\n\n");
 
         foreach (var channel in Channels.Order(StringComparer.Ordinal))
         {
@@ -118,7 +120,9 @@ internal static partial class SuppressionLedger
 
     private static void ReadCode(string path, CompilationUnitSyntax root, List<string> entries)
     {
-        var aliases = root.Usings
+        var aliases = root
+            .DescendantNodes()
+            .OfType<UsingDirectiveSyntax>()
             .Where(directive => directive.Alias is not null && directive.Name is not null)
             .ToDictionary(directive => directive.Alias!.Name.Identifier.ValueText, directive => SimpleName(directive.Name!), StringComparer.Ordinal);
 
@@ -225,7 +229,7 @@ internal static partial class SuppressionLedger
         var lowered = new List<(string Scope, string Key, string Value, string Reason)>();
         var scope = "";
         var comments = new List<string>();
-        var sectionComments = "";
+        var sectionComments = new List<string>();
 
         var lines = content.ReplaceLineEndings("\n").Split('\n');
 
@@ -236,7 +240,7 @@ internal static partial class SuppressionLedger
             if (line.Length == 0)
             {
                 comments.Clear();
-                sectionComments = "";
+                sectionComments.Clear();
                 continue;
             }
 
@@ -256,7 +260,7 @@ internal static partial class SuppressionLedger
             if (section.Success)
             {
                 scope = section.Groups["name"].Value;
-                sectionComments = string.Join(' ', comments);
+                sectionComments = [.. comments];
                 comments.Clear();
                 continue;
             }
@@ -275,7 +279,9 @@ internal static partial class SuppressionLedger
 
             if (LowersDiagnostic(key, value))
             {
-                var reason = comments.Count > 0 ? string.Join(' ', comments) : sectionComments;
+                var reason = string.Join(' ', (comments.Count > 0 ? comments : sectionComments)
+                    .Where(comment => !comment.TrimStart('#', ';').TrimStart().StartsWith("Winner:", StringComparison.OrdinalIgnoreCase)
+                        || key.Split('.').Any(part => comment.Split(' ', ';', ',', ':', '.').Contains(part, StringComparer.OrdinalIgnoreCase))));
                 lowered.Add((scope, key, value, reason));
             }
 
@@ -346,8 +352,9 @@ internal static partial class SuppressionLedger
 
         foreach (var import in document.Descendants("Import").Where(element => element.Attribute("Condition") is not null))
         {
-            var reason = import.PreviousNode is XComment comment ? " | " + string.Join(' ', comment.Value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)) : "";
-            entries.Add(Entry("build-switch", path, (string?)import.Attribute("Condition") ?? "", "Import", (string?)import.Attribute("Project") ?? "") + reason);
+            var reason = import.PreviousNode is XComment comment ? " | " + NormalizeWhitespace(comment.Value) : "";
+            entries.Add(Entry("build-switch", path, NormalizeWhitespace((string?)import.Attribute("Condition") ?? ""),
+                "Import", (string?)import.Attribute("Project") ?? "") + reason);
         }
 
         foreach (var comment in document.DescendantNodes().OfType<XComment>())
@@ -362,9 +369,12 @@ internal static partial class SuppressionLedger
             .AncestorsAndSelf()
             .Reverse()
             .Select(element => (string?)element.Attribute("Condition"))
-            .OfType<string>());
+            .OfType<string>()
+            .Select(NormalizeWhitespace));
         ReadProperty(path, property.Name.LocalName, property.Value, scope, entries);
     }
+
+    private static string NormalizeWhitespace(string text) => string.Join(' ', text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 
     private static void ReadProperty(string path, string name, string value, string scope, List<string> entries)
     {
@@ -411,7 +421,15 @@ internal static partial class SuppressionLedger
 
     private static void ReadFileProperties(string path, string content, List<string> entries)
     {
-        foreach (Match match in FileProperty().Matches(content))
+        var directives = content
+            .Split('\n')
+            .Select(line => line.TrimEnd('\r'))
+            .TakeWhile(line => line.Length == 0 || line.StartsWith("#:", StringComparison.Ordinal)
+                || line.StartsWith("#!", StringComparison.Ordinal) || line.TrimStart().StartsWith("//", StringComparison.Ordinal))
+            .Select(line => FileProperty().Match(line))
+            .Where(match => match.Success);
+
+        foreach (var match in directives)
         {
             ReadProperty(path, match.Groups["name"].Value, match.Groups["value"].Value, "file-based header", entries);
         }
@@ -470,11 +488,14 @@ internal static partial class SuppressionLedger
     {
         using var document = JsonDocument.Parse(content);
         var root = document.RootElement;
+        RefuseUnknownSlopwatchProperties(path, root, "root", ["rules", "minSeverity", "exclude"]);
 
         if (root.TryGetProperty("rules", out var rules))
         {
             foreach (var rule in rules.EnumerateObject())
             {
+                RefuseUnknownSlopwatchProperties(path, rule.Value, rule.Name, ["enabled", "severity"]);
+
                 if (rule.Value.TryGetProperty("enabled", out var enabled) && enabled.ValueKind == JsonValueKind.False)
                 {
                     entries.Add(Entry("slopwatch", path, rule.Name, "enabled", "false"));
@@ -501,10 +522,21 @@ internal static partial class SuppressionLedger
         }
     }
 
+    private static void RefuseUnknownSlopwatchProperties(string path, JsonElement element, string scope, string[] known)
+    {
+        foreach (var property in element.EnumerateObject())
+        {
+            if (!known.Contains(property.Name, StringComparer.Ordinal))
+            {
+                throw new InvalidOperationException($"{path}: unknown {scope} property '{property.Name}' is not an inventoried suppression channel.");
+            }
+        }
+    }
+
     [GeneratedRegex(@"^\[(?<name>(?:[^#;]|\\#|\\;)+)\]\s*(?:[#;].*)?$", RegexOptions.CultureInvariant, RegexTimeoutMilliseconds)]
     private static partial Regex ConfigSection();
 
-    [GeneratedRegex(@"^[#;]\s*SECTION\s+\d+:", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, RegexTimeoutMilliseconds)]
+    [GeneratedRegex(@"^[#;]\s*(?:(?i:SECTION)\s+\d+:.*|[A-Z][A-Z0-9 /_\-]*:?)$", RegexOptions.CultureInvariant, RegexTimeoutMilliseconds)]
     private static partial Regex ConfigBanner();
 
     [GeneratedRegex(@"^(?<key>[\w.\-]+)\s*[=:]\s*(?<value>.*?)\s*(?:[#;].*)?$", RegexOptions.CultureInvariant, RegexTimeoutMilliseconds)]

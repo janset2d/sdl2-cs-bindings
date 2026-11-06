@@ -41,6 +41,8 @@ internal static class SuppressionLedgerData
     public const string ExpectedDuplicateRender = """
         Suppression ledger: every diagnostic escape is counted.
         Every conditional import and explicit Slopwatch severity assignment is inventoried.
+        Scans tracked C#, project XML, analyzer configs, Slopwatch files and workflows.
+        Does not scan rsp files, Dockerfiles or analyzer-config items.
 
         build-switch: 0
         editorconfig: 0
@@ -83,7 +85,7 @@ internal static class SuppressionLedgerData
     [
         ("z.cs", "using Ignore = System.Diagnostics.CodeAnalysis.SuppressMessageAttribute;\n[Ignore(\"Design\", \"CA1001:Rule\")] class Z {}\n" +
             "#if NEVER_DEFINED\n#pragma warning disable CA1002\n#endif\n" +
-            "class Data { string Value = \"#pragma warning disable CA1003 -p:RunAnalyzers=false\"; }"),
+            "class Data { string Value = \"\"\"\n#:property RunAnalyzers=false\n#pragma warning disable CA1003\n\"\"\"; }"),
     ];
 
     public static IReadOnlyList<string> ExpectedSourceEntries => ["pragma z.cs [] CA1002", "suppress-message z.cs [] CA1001"];
