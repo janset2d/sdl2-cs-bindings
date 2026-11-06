@@ -50,12 +50,9 @@ public sealed class ResolveVersionsFromManifestTask(
     private static HashSet<string> BuildScope(IReadOnlyList<string> rawScope)
     {
         var scope = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var entry in rawScope)
+        foreach (var entry in rawScope.Where(entry => !string.IsNullOrWhiteSpace(entry)))
         {
-            if (!string.IsNullOrWhiteSpace(entry))
-            {
-                scope.Add(entry.Trim());
-            }
+            scope.Add(entry.Trim());
         }
 
         return scope;

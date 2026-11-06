@@ -387,7 +387,7 @@ public sealed class PackageSmokeTests
             .Range(0, SDL_mixer.Mix_GetNumMusicDecoders())
             .Select(SDL_mixer.Mix_GetMusicDecoder)
             .Where(decoder => !string.IsNullOrWhiteSpace(decoder))
-            .ToList()!;
+            .ToList();
     }
 
     private static bool ContainsDecoder(IEnumerable<string> decoders, string expectedFragment)
@@ -438,15 +438,7 @@ public sealed class PackageSmokeTests
         }
 
         var nextChar = value[prefix.Length];
-        foreach (var candidate in allowedNextChars)
-        {
-            if (nextChar == candidate)
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return allowedNextChars.Contains(nextChar);
     }
 
     private static bool IsWindowsPlatform()

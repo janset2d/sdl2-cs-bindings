@@ -187,7 +187,7 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
         {
             StartInfo = new ProcessStartInfo
             {
-                FileName = "cmd.exe",
+                FileName = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "cmd.exe"),
                 Arguments = commandLine.ToString(),
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,

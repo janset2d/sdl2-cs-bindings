@@ -29,7 +29,7 @@ public sealed class MsvcTargetArchTests
     public async Task FromRid_Should_Throw_For_Unsupported_Rid(string rid)
     {
         var thrown = Assert.Throws<PlatformNotSupportedException>(() => MsvcTargetArchExtensions.FromRid(rid));
-        await Assert.That(thrown!.Message).Contains("no vcvarsall mapping for RID");
+        await Assert.That(thrown.Message).Contains("no vcvarsall mapping for RID");
         await Assert.That(thrown.Message).Contains(rid);
     }
 
@@ -69,6 +69,6 @@ public sealed class MsvcTargetArchTests
     {
         var thrown = Assert.Throws<PlatformNotSupportedException>(
             () => MsvcTargetArch.X64.ToVcvarsArg(hostArch));
-        await Assert.That(thrown!.Message).Contains("unsupported host architecture");
+        await Assert.That(thrown.Message).Contains("unsupported host architecture");
     }
 }

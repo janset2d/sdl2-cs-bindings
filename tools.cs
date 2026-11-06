@@ -571,11 +571,11 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
             AnsiConsole.MarkupLine("[red]Could not resolve BASE_IMAGE from build/manifest.json runtimes[linux-x64].container_image.[/]");
             return 1;
         }
-        AnsiConsole.MarkupLine($"[blue]BASE_IMAGE:[/] [cyan]{Markup.Escape(baseImage!)}[/]");
+        AnsiConsole.MarkupLine($"[blue]BASE_IMAGE:[/] [cyan]{Markup.Escape(baseImage)}[/]");
 
         // [3] docker pull ${BASE_IMAGE} to refresh mutable tag.
         AnsiConsole.MarkupLine("[blue]Pulling base image...[/]");
-        var pullExit = await StreamRunAsync("docker", ["pull", baseImage!], cancellationToken);
+        var pullExit = await StreamRunAsync("docker", ["pull", baseImage], cancellationToken);
         if (pullExit != 0)
         {
             AnsiConsole.MarkupLine($"[red]docker pull failed with exit code {pullExit}.[/]");
@@ -583,7 +583,7 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
         }
 
         // [4] docker inspect to capture resolved digest for audit trail.
-        var inspect = await CaptureRunAsync("docker", ["inspect", "--format={{index .RepoDigests 0}}", baseImage!], cancellationToken);
+        var inspect = await CaptureRunAsync("docker", ["inspect", "--format={{index .RepoDigests 0}}", baseImage], cancellationToken);
         var containerDigest = inspect.StdOut.Trim();
         if (string.IsNullOrWhiteSpace(containerDigest))
         {
@@ -619,7 +619,7 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
             AnsiConsole.MarkupLine("[red]Could not resolve SDL2 vcpkg_version from build/manifest.json library_manifests[name=SDL2].[/]");
             return 1;
         }
-        AnsiConsole.MarkupLine($"[blue]SDL2 vcpkg version:[/] [cyan]{Markup.Escape(sdl2Version!)}[/]");
+        AnsiConsole.MarkupLine($"[blue]SDL2 vcpkg version:[/] [cyan]{Markup.Escape(sdl2Version)}[/]");
 
         // [4d] Compute a deterministic cache key for the binary cache BuildKit
         // mount the Dockerfile's Layer E declares. Key composition mirrors

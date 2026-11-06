@@ -815,3 +815,13 @@ dotnet_diagnostic.CS1591.severity = none
 
 # VSTHRD111: Add .ConfigureAwait(bool) to your await expression
 dotnet_diagnostic.VSTHRD111.severity = none
+
+# Duplicate detection mutates the version map; filtering would hide that mutation in a predicate.
+# Winner: explicit stateful validation; S3267 remains enabled for every other file.
+[build/_build/Data/Versions/PackageFamilyVersionSet.cs]
+dotnet_diagnostic.S3267.severity = none
+
+# Repository discovery runs before Cake exists and uses the Git installation selected by the host PATH.
+# Winner: pre-Cake repository discovery; S4036 remains enabled for every other file.
+[build/_build/Program.cs]
+dotnet_diagnostic.S4036.severity = none

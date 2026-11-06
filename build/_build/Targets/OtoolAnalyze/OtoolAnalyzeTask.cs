@@ -90,7 +90,7 @@ public sealed class OtoolAnalyzeTask(OtoolReporter reporter) : AsyncFrostingTask
         try
         {
             var settings = new OtoolSettings(file);
-            var rawDeps = await Task.Run(() => context.OtoolDependencies(settings));
+            var rawDeps = await Task.Run(() => context.OtoolDependencies(settings), context.CancellationToken);
             var classified = rawDeps
                 .Select(kv => LibraryClassifier.Classify(kv.Key, kv.Value))
                 .ToList();

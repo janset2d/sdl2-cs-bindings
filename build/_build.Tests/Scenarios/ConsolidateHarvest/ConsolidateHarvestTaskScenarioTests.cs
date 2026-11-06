@@ -31,7 +31,7 @@ public sealed class ConsolidateHarvestTaskScenarioTests
 
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.Exception!.Message).Contains("harvest output root", StringComparison.Ordinal);
-        await Assert.That(result.Exception!.Message).Contains("is missing", StringComparison.Ordinal);
+        await Assert.That(result.Exception.Message).Contains("is missing", StringComparison.Ordinal);
     }
 
     [Test]
@@ -74,7 +74,7 @@ public sealed class ConsolidateHarvestTaskScenarioTests
 
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.Exception!.Message).Contains("ConsolidateHarvest failed for 1", StringComparison.Ordinal);
-        await Assert.That(result.Exception!.Message).Contains("unreadable or invalid", StringComparison.Ordinal);
+        await Assert.That(result.Exception.Message).Contains("unreadable or invalid", StringComparison.Ordinal);
         await Assert.That(result.Log.HasMessage(LogLevel.Error, "Failed to consolidate harvest for library")).IsTrue();
     }
 
@@ -123,9 +123,9 @@ public sealed class ConsolidateHarvestTaskScenarioTests
         var manifest = await world.CakeContext.ToJsonAsync<HarvestManifest>(world.RepoRoot.CombineWithFilePath(manifestRelative));
         await Assert.That(manifest.Consolidation).IsNotNull();
         await Assert.That(manifest.Consolidation!.LicensesConsolidated).IsTrue();
-        await Assert.That(manifest.Consolidation!.DivergentLicenses.Count).IsEqualTo(1);
-        await Assert.That(manifest.Consolidation!.DivergentLicenses[0].Package).IsEqualTo("zlib");
-        await Assert.That(manifest.Consolidation!.DivergentLicenses[0].FileName).IsEqualTo("copyright");
+        await Assert.That(manifest.Consolidation.DivergentLicenses.Count).IsEqualTo(1);
+        await Assert.That(manifest.Consolidation.DivergentLicenses[0].Package).IsEqualTo("zlib");
+        await Assert.That(manifest.Consolidation.DivergentLicenses[0].FileName).IsEqualTo("copyright");
 
         // Per-RID variants written under the package dir.
         await Assert.That(world.FileExists($"artifacts/harvest_output/{LibraryName}/licenses/_consolidated/zlib/copyright.{RidWindows}")).IsTrue();

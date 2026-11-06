@@ -26,7 +26,7 @@ public sealed class LddDependentsTask : AsyncFrostingTask<BuildContext>
         }
 
         var settings = new LddSettings(file);
-        var deps = await Task.Run(() => context.LddDependencies(settings)).ConfigureAwait(false);
+        var deps = await Task.Run(() => context.LddDependencies(settings), context.CancellationToken).ConfigureAwait(false);
 
         foreach (var pair in deps)
         {
