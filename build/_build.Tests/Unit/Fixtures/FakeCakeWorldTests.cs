@@ -131,7 +131,7 @@ public sealed class FakeCakeWorldTests
         var world = FakeCakeWorld.Create();
 
         await Assert.That(world.Environment.Platform.Family)
-            .IsEqualTo(Cake.Core.PlatformFamily.Windows);
+            .IsEqualTo(PlatformFamily.Windows);
         await Assert.That(world.FileSystem).IsNotNull();
         await Assert.That(world.Log).IsNotNull();
         await Assert.That(world.CakeContext).IsNotNull();
@@ -143,7 +143,7 @@ public sealed class FakeCakeWorldTests
         var world = FakeCakeWorld.Create(FakeRepoPlatform.Unix);
 
         await Assert.That(world.Environment.Platform.Family)
-            .IsEqualTo(Cake.Core.PlatformFamily.Linux);
+            .IsEqualTo(PlatformFamily.Linux);
     }
 
     [Test]

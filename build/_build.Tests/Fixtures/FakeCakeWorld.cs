@@ -36,7 +36,7 @@ public sealed class FakeCakeWorld
     private readonly List<string> _explicitVersion = [];
     private string? _explicitVersions;
     private string? _versionsFile;
-    private Build.Data.Versions.PackageFamilyVersionSet _familyVersions = Build.Data.Versions.PackageFamilyVersionSet.Empty;
+    private Data.Versions.PackageFamilyVersionSet _familyVersions = Data.Versions.PackageFamilyVersionSet.Empty;
     private readonly List<string> _dlls = [];
     private readonly List<string> _libraries = [];
     private CancellationToken _cancellationToken = CancellationToken.None;
@@ -53,7 +53,7 @@ public sealed class FakeCakeWorld
     public string Rid => _rid;
 
     /// <summary>Family versions configured via <see cref="WithFamilyVersions"/>; defaults to empty.</summary>
-    public Build.Data.Versions.PackageFamilyVersionSet FamilyVersions => _familyVersions;
+    public Data.Versions.PackageFamilyVersionSet FamilyVersions => _familyVersions;
 
     public IReadOnlyList<ProcessInvocation> ProcessInvocations => _processInvocations;
 
@@ -376,11 +376,11 @@ public sealed class FakeCakeWorld
     }
 
     /// <summary>
-    /// Sets the resolved <see cref="Build.Data.Versions.PackageFamilyVersionSet"/> stamped into
-    /// <c>BuildContext.Options.Package.FamilyVersions</c>. <see cref="Build.Targets.Package.PackageTask"/>
+    /// Sets the resolved <see cref="Data.Versions.PackageFamilyVersionSet"/> stamped into
+    /// <c>BuildContext.Options.Package.FamilyVersions</c>. <see cref="Targets.Package.PackageTask"/>
     /// reads its scope from that set, so scenarios that exercise Pack must seed it explicitly.
     /// </summary>
-    public FakeCakeWorld WithFamilyVersions(Build.Data.Versions.PackageFamilyVersionSet familyVersions)
+    public FakeCakeWorld WithFamilyVersions(Data.Versions.PackageFamilyVersionSet familyVersions)
     {
         _familyVersions = familyVersions ?? throw new ArgumentNullException(nameof(familyVersions));
         return this;

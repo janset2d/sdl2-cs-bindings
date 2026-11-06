@@ -13,7 +13,7 @@ namespace Build.Tests.Unit.Data.Harvest;
 /// Mock-based unit coverage for <see cref="HarvestStatusRepository"/> — argument validation,
 /// cancellation propagation, and path-service interaction. File I/O round-trip behavior lives
 /// in <see cref="HarvestStatusRepositoryRoundTripTests"/>; this class verifies the contract
-/// that doesn't require real <see cref="Cake.Core.IO.IFileSystem"/> roundtrips.
+/// that doesn't require real <see cref="IFileSystem"/> roundtrips.
 /// </summary>
 public sealed class HarvestStatusRepositoryUnitTests
 {
