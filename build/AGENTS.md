@@ -17,6 +17,6 @@ them; read those before a structural change.
 - [`tools.cs`](../tools.cs) stays standalone: it reads [`manifest.json`](manifest.json) itself and references nothing in
   [`_build/`](_build/).
 - Tests use Cake `FakeFileSystem` and fixtures under [`Fixtures/Data/`](_build.Tests/Fixtures/Data/); use the real filesystem
-  only where the system under test bypasses Cake abstractions, or in [`Integration/`](_build.Tests/Integration/) tests. Names follow `<Method>_Should_<Verb>_<When>`.
+  only where the system under test bypasses Cake abstractions, or in [`Integration/`](_build.Tests/Integration/) tests. Names follow `<Method>_Should_<Verb>[_<When>]`.
 - Before reporting completion run
   `dotnet test --project build/_build.Tests/Build.Tests.csproj -c Release`.
