@@ -55,16 +55,16 @@ empty catches, arbitrary test delays and central-package-management bypasses.
 
 ```pwsh
 dotnet tool restore
-dotnet tool run slopwatch analyze --fail-on warning --exclude "artifacts/**,external/**,vcpkg_installed/**,spikes/binding-generators/references/**,**/bin/**,**/obj/**"
+dotnet tool run slopwatch analyze --fail-on warning --exclude "artifacts/**,external/**,vcpkg_installed/**,spikes/binding-generators/references/**,.nuget/**,**/bin/**,**/obj/**"
 ```
 
 The exclusions mirror [.slopwatch/slopwatch.json](../../.slopwatch/slopwatch.json).
-They cover generated payloads, upstream submodules, installed natives, reference clones
-and build output. Fix new findings rather than hiding them in the baseline.
+They cover generated payloads, upstream submodules, installed natives, reference clones,
+the CI package cache and build output. Fix new findings rather than hiding them in the baseline.
 After deleting or moving code, rebuild the baseline to remove stale paths, using the same exclusions:
 
 ```pwsh
-dotnet tool run slopwatch init -f --exclude "artifacts/**,external/**,vcpkg_installed/**,spikes/binding-generators/references/**,**/bin/**,**/obj/**"
+dotnet tool run slopwatch init -f --exclude "artifacts/**,external/**,vcpkg_installed/**,spikes/binding-generators/references/**,.nuget/**,**/bin/**,**/obj/**"
 ```
 
 Review the baseline diff: it must not conceal a new finding.
