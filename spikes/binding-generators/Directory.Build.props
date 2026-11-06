@@ -1,6 +1,5 @@
 <Project>
   <PropertyGroup>
-    <!-- Pinned: 'latest' moves with the SDK. -->
     <LangVersion>14.0</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
