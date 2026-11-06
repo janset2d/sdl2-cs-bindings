@@ -1,6 +1,7 @@
 # Smoke Tests
 
 Smoke checks prove artifacts work, not merely that they compile.
+New harnesses use a kebab-case `<subject>-smoke/` folder.
 
 | Harness | Boundary | Orchestration |
 |---|---|---|
