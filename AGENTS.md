@@ -42,7 +42,7 @@ modern, most .NET-friendly SDL binding library; design questions are settled wit
 ## Git and Reserved Actions
 
 - Work on a work branch. There, commit and push freely, open a pull request once the local check
-  passes, and file GitHub issues for findings. Branch, squash and message conventions:
+  passes, and file GitHub issues for product, test and documentation findings. Branch, squash and message conventions:
   [`workflow.md`](docs/engineering/workflow.md).
 - Reserved for Deniz: merging into `master`; release dispatch and publish; tags; history rewrites
   (except restacking unmerged stack branches, see [workflow](docs/engineering/workflow.md));

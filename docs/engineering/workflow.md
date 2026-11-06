@@ -22,8 +22,8 @@ or generated-with footer, regardless of harness defaults.
 
 ## Agent autonomy
 
-On work branches agents commit and push freely, open PRs once the local check passes, and file issues
-for findings. Reserved for Deniz: merging into `master`, release dispatch and publish, tags,
+On work branches agents commit and push freely, open PRs once the local check passes, and file GitHub issues
+for product, test and documentation findings. Reserved for Deniz: merging into `master`, release dispatch and publish, tags,
 history rewrites, deleting branches or tags, repository creation and settings, anything touching
 the Linux builder base or glibc floor. The unmerged-stack restack exception above is the only
 history-rewrite exception. At a reserved action, stop that action and report the evidence.
