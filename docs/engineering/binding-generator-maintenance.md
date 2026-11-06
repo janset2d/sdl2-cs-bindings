@@ -50,8 +50,8 @@ Read the actual schema and field inventory from family-config.json and its
 manifest schema. Config facts are shared by the orchestrator and postprocess, not mirrored in code.
 
 - **Platforms:** `platform_views` selects name, OS attribution and defines. `all_platform_macros`
-  owns the complete cross-contamination undefine set. Read its length from config (the corrected
-  inventory contains 27 entries), rather than assuming one macro per platform.
+  owns the complete cross-contamination undefine set. Read its length from config rather than
+  assuming one macro per platform.
 - **Identity:** namespace, raw/public class, import library, include subdirectory, project directory,
   family RSP and owner mode. Owner families may also consume Core handles.
 - **Headers:** dependency-ordered entries and platform-sensitive header selection. Required surface
