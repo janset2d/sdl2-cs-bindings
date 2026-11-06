@@ -13,13 +13,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  runners:
-    uses: ./.github/workflows/runners.yml
-
   workflow-lint:
     name: Workflow lint
-    needs: [runners]
-    runs-on: ${{ needs.runners.outputs.utility }}
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: docker://rhysd/actionlint@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 # 1.7.12
@@ -28,11 +24,10 @@ jobs:
 
   cake-host:
     name: Cake host (${{ matrix.runner }})
-    needs: [runners]
     strategy:
       fail-fast: false
       matrix:
-        runner: ${{ fromJson(needs.runners.outputs.legs) }}
+        runner: [ubuntu-24.04, windows-2025-vs2026, macos-26]
     uses: ./.github/workflows/build-cake-host.yml
     with:
       runner: ${{ matrix.runner }}
@@ -40,11 +35,10 @@ jobs:
 
   spike:
     name: Spike (${{ matrix.runner }})
-    needs: [runners]
     strategy:
       fail-fast: false
       matrix:
-        runner: ${{ fromJson(needs.runners.outputs.legs) }}
+        runner: [ubuntu-24.04, windows-2025-vs2026, macos-26]
     uses: ./.github/workflows/spike-checks.yml
     with:
       runner: ${{ matrix.runner }}

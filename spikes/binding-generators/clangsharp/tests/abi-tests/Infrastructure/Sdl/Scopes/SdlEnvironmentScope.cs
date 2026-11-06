@@ -41,8 +41,7 @@ internal sealed class SdlEnvironmentScope : IDisposable
             return;
         }
 
-        // .NET's Unix environment copy is not the native environment SDL reads.
-        // Use unsetenv for absence: setenv with an empty string leaves a value present.
+        // Unix needs native writes; unsetenv restores absence rather than an empty value.
         using PinnedUtf8 pinnedName = SdlUtf8.Pin(name);
         using PinnedUtf8? pinnedValue = value is null ? null : SdlUtf8.Pin(value);
         int result = pinnedValue is null

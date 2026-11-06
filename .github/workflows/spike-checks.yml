@@ -1,5 +1,5 @@
 # Reusable managed spike checks for each caller-selected runner.
-# Temporary: shrinks as generator code moves into build/_build and is deleted together with spikes/binding-generators/.
+# Temporary: removed together with spikes/binding-generators/.
 # Builds project paths individually because ABI tests require a local native package.
 
 name: Spike Checks (reusable)
