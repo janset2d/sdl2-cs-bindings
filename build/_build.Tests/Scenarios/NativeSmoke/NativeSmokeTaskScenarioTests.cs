@@ -21,8 +21,8 @@ namespace Build.Tests.Scenarios.NativeSmoke;
 /// </summary>
 public sealed class NativeSmokeTaskScenarioTests
 {
-    private const string _libraryName = "sdl2-core";
-    private const string _rid = "win-x64";
+    private const string LibraryName = "sdl2-core";
+    private const string Rid = "win-x64";
 
     [Test]
     public async Task RunAsync_Should_Throw_When_Rid_Is_Missing()
@@ -41,7 +41,7 @@ public sealed class NativeSmokeTaskScenarioTests
     {
         // CMakePresets present, CMakeLists absent → NativeSmokePreconditionsValidator fails.
         var world = FakeCakeWorld.CreateWindows()
-            .WithRid(_rid)
+            .WithRid(Rid)
             .WithTextFile("tests/smoke-tests/native-smoke/CMakePresets.json", "{}");
         var manifest = CreateSingleLibraryManifest();
 
@@ -55,7 +55,7 @@ public sealed class NativeSmokeTaskScenarioTests
     public async Task RunAsync_Should_Throw_When_CMakePresets_Is_Missing()
     {
         var world = FakeCakeWorld.CreateWindows()
-            .WithRid(_rid)
+            .WithRid(Rid)
             .WithTextFile("tests/smoke-tests/native-smoke/CMakeLists.txt", "# placeholder");
         var manifest = CreateSingleLibraryManifest();
 
@@ -83,7 +83,7 @@ public sealed class NativeSmokeTaskScenarioTests
     {
         // Project files seeded; harvest output directory NOT seeded → payload check fails.
         var world = FakeCakeWorld.CreateWindows()
-            .WithRid(_rid)
+            .WithRid(Rid)
             .WithTextFile("tests/smoke-tests/native-smoke/CMakeLists.txt", "# placeholder")
             .WithTextFile("tests/smoke-tests/native-smoke/CMakePresets.json", "{}");
         var manifest = CreateSingleLibraryManifest();
@@ -134,7 +134,7 @@ public sealed class NativeSmokeTaskScenarioTests
         // (triplet missing for non-Windows RIDs), but ConfigureAsync defends in depth.
         var world = SeedReadyWorld()
             .WithRid("win-mips64")
-            .WithTextFile($"artifacts/harvest_output/{_libraryName}/runtimes/win-mips64/native/SDL2.dll", "fake");
+            .WithTextFile($"artifacts/harvest_output/{LibraryName}/runtimes/win-mips64/native/SDL2.dll", "fake");
         var manifest = CreateSingleLibraryManifest();
 
         var msvcStub = Substitute.For<IMsvcDevEnvironment>();
@@ -151,10 +151,10 @@ public sealed class NativeSmokeTaskScenarioTests
 
     private static FakeCakeWorld SeedReadyWorld() =>
         FakeCakeWorld.CreateWindows()
-            .WithRid(_rid)
+            .WithRid(Rid)
             .WithTextFile("tests/smoke-tests/native-smoke/CMakeLists.txt", "# placeholder")
             .WithTextFile("tests/smoke-tests/native-smoke/CMakePresets.json", "{}")
-            .WithTextFile($"artifacts/harvest_output/{_libraryName}/runtimes/{_rid}/native/SDL2.dll", "fake");
+            .WithTextFile($"artifacts/harvest_output/{LibraryName}/runtimes/{Rid}/native/SDL2.dll", "fake");
 
     private static TargetTestHost<NativeSmokeTask> CreateHost(
         FakeCakeWorld world,
@@ -184,7 +184,7 @@ public sealed class NativeSmokeTaskScenarioTests
     private static ManifestConfig CreateSingleLibraryManifest()
     {
         var baseline = ManifestFixture.CreateTestManifestConfig();
-        var library = ManifestFixture.CreateTestCoreLibrary() with { Name = _libraryName };
+        var library = ManifestFixture.CreateTestCoreLibrary() with { Name = LibraryName };
         return baseline with
         {
             LibraryManifests = [library],

@@ -18,7 +18,7 @@ namespace Build.Tests.Scenarios.PreFlightCheck;
 /// </summary>
 public sealed class PreFlightCheckTaskScenarioTests
 {
-    private const string _versionsFilePath = "artifacts/resolve-versions/versions.json";
+    private const string VersionsFilePath = "artifacts/resolve-versions/versions.json";
 
     [Test]
     public async Task RunAsync_Should_Pass_When_All_Validators_Are_Green()
@@ -28,8 +28,8 @@ public sealed class PreFlightCheckTaskScenarioTests
             .WithManifestObject(manifest)
             .WithTextFile("vcpkg.json", FixtureLoader.Load("Vcpkg/vcpkg-valid.json"))
             .WithTextFile("vcpkg-overlay-triplets/x64-windows-hybrid.cmake", "# overlay")
-            .WithVersionsFile(_versionsFilePath)
-            .WithTextFile(_versionsFilePath, FixtureLoader.Load("Versions/versions-valid.json"));
+            .WithVersionsFile(VersionsFilePath)
+            .WithTextFile(VersionsFilePath, FixtureLoader.Load("Versions/versions-valid.json"));
 
         SeedCsprojsForManifestFixture(world);
 
@@ -60,8 +60,8 @@ public sealed class PreFlightCheckTaskScenarioTests
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithTextFile("vcpkg.json", FixtureLoader.Load("Vcpkg/vcpkg-valid.json"))
             .WithTextFile("vcpkg-overlay-triplets/x64-windows-hybrid.cmake", "# overlay")
-            .WithVersionsFile(_versionsFilePath)
-            .WithTextFile(_versionsFilePath, FixtureLoader.Load("Versions/versions-empty.json"));
+            .WithVersionsFile(VersionsFilePath)
+            .WithTextFile(VersionsFilePath, FixtureLoader.Load("Versions/versions-empty.json"));
 
         var result = await CreateHost(world).RunAsync();
 
@@ -77,8 +77,8 @@ public sealed class PreFlightCheckTaskScenarioTests
         var world = FakeCakeWorld.CreateWindows()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithTextFile("vcpkg.json", FixtureLoader.Load("Vcpkg/vcpkg-valid.json"))
-            .WithVersionsFile(_versionsFilePath)
-            .WithTextFile(_versionsFilePath, FixtureLoader.Load("Versions/versions-valid.json"));
+            .WithVersionsFile(VersionsFilePath)
+            .WithTextFile(VersionsFilePath, FixtureLoader.Load("Versions/versions-valid.json"));
 
         SeedCsprojsForManifestFixture(world);
 
@@ -99,8 +99,8 @@ public sealed class PreFlightCheckTaskScenarioTests
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithTextFile("vcpkg.json", FixtureLoader.Load("Vcpkg/vcpkg-version-mismatch.json"))
             .WithTextFile("vcpkg-overlay-triplets/x64-windows-hybrid.cmake", "# overlay")
-            .WithVersionsFile(_versionsFilePath)
-            .WithTextFile(_versionsFilePath, FixtureLoader.Load("Versions/versions-valid.json"));
+            .WithVersionsFile(VersionsFilePath)
+            .WithTextFile(VersionsFilePath, FixtureLoader.Load("Versions/versions-valid.json"));
 
         SeedCsprojsForManifestFixture(world);
 
@@ -135,8 +135,8 @@ public sealed class PreFlightCheckTaskScenarioTests
             .WithManifestObject(manifestWithBadName)
             .WithTextFile("vcpkg.json", FixtureLoader.Load("Vcpkg/vcpkg-valid.json"))
             .WithTextFile("vcpkg-overlay-triplets/x64-windows-hybrid.cmake", "# overlay")
-            .WithVersionsFile(_versionsFilePath)
-            .WithTextFile(_versionsFilePath, FixtureLoader.Load("Versions/versions-single-family.json"));
+            .WithVersionsFile(VersionsFilePath)
+            .WithTextFile(VersionsFilePath, FixtureLoader.Load("Versions/versions-single-family.json"));
 
         var result = await CreateHost(world).RunAsync();
 
@@ -154,8 +154,8 @@ public sealed class PreFlightCheckTaskScenarioTests
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithTextFile("vcpkg.json", FixtureLoader.Load("Vcpkg/vcpkg-valid.json"))
             .WithTextFile("vcpkg-overlay-triplets/x64-windows-hybrid.cmake", "# overlay")
-            .WithVersionsFile(_versionsFilePath)
-            .WithTextFile(_versionsFilePath, FixtureLoader.Load("Versions/versions-upstream-mismatch.json"));
+            .WithVersionsFile(VersionsFilePath)
+            .WithTextFile(VersionsFilePath, FixtureLoader.Load("Versions/versions-upstream-mismatch.json"));
 
         SeedCsprojsForManifestFixture(world);
 
@@ -176,8 +176,8 @@ public sealed class PreFlightCheckTaskScenarioTests
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithTextFile("vcpkg.json", FixtureLoader.Load("Vcpkg/vcpkg-valid.json"))
             .WithTextFile("vcpkg-overlay-triplets/x64-windows-hybrid.cmake", "# overlay")
-            .WithVersionsFile(_versionsFilePath)
-            .WithTextFile(_versionsFilePath, FixtureLoader.Load("Versions/versions-cross-family-missing.json"));
+            .WithVersionsFile(VersionsFilePath)
+            .WithTextFile(VersionsFilePath, FixtureLoader.Load("Versions/versions-cross-family-missing.json"));
 
         SeedCsprojsForManifestFixture(world);
 
@@ -198,8 +198,8 @@ public sealed class PreFlightCheckTaskScenarioTests
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithTextFile("vcpkg.json", FixtureLoader.Load("Vcpkg/vcpkg-valid.json"))
             .WithTextFile("vcpkg-overlay-triplets/x64-windows-hybrid.cmake", "# overlay")
-            .WithVersionsFile(_versionsFilePath)
-            .WithTextFile(_versionsFilePath, FixtureLoader.Load("Versions/versions-valid.json"));
+            .WithVersionsFile(VersionsFilePath)
+            .WithTextFile(VersionsFilePath, FixtureLoader.Load("Versions/versions-valid.json"));
 
         // Intentionally skip SeedCsprojsForManifestFixture — csproj files absent.
 

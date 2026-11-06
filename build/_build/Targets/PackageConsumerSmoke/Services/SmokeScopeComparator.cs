@@ -21,7 +21,7 @@ namespace Build.Targets.PackageConsumerSmoke.Services;
 /// </summary>
 public static class SmokeScopeComparator
 {
-    private const string _jansetPackagePrefix = "Janset.SDL";
+    private const string JansetPackagePrefix = "Janset.SDL";
 
     public static ScopeComparison Compare(string csprojXml, IEnumerable<string> expectedManagedPackageIds)
     {
@@ -58,7 +58,7 @@ public static class SmokeScopeComparator
         {
             var identity = element.Attribute("Include")?.Value;
 
-            if (!string.IsNullOrWhiteSpace(identity) && identity.StartsWith(_jansetPackagePrefix, StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrWhiteSpace(identity) && identity.StartsWith(JansetPackagePrefix, StringComparison.OrdinalIgnoreCase))
             {
                 identities.Add(identity);
             }

@@ -9,8 +9,8 @@ namespace Build.Tests.Unit.Validation.Packaging;
 
 public sealed class HarvestReadinessValidatorTests
 {
-    private const string _libraryRef = "sdl2";
-    private const string _familyName = "sdl2-core";
+    private const string LibraryRef = "sdl2";
+    private const string FamilyName = "sdl2-core";
 
     [Test]
     public async Task EnsureReadyAsync_Should_Return_When_All_Gates_Pass()
@@ -40,10 +40,10 @@ public sealed class HarvestReadinessValidatorTests
     public async Task EnsureReadyAsync_Should_Throw_When_Consolidation_Receipt_Missing()
     {
         var world = FakeCakeWorld.CreateWindows()
-            .WithTextFile($"artifacts/harvest_output/{_libraryRef}/harvest-manifest.json",
+            .WithTextFile($"artifacts/harvest_output/{LibraryRef}/harvest-manifest.json",
                 FixtureLoader.Load("Harvest/harvest-manifest-no-receipt.json"))
-            .WithTextFile($"artifacts/harvest_output/{_libraryRef}/runtimes/win-x64/native/SDL2.dll", "<bytes>")
-            .WithTextFile($"artifacts/harvest_output/{_libraryRef}/licenses/_consolidated/sdl2/LICENSE.txt", "MIT");
+            .WithTextFile($"artifacts/harvest_output/{LibraryRef}/runtimes/win-x64/native/SDL2.dll", "<bytes>")
+            .WithTextFile($"artifacts/harvest_output/{LibraryRef}/licenses/_consolidated/sdl2/LICENSE.txt", "MIT");
 
         var validator = NewValidator(world);
 
@@ -58,7 +58,7 @@ public sealed class HarvestReadinessValidatorTests
     public async Task EnsureReadyAsync_Should_Throw_When_Zero_Successful_Rids()
     {
         var world = FakeCakeWorld.CreateWindows()
-            .WithTextFile($"artifacts/harvest_output/{_libraryRef}/harvest-manifest.json",
+            .WithTextFile($"artifacts/harvest_output/{LibraryRef}/harvest-manifest.json",
                 FixtureLoader.Load("Harvest/harvest-manifest-zero-rids.json"));
 
         var validator = NewValidator(world);
@@ -73,10 +73,10 @@ public sealed class HarvestReadinessValidatorTests
     public async Task EnsureReadyAsync_Should_Throw_When_Zero_License_Entries()
     {
         var world = FakeCakeWorld.CreateWindows()
-            .WithTextFile($"artifacts/harvest_output/{_libraryRef}/harvest-manifest.json",
+            .WithTextFile($"artifacts/harvest_output/{LibraryRef}/harvest-manifest.json",
                 FixtureLoader.Load("Harvest/harvest-manifest-zero-licenses.json"))
-            .WithTextFile($"artifacts/harvest_output/{_libraryRef}/runtimes/win-x64/native/SDL2.dll", "<bytes>")
-            .WithTextFile($"artifacts/harvest_output/{_libraryRef}/licenses/_consolidated/sdl2/LICENSE.txt", "MIT");
+            .WithTextFile($"artifacts/harvest_output/{LibraryRef}/runtimes/win-x64/native/SDL2.dll", "<bytes>")
+            .WithTextFile($"artifacts/harvest_output/{LibraryRef}/licenses/_consolidated/sdl2/LICENSE.txt", "MIT");
 
         var validator = NewValidator(world);
 
@@ -91,9 +91,9 @@ public sealed class HarvestReadinessValidatorTests
     public async Task EnsureReadyAsync_Should_Throw_When_Payload_Runtime_Subtree_Missing()
     {
         var world = FakeCakeWorld.CreateWindows()
-            .WithTextFile($"artifacts/harvest_output/{_libraryRef}/harvest-manifest.json",
+            .WithTextFile($"artifacts/harvest_output/{LibraryRef}/harvest-manifest.json",
                 FixtureLoader.Load("Harvest/harvest-manifest-ready.json"))
-            .WithTextFile($"artifacts/harvest_output/{_libraryRef}/licenses/_consolidated/sdl2/LICENSE.txt", "MIT");
+            .WithTextFile($"artifacts/harvest_output/{LibraryRef}/licenses/_consolidated/sdl2/LICENSE.txt", "MIT");
         // No runtimes/ directory or contents.
 
         var validator = NewValidator(world);
@@ -109,9 +109,9 @@ public sealed class HarvestReadinessValidatorTests
     public async Task EnsureReadyAsync_Should_Throw_When_Payload_Consolidated_Licenses_Subtree_Missing()
     {
         var world = FakeCakeWorld.CreateWindows()
-            .WithTextFile($"artifacts/harvest_output/{_libraryRef}/harvest-manifest.json",
+            .WithTextFile($"artifacts/harvest_output/{LibraryRef}/harvest-manifest.json",
                 FixtureLoader.Load("Harvest/harvest-manifest-ready.json"))
-            .WithTextFile($"artifacts/harvest_output/{_libraryRef}/runtimes/win-x64/native/SDL2.dll", "<bytes>");
+            .WithTextFile($"artifacts/harvest_output/{LibraryRef}/runtimes/win-x64/native/SDL2.dll", "<bytes>");
         // No licenses/_consolidated/ directory or contents.
 
         var validator = NewValidator(world);
@@ -126,12 +126,12 @@ public sealed class HarvestReadinessValidatorTests
     private static FakeCakeWorld ReadyWorld()
     {
         return FakeCakeWorld.CreateWindows()
-            .WithTextFile($"artifacts/harvest_output/{_libraryRef}/harvest-manifest.json",
+            .WithTextFile($"artifacts/harvest_output/{LibraryRef}/harvest-manifest.json",
                 FixtureLoader.Load("Harvest/harvest-manifest-ready.json"))
-            .WithTextFile($"artifacts/harvest_output/{_libraryRef}/runtimes/win-x64/native/SDL2.dll", "<bytes>")
-            .WithTextFile($"artifacts/harvest_output/{_libraryRef}/runtimes/linux-x64/native/libSDL2.so", "<bytes>")
-            .WithTextFile($"artifacts/harvest_output/{_libraryRef}/runtimes/osx-x64/native/libSDL2.dylib", "<bytes>")
-            .WithTextFile($"artifacts/harvest_output/{_libraryRef}/licenses/_consolidated/sdl2/LICENSE.txt", "MIT");
+            .WithTextFile($"artifacts/harvest_output/{LibraryRef}/runtimes/win-x64/native/SDL2.dll", "<bytes>")
+            .WithTextFile($"artifacts/harvest_output/{LibraryRef}/runtimes/linux-x64/native/libSDL2.so", "<bytes>")
+            .WithTextFile($"artifacts/harvest_output/{LibraryRef}/runtimes/osx-x64/native/libSDL2.dylib", "<bytes>")
+            .WithTextFile($"artifacts/harvest_output/{LibraryRef}/licenses/_consolidated/sdl2/LICENSE.txt", "MIT");
     }
 
     private static HarvestReadinessValidator NewValidator(FakeCakeWorld world)
@@ -143,9 +143,9 @@ public sealed class HarvestReadinessValidatorTests
 
     private static PackageFamilyConfig TestFamily() => new()
     {
-        Name = _familyName,
+        Name = FamilyName,
         TagPrefix = "sdl2-core/",
-        LibraryRef = _libraryRef,
+        LibraryRef = LibraryRef,
         ManagedProject = "src/SDL2.Core/SDL2.Core.csproj",
         NativeProject = "src/native/SDL2.Core.Native/SDL2.Core.Native.csproj",
         DependsOn = ImmutableList<string>.Empty,

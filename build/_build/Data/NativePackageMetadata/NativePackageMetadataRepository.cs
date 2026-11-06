@@ -18,7 +18,7 @@ public interface INativePackageMetadataRepository
 
 public sealed class NativePackageMetadataRepository(ICakeContext cakeContext) : INativePackageMetadataRepository
 {
-    private const string _metadataEntryName = "janset-native-metadata.json";
+    private const string MetadataEntryName = "janset-native-metadata.json";
 
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
 
@@ -52,12 +52,12 @@ public sealed class NativePackageMetadataRepository(ICakeContext cakeContext) : 
             await using var stream = file.OpenRead();
             using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
             var metadataEntry = archive.Entries.SingleOrDefault(entry =>
-                string.Equals(entry.FullName, _metadataEntryName, StringComparison.OrdinalIgnoreCase));
+                string.Equals(entry.FullName, MetadataEntryName, StringComparison.OrdinalIgnoreCase));
 
             if (metadataEntry is null)
             {
                 return Failure(
-                    $"Native package '{nativePackagePath.GetFilename().FullPath}' does not contain root metadata file '{_metadataEntryName}'.");
+                    $"Native package '{nativePackagePath.GetFilename().FullPath}' does not contain root metadata file '{MetadataEntryName}'.");
             }
 
             ct.ThrowIfCancellationRequested();

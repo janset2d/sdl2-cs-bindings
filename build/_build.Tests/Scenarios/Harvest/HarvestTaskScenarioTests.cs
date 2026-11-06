@@ -26,8 +26,8 @@ namespace Build.Tests.Scenarios.Harvest;
 /// </summary>
 public sealed class HarvestTaskScenarioTests
 {
-    private const string _libraryName = "sdl2-core";
-    private const string _rid = "win-x64";
+    private const string LibraryName = "sdl2-core";
+    private const string Rid = "win-x64";
 
     [Test]
     public async Task RunAsync_Should_Throw_When_Rid_Is_Missing()
@@ -46,7 +46,7 @@ public sealed class HarvestTaskScenarioTests
     {
         // No vcpkg_installed dir seeded -> HarvestPreconditionsValidator fails before any
         // walker/planner/deployer work. Verifies cohort precondition gates the task body.
-        var world = FakeCakeWorld.CreateWindows().WithRid(_rid);
+        var world = FakeCakeWorld.CreateWindows().WithRid(Rid);
         var manifest = ManifestFixture.CreateTestManifestConfig();
 
         var result = await CreateHost(world, manifest).RunAsync();
@@ -76,7 +76,7 @@ public sealed class HarvestTaskScenarioTests
 
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.Exception!.Message).Contains("Binary closure failed", StringComparison.Ordinal);
-        var statusFileRelative = $"artifacts/harvest_output/{_libraryName}/rid-status/{_rid}.json";
+        var statusFileRelative = $"artifacts/harvest_output/{LibraryName}/rid-status/{Rid}.json";
         await Assert.That(world.FileExists(statusFileRelative)).IsTrue();
         var status = await world.CakeContext.ToJsonAsync<RidHarvestStatus>(world.RepoRoot.CombineWithFilePath(statusFileRelative));
         await Assert.That(status.Success).IsFalse();
@@ -103,7 +103,7 @@ public sealed class HarvestTaskScenarioTests
 
         await Assert.That(result.Success).IsTrue();
         await Assert.That(result.Exception).IsNull();
-        var statusFileRelative = $"artifacts/harvest_output/{_libraryName}/rid-status/{_rid}.json";
+        var statusFileRelative = $"artifacts/harvest_output/{LibraryName}/rid-status/{Rid}.json";
         await Assert.That(world.FileExists(statusFileRelative)).IsTrue();
         var status = await world.CakeContext.ToJsonAsync<RidHarvestStatus>(world.RepoRoot.CombineWithFilePath(statusFileRelative));
         await Assert.That(status.Success).IsTrue();
@@ -130,7 +130,7 @@ public sealed class HarvestTaskScenarioTests
 
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.Exception).IsTypeOf<OperationCanceledException>();
-        var statusFileRelative = $"artifacts/harvest_output/{_libraryName}/rid-status/{_rid}.json";
+        var statusFileRelative = $"artifacts/harvest_output/{LibraryName}/rid-status/{Rid}.json";
         await Assert.That(world.FileExists(statusFileRelative)).IsFalse();
         await Assert.That(world.AnsiConsole.Output).Contains("Canceled Harvest", StringComparison.Ordinal);
     }
@@ -153,7 +153,7 @@ public sealed class HarvestTaskScenarioTests
 
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.Exception!.Message).Contains("Harvest failed", StringComparison.Ordinal);
-        var statusFileRelative = $"artifacts/harvest_output/{_libraryName}/rid-status/{_rid}.json";
+        var statusFileRelative = $"artifacts/harvest_output/{LibraryName}/rid-status/{Rid}.json";
         await Assert.That(world.FileExists(statusFileRelative)).IsTrue();
         var status = await world.CakeContext.ToJsonAsync<RidHarvestStatus>(world.RepoRoot.CombineWithFilePath(statusFileRelative));
         await Assert.That(status.Success).IsFalse();
@@ -183,7 +183,7 @@ public sealed class HarvestTaskScenarioTests
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.Exception!.Message).Contains("Hybrid-static leak validation failed", StringComparison.Ordinal);
         await Assert.That(result.Log.HasMessage(LogLevel.Error, "zlib1.dll leaks")).IsTrue();
-        var statusFileRelative = $"artifacts/harvest_output/{_libraryName}/rid-status/{_rid}.json";
+        var statusFileRelative = $"artifacts/harvest_output/{LibraryName}/rid-status/{Rid}.json";
         await Assert.That(world.FileExists(statusFileRelative)).IsTrue();
         var status = await world.CakeContext.ToJsonAsync<RidHarvestStatus>(world.RepoRoot.CombineWithFilePath(statusFileRelative));
         await Assert.That(status.Success).IsFalse();
@@ -210,7 +210,7 @@ public sealed class HarvestTaskScenarioTests
 
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.Exception!.Message).Contains("Harvest failed", StringComparison.Ordinal);
-        var statusFileRelative = $"artifacts/harvest_output/{_libraryName}/rid-status/{_rid}.json";
+        var statusFileRelative = $"artifacts/harvest_output/{LibraryName}/rid-status/{Rid}.json";
         await Assert.That(world.FileExists(statusFileRelative)).IsTrue();
         var status = await world.CakeContext.ToJsonAsync<RidHarvestStatus>(world.RepoRoot.CombineWithFilePath(statusFileRelative));
         await Assert.That(status.Success).IsFalse();
@@ -220,7 +220,7 @@ public sealed class HarvestTaskScenarioTests
 
     private static FakeCakeWorld SeedVcpkgInstall() =>
         FakeCakeWorld.CreateWindows()
-            .WithRid(_rid)
+            .WithRid(Rid)
             .WithTextFile("vcpkg_installed/x64-windows-hybrid/.placeholder", string.Empty);
 
     private static IBinaryClosureWalker StubWalkerSuccess()
@@ -266,7 +266,7 @@ public sealed class HarvestTaskScenarioTests
 
     private static DeploymentStatistics CreateNonEmptyStatistics() =>
         new(
-            _libraryName,
+            LibraryName,
             [new FileDeploymentInfo(new FilePath("SDL2.dll"), "sdl2", DeploymentLocation.FileSystem)],
             [],
             [],
@@ -276,7 +276,7 @@ public sealed class HarvestTaskScenarioTests
 
     private static DeploymentStatistics CreateEmptyStatistics() =>
         new(
-            _libraryName,
+            LibraryName,
             [],
             [],
             [],
@@ -339,7 +339,7 @@ public sealed class HarvestTaskScenarioTests
     private static ManifestConfig CreateSingleLibraryManifest()
     {
         var baseline = ManifestFixture.CreateTestManifestConfig();
-        var library = ManifestFixture.CreateTestCoreLibrary() with { Name = _libraryName };
+        var library = ManifestFixture.CreateTestCoreLibrary() with { Name = LibraryName };
         return baseline with
         {
             LibraryManifests = [library],

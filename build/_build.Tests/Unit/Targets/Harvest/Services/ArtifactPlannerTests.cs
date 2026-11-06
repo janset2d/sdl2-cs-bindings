@@ -9,7 +9,7 @@ namespace Build.Tests.Unit.Targets.Harvest.Services;
 
 public sealed class ArtifactPlannerTests
 {
-    private const string _corePackageName = "sdl2";
+    private const string CorePackageName = "sdl2";
 
     private readonly RuntimeProfile _windowsProfile;
     private readonly RuntimeProfile _linuxProfile;
@@ -33,7 +33,7 @@ public sealed class ArtifactPlannerTests
 
         SeedPackageInfo(world, "sdl2-image", "x64-windows-hybrid", [], []);
 
-        var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"), _corePackageName);
+        var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"), CorePackageName);
 
         await Assert.That(result.IsSuccess).IsTrue();
 
@@ -56,7 +56,7 @@ public sealed class ArtifactPlannerTests
 
         SeedPackageInfo(world, "sdl2-image", "x64-linux-hybrid", [], []);
 
-        var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"), _corePackageName);
+        var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"), CorePackageName);
 
         await Assert.That(result.IsSuccess).IsTrue();
 
@@ -83,7 +83,7 @@ public sealed class ArtifactPlannerTests
         SeedPackageInfo(world, "sdl2-image", "x64-windows-hybrid", [], []);
         SeedPackageInfo(world, "zlib", "x64-windows-hybrid", [], []);
 
-        var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"), _corePackageName);
+        var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"), CorePackageName);
 
         await Assert.That(result.IsSuccess).IsTrue();
 
@@ -112,7 +112,7 @@ public sealed class ArtifactPlannerTests
 
         SeedPackageInfo(world, "sdl2", "x64-windows-hybrid", [], []);
 
-        var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"), _corePackageName);
+        var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"), CorePackageName);
 
         await Assert.That(result.IsSuccess).IsTrue();
 
@@ -142,7 +142,7 @@ public sealed class ArtifactPlannerTests
         SeedPackageInfo(world, "sdl2-image", "x64-windows-hybrid", [], []);
         SeedPackageInfo(world, "zlib", "x64-windows-hybrid", [], []);
 
-        var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"), _corePackageName);
+        var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"), CorePackageName);
 
         await Assert.That(result.IsSuccess).IsTrue();
 
@@ -173,7 +173,7 @@ public sealed class ArtifactPlannerTests
             ["bin/SDL2_image.dll", "share/sdl2-image/copyright"],
             []);
 
-        var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"), _corePackageName);
+        var result = await planner.CreatePlanAsync(manifest, closure, new DirectoryPath("/output"), CorePackageName);
 
         await Assert.That(result.IsSuccess).IsTrue();
 

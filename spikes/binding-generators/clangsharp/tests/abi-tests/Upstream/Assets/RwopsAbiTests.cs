@@ -11,8 +11,8 @@ namespace Janset.SDL2.AbiTests.Upstream.Assets;
 
 public sealed class RwopsAbiTests
 {
-    private const string _helloWorld = "Hello World!";
-    private const string _alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    private const string HelloWorld = "Hello World!";
+    private const string Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     [Test]
     [Category(AbiCategories.UpstreamPort)]
@@ -65,10 +65,10 @@ public sealed class RwopsAbiTests
         await Assert.That(result.WrittenObjects).IsEqualTo(1UL);
         await Assert.That(result.SeekSetPosition).IsEqualTo(6L);
         await Assert.That(result.SeekResetPosition).IsEqualTo(0L);
-        await Assert.That(result.ReadObjects).IsEqualTo((ulong)_helloWorld.Length);
-        await Assert.That(result.Text).IsEqualTo(_helloWorld);
-        await Assert.That(result.SeekCurrentPosition).IsEqualTo(_helloWorld.Length - 4L);
-        await Assert.That(result.SeekEndPosition).IsEqualTo(_helloWorld.Length - 1L);
+        await Assert.That(result.ReadObjects).IsEqualTo((ulong)HelloWorld.Length);
+        await Assert.That(result.Text).IsEqualTo(HelloWorld);
+        await Assert.That(result.SeekCurrentPosition).IsEqualTo(HelloWorld.Length - 4L);
+        await Assert.That(result.SeekEndPosition).IsEqualTo(HelloWorld.Length - 1L);
         await Assert.That(result.InvalidWhencePosition).IsEqualTo(-1L);
         await SdlAssert.Success(result.CloseResult, "SDL_RWclose");
     }
@@ -101,10 +101,10 @@ public sealed class RwopsAbiTests
         await Assert.That(result.WrittenObjects).IsEqualTo(0UL);
         await Assert.That(result.SeekSetPosition).IsEqualTo(6L);
         await Assert.That(result.SeekResetPosition).IsEqualTo(0L);
-        await Assert.That(result.ReadObjects).IsEqualTo((ulong)_helloWorld.Length);
-        await Assert.That(result.Text).IsEqualTo(_helloWorld);
-        await Assert.That(result.SeekCurrentPosition).IsEqualTo(_helloWorld.Length - 4L);
-        await Assert.That(result.SeekEndPosition).IsEqualTo(_helloWorld.Length - 1L);
+        await Assert.That(result.ReadObjects).IsEqualTo((ulong)HelloWorld.Length);
+        await Assert.That(result.Text).IsEqualTo(HelloWorld);
+        await Assert.That(result.SeekCurrentPosition).IsEqualTo(HelloWorld.Length - 4L);
+        await Assert.That(result.SeekEndPosition).IsEqualTo(HelloWorld.Length - 1L);
         await Assert.That(result.InvalidWhencePosition).IsEqualTo(-1L);
         await SdlAssert.Success(result.CloseResult, "SDL_RWclose");
     }
@@ -118,17 +118,17 @@ public sealed class RwopsAbiTests
     public async Task SDLRwFromFile_Should_Match_Upstream_Read_Mode_Read_Only_And_Seek_Semantics()
     {
         using AbiTempDirectory temp = new();
-        string path = await temp.WriteAsciiFileAsync("rwops-read.bin", _helloWorld);
+        string path = await temp.WriteAsciiFileAsync("rwops-read.bin", HelloWorld);
 
         GenericRwopsResult result = TestFileGenericSemantics(path, "rb");
 
         await Assert.That(result.WrittenObjects).IsEqualTo(0UL);
         await Assert.That(result.SeekSetPosition).IsEqualTo(6L);
         await Assert.That(result.SeekResetPosition).IsEqualTo(0L);
-        await Assert.That(result.ReadObjects).IsEqualTo((ulong)_helloWorld.Length);
-        await Assert.That(result.Text).IsEqualTo(_helloWorld);
-        await Assert.That(result.SeekCurrentPosition).IsEqualTo(_helloWorld.Length - 4L);
-        await Assert.That(result.SeekEndPosition).IsEqualTo(_helloWorld.Length - 1L);
+        await Assert.That(result.ReadObjects).IsEqualTo((ulong)HelloWorld.Length);
+        await Assert.That(result.Text).IsEqualTo(HelloWorld);
+        await Assert.That(result.SeekCurrentPosition).IsEqualTo(HelloWorld.Length - 4L);
+        await Assert.That(result.SeekEndPosition).IsEqualTo(HelloWorld.Length - 1L);
         await Assert.That(result.InvalidWhencePosition).IsEqualTo(-1L);
         await SdlAssert.Success(result.CloseResult, "SDL_RWclose");
     }
@@ -168,10 +168,10 @@ public sealed class RwopsAbiTests
         await Assert.That(result.WrittenObjects).IsEqualTo(1UL);
         await Assert.That(result.SeekSetPosition).IsEqualTo(6L);
         await Assert.That(result.SeekResetPosition).IsEqualTo(0L);
-        await Assert.That(result.ReadObjects).IsEqualTo((ulong)_helloWorld.Length);
-        await Assert.That(result.Text).IsEqualTo(_helloWorld);
-        await Assert.That(result.SeekCurrentPosition).IsEqualTo(_helloWorld.Length - 4L);
-        await Assert.That(result.SeekEndPosition).IsEqualTo(_helloWorld.Length - 1L);
+        await Assert.That(result.ReadObjects).IsEqualTo((ulong)HelloWorld.Length);
+        await Assert.That(result.Text).IsEqualTo(HelloWorld);
+        await Assert.That(result.SeekCurrentPosition).IsEqualTo(HelloWorld.Length - 4L);
+        await Assert.That(result.SeekEndPosition).IsEqualTo(HelloWorld.Length - 1L);
         await Assert.That(result.InvalidWhencePosition).IsEqualTo(-1L);
         await SdlAssert.Success(result.CloseResult, "SDL_RWclose");
     }
@@ -185,12 +185,12 @@ public sealed class RwopsAbiTests
     {
         SizeTellEofResult result = TestConstMemorySizeTellAndEof();
 
-        await Assert.That(result.Size).IsEqualTo(_helloWorld.Length);
+        await Assert.That(result.Size).IsEqualTo(HelloWorld.Length);
         await Assert.That(result.InitialTell).IsEqualTo(0L);
-        await Assert.That(result.ReadObjects).IsEqualTo((ulong)_helloWorld.Length);
-        await Assert.That(result.Text).IsEqualTo(_helloWorld);
+        await Assert.That(result.ReadObjects).IsEqualTo((ulong)HelloWorld.Length);
+        await Assert.That(result.Text).IsEqualTo(HelloWorld);
         await Assert.That(result.EofReadObjects).IsEqualTo(0UL);
-        await Assert.That(result.FinalTell).IsEqualTo(_helloWorld.Length);
+        await Assert.That(result.FinalTell).IsEqualTo(HelloWorld.Length);
         await SdlAssert.Success(result.CloseResult, "SDL_RWclose");
     }
 
@@ -225,7 +225,7 @@ public sealed class RwopsAbiTests
     {
         using AbiTempDirectory temp = new();
 
-        string path = await temp.WriteAsciiFileAsync("rwops-alphabet.bin", _alphabet);
+        string path = await temp.WriteAsciiFileAsync("rwops-alphabet.bin", Alphabet);
 
         CompareResult[] results = CompareMemoryAndFileReads(path);
 
@@ -235,8 +235,8 @@ public sealed class RwopsAbiTests
         {
             await Assert.That(result.MemoryReadObjects).IsEqualTo(result.FileReadObjects);
             await Assert.That(result.MemoryEndPosition).IsEqualTo(result.FileEndPosition);
-            await Assert.That(result.MemoryText).IsEqualTo(_alphabet);
-            await Assert.That(result.FileText).IsEqualTo(_alphabet);
+            await Assert.That(result.MemoryText).IsEqualTo(Alphabet);
+            await Assert.That(result.FileText).IsEqualTo(Alphabet);
             await SdlAssert.Success(result.MemoryCloseResult, "SDL_RWclose(mem)");
             await SdlAssert.Success(result.FileCloseResult, "SDL_RWclose(file)");
         }
@@ -408,7 +408,7 @@ public sealed class RwopsAbiTests
 
     private static unsafe NegativeParameterResult TestNegativeParameters(string path)
     {
-        byte[] alphabet = Encoding.ASCII.GetBytes(_alphabet);
+        byte[] alphabet = Encoding.ASCII.GetBytes(Alphabet);
 
         using PinnedUtf8 pinnedPath = SdlUtf8.Pin(path);
         using PinnedUtf8 appendMode = SdlUtf8.Pin("ab+");
@@ -431,7 +431,7 @@ public sealed class RwopsAbiTests
 
     private static unsafe GenericRwopsResult TestMemoryGenericSemantics()
     {
-        byte[] buffer = new byte[_helloWorld.Length];
+        byte[] buffer = new byte[HelloWorld.Length];
 
         fixed (byte* bufferPointer = buffer)
         {
@@ -448,7 +448,7 @@ public sealed class RwopsAbiTests
 
     private static unsafe GenericRwopsResult TestConstMemoryGenericSemantics()
     {
-        byte[] payload = Encoding.ASCII.GetBytes(_helloWorld);
+        byte[] payload = Encoding.ASCII.GetBytes(HelloWorld);
 
         fixed (byte* payloadPointer = payload)
         {
@@ -480,7 +480,7 @@ public sealed class RwopsAbiTests
 
     private static unsafe GenericRwopsResult TestGenericRwopsSemantics(SDL_RWops rwops, bool shouldWrite)
     {
-        byte[] payload = Encoding.ASCII.GetBytes(_helloWorld);
+        byte[] payload = Encoding.ASCII.GetBytes(HelloWorld);
         byte[] readBuffer = new byte[payload.Length];
 
         fixed (byte* payloadPointer = payload)
@@ -533,7 +533,7 @@ public sealed class RwopsAbiTests
 
     private static unsafe SizeTellEofResult TestConstMemorySizeTellAndEof()
     {
-        byte[] payload = Encoding.ASCII.GetBytes(_helloWorld);
+        byte[] payload = Encoding.ASCII.GetBytes(HelloWorld);
         byte[] readBuffer = new byte[payload.Length];
         byte eofByte = 0;
 
@@ -626,7 +626,7 @@ public sealed class RwopsAbiTests
 
     private static unsafe CompareResult[] CompareMemoryAndFileReads(string path)
     {
-        byte[] alphabet = Encoding.ASCII.GetBytes(_alphabet);
+        byte[] alphabet = Encoding.ASCII.GetBytes(Alphabet);
         CompareResult[] results = new CompareResult[5];
 
         fixed (byte* alphabetPointer = alphabet)

@@ -612,7 +612,7 @@ public sealed class BuildBindingGeneratorImageSettings : CommandSettings
 
 public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindingGeneratorImageSettings>
 {
-    private const string _imageTag = "janset-binding-generator:focal-latest";
+    private const string ImageTag = "janset-binding-generator:focal-latest";
 
     protected override async Task<int> ExecuteAsync(CommandContext ctx, BuildBindingGeneratorImageSettings settings, CancellationToken cancellationToken)
     {
@@ -716,7 +716,7 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
         var buildArgs = new List<string>
         {
             "build",
-            "-t", _imageTag,
+            "-t", ImageTag,
             "--build-arg", $"BASE_IMAGE={baseImage}",
             "--build-arg", $"VCPKG_COMMIT={vcpkgCommit}",
             "--build-arg", $"VCPKG_CACHE_KEY={vcpkgCacheKey}",
@@ -738,7 +738,7 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
             return buildExit;
         }
 
-        AnsiConsole.MarkupLine($"[green]Image build complete:[/] [cyan]{_imageTag}[/]");
+        AnsiConsole.MarkupLine($"[green]Image build complete:[/] [cyan]{ImageTag}[/]");
         return 0;
     }
 

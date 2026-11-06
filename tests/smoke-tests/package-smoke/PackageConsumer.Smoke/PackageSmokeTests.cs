@@ -19,7 +19,7 @@ namespace PackageConsumer.Smoke;
 [NotInParallel]
 public sealed class PackageSmokeTests
 {
-    private const SDL_mixer.MIX_InitFlags _mixInitWavPack = (SDL_mixer.MIX_InitFlags)0x00000080;
+    private const SDL_mixer.MIX_InitFlags MixInitWavPack = (SDL_mixer.MIX_InitFlags)0x00000080;
 
     [Test]
     [Category("PackageSmoke")]
@@ -129,7 +129,7 @@ public sealed class PackageSmokeTests
                 SDL_mixer.MIX_InitFlags.MIX_INIT_OPUS |
                 SDL_mixer.MIX_InitFlags.MIX_INIT_MP3 |
                 SDL_mixer.MIX_InitFlags.MIX_INIT_MOD |
-                _mixInitWavPack);
+                MixInitWavPack);
 
             await Assert.That((mixerResult & (int)SDL_mixer.MIX_InitFlags.MIX_INIT_FLAC) != 0).IsTrue();
             await Assert.That((mixerResult & (int)SDL_mixer.MIX_InitFlags.MIX_INIT_MID) != 0).IsTrue();
@@ -137,7 +137,7 @@ public sealed class PackageSmokeTests
             await Assert.That((mixerResult & (int)SDL_mixer.MIX_InitFlags.MIX_INIT_OPUS) != 0).IsTrue();
             await Assert.That((mixerResult & (int)SDL_mixer.MIX_InitFlags.MIX_INIT_MP3) != 0).IsTrue();
             await Assert.That((mixerResult & (int)SDL_mixer.MIX_InitFlags.MIX_INIT_MOD) != 0).IsTrue();
-            await Assert.That((mixerResult & (int)_mixInitWavPack) != 0).IsTrue();
+            await Assert.That((mixerResult & (int)MixInitWavPack) != 0).IsTrue();
 
             var openAudioResult = SDL_mixer.Mix_OpenAudio(
                 SDL_mixer.MIX_DEFAULT_FREQUENCY,

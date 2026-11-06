@@ -48,9 +48,9 @@ public interface IDotNetRuntimeEnvironment
     Justification = "Official Microsoft dotnet-install endpoint used deliberately for CI/runtime bootstrap.")]
 public sealed partial class DotNetRuntimeEnvironment(ICakeLog log) : IDotNetRuntimeEnvironment
 {
-    private const string _winX86Rid = "win-x86";
-    private const string _dotNetRootX86 = "DOTNET_ROOT_X86";
-    private const string _dotNetRootX86Legacy = "DOTNET_ROOT(x86)";
+    private const string WinX86Rid = "win-x86";
+    private const string DotNetRootX86 = "DOTNET_ROOT_X86";
+    private const string DotNetRootX86Legacy = "DOTNET_ROOT(x86)";
     private static readonly Uri InstallScriptUri = new("https://dot.net/v1/dotnet-install.ps1", UriKind.Absolute);
 
     private static readonly IReadOnlyDictionary<string, string> Empty = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -64,7 +64,7 @@ public sealed partial class DotNetRuntimeEnvironment(ICakeLog log) : IDotNetRunt
         ArgumentException.ThrowIfNullOrWhiteSpace(rid);
         ArgumentNullException.ThrowIfNull(targetFrameworks);
 
-        if (!string.Equals(rid, _winX86Rid, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(rid, WinX86Rid, StringComparison.OrdinalIgnoreCase))
         {
             return Empty;
         }
@@ -156,13 +156,13 @@ public sealed partial class DotNetRuntimeEnvironment(ICakeLog log) : IDotNetRunt
             "DotNetRuntimeEnvironment: prepared x86 runtimes [{0}] under '{1}'. Child smoke apphosts will receive {2} + {3}.",
             string.Join(", ", runtimeChannels),
             x86Root,
-            _dotNetRootX86,
-            _dotNetRootX86Legacy);
+            DotNetRootX86,
+            DotNetRootX86Legacy);
 
         return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            [_dotNetRootX86] = x86Root,
-            [_dotNetRootX86Legacy] = x86Root,
+            [DotNetRootX86] = x86Root,
+            [DotNetRootX86Legacy] = x86Root,
         };
     }
 
