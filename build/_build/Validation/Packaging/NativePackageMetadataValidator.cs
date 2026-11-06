@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
-using Build.Data.NativePackageMetadata;
 using Build.Data.Manifest.Models;
+using Build.Data.NativePackageMetadata;
 using Build.Results;
 using Cake.Core.IO;
 
