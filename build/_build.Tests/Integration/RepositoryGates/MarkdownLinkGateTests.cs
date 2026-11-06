@@ -10,7 +10,8 @@ public sealed class MarkdownLinkGateTests
     public async Task TrackedMarkdown_Should_Resolve_Every_Relative_Link()
     {
         var baseline = GateBaseline.Load("broken-links.baseline");
-        var offenders = BrokenLinks().Where(link => !baseline.Entries.Contains(link.Entry))
+        var offenders = BrokenLinks()
+            .Where(link => !baseline.Entries.Contains(link.Entry))
             .Select(link => link.Diagnostic)
             .ToArray();
         await Assert.That(offenders).IsEmpty().Because("\n" + string.Join('\n', offenders));
@@ -20,7 +21,8 @@ public sealed class MarkdownLinkGateTests
     public async Task LinkBaseline_Should_List_Only_Links_That_Are_Still_Broken()
     {
         var broken = BrokenLinks().Select(link => link.Entry).ToHashSet(StringComparer.Ordinal);
-        var stale = GateBaseline.Load("broken-links.baseline").Entries.Except(broken, StringComparer.Ordinal)
+        var stale = GateBaseline.Load("broken-links.baseline").Entries
+            .Except(broken, StringComparer.Ordinal)
             .Order(StringComparer.Ordinal)
             .ToArray();
         await Assert.That(stale).IsEmpty().Because("Stale baseline entries:\n" + string.Join('\n', stale));

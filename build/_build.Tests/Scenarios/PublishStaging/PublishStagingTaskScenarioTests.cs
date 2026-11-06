@@ -133,7 +133,8 @@ public sealed class PublishStagingTaskScenarioTests
 
     private static TargetTestHost<PublishStagingTask> CreateHost(FakeCakeWorld world, INuGetFeedClient feedClient)
     {
-        feedClient.PushAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<FilePath>(), Arg.Any<CancellationToken>())
+        feedClient
+            .PushAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<FilePath>(), Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
 
         return new TargetTestHost<PublishStagingTask>(world)

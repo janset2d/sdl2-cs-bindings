@@ -183,7 +183,8 @@ public sealed class PackageConsumerSmokeTaskScenarioTests
     private static TargetTestHost<PackageConsumerSmokeTask> CreateHost(FakeCakeWorld world, IDotNetRuntimeEnvironment? runtimeEnvironment = null)
     {
         var metadataReader = Substitute.For<IProjectMetadataReader>();
-        metadataReader.Read(Arg.Any<FilePath>())
+        metadataReader
+            .Read(Arg.Any<FilePath>())
             .Returns(Result<EvaluatedProjectMetadata, ProjectMetadataError>.Success(
                 new EvaluatedProjectMetadata(["net10.0"], "Authors", "LICENSE", "icon.png")));
 
@@ -205,7 +206,8 @@ public sealed class PackageConsumerSmokeTaskScenarioTests
     private static IDotNetRuntimeEnvironment CreateDefaultRuntimeEnvironment()
     {
         var runtimeEnvironment = Substitute.For<IDotNetRuntimeEnvironment>();
-        runtimeEnvironment.ResolveAsync(Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
+        runtimeEnvironment
+            .ResolveAsync(Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
         return runtimeEnvironment;
     }

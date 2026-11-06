@@ -15,7 +15,8 @@ internal static class AnalyzerCompilationFixture
             [tree],
             [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-        var errors = compilation.GetDiagnostics(cancellationToken)
+        var errors = compilation
+            .GetDiagnostics(cancellationToken)
             .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
             .ToArray();
 

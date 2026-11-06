@@ -27,7 +27,8 @@ public sealed class HeaderSetFingerprintCalculatorTests
     [Test]
     public async Task ComputeAsync_Should_Change_Hash_When_Supplemental_Header_Content_Changes()
     {
-        var world = FakeCakeWorld.CreateLinux().WithTextFile("include/SDL2/A.h", "alpha")
+        var world = FakeCakeWorld.CreateLinux()
+            .WithTextFile("include/SDL2/A.h", "alpha")
             .WithTextFile("supplemental/Extra.h", "extra");
         var include = world.RepoRoot.Combine("include");
         var headers = new ResolvedHeaderSet(include, world.RepoRoot.Combine("supplemental"), include.Combine("SDL2"),
@@ -45,7 +46,8 @@ public sealed class HeaderSetFingerprintCalculatorTests
     [Test]
     public async Task ComputeAsync_Should_Change_Hash_When_Selected_Header_Content_Changes()
     {
-        var world = FakeCakeWorld.CreateLinux().WithTextFile("include/SDL2/A.h", "alpha")
+        var world = FakeCakeWorld.CreateLinux()
+            .WithTextFile("include/SDL2/A.h", "alpha")
             .WithTextFile("supplemental/Extra.h", "extra");
         var include = world.RepoRoot.Combine("include");
         var headers = new ResolvedHeaderSet(include, world.RepoRoot.Combine("supplemental"), include.Combine("SDL2"),

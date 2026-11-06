@@ -87,7 +87,8 @@ public sealed class PackageOutputValidatorTests
         var family = GetFamily("sdl2-image");
 
         var dependencyGroups = CreateDependencyGroups(
-            NuspecFrameworkGroups.Select(group => (group, CreateDependencyMap(
+            NuspecFrameworkGroups
+                .Select(group => (group, CreateDependencyMap(
                 family,
                 "1.2.3",
                 "1.2.3")))
@@ -131,7 +132,8 @@ public sealed class PackageOutputValidatorTests
         var family = GetFamily("sdl2-image");
 
         var dependencyGroups = CreateDependencyGroups(
-            NuspecFrameworkGroups.Select(group =>
+            NuspecFrameworkGroups
+                .Select(group =>
                 group == "net10.0"
                     ? (group, CreateDependencyMap(family, "1.2.3", "9.9.9"))
                     : (group, CreateDependencyMap(family, "1.2.3", "1.2.3")))
@@ -380,7 +382,8 @@ public sealed class PackageOutputValidatorTests
         var symbolsPackagePath = world.RepoRoot.CombineWithFilePath($"artifacts/packages/{managedPackageId}.{version}.snupkg");
 
         var dependencyGroups = managedDependencyGroupsXml ?? CreateDependencyGroups(
-            NuspecFrameworkGroups.Select(group => (group, CreateDependencyMap(
+            NuspecFrameworkGroups
+                .Select(group => (group, CreateDependencyMap(
                 family,
                 nativeDependencyVersion ?? version,
                 coreDependencyVersion ?? BuildCrossFamilyRangeExpression(family, version))))

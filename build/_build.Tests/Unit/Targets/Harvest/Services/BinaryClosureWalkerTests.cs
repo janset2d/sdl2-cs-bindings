@@ -39,7 +39,8 @@ public sealed class BinaryClosureWalkerTests
         SeedPackageInfo("sdl2-image", ["bin/SDL2_image.dll"], ["sdl2:x64-windows-hybrid"]);
         SeedPackageInfo("sdl2", ["bin/SDL2.dll"], []);
 
-        _mockScanner.ScanAsync(Arg.Any<FilePath>(), Arg.Any<CancellationToken>())
+        _mockScanner
+            .ScanAsync(Arg.Any<FilePath>(), Arg.Any<CancellationToken>())
             .Returns(new HashSet<FilePath>());
 
         var walker = new BinaryClosureWalker(_mockScanner, _profile, _mockCtx, _pathService);
@@ -58,7 +59,8 @@ public sealed class BinaryClosureWalkerTests
         SeedPackageInfo("sdl2", ["bin/SDL2.dll"], []);
         SeedPackageInfo("zlib", ["bin/zlib1.dll"], []);
 
-        _mockScanner.ScanAsync(Arg.Any<FilePath>(), Arg.Any<CancellationToken>())
+        _mockScanner
+            .ScanAsync(Arg.Any<FilePath>(), Arg.Any<CancellationToken>())
             .Returns(new HashSet<FilePath>());
 
         var walker = new BinaryClosureWalker(_mockScanner, _profile, _mockCtx, _pathService);
@@ -84,7 +86,8 @@ public sealed class BinaryClosureWalkerTests
             ["sdl2:x64-windows-hybrid", "vcpkg-cmake:x64-windows-hybrid", "vcpkg-cmake-config:x64-windows-hybrid"]);
         SeedPackageInfo("sdl2", ["bin/SDL2.dll"], []);
 
-        _mockScanner.ScanAsync(Arg.Any<FilePath>(), Arg.Any<CancellationToken>())
+        _mockScanner
+            .ScanAsync(Arg.Any<FilePath>(), Arg.Any<CancellationToken>())
             .Returns(new HashSet<FilePath>());
 
         var walker = new BinaryClosureWalker(_mockScanner, _profile, _mockCtx, _pathService);
@@ -108,7 +111,8 @@ public sealed class BinaryClosureWalkerTests
             new("C:/Windows/System32/user32.dll"),
         };
 
-        _mockScanner.ScanAsync(Arg.Any<FilePath>(), Arg.Any<CancellationToken>())
+        _mockScanner
+            .ScanAsync(Arg.Any<FilePath>(), Arg.Any<CancellationToken>())
             .Returns(scanResult);
 
         var walker = new BinaryClosureWalker(_mockScanner, _profile, _mockCtx, _pathService);
@@ -144,7 +148,8 @@ public sealed class BinaryClosureWalkerTests
         var runtimeDiscovered = new FilePath("C:/vcpkg_installed/x64-windows-hybrid/bin/extra_dep.dll");
         var scanResult = new HashSet<FilePath> { runtimeDiscovered };
 
-        _mockScanner.ScanAsync(Arg.Any<FilePath>(), Arg.Any<CancellationToken>())
+        _mockScanner
+            .ScanAsync(Arg.Any<FilePath>(), Arg.Any<CancellationToken>())
             .Returns(scanResult);
 
         var walker = new BinaryClosureWalker(_mockScanner, _profile, _mockCtx, _pathService);

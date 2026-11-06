@@ -18,13 +18,15 @@ public sealed partial class DocumentDateGateTests
     [Test]
     public async Task DateBaseline_Should_List_Only_Documents_Still_Missing_Date()
     {
-        var stale = GateBaseline.Load("missing-date.baseline").Entries.Except(MissingDates(), StringComparer.Ordinal)
+        var stale = GateBaseline.Load("missing-date.baseline").Entries
+            .Except(MissingDates(), StringComparer.Ordinal)
             .Order(StringComparer.Ordinal)
             .ToArray();
         await Assert.That(stale).IsEmpty().Because("Stale baseline entries:\n" + string.Join('\n', stale));
     }
 
-    private static string[] MissingDates() => RepositoryFiles.Tracked.Where(path => GateScopes.RequiresDate(path)
+    private static string[] MissingDates() => RepositoryFiles.Tracked
+        .Where(path => GateScopes.RequiresDate(path)
         && RepositoryFiles.ReadText(path)?.Split('\n').Take(10).Any(line => DateLine().IsMatch(line)) == false)
         .Order(StringComparer.Ordinal)
         .ToArray();
