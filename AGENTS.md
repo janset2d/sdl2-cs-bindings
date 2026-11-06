@@ -26,8 +26,8 @@ modern, most .NET-friendly SDL binding library; design questions are settled wit
   options, recommend one, and ask.
 - Read the canon and the code a change touches before writing. Take the shape the surrounding code
   already uses and prefer the smallest correct change.
-- When code and canon disagree, stop the affected work and follow Deviation in
-  [`workflow.md`](docs/engineering/workflow.md). Only Deniz reopens a decision.
+- When code and canon disagree, classify it under Deviation in
+  [workflow](docs/engineering/workflow.md#deviation); levels 2 and 3 stop the affected work.
 - Write engineered-enough code: explicit over clever; handle every edge case the change can meet,
   and add nothing the change does not need. Flag repetition; use no workaround that hides an error.
   Behaviour changes come with tests.
