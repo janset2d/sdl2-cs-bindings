@@ -1,3 +1,4 @@
+using System.Globalization;
 using Build.Data.Manifest.Models;
 using Build.Validation.Conventions;
 using NuGet.Versioning;
@@ -40,13 +41,13 @@ public static class ReadmeMappingTableBlock
                     $"Cannot build README mapping table because manifest library '{library.Name}' has invalid vcpkg_version '{library.VcpkgVersion}'.");
             }
 
-            var derivedFamilyVersion = $"{upstreamVersion.Major}.{upstreamVersion.Minor}.0";
+            var derivedFamilyVersion = string.Create(CultureInfo.InvariantCulture, $"{upstreamVersion.Major}.{upstreamVersion.Minor}.0");
             var managedPackageId = FamilyIdentifierConventions.ManagedPackageId(family.Name);
             var upstreamLabel = string.Equals(library.Name, "SDL2", StringComparison.OrdinalIgnoreCase)
                 ? $"SDL {library.VcpkgVersion}"
                 : $"{library.Name} {library.VcpkgVersion}";
 
-            rows.Add($"| {managedPackageId} | {derivedFamilyVersion} | {upstreamLabel} | {library.VcpkgPortVersion} |");
+            rows.Add(string.Create(CultureInfo.InvariantCulture, $"| {managedPackageId} | {derivedFamilyVersion} | {upstreamLabel} | {library.VcpkgPortVersion} |"));
         }
 
         rows.Add(EndMarker);

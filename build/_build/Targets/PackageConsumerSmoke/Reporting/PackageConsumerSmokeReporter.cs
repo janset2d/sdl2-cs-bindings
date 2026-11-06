@@ -1,3 +1,4 @@
+using System.Globalization;
 using Cake.Core.Diagnostics;
 using Spectre.Console;
 
@@ -45,7 +46,11 @@ public sealed class PackageConsumerSmokeReporter(IAnsiConsole console, ICakeLog 
 
     public void LogCompleted(int tfmsRun, int tfmsSkipped)
     {
-        _console.Write(new Rule($"[bold green]PackageConsumerSmoke complete[/] [grey]({tfmsRun} TFMs run, {tfmsSkipped} skipped)[/]") { Justification = Justify.Left });
+        _console.Write(new Rule(string.Create(CultureInfo.CurrentCulture,
+            $"[bold green]PackageConsumerSmoke complete[/] [grey]({tfmsRun} TFMs run, {tfmsSkipped} skipped)[/]"))
+        {
+            Justification = Justify.Left,
+        });
         _log.Information("PackageConsumerSmoke completed. TFMs run: {0}, skipped: {1}.", tfmsRun, tfmsSkipped);
     }
 }

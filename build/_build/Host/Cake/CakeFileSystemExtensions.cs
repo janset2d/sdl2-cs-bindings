@@ -18,7 +18,7 @@ public static class CakeFileSystemExtensions
         }
 
         var file = cakeContext.FileSystem.GetFile(filePath);
-        using var stream = file.OpenRead();
+        await using var stream = file.OpenRead();
         using var reader = new StreamReader(stream);
         return await reader.ReadToEndAsync();
     }

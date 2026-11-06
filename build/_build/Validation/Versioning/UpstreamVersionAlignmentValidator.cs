@@ -1,3 +1,4 @@
+using System.Globalization;
 using Build.Data.Manifest.Models;
 using Build.Data.Versions;
 using Build.Validation.Models;
@@ -118,8 +119,9 @@ public sealed class UpstreamVersionAlignmentValidator : IUpstreamVersionAlignmen
                 UpstreamVersion: library.VcpkgVersion,
                 Status: UpstreamVersionAlignmentCheckStatus.VersionMismatch,
                 ErrorMessage:
-                $"[G54] family '{family.Name}' version '{parsedFamilyVersion}' major ({parsedFamilyVersion.Major}) does not match upstream " +
-                $"'{library.VcpkgVersion}' major ({upstreamVersion.Major}).");
+                string.Create(CultureInfo.CurrentCulture,
+                    $"[G54] family '{family.Name}' version '{parsedFamilyVersion}' major ({parsedFamilyVersion.Major}) " +
+                    $"does not match upstream '{library.VcpkgVersion}' major ({upstreamVersion.Major})."));
         }
 
         if (parsedFamilyVersion.Minor != upstreamVersion.Minor)
@@ -131,8 +133,9 @@ public sealed class UpstreamVersionAlignmentValidator : IUpstreamVersionAlignmen
                 UpstreamVersion: library.VcpkgVersion,
                 Status: UpstreamVersionAlignmentCheckStatus.VersionMismatch,
                 ErrorMessage:
-                $"[G54] family '{family.Name}' version '{parsedFamilyVersion}' minor ({parsedFamilyVersion.Minor}) does not match upstream " +
-                $"'{library.VcpkgVersion}' minor ({upstreamVersion.Minor}).");
+                string.Create(CultureInfo.CurrentCulture,
+                    $"[G54] family '{family.Name}' version '{parsedFamilyVersion}' minor ({parsedFamilyVersion.Minor}) " +
+                    $"does not match upstream '{library.VcpkgVersion}' minor ({upstreamVersion.Minor})."));
         }
 
         return new UpstreamVersionAlignmentCheck(

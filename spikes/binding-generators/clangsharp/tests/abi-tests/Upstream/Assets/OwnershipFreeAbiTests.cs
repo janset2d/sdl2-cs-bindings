@@ -136,7 +136,7 @@ public sealed class OwnershipFreeAbiTests
 #else
     private static nuint NativeSize(int value) => (nuint)value;
 
-    private static ulong ToUInt64(nuint value) => checked((ulong)value);
+    private static ulong ToUInt64(nuint value) => checked(value);
 #endif
 
     private sealed record LoadFileResult(bool PointerIsNotNull, ulong Size, byte[] Bytes);

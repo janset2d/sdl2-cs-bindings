@@ -115,13 +115,13 @@ public static class ManifestFixture
         string primaryClassName,
         string platformCatalog,
         string ownedPrefix) => new()
-    {
-        Enabled = false,
-        ManagedNamespace = managedNamespace,
-        PrimaryClassName = primaryClassName,
-        PlatformCatalogId = platformCatalog,
-        OwnedPrefixes = [ownedPrefix],
-    };
+        {
+            Enabled = false,
+            ManagedNamespace = managedNamespace,
+            PrimaryClassName = primaryClassName,
+            PlatformCatalogId = platformCatalog,
+            OwnedPrefixes = [ownedPrefix],
+        };
 
     /// <summary>
     /// Minimal ManifestConfig for unit tests — core + one satellite.

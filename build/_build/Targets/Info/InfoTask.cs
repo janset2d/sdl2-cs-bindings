@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using Build.Host;
 using Cake.Common;
@@ -76,7 +77,7 @@ public sealed class InfoTask(IAnsiConsole console) : AsyncFrostingTask<BuildCont
                     }
                     else
                     {
-                        sdkVersion = $"[red]Failed (Exit Code: {exitCode})[/]";
+                        sdkVersion = string.Create(CultureInfo.CurrentCulture, $"[red]Failed (Exit Code: {exitCode})[/]");
                     }
                 }
                 catch (Win32Exception)
