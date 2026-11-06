@@ -12,7 +12,7 @@ namespace Build.Tests.Unit.Targets.Harvest.Reporting;
 /// </summary>
 public sealed class HarvestReporterTests
 {
-    private const string _libraryName = "sdl2-core";
+    private const string LibraryName = "sdl2-core";
 
     [Test]
     public async Task StartLibrary_Should_Write_Library_Name_To_Console()
@@ -20,7 +20,7 @@ public sealed class HarvestReporterTests
         var world = FakeCakeWorld.CreateWindows();
         var reporter = new HarvestReporter(world.AnsiConsole, world.Log);
 
-        reporter.StartLibrary(_libraryName);
+        reporter.StartLibrary(LibraryName);
 
         await Assert.That(world.AnsiConsole.Output).Contains("Harvest: sdl2-core", StringComparison.Ordinal);
     }
@@ -32,7 +32,7 @@ public sealed class HarvestReporterTests
         var reporter = new HarvestReporter(world.AnsiConsole, world.Log);
         var stats = CreateStats(primary: 2, runtime: 5, license: 3, deployed: 4, filtered: 1);
 
-        reporter.FinishLibrary(_libraryName, stats);
+        reporter.FinishLibrary(LibraryName, stats);
 
         await Assert.That(world.AnsiConsole.Output).Contains("sdl2-core", StringComparison.Ordinal);
         await Assert.That(world.AnsiConsole.Output).Contains("Finished Harvest", StringComparison.Ordinal);
@@ -46,7 +46,7 @@ public sealed class HarvestReporterTests
         var world = FakeCakeWorld.CreateWindows();
         var reporter = new HarvestReporter(world.AnsiConsole, world.Log);
 
-        reporter.CancelLibrary(_libraryName);
+        reporter.CancelLibrary(LibraryName);
 
         await Assert.That(world.AnsiConsole.Output).Contains("Canceled Harvest", StringComparison.Ordinal);
         await Assert.That(world.AnsiConsole.Output).Contains("sdl2-core", StringComparison.Ordinal);
@@ -82,7 +82,7 @@ public sealed class HarvestReporterTests
         var world = FakeCakeWorld.CreateWindows();
         var reporter = new HarvestReporter(world.AnsiConsole, world.Log);
 
-        reporter.ReportPhaseFailure(_libraryName, "Binary closure", "vcpkg cache miss", exception: null);
+        reporter.ReportPhaseFailure(LibraryName, "Binary closure", "vcpkg cache miss", exception: null);
 
         await Assert.That(world.AnsiConsole.Output).Contains("Failed Harvest", StringComparison.Ordinal);
         await Assert.That(world.AnsiConsole.Output).Contains("sdl2-core", StringComparison.Ordinal);
@@ -98,7 +98,7 @@ public sealed class HarvestReporterTests
         var reporter = new HarvestReporter(world.AnsiConsole, world.Log);
         var ex = new InvalidOperationException("boom");
 
-        reporter.ReportPhaseFailure(_libraryName, "Artifact planning", "planner exploded", exception: ex);
+        reporter.ReportPhaseFailure(LibraryName, "Artifact planning", "planner exploded", exception: ex);
 
         await Assert.That(world.Log.HasMessage(Cake.Core.Diagnostics.LogLevel.Error, "Artifact planning")).IsTrue();
         await Assert.That(world.Log.HasMessage(Cake.Core.Diagnostics.LogLevel.Verbose, "boom")).IsTrue();
@@ -114,7 +114,7 @@ public sealed class HarvestReporterTests
             new ValidationCheck("LeakCheck", ValidationSeverity.Error, "leak: png.dll leaks transitive dep"),
         ]);
 
-        reporter.ReportLeakReport(_libraryName, report);
+        reporter.ReportLeakReport(LibraryName, report);
 
         await Assert.That(world.Log.HasMessage(Cake.Core.Diagnostics.LogLevel.Error, "Hybrid-static leak")).IsTrue();
         await Assert.That(world.Log.HasMessage(Cake.Core.Diagnostics.LogLevel.Error, "zlib.dll leaks")).IsTrue();
@@ -130,7 +130,7 @@ public sealed class HarvestReporterTests
             new ValidationCheck("LeakCheck", ValidationSeverity.Warning, "non-blocking warn"),
         ]);
 
-        reporter.ReportLeakReport(_libraryName, report);
+        reporter.ReportLeakReport(LibraryName, report);
 
         await Assert.That(world.Log.HasMessage(Cake.Core.Diagnostics.LogLevel.Warning, "non-blocking warn")).IsTrue();
     }

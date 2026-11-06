@@ -18,9 +18,9 @@ namespace Build.Tests.Scenarios.ConsolidateHarvest;
 /// </summary>
 public sealed class ConsolidateHarvestTaskScenarioTests
 {
-    private const string _libraryName = "sdl2-core";
-    private const string _ridWindows = "win-x64";
-    private const string _ridLinux = "linux-x64";
+    private const string LibraryName = "sdl2-core";
+    private const string RidWindows = "win-x64";
+    private const string RidLinux = "linux-x64";
 
     [Test]
     public async Task RunAsync_Should_Throw_When_Harvest_Output_Root_Is_Missing()
@@ -53,14 +53,14 @@ public sealed class ConsolidateHarvestTaskScenarioTests
         // Library dir exists but rid-status/ is empty -> repository returns null -> reporter logs
         // skip + info, no failure aggregation.
         var world = FakeCakeWorld.CreateWindows()
-            .WithTextFile($"artifacts/harvest_output/{_libraryName}/.placeholder", string.Empty);
+            .WithTextFile($"artifacts/harvest_output/{LibraryName}/.placeholder", string.Empty);
 
         var result = await CreateHost(world).RunAsync();
 
         await Assert.That(result.Success).IsTrue();
         await Assert.That(result.Log.HasMessage(LogLevel.Information, "No RID status files found")).IsTrue();
         // No manifest written because we skipped.
-        var manifestRelative = $"artifacts/harvest_output/{_libraryName}/harvest-manifest.json";
+        var manifestRelative = $"artifacts/harvest_output/{LibraryName}/harvest-manifest.json";
         await Assert.That(world.FileExists(manifestRelative)).IsFalse();
     }
 
@@ -68,7 +68,7 @@ public sealed class ConsolidateHarvestTaskScenarioTests
     public async Task RunAsync_Should_Aggregate_Failure_When_Rid_Status_File_Is_Invalid_Json()
     {
         var world = FakeCakeWorld.CreateWindows()
-            .WithTextFile($"artifacts/harvest_output/{_libraryName}/rid-status/{_ridWindows}.json", "{ not valid json");
+            .WithTextFile($"artifacts/harvest_output/{LibraryName}/rid-status/{RidWindows}.json", "{ not valid json");
 
         var result = await CreateHost(world).RunAsync();
 
@@ -83,24 +83,24 @@ public sealed class ConsolidateHarvestTaskScenarioTests
     {
         // Two RIDs, both successful, no divergent licenses.
         var world = FakeCakeWorld.CreateWindows()
-            .WithTextFile($"artifacts/harvest_output/{_libraryName}/rid-status/{_ridWindows}.json", SuccessRidStatus(_ridWindows, "x64-windows-hybrid"))
-            .WithTextFile($"artifacts/harvest_output/{_libraryName}/rid-status/{_ridLinux}.json", SuccessRidStatus(_ridLinux, "x64-linux-hybrid"));
+            .WithTextFile($"artifacts/harvest_output/{LibraryName}/rid-status/{RidWindows}.json", SuccessRidStatus(RidWindows, "x64-windows-hybrid"))
+            .WithTextFile($"artifacts/harvest_output/{LibraryName}/rid-status/{RidLinux}.json", SuccessRidStatus(RidLinux, "x64-linux-hybrid"));
 
         var result = await CreateHost(world).RunAsync();
 
         await Assert.That(result.Success).IsTrue();
         await Assert.That(result.Log.HasMessage(LogLevel.Information, "Harvest consolidation completed successfully")).IsTrue();
 
-        var manifestRelative = $"artifacts/harvest_output/{_libraryName}/harvest-manifest.json";
+        var manifestRelative = $"artifacts/harvest_output/{LibraryName}/harvest-manifest.json";
         await Assert.That(world.FileExists(manifestRelative)).IsTrue();
         var manifest = await world.CakeContext.ToJsonAsync<HarvestManifest>(world.RepoRoot.CombineWithFilePath(manifestRelative));
-        await Assert.That(manifest.LibraryName).IsEqualTo(_libraryName);
+        await Assert.That(manifest.LibraryName).IsEqualTo(LibraryName);
         await Assert.That(manifest.Summary.TotalRids).IsEqualTo(2);
         await Assert.That(manifest.Summary.SuccessfulRids).IsEqualTo(2);
         await Assert.That(manifest.Summary.FailedRids).IsEqualTo(0);
 
         // Tmp staging files should have been swapped away — final exists, tmp does not.
-        var manifestTempRelative = $"artifacts/harvest_output/{_libraryName}/harvest-manifest.tmp.json";
+        var manifestTempRelative = $"artifacts/harvest_output/{LibraryName}/harvest-manifest.tmp.json";
         await Assert.That(world.FileExists(manifestTempRelative)).IsFalse();
     }
 
@@ -109,17 +109,17 @@ public sealed class ConsolidateHarvestTaskScenarioTests
     {
         // Same package "zlib", same file "copyright", different content per RID → divergence.
         var world = FakeCakeWorld.CreateWindows()
-            .WithTextFile($"artifacts/harvest_output/{_libraryName}/rid-status/{_ridWindows}.json", SuccessRidStatus(_ridWindows, "x64-windows-hybrid"))
-            .WithTextFile($"artifacts/harvest_output/{_libraryName}/rid-status/{_ridLinux}.json", SuccessRidStatus(_ridLinux, "x64-linux-hybrid"))
-            .WithTextFile($"artifacts/harvest_output/{_libraryName}/licenses/{_ridWindows}/zlib/copyright", "windows-flavored copyright text")
-            .WithTextFile($"artifacts/harvest_output/{_libraryName}/licenses/{_ridLinux}/zlib/copyright", "linux-flavored copyright text");
+            .WithTextFile($"artifacts/harvest_output/{LibraryName}/rid-status/{RidWindows}.json", SuccessRidStatus(RidWindows, "x64-windows-hybrid"))
+            .WithTextFile($"artifacts/harvest_output/{LibraryName}/rid-status/{RidLinux}.json", SuccessRidStatus(RidLinux, "x64-linux-hybrid"))
+            .WithTextFile($"artifacts/harvest_output/{LibraryName}/licenses/{RidWindows}/zlib/copyright", "windows-flavored copyright text")
+            .WithTextFile($"artifacts/harvest_output/{LibraryName}/licenses/{RidLinux}/zlib/copyright", "linux-flavored copyright text");
 
         var result = await CreateHost(world).RunAsync();
 
         await Assert.That(result.Success).IsTrue();
         await Assert.That(result.Log.HasMessage(LogLevel.Warning, "License divergence detected")).IsTrue();
 
-        var manifestRelative = $"artifacts/harvest_output/{_libraryName}/harvest-manifest.json";
+        var manifestRelative = $"artifacts/harvest_output/{LibraryName}/harvest-manifest.json";
         var manifest = await world.CakeContext.ToJsonAsync<HarvestManifest>(world.RepoRoot.CombineWithFilePath(manifestRelative));
         await Assert.That(manifest.Consolidation).IsNotNull();
         await Assert.That(manifest.Consolidation!.LicensesConsolidated).IsTrue();
@@ -128,8 +128,8 @@ public sealed class ConsolidateHarvestTaskScenarioTests
         await Assert.That(manifest.Consolidation.DivergentLicenses[0].FileName).IsEqualTo("copyright");
 
         // Per-RID variants written under the package dir.
-        await Assert.That(world.FileExists($"artifacts/harvest_output/{_libraryName}/licenses/_consolidated/zlib/copyright.{_ridWindows}")).IsTrue();
-        await Assert.That(world.FileExists($"artifacts/harvest_output/{_libraryName}/licenses/_consolidated/zlib/copyright.{_ridLinux}")).IsTrue();
+        await Assert.That(world.FileExists($"artifacts/harvest_output/{LibraryName}/licenses/_consolidated/zlib/copyright.{RidWindows}")).IsTrue();
+        await Assert.That(world.FileExists($"artifacts/harvest_output/{LibraryName}/licenses/_consolidated/zlib/copyright.{RidLinux}")).IsTrue();
     }
 
     [Test]
@@ -138,29 +138,29 @@ public sealed class ConsolidateHarvestTaskScenarioTests
         // Same content across RIDs → single canonical entry, no divergence record.
         const string sharedContent = "shared zlib copyright text";
         var world = FakeCakeWorld.CreateWindows()
-            .WithTextFile($"artifacts/harvest_output/{_libraryName}/rid-status/{_ridWindows}.json", SuccessRidStatus(_ridWindows, "x64-windows-hybrid"))
-            .WithTextFile($"artifacts/harvest_output/{_libraryName}/rid-status/{_ridLinux}.json", SuccessRidStatus(_ridLinux, "x64-linux-hybrid"))
-            .WithTextFile($"artifacts/harvest_output/{_libraryName}/licenses/{_ridWindows}/zlib/copyright", sharedContent)
-            .WithTextFile($"artifacts/harvest_output/{_libraryName}/licenses/{_ridLinux}/zlib/copyright", sharedContent);
+            .WithTextFile($"artifacts/harvest_output/{LibraryName}/rid-status/{RidWindows}.json", SuccessRidStatus(RidWindows, "x64-windows-hybrid"))
+            .WithTextFile($"artifacts/harvest_output/{LibraryName}/rid-status/{RidLinux}.json", SuccessRidStatus(RidLinux, "x64-linux-hybrid"))
+            .WithTextFile($"artifacts/harvest_output/{LibraryName}/licenses/{RidWindows}/zlib/copyright", sharedContent)
+            .WithTextFile($"artifacts/harvest_output/{LibraryName}/licenses/{RidLinux}/zlib/copyright", sharedContent);
 
         var result = await CreateHost(world).RunAsync();
 
         await Assert.That(result.Success).IsTrue();
 
-        var manifestRelative = $"artifacts/harvest_output/{_libraryName}/harvest-manifest.json";
+        var manifestRelative = $"artifacts/harvest_output/{LibraryName}/harvest-manifest.json";
         var manifest = await world.CakeContext.ToJsonAsync<HarvestManifest>(world.RepoRoot.CombineWithFilePath(manifestRelative));
         await Assert.That(manifest.Consolidation!.DivergentLicenses.Count).IsEqualTo(0);
 
         // Canonical path written; per-RID variants NOT written.
-        await Assert.That(world.FileExists($"artifacts/harvest_output/{_libraryName}/licenses/_consolidated/zlib/copyright")).IsTrue();
-        await Assert.That(world.FileExists($"artifacts/harvest_output/{_libraryName}/licenses/_consolidated/zlib/copyright.{_ridWindows}")).IsFalse();
+        await Assert.That(world.FileExists($"artifacts/harvest_output/{LibraryName}/licenses/_consolidated/zlib/copyright")).IsTrue();
+        await Assert.That(world.FileExists($"artifacts/harvest_output/{LibraryName}/licenses/_consolidated/zlib/copyright.{RidWindows}")).IsFalse();
     }
 
     private static string SuccessRidStatus(string rid, string triplet)
     {
         var status = new RidHarvestStatus
         {
-            LibraryName = _libraryName,
+            LibraryName = LibraryName,
             Rid = rid,
             Triplet = triplet,
             Success = true,

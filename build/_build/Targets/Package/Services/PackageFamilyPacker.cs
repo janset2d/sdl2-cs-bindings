@@ -20,7 +20,7 @@ namespace Build.Targets.Package.Services;
 /// </summary>
 public sealed class PackageFamilyPacker
 {
-    private const string _nativePayloadSourceProperty = "NativePayloadSource";
+    private const string NativePayloadSourceProperty = "NativePayloadSource";
 
     private readonly ICakeContext _cakeContext;
     private readonly ICakeLog _log;
@@ -176,7 +176,7 @@ public sealed class PackageFamilyPacker
 
         if (nativePayloadSource is not null)
         {
-            settings.WithProperty(_nativePayloadSourceProperty, nativePayloadSource.FullPath);
+            settings.WithProperty(NativePayloadSourceProperty, nativePayloadSource.FullPath);
         }
 
         return settings;

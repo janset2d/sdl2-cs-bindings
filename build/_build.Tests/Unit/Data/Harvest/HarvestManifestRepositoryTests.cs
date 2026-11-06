@@ -15,7 +15,7 @@ namespace Build.Tests.Unit.Data.Harvest;
 /// </summary>
 public sealed class HarvestManifestRepositoryUnitTests
 {
-    private const string _libraryName = "sdl2-core";
+    private const string LibraryName = "sdl2-core";
 
     [Test]
     public async Task Constructor_Should_Throw_When_CakeContext_Is_Null()
@@ -49,7 +49,7 @@ public sealed class HarvestManifestRepositoryUnitTests
         using var cts = new CancellationTokenSource();
         await cts.CancelAsync();
 
-        await Assert.That(() => repository.LoadRidStatusesAsync(_libraryName, cts.Token)).Throws<OperationCanceledException>();
+        await Assert.That(() => repository.LoadRidStatusesAsync(LibraryName, cts.Token)).Throws<OperationCanceledException>();
     }
 
     [Test]
@@ -66,7 +66,7 @@ public sealed class HarvestManifestRepositoryUnitTests
     {
         var repository = CreateRepository();
 
-        await Assert.That(() => repository.WriteManifestTempAsync(_libraryName, null!)).Throws<ArgumentNullException>();
+        await Assert.That(() => repository.WriteManifestTempAsync(LibraryName, null!)).Throws<ArgumentNullException>();
     }
 
     private static HarvestManifestRepository CreateRepository()
@@ -83,14 +83,14 @@ public sealed class HarvestManifestRepositoryUnitTests
 /// </summary>
 public sealed class HarvestManifestRepositoryRoundTripTests
 {
-    private const string _libraryName = "sdl2-core";
+    private const string LibraryName = "sdl2-core";
 
     [Test]
     public async Task LoadRidStatusesAsync_Should_Return_Null_When_Rid_Status_Directory_Is_Missing()
     {
         var (repository, _) = CreateRepository(FakeCakeWorld.CreateWindows());
 
-        var statuses = await repository.LoadRidStatusesAsync(_libraryName);
+        var statuses = await repository.LoadRidStatusesAsync(LibraryName);
 
         await Assert.That(statuses).IsNull();
     }
@@ -99,10 +99,10 @@ public sealed class HarvestManifestRepositoryRoundTripTests
     public async Task LoadRidStatusesAsync_Should_Return_Null_When_Rid_Status_Directory_Has_No_Json_Files()
     {
         var world = FakeCakeWorld.CreateWindows()
-            .WithTextFile($"artifacts/harvest_output/{_libraryName}/rid-status/.placeholder", string.Empty);
+            .WithTextFile($"artifacts/harvest_output/{LibraryName}/rid-status/.placeholder", string.Empty);
         var (repository, _) = CreateRepository(world);
 
-        var statuses = await repository.LoadRidStatusesAsync(_libraryName);
+        var statuses = await repository.LoadRidStatusesAsync(LibraryName);
 
         await Assert.That(statuses).IsNull();
     }
@@ -112,11 +112,11 @@ public sealed class HarvestManifestRepositoryRoundTripTests
     {
         var world = FakeCakeWorld.CreateWindows()
             .WithTextFile(
-                $"artifacts/harvest_output/{_libraryName}/rid-status/win-x64.json",
+                $"artifacts/harvest_output/{LibraryName}/rid-status/win-x64.json",
                 FixtureLoader.Load("Harvest/rid-status-null.json"));
         var (repository, _) = CreateRepository(world);
 
-        var statuses = await repository.LoadRidStatusesAsync(_libraryName);
+        var statuses = await repository.LoadRidStatusesAsync(LibraryName);
 
         await Assert.That(statuses).IsNull();
     }
@@ -126,11 +126,11 @@ public sealed class HarvestManifestRepositoryRoundTripTests
     {
         var world = FakeCakeWorld.CreateWindows()
             .WithTextFile(
-                $"artifacts/harvest_output/{_libraryName}/rid-status/win-x64.json",
+                $"artifacts/harvest_output/{LibraryName}/rid-status/win-x64.json",
                 FixtureLoader.Load("Harvest/rid-status-invalid.json"));
         var (repository, _) = CreateRepository(world);
 
-        var exception = await Assert.That(() => repository.LoadRidStatusesAsync(_libraryName)).Throws<CakeException>();
+        var exception = await Assert.That(() => repository.LoadRidStatusesAsync(LibraryName)).Throws<CakeException>();
 
         await Assert.That(exception!.Message).Contains("unreadable or invalid", StringComparison.Ordinal);
         await Assert.That(exception.Message).Contains("win-x64.json", StringComparison.Ordinal);
@@ -141,14 +141,14 @@ public sealed class HarvestManifestRepositoryRoundTripTests
     {
         var world = FakeCakeWorld.CreateWindows()
             .WithTextFile(
-                $"artifacts/harvest_output/{_libraryName}/rid-status/win-x64.json",
+                $"artifacts/harvest_output/{LibraryName}/rid-status/win-x64.json",
                 FixtureLoader.Load("Harvest/rid-status-success-win-x64.json"))
             .WithTextFile(
-                $"artifacts/harvest_output/{_libraryName}/rid-status/linux-x64.json",
+                $"artifacts/harvest_output/{LibraryName}/rid-status/linux-x64.json",
                 FixtureLoader.Load("Harvest/rid-status-success-linux-x64.json"));
         var (repository, _) = CreateRepository(world);
 
-        var statuses = await repository.LoadRidStatusesAsync(_libraryName);
+        var statuses = await repository.LoadRidStatusesAsync(LibraryName);
 
         await Assert.That(statuses).IsNotNull();
         await Assert.That(statuses!.Count).IsEqualTo(2);
@@ -181,10 +181,10 @@ public sealed class HarvestManifestRepositoryRoundTripTests
         var (repository, paths) = CreateRepository(world);
         var manifest = CreateManifest();
 
-        await repository.WriteManifestTempAsync(_libraryName, manifest);
+        await repository.WriteManifestTempAsync(LibraryName, manifest);
 
-        var manifestTemp = paths.GetHarvestLibraryManifestTempFile(_libraryName);
-        var summaryTemp = paths.GetHarvestLibrarySummaryTempFile(_libraryName);
+        var manifestTemp = paths.GetHarvestLibraryManifestTempFile(LibraryName);
+        var summaryTemp = paths.GetHarvestLibrarySummaryTempFile(LibraryName);
         await Assert.That(world.CakeContext.FileExists(manifestTemp)).IsTrue();
         await Assert.That(world.CakeContext.FileExists(summaryTemp)).IsTrue();
         await Assert.That(await world.CakeContext.ReadAllTextAsync(manifestTemp))
@@ -203,7 +203,7 @@ public sealed class HarvestManifestRepositoryRoundTripTests
     {
         var ridStatus = new RidHarvestStatus
         {
-            LibraryName = _libraryName,
+            LibraryName = LibraryName,
             Rid = "win-x64",
             Triplet = "x64-windows-hybrid",
             Success = true,
@@ -222,7 +222,7 @@ public sealed class HarvestManifestRepositoryRoundTripTests
 
         return new HarvestManifest
         {
-            LibraryName = _libraryName,
+            LibraryName = LibraryName,
             GeneratedTimestamp = DateTimeOffset.Parse("2026-05-09T10:00:00+00:00", CultureInfo.InvariantCulture),
             Rids = [ridStatus],
             Summary = new HarvestSummary

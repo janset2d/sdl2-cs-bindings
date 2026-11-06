@@ -10,8 +10,8 @@ namespace Build.Tools.Dumpbin;
 public abstract class DumpbinTool(ICakeContext cakeContext)
     : Tool<DumpbinSettings>(cakeContext.FileSystem, cakeContext.Environment, cakeContext.ProcessRunner, cakeContext.Tools)
 {
-    private const string _dumpbinExecutableName = "dumpbin.exe";
-    private const string _vsToolsRequirement = "Microsoft.VisualStudio.Component.VC.Tools.x86.x64";
+    private const string DumpbinExecutableName = "dumpbin.exe";
+    private const string VsToolsRequirement = "Microsoft.VisualStudio.Component.VC.Tools.x86.x64";
 
     protected override string GetToolName()
     {
@@ -20,7 +20,7 @@ public abstract class DumpbinTool(ICakeContext cakeContext)
 
     protected override IEnumerable<string> GetToolExecutableNames()
     {
-        return [_dumpbinExecutableName];
+        return [DumpbinExecutableName];
     }
 
     protected override IEnumerable<FilePath> GetAlternativeToolPaths(DumpbinSettings settings)
@@ -34,7 +34,7 @@ public abstract class DumpbinTool(ICakeContext cakeContext)
 
         var vsWhereLatest = cakeContext.VSWhereLatest(new VSWhereLatestSettings()
         {
-            Requires = _vsToolsRequirement,
+            Requires = VsToolsRequirement,
             ReturnProperty = "installationPath",
         });
 
@@ -95,9 +95,9 @@ public abstract class DumpbinTool(ICakeContext cakeContext)
     private static IEnumerable<FilePath> GetDumpbinCandidates(DirectoryPath vcToolsDir)
     {
         var binDir = vcToolsDir.Combine("bin");
-        yield return binDir.Combine("Hostx64").Combine("x64").CombineWithFilePath(_dumpbinExecutableName);
-        yield return binDir.Combine("Hostx64").Combine("x86").CombineWithFilePath(_dumpbinExecutableName);
-        yield return binDir.Combine("Hostx86").Combine("x64").CombineWithFilePath(_dumpbinExecutableName);
-        yield return binDir.Combine("Hostx86").Combine("x86").CombineWithFilePath(_dumpbinExecutableName);
+        yield return binDir.Combine("Hostx64").Combine("x64").CombineWithFilePath(DumpbinExecutableName);
+        yield return binDir.Combine("Hostx64").Combine("x86").CombineWithFilePath(DumpbinExecutableName);
+        yield return binDir.Combine("Hostx86").Combine("x64").CombineWithFilePath(DumpbinExecutableName);
+        yield return binDir.Combine("Hostx86").Combine("x86").CombineWithFilePath(DumpbinExecutableName);
     }
 }

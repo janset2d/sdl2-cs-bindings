@@ -19,8 +19,8 @@ namespace Build.Tests.Unit.Validation.Packaging;
 /// </summary>
 public sealed class NativePackageMetadataValidatorTests
 {
-    private const string _expectedFamilyVersion = "2.32.0";
-    private const string _expectedCommit = "0123456789abcdef0123456789abcdef01234567";
+    private const string ExpectedFamilyVersion = "2.32.0";
+    private const string ExpectedCommit = "0123456789abcdef0123456789abcdef01234567";
 
     [Test]
     public async Task ValidateAsync_Should_Return_Null_When_Metadata_Matches_Manifest()
@@ -29,11 +29,11 @@ public sealed class NativePackageMetadataValidatorTests
         var manifest = ManifestFixture.CreateTestManifestConfig();
         var family = manifest.PackageFamilies.Single(f => f.Name == "sdl2-core");
         var packagePath = world.RepoRoot.CombineWithFilePath("artifacts/packages/Janset.SDL2.Core.Native.2.32.0.nupkg");
-        SeedNupkg(world, packagePath, ConsistentMetadata(manifest, family, _expectedFamilyVersion, _expectedCommit));
+        SeedNupkg(world, packagePath, ConsistentMetadata(manifest, family, ExpectedFamilyVersion, ExpectedCommit));
 
         var validator = CreateValidator(world);
 
-        var result = await validator.ValidateAsync(family, packagePath, _expectedFamilyVersion, _expectedCommit, manifest);
+        var result = await validator.ValidateAsync(family, packagePath, ExpectedFamilyVersion, ExpectedCommit, manifest);
 
         await Assert.That(result).IsNull();
     }
@@ -49,7 +49,7 @@ public sealed class NativePackageMetadataValidatorTests
 
         var validator = CreateValidator(world);
 
-        var result = await validator.ValidateAsync(family, packagePath, _expectedFamilyVersion, _expectedCommit, manifest);
+        var result = await validator.ValidateAsync(family, packagePath, ExpectedFamilyVersion, ExpectedCommit, manifest);
 
         await Assert.That(result).IsNotNull();
         await Assert.That(result!.Code).IsEqualTo("G55");
@@ -68,7 +68,7 @@ public sealed class NativePackageMetadataValidatorTests
 
         var validator = CreateValidator(world);
 
-        var result = await validator.ValidateAsync(family, packagePath, _expectedFamilyVersion, _expectedCommit, manifest);
+        var result = await validator.ValidateAsync(family, packagePath, ExpectedFamilyVersion, ExpectedCommit, manifest);
 
         await Assert.That(result).IsNotNull();
         await Assert.That(result!.Code).IsEqualTo("G55");
@@ -86,7 +86,7 @@ public sealed class NativePackageMetadataValidatorTests
 
         var validator = CreateValidator(world);
 
-        var result = await validator.ValidateAsync(family, packagePath, _expectedFamilyVersion, _expectedCommit, manifest);
+        var result = await validator.ValidateAsync(family, packagePath, ExpectedFamilyVersion, ExpectedCommit, manifest);
 
         await Assert.That(result).IsNotNull();
         await Assert.That(result!.Code).IsEqualTo("G55");
@@ -100,12 +100,12 @@ public sealed class NativePackageMetadataValidatorTests
         var manifest = ManifestFixture.CreateTestManifestConfig();
         var family = manifest.PackageFamilies.Single(f => f.Name == "sdl2-core");
         var packagePath = world.RepoRoot.CombineWithFilePath("artifacts/packages/Janset.SDL2.Core.Native.2.32.0.nupkg");
-        var driftedMetadata = ConsistentMetadata(manifest, family, "9.9.9", _expectedCommit);
+        var driftedMetadata = ConsistentMetadata(manifest, family, "9.9.9", ExpectedCommit);
         SeedNupkg(world, packagePath, driftedMetadata);
 
         var validator = CreateValidator(world);
 
-        var result = await validator.ValidateAsync(family, packagePath, _expectedFamilyVersion, _expectedCommit, manifest);
+        var result = await validator.ValidateAsync(family, packagePath, ExpectedFamilyVersion, ExpectedCommit, manifest);
 
         await Assert.That(result).IsNotNull();
         await Assert.That(result!.Code).IsEqualTo("G55");
@@ -119,12 +119,12 @@ public sealed class NativePackageMetadataValidatorTests
         var manifest = ManifestFixture.CreateTestManifestConfig();
         var family = manifest.PackageFamilies.Single(f => f.Name == "sdl2-core");
         var packagePath = world.RepoRoot.CombineWithFilePath("artifacts/packages/Janset.SDL2.Core.Native.2.32.0.nupkg");
-        var driftedMetadata = ConsistentMetadata(manifest, family, _expectedFamilyVersion, "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef");
+        var driftedMetadata = ConsistentMetadata(manifest, family, ExpectedFamilyVersion, "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef");
         SeedNupkg(world, packagePath, driftedMetadata);
 
         var validator = CreateValidator(world);
 
-        var result = await validator.ValidateAsync(family, packagePath, _expectedFamilyVersion, _expectedCommit, manifest);
+        var result = await validator.ValidateAsync(family, packagePath, ExpectedFamilyVersion, ExpectedCommit, manifest);
 
         await Assert.That(result).IsNotNull();
         await Assert.That(result!.Message).Contains("build_commit expected");
@@ -146,13 +146,13 @@ public sealed class NativePackageMetadataValidatorTests
             UpstreamVersion = library.VcpkgVersion,
             VcpkgPortVersion = library.VcpkgPortVersion,
             TripletSet = manifest.Runtimes.Select(r => r.Triplet).ToList(),
-            BuildCommit = _expectedCommit,
+            BuildCommit = ExpectedCommit,
         };
         SeedNupkg(world, packagePath, driftedMetadata);
 
         var validator = CreateValidator(world);
 
-        var result = await validator.ValidateAsync(family, packagePath, _expectedFamilyVersion, _expectedCommit, manifest);
+        var result = await validator.ValidateAsync(family, packagePath, ExpectedFamilyVersion, ExpectedCommit, manifest);
 
         await Assert.That(result).IsNotNull();
         await Assert.That(result!.Message).Contains("janset_family_version");

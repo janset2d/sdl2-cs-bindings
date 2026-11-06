@@ -11,8 +11,8 @@ namespace Janset.SDL2.AbiTests.Upstream.GlobalState;
 
 public sealed class EventFilterCallbackAbiTests
 {
-    private const int _allowedUserEventCode = 1001;
-    private const int _rejectedUserEventCode = 1002;
+    private const int AllowedUserEventCode = 1001;
+    private const int RejectedUserEventCode = 1002;
 
     [Test]
     [NotInParallel(AbiParallelKeys.SdlGlobalState)]
@@ -31,9 +31,9 @@ public sealed class EventFilterCallbackAbiTests
         await Assert.That(result.SawAllowedEvent).IsTrue();
         await Assert.That(result.SawRejectedEvent).IsTrue();
         await Assert.That(result.PeepResult).IsEqualTo(1);
-        await Assert.That(result.PeepedCode).IsEqualTo(_allowedUserEventCode);
+        await Assert.That(result.PeepedCode).IsEqualTo(AllowedUserEventCode);
         await Assert.That(result.GetResult).IsEqualTo(1);
-        await Assert.That(result.GetCode).IsEqualTo(_allowedUserEventCode);
+        await Assert.That(result.GetCode).IsEqualTo(AllowedUserEventCode);
         await Assert.That(result.RemainingUserEventCount).IsEqualTo(0);
     }
 
@@ -52,10 +52,10 @@ public sealed class EventFilterCallbackAbiTests
         {
             SetEventFilter(userdata);
 
-            SDL_Event allowedEvent = CreateUserEvent(_allowedUserEventCode);
+            SDL_Event allowedEvent = CreateUserEvent(AllowedUserEventCode);
             int allowedPushResult = SDL_PushEvent(&allowedEvent);
 
-            SDL_Event rejectedEvent = CreateUserEvent(_rejectedUserEventCode);
+            SDL_Event rejectedEvent = CreateUserEvent(RejectedUserEventCode);
             int rejectedPushResult = SDL_PushEvent(&rejectedEvent);
 
             SDL_Event peeked = default;
@@ -128,13 +128,13 @@ public sealed class EventFilterCallbackAbiTests
             return 1;
         }
 
-        if (@event->user.code == _allowedUserEventCode)
+        if (@event->user.code == AllowedUserEventCode)
         {
             state.SawAllowedEvent = true;
             return 1;
         }
 
-        if (@event->user.code == _rejectedUserEventCode)
+        if (@event->user.code == RejectedUserEventCode)
         {
             state.SawRejectedEvent = true;
         }

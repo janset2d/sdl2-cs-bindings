@@ -100,20 +100,20 @@ public sealed class PublishStagingTaskScenarioTests
 
     // ── helpers ────────────────────────────────────────────────────────────────
 
-    private const string _versionsFilePath = "artifacts/resolve-versions/versions.json";
+    private const string VersionsFilePath = "artifacts/resolve-versions/versions.json";
 
     private static FakeCakeWorld NewWorld(INuGetFeedClient feedClient)
     {
         ArgumentNullException.ThrowIfNull(feedClient);
         return FakeCakeWorld.CreateWindows()
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
-            .WithVersionsFile(_versionsFilePath)
-            .WithTextFile(_versionsFilePath, FixtureLoader.Load("Versions/versions-multi-family.json"));
+            .WithVersionsFile(VersionsFilePath)
+            .WithTextFile(VersionsFilePath, FixtureLoader.Load("Versions/versions-multi-family.json"));
     }
 
     private static void SeedVersionsFromFixture(FakeCakeWorld world, string fixtureRelativePath)
     {
-        world.WithTextFile(_versionsFilePath, FixtureLoader.Load(fixtureRelativePath));
+        world.WithTextFile(VersionsFilePath, FixtureLoader.Load(fixtureRelativePath));
     }
 
     private static void SeedFeedNupkgs(FakeCakeWorld world, params (string Family, string Version)[] entries)
