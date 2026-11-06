@@ -536,7 +536,7 @@ dotnet_diagnostic.CA1865.severity = suggestion
 
 # ABI assertions expose native widths through explicit declared types.
 # Raw native memory is the subject of ABI tests.
-# Winner: ABI width and memory visibility; IDE0007, IDE0008 and S6640 remain enabled for every other file.
+# Winner: ABI width and memory visibility; IDE0007 and S6640 remain enabled elsewhere; IDE0008 cannot fire while var is preferred globally.
 [spikes/binding-generators/clangsharp/tests/abi-tests/**.cs]
 dotnet_diagnostic.IDE0007.severity = none
 dotnet_diagnostic.IDE0008.severity = none
@@ -547,12 +547,12 @@ dotnet_diagnostic.S6640.severity = none
 [spikes/binding-generators/clangsharp/src/*/Generated/**.cs]
 dotnet_diagnostic.CA5392.severity = none
 
-# OperatingSystem.IsWindows is unavailable on net462 until Polyfill reaches the spike projects.
-# Winner: one source across TFMs; MA0144 remains enabled for every other file.
-[spikes/binding-generators/clangsharp/tests/abi-tests/Infrastructure/Sdl/Scopes/SdlEnvironmentScope.cs]
-dotnet_diagnostic.MA0144.severity = none
-
 # OperatingSystem OS checks are unavailable on net462 until Polyfill reaches the spike projects.
 # Winner: one source across TFMs; MA0144 remains enabled for every other file.
-[spikes/binding-generators/clangsharp/tests/abi-tests/Upstream/Pure/PlatformAbiTests.cs]
+[spikes/binding-generators/clangsharp/tests/abi-tests/{Infrastructure/Sdl/Scopes/SdlEnvironmentScope.cs,Upstream/Pure/PlatformAbiTests.cs}]
 dotnet_diagnostic.MA0144.severity = none
+
+# Pointer elements cannot be LINQ type arguments; the loop frees what it filters.
+# Winner: native pointer cleanup; S3267 remains enabled for every other file.
+[spikes/binding-generators/clangsharp/tests/abi-tests/Upstream/Assets/SurfaceAbiTests.cs]
+dotnet_diagnostic.S3267.severity = none

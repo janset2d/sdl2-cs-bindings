@@ -843,7 +843,7 @@ public sealed class RwopsAbiTests
         int MemoryCloseResult,
         int FileCloseResult);
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Auto)]
     private readonly record struct EndianValues(ushort Be16, uint Be32, ulong Be64, ushort Le16, uint Le32, ulong Le64);
 
     private sealed record EndianResult(

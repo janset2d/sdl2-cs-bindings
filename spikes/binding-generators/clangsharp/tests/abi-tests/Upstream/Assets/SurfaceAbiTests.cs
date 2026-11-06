@@ -265,9 +265,8 @@ public sealed class SurfaceAbiTests
     private static unsafe int CountAllocatedSurfaces(params SDL_Surface*[] surfaces)
     {
         int count = 0;
-        for (int index = 0; index < surfaces.Length; index++)
+        foreach (SDL_Surface* surface in surfaces)
         {
-            SDL_Surface* surface = surfaces[index];
             if (surface is not null)
             {
                 count++;
@@ -303,7 +302,7 @@ public sealed class SurfaceAbiTests
             }
 
             int setBlendResult = SDL_SetSurfaceBlendMode(source, SDL_BlendMode.SDL_BLENDMODE_NONE);
-            SDL_BlendMode actualBlendMode = SDL_BlendMode.SDL_BLENDMODE_NONE;
+            SDL_BlendMode actualBlendMode = SDL_BlendMode.SDL_BLENDMODE_BLEND;
             int getBlendResult = SDL_GetSurfaceBlendMode(source, &actualBlendMode);
             int blitResult = SDL_UpperBlit(source, null, destination, null);
 

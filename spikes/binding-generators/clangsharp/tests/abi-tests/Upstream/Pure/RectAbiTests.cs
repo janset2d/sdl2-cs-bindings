@@ -600,16 +600,16 @@ public sealed class RectAbiTests
                && ApproximatelyEqual(actual.h, expected.h);
     }
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Auto)]
     private readonly record struct RectBoolCase(SDL_Rect A, SDL_Rect B, SDL_bool Expected);
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Auto)]
     private readonly record struct RectIntersectionCase(SDL_Rect A, SDL_Rect B, SDL_bool ExpectedResult, SDL_Rect? ExpectedIntersection);
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Auto)]
     private readonly record struct RectResultCase(SDL_Rect A, SDL_Rect B, SDL_Rect Expected);
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Auto)]
     private readonly record struct LineCase(
         SDL_Rect Rectangle,
         int X1,
@@ -622,24 +622,24 @@ public sealed class RectAbiTests
         int ExpectedX2,
         int ExpectedY2);
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Auto)]
     private readonly record struct LineResult(SDL_bool Intersection, SDL_Rect Rectangle, int X1, int Y1, int X2, int Y2);
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Auto)]
     private readonly record struct FRectBoolCase(SDL_FRect A, SDL_FRect B, SDL_bool Expected);
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Auto)]
     private readonly record struct FRectIntersectionCase(SDL_FRect A, SDL_FRect B, SDL_bool ExpectedResult, SDL_FRect? ExpectedIntersection);
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Auto)]
     private readonly record struct FRectResultCase(SDL_FRect A, SDL_FRect B, SDL_FRect Expected);
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Auto)]
     private readonly record struct FEncloseCase(SDL_FRect? Clip, SDL_bool ExpectedResult, SDL_FRect? ExpectedEnclosing);
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Auto)]
     private readonly record struct FLineCase(SDL_FRect Rectangle, SDL_FPoint P1, SDL_FPoint P2, SDL_bool ExpectedIntersection, SDL_FPoint ExpectedP1, SDL_FPoint ExpectedP2);
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Auto)]
     private readonly record struct FLineResult(SDL_bool Intersection, SDL_FPoint P1, SDL_FPoint P2);
 }
