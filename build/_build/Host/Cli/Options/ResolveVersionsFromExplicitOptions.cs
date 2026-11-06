@@ -22,7 +22,9 @@ public static class ResolveVersionsFromExplicitOptions
     /// </summary>
     public static readonly Option<List<string>> ExplicitVersionOption = new(
         aliases: ["--explicit-version"],
-        description: "Operator-supplied family-version mapping, repeated per family. Each is 'family=semver' (e.g., --explicit-version sdl2-core=2.32.0 --explicit-version sdl2-image=2.8.0). Consumed only by --target ResolveVersionsFromExplicit. Mutually exclusive with --explicit-versions. Stage targets read --versions-file.")
+        description: "Operator-supplied family-version mapping, repeated per family. Each is 'family=semver' (e.g., --explicit-version " +
+        "sdl2-core=2.32.0 --explicit-version sdl2-image=2.8.0). Consumed only by --target ResolveVersionsFromExplicit. Mutually exclusive with " +
+        "--explicit-versions. Stage targets read --versions-file.")
     {
         Arity = ArgumentArity.ZeroOrMore,
     };
@@ -35,5 +37,6 @@ public static class ResolveVersionsFromExplicitOptions
     /// </summary>
     public static readonly Option<string?> ExplicitVersionsOption = new(
         aliases: ["--explicit-versions"],
-        description: "Comma-separated family-version mapping, single string (e.g. 'sdl2-core=2.32.0,sdl2-image=2.8.0'). Consumed only by --target ResolveVersionsFromExplicit. Mutually exclusive with --explicit-version. Stage targets read --versions-file.");
+        description: "Comma-separated family-version mapping, single string (e.g. 'sdl2-core=2.32.0,sdl2-image=2.8.0'). Consumed only by --target " +
+        "ResolveVersionsFromExplicit. Mutually exclusive with --explicit-version. Stage targets read --versions-file.");
 }

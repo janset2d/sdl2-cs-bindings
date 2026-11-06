@@ -118,7 +118,8 @@ public sealed class FakeCakeWorld
     public FakeCakeWorld WithOtoolLibrary()
     {
         return WithProcessResult("otool", exitCode: 0,
-                stdOut: "/Users/dev/sdl/libSDL2.dylib:\n\t@rpath/libSDL2-2.0.0.dylib (compatibility version 1.0.0, current version 1.0.0)\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1319.100.3)\n")
+                stdOut: "/Users/dev/sdl/libSDL2.dylib:\n\t@rpath/libSDL2-2.0.0.dylib (compatibility version 1.0.0, current version " +
+                "1.0.0)\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1319.100.3)\n")
             .WithToolPath("/usr/bin/otool")
             .WithDll("/Users/dev/sdl/libSDL2.dylib")
             .WithTextFile("/Users/dev/sdl/libSDL2.dylib", "binary");

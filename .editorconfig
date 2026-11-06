@@ -555,6 +555,6 @@ dotnet_diagnostic.MA0144.severity = none
 dotnet_diagnostic.S3267.severity = none
 
 # File-based property directives cannot wrap; remove this entry when the legacy directives are removed.
-# Winner: single-line file-based directives; RCS0056 remains enabled for every other file.
-[tools.cs]
+# Winner: single-line file-based directives until the suppression cleanup removes them; RCS0056 remains enabled for every other file.
+[/tools.cs]
 dotnet_diagnostic.RCS0056.severity = none

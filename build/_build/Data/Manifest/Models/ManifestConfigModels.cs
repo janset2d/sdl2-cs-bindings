@@ -35,7 +35,8 @@ public record ManifestConfig
                 0 => throw new InvalidOperationException(
                     "manifest.json is structurally invalid: library_manifests[] must contain exactly one entry with core_lib=true; found none."),
                 _ => throw new InvalidOperationException(
-                    $"manifest.json is structurally invalid: library_manifests[] must contain exactly one entry with core_lib=true; found {cores.Count} ({string.Join(", ", cores.Select(c => c.VcpkgName))})."),
+                    "manifest.json is structurally invalid: library_manifests[] must contain exactly one entry with core_lib=true; found " +
+                    $"{cores.Count} ({string.Join(", ", cores.Select(c => c.VcpkgName))})."),
             };
         }
     }

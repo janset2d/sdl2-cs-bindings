@@ -18,9 +18,11 @@ internal static class Probe
     /// references remain in the compiled metadata.
     /// </summary>
     [SuppressMessage("Sonar", "S1144:Unused private types or members should be removed",
-        Justification = "Compile-time probe: the field materializes typeof references to assert netstandard2.0 surface visibility. Removing it defeats the purpose of the project.")]
+        Justification = "Compile-time probe: the field materializes typeof references to assert netstandard2.0 surface visibility. Removing it " +
+        "defeats the purpose of the project.")]
     [SuppressMessage("Performance", "CA1823:Unused fields",
-        Justification = "Compile-time probe: the field materializes typeof references to assert netstandard2.0 surface visibility. Removing it defeats the purpose of the project.")]
+        Justification = "Compile-time probe: the field materializes typeof references to assert netstandard2.0 surface visibility. Removing it " +
+        "defeats the purpose of the project.")]
     private static readonly Type[] _surface =
     [
         typeof(SDL.SDL_version),

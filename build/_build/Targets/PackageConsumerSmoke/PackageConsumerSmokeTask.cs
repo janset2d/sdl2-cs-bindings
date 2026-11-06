@@ -199,7 +199,8 @@ public sealed class PackageConsumerSmokeTask : AsyncFrostingTask<BuildContext>
         if (concreteFamilies.Count == 0)
         {
             throw new CakeException(
-                "PackageConsumerSmoke cannot run: manifest.json declares no package families with both managed_project and native_project. Smoke requires at least one concrete family.");
+                "PackageConsumerSmoke cannot run: manifest.json declares no package families with both managed_project and native_project. Smoke " +
+                "requires at least one concrete family.");
         }
 
         return concreteFamilies.Select(SmokePackage.FromFamily).ToList();
@@ -224,7 +225,8 @@ public sealed class PackageConsumerSmokeTask : AsyncFrostingTask<BuildContext>
         {
             var scope = string.Join(", ", smokePackages.Select(p => $"'{p.FamilyName}'"));
             throw new CakeException(
-                $"PackageConsumerSmoke validates the concrete package set {scope}. Either include the full smoke scope in --explicit-version, or use --versions-file <path>. Missing: {string.Join(", ", missingFamilies)}.");
+                $"PackageConsumerSmoke validates the concrete package set {scope}. Either include the full smoke scope in --explicit-version, or use " +
+                $"--versions-file <path>. Missing: {string.Join(", ", missingFamilies)}.");
         }
     }
 
@@ -287,7 +289,8 @@ public sealed class PackageConsumerSmokeTask : AsyncFrostingTask<BuildContext>
         if (!context.FileExists(packagePath))
         {
             throw new CakeException(
-                $"PackageConsumerSmoke expected local feed package '{packagePath.GetFilename().FullPath}' in '{feedPath.FullPath}', but it was not found. Run Package first or use a matching --explicit-version entry.");
+                $"PackageConsumerSmoke expected local feed package '{packagePath.GetFilename().FullPath}' in '{feedPath.FullPath}', but it was not " +
+                "found. Run Package first or use a matching --explicit-version entry.");
         }
     }
 

@@ -155,7 +155,8 @@ public sealed class PackageOutputValidator(
         AddCompletenessCheck(
             checks,
             metadata.TargetFrameworks.Count != 0,
-            $"EvaluatedProjectMetadata for family '{family.Name}' has no target frameworks. Check that the managed csproj declares <TargetFrameworks> (directly or via Directory.Build.props).");
+            $"EvaluatedProjectMetadata for family '{family.Name}' has no target frameworks. Check that the managed csproj declares <TargetFrameworks> " +
+            "(directly or via Directory.Build.props).");
 
         AddCompletenessCheck(
             checks,
@@ -266,7 +267,8 @@ public sealed class PackageOutputValidator(
         AddCanonicalCheck(
             checks,
             isValid: !missingAuthors && string.Equals(authors, projectMetadata.Authors, StringComparison.Ordinal),
-            $"G27: package '{packagePath.GetFilename().FullPath}' emitted authors '{authors ?? "<missing>"}', expected '{projectMetadata.Authors}' (resolved from Directory.Build.props).");
+            $"G27: package '{packagePath.GetFilename().FullPath}' emitted authors '{authors ?? "<missing>"}', expected '{projectMetadata.Authors}' " +
+            "(resolved from Directory.Build.props).");
 
         var license = metadata.Elements().SingleOrDefault(element => string.Equals(element.Name.LocalName, "license", StringComparison.Ordinal));
         if (license is null)
@@ -287,7 +289,8 @@ public sealed class PackageOutputValidator(
             AddCanonicalCheck(
                 checks,
                 isValid: licenseValid,
-                $"G27: package '{packagePath.GetFilename().FullPath}' emitted license '{licenseValue}' type '{licenseType ?? "<missing>"}', expected file '{projectMetadata.PackageLicenseFile}'.");
+                $"G27: package '{packagePath.GetFilename().FullPath}' emitted license '{licenseValue}' type '{licenseType ?? "<missing>"}', expected " +
+                $"file '{projectMetadata.PackageLicenseFile}'.");
         }
 
         var icon = TryGetChildValue(metadata, "icon", out var missingIcon);
@@ -330,7 +333,8 @@ public sealed class PackageOutputValidator(
 
     [SuppressMessage("Design", "MA0051:Method is too long",
         Justification =
-            "Dependency-group walking interleaves framework parity, inter-group consistency, and per-group expected-dependency checks (G21/G22) — splitting them obscures the per-framework control flow.")]
+            "Dependency-group walking interleaves framework parity, inter-group consistency, and per-group expected-dependency checks (G21/G22) — " +
+            "splitting them obscures the per-framework control flow.")]
     private void EvaluateDependencyGroups(
         List<ValidationCheck> checks,
         PackageFamilyConfig family,
@@ -491,7 +495,8 @@ public sealed class PackageOutputValidator(
         if (!dependencyContracts.TryGetValue(expectedNativePackageId, out var nativeContract))
         {
             AddFamilyDependencyCheck(checks, isValid: false,
-                $"G21: managed package '{managedPackagePath.GetFilename().FullPath}' must depend on within-family '{expectedNativePackageId}' as bare minimum range '{expectedVersion}' (no brackets). Actual: '<missing>'.");
+                $"G21: managed package '{managedPackagePath.GetFilename().FullPath}' must depend on within-family '{expectedNativePackageId}' as bare " +
+                $"minimum range '{expectedVersion}' (no brackets). Actual: '<missing>'.");
         }
         else
         {
@@ -500,20 +505,24 @@ public sealed class PackageOutputValidator(
             var nativeValid = !bracketed && versionMatch;
 
             AddFamilyDependencyCheck(checks, isValid: nativeValid,
-                $"G21: managed package '{managedPackagePath.GetFilename().FullPath}' must depend on within-family '{expectedNativePackageId}' as bare minimum range '{expectedVersion}' (no brackets). Actual: '{nativeContract.Version}'.");
+                $"G21: managed package '{managedPackagePath.GetFilename().FullPath}' must depend on within-family '{expectedNativePackageId}' as bare " +
+                $"minimum range '{expectedVersion}' (no brackets). Actual: '{nativeContract.Version}'.");
 
             if (!string.IsNullOrWhiteSpace(nativeContract.Exclude) &&
                 nativeContract.Exclude.Contains("Build", StringComparison.OrdinalIgnoreCase))
             {
                 AddFamilyDependencyCheck(checks, isValid: false,
-                    $"G21: managed package '{managedPackagePath.GetFilename().FullPath}' must not exclude build assets on within-family native dependency '{expectedNativePackageId}'. Actual exclude='{nativeContract.Exclude}'. This would suppress native buildTransitive targets for .NET Framework consumers.");
+                    $"G21: managed package '{managedPackagePath.GetFilename().FullPath}' must not exclude build assets on within-family native " +
+                    $"dependency '{expectedNativePackageId}'. Actual exclude='{nativeContract.Exclude}'. This would suppress native buildTransitive " +
+                    "targets for .NET Framework consumers.");
             }
 
             if (!string.IsNullOrWhiteSpace(nativeContract.Include) &&
                 !string.Equals(nativeContract.Include, "All", StringComparison.OrdinalIgnoreCase))
             {
                 AddFamilyDependencyCheck(checks, isValid: false,
-                    $"G21: managed package '{managedPackagePath.GetFilename().FullPath}' must keep within-family native dependency '{expectedNativePackageId}' build assets visible. Actual include='{nativeContract.Include}', expected 'All' or omitted.");
+                    $"G21: managed package '{managedPackagePath.GetFilename().FullPath}' must keep within-family native dependency " +
+                    $"'{expectedNativePackageId}' build assets visible. Actual include='{nativeContract.Include}', expected 'All' or omitted.");
             }
         }
 
@@ -524,7 +533,8 @@ public sealed class PackageOutputValidator(
             if (!dependencyContracts.TryGetValue(expectedManagedPackageId, out var dependencyContract))
             {
                 AddFamilyDependencyCheck(checks, isValid: false,
-                    $"G21: managed package '{managedPackagePath.GetFilename().FullPath}' must declare cross-family '{expectedManagedPackageId}' with lower bound '>={expectedVersion}'. Actual: '<missing>'.");
+                    $"G21: managed package '{managedPackagePath.GetFilename().FullPath}' must declare cross-family '{expectedManagedPackageId}' with " +
+                    $"lower bound '>={expectedVersion}'. Actual: '<missing>'.");
 
                 AddIfPresent(checks, _satelliteUpperBoundValidator.Validate(
                     family,
@@ -539,7 +549,8 @@ public sealed class PackageOutputValidator(
             var crossLowerBoundValid = MatchesExpectedLowerBound(dependencyContract.Version, expectedVersion);
 
             AddFamilyDependencyCheck(checks, isValid: crossLowerBoundValid,
-                $"G21: managed package '{managedPackagePath.GetFilename().FullPath}' must declare cross-family '{expectedManagedPackageId}' with lower bound '>={expectedVersion}'. Actual expression: '{dependencyContract.Version}'.");
+                $"G21: managed package '{managedPackagePath.GetFilename().FullPath}' must declare cross-family '{expectedManagedPackageId}' with " +
+                $"lower bound '>={expectedVersion}'. Actual expression: '{dependencyContract.Version}'.");
 
             AddIfPresent(checks, _satelliteUpperBoundValidator.Validate(
                 family,
@@ -607,13 +618,15 @@ public sealed class PackageOutputValidator(
         {
             AddCheck(checks, isValid: false, code: "G23", name: "Managed/native version match",
                 message:
-                $"G23: within-family version coherence cannot be verified because one of the <version> elements is missing. managed='{managedPackagePath.GetFilename().FullPath}' native='{nativePackagePath.GetFilename().FullPath}'.");
+                "G23: within-family version coherence cannot be verified because one of the <version> elements is missing. " +
+                $"managed='{managedPackagePath.GetFilename().FullPath}' native='{nativePackagePath.GetFilename().FullPath}'.");
             return;
         }
 
         var match = string.Equals(managedVersion, nativeVersion, StringComparison.Ordinal);
         AddCheck(checks, isValid: match, code: "G23", name: "Managed/native version match",
-            message: $"G23: managed package '{managedPackagePath.GetFilename().FullPath}' version '{managedVersion}' does not match native package '{nativePackagePath.GetFilename().FullPath}' version '{nativeVersion}'. Within-family version mismatch detected post-pack.");
+            message: $"G23: managed package '{managedPackagePath.GetFilename().FullPath}' version '{managedVersion}' does not match native package " +
+            $"'{nativePackagePath.GetFilename().FullPath}' version '{nativeVersion}'. Within-family version mismatch detected post-pack.");
     }
 
     private async Task EvaluateManagedSymbolsAsync(
@@ -704,7 +717,9 @@ public sealed class PackageOutputValidator(
         var hasLicenseEntry = entries.Any(entry => entry.StartsWith("licenses/", StringComparison.OrdinalIgnoreCase));
 
         AddCheck(checks, isValid: hasLicenseEntry, code: "G51", name: "License payload",
-            message: $"G51: native package '{nativePackagePath.GetFilename().FullPath}' contains no entries under 'licenses/'. Third-party license attribution missing — consumer-side compliance surface is broken. Ensure Harvest + ConsolidateHarvest populated licenses/_consolidated/ before Package.");
+            message: $"G51: native package '{nativePackagePath.GetFilename().FullPath}' contains no entries under 'licenses/'. Third-party license " +
+            "attribution missing — consumer-side compliance surface is broken. Ensure Harvest + ConsolidateHarvest populated licenses/_consolidated/ " +
+            "before Package.");
     }
 
     private static void EvaluateBuildTransitiveContract(
@@ -732,7 +747,9 @@ public sealed class PackageOutputValidator(
 
         var valid = missing.Count == 0;
         AddCheck(checks, isValid: valid, code: "G47", name: "BuildTransitive contract",
-            message: $"G47: native package '{nativePackagePath.GetFilename().FullPath}' is missing required buildTransitive entry/entries: {string.Join(", ", missing)}. Consumers on Linux/macOS will not extract native.tar.gz; .NETFramework AnyCPU consumers will not receive the per-RID DLL copy.");
+            message: $"G47: native package '{nativePackagePath.GetFilename().FullPath}' is missing required buildTransitive entry/entries: " +
+            $"{string.Join(", ", missing)}. Consumers on Linux/macOS will not extract native.tar.gz; .NETFramework AnyCPU consumers will not receive " +
+            "the per-RID DLL copy.");
     }
 
     private static void EvaluateNativePayloadShapePerRid(
@@ -754,7 +771,8 @@ public sealed class PackageOutputValidator(
         if (ridRoots.Count == 0)
         {
             AddCheck(checks, isValid: false, code: "G48", name: "Native payload shape",
-                message: $"G48: native package '{nativePackagePath.GetFilename().FullPath}' ships no runtimes/<rid>/native/ subtree. Consumer restore will have nothing to resolve.");
+                message: $"G48: native package '{nativePackagePath.GetFilename().FullPath}' ships no runtimes/<rid>/native/ subtree. Consumer restore " +
+                "will have nothing to resolve.");
             return;
         }
 
@@ -784,7 +802,8 @@ public sealed class PackageOutputValidator(
                 // Windows RIDs: expect at least one DLL, no tarballs.
                 var windowsValid = dlls.Count > 0 && tarballs.Count == 0;
                 AddCheck(checks, isValid: windowsValid, code: "G48", name: "Native payload shape",
-                    message: $"G48: native package '{nativePackagePath.GetFilename().FullPath}' runtimes/{rid}/native/ layout is invalid. Expected one or more *.dll files, found dlls={dlls.Count} tarballs={tarballs.Count}.");
+                    message: $"G48: native package '{nativePackagePath.GetFilename().FullPath}' runtimes/{rid}/native/ layout is invalid. Expected " +
+                    $"one or more *.dll files, found dlls={dlls.Count} tarballs={tarballs.Count}.");
                 continue;
             }
 
@@ -795,7 +814,8 @@ public sealed class PackageOutputValidator(
                             string.Equals(tarballs[0], expectedTarballName, StringComparison.Ordinal);
             var actualLabel = tarballs.Count == 0 ? "<none>" : string.Join(", ", tarballs);
             AddCheck(checks, isValid: unixValid, code: "G48", name: "Native payload shape",
-                message: $"G48: native package '{nativePackagePath.GetFilename().FullPath}' runtimes/{rid}/native/ must contain exactly one '{expectedTarballName}'. Actual: {actualLabel}. Rename drift would cause consumer-side collision with sibling satellites.");
+                message: $"G48: native package '{nativePackagePath.GetFilename().FullPath}' runtimes/{rid}/native/ must contain exactly one " +
+                $"'{expectedTarballName}'. Actual: {actualLabel}. Rename drift would cause consumer-side collision with sibling satellites.");
         }
     }
 

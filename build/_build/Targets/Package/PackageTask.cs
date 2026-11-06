@@ -127,7 +127,8 @@ public sealed class PackageTask : AsyncFrostingTask<BuildContext>
             if (string.IsNullOrWhiteSpace(family.ManagedProject) || string.IsNullOrWhiteSpace(family.NativeProject))
             {
                 throw new CakeException(
-                    $"Package task cannot pack family '{family.Name}' yet because manifest.json does not declare both managed_project and native_project. This usually means the family is still a placeholder.");
+                    $"Package task cannot pack family '{family.Name}' yet because manifest.json does not declare both managed_project and " +
+                    "native_project. This usually means the family is still a placeholder.");
             }
 
             selectedFamilies.Add(family);
