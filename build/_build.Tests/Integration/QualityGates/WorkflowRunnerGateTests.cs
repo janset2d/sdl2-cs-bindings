@@ -12,10 +12,10 @@ public sealed class WorkflowRunnerGateTests
     {
         var references = WorkflowFiles.Paths
             .SelectMany(path =>
-            WorkflowFiles.FindActionReferences(RepositoryFiles.ReadText(path)!)
-                .Where(reference => !reference.Value.StartsWith("./", StringComparison.Ordinal)
-                    && !reference.Value.StartsWith("actions/", StringComparison.Ordinal))
-                .Select(reference => (Path: path, Reference: reference)))
+                WorkflowFiles.FindActionReferences(RepositoryFiles.ReadText(path)!)
+                    .Where(reference => !reference.Value.StartsWith("./", StringComparison.Ordinal)
+                        && !reference.Value.StartsWith("actions/", StringComparison.Ordinal))
+                    .Select(reference => (Path: path, Reference: reference)))
             .ToArray();
         await Assert.That(references).IsNotEmpty();
         foreach (var (path, reference) in references)
@@ -32,8 +32,8 @@ public sealed class WorkflowRunnerGateTests
         var runners = WorkflowFiles.ManifestRunners;
         var labels = WorkflowFiles.Paths
             .SelectMany(path =>
-            WorkflowFiles.FindRunnerLabels(RepositoryFiles.ReadText(path)!)
-                .Select(label => (Path: path, Label: label)))
+                WorkflowFiles.FindRunnerLabels(RepositoryFiles.ReadText(path)!)
+                    .Select(label => (Path: path, Label: label)))
             .ToArray();
         await Assert.That(labels).IsNotEmpty();
         foreach (var (path, label) in labels)
