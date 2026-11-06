@@ -138,7 +138,7 @@ roslynator_compiler_diagnostic_fixes.enabled = true
 dotnet_diagnostic.IDE0001.severity = error
 dotnet_diagnostic.IDE0002.severity = error
 dotnet_diagnostic.IDE0003.severity = error
-# QM-11: IDE0004 stays at suggestion until "style: collection expressions, sealing, and the remaining revived rules".
+# QM-20: IDE0004 stays at suggestion until "style: remaining revived rules".
 dotnet_diagnostic.IDE0004.severity = suggestion
 # QM-7: IDE0005 stays at none until "style: usings — unused, placement, order".
 dotnet_diagnostic.IDE0005.severity = none
@@ -161,16 +161,16 @@ dotnet_diagnostic.IDE0034.severity = error
 dotnet_diagnostic.IDE0035.severity = error
 dotnet_diagnostic.IDE0036.severity = error
 dotnet_diagnostic.IDE0038.severity = error
-# QM-11: IDE0040 stays at suggestion until "style: explicit accessibility modifiers (IDE0040 error)".
+# QM-18: IDE0040 stays at suggestion until "style: explicit accessibility modifiers (IDE0040 error)".
 dotnet_diagnostic.IDE0040.severity = suggestion
 dotnet_diagnostic.IDE0041.severity = error
 dotnet_diagnostic.IDE0043.severity = error
 dotnet_diagnostic.IDE0044.severity = error
 dotnet_diagnostic.IDE0049.severity = error
 dotnet_diagnostic.IDE0051.severity = error
-# QM-11: IDE0052 stays at suggestion until "style: collection expressions, sealing, and the remaining revived rules".
+# QM-20: IDE0052 stays at suggestion until "style: remaining revived rules".
 dotnet_diagnostic.IDE0052.severity = suggestion
-# QM-11: IDE0055 stays at none until "style: collection expressions, sealing, and the remaining revived rules".
+# QM-20: IDE0055 stays at none until "style: remaining revived rules".
 dotnet_diagnostic.IDE0055.severity = none
 dotnet_diagnostic.IDE0056.severity = error
 dotnet_diagnostic.IDE0057.severity = error
@@ -180,7 +180,7 @@ dotnet_diagnostic.IDE0062.severity = error
 dotnet_diagnostic.IDE0065.severity = error
 dotnet_diagnostic.IDE0066.severity = error
 dotnet_diagnostic.IDE0071.severity = error
-# QM-11: IDE0072 stays at suggestion until "style: collection expressions, sealing, and the remaining revived rules".
+# QM-20: IDE0072 stays at suggestion until "style: remaining revived rules".
 dotnet_diagnostic.IDE0072.severity = suggestion
 dotnet_diagnostic.IDE0075.severity = error
 dotnet_diagnostic.IDE0078.severity = error
@@ -196,7 +196,7 @@ dotnet_style_namespace_match_folder = true
 dotnet_diagnostic.IDE0160.severity = error
 dotnet_diagnostic.IDE0161.severity = error
 dotnet_diagnostic.IDE0180.severity = error
-# QM-11: IDE0200 stays at suggestion until "style: collection expressions, sealing, and the remaining revived rules".
+# QM-20: IDE0200 stays at suggestion until "style: remaining revived rules".
 dotnet_diagnostic.IDE0200.severity = suggestion
 dotnet_diagnostic.IDE0240.severity = error
 dotnet_diagnostic.IDE0241.severity = error
@@ -218,12 +218,12 @@ dotnet_diagnostic.IDE0305.severity = suggestion
 dotnet_diagnostic.IDE1006.severity = error
 # QM-17: IDE2000 stays at suggestion until "style: separate statement blocks with a blank line (IDE2003 and JNS0002 error)".
 dotnet_diagnostic.IDE2000.severity = suggestion
-# QM-8: IDE0047 stays at suggestion until "style: naming, var, this. and predefined types".
+# QM-11: IDE0047 stays at suggestion until "style: collection expressions, sealing, and the remaining revived rules".
 dotnet_diagnostic.IDE0047.severity = suggestion
 
 # SECTION 6: CA DESIGN
 dotnet_diagnostic.CA1000.severity = error
-dotnet_diagnostic.CA1008.severity = suggestion
+dotnet_diagnostic.CA1008.severity = error
 dotnet_diagnostic.CA1012.severity = error
 dotnet_diagnostic.CA1018.severity = error
 dotnet_diagnostic.CA1027.severity = error
@@ -260,8 +260,7 @@ dotnet_diagnostic.CA1511.severity = error
 dotnet_diagnostic.CA1512.severity = error
 dotnet_diagnostic.CA1513.severity = error
 dotnet_diagnostic.CA1514.severity = error
-# Public tooling collaborators are not a shipped API.
-dotnet_diagnostic.CA1515.severity = none
+dotnet_diagnostic.CA1515.severity = error
 dotnet_diagnostic.CA1707.severity = error
 dotnet_diagnostic.CA1716.severity = error
 dotnet_diagnostic.CA1725.severity = error
@@ -271,8 +270,7 @@ dotnet_diagnostic.CA1802.severity = error
 dotnet_diagnostic.CA1805.severity = error
 dotnet_diagnostic.CA1806.severity = error
 dotnet_diagnostic.CA1810.severity = error
-# Framework- and DI-created types are not statically discoverable.
-dotnet_diagnostic.CA1812.severity = suggestion
+dotnet_diagnostic.CA1812.severity = error
 dotnet_diagnostic.CA1813.severity = error
 dotnet_diagnostic.CA1815.severity = error
 dotnet_diagnostic.CA1819.severity = suggestion
@@ -382,13 +380,13 @@ dotnet_diagnostic.MA0006.severity = suggestion
 dotnet_diagnostic.MA0011.severity = error
 dotnet_diagnostic.MA0074.severity = error
 dotnet_diagnostic.MA0075.severity = error
-# QM-11: MA0076 stays at suggestion until "style: collection expressions, sealing, and the remaining revived rules".
+# QM-20: MA0076 stays at suggestion until "style: remaining revived rules".
 dotnet_diagnostic.MA0076.severity = suggestion
 # Async analyzers retain overlapping coverage of Task and ValueTask operations.
 # QM-10: MA0004 stays at none until "style: ConfigureAwait required in libraries, removed from the build host and tools".
 dotnet_diagnostic.MA0004.severity = none
 dotnet_diagnostic.MA0022.severity = error
-# QM-11: MA0042 stays at suggestion until "style: collection expressions, sealing, and the remaining revived rules".
+# QM-20: MA0042 stays at suggestion until "style: remaining revived rules".
 dotnet_diagnostic.MA0042.severity = suggestion
 dotnet_diagnostic.MA0045.severity = error
 dotnet_diagnostic.MA0080.severity = error
@@ -402,7 +400,7 @@ dotnet_diagnostic.MA0078.severity = error
 dotnet_diagnostic.MA0105.severity = error
 dotnet_diagnostic.MA0106.severity = error
 dotnet_diagnostic.MA0111.severity = error
-# QM-8: MA0048 stays at suggestion until "style: naming, var, this. and predefined types".
+# QM-19: MA0048 stays at suggestion until "style: one type per file named after it (MA0048 error)".
 dotnet_diagnostic.MA0048.severity = suggestion
 dotnet_diagnostic.MA0052.severity = error
 # QM-11: MA0053 stays at none until "style: collection expressions, sealing, and the remaining revived rules".
@@ -419,9 +417,9 @@ dotnet_diagnostic.MA0180.severity = suggestion
 dotnet_diagnostic.MA0181.severity = none
 dotnet_diagnostic.MA0182.severity = suggestion
 dotnet_diagnostic.MA0183.severity = error
-# QM-11: MA0184 stays at suggestion until "style: collection expressions, sealing, and the remaining revived rules".
+# QM-20: MA0184 stays at suggestion until "style: remaining revived rules".
 dotnet_diagnostic.MA0184.severity = suggestion
-# QM-11: MA0185 stays at suggestion until "style: collection expressions, sealing, and the remaining revived rules".
+# QM-20: MA0185 stays at suggestion until "style: remaining revived rules".
 dotnet_diagnostic.MA0185.severity = suggestion
 dotnet_diagnostic.MA0186.severity = suggestion
 # This repository has no Blazor component injection.
@@ -434,19 +432,19 @@ dotnet_diagnostic.MA0192.severity = suggestion
 dotnet_diagnostic.MA0193.severity = suggestion
 dotnet_diagnostic.MA0194.severity = suggestion
 dotnet_diagnostic.MA0195.severity = error
-dotnet_diagnostic.MA0196.severity = suggestion
+dotnet_diagnostic.MA0196.severity = error
 # CS1591 owns the shipped-surface documentation policy.
 dotnet_diagnostic.MA0197.severity = none
-dotnet_diagnostic.MA0198.severity = suggestion
-dotnet_diagnostic.MA0199.severity = suggestion
+dotnet_diagnostic.MA0198.severity = error
+dotnet_diagnostic.MA0199.severity = error
 dotnet_diagnostic.MA0200.severity = suggestion
 dotnet_diagnostic.MA0201.severity = error
 dotnet_diagnostic.MA0202.severity = error
-dotnet_diagnostic.MA0203.severity = suggestion
+dotnet_diagnostic.MA0203.severity = error
 
 # SECTION 11: ROSLYNATOR
 dotnet_diagnostic.RCS1214.severity = error
-# QM-8: RCS1181 stays at suggestion until "style: naming, var, this. and predefined types".
+# QM-11: RCS1181 stays at suggestion until "style: collection expressions, sealing, and the remaining revived rules".
 dotnet_diagnostic.RCS1181.severity = suggestion
 dotnet_diagnostic.RCS1140.severity = suggestion
 dotnet_diagnostic.RCS1141.severity = suggestion
@@ -464,15 +462,14 @@ dotnet_diagnostic.S2437.severity = error
 dotnet_diagnostic.S2479.severity = suggestion
 # Exception serialization is obsolete on modern .NET.
 dotnet_diagnostic.S3925.severity = none
-# Utility classes are already static.
-dotnet_diagnostic.S1118.severity = none
+dotnet_diagnostic.S1118.severity = error
 dotnet_diagnostic.S3963.severity = error
 dotnet_diagnostic.S4457.severity = suggestion
 # Preserve the existing LINQ-based lookup convention.
 dotnet_diagnostic.S6602.severity = none
 
 # SECTION 13: COMPILER
-# Missing documentation is enforced only on shipped handwritten code.
+# Missing documentation is not enforced until the shipped-source scope is configured.
 dotnet_diagnostic.CS1591.severity = none
 
 # SECTION 14: GENERATED CODE
@@ -504,6 +501,11 @@ dotnet_diagnostic.VSTHRD111.severity = none
 dotnet_diagnostic.CA1716.severity = none
 
 # FILE-SCOPED ARBITRATION
+# Spike executables have not adopted the root application-surface rule yet.
+[spikes/binding-generators/clangsharp/tests/**.cs]
+# QM-9: CA1515 stays at none until "build(analyzers): replace NoWarn lists, pragmas and SuppressMessage with fixes and arbitration".
+dotnet_diagnostic.CA1515.severity = none
+
 # Duplicate detection mutates the version map; filtering would hide that mutation in a predicate.
 # Winner: explicit stateful validation; S3267 remains enabled for every other file.
 [build/_build/Data/Versions/PackageFamilyVersionSet.cs]
@@ -515,10 +517,11 @@ dotnet_diagnostic.S3267.severity = none
 dotnet_diagnostic.S4036.severity = none
 
 # Frozen generator tools retain their existing SDK analyzer behavior.
-# Winner: generator toolchain freeze; CA1305, CA1307, CA1859, CA1861 and CA1865 remain enabled for every other file.
+# Winner: generator toolchain freeze; CA1305, CA1307, CA1515, CA1859, CA1861 and CA1865 remain enabled for every other file.
 [spikes/binding-generators/clangsharp/{postprocess/**.cs,oracle.cs}]
 dotnet_diagnostic.CA1305.severity = none
 dotnet_diagnostic.CA1307.severity = none
-dotnet_diagnostic.CA1859.severity = none
-dotnet_diagnostic.CA1861.severity = none
-dotnet_diagnostic.CA1865.severity = none
+dotnet_diagnostic.CA1515.severity = none
+dotnet_diagnostic.CA1859.severity = suggestion
+dotnet_diagnostic.CA1861.severity = suggestion
+dotnet_diagnostic.CA1865.severity = suggestion
