@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Text.Json;
 using Build.Host;
 using Build.Host.Cake;
@@ -113,6 +114,32 @@ public sealed class FakeCakeWorld
 
     // ── fluent seeders ──
 
+    public FakeCakeWorld WithOtoolLibrary()
+    {
+        return WithProcessResult("otool", exitCode: 0,
+                stdOut: "/Users/dev/sdl/libSDL2.dylib:\n\t@rpath/libSDL2-2.0.0.dylib (compatibility version 1.0.0, current version 1.0.0)\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1319.100.3)\n")
+            .WithToolPath("/usr/bin/otool")
+            .WithDll("/Users/dev/sdl/libSDL2.dylib")
+            .WithTextFile("/Users/dev/sdl/libSDL2.dylib", "binary");
+    }
+
+    public FakeCakeWorld WithLddLibrary()
+    {
+        return WithProcessResult("ldd", exitCode: 0,
+                stdOut: "    libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f1234560000)\n")
+            .WithToolPath("/usr/bin/ldd")
+            .WithDll("artifacts/libSDL2.so")
+            .WithTextFile("artifacts/libSDL2.so", "binary content");
+    }
+
+    public FakeCakeWorld WithDumpbinLibrary()
+    {
+        return WithProcessResult("dumpbin.exe", exitCode: 0, stdOut: "    libfoo.dll\n    kernel32.dll\n")
+            .WithToolPath("C:/dumpbin/dumpbin.exe")
+            .WithDll("artifacts/SDL2.dll")
+            .WithTextFile("artifacts/SDL2.dll", "binary content");
+    }
+
     public FakeCakeWorld WithTextFile(string relativePath, string content)
     {
         return WithTextFile(new FilePath(relativePath), content);
@@ -138,6 +165,31 @@ public sealed class FakeCakeWorld
         using var writer = new StreamWriter(stream);
         writer.Write(content);
         return this;
+    }
+
+    public FakeCakeWorld WithAsyncZipEntryReads(FilePath path, byte[] content, ZipArchiveMode mode)
+    {
+        WithBinaryFile(path, content);
+        return WithAsyncZipEntryReads(path, mode);
+    }
+
+    public FakeCakeWorld WithAsyncZipEntryReads(FilePath path, ZipArchiveMode mode)
+    {
+        var previous = CakeContext.FileSystem;
+        var file = Substitute.For<IFile>();
+        file.Exists.Returns(true);
+        file.Path.Returns(path);
+        file.Open(FileMode.Open, FileAccess.Read, FileShare.Read)
+            .Returns(_ => OpenCurrentZip());
+        file.Open(FileMode.Open, FileAccess.ReadWrite, FileShare.None)
+            .Returns(_ => OpenCurrentZip());
+        var fileSystem = Substitute.For<IFileSystem>();
+        fileSystem.GetFile(Arg.Any<FilePath>()).Returns(call => path.Equals(call.Arg<FilePath>()) ? file : previous.GetFile(call.Arg<FilePath>()));
+        fileSystem.GetDirectory(Arg.Any<DirectoryPath>()).Returns(call => previous.GetDirectory(call.Arg<DirectoryPath>()));
+        CakeContext.FileSystem.Returns(fileSystem);
+        return this;
+
+        AsyncZipEntryReadStream OpenCurrentZip() => new(FileSystem.GetFile(path).GetBinaryContent(), mode, bytes => WithBinaryFile(path, bytes));
     }
 
     public FakeCakeWorld WithBinaryFile(string relativePath, byte[] content)

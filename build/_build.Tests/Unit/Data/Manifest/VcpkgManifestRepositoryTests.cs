@@ -69,7 +69,7 @@ public sealed class VcpkgManifestRepositoryRoundTripTests
         var ex = await Assert.That(() => repository.Load(path)).Throws<CakeException>();
 
         await Assert.That(ex!.Message).Contains("vcpkg manifest");
-        await Assert.That(ex!.Message).Contains("does not exist");
+        await Assert.That(ex.Message).Contains("does not exist");
     }
 
     [Test]
@@ -84,7 +84,7 @@ public sealed class VcpkgManifestRepositoryRoundTripTests
         var ex = await Assert.That(() => repository.Load(path)).Throws<CakeException>();
 
         await Assert.That(ex!.Message).Contains("vcpkg manifest");
-        await Assert.That(ex!.Message).Contains("invalid JSON");
+        await Assert.That(ex.Message).Contains("invalid JSON");
     }
 
     [Test]

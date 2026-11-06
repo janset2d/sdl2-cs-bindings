@@ -90,7 +90,7 @@ public sealed class VersionFileRepositoryRoundTripTests
         var path = world.RepoRoot.CombineWithFilePath("missing.json");
         var repo = new VersionFileRepository(world.CakeContext);
 
-        await Assert.That(() => repo.Load(path)).Throws<CakeException>().And.HasMessageContaining("does not exist");
+        await Assert.That(() => repo.Load(path)).Throws<CakeException>().And.HasMessageContaining("does not exist", StringComparison.Ordinal);
     }
 
     [Test]

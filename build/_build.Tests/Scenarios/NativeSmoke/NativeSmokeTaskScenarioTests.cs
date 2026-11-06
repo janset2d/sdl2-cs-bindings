@@ -75,7 +75,7 @@ public sealed class NativeSmokeTaskScenarioTests
 
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.Exception!.Message).Contains("sdl2-image", StringComparison.Ordinal);
-        await Assert.That(result.Exception!.Message).Contains("manifest.json", StringComparison.Ordinal);
+        await Assert.That(result.Exception.Message).Contains("manifest.json", StringComparison.Ordinal);
     }
 
     [Test]
@@ -92,7 +92,7 @@ public sealed class NativeSmokeTaskScenarioTests
 
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.Exception!.Message).Contains("is missing for library", StringComparison.Ordinal);
-        await Assert.That(result.Exception!.Message).Contains("--target Harvest", StringComparison.Ordinal);
+        await Assert.That(result.Exception.Message).Contains("--target Harvest", StringComparison.Ordinal);
     }
 
     [Test]

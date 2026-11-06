@@ -39,7 +39,7 @@ public sealed class BuildContext : FrostingContext
 
         _buildConfiguration = parsedArguments.Config;
         _versionsFilePath = !string.IsNullOrWhiteSpace(parsedArguments.VersionsFile)
-            ? new FilePath(parsedArguments.VersionsFile!)
+            ? new FilePath(parsedArguments.VersionsFile)
             : null;
         _resolveVersionsSuffix = parsedArguments.Suffix;
         _resolveVersionsScope = [.. parsedArguments.Scope];

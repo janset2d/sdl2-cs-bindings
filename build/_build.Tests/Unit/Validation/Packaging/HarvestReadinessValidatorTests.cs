@@ -33,7 +33,7 @@ public sealed class HarvestReadinessValidatorTests
             await validator.EnsureReadyAsync(TestFamily(), CancellationToken.None));
 
         await Assert.That(ex!.Message).Contains("harvest manifest");
-        await Assert.That(ex!.Message).Contains("is missing");
+        await Assert.That(ex.Message).Contains("is missing");
     }
 
     [Test]
@@ -51,7 +51,7 @@ public sealed class HarvestReadinessValidatorTests
             await validator.EnsureReadyAsync(TestFamily(), CancellationToken.None));
 
         await Assert.That(ex!.Message).Contains("lacks a consolidation receipt");
-        await Assert.That(ex!.Message).Contains("Re-run ConsolidateHarvest");
+        await Assert.That(ex.Message).Contains("Re-run ConsolidateHarvest");
     }
 
     [Test]
@@ -84,7 +84,7 @@ public sealed class HarvestReadinessValidatorTests
             await validator.EnsureReadyAsync(TestFamily(), CancellationToken.None));
 
         await Assert.That(ex!.Message).Contains("zero license entries");
-        await Assert.That(ex!.Message).Contains("breaks the compliance surface");
+        await Assert.That(ex.Message).Contains("breaks the compliance surface");
     }
 
     [Test]
@@ -102,7 +102,7 @@ public sealed class HarvestReadinessValidatorTests
             await validator.EnsureReadyAsync(TestFamily(), CancellationToken.None));
 
         await Assert.That(ex!.Message).Contains("harvest payload directory");
-        await Assert.That(ex!.Message).Contains("is missing");
+        await Assert.That(ex.Message).Contains("is missing");
     }
 
     [Test]
@@ -120,7 +120,7 @@ public sealed class HarvestReadinessValidatorTests
             await validator.EnsureReadyAsync(TestFamily(), CancellationToken.None));
 
         await Assert.That(ex!.Message).Contains("harvest payload directory");
-        await Assert.That(ex!.Message).Contains("is missing");
+        await Assert.That(ex.Message).Contains("is missing");
     }
 
     private static FakeCakeWorld ReadyWorld()

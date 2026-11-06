@@ -8,12 +8,7 @@ public sealed class OtoolAnalyzeTaskScenarios
     [Test]
     public async Task RunAsync_Should_Render_Analysis_Section_When_Dll_Is_Provided()
     {
-        var world = FakeCakeWorld.CreateOsx()
-            .WithProcessResult("otool", exitCode: 0,
-                stdOut: "/Users/dev/sdl/libSDL2.dylib:\n\t@rpath/libSDL2-2.0.0.dylib (compatibility version 1.0.0, current version 1.0.0)\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1319.100.3)\n")
-            .WithToolPath("/usr/bin/otool")
-            .WithDll("/Users/dev/sdl/libSDL2.dylib")
-            .WithTextFile("/Users/dev/sdl/libSDL2.dylib", "binary");
+        var world = FakeCakeWorld.CreateOsx().WithOtoolLibrary();
 
         var host = CreateHost(world);
         var result = await host.RunAsync();
@@ -21,6 +16,19 @@ public sealed class OtoolAnalyzeTaskScenarios
         await Assert.That(result.Success).IsTrue();
         await Assert.That(world.AnsiConsole.Output).Contains("Analyzing Specific Libraries");
         await Assert.That(world.AnsiConsole.Output).Contains("libSDL2");
+    }
+
+    [Test]
+    public async Task RunAsync_Should_Propagate_Cancellation_Without_PerFile_Errors()
+    {
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+        var world = FakeCakeWorld.CreateOsx().WithOtoolLibrary().WithCancellationToken(cancellation.Token);
+
+        var result = await CreateHost(world).RunAsync();
+
+        await TargetCancellationAssertions.AssertCancelledAsync(result, world, cancellation.Token);
+        await Assert.That(world.Log.ErrorCount).IsEqualTo(0);
     }
 
     [Test]

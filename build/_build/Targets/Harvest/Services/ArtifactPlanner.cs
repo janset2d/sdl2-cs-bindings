@@ -173,13 +173,8 @@ public sealed class ArtifactPlanner(IRuntimeProfile profile, IPathService pathSe
                 }
             }
 
-            foreach (var packageName in closure.Packages)
-            {
-                if (!deployedPackages.Contains(packageName))
-                {
-                    filteredPackages.Add(packageName);
-                }
-            }
+            filteredPackages.UnionWith(closure.Packages);
+            filteredPackages.ExceptWith(deployedPackages);
 
             var strategy = _profile.Family == RuntimeFamily.Windows
                 ? DeploymentStrategy.DirectCopy

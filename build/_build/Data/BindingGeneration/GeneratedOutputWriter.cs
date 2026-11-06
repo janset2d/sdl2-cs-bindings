@@ -38,7 +38,7 @@ public sealed class GeneratedOutputWriter(ICakeContext context)
     {
         var files = context.GetFiles($"{outputDirectory.FullPath}/**/*")
             .Concat(context.GetFiles($"{outputDirectory.FullPath}/*"))
-            .DistinctBy(file => file.FullPath);
+            .DistinctBy(file => file.FullPath, StringComparer.Ordinal);
 
         foreach (var file in files)
         {
@@ -47,7 +47,7 @@ public sealed class GeneratedOutputWriter(ICakeContext context)
 
         var directories = context.GetDirectories($"{outputDirectory.FullPath}/**/*")
             .Concat(context.GetDirectories($"{outputDirectory.FullPath}/*"))
-            .DistinctBy(directory => directory.FullPath)
+            .DistinctBy(directory => directory.FullPath, StringComparer.Ordinal)
             .OrderByDescending(directory => directory.Segments.Length)
             .ThenByDescending(directory => directory.FullPath, StringComparer.Ordinal);
 

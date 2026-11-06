@@ -49,16 +49,9 @@ public sealed class ResolveVersionsFromManifestTask(
 
     private static HashSet<string> BuildScope(IReadOnlyList<string> rawScope)
     {
-        var scope = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var entry in rawScope)
-        {
-            if (!string.IsNullOrWhiteSpace(entry))
-            {
-                scope.Add(entry.Trim());
-            }
-        }
-
-        return scope;
+        return rawScope.Where(entry => !string.IsNullOrWhiteSpace(entry))
+            .Select(entry => entry.Trim())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
     }
 
     private static List<PackageFamilyConfig> ResolveFamiliesInScope(ManifestConfig manifest, HashSet<string> requestedScope)

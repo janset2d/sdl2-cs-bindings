@@ -80,7 +80,7 @@ public sealed class HeaderSetResolverTests
                 world.RepoRoot.Combine("synthetic-headers"),
                 "x64-linux-hybrid"));
 
-        await Assert.That(exception!.Message).Contains("include directory was not found");
+        await Assert.That(exception.Message).Contains("include directory was not found");
     }
 
     [Test]
@@ -103,6 +103,6 @@ public sealed class HeaderSetResolverTests
                 world.RepoRoot.Combine("synthetic-headers"),
                 "x64-linux-hybrid"));
 
-        await Assert.That(exception!.Message).Contains("No headers matching");
+        await Assert.That(exception.Message).Contains("No headers matching");
     }
 }

@@ -14,7 +14,7 @@ public class RealManifestContractTests
         var config = JsonSerializer.Deserialize<ManifestConfig>(json);
 
         await Assert.That(config).IsNotNull();
-        await Assert.That(config!.Runtimes!.Count).IsEqualTo(7);
+        await Assert.That(config.Runtimes.Count).IsEqualTo(7);
         await Assert.That(config.LibraryManifests.Count).IsEqualTo(5);
     }
 
@@ -110,7 +110,7 @@ public class RealManifestContractTests
         var config = ManifestFixture.RealManifest;
 
         await Assert.That(config.Runtimes).IsNotNull();
-        await Assert.That(config.Runtimes!.Count).IsEqualTo(7);
+        await Assert.That(config.Runtimes.Count).IsEqualTo(7);
 
         foreach (var runtime in config.Runtimes)
         {
@@ -126,7 +126,7 @@ public class RealManifestContractTests
         var config = ManifestFixture.RealManifest;
 
         await Assert.That(config.SystemExclusions).IsNotNull();
-        await Assert.That(config.SystemExclusions!.Windows.SystemDlls.Count).IsGreaterThan(0);
+        await Assert.That(config.SystemExclusions.Windows.SystemDlls.Count).IsGreaterThan(0);
         await Assert.That(config.SystemExclusions.Linux.SystemLibraries.Count).IsGreaterThan(0);
         await Assert.That(config.SystemExclusions.Osx.SystemLibraries.Count).IsGreaterThan(0);
     }
@@ -136,7 +136,7 @@ public class RealManifestContractTests
     {
         var config = ManifestFixture.RealManifest;
 
-        foreach (var runtime in config.Runtimes!)
+        foreach (var runtime in config.Runtimes)
         {
             await Assert.That(runtime.Triplet.EndsWith("-hybrid", StringComparison.OrdinalIgnoreCase))
                 .IsTrue()

@@ -9,11 +9,7 @@ public sealed class DumpbinDependentsTaskScenarios
     [Test]
     public async Task RunAsync_Should_Invoke_Dumpbin_When_Dll_Is_Provided()
     {
-        var world = FakeCakeWorld.CreateWindows()
-            .WithProcessResult("dumpbin.exe", exitCode: 0, stdOut: "    libfoo.dll\n    kernel32.dll\n")
-            .WithToolPath("C:/dumpbin/dumpbin.exe")
-            .WithDll("artifacts/SDL2.dll")
-            .WithTextFile("artifacts/SDL2.dll", "binary content");
+        var world = FakeCakeWorld.CreateWindows().WithDumpbinLibrary();
 
         var host = new TargetTestHost<DumpbinDependentsTask>(world);
         var result = await host.RunAsync();
@@ -22,6 +18,18 @@ public sealed class DumpbinDependentsTaskScenarios
         await Assert.That(world.ProcessInvocations.Count).IsGreaterThanOrEqualTo(1);
         var dumpbinInv = world.ProcessInvocations[0];
         await Assert.That(dumpbinInv.Command.FullPath).Contains("dumpbin");
+    }
+
+    [Test]
+    public async Task RunAsync_Should_Cancel_Before_Launching_Dumpbin()
+    {
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+        var world = FakeCakeWorld.CreateWindows().WithDumpbinLibrary().WithCancellationToken(cancellation.Token);
+
+        var result = await new TargetTestHost<DumpbinDependentsTask>(world).RunAsync();
+
+        await TargetCancellationAssertions.AssertCancelledAsync(result, world, cancellation.Token);
     }
 
     [Test]
