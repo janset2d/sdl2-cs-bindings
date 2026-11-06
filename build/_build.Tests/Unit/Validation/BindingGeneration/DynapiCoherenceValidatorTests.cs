@@ -13,7 +13,8 @@ public sealed class DynapiCoherenceValidatorTests
         var signature = new[] { typeof(IReadOnlySet<string>), typeof(BindingGenerationConfig), typeof(CancellationToken) };
         var method = typeof(DynapiCoherenceValidator).GetMethod("ValidateAsync", signature);
         await Assert.That(method).IsNotNull();
-        await Assert.That(method!.GetParameters().Select(parameter => parameter.ParameterType).ToArray()).IsEquivalentTo(signature, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(method!.GetParameters().Select(parameter => parameter.ParameterType).ToArray())
+            .IsEquivalentTo(signature, TUnit.Assertions.Enums.CollectionOrdering.Matching);
         var interfaceMethod = typeof(IBindingFamilyValidator).GetMethod("ValidateAsync", signature);
         await Assert.That(interfaceMethod).IsNotNull();
         await Assert.That(interfaceMethod!.GetParameters().Select(parameter => parameter.ParameterType).ToArray())
@@ -32,9 +33,12 @@ public sealed class DynapiCoherenceValidatorTests
             ("Public SDL2 export missing from emitted bindings", Build.Results.ValidationSeverity.Warning,
                 "SDL2 dynapi manifest lists 'SDL_ZMissing' as a public export but the generator did not emit it (source: VcpkgBuildtree '/fake/SDL2.exports'). Likely cause: header exclusion list too aggressive, parse-view defines missing a platform, or AST inline filter over-classifying."),
         };
-        await Assert.That(report.Select(check => (check.Name, check.Severity, check.Message)).ToArray()).IsEquivalentTo(expected, TUnit.Assertions.Enums.CollectionOrdering.Matching);
-        await Assert.That(report.Errors.Select(check => (check.Name, check.Severity, check.Message)).ToArray()).IsEquivalentTo(expected[..2], TUnit.Assertions.Enums.CollectionOrdering.Matching);
-        await Assert.That(report.Warnings.Select(check => (check.Name, check.Severity, check.Message)).ToArray()).IsEquivalentTo(expected[2..], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(report.Select(check => (check.Name, check.Severity, check.Message)).ToArray())
+            .IsEquivalentTo(expected, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(report.Errors.Select(check => (check.Name, check.Severity, check.Message)).ToArray())
+            .IsEquivalentTo(expected[..2], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(report.Warnings.Select(check => (check.Name, check.Severity, check.Message)).ToArray())
+            .IsEquivalentTo(expected[2..], TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     private static HashSet<string> Symbols(params string[] names)
