@@ -55,7 +55,8 @@ public abstract class VcpkgTool<TSettings> : Tool<TSettings> where TSettings : V
         if (!_cakeContext.DirectoryExists(vcpkgRoot))
         {
             throw new CakeException(
-                $"Vcpkg root directory could not be determined or does not exist. Checked path: '{vcpkgRoot.FullPath}'. Use --vcpkg-dir argument or ensure vcpkg submodule exists.");
+                $"Vcpkg root directory could not be determined or does not exist. Checked path: '{vcpkgRoot.FullPath}'. Use --vcpkg-dir argument or " +
+                "ensure vcpkg submodule exists.");
         }
 
         var exePath = vcpkgRoot.CombineWithFilePath(_environment.Platform.Family == PlatformFamily.Windows ? "vcpkg.exe" : "vcpkg");

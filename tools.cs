@@ -320,19 +320,23 @@ public sealed class SetupCommand : AsyncCommand<SetupSettings>
                 if (managedVersion is null)
                 {
                     throw new RemoteGitHubSetupException(
-                        $"Family '{family.Name}' has no published managed package '{managedId}' on GitHub Packages. First publish wave has not shipped yet, or this package was not pushed. Run local setup or publish a coherent staging wave.");
+                        $"Family '{family.Name}' has no published managed package '{managedId}' on GitHub Packages. First publish wave has not " +
+                        "shipped yet, or this package was not pushed. Run local setup or publish a coherent staging wave.");
                 }
 
                 if (nativeVersion is null)
                 {
                     throw new RemoteGitHubSetupException(
-                        $"Family '{family.Name}' has no published native package '{nativeId}' on GitHub Packages while managed '{managedId}' is at {managedVersion.ToNormalizedString()}. This looks like a partial publish; re-run the failing publish wave or use local setup.");
+                        $"Family '{family.Name}' has no published native package '{nativeId}' on GitHub Packages while managed '{managedId}' is at " +
+                        $"{managedVersion.ToNormalizedString()}. This looks like a partial publish; re-run the failing publish wave or use local setup.");
                 }
 
                 if (!VersionComparer.Default.Equals(managedVersion, nativeVersion))
                 {
                     throw new RemoteGitHubSetupException(
-                        $"Family '{family.Name}' managed/native versions disagree: {managedId}@{managedVersion.ToNormalizedString()} vs {nativeId}@{nativeVersion.ToNormalizedString()}. This is likely a partial publish; repair the internal feed or supply a coherent version set in a future explicit-version flow.");
+                        $"Family '{family.Name}' managed/native versions disagree: {managedId}@{managedVersion.ToNormalizedString()} vs " +
+                        $"{nativeId}@{nativeVersion.ToNormalizedString()}. This is likely a partial publish; repair the internal feed or supply a " +
+                        "coherent version set in a future explicit-version flow.");
                 }
 
                 AnsiConsole.MarkupLine($"  [green]✓[/] [cyan]{Markup.Escape(family.Name)}[/] = [yellow]{managedVersion.ToNormalizedString()}[/]");
@@ -1359,7 +1363,8 @@ internal static class Shared
         if (!copied)
         {
             throw new InvalidOperationException(
-                $"NuGet feed at '{feedUrl}' could not stream '{packageId}' {version.ToNormalizedString()}. Verify the package was published and the auth token has read:packages scope.");
+                $"NuGet feed at '{feedUrl}' could not stream '{packageId}' {version.ToNormalizedString()}. Verify the package was published and the " +
+                "auth token has read:packages scope.");
         }
     }
 

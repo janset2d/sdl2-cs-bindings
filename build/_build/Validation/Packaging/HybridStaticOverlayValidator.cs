@@ -47,7 +47,8 @@ public sealed class HybridStaticOverlayValidator(ICakeContext cakeContext, IPath
                 checks.Add(new ValidationCheck(
                     Name: "Hybrid overlay triplet name",
                     Severity: ValidationSeverity.Error,
-                    Message: $"Runtime '{runtime.Rid}' uses triplet '{runtime.Triplet}' which does not end with '-hybrid'. The hybrid-static packaging model requires hybrid overlay triplets only.",
+                    Message: $"Runtime '{runtime.Rid}' uses triplet '{runtime.Triplet}' which does not end with '-hybrid'. The hybrid-static " +
+                    "packaging model requires hybrid overlay triplets only.",
                     Code: "G16"));
                 continue;
             }
@@ -58,7 +59,8 @@ public sealed class HybridStaticOverlayValidator(ICakeContext cakeContext, IPath
                 checks.Add(new ValidationCheck(
                     Name: "Hybrid overlay triplet file existence",
                     Severity: ValidationSeverity.Error,
-                    Message: $"Runtime '{runtime.Rid}' declares triplet '{runtime.Triplet}' but overlay file '{overlayFile.FullPath}' does not exist. Drop the runtime from manifest.json or add the overlay.",
+                    Message: $"Runtime '{runtime.Rid}' declares triplet '{runtime.Triplet}' but overlay file '{overlayFile.FullPath}' does not exist. " +
+                    "Drop the runtime from manifest.json or add the overlay.",
                     Code: "G16"));
             }
         }

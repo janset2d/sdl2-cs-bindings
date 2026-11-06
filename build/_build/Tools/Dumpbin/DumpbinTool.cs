@@ -40,7 +40,8 @@ public abstract class DumpbinTool(ICakeContext cakeContext)
         if (vsWhereLatest is null || string.IsNullOrWhiteSpace(vsWhereLatest.FullPath))
         {
             throw new FileNotFoundException(
-                "Dumpbin could not be resolved. Ensure Visual Studio Build Tools with C++ tools is installed, run from a Developer PowerShell/Command Prompt, or add dumpbin.exe to PATH.");
+                "Dumpbin could not be resolved. Ensure Visual Studio Build Tools with C++ tools is installed, run from a Developer PowerShell/Command " +
+                "Prompt, or add dumpbin.exe to PATH.");
         }
 
         var msvcRoot = vsWhereLatest.Combine("VC").Combine("Tools").Combine("MSVC");
