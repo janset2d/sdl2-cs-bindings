@@ -1,10 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
 using Build.Data.Manifest;
+using Build.Data.Manifest.Models;
 using Build.Data.Versions;
 using Build.Host;
 using Build.Host.Paths;
 using Build.Targets.PublishStaging.Services;
-using Build.Data.Manifest.Models;
 using Build.Validation.Conventions;
 using Cake.Common;
 using Cake.Common.IO;

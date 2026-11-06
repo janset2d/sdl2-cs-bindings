@@ -1,6 +1,6 @@
 using System.Globalization;
-using Build.Host.Paths;
 using Build.Data.Manifest.Models;
+using Build.Host.Paths;
 using Build.Host.Runtime;
 using Build.Tools.Dumpbin;
 using Build.Tools.Ldd;

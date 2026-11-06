@@ -1,7 +1,7 @@
 using Build.Data.Manifest;
+using Build.Data.Manifest.Models;
 using Build.Host;
 using Build.Host.Paths;
-using Build.Data.Manifest.Models;
 using Build.Host.Runtime;
 using Build.Targets.NativeSmoke.Requests;
 using Build.Targets.NativeSmoke.Services;

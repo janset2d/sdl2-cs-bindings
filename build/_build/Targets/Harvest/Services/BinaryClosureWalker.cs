@@ -5,8 +5,8 @@
 // would tighten the diagnostic surface but changes pre-migration behavior; deferred to a follow-up slice.
 #pragma warning disable CA1031, MA0051
 
-using Build.Host.Paths;
 using Build.Data.Manifest.Models;
+using Build.Host.Paths;
 using Build.Host.Runtime;
 using Build.Results;
 using Build.Targets.Harvest.Models;

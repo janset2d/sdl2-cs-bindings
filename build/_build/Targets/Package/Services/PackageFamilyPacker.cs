@@ -1,6 +1,6 @@
-using Build.Host.Paths;
 using Build.Data.Manifest.Models;
 using Build.Data.ProjectMetadata;
+using Build.Host.Paths;
 using Build.Targets.Package.Models;
 using Build.Targets.Package.Reporting;
 using Build.Validation.Packaging;
