@@ -313,7 +313,7 @@ namespace Tools
             var logPath = Shared.BuildStepLogPath(logDir, stepNumber, label);
             var resolved = new SortedDictionary<string, NuGetVersion>(StringComparer.OrdinalIgnoreCase);
 
-            AnsiConsole.Write(new Rule($"[yellow]{stepNumber.ToString("00", CultureInfo.CurrentCulture)}. {Markup.Escape(label)}[/]").RuleStyle("grey").LeftJustified());
+            AnsiConsole.Write(new Rule(string.Create(CultureInfo.CurrentCulture, $"[yellow]{stepNumber:00}. {Markup.Escape(label)}[/]")).RuleStyle("grey").LeftJustified());
             AnsiConsole.MarkupLine($"[grey]feed:[/] [cyan]{Markup.Escape(Shared.GitHubPackagesFeedUrl)}[/]");
 
             var stopwatch = Stopwatch.StartNew();
@@ -348,7 +348,7 @@ namespace Tools
 
             stopwatch.Stop();
             await logWriter.WriteLineAsync();
-            await logWriter.WriteLineAsync(string.Create(CultureInfo.CurrentCulture, $"# exit={exitCode} finished={DateTimeOffset.UtcNow:O}"));
+            await logWriter.WriteLineAsync(string.Create(CultureInfo.InvariantCulture, $"# exit={exitCode} finished={DateTimeOffset.UtcNow:O}"));
             await logWriter.FlushAsync();
 
             results.Add(new Shared.StepResult(label, exitCode, stopwatch.Elapsed, logPath));
@@ -719,7 +719,7 @@ namespace Tools
 
             if (pullExit != 0)
             {
-                AnsiConsole.MarkupLine($"[red]docker pull failed with exit code {pullExit.ToString(CultureInfo.CurrentCulture)}.[/]");
+                AnsiConsole.MarkupLine(string.Create(CultureInfo.CurrentCulture, $"[red]docker pull failed with exit code {pullExit}.[/]"));
                 return pullExit;
             }
 
@@ -764,7 +764,7 @@ namespace Tools
 
             if (buildExit != 0)
             {
-                AnsiConsole.MarkupLine($"[red]docker build failed with exit code {buildExit.ToString(CultureInfo.CurrentCulture)}.[/]");
+                AnsiConsole.MarkupLine(string.Create(CultureInfo.CurrentCulture, $"[red]docker build failed with exit code {buildExit}.[/]"));
                 return buildExit;
             }
 
@@ -1279,7 +1279,7 @@ namespace Tools
             List<StepResult> results, string repoRoot, string label, IReadOnlyList<string> cakeArgs, bool verbose)
         {
             var stepNumber = results.Count + 1;
-            AnsiConsole.Write(new Rule($"[yellow]{stepNumber.ToString("00", CultureInfo.CurrentCulture)}. {Markup.Escape(label)}[/]").RuleStyle("grey").LeftJustified());
+            AnsiConsole.Write(new Rule(string.Create(CultureInfo.CurrentCulture, $"[yellow]{stepNumber:00}. {Markup.Escape(label)}[/]")).RuleStyle("grey").LeftJustified());
 
             var fullArgs = BuildCakeArgList(repoRoot, cakeArgs);
             var displayCommand = "dotnet " + string.Join(' ', fullArgs.Select(QuoteArg));
@@ -1294,7 +1294,7 @@ namespace Tools
                 // never overwrite each other's log files.
                 var runId = DateTimeOffset.UtcNow.ToString("yyyyMMddTHHmmssZ", CultureInfo.InvariantCulture);
                 var logPath = Path.Combine(repoRoot, ".logs", "tools", $"setup-{runId}",
-                    $"{stepNumber.ToString("00", CultureInfo.CurrentCulture)}-{SanitizeForFile(label)}.log");
+                    string.Create(CultureInfo.InvariantCulture, $"{stepNumber:00}-{SanitizeForFile(label)}.log"));
                 var logDir = Path.GetDirectoryName(logPath)!;
 
                 if (!Directory.Exists(logDir))
@@ -1332,11 +1332,11 @@ namespace Tools
 
             if (stepResult.Succeeded)
             {
-                AnsiConsole.MarkupLine($"[green]OK[/]   ({stopwatch.Elapsed.TotalSeconds.ToString("F1", CultureInfo.CurrentCulture)}s)");
+                AnsiConsole.MarkupLine(string.Create(CultureInfo.CurrentCulture, $"[green]OK[/]   ({stopwatch.Elapsed.TotalSeconds:F1}s)"));
             }
             else
             {
-                AnsiConsole.MarkupLine($"[red]FAIL[/] ({stopwatch.Elapsed.TotalSeconds.ToString("F1", CultureInfo.CurrentCulture)}s)");
+                AnsiConsole.MarkupLine(string.Create(CultureInfo.CurrentCulture, $"[red]FAIL[/] ({stopwatch.Elapsed.TotalSeconds:F1}s)"));
             }
 
             AnsiConsole.WriteLine();
@@ -1349,9 +1349,9 @@ namespace Tools
             List<StepResult> results, string repoRoot, string logDir, string label, IReadOnlyList<string> cakeArgs, bool verbose)
         {
             var stepNumber = results.Count + 1;
-            var logPath = Path.Combine(logDir, $"{stepNumber.ToString("00", CultureInfo.CurrentCulture)}-{SanitizeForFile(label)}.log");
+            var logPath = Path.Combine(logDir, string.Create(CultureInfo.InvariantCulture, $"{stepNumber:00}-{SanitizeForFile(label)}.log"));
 
-            AnsiConsole.Write(new Rule($"[yellow]{stepNumber.ToString("00", CultureInfo.CurrentCulture)}. {Markup.Escape(label)}[/]").RuleStyle("grey").LeftJustified());
+            AnsiConsole.Write(new Rule(string.Create(CultureInfo.CurrentCulture, $"[yellow]{stepNumber:00}. {Markup.Escape(label)}[/]")).RuleStyle("grey").LeftJustified());
 
             var fullArgs = BuildCakeArgList(repoRoot, cakeArgs);
             var displayCommand = "dotnet " + string.Join(' ', fullArgs.Select(QuoteArg));
@@ -1518,18 +1518,18 @@ namespace Tools
             for (var i = 0; i < results.Count; i++)
             {
                 var r = results[i];
-                var status = r.Succeeded ? "[green]PASS[/]" : $"[red]FAIL (exit {r.ExitCode.ToString(CultureInfo.CurrentCulture)})[/]";
+                var status = r.Succeeded ? "[green]PASS[/]" : string.Create(CultureInfo.CurrentCulture, $"[red]FAIL (exit {r.ExitCode})[/]");
                 table.AddRow(
                     (i + 1).ToString(CultureInfo.InvariantCulture),
                     Markup.Escape(r.Label),
                     status,
-                    $"{r.Duration.TotalSeconds.ToString("F1", CultureInfo.CurrentCulture)}s");
+                    string.Create(CultureInfo.CurrentCulture, $"{r.Duration.TotalSeconds:F1}s"));
             }
 
             var failed = results.Count(static r => !r.Succeeded);
             var passed = results.Count - failed;
             var headerColor = failed == 0 ? "green" : "red";
-            var headerText = failed == 0 ? "All stages passed" : $"{failed.ToString(CultureInfo.CurrentCulture)} stage(s) failed";
+            var headerText = failed == 0 ? "All stages passed" : string.Create(CultureInfo.CurrentCulture, $"{failed} stage(s) failed");
 
             AnsiConsole.Write(new Panel(table)
                 .Header(string.Create(CultureInfo.CurrentCulture,
@@ -1553,7 +1553,7 @@ namespace Tools
             => argument.Contains(' ', StringComparison.Ordinal) ? $"\"{argument}\"" : argument;
 
         public static string BuildStepLogPath(string logDir, int stepNumber, string label)
-            => Path.Combine(logDir, $"{stepNumber.ToString("00", CultureInfo.CurrentCulture)}-{SanitizeForFile(label)}.log");
+            => Path.Combine(logDir, string.Create(CultureInfo.InvariantCulture, $"{stepNumber:00}-{SanitizeForFile(label)}.log"));
 
         private static PipeTarget CreateLineLogPipe(string logPath, TextWriter? consoleWriter)
         {

@@ -169,7 +169,7 @@ public sealed class OverlayPortVersionCoherenceValidatorTests
                   "version": "{{version}}"
                 }
                 """
-            : string.Create(CultureInfo.CurrentCulture, $$"""
+            : string.Create(CultureInfo.InvariantCulture, $$"""
                 {
                   "name": "{{portName}}",
                   "version": "{{version}}",

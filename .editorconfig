@@ -693,8 +693,3 @@ dotnet_diagnostic.MA0045.severity = none
 # Winner: the repository-gate inventory contract; MA0045 remains enabled for every other file.
 [build/_build.Tests/Fixtures/RepositoryGates/RepositoryFiles.cs]
 dotnet_diagnostic.MA0045.severity = none
-
-# SIMD alignment has a native-width return type; its ulong conversion is required on downlevel targets but redundant on modern ones.
-# Winner: one ABI test source across target frameworks; IDE0004 remains enabled for every other file.
-[spikes/binding-generators/clangsharp/tests/abi-tests/Upstream/Pure/PlatformAbiTests.cs]
-dotnet_diagnostic.IDE0004.severity = none
