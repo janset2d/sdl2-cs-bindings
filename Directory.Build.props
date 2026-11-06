@@ -48,8 +48,9 @@
 
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <MSBuildTreatWarningsAsErrors>true</MSBuildTreatWarningsAsErrors>
-    <!-- No repository metadata (for example the generator image, whose context excludes .git): skip the source-control query instead of warning. -->
+    <!-- Without repository metadata, skip source-control queries and SourceLink generation. -->
     <EnableSourceControlManagerQueries Condition="!Exists('$(MSBuildThisFileDirectory).git')">false</EnableSourceControlManagerQueries>
+    <EnableSourceLink Condition="!Exists('$(MSBuildThisFileDirectory).git')">false</EnableSourceLink>
     <!-- Also required for IDE0005 (unused usings) to fire in CLI builds - do not remove -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <RunAnalyzersDuringBuild>true</RunAnalyzersDuringBuild>
