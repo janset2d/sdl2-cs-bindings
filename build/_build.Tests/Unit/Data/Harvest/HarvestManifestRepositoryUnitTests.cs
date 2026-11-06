@@ -12,7 +12,7 @@ namespace Build.Tests.Unit.Data.Harvest;
 /// </summary>
 public sealed class HarvestManifestRepositoryUnitTests
 {
-    private const string _libraryName = "sdl2-core";
+    private const string LibraryName = "sdl2-core";
 
     [Test]
     public async Task Constructor_Should_Throw_When_CakeContext_Is_Null()
@@ -46,7 +46,7 @@ public sealed class HarvestManifestRepositoryUnitTests
         using var cts = new CancellationTokenSource();
         await cts.CancelAsync();
 
-        await Assert.That(() => repository.LoadRidStatusesAsync(_libraryName, cts.Token)).Throws<OperationCanceledException>();
+        await Assert.That(() => repository.LoadRidStatusesAsync(LibraryName, cts.Token)).Throws<OperationCanceledException>();
     }
 
     [Test]
@@ -63,7 +63,7 @@ public sealed class HarvestManifestRepositoryUnitTests
     {
         var repository = CreateRepository();
 
-        await Assert.That(() => repository.WriteManifestTempAsync(_libraryName, null!)).Throws<ArgumentNullException>();
+        await Assert.That(() => repository.WriteManifestTempAsync(LibraryName, null!)).Throws<ArgumentNullException>();
     }
 
     private static HarvestManifestRepository CreateRepository()
