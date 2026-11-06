@@ -32,9 +32,8 @@ Read current file paths from generation config and [maintenance](binding-generat
 ## Evidence collection and interpretation
 
 Automate narrow facts: compile results, effective accessibility, symbol names, file presence, schema
-shape and per-TFM snapshots. Inspect the actual public binding tier and any private imports used for
-per-member ABI demotion; a public import is not itself a leak under the decided one-class policy.
-No second raw container or uniform forwarding projection should be required by the reviewed policy.
+shape and per-TFM snapshots. Public C-named imports form the binding tier; private imports appear
+only for per-member ABI demotion. Inspect their effective accessibility and public signatures.
 
 Check required surface, actual exports, explicit macro skips, consumed overrides and justified stale
 exceptions. Names from dynapi never prove ABI. Review strings, ownership, callback lifetimes and

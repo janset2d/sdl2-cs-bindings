@@ -192,8 +192,8 @@ extraction outcomes. The report is local-generator provenance, not an independen
 
 Before promoting generated source, prove or explicitly classify each applicable gate:
 
-- Compile every library TFM and review per-TFM API snapshots. Apply the binding-tier/friendly-tier
-  boundary and per-member demotion rule, not the obsolete blanket prohibition on public imports.
+- Compile every library TFM and review per-TFM API snapshots. Public C-named imports form the
+  binding tier; private imports appear only for per-member ABI demotion.
 - Match header/dynapi/export function names after justified exclusions; fixture-test C long,
   wchar_t, boolean storage, size_t, pointers, callbacks, fixed arrays and platform-conditioned layouts.
 - Report macro emissions, skips, unsupported candidates, overrides and stale exceptions.

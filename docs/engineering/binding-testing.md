@@ -66,7 +66,7 @@ Read exact category names from
 [AbiCategories](../../spikes/binding-generators/clangsharp/tests/abi-tests/Infrastructure/Classification/AbiCategories.cs)
 and scheduling keys from
 [AbiParallelKeys](../../spikes/binding-generators/clangsharp/tests/abi-tests/Infrastructure/Classification/AbiParallelKeys.cs).
-Category describes behavior (smoke/upstream/header/mechanical/pure/assets/global/dummy/capability);
+Category describes behavior;
 validation boundary describes where the proof runs. Subsystem tags are a separate dimension.
 
 Pure tests may run in parallel. Tests mutating shared SDL process state use the applicable shared
@@ -148,7 +148,7 @@ the intended formats through real files.
 
 These are test-design targets, not a claim that every case is implemented. The
 [roadmap](../ROADMAP.md) owns depth/fixture gaps and capability work. Package scope is governed by
-[packaging canon](../architecture/packaging-and-release.md#41-pipeline-scope-assumption-gaps--operational-implications),
+[packaging canon](../architecture/packaging-and-release.md#release-scope-requirements),
 not by creating private smoke arrangements for individual changes.
 
 ## Asset policy and manual diagnostics
