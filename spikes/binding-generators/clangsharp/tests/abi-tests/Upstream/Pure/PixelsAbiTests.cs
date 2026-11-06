@@ -8,8 +8,8 @@ namespace Janset.SDL2.AbiTests.Upstream.Pure;
 
 public sealed class PixelsAbiTests
 {
-    private const uint InvalidPacked32Abgr1010103 = 0x16692004;
-    private const uint InvalidPacked32Abgr1010104 = 0x166A2004;
+    private const uint _invalidPacked32Abgr1010103 = 0x16692004;
+    private const uint _invalidPacked32Abgr1010104 = 0x166A2004;
 
     [Test]
     [Arguments(SDL_PixelFormatEnum.SDL_PIXELFORMAT_INDEX1LSB)]
@@ -76,8 +76,8 @@ public sealed class PixelsAbiTests
     }
 
     [Test]
-    [Arguments(InvalidPacked32Abgr1010103)]
-    [Arguments(InvalidPacked32Abgr1010104)]
+    [Arguments(_invalidPacked32Abgr1010103)]
+    [Arguments(_invalidPacked32Abgr1010104)]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.Mechanical)]
     [Category(AbiCategories.Pure)]
@@ -146,8 +146,8 @@ public sealed class PixelsAbiTests
     }
 
     [Test]
-    [Arguments(InvalidPacked32Abgr1010103)]
-    [Arguments(InvalidPacked32Abgr1010104)]
+    [Arguments(_invalidPacked32Abgr1010103)]
+    [Arguments(_invalidPacked32Abgr1010104)]
     [Category(AbiCategories.UpstreamPort)]
     [Category(AbiCategories.BehaviorCoverage)]
     [Category(AbiCategories.Pure)]
