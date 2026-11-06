@@ -2,6 +2,9 @@
 #:property TargetFramework=net10.0
 #:property TargetFrameworks=
 #:property PublishAot=false
+#:property IsAotCompatible=false
+#:property IsTrimmable=false
+#:property EnableAOTAnalyzer=false
 #:package Spectre.Console
 #:package Spectre.Console.Cli
 #:package CliWrap
