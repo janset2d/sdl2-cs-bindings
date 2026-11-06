@@ -85,7 +85,6 @@ public sealed class CsprojPackContractValidator(IFileSystem fileSystem) : ICspro
                 : $"Native csproj <PackageId> must equal '{expectedNativePackageId}' (canonical Janset.SDL<Major>.<Role>.Native). Actual: '{actualPackageId ?? "<missing>"}'."));
     }
 
-    // The synchronous validator reads small project files through Cake's filesystem.
     private (XElement? Root, CsprojPackContractCheck? Error) LoadCsprojDocument(PackageFamilyConfig family, DirectoryPath repoRoot, string relativePath)
     {
         var fullPath = repoRoot.CombineWithFilePath(relativePath);

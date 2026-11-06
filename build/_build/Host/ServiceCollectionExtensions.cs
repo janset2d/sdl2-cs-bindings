@@ -1,4 +1,3 @@
-
 using Build.Data.Manifest;
 using Build.Host.Cake;
 using Build.Host.Paths;

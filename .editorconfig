@@ -244,7 +244,7 @@ dotnet_diagnostic.CA1008.severity = error
 dotnet_diagnostic.CA1012.severity = error
 dotnet_diagnostic.CA1018.severity = error
 dotnet_diagnostic.CA1027.severity = error
-# Boundary orchestration catches broadly to report failures.
+# Catch-general-exception: active rule, deliberately off [opinionated] - boundary orchestration reports failures.
 dotnet_diagnostic.CA1031.severity = none
 dotnet_diagnostic.CA1032.severity = error
 dotnet_diagnostic.CA1040.severity = suggestion
@@ -542,11 +542,16 @@ dotnet_diagnostic.S3267.severity = none
 
 # Git has no fixed install path across supported hosts; PATH selects it and --repo-root bypasses it.
 # Winner: pre-Cake repository discovery; S4036 remains enabled for every other file.
-[build/_build/Program.cs]
+[build/_build/EntryPoint.cs]
 dotnet_diagnostic.S4036.severity = none
 
 # Frozen generator tools retain their existing SDK analyzer behavior.
-# Winner: generator toolchain freeze; CA1305, CA1307, CA1859, CA1861 and CA1865 remain enabled for every other file.
+# Winner: generator toolchain freeze; CA1305 remains enabled for every other file.
+# Winner: generator toolchain freeze; CA1307 remains enabled for every other file.
+# Winner: generator toolchain freeze; CA1515 remains enabled for every other file.
+# Winner: generator toolchain freeze; CA1859 remains enabled for every other file.
+# Winner: generator toolchain freeze; CA1861 remains enabled for every other file.
+# Winner: generator toolchain freeze; CA1865 remains enabled for every other file.
 [spikes/binding-generators/clangsharp/{postprocess/**.cs,oracle.cs}]
 dotnet_diagnostic.CA1305.severity = none
 dotnet_diagnostic.CA1307.severity = none
@@ -557,7 +562,9 @@ dotnet_diagnostic.CA1865.severity = suggestion
 
 # ABI assertions expose native widths through explicit declared types.
 # Raw native memory is the subject of ABI tests.
-# Winner: ABI width and memory visibility; IDE0007 and S6640 remain enabled elsewhere; IDE0008 cannot fire while var is preferred globally.
+# Winner: ABI width visibility; IDE0007 remains enabled for every other file.
+# Winner: global var preference; IDE0008 cannot fire while var is preferred globally.
+# Winner: native memory visibility; S6640 remains enabled for every other file.
 [spikes/binding-generators/clangsharp/tests/abi-tests/**.cs]
 dotnet_diagnostic.IDE0007.severity = none
 dotnet_diagnostic.IDE0008.severity = none
@@ -578,13 +585,10 @@ dotnet_diagnostic.MA0144.severity = none
 [spikes/binding-generators/clangsharp/tests/abi-tests/Upstream/Assets/SurfaceAbiTests.cs]
 dotnet_diagnostic.S3267.severity = none
 
-# The file-based entry holds the tool's command types in one SDK compilation unit.
-# Winner: the file-based entry contract; MA0048 remains enabled for every other file.
-[/tools.cs]
-dotnet_diagnostic.MA0048.severity = none
-
 # Console hosts have no SynchronizationContext to preserve.
-# Winner: console hosts with no SynchronizationContext; CA2007, MA0004 and VSTHRD111 remain enabled for every other non-test file.
+# Winner: console hosts with no SynchronizationContext; CA2007 remains enabled for every other non-test file.
+# Winner: console hosts with no SynchronizationContext; MA0004 remains enabled for every other non-test file.
+# Winner: console hosts with no SynchronizationContext; VSTHRD111 remains enabled for every other non-test file.
 [{build/_build/**.cs,tools.cs}]
 dotnet_diagnostic.CA2007.severity = none
 dotnet_diagnostic.MA0004.severity = none
@@ -635,11 +639,6 @@ dotnet_diagnostic.CA1710.severity = none
 [build/_build/Program.cs]
 dotnet_diagnostic.MA0045.severity = none
 
-# The compiler-generated entrypoint aggregates local helpers whose generated names existing composition tests inspect.
-# Winner: the tested entrypoint and helper contract; CA1502 remains enabled for every other file.
-[build/_build/Program.cs]
-dotnet_diagnostic.CA1502.severity = none
-
 # The validator implements a synchronous contract over small Cake-managed project files.
 # Winner: the synchronous validation contract; MA0045 remains enabled for every other file.
 [build/_build/Validation/Manifest/CsprojPackContractValidator.cs]
@@ -651,20 +650,22 @@ dotnet_diagnostic.MA0045.severity = none
 dotnet_diagnostic.S1075.severity = none
 
 # The probe exists to compile against the package surface; its member is never read.
-# Winner: the compile-only probe contract; S1144 and CA1823 remain enabled for every other file.
+# Winner: the compile-only probe contract; S1144 remains enabled for every other file.
+# Winner: the compile-only probe contract; CA1823 remains enabled for every other file.
 [tests/smoke-tests/package-smoke/Compile.NetStandard/Probe.cs]
 dotnet_diagnostic.S1144.severity = none
 dotnet_diagnostic.CA1823.severity = none
 
 # Line-log callbacks synchronously write under a lock and preserve the caller's ordered Action<string> contract.
 # Winner: synchronous callback ordering; MA0045 remains enabled for every other file.
-[tools.cs]
-dotnet_diagnostic.MA0045.severity = none
-
 # The script's feed URI identifies the repository's staging endpoint, not a machine-specific resource.
 # Winner: the fixed staging-feed contract; S1075 remains enabled for every other file.
+# The file-based entry holds the tool's command types in one SDK compilation unit.
+# Winner: the file-based entry contract; MA0048 remains enabled for every other file.
 [tools.cs]
+dotnet_diagnostic.MA0045.severity = none
 dotnet_diagnostic.S1075.severity = none
+dotnet_diagnostic.MA0048.severity = none
 
 # Sandbox output is an English-only local smoke instruction, not a localized shipped UI.
 # Winner: the local sandbox contract; CA1303 remains enabled for every other file.

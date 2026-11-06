@@ -20,6 +20,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Xml.Linq;
 using CliWrap;
+using Tools;
 using NuGet.Common;
 using NuGet.Configuration;
 using NuGet.Protocol;
@@ -27,7 +28,6 @@ using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
 using Spectre.Console;
 using Spectre.Console.Cli;
-using tools;
 
 var app = new CommandApp();
 app.Configure(config =>
@@ -56,7 +56,7 @@ return await app.RunAsync(args);
 // Settings
 // ──────────────────────────────────────────────────────────────────
 
-namespace tools
+namespace Tools
 {
     public sealed class SetupSettings : CommandSettings
     {
@@ -511,13 +511,11 @@ namespace tools
 
             var scopeArgs = families.SelectMany(f => new[] { "--scope", f.Name }).ToArray();
 
-            // Step 1: CleanArtifacts
             AnsiConsole.MarkupLine("[grey]Cleaning artifacts/ ...[/]");
             Shared.CleanArtifacts(repoRoot);
 
             var versionsPath = Path.Combine(repoRoot, "artifacts", "resolve-versions", "versions.json");
 
-            // Step 2: ResolveVersionsFromManifest
             var resolveArgs = new List<string> { "--target", "ResolveVersionsFromManifest", $"--suffix={suffix}", "--versions-file", versionsPath };
             resolveArgs.AddRange(scopeArgs);
 
@@ -527,7 +525,6 @@ namespace tools
                 return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 1);
             }
 
-            // Step 3: PreFlightCheck
             if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "PreFlightCheck",
                     ["--target", "PreFlightCheck", "--versions-file", versionsPath], settings.Verbose))
             {
@@ -539,14 +536,12 @@ namespace tools
                 return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 1);
             }
 
-            // Step 8: Package
             if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "Package",
                     ["--target", "Package", "--versions-file", versionsPath], settings.Verbose))
             {
                 return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 1);
             }
 
-            // Step 9: PackageConsumerSmoke
             if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "PackageConsumerSmoke",
                     ["--target", "PackageConsumerSmoke", "--rid", hostRid, "--versions-file", versionsPath], settings.Verbose))
             {
@@ -646,7 +641,6 @@ namespace tools
 
             var repoRoot = await Shared.ResolveRepoRootAsync();
 
-            // [1] Validate docker daemon reachable.
             var dockerProbe = await CaptureRunAsync("docker", ["version", "--format", "{{.Server.Version}}"], cancellationToken);
 
             if (dockerProbe.ExitCode != 0)
@@ -657,7 +651,6 @@ namespace tools
 
             AnsiConsole.MarkupLine($"[green]Docker daemon ready[/] (server {Markup.Escape(dockerProbe.StdOut.Trim())}).");
 
-            // [2] Resolve BASE_IMAGE from build/manifest.json runtimes[linux-x64].container_image.
             var baseImage = await ReadLinuxBaseImageAsync(repoRoot);
 
             if (string.IsNullOrWhiteSpace(baseImage))
@@ -675,9 +668,7 @@ namespace tools
                 return pullExit;
             }
 
-            // [4b] Resolve vcpkg submodule commit so the Dockerfile clones vcpkg at the
-            // repo's pinned ref. Stable across parent-repo commits that don't touch the
-            // submodule — keeps Layer C's image cache hot.
+            // Pin the submodule commit to preserve the image cache across unrelated edits.
             var vcpkgCommitProbe = await CaptureRunAsync("git", ["rev-parse", "HEAD:external/vcpkg"], cancellationToken, workingDirectory: repoRoot);
 
             if (vcpkgCommitProbe.ExitCode != 0 || string.IsNullOrWhiteSpace(vcpkgCommitProbe.StdOut))
@@ -690,12 +681,7 @@ namespace tools
             var vcpkgCommit = vcpkgCommitProbe.StdOut.Trim();
             AnsiConsole.MarkupLine($"[blue]vcpkg submodule commit:[/] [cyan]{Markup.Escape(vcpkgCommit)}[/]");
 
-            // [4c] Read SDL2 version from manifest. The Dockerfile's conditional
-            // fallback uses this to git-clone SDL2 upstream source when vcpkg's
-            // binary cache hit skips source extraction — the cloned tree provides
-            // src/dynapi/SDL2.exports for explicit header diagnostics. Version must
-            // match the vcpkg-baked SDL2 binary (same vcpkg_version field), so
-            // sourcing it from the same manifest entry keeps them in lockstep.
+            // Match fallback source headers to the manifest's native SDL2 version.
             var sdl2Version = await ReadSdl2VcpkgVersionAsync(repoRoot);
 
             if (string.IsNullOrWhiteSpace(sdl2Version))
@@ -706,17 +692,6 @@ namespace tools
 
             AnsiConsole.MarkupLine($"[blue]SDL2 vcpkg version:[/] [cyan]{Markup.Escape(sdl2Version)}[/]");
 
-            // [4d] Compute a deterministic cache key for the binary cache BuildKit
-            // mount the Dockerfile's Layer E declares. Key composition mirrors
-            // .github/actions/vcpkg-setup/action.yml's actions/cache@v5 key
-            // (vcpkg.json + overlay-triplets + overlay-ports + vcpkg commit) so
-            // local Docker invalidation matches CI invalidation exactly. Content
-            // changes in any of those inputs yield a fresh key → new mount → cold
-            // from vcpkg's perspective → full from-source build → image layer
-            // captures buildtrees naturally. Without content-derived id, the binary
-            // cache mount would retain stale compiled artifacts across vcpkg.json
-            // bumps (vcpkg's own ABI hash would reject them but the mount would
-            // still waste disk).
             var vcpkgCacheKey = await ComputeVcpkgCacheKeyAsync(repoRoot, vcpkgCommit);
             AnsiConsole.MarkupLine($"[blue]vcpkg cache key:[/] [cyan]{Markup.Escape(vcpkgCacheKey)}[/]");
 
@@ -755,15 +730,15 @@ namespace tools
         {
             AnsiConsole.MarkupLine("[blue]Building binding-generator image (vcpkg install runs at image build time)...[/]");
             var buildArgs = new List<string>
-        {
-            "build",
-            "-t", ImageTag,
-            "--build-arg", $"BASE_IMAGE={baseImage}",
-            "--build-arg", $"VCPKG_COMMIT={vcpkgCommit}",
-            "--build-arg", $"VCPKG_CACHE_KEY={vcpkgCacheKey}",
-            "--build-arg", $"SDL2_VERSION={sdl2Version}",
-            "-f", "docker/binding-generator.Dockerfile",
-        };
+            {
+                "build",
+                "-t", ImageTag,
+                "--build-arg", $"BASE_IMAGE={baseImage}",
+                "--build-arg", $"VCPKG_COMMIT={vcpkgCommit}",
+                "--build-arg", $"VCPKG_CACHE_KEY={vcpkgCacheKey}",
+                "--build-arg", $"SDL2_VERSION={sdl2Version}",
+                "-f", "docker/binding-generator.Dockerfile",
+            };
 
             if (rebuildImage)
             {
@@ -1265,8 +1240,8 @@ namespace tools
             return
             [
                 Path.Combine(packagesDir, $"{ManagedPackageId(familyName)}.{version}.nupkg"),
-            Path.Combine(packagesDir, $"{NativePackageId(familyName)}.{version}.nupkg"),
-        ];
+                Path.Combine(packagesDir, $"{NativePackageId(familyName)}.{version}.nupkg"),
+            ];
         }
 
         public static void WipeJansetPackages(string packagesDir, Action<string> log)
@@ -1408,12 +1383,12 @@ namespace tools
         private static List<string> BuildCakeArgList(string repoRoot, IReadOnlyList<string> cakeArgs)
         {
             var fullArgs = new List<string>(7 + cakeArgs.Count)
-        {
-            "run",
-            "--project", Path.Combine(repoRoot, "build", "_build", "Build.csproj"),
-            "--configuration", "Release",
-            "--",
-        };
+            {
+                "run",
+                "--project", Path.Combine(repoRoot, "build", "_build", "Build.csproj"),
+                "--configuration", "Release",
+                "--",
+            };
             fullArgs.AddRange(cakeArgs);
             return fullArgs;
         }
