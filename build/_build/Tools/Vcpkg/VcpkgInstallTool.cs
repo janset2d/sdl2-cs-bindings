@@ -97,11 +97,11 @@ public sealed class VcpkgInstallTool(ICakeContext cakeContext)
             builder.Append("--enforce-port-checks");
         }
 
-        AppendFeatureAndBuildArguments(settings, builder);
+        AppendFeatureAndInstallModeArguments(settings, builder);
         return builder;
     }
 
-    private static void AppendFeatureAndBuildArguments(VcpkgInstallSettings settings, ProcessArgumentBuilder builder)
+    private static void AppendFeatureAndInstallModeArguments(VcpkgInstallSettings settings, ProcessArgumentBuilder builder)
     {
         foreach (var feature in settings.Features) // Manifest mode only
         {
