@@ -188,7 +188,7 @@ For explicit generation within that prepared image:
 
 ```bash
 docker run --rm --entrypoint sh janset-binding-generator:focal-latest \
-  -c "cd /workspace && python spikes/binding-generators/clangsharp/generate_bindings.py --family all --execute --vcpkg-triplet x64-linux-hybrid"
+  -c "cd /workspace && dotnet tool restore --tool-manifest spikes/binding-generators/.config/dotnet-tools.json && python3 spikes/binding-generators/clangsharp/generate_bindings.py --family all --execute --vcpkg-triplet x64-linux-hybrid"
 ```
 
 For ABI tests, provision Core.Native linux-x64 assets in the local feed first. Read the actual feed
