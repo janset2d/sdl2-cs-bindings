@@ -32,6 +32,7 @@ jobs:
     with:
       runner: ${{ matrix.runner }}
       publish-artifact: false
+      # The lint job runs the analyzer wall once.
       run-analyzers: false
 
   spike:
@@ -48,7 +49,7 @@ jobs:
     name: Lint
     runs-on: ubuntu-24.04
     env:
-      # Explicit projects restore without a local package feed or frozen generator tooling.
+      # Every project that restores without the local package feed and is not frozen generator tooling.
       LINT_PROJECTS: >-
         build/_build/Build.csproj build/_build.Tests/Build.Tests.csproj
         src/SDL2.Core/SDL2.Core.csproj src/SDL2.Image/SDL2.Image.csproj src/SDL2.Gfx/SDL2.Gfx.csproj
