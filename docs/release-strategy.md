@@ -150,4 +150,4 @@ Currently: ≥2 weeks per wave. Open to revision if real-consumer feedback signa
 - [`adr/0004-binding-autogen-toolchain.md`](adr/0004-binding-autogen-toolchain.md) — ADR-004 binding-generator toolchain decision (Reopened 2026-05-23 — see spike)
 - [`../spikes/binding-generators/`](../spikes/binding-generators/) — Active toolchain re-evaluation spike
 - Deferred topology evidence: internal research, 2026-05-12, "Package Topology Refactor Research - DEFERRED".
-- Deferred supply-chain work is tracked in issue #66; validator output shapes in issue #{{31-validator-shape-standardization}}; recovery procedures in issue #{{20-release-recovery}}.
+- Deferred supply-chain work is tracked in issue #66; validator output shapes in issue #128; recovery procedures in issue #119.

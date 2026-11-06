@@ -96,22 +96,22 @@ Closed 2026-05-10. The build host now follows [`ADR-002`](adr/0002-target-centri
 
 | Cleanup group | Tracking |
 |---|---|
-| Correctness gaps | issue #{{11-cleanup-correctness}} |
-| UX and CLI clarity | issue #{{12-cleanup-cli}} |
-| Style consistency | issue #{{13-cleanup-style}} |
-| API and performance refinements | issue #{{14-cleanup-api-performance}} |
-| Extractions and model boundaries | issue #{{15-cleanup-extractions}} |
-| Reporter consolidation | issue #{{16-cleanup-reporters}} |
-| Test discipline | issue #{{17-cleanup-tests}} |
-| Conditional watch list | issue #{{18-cleanup-watch-list}} |
+| Correctness gaps | issue #110 |
+| UX and CLI clarity | issue #111 |
+| Style consistency | issue #112 |
+| API and performance refinements | issue #113 |
+| Extractions and model boundaries | issue #114 |
+| Reporter consolidation | issue #115 |
+| Test discipline | issue #116 |
+| Conditional watch list | issue #117 |
 
-Detailed follow-up groups: consumer-smoke extraction — issue #{{01-extraction-package-smoke}};
-harvest extraction — issue #87; harvest data and paths — issue #{{03-cross-target-relayering}};
-readiness semantics — issue #{{04-harvest-readiness-gate-decision}};
-dependency ranges — issue #{{05-dependency-range-semantics}};
-reporter design — issue #{{06-reporter-cohort}}; fixture API — issue #{{07-fakecakeworld-fluent-api}};
-diagnostic UX — issue #{{08-diagnostic-target-ux}}; test oracles — issue #{{09-test-discipline-cluster}};
-deferred polish and triggers — issue #{{10-deferred-cleanup}}.
+Detailed follow-up groups: consumer-smoke extraction — issue #101;
+harvest extraction — issue #87; harvest data and paths — issue #102;
+readiness semantics — issue #103;
+dependency ranges — issue #104;
+reporter design — issue #105; fixture API — issue #106;
+diagnostic UX — issue #107; test oracles — issue #108;
+deferred polish and triggers — issue #109.
 These groups overlap the cleanup table; cross-link them rather than implementing the same work twice.
 
 ### 2027 — Stabilization
@@ -134,18 +134,18 @@ Open issues that are not phase-bound:
 
 Other deferred work is tracked in issues:
 
-- Known-bad native combinations and expiry: issue #{{19-known-issues-skip-list}}.
-- Release rollback and recovery: issue #{{20-release-recovery}}.
-- Maintenance and feed health checks: issue #{{21-maintenance-health-checks}}.
-- Invariant-culture logging: issue #{{22-invariant-culture-logging}}.
-- Optional workflow-owned coverage signal: issue #{{23-optional-coverage-signal}}.
-- Package-info and dependency-analysis caching: issue #{{24-performance-caching}}.
-- Tool reproducibility: issue #{{25-tool-reproducibility}}.
-- Release log hygiene: issue #{{26-release-log-hygiene}}.
-- Native CI cache audit: issue #{{27-ci-cache-audit}}.
-- Windows runner architecture and cache identity: issue #{{28-windows-runner-architecture}}.
+- Known-bad native combinations and expiry: issue #118.
+- Release rollback and recovery: issue #119.
+- Maintenance and feed health checks: issue #120.
+- Invariant-culture logging: issue #121.
+- Optional workflow-owned coverage signal: issue #122.
+- Package-info and dependency-analysis caching: issue #123.
+- Tool reproducibility: issue #124.
+- Release log hygiene: issue #125.
+- Native CI cache audit: issue #126.
+- Windows runner architecture and cache identity: issue #127.
 - SBOM and native symbols: issue #66.
-- Validator output-shape decision: issue #{{31-validator-shape-standardization}}.
+- Validator output-shape decision: issue #128.
 
 ## Versioning
 
