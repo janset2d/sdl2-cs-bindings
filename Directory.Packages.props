@@ -7,6 +7,7 @@
     <PackageVersion Include="Microsoft.VisualStudio.Threading.Analyzers" Version="18.12.1" />
     <PackageVersion Include="NSubstitute.Analyzers.CSharp" Version="1.0.17" />
     <PackageVersion Include="Roslynator.Analyzers" Version="5.0.1" />
+    <PackageVersion Include="Roslynator.CodeAnalysis.Analyzers" Version="5.0.1" />
     <PackageVersion Include="Roslynator.Formatting.Analyzers" Version="5.0.1" />
     <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.35.0.4138" />
     <!-- packages -->
@@ -16,6 +17,7 @@
     <PackageVersion Include="Cake.Frosting.Git" Version="5.0.1" />
     <!-- Referenced only by the file-based tools.cs. -->
     <PackageVersion Include="CliWrap" Version="3.10.1" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.403" />
     <PackageVersion Include="NuGet.Frameworks" Version="7.3.1" />
     <PackageVersion Include="NuGet.Protocol" Version="7.3.1" />
