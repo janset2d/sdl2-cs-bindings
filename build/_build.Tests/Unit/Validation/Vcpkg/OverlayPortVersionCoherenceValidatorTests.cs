@@ -13,8 +13,8 @@ namespace Build.Tests.Unit.Validation.Vcpkg;
 /// </summary>
 public sealed class OverlayPortVersionCoherenceValidatorTests
 {
-    private const string OverlayRootRelative = "vcpkg-overlay-ports";
-    private const string UpstreamRootRelative = "external/vcpkg/ports";
+    private const string _overlayRootRelative = "vcpkg-overlay-ports";
+    private const string _upstreamRootRelative = "external/vcpkg/ports";
 
     [Test]
     public async Task Validate_Should_Return_No_Checks_When_Overlay_Root_Missing()
@@ -82,8 +82,8 @@ public sealed class OverlayPortVersionCoherenceValidatorTests
         // Default port-version is implicit zero per vcpkg semantics. An overlay
         // that omits the field should still match an upstream that omits it.
         var world = FakeCakeWorld.CreateWindows();
-        SeedPort(world, OverlayRootRelative, "mpg123", version: "1.33.4", portVersion: null);
-        SeedPort(world, UpstreamRootRelative, "mpg123", version: "1.33.4", portVersion: null);
+        SeedPort(world, _overlayRootRelative, "mpg123", version: "1.33.4", portVersion: null);
+        SeedPort(world, _upstreamRootRelative, "mpg123", version: "1.33.4", portVersion: null);
         var (validator, overlayRoot, upstreamRoot) = Arrange(world);
 
         var result = validator.Validate(overlayRoot, upstreamRoot);
@@ -99,8 +99,8 @@ public sealed class OverlayPortVersionCoherenceValidatorTests
     {
         var world = FakeCakeWorld.CreateWindows();
         // Create overlay dir but no vcpkg.json — also seed upstream so we'd otherwise reach compare.
-        world.WithTextFile($"{OverlayRootRelative}/orphan/portfile.cmake", "# overlay portfile");
-        SeedPort(world, UpstreamRootRelative, "orphan", version: "1.0.0", portVersion: 0);
+        world.WithTextFile($"{_overlayRootRelative}/orphan/portfile.cmake", "# overlay portfile");
+        SeedPort(world, _upstreamRootRelative, "orphan", version: "1.0.0", portVersion: 0);
         var (validator, overlayRoot, upstreamRoot) = Arrange(world);
 
         var result = validator.Validate(overlayRoot, upstreamRoot);
@@ -114,7 +114,7 @@ public sealed class OverlayPortVersionCoherenceValidatorTests
     public async Task Validate_Should_Report_UpstreamPortMissing_When_Upstream_Counterpart_Absent()
     {
         var world = FakeCakeWorld.CreateWindows();
-        SeedPort(world, OverlayRootRelative, "janset-only", version: "1.0.0", portVersion: 0);
+        SeedPort(world, _overlayRootRelative, "janset-only", version: "1.0.0", portVersion: 0);
         var (validator, overlayRoot, upstreamRoot) = Arrange(world);
 
         var result = validator.Validate(overlayRoot, upstreamRoot);
@@ -130,8 +130,8 @@ public sealed class OverlayPortVersionCoherenceValidatorTests
         var world = FakeCakeWorld.CreateWindows();
         SeedPortPair(world, "sdl2-mixer", overlayVersion: "2.8.1", overlayPortVersion: 2, upstreamVersion: "2.8.1", upstreamPortVersion: 2);
         SeedPortPair(world, "sdl2-gfx", overlayVersion: "1.0.3", overlayPortVersion: 11, upstreamVersion: "1.0.4", upstreamPortVersion: 11);
-        SeedPort(world, OverlayRootRelative, "mpg123", version: "1.33.4", portVersion: 0);
-        SeedPort(world, UpstreamRootRelative, "mpg123", version: "1.33.4", portVersion: 0);
+        SeedPort(world, _overlayRootRelative, "mpg123", version: "1.33.4", portVersion: 0);
+        SeedPort(world, _upstreamRootRelative, "mpg123", version: "1.33.4", portVersion: 0);
         var (validator, overlayRoot, upstreamRoot) = Arrange(world);
 
         var result = validator.Validate(overlayRoot, upstreamRoot);
@@ -147,15 +147,15 @@ public sealed class OverlayPortVersionCoherenceValidatorTests
     {
         var manifestRepo = new Build.Data.Manifest.VcpkgManifestRepository(world.CakeContext);
         var validator = new OverlayPortVersionCoherenceValidator(world.CakeContext, manifestRepo);
-        var overlayRoot = world.RepoRoot.Combine(OverlayRootRelative);
-        var upstreamRoot = world.RepoRoot.Combine(UpstreamRootRelative);
+        var overlayRoot = world.RepoRoot.Combine(_overlayRootRelative);
+        var upstreamRoot = world.RepoRoot.Combine(_upstreamRootRelative);
         return (validator, overlayRoot, upstreamRoot);
     }
 
     private static void SeedPortPair(FakeCakeWorld world, string portName, string overlayVersion, int? overlayPortVersion, string upstreamVersion, int? upstreamPortVersion)
     {
-        SeedPort(world, OverlayRootRelative, portName, overlayVersion, overlayPortVersion);
-        SeedPort(world, UpstreamRootRelative, portName, upstreamVersion, upstreamPortVersion);
+        SeedPort(world, _overlayRootRelative, portName, overlayVersion, overlayPortVersion);
+        SeedPort(world, _upstreamRootRelative, portName, upstreamVersion, upstreamPortVersion);
     }
 
     private static void SeedPort(FakeCakeWorld world, string rootRelative, string portName, string version, int? portVersion)

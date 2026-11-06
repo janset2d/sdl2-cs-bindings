@@ -19,15 +19,15 @@ namespace Build.Tests.Unit.Data.Harvest;
 /// </summary>
 public sealed class HarvestStatusRepositoryUnitTests
 {
-    private const string LibraryName = "sdl2-core";
-    private const string Rid = "win-x64";
+    private const string _libraryName = "sdl2-core";
+    private const string _rid = "win-x64";
 
     private static (HarvestStatusRepository Repo, IPathService Paths) CreateRepoWithMocks()
     {
         var ctx = Substitute.For<ICakeContext>();
         var paths = Substitute.For<IPathService>();
         var profile = Substitute.For<IRuntimeProfile>();
-        profile.Rid.Returns(Rid);
+        profile.Rid.Returns(_rid);
         // Default path-service stubs so non-failure paths resolve. Tests that care about specific
         // paths reconfigure these.
         paths.GetHarvestLibraryRidRuntimesDir(Arg.Any<string>(), Arg.Any<string>()).Returns(new DirectoryPath("runtimes"));
@@ -82,7 +82,7 @@ public sealed class HarvestStatusRepositoryUnitTests
         var (repo, _) = CreateRepoWithMocks();
         using var cts = new CancellationTokenSource();
         await cts.CancelAsync();
-        await Assert.That(() => repo.Invalidate(LibraryName, cts.Token)).Throws<OperationCanceledException>();
+        await Assert.That(() => repo.Invalidate(_libraryName, cts.Token)).Throws<OperationCanceledException>();
     }
 
     // Note: a path-service interaction test (Received(1).GetHarvestLibrary*) was prototyped but
@@ -105,7 +105,7 @@ public sealed class HarvestStatusRepositoryUnitTests
     public async Task WriteSuccessAsync_Should_Throw_When_Statistics_Are_Null()
     {
         var (repo, _) = CreateRepoWithMocks();
-        await Assert.That(() => repo.WriteSuccessAsync(LibraryName, null!)).Throws<ArgumentNullException>();
+        await Assert.That(() => repo.WriteSuccessAsync(_libraryName, null!)).Throws<ArgumentNullException>();
     }
 
     [Test]
@@ -120,8 +120,8 @@ public sealed class HarvestStatusRepositoryUnitTests
     public async Task WriteErrorAsync_Should_Throw_When_ErrorMessage_Is_Null_Or_Whitespace()
     {
         var (repo, _) = CreateRepoWithMocks();
-        await Assert.That(() => repo.WriteErrorAsync(LibraryName, null!)).Throws<ArgumentException>();
-        await Assert.That(() => repo.WriteErrorAsync(LibraryName, "   ")).Throws<ArgumentException>();
+        await Assert.That(() => repo.WriteErrorAsync(_libraryName, null!)).Throws<ArgumentException>();
+        await Assert.That(() => repo.WriteErrorAsync(_libraryName, "   ")).Throws<ArgumentException>();
     }
 
     private static DeploymentStatistics CreateStats() =>
@@ -144,21 +144,21 @@ public sealed class HarvestStatusRepositoryUnitTests
 /// </summary>
 public sealed class HarvestStatusRepositoryRoundTripTests
 {
-    private const string LibraryName = "sdl2-core";
-    private const string Rid = "win-x64";
+    private const string _libraryName = "sdl2-core";
+    private const string _rid = "win-x64";
 
     [Test]
     public async Task Invalidate_Should_Delete_Existing_Per_Rid_Runtime_Tree()
     {
         var world = FakeCakeWorld.CreateWindows()
-            .WithRid(Rid)
-            .WithTextFile($"artifacts/harvest_output/{LibraryName}/runtimes/{Rid}/native/SDL2.dll", "fake");
+            .WithRid(_rid)
+            .WithTextFile($"artifacts/harvest_output/{_libraryName}/runtimes/{_rid}/native/SDL2.dll", "fake");
         var ctx = world.CreateBuildContext();
         var repo = new HarvestStatusRepository(world.CakeContext, ctx.Paths, ctx.Runtime);
 
-        repo.Invalidate(LibraryName);
+        repo.Invalidate(_libraryName);
 
-        var ridDir = ctx.Paths.GetHarvestLibraryRidRuntimesDir(LibraryName, Rid);
+        var ridDir = ctx.Paths.GetHarvestLibraryRidRuntimesDir(_libraryName, _rid);
         await Assert.That(world.CakeContext.DirectoryExists(ridDir)).IsFalse();
     }
 
@@ -166,14 +166,14 @@ public sealed class HarvestStatusRepositoryRoundTripTests
     public async Task Invalidate_Should_Delete_Existing_Per_Rid_Status_File()
     {
         var world = FakeCakeWorld.CreateWindows()
-            .WithRid(Rid)
-            .WithTextFile($"artifacts/harvest_output/{LibraryName}/rid-status/{Rid}.json", "{}");
+            .WithRid(_rid)
+            .WithTextFile($"artifacts/harvest_output/{_libraryName}/rid-status/{_rid}.json", "{}");
         var ctx = world.CreateBuildContext();
         var repo = new HarvestStatusRepository(world.CakeContext, ctx.Paths, ctx.Runtime);
 
-        repo.Invalidate(LibraryName);
+        repo.Invalidate(_libraryName);
 
-        var statusFile = ctx.Paths.GetHarvestLibraryRidStatusFile(LibraryName, Rid);
+        var statusFile = ctx.Paths.GetHarvestLibraryRidStatusFile(_libraryName, _rid);
         await Assert.That(world.CakeContext.FileExists(statusFile)).IsFalse();
     }
 
@@ -181,14 +181,14 @@ public sealed class HarvestStatusRepositoryRoundTripTests
     public async Task Invalidate_Should_Delete_Existing_Per_Rid_Licenses_Tree()
     {
         var world = FakeCakeWorld.CreateWindows()
-            .WithRid(Rid)
-            .WithTextFile($"artifacts/harvest_output/{LibraryName}/licenses/{Rid}/zlib/copyright", "MIT");
+            .WithRid(_rid)
+            .WithTextFile($"artifacts/harvest_output/{_libraryName}/licenses/{_rid}/zlib/copyright", "MIT");
         var ctx = world.CreateBuildContext();
         var repo = new HarvestStatusRepository(world.CakeContext, ctx.Paths, ctx.Runtime);
 
-        repo.Invalidate(LibraryName);
+        repo.Invalidate(_libraryName);
 
-        var ridLicensesDir = ctx.Paths.GetHarvestLibraryRidLicensesDir(LibraryName, Rid);
+        var ridLicensesDir = ctx.Paths.GetHarvestLibraryRidLicensesDir(_libraryName, _rid);
         await Assert.That(world.CakeContext.DirectoryExists(ridLicensesDir)).IsFalse();
     }
 
@@ -196,54 +196,54 @@ public sealed class HarvestStatusRepositoryRoundTripTests
     public async Task Invalidate_Should_Delete_Cross_Rid_Consolidated_Artifacts()
     {
         var world = FakeCakeWorld.CreateWindows()
-            .WithRid(Rid)
-            .WithTextFile($"artifacts/harvest_output/{LibraryName}/licenses/_consolidated/zlib/copyright", "MIT")
-            .WithTextFile($"artifacts/harvest_output/{LibraryName}/licenses/_consolidated.tmp/zlib/copyright", "MIT")
-            .WithTextFile($"artifacts/harvest_output/{LibraryName}/harvest-manifest.json", "{}")
-            .WithTextFile($"artifacts/harvest_output/{LibraryName}/harvest-manifest.tmp.json", "{}")
-            .WithTextFile($"artifacts/harvest_output/{LibraryName}/harvest-summary.json", "{}")
-            .WithTextFile($"artifacts/harvest_output/{LibraryName}/harvest-summary.tmp.json", "{}");
+            .WithRid(_rid)
+            .WithTextFile($"artifacts/harvest_output/{_libraryName}/licenses/_consolidated/zlib/copyright", "MIT")
+            .WithTextFile($"artifacts/harvest_output/{_libraryName}/licenses/_consolidated.tmp/zlib/copyright", "MIT")
+            .WithTextFile($"artifacts/harvest_output/{_libraryName}/harvest-manifest.json", "{}")
+            .WithTextFile($"artifacts/harvest_output/{_libraryName}/harvest-manifest.tmp.json", "{}")
+            .WithTextFile($"artifacts/harvest_output/{_libraryName}/harvest-summary.json", "{}")
+            .WithTextFile($"artifacts/harvest_output/{_libraryName}/harvest-summary.tmp.json", "{}");
         var ctx = world.CreateBuildContext();
         var repo = new HarvestStatusRepository(world.CakeContext, ctx.Paths, ctx.Runtime);
 
-        repo.Invalidate(LibraryName);
+        repo.Invalidate(_libraryName);
 
-        await Assert.That(world.CakeContext.DirectoryExists(ctx.Paths.GetHarvestLibraryConsolidatedLicensesDir(LibraryName))).IsFalse();
-        await Assert.That(world.CakeContext.DirectoryExists(ctx.Paths.GetHarvestLibraryConsolidatedLicensesTempDir(LibraryName))).IsFalse();
-        await Assert.That(world.CakeContext.FileExists(ctx.Paths.GetHarvestLibraryManifestFile(LibraryName))).IsFalse();
-        await Assert.That(world.CakeContext.FileExists(ctx.Paths.GetHarvestLibraryManifestTempFile(LibraryName))).IsFalse();
-        await Assert.That(world.CakeContext.FileExists(ctx.Paths.GetHarvestLibrarySummaryFile(LibraryName))).IsFalse();
-        await Assert.That(world.CakeContext.FileExists(ctx.Paths.GetHarvestLibrarySummaryTempFile(LibraryName))).IsFalse();
+        await Assert.That(world.CakeContext.DirectoryExists(ctx.Paths.GetHarvestLibraryConsolidatedLicensesDir(_libraryName))).IsFalse();
+        await Assert.That(world.CakeContext.DirectoryExists(ctx.Paths.GetHarvestLibraryConsolidatedLicensesTempDir(_libraryName))).IsFalse();
+        await Assert.That(world.CakeContext.FileExists(ctx.Paths.GetHarvestLibraryManifestFile(_libraryName))).IsFalse();
+        await Assert.That(world.CakeContext.FileExists(ctx.Paths.GetHarvestLibraryManifestTempFile(_libraryName))).IsFalse();
+        await Assert.That(world.CakeContext.FileExists(ctx.Paths.GetHarvestLibrarySummaryFile(_libraryName))).IsFalse();
+        await Assert.That(world.CakeContext.FileExists(ctx.Paths.GetHarvestLibrarySummaryTempFile(_libraryName))).IsFalse();
     }
 
     [Test]
     public async Task Invalidate_Should_Be_Noop_When_Nothing_To_Invalidate()
     {
-        var world = FakeCakeWorld.CreateWindows().WithRid(Rid);
+        var world = FakeCakeWorld.CreateWindows().WithRid(_rid);
         var ctx = world.CreateBuildContext();
         var repo = new HarvestStatusRepository(world.CakeContext, ctx.Paths, ctx.Runtime);
 
-        repo.Invalidate(LibraryName);
+        repo.Invalidate(_libraryName);
 
-        await Assert.That(world.CakeContext.DirectoryExists(ctx.Paths.GetHarvestLibraryRidRuntimesDir(LibraryName, Rid))).IsFalse();
+        await Assert.That(world.CakeContext.DirectoryExists(ctx.Paths.GetHarvestLibraryRidRuntimesDir(_libraryName, _rid))).IsFalse();
     }
 
     [Test]
     public async Task WriteSuccessAsync_Should_Persist_Status_Json_With_Success_Flag_And_Statistics()
     {
-        var world = FakeCakeWorld.CreateWindows().WithRid(Rid);
+        var world = FakeCakeWorld.CreateWindows().WithRid(_rid);
         var ctx = world.CreateBuildContext();
         var repo = new HarvestStatusRepository(world.CakeContext, ctx.Paths, ctx.Runtime);
         var statistics = CreateStatistics(primary: 2, runtime: 5, license: 3, deployed: 4, filtered: 1);
 
-        await repo.WriteSuccessAsync(LibraryName, statistics);
+        await repo.WriteSuccessAsync(_libraryName, statistics);
 
-        var statusFile = ctx.Paths.GetHarvestLibraryRidStatusFile(LibraryName, Rid);
+        var statusFile = ctx.Paths.GetHarvestLibraryRidStatusFile(_libraryName, _rid);
         await Assert.That(world.CakeContext.FileExists(statusFile)).IsTrue();
         var status = await world.CakeContext.ToJsonAsync<RidHarvestStatus>(statusFile);
         await Assert.That(status.Success).IsTrue();
-        await Assert.That(status.LibraryName).IsEqualTo(LibraryName);
-        await Assert.That(status.Rid).IsEqualTo(Rid);
+        await Assert.That(status.LibraryName).IsEqualTo(_libraryName);
+        await Assert.That(status.Rid).IsEqualTo(_rid);
         await Assert.That(status.Triplet).IsEqualTo("x64-windows-hybrid");
         await Assert.That(status.ErrorMessage).IsNull();
         await Assert.That(status.Statistics).IsNotNull();
@@ -258,19 +258,19 @@ public sealed class HarvestStatusRepositoryRoundTripTests
     [Test]
     public async Task WriteErrorAsync_Should_Persist_Status_Json_With_Failure_Flag_And_Error_Message()
     {
-        var world = FakeCakeWorld.CreateWindows().WithRid(Rid);
+        var world = FakeCakeWorld.CreateWindows().WithRid(_rid);
         var ctx = world.CreateBuildContext();
         var repo = new HarvestStatusRepository(world.CakeContext, ctx.Paths, ctx.Runtime);
 
-        await repo.WriteErrorAsync(LibraryName, "vcpkg cache miss");
+        await repo.WriteErrorAsync(_libraryName, "vcpkg cache miss");
 
-        var statusFile = ctx.Paths.GetHarvestLibraryRidStatusFile(LibraryName, Rid);
+        var statusFile = ctx.Paths.GetHarvestLibraryRidStatusFile(_libraryName, _rid);
         await Assert.That(world.CakeContext.FileExists(statusFile)).IsTrue();
         var status = await world.CakeContext.ToJsonAsync<RidHarvestStatus>(statusFile);
         await Assert.That(status.Success).IsFalse();
         await Assert.That(status.ErrorMessage).IsEqualTo("vcpkg cache miss");
-        await Assert.That(status.LibraryName).IsEqualTo(LibraryName);
-        await Assert.That(status.Rid).IsEqualTo(Rid);
+        await Assert.That(status.LibraryName).IsEqualTo(_libraryName);
+        await Assert.That(status.Rid).IsEqualTo(_rid);
         await Assert.That(status.Statistics).IsNull();
     }
 

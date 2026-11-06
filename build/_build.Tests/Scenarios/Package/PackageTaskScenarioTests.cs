@@ -28,16 +28,16 @@ namespace Build.Tests.Scenarios.Package;
 /// </summary>
 public sealed class PackageTaskScenarioTests
 {
-    private const string CoreLibrary = "SDL2";
-    private const string ImageLibrary = "SDL2_image";
+    private const string _coreLibrary = "SDL2";
+    private const string _imageLibrary = "SDL2_image";
 
     [Test]
     public async Task RunAsync_Should_Pack_All_Selected_Families_When_Happy_Path()
     {
         var world = NewWorld()
             .WithFamilyVersions(MultiFamilyVersions());
-        SeedHarvestPayload(world, CoreLibrary);
-        SeedHarvestPayload(world, ImageLibrary);
+        SeedHarvestPayload(world, _coreLibrary);
+        SeedHarvestPayload(world, _imageLibrary);
         SeedReadme(world);
 
         var result = await CreateHost(world).RunAsync();
@@ -55,8 +55,8 @@ public sealed class PackageTaskScenarioTests
         var world = NewWorld()
             .WithFamilyVersions(MultiFamilyVersions())
             .WithCancellationToken(cts.Token);
-        SeedHarvestPayload(world, CoreLibrary);
-        SeedHarvestPayload(world, ImageLibrary);
+        SeedHarvestPayload(world, _coreLibrary);
+        SeedHarvestPayload(world, _imageLibrary);
         SeedReadme(world);
 
         var result = await CreateHost(world, readmeGen, nativeMetadataGen).RunAsync();
@@ -122,8 +122,8 @@ public sealed class PackageTaskScenarioTests
     {
         var world = NewWorld().WithFamilyVersions(MultiFamilyVersions());
         // sdl2-core packs first by topology; seed it with a no-receipt manifest.
-        SeedHarvestPayload(world, CoreLibrary, harvestManifestFixture: "Harvest/harvest-manifest-no-receipt.json");
-        SeedHarvestPayload(world, ImageLibrary);
+        SeedHarvestPayload(world, _coreLibrary, harvestManifestFixture: "Harvest/harvest-manifest-no-receipt.json");
+        SeedHarvestPayload(world, _imageLibrary);
         SeedReadme(world);
 
         var result = await CreateHost(world).RunAsync();
@@ -136,8 +136,8 @@ public sealed class PackageTaskScenarioTests
     public async Task RunAsync_Should_Throw_When_Harvest_Receipt_Reports_Zero_Successful_Rids()
     {
         var world = NewWorld().WithFamilyVersions(MultiFamilyVersions());
-        SeedHarvestPayload(world, CoreLibrary, harvestManifestFixture: "Harvest/harvest-manifest-zero-rids.json");
-        SeedHarvestPayload(world, ImageLibrary);
+        SeedHarvestPayload(world, _coreLibrary, harvestManifestFixture: "Harvest/harvest-manifest-zero-rids.json");
+        SeedHarvestPayload(world, _imageLibrary);
         SeedReadme(world);
 
         var result = await CreateHost(world).RunAsync();
@@ -150,8 +150,8 @@ public sealed class PackageTaskScenarioTests
     public async Task RunAsync_Should_Throw_When_Consolidated_Licenses_Empty()
     {
         var world = NewWorld().WithFamilyVersions(MultiFamilyVersions());
-        SeedHarvestPayload(world, CoreLibrary, harvestManifestFixture: "Harvest/harvest-manifest-zero-licenses.json");
-        SeedHarvestPayload(world, ImageLibrary);
+        SeedHarvestPayload(world, _coreLibrary, harvestManifestFixture: "Harvest/harvest-manifest-zero-licenses.json");
+        SeedHarvestPayload(world, _imageLibrary);
         SeedReadme(world);
 
         var result = await CreateHost(world).RunAsync();
@@ -165,10 +165,10 @@ public sealed class PackageTaskScenarioTests
     {
         var world = NewWorld().WithFamilyVersions(MultiFamilyVersions());
         // Ready manifest but no runtimes/ subtree files.
-        world.WithTextFile($"artifacts/harvest_output/{CoreLibrary}/harvest-manifest.json",
+        world.WithTextFile($"artifacts/harvest_output/{_coreLibrary}/harvest-manifest.json",
             FixtureLoader.Load("Harvest/harvest-manifest-ready.json"));
         // Skip seeding runtimes/ and licenses/_consolidated/ subtrees → directories don't exist.
-        SeedHarvestPayload(world, ImageLibrary);
+        SeedHarvestPayload(world, _imageLibrary);
         SeedReadme(world);
 
         var result = await CreateHost(world).RunAsync();
@@ -181,8 +181,8 @@ public sealed class PackageTaskScenarioTests
     public async Task RunAsync_Should_Throw_With_Aggregated_Errors_When_PostPack_Validation_Reports_Multiple_Failures()
     {
         var world = NewWorld().WithFamilyVersions(MultiFamilyVersions());
-        SeedHarvestPayload(world, CoreLibrary);
-        SeedHarvestPayload(world, ImageLibrary);
+        SeedHarvestPayload(world, _coreLibrary);
+        SeedHarvestPayload(world, _imageLibrary);
         SeedReadme(world);
 
         var failingReport = new ValidationReport(

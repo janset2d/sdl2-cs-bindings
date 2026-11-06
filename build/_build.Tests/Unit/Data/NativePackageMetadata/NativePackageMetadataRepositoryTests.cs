@@ -55,7 +55,7 @@ public sealed class NativePackageMetadataRepositoryUnitTests
 
 public sealed class NativePackageMetadataRepositoryRoundTripTests
 {
-    private const string MetadataEntryName = "janset-native-metadata.json";
+    private const string _metadataEntryName = "janset-native-metadata.json";
 
     [Test]
     public async Task ReadFromPackageAsync_Should_Read_Entry_Headers_Asynchronously()
@@ -63,7 +63,7 @@ public sealed class NativePackageMetadataRepositoryRoundTripTests
         var world = FakeCakeWorld.CreateWindows();
         var packagePath = PackagePath(world);
         var content = FixtureLoader.Load("NativePackageMetadata/native-metadata-valid.json");
-        SeedNupkgWithEntries(world, packagePath, [(MetadataEntryName, content)]);
+        SeedNupkgWithEntries(world, packagePath, [(_metadataEntryName, content)]);
         world.WithAsyncZipEntryReads(packagePath, ZipArchiveMode.Read);
         var repository = new NativePackageMetadataRepository(world.CakeContext);
 
@@ -97,7 +97,7 @@ public sealed class NativePackageMetadataRepositoryRoundTripTests
         var packagePath = PackagePath(world);
         SeedNupkgWithEntries(world, packagePath,
         [
-            (MetadataEntryName, FixtureLoader.Load("NativePackageMetadata/native-metadata-valid.json")),
+            (_metadataEntryName, FixtureLoader.Load("NativePackageMetadata/native-metadata-valid.json")),
             ("package.nuspec", "<package />"),
         ]);
 
@@ -154,7 +154,7 @@ public sealed class NativePackageMetadataRepositoryRoundTripTests
         var world = FakeCakeWorld.CreateWindows();
         var repository = new NativePackageMetadataRepository(world.CakeContext);
         var packagePath = PackagePath(world);
-        SeedNupkgWithEntries(world, packagePath, [(MetadataEntryName, FixtureLoader.Load("NativePackageMetadata/native-metadata-invalid.json"))]);
+        SeedNupkgWithEntries(world, packagePath, [(_metadataEntryName, FixtureLoader.Load("NativePackageMetadata/native-metadata-invalid.json"))]);
 
         var result = await repository.ReadFromPackageAsync(packagePath);
 
@@ -168,7 +168,7 @@ public sealed class NativePackageMetadataRepositoryRoundTripTests
         var world = FakeCakeWorld.CreateWindows();
         var repository = new NativePackageMetadataRepository(world.CakeContext);
         var packagePath = PackagePath(world);
-        SeedNupkgWithEntries(world, packagePath, [(MetadataEntryName, FixtureLoader.Load("NativePackageMetadata/native-metadata-null.json"))]);
+        SeedNupkgWithEntries(world, packagePath, [(_metadataEntryName, FixtureLoader.Load("NativePackageMetadata/native-metadata-null.json"))]);
 
         var result = await repository.ReadFromPackageAsync(packagePath);
 
