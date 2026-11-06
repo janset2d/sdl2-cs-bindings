@@ -111,7 +111,7 @@ public sealed class PackageConsumerSmokeTask : AsyncFrostingTask<BuildContext>
         await EnsureSmokeCsprojsMatchManifestScopeAsync(context, smokePackages, ct);
         EnsurePackageArtifactsExist(context, smokePackages, familyVersions, feedPath);
 
-        _reporter.LogStarting(_runtimeProfile.Rid, smokePackages.Select(p => p.FamilyName).ToList());
+        _reporter.LogStarting(_runtimeProfile.Rid, [.. smokePackages.Select(p => p.FamilyName)]);
 
         // Kill any lingering build-server processes (VBCSCompiler, MSBuild worker nodes,
         // Razor) from prior invocations before we try to delete bin/obj — those servers
@@ -204,7 +204,7 @@ public sealed class PackageConsumerSmokeTask : AsyncFrostingTask<BuildContext>
                 "requires at least one concrete family.");
         }
 
-        return concreteFamilies.Select(SmokePackage.FromFamily).ToList();
+        return [.. concreteFamilies.Select(SmokePackage.FromFamily)];
     }
 
     private static bool HasConcreteProjects(PackageFamilyConfig family) =>

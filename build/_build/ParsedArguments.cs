@@ -1,6 +1,6 @@
 namespace Build;
 
-public record ParsedArguments(
+public sealed record ParsedArguments(
     DirectoryInfo? RepoRoot,
     string Config,
     DirectoryInfo? VcpkgDir,

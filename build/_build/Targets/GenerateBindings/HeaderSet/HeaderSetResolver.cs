@@ -5,7 +5,7 @@ using Cake.Core.IO;
 
 namespace Build.Targets.GenerateBindings.HeaderSet;
 
-// Resolves manifest-selected headers and keeps caller-supplied supplemental inputs separate.
+/// <summary>Keeps manifest-selected headers separate from supplemental inputs.</summary>
 public sealed class HeaderSetResolver(ICakeContext context)
 {
     private readonly ICakeContext _context = context ?? throw new ArgumentNullException(nameof(context));

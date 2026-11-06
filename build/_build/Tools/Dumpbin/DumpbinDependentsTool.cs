@@ -3,7 +3,7 @@ using Cake.Core.IO;
 
 namespace Build.Tools.Dumpbin;
 
-public class DumpbinDependentsTool(ICakeContext cakeContext) : DumpbinTool(cakeContext)
+public sealed class DumpbinDependentsTool(ICakeContext cakeContext) : DumpbinTool(cakeContext)
 {
     /// <summary>
     /// Runs dumpbin /dependents and returns the raw standard output lines.

@@ -7,7 +7,7 @@ using Cake.Core.IO;
 
 namespace Build.Targets.Harvest.Services;
 
-public class MacOtoolScanner : IRuntimeScanner
+public sealed class MacOtoolScanner : IRuntimeScanner
 {
     private readonly ICakeContext _context;
     private readonly ICakeLog _log;

@@ -25,7 +25,7 @@ public sealed partial class OtoolRunner : Tool<OtoolSettings>
     /// Initializes a new instance of the <see cref="OtoolRunner"/> class.
     /// </summary>
     public OtoolRunner(ICakeContext context)
-        : base(context.FileSystem, context.Environment, context.ProcessRunner, context.Tools)
+        : base((context ?? throw new ArgumentNullException(nameof(context))).FileSystem, context.Environment, context.ProcessRunner, context.Tools)
     {
         _context = context;
     }

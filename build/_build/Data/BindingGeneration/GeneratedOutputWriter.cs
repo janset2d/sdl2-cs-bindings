@@ -16,6 +16,9 @@ public sealed class GeneratedOutputWriter(ICakeContext context)
         IReadOnlyList<GeneratedFile> files,
         CancellationToken ct = default)
     {
+        ArgumentNullException.ThrowIfNull(root);
+        ArgumentNullException.ThrowIfNull(outputDirectory);
+        ArgumentNullException.ThrowIfNull(files);
         EnsureSafeGeneratedOutputDirectory(_context.Environment, root, outputDirectory);
 
         if (_context.DirectoryExists(outputDirectory))

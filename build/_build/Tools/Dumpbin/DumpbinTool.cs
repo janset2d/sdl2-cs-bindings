@@ -56,20 +56,11 @@ public abstract class DumpbinTool(ICakeContext cakeContext)
         var latestTools = new DirectoryInfo(msvcRoot.FullPath)
             .EnumerateDirectories()
             .OrderByDescending(d => d.Name, StringComparer.Ordinal)
-            .FirstOrDefault();
+            .FirstOrDefault() ?? throw new DirectoryNotFoundException("No MSVC tools directory found.");
 
-        if (latestTools == null)
-        {
-            throw new DirectoryNotFoundException("No MSVC tools directory found.");
-        }
-
-        var dumpbin = GetDumpbinCandidates(new DirectoryPath(latestTools.FullName)).FirstOrDefault(cakeContext.FileExists);
-
-        if (dumpbin is null)
-        {
-            throw new FileNotFoundException($"Dumpbin executable not found under MSVC tools directory: {latestTools.FullName}");
-        }
-
+        var dumpbin = GetDumpbinCandidates(new DirectoryPath(latestTools.FullName))
+            .FirstOrDefault(cakeContext.FileExists)
+            ?? throw new FileNotFoundException($"Dumpbin executable not found under MSVC tools directory: {latestTools.FullName}");
         return [dumpbin];
     }
 

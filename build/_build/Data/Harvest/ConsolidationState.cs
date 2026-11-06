@@ -9,7 +9,7 @@ namespace Build.Data.Harvest;
 /// gate in <c>HarvestReadinessValidator</c> covers both manifest generation AND license
 /// consolidation with a single file-existence check.
 /// </summary>
-public record ConsolidationState
+public sealed record ConsolidationState
 {
     /// <summary>
     /// <c>true</c> when <c>licenses/_consolidated/</c> was populated by at least one

@@ -101,14 +101,9 @@ public sealed class ResolveVersionsFromManifestTask(
     private static NuGetVersion BuildVersionFor(ManifestConfig manifest, PackageFamilyConfig family, string suffix)
     {
         var library = manifest.LibraryManifests.SingleOrDefault(candidate =>
-            string.Equals(candidate.Name, family.LibraryRef, StringComparison.OrdinalIgnoreCase));
-
-        if (library is null)
-        {
-            throw new CakeException(
+            string.Equals(candidate.Name, family.LibraryRef, StringComparison.OrdinalIgnoreCase)) ?? throw new CakeException(
                 $"ResolveVersionsFromManifest cannot resolve version for family '{family.Name}' because " +
                 $"library_ref '{family.LibraryRef}' does not exist in manifest library_manifests[].");
-        }
 
         if (!NuGetVersion.TryParse(library.VcpkgVersion, out var upstreamVersion))
         {

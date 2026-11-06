@@ -6,7 +6,7 @@ namespace Build.Data.Harvest;
 /// Represents the status of a harvest operation for a specific library and RID combination.
 /// This is used in CI matrix jobs where each job handles one library+RID combination.
 /// </summary>
-public record RidHarvestStatus
+public sealed record RidHarvestStatus
 {
     [JsonPropertyName("library_name")]
     public required string LibraryName { get; init; }

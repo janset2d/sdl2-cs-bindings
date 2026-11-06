@@ -5,7 +5,7 @@ namespace Build.Data.Harvest;
 /// <summary>
 /// Summary statistics from a harvest operation.
 /// </summary>
-public record HarvestStatistics
+public sealed record HarvestStatistics
 {
     [JsonPropertyName("primary_files_count")]
     public required int PrimaryFilesCount { get; init; }

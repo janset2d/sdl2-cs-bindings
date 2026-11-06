@@ -4,7 +4,7 @@ using Build.Data.BindingGeneration.Models;
 
 namespace Build.Data.Manifest.Models;
 
-public record LibraryManifest
+public sealed record LibraryManifest
 {
     [JsonPropertyName("name")] public required string Name { get; init; }
     [JsonPropertyName("vcpkg_name")] public required string VcpkgName { get; init; }
