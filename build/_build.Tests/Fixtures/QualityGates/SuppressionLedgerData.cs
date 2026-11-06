@@ -29,7 +29,7 @@ internal static class SuppressionLedgerData
         "nullable z.cs [] disable",
         "pragma z.cs [] CA1000",
         "slopwatch-baseline .slopwatch/baseline.json [z.csproj] SW005 = abc",
-        "slopwatch-ignore z.cs [] SW004 = reason",
+        "slopwatch-ignore z.cs [] SW004 | reason",
         "slopwatch-suppress z.cs [] SW003",
         "staging-marker .editorconfig [] # QM-1: staged",
         "suppress-message z.cs [] CA1001",
@@ -40,6 +40,7 @@ internal static class SuppressionLedgerData
 
     public const string ExpectedDuplicateRender = """
         Suppression ledger: every diagnostic escape is counted.
+        Every conditional import and explicit Slopwatch severity assignment is inventoried.
 
         build-switch: 0
         editorconfig: 0
@@ -51,6 +52,7 @@ internal static class SuppressionLedgerData
         no-warn: 1
         nullable: 0
         pragma: 2
+        slopwatch: 0
         slopwatch-baseline: 0
         slopwatch-ignore: 0
         slopwatch-suppress: 0
