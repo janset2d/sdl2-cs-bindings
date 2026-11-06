@@ -8,7 +8,7 @@ namespace Build.Data.BindingGeneration.Models;
 /// <c>build/manifest.json library_manifests[].binding_generation</c>. Strongly-typed
 /// surface — all field validation flows through <see cref="System.Text.Json"/>'s
 /// <c>required</c>-keyword machinery via the shared
-/// <see cref="Build.Data.Manifest.ManifestRepository"/> deserialization path; no
+/// <see cref="Manifest.ManifestRepository"/> deserialization path; no
 /// hand-rolled JSON walking. Missing required fields surface as
 /// <see cref="Cake.Core.CakeException"/> from <c>ManifestRepository.Load()</c> at the
 /// point of manifest read.
