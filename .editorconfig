@@ -635,6 +635,11 @@ dotnet_diagnostic.CA1710.severity = none
 [build/_build/Program.cs]
 dotnet_diagnostic.MA0045.severity = none
 
+# The compiler-generated entrypoint aggregates local helpers whose generated names existing composition tests inspect.
+# Winner: the tested entrypoint and helper contract; CA1502 remains enabled for every other file.
+[build/_build/Program.cs]
+dotnet_diagnostic.CA1502.severity = none
+
 # The validator implements a synchronous contract over small Cake-managed project files.
 # Winner: the synchronous validation contract; MA0045 remains enabled for every other file.
 [build/_build/Validation/Manifest/CsprojPackContractValidator.cs]
