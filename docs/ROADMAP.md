@@ -107,8 +107,8 @@ the existing family version set rather than waiting for a topology redesign.
 - **Tooling:** the executable generator is Python; maintenance intentionally retains those commands.
   Tested header/config/stamp/output safeguards and symbol validation are dormant salvage. Production
   stamp writing, stale-output validation and the integrated pack symbol check still need consumers.
-- **Compiler:** the earlier projection hit CS9363 under SDK 10.0.401 and retained one output delta.
-  Revalidate that historical hazard under the actual pinned SDK before further projection work.
+- **Compiler:** the earlier projection hit CS9363 and retained one output delta. Revalidate that
+  hazard under the SDK selected by [global.json](../global.json) before further projection work.
 - **Scope:** G58 requires Core in the same version invocation; feed-probe relaxation must query the
   actual destination feed. A CI prerelease does not satisfy a stable lower bound. Consumer smoke
   requires all concrete families or no selection. Per-family projects are candidates; evaluate file
