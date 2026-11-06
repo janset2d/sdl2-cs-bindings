@@ -5,6 +5,8 @@ namespace Build.Tests.Fixtures;
 
 public static class ArchiveDeploymentData
 {
+    public const string FileListGlob = "C:/repo/.cake/temp/filelists/*.txt";
+
     public static ArchiveCreationAction Action { get; } = new(
         new FilePath("C:/output/native.tar.gz"),
         new DirectoryPath("C:/vcpkg/lib"),
@@ -17,7 +19,7 @@ public static class ArchiveDeploymentData
     public static string ReadFileList(FakeCakeWorld world)
     {
         ArgumentNullException.ThrowIfNull(world);
-        var files = world.CakeContext.Globber.GetFiles("C:/repo/.cake/temp/filelists/*.txt");
+        var files = world.CakeContext.Globber.GetFiles(FileListGlob);
         using var stream = world.FileSystem.GetFile(files.Single()).OpenRead();
         using var reader = new StreamReader(stream);
         return reader.ReadToEnd();

@@ -32,7 +32,7 @@ public sealed class ArtifactDeployerTests
         await Assert.That(result.TryGetError(out var error) ? error.Message : string.Empty).IsEqualTo(string.Empty);
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(contents).IsEqualTo(ArchiveDeploymentData.ExpectedFileList);
-        await Assert.That(_ctx.Globber.GetFiles("C:/repo/.cake/temp/filelists/*.txt")).IsEmpty();
+        await Assert.That(_ctx.Globber.GetFiles(ArchiveDeploymentData.FileListGlob)).IsEmpty();
         await Assert.That(_world.ProcessInvocations.Single().Command.FullPath).IsEqualTo("tar");
     }
 

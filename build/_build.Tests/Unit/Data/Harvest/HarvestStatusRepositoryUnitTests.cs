@@ -2,6 +2,7 @@ using Build.Data.Harvest;
 using Build.Host.Paths;
 using Build.Host.Runtime;
 using Build.Targets.Harvest.Models;
+using Build.Tests.Fixtures;
 using Cake.Core;
 using Cake.Core.IO;
 using NSubstitute;
@@ -39,6 +40,17 @@ public sealed class HarvestStatusRepositoryUnitTests
         paths.GetHarvestLibrarySummaryTempFile(Arg.Any<string>()).Returns(new FilePath("harvest-summary.tmp.json"));
 
         return (new HarvestStatusRepository(ctx, paths, profile, Substitute.For<TimeProvider>()), paths);
+    }
+
+    [Test]
+    public async Task Constructor_Should_Throw_When_TimeProvider_Is_Null()
+    {
+        var world = FakeCakeWorld.CreateWindows();
+        var context = world.CreateBuildContext();
+
+        var error = await Assert.That(() => new HarvestStatusRepository(world.CakeContext, context.Paths, context.Runtime, null!)).Throws<ArgumentNullException>();
+
+        await Assert.That(error!.ParamName).IsEqualTo("timeProvider");
     }
 
     [Test]

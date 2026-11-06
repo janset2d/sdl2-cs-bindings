@@ -60,7 +60,6 @@ public sealed class FakeCakeWorld
     public IHostProcessRunner HostProcessRunner { get; } = Substitute.For<IHostProcessRunner>();
     public IReadOnlyList<(HostProcessRequest Request, CancellationToken CancellationToken)> HostProcessInvocations => _hostProcessInvocations;
     public TimeProvider Clock { get; } = Substitute.For<TimeProvider>();
-    public static DateTimeOffset Timestamp { get; } = new(2001, 2, 3, 4, 5, 6, TimeSpan.Zero);
 
     public TestConsole AnsiConsole { get; } = new();
 
@@ -78,7 +77,7 @@ public sealed class FakeCakeWorld
         FileSystem = new FakeFileSystem(Environment);
         Log = new TestLog();
         CakeContext = BuildCakeContext();
-        Clock.GetUtcNow().Returns(Timestamp);
+        Clock.GetUtcNow().Returns(ClockData.Timestamp);
         HostProcessRunner.RunAsync(Arg.Any<HostProcessRequest>(), Arg.Any<CancellationToken>()).Returns(call =>
         {
             var request = call.Arg<HostProcessRequest>();

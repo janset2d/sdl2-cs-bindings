@@ -60,6 +60,21 @@ public sealed class MsvcDevEnvironmentTests
 
     [Test]
     [WindowsOnly]
+    public async Task ResolveAsync_Should_Throw_When_The_Batch_File_Is_Missing()
+    {
+        var world = HostEnvironmentData.MsvcWorld();
+        world.FileSystem.GetFile(HostEnvironmentData.Batch).Delete();
+        var resolver = new MsvcDevEnvironment(world.CakeContext, world.Log, world.HostProcessRunner);
+
+        var error = await Assert.That(async () => await resolver.ResolveAsync(MsvcTargetArch.X64)).Throws<Cake.Core.CakeException>();
+
+        await Assert.That(error!.Message).IsEqualTo(
+            "MsvcDevEnvironment: vcvarsall.bat not found at 'C:/Visual Studio/VC/Auxiliary/Build/vcvarsall.bat' under Visual Studio installation 'C:/Visual Studio'. " +
+            "Reinstall the VC Tools workload or run Cake from a Developer PowerShell.");
+    }
+
+    [Test]
+    [WindowsOnly]
     public async Task ResolveAsync_Should_Report_The_Process_Exit_And_Error()
     {
         var world = HostEnvironmentData.MsvcWorld(17, "capture failed");

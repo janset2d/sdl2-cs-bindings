@@ -119,7 +119,7 @@ public sealed class HarvestStatusRepositoryRoundTripTests
         await Assert.That(status.LibraryName).IsEqualTo(LibraryName);
         await Assert.That(status.Rid).IsEqualTo(Rid);
         await Assert.That(status.Triplet).IsEqualTo("x64-windows-hybrid");
-        await Assert.That(status.Timestamp).IsEqualTo(FakeCakeWorld.Timestamp);
+        await Assert.That(status.Timestamp).IsEqualTo(ClockData.Timestamp);
         await Assert.That(status.ErrorMessage).IsNull();
         await Assert.That(status.Statistics).IsNotNull();
         await Assert.That(status.Statistics!.PrimaryFilesCount).IsEqualTo(2);
@@ -144,7 +144,7 @@ public sealed class HarvestStatusRepositoryRoundTripTests
         var status = await world.CakeContext.ToJsonAsync<RidHarvestStatus>(statusFile);
         await Assert.That(status.Success).IsFalse();
         await Assert.That(status.ErrorMessage).IsEqualTo("vcpkg cache miss");
-        await Assert.That(status.Timestamp).IsEqualTo(FakeCakeWorld.Timestamp);
+        await Assert.That(status.Timestamp).IsEqualTo(ClockData.Timestamp);
         await Assert.That(status.LibraryName).IsEqualTo(LibraryName);
         await Assert.That(status.Rid).IsEqualTo(Rid);
         await Assert.That(status.Statistics).IsNull();
