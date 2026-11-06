@@ -25,7 +25,7 @@ Pass both overlay directories to manual vcpkg invocations. Choose the triplet fr
 ```
 
 The [vcpkg setup action](../../.github/actions/vcpkg-setup/action.yml) owns CI cache path, key and
-restore-key order. Its key includes the manifest, overlay trees, triplet and vcpkg submodule commit.
+restore-key order.
 Ordinary local installs use vcpkg's OS-default user cache. To reproduce a CI cache issue, set
 `VCPKG_DEFAULT_BINARY_CACHE` explicitly to the chosen cache directory. Keep cache paths consistent
 with [.gitignore](../../.gitignore) when changing CI cache configuration.
