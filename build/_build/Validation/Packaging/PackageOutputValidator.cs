@@ -352,7 +352,8 @@ public sealed class PackageOutputValidator(
             return;
         }
 
-        var groups = dependencies.Elements()
+        var groups = dependencies
+            .Elements()
             .Where(element => string.Equals(element.Name.LocalName, "group", StringComparison.Ordinal))
             .ToList();
 
@@ -419,7 +420,8 @@ public sealed class PackageOutputValidator(
 
         foreach (var (group, framework) in actualFrameworksByKey)
         {
-            var rawDependencies = group.Elements()
+            var rawDependencies = group
+                .Elements()
                 .Where(element => string.Equals(element.Name.LocalName, "dependency", StringComparison.Ordinal))
                 .Select(element => new
                 {

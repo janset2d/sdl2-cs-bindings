@@ -38,7 +38,8 @@ public sealed class OverlayPortVersionCoherenceValidator(ICakeContext context, I
             return new OverlayPortVersionCoherenceValidation(checks);
         }
 
-        var overlayDirs = _context.GetSubDirectories(overlayRoot)
+        var overlayDirs = _context
+            .GetSubDirectories(overlayRoot)
             .OrderBy(dir => dir.FullPath, StringComparer.OrdinalIgnoreCase)
             .ToList();
 

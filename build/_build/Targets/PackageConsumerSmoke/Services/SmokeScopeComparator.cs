@@ -52,7 +52,8 @@ public static class SmokeScopeComparator
         // Path 1 (legacy / explicit): literal <PackageReference Include="Janset.SDL2.Core"/>
         // entries in the csproj. Supported for backwards compatibility + for consumers
         // that do not use the shared smoke family-list convention.
-        foreach (var element in doc.Descendants()
+        foreach (var element in doc
+            .Descendants()
             .Where(e => e.Name.LocalName.Equals("PackageReference", StringComparison.OrdinalIgnoreCase)))
         {
             var identity = element.Attribute("Include")?.Value;
@@ -76,7 +77,8 @@ public static class SmokeScopeComparator
 
     private static void ExpandFamilyListProperty(XDocument doc, string propertyName, string generation, HashSet<string> identities)
     {
-        var propertyElement = doc.Descendants()
+        var propertyElement = doc
+            .Descendants()
             .FirstOrDefault(e => e.Name.LocalName.Equals(propertyName, StringComparison.OrdinalIgnoreCase));
 
         if (propertyElement is null || string.IsNullOrWhiteSpace(propertyElement.Value))

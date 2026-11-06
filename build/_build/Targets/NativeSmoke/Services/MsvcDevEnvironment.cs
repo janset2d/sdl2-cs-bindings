@@ -180,7 +180,11 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
         // trick — see the cmd.exe /s flag docs). `/s` tells cmd to preserve the outer
         // quotes rather than strip them.
         var commandLine = new StringBuilder();
-        commandLine.Append("/s /c \"\"").Append(vcvarsBat.FullPath).Append("\" ").Append(vcvarsArg)
+        commandLine
+            .Append("/s /c \"\"")
+            .Append(vcvarsBat.FullPath)
+            .Append("\" ")
+            .Append(vcvarsArg)
             .Append(" >nul && set\"");
 
         using var process = new Process
