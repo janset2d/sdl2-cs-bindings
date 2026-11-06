@@ -89,9 +89,9 @@ public sealed class PackageOutputValidatorTests
         var dependencyGroups = CreateDependencyGroups(
             NuspecFrameworkGroups
                 .Select(group => (group, CreateDependencyMap(
-                family,
-                "1.2.3",
-                "1.2.3")))
+                    family,
+                    "1.2.3",
+                    "1.2.3")))
                 .ToList(),
             nativeDependencyMetadata: "exclude=\"Build,Analyzers\"");
 
@@ -134,9 +134,9 @@ public sealed class PackageOutputValidatorTests
         var dependencyGroups = CreateDependencyGroups(
             NuspecFrameworkGroups
                 .Select(group =>
-                group == "net10.0"
-                    ? (group, CreateDependencyMap(family, "1.2.3", "9.9.9"))
-                    : (group, CreateDependencyMap(family, "1.2.3", "1.2.3")))
+                    group == "net10.0"
+                        ? (group, CreateDependencyMap(family, "1.2.3", "9.9.9"))
+                        : (group, CreateDependencyMap(family, "1.2.3", "1.2.3")))
                 .ToList());
 
         var artifacts = CreateArtifacts(
@@ -384,9 +384,9 @@ public sealed class PackageOutputValidatorTests
         var dependencyGroups = managedDependencyGroupsXml ?? CreateDependencyGroups(
             NuspecFrameworkGroups
                 .Select(group => (group, CreateDependencyMap(
-                family,
-                nativeDependencyVersion ?? version,
-                coreDependencyVersion ?? BuildCrossFamilyRangeExpression(family, version))))
+                    family,
+                    nativeDependencyVersion ?? version,
+                    coreDependencyVersion ?? BuildCrossFamilyRangeExpression(family, version))))
                 .ToList());
 
         WriteZip(

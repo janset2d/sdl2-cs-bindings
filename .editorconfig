@@ -450,6 +450,8 @@ dotnet_diagnostic.RCS1141.severity = suggestion
 roslynator_max_line_length = 180
 dotnet_diagnostic.RCS0054.severity = error
 dotnet_diagnostic.RCS0056.severity = error
+
+# REPOSITORY ANALYZERS
 dotnet_diagnostic.JNS0001.severity = error
 
 # SECTION 12: SONAR
