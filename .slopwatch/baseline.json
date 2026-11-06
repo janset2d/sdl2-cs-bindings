@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "createdAt": "2026-11-06T08:49:20.9697599+00:00",
-  "updatedAt": "2026-11-06T08:49:20.9836236+00:00",
-  "description": "Initial baseline created by 'slopwatch init' on 2026-11-06 08:49:20 UTC",
+  "createdAt": "2026-11-06T18:46:56.9780889+00:00",
+  "updatedAt": "2026-11-06T18:46:56.9873143+00:00",
+  "description": "Initial baseline created by 'slopwatch init' on 2026-11-06 18:46:56 UTC",
   "entries": [
     {
       "hash": "5ccd2abc5efc8bc9",
@@ -11,7 +11,7 @@
       "lineNumber": 34,
       "codeSnippet": "catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)\n        {\n            // OS will reclaim; teardown failures must not fail green tests.\n        }",
       "message": "Empty catch block swallows exceptions without handling",
-      "baselinedAt": "2026-11-06T08:49:20.9835237+00:00"
+      "baselinedAt": "2026-11-06T18:46:56.9871883+00:00"
     },
     {
       "hash": "2f79f8ef4f31ea60",
@@ -20,7 +20,7 @@
       "lineNumber": 25,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL2.Core\" VersionOverride=\"[$(JansetSdl2CorePackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL2.Core' (version: [$(JansetSdl2CorePackageVersion)])",
-      "baselinedAt": "2026-11-06T08:49:20.9835297+00:00"
+      "baselinedAt": "2026-11-06T18:46:56.9872546+00:00"
     },
     {
       "hash": "de08ba0197cdea4e",
@@ -29,7 +29,7 @@
       "lineNumber": 28,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL2.Image\" VersionOverride=\"[$(JansetSdl2ImagePackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL2.Image' (version: [$(JansetSdl2ImagePackageVersion)])",
-      "baselinedAt": "2026-11-06T08:49:20.9835348+00:00"
+      "baselinedAt": "2026-11-06T18:46:56.9872598+00:00"
     },
     {
       "hash": "a48cc078114bab4e",
@@ -38,7 +38,7 @@
       "lineNumber": 31,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL2.Mixer\" VersionOverride=\"[$(JansetSdl2MixerPackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL2.Mixer' (version: [$(JansetSdl2MixerPackageVersion)])",
-      "baselinedAt": "2026-11-06T08:49:20.9835421+00:00"
+      "baselinedAt": "2026-11-06T18:46:56.9872629+00:00"
     },
     {
       "hash": "7ebcd48a18760e14",
@@ -47,7 +47,7 @@
       "lineNumber": 34,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL2.Ttf\" VersionOverride=\"[$(JansetSdl2TtfPackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL2.Ttf' (version: [$(JansetSdl2TtfPackageVersion)])",
-      "baselinedAt": "2026-11-06T08:49:20.9835515+00:00"
+      "baselinedAt": "2026-11-06T18:46:56.9872689+00:00"
     },
     {
       "hash": "94ff501af69e1e7c",
@@ -56,7 +56,7 @@
       "lineNumber": 37,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL2.Gfx\" VersionOverride=\"[$(JansetSdl2GfxPackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL2.Gfx' (version: [$(JansetSdl2GfxPackageVersion)])",
-      "baselinedAt": "2026-11-06T08:49:20.9835568+00:00"
+      "baselinedAt": "2026-11-06T18:46:56.9872736+00:00"
     },
     {
       "hash": "950e7df61977fa05",
@@ -65,7 +65,7 @@
       "lineNumber": 40,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL2.Net\" VersionOverride=\"[$(JansetSdl2NetPackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL2.Net' (version: [$(JansetSdl2NetPackageVersion)])",
-      "baselinedAt": "2026-11-06T08:49:20.9835617+00:00"
+      "baselinedAt": "2026-11-06T18:46:56.9872763+00:00"
     },
     {
       "hash": "f7114e38b2afe118",
@@ -74,7 +74,7 @@
       "lineNumber": 45,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL3.Core\" VersionOverride=\"[$(JansetSdl3CorePackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL3.Core' (version: [$(JansetSdl3CorePackageVersion)])",
-      "baselinedAt": "2026-11-06T08:49:20.983567+00:00"
+      "baselinedAt": "2026-11-06T18:46:56.9872792+00:00"
     },
     {
       "hash": "5fd54881b35294e7",
@@ -83,7 +83,7 @@
       "lineNumber": 48,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL3.Image\" VersionOverride=\"[$(JansetSdl3ImagePackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL3.Image' (version: [$(JansetSdl3ImagePackageVersion)])",
-      "baselinedAt": "2026-11-06T08:49:20.9835728+00:00"
+      "baselinedAt": "2026-11-06T18:46:56.9872821+00:00"
     },
     {
       "hash": "ee119cb8d2752ffd",
@@ -92,7 +92,7 @@
       "lineNumber": 51,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL3.Mixer\" VersionOverride=\"[$(JansetSdl3MixerPackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL3.Mixer' (version: [$(JansetSdl3MixerPackageVersion)])",
-      "baselinedAt": "2026-11-06T08:49:20.9835776+00:00"
+      "baselinedAt": "2026-11-06T18:46:56.9872849+00:00"
     },
     {
       "hash": "e7df10e555ef0a54",
@@ -101,7 +101,7 @@
       "lineNumber": 54,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL3.Ttf\" VersionOverride=\"[$(JansetSdl3TtfPackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL3.Ttf' (version: [$(JansetSdl3TtfPackageVersion)])",
-      "baselinedAt": "2026-11-06T08:49:20.9835826+00:00"
+      "baselinedAt": "2026-11-06T18:46:56.9872876+00:00"
     },
     {
       "hash": "929ffbc460182bbf",
@@ -110,7 +110,7 @@
       "lineNumber": 57,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL3.Gfx\" VersionOverride=\"[$(JansetSdl3GfxPackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL3.Gfx' (version: [$(JansetSdl3GfxPackageVersion)])",
-      "baselinedAt": "2026-11-06T08:49:20.9835883+00:00"
+      "baselinedAt": "2026-11-06T18:46:56.9873058+00:00"
     },
     {
       "hash": "ad5d445b27227140",
@@ -119,7 +119,7 @@
       "lineNumber": 60,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL3.Net\" VersionOverride=\"[$(JansetSdl3NetPackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL3.Net' (version: [$(JansetSdl3NetPackageVersion)])",
-      "baselinedAt": "2026-11-06T08:49:20.9835932+00:00"
+      "baselinedAt": "2026-11-06T18:46:56.9873142+00:00"
     }
   ]
 }
