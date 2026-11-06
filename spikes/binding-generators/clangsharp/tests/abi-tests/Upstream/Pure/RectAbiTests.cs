@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Runtime.InteropServices;
 using Janset.SDL2.AbiTests.Infrastructure;
 using Janset.SDL2.AbiTests.Infrastructure.Classification;
@@ -571,7 +572,7 @@ public sealed class RectAbiTests
         {
             if (actual[i].x != expected[i].x || actual[i].y != expected[i].y)
             {
-                throw new InvalidOperationException($"SDL unexpectedly modified {parameterName}[{i}].");
+                throw new InvalidOperationException($"SDL unexpectedly modified {parameterName}[{i.ToString(CultureInfo.CurrentCulture)}].");
             }
         }
     }
@@ -582,7 +583,7 @@ public sealed class RectAbiTests
         {
             if (!ApproximatelyEqual(actual[i].x, expected[i].x) || !ApproximatelyEqual(actual[i].y, expected[i].y))
             {
-                throw new InvalidOperationException($"SDL unexpectedly modified {parameterName}[{i}].");
+                throw new InvalidOperationException($"SDL unexpectedly modified {parameterName}[{i.ToString(CultureInfo.CurrentCulture)}].");
             }
         }
     }

@@ -69,7 +69,7 @@ public sealed class StringUtf8AbiTests
 #if NET462
     private static ulong ToUInt64(UIntPtr value) => value.ToUInt64();
 #else
-    private static ulong ToUInt64(nuint value) => checked((ulong)value);
+    private static ulong ToUInt64(nuint value) => checked(value);
 #endif
 
     private sealed record LengthResult(ulong ByteLength, ulong CharacterLength);
