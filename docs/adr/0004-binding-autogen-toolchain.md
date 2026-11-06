@@ -90,6 +90,5 @@ Migration would replace the generator implementation, not the package contract. 
 - [`../architecture/binding-generation.md`](../architecture/binding-generation.md)
 - [`../engineering/binding-generator-maintenance.md`](../engineering/binding-generator-maintenance.md)
 - [`../../spikes/binding-generators/`](../../spikes/binding-generators/) — active spike implementation
-- [`../release-strategy.md`](../release-strategy.md)
-- [`../phases/phase-4-binding-autogen.md`](../phases/phase-4-binding-autogen.md)
+- [Packaging and release](../architecture/packaging-and-release.md)
 - [`0001-d3seg-and-package-first.md`](0001-d3seg-and-package-first.md)

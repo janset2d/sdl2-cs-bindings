@@ -12,7 +12,7 @@ Current rules for documentation ownership, authority, references and lossless ma
 | Architecture | [Architecture](../architecture/) | Current normative technical rules |
 | Engineering | [Engineering](./) | Current authoring, quality and workflow rules |
 | Decision rationale | [Decision records](../adr/) | Context, trade-offs and consequences |
-| Domain vocabulary | [Onboarding glossary](../onboarding.md#glossary) | Terms and meanings |
+| Domain vocabulary | [GLOSSARY.md](../../GLOSSARY.md) | Terms and meanings |
 | Operational state | [Roadmap](../ROADMAP.md) | Now, next, open questions and known gaps |
 | Consumer documentation | [README](../../README.md) | How to use the shipped packages |
 | Research and session operations | Private companion repository | Non-normative evidence and handoffs |

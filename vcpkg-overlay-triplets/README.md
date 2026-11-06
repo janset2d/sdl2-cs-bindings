@@ -90,5 +90,5 @@ If a new SDL library is added (e.g. `sdl3`, `sdl3-image`):
 
 ## Related
 
-- **Why hybrid?** Industry pattern (SkiaSharp / LibGit2Sharp / SQLitePCLRaw) and project policy — see [Settled Strategic Decisions](../docs/onboarding.md#settled-strategic-decisions). Evidence: internal research, 2026-04-11, "Research: Native Library Packaging Patterns in .NET".
+- **Why hybrid?** [Native build](../docs/architecture/native-build.md#hybrid-static-model) owns the project policy. Evidence: internal research, 2026-04-11, "Research: Native Library Packaging Patterns in .NET".
 - **Overlay ports:** [vcpkg-overlay-ports/README.md](../vcpkg-overlay-ports/README.md)

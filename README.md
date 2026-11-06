@@ -17,6 +17,13 @@ The .NET SDL ecosystem has a gap. Existing binding projects provide C# P/Invoke 
 
 **No other project in the ecosystem does all four.**
 
+These packages are the independent binding/packaging foundation for Janset2D, not a game engine
+or a high-level game-object wrapper. The consumer surface is C#/.NET; native build tooling is not
+a cross-language binding product. SDL2 Core, Image, Mixer, Ttf, Gfx and Net are the intended SDL2
+scope; SDL3 Core, Image, Mixer and Ttf follow SDL2's public-release work. Net and convenience
+metapackages remain planned. Users select managed family packages and receive natives transitively.
+Production quality takes precedence over tutorial-style coverage; samples are separate work.
+
 ## Packages
 
 ### SDL2 (Available Now)
@@ -59,7 +66,7 @@ All native libraries are compiled from source using vcpkg via custom `*-hybrid` 
 - **SDL2_ttf**: FreeType, Harfbuzz (advanced text shaping)
 - **SDL2_gfx**: primitives, rotozoom
 
-LGPL-licensed codecs (mpg123, libxmp, FluidSynth) are deliberately not in the active feature set per the project's LGPL-free codec policy — see [Settled Strategic Decisions](https://github.com/janset2d/sdl2-cs-bindings/blob/master/docs/onboarding.md#settled-strategic-decisions).
+LGPL-licensed codecs (mpg123, libxmp, FluidSynth) are deliberately not in the active feature set per the project's LGPL-free codec policy — see [Native build](https://github.com/janset2d/sdl2-cs-bindings/blob/master/docs/architecture/native-build.md#codecs-and-attribution).
 
 ## Getting Started
 
@@ -139,13 +146,12 @@ For detailed build instructions, see [docs/engineering/developing.md](https://gi
 
 | Document | Purpose |
 | --- | --- |
-| [docs/onboarding.md](docs/onboarding.md) | Project overview, glossary, where-to-go pointers |
+| [GLOSSARY.md](https://github.com/janset2d/sdl2-cs-bindings/blob/master/GLOSSARY.md) | Project-specific language |
 | [docs/ROADMAP.md](https://github.com/janset2d/sdl2-cs-bindings/blob/master/docs/ROADMAP.md) | Current status and roadmap |
 | [Development guide](https://github.com/janset2d/sdl2-cs-bindings/blob/master/docs/engineering/developing.md) | Local setup and validation; native procedures are routed from there |
 | [docs/architecture/packaging-and-release.md](https://github.com/janset2d/sdl2-cs-bindings/blob/master/docs/architecture/packaging-and-release.md) | G-numbered guardrail registry + failure-mode catalog |
 | [`docs/adr/`](https://github.com/janset2d/sdl2-cs-bindings/tree/master/docs/adr/) | Architecture decision records |
 | Design evidence | Internal research, 2026-04-11, "Research: Native Library Packaging Patterns in .NET"; internal research, 2026-05-22, "Research: Semantic ABI Type Classification For SDL Bindings"; internal research, 2026-04-11, "Research: SDL3 Ecosystem Analysis" |
-| [docs/phases/](docs/phases/) | Phase-by-phase execution details |
 
 ## Architecture
 
