@@ -1,11 +1,13 @@
 using System.IO.Compression;
 using System.Text.Json;
 using Build.Data.Manifest.Models;
+using Build.Data.Versions;
 using Build.Host;
 using Build.Host.Cake;
 using Build.Host.Paths;
 using Build.Host.Processes;
 using Build.Host.Runtime;
+using Build.Targets.Package;
 using Cake.Core;
 using Cake.Core.Configuration;
 using Cake.Core.IO;
@@ -36,7 +38,7 @@ public sealed class FakeCakeWorld
     private readonly List<string> _explicitVersion = [];
     private string? _explicitVersions;
     private string? _versionsFile;
-    private Data.Versions.PackageFamilyVersionSet _familyVersions = Data.Versions.PackageFamilyVersionSet.Empty;
+    private PackageFamilyVersionSet _familyVersions = PackageFamilyVersionSet.Empty;
     private readonly List<string> _dlls = [];
     private readonly List<string> _libraries = [];
     private CancellationToken _cancellationToken = CancellationToken.None;
@@ -53,7 +55,7 @@ public sealed class FakeCakeWorld
     public string Rid => _rid;
 
     /// <summary>Family versions configured via <see cref="WithFamilyVersions"/>; defaults to empty.</summary>
-    public Data.Versions.PackageFamilyVersionSet FamilyVersions => _familyVersions;
+    public PackageFamilyVersionSet FamilyVersions => _familyVersions;
 
     public IReadOnlyList<ProcessInvocation> ProcessInvocations => _processInvocations;
 
@@ -376,11 +378,11 @@ public sealed class FakeCakeWorld
     }
 
     /// <summary>
-    /// Sets the resolved <see cref="Data.Versions.PackageFamilyVersionSet"/> stamped into
-    /// <c>BuildContext.Options.Package.FamilyVersions</c>. <see cref="Targets.Package.PackageTask"/>
+    /// Sets the resolved <see cref="PackageFamilyVersionSet"/> stamped into
+    /// <c>BuildContext.Options.Package.FamilyVersions</c>. <see cref="PackageTask"/>
     /// reads its scope from that set, so scenarios that exercise Pack must seed it explicitly.
     /// </summary>
-    public FakeCakeWorld WithFamilyVersions(Data.Versions.PackageFamilyVersionSet familyVersions)
+    public FakeCakeWorld WithFamilyVersions(PackageFamilyVersionSet familyVersions)
     {
         _familyVersions = familyVersions ?? throw new ArgumentNullException(nameof(familyVersions));
         return this;

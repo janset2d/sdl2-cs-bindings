@@ -54,7 +54,8 @@ Run after authored source, project or test changes. It rejects disabled tests, b
 empty catches, arbitrary test delays and central-package-management bypasses.
 
 ```pwsh
-slopwatch analyze --fail-on warning --exclude "artifacts/**,external/**,vcpkg_installed/**,spikes/binding-generators/references/**,**/bin/**,**/obj/**"
+dotnet tool restore
+dotnet tool run slopwatch analyze --fail-on warning --exclude "artifacts/**,external/**,vcpkg_installed/**,spikes/binding-generators/references/**,**/bin/**,**/obj/**"
 ```
 
 The exclusions mirror [.slopwatch/slopwatch.json](../../.slopwatch/slopwatch.json).
@@ -63,7 +64,7 @@ and build output. Fix new findings rather than hiding them in the baseline.
 After deleting or moving code, rebuild the baseline to remove stale paths, using the same exclusions:
 
 ```pwsh
-slopwatch init -f --exclude "artifacts/**,external/**,vcpkg_installed/**,spikes/binding-generators/references/**,**/bin/**,**/obj/**"
+dotnet tool run slopwatch init -f --exclude "artifacts/**,external/**,vcpkg_installed/**,spikes/binding-generators/references/**,**/bin/**,**/obj/**"
 ```
 
 Review the baseline diff: it must not conceal a new finding.
@@ -73,6 +74,9 @@ Review the baseline diff: it must not conceal a new finding.
 [ci.yml](../../.github/workflows/ci.yml) runs light managed checks on pushes to `master` and every pull request, including
 Markdown-only changes. It calls the reusable [build-host workflow](../../.github/workflows/build-cake-host.yml)
 and [spike checks](../../.github/workflows/spike-checks.yml); workflow lint runs alongside them.
+The Lint job format-checks whitespace and style and builds feed-independent projects with analyzers, runs analyzer tests, and builds `tools.cs`.
+The build-host workflow's CI OS legs compile and test without analyzers; Lint runs that wall once, while release retains analysis by default.
+Slopwatch uses the root tool manifest: `dotnet tool restore`, then `dotnet tool run slopwatch analyze` with the exclusions above.
 [release.yml](../../.github/workflows/release.yml) owns the heavy native and package matrix. It runs
 by manual dispatch or the explicitly enabled schedule and reuses the same build-host workflow.
 Release dispatch, publishing and merge remain Deniz's actions under [workflow](workflow.md#agent-autonomy).

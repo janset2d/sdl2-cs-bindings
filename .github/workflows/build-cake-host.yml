@@ -1,6 +1,7 @@
 # Build and test the Cake host for ci.yml and release.yml.
 # The runner input selects the OS; publish-artifact controls publishing and uploading
 # the framework-dependent cake-host artifact for downstream jobs. CI disables it.
+# run-analyzers controls compiler analysis; CI runs it in the lint job instead.
 # Submodules are skipped because managed host tests do not build native code.
 # TUnit HTML reports upload through the shared runtime-environment setup.
 
