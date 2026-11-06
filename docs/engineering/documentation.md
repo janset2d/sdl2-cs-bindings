@@ -32,9 +32,9 @@ versions and TFMs from [build properties](../../Directory.Build.props) and [pack
 RIDs and schema version from the [manifest](../../build/manifest.json), test counts from the test run.
 Do not copy those values into prose.
 
-Two files relay rule text because agents load them before any routing:
-[AGENTS.md](../../AGENTS.md) relays universal, reserved-action and attribution rules owned by
-[workflow](workflow.md); [build/AGENTS.md](../../build/AGENTS.md) relays build-boundary and test rules
+[AGENTS.md](../../AGENTS.md) owns universal rules that no other canon holds. It relays the
+reserved-action, attribution and Deviation rules owned by [workflow](workflow.md).
+[build/AGENTS.md](../../build/AGENTS.md) relays build-boundary and test rules
 owned by [build-host architecture](../architecture/build-host.md) and
 [testing style](../knowledge-base/testing-guidelines.md). A relay changes in the same change as its owner.
 
