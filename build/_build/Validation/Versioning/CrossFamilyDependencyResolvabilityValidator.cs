@@ -79,6 +79,7 @@ public sealed class CrossFamilyDependencyResolvabilityValidator : ICrossFamilyDe
         PackageFamilyVersionSet versions)
     {
         var dependencyFamilyId = new PackageFamilyId(dependencyFamilyName);
+
         if (versions.Contains(dependencyFamilyId))
         {
             return new CrossFamilyDependencyCheck(

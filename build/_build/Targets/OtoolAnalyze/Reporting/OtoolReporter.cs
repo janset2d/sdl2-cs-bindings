@@ -30,6 +30,7 @@ public sealed class OtoolReporter(IAnsiConsole console)
     {
         ArgumentNullException.ThrowIfNull(attemptedTriplets);
         _console.MarkupLine("[yellow]Vcpkg lib directory not found for any supported triplet[/]");
+
         foreach (var triplet in attemptedTriplets)
         {
             _console.MarkupLine($"[grey]  Try running:[/] ./external/vcpkg/vcpkg install sdl2:{triplet}");
@@ -65,6 +66,7 @@ public sealed class OtoolReporter(IAnsiConsole console)
         foreach (var dep in deps.OrderBy(d => d.Name, StringComparer.Ordinal))
         {
             (dep.IsSystem ? systemLibs : userLibs).Add(dep.Name);
+
             switch (dep.Kind)
             {
                 case LibraryKind.Framework: frameworkLibs.Add(dep.Name); break;

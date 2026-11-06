@@ -78,6 +78,7 @@ public sealed class CsprojPackContractValidator(IFileSystem fileSystem) : ICspro
     {
         var relativePath = family.ManagedProject!;
         var (root, error) = LoadCsprojDocument(family, repoRoot, relativePath);
+
         if (root is null)
         {
             checks.Add(error!);
@@ -92,6 +93,7 @@ public sealed class CsprojPackContractValidator(IFileSystem fileSystem) : ICspro
     {
         var relativePath = family.NativeProject!;
         var (root, error) = LoadCsprojDocument(family, repoRoot, relativePath);
+
         if (root is null)
         {
             checks.Add(error!);

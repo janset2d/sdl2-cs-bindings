@@ -88,6 +88,7 @@ public sealed partial class LddRunner : Tool<LddSettings>
             if (trimmedLine.Contains(" => ", StringComparison.Ordinal))
             {
                 var parts = trimmedLine.Split(" => ", 2);
+
                 if (parts.Length < 2)
                 {
                     continue;
@@ -114,6 +115,7 @@ public sealed partial class LddRunner : Tool<LddSettings>
 
             // Handle direct dependencies without redirection: "/lib64/ld-linux-x86-64.so.2 (0x...)"
             var directAddressIndex = trimmedLine.LastIndexOf(" (0x", StringComparison.Ordinal);
+
             if (directAddressIndex > 0)
             {
                 var libPath = trimmedLine[..directAddressIndex].Trim();

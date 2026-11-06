@@ -33,6 +33,7 @@ public sealed class WindowsDumpbinScanner(ICakeContext context) : IRuntimeScanne
         foreach (var depDllName in dependentDllNames)
         {
             var depDllPath = binaryDirectory.CombineWithFilePath(depDllName);
+
             if (_context.FileSystem.GetFile(depDllPath).Exists)
             {
                 dependentPaths.Add(depDllPath);

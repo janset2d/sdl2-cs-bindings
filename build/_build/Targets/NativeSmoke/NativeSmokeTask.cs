@@ -53,6 +53,7 @@ public sealed class NativeSmokeTask(
         }
 
         var preReport = _preconditions.Validate();
+
         if (!preReport.IsValid)
         {
             foreach (var error in preReport.Errors)
@@ -116,6 +117,7 @@ public sealed class NativeSmokeTask(
     private void Execute(string rid)
     {
         var executable = _pathService.GetNativeSmokeExecutableFile(rid);
+
         if (!_cakeContext.FileExists(executable))
         {
             throw new CakeException($"NativeSmoke executable not found after build: '{executable.FullPath}'.");
@@ -157,6 +159,7 @@ public sealed class NativeSmokeTask(
         }
 
         MsvcTargetArch targetArch;
+
         try
         {
             targetArch = MsvcTargetArchExtensions.FromRid(rid);
@@ -167,12 +170,14 @@ public sealed class NativeSmokeTask(
         }
 
         var delta = await _msvcDevEnvironment.ResolveAsync(targetArch).ConfigureAwait(false);
+
         if (delta.Count == 0)
         {
             return;
         }
 
         settings.EnvironmentVariables ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var entry in delta)
         {
             settings.EnvironmentVariables[entry.Key] = entry.Value;
@@ -189,6 +194,7 @@ public sealed class NativeSmokeTask(
         }
 
         var librariesToValidate = new List<LibraryManifest>(requestedLibraries.Count);
+
         foreach (var specLibName in requestedLibraries)
         {
             var manifest = allManifestLibraries.SingleOrDefault(m => string.Equals(m.Name, specLibName, StringComparison.OrdinalIgnoreCase))
@@ -216,6 +222,7 @@ public sealed class NativeSmokeTask(
             }
 
             var hasPayload = context.GetFiles($"{nativeDir.FullPath}/**/*").Count > 0;
+
             if (!hasPayload)
             {
                 throw new CakeException(

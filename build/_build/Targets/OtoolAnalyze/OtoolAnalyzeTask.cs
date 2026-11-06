@@ -39,6 +39,7 @@ public sealed class OtoolAnalyzeTask(OtoolReporter reporter) : AsyncFrostingTask
         foreach (var libraryPath in context.Dlls)
         {
             var file = context.File(libraryPath);
+
             if (!context.FileExists(file))
             {
                 context.Log.Warning("File not found: {0}", file.Path);
@@ -56,6 +57,7 @@ public sealed class OtoolAnalyzeTask(OtoolReporter reporter) : AsyncFrostingTask
         foreach (var triplet in OsxTriplets)
         {
             var testDir = context.Paths.GetVcpkgInstalledLibDir(triplet);
+
             if (context.DirectoryExists(testDir))
             {
                 vcpkgLibDir = testDir;
@@ -71,6 +73,7 @@ public sealed class OtoolAnalyzeTask(OtoolReporter reporter) : AsyncFrostingTask
         }
 
         var dylibFiles = context.GetFiles($"{vcpkgLibDir}/*.dylib").ToList();
+
         if (dylibFiles.Count == 0)
         {
             _reporter.WriteNoDylibsWarning(vcpkgLibDir);

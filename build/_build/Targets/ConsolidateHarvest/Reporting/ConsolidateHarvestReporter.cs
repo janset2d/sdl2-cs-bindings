@@ -52,6 +52,7 @@ public sealed class ConsolidateHarvestReporter(IAnsiConsole console, ICakeLog lo
         ArgumentException.ThrowIfNullOrWhiteSpace(message);
 
         _log.Error("Failed to consolidate harvest for library {0}: {1}", libraryName, message);
+
         if (exception is not null)
         {
             _log.Verbose("Consolidation error details: {0}", exception);

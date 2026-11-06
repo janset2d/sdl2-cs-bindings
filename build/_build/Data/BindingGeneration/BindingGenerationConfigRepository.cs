@@ -41,6 +41,7 @@ public sealed class BindingGenerationConfigRepository(IManifestRepository manife
         var manifest = _manifestRepository.Load();
 
         var family = manifest.PackageFamilies.FirstOrDefault(pf => string.Equals(pf.Name, familyId, StringComparison.Ordinal));
+
         if (family is null)
         {
             return Result<BindingGenerationConfig, BindingGenerationConfigError>
@@ -48,6 +49,7 @@ public sealed class BindingGenerationConfigRepository(IManifestRepository manife
         }
 
         var lib = manifest.LibraryManifests.FirstOrDefault(l => string.Equals(l.Name, family.LibraryRef, StringComparison.Ordinal));
+
         if (lib is null)
         {
             // Manifest is structurally inconsistent — package_families[].library_ref points

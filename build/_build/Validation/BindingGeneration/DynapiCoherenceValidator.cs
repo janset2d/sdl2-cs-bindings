@@ -34,6 +34,7 @@ public sealed class DynapiCoherenceValidator(IDynapiManifestRepository dynapiRep
         }
 
         var manifestResult = await _dynapiRepo.LoadAsync(ct).ConfigureAwait(false);
+
         if (manifestResult.TryGetError(out var err))
         {
             throw new CakeException(err.Reason);

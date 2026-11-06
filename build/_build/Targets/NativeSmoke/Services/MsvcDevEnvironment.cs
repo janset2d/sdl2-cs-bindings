@@ -120,6 +120,7 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
         // that matches the RID you intend to build. CI paths never source the parent
         // shell so this fast-path short-circuits only on operator workstations.
         var vcToolsInstallDir = Environment.GetEnvironmentVariable(VcToolsInstallDirEnvVar);
+
         if (!string.IsNullOrWhiteSpace(vcToolsInstallDir))
         {
             _log.Verbose(
@@ -144,6 +145,7 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
         }
 
         var vcvarsBat = vsInstallation.CombineWithFilePath(new FilePath(VcvarsAllRelativePath));
+
         if (!File.Exists(vcvarsBat.FullPath))
         {
             throw new CakeException(
@@ -218,15 +220,18 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
         }
 
         var delta = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var rawLine in stdout.Split('\n'))
         {
             var line = rawLine.TrimEnd('\r');
+
             if (line.Length == 0)
             {
                 continue;
             }
 
             var equalIndex = line.IndexOf('=', StringComparison.Ordinal);
+
             if (equalIndex <= 0)
             {
                 continue;
@@ -243,6 +248,7 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
             }
 
             var current = Environment.GetEnvironmentVariable(key);
+
             if (current is null || !string.Equals(current, value, StringComparison.Ordinal))
             {
                 delta[key] = value;
