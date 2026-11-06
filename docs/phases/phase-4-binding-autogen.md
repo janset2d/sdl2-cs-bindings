@@ -1,5 +1,7 @@
 # Phase 4: Binding Auto-Generation
 
+Date: 2026-05-28
+
 **Status (2026-05-28):** SDL2 Layer 1 raw ABI closed on the active ClangSharp + Roslyn postprocess implementation under [`../../spikes/binding-generators/clangsharp/`](../../spikes/binding-generators/clangsharp/) across SDL2 Core / Image / GFX / TTF / Mixer. Layer 2 typed public API + Layer 3 friendly overloads + production flip remain. ADR-004 is **Reopened** with formal amendment deferred to post-Layer-2 closure. **Critical path for v1.0** per [`../release-strategy.md`](../release-strategy.md) — lands **before** the first public `-preview.N` wave.
 
 **Order:** Phase 4 ships before Phase 3. First public preview consumes AST-generated bindings, not the deprecated `external/sdl2-cs` imports. See [`../release-strategy.md`](../release-strategy.md) §Sequencing for the rationale.
@@ -11,7 +13,7 @@ This page is a thin pointer. The table below links the homes of strategy, ABI/AP
 | Doc | Purpose |
 | --- | --- |
 | [`../architecture/binding-abi-policy.md`](../architecture/binding-abi-policy.md) | Canonical ABI/API policy. |
-| [`../../spikes/binding-generators/docs/canonical/binding-generator-roadmap.md`](../../spikes/binding-generators/docs/canonical/binding-generator-roadmap.md) | Layer-based forward milestones. |
+| [Binding promotion gates](../architecture/binding-generation.md#promotion-evidence-gates) | Generated-source promotion evidence. |
 | [`../architecture/binding-generation.md`](../architecture/binding-generation.md) | Mechanism + classification labels. |
 | [`../engineering/binding-generator-maintenance.md`](../engineering/binding-generator-maintenance.md) | ClangSharp + Roslyn maintenance playbook. |
 | [`../adr/0004-binding-autogen-toolchain.md`](../adr/0004-binding-autogen-toolchain.md) | ADR-004 (Reopened — amendment deferred). |
@@ -29,7 +31,7 @@ Scope-axis sequencing only. Implementation-axis sequencing (Layer 1 → Layer 2 
 
 ## Exit Criteria — Defer To Roadmap
 
-Detailed exit criteria per stage live in [`../../spikes/binding-generators/docs/canonical/binding-generator-roadmap.md`](../../spikes/binding-generators/docs/canonical/binding-generator-roadmap.md).
+Detailed exit criteria live in [Binding promotion gates](../architecture/binding-generation.md#promotion-evidence-gates).
 
 ## Cross-Reference
 

@@ -86,7 +86,7 @@ Migration would replace the generator implementation, not the package contract. 
 ## 7. References
 
 - [`../architecture/binding-abi-policy.md`](../architecture/binding-abi-policy.md)
-- [`../../spikes/binding-generators/docs/canonical/binding-generator-roadmap.md`](../../spikes/binding-generators/docs/canonical/binding-generator-roadmap.md)
+- [Binding promotion gates](../architecture/binding-generation.md#promotion-evidence-gates)
 - [`../architecture/binding-generation.md`](../architecture/binding-generation.md)
 - [`../engineering/binding-generator-maintenance.md`](../engineering/binding-generator-maintenance.md)
 - [`../../spikes/binding-generators/`](../../spikes/binding-generators/) — active spike implementation

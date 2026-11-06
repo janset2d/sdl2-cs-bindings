@@ -324,5 +324,5 @@ Recommended: **TTF first** (single header, known C `long` risk with existing hyb
 - [`binding-generator-constitution.md`](../../../docs/binding-autogen/binding-generator-constitution.md) — Layer Contract, C `long` policy, Opaque Handles, Foreign Type Boundary Policy
 - [`next-iteration-plan.md`](next-iteration-plan.md) — active slice plan
 - [`priority-c-closure-summary.md`](priority-c-closure-summary.md) — authoritative Priority C closure record
-- [`../../../docs/binding-autogen/binding-generator-roadmap.md`](../../../docs/binding-autogen/binding-generator-roadmap.md) — milestone plan
+- [Binding promotion gates](../../../../../docs/architecture/binding-generation.md#promotion-evidence-gates) — generated-source evidence requirements
 - `spikes/binding-generators/references/ppy-SDL3-CS/` — reference clone (gitignored)

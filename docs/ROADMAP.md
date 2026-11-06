@@ -26,6 +26,58 @@ Public NuGet.org promotion (`PublishPublic`) is a stub; staging publishes to Git
 `tools.cs setup --source=remote-nuget` also returns not implemented. Use local setup or the published
 GitHub Packages wave until the public-feed path lands.
 
+- **Generated surface:** committed spike output still has an internal raw container and public
+  forwarders. The one-class binding/friendly-tier policy, ABI-exact boolean struct, uniform typed
+  callback signatures and naming rules are decided policy, not claims that output has caught up.
+  The oracle's raw-public-import checks also reflect the old container policy and must migrate with
+  the output. Existing TFM properties and spike projects still differ from ADR-0009.
+- **API enforcement:** the snapshot covers Core on one TFM; package validation is not enabled.
+- **Tooling and stamps:** orchestration is still Python under the spike. The commands in binding
+  maintenance intentionally describe that executable route until the C# port replaces it. The host's
+  tested header/config/stamp/output-safety and symbol-validation salvage remains dormant with no
+  generation target. A production stamp writer, stale-output gate and integrated pack symbol check
+  still need wiring; no existing dormant class proves those checks ran.
+- **Compatibility compiler:** the earlier Core projection retained one output delta after a
+  CS9363 compiler crash under SDK 10.0.401; revalidate that hazard under the actual pinned SDK
+  before accepting further projection changes.
+
+### Binding and test expansion
+
+Regenerate stale families; port the generator with a byte-identical oracle; revalidate toolchain
+bumps; collapse the binding surface; make output Linux-canonical; then promote generated source.
+Keep these deliverables visible as work, not claims about completed output:
+
+- Complete safe alternatives, reviewed public API and per-pattern friendly tests before preview.
+  Preserve raw pointers without a separate forwarding layer; include string/path/resource pairs.
+- Production Core replaces its vendored compile include, commits the whole generated artifact and
+  reproducibility stamp, and proves package-first init/quit/error/create/free/callback behavior.
+- Prove SysWM union sizes/offsets with minimal foreign forward declarations. Sweep satellites,
+  add Net's concrete package family, retire remaining vendored imports, reject duplicate Core-owned
+  types, and validate generated entry points after harvest and before pack.
+- Expand mechanical header breadth for symbols, constants/macros, sizes/offsets/fixed arrays and
+  callback/TFM shapes. Keep runtime coverage focused on representative behavior and high-risk paths.
+- Complete function-like macro helpers, runtime endian aliases (including Mixer-to-Core aliases),
+  and Mixer callback rooting with separate persistent versus synchronous lifetime policy.
+  Thread-creation ports await macro/REAL entrypoint policy; SysWM ports await typed layouts.
+  SDL_GetErrorMsg needs upstream-backed evidence rather than invented behavior tests.
+- Establish the smoke-owned asset root with provenance/license/generation rules. Replace branding
+  PNG use with a tiny deterministic image. Add BMP/WAV/UTF-8 RWops paths and create/free pairs;
+  PNG/JPEG/WebP/TIFF/AVIF loads; clean-license font render; gfx pixel mutation; WAV then agreed
+  mixer codecs. QOI is optional until deliberately promoted; MIDI awaits the Linux runtime decision.
+- Evaluate per-family smoke projects only with partial-scope support. Add non-CI window/image/
+  font/audio/mixer/sprite/input diagnostics and optional backend/local-network tools separately.
+- Continue deterministic upstream ports after infrastructure normalization: rect, RWops, surfaces,
+  pixels, GUID, platform/error/version, timer, hints/events, dummy audio and software video/render;
+  then math, keyboard/mouse, stdlib, subsystem/log, virtual joystick and deterministic atomic/mutex
+  cases. Clipboard, filesystem/locale/power/loadso, YUV/iconv/geometry and focus remain capability-aware.
+  Record exact upstream cases, destinations, actual counts/skips and deferrals per slice.
+- Historical coverage aspirations were a 70–100-test ABI spine, 80–130 further headless cases and
+  20–40 gated cases, roughly 260–280 stable headless candidates and 300+ only with gated lanes.
+  These are planning estimates, not acceptance thresholds or current totals.
+- SDL3 follows a real SDL2 public release and its own native package support. Establish Core/Image/
+  Mixer/Ttf evidence, one-byte bool, IOStream, platform macros, namespace/import identity and TFM
+  obligations independently; do not copy SDL2 assumptions or block the first SDL2 public release.
+
 - **Partial-scope releases:** G58 requires every dependency in the resolved invocation. Feed-probe
   relaxation must query the actual publish target (GitHub Packages or nuget.org), not another feed.
   A `-ci` Core prerelease does not satisfy a stable Core lower bound under NuGet ordering.
@@ -89,7 +141,7 @@ No separate phase doc per [phases/README.md](phases/README.md) retention test �
 
 Design brief: [phases/phase-4-binding-autogen.md](phases/phase-4-binding-autogen.md).
 Binding generator constitution: [architecture/binding-abi-policy.md](architecture/binding-abi-policy.md) (canonical ABI/API/translation contract and manifest config-vs-policy rules).
-Binding generator roadmap: [../spikes/binding-generators/docs/canonical/binding-generator-roadmap.md](../spikes/binding-generators/docs/canonical/binding-generator-roadmap.md) (layer-based forward milestones: Layer 2 typed public API, Layer 3 friendly overloads, Production Flip, SysWM Layout + Satellite Sweep Close, Smoke Expansion, SDL3 Extension).
+Binding promotion gates: [Generation](architecture/binding-generation.md#promotion-evidence-gates); forward work is summarized above.
 Binding generator implementation notes: [architecture/binding-generation.md](architecture/binding-generation.md) (mechanism + classification labels + hardcoding rules).
 Binding generator maintenance: [engineering/binding-generator-maintenance.md](engineering/binding-generator-maintenance.md) (ClangSharp + Roslyn postprocess maintenance playbook).
 

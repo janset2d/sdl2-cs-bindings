@@ -5,8 +5,8 @@ This folder hosts the SDL2 binding-generator prototypes that feed Phase 4 (bindi
 ## Status — 2026-05-28
 
 - **SDL2 Layer 1 raw ABI: CLOSED across Core / Image / GFX / TTF / Mixer** on the active ClangSharp + Roslyn postprocess implementation under `clangsharp/`. Multi-TFM compile clean across 5 TFMs. Five-family oracle report at `output/reports/oracle-evidence-clangsharp.md`.
-- **Durable policy, mechanism, maintenance and testing** live in the architecture and engineering homes linked below. [`docs/canonical/`](docs/canonical/) retains the roadmap, satellites and references.
-- **Next forward scope:** Layer 2 typed public API. See `docs/canonical/binding-generator-roadmap.md` §"Layer 2 — Typed Public API Projection" + `docs/next-iteration-plan.md` for active iteration tracking.
+- **Durable policy, mechanism, maintenance and testing** live in the architecture and engineering homes linked below. [`docs/canonical/`](docs/canonical/) retains satellite analyses and references.
+- **Forward scope:** [ROADMAP](../../docs/ROADMAP.md) owns current work; [promotion gates](../../docs/architecture/binding-generation.md#promotion-evidence-gates) own exit evidence. [Iteration tracking](docs/next-iteration-plan.md) remains spike-local.
 - **Branch:** `spike/binding-autogen-sdl2-gfx`. Push gate pending Deniz approval per AGENTS.md §Approval Gate.
 
 ## Endgame Vision (read before making design decisions)
@@ -37,9 +37,9 @@ rsp/*.rsp                            →       rsp/*.rsp (same files, same paths
 
 | Doc | Why |
 | --- | --- |
-| **`docs/canonical/README.md`** | **Canonical workstream index.** Read first to navigate the canonical/ tree. |
+| **[AGENTS.md](../../AGENTS.md#task-routing)** | Task-to-canon routing. |
 | **[`binding-abi-policy.md`](../../docs/architecture/binding-abi-policy.md)** | ABI/API/translation policy (pure principles). |
-| **`docs/canonical/binding-generator-roadmap.md`** | Layer-based forward milestones. |
+| **[ROADMAP](../../docs/ROADMAP.md)** | Current forward work. |
 | **[`binding-testing.md`](../../docs/engineering/binding-testing.md)** | Testing layer model + smoke + raw ABI upstream port backlog. |
 | **[`binding-generation.md`](../../docs/architecture/binding-generation.md)** | Mechanism + classification labels + hardcoding rules. |
 | **[`binding-generator-maintenance.md`](../../docs/engineering/binding-generator-maintenance.md)** | Version-bump procedures + family-config.json schema + RSP maintenance. |
@@ -47,7 +47,7 @@ rsp/*.rsp                            →       rsp/*.rsp (same files, same paths
 | **`docs/canonical/satellites/`** | Per-family + cross-family satellite analyses. |
 | **`docs/canonical/references/ppy-reference-analysis-2026-05-25.md`** | ppy/SDL3-CS reference analysis. |
 | `docs/next-iteration-plan.md` | Active spike plan (Layer 2 iteration + forward backlog). |
-| `docs/reference-clones.md` | Local clone commands for ppy + Alimer reference projects. |
+| [Reference-clone appendix](../../docs/engineering/binding-output-review.md#reference-clone-appendix) | Pinned comparison checkouts and clone workflow. |
 | `output/reports/iteration-2-comparison.md` | Decision evidence (function counts, dynapi coherence, multi-TFM trajectory). |
 | `output/reports/oracle-evidence-clangsharp.md` | Active family-aware raw ABI evidence. |
 | `output/reports/clangsharp-failure-buckets.md` | 8 RSP-fix iteration history. |
@@ -78,10 +78,7 @@ spikes/binding-generators/
 ├── Directory.Build.props                            # spike-local build defaults (CPM enabled, no production multi-TFM inheritance)
 ├── docs/
 │   ├── next-iteration-plan.md                       # active spike iteration + forward backlog
-│   ├── reference-clones.md                          # local clone commands for upstream refs
-│   └── canonical/                                   # roadmap, satellites and references
-│       ├── README.md                                # canonical workstream index
-│       ├── binding-generator-roadmap.md             # layer-based forward milestones
+│   └── canonical/                                   # satellite analyses and references
 │       ├── satellites/                              # per-family + cross-family satellite analyses
 │       └── references/                              # ppy/SDL3-CS reference analysis
 ├── clangsharp/                                      # ACTIVE — ppy-style ClangSharp prototype
@@ -161,9 +158,9 @@ The 7-step postprocess pipeline lands all Priority C semantic-ABI policy in a si
 
 ## How a new agent should pick this up
 
-1. `docs/canonical/README.md` — canonical workstream index and reading order.
+1. [AGENTS.md](../../AGENTS.md#task-routing) — task-to-canon routing.
 2. [`binding-abi-policy.md`](../../docs/architecture/binding-abi-policy.md) — ABI/API policy.
-3. `docs/canonical/binding-generator-roadmap.md` — layer-based forward milestones.
+3. [ROADMAP](../../docs/ROADMAP.md) — current forward work; [promotion gates](../../docs/architecture/binding-generation.md#promotion-evidence-gates) — exit evidence.
 4. [`binding-generation.md`](../../docs/architecture/binding-generation.md) — mechanism rationale.
 5. [`binding-generator-maintenance.md`](../../docs/engineering/binding-generator-maintenance.md) — operational procedures.
 6. [`binding-testing.md`](../../docs/engineering/binding-testing.md) — testing strategy.
