@@ -1,5 +1,4 @@
 # Shrinks only. Remove an entry in the change that fixes it.
-docs/README.md|docs/binding-autogen
 docs/refactor-followup/README.md|docs/refactor-followup/02-ctor-policy.md
 docs/refactor-followup/README.md|docs/refactor-followup/03-quick-wins.md
 docs/research/full-train-release-orchestration.md|docs/knowledge-base/release-lifecycle-direction.md

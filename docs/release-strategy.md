@@ -1,5 +1,7 @@
 # Release Strategy — Janset.SDL2 / Janset.SDL3
 
+Date: 2026-11-05
+
 > Strategic anchor for how this project ships. AGENTS.md, plan.md, phase docs, ADRs, and research notes all point here for shape-level decisions (what counts as "v1.0", when do we go public, how do we label prereleases). Tactical roadmap lives in [`plan.md`](plan.md); detailed phase scope lives in [`phases/`](phases/).
 
 ## Mission Recap
@@ -137,9 +139,9 @@ Currently: ≥2 weeks per wave. Open to revision if real-consumer feedback signa
 
 ## Cross-Reference
 
-- [`../AGENTS.md`](../AGENTS.md) — operating rules, approval gate, settled strategic decisions
+- [`../AGENTS.md`](../AGENTS.md) — operating rules, reserved actions
 - [`plan.md`](plan.md) — tactical roadmap, current status, hardening backlog
-- [`onboarding.md`](onboarding.md) — project framing, glossary, non-goals
+- [`onboarding.md`](onboarding.md) — project framing, settled strategic decisions, glossary, non-goals
 - [`phases/phase-4-binding-autogen.md`](phases/phase-4-binding-autogen.md) — AST generator design brief
 - [`phases/phase-5-sdl3-support.md`](phases/phase-5-sdl3-support.md) — SDL3 monorepo + bindings design brief
 - [`../spikes/binding-generators/docs/canonical/`](../spikes/binding-generators/docs/canonical/) — binding generator workstream canonical docs (constitution, roadmap, testing strategy, implementation notes, maintenance playbook, oracle validation, per-family satellite analyses)

@@ -59,7 +59,7 @@ All native libraries are compiled from source using vcpkg via custom `*-hybrid` 
 - **SDL2_ttf**: FreeType, Harfbuzz (advanced text shaping)
 - **SDL2_gfx**: primitives, rotozoom
 
-LGPL-licensed codecs (mpg123, libxmp, FluidSynth) are deliberately not in the active feature set per the project's LGPL-free codec policy — see [`AGENTS.md` Settled Strategic Decisions](AGENTS.md).
+LGPL-licensed codecs (mpg123, libxmp, FluidSynth) are deliberately not in the active feature set per the project's LGPL-free codec policy — see [Settled Strategic Decisions](https://github.com/janset2d/sdl2-cs-bindings/blob/master/docs/onboarding.md#settled-strategic-decisions).
 
 ## Getting Started
 
