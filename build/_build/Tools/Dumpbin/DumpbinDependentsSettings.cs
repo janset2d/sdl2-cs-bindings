@@ -1,6 +1,6 @@
 namespace Build.Tools.Dumpbin;
 
-public class DumpbinDependentsSettings : DumpbinSettings
+public sealed class DumpbinDependentsSettings : DumpbinSettings
 {
     public DumpbinDependentsSettings(string dependentsPath)
     {

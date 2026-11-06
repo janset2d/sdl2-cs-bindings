@@ -77,7 +77,7 @@ public sealed class HarvestTask(
             return;
         }
 
-        _reporter.LogStarting(libraries.Select(l => l.Name).ToArray());
+        _reporter.LogStarting([.. libraries.Select(l => l.Name)]);
 
         var corePackageName = manifest.CoreLibrary.VcpkgName;
         var validationMode = manifest.PackagingConfig.ValidationMode;

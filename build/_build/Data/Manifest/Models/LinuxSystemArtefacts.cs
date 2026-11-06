@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Build.Data.Manifest.Models;
 
-public record LinuxSystemArtefacts
+public sealed record LinuxSystemArtefacts
 {
     [JsonPropertyName("system_libraries")] public ImmutableList<string> SystemLibraries { get; init; } = [];
 }

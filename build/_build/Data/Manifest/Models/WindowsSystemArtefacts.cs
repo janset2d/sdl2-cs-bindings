@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Build.Data.Manifest.Models;
 
-public record WindowsSystemArtefacts
+public sealed record WindowsSystemArtefacts
 {
     [JsonPropertyName("system_dlls")] public ImmutableList<string> SystemDlls { get; init; } = [];
 }

@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Build.Data.Manifest.Models;
 
-public record PrimaryBinary
+public sealed record PrimaryBinary
 {
     [JsonPropertyName("os")] public required string Os { get; init; }
     [JsonPropertyName("patterns")] public required IImmutableList<string> Patterns { get; init; }

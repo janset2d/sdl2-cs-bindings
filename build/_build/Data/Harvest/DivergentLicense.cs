@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace Build.Data.Harvest;
 
-public record DivergentLicense
+public sealed record DivergentLicense
 {
     [JsonPropertyName("package")]
     public required string Package { get; init; }

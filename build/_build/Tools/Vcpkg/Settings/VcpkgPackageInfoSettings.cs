@@ -5,7 +5,7 @@ namespace Build.Tools.Vcpkg.Settings;
 /// <summary>
 /// Contains settings specific to the 'vcpkg x-package-info' command.
 /// </summary>
-public class VcpkgPackageInfoSettings : VcpkgSettings
+public sealed class VcpkgPackageInfoSettings : VcpkgSettings
 {
     public VcpkgPackageInfoSettings(DirectoryPath vcpkgRoot) : base(vcpkgRoot)
     {

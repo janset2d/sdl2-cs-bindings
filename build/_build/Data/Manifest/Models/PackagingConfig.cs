@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace Build.Data.Manifest.Models;
 
-public record PackagingConfig
+public sealed record PackagingConfig
 {
     [JsonPropertyName("validation_mode")]
     [JsonConverter(typeof(JsonStringEnumConverter<ValidationMode>))]
