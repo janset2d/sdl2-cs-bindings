@@ -7,12 +7,12 @@
 | Path | Purpose |
 | --- | --- |
 | [`README.md`](README.md) | Workstream index and reading order. |
-| [`binding-generator-constitution.md`](binding-generator-constitution.md) | Canonical ABI/API policy: internal raw ABI, public typed low-level API, friendly overloads, manifest config vs code-owned policy, evidence gates. |
+| [`binding-abi-policy.md`](../../../../docs/architecture/binding-abi-policy.md) | Canonical ABI/API policy: internal raw ABI, public typed low-level API, friendly overloads, manifest config vs code-owned policy, evidence gates. |
 | [`binding-generator-roadmap.md`](binding-generator-roadmap.md) | Canonical roadmap: SDL2 Layer 1 closure record + Layer 2 / Layer 3 / Production Flip / SysWM + Satellite Sweep / Smoke Expansion / SDL3 Extension. |
-| [`testing-strategy.md`](testing-strategy.md) | Canonical testing strategy: layer model, fixture policy, raw ABI runtime tests, smoke expansion backlog, raw ABI upstream port backlog. |
-| [`binding-generator-implementation-notes.md`](binding-generator-implementation-notes.md) | Mechanism + evidence: postprocess rewriter design, oracle classification labels, hardcoding rules, config surface evolution, postprocess pipeline order. |
-| [`binding-generator-maintenance.md`](binding-generator-maintenance.md) | Maintenance playbook: version-bump procedures, RSP file maintenance, family-config.json schema, postprocess pipeline maintenance, drift detection, new-family addition checklist. |
-| [`binding-output-oracle-validation.md`](binding-output-oracle-validation.md) | Multi-oracle review workflow for validating generated output. |
+| [`binding-testing.md`](../../../../docs/engineering/binding-testing.md) | Canonical testing strategy: layer model, fixture policy, raw ABI runtime tests, smoke expansion backlog, raw ABI upstream port backlog. |
+| [`binding-generation.md`](../../../../docs/architecture/binding-generation.md) | Mechanism + evidence: postprocess rewriter design, oracle classification labels, hardcoding rules, config surface evolution, postprocess pipeline order. |
+| [`binding-generator-maintenance.md`](../../../../docs/engineering/binding-generator-maintenance.md) | Maintenance playbook: version-bump procedures, RSP file maintenance, family-config.json schema, postprocess pipeline maintenance, drift detection, new-family addition checklist. |
+| [`binding-output-review.md`](../../../../docs/engineering/binding-output-review.md) | Multi-oracle review workflow for validating generated output. |
 | [`satellites/`](satellites/) | Per-family header analyses + cross-family consolidation analyses. |
 | [`references/`](references/) | Peer reference analyses (ppy/SDL3-CS, etc.). |
 
@@ -20,12 +20,12 @@
 
 | # | Document | Purpose |
 | --- | --- | --- |
-| 1 | [`binding-generator-constitution.md`](binding-generator-constitution.md) | Read first. ABI/API law and evidence gates. |
+| 1 | [`binding-abi-policy.md`](../../../../docs/architecture/binding-abi-policy.md) | Read first. ABI/API law and evidence gates. |
 | 2 | [`binding-generator-roadmap.md`](binding-generator-roadmap.md) | Read second. Layer-based forward sequencing. |
-| 3 | [`testing-strategy.md`](testing-strategy.md) | Read before changing tests, snapshots, smoke tests, fixtures. |
-| 4 | [`binding-generator-implementation-notes.md`](binding-generator-implementation-notes.md) | Read for mechanism rationale (rewriter design, hardcoding rules, classification labels). |
-| 5 | [`binding-generator-maintenance.md`](binding-generator-maintenance.md) | Read for operational procedures (version bumps, RSP edits, family-config schema). |
-| 6 | [`binding-output-oracle-validation.md`](binding-output-oracle-validation.md) | Read before promoting output toward production source. |
+| 3 | [`binding-testing.md`](../../../../docs/engineering/binding-testing.md) | Read before changing tests, snapshots, smoke tests, fixtures. |
+| 4 | [`binding-generation.md`](../../../../docs/architecture/binding-generation.md) | Read for mechanism rationale (rewriter design, hardcoding rules, classification labels). |
+| 5 | [`binding-generator-maintenance.md`](../../../../docs/engineering/binding-generator-maintenance.md) | Read for operational procedures (version bumps, RSP edits, family-config schema). |
+| 6 | [`binding-output-review.md`](../../../../docs/engineering/binding-output-review.md) | Read before promoting output toward production source. |
 | 7 | [`satellites/`](satellites/) | Read when designing Layer 2/3 projection for a specific SDL2 family. |
 | 8 | [`references/ppy-reference-analysis-2026-05-25.md`](references/ppy-reference-analysis-2026-05-25.md) | Read for peer reference (orchestrator architecture, companion class layer mapping). |
 

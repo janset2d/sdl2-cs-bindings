@@ -67,9 +67,9 @@ exists; dated research is evidence and may hold superseded positions.
 | Local setup, local feed, `ci-sim`, cross-OS validation | [`developing.md`](docs/engineering/developing.md) |
 | vcpkg, overlays, triplets, native harvest, Linux builder base | [`native-dependency-maintenance.md`](docs/engineering/native-dependency-maintenance.md) |
 | Manifest, packaging, guardrails, versioning, release | [`packaging-and-release.md`](docs/architecture/packaging-and-release.md), [`release-strategy.md`](docs/release-strategy.md), [ADR-0001](docs/adr/0001-d3seg-and-package-first.md) |
-| Binding generator, generated sources, regeneration | [Implementation notes](spikes/binding-generators/docs/canonical/binding-generator-implementation-notes.md), [maintenance](spikes/binding-generators/docs/canonical/binding-generator-maintenance.md) |
-| Binding API shape, type mapping, naming, ABI | [Binding generator constitution](spikes/binding-generators/docs/canonical/binding-generator-constitution.md), ADRs [0006](docs/adr/0006-one-public-class-per-family.md)–[0009](docs/adr/0009-target-frameworks.md) |
-| Binding tests, generated-output review | [Testing strategy](spikes/binding-generators/docs/canonical/testing-strategy.md), [output review](spikes/binding-generators/docs/canonical/binding-output-oracle-validation.md) |
+| Binding generator, generated sources, regeneration | [`binding-generation.md`](docs/architecture/binding-generation.md), [maintenance](docs/engineering/binding-generator-maintenance.md) |
+| Binding API shape, type mapping, naming, ABI | [`binding-abi-policy.md`](docs/architecture/binding-abi-policy.md), ADRs [0006](docs/adr/0006-one-public-class-per-family.md)–[0009](docs/adr/0009-target-frameworks.md) |
+| Binding tests, generated-output review | [`binding-testing.md`](docs/engineering/binding-testing.md), [output review](docs/engineering/binding-output-review.md) |
 | Code structure and test design | [Coding style](docs/engineering/coding-style.md), [testing style](docs/engineering/testing-style.md) |
 | Documentation, ADRs, repository workflow | [`documentation.md`](docs/engineering/documentation.md), [`workflow.md`](docs/engineering/workflow.md), [Decision records](docs/adr/README.md) |
 | Consumer documentation, [`README.md`](README.md) | [`documentation.md`](docs/engineering/documentation.md) (Consumer documentation) |

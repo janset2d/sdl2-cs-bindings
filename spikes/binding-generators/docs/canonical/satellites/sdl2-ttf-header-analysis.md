@@ -128,7 +128,7 @@ All 5 C `long` surface items use `long` (signed). They follow the same Slice C-A
 | `TTF_OpenFontIndexDPIRW` | `long index` param | Same |
 | `TTF_FontFaces` | `long` return | CLong return on Modern, dual-DllImport on Compat |
 
-The [`binding-generator-constitution.md`](../binding-generator-constitution.md) §"C `long` And `unsigned long`" already calls this out explicitly.
+The [`binding-abi-policy.md`](../../../../../docs/architecture/binding-abi-policy.md) §"C `long` And `unsigned long`" already calls this out explicitly.
 
 ---
 

@@ -1,4 +1,9 @@
 # Shrinks only. Remove an entry in the change that fixes it.
+docs/architecture/binding-abi-policy.md
+docs/architecture/binding-generation.md
+docs/engineering/binding-generator-maintenance.md
+docs/engineering/binding-output-review.md
+docs/engineering/binding-testing.md
 docs/engineering/coding-style.md
 docs/architecture/packaging-and-release.md
 docs/parking-lot.md

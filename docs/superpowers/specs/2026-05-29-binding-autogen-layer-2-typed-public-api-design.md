@@ -283,9 +283,9 @@ Mirror the consolidation's checkpoint discipline at smaller scale:
 ## 14. References
 
 - [`2026-05-29-layer-2-peer-mapping.md`](../../../spikes/binding-generators/docs/canonical/references/2026-05-29-layer-2-peer-mapping.md) — Phase A peer mapping (evidence base).
-- [`binding-generator-constitution.md`](../../../spikes/binding-generators/docs/canonical/binding-generator-constitution.md) — §"Layer Contract", §"Opaque Handles", §"Enums", §"SDL_bool", §"Constants And Macros", §"Foreign Type Boundary Policy", §"C Variadics", §"Generation Determinism Contract", §"Manifest Configuration Vs Code-Owned Policy", §"Evidence Gates", §"Generator Home".
+- [`binding-abi-policy.md`](../../architecture/binding-abi-policy.md) — §"Layer Contract", §"Opaque Handles", §"Enums", §"SDL_bool", §"Constants And Macros", §"Foreign Type Boundary Policy", §"C Variadics", §"Generation Determinism Contract", §"Manifest Configuration Vs Code-Owned Policy", §"Evidence Gates", §"Generator Home".
 - [`binding-generator-roadmap.md`](../../../spikes/binding-generators/docs/canonical/binding-generator-roadmap.md) — §"Layer 2 — Typed Public API Projection", §"Layer 3 — Friendly Overload Projection".
-- [`binding-generator-implementation-notes.md`](../../../spikes/binding-generators/docs/canonical/binding-generator-implementation-notes.md) — postprocess pipeline mechanism, classification labels.
+- [`binding-generation.md`](../../architecture/binding-generation.md) — postprocess pipeline mechanism, classification labels.
 - [`next-iteration-plan.md`](../../../spikes/binding-generators/docs/next-iteration-plan.md) — Forward Backlog (Production Flip gates, L2/L3 follow-ups).
 - ADRs: [`0002-target-centric-build-host.md`](../../adr/0002-target-centric-build-host.md) (ADR-002), [`0003-build-host-data-layer.md`](../../adr/0003-build-host-data-layer.md) (ADR-003), [`0004-binding-autogen-toolchain.md`](../../adr/0004-binding-autogen-toolchain.md) (ADR-004, Reopened — reinforced by §7 ClangSharp evidence).
 - Knowledge base: [`coding-style.md`](../../engineering/coding-style.md), [`testing-style.md`](../../engineering/testing-style.md).

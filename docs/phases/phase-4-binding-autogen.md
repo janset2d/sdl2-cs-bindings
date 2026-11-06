@@ -10,10 +10,10 @@ This page is a thin pointer. Strategy, ABI/API policy, implementation mechanism,
 
 | Doc | Purpose |
 | --- | --- |
-| [`../../spikes/binding-generators/docs/canonical/binding-generator-constitution.md`](../../spikes/binding-generators/docs/canonical/binding-generator-constitution.md) | Canonical ABI/API policy. |
+| [`../architecture/binding-abi-policy.md`](../architecture/binding-abi-policy.md) | Canonical ABI/API policy. |
 | [`../../spikes/binding-generators/docs/canonical/binding-generator-roadmap.md`](../../spikes/binding-generators/docs/canonical/binding-generator-roadmap.md) | Layer-based forward milestones. |
-| [`../../spikes/binding-generators/docs/canonical/binding-generator-implementation-notes.md`](../../spikes/binding-generators/docs/canonical/binding-generator-implementation-notes.md) | Mechanism + classification labels. |
-| [`../../spikes/binding-generators/docs/canonical/binding-generator-maintenance.md`](../../spikes/binding-generators/docs/canonical/binding-generator-maintenance.md) | ClangSharp + Roslyn maintenance playbook. |
+| [`../architecture/binding-generation.md`](../architecture/binding-generation.md) | Mechanism + classification labels. |
+| [`../engineering/binding-generator-maintenance.md`](../engineering/binding-generator-maintenance.md) | ClangSharp + Roslyn maintenance playbook. |
 | [`../adr/0004-binding-autogen-toolchain.md`](../adr/0004-binding-autogen-toolchain.md) | ADR-004 (Reopened — amendment deferred). |
 | [`../../spikes/binding-generators/`](../../spikes/binding-generators/) | Active spike. |
 

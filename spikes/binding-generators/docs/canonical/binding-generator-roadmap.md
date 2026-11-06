@@ -34,8 +34,8 @@ tag/typedef canonicalization, `SDL_GUID` substitution); Foreign Type Boundary
 Policy + BCL-Replaceable Helper Exclusion Policy + Cross-Assembly Pattern B
 contract via `[assembly: DisableRuntimeMarshalling]`.
 
-Mechanism and implementation evidence: [`binding-generator-implementation-notes.md`](binding-generator-implementation-notes.md).
-Maintenance procedures: [`binding-generator-maintenance.md`](binding-generator-maintenance.md).
+Mechanism and implementation evidence: [`binding-generation.md`](../../../../docs/architecture/binding-generation.md).
+Maintenance procedures: [`binding-generator-maintenance.md`](../../../../docs/engineering/binding-generator-maintenance.md).
 
 `git log --follow` is the archive for slice-by-slice closure detail.
 
@@ -165,7 +165,7 @@ Satellite Layer 1 raw ABI already closed for Image, GFX, TTF, and Mixer per the 
 
 **Goal:** Turn the testing strategy into durable CI/release confidence without importing upstream SDL wholesale.
 
-**References:** [`testing-strategy.md`](testing-strategy.md), upstream SDL2 core tests, SDL_image test runner, SDL_mixer/SDL_ttf/SDL_net samples, SkiaSharp/LibGit2Sharp fixture patterns.
+**References:** [`binding-testing.md`](../../../../docs/engineering/binding-testing.md), upstream SDL2 core tests, SDL_image test runner, SDL_mixer/SDL_ttf/SDL_net samples, SkiaSharp/LibGit2Sharp fixture patterns.
 
 **Scope:**
 

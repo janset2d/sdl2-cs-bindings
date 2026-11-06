@@ -10,7 +10,7 @@
 
 SDL2 headers contain function-like macros across all 6 families. The exact count varies by what qualifies as "function-like" (see exclusion categories below), but the catalog here is exhaustive for all macros with parameters or function-call expansions. Roughly **half are pure-evaluable** (math/bit-logic expressions auto-generable as C# `static` methods). The remaining are function-call wrappers, struct fillers, or platform-specific constructs not representable in C#.
 
-The Constitution ([`binding-generator-constitution.md`](../binding-generator-constitution.md) §"Constants And Macros") prescribes:
+The Constitution ([`binding-abi-policy.md`](../../../../../docs/architecture/binding-abi-policy.md) §"Constants And Macros") prescribes:
 
 > *"Function-like public SDL macros are Layer 2 / friendly companion-helper candidates. They are not Layer 1 raw ABI declarations and must not be emitted as constants."*
 >
@@ -84,7 +84,7 @@ Token-pasting, platform ASM, compile-time constructs, or pointer-output semantic
 | `SDL_COMPILEDVERSION` | A | `SDL_VERSIONNUM(SDL_MAJOR_VERSION, SDL_MINOR_VERSION, SDL_PATCHLEVEL)` |
 | `SDL_VERSION_ATLEAST(X, Y, Z)` | A | Compound boolean check against version constants |
 
-**SDL2 vs SDL3 spacing note** ([`binding-generator-constitution.md`](../binding-generator-constitution.md) §"Constants And Macros"): SDL2 uses `X * 1000 + Y * 100 + Z` (e.g. `SDL_COMPILEDVERSION` for 2.32.10 = 5210). SDL3 uses `X * 1000000 + Y * 1000 + Z`.
+**SDL2 vs SDL3 spacing note** ([`binding-abi-policy.md`](../../../../../docs/architecture/binding-abi-policy.md) §"Constants And Macros"): SDL2 uses `X * 1000 + Y * 100 + Z` (e.g. `SDL_COMPILEDVERSION` for 2.32.10 = 5210). SDL3 uses `X * 1000000 + Y * 1000 + Z`.
 
 ### 3.2 Core — `SDL_stdinc.h`
 
@@ -228,7 +228,7 @@ No function-like macros beyond `M_PI` guard define (simple math constant) and vi
 | **Satellite bindings** | No SDL_image/ttf/mixer satellite bindings found — core SDL only |
 | **`[Flags]`** | Dropped entirely |
 
-**Key observation**: Silk.NET is a raw binding catalog with a thin layer of manual macro helpers. Our [`binding-generator-constitution.md`](../binding-generator-constitution.md) §"Internal Raw ABI" explicitly differentiates from this model: *"Public raw bindings are a valid product choice for raw-catalog products; this project is a stable SDL platform layer with typed low-level APIs and friendly overloads on top."*
+**Key observation**: Silk.NET is a raw binding catalog with a thin layer of manual macro helpers. Our [`binding-abi-policy.md`](../../../../../docs/architecture/binding-abi-policy.md) §"Internal Raw ABI" explicitly differentiates from this model: *"Public raw bindings are a valid product choice for raw-catalog products; this project is a stable SDL platform layer with typed low-level APIs and friendly overloads on top."*
 
 ---
 
@@ -327,8 +327,8 @@ Per Deniz: *"yapacak bir şey A magic gibi olacak öteki türlü"* — explicitl
 ## 8. References
 
 - **Constitution (policy authority):**
-  - [`binding-generator-constitution.md`](../binding-generator-constitution.md) §"Constants And Macros" — function-like macro helper policy + SDL2 `SDL_VERSIONNUM` spacing note (`X * 1000 + Y * 100 + Z`)
-  - [`binding-generator-constitution.md`](../binding-generator-constitution.md) §"Layer Contract" — three-layer architecture
+  - [`binding-abi-policy.md`](../../../../../docs/architecture/binding-abi-policy.md) §"Constants And Macros" — function-like macro helper policy + SDL2 `SDL_VERSIONNUM` spacing note (`X * 1000 + Y * 100 + Z`)
+  - [`binding-abi-policy.md`](../../../../../docs/architecture/binding-abi-policy.md) §"Layer Contract" — three-layer architecture
 - **Peer reference:**
   - `references/ppy-SDL3-CS/SDL3-CS/SDL_version.cs` — `[Macro]` version helpers (SDL3 1000000-based)
   - `references/ppy-SDL3-CS/SDL3-CS/SDL_pixels.cs` — `[Macro]` pixel/colorspace helpers (30 methods)

@@ -144,7 +144,7 @@ This stays consistent with §"Manifest Configuration Vs Code-Owned Policy": **wh
 ## 8. References
 
 **Policy (authority):**
-- [`binding-generator-constitution.md`](../binding-generator-constitution.md) — §"Layer Contract", §"Opaque Handles", §"Enums", §"Constants And Macros", §"Foreign Type Boundary Policy", §"C Variadics", §"SDL_bool", §"Generation Determinism Contract", §"Manifest Configuration Vs Code-Owned Policy", §"Evidence Gates".
+- [`binding-abi-policy.md`](../../../../../docs/architecture/binding-abi-policy.md) — §"Layer Contract", §"Opaque Handles", §"Enums", §"Constants And Macros", §"Foreign Type Boundary Policy", §"C Variadics", §"SDL_bool", §"Generation Determinism Contract", §"Manifest Configuration Vs Code-Owned Policy", §"Evidence Gates".
 - [`binding-generator-roadmap.md`](../binding-generator-roadmap.md) — §"Layer 2 — Typed Public API Projection", §"Layer 3 — Friendly Overload Projection".
 
 **Prior consolidation (this doc extends, does not redo):**
