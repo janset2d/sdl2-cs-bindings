@@ -5,6 +5,7 @@ using Janset.SDL2.AbiTests.Infrastructure.Assets;
 using Janset.SDL2.AbiTests.Infrastructure.Classification;
 using Janset.SDL2.AbiTests.Infrastructure.Sdl;
 using SDL2;
+using static Janset.SDL2.AbiTests.Infrastructure.Sdl.NativeSizeConversion;
 using static SDL2.SDLNative;
 
 namespace Janset.SDL2.AbiTests.Upstream.Assets;
@@ -801,12 +802,8 @@ public sealed class RwopsAbiTests
 
 #if NET462
     private static UIntPtr NativeSize(int value) => new((uint)value);
-
-    private static ulong ToUInt64(UIntPtr value) => value.ToUInt64();
 #else
     private static nuint NativeSize(int value) => (nuint)value;
-
-    private static ulong ToUInt64(nuint value) => value;
 #endif
 
     private sealed record RwopsResult(ulong Written, long SeekPosition, ulong Read, string Text, int CloseResult);
