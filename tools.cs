@@ -159,27 +159,39 @@ public sealed class SetupCommand : AsyncCommand<SetupSettings>
         var resolveArgs = new List<string> { "--target", "ResolveVersionsFromManifest", $"--suffix={suffix}", "--versions-file", versionsPath };
         resolveArgs.AddRange(scopeArgs);
         if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "ResolveVersionsFromManifest", resolveArgs, verbose: false))
+        {
             return FinishSetup(results, totalStopwatch, 1);
+        }
 
         if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "PreFlightCheck",
                 ["--target", "PreFlightCheck", "--versions-file", versionsPath], verbose: false))
+        {
             return FinishSetup(results, totalStopwatch, 1);
+        }
 
         if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "EnsureVcpkgDependencies",
                 ["--target", "EnsureVcpkgDependencies", "--rid", hostRid], verbose: false))
+        {
             return FinishSetup(results, totalStopwatch, 1);
+        }
 
         if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "Harvest",
                 ["--target", "Harvest", "--rid", hostRid], verbose: false))
+        {
             return FinishSetup(results, totalStopwatch, 1);
+        }
 
         if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "ConsolidateHarvest",
                 ["--target", "ConsolidateHarvest"], verbose: false))
+        {
             return FinishSetup(results, totalStopwatch, 1);
+        }
 
         if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "Package",
                 ["--target", "Package", "--versions-file", versionsPath], verbose: false))
+        {
             return FinishSetup(results, totalStopwatch, 1);
+        }
 
         AnsiConsole.MarkupLine("[grey]Verifying nupkg outputs...[/]");
         var packagesDir = Path.Combine(repoRoot, "artifacts", "packages");
@@ -209,7 +221,9 @@ public sealed class SetupCommand : AsyncCommand<SetupSettings>
         {
             AnsiConsole.MarkupLine("[red]Some exact nupkgs are missing — stale packages will not be accepted.[/]");
             foreach (var missing in missingPackages)
+            {
                 AnsiConsole.MarkupLine($"  [red]missing[/] [grey]{Markup.Escape(missing)}[/]");
+            }
             return FinishSetup(results, totalStopwatch, 1);
         }
 
@@ -254,7 +268,9 @@ public sealed class SetupCommand : AsyncCommand<SetupSettings>
         var packagesDir = Path.Combine(repoRoot, "artifacts", "packages");
         var acquisition = await RunRemoteGitHubAcquisitionStepAsync(results, logDir, families, packagesDir, authToken);
         if (!acquisition.Succeeded)
+        {
             return FinishSetup(results, totalStopwatch, 1);
+        }
 
         var versions = acquisition.Resolved.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToNormalizedString(), StringComparer.OrdinalIgnoreCase);
         Shared.WriteLocalProps(repoRoot, packagesDir, versions);
@@ -351,9 +367,13 @@ public sealed class SetupCommand : AsyncCommand<SetupSettings>
 
         results.Add(new Shared.StepResult(label, exitCode, stopwatch.Elapsed, logPath));
         if (exitCode == 0)
+        {
             AnsiConsole.MarkupLine($"[green]OK[/]   ({stopwatch.Elapsed.TotalSeconds:F1}s) → [grey]{Markup.Escape(logPath)}[/]");
+        }
         else
+        {
             AnsiConsole.MarkupLine($"[red]FAIL[/] ({stopwatch.Elapsed.TotalSeconds:F1}s) → [cyan]{Markup.Escape(logPath)}[/]");
+        }
         AnsiConsole.WriteLine();
 
         return (exitCode == 0, resolved);
@@ -399,7 +419,9 @@ public sealed class SetupCommand : AsyncCommand<SetupSettings>
         totalStopwatch.Stop();
         Shared.PrintSummaryTable(results, totalStopwatch.Elapsed);
         if (exitCode != 0 && results.LastOrDefault()?.LogPath is { } logPath)
+        {
             AnsiConsole.MarkupLine($"[yellow]Inspect failing log:[/] [cyan]{Markup.Escape(logPath)}[/]");
+        }
         return exitCode;
     }
 
@@ -410,7 +432,9 @@ public sealed class SetupCommand : AsyncCommand<SetupSettings>
         AnsiConsole.MarkupLine($"[grey]Host RID:[/] [cyan]{Markup.Escape(hostRid)}[/]");
         AnsiConsole.MarkupLine($"[grey]Repo:[/] [cyan]{Markup.Escape(repoRoot)}[/]");
         if (logDir is not null)
+        {
             AnsiConsole.MarkupLine($"[grey]Logs:[/] [cyan]{Markup.Escape(logDir)}[/]");
+        }
         AnsiConsole.WriteLine();
     }
 
@@ -448,7 +472,9 @@ public sealed class CiSimCommand : AsyncCommand<CiSimSettings>
         var logDir = Path.Combine(repoRoot, ".logs", "tools", $"{platform}-ci-sim-{runId}");
 
         if (Directory.Exists(logDir))
+        {
             Directory.Delete(logDir, recursive: true);
+        }
         Directory.CreateDirectory(logDir);
 
         AnsiConsole.Write(new FigletText("tools").Color(Color.Yellow));
@@ -475,42 +501,58 @@ public sealed class CiSimCommand : AsyncCommand<CiSimSettings>
         resolveArgs.AddRange(scopeArgs);
         if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "ResolveVersionsFromManifest",
                 resolveArgs, settings.Verbose))
+        {
             return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 1);
+        }
 
         // Step 3: PreFlightCheck
         if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "PreFlightCheck",
                 ["--target", "PreFlightCheck", "--versions-file", versionsPath], settings.Verbose))
+        {
             return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 1);
+        }
 
         // Step 4: EnsureVcpkgDependencies
         if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "EnsureVcpkgDependencies",
                 ["--target", "EnsureVcpkgDependencies", "--rid", hostRid], settings.Verbose))
+        {
             return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 1);
+        }
 
         // Step 5: Harvest
         if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "Harvest",
                 ["--target", "Harvest", "--rid", hostRid], settings.Verbose))
+        {
             return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 1);
+        }
 
         // Step 6: NativeSmoke
         if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "NativeSmoke",
                 ["--target", "NativeSmoke", "--rid", hostRid], settings.Verbose))
+        {
             return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 1);
+        }
 
         // Step 7: ConsolidateHarvest
         if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "ConsolidateHarvest",
                 ["--target", "ConsolidateHarvest"], settings.Verbose))
+        {
             return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 1);
+        }
 
         // Step 8: Package
         if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "Package",
                 ["--target", "Package", "--versions-file", versionsPath], settings.Verbose))
+        {
             return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 1);
+        }
 
         // Step 9: PackageConsumerSmoke
         if (!await Shared.RunCakeStepWithLogAsync(results, repoRoot, logDir, "PackageConsumerSmoke",
                 ["--target", "PackageConsumerSmoke", "--rid", hostRid, "--versions-file", versionsPath], settings.Verbose))
+        {
             return FinishCiSim(results, totalStopwatch.Elapsed, logDir, 1);
+        }
 
         // Refresh Janset.Local.props so IDE-driven smoke restore stays in sync with the
         // freshly-packed nupkgs. ci-sim's CleanArtifacts step wipes the previous setup
@@ -527,7 +569,9 @@ public sealed class CiSimCommand : AsyncCommand<CiSimSettings>
     {
         Shared.PrintSummaryTable(results, totalDuration);
         if (exitCode != 0)
+        {
             AnsiConsole.MarkupLine($"[yellow]Inspect failing logs under[/] [cyan]{Markup.Escape(logDir)}[/].");
+        }
         return exitCode;
     }
 }
@@ -836,12 +880,16 @@ internal static class Shared
     {
         var artifactsDir = Path.Combine(repoRoot, "artifacts");
         if (Directory.Exists(artifactsDir))
+        {
             Directory.Delete(artifactsDir, recursive: true);
+        }
         Directory.CreateDirectory(artifactsDir);
 
         var nativeSmokeBuildDir = Path.Combine(repoRoot, "tests", "smoke-tests", "native-smoke", "build");
         if (Directory.Exists(nativeSmokeBuildDir))
+        {
             Directory.Delete(nativeSmokeBuildDir, recursive: true);
+        }
     }
 
     /// <summary>Pure Cake passthrough — forwards output directly to the console, no log capture.</summary>
@@ -874,7 +922,9 @@ internal static class Shared
 
         var output = stdOut.ToString().Trim();
         if (result.ExitCode != 0 || string.IsNullOrWhiteSpace(output))
+        {
             throw new InvalidOperationException("Could not resolve repository root via git. Run from inside the repo.");
+        }
 
         return output;
     }
@@ -882,10 +932,22 @@ internal static class Shared
     public static string ResolveHostRid()
     {
         string os;
-        if (OperatingSystem.IsWindows()) os = "win";
-        else if (OperatingSystem.IsLinux()) os = "linux";
-        else if (OperatingSystem.IsMacOS()) os = "osx";
-        else throw new PlatformNotSupportedException("Unknown OS for RID derivation.");
+        if (OperatingSystem.IsWindows())
+        {
+            os = "win";
+        }
+        else if (OperatingSystem.IsLinux())
+        {
+            os = "linux";
+        }
+        else if (OperatingSystem.IsMacOS())
+        {
+            os = "osx";
+        }
+        else
+        {
+            throw new PlatformNotSupportedException("Unknown OS for RID derivation.");
+        }
 
         var arch = RuntimeInformation.OSArchitecture switch
         {
@@ -900,9 +962,20 @@ internal static class Shared
 
     public static string ResolvePlatformTag()
     {
-        if (OperatingSystem.IsWindows()) return "windows";
-        if (OperatingSystem.IsLinux()) return "linux";
-        if (OperatingSystem.IsMacOS()) return "macos";
+        if (OperatingSystem.IsWindows())
+        {
+            return "windows";
+        }
+
+        if (OperatingSystem.IsLinux())
+        {
+            return "linux";
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            return "macos";
+        }
         return "unknown";
     }
 
@@ -917,7 +990,9 @@ internal static class Shared
         var logDir = Path.Combine(repoRoot, ".logs", "tools", $"{platform}-{subcommandTag}-{runId}");
 
         if (Directory.Exists(logDir))
+        {
             Directory.Delete(logDir, recursive: true);
+        }
 
         Directory.CreateDirectory(logDir);
         return logDir;
@@ -938,7 +1013,9 @@ internal static class Shared
     {
         var manifestPath = Path.Combine(repoRoot, "build", "manifest.json");
         if (!File.Exists(manifestPath))
+        {
             throw new InvalidOperationException($"manifest.json not found at '{manifestPath}'.");
+        }
 
         var json = File.ReadAllText(manifestPath);
         var manifest = JsonSerializer.Deserialize<ManifestConfig>(json, new JsonSerializerOptions
@@ -952,7 +1029,9 @@ internal static class Shared
             .ToList();
 
         if (families.Count == 0)
+        {
             throw new InvalidOperationException("No concrete families found in manifest.json (need both managed_project and native_project).");
+        }
 
         return families;
     }
@@ -981,30 +1060,41 @@ internal static class Shared
     {
         var dashIndex = familyIdentifier.IndexOf('-', StringComparison.Ordinal);
         if (dashIndex <= 0 || dashIndex >= familyIdentifier.Length - 1)
+        {
             throw new ArgumentException($"Family identifier must follow 'sdl<major>-<role>' format. Got: '{familyIdentifier}'.");
+        }
 
         var sdlPart = familyIdentifier[..dashIndex];
         var role = familyIdentifier[(dashIndex + 1)..];
 
         if (!sdlPart.StartsWith("sdl", StringComparison.OrdinalIgnoreCase) || sdlPart.Length <= 3)
+        {
             throw new ArgumentException($"Family identifier prefix must be 'sdl<major>'. Got: '{sdlPart}'.");
+        }
 
         var major = sdlPart[3..];
         if (!major.All(char.IsDigit))
+        {
             throw new ArgumentException($"SDL major must be all digits. Got: '{major}'.");
+        }
 
         return (major, ToPascalCase(role));
     }
 
     private static string ToPascalCase(string value)
     {
-        if (string.IsNullOrEmpty(value)) return value;
+        if (string.IsNullOrEmpty(value))
+        {
+            return value;
+        }
         return string.Create(value.Length, value, static (span, source) =>
         {
             source.AsSpan().CopyTo(span);
             span[0] = char.ToUpperInvariant(span[0]);
             for (var i = 1; i < span.Length; i++)
+            {
                 span[i] = char.ToLowerInvariant(span[i]);
+            }
         });
     }
 
@@ -1028,7 +1118,9 @@ internal static class Shared
         var targetPath = Path.Combine(repoRoot, "build", "msbuild", "Janset.Local.props");
         var targetDir = Path.GetDirectoryName(targetPath)!;
         if (!Directory.Exists(targetDir))
+        {
             Directory.CreateDirectory(targetDir);
+        }
 
         File.WriteAllText(targetPath, string.Concat(document.Declaration?.ToString(), "\n", document.ToString()),
             new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
@@ -1040,10 +1132,14 @@ internal static class Shared
     {
         var sorted = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var (key, value) in versions)
+        {
             sorted[key] = value;
+        }
         var targetDir = Path.Combine(repoRoot, "artifacts", "resolve-versions");
         if (!Directory.Exists(targetDir))
+        {
             Directory.CreateDirectory(targetDir);
+        }
 
         var targetPath = Path.Combine(targetDir, "versions.json");
         var json = JsonSerializer.Serialize(sorted, new JsonSerializerOptions { WriteIndented = true });
@@ -1113,7 +1209,10 @@ internal static class Shared
             var runId = DateTimeOffset.UtcNow.ToString("yyyyMMddTHHmmssZ", CultureInfo.InvariantCulture);
             var logPath = Path.Combine(repoRoot, ".logs", "tools", $"setup-{runId}", $"{stepNumber:00}-{SanitizeForFile(label)}.log");
             var logDir = Path.GetDirectoryName(logPath)!;
-            if (!Directory.Exists(logDir)) Directory.CreateDirectory(logDir);
+            if (!Directory.Exists(logDir))
+            {
+                Directory.CreateDirectory(logDir);
+            }
 
             result = await Cli.Wrap("dotnet")
                 .WithArguments(fullArgs)
@@ -1144,9 +1243,13 @@ internal static class Shared
         results.Add(stepResult);
 
         if (stepResult.Succeeded)
+        {
             AnsiConsole.MarkupLine($"[green]OK[/]   ({stopwatch.Elapsed.TotalSeconds:F1}s)");
+        }
         else
+        {
             AnsiConsole.MarkupLine($"[red]FAIL[/] ({stopwatch.Elapsed.TotalSeconds:F1}s)");
+        }
         AnsiConsole.WriteLine();
 
         return stepResult.Succeeded;
@@ -1179,9 +1282,13 @@ internal static class Shared
         results.Add(stepResult);
 
         if (stepResult.Succeeded)
+        {
             AnsiConsole.MarkupLine($"[green]OK[/]   ({stopwatch.Elapsed.TotalSeconds:F1}s) → [grey]{Markup.Escape(logPath)}[/]");
+        }
         else
+        {
             AnsiConsole.MarkupLine($"[red]FAIL[/] ({stopwatch.Elapsed.TotalSeconds:F1}s) → [cyan]{Markup.Escape(logPath)}[/]");
+        }
         AnsiConsole.WriteLine();
 
         return stepResult.Succeeded;
@@ -1210,7 +1317,9 @@ internal static class Shared
         {
             var value = Environment.GetEnvironmentVariable(envVar);
             if (!string.IsNullOrWhiteSpace(value))
+            {
                 return value;
+            }
         }
         return null;
     }
@@ -1240,14 +1349,18 @@ internal static class Shared
         var targetPath = Path.Combine(targetDir, fileName);
 
         if (!Directory.Exists(targetDir))
+        {
             Directory.CreateDirectory(targetDir);
+        }
 
         await using var fileStream = new FileStream(targetPath, FileMode.Create, FileAccess.Write, FileShare.None);
         var copied = await resource.CopyNupkgToStreamAsync(packageId, version, fileStream, cache, NullLogger.Instance, CancellationToken.None);
 
         if (!copied)
+        {
             throw new InvalidOperationException(
                 $"NuGet feed at '{feedUrl}' could not stream '{packageId}' {version.ToNormalizedString()}. Verify the package was published and the auth token has read:packages scope.");
+        }
     }
 
     private static SourceRepository CreateNuGetRepository(string feedUrl, string authToken)
@@ -1293,7 +1406,10 @@ internal static class Shared
 
     public static void PrintSummaryTable(List<StepResult> results, TimeSpan totalDuration)
     {
-        if (results.Count == 0) return;
+        if (results.Count == 0)
+        {
+            return;
+        }
 
         var table = new Table().RoundedBorder().BorderColor(Color.Grey);
         table.AddColumn("#");
@@ -1326,7 +1442,9 @@ internal static class Shared
     {
         var sanitized = new StringBuilder(value.Length);
         foreach (var ch in value)
+        {
             sanitized.Append(char.IsLetterOrDigit(ch) || ch is '-' or '_' ? ch : '-');
+        }
         return sanitized.ToString();
     }
 
@@ -1353,7 +1471,9 @@ internal static class Shared
     private static IEnumerable<Exception> FlattenExceptions(Exception exception)
     {
         for (var current = exception; current is not null; current = current.InnerException!)
+        {
             yield return current;
+        }
     }
 
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, System.Threading.Lock> LineLogLocks = new(StringComparer.OrdinalIgnoreCase);
