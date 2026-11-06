@@ -1,64 +1,17 @@
 # Smoke Tests
 
-> Post-pipeline integrity checks for the Janset.SDL2 stack. The symmetric counterpart to PreFlight — where PreFlight validates structural integrity **before** work starts, smoke tests validate runtime behaviour **after** build artifacts and packages are produced.
+Smoke checks prove artifacts work, not merely that they compile.
 
-## What Lives Here
+| Harness | Boundary | Orchestration |
+|---|---|---|
+| [native-smoke](native-smoke/) | C++/CMake loading, initialization and native API behavior | Cake `NativeSmoke` |
+| [package-smoke](package-smoke/) | PackageReference restore, native extraction/copy and managed P/Invoke | Cake `PackageConsumerSmoke` |
 
-| Subtree | Language | What it proves | Runner |
-| --- | --- | --- | --- |
-| [`native-smoke/`](native-smoke/) | C++ / CMake | Hybrid-built native SDL libraries load and initialize at runtime. 13-case coverage across SDL2 + satellites (PNG/JPG decoding, mixer init, TTF init, GFX primitives). Tests **natives directly**, no P/Invoke layer. | CMake via `ctest` / platform build scripts |
-| [`package-smoke/`](package-smoke/) | C# / .NET | Shipping graph end-to-end: `PackageReference` restore from local folder feed → native assets land in `bin/` → `SDL_Init()` + `IMG_Linked_Version()` succeed. Per-TFM validation (executable TFMs only — netstandard2.0 compile sanity separate). | `dotnet` CLI driven by Cake `PostFlight` task |
+[Developing and local validation](../../docs/engineering/developing.md) owns package-first setup,
+the host-RID ci-sim loop, manual diagnosis, TFM behavior and cross-OS evidence. Prepare its local
+feed before an IDE-driven consumer restore. [Native harness details](native-smoke/README.md) cover
+direct CMake debugging. [Quality gates](../../docs/engineering/quality-gates.md) owns completion checks.
 
-## Why a Dedicated Section
-
-A full integrity story has three stages:
-
-1. **PreFlight** — structural config validation (manifest ↔ vcpkg coherence, csproj pack contract, strategy resolution). No code runs. Lives in Cake `PreFlightCheck` task.
-2. **Build & Pack** — actual build and package production. Cake `Harvest`/`Package` tasks.
-3. **PostFlight (smoke-tests)** — after artifacts exist, confirm they actually work when consumed the way a downstream user will consume them.
-
-Without smoke, PreFlight passing and a clean build can still ship a package that fails on `SDL_Init`. Smoke closes that gap.
-
-## Naming Convention
-
-Subfolders follow the kebab-case `<subject>-smoke/` pattern:
-
-- `native-smoke/` — "smoke of the natives"
-- `package-smoke/` — "smoke of the packaged consumer path"
-
-Future siblings (e.g., `cli-smoke/`, `sample-smoke/`) should stick to this pattern — same form, same narrative: **this folder smokes X**.
-
-## Orchestration
-
-Cake owns the orchestration surface. The umbrella task is `PostFlight`:
-
-```text
-PostFlight
-  ├── PackageConsumerSmoke    (package-smoke invocation)
-  └── ... (native-smoke .NET binding coverage and other sanity gates as they land)
-```
-
-Run explicitly:
-
-```bash
-dotnet run --project build/_build/Build.csproj -- --target PostFlight --family sdl2-core --family sdl2-image --family-version <semver>
-```
-
-Native-smoke's C++ runs today via its own `build.bat` / `cmake --build` flow — see [`native-smoke/README.md`](native-smoke/README.md). Weaving it into Cake `PostFlight` is [docs/ROADMAP.md](../../docs/ROADMAP.md) 2b work.
-
-For IDE or direct-CLI validation, run `dotnet run --file tools.cs -- setup --source=local` once first. It writes `build/msbuild/Janset.Local.props`, after which `PackageConsumer.Smoke.csproj` restores and builds directly without runner-injected package properties.
-
-## What This Section Is NOT
-
-- **Not unit tests.** Those live in `build/_build.Tests/` and exercise the Cake build host in isolation (fake file systems, synthetic manifests, composition-root wiring).
-- **Not samples.** Samples (future `samples/` tree) are consumer-facing documentation. Smoke tests are **internal integrity gates** that may or may not have pedagogical value.
-- **Not a separate source-graph validation lane.** ADR-001 retired Source Mode as a supported consumer contract. Smoke tests validate the canonical package-first path; if a throwaway binding-debug harness is ever needed later, it lives outside this directory.
-
-## Relationship to Validation Workflows
-
-The smoke harnesses in this directory feed two validation paths:
-
-- **`tools ci-sim`** ([`docs/playbook/local-validation.md`](../../docs/playbook/local-validation.md)) — full 9-step CI replay on host RID. Runs `NativeSmoke` (C++ / CMake harness) and `PackageConsumerSmoke` (TUnit per-TFM consumer test) in sequence.
-- **`release.yml` matrix** — per-RID `harvest` + `consumer-smoke` jobs exercise the same harnesses across all 7 RIDs.
-
-The C++ NativeSmoke harness is active on Windows + Linux + macOS hosts. `PackageConsumerSmoke` is active across all 7 RIDs via CI matrix re-entry.
+These are integrity gates, not samples or build-host unit tests. Consumer validation uses packages,
+not source-graph native injection, as decided in
+[ADR-0001](../../docs/adr/0001-d3seg-and-package-first.md).

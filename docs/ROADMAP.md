@@ -23,6 +23,8 @@ Active execution ledger: [phases/phase-2-adaptation-plan.md](phases/phase-2-adap
 ## Known gaps
 
 Public NuGet.org promotion (`PublishPublic`) is a stub; staging publishes to GitHub Packages only.
+`tools.cs setup --source=remote-nuget` also returns not implemented. Use local setup or the published
+GitHub Packages wave until the public-feed path lands.
 
 - **Partial-scope releases:** G58 requires every dependency in the resolved invocation. Feed-probe
   relaxation must query the actual publish target (GitHub Packages or nuget.org), not another feed.
@@ -192,7 +194,7 @@ SDL3 vcpkg availability: SDL3 3.4.4, SDL3_image 3.4.2, SDL3_mixer 3.2.0#1, SDL3_
 - **Phase docs**: [phases/](phases/) — Phase 2 active ledger + Phase 4/5 design briefs
 - **Architecture decisions**: [adr/](adr/) — ADR-001 (D-3seg + package-first), ADR-002 (target-centric build-host), ADR-003 (contract-centric data layer)
 - **Guardrails**: [architecture/packaging-and-release.md](architecture/packaging-and-release.md)
-- **How-to recipes**: [playbook/](playbook/)
+- **How-to recipes**: [Engineering](engineering/)
 - **Design evidence** (non-normative):
   - internal research, 2026-04-11, "Research: Native Library Packaging Patterns in .NET".
   - internal research, 2026-04-13, "SDL2 Native Dependency License Inventory".

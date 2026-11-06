@@ -1,12 +1,15 @@
 # Testing Guidelines — Build-Host Tests
 
-Date: 2026-11-05
+Date: 2026-11-06
 
-Canonical reference for writing and maintaining tests in `build/_build.Tests/`. This knowledge-base copy is the durable home now that the ADR-002 refactor is closed.
+Rules for writing and maintaining [build-host tests](../../build/_build.Tests/).
+[Quality gates](quality-gates.md) owns test commands; [developing](developing.md) owns local and cross-OS validation.
 
 ## The rule in one sentence
 
-Build-host tests use **Cake `FakeFileSystem`** and the **canonical test infrastructure** by default. Test data lives in **embedded fixture files** under `Fixtures/Data/`. New or touched tests stay on the canonical harness.
+Build-host tests use **Cake `FakeFileSystem`** and the **canonical test infrastructure** by default.
+Test data lives in [embedded fixtures](../../build/_build.Tests/Fixtures/Data/).
+New or touched tests stay on the canonical harness.
 
 ## Filesystem rule
 
@@ -15,7 +18,7 @@ Cake `FakeFileSystem` is the standard. Do not use `System.IO` in unit or scenari
 **Allowed real filesystem only when:**
 
 - The system under test bypasses Cake abstractions (e.g., NuGet.Protocol reads real disk).
-- The test is explicitly an `Integration/` test and the real FS boundary is the point.
+- The test is explicitly an [integration test](../../build/_build.Tests/Integration/) and the real FS boundary is the point.
 - `TempDirectory` fixture is available for integration tests that need real temp directories.
 
 **Never:**
@@ -88,14 +91,16 @@ internal static class VersionsData
 
 | Folder | When | Fake or real? |
 |---|---|---|
-| `Unit/` | Pure policies, validators, small algorithms | No FS dependency; just instantiate and assert |
-| `Scenarios/` | Real task orchestration, in-process | Cake `FakeFileSystem`, fake env, fake log, fake tools |
-| `Integration/` | Mission-critical external boundaries only | Real `dotnet`, real archives, real FS if Cake can't model it |
+| [Unit](../../build/_build.Tests/Unit/) | Pure policies, validators, small algorithms | No FS dependency; just instantiate and assert |
+| [Scenarios](../../build/_build.Tests/Scenarios/) | Real task orchestration, in-process | Cake `FakeFileSystem`, fake env, fake log, fake tools |
+| [Integration](../../build/_build.Tests/Integration/) | Mission-critical external boundaries only | Real `dotnet`, real archives, real FS if Cake can't model it |
 | `Characterization/` | Temporary safety net during migration | Graduate to `Scenarios` or delete before the migration closes |
 | `Fixtures/Data/` | Reusable fake data files | Embedded resources, loaded via `FixtureLoader` |
 
 ## TUnit rules
 
+- Use TUnit on Microsoft.Testing.Platform. [global.json](../../global.json) selects the command mode.
+- Pin existing behavior with characterization tests before a behavior-preserving refactor.
 - New test class instance per test — no shared state between tests.
 - Constructor for simple setup, `[Before(Test)]` / `[After(Test)]` for async lifecycle.
 - `ClassDataSource<T>` only for expensive shared resources.

@@ -1,352 +1,195 @@
-# Playbook: Local Development Setup
+# Developing and Local Validation
 
-Date: 2026-05-10
+Date: 2026-11-06
 
-> How to clone, build, and develop Janset.SDL2 on your local machine.
->
-> Dev orchestration lives in the repo-root `tools.cs` script (file-based .NET 10 app), not the Cake host. `tools setup --source=local` is the canonical fresh-clone path (package-first consumer contract — smoke / sample / sandbox csprojs consume packages via a local folder feed). `--source=remote-github` pulls the latest published nupkgs from the GitHub Packages internal feed and exercises the same consumer surface. `--source=remote-nuget` is stubbed pending Phase 2b PD-7 (public-feed promotion). The manual vcpkg + Harvest + Package flow below stays as a fallback / debug route.
-
-## Quick Start (recommended)
-
-The fresh-clone flow is a single command:
-
-```bash
-# Clone with submodules
-git clone --recursive https://github.com/janset2d/sdl2-cs-bindings.git
-cd sdl2-cs-bindings
-
-# One-shot: CleanArtifacts + ResolveVersions + PreFlight + vcpkg install (host triplet) + Harvest + Consolidate + Package + write Janset.Local.props
-dotnet run --file tools.cs -- setup --source=local
-# Or, on Unix after `chmod +x tools.cs`:
-./tools.cs setup --source=local
-# To keep an existing artifacts/ directory: append --no-clean
-```
-
-Result: `artifacts/packages/` populated with D-3seg-versioned prerelease nupkgs (e.g. `Janset.SDL2.Core 2.32.0-local.<timestamp>`), and `build/msbuild/Janset.Local.props` + `artifacts/resolve-versions/versions.json` written (both gitignored). Opening any smoke / sample csproj in Rider / VS / VS Code then restores + builds directly from the local feed.
-
-`--source=remote-nuget` is accepted but intentionally fails with a "not implemented" error until Phase 2b PD-7 wires the public-feed promotion path.
-
-If you need to debug the internals manually, follow the "Full Build" fallback sequence below.
-
-### Alternative — `--source=remote-github` (test against published internal feed)
-
-When you want to validate your consumer code against the **last published wave** on GitHub Packages without packing locally, use `--source=remote-github`. This skips vcpkg / Harvest / Pack entirely and downloads the latest published managed + native nupkg per family:
-
-```bash
-# One-time: set GH_TOKEN to a Classic PAT with read:packages scope.
-# (See "Environment Variables" below for the full setup recipe.)
-
-dotnet run --file tools.cs -- setup --source=remote-github
-```
-
-Result: `artifacts/packages/` is wiped (`Janset.SDL2.*` / `Janset.SDL3.*` glob), then populated with the latest published version of every concrete family from `https://nuget.pkg.github.com/janset2d/index.json`. `Janset.Local.props` + `versions.json` get the same shape as `--source=local`, so smoke / sample csprojs restore from the pulled feed identically.
-
-`--source=remote-github` is the right tool for "did the latest CI publish actually work end-to-end as a consumer would see it?".
+[tools.cs](../../tools.cs) owns local orchestration. [Quality gates](quality-gates.md) owns build/test
+commands and completion evidence; [workflow](workflow.md#isolated-checkouts) owns checkout restrictions.
+Run commands below from the repository root in a provisioned checkout. An isolated managed-only
+checkout does not run setup, native builds or harvest merely to validate a managed edit.
 
 ## Prerequisites
 
-| Tool | Version | Purpose |
-| --- | --- | --- |
-| .NET SDK | 10.0.x (pinned by repo-root `global.json`) | Building managed projects and Cake build system |
-| Git | 2.30+ | Submodule support |
-| Visual Studio / Rider / VS Code | Any | IDE (optional but recommended) |
+Install the SDK selected by [global.json](../../global.json), Git with submodule support, and the
+platform's C++ build tools. An IDE is optional.
 
-### Platform-Specific
+| Platform | Native prerequisites |
+|---|---|
+| Windows | Visual Studio C++ Build Tools, including x64/x86 tools and a Windows SDK; ARM64 tools when targeting ARM64 |
+| Linux | C/C++ compiler, CMake, pkg-config, ldd and SDL development dependencies; the [builder Dockerfile](../../docker/linux-builder.Dockerfile) owns the provisioned Linux build environment |
+| macOS | Xcode Command Line Tools, autoconf, automake and libtool |
 
-| Platform | Additional Requirements |
-| --- | --- |
-| Windows | Visual Studio Build Tools 2022 with C++ tools (`Microsoft.VisualStudio.Component.VC.Tools.x86.x64`). Since Slice CA (2026-04-21) the Cake host self-sources the MSVC environment via `IMsvcDevEnvironment` (VSWhere + `vcvarsall.bat`); plain PowerShell is sufficient. Developer PowerShell is still fine — the resolver's fast-path skips the extra `cmd /c` spawn when `VCToolsInstallDir` is already set. |
-| Linux | `build-essential`, `cmake`, `pkg-config`, `ldd`, plus SDL2 dev dependencies (see CI workflow for full list) |
-| macOS | Xcode Command Line Tools, `autoconf`, `automake`, `libtool` (via Homebrew) |
+On Windows the host locates Visual Studio through VSWhere and sources `vcvarsall.bat` through
+`IMsvcDevEnvironment`. Plain PowerShell works. An already configured developer shell takes the
+`VCToolsInstallDir` fast path. If dumpbin cannot be found, repair the C++ workload and Visual Studio
+Installer, then inspect `VCToolsInstallDir` and its host/target tool directory.
 
-## Quick Start — Managed Only (No Native Builds)
-
-If you just want to work on C# bindings without building native libraries:
+## Fresh clone and package-first setup
 
 ```bash
-# Clone with submodules
 git clone --recursive https://github.com/janset2d/sdl2-cs-bindings.git
 cd sdl2-cs-bindings
-
-# Build managed binding projects directly
-dotnet build src/SDL2.Core/SDL2.Core.csproj
-dotnet build src/SDL2.Image/SDL2.Image.csproj
-dotnet build src/SDL2.Mixer/SDL2.Mixer.csproj
-dotnet build src/SDL2.Ttf/SDL2.Ttf.csproj
-dotnet build src/SDL2.Gfx/SDL2.Gfx.csproj
+dotnet run --file tools.cs -- setup --source=local
 ```
 
-This builds the C# binding projects without requiring local package-feed injection.
+Setup resolves manifest-derived local prerelease versions, runs preflight, installs the host hybrid
+triplet, harvests, consolidates and packs. It then writes the local consumer override. It does **not**
+run native or consumer smoke; use `ci-sim` for that evidence.
 
-Important: smoke projects remain in `Janset.SDL2.sln` by design (package-first consumer contract). If `build/msbuild/Janset.Local.props` does not exist yet (or is stale), `dotnet restore/build Janset.SDL2.sln` can fail on smoke package restore (`NU1101`). Re-run `tools setup --source=local` to regenerate the local override.
+Outputs are `artifacts/packages/`, `artifacts/resolve-versions/versions.json` and the gitignored
+`build/msbuild/Janset.Local.props`. The last file supplies the local feed and family versions through
+[Janset.Smoke.props](../../build/msbuild/Janset.Smoke.props). IDE and command-line smoke restores use
+the same packages. Samples, sandboxes and other consumer projects follow
+[ADR-0001](../adr/0001-d3seg-and-package-first.md): no native ProjectReference injection, manual DLL
+copying or system SDL substitute for consumer validation.
 
-### Getting Native Binaries Without Building
+Setup cleans artifacts by default. `--no-clean` preserves existing artifacts when deliberately
+iterating on setup. It does not establish that an old package matches new source.
+`CleanArtifacts` is a helper inside tools.cs, not a Cake target.
 
-For local testing with native binaries, you have two options:
+### Validate a published internal wave
 
-#### Option A: Download CI artifacts
-
-1. Go to GitHub Actions → `Release` workflow → trigger via `workflow_dispatch` (or use a previously-completed run on a tag push).
-2. Download the per-RID `harvest-output-<rid>` artifact for your platform (for example: `harvest-output-win-x64`). Each carries `artifacts/harvest_output/<Library>/` for every library that ran on that RID.
-3. Extract under your local `artifacts/harvest_output/` so the per-library subtrees land at the expected path.
-4. The packed `.nupkg` files are also available as the `nupkg-output` artifact from the same run; you can drop them into a local feed and consume via `Janset.Local.props` instead of harvesting + packing locally.
-
-See `.github/workflows/release.yml` for the live job topology.
-
-#### Option B: Install SDL2 system-wide
-
-- **Windows**: Download SDL2 development libraries from [libsdl.org](https://github.com/libsdl-org/SDL/releases) and put DLLs in your PATH
-- **Linux**: `sudo apt install libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev libsdl2-gfx-dev libsdl2-net-dev`
-- **macOS**: `brew install sdl2 sdl2_image sdl2_mixer sdl2_ttf sdl2_gfx sdl2_net`
-
-With system-wide install, `DllImport("SDL2")` will find the library via standard OS search paths.
-
-## Full Build — With Native Libraries
-
-### Step 1: Bootstrap vcpkg
-
-```bash
-# vcpkg is a git submodule
-git submodule update --init --recursive
-
-# Bootstrap vcpkg
-# Windows:
-external/vcpkg/bootstrap-vcpkg.bat
-
-# Linux/macOS:
-./external/vcpkg/bootstrap-vcpkg.sh
-```
-
-### Step 2: Install Native Dependencies via vcpkg
-
-Use the hybrid-static overlay triplet for your platform (all 7 RIDs now ship under hybrid-static per PA-2, 2026-04-18):
-
-```bash
-# Windows x64:
-./external/vcpkg/vcpkg install --triplet x64-windows-hybrid --overlay-triplets=vcpkg-overlay-triplets
-
-# Linux x64:
-./external/vcpkg/vcpkg install --triplet x64-linux-hybrid --overlay-triplets=vcpkg-overlay-triplets
-
-# macOS arm64 (Apple Silicon):
-./external/vcpkg/vcpkg install --triplet arm64-osx-hybrid --overlay-triplets=vcpkg-overlay-triplets
-```
-
-> **Triplets:** use the hybrid triplet selected by the manifest. [Native dependency maintenance](native-dependency-maintenance.md) owns installation and baseline updates.
-
-This compiles SDL2 and its dependencies from source. First run takes 15-30 minutes; subsequent runs use binary caching.
-
-### Step 3: Build Cake Frosting Host
-
-```bash
-cd build/_build
-dotnet build
-```
-
-### Step 4: Run Harvest
-
-```bash
-# From repo root
-# Windows:
-dotnet run --project build/_build -- --target Harvest --library SDL2 --library SDL2_image --library SDL2_mixer --library SDL2_ttf --library SDL2_gfx --rid win-x64
-
-# Linux:
-dotnet run --project build/_build -- --target Harvest --library SDL2 --library SDL2_image --library SDL2_mixer --library SDL2_ttf --library SDL2_gfx --rid linux-x64
-
-# macOS:
-dotnet run --project build/_build -- --target Harvest --library SDL2 --library SDL2_image --library SDL2_mixer --library SDL2_ttf --library SDL2_gfx --rid osx-arm64
-```
-
-> SDL2_net was removed from `manifest.json` 2026-04-22 (commit `bc652d1`) — re-add when the binding + native csproj skeleton lands per [#58](https://github.com/janset2d/sdl2-cs-bindings/issues/58). Until then, `--library SDL2_net` fails with `library not found in manifest`.
-
-Harvest writes two kinds of output:
-
-- Status JSON: `artifacts/harvest_output/{Library}/rid-status/{rid}.json`
-- Native payload: `artifacts/harvest_output/{Library}/runtimes/{rid}/native/`
-
-If you also want the consolidated `harvest-manifest.json` and `harvest-summary.json` files, run:
-
-```bash
-dotnet run -- --target ConsolidateHarvest
-```
-
-### Step 5: Pack Families (or let `Package` task handle it)
-
-With Harvest + ConsolidateHarvest green, produce the per-family nupkgs via the Cake `Package` task. The version string MUST follow D-3seg (`<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>` with prerelease suffix for local iterations — see [Settled Strategic Decisions](../onboarding.md#settled-strategic-decisions) for context):
-
-```bash
-dotnet run --project build/_build -- --target Package \
-  --explicit-version sdl2-core=2.32.0-local.1 \
-  --explicit-version sdl2-image=2.8.0-local.1 \
-  --explicit-version sdl2-mixer=2.8.0-local.1 \
-  --explicit-version sdl2-ttf=2.24.0-local.1 \
-  --explicit-version sdl2-gfx=1.0.0-local.1
-```
-
-Each `--explicit-version <family>=<semver>` entry must follow D-3seg (`<UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>` per family — anchored to the family's `library_manifests[].vcpkg_version` via G54). The legacy `--family` / `--family-version` flags are retired; the CLI surface is now provider-strict via `ExplicitVersionProvider`. For a stable release you would tag the commit (`git tag sdl2-core-2.32.0`) and let `GitTagVersionProvider` resolve the mapping from the tag — see `build/_build/Targets/{ResolveVersionsFromManifest,ResolveVersionsFromExplicit,StageVersions}/` for the version-source provider implementations.
-
-> **G58 cross-family scope rule:** [Packaging and release — Operational implications](../architecture/packaging-and-release.md#41-pipeline-scope-assumption-gaps--operational-implications) owns dependency-scope and consumer-smoke selection requirements for local and CI release invocations.
->
-> **Manual per-satellite copy is retired.** The pre-2026-04-18 "copy `artifacts/harvest_output/.../runtimes/<rid>/native/*` into `src/native/<Lib>.Native/runtimes/<rid>/native/`" step no longer applies — the native csproj packs from `$(NativePayloadSource)` (handed in by Cake, `artifacts/harvest_output/<Lib>/` root), never from the `src/` tree. Guardrail G46 hard-fails direct `dotnet pack` of a `.Native` csproj without `$(NativePayloadSource)`.
-
-## Project Structure for Development
-
-```text
-Janset.SDL2.sln
-├── src/SDL2.Core         ← Work on bindings here
-├── src/SDL2.Image        ← Each imports from external/sdl2-cs/src/
-├── src/SDL2.Mixer
-├── src/SDL2.Ttf
-├── src/SDL2.Gfx
-├── src/native/*          ← Native package projects (binary containers)
-├── build/_build          ← Cake Frosting (build system development)
-├── test/                 ← Test projects
-└── samples/              ← Sample applications
-```
-
-## Working with the Cake Build System
-
-The build system lives in `build/_build/` and is a regular .NET console application using Cake Frosting.
-
-```bash
-# Show available tasks
-cd build/_build
-dotnet run -- --tree
-
-# Run a specific task
-dotnet run -- --target Info              # Show environment info
-dotnet run -- --target PreFlightCheck    # Partial gate: version + runtime triplet overlay coherence
-dotnet run -- --target Harvest --library SDL2 --rid win-x64
-dotnet run -- --target ConsolidateHarvest
-
-# Control verbosity
-dotnet run -- --target Harvest --verbosity Diagnostic
-```
-
-## Environment Variables
-
-| Variable | Purpose | Default |
-| --- | --- | --- |
-| `VCPKG_ROOT` | vcpkg installation path | `external/vcpkg/` |
-| `VCPKG_DEFAULT_TRIPLET` | Default build triplet | Auto-detected from OS |
-| `DOTNET_ROOT` | .NET runtime root (required on WSL/macOS when dotnet is not in standard system paths) | Not set (see [cross-platform smoke validation](../playbook/cross-platform-smoke-validation.md#per-platform-environment-setup)) |
-| `GH_TOKEN` | GitHub Packages auth for `tools setup --source=remote-github`. Falls back to `GITHUB_TOKEN` if unset. | Not set (see "GitHub Packages auth" below) |
-| `DOTNET_CLI_TELEMETRY_OPTOUT` | Disable .NET telemetry | Not set |
-
-### GitHub Packages auth (`--source=remote-github`)
-
-`tools setup --source=remote-github` reads `GH_TOKEN` (then `GITHUB_TOKEN`) from the environment. GitHub Packages NuGet feed **always requires authentication**, even for public packages — anonymous read is not supported on the NuGet/npm/Maven registries (only `ghcr.io` containers allow anonymous public pulls). This is by-design GitHub behavior, not a misconfiguration; making packages public only changes the ACL applied after authentication, not the auth requirement itself.
-
-The script does **not** query the GitHub CLI credential store. If `GH_TOKEN` is set in the process environment, a stale or invalid `gh auth token` value does not matter; the env var is the contract used by both local invocations and CI.
-
-**Token requirements:**
-
-- **Classic PAT** (fine-grained PATs are not supported by GH Packages NuGet — documented limitation).
-- Scope: `read:packages` (for `--source=remote-github`); add `write:packages` if you ever need the PD-8 manual escape hatch (operator-driven publish).
-- SSO: if your org enforces SAML SSO, authorize the PAT for the `janset2d` org after creating it.
-
-**Setup recipes:**
-
-```bash
-# Recipe A — gh CLI scope refresh (interactive browser auth, one-time)
-gh auth refresh -h github.com -s read:packages
-export GH_TOKEN=$(gh auth token)
+```pwsh
 dotnet run --file tools.cs -- setup --source=remote-github
-
-# Recipe B — dedicated PAT (explicit, easier to rotate)
-# 1. github.com/settings/tokens/new → Classic → scope: read:packages → Generate
-# 2. Persist via shell rc or per-platform env.
-
-# zsh (default on WSL Ubuntu + recent macOS — prefer this on WSL):
-export GH_TOKEN=ghp_yourtokenhere
-echo 'export GH_TOKEN=ghp_yourtokenhere' >> ~/.zshrc
-
-# bash (older distros / users who haven't switched):
-export GH_TOKEN=ghp_yourtokenhere
-echo 'export GH_TOKEN=ghp_yourtokenhere' >> ~/.bashrc
-
-# Windows (PowerShell, persistent User-scope):
-[Environment]::SetEnvironmentVariable('GH_TOKEN', 'ghp_yourtokenhere', 'User')
-# Then restart shells so the new env is inherited.
 ```
 
-**CI does not need this** — `release.yml`'s `publish-staging` job maps `${{ secrets.GITHUB_TOKEN }}` into `GH_TOKEN` automatically; that token is scoped + short-lived per workflow run.
+This downloads the latest published managed/native pair for every concrete manifest family from
+GitHub Packages, without vcpkg, harvest or local packing. It prepares the same local feed and version
+outputs as local setup. A managed/native version mismatch is refused, not accepted as a partial wave.
+Use this route to test the published package as a consumer. Public-source availability is tracked in
+the [roadmap](../ROADMAP.md), which owns current setup limitations.
 
-**External-consumer note**: this auth is for **internal feed access** (CI-staged prereleases). External consumers of Janset.SDL2 packages will go through nuget.org once the public-feed promotion path lands (Phase 2b PD-7); they will not need a PAT at all. The `--source=remote-github` flow is a developer/maintainer-side dogfooding tool, not the external-consumer path.
+### Authentication
 
-## Common Tasks
+tools.cs reads `GH_TOKEN`, then `GITHUB_TOKEN`; it does not query the GitHub CLI credential store.
+GitHub Packages NuGet needs authentication even for public packages. Use a classic PAT with
+`read:packages`; fine-grained PATs are not supported. Authorize SSO if the organization requires it.
+Never commit tokens or paste them into logs. A private shell/session environment or credential
+manager can provide the token. For an already authorized GitHub CLI session:
 
-### Updating a Binding Source
-
-The binding source files come from `external/sdl2-cs/`. If you need to update:
-
-```bash
-cd external/sdl2-cs
-git pull origin master
-cd ../..
-git add external/sdl2-cs
-git commit -m "chore: update SDL2-CS submodule"
+```pwsh
+$env:GH_TOKEN = gh auth token
+dotnet run --file tools.cs -- setup --source=remote-github
 ```
 
-### Testing a Change
-
-Fast verification loop:
-
 ```bash
-# Build-host test suite (TUnit)
-dotnet test --project build/_build.Tests/Build.Tests.csproj -c Release --framework net10.0
+export GH_TOKEN="$(gh auth token)"
+dotnet run --file tools.cs -- setup --source=remote-github
+```
 
-# Build everything
-dotnet build Janset.SDL2.sln
+If needed, refresh the CLI's `read:packages` scope interactively before exporting its token.
+CI maps its short-lived workflow token to `GH_TOKEN`; no persistent PAT is needed there.
+Read access does not authorize publication, which remains reserved by workflow.
 
-# Or build a specific project
+## Managed-only work
+
+Build a binding project directly when no native execution is needed:
+
+```pwsh
 dotnet build src/SDL2.Core/SDL2.Core.csproj
 ```
 
-### Creating a Local NuGet Package (Manual)
+Other managed projects are under [src](../../src/). Smoke projects remain in
+[the solution](../../Janset.SDL2.sln); a whole-solution restore may fail with NU1101 until setup
+creates a current local feed override. This is a consumer-feed prerequisite, not a reason to add
+source references. [Binding maintenance](binding-generator-maintenance.md) owns regeneration;
+never hand-edit generated output or update an upstream submodule merely to change a declaration.
 
-**Prefer the Cake `Package` task** (see Step 5 in the Full Build flow above) — it handles version injection, `$(NativePayloadSource)` staging, and post-pack validation (G21–G27, G46–G48, G51–G57) in one invocation. Direct `dotnet pack` on the native csproj will hard-fail G46 (empty native payload guard).
+## Host-RID CI rehearsal
 
-Direct `dotnet pack` on a managed csproj (e.g. for a quick isolated pack test) is allowed but requires a D-3seg-shaped version. Example:
-
-```bash
-# D-3seg-shaped version: <UpstreamMajor>.<UpstreamMinor>.<FamilyPatch>[-suffix]
-dotnet pack src/SDL2.Core/SDL2.Core.csproj -o ./artifacts/packages/ -p:PackageVersion=2.32.0-local.1
+```pwsh
+dotnet run --file tools.cs -- ci-sim
 ```
 
-> Versions like `0.1.0-local.1` or `1.0.0-local.1` violate D-3seg (UpstreamMajor.UpstreamMinor not anchored to SDL2 2.32.x). G54 will reject them at PreFlight. See [Settled Strategic Decisions](../onboarding.md#settled-strategic-decisions) for D-3seg context.
+tools.cs cleans artifacts, then runs the Cake steps in this order: ResolveVersionsFromManifest,
+PreFlightCheck, EnsureVcpkgDependencies, Harvest, NativeSmoke, ConsolidateHarvest, Package,
+PackageConsumerSmoke. It writes the consumer override again after smoke, so the IDE does not retain
+versions that cleanup removed. Every stage in the summary must pass.
 
-## Troubleshooting
+Logs live under `.logs/tools/`, grouped by platform, command and run ID. Each Cake step has a log;
+the summary prints the failing path and duration. `-v` / `--verbose` also tees output to the console.
+Inspect the first failing step rather than treating a later missing package as the root cause.
 
-### "DllNotFoundException: SDL2"
+## Manual pipeline for diagnosis
 
-Native binaries are not in the runtime path. Either:
+Prefer setup or ci-sim. For a specific stage investigation, bootstrap
+[vcpkg](../../external/vcpkg/) for the host (`bootstrap-vcpkg.bat` or `bootstrap-vcpkg.sh`), then
+use the Cake forwarder. This example derives all family versions instead of copying version pins:
 
-- Install SDL2 system-wide (see Quick Start above)
-- Copy binaries to your project's output directory
-- Download CI artifacts
+```pwsh
+dotnet run --file tools.cs -- build --target ResolveVersionsFromManifest --suffix=local.check --versions-file artifacts/resolve-versions/versions.json
+dotnet run --file tools.cs -- build --target PreFlightCheck --versions-file artifacts/resolve-versions/versions.json
+dotnet run --file tools.cs -- build --target EnsureVcpkgDependencies --rid win-x64
+dotnet run --file tools.cs -- build --target Harvest --rid win-x64
+dotnet run --file tools.cs -- build --target NativeSmoke --rid win-x64
+dotnet run --file tools.cs -- build --target ConsolidateHarvest
+dotnet run --file tools.cs -- build --target Package --versions-file artifacts/resolve-versions/versions.json
+dotnet run --file tools.cs -- build --target PackageConsumerSmoke --rid win-x64 --versions-file artifacts/resolve-versions/versions.json
+```
 
-### "dumpbin.exe not found" on Windows
+Choose the host RID from the [manifest](../../build/manifest.json), replacing the Windows example.
+Use both overlays for manual vcpkg installs under
+[native maintenance](native-dependency-maintenance.md#install-and-caches). Harvest receipts and payloads
+live under `artifacts/harvest_output/`; consolidation produces the cross-RID receipts and license union.
+The native pack consumes staged payload through `NativePayloadSource`, never a copied source-tree
+runtime directory. [Packaging canon](../architecture/packaging-and-release.md) owns scope and payload rules.
 
-The build host's Windows dependency scanner expects Visual Studio C++ tooling.
+For explicit versions, resolve with the existing ResolveVersionsFromExplicit target and pass the
+produced mapping to stages via `--versions-file`. Follow ADR-0001's upstream-major/minor anchor.
+Do not invoke Package with version-provider flags instead of a resolved file.
+After manual diagnosis, rerun setup when the IDE's local override needs refreshing.
 
-- Install Visual Studio Build Tools 2022 with `Microsoft.VisualStudio.Component.VC.Tools.x86.x64`
-- Plain PowerShell is fine post-Slice-CA — `DumpbinTool` + `IMsvcDevEnvironment` locate `dumpbin.exe` + source `vcvarsall.bat` via VSWhere automatically. Developer PowerShell is still supported (resolver's `VCToolsInstallDir` fast path).
-- If needed, verify `VCToolsInstallDir` and confirm `dumpbin.exe` exists under `%VCToolsInstallDir%\bin\Hostx64\x64`
-- If `vswhere.exe` is missing, install/repair Visual Studio Installer components before retrying
+Existing completed release runs also provide packed nupkg artifacts. They may populate a local
+folder feed as packages; a raw harvest artifact alone is not consumer evidence. Dispatching a new
+release merely to get artifacts requires Deniz's approval.
 
-### vcpkg install fails
+## TFM behavior
 
-- Ensure submodules are initialized: `git submodule update --init --recursive`
-- On Linux, install build dependencies: `sudo apt install build-essential cmake pkg-config`
-- Check disk space — vcpkg builds can use several GB
+[PackageConsumer.Smoke.csproj](../../tests/smoke-tests/package-smoke/PackageConsumer.Smoke/PackageConsumer.Smoke.csproj) and
+[build properties](../../Directory.Build.props) own the TFM sets. Package consumer smoke first compiles
+the compatibility asset, then runs executable TFMs. Modern .NET targets run on all supported hosts.
+.NET Framework runs natively on Windows; Linux skips it because Mono cannot host this test discovery
+path; macOS runs it only when Mono is available. Record actual skips rather than calling them passes.
 
-### Cake build fails
+## Cross-OS validation loop
 
-- Ensure .NET 10.0 SDK is installed (pinned by repo-root `global.json`): `dotnet --version`
-- Try cleaning: `cd build/_build && dotnet clean && dotnet build`
-- Check `--verbosity Diagnostic` output for details
+Changes to manifest schema, host composition, harvest/pack/smoke, runtime paths, platform branches or
+triplets require Windows, Linux and macOS evidence. Host-RID rehearsal does not replace the full
+supported-RID matrix. For managed-only and documentation changes, use the applicable checks in
+[quality gates](quality-gates.md); do not start a native flow merely for a managed refactor.
 
-## Cross-Platform Validation
+1. Implement and run the appropriate local checks in the development checkout.
+2. Commit the verified change on the work branch under workflow rules. Push only when authorized
+   for the current task.
+3. Bring each validation checkout to that exact commit without discarding unrelated local work.
+   Initialize its required submodules and verify its environment, then run ci-sim there.
+4. Capture summary, logs, commit and platform. Compare failures with the passing host. Fix in the
+   development branch and repeat checks at the new commit; do not fix forward only on a validation host.
+5. When all host rehearsals pass, the reserved release dispatch can prove the full matrix through
+   [release.yml](../../.github/workflows/release.yml). Do not claim an unrun platform.
 
-After significant build-host changes, run the full smoke matrix across Windows, WSL/Linux, and macOS to verify cross-platform correctness. See [cross-platform-smoke-validation.md](../playbook/cross-platform-smoke-validation.md) for the complete matrix definition, per-platform environment setup, and command reference.
+**WSL uses its own Linux filesystem checkout.** Never run dotnet, tools.cs or vcpkg on the Windows
+mount from WSL. Cross-filesystem execution mixes permissions and causes submodule/build churn.
+Noninteractive sessions must load the shell profile that defines their SDK environment; use
+`zsh -lc` where zsh is that host's configured login shell. Private host inventory lives in the
+companion repository, not in these generic recipes.
+
+## Environment and failure triage
+
+Read supported options from tools.cs and the target tree. `DOTNET_ROOT` and `PATH` must agree with
+the SDK installation, particularly in WSL and noninteractive macOS shells. Native tools use the
+manifest-selected hybrid triplet and the vcpkg submodule; avoid a different system vcpkg accidentally
+winning PATH resolution.
+
+Classify failures before changing code:
+
+- **Environment:** missing SDK/CMake/compiler, wrong PATH or DOTNET_ROOT, uninitialized submodule,
+  disk exhaustion or absent Linux MIDI data. Repair the host prerequisite.
+- **Revision mismatch:** compare the actual commit with the expected one. Update safely; do not
+  assume another checkout's uncommitted work is disposable.
+- **Regression:** reproduce at the same commit with a correct environment. Report platform, stage,
+  exact error and log path. Check filename case, system exclusions, tar/DLL differences, glibc symbol
+  versions and macOS Mono availability where relevant.
+
+For DllNotFoundException, inspect package restore, the selected RID, extraction/copy targets and
+the loaded payload. Refresh setup if local package versions are stale; do not mask it by copying a DLL.
+For build-host failures, confirm the pinned SDK and inspect diagnostic verbosity before cleaning.
