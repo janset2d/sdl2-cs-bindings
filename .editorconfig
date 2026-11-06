@@ -179,8 +179,7 @@ dotnet_diagnostic.IDE0034.severity = error
 dotnet_diagnostic.IDE0035.severity = error
 dotnet_diagnostic.IDE0036.severity = error
 dotnet_diagnostic.IDE0038.severity = error
-# QM-18: IDE0040 stays at suggestion until "style: explicit accessibility modifiers (IDE0040 error)".
-dotnet_diagnostic.IDE0040.severity = suggestion
+dotnet_diagnostic.IDE0040.severity = error
 dotnet_diagnostic.IDE0041.severity = error
 dotnet_diagnostic.IDE0043.severity = error
 dotnet_diagnostic.IDE0044.severity = error
