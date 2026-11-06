@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Text.Json.Serialization;
 
 namespace Build.Data.Manifest.Models;
+
 public record ManifestConfig
 {
     [JsonPropertyName("schema_version")] public required string SchemaVersion { get; init; }

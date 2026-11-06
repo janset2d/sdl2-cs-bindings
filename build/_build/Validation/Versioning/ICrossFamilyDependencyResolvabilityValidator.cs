@@ -3,6 +3,7 @@ using Build.Data.Versions;
 using Build.Validation.Models;
 
 namespace Build.Validation.Versioning;
+
 /// <summary>
 /// Cross-family dependency resolvability validator (release-guardrails [G58]).
 /// Catches cases where a selected family depends on another family that is not in the

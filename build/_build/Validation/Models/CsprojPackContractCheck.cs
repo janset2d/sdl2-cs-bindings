@@ -1,5 +1,5 @@
-
 namespace Build.Validation.Models;
+
 public sealed record CsprojPackContractCheck(
     string FamilyIdentifier,
     string CsprojRelativePath,

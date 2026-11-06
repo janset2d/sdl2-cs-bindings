@@ -1,5 +1,5 @@
-
 namespace Build.Validation.Models;
+
 /// <summary>
 /// Per-overlay-port result from <see cref="Vcpkg.IOverlayPortVersionCoherenceValidator"/>.
 /// Captures both sides of the version comparison (overlay's declared

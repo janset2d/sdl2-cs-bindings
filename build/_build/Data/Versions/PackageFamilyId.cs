@@ -1,4 +1,5 @@
 namespace Build.Data.Versions;
+
 /// <summary>
 /// Identifier for a package family declared in <c>build/manifest.json</c>'s
 /// <c>package_families[]</c>. Format-agnostic non-empty string. Equality is

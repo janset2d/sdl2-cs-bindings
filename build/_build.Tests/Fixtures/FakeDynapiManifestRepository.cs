@@ -3,6 +3,7 @@ using Build.Data.BindingGeneration.Models;
 using Build.Results;
 
 namespace Build.Tests.Fixtures;
+
 /// <summary>
 /// Synchronously-returning fake <see cref="IDynapiManifestRepository"/> for
 /// validator tests. Avoids the round-trip-test ceremony of seeding a real

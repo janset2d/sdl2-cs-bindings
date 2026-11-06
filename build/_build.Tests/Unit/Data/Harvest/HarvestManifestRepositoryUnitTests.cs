@@ -5,6 +5,7 @@ using Cake.Core;
 using NSubstitute;
 
 namespace Build.Tests.Unit.Data.Harvest;
+
 /// <summary>
 /// Mock-based unit coverage for <see cref="HarvestManifestRepository"/> argument validation.
 /// File IO behavior lives in <see cref="HarvestManifestRepositoryRoundTripTests"/>.

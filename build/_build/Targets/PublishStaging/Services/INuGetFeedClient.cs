@@ -2,6 +2,7 @@ using Cake.Core.IO;
 using NuGet.Versioning;
 
 namespace Build.Targets.PublishStaging.Services;
+
 public interface INuGetFeedClient
 {
     public Task<NuGetVersion?> GetLatestVersionAsync(string feedUrl, string authToken, string packageId, bool includePrerelease, CancellationToken ct = default);

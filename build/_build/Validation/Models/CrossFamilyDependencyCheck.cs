@@ -1,5 +1,5 @@
-
 namespace Build.Validation.Models;
+
 /// <summary>
 /// One cross-family dependency check: satellite family → declared dependency family.
 /// Release-guardrails [G58].

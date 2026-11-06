@@ -2,6 +2,7 @@ using Build.Results;
 using Cake.Core.IO;
 
 namespace Build.Data.ProjectMetadata;
+
 public interface IProjectMetadataReader
 {
     /// <summary>

@@ -1,5 +1,5 @@
-
 namespace Build.Validation.Models;
+
 public enum UpstreamVersionAlignmentCheckStatus
 {
     /// <summary>Family version major/minor is aligned to manifest upstream major/minor.</summary>

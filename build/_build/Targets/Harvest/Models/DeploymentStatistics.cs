@@ -1,4 +1,5 @@
 namespace Build.Targets.Harvest.Models;
+
 /// <summary>
 /// Statistics about what's being deployed for a specific library.
 /// </summary>

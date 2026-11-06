@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Text.Json.Serialization;
 
 namespace Build.Data.BindingGeneration.Models;
+
 public sealed record RequiredFunctionConfig
 {
     [JsonPropertyName("name")] public required string Name { get; init; }

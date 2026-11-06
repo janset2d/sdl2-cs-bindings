@@ -1,6 +1,7 @@
 using Build.Results;
 
 namespace Build.Validation.Harvesting;
+
 /// <summary>
 /// Validates Harvest task preconditions before per-library work begins. Currently asserts the
 /// vcpkg triplet directory for the active runtime exists; consumers translate an invalid

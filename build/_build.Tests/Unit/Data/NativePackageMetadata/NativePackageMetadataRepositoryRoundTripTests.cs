@@ -8,6 +8,7 @@ using Cake.Core.IO;
 using TUnit.Assertions.Enums;
 
 namespace Build.Tests.Unit.Data.NativePackageMetadata;
+
 public sealed class NativePackageMetadataRepositoryRoundTripTests
 {
     private const string MetadataEntryName = "janset-native-metadata.json";

@@ -1,6 +1,7 @@
 using Build.Targets.NativeSmoke.Services;
 
 namespace Build.Targets.PackageConsumerSmoke.Services;
+
 /// <summary>
 /// Resolves child-process .NET runtime environment overrides needed for RID-specific
 /// smoke-test execution when the host runner's default <c>dotnet</c> installation is

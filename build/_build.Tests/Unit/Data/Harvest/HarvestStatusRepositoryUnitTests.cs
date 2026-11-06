@@ -7,6 +7,7 @@ using Cake.Core.IO;
 using NSubstitute;
 
 namespace Build.Tests.Unit.Data.Harvest;
+
 /// <summary>
 /// Mock-based unit coverage for <see cref="HarvestStatusRepository"/> — argument validation,
 /// cancellation propagation, and path-service interaction. File I/O round-trip behavior lives

@@ -2,6 +2,7 @@ using Build.Data.Manifest.Models;
 using Cake.Core.IO;
 
 namespace Build.Data.Manifest;
+
 /// <summary>
 /// File-backed repository for <c>vcpkg.json</c> manifests. Path is supplied per call —
 /// the repository is state-less so the same instance services every caller and every

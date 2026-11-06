@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 
 namespace Build.Data.Manifest.Models;
+
 public sealed record VcpkgOverride
 {
     [JsonPropertyName("name")]

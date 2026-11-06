@@ -1,6 +1,7 @@
 using Cake.Core.IO;
 
 namespace Build.Host.Paths;
+
 /// <summary>
 /// Provides centralized, semantic path construction.
 /// </summary>

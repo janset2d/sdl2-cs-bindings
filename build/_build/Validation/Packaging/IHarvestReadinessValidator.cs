@@ -1,6 +1,7 @@
 using Build.Data.Manifest.Models;
 
 namespace Build.Validation.Packaging;
+
 /// <summary>
 /// Gates Pack-stage execution against ConsolidateHarvest output for the family's
 /// library_ref. Throws <c>CakeException</c> with full diagnostics on failure

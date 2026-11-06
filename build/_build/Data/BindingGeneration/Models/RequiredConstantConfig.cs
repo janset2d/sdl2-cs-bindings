@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 
 namespace Build.Data.BindingGeneration.Models;
+
 /// <summary>
 /// Hand-curated public constant declaration recovered from a header that's
 /// excluded from the per-header parse loop. Mirrors the pattern of

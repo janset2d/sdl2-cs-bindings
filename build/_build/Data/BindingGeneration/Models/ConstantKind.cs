@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 
 namespace Build.Data.BindingGeneration.Models;
+
 /// <summary>
 /// Describes the C macro shape recovered into a binding constant. Both literal
 /// numeric macros and C-computed numeric expressions can still emit as

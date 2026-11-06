@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 
 namespace Build.Data.Manifest.Models;
+
 public record PackagingConfig
 {
     [JsonPropertyName("validation_mode")]

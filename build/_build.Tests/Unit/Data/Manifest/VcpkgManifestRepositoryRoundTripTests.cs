@@ -3,6 +3,7 @@ using Build.Tests.Fixtures;
 using Cake.Core;
 
 namespace Build.Tests.Unit.Data.Manifest;
+
 /// <summary>
 /// Sociable round-trip coverage for <see cref="VcpkgManifestRepository"/>. Pairs with
 /// <see cref="VcpkgManifestRepositoryUnitTests"/> per the repository-cohort rule.

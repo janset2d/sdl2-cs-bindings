@@ -1,4 +1,5 @@
 namespace Build.Results;
+
 /// <summary>
 /// Single finding emitted by a validator. <see cref="Name"/> describes what the
 /// rule enforces in plain words (e.g. "Cross-family dependency resolvability");

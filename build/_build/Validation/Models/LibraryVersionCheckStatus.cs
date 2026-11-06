@@ -1,5 +1,5 @@
-
 namespace Build.Validation.Models;
+
 public enum LibraryVersionCheckStatus
 {
     Match,

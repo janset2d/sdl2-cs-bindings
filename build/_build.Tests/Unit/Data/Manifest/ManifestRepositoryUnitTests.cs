@@ -4,6 +4,7 @@ using Cake.Core.IO;
 using NSubstitute;
 
 namespace Build.Tests.Unit.Data.Manifest;
+
 /// <summary>Constructor guards; <see cref="ManifestRepositoryRoundTripTests"/> covers loading through the fake filesystem.</summary>
 public sealed class ManifestRepositoryUnitTests
 {

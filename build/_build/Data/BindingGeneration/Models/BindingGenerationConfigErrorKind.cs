@@ -1,5 +1,5 @@
-
 namespace Build.Data.BindingGeneration.Models;
+
 /// <summary>
 /// Discriminator for <see cref="BindingGenerationConfigError"/>. Manifest-deserialization
 /// errors (missing required fields, malformed JSON, manifest file absent) surface as

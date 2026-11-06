@@ -1,5 +1,5 @@
-
 namespace Build.Validation.Models;
+
 public sealed record UpstreamVersionAlignmentValidation(IReadOnlyList<UpstreamVersionAlignmentCheck> Checks)
 {
     public bool HasErrors => Checks.Any(check => check.IsError);

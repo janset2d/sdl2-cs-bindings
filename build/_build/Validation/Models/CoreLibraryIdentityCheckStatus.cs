@@ -1,5 +1,5 @@
-
 namespace Build.Validation.Models;
+
 public enum CoreLibraryIdentityCheckStatus
 {
     /// <summary>Both manifest fields agree on the same core-library vcpkg name.</summary>

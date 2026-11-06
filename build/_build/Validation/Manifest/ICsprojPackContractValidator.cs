@@ -3,6 +3,7 @@ using Build.Validation.Models;
 using Cake.Core.IO;
 
 namespace Build.Validation.Manifest;
+
 /// <summary>
 /// Validates that every managed and native csproj referenced by <c>manifest.json package_families[]</c>
 /// conforms to the canonical pack contract guardrails G6, G7, G17, G18.

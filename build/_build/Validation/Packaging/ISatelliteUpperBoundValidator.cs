@@ -3,6 +3,7 @@ using Build.Results;
 using Cake.Core.IO;
 
 namespace Build.Validation.Packaging;
+
 /// <summary>
 /// Cross-family upper-bound enforcement (G56). For each cross-family managed-package
 /// dependency declared in <see cref="PackageFamilyConfig.DependsOn"/>, asserts the version

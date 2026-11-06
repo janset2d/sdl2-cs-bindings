@@ -2,6 +2,7 @@ using Build.Results;
 using Cake.Core.IO;
 
 namespace Build.Validation.Packaging;
+
 /// <summary>
 /// Validates the prerequisites for the PackageConsumerSmoke target before any dotnet
 /// invocation: smoke csproj exists, compile-sanity csproj exists, local feed directory

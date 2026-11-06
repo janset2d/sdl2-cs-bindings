@@ -1,6 +1,7 @@
 using Cake.Core.IO;
 
 namespace Build.Targets.Harvest.Models;
+
 /// <summary>
 /// Details of an item to be included in an archive.
 /// </summary>

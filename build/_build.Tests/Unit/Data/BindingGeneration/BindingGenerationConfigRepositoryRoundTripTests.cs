@@ -4,6 +4,7 @@ using Build.Data.Manifest;
 using Build.Tests.Fixtures;
 
 namespace Build.Tests.Unit.Data.BindingGeneration;
+
 /// <summary>
 /// Sociable round-trip coverage for <see cref="BindingGenerationConfigRepository"/>.
 /// Flows through the real <see cref="ManifestRepository"/> + fake filesystem so the

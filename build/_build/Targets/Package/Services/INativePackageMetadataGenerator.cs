@@ -1,6 +1,7 @@
 using Build.Data.Manifest.Models;
 
 namespace Build.Targets.Package.Services;
+
 /// <summary>
 /// Pack-time generator for the <c>janset-native-metadata.json</c> file embedded into every
 /// <c>.Native</c> nupkg. Output is the machine-readable half of the cross-referenced metadata

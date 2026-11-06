@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Build.Data.BindingGeneration.Models;
 
 namespace Build.Data.Manifest.Models;
+
 public record LibraryManifest
 {
     [JsonPropertyName("name")] public required string Name { get; init; }
