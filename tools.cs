@@ -895,7 +895,7 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
             cmd = cmd.WithWorkingDirectory(workingDirectory);
         }
 
-        var result = await cmd.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+        var result = await cmd.ExecuteAsync(cancellationToken);
         return (result.ExitCode, stdOut.ToString(), stdErr.ToString());
     }
 
@@ -913,7 +913,7 @@ public sealed class BuildBindingGeneratorImageCommand : AsyncCommand<BuildBindin
             cmd = cmd.WithWorkingDirectory(workingDirectory);
         }
 
-        var result = await cmd.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+        var result = await cmd.ExecuteAsync(cancellationToken);
         return result.ExitCode;
     }
 }

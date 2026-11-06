@@ -17,7 +17,7 @@ public sealed class GeneratedStampRepository(ICakeContext context) : IGeneratedS
         ct.ThrowIfCancellationRequested();
 
         var path = GetStampPath(outputDirectory);
-        var json = await _context.ReadAllTextAsync(path).ConfigureAwait(false);
+        var json = await _context.ReadAllTextAsync(path);
         return CakeJsonExtensions.DeserializeJson<GeneratedStamp>(json)
             ?? throw new CakeException($"Failed to deserialize generated stamp from '{path.FullPath}'. JSON content might be 'null'.");
     }
@@ -30,7 +30,7 @@ public sealed class GeneratedStampRepository(ICakeContext context) : IGeneratedS
 
         var path = GetStampPath(outputDirectory);
         var json = _context.SerializeJson(stamp, StampJsonOptions) + "\n";
-        await _context.WriteAllTextAsync(path, json).ConfigureAwait(false);
+        await _context.WriteAllTextAsync(path, json);
     }
 
     private static FilePath GetStampPath(DirectoryPath outputDirectory)

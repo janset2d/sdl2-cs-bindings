@@ -82,7 +82,7 @@ public sealed class ArtifactPlanner(IRuntimeProfile profile, IPathService pathSe
             foreach (var packageName in copiedPackages)
             {
                 ct.ThrowIfCancellationRequested();
-                var infoResult = await Task.FromResult(GetPackageInfo(packageName, ct)).ConfigureAwait(false);
+                var infoResult = await Task.FromResult(GetPackageInfo(packageName, ct));
 
                 if (infoResult.IsFailure)
                 {

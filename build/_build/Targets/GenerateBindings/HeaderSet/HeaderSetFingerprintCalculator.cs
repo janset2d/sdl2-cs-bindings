@@ -35,13 +35,13 @@ internal sealed class HeaderSetFingerprintCalculator(ICakeContext context)
         foreach (var syntheticHeader in syntheticHeaders)
         {
             ct.ThrowIfCancellationRequested();
-            await AppendHeaderAsync(builder, headerSet.SyntheticIncludeRoot, syntheticHeader, syntheticPrefix: "synthetic/").ConfigureAwait(false);
+            await AppendHeaderAsync(builder, headerSet.SyntheticIncludeRoot, syntheticHeader, syntheticPrefix: "synthetic/");
         }
 
         foreach (var header in headerSet.Headers.OrderBy(file => file.FullPath, StringComparer.OrdinalIgnoreCase))
         {
             ct.ThrowIfCancellationRequested();
-            await AppendHeaderAsync(builder, headerSet.IncludeRoot, header, syntheticPrefix: string.Empty).ConfigureAwait(false);
+            await AppendHeaderAsync(builder, headerSet.IncludeRoot, header, syntheticPrefix: string.Empty);
         }
 
         var hash = ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString()))).ToLowerInvariant();
@@ -53,7 +53,7 @@ internal sealed class HeaderSetFingerprintCalculator(ICakeContext context)
         var relativePath = syntheticPrefix + relativeRoot.GetRelativePath(header).FullPath.Replace('\\', '/');
         builder.Append(relativePath).AppendLf();
 
-        var content = await _context.ReadAllTextAsync(header).ConfigureAwait(false);
+        var content = await _context.ReadAllTextAsync(header);
         builder.Append(NormalizeLineEndings(content)).AppendLf();
     }
 

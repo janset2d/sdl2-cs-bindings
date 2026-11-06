@@ -380,8 +380,7 @@ dotnet_diagnostic.VSTHRD101.severity = error
 dotnet_diagnostic.VSTHRD103.severity = error
 dotnet_diagnostic.VSTHRD107.severity = error
 dotnet_diagnostic.VSTHRD110.severity = error
-# QM-10: VSTHRD111 stays at none until "style: ConfigureAwait required in libraries, removed from the build host and tools".
-dotnet_diagnostic.VSTHRD111.severity = none
+dotnet_diagnostic.VSTHRD111.severity = error
 dotnet_diagnostic.VSTHRD114.severity = error
 dotnet_diagnostic.VSTHRD200.severity = suggestion
 
@@ -400,8 +399,7 @@ dotnet_diagnostic.MA0075.severity = error
 # QM-20: MA0076 stays at suggestion until "style: remaining revived rules".
 dotnet_diagnostic.MA0076.severity = suggestion
 # Async analyzers retain overlapping coverage of Task and ValueTask operations.
-# QM-10: MA0004 stays at none until "style: ConfigureAwait required in libraries, removed from the build host and tools".
-dotnet_diagnostic.MA0004.severity = none
+dotnet_diagnostic.MA0004.severity = error
 dotnet_diagnostic.MA0022.severity = error
 # QM-20: MA0042 stays at suggestion until "style: remaining revived rules".
 dotnet_diagnostic.MA0042.severity = suggestion
@@ -587,3 +585,10 @@ dotnet_diagnostic.S3267.severity = none
 [/tools.cs]
 dotnet_diagnostic.RCS0056.severity = none
 dotnet_diagnostic.MA0048.severity = none
+
+# Console hosts have no SynchronizationContext to preserve.
+# Winner: console hosts with no SynchronizationContext; CA2007, MA0004 and VSTHRD111 remain enabled for every other non-test file.
+[{build/_build/**.cs,tools.cs}]
+dotnet_diagnostic.CA2007.severity = none
+dotnet_diagnostic.MA0004.severity = none
+dotnet_diagnostic.VSTHRD111.severity = none

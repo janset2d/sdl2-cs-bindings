@@ -69,7 +69,7 @@ public sealed class ConsolidateHarvestTask(
         foreach (var libraryDir in libraryDirs)
         {
             var libraryName = libraryDir.GetDirectoryName();
-            var failureMessage = await TryConsolidateLibraryAsync(libraryName).ConfigureAwait(false);
+            var failureMessage = await TryConsolidateLibraryAsync(libraryName);
 
             if (failureMessage is not null)
             {
@@ -94,7 +94,7 @@ public sealed class ConsolidateHarvestTask(
 
         try
         {
-            var ridStatuses = await _harvestManifestRepository.LoadRidStatusesAsync(libraryName).ConfigureAwait(false);
+            var ridStatuses = await _harvestManifestRepository.LoadRidStatusesAsync(libraryName);
 
             if (ridStatuses is null)
             {
@@ -106,9 +106,9 @@ public sealed class ConsolidateHarvestTask(
 
             // Phase 1 of the staged replace: write everything to .tmp siblings so the old
             // _consolidated/ + harvest-manifest + harvest-summary survive any mid-flight crash.
-            var consolidationState = await _licenseWriter.WriteUnionAsync(libraryName, ridStatuses).ConfigureAwait(false);
+            var consolidationState = await _licenseWriter.WriteUnionAsync(libraryName, ridStatuses);
             var manifest = BuildManifest(libraryName, ridStatuses, consolidationState);
-            await _harvestManifestRepository.WriteManifestTempAsync(libraryName, manifest).ConfigureAwait(false);
+            await _harvestManifestRepository.WriteManifestTempAsync(libraryName, manifest);
 
             // Phase 2: atomic swap each .tmp into its final location. Crash between operations
             // leaves the workspace in a recoverable state — the next Consolidate run sees the
