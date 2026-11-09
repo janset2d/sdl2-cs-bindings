@@ -35,7 +35,7 @@ public sealed class DumpbinDependentsTask : AsyncFrostingTask<BuildContext>
             },
         };
 
-        var rawOutput = await Task.Run(() => context.DumpbinDependents(settings) ?? string.Empty, context.CancellationToken).ConfigureAwait(false);
+        var rawOutput = await Task.Run(() => context.DumpbinDependents(settings) ?? string.Empty, context.CancellationToken);
         context.Verbose(rawOutput);
     }
 }

@@ -33,7 +33,7 @@ public sealed class DynapiCoherenceValidator(IDynapiManifestRepository dynapiRep
             return ValidationReport.Empty;
         }
 
-        var manifestResult = await _dynapiRepo.LoadAsync(ct).ConfigureAwait(false);
+        var manifestResult = await _dynapiRepo.LoadAsync(ct);
 
         if (manifestResult.TryGetError(out var err))
         {

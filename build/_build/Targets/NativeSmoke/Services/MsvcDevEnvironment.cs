@@ -46,7 +46,7 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
             return cached;
         }
 
-        var result = await ResolveCoreAsync(targetArch, ct).ConfigureAwait(false);
+        var result = await ResolveCoreAsync(targetArch, ct);
         // ConcurrentDictionary handles the race; a pathological concurrent invocation would
         // at worst cause two resolver runs with the later write winning — same outcome.
         _cache[targetArch] = result;
@@ -104,7 +104,7 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
             vcvarsBat.FullPath,
             vcvarsArg);
 
-        var delta = await CaptureEnvironmentDeltaAsync(vcvarsBat, vcvarsArg, ct).ConfigureAwait(false);
+        var delta = await CaptureEnvironmentDeltaAsync(vcvarsBat, vcvarsArg, ct);
         _log.Information(
             "MsvcDevEnvironment: captured {0} env var(s) to merge into MSVC-dependent child processes for target '{1}'.",
             delta.Count,
@@ -122,9 +122,9 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
         var stdoutTask = process.StandardOutput.ReadToEndAsync(ct);
         var stderrTask = process.StandardError.ReadToEndAsync(ct);
 
-        await process.WaitForExitAsync(ct).ConfigureAwait(false);
-        var stdout = await stdoutTask.ConfigureAwait(false);
-        var stderr = await stderrTask.ConfigureAwait(false);
+        await process.WaitForExitAsync(ct);
+        var stdout = await stdoutTask;
+        var stderr = await stderrTask;
 
         if (process.ExitCode != 0)
         {

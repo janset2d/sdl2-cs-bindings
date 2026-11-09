@@ -74,8 +74,8 @@ public sealed class NativeSmokeTask(
         // ConfigureAsync's ApplyMsvcEnvironmentAsync before _cakeContext.CMake(settings)
         // runs, so a toolchain failure surfaces as CakeException before cmake.exe is
         // invoked. Subsequent BuildAsync hits the per-arch cache.
-        await ConfigureAsync(request.Rid).ConfigureAwait(false);
-        await BuildAsync(request.Rid).ConfigureAwait(false);
+        await ConfigureAsync(request.Rid);
+        await BuildAsync(request.Rid);
         Execute(request.Rid);
 
         context.Log.Information("NativeSmoke completed successfully for RID '{0}'.", request.Rid);
@@ -91,7 +91,7 @@ public sealed class NativeSmokeTask(
             Options = ["--preset", rid],
         };
 
-        await ApplyMsvcEnvironmentAsync(settings, rid).ConfigureAwait(false);
+        await ApplyMsvcEnvironmentAsync(settings, rid);
         _cakeContext.CMake(settings);
     }
 
@@ -110,7 +110,7 @@ public sealed class NativeSmokeTask(
             BinaryPath = binaryPath,
         };
 
-        await ApplyMsvcEnvironmentAsync(settings, rid).ConfigureAwait(false);
+        await ApplyMsvcEnvironmentAsync(settings, rid);
         _cakeContext.CMakeBuild(settings);
     }
 
@@ -169,7 +169,7 @@ public sealed class NativeSmokeTask(
             throw new CakeException($"NativeSmoke prereq: {ex.Message}", ex);
         }
 
-        var delta = await _msvcDevEnvironment.ResolveAsync(targetArch).ConfigureAwait(false);
+        var delta = await _msvcDevEnvironment.ResolveAsync(targetArch);
 
         if (delta.Count == 0)
         {

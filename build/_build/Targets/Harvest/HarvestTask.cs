@@ -84,7 +84,7 @@ public sealed class HarvestTask(
 
         foreach (var library in libraries)
         {
-            await ProcessLibraryAsync(library, outputBase, corePackageName, validationMode).ConfigureAwait(false);
+            await ProcessLibraryAsync(library, outputBase, corePackageName, validationMode);
         }
 
         _reporter.LogCompleted();
@@ -102,7 +102,7 @@ public sealed class HarvestTask(
         {
             _statusRepo.Invalidate(library.Name);
 
-            var closure = await BuildClosureOrFailHarvestAsync(library).ConfigureAwait(false);
+            var closure = await BuildClosureOrFailHarvestAsync(library);
 
             var leakReport = _leakValidator.Validate(closure, library, corePackageName, validationMode);
 
@@ -113,8 +113,7 @@ public sealed class HarvestTask(
                     library.Name,
                     "Hybrid-static leak validation",
                     $"{leakReport.Errors.Count} violation(s) detected.",
-                    exception: null)
-                    .ConfigureAwait(false);
+                    exception: null);
             }
 
             if (leakReport.HasWarnings)
@@ -122,7 +121,7 @@ public sealed class HarvestTask(
                 _reporter.ReportLeakReport(library.Name, leakReport);
             }
 
-            await DeployLibraryAsync(library, closure, outputBase, corePackageName).ConfigureAwait(false);
+            await DeployLibraryAsync(library, closure, outputBase, corePackageName);
         }
         catch (OperationCanceledException)
         {
@@ -140,26 +139,25 @@ public sealed class HarvestTask(
                 library.Name,
                 "Harvest",
                 $"Unexpected operational error during harvest of {library.Name}: {ex.Message}",
-                ex)
-                .ConfigureAwait(false);
+                ex);
         }
     }
 
     private async Task DeployLibraryAsync(LibraryManifest library, BinaryClosure closure, DirectoryPath outputBase, string corePackageName)
     {
-        var plannerResult = await _planner.CreatePlanAsync(library, closure, outputBase, corePackageName).ConfigureAwait(false);
+        var plannerResult = await _planner.CreatePlanAsync(library, closure, outputBase, corePackageName);
 
         if (plannerResult.IsFailure)
         {
-            throw await CreateLibraryFailureAsync(library.Name, "Artifact planning", plannerResult.Error.Message, plannerResult.Error.Exception).ConfigureAwait(false);
+            throw await CreateLibraryFailureAsync(library.Name, "Artifact planning", plannerResult.Error.Message, plannerResult.Error.Exception);
         }
 
         var deploymentPlan = plannerResult.Value;
-        var deployerResult = await _deployer.DeployArtifactsAsync(deploymentPlan).ConfigureAwait(false);
+        var deployerResult = await _deployer.DeployArtifactsAsync(deploymentPlan);
 
         if (deployerResult.IsFailure)
         {
-            throw await CreateLibraryFailureAsync(library.Name, "Artifact copying", deployerResult.Error.Message, deployerResult.Error.Exception).ConfigureAwait(false);
+            throw await CreateLibraryFailureAsync(library.Name, "Artifact copying", deployerResult.Error.Message, deployerResult.Error.Exception);
         }
 
         var statistics = deployerResult.Value;
@@ -172,21 +170,20 @@ public sealed class HarvestTask(
                 "Harvest",
                 $"Harvest produced zero primary binaries for '{library.Name}'. Closure walker and planner returned success but no primary files were deployed. " +
                 "Inspect vcpkg install output and manifest primary_binaries patterns.",
-                exception: null)
-                .ConfigureAwait(false);
+                exception: null);
         }
 
-        await _statusRepo.WriteSuccessAsync(library.Name, statistics).ConfigureAwait(false);
+        await _statusRepo.WriteSuccessAsync(library.Name, statistics);
         _reporter.FinishLibrary(library.Name, statistics);
     }
 
     private async Task<BinaryClosure> BuildClosureOrFailHarvestAsync(LibraryManifest library)
     {
-        var result = await _walker.BuildClosureAsync(library).ConfigureAwait(false);
+        var result = await _walker.BuildClosureAsync(library);
 
         if (result.IsFailure)
         {
-            throw await CreateLibraryFailureAsync(library.Name, "Binary closure", result.Error.Message, result.Error.Exception).ConfigureAwait(false);
+            throw await CreateLibraryFailureAsync(library.Name, "Binary closure", result.Error.Message, result.Error.Exception);
         }
 
         return result.Value;
@@ -195,7 +192,7 @@ public sealed class HarvestTask(
     private async Task<CakeException> CreateLibraryFailureAsync(string libraryName, string phase, string message, Exception? exception)
     {
         _reporter.ReportPhaseFailure(libraryName, phase, message, exception);
-        await _statusRepo.WriteErrorAsync(libraryName, message).ConfigureAwait(false);
+        await _statusRepo.WriteErrorAsync(libraryName, message);
         return new CakeException($"{phase} failed for '{libraryName}'.");
     }
 

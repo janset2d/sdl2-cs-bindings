@@ -33,7 +33,7 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IRuntimeProfile
         {
             ArgumentNullException.ThrowIfNull(manifest);
 
-            var rootPkgInfoResult = await Task.FromResult(GetPackageInfo(manifest.VcpkgName, ct)).ConfigureAwait(false);
+            var rootPkgInfoResult = await Task.FromResult(GetPackageInfo(manifest.VcpkgName, ct));
 
             if (rootPkgInfoResult.IsFailure)
             {
@@ -67,7 +67,7 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IRuntimeProfile
 
                 ct.ThrowIfCancellationRequested();
 
-                var ownerPkgInfoResult = await Task.FromResult(GetPackageInfo(ownerPackage, ct)).ConfigureAwait(false);
+                var ownerPkgInfoResult = await Task.FromResult(GetPackageInfo(ownerPackage, ct));
 
                 if (ownerPkgInfoResult.IsFailure)
                 {
@@ -113,7 +113,7 @@ public sealed class BinaryClosureWalker(IRuntimeScanner runtime, IRuntimeProfile
                 ct.ThrowIfCancellationRequested();
 
                 var originPkg = nodesDict[bin].OriginPackage;
-                var deps = await _runtime.ScanAsync(bin, ct).ConfigureAwait(false);
+                var deps = await _runtime.ScanAsync(bin, ct);
 
                 foreach (var dep in deps)
                 {

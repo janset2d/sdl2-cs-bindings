@@ -46,7 +46,7 @@ public sealed class HarvestManifestRepository(ICakeContext cakeContext, IPathSer
 
             try
             {
-                var jsonContent = await _cakeContext.ReadAllTextAsync(statusFile).ConfigureAwait(false);
+                var jsonContent = await _cakeContext.ReadAllTextAsync(statusFile);
                 var ridStatus = CakeJsonExtensions.DeserializeJson<RidHarvestStatus>(jsonContent);
 
                 if (ridStatus != null)
@@ -86,7 +86,7 @@ public sealed class HarvestManifestRepository(ICakeContext cakeContext, IPathSer
         ct.ThrowIfCancellationRequested();
 
         var manifestPath = _pathService.GetHarvestLibraryManifestFile(libraryName);
-        var manifest = await _cakeContext.ToJsonAsync<HarvestManifest>(manifestPath).ConfigureAwait(false);
+        var manifest = await _cakeContext.ToJsonAsync<HarvestManifest>(manifestPath);
         ct.ThrowIfCancellationRequested();
         return manifest;
     }
@@ -98,11 +98,11 @@ public sealed class HarvestManifestRepository(ICakeContext cakeContext, IPathSer
         ct.ThrowIfCancellationRequested();
 
         var manifestTempPath = _pathService.GetHarvestLibraryManifestTempFile(libraryName);
-        await _cakeContext.WriteJsonAsync(manifestTempPath, manifest).ConfigureAwait(false);
+        await _cakeContext.WriteJsonAsync(manifestTempPath, manifest);
 
         ct.ThrowIfCancellationRequested();
         var summaryTempPath = _pathService.GetHarvestLibrarySummaryTempFile(libraryName);
-        await _cakeContext.WriteJsonAsync(summaryTempPath, manifest.Summary).ConfigureAwait(false);
+        await _cakeContext.WriteJsonAsync(summaryTempPath, manifest.Summary);
     }
 
     private static string FormatInvalidStatusFile(FilePath statusFile, string message)

@@ -40,7 +40,7 @@ public sealed class ArtifactDeployer(ICakeContext ctx) : IArtifactDeployer
                         ExecuteFileCopyAction(fileCopy);
                         break;
                     case ArchiveCreationAction archiveCreation:
-                        await ExecuteArchiveCreationActionAsync(archiveCreation, ct).ConfigureAwait(false);
+                        await ExecuteArchiveCreationActionAsync(archiveCreation, ct);
                         break;
                     default:
                         _log.Warning("Unsupported deployment action type: {0}", action.GetType().Name);
@@ -88,7 +88,7 @@ public sealed class ArtifactDeployer(ICakeContext ctx) : IArtifactDeployer
 
         _ctx.EnsureDirectoryExists(action.ArchivePath.GetDirectory());
 
-        var fileListPath = await CreateArchiveFileListAsync(action.ItemsToArchive, ct).ConfigureAwait(false);
+        var fileListPath = await CreateArchiveFileListAsync(action.ItemsToArchive, ct);
 
         try
         {
@@ -136,7 +136,7 @@ public sealed class ArtifactDeployer(ICakeContext ctx) : IArtifactDeployer
 
         var absolutePaths = itemsToArchive.Select(item => item.SourcePath.GetFilename().FullPath).ToList();
 
-        await File.WriteAllLinesAsync(fileListPath.FullPath, absolutePaths, ct).ConfigureAwait(false);
+        await File.WriteAllLinesAsync(fileListPath.FullPath, absolutePaths, ct);
         _log.Verbose("Created file list for tar: {0} ({1} files), using absolute paths",
             fileListPath.GetFilename(),
             absolutePaths.Count);
