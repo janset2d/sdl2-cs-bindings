@@ -1,11 +1,9 @@
 using System.CommandLine;
 using System.CommandLine.Invocation;
-using System.Reflection;
 using Build.Data.Manifest;
 using Build.Data.Manifest.Models;
 using Build.Data.ProjectMetadata;
 using Build.Data.Versions;
-using Build.Host;
 using Build.Host.Cli.Options;
 using Build.Targets.NativeSmoke.Services;
 using Build.Targets.Package.Services;
@@ -25,17 +23,12 @@ public sealed class ProgramCompositionRootTests
     private static readonly Lock EnvironmentVariableLock = new();
     private static readonly RootCommand ParsingRoot = CreateParsingRoot();
 
-    private static readonly Type ProgramType = typeof(BuildContext).Assembly.GetType("Program")
-                                               ?? throw new InvalidOperationException("Unable to resolve Program type from Build assembly.");
-
     [Test]
     public async Task IsVerbosityArg_Should_Recognize_Long_And_Short_Flags()
     {
-        var method = GetProgramHelper("g__IsVerbosityArg", typeof(string));
-
-        var longOption = (bool)method.Invoke(null, ["--verbosity"])!;
-        var shortOption = (bool)method.Invoke(null, ["-v"])!;
-        var nonVerbosity = (bool)method.Invoke(null, ["--target"])!;
+        var longOption = EntryPoint.IsVerbosityArg("--verbosity");
+        var shortOption = EntryPoint.IsVerbosityArg("-v");
+        var nonVerbosity = EntryPoint.IsVerbosityArg("--target");
 
         await Assert.That(longOption).IsTrue();
         await Assert.That(shortOption).IsTrue();
@@ -45,11 +38,9 @@ public sealed class ProgramCompositionRootTests
     [Test]
     public async Task IsWorkingPathArg_Should_Recognize_Long_And_Short_Flags()
     {
-        var method = GetProgramHelper("g__IsWorkingPathArg", typeof(string));
-
-        var longOption = (bool)method.Invoke(null, ["--working"])!;
-        var shortOption = (bool)method.Invoke(null, ["-w"])!;
-        var nonWorking = (bool)method.Invoke(null, ["--target"])!;
+        var longOption = EntryPoint.IsWorkingPathArg("--working");
+        var shortOption = EntryPoint.IsWorkingPathArg("-w");
+        var nonWorking = EntryPoint.IsWorkingPathArg("--target");
 
         await Assert.That(longOption).IsTrue();
         await Assert.That(shortOption).IsTrue();
@@ -59,18 +50,13 @@ public sealed class ProgramCompositionRootTests
     [Test]
     public async Task GetEffectiveCakeArguments_Should_Inject_Working_Path_When_Not_Provided()
     {
-        var method = GetProgramHelper(
-            "g__GetEffectiveCakeArguments",
-            typeof(string[]),
-            typeof(DirectoryPath),
-            typeof(InvocationContext));
         var originalArgs = Array.Empty<string>();
         var repoRoot = new DirectoryPath("C:/repo-root");
         var invocationContext = CreateInvocationContext(originalArgs);
 
         var effectiveArgs = RunWithActionsRunnerDebug(
             value: null,
-            () => (string[])method.Invoke(null, [originalArgs, repoRoot, invocationContext])!);
+            () => EntryPoint.GetEffectiveCakeArguments(originalArgs, repoRoot, invocationContext));
 
         await Assert.That(effectiveArgs).Contains("--working");
         await Assert.That(effectiveArgs).Contains(repoRoot.FullPath);
@@ -80,18 +66,13 @@ public sealed class ProgramCompositionRootTests
     [Test]
     public async Task GetEffectiveCakeArguments_Should_Inject_Diagnostic_Verbosity_When_ActionsRunnerDebug_Is_True()
     {
-        var method = GetProgramHelper(
-            "g__GetEffectiveCakeArguments",
-            typeof(string[]),
-            typeof(DirectoryPath),
-            typeof(InvocationContext));
         var originalArgs = Array.Empty<string>();
         var repoRoot = new DirectoryPath("C:/repo-root");
         var invocationContext = CreateInvocationContext(originalArgs);
 
         var effectiveArgs = RunWithActionsRunnerDebug(
             "true",
-            () => (string[])method.Invoke(null, [originalArgs, repoRoot, invocationContext])!);
+            () => EntryPoint.GetEffectiveCakeArguments(originalArgs, repoRoot, invocationContext));
 
         await Assert.That(effectiveArgs).Contains("--verbosity");
         await Assert.That(effectiveArgs).Contains("diagnostic");
@@ -101,18 +82,13 @@ public sealed class ProgramCompositionRootTests
     [Test]
     public async Task GetEffectiveCakeArguments_Should_Preserve_Explicit_Working_And_Verbosity()
     {
-        var method = GetProgramHelper(
-            "g__GetEffectiveCakeArguments",
-            typeof(string[]),
-            typeof(DirectoryPath),
-            typeof(InvocationContext));
         var originalArgs = new[] { "--verbosity", "quiet", "--working", "C:/custom" };
         var repoRoot = new DirectoryPath("C:/repo-root");
         var invocationContext = CreateInvocationContext(originalArgs);
 
         var effectiveArgs = RunWithActionsRunnerDebug(
             "true",
-            () => (string[])method.Invoke(null, [originalArgs, repoRoot, invocationContext])!);
+            () => EntryPoint.GetEffectiveCakeArguments(originalArgs, repoRoot, invocationContext));
 
         await Assert.That(effectiveArgs.Length).IsEqualTo(originalArgs.Length);
 
@@ -125,12 +101,10 @@ public sealed class ProgramCompositionRootTests
     [Test]
     public async Task DetermineRepoRootAsync_Should_Use_RepoRoot_Argument_When_Path_Exists()
     {
-        var method = GetProgramHelper("g__DetermineRepoRootAsync", typeof(DirectoryInfo));
         using var repoRootDirectory = new TempDirectory("janset-repo-root-");
         var repoRoot = new DirectoryPath(repoRootDirectory.Path);
 
-        var task = (Task<DirectoryPath>)method.Invoke(null, [new DirectoryInfo(repoRoot.FullPath)])!;
-        var result = await task;
+        var result = await EntryPoint.DetermineRepoRootAsync(new DirectoryInfo(repoRoot.FullPath));
 
         await Assert.That(result.FullPath).IsEqualTo(repoRoot.FullPath);
     }
@@ -138,19 +112,13 @@ public sealed class ProgramCompositionRootTests
     [Test]
     public async Task ConfigureBuildServices_Should_Resolve_Core_Production_Services()
     {
-        var method = GetProgramHelper(
-            "g__ConfigureBuildServices",
-            typeof(IServiceCollection),
-            typeof(ParsedArguments),
-            typeof(DirectoryPath));
-
         var world = FakeCakeWorld.CreateWindows()
             .WithManifestObject(CreateCompositionRootManifest("x64-windows-hybrid"));
 
         var services = CreateServiceCollectionForCompositionRoot(world);
         var parsedArguments = CreateParsedArguments(world.RepoRoot.FullPath, "win-x64");
 
-        method.Invoke(null, [services, parsedArguments, world.RepoRoot]);
+        EntryPoint.ConfigureBuildServices(services, parsedArguments, world.RepoRoot);
 
         using var provider = services.BuildServiceProvider();
 
@@ -173,37 +141,6 @@ public sealed class ProgramCompositionRootTests
         await Assert.That(packageFamilyPacker.GetType()).IsEqualTo(typeof(PackageFamilyPacker));
         await Assert.That(dotNetSmokeRunner).IsNotNull();
         await Assert.That(msvcDevEnvironment.GetType()).IsEqualTo(typeof(MsvcDevEnvironment));
-    }
-
-    private static MethodInfo GetProgramHelper(string methodNameFragment, params Type[] parameterTypes)
-    {
-        var method = ProgramType
-            .GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
-            .SingleOrDefault(m =>
-                m.Name.Contains(methodNameFragment, StringComparison.Ordinal) &&
-                HasParameterSignature(m, parameterTypes));
-
-        return method ?? throw new InvalidOperationException($"Program helper containing '{methodNameFragment}' was not found.");
-    }
-
-    private static bool HasParameterSignature(MethodInfo method, params Type[] parameterTypes)
-    {
-        var parameters = method.GetParameters();
-
-        if (parameters.Length != parameterTypes.Length)
-        {
-            return false;
-        }
-
-        for (var i = 0; i < parameterTypes.Length; i++)
-        {
-            if (parameters[i].ParameterType != parameterTypes[i])
-            {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     private static InvocationContext CreateInvocationContext(params string[] args)

@@ -1,5 +1,3 @@
-#pragma warning disable CA1031
-
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Build.Host;

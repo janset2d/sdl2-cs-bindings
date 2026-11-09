@@ -74,13 +74,13 @@ public sealed class PackageConsumerSmokeReporterTests
     public void Constructor_Should_Throw_When_Console_Null()
     {
         var world = FakeCakeWorld.CreateWindows();
-        Assert.Throws<ArgumentNullException>(() => new PackageConsumerSmokeReporter(console: null!, world.Log));
+        Assert.Throws<ArgumentNullException>(() => _ = new PackageConsumerSmokeReporter(console: null!, world.Log));
     }
 
     [Test]
     public void Constructor_Should_Throw_When_Log_Null()
     {
         var world = FakeCakeWorld.CreateWindows();
-        Assert.Throws<ArgumentNullException>(() => new PackageConsumerSmokeReporter(world.AnsiConsole, log: null!));
+        Assert.Throws<ArgumentNullException>(() => _ = new PackageConsumerSmokeReporter(world.AnsiConsole, log: null!));
     }
 }

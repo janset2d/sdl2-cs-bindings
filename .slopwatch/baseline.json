@@ -1,234 +1,9 @@
 {
   "version": 1,
-  "createdAt": "2026-11-06T17:31:34.7830676+00:00",
-  "updatedAt": "2026-11-06T17:31:34.7878093+00:00",
-  "description": "Initial baseline created by 'slopwatch init' on 2026-11-06 17:31:34 UTC",
+  "createdAt": "2026-11-06T19:51:59.9780052+00:00",
+  "updatedAt": "2026-11-06T19:51:59.9882358+00:00",
+  "description": "Initial baseline created by 'slopwatch init' on 2026-11-06 19:51:59 UTC",
   "entries": [
-    {
-      "hash": "6353e66f2d6b21c7",
-      "ruleId": "SW005",
-      "filePath": "build/_build/Build.csproj",
-      "lineNumber": 8,
-      "codeSnippet": "<NoWarn>$(NoWarn);CA1050;CA2007;CA1812;CA1515;MA0047;S3903;S2955</NoWarn>",
-      "message": "Adding warnings to NoWarn: CA1050;CA2007;CA1812;CA1515;MA0047;S3903;S2955",
-      "baselinedAt": "2026-11-06T17:31:34.7875654+00:00"
-    },
-    {
-      "hash": "9a6549b853914ec8",
-      "ruleId": "SW002",
-      "filePath": "build/_build/Program.cs",
-      "lineNumber": 1,
-      "codeSnippet": "# pragma warning disable CA1031, MA0045, MA0051, CA1502, CA1505",
-      "message": "#pragma warning disable for warnings CA1031, MA0045, MA0051, CA1502, CA1505 without matching restore in same scope",
-      "baselinedAt": "2026-11-06T17:31:34.7876356+00:00"
-    },
-    {
-      "hash": "b9b44692ed3b42fc",
-      "ruleId": "SW002",
-      "filePath": "build/_build/Host/ServiceCollectionExtensions.cs",
-      "lineNumber": 1,
-      "codeSnippet": "#pragma warning disable MA0045",
-      "message": "#pragma warning disable for warnings MA0045 without matching restore in same scope",
-      "baselinedAt": "2026-11-06T17:31:34.7876408+00:00"
-    },
-    {
-      "hash": "1619e79018bdadce",
-      "ruleId": "SW002",
-      "filePath": "build/_build/Results/ValidationReport.cs",
-      "lineNumber": 41,
-      "codeSnippet": "SuppressMessage(\"Naming\", \"CA1710:Identifiers should have correct suffix\",\n    Justification = \"The type's identity is 'a report of validation findings' — its public surface (IsValid, HasWarnings, Errors/Warnings \" +\n    \"projections, Combine) reads as report behavior, not collection operations. CA1710's suggested suffixes (Collection/Set/etc.) describe \" +\n    \"data-structure shape and would obscure that role.\")",
-      "message": "SuppressMessage attribute suppressing Naming:CA1710:Identifiers should have correct suffix",
-      "baselinedAt": "2026-11-06T17:31:34.7876595+00:00"
-    },
-    {
-      "hash": "97feeeb1f87d08f3",
-      "ruleId": "SW002",
-      "filePath": "build/_build/Results/Result.cs",
-      "lineNumber": 20,
-      "codeSnippet": "SuppressMessage(\n    \"Design\",\n    \"CA1000:Do not declare static members on generic types\",\n    Justification =\n        \"Factory methods on a generic value type match the .NET BCL pattern (ImmutableArray<T>.Create, Nullable<T> helpers). The non-generic \" +\n        \"alternative would force Result.Failure<int, string>(\\\"err\\\") at every call site, where Result<int, string>.Failure(\\\"err\\\") reads cleaner.\")",
-      "message": "SuppressMessage attribute suppressing Design:CA1000:Do not declare static members on generic types",
-      "baselinedAt": "2026-11-06T17:31:34.7876686+00:00"
-    },
-    {
-      "hash": "66d1d11e9fcb2701",
-      "ruleId": "SW002",
-      "filePath": "build/_build/Validation/Packaging/SatelliteUpperBoundValidator.cs",
-      "lineNumber": 31,
-      "codeSnippet": "SuppressMessage(\"Design\", \"MA0051:Method is too long\",\n        Justification = \"G56 validation intentionally keeps parse, manifest resolution, and bound checks in one path for full diagnostic context.\")",
-      "message": "SuppressMessage attribute suppressing Design:MA0051:Method is too long",
-      "baselinedAt": "2026-11-06T17:31:34.7876733+00:00"
-    },
-    {
-      "hash": "c6e198e9a108697f",
-      "ruleId": "SW002",
-      "filePath": "build/_build/Validation/Packaging/PackageOutputValidator.cs",
-      "lineNumber": 243,
-      "codeSnippet": "SuppressMessage(\"Design\", \"MA0051:Method is too long\",\n        Justification = \"Six sequential canonical checks kept co-located for readability; splitting hurts traceability to guardrails G26/G27.\")",
-      "message": "SuppressMessage attribute suppressing Design:MA0051:Method is too long",
-      "baselinedAt": "2026-11-06T17:31:34.7876769+00:00"
-    },
-    {
-      "hash": "5351cec1c149ea33",
-      "ruleId": "SW002",
-      "filePath": "build/_build/Validation/Packaging/PackageOutputValidator.cs",
-      "lineNumber": 334,
-      "codeSnippet": "SuppressMessage(\"Design\", \"MA0051:Method is too long\",\n        Justification =\n            \"Dependency-group walking interleaves framework parity, inter-group consistency, and per-group expected-dependency checks (G21/G22) — \" +\n            \"splitting them obscures the per-framework control flow.\")",
-      "message": "SuppressMessage attribute suppressing Design:MA0051:Method is too long",
-      "baselinedAt": "2026-11-06T17:31:34.7876813+00:00"
-    },
-    {
-      "hash": "7b064c337296ce62",
-      "ruleId": "SW002",
-      "filePath": "build/_build/Validation/Packaging/PackageOutputValidator.cs",
-      "lineNumber": 480,
-      "codeSnippet": "SuppressMessage(\"Design\", \"MA0051:Method is too long\",\n        Justification = \"G21 within-family + cross-family dependency contract walking stays co-located so the full minimum-range assertion is readable end-to-end.\")",
-      "message": "SuppressMessage attribute suppressing Design:MA0051:Method is too long",
-      "baselinedAt": "2026-11-06T17:31:34.7876856+00:00"
-    },
-    {
-      "hash": "e5b0b3627ee3fe20",
-      "ruleId": "SW002",
-      "filePath": "build/_build/Validation/Packaging/NativePackageMetadataValidator.cs",
-      "lineNumber": 31,
-      "codeSnippet": "SuppressMessage(\"Design\", \"MA0051:Method is too long\",\n        Justification = \"G55 intentionally validates zip presence, JSON parse, schema fields, and manifest/build invariants in one linear flow for debuggability.\")",
-      "message": "SuppressMessage attribute suppressing Design:MA0051:Method is too long",
-      "baselinedAt": "2026-11-06T17:31:34.7876901+00:00"
-    },
-    {
-      "hash": "40d580462956ff72",
-      "ruleId": "SW002",
-      "filePath": "build/_build/Tools/Otool/OtoolRunner.cs",
-      "lineNumber": 1,
-      "codeSnippet": "#pragma warning disable S2737, CA1031",
-      "message": "#pragma warning disable for warnings S2737, CA1031 without matching restore in same scope",
-      "baselinedAt": "2026-11-06T17:31:34.7876931+00:00"
-    },
-    {
-      "hash": "e3e6f95d3b02d155",
-      "ruleId": "SW002",
-      "filePath": "build/_build/Targets/Info/InfoTask.cs",
-      "lineNumber": 1,
-      "codeSnippet": "#pragma warning disable CA1031",
-      "message": "#pragma warning disable for warnings CA1031 without matching restore in same scope",
-      "baselinedAt": "2026-11-06T17:31:34.7876961+00:00"
-    },
-    {
-      "hash": "c0f455c945ae04a6",
-      "ruleId": "SW002",
-      "filePath": "build/_build/Targets/ConsolidateHarvest/ConsolidateHarvestTask.cs",
-      "lineNumber": 5,
-      "codeSnippet": "#pragma warning disable CA1031",
-      "message": "#pragma warning disable for warnings CA1031 without matching restore in same scope",
-      "baselinedAt": "2026-11-06T17:31:34.7876993+00:00"
-    },
-    {
-      "hash": "f903bc6f733798d8",
-      "ruleId": "SW002",
-      "filePath": "build/_build/Targets/Harvest/Services/ArtifactDeployer.cs",
-      "lineNumber": 1,
-      "codeSnippet": "#pragma warning disable CA1031",
-      "message": "#pragma warning disable for warnings CA1031 without matching restore in same scope",
-      "baselinedAt": "2026-11-06T17:31:34.7877027+00:00"
-    },
-    {
-      "hash": "7f3fab0a7f8278ed",
-      "ruleId": "SW002",
-      "filePath": "build/_build/Targets/Harvest/Services/BinaryClosureWalker.cs",
-      "lineNumber": 6,
-      "codeSnippet": "#pragma warning disable CA1031, MA0051",
-      "message": "#pragma warning disable for warnings CA1031, MA0051 without matching restore in same scope",
-      "baselinedAt": "2026-11-06T17:31:34.7877059+00:00"
-    },
-    {
-      "hash": "e895576e4d861f8f",
-      "ruleId": "SW002",
-      "filePath": "build/_build/Targets/Harvest/Services/ArtifactPlanner.cs",
-      "lineNumber": 1,
-      "codeSnippet": "#pragma warning disable CA1031",
-      "message": "#pragma warning disable for warnings CA1031 without matching restore in same scope",
-      "baselinedAt": "2026-11-06T17:31:34.7877095+00:00"
-    },
-    {
-      "hash": "10195c6d20989bcb",
-      "ruleId": "SW002",
-      "filePath": "build/_build/Targets/Harvest/Services/ArtifactPlanner.cs",
-      "lineNumber": 34,
-      "codeSnippet": "SuppressMessage(\"Design\", \"MA0051:Method is too long\")",
-      "message": "SuppressMessage attribute suppressing Design:MA0051:Method is too long",
-      "baselinedAt": "2026-11-06T17:31:34.7877134+00:00"
-    },
-    {
-      "hash": "9f5d7007ee0a930d",
-      "ruleId": "SW002",
-      "filePath": "build/_build/Targets/PackageConsumerSmoke/PackageConsumerSmokeTask.cs",
-      "lineNumber": 73,
-      "codeSnippet": "SuppressMessage(\"Design\", \"MA0051:Method is too long\",\n        Justification = \"Linear orchestration: guards + scope/preconditions + per-TFM smoke. Splitting hurts traceability of the operator-visible pass/fail sequence.\")",
-      "message": "SuppressMessage attribute suppressing Design:MA0051:Method is too long",
-      "baselinedAt": "2026-11-06T17:31:34.7877179+00:00"
-    },
-    {
-      "hash": "3270ca64173f311f",
-      "ruleId": "SW002",
-      "filePath": "build/_build/Targets/PackageConsumerSmoke/Services/DotNetRuntimeEnvironment.cs",
-      "lineNumber": 45,
-      "codeSnippet": "SuppressMessage(\n    \"Minor Code Smell\",\n    \"S1075:URIs should not be hardcoded\",\n    Justification = \"Official Microsoft dotnet-install endpoint used deliberately for CI/runtime bootstrap.\")",
-      "message": "SuppressMessage attribute suppressing Minor Code Smell:S1075:URIs should not be hardcoded",
-      "baselinedAt": "2026-11-06T17:31:34.7877236+00:00"
-    },
-    {
-      "hash": "61fba8e27816ea62",
-      "ruleId": "SW002",
-      "filePath": "build/_build/Targets/PublishStaging/PublishStagingTask.cs",
-      "lineNumber": 29,
-      "codeSnippet": "SuppressMessage(\"Minor Code Smell\", \"S1075:URIs should not be hardcoded\",\n    Justification = \"Internal feed URL is part of the release-lifecycle contract, not operator-tunable.\")",
-      "message": "SuppressMessage attribute suppressing Minor Code Smell:S1075:URIs should not be hardcoded",
-      "baselinedAt": "2026-11-06T17:31:34.7877274+00:00"
-    },
-    {
-      "hash": "de0509255a4181d0",
-      "ruleId": "SW002",
-      "filePath": "build/_build/Targets/PublishStaging/PublishStagingTask.cs",
-      "lineNumber": 61,
-      "codeSnippet": "SuppressMessage(\"Major Code Smell\", \"S3267:Loops should be simplified with LINQ expressions\",\n        Justification = \"Per-family side effects: two awaited pushes, structured logging.\")",
-      "message": "SuppressMessage attribute suppressing Major Code Smell:S3267:Loops should be simplified with LINQ expressions",
-      "baselinedAt": "2026-11-06T17:31:34.7877306+00:00"
-    },
-    {
-      "hash": "68393ad931405071",
-      "ruleId": "SW002",
-      "filePath": "build/_build/Targets/Package/Models/ReadmeMappingTableBlock.cs",
-      "lineNumber": 118,
-      "codeSnippet": "SuppressMessage(\"Performance\", \"MA0089:Use an overload with char instead of string\",\n        Justification = \"CRLF detection requires a two-character token.\")",
-      "message": "SuppressMessage attribute suppressing Performance:MA0089:Use an overload with char instead of string",
-      "baselinedAt": "2026-11-06T17:31:34.787734+00:00"
-    },
-    {
-      "hash": "a854f76f2bddf9b2",
-      "ruleId": "SW002",
-      "filePath": "build/_build/Targets/Package/Services/DependencyRangeNormalizer.cs",
-      "lineNumber": 27,
-      "codeSnippet": "SuppressMessage(\"Design\", \"MA0051:Method is too long\",\n        Justification = \"G56 normalization intentionally keeps zip read, nuspec parse, range rewrite, and zip update in one linear path for debuggability.\")",
-      "message": "SuppressMessage attribute suppressing Design:MA0051:Method is too long",
-      "baselinedAt": "2026-11-06T17:31:34.7877382+00:00"
-    },
-    {
-      "hash": "4a04c81f987a50cb",
-      "ruleId": "SW005",
-      "filePath": "build/_build.Tests/Build.Tests.csproj",
-      "lineNumber": 10,
-      "codeSnippet": "<NoWarn>$(NoWarn);CA1050;CA1515;CA1707;CA1806;CA2007;MA0045;MA0047;MA0051;S4144;S2699</NoWarn>",
-      "message": "Adding warnings to NoWarn: CA1050;CA1515;CA1707;CA1806;CA2007;MA0045;MA0047;MA0051;S4144;S2699",
-      "baselinedAt": "2026-11-06T17:31:34.787741+00:00"
-    },
-    {
-      "hash": "f96215c41936889a",
-      "ruleId": "SW002",
-      "filePath": "build/_build.Tests/Unit/CompositionRoot/ServiceCollectionExtensionsSmokeTests.cs",
-      "lineNumber": 1,
-      "codeSnippet": "#pragma warning disable CA1031",
-      "message": "#pragma warning disable for warnings CA1031 without matching restore in same scope",
-      "baselinedAt": "2026-11-06T17:31:34.7877447+00:00"
-    },
     {
       "hash": "5ccd2abc5efc8bc9",
       "ruleId": "SW003",
@@ -236,7 +11,7 @@
       "lineNumber": 34,
       "codeSnippet": "catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)\n        {\n            // OS will reclaim; teardown failures must not fail green tests.\n        }",
       "message": "Empty catch block swallows exceptions without handling",
-      "baselinedAt": "2026-11-06T17:31:34.7877484+00:00"
+      "baselinedAt": "2026-11-06T19:51:59.9881267+00:00"
     },
     {
       "hash": "2f79f8ef4f31ea60",
@@ -245,7 +20,7 @@
       "lineNumber": 25,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL2.Core\" VersionOverride=\"[$(JansetSdl2CorePackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL2.Core' (version: [$(JansetSdl2CorePackageVersion)])",
-      "baselinedAt": "2026-11-06T17:31:34.7877522+00:00"
+      "baselinedAt": "2026-11-06T19:51:59.9882012+00:00"
     },
     {
       "hash": "de08ba0197cdea4e",
@@ -254,7 +29,7 @@
       "lineNumber": 28,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL2.Image\" VersionOverride=\"[$(JansetSdl2ImagePackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL2.Image' (version: [$(JansetSdl2ImagePackageVersion)])",
-      "baselinedAt": "2026-11-06T17:31:34.787755+00:00"
+      "baselinedAt": "2026-11-06T19:51:59.9882065+00:00"
     },
     {
       "hash": "a48cc078114bab4e",
@@ -263,7 +38,7 @@
       "lineNumber": 31,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL2.Mixer\" VersionOverride=\"[$(JansetSdl2MixerPackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL2.Mixer' (version: [$(JansetSdl2MixerPackageVersion)])",
-      "baselinedAt": "2026-11-06T17:31:34.7877581+00:00"
+      "baselinedAt": "2026-11-06T19:51:59.9882095+00:00"
     },
     {
       "hash": "7ebcd48a18760e14",
@@ -272,7 +47,7 @@
       "lineNumber": 34,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL2.Ttf\" VersionOverride=\"[$(JansetSdl2TtfPackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL2.Ttf' (version: [$(JansetSdl2TtfPackageVersion)])",
-      "baselinedAt": "2026-11-06T17:31:34.7877629+00:00"
+      "baselinedAt": "2026-11-06T19:51:59.9882151+00:00"
     },
     {
       "hash": "94ff501af69e1e7c",
@@ -281,7 +56,7 @@
       "lineNumber": 37,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL2.Gfx\" VersionOverride=\"[$(JansetSdl2GfxPackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL2.Gfx' (version: [$(JansetSdl2GfxPackageVersion)])",
-      "baselinedAt": "2026-11-06T17:31:34.7877657+00:00"
+      "baselinedAt": "2026-11-06T19:51:59.9882189+00:00"
     },
     {
       "hash": "950e7df61977fa05",
@@ -290,7 +65,7 @@
       "lineNumber": 40,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL2.Net\" VersionOverride=\"[$(JansetSdl2NetPackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL2.Net' (version: [$(JansetSdl2NetPackageVersion)])",
-      "baselinedAt": "2026-11-06T17:31:34.7877685+00:00"
+      "baselinedAt": "2026-11-06T19:51:59.9882211+00:00"
     },
     {
       "hash": "f7114e38b2afe118",
@@ -299,7 +74,7 @@
       "lineNumber": 45,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL3.Core\" VersionOverride=\"[$(JansetSdl3CorePackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL3.Core' (version: [$(JansetSdl3CorePackageVersion)])",
-      "baselinedAt": "2026-11-06T17:31:34.7877714+00:00"
+      "baselinedAt": "2026-11-06T19:51:59.9882237+00:00"
     },
     {
       "hash": "5fd54881b35294e7",
@@ -308,7 +83,7 @@
       "lineNumber": 48,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL3.Image\" VersionOverride=\"[$(JansetSdl3ImagePackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL3.Image' (version: [$(JansetSdl3ImagePackageVersion)])",
-      "baselinedAt": "2026-11-06T17:31:34.7877752+00:00"
+      "baselinedAt": "2026-11-06T19:51:59.9882261+00:00"
     },
     {
       "hash": "ee119cb8d2752ffd",
@@ -317,7 +92,7 @@
       "lineNumber": 51,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL3.Mixer\" VersionOverride=\"[$(JansetSdl3MixerPackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL3.Mixer' (version: [$(JansetSdl3MixerPackageVersion)])",
-      "baselinedAt": "2026-11-06T17:31:34.787778+00:00"
+      "baselinedAt": "2026-11-06T19:51:59.9882285+00:00"
     },
     {
       "hash": "e7df10e555ef0a54",
@@ -326,7 +101,7 @@
       "lineNumber": 54,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL3.Ttf\" VersionOverride=\"[$(JansetSdl3TtfPackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL3.Ttf' (version: [$(JansetSdl3TtfPackageVersion)])",
-      "baselinedAt": "2026-11-06T17:31:34.7877807+00:00"
+      "baselinedAt": "2026-11-06T19:51:59.9882308+00:00"
     },
     {
       "hash": "929ffbc460182bbf",
@@ -335,7 +110,7 @@
       "lineNumber": 57,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL3.Gfx\" VersionOverride=\"[$(JansetSdl3GfxPackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL3.Gfx' (version: [$(JansetSdl3GfxPackageVersion)])",
-      "baselinedAt": "2026-11-06T17:31:34.7877834+00:00"
+      "baselinedAt": "2026-11-06T19:51:59.9882336+00:00"
     },
     {
       "hash": "ad5d445b27227140",
@@ -344,52 +119,7 @@
       "lineNumber": 60,
       "codeSnippet": "<PackageReference Include=\"Janset.SDL3.Net\" VersionOverride=\"[$(JansetSdl3NetPackageVersion)]\" />",
       "message": "VersionOverride explicitly bypasses Central Package Management for 'Janset.SDL3.Net' (version: [$(JansetSdl3NetPackageVersion)])",
-      "baselinedAt": "2026-11-06T17:31:34.787786+00:00"
-    },
-    {
-      "hash": "0a50f86f60949a8d",
-      "ruleId": "SW005",
-      "filePath": "build/msbuild/Janset.Smoke.props",
-      "lineNumber": 118,
-      "codeSnippet": "<NoWarn>$(NoWarn);CA1050;CA1515;CA1707;CA1806;CA2007;MA0045;MA0047;MA0051;S4144;S2699</NoWarn>",
-      "message": "Adding warnings to NoWarn: CA1050;CA1515;CA1707;CA1806;CA2007;MA0045;MA0047;MA0051;S4144;S2699",
-      "baselinedAt": "2026-11-06T17:31:34.7877898+00:00"
-    },
-    {
-      "hash": "7e872fb84a2fa746",
-      "ruleId": "SW005",
-      "filePath": "src/native/Directory.Build.props",
-      "lineNumber": 8,
-      "codeSnippet": "<NoWarn>$(NoWarn);NU5128</NoWarn>",
-      "message": "Adding warnings to NoWarn: NU5128",
-      "baselinedAt": "2026-11-06T17:31:34.7877947+00:00"
-    },
-    {
-      "hash": "4d6ce9acfba5cabb",
-      "ruleId": "SW002",
-      "filePath": "tests/smoke-tests/package-smoke/Compile.NetStandard/Probe.cs",
-      "lineNumber": 20,
-      "codeSnippet": "SuppressMessage(\"Sonar\", \"S1144:Unused private types or members should be removed\",\n        Justification = \"Compile-time probe: the field materializes typeof references to assert netstandard2.0 surface visibility. Removing it \" +\n        \"defeats the purpose of the project.\")",
-      "message": "SuppressMessage attribute suppressing Sonar:S1144:Unused private types or members should be removed",
-      "baselinedAt": "2026-11-06T17:31:34.787801+00:00"
-    },
-    {
-      "hash": "6c50c43ac0db1259",
-      "ruleId": "SW002",
-      "filePath": "tests/smoke-tests/package-smoke/Compile.NetStandard/Probe.cs",
-      "lineNumber": 23,
-      "codeSnippet": "SuppressMessage(\"Performance\", \"CA1823:Unused fields\",\n        Justification = \"Compile-time probe: the field materializes typeof references to assert netstandard2.0 surface visibility. Removing it \" +\n        \"defeats the purpose of the project.\")",
-      "message": "SuppressMessage attribute suppressing Performance:CA1823:Unused fields",
-      "baselinedAt": "2026-11-06T17:31:34.7878065+00:00"
-    },
-    {
-      "hash": "f1d2b78a4d36b56a",
-      "ruleId": "SW005",
-      "filePath": "tests/Sandbox/Sandbox.csproj",
-      "lineNumber": 22,
-      "codeSnippet": "<NoWarn>$(NoWarn);CA1303</NoWarn>",
-      "message": "Adding warnings to NoWarn: CA1303",
-      "baselinedAt": "2026-11-06T17:31:34.7878093+00:00"
+      "baselinedAt": "2026-11-06T19:51:59.9882358+00:00"
     }
   ]
 }

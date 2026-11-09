@@ -1,5 +1,3 @@
-#pragma warning disable S2737, CA1031
-
 using System.Collections.Immutable;
 using Build.Tools.Otool;
 using Cake.Common.IO;
@@ -126,5 +124,3 @@ public class MacOtoolScanner : IRuntimeScanner
         return null;
     }
 }
-
-#pragma warning restore S2737, CA1031

@@ -469,6 +469,27 @@ public sealed class FakeCakeWorld
 
     private ICakeContext BuildCakeContext()
     {
+        var processRunner = CreateProcessRunner();
+        var toolLocator = CreateToolLocator();
+        var globber = new Globber(FileSystem, Environment);
+
+        var context = Substitute.For<ICakeContext>();
+        context.Log.Returns(Log);
+        context.Environment.Returns(Environment);
+        context.FileSystem.Returns(FileSystem);
+        context.Globber.Returns(globber);
+        context.Arguments.Returns(Substitute.For<ICakeArguments>());
+        context.Configuration.Returns(Substitute.For<ICakeConfiguration>());
+        context.Data.Returns(Substitute.For<ICakeDataResolver>());
+        context.ProcessRunner.Returns(processRunner);
+        context.Registry.Returns(Substitute.For<IRegistry>());
+        context.Tools.Returns(toolLocator);
+
+        return context;
+    }
+
+    private IProcessRunner CreateProcessRunner()
+    {
         var processRunner = Substitute.For<IProcessRunner>();
         processRunner
             .Start(Arg.Any<FilePath>(), Arg.Any<ProcessSettings>())
@@ -518,6 +539,11 @@ public sealed class FakeCakeWorld
                     "or WithDefaultProcessResult(...) to accept any unconfigured command.");
             });
 
+        return processRunner;
+    }
+
+    private IToolLocator CreateToolLocator()
+    {
         var toolLocator = Substitute.For<IToolLocator>();
 
         // Lazy resolution: _toolPath / _defaultToolPath may be configured after construction.
@@ -575,21 +601,7 @@ public sealed class FakeCakeWorld
                     "Call WithToolPath(name, path) for per-tool, WithToolPath(path) for the legacy global default, or WithDefaultToolPath(path) to accept any unconfigured tool.");
             });
 
-        var globber = new Globber(FileSystem, Environment);
-
-        var context = Substitute.For<ICakeContext>();
-        context.Log.Returns(Log);
-        context.Environment.Returns(Environment);
-        context.FileSystem.Returns(FileSystem);
-        context.Globber.Returns(globber);
-        context.Arguments.Returns(Substitute.For<ICakeArguments>());
-        context.Configuration.Returns(Substitute.For<ICakeConfiguration>());
-        context.Data.Returns(Substitute.For<ICakeDataResolver>());
-        context.ProcessRunner.Returns(processRunner);
-        context.Registry.Returns(Substitute.For<IRegistry>());
-        context.Tools.Returns(toolLocator);
-
-        return context;
+        return toolLocator;
     }
 
     private static FakeProcess CreateFakeProcess(int exitCode, string stdOut, string stdErr)

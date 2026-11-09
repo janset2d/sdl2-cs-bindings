@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using SDL2;
 
 namespace Compile.NetStandard;
@@ -17,12 +16,6 @@ internal static class Probe
     /// the field is intentionally unused. The field exists solely so the type
     /// references remain in the compiled metadata.
     /// </summary>
-    [SuppressMessage("Sonar", "S1144:Unused private types or members should be removed",
-        Justification = "Compile-time probe: the field materializes typeof references to assert netstandard2.0 surface visibility. Removing it " +
-        "defeats the purpose of the project.")]
-    [SuppressMessage("Performance", "CA1823:Unused fields",
-        Justification = "Compile-time probe: the field materializes typeof references to assert netstandard2.0 surface visibility. Removing it " +
-        "defeats the purpose of the project.")]
     private static readonly Type[] Surface =
     [
         typeof(SDL.SDL_version),

@@ -1,6 +1,3 @@
-#pragma warning disable CA1031
-
-using System.Diagnostics.CodeAnalysis;
 using Build.Data.Manifest.Models;
 using Build.Host.Paths;
 using Build.Host.Runtime;
@@ -21,7 +18,6 @@ public sealed class ArtifactPlanner(IRuntimeProfile profile, IPathService pathSe
     private readonly ICakeContext _context = context ?? throw new ArgumentNullException(nameof(context));
     private readonly ICakeLog _log = (context ?? throw new ArgumentNullException(nameof(context))).Log;
 
-    [SuppressMessage("Design", "MA0051:Method is too long")]
     public async Task<Result<DeploymentPlan, ArtifactPlannerError>> CreatePlanAsync(
         LibraryManifest current,
         BinaryClosure closure,

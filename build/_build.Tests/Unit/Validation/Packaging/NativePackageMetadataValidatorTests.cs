@@ -1,10 +1,9 @@
-using System.Collections.Immutable;
-using System.IO.Compression;
 using System.Text.Json;
 using Build.Data.Manifest.Models;
 using Build.Data.NativePackageMetadata;
 using Build.Host.Cake;
 using Build.Tests.Fixtures;
+using Build.Tests.Fixtures.Builders;
 using Build.Validation.Packaging;
 using Cake.Core.IO;
 
@@ -63,7 +62,7 @@ public sealed class NativePackageMetadataValidatorTests
         var manifest = ManifestFixture.CreateTestManifestConfig();
         var family = manifest.PackageFamilies.Single(f => f.Name == "sdl2-core");
         var packagePath = world.RepoRoot.CombineWithFilePath("artifacts/packages/Janset.SDL2.Core.Native.2.32.0.nupkg");
-        SeedNupkgWithEntries(world, packagePath, [("package.nuspec", "<package />")]);
+        NuspecBuilder.SeedEntries(world, packagePath, [("package.nuspec", "<package />")]);
         // No janset-native-metadata.json.
 
         var validator = CreateValidator(world);
@@ -82,7 +81,7 @@ public sealed class NativePackageMetadataValidatorTests
         var manifest = ManifestFixture.CreateTestManifestConfig();
         var family = manifest.PackageFamilies.Single(f => f.Name == "sdl2-core");
         var packagePath = world.RepoRoot.CombineWithFilePath("artifacts/packages/Janset.SDL2.Core.Native.2.32.0.nupkg");
-        SeedNupkgWithEntries(world, packagePath, [("janset-native-metadata.json", FixtureLoader.Load("NativePackageMetadata/native-metadata-invalid.json"))]);
+        NuspecBuilder.SeedEntries(world, packagePath, [("janset-native-metadata.json", FixtureLoader.Load("NativePackageMetadata/native-metadata-invalid.json"))]);
 
         var validator = CreateValidator(world);
 
@@ -189,31 +188,11 @@ public sealed class NativePackageMetadataValidatorTests
 
     private static void SeedNupkg(FakeCakeWorld world, FilePath nupkgPath, NativePackageMetadataDocument metadata)
     {
-        SeedNupkgWithEntries(world, nupkgPath,
+        NuspecBuilder.SeedEntries(world, nupkgPath,
         [
             ("janset-native-metadata.json", JsonSerializer.Serialize(metadata, CakeJsonExtensions.DefaultJsonOptions)),
             ("package.nuspec", "<package />"),
         ]);
     }
 
-    private static void SeedNupkgWithEntries(FakeCakeWorld world, FilePath nupkgPath, ImmutableArray<(string Entry, string Content)> entries)
-    {
-        var dir = world.FileSystem.GetDirectory(nupkgPath.GetDirectory());
-
-        if (!dir.Exists)
-        {
-            dir.Create();
-        }
-
-        var file = world.FileSystem.GetFile(nupkgPath);
-        using var stream = file.Open(FileMode.Create, FileAccess.Write, FileShare.None);
-        using var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: false);
-
-        foreach (var (name, content) in entries)
-        {
-            var entry = archive.CreateEntry(name);
-            using var writer = new StreamWriter(entry.Open());
-            writer.Write(content);
-        }
-    }
 }

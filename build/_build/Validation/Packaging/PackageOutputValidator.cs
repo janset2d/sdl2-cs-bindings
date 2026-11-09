@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Xml.Linq;
 using Build.Data.Manifest.Models;
@@ -221,8 +220,6 @@ public sealed class PackageOutputValidator(
         return metadata;
     }
 
-    [SuppressMessage("Design", "MA0051:Method is too long",
-        Justification = "Six sequential canonical checks kept co-located for readability; splitting hurts traceability to guardrails G26/G27.")]
     private static void EvaluateCanonicalMetadata(
         List<ValidationCheck> checks,
         FilePath packagePath,
@@ -314,10 +311,6 @@ public sealed class PackageOutputValidator(
         string name = "Nuspec metadata")
         => AddCheck(checks, isValid, code, name, message);
 
-    [SuppressMessage("Design", "MA0051:Method is too long",
-        Justification =
-            "Dependency-group walking interleaves framework parity, inter-group consistency, and per-group expected-dependency checks (G21/G22) — " +
-            "splitting them obscures the per-framework control flow.")]
     private void EvaluateDependencyGroups(
         List<ValidationCheck> checks,
         PackageFamilyConfig family,
@@ -469,8 +462,6 @@ public sealed class PackageOutputValidator(
         }
     }
 
-    [SuppressMessage("Design", "MA0051:Method is too long",
-        Justification = "G21 within-family + cross-family dependency contract walking stays co-located so the full minimum-range assertion is readable end-to-end.")]
     private void EvaluateExpectedDependencies(
         List<ValidationCheck> checks,
         PackageFamilyConfig family,

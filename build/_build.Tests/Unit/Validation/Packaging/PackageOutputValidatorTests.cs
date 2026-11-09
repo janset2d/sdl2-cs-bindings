@@ -7,6 +7,7 @@ using Build.Host.Cake;
 using Build.Results;
 using Build.Targets.Package.Models;
 using Build.Tests.Fixtures;
+using Build.Tests.Fixtures.Builders;
 using Build.Validation.Conventions;
 using Build.Validation.Packaging;
 using Cake.Core.IO;
@@ -389,15 +390,15 @@ public sealed class PackageOutputValidatorTests
                     coreDependencyVersion ?? BuildCrossFamilyRangeExpression(family, version))))
                 .ToList());
 
-        WriteZip(
+        NuspecBuilder.SeedEntries(
             world,
             managedPackagePath,
-            ("package.nuspec", CreateManagedNuspec(
+            [("package.nuspec", CreateManagedNuspec(
                 family,
                 version,
                 dependencyGroups,
                 commit ?? ExpectedCommit,
-                authors ?? ExpectedAuthors)));
+                authors ?? ExpectedAuthors))]);
 
         var nativeEntries = new List<(string EntryName, string Content)>
         {
@@ -434,15 +435,15 @@ public sealed class PackageOutputValidatorTests
 
         nativeEntries.Add(("runtimes/win-x64/native/SDL2.dll", "win-x64-dll"));
 
-        WriteZip(world, nativePackagePath, [.. nativeEntries]);
+        NuspecBuilder.SeedEntries(world, nativePackagePath, nativeEntries);
 
         if (includeSymbols)
         {
-            WriteZip(
+            NuspecBuilder.SeedEntries(
                 world,
                 symbolsPackagePath,
-                ("symbols.nuspec", "<package><metadata><id>symbols</id></metadata></package>"),
-                ($"lib/net10.0/{managedPackageId}.pdb", "pdb"));
+                [("symbols.nuspec", "<package><metadata><id>symbols</id></metadata></package>"),
+                ($"lib/net10.0/{managedPackageId}.pdb", "pdb")]);
         }
 
         return new PackageArtifacts(managedPackagePath, symbolsPackagePath, nativePackagePath);
@@ -579,24 +580,4 @@ public sealed class PackageOutputValidatorTests
             """;
     }
 
-    private static void WriteZip(FakeCakeWorld world, FilePath archivePath, params (string EntryName, string Content)[] entries)
-    {
-        var directory = world.FileSystem.GetDirectory(archivePath.GetDirectory());
-
-        if (!directory.Exists)
-        {
-            directory.Create();
-        }
-
-        var file = world.FileSystem.GetFile(archivePath);
-        using var stream = file.Open(FileMode.Create, FileAccess.Write, FileShare.None);
-        using var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: false);
-
-        foreach (var (entryName, content) in entries)
-        {
-            var entry = archive.CreateEntry(entryName);
-            using var writer = new StreamWriter(entry.Open());
-            writer.Write(content);
-        }
-    }
 }

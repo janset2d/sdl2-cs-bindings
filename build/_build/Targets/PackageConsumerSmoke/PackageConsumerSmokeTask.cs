@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Build.Data.Manifest;
 using Build.Data.Manifest.Models;
 using Build.Data.ProjectMetadata;
@@ -70,8 +69,6 @@ public sealed class PackageConsumerSmokeTask : AsyncFrostingTask<BuildContext>
         }
     }
 
-    [SuppressMessage("Design", "MA0051:Method is too long",
-        Justification = "Linear orchestration: guards + scope/preconditions + per-TFM smoke. Splitting hurts traceability of the operator-visible pass/fail sequence.")]
     public override async Task RunAsync(BuildContext context)
     {
         ArgumentNullException.ThrowIfNull(context);

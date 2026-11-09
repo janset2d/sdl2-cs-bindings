@@ -225,7 +225,7 @@ public sealed class PackageSmokeTests
     public async Task Core_And_Image_Linked_Versions_Report_Expected_Majors()
     {
         // Initialize to force the native libraries to load before querying versions.
-        SDL.SDL_Init(0);
+        _ = SDL.SDL_Init(0);
 
         try
         {
@@ -455,7 +455,7 @@ public sealed class PackageSmokeTests
 #if NET5_0_OR_GREATER
         return OperatingSystem.IsWindows();
 #else
-    return RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+        return RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 #endif
     }
 
@@ -464,7 +464,7 @@ public sealed class PackageSmokeTests
 #if NET5_0_OR_GREATER
         return OperatingSystem.IsMacOS();
 #else
-    return RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+        return RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
 #endif
     }
 
@@ -473,7 +473,7 @@ public sealed class PackageSmokeTests
 #if NET5_0_OR_GREATER
         return value.Contains(".so", StringComparison.OrdinalIgnoreCase);
 #else
-    return value.IndexOf(".so", StringComparison.OrdinalIgnoreCase) >= 0;
+        return value.IndexOf(".so", StringComparison.OrdinalIgnoreCase) >= 0;
 #endif
     }
 }

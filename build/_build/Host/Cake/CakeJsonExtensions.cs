@@ -67,7 +67,7 @@ public static class CakeJsonExtensions
             throw new CakeException($"Error reading file {filePath.FullPath}: {ex.Message}", ex);
         }
 
-        if (model == null)
+        if (model is null)
         {
             throw new CakeException(
                 $"Failed to deserialize to {typeof(TModel).FullName} from {filePath.FullPath}. JSON content might be 'null' or deserialization resulted in null.");
@@ -115,7 +115,7 @@ public static class CakeJsonExtensions
             throw new CakeException($"Error reading file {filePath.FullPath}: {ex.Message}", ex);
         }
 
-        if (model == null)
+        if (model is null)
         {
             throw new CakeException(
                 $"Failed to deserialize to {typeof(TModel).FullName} from {filePath.FullPath}. JSON content might be 'null' or deserialization resulted in null.");
@@ -164,7 +164,6 @@ public static class CakeJsonExtensions
     }
 
     /// <summary>Serializes JSON in memory with the build host's shared defaults unless options are supplied.</summary>
-#pragma warning disable IDE0060 // Unused `cakeContext` — kept to enforce the Cake-extension convention repo-wide (no naked JsonSerializer calls).
     public static string SerializeJson<TModel>(
         this ICakeContext cakeContext,
         TModel model,
@@ -174,7 +173,6 @@ public static class CakeJsonExtensions
         ArgumentNullException.ThrowIfNull(model);
         return JsonSerializer.Serialize(model, options ?? DefaultJsonOptions);
     }
-#pragma warning restore IDE0060
 
     /// <summary>
     /// Cake-native JSON deserialization from an in-memory UTF-16 string. Non-extension static
