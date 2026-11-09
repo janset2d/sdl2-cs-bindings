@@ -23,7 +23,7 @@ internal static class Probe
     [SuppressMessage("Performance", "CA1823:Unused fields",
         Justification = "Compile-time probe: the field materializes typeof references to assert netstandard2.0 surface visibility. Removing it " +
         "defeats the purpose of the project.")]
-    private static readonly Type[] _surface =
+    private static readonly Type[] Surface =
     [
         typeof(SDL.SDL_version),
         typeof(SDL_image),
