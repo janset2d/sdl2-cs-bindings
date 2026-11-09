@@ -105,14 +105,3 @@ public static class VcpkgPackageInfoParser
         public required IImmutableList<string> Owns { get; init; }
     }
 }
-
-internal static class VcpkgPackageKey
-{
-    public static string Create(string packageName, string triplet)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(packageName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(triplet);
-
-        return $"{packageName}:{triplet}";
-    }
-}

@@ -40,7 +40,3 @@ internal static partial class WorkflowFiles
     [GeneratedRegex(@"(?i)(?<![\w./:-])(?:ubuntu|windows|macos)-[A-Za-z0-9.-]+", RegexOptions.None, 1000)]
     private static partial Regex RunnerToken();
 }
-
-internal sealed record RunnerLabel(int Line, string Value);
-
-internal sealed record ActionReference(int Line, string Value);

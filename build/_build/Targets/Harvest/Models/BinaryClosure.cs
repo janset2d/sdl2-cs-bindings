@@ -32,5 +32,3 @@ public sealed record BinaryClosure(IReadOnlySet<string> PrimaryFiles, IReadOnlyL
 
     public bool IsPrimaryFile(string path) => PrimaryFiles.Contains(path);
 }
-
-public sealed record BinaryNode(string Path, string OwnerPackage, string OriginPackage);

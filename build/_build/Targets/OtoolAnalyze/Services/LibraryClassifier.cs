@@ -1,15 +1,5 @@
 namespace Build.Targets.OtoolAnalyze.Services;
 
-public enum LibraryKind
-{
-    System,
-    Framework,
-    RPath,
-    User,
-}
-
-public sealed record ClassifiedDependency(string Name, string Path, LibraryKind Kind, bool IsSystem);
-
 public static class LibraryClassifier
 {
     private static readonly string[] CommonSystemLibraries =

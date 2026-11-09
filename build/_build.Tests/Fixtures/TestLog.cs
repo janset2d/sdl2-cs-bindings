@@ -65,5 +65,3 @@ public sealed class TestLog : ICakeLog
         }
     }
 }
-
-public sealed record LogEntry(LogLevel Level, string Message, Verbosity Verbosity);

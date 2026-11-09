@@ -110,12 +110,3 @@ public sealed class VcpkgPackageInfoToolTests
         await Assert.That(output).IsNull();
     }
 }
-
-internal static class VcpkgPackageInfoToolData
-{
-    public const string MultiLineEmptyResults = """
-        {
-          "results": {}
-        }
-        """;
-}

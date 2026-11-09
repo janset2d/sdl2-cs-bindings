@@ -6,13 +6,6 @@ using Cake.Core.IO;
 
 namespace Build.Data.BindingGeneration;
 
-public interface IGeneratedStampRepository
-{
-    public Task<GeneratedStamp> LoadAsync(DirectoryPath outputDirectory, CancellationToken ct = default);
-
-    public Task SaveAsync(DirectoryPath outputDirectory, GeneratedStamp stamp, CancellationToken ct = default);
-}
-
 public sealed class GeneratedStampRepository(ICakeContext context) : IGeneratedStampRepository
 {
     private readonly ICakeContext _context = context ?? throw new ArgumentNullException(nameof(context));
