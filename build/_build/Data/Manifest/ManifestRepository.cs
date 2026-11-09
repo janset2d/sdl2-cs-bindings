@@ -1,5 +1,5 @@
-using Build.Host.Cake;
 using Build.Data.Manifest.Models;
+using Build.Host.Cake;
 using Cake.Core;
 using Cake.Core.IO;
 

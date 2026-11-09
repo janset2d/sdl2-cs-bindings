@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Build.Data.Manifest;
 using Build.Data.Manifest.Models;
 using Build.Tests.Fixtures;
 

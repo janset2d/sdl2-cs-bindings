@@ -141,8 +141,7 @@ dotnet_diagnostic.IDE0002.severity = error
 dotnet_diagnostic.IDE0003.severity = error
 # QM-20: IDE0004 stays at suggestion until "style: remaining revived rules".
 dotnet_diagnostic.IDE0004.severity = suggestion
-# QM-7: IDE0005 stays at none until "style: usings — unused, placement, order".
-dotnet_diagnostic.IDE0005.severity = none
+dotnet_diagnostic.IDE0005.severity = error
 # QM-8: IDE0007 stays at suggestion until "style: naming, var, this. and predefined types".
 dotnet_diagnostic.IDE0007.severity = suggestion
 dotnet_diagnostic.IDE0011.severity = error

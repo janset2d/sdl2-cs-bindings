@@ -1,6 +1,6 @@
+using Build.Data.Harvest;
 using Build.Host.Cake;
 using Build.Host.Paths;
-using Build.Data.Harvest;
 using Build.Host.Runtime;
 using Build.Targets.Harvest.Models;
 using Build.Tests.Fixtures;

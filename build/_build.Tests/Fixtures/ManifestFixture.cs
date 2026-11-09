@@ -1,7 +1,6 @@
 using System.Collections.Immutable;
 using System.Text.Json;
 using Build.Data.BindingGeneration.Models;
-using Build.Data.Manifest;
 using Build.Data.Manifest.Models;
 
 namespace Build.Tests.Fixtures;

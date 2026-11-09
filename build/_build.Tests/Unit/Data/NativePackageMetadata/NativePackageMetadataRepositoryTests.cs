@@ -3,9 +3,7 @@ using System.IO.Compression;
 using Build.Data.NativePackageMetadata;
 using Build.Host.Cake;
 using Build.Tests.Fixtures;
-using Build.Tests.Fixtures.Builders;
 using Cake.Common.IO;
-using Cake.Core;
 using Cake.Core.IO;
 using TUnit.Assertions.Enums;
 

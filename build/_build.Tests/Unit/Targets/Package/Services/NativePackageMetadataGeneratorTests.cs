@@ -1,5 +1,4 @@
 using Build.Data.NativePackageMetadata;
-using Build.Data.Manifest.Models;
 using Build.Host.Paths;
 using Build.Targets.Package.Services;
 using Build.Tests.Fixtures;

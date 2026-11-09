@@ -1,6 +1,6 @@
-using Build.Host.Paths;
-using Build.Data.NativePackageMetadata;
 using Build.Data.Manifest.Models;
+using Build.Data.NativePackageMetadata;
+using Build.Host.Paths;
 
 namespace Build.Targets.Package.Services;
 

@@ -1,5 +1,7 @@
-using SDL2;
+#if !NET5_0_OR_GREATER
 using System.Runtime.InteropServices;
+#endif
+using SDL2;
 
 namespace PackageConsumer.Smoke;
 
