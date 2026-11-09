@@ -13,8 +13,9 @@ public sealed class WorkflowFilesTests
     [Arguments("- uses: docker://img@sha256:abc", "docker://img@sha256:abc")]
     public async Task FindActionReferences_Should_Find_Uses_Values(string text, string value)
     {
+        ActionReference[] expected = [new(1, value)];
         await Assert.That(WorkflowFiles.FindActionReferences(text))
-            .IsEquivalentTo(new[] { new ActionReference(1, value) }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+            .IsEquivalentTo(expected, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     [Test]
@@ -38,8 +39,9 @@ public sealed class WorkflowFilesTests
     [Test, MethodDataSource(nameof(Labels))]
     public async Task FindRunnerLabels_Should_Find_Labels_In_All_Yaml_Forms(string text, int line, string label)
     {
+        RunnerLabel[] expected = [new(line, label)];
         await Assert.That(WorkflowFiles.FindRunnerLabels(text))
-            .IsEquivalentTo(new[] { new RunnerLabel(line, label) }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+            .IsEquivalentTo(expected, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     [Test]

@@ -12,7 +12,7 @@ public sealed class TestLog : ICakeLog
 
     public IReadOnlyList<LogEntry> Entries
     {
-        get { lock (_lock) { return _entries.ToList(); } }
+        get { lock (_lock) { return [.. _entries]; } }
     }
 
     public int ErrorCount
@@ -32,6 +32,8 @@ public sealed class TestLog : ICakeLog
 
     public void Write(Verbosity verbosity, LogLevel level, string format, params object[] args)
     {
+        ArgumentNullException.ThrowIfNull(args);
+
         if (verbosity > Verbosity)
         {
             return;

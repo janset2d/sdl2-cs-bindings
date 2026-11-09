@@ -53,6 +53,7 @@ public sealed class MarkdownLinksTests
     [Arguments("#top")]
     public async Task ToRepositoryPath_Should_Return_Null_When_Target_Is_External_Url(string target)
     {
+        ArgumentNullException.ThrowIfNull(target);
         await Assert.That(MarkdownLinks.ToRepositoryPath("README.md", target)).IsNull();
     }
 
@@ -78,6 +79,8 @@ public sealed class MarkdownLinksTests
     public async Task ToRepositoryPath_Should_Resolve_Parent_Segments_Against_Source_Directory(
         string source, string target, string expected)
     {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(target);
         await Assert.That(MarkdownLinks.ToRepositoryPath(source, target)).IsEqualTo(expected);
     }
 

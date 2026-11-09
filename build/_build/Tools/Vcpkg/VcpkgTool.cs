@@ -17,7 +17,8 @@ public abstract class VcpkgTool<TSettings> : Tool<TSettings> where TSettings : V
     private readonly ICakeEnvironment _environment;
 
     protected VcpkgTool(ICakeContext cakeContext)
-        : base(cakeContext.FileSystem, cakeContext.Environment, cakeContext.ProcessRunner, cakeContext.Tools)
+        : base((cakeContext ?? throw new ArgumentNullException(nameof(cakeContext))).FileSystem,
+            cakeContext.Environment, cakeContext.ProcessRunner, cakeContext.Tools)
     {
         _cakeContext = cakeContext;
         _fileSystem = _cakeContext.FileSystem;
@@ -51,6 +52,7 @@ public abstract class VcpkgTool<TSettings> : Tool<TSettings> where TSettings : V
     /// <returns>Enumeration of alternative paths.</returns>
     protected sealed override IEnumerable<FilePath> GetAlternativeToolPaths(TSettings settings)
     {
+        ArgumentNullException.ThrowIfNull(settings);
         var vcpkgRoot = settings.VcpkgRoot;
 
         if (!_cakeContext.DirectoryExists(vcpkgRoot))

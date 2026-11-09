@@ -12,7 +12,11 @@ public sealed record PackageFamilyId(string Value)
 
     public override string ToString() => Value;
 
-    public static implicit operator string(PackageFamilyId id) => id.Value;
+    public static implicit operator string(PackageFamilyId id)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        return id.Value;
+    }
 
     private static string Validate(string value)
     {

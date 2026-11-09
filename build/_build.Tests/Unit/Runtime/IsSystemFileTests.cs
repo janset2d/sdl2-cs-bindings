@@ -2,7 +2,7 @@ using Build.Tests.Fixtures;
 
 namespace Build.Tests.Unit.Runtime;
 
-public class IsSystemFileTests
+public sealed class IsSystemFileTests
 {
     [Test]
     [Arguments("kernel32.dll", true)]

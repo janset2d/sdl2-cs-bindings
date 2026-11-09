@@ -20,6 +20,15 @@ public sealed class GuidAbiTests
     [UpstreamSdlTest("test/testautomation_guid.c", "TestGuidToString")]
     public async Task SDLGuidRoundTrip_Should_Preserve_Sdl_Raw_Hex_String(string guidString)
     {
+#if NET6_0_OR_GREATER
+        ArgumentNullException.ThrowIfNull(guidString);
+#else
+        if (guidString is null)
+        {
+            throw new ArgumentNullException(nameof(guidString));
+        }
+#endif
+
         GuidConversionSnapshot snapshot = ConvertGuidFromString(guidString);
 
         await Assert.That(snapshot.RoundTrippedString).IsEqualTo(guidString);

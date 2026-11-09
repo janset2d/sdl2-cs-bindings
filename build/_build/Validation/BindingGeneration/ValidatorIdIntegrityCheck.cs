@@ -7,6 +7,7 @@ public static class ValidatorIdIntegrityCheck
 {
     public static void AssertKnown(BindingGenerationConfig config, IEnumerable<string> registeredIds)
     {
+        ArgumentNullException.ThrowIfNull(config);
         var registered = registeredIds.ToHashSet(StringComparer.Ordinal);
         var unknownIds = config.Validators
             .Where(kv => kv.Value)

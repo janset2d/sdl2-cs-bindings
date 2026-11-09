@@ -144,7 +144,7 @@ public sealed class NativePackageMetadataValidatorTests
             UpstreamLibrary = "wrong-vcpkg-name",                // mismatch
             UpstreamVersion = library.VcpkgVersion,
             VcpkgPortVersion = library.VcpkgPortVersion,
-            TripletSet = manifest.Runtimes.Select(r => r.Triplet).ToList(),
+            TripletSet = [.. manifest.Runtimes.Select(r => r.Triplet)],
             BuildCommit = ExpectedCommit,
         };
         SeedNupkg(world, packagePath, driftedMetadata);
@@ -176,12 +176,11 @@ public sealed class NativePackageMetadataValidatorTests
             UpstreamLibrary = library.VcpkgName,
             UpstreamVersion = library.VcpkgVersion,
             VcpkgPortVersion = library.VcpkgPortVersion,
-            TripletSet = manifest.Runtimes
+            TripletSet = [.. manifest.Runtimes
                 .Select(r => r.Triplet)
                 .Where(t => !string.IsNullOrWhiteSpace(t))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(t => t, StringComparer.OrdinalIgnoreCase)
-                .ToList(),
+                .OrderBy(t => t, StringComparer.OrdinalIgnoreCase)],
             BuildCommit = commit,
         };
     }

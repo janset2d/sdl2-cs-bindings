@@ -4,6 +4,6 @@ internal static class AbiParallelKeys
 {
     public const string Error = "SDL.Error";
 
-    // Subsystem init/quit and hints share process-wide SDL state.
+    /// <summary>Subsystem lifecycles and hints share process-wide state.</summary>
     public const string SdlGlobalState = "SDL.GlobalState";
 }

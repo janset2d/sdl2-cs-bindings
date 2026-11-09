@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace Build.Data.Manifest.Models;
 
-public record RuntimeInfo
+public sealed record RuntimeInfo
 {
     [JsonPropertyName("rid")] public required string Rid { get; init; }
     [JsonPropertyName("triplet")] public required string Triplet { get; init; }

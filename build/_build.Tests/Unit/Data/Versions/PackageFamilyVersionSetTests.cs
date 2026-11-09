@@ -130,7 +130,8 @@ public sealed class PackageFamilyVersionSetTests
             new PackageFamilyVersion(Sdl2Core, V232),
         ]);
 
-        await Assert.That(set.Families).IsEquivalentTo(new[] { Sdl2Core, Sdl2Image });
+        PackageFamilyId[] expected = [Sdl2Core, Sdl2Image];
+        await Assert.That(set.Families).IsEquivalentTo(expected);
     }
 
     [Test]

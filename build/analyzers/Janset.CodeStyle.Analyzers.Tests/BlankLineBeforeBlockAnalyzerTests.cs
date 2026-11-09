@@ -12,7 +12,8 @@ internal sealed class BlankLineBeforeBlockAnalyzerTests
     {
         var diagnostics = await AnalyzerCompilationFixture.AnalyzeAsync(source, new BlankLineBeforeBlockAnalyzer(), CancellationToken.None);
 
-        await Assert.That(diagnostics).IsEquivalentTo(new[] { expected }, CollectionOrdering.Matching);
+        string[] expectedDiagnostics = [expected];
+        await Assert.That(diagnostics).IsEquivalentTo(expectedDiagnostics, CollectionOrdering.Matching);
     }
 
     [Test]

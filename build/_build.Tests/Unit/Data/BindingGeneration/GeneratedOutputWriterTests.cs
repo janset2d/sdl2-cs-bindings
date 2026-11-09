@@ -10,6 +10,22 @@ namespace Build.Tests.Unit.Data.BindingGeneration;
 public sealed class GeneratedOutputWriterTests
 {
     [Test]
+    [MethodDataSource(typeof(GeneratedOutputWriterData), nameof(GeneratedOutputWriterData.NullInputs))]
+    public async Task WriteAsync_Should_Reject_Null_Inputs_Before_Clearing(
+        DirectoryPath? root, DirectoryPath? output, IReadOnlyList<GeneratedFile>? files, string parameter)
+    {
+        var world = FakeCakeWorld.CreateLinux().WithTextFile("Generated/family/keep.txt", "keep");
+        var writer = new GeneratedOutputWriter(world.CakeContext);
+        var exception = await Assert.That(() => writer.WriteAsync(root!, output!, files!))
+            .Throws<ArgumentNullException>();
+
+        await Assert.That(exception!.ParamName).IsEqualTo(parameter);
+        await Assert.That(Inventory(world, world.RepoRoot.Combine("Generated")))
+            .IsEquivalentTo(["/repo/Generated/family/keep.txt"], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(world.ReadAllText("Generated/family/keep.txt")).IsEqualTo("keep");
+    }
+
+    [Test]
     [Arguments("x/../../src", "/repo/artifacts/src")]
     [Arguments("x/..", "/repo/artifacts/generated-bindings-preview")]
     public async Task WriteAsync_Should_Reject_Output_When_Traversal_Escapes_Root(string suffix, string collapsed)
@@ -54,9 +70,9 @@ public sealed class GeneratedOutputWriterTests
         await writer.WriteAsync(world.RepoRoot.Combine("Generated"), world.RepoRoot.Combine("Generated/family"),
             [new GeneratedFile("nested/new.txt", "nested"), new GeneratedFile("root.txt", "root")]);
         string[] expected =
-        {
+        [
             "/repo/Generated/family/nested/new.txt", "/repo/Generated/family/root.txt", "/repo/Generated/sibling/keep.txt",
-        };
+        ];
         await Assert.That(Inventory(world, world.RepoRoot.Combine("Generated"))).IsEquivalentTo(expected, TUnit.Assertions.Enums.CollectionOrdering.Matching);
         await Assert.That(world.ReadAllText("Generated/family/nested/new.txt")).IsEqualTo("nested");
         await Assert.That(world.ReadAllText("Generated/family/root.txt")).IsEqualTo("root");
@@ -110,5 +126,5 @@ public sealed class GeneratedOutputWriterTests
     }
 
     private static string[] Inventory(FakeCakeWorld world, DirectoryPath root) =>
-        world.CakeContext.GetFiles($"{root.FullPath}/**/*").Select(path => path.FullPath).Order(StringComparer.Ordinal).ToArray();
+        [.. world.CakeContext.GetFiles($"{root.FullPath}/**/*").Select(path => path.FullPath).Order(StringComparer.Ordinal)];
 }

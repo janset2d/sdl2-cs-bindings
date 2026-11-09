@@ -3,7 +3,7 @@ using SDL2;
 
 namespace Janset.SDL2.AbiTests.Infrastructure.Sdl.Scopes;
 
-// Users must be keyless [NotInParallel] because native setenv/unsetenv race any concurrent getenv.
+/// <summary>Requires keyless isolation because native environment writes race concurrent reads.</summary>
 internal sealed class SdlEnvironmentScope : IDisposable
 {
     private readonly string _name;
