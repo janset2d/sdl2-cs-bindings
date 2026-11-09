@@ -305,10 +305,12 @@ public sealed class PackageTaskScenarioTests
 
             // Replace existing IPackageOutputValidator registration.
             var existing = services.FirstOrDefault(d => d.ServiceType == typeof(IPackageOutputValidator));
+
             if (existing is not null)
             {
                 services.Remove(existing);
             }
+
             services.AddSingleton(stubValidator);
         });
     }

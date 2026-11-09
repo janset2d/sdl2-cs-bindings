@@ -40,6 +40,7 @@ public sealed class NativePackageMetadataRepository(ICakeContext cakeContext) : 
         ct.ThrowIfCancellationRequested();
 
         var file = _cakeContext.FileSystem.GetFile(nativePackagePath);
+
         if (!file.Exists)
         {
             return Failure(

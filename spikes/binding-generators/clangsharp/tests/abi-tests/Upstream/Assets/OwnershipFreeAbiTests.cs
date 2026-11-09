@@ -51,6 +51,7 @@ public sealed class OwnershipFreeAbiTests
         using PinnedUtf8 readMode = SdlUtf8.Pin("rb");
 
         SDL_RWops rwops = SDL_RWFromFile(pinnedPath.Pointer, readMode.Pointer);
+
         if (rwops.IsNull)
         {
             throw new InvalidOperationException($"SDL_RWFromFile failed: {SdlError.Current}");
@@ -64,6 +65,7 @@ public sealed class OwnershipFreeAbiTests
             buffer = SDL_LoadFile_RW(rwops, &dataSize, 1);
             ulong actualSize = ToUInt64(dataSize);
             byte[] bytes = Array.Empty<byte>();
+
             if (buffer != 0 && actualSize >= (ulong)expectedLength)
             {
                 bytes = new byte[expectedLength];
@@ -87,6 +89,7 @@ public sealed class OwnershipFreeAbiTests
         using PinnedUtf8 readMode = SdlUtf8.Pin("rb");
 
         SDL_RWops source = SDL_RWFromFile(pinnedPath.Pointer, readMode.Pointer);
+
         if (source.IsNull)
         {
             throw new InvalidOperationException($"SDL_RWFromFile failed: {SdlError.Current}");
@@ -101,6 +104,7 @@ public sealed class OwnershipFreeAbiTests
         try
         {
             surface = SDL_LoadBMP_RW(source, 0);
+
             if (surface is null)
             {
                 throw new InvalidOperationException($"SDL_LoadBMP_RW failed: {SdlError.Current}");

@@ -73,6 +73,7 @@ public sealed class OverlayPortVersionCoherenceValidator(ICakeContext context, I
 
         VcpkgManifest overlay;
         VcpkgManifest upstream;
+
         try
         {
             overlay = _manifestRepository.Load(overlayManifestPath);

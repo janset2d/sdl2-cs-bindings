@@ -582,6 +582,7 @@ public sealed class PackageOutputValidatorTests
     private static void WriteZip(FakeCakeWorld world, FilePath archivePath, params (string EntryName, string Content)[] entries)
     {
         var directory = world.FileSystem.GetDirectory(archivePath.GetDirectory());
+
         if (!directory.Exists)
         {
             directory.Create();

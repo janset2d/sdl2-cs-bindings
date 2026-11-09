@@ -85,6 +85,7 @@ public sealed class PackageConsumerSmokeTask : AsyncFrostingTask<BuildContext>
         }
 
         var familyVersions = _versionFileRepository.Load(context.VersionsFilePath);
+
         if (familyVersions.Count == 0)
         {
             throw new CakeException(
@@ -98,6 +99,7 @@ public sealed class PackageConsumerSmokeTask : AsyncFrostingTask<BuildContext>
         var manifest = _manifestRepository.Load();
 
         var preconditionReport = _preconditionsValidator.Validate(smokeProject, compileSanityProject, feedPath);
+
         if (!preconditionReport.IsValid)
         {
             throw new CakeException(
@@ -135,6 +137,7 @@ public sealed class PackageConsumerSmokeTask : AsyncFrostingTask<BuildContext>
         context.EnsureDirectoryExists(packagesCache);
 
         var metadataResult = _projectMetadataReader.Read(smokeProject);
+
         if (metadataResult.IsFailure)
         {
             throw new CakeException(
@@ -155,6 +158,7 @@ public sealed class PackageConsumerSmokeTask : AsyncFrostingTask<BuildContext>
 
         var ranCount = 0;
         var skippedCount = 0;
+
         foreach (var tfm in projectMetadata.TargetFrameworks)
         {
             if (ShouldSkipTfm(tfm, out var skipReason))
@@ -253,16 +257,19 @@ public sealed class PackageConsumerSmokeTask : AsyncFrostingTask<BuildContext>
             var csprojXml = await context.ReadAllTextAsync(projectPath);
 
             var comparison = SmokeScopeComparator.Compare(csprojXml, expectedManagedPackageIds);
+
             if (comparison.IsMatch)
             {
                 continue;
             }
 
             var details = new List<string>();
+
             if (comparison.Missing.Count > 0)
             {
                 details.Add($"missing PackageReference(s): {string.Join(", ", comparison.Missing)}");
             }
+
             if (comparison.Unexpected.Count > 0)
             {
                 details.Add($"unexpected Janset.SDL.* PackageReference(s): {string.Join(", ", comparison.Unexpected)}");
@@ -286,6 +293,7 @@ public sealed class PackageConsumerSmokeTask : AsyncFrostingTask<BuildContext>
     private static void EnsurePackageExists(BuildContext context, string packageId, string version, DirectoryPath feedPath)
     {
         var packagePath = feedPath.CombineWithFilePath($"{packageId}.{version}.nupkg");
+
         if (!context.FileExists(packagePath))
         {
             throw new CakeException(

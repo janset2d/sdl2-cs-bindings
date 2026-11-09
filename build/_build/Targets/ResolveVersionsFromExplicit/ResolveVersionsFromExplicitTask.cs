@@ -85,6 +85,7 @@ public sealed class ResolveVersionsFromExplicitTask(
     private void EnforceUpstreamVersionAlignment(ManifestConfig manifest, PackageFamilyVersionSet versions)
     {
         var validation = _upstreamVersionAlignmentValidator.Validate(manifest, versions);
+
         if (!validation.HasErrors)
         {
             return;

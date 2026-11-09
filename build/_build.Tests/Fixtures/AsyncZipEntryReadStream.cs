@@ -56,6 +56,7 @@ internal sealed class AsyncZipEntryReadStream : Stream
         if (disposing && !_disposed)
         {
             _disposed = true;
+
             if (_mode == ZipArchiveMode.Update)
             {
                 _save(_storage.ToArray());

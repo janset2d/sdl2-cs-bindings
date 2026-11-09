@@ -100,6 +100,7 @@ public sealed class RectAbiTests
             (SDL_bool result, SDL_Rect intersection) = IntersectRect(testCase.A, testCase.B);
 
             await Assert.That(result).IsEqualTo(testCase.ExpectedResult);
+
             if (testCase.ExpectedIntersection is { } expectedIntersection)
             {
                 await SdlAssert.AssertRect(intersection, expectedIntersection);
@@ -275,6 +276,7 @@ public sealed class RectAbiTests
             (SDL_bool result, SDL_FRect intersection) = IntersectFRect(testCase.A, testCase.B);
 
             await Assert.That(result).IsEqualTo(testCase.ExpectedResult);
+
             if (testCase.ExpectedIntersection is { } expectedIntersection)
             {
                 await SdlAssert.AssertFRect(intersection, expectedIntersection);
@@ -334,6 +336,7 @@ public sealed class RectAbiTests
             (SDL_bool result, SDL_FRect enclosing) = EncloseFPoints(points, testCase.Clip);
 
             await Assert.That(result).IsEqualTo(testCase.ExpectedResult);
+
             if (testCase.ExpectedEnclosing is { } expectedEnclosing)
             {
                 await SdlAssert.AssertFRect(enclosing, expectedEnclosing);
@@ -424,9 +427,11 @@ public sealed class RectAbiTests
     private static unsafe (SDL_bool Result, SDL_Rect Enclosing) EnclosePoints(SDL_Point[] points, SDL_Rect? clip)
     {
         SDL_Point[] originalPoints = (SDL_Point[])points.Clone();
+
         fixed (SDL_Point* pointsPointer = points)
         {
             SDL_Rect result = default;
+
             if (clip is { } clipValue)
             {
                 SDL_Rect originalClip = clipValue;
@@ -447,6 +452,7 @@ public sealed class RectAbiTests
     private static unsafe SDL_bool EnclosePointsWithoutOutput(SDL_Point[] points, SDL_Rect? clip)
     {
         SDL_Point[] originalPoints = (SDL_Point[])points.Clone();
+
         fixed (SDL_Point* pointsPointer = points)
         {
             if (clip is { } clipValue)
@@ -512,9 +518,11 @@ public sealed class RectAbiTests
     private static unsafe (SDL_bool Result, SDL_FRect Enclosing) EncloseFPoints(SDL_FPoint[] points, SDL_FRect? clip)
     {
         SDL_FPoint[] originalPoints = (SDL_FPoint[])points.Clone();
+
         fixed (SDL_FPoint* pointsPointer = points)
         {
             SDL_FRect result = default;
+
             if (clip is { } clipValue)
             {
                 SDL_FRect originalClip = clipValue;

@@ -1,6 +1,7 @@
 using System.Globalization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Build.Tests.Fixtures.CodeStyle;
@@ -10,6 +11,10 @@ internal static class AnalyzerCompilationFixture
     public static async Task<string[]> AnalyzeAsync(string source, DiagnosticAnalyzer analyzer, CancellationToken cancellationToken, string? additionalSource = null)
     {
         var tree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.CSharp14), path: "Sample.cs", cancellationToken: cancellationToken);
+        var root = await tree.GetRootAsync(cancellationToken);
+        var outputKind = root.ChildNodes().OfType<GlobalStatementSyntax>().Any()
+            ? OutputKind.ConsoleApplication
+            : OutputKind.DynamicallyLinkedLibrary;
         SyntaxTree[] trees = additionalSource is null
             ? [tree]
             : [tree, CSharpSyntaxTree.ParseText(additionalSource, new CSharpParseOptions(LanguageVersion.CSharp14), path: "Control.cs", cancellationToken: cancellationToken)];
@@ -17,7 +22,7 @@ internal static class AnalyzerCompilationFixture
             "Sample",
             trees,
             [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)],
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            new CSharpCompilationOptions(outputKind, allowUnsafe: true));
         var errors = compilation
             .GetDiagnostics(cancellationToken)
             .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)

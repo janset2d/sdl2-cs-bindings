@@ -83,6 +83,7 @@ public sealed class PackageTask : AsyncFrostingTask<BuildContext>
 
         // [G58] runs again here as a pack-stage guard, even if the caller skipped PreFlight.
         var crossFamilyValidation = _crossFamilyDependencyResolvabilityValidator.Validate(versions, manifest);
+
         if (crossFamilyValidation.HasErrors)
         {
             _reporter.ReportCrossFamilyResolvabilityErrors(crossFamilyValidation);
@@ -145,6 +146,7 @@ public sealed class PackageTask : AsyncFrostingTask<BuildContext>
     private static string DefaultResolveHeadCommitSha(ICakeContext context, DirectoryPath repoRoot)
     {
         var tip = context.GitLogTip(repoRoot);
+
         if (tip is null || string.IsNullOrWhiteSpace(tip.Sha))
         {
             throw new CakeException(

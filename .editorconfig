@@ -53,6 +53,7 @@ dotnet_style_parentheses_in_other_operators = always_for_clarity:error
 dotnet_style_parentheses_in_relational_binary_operators = always_for_clarity:error
 dotnet_code_quality_unused_parameters = all
 dotnet_style_allow_multiple_blank_lines_experimental = false
+dotnet_style_allow_statement_immediately_after_block_experimental = false
 
 # SECTION 3: C# FORMATTING
 [*.cs]
@@ -215,8 +216,8 @@ dotnet_diagnostic.IDE0304.severity = error
 # QM-11: IDE0305 stays at suggestion until "style: collection expressions, sealing, and the remaining revived rules".
 dotnet_diagnostic.IDE0305.severity = suggestion
 dotnet_diagnostic.IDE1006.severity = error
-# QM-17: IDE2000 stays at suggestion until "style: separate statement blocks with a blank line (IDE2003 and JNS0002 error)".
-dotnet_diagnostic.IDE2000.severity = suggestion
+dotnet_diagnostic.IDE2000.severity = error
+dotnet_diagnostic.IDE2003.severity = error
 # QM-11: IDE0047 stays at suggestion until "style: collection expressions, sealing, and the remaining revived rules".
 dotnet_diagnostic.IDE0047.severity = suggestion
 
@@ -442,6 +443,10 @@ dotnet_diagnostic.MA0202.severity = error
 dotnet_diagnostic.MA0203.severity = error
 
 # SECTION 11: ROSLYNATOR
+# IDE2003 owns blank lines after statement blocks.
+dotnet_diagnostic.RCS0008.severity = none
+# IDE0011 owns braces on every control-flow body.
+dotnet_diagnostic.RCS1007.severity = none
 dotnet_diagnostic.RCS1214.severity = error
 # QM-11: RCS1181 stays at suggestion until "style: collection expressions, sealing, and the remaining revived rules".
 dotnet_diagnostic.RCS1181.severity = suggestion
@@ -453,8 +458,11 @@ dotnet_diagnostic.RCS0056.severity = error
 
 # REPOSITORY ANALYZERS
 dotnet_diagnostic.JNS0001.severity = error
+dotnet_diagnostic.JNS0002.severity = error
 
 # SECTION 12: SONAR
+# IDE0011 owns braces on every control-flow body.
+dotnet_diagnostic.S121.severity = none
 # Unlisted rules use SonarWay defaults, escalated by TreatWarningsAsErrors.
 dotnet_diagnostic.S125.severity = suggestion
 dotnet_diagnostic.S2094.severity = suggestion

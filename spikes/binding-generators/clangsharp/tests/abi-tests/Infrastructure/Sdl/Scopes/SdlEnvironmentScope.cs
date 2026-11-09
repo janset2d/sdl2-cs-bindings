@@ -47,6 +47,7 @@ internal sealed class SdlEnvironmentScope : IDisposable
         int result = pinnedValue is null
             ? UnsetEnvironmentVariable(pinnedName.Pointer)
             : SetEnvironmentVariable(pinnedName.Pointer, pinnedValue.Pointer, 1);
+
         if (result != 0)
         {
             throw new InvalidOperationException($"Could not update native environment variable '{name}'.");

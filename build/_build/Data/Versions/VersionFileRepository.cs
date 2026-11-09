@@ -36,6 +36,7 @@ public sealed class VersionFileRepository(ICakeContext context) : IVersionFileRe
         ArgumentNullException.ThrowIfNull(versions);
 
         var directory = path.GetDirectory();
+
         if (!_context.DirectoryExists(directory))
         {
             _context.CreateDirectory(directory);

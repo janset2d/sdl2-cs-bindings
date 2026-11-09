@@ -115,6 +115,7 @@ public sealed class VideoAbiTests
         using PinnedUtf8 title = SdlUtf8.Pin("Janset SDL2 ABI dummy window");
 
         SDL_Window window = SDL_CreateWindow(title.Pointer, 0, 0, 64, 64, (uint)SDL_WindowFlags.SDL_WINDOW_HIDDEN);
+
         if (window.IsNotNull)
         {
             SDL_DestroyWindow(window);
@@ -130,6 +131,7 @@ public sealed class VideoAbiTests
 
         SDL_WindowFlags expectedFlags = SDL_WindowFlags.SDL_WINDOW_HIDDEN;
         SDL_Window window = CreateDummyWindow("Janset SDL2 ABI dummy flags", 64, 64, expectedFlags);
+
         try
         {
             uint actualFlags = window.IsNotNull ? SDL_GetWindowFlags(window) : 0;
@@ -149,6 +151,7 @@ public sealed class VideoAbiTests
         SDL_Window window = CreateDummyWindow("Janset SDL2 ABI dummy id", 64, 64, SDL_WindowFlags.SDL_WINDOW_HIDDEN);
         uint id = 0;
         bool foundBeforeDestroy = false;
+
         if (window.IsNotNull)
         {
             id = SDL_GetWindowID(window);
@@ -166,6 +169,7 @@ public sealed class VideoAbiTests
         using SdlSubsystemScope video = new(SDL_INIT_VIDEO);
 
         SDL_Window window = CreateDummyWindow("Janset SDL2 ABI dummy pixel format", 64, 64, SDL_WindowFlags.SDL_WINDOW_HIDDEN);
+
         try
         {
             uint pixelFormat = window.IsNotNull ? SDL_GetWindowPixelFormat(window) : 0;
@@ -185,6 +189,7 @@ public sealed class VideoAbiTests
         SDL_Window window = CreateDummyWindow("Janset SDL2 ABI dummy size", 32, 32, SDL_WindowFlags.SDL_WINDOW_HIDDEN);
         int width = 0;
         int height = 0;
+
         try
         {
             if (window.IsNotNull)
@@ -210,6 +215,7 @@ public sealed class VideoAbiTests
         SDL_Window window = CreateDummyWindow("Janset SDL2 ABI dummy surface", 64, 64, SDL_WindowFlags.SDL_WINDOW_HIDDEN);
         SDL_Renderer renderer = SDL_Renderer.Null;
         SDL_Renderer blockedRenderer = SDL_Renderer.Null;
+
         try
         {
             SDL_Surface* surface = window.IsNotNull ? SDL_GetWindowSurface(window) : null;
@@ -220,6 +226,7 @@ public sealed class VideoAbiTests
             bool hasSurfaceAfterDestroy = window.IsNotNull && SDL_HasWindowSurface(window) == SDL_bool.SDL_TRUE;
             renderer = window.IsNotNull ? SDL_CreateRenderer(window, -1, (uint)SDL_RendererFlags.SDL_RENDERER_SOFTWARE) : SDL_Renderer.Null;
             bool rendererCreatedAfterSurfaceDestroy = renderer.IsNotNull;
+
             if (renderer.IsNotNull)
             {
                 SDL_DestroyRenderer(renderer);

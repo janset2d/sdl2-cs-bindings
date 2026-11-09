@@ -29,12 +29,14 @@ public static class FamilyTopologyHelpers
         // selection produce identical ordering — stabilises CI log diffs and license
         // payload layout for bit-reproducible pack outputs.
         var ready = new PriorityQueue<PackageFamilyConfig, string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var family in selected.Where(family => remainingInDegree[family.Name] == 0))
         {
             ready.Enqueue(family, family.Name);
         }
 
         var result = new List<PackageFamilyConfig>(selected.Count);
+
         while (ready.Count > 0)
         {
             var current = ready.Dequeue();
@@ -48,6 +50,7 @@ public static class FamilyTopologyHelpers
                 }
 
                 remainingInDegree[candidate.Name]--;
+
                 if (remainingInDegree[candidate.Name] == 0)
                 {
                     ready.Enqueue(candidate, candidate.Name);

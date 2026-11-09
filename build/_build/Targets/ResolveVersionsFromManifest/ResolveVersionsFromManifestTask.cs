@@ -118,6 +118,7 @@ public sealed class ResolveVersionsFromManifestTask(
         }
 
         var candidate = string.Create(CultureInfo.InvariantCulture, $"{upstreamVersion.Major}.{upstreamVersion.Minor}.0-{suffix}");
+
         if (!NuGetVersion.TryParse(candidate, out var composed))
         {
             throw new CakeException(

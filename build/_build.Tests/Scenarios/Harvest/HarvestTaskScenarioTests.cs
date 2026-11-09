@@ -293,6 +293,7 @@ public sealed class HarvestTaskScenarioTests
         IArtifactDeployer? deployerOverride = null)
     {
         var host = new TargetTestHost<HarvestTask>(world);
+
         if (manifest is not null)
         {
             host.WithManifest(manifest);
@@ -317,14 +318,17 @@ public sealed class HarvestTaskScenarioTests
             {
                 services.AddSingleton(walkerOverride);
             }
+
             if (leakValidatorOverride is not null)
             {
                 services.AddSingleton(leakValidatorOverride);
             }
+
             if (plannerOverride is not null)
             {
                 services.AddSingleton(plannerOverride);
             }
+
             if (deployerOverride is not null)
             {
                 services.AddSingleton(deployerOverride);

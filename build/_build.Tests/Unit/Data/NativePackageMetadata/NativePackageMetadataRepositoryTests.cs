@@ -184,6 +184,7 @@ public sealed class NativePackageMetadataRepositoryRoundTripTests
     private static void SeedNupkgWithEntries(FakeCakeWorld world, FilePath nupkgPath, ImmutableArray<(string Entry, string Content)> entries)
     {
         var directory = world.FileSystem.GetDirectory(nupkgPath.GetDirectory());
+
         if (!directory.Exists)
         {
             directory.Create();

@@ -57,6 +57,7 @@ public static class SmokeScopeComparator
             .Where(e => e.Name.LocalName.Equals("PackageReference", StringComparison.OrdinalIgnoreCase)))
         {
             var identity = element.Attribute("Include")?.Value;
+
             if (!string.IsNullOrWhiteSpace(identity) && identity.StartsWith(JansetPackagePrefix, StringComparison.OrdinalIgnoreCase))
             {
                 identities.Add(identity);
@@ -87,6 +88,7 @@ public static class SmokeScopeComparator
         }
 
         var roles = propertyElement.Value.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
         foreach (var role in roles)
         {
             identities.Add($"Janset.SDL{generation}.{role}");

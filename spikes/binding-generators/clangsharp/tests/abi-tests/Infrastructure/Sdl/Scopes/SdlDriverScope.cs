@@ -14,6 +14,7 @@ internal sealed class SdlDriverScope : IDisposable
         using PinnedUtf8 pinnedValue = SdlUtf8.Pin(value);
 
         SDL_bool result = SDLNative.SDL_SetHintWithPriority(pinnedName.Pointer, pinnedValue.Pointer, SDL_HintPriority.SDL_HINT_OVERRIDE);
+
         if (result != SDL_bool.SDL_TRUE)
         {
             throw new InvalidOperationException($"SDL_SetHintWithPriority failed for {name}: {SdlError.Current}");

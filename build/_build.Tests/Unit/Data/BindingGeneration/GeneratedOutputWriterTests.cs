@@ -99,10 +99,12 @@ public sealed class GeneratedOutputWriterTests
         await Assert.That(exception!.Message).IsEqualTo(
             $"Refusing to clear generated bindings output outside '{root.FullPath}': '{collapsed}'.");
         await Assert.That(Inventory(world, world.RepoRoot)).IsEquivalentTo(before, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+
         for (var i = 0; i < before.Length; i++)
         {
             await Assert.That(world.ReadAllText(world.RepoRoot.GetRelativePath(new FilePath(before[i])).FullPath)).IsEqualTo(contents[i]);
         }
+
         var sentinel = before.Single(path => path.EndsWith("/keep.txt", StringComparison.Ordinal));
         await Assert.That(world.ReadAllText(world.RepoRoot.GetRelativePath(new FilePath(sentinel)).FullPath)).IsEqualTo("keep");
     }

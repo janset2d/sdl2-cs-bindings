@@ -34,12 +34,14 @@ public sealed class ReadmeMappingTableValidator(IFileSystem fileSystem) : IReadm
         ArgumentNullException.ThrowIfNull(manifestConfig);
 
         var file = _fileSystem.GetFile(readmePath);
+
         if (!file.Exists)
         {
             return Failure($"G57: README file '{readmePath.FullPath}' does not exist.");
         }
 
         string readmeContent;
+
         using (var stream = file.OpenRead())
         using (var reader = new StreamReader(stream))
         {
@@ -47,6 +49,7 @@ public sealed class ReadmeMappingTableValidator(IFileSystem fileSystem) : IReadm
         }
 
         var expectedBlock = ReadmeMappingTableBlock.BuildBlock(manifestConfig);
+
         if (!ReadmeMappingTableBlock.TryExtractBlock(readmeContent, out var actualBlock))
         {
             return Failure(
