@@ -16,6 +16,8 @@ public static class ServiceCollectionTestHost
         services.AddSingleton(world.CakeContext.Environment);
         services.AddSingleton(world.CakeContext.FileSystem);
         services.AddSingleton(world.CakeContext.Globber);
+        services.AddSingleton(world.HostProcessRunner);
+        services.AddSingleton(world.Clock);
         services.AddSingleton(world.CakeContext.Arguments);
         services.AddSingleton(world.CakeContext.Configuration);
 

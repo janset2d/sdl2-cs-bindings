@@ -134,6 +134,8 @@
 
   <ItemGroup>
     <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.Clock.txt"
+                     Condition=" '$(MSBuildProjectName)' == 'Build' Or $(MSBuildProjectName.StartsWith('SDL2.')) " />
     <ProjectReference Include="$(MSBuildThisFileDirectory)build/analyzers/Janset.CodeStyle.Analyzers/Janset.CodeStyle.Analyzers.csproj"
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"
                       Condition=" '$(MSBuildProjectName)' != 'Janset.CodeStyle.Analyzers' And '$(MSBuildProjectName)' != 'Janset.CodeStyle.Analyzers.Tests' " />

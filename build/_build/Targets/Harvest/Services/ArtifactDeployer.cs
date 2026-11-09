@@ -135,7 +135,15 @@ public sealed class ArtifactDeployer(ICakeContext ctx) : IArtifactDeployer
 
         var absolutePaths = itemsToArchive.Select(item => item.SourcePath.GetFilename().FullPath).ToList();
 
-        await File.WriteAllLinesAsync(fileListPath.FullPath, absolutePaths, ct);
+        await using (var stream = _ctx.FileSystem.GetFile(fileListPath).Open(FileMode.Create, FileAccess.Write, FileShare.Read))
+        await using (var writer = new StreamWriter(stream))
+        {
+            foreach (var path in absolutePaths)
+            {
+                await writer.WriteLineAsync(path.AsMemory(), ct);
+            }
+        }
+
         _log.Verbose("Created file list for tar: {0} ({1} files), using absolute paths",
             fileListPath.GetFilename(),
             absolutePaths.Count);

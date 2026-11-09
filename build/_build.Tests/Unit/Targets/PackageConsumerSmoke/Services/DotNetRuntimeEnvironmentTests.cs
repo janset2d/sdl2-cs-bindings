@@ -2,11 +2,78 @@ using Build.Targets.PackageConsumerSmoke.Services;
 using Build.Tests.Fixtures;
 using Cake.Core.Diagnostics;
 using NSubstitute;
+using TUnit.Assertions.Enums;
 
 namespace Build.Tests.Unit.Targets.PackageConsumerSmoke.Services;
 
 public sealed class DotNetRuntimeEnvironmentTests
 {
+    [Test]
+    [WindowsOnly]
+    public async Task ResolveAsync_Should_Use_Cake_Files_And_Install_Ordered_Channels_Once()
+    {
+        var world = HostEnvironmentData.RuntimeWorld();
+        using var cancellation = new CancellationTokenSource();
+        var resolver = new DotNetRuntimeEnvironment(world.CakeContext, world.Log, world.HostProcessRunner);
+
+        var result = await resolver.ResolveAsync("win-x86", ["net10.0", "net8.0", "net10.0"], cancellation.Token);
+        var cached = await resolver.ResolveAsync("win-x86", ["net8.0", "net10.0"], cancellation.Token);
+
+        await Assert.That(result.Select(pair => (pair.Key, pair.Value)).ToArray())
+            .IsEquivalentTo([("DOTNET_ROOT_X86", HostEnvironmentData.RuntimeRoot), ("DOTNET_ROOT(x86)", HostEnvironmentData.RuntimeRoot)], CollectionOrdering.Matching);
+        await Assert.That(cached).IsSameReferenceAs(result);
+        await Assert.That(world.HostProcessInvocations.Count).IsEqualTo(2);
+        await Assert.That(world.HostProcessInvocations.Select(call => call.Request.Arguments.SkipWhile(argument => argument != "-Channel").Skip(1).First()))
+            .IsEquivalentTo(["8.0", "10.0"], CollectionOrdering.Matching);
+        var invocation = world.HostProcessInvocations[0];
+        await Assert.That(invocation.CancellationToken).IsEqualTo(cancellation.Token);
+        await Assert.That(invocation.Request.FileName).IsEqualTo(HostEnvironmentData.PowerShell);
+        await Assert.That(invocation.Request.Arguments).IsEquivalentTo([
+            "-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", HostEnvironmentData.InstallScript,
+            "-Architecture", "x86", "-Channel", "8.0", "-Runtime", "dotnet", "-InstallDir", HostEnvironmentData.RuntimeRoot], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [WindowsOnly]
+    public async Task ResolveAsync_Should_Create_The_Cache_And_Runtime_Directories()
+    {
+        var world = HostEnvironmentData.RuntimeWorld();
+        var resolver = new DotNetRuntimeEnvironment(world.CakeContext, world.Log, world.HostProcessRunner);
+        await Assert.That(world.FileSystem.GetDirectory(HostEnvironmentData.RuntimeRoot).Exists).IsFalse();
+
+        await resolver.ResolveAsync("win-x86", ["net10.0"]);
+
+        await Assert.That(world.FileSystem.GetDirectory(HostEnvironmentData.CacheRoot).Exists).IsTrue();
+        await Assert.That(world.FileSystem.GetDirectory(HostEnvironmentData.RuntimeRoot).Exists).IsTrue();
+    }
+
+    [Test]
+    [WindowsOnly]
+    public async Task ResolveAsync_Should_Use_Windows_PowerShell_When_Pwsh_Is_Missing()
+    {
+        var world = HostEnvironmentData.RuntimeWorld();
+        world.FileSystem.GetFile(HostEnvironmentData.PowerShell).Delete();
+        world.WithProcessResult("powershell.exe", 0, "");
+        var resolver = new DotNetRuntimeEnvironment(world.CakeContext, world.Log, world.HostProcessRunner);
+
+        await resolver.ResolveAsync("win-x86", ["net10.0"]);
+
+        await Assert.That(world.HostProcessInvocations.Single().Request.FileName).IsEqualTo("powershell.exe");
+    }
+
+    [Test]
+    [WindowsOnly]
+    public async Task ResolveAsync_Should_Report_The_Install_Exit_And_Both_Streams()
+    {
+        var world = HostEnvironmentData.RuntimeWorld(17, "install output", "install error");
+        var resolver = new DotNetRuntimeEnvironment(world.CakeContext, world.Log, world.HostProcessRunner);
+
+        var error = await Assert.That(async () => await resolver.ResolveAsync("win-x86", ["net10.0"])).Throws<InvalidOperationException>();
+
+        await Assert.That(error!.Message).IsEqualTo(
+            $"DotNetRuntimeEnvironment: x86 runtime install for channel '10.0' failed with exit code 17.{Environment.NewLine}install output{Environment.NewLine}install error");
+    }
+
     [Test]
     public async Task ResolveRuntimeChannels_Should_Return_Distinct_Modern_Runtime_Channels()
     {
@@ -28,7 +95,8 @@ public sealed class DotNetRuntimeEnvironmentTests
     [Test]
     public async Task ResolveAsync_Should_Return_Empty_When_Rid_Is_Not_WinX86()
     {
-        var resolver = new DotNetRuntimeEnvironment(Substitute.For<ICakeLog>());
+        var world = FakeCakeWorld.CreateLinux();
+        var resolver = new DotNetRuntimeEnvironment(world.CakeContext, Substitute.For<ICakeLog>(), world.HostProcessRunner);
 
         var environment = await resolver.ResolveAsync("linux-x64", ["net10.0"]);
 
@@ -39,7 +107,8 @@ public sealed class DotNetRuntimeEnvironmentTests
     [NonWindowsOnly]
     public async Task ResolveAsync_Should_Throw_PlatformNotSupportedException_When_WinX86_On_NonWindows_Host()
     {
-        var resolver = new DotNetRuntimeEnvironment(Substitute.For<ICakeLog>());
+        var world = FakeCakeWorld.CreateLinux();
+        var resolver = new DotNetRuntimeEnvironment(world.CakeContext, Substitute.For<ICakeLog>(), world.HostProcessRunner);
 
         var thrown = await Assert.That(async () => await resolver.ResolveAsync("win-x86", ["net10.0"])).Throws<PlatformNotSupportedException>();
         await Assert.That(thrown!.Message).Contains("win-x86");
@@ -49,7 +118,8 @@ public sealed class DotNetRuntimeEnvironmentTests
     [Test]
     public async Task Resolver_Should_Implement_IDotNetRuntimeEnvironment_Contract()
     {
-        var resolver = new DotNetRuntimeEnvironment(Substitute.For<ICakeLog>());
+        var world = FakeCakeWorld.CreateWindows();
+        var resolver = new DotNetRuntimeEnvironment(world.CakeContext, Substitute.For<ICakeLog>(), world.HostProcessRunner);
 
         await Assert.That(resolver).IsAssignableTo<IDotNetRuntimeEnvironment>();
     }

@@ -4,6 +4,7 @@ using Build.Data.Manifest.Models;
 using Build.Host;
 using Build.Host.Cake;
 using Build.Host.Paths;
+using Build.Host.Processes;
 using Build.Host.Runtime;
 using Cake.Core;
 using Cake.Core.Configuration;
@@ -23,6 +24,7 @@ public sealed class FakeCakeWorld
     private readonly Dictionary<string, Exception> _processExceptions = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Action<FakeCakeWorld>> _processSideEffects = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<ProcessInvocation> _processInvocations = [];
+    private readonly List<(HostProcessRequest Request, CancellationToken CancellationToken)> _hostProcessInvocations = [];
     private FilePath? _toolPath;
     private FilePath? _defaultToolPath;
     private readonly Dictionary<string, FilePath> _toolPathsByName = new(StringComparer.OrdinalIgnoreCase);
@@ -55,6 +57,10 @@ public sealed class FakeCakeWorld
 
     public IReadOnlyList<ProcessInvocation> ProcessInvocations => _processInvocations;
 
+    public IHostProcessRunner HostProcessRunner { get; } = Substitute.For<IHostProcessRunner>();
+    public IReadOnlyList<(HostProcessRequest Request, CancellationToken CancellationToken)> HostProcessInvocations => _hostProcessInvocations;
+    public TimeProvider Clock { get; } = Substitute.For<TimeProvider>();
+
     public TestConsole AnsiConsole { get; } = new();
 
     private FakeCakeWorld(FakeRepoPlatform platform, string? repoRoot)
@@ -71,6 +77,18 @@ public sealed class FakeCakeWorld
         FileSystem = new FakeFileSystem(Environment);
         Log = new TestLog();
         CakeContext = BuildCakeContext();
+        Clock.GetUtcNow().Returns(ClockData.Timestamp);
+        HostProcessRunner.RunAsync(Arg.Any<HostProcessRequest>(), Arg.Any<CancellationToken>()).Returns(call =>
+        {
+            var request = call.Arg<HostProcessRequest>();
+            var cancellationToken = call.Arg<CancellationToken>();
+            _hostProcessInvocations.Add((request, cancellationToken));
+            cancellationToken.ThrowIfCancellationRequested();
+            var command = new FilePath(request.FileName).GetFilename().FullPath;
+
+            var result = ResolveProcessResult(command, request.RawArguments ?? string.Join(' ', request.Arguments));
+            return Task.FromResult(new HostProcessResult(result.ExitCode, result.StdOut, result.StdErr));
+        });
     }
 
     public static FakeCakeWorld Create(FakeRepoPlatform platform = FakeRepoPlatform.Windows, string? repoRoot = null)
@@ -507,39 +525,45 @@ public sealed class FakeCakeWorld
                     settings.RedirectStandardError,
                     settings.Silent));
 
-                if (_processExceptions.TryGetValue(command, out var exception))
-                {
-                    throw exception;
-                }
-
-                if (_processSideEffects.TryGetValue(command, out var sideEffect))
-                {
-                    sideEffect(this);
-                }
-
-                if (_processResultsByArguments.TryGetValue((command, arguments), out var exactResult))
-                {
-                    return CreateFakeProcess(exactResult.ExitCode, exactResult.StdOut, exactResult.StdErr);
-                }
-
-                if (_processResults.TryGetValue(command, out var result))
-                {
-                    return CreateFakeProcess(result.ExitCode, result.StdOut, result.StdErr);
-                }
-
-                if (_defaultProcessResult is { } def)
-                {
-                    return CreateFakeProcess(def.ExitCode, def.StdOut, def.StdErr);
-                }
-
-                var renderedArgs = string.IsNullOrWhiteSpace(arguments) ? "" : $" {arguments}";
-                throw new InvalidOperationException(
-                    $"Process '{command}{renderedArgs}' was not configured. " +
-                    $"Call WithProcessResult(\"{command}\", exitCode: 0, stdOut: \"...\") to seed the result, " +
-                    "or WithDefaultProcessResult(...) to accept any unconfigured command.");
+                var result = ResolveProcessResult(command, arguments);
+                return CreateFakeProcess(result.ExitCode, result.StdOut, result.StdErr);
             });
 
         return processRunner;
+    }
+
+    private (int ExitCode, string StdOut, string StdErr) ResolveProcessResult(string command, string arguments)
+    {
+        if (_processExceptions.TryGetValue(command, out var exception))
+        {
+            throw exception;
+        }
+
+        if (_processSideEffects.TryGetValue(command, out var sideEffect))
+        {
+            sideEffect(this);
+        }
+
+        if (_processResultsByArguments.TryGetValue((command, arguments), out var exactResult))
+        {
+            return exactResult;
+        }
+
+        if (_processResults.TryGetValue(command, out var result))
+        {
+            return result;
+        }
+
+        if (_defaultProcessResult is { } fallback)
+        {
+            return fallback;
+        }
+
+        var renderedArgs = string.IsNullOrWhiteSpace(arguments) ? "" : $" {arguments}";
+        throw new InvalidOperationException(
+            $"Process '{command}{renderedArgs}' was not configured. " +
+            $"Call WithProcessResult(\"{command}\", exitCode: 0, stdOut: \"...\") to seed the result, " +
+            "or WithDefaultProcessResult(...) to accept any unconfigured command.");
     }
 
     private IToolLocator CreateToolLocator()

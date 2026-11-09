@@ -30,7 +30,8 @@ public sealed class ConsolidateHarvestTask(
     StagedArtifactSwapper swapper,
     ConsolidateHarvestReporter reporter,
     ICakeContext cakeContext,
-    IPathService pathService) : AsyncFrostingTask<BuildContext>
+    IPathService pathService,
+    TimeProvider timeProvider) : AsyncFrostingTask<BuildContext>
 {
     private readonly IHarvestManifestRepository _harvestManifestRepository = harvestManifestRepository ?? throw new ArgumentNullException(nameof(harvestManifestRepository));
     private readonly LicenseUnionWriter _licenseWriter = licenseWriter ?? throw new ArgumentNullException(nameof(licenseWriter));
@@ -38,6 +39,7 @@ public sealed class ConsolidateHarvestTask(
     private readonly ConsolidateHarvestReporter _reporter = reporter ?? throw new ArgumentNullException(nameof(reporter));
     private readonly ICakeContext _cakeContext = cakeContext ?? throw new ArgumentNullException(nameof(cakeContext));
     private readonly IPathService _pathService = pathService ?? throw new ArgumentNullException(nameof(pathService));
+    private readonly TimeProvider _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
 
     public override async Task RunAsync(BuildContext context)
     {
@@ -133,7 +135,7 @@ public sealed class ConsolidateHarvestTask(
         }
     }
 
-    private static HarvestManifest BuildManifest(string libraryName, IReadOnlyList<RidHarvestStatus> ridStatuses, ConsolidationState consolidationState)
+    private HarvestManifest BuildManifest(string libraryName, IReadOnlyList<RidHarvestStatus> ridStatuses, ConsolidationState consolidationState)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(libraryName);
         ArgumentNullException.ThrowIfNull(ridStatuses);
@@ -145,7 +147,7 @@ public sealed class ConsolidateHarvestTask(
         return new HarvestManifest
         {
             LibraryName = libraryName,
-            GeneratedTimestamp = DateTimeOffset.UtcNow,
+            GeneratedTimestamp = _timeProvider.GetUtcNow(),
             Rids = ridStatuses,
             Summary = new HarvestSummary
             {
