@@ -49,7 +49,8 @@ public sealed class ResolveVersionsFromManifestTask(
 
     private static HashSet<string> BuildScope(IReadOnlyList<string> rawScope)
     {
-        return rawScope.Where(entry => !string.IsNullOrWhiteSpace(entry))
+        return rawScope
+            .Where(entry => !string.IsNullOrWhiteSpace(entry))
             .Select(entry => entry.Trim())
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
     }

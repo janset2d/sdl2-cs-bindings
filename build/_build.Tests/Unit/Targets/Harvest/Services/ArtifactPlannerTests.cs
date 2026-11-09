@@ -89,7 +89,8 @@ public sealed class ArtifactPlannerTests
         await Assert.That(result.IsSuccess).IsTrue();
 
         var plan = result.Value;
-        var deployedFiles = plan.Actions.OfType<FileCopyAction>()
+        var deployedFiles = plan.Actions
+            .OfType<FileCopyAction>()
             .Where(a => a.Origin != ArtifactOrigin.License)
             .Select(a => a.SourcePath.GetFilename().FullPath)
             .ToList();
@@ -117,7 +118,8 @@ public sealed class ArtifactPlannerTests
         await Assert.That(result.IsSuccess).IsTrue();
 
         var plan = result.Value;
-        var deployedFiles = plan.Actions.OfType<FileCopyAction>()
+        var deployedFiles = plan.Actions
+            .OfType<FileCopyAction>()
             .Where(a => a.Origin != ArtifactOrigin.License)
             .Select(a => a.SourcePath.GetFilename().FullPath)
             .ToList();
@@ -177,7 +179,8 @@ public sealed class ArtifactPlannerTests
         await Assert.That(result.IsSuccess).IsTrue();
 
         var plan = result.Value;
-        var licenseActions = plan.Actions.OfType<FileCopyAction>()
+        var licenseActions = plan.Actions
+            .OfType<FileCopyAction>()
             .Where(a => a.Origin == ArtifactOrigin.License)
             .ToList();
 

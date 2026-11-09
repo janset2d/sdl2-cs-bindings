@@ -107,7 +107,8 @@ public sealed class NativeSmokeTaskScenarioTests
         var manifest = CreateSingleLibraryManifest();
 
         var msvcStub = Substitute.For<IMsvcDevEnvironment>();
-        msvcStub.ResolveAsync(Arg.Any<MsvcTargetArch>(), Arg.Any<CancellationToken>())
+        msvcStub
+            .ResolveAsync(Arg.Any<MsvcTargetArch>(), Arg.Any<CancellationToken>())
             .Returns<Task<IReadOnlyDictionary<string, string>>>(_ =>
                 throw new CakeException("MsvcDevEnvironment could not locate Visual Studio."));
 
@@ -137,7 +138,8 @@ public sealed class NativeSmokeTaskScenarioTests
         var manifest = CreateSingleLibraryManifest();
 
         var msvcStub = Substitute.For<IMsvcDevEnvironment>();
-        msvcStub.ResolveAsync(Arg.Any<MsvcTargetArch>(), Arg.Any<CancellationToken>())
+        msvcStub
+            .ResolveAsync(Arg.Any<MsvcTargetArch>(), Arg.Any<CancellationToken>())
             .Returns(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
 
         var result = await CreateHost(world, manifest, msvcOverride: msvcStub).RunAsync();

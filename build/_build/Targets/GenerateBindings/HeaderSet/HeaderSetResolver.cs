@@ -59,7 +59,8 @@ public sealed class HeaderSetResolver(ICakeContext context)
         var excludedHeaders = headerSet.ExcludedHeaders.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var excludedPrefixes = headerSet.ExcludedHeaderPrefixes.ToList();
 
-        var headers = _context.GetFiles($"{familyIncludeDir.FullPath}/{headerSet.HeaderGlob}")
+        var headers = _context
+            .GetFiles($"{familyIncludeDir.FullPath}/{headerSet.HeaderGlob}")
             .Where(path => !IsExcluded(path.GetFilename().FullPath, excludedHeaders, excludedPrefixes))
             .OrderBy(path => path.FullPath, StringComparer.OrdinalIgnoreCase)
             .ToList();

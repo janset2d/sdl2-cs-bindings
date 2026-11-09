@@ -20,7 +20,9 @@ public sealed class ValidatorIdIntegrityCheckTests
         });
         var config = BindingGenerationFixture.Sdl2CoreConfig() with
         {
-            Validators = ImmutableDictionary.Create<string, bool>(comparer).Add("z-unknown", true).Add("known", true)
+            Validators = ImmutableDictionary.Create<string, bool>(comparer)
+                .Add("z-unknown", true)
+                .Add("known", true)
                 .Add("a-unknown", true)
                 .Add("disabled", false),
         };

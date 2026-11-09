@@ -10,11 +10,12 @@ public sealed class WorkflowRunnerGateTests
     [Test]
     public async Task ThirdPartyActions_Should_Be_Pinned_By_Sha()
     {
-        var references = WorkflowFiles.Paths.SelectMany(path =>
-            WorkflowFiles.FindActionReferences(RepositoryFiles.ReadText(path)!)
-                .Where(reference => !reference.Value.StartsWith("./", StringComparison.Ordinal)
-                    && !reference.Value.StartsWith("actions/", StringComparison.Ordinal))
-                .Select(reference => (Path: path, Reference: reference)))
+        var references = WorkflowFiles.Paths
+            .SelectMany(path =>
+                WorkflowFiles.FindActionReferences(RepositoryFiles.ReadText(path)!)
+                    .Where(reference => !reference.Value.StartsWith("./", StringComparison.Ordinal)
+                        && !reference.Value.StartsWith("actions/", StringComparison.Ordinal))
+                    .Select(reference => (Path: path, Reference: reference)))
             .ToArray();
         await Assert.That(references).IsNotEmpty();
         foreach (var (path, reference) in references)
@@ -29,9 +30,10 @@ public sealed class WorkflowRunnerGateTests
     public async Task RunnerLabels_Should_Be_Manifest_Runners()
     {
         var runners = WorkflowFiles.ManifestRunners;
-        var labels = WorkflowFiles.Paths.SelectMany(path =>
-            WorkflowFiles.FindRunnerLabels(RepositoryFiles.ReadText(path)!)
-                .Select(label => (Path: path, Label: label)))
+        var labels = WorkflowFiles.Paths
+            .SelectMany(path =>
+                WorkflowFiles.FindRunnerLabels(RepositoryFiles.ReadText(path)!)
+                    .Select(label => (Path: path, Label: label)))
             .ToArray();
         await Assert.That(labels).IsNotEmpty();
         foreach (var (path, label) in labels)
@@ -43,7 +45,8 @@ public sealed class WorkflowRunnerGateTests
     [Test]
     public async Task ManifestRunners_Should_Not_Use_Latest_Aliases()
     {
-        var violations = WorkflowFiles.ManifestRunners.Where(runner => runner.Contains("latest", StringComparison.OrdinalIgnoreCase))
+        var violations = WorkflowFiles.ManifestRunners
+            .Where(runner => runner.Contains("latest", StringComparison.OrdinalIgnoreCase))
             .Select(runner => $"build/manifest.json: {runner}")
             .Concat(WorkflowFiles.Paths.SelectMany(path => WorkflowFiles.FindRunnerLabels(RepositoryFiles.ReadText(path)!)
                 .Where(label => label.Value.Contains("latest", StringComparison.OrdinalIgnoreCase))

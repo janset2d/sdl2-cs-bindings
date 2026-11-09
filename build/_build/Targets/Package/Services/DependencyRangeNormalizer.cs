@@ -57,7 +57,8 @@ public sealed class DependencyRangeNormalizer(ICakeContext cakeContext, ICakeLog
 
         await using var archive = new ZipArchive(packageStream, ZipArchiveMode.Update, leaveOpen: false);
 
-        var nuspecCandidates = archive.Entries.Where(entry =>
+        var nuspecCandidates = archive.Entries
+            .Where(entry =>
                 entry.FullName.EndsWith(".nuspec", StringComparison.OrdinalIgnoreCase) &&
                 !entry.FullName.StartsWith("package/", StringComparison.OrdinalIgnoreCase))
             .ToList();

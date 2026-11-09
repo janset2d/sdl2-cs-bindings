@@ -36,7 +36,8 @@ public sealed class GeneratedOutputWriter(ICakeContext context)
 
     private static void ClearDirectoryContents(ICakeContext context, DirectoryPath outputDirectory)
     {
-        var files = context.GetFiles($"{outputDirectory.FullPath}/**/*")
+        var files = context
+            .GetFiles($"{outputDirectory.FullPath}/**/*")
             .Concat(context.GetFiles($"{outputDirectory.FullPath}/*"))
             .DistinctBy(file => file.FullPath, StringComparer.Ordinal);
 
@@ -45,7 +46,8 @@ public sealed class GeneratedOutputWriter(ICakeContext context)
             context.DeleteFile(file);
         }
 
-        var directories = context.GetDirectories($"{outputDirectory.FullPath}/**/*")
+        var directories = context
+            .GetDirectories($"{outputDirectory.FullPath}/**/*")
             .Concat(context.GetDirectories($"{outputDirectory.FullPath}/*"))
             .DistinctBy(directory => directory.FullPath, StringComparer.Ordinal)
             .OrderByDescending(directory => directory.Segments.Length)
