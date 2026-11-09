@@ -63,7 +63,8 @@ public sealed class HybridStaticLeakValidator(IRuntimeProfile profile) : IHybrid
             Name: "Hybrid-static transitive leak",
             Severity: severity,
             Message: $"Transitive dep leak: {GetFilenameSegment(v.Path)} (owner: {v.OwnerPackage}, origin: {v.OriginPackage})",
-            Code: "G19")).ToList();
+            Code: "G19"))
+            .ToList();
 
         return new ValidationReport(checks);
     }

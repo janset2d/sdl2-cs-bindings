@@ -94,7 +94,8 @@ public sealed class UpstreamVersionAlignmentValidatorTests
         await Assert.That(result.HasErrors).IsTrue();
         await Assert.That(result.Checks.Count).IsEqualTo(2);
         await Assert.That(result.Checks.All(check =>
-            check.Status == UpstreamVersionAlignmentCheckStatus.VersionMismatch)).IsTrue();
+            check.Status == UpstreamVersionAlignmentCheckStatus.VersionMismatch))
+            .IsTrue();
     }
 
     [Test]

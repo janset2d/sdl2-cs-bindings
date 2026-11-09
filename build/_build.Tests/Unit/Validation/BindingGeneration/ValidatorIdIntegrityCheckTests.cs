@@ -21,7 +21,8 @@ public sealed class ValidatorIdIntegrityCheckTests
         var config = BindingGenerationFixture.Sdl2CoreConfig() with
         {
             Validators = ImmutableDictionary.Create<string, bool>(comparer).Add("z-unknown", true).Add("known", true)
-                .Add("a-unknown", true).Add("disabled", false),
+                .Add("a-unknown", true)
+                .Add("disabled", false),
         };
         var exception = Assert.Throws<CakeException>(() => ValidatorIdIntegrityCheck.AssertKnown(config, ["known"]));
         await Assert.That(exception.Message).IsEqualTo(

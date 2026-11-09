@@ -14,7 +14,8 @@ public sealed class WorkflowRunnerGateTests
             WorkflowFiles.FindActionReferences(RepositoryFiles.ReadText(path)!)
                 .Where(reference => !reference.Value.StartsWith("./", StringComparison.Ordinal)
                     && !reference.Value.StartsWith("actions/", StringComparison.Ordinal))
-                .Select(reference => (Path: path, Reference: reference))).ToArray();
+                .Select(reference => (Path: path, Reference: reference)))
+            .ToArray();
         await Assert.That(references).IsNotEmpty();
         foreach (var (path, reference) in references)
         {
@@ -30,7 +31,8 @@ public sealed class WorkflowRunnerGateTests
         var runners = WorkflowFiles.ManifestRunners;
         var labels = WorkflowFiles.Paths.SelectMany(path =>
             WorkflowFiles.FindRunnerLabels(RepositoryFiles.ReadText(path)!)
-                .Select(label => (Path: path, Label: label))).ToArray();
+                .Select(label => (Path: path, Label: label)))
+            .ToArray();
         await Assert.That(labels).IsNotEmpty();
         foreach (var (path, label) in labels)
         {
@@ -45,7 +47,8 @@ public sealed class WorkflowRunnerGateTests
             .Select(runner => $"build/manifest.json: {runner}")
             .Concat(WorkflowFiles.Paths.SelectMany(path => WorkflowFiles.FindRunnerLabels(RepositoryFiles.ReadText(path)!)
                 .Where(label => label.Value.Contains("latest", StringComparison.OrdinalIgnoreCase))
-                .Select(label => $"{path}:{label.Line}: {label.Value}"))).ToArray();
+                .Select(label => $"{path}:{label.Line}: {label.Value}")))
+            .ToArray();
         await Assert.That(violations).IsEmpty();
     }
 }

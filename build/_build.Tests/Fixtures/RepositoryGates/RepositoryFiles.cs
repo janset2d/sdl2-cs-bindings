@@ -12,7 +12,8 @@ internal static class RepositoryFiles
     private static readonly Lazy<IReadOnlySet<string>> SubmodulePaths = new(() =>
         Git("-C", Root, "ls-files", "-z", "--stage").Split('\0', StringSplitOptions.RemoveEmptyEntries)
             .Where(entry => entry.StartsWith("160000 ", StringComparison.Ordinal))
-            .Select(entry => entry[(entry.IndexOf('\t', StringComparison.Ordinal) + 1)..]).ToHashSet(StringComparer.Ordinal));
+            .Select(entry => entry[(entry.IndexOf('\t', StringComparison.Ordinal) + 1)..])
+            .ToHashSet(StringComparer.Ordinal));
 
     public static string Root => RootPath.Value;
     public static IReadOnlySet<string> Tracked => TrackedPaths.Value;
