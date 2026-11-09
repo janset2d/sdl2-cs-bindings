@@ -578,5 +578,4 @@ public sealed class PackageOutputValidatorTests
             </package>
             """;
     }
-
 }

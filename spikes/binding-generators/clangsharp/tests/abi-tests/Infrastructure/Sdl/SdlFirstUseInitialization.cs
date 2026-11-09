@@ -5,7 +5,7 @@ namespace Janset.SDL2.AbiTests.Infrastructure.Sdl;
 public static class SdlFirstUseInitialization
 {
     /// <summary>Initializes SDL once before parallel tests to avoid tick and error-slot first-use races.</summary>
-    [Before(HookType.Assembly)]
+    [Before(Assembly)]
     public static void InitializeLazyProcessState()
     {
         _ = SDLNative.SDL_GetTicks64();

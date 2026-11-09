@@ -1,6 +1,7 @@
 # Build and test the Cake host for ci.yml and release.yml.
 # The runner input selects the OS; publish-artifact controls publishing and uploading
 # the framework-dependent cake-host artifact for downstream jobs. CI disables it.
+# run-analyzers controls compiler analysis; CI runs it in the lint job instead.
 # Submodules are skipped because managed host tests do not build native code.
 # TUnit HTML reports upload through the shared runtime-environment setup.
 
@@ -13,6 +14,9 @@ on:
         type: string
         required: true
       publish-artifact:
+        type: boolean
+        default: true
+      run-analyzers:
         type: boolean
         default: true
 
@@ -35,12 +39,13 @@ jobs:
         # currently carries only Build + Build.Tests but future additions (extra test
         # projects, samples) would pull in work we don't want here. Build.Tests
         # ProjectReference'es Build.csproj so its restore graph covers the Cake host.
-        run: dotnet restore build/_build.Tests/Build.Tests.csproj
+        run: dotnet restore build/_build.Tests/Build.Tests.csproj -p:RunAnalyzers=${{ inputs.run-analyzers }}
       - name: Test Cake host
         run: >
           dotnet test --project build/_build.Tests/Build.Tests.csproj
           --configuration Release
           --no-restore
+          -p:RunAnalyzers=${{ inputs.run-analyzers }}
       - name: Publish Cake host (FDD, cross-OS)
         if: inputs.publish-artifact
         run: >

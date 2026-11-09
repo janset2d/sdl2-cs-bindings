@@ -3,6 +3,7 @@ using Build.Data.ProjectMetadata;
 using Build.Host.Paths;
 using Build.Targets.Package.Models;
 using Build.Targets.Package.Reporting;
+using Build.Validation.Conventions;
 using Build.Validation.Packaging;
 using Cake.Common.Tools.DotNet;
 using Cake.Common.Tools.DotNet.MSBuild;
@@ -16,7 +17,7 @@ namespace Build.Targets.Package.Services;
 /// <summary>
 /// Per-family pack orchestrator. Owns the 3-phase per-family flow:
 /// EnsureHarvestReady → PrepareMetadata → PackAndValidate. Called once per family
-/// from <see cref="Build.Targets.Package.PackageTask"/>.
+/// from <see cref="PackageTask"/>.
 /// </summary>
 public sealed class PackageFamilyPacker
 {
@@ -184,8 +185,8 @@ public sealed class PackageFamilyPacker
 
     private PackageArtifacts CreateArtifacts(PackageFamilyConfig family, string version)
     {
-        var managedPackageId = Build.Validation.Conventions.FamilyIdentifierConventions.ManagedPackageId(family.Name);
-        var nativePackageId = Build.Validation.Conventions.FamilyIdentifierConventions.NativePackageId(family.Name);
+        var managedPackageId = FamilyIdentifierConventions.ManagedPackageId(family.Name);
+        var nativePackageId = FamilyIdentifierConventions.NativePackageId(family.Name);
 
         return new PackageArtifacts(
             ManagedPackage: _pathService.PackagesOutput.CombineWithFilePath($"{managedPackageId}.{version}.nupkg"),

@@ -10,7 +10,6 @@ using Build.Targets.Package.Services;
 using Build.Targets.PackageConsumerSmoke.Services;
 using Build.Tests.Fixtures;
 using Build.Validation.Packaging;
-using Cake.Core;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 using Microsoft.Extensions.DependencyInjection;
@@ -129,7 +128,7 @@ public sealed class ProgramCompositionRootTests
         var versionFileRepository = provider.GetRequiredService<IVersionFileRepository>();
         var dotNetRuntimeEnvironment = provider.GetRequiredService<IDotNetRuntimeEnvironment>();
         var packageFamilyPacker = provider.GetRequiredService<PackageFamilyPacker>();
-        var dotNetSmokeRunner = provider.GetRequiredService<Build.Targets.PackageConsumerSmoke.Services.DotNetSmokeRunner>();
+        var dotNetSmokeRunner = provider.GetRequiredService<DotNetSmokeRunner>();
         var msvcDevEnvironment = provider.GetRequiredService<IMsvcDevEnvironment>();
 
         await Assert.That(hybridStaticOverlayValidator).IsTypeOf<HybridStaticOverlayValidator>();
@@ -181,8 +180,8 @@ public sealed class ProgramCompositionRootTests
     private static ServiceCollection CreateServiceCollectionForCompositionRoot(FakeCakeWorld world)
     {
         var services = new ServiceCollection();
-        services.AddSingleton<ICakeEnvironment>(world.CakeContext.Environment);
-        services.AddSingleton<ICakeContext>(world.CakeContext);
+        services.AddSingleton(world.CakeContext.Environment);
+        services.AddSingleton(world.CakeContext);
         services.AddSingleton<IFileSystem>(world.FileSystem);
         services.AddSingleton<ICakeLog>(world.Log);
 
