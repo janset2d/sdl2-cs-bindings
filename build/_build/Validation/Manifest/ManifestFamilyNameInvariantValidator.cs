@@ -14,7 +14,7 @@ namespace Build.Validation.Manifest;
 /// </summary>
 public interface IManifestFamilyNameInvariantValidator
 {
-    ValidationReport Validate(ManifestConfig manifest);
+    public ValidationReport Validate(ManifestConfig manifest);
 }
 
 /// <inheritdoc />

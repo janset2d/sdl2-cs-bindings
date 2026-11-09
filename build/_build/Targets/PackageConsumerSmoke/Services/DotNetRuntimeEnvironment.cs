@@ -35,7 +35,7 @@ public interface IDotNetRuntimeEnvironment
     /// Non-special cases return an empty dictionary. Windows x86 smoke on a non-Windows host
     /// throws <see cref="PlatformNotSupportedException"/> as a defence-in-depth assertion.
     /// </summary>
-    Task<IReadOnlyDictionary<string, string>> ResolveAsync(
+    public Task<IReadOnlyDictionary<string, string>> ResolveAsync(
         string rid,
         IReadOnlyList<string> targetFrameworks,
         CancellationToken ct = default);

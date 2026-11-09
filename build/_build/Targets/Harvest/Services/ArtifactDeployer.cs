@@ -12,7 +12,7 @@ namespace Build.Targets.Harvest.Services;
 
 public interface IArtifactDeployer
 {
-    Task<Result<DeploymentStatistics, CopierError>> DeployArtifactsAsync(DeploymentPlan plan, CancellationToken ct = default);
+    public Task<Result<DeploymentStatistics, CopierError>> DeployArtifactsAsync(DeploymentPlan plan, CancellationToken ct = default);
 }
 
 public sealed class ArtifactDeployer(ICakeContext ctx) : IArtifactDeployer

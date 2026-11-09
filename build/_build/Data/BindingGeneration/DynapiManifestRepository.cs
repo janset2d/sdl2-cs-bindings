@@ -29,7 +29,7 @@ namespace Build.Data.BindingGeneration;
 /// </summary>
 public interface IDynapiManifestRepository
 {
-    Task<Result<DynapiManifest, ManifestResolutionError>> LoadAsync(CancellationToken ct = default);
+    public Task<Result<DynapiManifest, ManifestResolutionError>> LoadAsync(CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IDynapiManifestRepository"/>

@@ -12,7 +12,7 @@ namespace Build.Validation.NativeSmoke;
 /// </summary>
 public interface INativeSmokePreconditionsValidator
 {
-    ValidationReport Validate();
+    public ValidationReport Validate();
 }
 
 public sealed class NativeSmokePreconditionsValidator(ICakeContext cakeContext, IPathService pathService) : INativeSmokePreconditionsValidator

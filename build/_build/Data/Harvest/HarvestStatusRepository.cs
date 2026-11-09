@@ -17,11 +17,11 @@ namespace Build.Data.Harvest;
 /// </summary>
 public interface IHarvestStatusRepository
 {
-    void Invalidate(string libraryName, CancellationToken ct = default);
+    public void Invalidate(string libraryName, CancellationToken ct = default);
 
-    Task WriteSuccessAsync(string libraryName, DeploymentStatistics statistics, CancellationToken ct = default);
+    public Task WriteSuccessAsync(string libraryName, DeploymentStatistics statistics, CancellationToken ct = default);
 
-    Task WriteErrorAsync(string libraryName, string errorMessage, CancellationToken ct = default);
+    public Task WriteErrorAsync(string libraryName, string errorMessage, CancellationToken ct = default);
 }
 
 /// <inheritdoc />

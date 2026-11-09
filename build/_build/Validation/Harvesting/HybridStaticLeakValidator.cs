@@ -20,7 +20,7 @@ namespace Build.Validation.Harvesting;
 /// </remarks>
 public interface IHybridStaticLeakValidator
 {
-    ValidationReport Validate(
+    public ValidationReport Validate(
         BinaryClosure closure,
         LibraryManifest manifest,
         string coreLibraryName,

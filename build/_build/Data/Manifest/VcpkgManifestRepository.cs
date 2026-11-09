@@ -17,7 +17,7 @@ namespace Build.Data.Manifest;
 /// </summary>
 public interface IVcpkgManifestRepository
 {
-    VcpkgManifest Load(FilePath vcpkgManifestPath);
+    public VcpkgManifest Load(FilePath vcpkgManifestPath);
 }
 
 public sealed class VcpkgManifestRepository(ICakeContext context) : IVcpkgManifestRepository

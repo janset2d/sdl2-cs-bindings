@@ -14,7 +14,7 @@ namespace Build.Validation.Packaging;
 /// </summary>
 public interface INativePackageMetadataValidator
 {
-    Task<ValidationCheck?> ValidateAsync(
+    public Task<ValidationCheck?> ValidateAsync(
         PackageFamilyConfig family,
         FilePath nativePackagePath,
         string expectedFamilyVersion,
