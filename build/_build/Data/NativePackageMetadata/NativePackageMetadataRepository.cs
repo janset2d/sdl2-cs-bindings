@@ -41,7 +41,7 @@ public sealed class NativePackageMetadataRepository(ICakeContext cakeContext) : 
         try
         {
             await using var stream = file.OpenRead();
-            using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
+            await using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
             var metadataEntry = archive.Entries.SingleOrDefault(entry =>
                 string.Equals(entry.FullName, MetadataEntryName, StringComparison.OrdinalIgnoreCase));
 

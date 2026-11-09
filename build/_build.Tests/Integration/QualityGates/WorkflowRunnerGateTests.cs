@@ -1,3 +1,4 @@
+using System.Globalization;
 using Build.Tests.Fixtures;
 using Build.Tests.Fixtures.QualityGates;
 using Build.Tests.Fixtures.RepositoryGates;
@@ -23,7 +24,7 @@ public sealed class WorkflowRunnerGateTests
         {
             await Assert.That(reference.Value)
                 .Matches(@"\A(?:[A-Za-z0-9_.-]+/[A-Za-z0-9_./-]+@[0-9a-fA-F]{40}|docker://[^\s@]+@sha256:[0-9a-fA-F]{64})\z")
-                .Because($"{path}:{reference.Line}");
+                .Because(string.Create(CultureInfo.InvariantCulture, $"{path}:{reference.Line}"));
         }
     }
 
@@ -40,7 +41,7 @@ public sealed class WorkflowRunnerGateTests
 
         foreach (var (path, label) in labels)
         {
-            await Assert.That(runners).Contains(label.Value).Because($"{path}:{label.Line}");
+            await Assert.That(runners).Contains(label.Value).Because(string.Create(CultureInfo.InvariantCulture, $"{path}:{label.Line}"));
         }
     }
 
@@ -52,7 +53,7 @@ public sealed class WorkflowRunnerGateTests
             .Select(runner => $"build/manifest.json: {runner}")
             .Concat(WorkflowFiles.Paths.SelectMany(path => WorkflowFiles.FindRunnerLabels(RepositoryFiles.ReadText(path)!)
                 .Where(label => label.Value.Contains("latest", StringComparison.OrdinalIgnoreCase))
-                .Select(label => $"{path}:{label.Line}: {label.Value}")))
+                .Select(label => string.Create(CultureInfo.InvariantCulture, $"{path}:{label.Line}: {label.Value}"))))
             .ToArray();
         await Assert.That(violations).IsEmpty();
     }

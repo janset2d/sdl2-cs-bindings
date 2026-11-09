@@ -1,3 +1,4 @@
+using System.Globalization;
 using Build.Tests.Fixtures;
 using Build.Validation.Models;
 using Build.Validation.Vcpkg;
@@ -168,13 +169,13 @@ public sealed class OverlayPortVersionCoherenceValidatorTests
                   "version": "{{version}}"
                 }
                 """
-            : $$"""
+            : string.Create(CultureInfo.InvariantCulture, $$"""
                 {
                   "name": "{{portName}}",
                   "version": "{{version}}",
                   "port-version": {{portVersion}}
                 }
-                """;
+                """);
         world.WithTextFile(path, json);
     }
 }

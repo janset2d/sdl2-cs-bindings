@@ -1,3 +1,4 @@
+using System.Globalization;
 using Build.Results;
 using Build.Targets.Harvest.Models;
 using Build.Targets.Harvest.Reporting;
@@ -156,16 +157,18 @@ public sealed class HarvestReporterTests
     private static DeploymentStatistics CreateStats(int primary, int runtime, int license, int deployed, int filtered)
     {
         var primaryList = Enumerable.Range(0, primary)
-            .Select(i => new FileDeploymentInfo(new Cake.Core.IO.FilePath($"primary{i}.dll"), "pkg", DeploymentLocation.FileSystem))
+            .Select(i => new FileDeploymentInfo(new Cake.Core.IO.FilePath(string.Create(CultureInfo.InvariantCulture, $"primary{i}.dll")), "pkg", DeploymentLocation.FileSystem))
             .ToList();
         var runtimeList = Enumerable.Range(0, runtime)
-            .Select(i => new FileDeploymentInfo(new Cake.Core.IO.FilePath($"runtime{i}.dll"), "pkg", DeploymentLocation.FileSystem))
+            .Select(i => new FileDeploymentInfo(new Cake.Core.IO.FilePath(string.Create(CultureInfo.InvariantCulture, $"runtime{i}.dll")), "pkg", DeploymentLocation.FileSystem))
             .ToList();
         var licenseList = Enumerable.Range(0, license)
-            .Select(i => new FileDeploymentInfo(new Cake.Core.IO.FilePath($"copyright{i}"), "pkg", DeploymentLocation.FileSystem))
+            .Select(i => new FileDeploymentInfo(new Cake.Core.IO.FilePath(string.Create(CultureInfo.InvariantCulture, $"copyright{i}")), "pkg", DeploymentLocation.FileSystem))
             .ToList();
-        var deployedSet = new HashSet<string>(Enumerable.Range(0, deployed).Select(i => $"pkg{i}"), StringComparer.OrdinalIgnoreCase);
-        var filteredSet = new HashSet<string>(Enumerable.Range(0, filtered).Select(i => $"filtered{i}"), StringComparer.OrdinalIgnoreCase);
+        var deployedSet = new HashSet<string>(Enumerable.Range(0, deployed).Select(i => string.Create(CultureInfo.InvariantCulture, $"pkg{i}")), StringComparer.OrdinalIgnoreCase);
+        var filteredSet = new HashSet<string>(
+            Enumerable.Range(0, filtered).Select(i => string.Create(CultureInfo.InvariantCulture, $"filtered{i}")),
+            StringComparer.OrdinalIgnoreCase);
         return new DeploymentStatistics(
             "sdl2-core",
             primaryList,

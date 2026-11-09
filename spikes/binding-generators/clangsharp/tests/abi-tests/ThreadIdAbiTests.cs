@@ -44,7 +44,7 @@ public sealed class ThreadIdAbiTests
     private static ulong GetCurrentThreadId()
     {
 #if NET6_0_OR_GREATER
-        return (ulong)SDLNative.SDL_ThreadID().Value;
+        return SDLNative.SDL_ThreadID().Value;
 #else
         return SDLNative.SDL_ThreadID();
 #endif
@@ -53,7 +53,7 @@ public sealed class ThreadIdAbiTests
     private static ulong GetThreadId(SDL_Thread thread)
     {
 #if NET6_0_OR_GREATER
-        return (ulong)SDLNative.SDL_GetThreadID(thread).Value;
+        return SDLNative.SDL_GetThreadID(thread).Value;
 #else
         return SDLNative.SDL_GetThreadID(thread);
 #endif

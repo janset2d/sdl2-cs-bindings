@@ -1,3 +1,4 @@
+using System.Globalization;
 using Build.Data.Harvest;
 using Build.Data.Manifest.Models;
 using Build.Host.Paths;
@@ -72,7 +73,9 @@ public sealed class HarvestReadinessValidator(
         {
             throw new CakeException(
                 $"Package task cannot pack family '{family.Name}' because the consolidation receipt in '{manifestPath.FullPath}' reports zero license entries " +
-                $"(LicensesConsolidated={harvestManifest.Consolidation.LicensesConsolidated}, LicenseEntriesCount={harvestManifest.Consolidation.LicenseEntriesCount}). " +
+                string.Create(
+                    CultureInfo.CurrentCulture,
+                    $"(LicensesConsolidated={harvestManifest.Consolidation.LicensesConsolidated}, LicenseEntriesCount={harvestManifest.Consolidation.LicenseEntriesCount}). ") +
                 "A native pack without third-party license attribution breaks the compliance surface — re-run Harvest + ConsolidateHarvest and " +
                 "confirm at least one successful RID contributed license files.");
         }

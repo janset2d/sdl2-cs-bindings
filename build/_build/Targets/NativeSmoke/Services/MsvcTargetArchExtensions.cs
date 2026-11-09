@@ -60,9 +60,9 @@ public static class MsvcTargetArchExtensions
             Architecture.X64 => "x64",
             Architecture.X86 => "x86",
             Architecture.Arm64 => "arm64",
-            var other => throw new PlatformNotSupportedException(
-                $"MsvcTargetArch: unsupported host architecture '{other}' for vcvarsall.bat. " +
-                "Supported host arches: x64, x86, arm64."),
+            Architecture.Arm or Architecture.Wasm or Architecture.S390x or Architecture.LoongArch64
+                or Architecture.Armv6 or Architecture.Ppc64le or Architecture.RiscV64 => throw UnsupportedHostArchitecture(hostArchitecture),
+            var other => throw UnsupportedHostArchitecture(other),
         };
 
         var targetArg = target switch
@@ -77,4 +77,8 @@ public static class MsvcTargetArchExtensions
             ? hostArg
             : $"{hostArg}_{targetArg}";
     }
+
+    private static PlatformNotSupportedException UnsupportedHostArchitecture(Architecture architecture) => new(
+        $"MsvcTargetArch: unsupported host architecture '{architecture}' for vcvarsall.bat. " +
+        "Supported host arches: x64, x86, arm64.");
 }
