@@ -25,7 +25,8 @@ public interface INativePackageMetadataValidator
 /// <inheritdoc />
 public sealed class NativePackageMetadataValidator(INativePackageMetadataRepository nativePackageMetadataRepository) : INativePackageMetadataValidator
 {
-    private readonly INativePackageMetadataRepository _nativePackageMetadataRepository = nativePackageMetadataRepository ?? throw new ArgumentNullException(nameof(nativePackageMetadataRepository));
+    private readonly INativePackageMetadataRepository _nativePackageMetadataRepository = nativePackageMetadataRepository
+        ?? throw new ArgumentNullException(nameof(nativePackageMetadataRepository));
 
     [SuppressMessage("Design", "MA0051:Method is too long",
         Justification = "G55 intentionally validates zip presence, JSON parse, schema fields, and manifest/build invariants in one linear flow for debuggability.")]

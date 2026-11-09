@@ -164,7 +164,8 @@ public sealed class DependencyRangeNormalizer(ICakeContext cakeContext, ICakeLog
         if (dependencyLibrary is null)
         {
             throw new CakeException(
-                $"Cannot resolve cross-family dependency range for '{dependencyFamily}' because library_ref '{dependencyFamilyConfig.LibraryRef}' does not exist in manifest library_manifests[].");
+                $"Cannot resolve cross-family dependency range for '{dependencyFamily}' because library_ref '{dependencyFamilyConfig.LibraryRef}' " +
+                "does not exist in manifest library_manifests[].");
         }
 
         if (!NuGetVersion.TryParse(dependencyLibrary.VcpkgVersion, out var upstreamVersion))

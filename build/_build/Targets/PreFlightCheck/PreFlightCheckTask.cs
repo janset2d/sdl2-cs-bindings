@@ -19,7 +19,8 @@ namespace Build.Targets.PreFlightCheck;
 /// </summary>
 [TaskName("PreFlightCheck")]
 [TaskDescription(
-    "Validates manifest+vcpkg consistency, hybrid-static overlay coherence, core identity, family name invariants, csproj pack contract, upstream version alignment, and cross-family dependency resolvability before any build operation.")]
+    "Validates manifest+vcpkg consistency, hybrid-static overlay coherence, core identity, family name invariants, csproj pack contract, upstream " +
+    "version alignment, and cross-family dependency resolvability before any build operation.")]
 public sealed class PreFlightCheckTask(
     IManifestRepository manifestRepository,
     IVcpkgManifestRepository vcpkgManifestRepository,

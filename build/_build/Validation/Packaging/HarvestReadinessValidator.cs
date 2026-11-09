@@ -41,7 +41,8 @@ public sealed class HarvestReadinessValidator(
         if (!_cakeContext.FileExists(manifestPath))
         {
             throw new CakeException(
-                $"Package task cannot pack family '{family.Name}' because harvest manifest '{manifestPath.FullPath}' is missing. Run Harvest + ConsolidateHarvest for library '{family.LibraryRef}' first.");
+                $"Package task cannot pack family '{family.Name}' because harvest manifest '{manifestPath.FullPath}' is missing. Run Harvest + " +
+                $"ConsolidateHarvest for library '{family.LibraryRef}' first.");
         }
 
         var harvestManifest = await _harvestManifestRepository.LoadManifestAsync(family.LibraryRef, ct).ConfigureAwait(false);
@@ -75,7 +76,8 @@ public sealed class HarvestReadinessValidator(
         {
             throw new CakeException(
                 $"Package task cannot pack family '{family.Name}' because harvest manifest '{manifestPath.FullPath}' lacks a consolidation receipt. " +
-                "Re-run ConsolidateHarvest — Harvest invalidates the consolidated view on every RID run, and only Consolidate regenerates it with the license-union receipt attached.");
+                "Re-run ConsolidateHarvest — Harvest invalidates the consolidated view on every RID run, and only Consolidate regenerates it with the " +
+                "license-union receipt attached.");
         }
 
         if (!harvestManifest.Consolidation.LicensesConsolidated || harvestManifest.Consolidation.LicenseEntriesCount == 0)
@@ -83,7 +85,8 @@ public sealed class HarvestReadinessValidator(
             throw new CakeException(
                 $"Package task cannot pack family '{family.Name}' because the consolidation receipt in '{manifestPath.FullPath}' reports zero license entries " +
                 $"(LicensesConsolidated={harvestManifest.Consolidation.LicensesConsolidated}, LicenseEntriesCount={harvestManifest.Consolidation.LicenseEntriesCount}). " +
-                "A native pack without third-party license attribution breaks the compliance surface — re-run Harvest + ConsolidateHarvest and confirm at least one successful RID contributed license files.");
+                "A native pack without third-party license attribution breaks the compliance surface — re-run Harvest + ConsolidateHarvest and " +
+                "confirm at least one successful RID contributed license files.");
         }
 
         if (harvestManifest.Consolidation.DivergentLicenses.Count > 0)

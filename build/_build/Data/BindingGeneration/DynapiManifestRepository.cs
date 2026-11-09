@@ -44,7 +44,9 @@ public sealed partial class DynapiManifestRepository(ICakeContext context, IPath
     //
     // Both shapes are treated as ACTIVE exports. Pure comments (`# free text`
     // with no `++` marker after the `#`) are skipped.
-    [GeneratedRegex(@"^\s*(?:#\s*)?\+\+'_(?<name>[A-Za-z_][A-Za-z0-9_]*)'\.'SDL2\.dll'\.'(?<mirror>[A-Za-z_][A-Za-z0-9_]*)'\s*$", RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
+    [GeneratedRegex(
+        @"^\s*(?:#\s*)?\+\+'_(?<name>[A-Za-z_][A-Za-z0-9_]*)'\.'SDL2\.dll'\.'(?<mirror>[A-Za-z_][A-Za-z0-9_]*)'\s*$",
+        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
     private static partial Regex ExportLine();
 
     private readonly ICakeContext _context = context ?? throw new ArgumentNullException(nameof(context));

@@ -81,8 +81,10 @@ public sealed class HarvestManifestRepository(ICakeContext cakeContext, IPathSer
         if (invalidStatusFiles.Count > 0)
         {
             throw new CakeException(
-                $"RID status directory '{ridStatusDir.FullPath}' for library '{libraryName}' contains {invalidStatusFiles.Count} unreadable or invalid file(s): {string.Join("; ", invalidStatusFiles)}. " +
-                "ConsolidateHarvest refuses to continue because silently dropping a RID status can shrink the consolidated license set and produce a false-green compliance surface.");
+                $"RID status directory '{ridStatusDir.FullPath}' for library '{libraryName}' contains {invalidStatusFiles.Count} unreadable or invalid file(s): " +
+                $"{string.Join("; ", invalidStatusFiles)}. " +
+                "ConsolidateHarvest refuses to continue because silently dropping a RID status can shrink the consolidated license set and produce a " +
+                "false-green compliance surface.");
         }
 
         return ridStatuses.Count == 0 ? null : ridStatuses;

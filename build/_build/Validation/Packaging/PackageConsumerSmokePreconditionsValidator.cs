@@ -35,7 +35,8 @@ public sealed class PackageConsumerSmokePreconditionsValidator(ICakeContext cake
                 Name: "Smoke project exists",
                 Severity: ValidationSeverity.Error,
                 Message:
-                $"PackageConsumerSmoke precondition failed: smoke project '{smokeCsproj.FullPath}' is missing. Sync the repository checkout before running the consumer smoke stage.",
+                $"PackageConsumerSmoke precondition failed: smoke project '{smokeCsproj.FullPath}' is missing. Sync the repository checkout before " +
+                "running the consumer smoke stage.",
                 Code: "PCSP-01"));
         }
 
@@ -45,7 +46,8 @@ public sealed class PackageConsumerSmokePreconditionsValidator(ICakeContext cake
                 Name: "Compile-sanity project exists",
                 Severity: ValidationSeverity.Error,
                 Message:
-                $"PackageConsumerSmoke precondition failed: compile-sanity project '{compileSanityCsproj.FullPath}' is missing. Sync the repository checkout before running the consumer smoke stage.",
+                $"PackageConsumerSmoke precondition failed: compile-sanity project '{compileSanityCsproj.FullPath}' is missing. Sync the repository " +
+                "checkout before running the consumer smoke stage.",
                 Code: "PCSP-02"));
         }
 
@@ -55,7 +57,8 @@ public sealed class PackageConsumerSmokePreconditionsValidator(ICakeContext cake
                 Name: "Local feed directory exists",
                 Severity: ValidationSeverity.Error,
                 Message:
-                $"PackageConsumerSmoke precondition failed: local feed directory '{feedPath.FullPath}' is missing. Pack the local feed first via '--target Package --versions-file <path>' or '--target Package --explicit-version <family>=<semver>'.",
+                $"PackageConsumerSmoke precondition failed: local feed directory '{feedPath.FullPath}' is missing. Pack the local feed first via " +
+                "'--target Package --versions-file <path>' or '--target Package --explicit-version <family>=<semver>'.",
                 Code: "PCSP-03"));
         }
 

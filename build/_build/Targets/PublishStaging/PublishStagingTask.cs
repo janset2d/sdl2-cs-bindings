@@ -141,7 +141,8 @@ public sealed class PublishStagingTask : AsyncFrostingTask<BuildContext>
             if (string.IsNullOrWhiteSpace(family.ManagedProject) || string.IsNullOrWhiteSpace(family.NativeProject))
             {
                 throw new CakeException(
-                    $"PublishStaging cannot publish family '{family.Name}': manifest.json does not declare both managed_project and native_project. Placeholder families cannot be pushed.");
+                    $"PublishStaging cannot publish family '{family.Name}': manifest.json does not declare both managed_project and native_project. " +
+                    "Placeholder families cannot be pushed.");
             }
 
             selected.Add(family);

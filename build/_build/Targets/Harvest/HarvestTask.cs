@@ -3,6 +3,7 @@ using Build.Data.Harvest;
 using Build.Data.Manifest;
 using Build.Host;
 using Build.Data.Manifest.Models;
+using Build.Targets.Harvest.Models;
 using Build.Targets.Harvest.Reporting;
 using Build.Targets.Harvest.Services;
 using Build.Validation.Harvesting;
@@ -121,33 +122,7 @@ public sealed class HarvestTask(
                 _reporter.ReportLeakReport(library.Name, leakReport);
             }
 
-            var plannerResult = await _planner.CreatePlanAsync(library, closure, outputBase, corePackageName).ConfigureAwait(false);
-            if (plannerResult.IsFailure)
-            {
-                throw await CreateLibraryFailureAsync(library.Name, "Artifact planning", plannerResult.Error.Message, plannerResult.Error.Exception).ConfigureAwait(false);
-            }
-            var deploymentPlan = plannerResult.Value;
-
-            var deployerResult = await _deployer.DeployArtifactsAsync(deploymentPlan).ConfigureAwait(false);
-            if (deployerResult.IsFailure)
-            {
-                throw await CreateLibraryFailureAsync(library.Name, "Artifact copying", deployerResult.Error.Message, deployerResult.Error.Exception).ConfigureAwait(false);
-            }
-            var statistics = deployerResult.Value;
-
-            // [G1] post-harvest invariant: a successful harvest must have produced at least one
-            // primary binary. Defence-in-depth for the case where walker + planner + deployer all
-            // returned success but the resolved primary set ended up empty (silent feature-flag
-            // degradation, partial vcpkg install). BinaryClosureWalker is the primary guard; this
-            // post-check ensures no downstream consumer ingests a rid-status=true with zero primaries.
-            if (statistics.PrimaryFiles.Count == 0)
-            {
-                throw await CreateEmptyHarvestFailureAsync(library.Name)
-                    .ConfigureAwait(false);
-            }
-
-            await _statusRepo.WriteSuccessAsync(library.Name, statistics).ConfigureAwait(false);
-            _reporter.FinishLibrary(library.Name, statistics);
+            await DeployLibraryAsync(library, closure, outputBase, corePackageName).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -170,11 +145,38 @@ public sealed class HarvestTask(
         }
     }
 
-    private Task<CakeException> CreateEmptyHarvestFailureAsync(string libraryName) => CreateLibraryFailureAsync(
-        libraryName,
-        "Harvest",
-        $"Harvest produced zero primary binaries for '{libraryName}'. Closure walker and planner returned success but no primary files were deployed. Inspect vcpkg install output and manifest primary_binaries patterns.",
-        exception: null);
+    private async Task DeployLibraryAsync(LibraryManifest library, BinaryClosure closure, DirectoryPath outputBase, string corePackageName)
+    {
+        var plannerResult = await _planner.CreatePlanAsync(library, closure, outputBase, corePackageName).ConfigureAwait(false);
+        if (plannerResult.IsFailure)
+        {
+            throw await CreateLibraryFailureAsync(library.Name, "Artifact planning", plannerResult.Error.Message, plannerResult.Error.Exception).ConfigureAwait(false);
+        }
+
+        var deploymentPlan = plannerResult.Value;
+        var deployerResult = await _deployer.DeployArtifactsAsync(deploymentPlan).ConfigureAwait(false);
+        if (deployerResult.IsFailure)
+        {
+            throw await CreateLibraryFailureAsync(library.Name, "Artifact copying", deployerResult.Error.Message, deployerResult.Error.Exception).ConfigureAwait(false);
+        }
+
+        var statistics = deployerResult.Value;
+
+        // A success receipt must never describe an empty primary payload.
+        if (statistics.PrimaryFiles.Count == 0)
+        {
+            throw await CreateLibraryFailureAsync(
+                library.Name,
+                "Harvest",
+                $"Harvest produced zero primary binaries for '{library.Name}'. Closure walker and planner returned success but no primary files were deployed. " +
+                "Inspect vcpkg install output and manifest primary_binaries patterns.",
+                exception: null)
+                .ConfigureAwait(false);
+        }
+
+        await _statusRepo.WriteSuccessAsync(library.Name, statistics).ConfigureAwait(false);
+        _reporter.FinishLibrary(library.Name, statistics);
+    }
 
     private async Task<CakeException> CreateLibraryFailureAsync(string libraryName, string phase, string message, Exception? exception)
     {

@@ -51,7 +51,8 @@ public sealed partial class ManifestFamilyNameInvariantValidator : IManifestFami
             return new ValidationCheck(
                 Name: "Manifest family name invariant",
                 Severity: ValidationSeverity.Error,
-                Message: $"Family name '{name}' does not match required pattern 'sdl<major>-<role>' (lowercase kebab, e.g. 'sdl2-core', 'sdl2-image'). Mixed-case or underscore-delimited names break PackageFamilyId ordinal-exact lookups in downstream consumers.",
+                Message: $"Family name '{name}' does not match required pattern 'sdl<major>-<role>' (lowercase kebab, e.g. 'sdl2-core', " +
+                "'sdl2-image'). Mixed-case or underscore-delimited names break PackageFamilyId ordinal-exact lookups in downstream consumers.",
                 Code: "G59");
         }
 
