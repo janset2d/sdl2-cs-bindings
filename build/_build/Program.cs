@@ -16,6 +16,7 @@ static async Task<int> RunCakeHostAsync(ParseResult parseResult, CancellationTok
     var initialCakeArgs = parseResult.Tokens.Select(token => token.Value).ToArray();
     var effectiveCakeArgs = EntryPoint.GetEffectiveCakeArguments(initialCakeArgs, repoRootPath, parseResult);
 
+    // Keep Cake's synchronous run off the invocation thread so termination handlers can attach.
     return await Task.Run(() => new CakeHost()
         .UseContext<BuildContext>()
         .ConfigureServices(services => EntryPoint.ConfigureHostServices(services, parsedArgs, repoRootPath, cancellationToken))

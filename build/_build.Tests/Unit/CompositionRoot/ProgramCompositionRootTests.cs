@@ -146,5 +146,6 @@ public sealed class ProgramCompositionRootTests
         using var provider = services.BuildServiceProvider();
         var registeredToken = provider.GetRequiredService<CancellationToken>();
         await Assert.That(registeredToken).IsEqualTo(cancellation.Token);
+        await Assert.That(provider.GetService<IProjectMetadataReader>()).IsTypeOf<ProjectMetadataReader>();
     }
 }
