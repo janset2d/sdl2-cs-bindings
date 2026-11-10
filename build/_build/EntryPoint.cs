@@ -1,4 +1,4 @@
-using System.CommandLine.Invocation;
+using System.CommandLine;
 using System.Diagnostics;
 using Build.Data;
 using Build.Host;
@@ -21,6 +21,17 @@ namespace Build;
 
 internal static class EntryPoint
 {
+    internal static void ConfigureHostServices(
+        IServiceCollection services,
+        ParsedArguments parsedArgs,
+        DirectoryPath repoRootPath,
+        CancellationToken cancellationToken)
+    {
+        ConfigureBuildServices(services, parsedArgs, repoRootPath);
+        // The generic overload cannot register a value type.
+        services.AddSingleton(typeof(CancellationToken), cancellationToken);
+    }
+
     internal static void ConfigureBuildServices(IServiceCollection services, ParsedArguments parsedArgs, DirectoryPath repoRootPath)
     {
         ArgumentNullException.ThrowIfNull(services);
@@ -94,11 +105,10 @@ internal static class EntryPoint
         return absoluteFallback;
     }
 
-    internal static string[] GetEffectiveCakeArguments(string[] originalArgs, DirectoryPath repoRoot, InvocationContext invocationContext)
+    internal static string[] GetEffectiveCakeArguments(string[] originalArgs, DirectoryPath repoRoot, ParseResult parseResult)
     {
-        var parseResult = invocationContext.ParseResult;
-        var explicitVerbositySet = parseResult.FindResultFor(CakeOptions.VerbosityOption)?.GetValueOrDefault() != null;
-        var explicitWorkingPathSet = parseResult.FindResultFor(CakeOptions.WorkingPathOption)?.GetValueOrDefault() != null;
+        var explicitVerbositySet = parseResult.GetResult(CakeOptions.VerbosityOption) is not null;
+        var explicitWorkingPathSet = parseResult.GetResult(CakeOptions.WorkingPathOption) is not null;
         var isGitHubDebugRun = string.Equals(Environment.GetEnvironmentVariable("ACTIONS_RUNNER_DEBUG"), "true", StringComparison.OrdinalIgnoreCase);
         var shouldInjectVerbosity = isGitHubDebugRun && !explicitVerbositySet;
         var shouldInjectWorkingPath = !explicitWorkingPathSet;

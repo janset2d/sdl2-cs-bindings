@@ -713,3 +713,8 @@ dotnet_diagnostic.RS0030.severity = none
 # Winner: clock composition; RS0030 remains enabled for every other file.
 [build/_build/Host/Clock/SystemClockRegistration.cs]
 dotnet_diagnostic.RS0030.severity = none
+
+# The probe owns its completion sources; the test releases their gates deterministically.
+# Winner: the controlled cancellation oracle; VSTHRD003 remains enabled for every other file.
+[build/_build.Tests/Fixtures/CakeHostCancellationProbe.cs]
+dotnet_diagnostic.VSTHRD003.severity = none

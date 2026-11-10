@@ -6,7 +6,7 @@ public sealed record ParsedArguments(
     DirectoryInfo? VcpkgDir,
     DirectoryInfo? VcpkgInstalledDir,
     IList<string> Library,
-    string Rid,
+    string? Rid,
     IList<string> Dll,
     string? Suffix,
     IList<string> Scope,
