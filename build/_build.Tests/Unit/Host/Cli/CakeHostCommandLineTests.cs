@@ -1,4 +1,5 @@
 using System.CommandLine;
+using System.CommandLine.Help;
 using System.Reflection;
 using Build.Host.Cli;
 using Build.Host.Cli.Options;
@@ -58,15 +59,25 @@ public sealed class CakeHostCommandLineTests
     [Test]
     public async Task CliOptions_Should_Have_A_Description_And_The_Recorded_Aliases()
     {
-        var fields = typeof(CakeOptions).Assembly
+        var options = typeof(CakeOptions).Assembly
             .GetTypes()
             .Where(type => type.Namespace == typeof(CakeOptions).Namespace)
             .SelectMany(type => type.GetFields(BindingFlags.Public | BindingFlags.Static))
-            .Where(field => typeof(Option).IsAssignableFrom(field.FieldType));
+            .Where(field => typeof(Option).IsAssignableFrom(field.FieldType))
+            .Select(field => (Option)field.GetValue(null)!)
+            .OrderBy(option => option.Name, StringComparer.Ordinal)
+            .ToArray();
+        var root = CakeHostCommandLine.CreateRootCommand((_, _) => Task.FromResult(0));
+        var registered = root.Options
+            .Where(option => option is not HelpOption and not VersionOption)
+            .OrderBy(option => option.Name, StringComparer.Ordinal)
+            .ToArray();
 
-        foreach (var field in fields)
+        await Assert.That(registered.Length).IsEqualTo(CakeHostCommandLineData.RepositoryOptionCount);
+        await Assert.That(options).IsEquivalentTo(registered, CollectionOrdering.Matching);
+
+        foreach (var option in options)
         {
-            var option = (Option)field.GetValue(null)!;
             await Assert.That(option.Description).IsNotNullOrWhiteSpace();
 
             await Assert.That(option.Aliases.Order(StringComparer.Ordinal).ToArray())

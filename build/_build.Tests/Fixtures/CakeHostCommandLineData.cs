@@ -5,6 +5,7 @@ namespace Build.Tests.Fixtures;
 internal static class CakeHostCommandLineData
 {
     public const int CancelledProbeExitCode = 23;
+    public const int RepositoryOptionCount = 22;
     public const string RootDescription = "Cake build for janset2d/sdl2-cs-bindings";
     public const string Config = "Debug";
     public const string DefaultConfig = "Release";
