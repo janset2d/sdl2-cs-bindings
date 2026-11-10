@@ -29,7 +29,7 @@ public static class ResolveVersionsFromManifestOptions
     public static readonly Option<List<string>> VersionScopeOption = new("--scope")
     {
         Description = "Repeated family identifier filter for ResolveVersionsFromManifest output. Each occurrence is one family name (e.g. --scope " +
-            "sdl2-core --scope sdl2-image). Empty = all families. ResolveVersionsFromExplicit ignores this flag - the operator-supplied mapping IS the " +
+            "sdl2-core --scope sdl2-image). Empty = all families. ResolveVersionsFromExplicit ignores this flag — the operator-supplied mapping IS the " +
             "scope there.",
         Arity = ArgumentArity.ZeroOrMore,
     };
