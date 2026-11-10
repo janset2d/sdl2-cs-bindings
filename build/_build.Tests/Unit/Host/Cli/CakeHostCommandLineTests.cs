@@ -4,6 +4,7 @@ using Build.Host.Cli;
 using Build.Host.Cli.Options;
 using Build.Tests.Fixtures;
 using Cake.Core.Diagnostics;
+using Cake.Core.IO;
 using TUnit.Assertions.Enums;
 
 namespace Build.Tests.Unit.Host.Cli;
@@ -83,7 +84,9 @@ public sealed class CakeHostCommandLineTests
         var result = root.Parse(CakeHostCommandLineData.UserTokens);
 
         await Assert.That(root.Options.Select(option => option.Name).ToArray()).IsEquivalentTo(CakeHostCommandLineData.OptionNames, CollectionOrdering.Matching);
-        await Assert.That(result.Tokens.Select(token => token.Value).ToArray()).IsEquivalentTo(CakeHostCommandLineData.UserTokens, CollectionOrdering.Matching);
+        var forwarded = ProgramCompositionRootFixture.RunWithActionsRunnerDebug(
+            null, () => EntryPoint.GetEffectiveCakeArguments(new DirectoryPath(CakeHostCommandLineData.RepoRoot), result));
+        await Assert.That(forwarded).IsEquivalentTo(CakeHostCommandLineData.ForwardedUserTokens, CollectionOrdering.Matching);
     }
 
     [Test]

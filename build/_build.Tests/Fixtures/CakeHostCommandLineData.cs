@@ -30,6 +30,7 @@ internal static class CakeHostCommandLineData
     ];
 
     public static string[] UserTokens => ["--rid", Rid, "--tree"];
+    public static string[] ForwardedUserTokens => ["--rid", Rid, "--tree", "--working", new Cake.Core.IO.DirectoryPath(RepoRoot).FullPath];
     public const string InvalidVerbosity = "not-a-verbosity";
     public static string[] InvalidVerbosityArguments => ["-v", InvalidVerbosity];
     public static string[] InvalidVerbosityErrors => [$"Invalid Cake verbosity '{InvalidVerbosity}'."];

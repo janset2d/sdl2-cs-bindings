@@ -2,6 +2,7 @@ using System.CommandLine;
 using System.Diagnostics;
 using Build.Data;
 using Build.Host;
+using Build.Host.Cli;
 using Build.Host.Cli.Options;
 using Build.Targets.ConsolidateHarvest;
 using Build.Targets.Harvest;
@@ -21,6 +22,19 @@ namespace Build;
 
 internal static class EntryPoint
 {
+    internal static async Task<int> RunCakeHostAsync(
+        ParseResult parseResult,
+        Func<string[], Action<IServiceCollection>, int> runCake,
+        CancellationToken cancellationToken)
+    {
+        var parsedArgs = CakeHostCommandLine.BindParsedArguments(parseResult);
+        var repoRootPath = await DetermineRepoRootAsync(parsedArgs.RepoRoot);
+        var effectiveArgs = GetEffectiveCakeArguments(repoRootPath, parseResult);
+
+        // Keep Cake's synchronous run off the invocation thread so termination handlers can attach.
+        return await Task.Run(() => runCake(effectiveArgs, services => ConfigureHostServices(services, parsedArgs, repoRootPath, cancellationToken)), cancellationToken);
+    }
+
     internal static void ConfigureHostServices(
         IServiceCollection services,
         ParsedArguments parsedArgs,
@@ -105,8 +119,9 @@ internal static class EntryPoint
         return absoluteFallback;
     }
 
-    internal static string[] GetEffectiveCakeArguments(string[] originalArgs, DirectoryPath repoRoot, ParseResult parseResult)
+    internal static string[] GetEffectiveCakeArguments(DirectoryPath repoRoot, ParseResult parseResult)
     {
+        var originalArgs = parseResult.Tokens.Select(token => token.Value).ToArray();
         var explicitVerbositySet = parseResult.GetResult(CakeOptions.VerbosityOption) is not null;
         var explicitWorkingPathSet = parseResult.GetResult(CakeOptions.WorkingPathOption) is not null;
         var isGitHubDebugRun = string.Equals(Environment.GetEnvironmentVariable("ACTIONS_RUNNER_DEBUG"), "true", StringComparison.OrdinalIgnoreCase);

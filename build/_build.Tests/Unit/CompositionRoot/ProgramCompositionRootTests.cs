@@ -8,6 +8,7 @@ using Build.Tests.Fixtures;
 using Build.Validation.Packaging;
 using Cake.Core.IO;
 using Microsoft.Extensions.DependencyInjection;
+using TUnit.Assertions.Enums;
 
 namespace Build.Tests.Unit.CompositionRoot;
 
@@ -46,7 +47,7 @@ public sealed class ProgramCompositionRootTests
 
         var effectiveArgs = ProgramCompositionRootFixture.RunWithActionsRunnerDebug(
             value: null,
-            () => EntryPoint.GetEffectiveCakeArguments(originalArgs, repoRoot, parseResult));
+            () => EntryPoint.GetEffectiveCakeArguments(repoRoot, parseResult));
 
         await Assert.That(effectiveArgs).Contains("--working");
         await Assert.That(effectiveArgs).Contains(repoRoot.FullPath);
@@ -62,7 +63,7 @@ public sealed class ProgramCompositionRootTests
 
         var effectiveArgs = ProgramCompositionRootFixture.RunWithActionsRunnerDebug(
             "true",
-            () => EntryPoint.GetEffectiveCakeArguments(originalArgs, repoRoot, parseResult));
+            () => EntryPoint.GetEffectiveCakeArguments(repoRoot, parseResult));
 
         await Assert.That(effectiveArgs).Contains("--verbosity");
         await Assert.That(effectiveArgs).Contains("diagnostic");
@@ -78,7 +79,7 @@ public sealed class ProgramCompositionRootTests
 
         var effectiveArgs = ProgramCompositionRootFixture.RunWithActionsRunnerDebug(
             "true",
-            () => EntryPoint.GetEffectiveCakeArguments(originalArgs, repoRoot, parseResult));
+            () => EntryPoint.GetEffectiveCakeArguments(repoRoot, parseResult));
 
         await Assert.That(effectiveArgs.Length).IsEqualTo(originalArgs.Length);
 
@@ -86,6 +87,42 @@ public sealed class ProgramCompositionRootTests
         {
             await Assert.That(effectiveArgs[i]).IsEqualTo(originalArgs[i]);
         }
+    }
+
+    [Test]
+    public async Task RunCakeHostAsync_Should_Forward_The_User_Tokens_And_The_Working_Path()
+    {
+        using var directory = new TempDirectory(ProgramCompositionRootData.RepoRootPrefix);
+        var parseResult = ProgramCompositionRootFixture.CreateHostParseResult(directory.Path);
+        var probe = new CakeHostRunProbe();
+
+        var exitCode = await ProgramCompositionRootFixture.RunWithActionsRunnerDebug(
+            null,
+            () => EntryPoint.RunCakeHostAsync(parseResult, probe.Run, CancellationToken.None));
+
+        await Assert.That(probe.Arguments).IsEquivalentTo(
+            ProgramCompositionRootData.ExpectedCakeArguments(directory.Path, new DirectoryPath(directory.Path).FullPath), CollectionOrdering.Matching);
+        await Assert.That(exitCode).IsEqualTo(ProgramCompositionRootData.ProbeExitCode);
+    }
+
+    [Test]
+    public async Task RunCakeHostAsync_Should_Register_The_Action_Token()
+    {
+        using var directory = new TempDirectory(ProgramCompositionRootData.RepoRootPrefix);
+        var parseResult = ProgramCompositionRootFixture.CreateHostParseResult(directory.Path);
+        var probe = new CakeHostRunProbe();
+        using var cancellation = new CancellationTokenSource();
+
+        await ProgramCompositionRootFixture.RunWithActionsRunnerDebug(
+            null,
+            () => EntryPoint.RunCakeHostAsync(parseResult, probe.Run, cancellation.Token));
+
+        var services = ProgramCompositionRootFixture.CreateServiceCollection(FakeCakeWorld.CreateWindows());
+        await Assert.That(probe.ConfigureServices).IsNotNull();
+        probe.ConfigureServices!(services);
+        using var provider = services.BuildServiceProvider();
+        await Assert.That(provider.GetRequiredService<CancellationToken>()).IsEqualTo(cancellation.Token);
+        await Assert.That(provider.GetService<IProjectMetadataReader>()).IsTypeOf<ProjectMetadataReader>();
     }
 
     [Test]

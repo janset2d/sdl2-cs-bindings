@@ -1,24 +1,18 @@
-using System.CommandLine;
 using Build;
 using Build.Host;
 using Build.Host.Cli;
 using Cake.Frosting;
+using Microsoft.Extensions.DependencyInjection;
 
 return await CakeHostCommandLine
-    .CreateRootCommand(RunCakeHostAsync)
+    .CreateRootCommand((parseResult, cancellationToken) => EntryPoint.RunCakeHostAsync(parseResult, RunCake, cancellationToken))
     .Parse(args)
     .InvokeAsync();
 
-static async Task<int> RunCakeHostAsync(ParseResult parseResult, CancellationToken cancellationToken)
+static int RunCake(string[] args, Action<IServiceCollection> configureServices)
 {
-    var parsedArgs = CakeHostCommandLine.BindParsedArguments(parseResult);
-    var repoRootPath = await EntryPoint.DetermineRepoRootAsync(parsedArgs.RepoRoot);
-    var initialCakeArgs = parseResult.Tokens.Select(token => token.Value).ToArray();
-    var effectiveCakeArgs = EntryPoint.GetEffectiveCakeArguments(initialCakeArgs, repoRootPath, parseResult);
-
-    // Keep Cake's synchronous run off the invocation thread so termination handlers can attach.
-    return await Task.Run(() => new CakeHost()
+    return new CakeHost()
         .UseContext<BuildContext>()
-        .ConfigureServices(services => EntryPoint.ConfigureHostServices(services, parsedArgs, repoRootPath, cancellationToken))
-        .Run(effectiveCakeArgs), cancellationToken);
+        .ConfigureServices(configureServices)
+        .Run(args);
 }

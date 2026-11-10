@@ -1,5 +1,6 @@
 using System.CommandLine;
 using Build.Data.Manifest.Models;
+using Build.Host.Cli;
 using Build.Host.Cli.Options;
 using Cake.Core.Diagnostics;
 using Cake.Core.IO;
@@ -12,6 +13,10 @@ internal static class ProgramCompositionRootFixture
     private static readonly Lock ParseRootLock = new();
     private static readonly Lock EnvironmentVariableLock = new();
     private static readonly RootCommand ParsingRoot = CreateParsingRoot();
+
+    public static ParseResult CreateHostParseResult(string repoRoot) => CakeHostCommandLine
+        .CreateRootCommand((_, _) => Task.FromResult(0))
+        .Parse(ProgramCompositionRootData.UserArguments(repoRoot));
 
     public static ParseResult CreateParseResult(params string[] args)
     {
