@@ -46,7 +46,7 @@ public sealed class ProgramCompositionRootTests
         var repoRoot = new DirectoryPath("C:/repo-root");
         var parseResult = ProgramCompositionRootFixture.CreateParseResult(originalArgs);
 
-        var effectiveArgs = ProgramCompositionRootFixture.RunWithActionsRunnerDebug(
+        var effectiveArgs = await ProgramCompositionRootFixture.RunWithActionsRunnerDebugAsync(
             value: null,
             () => EntryPoint.GetEffectiveCakeArguments(repoRoot, parseResult));
 
@@ -62,7 +62,7 @@ public sealed class ProgramCompositionRootTests
         var repoRoot = new DirectoryPath("C:/repo-root");
         var parseResult = ProgramCompositionRootFixture.CreateParseResult(originalArgs);
 
-        var effectiveArgs = ProgramCompositionRootFixture.RunWithActionsRunnerDebug(
+        var effectiveArgs = await ProgramCompositionRootFixture.RunWithActionsRunnerDebugAsync(
             "true",
             () => EntryPoint.GetEffectiveCakeArguments(repoRoot, parseResult));
 
@@ -78,7 +78,7 @@ public sealed class ProgramCompositionRootTests
         var repoRoot = new DirectoryPath("C:/repo-root");
         var parseResult = ProgramCompositionRootFixture.CreateParseResult(originalArgs);
 
-        var effectiveArgs = ProgramCompositionRootFixture.RunWithActionsRunnerDebug(
+        var effectiveArgs = await ProgramCompositionRootFixture.RunWithActionsRunnerDebugAsync(
             "true",
             () => EntryPoint.GetEffectiveCakeArguments(repoRoot, parseResult));
 

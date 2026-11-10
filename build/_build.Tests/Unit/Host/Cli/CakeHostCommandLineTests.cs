@@ -93,7 +93,7 @@ public sealed class CakeHostCommandLineTests
         var result = root.Parse(CakeHostCommandLineData.UserTokens);
 
         await Assert.That(root.Options.Select(option => option.Name).ToArray()).IsEquivalentTo(CakeHostCommandLineData.OptionNames, CollectionOrdering.Matching);
-        var forwarded = ProgramCompositionRootFixture.RunWithActionsRunnerDebug(
+        var forwarded = await ProgramCompositionRootFixture.RunWithActionsRunnerDebugAsync(
             null, () => EntryPoint.GetEffectiveCakeArguments(new DirectoryPath(CakeHostCommandLineData.RepoRoot), result));
         await Assert.That(forwarded).IsEquivalentTo(CakeHostCommandLineData.ForwardedUserTokens, CollectionOrdering.Matching);
     }

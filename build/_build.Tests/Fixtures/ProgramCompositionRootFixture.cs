@@ -11,7 +11,6 @@ namespace Build.Tests.Fixtures;
 internal static class ProgramCompositionRootFixture
 {
     private static readonly Lock ParseRootLock = new();
-    private static readonly Lock EnvironmentVariableLock = new();
     private static readonly SemaphoreSlim AsyncEnvironmentVariableLock = new(1, 1);
     private static readonly RootCommand ParsingRoot = CreateParsingRoot();
 
@@ -27,21 +26,20 @@ internal static class ProgramCompositionRootFixture
         }
     }
 
-    public static T RunWithActionsRunnerDebug<T>(string? value, Func<T> callback)
+    public static async Task<T> RunWithActionsRunnerDebugAsync<T>(string? value, Func<T> callback)
     {
-        lock (EnvironmentVariableLock)
-        {
-            var previous = Environment.GetEnvironmentVariable("ACTIONS_RUNNER_DEBUG");
+        await AsyncEnvironmentVariableLock.WaitAsync();
+        var previous = Environment.GetEnvironmentVariable("ACTIONS_RUNNER_DEBUG");
 
-            try
-            {
-                Environment.SetEnvironmentVariable("ACTIONS_RUNNER_DEBUG", value);
-                return callback();
-            }
-            finally
-            {
-                Environment.SetEnvironmentVariable("ACTIONS_RUNNER_DEBUG", previous);
-            }
+        try
+        {
+            Environment.SetEnvironmentVariable("ACTIONS_RUNNER_DEBUG", value);
+            return callback();
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("ACTIONS_RUNNER_DEBUG", previous);
+            AsyncEnvironmentVariableLock.Release();
         }
     }
 
