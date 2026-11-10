@@ -1,6 +1,7 @@
 using Build.Data.Manifest;
 using Build.Data.ProjectMetadata;
 using Build.Data.Versions;
+using Build.Host.Paths;
 using Build.Targets.NativeSmoke.Services;
 using Build.Targets.Package.Services;
 using Build.Targets.PackageConsumerSmoke.Services;
@@ -96,7 +97,7 @@ public sealed class ProgramCompositionRootTests
         var parseResult = ProgramCompositionRootFixture.CreateHostParseResult(directory.Path);
         var probe = new CakeHostRunProbe();
 
-        var exitCode = await ProgramCompositionRootFixture.RunWithActionsRunnerDebug(
+        var exitCode = await ProgramCompositionRootFixture.RunWithActionsRunnerDebugAsync(
             null,
             () => EntryPoint.RunCakeHostAsync(parseResult, probe.Run, CancellationToken.None));
 
@@ -113,7 +114,7 @@ public sealed class ProgramCompositionRootTests
         var probe = new CakeHostRunProbe();
         using var cancellation = new CancellationTokenSource();
 
-        await ProgramCompositionRootFixture.RunWithActionsRunnerDebug(
+        await ProgramCompositionRootFixture.RunWithActionsRunnerDebugAsync(
             null,
             () => EntryPoint.RunCakeHostAsync(parseResult, probe.Run, cancellation.Token));
 
@@ -123,6 +124,24 @@ public sealed class ProgramCompositionRootTests
         using var provider = services.BuildServiceProvider();
         await Assert.That(provider.GetRequiredService<CancellationToken>()).IsEqualTo(cancellation.Token);
         await Assert.That(provider.GetService<IProjectMetadataReader>()).IsTypeOf<ProjectMetadataReader>();
+        await Assert.That(provider.GetRequiredService<IPathService>().RepoRoot.FullPath).IsEqualTo(new DirectoryPath(directory.Path).FullPath);
+        await Assert.That(provider.GetRequiredService<ParsedArguments>().RepoRoot?.FullName).IsEqualTo(directory.Path);
+    }
+
+    [Test]
+    public async Task RunCakeHostAsync_Should_Not_Start_Cake_When_The_Token_Is_Already_Cancelled()
+    {
+        using var directory = new TempDirectory(ProgramCompositionRootData.RepoRootPrefix);
+        var parseResult = ProgramCompositionRootFixture.CreateHostParseResult(directory.Path);
+        var probe = new CakeHostRunProbe();
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        await Assert.That(() => ProgramCompositionRootFixture.RunWithActionsRunnerDebugAsync(
+            null,
+            () => EntryPoint.RunCakeHostAsync(parseResult, probe.Run, cancellation.Token)))
+            .Throws<OperationCanceledException>();
+        await Assert.That(probe.WasInvoked).IsFalse();
     }
 
     [Test]

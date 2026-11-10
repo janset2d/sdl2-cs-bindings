@@ -12,6 +12,7 @@ internal static class ProgramCompositionRootFixture
 {
     private static readonly Lock ParseRootLock = new();
     private static readonly Lock EnvironmentVariableLock = new();
+    private static readonly SemaphoreSlim AsyncEnvironmentVariableLock = new(1, 1);
     private static readonly RootCommand ParsingRoot = CreateParsingRoot();
 
     public static ParseResult CreateHostParseResult(string repoRoot) => CakeHostCommandLine
@@ -41,6 +42,23 @@ internal static class ProgramCompositionRootFixture
             {
                 Environment.SetEnvironmentVariable("ACTIONS_RUNNER_DEBUG", previous);
             }
+        }
+    }
+
+    public static async Task<T> RunWithActionsRunnerDebugAsync<T>(string? value, Func<Task<T>> callback)
+    {
+        await AsyncEnvironmentVariableLock.WaitAsync();
+        var previous = Environment.GetEnvironmentVariable("ACTIONS_RUNNER_DEBUG");
+
+        try
+        {
+            Environment.SetEnvironmentVariable("ACTIONS_RUNNER_DEBUG", value);
+            return await callback();
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("ACTIONS_RUNNER_DEBUG", previous);
+            AsyncEnvironmentVariableLock.Release();
         }
     }
 
