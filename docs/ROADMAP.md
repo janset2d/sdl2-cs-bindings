@@ -102,8 +102,8 @@ the existing family version set rather than waiting for a topology redesign.
 - **Policy versus output:** spike output still uses an internal raw container and public forwarders.
   The new binding/friendly policy, ABI-exact boolean struct and uniform typed callbacks are not yet
   implemented throughout. The oracle's public-import checks still reflect the old container policy.
-   [Directory.Build.props](../Directory.Build.props) and the spike projects do not target `net11.0` yet;
-   that is the remaining framework gap against [ADR-0009](adr/0009-target-frameworks.md).
+  [Directory.Build.props](../Directory.Build.props) and the spike projects do not target `net11.0` yet;
+  that is the remaining framework gap against [ADR-0009](adr/0009-target-frameworks.md).
 - **API enforcement:** the snapshot covers Core on one TFM; package validation is not enabled.
 - **Tooling:** the executable generator is Python; maintenance intentionally retains those commands.
   Tested header/config/stamp/output safeguards and symbol validation are dormant salvage. Production
