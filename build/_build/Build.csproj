@@ -1,8 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <!-- Cake host is single-TFM; tracks $(LatestDotNet) from root Directory.Build.props. -->
-    <TargetFramework>$(LatestDotNet)</TargetFramework>
+    <TargetFramework>$(ToolingTargetFramework)</TargetFramework>
     <TargetFrameworks></TargetFrameworks>
     <RunWorkingDirectory>$(MSBuildProjectDirectory)</RunWorkingDirectory>
 

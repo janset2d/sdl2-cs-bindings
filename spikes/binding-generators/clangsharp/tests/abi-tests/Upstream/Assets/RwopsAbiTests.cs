@@ -800,7 +800,7 @@ public sealed class RwopsAbiTests
         return false;
     }
 
-#if NET462
+#if NETFRAMEWORK
     private static UIntPtr NativeSize(int value) => new((uint)value);
 #else
     private static nuint NativeSize(int value) => (nuint)value;

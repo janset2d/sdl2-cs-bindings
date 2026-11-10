@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>$(LatestDotNet)</TargetFramework>
+    <TargetFramework>$(ToolingTargetFramework)</TargetFramework>
     <TargetFrameworks></TargetFrameworks>
     <OutputType>Exe</OutputType>
     <IsTestProject>true</IsTestProject>

@@ -129,7 +129,7 @@ public sealed class OwnershipFreeAbiTests
         return new BmpNonTransferResult(true, seekPosition, readObjects, Encoding.ASCII.GetString(header), closeResult);
     }
 
-#if NET462
+#if NETFRAMEWORK
     private static UIntPtr NativeSize(int value) => new((uint)value);
 
     private static ulong ToUInt64(UIntPtr value) => value.ToUInt64();

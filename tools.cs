@@ -1,5 +1,5 @@
 #!/usr/bin/env dotnet
-#:property TargetFramework=net10.0
+#:property TargetFramework=$(ToolingTargetFramework)
 #:property TargetFrameworks=
 #:property PublishAot=false
 #:property IsAotCompatible=false

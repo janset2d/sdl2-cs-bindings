@@ -24,9 +24,9 @@ warnings-not-as-errors: 0
 build-switch .github/workflows/build-cake-host.yml [command line] RunAnalyzers = ${{ inputs.run-analyzers }} x2
 build-switch Directory.Build.props [!Exists('$(MSBuildThisFileDirectory).git')] EnableSourceControlManagerQueries = false
 build-switch Directory.Build.props [!Exists('$(MSBuildThisFileDirectory).git')] EnableSourceLink = false
-build-switch Directory.Build.props ['$(TargetFramework)' != 'net462' And '$(TargetFramework)' != 'netstandard2.0'] EnableAOTAnalyzer = true
-build-switch Directory.Build.props ['$(TargetFramework)' != 'net462' And '$(TargetFramework)' != 'netstandard2.0'] IsAotCompatible = true
-build-switch Directory.Build.props ['$(TargetFramework)' != 'net462' And '$(TargetFramework)' != 'netstandard2.0'] IsTrimmable = true
+build-switch Directory.Build.props ['$(TargetFramework)' != '' And $([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETCoreApp'] EnableAOTAnalyzer = true
+build-switch Directory.Build.props ['$(TargetFramework)' != '' And $([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETCoreApp'] IsAotCompatible = true
+build-switch Directory.Build.props ['$(TargetFramework)' != '' And $([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETCoreApp'] IsTrimmable = true
 build-switch Directory.Build.props [] AnalysisLevel = 10.0
 build-switch Directory.Build.props [] AnalysisMode = All
 build-switch Directory.Build.props [] CodeAnalysisTreatWarningsAsErrors = true

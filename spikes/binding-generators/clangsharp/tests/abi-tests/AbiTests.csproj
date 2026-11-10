@@ -1,14 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!--
-    Per-TFM ABI smoke for the ClangSharp spike's rewriter output. References
-    the spike's Janset.SDL2.Core ProjectReference directly (not the published
-    NuGet) and exercises Layer 1 internals via InternalsVisibleTo. Build +
-    test evidence per executable TFM verifies the ClongDualDispatchRewriter
-    produces valid code for both Compat (net462) and Modern (net8+) outputs.
-  -->
+  <!-- Per-TFM ABI checks exercise generated internals directly, not the published managed package. -->
   <PropertyGroup>
-    <!-- Keep the executable TFM matrix explicit until the shared TFM policy is adopted. -->
-    <TargetFrameworks>net10.0;net9.0;net8.0;net462</TargetFrameworks>
+    <TargetFrameworks>$(ExecutableTargetFrameworks)</TargetFrameworks>
     <OutputType>Exe</OutputType>
     <IsTestProject>true</IsTestProject>
     <IsPackable>false</IsPackable>
@@ -30,7 +23,7 @@
     <PackageReference Include="PolySharp" PrivateAssets="all" IncludeAssets="runtime;build;native;contentfiles;analyzers;buildtransitive" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net462'">
+  <ItemGroup Condition="$([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETFramework'">
     <PackageReference Include="System.Memory" />
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
   </ItemGroup>
