@@ -15,12 +15,12 @@ public sealed class CakeHostCommandLineTests
     [Test]
     public async Task BindParsedArguments_Should_Map_Every_Option_When_All_Are_Given()
     {
-        var root = CakeHostCommandLine.CreateRootCommand((_, _) => Task.FromResult(0));
+        var root = CakeHostCommandLine.CreateRootCommand((_, _) => Task.FromResult(CakeHostCommandLineData.SuccessExitCode));
         var parseResult = root.Parse(CakeHostCommandLineData.AllArguments);
+        await Assert.That(parseResult.Errors).IsEmpty();
 
         var result = CakeHostCommandLine.BindParsedArguments(parseResult);
 
-        await Assert.That(parseResult.Errors).IsEmpty();
         await Assert.That(result.RepoRoot?.FullName).IsEqualTo(CakeHostCommandLineData.RepoRoot);
         await Assert.That(result.Config).IsEqualTo(CakeHostCommandLineData.Config);
         await Assert.That(result.VcpkgDir?.FullName).IsEqualTo(CakeHostCommandLineData.VcpkgDir);
@@ -38,7 +38,7 @@ public sealed class CakeHostCommandLineTests
     [Test]
     public async Task BindParsedArguments_Should_Return_Empty_Lists_And_Defaults_When_Options_Are_Absent()
     {
-        var root = CakeHostCommandLine.CreateRootCommand((_, _) => Task.FromResult(0));
+        var root = CakeHostCommandLine.CreateRootCommand((_, _) => Task.FromResult(CakeHostCommandLineData.SuccessExitCode));
 
         var result = CakeHostCommandLine.BindParsedArguments(root.Parse([]));
 
@@ -67,7 +67,7 @@ public sealed class CakeHostCommandLineTests
             .Select(field => (Option)field.GetValue(null)!)
             .OrderBy(option => option.Name, StringComparer.Ordinal)
             .ToArray();
-        var root = CakeHostCommandLine.CreateRootCommand((_, _) => Task.FromResult(0));
+        var root = CakeHostCommandLine.CreateRootCommand((_, _) => Task.FromResult(CakeHostCommandLineData.SuccessExitCode));
         var registered = root.Options
             .Where(option => option is not HelpOption and not VersionOption)
             .OrderBy(option => option.Name, StringComparer.Ordinal)
@@ -88,7 +88,7 @@ public sealed class CakeHostCommandLineTests
     [Test]
     public async Task ParseResult_Should_Expose_Only_User_Tokens()
     {
-        var root = CakeHostCommandLine.CreateRootCommand((_, _) => Task.FromResult(0));
+        var root = CakeHostCommandLine.CreateRootCommand((_, _) => Task.FromResult(CakeHostCommandLineData.SuccessExitCode));
 
         var result = root.Parse(CakeHostCommandLineData.UserTokens);
 
@@ -102,9 +102,9 @@ public sealed class CakeHostCommandLineTests
     [MethodDataSource(typeof(CakeHostCommandLineData), nameof(CakeHostCommandLineData.LowercaseVerbosity))]
     public async Task VerbosityOption_Should_Parse_Lowercase_Cake_Verbosity(string value, Verbosity expected)
     {
-        var root = CakeHostCommandLine.CreateRootCommand((_, _) => Task.FromResult(0));
+        var root = CakeHostCommandLine.CreateRootCommand((_, _) => Task.FromResult(CakeHostCommandLineData.SuccessExitCode));
 
-        var result = root.Parse(["-v", value]);
+        var result = root.Parse(CakeHostCommandLineData.VerbosityArguments(value));
 
         await Assert.That(result.Errors).IsEmpty();
         await Assert.That(result.GetValue(CakeOptions.VerbosityOption)).IsEqualTo(expected);
@@ -113,7 +113,7 @@ public sealed class CakeHostCommandLineTests
     [Test]
     public async Task VerbosityOption_Should_Report_An_Error_When_The_Value_Is_Not_A_Cake_Verbosity()
     {
-        var root = CakeHostCommandLine.CreateRootCommand((_, _) => Task.FromResult(0));
+        var root = CakeHostCommandLine.CreateRootCommand((_, _) => Task.FromResult(CakeHostCommandLineData.SuccessExitCode));
 
         var result = root.Parse(CakeHostCommandLineData.InvalidVerbosityArguments);
 
@@ -128,22 +128,22 @@ public sealed class CakeHostCommandLineTests
         var root = CakeHostCommandLine.CreateRootCommand((result, _) =>
         {
             forwardedTokens = [.. result.Tokens.Select(token => token.Value)];
-            return Task.FromResult(CakeHostCommandLineData.CancelledProbeExitCode);
+            return Task.FromResult(CakeHostCommandLineData.HelpProbeExitCode);
         });
         using var output = new StringWriter();
         var configuration = new InvocationConfiguration { Output = output };
 
         var cakeHelpExit = await root.Parse(CakeHostCommandLineData.CakeHelp).InvokeAsync(configuration);
-        await Assert.That(cakeHelpExit).IsEqualTo(CakeHostCommandLineData.CancelledProbeExitCode);
+        await Assert.That(cakeHelpExit).IsEqualTo(CakeHostCommandLineData.HelpProbeExitCode);
         await Assert.That(forwardedTokens).IsEquivalentTo(CakeHostCommandLineData.CakeHelp, CollectionOrdering.Matching);
 
         foreach (var alias in CakeHostCommandLineData.WrapperHelpAliases)
         {
             output.GetStringBuilder().Clear();
             var wrapperHelpExit = await root.Parse([alias]).InvokeAsync(configuration);
-            await Assert.That(wrapperHelpExit).IsEqualTo(0);
+            await Assert.That(wrapperHelpExit).IsEqualTo(CakeHostCommandLineData.SuccessExitCode);
             await Assert.That(output.ToString()).Contains(CakeHostCommandLineData.RootDescription);
-            await Assert.That(output.ToString()).Contains("--repo-root");
+            await Assert.That(output.ToString()).Contains(CakeHostCommandLineData.RepoRootOptionName);
         }
     }
 

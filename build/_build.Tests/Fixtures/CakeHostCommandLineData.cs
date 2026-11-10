@@ -5,7 +5,10 @@ namespace Build.Tests.Fixtures;
 internal static class CakeHostCommandLineData
 {
     public const int CancelledProbeExitCode = 23;
+    public const int HelpProbeExitCode = 41;
+    public const int SuccessExitCode = 0;
     public const int RepositoryOptionCount = 22;
+    public const string RepoRootOptionName = "--repo-root";
     public const string RootDescription = "Cake build for janset2d/sdl2-cs-bindings";
     public const string Config = "Debug";
     public const string DefaultConfig = "Release";
@@ -34,6 +37,7 @@ internal static class CakeHostCommandLineData
     public static string[] ForwardedUserTokens => ["--rid", Rid, "--tree", "--working", new Cake.Core.IO.DirectoryPath(RepoRoot).FullPath];
     public const string InvalidVerbosity = "not-a-verbosity";
     public static string[] InvalidVerbosityArguments => ["-v", InvalidVerbosity];
+    public static string[] VerbosityArguments(string value) => ["-v", value];
     public static string[] InvalidVerbosityErrors => [$"Invalid Cake verbosity '{InvalidVerbosity}'."];
     public static IEnumerable<(string Value, Verbosity Expected)> LowercaseVerbosity() =>
     [
