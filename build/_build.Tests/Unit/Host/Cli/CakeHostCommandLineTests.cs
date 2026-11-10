@@ -127,7 +127,7 @@ public sealed class CakeHostCommandLineTests
     public async Task InvokeAsync_Should_Cancel_The_Action_Token_When_The_Invocation_Is_Cancelled()
     {
         var probe = new CakeHostCancellationProbe();
-        var root = CakeHostCommandLine.CreateRootCommand(probe.InvokeAsync);
+        var root = CakeHostCommandLine.CreateRootCommand((_, token) => probe.InvokeAsync(token));
         using var cancellation = new CancellationTokenSource();
         var invocation = root.Parse([]).InvokeAsync(configuration: null, cancellation.Token);
 
