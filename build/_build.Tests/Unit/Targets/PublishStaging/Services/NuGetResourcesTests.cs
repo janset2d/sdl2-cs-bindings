@@ -2,7 +2,7 @@ using Build.Targets.PublishStaging.Services;
 using Build.Tests.Fixtures;
 using NuGet.Protocol.Core.Types;
 
-namespace Build.Tests.Unit.Targets;
+namespace Build.Tests.Unit.Targets.PublishStaging.Services;
 
 public sealed class NuGetResourcesTests
 {
