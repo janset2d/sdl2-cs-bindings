@@ -1421,7 +1421,7 @@ namespace Tools
         public static async Task<NuGetVersion?> GetLatestNuGetVersionAsync(string feedUrl, string authToken, string packageId)
         {
             var repository = CreateNuGetRepository(feedUrl, authToken);
-            var resource = await repository.GetResourceAsync<FindPackageByIdResource>(CancellationToken.None);
+            var resource = await GetRequiredNuGetResourceAsync<FindPackageByIdResource>(repository);
 
             using var cache = new SourceCacheContext { NoCache = true };
             var versions = await resource.GetAllVersionsAsync(packageId, cache, NullLogger.Instance, CancellationToken.None);
@@ -1435,7 +1435,7 @@ namespace Tools
             string feedUrl, string authToken, string packageId, NuGetVersion version, string targetDir)
         {
             var repository = CreateNuGetRepository(feedUrl, authToken);
-            var resource = await repository.GetResourceAsync<FindPackageByIdResource>(CancellationToken.None);
+            var resource = await GetRequiredNuGetResourceAsync<FindPackageByIdResource>(repository);
 
             using var cache = new SourceCacheContext { NoCache = true };
 
@@ -1456,6 +1456,12 @@ namespace Tools
                     $"NuGet feed at '{feedUrl}' could not stream '{packageId}' {version.ToNormalizedString()}. Verify the package was published and the " +
                     "auth token has read:packages scope.");
             }
+        }
+
+        private static async Task<T> GetRequiredNuGetResourceAsync<T>(SourceRepository repository) where T : class, INuGetResource
+        {
+            return await repository.GetResourceAsync<T>(CancellationToken.None)
+                ?? throw new InvalidOperationException($"The source '{repository.PackageSource.Source}' does not provide {typeof(T).Name}.");
         }
 
         private static SourceRepository CreateNuGetRepository(string feedUrl, string authToken)
