@@ -27,12 +27,6 @@
     <PackageReference Include="System.Memory" />
   </ItemGroup>
 
-  <!-- RuntimeInformation polyfill for net462: needed by the SDL_ThreadID family
-       dual-dispatch wrapper (Slice C-A R2 structural emit). netstandard2.0 already
-       includes RuntimeInformation; net462 needs the OOB package. -->
-  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'">
-    <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" />
-  </ItemGroup>
 
   <!-- Layer 1 raw ABI escape valve for the AbiTests smoke project. Exposes the
        internal SDLNative class so per-TFM runtime evidence can call SDL_ThreadID()

@@ -30,7 +30,7 @@ internal static unsafe class SdlRuntimeProbe
 #if NET6_0_OR_GREATER
             return RuntimeInformation.RuntimeIdentifier;
 #else
-            return RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "win-net462" : "net462";
+            return RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "win-netframework" : "netframework";
 #endif
         }
     }

@@ -14,7 +14,7 @@
 // no auto-marshalled aggregates. Disabling runtime marshalling has no
 // semantic effect on the existing signatures.
 //
-// Legacy TFMs (netstandard2.0, net462) use the Compat (DllImport) emit
+// Legacy TFMs (.NET Standard, .NET Framework) use the Compat (DllImport) emit
 // and neither need nor support the attribute; the #if guard restricts
 // the application to net7+ consumers of the Modern (LibraryImport) emit.
 

@@ -7,13 +7,13 @@ namespace Janset.SDL2.AbiTests;
 /// Layer 1 raw ABI smoke for the SDL_ThreadID family. Exercises the
 /// ClongDualDispatchRewriter's per-mode C `unsigned long` output:
 ///   - Modern TFMs (net8+): CULong return via [LibraryImport].
-///   - Compat TFM (net462): managed ulong wrapper + RuntimeInformation
+///   - Compat TFM (.NET Framework): managed ulong wrapper + RuntimeInformation
 ///     dispatch + dual private [DllImport] (Win32 uint / Unix64 nint).
 ///
 /// On Windows host, both modes dispatch through the 32-bit Win32 branch.
 /// The Unix64 nint path is exercised by the CI per-RID matrix. The build
 /// itself (per-TFM compile of this project against Janset.SDL2.Core) is
-/// also evidence — if the rewriter's output were invalid on net462 where
+/// also evidence — if the rewriter's output were invalid on .NET Framework where
 /// CULong does not exist, the build would fail.
 /// </summary>
 public sealed class ThreadIdAbiTests

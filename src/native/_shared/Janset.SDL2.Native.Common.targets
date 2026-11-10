@@ -48,7 +48,7 @@
       - .NETFramework on Windows AnyCPU: the SDK does not honour runtimes/ for AnyCPU
         projects, so we copy the per-RID *.dll files explicitly into $(TargetDir).
         Matches the historical behaviour that shipped with this repo's .Native
-        packages for net462 consumers.
+        packages for .NET Framework consumers.
 
     Intentionally NOT supported by this file:
       - .NETFramework + runtime tar extraction (Mono on Linux/macOS). Rare path; if it
