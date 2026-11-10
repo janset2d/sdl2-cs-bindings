@@ -92,7 +92,7 @@
 
   <ItemGroup>
     <PackageReference Include="Polyfill" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive"
-                      Condition=" '$(JansetPolyfill)' != 'false' " />
+                      Condition=" '$(JansetPolyfill)' != 'false' And '$(TargetFramework)' != '' And $([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) != '.NETCoreApp' " />
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
     <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers">
       <PrivateAssets>all</PrivateAssets>

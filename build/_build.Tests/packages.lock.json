@@ -71,12 +71,6 @@
         "resolved": "1.0.17",
         "contentHash": "Pwz0MD7CAM/G/fvJjM3ceOfI+S0IgjanHcK7evwyrW9qAWUG8fgiEXYfSX1/s3h2JUNDOw6ik0G8zp+RT61Y1g=="
       },
-      "Polyfill": {
-        "type": "Direct",
-        "requested": "[11.4.5, )",
-        "resolved": "11.4.5",
-        "contentHash": "dIAO1ecvukEGrfbJDEmVtkxM7uZtwHfLJxTwFft92L4DjEKeyNbAQiq8WiFHwefiOQdeaNDhkHM8j7VPKKggkA=="
-      },
       "Roslynator.Analyzers": {
         "type": "Direct",
         "requested": "[5.0.1, )",

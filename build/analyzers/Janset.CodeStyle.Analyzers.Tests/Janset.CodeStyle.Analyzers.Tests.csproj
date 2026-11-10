@@ -4,7 +4,6 @@
     <TargetFrameworks></TargetFrameworks>
     <OutputType>Exe</OutputType>
     <IsTestProject>true</IsTestProject>
-    <EnableTUnitPolyfills>false</EnableTUnitPolyfills>
     <IsAotCompatible>false</IsAotCompatible>
     <IsTrimmable>false</IsTrimmable>
     <EnableAOTAnalyzer>false</EnableAOTAnalyzer>
