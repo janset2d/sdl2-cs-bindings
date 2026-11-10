@@ -1,4 +1,5 @@
 using Cake.Core.Diagnostics;
+using Cake.Core.IO;
 
 namespace Build.Tests.Fixtures;
 
@@ -16,9 +17,10 @@ internal static class CakeHostCommandLineData
     public const string Suffix = "local.probe";
     public const string ExplicitVersions = "sdl2-core=2.32.0,sdl2-image=2.8.0";
     public const string VersionsFile = "artifacts/probe-versions.json";
-    public static string RepoRoot => Path.GetFullPath("repo-root");
-    public static string VcpkgDir => Path.GetFullPath("vcpkg-root");
-    public static string VcpkgInstalledDir => Path.GetFullPath("vcpkg-installed");
+    public const string InvalidVerbosity = "not-a-verbosity";
+    public static string RepoRoot => System.IO.Path.GetFullPath("repo-root");
+    public static string VcpkgDir => System.IO.Path.GetFullPath("vcpkg-root");
+    public static string VcpkgInstalledDir => System.IO.Path.GetFullPath("vcpkg-installed");
     public static string[] Libraries => ["SDL2_image", "SDL2"];
     public static string[] Dlls => ["SDL2_image.dll", "SDL2.dll"];
     public static string[] Scope => ["sdl2-image", "sdl2-core"];
@@ -26,7 +28,7 @@ internal static class CakeHostCommandLineData
 
     public static string[] AllArguments =>
     [
-        "--repo-root", RepoRoot, "--config", Config, "--vcpkg-dir", VcpkgDir, "--vcpkg-installed-dir", VcpkgInstalledDir,
+        RepoRootOptionName, RepoRoot, "--config", Config, "--vcpkg-dir", VcpkgDir, "--vcpkg-installed-dir", VcpkgInstalledDir,
         "--library", Libraries[0], "--library", Libraries[1], "--rid", Rid,
         "--dll", Dlls[0], "--dll", Dlls[1], "--suffix", Suffix,
         "--scope", Scope[0], "--scope", Scope[1], "--explicit-version", ExplicitVersion[0], "--explicit-version", ExplicitVersion[1],
@@ -34,15 +36,14 @@ internal static class CakeHostCommandLineData
     ];
 
     public static string[] UserTokens => ["--rid", Rid, "--tree"];
-    public static string[] ForwardedUserTokens => ["--rid", Rid, "--tree", "--working", new Cake.Core.IO.DirectoryPath(RepoRoot).FullPath];
-    public const string InvalidVerbosity = "not-a-verbosity";
-    public static string[] InvalidVerbosityArguments => ["-v", InvalidVerbosity];
+    public static string[] ForwardedUserTokens => ["--rid", Rid, "--tree", "--working", new DirectoryPath(RepoRoot).FullPath];
+    public static IEnumerable<string> InvalidVerbosityValues() => [InvalidVerbosity, "4"];
     public static string[] VerbosityArguments(string value) => ["-v", value];
-    public static string[] InvalidVerbosityErrors => [$"Invalid Cake verbosity '{InvalidVerbosity}'."];
-    public static IEnumerable<(string Value, Verbosity Expected)> LowercaseVerbosity() =>
+    public static string[] InvalidVerbosityErrors(string value) => [$"Invalid Cake verbosity '{value}'."];
+    public static IEnumerable<(string Value, Verbosity Expected)> VerbositySpellings() =>
     [
         ("quiet", Verbosity.Quiet), ("q", Verbosity.Quiet), ("m", Verbosity.Minimal),
-        ("n", Verbosity.Normal), ("v", Verbosity.Verbose), ("d", Verbosity.Diagnostic),
+        ("n", Verbosity.Normal), ("v", Verbosity.Verbose), ("d", Verbosity.Diagnostic), ("Diagnostic", Verbosity.Diagnostic),
     ];
     public static string[] CakeHelp => ["--help"];
     public static string[] WrapperHelpAliases => ["-h", "-?"];
@@ -58,7 +59,7 @@ internal static class CakeHostCommandLineData
         ["--verbosity"] = ["-v"],
         ["-version"] = [],
         ["--working"] = ["-w"],
-        ["--repo-root"] = [],
+        [RepoRootOptionName] = [],
         ["--config"] = ["-c"],
         ["--vcpkg-dir"] = [],
         ["--vcpkg-installed-dir"] = [],
@@ -74,7 +75,7 @@ internal static class CakeHostCommandLineData
     public static string[] OptionNames =>
     [
         "--description", "--dryrun", "--exclusive", "--help", "--info", "--target", "--tree", "--verbosity", "-version", "--working",
-        "--repo-root", "--config", "--vcpkg-dir", "--vcpkg-installed-dir", "--library", "--rid", "--suffix", "--scope", "--explicit-version",
+        RepoRootOptionName, "--config", "--vcpkg-dir", "--vcpkg-installed-dir", "--library", "--rid", "--suffix", "--scope", "--explicit-version",
         "--explicit-versions", "--versions-file", "--dll", "--version", "--help",
     ];
 }

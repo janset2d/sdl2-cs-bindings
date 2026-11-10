@@ -99,8 +99,8 @@ public sealed class CakeHostCommandLineTests
     }
 
     [Test]
-    [MethodDataSource(typeof(CakeHostCommandLineData), nameof(CakeHostCommandLineData.LowercaseVerbosity))]
-    public async Task VerbosityOption_Should_Parse_Lowercase_Cake_Verbosity(string value, Verbosity expected)
+    [MethodDataSource(typeof(CakeHostCommandLineData), nameof(CakeHostCommandLineData.VerbositySpellings))]
+    public async Task VerbosityOption_Should_Parse_Every_Cake_Verbosity_Spelling(string value, Verbosity expected)
     {
         var root = CakeHostCommandLine.CreateRootCommand((_, _) => Task.FromResult(CakeHostCommandLineData.SuccessExitCode));
 
@@ -111,14 +111,15 @@ public sealed class CakeHostCommandLineTests
     }
 
     [Test]
-    public async Task VerbosityOption_Should_Report_An_Error_When_The_Value_Is_Not_A_Cake_Verbosity()
+    [MethodDataSource(typeof(CakeHostCommandLineData), nameof(CakeHostCommandLineData.InvalidVerbosityValues))]
+    public async Task VerbosityOption_Should_Report_An_Error_When_The_Value_Is_Not_A_Cake_Verbosity(string value)
     {
         var root = CakeHostCommandLine.CreateRootCommand((_, _) => Task.FromResult(CakeHostCommandLineData.SuccessExitCode));
 
-        var result = root.Parse(CakeHostCommandLineData.InvalidVerbosityArguments);
+        var result = root.Parse(CakeHostCommandLineData.VerbosityArguments(value));
 
         await Assert.That(result.Errors.Select(error => error.Message).ToArray())
-            .IsEquivalentTo(CakeHostCommandLineData.InvalidVerbosityErrors, CollectionOrdering.Matching);
+            .IsEquivalentTo(CakeHostCommandLineData.InvalidVerbosityErrors(value), CollectionOrdering.Matching);
     }
 
     [Test]

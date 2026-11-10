@@ -52,7 +52,7 @@ public static class CakeOptions
         Description = "Specifies the amount of information to be displayed (quiet, minimal, normal, verbose, diagnostic)",
         CustomParser = result =>
         {
-            var value = result.Tokens.Count == 0 ? null : result.Tokens[0].Value;
+            var value = result.Tokens[0].Value;
 
             if (VerbosityParser.TryParse(value, out var verbosity))
             {
