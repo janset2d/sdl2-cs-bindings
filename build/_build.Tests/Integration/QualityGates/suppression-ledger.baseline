@@ -4,7 +4,7 @@ Scans tracked C#, project XML, analyzer configs, Slopwatch files and workflows.
 Does not scan rsp files, Dockerfiles or analyzer-config items.
 
 build-switch: 46
-editorconfig: 122
+editorconfig: 121
 generated-code-attribute: 0
 generated-code-header: 16
 globalconfig: 0
@@ -133,7 +133,6 @@ editorconfig .editorconfig [*.{cs,vb}] dotnet_code_quality_unused_parameters = a
 editorconfig .editorconfig [*.{g.cs,generated.cs,designer.cs}] generated_code = true
 editorconfig .editorconfig [build/_build.Tests/Fixtures/Builders/NuspecBuilder.cs] dotnet_diagnostic.MA0045.severity = none | # ZIP fixtures build bytes in memory through Cake's synchronous fake filesystem; no disk I/O is awaited. # Winner: synchronous fixture arrangement; MA0045 remains enabled for every other file.
 editorconfig .editorconfig [build/_build.Tests/Fixtures/Builders/NuspecReader.cs] dotnet_diagnostic.MA0045.severity = none | # Nuspec assertions synchronously inspect bytes in Cake's fake filesystem, not real disk. # Winner: synchronous in-memory fixture inspection; MA0045 remains enabled for every other file.
-editorconfig .editorconfig [build/_build.Tests/Fixtures/CakeHostCancellationProbe.cs] dotnet_diagnostic.VSTHRD003.severity = none | # The probe owns its completion sources; the test releases their gates deterministically. # Winner: the controlled cancellation oracle; VSTHRD003 remains enabled for every other file.
 editorconfig .editorconfig [build/_build.Tests/Fixtures/FixtureLoader.cs] dotnet_diagnostic.MA0045.severity = none | # Embedded resources seed synchronous fixture constructors and data-source properties. # Winner: the embedded-fixture loading contract; MA0045 remains enabled for every other file.
 editorconfig .editorconfig [build/_build.Tests/Fixtures/RepositoryGates/GateScopes.cs] dotnet_diagnostic.MA0045.severity = none | # Gate scopes are synchronous predicates and inspect only the file prefix needed for classification. # Winner: the synchronous gate-scope contract; MA0045 remains enabled for every other file.
 editorconfig .editorconfig [build/_build.Tests/Fixtures/RepositoryGates/RepositoryFiles.cs] dotnet_diagnostic.MA0045.severity = none | # Tracked paths load lazily through synchronous properties, and gate predicates read repository text synchronously. # Winner: the repository-gate inventory contract; MA0045 remains enabled for every other file.

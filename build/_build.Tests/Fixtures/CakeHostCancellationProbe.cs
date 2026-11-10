@@ -1,24 +1,24 @@
 namespace Build.Tests.Fixtures;
 
-internal sealed class CakeHostCancellationProbe
+internal sealed class CakeHostCancellationProbe : IDisposable
 {
-    private readonly TaskCompletionSource _cancelled = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    private readonly TaskCompletionSource _started = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    private readonly TaskCompletionSource _finish = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly SemaphoreSlim _started = new(0, 1);
+    private readonly SemaphoreSlim _finish = new(0, 1);
+    private bool _cancelled;
 
-    public Task Started => _started.Task;
+    public Task WaitForStartAsync() => _started.WaitAsync();
     public bool ObservedCancellation { get; private set; }
     public bool CleanupRan { get; private set; }
 
     public async Task<int> InvokeAsync(CancellationToken cancellationToken)
     {
-        using var registration = cancellationToken.Register(_cancelled.SetResult);
-        _started.SetResult();
+        using var registration = cancellationToken.Register(() => _cancelled = true);
+        _started.Release();
 
         try
         {
-            await _finish.Task;
-            ObservedCancellation = _cancelled.Task.IsCompleted;
+            await _finish.WaitAsync(CancellationToken.None);
+            ObservedCancellation = _cancelled;
             return CakeHostCommandLineData.CancelledProbeExitCode;
         }
         finally
@@ -27,5 +27,11 @@ internal sealed class CakeHostCancellationProbe
         }
     }
 
-    public void Finish() => _finish.SetResult();
+    public void Finish() => _finish.Release();
+
+    public void Dispose()
+    {
+        _started.Dispose();
+        _finish.Dispose();
+    }
 }
