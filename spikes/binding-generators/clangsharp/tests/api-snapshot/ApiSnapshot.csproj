@@ -5,6 +5,8 @@
     <OutputType>Exe</OutputType>
     <IsTestProject>true</IsTestProject>
     <IsPackable>false</IsPackable>
+    <IsAotCompatible>false</IsAotCompatible>
+    <IsTrimmable>false</IsTrimmable>
     <RootNamespace>Janset.SDL2.ApiSnapshot</RootNamespace>
     <AssemblyName>Janset.SDL2.ApiSnapshot</AssemblyName>
   </PropertyGroup>
