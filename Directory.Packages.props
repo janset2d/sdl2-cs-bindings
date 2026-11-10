@@ -39,7 +39,7 @@
     <!-- test packages -->
     <PackageVersion Include="Cake.Testing" Version="6.3.0" />
     <PackageVersion Include="Microsoft.TestPlatform.ObjectModel" Condition="'$(TargetFramework)' == 'net462'" Version="17.11.1" />
-    <PackageVersion Include="NSubstitute" Version="5.3.0" />
+    <PackageVersion Include="NSubstitute" Version="6.2.0" />
     <PackageVersion Include="PublicApiGenerator" Version="11.5.4" />
     <PackageVersion Include="Spectre.Console.Testing" Version="0.57.2" />
     <PackageVersion Include="TUnit" Version="1.81.16" />
