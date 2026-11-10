@@ -1,3 +1,5 @@
+using Cake.Core.Diagnostics;
+
 namespace Build.Tests.Fixtures;
 
 internal static class CakeHostCommandLineData
@@ -28,7 +30,14 @@ internal static class CakeHostCommandLineData
     ];
 
     public static string[] UserTokens => ["--rid", Rid, "--tree"];
-    public static string[] LowercaseVerbosity => ["--verbosity", "quiet"];
+    public const string InvalidVerbosity = "not-a-verbosity";
+    public static string[] InvalidVerbosityArguments => ["-v", InvalidVerbosity];
+    public static string[] InvalidVerbosityErrors => [$"Invalid Cake verbosity '{InvalidVerbosity}'."];
+    public static IEnumerable<(string Value, Verbosity Expected)> LowercaseVerbosity() =>
+    [
+        ("quiet", Verbosity.Quiet), ("q", Verbosity.Quiet), ("m", Verbosity.Minimal),
+        ("n", Verbosity.Normal), ("v", Verbosity.Verbose), ("d", Verbosity.Diagnostic),
+    ];
     public static string[] CakeHelp => ["--help"];
     public static string[] WrapperHelpAliases => ["-h", "-?"];
     public static string[] OptionNames =>

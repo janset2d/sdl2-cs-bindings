@@ -87,14 +87,26 @@ public sealed class CakeHostCommandLineTests
     }
 
     [Test]
-    public async Task VerbosityOption_Should_Parse_Lowercase_Cake_Verbosity()
+    [MethodDataSource(typeof(CakeHostCommandLineData), nameof(CakeHostCommandLineData.LowercaseVerbosity))]
+    public async Task VerbosityOption_Should_Parse_Lowercase_Cake_Verbosity(string value, Verbosity expected)
     {
         var root = CakeHostCommandLine.CreateRootCommand((_, _) => Task.FromResult(0));
 
-        var result = root.Parse(CakeHostCommandLineData.LowercaseVerbosity);
+        var result = root.Parse(["-v", value]);
 
         await Assert.That(result.Errors).IsEmpty();
-        await Assert.That(result.GetValue(CakeOptions.VerbosityOption)).IsEqualTo(Verbosity.Quiet);
+        await Assert.That(result.GetValue(CakeOptions.VerbosityOption)).IsEqualTo(expected);
+    }
+
+    [Test]
+    public async Task VerbosityOption_Should_Report_An_Error_When_The_Value_Is_Not_A_Cake_Verbosity()
+    {
+        var root = CakeHostCommandLine.CreateRootCommand((_, _) => Task.FromResult(0));
+
+        var result = root.Parse(CakeHostCommandLineData.InvalidVerbosityArguments);
+
+        await Assert.That(result.Errors.Select(error => error.Message).ToArray())
+            .IsEquivalentTo(CakeHostCommandLineData.InvalidVerbosityErrors, CollectionOrdering.Matching);
     }
 
     [Test]

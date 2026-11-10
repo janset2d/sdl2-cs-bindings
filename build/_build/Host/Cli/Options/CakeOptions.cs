@@ -50,6 +50,18 @@ public static class CakeOptions
     public static readonly Option<Verbosity?> VerbosityOption = new("--verbosity", "-v")
     {
         Description = "Specifies the amount of information to be displayed (quiet, minimal, normal, verbose, diagnostic)",
+        CustomParser = result =>
+        {
+            var value = result.Tokens.Count == 0 ? null : result.Tokens[0].Value;
+
+            if (VerbosityParser.TryParse(value, out var verbosity))
+            {
+                return verbosity;
+            }
+
+            result.AddError($"Invalid Cake verbosity '{value}'.");
+            return null;
+        },
     };
 
     public static readonly Option<bool> VersionOption = new("-version")
