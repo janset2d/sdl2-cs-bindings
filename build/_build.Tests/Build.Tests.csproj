@@ -4,6 +4,7 @@
     <TargetFrameworks></TargetFrameworks>
     <OutputType>Exe</OutputType>
     <IsTestProject>true</IsTestProject>
+    <EnableTUnitPolyfills>false</EnableTUnitPolyfills>
     <RootNamespace>Build.Tests</RootNamespace>
     <AssemblyName>Build.Tests</AssemblyName>
     <IsAotCompatible>false</IsAotCompatible>

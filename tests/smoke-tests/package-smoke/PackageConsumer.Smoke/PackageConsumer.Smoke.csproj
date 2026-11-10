@@ -14,6 +14,7 @@
     <TargetFrameworks>$(ExecutableTargetFrameworks)</TargetFrameworks>
     <OutputType>Exe</OutputType>
     <IsTestProject>true</IsTestProject>
+    <EnableTUnitPolyfills>false</EnableTUnitPolyfills>
     <IsPackable>false</IsPackable>
 
     <!--
@@ -27,11 +28,6 @@
   <ItemGroup>
     <PackageReference Include="TUnit" />
 
-    <!-- PolySharp: source-only polyfills for modern C# attributes (ModuleInitializerAttribute,
-         IsExternalInit, etc.) on downlevel TFMs. Required for TUnit's source-generated bootstrap
-         to compile on net462 — TUnit itself targets netstandard2.0+net8.0+net9.0+net10.0 and
-         does not ship polyfills for older runtime metadata types. -->
-    <PackageReference Include="PolySharp" PrivateAssets="all" IncludeAssets="runtime;build;native;contentfiles;analyzers;buildtransitive" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'">
@@ -40,8 +36,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\..\..\..\assets\janset2d-sdl-min.png"
-          Link="TestAssets\janset2d-sdl-min.png"
-          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\..\assets\janset2d-sdl-min.png" Link="TestAssets\janset2d-sdl-min.png" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -3,6 +3,7 @@
 
   <PropertyGroup>
     <IncludeBuildOutput>false</IncludeBuildOutput>
+    <JansetPolyfill>false</JansetPolyfill>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <!-- slopwatch-ignore: SW005 Native payload packages intentionally have no lib/ref assemblies. -->
     <NoWarn>$(NoWarn);NU5128</NoWarn>

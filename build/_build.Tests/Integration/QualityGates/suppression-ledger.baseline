@@ -4,7 +4,7 @@ Scans tracked C#, project XML, analyzer configs, Slopwatch files and workflows.
 Does not scan rsp files, Dockerfiles or analyzer-config items.
 
 build-switch: 49
-editorconfig: 121
+editorconfig: 120
 generated-code-attribute: 0
 generated-code-header: 16
 globalconfig: 0
@@ -166,7 +166,6 @@ editorconfig .editorconfig [spikes/binding-generators/clangsharp/tests/abi-tests
 editorconfig .editorconfig [spikes/binding-generators/clangsharp/tests/abi-tests/**.cs] dotnet_diagnostic.IDE0008.severity = none | # ABI assertions expose native widths through explicit declared types. # Raw native memory is the subject of ABI tests. # Winner: global var preference; IDE0008 cannot fire while var is preferred globally.
 editorconfig .editorconfig [spikes/binding-generators/clangsharp/tests/abi-tests/**.cs] dotnet_diagnostic.S6640.severity = none | # ABI assertions expose native widths through explicit declared types. # Raw native memory is the subject of ABI tests. # Winner: native memory visibility; S6640 remains enabled for every other file.
 editorconfig .editorconfig [spikes/binding-generators/clangsharp/tests/abi-tests/Upstream/Assets/SurfaceAbiTests.cs] dotnet_diagnostic.S3267.severity = none | # Pointer elements cannot be LINQ type arguments; the loop frees what it filters. # Winner: native pointer cleanup; S3267 remains enabled for every other file.
-editorconfig .editorconfig [spikes/binding-generators/clangsharp/tests/abi-tests/{Infrastructure/Sdl/Scopes/SdlEnvironmentScope.cs,Upstream/Pure/PlatformAbiTests.cs}] dotnet_diagnostic.MA0144.severity = none | # OperatingSystem OS checks are unavailable on net462 until Polyfill reaches the spike projects. # Winner: one source across TFMs; MA0144 remains enabled for every other file.
 editorconfig .editorconfig [spikes/binding-generators/clangsharp/{postprocess/**.cs,oracle.cs}] dotnet_diagnostic.CA1305.severity = none | # Frozen generator tools retain their existing SDK analyzer behavior. # Winner: generator toolchain freeze; CA1305 remains enabled for every other file.
 editorconfig .editorconfig [spikes/binding-generators/clangsharp/{postprocess/**.cs,oracle.cs}] dotnet_diagnostic.CA1307.severity = none | # Frozen generator tools retain their existing SDK analyzer behavior. # Winner: generator toolchain freeze; CA1307 remains enabled for every other file.
 editorconfig .editorconfig [spikes/binding-generators/clangsharp/{postprocess/**.cs,oracle.cs}] dotnet_diagnostic.CA1515.severity = none | # Frozen generator tools retain their existing SDK analyzer behavior. # Winner: generator toolchain freeze; CA1515 remains enabled for every other file.

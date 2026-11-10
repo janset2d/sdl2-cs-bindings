@@ -4,6 +4,7 @@
     <TargetFrameworks>$(ExecutableTargetFrameworks)</TargetFrameworks>
     <OutputType>Exe</OutputType>
     <IsTestProject>true</IsTestProject>
+    <EnableTUnitPolyfills>false</EnableTUnitPolyfills>
     <IsPackable>false</IsPackable>
 
     <AssemblyName>Janset.SDL2.AbiTests</AssemblyName>
@@ -20,7 +21,6 @@
     <!-- slopwatch-ignore: SW006 Exact local-feed version is supplied by tools setup; CPM cannot own generated native package versions. -->
     <PackageReference Include="Janset.SDL2.Core.Native" VersionOverride="[$(JansetSdl2CorePackageVersion)]" PrivateAssets="all" />
     <PackageReference Include="TUnit" />
-    <PackageReference Include="PolySharp" PrivateAssets="all" IncludeAssets="runtime;build;native;contentfiles;analyzers;buildtransitive" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'">
