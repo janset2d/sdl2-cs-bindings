@@ -4,7 +4,7 @@ Scans tracked C#, project XML, analyzer configs, Slopwatch files and workflows.
 Does not scan rsp files, Dockerfiles or analyzer-config items.
 
 build-switch: 46
-editorconfig: 122
+editorconfig: 121
 generated-code-attribute: 0
 generated-code-header: 16
 globalconfig: 0
@@ -145,7 +145,6 @@ editorconfig .editorconfig [build/_build/EntryPoint.cs] dotnet_diagnostic.S4036.
 editorconfig .editorconfig [build/_build/Host/Cake/CakeJsonExtensions.cs] dotnet_diagnostic.RS0030.severity = none | # The Cake JSON extensions are the single serialization seam. # Winner: the single JSON seam; RS0030 remains enabled for every other file.
 editorconfig .editorconfig [build/_build/Host/Clock/SystemClockRegistration.cs] dotnet_diagnostic.RS0030.severity = none | # The host composition root selects the clock once for injection. # Winner: clock composition; RS0030 remains enabled for every other file.
 editorconfig .editorconfig [build/_build/Host/Processes/HostProcessRunner.cs] dotnet_diagnostic.RS0030.severity = none | # Cake's process runner cannot pin stream decoding or wait with cancellation; this is the single raw-process seam. # Winner: the host process contract (UTF-8 streams, cancellable wait); RS0030 remains enabled for every other file.
-editorconfig .editorconfig [build/_build/Program.cs] dotnet_diagnostic.MA0045.severity = none | # Cancellation callbacks must finish cancellation before the synchronous signal handler returns. # Winner: synchronous signal handling; MA0045 remains enabled for every other file.
 editorconfig .editorconfig [build/_build/Results/Result.cs] dotnet_diagnostic.CA1000.severity = none | # Result factories construct a fully typed success or failure without a publicly invalid state. # Winner: the typed result construction contract; CA1000 remains enabled for every other file.
 editorconfig .editorconfig [build/_build/Results/ValidationReport.cs] dotnet_diagnostic.CA1710.severity = none | # ValidationReport exposes validity and ordered findings, not a general-purpose collection API. # Winner: the validation-report domain name; CA1710 remains enabled for every other file.
 editorconfig .editorconfig [build/_build/Targets/Harvest/Services/ArtifactPlanner.cs] dotnet_diagnostic.MA0051.severity = none | # CreatePlanAsync holds one policy whose split into a named collaborator is a design change tracked in #87. # Winner: collaborator design is settled in #87 before extraction; MA0051 remains enabled for every other file.

@@ -14,10 +14,11 @@ public static class ResolveVersionsFromManifestOptions
     /// Prerelease suffix appended by manifest-derived version composition. Required by
     /// <c>ResolveVersionsFromManifestTask</c>; empty/whitespace fails loud at task entry.
     /// </summary>
-    public static readonly Option<string?> VersionSuffixOption = new(
-        aliases: ["--suffix"],
-        description: "Prerelease suffix appended to <UpstreamMajor>.<UpstreamMinor>.0 by ResolveVersionsFromManifest, e.g. 'local.<timestamp>' or " +
-        "'ci.<run-id>'. Required when invoking --target ResolveVersionsFromManifest.");
+    public static readonly Option<string?> VersionSuffixOption = new("--suffix")
+    {
+        Description = "Prerelease suffix appended to <UpstreamMajor>.<UpstreamMinor>.0 by ResolveVersionsFromManifest, e.g. 'local.<timestamp>' or " +
+            "'ci.<run-id>'. Required when invoking --target ResolveVersionsFromManifest.",
+    };
 
     /// <summary>
     /// Repeated family identifier filter. Empty list means all families in
@@ -25,12 +26,11 @@ public static class ResolveVersionsFromManifestOptions
     /// Consumed only by <c>ResolveVersionsFromManifestTask</c> — the explicit task takes
     /// scope from its operator input mapping, not from this flag.
     /// </summary>
-    public static readonly Option<List<string>> VersionScopeOption = new(
-        aliases: ["--scope"],
-        description: "Repeated family identifier filter for ResolveVersionsFromManifest output. Each occurrence is one family name (e.g. --scope " +
-        "sdl2-core --scope sdl2-image). Empty = all families. ResolveVersionsFromExplicit ignores this flag — the operator-supplied mapping IS the " +
-        "scope there.")
+    public static readonly Option<List<string>> VersionScopeOption = new("--scope")
     {
+        Description = "Repeated family identifier filter for ResolveVersionsFromManifest output. Each occurrence is one family name (e.g. --scope " +
+            "sdl2-core --scope sdl2-image). Empty = all families. ResolveVersionsFromExplicit ignores this flag — the operator-supplied mapping IS the " +
+            "scope there.",
         Arity = ArgumentArity.ZeroOrMore,
     };
 }

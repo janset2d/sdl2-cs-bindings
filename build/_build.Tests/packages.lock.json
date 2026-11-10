@@ -450,8 +450,7 @@
           "NuGet.Versioning": "[7.9.0, )",
           "Spectre.Console": "[0.57.2, )",
           "Spectre.Console.Cli": "[0.55.0, )",
-          "System.CommandLine": "[2.0.0-beta4.22272.1, )",
-          "System.CommandLine.NamingConventionBinder": "[2.0.0-beta4.22272.1, )"
+          "System.CommandLine": "[2.0.14, )"
         }
       },
       "Cake.CMake": {
@@ -529,18 +528,9 @@
       },
       "System.CommandLine": {
         "type": "CentralTransitive",
-        "requested": "[2.0.0-beta4.22272.1, )",
-        "resolved": "2.0.0-beta4.22272.1",
-        "contentHash": "1uqED/q2H0kKoLJ4+hI2iPSBSEdTuhfCYADeJrAqERmiGQ2NNacYKRNEQ+gFbU4glgVyK8rxI+ZOe1onEtr/Pg=="
-      },
-      "System.CommandLine.NamingConventionBinder": {
-        "type": "CentralTransitive",
-        "requested": "[2.0.0-beta4.22272.1, )",
-        "resolved": "2.0.0-beta4.22272.1",
-        "contentHash": "ux2eUA/syF+JtlpMDc/Lsd6PBIBuwjH3AvHnestoh5uD0WKT5b+wkQxDWVCqp9qgVjMBTLNhX19ZYFtenunt9A==",
-        "dependencies": {
-          "System.CommandLine": "2.0.0-beta4.22272.1"
-        }
+        "requested": "[2.0.14, )",
+        "resolved": "2.0.14",
+        "contentHash": "15fyVO4aG6poR6IKmhM74zf7PUzaU6FZAGm2d3SQSO9yIyGAeo44e6t9qeKjjaqyMEqYdqcb2G1B0gpLoDU2cA=="
       },
       "System.Security.Cryptography.Pkcs": {
         "type": "CentralTransitive",

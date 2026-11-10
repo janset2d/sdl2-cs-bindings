@@ -14,7 +14,9 @@ public static class StageVersionsOptions
     /// <c>--target ResolveVersions</c> and consumed by stage targets.
     /// ResolveVersions does not consume this flag.
     /// </summary>
-    public static readonly Option<string?> VersionsFileOption = new(
-        aliases: ["--versions-file"],
-        description: "Stage-target input. Path to flat {family: semver} JSON from ResolveVersions output. PreFlight/Package/ConsumerSmoke/PublishStaging consume this");
+    public static readonly Option<string?> VersionsFileOption = new("--versions-file")
+    {
+        Description = "Stage-target input. Path to flat {family: semver} JSON from ResolveVersions output. " +
+            "PreFlight/Package/ConsumerSmoke/PublishStaging consume this",
+    };
 }

@@ -1,27 +1,20 @@
-using System.CommandLine;
-using System.CommandLine.Invocation;
 using Build.Data.Manifest;
-using Build.Data.Manifest.Models;
 using Build.Data.ProjectMetadata;
 using Build.Data.Versions;
-using Build.Host.Cli.Options;
+using Build.Host.Paths;
 using Build.Targets.NativeSmoke.Services;
 using Build.Targets.Package.Services;
 using Build.Targets.PackageConsumerSmoke.Services;
 using Build.Tests.Fixtures;
 using Build.Validation.Packaging;
-using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 using Microsoft.Extensions.DependencyInjection;
+using TUnit.Assertions.Enums;
 
 namespace Build.Tests.Unit.CompositionRoot;
 
 public sealed class ProgramCompositionRootTests
 {
-    private static readonly Lock ParseRootLock = new();
-    private static readonly Lock EnvironmentVariableLock = new();
-    private static readonly RootCommand ParsingRoot = CreateParsingRoot();
-
     [Test]
     public async Task IsVerbosityArg_Should_Recognize_Long_And_Short_Flags()
     {
@@ -51,11 +44,11 @@ public sealed class ProgramCompositionRootTests
     {
         var originalArgs = Array.Empty<string>();
         var repoRoot = new DirectoryPath("C:/repo-root");
-        var invocationContext = CreateInvocationContext(originalArgs);
+        var parseResult = ProgramCompositionRootFixture.CreateParseResult(originalArgs);
 
-        var effectiveArgs = RunWithActionsRunnerDebug(
+        var effectiveArgs = await ProgramCompositionRootFixture.RunWithActionsRunnerDebugAsync(
             value: null,
-            () => EntryPoint.GetEffectiveCakeArguments(originalArgs, repoRoot, invocationContext));
+            () => EntryPoint.GetEffectiveCakeArguments(repoRoot, parseResult));
 
         await Assert.That(effectiveArgs).Contains("--working");
         await Assert.That(effectiveArgs).Contains(repoRoot.FullPath);
@@ -67,11 +60,11 @@ public sealed class ProgramCompositionRootTests
     {
         var originalArgs = Array.Empty<string>();
         var repoRoot = new DirectoryPath("C:/repo-root");
-        var invocationContext = CreateInvocationContext(originalArgs);
+        var parseResult = ProgramCompositionRootFixture.CreateParseResult(originalArgs);
 
-        var effectiveArgs = RunWithActionsRunnerDebug(
+        var effectiveArgs = await ProgramCompositionRootFixture.RunWithActionsRunnerDebugAsync(
             "true",
-            () => EntryPoint.GetEffectiveCakeArguments(originalArgs, repoRoot, invocationContext));
+            () => EntryPoint.GetEffectiveCakeArguments(repoRoot, parseResult));
 
         await Assert.That(effectiveArgs).Contains("--verbosity");
         await Assert.That(effectiveArgs).Contains("diagnostic");
@@ -83,11 +76,11 @@ public sealed class ProgramCompositionRootTests
     {
         var originalArgs = new[] { "--verbosity", "quiet", "--working", "C:/custom" };
         var repoRoot = new DirectoryPath("C:/repo-root");
-        var invocationContext = CreateInvocationContext(originalArgs);
+        var parseResult = ProgramCompositionRootFixture.CreateParseResult(originalArgs);
 
-        var effectiveArgs = RunWithActionsRunnerDebug(
+        var effectiveArgs = await ProgramCompositionRootFixture.RunWithActionsRunnerDebugAsync(
             "true",
-            () => EntryPoint.GetEffectiveCakeArguments(originalArgs, repoRoot, invocationContext));
+            () => EntryPoint.GetEffectiveCakeArguments(repoRoot, parseResult));
 
         await Assert.That(effectiveArgs.Length).IsEqualTo(originalArgs.Length);
 
@@ -95,6 +88,60 @@ public sealed class ProgramCompositionRootTests
         {
             await Assert.That(effectiveArgs[i]).IsEqualTo(originalArgs[i]);
         }
+    }
+
+    [Test]
+    public async Task RunCakeHostAsync_Should_Forward_The_User_Tokens_And_The_Working_Path()
+    {
+        using var directory = new TempDirectory(ProgramCompositionRootData.RepoRootPrefix);
+        var parseResult = ProgramCompositionRootFixture.CreateHostParseResult(directory.Path);
+        var probe = new CakeHostRunProbe();
+
+        var exitCode = await ProgramCompositionRootFixture.RunWithActionsRunnerDebugAsync(
+            null,
+            () => EntryPoint.RunCakeHostAsync(parseResult, probe.Run, CancellationToken.None));
+
+        await Assert.That(probe.Arguments).IsEquivalentTo(
+            ProgramCompositionRootData.ExpectedCakeArguments(directory.Path, new DirectoryPath(directory.Path).FullPath), CollectionOrdering.Matching);
+        await Assert.That(exitCode).IsEqualTo(ProgramCompositionRootData.ProbeExitCode);
+    }
+
+    [Test]
+    public async Task RunCakeHostAsync_Should_Register_The_Action_Token()
+    {
+        using var directory = new TempDirectory(ProgramCompositionRootData.RepoRootPrefix);
+        var parseResult = ProgramCompositionRootFixture.CreateHostParseResult(directory.Path);
+        var probe = new CakeHostRunProbe();
+        using var cancellation = new CancellationTokenSource();
+
+        await ProgramCompositionRootFixture.RunWithActionsRunnerDebugAsync(
+            null,
+            () => EntryPoint.RunCakeHostAsync(parseResult, probe.Run, cancellation.Token));
+
+        var services = ProgramCompositionRootFixture.CreateServiceCollection(FakeCakeWorld.CreateWindows());
+        await Assert.That(probe.ConfigureServices).IsNotNull();
+        probe.ConfigureServices!(services);
+        using var provider = services.BuildServiceProvider();
+        await Assert.That(provider.GetRequiredService<CancellationToken>()).IsEqualTo(cancellation.Token);
+        await Assert.That(provider.GetService<IProjectMetadataReader>()).IsTypeOf<ProjectMetadataReader>();
+        await Assert.That(provider.GetRequiredService<IPathService>().RepoRoot.FullPath).IsEqualTo(new DirectoryPath(directory.Path).FullPath);
+        await Assert.That(provider.GetRequiredService<ParsedArguments>().RepoRoot?.FullName).IsEqualTo(directory.Path);
+    }
+
+    [Test]
+    public async Task RunCakeHostAsync_Should_Not_Start_Cake_When_The_Token_Is_Already_Cancelled()
+    {
+        using var directory = new TempDirectory(ProgramCompositionRootData.RepoRootPrefix);
+        var parseResult = ProgramCompositionRootFixture.CreateHostParseResult(directory.Path);
+        var probe = new CakeHostRunProbe();
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        await Assert.That(() => ProgramCompositionRootFixture.RunWithActionsRunnerDebugAsync(
+            null,
+            () => EntryPoint.RunCakeHostAsync(parseResult, probe.Run, cancellation.Token)))
+            .Throws<OperationCanceledException>();
+        await Assert.That(probe.WasInvoked).IsFalse();
     }
 
     [Test]
@@ -112,10 +159,10 @@ public sealed class ProgramCompositionRootTests
     public async Task ConfigureBuildServices_Should_Resolve_Core_Production_Services()
     {
         var world = FakeCakeWorld.CreateWindows()
-            .WithManifestObject(CreateCompositionRootManifest("x64-windows-hybrid"));
+            .WithManifestObject(ProgramCompositionRootFixture.CreateCompositionRootManifest("x64-windows-hybrid"));
 
-        var services = CreateServiceCollectionForCompositionRoot(world);
-        var parsedArguments = CreateParsedArguments(world.RepoRoot.FullPath, "win-x64");
+        var services = ProgramCompositionRootFixture.CreateServiceCollection(world);
+        var parsedArguments = ProgramCompositionRootFixture.CreateParsedArguments(world.RepoRoot.FullPath, "win-x64");
 
         EntryPoint.ConfigureBuildServices(services, parsedArguments, world.RepoRoot);
 
@@ -142,87 +189,19 @@ public sealed class ProgramCompositionRootTests
         await Assert.That(msvcDevEnvironment.GetType()).IsEqualTo(typeof(MsvcDevEnvironment));
     }
 
-    private static InvocationContext CreateInvocationContext(params string[] args)
+    [Test]
+    public async Task ConfigureHostServices_Should_Register_The_Action_Token()
     {
-        lock (ParseRootLock)
-        {
-            var parseResult = ParsingRoot.Parse(args);
-            return new InvocationContext(parseResult);
-        }
-    }
+        var world = FakeCakeWorld.CreateWindows();
+        var services = ProgramCompositionRootFixture.CreateServiceCollection(world);
+        var arguments = ProgramCompositionRootFixture.CreateParsedArguments(world.RepoRoot.FullPath, "win-x64");
+        using var cancellation = new CancellationTokenSource();
 
-    private static T RunWithActionsRunnerDebug<T>(string? value, Func<T> callback)
-    {
-        lock (EnvironmentVariableLock)
-        {
-            var previous = Environment.GetEnvironmentVariable("ACTIONS_RUNNER_DEBUG");
+        EntryPoint.ConfigureHostServices(services, arguments, world.RepoRoot, cancellation.Token);
 
-            try
-            {
-                Environment.SetEnvironmentVariable("ACTIONS_RUNNER_DEBUG", value);
-                return callback();
-            }
-            finally
-            {
-                Environment.SetEnvironmentVariable("ACTIONS_RUNNER_DEBUG", previous);
-            }
-        }
-    }
-
-    private static RootCommand CreateParsingRoot()
-    {
-        var root = new RootCommand("Program helper parse root for tests");
-        root.AddOption(CakeOptions.VerbosityOption);
-        root.AddOption(CakeOptions.WorkingPathOption);
-        return root;
-    }
-
-    private static ServiceCollection CreateServiceCollectionForCompositionRoot(FakeCakeWorld world)
-    {
-        var services = new ServiceCollection();
-        services.AddSingleton(world.CakeContext.Environment);
-        services.AddSingleton(world.CakeContext);
-        services.AddSingleton<IFileSystem>(world.FileSystem);
-        services.AddSingleton<ICakeLog>(world.Log);
-
-        return services;
-    }
-
-    private static ParsedArguments CreateParsedArguments(string repoRoot, string rid)
-    {
-        return new ParsedArguments(
-            RepoRoot: new DirectoryInfo(repoRoot),
-            Config: "Release",
-            VcpkgDir: null,
-            VcpkgInstalledDir: null,
-            Library: [],
-            Rid: rid,
-            Dll: [],
-            Suffix: null,
-            Scope: [],
-            ExplicitVersion: [],
-            ExplicitVersions: null,
-            VersionsFile: null);
-    }
-
-    private static ManifestConfig CreateCompositionRootManifest(string triplet)
-    {
-        var manifest = ManifestFixture.CreateTestManifestConfig();
-
-        return manifest with
-        {
-            Runtimes =
-            [
-                new RuntimeInfo
-                {
-                    Rid = "win-x64",
-                    Triplet = triplet,
-                    Runner = "windows-latest",
-                    ContainerImage = null,
-                },
-            ],
-            PackageFamilies = [manifest.PackageFamilies.Single(family => string.Equals(family.Name, "sdl2-core", StringComparison.OrdinalIgnoreCase))],
-            LibraryManifests = [ManifestFixture.CreateTestCoreLibrary()],
-        };
+        using var provider = services.BuildServiceProvider();
+        var registeredToken = provider.GetRequiredService<CancellationToken>();
+        await Assert.That(registeredToken).IsEqualTo(cancellation.Token);
+        await Assert.That(provider.GetService<IProjectMetadataReader>()).IsTypeOf<ProjectMetadataReader>();
     }
 }

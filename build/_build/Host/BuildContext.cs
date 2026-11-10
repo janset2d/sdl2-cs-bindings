@@ -85,8 +85,6 @@ public sealed class BuildContext : FrostingContext
     /// <summary>Operator-supplied --library list. Consumed by Inspect-HarvestedDependencies.</summary>
     public IReadOnlyList<string> Libraries => _libraries;
 
-    /// <summary>Process-level cancellation token. Wired by Program.cs to Console.CancelKeyPress + SIGTERM.
-    /// Tasks must read this at the top of RunAsync and forward to async collaborators rather than
-    /// passing CancellationToken.None or default.</summary>
+    /// <summary>System.CommandLine invocation token; read at task entry and forward to async collaborators.</summary>
     public CancellationToken CancellationToken => _ct;
 }

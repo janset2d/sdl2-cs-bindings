@@ -619,11 +619,6 @@ dotnet_diagnostic.CA1000.severity = none
 [build/_build/Results/ValidationReport.cs]
 dotnet_diagnostic.CA1710.severity = none
 
-# Cancellation callbacks must finish cancellation before the synchronous signal handler returns.
-# Winner: synchronous signal handling; MA0045 remains enabled for every other file.
-[build/_build/Program.cs]
-dotnet_diagnostic.MA0045.severity = none
-
 # The validator implements a synchronous contract over small Cake-managed project files.
 # Winner: the synchronous validation contract; MA0045 remains enabled for every other file.
 [build/_build/Validation/Manifest/CsprojPackContractValidator.cs]

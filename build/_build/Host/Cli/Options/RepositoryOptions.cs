@@ -4,10 +4,8 @@ namespace Build.Host.Cli.Options;
 
 public static class RepositoryOptions
 {
-    public static readonly Option<DirectoryInfo?> RepoRootOption = new(
-        aliases: ["--repo-root"],
-        description: "Absolute path to the repository root. If not specified, calculated via git.")
+    public static readonly Option<DirectoryInfo?> RepoRootOption = new("--repo-root")
     {
-        IsRequired = false,
+        Description = "Absolute path to the repository root. If not specified, calculated via git.",
     };
 }
